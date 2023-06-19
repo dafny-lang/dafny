@@ -9,21 +9,23 @@ namespace Microsoft.Dafny;
 public class ProgramResolver {
   public Program Program { get; }
 
-  public DafnyOptions Options { get; }
-  public SystemModuleManager SystemModuleManager => Program.SystemModuleManager;
-  public ErrorReporter Reporter { get; }
+  private readonly Dictionary<TopLevelDeclWithMembers, Dictionary<string, MemberDecl>> classMembers = new();
 
   protected readonly Graph<ModuleDecl> dependencies = new();
-
-  public FreshIdGenerator defaultTempVarIdGenerator => Program.Compilation.IdGenerator;
-  public readonly Dictionary<TopLevelDeclWithMembers, Dictionary<string, MemberDecl>> classMembers = new();
+  public DafnyOptions Options => Program.Options;
+  public SystemModuleManager SystemModuleManager => Program.SystemModuleManager;
+  public ErrorReporter Reporter => Program.Reporter;
 
   public ProgramResolver(Program program) {
-    this.Program = program;
-    Reporter = program.Reporter;
-    Options = program.Options;
+    Program = program;
   }
 
+  public Dictionary<string, MemberDecl> GetClassMembers(TopLevelDeclWithMembers key) {
+    if (classMembers.TryGetValue(key, out var result)) {
+      return result;
+    }
+    return null;
+  }
 
   public void Resolve(Program program, CancellationToken cancellationToken) {
     Contract.Requires(program != null);
@@ -32,12 +34,12 @@ public class ProgramResolver {
     Type.EnableScopes();
     // For the formatter, we ensure we take snapshots of the PrefixNamedModules and topleveldecls
     program.DefaultModuleDef.PreResolveSnapshotForFormatter();
-    var origErrorCount = Reporter.ErrorCount; //TODO: This is used further below, but not in the >0 comparisons in the next few lines. Is that right?
+    var startingErrorCount = Reporter.ErrorCount;
     var bindings = new ModuleBindings(null);
     var bindings2 = program.DefaultModuleDef.BindModuleNames(this, bindings);
     bindings.BindName(program.DefaultModule.Name, program.DefaultModule, bindings2);
 
-    if (Reporter.ErrorCount > 0) {
+    if (Reporter.ErrorCount != startingErrorCount) {
       return;
     } // if there were errors, then the implict ModuleBindings data structure invariant
       // is violated, so Processing dependencies will not succeed.
@@ -49,7 +51,7 @@ public class ProgramResolver {
     // Default module is never cached so this is a noop
 
     declarationPointers[program.DefaultModule] = v => program.DefaultModule = (LiteralModuleDecl)v;
-    ProcessDependencies(program.DefaultModule, bindings2, dependencies, declarationPointers);
+    ProcessDependencies(program.DefaultModule, bindings2, declarationPointers);
     // check for cycles in the import graph
     foreach (var cycle in dependencies.AllCycles()) {
       Resolver.ReportCycleError(Reporter, cycle, m => m.tok,
@@ -57,7 +59,7 @@ public class ProgramResolver {
         "module definition contains a cycle (note: parent modules implicitly depend on submodules)");
     }
 
-    if (Reporter.ErrorCount > 0) {
+    if (Reporter.ErrorCount != startingErrorCount) {
       return;
     }
 
@@ -95,7 +97,7 @@ public class ProgramResolver {
       }
     }
 
-    if (Reporter.ErrorCount != origErrorCount) {
+    if (Reporter.ErrorCount != startingErrorCount) {
       return;
     }
 
@@ -107,7 +109,7 @@ public class ProgramResolver {
         rewriter.PostResolve(module);
       }
     }
-    
+
     CheckDuplicateModuleNames(program);
 
     foreach (var rewriter in compilation.Rewriters) {
@@ -167,7 +169,7 @@ public class ProgramResolver {
   /// This could happen if they are given the same name using the 'extern' declaration modifier.
   /// </summary>
   /// <param name="program">The Dafny program being compiled.</param>
-  void CheckDuplicateModuleNames(Program program) {
+  private void CheckDuplicateModuleNames(Program program) {
     // Check that none of the modules have the same CompileName.
     Dictionary<string, ModuleDefinition> compileNameMap = new Dictionary<string, ModuleDefinition>();
     foreach (ModuleDefinition m in program.CompileModules) {
@@ -198,45 +200,11 @@ public class ProgramResolver {
              : "");
   }
 
-  private bool ResolveQualifiedModuleIdRootRefines(ModuleDefinition context, ModuleBindings bindings, ModuleQualifiedId qid,
-    out ModuleDecl result) {
-    Contract.Assert(qid != null);
-    IToken root = qid.Path[0].StartToken;
-    result = null;
-    bool res = bindings.TryLookupFilter(root, out result, m => m.EnclosingModuleDefinition != context);
-    return res;
-  }
-
-  // Find a matching module for the root of the QualifiedId, ignoring
-  // (a) the module (context) itself and (b) any local imports
-  // The latter is so that if one writes 'import A`E  import F = A`F' the second A does not
-  // resolve to the alias produced by the first import
-  private bool ResolveQualifiedModuleIdRootImport(AliasModuleDecl context, ModuleBindings bindings, ModuleQualifiedId qid,
-    out ModuleDecl result) {
-    Contract.Assert(qid != null);
-    IToken root = qid.Path[0].StartToken;
-    result = null;
-    bool res = bindings.TryLookupFilter(root, out result,
-      m => context != m && ((context.EnclosingModuleDefinition == m.EnclosingModuleDefinition && context.Exports.Count == 0) || m is LiteralModuleDecl));
-    return res;
-  }
-
-  private bool ResolveQualifiedModuleIdRootAbstract(AbstractModuleDecl context, ModuleBindings bindings, ModuleQualifiedId qid,
-    out ModuleDecl result) {
-    Contract.Assert(qid != null);
-    IToken root = qid.Path[0].StartToken;
-    result = null;
-    bool res = bindings.TryLookupFilter(root, out result,
-      m => context != m && ((context.EnclosingModuleDefinition == m.EnclosingModuleDefinition && context.Exports.Count == 0) || m is LiteralModuleDecl));
-    return res;
-  }
-
   private void ProcessDependenciesDefinition(ModuleDecl decl, ModuleDefinition m, ModuleBindings bindings,
-    Graph<ModuleDecl> dependencies,
     IDictionary<ModuleDecl, Action<ModuleDecl>> declarationPointers) {
     Contract.Assert(decl is LiteralModuleDecl);
     if (m.RefinementQId != null) {
-      bool res = ResolveQualifiedModuleIdRootRefines(((LiteralModuleDecl)decl).ModuleDef, bindings, m.RefinementQId, out var other);
+      bool res = bindings.ResolveQualifiedModuleIdRootRefines(((LiteralModuleDecl)decl).ModuleDef, m.RefinementQId, out var other);
       m.RefinementQId.Root = other;
       if (!res) {
         Reporter.Error(MessageSource.Resolver, m.RefinementQId.RootToken(),
@@ -257,7 +225,7 @@ public class ProgramResolver {
       if (pointer.Get() is ModuleDecl moduleDecl) {
         declarationPointers.Add(moduleDecl, v => {
           pointer.Set(v);
-          v.EnclosingModuleDefinition = m; // TODO still need test that fails if this line is not here.
+          v.EnclosingModuleDefinition = m;
           if (v is LiteralModuleDecl literalModuleDecl) {
             literalModuleDecl.ModuleDef.EnclosingModule = m;
           }
@@ -266,49 +234,46 @@ public class ProgramResolver {
     }
 
     foreach (var toplevel in m.TopLevelDecls) {
-      if (toplevel is ModuleDecl) {
-        var d = (ModuleDecl)toplevel;
-        dependencies.AddEdge(decl, d);
-        var subBindings = bindings.SubBindings(d.Name);
-        ProcessDependencies(d, subBindings ?? bindings, dependencies, declarationPointers);
-        if (!m.IsAbstract && d is AbstractModuleDecl && ((AbstractModuleDecl)d).QId.Root != null) {
-          Reporter.Error(MessageSource.Resolver, d.tok,
-            "The abstract import named {0} (using :) may only be used in an abstract module declaration",
-            d.Name);
-        }
+      if (toplevel is not ModuleDecl moduleDecl) {
+        continue;
+      }
+
+      dependencies.AddEdge(decl, moduleDecl);
+      var subBindings = bindings.SubBindings(moduleDecl.Name);
+      ProcessDependencies(moduleDecl, subBindings ?? bindings, declarationPointers);
+      if (!m.IsAbstract && moduleDecl is AbstractModuleDecl && ((AbstractModuleDecl)moduleDecl).QId.Root != null) {
+        Reporter.Error(MessageSource.Resolver, moduleDecl.tok,
+          "The abstract import named {0} (using :) may only be used in an abstract module declaration",
+          moduleDecl.Name);
       }
     }
   }
 
   private void ProcessDependencies(ModuleDecl moduleDecl, ModuleBindings bindings,
-    Graph<ModuleDecl> dependencies,
     IDictionary<ModuleDecl, Action<ModuleDecl>> declarationPointers) {
     dependencies.AddVertex(moduleDecl);
     if (moduleDecl is LiteralModuleDecl) {
-      ProcessDependenciesDefinition(moduleDecl, ((LiteralModuleDecl)moduleDecl).ModuleDef, bindings, dependencies, declarationPointers);
-    } else if (moduleDecl is AliasModuleDecl) {
-      var alias = moduleDecl as AliasModuleDecl;
+      ProcessDependenciesDefinition(moduleDecl, ((LiteralModuleDecl)moduleDecl).ModuleDef, bindings, declarationPointers);
+    } else if (moduleDecl is AliasModuleDecl aliasDecl) {
       // TryLookupFilter works outward, looking for a match to the filter for
       // each enclosing module.
-      if (!ResolveQualifiedModuleIdRootImport(alias, bindings, alias.TargetQId, out var root)) {
+      if (!bindings.ResolveQualifiedModuleIdRootImport(aliasDecl, aliasDecl.TargetQId, out var root)) {
         //        if (!bindings.TryLookupFilter(alias.TargetQId.rootToken(), out root, m => alias != m)
-        Reporter.Error(MessageSource.Resolver, alias.tok, ModuleNotFoundErrorMessage(0, alias.TargetQId.Path));
+        Reporter.Error(MessageSource.Resolver, aliasDecl.tok, ModuleNotFoundErrorMessage(0, aliasDecl.TargetQId.Path));
       } else {
-        alias.TargetQId.Root = root;
-        declarationPointers.AddOrUpdate(root, v => alias.TargetQId.Root = v, Util.Concat);
-        dependencies.AddEdge(moduleDecl, root);
+        aliasDecl.TargetQId.Root = root;
+        declarationPointers.AddOrUpdate(root, v => aliasDecl.TargetQId.Root = v, Util.Concat);
+        dependencies.AddEdge(aliasDecl, root);
       }
-    } else if (moduleDecl is AbstractModuleDecl) {
-      var abs = moduleDecl as AbstractModuleDecl;
-      ModuleDecl root;
-      if (!ResolveQualifiedModuleIdRootAbstract(abs, bindings, abs.QId, out root)) {
+    } else if (moduleDecl is AbstractModuleDecl abstractDecl) {
+      if (!bindings.ResolveQualifiedModuleIdRootAbstract(abstractDecl, abstractDecl.QId, out var root)) {
         //if (!bindings.TryLookupFilter(abs.QId.rootToken(), out root,
         //  m => abs != m && (((abs.EnclosingModuleDefinition == m.EnclosingModuleDefinition) && (abs.Exports.Count == 0)) || m is LiteralModuleDecl)))
-        Reporter.Error(MessageSource.Resolver, abs.tok, ModuleNotFoundErrorMessage(0, abs.QId.Path));
+        Reporter.Error(MessageSource.Resolver, abstractDecl.tok, ModuleNotFoundErrorMessage(0, abstractDecl.QId.Path));
       } else {
-        abs.QId.Root = root;
-        declarationPointers.AddOrUpdate(root, v => abs.QId.Root = v, Util.Concat);
-        dependencies.AddEdge(moduleDecl, root);
+        abstractDecl.QId.Root = root;
+        declarationPointers.AddOrUpdate(root, v => abstractDecl.QId.Root = v, Util.Concat);
+        dependencies.AddEdge(abstractDecl, root);
       }
     }
   }

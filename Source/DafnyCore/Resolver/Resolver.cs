@@ -56,7 +56,7 @@ namespace Microsoft.Dafny {
       return d.IsVisibleInScope(moduleInfo.VisibilityScope);
     }
 
-    public FreshIdGenerator defaultTempVarIdGenerator => ProgramResolver.defaultTempVarIdGenerator;
+    public FreshIdGenerator defaultTempVarIdGenerator => ProgramResolver.Program.Compilation.IdGenerator;
 
     public string FreshTempVarName(string prefix, ICodeContext context) {
       var gen = context is Declaration decl ? decl.IdGenerator : defaultTempVarIdGenerator;
@@ -77,10 +77,7 @@ namespace Microsoft.Dafny {
       if (moduleClassMembers.TryGetValue(key, out var result)) {
         return result;
       }
-      if (ProgramResolver.classMembers.TryGetValue(key, out result)) {
-        return result;
-      }
-      return null;
+      return ProgramResolver.GetClassMembers(key);
     }
 
     private Dictionary<TypeParameter, Type> SelfTypeSubstitution;

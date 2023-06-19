@@ -50,4 +50,39 @@ public class ModuleBindings {
     bindings.TryGetValue(name, out v);
     return v;
   }
+
+  public bool ResolveQualifiedModuleIdRootAbstract(AbstractModuleDecl context, ModuleQualifiedId qid,
+    out ModuleDecl result) {
+    Contract.Assert(qid != null);
+    IToken root = qid.Path[0].StartToken;
+    result = null;
+    bool res = TryLookupFilter(root, out result,
+      m => context != m && ((context.EnclosingModuleDefinition == m.EnclosingModuleDefinition && context.Exports.Count == 0) || m is LiteralModuleDecl));
+    return res;
+  }
+
+  /// <summary>
+  /// Find a matching module for the root of the QualifiedId, ignoring
+  /// (a) the module (context) itself and (b) any local imports
+  /// The latter is so that if one writes 'import A`E  import F = A`F' the second A does not
+  /// resolve to the alias produced by the first import
+  /// </summary>
+  public bool ResolveQualifiedModuleIdRootImport(AliasModuleDecl context, ModuleQualifiedId qid,
+    out ModuleDecl result) {
+    Contract.Assert(qid != null);
+    IToken root = qid.Path[0].StartToken;
+    result = null;
+    bool res = TryLookupFilter(root, out result,
+      m => context != m && ((context.EnclosingModuleDefinition == m.EnclosingModuleDefinition && context.Exports.Count == 0) || m is LiteralModuleDecl));
+    return res;
+  }
+
+  public bool ResolveQualifiedModuleIdRootRefines(ModuleDefinition context, ModuleQualifiedId qid,
+    out ModuleDecl result) {
+    Contract.Assert(qid != null);
+    IToken root = qid.Path[0].StartToken;
+    result = null;
+    bool res = TryLookupFilter(root, out result, m => m.EnclosingModuleDefinition != context);
+    return res;
+  }
 }
