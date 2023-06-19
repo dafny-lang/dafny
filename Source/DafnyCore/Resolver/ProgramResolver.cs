@@ -38,7 +38,10 @@ public class ProgramResolver {
     // because ResolvedPrefixNamedModules end up in the dependencies of a module so they change its hash anyways
     Program.DefaultModuleDef.ProcessPrefixNamedModules();
 
-    if (!ComputeModuleDependencyGraph(Program, out var moduleDeclarationPointers)) {
+    var startingErrorCount = Reporter.ErrorCount;
+    ComputeModuleDependencyGraph(Program, out var moduleDeclarationPointers);
+
+    if (Reporter.ErrorCount != startingErrorCount) {
       return;
     }
 
@@ -47,7 +50,6 @@ public class ProgramResolver {
 
     SetHeights(sortedDecls);
 
-    var startingErrorCount = Reporter.ErrorCount;
     var systemClassMembers = ResolveSystemModule(Program);
     foreach (var moduleClassMembers in systemClassMembers) {
       classMembers[moduleClassMembers.Key] = moduleClassMembers.Value;
@@ -107,7 +109,7 @@ public class ProgramResolver {
   /// <summary>
   /// We determine where pointers to module declarations occur, and store those so caching can later set those.
   /// </summary>
-  private bool ComputeModuleDependencyGraph(Program program, out Dictionary<ModuleDecl, Action<ModuleDecl>> moduleDeclarationPointers) {
+  private void ComputeModuleDependencyGraph(Program program, out Dictionary<ModuleDecl, Action<ModuleDecl>> moduleDeclarationPointers) {
     var startingErrorCount = Reporter.ErrorCount;
     var rootBindings = new ModuleBindings(null);
     // TODO can we delete rootBindings and pass null instead?
@@ -118,7 +120,7 @@ public class ProgramResolver {
       // if there were errors, then the implicit ModuleBindings data structure invariant
       // is violated, so Processing dependencies will not succeed.
       moduleDeclarationPointers = null;
-      return false;
+      return;
     }
 
     moduleDeclarationPointers = new();
@@ -130,10 +132,7 @@ public class ProgramResolver {
       Resolver.ReportCycleError(Reporter, cycle, m => m.tok,
         m => (m is AliasModuleDecl ? "import " : "module ") + m.Name,
         "module definition contains a cycle (note: parent modules implicitly depend on submodules)");
-      return false;
     }
-
-    return true;
   }
 
   protected virtual Dictionary<TopLevelDeclWithMembers, Dictionary<string, MemberDecl>> ResolveSystemModule(Program program) {
