@@ -35,14 +35,19 @@ public class ProgramResolver {
     // For the formatter, we ensure we take snapshots of the PrefixNamedModules and topleveldecls
     program.DefaultModuleDef.PreResolveSnapshotForFormatter();
     var startingErrorCount = Reporter.ErrorCount;
-    var bindings = new ModuleBindings(null);
-    var bindings2 = program.DefaultModuleDef.BindModuleNames(this, bindings);
-    bindings.BindName(program.DefaultModule.Name, program.DefaultModule, bindings2);
+
+    program.DefaultModuleDef.ProcessPrefixNamedModules();
+
+    var rootBindings = new ModuleBindings(null);
+    // TODO can we delete rootBindings and pass null instead?
+    var defaultModuleBindings = program.DefaultModuleDef.BindModuleNames(this, rootBindings);
+    rootBindings.BindName(program.DefaultModule.Name, program.DefaultModule, defaultModuleBindings);
 
     if (Reporter.ErrorCount != startingErrorCount) {
-      return;
-    } // if there were errors, then the implict ModuleBindings data structure invariant
+      // if there were errors, then the implicit ModuleBindings data structure invariant
       // is violated, so Processing dependencies will not succeed.
+      return;
+    }
 
     // TODO: If we merge ProcessDependencies and resolving individual modules, then we don't need these pointers.
     // Or we need to change when ModuleQualifiedId.Root is set. We could update ModuleBindings when resolving ModuleDecls.
@@ -51,7 +56,7 @@ public class ProgramResolver {
     // Default module is never cached so this is a noop
 
     declarationPointers[program.DefaultModule] = v => program.DefaultModule = (LiteralModuleDecl)v;
-    ProcessDependencies(program.DefaultModule, bindings2, declarationPointers);
+    ProcessDependencies(program.DefaultModule, defaultModuleBindings, declarationPointers);
     // check for cycles in the import graph
     foreach (var cycle in dependencies.AllCycles()) {
       Resolver.ReportCycleError(Reporter, cycle, m => m.tok,

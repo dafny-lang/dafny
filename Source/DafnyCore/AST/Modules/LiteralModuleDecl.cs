@@ -167,23 +167,9 @@ public class LiteralModuleDecl : ModuleDecl, ICanFormat {
     return sig;
   }
 
-  public void BindModuleName(ProgramResolver resolver, List<PrefixNameModule> /*?*/ prefixModules, ModuleBindings parentBindings) {
+  public void BindModuleNames(ProgramResolver resolver, ModuleBindings parentBindings) {
     Contract.Requires(this != null);
     Contract.Requires(parentBindings != null);
-
-    // Transfer prefix-named modules downwards into the sub-module
-    if (prefixModules != null) {
-      foreach (var prefixModule in prefixModules) {
-        if (prefixModule.Parts.Count == 0) {
-          // change the parent, now that we have found the right parent module for the prefix-named module
-          prefixModule.Module.ModuleDef.EnclosingModule = ModuleDef;
-          var sm = new LiteralModuleDecl(prefixModule.Module.ModuleDef, ModuleDef, prefixModule.Module.CloneId);
-          ModuleDef.ResolvedPrefixNamedModules.Add(sm);
-        } else {
-          ModuleDef.PrefixNamedModules.Add(prefixModule);
-        }
-      }
-    }
 
     var bindings = ModuleDef.BindModuleNames(resolver, parentBindings);
     if (!parentBindings.BindName(Name, this, bindings)) {

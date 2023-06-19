@@ -14,6 +14,7 @@ public class BitvectorOptimization : IRewriter {
   }
 
   internal override void PreResolve(Program program) {
+    systemModuleManager = program.SystemModuleManager;
   }
 
   internal override void PostResolveIntermediate(ModuleDefinition m) {

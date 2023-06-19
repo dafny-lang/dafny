@@ -445,32 +445,88 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
     return true;
   }
 
+  public void ProcessPrefixNamedModules() {
+    // moduleDecl.PrefixNamedModules is a list of pairs like:
+    //     A.B.C  ,  module D { ... }
+    // We collect these according to the first component of the prefix, like so:
+    //     "A"   ->   (A.B.C  ,  module D { ... })
+    var prefixModulesByFirstPart = PrefixNamedModules.
+      GroupBy(prefixNameModule => prefixNameModule.Parts[0].val).
+      ToDictionary(g => g.Key, g => g.ToList());
+
+    PrefixNamedModules.Clear();
+
+    // First, register all literal modules, and transferring their prefix-named modules downwards
+    foreach (var subDecl in TopLevelDecls.OfType<LiteralModuleDecl>()) {
+      // Transfer prefix-named modules downwards into the sub-module
+      if (prefixModulesByFirstPart.TryGetValue(subDecl.Name, out var prefixModules)) {
+        prefixModulesByFirstPart.Remove(subDecl.Name);
+        prefixModules = prefixModules.ConvertAll(ShortenPrefix);
+      }
+
+      ProcessPrefixNamedModules(prefixModules, subDecl);
+    }
+
+    // Next, add new modules for any remaining entries in "prefixNames".
+    foreach (var (name, prefixNamedModules) in prefixModulesByFirstPart) {
+      var firstPartToken = prefixNamedModules.First().Parts[0];
+      var modDef = new ModuleDefinition(firstPartToken.ToRange(), new Name(firstPartToken.ToRange(), name), new List<IToken>(), false,
+        false, null, this, null, false);
+      // Add the new module to the top-level declarations of its parent and then bind its names as usual
+
+      var cloneId = prefixNamedModules.Count == 1 ? prefixNamedModules[0].Module.CloneId : Guid.NewGuid();
+      var subDecl = new LiteralModuleDecl(modDef, this, cloneId);
+      ResolvedPrefixNamedModules.Add(subDecl);
+      ProcessPrefixNamedModules(prefixNamedModules.ConvertAll(ShortenPrefix), subDecl);
+    }
+  }
+
+  private static void ProcessPrefixNamedModules(List<PrefixNameModule> prefixModules, LiteralModuleDecl subDecl) {
+    // Transfer prefix-named modules downwards into the sub-module
+    if (prefixModules != null) {
+      foreach (var prefixModule in prefixModules) {
+        if (prefixModule.Parts.Count == 0) {
+          // change the parent, now that we have found the right parent module for the prefix-named module
+          prefixModule.Module.ModuleDef.EnclosingModule = subDecl.ModuleDef;
+          var sm = new LiteralModuleDecl(prefixModule.Module.ModuleDef, subDecl.ModuleDef,
+            prefixModule.Module.CloneId);
+          subDecl.ModuleDef.ResolvedPrefixNamedModules.Add(sm);
+        } else {
+          subDecl.ModuleDef.PrefixNamedModules.Add(prefixModule);
+        }
+      }
+    }
+
+    subDecl.ModuleDef.ProcessPrefixNamedModules();
+  }
+
   public ModuleBindings BindModuleNames(ProgramResolver resolver, ModuleBindings parentBindings) {
     var bindings = new ModuleBindings(parentBindings);
 
-    BindChildrenAndPrefixNamedModules(resolver, bindings);
+    foreach (var subLiteral in TopLevelDecls.OfType<LiteralModuleDecl>()) {
+      subLiteral.BindModuleNames(resolver, bindings);
+    }
 
-    // Finally, go through import declarations (that is, AbstractModuleDecl's and AliasModuleDecl's).
-    foreach (var tld in TopLevelDecls) {
-      if (tld is not (AbstractModuleDecl or AliasModuleDecl)) {
+    // Go through import declarations (that is, AbstractModuleDecl's and AliasModuleDecl's).
+    foreach (var subDecl in TopLevelDecls.OfType<ModuleDecl>()) {
+      if (subDecl is not (AbstractModuleDecl or AliasModuleDecl)) {
         continue;
       }
 
-      var subdecl = (ModuleDecl)tld;
-      if (bindings.BindName(subdecl.Name, subdecl, null)) {
+      if (bindings.BindName(subDecl.Name, subDecl, null)) {
         // the add was successful
       } else {
         // there's already something with this name
-        var yes = bindings.TryLookup(subdecl.tok, out var prevDecl);
+        var yes = bindings.TryLookup(subDecl.tok, out var prevDecl);
         Contract.Assert(yes);
         if (prevDecl is AbstractModuleDecl || prevDecl is AliasModuleDecl) {
-          resolver.Reporter.Error(MessageSource.Resolver, subdecl.tok, "Duplicate name of import: {0}", subdecl.Name);
-        } else if (tld is AliasModuleDecl importDecl && importDecl.Opened && importDecl.TargetQId.Path.Count == 1 &&
+          resolver.Reporter.Error(MessageSource.Resolver, subDecl.tok, "Duplicate name of import: {0}", subDecl.Name);
+        } else if (subDecl is AliasModuleDecl { Opened: true } importDecl && importDecl.TargetQId.Path.Count == 1 &&
                    importDecl.Name == importDecl.TargetQId.RootName()) {
           importDecl.ShadowsLiteralModule = true;
         } else {
-          resolver.Reporter.Error(MessageSource.Resolver, subdecl.tok,
-            "Import declaration uses same name as a module in the same scope: {0}", subdecl.Name);
+          resolver.Reporter.Error(MessageSource.Resolver, subDecl.tok,
+            "Import declaration uses same name as a module in the same scope: {0}", subDecl.Name);
         }
       }
     }
@@ -478,47 +534,7 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
     return bindings;
   }
 
-  private void BindChildrenAndPrefixNamedModules(ProgramResolver resolver, ModuleBindings bindings) {
-    // moduleDecl.PrefixNamedModules is a list of pairs like:
-    //     A.B.C  ,  module D { ... }
-    // We collect these according to the first component of the prefix, like so:
-    //     "A"   ->   (A.B.C  ,  module D { ... })
-    var prefixModulesByFirstPart = new Dictionary<string, List<PrefixNameModule>>();
-    foreach (var prefixNameModule in PrefixNamedModules) {
-      var firstPartName = prefixNameModule.Parts[0].val;
-      var prev = prefixModulesByFirstPart.GetOrCreate(firstPartName, () => new List<PrefixNameModule>());
-      prev.Add(prefixNameModule);
-    }
-
-    PrefixNamedModules.Clear();
-
-    // First, register all literal modules, and transferring their prefix-named modules downwards
-    foreach (var subdecl in TopLevelDecls.OfType<LiteralModuleDecl>()) {
-      // Transfer prefix-named modules downwards into the sub-module
-      if (prefixModulesByFirstPart.TryGetValue(subdecl.Name, out var prefixModules)) {
-        prefixModulesByFirstPart.Remove(subdecl.Name);
-        prefixModules = prefixModules.ConvertAll(ShortenPrefix);
-      }
-
-      subdecl.BindModuleName(resolver, prefixModules, bindings);
-    }
-
-    // Next, add new modules for any remaining entries in "prefixNames".
-    foreach (var entry in prefixModulesByFirstPart) {
-      var prefixNamedModules = entry.Value;
-      var tok = prefixNamedModules.First().Parts[0];
-      var modDef = new ModuleDefinition(tok.ToRange(), new Name(tok.ToRange(), entry.Key), new List<IToken>(), false,
-        false, null, this, null, false);
-      // Add the new module to the top-level declarations of its parent and then bind its names as usual
-
-      var cloneId = prefixNamedModules.Count == 1 ? prefixNamedModules[0].Module.CloneId : Guid.NewGuid();
-      var subdecl = new LiteralModuleDecl(modDef, this, cloneId);
-      ResolvedPrefixNamedModules.Add(subdecl);
-      subdecl.BindModuleName(resolver, prefixNamedModules.ConvertAll(ShortenPrefix), bindings);
-    }
-  }
-
-  private PrefixNameModule ShortenPrefix(PrefixNameModule prefixNameModule) {
+  private static PrefixNameModule ShortenPrefix(PrefixNameModule prefixNameModule) {
     Contract.Requires(prefixNameModule.Parts.Count != 0);
     var rest = prefixNameModule.Parts.Skip(1).ToList();
     return prefixNameModule with { Parts = rest };
