@@ -32,6 +32,15 @@ public class LiteralModuleDecl : ModuleDecl, ICanFormat {
   public override IEnumerable<Node> Children => new[] { ModuleDef };
   public override IEnumerable<Node> PreResolveChildren => Children;
 
+  public LiteralModuleDecl(Cloner cloner, LiteralModuleDecl original, ModuleDefinition parent)
+    : base(cloner, original, parent) {
+    var newModuleDefinition = cloner.CloneLiteralModuleDefinition ? cloner.CloneModuleDefinition(original.ModuleDef, parent) : original.ModuleDef;
+    ModuleDef = newModuleDefinition;
+    DefaultExport = original.DefaultExport;
+    BodyStartTok = ModuleDef.BodyStartTok;
+    TokenWithTrailingDocString = ModuleDef.TokenWithTrailingDocString;
+  }
+
   public LiteralModuleDecl(ModuleDefinition module, ModuleDefinition parent)
     : base(module.RangeToken, module.NameNode, parent, false, false) {
     ModuleDef = module;
@@ -74,13 +83,15 @@ public class LiteralModuleDecl : ModuleDecl, ICanFormat {
     }
 
     foreach (var decl2 in ModuleDef.PrefixNamedModules) {
-      formatter.SetDeclIndentation(decl2.Item2, innerIndent);
+      formatter.SetDeclIndentation(decl2.Module, innerIndent);
     }
 
     return true;
   }
 
-  public void ResolveLiteralModuleDeclaration(Resolver resolver, Program prog, int beforeModuleResolutionErrorCount) {
+  public void Resolve(Resolver resolver, Program program, int beforeModuleResolutionErrorCount) {
+    var compilation = program.Compilation;
+
     // The declaration is a literal module, so it has members and such that we need
     // to resolve. First we do refinement transformation. Then we construct the signature
     // of the module. This is the public, externally visible signature. Then we add in
@@ -93,15 +104,15 @@ public class LiteralModuleDecl : ModuleDecl, ICanFormat {
 
     var errorCount = resolver.reporter.ErrorCount;
     if (module.RefinementQId != null) {
-      ModuleDecl md = resolver.ResolveModuleQualifiedId(module.RefinementQId.Root, module.RefinementQId, resolver.reporter);
-      module.RefinementQId.Set(md); // If module is not found, md is null and an error message has been emitted
+      ModuleDecl md = module.RefinementQId.ResolveTarget(module.RefinementQId.Root, resolver.reporter);
+      module.RefinementQId.SetTarget(md); // If module is not found, md is null and an error message has been emitted
     }
 
-    foreach (var rewriter in prog.Rewriters) {
+    foreach (var rewriter in compilation.Rewriters) {
       rewriter.PreResolve(module);
     }
 
-    Signature = resolver.RegisterTopLevelDecls(module, true);
+    Signature = module.RegisterTopLevelDecls(resolver, true);
     Signature.Refines = resolver.refinementTransformer.RefinedSig;
 
     var sig = Signature;
@@ -109,11 +120,11 @@ public class LiteralModuleDecl : ModuleDecl, ICanFormat {
     var preResolveErrorCount = resolver.reporter.ErrorCount;
 
     resolver.ResolveModuleExport(this, sig);
-    var good = module.ResolveModuleDefinition(sig, resolver);
+    var good = module.Resolve(sig, resolver);
 
     if (good && resolver.reporter.ErrorCount == preResolveErrorCount) {
       // Check that the module export gives a self-contained view of the module.
-      resolver.CheckModuleExportConsistency(prog, module);
+      resolver.CheckModuleExportConsistency(compilation, module);
     }
 
     var tempVis = new VisibilityScope();
@@ -121,9 +132,9 @@ public class LiteralModuleDecl : ModuleDecl, ICanFormat {
     tempVis.Augment(resolver.systemNameInfo.VisibilityScope);
     Type.PushScope(tempVis);
 
-    prog.ModuleSigs[module] = sig;
+    program.ModuleSigs[module] = sig;
 
-    foreach (var rewriter in prog.Rewriters) {
+    foreach (var rewriter in compilation.Rewriters) {
       if (!good || resolver.reporter.ErrorCount != preResolveErrorCount) {
         break;
       }
@@ -146,13 +157,13 @@ public class LiteralModuleDecl : ModuleDecl, ICanFormat {
     }
 
     Type.PushScope(tempVis);
-    resolver.ComputeIsRecursiveBit(prog, module);
+    resolver.ComputeIsRecursiveBit(compilation, module);
     resolver.FillInDecreasesClauses(module);
     foreach (var iter in module.TopLevelDecls.OfType<IteratorDecl>()) {
       resolver.reporter.Info(MessageSource.Resolver, iter.tok, Printer.IteratorClassToString(resolver.Reporter.Options, iter));
     }
 
-    foreach (var rewriter in prog.Rewriters) {
+    foreach (var rewriter in compilation.Rewriters) {
       rewriter.PostDecreasesResolve(module);
     }
 
@@ -160,5 +171,29 @@ public class LiteralModuleDecl : ModuleDecl, ICanFormat {
     FuelAdjustment.CheckForFuelAdjustments(resolver.reporter, module);
 
     Type.PopScope(tempVis);
+  }
+
+  public void BindModuleName(Resolver resolver, List<PrefixNameModule> /*?*/ prefixModules, ModuleBindings parentBindings) {
+    Contract.Requires(this != null);
+    Contract.Requires(parentBindings != null);
+
+    // Transfer prefix-named modules downwards into the sub-module
+    if (prefixModules != null) {
+      foreach (var prefixModule in prefixModules) {
+        if (prefixModule.Parts.Count == 0) {
+          // change the parent, now that we have found the right parent module for the prefix-named module
+          prefixModule.Module.ModuleDef.EnclosingModule = ModuleDef;
+          var sm = new LiteralModuleDecl(prefixModule.Module.ModuleDef, ModuleDef);
+          ModuleDef.ResolvedPrefixNamedModules.Add(sm);
+        } else {
+          ModuleDef.PrefixNamedModules.Add(prefixModule);
+        }
+      }
+    }
+
+    var bindings = ModuleDef.BindModuleNames(resolver, parentBindings);
+    if (!parentBindings.BindName(Name, this, bindings)) {
+      resolver.reporter.Error(MessageSource.Resolver, tok, "Duplicate module name: {0}", Name);
+    }
   }
 }

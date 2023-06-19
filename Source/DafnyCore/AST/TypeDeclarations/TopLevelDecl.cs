@@ -13,6 +13,11 @@ public abstract class TopLevelDecl : Declaration, TypeParameter.ParentType {
     Contract.Invariant(cce.NonNullElements(TypeArgs));
   }
 
+  protected TopLevelDecl(Cloner cloner, TopLevelDecl original, ModuleDefinition parent) : base(cloner, original) {
+    TypeArgs = original.TypeArgs.ConvertAll(cloner.CloneTypeParam);
+    EnclosingModuleDefinition = parent;
+  }
+
   protected TopLevelDecl(RangeToken rangeToken, Name name, ModuleDefinition enclosingModule, List<TypeParameter> typeArgs, Attributes attributes, bool isRefining)
     : base(rangeToken, name, attributes, isRefining) {
     Contract.Requires(rangeToken != null);

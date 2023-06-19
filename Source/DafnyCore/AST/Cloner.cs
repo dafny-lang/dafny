@@ -21,7 +21,7 @@ namespace Microsoft.Dafny {
     private readonly Dictionary<IVariable, IVariable> clones = new();
     private readonly Dictionary<MemberDecl, MemberDecl> memberClones = new();
     private readonly Dictionary<TopLevelDecl, TopLevelDecl> typeParameterClones = new();
-    private readonly bool cloneLiteralModuleDefinition;
+    public bool CloneLiteralModuleDefinition { get; }
 
     public void AddStatementClone(Statement original, Statement clone) {
       statementClones.Add(original, clone);
@@ -32,7 +32,7 @@ namespace Microsoft.Dafny {
     }
 
     public Cloner(bool cloneLiteralModuleDefinition = false, bool cloneResolvedFields = false) {
-      this.cloneLiteralModuleDefinition = cloneLiteralModuleDefinition;
+      this.CloneLiteralModuleDefinition = cloneLiteralModuleDefinition;
       CloneResolvedFields = cloneResolvedFields;
     }
 
@@ -63,29 +63,29 @@ namespace Microsoft.Dafny {
 
     }
 
-    public virtual TopLevelDecl CloneDeclaration(TopLevelDecl d, ModuleDefinition parent) {
+    public virtual TopLevelDecl CloneDeclaration(TopLevelDecl d, ModuleDefinition newParent) {
       Contract.Requires(d != null);
-      Contract.Requires(parent != null);
+      Contract.Requires(newParent != null);
 
       if (d is AbstractTypeDecl) {
         var dd = (AbstractTypeDecl)d;
-        return new AbstractTypeDecl(Range(dd.RangeToken), dd.NameNode.Clone(this), parent, CloneTPChar(dd.Characteristics), dd.TypeArgs.ConvertAll(CloneTypeParam), dd.Members.ConvertAll(d => CloneMember(d, false)), CloneAttributes(dd.Attributes), dd.IsRefining);
+        return new AbstractTypeDecl(Range(dd.RangeToken), dd.NameNode.Clone(this), newParent, CloneTPChar(dd.Characteristics), dd.TypeArgs.ConvertAll(CloneTypeParam), dd.Members.ConvertAll(d => CloneMember(d, false)), CloneAttributes(dd.Attributes), dd.IsRefining);
       } else if (d is SubsetTypeDecl) {
         Contract.Assume(!(d is NonNullTypeDecl));  // don't clone the non-null type declaration; close the class, which will create a new non-null type declaration
         var dd = (SubsetTypeDecl)d;
         var tps = dd.TypeArgs.ConvertAll(CloneTypeParam);
-        return new SubsetTypeDecl(Range(dd.RangeToken), dd.NameNode.Clone(this), CloneTPChar(dd.Characteristics), tps, parent, CloneBoundVar(dd.Var, false), CloneExpr(dd.Constraint), dd.WitnessKind, CloneExpr(dd.Witness), CloneAttributes(dd.Attributes));
+        return new SubsetTypeDecl(Range(dd.RangeToken), dd.NameNode.Clone(this), CloneTPChar(dd.Characteristics), tps, newParent, CloneBoundVar(dd.Var, false), CloneExpr(dd.Constraint), dd.WitnessKind, CloneExpr(dd.Witness), CloneAttributes(dd.Attributes));
       } else if (d is TypeSynonymDecl) {
         var dd = (TypeSynonymDecl)d;
         var tps = dd.TypeArgs.ConvertAll(CloneTypeParam);
-        return new TypeSynonymDecl(Range(dd.RangeToken), dd.NameNode.Clone(this), CloneTPChar(dd.Characteristics), tps, parent, CloneType(dd.Rhs), CloneAttributes(dd.Attributes));
+        return new TypeSynonymDecl(Range(dd.RangeToken), dd.NameNode.Clone(this), CloneTPChar(dd.Characteristics), tps, newParent, CloneType(dd.Rhs), CloneAttributes(dd.Attributes));
       } else if (d is NewtypeDecl) {
         var dd = (NewtypeDecl)d;
         if (dd.Var == null) {
-          return new NewtypeDecl(Range(dd.RangeToken), dd.NameNode.Clone(this), parent, CloneType(dd.BaseType),
+          return new NewtypeDecl(Range(dd.RangeToken), dd.NameNode.Clone(this), newParent, CloneType(dd.BaseType),
             dd.Members.ConvertAll(d => CloneMember(d, false)), CloneAttributes(dd.Attributes), dd.IsRefining);
         } else {
-          return new NewtypeDecl(Range(dd.RangeToken), dd.NameNode.Clone(this), parent, CloneBoundVar(dd.Var, false),
+          return new NewtypeDecl(Range(dd.RangeToken), dd.NameNode.Clone(this), newParent, CloneBoundVar(dd.Var, false),
             CloneExpr(dd.Constraint), dd.WitnessKind, CloneExpr(dd.Witness),
             dd.Members.ConvertAll(d => CloneMember(d, false)), CloneAttributes(dd.Attributes), dd.IsRefining);
         }
@@ -97,13 +97,13 @@ namespace Microsoft.Dafny {
         var dd = (IndDatatypeDecl)d;
         var tps = dd.TypeArgs.ConvertAll(CloneTypeParam);
         var ctors = dd.Ctors.ConvertAll(CloneCtor);
-        var dt = new IndDatatypeDecl(Range(dd.RangeToken), dd.NameNode.Clone(this), parent, tps, ctors, dd.Members.ConvertAll(d => CloneMember(d, false)), CloneAttributes(dd.Attributes), dd.IsRefining);
+        var dt = new IndDatatypeDecl(Range(dd.RangeToken), dd.NameNode.Clone(this), newParent, tps, ctors, dd.Members.ConvertAll(d => CloneMember(d, false)), CloneAttributes(dd.Attributes), dd.IsRefining);
         return dt;
       } else if (d is CoDatatypeDecl) {
         var dd = (CoDatatypeDecl)d;
         var tps = dd.TypeArgs.ConvertAll(CloneTypeParam);
         var ctors = dd.Ctors.ConvertAll(CloneCtor);
-        var dt = new CoDatatypeDecl(Range(dd.RangeToken), dd.NameNode.Clone(this), parent, tps, ctors, dd.Members.ConvertAll(d => CloneMember(d, false)), CloneAttributes(dd.Attributes), dd.IsRefining);
+        var dt = new CoDatatypeDecl(Range(dd.RangeToken), dd.NameNode.Clone(this), newParent, tps, ctors, dd.Members.ConvertAll(d => CloneMember(d, false)), CloneAttributes(dd.Attributes), dd.IsRefining);
         return dt;
       } else if (d is IteratorDecl) {
         var dd = (IteratorDecl)d;
@@ -118,7 +118,7 @@ namespace Microsoft.Dafny {
         var ens = dd.Ensures.ConvertAll(CloneAttributedExpr);
         var yens = dd.YieldEnsures.ConvertAll(CloneAttributedExpr);
         var body = CloneBlockStmt(dd.Body);
-        var iter = new IteratorDecl(Range(dd.RangeToken), dd.NameNode.Clone(this), parent,
+        var iter = new IteratorDecl(Range(dd.RangeToken), dd.NameNode.Clone(this), newParent,
           tps, ins, outs, reads, mod, decr,
           req, ens, yreq, yens,
           body, CloneAttributes(dd.Attributes), dd.SignatureEllipsis);
@@ -127,34 +127,30 @@ namespace Microsoft.Dafny {
         var dd = (TraitDecl)d;
         var tps = dd.TypeArgs.ConvertAll(CloneTypeParam);
         var mm = dd.Members.ConvertAll(member => CloneMember(member, false));
-        var cl = new TraitDecl(Range(dd.RangeToken), dd.NameNode.Clone(this), parent, tps, mm, CloneAttributes(dd.Attributes), dd.IsRefining, dd.ParentTraits.ConvertAll(CloneType));
+        var cl = new TraitDecl(Range(dd.RangeToken), dd.NameNode.Clone(this), newParent, tps, mm, CloneAttributes(dd.Attributes), dd.IsRefining, dd.ParentTraits.ConvertAll(CloneType));
         return cl;
       } else if (d is DefaultClassDecl) {
         var dd = (DefaultClassDecl)d;
         var tps = dd.TypeArgs.ConvertAll(CloneTypeParam);
         var mm = dd.Members.ConvertAll(member => CloneMember(member, false));
-        return new DefaultClassDecl(parent, mm);
+        return new DefaultClassDecl(newParent, mm);
       } else if (d is ClassDecl) {
         var dd = (ClassDecl)d;
         var tps = dd.TypeArgs.ConvertAll(CloneTypeParam);
         var mm = dd.Members.ConvertAll(member => CloneMember(member, false));
-        return new ClassDecl(Range(dd.RangeToken), dd.NameNode.Clone(this), parent, tps, mm, CloneAttributes(dd.Attributes), dd.IsRefining, dd.ParentTraits.ConvertAll(CloneType));
+        return new ClassDecl(Range(dd.RangeToken), dd.NameNode.Clone(this), newParent, tps, mm, CloneAttributes(dd.Attributes), dd.IsRefining, dd.ParentTraits.ConvertAll(CloneType));
       } else if (d is ModuleDecl) {
         if (d is LiteralModuleDecl moduleDecl) {
-          //var newModuleDefinition = moduleDecl.ModuleDef;
-          var newModuleDefinition = this.cloneLiteralModuleDefinition ? CloneModuleDefinition(moduleDecl.ModuleDef, parent) : moduleDecl.ModuleDef;
-          return new LiteralModuleDecl(newModuleDefinition, parent) {
-            DefaultExport = moduleDecl.DefaultExport
-          };
+          return new LiteralModuleDecl(this, moduleDecl, newParent);
         } else if (d is AliasModuleDecl) {
           var a = (AliasModuleDecl)d;
-          return new AliasModuleDecl(Range(a.RangeToken), a.TargetQId?.Clone(false), a.NameNode.Clone(this), parent, a.Opened, a.Exports);
+          return new AliasModuleDecl(this, a, newParent);
         } else if (d is AbstractModuleDecl) {
           var a = (AbstractModuleDecl)d;
-          return new AbstractModuleDecl(Range(a.RangeToken), a.QId?.Clone(false), a.NameNode.Clone(this), parent, a.Opened, a.Exports);
+          return new AbstractModuleDecl(this, a, newParent);
         } else if (d is ModuleExportDecl) {
           var a = (ModuleExportDecl)d;
-          return new ModuleExportDecl(Range(a.RangeToken), a.NameNode.Clone(this), parent, a.Exports, a.Extends, a.ProvideAll, a.RevealAll, a.IsDefault, a.IsRefining);
+          return new ModuleExportDecl(this, a, newParent);
         } else {
           Contract.Assert(false);  // unexpected declaration
           return null;  // to please compiler
@@ -603,8 +599,8 @@ namespace Microsoft.Dafny {
     public DeepModuleSignatureCloner(bool cloneResolvedFields = false) : base(false, cloneResolvedFields) {
     }
 
-    public override TopLevelDecl CloneDeclaration(TopLevelDecl d, ModuleDefinition m) {
-      var dd = base.CloneDeclaration(d, m);
+    public override TopLevelDecl CloneDeclaration(TopLevelDecl d, ModuleDefinition newParent) {
+      var dd = base.CloneDeclaration(d, newParent);
       if (d is ModuleDecl) {
         ((ModuleDecl)dd).Signature = ((ModuleDecl)d).Signature;
         if (d is AbstractModuleDecl) {
@@ -612,13 +608,13 @@ namespace Microsoft.Dafny {
 
           ((AbstractModuleDecl)dd).OriginalSignature = sourcefacade.OriginalSignature;
           if (sourcefacade.QId.Root != null) {
-            ((AbstractModuleDecl)dd).QId.SetRoot((ModuleDecl)CloneDeclaration(sourcefacade.QId.Root, m));
+            ((AbstractModuleDecl)dd).QId.Root = (ModuleDecl)CloneDeclaration(sourcefacade.QId.Root, newParent);
           }
         } else if (d is AliasModuleDecl) {
           var sourcealias = (AliasModuleDecl)d;
 
           if (sourcealias.TargetQId.Root != null) {
-            ((AliasModuleDecl)dd).TargetQId.SetRoot((ModuleDecl)CloneDeclaration(sourcealias.TargetQId.Root, m));
+            ((AliasModuleDecl)dd).TargetQId.Root = (ModuleDecl)CloneDeclaration(sourcealias.TargetQId.Root, newParent);
           }
         }
       }

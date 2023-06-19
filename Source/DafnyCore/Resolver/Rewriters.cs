@@ -15,9 +15,9 @@ public static class Rewriters {
       result.Add(new IncludedLemmaBodyRemover(program, reporter));
     }
 
-    result.Add(new AutoContractsRewriter(reporter, program.BuiltIns));
+    result.Add(new AutoContractsRewriter(reporter, program.SystemModuleManager));
     result.Add(new OpaqueMemberRewriter(reporter));
-    result.Add(new AutoReqFunctionRewriter(reporter, program.BuiltIns));
+    result.Add(new AutoReqFunctionRewriter(reporter, program.SystemModuleManager));
     result.Add(new TimeLimitRewriter(reporter));
     result.Add(new ForallStmtRewriter(reporter));
     result.Add(new ProvideRevealAllRewriter(reporter));
@@ -38,7 +38,7 @@ public static class Rewriters {
 
     result.Add(new InductionRewriter(reporter));
     result.Add(new PrintEffectEnforcement(reporter));
-    result.Add(new BitvectorOptimization(program.BuiltIns, reporter));
+    result.Add(new BitvectorOptimization(program.SystemModuleManager, reporter));
 
     if (program.Options.DisallowConstructorCaseWithoutParentheses) {
       result.Add(new ConstructorWarning(reporter));

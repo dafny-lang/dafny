@@ -1,3 +1,4 @@
+// UNSUPPORTED: windows, macosx
 // RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment
 
 // Rustan Leino, 22 Sep 2015.
