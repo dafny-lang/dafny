@@ -49,7 +49,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       }
     }
 
-    public Dafny.Program Parse(DocumentTextBuffer document, ErrorReporter errorReporter, CancellationToken cancellationToken) {
+    public Program Parse(DocumentTextBuffer document, ErrorReporter errorReporter, CancellationToken cancellationToken) {
       mutex.Wait(cancellationToken);
 
       var beforeParsing = DateTime.Now;
