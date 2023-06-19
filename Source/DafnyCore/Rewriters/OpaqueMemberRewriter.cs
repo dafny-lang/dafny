@@ -82,7 +82,7 @@ public class OpaqueMemberRewriter : IRewriter {
     foreach (var member in c.Members.Where(member => member is Function or ConstantField)) {
       if (!Attributes.Contains(member.Attributes, "opaque") && !member.IsOpaque) {
         // Nothing to do
-      } else if (member is Function { Body : null }) {
+      } else if (member is Function { Body: null }) {
         // Nothing to do
       } else if (!RefinementToken.IsInherited(member.tok, c.EnclosingModuleDefinition)) {
         GenerateRevealLemma(member, newDecls);
