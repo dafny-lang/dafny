@@ -17,9 +17,7 @@ public class AbstractModuleDecl : ModuleDecl, ICanFormat {
   public AbstractModuleDecl(Cloner cloner, AbstractModuleDecl original, ModuleDefinition parent)
     : base(cloner, original, parent) {
     Exports = original.Exports;
-    if (original.QId != null) { // TODO is this null check necessary?
-      QId = new ModuleQualifiedId(cloner, original.QId);
-    }
+    QId = new ModuleQualifiedId(cloner, original.QId);
   }
 
   public AbstractModuleDecl(RangeToken rangeToken, ModuleQualifiedId qid, Name name,
