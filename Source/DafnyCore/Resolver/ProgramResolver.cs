@@ -13,11 +13,9 @@ public class ProgramResolver {
   public SystemModuleManager SystemModuleManager => Program.SystemModuleManager;
   public ErrorReporter Reporter { get; }
 
-  public IList<IRewriter> rewriters;
-
   protected readonly Graph<ModuleDecl> dependencies = new();
 
-  public FreshIdGenerator defaultTempVarIdGenerator = new();
+  public FreshIdGenerator defaultTempVarIdGenerator => Program.Compilation.IdGenerator;
   public readonly Dictionary<TopLevelDeclWithMembers, Dictionary<string, MemberDecl>> classMembers = new();
 
   public ProgramResolver(Program program) {
@@ -26,40 +24,13 @@ public class ProgramResolver {
     Options = program.Options;
   }
 
-  public ValuetypeDecl AsValuetypeDecl(Type t) {
-    Contract.Requires(t != null);
-    foreach (var vtd in SystemModuleManager.valuetypeDecls) {
-      if (vtd.IsThisType(t)) {
-        return vtd;
-      }
-    }
-    return null;
-  }
-
-  private static void ResolveValueTypeDecls(ProgramResolver programResolver) {
-    var moduleResolver = new Resolver(programResolver);
-    moduleResolver.moduleInfo = programResolver.SystemModuleManager.systemNameInfo;
-    foreach (var valueTypeDecl in programResolver.SystemModuleManager.valuetypeDecls) {
-      foreach (var member in valueTypeDecl.Members) {
-        if (member is Function function) {
-          moduleResolver.ResolveFunctionSignature(function);
-          CallGraphBuilder.VisitFunction(function, programResolver.Reporter);
-        } else if (member is Method method) {
-          moduleResolver.ResolveMethodSignature(method);
-          CallGraphBuilder.VisitMethod(method, programResolver.Reporter);
-        }
-      }
-    }
-  }
-
 
   public void Resolve(Program program, CancellationToken cancellationToken) {
     Contract.Requires(program != null);
     Type.ResetScopes();
 
     Type.EnableScopes();
-    // For the formatter, we ensure we take snapshots of the PrefixNamedModules
-    // and topleveldecls
+    // For the formatter, we ensure we take snapshots of the PrefixNamedModules and topleveldecls
     program.DefaultModuleDef.PreResolveSnapshotForFormatter();
     var origErrorCount = Reporter.ErrorCount; //TODO: This is used further below, but not in the >0 comparisons in the next few lines. Is that right?
     var bindings = new ModuleBindings(null);
@@ -95,22 +66,20 @@ public class ProgramResolver {
 
     SetHeights(sortedDecls);
 
-    program.Compilation.Rewriters = Rewriters.GetRewriters(program, defaultTempVarIdGenerator);
-    rewriters = program.Compilation.Rewriters;
-
-    var systemClassMembers = ResolveBuiltins(program);
+    var systemClassMembers = ResolveSystemModule(program);
     foreach (var moduleClassMembers in systemClassMembers) {
       classMembers[moduleClassMembers.Key] = moduleClassMembers.Value;
     }
 
-    foreach (var rewriter in rewriters) {
+    var compilation = program.Compilation;
+    foreach (var rewriter in compilation.Rewriters) {
       cancellationToken.ThrowIfCancellationRequested();
       rewriter.PreResolve(program);
     }
 
     foreach (var decl in sortedDecls) {
       cancellationToken.ThrowIfCancellationRequested();
-      var moduleResolutionResult = ResolveModuleDeclaration(program.Compilation, decl);
+      var moduleResolutionResult = ResolveModuleDeclaration(compilation, decl);
       declarationPointers[decl](moduleResolutionResult.ResolvedDeclaration);
 
       foreach (var sig in moduleResolutionResult.Signatures) {
@@ -131,29 +100,29 @@ public class ProgramResolver {
     }
 
     Type.DisableScopes();
-    CheckDupModuleNames(program);
+    CheckDuplicateModuleNames(program);
 
     foreach (var module in program.Modules()) { // TODO move this inside cached module resolution?
-      foreach (var rewriter in rewriters) {
+      foreach (var rewriter in compilation.Rewriters) {
         cancellationToken.ThrowIfCancellationRequested();
         rewriter.PostResolve(module);
       }
     }
 
-    foreach (var rewriter in rewriters) {
+    foreach (var rewriter in compilation.Rewriters) {
       cancellationToken.ThrowIfCancellationRequested();
       rewriter.PostResolve(program);
     }
   }
 
-  protected virtual Dictionary<TopLevelDeclWithMembers, Dictionary<string, MemberDecl>> ResolveBuiltins(Program program) {
+  protected virtual Dictionary<TopLevelDeclWithMembers, Dictionary<string, MemberDecl>> ResolveSystemModule(Program program) {
     var systemModuleResolver = new Resolver(this);
 
     SystemModuleManager.systemNameInfo = program.SystemModuleManager.SystemModule.RegisterTopLevelDecls(systemModuleResolver, false);
     systemModuleResolver.moduleInfo = SystemModuleManager.systemNameInfo;
 
     systemModuleResolver.RevealAllInScope(program.SystemModuleManager.SystemModule.TopLevelDecls, SystemModuleManager.systemNameInfo.VisibilityScope);
-    ResolveValueTypeDecls(this);
+    SystemModuleManager.ResolveValueTypeDecls(this);
 
     // The SystemModule is constructed with all its members already being resolved. Except for
     // the non-null type corresponding to class types.  They are resolved here:
@@ -197,7 +166,7 @@ public class ProgramResolver {
   /// This could happen if they are given the same name using the 'extern' declaration modifier.
   /// </summary>
   /// <param name="prog">The Dafny program being compiled.</param>
-  void CheckDupModuleNames(Program prog) {
+  void CheckDuplicateModuleNames(Program prog) {
     // Check that none of the modules have the same CompileName.
     Dictionary<string, ModuleDefinition> compileNameMap = new Dictionary<string, ModuleDefinition>();
     foreach (ModuleDefinition m in prog.CompileModules) {

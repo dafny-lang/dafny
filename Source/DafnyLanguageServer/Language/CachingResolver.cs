@@ -26,9 +26,9 @@ public class CachingResolver : ProgramResolver {
     this.cache = cache;
   }
 
-  protected override Dictionary<TopLevelDeclWithMembers, Dictionary<string, MemberDecl>> ResolveBuiltins(Program program) {
+  protected override Dictionary<TopLevelDeclWithMembers, Dictionary<string, MemberDecl>> ResolveSystemModule(Program program) {
     if (cache.Builtins == null || !new HashEquality().Equals(cache.Builtins.MyHash, program.SystemModuleManager.MyHash)) {
-      var systemClassMembers = base.ResolveBuiltins(program);
+      var systemClassMembers = base.ResolveSystemModule(program);
       cache.Builtins = program.SystemModuleManager;
       cache.SystemClassMembers = systemClassMembers;
       logger.LogDebug($"Resolution cache miss for system module");

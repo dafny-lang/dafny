@@ -10,11 +10,11 @@ namespace Microsoft.Dafny;
 /// so we return emptyBody. This is to speed up resolver and translator.
 /// </summary>
 public class IncludedLemmaBodyRemover : IRewriter {
-  private readonly Program program;
+  private readonly CompilationData compilation;
 
-  public IncludedLemmaBodyRemover(Program program, ErrorReporter reporter)
+  public IncludedLemmaBodyRemover(CompilationData compilation, ErrorReporter reporter)
     : base(reporter) {
-    this.program = program;
+    this.compilation = compilation;
   }
 
   private static readonly BlockStmt EmptyBody = new(Token.NoToken.ToRange(), new List<Statement>());
@@ -22,7 +22,7 @@ public class IncludedLemmaBodyRemover : IRewriter {
   internal override void PostResolve(ModuleDefinition moduleDefinition) {
     foreach (var method in moduleDefinition.TopLevelDecls.OfType<TopLevelDeclWithMembers>().
                SelectMany(withMembers => withMembers.Members.OfType<Method>())) {
-      if (method.Body != null && method.IsLemmaLike && method.Tok.FromIncludeDirective(program)) {
+      if (method.Body != null && method.IsLemmaLike && method.Tok.FromIncludeDirective(compilation)) {
         method.Body = EmptyBody;
       }
     }

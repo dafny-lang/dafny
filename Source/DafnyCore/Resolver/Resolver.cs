@@ -10,9 +10,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 using System.Diagnostics.Contracts;
-using System.IO;
-using System.Reflection;
-using System.Threading;
 using JetBrains.Annotations;
 using Microsoft.Boogie;
 using static Microsoft.Dafny.ResolutionErrors;
@@ -36,8 +33,6 @@ namespace Microsoft.Dafny {
     public DafnyOptions Options { get; }
     private Program program;
     public SystemModuleManager SystemModuleManager => program.SystemModuleManager;
-
-    public IList<IRewriter> rewriters => ProgramResolver.rewriters;
 
     public ErrorReporter reporter;
     public ModuleSignature moduleInfo = null;

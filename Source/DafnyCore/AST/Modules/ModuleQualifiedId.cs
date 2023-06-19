@@ -100,30 +100,30 @@ public class ModuleQualifiedId : Node, IHasUsages {
   }
 
   private ModuleDecl ResolveTargetUncached(ErrorReporter reporter) {
-    var result = Root;
+    var decl = Root;
     for (int k = 1; k < Path.Count; k++) {
       ModuleSignature p;
-      if (result is LiteralModuleDecl literalModuleDecl) {
+      if (decl is LiteralModuleDecl literalModuleDecl) {
         p = literalModuleDecl.DefaultExport;
         if (p == null) {
           reporter.Error(MessageSource.Resolver, Path[k],
-            ProgramResolver.ModuleNotFoundErrorMessage(k, Path, $" because {result.Name} does not have a default export"));
+            ProgramResolver.ModuleNotFoundErrorMessage(k, Path, $" because {decl.Name} does not have a default export"));
           return null;
         }
       } else {
-        p = result.Signature;
+        p = decl.Signature;
       }
 
       var tld = p.TopLevels.GetValueOrDefault(Path[k].Value, null);
       if (tld is not ModuleDecl dd) {
-        if (result.Signature.ModuleDef == null) {
+        if (decl.Signature.ModuleDef == null) {
           reporter.Error(MessageSource.Resolver, Path[k],
             ProgramResolver.ModuleNotFoundErrorMessage(k, Path, " because of previous error"));
         } else {
           reporter.Error(MessageSource.Resolver, Path[k], ProgramResolver.ModuleNotFoundErrorMessage(k, Path));
         }
 
-        return result;
+        return null;
       }
 
       // Any aliases along the qualified path ought to be already resolved,
@@ -132,9 +132,9 @@ public class ModuleQualifiedId : Node, IHasUsages {
         Contract.Assert(amd.Signature != null);
       }
 
-      result = dd;
+      decl = dd;
     }
 
-    return result;
+    return decl;
   }
 }

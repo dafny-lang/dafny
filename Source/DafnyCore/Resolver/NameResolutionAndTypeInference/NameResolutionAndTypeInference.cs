@@ -5817,7 +5817,7 @@ namespace Microsoft.Dafny {
           rr.TypeApplication_AtEnclosingClass.AddRange(rType.AsParentType(member.EnclosingClass).TypeArgs);
         }
       } else {
-        var vtd = ProgramResolver.AsValuetypeDecl(rType);
+        var vtd = ProgramResolver.SystemModuleManager.AsValuetypeDecl(rType);
         if (vtd != null) {
           Contract.Assert(vtd.TypeArgs.Count == rType.TypeArgs.Count);
           subst = TypeParameter.SubstitutionMap(vtd.TypeArgs, rType.TypeArgs);

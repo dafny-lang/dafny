@@ -446,6 +446,32 @@ public class SystemModuleManager {
     Contract.Assert(0 <= dims);
     return TupleTypeCtorNamePrefix + dims;
   }
+
+  public ValuetypeDecl AsValuetypeDecl(Type t) {
+    Contract.Requires(t != null);
+    foreach (var vtd in valuetypeDecls) {
+      if (vtd.IsThisType(t)) {
+        return vtd;
+      }
+    }
+    return null;
+  }
+
+  public void ResolveValueTypeDecls(ProgramResolver programResolver) {
+    var moduleResolver = new Resolver(programResolver);
+    moduleResolver.moduleInfo = systemNameInfo;
+    foreach (var valueTypeDecl in valuetypeDecls) {
+      foreach (var member in valueTypeDecl.Members) {
+        if (member is Function function) {
+          moduleResolver.ResolveFunctionSignature(function);
+          CallGraphBuilder.VisitFunction(function, programResolver.Reporter);
+        } else if (member is Method method) {
+          moduleResolver.ResolveMethodSignature(method);
+          CallGraphBuilder.VisitMethod(method, programResolver.Reporter);
+        }
+      }
+    }
+  }
 }
 
 enum ValuetypeVariety {

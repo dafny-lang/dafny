@@ -525,19 +525,6 @@ namespace Microsoft.Dafny {
       return newValue;
     }
 
-    public static V AddOrUpdate<K, V>(this IDictionary<K, V> dictionary, K key, Func<V> createValue, Func<V, V> update) {
-      if (dictionary.TryGetValue(key, out var result)) {
-        var updated = update(result);
-        dictionary[key] = updated;
-        return updated;
-      }
-
-      result = createValue();
-      dictionary[key] = result;
-      return result;
-    }
-
-
     public static V GetOrCreate<K, V>(this IDictionary<K, V> dictionary, K key, Func<V> createValue) {
       if (dictionary.TryGetValue(key, out var result)) {
         return result;

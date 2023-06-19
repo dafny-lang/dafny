@@ -1059,16 +1059,16 @@ ModuleImport<ModuleDefinition parent, out ModuleDecl submodule>
     ["opened"                        (. opened = true; .) ]
     (. int lookAhead = scanner.Peek().kind; .)
     ( IF(lookAhead == _colon)
-            ModuleName<out var name>
-            ":"
-            QualifiedModuleExport<out var namePath, out idExports>
-                (. submodule = new AbstractModuleDecl(new RangeToken(startToken, t), new ModuleQualifiedId(namePath),
+      ModuleName<out var name>
+      ":"
+      QualifiedModuleExport<out var namePath, out idExports>
+          (. submodule = new AbstractModuleDecl(new RangeToken(startToken, t), new ModuleQualifiedId(namePath),
                                                name, parent, opened, idExports, Guid.NewGuid()); .)
     | IF(lookAhead == _singleeq)
-            ModuleName<out var name>
-            "="
-            QualifiedModuleExport<out var namePath, out idExports>
-                (. submodule = new AliasModuleDecl(new RangeToken(startToken, t), new ModuleQualifiedId(namePath),
+      ModuleName<out var name>
+      "="
+      QualifiedModuleExport<out var namePath, out idExports>
+          (. submodule = new AliasModuleDecl(new RangeToken(startToken, t), new ModuleQualifiedId(namePath),
                                                name, parent, opened, idExports, Guid.NewGuid()); .)
     |
       QualifiedModuleExport<out var namePath, out idExports>

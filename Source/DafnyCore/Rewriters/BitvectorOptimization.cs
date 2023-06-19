@@ -9,9 +9,11 @@ using Microsoft.Boogie;
 namespace Microsoft.Dafny;
 
 public class BitvectorOptimization : IRewriter {
-  private readonly SystemModuleManager systemModuleManager;
-  public BitvectorOptimization(SystemModuleManager systemModuleManager, ErrorReporter reporter) : base(reporter) {
-    this.systemModuleManager = systemModuleManager;
+  private SystemModuleManager systemModuleManager;
+  public BitvectorOptimization(ErrorReporter reporter) : base(reporter) {
+  }
+
+  internal override void PreResolve(Program program) {
   }
 
   internal override void PostResolveIntermediate(ModuleDefinition m) {
