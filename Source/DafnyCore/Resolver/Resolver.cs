@@ -2761,6 +2761,7 @@ namespace Microsoft.Dafny {
                 foreach (var p in f.Formals) {
                   CheckTypeCharacteristics_Type(p.tok, p.Type, f.IsGhost || p.IsGhost);
                 }
+                CheckTypeCharacteristics_Type(f.Result?.tok ?? f.tok, f.ResultType, f.IsGhost);
                 if (f.Body != null) {
                   CheckTypeCharacteristics_Expr(f.Body, f.IsGhost);
                 }
