@@ -27,79 +27,42 @@ public class ProgramResolver {
     return null;
   }
 
-  public void Resolve(Program program, CancellationToken cancellationToken) {
-    Contract.Requires(program != null);
+  public void Resolve(CancellationToken cancellationToken) {
     Type.ResetScopes();
 
     Type.EnableScopes();
     // For the formatter, we ensure we take snapshots of the PrefixNamedModules and topleveldecls
-    program.DefaultModuleDef.PreResolveSnapshotForFormatter();
-    var startingErrorCount = Reporter.ErrorCount;
+    Program.DefaultModuleDef.PreResolveSnapshotForFormatter();
 
-    program.DefaultModuleDef.ProcessPrefixNamedModules();
+    // Changing modules at this stage without changing their CloneId doesn't break resolution caching,
+    // because ResolvedPrefixNamedModules end up in the dependencies of a module so they change its hash anyways
+    Program.DefaultModuleDef.ProcessPrefixNamedModules();
 
-    var rootBindings = new ModuleBindings(null);
-    // TODO can we delete rootBindings and pass null instead?
-    var defaultModuleBindings = program.DefaultModuleDef.BindModuleNames(this, rootBindings);
-    rootBindings.BindName(program.DefaultModule.Name, program.DefaultModule, defaultModuleBindings);
-
-    if (Reporter.ErrorCount != startingErrorCount) {
-      // if there were errors, then the implicit ModuleBindings data structure invariant
-      // is violated, so Processing dependencies will not succeed.
-      return;
-    }
-
-    // TODO: If we merge ProcessDependencies and resolving individual modules, then we don't need these pointers.
-    // Or we need to change when ModuleQualifiedId.Root is set. We could update ModuleBindings when resolving ModuleDecls.
-    Dictionary<ModuleDecl, Action<ModuleDecl>> declarationPointers = new();
-
-    // Default module is never cached so this is a noop
-
-    declarationPointers[program.DefaultModule] = v => program.DefaultModule = (LiteralModuleDecl)v;
-    ProcessDependencies(program.DefaultModule, defaultModuleBindings, declarationPointers);
-    // check for cycles in the import graph
-    foreach (var cycle in dependencies.AllCycles()) {
-      Resolver.ReportCycleError(Reporter, cycle, m => m.tok,
-        m => (m is AliasModuleDecl ? "import " : "module ") + m.Name,
-        "module definition contains a cycle (note: parent modules implicitly depend on submodules)");
-    }
-
-    if (Reporter.ErrorCount != startingErrorCount) {
+    if (!ComputeModuleDependencyGraph(Program, out var moduleDeclarationPointers)) {
       return;
     }
 
     var sortedDecls = dependencies.TopologicallySortedComponents();
-    program.ModuleSigs = new();
+    Program.ModuleSigs = new();
 
     SetHeights(sortedDecls);
 
-    var systemClassMembers = ResolveSystemModule(program);
+    var startingErrorCount = Reporter.ErrorCount;
+    var systemClassMembers = ResolveSystemModule(Program);
     foreach (var moduleClassMembers in systemClassMembers) {
       classMembers[moduleClassMembers.Key] = moduleClassMembers.Value;
     }
 
-    var compilation = program.Compilation;
+    var compilation = Program.Compilation;
     foreach (var rewriter in compilation.Rewriters) {
       cancellationToken.ThrowIfCancellationRequested();
-      rewriter.PreResolve(program);
+      rewriter.PreResolve(Program);
     }
 
     foreach (var decl in sortedDecls) {
       cancellationToken.ThrowIfCancellationRequested();
       var moduleResolutionResult = ResolveModuleDeclaration(compilation, decl);
-      declarationPointers[decl](moduleResolutionResult.ResolvedDeclaration);
-
-      foreach (var sig in moduleResolutionResult.Signatures) {
-        program.ModuleSigs[sig.Key] = sig.Value;
-      }
-      foreach (var moduleClassMembers in moduleResolutionResult.ClassMembers) {
-        classMembers[moduleClassMembers.Key] = moduleClassMembers.Value;
-      }
-
-      foreach (var diagnostic in moduleResolutionResult.ErrorReporter.AllMessages) {
-        Reporter.Message(diagnostic.Source, diagnostic.Level, diagnostic.ErrorId, diagnostic.Token,
-          diagnostic.Message);
-      }
+      ProcessDeclarationResolutionResult(moduleDeclarationPointers, decl, moduleResolutionResult);
     }
 
     if (Reporter.ErrorCount != startingErrorCount) {
@@ -108,34 +71,84 @@ public class ProgramResolver {
 
     Type.DisableScopes();
 
-    foreach (var module in program.Modules()) {
+    foreach (var module in Program.Modules()) {
       foreach (var rewriter in compilation.Rewriters) {
         cancellationToken.ThrowIfCancellationRequested();
         rewriter.PostResolve(module);
       }
     }
 
-    CheckDuplicateModuleNames(program);
+    CheckDuplicateModuleNames(Program);
 
     foreach (var rewriter in compilation.Rewriters) {
       cancellationToken.ThrowIfCancellationRequested();
-      rewriter.PostResolve(program);
+      rewriter.PostResolve(Program);
     }
+  }
+
+  private void ProcessDeclarationResolutionResult(Dictionary<ModuleDecl, Action<ModuleDecl>> moduleDeclarationPointers, ModuleDecl decl,
+    ModuleResolutionResult moduleResolutionResult) {
+    moduleDeclarationPointers[decl](moduleResolutionResult.ResolvedDeclaration);
+
+    foreach (var sig in moduleResolutionResult.Signatures) {
+      Program.ModuleSigs[sig.Key] = sig.Value;
+    }
+
+    foreach (var moduleClassMembers in moduleResolutionResult.ClassMembers) {
+      classMembers[moduleClassMembers.Key] = moduleClassMembers.Value;
+    }
+
+    foreach (var diagnostic in moduleResolutionResult.ErrorReporter.AllMessages) {
+      Reporter.Message(diagnostic.Source, diagnostic.Level, diagnostic.ErrorId, diagnostic.Token,
+        diagnostic.Message);
+    }
+  }
+
+  /// <summary>
+  /// We determine where pointers to module declarations occur, and store those so caching can later set those.
+  /// </summary>
+  private bool ComputeModuleDependencyGraph(Program program, out Dictionary<ModuleDecl, Action<ModuleDecl>> moduleDeclarationPointers) {
+    var startingErrorCount = Reporter.ErrorCount;
+    var rootBindings = new ModuleBindings(null);
+    // TODO can we delete rootBindings and pass null instead?
+    var defaultModuleBindings = program.DefaultModuleDef.BindModuleNames(this, rootBindings);
+    rootBindings.BindName(program.DefaultModule.Name, program.DefaultModule, defaultModuleBindings);
+
+    if (Reporter.ErrorCount != startingErrorCount) {
+      // if there were errors, then the implicit ModuleBindings data structure invariant
+      // is violated, so Processing dependencies will not succeed.
+      moduleDeclarationPointers = null;
+      return false;
+    }
+
+    moduleDeclarationPointers = new();
+    moduleDeclarationPointers[program.DefaultModule] = v => program.DefaultModule = (LiteralModuleDecl)v;
+    ProcessDependencies(program.DefaultModule, defaultModuleBindings, moduleDeclarationPointers);
+
+    // check for cycles in the import graph
+    foreach (var cycle in dependencies.AllCycles()) {
+      Resolver.ReportCycleError(Reporter, cycle, m => m.tok,
+        m => (m is AliasModuleDecl ? "import " : "module ") + m.Name,
+        "module definition contains a cycle (note: parent modules implicitly depend on submodules)");
+      return false;
+    }
+
+    return true;
   }
 
   protected virtual Dictionary<TopLevelDeclWithMembers, Dictionary<string, MemberDecl>> ResolveSystemModule(Program program) {
     var systemModuleResolver = new Resolver(this);
 
-    SystemModuleManager.systemNameInfo = program.SystemModuleManager.SystemModule.RegisterTopLevelDecls(systemModuleResolver, false);
+    SystemModuleManager.systemNameInfo = SystemModuleManager.SystemModule.RegisterTopLevelDecls(systemModuleResolver, false);
     systemModuleResolver.moduleInfo = SystemModuleManager.systemNameInfo;
 
-    systemModuleResolver.RevealAllInScope(program.SystemModuleManager.SystemModule.TopLevelDecls, SystemModuleManager.systemNameInfo.VisibilityScope);
+    systemModuleResolver.RevealAllInScope(SystemModuleManager.SystemModule.TopLevelDecls, SystemModuleManager.systemNameInfo.VisibilityScope);
     SystemModuleManager.ResolveValueTypeDecls(this);
 
     // The SystemModule is constructed with all its members already being resolved. Except for
     // the non-null type corresponding to class types.  They are resolved here:
     var systemModuleClassesWithNonNullTypes =
-      program.SystemModuleManager.SystemModule.TopLevelDecls.Where(d => (d as ClassLikeDecl)?.NonNullTypeDecl != null).ToList();
+      SystemModuleManager.SystemModule.TopLevelDecls.Where(d => (d as ClassLikeDecl)?.NonNullTypeDecl != null).ToList();
     foreach (var cl in systemModuleClassesWithNonNullTypes) {
       var d = ((ClassLikeDecl)cl).NonNullTypeDecl;
       systemModuleResolver.allTypeParameters.PushMarker();
@@ -146,7 +159,7 @@ public class ProgramResolver {
 
     systemModuleResolver.ResolveTopLevelDecls_Core(
       ModuleDefinition.AllDeclarationsAndNonNullTypeDecls(systemModuleClassesWithNonNullTypes).ToList(),
-      new Graph<IndDatatypeDecl>(), new Graph<CoDatatypeDecl>(), program.SystemModuleManager.SystemModule.Name);
+      new Graph<IndDatatypeDecl>(), new Graph<CoDatatypeDecl>(), SystemModuleManager.SystemModule.Name);
 
     return systemModuleResolver.moduleClassMembers;
   }
@@ -213,7 +226,7 @@ public class ProgramResolver {
       module.RefinementQId.Root = other;
       if (!res) {
         Reporter.Error(MessageSource.Resolver, module.RefinementQId.RootToken(),
-          $"module {module.RefinementQId.ToString()} named as refinement base does not exist");
+          $"module {module.RefinementQId} named as refinement base does not exist");
       } else {
         declarationPointers.AddOrUpdate(other, v => module.RefinementQId.Root = v, Util.Concat);
         if (other is LiteralModuleDecl otherLiteral && otherLiteral.ModuleDef == module) {

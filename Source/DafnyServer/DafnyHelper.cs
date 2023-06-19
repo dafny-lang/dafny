@@ -56,7 +56,7 @@ namespace Microsoft.Dafny {
 
     private bool Resolve() {
       var resolver = new ProgramResolver(dafnyProgram);
-      resolver.Resolve(dafnyProgram, CancellationToken.None);
+      resolver.Resolve(CancellationToken.None);
       return reporter.Count(ErrorLevel.Error) == 0;
     }
 

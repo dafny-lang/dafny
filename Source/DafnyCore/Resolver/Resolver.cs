@@ -31,8 +31,7 @@ namespace Microsoft.Dafny {
   public partial class Resolver { // TODO rename to ModuleResolver in fast-follow-up
     public ProgramResolver ProgramResolver { get; }
     public DafnyOptions Options { get; }
-    private Program program;
-    public SystemModuleManager SystemModuleManager => program.SystemModuleManager;
+    public SystemModuleManager SystemModuleManager;
 
     public ErrorReporter reporter;
     public ModuleSignature moduleInfo = null;
@@ -95,7 +94,7 @@ namespace Microsoft.Dafny {
       enclosingStatementLabels = new Scope<Statement>(Options);
       DominatingStatementLabels = new Scope<Label>(Options);
 
-      program = programResolver.Program;
+      SystemModuleManager = programResolver.SystemModuleManager;
       reporter = new BatchErrorReporter(Options);
     }
 

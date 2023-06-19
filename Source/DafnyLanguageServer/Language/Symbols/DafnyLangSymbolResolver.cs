@@ -56,7 +56,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
       var beforeResolution = DateTime.Now;
       try {
         var resolver = new CachingResolver(program, loggerFactory.CreateLogger<CachingResolver>(), resolutionCache);
-        resolver.Resolve(program, cancellationToken);
+        resolver.Resolve(cancellationToken);
         resolutionCache.Prune();
         int resolverErrors = resolver.Reporter.ErrorCountUntilResolver;
         if (resolverErrors > 0) {
