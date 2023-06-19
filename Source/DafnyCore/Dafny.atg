@@ -189,7 +189,7 @@ public Parser(DafnyOptions options, Scanner/*!*/ scanner, Errors/*!*/ errors)
   var dummyBlockStmt = new BlockStmt(Token.NoToken.ToRange(), new List<Statement>());
   dummyIfStmt = new IfStmt(Token.NoToken.ToRange(), false, null, dummyBlockStmt, null);
   
-  theModule = new FileModuleDefinition();
+  theModule = new FileModuleDefinition(scanner.FirstToken);
   theOptions = new DafnyOptions(options);
 }
 
