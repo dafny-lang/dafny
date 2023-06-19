@@ -82,6 +82,8 @@ public class OpaqueMemberRewriter : IRewriter {
     foreach (var member in c.Members.Where(member => member is Function or ConstantField)) {
       if (!Attributes.Contains(member.Attributes, "opaque") && !member.IsOpaque) {
         // Nothing to do
+      } else if (member is Function { Body : null }) {
+        // Nothing to do
       } else if (!RefinementToken.IsInherited(member.tok, c.EnclosingModuleDefinition)) {
         GenerateRevealLemma(member, newDecls);
       }
@@ -135,11 +137,14 @@ public class OpaqueMemberRewriter : IRewriter {
     lemma_attrs = new Attributes("opaque_reveal", new List<Expression>(), lemma_attrs);
     lemma_attrs = new Attributes("verify", new List<Expression>() { new LiteralExpr(m.tok, false) }, lemma_attrs);
     var ens = new List<AttributedExpression>();
-    if (m is ConstantField c && c.Rhs != null) {
+
+    var isStatic = true;
+    if (m is ConstantField { Rhs: not null } c) {
       ens.Add(new AttributedExpression(new BinaryExpr(c.tok, BinaryExpr.Opcode.Eq, new NameSegment(c.Tok, c.Name, null), c.Rhs)));
+      isStatic = m.HasStaticKeyword;
     }
+    
     Method reveal;
-    var isStatic = m.HasStaticKeyword || ((m.EnclosingClass is not DefaultClassDecl));
     if (m is TwoStateFunction) {
       reveal = new TwoStateLemma(m.RangeToken, m.NameNode.Prepend("reveal_"), isStatic, new List<TypeParameter>(), new List<Formal>(), new List<Formal>(), new List<AttributedExpression>(),
         new Specification<FrameExpression>(new List<FrameExpression>(), null), ens,
