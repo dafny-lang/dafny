@@ -2173,8 +2173,8 @@ NoGhost - disable printing of functions, ghost methods, and proof
 
       } else if (expr is IdentifierExpr) {
         var e = (IdentifierExpr)expr;
-        if (printFlags.UseOriginalDafnyNames && e.StartToken.line > 0) {
-          wr.Write(e.RangeToken.PrintOriginal());
+        if (printFlags.UseOriginalDafnyNames) {
+          wr.Write(e.DafnyName);
         } else {
           wr.Write(e.Name);
         }

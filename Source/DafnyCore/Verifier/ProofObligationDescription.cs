@@ -10,6 +10,14 @@ public abstract class ProofObligationDescription : Boogie.ProofObligationDescrip
   // An expression that, if verified, would trigger a success for this ProofObligationDescription
   // It is only printed for the user, so it does not need to be resolved.
   public abstract Expression GetAssertedExpr(DafnyOptions options);
+  
+  // Substituting replaces the token of a substituting expression by the token of the identifierExpr being susbstituted,
+  // Since the printer requires the token of IdentifierExpr to be Token.NoToken to print the custom name in Dafny mode,
+  // we just wrap the identifierExpr into a ParensExpression, as it is the case for any other expression.
+  protected static Expression ToSubstitutableExpression(BoundVar bvar) {
+    var expression = new IdentifierExpr(bvar.tok, bvar);
+    return new ParensExpression(bvar.tok, expression) { Type = bvar.Type, ResolvedExpression = expression};
+  }
 }
 
 // When there is no way to translate the asserted constraint in Dafny yet
@@ -997,8 +1005,8 @@ public class LetSuchThatUnique : ProofObligationDescription {
   }
   public override Expression GetAssertedExpr(DafnyOptions options) {
     var bvarsExprs = bvars.Select(bvar => new IdentifierExpr(bvar.tok, bvar)).ToList();
-    var bvarprimes = bvars.Select(bvar => new BoundVar(bvar.tok, bvar.Name + "'", bvar.Type)).ToList();
-    var bvarprimesExprs = bvarprimes.Select(bvar => new IdentifierExpr(bvar.tok, bvar) as Expression).ToList();
+    var bvarprimes = bvars.Select(bvar => new BoundVar(Token.NoToken, bvar.DafnyName + "'", bvar.Type)).ToList();
+    var bvarprimesExprs = bvarprimes.Select(ToSubstitutableExpression).ToList();
     var subContract = new Substituter(null,
       bvars.Zip(bvarprimesExprs).ToDictionary<(BoundVar, Expression), IVariable, Expression>(
         item => item.Item1, item => item.Item2),
