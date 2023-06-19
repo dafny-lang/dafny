@@ -44,13 +44,9 @@ namespace Microsoft.Dafny {
 
     public readonly string FullName;
 
-    // TODO do we need this? And should it be in program? What about CompilationData?
-    /*
-     * Where do we want to store resolution state in the future? Where does Roslyn do that?
-     */
-    [FilledInDuringResolution] public Dictionary<ModuleDefinition, ModuleSignature> ModuleSigs;
     // Resolution essentially flattens the module hierarchy, for
     // purposes of translation and compilation.
+    [FilledInDuringResolution] public Dictionary<ModuleDefinition, ModuleSignature> ModuleSigs;
     [FilledInDuringResolution] public IEnumerable<ModuleDefinition> CompileModules => new[] { SystemModuleManager.SystemModule }.Concat(Modules());
     // Contains the definitions to be used for compilation.
 

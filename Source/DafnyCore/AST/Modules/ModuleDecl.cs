@@ -49,8 +49,6 @@ public abstract class ModuleDecl : TopLevelDecl, IHasDocstring {
   }
   public abstract object Dereference();
 
-  public int? ResolvedHash { get; set; } // TODO never set, so remove.
-
   public override bool IsEssentiallyEmpty() {
     // A module or import is considered "essentially empty" to its parents, but the module is going to be resolved by itself.
     return true;

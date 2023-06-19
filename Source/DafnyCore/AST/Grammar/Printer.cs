@@ -396,11 +396,6 @@ NoGhost - disable printing of functions, ghost methods, and proof
             if (dd.Opened) {
               wr.Write(" opened");
             }
-            if (dd.ResolvedHash.HasValue && this.printMode == PrintModes.Serialization) {
-              wr.Write(" /*");
-              wr.Write(dd.ResolvedHash);
-              wr.Write("*/");
-            }
             wr.Write(" {0}", dd.Name);
             if (dd.Name != dd.TargetQId.ToString()) {
               wr.Write(" = {0}", dd.TargetQId.ToString());
@@ -418,11 +413,6 @@ NoGhost - disable printing of functions, ghost methods, and proof
             wr.Write("import");
             if (dd.Opened) {
               wr.Write(" opened");
-            }
-            if (dd.ResolvedHash.HasValue && this.printMode == PrintModes.Serialization) {
-              wr.Write(" /*");
-              wr.Write(dd.ResolvedHash);
-              wr.Write("*/");
             }
             wr.Write(" {0} ", dd.Name);
             wr.Write(": {0}", dd.QId.ToString());
