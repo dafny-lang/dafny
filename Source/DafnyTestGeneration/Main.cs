@@ -20,12 +20,12 @@ namespace DafnyTestGeneration {
     /// loop unrolling may cause false negatives.
     /// </summary>
     /// <returns></returns>
-    public static async IAsyncEnumerable<string> GetDeadCodeStatistics(Program program, Uri uri=null) {
+    public static async IAsyncEnumerable<string> GetDeadCodeStatistics(Program program) {
 
       program.Reporter.Options.PrintMode = PrintModes.Everything;
 
       var cache = new Modifications(program.Options);
-      var modifications = GetModifications(cache, program, uri).ToList();
+      var modifications = GetModifications(cache, program).ToList();
       var blocksReached = modifications.Count;
       HashSet<string> allStates = new();
       HashSet<string> allDeadStates = new();
@@ -63,14 +63,14 @@ namespace DafnyTestGeneration {
         yield return "Cannot parse program";
         yield break;
       }
-      await foreach (var line in GetDeadCodeStatistics(program, new Uri(sourceFile))) {
+      await foreach (var line in GetDeadCodeStatistics(program)) {
         yield return line;
       }
     }
 
-    private static IEnumerable<ProgramModification> GetModifications(Modifications cache, Program program, Uri uri) {
+    private static IEnumerable<ProgramModification> GetModifications(Modifications cache, Program program) {
       var options = program.Options;
-      var boogieProgram = Inlining.Preprocessor.PreprocessDafny(program, options, uri);
+      var boogieProgram = Inlining.InliningTranslator.TranslateAndInline(program, options);
       var dafnyInfo = new DafnyInfo(program);
       setNonZeroExitCode = dafnyInfo.SetNonZeroExitCode || setNonZeroExitCode;
       if (options.TestGenOptions.TargetMethod != null) {
@@ -100,14 +100,14 @@ namespace DafnyTestGeneration {
     /// Generate test methods for a certain Dafny program.
     /// </summary>
     /// <returns></returns>
-    public static async IAsyncEnumerable<TestMethod> GetTestMethodsForProgram(Program program, Uri uri=null, Modifications cache=null) {
+    public static async IAsyncEnumerable<TestMethod> GetTestMethodsForProgram(Program program, Modifications cache=null) {
 
       var options = program.Options;
       options.PrintMode = PrintModes.Everything;
       // Generate tests based on counterexamples produced from modifications
 
       cache ??= new Modifications(options);
-      var programModifications = GetModifications(cache, program, uri).ToList();
+      var programModifications = GetModifications(cache, program).ToList();
       var dafnyInfo = new DafnyInfo(program);
       setNonZeroExitCode = dafnyInfo.SetNonZeroExitCode || setNonZeroExitCode;
       foreach (var modification in programModifications) {
@@ -162,7 +162,7 @@ namespace DafnyTestGeneration {
       
       var cache = new Modifications(options);
       var methodsGenerated = 0;
-      await foreach (var method in GetTestMethodsForProgram(program, new Uri(sourceFile), cache)) {
+      await foreach (var method in GetTestMethodsForProgram(program, cache)) {
         yield return method.ToString();
         methodsGenerated++;
       }

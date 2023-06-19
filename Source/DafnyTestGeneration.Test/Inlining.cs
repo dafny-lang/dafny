@@ -10,11 +10,11 @@ using System.Threading.Tasks;
 using Xunit;
 using Xunit.Abstractions;
 
-public class DafnyTransformations {
+public class Inlining {
   
   private readonly TextWriter output;
 
-  public DafnyTransformations(ITestOutputHelper output) {
+  public Inlining(ITestOutputHelper output) {
     this.output = new WriterFromOutputHelper(output);
   }
 
@@ -25,7 +25,7 @@ public class DafnyTransformations {
   private async Task ShortCircuitRemovalTest(string source, string expectedResult, bool isByMethod=true) {
     var options = Setup.GetDafnyOptions(output);
     var program = Utils.Parse(options, source, false);
-    var boogieProgram = Inlining.Preprocessor.PreprocessDafny(program, options);
+    var boogieProgram = InliningTranslator.TranslateAndInline(program, options);
     var method = program.DefaultModuleDef.Children.OfType<DefaultClassDecl>().First()?.Children.OfType<Method>().First();
     Assert.NotNull(method);
     Assert.Equal(isByMethod, method.IsByMethod);

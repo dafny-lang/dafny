@@ -9,16 +9,10 @@ using Function = Microsoft.Dafny.Function;
 
 namespace DafnyTestGeneration.Inlining;
 
-/// <summary>
-/// Turns each function into a function-by-method.
-/// Copies body of the function into the body of the corresponding method.
-/// </summary>
+/// <summary> Turns each function into a function-by-method and removes all opaque attributes. </summary>
 public class AddByMethodRewriter : IRewriter {
-  
-  private Cloner cloner = new Cloner();
 
-  protected internal AddByMethodRewriter(ErrorReporter reporter) : base(reporter) {
-  }
+  protected internal AddByMethodRewriter(ErrorReporter reporter) : base(reporter) { }
 
   internal void PreResolve(Program program) {
     AddByMethod(program.DefaultModule);
@@ -58,16 +52,11 @@ public class AddByMethodRewriter : IRewriter {
 
   private void AddByMethod(Function func) {
     
-    /*var formals = func.Formals.Select(formal => new Microsoft.Dafny.IdentifierExpr(new Token(), formal) as Expression).ToList();
-    
-    func.Ens.Add(new AttributedExpression(new BinaryExpr(
-      new Token(), 
-      BinaryExpr.Opcode.Eq, 
-      new ApplyExpr(new Token(), new NameSegment(new Token(), func.Name, func.TypeArgs.ConvertAll(arg => new UserDefinedType(new Token(), arg) as Microsoft.Dafny.Type)), formals,new Token()), 
-      cloner.CloneExpr(func.Body))));*/
-    
     func.Attributes = RemoveOpaqueAttr(func.Attributes, new Cloner());
-    if (func.IsGhost || func.Body == null || func.ByMethodBody != null || !Utils.AttributeFinder.MembersHasAttribute(func, "testInline")) {
+    if (func.IsGhost || 
+        func.Body == null || 
+        func.ByMethodBody != null || 
+        !Utils.AttributeFinder.MembersHasAttribute(func, TestGenerationOptions.TestInlineAttribute)) {
       return;
     }
 

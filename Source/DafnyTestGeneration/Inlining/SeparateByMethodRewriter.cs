@@ -9,9 +9,12 @@ using Function = Microsoft.Dafny.Function;
 
 namespace DafnyTestGeneration.Inlining;
 
+/// <summary>
+/// Separates the bodies of function-by-methods into separate methods so that translator will process them accordingly.
+/// </summary>
 public class SeparateByMethodRewriter : IRewriter {
 
-  private List<Method> methodsToAdd = new();
+  private readonly List<Method> methodsToAdd = new();
 
   protected internal SeparateByMethodRewriter(ErrorReporter reporter) : base(reporter) { }
 
@@ -34,8 +37,5 @@ public class SeparateByMethodRewriter : IRewriter {
       return;
     }
     methodsToAdd.Add(func.ByMethodDecl);
-    /*func.ByMethodBody = null;
-    func.ByMethodDecl = null;
-    func.ByMethodTok = null;*/
   }
 }

@@ -1,33 +1,33 @@
 #nullable disable
 
-using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Threading;
 using Microsoft.Dafny;
 using Program = Microsoft.Dafny.Program;
 
 namespace DafnyTestGeneration.Inlining; 
 
-public static class Preprocessor {
+public static class InliningTranslator {
 
   /// <summary>
-  /// Precondition: dafnyProgram must not be resolved
+  /// Take an unresolved <param name="dafnyProgram"></param> and translate it to Boogie while enabling inlining.
   /// </summary>
-  public static Microsoft.Boogie.Program PreprocessDafny(Program dafnyProgram, DafnyOptions options, Uri uri = null) {
-    // Substitute functions with function-by-methods
+  public static Microsoft.Boogie.Program TranslateAndInline(Program dafnyProgram, DafnyOptions options) {
+    // Substitute all :testInline-annotated functions with function-by-methods and remove all opaque attributes
     new AddByMethodRewriter(new ConsoleErrorReporter(options)).PreResolve(dafnyProgram);
-    // Remove short-circuiting expressions from method bodies
+    // Remove short-circuiting expressions from method and byMethod bodies
     new RemoveShortCircuitingCloner().Visit(dafnyProgram);
-    // Resolve to figure out where all function calls are
+    // Resolve the program (in particular, resolve all function calls)
     new Resolver(dafnyProgram).ResolveProgram(dafnyProgram, CancellationToken.None); // now resolved
     // Change by-method function calls to method calls
-    new FunctionCallToMethodCallRewriter().Visit(dafnyProgram);
+    new FunctionCallToMethodCallCloner().Visit(dafnyProgram);
+    // Separate by-method methods into standalone methods so that translator adds Call$$ procedures for them
     new SeparateByMethodRewriter(new ConsoleErrorReporter(options)).PostResolve(dafnyProgram);
     // Translate Dafny to Boogie. 
     var boogiePrograms = Utils.Translate(dafnyProgram);
-    var program = MergeBoogiePrograms(options, boogiePrograms);
-    // Finally, create bodies for the call-annotated procedures
+    // If translation returns several modules, merge them all together to enable inlining across modules
+    var program = MergeBoogiePrograms(boogiePrograms);
+    // Finally, create bodies for the Call$$ procedures that call out to Impl$$ procedures
     program = new AddImplementationsForCallsRewriter(options).VisitProgram(program);
     return program;
   }
@@ -35,13 +35,13 @@ public static class Preprocessor {
   /// <summary>
   /// Merge Boogie Programs by removing any duplicate top level declarations
   /// </summary>
-  private static Microsoft.Boogie.Program MergeBoogiePrograms(DafnyOptions options, IEnumerable<Microsoft.Boogie.Program> programs) {
-    // Merge all programs into one first:
+  private static Microsoft.Boogie.Program MergeBoogiePrograms(IEnumerable<Microsoft.Boogie.Program> programs) {
+    // Add all top-level declarations into one program
     var program = new Microsoft.Boogie.Program();
     foreach (var p in programs) {
       program.AddTopLevelDeclarations(p.TopLevelDeclarations);
     }
-    // Remove duplicates afterwards:
+    // Remove duplicates:
     var declarations = new Dictionary<string, HashSet<string/*?*/>>();
     var toRemove = new List<Microsoft.Boogie.Declaration>();
     foreach (var declaration in program.TopLevelDeclarations) {

@@ -101,7 +101,7 @@ namespace DafnyTestGeneration {
       if (!resolve) {
         return program;
       }
-      new Resolver(program).ResolveProgram(program,  CancellationToken.None);
+      new Resolver(program).ResolveProgram(program, CancellationToken.None);
       return program;
     }
 
