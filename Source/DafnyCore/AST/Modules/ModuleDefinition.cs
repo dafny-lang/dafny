@@ -3,9 +3,7 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics.Contracts;
 using System.Linq;
-using Microsoft.Boogie;
 using Microsoft.Dafny.Auditor;
-using static Microsoft.Dafny.ModuleDefinition;
 
 namespace Microsoft.Dafny;
 

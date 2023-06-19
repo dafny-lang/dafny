@@ -29,6 +29,7 @@ public class ModuleQualifiedId : Node, IHasUsages {
   public ModuleQualifiedId(Cloner cloner, ModuleQualifiedId original) {
     Path = original.Path.Select(n => n.Clone(cloner)).ToList();
 
+    // TODO decide what to do with this. It's commented out because the conditioned used to be a custom bool parameter that was always false.
     // if (cloner.CloneResolvedFields) {
     //   Root = original.Root;
     //   Decl = original.Decl;
@@ -106,9 +107,8 @@ public class ModuleQualifiedId : Node, IHasUsages {
         p = literalModuleDecl.DefaultExport;
         if (p == null) {
           reporter.Error(MessageSource.Resolver, Path[k],
-            ProgramResolver.ModuleNotFoundErrorMessage(k, Path,
-              $" because {literalModuleDecl.Name} does not have a default export"));
-          return result;
+            ProgramResolver.ModuleNotFoundErrorMessage(k, Path, $" because {result.Name} does not have a default export"));
+          return null;
         }
       } else {
         p = result.Signature;
