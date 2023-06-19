@@ -102,7 +102,7 @@ public class ProgramResolver {
     Type.DisableScopes();
     CheckDuplicateModuleNames(program);
 
-    foreach (var module in program.Modules()) { // TODO move this inside cached module resolution?
+    foreach (var module in program.Modules()) {
       foreach (var rewriter in compilation.Rewriters) {
         cancellationToken.ThrowIfCancellationRequested();
         rewriter.PostResolve(module);
