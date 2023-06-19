@@ -241,11 +241,31 @@ module A {
     await client.OpenDocumentAndWaitAsync(documentItem1, CancellationToken);
     var diagnostics1 = await GetLastDiagnostics(documentItem1, CancellationToken);
     Assert.Empty(diagnostics1);
-    
+
     var documentItem2 = CreateTestDocument(usingFile, Path.Combine(testFiles, "test2.dfy"));
     await client.OpenDocumentAndWaitAsync(documentItem2, CancellationToken);
     var diagnostics2 = await GetLastDiagnostics(documentItem1, CancellationToken);
     Assert.Empty(diagnostics2);
+  }
+
+  [Fact]
+  public async Task PotentialImportOpenedConflict() {
+    var usingFile = @"
+include ""./potentialImportOpenedConflict.dfy""
+
+
+module ChangedClonedId {
+    const changed := 2
+}
+";
+    var testFiles = Path.Combine(Directory.GetCurrentDirectory(), "Synchronization/TestFiles");
+    var documentItem1 = CreateTestDocument(usingFile, Path.Combine(testFiles, "notCached.dfy"));
+    await client.OpenDocumentAndWaitAsync(documentItem1, CancellationToken);
+    var diagnostics1 = await GetLastDiagnostics(documentItem1, CancellationToken);
+    Assert.Empty(diagnostics1.Where(d => d.Severity == DiagnosticSeverity.Error));
+
+    ApplyChange(ref documentItem1, new Range(2, 0, 2, 0), "//comment\n");
+    await AssertNoDiagnosticsAreComing(CancellationToken);
   }
 
   public CachingTest(ITestOutputHelper output) : base(output) {

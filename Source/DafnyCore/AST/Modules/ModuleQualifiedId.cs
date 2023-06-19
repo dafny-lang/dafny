@@ -98,38 +98,28 @@ public class ModuleQualifiedId : Node, IHasUsages {
     return Decl;
   }
 
-  private ModuleDecl ResolveTargetUncached(ErrorReporter reporter)
-  {
+  private ModuleDecl ResolveTargetUncached(ErrorReporter reporter) {
     var result = Root;
-    for (int k = 1; k < Path.Count; k++)
-    {
+    for (int k = 1; k < Path.Count; k++) {
       ModuleSignature p;
-      if (result is LiteralModuleDecl literalModuleDecl)
-      {
+      if (result is LiteralModuleDecl literalModuleDecl) {
         p = literalModuleDecl.DefaultExport;
-        if (p == null)
-        {
+        if (p == null) {
           reporter.Error(MessageSource.Resolver, Path[k],
             ProgramResolver.ModuleNotFoundErrorMessage(k, Path,
               $" because {literalModuleDecl.Name} does not have a default export"));
           return result;
         }
-      }
-      else
-      {
+      } else {
         p = result.Signature;
       }
 
       var tld = p.TopLevels.GetValueOrDefault(Path[k].Value, null);
-      if (tld is not ModuleDecl dd)
-      {
-        if (result.Signature.ModuleDef == null)
-        {
+      if (tld is not ModuleDecl dd) {
+        if (result.Signature.ModuleDef == null) {
           reporter.Error(MessageSource.Resolver, Path[k],
             ProgramResolver.ModuleNotFoundErrorMessage(k, Path, " because of previous error"));
-        }
-        else
-        {
+        } else {
           reporter.Error(MessageSource.Resolver, Path[k], ProgramResolver.ModuleNotFoundErrorMessage(k, Path));
         }
 
@@ -138,8 +128,7 @@ public class ModuleQualifiedId : Node, IHasUsages {
 
       // Any aliases along the qualified path ought to be already resolved,
       // else the modules are not being resolved in the right order
-      if (dd is AliasModuleDecl amd)
-      {
+      if (dd is AliasModuleDecl amd) {
         Contract.Assert(amd.Signature != null);
       }
 
