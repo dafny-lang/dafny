@@ -211,10 +211,9 @@ public class ProgramResolver {
   public static string ModuleNotFoundErrorMessage(int i, List<Name> path, string tail = "") {
     Contract.Requires(path != null);
     Contract.Requires(0 <= i && i < path.Count);
-    return "module " + path[i].Value + " does not exist" +
-           (1 < path.Count
-             ? " (position " + i.ToString() + " in path " + Util.Comma(".", path, x => x.Value) + ")" + tail
-             : "");
+    var addendum = 1 < path.Count ? $" (position {i} in path {Util.Comma(".", path, x => x.Value)}){tail}" : "";
+    return
+      $"module {path[i].Value} does not exist" + addendum;
   }
 
   private void ProcessDependenciesDefinition(LiteralModuleDecl literalDecl, ModuleBindings bindings,
