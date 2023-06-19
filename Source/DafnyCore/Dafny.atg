@@ -977,8 +977,8 @@ TopDecl<. ModuleDefinition module, bool isTopLevel, bool isAbstract .>
   ( SubModuleDecl<dmod, module, out submodule, isTopLevel>
                                                (. var litmod = submodule as LiteralModuleDecl;
                                                   if (litmod != null && litmod.ModuleDef.PrefixIds.Count != 0) {
-                                                    var tup = new PrefixNameModule(litmod.ModuleDef.PrefixIds, litmod);
-                                                    module.PrefixNamedModules.Add(tup);
+                                                    var prefixModule = new PrefixNameModule(litmod.ModuleDef.PrefixIds, litmod);
+                                                    module.PrefixNamedModules.Add(prefixModule);
                                                   } else {
                                                     if (submodule != null) {
                                                       module.SourceDecls.Add(submodule);
