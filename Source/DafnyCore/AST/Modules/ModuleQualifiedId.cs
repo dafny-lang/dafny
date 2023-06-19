@@ -28,14 +28,6 @@ public class ModuleQualifiedId : Node, IHasUsages {
 
   public ModuleQualifiedId(Cloner cloner, ModuleQualifiedId original) {
     Path = original.Path.Select(n => n.Clone(cloner)).ToList();
-
-    // TODO decide what to do with this. It's commented out because the conditioned used to be a custom bool parameter that was always false.
-    // if (cloner.CloneResolvedFields) {
-    //   Root = original.Root;
-    //   Decl = original.Decl;
-    //   Def = original.Def;
-    //   Sig = original.Sig;
-    // }
   }
 
   public string RootName() {
