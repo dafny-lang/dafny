@@ -46,6 +46,10 @@ public static class Rewriters {
 
     result.Add(new LocalLinter(reporter));
     result.Add(new PrecedenceLinter(reporter));
+    
+    if (program.Options.Get(CommonOptionBag.AllOpaque)) {
+      result.Add(new AllOpaqueRevealStmtInserter(reporter));
+    }
 
     foreach (var plugin in program.Options.Plugins) {
       result.AddRange(plugin.GetRewriters(reporter));

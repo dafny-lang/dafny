@@ -1070,7 +1070,7 @@ namespace Microsoft.Dafny {
                   this.functionFuel.Add(new FuelConstant(f, baseFuel_expr, startFuel_expr, startFuelAssert_expr));
                 }
 
-                if (f.IsOpaque) {
+                if (f.IsOpaque || options.Get(CommonOptionBag.AllOpaque)) {
                   CreateRevealableConstant(f);
                 }
               }
@@ -2113,7 +2113,7 @@ namespace Microsoft.Dafny {
       }
 
       Bpl.BoundVariable reveal;
-      if (f.IsOpaque) {
+      if (f.IsOpaque || options.Get(CommonOptionBag.AllOpaque)) {
         reveal = new Bpl.BoundVariable(f.tok, new Bpl.TypedIdent(f.tok, "$reveal", Boogie.Type.Bool));
         formals.Add(reveal);
       } else {
@@ -2430,7 +2430,7 @@ namespace Microsoft.Dafny {
         layer = null;
       }
 
-      if (f.IsOpaque) {
+      if (f.IsOpaque || options.Get(CommonOptionBag.AllOpaque)) {
         reveal = new Bpl.BoundVariable(f.tok, new Bpl.TypedIdent(f.tok, "$reveal", Boogie.Type.Bool));
         //funcFormals.Add(reveal);
         //reqFuncArguments.Add(new Bpl.IdentifierExpr(f.tok, reveal));
@@ -2883,7 +2883,7 @@ namespace Microsoft.Dafny {
       var s = new Bpl.IdentifierExpr(f.tok, bv);
       args1.Add(FunctionCall(f.tok, BuiltinFunction.LayerSucc, null, s));
       args0.Add(s);
-      if (f.IsOpaque) {
+      if (f.IsOpaque || options.Get(CommonOptionBag.AllOpaque)) {
         var bvReveal = new Bpl.BoundVariable(f.tok, new Bpl.TypedIdent(f.tok, "$reveal", Boogie.Type.Bool));
         formals.Add(bvReveal);
         var sReveal = new Bpl.IdentifierExpr(f.tok, bvReveal);
@@ -2954,7 +2954,7 @@ namespace Microsoft.Dafny {
       args2.Add(FunctionCall(f.tok, BuiltinFunction.AsFuelBottom, null, s));
       args1.Add(s);
       args0.Add(new Bpl.IdentifierExpr(f.tok, "$LZ", predef.LayerType)); // $LZ
-      if (f.IsOpaque) {
+      if (f.IsOpaque || options.Get(CommonOptionBag.AllOpaque)) {
         var bvReveal = new Bpl.BoundVariable(f.tok, new Bpl.TypedIdent(f.tok, "$reveal", Boogie.Type.Bool));
         formals.Add(bvReveal);
         var sReveal = new Bpl.IdentifierExpr(f.tok, bvReveal);
@@ -4020,7 +4020,7 @@ namespace Microsoft.Dafny {
       Bpl.BoundVariable prevHVar = null;
       Bpl.Expr reveal = null;
       Bpl.BoundVariable revealVar = null;
-      if (f.IsOpaque) {
+      if (f.IsOpaque || options.Get(CommonOptionBag.AllOpaque)) {
         revealVar = BplBoundVar("$reveal", Bpl.Type.Bool, out reveal);
       }
       if (f is TwoStateFunction) {
@@ -4400,7 +4400,7 @@ namespace Microsoft.Dafny {
           args.Add(etran.layerInterCluster.GetFunctionFuel(f));
         }
 
-        if (f.IsOpaque) {
+        if (f.IsOpaque || options.Get(CommonOptionBag.AllOpaque)) {
           args.Add(GetRevealConstant(f));
         }
         if (f is TwoStateFunction) {
@@ -4443,7 +4443,7 @@ namespace Microsoft.Dafny {
           args.Add(etran.layerInterCluster.GetFunctionFuel(f));
         }
 
-        if (f.IsOpaque) {
+        if (f.IsOpaque || options.Get(CommonOptionBag.AllOpaque)) {
           args.Add(GetRevealConstant(f));
         }
         if (f is TwoStateFunction) {
@@ -6737,7 +6737,7 @@ namespace Microsoft.Dafny {
           formals.Add(new Bpl.Formal(f.tok, new Bpl.TypedIdent(f.tok, "$ly", predef.LayerType), true));
         }
 
-        if (f.IsOpaque) {
+        if (f.IsOpaque || options.Get(CommonOptionBag.AllOpaque)) {
           formals.Add(new Bpl.Formal(f.tok, new Bpl.TypedIdent(f.tok, "$reveal", Boogie.Type.Bool), true));
         }
         if (f is TwoStateFunction) {
