@@ -100,7 +100,6 @@ public class ProgramResolver {
     }
 
     Type.DisableScopes();
-    CheckDuplicateModuleNames(program);
 
     foreach (var module in program.Modules()) {
       foreach (var rewriter in compilation.Rewriters) {
@@ -108,6 +107,8 @@ public class ProgramResolver {
         rewriter.PostResolve(module);
       }
     }
+    
+    CheckDuplicateModuleNames(program);
 
     foreach (var rewriter in compilation.Rewriters) {
       cancellationToken.ThrowIfCancellationRequested();
@@ -165,11 +166,11 @@ public class ProgramResolver {
   ///
   /// This could happen if they are given the same name using the 'extern' declaration modifier.
   /// </summary>
-  /// <param name="prog">The Dafny program being compiled.</param>
-  void CheckDuplicateModuleNames(Program prog) {
+  /// <param name="program">The Dafny program being compiled.</param>
+  void CheckDuplicateModuleNames(Program program) {
     // Check that none of the modules have the same CompileName.
     Dictionary<string, ModuleDefinition> compileNameMap = new Dictionary<string, ModuleDefinition>();
-    foreach (ModuleDefinition m in prog.CompileModules) {
+    foreach (ModuleDefinition m in program.CompileModules) {
       var compileIt = true;
       Attributes.ContainsBool(m.Attributes, "compile", ref compileIt);
       if (m.IsAbstract || !compileIt) {
