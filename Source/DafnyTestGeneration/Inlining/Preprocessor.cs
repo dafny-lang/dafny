@@ -3,6 +3,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Threading;
 using Microsoft.Dafny;
 using Program = Microsoft.Dafny.Program;
 
@@ -14,17 +15,15 @@ public static class Preprocessor {
   /// Precondition: dafnyProgram must not be resolved
   /// </summary>
   public static Microsoft.Boogie.Program PreprocessDafny(Program dafnyProgram, DafnyOptions options, Uri uri = null) {
-    uri ??= new Uri(Path.GetTempPath());
-    var defaultModuleDefinition = new DefaultModuleDefinition(new List<Uri>() { uri });
     // Substitute functions with function-by-methods
-    new AddByMethodRewriter(new ConsoleErrorReporter(options, defaultModuleDefinition)).PreResolve(dafnyProgram);
+    new AddByMethodRewriter(new ConsoleErrorReporter(options)).PreResolve(dafnyProgram);
     // Remove short-circuiting expressions from method bodies
     new RemoveShortCircuitingCloner().Visit(dafnyProgram);
     // Resolve to figure out where all function calls are
-    new Resolver(dafnyProgram).ResolveProgram(dafnyProgram); // now resolved
+    new Resolver(dafnyProgram).ResolveProgram(dafnyProgram, CancellationToken.None); // now resolved
     // Change by-method function calls to method calls
     new FunctionCallToMethodCallRewriter().Visit(dafnyProgram);
-    new SeparateByMethodRewriter(new ConsoleErrorReporter(options, defaultModuleDefinition)).PostResolve(dafnyProgram);
+    new SeparateByMethodRewriter(new ConsoleErrorReporter(options)).PostResolve(dafnyProgram);
     // Translate Dafny to Boogie. 
     var boogiePrograms = Utils.Translate(dafnyProgram);
     var program = MergeBoogiePrograms(options, boogiePrograms);

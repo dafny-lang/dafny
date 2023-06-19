@@ -10,10 +10,10 @@ ghost function SetSt(p: Path, a: Artifact, st: State): State
 ghost function DomSt(st: State): set<Path>
 
 ghost function Restrict(paths: set<Path>, st: State): State
-  requires paths <= DomSt(st);
+  requires paths <= DomSt(st)
   ensures
     var st' := Restrict(paths, st);
-    DomSt(st') == paths && forall p :: p in paths ==> GetSt(p, st) == GetSt(p, st');
+    DomSt(st') == paths && forall p :: p in paths ==> GetSt(p, st) == GetSt(p, st')
 
 ghost function Union(st: State, st': State): State
   ensures
@@ -21,34 +21,34 @@ ghost function Union(st: State, st': State): State
     DomSt(result) == DomSt(st) + DomSt(st') &&
     forall p :: p in DomSt(result) ==>
       (p in DomSt(st) ==> GetSt(p, result) == GetSt(p, st)) &&
-      (p in DomSt(st') ==> GetSt(p, result) == GetSt(p, st'));
+      (p in DomSt(st') ==> GetSt(p, result) == GetSt(p, st'))
 
 lemma StateEqualityProperty(st: State, st': State)
-  requires DomSt(st) == DomSt(st');
-  requires forall p :: p in DomSt(st) ==> GetSt(p, st) == GetSt(p, st');
-  ensures st == st';
+  requires DomSt(st) == DomSt(st')
+  requires forall p :: p in DomSt(st) ==> GetSt(p, st) == GetSt(p, st')
+  ensures st == st'
 
 /******* Cached state *******/
 datatype StateC = S(st: State, c: Cache)
 
 ghost function EmptyCache(): Cache
-  ensures DomC(EmptyCache()) == {};
+  ensures DomC(EmptyCache()) == {}
 
 ghost function GetC(h: HashValue, c: Cache): Triple<Expression, Expression, string>
 ghost function SetC(h: HashValue, cmd: Triple<Expression, Expression, string>, c: Cache): Cache
-  ensures DomC(SetC(h, cmd, c)) == DomC(c) + {h};
+  ensures DomC(SetC(h, cmd, c)) == DomC(c) + {h}
 
 ghost function UpdateC(cmd: Expression, deps: Expression, exts: Expression, stC: StateC): StateC
   requires
     cmd.exprLiteral? && cmd.lit.litString? &&
     deps.exprLiteral? && deps.lit.litArrOfPaths? &&
-    exts.exprLiteral? && exts.lit.litArrOfStrings?;
+    exts.exprLiteral? && exts.lit.litArrOfStrings?
   ensures
     var stC' := UpdateC(cmd, deps, exts, stC);
     var hashValues := set e | e in exts.lit.strs :: Hash(Loc(cmd, deps, e));
     stC'.st == stC.st &&
-    DomC(stC.c) + hashValues == DomC(stC'.c);
-  decreases exts.lit.strs;
+    DomC(stC.c) + hashValues == DomC(stC'.c)
+  decreases exts.lit.strs
 {
   var strs := exts.lit.strs;
   if strs == {} then
@@ -66,12 +66,12 @@ lemma UpdateCLemma(cmd: Expression, deps: Expression, exts: Expression, stC: Sta
     deps.exprLiteral? && deps.lit.litArrOfPaths? &&
     exts.exprLiteral? && exts.lit.litArrOfStrings? &&
     ConsistentCache(stC) &&
-    forall e :: e in exts.lit.strs ==> Loc(cmd, deps, e) in DomSt(stC.st);
+    forall e :: e in exts.lit.strs ==> Loc(cmd, deps, e) in DomSt(stC.st)
   ensures
     var stC' := UpdateC(cmd, deps, exts, stC);
     ConsistentCache(stC') &&
-    forall e :: e in exts.lit.strs ==> Hash(Loc(cmd, deps, e)) in DomC(stC'.c);
-  decreases exts.lit.strs;
+    forall e :: e in exts.lit.strs ==> Hash(Loc(cmd, deps, e)) in DomC(stC'.c)
+  decreases exts.lit.strs
 {
   var strs := exts.lit.strs;
   var stC' := UpdateC(cmd, deps, exts, stC);
@@ -89,7 +89,7 @@ lemma UpdateCLemma(cmd: Expression, deps: Expression, exts: Expression, stC: Sta
 }
 
 ghost function Choose(ss: set<string>): string
-  requires ss != {};
+  requires ss != {}
 {
   var s :| s in ss; s
 }
@@ -106,7 +106,7 @@ ghost function UnionC(stC: StateC, stC': StateC): StateC
     DomC(result.c) == DomC(stC.c) + DomC(stC'.c) &&
     (forall h :: h in DomC(result.c) ==>
       (h in DomC(stC.c) ==> GetC(h, result.c) == GetC(h, stC.c)) &&
-      (h in DomC(stC'.c) ==> GetC(h, result.c) == GetC(h, stC'.c)));
+      (h in DomC(stC'.c) ==> GetC(h, result.c) == GetC(h, stC'.c)))
 
 ghost predicate CompatibleC(stsC: set<StateC>)
 {
@@ -118,7 +118,7 @@ ghost predicate CompatibleC(stsC: set<StateC>)
 }
 
 ghost function CombineC(stsC: set<StateC>): StateC
-  requires stsC != {};
+  requires stsC != {}
   ensures
     var stCombinedC := CombineC(stsC);
     (forall stC :: stC in stsC ==> DomSt(stC.st) <= DomSt(stCombinedC.st)) &&
@@ -128,7 +128,7 @@ ghost function CombineC(stsC: set<StateC>): StateC
     (forall stC :: stC in stsC ==> DomC(stC.c) <= DomC(stCombinedC.c)) &&
     (forall stC, h :: stC in stsC && h in DomC(stC.c) ==>
       GetC(h, stC.c) == GetC(h, stCombinedC.c)) &&
-    (forall h :: h in DomC(stCombinedC.c) ==> exists stC :: stC in stsC && h in DomC(stC.c));
+    (forall h :: h in DomC(stCombinedC.c) ==> exists stC :: stC in stsC && h in DomC(stC.c))
 {
   var stC :| stC in stsC;
   if stsC == {stC} then
@@ -138,11 +138,11 @@ ghost function CombineC(stsC: set<StateC>): StateC
 }
 
 lemma CombineCLemma(stsC: set<StateC>)
-  requires stsC != {};
-  requires forall stC :: stC in stsC ==> ConsistentCache(stC);
+  requires stsC != {}
+  requires forall stC :: stC in stsC ==> ConsistentCache(stC)
   ensures
    var stC' := CombineC(stsC);
-   ConsistentCache(stC');
+   ConsistentCache(stC')
 {
 }
 
@@ -158,7 +158,7 @@ ghost function ClearCache(stC: StateC): StateC
     var stC' := ClearCache(stC);
     // note: This follows directly from the definition.
     stC.st == stC'.st && DomC(stC'.c) == {} &&
-    ConsistentCache(stC');
+    ConsistentCache(stC')
 {
   S(stC.st, EmptyCache())
 }
@@ -168,9 +168,9 @@ type Env
 
 ghost function EmptyEnv(): Env
 ghost function GetEnv(id: Identifier, env: Env): Expression
-  ensures Value(GetEnv(id, env));
+  ensures Value(GetEnv(id, env))
 ghost function SetEnv(id: Identifier, expr: Expression, env: Env): Env
-  requires Value(expr);
+  requires Value(expr)
 
 /******* Primitive function 'exec' *******/
 ghost function exec(cmd: Expression, deps: Expression, exts: Expression, st: State): Tuple<Expression, State>
@@ -181,7 +181,7 @@ lemma ExecProperty(cmd: Expression, deps: Expression, exts: Expression, st: Stat
     deps.exprLiteral? && deps.lit.litArrOfPaths? &&
     exts.exprLiteral? && exts.lit.litArrOfStrings? &&
     deps.lit.paths <= DomSt(st) &&
-    Pre(cmd, deps, exts, Restrict(deps.lit.paths, st));
+    Pre(cmd, deps, exts, Restrict(deps.lit.paths, st))
   ensures
     var result := exec(cmd, deps, exts, st);
     var expr', st' := result.fst, result.snd;
@@ -191,13 +191,13 @@ lemma ExecProperty(cmd: Expression, deps: Expression, exts: Expression, st: Stat
     DomSt(st) <= DomSt(st') && st == Restrict(DomSt(st), st') &&
     OneToOne(cmd, deps, exts, expr') &&
     Post(cmd, deps, exts, Restrict(deps.lit.paths, st')) &&
-    forall p :: p !in DomSt(st) && p in DomSt(st') ==> p.OpaquePath?;
+    forall p :: p !in DomSt(st) && p in DomSt(st') ==> p.OpaquePath?
 
 ghost predicate Pre(cmd: Expression, deps: Expression, exts: Expression, st: State)
   requires
     cmd.exprLiteral? && cmd.lit.litString? &&
     deps.exprLiteral? && deps.lit.litArrOfPaths? &&
-    exts.exprLiteral? && exts.lit.litArrOfStrings?;
+    exts.exprLiteral? && exts.lit.litArrOfStrings?
 {
   forall e :: e in exts.lit.strs ==>
     Loc(cmd, deps, e) in DomSt(st) ==> GetSt(Loc(cmd, deps, e), st) == Res(cmd, deps, e, st)
@@ -207,7 +207,7 @@ ghost predicate Post(cmd: Expression, deps: Expression, exts: Expression, st: St
   requires
     cmd.exprLiteral? && cmd.lit.litString? &&
     deps.exprLiteral? && deps.lit.litArrOfPaths? &&
-    exts.exprLiteral? && exts.lit.litArrOfStrings?;
+    exts.exprLiteral? && exts.lit.litArrOfStrings?
 {
   forall e :: e in exts.lit.strs ==>
     Loc(cmd, deps, e) in DomSt(st) && GetSt(Loc(cmd, deps, e), st) == Res(cmd, deps, e, st)
@@ -220,7 +220,7 @@ ghost predicate OneToOne(cmd: Expression, deps: Expression, exts: Expression, pa
     cmd.exprLiteral? && cmd.lit.litString? &&
     deps.exprLiteral? && deps.lit.litArrOfPaths? &&
     exts.exprLiteral? && exts.lit.litArrOfStrings? &&
-    paths.exprLiteral? && paths.lit.litArrOfPaths?;
+    paths.exprLiteral? && paths.lit.litArrOfPaths?
 {
   forall e :: e in exts.lit.strs ==> Loc(cmd, deps, e) in paths.lit.paths
 }
@@ -232,7 +232,7 @@ ghost function execC(cmd: Expression, deps: Expression, exts: Expression, stC: S
   requires
     cmd.exprLiteral? && cmd.lit.litString? &&
     deps.exprLiteral? && deps.lit.litArrOfPaths? &&
-    exts.exprLiteral? && exts.lit.litArrOfStrings?;
+    exts.exprLiteral? && exts.lit.litArrOfStrings?
 {
   if forall e | e in exts.lit.strs :: Hash(Loc(cmd, deps, e)) in DomC(stC.c) then
     var paths := set e | e in exts.lit.strs :: Loc(cmd, deps, e);
@@ -252,7 +252,7 @@ lemma ExecCProperty(cmd: Expression, deps: Expression, exts: Expression, stC: St
     exts.exprLiteral? && exts.lit.litArrOfStrings? &&
     deps.lit.paths <= DomSt(stC.st) &&
     PreC(cmd, deps, exts, stC) &&
-    ConsistentCache(stC);
+    ConsistentCache(stC)
   ensures
     var result := execC(cmd, deps, exts, stC);
     var expr', stC' := result.fst, result.snd;
@@ -263,7 +263,7 @@ lemma ExecCProperty(cmd: Expression, deps: Expression, exts: Expression, stC: St
     OneToOne(cmd, deps, exts, expr') &&
     PostC(cmd, deps, exts, stC') &&
     (forall p :: p !in DomSt(stC.st) && p in DomSt(stC'.st) ==> p.OpaquePath?) &&
-    ConsistentCache(stC');
+    ConsistentCache(stC')
 {
   var result := execC(cmd, deps, exts, stC);
   var expr', stC' := result.fst, result.snd;
@@ -285,7 +285,7 @@ ghost predicate PreC(cmd: Expression, deps: Expression, exts: Expression, stC: S
     deps.exprLiteral? && deps.lit.litArrOfPaths? &&
     exts.exprLiteral? && exts.lit.litArrOfStrings? &&
     // note: We need this for the precondition of Restrict.
-    deps.lit.paths <= DomSt(stC.st);
+    deps.lit.paths <= DomSt(stC.st)
 {
   Pre(cmd, deps, exts, Restrict(deps.lit.paths, stC.st)) &&
   forall e :: e in exts.lit.strs ==> Hash(Loc(cmd, deps, e)) in DomC(stC.c) ==>
@@ -298,7 +298,7 @@ ghost predicate PostC(cmd: Expression, deps: Expression, exts: Expression, stC: 
     deps.exprLiteral? && deps.lit.litArrOfPaths? &&
     exts.exprLiteral? && exts.lit.litArrOfStrings? &&
     // note: We need this for the precondition of Restrict.
-    deps.lit.paths <= DomSt(stC.st);
+    deps.lit.paths <= DomSt(stC.st)
 {
   Post(cmd, deps, exts, Restrict(deps.lit.paths, stC.st)) &&
   forall e :: e in exts.lit.strs ==> Hash(Loc(cmd, deps, e)) in DomC(stC.c)
@@ -307,8 +307,8 @@ ghost predicate PostC(cmd: Expression, deps: Expression, exts: Expression, stC: 
 ghost function Hash(p: Path): HashValue
 
 lemma HashProperty(cmd: Expression, deps: Expression, ext: string, cmd': Expression, deps': Expression, ext': string)
-  requires Hash(Loc(cmd, deps, ext)) == Hash(Loc(cmd', deps', ext'));
-  ensures cmd == cmd' && deps == deps' && ext == ext';
+  requires Hash(Loc(cmd, deps, ext)) == Hash(Loc(cmd', deps', ext'))
+  ensures cmd == cmd' && deps == deps' && ext == ext'
 
 /******* Grammar *******/
 datatype Program = Program(stmts: seq<Statement>)
@@ -366,14 +366,14 @@ ghost function Arity(prim: Primitive): nat
 
 /******* Function 'buildC' *******/
 ghost function buildC(prog: Program, stC: StateC): Tuple<Expression, StateC>
-  requires Legal(prog.stmts);
+  requires Legal(prog.stmts)
 {
   doC(prog.stmts, stC, EmptyEnv())
 }
 
 /******* Function 'doC' *******/
 ghost function doC(stmts: seq<Statement>, stC: StateC, env: Env): Tuple<Expression, StateC>
-  requires Legal(stmts);
+  requires Legal(stmts)
 {
   var stmt := stmts[0];
   if stmt.stmtVariable? then
@@ -395,7 +395,7 @@ ghost function doC(stmts: seq<Statement>, stC: StateC, env: Env): Tuple<Expressi
 
 /******* Function 'evalC' *******/
 ghost function evalC(expr: Expression, stC: StateC, env: Env): Tuple<Expression, StateC>
-  decreases expr;
+  decreases expr
 {
   if Value(expr) then
     Pair(expr, stC)
@@ -472,8 +472,8 @@ ghost function evalC(expr: Expression, stC: StateC, env: Env): Tuple<Expression,
 
 ghost function evalArgsC(expr: Expression, args: seq<Expression>, stC: StateC, env: Env):
          Tuple<seq<Expression>, set<StateC>>
-  requires forall arg :: arg in args ==> arg < expr;
-  decreases expr, |args| + 1;
+  requires forall arg :: arg in args ==> arg < expr
+  decreases expr, |args| + 1
 
 {
   evalArgsC'(expr, args, stC, env, [], {})
@@ -482,8 +482,8 @@ ghost function evalArgsC(expr: Expression, args: seq<Expression>, stC: StateC, e
 ghost function evalArgsC'(expr: Expression, args: seq<Expression>, stC: StateC, env: Env,
                     args': seq<Expression>, stsC': set<StateC>):
          Tuple<seq<Expression>, set<StateC>>
-  requires forall arg :: arg in args ==> arg < expr;
-  decreases expr, |args|;
+  requires forall arg :: arg in args ==> arg < expr
+  decreases expr, |args|
 {
   if args == [] then
     Pair(args', stsC')
@@ -495,8 +495,8 @@ ghost function evalArgsC'(expr: Expression, args: seq<Expression>, stC: StateC, 
 }
 
 ghost predicate ValidArgsC(prim: Primitive, args: seq<Expression>, stC: StateC)
-  requires prim.primExec? ==> |args| == 3;
-  requires prim.primCreatePath? ==> |args| == 1;
+  requires prim.primExec? ==> |args| == 3
+  requires prim.primCreatePath? ==> |args| == 1
 {
   match prim
   case primCreatePath => false
@@ -511,35 +511,35 @@ ghost predicate ValidArgsC(prim: Primitive, args: seq<Expression>, stC: StateC)
 
 /******* {consistent_cache} buildC {no_bad_cache_error /\ consistent_cache} *******/
 lemma CachedBuildsTheorem(prog: Program, stC: StateC)
-  requires Legal(prog.stmts);
-  requires ConsistentCache(stC);
+  requires Legal(prog.stmts)
+  requires ConsistentCache(stC)
   ensures
     var result := buildC(prog, stC);
     var expr', stC' := result.fst, result.snd;
     ConsistentCache(stC') && expr'.exprError? ==>
-    expr'.r != rInconsistentCache;
+    expr'.r != rInconsistentCache
 {
   BuildCLemma(prog, stC);
 }
 
 lemma BuildCLemma(prog: Program, stC: StateC)
-  requires Legal(prog.stmts);
-  requires ConsistentCache(stC);
+  requires Legal(prog.stmts)
+  requires ConsistentCache(stC)
   ensures
     var result := buildC(prog, stC);
     var expr', stC' := result.fst, result.snd;
-    ConsistentCache(stC') && (expr'.exprError? ==> expr'.r != rInconsistentCache);
+    ConsistentCache(stC') && (expr'.exprError? ==> expr'.r != rInconsistentCache)
 {
   DoCLemma(prog.stmts, stC, EmptyEnv());
 }
 
 lemma DoCLemma(stmts: seq<Statement>, stC: StateC, env: Env)
-  requires Legal(stmts);
-  requires ConsistentCache(stC);
+  requires Legal(stmts)
+  requires ConsistentCache(stC)
   ensures
     var result := doC(stmts, stC, env);
     var expr', stC' := result.fst, result.snd;
-    ConsistentCache(stC') && (expr'.exprError? ==> expr'.r != rInconsistentCache);
+    ConsistentCache(stC') && (expr'.exprError? ==> expr'.r != rInconsistentCache)
 {
   var stmt := stmts[0];
   if stmt.stmtVariable? {
@@ -560,12 +560,12 @@ lemma DoCLemma(stmts: seq<Statement>, stC: StateC, env: Env)
 }
 
 lemma {:induction expr} EvalCLemma(expr: Expression, stC: StateC, env: Env)
-  requires ConsistentCache(stC);
+  requires ConsistentCache(stC)
   ensures
     var result := evalC(expr, stC, env);
     var expr', stC' := result.fst, result.snd;
-    ConsistentCache(stC') && (expr'.exprError? ==> expr'.r != rInconsistentCache);
-  decreases expr;
+    ConsistentCache(stC') && (expr'.exprError? ==> expr'.r != rInconsistentCache)
+  decreases expr
 {
   if Value(expr) {
   } else if expr.exprIdentifier? {
@@ -613,7 +613,7 @@ lemma {:induction expr} EvalCLemma(expr: Expression, stC: StateC, env: Env)
             // note: This assertion is necessary.
             assert DomSt(stC'.st) <= DomSt(stCombinedC.st);
             forall (p | p in DomSt(stCombinedC.st) && p in DomSt(stExecC.st))
-              ensures GetSt(p, stCombinedC.st) == GetSt(p, stExecC.st);
+              ensures GetSt(p, stCombinedC.st) == GetSt(p, stExecC.st)
             {
               assert DomSt(stCombinedC.st) <= DomSt(stExecC.st);
               assert stCombinedC.st == Restrict(DomSt(stCombinedC.st), stExecC.st);
@@ -629,13 +629,13 @@ lemma {:induction expr} EvalCLemma(expr: Expression, stC: StateC, env: Env)
 }
 
 lemma EvalArgsCLemma(expr: Expression, args: seq<Expression>, stC: StateC, env: Env)
-  requires ConsistentCache(stC);
-  requires forall arg :: arg in args ==> arg < expr;
+  requires ConsistentCache(stC)
+  requires forall arg :: arg in args ==> arg < expr
   ensures
     var result := evalArgsC(expr, args, stC, env);
     var stsC' := result.snd;
-    forall stC' :: stC' in stsC' ==> ConsistentCache(stC');
-  decreases expr, |args| + 1;
+    forall stC' :: stC' in stsC' ==> ConsistentCache(stC')
+  decreases expr, |args| + 1
 
 {
   EvalArgsC'Lemma(expr, args, stC, env, [], {});
@@ -643,14 +643,14 @@ lemma EvalArgsCLemma(expr: Expression, args: seq<Expression>, stC: StateC, env: 
 
 lemma EvalArgsC'Lemma(expr: Expression, args: seq<Expression>, stC: StateC, env: Env,
                              args': seq<Expression>, stsC': set<StateC>)
-  requires ConsistentCache(stC);
-  requires forall stC' :: stC' in stsC' ==> ConsistentCache(stC');
-  requires forall arg :: arg in args ==> arg < expr;
+  requires ConsistentCache(stC)
+  requires forall stC' :: stC' in stsC' ==> ConsistentCache(stC')
+  requires forall arg :: arg in args ==> arg < expr
   ensures
     var result := evalArgsC'(expr, args, stC, env, args', stsC');
     var stsC'' := result.snd;
-    forall stC'' :: stC'' in stsC'' ==> ConsistentCache(stC'');
-  decreases expr, |args|;
+    forall stC'' :: stC'' in stsC'' ==> ConsistentCache(stC'')
+  decreases expr, |args|
 {
   if args == [] {
   } else {

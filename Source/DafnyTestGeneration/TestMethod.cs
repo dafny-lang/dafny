@@ -680,7 +680,7 @@ namespace DafnyTestGeneration {
       List<string> lines = new();
 
       if (errorMessages.Count != 0) {
-        if (DafnyInfo.Options.TestGenOptions.Verbose) {
+        if (DafnyInfo.Options.Verbose) {
           lines.AddRange(errorMessages);
         }
         return lines;

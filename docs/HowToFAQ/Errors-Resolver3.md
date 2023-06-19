@@ -1,7 +1,7 @@
 
 <!-- %check-resolve %default %useHeadings -->
 
-<!-- ./DafnyCore/Resolver/NameResolutionAndTypeInference.cs -->
+<!-- FILE ./DafnyCore/Resolver/NameResolutionAndTypeInference.cs -->
 
 ## **Error: newtypes must be based on some numeric type (got _type_)**
 
@@ -78,10 +78,12 @@ value `null` (and there are no types like `string?` or `D?` for a datatype `D`).
 ## **Error: integer literal used as if it had type _type_**
 
 <!-- TODO -->
+_This error is not yet documented._
 
-## **Error: type of real literal is used as _type_**
+## **Error: real literal used as if it had type _type_**
 
 <!-- TODO -->
+_This error is not yet documented._
 
 ## **Error: 'this' is not allowed in a 'static' context**
 
@@ -104,10 +106,12 @@ module is implicitly static (and cannot be instance).
 ## **Error: Identifier does not denote a local variable, parameter, or bound variable: _name_**
 
 <!-- TODO -->
+_This error message is not yet documented._
 
 ## **Error: Undeclared datatype: _type_**
 
-<!-- TODO -->
+<!-- TODO - may not be reachable -->
+_This error message is not yet documented. Please report any source code that provokes it._
 
 ## **Error: The name _type_ ambiguously refers to a type in one of the modules _modules_ (try qualifying the type name with the module name)**
 
@@ -126,13 +130,32 @@ with `opened`. In that case the name must be qualified to indicate which declara
 
 ## **Error: Expected datatype: _type_**
 
-<!-- TODO -->
+<!-- TODO - may not be reachable -->
+_This error message is not yet documented. Please report any source code that provokes it._
 
 ## **Error: All elements of display must have some common supertype (got _type_, but needed type or type of previous elements is _type_)**
 
-<!-- TODO -->
+```dafny
+const d := [4.0, 6]
+```
 
-<!-- 3 instance -->
+## **Error: All domain elements of map display must have some common supertype (got _type_, but needed type or type of previous elements is _type_)**
+
+```dafny
+const d := map[2 := 3, 4.0 := 6]
+```
+
+A map display associates a number of domain values with corresponding range values using the syntax _domain value_ := _range value_. 
+All the domain values must have the same type or a common supertype.
+
+## **Error: All range elements of map display must have some common supertype (got _type_, but needed type or type of previous elements is _type_)**
+
+```dafny
+const d := map[2 := 3, 4 := 6.0 ]
+```
+
+A map display associates a number of domain values with corresponding range values using the syntax _domain value_ := _range value_. 
+All the range values must have the same type or a common supertype.
 
 ## **Error: name of module (_name_) is used as a variable**
 
@@ -188,15 +211,15 @@ of const declarations, are not two-state contexts.
 
 ## **Error: a field must be selected via an object, not just a class name**
 
-<!-- TODO -->
+<!-- TODO - may not be reachable -->
+_This error message is not yet documented. Please report any source code that provokes it._
 
 ## **Error: member _name_ in type _type_ does not refer to a field or a function**
 
-<!-- TODO - not sure this is reachable -->
+<!-- TODO - may not be reachable -->
+_This error message is not yet documented. Please report any source code that provokes it._
 
 ## **Error: array selection requires an array_n_ (got _type_)**
-
-<!-- TODO - fix - different error message for this example -->
 
 ```dafny
 const a: int
@@ -284,7 +307,8 @@ arguments may be less than the number of formal parameters.
 
 ## **Error: type mismatch for argument _i_ (function expects _type_, got _type_)**
 
-<!-- TODO -->
+<!-- TODO - may not be reachable -->
+_This error message is not yet documented. Please report any source code that provokes it._
 
 ## **Error: sequence construction must use an integer-based expression for the sequence size (got _type_)**
 
@@ -355,7 +379,35 @@ size operator -- not arrays, `iset`, or `imap`.
 
 ## **Error: a _what_ definition is not allowed to depend on the set of allocated references**
 
-<!-- TODO -->
+```dafny
+class B {}
+const bbb: B
+predicate p() { allocated(bbb) }
+```
+
+A function is allowed to depend on the heap, as if the heap were an implicit parameter to the function. 
+Any such dependence on mutable fields must be declared in the function’s reads clause. 
+Dafny enforces that a function’s definition (which includes its body and its requires and reads clauses, 
+but not any of its ensures and decreases clauses) adheres to its reads clause.
+The purpose of the reads clause is to let you determine when the function’s value may have changed. 
+If you invoke F(x) twice on the same parameter x, then you expect to get the same value. 
+But since the heap is an implicit parameter of the function, will F(x) still give the same value if the heap is changed between the two invocations? 
+The reads clause helps answer this question. Suppose the function’s reads clause denotes a set of objects R. 
+Then, as long as the fields of the objects in R are the same for the two invocations of F(x), the two invocations will give the same value.
+Part of this rule is also that the function is not allowed to depend on the “allocation set”, that is, the set of objects that are currently allocated. 
+This is convenient, because a method is always allowed to enlarge the allocation set. 
+As an example, consider a function F(x) with an empty reads clause and a method M() with an empty modifies clause. 
+From this, Dafny allows you to prove the assertion in the following code:
+<!-- %no-check -->
+```dafny
+var tmp := F(x);
+M();
+assert tmp == F(x);
+```
+
+The non-dependence on the allocation set is checked syntactically by the resolver and the reads clause is enforced by the verifier.
+Although it would be possible to extend Dafny's logic so that functions could depend on the allocation set, this is
+at present not implemented.
 
 ## **Error: type conversion to an int-based type is allowed only from numeric and bitvector types, char, and ORDINAL (got _type_)**
 
@@ -477,15 +529,14 @@ Dafny does not have any implicit conversion to or from `bool` values.
 
 ## **Error: range of quantified variable must be of type bool (instead got _type_)**
 
-<!-- %no-check - TODO - this is a slight variation of the error message that is proving tricky to elicit -->
 ```dafny
-const c := forall i: int | i :: true
+function f(i: set<int>): set<int> { set k: int <- i |  true || k  }
 ```
 
-In a quantified expression, the expression between the `|` and the `::` is the 
-_range_ expression. It serves to limit the values of the quantified variable(s)
-that are to be considered in evaluating the expression after the `::`. 
-As such, this range expression must always have a `bool` type.
+In a quantification using the `<-` syntax, the type of the quantified variable is
+determined by its explicit declaration or by the type of the elements of the container
+(the right-hand operand). If the quantified variable is used as a `bool` value
+when it is not a `bool`, this error message occurs.
 
 ## **Error: arguments must have comparable types (got _type_ and _type_)**
 
@@ -501,7 +552,11 @@ But dissimilar types cannot be compared.
 
 ## **Error: arguments to _op_ must have a common supertype (got _type_ and _type_)**
 
-<!-- TODO -- left and right operands of !! -->
+```dafny
+predicate m(x: int, s: set<int>)  { s !! x }
+```
+
+The `!!` operator takes sets as operands. The complaint here is likely that one of the operands is not a set.
 
 <!-- 2 instances -->
 
@@ -521,6 +576,7 @@ datatype D = D()
 class A {}
 method m(a: D, b: A) {
   assert a < b;
+  assert a > b;
 }
 ```
 
@@ -530,22 +586,19 @@ subset relations among sets,
 and for rank (structural depth) comparisons between values of the same datatype.
 When used for rank comparison, both operands must be values of the same datatype.
 
-<!--two instances, for < and for > -->
-
 ## **Error: arguments to _expr_ must have a common supertype (got _type_ and _type_)**
 
 ```dafny
 const x: ORDINAL
 const y: int
 const z := y < x 
+const w := y >= x 
 ```
 
 For binary operators, the two operands must be able to be implicitly converted to the same supertype.
 For example, two different int-based subtypes would be converted to int, or two values of different
 classes that extend the same trait could be converted to values of that trait.
 Where Dafny cannot determine such a common supertype, the comparison is illegal and this error message results.
-
-<!--two instances, for < <= and for > >= -->
 
 ## **Error: arguments to _op_ must be of a numeric type, bitvector type, ORDINAL, char, a sequence type, or a set-like type (instead got _type_ and _type_)**
 
@@ -559,7 +612,7 @@ comparison of prefixes in sequences (just `<`),
 and subset relations among sets.
 But they are not used for comparing maps or reference values.
 
-<!--two instances, for < <= and for > >= -->
+<!-- 2 instances -->
 
 ## **Error: type of _op_ must be a bitvector type (instead got _type_)**
 
@@ -576,7 +629,7 @@ An explicit conversion is required.
 
 ## **Error: type of left argument to _op_ (_type_) must agree with the result type (_type_)**
 
-<!-- TODO - this is about << and >> operators -->
+<!-- TODO - this is about << and >> operators -- not sure it is reachable -->
 
 ## **Error: type of right argument to _op_ (_type_) must be an integer-numeric or bitvector type**
 
@@ -589,8 +642,6 @@ They shift a bit-vector value by a given integer number of bits.
 The right-hand operand must be an integer value,
 but its type may be an int-based type (such as a subtype) or
 a bit-vector type.
-
-
 
 ## **Error: type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like or map-like type (instead got _type_)**
 
@@ -646,7 +697,12 @@ collection of that type.
 
 ## **Error: map subtraction expects right-hand operand to have type _type_ (instead got _type_)**
 
-<!-- TODO -->
+```dafny
+function f(mx: map<int,int>, my: map<int,int>): map<int,int> { mx - my }
+```
+
+The map subtraction operator takes a map and a set as operands; 
+the set denotes those elements of the map's _domain_ that are removed.
 
 ## **Error: type of right argument to - (_type_) must agree with the result type (_type_)**
 
@@ -661,13 +717,47 @@ collection of that type.
 
 ## **Error: type of * must be of a numeric type, bitvector type, or a set-like type (instead got _type_)**
 
-<!-- TODO -->
+```dafny
+function ff(j: map<int,int>): map<int,int> { j * j }
+```
+
+The `*` operator is defined to either multiply numeric vales or take the interesection of sets and multisets.
 
 ## **Error: type of left argument to * (_type_) must agree with the result type (_type_)**
 
 <!-- TODO -->
 
 ## **Error: type of right argument to * (_type_) must agree with the result type (_type_)**
+
+```dafny
+function ff(i: int, j: real): real { j * i }
+```
+
+The types of the two arguments of `*` must be the same (or implicitly convertible to be the same).
+Typically the result of the expression is determined by the left operand.
+This message then is stating that the right operand has a different type.
+
+
+## **Error: second argument to _op_ must be a set, multiset, or sequence with elements of type _type_, or a map with domain _type_ (instead got _type_)**
+
+```dafny
+function ff(i: int, j: real): bool { i in j }
+```
+
+The operators `in` and `!in` test membership of a value in a container,
+so the right-hand operand must be a container of some sort.
+It may also be a map, in which case membership in the map's domain is checked, but this use
+is deprecated in favor of `i in m.Keys`,
+
+## **Error: domain of quantified variable must be a set, multiset, or sequence with elements of type _type_, or a map with domain _type_ (instead got _type_)**
+
+```dafny
+function f(i: int): set<bool> { set k <- i |  k }
+```
+
+The syntax `k <- i` means that `k` is a quantified variable whose domain is all the elements of the container `i`.
+So the type of `i` must be a container, such as a set, in which case the type of `k` is the type of elements of the container.
+If the right-hand operand is a `map`, then `k` has the type of the domain of the map.
 
 <!-- up to line 840 -->
 

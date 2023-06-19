@@ -12,6 +12,7 @@
     <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="5.0.0" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.11.0" />
     <PackageReference Include="Moq" Version="4.16.1" />
+    <PackageReference Include="Serilog.Sinks.InMemory" Version="0.11.0" />
     <PackageReference Include="xunit" Version="2.4.2" />
     <PackageReference Include="xunit.extensibility.core" Version="2.4.2" />
     <PackageReference Include="Xunit.AssertMessages" Version="2.4.0" />
@@ -62,12 +63,6 @@
     <None Update="Various\TestFiles\3048.dfy">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="Various\TestFiles\includesBincludesA.dfy">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="Various\TestFiles\includesAincludesB.dfy">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
     <None Update="ProjectFiles\TestFiles\src\foo.dfy">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
@@ -82,6 +77,18 @@
     </None>
     <None Update="ProjectFiles\TestFiles\Nesting\src\foo.dfy">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Synchronization\TestFiles\includesSyntaxError.dfy">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Synchronization\TestFiles\includesSemanticError.dfy">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Synchronization\TestFiles\cycleA.dfy">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Synchronization\TestFiles\cycleB.dfy">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>
 

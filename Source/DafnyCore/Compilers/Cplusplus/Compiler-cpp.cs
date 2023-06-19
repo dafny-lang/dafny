@@ -159,7 +159,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override ConcreteSyntaxTree CreateModule(string moduleName, bool isDefault, bool isExtern, string/*?*/ libraryName, ConcreteSyntaxTree wr) {
-      var s = string.Format("namespace {0} ", IdProtect(moduleName));
+      var s = $"namespace {IdProtect(moduleName)} ";
       string footer = "// end of " + s + " declarations";
       this.modDeclWr = this.modDeclsWr.NewBlock(s, footer);
       string footer1 = "// end of " + s + " datatype declarations";
@@ -228,7 +228,7 @@ namespace Microsoft.Dafny.Compilers {
         throw new UnsupportedFeatureException(tok, Feature.ExternalClasses, String.Format("extern in class {0}", name));
       }
       if (superClasses != null && superClasses.Any(trait => !trait.IsObject)) {
-        throw new UnsupportedFeatureException(tok, Feature.Traits, String.Format("traits in class {0}", name));
+        throw new UnsupportedFeatureException(tok, Feature.Traits);
       }
 
       var classDeclWriter = modDeclWr;
@@ -270,7 +270,7 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override IClassWriter CreateTrait(string name, bool isExtern, List<TypeParameter> typeParameters /*?*/,
       TopLevelDecl trait, List<Type> superClasses /*?*/, IToken tok, ConcreteSyntaxTree wr) {
-      throw new UnsupportedFeatureException(tok, Feature.Traits, String.Format("traits in class {0}", name));
+      throw new UnsupportedFeatureException(tok, Feature.Traits);
     }
 
     protected override ConcreteSyntaxTree CreateIterator(IteratorDecl iter, ConcreteSyntaxTree wr) {
@@ -610,7 +610,7 @@ namespace Microsoft.Dafny.Compilers {
           wr.WriteLine("typedef {0} {1};", nt_name_def, nt.Name);
         }
       } else {
-        throw new UnsupportedFeatureException(nt.tok, Feature.NonNativeNewtypes, String.Format("non-native newtype {0}", nt));
+        throw new UnsupportedFeatureException(nt.tok, Feature.NonNativeNewtypes);
       }
       var className = "class_" + IdName(nt);
       var cw = CreateClass(nt.EnclosingModuleDefinition.GetCompileName(Options), className, nt, wr) as ClassWriter;
@@ -1125,7 +1125,7 @@ namespace Microsoft.Dafny.Compilers {
       if (compileTypeHint.AsStringLiteral() == "struct") {
         modDeclWr.WriteLine("// Extern declaration of {1}\n{0} struct {1};", DeclareTemplate(d.TypeArgs), d.Name);
       } else {
-        Error(CompilerErrors.ErrorId.c_abstract_type_cannot_be_compiled_extern, d.tok, "Opaque type ('{0}') with unrecognized extern attribute {1} cannot be compiled.  Expected {{:extern compile_type_hint}}, e.g., 'struct'.", wr, d.FullName, compileTypeHint.AsStringLiteral());
+        Error(CompilerErrors.ErrorId.c_abstract_type_cannot_be_compiled_extern, d.tok, "Abstract type ('{0}') with unrecognized extern attribute {1} cannot be compiled.  Expected {{:extern compile_type_hint}}, e.g., 'struct'.", wr, d.FullName, compileTypeHint.AsStringLiteral());
       }
     }
 
@@ -2168,8 +2168,7 @@ namespace Microsoft.Dafny.Compilers {
           if (resultType.IsCharType || AsNativeType(resultType) != null) {
             opString = "-";
           } else {
-            throw new UnsupportedFeatureException(tok, Feature.NonNativeNewtypes,
-                          "Subtraction of non-native type");
+            throw new UnsupportedFeatureException(tok, Feature.NonNativeNewtypes);
           }
           break;
         case BinaryExpr.ResolvedOpcode.Mul:
@@ -2179,8 +2178,7 @@ namespace Microsoft.Dafny.Compilers {
           if (AsNativeType(resultType) != null) {
             opString = "*";
           } else {
-            throw new UnsupportedFeatureException(tok, Feature.NonNativeNewtypes,
-                          "Multiplication of non-native type");
+            throw new UnsupportedFeatureException(tok, Feature.NonNativeNewtypes);
           }
           break;
         case BinaryExpr.ResolvedOpcode.Div:

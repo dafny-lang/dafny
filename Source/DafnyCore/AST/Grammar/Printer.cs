@@ -246,10 +246,10 @@ NoGhost - disable printing of functions, ghost methods, and proof
           }
           return string.CompareOrdinal(m.NameRelativeToModule, n.NameRelativeToModule);
         });
-        foreach (var clbl in SCCs) {
+        foreach (var callable in SCCs) {
           Indent(indent);
-          wr.WriteLine(" * SCC at height {0}:", module.CallGraph.GetSCCRepresentativePredecessorCount(clbl));
-          var r = module.CallGraph.GetSCC(clbl);
+          wr.WriteLine(" * SCC at height {0}:", module.CallGraph.GetSCCRepresentativePredecessorCount(callable));
+          var r = module.CallGraph.GetSCC(callable);
           foreach (var m in r) {
             Indent(indent);
             var maybeByMethod = m is Method method && method.IsByMethod ? " (by method)" : "";
@@ -260,7 +260,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
       }
     }
 
-    public void PrintTopLevelDecls(Program program, List<TopLevelDecl> decls, int indent, List<IToken>/*?*/ prefixIds, string fileBeingPrinted) {
+    public void PrintTopLevelDecls(Program program, IEnumerable<TopLevelDecl> decls, int indent, List<IToken>/*?*/ prefixIds, string fileBeingPrinted) {
       Contract.Requires(decls != null);
       int i = 0;
       foreach (TopLevelDecl d in decls) {
@@ -339,7 +339,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
             wr.WriteLine();
           }
 
-          if (options.DafnyPrintResolvedFile != null) {
+          if (afterResolver) {
             // also print the members that were created as part of the interpretation of the iterator
             Contract.Assert(iter.Members.Count != 0);  // filled in during resolution
             Indent(indent); wr.WriteLine("/*---------- iterator members ----------");
@@ -577,9 +577,9 @@ NoGhost - disable printing of functions, ghost methods, and proof
       }
       wr.Write("{0} ", module.Name);
       if (module.RefinementQId != null) {
-        wr.Write("refines {0} ", module.RefinementQId.ToString());
+        wr.Write("refines {0} ", module.RefinementQId);
       }
-      if (module.TopLevelDecls.Count == 0) {
+      if (!module.TopLevelDecls.Any()) {
         wr.WriteLine("{ }");
       } else {
         wr.WriteLine("{");
@@ -595,19 +595,12 @@ NoGhost - disable printing of functions, ghost methods, and proof
       var decls = module.TopLevelDecls;
       // only filter based on view name after resolver.
       if (afterResolver && options.DafnyPrintExportedViews.Count != 0) {
-        decls = new List<TopLevelDecl>();
-        foreach (var nameOfView in options.DafnyPrintExportedViews) {
-          foreach (var decl in module.TopLevelDecls) {
-            if (decl.FullName.Equals(nameOfView)) {
-              decls.Add(decl);
-            }
-          }
-        }
+        var views = options.DafnyPrintExportedViews.ToHashSet();
+        decls = decls.Where(d => views.Contains(d.FullName));
       }
       PrintTopLevelDecls(program, decls, indent + IndentAmount, null, fileBeingPrinted);
       foreach (var tup in module.PrefixNamedModules) {
-        decls = new List<TopLevelDecl>() { tup.Item2 };
-        PrintTopLevelDecls(program, decls, indent + IndentAmount, tup.Item1, fileBeingPrinted);
+        PrintTopLevelDecls(program, new TopLevelDecl[] { tup.Item2 }, indent + IndentAmount, tup.Item1, fileBeingPrinted);
       }
     }
 

@@ -95,7 +95,7 @@ ResolutionErrors.dfy(685,18): Error: second argument to "in" must be a set, mult
 ResolutionErrors.dfy(702,13): Error: lemmas are not allowed to have modifies clauses
 ResolutionErrors.dfy(729,22): Error: a possibly infinite loop is allowed only if the enclosing method is declared (with 'decreases *') to be possibly non-terminating
 ResolutionErrors.dfy(762,22): Error: a possibly infinite loop is allowed only if the enclosing method is declared (with 'decreases *') to be possibly non-terminating
-ResolutionErrors.dfy(795,17): Error: wrong number of method result arguments (got 0, expected 1)
+ResolutionErrors.dfy(795,17): Error: the method returns 1 value but is assigned to 0 variable (all return values must be assigned)
 ResolutionErrors.dfy(816,4): Error: ghost variables such as y are allowed only in specification contexts. y was inferred to be ghost based on its declaration or initialization.
 ResolutionErrors.dfy(827,40): Error: ghost variables such as y are allowed only in specification contexts. y was inferred to be ghost based on its declaration or initialization.
 ResolutionErrors.dfy(850,6): Error: RHS (of type B) not assignable to LHS (of type object)
@@ -366,8 +366,8 @@ ResolutionErrors.dfy(2405,31): Error: the value returned by an abstemious functi
 ResolutionErrors.dfy(2441,31): Error: the value returned by an abstemious function must come from invoking a co-constructor
 ResolutionErrors.dfy(2448,32): Error: an abstemious function is allowed to invoke a codatatype destructor only on its parameters
 ResolutionErrors.dfy(2453,12): Error: an abstemious function is allowed to codatatype-match only on its parameters
-ResolutionErrors.dfy(2460,9): Error: an abstemious function is not only allowed to check codatatype equality
-ResolutionErrors.dfy(2462,14): Error: an abstemious function is not only allowed to check codatatype equality
+ResolutionErrors.dfy(2460,9): Error: an abstemious function is not allowed to check codatatype equality
+ResolutionErrors.dfy(2462,14): Error: an abstemious function is not allowed to check codatatype equality
 ResolutionErrors.dfy(2487,19): Error: type parameter 'G' (passed in as 'ORDINAL') to function call 'F' is not allowed to use ORDINAL
 ResolutionErrors.dfy(2488,13): Error: type parameter 'G' (passed in as 'ORDINAL') to function call 'F'' is not allowed to use ORDINAL
 ResolutionErrors.dfy(2489,13): Error: type parameter 'G' (passed in as '(char, ORDINAL)') to function call 'F'' is not allowed to use ORDINAL

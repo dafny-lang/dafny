@@ -1,11 +1,11 @@
 
-<!-- %check-resolve %default %useHeadings -->
+<!-- %check-resolve %default %useHeadings  -->
 
-<!-- ./DafnyCore/Resolver/TypeConstraint.cs-->
+<!-- FILE ./DafnyCore/Resolver/TypeConstraint.cs-->
 
 <!-- TODO: collector for other errors? -->
 
-<!-- ./DafnyCore/Resolver/TailRecursion.cs -->
+<!-- FILE ./DafnyCore/Resolver/TailRecursion.cs -->
 
 ## **Error: tail recursion can be specified only for methods that will be compiled, not for ghost methods**
 
@@ -186,7 +186,7 @@ One complexity that defies analysis is too many calls of the same recursive func
 another is using the function as a value, rather than in a function call.
 
 
-<!-- ./DafnyCore/Resolver/Resolver.cs -->
+<!-- FILE ./DafnyCore/Resolver/Resolver.cs -->
 
 <!-- TODO Lots -->
 

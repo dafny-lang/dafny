@@ -28,7 +28,8 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       return services
         .AddSingleton<IDafnyParser>(serviceProvider => DafnyLangParser.Create(
           serviceProvider.GetRequiredService<DafnyOptions>(),
-          serviceProvider.GetRequiredService<ILogger<DafnyLangParser>>()))
+          serviceProvider.GetRequiredService<ITelemetryPublisher>(),
+          serviceProvider.GetRequiredService<LoggerFactory>()))
         .AddSingleton<ISymbolResolver, DafnyLangSymbolResolver>()
         .AddSingleton(CreateVerifier)
         .AddSingleton<ISymbolTableFactory, SymbolTableFactory>()

@@ -1,7 +1,7 @@
 // RUN: %dafny /compile:0 /rprint:"%t.rprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
-ghost const maxi := 4;
+ghost const maxi := 4
 
 type substring = x: string | |x| < maxi
 

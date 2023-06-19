@@ -436,12 +436,12 @@ namespace DafnyTestGeneration {
         Type baseType, Expression/*?*/ witness, List<TypeParameter> typeArgs) {
         if (witness != null) {
           info.witnessForType[newTypeName] = witness;
-          if (info.Options.TestGenOptions.Verbose) {
+          if (info.Options.Verbose) {
             info.Options.OutputWriter.WriteLine($"// Values of type {newTypeName} will be " +
                                    $"assigned the default value of " +
                                    $"{Printer.ExprToString(info.Options, info.witnessForType[newTypeName])}");
           }
-        } else if (info.Options.TestGenOptions.Verbose) {
+        } else if (info.Options.Verbose) {
           var message = $@"
 *** Error: Values of type {newTypeName} 
 will be assigned a default value of type {baseType}, 
@@ -494,7 +494,10 @@ which may not match the associated condition, if any".TrimStart();
         } else if (d.FullDafnyName != "") {
           info.ToImportAs[d.FullDafnyName] = d.Name;
         }
-        d.ModuleDef.TopLevelDecls.ForEach(Visit);
+
+        foreach (var topLevelDecl in d.ModuleDef.TopLevelDecls) {
+          Visit(topLevelDecl);
+        }
       }
 
       private void Visit(IndDatatypeDecl d) {

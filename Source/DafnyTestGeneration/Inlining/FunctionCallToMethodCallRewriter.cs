@@ -11,7 +11,7 @@ namespace DafnyTestGeneration.Inlining;
 
 public class FunctionCallToMethodCallRewriter: Cloner {
 
-  public FunctionCallToMethodCallRewriter() : base(true) { }
+  public FunctionCallToMethodCallRewriter() : base(false, true) { }
   
   public void Visit(Program program) {
     Visit(program.DefaultModule);
@@ -19,7 +19,7 @@ public class FunctionCallToMethodCallRewriter: Cloner {
 
   public void Visit(TopLevelDecl d) {
     if (d is LiteralModuleDecl moduleDecl) {
-      moduleDecl.ModuleDef.TopLevelDecls.ForEach(Visit);
+      moduleDecl.ModuleDef.TopLevelDecls.Iter(Visit);
     } else if (d is TopLevelDeclWithMembers withMembers) {
       withMembers.Members.OfType<Microsoft.Dafny.Function>().Iter(Visit);
       withMembers.Members.OfType<Method>().Iter(Visit);

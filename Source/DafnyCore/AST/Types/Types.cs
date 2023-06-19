@@ -1962,7 +1962,10 @@ public abstract class CollectionType : NonProxyType {
       return arg;
     }
   }  // denotes the Domain type for a Map
+
+  [FilledInDuringResolution]
   private Type arg;
+
   // The following methods, HasTypeArg and SetTypeArg/SetTypeArgs, are to be called during resolution to make sure that "arg" becomes set.
   public bool HasTypeArg() {
     return arg != null;
@@ -2266,7 +2269,7 @@ public class UserDefinedType : NonProxyType {
   public UserDefinedType(Cloner cloner, UserDefinedType original)
     : this(cloner.Tok(original.tok), cloner.CloneExpr(original.NamePath)) {
     if (cloner.CloneResolvedFields) {
-      ResolvedClass = original.ResolvedClass;
+      ResolvedClass = cloner.GetCloneIfAvailable(original.ResolvedClass);
       TypeArgs = original.TypeArgs.Select(cloner.CloneType).ToList();
     }
   }
@@ -2729,7 +2732,7 @@ public abstract class TypeProxy : Type {
     }
   }
 
-  public IEnumerable<Type> SubtypesKeepConstraints_WithAssignable(List<Resolver.XConstraint> allXConstraints) {
+  public IEnumerable<Type> SubtypesKeepConstraints_WithAssignable(List<XConstraint> allXConstraints) {
     Contract.Requires(allXConstraints != null);
     foreach (var c in SubtypeConstraints) {
       yield return c.Sub.NormalizeExpandKeepConstraints();
@@ -2826,11 +2829,11 @@ public abstract class TypeProxy : Type {
     Contract.Requires(t != null);
     return t is ArtificialType;
   }
-  internal Type InClusterOfArtificial(List<Resolver.XConstraint> allXConstraints) {
+  internal Type InClusterOfArtificial(List<XConstraint> allXConstraints) {
     Contract.Requires(allXConstraints != null);
     return InClusterOfArtificial_aux(new HashSet<TypeProxy>(), allXConstraints);
   }
-  private Type InClusterOfArtificial_aux(ISet<TypeProxy> visitedProxies, List<Resolver.XConstraint> allXConstraints) {
+  private Type InClusterOfArtificial_aux(ISet<TypeProxy> visitedProxies, List<XConstraint> allXConstraints) {
     Contract.Requires(visitedProxies != null);
     Contract.Requires(allXConstraints != null);
     if (visitedProxies.Contains(this)) {

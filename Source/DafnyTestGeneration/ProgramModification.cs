@@ -116,6 +116,7 @@ namespace DafnyTestGeneration {
       options.ErrorTrace = 1;
       options.EnhancedErrorMessages = 1;
       options.ModelViewFile = "-";
+      options.Prune = !options.TestGenOptions.DisablePrune;
     }
 
     /// <summary>
@@ -147,7 +148,7 @@ namespace DafnyTestGeneration {
       counterexampleStatus = Status.Failure;
       counterexampleLog = null;
       if (result is not Task<PipelineOutcome>) {
-        if (Options.TestGenOptions.Verbose) {
+        if (Options.Verbose) {
           await options.OutputWriter.WriteLineAsync(
             $"// No test can be generated for {uniqueId} " +
             "because the verifier timed out.");
@@ -170,14 +171,14 @@ namespace DafnyTestGeneration {
           counterexampleLog = log;
           counterexampleStatus = Status.Success;
           var blockId = Regex.Replace(line, @"\s+", "").Split('|')[2];
-          if (Options.TestGenOptions.Verbose &&
+          if (Options.Verbose &&
               Options.TestGenOptions.Mode != TestGenerationOptions.Modes.Path && !CapturedStates.Contains(blockId)) {
             await options.OutputWriter.WriteLineAsync($"// Test {uniqueId} covers {blockId}");
           }
           CapturedStates.Add(blockId);
         }
       }
-      if (Options.TestGenOptions.Verbose && counterexampleLog == null) {
+      if (Options.Verbose && counterexampleLog == null) {
         if (log == "") {
           await options.OutputWriter.WriteLineAsync(
             $"// No test is generated for {uniqueId} " +
@@ -197,7 +198,7 @@ namespace DafnyTestGeneration {
     }
 
     public async Task<TestMethod> GetTestMethod(Modifications cache, DafnyInfo dafnyInfo, bool returnNullIfNotUnique = true) {
-      if (Options.TestGenOptions.Verbose) {
+      if (Options.Verbose) {
         await dafnyInfo.Options.OutputWriter.WriteLineAsync(
           $"// Extracting the test for {uniqueId} from the counterexample...");
       }
@@ -215,7 +216,7 @@ namespace DafnyTestGeneration {
       if (duplicate == null) {
         return testMethod;
       }
-      if (Options.TestGenOptions.Verbose) {
+      if (Options.Verbose) {
         await dafnyInfo.Options.OutputWriter.WriteLineAsync(
           $"// Test for {uniqueId} matches a test previously generated " +
           $"for {duplicate.uniqueId}. This happens when test generation tool " +

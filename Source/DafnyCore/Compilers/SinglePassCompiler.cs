@@ -75,13 +75,14 @@ namespace Microsoft.Dafny.Compilers {
       this.Options = options;
       Reporter = reporter;
       Coverage = new CoverageInstrumenter(this);
+      System.Runtime.CompilerServices.RuntimeHelpers.RunClassConstructor(typeof(CompilerErrors).TypeHandle);
     }
 
     protected static void ReportError(ErrorId errorId, ErrorReporter reporter, IToken tok, string msg, ConcreteSyntaxTree/*?*/ wr, params object[] args) {
       Contract.Requires(msg != null);
       Contract.Requires(args != null);
 
-      reporter.Error(MessageSource.Compiler, tok, msg, args); // TODO - pass on ErrorId
+      reporter.Error(MessageSource.Compiler, errorId, tok, msg, args);
       wr?.WriteLine("/* {0} */", string.Format("Compilation error: " + msg, args));
     }
 
@@ -1324,7 +1325,7 @@ namespace Microsoft.Dafny.Compilers {
     protected virtual void DeclareExternType(AbstractTypeDecl d, Expression compileTypeHint, ConcreteSyntaxTree wr) { }
 
     protected virtual void OrganizeModules(Program program, out List<ModuleDefinition> modules) {
-      modules = program.CompileModules;
+      modules = program.CompileModules.ToList();
     }
 
     public void Compile(Program program, ConcreteSyntaxTree wrx) {
@@ -1334,8 +1335,7 @@ namespace Microsoft.Dafny.Compilers {
       EmitBuiltInDecls(program.BuiltIns, wrx);
       var temp = new List<ModuleDefinition>();
       OrganizeModules(program, out temp);
-      program.CompileModules = temp;
-      foreach (ModuleDefinition m in program.CompileModules) {
+      foreach (var m in temp) {
         if (m.IsAbstract) {
           // the purpose of an abstract module is to skip compilation
           continue;
@@ -1371,11 +1371,11 @@ namespace Microsoft.Dafny.Compilers {
               if (exprs.Count == 1) {
                 DeclareExternType(at, exprs[0], wr);
               } else {
-                Error(ErrorId.c_abstract_type_needs_hint, d.tok, "Opaque type ('{0}') with extern attribute requires a compile hint. Expected {{:extern compile_type_hint}}", wr, at.FullName);
+                Error(ErrorId.c_abstract_type_needs_hint, d.tok, "Abstract type ('{0}') with extern attribute requires a compile hint. Expected {{:extern compile_type_hint}}", wr, at.FullName);
               }
               v.Visit(exprs);
             } else {
-              Error(ErrorId.c_abstract_type_cannot_be_compiled, d.tok, "Opaque type ('{0}') cannot be compiled; perhaps make it a type synonym or use :extern.", wr, at.FullName);
+              Error(ErrorId.c_abstract_type_cannot_be_compiled, d.tok, "Abstract type ('{0}') cannot be compiled; perhaps make it a type synonym or use :extern.", wr, at.FullName);
             }
           } else if (d is TypeSynonymDecl) {
             var sst = d as SubsetTypeDecl;

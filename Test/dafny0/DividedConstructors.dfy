@@ -1,5 +1,4 @@
-// RUN: %dafny /compile:3 /env:0 /dprint:- "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment
 
 method Main() {
   var m := new M0.MyClass.Init(20);
@@ -51,8 +50,8 @@ module M0 {
 
 module M1 refines M0 {
   class MyClass ... {
-    const d := 'D';
-    var e: char;
+    const d := 'D'
+    var e: char
 
     constructor Init...
     {

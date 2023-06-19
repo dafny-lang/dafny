@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:0 "%s" > "%t"
+// RUN: %dafny /compile:0 /deprecation:0 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // VSComp 2010, problem 4, N queens

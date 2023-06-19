@@ -157,10 +157,10 @@ module N refines M
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var diagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
-      Assert.Single(diagnostics);
+      Assert.Equal(2, diagnostics.Length);
       Assert.Equal(
         "static non-ghost const field 't' of type 'T' (which does not have a default compiled value) must give a defining value",
-        diagnostics[0].Message);
+        diagnostics[1].Message);
       await AssertNoDiagnosticsAreComing(CancellationToken);
     }
 
@@ -575,7 +575,7 @@ method Multiply(x: int, y: int) returns (product: int
       Assert.Single(diagnostics);
       Assert.Equal("Parser", diagnostics[0].Source);
       Assert.Equal(DiagnosticSeverity.Error, diagnostics[0].Severity);
-      Assert.Equal(new Range((0, 8), (0, 25)), diagnostics[0].Range);
+      Assert.Equal(new Range((0, 0), (0, 7)), diagnostics[0].Range);
       await AssertNoDiagnosticsAreComing(CancellationToken);
     }
 
@@ -602,9 +602,9 @@ module ModC {
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var diagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
       Assert.Single(diagnostics);
-      Assert.Equal("Resolver", diagnostics[0].Source);
+      Assert.Equal("Parser", diagnostics[0].Source);
       Assert.Equal(DiagnosticSeverity.Error, diagnostics[0].Severity);
-      Assert.Equal(new Range((0, 8), (0, 27)), diagnostics[0].Range);
+      Assert.Equal(new Range((0, 0), (0, 7)), diagnostics[0].Range);
       await AssertNoDiagnosticsAreComing(CancellationToken);
     }
 

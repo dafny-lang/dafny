@@ -13,7 +13,6 @@ public class DeadCodeCommand : ICommandSpec {
       GenerateTestsCommand.LoopUnroll,
       GenerateTestsCommand.SequenceLengthLimit,
       GenerateTestsCommand.Target,
-      GenerateTestsCommand.Verbose,
       BoogieOptionBag.SolverLog,
       BoogieOptionBag.SolverOption,
       BoogieOptionBag.SolverOptionHelp,
@@ -35,7 +34,6 @@ public class DeadCodeCommand : ICommandSpec {
     dafnyOptions.Compile = true;
     dafnyOptions.RunAfterCompile = false;
     dafnyOptions.ForceCompile = false;
-    dafnyOptions.Verbose = false;
     dafnyOptions.ForbidNondeterminism = true;
     dafnyOptions.DefiniteAssignmentLevel = 2;
 

@@ -3,9 +3,12 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using DafnyServer.CounterexampleGeneration;
 using Microsoft.Boogie;
 using Microsoft.Dafny;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Errors = Microsoft.Dafny.Errors;
 using Parser = Microsoft.Dafny.Parser;
 using Program = Microsoft.Dafny.Program;
@@ -90,19 +93,15 @@ namespace DafnyTestGeneration {
     /// </summary>
     public static Program/*?*/ Parse(DafnyOptions options, string source, bool resolve = true, Uri uri = null) {
       uri ??= new Uri(Path.GetTempPath());
-      var defaultModuleDefinition = new DefaultModuleDefinition(new List<Uri>() { uri });
-      var module = new LiteralModuleDecl(defaultModuleDefinition, null);
-      var builtIns = new BuiltIns(options);
-      var reporter = new BatchErrorReporter(options, defaultModuleDefinition);
-      var success = Parser.Parse(source, uri, module, builtIns,
-        new Errors(reporter)) == 0 && DafnyMain.ParseIncludes(module, builtIns,
-        new HashSet<string>(), new Errors(reporter)) == null;
-      var program = new Program(uri.LocalPath, module, builtIns, reporter, Sets.Empty<Uri>(), Sets.Empty<Uri>());
+      var reporter = new BatchErrorReporter(options);
+
+      var program = new ProgramParser().ParseFiles(uri.LocalPath, new DafnyFile[] { new(reporter.Options, uri, new StringReader(source)) },
+        reporter, CancellationToken.None);
 
       if (!resolve) {
         return program;
       }
-      new Resolver(program).ResolveProgram(program);
+      new Resolver(program).ResolveProgram(program,  CancellationToken.None);
       return program;
     }
 

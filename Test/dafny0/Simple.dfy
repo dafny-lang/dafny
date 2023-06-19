@@ -5,17 +5,17 @@
 // Rustan Leino, 27 January 2008
 
 class MyClass<T,U> {
-  var x: int;
+  var x: int
 
   method M(s: bool, lotsaObjects: set<object>) returns (t: object, u: set<int>, v: seq<MyClass?<bool,U>>)
-    requires s;
-    modifies this, lotsaObjects;
-    ensures t == t;
-    ensures old(null) != this; // warning: old(null) is the same as null
+    requires s
+    modifies this, lotsaObjects
+    ensures t == t
+    ensures old(null) != this  // warning: old(null) is the same as null
   {
     x := 12;
     while (x < 100)
-      invariant x <= 100;
+      invariant x <= 100
     {
       x := x + 17;
       if (x % 20 == 3) {
@@ -50,17 +50,17 @@ datatype WildData =
   More(List<int>)
 
 class C {
-  var w: WildData;
-  var list: List<bool>;
+  var w: WildData
+  var list: List<bool>
 }
 
 lemma M(x: int)
-  ensures x < 8;
+  ensures x < 8
 {
   // proof would go here
 }
 greatest lemma M'(x': int)
-  ensures true;
+  ensures true
 {
 }
 
