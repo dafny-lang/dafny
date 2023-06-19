@@ -101,7 +101,7 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
     IsFacade = original.IsFacade;
     Attributes = original.Attributes;
     IsAbstract = original.IsAbstract;
-    RefinementQId = original.RefinementQId;
+    RefinementQId = original.RefinementQId == null ? null : new ModuleQualifiedId(cloner, original.RefinementQId);
     defaultClassFirst = original.defaultClassFirst;
     foreach (var d in original.SourceDecls) {
       SourceDecls.Add(cloner.CloneDeclaration(d, this));
