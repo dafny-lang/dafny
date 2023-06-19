@@ -117,7 +117,7 @@ public class ProgramParser {
     var sortedSccRoots = graph.TopologicallySortedComponents();
     var includeCycles = sortedSccRoots.Select(graph.GetSCC).Where(scc => scc.Count > 1);
     foreach (var cycle in includeCycles) {
-      program.Reporter.Warning(MessageSource.Parser, (string)null, program.GetFirstTopLevelToken(),
+      program.Reporter.Info(MessageSource.Parser, program.GetFirstTopLevelToken(),
         $"Program contains a cycle of includes, consisting of:\n{string.Join("\n", cycle.Select(c => c.LocalPath))}");
     }
   }
