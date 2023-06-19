@@ -474,7 +474,9 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
         false, null, this, null, false);
       // Add the new module to the top-level declarations of its parent and then bind its names as usual
 
-      var cloneId = prefixNamedModules.Count == 1 ? prefixNamedModules[0].Module.CloneId : Guid.NewGuid();
+      // TODO add test to ensure we properly cache prefix name modules that occur in multiple files.
+      // Use an empty cloneId because these are empty module declarations.
+      var cloneId = Guid.Empty;
       var subDecl = new LiteralModuleDecl(modDef, this, cloneId);
       ResolvedPrefixNamedModules.Add(subDecl);
       ProcessPrefixNamedModules(prefixNamedModules.ConvertAll(ShortenPrefix), subDecl);
