@@ -108,7 +108,7 @@ namespace Microsoft.Dafny.Compilers {
 
     protected virtual void EmitHeader(Program program, ConcreteSyntaxTree wr) { }
     protected virtual void EmitFooter(Program program, ConcreteSyntaxTree wr) { }
-    protected virtual void EmitBuiltInDecls(BuiltIns builtIns, ConcreteSyntaxTree wr) { }
+    protected virtual void EmitBuiltInDecls(SystemModuleManager systemModuleManager, ConcreteSyntaxTree wr) { }
 
     /// <summary>
     /// Creates a static Main method. The caller will fill the body of this static Main with a
@@ -1332,7 +1332,7 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Requires(program != null);
 
       EmitHeader(program, wrx);
-      EmitBuiltInDecls(program.BuiltIns, wrx);
+      EmitBuiltInDecls(program.SystemModuleManager, wrx);
       var temp = new List<ModuleDefinition>();
       OrganizeModules(program, out temp);
       foreach (var m in temp) {
@@ -1340,7 +1340,7 @@ namespace Microsoft.Dafny.Compilers {
           // the purpose of an abstract module is to skip compilation
           continue;
         }
-        if (!m.ShouldCompile(program)) {
+        if (!m.ShouldCompile(program.Compilation)) {
           continue;
         }
         var moduleIsExtern = false;

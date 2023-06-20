@@ -1,5 +1,5 @@
-// RUN: %baredafny build --use-basename-for-filename "%s" > "%t"
-// RUN: %exits-with 4 %baredafny build --use-basename-for-filename --enforce-determinism "%s" >> "%t"
+// RUN: %baredafny build --use-basename-for-filename --show-snippets:false "%s" > "%t"
+// RUN: %exits-with 4 %baredafny build --use-basename-for-filename --show-snippets:false --enforce-determinism "%s" >> "%t"
 // RUN: %diff "%s.expect" "%t"
 
 method m() {

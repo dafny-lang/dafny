@@ -572,7 +572,7 @@ namespace Microsoft.Dafny {
 
             if (wfOptions.DoReadsChecks && !fnCoreType.IsArrowTypeWithoutReadEffects) {
               // check read effects
-              Type objset = new SetType(true, program.BuiltIns.ObjectQ());
+              Type objset = new SetType(true, program.SystemModuleManager.ObjectQ());
               Expression wrap = new BoogieWrapper(
                 FunctionCall(e.tok, Reads(arity), TrType(objset), args),
                 objset);

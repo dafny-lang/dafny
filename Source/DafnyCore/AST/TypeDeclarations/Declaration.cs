@@ -25,6 +25,17 @@ public abstract class Declaration : RangeNode, IAttributeBearingDeclaration, IDe
   private VisibilityScope revealScope = new();
 
   private bool scopeIsInherited = false;
+  protected Declaration(Cloner cloner, Declaration original) : base(cloner, original) {
+    NameNode = original.NameNode.Clone(cloner);
+  }
+
+  protected Declaration(RangeToken rangeToken, Name name, Attributes attributes, bool isRefining) : base(rangeToken) {
+    Contract.Requires(rangeToken != null);
+    Contract.Requires(name != null);
+    this.NameNode = name;
+    this.Attributes = attributes;
+    this.IsRefining = isRefining;
+  }
 
   public bool HasAxiomAttribute =>
     Attributes.Contains(Attributes, Attributes.AxiomAttributeName);
@@ -135,14 +146,6 @@ public abstract class Declaration : RangeNode, IAttributeBearingDeclaration, IDe
   }
   public Attributes Attributes;  // readonly, except during class merging in the refinement transformations and when changed by Compiler.MarkCapitalizationConflict
   Attributes IAttributeBearingDeclaration.Attributes => Attributes;
-
-  protected Declaration(RangeToken rangeToken, Name name, Attributes attributes, bool isRefining) : base(rangeToken) {
-    Contract.Requires(rangeToken != null);
-    Contract.Requires(name != null);
-    this.NameNode = name;
-    this.Attributes = attributes;
-    this.IsRefining = isRefining;
-  }
 
   [Pure]
   public override string ToString() {
