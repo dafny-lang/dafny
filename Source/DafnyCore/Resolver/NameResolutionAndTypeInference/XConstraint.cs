@@ -304,7 +304,7 @@ public class XConstraint {
         } else if (t is MapType) {
           resultType = ((MapType)t).Range;
         } else if (t is MultiSetType) {
-          resultType = resolver.builtIns.Nat();
+          resultType = resolver.SystemModuleManager.Nat();
         } else {
           // some other head symbol; that's cool
           return true;

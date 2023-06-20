@@ -858,10 +858,10 @@ namespace Microsoft.Dafny {
     /// Generate a C# program from the Dafny program and, if "invokeCompiler" is "true", invoke
     /// the C# compiler to compile it.
     /// </summary>
-    public static async Task<bool> CompileDafnyProgram(Dafny.Program dafnyProgram, string dafnyProgramName,
+    public static async Task<bool> CompileDafnyProgram(Program dafnyProgram, string dafnyProgramName,
                                            ReadOnlyCollection<string> otherFileNames, bool invokeCompiler) {
 
-      foreach (var rewriter in dafnyProgram.Rewriters) {
+      foreach (var rewriter in dafnyProgram.Compilation.Rewriters) {
         rewriter.PostVerification(dafnyProgram);
       }
 
