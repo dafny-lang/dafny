@@ -1,5 +1,4 @@
-// RUN: %dafny /compile:3 /rprint:"%t.rprint" "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment
 
 // Rustan Leino, 8 Sep 2015.
 // This file proves that the Ackermann function is monotonic in each argument

@@ -1,0 +1,2 @@
+// https://github.com/dafny-lang/dafny/issues/4153
+// CHECK: method Get\(\) is already defined in class NameclashCo

@@ -1,5 +1,4 @@
-// RUN: %dafny /compile:3 "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment
 
 // By first defining import LibA and then defining a module LibA,
 // the latter used to generate:

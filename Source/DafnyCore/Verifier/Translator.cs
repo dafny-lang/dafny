@@ -25,11 +25,13 @@ using Microsoft.BaseTypes;
 using Microsoft.Dafny.Triggers;
 using Action = System.Action;
 using PODesc = Microsoft.Dafny.ProofObligationDescription;
+using static Microsoft.Dafny.GenericErrors;
 
 namespace Microsoft.Dafny {
   public partial class Translator {
     private DafnyOptions options;
     public const string NameSeparator = "$$";
+    private bool filterOnlyMembers;
 
     ErrorReporter reporter;
     // TODO(wuestholz): Enable this once Dafny's recommended Z3 version includes changeset 0592e765744497a089c42021990740f303901e67.
@@ -169,7 +171,7 @@ namespace Microsoft.Dafny {
     [Pure]
     bool InVerificationScope(Declaration d) {
       Contract.Requires(d != null);
-      if (!d.ShouldVerify(program)) {
+      if (!d.ShouldVerify(program.Compilation)) {
         return false;
       }
 
@@ -711,10 +713,10 @@ namespace Microsoft.Dafny {
       this.forModule = forModule;
       Type.EnableScopes();
 
-      EstablishModuleScope(p.BuiltIns.SystemModule, forModule);
+      EstablishModuleScope(p.SystemModuleManager.SystemModule, forModule);
       Type.PushScope(this.currentScope);
 
-      foreach (var w in program.BuiltIns.Bitwidths) {
+      foreach (var w in program.SystemModuleManager.Bitwidths) {
         // type axioms
         AddBitvectorTypeAxioms(w);
         // bitwise operations
@@ -743,7 +745,7 @@ namespace Microsoft.Dafny {
         AddBitvectorNatConversionFunction(w);
       }
 
-      foreach (TopLevelDecl d in program.BuiltIns.SystemModule.TopLevelDecls) {
+      foreach (TopLevelDecl d in program.SystemModuleManager.SystemModule.TopLevelDecls) {
         currentDeclaration = d;
         if (d is AbstractTypeDecl) {
           var dd = (AbstractTypeDecl)d;
@@ -783,22 +785,34 @@ namespace Microsoft.Dafny {
       mods.Remove(forModule);
       mods.Insert(0, forModule);
 
-      foreach (ModuleDefinition m in mods) {
-        foreach (TopLevelDecl d in m.TopLevelDecls.Where(VisibleInScope)) {
-          currentDeclaration = d;
-          if (d is AbstractTypeDecl) {
-            var dd = (AbstractTypeDecl)d;
-            AddTypeDecl(dd);
-            AddClassMembers(dd, true, true);
-          } else if (d is ModuleDecl) {
-            // submodules have already been added as a top level module, ignore this.
-          } else if (d is RevealableTypeDecl) {
-            AddTypeDecl((RevealableTypeDecl)d);
-          } else {
-            Contract.Assert(false);
-          }
+      var visibleTopLevelDecls =
+        mods.SelectMany(m => m.TopLevelDecls.Where(VisibleInScope));
+
+      if (visibleTopLevelDecls.Any(
+            d => d is TopLevelDeclWithMembers memberContainer &&
+                 memberContainer.Members.Any(
+                   member =>
+                     Attributes.Contains(member.Attributes, "only")
+                 ))) {
+        filterOnlyMembers = true;
+      }
+
+      foreach (TopLevelDecl d in visibleTopLevelDecls) {
+        currentDeclaration = d;
+        if (d is AbstractTypeDecl) {
+          var dd = (AbstractTypeDecl)d;
+          AddTypeDecl(dd);
+          AddClassMembers(dd, true, true);
+        } else if (d is ModuleDecl) {
+          // submodules have already been added as a top level module, ignore this.
+        } else if (d is RevealableTypeDecl) {
+          AddTypeDecl((RevealableTypeDecl)d);
+        } else {
+          Contract.Assert(false);
         }
       }
+
+      filterOnlyMembers = false;
 
       foreach (var c in tytagConstants.Values) {
         sink.AddTopLevelDeclaration(c);
@@ -830,7 +844,7 @@ namespace Microsoft.Dafny {
 
     // Don't verify modules which only contain other modules
     private static bool ShouldVerifyModule(Program program, ModuleDefinition m) {
-      if (!m.ShouldVerify(program)) {
+      if (!m.ShouldVerify(program.Compilation)) {
         return false;
       }
 
@@ -2756,8 +2770,8 @@ namespace Microsoft.Dafny {
 
       if (pp.K.Type.IsBigOrdinalType) {
         // 0 < k.Offset
-        Contract.Assume(program.BuiltIns.ORDINAL_Offset != null);  // should have been filled in by the resolver
-        var kOffset = new MemberSelectExpr(pp.tok, k, program.BuiltIns.ORDINAL_Offset);
+        Contract.Assume(program.SystemModuleManager.ORDINAL_Offset != null);  // should have been filled in by the resolver
+        var kOffset = new MemberSelectExpr(pp.tok, k, program.SystemModuleManager.ORDINAL_Offset);
         var kIsPositive = Expression.CreateLess(Expression.CreateIntLiteral(pp.tok, 0), kOffset);
         var kIsLimit = Expression.CreateEq(Expression.CreateIntLiteral(pp.tok, 0), kOffset, Type.Int);
         var kprimeVar = new BoundVar(pp.tok, "_k'", Type.BigOrdinal);
@@ -3667,8 +3681,10 @@ namespace Microsoft.Dafny {
       Dictionary<TypeParameter, Type> typeMap) {
       //getting framePrime
       List<FrameExpression> traitFrameExps = new List<FrameExpression>();
+      FunctionCallSubstituter sub = null;
       foreach (var e in func.OverriddenFunction.Reads) {
-        var newE = Substitute(e.E, null, substMap, typeMap);
+        sub ??= new FunctionCallSubstituter(substMap, typeMap, (TraitDecl)func.OverriddenFunction.EnclosingClass, (ClassLikeDecl)func.EnclosingClass);
+        var newE = sub.Substitute(e.E);
         FrameExpression fe = new FrameExpression(e.tok, newE, e.FieldName);
         traitFrameExps.Add(fe);
       }
@@ -5852,7 +5868,7 @@ namespace Microsoft.Dafny {
           //   =  $Frame_F(args...)
 
           var fhandle = FunctionCall(f.tok, name, predef.HandleType, SnocSelf(SnocPrevH(args)));
-          Bpl.Expr lhs_inner = FunctionCall(f.tok, Reads(arity), TrType(new SetType(true, program.BuiltIns.ObjectQ())), Concat(tyargs, Cons(h, Cons(fhandle, lhs_args))));
+          Bpl.Expr lhs_inner = FunctionCall(f.tok, Reads(arity), TrType(new SetType(true, program.SystemModuleManager.ObjectQ())), Concat(tyargs, Cons(h, Cons(fhandle, lhs_args))));
 
           Bpl.Expr bx; var bxVar = BplBoundVar("$bx", predef.BoxType, out bx);
           Bpl.Expr unboxBx = FunctionCall(f.tok, BuiltinFunction.Unbox, predef.RefType, bx);
@@ -5968,7 +5984,7 @@ namespace Microsoft.Dafny {
       // [Heap, Box, ..., Box] Bool
       var requires_ty = new Bpl.MapType(tok, new List<Bpl.TypeVariable>(), map_args, Bpl.Type.Bool);
       // Set Box
-      var objset_ty = TrType(new SetType(true, program.BuiltIns.ObjectQ()));
+      var objset_ty = TrType(new SetType(true, program.SystemModuleManager.ObjectQ()));
       // [Heap, Box, ..., Box] (Set Box)
       var reads_ty = new Bpl.MapType(tok, new List<Bpl.TypeVariable>(), map_args, objset_ty);
 
@@ -9009,7 +9025,7 @@ namespace Microsoft.Dafny {
       builder.Add(AssertNS(tok, q, desc));
       if (!forArray && options.DoReadsChecks) {
         // check read effects
-        Type objset = new SetType(true, program.BuiltIns.ObjectQ());
+        Type objset = new SetType(true, program.SystemModuleManager.ObjectQ());
         Expression wrap = new BoogieWrapper(
           FunctionCall(tok, Reads(1), TrType(objset), args),
           objset);
@@ -9864,7 +9880,7 @@ namespace Microsoft.Dafny {
             }
             // make sure that the fuel can only increase within a given scope
             if (newSetting.low < oldSetting.low || newSetting.high < oldSetting.high) {
-              reporter.Error(MessageSource.Translator, tok, "Fuel can only increase within a given scope.");
+              reporter.Error(MessageSource.Translator, ErrorId.g_fuel_must_increase, tok, "Fuel can only increase within a given scope.");
             }
           }
           // add oldContext to newContext if it doesn't exist already

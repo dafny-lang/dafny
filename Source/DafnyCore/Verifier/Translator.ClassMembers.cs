@@ -43,7 +43,12 @@ namespace Microsoft.Dafny {
       foreach (MemberDecl member in c.Members.FindAll(VisibleInScope)) {
         Contract.Assert(isAllocContext == null);
         currentDeclaration = member;
-        SetAssertionOnlyFilter(member);
+        if (!filterOnlyMembers || member.HasUserAttribute("only", out _)) {
+          SetAssertionOnlyFilter(member);
+        } else {
+          assertionOnlyFilter = _ => false;
+        }
+
         if (member is Field) {
           Field f = (Field)member;
           Boogie.Declaration fieldDeclaration;
@@ -110,7 +115,7 @@ namespace Microsoft.Dafny {
           // $Is(o, ..)
           is_o = MkIs(o, o_ty);
           Bpl.Expr rhs;
-          if (c == program.BuiltIns.ObjectDecl) {
+          if (c == program.SystemModuleManager.ObjectDecl) {
             rhs = Bpl.Expr.True;
           } else if (c is TraitDecl) {
             //generating $o == null || implements$J(dtype(x), typeArgs)
@@ -194,7 +199,7 @@ namespace Microsoft.Dafny {
         m = ((ExtremeLemma)m).PrefixLemma;
         sink.AddTopLevelDeclaration(AddMethod(m, MethodTranslationKind.CoCall));
       }
-      if (m.Body != null && InVerificationScope(m)) {
+      if (!m.HasVerifyFalseAttribute && m.Body != null && InVerificationScope(m)) {
         // ...and its implementation
         assertionCount = 0;
         var proc = AddMethod(m, MethodTranslationKind.Implementation);
@@ -237,7 +242,7 @@ namespace Microsoft.Dafny {
     ///     // so "h" and $IsHeap(h) are omitted.
     ///     axiom fh < FunctionContextHeight ==>
     ///       (forall o: ref, h: Heap, G : Ty ::
-    ///         { h[o, f], TClassA(G) }
+    ///         { h[o, f], TClassA(G) }  // if "f" is a const, omit TClassA(G) from the trigger and just use { f(G,o) }
     ///         $IsHeap(h) &&
     ///         o != null && $Is(o, TClassA(G))  // or dtype(o) = TClassA(G)
     ///         ==>
@@ -247,7 +252,7 @@ namespace Microsoft.Dafny {
     ///     // As above for "G" and "ii", but "h" is included no matter what.
     ///     axiom fh < FunctionContextHeight ==>
     ///       (forall o: ref, h: Heap, G : Ty ::
-    ///         { h[o, f], TClassA(G) }
+    ///         { h[o, f], TClassA(G) }  // if "f" is a const, use the trigger { f(G,o), h[o, alloc] }; for other readonly fields, use { f(o), h[o, alloc], TClassA(G) }
     ///         $IsHeap(h) &&
     ///         o != null && $Is(o, TClassA(G)) &&  // or dtype(o) = TClassA(G)
     ///         h[o, alloc]
@@ -340,10 +345,12 @@ namespace Microsoft.Dafny {
         // Note: for the allocation axiom, isGoodHeap is added back in for !f.IsMutable below
       }
 
-      Bpl.Expr is_o = BplAnd(
-        ReceiverNotNull(o),
-        !o.Type.Equals(predef.RefType) || c is TraitDecl ? MkIs(o, o_ty) : DType(o, o_ty)); // $Is(o, ..)  or  dtype(o) == o_ty
-      ante = BplAnd(ante, is_o);
+      if (!(f is ConstantField)) {
+        Bpl.Expr is_o = BplAnd(
+          ReceiverNotNull(o),
+          c is TraitDecl ? MkIs(o, o_ty) : DType(o, o_ty)); // $Is(o, ..)  or  dtype(o) == o_ty
+        ante = BplAnd(ante, is_o);
+      }
 
       ante = BplAnd(ante, indexBounds);
 

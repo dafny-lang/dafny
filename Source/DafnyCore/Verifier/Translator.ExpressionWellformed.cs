@@ -572,7 +572,7 @@ namespace Microsoft.Dafny {
 
             if (wfOptions.DoReadsChecks && !fnCoreType.IsArrowTypeWithoutReadEffects) {
               // check read effects
-              Type objset = new SetType(true, program.BuiltIns.ObjectQ());
+              Type objset = new SetType(true, program.SystemModuleManager.ObjectQ());
               Expression wrap = new BoogieWrapper(
                 FunctionCall(e.tok, Reads(arity), TrType(objset), args),
                 objset);
@@ -956,7 +956,7 @@ namespace Microsoft.Dafny {
               case BinaryExpr.ResolvedOpcode.NeqCommon:
                 CheckWellformed(e.E1, wfOptions, locals, builder, etran);
                 if (e.InCompiledContext) {
-                  if (Resolver.CanCompareWith(e.E0) || Resolver.CanCompareWith(e.E1)) {
+                  if (CheckTypeCharacteristics_Visitor.CanCompareWith(e.E0) || CheckTypeCharacteristics_Visitor.CanCompareWith(e.E1)) {
                     // everything's fine
                   } else {
                     Contract.Assert(!e.E0.Type.SupportsEquality); // otherwise, CanCompareWith would have returned "true" above

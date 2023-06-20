@@ -14,7 +14,7 @@
     /// <param name="token">The token associated with the unknown node.</param>
     public abstract void VisitUnknown(object node, IToken token);
 
-    public virtual void Visit(Dafny.Program program) {
+    public virtual void Visit(Program program) {
       foreach (var module in program.Modules()) {
         Visit(module);
       }

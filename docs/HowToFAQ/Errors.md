@@ -23,9 +23,17 @@ Italicized words in the given messages indicate variable content.
 
 {% include_relative Errors-CommandLine.md %} 
 
+# **Compilation Errors**
+
+{% include_relative Errors-Compiler.md %}
+
 # **Parser Errors and Warnings**
 
 {% include_relative Errors-Parser.md %}
+
+# **Miscellaneous Errors and Warnings**
+
+{% include_relative Errors-Generic.md %}
 
 # **Name and Type Resolution Errors and Warnings**
 
@@ -38,6 +46,3 @@ Italicized words in the given messages indicate variable content.
 
 _This section is a work in progress_
 
-# **Compilation Errors**
-
-{% include_relative Errors-Compiler.md %}

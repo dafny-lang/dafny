@@ -16,6 +16,7 @@ using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics.Contracts;
@@ -24,6 +25,7 @@ using System.Linq;
 using Microsoft.Boogie;
 using Bpl = Microsoft.Boogie;
 using System.Diagnostics;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.Dafny.Plugins;
 
 namespace Microsoft.Dafny {
@@ -81,7 +83,10 @@ namespace Microsoft.Dafny {
       "/compileVerbose:0",
       
       // Set a default time limit, to catch cases where verification time runs off the rails
-      "/timeLimit:300"
+      "/timeLimit:300",
+
+      // test results do not include source code snippets
+      "/showSnippets:0"
     };
 
     public static readonly string[] NewDefaultArgumentsForTesting = new[] {
@@ -92,7 +97,10 @@ namespace Microsoft.Dafny {
       "--use-basename-for-filename",
 
       // Set a default time limit, to catch cases where verification time runs off the rails
-      "--verification-time-limit=300"
+      "--verification-time-limit=300",
+
+      // test results do not include source code snippets
+      "--show-snippets:false"
     };
 
     public static int Main(string[] args) {
@@ -223,7 +231,7 @@ namespace Microsoft.Dafny {
       if (compiler == null) {
         if (nonOutOptions.CompilerName != null) {
           var known = String.Join(", ", compilers.Select(c => $"'{c.TargetId}' ({c.TargetName})"));
-          options.Printer.ErrorWriteLine(options.ErrorWriter, $"No compiler found for target \"{options.CompilerName}\"{(options.CompilerName.StartsWith("-t") || options.CompilerName.StartsWith("--") ? " (use just a target name, not a -t or --target option)" : "")}; expecting one of {known}");
+          options.Printer.ErrorWriteLine(options.ErrorWriter, $"*** Error: No compiler found for target \"{options.CompilerName}\"{(options.CompilerName.StartsWith("-t") || options.CompilerName.StartsWith("--") ? " (use just a target name, not a -t or --target option)" : "")}; expecting one of {known}");
           return CommandLineArgumentsResult.PREPROCESSING_ERROR;
         }
 
@@ -442,7 +450,7 @@ namespace Microsoft.Dafny {
           if (!options.Backend.UnsupportedFeatures.Contains(e.Feature)) {
             throw new Exception($"'{e.Feature}' is not an element of the {options.Backend.TargetId} compiler's UnsupportedFeatures set");
           }
-          dafnyProgram.Reporter.Error(MessageSource.Compiler, e.Token, e.Message);
+          dafnyProgram.Reporter.Error(MessageSource.Compiler, Compilers.CompilerErrors.ErrorId.f_unsupported_feature, e.Token, e.Message);
           compiled = false;
         }
 
@@ -850,8 +858,13 @@ namespace Microsoft.Dafny {
     /// Generate a C# program from the Dafny program and, if "invokeCompiler" is "true", invoke
     /// the C# compiler to compile it.
     /// </summary>
-    public static async Task<bool> CompileDafnyProgram(Dafny.Program dafnyProgram, string dafnyProgramName,
+    public static async Task<bool> CompileDafnyProgram(Program dafnyProgram, string dafnyProgramName,
                                            ReadOnlyCollection<string> otherFileNames, bool invokeCompiler) {
+
+      foreach (var rewriter in dafnyProgram.Compilation.Rewriters) {
+        rewriter.PostVerification(dafnyProgram);
+      }
+
       Contract.Requires(dafnyProgram != null);
       Contract.Assert(dafnyProgramName != null);
 

@@ -1,17 +1,11 @@
-// RUN: %dafny /compile:0 "%s" > "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:cs "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:js "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:go "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:java "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:py "%s" >> "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment
 
 module P {
   datatype T_ = T()  // the underscore in this name once caused a problem in Java compilation
   type T = t:T_ | true ghost witness T()
 }
 
-module C refines P {
+module C1 refines P {
   datatype C = C(t: T)  // this had once caused a bogus error about cyclic dependencies
 }
 
@@ -38,8 +32,8 @@ module OtherNamesWithSpecialCharacters?_ {
 }
 
 method Main() {
-  var t: C.T := C.T;  // this had once caused malformed Java, because of a missing qualified name
-  var c := C.C(t);
+  var t: C1.T := C1.T;  // this had once caused malformed Java, because of a missing qualified name
+  var c := C1.C(t);
   print c, "\n"; // C_Compile.T_.T
 
   var pt: P.T := P.T;

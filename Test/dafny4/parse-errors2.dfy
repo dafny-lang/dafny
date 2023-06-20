@@ -1,4 +1,4 @@
-// RUN: ! %baredafny resolve --use-basename-for-filename "%s" > "%t"
+// RUN: ! %baredafny resolve --use-basename-for-filename --show-snippets:false "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 datatype D = D(z: int, 2: int)

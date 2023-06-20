@@ -223,23 +223,23 @@ namespace Microsoft.Dafny {
       }
     }
 
-    void PreResolveWorker(ModuleDefinition m) {
-      Contract.Requires(m != null);
+    void PreResolveWorker(ModuleDefinition module) {
+      Contract.Requires(module != null);
 
       if (moduleUnderConstruction != null) {
         postTasks.Clear();
       }
-      moduleUnderConstruction = m;
+      moduleUnderConstruction = module;
       refinementCloner = new RefinementCloner(moduleUnderConstruction);
-      var prev = m.RefinementQId.Def;
+      var prev = module.RefinementQId.Def;
 
       //copy the signature, including its opened imports
       refinedSigOpened = Resolver.MergeSignature(new ModuleSignature(), RefinedSig);
-      Resolver.ResolveOpenedImports(refinedSigOpened, m.RefinementQId.Def, false, null);
+      Resolver.ResolveOpenedImports(refinedSigOpened, module.RefinementQId.Def, null);
 
       // Create a simple name-to-decl dictionary.  Ignore any duplicates at this time.
       var declaredNames = new Dictionary<string, IPointer<TopLevelDecl>>();
-      var pointers = m.TopLevelDeclPointers;
+      var pointers = module.TopLevelDeclPointers;
       foreach (var pointer in pointers) {
         var key = pointer.Get().Name;
         declaredNames.TryAdd(key, pointer);
@@ -247,37 +247,37 @@ namespace Microsoft.Dafny {
 
       // Merge the declarations of prev into the declarations of m
       List<string> processedDecl = new List<string>();
-      foreach (var d in prev.TopLevelDecls) {
-        processedDecl.Add(d.Name);
-        if (!declaredNames.TryGetValue(d.Name, out var nwPointer)) {
-          var clone = refinementCloner.CloneDeclaration(d, m);
-          m.SourceDecls.Add(clone);
+      foreach (var originalDeclaration in prev.TopLevelDecls) {
+        processedDecl.Add(originalDeclaration.Name);
+        if (!declaredNames.TryGetValue(originalDeclaration.Name, out var newPointer)) {
+          var clone = refinementCloner.CloneDeclaration(originalDeclaration, module);
+          module.SourceDecls.Add(clone);
         } else {
-          var neww = nwPointer.Get();
-          if (d.Name == "_default" || neww.IsRefining || d is AbstractTypeDecl) {
-            MergeTopLevelDecls(m, nwPointer, d);
-          } else if (neww is TypeSynonymDecl) {
-            var msg = $"a type synonym ({neww.Name}) is not allowed to replace a {d.WhatKind} from the refined module ({m.RefinementQId}), even if it denotes the same type";
-            Error(ErrorId.ref_refinement_type_must_match_base, neww.tok, msg);
-          } else if (!(d is AbstractModuleDecl)) {
-            Error(ErrorId.ref_refining_notation_needed, neww.tok, $"to redeclare and refine declaration '{d.Name}' from module '{m.RefinementQId}', you must use the refining (`...`) notation");
+          var newDeclaration = newPointer.Get();
+          if (originalDeclaration.Name == "_default" || newDeclaration.IsRefining || originalDeclaration is AbstractTypeDecl) {
+            MergeTopLevelDecls(module, newPointer, originalDeclaration);
+          } else if (newDeclaration is TypeSynonymDecl) {
+            var msg = $"a type synonym ({newDeclaration.Name}) is not allowed to replace a {originalDeclaration.WhatKind} from the refined module ({module.RefinementQId}), even if it denotes the same type";
+            Error(ErrorId.ref_refinement_type_must_match_base, newDeclaration.tok, msg);
+          } else if (!(originalDeclaration is AbstractModuleDecl)) {
+            Error(ErrorId.ref_refining_notation_needed, newDeclaration.tok, $"to redeclare and refine declaration '{originalDeclaration.Name}' from module '{module.RefinementQId}', you must use the refining (`...`) notation");
           }
         }
       }
-      CheckSuperfluousRefiningMarks(m.TopLevelDecls, processedDecl);
-      AddDefaultBaseTypeToUnresolvedNewtypes(m.TopLevelDecls);
+      CheckSuperfluousRefiningMarks(module.TopLevelDecls, processedDecl);
+      AddDefaultBaseTypeToUnresolvedNewtypes(module.TopLevelDecls);
 
       // Merge the imports of prev
       var prevTopLevelDecls = RefinedSig.TopLevels.Values;
       foreach (var d in prevTopLevelDecls) {
         if (!processedDecl.Contains(d.Name) && declaredNames.TryGetValue(d.Name, out var pointer)) {
           // if it is redefined, we need to merge them.
-          MergeTopLevelDecls(m, pointer, d);
+          MergeTopLevelDecls(module, pointer, d);
         }
       }
-      m.RefinementQId.Sig = RefinedSig;
+      module.RefinementQId.Sig = RefinedSig;
 
-      Contract.Assert(moduleUnderConstruction == m);  // this should be as it was set earlier in this method
+      Contract.Assert(moduleUnderConstruction == module);  // this should be as it was set earlier in this method
     }
 
     private void CheckSuperfluousRefiningMarks(IEnumerable<TopLevelDecl> topLevelDecls, List<string> excludeList) {
@@ -747,9 +747,7 @@ namespace Microsoft.Dafny {
       var declaredNames = new Dictionary<string, int>();
       for (int i = 0; i < nw.Members.Count; i++) {
         var member = nw.Members[i];
-        if (!declaredNames.ContainsKey(member.Name)) {
-          declaredNames.Add(member.Name, i);
-        }
+        declaredNames.TryAdd(member.Name, i);
       }
 
       // Merge the declarations of prev into the declarations of m
@@ -1711,14 +1709,14 @@ namespace Microsoft.Dafny {
 
       return tok;
     }
-    public override TopLevelDecl CloneDeclaration(TopLevelDecl d, ModuleDefinition m) {
-      var dd = base.CloneDeclaration(d, m);
+    public override TopLevelDecl CloneDeclaration(TopLevelDecl d, ModuleDefinition newParent) {
+      var dd = base.CloneDeclaration(d, newParent);
       if (dd is ModuleExportDecl ddex) {
         // In refinement cloning, a default export set from the parent should, in the
         // refining module, retain its name but not be default, unless the refining module has the same name
         ModuleExportDecl dex = d as ModuleExportDecl;
-        if (dex.IsDefault && d.Name != m.Name) {
-          ddex = new ModuleExportDecl(dex.RangeToken, d.NameNode, m, dex.Exports, dex.Extends, dex.ProvideAll, dex.RevealAll, false, true);
+        if (dex.IsDefault && d.Name != newParent.Name) {
+          ddex = new ModuleExportDecl(dex.RangeToken, d.NameNode, newParent, dex.Exports, dex.Extends, dex.ProvideAll, dex.RevealAll, false, true);
         }
         ddex.SetupDefaultSignature();
         dd = ddex;

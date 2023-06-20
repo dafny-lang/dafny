@@ -93,25 +93,32 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       }
 
       statusPublisher.SendStatusNotification(textDocument, CompilationStatus.ResolutionStarted);
-      var compilationUnit = symbolResolver.ResolveSymbols(textDocument, program, out _, cancellationToken);
-      var symbolTable = symbolTableFactory.CreateFrom(compilationUnit, cancellationToken);
+      try {
+        var compilationUnit = symbolResolver.ResolveSymbols(textDocument, program, out _, cancellationToken);
+        var legacySymbolTable = symbolTableFactory.CreateFrom(compilationUnit, cancellationToken);
 
-      var newSymbolTable = errorReporter.HasErrors ? null : symbolTableFactory.CreateFrom(program, documentAfterParsing, cancellationToken);
-      if (errorReporter.HasErrors) {
-        statusPublisher.SendStatusNotification(textDocument, CompilationStatus.ResolutionFailed);
-      } else {
-        statusPublisher.SendStatusNotification(textDocument, CompilationStatus.CompilationSucceeded);
+        var newSymbolTable = errorReporter.HasErrors
+          ? null
+          : symbolTableFactory.CreateFrom(program, documentAfterParsing, cancellationToken);
+        if (errorReporter.HasErrors) {
+          statusPublisher.SendStatusNotification(textDocument, CompilationStatus.ResolutionFailed);
+        } else {
+          statusPublisher.SendStatusNotification(textDocument, CompilationStatus.CompilationSucceeded);
+        }
+
+        var ghostDiagnostics = ghostStateDiagnosticCollector.GetGhostStateDiagnostics(legacySymbolTable, cancellationToken)
+          .ToArray();
+
+        return new DocumentAfterResolution(textDocument,
+          program,
+          errorReporter.AllDiagnosticsCopy,
+          newSymbolTable,
+          legacySymbolTable,
+          ghostDiagnostics
+        );
+      } catch (OperationCanceledException) {
+        return documentAfterParsing;
       }
-
-      var ghostDiagnostics = ghostStateDiagnosticCollector.GetGhostStateDiagnostics(symbolTable, cancellationToken).ToArray();
-
-      return new DocumentAfterResolution(textDocument,
-        program,
-        errorReporter.AllDiagnosticsCopy,
-        newSymbolTable,
-        symbolTable,
-        ghostDiagnostics
-      );
     }
 
     private IdeState CreateDocumentWithEmptySymbolTable(

@@ -67,7 +67,7 @@ If a base module P has a default export (implicitly named P), then a refining mo
 
 <!-- TODO -->
 
-## **Error: a module ({0}) must refine another module** {#ref_module_must_refine_module_2}
+## **Error: a module (_name_) must refine another module** {#ref_module_must_refine_module_2}
 
 ```dafny
 module P {
@@ -124,7 +124,7 @@ module Q refines P {
 A refining type must be declared to support equality (with `(==)`) if the base declaration is declared to support equality.
 
 
-## **Error: type '_name', which does not support auto-initialization, is used to refine an abstract type that expects auto-initialization** {#ref_mismatched_type_auto_init}
+## **Error: type '_name_', which does not support auto-initialization, is used to refine an abstract type that expects auto-initialization** {#ref_mismatched_type_auto_init}
 
 ```dafny
 module P {
@@ -198,14 +198,15 @@ The purpose of refinement is to replace abstract or incompletely defined declara
 The refining declaration needs to be the same kind of declaration as in the base.
 
 
-## Error: an iterator declaration (_name_) in a refining module cannot replace a different kind of declaration in the refinement base** {#ref_iterator_must_refine_iterator}
+## **Error: an iterator declaration (_name_) in a refining module cannot replace a different kind of declaration in the refinement base** {#ref_iterator_must_refine_iterator}
 
+<!-- %check-resolve %first -->
 ```dafny
 module P {
   class I {}
 }
 module Q refines P {
-  iterator I...  {}
+  iterator I...
 }
 ```
 
@@ -263,7 +264,7 @@ There are restrictions on what may change when refining an iterator. In particul
 even if they are contained within the base declarations's reads clauses.
 
 
-## Error: a refining iterator is not allowed to extend the modifies clause** {#ref_no_new_iterator_modifies}
+## **Error: a refining iterator is not allowed to extend the modifies clause** {#ref_no_new_iterator_modifies}
 
 ```dafny
 module P {
@@ -363,7 +364,7 @@ module Q refines P {
 
 A `const` refining declaration cannot change the declaration from `ghost` to non-ghost.
 
-## **Error: a const re-declaration (_name_) must be to add ghost to the const declaration_info_** {#ref_refinement_must_add_const_ghost}
+## **Error: a const re-declaration (_name_) must be to add 'ghost' to the const declaration_info_** {#ref_refinement_must_add_const_ghost}
 
 ```dafny
 module P {
@@ -409,7 +410,7 @@ has not changed, the type must be expressed in the same syntactic form in the tw
 in a base declaration and an equivalent type synonym in the corresponding place in the refinement.
 
 
-## **Error: a field re-declaration (_name_) must be to must be to add 'ghost' to the field declaration** {#ref_refinement_field_must_add_ghost}
+## **Error: a field re-declaration (_name_) must be to add 'ghost' to the field declaration** {#ref_refinement_field_must_add_ghost}
 
 ```dafny
 module P {
@@ -437,7 +438,7 @@ module Q refines P {
 The refining declaration must be the same kind of declaration as the base declaration.
 For example both must be predicates or both must be functions (even if the function is one that returns a `bool`).
 
-## Error: a refining _kind_ is not allowed to add preconditions** {#ref_refinement_no_new_preconditions}
+## **Error: a refining _kind_ is not allowed to add preconditions** {#ref_refinement_no_new_preconditions}
 
 ```dafny
 module P {
@@ -510,6 +511,7 @@ If a function is declared as non-ghost in the base module, it may not be declare
 
 ## **Error: a ghost function can be changed into a compiled function in a refining module only if the function has not yet been given a body: _name_** {#ref_no_refinement_function_with_body}
 
+<!-- %check-resolve %first -->
 ```dafny
 module P {
   ghost predicate m(i: nat) { true }
@@ -564,7 +566,7 @@ module Q refines P {
 
 When refining a function, the refining declaration can not include a body if the base declaration has a body, even if the texts of the bodies are identical.
 
-## Error: a method declaration (_name_) can only refine a method** {#ref_method_refines_method}
+## **Error: a method declaration (_name_) can only refine a method** {#ref_method_refines_method}
 
 ```dafny
 module P {
@@ -743,7 +745,7 @@ There are restrictions on what can be changed in a refinement.
 In particular, any characteristics of type parameters must remain the same.
 
 
-## Error: type parameter '_name_' is not allowed to change the no-reference-type requirement** {#ref_mismatched_type_parameter_not_reference}
+## **Error: type parameter '_name_' is not allowed to change the no-reference-type requirement** {#ref_mismatched_type_parameter_not_reference}
 
 ```dafny
 module P {
@@ -883,7 +885,7 @@ module Q refines P {
 The types in a signature in a refining declaration must be the same as the corresponding types in the base declaration.
 The types must be syntactically identical. For example one cannot be a type synonym of the other.
 
-## Error: a refining formal parameter ('_name_') in a refinement module is not allowed to give a default-value expression** {#ref_refined_formal_may_not_have_default}
+## **Error: a refining formal parameter ('_name_') in a refinement module is not allowed to give a default-value expression** {#ref_refined_formal_may_not_have_default}
 
 ```dafny
 module P {
@@ -954,7 +956,7 @@ _Refining statements are no longer supported in Dafny._
 
 _Refining statements are no longer supported in Dafny._
 
-## Error: cannot have assignment statement** {#ref_misplaced_assignment}
+## **Error: cannot have assignment statement** {#ref_misplaced_assignment}
 
 _Refining statements are no longer supported in Dafny._
 

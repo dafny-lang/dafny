@@ -49,21 +49,21 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       }
     }
 
-    public Dafny.Program Parse(DocumentTextBuffer document, ErrorReporter errorReporter, CancellationToken cancellationToken) {
+    public Program Parse(DocumentTextBuffer document, ErrorReporter errorReporter, CancellationToken cancellationToken) {
       mutex.Wait(cancellationToken);
 
+      var beforeParsing = DateTime.Now;
       try {
-        var beforeParsing = DateTime.Now;
         var result = cachingParser.ParseFiles(document.Uri.ToString(),
           new DafnyFile[]
           {
             new(errorReporter.Options, document.Uri.ToUri(), document.Content)
           },
           errorReporter, cancellationToken);
-        telemetryPublisher.PublishTime("Parse", document.Uri.ToString(), DateTime.Now - beforeParsing);
         return result;
       }
       finally {
+        telemetryPublisher.PublishTime("Parse", document.Uri.ToString(), DateTime.Now - beforeParsing);
         cachingParser.Prune();
         mutex.Release();
       }
@@ -72,12 +72,14 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     private static Dafny.Program NewDafnyProgram(TextDocumentItem document, ErrorReporter errorReporter) {
       // Ensure that the statically kept scopes are empty when parsing a new document.
       Type.ResetScopes();
+      var compilation = new CompilationData(errorReporter.Options, new List<Include>(), new List<Uri>(),
+        Sets.Empty<Uri>(), Sets.Empty<Uri>());
       return new Dafny.Program(
         document.Uri.ToString(),
         new LiteralModuleDecl(new DefaultModuleDefinition(new List<Uri>(), false), null),
         // BuiltIns cannot be initialized without Type.ResetScopes() before.
-        new BuiltIns(errorReporter.Options),
-        errorReporter, Sets.Empty<Uri>(), Sets.Empty<Uri>()
+        new SystemModuleManager(errorReporter.Options),
+        errorReporter, compilation
       );
     }
 

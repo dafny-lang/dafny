@@ -471,16 +471,7 @@ _Abstemious functions are not documented. Please report occurences of this error
 
 ## **Error: an abstemious function is allowed to codatatype-match only on its parameters** {#r_bad_astemious_match}
 
-```dafny
-codatatype EnormousTree<X> = Node(left: EnormousTree, val: X, right: EnormousTree)
-ghost function {:abstemious} BadMatch(t: EnormousTree): EnormousTree
-{ 
-  match t.right  // error: cannot destruct t.right
-  case Node(a, x, b) =>
-    Node(a, x, b)
-}
-```
-
+<!-- TODO - need an example of this variation of error message -->
 <!-- TODO -->
 _Abstemious functions are not documented. Please report occurences of this error message._
 
@@ -743,7 +734,7 @@ method m()
 {
   ghost var c := 10;
   while 0 <= c 
-    invariant 0 <= c <= 10;
+    invariant 0 <= c <= 10
     decreases *
   {
     c := c - 1;
@@ -762,6 +753,8 @@ This does mean that the specifier has to do the work of designing a valid termin
 
 ## **Error: a loop in _proof_ is not allowed to use 'modifies' clauses** {#r_loop_in_proof_may_not_use_modifies}
 
+<!-- TODO - this example give r_loop_may_not_use_modifies
+<!-- %no-check -->
 ```dafny
 class A {  }
 lemma m(j: int, a: A) {
@@ -772,6 +765,7 @@ lemma m(j: int, a: A) {
   }
 }
 ```
+-->
 
 A proof context, such as the body of a lemma, is ghost context and thus is not allowed to modify
 anything on the heap. If there is nothing that may be modified, then there is no need for
