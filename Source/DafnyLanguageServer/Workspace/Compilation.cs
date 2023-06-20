@@ -105,7 +105,6 @@ public class Compilation {
     if (!options.Verify) {
       throw new OperationCanceledException();
     }
-    // TODO add test for the added case '|| resolvedCompilation.Program.Reporter.HasErrorsUntilResolver' 
     if (parsedCompilation is not DocumentAfterResolution resolvedCompilation || resolvedCompilation.Program.Reporter.HasErrorsUntilResolver) {
       throw new OperationCanceledException();
     }
