@@ -5763,6 +5763,7 @@ namespace Microsoft.Dafny {
         name = f.FullSanitizedName + "#Handle";
         functionHandles[f] = name;
         var args = new List<Bpl.Expr>();
+        var argsRequires = new List<Bpl.Expr>(); // Requires don't have reveal parameters
         var vars = MkTyParamBinders(GetTypeParams(f), out args);
         var formals = MkTyParamFormals(GetTypeParams(f), false, true);
         var tyargs = new List<Bpl.Expr>();
@@ -5773,8 +5774,14 @@ namespace Microsoft.Dafny {
         if (f.IsFuelAware()) {
           vars.Add(BplBoundVar("$ly", predef.LayerType, out var ly));
           args.Add(ly);
+          argsRequires.Add(ly);
           formals.Add(BplFormalVar("$fuel", predef.LayerType, true));
           AddFuelSuccSynonymAxiom(f, true);
+        }
+        if (f.IsOpaque) {
+          vars.Add(BplBoundVar("$reveal", Boogie.Type.Bool, out var reveal));
+          args.Add(reveal);
+          formals.Add(BplFormalVar("$reveal", Boogie.Type.Bool, true));
         }
 
         Func<List<Bpl.Expr>, List<Bpl.Expr>> SnocSelf = x => x;
@@ -5817,6 +5824,7 @@ namespace Microsoft.Dafny {
           lhs_args.Add(fe);
           var be = UnboxIfBoxed(fe, fm.Type);
           rhs_args.Add(be);
+
           rhs_dict[fm] = new BoogieWrapper(be, fm.Type);
           // args and its [Box]args
           var arg = BplBoundVar(fm_name, TrType(fm.Type), func_vars);
@@ -5845,7 +5853,7 @@ namespace Microsoft.Dafny {
         }
 
         {
-          // Requires(Ty.., F#Handle( Ty1, ..., TyN, Layer, self), Heap, arg1, ..., argN)
+          // Requires(Ty.., F#Handle( Ty1, ..., TyN, Layer, reveal, self), Heap, arg1, ..., argN)
           //   = F#Requires(Ty1, .., TyN, Layer, Heap, self, [Unbox] arg1, .., [Unbox] argN)
 
           var fhandle = FunctionCall(f.tok, name, predef.HandleType, SnocSelf(SnocPrevH(args)));
@@ -5855,7 +5863,7 @@ namespace Microsoft.Dafny {
             // In case this is the /requires/ or /reads/ function, then there is no precondition
             rhs = Bpl.Expr.True;
           } else {
-            var args_h = f.ReadsHeap ? Snoc(SnocPrevH(args), h) : args;
+            var args_h = f.ReadsHeap ? Snoc(SnocPrevH(argsRequires), h) : argsRequires;
             rhs = FunctionCall(f.tok, RequiresName(f), Bpl.Type.Bool, Concat(SnocSelf(args_h), rhs_args));
           }
 
