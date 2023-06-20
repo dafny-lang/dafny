@@ -1,0 +1,1 @@
+It is now possible to reveal an instance function of a class by a static reveal, without the need of an object of that class.
