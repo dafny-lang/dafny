@@ -120,8 +120,9 @@ dafny="$dafnydir/dafny"
 outdir="$dir/../Test/docexamples"
 
 coverage=0
+permOptions="--show-snippets:false "
 defOptions="--function-syntax:4 --use-basename-for-filename --unicode-char:false"
-legacyOptions="-functionSyntax:4 -useBaseNameForFileName"
+legacyOptions="-functionSyntax:4 -useBaseNameForFileName -showSnippets:0"
 
 while getopts 'c' opt; do
   case "$opt" in
@@ -366,7 +367,7 @@ do
         if [ "$coverage" == "1" ] ; then
           f=$outdir/$(basename $file)_${n}.dfy
           if  [ "$command" == "%check-legacy" ]; then
-            echo "// RUN: %exits-with" $expectedExit "%baredafny" $verb $dOptions ${options[@]} '"%s" > "%t"' > "$f"
+            echo "// RUN: %exits-with" $expectedExit "%baredafny" "/showSnippets:0" $verb $dOptions ${options[@]} '"%s" > "%t"' > "$f"
             echo " " >> $f
             cat $text >> $f
           elif [ "$command" == "%check-cli" ]; then
@@ -379,11 +380,11 @@ do
         else
           if [ "$command" == "%check-legacy" ]; then
             isverbose=-compileVerbose:$checkIds
-            (cd "$dir"; "$dafny" $verb $dOptions $isverbose ${options[@]} $text   ) > "$actualOut" 2> "$actualError"
+            (cd "$dir"; "$dafny" /showSnippets:0 $dOptions $isverbose ${options[@]} $text   ) > "$actualOut" 2> "$actualError"
           else
             isverbose=
             if [ "$checkIds" == "1" ]; then isverbose="--verbose" ; fi
-            ( cd "$dir" ; "$dafny" $verb $isverbose $dOptions ${options[@]} $text ) > "$actualOut" 2> "$actualError"
+            ( cd "$dir" ; "$dafny" $verb $isverbose $permOptions $dOptions ${options[@]} $text ) > "$actualOut" 2> "$actualError"
           fi
           actualExit=$?
           if [ "$useHeadings" == "1" ]; then
