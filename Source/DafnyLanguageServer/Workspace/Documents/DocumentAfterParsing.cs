@@ -11,22 +11,22 @@ namespace Microsoft.Dafny.LanguageServer.Workspace;
 public class DocumentAfterParsing : Document {
   public IReadOnlyDictionary<DocumentUri, List<DafnyDiagnostic>> ResolutionDiagnostics { get; }
 
-  public DocumentAfterParsing(DocumentTextBuffer textDocumentItem,
-    Dafny.Program program,
-    IReadOnlyDictionary<DocumentUri, List<DafnyDiagnostic>> diagnostics) : base(textDocumentItem) {
-    this.ResolutionDiagnostics = diagnostics;
+  public DocumentAfterParsing(VersionedTextDocumentIdentifier documentIdentifier,
+    Program program,
+    IReadOnlyDictionary<DocumentUri, List<DafnyDiagnostic>> diagnostics) : base(documentIdentifier) {
+    ResolutionDiagnostics = diagnostics;
     Program = program;
   }
 
   public override IEnumerable<DafnyDiagnostic> AllFileDiagnostics => FileResolutionDiagnostics;
 
-  private IEnumerable<DafnyDiagnostic> FileResolutionDiagnostics => ResolutionDiagnostics.GetOrDefault(TextDocumentItem.Uri, Enumerable.Empty<DafnyDiagnostic>);
+  private IEnumerable<DafnyDiagnostic> FileResolutionDiagnostics => ResolutionDiagnostics.GetOrDefault(DocumentIdentifier.Uri, Enumerable.Empty<DafnyDiagnostic>);
 
   public Dafny.Program Program { get; }
 
   public override IdeState ToIdeState(IdeState previousState) {
     return previousState with {
-      TextDocumentItem = TextDocumentItem,
+      DocumentIdentifier = DocumentIdentifier,
       ResolutionDiagnostics = ComputeFileAndIncludesResolutionDiagnostics(),
       ImplementationsWereUpdated = false,
     };

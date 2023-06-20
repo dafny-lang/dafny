@@ -365,15 +365,10 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
   }
 
   public record DocumentVerificationTree(
-    DocumentTextBuffer TextDocumentItem
-  ) : VerificationTree("Document", TextDocumentItem.Uri.ToString(), TextDocumentItem.Uri.ToString(), TextDocumentItem.Uri.ToString(),
-    TextDocumentItem.Uri.ToUri(),
-    LinesToRange(TextDocumentItem.NumberOfLines), new Position(0, 0)) {
-
-    public static Range LinesToRange(int lines) {
-      return new Range(new Position(0, 0),
-        new Position(lines, 0));
-    }
+    VersionedTextDocumentIdentifier DocumentIdentifier
+  ) : VerificationTree("Document", DocumentIdentifier.Uri.ToString(), DocumentIdentifier.Uri.ToString(), DocumentIdentifier.Uri.ToString(),
+    DocumentIdentifier.Uri.ToUri(),
+    new Range(0,0,int.MaxValue, int.MaxValue), new Position(0, 0)) {
   }
 
   public record TopLevelDeclMemberVerificationTree(

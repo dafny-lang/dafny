@@ -10,6 +10,7 @@ using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Workspace;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using OmniSharp.Extensions.LanguageServer.Server;
 using Xunit;
 using Xunit.Abstractions;
@@ -120,16 +121,17 @@ public class ExceptionTests : ClientBasedLanguageServerTest {
       this.loader = loader;
     }
 
-    public IdeState CreateUnloaded(DocumentTextBuffer textDocument, CancellationToken cancellationToken) {
-      return loader.CreateUnloaded(textDocument, cancellationToken);
+    public IdeState CreateUnloaded(VersionedTextDocumentIdentifier documentIdentifier, CancellationToken cancellationToken) {
+      return loader.CreateUnloaded(documentIdentifier, cancellationToken);
     }
 
-    public Task<DocumentAfterParsing> LoadAsync(DafnyOptions options, DocumentTextBuffer textDocument,
-      CancellationToken cancellationToken) {
+    public Task<DocumentAfterParsing> LoadAsync(DafnyOptions options, VersionedTextDocumentIdentifier documentIdentifier, 
+        IFileSystem fileSystem, CancellationToken cancellationToken) 
+    {
       if (tests.CrashOnLoad) {
         throw new IOException("crash");
       }
-      return loader.LoadAsync(options, textDocument, cancellationToken);
+      return loader.LoadAsync(options, documentIdentifier, fileSystem, cancellationToken);
     }
   }
 

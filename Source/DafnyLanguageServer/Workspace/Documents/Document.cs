@@ -20,26 +20,26 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
   /// There can be different verification threads that update the state of this object.
   /// </summary>
   public class Document {
-    public DocumentTextBuffer TextDocumentItem { get; }
-    public DocumentUri Uri => TextDocumentItem.Uri;
-    public int Version => TextDocumentItem.Version!.Value;
+    public VersionedTextDocumentIdentifier DocumentIdentifier { get; }
+    public DocumentUri Uri => DocumentIdentifier.Uri;
+    public int Version => DocumentIdentifier.Version;
 
-    public Document(DocumentTextBuffer textDocumentItem) {
-      TextDocumentItem = textDocumentItem;
+    public Document(VersionedTextDocumentIdentifier documentIdentifier) {
+      DocumentIdentifier = documentIdentifier;
     }
 
     public virtual IEnumerable<DafnyDiagnostic> AllFileDiagnostics => Enumerable.Empty<DafnyDiagnostic>();
 
     public IdeState InitialIdeState(DafnyOptions options) {
-      return ToIdeState(new IdeState(TextDocumentItem, Array.Empty<Diagnostic>(),
-        SymbolTable.Empty(), SignatureAndCompletionTable.Empty(options, TextDocumentItem), new Dictionary<ImplementationId, IdeImplementationView>(),
+      return ToIdeState(new IdeState(DocumentIdentifier, Array.Empty<Diagnostic>(),
+        SymbolTable.Empty(), SignatureAndCompletionTable.Empty(options, DocumentIdentifier), new Dictionary<ImplementationId, IdeImplementationView>(),
         Array.Empty<Counterexample>(),
         false, Array.Empty<Diagnostic>(),
         GetInitialDocumentVerificationTree()));
     }
 
     public virtual VerificationTree GetInitialDocumentVerificationTree() {
-      return new DocumentVerificationTree(TextDocumentItem);
+      return new DocumentVerificationTree(DocumentIdentifier);
     }
 
     /// <summary>
@@ -47,7 +47,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     /// </summary>
     public virtual IdeState ToIdeState(IdeState previousState) {
       return previousState with {
-        TextDocumentItem = TextDocumentItem,
+        DocumentIdentifier = DocumentIdentifier,
         ImplementationsWereUpdated = false,
       };
     }

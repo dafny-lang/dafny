@@ -156,11 +156,11 @@ module A {
     Assert.NotNull(document);
     var codeActionInput = new DafnyCodeActionInput(document);
 
-    foreach (var edit in edits) {
-      finalText = codeActionInput.Extract(new Range((0, 0), edit.Range.Start)) +
-                  edit.NewText +
-                  codeActionInput.Extract(new Range(edit.Range.End, document.TextDocumentItem.Range.End));
-    }
+    // foreach (var edit in edits) {
+    //   finalText = codeActionInput.Extract(new Range((0, 0), edit.Range.Start)) +
+    //               edit.NewText +
+    //               codeActionInput.Extract(new Range(edit.Range.End, document.DocumentIdentifier.Range.End));
+    // }
     Assert.Equal(target, finalText);
   }
 

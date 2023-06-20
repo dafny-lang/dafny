@@ -121,8 +121,10 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       }
 
       private string[] GetMemberAccessChainEndingAt(Position position) {
-        var absolutePosition = state.TextDocumentItem.ToIndex(position);
-        return new MemberAccessChainResolver(state.TextDocumentItem.Text, absolutePosition, cancellationToken).ResolveFromBehind().Reverse().ToArray();
+        // TODO decide what to do with this
+        return new string[0];
+        // var absolutePosition = state.TextDocumentItem.ToIndex(position);
+        // return new MemberAccessChainResolver(state.TextDocumentItem.Text, absolutePosition, cancellationToken).ResolveFromBehind().Reverse().ToArray();
       }
     }
 

@@ -23,7 +23,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace;
 /// </summary>
 public class DocumentManager {
   private readonly IRelocator relocator;
-  private readonly ITextChangeProcessor textChangeProcessor;
 
   private readonly IServiceProvider services;
   private readonly IdeStateObserver observer;
@@ -42,22 +41,21 @@ public class DocumentManager {
 
   public DocumentManager(
     IServiceProvider services,
-    DocumentTextBuffer document) {
+    VersionedTextDocumentIdentifier documentIdentifier) {
     this.services = services;
-    this.options = services.GetRequiredService<DafnyOptions>();
-    this.logger = services.GetRequiredService<ILogger<DocumentManager>>();
-    this.relocator = services.GetRequiredService<IRelocator>();
-    this.textChangeProcessor = services.GetRequiredService<ITextChangeProcessor>();
+    options = services.GetRequiredService<DafnyOptions>();
+    logger = services.GetRequiredService<ILogger<DocumentManager>>();
+    relocator = services.GetRequiredService<IRelocator>();
 
     observer = new IdeStateObserver(services.GetRequiredService<ILogger<IdeStateObserver>>(),
       services.GetRequiredService<ITelemetryPublisher>(),
       services.GetRequiredService<INotificationPublisher>(),
       services.GetRequiredService<ITextDocumentLoader>(),
-      document);
+      documentIdentifier);
     Compilation = new Compilation(
       services,
-      DetermineDocumentOptions(options, document.Uri),
-      document,
+      DetermineDocumentOptions(options, documentIdentifier.Uri),
+      documentIdentifier,
       null);
 
     observerSubscription = Compilation.DocumentUpdates.Select(d => d.InitialIdeState(options)).Subscribe(observer);
@@ -75,26 +73,15 @@ public class DocumentManager {
   private const int MaxRememberedChanges = 100;
   private const int MaxRememberedChangedVerifiables = 5;
   public void UpdateDocument(DidChangeTextDocumentParams documentChange) {
-    // According to the LSP specification, document versions should increase monotonically but may be non-consecutive.
-    // See: https://github.com/microsoft/language-server-protocol/blob/gh-pages/_specifications/specification-3-16.md?plain=1#L1195
-    var oldVer = Compilation.TextBuffer.Version;
-    var newVer = documentChange.TextDocument.Version;
-    var documentUri = documentChange.TextDocument.Uri;
-    if (oldVer >= newVer) {
-      throw new InvalidOperationException(
-        $"the updates of document {documentUri} are out-of-order: {oldVer} -> {newVer}");
-    }
 
     logger.LogDebug("Clearing result for workCompletedForCurrentVersion");
     var _1 = workCompletedForCurrentVersion.WaitAsync();
 
     Compilation.CancelPendingUpdates();
-    var updatedText = textChangeProcessor.ApplyChange(Compilation.TextBuffer, documentChange, CancellationToken.None);
-
 
     var lastPublishedState = observer.LastPublishedState;
     var migratedVerificationTree =
-      relocator.RelocateVerificationTree(lastPublishedState.VerificationTree, updatedText.NumberOfLines, documentChange, CancellationToken.None);
+      relocator.RelocateVerificationTree(lastPublishedState.VerificationTree, documentChange, CancellationToken.None);
     lastPublishedState = lastPublishedState with {
       ImplementationIdToView = MigrateImplementationViews(documentChange, lastPublishedState.ImplementationIdToView),
       SignatureAndCompletionTable = relocator.RelocateSymbols(lastPublishedState.SignatureAndCompletionTable, documentChange, CancellationToken.None),
@@ -112,7 +99,10 @@ public class DocumentManager {
     Compilation = new Compilation(
       services,
       dafnyOptions,
-      updatedText,
+      new VersionedTextDocumentIdentifier {
+        Version = documentChange.TextDocument.Version!.Value,
+        Uri = documentChange.TextDocument.Uri
+      },
       // TODO do not pass this to CompilationManager but instead use it in FillMissingStateUsingLastPublishedDocument
       migratedVerificationTree
     );
@@ -259,7 +249,7 @@ public class DocumentManager {
   }
 
   private IEnumerable<Position> GetChangedVerifiablesFromRanges(DocumentAfterResolution loaded, IEnumerable<Range> changedRanges) {
-    var tree = new DocumentVerificationTree(loaded.TextDocumentItem);
+    var tree = new DocumentVerificationTree(loaded.DocumentIdentifier);
     VerificationProgressReporter.UpdateTree(options, loaded, tree);
     var intervalTree = new IntervalTree<Position, Position>();
     foreach (var childTree in tree.Children) {

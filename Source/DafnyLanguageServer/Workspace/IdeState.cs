@@ -19,7 +19,7 @@ public record IdeImplementationView(Range Range, PublishedVerificationStatus Sta
 /// to provide the IDE with as much information as possible.
 /// </summary>
 public record IdeState(
-  DocumentTextBuffer TextDocumentItem,
+  VersionedTextDocumentIdentifier DocumentIdentifier,
   IEnumerable<Diagnostic> ResolutionDiagnostics,
   SymbolTable SymbolTable,
   SignatureAndCompletionTable SignatureAndCompletionTable,
@@ -30,8 +30,8 @@ public record IdeState(
   VerificationTree VerificationTree
 ) {
 
-  public DocumentUri Uri => TextDocumentItem.Uri;
-  public int? Version => TextDocumentItem.Version;
+  public DocumentUri Uri => DocumentIdentifier.Uri;
+  public int? Version => DocumentIdentifier.Version;
 
   public IEnumerable<Diagnostic> Diagnostics =>
     ResolutionDiagnostics.Concat(ImplementationIdToView.Values.SelectMany(v => v.Diagnostics));

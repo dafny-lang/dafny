@@ -2,9 +2,7 @@
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
-using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace {
@@ -16,16 +14,24 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     private readonly IServiceProvider services;
 
     private readonly Dictionary<DocumentUri, DocumentManager> documents = new();
+    private readonly LanguageServerFilesystem fileSystem;
 
     public DocumentManagerDatabase(IServiceProvider services) {
       this.services = services;
+      this.fileSystem = services.GetRequiredService<LanguageServerFilesystem>();
     }
 
-    public void OpenDocument(DocumentTextBuffer document) {
-      documents.Add(document.Uri, new DocumentManager(services, document));
+    public void OpenDocument(TextDocumentItem document) {
+      var identifier = new VersionedTextDocumentIdentifier() {
+        Version = document.Version.Value,
+        Uri = document.Uri
+      };
+      fileSystem.OpenDocument(document);
+      documents.Add(document.Uri, new DocumentManager(services, identifier));
     }
 
     public void UpdateDocument(DidChangeTextDocumentParams documentChange) {
+      fileSystem.UpdateDocument(documentChange);
       var documentUri = documentChange.TextDocument.Uri;
       if (!documents.TryGetValue(documentUri, out var state)) {
         throw new ArgumentException($"the document {documentUri} was not loaded before");

@@ -23,7 +23,7 @@ public static class DafnyCodeActionHelpers {
   ///       Some code here:
   ///     }
   /// ```
-  /// the method will return ("  ", "    "), so that it someone inserted the first value,
+  /// the method will return ("  ", "    "), so that if someone inserted the first value,
   /// "assert X;\n" and the second value, the resulting code would be
   /// ```
   ///     {
@@ -36,13 +36,27 @@ public static class DafnyCodeActionHelpers {
   /// <param name="endToken">The position of the closing brace</param>
   /// <param name="text">The document text</param>
   /// <returns>(extra indentation for a statement, current indentation)</returns>
-  public static (string, string) GetIndentationBefore(IToken endToken, int startLine, int startCol, string text) {
+  public static (string, string) GetIndentationBefore(IToken endToken, int startLine, int startCol) {
+
+    throw new Exception("instead of string text, retrieve the text from the token"); 
     var pos = endToken.pos + endToken.val.Length - 1;
     var indentation = 0;
     var indentationBrace = endToken.col - 1;
     var firstNewline = true;
     var useTabs = false;
     // Look for the first newline
+
+    var text = "";
+    // var token = endToken.Prev;
+    // while (token.val != "{") {
+    //   
+    // }
+    // while (token.LeadingTrivia.Contains("\n") || token.TrailingTrivia.Contains("\n")) {
+    //   if (token.LeadingTrivia.Contains("\t") || token.TrailingTrivia.Contains("\t")) {
+    //     useTabs = true;
+    //   }
+    //   
+    // }
     while (0 <= pos && pos < text.Length && (text[pos] != '\n' || firstNewline)) {
       if (text[pos] == '\t') {
         useTabs = true;
@@ -113,7 +127,7 @@ public static class DafnyCodeActionHelpers {
       return (null, "", "");
     }
 
-    var (extraIndentation, indentationUntilBrace) = GetIndentationBefore(endToken, line, col, input.Code);
+    var (extraIndentation, indentationUntilBrace) = GetIndentationBefore(endToken, line, col);
     var beforeClosingBrace = new RangeToken(endToken, null);
     return (beforeClosingBrace, extraIndentation, indentationUntilBrace);
   }

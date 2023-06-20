@@ -42,15 +42,15 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
 
     private readonly DafnyLangTypeResolver typeResolver;
 
-    public static SignatureAndCompletionTable Empty(DafnyOptions options, DocumentTextBuffer textDocument) {
-      var outerModule = new DefaultModuleDefinition(new List<Uri>() { textDocument.Uri.ToUri() }, false);
-      var errorReporter = new DiagnosticErrorReporter(options, textDocument.Text, textDocument.Uri);
+    public static SignatureAndCompletionTable Empty(DafnyOptions options, VersionedTextDocumentIdentifier documentIdentifier) {
+      var outerModule = new DefaultModuleDefinition(new List<Uri>() { documentIdentifier.Uri.ToUri() }, false);
+      var errorReporter = new DiagnosticErrorReporter(options, documentIdentifier.Uri);
       var compilation = new CompilationData(options, new List<Include>(), new List<Uri>(), Sets.Empty<Uri>(),
         Sets.Empty<Uri>());
       return new SignatureAndCompletionTable(
         NullLogger<SignatureAndCompletionTable>.Instance,
-        new CompilationUnit(textDocument.Uri.ToUri(), new Dafny.Program(
-          textDocument.Uri.ToString(),
+        new CompilationUnit(documentIdentifier.Uri.ToUri(), new Dafny.Program(
+          documentIdentifier.Uri.ToString(),
           new LiteralModuleDecl(outerModule, null),
           // BuiltIns cannot be initialized without Type.ResetScopes() before.
           new SystemModuleManager(options), // TODO creating a BuiltIns is a heavy operation
