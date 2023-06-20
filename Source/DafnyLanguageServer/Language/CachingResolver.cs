@@ -51,14 +51,6 @@ public class CachingResolver : ProgramResolver {
     } else {
       logger.LogDebug($"Resolution cache hit for {decl}");
     }
-
-    // TODO when we're cloning here, should make sure we re-use the same cloner for an entire resolution, so equal pointers stay equal
-    // Clone declarations before returning them, since they are mutable and we don't want to mutate the one in the cache.
-    // We should cache an immutable version of the AST instead: https://github.com/dafny-lang/dafny/issues/4086
-    // var cloner = new Cloner(true, true);
-    // var clonedResult = result! with {
-    //   Signatures = new FileModuleDefinition(cloner, result.Module)
-    // };
     return result!;
   }
 
