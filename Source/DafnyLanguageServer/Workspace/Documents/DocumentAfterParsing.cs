@@ -57,7 +57,7 @@ public class DocumentAfterParsing : Document {
         continue;
       }
 
-      var containsErrorSTheFirstOneIs = $"the included file {include.LocalPath} contains error(s). The first one is:{firstErrorMessage}";
+      var containsErrorSTheFirstOneIs = $"the included file {include.LocalPath} contains error(s). The first one is:\n{firstErrorMessage.Message}";
       var diagnostic = new DafnyDiagnostic(null, Program.GetFirstTopLevelToken(), containsErrorSTheFirstOneIs,
         MessageSource.Parser, ErrorLevel.Error, new DafnyRelatedInformation[] { });
       yield return diagnostic;
