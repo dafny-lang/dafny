@@ -182,7 +182,7 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    protected virtual List<TypeParameter> UsedTypeParameters(DatatypeDecl dt) {
+    protected virtual List<TypeParameter> UsedTypeParameters(DatatypeDecl dt, bool alsoIncludeAutoInitTypeParameters = false) {
       Contract.Requires(dt != null);
 
       var idt = dt as IndDatatypeDecl;
@@ -192,7 +192,7 @@ namespace Microsoft.Dafny.Compilers {
         Contract.Assert(idt.TypeArgs.Count == idt.TypeParametersUsedInConstructionByGroundingCtor.Length);
         var tps = new List<TypeParameter>();
         for (int i = 0; i < idt.TypeArgs.Count; i++) {
-          if (idt.TypeParametersUsedInConstructionByGroundingCtor[i]) {
+          if (idt.TypeParametersUsedInConstructionByGroundingCtor[i] || (alsoIncludeAutoInitTypeParameters && NeedsTypeDescriptor(idt.TypeArgs[i]))) {
             tps.Add(idt.TypeArgs[i]);
           }
         }
@@ -200,7 +200,7 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    protected List<TypeArgumentInstantiation> UsedTypeParameters(DatatypeDecl dt, List<Type> typeArgs) {
+    protected List<TypeArgumentInstantiation> UsedTypeParameters(DatatypeDecl dt, List<Type> typeArgs, bool alsoIncludeAutoInitTypeParameters = false) {
       Contract.Requires(dt != null);
       Contract.Requires(typeArgs != null);
       Contract.Requires(dt.TypeArgs.Count == typeArgs.Count);
@@ -211,7 +211,7 @@ namespace Microsoft.Dafny.Compilers {
         Contract.Assert(typeArgs.Count == idt.TypeParametersUsedInConstructionByGroundingCtor.Length);
         var r = new List<TypeArgumentInstantiation>();
         for (int i = 0; i < typeArgs.Count; i++) {
-          if (idt.TypeParametersUsedInConstructionByGroundingCtor[i]) {
+          if (idt.TypeParametersUsedInConstructionByGroundingCtor[i] || (alsoIncludeAutoInitTypeParameters && NeedsTypeDescriptor(idt.TypeArgs[i]))) {
             r.Add(new TypeArgumentInstantiation(dt.TypeArgs[i], typeArgs[i]));
           }
         }
@@ -915,7 +915,7 @@ namespace Microsoft.Dafny.Compilers {
       return wr.ForkInParens();
     }
 
-    protected abstract void EmitDatatypeValue(DatatypeValue dtv, string arguments, ConcreteSyntaxTree wr);
+    protected abstract void EmitDatatypeValue(DatatypeValue dtv, string typeDescriptorArguments, string arguments, ConcreteSyntaxTree wr);
     protected abstract void GetSpecialFieldInfo(SpecialField.ID id, object idParam, Type receiverType, out string compiledName, out string preString, out string postString);
 
     /// <summary>
@@ -1045,6 +1045,9 @@ namespace Microsoft.Dafny.Compilers {
       foreach (var ta in typeArgs) {
         var tp = ta.Formal;
         if (tp.Parent is TopLevelDeclWithMembers) {
+          if (tp.Parent is not TraitDecl && member?.OverriddenMember != null) {
+            continue;
+          }
           TypeArgDescriptorUse(member == null || member.IsStatic, lookasideBody, (TopLevelDeclWithMembers)enclosingClass, out var _, out var needsTypeDescriptor);
           if (!needsTypeDescriptor) {
             continue;
@@ -4952,8 +4955,12 @@ namespace Microsoft.Dafny.Compilers {
         }
 
         var wrArgumentList = new ConcreteSyntaxTree();
+        var wTypeDescriptorArguments = new ConcreteSyntaxTree();
         string sep = "";
-        for (int i = 0; i < dtv.Arguments.Count; i++) {
+        Contract.Assert(dtv.Ctor.EnclosingDatatype.TypeArgs.Count == dtv.InferredTypeArgs.Count);
+        WriteTypeDescriptors(dtv.Ctor.EnclosingDatatype, dtv.InferredTypeArgs, wTypeDescriptorArguments, ref sep);
+        sep = "";
+        for (var i = 0; i < dtv.Arguments.Count; i++) {
           var formal = dtv.Ctor.Formals[i];
           if (!formal.IsGhost) {
             wrArgumentList.Write(sep);
@@ -4962,7 +4969,7 @@ namespace Microsoft.Dafny.Compilers {
             sep = ", ";
           }
         }
-        EmitDatatypeValue(dtv, wrArgumentList.ToString(), wr);
+        EmitDatatypeValue(dtv, wTypeDescriptorArguments.ToString(), wrArgumentList.ToString(), wr);
 
       } else if (expr is OldExpr) {
         Contract.Assert(false); throw new cce.UnreachableException();  // 'old' is always a ghost
@@ -5310,6 +5317,18 @@ namespace Microsoft.Dafny.Compilers {
       }
 
       return result;
+    }
+
+    protected virtual void WriteTypeDescriptors(TopLevelDecl decl, List<Type> typeArguments, ConcreteSyntaxTree wrArgumentList, ref string sep) {
+      Contract.Requires(decl.TypeArgs.Count == typeArguments.Count);
+      var typeParameters = decl.TypeArgs;
+      for (var i = 0; i < typeParameters.Count; i++) {
+        if (NeedsTypeDescriptor(typeParameters[i])) {
+          var typeArgument = typeArguments[i];
+          wrArgumentList.Write($"{sep}{TypeDescriptor(typeArgument, wrArgumentList, typeArgument.tok)}");
+          sep = ", ";
+        }
+      }
     }
 
     /// <summary>

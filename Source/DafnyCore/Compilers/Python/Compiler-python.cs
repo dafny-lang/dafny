@@ -1163,7 +1163,7 @@ namespace Microsoft.Dafny.Compilers {
       wr.Write("None");
     }
 
-    protected override void EmitDatatypeValue(DatatypeValue dtv, string arguments, ConcreteSyntaxTree wr) {
+    protected override void EmitDatatypeValue(DatatypeValue dtv, string typeDescriptorArguments, string arguments, ConcreteSyntaxTree wr) {
       if (dtv.IsCoCall) {
         wr.Write($"{dtv.Ctor.EnclosingDatatype.GetFullCompileName(Options)}__Lazy(lambda: ");
         var end = wr.Fork();
@@ -1251,7 +1251,7 @@ namespace Microsoft.Dafny.Compilers {
             GetSpecialFieldInfo(sf.SpecialId, sf.IdParam, objType, out var compiledName, out _, out _);
             return SimpleLvalue(w => {
               var customReceiver = NeedsCustomReceiver(sf) && sf.EnclosingClass is not TraitDecl;
-              if (customReceiver) {
+              if (sf.IsStatic || customReceiver) {
                 w.Write(TypeName_Companion(objType, w, member.tok, member));
               } else {
                 obj(w);

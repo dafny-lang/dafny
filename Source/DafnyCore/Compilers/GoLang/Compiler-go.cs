@@ -2509,7 +2509,7 @@ namespace Microsoft.Dafny.Compilers {
       wr.Write(" })() ");
     }
 
-    protected override void EmitDatatypeValue(DatatypeValue dtv, string arguments, ConcreteSyntaxTree wr) {
+    protected override void EmitDatatypeValue(DatatypeValue dtv, string typeDescriptorArguments, string arguments, ConcreteSyntaxTree wr) {
       var dt = dtv.Ctor.EnclosingDatatype;
       EmitDatatypeValue(dt, dtv.Ctor, dtv.IsCoCall, arguments, wr);
     }

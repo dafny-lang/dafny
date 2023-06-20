@@ -1,5 +1,5 @@
 
-Dafny program verifier finished with 21 verified, 0 errors
+Dafny program verifier finished with 22 verified, 0 errors
 
 Dafny program verifier did not attempt verification
 3 false 0
@@ -39,6 +39,17 @@ ImportedTypes_mLibrary_Compile.CoColor.Yellow and ImportedTypes_mLibrary_Compile
 ImportedTypes_mLibrary_Compile.MoColor.MoYellow and ImportedTypes_mLibrary_Compile.MoColor.MoYellow
 0.0 and 0.0
 13
+TypeDescriptorInDatatypeValue_Compile.Datatype.Simple('D', 0.0)
+TypeDescriptorInDatatypeValue_Compile.Datatype.Simple('D', 0.0)
+'D'
+'D'
+TypeDescriptorInDatatypeValue_Compile.Stream.End
+TypeDescriptorInDatatypeValue_Compile.Stream.End
+TypeDescriptorInDatatypeValue_Compile.ContraStream.End
+TypeDescriptorInDatatypeValue_Compile.ContraStream.End
+TypeDescriptorInDatatypeValue_Compile.CoEnum.CoEnum
+TypeDescriptorInDatatypeValue_Compile.CoEnum.CoEnum
+DatatypeValues_Compile.Stream.Next DatatypeValues_Compile.AutoStream.AutoNext
 
 Dafny program verifier did not attempt verification
 3 false 0
@@ -78,6 +89,17 @@ ImportedTypes_mLibrary_Compile.CoColor.Yellow and ImportedTypes_mLibrary_Compile
 ImportedTypes_mLibrary_Compile.MoColor.MoYellow and ImportedTypes_mLibrary_Compile.MoColor.MoYellow
 0.0 and 0.0
 13
+TypeDescriptorInDatatypeValue_Compile.Datatype.Simple('D', 0.0)
+TypeDescriptorInDatatypeValue_Compile.Datatype.Simple('D', 0.0)
+'D'
+'D'
+TypeDescriptorInDatatypeValue_Compile.Stream.End
+TypeDescriptorInDatatypeValue_Compile.Stream.End
+TypeDescriptorInDatatypeValue_Compile.ContraStream.End
+TypeDescriptorInDatatypeValue_Compile.ContraStream.End
+TypeDescriptorInDatatypeValue_Compile.CoEnum.CoEnum
+TypeDescriptorInDatatypeValue_Compile.CoEnum.CoEnum
+DatatypeValues_Compile.Stream.Next DatatypeValues_Compile.AutoStream.AutoNext
 
 Dafny program verifier did not attempt verification
 3 false 0
@@ -117,6 +139,17 @@ ImportedTypes_mLibrary_Compile.CoColor.Yellow and ImportedTypes_mLibrary_Compile
 ImportedTypes_mLibrary_Compile.MoColor.MoYellow and ImportedTypes_mLibrary_Compile.MoColor.MoYellow
 0.0 and 0.0
 13
+TypeDescriptorInDatatypeValue_Compile.Datatype.Simple('D', 0.0)
+TypeDescriptorInDatatypeValue_Compile.Datatype.Simple('D', 0.0)
+'D'
+'D'
+TypeDescriptorInDatatypeValue_Compile.Stream.End
+TypeDescriptorInDatatypeValue_Compile.Stream.End
+TypeDescriptorInDatatypeValue_Compile.ContraStream.End
+TypeDescriptorInDatatypeValue_Compile.ContraStream.End
+TypeDescriptorInDatatypeValue_Compile.CoEnum.CoEnum
+TypeDescriptorInDatatypeValue_Compile.CoEnum.CoEnum
+DatatypeValues_Compile.Stream.Next DatatypeValues_Compile.AutoStream.AutoNext
 
 Dafny program verifier did not attempt verification
 3 false 0
@@ -156,6 +189,17 @@ ImportedTypes_mLibrary_Compile.CoColor.Yellow and ImportedTypes_mLibrary_Compile
 ImportedTypes_mLibrary_Compile.MoColor.MoYellow and ImportedTypes_mLibrary_Compile.MoColor.MoYellow
 0.0 and 0.0
 13
+TypeDescriptorInDatatypeValue_Compile.Datatype.Simple('D', 0.0)
+TypeDescriptorInDatatypeValue_Compile.Datatype.Simple('D', 0.0)
+'D'
+'D'
+TypeDescriptorInDatatypeValue_Compile.Stream.End
+TypeDescriptorInDatatypeValue_Compile.Stream.End
+TypeDescriptorInDatatypeValue_Compile.ContraStream.End
+TypeDescriptorInDatatypeValue_Compile.ContraStream.End
+TypeDescriptorInDatatypeValue_Compile.CoEnum.CoEnum
+TypeDescriptorInDatatypeValue_Compile.CoEnum.CoEnum
+DatatypeValues_Compile.Stream.Next DatatypeValues_Compile.AutoStream.AutoNext
 
 Dafny program verifier did not attempt verification
 3 false 0
@@ -195,3 +239,14 @@ ImportedTypes_mLibrary_Compile.CoColor.Yellow and ImportedTypes_mLibrary_Compile
 ImportedTypes_mLibrary_Compile.MoColor.MoYellow and ImportedTypes_mLibrary_Compile.MoColor.MoYellow
 0.0 and 0.0
 13
+TypeDescriptorInDatatypeValue_Compile.Datatype.Simple('D', 0.0)
+TypeDescriptorInDatatypeValue_Compile.Datatype.Simple('D', 0.0)
+'D'
+'D'
+TypeDescriptorInDatatypeValue_Compile.Stream.End
+TypeDescriptorInDatatypeValue_Compile.Stream.End
+TypeDescriptorInDatatypeValue_Compile.ContraStream.End
+TypeDescriptorInDatatypeValue_Compile.ContraStream.End
+TypeDescriptorInDatatypeValue_Compile.CoEnum.CoEnum
+TypeDescriptorInDatatypeValue_Compile.CoEnum.CoEnum
+DatatypeValues_Compile.Stream.Next DatatypeValues_Compile.AutoStream.AutoNext
