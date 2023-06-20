@@ -126,7 +126,7 @@ public class Compilation {
   public async Task<DocumentAfterTranslation> PrepareVerificationTasksAsync(
     DocumentAfterResolution loaded,
     CancellationToken cancellationToken) {
-    if (loaded.AllFileDiagnostics.Any(d =>
+    if (loaded.ResolutionDiagnostics.Values.SelectMany(x => x).Any(d =>
           d.Level == ErrorLevel.Error &&
           d.Source != MessageSource.Compiler &&
           d.Source != MessageSource.Verifier)) {

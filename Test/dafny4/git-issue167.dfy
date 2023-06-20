@@ -1,3 +1,4 @@
+// NONUNIFORM: https://github.com/dafny-lang/dafny/issues/4108
 // RUN: %dafny /compile:3 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 

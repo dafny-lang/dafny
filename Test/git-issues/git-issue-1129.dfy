@@ -1,3 +1,4 @@
+// NONUNIFORM: Program expected to fail in backend-specific ways
 // RUN: %dafny /compile:0 "%s" > "%t"
 // RUN: %exits-with 3 %dafny /noVerify /compile:4 /compileTarget:cs "%s" > "%t".abyss
 // RUN: %exits-with 3 %dafny /noVerify /compile:4 /compileTarget:java "%s" > "%t".abyss
