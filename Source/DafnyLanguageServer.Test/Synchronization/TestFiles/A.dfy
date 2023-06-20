@@ -23,3 +23,7 @@ module ModA {
 module PrefixModuleInDefaultModule.Content {
   const x := 3
 }
+
+module SpreadOverMultipleFiles.Child1 {
+  const x := 3
+}

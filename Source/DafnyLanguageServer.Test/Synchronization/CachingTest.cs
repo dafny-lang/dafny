@@ -98,10 +98,14 @@ module ModC {
     var diagnostics2 = await GetLastDiagnostics(documentItem, CancellationToken);
     Assert.Empty(diagnostics2.Where(d => d.Severity == DiagnosticSeverity.Error));
     Assert.Equal(2, hitCount1.ParseHits);
-    // literal A, alias A (in Literal B), and literal B. Alias B's CloneId is tainted because it resides in the changed file.
-    // 4 hits for the prefix modules
-    // 1 hit for system module
-    Assert.Equal(10, hitCount1.ResolveHits);
+    var modules = new[] {
+      "System",
+      "ModA", "ModB", "import A (in ModB)",
+      "FilledWithPrefixes", "PrefixContent", "StandalonePrefix", "Prefix",
+      "PrefixModuleInDefaultModule", "Content",
+      "SpreadOverMultipleFiles", "Child1", "Child2"
+    };
+    Assert.Equal(modules.Length, hitCount1.ResolveHits);
 
     // Removes the comment and the include and usage of B.dfy, which will prune the cache for B.dfy
     ApplyChange(ref documentItem, ((2, 0), (3, 0)), "");
