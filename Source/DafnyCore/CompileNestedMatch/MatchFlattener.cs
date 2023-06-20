@@ -49,23 +49,14 @@ public class MatchFlattener : IRewriter {
     this.idGenerator = idGenerator;
   }
 
-  internal override void PostResolve(Program program) {
-    foreach (var compileModule in program.RawModules()) {
-      FlattenNode(compileModule);
-    }
-    foreach (var compileModule in program.CompileModules) {
-      var reporter = Reporter;
-      Reporter = new ErrorReporterSink(program.Options);
-      FlattenNode(compileModule);
-      Reporter = reporter;
-    }
+  internal override void PostResolve(ModuleDefinition module) {
+    FlattenNode(module);
   }
 
   private void FlattenNode(Node root) {
     root.Visit(node => {
       if (node != root && node is ModuleDefinition) {
-        // The resolver clones module definitions for compilation, but also the top level module which also contains the uncloned definitions,
-        // so this is to prevent recursion into the uncloned definitions. 
+        // The default module contains all the other modules, prevent visiting them since they're already visited as roots. 
         return false;
       }
 

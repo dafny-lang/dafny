@@ -176,7 +176,7 @@ public class InferDecreasesClause {
             Type = Type.Bool
           };
           var s = new SetComprehension(e.tok, e.RangeToken, true, new List<BoundVar>() { bv }, sInE, bvIE, null) {
-            Type = new SetType(true, resolver.builtIns.ObjectQ()),
+            Type = new SetType(true, resolver.SystemModuleManager.ObjectQ()),
             Bounds = new List<ComprehensionExpr.BoundedPool>() { boundedPool }
           };
           sets.Add(s);
@@ -190,20 +190,20 @@ public class InferDecreasesClause {
 
     if (singletons != null) {
       Expression display = new SetDisplayExpr(singletons[0].tok, true, singletons);
-      display.Type = new SetType(true, resolver.builtIns.ObjectQ()); // resolve here
+      display.Type = new SetType(true, resolver.SystemModuleManager.ObjectQ()); // resolve here
       sets.Add(display);
     }
 
     if (sets.Count == 0) {
       Expression emptyset = new SetDisplayExpr(Token.NoToken, true, new List<Expression>());
-      emptyset.Type = new SetType(true, resolver.builtIns.ObjectQ()); // resolve here
+      emptyset.Type = new SetType(true, resolver.SystemModuleManager.ObjectQ()); // resolve here
       return emptyset;
     } else {
       Expression s = sets[0];
       for (int i = 1; i < sets.Count; i++) {
         BinaryExpr union = new BinaryExpr(s.tok, BinaryExpr.Opcode.Add, s, sets[i]);
         union.ResolvedOp = BinaryExpr.ResolvedOpcode.Union; // resolve here
-        union.Type = new SetType(true, resolver.builtIns.ObjectQ()); // resolve here
+        union.Type = new SetType(true, resolver.SystemModuleManager.ObjectQ()); // resolve here
         s = union;
       }
 
