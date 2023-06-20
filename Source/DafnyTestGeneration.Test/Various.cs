@@ -21,14 +21,14 @@ namespace DafnyTestGeneration.Test {
       var source = @"
 module M {
   class Inlining {
-    method b (i:int) returns (r:int) {
+    method {:testEntry} b (i:int) returns (r:int) {
       if (i == 0) {
           return 7;
       } else {
           return 81;
       }
     }
-    method a (i:int) returns (r:int) {
+    method {:testEntry} a (i:int) returns (r:int) {
       r := b(i);
     }
   }
@@ -61,7 +61,7 @@ module M {
           return 81;
       }
     }
-    method a (i:int) returns (r:int) {
+    method {:testEntry} a (i:int) returns (r:int) {
       r := b(i);
     }
   }
@@ -69,7 +69,6 @@ module M {
 ".TrimStart();
       var options = Setup.GetDafnyOptions(output);
       var program = Utils.Parse(options, source, false);
-      options.TestGenOptions.TargetMethod = "M.Inlining.a";
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
       Assert.True(methods.Count >= 2);
       Assert.True(methods.All(m => m.MethodName == "M.Inlining.a"));
@@ -92,7 +91,7 @@ module M {
     function {:testInline 1} max (a:int, b:int):int {
       min(b, a)
     }
-    method test (a:int, b:int) returns (r:int) {
+    method {:testEntry} test (a:int, b:int) returns (r:int) {
       r := max(a, b);
     }
   }
@@ -100,7 +99,6 @@ module M {
 ".TrimStart();
       var options = Setup.GetDafnyOptions(output);
       var program = Utils.Parse(options, source, false);
-      options.TestGenOptions.TargetMethod = "M.Inlining.test";
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
       Assert.True(methods.Count >= 2);
     }
@@ -116,7 +114,7 @@ module M {
     function max (a:int, b:int):int {
       if a > b then a else b
     }
-    method test(a:int, b:int) returns (r:int) {
+    method {:testEntry} test(a:int, b:int) returns (r:int) {
       r := max(a, b);
     }
   }
@@ -124,7 +122,6 @@ module M {
 ".TrimStart();
       var options = Setup.GetDafnyOptions(output);
       var program = Utils.Parse(options, source, false);
-      options.TestGenOptions.TargetMethod = "M.Inlining.test";
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
       Assert.True(methods.Count == 1);
     }
@@ -137,7 +134,7 @@ module M {
     function max (a:int, b:int):int {
       if a > b then a else b
     }
-    method test(a:int, b:int) returns (r:int) {
+    method {:testEntry} test(a:int, b:int) returns (r:int) {
       r := max(a, b);
     }
   }
@@ -145,7 +142,6 @@ module M {
 ".TrimStart();
       var options = Setup.GetDafnyOptions(output);
       var program = Utils.Parse(options, source, false);
-      options.TestGenOptions.TargetMethod = "M.Inlining.test";
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
       Assert.True(methods.Count == 1);
     }
@@ -164,7 +160,7 @@ module M {
       if n == 2 then 2 else
       mod3(n-3)
     }
-    method test(n:int) returns (r:int) 
+    method {:testEntry} test(n:int) returns (r:int) 
       requires n >= 3
     {
       r := mod3(n);
@@ -174,7 +170,6 @@ module M {
 ".TrimStart();
       var options = Setup.GetDafnyOptions(output);
       var program = Utils.Parse(options, source, false);
-      options.TestGenOptions.TargetMethod = "M.Inlining.test";
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
       Assert.True(methods.Count >= 3);
     }
@@ -193,7 +188,7 @@ module M {
       if n == 2 then 2 else
       mod3(n-3)
     }
-    method test(n:int) returns (r:int) 
+    method {:testEntry} test(n:int) returns (r:int) 
       requires n >= 3
     {
       r := mod3(n);
@@ -203,7 +198,6 @@ module M {
 ".TrimStart();
       var options = Setup.GetDafnyOptions(output);
       var program = Utils.Parse(options, source, false);
-      options.TestGenOptions.TargetMethod = "M.Inlining.test";
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
       Assert.True(methods.Count < 3);
     }
@@ -212,7 +206,7 @@ module M {
     public async Task PathBasedTests() {
       var source = @"
 module Paths {
-  method eightPaths (i:int)
+  method {:testEntry} eightPaths (i:int)
     returns (divBy2:bool, divBy3:bool, divBy5:bool)
   {
     if (i % 2 == 0) {
@@ -261,7 +255,7 @@ module Paths {
     public async Task BlockBasedTests() {
       var source = @"
 module Paths {
-  method eightPaths (i:int) returns (divBy2:bool, divBy3:bool, divBy5:bool) {
+  method {:testEntry} eightPaths (i:int) returns (divBy2:bool, divBy3:bool, divBy5:bool) {
     if (i % 2 == 0) {
       divBy2 := true;
     } else {
@@ -310,7 +304,7 @@ module Objects {
       }
   }
   class List {
-    static method IsACircleOfLessThanThree(node: Node) returns (b: bool) {
+    static method {:testEntry} IsACircleOfLessThanThree(node: Node) returns (b: bool) {
         var curr:Node? := node.next;
         var counter:int := 1;
         while ((counter < 3) && (curr != null) && (curr != node))
@@ -326,8 +320,6 @@ module Objects {
 ".TrimStart();
       var options = Setup.GetDafnyOptions(output);
       var program = Utils.Parse(options, source, false);
-      options.TestGenOptions.TargetMethod =
-        "Objects.List.IsACircleOfLessThanThree";
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
       Assert.True(methods.Count >= 1);
       Assert.True(methods.All(m =>
@@ -385,7 +377,7 @@ module M {
             next := this;
         }
 
-        method getValue() returns (value:int) {
+        method {:testEntry} getValue() returns (value:int) {
             return this.value;
         }
     }
@@ -393,8 +385,6 @@ module M {
 ".TrimStart();
       var options = Setup.GetDafnyOptions(output);
       var program = Utils.Parse(options, source, false);
-      options.TestGenOptions.TargetMethod =
-        "M.LoopingList.getValue";
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
       Assert.Single(methods);
     }
@@ -405,7 +395,7 @@ module M {
 module DataTypes {
   datatype Node = Cons(next:Node) | Nil
   class List {
-    static method Depth(node: Node) returns (i:int) {
+    static method {:testEntry} Depth(node: Node) returns (i:int) {
       if (node.Nil?) {
         return 0;
       } else if (node.next.Nil?) {
@@ -419,8 +409,6 @@ module DataTypes {
 ".TrimStart();
       var options = Setup.GetDafnyOptions(output);
       var program = Utils.Parse(options, source, false);
-      options.TestGenOptions.TargetMethod =
-        "DataTypes.List.Depth";
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
       Assert.True(3 <= methods.Count);
       Assert.True(methods.All(m =>
@@ -450,15 +438,13 @@ module Module {
       this.v := v;
     }
   }
-  method ignoreNonNullableObject(v:Value<char>, b:bool) returns (b2:bool) {
+  method {:testEntry} ignoreNonNullableObject(v:Value<char>, b:bool) returns (b2:bool) {
     return b;
   }
 }
 ".TrimStart();
       var options = Setup.GetDafnyOptions(output);
       var program = Utils.Parse(options, source, false);
-      options.TestGenOptions.TargetMethod =
-        "Module.ignoreNonNullableObject";
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
       Assert.Single(methods);
       var m = methods[0];
@@ -473,7 +459,7 @@ module Module {
     public async Task DeadCode() {
       var source = @"
 module M {
-  method m(a:int) returns (b:int)
+  method {:testEntry} m(a:int) returns (b:int)
     requires a > 0
   {
     if (a == 0) {
@@ -494,7 +480,7 @@ module M {
     [Fact]
     public async Task NoDeadCode() {
       var source = @"
-method m(a:int) returns (b:int)
+method {:testEntry} m(a:int) returns (b:int)
 {
   if (a == 0) {
     return 0;
@@ -513,7 +499,7 @@ method m(a:int) returns (b:int)
     public async Task TypePolymorphism() {
       var source = @"
 module Test {
-  method IsEvenLength<K>(s: seq<K>) returns (isEven: bool)
+  method {:testEntry} IsEvenLength<K>(s: seq<K>) returns (isEven: bool)
   {
     if (|s| % 2 == 0) {
       return true;
@@ -525,7 +511,6 @@ module Test {
 ".TrimStart();
       var options = Setup.GetDafnyOptions(output);
       var program = Utils.Parse(options, source, false);
-      options.TestGenOptions.TargetMethod = "Test.IsEvenLength";
       options.TestGenOptions.SeqLengthLimit = 1;
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
       Assert.True(2 <= methods.Count);
@@ -546,14 +531,13 @@ module Math {
   function {:testInline 1} Max(a:int, b:int):int {
     if (a > b) then a else b
   }
-  function {:testInline 1} Min(a:int, b:int):int {
+  function {:testEntry} Min(a:int, b:int):int {
     -Max(-a, -b)
   }
 }
 ".TrimStart();
       var options = Setup.GetDafnyOptions(output);
       var program = Utils.Parse(options, source, false);
-      options.TestGenOptions.TargetMethod = "Math.Min";
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
       Assert.True(2 <= methods.Count);
       Assert.True(methods.All(m => m.MethodName == "Math.Min"));
@@ -569,7 +553,7 @@ module Math {
     public async Task FunctionMethodShortCircuit() {
       var source = @"
 module ShortCircuit {
-  function {:testInline 1} Or(a:bool):bool {
+  function {:testEntry} Or(a:bool):bool {
     a || OnlyFalse(a)
   }
   function {:testInline 1} OnlyFalse(a:bool):bool
@@ -581,7 +565,6 @@ module ShortCircuit {
 ".TrimStart();
       var options = Setup.GetDafnyOptions(output);
       var program = Utils.Parse(options, source, false);
-      options.TestGenOptions.TargetMethod = "ShortCircuit.Or";
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
       Assert.True(2 <= methods.Count);
       Assert.True(methods.All(m => m.MethodName == "ShortCircuit.Or"));
@@ -610,7 +593,7 @@ module M {
       s := new String(" + "\"example\"" + @", 7);
     }
   }
-  method {:testInline 1} ToTest(s:String?) returns (b:bool) { 
+  method {:testEntry} ToTest(s:String?) returns (b:bool) { 
     if s == null {
       return false;
     } 
@@ -620,7 +603,6 @@ module M {
 ".TrimStart();
       var options = Setup.GetDafnyOptions(output);
       var program = Utils.Parse(options, source, false);
-      options.TestGenOptions.TargetMethod = "M.ToTest";
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
       Assert.True(2 <= methods.Count);
       Assert.True(methods.All(m => m.MethodName == "M.ToTest"));
@@ -636,13 +618,13 @@ module M {
     public async Task MultipleModules() {
       var source = @"
 module A {
-  function {:testInline 1} m(i:int):int requires i == 0 { i }
+  function {:testEntry} m(i:int):int requires i == 0 { i }
 }
 module B {
-  function {:testInline 1} m(c:char):char requires c == '0' { c }
+  function {:testEntry} m(c:char):char requires c == '0' { c }
 }
 module C {
-  function {:testInline 1} m(r:real):real requires r == 0.0 { r }
+  function {:testEntry} m(r:real):real requires r == 0.0 { r }
 }
 ".TrimStart();
       var options = Setup.GetDafnyOptions(output);
@@ -675,7 +657,7 @@ module C {
 module M {
   class Instance {  
     var i:int;
-    method setI(i:int) 
+    method {:testEntry} setI(i:int) 
       requires i == 10
       ensures this.i == i 
       modifies this
@@ -705,7 +687,7 @@ module M {
       var source = @"
 module M {
 
-  function test(b: bool): bool {
+  function {:testEntry} test(b: bool): bool {
       assert true by {
         calc { true; }
       }

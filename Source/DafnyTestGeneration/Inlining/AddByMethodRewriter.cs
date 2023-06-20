@@ -56,7 +56,7 @@ public class AddByMethodRewriter : IRewriter {
     if (func.IsGhost || 
         func.Body == null || 
         func.ByMethodBody != null || 
-        !Utils.AttributeFinder.MembersHasAttribute(func, TestGenerationOptions.TestInlineAttribute)) {
+        (!Utils.AttributeFinder.MembersHasAttribute(func, TestGenerationOptions.TestInlineAttribute) && !Utils.AttributeFinder.MembersHasAttribute(func, TestGenerationOptions.TestEntryAttribute))) {
       return;
     }
 

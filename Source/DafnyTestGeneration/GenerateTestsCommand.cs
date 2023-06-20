@@ -105,9 +105,6 @@ path - Prints path-coverage tests for the given program.");
     DafnyOptions.RegisterLegacyBinding(SequenceLengthLimit, (options, value) => {
       options.TestGenOptions.SeqLengthLimit = value;
     });
-    DafnyOptions.RegisterLegacyBinding(Target, (options, value) => {
-      options.TestGenOptions.TargetMethod = value;
-    });
     DafnyOptions.RegisterLegacyBinding(PrintBpl, (options, value) => {
       options.TestGenOptions.PrintBpl = value;
     });

@@ -3,12 +3,14 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading;
 using DafnyServer.CounterexampleGeneration;
 using Microsoft.Boogie;
 using Microsoft.Dafny;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using Declaration = Microsoft.Boogie.Declaration;
 using Errors = Microsoft.Dafny.Errors;
 using Parser = Microsoft.Dafny.Parser;
 using Program = Microsoft.Dafny.Program;
@@ -136,13 +138,35 @@ namespace DafnyTestGeneration {
       return output.ToString();
     }
     
+    public static IList<object> GetAttributeValue(Implementation implementation, string attribute) {
+      var attributes = implementation.Attributes;
+      while (attributes != null) {
+        if (attributes.Key == attribute) {
+          return attributes.Params;
+        }
+        attributes = attributes.Next;
+      }
+      return new List<object>();
+    }
+
+    public static bool DeclarationHasAttribute(Declaration declaration, string attribute) {
+      var attributes = declaration.Attributes;
+      while (attributes != null) {
+        if (attributes.Key == attribute) {
+          return true;
+        }
+        attributes = attributes.Next;
+      }
+      return false;
+    }
+    
     public static void PrintCfg(DafnyOptions options,
       Microsoft.Boogie.Program program) {
       program = DeepCloneResolvedProgram(program, options);
+      // TODO: Check that this allows identifying the testEntry attribute
       var implementation = program.Implementations.First(
         implementation =>
-          implementation.VerboseName.Split(" ")[0] ==
-          options.TestGenOptions.TargetMethod &&
+          DeclarationHasAttribute(implementation, TestGenerationOptions.TestEntryAttribute) && 
           implementation.Name.StartsWith("Impl$$"));
       using var streamWriter = new StreamWriter(options.TestGenOptions.PrintCfg);
       var engine = ExecutionEngine.CreateWithoutSharedCache(options);
@@ -161,7 +185,7 @@ namespace DafnyTestGeneration {
                cmd.Attributes.Params != null &&
                cmd.Attributes.Params.Count() == 1)
         ?.Attributes.Params[0].ToString();
-      return state ?? block.Label;
+      return state == null ? block.Label : Regex.Replace(state, @"\s+", "");
     }
 
     /// <summary>

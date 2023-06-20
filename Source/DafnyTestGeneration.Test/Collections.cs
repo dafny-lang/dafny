@@ -18,7 +18,7 @@ namespace DafnyTestGeneration.Test {
     public async Task Tuples() {
       var source = @"
 module SimpleTest {
-  method tuple(tseq: seq<(int, (bool, char))>) returns (i:int) {
+  method {:testEntry} tuple(tseq: seq<(int, (bool, char))>) returns (i:int) {
     if (|tseq| == 0) {
         return 0;
     } else if (|tseq| > 0 && tseq[0].0 == 5) {
@@ -58,7 +58,7 @@ module SimpleTest {
     private async Task StringLength() {
       var source = @"
 module C {
-  method compareStringLengthToOne(s: string) returns (ret: int) {
+  method {:testEntry} compareStringLengthToOne(s: string) returns (ret: int) {
       if (|s| == 1) {
           return 0;
       } else if (|s| > 1) {
@@ -96,7 +96,7 @@ module SimpleTest {
      var value:char;
   }
 
-  method compareStringToSeqOfChars(s: string, c:seq<CharObject>)
+  method {:testEntry} compareStringToSeqOfChars(s: string, c:seq<CharObject>)
       returns (ret: bool)
   {
       if ((|s| != |c|) || (|s| < 2)) {

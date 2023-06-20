@@ -25,7 +25,7 @@ namespace DafnyTestGeneration {
       VisitProgram(p); // populates paths
       foreach (var path in paths) {
         path.AssertPath();
-        var name = TargetImplementationVerboseName ?? path.Impl.VerboseName;
+        var name = path.Impl.VerboseName;
         yield return modifications.GetProgramModification(p, path.Impl, new HashSet<string>(), name,
           $"{name.Split(" ")[0]}" + path.name);
         path.NoAssertPath();

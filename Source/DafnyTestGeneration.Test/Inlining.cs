@@ -40,7 +40,7 @@ public class Inlining {
   [Fact]
   public async Task FunctionToFunctionByMethod() {
     var source = @"
-function {:testInline 1} Identity(i:int):int {
+function {:testEntry} Identity(i:int):int {
   i
 }
 ".TrimStart();
@@ -51,7 +51,7 @@ function {:testInline 1} Identity(i:int):int {
   [Fact]
   public async Task RemoveShortCircuitingAnd() {
     var source = @"
-predicate {:testInline 1} And(a:bool, b:bool) {
+predicate {:testEntry} And(a:bool, b:bool) {
   a && b
 }
 ".TrimStart();
@@ -63,7 +63,7 @@ predicate {:testInline 1} And(a:bool, b:bool) {
   [Fact]
   public async Task RemoveShortCircuitingOr() {
     var source = @"
-predicate {:testInline 1} And(a:bool, b:bool) {
+predicate {:testEntry} And(a:bool, b:bool) {
   a || b
 }
 ".TrimStart();
@@ -75,7 +75,7 @@ predicate {:testInline 1} And(a:bool, b:bool) {
   [Fact]
   public async Task RemoveShortCircuitingImp() {
     var source = @"
-predicate {:testInline 1} And(a:bool, b:bool) {
+predicate {:testEntry} And(a:bool, b:bool) {
   a ==> b
 }
 ".TrimStart();
@@ -88,7 +88,7 @@ predicate {:testInline 1} And(a:bool, b:bool) {
   [Fact]
   public async Task RemoveShortCircuitingExp() {
     var source = @"
-predicate {:testInline 1} And(a:bool, b:bool) {
+predicate {:testEntry} And(a:bool, b:bool) {
   a <== b
 }
 ".TrimStart();
@@ -100,7 +100,7 @@ predicate {:testInline 1} And(a:bool, b:bool) {
   [Fact]
   public async Task RemoveShortCircuitingIfThenElse() {
     var source = @"
-function {:testInline 1} And(a:bool):int {
+function {:testEntry} And(a:bool):int {
   if a then 1 else 2
 }
 ".TrimStart();
@@ -112,7 +112,7 @@ function {:testInline 1} And(a:bool):int {
   [Fact]
   public async Task RemoveLet() {
     var source = @"
-function {:testInline 1} And(a:bool):int {
+function {:testEntry} And(a:bool):int {
   var a:int := 7; a
 }
 ".TrimStart();
@@ -124,7 +124,7 @@ function {:testInline 1} And(a:bool):int {
   [Fact]
   public async Task RemoveNestedLet() {
     var source = @"
-function {:testInline 1} And(a:bool):int {
+function {:testEntry} And(a:bool):int {
   var a:real := 7.5; var a:int := 4; a
 }
 ".TrimStart();
@@ -137,7 +137,7 @@ function {:testInline 1} And(a:bool):int {
   [Fact]
   public async Task RemoveIfInsideLet() {
     var source = @"
-function {:testInline 1} And(a:bool):int {
+function {:testEntry} And(a:bool):int {
   var a := false; if a then 5 else 7
 }
 ".TrimStart();
@@ -150,7 +150,7 @@ function {:testInline 1} And(a:bool):int {
   [Fact]
   public async Task RemoveShortCircuitInElseBranch() {
     var source = @"
-function {:testInline 1} And(a:bool, b:bool):int {
+function {:testEntry} And(a:bool, b:bool):int {
   if a then 5 else if b then 3 else 1
 }
 ".TrimStart();
@@ -163,7 +163,7 @@ function {:testInline 1} And(a:bool, b:bool):int {
   [Fact]
   public async Task RemoveStmtExpression() {
     var source = @"
-function {:testInline 1} And(a:int):int {
+function {:testEntry} And(a:int):int {
   if (var a := true; a) then 5 else 3
 }
 ".TrimStart();
@@ -177,7 +177,7 @@ function {:testInline 1} And(a:int):int {
   public async Task RemoveSimpleMatch() {
     var source = @"
 datatype Option = None | Some
-function {:testInline 1} IsNone(o: Option): bool {
+function {:testEntry} IsNone(o: Option): bool {
   match o
     case None => true
     case Some => false
@@ -191,7 +191,7 @@ function {:testInline 1} IsNone(o: Option): bool {
   public async Task RemoveMatchWithDestructors() {
     var source = @"
 datatype Option = None | Some(val:int)
-function {:testInline 1} UnBoxOrZero(o: Option): int {
+function {:testEntry} UnBoxOrZero(o: Option): int {
   match o
     case None => 0
     case Some(r) => r
@@ -204,7 +204,7 @@ function {:testInline 1} UnBoxOrZero(o: Option): int {
   [Fact]
   public async Task LiftFunctionCall() {
     var source = @"
-function {:testInline 1} Max(a:int, b:int):int {
+function {:testEntry} Max(a:int, b:int):int {
   -Min(-a, -b)
 }
 function Min(a:int, b:int):int { if a < b then a else b }
@@ -216,7 +216,7 @@ function Min(a:int, b:int):int { if a < b then a else b }
   [Fact]
   public async Task LiftNestedFunctionCall() {
     var source = @"
-function {:testInline 1} Max(a:int, b:int):int {
+function {:testEntry} Max(a:int, b:int):int {
   Negate(Min(Negate(a), Negate(b)))
 }
 function Negate(a:int):int   { -a }
@@ -232,7 +232,7 @@ function Min(a:int, b:int):int { if a < b then a else b }
   [Fact]
   public async Task LiftFunctionCallWithShortCircuitingArgs() {
     var source = @"
-function {:testInline 1} Max(a:bool, b:bool):bool {
+function {:testEntry} Max(a:bool, b:bool):bool {
   IsTrue(a || b)
 }
 function IsTrue(a:bool):bool { a }
@@ -245,7 +245,7 @@ function IsTrue(a:bool):bool { a }
   [Fact]
   public async Task ProcessWhileStmt() {
     var source = @"
-method {:testInline 1} Sum(n:int) returns (s:int)
+method {:testEntry} Sum(n:int) returns (s:int)
   requires n >= 0
 {
   var i := 0;
@@ -262,19 +262,5 @@ method {:testInline 1} Sum(n:int) returns (s:int)
     var tmpVar = RemoveShortCircuitingCloner.TmpVarName + 0;
     await ShortCircuitRemovalTest(source, $"{{ var i := 0; s := 0; var {tmpVar}; {{var n:= n; {tmpVar} := i <= n;}} while {tmpVar} decreases n-i {{s := s+i; i:= i+1; {{var n:= n; {tmpVar} := i <= n;}}}} return s;}}", false);
   }
-  
-  /*[Fact]
-  public async Task AddEnsuresClause() {
-    var source = @"
-function Identity(i:int):int {
-  i
-}
-".TrimStart();
-    var options = Setup.GetDafnyOptions(output);
-    var program = Utils.Parse(options, source, false);
-    Preprocessor.PreprocessDafny(program, options);
-    var function = program.DefaultModuleDef.Children.OfType<DefaultClassDecl>().First()?.Children.OfType<Function>().First();
-    function.Ens.
-  }*/
 
 }

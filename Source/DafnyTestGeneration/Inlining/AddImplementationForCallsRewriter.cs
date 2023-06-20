@@ -18,7 +18,9 @@ namespace DafnyTestGeneration.Inlining;
 /// inlining of Dafny methods further down the road.
 /// </summary>
 public class AddImplementationsForCallsRewriter : ReadOnlyVisitor {
-  private DafnyOptions options;
+  
+  private const string CallPrefix = "Call$$";
+  private readonly DafnyOptions options;
   private List<Implementation> implsToAdd = new();
 
   private Program /*?*/ program;
@@ -28,7 +30,7 @@ public class AddImplementationsForCallsRewriter : ReadOnlyVisitor {
   }
 
   public override Procedure /*?*/ VisitProcedure(Procedure /*?*/ node) {
-    if (node == null || !node.Name.StartsWith(ProgramModifier.CallPrefix) ||
+    if (node == null || !node.Name.StartsWith(CallPrefix) ||
         node.Name.EndsWith(ProgramModifier.CtorPostfix)) {
       return node;
     }
@@ -47,7 +49,7 @@ public class AddImplementationsForCallsRewriter : ReadOnlyVisitor {
       .Where(p1 => !node.OutParams
         .Exists(p2 => p2.Name == p1.Name)).ToList()
       .ConvertAll(p1 =>
-        (Variable)new LocalVariable(new Token(), p1.TypedIdent)).ToList();
+        (Variable)new LocalVariable(new Token(), (TypedIdent) p1.TypedIdent.Clone())).ToList();
     // you cannot directly reuse node.InParams and node.OutParams
     // because they might contain where clauses which have to be removed
     var inParams = node.InParams.ConvertAll(v =>
@@ -70,11 +72,9 @@ public class AddImplementationsForCallsRewriter : ReadOnlyVisitor {
     var block = new Block(new Token(), "anon_0", new List<Cmd> { cmd },
       new ReturnCmd(new Token()));
     // construct the new implementation:
-    var verboseNameAttr = new QKeyValue(new Token(), "verboseName",
-      new List<object> { node.VerboseName }, null);
     var callerImpl = new Implementation(new Token(), callerName,
       node.TypeParameters, inParams, outParams, vars,
-      new List<Block> { block }, verboseNameAttr);
+      new List<Block> { block }, node.Attributes);
     callerImpl.Proc = node;
     implsToAdd.Add(callerImpl);
     return node;

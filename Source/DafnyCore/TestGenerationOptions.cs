@@ -7,10 +7,10 @@ namespace Microsoft.Dafny {
   public class TestGenerationOptions {
 
     public static readonly string TestInlineAttribute = "testInline";
+    public static readonly string TestEntryAttribute = "testEntry";
     public bool WarnDeadCode = false;
     public enum Modes { None, Block, Path };
     public Modes Mode = Modes.None;
-    [CanBeNull] public string TargetMethod = null;
     public uint SeqLengthLimit = 0;
     [CanBeNull] public string PrintBpl = null;
     [CanBeNull] public string PrintCfg = null;
@@ -43,12 +43,6 @@ namespace Microsoft.Dafny {
           var limit = 0;
           if (ps.GetIntArgument(ref limit)) {
             SeqLengthLimit = (uint)limit;
-          }
-          return true;
-
-        case "generateTestTargetMethod":
-          if (ps.ConfirmArgumentCount(1)) {
-            TargetMethod = args[ps.i];
           }
           return true;
 
@@ -85,8 +79,6 @@ namespace Microsoft.Dafny {
 /generateTestSeqLengthLimit:<n>
     Add an axiom that sets the length of all sequences to be no greater 
     than <n>. 0 (default) indicates no limit.
-/generateTestTargetMethod:<methodName>
-    If specified, only this method will be tested.
 /generateTestPrintCfg:<fileName>
     Print the control flow graph of the Boogie procedure corresponding to the
     target method that is used for test generation.

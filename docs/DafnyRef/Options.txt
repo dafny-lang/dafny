@@ -336,8 +336,6 @@ Usage: dafny [ option ... ] [ filename ... ]
   /generateTestSeqLengthLimit:<n>
       Add an axiom that sets the length of all sequences to be no greater 
       than <n>. 0 (default) indicates no limit.
-  /generateTestTargetMethod:<methodName>
-      If specified, only this method will be tested.
   /generateTestPrintBpl:<fileName>
       Print the Boogie code used during test generation.
   /generateTestNoPrune

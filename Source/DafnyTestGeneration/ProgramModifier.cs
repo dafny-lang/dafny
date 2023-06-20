@@ -1,9 +1,7 @@
 ﻿#nullable disable
-using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using Microsoft.BaseTypes;
 using Microsoft.Boogie;
 using Microsoft.Dafny;
 using Token = Microsoft.Dafny.Token;
@@ -23,14 +21,7 @@ namespace DafnyTestGeneration {
   /// </summary>
   public abstract class ProgramModifier {
     internal static readonly string ImplPrefix = "Impl$$";
-    internal static readonly string WellFormedPrefix = "CheckWellformed$$";
-    internal static readonly string CallPrefix = "Call$$";
     internal static readonly string CtorPostfix = "__ctor";
-    internal static readonly string ResultVar = "#result#0";
-    // The implementation to test.
-    protected string TargetImplementationVerboseName = null;
-    // Boogie names of implementations to be tested or inlined
-    private Dictionary<string, uint> timesToInline = new();
     protected DafnyInfo DafnyInfo;
 
     /// <summary>
@@ -42,30 +33,21 @@ namespace DafnyTestGeneration {
       DafnyInfo = dafnyInfo;
       var options = dafnyInfo.Options;
       program = new RemoveChecks(options).VisitProgram(program);
-      string targetImplementationName = null;
-      if (options.TestGenOptions.TargetMethod != null) {
-        // cannot use the implementation object directly because it changes
-        // after various transformations are applied
-        var targetImplementation = program.Implementations.FirstOrDefault(i =>
-          i.Name.StartsWith(ImplPrefix)
-          && i.VerboseName.Split(" ")[0]
-          == options.TestGenOptions.TargetMethod);
-        targetImplementationName = targetImplementation?.Name;
-        TargetImplementationVerboseName = targetImplementation?.VerboseName;
-      }
-      var callGraphVisitor = new CallGraph(dafnyInfo, program);
-      timesToInline = callGraphVisitor.GetCallees(targetImplementationName);
       var engine = ExecutionEngine.CreateWithoutSharedCache(options);
       engine.CoalesceBlocks(program); // removes redundant basic blocks
-      var annotator = new AnnotationVisitor(this, options);
-      program = annotator.VisitProgram(program);
+      program = new AnnotationVisitor(this, options).VisitProgram(program);
       AddAxioms(options, program);
+      program.Resolve(options);
+      program.Typecheck(options);
+      engine.EliminateDeadVariables(program);
+      engine.CollectModSets(program);
+      engine.Inline(program);
+      program.RemoveTopLevelDeclarations(declaration => declaration is Implementation or Procedure && Utils.DeclarationHasAttribute(declaration, "inline"));
       if (options.TestGenOptions.PrintBpl != null) {
         File.WriteAllText(options.TestGenOptions.PrintBpl,
           Utils.GetStringRepresentation(options, program));
       }
-      if (options.TestGenOptions.PrintCfg != null &&
-          options.TestGenOptions.TargetMethod != null) {
+      if (options.TestGenOptions.PrintCfg != null) {
         Utils.PrintCfg(options, program);
       }
       return GetModifications(program);
@@ -74,8 +56,7 @@ namespace DafnyTestGeneration {
     protected abstract IEnumerable<ProgramModification> GetModifications(Program p);
 
     protected bool ImplementationIsToBeTested(Implementation impl) =>
-      (TargetImplementationVerboseName == null ||
-       timesToInline.GetValueOrDefault<string, uint>(impl.Name, 0) > 0) &&
+      (Utils.DeclarationHasAttribute(impl, TestGenerationOptions.TestEntryAttribute)) &&
       impl.Name.StartsWith(ImplPrefix) && !impl.Name.EndsWith(CtorPostfix) &&
       !DafnyInfo.IsGhost(impl.VerboseName.Split(" ").First());
 
@@ -135,157 +116,6 @@ namespace DafnyTestGeneration {
     }
 
     /// <summary>
-    /// A call graph object to determine which procedures to inline
-    /// </summary>
-    private class CallGraph : ReadOnlyVisitor {
-
-      // maps name of an implementation to those implementations that it calls
-      private readonly Dictionary<string, Dictionary<string, int>> calls = new();
-      private readonly Dictionary<string, string> toVerbose = new();
-      private string/*?*/ implementation; // implementation currently traversed
-      private readonly DafnyInfo info;
-      private readonly Dictionary<string, uint> timesToInline = new();
-      private bool insideAssignCommand = false;
-      private HashSet<string> procedureNames = new();
-
-      public CallGraph(DafnyInfo info, Program program) {
-        this.info = info;
-        procedureNames = new();
-        program.Procedures.Iter(p => procedureNames.Add(p.Name));
-        VisitProgram(program);
-      }
-
-      public override Implementation VisitImplementation(Implementation node) {
-        implementation = node.Name;
-        toVerbose[implementation] = node.VerboseName;
-        if (implementation.StartsWith(WellFormedPrefix)) {
-          implementation = null;
-          return node;
-        }
-        timesToInline[implementation] = info.TimesToInline(node.VerboseName.Split(" ").First());
-        if (!calls.ContainsKey(implementation)) {
-          calls[implementation] = new();
-        }
-        node.Blocks.ForEach(block => VisitBlock(block));
-        implementation = null;
-        return node;
-      }
-
-      public override Cmd VisitCallCmd(CallCmd node) {
-        if (implementation != null) {
-          if (!calls[implementation].ContainsKey(node.callee)) {
-            calls[implementation][node.callee] = 0;
-          }
-          calls[implementation][node.callee] += 1;
-        }
-        return node;
-      }
-
-      public override Procedure VisitProcedure(Procedure node) {
-        toVerbose[node.Name] = node.VerboseName;
-        return base.VisitProcedure(node);
-      }
-
-      public sealed override Program VisitProgram(Program node) {
-        node = base.VisitProgram(node);
-        return node;
-      }
-
-      /// <summary>
-      /// For each callee implementation, return the number of times it has
-      /// to be inlined 
-      /// </summary>
-      public Dictionary<string, uint> GetCallees(string/*?*/ caller) {
-        var result = new Dictionary<string, uint>();
-        if (caller == null) {
-          return result;
-        }
-        // PrintCallGraph(caller);
-        GetCalleesRecursively(caller, result);
-        if (result.GetValueOrDefault<string, uint>(caller, 0) == 0) {
-          result[caller] = 1; // "inline" the method actually being tested
-        }
-        return result;
-      }
-      
-      private void GetCalleesRecursively(string caller, Dictionary<string, uint> recorded) {
-        foreach (var callee in calls.GetValueOrDefault(caller,
-                   new Dictionary<string, int>()).Keys) {
-          if (recorded.ContainsKey(callee)) {
-            continue;
-          }
-          uint toInline = timesToInline.GetValueOrDefault<string, uint>(callee, 0);
-          if (toInline == 0) {
-            continue;
-          }
-          recorded[callee] = toInline;
-          if (info.Options.Verbose) {
-            Console.Out.WriteLine($"// Will inline calls to {callee} with recursion unrolling depth set to {toInline}.");
-          }
-          GetCalleesRecursively(callee, recorded);
-        }
-      }
-
-      private void PrintCallGraph(string caller) {
-        if (caller == null) {
-          return;
-        }
-        string FILENAME = "simple.dot";
-        HashSet<string> nodes = new HashSet<string>();
-        var edges = new List<(string, string, int)>();
-        List<string> toVisit = new List<string>() { caller };
-        while (toVisit.Count > 0) {
-          string next = toVisit.First();
-          toVisit.RemoveAt(0);
-          if (nodes.Contains(next)) {
-            continue;
-          }
-          nodes.Add(next);
-          foreach (var callee in calls.GetValueOrDefault(next, new Dictionary<string, int>())) {
-            edges.Add(new(next, callee.Key, callee.Value));
-            toVisit.Add(callee.Key);
-          }
-        }
-
-        var pathsToNode = new Dictionary<string, int>();
-        var nodeToProcess = nodes.FirstOrDefault(
-          node => edges.Where(edge => edge.Item2 == node).All(edge => pathsToNode.ContainsKey(edge.Item1)), null);
-        while (nodeToProcess != null) {
-          if (edges.All(edge => edge.Item2 != nodeToProcess)) {
-            pathsToNode[nodeToProcess] = 1;
-          } else {
-            pathsToNode[nodeToProcess] = edges.Where(edge => edge.Item2 == nodeToProcess)
-              .Select(edge => edge.Item3 * pathsToNode[edge.Item1]).Sum();
-          }
-          nodeToProcess = nodes.Where(node => !pathsToNode.ContainsKey(node)).FirstOrDefault(
-            node => edges.Where(edge => edge.Item2 == node).All(edge => pathsToNode.ContainsKey(edge.Item1)), null);
-        }
-        using (StreamWriter writer = new StreamWriter(FILENAME))
-        {
-          writer.WriteLine("digraph G {");
-          nodes = nodes.Select(node => nodeName(node, pathsToNode)).ToHashSet();
-          foreach (var node in nodes) {
-            writer.WriteLine("\"" + node + "\";");
-          }
-          foreach (var edge in edges) {
-            if (edge.Item1.StartsWith(ImplPrefix)) {
-              writer.WriteLine("\"" + nodeName(edge.Item1, pathsToNode) + "\" -> \"" +
-                               nodeName(edge.Item2, pathsToNode) + "\" [label=\"" + edge.Item3 + "\" decorate=true];");
-            }
-          }
-          writer.WriteLine("}");
-        }
-      }
-
-      private string nodeName(string node, Dictionary<string, int> pathsToNode) {
-        if (!pathsToNode.ContainsKey(node)) {
-         return toVerbose[node].Split(" ").First() + " [recurse]";
-        }
-        return toVerbose[node].Split(" ").First() + " [" + pathsToNode[node] + "]";
-      }
-    }
-
-    /// <summary>
     /// Annotate the AST with "assume true" print statements inserted at:
     /// (1)     the beginning of each implementation, to get the parameter types
     ///         and values leading to assertion or post-condition violation.
@@ -325,25 +155,19 @@ namespace DafnyTestGeneration {
         // record parameter values:
         data = new List<object> { "Impl", node.VerboseName.Split(" ")[0] };
         data.AddRange(node.InParams.Select(var => new IdentifierExpr(new Token(), var)));
-
-        var toTest = options.TestGenOptions.TargetMethod;
-        if (toTest == null) {
-          // All methods are tested/modified
-          node.Blocks[0].cmds.Insert(0, GetAssumePrintCmd(data));
-        } else if (node.VerboseName != null &&
-                   node.VerboseName == modifier.TargetImplementationVerboseName) {
-          // This method is tested/modified
-          node.Blocks[0].cmds.Insert(0, GetAssumePrintCmd(data));
-        } else if (modifier.timesToInline.TryGetValue(node.Name, out var value)) {
+        node.Blocks[0].cmds.Insert(0, GetAssumePrintCmd(data));
+        if (Utils.DeclarationHasAttribute(node, TestGenerationOptions.TestInlineAttribute)) {
           // This method is inlined (and hence tested)
-          var depthExpression =
-            new LiteralExpr(new Token(), BigNum.FromUInt(value));
+          // TODO: Should you test that the argument exists and is an integer?
+          var depthExpression = Utils.GetAttributeValue(node, TestGenerationOptions.TestInlineAttribute).First();
           var attribute = new QKeyValue(new Token(), "inline",
             new List<object>() { depthExpression }, null);
           attribute.Next = node.Attributes;
           node.Attributes = attribute;
+          VisitBlockList(node.Blocks);
+        } else if (Utils.DeclarationHasAttribute(node, TestGenerationOptions.TestEntryAttribute)) {
+          VisitBlockList(node.Blocks);
         }
-        VisitBlockList(node.Blocks);
         return node;
       }
 

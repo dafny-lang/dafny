@@ -11,7 +11,7 @@ namespace DafnyTestGeneration {
 
   public static class Main {
 
-    public static bool setNonZeroExitCode = false;
+    public static bool SetNonZeroExitCode = false;
 
     /// <summary>
     /// This method returns each capturedState that is unreachable, one by one,
@@ -72,22 +72,15 @@ namespace DafnyTestGeneration {
       var options = program.Options;
       var boogieProgram = Inlining.InliningTranslator.TranslateAndInline(program, options);
       var dafnyInfo = new DafnyInfo(program);
-      setNonZeroExitCode = dafnyInfo.SetNonZeroExitCode || setNonZeroExitCode;
-      if (options.TestGenOptions.TargetMethod != null) {
-        var targetFound = boogieProgram.Implementations.Any(i =>
-            i.Name.StartsWith("Impl$$") &&
-            i.VerboseName.Split(" ")[0]
-            == options.TestGenOptions.TargetMethod);
-        if (!targetFound) {
-          options.Printer.ErrorWriteLine(options.ErrorWriter,
-            "Error: Cannot find method " +
-            options.TestGenOptions.TargetMethod +
-            " (is this name fully-qualified?)");
-          setNonZeroExitCode = true;
-          return new List<ProgramModification>();
-        }
+      SetNonZeroExitCode = dafnyInfo.SetNonZeroExitCode || SetNonZeroExitCode;
+      if (!Utils.AttributeFinder.ProgramHasAttribute(program,
+            TestGenerationOptions.TestEntryAttribute)) {
+        options.Printer.ErrorWriteLine(options.ErrorWriter,
+          $"Error: Found no methods or functions annotated with {TestGenerationOptions.TestEntryAttribute}. " +
+          $"Please annotate all entry points for testing with this attribute.");
+        SetNonZeroExitCode = true;
+        return new List<ProgramModification>();
       }
-
       // Create modifications of the program with assertions for each block\path
       ProgramModifier programModifier =
         options.TestGenOptions.Mode == TestGenerationOptions.Modes.Path
@@ -108,8 +101,8 @@ namespace DafnyTestGeneration {
 
       cache ??= new Modifications(options);
       var programModifications = GetModifications(cache, program).ToList();
-      var dafnyInfo = new DafnyInfo(program);
-      setNonZeroExitCode = dafnyInfo.SetNonZeroExitCode || setNonZeroExitCode;
+      var dafnyInfo = new DafnyInfo(program, true);
+      SetNonZeroExitCode = dafnyInfo.SetNonZeroExitCode || SetNonZeroExitCode;
       foreach (var modification in programModifications) {
 
         var log = await modification.GetCounterExampleLog(cache);
@@ -122,7 +115,7 @@ namespace DafnyTestGeneration {
         }
         yield return testMethod;
       }
-      setNonZeroExitCode = dafnyInfo.SetNonZeroExitCode || setNonZeroExitCode;
+      SetNonZeroExitCode = dafnyInfo.SetNonZeroExitCode || SetNonZeroExitCode;
     }
 
     /// <summary>
@@ -141,9 +134,10 @@ namespace DafnyTestGeneration {
             TestGenerationOptions.TestInlineAttribute)) {
         options.VerifyAllModules = true;
       }
-      var dafnyInfo = new DafnyInfo(program);
+      // Suppressing error messages here because dafnyInfo is going to be initialized one more time later on
+      var dafnyInfo = new DafnyInfo(program, true);
       program = Utils.Parse(options, source, false, uri);
-      setNonZeroExitCode = dafnyInfo.SetNonZeroExitCode || setNonZeroExitCode;
+      SetNonZeroExitCode = dafnyInfo.SetNonZeroExitCode || SetNonZeroExitCode;
       var rawName = Regex.Replace(sourceFile, "[^a-zA-Z0-9_]", "");
 
       string EscapeDafnyStringLiteral(string str) {
@@ -194,7 +188,7 @@ namespace DafnyTestGeneration {
         options.Printer.ErrorWriteLine(options.ErrorWriter,
           "Error: No tests were generated, because no code points could be " +
           "proven reachable (do you have a false assumption in the program?)");
-        setNonZeroExitCode = true;
+        SetNonZeroExitCode = true;
       }
     }
   }

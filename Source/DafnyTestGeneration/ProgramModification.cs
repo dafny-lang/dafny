@@ -31,25 +31,21 @@ namespace DafnyTestGeneration {
     public IEnumerable<ProgramModification> Values => idToModification.Values;
 
     public int NumberOfBlocksCovered(Implementation implementation, bool onlyIfTestsExists = false) {
-      return NumberOfBlocksCovered(implementation, implementation.Blocks
+      return NumberOfBlocksCovered(implementation.Blocks
         .Where(block => Utils.GetBlockId(block) != block.Label)
         .Select(Utils.GetBlockId).ToHashSet(), onlyIfTestsExists);
     }
 
-    public int NumberOfBlocksCovered(Implementation implementation, HashSet<string> blockIds, bool onlyIfTestsExists = false) {
-      var relevantModifications = ModificationsForImplementation(implementation).Where(modification =>
+    public int NumberOfBlocksCovered(HashSet<string> blockIds, bool onlyIfTestsExists = false) {
+      var relevantModifications = Values.Where(modification =>
         modification.counterexampleStatus == ProgramModification.Status.Success && (!onlyIfTestsExists || (modification.testMethod != null && modification.testMethod.IsValid)));
       return blockIds.Count(blockId =>
         relevantModifications.Any(mod => mod.CapturedStates.Contains(blockId)));
     }
 
-    public IEnumerable<ProgramModification> ModificationsForImplementation(Implementation implementation) =>
-      Values.Where(modification =>
-        modification.implementation == implementation ||
-        options.TestGenOptions.TargetMethod != null);
-
     internal int ModificationsWithStatus(Implementation implementation, ProgramModification.Status status) =>
-      ModificationsForImplementation(implementation)
+      Values.Where(modification =>
+          modification.implementation == implementation)
         .Count(mod => mod.counterexampleStatus == status);
   }
 
@@ -135,9 +131,6 @@ namespace DafnyTestGeneration {
       var guid = Guid.NewGuid().ToString();
       program.Resolve(options);
       program.Typecheck(options);
-      engine.EliminateDeadVariables(program);
-      engine.CollectModSets(program);
-      engine.Inline(program);
       var writer = new StringWriter();
       var result = await Task.WhenAny(engine.InferAndVerify(writer, program,
             new PipelineStatistics(), null,
@@ -210,7 +203,7 @@ namespace DafnyTestGeneration {
       if (!testMethod.IsValid || !returnNullIfNotUnique) {
         return testMethod;
       }
-      var duplicate = cache.ModificationsForImplementation(implementation)
+      var duplicate = cache.Values
         .Where(mod => mod != this && Equals(mod.testMethod, testMethod))
         .FirstOrDefault((ProgramModification)null);
       if (duplicate == null) {
@@ -228,7 +221,7 @@ namespace DafnyTestGeneration {
       return null;
     }
     
-    public bool IsCovered(Modifications cache) => cache.NumberOfBlocksCovered(implementation, CapturedStates) == CapturedStates.Count;
+    public bool IsCovered(Modifications cache) => cache.NumberOfBlocksCovered(CapturedStates) == CapturedStates.Count;
     
   }
 }

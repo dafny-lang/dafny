@@ -9,6 +9,7 @@ using IdentifierExpr = Microsoft.Dafny.IdentifierExpr;
 using LetExpr = Microsoft.Dafny.LetExpr;
 using LocalVariable = Microsoft.Dafny.LocalVariable;
 using Program = Microsoft.Dafny.Program;
+using Token = Microsoft.Dafny.Token;
 using Type = Microsoft.Dafny.Type;
 
 namespace DafnyTestGeneration.Inlining;
@@ -250,7 +251,6 @@ public class RemoveShortCircuitingCloner : Cloner {
     }
 
     var resultTmp = RemoveShortCircuit(result.expr, insideUpdateStatement);
-    List<Statement> processed;
     if (resultTmp.stmts.Count != 0)  {
       result.stmts.AddRange(resultTmp.stmts);
     }
@@ -276,6 +276,8 @@ public class RemoveShortCircuitingCloner : Cloner {
 
   private Expression CreateIf(string tmpVarName, Type typ, Expression initialExpr, Expression testExpr,
     Expression thenExpr, Expression elseExpr, Expression original) {
+    var thenToken = thenExpr.StartToken.WithVal("#thenBranch");
+    var elseToken = elseExpr.StartToken.WithVal("#elseBranch");
     var identifierExpr = new IdentifierExpr(original.StartToken, tmpVarName);
     typ ??= new InferredTypeProxy();
     var varDecl = new VarDeclStmt(
@@ -288,16 +290,15 @@ public class RemoveShortCircuitingCloner : Cloner {
       newStmts.Add(updateStmt);
     }
     var thenStmt = new UpdateStmt(
-      new RangeToken(thenExpr.StartToken, thenExpr.StartToken),
+      new RangeToken(thenToken, thenToken),
       new List<Expression>() { identifierExpr },
       new List<AssignmentRhs>() { new ExprRhs(thenExpr) });
     var elseStmt = elseExpr != null
-      ? new UpdateStmt(new RangeToken(elseExpr.StartToken, elseExpr.StartToken), new List<Expression>() { identifierExpr },
+      ? new UpdateStmt(new RangeToken(elseToken, elseToken), new List<Expression>() { identifierExpr },
         new List<AssignmentRhs>() { new ExprRhs(elseExpr) })
-      : null; /*new UpdateStmt(new RangeToken(original.EndToken, original.EndToken), new List<Expression>() { identifierExpr },
-        new List<AssignmentRhs>() { new ExprRhs(identifierExpr) }); // so that else branch gets its own test*/
-    var ifStmt = new IfStmt(original.RangeToken, false, testExpr,
-      new BlockStmt(thenExpr.RangeToken, new List<Statement>() { thenStmt }), elseStmt);
+      : null; 
+    var ifStmt = new IfStmt(new RangeToken(original.StartToken, original.StartToken), false, testExpr,
+      new BlockStmt(thenStmt.RangeToken, new List<Statement>() { thenStmt }), elseStmt);
     newStmts.Add(ifStmt);
     return identifierExpr;
   }
