@@ -78,6 +78,7 @@ public class AllOpaqueRevealStmtInserter : IRewriter {
 
     var revealStmt = new RevealStmt(callable.RangeToken, expressionList);
     revealStmt.ResolvedStatements.Add(call);
+    revealStmt.IsGhost = true;
 
     return revealStmt;
   }
