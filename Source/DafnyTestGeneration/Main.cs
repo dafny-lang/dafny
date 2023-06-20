@@ -173,7 +173,7 @@ namespace DafnyTestGeneration {
           ProgramModification.Status.Failure);
         int queries = failedQueries + cache.ModificationsWithStatus(implementation,
           ProgramModification.Status.Success);
-        int blocks = implementation.Blocks.Count(block => Utils.GetBlockId(block) != block.Label);
+        int blocks = implementation.Blocks.Where(block => Utils.GetBlockId(block) != block.Label).ToHashSet().Count;
         int coveredByCounterexamples = cache.NumberOfBlocksCovered(implementation);
         int coveredByTests = cache.NumberOfBlocksCovered(implementation, onlyIfTestsExists: true);
         yield return $"// Out of {blocks} locations in the " +

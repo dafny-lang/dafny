@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading;
 using DafnyServer.CounterexampleGeneration;
 using Microsoft.Boogie;
@@ -161,7 +162,7 @@ namespace DafnyTestGeneration {
                cmd.Attributes.Params != null &&
                cmd.Attributes.Params.Count() == 1)
         ?.Attributes.Params[0].ToString();
-      return state ?? block.Label;
+      return state != null ? Regex.Replace(state, @"\s+", "") : block.Label;
     }
 
     /// <summary>
