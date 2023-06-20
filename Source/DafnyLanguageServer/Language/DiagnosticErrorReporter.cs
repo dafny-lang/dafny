@@ -16,7 +16,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     private const string RelatedLocationMessage = RelatedLocationCategory;
 
     private readonly DocumentUri entryDocumentUri;
-    private readonly Dictionary<DocumentUri, IList<DafnyDiagnostic>> diagnostics = new();
+    private readonly Dictionary<DocumentUri, List<DafnyDiagnostic>> diagnostics = new();
     private readonly Dictionary<ErrorLevel, int> counts = new();
     private readonly Dictionary<ErrorLevel, int> countsNotVerificationOrCompiler = new();
     private readonly ReaderWriterLockSlim rwLock = new();
@@ -33,7 +33,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       this.entryDocumentUri = entryDocumentUri;
     }
 
-    public IReadOnlyDictionary<DocumentUri, IList<DafnyDiagnostic>> AllDiagnosticsCopy => diagnostics.ToImmutableDictionary();
+    public IReadOnlyDictionary<DocumentUri, List<DafnyDiagnostic>> AllDiagnosticsCopy => diagnostics.ToImmutableDictionary();
 
     public IReadOnlyList<DafnyDiagnostic> GetDiagnostics(DocumentUri documentUri) {
       rwLock.EnterReadLock();

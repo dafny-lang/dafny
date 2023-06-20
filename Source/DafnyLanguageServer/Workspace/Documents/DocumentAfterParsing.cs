@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using Microsoft.Dafny.LanguageServer.Language;
 using OmniSharp.Extensions.LanguageServer.Protocol;
@@ -8,11 +9,11 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 namespace Microsoft.Dafny.LanguageServer.Workspace;
 
 public class DocumentAfterParsing : Document {
-  public IReadOnlyDictionary<DocumentUri, IList<DafnyDiagnostic>> ResolutionDiagnostics { get; }
+  public IReadOnlyDictionary<DocumentUri, List<DafnyDiagnostic>> ResolutionDiagnostics { get; }
 
   public DocumentAfterParsing(DocumentTextBuffer textDocumentItem,
     Dafny.Program program,
-    IReadOnlyDictionary<DocumentUri, IList<DafnyDiagnostic>> diagnostics) : base(textDocumentItem) {
+    IReadOnlyDictionary<DocumentUri, List<DafnyDiagnostic>> diagnostics) : base(textDocumentItem) {
     this.ResolutionDiagnostics = diagnostics;
     Program = program;
   }
@@ -38,23 +39,29 @@ public class DocumentAfterParsing : Document {
 
   private IEnumerable<DafnyDiagnostic> GetIncludeErrorDiagnostics() {
     var graph = new Graph<Uri>();
-    foreach (var edgesForUri in Program.Includes.GroupBy(i => i.IncluderFilename)) {
+    foreach (var edgesForUri in Program.Compilation.Includes.GroupBy(i => i.IncluderFilename)) {
       foreach (var edge in edgesForUri) {
         graph.AddEdge(edge.IncluderFilename, edge.IncludedFilename);
       }
     }
 
-    var sortedUris = graph.TopologicallySortedComponents();
+    var sortedSccRoots = graph.TopologicallySortedComponents();
+    var sortedUris = sortedSccRoots.SelectMany(sccRoot => graph.GetSCC(sccRoot));
     var sortedUrisWithoutRoot = sortedUris.SkipLast(1);
     foreach (var include in sortedUrisWithoutRoot) {
       var messageForIncludedFile =
-        ResolutionDiagnostics.GetOrDefault(include, Enumerable.Empty<DafnyDiagnostic>);
-      if (messageForIncludedFile.Any(m => m.Level == ErrorLevel.Error)) {
-        var diagnostic = new DafnyDiagnostic(null, Program.GetFirstTopLevelToken(), "the included file " + include.LocalPath + " contains error(s)",
-          MessageSource.Parser, ErrorLevel.Error, new DafnyRelatedInformation[] { });
-        yield return diagnostic;
-        break;
+        ResolutionDiagnostics.GetOrDefault(include, () => (IReadOnlyList<DafnyDiagnostic>)ImmutableList<DafnyDiagnostic>.Empty);
+      var errorMessages = messageForIncludedFile.Where(m => m.Level == ErrorLevel.Error);
+      var firstErrorMessage = errorMessages.FirstOrDefault();
+      if (firstErrorMessage == null) {
+        continue;
       }
+
+      var containsErrorSTheFirstOneIs = $"the included file {include.LocalPath} contains error(s). The first one is:{firstErrorMessage}";
+      var diagnostic = new DafnyDiagnostic(null, Program.GetFirstTopLevelToken(), containsErrorSTheFirstOneIs,
+        MessageSource.Parser, ErrorLevel.Error, new DafnyRelatedInformation[] { });
+      yield return diagnostic;
+      break;
     }
   }
 }
