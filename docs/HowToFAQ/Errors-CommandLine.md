@@ -235,7 +235,7 @@ The `printIncludes` option has these alternatives: None, Immediate, Transitive.
 
 <!-- %no-check TODO: Outputs the help document  -->
 ```bash 
-dafny resolve --quantifier-syntax:2 null.dfy
+dafny resolve --show-snippets:false --quantifier-syntax:2 null.dfy
 ```
 
 This is a generic error message about command-line arguments,

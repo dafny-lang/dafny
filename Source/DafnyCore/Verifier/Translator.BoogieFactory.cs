@@ -662,7 +662,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(1 <= totalDims);
       Contract.Requires(0 <= dim && dim < totalDims);
 
-      string name = "_System." + BuiltIns.ArrayClassName(totalDims) + ".Length";
+      string name = "_System." + SystemModuleManager.ArrayClassName(totalDims) + ".Length";
       if (totalDims != 1) {
         name += dim;
       }
