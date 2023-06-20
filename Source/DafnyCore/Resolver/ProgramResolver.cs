@@ -73,13 +73,6 @@ public class ProgramResolver {
 
     Type.DisableScopes();
 
-    foreach (var module in Program.Modules()) {
-      foreach (var rewriter in compilation.Rewriters) {
-        cancellationToken.ThrowIfCancellationRequested();
-        rewriter.PostResolve(module);
-      }
-    }
-
     CheckDuplicateModuleNames(Program);
 
     foreach (var rewriter in compilation.Rewriters) {

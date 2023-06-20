@@ -163,6 +163,10 @@ public class LiteralModuleDecl : ModuleDecl, ICanFormat {
     resolver.FillInAdditionalInformation(module);
     FuelAdjustment.CheckForFuelAdjustments(resolver.reporter, module);
 
+    foreach (var rewriter in compilation.Rewriters) {
+      rewriter.PostResolve(module);
+    }
+
     Type.PopScope(tempVis);
     return sig;
   }

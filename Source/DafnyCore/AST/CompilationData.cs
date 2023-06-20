@@ -77,7 +77,7 @@ public class CompilationData {
     }
 
     result.Add(new LocalLinter(reporter));
-    result.Add(new PrecedenceLinter(reporter));
+    result.Add(new PrecedenceLinter(reporter, this));
 
     foreach (var plugin in Options.Plugins) {
       result.AddRange(plugin.GetRewriters(reporter));
