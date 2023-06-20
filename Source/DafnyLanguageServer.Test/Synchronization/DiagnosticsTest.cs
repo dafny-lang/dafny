@@ -27,7 +27,7 @@ method Foo() ensures false {
   var x := SemanticError.untypedExport; 
 }
 ";
-      
+
       var documentItem = CreateTestDocument(source, Path.Combine(testFilesDirectory, "test.dfy"));
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
 
