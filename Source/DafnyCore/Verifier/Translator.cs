@@ -688,6 +688,7 @@ namespace Microsoft.Dafny {
       }
 
       var defines = new List<string>();
+      //defines.Add("SEQ_INLINE");
       if (6 <= options.ArithMode) {
         defines.Add("ARITH_DISTR");
       }

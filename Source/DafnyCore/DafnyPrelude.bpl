@@ -968,51 +968,99 @@ function {:builtin "seq.contains"} Seq_Contains<T>(s1: BuiltinSeq T, s2: Builtin
 
 type Seq = BuiltinSeq Box;
 
-function /*{:inline}*/ Seq#Length(s: Seq) : int {
+function
+#if SEQ_INLINE
+{:inline}
+#endif
+Seq#Length(s: Seq) : int {
   Seq_Len(s)
 }
 
-function /*{:inline}*/ Seq#Empty() : Seq {
+function
+#if SEQ_INLINE
+{:inline}
+#endif
+Seq#Empty() : Seq {
   Seq_Empty()
 }
 
-function /*{:inline}*/ Seq#Singleton(v: Box) : Seq {
+function
+#if SEQ_INLINE
+{:inline}
+#endif
+Seq#Singleton(v: Box) : Seq {
   Seq_Unit(v)
 }
 
-function /*{:inline}*/ Seq#Append(s1: Seq, s2: Seq) : Seq {
+function
+#if SEQ_INLINE
+{:inline}
+#endif
+Seq#Append(s1: Seq, s2: Seq) : Seq {
     Seq_Concat(s1, s2)
 }
 
-function /*{:inline}*/ Seq#Index(s: Seq, i: int) : Box {
+function
+#if SEQ_INLINE
+{:inline}
+#endif
+Seq#Index(s: Seq, i: int) : Box {
   Seq_Nth(s, i)
 }
 
-function /*{:inline}*/ Seq#Update(s: Seq, i: int, v: Box) : Seq {
+function
+#if SEQ_INLINE
+{:inline}
+#endif
+Seq#Update(s: Seq, i: int, v: Box) : Seq {
   Seq_Concat(Seq_Extract(s, 0, i), Seq_Concat(Seq_Unit(v), Seq_Extract(s, i + 1, Seq_Len(s) - i)))
 }
 
-function /*{:inline}*/ Seq#Contains(s: Seq, v: Box) : bool {
+function
+#if SEQ_INLINE
+{:inline}
+#endif
+Seq#Contains(s: Seq, v: Box) : bool {
   Seq_Contains(s, Seq_Unit(v))
 }
 
-function /*{:inline}*/ Seq#Equal(s1: Seq, s2: Seq) : bool {
+function
+#if SEQ_INLINE
+{:inline}
+#endif
+Seq#Equal(s1: Seq, s2: Seq) : bool {
     s1 == s2
 }
 
-function /*{:inline}*/ Seq#Build(s: Seq, v: Box): Seq {
+function
+#if SEQ_INLINE
+{:inline}
+#endif
+Seq#Build(s: Seq, v: Box): Seq {
   Seq_Concat(s, Seq_Unit(v))
 }
 
-function /*{:inline}*/ Seq#SameUntil(s1: Seq, s2: Seq, n: int): bool {
+function
+#if SEQ_INLINE
+{:inline}
+#endif
+Seq#SameUntil(s1: Seq, s2: Seq, n: int): bool {
   Seq_Extract(s1, 0, n) == Seq_Extract(s2, 0, n)
 }
 
-function /*{:inline}*/ Seq#Take(s: Seq, howMany: int): Seq {
+function
+#if SEQ_INLINE
+{:inline}
+#endif
+Seq#Take(s: Seq, howMany: int): Seq {
   Seq_Extract(s, 0, howMany)
 }
 
-function /*{:inline}*/ Seq#Drop(s: Seq, howMany: int): Seq {
+function
+#if SEQ_INLINE
+{:inline}
+#endif
+Seq#Drop(s: Seq, howMany: int): Seq {
   Seq_Extract(s, howMany, Seq_Len(s) - howMany)
 }
 
