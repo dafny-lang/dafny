@@ -39,7 +39,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
       };
     }
 
-    private void CollectBasicTokens(DafnySemanticTokensBuilder builder, Dafny.Program program) {
+    private void CollectScannerTokens(DafnySemanticTokensBuilder builder, Dafny.Program program) {
       var tok = program.DefaultModule.RootToken.Next;
       while (tok != null) {
         foreach (var leadingComment in tok.LeadingComments) {
@@ -53,7 +53,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
       }
     }
 
-    private void CollectSemanticTokens(DafnySemanticTokensBuilder builder, Dafny.Program program) {
+    private void CollectResolutionBasedTokens(DafnySemanticTokensBuilder builder, Dafny.Program program) {
       new LspSemanticTokensGeneratingVisitor(builder).Visit(program);
     }
 
@@ -65,9 +65,9 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
         return;
       }
       var document = await documentManager.GetLastDocumentAsync();
-      var dafnyBuilder = new DafnySemanticTokensBuilder(builder);
-      CollectBasicTokens(dafnyBuilder, document.Program);
-      CollectSemanticTokens(dafnyBuilder, document.Program);
+      var dafnyBuilder = new DafnySemanticTokensBuilder(builder, logger);
+      CollectScannerTokens(dafnyBuilder, document.Program);
+      CollectResolutionBasedTokens(dafnyBuilder, document.Program);
     }
 
     protected override Task<SemanticTokensDocument> GetSemanticTokensDocument(ITextDocumentIdentifierParams @params, CancellationToken cancellationToken) {

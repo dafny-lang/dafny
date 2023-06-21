@@ -1,5 +1,6 @@
 ﻿using System;
 using Microsoft.Boogie;
+using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
@@ -8,9 +9,11 @@ namespace Microsoft.Dafny.LanguageServer.Language.SemanticTokens;
 
 public class DafnySemanticTokensBuilder {
   private readonly SemanticTokensBuilder builder;
+  private readonly ILogger logger;
 
-  public DafnySemanticTokensBuilder(SemanticTokensBuilder builder) {
+  public DafnySemanticTokensBuilder(SemanticTokensBuilder builder, ILogger logger) {
     this.builder = builder;
+    this.logger = logger;
   }
 
   public void Push(string source, IToken? tok, SemanticTokenType tokenType, params SemanticTokenModifier[] modifiers) {
@@ -52,22 +55,22 @@ public class DafnySemanticTokensBuilder {
         Parser.TokenClass.Other => ((SemanticTokenType?)null, noModifiers),
         Parser.TokenClass.Ident => ((SemanticTokenType?)null, noModifiers),
         Parser.TokenClass.Digits => (SemanticTokenType.Number, noModifiers),
-        Parser.TokenClass.Constant => (SemanticTokenType.Number, new [] { SemanticTokenModifier.DefaultLibrary }),
+        Parser.TokenClass.Constant => (SemanticTokenType.Number, new[] { SemanticTokenModifier.DefaultLibrary }),
         Parser.TokenClass.Special => (SemanticTokenType.Macro, noModifiers),
-        Parser.TokenClass.Comprehension => (SemanticTokenType.Type, new [] { SemanticTokenModifier.DefaultLibrary }),
+        Parser.TokenClass.Comprehension => (SemanticTokenType.Type, new[] { SemanticTokenModifier.DefaultLibrary }),
         Parser.TokenClass.Type => (SemanticTokenType.Type, noModifiers),
-        Parser.TokenClass.Macro => (SemanticTokenType.Macro, new [] { SemanticTokenModifier.DefaultLibrary }),
-        Parser.TokenClass.Builtin => (SemanticTokenType.Function, new [] { SemanticTokenModifier.DefaultLibrary }),
+        Parser.TokenClass.Macro => (SemanticTokenType.Macro, new[] { SemanticTokenModifier.DefaultLibrary }),
+        Parser.TokenClass.Builtin => (SemanticTokenType.Function, new[] { SemanticTokenModifier.DefaultLibrary }),
         Parser.TokenClass.String => (SemanticTokenType.String, noModifiers),
         Parser.TokenClass.Punctuation => ((SemanticTokenType?)null, noModifiers),
-        Parser.TokenClass.Assertion => (SemanticTokenType.Keyword, new [] { SemanticTokenModifier.DefaultLibrary, SemanticTokenModifier.Documentation }),
+        Parser.TokenClass.Assertion => (SemanticTokenType.Keyword, new[] { SemanticTokenModifier.DefaultLibrary, SemanticTokenModifier.Documentation }),
         Parser.TokenClass.Block => (SemanticTokenType.Keyword, noModifiers),
         Parser.TokenClass.ControlFlow => (SemanticTokenType.Keyword, noModifiers),
         Parser.TokenClass.Keyword => (SemanticTokenType.Keyword, noModifiers),
         Parser.TokenClass.Declaration => (SemanticTokenType.Keyword, new[] { SemanticTokenModifier.Declaration }),
         Parser.TokenClass.Modifier => (SemanticTokenType.Modifier, noModifiers),
         Parser.TokenClass.Directive => (SemanticTokenType.Keyword, new[] { SemanticTokenModifier.Declaration }),
-        Parser.TokenClass.Specification => (SemanticTokenType.Keyword, new [] { SemanticTokenModifier.DefaultLibrary, SemanticTokenModifier.Documentation }),
+        Parser.TokenClass.Specification => (SemanticTokenType.Keyword, new[] { SemanticTokenModifier.DefaultLibrary, SemanticTokenModifier.Documentation }),
         Parser.TokenClass.Label => (SemanticTokenType.Keyword, noModifiers),
         Parser.TokenClass.Operator => (SemanticTokenType.Operator, noModifiers),
         Parser.TokenClass.Comment => (SemanticTokenType.Comment, noModifiers),
@@ -77,5 +80,9 @@ public class DafnySemanticTokensBuilder {
     if (tokenType.HasValue) {
       Push(source, tok, tokenType.Value, modifiers);
     }
+  }
+
+  public void Log(string message, object node) {
+    logger.Log(LogLevel.Warning, message + node);
   }
 }

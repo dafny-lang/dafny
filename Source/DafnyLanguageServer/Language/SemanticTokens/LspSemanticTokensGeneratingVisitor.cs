@@ -19,10 +19,10 @@ public class LspSemanticTokensGeneratingVisitor : SyntaxTreeVisitor {
   }
 
   public override void VisitUnknown(object node, IToken token) {
-    // FIXME change to logging a warning
+    builder.Log("Unkown node to visit, please extract semantic tokens", node);
   }
 
-  public override void Visit(ModuleDefinition moduleDefinition) { // TODO Keyword token
+  public override void Visit(ModuleDefinition moduleDefinition) {
     moduleDefinition.PrefixIds.ForEach(t => builder.Push("moduleDefinition.PrefixIds", t, SemanticTokenType.Namespace));
     builder.Push("moduleDefinition", moduleDefinition.tok, SemanticTokenType.Namespace);
     base.Visit(moduleDefinition);
@@ -87,7 +87,6 @@ public class LspSemanticTokensGeneratingVisitor : SyntaxTreeVisitor {
   }
 
   public override void Visit(LiteralExpr literalExpression) {
-    //# builder.Push("literalExpression", literalExpression.tok, SemanticTokenType.Macro, SemanticTokenModifier.DefaultLibrary); //?Macro
     // base.Visit(literalExpression); // No rec. into literal
   }
 
