@@ -148,16 +148,14 @@ class Test {
     }
 
     private static void AssertCorrectBufferUpdate(string source, Range range, string change, string expected) {
-      AssertCorrectBufferUpdate(source, new [] { (range, change)}, expected);
+      AssertCorrectBufferUpdate(source, new[] { (range, change) }, expected);
     }
 
-    private static void AssertCorrectBufferUpdate(string source, IEnumerable<(Range Range, string Change)> ranges, string expected)
-    {
+    private static void AssertCorrectBufferUpdate(string source, IEnumerable<(Range Range, string Change)> ranges, string expected) {
       var buffer = new TextBuffer(source);
 
       foreach (var range in ranges) {
-        buffer = buffer.ApplyTextChange(new TextDocumentContentChangeEvent()
-        {
+        buffer = buffer.ApplyTextChange(new TextDocumentContentChangeEvent() {
           Range = range,
           RangeLength = range.End.Character,
           Text = change

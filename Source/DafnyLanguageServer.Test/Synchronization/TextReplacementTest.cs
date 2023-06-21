@@ -21,12 +21,10 @@ function GetIt():int {
       AssertCorrectBufferUpdate(source, range, change, expected);
     }
 
-    private static void AssertCorrectBufferUpdate(string source, Range range, string change, string expected)
-    {
+    private static void AssertCorrectBufferUpdate(string source, Range range, string change, string expected) {
       var buffer = new TextBuffer(source);
 
-      buffer = buffer.ApplyTextChange(new TextDocumentContentChangeEvent()
-      {
+      buffer = buffer.ApplyTextChange(new TextDocumentContentChangeEvent() {
         Range = range,
         RangeLength = range.End.Character,
         Text = change
@@ -43,7 +41,7 @@ function GetConstant(): int {
       var change = @"function Get21(): int
 {
   2";
-      
+
       var range = new Range((0, 0), (1, 2));
       var expected = @"
 function Get21(): int
