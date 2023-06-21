@@ -27,7 +27,7 @@ public class LanguageServerFilesystem : IFileSystem {
 
     openFiles[uri] = new Entry(new TextBuffer(document.Text), document.Version!.Value);
   }
-  
+
   public void UpdateDocument(DidChangeTextDocumentParams documentChange) {
     var uri = documentChange.TextDocument.Uri.ToUri();
     if (!openFiles.TryGetValue(uri, out var entry)) {
@@ -54,7 +54,7 @@ public class LanguageServerFilesystem : IFileSystem {
 
     entry.Buffer = mergedBuffer;
   }
-  
+
   public void CloseDocument(TextDocumentIdentifier document) {
     var uri = document.Uri.ToUri();
 
