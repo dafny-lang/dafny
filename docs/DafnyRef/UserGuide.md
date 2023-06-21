@@ -460,6 +460,7 @@ There are four ways to use the formatter:
 * `dafny format --check <files and/or folders>` does not alter files. It will print a message concerning which files need formatting and return a non-zero exit code if any files would be changed by formatting.
 
 You can also use `--stdin` instead of providing a file, to format a full Dafny file from the standard input.
+Input files can be named along with `--stdin`, in which case both the files and the content of the stdin are formatted.
 
 Each version of `dafny format` returns a non-zero return code if there are any command-line or parsing
 errors or if --check is stipulated and at least one file is not the same as its formatted version.  

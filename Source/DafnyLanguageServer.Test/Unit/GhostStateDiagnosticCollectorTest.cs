@@ -61,9 +61,11 @@ public class GhostStateDiagnosticCollectorTest {
     // Builtins is null to trigger an error.
     var options = DafnyOptions.DefaultImmutableOptions;
     var rootUri = new Uri(Directory.GetCurrentDirectory());
-    var dummyModuleDecl = new DummyModuleDecl(new List<Uri>() { rootUri });
+    var dummyModuleDecl = new DummyModuleDecl(new List<Uri> { rootUri });
     var reporter = new CollectingErrorReporter(options);
-    var program = new Dafny.Program("dummy", dummyModuleDecl, null, reporter, Sets.Empty<Uri>(), Sets.Empty<Uri>());
+    var compilation = new CompilationData(options, new List<Include>(), new List<Uri>(), Sets.Empty<Uri>(),
+      Sets.Empty<Uri>());
+    var program = new Dafny.Program("dummy", dummyModuleDecl, null, reporter, compilation);
     var ghostDiagnostics = ghostStateDiagnosticCollector.GetGhostStateDiagnostics(
       new SignatureAndCompletionTable(null!, new CompilationUnit(rootUri, program),
         null!, null!, new IntervalTree<Position, ILocalizableSymbol>(), true)

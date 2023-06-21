@@ -915,7 +915,7 @@ class DafnyDoc {
       } else if (tt is NewtypeDecl) {
         s = Link(tt.FullDafnyName, tt.Name) + TypeActualParameters(t.TypeArgs);
       } else if (tt is DatatypeDecl) {
-        if (BuiltIns.IsTupleTypeName(udt.Name)) {
+        if (SystemModuleManager.IsTupleTypeName(udt.Name)) {
           s = "(" + TypeActualParameters(t.TypeArgs, false) + ")";
         } else {
           s = Link(tt.FullDafnyName, tt.Name) + TypeActualParameters(t.TypeArgs);

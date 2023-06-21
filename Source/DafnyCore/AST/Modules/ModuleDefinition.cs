@@ -3,12 +3,15 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics.Contracts;
 using System.Linq;
+using Microsoft.Boogie;
 using Microsoft.Dafny.Auditor;
 
 namespace Microsoft.Dafny;
 
+public record PrefixNameModule(IReadOnlyList<IToken> Parts, LiteralModuleDecl Module);
 
 public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearingDeclaration, ICloneable<ModuleDefinition> {
+  public Guid UniqueParseContentHash { get; set; }
   public IToken BodyStartTok = Token.NoToken;
   public IToken TokenWithTrailingDocString = Token.NoToken;
   public string DafnyName => NameNode.StartToken.val; // The (not-qualified) name as seen in Dafny source code
@@ -54,7 +57,7 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
   [FilledInDuringResolution]
   public readonly List<TopLevelDecl> ResolvedPrefixNamedModules = new();
   [FilledInDuringResolution]
-  public readonly List<Tuple<List<IToken>, LiteralModuleDecl>> PrefixNamedModules = new();  // filled in by the parser; emptied by the resolver
+  public readonly List<PrefixNameModule> PrefixNamedModules = new();  // filled in by the parser; emptied by the resolver
   public virtual IEnumerable<TopLevelDecl> TopLevelDecls =>
     defaultClassFirst ? DefaultClasses.
         Concat(SourceDecls).
@@ -105,7 +108,9 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
 
     DefaultClass = (DefaultClassDecl)cloner.CloneDeclaration(original.DefaultClass, this);
     foreach (var tup in original.PrefixNamedModules) {
-      var newTup = new Tuple<List<IToken>, LiteralModuleDecl>(tup.Item1, (LiteralModuleDecl)cloner.CloneDeclaration(tup.Item2, this));
+      var newTup = tup with {
+        Module = (LiteralModuleDecl)cloner.CloneDeclaration(tup.Module, this)
+      };
       PrefixNamedModules.Add(newTup);
     }
 
@@ -352,13 +357,13 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
     get {
       var attributes = Attributes != null ? new List<Node> { Attributes } : Enumerable.Empty<Node>();
       return attributes.Concat(preResolveTopLevelDecls ?? TopLevelDecls).Concat(
-          (preResolvePrefixNamedModules ?? PrefixNamedModules.Select(tuple => tuple.Item2)));
+          (preResolvePrefixNamedModules ?? PrefixNamedModules.Select(tuple => tuple.Module)));
     }
   }
 
   public void PreResolveSnapshotForFormatter() {
     preResolveTopLevelDecls = TopLevelDecls.ToImmutableList();
-    preResolvePrefixNamedModules = PrefixNamedModules.Select(tuple => tuple.Item2).ToImmutableList();
+    preResolvePrefixNamedModules = PrefixNamedModules.Select(tuple => tuple.Module).ToImmutableList();
   }
 
   public override IEnumerable<Assumption> Assumptions(Declaration decl) {
@@ -367,5 +372,369 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
 
   public ModuleDefinition Clone(Cloner cloner) {
     return new ModuleDefinition(cloner, this);
+  }
+
+  /// <summary>
+  /// Resolves the module definition.
+  /// A return code of "false" is an indication of an error that may or may not have
+  /// been reported in an error message. So, in order to figure out if m was successfully
+  /// resolved, a caller has to check for both a change in error count and a "false"
+  /// return value.
+  /// </summary>
+  public bool Resolve(ModuleSignature sig, Resolver resolver, bool isAnExport = false) {
+    Contract.Requires(resolver.AllTypeConstraints.Count == 0);
+    Contract.Ensures(resolver.AllTypeConstraints.Count == 0);
+
+    sig.VisibilityScope.Augment(resolver.systemNameInfo.VisibilityScope);
+    // make sure all imported modules were successfully resolved
+    foreach (var d in TopLevelDecls) {
+      if (d is AliasModuleDecl || d is AbstractModuleDecl) {
+        ModuleSignature importSig;
+        if (d is AliasModuleDecl) {
+          var alias = (AliasModuleDecl)d;
+          importSig = alias.TargetQId.Root != null ? alias.TargetQId.Root.Signature : alias.Signature;
+        } else {
+          importSig = ((AbstractModuleDecl)d).OriginalSignature;
+        }
+
+        if (importSig.ModuleDef == null || !importSig.ModuleDef.SuccessfullyResolved) {
+          if (!IsEssentiallyEmptyModuleBody()) {
+            // say something only if this will cause any testing to be omitted
+            resolver.reporter.Error(MessageSource.Resolver, d,
+              "not resolving module '{0}' because there were errors in resolving its import '{1}'", Name, d.Name);
+          }
+
+          return false;
+        }
+      } else if (d is LiteralModuleDecl) {
+        var nested = (LiteralModuleDecl)d;
+        if (!nested.ModuleDef.SuccessfullyResolved) {
+          if (!IsEssentiallyEmptyModuleBody()) {
+            // say something only if this will cause any testing to be omitted
+            resolver.reporter.Error(MessageSource.Resolver, nested,
+              "not resolving module '{0}' because there were errors in resolving its nested module '{1}'", Name,
+              nested.Name);
+          }
+
+          return false;
+        }
+      }
+    }
+
+    var oldModuleInfo = resolver.moduleInfo;
+    resolver.moduleInfo = Resolver.MergeSignature(sig, resolver.systemNameInfo);
+    Type.PushScope(resolver.moduleInfo.VisibilityScope);
+    Resolver.ResolveOpenedImports(resolver.moduleInfo, this, resolver); // opened imports do not persist
+    var datatypeDependencies = new Graph<IndDatatypeDecl>();
+    var codatatypeDependencies = new Graph<CoDatatypeDecl>();
+    var allDeclarations = AllDeclarationsAndNonNullTypeDecls(TopLevelDecls).ToList();
+    int prevErrorCount = resolver.reporter.Count(ErrorLevel.Error);
+    resolver.ResolveTopLevelDecls_Signatures(this, sig, allDeclarations, datatypeDependencies, codatatypeDependencies);
+    Contract.Assert(resolver.AllTypeConstraints.Count == 0); // signature resolution does not add any type constraints
+
+    resolver.scope.PushMarker();
+    resolver.scope.AllowInstance = false;
+    resolver.ResolveAttributes(this, new ResolutionContext(new NoContext(EnclosingModule), false), true); // Must follow ResolveTopLevelDecls_Signatures, in case attributes refer to members
+    resolver.scope.PopMarker();
+
+    if (resolver.reporter.Count(ErrorLevel.Error) == prevErrorCount) {
+      resolver.ResolveTopLevelDecls_Core(allDeclarations, datatypeDependencies, codatatypeDependencies, Name, isAnExport);
+    }
+
+    Type.PopScope(resolver.moduleInfo.VisibilityScope);
+    resolver.moduleInfo = oldModuleInfo;
+    return true;
+  }
+
+  public ModuleBindings BindModuleNames(Resolver resolver, ModuleBindings parentBindings) {
+    var bindings = new ModuleBindings(parentBindings);
+
+    BindChildrenAndPrefixNamedModules(resolver, bindings);
+
+    // Finally, go through import declarations (that is, AbstractModuleDecl's and AliasModuleDecl's).
+    foreach (var tld in TopLevelDecls) {
+      if (tld is not (AbstractModuleDecl or AliasModuleDecl)) {
+        continue;
+      }
+
+      var subdecl = (ModuleDecl)tld;
+      if (bindings.BindName(subdecl.Name, subdecl, null)) {
+        // the add was successful
+      } else {
+        // there's already something with this name
+        var yes = bindings.TryLookup(subdecl.tok, out var prevDecl);
+        Contract.Assert(yes);
+        if (prevDecl is AbstractModuleDecl || prevDecl is AliasModuleDecl) {
+          resolver.reporter.Error(MessageSource.Resolver, subdecl.tok, "Duplicate name of import: {0}", subdecl.Name);
+        } else if (tld is AliasModuleDecl importDecl && importDecl.Opened && importDecl.TargetQId.Path.Count == 1 &&
+                   importDecl.Name == importDecl.TargetQId.RootName()) {
+          importDecl.ShadowsLiteralModule = true;
+        } else {
+          resolver.reporter.Error(MessageSource.Resolver, subdecl.tok,
+            "Import declaration uses same name as a module in the same scope: {0}", subdecl.Name);
+        }
+      }
+    }
+
+    return bindings;
+  }
+
+  private void BindChildrenAndPrefixNamedModules(Resolver resolver, ModuleBindings bindings) {
+    // moduleDecl.PrefixNamedModules is a list of pairs like:
+    //     A.B.C  ,  module D { ... }
+    // We collect these according to the first component of the prefix, like so:
+    //     "A"   ->   (A.B.C  ,  module D { ... })
+    var prefixModulesByFirstPart = new Dictionary<string, List<PrefixNameModule>>();
+    foreach (var prefixNameModule in PrefixNamedModules) {
+      var firstPartName = prefixNameModule.Parts[0].val;
+      var prev = prefixModulesByFirstPart.GetOrCreate(firstPartName, () => new List<PrefixNameModule>());
+      prev.Add(prefixNameModule);
+    }
+
+    PrefixNamedModules.Clear();
+
+    // First, register all literal modules, and transferring their prefix-named modules downwards
+    foreach (var subdecl in TopLevelDecls.OfType<LiteralModuleDecl>()) {
+      // Transfer prefix-named modules downwards into the sub-module
+      if (prefixModulesByFirstPart.TryGetValue(subdecl.Name, out var prefixModules)) {
+        prefixModulesByFirstPart.Remove(subdecl.Name);
+        prefixModules = prefixModules.ConvertAll(ShortenPrefix);
+      }
+
+      subdecl.BindModuleName(resolver, prefixModules, bindings);
+    }
+
+    // Next, add new modules for any remaining entries in "prefixNames".
+    foreach (var entry in prefixModulesByFirstPart) {
+      var prefixNamedModules = entry.Value;
+      var tok = prefixNamedModules.First().Parts[0];
+      var modDef = new ModuleDefinition(tok.ToRange(), new Name(tok.ToRange(), entry.Key), new List<IToken>(), false,
+        false, null, this, null, false);
+      // Add the new module to the top-level declarations of its parent and then bind its names as usual
+      var subdecl = new LiteralModuleDecl(modDef, this);
+      ResolvedPrefixNamedModules.Add(subdecl);
+      subdecl.BindModuleName(resolver, prefixNamedModules.ConvertAll(ShortenPrefix), bindings);
+    }
+  }
+
+  private static PrefixNameModule ShortenPrefix(PrefixNameModule prefixNameModule) {
+    Contract.Requires(prefixNameModule.Parts.Count != 0);
+    var rest = prefixNameModule.Parts.Skip(1).ToList();
+    return prefixNameModule with { Parts = rest };
+  }
+
+  public ModuleSignature RegisterTopLevelDecls(Resolver resolver, bool useImports) {
+    Contract.Requires(this != null);
+    var sig = new ModuleSignature();
+    sig.ModuleDef = this;
+    sig.IsAbstract = IsAbstract;
+    sig.VisibilityScope = new VisibilityScope();
+    sig.VisibilityScope.Augment(VisibilityScope);
+
+    // This is solely used to detect duplicates amongst the various e
+    Dictionary<string, TopLevelDecl> toplevels = new Dictionary<string, TopLevelDecl>();
+    // Now add the things present
+    var anonymousImportCount = 0;
+    foreach (TopLevelDecl d in TopLevelDecls) {
+      Contract.Assert(d != null);
+
+      if (d is RevealableTypeDecl) {
+        resolver.revealableTypes.Add((RevealableTypeDecl)d);
+      }
+
+      // register the class/datatype/module name
+      TopLevelDecl registerThisDecl = null;
+      string registerUnderThisName = null;
+      if (d is ModuleExportDecl export) {
+        if (sig.ExportSets.ContainsKey(d.Name)) {
+          resolver.reporter.Error(MessageSource.Resolver, d, "duplicate name of export set: {0}", d.Name);
+        } else {
+          sig.ExportSets[d.Name] = export;
+        }
+      } else if (d is AliasModuleDecl importDecl && importDecl.ShadowsLiteralModule) {
+        // add under an anonymous name
+        registerThisDecl = d;
+        registerUnderThisName = string.Format("{0}#{1}", d.Name, anonymousImportCount);
+        anonymousImportCount++;
+      } else if (toplevels.ContainsKey(d.Name)) {
+        resolver.reporter.Error(MessageSource.Resolver, d, "duplicate name of top-level declaration: {0}", d.Name);
+      } else if (d is ClassLikeDecl { NonNullTypeDecl: { } nntd }) {
+        registerThisDecl = nntd;
+        registerUnderThisName = d.Name;
+      } else {
+        registerThisDecl = d;
+        registerUnderThisName = d.Name;
+      }
+
+      if (registerThisDecl != null) {
+        toplevels[registerUnderThisName] = registerThisDecl;
+        sig.TopLevels[registerUnderThisName] = registerThisDecl;
+      }
+
+      if (d is ModuleDecl) {
+        // nothing to do
+      } else if (d is TypeSynonymDecl) {
+        // nothing more to register
+      } else if (d is NewtypeDecl || d is AbstractTypeDecl) {
+        var cl = (TopLevelDeclWithMembers)d;
+        // register the names of the type members
+        var members = new Dictionary<string, MemberDecl>();
+        resolver.classMembers.Add(cl, members);
+        cl.RegisterMembers(resolver, members);
+      } else if (d is IteratorDecl) {
+        var iter = (IteratorDecl)d;
+        iter.Resolve(resolver);
+
+      } else if (d is DefaultClassDecl defaultClassDecl) {
+        var preMemberErrs = resolver.reporter.Count(ErrorLevel.Error);
+
+        // register the names of the class members
+        var members = new Dictionary<string, MemberDecl>();
+        resolver.classMembers.Add(defaultClassDecl, members);
+        defaultClassDecl.RegisterMembers(resolver, members);
+
+        Contract.Assert(preMemberErrs != resolver.reporter.Count(ErrorLevel.Error) || !defaultClassDecl.Members.Except(members.Values).Any());
+
+        foreach (MemberDecl m in members.Values) {
+          Contract.Assert(!m.HasStaticKeyword || Attributes.Contains(m.Attributes, "opaque_reveal"));
+          if (m is Function or Method or ConstantField) {
+            sig.StaticMembers[m.Name] = m;
+          }
+
+          if (toplevels.ContainsKey(m.Name)) {
+            resolver.reporter.Error(MessageSource.Resolver, m.tok, $"duplicate declaration for name {m.Name}");
+          }
+        }
+
+      } else if (d is ClassLikeDecl) {
+        var cl = (ClassLikeDecl)d;
+        var preMemberErrs = resolver.reporter.Count(ErrorLevel.Error);
+
+        // register the names of the class members
+        var members = new Dictionary<string, MemberDecl>();
+        resolver.classMembers.Add(cl, members);
+        cl.RegisterMembers(resolver, members);
+
+        Contract.Assert(preMemberErrs != resolver.reporter.Count(ErrorLevel.Error) || !cl.Members.Except(members.Values).Any());
+
+      } else if (d is DatatypeDecl) {
+        var dt = (DatatypeDecl)d;
+
+        // register the names of the constructors
+        dt.ConstructorsByName = new();
+        // ... and of the other members
+        var members = new Dictionary<string, MemberDecl>();
+        resolver.classMembers.Add(dt, members);
+
+        foreach (DatatypeCtor ctor in dt.Ctors) {
+          if (ctor.Name.EndsWith("?")) {
+            resolver.reporter.Error(MessageSource.Resolver, ctor,
+              "a datatype constructor name is not allowed to end with '?'");
+          } else if (dt.ConstructorsByName.ContainsKey(ctor.Name)) {
+            resolver.reporter.Error(MessageSource.Resolver, ctor, "Duplicate datatype constructor name: {0}", ctor.Name);
+          } else {
+            dt.ConstructorsByName.Add(ctor.Name, ctor);
+            ctor.InheritVisibility(dt);
+
+            // create and add the query "method" (field, really)
+            var queryName = ctor.NameNode.Append("?");
+            var query = new DatatypeDiscriminator(ctor.RangeToken, queryName, SpecialField.ID.UseIdParam, "is_" + ctor.GetCompileName(resolver.Options),
+              ctor.IsGhost, Type.Bool, null);
+            query.InheritVisibility(dt);
+            query.EnclosingClass = dt; // resolve here
+            members.Add(queryName.Value, query);
+            ctor.QueryField = query;
+
+            // also register the constructor name globally
+            Tuple<DatatypeCtor, bool> pair;
+            if (sig.Ctors.TryGetValue(ctor.Name, out pair)) {
+              // mark it as a duplicate
+              sig.Ctors[ctor.Name] = new Tuple<DatatypeCtor, bool>(pair.Item1, true);
+            } else {
+              // add new
+              sig.Ctors.Add(ctor.Name, new Tuple<DatatypeCtor, bool>(ctor, false));
+            }
+          }
+        }
+
+        // add deconstructors now (that is, after the query methods have been added)
+        foreach (DatatypeCtor ctor in dt.Ctors) {
+          var formalsUsedInThisCtor = new HashSet<string>();
+          var duplicates = new HashSet<Formal>();
+          foreach (var formal in ctor.Formals) {
+            MemberDecl previousMember = null;
+            var localDuplicate = false;
+            if (formal.HasName) {
+              if (members.TryGetValue(formal.Name, out previousMember)) {
+                localDuplicate = formalsUsedInThisCtor.Contains(formal.Name);
+                if (localDuplicate) {
+                  resolver.reporter.Error(MessageSource.Resolver, ctor,
+                    "Duplicate use of deconstructor name in the same constructor: {0}", formal.Name);
+                  duplicates.Add(formal);
+                } else if (previousMember is DatatypeDestructor) {
+                  // this is okay, if the destructor has the appropriate type; this will be checked later, after type checking
+                } else {
+                  resolver.reporter.Error(MessageSource.Resolver, ctor,
+                    "Name of deconstructor is used by another member of the datatype: {0}", formal.Name);
+                }
+              }
+
+              formalsUsedInThisCtor.Add(formal.Name);
+            }
+
+            DatatypeDestructor dtor;
+            if (!localDuplicate && previousMember is DatatypeDestructor) {
+              // a destructor with this name already existed in (a different constructor in) the datatype
+              dtor = (DatatypeDestructor)previousMember;
+              dtor.AddAnotherEnclosingCtor(ctor, formal);
+            } else {
+              // either the destructor has no explicit name, or this constructor declared another destructor with this name, or no previous destructor had this name
+              dtor = new DatatypeDestructor(formal.RangeToken, ctor, formal, new Name(formal.RangeToken, formal.Name), "dtor_" + formal.CompileName,
+                formal.IsGhost, formal.Type, null);
+              dtor.InheritVisibility(dt);
+              dtor.EnclosingClass = dt; // resolve here
+              if (formal.HasName && !localDuplicate && previousMember == null) {
+                // the destructor has an explict name and there was no member at all with this name before
+                members.Add(formal.Name, dtor);
+              }
+            }
+
+            ctor.Destructors.Add(dtor);
+          }
+
+          foreach (var duplicate in duplicates) {
+            ctor.Formals.Remove(duplicate);
+          }
+        }
+
+        // finally, add any additional user-defined members
+        dt.RegisterMembers(resolver, members);
+
+      } else {
+        var cl = (ValuetypeDecl)d;
+        // register the names of the type members
+        var members = new Dictionary<string, MemberDecl>();
+        resolver.classMembers.Add(cl, members);
+        cl.RegisterMembers(resolver, members);
+      }
+    }
+
+    // Now, for each class, register its possibly-null type
+    foreach (TopLevelDecl d in TopLevelDecls) {
+      if ((d as ClassLikeDecl)?.NonNullTypeDecl != null) {
+        var name = d.Name + "?";
+        TopLevelDecl prev;
+        if (toplevels.TryGetValue(name, out prev)) {
+          resolver.reporter.Error(MessageSource.Resolver, d,
+            "a module that already contains a top-level declaration '{0}' is not allowed to declare a {1} '{2}'",
+            name, d.WhatKind, d.Name);
+        } else {
+          toplevels[name] = d;
+          sig.TopLevels[name] = d;
+        }
+      }
+    }
+
+    return sig;
   }
 }

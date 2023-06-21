@@ -13,8 +13,9 @@ public class GenericErrors {
     g_unicode_escape_is_too_large,
     g_unicode_escape_may_not_be_surrogate,
     g_U_unicode_chars_are_disallowed,
-    g_cli_option_error,
+    g_option_error,
     g_feature_unsupported,
+    g_fuel_must_increase,
 
   }
 

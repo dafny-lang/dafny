@@ -60,6 +60,8 @@ establish that later conjuncts are well-defined.
 
 The attributes recognized for requires clauses are discussed in [Section 11.3](#sec-verification-attributes-on-assertions).
 
+A requires clause can have [custom error and success messages](#sec-error-attribute).
+
 ### 7.1.2. Ensures Clause ([grammar](#g-ensures-clause)) {#sec-ensures-clause}
 
 Examples:
@@ -85,6 +87,8 @@ can be important: earlier conjuncts can set conditions that
 establish that later conjuncts are well-defined.
 
 The attributes recognized for ensures clauses are discussed in [Section 11.3](#sec-verification-attributes-on-assertions).
+
+An ensures clause can have [custom error and success messages](#sec-error-attribute).
 
 ### 7.1.3. Decreases Clause ([grammar](#g-decreases-clause)) {#sec-decreases-clause}
 
@@ -657,6 +661,8 @@ The invariant must hold on entry to the loop. And assuming it
 is valid on entry to a particular iteration of the loop, 
 Dafny must be able to prove that it then
 holds at the end of that iteration of the loop.
+
+An invariant can have [custom error and success messages](#sec-error-attribute).
 
 ## 7.2. Method Specification ([grammar](#g-method-specification)) {#sec-method-specification}
 

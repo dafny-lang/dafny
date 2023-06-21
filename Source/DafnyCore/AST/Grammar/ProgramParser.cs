@@ -14,7 +14,7 @@ namespace Microsoft.Dafny;
 public record DfyParseResult(
   BatchErrorReporter ErrorReporter,
   FileModuleDefinition Module,
-  IReadOnlyList<Action<BuiltIns>> ModifyBuiltins
+  IReadOnlyList<Action<SystemModuleManager>> ModifyBuiltins
   );
 
 public class ProgramParser {
@@ -30,16 +30,18 @@ public class ProgramParser {
   public Program ParseFiles(string programName, IReadOnlyList<DafnyFile> files, ErrorReporter errorReporter,
     CancellationToken cancellationToken) {
     var options = errorReporter.Options;
-    var builtIns = new BuiltIns(options);
+    var builtIns = new SystemModuleManager(options);
     var defaultModule = new DefaultModuleDefinition(files.Where(f => !f.IsPreverified).Select(f => f.Uri).ToList(), options.VerifyAllModules);
 
     var verifiedRoots = files.Where(df => df.IsPreverified).Select(df => df.Uri).ToHashSet();
     var compiledRoots = files.Where(df => df.IsPrecompiled).Select(df => df.Uri).ToHashSet();
+    var compilation = new CompilationData(options, defaultModule.Includes, defaultModule.RootSourceUris, verifiedRoots,
+      compiledRoots);
     var program = new Program(
       programName,
       new LiteralModuleDecl(defaultModule, null),
       builtIns,
-      errorReporter, verifiedRoots, compiledRoots
+      errorReporter, compilation
     );
 
     foreach (var dafnyFile in files) {
@@ -98,8 +100,26 @@ public class ProgramParser {
       DafnyMain.MaybePrintProgram(program, options.DafnyPrintFile, false);
     }
 
+    ShowWarningsForIncludeCycles(program);
+
 
     return program;
+  }
+
+  private void ShowWarningsForIncludeCycles(Program program) {
+    var graph = new Graph<Uri>();
+    foreach (var edgesForUri in program.Compilation.Includes.GroupBy(i => i.IncluderFilename)) {
+      foreach (var edge in edgesForUri) {
+        graph.AddEdge(edge.IncluderFilename, edge.IncludedFilename);
+      }
+    }
+
+    var sortedSccRoots = graph.TopologicallySortedComponents();
+    var includeCycles = sortedSccRoots.Select(graph.GetSCC).Where(scc => scc.Count > 1);
+    foreach (var cycle in includeCycles) {
+      program.Reporter.Info(MessageSource.Parser, program.GetFirstTopLevelToken(),
+        $"Program contains a cycle of includes, consisting of:\n{string.Join("\n", cycle.Select(c => c.LocalPath))}");
+    }
   }
 
   public static void AddParseResultToProgram(DfyParseResult parseResult, Program program) {
@@ -107,7 +127,7 @@ public class ProgramParser {
     var fileModule = parseResult.Module;
 
     foreach (var modify in parseResult.ModifyBuiltins) {
-      modify(program.BuiltIns);
+      modify(program.SystemModuleManager);
     }
 
     foreach (var diagnostic in parseResult.ErrorReporter.AllMessages) {
@@ -150,7 +170,7 @@ public class ProgramParser {
   public IList<DfyParseResult> TryParseIncludes(
     IReadOnlyList<DafnyFile> files,
     IEnumerable<Include> roots,
-    BuiltIns builtIns,
+    SystemModuleManager systemModuleManager,
     ErrorReporter errorReporter,
     CancellationToken cancellationToken
   ) {
@@ -162,7 +182,7 @@ public class ProgramParser {
     }
 
     foreach (var root in roots) {
-      var dafnyFile = IncludeToDafnyFile(builtIns, errorReporter, root);
+      var dafnyFile = IncludeToDafnyFile(systemModuleManager, errorReporter, root);
       if (dafnyFile != null) {
         stack.Push(dafnyFile);
       }
@@ -184,7 +204,7 @@ public class ProgramParser {
         result.Add(parseIncludeResult);
 
         foreach (var include in parseIncludeResult.Module.Includes) {
-          var dafnyFile = IncludeToDafnyFile(builtIns, errorReporter, include);
+          var dafnyFile = IncludeToDafnyFile(systemModuleManager, errorReporter, include);
           if (dafnyFile != null) {
             stack.Push(dafnyFile);
           }
@@ -197,9 +217,9 @@ public class ProgramParser {
     return result;
   }
 
-  private static DafnyFile IncludeToDafnyFile(BuiltIns builtIns, ErrorReporter errorReporter, Include include) {
+  private static DafnyFile IncludeToDafnyFile(SystemModuleManager systemModuleManager, ErrorReporter errorReporter, Include include) {
     try {
-      return new DafnyFile(builtIns.Options, include.IncludedFilename);
+      return new DafnyFile(systemModuleManager.Options, include.IncludedFilename);
     } catch (IllegalDafnyFile) {
       errorReporter.Error(MessageSource.Parser, include.tok, $"Include of file '{include.IncludedFilename}' failed.");
       return null;
@@ -233,7 +253,7 @@ public class ProgramParser {
       reporter.Error(MessageSource.Parser, ErrorId.p_internal_exception, internalErrorDummyToken,
         "[internal error] Parser exception: " + e.Message + (!options.Verbose ? "" :
             "\n" + e.StackTrace));
-      return new DfyParseResult(reporter, null, new Action<BuiltIns>[] { });
+      return new DfyParseResult(reporter, null, new Action<SystemModuleManager>[] { });
     }
   }
 
@@ -253,7 +273,7 @@ public class ProgramParser {
       batchErrorReporter.Warning(MessageSource.Parser, ErrorId.p_file_has_no_code, new Token(1, 1) { Uri = uri }, "File contains no code");
     }
 
-    return new DfyParseResult(batchErrorReporter, parser.theModule, parser.BuiltinsModifiers);
+    return new DfyParseResult(batchErrorReporter, parser.theModule, parser.SystemModuleModifiers);
   }
 
   private static Parser SetupParser(string /*!*/ s, Uri /*!*/ uri, ErrorReporter /*!*/ errorReporter) {

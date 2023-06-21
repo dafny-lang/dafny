@@ -63,7 +63,7 @@ public abstract class ExtendedPattern : TokenNode {
       if (this is IdPattern idPattern) {
         if (idPattern.Arguments != null) {
           // pat is a tuple or constructor
-          if (idPattern.Id.StartsWith(BuiltIns.TupleTypeCtorNamePrefix)) {
+          if (idPattern.Id.StartsWith(SystemModuleManager.TupleTypeCtorNamePrefix)) {
             resolver.reporter.Error(MessageSource.Resolver, this.Tok, $"tuple type does not match type {type.ToString()}");
           } else {
             resolver.reporter.Error(MessageSource.Resolver, this.Tok, $"member {idPattern.Id} does not exist in type {type.ToString()}");
@@ -97,7 +97,7 @@ public abstract class ExtendedPattern : TokenNode {
 
       //We expect the number of arguments in the type of the matchee and the provided pattern to match, except if the pattern is a bound variable
       if (udt.TypeArgs.Count != idpat.Arguments.Count) {
-        if (idpat.Id.StartsWith(BuiltIns.TupleTypeCtorNamePrefix)) {
+        if (idpat.Id.StartsWith(SystemModuleManager.TupleTypeCtorNamePrefix)) {
           resolver.reporter.Error(MessageSource.Resolver, this.Tok,
             $"the case pattern is a {idpat.Arguments.Count}-element tuple, while the match expression is a {udt.TypeArgs.Count}-element tuple");
         } else {
