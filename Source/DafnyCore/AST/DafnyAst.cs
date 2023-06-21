@@ -512,7 +512,6 @@ namespace Microsoft.Dafny {
         return name;
       }
     }
-    
     public string DafnyName => RangeToken == null || tok.line == 0 ? Name : RangeToken.PrintOriginal();
     public string DisplayName =>
       LocalVariable.DisplayNameHelper(this);
