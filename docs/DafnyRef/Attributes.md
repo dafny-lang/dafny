@@ -704,6 +704,35 @@ Overrides the `/subsumption` command-line setting for this assertion.
 `{:subsumption 0}` checks an assertion but does not assume it after proving it.
 You can achieve the same effect using [labelled assertions](#sec-labeling-revealing-assertions).
 
+### 11.3.5. `{:error "errorMessage", "successMessage"}` {#sec-error-attribute}
+Provides a custom error message in case the assertion fails.
+As a hint, messages indicating what the user needs to do to fix the error are usually better than messages that indicate the error only.
+For example:
+
+<!-- %check-resolve -->
+```dafny
+method Process(instances: int, price: int)
+  requires {:error "There should be an even number of instances", "The number of instances is always even"} instances % 2 == 0
+  requires {:error "Could not prove that the price is positive", "The price is always positive"} price >= 0
+{
+}
+method Test()
+{
+  if * {
+    Process(1, 0); // Error: There should be an even number of instances
+  }
+  if * {
+    Process(2, -1); // Error: Could not prove that the price is positive
+  }
+  if * {
+    Process(2, 5); // Success: The number of instances is always even
+                   // Success: The price is always positive
+  }
+}
+```
+
+The success message is optional but is recommended if errorMessage is set.
+
 ## 11.4. Attributes on variable declarations
 
 ### 11.4.1. `{:assumption}` {#sec-assumption}
