@@ -124,11 +124,13 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       VersionedTextDocumentIdentifier textDocument,
       IReadOnlyList<Diagnostic> diagnostics
     ) {
+      var dafnyOptions = DafnyOptions.Default;
       return new IdeState(
         textDocument,
+        SignatureAndCompletionTable.GetEmptyProgram(dafnyOptions, textDocument),
         diagnostics,
         SymbolTable.Empty(),
-        SignatureAndCompletionTable.Empty(DafnyOptions.Default, textDocument),
+        SignatureAndCompletionTable.Empty(dafnyOptions, textDocument),
         new Dictionary<ImplementationId, IdeImplementationView>(),
         Array.Empty<Counterexample>(),
         false,

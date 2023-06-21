@@ -2,6 +2,7 @@
 using OmniSharp.Extensions.LanguageServer.Protocol;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Collections.Generic;
+using System.Dynamic;
 using System.Linq;
 using Microsoft.Boogie;
 using Microsoft.Dafny.LanguageServer.Language.Symbols;
@@ -31,7 +32,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     public virtual IEnumerable<DafnyDiagnostic> AllFileDiagnostics => Enumerable.Empty<DafnyDiagnostic>();
 
     public IdeState InitialIdeState(DafnyOptions options) {
-      return ToIdeState(new IdeState(DocumentIdentifier, Array.Empty<Diagnostic>(),
+      var outerModule = new DefaultModuleDefinition(new List<Uri>() { DocumentIdentifier.Uri.ToUri() }, false);
+      return ToIdeState(new IdeState(DocumentIdentifier, SignatureAndCompletionTable.GetEmptyProgram(options, DocumentIdentifier),
+        Array.Empty<Diagnostic>(),
         SymbolTable.Empty(), SignatureAndCompletionTable.Empty(options, DocumentIdentifier), new Dictionary<ImplementationId, IdeImplementationView>(),
         Array.Empty<Counterexample>(),
         false, Array.Empty<Diagnostic>(),

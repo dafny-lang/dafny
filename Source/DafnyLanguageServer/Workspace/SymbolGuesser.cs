@@ -1,4 +1,5 @@
-﻿using Microsoft.Dafny.LanguageServer.Language.Symbols;
+﻿using System;
+using Microsoft.Dafny.LanguageServer.Language.Symbols;
 using Microsoft.Dafny.LanguageServer.Util;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
@@ -15,13 +16,13 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       this.logger = logger;
     }
 
-    public bool TryGetSymbolBefore(IdeState state, Position position, CancellationToken cancellationToken, [NotNullWhen(true)] out ISymbol? symbol) {
-      (symbol, _) = new Guesser(logger, state, cancellationToken).GetSymbolAndItsTypeBefore(position);
+    public bool TryGetSymbolBefore(IdeState state, Uri uri, Position position, CancellationToken cancellationToken, [NotNullWhen(true)] out ISymbol? symbol) {
+      (symbol, _) = new Guesser(logger, state, cancellationToken).GetSymbolAndItsTypeBefore(uri, position);
       return symbol != null;
     }
 
-    public bool TryGetTypeBefore(IdeState state, Position position, CancellationToken cancellationToken, [NotNullWhen(true)] out ISymbol? typeSymbol) {
-      (_, typeSymbol) = new Guesser(logger, state, cancellationToken).GetSymbolAndItsTypeBefore(position);
+    public bool TryGetTypeBefore(IdeState state, Uri uri, Position position, CancellationToken cancellationToken, [NotNullWhen(true)] out ISymbol? typeSymbol) {
+      (_, typeSymbol) = new Guesser(logger, state, cancellationToken).GetSymbolAndItsTypeBefore(uri, position);
       return typeSymbol != null;
     }
 
@@ -36,13 +37,13 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         this.cancellationToken = cancellationToken;
       }
 
-      public (ISymbol? Designator, ISymbol? Type) GetSymbolAndItsTypeBefore(Position requestPosition) {
+      public (ISymbol? Designator, ISymbol? Type) GetSymbolAndItsTypeBefore(Uri uri, Position requestPosition) {
         var position = GetLinePositionBefore(requestPosition);
         if (position == null) {
           logger.LogTrace("the request position {Position} is at the beginning of the line, no chance to find a symbol there", requestPosition);
           return (null, null);
         }
-        var memberAccesses = GetMemberAccessChainEndingAt(position);
+        var memberAccesses = GetMemberAccessChainEndingAt(uri, position);
         if (memberAccesses.Length == 0) {
           logger.LogDebug("could not resolve the member access chain in front of of {Position}", requestPosition);
           return (null, null);
@@ -120,10 +121,11 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           .FirstOrDefault(child => child.Name == name);
       }
 
-      private string[] GetMemberAccessChainEndingAt(Position position) {
-        // TODO decide what to do with this
-        return new string[0];
-        // var absolutePosition = state.TextDocumentItem.ToIndex(position);
+      private string[] GetMemberAccessChainEndingAt(Uri uri, Position position) {
+        var node = state.Program.FindNode(uri, position.ToDafnyPosition());
+        var printThing = node.RangeToken.PrintOriginal();
+        printThing = printThing.EndsWith(".") ? printThing.Substring(0, printThing.Length - 1) : printThing;
+        return new[] { printThing };
         // return new MemberAccessChainResolver(state.TextDocumentItem.Text, absolutePosition, cancellationToken).ResolveFromBehind().Reverse().ToArray();
       }
     }

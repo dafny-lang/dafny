@@ -68,24 +68,21 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
       }
 
       public CompletionList Process() {
-        if (GetTriggerCharacter() == ".") {
+        if (IsDotExpression()) {
           return CreateDotCompletionList();
         }
         return new CompletionList();
       }
 
-      private string GetTriggerCharacter() {
-        // TODO decide what to do with this.
-        return null;
-        // Cannot use _request.Context.TriggerCharacter at this time, since _request.Context appears to be always null.
-        // var documentText = state.TextDocumentItem;
-        // int index = documentText.ToIndex(request.Position) - 1;
-        // return documentText.Text[index].ToString();
+      private bool IsDotExpression() {
+        var node = state.Program.FindNode(request.TextDocument.Uri.ToUri(), request.Position.ToDafnyPosition());
+        return node.RangeToken.EndToken.val == ".";
       }
 
       private CompletionList CreateDotCompletionList() {
         IEnumerable<ISymbol> members;
-        if (symbolGuesser.TryGetTypeBefore(state, GetDotPosition(), cancellationToken, out var typeSymbol)) {
+        if (symbolGuesser.TryGetTypeBefore(state, 
+              request.TextDocument.Uri.ToUri(), GetDotPosition(), cancellationToken, out var typeSymbol)) {
           if (typeSymbol is TypeWithMembersSymbolBase typeWithMembersSymbol) {
             members = typeWithMembersSymbol.Members;
           } else {

@@ -22,10 +22,11 @@ public class DocumentAfterParsing : Document {
 
   private IEnumerable<DafnyDiagnostic> FileResolutionDiagnostics => ResolutionDiagnostics.GetOrDefault(DocumentIdentifier.Uri, Enumerable.Empty<DafnyDiagnostic>);
 
-  public Dafny.Program Program { get; }
+  public Program Program { get; }
 
   public override IdeState ToIdeState(IdeState previousState) {
     return previousState with {
+      Program = Program,
       DocumentIdentifier = DocumentIdentifier,
       ResolutionDiagnostics = ComputeFileAndIncludesResolutionDiagnostics(),
       ImplementationsWereUpdated = false,
