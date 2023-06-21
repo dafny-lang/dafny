@@ -80,7 +80,8 @@ public class OpaqueMemberRewriter : IRewriter {
     Contract.Requires(c != null);
     var newDecls = new List<MemberDecl>();
     foreach (var member in c.Members.Where(member => member is Function or ConstantField)) {
-      if (!Attributes.Contains(member.Attributes, "opaque") && !member.IsOpaque && !Options.Get(CommonOptionBag.AllOpaque)) {
+      if (!Attributes.Contains(member.Attributes, "opaque") && !member.IsOpaque &&
+          (member is not Function || member is Function { Body: null} || !Options.Get(CommonOptionBag.AllOpaque))) {
         // Nothing to do
       } else if (member is Function { Body: null }) {
         // Nothing to do

@@ -11,62 +11,105 @@ public class AllOpaqueRevealStmtInserter : IRewriter {
     Contract.Requires(moduleDefinition != null);
 
     foreach (var decl in ModuleDefinition.AllCallables(moduleDefinition.TopLevelDecls)) {
-      if (decl is Method method && decl.WhatKind != "lemma") {
+      if (decl is Method { Body: not null } method && decl.WhatKind != "lemma") {
         AddMethodReveals(method);
       }
-      else if (decl is Function func) {
+      else if (decl is Function { Body: not null } func) {
         AddFunctionReveals(func);
       }
     }
   }
 
-  protected void AddMethodReveals(Method m) {
+  private void AddMethodReveals(Method m) {
     Contract.Requires(m != null);
 
     var currentClass = m.EnclosingClass;
 
-    foreach (var iCallable in currentClass.EnclosingModuleDefinition.CallGraph.FindVertex(m).Successors) {
-      var callable = iCallable.N;
+    var vertex = currentClass.EnclosingModuleDefinition.CallGraph.FindVertex(m);
 
-      if (callable is Function func && !func.IsOpaque) {
-        m.Body.Body.Insert(0, BuildRevealStmt(callable, currentClass, m.Tok));
-      }
-    }
-  }
+    if (vertex is null) {
+      return;
+    }  //vertex can be null if m is a Test method.
+    foreach (var callable in vertex.Successors.Select(iCallable => iCallable.N))
+    {
+      if (callable is Function { IsOpaque: false } func) {
+        var revealStmt = BuildRevealStmt(func, currentClass, m.Tok);
 
-  protected void AddFunctionReveals(Function f) {
-    Contract.Requires(f != null);
-
-    var currentClass = f.EnclosingClass;
-
-    foreach (var iCallable in currentClass.EnclosingModuleDefinition.CallGraph.FindVertex(f).Successors) {
-      var callable = iCallable.N;
-
-      if (callable is Function func && !func.IsOpaque) {
-        if (f.Body != null) {
-          var orig_expr = f.Body;
-          var new_expr = new StmtExpr(f.Tok, BuildRevealStmt(callable, currentClass, f.Tok), orig_expr);
-          new_expr.Type = orig_expr.Type;
-          f.Body = new_expr;
+        if (revealStmt is not null) {
+          m.Body.Body.Insert(0, revealStmt);
         }
       }
     }
   }
 
-  private RevealStmt BuildRevealStmt(ICallable callable, TopLevelDecl currentClass, IToken tok) {
-    var expressionList = new List<Expression>();
-    expressionList.Add(new ApplySuffix(tok, null,
-      new NameSegment(callable.Tok, callable.NameRelativeToModule, new List<Type>()),
-      new List<ActualBinding>(), tok));
+  private static void AddFunctionReveals(Function f) {
+    Contract.Requires(f != null);
 
-    var receiver = new StaticReceiverExpr(tok,
-      UserDefinedType.FromTopLevelDecl(tok, currentClass, currentClass.TypeArgs),
-      (TopLevelDeclWithMembers)currentClass, true);
+    var currentClass = f.EnclosingClass;
+    
+    var vertex = currentClass.EnclosingModuleDefinition.CallGraph.FindVertex(f);
 
-    var callable_name = "reveal_" + callable.NameRelativeToModule;
-    var member = ((TopLevelDeclWithMembers)currentClass).Members.Find(decl => decl.Name == callable_name);
+    if (vertex is null) {
+      return;
+    }  //vertex can be null if m is a Test method.
 
-    var rr = new MemberSelectExpr(callable.Tok, receiver, callable_name);
+    foreach (var callable in vertex.Successors.Select(iCallable => iCallable.N)) {
+      if (callable is Function { IsOpaque: false } func) {
+        var origExpr = f.Body;
+        var revealStmt = BuildRevealStmt(func, currentClass, f.Tok);
+
+        if (revealStmt is not null) {
+          var newExpr = new StmtExpr(f.Tok, BuildRevealStmt(func, currentClass, f.Tok), origExpr);
+          newExpr.Type = origExpr.Type;
+          f.Body = newExpr;
+        }
+        
+      }
+    }
+  }
+
+  private static RevealStmt BuildRevealStmt(Function callable, TopLevelDecl currentClass, IToken tok) {
+    var expressionList = new List<Expression> {
+      new ApplySuffix(tok, null,
+        new NameSegment(callable.Tok, callable.Name, new List<Type>()),
+        new List<ActualBinding>(), tok)
+    };
+
+    var callableClass = ((TopLevelDeclWithMembers)callable.EnclosingClass);
+
+    // Original:
+    // var receiver = new StaticReceiverExpr(tok,
+    //   UserDefinedType.FromTopLevelDecl(tok, currentClass, currentClass.TypeArgs),
+    //   (TopLevelDeclWithMembers)currentClass, true);
+    
+    // var ri = (Resolver_IdentifierExpr)lhs;
+    // // ----- 3. Look up name in type
+    // // expand any synonyms
+    
+    
+    // var receiver = new StaticReceiverExpr(tok, new UserDefinedType(), 
+    //   UserDefinedType.FromTopLevelDecl(tok, callableClass, callableClass.TypeArgs.ConvertAll(obj => new UserDefinedType(tok, "_tuple#0", new List<Type>()) )), callableClass, true);
+
+    var callableName = "reveal_" + callable.Name;
+    // var name = resolutionContext.InReveal ? "reveal_" + expr.SuffixName : expr.SuffixName
+    var member = callableClass.Members.Find(decl => decl.Name == callableName);
+    
+    
+    var receiver = new StaticReceiverExpr(tok, new UserDefinedType(tok, callableName, callableClass, callableClass.TypeArgs.ConvertAll(obj => (Type) Type.Int) ), callableClass, true);
+
+    if (member is null) {
+      return null;
+    }
+
+    var ty = new UserDefinedType(tok, callableName, callableClass, callableClass.TypeArgs.ConvertAll(obj =>
+      ((Type)(new UserDefinedType(tok, "_tuple#0", new List<Type>())))));
+    
+    // var receiver = new StaticReceiverExpr(tok, (UserDefinedType)ty.NormalizeExpand(), callableClass, false);
+    // receiver.ContainerExpression = expr.Lhs;
+    
+    
+    callableName = ((ICallable)member).NameRelativeToModule;
+    var rr = new MemberSelectExpr(callable.Tok, receiver, callableName);
     rr.Type = new UserDefinedType(tok, "_default", new List<Type>());;
     rr.Member = member;
     rr.TypeApplication_JustMember = new List<Type>();
@@ -79,6 +122,7 @@ public class AllOpaqueRevealStmtInserter : IRewriter {
     var revealStmt = new RevealStmt(callable.RangeToken, expressionList);
     revealStmt.ResolvedStatements.Add(call);
     revealStmt.IsGhost = true;
+    // revealStmt.Attributes = new Attributes("", new List<Expression>(), null);
 
     return revealStmt;
   }

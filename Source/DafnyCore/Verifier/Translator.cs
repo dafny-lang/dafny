@@ -5778,7 +5778,7 @@ namespace Microsoft.Dafny {
           formals.Add(BplFormalVar("$fuel", predef.LayerType, true));
           AddFuelSuccSynonymAxiom(f, true);
         }
-        if (f.IsOpaque) {
+        if (f.IsOpaque || options.Get(CommonOptionBag.AllOpaque)) {
           vars.Add(BplBoundVar("$reveal", Boogie.Type.Bool, out var reveal));
           args.Add(reveal);
           formals.Add(BplFormalVar("$reveal", Boogie.Type.Bool, true));
