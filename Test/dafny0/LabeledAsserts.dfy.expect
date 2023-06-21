@@ -24,7 +24,7 @@ LabeledAsserts.dfy(211,15): Error: assertion might not hold
 LabeledAsserts.dfy(224,20): Error: assertion might not hold
 LabeledAsserts.dfy(226,11): Error: assertion might not hold
 LabeledAsserts.dfy(232,11): Error: assertion might not hold
-LabeledAsserts.dfy(252,6): Error: the calculation step between the previous line and this line might not hold
+LabeledAsserts.dfy(252,6): Error: the calculation step between the previous line and this line could not be proved
 LabeledAsserts.dfy(265,9): Error: assertion might not hold
 
 Dafny program verifier finished with 11 verified, 26 errors
