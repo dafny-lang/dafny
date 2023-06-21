@@ -514,7 +514,6 @@ namespace Microsoft.Dafny {
     }
     
     public string DafnyName => RangeToken == null || tok.line == 0 ? Name : RangeToken.PrintOriginal();
-    
     public string DisplayName =>
       LocalVariable.DisplayNameHelper(this);
 
@@ -698,7 +697,6 @@ namespace Microsoft.Dafny {
   [DebuggerDisplay("Bound<{name}>")]
   public class BoundVar : NonglobalVariable {
     public override bool IsMutable => false;
-    
     public BoundVar(IToken tok, string name, Type type)
       : base(tok, name, type, false) {
       Contract.Requires(tok != null);
