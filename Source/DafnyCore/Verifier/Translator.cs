@@ -821,12 +821,12 @@ namespace Microsoft.Dafny {
 
       if (InsertChecksums) {
         foreach (var impl in sink.Implementations) {
-          if (impl.FindStringAttribute("checksum") == null) {
+          if (impl.FindAttribute("checksum") == null) {
             impl.AddAttribute("checksum", "stable");
           }
         }
         foreach (var func in sink.Functions) {
-          if (func.FindStringAttribute("checksum") == null) {
+          if (func.FindAttribute("checksum") == null) {
             func.AddAttribute("checksum", "stable");
           }
         }
@@ -3362,15 +3362,15 @@ namespace Microsoft.Dafny {
           if (vdecl.Update is AssignOrReturnStmt ars) {
             foreach (var sx in ars.ResolvedStatements) {
               if (sx is VarDeclStmt vdecl2) {
-                vdecl2.Locals.Iter(RemoveDefiniteAssignmentTracker);
+                vdecl2.Locals.ForEach(RemoveDefiniteAssignmentTracker);
               }
             }
           }
-          vdecl.Locals.Iter(RemoveDefiniteAssignmentTracker);
+          vdecl.Locals.ForEach(RemoveDefiniteAssignmentTracker);
         } else if (s is AssignOrReturnStmt ars) {
           foreach (var sx in ars.ResolvedStatements) {
             if (sx is VarDeclStmt vdecl2) {
-              vdecl2.Locals.Iter(RemoveDefiniteAssignmentTracker);
+              vdecl2.Locals.ForEach(RemoveDefiniteAssignmentTracker);
             }
           }
         }
@@ -6938,7 +6938,7 @@ namespace Microsoft.Dafny {
           outParams.Add(new Bpl.Formal(p.tok, new Bpl.TypedIdent(p.tok, p.AssignUniqueName(currentDeclaration.IdGenerator), varType, wh), false));
         }
         // tear down definite-assignment trackers
-        m.Outs.Iter(RemoveDefiniteAssignmentTracker);
+        m.Outs.ForEach(RemoveDefiniteAssignmentTracker);
         Contract.Assert(definiteAssignmentTrackers.Count == 0);
 
         if (kind == MethodTranslationKind.Implementation) {
@@ -10591,7 +10591,7 @@ namespace Microsoft.Dafny {
         }
         visitor.Visit(body);
       }
-      return LinqExtender.Zip(f.Formals, fexp.Args).All(formal_concrete => CanSafelySubstitute(visitor.TriggerVariables, formal_concrete.Item1, formal_concrete.Item2));
+      return Enumerable.Zip(f.Formals, fexp.Args).All(formal_concrete => CanSafelySubstitute(visitor.TriggerVariables, formal_concrete.Item1, formal_concrete.Item2));
     }
 
     // Using an empty set of old expressions is ok here; the only uses of the triggersCollector will be to check for trigger killers.
@@ -10717,8 +10717,8 @@ namespace Microsoft.Dafny {
     // No expression introduces a type variable
     static void ComputeFreeTypeVariables(Expression expr, ISet<TypeParameter> fvs) {
       ComputeFreeTypeVariables(expr.Type, fvs);
-      expr.ComponentTypes.Iter(ty => ComputeFreeTypeVariables((Type)ty, fvs));
-      expr.SubExpressions.Iter(ee => ComputeFreeTypeVariables(ee, fvs));
+      expr.ComponentTypes.ForEach(ty => ComputeFreeTypeVariables((Type)ty, fvs));
+      expr.SubExpressions.ForEach(ee => ComputeFreeTypeVariables(ee, fvs));
     }
 
     static void ComputeFreeTypeVariables(Type ty, ISet<TypeParameter> fvs) {
@@ -10728,7 +10728,7 @@ namespace Microsoft.Dafny {
         Contract.Assert(ty.TypeArgs.Count == 0);
         fvs.Add(tp);
       } else {
-        ty.NormalizeExpandKeepConstraints().TypeArgs.Iter(tt => ComputeFreeTypeVariables(tt, fvs));
+        ty.NormalizeExpandKeepConstraints().TypeArgs.ForEach(tt => ComputeFreeTypeVariables(tt, fvs));
       }
     }
 
@@ -10737,7 +10737,7 @@ namespace Microsoft.Dafny {
       if (ty.IsTypeParameter) {
         fvs.Add(ty.AsTypeParameter);
       }
-      ty.NormalizeExpandKeepConstraints().TypeArgs.Iter(tt => ComputeFreeTypeVariables_All(tt, fvs));
+      ty.NormalizeExpandKeepConstraints().TypeArgs.ForEach(tt => ComputeFreeTypeVariables_All(tt, fvs));
     }
 
     public bool UsesHeap(Expression expr) {
@@ -10847,7 +10847,7 @@ namespace Microsoft.Dafny {
         return body;
       }
       for (var tt = trg; tt != null; tt = tt.Next) {
-        tt.Tr.Iter(ee => vis.Visit(ee));
+        tt.Tr.ForEach(ee => vis.Visit(ee));
       }
 
       var args = new List<Bpl.Variable>();
