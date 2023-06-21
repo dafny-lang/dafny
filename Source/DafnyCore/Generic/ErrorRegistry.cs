@@ -7,8 +7,7 @@ using System.Collections.Generic;
 namespace Microsoft.Dafny;
 
 public record DafnyPosition(int Line, int Column) : IComparable<DafnyPosition> {
-  public int CompareTo(DafnyPosition other)
-  {
+  public int CompareTo(DafnyPosition other) {
     var lineComparison = Line.CompareTo(other.Line);
     if (lineComparison != 0) {
       return lineComparison;

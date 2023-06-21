@@ -38,7 +38,7 @@ public class EmptyNode : Node {
 public abstract class Node : INode {
 
 
-  
+
   public abstract IToken Tok { get; }
 
   /// <summary>

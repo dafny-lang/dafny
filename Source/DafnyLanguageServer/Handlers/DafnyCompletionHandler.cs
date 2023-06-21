@@ -81,7 +81,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
 
       private CompletionList CreateDotCompletionList() {
         IEnumerable<ISymbol> members;
-        if (symbolGuesser.TryGetTypeBefore(state, 
+        if (symbolGuesser.TryGetTypeBefore(state,
               request.TextDocument.Uri.ToUri(), GetDotPosition(), cancellationToken, out var typeSymbol)) {
           if (typeSymbol is TypeWithMembersSymbolBase typeWithMembersSymbol) {
             members = typeWithMembersSymbol.Members;

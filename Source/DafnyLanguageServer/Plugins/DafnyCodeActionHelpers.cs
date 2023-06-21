@@ -49,19 +49,19 @@ public static class DafnyCodeActionHelpers {
       var text = token.LeadingTrivia + token.val + token.TrailingTrivia;
       for (int index = text.Length - 1; index >= 0; index--) {
         var c = text[index];
-        
+
         if (c == '\n') {
           if (!firstNewline) {
             goto Exit;
           }
-        
+
           firstNewline = false;
         }
-        
+
         if (c == '\t') {
           useTabs = true;
         }
-        
+
         if (!firstNewline) {
           if (c == ' ' || c == '\t') {
             indentation++;
@@ -72,7 +72,7 @@ public static class DafnyCodeActionHelpers {
       }
       token = token.Prev;
     }
-    Exit:
+  Exit:
 
     if (startLine == endToken.line - 1) {
       // Override case {\n} with some spacing, we return a default value of 2 spaces or 1 tab, if we find some

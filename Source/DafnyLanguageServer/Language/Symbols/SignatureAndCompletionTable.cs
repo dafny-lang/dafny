@@ -53,8 +53,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         symbolsResolved: false);
     }
 
-    public static Program GetEmptyProgram(DafnyOptions options, VersionedTextDocumentIdentifier documentIdentifier)
-    {
+    public static Program GetEmptyProgram(DafnyOptions options, VersionedTextDocumentIdentifier documentIdentifier) {
       var outerModule = new DefaultModuleDefinition(new List<Uri>() { documentIdentifier.Uri.ToUri() }, false);
       var errorReporter = new DiagnosticErrorReporter(options, documentIdentifier.Uri);
       var compilation = new CompilationData(options, new List<Include>(), new List<Uri>(), Sets.Empty<Uri>(),
