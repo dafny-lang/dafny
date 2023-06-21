@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.IO;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
@@ -16,8 +17,17 @@ public class LanguageServerFilesystem : IFileSystem {
     }
   }
 
-  private ConcurrentDictionary<Uri, Entry> openFiles = new();
+  private readonly ConcurrentDictionary<Uri, Entry> openFiles = new();
 
+  public void OpenDocument(TextDocumentItem document) {
+    var uri = document.Uri.ToUri();
+    if (openFiles.ContainsKey(uri)) {
+      throw new InvalidOperationException($"Cannot open file {uri} because it is already open");
+    }
+
+    openFiles[uri] = new Entry(new TextBuffer(document.Text), document.Version!.Value);
+  }
+  
   public void UpdateDocument(DidChangeTextDocumentParams documentChange) {
     var uri = documentChange.TextDocument.Uri.ToUri();
     if (!openFiles.TryGetValue(uri, out var entry)) {
@@ -43,7 +53,14 @@ public class LanguageServerFilesystem : IFileSystem {
     }
 
     entry.Buffer = mergedBuffer;
+  }
+  
+  public void CloseDocument(TextDocumentIdentifier document) {
+    var uri = document.Uri.ToUri();
 
+    if (!openFiles.TryRemove(uri, out _)) {
+      throw new InvalidOperationException($"Cannot close file {uri} because it was not open.");
+    }
   }
 
   public TextReader ReadFile(Uri uri) {
@@ -52,14 +69,5 @@ public class LanguageServerFilesystem : IFileSystem {
     }
 
     return new StreamReader(uri.LocalPath);
-  }
-
-  public void OpenDocument(TextDocumentItem document) {
-    var uri = document.Uri.ToUri();
-    if (openFiles.ContainsKey(uri)) {
-      throw new InvalidOperationException($"Cannot open file {uri} because it is already open");
-    }
-
-    openFiles[uri] = new Entry(new TextBuffer(document.Text), document.Version!.Value);
   }
 }

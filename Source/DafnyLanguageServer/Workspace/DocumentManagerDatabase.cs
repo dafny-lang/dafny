@@ -49,6 +49,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     public async Task<bool> CloseDocumentAsync(TextDocumentIdentifier documentId) {
+      fileSystem.CloseDocument(documentId);
       if (documents.Remove(documentId.Uri, out var state)) {
         await state.CloseAsync();
         return true;
