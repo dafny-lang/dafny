@@ -416,7 +416,7 @@ namespace Microsoft.Dafny {
       }
 
       // final pass to propagate visibility of exported imports
-      var sigs = sortedExportDecls.Select(d => d.Signature).Concat1(sig);
+      var sigs = sortedExportDecls.Select(d => d.Signature).Append(sig);
 
       foreach (var s in sigs) {
         foreach (var decl in s.TopLevels) {
@@ -1134,7 +1134,7 @@ namespace Microsoft.Dafny {
         foreach (TopLevelDecl d in declarations) {
           if (d is IteratorDecl) {
             var iter = (IteratorDecl)d;
-            iter.SubExpressions.Iter(e => CheckExpression(e, this, iter));
+            iter.SubExpressions.ForEach(e => CheckExpression(e, this, iter));
             if (iter.Body != null) {
               ComputeGhostInterest(iter.Body, false, null, iter);
               CheckExpression(iter.Body, this, iter);
@@ -1302,7 +1302,7 @@ namespace Microsoft.Dafny {
         // Note that this check can only be done after determining which expressions are ghosts.
         foreach (var d in declarations) {
           for (var attr = d.Attributes; attr != null; attr = attr.Prev) {
-            attr.Args.Iter(e => CheckTypeCharacteristics_Expr(e, true));
+            attr.Args.ForEach(e => CheckTypeCharacteristics_Expr(e, true));
           }
 
           if (d is IteratorDecl) {
@@ -1476,7 +1476,7 @@ namespace Microsoft.Dafny {
           } else if (d is DatatypeDecl) {
             var dd = (DatatypeDecl)d;
             foreach (var ctor in dd.Ctors) {
-              ctor.Formals.Iter(formal => CheckVariance(formal.Type, dd, TypeParameter.TPVariance.Co, false));
+              ctor.Formals.ForEach(formal => CheckVariance(formal.Type, dd, TypeParameter.TPVariance.Co, false));
             }
           }
         }
@@ -1898,7 +1898,7 @@ namespace Microsoft.Dafny {
           }
 
           if (prevErrCnt == reporter.Count(ErrorLevel.Error) && member is ICodeContext) {
-            member.SubExpressions.Iter(e => CheckExpression(e, this, (ICodeContext)member));
+            member.SubExpressions.ForEach(e => CheckExpression(e, this, (ICodeContext)member));
           }
         }
       }
@@ -3822,7 +3822,7 @@ namespace Microsoft.Dafny {
         }
       } else if (stmt is VarDeclStmt) {
         var s = (VarDeclStmt)stmt;
-        s.Locals.Iter(local => localsAllowedInUpdates.Add(local));
+        s.Locals.ForEach(local => localsAllowedInUpdates.Add(local));
       } else if (stmt is ModifyStmt) {
         // no further complaints (note, ghost interests have already checked for 'modify' statements)
       } else if (stmt is BlockStmt) {

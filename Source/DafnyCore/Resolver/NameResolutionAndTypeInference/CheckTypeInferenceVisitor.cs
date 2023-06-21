@@ -66,10 +66,10 @@ class CheckTypeInferenceVisitor : ASTVisitor<TypeInferenceCheckingContext> {
       // The resolution of the calc statement builds up .Steps and .Result, which are of the form E0 OP E1, where
       // E0 and E1 are expressions from .Lines.  These additional expressions still need to have their .ResolvedOp
       // fields filled in, so we visit them, rather than just the parsed .Lines.
-      Attributes.SubExpressions(calcStmt.Attributes).Iter(e => VisitExpression(e, context));
-      calcStmt.Steps.Iter(e => VisitExpression(e, context));
+      Attributes.SubExpressions(calcStmt.Attributes).ForEach(e => VisitExpression(e, context));
+      calcStmt.Steps.ForEach(e => VisitExpression(e, context));
       VisitExpression(calcStmt.Result, context);
-      calcStmt.Hints.Iter(hint => VisitStatement(hint, context));
+      calcStmt.Hints.ForEach(hint => VisitStatement(hint, context));
       return false; // we're done with all subcomponents of the CalcStmt
     }
 
@@ -85,13 +85,13 @@ class CheckTypeInferenceVisitor : ASTVisitor<TypeInferenceCheckingContext> {
       }
     } else if (stmt is VarDeclPattern) {
       var s = (VarDeclPattern)stmt;
-      s.LocalVars.Iter(local => CheckTypeIsDetermined(local.Tok, local.Type, "local variable"));
-      s.LocalVars.Iter(local => CheckTypeArgsContainNoOrdinal(local.Tok, local.Type, context));
+      s.LocalVars.ForEach(local => CheckTypeIsDetermined(local.Tok, local.Type, "local variable"));
+      s.LocalVars.ForEach(local => CheckTypeArgsContainNoOrdinal(local.Tok, local.Type, context));
 
     } else if (stmt is ForallStmt) {
       var s = (ForallStmt)stmt;
-      s.BoundVars.Iter(bv => CheckTypeIsDetermined(bv.tok, bv.Type, "bound variable"));
-      s.BoundVars.Iter(bv => CheckTypeArgsContainNoOrdinal(bv.tok, bv.Type, context));
+      s.BoundVars.ForEach(bv => CheckTypeIsDetermined(bv.tok, bv.Type, "bound variable"));
+      s.BoundVars.ForEach(bv => CheckTypeArgsContainNoOrdinal(bv.tok, bv.Type, context));
 
     } else if (stmt is AssignSuchThatStmt) {
       var s = (AssignSuchThatStmt)stmt;
@@ -396,7 +396,7 @@ class CheckTypeInferenceVisitor : ASTVisitor<TypeInferenceCheckingContext> {
       // need to do them here again for the prefix predicates/lemmas.
     } else {
       t = t.NormalizeExpand();
-      t.TypeArgs.Iter(rg => CheckContainsNoOrdinal(ResolutionErrors.ErrorId.r_no_ORDINAL_as_type_parameter, tok, rg, "an ORDINAL type is not allowed to be used as a type argument"));
+      t.TypeArgs.ForEach(rg => CheckContainsNoOrdinal(ResolutionErrors.ErrorId.r_no_ORDINAL_as_type_parameter, tok, rg, "an ORDINAL type is not allowed to be used as a type argument"));
     }
   }
 
@@ -408,6 +408,6 @@ class CheckTypeInferenceVisitor : ASTVisitor<TypeInferenceCheckingContext> {
     if (t.IsBigOrdinalType) {
       resolver.ReportError(errorId, tok, errMsg);
     }
-    t.TypeArgs.Iter(rg => CheckContainsNoOrdinal(errorId, tok, rg, errMsg));
+    t.TypeArgs.ForEach(rg => CheckContainsNoOrdinal(errorId, tok, rg, errMsg));
   }
 }

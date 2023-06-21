@@ -83,7 +83,7 @@ class ScopeCloner : DeepModuleSignatureCloner {
     basem.ResolvedPrefixNamedModules.RemoveAll(RemovePredicate);
 
     basem.TopLevelDecls.OfType<TopLevelDeclWithMembers>().
-      Iter(t => t.Members.RemoveAll(IsInvisibleClone));
+      ForEach(t => t.Members.RemoveAll(IsInvisibleClone));
 
     return basem;
   }

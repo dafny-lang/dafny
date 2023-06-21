@@ -170,7 +170,7 @@ namespace Microsoft.Dafny {
 
       protected override void VisitExpression(Expression expr, BoundsDiscoveryContext context) {
         if (expr is LambdaExpr lambdaExpr) {
-          lambdaExpr.Reads.Iter(DesugarFunctionsInFrameClause);
+          lambdaExpr.Reads.ForEach(DesugarFunctionsInFrameClause);
 
           // Make the context more specific when visiting inside a lambda expression
           context = new BoundsDiscoveryContext(context, lambdaExpr);
@@ -481,7 +481,7 @@ namespace Microsoft.Dafny {
 
       var formals = fce.Function.Formals;
       Contract.Assert(formals.Count == fce.Args.Count);
-      if (LinqExtender.Zip(formals, fce.Args).Any(t => t.Item1.IsOlder && t.Item2.Resolved is IdentifierExpr ide && ide.Var == (IVariable)boundVariable)) {
+      if (Enumerable.Zip(formals, fce.Args).Any(t => t.Item1.IsOlder && t.Item2.Resolved is IdentifierExpr ide && ide.Var == (IVariable)boundVariable)) {
         bounds.Add(new ComprehensionExpr.OlderBoundedPool());
         return;
       }

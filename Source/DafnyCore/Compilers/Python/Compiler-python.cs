@@ -101,7 +101,7 @@ namespace Microsoft.Dafny.Compilers {
       wr.WriteLine("from math import floor");
       wr.WriteLine("from itertools import count");
       wr.WriteLine();
-      Imports.Iter(module => wr.WriteLine($"import {module}"));
+      Imports.ForEach(module => wr.WriteLine($"import {module}"));
       if (moduleName != null) {
         wr.WriteLine();
         wr.WriteLine($"assert \"{moduleName}\" == __name__");
