@@ -154,14 +154,5 @@ public class DafnyCodeActionInput : IDafnyCodeActionInput {
 
   public IReadOnlyList<DafnyDiagnostic> Diagnostics => Document.AllFileDiagnostics.ToList();
   public VerificationTree VerificationTree => Document.GetInitialDocumentVerificationTree();
-
-  public string Extract(Range range) {
-    throw new Exception("used in testing");
-    // var buffer = Document.DocumentItem;
-    // try {
-    //   return buffer.Extract(range);
-    // } catch (ArgumentException) {
-    //   return "";
-    // }
   }
 }
