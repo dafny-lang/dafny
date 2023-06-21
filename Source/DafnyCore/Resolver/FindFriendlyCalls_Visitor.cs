@@ -57,13 +57,13 @@ class FindFriendlyCalls_Visitor : ResolverTopDownVisitor<CallingPosition> {
       var e = (NestedMatchExpr)expr;
       Visit(e.Source, CallingPosition.Neither);
       var theCp = cp;
-      e.Cases.Iter(kase => Visit((Expression)kase.Body, theCp));
+      e.Cases.ForEach(kase => Visit((Expression)kase.Body, theCp));
       return false;
     } else if (expr is MatchExpr) {
       var e = (MatchExpr)expr;
       Visit(e.Source, CallingPosition.Neither);
       var theCp = cp;
-      e.Cases.Iter(kase => Visit(kase.Body, theCp));
+      e.Cases.ForEach(kase => Visit(kase.Body, theCp));
       return false;
     } else if (expr is ITEExpr) {
       var e = (ITEExpr)expr;

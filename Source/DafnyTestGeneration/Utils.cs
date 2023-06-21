@@ -144,7 +144,7 @@ namespace DafnyTestGeneration {
             AddByMethod(topLevelDecl);
           }
         } else if (d is TopLevelDeclWithMembers withMembers) {
-          withMembers.Members.OfType<Function>().Iter(AddByMethod);
+          withMembers.Members.OfType<Function>().ForEach(AddByMethod);
         }
       }
 
