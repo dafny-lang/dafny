@@ -40,10 +40,10 @@ namespace DafnyTestGeneration {
       program.Resolve(options);
       program.Typecheck(options);
       // TODO: Uncomment when latest changes with Boogie are merged
-      /*engine.EliminateDeadVariables(program);
+      engine.EliminateDeadVariables(program);
       engine.CollectModSets(program);
       engine.Inline(program);
-      program.RemoveTopLevelDeclarations(declaration => declaration is Implementation or Procedure && Utils.DeclarationHasAttribute(declaration, "inline"));*/
+      program.RemoveTopLevelDeclarations(declaration => declaration is Implementation or Procedure && Utils.DeclarationHasAttribute(declaration, "inline"));
       if (options.TestGenOptions.PrintBpl != null) {
         File.WriteAllText(options.TestGenOptions.PrintBpl,
           Utils.GetStringRepresentation(options, program));
@@ -58,7 +58,7 @@ namespace DafnyTestGeneration {
 
     protected bool ImplementationIsToBeTested(Implementation impl) =>
       // TODO: Remove second part of || clause once the latest changes to Boogie are merged
-      (Utils.DeclarationHasAttribute(impl, TestGenerationOptions.TestEntryAttribute) || Utils.DeclarationHasAttribute(impl, TestGenerationOptions.TestInlineAttribute)) &&
+      (Utils.DeclarationHasAttribute(impl, TestGenerationOptions.TestEntryAttribute)) &&
       impl.Name.StartsWith(ImplPrefix) && !impl.Name.EndsWith(CtorPostfix) &&
       !DafnyInfo.IsGhost(impl.VerboseName.Split(" ").First());
 

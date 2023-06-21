@@ -132,9 +132,9 @@ namespace DafnyTestGeneration {
       program.Resolve(options);
       program.Typecheck(options);
       // TODO: Remove next 3 lines when latest changes with Boogie are merged
-      engine.EliminateDeadVariables(program);
+      /*engine.EliminateDeadVariables(program);
       engine.CollectModSets(program);
-      engine.Inline(program);
+      engine.Inline(program);*/
       var writer = new StringWriter();
       var result = await Task.WhenAny(engine.InferAndVerify(writer, program,
             new PipelineStatistics(), null,
