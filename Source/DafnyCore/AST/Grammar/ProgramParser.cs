@@ -223,8 +223,13 @@ public class ProgramParser {
 
   private DafnyFile IncludeToDafnyFile(SystemModuleManager systemModuleManager, ErrorReporter errorReporter, Include include) {
     try {
-      return new DafnyFile(systemModuleManager.Options, include.IncludedFilename, fileSystem.ReadFile(include.IncludedFilename));
-    } catch (Exception) {
+      return new DafnyFile(systemModuleManager.Options, include.IncludedFilename,
+        fileSystem.ReadFile(include.IncludedFilename));
+    } catch (IOException) {
+      errorReporter.Error(MessageSource.Parser, include.tok,
+        $"Unable to open the include {include.IncludedFilename}.");
+      return null;
+    } catch (IllegalDafnyFile) {
       errorReporter.Error(MessageSource.Parser, include.tok,
         $"Unable to open the include {include.IncludedFilename}.");
       return null;
