@@ -384,10 +384,14 @@ public class Compilation {
     var result = Formatting.__default.ReindentProgramFromFirstToken(firstToken,
       IndentationFormatter.ForProgram(parsedDocument.Program));
 
+    var lastToken = firstToken;
+    while (lastToken.Next != null) {
+      lastToken = lastToken.Next;
+    }
     // TODO: https://github.com/dafny-lang/dafny/issues/3415
     return new TextEditContainer(new TextEdit[] {
-      // TODO I'm guessing firstToken.Prev doesn't give the last token. Should it? 
-      new() {NewText = result, Range = new Range(firstToken.GetLspPosition(), firstToken.Prev.GetLspPosition())}
+      // TODO end position doesn't take into account trailing trivia
+      new() {NewText = result, Range = new Range(new Position(0,0), lastToken.GetLspPosition())}
     });
 
   }
