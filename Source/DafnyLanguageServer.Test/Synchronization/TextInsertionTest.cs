@@ -154,7 +154,7 @@ class Test {
     private static void AssertCorrectBufferUpdate(string source, IEnumerable<(Range Range, string Change)> ranges, string expected) {
       var buffer = new TextBuffer(source);
 
-      foreach (var range in ranges) {
+      foreach (var (range, change) in ranges) {
         buffer = buffer.ApplyTextChange(new TextDocumentContentChangeEvent() {
           Range = range,
           RangeLength = range.End.Character,

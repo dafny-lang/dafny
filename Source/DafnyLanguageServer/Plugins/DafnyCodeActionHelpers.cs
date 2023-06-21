@@ -46,7 +46,7 @@ public static class DafnyCodeActionHelpers {
     var token = endToken;
     while (true) {
       // TODO optimise by just looking at LeadingTrivia
-      var text = token.LeadingTrivia + token.val + token.TrailingTrivia;
+      var text = token.LeadingTrivia;
       for (int index = text.Length - 1; index >= 0; index--) {
         var c = text[index];
 
