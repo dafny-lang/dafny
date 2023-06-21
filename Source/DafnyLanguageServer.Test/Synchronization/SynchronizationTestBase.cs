@@ -42,7 +42,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
       return ApplyChangesAndWaitCompletionAsync(new VersionedTextDocumentIdentifier() {
         Version = documentItem.Version!.Value,
         Uri = documentItem.Uri
-      });
+      }, changes);
     }
 
     protected Task ApplyChangesAndWaitCompletionAsync(VersionedTextDocumentIdentifier documentItem, params TextDocumentContentChangeEvent[] changes) {

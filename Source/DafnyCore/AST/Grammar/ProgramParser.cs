@@ -13,12 +13,12 @@ using static Microsoft.Dafny.ParseErrors;
 namespace Microsoft.Dafny;
 
 public interface IFileSystem {
-  TextReader OpenFile(Uri uri);
+  TextReader ReadFile(Uri uri);
 }
 
 public class OnDiskFileSystem : IFileSystem {
   public static readonly IFileSystem Instance = new OnDiskFileSystem();
-  public TextReader OpenFile(Uri uri) {
+  public TextReader ReadFile(Uri uri) {
     return new StreamReader(File.Open(uri.LocalPath, FileMode.Open));
   }
 }
@@ -234,7 +234,7 @@ public class ProgramParser {
 
   private DafnyFile IncludeToDafnyFile(SystemModuleManager systemModuleManager, ErrorReporter errorReporter, Include include) {
     try {
-      return new DafnyFile(systemModuleManager.Options, include.IncludedFilename, fileSystem.OpenFile(include.IncludedFilename));
+      return new DafnyFile(systemModuleManager.Options, include.IncludedFilename, fileSystem.ReadFile(include.IncludedFilename));
     } catch (Exception) {
       errorReporter.Error(MessageSource.Parser, include.tok,
         $"Unable to open the include {include.IncludedFilename}.");

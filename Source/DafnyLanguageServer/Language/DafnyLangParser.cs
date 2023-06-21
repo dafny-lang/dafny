@@ -61,7 +61,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         var result = cachingParser.ParseFiles(document.Uri.ToString(),
           new DafnyFile[]
           {
-            new(reporter.Options, uri, fileSystem.OpenFile(uri))
+            new(reporter.Options, uri, fileSystem.ReadFile(uri))
           },
           reporter, cancellationToken);
         return result;

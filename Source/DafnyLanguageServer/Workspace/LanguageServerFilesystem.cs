@@ -5,7 +5,7 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace;
 
-class LanguageServerFilesystem : IFileSystem {
+public class LanguageServerFilesystem : IFileSystem {
   internal class Entry {
     public TextBuffer Buffer { get; set; }
     public int Version { get; set; }
@@ -46,7 +46,7 @@ class LanguageServerFilesystem : IFileSystem {
 
   }
 
-  public TextReader OpenFile(Uri uri) {
+  public TextReader ReadFile(Uri uri) {
     if (openFiles.TryGetValue(uri, out var entry)) {
       return new StringReader(entry.Buffer.Text);
     }
