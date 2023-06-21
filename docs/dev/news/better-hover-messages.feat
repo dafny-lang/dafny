@@ -1,0 +1,3 @@
+* {:error} now accepts success messages
+* Better hover messages when using the IDE
+* Harmonized language to use more "could not prove" rather than "might not hold"

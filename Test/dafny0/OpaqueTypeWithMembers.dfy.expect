@@ -8,9 +8,9 @@ OpaqueTypeWithMembers.dfy(90,22): Error: index out of range
 OpaqueTypeWithMembers.dfy(93,18): Error: index out of range
 OpaqueTypeWithMembers.dfy(100,8): Error: possible division by zero
 OpaqueTypeWithMembers.dfy(107,17): Error: possible division by zero
-OpaqueTypeWithMembers.dfy(139,15): Error: function precondition might not hold
+OpaqueTypeWithMembers.dfy(139,15): Error: function precondition could not be proved
 OpaqueTypeWithMembers.dfy(120,13): Related location
-OpaqueTypeWithMembers.dfy(141,16): Error: function precondition might not hold
+OpaqueTypeWithMembers.dfy(141,16): Error: function precondition could not be proved
 OpaqueTypeWithMembers.dfy(115,13): Related location
 OpaqueTypeWithMembers.dfy(113,28): Related location
 

@@ -14,6 +14,8 @@ using Microsoft.Boogie;
 using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 using Microsoft.Dafny.ProofObligationDescription;
+using EnsuresDescription = Microsoft.Dafny.ProofObligationDescription.EnsuresDescription;
+using RequiresDescription = Microsoft.Dafny.ProofObligationDescription.RequiresDescription;
 
 namespace Microsoft.Dafny.LanguageServer.Handlers {
   public class DafnyHoverHandler : HoverHandlerBase {
@@ -213,15 +215,19 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
 
       string GetDescription(Boogie.ProofObligationDescription? description) {
         switch (assertionNode?.StatusVerification) {
-          case GutterVerificationStatus.Verified:
-            return $"{obsolescence}<span style='color:green'>**Success:**</span> " +
-                   (description?.SuccessDescription ?? "_no message_");
+          case GutterVerificationStatus.Verified: {
+              var successDescription = description?.SuccessDescription ?? "_no message_";
+              return $"{obsolescence}<span style='color:green'>**Success:**</span> " +
+                     successDescription;
+            }
           case GutterVerificationStatus.Error:
             var failureDescription = description?.FailureDescription ?? "_no message_";
-            if (currentlyHoveringPostcondition &&
-                  (failureDescription == new PostconditionDescription().FailureDescription ||
-                   failureDescription == new EnsuresDescription().FailureDescription)) {
-              failureDescription = "This postcondition might not hold on a return path.";
+            if (description is EnsuresDescription ensuresDescription) {
+              if (currentlyHoveringPostcondition) {
+                failureDescription = ensuresDescription.FailureDescriptionSingle;
+              } else {
+                failureDescription = ensuresDescription.FailureAtPathDescription;
+              }
             }
             return $"{obsolescence}[**Error:**](https://dafny-lang.github.io/dafny/DafnyRef/DafnyRef#sec-verification-debugging) " +
                    failureDescription;
@@ -235,7 +241,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
 
       string information = "";
 
-      string couldProveOrNotPrefix = (assertionNode?.StatusVerification) switch {
+      string couldProveOrNotPrefix = (assertionNode.StatusVerification) switch {
         GutterVerificationStatus.Verified => "Did prove: ",
         GutterVerificationStatus.Error => "Could not prove: ",
         GutterVerificationStatus.Inconclusive => "Not able to prove: ",
@@ -257,7 +263,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
           // however, nested postconditions should be displayed
           if (errorToken is BoogieRangeToken rangeToken && !hoveringPostcondition) {
             var originalText = rangeToken.PrintOriginal();
-            deltaInformation += "  \n" + couldProveOrNotPrefix + originalText;
+            deltaInformation += "  \n" + (token == null ? couldProveOrNotPrefix : "Inside ") + "`" + originalText + "`";
           }
 
           hoveringPostcondition = false;
@@ -267,15 +273,36 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
       }
 
       if (counterexample is ReturnCounterexample returnCounterexample) {
-        information += GetDescription(returnCounterexample.FailingReturn.Description);
+        if (assertionNode.StatusVerification == GutterVerificationStatus.Error &&
+            returnCounterexample.FailingEnsures.Description.SuccessDescription != "assertion always holds") {
+          // Specialization for ensures marked with {:error} attribute
+          // Note that GetDescription checks if user is hovering postcondition
+          // so if there is no {:error}, it falls back to a correct error message
+          information += GetDescription(returnCounterexample.FailingEnsures.Description);
+        } else {
+          information += GetDescription(returnCounterexample.FailingReturn.Description);
+        }
         information += MoreInformation(returnCounterexample.FailingAssert.tok, currentlyHoveringPostcondition);
       } else if (counterexample is CallCounterexample callCounterexample) {
-        information += GetDescription(callCounterexample.FailingCall.Description);
+        if (assertionNode.StatusVerification == GutterVerificationStatus.Error &&
+            callCounterexample.FailingRequires.Description.SuccessDescription != "assertion always holds"
+            ) {
+          // Specialization for requires marked with {:error} attribute
+          information += GetDescription(callCounterexample.FailingRequires.Description);
+        } else {
+          information += GetDescription(callCounterexample.FailingCall.Description);
+        }
         information += MoreInformation(callCounterexample.FailingRequires.tok, false);
+      } else if (assertCmd is AssertRequiresCmd assertRequiresCmd) {
+        information += GetDescription(assertRequiresCmd.Description);
+        information += MoreInformation(assertRequiresCmd.Requires.tok, currentlyHoveringPostcondition);
+      } else if (assertCmd is AssertEnsuresCmd assertEnsuresCmd) {
+        information += GetDescription(assertEnsuresCmd.Description);
+        information += MoreInformation(assertEnsuresCmd.Ensures.tok, currentlyHoveringPostcondition);
       } else {
         information += GetDescription(assertCmd?.Description);
         if (assertCmd?.tok is NestedToken) {
-          information += MoreInformation(assertCmd.tok, true);
+          information += MoreInformation(assertCmd.tok, currentlyHoveringPostcondition);
         }
       }
 
