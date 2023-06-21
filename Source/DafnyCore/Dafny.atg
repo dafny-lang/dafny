@@ -261,222 +261,178 @@ public enum TokenClass {
   Comment
 }
 
-private static TokenClass ClassifyToken(int kind) { // FIXME rewrite as a dictionary of lists
-  return kind switch {
-    _EOF
-    => TokenClass.Other,
 
-    _ident
-    => TokenClass.Ident,
+private static Dictionary<int, TokenClass> tokenClasses = new Dictionary<int, TokenClass> {
+  {_EOF, TokenClass.Other},
+  {_ident, TokenClass.Ident},
+  {_digits, TokenClass.Digits},
+  {_hexdigits, TokenClass.Digits},
+  {_decimaldigits, TokenClass.Digits},
+  {_true, TokenClass.Constant},
+  {_false, TokenClass.Constant},
+  {_null, TokenClass.Constant},
+  {_this, TokenClass.Special},
+  {_arrayToken, TokenClass.Comprehension},
+  {_bvToken, TokenClass.Comprehension},
+  {_set, TokenClass.Comprehension},
+  {_iset, TokenClass.Comprehension},
+  {_multiset, TokenClass.Comprehension},
+  {_seq, TokenClass.Comprehension},
+  {_map, TokenClass.Comprehension},
+  {_imap, TokenClass.Comprehension},
+  {_uForall, TokenClass.Comprehension}, /* ∀ */
+  {_uExists, TokenClass.Comprehension}, /* ∃ */
+  {_forall, TokenClass.Comprehension},
+  {_exists, TokenClass.Comprehension},
+  {_bool, TokenClass.Type},
+  {_char, TokenClass.Type},
+  {_int, TokenClass.Type},
+  {_nat, TokenClass.Type},
+  {_real, TokenClass.Type},
+  {_ORDINAL, TokenClass.Type},
+  {_object, TokenClass.Type},
+  {_string, TokenClass.Type},
+  {_as, TokenClass.Builtin},
+  {_is, TokenClass.Builtin},
+  {_in, TokenClass.Builtin},
+  {_notIn, TokenClass.Builtin},
+  {_object_q, TokenClass.Builtin},
+  {_new, TokenClass.Macro},
+  {_fresh, TokenClass.Macro},
+  {_old, TokenClass.Macro},
+  {_allocated, TokenClass.Macro},
+  {_unchanged, TokenClass.Macro},
+  {_charToken, TokenClass.String}, /* ' */
+  {_stringToken, TokenClass.String}, /* " */
+  {_colon, TokenClass.Punctuation}, /* : */
+  {_comma, TokenClass.Punctuation}, /* , */
+  {_verticalbar, TokenClass.Punctuation}, /* | */
+  {_doublecolon, TokenClass.Punctuation}, /* :: */
+  {_gets, TokenClass.Punctuation}, /* := */
+  {_boredSmiley, TokenClass.Punctuation}, /* :| */
+  {_bullet, TokenClass.Punctuation}, /* \u2022 */
+  {_dot, TokenClass.Punctuation}, /* . */
+  {_backtick, TokenClass.Punctuation}, /* ` */
+  {_semicolon, TokenClass.Punctuation}, /* ; */
+  {_darrow, TokenClass.Punctuation}, /* => */
+  {_lbracecolon, TokenClass.Punctuation}, /* {: */
+  {_lbrace, TokenClass.Punctuation}, /* { */
+  {_rbrace, TokenClass.Punctuation}, /* } */
+  {_lbracket, TokenClass.Punctuation}, /* [ */
+  {_rbracket, TokenClass.Punctuation}, /* ] */
+  {_openparen, TokenClass.Punctuation}, /* ( */
+  {_closeparen, TokenClass.Punctuation}, /* ) */
+  {_openAngleBracket, TokenClass.Punctuation}, /* < */
+  {_closeAngleBracket, TokenClass.Punctuation}, /* > */
+  {_ellipsis, TokenClass.Punctuation}, /* ... */
+  {_dash, TokenClass.Punctuation}, /* - */
+  {_blankFaceSmiley, TokenClass.Punctuation}, /* :- */
+  {_assume, TokenClass.Assertion},
+  {_assert, TokenClass.Assertion},
+  {_by, TokenClass.Assertion},
+  {_expect, TokenClass.Assertion},
+  {_reveal, TokenClass.Assertion},
+  {_calc, TokenClass.Block},
+  {_case, TokenClass.Block},
+  {_if, TokenClass.Block},
+  {_then, TokenClass.Block},
+  {_else, TokenClass.Block},
+  {_for, TokenClass.Block},
+  {_match, TokenClass.Block},
+  {_while, TokenClass.Block},
+  {_modify, TokenClass.Block},
+  {_break, TokenClass.ControlFlow},
+  {_continue, TokenClass.ControlFlow},
+  {_return, TokenClass.ControlFlow},
+  {_yield, TokenClass.ControlFlow},
+  {_print, TokenClass.Keyword},
+  {_function, TokenClass.Declaration},
+  {_predicate, TokenClass.Declaration},
+  {_copredicate, TokenClass.Declaration},
+  {_lemma, TokenClass.Declaration},
+  {_class, TokenClass.Declaration},
+  {_trait, TokenClass.Declaration},
+  {_datatype, TokenClass.Declaration},
+  {_codatatype, TokenClass.Declaration},
+  {_var, TokenClass.Declaration},
+  {_const, TokenClass.Declaration},
+  {_newtype, TokenClass.Declaration},
+  {_type, TokenClass.Declaration},
+  {_iterator, TokenClass.Declaration},
+  {_method, TokenClass.Declaration},
+  {_colemma, TokenClass.Declaration},
+  {_constructor, TokenClass.Declaration},
+  {_module, TokenClass.Declaration},
+  {_least, TokenClass.Modifier},
+  {_greatest, TokenClass.Modifier},
+  {_inductive, TokenClass.Modifier},
+  {_twostate, TokenClass.Modifier},
+  {_static, TokenClass.Modifier},
+  {_ghost, TokenClass.Modifier},
+  {_abstract, TokenClass.Modifier},
+  {_protected, TokenClass.Modifier},
+  {_nameonly, TokenClass.Modifier},
+  {_older, TokenClass.Modifier},
+  {_import, TokenClass.Directive},
+  {_export, TokenClass.Directive},
+  {_include, TokenClass.Directive},
+  {_opened, TokenClass.Directive},
+  {_modifies, TokenClass.Specification},
+  {_reads, TokenClass.Specification},
+  {_decreases, TokenClass.Specification},
+  {_invariant, TokenClass.Specification},
+  {_requires, TokenClass.Specification},
+  {_ensures, TokenClass.Specification},
+  {_returns, TokenClass.Specification},
+  {_yields, TokenClass.Specification},
+  {_extends, TokenClass.Specification},
+  {_provides, TokenClass.Specification},
+  {_reveals, TokenClass.Specification},
+  {_refines, TokenClass.Specification},
+  {_witness, TokenClass.Specification},
+  {_label, TokenClass.Label},
 
-    _digits
-      or _hexdigits
-      or _decimaldigits
-    => TokenClass.Digits,
+  {_singleeq, TokenClass.Operator}, /* = */
+  {_eq, TokenClass.Operator}, /* == */
+  {_neq, TokenClass.Operator}, /* != */
+  {_neqAlt, TokenClass.Operator}, /* ≠ */
+  {_star, TokenClass.Operator}, /* * */
+  {_at, TokenClass.Operator}, /* @ */
+  {_sarrow, TokenClass.Operator}, /* -> */
+  {_qarrow, TokenClass.Operator}, /* ~> */
+  {_larrow, TokenClass.Operator}, /* --> */
+  {_excl, TokenClass.Operator}, /* ! */
+  {_doublePeriod, TokenClass.Operator}, /* .. */
+  {_forwardSlash, TokenClass.Operator}, /* / */
+  {_amp, TokenClass.Operator}, /* & */
+  {_doubleAmp, TokenClass.Operator}, /* && */
+  {_sharp, TokenClass.Operator}, /* # */
+  {_percent, TokenClass.Operator}, /* % */
+  {_hat, TokenClass.Operator}, /* ^ */
+  {_plus, TokenClass.Operator}, /* + */
+  {_le, TokenClass.Operator}, /* <= */
+  {_ge, TokenClass.Operator}, /* >= */
+  {_doublepipe, TokenClass.Operator}, /* || */
+  {_uNot, TokenClass.Operator}, /* ¬ */
+  {_uLogAnd, TokenClass.Operator}, /* ∧ */
+  {_uLogOr, TokenClass.Operator}, /* ∩ */
+  {_uLe, TokenClass.Operator}, /* ≤ */
+  {_uGe, TokenClass.Operator}, /* ≥ */
+  {_longDoubleLeftArrow, TokenClass.Operator}, /* <== */
+  {_longDoubleRightArrow, TokenClass.Operator}, /* ==> */
+  {_longDoubleLeftRightArrow, TokenClass.Operator}, /* <==> */
+  {_uLongDoubleLeftArrow, TokenClass.Operator}, /* ⇒ */
+  {_uLongDoubleRightArrow, TokenClass.Operator}, /* ⇒ */
+  {_uLongDoubleLeftRightArrow, TokenClass.Operator}, /* ⇔ */
+  {maxT, TokenClass.Other},
+  {_commentToken, TokenClass.Comment}
+};
 
-    _true
-      or _false
-      or _null
-    => TokenClass.Constant,
-
-    _this
-    => TokenClass.Special,
-
-    _arrayToken
-      or _bvToken
-      or _set
-      or _iset
-      or _multiset
-      or _seq
-      or _map
-      or _imap
-      or _uForall /* ∀ */
-      or _uExists /* ∃ */
-      or _forall
-      or _exists
-    => TokenClass.Comprehension,
-
-    _bool
-      or _char
-      or _int
-      or _nat
-      or _real
-      or _ORDINAL
-      or _object
-      or _string
-    => TokenClass.Type,
-
-    _as
-      or _is
-      or _in
-      or _notIn /* !in */
-      or _object_q /* object? */
-    => TokenClass.Builtin,
-
-    _new
-      or _fresh
-      or _old
-      or _allocated
-      or _unchanged
-    => TokenClass.Macro,
-
-    _charToken /* ' */
-      or _stringToken /* " */
-    => TokenClass.String,
-
-    _colon /* : */
-      or _comma /* , */
-      or _verticalbar /* | */
-      or _doublecolon /* :: */
-      or _gets /* := */
-      or _boredSmiley /* :| */
-      or _bullet /* \u2022 */
-      or _dot /* . */
-      or _backtick /* ` */
-      or _semicolon /* ; */
-      or _darrow /* => */
-      or _lbracecolon /* {: */
-      or _lbrace /* { */
-      or _rbrace /* } */
-      or _lbracket /* [ */
-      or _rbracket /* ] */
-      or _openparen /* ( */
-      or _closeparen /* ) */
-      or _openAngleBracket /* < */
-      or _closeAngleBracket /* > */
-      or _ellipsis /* ... */
-      or _dash /* - */
-      or _blankFaceSmiley /* :- */
-    => TokenClass.Punctuation,
-
-    _assume
-      or _assert
-      or _by
-      or _witness
-      or _expect
-      or _reveal
-    => TokenClass.Assertion,
-
-    _calc
-      or _case
-      or _if
-      or _then
-      or _else
-      or _for
-      or _match
-      or _while
-      or _modify
-    => TokenClass.Block,
-
-    _break
-      or _continue
-      or _return
-      or _yield
-    => TokenClass.ControlFlow,
-
-    _print
-    => TokenClass.Keyword,
-
-    _function
-      or _predicate
-      or _copredicate
-      or _lemma
-      or _class
-      or _trait
-      or _datatype
-      or _codatatype
-      or _var
-      or _const
-      or _newtype
-      or _type
-      or _iterator
-      or _method
-      or _colemma
-      or _constructor
-      or _module
-    => TokenClass.Declaration,
-
-    _least
-      or _greatest
-      or _inductive
-      or _twostate
-      or _static
-      or _ghost
-      or _abstract
-      or _protected
-      or _nameonly
-      or _older
-    => TokenClass.Modifier,
-
-    _import
-    or _export
-    or _include
-    or _opened
-    => TokenClass.Directive,
-
-    _modifies
-      or _reads
-      or _decreases
-      or _invariant
-      or _requires
-      or _ensures
-      or _returns
-      or _yields
-      or _extends
-      or _provides
-      or _reveals
-      or _refines
-    => TokenClass.Specification,
-
-    _label
-    => TokenClass.Label,
-
-    _singleeq /*=*/
-      or _eq /* == */
-      or _neq /* != */
-      or _neqAlt /* ≠ */
-      or _star /* * */
-      or _at /* @ */
-      or _sarrow /* -> */
-      or _qarrow /* ~> */
-      or _larrow /* --> */
-      or _excl /* ! */
-      or _doublePeriod /* .. */
-      or _forwardSlash /* / */
-      or _amp /* & */
-      or _doubleAmp /* && */
-      or _sharp /* # */
-      or _percent /* % */
-      or _hat /* ^ */
-      or _plus /* + */
-      or _le /* <= */
-      or _ge /* >= */
-      or _doublepipe /* || */
-      or _uNot /* ¬ */
-      or _uLogAnd /* ∧ */
-      or _uLogOr /* ∨ */
-      or _uLe /* ≤ */
-      or _uGe /* ≥ */
-      or _longDoubleLeftArrow /* <== */
-      or _longDoubleRightArrow /* ==> */
-      or _longDoubleLeftRightArrow /* <==> */
-      or _uLongDoubleLeftArrow /* ⇐ */
-      or _uLongDoubleRightArrow /* ⇒ */
-      or _uLongDoubleLeftRightArrow /* ⇔ */
-    => TokenClass.Operator,
-
-    maxT
-    => TokenClass.Other, // Placeholder in lookup table
-
-    _commentToken
-    => TokenClass.Comment,
-
-    _ =>
-      // This clause ensures that we don't forget to classify new tokens.
-      // If you reach this point, it means that you have added a new token but not updated this switch.
-      // To fix the issue, make sure that your new token appears in TOKENS and then add it above.
-      throw new ArgumentException($"Unclassified token: {kind}")
-  };
+private static TokenClass ClassifyToken(int kind) {
+  if(tokenClasses.TryGetValue(kind, out TokenClass tokenClass)) {
+    return tokenClass;
+  }
+  throw new ArgumentException($"Unclassified token: {kind}");
 }
 
 public static TokenClass[] TokenClassificationMap =
