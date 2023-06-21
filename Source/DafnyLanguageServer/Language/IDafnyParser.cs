@@ -20,6 +20,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     /// <returns>An "empty" dafny program representing the given text document.</returns>
     /// <exception cref="System.OperationCanceledException">Thrown when the cancellation was requested before completion.</exception>
     /// <exception cref="System.ObjectDisposedException">Thrown if the cancellation token was disposed before the completion.</exception>
+    // TODO delete?
     Dafny.Program CreateUnparsed(TextDocumentItem textDocument, ErrorReporter errorReporter, CancellationToken cancellationToken);
 
     Program Parse(TextDocumentIdentifier documentIdentifier, IFileSystem fileSystem, ErrorReporter reporter,
