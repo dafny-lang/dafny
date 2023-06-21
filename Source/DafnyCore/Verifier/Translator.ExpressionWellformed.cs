@@ -567,7 +567,7 @@ namespace Microsoft.Dafny {
             if (!fnCoreType.IsArrowTypeWithoutPreconditions) {
               // check precond
               var precond = FunctionCall(e.tok, Requires(arity), Bpl.Type.Bool, args);
-              builder.Add(Assert(GetToken(expr), precond, new PODesc.PreconditionSatisfied(null)));
+              builder.Add(Assert(GetToken(expr), precond, new PODesc.PreconditionSatisfied(null, null)));
             }
 
             if (wfOptions.DoReadsChecks && !fnCoreType.IsArrowTypeWithoutReadEffects) {
@@ -698,16 +698,16 @@ namespace Microsoft.Dafny {
               // check that the preconditions for the call hold
               foreach (AttributedExpression p in e.Function.Req) {
                 Expression precond = Substitute(p.E, e.Receiver, substMap, e.GetTypeArgumentSubstitutions());
-                string errorMessage = CustomErrorMessage(p.Attributes);
+                var (errorMessage, successMessage) = CustomErrorMessage(p.Attributes);
                 foreach (var ss in TrSplitExpr(precond, etran, true, out var splitHappened)) {
                   if (ss.IsChecked) {
                     var tok = new NestedToken(GetToken(expr), ss.Tok);
-                    var desc = new PODesc.PreconditionSatisfied(errorMessage);
+                    var desc = new PODesc.PreconditionSatisfied(errorMessage, successMessage);
                     if (wfOptions.AssertKv != null) {
                       // use the given assert attribute only
-                      builder.Add(Assert(tok, ss.E, new PODesc.PreconditionSatisfied(errorMessage), wfOptions.AssertKv));
+                      builder.Add(Assert(tok, ss.E, new PODesc.PreconditionSatisfied(errorMessage, successMessage), wfOptions.AssertKv));
                     } else {
-                      builder.Add(AssertNS(tok, ss.E, new PODesc.PreconditionSatisfied(errorMessage)));
+                      builder.Add(AssertNS(tok, ss.E, new PODesc.PreconditionSatisfied(errorMessage, successMessage)));
                     }
                   }
                 }
