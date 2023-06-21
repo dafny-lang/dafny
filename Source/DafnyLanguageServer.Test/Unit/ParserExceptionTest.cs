@@ -41,8 +41,9 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit {
       var documentItem = CreateTestDocument(source, TestFilePath);
       var uri = new Uri("file:///" + TestFilePath);
       var errorReporter = new ParserExceptionSimulatingErrorReporter(options);
-      // TODO fix filesystem.
-      parser.Parse(new DocumentTextBuffer(documentItem), OnDiskFileSystem.Instance, errorReporter, default);
+      var fileSystem = new LanguageServerFilesystem();
+      fileSystem.OpenDocument(documentItem);
+      parser.Parse(new DocumentTextBuffer(documentItem), fileSystem, errorReporter, default);
       Assert.Contains(sink.LogEvents, le => le.MessageTemplate.Text.Contains($"encountered an exception while parsing {uri}"));
       Assert.Equal($"/{TestFilePath}(1,0): Error: [internal error] Parser exception: Simulated parser internal error", errorReporter.LastMessage);
     }

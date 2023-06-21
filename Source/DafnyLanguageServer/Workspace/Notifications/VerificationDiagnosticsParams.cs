@@ -368,7 +368,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     VersionedTextDocumentIdentifier DocumentIdentifier
   ) : VerificationTree("Document", DocumentIdentifier.Uri.ToString(), DocumentIdentifier.Uri.ToString(), DocumentIdentifier.Uri.ToString(),
     DocumentIdentifier.Uri.ToUri(),
-    new Range(0,0,int.MaxValue, int.MaxValue), new Position(0, 0)) {
+    new Range(0, 0, int.MaxValue, int.MaxValue), new Position(0, 0)) {
   }
 
   public record TopLevelDeclMemberVerificationTree(

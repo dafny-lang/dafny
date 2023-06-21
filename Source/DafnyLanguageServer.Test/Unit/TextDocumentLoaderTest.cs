@@ -54,7 +54,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit {
         Version = 1,
       };
     }
-    
+
     private static DocumentTextBuffer CreateTestDocument() {
       return new DocumentTextBuffer(new TextDocumentItem() {
         Uri = DocumentUri.Parse("untitled:untitled1"),
@@ -67,7 +67,8 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit {
     [Fact]
     public async Task LoadReturnsCanceledTaskIfOperationIsCanceled() {
       var source = new CancellationTokenSource();
-      parser.Setup(p => p.Parse(It.IsAny<DocumentTextBuffer>(),
+      parser.Setup(p => p.Parse(
+          It.IsAny<VersionedTextDocumentIdentifier>(),
           It.IsAny<IFileSystem>(),
           It.IsAny<ErrorReporter>(),
           It.IsAny<CancellationToken>())).Callback(() => source.Cancel())
@@ -85,8 +86,10 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit {
 
     [Fact]
     public async Task LoadReturnsFaultedTaskIfAnyExceptionOccured() {
-      parser.Setup(p => p.Parse(It.IsAny<DocumentTextBuffer>(), It.IsAny<IFileSystem>(),
-          It.IsAny<ErrorReporter>(), It.IsAny<CancellationToken>()))
+      parser.Setup(p => p.Parse(It.IsAny<VersionedTextDocumentIdentifier>(),
+          It.IsAny<IFileSystem>(),
+          It.IsAny<ErrorReporter>(),
+          It.IsAny<CancellationToken>()))
         .Throws<InvalidOperationException>();
       var task = textDocumentLoader.LoadAsync(DafnyOptions.Default, CreateTestDocumentId(), fileSystem.Object, default);
       try {

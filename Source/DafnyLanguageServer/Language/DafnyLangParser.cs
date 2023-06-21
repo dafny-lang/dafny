@@ -40,7 +40,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       return new DafnyLangParser(options, fileSystem, telemetryPublisher, loggerFactory);
     }
 
-    public Dafny.Program CreateUnparsed(TextDocumentItem document, ErrorReporter errorReporter, CancellationToken cancellationToken) {
+    public Program CreateUnparsed(TextDocumentItem document, ErrorReporter errorReporter, CancellationToken cancellationToken) {
       mutex.Wait(cancellationToken);
       try {
         return NewDafnyProgram(document, errorReporter);
@@ -51,8 +51,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     }
 
     public Program Parse(TextDocumentIdentifier document, IFileSystem fileSystem, ErrorReporter reporter,
-      CancellationToken cancellationToken) 
-    {
+      CancellationToken cancellationToken) {
       mutex.Wait(cancellationToken);
 
       var beforeParsing = DateTime.Now;

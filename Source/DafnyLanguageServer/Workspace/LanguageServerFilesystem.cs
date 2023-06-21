@@ -15,7 +15,7 @@ public class LanguageServerFilesystem : IFileSystem {
       Version = version;
     }
   }
-    
+
   private ConcurrentDictionary<Uri, Entry> openFiles = new();
 
   public void UpdateDocument(DidChangeTextDocumentParams documentChange) {
@@ -23,7 +23,7 @@ public class LanguageServerFilesystem : IFileSystem {
     if (!openFiles.TryGetValue(uri, out var entry)) {
       throw new InvalidOperationException("Cannot update file that has not been opened");
     }
-      
+
     // According to the LSP specification, document versions should increase monotonically but may be non-consecutive.
     // See: https://github.com/microsoft/language-server-protocol/blob/gh-pages/_specifications/specification-3-16.md?plain=1#L1195
     var oldVer = entry.Version;

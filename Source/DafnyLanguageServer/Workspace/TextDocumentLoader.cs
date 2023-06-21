@@ -71,7 +71,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       );
     }
 
-    public async Task<DocumentAfterParsing> LoadAsync(DafnyOptions options, VersionedTextDocumentIdentifier documentIdentifier, 
+    public async Task<DocumentAfterParsing> LoadAsync(DafnyOptions options, VersionedTextDocumentIdentifier documentIdentifier,
       IFileSystem fileSystem, CancellationToken cancellationToken) {
 #pragma warning disable CS1998
       return await await DafnyMain.LargeStackFactory.StartNew(
@@ -80,7 +80,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         );
     }
 
-    private DocumentAfterParsing LoadInternal(DafnyOptions options, VersionedTextDocumentIdentifier documentIdentifier, 
+    private DocumentAfterParsing LoadInternal(DafnyOptions options, VersionedTextDocumentIdentifier documentIdentifier,
       IFileSystem fileSystem, CancellationToken cancellationToken) {
       var errorReporter = new DiagnosticErrorReporter(options, documentIdentifier.Uri);
       statusPublisher.SendStatusNotification(documentIdentifier, CompilationStatus.Parsing);

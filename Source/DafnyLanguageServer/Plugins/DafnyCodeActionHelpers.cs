@@ -38,7 +38,7 @@ public static class DafnyCodeActionHelpers {
   /// <returns>(extra indentation for a statement, current indentation)</returns>
   public static (string, string) GetIndentationBefore(IToken endToken, int startLine, int startCol) {
 
-    throw new Exception("instead of string text, retrieve the text from the token"); 
+    throw new Exception("instead of string text, retrieve the text from the token");
     var pos = endToken.pos + endToken.val.Length - 1;
     var indentation = 0;
     var indentationBrace = endToken.col - 1;

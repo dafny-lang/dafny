@@ -125,9 +125,8 @@ public class ExceptionTests : ClientBasedLanguageServerTest {
       return loader.CreateUnloaded(documentIdentifier, cancellationToken);
     }
 
-    public Task<DocumentAfterParsing> LoadAsync(DafnyOptions options, VersionedTextDocumentIdentifier documentIdentifier, 
-        IFileSystem fileSystem, CancellationToken cancellationToken) 
-    {
+    public Task<DocumentAfterParsing> LoadAsync(DafnyOptions options, VersionedTextDocumentIdentifier documentIdentifier,
+        IFileSystem fileSystem, CancellationToken cancellationToken) {
       if (tests.CrashOnLoad) {
         throw new IOException("crash");
       }

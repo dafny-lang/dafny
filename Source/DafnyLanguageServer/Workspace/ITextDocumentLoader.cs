@@ -21,7 +21,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     /// <exception cref="System.ObjectDisposedException">Thrown if the cancellation token was disposed before the completion.</exception>
     IdeState CreateUnloaded(VersionedTextDocumentIdentifier documentIdentifier, CancellationToken cancellationToken);
 
-    Task<DocumentAfterParsing> LoadAsync(DafnyOptions options, VersionedTextDocumentIdentifier documentIdentifier, 
+    Task<DocumentAfterParsing> LoadAsync(DafnyOptions options, VersionedTextDocumentIdentifier documentIdentifier,
       IFileSystem fileSystem, CancellationToken cancellationToken);
   }
 }
