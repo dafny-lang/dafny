@@ -5319,7 +5319,7 @@ namespace Microsoft.Dafny.Compilers {
       return result;
     }
 
-    protected virtual void WriteTypeDescriptors(TopLevelDecl decl, List<Type> typeArguments, ConcreteSyntaxTree wrArgumentList, ref string sep) {
+    protected void WriteTypeDescriptors(TopLevelDecl decl, List<Type> typeArguments, ConcreteSyntaxTree wrArgumentList, ref string sep) {
       Contract.Requires(decl.TypeArgs.Count == typeArguments.Count);
       var typeParameters = decl.TypeArgs;
       for (var i = 0; i < typeParameters.Count; i++) {

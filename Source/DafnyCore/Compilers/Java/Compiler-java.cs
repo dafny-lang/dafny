@@ -2419,7 +2419,7 @@ namespace Microsoft.Dafny.Compilers {
     /// corresponding type descriptor. :(  Thus, this method returns "true".
     /// </summary>
     protected override bool NeedsTypeDescriptor(TypeParameter tp) {
-      return true;
+      return tp.Parent is not TupleTypeDecl;
     }
 
     protected override void TypeArgDescriptorUse(bool isStatic, bool lookasideBody, TopLevelDeclWithMembers cl, out bool needsTypeParameter, out bool needsTypeDescriptor) {
@@ -2597,12 +2597,6 @@ namespace Microsoft.Dafny.Compilers {
       var dt = dtv.Ctor.EnclosingDatatype;
       var typeArgs = SelectNonGhost(dt, dtv.InferredTypeArgs);
       EmitDatatypeValue(dt, dtv.Ctor, typeArgs, dtv.IsCoCall, typeDescriptorArguments, arguments, wr);
-    }
-
-    protected override void WriteTypeDescriptors(TopLevelDecl decl, List<Type> typeArguments, ConcreteSyntaxTree wrArgumentList, ref string sep) {
-      if (decl is not TupleTypeDecl) {
-        base.WriteTypeDescriptors(decl, typeArguments, wrArgumentList, ref sep);
-      }
     }
 
     void EmitDatatypeValue(DatatypeDecl dt, DatatypeCtor ctor, List<Type> typeArgs, bool isCoCall,
