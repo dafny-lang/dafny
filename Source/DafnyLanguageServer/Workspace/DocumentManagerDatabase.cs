@@ -22,8 +22,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     public void OpenDocument(TextDocumentItem document) {
-      var identifier = new VersionedTextDocumentIdentifier() {
-        Version = document.Version.Value,
+      var identifier = new VersionedTextDocumentIdentifier {
+        Version = document.Version!.Value,
         Uri = document.Uri
       };
       fileSystem.OpenDocument(document);

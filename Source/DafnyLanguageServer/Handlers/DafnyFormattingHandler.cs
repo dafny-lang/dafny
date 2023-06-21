@@ -10,10 +10,10 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 namespace Microsoft.Dafny.LanguageServer.Handlers;
 
 public class DafnyFormattingHandler : DocumentFormattingHandlerBase {
-  private readonly ILogger<DafnyCompletionHandler> logger;
+  private readonly ILogger<DafnyFormattingHandler> logger;
   private readonly IDocumentDatabase documents;
 
-  public DafnyFormattingHandler(ILogger<DafnyCompletionHandler> logger, IDocumentDatabase documents) {
+  public DafnyFormattingHandler(ILogger<DafnyFormattingHandler> logger, IDocumentDatabase documents) {
     this.logger = logger;
     this.documents = documents;
   }

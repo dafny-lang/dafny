@@ -82,8 +82,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     private DocumentAfterParsing LoadInternal(DafnyOptions options, VersionedTextDocumentIdentifier documentIdentifier, 
       IFileSystem fileSystem, CancellationToken cancellationToken) {
-      var rootDocumentSource = fileSystem.OpenFile(documentIdentifier.Uri.ToUri());
-      // TODO ReadToEnd should be removed here for performance reasons
       var errorReporter = new DiagnosticErrorReporter(options, documentIdentifier.Uri);
       statusPublisher.SendStatusNotification(documentIdentifier, CompilationStatus.Parsing);
       var program = parser.Parse(documentIdentifier, fileSystem, errorReporter, cancellationToken);
