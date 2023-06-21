@@ -4,9 +4,9 @@
 opaque function F(x: int): char
 { 'D' }
 
-method InitArray<D>(f: int -> D) returns (a: D)
+function InitArray<D>(f: int -> D): (a: D)
 {
-  return f(44);
+  f(44)
 }
 
 method Main() {
