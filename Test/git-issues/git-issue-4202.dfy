@@ -12,4 +12,5 @@ method InitArray<D>(f: int -> D) returns (a: D)
 method Main() {
   reveal F();
   var c := InitArray(F);
+  assert c == 'D';
 }
