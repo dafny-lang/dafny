@@ -44,7 +44,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           return (null, null);
         }
         var memberAccesses = GetMemberAccessChainEndingAt(uri, position);
-        if (memberAccesses.Length == 0) {
+        if (memberAccesses.Count == 0) {
           logger.LogDebug("could not resolve the member access chain in front of of {Position}", requestPosition);
           return (null, null);
         }
@@ -59,11 +59,11 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         return new Position(position.Line, position.Character - 1);
       }
 
-      private (ISymbol? Designator, ISymbol? Type) GetSymbolAndTypeOfLastMember(Position position, string[] memberAccessChain) {
+      private (ISymbol? Designator, ISymbol? Type) GetSymbolAndTypeOfLastMember(Position position, IReadOnlyList<string> memberAccessChain) {
         var enclosingSymbol = state.SignatureAndCompletionTable.GetEnclosingSymbol(position, cancellationToken);
         ISymbol? currentDesignator = null;
         ISymbol? currentDesignatorType = null;
-        for (int currentMemberAccess = 0; currentMemberAccess < memberAccessChain.Length; currentMemberAccess++) {
+        for (int currentMemberAccess = 0; currentMemberAccess < memberAccessChain.Count; currentMemberAccess++) {
           cancellationToken.ThrowIfCancellationRequested();
           var currentDesignatorName = memberAccessChain[currentMemberAccess];
           if (currentMemberAccess == 0) {
@@ -121,84 +121,24 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           .FirstOrDefault(child => child.Name == name);
       }
 
-      private string[] GetMemberAccessChainEndingAt(Uri uri, Position position) {
+      private IReadOnlyList<string> GetMemberAccessChainEndingAt(Uri uri, Position position) {
         var node = state.Program.FindNode(uri, position.ToDafnyPosition());
-        var printThing = node.RangeToken.PrintOriginal();
-        printThing = printThing.EndsWith(".") ? printThing.Substring(0, printThing.Length - 1) : printThing;
-        return new[] { printThing };
-        // return new MemberAccessChainResolver(state.TextDocumentItem.Text, absolutePosition, cancellationToken).ResolveFromBehind().Reverse().ToArray();
-      }
-    }
-
-    // TODO This is a simple PoC for code suggestion that only works in a regular manner (tokenization).
-    //      It should be refined in a context-free parser to generate a mini AST or something suitable that can better represent the actual syntax.
-    //      In general, a speculative parser and semantic checker would be suitable to transition an existing semantic model.
-    // TODO Instead of "parsing" when a completion was requested, it should be done when transitioning from one semantic model to another speculative one.
-    //      This should simplify the completion implementation and unify other actions depending on the (speculative) semantic model.
-    // TODO A small refinement might be to ensure that the first character is a nondigit character. However, this is probably not necessary
-    //      for this use-case.
-    private class MemberAccessChainResolver {
-      private readonly string text;
-      private readonly CancellationToken cancellationToken;
-
-      private int position;
-
-      private bool IsWhitespace => char.IsWhiteSpace(text[position]);
-      private bool IsAtNewStatement => text[position] == ';' || text[position] == '}' || text[position] == '{';
-      private bool IsMemberAccessOperator => text[position] == '.';
-
-      private bool IsIdentifierCharacter {
-        get {
-          char character = text[position];
-          return char.IsLetterOrDigit(character)
-            || character == '_'
-            || character == '\''
-            || character == '?';
+        var result = new List<string>();
+        while (node is ExprDotName exprDotName) {
+          node = exprDotName.Lhs;
+          result.Add(exprDotName.SuffixName);
         }
-      }
 
-      public MemberAccessChainResolver(string text, int endPosition, CancellationToken cancellationToken) {
-        this.text = text;
-        position = endPosition;
-        this.cancellationToken = cancellationToken;
-      }
-
-      public IEnumerable<string> ResolveFromBehind() {
-        while (position >= 0) {
-          cancellationToken.ThrowIfCancellationRequested();
-          SkipWhitespaces();
-          if (IsAtNewStatement) {
-            yield break;
-          }
-          // TODO method/function invocations and indexers are not supported yet. Maybe just skip to their designator?
-          if (IsIdentifierCharacter) {
-            yield return ReadIdentifier();
-          } else {
-            yield break;
-          }
-          SkipWhitespaces();
-          if (IsMemberAccessOperator) {
-            position--;
-          } else {
-            yield break;
-          }
+        if (node is NameSegment nameSegment) {
+          result.Add(nameSegment.Name);
         }
-      }
 
-      private void SkipWhitespaces() {
-        while (position >= 0 && IsWhitespace) {
-          cancellationToken.ThrowIfCancellationRequested();
-          position--;
+        if (node is ThisExpr) {
+          result.Add("this");
         }
-      }
 
-      private string ReadIdentifier() {
-        int identifierEnd = position + 1;
-        while (position >= 0 && IsIdentifierCharacter) {
-          cancellationToken.ThrowIfCancellationRequested();
-          position--;
-        }
-        return text[(position + 1)..identifierEnd];
+        result.Reverse();
+        return result;
       }
     }
   }
