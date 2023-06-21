@@ -5763,8 +5763,8 @@ namespace Microsoft.Dafny {
         name = f.FullSanitizedName + "#Handle";
         functionHandles[f] = name;
         var args = new List<Bpl.Expr>();
-        var argsRequires = new List<Bpl.Expr>(); // Requires don't have reveal parameters
         var vars = MkTyParamBinders(GetTypeParams(f), out args);
+        var argsRequires = new List<Bpl.Expr>(args); // Requires don't have reveal parameters
         var formals = MkTyParamFormals(GetTypeParams(f), false, true);
         var tyargs = new List<Bpl.Expr>();
         foreach (var fm in f.Formals) {
