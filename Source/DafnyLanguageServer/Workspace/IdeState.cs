@@ -20,7 +20,7 @@ public record IdeImplementationView(Range Range, PublishedVerificationStatus Sta
 /// </summary>
 public record IdeState(
   VersionedTextDocumentIdentifier DocumentIdentifier,
-  Program Program,
+  Node Program,
   IEnumerable<Diagnostic> ResolutionDiagnostics,
   SymbolTable SymbolTable,
   SignatureAndCompletionTable SignatureAndCompletionTable,

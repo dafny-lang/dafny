@@ -127,7 +127,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       var dafnyOptions = DafnyOptions.Default;
       return new IdeState(
         textDocument,
-        SignatureAndCompletionTable.GetEmptyProgram(dafnyOptions, textDocument),
+        new EmptyNode(),
         diagnostics,
         SymbolTable.Empty(),
         SignatureAndCompletionTable.Empty(dafnyOptions, textDocument),
