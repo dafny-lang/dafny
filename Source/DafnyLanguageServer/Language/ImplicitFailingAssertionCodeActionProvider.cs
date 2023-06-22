@@ -114,23 +114,25 @@ class ImplicitFailingAssertionCodeActionProvider : DiagnosticDafnyCodeActionProv
     if (input.Program == null || diagnostic.Source != MessageSource.Verifier) {
       return null;
     }
-    var failingExpressions = new List<Expression>() { };
-    input.VerificationTree.Visit(tree => {
-      if (tree is AssertionVerificationTree assertTree &&
-          assertTree.Finished &&
-            assertTree.Range.Intersects(selection) &&
-            assertTree.StatusVerification is GutterVerificationStatus.Error or GutterVerificationStatus.Inconclusive &&
-            assertTree.GetAssertion()?.Description is ProofObligationDescription.ProofObligationDescription description &&
-            description.GetAssertedExpr(options) is { } assertedExpr) {
-        failingExpressions.Add(assertedExpr);
-      }
-    });
-    if (failingExpressions.Count == 0) {
-      return null;
-    }
 
-    return failingExpressions.Select(failingExpression =>
-      new ExplicitAssertionDafnyCodeAction(options, input.Program, failingExpression, selection)
-    );
+    throw new Exception();
+    // var failingExpressions = new List<Expression>() { };
+    // input.VerificationTree.Visit(tree => {
+    //   if (tree is AssertionVerificationTree assertTree &&
+    //       assertTree.Finished &&
+    //         assertTree.Range.Intersects(selection) &&
+    //         assertTree.StatusVerification is GutterVerificationStatus.Error or GutterVerificationStatus.Inconclusive &&
+    //         assertTree.GetAssertion()?.Description is ProofObligationDescription.ProofObligationDescription description &&
+    //         description.GetAssertedExpr(options) is { } assertedExpr) {
+    //     failingExpressions.Add(assertedExpr);
+    //   }
+    // });
+    // if (failingExpressions.Count == 0) {
+    //   return null;
+    // }
+    //
+    // return failingExpressions.Select(failingExpression =>
+    //   new ExplicitAssertionDafnyCodeAction(options, input.Program, failingExpression, selection)
+    // );
   }
 }

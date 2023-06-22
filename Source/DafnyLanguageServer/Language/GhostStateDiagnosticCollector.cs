@@ -4,6 +4,7 @@ using Microsoft.Dafny.LanguageServer.Util;
 using Microsoft.Extensions.Options;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using System.Threading;
 using Microsoft.Extensions.Logging;
@@ -28,18 +29,20 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       this.logger = logger;
     }
 
-    public IEnumerable<Diagnostic> GetGhostStateDiagnostics(SignatureAndCompletionTable signatureAndCompletionTable, CancellationToken cancellationToken) {
+    public IReadOnlyDictionary<Uri, IReadOnlyList<Range>> GetGhostStateDiagnostics(
+      SignatureAndCompletionTable signatureAndCompletionTable, CancellationToken cancellationToken) {
       if (!options.Get(ServerCommand.GhostIndicators)) {
-        return Enumerable.Empty<Diagnostic>();
+        return ImmutableDictionary<Uri, IReadOnlyList<Range>>.Empty;
       }
 
       try {
         var visitor = new GhostStateSyntaxTreeVisitor(signatureAndCompletionTable.CompilationUnit, cancellationToken);
         visitor.Visit(signatureAndCompletionTable.CompilationUnit.Program);
-        return visitor.GhostDiagnostics;
+        throw new Exception();
+        // return visitor.GhostDiagnostics;
       } catch (Exception e) {
         logger.LogDebug(e, "encountered an exception while getting ghost state diagnostics of {Name}", signatureAndCompletionTable.CompilationUnit.Name);
-        return new Diagnostic[] { };
+        return ImmutableDictionary<Uri, IReadOnlyList<Range>>.Empty;
       }
     }
 

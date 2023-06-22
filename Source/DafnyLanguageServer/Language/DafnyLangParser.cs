@@ -2,6 +2,7 @@
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using Microsoft.Dafny.LanguageServer.Workspace;
 using OmniSharp.Extensions.LanguageServer.Protocol.Document;
@@ -40,23 +41,21 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       return new DafnyLangParser(options, fileSystem, telemetryPublisher, loggerFactory);
     }
 
-    public Program Parse(TextDocumentIdentifier document, IFileSystem fileSystem, ErrorReporter reporter,
+    public Program Parse(DafnyProject project, IFileSystem fileSystem, ErrorReporter reporter,
       CancellationToken cancellationToken) {
       mutex.Wait(cancellationToken);
 
       var beforeParsing = DateTime.Now;
       try {
-        var uri = document.Uri.ToUri();
-        var result = cachingParser.ParseFiles(document.Uri.ToString(),
-          new DafnyFile[]
-          {
-            new(reporter.Options, uri, fileSystem.ReadFile(uri))
-          },
+        var result = cachingParser.ParseFiles(project.ProjectName,
+          reporter.Options.CliRootSourceUris.Select(uri => 
+            new DafnyFile(reporter.Options, uri, fileSystem.ReadFile(uri))
+          ).ToList(),
           reporter, cancellationToken);
         return result;
       }
       finally {
-        telemetryPublisher.PublishTime("Parse", document.Uri.ToString(), DateTime.Now - beforeParsing);
+        telemetryPublisher.PublishTime("Parse", project.Uri.ToString(), DateTime.Now - beforeParsing);
         cachingParser.Prune();
         mutex.Release();
       }

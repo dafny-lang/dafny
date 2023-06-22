@@ -25,19 +25,19 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
       this.telemetryPublisher = telemetryPublisher;
     }
 
-    public CompilationUnit ResolveSymbols(TextDocumentIdentifier documentIdentifier, Program program, out bool canDoVerification, CancellationToken cancellationToken) {
+    public CompilationUnit ResolveSymbols(DafnyProject project, Program program, out bool canDoVerification, CancellationToken cancellationToken) {
       // TODO The resolution requires mutual exclusion since it sets static variables of classes like Microsoft.Dafny.Type.
       //      Although, the variables are marked "ThreadStatic" - thus it might not be necessary. But there might be
       //      other classes as well.
       resolverMutex.Wait(cancellationToken);
       try {
-        if (!RunDafnyResolver(documentIdentifier, program, cancellationToken)) {
+        if (!RunDafnyResolver(project, program, cancellationToken)) {
           // We cannot proceed without a successful resolution. Due to the contracts in dafny-lang, we cannot
           // access a property without potential contract violations. For example, a variable may have an
           // unresolved type represented by null. However, the contract prohibits the use of the type property
           // because it must not be null.
           canDoVerification = false;
-          return new CompilationUnit(documentIdentifier.Uri.ToUri(), program);
+          return new CompilationUnit(project.Uri, program);
         }
       }
       finally {
@@ -45,12 +45,12 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
       }
       canDoVerification = true;
       var beforeLegacyServerResolution = DateTime.Now;
-      var compilationUnit = new SymbolDeclarationResolver(logger, cancellationToken).ProcessProgram(documentIdentifier.Uri.ToUri(), program);
-      telemetryPublisher.PublishTime("LegacyServerResolution", documentIdentifier.Uri.ToString(), DateTime.Now - beforeLegacyServerResolution);
+      var compilationUnit = new SymbolDeclarationResolver(logger, cancellationToken).ProcessProgram(project.Uri, program);
+      telemetryPublisher.PublishTime("LegacyServerResolution", project.Uri.ToString(), DateTime.Now - beforeLegacyServerResolution);
       return compilationUnit;
     }
 
-    private bool RunDafnyResolver(TextDocumentIdentifier document, Program program, CancellationToken cancellationToken) {
+    private bool RunDafnyResolver(DafnyProject project, Program program, CancellationToken cancellationToken) {
       var beforeResolution = DateTime.Now;
       try {
         var resolver = new Resolver(program);
@@ -58,14 +58,14 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         int resolverErrors = resolver.Reporter.ErrorCountUntilResolver;
         if (resolverErrors > 0) {
           logger.LogDebug("encountered {ErrorCount} errors while resolving {DocumentUri}", resolverErrors,
-            document.Uri);
+            project.Uri);
           return false;
         }
 
         return true;
       }
       finally {
-        telemetryPublisher.PublishTime("Resolution", document.Uri.ToString(), DateTime.Now - beforeResolution);
+        telemetryPublisher.PublishTime("Resolution", project.Uri.ToString(), DateTime.Now - beforeResolution);
       }
     }
 

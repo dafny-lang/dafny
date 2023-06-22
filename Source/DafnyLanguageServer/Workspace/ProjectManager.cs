@@ -1,9 +1,13 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.IO;
+using System.Linq;
 using System.Reactive.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using IntervalTree;
+using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 using Microsoft.Extensions.DependencyInjection;
@@ -19,9 +23,10 @@ public class ProjectManager {
   private readonly IServiceProvider services;
   public DafnyProject Project { get; }
   private readonly IdeStateObserver observer;
-  public Compilation Compilation { get; private set; }
+  public CompilationManager CompilationManager { get; private set; }
   private IDisposable observerSubscription;
   private readonly ILogger<ProjectManager> logger;
+  private int version;
 
   private bool VerifyOnOpen => options.Get(ServerCommand.Verification) == VerifyOnMode.Change;
   private bool VerifyOnChange => options.Get(ServerCommand.Verification) == VerifyOnMode.Change;
@@ -34,23 +39,24 @@ public class ProjectManager {
 
   public ProjectManager(IServiceProvider services, DafnyProject project) {
     this.services = services;
-    this.Project = project;
-    options = services.GetRequiredService<DafnyOptions>();
+    Project = project;
+    var serverOptions = services.GetRequiredService<DafnyOptions>();
     logger = services.GetRequiredService<ILogger<ProjectManager>>();
     relocator = services.GetRequiredService<IRelocator>();
 
+    options = DetermineProjectOptions(project, serverOptions);
     observer = new IdeStateObserver(services.GetRequiredService<ILogger<IdeStateObserver>>(),
       services.GetRequiredService<ITelemetryPublisher>(),
       services.GetRequiredService<INotificationPublisher>(),
       services.GetRequiredService<ITextDocumentLoader>(),
-      documentIdentifier);
-    Compilation = new Compilation(
+      project);
+    CompilationManager = new CompilationManager(
       services,
-      DetermineDocumentOptions(project, options),
-      project,
-      null);
+      options,
+      new Compilation(version, project));
 
-    observerSubscription = Compilation.DocumentUpdates.Select(d => d.InitialIdeState(options)).Subscribe(observer);
+    observerSubscription = CompilationManager.CompilationUpdates.Select(d => 
+      d.InitialIdeState(new Compilation(version, project), options)).Subscribe(observer);
 
     if (VerifyOnOpen) {
       var _ = VerifyEverythingAsync();
@@ -59,7 +65,7 @@ public class ProjectManager {
       workCompletedForCurrentVersion.Release();
     }
 
-    Compilation.Start();
+    CompilationManager.Start();
   }
 
   private const int MaxRememberedChanges = 100;
@@ -67,18 +73,20 @@ public class ProjectManager {
   
   public void UpdateDocument(DidChangeTextDocumentParams documentChange) {
 
+    version++;
     logger.LogDebug("Clearing result for workCompletedForCurrentVersion");
     var _1 = workCompletedForCurrentVersion.WaitAsync();
 
-    Compilation.CancelPendingUpdates();
+    CompilationManager.CancelPendingUpdates();
 
     var lastPublishedState = observer.LastPublishedState;
-    var migratedVerificationTree =
-      relocator.RelocateVerificationTree(lastPublishedState.VerificationTree, documentChange, CancellationToken.None);
+    // var migratedVerificationTrees =
+    //   lastPublishedState.VerificationTrees.ToImmutableDictionary(kv => kv.Key, 
+    //     kv => relocator.RelocateVerificationTree(kv.Value, documentChange, CancellationToken.None));
     lastPublishedState = lastPublishedState with {
       ImplementationIdToView = MigrateImplementationViews(documentChange, lastPublishedState.ImplementationIdToView),
       SignatureAndCompletionTable = relocator.RelocateSymbols(lastPublishedState.SignatureAndCompletionTable, documentChange, CancellationToken.None),
-      VerificationTree = migratedVerificationTree
+      // VerificationTrees = migratedVerificationTrees
     };
 
     lock (ChangedRanges) {
@@ -88,16 +96,12 @@ public class ProjectManager {
           Where(r => r != null).Take(MaxRememberedChanges).ToList()!;
     }
 
-    var dafnyOptions = DetermineDocumentOptions(options, documentChange.TextDocument.Uri);
-    Compilation = new Compilation(
+    CompilationManager = new CompilationManager(
       services,
-      dafnyOptions,
-      new VersionedTextDocumentIdentifier {
-        Version = documentChange.TextDocument.Version!.Value,
-        Uri = documentChange.TextDocument.Uri
-      },
+      options,
+      new Compilation(version, Project)
       // TODO do not pass this to CompilationManager but instead use it in FillMissingStateUsingLastPublishedDocument
-      migratedVerificationTree
+      // migratedVerificationTrees
     );
 
     if (VerifyOnChange) {
@@ -108,15 +112,15 @@ public class ProjectManager {
     }
 
     observerSubscription.Dispose();
-    var migratedUpdates = Compilation.DocumentUpdates.Select(document =>
+    var migratedUpdates = CompilationManager.CompilationUpdates.Select(document =>
       document.ToIdeState(lastPublishedState));
     observerSubscription = migratedUpdates.Subscribe(observer);
     logger.LogDebug($"Finished processing document update for version {documentChange.TextDocument.Version}");
 
-    Compilation.Start();
+    CompilationManager.Start();
   }
 
-  private static DafnyOptions DetermineDocumentOptions(DafnyProject projectOptions, DafnyOptions serverOptions) {
+  private static DafnyOptions DetermineProjectOptions(DafnyProject projectOptions, DafnyOptions serverOptions) {
     var result = new DafnyOptions(serverOptions);
 
     foreach (var option in ServerCommand.Instance.Options) {
@@ -126,6 +130,8 @@ public class ProjectManager {
         result.ApplyBinding(option);
       }
     }
+
+    projectOptions.AddFilesToOptions(result);
 
     return result;
   }
@@ -137,7 +143,7 @@ public class ProjectManager {
       var newRange = relocator.RelocateRange(entry.Value.Range, documentChange, CancellationToken.None);
       if (newRange != null) {
         result.Add(entry.Key with {
-          NamedVerificationTask = relocator.RelocatePosition(entry.Key.NamedVerificationTask, documentChange, CancellationToken.None)
+          Position = relocator.RelocatePosition(entry.Key.Position, documentChange, CancellationToken.None)
         }, entry.Value with {
           Range = newRange,
           Diagnostics = relocator.RelocateDiagnostics(entry.Value.Diagnostics, documentChange, CancellationToken.None)
@@ -147,7 +153,7 @@ public class ProjectManager {
     return result;
   }
 
-  public void Save() {
+  public void Save(TextDocumentIdentifier documentId) {
     if (VerifyOnSave) {
       logger.LogDebug("Clearing result for workCompletedForCurrentVersion");
       var _1 = workCompletedForCurrentVersion.WaitAsync();
@@ -156,24 +162,24 @@ public class ProjectManager {
   }
 
   public async Task CloseAsync() {
-    Compilation.CancelPendingUpdates();
+    CompilationManager.CancelPendingUpdates();
     try {
-      await Compilation.LastDocument;
+      await CompilationManager.LastDocument;
     } catch (TaskCanceledException) {
     }
   }
 
-  public async Task<DocumentAfterParsing> GetLastDocumentAsync() {
+  public async Task<CompilationAfterParsing> GetLastDocumentAsync() {
     await workCompletedForCurrentVersion.WaitAsync();
     workCompletedForCurrentVersion.Release();
-    return await Compilation.LastDocument;
+    return await CompilationManager.LastDocument;
   }
 
   public async Task<IdeState> GetSnapshotAfterResolutionAsync() {
     try {
-      var resolvedDocument = await Compilation.ResolvedDocument;
-      logger.LogDebug($"GetSnapshotAfterResolutionAsync, resolvedDocument.Version = {resolvedDocument.Version}, " +
-                      $"observer.LastPublishedState.Version = {observer.LastPublishedState.Version}, threadId: {Thread.CurrentThread.ManagedThreadId}");
+      var resolvedCompilation = await CompilationManager.ResolvedCompilation;
+      logger.LogDebug($"GetSnapshotAfterResolutionAsync, resolvedDocument.Version = {resolvedCompilation.Version}, " +
+                      $"observer.LastPublishedState.Version = {observer.LastPublishedState.Compilation.Version}, threadId: {Thread.CurrentThread.ManagedThreadId}");
     } catch (OperationCanceledException) {
       logger.LogDebug("Caught OperationCanceledException in GetSnapshotAfterResolutionAsync");
     }
@@ -192,12 +198,12 @@ public class ProjectManager {
 
   private async Task VerifyEverythingAsync() {
     try {
-      var translatedDocument = await Compilation.TranslatedDocument;
+      var translatedDocument = await CompilationManager.TranslatedCompilation;
 
       var implementationTasks = translatedDocument.VerificationTasks;
 
       if (!implementationTasks.Any()) {
-        Compilation.FinishedNotifications(translatedDocument);
+        CompilationManager.FinishedNotifications(translatedDocument);
       }
 
       lock (ChangedRanges) {
@@ -213,7 +219,7 @@ public class ProjectManager {
         null, false).ToList();
 
       foreach (var implementationTask in orderedTasks) {
-        Compilation.VerifyTask(translatedDocument, implementationTask);
+        CompilationManager.VerifyTask(translatedDocument, implementationTask);
       }
     }
     finally {
@@ -222,8 +228,8 @@ public class ProjectManager {
     }
   }
 
-  private IEnumerable<Position> GetChangedVerifiablesFromRanges(DocumentAfterResolution loaded, IEnumerable<Range> changedRanges) {
-    var tree = new DocumentVerificationTree(loaded.DocumentIdentifier);
+  private IEnumerable<Position> GetChangedVerifiablesFromRanges(CompilationAfterResolution loaded, IEnumerable<Range> changedRanges) {
+    var tree = new DocumentVerificationTree(loaded.Project.Uri);
     VerificationProgressReporter.UpdateTree(options, loaded, tree);
     var intervalTree = new IntervalTree<Position, Position>();
     foreach (var childTree in tree.Children) {
@@ -231,5 +237,9 @@ public class ProjectManager {
     }
 
     return changedRanges.SelectMany(changeRange => intervalTree.Query(changeRange.Start, changeRange.End));
+  }
+
+  public bool CloseDocument(TextDocumentIdentifier documentId) {
+    throw new NotImplementedException();
   }
 }

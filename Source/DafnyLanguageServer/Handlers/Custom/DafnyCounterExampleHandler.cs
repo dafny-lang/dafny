@@ -25,10 +25,10 @@ namespace Microsoft.Dafny.LanguageServer.Handlers.Custom {
       try {
         var documentManager = documents.GetDocumentManager(request.TextDocument);
         if (documentManager != null) {
-          var translatedDocument = await documentManager.Compilation.TranslatedDocument;
+          var translatedDocument = await documentManager.CompilationManager.TranslatedCompilation;
           var verificationTasks = translatedDocument.VerificationTasks;
           foreach (var task in verificationTasks) {
-            documentManager.Compilation.VerifyTask(translatedDocument, task);
+            documentManager.CompilationManager.VerifyTask(translatedDocument, task);
           }
 
           var state = await documentManager.GetIdeStateAfterVerificationAsync();
@@ -63,7 +63,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers.Custom {
 
       public CounterExampleList GetCounterExamples() {
         if (!ideState.Counterexamples.Any()) {
-          logger.LogDebug("got no counter-examples for document {DocumentUri}", ideState.Uri);
+          logger.LogDebug($"got no counter-examples for compilation {ideState.Compilation}");
           return new CounterExampleList();
         }
 

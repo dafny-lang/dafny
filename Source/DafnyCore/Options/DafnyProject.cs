@@ -19,6 +19,8 @@ namespace Microsoft.Dafny;
 public class DafnyProject {
   public const string FileName = "dfyconfig.toml";
 
+  public string ProjectName => Uri.ToString();
+  
   [IgnoreDataMember]
   public Uri Uri { get; set; }
   public string[] Includes { get; set; }

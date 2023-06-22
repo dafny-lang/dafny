@@ -12,14 +12,15 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
   /// <summary>
   /// Contains a collection of DocumentManagers
   /// </summary>
-  public class DocumentManagerDatabase : IDocumentDatabase {
+  public class ProjectManagerDatabase : IDocumentDatabase {
 
     private readonly IServiceProvider services;
 
-    private readonly Dictionary<DocumentUri, ProjectManager> managers = new();
+    private readonly Dictionary<DocumentUri, ProjectManager> managersByFile = new();
+    private readonly Dictionary<DocumentUri, ProjectManager> managersByProject = new();
     private readonly LanguageServerFilesystem fileSystem;
 
-    public DocumentManagerDatabase(IServiceProvider services) {
+    public ProjectManagerDatabase(IServiceProvider services) {
       this.services = services;
       this.fileSystem = services.GetRequiredService<LanguageServerFilesystem>();
     }
@@ -27,19 +28,25 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     public void OpenDocument(TextDocumentItem document) {
       fileSystem.OpenDocument(document);
       DafnyProject profileFile = FindProjectFile(document) ?? ImplicitProject(document);
-      var existingManager = managers.GetValueOrDefault(document.Uri);
+      var existingManager = managersByProject.GetValueOrDefault(profileFile.Uri);
 
       if (existingManager != null) {
         if (!existingManager.Project.Equals(profileFile)) {
-          managers[document.Uri] = new ProjectManager(services, profileFile);
+          managersByProject[document.Uri] = new ProjectManager(services, profileFile);
         }
       } else {
-        managers[document.Uri] = new ProjectManager(services, profileFile);
+        managersByProject[document.Uri] = new ProjectManager(services, profileFile);
       }
+
+      managersByFile[document.Uri] = managersByProject[profileFile.Uri];
     }
 
-    private DafnyProject ImplicitProject(TextDocumentItem documentItem) {
-      return new DafnyProject();
+    public static DafnyProject ImplicitProject(TextDocumentIdentifier documentItem) {
+      var implicitProject = new DafnyProject();
+      implicitProject.Includes = new[] {
+        documentItem.Uri.GetFileSystemPath()
+      };
+      return implicitProject;
     }
 
     private DafnyProject? FindProjectFile(TextDocumentIdentifier document) {
@@ -68,7 +75,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     public void UpdateDocument(DidChangeTextDocumentParams documentChange) {
       fileSystem.UpdateDocument(documentChange);
       var documentUri = documentChange.TextDocument.Uri;
-      if (!managers.TryGetValue(documentUri, out var state)) {
+      if (!managersByFile.TryGetValue(documentUri, out var state)) {
         throw new ArgumentException($"the document {documentUri} was not loaded before");
       }
 
@@ -76,41 +83,44 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     public void SaveDocument(TextDocumentIdentifier documentId) {
-      if (!managers.TryGetValue(documentId.Uri, out var documentState)) {
+      if (!managersByFile.TryGetValue(documentId.Uri, out var manager)) {
         throw new ArgumentException($"the document {documentId.Uri} was not loaded before");
       }
 
-      documentState.Save(documentId);
+      manager.Save(documentId);
     }
 
     public async Task<bool> CloseDocumentAsync(TextDocumentIdentifier documentId) {
       fileSystem.CloseDocument(documentId);
-      if (managers.Remove(documentId.Uri, out var state)) {
-        await state.CloseAsync(documentId);
+      if (managersByFile.Remove(documentId.Uri, out var manager)) {
+        if (manager.CloseDocument(documentId)) {
+          managersByProject.Remove(manager.Project.Uri);
+        }
+        await manager.CloseAsync();
         return true;
       }
       return false;
     }
 
     public Task<IdeState?> GetResolvedDocumentAsync(TextDocumentIdentifier documentId) {
-      if (managers.TryGetValue(documentId.Uri, out var state)) {
-        return state.GetSnapshotAfterResolutionAsync(documentId)!;
+      if (managersByFile.TryGetValue(documentId.Uri, out var manager)) {
+        return manager.GetSnapshotAfterResolutionAsync()!;
       }
       return Task.FromResult<IdeState?>(null);
     }
 
-    public Task<DocumentAfterParsing?> GetLastDocumentAsync(TextDocumentIdentifier documentId) {
-      if (managers.TryGetValue(documentId.Uri, out var databaseEntry)) {
+    public Task<CompilationAfterParsing?> GetLastDocumentAsync(TextDocumentIdentifier documentId) {
+      if (managersByFile.TryGetValue(documentId.Uri, out var databaseEntry)) {
         return databaseEntry.GetLastDocumentAsync()!;
       }
-      return Task.FromResult<DocumentAfterParsing?>(null);
+      return Task.FromResult<CompilationAfterParsing?>(null);
     }
 
     public ProjectManager? GetDocumentManager(TextDocumentIdentifier documentId) {
-      return managers.GetValueOrDefault(documentId.Uri);
+      return managersByFile.GetValueOrDefault(documentId.Uri);
     }
 
-    public IEnumerable<ProjectManager> Managers => managers.Values;
+    public IEnumerable<ProjectManager> Managers => managersByProject.Values;
 
   }
 }

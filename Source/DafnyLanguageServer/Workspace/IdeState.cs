@@ -20,19 +20,28 @@ public record IdeImplementationView(Range Range, PublishedVerificationStatus Sta
 /// to provide the IDE with as much information as possible.
 /// </summary>
 public record IdeState(
-  int Version,
+  Compilation Compilation,
   Node Program,
-  IDictionary<TextDocumentItem, IEnumerable<Diagnostic>> ResolutionDiagnostics,
+  IReadOnlyDictionary<Uri, IReadOnlyList<Diagnostic>> ResolutionDiagnostics,
   SymbolTable SymbolTable,
   SignatureAndCompletionTable SignatureAndCompletionTable,
   IReadOnlyDictionary<ImplementationId, IdeImplementationView> ImplementationIdToView,
   IReadOnlyList<Counterexample> Counterexamples,
   bool ImplementationsWereUpdated,
-  IDictionary<TextDocumentIdentifier, IEnumerable<Diagnostic>> GhostDiagnostics,
-  ImmutableDictionary<TextDocumentIdentifier, VerificationTree> VerificationTrees
+  IReadOnlyDictionary<Uri, IReadOnlyList<Range>> GhostRanges
+  // ImmutableDictionary<TextDocumentIdentifier, VerificationTree> VerificationTrees
 ) {
-  public IEnumerable<Diagnostic> Diagnostics =>
-    ResolutionDiagnostics.Concat(ImplementationIdToView.Values.SelectMany(v => v.Diagnostics));
+
+  public int Version => Compilation.Version;
+  
+  public ImmutableDictionary<Uri, IReadOnlyList<Diagnostic>> GetDiagnostics()
+  {
+    var resolutionDiagnostics = ResolutionDiagnostics.ToImmutableDictionary();
+    var verificationDiagnostics = ImplementationIdToView.GroupBy(kv => kv.Key.Uri).Select(kv =>
+      new KeyValuePair<Uri, IReadOnlyList<Diagnostic>>(kv.Key, kv.SelectMany(x => x.Value.Diagnostics).ToList()));
+    // TODO combine diagnostics for one Uri
+    return resolutionDiagnostics.AddRange(verificationDiagnostics);
+  }
 }
 
 public static class Util {

@@ -54,7 +54,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     /// </summary>
     /// <param name="documentId">The ID of the document to resolve.</param>
     /// <returns>An instance of the managed document, <c>null</c> if the specified document was not found.</returns>
-    Task<DocumentAfterParsing?> GetLastDocumentAsync(TextDocumentIdentifier documentId);
+    Task<CompilationAfterParsing?> GetLastDocumentAsync(TextDocumentIdentifier documentId);
 
     ProjectManager? GetDocumentManager(TextDocumentIdentifier documentId);
 

@@ -30,7 +30,7 @@ public class DafnyFormattingHandler : DocumentFormattingHandlerBase {
     if (documentManager == null) {
       return null;
     }
-    var edits = await documentManager.Compilation.GetTextEditToFormatCode();
+    var edits = await documentManager.CompilationManager.GetTextEditToFormatCode();
     return edits;
   }
 }

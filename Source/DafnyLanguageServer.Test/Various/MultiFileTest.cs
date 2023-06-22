@@ -35,7 +35,7 @@ method Test() {
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var document = await Documents.GetResolvedDocumentAsync(documentItem.Uri);
       Assert.NotNull(document);
-      Assert.True(!document.Diagnostics.Any());
+      Assert.True(!document.GetDiagnostics().Any());
     }
 
     // https://github.com/dafny-lang/language-server-csharp/issues/40

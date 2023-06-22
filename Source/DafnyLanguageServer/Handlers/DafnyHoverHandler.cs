@@ -14,9 +14,7 @@ using System.Threading.Tasks;
 using Microsoft.Boogie;
 using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
-using Microsoft.Dafny.ProofObligationDescription;
 using EnsuresDescription = Microsoft.Dafny.ProofObligationDescription.EnsuresDescription;
-using RequiresDescription = Microsoft.Dafny.ProofObligationDescription.RequiresDescription;
 
 namespace Microsoft.Dafny.LanguageServer.Handlers {
   public class DafnyHoverHandler : HoverHandlerBase {
@@ -48,7 +46,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
         logger.LogWarning("the document {Document} is not loaded", request.TextDocument);
         return null;
       }
-      var diagnosticHoverContent = GetDiagnosticsHover(document, request.Position, out var areMethodStatistics);
+      var diagnosticHoverContent = GetDiagnosticsHover(document, request.TextDocument.Uri.ToUri(), request.Position, out var areMethodStatistics);
       if (!document.SignatureAndCompletionTable.TryGetSymbolAt(request.Position, out var symbol)) {
         logger.LogDebug("no symbol was found at {Position} in {Document}", request.Position, request.TextDocument);
       }
@@ -73,9 +71,10 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
       }
     }
 
-    private string? GetDiagnosticsHover(IdeState state, Position position, out bool areMethodStatistics) {
+    private string? GetDiagnosticsHover(IdeState state, Uri uri, Position position, out bool areMethodStatistics) {
       areMethodStatistics = false;
-      foreach (var diagnostic in state.Diagnostics) {
+      var uriDiagnostics = state.GetDiagnostics().GetOrDefault(uri, Enumerable.Empty<Diagnostic>).ToList();
+      foreach (var diagnostic in uriDiagnostics) {
         if (diagnostic.Range.Contains(position)) {
           string? detail = ErrorRegistry.GetDetail(diagnostic.Code);
           if (detail is not null) {
@@ -84,53 +83,53 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
         }
       }
 
-      if (state.Diagnostics.Any(diagnostic =>
+      if (uriDiagnostics.Any(diagnostic =>
             diagnostic.Severity == DiagnosticSeverity.Error && (
             diagnostic.Source == MessageSource.Parser.ToString() ||
             diagnostic.Source == MessageSource.Resolver.ToString()))) {
         return null;
       }
-      foreach (var node in state.VerificationTree.Children.OfType<TopLevelDeclMemberVerificationTree>()) {
-        if (!node.Range.Contains(position)) {
-          continue;
-        }
-
-        var assertionBatchCount = node.AssertionBatchCount;
-        var information = "";
-        var orderedAssertionBatches =
-          node.AssertionBatches
-            .OrderBy(keyValue => keyValue.Key, new AssertionBatchIndexComparer()).Select(keyValuePair => keyValuePair.Value)
-            .ToList();
-
-        foreach (var assertionBatch in orderedAssertionBatches) {
-          if (!assertionBatch.Range.Contains(position)) {
-            continue;
-          }
-
-          var assertionIndex = 0;
-          var assertions = assertionBatch.Children.OfType<AssertionVerificationTree>().ToList();
-          foreach (var assertionNode in assertions) {
-            if (assertionNode.Range.Contains(position) ||
-                assertionNode.ImmediatelyRelatedRanges.Any(range => range.Contains(position))) {
-              if (information != "") {
-                information += "\n\n";
-              }
-              information += GetAssertionInformation(state, position, assertionNode, assertionBatch, assertionIndex, assertionBatchCount, node);
-            }
-
-            assertionIndex++;
-          }
-        }
-
-        if (information != "") {
-          return information;
-        }
-        // Ok no assertion here. Maybe a method?
-        if (node.Position.Line == position.Line && node.Uri == state.Uri) {
-          areMethodStatistics = true;
-          return GetTopLevelInformation(node, orderedAssertionBatches);
-        }
-      }
+      // foreach (var node in state.VerificationTree.Children.OfType<TopLevelDeclMemberVerificationTree>()) {
+      //   if (!node.Range.Contains(position)) {
+      //     continue;
+      //   }
+      //
+      //   var assertionBatchCount = node.AssertionBatchCount;
+      //   var information = "";
+      //   var orderedAssertionBatches =
+      //     node.AssertionBatches
+      //       .OrderBy(keyValue => keyValue.Key, new AssertionBatchIndexComparer()).Select(keyValuePair => keyValuePair.Value)
+      //       .ToList();
+      //
+      //   foreach (var assertionBatch in orderedAssertionBatches) {
+      //     if (!assertionBatch.Range.Contains(position)) {
+      //       continue;
+      //     }
+      //
+      //     var assertionIndex = 0;
+      //     var assertions = assertionBatch.Children.OfType<AssertionVerificationTree>().ToList();
+      //     foreach (var assertionNode in assertions) {
+      //       if (assertionNode.Range.Contains(position) ||
+      //           assertionNode.ImmediatelyRelatedRanges.Any(range => range.Contains(position))) {
+      //         if (information != "") {
+      //           information += "\n\n";
+      //         }
+      //         information += GetAssertionInformation(state, position, assertionNode, assertionBatch, assertionIndex, assertionBatchCount, node);
+      //       }
+      //
+      //       assertionIndex++;
+      //     }
+      //   }
+      //
+      //   if (information != "") {
+      //     return information;
+      //   }
+      //   // Ok no assertion here. Maybe a method?
+      //   if (node.Position.Line == position.Line && node.Uri == state.Uri) {
+      //     areMethodStatistics = true;
+      //     return GetTopLevelInformation(node, orderedAssertionBatches);
+      //   }
+      // }
 
       return null;
     }

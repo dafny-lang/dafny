@@ -12,21 +12,20 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace;
 
-public class DocumentAfterTranslation : DocumentAfterResolution {
-  public DocumentAfterTranslation(
+public class CompilationAfterTranslation : CompilationAfterResolution {
+  public CompilationAfterTranslation(
     IServiceProvider services,
-    VersionedTextDocumentIdentifier documentIdentifier,
-    Dafny.Program program,
-    IReadOnlyDictionary<DocumentUri, List<DafnyDiagnostic>> diagnostics,
-    SymbolTable? symbolTable,
-    SignatureAndCompletionTable signatureAndCompletionTable,
-    IReadOnlyList<Diagnostic> ghostDiagnostics,
+    CompilationAfterResolution compilationAfterResolution,
+    IReadOnlyDictionary<Uri, List<DafnyDiagnostic>> diagnostics,
     IReadOnlyList<IImplementationTask> verificationTasks,
     List<Counterexample> counterexamples,
-    Dictionary<ImplementationId, ImplementationView> implementationIdToView,
-    VerificationTree verificationTree)
-    : base(documentIdentifier, program, diagnostics, symbolTable, signatureAndCompletionTable, ghostDiagnostics) {
-    VerificationTree = verificationTree;
+    Dictionary<ImplementationId, ImplementationView> implementationIdToView
+    // , VerificationTree verificationTree
+    )
+    : base(compilationAfterResolution, diagnostics, 
+      compilationAfterResolution.SymbolTable, compilationAfterResolution.SignatureAndCompletionTable, 
+      compilationAfterResolution.GhostDiagnostics) {
+    // VerificationTree = verificationTree;
     VerificationTasks = verificationTasks;
     Counterexamples = counterexamples;
     ImplementationIdToView = implementationIdToView;
@@ -38,9 +37,9 @@ public class DocumentAfterTranslation : DocumentAfterResolution {
       services.GetRequiredService<DafnyOptions>());
   }
 
-  public override VerificationTree GetInitialDocumentVerificationTree() {
-    return VerificationTree;
-  }
+  // public override VerificationTree GetInitialDocumentVerificationTree() {
+  //   return VerificationTree;
+  // }
 
   public override IdeState ToIdeState(IdeState previousState) {
     IEnumerable<KeyValuePair<ImplementationId, IdeImplementationView>> implementationViewsWithMigratedDiagnostics = ImplementationIdToView.Select(kv => {
@@ -54,7 +53,7 @@ public class DocumentAfterTranslation : DocumentAfterResolution {
     });
     return base.ToIdeState(previousState) with {
       ImplementationsWereUpdated = true,
-      VerificationTree = VerificationTree,
+      // VerificationTree = VerificationTree,
       Counterexamples = new List<Counterexample>(Counterexamples),
       ImplementationIdToView = new Dictionary<ImplementationId, IdeImplementationView>(implementationViewsWithMigratedDiagnostics)
     };
