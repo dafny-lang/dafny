@@ -6,6 +6,7 @@ namespace Microsoft.Dafny;
 
 public class LocalVariable : RangeNode, IVariable, IAttributeBearingDeclaration {
   readonly string name;
+  public string DafnyName => Name;
   public Attributes Attributes;
   Attributes IAttributeBearingDeclaration.Attributes => Attributes;
   public bool IsGhost;
