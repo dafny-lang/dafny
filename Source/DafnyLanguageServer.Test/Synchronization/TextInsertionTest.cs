@@ -134,11 +134,7 @@ function SomeConstant(): int {
         (new Range((1, 0), (1, 0)), "  "),
         (new Range((1, 35), (1, 35)), @"
 "),
-        (new Range((2, 0), (2, 0)), "}"),
-        (new Range((2, 0), (2, 0)), @"
-class Test {
-  function GetConstant(): int { 1 }
-}")
+        (new Range((2, 0), (2, 0)), "}")
       };
       var expected = @"
 class Test {
@@ -157,7 +153,7 @@ class Test {
       foreach (var (range, change) in ranges) {
         buffer = buffer.ApplyTextChange(new TextDocumentContentChangeEvent() {
           Range = range,
-          RangeLength = range.End.Character,
+          RangeLength = range.End.Character - range.Start.Character,
           Text = change
         });
       }
