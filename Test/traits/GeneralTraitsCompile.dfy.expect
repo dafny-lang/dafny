@@ -1,5 +1,5 @@
 
-Dafny program verifier finished with 34 verified, 0 errors
+Dafny program verifier finished with 37 verified, 0 errors
 
 Dafny program verifier did not attempt verification
 18 0 10 11
@@ -45,6 +45,7 @@ hello static M
 18 0 10
 hello static M
 -----
+23 23
 done
 
 Dafny program verifier did not attempt verification
@@ -91,6 +92,7 @@ hello static M
 18 0 10
 hello static M
 -----
+23 23
 done
 
 Dafny program verifier did not attempt verification
@@ -137,6 +139,7 @@ hello static M
 18 0 10
 hello static M
 -----
+23 23
 done
 
 Dafny program verifier did not attempt verification
@@ -183,6 +186,7 @@ hello static M
 18 0 10
 hello static M
 -----
+23 23
 done
 
 Dafny program verifier did not attempt verification
@@ -229,4 +233,5 @@ hello static M
 18 0 10
 hello static M
 -----
+23 23
 done

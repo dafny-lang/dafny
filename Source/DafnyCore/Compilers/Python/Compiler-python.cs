@@ -272,19 +272,24 @@ namespace Microsoft.Dafny.Compilers {
       }
 
       btw.WriteLine($"@classmethod");
-      var wDefault = btw.NewBlockPy($"def default(cls, {UsedTypeParameters(dt).Comma(FormatDefaultTypeParameterValue)}):");
+      var wDefault = btw.NewBlockPy($"def default(cls, {UsedTypeParameters(dt, true).Comma(FormatDefaultTypeParameterValue)}):");
       var groundingCtor = dt.GetGroundingCtor();
       if (groundingCtor.IsGhost) {
         wDefault.WriteLine($"return lambda: {ForcePlaceboValue(UserDefinedType.FromTopLevelDecl(dt.tok, dt), wDefault, dt.tok)}");
       } else if (DatatypeWrapperEraser.GetInnerTypeOfErasableDatatypeWrapper(Options, dt, out var innerType)) {
         wDefault.WriteLine($"return lambda: {DefaultValue(innerType, wDefault, dt.tok)}");
       } else {
-        var arguments = groundingCtor.Formals.Where(f => !f.IsGhost).Comma(f => DefaultValue(f.Type, wDefault, f.tok));
-        var constructorCall = $"{DtCtorDeclarationName(groundingCtor, false)}({arguments})";
-        if (dt is CoDatatypeDecl) {
-          constructorCall = $"{dt.GetCompileName(Options)}__Lazy(lambda: {constructorCall})";
-        }
-        wDefault.WriteLine($"return lambda: {constructorCall}");
+        var wTypeDescriptors = new ConcreteSyntaxTree();
+        var typeDescriptorComma = "";
+        WriteRuntimeTypeDescriptorsFormals(TypeArgumentInstantiation.ListFromFormals(dt.TypeArgs),
+          wTypeDescriptors, ref typeDescriptorComma, FormatDefaultTypeParameterValue);
+        var typeDescriptorUses = wTypeDescriptors.ToString();
+
+        var nonGhostFormals = groundingCtor.Formals.Where(f => !f.IsGhost).ToList();
+        var arguments = nonGhostFormals.Comma(f => DefaultValue(f.Type, wDefault, f.tok));
+        wDefault.Write("return lambda: ");
+        EmitDatatypeValue(dt, groundingCtor, dt is CoDatatypeDecl, typeDescriptorUses, arguments, wDefault, false);
+        wDefault.WriteLine();
       }
 
       // Ensures the inequality is based on equality defined in the constructor
@@ -319,8 +324,11 @@ namespace Microsoft.Dafny.Compilers {
       foreach (var ctor in dt.Ctors.Where(ctor => !ctor.IsGhost)) {
         // Class-level fields don't work in all python version due to metaclasses.
         // Adding a more restrictive type would be desirable, but Python expects their definition to precede this.
-        var argList = ctor.Destructors.Where(d => !d.IsGhost)
-          .Select(d => $"('{IdProtect(d.GetCompileName(Options))}', Any)").Comma();
+        var argListX = dt.TypeArgs.Where(NeedsTypeDescriptor)
+          .Select(tp => $"('{IdProtect(tp.GetCompileName(Options))}', Any)");
+        var argListY = ctor.Destructors.Where(d => !d.IsGhost)
+          .Select(d => $"('{IdProtect(d.GetCompileName(Options))}', Any)");
+        var argList = argListX.Concat(argListY).Comma();
         var namedtuple = $"NamedTuple('{IdProtect(ctor.GetCompileName(Options))}', [{argList}])";
         var header = $"class {DtCtorDeclarationName(ctor, false)}({DtT}, {namedtuple}):";
         var constructor = wr.NewBlockPy(header, close: BlockStyle.Newline);
@@ -608,7 +616,7 @@ namespace Microsoft.Dafny.Compilers {
       }
 
       string TypeParameterDescriptor(TypeParameter typeParameter) {
-        if ((thisContext != null && typeParameter.Parent is ClassDecl) || typeParameter.Parent is IteratorDecl) {
+        if ((thisContext != null && typeParameter.Parent is TopLevelDeclWithMembers and not TraitDecl) || typeParameter.Parent is IteratorDecl) {
           return $"self.{typeParameter.GetCompileName(Options)}";
         }
         if (thisContext != null && thisContext.ParentFormalTypeParametersToActuals.TryGetValue(typeParameter, out var instantiatedTypeParameter)) {
@@ -629,7 +637,7 @@ namespace Microsoft.Dafny.Compilers {
         } else {
           w.Write($"{TypeName_UDT(FullTypeName(udt), udt, wr, tok)}.default(");
         }
-        EmitTypeDescriptorsActuals(UsedTypeParameters(dt, typeArgs), tok, w, true);
+        EmitTypeDescriptorsActuals(UsedTypeParameters(dt, typeArgs, true), tok, w, true);
         w.Write(")");
         return w.ToString();
       }
@@ -751,10 +759,10 @@ namespace Microsoft.Dafny.Compilers {
                 }
 
               case DatatypeDecl dt:
-                var relevantTypeArgs = UsedTypeParameters(dt, udt.TypeArgs).ConvertAll(ta => ta.Actual);
+                var relevantTypeArgs = UsedTypeParameters(dt, udt.TypeArgs, true).ConvertAll(ta => ta.Actual);
                 return dt is TupleTypeDecl
                   ? $"({relevantTypeArgs.Comma(arg => DefaultValue(arg, wr, tok, constructTypeParameterDefaultsFromTypeDescriptors))}{(relevantTypeArgs.Count == 1 ? "," : "")})"
-                  : $"{DtCtorDeclarationName(dt.GetGroundingCtor())}.default({relevantTypeArgs.Comma(arg => TypeDescriptor(arg, wr, tok))})()";
+                  : $"{dt.GetFullCompileName(Options)}.default({relevantTypeArgs.Comma(arg => TypeDescriptor(arg, wr, tok))})()";
 
               case TypeParameter tp:
                 return constructTypeParameterDefaultsFromTypeDescriptors
@@ -1164,19 +1172,25 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void EmitDatatypeValue(DatatypeValue dtv, string typeDescriptorArguments, string arguments, ConcreteSyntaxTree wr) {
-      if (dtv.IsCoCall) {
-        wr.Write($"{dtv.Ctor.EnclosingDatatype.GetFullCompileName(Options)}__Lazy(lambda: ");
+      EmitDatatypeValue(dtv.Ctor.EnclosingDatatype, dtv.Ctor, dtv.IsCoCall, typeDescriptorArguments, arguments, wr);
+    }
+
+    void EmitDatatypeValue(DatatypeDecl dt, DatatypeCtor ctor, bool isCoCall, string typeDescriptorArguments, string arguments,
+      ConcreteSyntaxTree wr, bool qualifiedName = true) {
+      if (isCoCall) {
+        wr.Write($"{dt.GetFullCompileName(Options)}__Lazy(lambda: ");
         var end = wr.Fork();
         wr.Write(")");
         wr = end;
       }
-      if (dtv.Ctor.EnclosingDatatype is not TupleTypeDecl) {
-        wr.Write($"{DtCtorDeclarationName(dtv.Ctor)}");
-      } else if (dtv.Ctor.Destructors.Count(d => !d.IsGhost) == 1) {
+      if (dt is not TupleTypeDecl) {
+        wr.Write($"{DtCtorDeclarationName(ctor, qualifiedName)}");
+      } else if (ctor.Destructors.Count(d => !d.IsGhost) == 1) {
         // 1-tuples need this this for disambiguation
         arguments += ",";
       }
-      wr.Write($"({arguments})");
+      var sep = typeDescriptorArguments.Length != 0 && arguments.Length != 0 ? ", " : "";
+      wr.Write($"({typeDescriptorArguments}{sep}{arguments})");
     }
 
     protected override void GetSpecialFieldInfo(SpecialField.ID id, object idParam, Type receiverType,

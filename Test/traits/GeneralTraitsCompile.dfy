@@ -12,6 +12,7 @@ method Main() {
   InstanceMemberInheritance.Test();
   StaticMemberInheritanceAccessViaName.Test();
   StaticMemberInheritanceAccessViaReceiver.Test();
+  NiceStarterTests.Test();
   print "done\n";
 }
 
@@ -412,3 +413,36 @@ module StaticMemberInheritanceAccessViaReceiver {
     return x;
   }
 */}
+
+module NiceStarterTests {
+  trait Parent {
+    method MyMethod<Y(0)>(a: int) returns (r: int)
+  }
+
+  datatype Color<X(0)> extends Parent = Blue | Gray(n: nat)
+  {
+    method MyMethod<Y(0)>(a: int) returns (r: int) {
+      var x: X;
+      var y: Y;
+      r := a + a + 3;
+    }
+  }
+
+  class MyClass<X(0)> extends Parent
+  {
+    method MyMethod<Y(0)>(a: int) returns (r: int) {
+      var x: X;
+      var y: Y;
+      r := a + 3;
+    }
+  }
+
+  method Test() {
+    var u := Color<real>.Gray(15);
+    var s := u.MyMethod<bool>(10);
+
+    var p: Parent := u;
+    var t := p.MyMethod<bool>(10);
+    print s, " ", t, "\n"; // 23 23
+  }
+}

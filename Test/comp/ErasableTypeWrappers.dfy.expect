@@ -20,7 +20,7 @@ true false
 HasConst.MakeC(4) (4, 4)
 4 (4, 4)
 OptimizationChecks_Compile.Ints.Ints(5, 7) OptimizationChecks_Compile.Ints.Ints(5, 7) OptimizationChecks_Compile.Ints.AnotherIntsWrapper(OptimizationChecks_Compile.Ints.Ints(5, 7))
-'D' 'D'
+D D
 5 5
 
 Dafny program verifier did not attempt verification
@@ -42,7 +42,7 @@ true false
 HasConst.MakeC(4) (4, 4)
 4 (4, 4)
 OptimizationChecks_Compile.Ints.Ints(5, 7) OptimizationChecks_Compile.Ints.Ints(5, 7) OptimizationChecks_Compile.Ints.AnotherIntsWrapper(OptimizationChecks_Compile.Ints.Ints(5, 7))
-'D' 'D'
+D D
 5 5
 
 Dafny program verifier did not attempt verification
@@ -64,7 +64,7 @@ true false
 HasConst.MakeC(4) (4, 4)
 4 (4, 4)
 OptimizationChecks_Compile.Ints.Ints(5, 7) OptimizationChecks_Compile.Ints.Ints(5, 7) OptimizationChecks_Compile.Ints.AnotherIntsWrapper(OptimizationChecks_Compile.Ints.Ints(5, 7))
-'D' 'D'
+D D
 5 5
 
 Dafny program verifier did not attempt verification
@@ -86,7 +86,7 @@ true false
 HasConst.MakeC(4) (4, 4)
 4 (4, 4)
 OptimizationChecks_Compile.Ints.Ints(5, 7) OptimizationChecks_Compile.Ints.Ints(5, 7) OptimizationChecks_Compile.Ints.AnotherIntsWrapper(OptimizationChecks_Compile.Ints.Ints(5, 7))
-'D' 'D'
+D D
 5 5
 
 Dafny program verifier did not attempt verification
@@ -108,5 +108,5 @@ true false
 HasConst.MakeC(4) (4, 4)
 4 (4, 4)
 OptimizationChecks_Compile.Ints.Ints(5, 7) OptimizationChecks_Compile.Ints.Ints(5, 7) OptimizationChecks_Compile.Ints.AnotherIntsWrapper(OptimizationChecks_Compile.Ints.Ints(5, 7))
-'D' 'D'
+D D
 5 5

@@ -405,8 +405,8 @@ module PrintRegressionTests {
 
   method Test() {
     var charWrapper: Wrapper<char> := *;
-    print charWrapper, " "; // 'D'
-    PrintOne<Wrapper<char>>(); // 'D'
+    print charWrapper, " "; // 'D' (or just D with /unicodeChar:0)
+    PrintOne<Wrapper<char>>(); // 'D' (or just D with /unicodeChar:0)
 
     var nativeWrapper: Wrapper<Native> := *;
     print nativeWrapper, " "; // 5
