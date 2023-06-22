@@ -166,7 +166,7 @@ namespace Microsoft.Dafny.Compilers {
       return name;
     }
 
-    protected override IClassWriter CreateClass(string moduleName, string name, bool isExtern, string fullPrintName,
+    protected override IClassWriter CreateClass(string moduleName, string name, bool isExtern, string/*?*/ fullPrintName,
       List<TypeParameter> typeParameters, TopLevelDecl cls, List<Type> superClasses, IToken tok, ConcreteSyntaxTree wr) {
       var realSuperClasses = superClasses?.Where(trait => !trait.IsObject).ToList() ?? new List<Type>();
       var baseClasses = realSuperClasses.Any()
@@ -188,11 +188,13 @@ namespace Microsoft.Dafny.Compilers {
       var constructorWriter = block.Fork();
       block.WriteLine("pass");
 
-      var wBody = methodWriter.NewBlockPy("def __dafnystr__(self) -> str:");
-      if (isNewtypeWithTraits) {
-        wBody.WriteLine("return str(self._value)");
-      } else {
-        wBody.WriteLine($"return \"{fullPrintName}\"");
+      if (cls is not DefaultClassDecl && (fullPrintName != null || isNewtypeWithTraits)) {
+        var wBody = methodWriter.NewBlockPy("def __dafnystr__(self) -> str:");
+        if (isNewtypeWithTraits) {
+          wBody.WriteLine("return _dafny.string_of(self._value)");
+        } else {
+          wBody.WriteLine($"return \"{fullPrintName}\"");
+        }
       }
 
       return new ClassWriter(this, constructorWriter, methodWriter);
@@ -210,7 +212,7 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override ConcreteSyntaxTree CreateIterator(IteratorDecl iter, ConcreteSyntaxTree wr) {
       var cw = (ClassWriter)CreateClass(IdProtect(iter.EnclosingModuleDefinition.GetCompileName(Options)), IdName(iter), false,
-        IdName(iter), iter.TypeArgs, iter, null, iter.tok, wr);
+        iter.FullName, iter.TypeArgs, iter, null, iter.tok, wr);
       var constructorWriter = cw.ConstructorWriter;
       var w = cw.MethodWriter;
       // here come the fields
