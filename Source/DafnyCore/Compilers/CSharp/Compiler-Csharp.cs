@@ -1208,8 +1208,14 @@ namespace Microsoft.Dafny.Compilers {
         return InstanceMemberWriter;
       }
 
-      public ConcreteSyntaxTree /*?*/ CreateMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody, bool forBodyInheritance, bool lookasideBody) {
-        return Compiler.CreateMethod(m, typeArgs, createBody, Writer(m.IsStatic, createBody, m), forBodyInheritance, lookasideBody);
+      public ConcreteSyntaxTree ClassHeaderWriter() {
+        return null;
+      }
+
+      public ConcreteSyntaxTree /*?*/ CreateMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody, bool forBodyInheritance, bool lookasideBody, out ConcreteSyntaxTree headerWriter) {
+        var writer = Writer(m.IsStatic, createBody, m);
+        headerWriter = writer.Fork();
+        return Compiler.CreateMethod(m, typeArgs, createBody, writer, forBodyInheritance, lookasideBody);
       }
 
       public ConcreteSyntaxTree SynthesizeMethod(Method method, List<TypeArgumentInstantiation> typeArgs, bool createBody, bool forBodyInheritance,

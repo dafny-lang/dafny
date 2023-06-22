@@ -200,7 +200,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override ConcreteSyntaxTree CreateIterator(IteratorDecl iter, ConcreteSyntaxTree wr) {
-      var cw = (ClassWriter)CreateClass(IdProtect(iter.EnclosingModuleDefinition.GetCompileName(Options)), IdName(iter), false,
+      var cw = (ClassWriter)ClassWriterFactory.CreateClass(IdProtect(iter.EnclosingModuleDefinition.GetCompileName(Options)), IdName(iter), false, 
         IdName(iter), iter.TypeArgs, iter, null, iter.tok, wr);
       var constructorWriter = cw.ConstructorWriter;
       var w = cw.MethodWriter;
@@ -426,9 +426,14 @@ namespace Microsoft.Dafny.Compilers {
         ConstructorWriter = constructorWriter;
         MethodWriter = methodWriter;
       }
-
+      
+      public ConcreteSyntaxTree ClassHeaderWriter() {
+        return null;
+      }
+      
       public ConcreteSyntaxTree CreateMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody,
-        bool forBodyInheritance, bool lookasideBody) {
+        bool forBodyInheritance, bool lookasideBody, out ConcreteSyntaxTree headerWriter) {
+        headerWriter = MethodWriter.Fork();
         return Compiler.CreateMethod(m, typeArgs, createBody, MethodWriter, forBodyInheritance, lookasideBody);
       }
 

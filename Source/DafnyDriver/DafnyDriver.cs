@@ -875,6 +875,10 @@ namespace Microsoft.Dafny {
       var oldErrorCount = dafnyProgram.Reporter.Count(ErrorLevel.Error);
       var options = dafnyProgram.Options;
       options.Backend.OnPreCompile(dafnyProgram.Reporter, otherFileNames);
+      
+      // Now that an internal compiler is instantiated, apply any plugin advice.
+      options.Backend.ApplyClassWriterAdvice(options.Plugins.SelectMany(p => p.GetClassWriterAdvisors(options)));
+      
       var compiler = options.Backend;
 
       var hasMain = Compilers.SinglePassCompiler.HasMain(dafnyProgram, out var mainMethod);

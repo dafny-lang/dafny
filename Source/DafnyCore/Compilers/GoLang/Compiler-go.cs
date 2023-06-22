@@ -1053,6 +1053,10 @@ namespace Microsoft.Dafny.Compilers {
         this.StaticFieldInitWriter = staticFieldInitWriter;
       }
 
+      public ConcreteSyntaxTree ClassHeaderWriter() {
+        return null;
+      }
+      
       public ConcreteSyntaxTree FieldWriter(bool isStatic) {
         return isStatic ? StaticFieldWriter : InstanceFieldWriter;
       }
@@ -1061,7 +1065,9 @@ namespace Microsoft.Dafny.Compilers {
         return isStatic ? StaticFieldInitWriter : InstanceFieldInitWriter;
       }
 
-      public ConcreteSyntaxTree/*?*/ CreateMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody, bool forBodyInheritance, bool lookasideBody) {
+      public ConcreteSyntaxTree/*?*/ CreateMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody, bool forBodyInheritance, bool lookasideBody, out ConcreteSyntaxTree headerWriter) {
+        // TODO: Not sure what to do here yet
+        headerWriter = null;
         return Compiler.CreateMethod(m, typeArgs, createBody, ClassName, AbstractMethodWriter, ConcreteMethodWriter, forBodyInheritance, lookasideBody);
       }
 

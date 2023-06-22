@@ -160,4 +160,7 @@ public abstract class IExecutableBackend {
     string pathsFilename,
     ReadOnlyCollection<string> otherFileNames, object compilationResult, TextWriter outputWriter,
     TextWriter errorWriter);
+
+  public virtual void ApplyClassWriterAdvice(IEnumerable<ClassWriterAdvice> advices) {
+  }
 }

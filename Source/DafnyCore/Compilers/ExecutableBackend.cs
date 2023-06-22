@@ -7,6 +7,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Microsoft.Dafny.Plugins;
 using Microsoft.Win32;
 
 namespace Microsoft.Dafny.Compilers;
@@ -209,5 +210,15 @@ public abstract class ExecutableBackend : Plugins.IExecutableBackend {
     }
 
     return true;
+  }
+
+  public override void ApplyClassWriterAdvice(IEnumerable<ClassWriterAdvice> advices) {
+    if (compiler == null) {
+      return;
+    }
+    
+    foreach (var advice in advices) {
+      compiler.ClassWriterFactory = advice.WrapClassWriterFactory(compiler.ClassWriterFactory);
+    }
   }
 }

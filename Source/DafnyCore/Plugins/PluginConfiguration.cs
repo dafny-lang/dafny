@@ -48,4 +48,9 @@ public abstract class PluginConfiguration {
   public virtual DocstringRewriter[] GetDocstringRewriters(DafnyOptions options) {
     return Array.Empty<DocstringRewriter>();
   }
+  
+  
+  public virtual ClassWriterAdvice[] GetClassWriterAdvisors(DafnyOptions options) {
+    return Array.Empty<ClassWriterAdvice>();
+  }
 }

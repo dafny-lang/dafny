@@ -12,6 +12,7 @@ public interface Plugin {
   public IEnumerable<IExecutableBackend> GetCompilers(DafnyOptions options);
   public IEnumerable<IRewriter> GetRewriters(ErrorReporter reporter);
   public IEnumerable<DocstringRewriter> GetDocstringRewriters(DafnyOptions options);
+  public IEnumerable<ClassWriterAdvice> GetClassWriterAdvisors(DafnyOptions options);
 }
 
 record ErrorPlugin(string AssemblyAndArgument, Exception Exception) : Plugin {
@@ -25,6 +26,10 @@ record ErrorPlugin(string AssemblyAndArgument, Exception Exception) : Plugin {
 
   public IEnumerable<DocstringRewriter> GetDocstringRewriters(DafnyOptions options) {
     return Enumerable.Empty<DocstringRewriter>();
+  }
+
+  public IEnumerable<ClassWriterAdvice> GetClassWriterAdvisors(DafnyOptions options) {
+    return Enumerable.Empty<ClassWriterAdvice>();
   }
 
   class ErrorRewriter : IRewriter {
@@ -59,6 +64,10 @@ public class ConfiguredPlugin : Plugin {
   public IEnumerable<DocstringRewriter> GetDocstringRewriters(DafnyOptions options) {
     return Configuration.GetDocstringRewriters(options);
   }
+
+  public IEnumerable<ClassWriterAdvice> GetClassWriterAdvisors(DafnyOptions options) {
+    return Configuration.GetClassWriterAdvisors(options);
+  }
 }
 
 /// <summary>
@@ -79,15 +88,17 @@ public class AssemblyPlugin : ConfiguredPlugin {
 
       Rewriters = FindPluginComponents<Rewriter, Func<ErrorReporter, Rewriter>>(assembly, CreateRewriterFactory);
       Compilers = FindPluginComponents<IExecutableBackend, Func<IExecutableBackend>>(assembly, CreateCompilerFactory);
+      ClassWriterAdvisors = FindPluginComponents<ClassWriterAdvice, Func<ClassWriterAdvice>>(assembly, CreateClassWriterAdviceFactory);
 
       // Report an error if this assembly doesn't contain any plugins.  We only
       // get to this point if we have not found a `PluginConfiguration` either,
       // so no need to check for one here.
-      if (Rewriters.Length == 0 && Compilers.Length == 0) {
+      if (Rewriters.Length == 0 && Compilers.Length == 0 && ClassWriterAdvisors.Length == 0) {
         throw new Exception($"Plugin {assembly.Location} does not contain any supported plugin classes.  " +
                             "Expecting one of the following:\n" +
                             $"- ${typeof(Plugins.Rewriter).FullName}\n" +
                             $"- ${typeof(Plugins.IExecutableBackend).FullName}\n" +
+                            $"- ${typeof(Plugins.ClassWriterAdvice).FullName}\n" +
                             $"- ${typeof(Plugins.PluginConfiguration).FullName}");
       }
     }
@@ -103,9 +114,14 @@ public class AssemblyPlugin : ConfiguredPlugin {
       errorReporter => (Rewriter)Activator.CreateInstance(type, errorReporter);
 
     private Func<IExecutableBackend>[] Compilers { get; init; }
+    
+    private Func<ClassWriterAdvice>[] ClassWriterAdvisors { get; init; }
 
     Func<IExecutableBackend> CreateCompilerFactory(System.Type type) =>
       () => (IExecutableBackend)Activator.CreateInstance(type);
+    
+    Func<ClassWriterAdvice> CreateClassWriterAdviceFactory(System.Type type) =>
+      () => (ClassWriterAdvice)Activator.CreateInstance(type);
 
     public override Rewriter[] GetRewriters(ErrorReporter errorReporter) =>
       Rewriters.Select(funcErrorReporterRewriter =>
@@ -113,6 +129,9 @@ public class AssemblyPlugin : ConfiguredPlugin {
 
     public override IExecutableBackend[] GetCompilers(DafnyOptions options) =>
       Compilers.Select(c => c()).ToArray();
+
+    public override ClassWriterAdvice[] GetClassWriterAdvisors(DafnyOptions options) =>
+      ClassWriterAdvisors.Select(c => c()).ToArray();
   }
 
   public static IEnumerable<System.Type> GetConfigurationsTypes(Assembly assembly) {

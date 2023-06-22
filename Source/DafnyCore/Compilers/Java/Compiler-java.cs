@@ -407,17 +407,23 @@ namespace Microsoft.Dafny.Compilers {
 
     protected class ClassWriter : IClassWriter {
       public readonly JavaCompiler Compiler;
+      public readonly ConcreteSyntaxTree HeaderWriter;
       public readonly ConcreteSyntaxTree InstanceMemberWriter;
       public readonly ConcreteSyntaxTree StaticMemberWriter;
       public readonly ConcreteSyntaxTree CtorBodyWriter;
 
-      public ClassWriter(JavaCompiler compiler, ConcreteSyntaxTree instanceMemberWriter, ConcreteSyntaxTree ctorBodyWriter, ConcreteSyntaxTree staticMemberWriter = null) {
+      public ClassWriter(JavaCompiler compiler, ConcreteSyntaxTree headerWriter, ConcreteSyntaxTree instanceMemberWriter, ConcreteSyntaxTree ctorBodyWriter, ConcreteSyntaxTree staticMemberWriter = null) {
         Contract.Requires(compiler != null);
         Contract.Requires(instanceMemberWriter != null);
         this.Compiler = compiler;
+        this.HeaderWriter = headerWriter;
         this.InstanceMemberWriter = instanceMemberWriter;
         this.CtorBodyWriter = ctorBodyWriter;
         this.StaticMemberWriter = staticMemberWriter ?? instanceMemberWriter;
+      }
+
+      public ConcreteSyntaxTree ClassHeaderWriter() {
+        return HeaderWriter;
       }
 
       public ConcreteSyntaxTree Writer(bool isStatic, bool createBody, MemberDecl/*?*/ member) {
@@ -429,8 +435,10 @@ namespace Microsoft.Dafny.Compilers {
         return InstanceMemberWriter;
       }
 
-      public ConcreteSyntaxTree/*?*/ CreateMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody, bool forBodyInheritance, bool lookasideBody) {
-        return Compiler.CreateMethod(m, typeArgs, createBody, Writer(m.IsStatic, createBody, m), forBodyInheritance, lookasideBody);
+      public ConcreteSyntaxTree/*?*/ CreateMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody, bool forBodyInheritance, bool lookasideBody, out ConcreteSyntaxTree headerWriter) {
+        var writer = Writer(m.IsStatic, createBody, m);
+        headerWriter = writer.Fork();
+        return Compiler.CreateMethod(m, typeArgs, createBody, writer, forBodyInheritance, lookasideBody);
       }
 
       public ConcreteSyntaxTree SynthesizeMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody, bool forBodyInheritance, bool lookasideBody) {
@@ -521,7 +529,9 @@ namespace Microsoft.Dafny.Compilers {
       }
       var customReceiver = createBody && !forBodyInheritance && NeedsCustomReceiver(m);
       var receiverType = UserDefinedType.FromTopLevelDecl(m.tok, m.EnclosingClass);
-      wr.Write("public {0}{1}", !createBody && !(m.EnclosingClass is TraitDecl) ? "abstract " : "", m.IsStatic || customReceiver ? "static " : "");
+      wr.Write("public {0}{1}{2}", !createBody && !(m.EnclosingClass is TraitDecl) ? "abstract " : "", 
+                                   m.IsStatic || customReceiver ? "static " : "",
+                                   Attributes.Contains(m.EnclosingClass.Attributes, "separated") ? "synchronized " : "");
       wr.Write(TypeParameters(TypeArgumentInstantiation.ToFormals(ForTypeParameters(typeArgs, m, lookasideBody)), " "));
       wr.Write("{0} {1}", targetReturnTypeReplacement ?? "void", IdName(m));
       wr.Write("(");
@@ -567,7 +577,9 @@ namespace Microsoft.Dafny.Compilers {
       }
       var customReceiver = createBody && !forBodyInheritance && NeedsCustomReceiver(member);
       var receiverType = UserDefinedType.FromTopLevelDecl(member.tok, member.EnclosingClass);
-      wr.Write("public {0}{1}", !createBody && !(member.EnclosingClass is TraitDecl) ? "abstract " : "", isStatic || customReceiver ? "static " : "");
+      wr.Write("public {0}{1}{2}", !createBody && !(member.EnclosingClass is TraitDecl) ? "abstract " : "",
+                                   isStatic || customReceiver ? "static " : "",
+                                   Attributes.Contains(member.EnclosingClass.Attributes, "separated") ? "synchronized " : "");
       wr.Write(TypeParameters(TypeArgumentInstantiation.ToFormals(ForTypeParameters(typeArgs, member, lookasideBody)), " "));
       wr.Write($"{TypeName(resultType, wr, tok)} {name}(");
       var sep = "";
@@ -889,6 +901,7 @@ namespace Microsoft.Dafny.Compilers {
       w.WriteLine();
       //TODO: Fix implementations so they do not need this suppression
       EmitSuppression(w);
+      var headerWriter = w.Fork();
       var abstractness = isExtern ? "abstract " : "";
       w.Write($"public {abstractness}class {javaName}{TypeParameters(typeParameters)}");
       string sep;
@@ -937,7 +950,7 @@ namespace Microsoft.Dafny.Compilers {
         EmitToString(fullPrintName, wBody);
       }
 
-      return new ClassWriter(this, wRestOfBody, wCtorBody);
+      return new ClassWriter(this, headerWriter, wRestOfBody, wCtorBody);
     }
 
     private void EmitToString(string fullPrintName, ConcreteSyntaxTree wr) {
@@ -1797,6 +1810,7 @@ namespace Microsoft.Dafny.Compilers {
       //TODO: Figure out how to resolve type checking warnings
       // from here on, write everything into the new block created here:
       EmitSuppression(wr);
+      var headerWriter = wr.Fork();
       var btw = wr.NewNamedBlock("public{0} class {1}", dt.IsRecordType ? "" : " abstract", DtT_protected);
       wr = btw;
 
@@ -1931,7 +1945,7 @@ namespace Microsoft.Dafny.Compilers {
       // FIXME: This is dodgy.  We can set the constructor body writer to null
       // only because we don't expect to use it, which is only because we don't
       // expect there to be fields.
-      return new ClassWriter(this, btw, ctorBodyWriter: null);
+      return new ClassWriter(this, headerWriter, btw, ctorBodyWriter: null);
     }
 
     void CompileDatatypeConstructors(DatatypeDecl dt, ConcreteSyntaxTree wrx) {
