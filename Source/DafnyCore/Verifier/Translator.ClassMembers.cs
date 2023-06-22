@@ -1069,8 +1069,8 @@ namespace Microsoft.Dafny {
         layer = new Boogie.IdentifierExpr(f.tok, "$LZ", predef.LayerType); // $LZ
       }
 
-      if (f.IsOpaque) {
-        Contract.Assert(overridingFunction.IsOpaque);
+      if (f.IsOpaque || options.Get(CommonOptionBag.AllOpaque)) {
+        Contract.Assert(overridingFunction.IsOpaque || options.Get(CommonOptionBag.AllOpaque));
         var revealVar = new Boogie.BoundVariable(f.tok, new Boogie.TypedIdent(f.tok, "reveal", Boogie.Type.Bool));
         forallFormals.Add(revealVar);
         reveal = new Boogie.IdentifierExpr(f.tok, revealVar);
