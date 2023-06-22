@@ -49,7 +49,6 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
   public readonly bool IsAbstract;
   public readonly bool IsFacade; // True iff this module represents a module facade (that is, an abstract interface)
   private readonly bool IsBuiltinName; // true if this is something like _System that shouldn't have it's name mangled.
-  private readonly bool defaultClassFirst;
 
   public DefaultClassDecl DefaultClass { get; set; }
 
@@ -58,12 +57,8 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
   public readonly List<TopLevelDecl> ResolvedPrefixNamedModules = new();
   [FilledInDuringResolution]
   public readonly List<PrefixNameModule> PrefixNamedModules = new();  // filled in by the parser; emptied by the resolver
-  public virtual IEnumerable<TopLevelDecl> TopLevelDecls =>
-    defaultClassFirst ? DefaultClasses.
+  public virtual IEnumerable<TopLevelDecl> TopLevelDecls => DefaultClasses.
         Concat(SourceDecls).
-        Concat(ResolvedPrefixNamedModules)
-      : SourceDecls.
-        Concat(DefaultClasses).
         Concat(ResolvedPrefixNamedModules);
 
   public IEnumerable<IPointer<TopLevelDecl>> TopLevelDeclPointers =>
@@ -101,7 +96,6 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
     Attributes = original.Attributes;
     IsAbstract = original.IsAbstract;
     RefinementQId = original.RefinementQId;
-    defaultClassFirst = original.defaultClassFirst;
     foreach (var d in original.SourceDecls) {
       SourceDecls.Add(cloner.CloneDeclaration(d, this));
     }
@@ -128,7 +122,7 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
 
   public ModuleDefinition(RangeToken tok, Name name, List<IToken> prefixIds, bool isAbstract, bool isFacade,
     ModuleQualifiedId refinementQId, ModuleDefinition parent, Attributes attributes,
-    bool isBuiltinName, bool defaultClassFirst = false) : base(tok) {
+    bool isBuiltinName) : base(tok) {
     Contract.Requires(tok != null);
     Contract.Requires(name != null);
     this.NameNode = name;
@@ -139,7 +133,6 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
     this.IsAbstract = isAbstract;
     this.IsFacade = isFacade;
     this.IsBuiltinName = isBuiltinName;
-    this.defaultClassFirst = defaultClassFirst;
 
     if (Name != "_System") {
       DefaultClass = new DefaultClassDecl(this, new List<MemberDecl>());
