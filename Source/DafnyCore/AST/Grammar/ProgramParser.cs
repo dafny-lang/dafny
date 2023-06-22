@@ -225,9 +225,9 @@ public class ProgramParser {
     try {
       return new DafnyFile(systemModuleManager.Options, include.IncludedFilename,
         fileSystem.ReadFile(include.IncludedFilename));
-    } catch (IOException) {
+    } catch (IOException e) {
       errorReporter.Error(MessageSource.Parser, include.tok,
-        $"Unable to open the include {include.IncludedFilename}.");
+        $"Unable to open the include {include.IncludedFilename} because {e.Message}.");
       return null;
     } catch (IllegalDafnyFile) {
       errorReporter.Error(MessageSource.Parser, include.tok,

@@ -10,6 +10,6 @@ public interface IFileSystem {
 public class OnDiskFileSystem : IFileSystem {
   public static readonly IFileSystem Instance = new OnDiskFileSystem();
   public TextReader ReadFile(Uri uri) {
-    return new StreamReader(File.Open(uri.LocalPath, FileMode.Open));
+    return new StreamReader(uri.LocalPath);
   }
 }
