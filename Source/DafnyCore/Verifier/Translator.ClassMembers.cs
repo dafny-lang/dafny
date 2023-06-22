@@ -1069,13 +1069,13 @@ namespace Microsoft.Dafny {
         layer = new Boogie.IdentifierExpr(f.tok, "$LZ", predef.LayerType); // $LZ
       }
 
-      if (f.IsOpaque || options.Get(CommonOptionBag.AllOpaque)) {
+      if (f.IsOpaque || (options.Get(CommonOptionBag.AllOpaque) && f.Name != "reads" && f.Name != "requires")) {
         Contract.Assert(overridingFunction.IsOpaque || options.Get(CommonOptionBag.AllOpaque));
         var revealVar = new Boogie.BoundVariable(f.tok, new Boogie.TypedIdent(f.tok, "reveal", Boogie.Type.Bool));
         forallFormals.Add(revealVar);
         reveal = new Boogie.IdentifierExpr(f.tok, revealVar);
         argsJF.Add(reveal);
-      } else if (overridingFunction.IsOpaque) {
+      } else if (overridingFunction.IsOpaque || (options.Get(CommonOptionBag.AllOpaque) )) {
         // We can't use a bound variable $fuel, because then one of the triggers won't be mentioning this $fuel.
         // Instead, we do the next best thing: use the literal false.
         reveal = new Boogie.IdentifierExpr(f.tok, "false", Boogie.Type.Bool);

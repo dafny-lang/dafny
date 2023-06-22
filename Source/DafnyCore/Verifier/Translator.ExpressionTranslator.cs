@@ -477,7 +477,7 @@ namespace Microsoft.Dafny {
                   if (fn.IsFuelAware()) {
                     args.Add(this.layerInterCluster.GetFunctionFuel(fn));
                   }
-                  if (fn.IsOpaque || options.Get(CommonOptionBag.AllOpaque)) {
+                  if (fn.IsOpaque || (options.Get(CommonOptionBag.AllOpaque) && fn.Name != "reads" && fn.Name != "requires")) {
                     args.Add(translator.GetRevealConstant(fn));
                   }
                   if (fn is TwoStateFunction) {
