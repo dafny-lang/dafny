@@ -593,7 +593,7 @@ type Heap = [ref]<alpha>[Field alpha]Box;
 function {:inline} read<alpha>(H:Heap, r:ref, f:Field alpha): Box { H[r][f] }
 function {:inline} readUnbox<alpha>(H: Heap, r: ref, f: Field alpha) : alpha { $Unbox(read(H, r, f)) }
 function {:inline} update<alpha>(H:Heap, r:ref, f:Field alpha, v:Box): Heap { H[r := H[r][f := v]] }
-function {:inline} updateBox<alpha>(H:Heap, r:ref, f:Field alpha, v:alpha): Heap { H[r := H[r][f := $Box(v)]] }
+function {:inline} updateBox<alpha>(H:Heap, r:ref, f:Field alpha, v:alpha): Heap { update(H, r, f, $Box(v)) }
 
 function $IsGoodHeap(Heap): bool;
 function $IsHeapAnchor(Heap): bool;
@@ -1130,7 +1130,7 @@ axiom (forall h0, h1: Heap, a: ref ::
   ==>
   Seq#FromArray(h0, a) == Seq#FromArray(h1, a));
 axiom (forall h: Heap, i: int, v: Box, a: ref ::
-  { Seq#FromArray(update(h, a, IndexField(i), v), a) }
+  { Seq#FromArray(updateBox(h, a, IndexField(i), v), a) }
     0 <= i && i < _System.array.Length(a) ==> Seq#FromArray(updateBox(h, a, IndexField(i), v), a) == Seq#Update(Seq#FromArray(h, a), i, v) );
 
 // Commutability of Take and Drop with Update.
