@@ -42,6 +42,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       CancellationToken cancellationToken) {
       var program = document.Program;
       var errorReporter = (DiagnosticErrorReporter)program.Reporter;
+      var nmodules = Translator.VerifiableModules(program).Count();
 
       cancellationToken.ThrowIfCancellationRequested();
 
@@ -55,6 +56,12 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       return translated.SelectMany(t => {
         var (_, boogieProgram) = t;
         var results = engine.GetImplementationTasks(boogieProgram);
+        if (engine.Options.PrintFile != null) {
+
+          var nm = nmodules > 1 ? DafnyMain.BoogieProgramSuffix(engine.Options.PrintFile, t.Item1) : engine.Options.PrintFile;
+
+          ExecutionEngine.PrintBplFile(engine.Options, nm, t.Item2, false, false, engine.Options.PrettyPrint);
+        }
         return results;
       }).ToList();
     }
