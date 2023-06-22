@@ -57,13 +57,13 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
 
   public async Task<Diagnostic[]> GetLastDiagnostics(TextDocumentItem documentItem, CancellationToken cancellationToken) {
     await client.WaitForNotificationCompletionAsync(documentItem.Uri, cancellationToken);
-    var document = (await Documents.GetLastDocumentAsync(documentItem))!;
-    Assert.NotNull(document);
-    Assert.Equal(documentItem.Version, document.Version);
+    var compilation = (await Documents.GetLastDocumentAsync(documentItem))!;
+    Assert.NotNull(compilation);
+    Assert.True(documentItem.Version <= compilation.Version);
     Diagnostic[] result;
     do {
       result = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(cancellationToken);
-    } while (!document!.AllFileDiagnostics.Select(d => d.ToLspDiagnostic()).SequenceEqual(result));
+    } while (!compilation!.AllFileDiagnostics.Select(d => d.ToLspDiagnostic()).SequenceEqual(result));
 
     return result;
   }

@@ -166,13 +166,13 @@ public class CompilationManager {
       // migratedVerificationTree
       );
 
-    translated.GutterProgressReporter.RecomputeVerificationTree();
+    // translated.GutterProgressReporter.RecomputeVerificationTree();
 
-    if (ReportGutterStatus) {
-      translated.GutterProgressReporter.ReportRealtimeDiagnostics(false, translated);
-    }
-    translated.GutterProgressReporter.ReportImplementationsBeforeVerification(
-      verificationTasks.Select(t => t.Implementation).ToArray());
+    // if (ReportGutterStatus) {
+    //   translated.GutterProgressReporter.ReportRealtimeDiagnostics(false, translated);
+    // }
+    // translated.GutterProgressReporter.ReportImplementationsBeforeVerification(
+    //   verificationTasks.Select(t => t.Implementation).ToArray());
     return translated;
   }
 

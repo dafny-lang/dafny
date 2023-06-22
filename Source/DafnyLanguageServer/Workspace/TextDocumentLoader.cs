@@ -63,7 +63,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     public IdeState CreateUnloaded(DafnyProject project) {
-      return CreateDocumentWithEmptySymbolTable(project
+      return CreateDocumentWithEmptySymbolTable(project, ImmutableDictionary<Uri, IReadOnlyList<Diagnostic>>.Empty
         // new[] { new Diagnostic {
         //   // This diagnostic never gets sent to the client,
         //   // instead it forces the first computed diagnostics for a document to always be sent.
@@ -122,12 +122,13 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       }
     }
 
-    private IdeState CreateDocumentWithEmptySymbolTable(DafnyProject project) {
+    private IdeState CreateDocumentWithEmptySymbolTable(DafnyProject project,
+      IReadOnlyDictionary<Uri, IReadOnlyList<Diagnostic>> resolutionDiagnostics) {
       var dafnyOptions = DafnyOptions.Default;
       return new IdeState(
         new Compilation(0, project),
         new EmptyNode(),
-        ImmutableDictionary<Uri, IReadOnlyList<Diagnostic>>.Empty, 
+        resolutionDiagnostics, 
         SymbolTable.Empty(),
         SignatureAndCompletionTable.Empty(dafnyOptions, project),
         new Dictionary<ImplementationId, IdeImplementationView>(),

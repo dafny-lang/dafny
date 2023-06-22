@@ -42,9 +42,11 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     public static DafnyProject ImplicitProject(TextDocumentIdentifier documentItem) {
-      var implicitProject = new DafnyProject();
-      implicitProject.Includes = new[] {
-        documentItem.Uri.GetFileSystemPath()
+      var implicitProject = new DafnyProject {
+        Includes = new[] {
+          documentItem.Uri.GetFileSystemPath()
+        },
+        Uri = documentItem.Uri.ToUri()
       };
       return implicitProject;
     }

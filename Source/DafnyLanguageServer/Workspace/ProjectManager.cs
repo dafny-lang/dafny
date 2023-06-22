@@ -26,7 +26,7 @@ public class ProjectManager {
   public CompilationManager CompilationManager { get; private set; }
   private IDisposable observerSubscription;
   private readonly ILogger<ProjectManager> logger;
-  private int version;
+  private int version = 1;
 
   private bool VerifyOnOpen => options.Get(ServerCommand.Verification) == VerifyOnMode.Change;
   private bool VerifyOnChange => options.Get(ServerCommand.Verification) == VerifyOnMode.Change;
@@ -37,7 +37,7 @@ public class ProjectManager {
   private readonly SemaphoreSlim workCompletedForCurrentVersion = new(0);
   private readonly DafnyOptions options;
 
-  public ProjectManager(IServiceProvider services, DafnyProject project) {
+  public ProjectManager(IServiceProvider services, DafnyProject project, Uri? unsavedFile) {
     this.services = services;
     Project = project;
     var serverOptions = services.GetRequiredService<DafnyOptions>();
@@ -45,6 +45,9 @@ public class ProjectManager {
     relocator = services.GetRequiredService<IRelocator>();
 
     options = DetermineProjectOptions(project, serverOptions);
+    if (unsavedFile != null) {
+      options.CliRootSourceUris.Add(unsavedFile);
+    }
     observer = new IdeStateObserver(services.GetRequiredService<ILogger<IdeStateObserver>>(),
       services.GetRequiredService<ITelemetryPublisher>(),
       services.GetRequiredService<INotificationPublisher>(),
