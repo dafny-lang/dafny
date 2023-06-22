@@ -614,7 +614,7 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
         Contract.Assert(preMemberErrs != resolver.reporter.Count(ErrorLevel.Error) || !defaultClassDecl.Members.Except(members.Values).Any());
 
         foreach (MemberDecl m in members.Values) {
-          Contract.Assert(!m.HasStaticKeyword);
+          Contract.Assert(!m.HasStaticKeyword || Attributes.Contains(m.Attributes, "opaque_reveal"));
           if (m is Function or Method or ConstantField) {
             sig.StaticMembers[m.Name] = m;
           }

@@ -79,7 +79,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       );
     }
 
-    public static readonly string PostConditionFailingMessage = new EnsuresDescription().FailureDescription;
+    public static readonly string PostConditionFailingMessage = new ProofObligationDescription.EnsuresDescription(null, null).FailureDescription;
     private readonly string entryDocumentSource;
 
     public static string FormatRelated(string related) {
