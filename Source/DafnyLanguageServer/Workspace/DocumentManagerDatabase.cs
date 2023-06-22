@@ -2,7 +2,10 @@
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System;
 using System.Collections.Generic;
+using Microsoft.Extensions.DependencyInjection;
+
 using System.IO;
+using System.Net.Mime;
 using System.Threading.Tasks;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace {
@@ -13,39 +16,35 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     private readonly IServiceProvider services;
 
-    private readonly Dictionary<DocumentUri, IProjectManager> documents = new();
+    private readonly Dictionary<DocumentUri, ProjectManager> managers = new();
+    private readonly LanguageServerFilesystem fileSystem;
 
     public DocumentManagerDatabase(IServiceProvider services) {
       this.services = services;
+      this.fileSystem = services.GetRequiredService<LanguageServerFilesystem>();
     }
 
-    public void OpenDocument(DocumentTextBuffer document) {
-      var profileFile = FindProjectFile(document);
-      IProjectManager? existingManager = documents.GetValueOrDefault(document.Uri);
+    public void OpenDocument(TextDocumentItem document) {
+      fileSystem.OpenDocument(document);
+      DafnyProject profileFile = FindProjectFile(document) ?? ImplicitProject(document);
+      var existingManager = managers.GetValueOrDefault(document.Uri);
 
-      IProjectManager CreateManager() {
-        if (profileFile == null) {
-          return new ImplicitProject(services, document);
-        }
-
-        return new ExplicitProject(services, profileFile);
-      }
-      
       if (existingManager != null) {
-        var expectedType = profileFile == null ? typeof(ImplicitProject) : typeof(ExplicitProject);
-        if (expectedType != existingManager.GetType()) {
-          documents[document.Uri] = CreateManager();
+        if (!existingManager.Project.Equals(profileFile)) {
+          managers[document.Uri] = new ProjectManager(services, profileFile);
         }
       } else {
-        documents[document.Uri] = CreateManager();
+        managers[document.Uri] = new ProjectManager(services, profileFile);
       }
-
-      documents[document.Uri].OpenDocument(document);
     }
 
-    private ProjectFile? FindProjectFile(TextDocumentIdentifier document) {
-      
-      ProjectFile? projectFile = null;
+    private DafnyProject ImplicitProject(TextDocumentItem documentItem) {
+      return new DafnyProject();
+    }
+
+    private DafnyProject? FindProjectFile(TextDocumentIdentifier document) {
+
+      DafnyProject? projectFile = null;
       var uri = document.Uri;
 
       var folder = Path.GetDirectoryName(uri.GetFileSystemPath());
@@ -53,11 +52,13 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         var children = Directory.GetFiles(folder, "dfyconfig.toml");
         if (children.Length > 0) {
           var errorWriter = TextWriter.Null;
-          projectFile = ProjectFile.Open(new Uri(children[0]), errorWriter);
+          var outputWriter = TextWriter.Null;
+          projectFile = DafnyProject.Open(new Uri(children[0]), outputWriter, errorWriter);
           if (projectFile != null) {
             break;
           }
         }
+
         folder = Path.GetDirectoryName(folder);
       }
 
@@ -65,8 +66,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     public void UpdateDocument(DidChangeTextDocumentParams documentChange) {
+      fileSystem.UpdateDocument(documentChange);
       var documentUri = documentChange.TextDocument.Uri;
-      if (!documents.TryGetValue(documentUri, out var state)) {
+      if (!managers.TryGetValue(documentUri, out var state)) {
         throw new ArgumentException($"the document {documentUri} was not loaded before");
       }
 
@@ -74,7 +76,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     public void SaveDocument(TextDocumentIdentifier documentId) {
-      if (!documents.TryGetValue(documentId.Uri, out var documentState)) {
+      if (!managers.TryGetValue(documentId.Uri, out var documentState)) {
         throw new ArgumentException($"the document {documentId.Uri} was not loaded before");
       }
 
@@ -82,7 +84,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     public async Task<bool> CloseDocumentAsync(TextDocumentIdentifier documentId) {
-      if (documents.Remove(documentId.Uri, out var state)) {
+      fileSystem.CloseDocument(documentId);
+      if (managers.Remove(documentId.Uri, out var state)) {
         await state.CloseAsync(documentId);
         return true;
       }
@@ -90,24 +93,24 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     public Task<IdeState?> GetResolvedDocumentAsync(TextDocumentIdentifier documentId) {
-      if (documents.TryGetValue(documentId.Uri, out var state)) {
+      if (managers.TryGetValue(documentId.Uri, out var state)) {
         return state.GetSnapshotAfterResolutionAsync(documentId)!;
       }
       return Task.FromResult<IdeState?>(null);
     }
 
     public Task<DocumentAfterParsing?> GetLastDocumentAsync(TextDocumentIdentifier documentId) {
-      if (documents.TryGetValue(documentId.Uri, out var databaseEntry)) {
+      if (managers.TryGetValue(documentId.Uri, out var databaseEntry)) {
         return databaseEntry.GetLastDocumentAsync()!;
       }
       return Task.FromResult<DocumentAfterParsing?>(null);
     }
 
-    public IProjectManager? GetDocumentManager(TextDocumentIdentifier documentId) {
-      return documents.GetValueOrDefault(documentId.Uri);
+    public ProjectManager? GetDocumentManager(TextDocumentIdentifier documentId) {
+      return managers.GetValueOrDefault(documentId.Uri);
     }
 
-    public IEnumerable<IProjectManager> Documents => documents.Values;
+    public IEnumerable<ProjectManager> Managers => managers.Values;
 
   }
 }

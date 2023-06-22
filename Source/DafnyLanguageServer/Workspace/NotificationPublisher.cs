@@ -57,7 +57,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
          */
         return null;
       }
-      return new FileVerificationStatus(state.TextDocumentItem.Uri, state.TextDocumentItem.Version,
+      return new FileVerificationStatus(state.DocumentIdentifier.Uri, state.DocumentIdentifier.Version,
         GetNamedVerifiableStatuses(state.ImplementationIdToView));
     }
 
@@ -85,8 +85,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     private static PublishDiagnosticsParams GetPublishDiagnosticsParams(IdeState state) {
       return new PublishDiagnosticsParams {
-        Uri = state.TextDocumentItem.Uri,
-        Version = state.TextDocumentItem.Version,
+        Uri = state.DocumentIdentifier.Uri,
+        Version = state.DocumentIdentifier.Version,
         Diagnostics = state.Diagnostics.ToArray(),
       };
     }
@@ -97,10 +97,10 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       }
 
       var errors = state.ResolutionDiagnostics.Where(x => x.Severity == DiagnosticSeverity.Error).ToList();
-      var linesCount = state.TextDocumentItem.NumberOfLines;
+      var linesCount = 200; // TODO resolve. state.DocumentIdentifier.NumberOfLines;
       var verificationStatusGutter = VerificationStatusGutter.ComputeFrom(
         state.Uri,
-        state.TextDocumentItem.Version!.Value,
+        state.DocumentIdentifier.Version,
         state.VerificationTree.Children.Select(child => child.GetCopyForNotification()).ToArray(),
         errors,
         linesCount,
@@ -122,8 +122,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     private static GhostDiagnosticsParams GetGhostness(IdeState state) {
 
       return new GhostDiagnosticsParams {
-        Uri = state.TextDocumentItem.Uri,
-        Version = state.TextDocumentItem.Version,
+        Uri = state.DocumentIdentifier.Uri,
+        Version = state.DocumentIdentifier.Version,
         Diagnostics = state.GhostDiagnostics.ToArray(),
       };
     }

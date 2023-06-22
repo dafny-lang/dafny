@@ -25,7 +25,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     /// Loads (or updates if newer) the specified document into the database.
     /// </summary>
     /// <param name="document">The document to load.</param>
-    void OpenDocument(DocumentTextBuffer document);
+    void OpenDocument(TextDocumentItem document);
 
     /// <summary>
     /// Updates a document with the specified changes.
@@ -56,8 +56,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     /// <returns>An instance of the managed document, <c>null</c> if the specified document was not found.</returns>
     Task<DocumentAfterParsing?> GetLastDocumentAsync(TextDocumentIdentifier documentId);
 
-    IProjectManager? GetDocumentManager(TextDocumentIdentifier documentId);
+    ProjectManager? GetDocumentManager(TextDocumentIdentifier documentId);
 
-    IEnumerable<IProjectManager> Documents { get; }
+    IEnumerable<ProjectManager> Managers { get; }
   }
 }

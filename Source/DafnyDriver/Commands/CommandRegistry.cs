@@ -166,7 +166,7 @@ public static class CommandRegistry {
       foreach (var option in command.Options) {
         var result = context.ParseResult.FindResultFor(option);
         object projectFileValue = null;
-        var hasProjectFileValue = dafnyOptions.ProjectFile?.TryGetValue(option, errorWriter, out projectFileValue) ?? false;
+        var hasProjectFileValue = dafnyOptions.DafnyProject?.TryGetValue(option, errorWriter, out projectFileValue) ?? false;
         object value;
         if (option.Arity.MaximumNumberOfValues <= 1) {
           // If multiple values aren't allowed, CLI options take precedence over project file options
@@ -252,8 +252,8 @@ public static class CommandRegistry {
       ? Path.GetFileName(singleFile.FullName)
       : singleFile.FullName;
     if (Path.GetExtension(singleFile.FullName) == ".toml") {
-      if (dafnyOptions.ProjectFile != null) {
-        dafnyOptions.ErrorWriter.WriteLine($"Only one project file can be used at a time. Both {dafnyOptions.ProjectFile.Uri.LocalPath} and {filePathForErrors} were specified");
+      if (dafnyOptions.DafnyProject != null) {
+        dafnyOptions.ErrorWriter.WriteLine($"Only one project file can be used at a time. Both {dafnyOptions.DafnyProject.Uri.LocalPath} and {filePathForErrors} were specified");
         return false;
       }
 
@@ -261,12 +261,12 @@ public static class CommandRegistry {
         dafnyOptions.ErrorWriter.WriteLine($"Error: file {filePathForErrors} not found");
         return false;
       }
-      var projectFile = ProjectFile.Open(new Uri(singleFile.FullName), dafnyOptions.OutputWriter, dafnyOptions.ErrorWriter);
+      var projectFile = DafnyProject.Open(new Uri(singleFile.FullName), dafnyOptions.OutputWriter, dafnyOptions.ErrorWriter);
       if (projectFile == null) {
         return false;
       }
       projectFile.Validate(dafnyOptions.OutputWriter, AllOptions);
-      dafnyOptions.ProjectFile = projectFile;
+      dafnyOptions.DafnyProject = projectFile;
       projectFile.AddFilesToOptions(dafnyOptions);
     } else {
       dafnyOptions.CliRootSourceUris.Add(new Uri(singleFile.FullName));

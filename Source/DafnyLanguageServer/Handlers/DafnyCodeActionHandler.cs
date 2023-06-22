@@ -149,19 +149,9 @@ public class DafnyCodeActionInput : IDafnyCodeActionInput {
 
   public string Uri => Document.Uri.ToString();
   public int Version => Document.Version;
-  public string Code => Document.TextDocumentItem.Text;
-  public Dafny.Program Program => Document.Program;
+  public Program Program => Document.Program;
   public DocumentAfterParsing Document { get; }
 
   public IReadOnlyList<DafnyDiagnostic> Diagnostics => Document.AllFileDiagnostics.ToList();
   public VerificationTree VerificationTree => Document.GetInitialDocumentVerificationTree();
-
-  public string Extract(Range range) {
-    var buffer = Document.TextDocumentItem;
-    try {
-      return buffer.Extract(range);
-    } catch (ArgumentException) {
-      return "";
-    }
-  }
 }

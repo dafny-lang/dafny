@@ -113,7 +113,7 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
   }
 
   public async Task AssertNoVerificationStatusIsComing(TextDocumentItem documentItem, CancellationToken cancellationToken) {
-    foreach (var entry in Documents.Documents) {
+    foreach (var entry in Documents.Managers) {
       try {
         await entry.GetLastDocumentAsync();
       } catch (TaskCanceledException) {
@@ -130,7 +130,7 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
   }
 
   public async Task AssertNoGhostnessIsComing(CancellationToken cancellationToken) {
-    foreach (var entry in Documents.Documents) {
+    foreach (var entry in Documents.Managers) {
       try {
         await entry.GetLastDocumentAsync();
       } catch (TaskCanceledException) {
@@ -152,7 +152,7 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
   }
 
   public async Task AssertNoDiagnosticsAreComing(CancellationToken cancellationToken) {
-    foreach (var entry in Documents.Documents) {
+    foreach (var entry in Documents.Managers) {
       try {
         await entry.GetLastDocumentAsync();
       } catch (TaskCanceledException) {
