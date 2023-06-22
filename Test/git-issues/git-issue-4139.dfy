@@ -1,17 +1,9 @@
-// RUN: %baredafny build %args -t:cs "%s" > "%t"
+// RUN: %baredafny run %args --no-verify "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
-test.dfy:
-include "main.dfy"
+include "git-issue-4139-main.dfy"
 
 method Main() {
   var undertest := new TestLogic''TopLevel();
   print "COMPLETED OK\n";
-}
-
-main.dfy:
-class TestLogic''TopLevel {
-  constructor () 
-  {
-  }
 }
