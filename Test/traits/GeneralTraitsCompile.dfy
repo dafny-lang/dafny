@@ -28,8 +28,8 @@ module Tests {
     P(c);
     P(d);
     P(co);
-//    P(mi);
-//    P(mc);
+    P(mi);
+    P(mc);
     Q(c, d, co, mi, mc);
   }
 
@@ -49,14 +49,14 @@ module Tests {
     assert p is Dt;
     p := co;
     assert p is CoDt;
-/*    p := mi;
+    p := mi;
     assert p is MyInt;
     p := mc;
     assert p is MyConstrainedInt;
-*/  }
+  }
 
   method P(p: Parent)
-    requires p is Class || p is Dt || p is CoDt
+    requires p is Class || p is Dt || p is CoDt || p is MyInt || p is MyConstrainedInt
   {
     if
     case p is Class =>
@@ -68,13 +68,13 @@ module Tests {
     case p is CoDt =>
       var x: CoDt;
       x := p as CoDt;
-/*    case p is MyInt =>
+    case p is MyInt =>
       var x: MyInt;
       x := p as MyInt;
     case p is MyConstrainedInt =>
       var x: MyConstrainedInt;
       x := p as MyConstrainedInt;
-*/  }
+  }
 
   method Q(c: Class, d: Dt, co: CoDt, mi: MyInt, mc: MyConstrainedInt) {
     var c: Class, d: Dt, co: CoDt, mi: MyInt, mc: MyConstrainedInt := c, d, co, mi, mc;
@@ -89,12 +89,12 @@ module Tests {
     p := co;
     co := p as CoDt;
 
-/*    p := mi;
+    p := mi;
     mi := p as MyInt;
 
     p := mc;
     mc := p as MyConstrainedInt;
-*/  }
+  }
 }
 
 // ----- test inheritance of instance members
@@ -108,11 +108,11 @@ module InstanceMemberInheritance {
     TestParent(p);
     p := TestCoDatatype();
     TestParent(p);
-/*    p := TestMyInt();
+    p := TestMyInt();
     TestParent(p);
     p := TestMyConstrainedInt();
     TestParent(p);
-*/  }
+  }
 
   trait Parent {
     const m: nat := 18
@@ -198,7 +198,7 @@ module InstanceMemberInheritance {
   }
 
   // ----- newtype without constraint
-/*
+
   newtype MyInt extends Parent = int {
     function G(): int {
       15
@@ -237,7 +237,7 @@ module InstanceMemberInheritance {
     x.P(); // hello MyConstrainedInt.P
     return x;
   }
-*/}
+}
 
 module StaticMemberInheritanceAccessViaName {
   method Test() {
@@ -247,6 +247,7 @@ module StaticMemberInheritanceAccessViaName {
     TestCoDatatype();
     TestMyInt();
     TestMyConstrainedInt();
+    print "=====\n";
   }
 
   trait Parent {
@@ -256,14 +257,14 @@ module StaticMemberInheritanceAccessViaName {
       10
     }
     static method M() {
-      print "hello static M\n";
+      print "hello static-via-name M\n";
     }
   }
 
   method TestParent() {
     assert Parent.m == 18 && Parent.F() == 10;
     print Parent.m, " ", Parent.n, " ", Parent.F(), "\n"; // 18 0 10
-    Parent.M(); // hello static M
+    Parent.M(); // hello static-via-name M
     print "-----\n";
   }
 
@@ -275,7 +276,7 @@ module StaticMemberInheritanceAccessViaName {
   method TestClass() {
     assert Class.m == 18 && Class.F() == 10;
     print Class.m, " ", Class.n, " ", Class.F(), "\n"; // 18 0 10
-    Class.M(); // hello static M
+    Class.M(); // hello static-via-name M
   }
 
   // ----- datatype
@@ -285,7 +286,7 @@ module StaticMemberInheritanceAccessViaName {
   method TestDatatype() {
     assert Datatype.m == 18 && Datatype.F() == 10;
     print Datatype.m, " ", Datatype.n, " ", Datatype.F(), "\n"; // 18 0 10
-    Datatype.M(); // hello static M
+    Datatype.M(); // hello static-via-name M
   }
 
   // ----- codatatype
@@ -295,7 +296,7 @@ module StaticMemberInheritanceAccessViaName {
   method TestCoDatatype() {
     assert CoDatatype.m == 18 && CoDatatype.F() == 10;
     print CoDatatype.m, " ", CoDatatype.n, " ", CoDatatype.F(), "\n"; // 18 0 10
-    CoDatatype.M(); // hello static M
+    CoDatatype.M(); // hello static-via-name M
   }
 
   // ----- newtype without constraint
@@ -305,7 +306,7 @@ module StaticMemberInheritanceAccessViaName {
   method TestMyInt() {
     assert MyInt.m == 18 && MyInt.F() == 10;
     print MyInt.m, " ", MyInt.n, " ", MyInt.F(), "\n"; // 18 0 10
-    MyInt.M(); // hello static M
+    MyInt.M(); // hello static-via-name M
   }
 
   // ----- newtype with constraint
@@ -315,7 +316,7 @@ module StaticMemberInheritanceAccessViaName {
   method TestMyConstrainedInt() {
     assert MyConstrainedInt.m == 18 && MyConstrainedInt.F() == 10;
     print MyConstrainedInt.m, " ", MyConstrainedInt.n, " ", MyConstrainedInt.F(),"\n"; // 18 0 10
-    MyConstrainedInt.M(); // hello static M
+    MyConstrainedInt.M(); // hello static-via-name M
   }
 }
 
@@ -328,11 +329,11 @@ module StaticMemberInheritanceAccessViaReceiver {
     TestParent(p);
     p := TestCoDatatype();
     TestParent(p);
-/*    p := TestMyInt();
+    p := TestMyInt();
     TestParent(p);
     p := TestMyConstrainedInt();
     TestParent(p);
-*/  }
+  }
 
   trait Parent {
     static const m: nat := 18
@@ -341,14 +342,14 @@ module StaticMemberInheritanceAccessViaReceiver {
       10
     }
     static method M() {
-      print "hello static M\n";
+      print "hello static-via-receiver M\n";
     }
   }
 
   method TestParent(p: Parent) {
     assert p.m == 18 && p.F() == 10;
     print p.m, " ", p.n, " ", p.F(), "\n"; // 18 0 10
-    p.M(); // hello static M
+    p.M(); // hello static-via-receiver M
     print "-----\n";
   }
 
@@ -361,7 +362,7 @@ module StaticMemberInheritanceAccessViaReceiver {
     var x := new Class;
     assert x.m == 18 && x.F() == 10;
     print x.m, " ", x.n, " ", x.F(), "\n"; // 18 0 10
-    x.M(); // hello static M
+    x.M(); // hello static-via-receiver M
     return x;
   }
 
@@ -373,7 +374,7 @@ module StaticMemberInheritanceAccessViaReceiver {
     var x := DtOne;
     assert x.m == 18 && x.F() == 10;
     print x.m, " ", x.n, " ", x.F(), "\n"; // 18 0 10
-    x.M(); // hello static M
+    x.M(); // hello static-via-receiver M
     return x;
   }
 
@@ -385,7 +386,7 @@ module StaticMemberInheritanceAccessViaReceiver {
     var x := CoOne;
     assert x.m == 18 && x.F() == 10;
     print x.m, " ", x.n, " ", x.F(), "\n"; // 18 0 10
-    x.M(); // hello static M
+    x.M(); // hello static-via-receiver M
     return x;
   }
 
@@ -393,26 +394,26 @@ module StaticMemberInheritanceAccessViaReceiver {
 
   newtype MyInt extends Parent = int
 
-/*  method TestMyInt() returns (p: Parent) {
+  method TestMyInt() returns (p: Parent) {
     var x: MyInt := 100;
     assert x.m == 18 && x.F() == 10;
     print x.m, " ", x.n, " ", x.F(), "\n"; // 18 0 10
-    x.M(); // hello static M
+    x.M(); // hello static-via-receiver M
     return x;
   }
-*/
+
   // ----- newtype with constraint
 
   newtype MyConstrainedInt extends Parent = x: int | 0 <= x < 10
-/*
+
   method TestMyConstrainedInt() returns (p: Parent) {
     var x: MyConstrainedInt := 7;
     assert x.m == 18 && x.F() == 10;
     print x.m, " ", x.n, " ", x.F(),"\n"; // 18 0 10
-    x.M(); // hello static M
+    x.M(); // hello static-via-receiver M
     return x;
   }
-*/}
+}
 
 module NiceStarterTests {
   trait Parent {
