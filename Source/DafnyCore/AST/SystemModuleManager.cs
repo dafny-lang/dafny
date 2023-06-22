@@ -33,8 +33,14 @@ public class SystemModuleManager {
     get {
       if (hash == null) {
 
+        // A tuple type is defined by a list of booleans, where the size of the list determines how many elements the tuple has,
+        // and the value of each boolean determines whether that value is ghost or not.
+        // Here we represent the tuple type as an integer by translating each boolean to a bit and packing the bits in an int.
         var tupleInts = tupleTypeDecls.Keys.Select(tuple => {
           var vector32 = new BitVector32();
+          if (tuple.Count > 32) {
+            throw new Exception("Tuples of size larger than 32 are not supported");
+          }
           for (var index = 0; index < tuple.Count; index++) {
             vector32[index] = tuple[index];
           }

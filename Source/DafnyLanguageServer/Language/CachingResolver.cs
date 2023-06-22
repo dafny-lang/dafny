@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using System.Security.Cryptography;
 using Microsoft.Extensions.Logging;
 
@@ -41,7 +42,7 @@ public class CachingResolver : ProgramResolver {
   }
 
   protected override ModuleResolutionResult ResolveModuleDeclaration(CompilationData compilation, ModuleDecl decl) {
-    var hash = DetermineHash(decl);
+    var hash = GetHash(decl);
     hashes[decl] = hash;
 
     if (!cache.Modules.TryGet(hash, out var result)) {
@@ -54,20 +55,30 @@ public class CachingResolver : ProgramResolver {
     return result!;
   }
 
-  private byte[] DetermineHash(ModuleDecl moduleDeclaration) {
-    var moduleVertex = dependencies.FindVertex(moduleDeclaration);
-    var hashAlgorithm = HashAlgorithm.Create("SHA256")!;
-    hashAlgorithm.Initialize();
-    foreach (var dependencyVertex in moduleVertex.Successors) {
-      var dependency = dependencyVertex.N;
-      var dependencyHash = hashes[dependency];
-      hashAlgorithm.TransformBlock(dependencyHash, 0, dependencyHash.Length, null, 0);
+  private byte[] GetHash(ModuleDecl moduleDeclaration) {
+    if (!hashes.TryGetValue(moduleDeclaration, out var result)) {
+      var moduleVertex = dependencies.FindVertex(moduleDeclaration);
+      var hashAlgorithm = HashAlgorithm.Create("SHA256")!;
+      hashAlgorithm.Initialize();
+      // We don't want the order of Successors to influence the hash, so we order by the content hash, for which CloneId is currently a proxy
+      var orderedSuccessors = moduleVertex.Successors.OrderBy(s => s.N.CloneId);
+      foreach (var dependencyVertex in orderedSuccessors) {
+        var dependency = dependencyVertex.N;
+        // DetermineHash is always called before 
+        var dependencyHash = GetHash(dependency);
+        hashAlgorithm.TransformBlock(dependencyHash, 0, dependencyHash.Length, null, 0);
+      }
+
+      hashAlgorithm.TransformBlock(cache.Builtins!.MyHash, 0, cache.Builtins!.MyHash.Length, null, 0);
+      // Here we would like to use a hash of the contents of the module declaration, but we don't have that.
+      // We use the CloneId as a defensive proxy for a content hash.
+      // The CloneId stays unchanged if none of the files in which the module occurs have been changed.
+      var parseHash = moduleDeclaration.CloneId.ToByteArray();
+      hashAlgorithm.TransformFinalBlock(parseHash, 0, parseHash.Length);
+
+      result = hashes[moduleDeclaration] = hashAlgorithm.Hash!;
     }
 
-    hashAlgorithm.TransformBlock(cache.Builtins!.MyHash, 0, cache.Builtins!.MyHash.Length, null, 0);
-    var parseHash = moduleDeclaration.CloneId.ToByteArray();
-    hashAlgorithm.TransformFinalBlock(parseHash, 0, parseHash.Length);
-
-    return hashAlgorithm.Hash!;
+    return result;
   }
 }
