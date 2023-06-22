@@ -379,7 +379,10 @@ namespace Microsoft.Dafny {
     string Name {
       get;
     }
-    string DisplayName {  // what the user thinks he wrote
+    string DafnyName {  // what the user thinks he wrote
+      get;
+    }
+    string DisplayName { // what the user thinks he wrote but with special treatment for wilcards
       get;
     }
     string UniqueName {
@@ -418,6 +421,12 @@ namespace Microsoft.Dafny {
   [ContractClassFor(typeof(IVariable))]
   public abstract class IVariableContracts : TokenNode, IVariable {
     public string Name {
+      get {
+        Contract.Ensures(Contract.Result<string>() != null);
+        throw new NotImplementedException();  // this getter implementation is here only so that the Ensures contract can be given here
+      }
+    }
+    public string DafnyName {
       get {
         Contract.Ensures(Contract.Result<string>() != null);
         throw new NotImplementedException();  // this getter implementation is here only so that the Ensures contract can be given here
@@ -503,6 +512,7 @@ namespace Microsoft.Dafny {
         return name;
       }
     }
+    public string DafnyName => RangeToken == null || tok.line == 0 ? Name : RangeToken.PrintOriginal();
     public string DisplayName =>
       LocalVariable.DisplayNameHelper(this);
 
@@ -686,7 +696,6 @@ namespace Microsoft.Dafny {
   [DebuggerDisplay("Bound<{name}>")]
   public class BoundVar : NonglobalVariable {
     public override bool IsMutable => false;
-
     public BoundVar(IToken tok, string name, Type type)
       : base(tok, name, type, false) {
       Contract.Requires(tok != null);
