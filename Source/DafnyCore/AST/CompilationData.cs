@@ -43,10 +43,6 @@ public class CompilationData {
       result.Add(new Auditor.Auditor(reporter));
     }
 
-    if (!Options.VerifyAllModules) {
-      result.Add(new IncludedLemmaBodyRemover(this, reporter));
-    }
-
     result.Add(new AutoContractsRewriter(reporter));
     result.Add(new OpaqueMemberRewriter(reporter));
     result.Add(new AutoReqFunctionRewriter(reporter));
