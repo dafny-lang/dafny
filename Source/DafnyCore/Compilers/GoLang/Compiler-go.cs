@@ -211,11 +211,11 @@ namespace Microsoft.Dafny.Compilers {
       var isDefaultClass = cls is DefaultClassDecl;
 
       bool isSequence = superClasses.Any(superClass => superClass is UserDefinedType udt && IsDafnySequence(udt.ResolvedClass));
-      return CreateClass(cls, name, isExtern, fullPrintName, typeParameters, superClasses, tok, wr, includeRtd: !isDefaultClass, includeEquals: !isSequence, includeString: !isSequence);
+      return CreateClass(cls, name, isExtern, typeParameters, superClasses, tok, wr, includeRtd: !isDefaultClass, includeEquals: !isSequence, includeString: !isSequence);
     }
 
     // TODO Consider splitting this into two functions; most things seem to be passing includeRtd: false, includeEquals: false and includeString: true.
-    private GoCompiler.ClassWriter CreateClass(TopLevelDecl classContext, string name, bool isExtern, string/*?*/ fullPrintName, List<TypeParameter>/*?*/ typeParameters, List<Type>/*?*/ superClasses, IToken tok, ConcreteSyntaxTree wr, bool includeRtd, bool includeEquals, bool includeString) {
+    private GoCompiler.ClassWriter CreateClass(TopLevelDecl classContext, string name, bool isExtern, List<TypeParameter>/*?*/ typeParameters, List<Type>/*?*/ superClasses, IToken tok, ConcreteSyntaxTree wr, bool includeRtd, bool includeEquals, bool includeString) {
       // See docs/Compilation/ReferenceTypes.md for a description of how instance members of classes and traits are compiled into Go.
       //
       // func New_Class_(Type0 _dafny.TypeDescriptor, Type1 _dafny.TypeDescriptor) *Class {
@@ -462,7 +462,7 @@ namespace Microsoft.Dafny.Compilers {
       //   // break becomes:
       //   return
       // }()
-      var cw = CreateClass(iter, IdName(iter), false, null, iter.TypeArgs, null, null, wr, includeRtd: false, includeEquals: false, includeString: true);
+      var cw = CreateClass(iter, IdName(iter), false, iter.TypeArgs, null, null, wr, includeRtd: false, includeEquals: false, includeString: true);
 
       cw.InstanceFieldWriter.WriteLine("cont chan<- struct{}");
       cw.InstanceFieldWriter.WriteLine("yielded <-chan struct{}");
@@ -965,7 +965,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override IClassWriter DeclareNewtype(NewtypeDecl nt, ConcreteSyntaxTree wr) {
-      var cw = CreateClass(nt, IdName(nt), false, null, nt.TypeArgs,
+      var cw = CreateClass(nt, IdName(nt), false, nt.TypeArgs,
         nt.ParentTypeInformation.UniqueParentTraits(), null, wr, includeRtd: false, includeEquals: false, includeString: true);
       var w = cw.ConcreteMethodWriter;
       var nativeType = nt.NativeType != null ? GetNativeTypeName(nt.NativeType) : null;
@@ -1008,7 +1008,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void DeclareSubsetType(SubsetTypeDecl sst, ConcreteSyntaxTree wr) {
-      var cw = CreateClass(sst, IdName(sst), false, null, sst.TypeArgs, null, null, wr, includeRtd: false, includeEquals: false, includeString: true);
+      var cw = CreateClass(sst, IdName(sst), false, sst.TypeArgs, null, null, wr, includeRtd: false, includeEquals: false, includeString: true);
       var w = cw.ConcreteMethodWriter;
       if (sst.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
         var witness = new ConcreteSyntaxTree(w.RelativeIndentLevel);
