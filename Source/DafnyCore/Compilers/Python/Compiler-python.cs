@@ -1568,7 +1568,7 @@ namespace Microsoft.Dafny.Compilers {
           break;
 
         case BinaryExpr.ResolvedOpcode.Div:
-          if (resultType.IsIntegerType || resultType.IsBitVectorType || resultType.AsNewtype != null) {
+          if (resultType.IsNumericBased(Type.NumericPersuasion.Int) || resultType.IsBitVectorType) {
             staticCallString = $"{DafnyRuntimeModule}.euclidian_division";
           } else {
             opString = "/";

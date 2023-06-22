@@ -2233,7 +2233,7 @@ namespace Microsoft.Dafny.Compilers {
           }
           break;
         case BinaryExpr.ResolvedOpcode.Div:
-          if (resultType.IsRealType) {
+          if (resultType.IsNumericBased(Type.NumericPersuasion.Real)) {
             callString = "dividedBy";
           } else if (resultType.IsIntegerType || AsNativeType(resultType) == null) {
             staticCallString = "_dafny.EuclideanDivision";
