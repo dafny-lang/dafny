@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics.Contracts;
 using System.Linq;
-using Microsoft.Boogie;
 using Microsoft.Dafny.Auditor;
 
 namespace Microsoft.Dafny;
@@ -11,7 +10,7 @@ namespace Microsoft.Dafny;
 public record PrefixNameModule(IReadOnlyList<IToken> Parts, LiteralModuleDecl Module);
 
 public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearingDeclaration, ICloneable<ModuleDefinition> {
-  public Guid UniqueParseContentHash { get; set; }
+
   public IToken BodyStartTok = Token.NoToken;
   public IToken TokenWithTrailingDocString = Token.NoToken;
   public string DafnyName => NameNode.StartToken.val; // The (not-qualified) name as seen in Dafny source code
@@ -100,7 +99,7 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
     IsFacade = original.IsFacade;
     Attributes = original.Attributes;
     IsAbstract = original.IsAbstract;
-    RefinementQId = original.RefinementQId;
+    RefinementQId = original.RefinementQId == null ? null : new ModuleQualifiedId(cloner, original.RefinementQId);
     defaultClassFirst = original.defaultClassFirst;
     foreach (var d in original.SourceDecls) {
       SourceDecls.Add(cloner.CloneDeclaration(d, this));
@@ -385,7 +384,7 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
     Contract.Requires(resolver.AllTypeConstraints.Count == 0);
     Contract.Ensures(resolver.AllTypeConstraints.Count == 0);
 
-    sig.VisibilityScope.Augment(resolver.systemNameInfo.VisibilityScope);
+    sig.VisibilityScope.Augment(resolver.ProgramResolver.SystemModuleManager.systemNameInfo.VisibilityScope);
     // make sure all imported modules were successfully resolved
     foreach (var d in TopLevelDecls) {
       if (d is AliasModuleDecl || d is AbstractModuleDecl) {
@@ -422,9 +421,9 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
     }
 
     var oldModuleInfo = resolver.moduleInfo;
-    resolver.moduleInfo = Resolver.MergeSignature(sig, resolver.systemNameInfo);
+    resolver.moduleInfo = Resolver.MergeSignature(sig, resolver.ProgramResolver.SystemModuleManager.systemNameInfo);
     Type.PushScope(resolver.moduleInfo.VisibilityScope);
-    Resolver.ResolveOpenedImports(resolver.moduleInfo, this, resolver); // opened imports do not persist
+    Resolver.ResolveOpenedImports(resolver.moduleInfo, this, resolver.Reporter, resolver); // opened imports do not persist
     var datatypeDependencies = new Graph<IndDatatypeDecl>();
     var codatatypeDependencies = new Graph<CoDatatypeDecl>();
     var allDeclarations = AllDeclarationsAndNonNullTypeDecls(TopLevelDecls).ToList();
@@ -446,75 +445,94 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
     return true;
   }
 
-  public ModuleBindings BindModuleNames(Resolver resolver, ModuleBindings parentBindings) {
+  public void ProcessPrefixNamedModules() {
+    // moduleDecl.PrefixNamedModules is a list of pairs like:
+    //     A.B.C  ,  module D { ... }
+    // We collect these according to the first component of the prefix, like so:
+    //     "A"   ->   (A.B.C  ,  module D { ... })
+    var prefixModulesByFirstPart = PrefixNamedModules.
+      GroupBy(prefixNameModule => prefixNameModule.Parts[0].val).
+      ToDictionary(g => g.Key, g => g.ToList());
+
+    PrefixNamedModules.Clear();
+
+    // First, register all literal modules, and transferring their prefix-named modules downwards
+    foreach (var subDecl in TopLevelDecls.OfType<LiteralModuleDecl>()) {
+      // Transfer prefix-named modules downwards into the sub-module
+      if (prefixModulesByFirstPart.TryGetValue(subDecl.Name, out var prefixModules)) {
+        prefixModulesByFirstPart.Remove(subDecl.Name);
+        prefixModules = prefixModules.ConvertAll(ShortenPrefix);
+      }
+
+      ProcessPrefixNamedModules(prefixModules, subDecl);
+    }
+
+    // Next, add new modules for any remaining entries in "prefixNames".
+    foreach (var (name, prefixNamedModules) in prefixModulesByFirstPart) {
+      var firstPartToken = prefixNamedModules.First().Parts[0];
+      var modDef = new ModuleDefinition(firstPartToken.ToRange(), new Name(firstPartToken.ToRange(), name), new List<IToken>(), false,
+        false, null, this, null, false);
+      // Add the new module to the top-level declarations of its parent and then bind its names as usual
+
+      // Use an empty cloneId because these are empty module declarations.
+      var cloneId = Guid.Empty;
+      var subDecl = new LiteralModuleDecl(modDef, this, cloneId);
+      ResolvedPrefixNamedModules.Add(subDecl);
+      ProcessPrefixNamedModules(prefixNamedModules.ConvertAll(ShortenPrefix), subDecl);
+    }
+  }
+
+  private static void ProcessPrefixNamedModules(List<PrefixNameModule> prefixModules, LiteralModuleDecl subDecl) {
+    // Transfer prefix-named modules downwards into the sub-module
+    if (prefixModules != null) {
+      foreach (var prefixModule in prefixModules) {
+        if (prefixModule.Parts.Count == 0) {
+          // change the parent, now that we have found the right parent module for the prefix-named module
+          prefixModule.Module.ModuleDef.EnclosingModule = subDecl.ModuleDef;
+          var sm = new LiteralModuleDecl(prefixModule.Module.ModuleDef, subDecl.ModuleDef,
+            prefixModule.Module.CloneId);
+          subDecl.ModuleDef.ResolvedPrefixNamedModules.Add(sm);
+        } else {
+          subDecl.ModuleDef.PrefixNamedModules.Add(prefixModule);
+        }
+      }
+    }
+
+    subDecl.ModuleDef.ProcessPrefixNamedModules();
+  }
+
+  public ModuleBindings BindModuleNames(ProgramResolver resolver, ModuleBindings parentBindings) {
     var bindings = new ModuleBindings(parentBindings);
 
-    BindChildrenAndPrefixNamedModules(resolver, bindings);
+    foreach (var subLiteral in TopLevelDecls.OfType<LiteralModuleDecl>()) {
+      subLiteral.BindModuleNames(resolver, bindings);
+    }
 
-    // Finally, go through import declarations (that is, AbstractModuleDecl's and AliasModuleDecl's).
-    foreach (var tld in TopLevelDecls) {
-      if (tld is not (AbstractModuleDecl or AliasModuleDecl)) {
+    // Go through import declarations (that is, AbstractModuleDecl's and AliasModuleDecl's).
+    foreach (var subDecl in TopLevelDecls.OfType<ModuleDecl>()) {
+      if (subDecl is not (AbstractModuleDecl or AliasModuleDecl)) {
         continue;
       }
 
-      var subdecl = (ModuleDecl)tld;
-      if (bindings.BindName(subdecl.Name, subdecl, null)) {
+      if (bindings.BindName(subDecl.Name, subDecl, null)) {
         // the add was successful
       } else {
         // there's already something with this name
-        var yes = bindings.TryLookup(subdecl.tok, out var prevDecl);
+        var yes = bindings.TryLookup(subDecl.tok, out var prevDecl);
         Contract.Assert(yes);
         if (prevDecl is AbstractModuleDecl || prevDecl is AliasModuleDecl) {
-          resolver.reporter.Error(MessageSource.Resolver, subdecl.tok, "Duplicate name of import: {0}", subdecl.Name);
-        } else if (tld is AliasModuleDecl importDecl && importDecl.Opened && importDecl.TargetQId.Path.Count == 1 &&
+          resolver.Reporter.Error(MessageSource.Resolver, subDecl.tok, "Duplicate name of import: {0}", subDecl.Name);
+        } else if (subDecl is AliasModuleDecl { Opened: true } importDecl && importDecl.TargetQId.Path.Count == 1 &&
                    importDecl.Name == importDecl.TargetQId.RootName()) {
           importDecl.ShadowsLiteralModule = true;
         } else {
-          resolver.reporter.Error(MessageSource.Resolver, subdecl.tok,
-            "Import declaration uses same name as a module in the same scope: {0}", subdecl.Name);
+          resolver.Reporter.Error(MessageSource.Resolver, subDecl.tok,
+            "Import declaration uses same name as a module in the same scope: {0}", subDecl.Name);
         }
       }
     }
 
     return bindings;
-  }
-
-  private void BindChildrenAndPrefixNamedModules(Resolver resolver, ModuleBindings bindings) {
-    // moduleDecl.PrefixNamedModules is a list of pairs like:
-    //     A.B.C  ,  module D { ... }
-    // We collect these according to the first component of the prefix, like so:
-    //     "A"   ->   (A.B.C  ,  module D { ... })
-    var prefixModulesByFirstPart = new Dictionary<string, List<PrefixNameModule>>();
-    foreach (var prefixNameModule in PrefixNamedModules) {
-      var firstPartName = prefixNameModule.Parts[0].val;
-      var prev = prefixModulesByFirstPart.GetOrCreate(firstPartName, () => new List<PrefixNameModule>());
-      prev.Add(prefixNameModule);
-    }
-
-    PrefixNamedModules.Clear();
-
-    // First, register all literal modules, and transferring their prefix-named modules downwards
-    foreach (var subdecl in TopLevelDecls.OfType<LiteralModuleDecl>()) {
-      // Transfer prefix-named modules downwards into the sub-module
-      if (prefixModulesByFirstPart.TryGetValue(subdecl.Name, out var prefixModules)) {
-        prefixModulesByFirstPart.Remove(subdecl.Name);
-        prefixModules = prefixModules.ConvertAll(ShortenPrefix);
-      }
-
-      subdecl.BindModuleName(resolver, prefixModules, bindings);
-    }
-
-    // Next, add new modules for any remaining entries in "prefixNames".
-    foreach (var entry in prefixModulesByFirstPart) {
-      var prefixNamedModules = entry.Value;
-      var tok = prefixNamedModules.First().Parts[0];
-      var modDef = new ModuleDefinition(tok.ToRange(), new Name(tok.ToRange(), entry.Key), new List<IToken>(), false,
-        false, null, this, null, false);
-      // Add the new module to the top-level declarations of its parent and then bind its names as usual
-      var subdecl = new LiteralModuleDecl(modDef, this);
-      ResolvedPrefixNamedModules.Add(subdecl);
-      subdecl.BindModuleName(resolver, prefixNamedModules.ConvertAll(ShortenPrefix), bindings);
-    }
   }
 
   private static PrefixNameModule ShortenPrefix(PrefixNameModule prefixNameModule) {
@@ -579,7 +597,7 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
         var cl = (TopLevelDeclWithMembers)d;
         // register the names of the type members
         var members = new Dictionary<string, MemberDecl>();
-        resolver.classMembers.Add(cl, members);
+        resolver.AddClassMembers(cl, members);
         cl.RegisterMembers(resolver, members);
       } else if (d is IteratorDecl) {
         var iter = (IteratorDecl)d;
@@ -590,7 +608,7 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
 
         // register the names of the class members
         var members = new Dictionary<string, MemberDecl>();
-        resolver.classMembers.Add(defaultClassDecl, members);
+        resolver.AddClassMembers(defaultClassDecl, members);
         defaultClassDecl.RegisterMembers(resolver, members);
 
         Contract.Assert(preMemberErrs != resolver.reporter.Count(ErrorLevel.Error) || !defaultClassDecl.Members.Except(members.Values).Any());
@@ -612,7 +630,7 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
 
         // register the names of the class members
         var members = new Dictionary<string, MemberDecl>();
-        resolver.classMembers.Add(cl, members);
+        resolver.AddClassMembers(cl, members);
         cl.RegisterMembers(resolver, members);
 
         Contract.Assert(preMemberErrs != resolver.reporter.Count(ErrorLevel.Error) || !cl.Members.Except(members.Values).Any());
@@ -624,7 +642,7 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
         dt.ConstructorsByName = new();
         // ... and of the other members
         var members = new Dictionary<string, MemberDecl>();
-        resolver.classMembers.Add(dt, members);
+        resolver.AddClassMembers(dt, members);
 
         foreach (DatatypeCtor ctor in dt.Ctors) {
           if (ctor.Name.EndsWith("?")) {
@@ -714,7 +732,7 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
         var cl = (ValuetypeDecl)d;
         // register the names of the type members
         var members = new Dictionary<string, MemberDecl>();
-        resolver.classMembers.Add(cl, members);
+        resolver.AddClassMembers(cl, members);
         cl.RegisterMembers(resolver, members);
       }
     }

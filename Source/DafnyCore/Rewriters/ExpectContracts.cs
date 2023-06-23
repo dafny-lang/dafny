@@ -338,7 +338,4 @@ public class ExpectContracts : IRewriter {
       ReportWarning(ErrorId.rw_unreachable_by_test, uncalledOriginal.tok, $"No :test code calls {uncalledOriginal.FullDafnyName}");
     }
   }
-
-  internal override void PostResolve(Program program) {
-  }
 }

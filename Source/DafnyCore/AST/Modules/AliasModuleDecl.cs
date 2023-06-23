@@ -22,8 +22,8 @@ public class AliasModuleDecl : ModuleDecl, IHasUsages, ICanFormat {
   }
 
   public AliasModuleDecl(RangeToken rangeToken, ModuleQualifiedId path, Name name,
-    ModuleDefinition parent, bool opened, List<IToken> exports)
-    : base(rangeToken, name, parent, opened, false) {
+    ModuleDefinition parent, bool opened, List<IToken> exports, Guid cloneId)
+    : base(rangeToken, name, parent, opened, false, cloneId) {
     Contract.Requires(path != null && path.Path.Count > 0);
     Contract.Requires(exports != null);
     Contract.Requires(exports.Count == 0 || path.Path.Count == 1);

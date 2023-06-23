@@ -13,6 +13,6 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
     /// <returns>The generated symbol table.</returns>
     /// <exception cref="System.OperationCanceledException">Thrown when the cancellation was requested before completion.</exception>
     /// <exception cref="System.ObjectDisposedException">Thrown if the cancellation token was disposed before the completion.</exception>
-    CompilationUnit ResolveSymbols(TextDocumentItem textDocument, Program program, out bool canDoVerification, CancellationToken cancellationToken);
+    CompilationUnit ResolveSymbols(TextDocumentItem textDocument, Program program, CancellationToken cancellationToken);
   }
 }
