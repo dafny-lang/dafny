@@ -35,6 +35,9 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         return ImmutableDictionary<Uri, IReadOnlyList<Range>>.Empty;
       }
 
+      if (signatureAndCompletionTable.CompilationUnit.Program.Reporter.HasErrors) {
+        return ImmutableDictionary<Uri, IReadOnlyList<Range>>.Empty; // TODO improve?
+      }
       try {
         var visitor = new GhostStateSyntaxTreeVisitor(signatureAndCompletionTable.CompilationUnit, cancellationToken);
         visitor.Visit(signatureAndCompletionTable.CompilationUnit.Program);

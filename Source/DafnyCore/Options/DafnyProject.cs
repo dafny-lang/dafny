@@ -21,6 +21,8 @@ public class DafnyProject {
 
   public string ProjectName => Uri.ToString();
   
+  public Uri UnsavedRootFile { get; set; }
+  
   [IgnoreDataMember]
   public Uri Uri { get; set; }
   public string[] Includes { get; set; }

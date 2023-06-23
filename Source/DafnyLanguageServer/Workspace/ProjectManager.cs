@@ -37,7 +37,7 @@ public class ProjectManager {
   private readonly SemaphoreSlim workCompletedForCurrentVersion = new(0);
   private readonly DafnyOptions options;
 
-  public ProjectManager(IServiceProvider services, DafnyProject project, Uri? unsavedFile) {
+  public ProjectManager(IServiceProvider services, DafnyProject project) {
     this.services = services;
     Project = project;
     var serverOptions = services.GetRequiredService<DafnyOptions>();
@@ -45,8 +45,8 @@ public class ProjectManager {
     relocator = services.GetRequiredService<IRelocator>();
 
     options = DetermineProjectOptions(project, serverOptions);
-    if (unsavedFile != null) {
-      options.CliRootSourceUris.Add(unsavedFile);
+    if (project.UnsavedRootFile != null) {
+      options.CliRootSourceUris.Add(project.UnsavedRootFile);
     }
     observer = new IdeStateObserver(services.GetRequiredService<ILogger<IdeStateObserver>>(),
       services.GetRequiredService<ITelemetryPublisher>(),

@@ -97,7 +97,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
       statusPublisher.SendStatusNotification(compilation, CompilationStatus.ResolutionStarted);
       try {
-        var compilationUnit = symbolResolver.ResolveSymbols(project, program, out _, cancellationToken);
+        var compilationUnit = symbolResolver.ResolveSymbols(project, program, cancellationToken);
         var legacySymbolTable = symbolTableFactory.CreateFrom(compilationUnit, cancellationToken);
 
         var newSymbolTable = errorReporter.HasErrors

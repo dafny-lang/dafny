@@ -44,8 +44,8 @@ public static class DafnyCodeActionHelpers {
     var useTabs = false;
 
     var token = endToken;
-    while (true) {
-      var text = token.LeadingTrivia;
+    while (token != null) {
+      var text = token.LeadingTrivia + token.val + token.TrailingTrivia;
       for (int index = text.Length - 1; index >= 0; index--) {
         var c = text[index];
 

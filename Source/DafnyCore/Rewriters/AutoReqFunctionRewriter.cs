@@ -13,10 +13,13 @@ public class AutoReqFunctionRewriter : IRewriter {
   bool containsMatch; // TODO: Track this per-requirement, rather than per-function
   private SystemModuleManager systemModuleManager;
 
-  public AutoReqFunctionRewriter(ErrorReporter reporter, SystemModuleManager systemModuleManager)
+  public AutoReqFunctionRewriter(ErrorReporter reporter)
     : base(reporter) {
     Contract.Requires(reporter != null);
-    this.systemModuleManager = systemModuleManager;
+  }
+
+  internal override void PreResolve(Program program) {
+    systemModuleManager = program.SystemModuleManager;
   }
 
   internal override void PostResolveIntermediate(ModuleDefinition m) {

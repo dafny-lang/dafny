@@ -21,8 +21,8 @@ public class AbstractModuleDecl : ModuleDecl, ICanFormat {
   }
 
   public AbstractModuleDecl(RangeToken rangeToken, ModuleQualifiedId qid, Name name,
-    ModuleDefinition parent, bool opened, List<IToken> exports)
-    : base(rangeToken, name, parent, opened, false) {
+    ModuleDefinition parent, bool opened, List<IToken> exports, Guid cloneId)
+    : base(rangeToken, name, parent, opened, false, cloneId) {
     Contract.Requires(qid != null && qid.Path.Count > 0);
     Contract.Requires(exports != null);
 

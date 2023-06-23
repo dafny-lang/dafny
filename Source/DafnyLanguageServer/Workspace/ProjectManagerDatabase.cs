@@ -46,7 +46,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         Includes = new[] {
           documentItem.Uri.GetFileSystemPath()
         },
-        Uri = documentItem.Uri.ToUri()
+        Uri = documentItem.Uri.ToUri(),
+        UnsavedRootFile = documentItem.Uri.ToUri()
       };
       return implicitProject;
     }
