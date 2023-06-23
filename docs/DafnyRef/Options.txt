@@ -1,10 +1,10 @@
 ```
 Use 'dafny --help' to see help for a newer Dafny CLI format.
-Usage: Dafny [ option ... ] [ filename ... ]
+Usage: dafny [ option ... ] [ filename ... ]
 
   ---- General options -------------------------------------------------------
 
-  /version      print the Dafny version number
+  /version      print the dafny version number
   /help         print this message
   /attrHelp     print a message about supported declaration attributes
   /env:<n>      print command line arguments
@@ -46,8 +46,8 @@ Usage: Dafny [ option ... ] [ filename ... ]
   ---- Overall reporting and printing ----------------------------------------
   
   /dprint:<file>
-      Print Dafny program after parsing it. (Use - as <file> to print
-      to console.)
+      Print Dafny program after parsing it.
+      (Use - as <file> to print to console.)
 
   /printMode:<Everything|DllEmbed|NoIncludes|NoGhost>
       Everything (default) - Print everything listed below.
@@ -60,8 +60,8 @@ Usage: Dafny [ option ... ] [ filename ... ]
           NoIncludes disables.
 
   /rprint:<file>
-      Print Dafny program after resolving it. (use - as <file> to print
-      to console.)
+      Print Dafny program after resolving it.
+      (use - as <file> to print to console.)
 
   /showSnippets:<value>
       0 (default) - Don't show source code snippets for Dafny messages.
@@ -88,9 +88,6 @@ Usage: Dafny [ option ... ] [ filename ... ]
   /pmtrace
       Print pattern-match compiler debug info.
   
-  /titrace
-      Print type-inference debug info.
-  
   /printTooltips
       Dump additional positional information (displayed as mouse-over
       tooltips by the VS Code plugin) to stdout as 'Info' messages.
@@ -102,21 +99,37 @@ Usage: Dafny [ option ... ] [ filename ... ]
   
   ---- Language feature selection --------------------------------------------
   
+  /ntitrace:<value>
+      0 (default) - Don't print debug information for the new type system.
+      1 - Print debug information for the new type system.
+
+  /titrace:<value>
+      0 (default) - Don't print type-inference debug information.
+      1 - Print type-inference debug information.
+
+  /typeSystemRefresh:<value>
+      0 (default) - The type-inference engine and supported types are those of Dafny 4.0.
+      1 - Use an updated type-inference engine. Warning: This mode is under construction and probably won't work at this time.
+
+  /unicodeChar:<value>
+      0 - The char type represents any UTF-16 code unit.
+      1 (default) - The char type represents any Unicode scalar value.
+
   /noIncludes
       Ignore include directives.
   
   /noExterns
-      Ignore extern and dllimport attributes.
+      Ignore extern attributes.
   
   /functionSyntax:<version>
       The syntax for functions is changing from Dafny version 3 to version
       4. This switch gives early access to the new syntax, and also
       provides a mode to help with migration.
   
-      3 (default) - Compiled functions are written `function method` and
+      3 - Compiled functions are written `function method` and
           `predicate method`. Ghost functions are written `function` and
           `predicate`.
-      4 - Compiled functions are written `function` and `predicate`. Ghost
+      4 (default) - Compiled functions are written `function` and `predicate`. Ghost
           functions are written `ghost function` and `ghost predicate`.
       migration3to4 - Compiled functions are written `function method` and
           `predicate method`. Ghost functions are written `ghost function`
@@ -146,10 +159,10 @@ Usage: Dafny [ option ... ] [ filename ... ]
       <Range>) are allowed. This switch gives early access to the new
       syntax.
   
-      3 (default) - Ranges are only allowed after all quantified variables
+      3 - Ranges are only allowed after all quantified variables
           are declared. (e.g. set x, y | 0 <= x < |s| && y in s[x] && 0 <=
           y :: y)
-      4 - Ranges are allowed after each quantified variable declaration.
+      4 (default) - Ranges are allowed after each quantified variable declaration.
           (e.g. set x | 0 <= x < |s|, y <- s[x] | 0 <= y :: y)
   
       Note that quantifier variable domains (<- <Domain>) are available in
@@ -158,15 +171,6 @@ Usage: Dafny [ option ... ] [ filename ... ]
   /disableScopes
       Treat all export sets as 'export reveal *'. i.e. don't hide function
       bodies or type definitions during translation.
-  
-  /allowGlobals
-      Allow the implicit class '_default' to contain fields, instance
-      functions, and instance methods. These class members are declared at
-      the module scope, outside of explicit classes. This command-line
-      option is provided to simplify a transition from the behavior in the
-      language prior to version 1.9.3, from which point onward all
-      functions and methods declared at the module scope are implicitly
-      static and fields declarations are not allowed at the module scope.
   
   ---- Warning selection -----------------------------------------------------
   
@@ -181,7 +185,6 @@ Usage: Dafny [ option ... ] [ filename ... ]
   /deprecation:<n>
       0 - Don't give any warnings about deprecated features.
       1 (default) - Show warnings about deprecated features.
-      2 - Also point out where there's new simpler syntax.
   
   /warningsAsErrors
       Treat warnings as errors.
@@ -223,17 +226,6 @@ Usage: Dafny [ option ... ] [ filename ... ]
       and resource use costs for each assertion, allowing identification
       of especially expensive assertions.
   
-  /mimicVerificationOf:<Dafny version>
-      Let Dafny attempt to mimic the verification as it was in a previous
-      version of Dafny. Useful during migration to a newer version of
-      Dafny when a Dafny program has proofs, such as methods or lemmas,
-      that are unstable in the sense that their verification may become
-      slower or fail altogether after logically irrelevant changes are
-      made in the verification input.
-  
-      Accepted versions are: 3.3 (note that this turns off features that
-      prevent classes of verification instability)
-  
   /noCheating:<n>
       0 (default) - Allow assume statements and free invariants.
       1 - Treat all assumptions as asserts, and drop free.
@@ -261,35 +253,12 @@ Usage: Dafny [ option ... ] [ filename ... ]
       1 - A compiled method, constructor, or iterator is allowed to have
          print effects only if it is marked with {:print}.
   
-  /allocated:<n>
-      Specify defaults for where Dafny should assert and assume
-      allocated(x) for various parameters x, local variables x, bound
-      variables x, etc. Lower <n> may require more manual allocated(x)
-      annotations and thus may be more difficult to use. Warning: this
-      option should be chosen consistently across an entire project; it
-      would be unsound to use different defaults for different files or
-      modules within a project. And even so, modes /allocated:0 and
-      /allocated:1 let functions depend on the allocation state, which is
-      not sound in general.
-  
-      0 - Nowhere (never assume/assert allocated(x) by default).
-      1 - Assume allocated(x) only for non-ghost variables and fields
-          (these assumptions are free, since non-ghost variables always
-          contain allocated values at run-time). This option may speed up
-          verification relative to /allocated:2.
-      2 - Assert/assume allocated(x) on all variables, even bound
-          variables in quantifiers. This option is the easiest to use for
-          heapful code.
-      3 - (default) Frugal use of heap parameters.
-      4 - Mode 3 but with alloc antecedents when ranges don't imply
-          allocatedness.
-  
   /definiteAssignment:<n>
       0 - Ignores definite-assignment rules. This mode is for testing
           only--it is not sound.
       1 (default) - Enforces definite-assignment rules for compiled
           variables and fields whose types do not support
-          auto-initialization and for ghost variables and fields whose
+          auto-initialization, and for ghost variables and fields whose
           type is possibly empty.
       2 - Enforces definite-assignment for all non-yield-parameter
           variables and fields, regardless of their types.
@@ -298,6 +267,10 @@ Usage: Dafny [ option ... ] [ filename ... ]
           passes at this level 3 is one that the language guarantees that
           values seen during execution will be the same in every run of
           the program.
+      4 - Like 1, but enforces definite assignment for all local variables
+          and out-parameters, regardless of their types. (Whether or not
+          fields and new arrays are subject to definite assignments depends
+          on their types.)
   
   /noAutoReq
       Ignore autoReq attributes.
@@ -349,37 +322,26 @@ Usage: Dafny [ option ... ] [ filename ... ]
       /proverOpt:O:model.compact=false (for z3 version >= 4.8.7), and
       /proverOpt:O:model.completion=true.
   
-  /countVerificationErrors:<n>
-      (deprecated)
-      0 - Set exit code to 0 regardless of the presence of any other errors.
-      1 (default) - Emit usual exit code (cf. beginning of the help message).
-  
   ---- Test generation options -----------------------------------------------
   
+  /warnDeadCode
+      Use counterexample generation to warn about potential dead code.
   /generateTestMode:<None|Block|Path>
       None (default) - Has no effect.
       Block - Prints block-coverage tests for the given program.
       Path - Prints path-coverage tests for the given program.
-  
-      Using /definiteAssignment:3 and /loopUnroll is highly recommended
+      Using /definiteAssignment:3, /generateTestNoPrune, 
+      /generateTestSeqLengthLimit, and /loopUnroll is highly recommended
       when generating tests.
-  
-  /warnDeadCode
-      Use block-coverage tests to warn about potential dead code.
-  
   /generateTestSeqLengthLimit:<n>
-      If /testMode is not None, using this argument adds an axiom that
-      sets the length of all sequences to be no greater than <n>. This is
-      useful in conjunction with loop unrolling.
-  
+      Add an axiom that sets the length of all sequences to be no greater 
+      than <n>. 0 (default) indicates no limit.
   /generateTestTargetMethod:<methodName>
       If specified, only this method will be tested.
-  
-  /generateTestInlineDepth:<n>
-      0 is the default. When used in conjunction with /testTargetMethod,
-      this argument specifies the depth up to which all non-tested methods
-      should be inlined.
-  
+  /generateTestPrintBpl:<fileName>
+      Print the Boogie code used during test generation.
+  /generateTestNoPrune
+      Disable axiom pruning that Dafny uses to speed up verification.
   ---- Compilation options ---------------------------------------------------
   
   /compileTarget:<language>
@@ -389,30 +351,30 @@ Usage: Dafny [ option ... ] [ filename ... ]
       java - Compile to Java.
       py - Compile to Python.
       cpp - Compile to C++.
+      dfy - Compile to Dafny.
       
       Note that the C++ backend has various limitations (see
       Docs/Compilation/Cpp.md). This includes lack of support for
       BigIntegers (aka int), most higher order functions, and advanced
       features like traits or co-inductive types.
 
-  /compileVerbose:<value>
-      0 - Don't print status of compilation to the console.
-      1 (default) - Print information such as files being written by the
-          compiler to the console.
-
   /library:<value>
       The contents of this file and any files it includes can be referenced from other files as if they were included. 
       However, these contents are skipped during code generation and verification.
       This option is useful in a diamond dependency situation, 
       to prevent code from the bottom dependency from being generated more than once.
+      The value may be a comma-separated list of files and folders.
+
+  /optimizeErasableDatatypeWrapper:<value>
+      0 - Include all non-ghost datatype constructors in the compiled code
+      1 (default) - In the compiled target code, transform any non-extern
+          datatype with a single non-ghost constructor that has a single
+          non-ghost parameter into just that parameter. For example, the type
+              datatype Record = Record(x: int)
+          is transformed into just 'int' in the target code.
 
   /out:<file>
-      Specify the filename and location for the generated target language
-      files.
-
-  /useRuntimeLib:<value>
-      Refer to pre-built DafnyRuntime.dll in compiled assembly rather
-      than including DafnyRuntime.cs verbatim.
+      Specify the filename and location for the generated target language files.
 
   /compile:<n>
       0 - Do not compile Dafny program.
@@ -443,6 +405,12 @@ Usage: Dafny [ option ... ] [ filename ... ]
           be used if the program already contains a main method. Note that
           /compile:3 or 4 must be provided as well to actually execute
           this main method!
+  
+  /compileVerbose:<n>
+      0 - Don't print status of compilation to the console.
+      1 (default) - Print information such as files being written by the
+          compiler to the console.
+  
   /spillTargetCode:<n>
       Explicitly writes the code in the target language to one or more files.
       This is not necessary to run a Dafny program, but may be of interest when
@@ -475,12 +443,9 @@ Usage: Dafny [ option ... ] [ filename ... ]
           target.
       2 (default) - As in 1, but only resolve method bodies in
           non-included Dafny sources.
-  /library:<file>
-      The contents of this file and any files it includes can be
-      referenced from other files as if they were included. However, these
-      contents are skipped during code generation and verification. This
-      option is useful in a diamond dependency situation, to prevent code
-      from the bottom dependency from being generated more than once.
+  /useRuntimeLib
+      Refer to a pre-built DafnyRuntime.dll in the compiled assembly
+      rather than including DafnyRuntime.cs verbatim.
   
   /testContracts:<Externs|TestedExterns>
       Enable run-time testing of the compilable portions of certain function
@@ -506,7 +471,9 @@ Usage: Dafny [ option ... ] [ filename ... ]
   Multiple .bpl files supplied on the command line are concatenated into one
   Boogie program.
 
-  /lib           : Include library definitions
+  /lib:<name>    : Include definitions in library <name>. The file <name>.bpl
+                   must be an included resource in Core.dll. Currently, the
+                   following libraries are supported---base, node.
   /proc:<p>      : Only check procedures matched by pattern <p>. This option
                    may be specified multiple times to match multiple patterns.
                    The pattern <p> matches the whole procedure name and may
@@ -601,6 +568,8 @@ Usage: Dafny [ option ... ] [ filename ... ]
 
   ---- Debugging and general tracing options ---------------------------------
 
+  /silent       print nothing at all
+  /quiet        print nothing but warnings and errors
   /trace        blurt out various debug trace information
   /traceTimes   output timing information at certain points in the pipeline
   /tracePOs     output information about the number of proof obligations
@@ -613,12 +582,14 @@ Usage: Dafny [ option ... ] [ filename ... ]
                 do not verify mover type annotations on atomic action declarations
   /trustNoninterference
                 do not perform noninterference checks
+  /trustRefinement
+                do not perform refinement checks
   /trustLayersUpto:<n>
                 do not verify layers <n> and below
   /trustLayersDownto:<n>
                 do not verify layers <n> and above
-  /trustInductiveSequentialization
-                do not perform inductive sequentialization checks
+  /trustSequentialization
+                do not perform sequentialization checks
   /civlDesugaredFile:<file>
                 print plain Boogie program to <file>
 
@@ -680,18 +651,17 @@ Usage: Dafny [ option ... ] [ filename ... ]
                 invocation during smoke test, defaults to 10.
   /causalImplies
                 Translate Boogie's A ==> B into prover's A ==> A && B.
-  /typeEncoding:<m>
+  /typeEncoding:<t>
                 Encoding of types when generating VC of a polymorphic program:
-                   p = predicates (default)
+                   m = monomorphic (default)
+                   p = predicates
                    a = arguments
                 Boogie automatically detects monomorphic programs and enables
                 monomorphic VC generation, thereby overriding the above option.
-  /monomorphize
-                Try to monomorphize program. An error is reported if
-                monomorphization is not possible. This feature is experimental!
-  /useArrayTheory
-                Use the SMT theory of arrays (as opposed to axioms). Supported
-                only for monomorphic programs.
+                If the latter two options are used, then arrays are handled via axioms.
+  /useArrayAxioms
+                If monomorphic type encoding is used, arrays are handled by default with
+                the SMT theory of arrays. This option allows the use of axioms instead.
   /reflectAdd   In the VC, generate an auxiliary symbol, elsewhere defined
                 to be +, instead of +.
   /prune
@@ -705,26 +675,22 @@ Usage: Dafny [ option ... ] [ filename ... ]
   /relaxFocus   Process foci in a bottom-up fashion. This way only generates
                 a linear number of splits. The default way (top-down) is more
                 aggressive and it may create an exponential number of splits.
-
-  /randomSeed:<n>
-                Turn on randomization of the input that Boogie passes to the 
+  /randomSeed:<s>
+                Supply the random seed for /randomizeVcIterations option.
+  /randomizeVcIterations:<n>
+                Turn on randomization of the input that Boogie passes to the
                 SMT solver and turn on randomization in the SMT solver itself.
- 
+                Attempt to randomize and prove each VC n times using the random
+                seed s provided by the option /randomSeed:<s>. If /randomSeed option
+                is not provided, s is chosen to be zero.
+
                 Certain Boogie inputs are unstable in the sense that changes to 
                 the input that preserve its meaning may cause the output to change.
-                The /randomSeed option simulates meaning-preserving changes to 
-                the input without requiring the user to actually make those changes.
-
-                The /randomSeed option is implemented by renaming variables and 
-                reordering declarations in the input, and by setting 
-                solver options that have similar effects.
-
-  /randomSeedIterations:<n>
-                Attempt to prove each VC n times with n random seeds. If
-                /randomSeed has been provided, each proof attempt will use
-                a new random seed derived from this original seed. If not,
-                it will implicitly use /randomSeed:0 to ensure a difference
-                between iterations.
+                This option simulates meaning-preserving changes to the input
+                without requiring the user to actually make those changes.
+                This option is implemented by renaming variables and reordering
+                declarations in the input, and by setting solver options that have
+                similar effects.
 
   ---- Verification-condition splitting --------------------------------------
 

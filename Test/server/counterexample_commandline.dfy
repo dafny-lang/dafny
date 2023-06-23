@@ -1,5 +1,5 @@
 
-// RUN: %dafny_0 /compile:0 /proverOpt:O:model_compress=false /proverOpt:O:model.completion=true /warnShadowing /extractCounterexample /mv:%t.model "%s" > "%t"
+// RUN: %exits-with 4 %dafny /compile:0 /proverOpt:O:model.compact=false /proverOpt:O:model.completion=true /warnShadowing /extractCounterexample /mv:%t.model "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // The following method performs string equality comparison whereas its 
@@ -10,7 +10,7 @@ module Patterns {
 
     class Simple {
 
-        var p:string;
+        var p:string
 
         method Match(s: string) returns (b: bool) 
             requires |p| == 1 // this is to make counterexample deterministic

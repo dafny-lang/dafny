@@ -1,12 +1,7 @@
-// RUN: %dafny /compile:0 "%s" > "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:cs /spillTargetCode:3 "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:js /spillTargetCode:3 "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:go /spillTargetCode:3 "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:java /spillTargetCode:3 "%s" >> "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment --spill-translation
 
 datatype MyDataType = AAA {
- function method toString(): int { 222 }
+ function toString(): int { 222 }
 }
 
 method Main() {

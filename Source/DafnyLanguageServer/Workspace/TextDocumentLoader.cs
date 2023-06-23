@@ -21,7 +21,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
   /// </remarks>
   public class TextDocumentLoader : ITextDocumentLoader {
     private const int ResolverMaxStackSize = 0x10000000; // 256MB
-    private static readonly ThreadTaskScheduler ResolverScheduler = new(ResolverMaxStackSize);
 
     private readonly IDafnyParser parser;
     private readonly ISymbolResolver symbolResolver;
@@ -49,6 +48,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     public static TextDocumentLoader Create(
+      DafnyOptions options,
       IDafnyParser parser,
       ISymbolResolver symbolResolver,
       ISymbolTableFactory symbolTableFactory,
@@ -66,56 +66,58 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           // This diagnostic never gets sent to the client,
           // instead it forces the first computed diagnostics for a document to always be sent.
           // The message here describes the implicit client state before the first diagnostics have been sent.
-          Message = "Resolution diagnostics have not been computed yet."
+          Message = "Resolution diagnostics have not been computed yet.",
+          Range = new OmniSharp.Extensions.LanguageServer.Protocol.Models.Range(0, 0, 0,0)
         }}
       );
     }
 
-    public async Task<DocumentAfterParsing> LoadAsync(DocumentTextBuffer textDocument,
+    public async Task<DocumentAfterParsing> LoadAsync(DafnyOptions options, DocumentTextBuffer textDocument,
       CancellationToken cancellationToken) {
 #pragma warning disable CS1998
-      return await await Task.Factory.StartNew(
-        async () => LoadInternal(textDocument, cancellationToken), cancellationToken,
+      return await await DafnyMain.LargeStackFactory.StartNew(
+        async () => LoadInternal(options, textDocument, cancellationToken), cancellationToken
 #pragma warning restore CS1998
-        TaskCreationOptions.None, ResolverScheduler);
+        );
     }
 
-    private DocumentAfterParsing LoadInternal(DocumentTextBuffer textDocument,
+    private DocumentAfterParsing LoadInternal(DafnyOptions options, DocumentTextBuffer textDocument,
       CancellationToken cancellationToken) {
-      var errorReporter = new DiagnosticErrorReporter(textDocument.Text, textDocument.Uri);
-      statusPublisher.SendStatusNotification(textDocument, CompilationStatus.ResolutionStarted);
+      var errorReporter = new DiagnosticErrorReporter(options, textDocument.Text, textDocument.Uri);
+      statusPublisher.SendStatusNotification(textDocument, CompilationStatus.Parsing);
       var program = parser.Parse(textDocument, errorReporter, cancellationToken);
-      IncludePluginLoadErrors(errorReporter, program);
-      var documentAfterParsing = new DocumentAfterParsing(textDocument, program, errorReporter.GetDiagnostics(textDocument.Uri));
+      var documentAfterParsing = new DocumentAfterParsing(textDocument, program, errorReporter.AllDiagnosticsCopy);
       if (errorReporter.HasErrors) {
         statusPublisher.SendStatusNotification(textDocument, CompilationStatus.ParsingFailed);
         return documentAfterParsing;
       }
 
-      var compilationUnit = symbolResolver.ResolveSymbols(textDocument, program, out _, cancellationToken);
-      var symbolTable = symbolTableFactory.CreateFrom(program, compilationUnit, cancellationToken);
+      statusPublisher.SendStatusNotification(textDocument, CompilationStatus.ResolutionStarted);
+      try {
+        var compilationUnit = symbolResolver.ResolveSymbols(textDocument, program, out _, cancellationToken);
+        var legacySymbolTable = symbolTableFactory.CreateFrom(compilationUnit, cancellationToken);
 
-      var newSymbolTable = errorReporter.HasErrors ? null : symbolTableFactory.CreateFrom(program, documentAfterParsing, cancellationToken);
-      if (errorReporter.HasErrors) {
-        statusPublisher.SendStatusNotification(textDocument, CompilationStatus.ResolutionFailed);
-      } else {
-        statusPublisher.SendStatusNotification(textDocument, CompilationStatus.CompilationSucceeded);
-      }
+        var newSymbolTable = errorReporter.HasErrors
+          ? null
+          : symbolTableFactory.CreateFrom(program, documentAfterParsing, cancellationToken);
+        if (errorReporter.HasErrors) {
+          statusPublisher.SendStatusNotification(textDocument, CompilationStatus.ResolutionFailed);
+        } else {
+          statusPublisher.SendStatusNotification(textDocument, CompilationStatus.CompilationSucceeded);
+        }
 
-      var ghostDiagnostics = ghostStateDiagnosticCollector.GetGhostStateDiagnostics(symbolTable, cancellationToken).ToArray();
+        var ghostDiagnostics = ghostStateDiagnosticCollector.GetGhostStateDiagnostics(legacySymbolTable, cancellationToken)
+          .ToArray();
 
-      return new DocumentAfterResolution(textDocument,
-        program,
-        errorReporter.GetDiagnostics(textDocument.Uri),
-        newSymbolTable,
-        symbolTable,
-        ghostDiagnostics
-      );
-    }
-
-    private static void IncludePluginLoadErrors(DiagnosticErrorReporter errorReporter, Dafny.Program program) {
-      foreach (var error in DafnyLanguageServer.PluginLoadErrors) {
-        errorReporter.Error(MessageSource.Compiler, program.GetFirstTopLevelToken(), error);
+        return new DocumentAfterResolution(textDocument,
+          program,
+          errorReporter.AllDiagnosticsCopy,
+          newSymbolTable,
+          legacySymbolTable,
+          ghostDiagnostics
+        );
+      } catch (OperationCanceledException) {
+        return documentAfterParsing;
       }
     }
 
@@ -127,8 +129,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         textDocument,
         diagnostics,
         SymbolTable.Empty(),
-        SignatureAndCompletionTable.Empty(textDocument),
-        new Dictionary<ImplementationId, ImplementationView>(),
+        SignatureAndCompletionTable.Empty(DafnyOptions.Default, textDocument),
+        new Dictionary<ImplementationId, IdeImplementationView>(),
         Array.Empty<Counterexample>(),
         false,
         Array.Empty<Diagnostic>(),

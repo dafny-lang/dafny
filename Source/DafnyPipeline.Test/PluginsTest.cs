@@ -2,15 +2,23 @@
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using DafnyTestGeneration;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Xunit;
 using Microsoft.Dafny;
+using Xunit.Abstractions;
 
 namespace DafnyPipeline.Test;
 
 [Collection("Dafny plug-ins tests")]
 public class PluginsTest {
+  private readonly TextWriter output;
+
+  public PluginsTest(ITestOutputHelper output) {
+    this.output = new WriterFromOutputHelper(output);
+  }
+
   /// <summary>
   /// This method creates a library and returns the path to that library.
   /// The library extends a Rewriter so that we can verify that Dafny invokes it if provided in argument.
@@ -45,71 +53,49 @@ public class PluginsTest {
     return assemblyPath;
   }
 
-  class CollectionErrorReporter : BatchErrorReporter {
-    public string GetLastErrorMessage() {
-      return AllMessages[ErrorLevel.Error][0].message;
-    }
-  }
-
   [Fact]
   public void EnsurePluginIsExecuted() {
     var library = GetLibrary("rewriterPreventingVerificationWithArgument");
 
-    var reporter = new CollectionErrorReporter();
-    var options = DafnyOptions.Create();
+    var options = DafnyOptions.Create(output);
     options.Plugins.Add(AssemblyPlugin.Load(library, new string[] { "because whatever" }));
-    DafnyOptions.Install(options);
 
     var programString = "function test(): int { 1 }";
-    ModuleDecl module = new LiteralModuleDecl(new DefaultModuleDecl(), null);
-    Microsoft.Dafny.Type.ResetScopes();
-    BuiltIns builtIns = new BuiltIns();
-    Parser.Parse(programString, "virtual", "virtual", module, builtIns, reporter);
-    var dafnyProgram = new Program("programName", module, builtIns, reporter);
-    Main.Resolve(dafnyProgram, reporter);
+    var dafnyProgram = Utils.Parse(options, programString, false);
+    BatchErrorReporter reporter = (BatchErrorReporter)dafnyProgram.Reporter;
+    DafnyMain.Resolve(dafnyProgram);
 
     Assert.Equal(1, reporter.Count(ErrorLevel.Error));
-    Assert.Equal("Impossible to continue because whatever", reporter.GetLastErrorMessage());
+    Assert.Equal("Impossible to continue because whatever", reporter.AllMessagesByLevel[ErrorLevel.Error][0].Message);
   }
 
   [Fact]
   public void EnsurePluginIsExecutedEvenWithoutConfiguration() {
     var library = GetLibrary("rewriterPreventingVerification");
 
-    var reporter = new CollectionErrorReporter();
-    var options = DafnyOptions.Create();
+    var options = DafnyOptions.Create(output);
     options.Plugins.Add(AssemblyPlugin.Load(library, new string[] { "ignored arguments" }));
-    DafnyOptions.Install(options);
 
     var programString = "function test(): int { 1 }";
-    var dafnyProgram = CreateProgram(programString, reporter);
-    Main.Resolve(dafnyProgram, reporter);
+    var dafnyProgram = Utils.Parse(options, programString, false);
+    BatchErrorReporter reporter = (BatchErrorReporter)dafnyProgram.Reporter;
+    DafnyMain.Resolve(dafnyProgram);
     Assert.Equal(1, reporter.ErrorCount);
-    Assert.Equal("Impossible to continue", reporter.GetLastErrorMessage());
+    Assert.Equal("Impossible to continue", reporter.AllMessagesByLevel[ErrorLevel.Error][0].Message);
   }
 
   [Fact]
   public void EnsurePluginIsExecutedAndAllowsVerification() {
     var library = GetLibrary("rewriterAllowingVerification");
 
-    var reporter = new CollectionErrorReporter();
-    var options = DafnyOptions.Create();
+    var options = DafnyOptions.Create(output);
     options.Plugins.Add(AssemblyPlugin.Load(library, new string[] { "ignored arguments" }));
-    DafnyOptions.Install(options);
 
     var programString = "function test(): int { 1 }";
-    var dafnyProgram = CreateProgram(programString, reporter);
-    Main.Resolve(dafnyProgram, reporter);
+    var dafnyProgram = Utils.Parse(options, programString, false);
+    BatchErrorReporter reporter = (BatchErrorReporter)dafnyProgram.Reporter;
+    DafnyMain.Resolve(dafnyProgram);
     Assert.Equal(0, reporter.ErrorCountUntilResolver);
     Assert.Equal(1, reporter.ErrorCount);
-  }
-
-  private static Program CreateProgram(string programString, CollectionErrorReporter reporter) {
-    ModuleDecl module = new LiteralModuleDecl(new DefaultModuleDecl(), null);
-    Type.ResetScopes();
-    BuiltIns builtIns = new BuiltIns();
-    Parser.Parse(programString, "virtual", "virtual", module, builtIns, reporter);
-    var dafnyProgram = new Program("programName", module, builtIns, reporter);
-    return dafnyProgram;
   }
 }

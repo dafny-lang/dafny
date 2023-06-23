@@ -1,4 +1,4 @@
-// RUN: %dafny_0 /compile:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %exits-with 2 %dafny /compile:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module MainStuff {
@@ -34,11 +34,11 @@ module MainStuff {
 
     type ConcreteType = GenericType<int>
 
-    function F(c:ConcreteType): ConcreteType {
+    ghost function F(c:ConcreteType): ConcreteType {
       c.(value := 0)
     }
 
-    function G(): int {
+    ghost function G(): int {
       ConcreteType.GenericType(5).value
     }
   }

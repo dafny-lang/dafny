@@ -1,11 +1,7 @@
 ﻿using System;
-using Microsoft.Dafny.LanguageServer.Util;
-using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
-using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using OmniSharp.Extensions.LanguageServer.Protocol.Server;
-using System.Collections.Generic;
-using System.Linq;
+using System.Collections.Immutable;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Window;
 
@@ -21,19 +17,14 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     public void PublishUnhandledException(Exception e) {
       logger.LogError(e, "exception occurred");
-      PublishTelemetry(ITelemetryPublisher.TelemetryEventKind.UnhandledException, e.ToString());
+      PublishTelemetry(ITelemetryPublisher.TelemetryEventKind.UnhandledException.ToString(),
+        ImmutableDictionary.Create<string, object>().Add("payload", e.ToString()));
     }
 
-    void ITelemetryPublisher.PublishTelemetry(ITelemetryPublisher.TelemetryEventKind kind, object? payload) {
-      PublishTelemetry(kind, payload);
-    }
-
-    private void PublishTelemetry(ITelemetryPublisher.TelemetryEventKind kind, object? payload) {
+    public void PublishTelemetry(string kind, ImmutableDictionary<string, object> payload) {
+      var data = payload.Add("kind", kind);
       languageServer.Window.SendTelemetryEvent(new TelemetryEventParams {
-        ExtensionData = new Dictionary<string, object> {
-          {"kind", kind.ToString()},
-          {"payload", payload ?? new Dictionary<string, object>()}
-        }
+        ExtensionData = data
       });
     }
   }

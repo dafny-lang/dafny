@@ -6,7 +6,7 @@ class UnboundedStack<T> {
   ghost var content: seq<T>
   var top: Node?<T>
 
-  predicate IsUnboundedStack()
+  ghost predicate IsUnboundedStack()
     reads this, representation
   {
     this in representation &&
@@ -65,7 +65,7 @@ class Node<T> {
   var val: T
   var next: Node?<T>
 
-  predicate Valid()
+  ghost predicate Valid()
     reads this, footprint
   {
     this in footprint &&

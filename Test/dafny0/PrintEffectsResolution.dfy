@@ -1,5 +1,5 @@
-// RUN: %dafny_0 /compile:3 "%s" > "%t"
-// RUN: %dafny_0 /compile:3 /trackPrintEffects:1 "%s" >> "%t"
+// RUN: %exits-with 2 %dafny /compile:3 "%s" > "%t"
+// RUN: %exits-with 2 %dafny /compile:3 /trackPrintEffects:1 "%s" >> "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // The errors in this file are produced regardless of /trackPrintEffects setting.
@@ -13,9 +13,9 @@ ghost method {:print} N() { // error: cannot apply {:print} to ghost method
 lemma {:print} L() { // error: cannot apply {:print} to lemma
 }
 
-function {:print} F(): int // error: cannot apply {:print} to function
+ghost function {:print} F(): int // error: cannot apply {:print} to function
 
-function method {:print} G(): int // error: cannot apply {:print} to function
+function {:print} G(): int // error: cannot apply {:print} to function
 
 function {:print} H(): int { // error: cannot apply {:print} to function-by-method
   2

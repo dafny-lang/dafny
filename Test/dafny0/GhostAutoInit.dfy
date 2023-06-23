@@ -1,4 +1,4 @@
-// RUN: %dafny_0 /compile:0 "%s" > "%t"
+// RUN: %exits-with 4 %dafny /compile:0 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module DeclaredTypes {
@@ -285,7 +285,7 @@ module EmptyTypeNotDeclaredAsSuch {
 module EmptyType {
   type Empty = x: int | false witness *
 
-  function F(x: Empty): nat {
+  ghost function F(x: Empty): nat {
     -3  // no problem, since the function can't ever be called
   }
 

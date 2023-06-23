@@ -32,7 +32,7 @@ module M1 {
       requires unchanged(c)
       ensures unchanged(c)
 
-    function F(c: C): bool
+    ghost function F(c: C): bool
       requires unchanged(c)
       ensures unchanged(c)
 
@@ -67,7 +67,7 @@ module PrettyPrinting {
       y.Floor as real == y
     }
 
-    function method MF(y: real, ghost g: int): char
+    function MF(y: real, ghost g: int): char
     {
       'G'
     }
@@ -140,7 +140,7 @@ module G {
     true
   }
 
-  function Fu(): int
+  ghost function Fu(): int
     requires P()
     reads if P() then {null} else {}
     ensures P()
@@ -180,7 +180,7 @@ module H {
   }
 
   class D {
-    function G(): int
+    ghost function G(): int
 
     static method Sm(c: C) returns (ghost b: bool)
       requires c != null
@@ -207,7 +207,7 @@ module H {
     true
   }
 
-  function Fu(): int
+  ghost function Fu(): int
   {
     ghost var p: () -> bool := P;
     ghost var q: () -> bool := YY.Sp;
@@ -248,7 +248,7 @@ module H {
     var p: () -> bool := P;
   }
 
-  function K(c: C): int
+  ghost function K(c: C): int
   {
     TL(c);
     5
@@ -342,17 +342,17 @@ module PrintTest {
     | var rr := 2; x % rr == 0
     ghost witness var ww := 2; ww + 8
 
-  function method Five(): int
+  function Five(): int
   {
     5
   }
 
-  function Six(): int
+  ghost function Six(): int
   {
     6
   }
 
-  function method Ten(): int
+  function Ten(): int
   {
     var f := Five();
     ghost var s := Six();
@@ -360,44 +360,44 @@ module PrintTest {
     f + f
   }
 
-  function method TenAgain(): int
+  function TenAgain(): int
   {
     var ten := var f := Five(); ghost var s := Six(); assert s == 6; f + f;
     ten
   }
 
-  function TenOnceMore(): int
+  ghost function TenOnceMore(): int
   {
     var ten := var f := Five(); ghost var s := Six(); assert s == 6; f + f;
     ten
   }
 
-  function Eleven(): int
+  ghost function Eleven(): int
   {
     var f, s := Five(), Six();
     f + s
   }
 
-  function Twelve(): int
+  ghost function Twelve(): int
   {
     var s, t := Six(), Six();
     s + t
   }
 
-  function method Twenty(): int
+  function Twenty(): int
   {
     var x :| x == 10;
     x + x
   }
 
-  function method TwentyOne(): int
+  function TwentyOne(): int
   {
     ghost var x :| x == 10 && Yes(x);
     assert x + x + 1 == 21;
     21
   }
 
-  predicate Yes(x: int)
+  ghost predicate Yes(x: int)
   {
     true
   }
@@ -440,7 +440,7 @@ module TwoStateAt {
       assert old(c.data) == c.data;
     }
 
-    function method G(): int
+    function G(): int
     {
       32
     }
@@ -456,7 +456,7 @@ module TwoStateAt {
     old(c.data) + c.data
   }
 
-  function F(): int
+  ghost function F(): int
   {
     9
   }
@@ -540,7 +540,7 @@ module TwoStateAt {
     var x, d := ReturnSomething@L(c);
   }
 
-  function {:opaque} OrdinaryOpaque(): int
+  ghost function {:opaque} OrdinaryOpaque(): int
   {
     12
   }
@@ -554,7 +554,7 @@ module TwoStateAt {
     reveal OrdinaryOpaque@L();
   }
 
-  function FuncUseOrdinaryOpaque(): int
+  ghost function FuncUseOrdinaryOpaque(): int
   {
     reveal OrdinaryOpaque();
     reveal OrdinaryOpaque;
@@ -576,7 +576,7 @@ module TwoStateAt {
     reveal Opaque@L();
   }
 
-  function FuncUseOpaque(): int
+  ghost function FuncUseOpaque(): int
   {
     reveal Opaque();
     reveal Opaque;
@@ -595,7 +595,7 @@ module TwoStateAt {
   twostate lemma EasyTwo()
     ensures true
 
-  function CallEasy(): int
+  ghost function CallEasy(): int
   {
     EasyTwo();
     9
@@ -606,9 +606,9 @@ module OlderParameters {
   class C { }
 
   trait Tr {
-    predicate P(a: C)
+    ghost predicate P(a: C)
 
-    predicate Q(older a: C)
+    ghost predicate Q(older a: C)
 
     twostate predicate X(a: C)
 
@@ -616,9 +616,9 @@ module OlderParameters {
   }
 
   class Good extends Tr {
-    predicate P(a: C)
+    ghost predicate P(a: C)
 
-    predicate Q(older a: C)
+    ghost predicate Q(older a: C)
 
     twostate predicate X(a: C)
 
@@ -626,9 +626,9 @@ module OlderParameters {
   }
 
   class Bad extends Tr {
-    predicate P(older a: C)
+    ghost predicate P(older a: C)
 
-    predicate Q(a: C)
+    ghost predicate Q(a: C)
 
     twostate predicate X(new a: C)
 
@@ -639,9 +639,9 @@ module OlderParameters {
 module RefinementBase {
   class C { }
 
-  predicate P(a: C)
+  ghost predicate P(a: C)
 
-  predicate Q(older a: C)
+  ghost predicate Q(older a: C)
 
   twostate predicate X(a: C)
 
@@ -649,12 +649,12 @@ module RefinementBase {
 }
 
 module GoodRefinement refines RefinementBase {
-  predicate P(a: C)
+  ghost predicate P(a: C)
   {
     true
   }
 
-  predicate Q(older a: C)
+  ghost predicate Q(older a: C)
   {
     true
   }
@@ -671,12 +671,12 @@ module GoodRefinement refines RefinementBase {
 }
 
 module BadRefinement refines RefinementBase {
-  predicate P(older a: C)
+  ghost predicate P(older a: C)
   {
     true
   }
 
-  predicate Q(a: C)
+  ghost predicate Q(a: C)
   {
     true
   }
@@ -698,7 +698,7 @@ module RevealInsideIterator {
     reveal G();
   }
 
-  function {:opaque} G(): int
+  ghost function {:opaque} G(): int
   {
     2
   }
@@ -768,12 +768,12 @@ Twostate-Resolution.dfy(502,19): Error: a two-state function can only be reveale
 Twostate-Resolution.dfy(507,11): Error: to reveal a function (Opaque), append parentheses
 Twostate-Resolution.dfy(508,18): Error: no label 'K' in scope at this time
 Twostate-Resolution.dfy(515,11): Error: two-state lemmas can only be used in two-state contexts
-Twostate-Resolution.dfy(535,22): Error: parameter 'a' of function P cannot be changed, compared to in the overridden function, from non-older to older
-Twostate-Resolution.dfy(536,16): Error: parameter 'a' of function Q cannot be changed, compared to in the overridden function, from older to non-older
+Twostate-Resolution.dfy(535,28): Error: parameter 'a' of function P cannot be changed, compared to in the overridden function, from non-older to older
+Twostate-Resolution.dfy(536,22): Error: parameter 'a' of function Q cannot be changed, compared to in the overridden function, from older to non-older
 Twostate-Resolution.dfy(537,29): Error: parameter 'a' of function X cannot be changed, compared to in the overridden function, from non-new to new
 Twostate-Resolution.dfy(538,25): Error: parameter 'a' of function Y cannot be changed, compared to in the overridden function, from new to non-new
-Twostate-Resolution.dfy(558,20): Error: parameter 'a' of function P cannot be changed, compared to the corresponding function in the module it refines, from non-older to older
-Twostate-Resolution.dfy(559,14): Error: parameter 'a' of function Q cannot be changed, compared to the corresponding function in the module it refines, from older to non-older
+Twostate-Resolution.dfy(558,26): Error: parameter 'a' of function P cannot be changed, compared to the corresponding function in the module it refines, from non-older to older
+Twostate-Resolution.dfy(559,20): Error: parameter 'a' of function Q cannot be changed, compared to the corresponding function in the module it refines, from older to non-older
 Twostate-Resolution.dfy(560,27): Error: parameter 'a' of function X cannot be changed, compared to the corresponding function in the module it refines, from non-new to new
 Twostate-Resolution.dfy(561,23): Error: parameter 'a' of function Y cannot be changed, compared to the corresponding function in the module it refines, from new to non-new
 73 resolution/type errors detected in Twostate-Resolution.dfy

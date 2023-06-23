@@ -1,5 +1,4 @@
-// RUN: %dafny /compile:3 "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment
 
 method Main() {
   var a := new Issue.Foo<int>();
@@ -17,7 +16,7 @@ method Main() {
 module Issue
 {
   class Foo<T> {
-    function Repr(): set<object> { {this} }
+    ghost function Repr(): set<object> { {this} }
     constructor() {}
   }
 
@@ -38,7 +37,7 @@ module Issue
 // the following variation was working all along
 module Variation {
   class Foo<T> {
-    function Repr(): set<object> { {this} }
+    ghost function Repr(): set<object> { {this} }
     constructor() {}
   }
 
@@ -70,7 +69,7 @@ module Variation {
 module AnotherVariation
 {
   class Foo<T> {
-    function Repr(): set<object> { {this} }
+    ghost function Repr(): set<object> { {this} }
     constructor() {}
 
     method UseFoo()

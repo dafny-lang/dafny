@@ -1,9 +1,4 @@
-// RUN: %dafny /compile:0 /dprint:"%t.dprint" "%s" > "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:cs "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:java "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:js "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:go "%s" >> "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment
 
 // This file contains an example chain of module refinements, starting from a
 // simple interface M0 to an implementation M3. Module Client.Test() is
@@ -37,10 +32,10 @@
 abstract module M0 {
   class {:autocontracts} Container<T(==)> {
     ghost var Contents: set<T>
-    predicate Valid() {
+    ghost predicate Valid() {
       Valid'()
     }
-    predicate {:autocontracts false} Valid'()
+    ghost predicate {:autocontracts false} Valid'()
       reads this, Repr
     constructor ()
       ensures Contents == {}
@@ -85,13 +80,13 @@ abstract module M1 refines M0 {
 abstract module M2 refines M1 {
   class Container<T(==)> ... {
     var elems: seq<T>
-    predicate Valid'...
+    ghost predicate Valid'...
     {
       Contents == (set x | x in elems) &&
       (forall i,j :: 0 <= i < j < |elems| ==> elems[i] != elems[j]) &&
       Valid''()
     }
-    predicate {:autocontracts false} Valid''()
+    ghost predicate {:autocontracts false} Valid''()
       reads this, Repr
     method FindIndex(t: T) returns (j: nat)
       ensures j <= |elems|
@@ -149,7 +144,7 @@ module M3 refines M2 {
   datatype Cache<T> = None | Some(index: nat, value: T)
   class Container<T(==)> ... {
     var cache: Cache<T>
-    predicate Valid''... {
+    ghost predicate Valid''... {
       cache.Some? ==> cache.index < |elems| && elems[cache.index] == cache.value
     }
     constructor... {

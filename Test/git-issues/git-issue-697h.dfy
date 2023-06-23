@@ -1,7 +1,7 @@
 // RUN: %dafny /compile:0 /rprint:"%t.rprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
-ghost const maxi := 4;
+ghost const maxi := 4
 
 type substring = x: string | |x| < maxi
 
@@ -27,7 +27,7 @@ method test(s: seq<substring>) returns (r: int)
   }
 }
 
-function testf(s: seq<substring>): (r: int)
+ghost function testf(s: seq<substring>): (r: int)
   requires forall x: substring :: x in s ==> |x| < maxi
   ensures forall x: substring :: x in s ==> |x| < maxi
 {

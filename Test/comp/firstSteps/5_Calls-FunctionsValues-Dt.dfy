@@ -1,6 +1,4 @@
-// RUN: %dafny /compile:0 "%s" > "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:py "%s" >> "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment
 //
 // This fragment of comp/Calls.dfy serves to facilitate incremental compiler development.
 
@@ -21,8 +19,8 @@ module FunctionValues {
   }
 
   datatype Color = Red | Green | Blue {
-    function method F(): int { if this == Red then 5 else 2 }
-    static function method G(): int { 3 }
+    function F(): int { if this == Red then 5 else 2 }
+    static function G(): int { 3 }
   }
 }
 

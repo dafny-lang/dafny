@@ -1,11 +1,10 @@
-// RUN: %dafny /compile:3 "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment
 
 newtype Byte = x | 0 <= x < 256
-predicate method GoodByte(b: Byte) {
+predicate GoodByte(b: Byte) {
   b % 3 == 2
 }
-predicate method GoodInteger(i: int) {
+predicate GoodInteger(i: int) {
   i % 5 == 4
 }
 

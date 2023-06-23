@@ -1,0 +1,21 @@
+input.dfy(6,8): Warning: Shadowed local-variable name: x
+
+Dafny program verifier did not attempt verification
+
+Dafny program verifier did not attempt verification
+Warning: only Dafny project files named dfyconfig.toml are recognised by the Dafny IDE.
+Warning: option 'does-not-exist' that was specified in the project file, is not a valid Dafny option.
+
+Dafny program verifier did not attempt verification
+Error: property 'warn-shadowing' is of type 'System.Int64' but should be of type 'System.Boolean'
+input.dfy(6,8): Warning: Shadowed local-variable name: x
+moreInput.dfy(6,8): Warning: Shadowed local-variable name: x
+
+Dafny program verifier did not attempt verification
+input.dfy(6,8): Warning: Shadowed local-variable name: x
+
+Dafny program verifier did not attempt verification
+excluded.dfy(3,7): Error: Duplicate member name: Foo
+input.dfy(6,8): Warning: Shadowed local-variable name: x
+excluded.dfy(6,8): Warning: Shadowed local-variable name: z
+1 resolution/type errors detected in the_program

@@ -1,4 +1,4 @@
-// RUN: %dafny_0 /compile:0 "%s" > "%t"
+// RUN: %exits-with 2 %dafny /compile:0 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 class C {
@@ -57,7 +57,7 @@ class C {
       );
   }
 
-  function F(u: int): int {
+  ghost function F(u: int): int {
     5 +
     assert F2(u) == u; // error: twostate function not allowed in this context
     u

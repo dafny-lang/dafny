@@ -5,17 +5,17 @@
 // Rustan Leino, 27 January 2008
 
 class MyClass<T,U> {
-  var x: int;
+  var x: int
 
   method M(s: bool, lotsaObjects: set<object>) returns (t: object, u: set<int>, v: seq<MyClass?<bool,U>>)
-    requires s;
-    modifies this, lotsaObjects;
-    ensures t == t;
-    ensures old(null) != this; // warning: old(null) is the same as null
+    requires s
+    modifies this, lotsaObjects
+    ensures t == t
+    ensures old(null) != this  // warning: old(null) is the same as null
   {
     x := 12;
     while (x < 100)
-      invariant x <= 100;
+      invariant x <= 100
     {
       x := x + 17;
       if (x % 20 == 3) {
@@ -31,7 +31,7 @@ class MyClass<T,U> {
     }
   }
 
-  function F(x: int, y: int, h: WildData, k: WildData): WildData
+  ghost function F(x: int, y: int, h: WildData, k: WildData): WildData
   {
     if x < 0 then h else
     if (x == 0) then
@@ -50,29 +50,29 @@ datatype WildData =
   More(List<int>)
 
 class C {
-  var w: WildData;
-  var list: List<bool>;
+  var w: WildData
+  var list: List<bool>
 }
 
 lemma M(x: int)
-  ensures x < 8;
+  ensures x < 8
 {
   // proof would go here
 }
 greatest lemma M'(x': int)
-  ensures true;
+  ensures true
 {
 }
 
 // modifiers on functions
 
 class CF {
-  static function F(): int
-  predicate method G()
+  static ghost function F(): int
+  predicate G()
   greatest predicate Co()
-  function H(): int
-  static function method I(): real
-  static predicate method J()
+  ghost function H(): int
+  static ghost function I(): real
+  static ghost predicate J()
 }
 
 // test printing of various if statements, including with omitted guards

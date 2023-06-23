@@ -21,7 +21,7 @@ git-issue-1207.dfy(40,9): Error: assertion might not hold
 git-issue-1207.dfy(47,9): Error: assertion might not hold
 git-issue-1207.dfy(48,9): Error: assertion might not hold
 git-issue-1207.dfy(49,9): Error: assertion might not hold
-git-issue-1207.dfy(50,49): Error: index out of range
-git-issue-1207.dfy(50,57): Error: index out of range
+git-issue-1207.dfy(50,9): Error: assertion might not hold
+git-issue-1207.dfy(51,9): Error: assertion might not hold
 
 Dafny program verifier finished with 0 verified, 20 errors

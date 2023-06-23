@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -15,12 +16,12 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
   public class NotificationPublisher : INotificationPublisher {
     private readonly ILogger<NotificationPublisher> logger;
     private readonly ILanguageServerFacade languageServer;
-    private readonly VerifierOptions verifierOptions;
+    private readonly DafnyOptions options;
 
-    public NotificationPublisher(ILogger<NotificationPublisher> logger, ILanguageServerFacade languageServer, IOptions<VerifierOptions> verifierOptions) {
+    public NotificationPublisher(ILogger<NotificationPublisher> logger, ILanguageServerFacade languageServer, DafnyOptions options) {
       this.logger = logger;
       this.languageServer = languageServer;
-      this.verifierOptions = verifierOptions.Value;
+      this.options = options;
     }
 
     public void PublishNotifications(IdeState previousState, IdeState state) {
@@ -60,7 +61,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         GetNamedVerifiableStatuses(state.ImplementationIdToView));
     }
 
-    private static List<NamedVerifiableStatus> GetNamedVerifiableStatuses(IReadOnlyDictionary<ImplementationId, ImplementationView> implementationViews) {
+    private static List<NamedVerifiableStatus> GetNamedVerifiableStatuses(IReadOnlyDictionary<ImplementationId, IdeImplementationView> implementationViews) {
       var namedVerifiableGroups = implementationViews.GroupBy(task => task.Value.Range);
       return namedVerifiableGroups.Select(taskGroup => {
         var status = taskGroup.Select(kv => kv.Value.Status).Aggregate(Combine);
@@ -91,7 +92,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     public void PublishGutterIcons(IdeState state, bool verificationStarted) {
-      if (!verifierOptions.GutterStatus) {
+      if (!options.Get(ServerCommand.LineVerificationStatus)) {
         return;
       }
 
@@ -119,6 +120,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     private static GhostDiagnosticsParams GetGhostness(IdeState state) {
+
       return new GhostDiagnosticsParams {
         Uri = state.TextDocumentItem.Uri,
         Version = state.TextDocumentItem.Version,

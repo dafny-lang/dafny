@@ -1,10 +1,4 @@
-// RUN: %dafny /compile:0 "%s" > "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:cs "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:js "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:go "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:java "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:py "%s" >> "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment
 
 method Match(tp: (nat, nat)) {
   match tp
@@ -29,11 +23,11 @@ method LetExpr() {
   print (var a := A(0); var A(zero) := a; zero), "\n";
 }
 
-function method f(i: int): int {
+function f(i: int): int {
   i + 1
 }
 
-function method F(i: int): int -> int {
+function F(i: int): int -> int {
   j => j + i + 1
 }
 

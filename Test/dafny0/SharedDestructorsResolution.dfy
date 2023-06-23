@@ -1,4 +1,4 @@
-// RUN: %dafny_0 /compile:0 /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %exits-with 2 %dafny /compile:0 /dprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module Module0 {
@@ -52,9 +52,9 @@ module Module1 {
 
   datatype Kt =
     Kt0(x: int) |
-    Kt1(ghost x: int) |  // error: duplicated destructors must agree on ghost/non-ghost
+    Kt1(ghost x: int) |  // (duplicated destructors must agree on ghost/non-ghost, but this is not report until a later pass; see Module2)
     Kt2(ghost g: int) |
-    Kt3(g: int) |  // error: duplicated destructors must agree on ghost/non-ghost
+    Kt3(g: int) |  // (duplicated destructors must agree on ghost/non-ghost, but this is not report until a later pass; see Module2)
     Kt4(k: Kt) |
     Kt5(k: SKt) |  // fine, because SKt and Kt are synonyms
     Kt6(k: S'Kt)  // fine, because S'Kt and Kt are synonyms
@@ -97,4 +97,12 @@ module Module1 {
     | Same0(x: int, y: int, x: int)  // error: duplicate destructor name in the same constructor
     | Same1(y: int, y: int)  // error: duplicate destructor name in the same constructor
     | Same2(z: int, ghost z: bool)  // error: duplicate destructor name in the same constructor
+}
+
+module Module2 {
+  datatype Kt =
+    Kt0(x: int) |
+    Kt1(ghost x: int) |  // error: duplicated destructors must agree on ghost/non-ghost
+    Kt2(ghost g: int) |
+    Kt3(g: int)  // error: duplicated destructors must agree on ghost/non-ghost
 }

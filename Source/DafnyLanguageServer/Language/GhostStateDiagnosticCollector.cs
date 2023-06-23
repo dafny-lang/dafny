@@ -21,20 +21,20 @@ namespace Microsoft.Dafny.LanguageServer.Language {
   public class GhostStateDiagnosticCollector : IGhostStateDiagnosticCollector {
     private const string GhostStatementMessage = "Ghost statement";
 
-    private readonly GhostOptions options;
+    private readonly DafnyOptions options;
     private readonly ILogger<GhostStateDiagnosticCollector> logger;
-    public GhostStateDiagnosticCollector(IOptions<GhostOptions> options, ILogger<GhostStateDiagnosticCollector> logger) {
+    public GhostStateDiagnosticCollector(DafnyOptions options, ILogger<GhostStateDiagnosticCollector> logger) {
+      this.options = options;
       this.logger = logger;
-      this.options = options.Value;
     }
 
     public IEnumerable<Diagnostic> GetGhostStateDiagnostics(SignatureAndCompletionTable signatureAndCompletionTable, CancellationToken cancellationToken) {
-      if (!options.MarkStatements) {
+      if (!options.Get(ServerCommand.GhostIndicators)) {
         return Enumerable.Empty<Diagnostic>();
       }
 
       try {
-        var visitor = new GhostStateSyntaxTreeVisitor(signatureAndCompletionTable.CompilationUnit.Program, cancellationToken);
+        var visitor = new GhostStateSyntaxTreeVisitor(signatureAndCompletionTable.CompilationUnit, cancellationToken);
         visitor.Visit(signatureAndCompletionTable.CompilationUnit.Program);
         return visitor.GhostDiagnostics;
       } catch (Exception e) {
@@ -44,13 +44,13 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     }
 
     private class GhostStateSyntaxTreeVisitor : SyntaxTreeVisitor {
-      private readonly Dafny.Program program;
+      private readonly CompilationUnit compilationUnit;
       private readonly CancellationToken cancellationToken;
 
       public List<Diagnostic> GhostDiagnostics { get; } = new();
 
-      public GhostStateSyntaxTreeVisitor(Dafny.Program program, CancellationToken cancellationToken) {
-        this.program = program;
+      public GhostStateSyntaxTreeVisitor(CompilationUnit compilationUnit, CancellationToken cancellationToken) {
+        this.compilationUnit = compilationUnit;
         this.cancellationToken = cancellationToken;
       }
 
@@ -72,13 +72,13 @@ namespace Microsoft.Dafny.LanguageServer.Language {
 
 
       private bool IsPartOfEntryDocumentAndNoMetadata(IToken token) {
-        return token.line > 0 && program.IsPartOfEntryDocument(token);
+        return token.line > 0 && compilationUnit.IsPartOfEntryDocument(token);
       }
 
       private static Range GetRange(Statement statement) {
         return statement switch {
           UpdateStmt updateStatement => GetRange(updateStatement),
-          _ => CreateRange(statement.Tok, statement.EndTok)
+          _ => CreateRange(statement.RangeToken.StartToken, statement.RangeToken.EndToken)
         };
       }
 
@@ -93,7 +93,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         } else {
           startToken = updateStatement.Tok;
         }
-        return CreateRange(startToken, updateStatement.EndTok);
+        return CreateRange(startToken, updateStatement.RangeToken.EndToken);
       }
 
       private static IToken GetStartTokenFromResolvedStatement(Statement resolvedStatement) {

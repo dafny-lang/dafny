@@ -1,16 +1,16 @@
-// RUN: %dafny_0 /compile:0 /dprint:"%t.dprint" /autoTriggers:0 "%s" > "%t"
+// RUN: %exits-with 4 %dafny /compile:0 /deprecation:0 /dprint:"%t.dprint" /autoTriggers:0 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 datatype List<X> = Nil | Cons(Node<X>, List<X>)
 datatype Node<X> = Element(X) | Nary(List<X>)
 
-function FlattenMain<M>(list: List<M>): List<M>
+ghost function FlattenMain<M>(list: List<M>): List<M>
   ensures IsFlat(FlattenMain(list));
 {
   Flatten(list, Nil)
 }
 
-function Flatten<X>(list: List<X>, ext: List<X>): List<X>
+ghost function Flatten<X>(list: List<X>, ext: List<X>): List<X>
   requires IsFlat(ext);
   ensures IsFlat(Flatten(list, ext));
 {
@@ -22,7 +22,7 @@ function Flatten<X>(list: List<X>, ext: List<X>): List<X>
     case Nary(nn) => Flatten(nn, Flatten(rest, ext))
 }
 
-function IsFlat<F>(list: List<F>): bool
+ghost function IsFlat<F>(list: List<F>): bool
 {
   match list
   case Nil => true
@@ -32,7 +32,7 @@ function IsFlat<F>(list: List<F>): bool
     case Nary(nn) => false
 }
 
-function ToSeq<X>(list: List<X>): seq<X>
+ghost function ToSeq<X>(list: List<X>): seq<X>
 {
   match list
   case Nil => []
@@ -48,7 +48,7 @@ lemma Theorem<X>(list: List<X>)
   Lemma(list, Nil);
 }
 
-lemma Lemma<X>(list: List<X>, ext: List<X>)
+lemma {:vcs_split_on_every_assert} Lemma<X>(list: List<X>, ext: List<X>)
   requires IsFlat(ext);
   ensures ToSeq(list) + ToSeq(ext) == ToSeq(Flatten(list, ext));
 {
@@ -67,7 +67,7 @@ lemma Lemma<X>(list: List<X>, ext: List<X>)
 
 // ---------------------------------------------
 
-function NegFac(n: int): int
+ghost function NegFac(n: int): int
   decreases -n;
 {
   if -1 <= n then -1 else - NegFac(n+1) * n

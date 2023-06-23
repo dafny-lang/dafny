@@ -6,13 +6,11 @@ git-issue-1619.dfy(171,11): Error: variable 'm', which is subject to definite-as
 git-issue-1619.dfy(173,9): Error: assertion might not hold
 git-issue-1619.dfy(178,11): Error: variable 'm', which is subject to definite-assignment rules, might be uninitialized here
 git-issue-1619.dfy(180,9): Error: assertion might not hold
-git-issue-1619.dfy(185,12): Error: variable 'u', which is subject to definite-assignment rules, might be uninitialized here
 git-issue-1619.dfy(203,11): Error: variable 'p', which is subject to definite-assignment rules, might be uninitialized here
-git-issue-1619.dfy(222,11): Error: variable 'x', which is subject to definite-assignment rules, might be uninitialized here
 git-issue-1619.dfy(223,11): Error: variable 'p', which is subject to definite-assignment rules, might be uninitialized here
 git-issue-1619.dfy(266,27): Error: variable 'p', which is subject to definite-assignment rules, might be uninitialized here
 git-issue-1619.dfy(271,6): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
 git-issue-1619.dfy(284,27): Error: variable 'p', which is subject to definite-assignment rules, might be uninitialized here
 git-issue-1619.dfy(289,9): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
 
-Dafny program verifier finished with 18 verified, 16 errors
+Dafny program verifier finished with 19 verified, 14 errors

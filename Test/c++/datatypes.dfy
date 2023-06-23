@@ -1,5 +1,4 @@
-// RUN: %dafny /compile:3 /spillTargetCode:2 /compileTarget:cpp "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment --spill-translation --unicode-char:false
 
 newtype uint32 = i:int | 0 <= i < 0x100000000
 
@@ -162,6 +161,6 @@ method Main() {
   DupTestTest();
 
   var len := IntListLen(Cons(15, Cons(18, Cons(330, Nil))));
-  print len;
+  print len, "\n";
 }
 

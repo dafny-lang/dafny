@@ -16,6 +16,10 @@ module {:compile false} {:extern "System"} System {
   class {:compile false} {:extern "Tuple"} Tuple3<T1, T2, T3> {}
   class {:compile false} {:extern "Tuple"} Tuple4<T1, T2, T3, T4> {}
 
+  module {:compile false} {:extern "System.CommandLine"} CommandLine {
+    class {:compile false} {:extern "Option"} Option<T> {}
+  }
+
   module {:compile false} {:extern "System.Collections"} Collections {
   }
 

@@ -1,4 +1,4 @@
-// RUN: %dafny_0 /compile:0 /print:"%t.print" /dprint:"%t.dprint" /printTooltips "%s" > "%t"
+// RUN: %exits-with 4 %dafny /compile:0 /print:"%t.print" /dprint:"%t.dprint" /printTooltips "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // This file shows how Dafny detects loops even for terms that are not literal
@@ -60,7 +60,7 @@ method RewriteSet(s: set<int>, t: set<int>) {
   ghost var h4 := forall x :: x in F(s) ==> x < 200;
 }
 
-function F<X>(s: X): X { s }
+ghost function F<X>(s: X): X { s }
 
 method RewriteMultiSet(s: multiset<int>, t: multiset<int>) {
   // multiset union

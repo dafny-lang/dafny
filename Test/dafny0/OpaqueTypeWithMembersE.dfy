@@ -3,13 +3,13 @@
 
 type FailureCompatible(0) {
   const c: int
-  predicate method IsFailure() { c < 10 }
-  function method PropagateFailure(): int
+  predicate IsFailure() { c < 10 }
+  function PropagateFailure(): int
     requires IsFailure()
   {
     100 / (c - 10)
   }
-  function method Extract(): real
+  function Extract(): real
     requires !IsFailure()
   {
     100.0 / c as real

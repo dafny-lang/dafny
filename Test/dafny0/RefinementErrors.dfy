@@ -1,4 +1,4 @@
-// RUN: %dafny_0 /compile:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %exits-with 2 %dafny /compile:0 /deprecation:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module A {
@@ -11,10 +11,10 @@ module A {
     var abc: bool;
     var xyz: bool;
 
-    function method F<A,B,C>(x: int, y: A, z: set<C>, b: bool): B
+    function F<A,B,C>(x: int, y: A, z: set<C>, b: bool): B
 
-    function G(): int  // uninterpreted for now
-    function H(): int  // uninterpreted for now
+    ghost function G(): int  // uninterpreted for now
+    ghost function H(): int  // uninterpreted for now
 
     method BodyLess(y: bool, k: seq<set<object>>) returns (x: int)
     method FullBodied(x: int) returns (y: bool, k: seq<set<object>>)
@@ -31,16 +31,16 @@ module B refines A {
       modifies this;  // error: cannot add a modifies clause
       ensures 0 <= x;  // fine
 
-    predicate abc()  // error: cannot replace a field with a predicate
+    ghost predicate abc()  // error: cannot replace a field with a predicate
     var xyz: bool;  // error: ...or even with another field
 
-    function F   // error: cannot replace a "function method" with a "function"
+    ghost function F   // error: cannot replace a "function " with a "function"
         <C,A,B>  // error: different list of type parameters
         (x: int, y: A, z: seq<C>,  // error: different type of parameter z
          k: bool)  // error: different parameter name
         : B
 
-    function G(): int
+    ghost function G(): int
     { 12 }  // allowed to add a body
 
     method BodyLess(y: bool, k: seq<set<object>>) returns (x: int)
@@ -54,8 +54,8 @@ module B refines A {
 
 module BB refines B {
   class C ... {
-    function method G(): int  // error: allowed to make a function into a function method
-    function method H(): int  // ...unless this is where the function body is given
+    function G(): int  // error: allowed to make a function into a function method
+    function H(): int  // ...unless this is where the function body is given
     { 10 }
   }
 }

@@ -1,4 +1,4 @@
-// RUN: %dafny_0 /compile:0 "%s" > "%t"
+// RUN: %exits-with 2 %dafny /compile:0 /deprecation:0 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module Class {
@@ -6,7 +6,7 @@ module Class {
     static const a := 1 + b; // const definition contains a cycle: T.a -> T.b -> T.a
     static const b := 2 + a;
 
-    static predicate F() decreases 0 { !L() }
+    static ghost predicate F() decreases 0 { !L() }
     static least predicate L() { F() }
       // a recursive call from a least predicate can go only to other least predicates
 
@@ -27,7 +27,7 @@ module Datatype {
     static const a := 1 + b; // const definition contains a cycle: T.a -> T.b -> T.a
     static const b := 2 + a;
 
-    static predicate F() decreases 0 { !L() }
+    static ghost predicate F() decreases 0 { !L() }
     static least predicate L() { F() }
       // a recursive call from a least predicate can go only to other least predicates
 
@@ -48,7 +48,7 @@ module Newtype {
     static const a := 1 + b; // const definition contains a cycle: T.a -> T.b -> T.a
     static const b := 2 + a;
 
-    static predicate F() decreases 0 { !L() }
+    static ghost predicate F() decreases 0 { !L() }
     static least predicate L() { F() }
       // a recursive call from a least predicate can go only to other least predicates
 
@@ -69,7 +69,7 @@ module AbstractType {
     static const a := 1 + b; // const definition contains a cycle: T.a -> T.b -> T.a
     static const b := 2 + a;
 
-    static predicate F() decreases 0 { !L() }
+    static ghost predicate F() decreases 0 { !L() }
     static least predicate L() { F() }
       // a recursive call from a least predicate can go only to other least predicates
 

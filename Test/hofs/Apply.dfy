@@ -1,14 +1,14 @@
-// RUN: %dafny_0 /print:"%t.print" "%s" > "%t"
+// RUN: %exits-with 4 %dafny /print:"%t.print" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 
 method Apply(x : int) returns (i : int)
-  ensures i == x;
+  ensures i == x
 {
   i := (x => x)(x);
 }
 
-function method Const<A,B>(a : A) : B -> A {
+function Const<A,B>(a : A) : B -> A {
   b => a
 }
 

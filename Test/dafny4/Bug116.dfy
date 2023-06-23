@@ -1,5 +1,4 @@
-// RUN: %dafny /compile:3 "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment
 
 // test various compiler-target keywords
 
@@ -30,7 +29,7 @@ method catch(do: int) returns (finally: int) {
 
 module enum {
   datatype goto = switch
-  function method do(): goto {
+  function do(): goto {
     switch
   }
   method catch(do: int) returns (finally: int) {

@@ -1,7 +1,7 @@
 Shadows.dfy(6,19): Error: Duplicate type-parameter name: beta
 Shadows.dfy(7,13): Warning: Shadowed type-parameter name: alpha
-Shadows.dfy(8,21): Error: Duplicate type-parameter name: beta
-Shadows.dfy(9,15): Warning: Shadowed type-parameter name: alpha
+Shadows.dfy(8,27): Error: Duplicate type-parameter name: beta
+Shadows.dfy(9,21): Warning: Shadowed type-parameter name: alpha
 Shadows.dfy(11,31): Error: Duplicate parameter name: x
 Shadows.dfy(18,10): Warning: Shadowed local-variable name: x
 Shadows.dfy(19,10): Error: Duplicate local-variable name: y

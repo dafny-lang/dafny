@@ -1,7 +1,7 @@
-// RUN: %dafny_0 "%s" > "%t"
+// RUN: %exits-with 4 %dafny "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
-predicate method {:opaque} P<W>(w: W) {
+predicate {:opaque} P<W>(w: W) {
   true
 }
 
@@ -149,7 +149,7 @@ method CallNatNat()
 method NatNat() returns (x: nat, y: nat) {
 }
 
-predicate F(p: seq<int>)
+ghost predicate F(p: seq<int>)
 
 method F0() {
   var p: seq<int>, other: int := *, *;
@@ -164,12 +164,12 @@ method F1() {
 }
 
 type MaybeEmpty
-predicate G(m: MaybeEmpty)
+ghost predicate G(m: MaybeEmpty)
 
 method G0() {
   var m: MaybeEmpty, other: int := *, *;
   assume G(m); // error: use before definition (note, execution continues after this check under the assumption that m really has been assigned)
-  assert exists m :: G(m); // this passes (see previous line)
+  assert exists m2 :: G(m2); // this passes (see previous line)
   assert false; // error: assertion violation
 }
 
@@ -189,7 +189,7 @@ method H<U(00)>() {
 
 type NonEmpty = x: int | 2 <= x < 7 ghost witness 6
 type PossiblyEmpty = x: int | 2 <= x < 7 witness *
-predicate MaybeOrMaybeNot(x: int)
+ghost predicate MaybeOrMaybeNot(x: int)
 type AlsoPossiblyEmpty = x: int | MaybeOrMaybeNot(x) witness *
 
 method HavocSingleVar(n: nat) {

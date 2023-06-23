@@ -3,7 +3,7 @@ using System.Diagnostics.Contracts;
 using System.Linq;
 
 namespace Microsoft.Dafny {
-  public class FreeVariablesUtil {
+  public static class FreeVariablesUtil {
     /// <summary>
     /// Returns true iff
     ///   (if 'v' is non-null) 'v' occurs as a free variable in 'expr' or
@@ -23,29 +23,29 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public static ISet<IVariable> ComputeFreeVariables(Expression expr) {
+    public static ISet<IVariable> ComputeFreeVariables(DafnyOptions options, Expression expr) {
       Contract.Requires(expr != null);
       ISet<IVariable> fvs = new HashSet<IVariable>();
-      ComputeFreeVariables(expr, fvs);
+      ComputeFreeVariables(options, expr, fvs);
       return fvs;
     }
-    public static void ComputeFreeVariables(Expression expr, ISet<IVariable> fvs) {
+    public static void ComputeFreeVariables(DafnyOptions options, Expression expr, ISet<IVariable> fvs) {
       Contract.Requires(expr != null);
       Contract.Requires(fvs != null);
       bool dontCare0 = false, dontCare1 = false;
       Type dontCareT = null;
       var dontCareHeapAt = new HashSet<Label>();
-      ComputeFreeVariables(expr, fvs, ref dontCare0, ref dontCare1, dontCareHeapAt, ref dontCareT, false);
+      ComputeFreeVariables(options, expr, fvs, ref dontCare0, ref dontCare1, dontCareHeapAt, ref dontCareT, false);
     }
-    public static void ComputeFreeVariables(Expression expr, ISet<IVariable> fvs, ref bool usesHeap, bool includeStatements = false) {
+    public static void ComputeFreeVariables(DafnyOptions options, Expression expr, ISet<IVariable> fvs, ref bool usesHeap, bool includeStatements = false) {
       Contract.Requires(expr != null);
       Contract.Requires(fvs != null);
       bool dontCare1 = false;
       Type dontCareT = null;
       var dontCareHeapAt = new HashSet<Label>();
-      ComputeFreeVariables(expr, fvs, ref usesHeap, ref dontCare1, dontCareHeapAt, ref dontCareT, includeStatements);
+      ComputeFreeVariables(options, expr, fvs, ref usesHeap, ref dontCare1, dontCareHeapAt, ref dontCareT, includeStatements);
     }
-    public static void ComputeFreeVariables(Expression expr,
+    public static void ComputeFreeVariables(DafnyOptions options, Expression expr,
       ISet<IVariable> fvs,
       ref bool usesHeap, ref bool usesOldHeap, ISet<Label> freeHeapAtVariables, ref Type usesThis,
       bool includeStatements) {
@@ -61,7 +61,7 @@ namespace Microsoft.Dafny {
         return;
       } else if (expr is MemberSelectExpr) {
         var e = (MemberSelectExpr)expr;
-        if (e.Obj.Type.IsRefType && !(e.Member is ConstantField)) {
+        if (e.Member is not Field { IsMutable: false }) {
           usesHeap = true;
         }
         if (e.AtLabel != null) {
@@ -81,7 +81,7 @@ namespace Microsoft.Dafny {
         usesHeap = true;
       } else if (expr is FunctionCallExpr) {
         var e = (FunctionCallExpr)expr;
-        if (Translator.AlwaysUseHeap || e.Function == null || e.Function.ReadsHeap) {
+        if (e.Function == null || e.Function.ReadsHeap) {
           usesHeap = true;
         }
         if (e.AtLabel != null) {
@@ -118,11 +118,11 @@ namespace Microsoft.Dafny {
       Type uThis = null;
       if (expr is StmtExpr stmtExpr && includeStatements) {
         foreach (var subExpression in stmtExpr.S.SubExpressionsIncludingTransitiveSubStatements) {
-          ComputeFreeVariables(subExpression, fvs, ref uHeap, ref uOldHeap, freeHeapAtVariables, ref uThis, includeStatements);
+          ComputeFreeVariables(options, subExpression, fvs, ref uHeap, ref uOldHeap, freeHeapAtVariables, ref uThis, includeStatements);
         }
       }
       foreach (var subExpression in expr.SubExpressions) {
-        ComputeFreeVariables(subExpression, fvs, ref uHeap, ref uOldHeap, freeHeapAtVariables, ref uThis, includeStatements);
+        ComputeFreeVariables(options, subExpression, fvs, ref uHeap, ref uOldHeap, freeHeapAtVariables, ref uThis, includeStatements);
       }
       Contract.Assert(usesThis == null || uThis == null || usesThis.Equals(uThis));
       usesThis = usesThis ?? uThis;
@@ -151,6 +151,13 @@ namespace Microsoft.Dafny {
         }
       } else if (expr is MatchExpr me) {
         foreach (var v in me.Cases.SelectMany(c => c.Arguments)) {
+          fvs.Remove(v);
+        }
+      } else if (expr is NestedMatchExpr nestedMatchExpr) {
+        foreach (var v in nestedMatchExpr.Cases.
+                   SelectMany(c => c.Pat.DescendantsAndSelf).
+                   OfType<IdPattern>().Where(id => id.Arguments == null).
+                   Select(id => id.BoundVar)) {
           fvs.Remove(v);
         }
       }

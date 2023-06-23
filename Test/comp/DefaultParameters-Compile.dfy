@@ -1,10 +1,4 @@
-// RUN: %dafny /compile:0 "%s" > "%t"
-// RUN: %dafny /noVerify /compile:4 /spillTargetCode:2 /compileTarget:cs "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /spillTargetCode:2 /compileTarget:js "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /spillTargetCode:2 /compileTarget:go "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /spillTargetCode:2 /compileTarget:java "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /spillTargetCode:2 /compileTarget:py "%s" >> "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment --spill-translation
 
 method M(x: int := 16) {
   print x, "\n";
@@ -35,7 +29,7 @@ method Main() {
   GG(); // 6 6 7
 }
 
-function method F(x: int := 5): int { x }
+function F(x: int := 5): int { x }
 
 method FF(w: int := x, x: int := F(), y: int := w + 1) {
   print w, " ", x, " ", y, "\n";
@@ -45,5 +39,5 @@ method GG(w: int := x, x: int := G(), y: int := w + 1) {
   print w, " ", x, " ", y, "\n";
 }
 
-function method G(x: int := 6): int { x }
+function G(x: int := 6): int { x }
 

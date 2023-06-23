@@ -1,21 +1,16 @@
-// RUN: %dafny /compile:0 "%s" > "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:cs "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:js "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:go "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:java "%s" >> "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment
 
 datatype Result<T> = Success(value: T) | Failure(error: string)
 {
-  predicate method IsFailure() {
+  predicate IsFailure() {
     Failure?
   }
-  function method PropagateFailure<U>(): Result<U>
+  function PropagateFailure<U>(): Result<U>
     requires Failure?
   {
     Failure(this.error)
   }
-  function method Extract(): T
+  function Extract(): T
     requires Success?
   {
     value
@@ -23,7 +18,7 @@ datatype Result<T> = Success(value: T) | Failure(error: string)
 }
 
 method mn() returns (r: Result<int>, out: int)
-  ensures r.Failure? && out == -2;
+  ensures r.Failure? && out == -2
 {
   var t, k :- m(1);
   assert t == 1 && k == 2;
@@ -44,16 +39,16 @@ method mn1() returns (r: Result<int>, out: int)
 
 
 method m(i: int) returns (r: Result<int>, o: int)
-  ensures 0 <= i ==> r.Success? && r.Extract() == i && o == i+i;
-  ensures i < 0 ==> r.Failure? && o == i+i;
+  ensures 0 <= i ==> r.Success? && r.Extract() == i && o == i+i
+  ensures i < 0 ==> r.Failure? && o == i+i
 {
   if i < 0 { return Failure("negative"), i+i; }
   return Success(i), i+i;
 }
 
 method m1(i: int) returns (r: Result<int>)
-  ensures 0 <= i ==> r.Success? && r.Extract() == i;
-  ensures i < 0 ==> r.Failure?;
+  ensures 0 <= i ==> r.Success? && r.Extract() == i
+  ensures i < 0 ==> r.Failure?
 {
   if i < 0 { return Failure("negative"); }
   return Success(i);

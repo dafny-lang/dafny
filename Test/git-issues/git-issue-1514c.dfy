@@ -1,9 +1,6 @@
-// RUN: %dafny /compile:0 /rprint:"%t.rprint" "%s" > "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:cs "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:py "%s" >> "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment
 
-include "../libraries/src/Wrappers.dfy"
+include "Wrappers.dfy"
 import opened Wrappers
 
 method id<T>(r: T) returns (r2: T)  {

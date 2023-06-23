@@ -1,0 +1,5 @@
+text.dfy(16,11): Warning: Argument to 'old' does not dereference the mutable heap, so this use of 'old' has no effect
+text.dfy(17,11): Warning: Argument to 'old' does not dereference the mutable heap, so this use of 'old' has no effect
+text.dfy(18,11): Warning: Argument to 'old' does not dereference the mutable heap, so this use of 'old' has no effect
+
+Dafny program verifier finished with 1 verified, 0 errors

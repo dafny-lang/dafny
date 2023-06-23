@@ -1,10 +1,4 @@
-// RUN: %dafny /compile:0 "%s" > "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:cs "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:java "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:js "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:go "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:py "%s" >> "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment
 
 method Main() {
   // In the following, 2_000_000 is too large an argument without tail-calls
@@ -116,7 +110,7 @@ method {:tailrecursion} GhostAfterCall(n: nat, acc: nat) returns (r: nat) {
   }
 }
 
-function method {:tailrecursion} F(n: nat, a: nat): nat {
+function {:tailrecursion} F(n: nat, a: nat): nat {
   ghost var irrelevantGhost := 10;
   if n == 0 then
     a
@@ -143,7 +137,7 @@ class Link {
     }
   }
 
-  function method {:tailrecursion} H(n: nat, a: nat): nat
+  function {:tailrecursion} H(n: nat, a: nat): nat
     reads *
   {
     if n == 0 then a else next.H(n - 1, a + x)
@@ -176,7 +170,7 @@ method AutoAccumulatorTests() {
   print "TailNat(10) = ", TailNat(10), "\n";
 }
 
-function method {:tailrecursion} TriangleNumber(n: nat): nat {
+function {:tailrecursion} TriangleNumber(n: nat): nat {
   if n == 0 then // test if-then-else
     0
   else if n % 2 == 0 then
@@ -185,21 +179,21 @@ function method {:tailrecursion} TriangleNumber(n: nat): nat {
     n + TriangleNumber(n - 1) // test left accumulator
 }
 
-function method {:tailrecursion} TriangleNumber_Real(n: nat): real {
+function {:tailrecursion} TriangleNumber_Real(n: nat): real {
   if n == 0 then // test if-then-else
     0.0
   else
     TriangleNumber_Real(n - 1) + n as real
 }
 
-function method {:tailrecursion} TriangleNumber_ORDINAL(n: nat): ORDINAL {
+function {:tailrecursion} TriangleNumber_ORDINAL(n: nat): ORDINAL {
   if n == 0 then // test if-then-else
     0
   else
     TriangleNumber_ORDINAL(n - 1) + n as ORDINAL
 }
 
-function method {:tailrecursion} Factorial(n: nat): nat {
+function {:tailrecursion} Factorial(n: nat): nat {
   if n == 0 then // test if-then-else
     1
   else if n % 2 == 0 then
@@ -208,7 +202,7 @@ function method {:tailrecursion} Factorial(n: nat): nat {
     n * Factorial(n - 1) // test left accumulator
 }
 
-function method {:tailrecursion} Union(n: nat): set<nat> {
+function {:tailrecursion} Union(n: nat): set<nat> {
   if n == 0 then // test if-then-else
     {0}
   else if n % 2 == 0 then
@@ -246,27 +240,27 @@ method SetToSeq_Regression(S: set<nat>) returns (r: seq<nat>, g: int) {
   r := s + [x] + l;
 }
 
-function method {:tailrecursion} UpTo(n: nat): seq<nat> {
+function {:tailrecursion} UpTo(n: nat): seq<nat> {
   if n == 0 then
     ZeroSeq() // test non-recursive call
   else
     UpTo(n - 1) + [n] // test right-accumulator concat
 }
 
-function method {:tailrecursion} DownFrom(n: nat): seq<nat> {
+function {:tailrecursion} DownFrom(n: nat): seq<nat> {
   if n == 0 then
     ZeroSeq() // test non-recursive call
   else
     [n] + DownFrom(n - 1) // test left-accumulator concat
 }
 
-function method ZeroSeq(): seq<int> {
+function ZeroSeq(): seq<int> {
   [0]
 }
 
 datatype List = Nil | Cons(head: int, tail: List)
 
-function method {:tailrecursion} Sum(xs: List): int {
+function {:tailrecursion} Sum(xs: List): int {
   match xs // test match
   case Nil =>
     assert xs.Nil?; // test StmtExpr
@@ -276,7 +270,7 @@ function method {:tailrecursion} Sum(xs: List): int {
     Sum(xs.tail) + xs.head
 }
 
-function method {:tailrecursion} TheBigSubtract(n: nat): int
+function {:tailrecursion} TheBigSubtract(n: nat): int
   ensures TheBigSubtract(n) == 88 - n
 {
   if n == 0 then
@@ -285,7 +279,7 @@ function method {:tailrecursion} TheBigSubtract(n: nat): int
     TheBigSubtract(n - 1) - 1 // test subtraction accumulation
 }
 
-function method {:tailrecursion} TailNat(n: int): nat
+function {:tailrecursion} TailNat(n: int): nat
   requires 0 <= n <= 20
   ensures TailNat(n) == 100 - 5 * n
 {
@@ -317,11 +311,11 @@ module Regression {
       next := nx;
     }
 
-    function method F(): int {
+    function F(): int {
       data
     }
 
-    function method {:tailrecursion} Rec(n: nat, f: () -> int): int {
+    function {:tailrecursion} Rec(n: nat, f: () -> int): int {
       if n == 0 || next == null then
         f()
       else if data == 17 then

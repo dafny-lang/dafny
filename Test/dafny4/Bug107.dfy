@@ -1,5 +1,4 @@
-// RUN: %dafny /compile:3 "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment
 
 method Main()
 {
@@ -7,7 +6,7 @@ method Main()
 	print(f(4));
 }
 
-function method Inc(x: int): int
+function Inc(x: int): int
 {
   x + 2
 }

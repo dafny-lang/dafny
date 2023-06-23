@@ -1,7 +1,7 @@
-// RUN: %dafny_0 "%s" > "%t"
+// RUN: %exits-with 4 %dafny "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
-function Max(s: set<int>): (m: int)
+ghost function Max(s: set<int>): (m: int)
   requires s != {}
 {
   var x :| x in s;

@@ -1,10 +1,8 @@
-// RUN: %dafny /compile:0 "%s" > "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:py "%s" >> "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment
 //
 // This fragment of comp/Calls.dfy serves to facilitate incremental compiler development.
 
-function method F(x: int, y: bool): int {
+function F(x: int, y: bool): int {
   x + if y then 2 else 3
 }
 

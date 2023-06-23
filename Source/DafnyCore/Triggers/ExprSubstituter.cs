@@ -62,10 +62,10 @@ namespace Microsoft.Dafny {
 
         QuantifierExpr newExpr;
         if (expr is ForallExpr) {
-          newExpr = new ForallExpr(e.tok, e.BodyEndTok, newBoundVars, newRange, newTerm, newAttrs) { Bounds = newBounds };
+          newExpr = new ForallExpr(e.tok, e.RangeToken, newBoundVars, newRange, newTerm, newAttrs) { Bounds = newBounds };
         } else {
           Contract.Assert(expr is ExistsExpr);
-          newExpr = new ExistsExpr(e.tok, e.BodyEndTok, newBoundVars, newRange, newTerm, newAttrs) { Bounds = newBounds };
+          newExpr = new ExistsExpr(e.tok, e.RangeToken, newBoundVars, newRange, newTerm, newAttrs) { Bounds = newBounds };
         }
         usedSubstMap.Clear();
 

@@ -6,14 +6,14 @@ datatype Value = Res(addr: nat) | Nil()
 datatype Expr = Some(body: Expr)
               | None()
 
-function method f(e: Expr, fuel: nat): Value
+function f(e: Expr, fuel: nat): Value
     decreases fuel, 3
 {
     var ret := Eval(e, fuel);
     Res(0)
 }
 
-function method Eval(e: Expr, fuel: nat): Value
+function Eval(e: Expr, fuel: nat): Value
     decreases fuel, 0
 {
     if fuel == 0 then Nil() else

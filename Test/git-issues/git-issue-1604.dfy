@@ -1,26 +1,22 @@
-// RUN: %dafny /compile:4 /compileTarget:js "%s" > "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:java "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /spillTargetCode:1 /compileTarget:go "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:cs "%s" >> "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachCompiler "%s"
 
 trait Tr { }
 class A extends Tr { }
 class B extends Tr { }
 
-predicate SpecialA(a: A)
+ghost predicate SpecialA(a: A)
 {
   false
 }
 type Ap  = x : A | SpecialA(x) witness *
 
-function method testSpecial(x: Tr): bool
+function testSpecial(x: Tr): bool
   requires x is A && SpecialA(x)
 {
   1/0 == 0
 }
 
-function method test(x: Tr): bool
+function test(x: Tr): bool
   requires x is A
 {
   if x is B then 1/0 == 0 else true

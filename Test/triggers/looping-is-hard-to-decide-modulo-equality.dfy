@@ -12,9 +12,9 @@
 // experiences could cause a change of mind.
 
 class C { }
-function f(c: C): C reads c
-function g(c: C): C
-function h(c: C, i: int): C
+ghost function f(c: C): C reads c
+ghost function g(c: C): C
+ghost function h(c: C, i: int): C
 
 // With explicit arguments
 method M0(i: int, j: int, sc: set<C>) {

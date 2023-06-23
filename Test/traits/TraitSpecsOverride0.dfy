@@ -1,15 +1,15 @@
-// RUN: %dafny_0 /compile:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %exits-with 2 %dafny /deprecation:0 /compile:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module Tests {
 trait J
 {
-  function method F(k:int, y: array<int>): int
+  function F(k:int, y: array<int>): int
     reads y;
     decreases k;
     ensures F(k, y) < 100
 
-  function method G(y: int): int
+  function G(y: int): int
   {
     100
   }
@@ -38,7 +38,7 @@ trait J
 class C extends J
 {
   // F's postcondition (true) is too weak, but that won't be detected until verification time
-  function method F(kk:int, yy: array<int>): int
+  function F(kk:int, yy: array<int>): int
   {
     200
   }

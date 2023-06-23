@@ -23,6 +23,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
         .WithHandler<DafnySignatureHelpHandler>()
         .WithHandler<DafnyCounterExampleHandler>()
         .WithHandler<DafnyCodeActionHandler>()
+        .WithHandler<DafnyFormattingHandler>()
         .WithHandler<VerificationHandler>();
     }
   }

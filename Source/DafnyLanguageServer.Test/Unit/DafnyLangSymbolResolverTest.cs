@@ -1,36 +1,35 @@
-﻿using System.Collections.Generic;
-using System.Threading;
-using Microsoft.Boogie;
-using Microsoft.Dafny.LanguageServer.Language;
+﻿using System;
+using System.Collections.Generic;
 using Microsoft.Dafny.LanguageServer.Language.Symbols;
 using Microsoft.Dafny.LanguageServer.Workspace;
 using Microsoft.Extensions.Logging;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Moq;
 
-namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit; 
+namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit;
 
-[TestClass]
 public class DafnyLangSymbolResolverTest {
   private DafnyLangSymbolResolver dafnyLangSymbolResolver;
 
-  [TestInitialize]
-  public void SetUp() {
+  public DafnyLangSymbolResolverTest() {
     var loggerFactory = new Mock<ILoggerFactory>();
     dafnyLangSymbolResolver = new DafnyLangSymbolResolver(
-      loggerFactory.Object.CreateLogger<DafnyLangSymbolResolver>()
+      loggerFactory.Object.CreateLogger<DafnyLangSymbolResolver>(),
+      new Mock<ITelemetryPublisher>().Object
     );
   }
 
   class CollectingErrorReporter : BatchErrorReporter {
-    public Dictionary<ErrorLevel, List<ErrorMessage>> GetErrors() {
-      return this.AllMessages;
+    public Dictionary<ErrorLevel, List<DafnyDiagnostic>> GetErrors() {
+      return this.AllMessagesByLevel;
+    }
+
+    public CollectingErrorReporter(DafnyOptions options) : base(options) {
     }
   }
 
   class DummyModuleDecl : LiteralModuleDecl {
     public DummyModuleDecl() : base(
-      new DefaultModuleDecl(), null) {
+      new DefaultModuleDefinition(new List<Uri>(), false), null) {
     }
     public override object Dereference() {
       return this;

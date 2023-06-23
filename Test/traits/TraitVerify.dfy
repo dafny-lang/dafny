@@ -1,4 +1,4 @@
-// RUN: %dafny_0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %exits-with 4 %dafny /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 trait Tr<X> { }
@@ -37,7 +37,7 @@ method R(a: A) {
 
 module ForallSubstitution {
   trait Tr<X> {
-    predicate P<Y>(x: X, y: Y) { true }
+    ghost predicate P<Y>(x: X, y: Y) { true }
     lemma Lemma<Y>(x: X, y: Y)
       ensures P(x, y)
     {
@@ -57,7 +57,7 @@ module ForallSubstitution {
 module ReceiverResolution {
   trait MyTrait<U> {
     ghost const Repr: set<object>
-    function F(): set<object> {{}}
+    ghost function F(): set<object> {{}}
   }
 
   class MyClass<T, R> extends MyTrait<T> {

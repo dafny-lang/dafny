@@ -1,3 +1,4 @@
+// NONUNIFORM: Multiple testing scenarios (could be split)
 // RUN: %dafny /compile:3 "%s" > "%t"
 // RUN: %dafny /compile:3 /optimize "%s" >> "%t"
 // RUN: %diff "%s.expect" "%t"

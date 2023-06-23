@@ -1,5 +1,4 @@
-// RUN: %dafny /compile:3 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment
 // Rustan Leino
 // 12 April 2015
 // VerifyThis 2015
@@ -61,7 +60,7 @@ class Node {
 class DoublyLinkedList {
   ghost var Nodes: seq<Node>  // sequence of nodes in the linked list
   // Valid() says that the data structure is a proper doubly linked list
-  predicate Valid()
+  ghost predicate Valid()
     reads this, Nodes
   {
     (|Nodes| > 0 ==>
@@ -97,12 +96,12 @@ class DoublyLinkedList {
     Nodes := nodes;
   }
 
-  function PopMiddle<T>(s: seq<T>, k: nat) : seq<T>
+  ghost function PopMiddle<T>(s: seq<T>, k: nat) : seq<T>
     requires k < |s| {
       s[..k] + s[k+1..]
   }
 
-  predicate Injective<T>(s: seq<T>) {
+  ghost predicate Injective<T>(s: seq<T>) {
     forall j, k :: 0 <= j < k < |s| ==> s[j] != s[k]
   }
 

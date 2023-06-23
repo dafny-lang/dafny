@@ -49,6 +49,24 @@ let Library = (function() {
     static P() {
       process.stdout.write("AllExtern.P\n");
     }
+    static MaybeInt() {
+      return Wrappers.Option.create_Some(42)
+    }
+    static IntPair() {
+      return Wrappers.Pair.create_Pair(3, 7)
+    }
+  };
+
+  $module.SingletonOptimization = class SingletonOptimization {
+    static SingletonTuple(a) {
+      return a + 1;
+    }
+    static NoWrapper(a) {
+      return a + 1;
+    }
+    static GhostWrapper(a) {
+      return a + 1;
+    }
   };
 
   return $module;

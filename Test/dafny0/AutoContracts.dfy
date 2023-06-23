@@ -1,4 +1,4 @@
-// RUN: %dafny_0 /env:0 /print:"%t.print" /rprint:- "%s" > "%t"
+// RUN: %exits-with 4 %dafny /env:0 /print:"%t.print" /rprint:- "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module OneModule {
@@ -9,7 +9,7 @@ module OneModule {
     var dd: D?
     var {:autocontracts false} ee: D?
     var arr: array?<C?>
-    predicate Valid()
+    ghost predicate Valid()
     {
       0 <= data < 100
     }
@@ -30,12 +30,12 @@ module OneModule {
       d := data;
     }
 
-    function F(): nat
+    ghost function F(): nat
     {
       data
     }
 
-    predicate P()
+    ghost predicate P()
     {
       data < 20
     }
@@ -62,7 +62,7 @@ module N0 {
     method A()
     method B()
     method C() { }
-    predicate Valid()
+    ghost predicate Valid()
     ghost var Repr: set<object?>
     method {:autocontracts false} K()
       requires Valid() modifies Repr ensures Valid() && fresh(Repr - old(Repr))

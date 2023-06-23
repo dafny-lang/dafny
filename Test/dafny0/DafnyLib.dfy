@@ -43,7 +43,7 @@ module OpaqueFunctions {
   // At one time, the Dafny program stashed into the DLL as metadata
   // had included the reveal_ functions, which resulted in duplicate-definition
   // errors when the DLL was read back in.
-  function {:opaque} Five(): int { 5 }
+  ghost function {:opaque} Five(): int { 5 }
   lemma IsFive()
     ensures Five() == 5
   {

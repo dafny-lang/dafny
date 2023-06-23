@@ -1,9 +1,9 @@
-// RUN: %dafny_0 /compile:0 /print:"%t.print" /dprint:"%t.dprint" /printTooltips "%s" > "%t"
+// RUN: %exits-with 4 %dafny /compile:0 /print:"%t.print" /dprint:"%t.dprint" /printTooltips "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // This file ensures that trigger splitting picks the right tokens
 
-function Id(i: int): int { i }
+ghost function Id(i: int): int { i }
 
 method MSuchThat()
   requires forall x | x > 0 :: Id(x) > 1 && x > 2 && x > -1 { }

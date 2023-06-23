@@ -1,5 +1,6 @@
-// RUN: %dafny /compile:3 "%s" > "%t"
-// RUN: %dafny_0 /compile:3 /trackPrintEffects:1 "%s" >> "%t"
+// NONUNIFORM: Multiple testing scenarios (could be split)
+// RUN:   %baredafny run %args "%s" > "%t"
+// RUN: ! %baredafny run %args --track-print-effects "%s" >> "%t"
 // RUN: %diff "%s.expect" "%t"
 
 method Main() {

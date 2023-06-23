@@ -1,4 +1,4 @@
-// RUN: %dafny_0 /compile:0 /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %exits-with 4 %dafny /compile:0 /dprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 type MyInt_Bad = x | 6 <= x witness 5  // error: witness does not satisfy constraint
@@ -18,7 +18,7 @@ newtype NewSixAgainW = six: NewSix | 4 <= six as int witness 4  // error: 4 is n
 newtype NewSixAgainY = six | Yes(six) witness 4  // error: 4 is not a NewSix
 newtype NewImpossible = six: NewSix | six < 6  // error: this would be an empty type
 
-predicate Yes(six: NewSix) {
+ghost predicate Yes(six: NewSix) {
   4 <= six as int
 }
 
@@ -26,7 +26,7 @@ newtype YetAnotherNewSix = NewSix
 
 // Now with some type parameters
 datatype List<G> = Nil | Cons(G, List<G>)
-function method Length(xs: List): nat
+function Length(xs: List): nat
 {
   match xs
   case Nil => 0

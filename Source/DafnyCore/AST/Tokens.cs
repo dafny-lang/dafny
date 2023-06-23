@@ -2,10 +2,14 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
+using System.IO;
+using System.Text;
 
 namespace Microsoft.Dafny;
 
 public interface IToken : Microsoft.Boogie.IToken {
+  public RangeToken To(IToken end) => new RangeToken(this, end);
+
   /*
   int kind { get; set; }
   int pos { get; set; }
@@ -14,12 +18,14 @@ public interface IToken : Microsoft.Boogie.IToken {
   string val { get; set; }
   bool IsValid { get; }*/
   string Boogie.IToken.filename {
-    get => Filename;
-    set => Filename = value;
+    get => Uri == null ? null : Path.GetFileName(Uri.LocalPath);
+    set => throw new NotSupportedException();
   }
 
-  public string ActualFilename { get; }
-  string Filename { get; set; }
+  public string ActualFilename => Uri.LocalPath;
+  string Filepath => Uri.LocalPath;
+
+  Uri Uri { get; set; }
 
   /// <summary>
   /// TrailingTrivia contains everything after the token,
@@ -42,13 +48,21 @@ public interface IToken : Microsoft.Boogie.IToken {
   List<IToken> LeadingComments { get; set; }
   IToken Next { get; set; } // The next token
   IToken Prev { get; set; } // The previous token
+
+  public IToken WithVal(string val);  // create a new token by setting the given val.
 }
 
 /// <summary>
 /// Has one-indexed line and column fields
 /// </summary>
-public record Token : IToken {
-  public static readonly IToken NoToken = (IToken)new Token();
+public class Token : IToken {
+
+  public static readonly Token NoToken = new Token();
+
+  static Token() {
+    NoToken.Next = NoToken;
+    NoToken.Prev = NoToken;
+  }
 
   public Token() : this(0, 0) { }
 
@@ -60,8 +74,9 @@ public record Token : IToken {
 
   public int kind { get; set; } // Used by coco, so we can't rename it to Kind
 
-  public string ActualFilename => Filename;
-  public string Filename { get; set; }
+  public string ActualFilename => Filepath;
+  public string Filepath => Uri?.LocalPath;
+  public Uri Uri { get; set; }
 
   public int pos { get; set; } // Used by coco, so we can't rename it to Pos
 
@@ -88,25 +103,51 @@ public record Token : IToken {
   public IToken Prev { get; set; } // The previous token
 
   public bool IsValid => this.ActualFilename != null;
+
+  public IToken WithVal(string newVal) {
+    return new Token {
+      pos = pos,
+      col = col,
+      line = line,
+      Prev = Prev,
+      Next = Next,
+      Uri = Uri,
+      kind = kind,
+      val = newVal
+    };
+  }
+
+  public override int GetHashCode() {
+    return pos;
+  }
+
+  public override string ToString() {
+    return $"'{val}': {Path.GetFileName(Filepath)}@{pos} - @{line}:{col}";
+  }
 }
 
 public abstract class TokenWrapper : IToken {
+
   public readonly IToken WrappedToken;
   protected TokenWrapper(IToken wrappedToken) {
     Contract.Requires(wrappedToken != null);
     WrappedToken = wrappedToken;
   }
 
-  public int col {
+  public abstract IToken WithVal(string newVal);
+
+  public virtual int col {
     get { return WrappedToken.col; }
-    set { throw new NotSupportedException(); }
+    set { WrappedToken.col = value; }
   }
 
   public string ActualFilename => WrappedToken.ActualFilename;
 
-  public virtual string Filename {
-    get { return WrappedToken.Filename; }
-    set { throw new NotSupportedException(); }
+  public virtual string Filepath => WrappedToken.Filepath;
+
+  public Uri Uri {
+    get => WrappedToken.Uri;
+    set => WrappedToken.Uri = value;
   }
 
   public bool IsValid {
@@ -114,19 +155,20 @@ public abstract class TokenWrapper : IToken {
   }
   public int kind {
     get { return WrappedToken.kind; }
-    set { throw new NotSupportedException(); }
+    set { WrappedToken.kind = value; }
   }
-  public int line {
+  public virtual int line {
     get { return WrappedToken.line; }
-    set { throw new NotSupportedException(); }
+    set { WrappedToken.line = value; }
   }
-  public int pos {
+  public virtual int pos {
     get { return WrappedToken.pos; }
-    set { throw new NotSupportedException(); }
+    set { WrappedToken.pos = value; }
   }
+
   public virtual string val {
     get { return WrappedToken.val; }
-    set { throw new NotSupportedException(); }
+    set { WrappedToken.val = value; }
   }
   public virtual string LeadingTrivia {
     get { return WrappedToken.LeadingTrivia; }
@@ -154,22 +196,138 @@ public abstract class TokenWrapper : IToken {
   }
 }
 
-public class RangeToken : TokenWrapper {
-  // The wrapped token is the startTok
-  private IToken endTok;
+public static class TokenExtensions {
 
-  public IToken StartToken => WrappedToken;
-  public IToken EndToken => endTok;
-
-  // Used for range reporting
-  override public string val {
-    get {
-      return new string(' ', endTok.pos + endTok.val.Length - pos);
+  public static string TokenToString(this Boogie.IToken tok, DafnyOptions options) {
+    if (tok is IToken dafnyToken) {
+      return dafnyToken.TokenToString(options);
     }
+
+    return $"{tok.filename}({tok.line},{tok.col - 1})";
   }
 
-  public RangeToken(IToken startTok, IToken endTok) : base(startTok) {
-    this.endTok = endTok;
+  public static string TokenToString(this IToken tok, DafnyOptions options) {
+    if (tok.Uri == null) {
+      return $"({tok.line},{tok.col - 1})";
+    }
+
+    var currentDirectory = Directory.GetCurrentDirectory();
+    string filename = tok.Uri.Scheme switch {
+      "stdin" => "<stdin>",
+      "transcript" => Path.GetFileName(tok.Filepath),
+      _ => options.UseBaseNameForFileName
+        ? Path.GetFileName(tok.Filepath)
+        : (tok.Filepath.StartsWith(currentDirectory) ? Path.GetRelativePath(currentDirectory, tok.Filepath) : tok.Filepath)
+    };
+
+    return $"{filename}({tok.line},{tok.col - 1})";
+  }
+
+  public static RangeToken ToRange(this IToken token) {
+    if (token is BoogieRangeToken boogieRangeToken) {
+      return new RangeToken(boogieRangeToken.StartToken, boogieRangeToken.EndToken);
+    }
+    return token as RangeToken ?? new RangeToken(token, token);
+  }
+}
+
+public class RangeToken : TokenWrapper {
+  public IToken StartToken => WrappedToken;
+
+  public IToken EndToken => endToken ?? StartToken;
+
+  public bool InclusiveEnd => endToken != null;
+
+  public DafnyRange ToDafnyRange(bool includeTrailingWhitespace = false) {
+    var startLine = StartToken.line - 1;
+    var startColumn = StartToken.col - 1;
+    var endLine = EndToken.line - 1;
+    int whitespaceOffset = 0;
+    if (includeTrailingWhitespace) {
+      string trivia = EndToken.TrailingTrivia;
+      // Don't want to remove newlines or comments -- just spaces and tabs
+      while (whitespaceOffset < trivia.Length && (trivia[whitespaceOffset] == ' ' || trivia[whitespaceOffset] == '\t')) {
+        whitespaceOffset++;
+      }
+    }
+
+    var endColumn = EndToken.col + (InclusiveEnd ? EndToken.val.Length : 0) + whitespaceOffset - 1;
+    return new DafnyRange(
+      new DafnyPosition(startLine, startColumn),
+      new DafnyPosition(endLine, endColumn));
+  }
+
+  public RangeToken(IToken startToken, IToken endToken) : base(startToken) {
+    this.endToken = endToken;
+  }
+
+  public string PrintOriginal() {
+    var token = StartToken;
+    var originalString = new StringBuilder();
+    originalString.Append(token.val);
+    while (token.Next != null && token.pos < EndToken.pos) {
+      originalString.Append(token.TrailingTrivia);
+      token = token.Next;
+      originalString.Append(token.LeadingTrivia);
+      originalString.Append(token.val);
+    }
+
+    return originalString.ToString();
+  }
+
+  public int Length() {
+    return EndToken.pos - StartToken.pos;
+  }
+
+  public RangeToken MakeAutoGenerated() {
+    return new RangeToken(new AutoGeneratedToken(StartToken), EndToken);
+  }
+
+  public RangeToken MakeRefined(ModuleDefinition module) {
+    return new RangeToken(new RefinementToken(StartToken, module), EndToken);
+  }
+
+  // TODO rename to Generated, and Token.NoToken to Token.Generated, and remove AutoGeneratedToken.
+  public static RangeToken NoToken = new(Token.NoToken, Token.NoToken);
+  private readonly IToken endToken;
+
+  public override IToken WithVal(string newVal) {
+    throw new NotImplementedException();
+  }
+
+  public BoogieRangeToken ToToken() {
+    return new BoogieRangeToken(StartToken, EndToken);
+  }
+
+  public bool Contains(int position) {
+    return StartToken.pos <= position && (EndToken == null || position <= EndToken.pos);
+  }
+
+  public bool Intersects(RangeToken other) {
+    return !(other.EndToken.pos + other.EndToken.val.Length <= StartToken.pos
+             || EndToken.pos + EndToken.val.Length <= other.StartToken.pos);
+  }
+}
+
+public class BoogieRangeToken : TokenWrapper {
+  // The wrapped token is the startTok
+  public IToken StartToken => WrappedToken;
+  public IToken EndToken { get; }
+
+  // Used for range reporting
+  public override string val => new string(' ', Math.Max(EndToken.pos + EndToken.val.Length - pos, 1));
+
+  public BoogieRangeToken(IToken startTok, IToken endTok) : base(
+    startTok) {
+    this.EndToken = endTok;
+  }
+
+  public override IToken WithVal(string newVal) {
+    return this;
+  }
+
+  public string PrintOriginal() {
+    return new RangeToken(StartToken, EndToken).PrintOriginal();
   }
 }
 
@@ -184,24 +342,9 @@ public class NestedToken : TokenWrapper {
   public IToken Outer { get { return WrappedToken; } }
   public readonly IToken Inner;
   public readonly string Message;
-}
 
-/// <summary>
-/// An IncludeToken is a wrapper that indicates that the function/method was
-/// declared in a file that was included. Any proof obligations from such an
-/// included file are to be ignored.
-/// </summary>
-public class IncludeToken : TokenWrapper {
-  public Include Include;
-  public IncludeToken(Include include, IToken wrappedToken)
-    : base(wrappedToken) {
-    Contract.Requires(wrappedToken != null);
-    this.Include = include;
-  }
-
-  public override string val {
-    get { return WrappedToken.val; }
-    set { WrappedToken.val = value; }
+  public override IToken WithVal(string newVal) {
+    return this;
   }
 
   public override IToken Prev {
@@ -229,6 +372,10 @@ public class QuantifiedVariableDomainToken : TokenWrapper {
     get { return WrappedToken.val; }
     set { WrappedToken.val = value; }
   }
+
+  public override IToken WithVal(string newVal) {
+    return new QuantifiedVariableDomainToken((WrappedToken.WithVal(newVal)));
+  }
 }
 
 /// <summary>
@@ -244,5 +391,9 @@ public class QuantifiedVariableRangeToken : TokenWrapper {
   public override string val {
     get { return WrappedToken.val; }
     set { WrappedToken.val = value; }
+  }
+
+  public override IToken WithVal(string newVal) {
+    return new QuantifiedVariableRangeToken(WrappedToken.WithVal(newVal));
   }
 }
