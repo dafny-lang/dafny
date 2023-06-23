@@ -1517,7 +1517,7 @@ namespace Microsoft.Dafny {
       return ReadHeap(tok, heapExpr, e, predef.Alloc(tok));
     }
 
-    public Bpl.Expr ReadHeap(IToken tok, Expr heap, Expr r, Expr f) {
+    public static Bpl.Expr ReadHeap(IToken tok, Expr heap, Expr r, Expr f) {
       Contract.Requires(tok != null);
       Contract.Requires(heap != null);
       Contract.Requires(r != null);
@@ -1531,7 +1531,7 @@ namespace Microsoft.Dafny {
       Bpl.Type t = (f.Type != null) ? f.Type : f.ShallowType;
       Bpl.Expr readCall =
         new Bpl.NAryExpr(tok,
-          new Bpl.FunctionCall(new Bpl.IdentifierExpr(tok, "readUnbox", t.AsCtor.Arguments[0])),
+          new Bpl.FunctionCall(new Bpl.IdentifierExpr(tok, "read", t.AsCtor.Arguments[0])),
           args);
       return readCall;
     }
@@ -1550,7 +1550,7 @@ namespace Microsoft.Dafny {
         args);
     }
 
-    public Boogie.NAryExpr UpdateHeap(IToken tok, Expr heap, Expr r, Expr f, Expr v) {
+    public static Boogie.NAryExpr UpdateHeap(IToken tok, Expr heap, Expr r, Expr f, Expr v) {
       Contract.Requires(tok != null);
       Contract.Requires(heap != null);
       Contract.Requires(r != null);
@@ -1564,7 +1564,7 @@ namespace Microsoft.Dafny {
       args.Add(f);
       args.Add(v);
       return new Boogie.NAryExpr(tok,
-        new Boogie.FunctionCall(new Boogie.IdentifierExpr(tok, "updateBox", heap.Type)),
+        new Boogie.FunctionCall(new Boogie.IdentifierExpr(tok, "update", heap.Type)),
         args);
     }
 
