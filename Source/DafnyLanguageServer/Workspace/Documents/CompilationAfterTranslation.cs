@@ -41,6 +41,11 @@ public class CompilationAfterTranslation : CompilationAfterResolution {
   //   return VerificationTree;
   // }
 
+  public override IEnumerable<DafnyDiagnostic> GetDiagnostics(Uri uri) {
+    var views = ImplementationIdToView.Where(kv => kv.Key.Uri == uri).ToList();
+    return base.GetDiagnostics(uri).Concat(views.SelectMany(view => view.Value.Diagnostics));
+  }
+
   public override IdeState ToIdeState(IdeState previousState) {
     IEnumerable<KeyValuePair<ImplementationId, IdeImplementationView>> implementationViewsWithMigratedDiagnostics = ImplementationIdToView.Select(kv => {
       IEnumerable<Diagnostic> diagnostics = kv.Value.Diagnostics.Select(d => Util.ToLspDiagnostic(d));

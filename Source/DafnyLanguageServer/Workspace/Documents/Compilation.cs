@@ -31,6 +31,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       Project = project;
     }
 
+    public virtual IEnumerable<DafnyDiagnostic> GetDiagnostics(Uri uri) => Enumerable.Empty<DafnyDiagnostic>();
+    
     public virtual IEnumerable<DafnyDiagnostic> AllFileDiagnostics => Enumerable.Empty<DafnyDiagnostic>();
 
     public IdeState InitialIdeState(Compilation compilation, DafnyOptions options) {

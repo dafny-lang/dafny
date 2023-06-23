@@ -20,6 +20,10 @@ public class CompilationAfterParsing : Compilation {
 
   public Program Program { get; }
 
+  public override IEnumerable<DafnyDiagnostic> GetDiagnostics(Uri uri) {
+    return ResolutionDiagnostics.GetOrDefault(uri, Enumerable.Empty<DafnyDiagnostic>);
+  }
+
   public override IdeState ToIdeState(IdeState previousState) {
     return previousState with {
       Program = Program,

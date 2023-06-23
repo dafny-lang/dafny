@@ -70,4 +70,12 @@ public class LanguageServerFilesystem : IFileSystem {
 
     return new StreamReader(uri.LocalPath);
   }
+
+  public int? GetVersion(Uri uri) {
+    if (openFiles.TryGetValue(uri, out var file)) {
+      return file.Version;
+    }
+
+    return null;
+  }
 }

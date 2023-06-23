@@ -11,13 +11,16 @@ using Microsoft.Extensions.Logging;
 namespace Microsoft.Dafny.LanguageServer.Workspace {
   public class NotificationPublisher : INotificationPublisher {
     private readonly ILogger<NotificationPublisher> logger;
+    private readonly LanguageServerFilesystem filesystem;
     private readonly ILanguageServerFacade languageServer;
     private readonly DafnyOptions options;
 
-    public NotificationPublisher(ILogger<NotificationPublisher> logger, ILanguageServerFacade languageServer, DafnyOptions options) {
+    public NotificationPublisher(ILogger<NotificationPublisher> logger, ILanguageServerFacade languageServer, 
+      DafnyOptions options, LanguageServerFilesystem filesystem) {
       this.logger = logger;
       this.languageServer = languageServer;
       this.options = options;
+      this.filesystem = filesystem;
     }
 
     public void PublishNotifications(IdeState previousState, IdeState state) {
@@ -75,14 +78,17 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     private void PublishDocumentDiagnostics(IdeState previousState, IdeState state) {
       var previousStateDiagnostics = previousState.GetDiagnostics();
-      foreach (var (uri, current) in state.GetDiagnostics()) {
-        var previous = previousStateDiagnostics.GetOrDefault(uri, Enumerable.Empty<Diagnostic>);
+      var currentDiagnostics = state.GetDiagnostics();
+      var uris = previousStateDiagnostics.Keys.Concat(currentDiagnostics.Keys).Distinct();
+      foreach (var uri in uris) {
+        IEnumerable<Diagnostic> current = currentDiagnostics.GetOrDefault(uri, Enumerable.Empty<Diagnostic>);
+        IEnumerable<Diagnostic> previous = previousStateDiagnostics.GetOrDefault(uri, Enumerable.Empty<Diagnostic>);
         if (previous.SequenceEqual(current)) {
           continue;
         }
         languageServer.TextDocument.PublishDiagnostics(new PublishDiagnosticsParams {
           Uri = uri,
-          Version = null,
+          Version = filesystem.GetVersion(uri),
           Diagnostics = current.ToList(),
         });
       }
