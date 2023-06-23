@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
@@ -41,8 +42,8 @@ public class LiteralModuleDecl : ModuleDecl, ICanFormat {
     TokenWithTrailingDocString = ModuleDef.TokenWithTrailingDocString;
   }
 
-  public LiteralModuleDecl(ModuleDefinition module, ModuleDefinition parent)
-    : base(module.RangeToken, module.NameNode, parent, false, false) {
+  public LiteralModuleDecl(ModuleDefinition module, ModuleDefinition parent, Guid cloneId)
+    : base(module.RangeToken, module.NameNode, parent, false, false, cloneId) {
     ModuleDef = module;
     BodyStartTok = module.BodyStartTok;
     TokenWithTrailingDocString = module.TokenWithTrailingDocString;
@@ -89,9 +90,7 @@ public class LiteralModuleDecl : ModuleDecl, ICanFormat {
     return true;
   }
 
-  public void Resolve(Resolver resolver, Program program, int beforeModuleResolutionErrorCount) {
-    var compilation = program.Compilation;
-
+  public ModuleSignature Resolve(Resolver resolver, CompilationData compilation) {
     // The declaration is a literal module, so it has members and such that we need
     // to resolve. First we do refinement transformation. Then we construct the signature
     // of the module. This is the public, externally visible signature. Then we add in
@@ -104,7 +103,7 @@ public class LiteralModuleDecl : ModuleDecl, ICanFormat {
 
     var errorCount = resolver.reporter.ErrorCount;
     if (module.RefinementQId != null) {
-      ModuleDecl md = module.RefinementQId.ResolveTarget(module.RefinementQId.Root, resolver.reporter);
+      var md = module.RefinementQId.ResolveTarget(resolver.reporter);
       module.RefinementQId.SetTarget(md); // If module is not found, md is null and an error message has been emitted
     }
 
@@ -113,7 +112,7 @@ public class LiteralModuleDecl : ModuleDecl, ICanFormat {
     }
 
     Signature = module.RegisterTopLevelDecls(resolver, true);
-    Signature.Refines = resolver.refinementTransformer.RefinedSig;
+    Signature.Refines = module.RefinementQId?.Sig;
 
     var sig = Signature;
     // set up environment
@@ -129,10 +128,8 @@ public class LiteralModuleDecl : ModuleDecl, ICanFormat {
 
     var tempVis = new VisibilityScope();
     tempVis.Augment(sig.VisibilityScope);
-    tempVis.Augment(resolver.systemNameInfo.VisibilityScope);
+    tempVis.Augment(resolver.ProgramResolver.SystemModuleManager.systemNameInfo.VisibilityScope);
     Type.PushScope(tempVis);
-
-    program.ModuleSigs[module] = sig;
 
     foreach (var rewriter in compilation.Rewriters) {
       if (!good || resolver.reporter.ErrorCount != preResolveErrorCount) {
@@ -148,12 +145,8 @@ public class LiteralModuleDecl : ModuleDecl, ICanFormat {
 
     Type.PopScope(tempVis);
 
-    /* It's strange to stop here when _any_ module has had resolution errors.
-     * Either stop here when _this_ module has had errors,
-     * or completely stop module resolution after one of them has errors
-     */
-    if (resolver.reporter.ErrorCount != beforeModuleResolutionErrorCount) {
-      return;
+    if (resolver.reporter.ErrorCount > 0) {
+      return sig;
     }
 
     Type.PushScope(tempVis);
@@ -170,30 +163,21 @@ public class LiteralModuleDecl : ModuleDecl, ICanFormat {
     resolver.FillInAdditionalInformation(module);
     FuelAdjustment.CheckForFuelAdjustments(resolver.reporter, module);
 
+    foreach (var rewriter in compilation.Rewriters) {
+      rewriter.PostResolve(module);
+    }
+
     Type.PopScope(tempVis);
+    return sig;
   }
 
-  public void BindModuleName(Resolver resolver, List<PrefixNameModule> /*?*/ prefixModules, ModuleBindings parentBindings) {
+  public void BindModuleNames(ProgramResolver resolver, ModuleBindings parentBindings) {
     Contract.Requires(this != null);
     Contract.Requires(parentBindings != null);
 
-    // Transfer prefix-named modules downwards into the sub-module
-    if (prefixModules != null) {
-      foreach (var prefixModule in prefixModules) {
-        if (prefixModule.Parts.Count == 0) {
-          // change the parent, now that we have found the right parent module for the prefix-named module
-          prefixModule.Module.ModuleDef.EnclosingModule = ModuleDef;
-          var sm = new LiteralModuleDecl(prefixModule.Module.ModuleDef, ModuleDef);
-          ModuleDef.ResolvedPrefixNamedModules.Add(sm);
-        } else {
-          ModuleDef.PrefixNamedModules.Add(prefixModule);
-        }
-      }
-    }
-
     var bindings = ModuleDef.BindModuleNames(resolver, parentBindings);
     if (!parentBindings.BindName(Name, this, bindings)) {
-      resolver.reporter.Error(MessageSource.Resolver, tok, "Duplicate module name: {0}", Name);
+      resolver.Reporter.Error(MessageSource.Resolver, tok, "Duplicate module name: {0}", Name);
     }
   }
 }

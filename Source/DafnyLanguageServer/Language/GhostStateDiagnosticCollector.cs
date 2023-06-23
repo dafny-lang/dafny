@@ -33,6 +33,9 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         return Enumerable.Empty<Diagnostic>();
       }
 
+      if (signatureAndCompletionTable.CompilationUnit.Program.Reporter.HasErrors) {
+        return Enumerable.Empty<Diagnostic>(); // TODO improve?
+      }
       try {
         var visitor = new GhostStateSyntaxTreeVisitor(signatureAndCompletionTable.CompilationUnit, cancellationToken);
         visitor.Visit(signatureAndCompletionTable.CompilationUnit.Program);

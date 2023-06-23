@@ -322,7 +322,7 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext, IHasDocstring {
   public void Resolve(Resolver resolver) {
     // register the names of the implicit members
     var members = new Dictionary<string, MemberDecl>();
-    resolver.classMembers.Add(this, members);
+    resolver.AddClassMembers(this, members);
 
     // First, register the iterator's in- and out-parameters as readonly fields
     foreach (var p in Ins) {
