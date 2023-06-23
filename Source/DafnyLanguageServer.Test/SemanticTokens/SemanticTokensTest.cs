@@ -88,7 +88,8 @@ public class SemanticTokensTest : DafnyLanguageServerTestBase {
 
     // Just to ensure no crash
     var importNameTokens =
-      await ParseAndCollectTokens("module M {} module N { import M' = M }");
+      await ParseAndCollectTokens("module M {} module N { import M' = M } /* test */");
+    Assert.Equal(8, importNameTokens.Count);
 
   }
 }

@@ -139,6 +139,9 @@ public class Buffer {
   public string/*!*/ GetString (int beg, int end) {
     Contract.Ensures(Contract.Result<string>() != null);
     int len = 0;
+    if(bufLen < end && end != beg) {
+      end = bufLen - 1;
+    }
     char[] buf = new char[end - beg];
     if(end != beg) {
       int oldPos = Pos;
@@ -464,7 +467,8 @@ public class Scanner {
     }
     if(lastCommentToken != null) {
       var includeLast = col != 0; // Block comment.
-      // This odd +1 is needed because Coco/R doesn't consume the last character of the comment.
+      // This odd +1 is needed because Coco/R doesn't consume the last character of the comment,
+      // except if it's the last character of the file
       lastCommentToken.val = buffer.GetString(lastCommentToken.pos, pos + (includeLast ? 1 : 0));
       if(triviaTrailing) {
         trailingComments.Add(lastCommentToken);

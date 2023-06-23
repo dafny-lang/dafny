@@ -12,6 +12,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Microsoft.Boogie;
+using Microsoft.Dafny.LanguageServer.Language;
 using OmniSharp.Extensions.LanguageServer.Protocol;
 
 namespace Microsoft.Dafny.LanguageServer.Handlers {
@@ -54,7 +55,21 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
     }
 
     private void CollectResolutionBasedTokens(DafnySemanticTokensBuilder builder, Dafny.Program program) {
-      new LspSemanticTokensGeneratingVisitor(builder).Visit(program);
+      //new LspSemanticTokensGeneratingVisitor(builder).Visit(program);
+      program.Visit((Node n) => {
+        switch (n) {
+          case DatatypeDecl decl: {
+              builder.Push("resolution", decl.NameToken, SemanticTokenType.Type);
+              break;
+            }
+          case Type type: {
+              builder.Push("resolution", type.tok, SemanticTokenType.Type);
+              break;
+            }
+        }
+
+        return true;
+      });
     }
 
     protected override async Task Tokenize(SemanticTokensBuilder builder, ITextDocumentIdentifierParams identifier,
