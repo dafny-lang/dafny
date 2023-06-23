@@ -4,7 +4,6 @@
 #nullable disable
 using System;
 using System.Collections.Generic;
-using System.Diagnostics.Contracts;
 using System.IO;
 using System.Linq;
 using System.Numerics;
@@ -28,12 +27,12 @@ namespace DafnyServer.CounterexampleGeneration {
     public readonly List<DafnyModelState> States = new();
     public static readonly UserDefinedType UnknownType =
       new(new Token(), "?", null);
-    private readonly Model.Func fSetSelect, fSeqLength, fSeqIndex, fBox,
+    private readonly DafnyFunc fSetSelect, fSeqLength, fSeqIndex, fBox,
       fDim, fIndexField, fMultiIndexField, fDtype, fCharToInt, fTag, fBv, fType,
       fChar, fNull, fSetUnion, fSetIntersection, fSetDifference, fSetUnionOne,
       fSetEmpty, fSeqEmpty, fSeqBuild, fSeqAppend, fSeqDrop, fSeqTake,
       fSeqUpdate, fSeqCreate, fReal, fU2Real, fBool, fU2Bool, fInt, fU2Int,
-      fMapDomain, fMapElements, fMapBuild, fIs, fIsBox;
+      fMapDomain, fMapElements, fMapBuild, fIs, fIsBox, fTChar, fTReal, fTBool, fTInt;
     private readonly Dictionary<Model.Element, Model.FuncTuple> datatypeValues = new();
 
     // maps a numeric type (int, real, bv4, etc.) to the set of integer
@@ -52,47 +51,143 @@ namespace DafnyServer.CounterexampleGeneration {
     private static readonly Regex BvTypeRegex = new("^bv[0-9]+Type$");
     private static readonly Regex UnderscoreRemovalRegex = new("__");
 
+    class DafnyFunc {
+
+      private readonly Model.Func func;
+      private readonly int tyArgs;
+      public DafnyFunc(DafnyModel model, DafnyOptions options, string name, int arity, int tyArgs) {
+        var extraTypeArguments = options.TypeEncodingMethod switch {
+          CoreOptions.TypeEncoding.Arguments => 1,
+          _ => 0
+        };
+        this.tyArgs = extraTypeArguments * tyArgs;
+        func = model.Model.MkFunc(name, arity + this.tyArgs);
+      }
+
+      private Model.FuncTuple ConvertFuncTuple(Model.FuncTuple tuple) {
+        if (tuple == null) {
+          return null;
+        }
+        return new Model.FuncTuple(func, tuple.Result, tuple.Args[tyArgs..]);
+      }
+
+      public Model.FuncTuple AppWithResult(Model.Element element) {
+        return ConvertFuncTuple(func.AppWithResult(element));
+      }
+
+      public IEnumerable<Model.FuncTuple> Apps => func.Apps.Select(ConvertFuncTuple);
+
+      public Model.Element GetConstant() {
+        return func.GetConstant();
+      }
+      
+      public Model.Element OptEval(Model.Element element) {
+        if (element == null) {
+          return null;
+        }
+        var app = func.AppWithArg(tyArgs, element);
+        if (app == null) {
+          return null;
+        }
+        return app.Result;
+      }
+      
+      public Model.Element OptEval(Model.Element first, Model.Element second) {
+        if (first == null || second == null) {
+          return null;
+        }
+        var app = func.AppsWithArgs(tyArgs, first, tyArgs+1, second);
+        if (app == null || !app.Any()) {
+          return null;
+        }
+        return app.First().Result;
+      }
+
+      public IEnumerable<Model.FuncTuple> AppsWithArg(int i, Model.Element element) {
+        return func.AppsWithArg(i + tyArgs, element).Select(ConvertFuncTuple);
+      }
+
+      public IEnumerable<Model.FuncTuple> AppsWithArgs(int i0, Model.Element element0, int i1, Model.Element element1) {
+        return func.AppsWithArgs(i0 + tyArgs, element0, i1 + tyArgs, element1).Select(ConvertFuncTuple);
+      }
+      
+      /// <summary>
+      /// Create a new function that merges together the applications of all the
+      /// functions that have a certain arity and whose name matches the
+      /// "^MapType[0-9]*Select$" pattern. This has previously been done by
+      /// Boogie's Model Parser as a preprocessing step but has been deprecated
+      /// since 2.9.2
+      /// </summary>
+      internal static DafnyFunc MergeMapSelectFunctions(DafnyModel model, int arity) {
+        var name = "[" + arity + "]";
+        if (model.Model.HasFunc(name)) {
+          // Coming up with a new name if the ideal one is reserved
+          int id = 0;
+          while (model.Model.HasFunc(name + "#" + id)) {
+            id++;
+          }
+          name += "#" + id;
+        }
+        var result = new DafnyFunc(model, model.options, name, arity, 1);
+        var mapTypeSelect = new Regex("^MapType[0-9]*Select$");
+        foreach (var func in model.Model.Functions) {
+          if (!mapTypeSelect.IsMatch(func.Name) ||
+              func.Arity != arity + result.tyArgs) {
+            continue;
+          }
+          foreach (var app in func.Apps) {
+            result.func.AddApp(app.Result, app.Args);
+          }
+          result.func.Else ??= func.Else;
+        }
+        return result;
+      }
+    }
 
     public DafnyModel(Model model, DafnyOptions options) {
       Model = model;
       this.options = options;
-      fSetSelect = MergeMapSelectFunctions(2);
-      fSeqLength = model.MkFunc("Seq#Length", 1);
-      fSeqBuild = model.MkFunc("Seq#Build", 2);
-      fSeqAppend = model.MkFunc("Seq#Append", 2);
-      fSeqDrop = model.MkFunc("Seq#Drop", 2);
-      fSeqTake = model.MkFunc("Seq#Take", 2);
-      fSeqIndex = model.MkFunc("Seq#Index", 2);
-      fSeqUpdate = model.MkFunc("Seq#Update", 3);
-      fSeqCreate = model.MkFunc("Seq#Create", 4);
-      fSeqEmpty = model.MkFunc("Seq#Empty", 1);
-      fSetEmpty = model.MkFunc("Set#Empty", 1);
-      fSetUnion = model.MkFunc("Set#Union", 2);
-      fSetUnionOne = model.MkFunc("Set#UnionOne", 2);
-      fSetIntersection = model.MkFunc("Set#Intersection", 2);
-      fSetDifference = model.MkFunc("Set#Difference", 2);
-      fMapDomain = model.MkFunc("Map#Domain", 1);
-      fMapElements = model.MkFunc("Map#Elements", 1);
-      fMapBuild = model.MkFunc("Map#Build", 3);
-      fIs = model.MkFunc("$Is", 2);
-      fIsBox = model.MkFunc("$IsBox", 2);
-      fBox = model.MkFunc("$Box", 1);
-      fDim = model.MkFunc("FDim", 1);
-      fIndexField = model.MkFunc("IndexField", 1);
-      fMultiIndexField = model.MkFunc("MultiIndexField", 2);
-      fDtype = model.MkFunc("dtype", 1);
-      fNull = model.MkFunc("null", 0);
-      fCharToInt = model.MkFunc("char#ToInt", 1);
-      fType = model.MkFunc("type", 1);
-      fChar = model.MkFunc("charType", 0);
-      fReal = model.MkFunc("realType", 0);
-      fU2Real = model.MkFunc("U_2_real", 1);
-      fBool = model.MkFunc("boolType", 0);
-      fU2Bool = model.MkFunc("U_2_bool", 1);
-      fInt = model.MkFunc("intType", 0);
-      fU2Int = model.MkFunc("U_2_int", 1);
-      fTag = model.MkFunc("Tag", 1);
-      fBv = model.MkFunc("TBitvector", 1);
+      fSetSelect = DafnyFunc.MergeMapSelectFunctions(this, 2);
+      fSeqLength = new DafnyFunc(this, options, "Seq#Length", 1, 1);
+      fSeqBuild = new DafnyFunc(this, options, "Seq#Build", 2, 1);
+      fSeqAppend = new DafnyFunc(this, options, "Seq#Append", 2, 1);
+      fSeqDrop = new DafnyFunc(this, options, "Seq#Drop", 2, 1);
+      fSeqTake = new DafnyFunc(this, options, "Seq#Take", 2, 1);
+      fSeqIndex = new DafnyFunc(this, options, "Seq#Index", 2, 1);
+      fSeqUpdate = new DafnyFunc(this, options, "Seq#Update", 3, 1);
+      fSeqCreate = new DafnyFunc(this, options, "Seq#Create", 4, 0);
+      fSeqEmpty = new DafnyFunc(this, options, "Seq#Empty", 1, 0);
+      fSetEmpty = new DafnyFunc(this, options, "Set#Empty", 1, 0);
+      fSetUnion = new DafnyFunc(this, options, "Set#Union", 2, 1);
+      fSetUnionOne = new DafnyFunc(this, options, "Set#UnionOne", 2, 1);
+      fSetIntersection = new DafnyFunc(this, options, "Set#Intersection", 2, 1);
+      fSetDifference = new DafnyFunc(this, options, "Set#Difference", 2, 1);
+      fMapDomain = new DafnyFunc(this, options, "Map#Domain", 1, 2);
+      fMapElements = new DafnyFunc(this, options, "Map#Elements", 1, 2);
+      fMapBuild = new DafnyFunc(this, options, "Map#Build", 3, 2);
+      fIs = new DafnyFunc(this, options, "$Is", 2, 1);
+      fIsBox = new DafnyFunc(this, options, "$IsBox", 2, 1);
+      fBox = new DafnyFunc(this, options, "$Box", 1, 1);
+      fDim = new DafnyFunc(this, options, "FDim", 1, 1);
+      fIndexField = new DafnyFunc(this, options, "IndexField", 1, 0);
+      fMultiIndexField = new DafnyFunc(this, options, "MultiIndexField", 2, 0);
+      fDtype = new DafnyFunc(this, options, "dtype", 1, 0);
+      fNull = new DafnyFunc(this, options, "null", 0, 0);
+      fCharToInt = new DafnyFunc(this, options, "char#ToInt", 1, 0);
+      fType = new DafnyFunc(this, options, "type", 1, 0);
+      fChar = new DafnyFunc(this, options, "charType", 0, 0);
+      fReal = new DafnyFunc(this, options, "realType", 0, 0);
+      fU2Real = new DafnyFunc(this, options, "U_2_real", 1, 0);
+      fBool = new DafnyFunc(this, options, "boolType", 0, 0);
+      fU2Bool = new DafnyFunc(this, options, "U_2_bool", 1, 0);
+      fInt = new DafnyFunc(this, options, "intType", 0, 0);
+      fU2Int = new DafnyFunc(this, options, "U_2_int", 1, 0);
+      fTag = new DafnyFunc(this, options, "Tag", 1, 0);
+      fBv = new DafnyFunc(this, options, "TBitvector", 1, 0);
+      fTChar = new DafnyFunc(this, options, "TChar", 0, 0);
+      fTInt = new DafnyFunc(this, options, "TInt", 0, 0);
+      fTReal = new DafnyFunc(this, options, "TReal", 0, 0);
+      fTBool = new DafnyFunc(this, options, "TBool", 0, 0);
       InitDataTypes();
       RegisterReservedChars();
       RegisterReservedInts();
@@ -136,38 +231,6 @@ namespace DafnyServer.CounterexampleGeneration {
           }
         }
       }
-    }
-
-    /// <summary>
-    /// Create a new function that merges together the applications of all the
-    /// functions that have a certain arity and whose name matches the
-    /// "^MapType[0-9]*Select$" pattern. This has previously been done by
-    /// Boogie's Model Parser as a preprocessing step but has been deprecated
-    /// since 2.9.2
-    /// </summary>
-    private Model.Func MergeMapSelectFunctions(int arity) {
-      var name = "[" + arity + "]";
-      if (Model.HasFunc(name)) {
-        // Coming up with a new name if the ideal one is reserved
-        int id = 0;
-        while (Model.HasFunc(name + "#" + id)) {
-          id++;
-        }
-        name += "#" + id;
-      }
-      var result = Model.MkFunc(name, arity);
-      var mapTypeSelect = new Regex("^MapType[0-9]*Select$");
-      foreach (var func in Model.Functions) {
-        if (!mapTypeSelect.IsMatch(func.Name) ||
-            func.Arity != arity) {
-          continue;
-        }
-        foreach (var app in func.Apps) {
-          result.AddApp(app.Result, app.Args);
-        }
-        result.Else ??= func.Else;
-      }
-      return result;
     }
 
     /// <summary> Register all char values specified by the model </summary>
@@ -286,10 +349,14 @@ namespace DafnyServer.CounterexampleGeneration {
     public static bool IsPrimitive(Model.Element element, DafnyModelState state) =>
       (element.Kind != Model.ElementKind.Uninterpreted
        || element == state.Model.fNull.GetConstant()
-       || state.Model.fType.OptEval(element) == state.Model.fChar.GetConstant()
+       || state.Model.fType.OptEval(element) == state.Model.fChar.GetConstant() 
+       || state.Model.GetIsResults(element).Any(e => e == state.Model.fTChar.GetConstant())
        || state.Model.fType.OptEval(element) == state.Model.fReal.GetConstant()
+       || state.Model.GetIsResults(element).Any(e => e == state.Model.fTReal.GetConstant())
        || state.Model.fType.OptEval(element) == state.Model.fInt.GetConstant()
+       || state.Model.GetIsResults(element).Any(e => e == state.Model.fTInt.GetConstant())
        || state.Model.fType.OptEval(element) == state.Model.fBool.GetConstant()
+       || state.Model.GetIsResults(element).Any(e => e == state.Model.fTBool.GetConstant())
        || IsBitVectorObject(element, state.Model)) &&
       element.Kind != Model.ElementKind.Array &&
       (element.Kind != Model.ElementKind.DataValue ||
@@ -380,7 +447,10 @@ namespace DafnyServer.CounterexampleGeneration {
     /// <summary> Get the Dafny type of an Uninterpreted element </summary>
     private Type GetDafnyType(Model.Uninterpreted element) {
       var boogieType = GetBoogieType(element);
-      List<Model.Element> isOfType;
+      List<Model.Element> isOfType = GetIsResults(element);
+      if (boogieType == null && isOfType.Count > 0) {
+        return ReconstructType(isOfType.First());
+      }
       List<Type> typeArgs = new();
       switch (boogieType) {
         case "intType":
@@ -392,7 +462,6 @@ namespace DafnyServer.CounterexampleGeneration {
         case "boolType":
           return Type.Bool;
         case "SeqType":
-          isOfType = GetIsResults(element);
           foreach (var isType in isOfType) {
             if (isType.Names.Any(app => app.Func.Name == "TSeq")) {
               return ReconstructType(isType);
@@ -421,7 +490,6 @@ namespace DafnyServer.CounterexampleGeneration {
           }
           return new SeqType(UnknownType);
         case "SetType":
-          isOfType = GetIsResults(element);
           foreach (var isType in isOfType) {
             if (isType.Names.Any(app => app.Func.Name == "TSet")) {
               return ReconstructType(isType);
@@ -448,14 +516,12 @@ namespace DafnyServer.CounterexampleGeneration {
           }
           return new SetType(true, UnknownType);
         case "DatatypeTypeType":
-          isOfType = GetIsResults(element);
           if (isOfType.Count > 0) {
             return new DafnyModelTypeUtils.DatatypeType(
               (ReconstructType(isOfType[0]) as UserDefinedType) ?? UnknownType);
           }
           return new DafnyModelTypeUtils.DatatypeType(UnknownType);
         case "MapType":
-          isOfType = GetIsResults(element);
           foreach (var isType in isOfType) {
             if (isType.Names.Any(app => app.Func.Name == "TMap")) {
               return ReconstructType(isType);
@@ -472,7 +538,6 @@ namespace DafnyServer.CounterexampleGeneration {
             return ReconstructType(typeElement);
           }
           // if typeElement == null, this object has a null value
-          isOfType = GetIsResults(element);
           if (isOfType.Count > 0) {
             return ReconstructType(isOfType[0]);
           }
@@ -490,7 +555,6 @@ namespace DafnyServer.CounterexampleGeneration {
           }
           return UnknownType;
         case "HandleTypeType":
-          isOfType = GetIsResults(element);
           if (isOfType.Count > 0) {
             return ReconstructType(isOfType[0]);
           }
@@ -587,8 +651,10 @@ namespace DafnyServer.CounterexampleGeneration {
       if (elt is Model.BitVector vector) {
         return vector.Numeral;
       }
+
+      var primitiveType = fType.OptEval(elt) ?? GetIsResults(elt).FirstOrDefault();
       if (IsBitVectorObject(elt, this)) {
-        var typeName = GetTrueName(fType.OptEval(elt));
+        var typeName = GetTrueName(primitiveType);
         var funcName = "U_2_" + typeName[..^4];
         int width = int.Parse(typeName[2..^4]);
         if (!bitvectorTypes.ContainsKey(width)) {
@@ -615,7 +681,7 @@ namespace DafnyServer.CounterexampleGeneration {
       if (datatypeValues.TryGetValue(elt, out var fnTuple)) {
         return fnTuple.Func.Name.Split(".").Last();
       }
-      if (fType.OptEval(elt) == fChar.GetConstant()) {
+      if (primitiveType == fChar.GetConstant() || primitiveType == fTChar.GetConstant()) {
         if (fCharToInt.OptEval(elt) != null) {
           if (int.TryParse(((Model.Integer)fCharToInt.OptEval(elt)).Numeral,
                 out var UTFCode) && UTFCode is <= char.MaxValue and >= 0) {
@@ -624,19 +690,19 @@ namespace DafnyServer.CounterexampleGeneration {
         }
         return GetUnreservedCharValue(elt);
       }
-      if (fType.OptEval(elt) == fReal.GetConstant()) {
+      if (primitiveType == fReal.GetConstant() || primitiveType == fTReal.GetConstant()) {
         if (fU2Real.OptEval(elt) != null) {
           return CanonicalName(fU2Real.OptEval(elt));
         }
         return GetUnreservedNumericValue(elt, Type.Real);
       }
-      if (fType.OptEval(elt) == fBool.GetConstant()) {
+      if (primitiveType == fBool.GetConstant() || primitiveType == fTBool.GetConstant()) {
         if (fU2Bool.OptEval(elt) != null) {
           return CanonicalName(fU2Bool.OptEval(elt));
         }
         return GetUnreservedBoolValue(elt);
       }
-      if (fType.OptEval(elt) == fInt.GetConstant()) {
+      if (primitiveType == fInt.GetConstant() || primitiveType == fTInt.GetConstant()) {
         if (fU2Int.OptEval(elt) != null) {
           return CanonicalName(fU2Int.OptEval(elt));
         }
