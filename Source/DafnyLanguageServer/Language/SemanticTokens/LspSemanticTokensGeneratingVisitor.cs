@@ -28,7 +28,7 @@ public class LspSemanticTokensGeneratingVisitor : SyntaxTreeVisitor {
     base.Visit(moduleDefinition);
   }
 
-  public override void Visit(ClassDecl classDeclaration) {
+  public override void Visit(TopLevelDeclWithMembers classDeclaration) {
     builder.Push("classDeclaration", classDeclaration.tok, SemanticTokenType.Class, SemanticTokenModifier.Declaration);
     base.Visit(classDeclaration);
   }

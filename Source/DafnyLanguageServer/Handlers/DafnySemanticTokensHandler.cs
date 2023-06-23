@@ -40,7 +40,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
     }
 
     private void CollectScannerTokens(DafnySemanticTokensBuilder builder, Dafny.Program program) {
-      var tok = program.DefaultModule.RootToken.Next;
+      var tok = program.GetFirstTopLevelToken();
       while (tok != null) {
         foreach (var leadingComment in tok.LeadingComments) {
           builder.Push("parser", leadingComment);

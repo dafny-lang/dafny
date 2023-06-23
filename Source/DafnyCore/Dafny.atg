@@ -370,7 +370,7 @@ private static Dictionary<int, TokenClass> tokenClasses = new Dictionary<int, To
   {_le, TokenClass.Operator}, /* <= */
   {_ge, TokenClass.Operator}, /* >= */
   {_doublepipe, TokenClass.Operator}, /* || */
-  {_uNot, TokenClass.Operator}, /* ¬ */
+  {_uNot, TokenClass.Operator}, /* ï¿½ */
   {_uLogAnd, TokenClass.Operator}, /* ? */
   {_uLogOr, TokenClass.Operator}, /* n */
   {_uLe, TokenClass.Operator}, /* = */
@@ -1054,7 +1054,7 @@ TOKENS
   doublecolon = "::".
   gets = ":=".
   boredSmiley = ":|".
-  bullet = '\u2022'. // •
+  bullet = '\u2022'. // ï¿½
   dot = '.'.
   backtick = "`".
   semicolon = ';'.
@@ -1144,7 +1144,7 @@ TOKENS
   le = "<=".
   ge = ">=".
   doublepipe = "||".
-  uNot = "\u00ac". // ¬
+  uNot = "\u00ac". // ï¿½
   uLogAnd = "\u2227". // ?
   uLogOr = "\u2228". // ?
   uLe = "\u2264". // =
@@ -1161,9 +1161,6 @@ TOKENS
   exists = "exists".
   abstract = "abstract".
   protected = "protected".
-  extends = "extends".
-  provides = "provides".
-  reveals = "reveals".
   refines = "refines".
   break = "break".
   continue = "continue".

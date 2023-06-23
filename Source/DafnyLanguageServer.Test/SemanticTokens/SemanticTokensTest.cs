@@ -1,23 +1,21 @@
 ﻿#nullable enable
 using System.Collections.Generic;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using OmniSharp.Extensions.LanguageServer.Protocol.Client;
 using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using Models = OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Collections.Immutable;
 using System.Threading.Tasks;
+using Xunit;
+using Xunit.Abstractions;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.SemanticTokens;
 
-[TestClass]
 public class SemanticTokensTest : DafnyLanguageServerTestBase {
   private ILanguageClient? client;
 
-  [TestInitialize]
-  public async Task SetUp() {
-    client = await InitializeClient();
+  public SemanticTokensTest(ITestOutputHelper output) : base(output) {
   }
 
   private Task<Models.SemanticTokens?> RequestSemanticTokensFull(TextDocumentItem documentItem) {
@@ -59,33 +57,34 @@ public class SemanticTokensTest : DafnyLanguageServerTestBase {
     return tokens;
   }
 
-  [TestMethod]
+  [Fact]
   public async Task DocumentContainsSemanticTokens() {
+    client = await InitializeClient();
     var blockCommentTokens =
       await ParseAndCollectTokens("/* C\nC\nC */ module A {}");
-    Assert.AreEqual(3, blockCommentTokens.Count);
-    Assert.AreEqual(new SerializedToken(0, 0, 11, 0, 0), blockCommentTokens[0]);
+    Assert.Equal(3, blockCommentTokens.Count);
+    Assert.Equal(new SerializedToken(0, 0, 11, 0, 0), blockCommentTokens[0]);
 
     var moduleNameTokens =
       await ParseAndCollectTokens("module M {}");
-    Assert.AreEqual(2, moduleNameTokens.Count);
-    Assert.AreEqual(new SerializedToken(0, 0, 6, 1, 2), moduleNameTokens[0]);
-    Assert.AreEqual(new SerializedToken(0, 7, 1, 6, 0), moduleNameTokens[1]);
+    Assert.Equal(2, moduleNameTokens.Count);
+    Assert.Equal(new SerializedToken(0, 0, 6, 1, 2), moduleNameTokens[0]);
+    Assert.Equal(new SerializedToken(0, 7, 1, 6, 0), moduleNameTokens[1]);
 
     var lineCommentTokens =
       await ParseAndCollectTokens("// A\nmodule A {}");
 
-    Assert.AreEqual(3, lineCommentTokens.Count);
-    Assert.AreEqual(new SerializedToken(0, 0, 4, 0, 0), lineCommentTokens[0]);
+    Assert.Equal(3, lineCommentTokens.Count);
+    Assert.Equal(new SerializedToken(0, 0, 4, 0, 0), lineCommentTokens[0]);
 
     var classNameTokens =
       await ParseAndCollectTokens("module M { class C {} }");
 
     // Our backend emits semantic tokens first by looking at bare tokens (module, class)
     // and then names (M, C)
-    Assert.AreEqual(4, classNameTokens.Count);
-    Assert.AreEqual(new SerializedToken(0, 11, 5, 1, 2), classNameTokens[1]);
-    Assert.AreEqual(new SerializedToken(0, 17, 1, 9, 2), classNameTokens[3]);
+    Assert.Equal(4, classNameTokens.Count);
+    Assert.Equal(new SerializedToken(0, 11, 5, 1, 2), classNameTokens[1]);
+    Assert.Equal(new SerializedToken(0, 17, 1, 9, 2), classNameTokens[3]);
 
     // Just to ensure no crash
     var importNameTokens =

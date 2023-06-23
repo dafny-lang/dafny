@@ -375,7 +375,7 @@ public class Scanner {
       // We consider all files to be UTF-8 by default 
       buffer = new UTF8Buffer(buffer);
     }
-
+    pt = tokens = new Token();  // first token is a dummy
   }
 
   string/*!*/ ReadToEOL(){
@@ -490,7 +490,7 @@ public class Scanner {
     }
     lastCommentToken = new Token();
     lastCommentToken.pos = pos; lastCommentToken.col = col; lastCommentToken.line = line;
-    lastCommentToken.Filename = this.Filename;
+    lastCommentToken.Uri = this.Uri;
     lastCommentToken.kind = Parser._commentToken;
 -->scan2
     lastCommentToken = null;
@@ -555,24 +555,22 @@ public class Scanner {
   // get the next token (possibly a token already seen during peeking)
   public Token/*!*/ Scan () {
    Contract.Ensures(Contract.Result<Token>() != null);
-    if (tokens.Next == null) {
-      Contract.Assert(pt.Next == null);
-      Peek(); // Keep linked structure
+    if (tokens.peekedTokens == null) {
+      return NextToken();
+    } else {
+      pt = tokens = tokens.peekedTokens;
+      return tokens;
     }
-
-    pt = tokens = (Token)tokens.Next;
-    return tokens;
   }
 
   // peek for the next token, ignore pragmas
   public Token/*!*/ Peek () {
     Contract.Ensures(Contract.Result<Token>() != null);
     do {
-      if (pt.Next == null) {
-        pt.Next = NextToken();
+      if (pt.peekedTokens == null) {
+        pt.peekedTokens = NextToken();
       }
-      pt.Next.Prev = pt;
-      pt = (Token)pt.Next;
+      pt = pt.peekedTokens;
     } while (pt.kind > maxT); // skip pragmas
 
     return pt;
