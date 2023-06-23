@@ -25,6 +25,7 @@ public abstract class Declaration : RangeNode, IAttributeBearingDeclaration, IDe
   private VisibilityScope revealScope = new();
 
   private bool scopeIsInherited = false;
+
   protected Declaration(Cloner cloner, Declaration original) : base(cloner, original) {
     NameNode = original.NameNode.Clone(cloner);
   }

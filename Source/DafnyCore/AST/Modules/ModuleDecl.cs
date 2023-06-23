@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
@@ -8,8 +9,19 @@ namespace Microsoft.Dafny;
 /// Represents a submodule declaration at module level scope
 /// </summary>
 public abstract class ModuleDecl : TopLevelDecl, IHasDocstring {
+  /// <summary>
+  /// Only equivalent between modules if one is a clone of the other.
+  /// This property is used to determine if two module declarations have the same contents when doing resolution caching
+  /// This should be replaced by using content hashes of module declaration contents, at which point this property
+  /// becomes obsolete.
+  /// </summary>
+  public Guid CloneId { get; }
+
   public override string WhatKind => "module";
-  [FilledInDuringResolution] public ModuleSignature Signature; // filled in topological order.
+
+  [FilledInDuringResolution]
+  public ModuleSignature Signature { get; set; }
+
   public virtual ModuleSignature AccessibleSignature(bool ignoreExports) {
     Contract.Requires(Signature != null);
     return Signature;
@@ -25,17 +37,17 @@ public abstract class ModuleDecl : TopLevelDecl, IHasDocstring {
   protected ModuleDecl(Cloner cloner, ModuleDecl original, ModuleDefinition parent)
     : base(cloner, original, parent) {
     Opened = original.Opened;
+    CloneId = original.CloneId;
   }
 
-  protected ModuleDecl(RangeToken rangeToken, Name name, ModuleDefinition parent, bool opened, bool isRefining)
+  protected ModuleDecl(RangeToken rangeToken, Name name, ModuleDefinition parent, bool opened, bool isRefining, Guid cloneId)
     : base(rangeToken, name, parent, new List<TypeParameter>(), null, isRefining) {
     Height = -1;
     Signature = null;
     Opened = opened;
+    CloneId = cloneId;
   }
   public abstract object Dereference();
-
-  public int? ResolvedHash { get; set; }
 
   public override bool IsEssentiallyEmpty() {
     // A module or import is considered "essentially empty" to its parents, but the module is going to be resolved by itself.

@@ -49,7 +49,7 @@ public class GhostStateDiagnosticCollectorTest {
 
   class DummyModuleDecl : LiteralModuleDecl {
     public DummyModuleDecl(IList<Uri> rootUris) : base(
-      new DefaultModuleDefinition(rootUris, false), null) {
+      new DefaultModuleDefinition(rootUris, false), null, Guid.NewGuid()) {
     }
     public override object Dereference() {
       return this;
@@ -63,7 +63,7 @@ public class GhostStateDiagnosticCollectorTest {
     var rootUri = new Uri(Directory.GetCurrentDirectory());
     var dummyModuleDecl = new DummyModuleDecl(new List<Uri> { rootUri });
     var reporter = new CollectingErrorReporter(options);
-    var compilation = new CompilationData(options, new List<Include>(), new List<Uri>(), Sets.Empty<Uri>(),
+    var compilation = new CompilationData(reporter, new List<Include>(), new List<Uri>(), Sets.Empty<Uri>(),
       Sets.Empty<Uri>());
     var program = new Dafny.Program("dummy", dummyModuleDecl, null, reporter, compilation);
     var ghostDiagnostics = ghostStateDiagnosticCollector.GetGhostStateDiagnostics(
