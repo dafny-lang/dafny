@@ -148,7 +148,7 @@ module A {
     }
     var documentItem = CreateTestDocument(source);
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-    CompilationAfterParsing compilation = await Documents.GetLastDocumentAsync(documentItem);
+    CompilationAfterParsing compilation = await Projects.GetLastDocumentAsync(documentItem);
     var edits = await RequestFormattingAsync(documentItem);
     edits.Reverse();
     Assert.NotNull(compilation);

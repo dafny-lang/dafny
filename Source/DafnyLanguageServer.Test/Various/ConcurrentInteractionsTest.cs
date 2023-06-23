@@ -83,7 +83,7 @@ method Multiply(x: bv10, y: bv10) returns (product: bv10)
       // Save and wait for the final result
       await client.SaveDocumentAndWaitAsync(documentItem, CancellationTokenWithHighTimeout);
 
-      var document = await Documents.GetLastDocumentAsync(documentItem.Uri);
+      var document = await Projects.GetLastDocumentAsync(documentItem.Uri);
       Assert.NotNull(document);
       Assert.Equal(documentItem.Version + 11, document.Version);
       Assert.Single(document.AllFileDiagnostics);
@@ -175,7 +175,7 @@ method Multiply(x: int, y: int) returns (product: int)
       }
 
       foreach (var loadingDocument in loadingDocuments) {
-        await Documents.CloseDocumentAsync(loadingDocument);
+        await Projects.CloseDocumentAsync(loadingDocument);
       }
       await AssertNoDiagnosticsAreComing(CancellationTokenWithHighTimeout);
     }
