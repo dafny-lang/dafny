@@ -27,6 +27,7 @@ public class ProjectManager {
   private IDisposable observerSubscription;
   private readonly ILogger<ProjectManager> logger;
   private int version = 1;
+  private int openDocuments;
 
   private bool VerifyOnOpen => options.Get(ServerCommand.Verification) == VerifyOnMode.Change;
   private bool VerifyOnChange => options.Get(ServerCommand.Verification) == VerifyOnMode.Change;
@@ -44,6 +45,7 @@ public class ProjectManager {
     logger = services.GetRequiredService<ILogger<ProjectManager>>();
     relocator = services.GetRequiredService<IRelocator>();
 
+    
     options = DetermineProjectOptions(project, serverOptions);
     if (project.UnsavedRootFile != null) {
       options.CliRootSourceUris.Add(project.UnsavedRootFile);
@@ -243,6 +245,11 @@ public class ProjectManager {
   }
 
   public bool CloseDocument(TextDocumentIdentifier documentId) {
-    throw new NotImplementedException();
+    openDocuments--;
+    return openDocuments == 0;
+  }
+
+  public void OpenDocument(TextDocumentItem document) {
+    openDocuments++;
   }
 }

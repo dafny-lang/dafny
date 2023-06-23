@@ -28,17 +28,18 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     public void OpenDocument(TextDocumentItem document) {
       fileSystem.OpenDocument(document);
       DafnyProject profileFile = FindProjectFile(document) ?? ImplicitProject(document);
-      var existingManager = managersByProject.GetValueOrDefault(profileFile.Uri);
+      ProjectManager? projectManager = managersByProject.GetValueOrDefault(profileFile.Uri);
 
-      if (existingManager != null) {
-        if (!existingManager.Project.Equals(profileFile)) {
-          managersByProject[document.Uri] = new ProjectManager(services, profileFile);
+      if (projectManager != null) {
+        if (!projectManager.Project.Equals(profileFile)) {
+          projectManager = new ProjectManager(services, profileFile);
         }
       } else {
-        managersByProject[document.Uri] = new ProjectManager(services, profileFile);
+        projectManager = new ProjectManager(services, profileFile);
       }
 
-      managersByFile[document.Uri] = managersByProject[profileFile.Uri];
+      managersByFile[document.Uri] = managersByProject[profileFile.Uri] = projectManager;
+      projectManager.OpenDocument(document);
     }
 
     public static DafnyProject ImplicitProject(TextDocumentIdentifier documentItem) {
@@ -52,6 +53,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       return implicitProject;
     }
 
+    // TODO add temporal caching
     private DafnyProject? FindProjectFile(TextDocumentIdentifier document) {
 
       DafnyProject? projectFile = null;
