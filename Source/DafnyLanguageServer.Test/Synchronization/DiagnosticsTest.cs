@@ -1139,16 +1139,16 @@ method Foo() {
     public async Task DiagnosticsAfterSavingWithVerifyOnChange() {
       var source = @"
 method Foo() { 
-  assert true; 
+  assert false; 
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
       client.OpenDocument(documentItem);
       await client.SaveDocumentAndWaitAsync(documentItem, CancellationToken);
       var diagnostics1 = await GetLastDiagnostics(documentItem, CancellationToken);
-      Assert.Empty(diagnostics1);
-      ApplyChange(ref documentItem, new Range(0, 0, 0, 0), "SyntaxError");
+      Assert.Single(diagnostics1);
+      ApplyChange(ref documentItem, new Range(1, 0, 2, 0), "");
       var diagnostics2 = await GetLastDiagnostics(documentItem, CancellationToken);
-      Assert.True(diagnostics2.Any());
+      Assert.Empty(diagnostics2);
     }
 
     public DiagnosticsTest(ITestOutputHelper output) : base(output) {

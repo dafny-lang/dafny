@@ -53,8 +53,7 @@ public class CompilationManager {
     DafnyOptions options,
     Compilation compilation
     // ImmutableDictionary<TextDocumentIdentifier, VerificationTree> migratedVerificationTree
-    ) 
-  {
+    ) {
     this.options = options;
     startingCompilation = compilation;
     fileSystem = services.GetRequiredService<IFileSystem>();
@@ -159,11 +158,11 @@ public class CompilationManager {
     }
 
     var translated = new CompilationAfterTranslation(services,
-      loaded, 
+      loaded,
       loaded.ResolutionDiagnostics, verificationTasks,
       new(),
       initialViews //,
-      // migratedVerificationTree
+                   // migratedVerificationTree
       );
 
     // translated.GutterProgressReporter.RecomputeVerificationTree();
@@ -260,34 +259,35 @@ public class CompilationManager {
     var status = StatusFromBoogieStatus(boogieStatus);
     var implementationRange = implementationTask.Implementation.tok.GetLspRange();
     logger.LogDebug($"Received status {boogieStatus} for {implementationTask.Implementation.Name}");
-    if (boogieStatus is Running) {
-      compilation.GutterProgressReporter.ReportVerifyImplementationRunning(implementationTask.Implementation);
-    }
+    // if (boogieStatus is Running) {
+    //   compilation.GutterProgressReporter.ReportVerifyImplementationRunning(implementationTask.Implementation);
+    // }
 
-    if (boogieStatus is BatchCompleted batchCompleted) {
-      compilation.GutterProgressReporter.ReportAssertionBatchResult(
-        new AssertionBatchResult(implementationTask.Implementation, batchCompleted.VcResult));
-    }
+    // if (boogieStatus is BatchCompleted batchCompleted) {
+    //   compilation.GutterProgressReporter.ReportAssertionBatchResult(
+    //     new AssertionBatchResult(implementationTask.Implementation, batchCompleted.VcResult));
+    // }
 
     if (boogieStatus is Completed completed) {
       var verificationResult = completed.Result;
       foreach (var counterExample in verificationResult.Errors) {
         compilation.Counterexamples.Add(counterExample);
       }
+      // TODO can't we remove this already?
       // Sometimes, the boogie status is set as Completed
       // but the assertion batches were not reported yet.
       // because they are on a different thread.
       // This loop will ensure that every vc result has been dealt with
       // before we report that the verification of the implementation is finished 
-      foreach (var result in completed.Result.VCResults) {
-        compilation.GutterProgressReporter.ReportAssertionBatchResult(
-          new AssertionBatchResult(implementationTask.Implementation, result));
-      }
+      // foreach (var result in completed.Result.VCResults) {
+      //   compilation.GutterProgressReporter.ReportAssertionBatchResult(
+      //     new AssertionBatchResult(implementationTask.Implementation, result));
+      // }
 
       var diagnostics = GetDiagnosticsFromResult(compilation, verificationResult).ToList();
       var view = new ImplementationView(implementationRange, status, diagnostics);
       compilation.ImplementationIdToView[id] = view;
-      compilation.GutterProgressReporter.ReportEndVerifyImplementation(implementationTask.Implementation, verificationResult);
+      // compilation.GutterProgressReporter.ReportEndVerifyImplementation(implementationTask.Implementation, verificationResult);
     } else {
       var existingView = compilation.ImplementationIdToView.GetValueOrDefault(id) ??
                          new ImplementationView(implementationRange, status, Array.Empty<DafnyDiagnostic>());

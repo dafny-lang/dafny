@@ -58,7 +58,7 @@ public class ProjectManager {
       options,
       new Compilation(version, project));
 
-    observerSubscription = CompilationManager.CompilationUpdates.Select(d => 
+    observerSubscription = CompilationManager.CompilationUpdates.Select(d =>
       d.InitialIdeState(new Compilation(version, project), options)).Subscribe(observer);
 
     if (VerifyOnOpen) {
@@ -73,7 +73,7 @@ public class ProjectManager {
 
   private const int MaxRememberedChanges = 100;
   private const int MaxRememberedChangedVerifiables = 5;
-  
+
   public void UpdateDocument(DidChangeTextDocumentParams documentChange) {
 
     version++;
@@ -103,8 +103,8 @@ public class ProjectManager {
       services,
       options,
       new Compilation(version, Project)
-      // TODO do not pass this to CompilationManager but instead use it in FillMissingStateUsingLastPublishedDocument
-      // migratedVerificationTrees
+    // TODO do not pass this to CompilationManager but instead use it in FillMissingStateUsingLastPublishedDocument
+    // migratedVerificationTrees
     );
 
     if (VerifyOnChange) {

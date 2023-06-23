@@ -22,8 +22,8 @@ public class CompilationAfterTranslation : CompilationAfterResolution {
     Dictionary<ImplementationId, ImplementationView> implementationIdToView
     // , VerificationTree verificationTree
     )
-    : base(compilationAfterResolution, diagnostics, 
-      compilationAfterResolution.SymbolTable, compilationAfterResolution.SignatureAndCompletionTable, 
+    : base(compilationAfterResolution, diagnostics,
+      compilationAfterResolution.SymbolTable, compilationAfterResolution.SignatureAndCompletionTable,
       compilationAfterResolution.GhostDiagnostics) {
     // VerificationTree = verificationTree;
     VerificationTasks = verificationTasks;

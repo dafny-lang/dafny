@@ -24,7 +24,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       if (state.Version < previousState.Version) {
         return;
       }
-      
+
       PublishVerificationStatus(previousState, state);
       PublishDocumentDiagnostics(previousState, state);
       PublishGhostDiagnostics(previousState, state);
@@ -76,7 +76,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     private void PublishDocumentDiagnostics(IdeState previousState, IdeState state) {
       var previousStateDiagnostics = previousState.GetDiagnostics();
       foreach (var (uri, current) in state.GetDiagnostics()) {
-        var previous = previousStateDiagnostics[uri];
+        var previous = previousStateDiagnostics.GetOrDefault(uri, Enumerable.Empty<Diagnostic>);
         if (previous.SequenceEqual(current)) {
           continue;
         }

@@ -29,16 +29,16 @@ public record IdeState(
   IReadOnlyList<Counterexample> Counterexamples,
   bool ImplementationsWereUpdated,
   IReadOnlyDictionary<Uri, IReadOnlyList<Range>> GhostRanges
-  // ImmutableDictionary<TextDocumentIdentifier, VerificationTree> VerificationTrees
+// ImmutableDictionary<TextDocumentIdentifier, VerificationTree> VerificationTrees
 ) {
 
   public int Version => Compilation.Version;
-  
-  public ImmutableDictionary<Uri, IReadOnlyList<Diagnostic>> GetDiagnostics()
-  {
+
+  public ImmutableDictionary<Uri, IReadOnlyList<Diagnostic>> GetDiagnostics() {
     var resolutionDiagnostics = ResolutionDiagnostics.ToImmutableDictionary();
     var verificationDiagnostics = ImplementationIdToView.GroupBy(kv => kv.Key.Uri).Select(kv =>
       new KeyValuePair<Uri, IReadOnlyList<Diagnostic>>(kv.Key, kv.SelectMany(x => x.Value.Diagnostics).ToList()));
+    return resolutionDiagnostics.Merge(verificationDiagnostics, Lists.Concat);
     // TODO combine diagnostics for one Uri
     return resolutionDiagnostics.AddRange(verificationDiagnostics);
   }

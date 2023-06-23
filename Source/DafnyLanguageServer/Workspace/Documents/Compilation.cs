@@ -35,11 +35,11 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     public IdeState InitialIdeState(Compilation compilation, DafnyOptions options) {
       return ToIdeState(new IdeState(compilation, new EmptyNode(),
-        ImmutableDictionary<Uri, IReadOnlyList<Diagnostic>>.Empty, 
+        ImmutableDictionary<Uri, IReadOnlyList<Diagnostic>>.Empty,
         SymbolTable.Empty(), SignatureAndCompletionTable.Empty(options, compilation.Project), new Dictionary<ImplementationId, IdeImplementationView>(),
         Array.Empty<Counterexample>(),
         false, ImmutableDictionary<Uri, IReadOnlyList<Range>>.Empty
-        // , GetInitialDocumentVerificationTree())
+      // , GetInitialDocumentVerificationTree())
       ));
     }
 
