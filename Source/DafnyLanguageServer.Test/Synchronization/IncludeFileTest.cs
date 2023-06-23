@@ -20,7 +20,7 @@ include ""./syntaxError.dfy""
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
     var diagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
     Assert.Single(diagnostics);
-    Assert.Contains("the included file", diagnostics[0].Message);
+    Assert.Contains("the referenced file", diagnostics[0].Message);
     Assert.Contains("syntaxError.dfy", diagnostics[0].Message);
   }
 
@@ -34,7 +34,7 @@ include ""./syntaxError.dfy""
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
     var diagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
     Assert.Single(diagnostics);
-    Assert.Contains("the included file", diagnostics[0].Message);
+    Assert.Contains("the referenced file", diagnostics[0].Message);
     Assert.Contains("syntaxError.dfy", diagnostics[0].Message);
   }
 
@@ -48,7 +48,7 @@ include ""./cycleA.dfy""
     var diagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
     Assert.Equal(2, diagnostics.Length);
     Assert.Contains("cycle of includes", diagnostics[0].Message);
-    Assert.Contains("the included file", diagnostics[1].Message);
+    Assert.Contains("the referenced file", diagnostics[1].Message);
     Assert.Contains("cycleB.dfy", diagnostics[1].Message);
   }
 
@@ -62,7 +62,7 @@ include ""./semanticError.dfy""
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
     var diagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
     Assert.Single(diagnostics);
-    Assert.Contains("the included file", diagnostics[0].Message);
+    Assert.Contains("the referenced file", diagnostics[0].Message);
     Assert.Contains("semanticError.dfy", diagnostics[0].Message);
   }
 
