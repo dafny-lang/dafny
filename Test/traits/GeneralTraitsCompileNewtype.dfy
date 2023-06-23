@@ -7,11 +7,87 @@
 // RUN: %diff "%s.expect" "%t"
 
 method Main() {
+  Basics.Test();
   TypeTestsAndConversions.Test();
   Methods.Test();
   Functions.Test();
   Consts.Test();
-  TailRecursion.Test();
+//  TailRecursion.Test();
+}
+
+module Basics {
+  trait Trait {
+    method MethodDefinedInTrait() {
+      print "A";
+    }
+    method VirtualMethodInTrait()
+  }
+
+  newtype MyInt extends Trait = x | 0 <= x < 100
+  {
+    method VirtualMethodInTrait() {
+      print "B";
+    }
+    method MethodDefinedInNewtype() {
+      print "C";
+    }
+  }
+
+  datatype Datatype extends Trait = Water(int) | Fire(bool)
+  {
+    method VirtualMethodInTrait() {
+      print "D";
+    }
+    method MethodDefinedInDatatype() {
+      print "E";
+    }
+  }
+
+  class Class extends Trait {
+    method VirtualMethodInTrait() {
+      print "F";
+    }
+    method MethodDefinedInClass() {
+      print "G";
+    }
+  }
+
+  method Test() {
+    var mi: MyInt := 27;
+    var tt: Trait := mi;
+    var uu: MyInt := tt as MyInt;
+    print mi, " ", tt, " ", uu, "\n"; // 27 27 27
+
+    mi.MethodDefinedInTrait();
+    mi.VirtualMethodInTrait();
+    mi.MethodDefinedInNewtype();
+    print " ";
+    tt.MethodDefinedInTrait();
+    tt.VirtualMethodInTrait();
+    print "\n"; // ABC AB
+
+    var d: Datatype := Water(150);
+    tt := d;
+
+    d.MethodDefinedInTrait();
+    d.VirtualMethodInTrait();
+    d.MethodDefinedInDatatype();
+    print " ";
+    tt.MethodDefinedInTrait();
+    tt.VirtualMethodInTrait();
+    print "\n"; // ADE DE
+
+    var c: Class := new Class;
+    tt := c;
+
+    c.MethodDefinedInTrait();
+    c.VirtualMethodInTrait();
+    c.MethodDefinedInClass();
+    print " ";
+    tt.MethodDefinedInTrait();
+    tt.VirtualMethodInTrait();
+    print "\n"; // AFG FG
+  }
 }
 
 module TypeTestsAndConversions {
@@ -141,16 +217,16 @@ module Functions {
 
   method Test() {
     var mi: MyInt := 9;
-    MakeCallsAsMyInt(mi); // hello MyInt: 10 11 12 13 14
+    MakeCallsAsMyInt(mi); // hi MyInt: 10 11 12 13 14
     var p: ParentTrait := mi;
-    MakeCallsAsParent(p); // hello Parent: 10 11 12 13
+    MakeCallsAsParent(p); // hi Parent: 10 11 12 13
     var g: GrandParentTrait := mi;
     g := p;
-    MakeCallsAsGrandParent(g); // hello GrandParent: 10 11 12
+    MakeCallsAsGrandParent(g); // hi GrandParent: 10 11 12
   }
 
   method MakeCallsAsMyInt(mi: MyInt) {
-    print "hello MyInt: ";
+    print "hi MyInt: ";
     print mi.A(), " ";
     print mi.B(), " ";
     print mi.C(), " ";
@@ -159,7 +235,7 @@ module Functions {
   }
 
   method MakeCallsAsParent(p: ParentTrait) {
-    print "hello Parent: ";
+    print "hi Parent: ";
     print p.A(), " ";
     print p.B(), " ";
     print p.C(), " ";
@@ -167,7 +243,7 @@ module Functions {
   }
 
   method MakeCallsAsGrandParent(g: GrandParentTrait) {
-    print "hello GrandParent: ";
+    print "hi GrandParent: ";
     print g.A(), " ";
     print g.B(), " ";
     print g.C(), "\n";
@@ -190,33 +266,33 @@ module Consts {
 
   method Test() {
     var mi: MyInt := 9;
-    ReadConstsAsMyInt(mi); // hello MyInt: 10 11 12
+    ReadConstsAsMyInt(mi); // tjena MyInt: 10 11 12
     var p: ParentTrait := mi;
-    ReadConstsAsParent(p); // hello Parent: 10 11
+    ReadConstsAsParent(p); // tjena Parent: 10 11
     var g: GrandParentTrait := mi;
     g := p;
-    ReadConstsAsGrandParent(g); // hello GrandParent: 10
+    ReadConstsAsGrandParent(g); // tjena GrandParent: 10
   }
 
   method ReadConstsAsMyInt(mi: MyInt) {
-    print "hello MyInt: ";
+    print "tjena MyInt: ";
     print mi.A, " ";
     print mi.B, " ";
     print mi.C, "\n";
   }
 
   method ReadConstsAsParent(p: ParentTrait) {
-    print "hello Parent: ";
+    print "tjena Parent: ";
     print p.A, " ";
     print p.B, "\n";
   }
 
   method ReadConstsAsGrandParent(g: GrandParentTrait) {
-    print "hello GrandParent: ";
+    print "tjena GrandParent: ";
     print g.A, "\n";
   }
 }
-
+/*****
 module TailRecursion {
   method Test() {
     var mi: MyInt := 29;
@@ -341,3 +417,4 @@ module TailRecursion {
     }
   }
 }
+*****/

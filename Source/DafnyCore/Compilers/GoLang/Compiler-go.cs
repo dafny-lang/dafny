@@ -3573,10 +3573,23 @@ namespace Microsoft.Dafny.Compilers {
       return Type.SameHead(type1, type2) || (type1.IsArrayType && type1.IsArrayType);
     }
 
-    protected override ConcreteSyntaxTree UnboxNewtypeValue(ConcreteSyntaxTree wr) {
-      var w = wr.ForkInParens();
-      wr.Write($"._value");
-      return w;
+    protected override ConcreteSyntaxTree FromFatPointer(Type type, ConcreteSyntaxTree wr) {
+      if (type.HasFatPointer) {
+        var w = wr.ForkInParens();
+        wr.Write("._value");
+        return w;
+      } else {
+        return wr;
+      }
+    }
+
+    protected override ConcreteSyntaxTree ToFatPointer(Type type, ConcreteSyntaxTree wr) {
+      if (type.HasFatPointer) {
+        wr.Write(TypeName_Initializer(type, wr, type.AsNewtype.tok));
+        return wr.ForkInParens();
+      } else {
+        return wr;
+      }
     }
 
     protected override ConcreteSyntaxTree EmitCoercionIfNecessary(Type/*?*/ from, Type/*?*/ to, IToken tok, ConcreteSyntaxTree wr) {
@@ -3585,14 +3598,13 @@ namespace Microsoft.Dafny.Compilers {
       }
 
       if (from != null && from.IsTraitType && to.AsNewtype != null) {
-        wr = UnboxNewtypeValue(wr);
+        wr = FromFatPointer(to, wr);
         var w = wr.ForkInParens();
         wr.Write($".(*{UserDefinedTypeName(to.AsNewtype, true)})");
         return w;
       }
       if (from != null && from.AsNewtype != null && to.IsTraitType && (enclosingMethod != null || enclosingFunction != null)) {
-        wr.Write(TypeName_Initializer(from, wr, tok));
-        return wr.ForkInParens();
+        return ToFatPointer(from, wr);
       }
 
       from = from == null ? null : DatatypeWrapperEraser.SimplifyType(Options, from);

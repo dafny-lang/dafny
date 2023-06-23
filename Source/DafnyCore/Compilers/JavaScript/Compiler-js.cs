@@ -1957,21 +1957,23 @@ namespace Microsoft.Dafny.Compilers {
       return w;
     }
 
-    protected override ConcreteSyntaxTree UnboxNewtypeValue(ConcreteSyntaxTree wr) {
-      var w = wr.ForkInParens();
-      wr.Write("._value");
-      return w;
+    protected override ConcreteSyntaxTree FromFatPointer(Type type, ConcreteSyntaxTree wr) {
+      if (type.HasFatPointer) {
+        var w = wr.ForkInParens();
+        wr.Write("._value");
+        return w;
+      } else {
+        return wr;
+      }
     }
 
-    protected override ConcreteSyntaxTree EmitCoercionIfNecessary(Type @from, Type to, IToken tok, ConcreteSyntaxTree wr) {
-      if (from != null && to != null && from.IsTraitType && to.AsNewtype != null) {
-        return UnboxNewtypeValue(wr);
-      }
-      if (from != null && to != null && from.AsNewtype != null && to.IsTraitType && (enclosingMethod != null || enclosingFunction != null)) {
-        wr.Write($"new {from.AsNewtype.GetFullCompileName(Options)}");
+    protected override ConcreteSyntaxTree ToFatPointer(Type type, ConcreteSyntaxTree wr) {
+      if (type.HasFatPointer) {
+        wr.Write($"new {type.AsNewtype.GetFullCompileName(Options)}");
         return wr.ForkInParens();
+      } else {
+        return wr;
       }
-      return base.EmitCoercionIfNecessary(@from, to, tok, wr);
     }
 
     protected override void EmitUnaryExpr(ResolvedUnaryOp op, Expression expr, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {

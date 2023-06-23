@@ -752,6 +752,12 @@ namespace Microsoft.Dafny.Compilers {
     ///   (b) there's static typing but no parametric polymorphism (like Go) so that lots of things need to be boxed and unboxed.
     /// </summary>
     protected virtual ConcreteSyntaxTree EmitCoercionIfNecessary(Type/*?*/ from, Type/*?*/ to, IToken tok, ConcreteSyntaxTree wr) {
+      if (from != null && to != null && from.IsTraitType && to.AsNewtype != null) {
+        return FromFatPointer(to, wr);
+      }
+      if (from != null && to != null && from.AsNewtype != null && to.IsTraitType && (enclosingMethod != null || enclosingFunction != null)) {
+        return ToFatPointer(from, wr);
+      }
       return wr;
     }
 
@@ -779,7 +785,23 @@ namespace Microsoft.Dafny.Compilers {
       return wr;
     }
 
-    protected virtual ConcreteSyntaxTree UnboxNewtypeValue(ConcreteSyntaxTree wr) {
+    /// <summary>
+    /// Change from the fat-pointer representation of "type" to the ordinary representation of "type".
+    /// If these are the same, acts as the identity.
+    /// Note, the two representations are different only for newtypes, and only for newtypes that
+    /// extend a trait, see Type.HasFatPointer.
+    /// </summary>
+    protected virtual ConcreteSyntaxTree FromFatPointer(Type type, ConcreteSyntaxTree wr) {
+      return wr;
+    }
+
+    /// <summary>
+    /// Change from the ordinary representation of "type" to the fat-pointer representation of "type".
+    /// If these are the same, acts as the identity.
+    /// Note, the two representations are different only for newtypes, and only for newtypes that
+    /// extend a trait, see Type.HasFatPointer.
+    /// </summary>
+    protected virtual ConcreteSyntaxTree ToFatPointer(Type type, ConcreteSyntaxTree wr) {
       return wr;
     }
 
@@ -1922,13 +1944,13 @@ namespace Microsoft.Dafny.Compilers {
             if (!Attributes.Contains(fn.Attributes, "extern")) {
               Contract.Assert(fn.Body != null);
               var w = classWriter.CreateFunction(IdName(fn), CombineAllTypeArguments(fn), fn.Formals, fn.ResultType, fn.tok, fn.IsStatic, true, fn, true, false);
-              EmitCallToInheritedFunction(fn, false, w);
+              EmitCallToInheritedFunction(fn, null, w);
             }
           } else if (member is Method method) {
             if (!Attributes.Contains(method.Attributes, "extern")) {
               Contract.Assert(method.Body != null);
               var w = classWriter.CreateMethod(method, CombineAllTypeArguments(member), true, true, false);
-              EmitCallToInheritedMethod(method, false, w);
+              EmitCallToInheritedMethod(method, null, w);
             }
           } else {
             Contract.Assert(false);  // unexpected member
@@ -2054,7 +2076,7 @@ namespace Microsoft.Dafny.Compilers {
             CompileFunction(f, classWriter, false);
             var w = classWriter.CreateFunction(IdName(f), CombineAllTypeArguments(f), f.Formals, f.ResultType, f.tok,
               false, true, f, true, false);
-            EmitCallToInheritedFunction(f, true, w);
+            EmitCallToInheritedFunction(f, c, w);
           } else {
             CompileFunction(f, classWriter, false);
           }
@@ -2093,7 +2115,7 @@ namespace Microsoft.Dafny.Compilers {
           } else if (c is NewtypeDecl && m != m.Original) {
             CompileMethod(program, m, classWriter, false);
             var w = classWriter.CreateMethod(m, CombineAllTypeArguments(member), true, true, false);
-            EmitCallToInheritedMethod(m, true, w);
+            EmitCallToInheritedMethod(m, c, w);
           } else {
             CompileMethod(program, m, classWriter, false);
           }
@@ -2169,7 +2191,11 @@ namespace Microsoft.Dafny.Compilers {
       wr.Write(")");
     }
 
-    protected void EmitCallToInheritedFunction(Function f, bool unboxReceiver, ConcreteSyntaxTree wr) {
+    /// <summary>
+    /// "heir" is the type declaration that inherits the function. Or, it can be "null" to indicate that the function is declared in
+    /// the type itself, in which case the "call to inherited" is actually a call from the dynamically dispatched function to its implementation.
+    /// </summary>
+    protected void EmitCallToInheritedFunction(Function f, [CanBeNull] TopLevelDeclWithMembers heir, ConcreteSyntaxTree wr) {
       Contract.Requires(f != null);
       Contract.Requires(!f.IsStatic);
       Contract.Requires(f.EnclosingClass is TraitDecl);
@@ -2202,7 +2228,7 @@ namespace Microsoft.Dafny.Compilers {
 
       wr.Write(sep);
       var w = EmitCoercionIfNecessary(UserDefinedType.FromTopLevelDecl(f.tok, thisContext), calleeReceiverType, f.tok, wr);
-      EmitThis(unboxReceiver ? UnboxNewtypeValue(w) : w, true);
+      EmitThis(heir != null ? FromFatPointer(UserDefinedType.FromTopLevelDecl(f.tok, heir), w) : w, true);
       sep = ", ";
 
       for (int j = 0, l = 0; j < f.Formals.Count; j++) {
@@ -2218,7 +2244,11 @@ namespace Microsoft.Dafny.Compilers {
       wr.Write(")");
     }
 
-    protected void EmitCallToInheritedMethod(Method method, bool unboxReceiver, ConcreteSyntaxTree wr) {
+    /// <summary>
+    /// "heir" is the type declaration that inherits the method. Or, it can be "null" to indicate that the method is declared in
+    /// the type itself, in which case the "call to inherited" is actually a call from the dynamically dispatched method to its implementation.
+    /// </summary>
+    protected void EmitCallToInheritedMethod(Method method, [CanBeNull] TopLevelDeclWithMembers heir, ConcreteSyntaxTree wr) {
       Contract.Requires(method != null);
       Contract.Requires(!method.IsStatic);
       Contract.Requires(method.EnclosingClass is TraitDecl);
@@ -2264,7 +2294,7 @@ namespace Microsoft.Dafny.Compilers {
 
       wr.Write(sep);
       var w = EmitCoercionIfNecessary(UserDefinedType.FromTopLevelDecl(method.tok, thisContext), calleeReceiverType, method.tok, wr);
-      EmitThis(unboxReceiver ? UnboxNewtypeValue(w) : w, true);
+      EmitThis(heir != null ? FromFatPointer(UserDefinedType.FromTopLevelDecl(method.tok, heir), w) : w, true);
       sep = ", ";
 
       for (int j = 0, l = 0; j < method.Ins.Count; j++) {
