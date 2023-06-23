@@ -1,2 +1,0 @@
-JMH S 31 me.champeau.jmh.SampleBenchmark S 64 me.champeau.jmh.jmh_generated.SampleBenchmark_fibClassic_jmhTest S 10 fibClassic S 10 Throughput E A 1 1 1 E E E E E E E E E E E E E E E E E 
-JMH S 31 me.champeau.jmh.SampleBenchmark S 64 me.champeau.jmh.jmh_generated.SampleBenchmark_fibTailRec_jmhTest S 10 fibTailRec S 10 Throughput E A 1 1 1 E E E E E E E E E E E E E E E E E 
