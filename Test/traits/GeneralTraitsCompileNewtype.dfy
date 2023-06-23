@@ -113,7 +113,7 @@ module TypeTestsAndConversions {
     var x: MyInt := p as MyInt;
     var x': MyInt := g as MyInt;
     var x'': MyInt := mi as MyInt;
-  // TODO (for the verifier):  assert x == x' == x'' == x == mi == p == g == w == x;
+    assert x == x' == x'' == x == mi == p == g == w == x;
 
     print mi, " ", p, " ", g, " -- ", x, " ", x', " ", x'', "\n"; // 15 15 15 -- 15 15 15
   }
