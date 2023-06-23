@@ -345,6 +345,7 @@ public class RemoveShortCircuitingCloner : Cloner {
         var stmtBlockUpdate = new BlockStmt(new RangeToken(stmtExpr.S.StartToken, stmtExpr.E.EndToken), new List<Statement>());
         stmtBlockUpdate.Body.Add(stmtExpr.S);
         stmtBlockUpdate.Body.Add(updateStmt);
+        newStmts.Add(stmtBlockUpdate);
         return identifierExpr;
       case NestedMatchExpr matchExpr:
         newStmts.Add(varDecl);

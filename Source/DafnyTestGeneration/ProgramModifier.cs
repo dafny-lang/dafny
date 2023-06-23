@@ -32,7 +32,6 @@ namespace DafnyTestGeneration {
       DafnyInfo dafnyInfo) {
       DafnyInfo = dafnyInfo;
       var options = dafnyInfo.Options;
-      program = new RemoveChecks(options).VisitProgram(program);
       var engine = ExecutionEngine.CreateWithoutSharedCache(options);
       engine.CoalesceBlocks(program); // removes redundant basic blocks
       program = new AnnotationVisitor(this, options).VisitProgram(program);
@@ -44,6 +43,7 @@ namespace DafnyTestGeneration {
       engine.CollectModSets(program);
       engine.Inline(program);
       program.RemoveTopLevelDeclarations(declaration => declaration is Implementation or Procedure && Utils.DeclarationHasAttribute(declaration, "inline"));
+      program = new RemoveChecks(options).VisitProgram(program);
       if (options.TestGenOptions.PrintBpl != null) {
         File.WriteAllText(options.TestGenOptions.PrintBpl,
           Utils.GetStringRepresentation(options, program));
