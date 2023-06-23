@@ -372,10 +372,10 @@ public class CompilationManager {
       return ResolvedCompilation;
     }, TaskScheduler.Current).Unwrap();
 
-  public async Task<TextEditContainer?> GetTextEditToFormatCode() {
+  public async Task<TextEditContainer?> GetTextEditToFormatCode(Uri uri) {
     // TODO https://github.com/dafny-lang/dafny/issues/3416
     var parsedDocument = await ResolvedCompilation;
-    if (parsedDocument.AllFileDiagnostics.Any(diagnostic =>
+    if (parsedDocument.GetDiagnostics(uri).Any(diagnostic =>
           diagnostic.Level == ErrorLevel.Error &&
           diagnostic.Source == MessageSource.Parser
         )) {

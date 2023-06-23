@@ -148,7 +148,6 @@ module A {
     }
     var documentItem = CreateTestDocument(source);
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-    var verificationDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
     CompilationAfterParsing compilation = await Documents.GetLastDocumentAsync(documentItem);
     var edits = await RequestFormattingAsync(documentItem);
     edits.Reverse();

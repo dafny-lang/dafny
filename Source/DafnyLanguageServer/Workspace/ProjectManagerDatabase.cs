@@ -44,9 +44,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     public static DafnyProject ImplicitProject(TextDocumentIdentifier documentItem) {
       var implicitProject = new DafnyProject {
-        Includes = new[] {
-          documentItem.Uri.GetFileSystemPath()
-        },
+        Includes = Array.Empty<string>(),
         Uri = documentItem.Uri.ToUri(),
         UnsavedRootFile = documentItem.Uri.ToUri()
       };
