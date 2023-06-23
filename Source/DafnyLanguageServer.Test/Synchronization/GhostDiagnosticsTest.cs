@@ -64,7 +64,6 @@ class C {
       var report = await ghostnessReceiver.AwaitNextNotificationAsync(CancellationToken);
       var diagnostics = report.Diagnostics.ToArray();
       Assert.Single(diagnostics);
-      Assert.Equal("Ghost statement", diagnostics[0].Message);
       Assert.Equal(new Range((7, 4), (7, 15)), diagnostics[0].Range);
     }
 
@@ -93,7 +92,6 @@ class C {
       var report = await ghostnessReceiver.AwaitNextNotificationAsync(CancellationToken);
       var diagnostics = report.Diagnostics.ToArray();
       Assert.Single(diagnostics);
-      Assert.Equal("Ghost statement", diagnostics[0].Message);
       Assert.Equal(new Range((7, 4), (9, 5)), diagnostics[0].Range);
     }
 
@@ -120,7 +118,6 @@ class C {
       var report = await ghostnessReceiver.AwaitNextNotificationAsync(CancellationToken);
       var diagnostics = report.Diagnostics.ToArray();
       Assert.Single(diagnostics);
-      Assert.Equal("Ghost statement", diagnostics[0].Message);
       Assert.Equal(new Range((7, 4), (7, 11)), diagnostics[0].Range);
     }
 
@@ -147,7 +144,6 @@ class C {
       var report = await ghostnessReceiver.AwaitNextNotificationAsync(CancellationToken);
       var diagnostics = report.Diagnostics.ToArray();
       Assert.Single(diagnostics);
-      Assert.Equal("Ghost statement", diagnostics[0].Message);
       Assert.Equal(new Range((7, 4), (7, 14)), diagnostics[0].Range);
     }
 
@@ -184,13 +180,9 @@ class C {
         .OrderBy(diagnostic => diagnostic.Range.Start)
         .ToArray();
       Assert.Equal(4, diagnostics.Length);
-      Assert.Equal("Ghost statement", diagnostics[0].Message);
       Assert.Equal(new Range((7, 4), (7, 15)), diagnostics[0].Range);
-      Assert.Equal("Ghost statement", diagnostics[1].Message);
       Assert.Equal(new Range((9, 4), (11, 5)), diagnostics[1].Range);
-      Assert.Equal("Ghost statement", diagnostics[2].Message);
       Assert.Equal(new Range((13, 4), (13, 11)), diagnostics[2].Range);
-      Assert.Equal("Ghost statement", diagnostics[3].Message);
       Assert.Equal(new Range((15, 4), (15, 14)), diagnostics[3].Range);
     }
 

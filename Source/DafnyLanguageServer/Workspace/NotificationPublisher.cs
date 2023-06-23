@@ -151,7 +151,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     private void PublishGhostDiagnostics(IdeState previousState, IdeState state) {
 
       var newParams = state.GhostRanges;
-      var previousParams = state.GhostRanges;
+      var previousParams = previousState.GhostRanges;
       foreach (var (uri, current) in newParams) {
         if (previousParams.TryGetValue(uri, out var previous)) {
           if (previous.SequenceEqual(current)) {

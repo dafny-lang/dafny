@@ -39,10 +39,11 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         return ImmutableDictionary<Uri, IReadOnlyList<Range>>.Empty; // TODO improve?
       }
       try {
-        var visitor = new GhostStateSyntaxTreeVisitor(signatureAndCompletionTable.CompilationUnit, cancellationToken);
+        var visitor = new GhostStateSyntaxTreeVisitor(cancellationToken);
         visitor.Visit(signatureAndCompletionTable.CompilationUnit.Program);
-        throw new Exception();
-        // return visitor.GhostDiagnostics;
+        return visitor.GhostDiagnostics.ToDictionary(
+          kv => kv.Key, 
+          kv => (IReadOnlyList<Range>)kv.Value);
       } catch (Exception e) {
         logger.LogDebug(e, "encountered an exception while getting ghost state diagnostics of {Name}", signatureAndCompletionTable.CompilationUnit.Name);
         return ImmutableDictionary<Uri, IReadOnlyList<Range>>.Empty;
@@ -50,13 +51,11 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     }
 
     private class GhostStateSyntaxTreeVisitor : SyntaxTreeVisitor {
-      private readonly CompilationUnit compilationUnit;
       private readonly CancellationToken cancellationToken;
 
-      public List<Diagnostic> GhostDiagnostics { get; } = new();
+      public Dictionary<Uri, List<Range>> GhostDiagnostics { get; } = new();
 
-      public GhostStateSyntaxTreeVisitor(CompilationUnit compilationUnit, CancellationToken cancellationToken) {
-        this.compilationUnit = compilationUnit;
+      public GhostStateSyntaxTreeVisitor(CancellationToken cancellationToken) {
         this.cancellationToken = cancellationToken;
       }
 
@@ -65,20 +64,15 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       public override void Visit(Statement statement) {
         cancellationToken.ThrowIfCancellationRequested();
         if (IsGhostStatementToMark(statement)) {
-          GhostDiagnostics.Add(CreateGhostDiagnostic(GetRange(statement)));
+          var list = GhostDiagnostics.GetOrCreate(statement.Tok.Uri, () => new List<Range>());
+          list.Add(GetRange(statement));
         } else {
           base.Visit(statement);
         }
       }
 
       private bool IsGhostStatementToMark(Statement statement) {
-        return statement.IsGhost
-          && IsPartOfEntryDocumentAndNoMetadata(statement.Tok);
-      }
-
-
-      private bool IsPartOfEntryDocumentAndNoMetadata(IToken token) {
-        return token.line > 0 && compilationUnit.IsPartOfEntryDocument(token);
+        return statement.IsGhost && statement.Tok.line > 0;
       }
 
       private static Range GetRange(Statement statement) {
