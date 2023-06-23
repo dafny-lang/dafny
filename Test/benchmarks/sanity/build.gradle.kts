@@ -40,3 +40,14 @@ jmh {
     fork.set(2)
     threads.set(10)
 }
+
+/*
+
+To actually generate and run the benchmark:
+
+dafny translate java src/benchmark/dafny/SequenceRace.dfy --plugin:../../../Binaries/net6.0/DafnyBenchmarkingPlugin.dll
+mv src/benchmark/dafny/SequenceRace-java src/jmh/java
+gradle jmh
+
+This exposes https://github.com/dafny-lang/dafny/issues/1454 100% of the time based on a few local runs.
+ */
