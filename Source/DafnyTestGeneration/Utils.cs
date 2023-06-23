@@ -91,7 +91,7 @@ namespace DafnyTestGeneration {
 
       // Substitute function methods with function-by-methods
       new AddByMethodRewriter(new ConsoleErrorReporter(options)).PreResolve(program);
-      new Resolver(program).ResolveProgram(program, CancellationToken.None);
+      new ProgramResolver(program).Resolve(CancellationToken.None);
       return program;
     }
 

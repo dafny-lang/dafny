@@ -13,6 +13,8 @@ public class IdentifierExpr : Expression, IHasUsages, ICloneable<IdentifierExpr>
   public readonly string Name;
   [FilledInDuringResolution] public IVariable Var;
 
+  public string DafnyName => tok.line > 0 ? RangeToken.PrintOriginal() : Name;
+
   public IdentifierExpr(IToken tok, string name)
     : base(tok) {
     Contract.Requires(tok != null);

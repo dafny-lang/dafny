@@ -56,11 +56,11 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
     public static Program GetEmptyProgram(DafnyOptions options, VersionedTextDocumentIdentifier documentIdentifier) {
       var outerModule = new DefaultModuleDefinition(new List<Uri>() { documentIdentifier.Uri.ToUri() }, false);
       var errorReporter = new DiagnosticErrorReporter(options, documentIdentifier.Uri);
-      var compilation = new CompilationData(options, new List<Include>(), new List<Uri>(), Sets.Empty<Uri>(),
+      var compilation = new CompilationData(errorReporter, new List<Include>(), new List<Uri>(), Sets.Empty<Uri>(),
         Sets.Empty<Uri>());
       var emptyProgram = new Program(
         documentIdentifier.Uri.ToString(),
-        new LiteralModuleDecl(outerModule, null),
+        new LiteralModuleDecl(outerModule, null, Guid.NewGuid()),
         // BuiltIns cannot be initialized without Type.ResetScopes() before.
         new SystemModuleManager(options), // TODO creating a BuiltIns is a heavy operation
         errorReporter, compilation

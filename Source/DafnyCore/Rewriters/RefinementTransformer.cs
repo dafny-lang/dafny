@@ -180,7 +180,7 @@ namespace Microsoft.Dafny {
     private Queue<Action> postTasks = new Queue<Action>();  // empty whenever moduleUnderConstruction==null, these tasks are for the post-resolve phase of module moduleUnderConstruction
     public Queue<Tuple<Method, Method>> translationMethodChecks = new Queue<Tuple<Method, Method>>();  // contains all the methods that need to be checked for structural refinement.
     private Method currentMethod;
-    public ModuleSignature RefinedSig;  // the intention is to use this field only after a successful PreResolve
+    private ModuleSignature RefinedSig;  // the intention is to use this field only after a successful PreResolve
     private ModuleSignature refinedSigOpened;
 
     internal override void PreResolve(ModuleDefinition m) {
@@ -235,7 +235,7 @@ namespace Microsoft.Dafny {
 
       //copy the signature, including its opened imports
       refinedSigOpened = Resolver.MergeSignature(new ModuleSignature(), RefinedSig);
-      Resolver.ResolveOpenedImports(refinedSigOpened, module.RefinementQId.Def, null);
+      Resolver.ResolveOpenedImports(refinedSigOpened, module.RefinementQId.Def, Reporter, null);
 
       // Create a simple name-to-decl dictionary.  Ignore any duplicates at this time.
       var declaredNames = new Dictionary<string, IPointer<TopLevelDecl>>();
@@ -1716,7 +1716,8 @@ namespace Microsoft.Dafny {
         // refining module, retain its name but not be default, unless the refining module has the same name
         ModuleExportDecl dex = d as ModuleExportDecl;
         if (dex.IsDefault && d.Name != newParent.Name) {
-          ddex = new ModuleExportDecl(dex.RangeToken, d.NameNode, newParent, dex.Exports, dex.Extends, dex.ProvideAll, dex.RevealAll, false, true);
+          ddex = new ModuleExportDecl(dex.RangeToken, d.NameNode, newParent, dex.Exports, dex.Extends,
+            dex.ProvideAll, dex.RevealAll, false, true, Guid.NewGuid());
         }
         ddex.SetupDefaultSignature();
         dd = ddex;

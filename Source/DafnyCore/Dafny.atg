@@ -189,7 +189,7 @@ public Parser(DafnyOptions options, Scanner/*!*/ scanner, Errors/*!*/ errors)
   var dummyBlockStmt = new BlockStmt(Token.NoToken.ToRange(), new List<Statement>());
   dummyIfStmt = new IfStmt(Token.NoToken.ToRange(), false, null, dummyBlockStmt, null);
   
-  theModule = new FileModuleDefinition();
+  theModule = new FileModuleDefinition(scanner.FirstToken);
   theOptions = new DafnyOptions(options);
 }
 
@@ -980,15 +980,35 @@ TopDecl<. ModuleDefinition module, bool isTopLevel, bool isAbstract .>
                                                     var prefixModule = new PrefixNameModule(litmod.ModuleDef.PrefixIds, litmod);
                                                     module.PrefixNamedModules.Add(prefixModule);
                                                   } else {
-                                                    module.SourceDecls.Add(submodule);
+                                                    if (submodule != null) {
+                                                      module.SourceDecls.Add(submodule);
+                                                    }
                                                   }
                                                .)
-  | ClassDecl<dmod, module, out td>            (. module.SourceDecls.Add(td); .)
-  | DatatypeDecl<dmod, module, out dt>         (. module.SourceDecls.Add(dt); .)
-  | NewtypeDecl<dmod, module, out td>          (. module.SourceDecls.Add(td); .)
-  | SynonymTypeDecl<dmod, module, out td>      (. module.SourceDecls.Add(td); .)
-  | IteratorDecl<dmod, module, out iter>       (. module.SourceDecls.Add(iter); .)
-  | TraitDecl<dmod, module, out trait>         (. module.SourceDecls.Add(trait); .)
+  | ClassDecl<dmod, module, out td>            (. if (td != null) {
+                                                    module.SourceDecls.Add(td);
+                                                  } 
+                                               .)
+  | DatatypeDecl<dmod, module, out dt>         (. if (dt != null) {
+                                                    module.SourceDecls.Add(dt);
+                                                  } 
+                                               .)
+  | NewtypeDecl<dmod, module, out td>          (. if (td != null) {
+                                                    module.SourceDecls.Add(td);
+                                                  } 
+                                               .)
+  | SynonymTypeDecl<dmod, module, out td>      (. if (td != null) {
+                                                    module.SourceDecls.Add(td);
+                                                  } 
+                                               .)
+  | IteratorDecl<dmod, module, out iter>       (. if (iter != null) {
+                                                    module.SourceDecls.Add(iter);
+                                                  } 
+                                               .)
+  | TraitDecl<dmod, module, out trait>         (. if (trait != null) {
+                                                    module.SourceDecls.Add(trait);
+                                                  } 
+                                               .)
   | ClassMemberDecl<dmod, module.DefaultClass.Members, false, true, true> (. module.DefaultClass.SetMembersBeforeResolution(); .)
   )
   .
@@ -1041,7 +1061,7 @@ ModuleDefinition<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl 
     (.
       module.RangeToken = new RangeToken(dmod.FirstToken, t);
       module.TokenWithTrailingDocString = tokenWithTrailingDocString;
-      submodule = new LiteralModuleDecl(module, parent);
+      submodule = new LiteralModuleDecl(module, parent, Guid.NewGuid());
       submodule.RangeToken = module.RangeToken;
       theOptions = dafnyOptionsBackup;
     .)
@@ -1056,22 +1076,22 @@ ModuleImport<ModuleDefinition parent, out ModuleDecl submodule>
                                      .)
     ["opened"                        (. opened = true; .) ]
     (. int lookAhead = scanner.Peek().kind; .)
-    ( IF(lookAhead == _singleeq)
-      ModuleName<out var name>
-      "="
-      QualifiedModuleExport<out var namePath, out idExports>
-          (. submodule = new AliasModuleDecl(new RangeToken(startToken, t), new ModuleQualifiedId(namePath),
-                                         name, parent, opened, idExports); .)
-    | IF(lookAhead == _colon)
+    ( IF(lookAhead == _colon)
       ModuleName<out var name>
       ":"
       QualifiedModuleExport<out var namePath, out idExports>
           (. submodule = new AbstractModuleDecl(new RangeToken(startToken, t), new ModuleQualifiedId(namePath),
-                                         name, parent, opened, idExports); .)
+                                               name, parent, opened, idExports, Guid.NewGuid()); .)
+    | IF(lookAhead == _singleeq)
+      ModuleName<out var name>
+      "="
+      QualifiedModuleExport<out var namePath, out idExports>
+          (. submodule = new AliasModuleDecl(new RangeToken(startToken, t), new ModuleQualifiedId(namePath),
+                                               name, parent, opened, idExports, Guid.NewGuid()); .)
     |
       QualifiedModuleExport<out var namePath, out idExports>
           (. submodule = new AliasModuleDecl(new RangeToken(startToken, t), new ModuleQualifiedId(namePath),
-                                         namePath[^1], parent, opened, idExports);
+                                         namePath[^1], parent, opened, idExports, Guid.NewGuid());
           .)
     )
     .
@@ -1146,7 +1166,7 @@ ModuleExport<ModuleDefinition parent, out ModuleDecl submodule>
      } else {
        name = new Name(exportId);
      }
-     submodule = new ModuleExportDecl(new RangeToken(startToken, t), name, parent, exports, extends, provideAll, revealAll, isDefault, isRefining);
+     submodule = new ModuleExportDecl(new RangeToken(startToken, t), name, parent, exports, extends, provideAll, revealAll, isDefault, isRefining, Guid.NewGuid());
   .)
   // LL Warning: 'least' and 'greatest' are not keywords. They can be the identifier that is the last ExportId of the ModuleExport.
   // Those words can also be the first word of a declaration (e.g. least predicate) that follows the MOduleExport.
