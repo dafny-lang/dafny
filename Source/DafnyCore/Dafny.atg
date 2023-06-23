@@ -326,6 +326,7 @@ private static Dictionary<int, TokenClass> tokenClasses = new Dictionary<int, To
   {_twostate, TokenClass.Modifier},
   {_static, TokenClass.Modifier},
   {_ghost, TokenClass.Modifier},
+  {_opaque, TokenClass.Modifier},
   {_abstract, TokenClass.Modifier},
   {_protected, TokenClass.Modifier},
   {_nameonly, TokenClass.Modifier},
@@ -392,9 +393,16 @@ private static TokenClass ClassifyToken(int kind) {
   throw new ArgumentException($"Unclassified token: {kind}");
 }
 
-public static TokenClass[] TokenClassificationMap =
-  // [0..maxT) covers all tokens; _commentToken is maxT + 1
-  Enumerable.Range(0, _commentToken + 1).Select(kind => ClassifyToken(kind)).ToArray();
+private static TokenClass[] tokenClassificationMap;
+public static TokenClass[] TokenClassificationMap {
+  get {
+    if(tokenClassificationMap == null) {
+      // [0..maxT) covers all tokens; _commentToken is maxT + 1
+      tokenClassificationMap = Enumerable.Range(0, _commentToken + 1).Select(kind => ClassifyToken(kind)).ToArray();
+    }
+    return tokenClassificationMap;
+  }
+}
 
 bool IsIdentifier(int kind) {
   return kind == _ident || kind == _least || kind == _greatest || kind == _older || kind == _opaque;
