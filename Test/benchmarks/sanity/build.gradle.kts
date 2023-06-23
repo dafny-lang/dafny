@@ -19,10 +19,12 @@ plugins {
 }
 
 repositories {
+    mavenLocal()
     mavenCentral()
 }
 
 dependencies {
+    implementation("org.dafny:DafnyRuntime:4.1.0")
     testImplementation("org.junit.jupiter:junit-jupiter-api:5.9.2")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine")
 }
@@ -33,6 +35,8 @@ tasks.test {
 
 jmh {
     warmupIterations.set(2)
-    iterations.set(2)
+    iterations.set(20)
+    timeOnIteration.set("1s")
     fork.set(2)
+    threads.set(10)
 }

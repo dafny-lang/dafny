@@ -1,6 +1,6 @@
 
 
-class SequenceRace {
+class {:benchmark} SequenceRace {
 
   const s: seq<int>
 
@@ -11,7 +11,9 @@ class SequenceRace {
     }
   }
 
-  method {:benchmark} LazyRace() {
+  method LazyRace() {
+    // Using expect means compilers can't optimize calculations away
+    // since they could lead to throwing exceptions
     expect 0 < |s|;
     expect s[0] == 0;
   }
