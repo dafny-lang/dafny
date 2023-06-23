@@ -1,12 +1,15 @@
+
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Data;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using OmniSharp.Extensions.LanguageServer.Protocol.Server;
 using System.Linq;
 using Microsoft.Extensions.Logging;
+using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace {
   public class NotificationPublisher : INotificationPublisher {
@@ -79,18 +82,51 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     private void PublishDocumentDiagnostics(IdeState previousState, IdeState state) {
       var previousStateDiagnostics = previousState.GetDiagnostics();
       var currentDiagnostics = state.GetDiagnostics();
-      var uris = previousStateDiagnostics.Keys.Concat(currentDiagnostics.Keys).Distinct();
-      foreach (var uri in uris) {
-        IEnumerable<Diagnostic> current = currentDiagnostics.GetOrDefault(uri, Enumerable.Empty<Diagnostic>);
-        IEnumerable<Diagnostic> previous = previousStateDiagnostics.GetOrDefault(uri, Enumerable.Empty<Diagnostic>);
-        if (previous.SequenceEqual(current)) {
-          continue;
+      var singleFileDiagnostics = state.Compilation.Project.UnsavedRootFile;
+      if (singleFileDiagnostics == null) {
+        var uris = previousStateDiagnostics.Keys.Concat(currentDiagnostics.Keys).Distinct();
+
+        foreach (var uri in uris) {
+          IEnumerable<Diagnostic> current = currentDiagnostics.GetOrDefault(uri, Enumerable.Empty<Diagnostic>);
+          IEnumerable<Diagnostic> previous = previousStateDiagnostics.GetOrDefault(uri, Enumerable.Empty<Diagnostic>);
+          if (previous.SequenceEqual(current)) {
+            continue;
+          }
+
+          languageServer.TextDocument.PublishDiagnostics(new PublishDiagnosticsParams {
+            Uri = uri,
+            Version = filesystem.GetVersion(uri),
+            Diagnostics = current.ToList(),
+          });
         }
-        languageServer.TextDocument.PublishDiagnostics(new PublishDiagnosticsParams {
-          Uri = uri,
-          Version = filesystem.GetVersion(uri),
-          Diagnostics = current.ToList(),
-        });
+      } else {
+          var diagnostics = new List<Diagnostic>();
+          foreach(var (key, value) in currentDiagnostics)
+          {
+            if (key == singleFileDiagnostics) {
+              diagnostics.AddRange(value);
+            } else {
+              if (value.Any()) {
+                var containsErrorSTheFirstOneIs =
+                  $"the referenced file {key.LocalPath} contains error(s). The first one is: {value.First().Message}";
+                var diagnostic = new Diagnostic() {
+                  Range = new Range(0, 0, 0, 1),
+                  Message = containsErrorSTheFirstOneIs,
+                  Severity = DiagnosticSeverity.Error,
+                  Source = MessageSource.Parser.ToString()
+                };
+                diagnostics.Add(diagnostic);
+              }
+            }
+          }
+          IEnumerable<Diagnostic> previous = previousStateDiagnostics.GetOrDefault(singleFileDiagnostics, Enumerable.Empty<Diagnostic>);
+          if (!previous.SequenceEqual(diagnostics)) {
+            languageServer.TextDocument.PublishDiagnostics(new PublishDiagnosticsParams {
+              Uri = singleFileDiagnostics,
+              Version = filesystem.GetVersion(singleFileDiagnostics),
+              Diagnostics = diagnostics,
+            });
+          }
       }
     }
 

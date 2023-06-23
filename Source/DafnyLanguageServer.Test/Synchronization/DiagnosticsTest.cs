@@ -580,7 +580,7 @@ method Multiply(x: int, y: int) returns (product: int
       Assert.Single(diagnostics);
       Assert.Equal("Parser", diagnostics[0].Source);
       Assert.Equal(DiagnosticSeverity.Error, diagnostics[0].Severity);
-      Assert.Equal(new Range((0, 0), (0, 7)), diagnostics[0].Range);
+      Assert.Equal(new Range((0, 0), (0, 1)), diagnostics[0].Range);
       await AssertNoDiagnosticsAreComing(CancellationToken);
     }
 
@@ -609,7 +609,7 @@ module ModC {
       Assert.Single(diagnostics);
       Assert.Equal("Parser", diagnostics[0].Source);
       Assert.Equal(DiagnosticSeverity.Error, diagnostics[0].Severity);
-      Assert.Equal(new Range((0, 0), (0, 7)), diagnostics[0].Range);
+      Assert.Equal(new Range((0, 0), (0, 1)), diagnostics[0].Range);
       await AssertNoDiagnosticsAreComing(CancellationToken);
     }
 
