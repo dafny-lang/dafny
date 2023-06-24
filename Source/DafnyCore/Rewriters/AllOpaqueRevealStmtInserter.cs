@@ -10,13 +10,25 @@ public class AllOpaqueRevealStmtInserter : IRewriter {
   internal override void PostResolveIntermediate(ModuleDefinition moduleDefinition) {
     Contract.Requires(moduleDefinition != null);
 
-    foreach (var decl in ModuleDefinition.AllCallables(moduleDefinition.TopLevelDecls)) {
-      if (decl is Method { Body: not null } method && decl.WhatKind != "lemma") {
-        AddMethodReveals(method);
+    // foreach (var decl in ModuleDefinition.AllCallables(moduleDefinition.TopLevelDecls)) {
+    foreach (var decl in moduleDefinition.TopLevelDecls) {
+      if (decl is TopLevelDeclWithMembers cl) {
+        foreach (var member in cl.Members.Where(member => member is ICallable and not ConstantField)) {
+          var mem = (ICallable)member;
+          if (member is Function { ByMethodDecl: { } } f) {
+            mem = f.ByMethodDecl;
+          }
+          
+          if (mem is Method { Body: not null } method) {
+            AddMethodReveals(method);
+          }
+          else if (mem is Function { Body: not null } func) {
+            AddFunctionReveals(func);
+          }
+        }
       }
-      else if (decl is Function { Body: not null } func) {
-        AddFunctionReveals(func);
-      }
+      
+      
     }
   }
 
@@ -30,42 +42,101 @@ public class AllOpaqueRevealStmtInserter : IRewriter {
     if (vertex is null) {
       return;
     }  //vertex can be null if m is a Test method.
-    foreach (var callable in vertex.Successors.Select(iCallable => iCallable.N))
-    {
-      if (callable is Function { IsOpaque: false } func) {
-        var revealStmt = BuildRevealStmt(func, currentClass, m.Tok);
+    
+    var visited = new HashSet<Graph<ICallable>.Vertex>();
+    var queue = new Queue<Graph<ICallable>.Vertex>();
 
-        if (revealStmt is not null) {
-          m.Body.Body.Insert(0, revealStmt);
+    foreach (var callable in vertex.Successors) {
+      queue.Enqueue(callable);
+    }
+
+    while (queue.Any()) {
+      var newVertex = queue.Dequeue();
+      if (!visited.Contains(newVertex)) {
+        foreach (var vertex0 in newVertex.Successors) {
+          queue.Enqueue(vertex0);
         }
+
+        var callable = newVertex.N;
+        
+        if (callable is Function { IsOpaque: false } func) {
+          var revealStmt = BuildRevealStmt(func, currentClass, m.Tok);
+
+          if (revealStmt is not null) {
+            m.Body.Body.Insert(0, revealStmt);
+          }
+        }
+
+        visited.Add(newVertex);
       }
     }
+    
+    // foreach (var callable in vertex.Successors.Select(iCallable => iCallable.N))
+    // {
+    //   if (callable is Function { IsOpaque: false } func) {
+    //     var revealStmt = BuildRevealStmt(func, currentClass, m.Tok);
+    //
+    //     if (revealStmt is not null) {
+    //       m.Body.Body.Insert(0, revealStmt);
+    //     }
+    //   }
+    // }
   }
 
   private static void AddFunctionReveals(Function f) {
     Contract.Requires(f != null);
 
     var currentClass = f.EnclosingClass;
-    
     var vertex = currentClass.EnclosingModuleDefinition.CallGraph.FindVertex(f);
 
     if (vertex is null) {
       return;
     }  //vertex can be null if m is a Test method.
 
-    foreach (var callable in vertex.Successors.Select(iCallable => iCallable.N)) {
-      if (callable is Function { IsOpaque: false } func) {
-        var origExpr = f.Body;
-        var revealStmt = BuildRevealStmt(func, currentClass, f.Tok);
+    var visited = new HashSet<Graph<ICallable>.Vertex>();
+    var queue = new Queue<Graph<ICallable>.Vertex>();
 
-        if (revealStmt is not null) {
-          var newExpr = new StmtExpr(f.Tok, BuildRevealStmt(func, currentClass, f.Tok), origExpr);
-          newExpr.Type = origExpr.Type;
-          f.Body = newExpr;
+    foreach (var callable in vertex.Successors) {
+      queue.Enqueue(callable);
+    }
+
+    while (queue.Any()) {
+      var newVertex = queue.Dequeue();
+      if (!visited.Contains(newVertex)) {
+        foreach (var vertex0 in newVertex.Successors) {
+          queue.Enqueue(vertex0);
         }
+
+        var callable = newVertex.N;
         
+        if (callable is Function { IsOpaque: false } func) {
+          var origExpr = f.Body;
+          var revealStmt = BuildRevealStmt(func, currentClass, f.Tok);
+
+          if (revealStmt is not null) {
+            var newExpr = new StmtExpr(f.Tok, BuildRevealStmt(func, currentClass, f.Tok), origExpr);
+            newExpr.Type = origExpr.Type;
+            f.Body = newExpr;
+          }
+        }
+
+        visited.Add(newVertex);
       }
     }
+
+    // foreach (var callable in vertex.Successors.Select(iCallable => iCallable.N)) {
+    //   
+    //   if (callable is Function { IsOpaque: false } func) {
+    //     var origExpr = f.Body;
+    //     var revealStmt = BuildRevealStmt(func, currentClass, f.Tok);
+    //
+    //     if (revealStmt is not null) {
+    //       var newExpr = new StmtExpr(f.Tok, BuildRevealStmt(func, currentClass, f.Tok), origExpr);
+    //       newExpr.Type = origExpr.Type;
+    //       f.Body = newExpr;
+    //     }
+    //   }
+    // }
   }
 
   private static RevealStmt BuildRevealStmt(Function callable, TopLevelDecl currentClass, IToken tok) {

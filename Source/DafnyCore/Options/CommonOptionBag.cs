@@ -192,7 +192,7 @@ true - Print debug information for the new type system.".TrimStart()) {
 
 Functionality is still being expanded. Currently only checks contracts on every call to a function or method marked with the {:extern} attribute.".TrimStart());
   
-  public static readonly Option<bool> AllOpaque = new("--all-opaque", () => false,
+  public static readonly Option<bool> AllOpaque = new("--all-opaque", () => true,
     "Treat all functions as opaque and automatically reveal the functions used inside a method or function.");
 
   static CommonOptionBag() {
