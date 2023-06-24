@@ -1,22 +1,69 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
+using System.Collections.Specialized;
 using System.Diagnostics.Contracts;
 using System.Linq;
+using System.Security.Cryptography;
+using System.Security.Policy;
 using Microsoft.Boogie;
 
 namespace Microsoft.Dafny;
 
-public class BuiltIns {
+public class SystemModuleManager {
   public DafnyOptions Options { get; }
   public readonly ModuleDefinition SystemModule = new(RangeToken.NoToken, new Name("_System"), new List<IToken>(),
     false, false, null, null, null, true, false);
-  internal readonly Dictionary<int, ClassDecl> arrayTypeDecls = new Dictionary<int, ClassDecl>();
-  public readonly Dictionary<int, ArrowTypeDecl> ArrowTypeDecls = new Dictionary<int, ArrowTypeDecl>();
-  public readonly Dictionary<int, SubsetTypeDecl> PartialArrowTypeDecls = new Dictionary<int, SubsetTypeDecl>();  // same keys as arrowTypeDecl
-  public readonly Dictionary<int, SubsetTypeDecl> TotalArrowTypeDecls = new Dictionary<int, SubsetTypeDecl>();  // same keys as arrowTypeDecl
-  readonly Dictionary<List<bool>, TupleTypeDecl> tupleTypeDecls = new Dictionary<List<bool>, TupleTypeDecl>(new Dafny.IEnumerableComparer<bool>());
+  internal readonly Dictionary<int, ClassDecl> arrayTypeDecls = new();
+  public readonly Dictionary<int, ArrowTypeDecl> ArrowTypeDecls = new();
+  public readonly Dictionary<int, SubsetTypeDecl> PartialArrowTypeDecls = new();  // same keys as arrowTypeDecl
+  public readonly Dictionary<int, SubsetTypeDecl> TotalArrowTypeDecls = new();  // same keys as arrowTypeDecl
+  readonly Dictionary<List<bool>, TupleTypeDecl> tupleTypeDecls = new(new Dafny.IEnumerableComparer<bool>());
+
+  internal readonly ValuetypeDecl[] valuetypeDecls;
+
+  public ModuleSignature systemNameInfo;
+
   public int MaxNonGhostTupleSizeUsed { get; private set; }
   public IToken MaxNonGhostTupleSizeToken { get; private set; }
+
+  private byte[] hash;
+
+  public byte[] MyHash {
+    get {
+      if (hash == null) {
+
+        // A tuple type is defined by a list of booleans, where the size of the list determines how many elements the tuple has,
+        // and the value of each boolean determines whether that value is ghost or not.
+        // Here we represent the tuple type as an integer by translating each boolean to a bit and packing the bits in an int.
+        var tupleInts = tupleTypeDecls.Keys.Select(tuple => {
+          var vector32 = new BitVector32();
+          if (tuple.Count > 32) {
+            throw new Exception("Tuples of size larger than 32 are not supported");
+          }
+          for (var index = 0; index < tuple.Count; index++) {
+            vector32[index] = tuple[index];
+          }
+          return vector32.Data;
+        });
+        var ints =
+          new[] {
+            arrayTypeDecls.Count, ArrowTypeDecls.Count, PartialArrowTypeDecls.Count, TotalArrowTypeDecls.Count,
+            tupleTypeDecls.Count
+          }.
+            Concat(arrayTypeDecls.Keys.OrderBy(x => x)).
+            Concat(ArrowTypeDecls.Keys.OrderBy(x => x)).
+            Concat(PartialArrowTypeDecls.Keys.OrderBy(x => x)).
+            Concat(TotalArrowTypeDecls.Keys.OrderBy(x => x)).
+            Concat(tupleInts.OrderBy(x => x));
+        var bytes = ints.SelectMany(BitConverter.GetBytes).ToArray();
+        hash = HashAlgorithm.Create("SHA256")!.ComputeHash(bytes);
+      }
+
+      return hash;
+    }
+  }
+
   public readonly ISet<int> Bitwidths = new HashSet<int>();
   [FilledInDuringResolution] public SpecialField ORDINAL_Offset;  // used by the translator
 
@@ -28,7 +75,7 @@ public class BuiltIns {
     return new UserDefinedType(Token.NoToken, "object?", null) { ResolvedClass = ObjectDecl };
   }
 
-  public BuiltIns(DafnyOptions options) {
+  public SystemModuleManager(DafnyOptions options) {
     this.Options = options;
     SystemModule.Height = -1;  // the system module doesn't get a height assigned later, so we set it here to something below everything else
     // create type synonym 'string'
@@ -53,6 +100,92 @@ public class BuiltIns {
     // Arrow types of other dimensions may be added during parsing as the parser detects the need for these.  For the 0-arity
     // arrow type, the resolver adds a Valid() predicate for iterators, whose corresponding arrow type is conveniently created here.
     CreateArrowTypeDecl(0);
+
+
+    // Map#Items relies on the two destructors for 2-tuples
+    TupleType(Token.NoToken, 2, true);
+    // Several methods and fields rely on 1-argument arrow types
+    CreateArrowTypeDecl(1);
+
+    valuetypeDecls = new[] {
+        new ValuetypeDecl("bool", SystemModule, t => t.IsBoolType, typeArgs => Type.Bool),
+        new ValuetypeDecl("int", SystemModule, t => t.IsNumericBased(Type.NumericPersuasion.Int), typeArgs => Type.Int),
+        new ValuetypeDecl("real", SystemModule, t => t.IsNumericBased(Type.NumericPersuasion.Real), typeArgs => Type.Real),
+        new ValuetypeDecl("ORDINAL", SystemModule, t => t.IsBigOrdinalType, typeArgs => Type.BigOrdinal),
+        new ValuetypeDecl("_bv", SystemModule, t => t.IsBitVectorType, null), // "_bv" represents a family of classes, so no typeTester or type creator is supplied
+        new ValuetypeDecl("map", SystemModule,
+          new List<TypeParameter.TPVarianceSyntax>() { TypeParameter.TPVarianceSyntax.Covariant_Strict , TypeParameter.TPVarianceSyntax.Covariant_Strict },
+          t => t.IsMapType, typeArgs => new MapType(true, typeArgs[0], typeArgs[1])),
+        new ValuetypeDecl("imap", SystemModule,
+          new List<TypeParameter.TPVarianceSyntax>() { TypeParameter.TPVarianceSyntax.Covariant_Permissive , TypeParameter.TPVarianceSyntax.Covariant_Strict },
+          t => t.IsIMapType, typeArgs => new MapType(false, typeArgs[0], typeArgs[1]))
+      };
+    SystemModule.SourceDecls.AddRange(valuetypeDecls);
+    // Resolution error handling relies on being able to get to the 0-tuple declaration
+    TupleType(Token.NoToken, 0, true);
+
+    // Populate the members of the basic types
+
+    void AddMember(MemberDecl member, ValuetypeVariety valuetypeVariety) {
+      var enclosingType = valuetypeDecls[(int)valuetypeVariety];
+      member.EnclosingClass = enclosingType;
+      member.AddVisibilityScope(SystemModule.VisibilityScope, false);
+      enclosingType.Members.Add(member);
+    }
+
+    var floor = new SpecialField(RangeToken.NoToken, "Floor", SpecialField.ID.Floor, null, false, false, false, Type.Int, null);
+    AddMember(floor, ValuetypeVariety.Real);
+
+    var isLimit = new SpecialField(RangeToken.NoToken, "IsLimit", SpecialField.ID.IsLimit, null, false, false, false, Type.Bool, null);
+    AddMember(isLimit, ValuetypeVariety.BigOrdinal);
+
+    var isSucc = new SpecialField(RangeToken.NoToken, "IsSucc", SpecialField.ID.IsSucc, null, false, false, false, Type.Bool, null);
+    AddMember(isSucc, ValuetypeVariety.BigOrdinal);
+
+    var limitOffset = new SpecialField(RangeToken.NoToken, "Offset", SpecialField.ID.Offset, null, false, false, false, Type.Int, null);
+    AddMember(limitOffset, ValuetypeVariety.BigOrdinal);
+    ORDINAL_Offset = limitOffset;
+
+    var isNat = new SpecialField(RangeToken.NoToken, "IsNat", SpecialField.ID.IsNat, null, false, false, false, Type.Bool, null);
+    AddMember(isNat, ValuetypeVariety.BigOrdinal);
+
+    // Add "Keys", "Values", and "Items" to map, imap
+    foreach (var typeVariety in new[] { ValuetypeVariety.Map, ValuetypeVariety.IMap }) {
+      var vtd = valuetypeDecls[(int)typeVariety];
+      var isFinite = typeVariety == ValuetypeVariety.Map;
+
+      var r = new SetType(isFinite, new UserDefinedType(vtd.TypeArgs[0]));
+      var keys = new SpecialField(RangeToken.NoToken, "Keys", SpecialField.ID.Keys, null, false, false, false, r, null);
+
+      r = new SetType(isFinite, new UserDefinedType(vtd.TypeArgs[1]));
+      var values = new SpecialField(RangeToken.NoToken, "Values", SpecialField.ID.Values, null, false, false, false, r, null);
+
+      var gt = vtd.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp));
+      var dt = TupleType(Token.NoToken, 2, true);
+      var tupleType = new UserDefinedType(Token.NoToken, dt.Name, dt, gt);
+      r = new SetType(isFinite, tupleType);
+      var items = new SpecialField(RangeToken.NoToken, "Items", SpecialField.ID.Items, null, false, false, false, r, null);
+
+      foreach (var memb in new[] { keys, values, items }) {
+        AddMember(memb, typeVariety);
+      }
+    }
+
+    // The result type of the following bitvector methods is the type of the bitvector itself. However, we're representing all bitvector types as
+    // a family of types rolled up in one ValuetypeDecl. Therefore, we use the special SelfType as the result type.
+    AddRotateMember(valuetypeDecls[(int)ValuetypeVariety.Bitvector], "RotateLeft", new SelfType());
+    AddRotateMember(valuetypeDecls[(int)ValuetypeVariety.Bitvector], "RotateRight", new SelfType());
+  }
+
+  public void AddRotateMember(ValuetypeDecl enclosingType, string name, Type resultType) {
+    var formals = new List<Formal> { new Formal(Token.NoToken, "w", Type.Nat(), true, false, null, false) };
+    var rotateMember = new SpecialFunction(RangeToken.NoToken, name, SystemModule, false, false,
+      new List<TypeParameter>(), formals, resultType,
+      new List<AttributedExpression>(), new List<FrameExpression>(), new List<AttributedExpression>(),
+      new Specification<Expression>(new List<Expression>(), null), null, null, null);
+    rotateMember.EnclosingClass = enclosingType;
+    rotateMember.AddVisibilityScope(SystemModule.VisibilityScope, false);
+    enclosingType.Members.Add(rotateMember);
   }
 
   private Attributes DontCompile() {
@@ -75,7 +208,7 @@ public class BuiltIns {
     return result;
   }
 
-  public static (UserDefinedType type, Action<BuiltIns> ModifyBuiltins) ArrayType(IToken tok, int dims, List<Type> optTypeArgs, bool allowCreationOfNewClass, bool useClassNameType = false) {
+  public static (UserDefinedType type, Action<SystemModuleManager> ModifyBuiltins) ArrayType(IToken tok, int dims, List<Type> optTypeArgs, bool allowCreationOfNewClass, bool useClassNameType = false) {
     Contract.Requires(tok != null);
     Contract.Requires(1 <= dims);
     Contract.Requires(optTypeArgs == null || optTypeArgs.Count > 0);  // ideally, it is 1, but more will generate an error later, and null means it will be filled in automatically
@@ -86,7 +219,7 @@ public class BuiltIns {
       arrayName += "?";
     }
 
-    void ModifyBuiltins(BuiltIns builtIns) {
+    void ModifyBuiltins(SystemModuleManager builtIns) {
       if (!allowCreationOfNewClass || builtIns.arrayTypeDecls.ContainsKey(dims)) {
         return;
       }
@@ -135,7 +268,7 @@ public class BuiltIns {
         : new TypeParameter(RangeToken.NoToken, new Name("R"), TypeParameter.TPVarianceSyntax.Covariant_Strict));
     var tys = tps.ConvertAll(tp => (Type)(new UserDefinedType(tp)));
 
-    Function createMember(string name, Type resultType, Function readsFunction = null) {
+    Function CreateMember(string name, Type resultType, Function readsFunction = null) {
       var args = Util.Map(Enumerable.Range(0, arity), i => new Formal(tok, "x" + i, tys[i], true, false, null));
       var argExprs = args.ConvertAll(a =>
         (Expression)new IdentifierExpr(tok, a.Name) { Var = a, Type = a.Type });
@@ -154,8 +287,8 @@ public class BuiltIns {
       return function;
     }
 
-    var reads = createMember("reads", new SetType(true, ObjectQ()), null);
-    var req = createMember("requires", Type.Bool, reads);
+    var reads = CreateMember("reads", new SetType(true, ObjectQ()), null);
+    var req = CreateMember("requires", Type.Bool, reads);
 
     var arrowDecl = new ArrowTypeDecl(tps, req, reads, SystemModule, DontCompile());
     ArrowTypeDecls.Add(arity, arrowDecl);
@@ -319,4 +452,41 @@ public class BuiltIns {
     Contract.Assert(0 <= dims);
     return TupleTypeCtorNamePrefix + dims;
   }
+
+  public ValuetypeDecl AsValuetypeDecl(Type t) {
+    Contract.Requires(t != null);
+    foreach (var vtd in valuetypeDecls) {
+      if (vtd.IsThisType(t)) {
+        return vtd;
+      }
+    }
+    return null;
+  }
+
+  public void ResolveValueTypeDecls(ProgramResolver programResolver) {
+    var moduleResolver = new Resolver(programResolver);
+    moduleResolver.moduleInfo = systemNameInfo;
+    foreach (var valueTypeDecl in valuetypeDecls) {
+      foreach (var member in valueTypeDecl.Members) {
+        if (member is Function function) {
+          moduleResolver.ResolveFunctionSignature(function);
+          CallGraphBuilder.VisitFunction(function, programResolver.Reporter);
+        } else if (member is Method method) {
+          moduleResolver.ResolveMethodSignature(method);
+          CallGraphBuilder.VisitMethod(method, programResolver.Reporter);
+        }
+      }
+    }
+  }
 }
+
+enum ValuetypeVariety {
+  Bool = 0,
+  Int,
+  Real,
+  BigOrdinal,
+  Bitvector,
+  Map,
+  IMap,
+  None
+} // note, these are ordered, so they can be used as indices into valuetypeDecls

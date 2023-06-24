@@ -1,4 +1,4 @@
-// RUN: %exits-with 2 %baredafny verify --use-basename-for-filename "%s" > "%t"
+// RUN: %exits-with 2 %baredafny verify --show-snippets:false --use-basename-for-filename "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // Example for Issue 1309 -- not yet fixed

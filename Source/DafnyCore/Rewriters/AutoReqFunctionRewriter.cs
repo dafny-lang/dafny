@@ -11,12 +11,15 @@ namespace Microsoft.Dafny;
 public class AutoReqFunctionRewriter : IRewriter {
   Function parentFunction;
   bool containsMatch; // TODO: Track this per-requirement, rather than per-function
-  private BuiltIns builtIns;
+  private SystemModuleManager systemModuleManager;
 
-  public AutoReqFunctionRewriter(ErrorReporter reporter, BuiltIns builtIns)
+  public AutoReqFunctionRewriter(ErrorReporter reporter)
     : base(reporter) {
     Contract.Requires(reporter != null);
-    this.builtIns = builtIns;
+  }
+
+  internal override void PreResolve(Program program) {
+    systemModuleManager = program.SystemModuleManager;
   }
 
   internal override void PostResolveIntermediate(ModuleDefinition m) {
@@ -145,7 +148,7 @@ public class AutoReqFunctionRewriter : IRewriter {
       }
 
       foreach (var req in f.Req) {
-        var sub = new AutoReqSubstituter(f_this, substMap, typeMap, builtIns);
+        var sub = new AutoReqSubstituter(f_this, substMap, typeMap, systemModuleManager);
         translated_f_reqs.Add(sub.Substitute(req.E));
       }
     }
@@ -155,8 +158,8 @@ public class AutoReqFunctionRewriter : IRewriter {
 
   class AutoReqSubstituter : Substituter {
     public AutoReqSubstituter(Expression receiverReplacement, Dictionary<IVariable, Expression> substMap, Dictionary<TypeParameter, Type> typeMap,
-      BuiltIns builtIns)
-      : base(receiverReplacement, substMap, typeMap, null, builtIns) {
+      SystemModuleManager systemModuleManager)
+      : base(receiverReplacement, substMap, typeMap, null, systemModuleManager) {
     }
 
     public override Expression Substitute(Expression expr) {
@@ -164,7 +167,7 @@ public class AutoReqFunctionRewriter : IRewriter {
       if (r is MemberSelectExpr memberSelectExpr) {
         return Expression.WrapResolvedMemberSelect(memberSelectExpr);
       } else if (r is FunctionCallExpr functionCallExpr) {
-        return Expression.WrapResolvedCall(functionCallExpr, builtIns);
+        return Expression.WrapResolvedCall(functionCallExpr, SystemModuleManager);
       }
       return r;
     }

@@ -507,6 +507,24 @@ namespace Microsoft.Dafny {
       return createValue();
     }
 
+    public static Action<T> Concat<T>(Action<T> first, Action<T> second) {
+      return v => {
+        first(v);
+        second(v);
+      };
+    }
+
+    public static V AddOrUpdate<K, V>(this IDictionary<K, V> dictionary, K key, V newValue, Func<V, V, V> update) {
+      if (dictionary.TryGetValue(key, out var existingValue)) {
+        var updated = update(existingValue, newValue);
+        dictionary[key] = updated;
+        return updated;
+      }
+
+      dictionary[key] = newValue;
+      return newValue;
+    }
+
     public static V GetOrCreate<K, V>(this IDictionary<K, V> dictionary, K key, Func<V> createValue) {
       if (dictionary.TryGetValue(key, out var result)) {
         return result;

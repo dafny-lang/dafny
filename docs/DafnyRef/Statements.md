@@ -922,7 +922,8 @@ the same as for match expressions and is described in
 
 The selector need not be enclosed in parentheses; the sequence of cases may but need not be enclosed in braces.
 The cases need not be disjoint.
-The cases must be exhaustive, but you can use a wild variable (`_`) or an as yet unused simple identifier to indicate "match anything".
+The cases must be exhaustive, but you can use a wild variable (`_`) or a simple identifier to indicate "match anything".
+Please refer to the [section about case patterns](#sec-case-pattern) to learn more about shadowing, constants, etc.
 
 The code below shows an example of a match statement.
 
@@ -1856,6 +1857,8 @@ An assert statement may have a label, whose use is explained in [Section 8.20.1]
 The attributes recognized for assert statements are discussed in [Section 11.3](#sec-verification-attributes-on-assertions).
 
 Using `...` as the argument of the statement is deprecated.
+
+An assert statement can have [custom error and success messages](#sec-error-attribute).
 
 ## 8.18. Assume Statement ([grammar](#g-assume-statement)) {#sec-assume-statement}
 

@@ -66,7 +66,7 @@ public class DafnyConsolePrinter : ConsolePrinter {
     tw.WriteLine("");
   }
 
-  public static readonly Option<bool> ShowSnippets = new("--show-snippets",
+  public static readonly Option<bool> ShowSnippets = new("--show-snippets", () => true,
     "Show a source code snippet for each Dafny message.");
 
   static DafnyConsolePrinter() {

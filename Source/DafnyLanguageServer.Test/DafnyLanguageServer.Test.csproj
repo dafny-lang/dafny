@@ -63,12 +63,6 @@
     <None Update="Various\TestFiles\3048.dfy">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="Various\TestFiles\includesBincludesA.dfy">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="Various\TestFiles\includesAincludesB.dfy">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
     <None Update="ProjectFiles\TestFiles\src\foo.dfy">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
@@ -88,6 +82,21 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Update="Synchronization\TestFiles\includesSemanticError.dfy">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Synchronization\TestFiles\cycleA.dfy">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Synchronization\TestFiles\cycleB.dfy">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Synchronization\TestFiles\importFromRefinedModuleUsingField.dfy">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Synchronization\TestFiles\potentialImportOpenedConflict.dfy">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Synchronization\TestFiles\notCached.dfy">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>
