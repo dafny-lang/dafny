@@ -183,7 +183,7 @@ public class CompilationManager {
     if (implementation.tok is RefinementToken refinementToken) {
       prefix += "." + refinementToken.InheritingModule.Name;
     }
-    return new ImplementationId(((Token)implementation.tok).Uri, implementation.tok.GetLspPosition(), prefix);
+    return new ImplementationId(((IToken)implementation.tok).Uri, implementation.tok.GetLspPosition(), prefix);
   }
 
   private void SetAllUnvisitedMethodsAsVerified(CompilationAfterTranslation compilation) {
@@ -199,12 +199,12 @@ public class CompilationManager {
     if (statusUpdates == null) {
       if (implementationTask.CacheStatus is Completed completedCache) {
         foreach (var result in completedCache.Result.VCResults) {
-          compilation.GutterProgressReporter.ReportVerifyImplementationRunning(implementationTask.Implementation);
-          compilation.GutterProgressReporter.ReportAssertionBatchResult(
-            new AssertionBatchResult(implementationTask.Implementation, result));
+          // compilation.GutterProgressReporter.ReportVerifyImplementationRunning(implementationTask.Implementation);
+          // compilation.GutterProgressReporter.ReportAssertionBatchResult(
+          //   new AssertionBatchResult(implementationTask.Implementation, result));
         }
-        compilation.GutterProgressReporter.ReportEndVerifyImplementation(implementationTask.Implementation,
-          completedCache.Result);
+        // compilation.GutterProgressReporter.ReportEndVerifyImplementation(implementationTask.Implementation,
+        //   completedCache.Result);
       }
 
       return false;
