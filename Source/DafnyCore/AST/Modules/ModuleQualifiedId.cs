@@ -16,10 +16,10 @@ public class ModuleQualifiedId : Node, IHasUsages {
   // Note also that the resolution of the root depends on the syntactice location
   // of the qualified id; the resolution of subsequent ids depends on the
   // default export set of the previous id.
-  [FilledInDuringResolution] public ModuleDecl Root; // the module corresponding to Path[0].val
-  [FilledInDuringResolution] public ModuleDecl Decl; // the module corresponding to the full path
-  [FilledInDuringResolution] public ModuleDefinition Def; // the module definition corresponding to the full path
-  [FilledInDuringResolution] public ModuleSignature Sig; // the module signature corresponding to the full path
+  [FilledInDuringResolution] public ModuleDecl Root { get; set; } // the module corresponding to Path[0].val
+  [FilledInDuringResolution] public ModuleDecl Decl { get; private set; } // the module corresponding to the full path
+  [FilledInDuringResolution] public ModuleDefinition Def { get; private set; } // the module definition corresponding to the full path
+  [FilledInDuringResolution] public ModuleSignature Sig { get; set; } // the module signature corresponding to the full path
 
   public ModuleQualifiedId(List<Name> path) {
     Contract.Assert(path != null && path.Count > 0);
@@ -45,10 +45,6 @@ public class ModuleQualifiedId : Node, IHasUsages {
     }
 
     return s;
-  }
-
-  public void SetRoot(ModuleDecl m) {
-    Root = m;
   }
 
   public void SetTarget(ModuleDecl m) {
@@ -83,18 +79,27 @@ public class ModuleQualifiedId : Node, IHasUsages {
   /// Requires the root to have been resolved
   /// Issues an error and returns null if the path is not valid
   /// </summary>
-  public ModuleDecl ResolveTarget(ModuleDecl root, ErrorReporter reporter) {
+  public ModuleDecl ResolveTarget(ErrorReporter reporter) {
+
     Contract.Requires(this != null);
     Contract.Requires(Path.Count > 0);
 
-    ModuleDecl decl = root;
-    ModuleSignature p;
+    if (Decl == null) {
+      Decl = ResolveTargetUncached(reporter);
+    }
+
+    return Decl;
+  }
+
+  private ModuleDecl ResolveTargetUncached(ErrorReporter reporter) {
+    var decl = Root;
     for (int k = 1; k < Path.Count; k++) {
-      if (decl is LiteralModuleDecl) {
-        p = ((LiteralModuleDecl)decl).DefaultExport;
+      ModuleSignature p;
+      if (decl is LiteralModuleDecl literalModuleDecl) {
+        p = literalModuleDecl.DefaultExport;
         if (p == null) {
           reporter.Error(MessageSource.Resolver, Path[k],
-            Resolver.ModuleNotFoundErrorMessage(k, Path, $" because {decl.Name} does not have a default export"));
+            ProgramResolver.ModuleNotFoundErrorMessage(k, Path, $" because {decl.Name} does not have a default export"));
           return null;
         }
       } else {
@@ -102,13 +107,14 @@ public class ModuleQualifiedId : Node, IHasUsages {
       }
 
       var tld = p.TopLevels.GetValueOrDefault(Path[k].Value, null);
-      if (!(tld is ModuleDecl dd)) {
+      if (tld is not ModuleDecl dd) {
         if (decl.Signature.ModuleDef == null) {
           reporter.Error(MessageSource.Resolver, Path[k],
-            Resolver.ModuleNotFoundErrorMessage(k, Path, " because of previous error"));
+            ProgramResolver.ModuleNotFoundErrorMessage(k, Path, " because of previous error"));
         } else {
-          reporter.Error(MessageSource.Resolver, Path[k], Resolver.ModuleNotFoundErrorMessage(k, Path));
+          reporter.Error(MessageSource.Resolver, Path[k], ProgramResolver.ModuleNotFoundErrorMessage(k, Path));
         }
+
         return null;
       }
 
@@ -117,6 +123,7 @@ public class ModuleQualifiedId : Node, IHasUsages {
       if (dd is AliasModuleDecl amd) {
         Contract.Assert(amd.Signature != null);
       }
+
       decl = dd;
     }
 
