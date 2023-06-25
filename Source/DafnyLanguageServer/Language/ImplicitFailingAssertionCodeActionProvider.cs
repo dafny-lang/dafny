@@ -115,7 +115,7 @@ class ImplicitFailingAssertionCodeActionProvider : DiagnosticDafnyCodeActionProv
       return null;
     }
 
-    throw new Exception();
+    return Enumerable.Empty<DafnyCodeAction>();
     // var failingExpressions = new List<Expression>() { };
     // input.VerificationTree.Visit(tree => {
     //   if (tree is AssertionVerificationTree assertTree &&

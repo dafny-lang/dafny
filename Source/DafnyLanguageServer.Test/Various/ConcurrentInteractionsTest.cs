@@ -171,7 +171,7 @@ method Multiply(x: int, y: int) returns (product: int)
       }
       for (int i = 0; i < documentsToLoadConcurrently; i++) {
         var report = await GetLastDiagnostics(loadingDocuments[i], CancellationTokenWithHighTimeout);
-        Assert.Empty(report);
+        Assert.Null(report);
       }
 
       foreach (var loadingDocument in loadingDocuments) {

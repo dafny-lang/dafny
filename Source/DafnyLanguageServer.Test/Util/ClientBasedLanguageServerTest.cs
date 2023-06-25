@@ -83,12 +83,14 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
     var compilation = (await Projects.GetLastDocumentAsync(documentItem))!;
     Assert.NotNull(compilation);
     Assert.True(documentItem.Version <= compilation.Version);
+    var expectedDiagnostics = compilation.GetDiagnostics(documentItem.Uri.ToUri()).Select(d => d.ToLspDiagnostic());
+    if (!expectedDiagnostics.Any()) {
+      return null;
+    }
     PublishDiagnosticsParams result;
     while (true) {
       result = await diagnosticsReceiver.AwaitNextNotificationAsync(cancellationToken);
-      var uriDiagnostics = compilation.GetDiagnostics(result.Uri.ToUri())
-        .Select(d => d.ToLspDiagnostic());
-      if (result.Uri == documentItem.Uri && result.Diagnostics.SequenceEqual(uriDiagnostics)) {
+      if (result.Uri == documentItem.Uri && result.Diagnostics.SequenceEqual(expectedDiagnostics)) {
         break;
       }
     }
