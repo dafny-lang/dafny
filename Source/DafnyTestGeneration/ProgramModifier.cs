@@ -82,8 +82,7 @@ namespace DafnyTestGeneration {
     /// <param name="data">list</param> as part of error trace.
     /// </summary>
     private static AssumeCmd GetAssumePrintCmd(
-      List<object> data,
-      string separator = " | ") {
+      List<object> data, string separator = " | ", string key = "print") {
       // first insert separators between the things being printed
       var toPrint = new List<object>();
       data.Iter(obj => toPrint.AddRange(new List<object> { obj, separator }));
@@ -91,7 +90,7 @@ namespace DafnyTestGeneration {
         toPrint.RemoveAt(toPrint.Count() - 1);
       }
       // now create the assume command
-      var annotation = new QKeyValue(new Token(), "print", toPrint, null);
+      var annotation = new QKeyValue(new Token(), key, toPrint, null);
       return new AssumeCmd(new Token(),
         new LiteralExpr(new Token(), true), annotation);
     }
@@ -136,7 +135,8 @@ namespace DafnyTestGeneration {
       public override Block VisitBlock(Block node) {
         var state = Utils.GetBlockId(node);
         if (state == node.Label) {
-          return base.VisitBlock(node); // ignore blocks with zero commands
+          node.cmds.Add(GetAssumePrintCmd(new List<object>(){implementation.Name + state}, "", "captureState"));
+          state = Utils.GetBlockId(node);
         }
         var data = new List<object>
           { "Block", implementation.Name, state };
