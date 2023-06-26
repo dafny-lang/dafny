@@ -62,8 +62,7 @@ lemma {:neverVerify} HasNeverVerifyAttribute(p: nat, q: nat)
 
     protected virtual IServiceCollection ServerOptionsAction(LanguageServerOptions serverOptions) {
       return serverOptions.Services.AddSingleton<IProgramVerifier>(serviceProvider => new SlowVerifier(
-        serviceProvider.GetRequiredService<ILogger<DafnyProgramVerifier>>(),
-        serviceProvider.GetRequiredService<DafnyOptions>()
+        serviceProvider.GetRequiredService<ILogger<DafnyProgramVerifier>>()
       ));
     }
 

@@ -51,11 +51,15 @@ public class CompilationManager {
 
   public CompilationManager(IServiceProvider services,
     DafnyOptions options,
+    ExecutionEngine boogieEngine,
     Compilation compilation
     // ImmutableDictionary<TextDocumentIdentifier, VerificationTree> migratedVerificationTree
     ) {
     this.options = options;
     startingCompilation = compilation;
+    this.boogieEngine = boogieEngine;
+
+
     fileSystem = services.GetRequiredService<IFileSystem>();
     documentLoader = services.GetRequiredService<ITextDocumentLoader>();
     logger = services.GetRequiredService<ILogger<CompilationManager>>();
@@ -137,7 +141,7 @@ public class CompilationManager {
     statusPublisher.SendStatusNotification(loaded, CompilationStatus.PreparingVerification);
 
     var verificationTasks =
-      await verifier.GetVerificationTasksAsync(loaded, cancellationToken);
+      await verifier.GetVerificationTasksAsync(boogieEngine, loaded, cancellationToken);
 
     var initialViews = new Dictionary<ImplementationId, ImplementationView>();
     foreach (var task in verificationTasks) {
@@ -342,6 +346,7 @@ public class CompilationManager {
   private TaskCompletionSource verificationCompleted = new();
   private readonly DafnyOptions options;
   private readonly Compilation startingCompilation;
+  private readonly ExecutionEngine boogieEngine;
   private readonly IFileSystem fileSystem;
 
   public void MarkVerificationStarted() {

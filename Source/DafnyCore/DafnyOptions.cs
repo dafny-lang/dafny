@@ -408,6 +408,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
     public DafnyOptions(DafnyOptions src) : this(src.Input, src.OutputWriter, src.ErrorWriter) {
       src.CopyTo(this);
       CliRootSourceUris = new List<Uri>(src.CliRootSourceUris);
+      ProverOptions = new List<string>(src.ProverOptions);
     }
 
     public void CopyTo(DafnyOptions dst) {

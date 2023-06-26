@@ -7,6 +7,7 @@ using Microsoft.Extensions.DependencyInjection;
 using System.IO;
 using System.Net.Mime;
 using System.Threading.Tasks;
+using Microsoft.Boogie;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace {
   /// <summary>
@@ -19,6 +20,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     private readonly Dictionary<DocumentUri, ProjectManager> managersByFile = new();
     private readonly Dictionary<DocumentUri, ProjectManager> managersByProject = new();
     private readonly LanguageServerFilesystem fileSystem;
+    private VerificationResultCache verificationCache = new();
 
     public ProjectManagerDatabase(IServiceProvider services) {
       this.services = services;
@@ -32,10 +34,10 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
       if (projectManager != null) {
         if (!projectManager.Project.Equals(profileFile)) {
-          projectManager = new ProjectManager(services, profileFile);
+          projectManager = new ProjectManager(services, verificationCache, profileFile);
         }
       } else {
-        projectManager = new ProjectManager(services, profileFile);
+        projectManager = new ProjectManager(services, verificationCache, profileFile);
       }
 
       managersByFile[document.Uri] = managersByProject[profileFile.Uri] = projectManager;

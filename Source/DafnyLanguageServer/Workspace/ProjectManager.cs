@@ -7,6 +7,7 @@ using System.Reactive.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using IntervalTree;
+using Microsoft.Boogie;
 using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
@@ -17,15 +18,17 @@ using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace;
 
-public class ProjectManager {
+public class ProjectManager : IDisposable {
   private readonly IRelocator relocator;
 
   private readonly IServiceProvider services;
+  private readonly VerificationResultCache verificationCache;
   public DafnyProject Project { get; }
   private readonly IdeStateObserver observer;
   public CompilationManager CompilationManager { get; private set; }
   private IDisposable observerSubscription;
   private readonly ILogger<ProjectManager> logger;
+  private ExecutionEngine boogieEngine;
   private int version = 1;
   private int openDocuments;
 
@@ -38,13 +41,13 @@ public class ProjectManager {
   private readonly SemaphoreSlim workCompletedForCurrentVersion = new(0);
   private readonly DafnyOptions options;
 
-  public ProjectManager(IServiceProvider services, DafnyProject project) {
+  public ProjectManager(IServiceProvider services, VerificationResultCache verificationCache, DafnyProject project) {
     this.services = services;
+    this.verificationCache = verificationCache;
     Project = project;
     var serverOptions = services.GetRequiredService<DafnyOptions>();
     logger = services.GetRequiredService<ILogger<ProjectManager>>();
     relocator = services.GetRequiredService<IRelocator>();
-
     
     options = DetermineProjectOptions(project, serverOptions);
     if (project.UnsavedRootFile != null) {
@@ -55,14 +58,18 @@ public class ProjectManager {
       services.GetRequiredService<INotificationPublisher>(),
       services.GetRequiredService<ITextDocumentLoader>(),
       project);
+    boogieEngine = new ExecutionEngine(options, verificationCache);
+    
     CompilationManager = new CompilationManager(
       services,
-      options,
-      new Compilation(version, project));
+      options, 
+      boogieEngine, new Compilation(version, project));
 
     observerSubscription = CompilationManager.CompilationUpdates.Select(d =>
       d.InitialIdeState(new Compilation(version, project), options)).Subscribe(observer);
 
+    options.Printer = new OutputLogger(logger);
+    
     if (VerifyOnOpen) {
       var _ = VerifyEverythingAsync();
     } else {
@@ -104,6 +111,7 @@ public class ProjectManager {
     CompilationManager = new CompilationManager(
       services,
       options,
+      boogieEngine,
       new Compilation(version, Project)
     // TODO do not pass this to CompilationManager but instead use it in FillMissingStateUsingLastPublishedDocument
     // migratedVerificationTrees
@@ -251,5 +259,9 @@ public class ProjectManager {
 
   public void OpenDocument(TextDocumentItem document) {
     openDocuments++;
+  }
+
+  public void Dispose() {
+    boogieEngine.Dispose();
   }
 }

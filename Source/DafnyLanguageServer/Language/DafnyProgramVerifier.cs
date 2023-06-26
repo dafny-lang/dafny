@@ -19,26 +19,16 @@ namespace Microsoft.Dafny.LanguageServer.Language {
   /// dafny-lang makes use of static members and assembly loading. Since thread-safety of this is not guaranteed,
   /// this verifier serializes all invocations.
   /// </remarks>
-  public class DafnyProgramVerifier : IProgramVerifier, IDisposable {
-    private readonly VerificationResultCache cache = new();
-    private readonly ExecutionEngine engine;
+  public class DafnyProgramVerifier : IProgramVerifier {
 
-    public DafnyProgramVerifier(
-      ILogger<DafnyProgramVerifier> logger,
-      DafnyOptions options
-      ) {
-      // TODO This may be subject to change. See Microsoft.Boogie.Counterexample
-      //      A dash means write to the textwriter instead of a file.
-      // https://github.com/boogie-org/boogie/blob/b03dd2e4d5170757006eef94cbb07739ba50dddb/Source/VCGeneration/Couterexample.cs#L217
-      options.ModelViewFile = "-";
-
-      options.Printer = new OutputLogger(logger);
-      engine = new ExecutionEngine(options, cache);
+    public DafnyProgramVerifier(ILogger<DafnyProgramVerifier> logger) {
     }
 
     private const int TranslatorMaxStackSize = 0x10000000; // 256MB
 
-    public async Task<IReadOnlyList<IImplementationTask>> GetVerificationTasksAsync(CompilationAfterResolution compilation,
+    public async Task<IReadOnlyList<IImplementationTask>> GetVerificationTasksAsync(
+      ExecutionEngine engine,
+      CompilationAfterResolution compilation,
       CancellationToken cancellationToken) {
       var program = compilation.Program;
       var errorReporter = (DiagnosticErrorReporter)program.Reporter;
@@ -57,10 +47,6 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         var results = engine.GetImplementationTasks(boogieProgram);
         return results;
       }).ToList();
-    }
-
-    public void Dispose() {
-      engine.Dispose();
     }
   }
 }
