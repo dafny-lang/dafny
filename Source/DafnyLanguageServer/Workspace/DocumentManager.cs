@@ -80,7 +80,7 @@ public class DocumentManager {
     Compilation.CancelPendingUpdates();
 
     var lastPublishedState = observer.LastPublishedState;
-    var migratedVerificationTree =
+    var migratedVerificationTree = lastPublishedState.VerificationTree == null ? null :
       relocator.RelocateVerificationTree(lastPublishedState.VerificationTree, documentChange, CancellationToken.None);
     lastPublishedState = lastPublishedState with {
       ImplementationIdToView = MigrateImplementationViews(documentChange, lastPublishedState.ImplementationIdToView),

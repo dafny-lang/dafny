@@ -27,12 +27,15 @@ public class DocumentAfterParsing : Document {
 
   public override IdeState ToIdeState(IdeState previousState) {
     var baseResult = base.ToIdeState(previousState);
-    var rangeEnd = baseResult.VerificationTree.Range.End;
     return baseResult with {
       Program = Program,
       ResolutionDiagnostics = ComputeFileAndIncludesResolutionDiagnostics(),
-      VerificationTree = rangeEnd is { Line: 0, Character: 0 } ? new DocumentVerificationTree(Program, DocumentIdentifier) : baseResult.VerificationTree
+      VerificationTree = baseResult.VerificationTree ?? GetVerificationTree()
     };
+  }
+
+  public virtual VerificationTree GetVerificationTree() {
+    return new DocumentVerificationTree(Program, DocumentIdentifier);
   }
 
   protected IEnumerable<Diagnostic> ComputeFileAndIncludesResolutionDiagnostics() {

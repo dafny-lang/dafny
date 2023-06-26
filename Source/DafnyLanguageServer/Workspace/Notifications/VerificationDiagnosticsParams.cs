@@ -386,8 +386,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
       var endTriviaLines = end.TrailingTrivia.Split("\n");
       endPosition = new Position(endPosition.Line + endTriviaLines.Length - 1,
         endPosition.Character + endTriviaLines[^1].Length);
-      
-      return new Range(new Position(0,0), endPosition);
+
+      return new Range(new Position(0, 0), endPosition);
       INode? FindFileNode(INode node, Uri uri) {
         if (node.Tok.Uri == uri) {
           return node;

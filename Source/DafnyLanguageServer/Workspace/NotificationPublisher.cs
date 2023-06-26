@@ -97,6 +97,10 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       }
 
       var errors = state.ResolutionDiagnostics.Where(x => x.Severity == DiagnosticSeverity.Error).ToList();
+      if (state.VerificationTree == null) {
+        return;
+      }
+
       var linesCount = state.VerificationTree.Range.End.Line + 1;
       var verificationStatusGutter = VerificationStatusGutter.ComputeFrom(
         state.Uri,

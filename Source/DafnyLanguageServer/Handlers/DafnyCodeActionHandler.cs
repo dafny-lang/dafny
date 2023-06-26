@@ -153,5 +153,5 @@ public class DafnyCodeActionInput : IDafnyCodeActionInput {
   public DocumentAfterParsing Document { get; }
 
   public IReadOnlyList<DafnyDiagnostic> Diagnostics => Document.AllFileDiagnostics.ToList();
-  public VerificationTree VerificationTree => Document.GetInitialDocumentVerificationTree();
+  public VerificationTree VerificationTree => Document.GetVerificationTree();
 }

@@ -28,7 +28,7 @@ public record IdeState(
   IReadOnlyList<Counterexample> Counterexamples,
   bool ImplementationsWereUpdated,
   IEnumerable<Diagnostic> GhostDiagnostics,
-  VerificationTree VerificationTree
+  VerificationTree? VerificationTree
 ) {
 
   public DocumentUri Uri => DocumentIdentifier.Uri;

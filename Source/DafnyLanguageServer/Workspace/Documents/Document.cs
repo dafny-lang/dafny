@@ -37,11 +37,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         SymbolTable.Empty(), SignatureAndCompletionTable.Empty(options, DocumentIdentifier), new Dictionary<ImplementationId, IdeImplementationView>(),
         Array.Empty<Counterexample>(),
         false, Array.Empty<Diagnostic>(),
-        GetInitialDocumentVerificationTree()));
-    }
-
-    public virtual VerificationTree GetInitialDocumentVerificationTree() {
-      return new DocumentVerificationTree(new EmptyNode(), DocumentIdentifier);
+        null));
     }
 
     /// <summary>

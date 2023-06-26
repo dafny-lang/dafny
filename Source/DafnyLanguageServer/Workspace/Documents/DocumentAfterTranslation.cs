@@ -38,7 +38,7 @@ public class DocumentAfterTranslation : DocumentAfterResolution {
       services.GetRequiredService<DafnyOptions>());
   }
 
-  public override VerificationTree GetInitialDocumentVerificationTree() {
+  public override VerificationTree GetVerificationTree() {
     return VerificationTree;
   }
 
