@@ -89,6 +89,10 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
             diagnostic.Source == MessageSource.Resolver.ToString()))) {
         return null;
       }
+
+      // if (state.VerificationTree == null) {
+      //   return null;
+      // }
       // foreach (var node in state.VerificationTree.Children.OfType<TopLevelDeclMemberVerificationTree>()) {
       //   if (!node.Range.Contains(position)) {
       //     continue;

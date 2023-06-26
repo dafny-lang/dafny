@@ -302,13 +302,13 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
         Position? afterChangeEndOffset
       ) {
         var migratedDeclarations = new Dictionary<ISymbol, SymbolLocation>();
+        if (changeRange == null || afterChangeEndOffset == null) {
+          return migratedDeclarations;
+        }
         foreach (var (symbol, location) in previousDeclarations) {
           cancellationToken.ThrowIfCancellationRequested();
           if (!originalSymbolTable.CompilationUnit.Program.IsEntryDocument(location.Uri)) {
             migratedDeclarations.Add(symbol, location);
-            continue;
-          }
-          if (changeRange == null || afterChangeEndOffset == null) {
             continue;
           }
           var newLocation = ComputeNewSymbolLocation(location, changeRange, afterChangeEndOffset);

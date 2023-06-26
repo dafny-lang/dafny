@@ -26,11 +26,7 @@ public class CompilationAfterResolution : CompilationAfterParsing {
   public IReadOnlyDictionary<Uri, IReadOnlyList<Range>> GhostDiagnostics { get; }
 
   public override IdeState ToIdeState(IdeState previousState) {
-    var b = base.ToIdeState(previousState);
-    return previousState with {
-      Program = b.Program,
-      ImplementationsWereUpdated = false,
-      ResolutionDiagnostics = b.ResolutionDiagnostics,
+    return base.ToIdeState(previousState) with {
       SymbolTable = SymbolTable ?? previousState.SymbolTable,
       SignatureAndCompletionTable = SignatureAndCompletionTable.Resolved ? SignatureAndCompletionTable : previousState.SignatureAndCompletionTable,
       GhostRanges = GhostDiagnostics

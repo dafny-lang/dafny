@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using Microsoft.Dafny.LanguageServer.Language;
+using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 using OmniSharp.Extensions.LanguageServer.Protocol;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
@@ -34,6 +35,11 @@ public class CompilationAfterParsing : Compilation {
     };
   }
 
+  public virtual ImmutableDictionary<TextDocumentIdentifier, VerificationTree> GetVerificationTrees() {
+    throw new Exception();
+    // return new DocumentVerificationTree(Program, DocumentIdentifier);
+  }
+  
   // protected IEnumerable<Diagnostic> ComputeFileAndIncludesResolutionDiagnostics() {
   //   var includeErrorDiagnostics = GetIncludeErrorDiagnostics();
   //   return FileResolutionDiagnostics.Concat(includeErrorDiagnostics).Select(d => d.ToLspDiagnostic());

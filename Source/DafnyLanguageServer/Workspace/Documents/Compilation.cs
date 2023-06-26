@@ -41,13 +41,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         SymbolTable.Empty(), SignatureAndCompletionTable.Empty(options, compilation.Project), new Dictionary<ImplementationId, IdeImplementationView>(),
         Array.Empty<Counterexample>(),
         false, ImmutableDictionary<Uri, IReadOnlyList<Range>>.Empty
-      // , GetInitialDocumentVerificationTree())
+      // , null)
       ));
     }
-
-    // public virtual VerificationTree GetInitialDocumentVerificationTree() {
-    //   return new DocumentVerificationTree(DocumentIdentifier);
-    // }
 
     /// <summary>
     /// Collects information to present to the IDE

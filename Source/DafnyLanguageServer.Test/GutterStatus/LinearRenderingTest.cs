@@ -2,7 +2,7 @@
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 using Xunit;
 
-namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Diagnostics;
+namespace Microsoft.Dafny.LanguageServer.IntegrationTest.GutterStatus;
 
 public class LinearRenderingTest {
   public static LineVerificationStatus RenderLineVerificationStatusOriginal(

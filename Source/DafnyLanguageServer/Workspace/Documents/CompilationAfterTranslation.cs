@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using Microsoft.Boogie;
 using Microsoft.Dafny.LanguageServer.Language;
@@ -44,6 +45,11 @@ public class CompilationAfterTranslation : CompilationAfterResolution {
   public override IEnumerable<DafnyDiagnostic> GetDiagnostics(Uri uri) {
     var views = ImplementationIdToView.Where(kv => kv.Key.Uri == uri).ToList();
     return base.GetDiagnostics(uri).Concat(views.SelectMany(view => view.Value.Diagnostics));
+  }
+
+  public override ImmutableDictionary<TextDocumentIdentifier, VerificationTree> GetVerificationTrees() {
+    throw new Exception();
+    // return VerificationTree;
   }
 
   public override IdeState ToIdeState(IdeState previousState) {

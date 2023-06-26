@@ -22,7 +22,6 @@ public class ProjectManager : IDisposable {
   private readonly IRelocator relocator;
 
   private readonly IServiceProvider services;
-  private readonly VerificationResultCache verificationCache;
   public DafnyProject Project { get; }
   private readonly IdeStateObserver observer;
   public CompilationManager CompilationManager { get; private set; }
@@ -43,7 +42,6 @@ public class ProjectManager : IDisposable {
 
   public ProjectManager(IServiceProvider services, VerificationResultCache verificationCache, DafnyProject project) {
     this.services = services;
-    this.verificationCache = verificationCache;
     Project = project;
     var serverOptions = services.GetRequiredService<DafnyOptions>();
     logger = services.GetRequiredService<ILogger<ProjectManager>>();
@@ -242,7 +240,7 @@ public class ProjectManager : IDisposable {
   }
 
   private IEnumerable<Position> GetChangedVerifiablesFromRanges(CompilationAfterResolution loaded, IEnumerable<Range> changedRanges) {
-    var tree = new DocumentVerificationTree(loaded.Project.Uri);
+    var tree = new DocumentVerificationTree(loaded.Program, loaded.Project.Uri);
     VerificationProgressReporter.UpdateTree(options, loaded, tree);
     var intervalTree = new IntervalTree<Position, Position>();
     foreach (var childTree in tree.Children) {

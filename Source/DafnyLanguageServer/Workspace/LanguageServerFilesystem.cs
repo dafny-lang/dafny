@@ -34,6 +34,13 @@ public class LanguageServerFilesystem : IFileSystem {
       throw new InvalidOperationException("Cannot update file that has not been opened");
     }
 
+    var buffer = entry.Buffer;
+    var mergedBuffer = buffer;
+    foreach (var change in documentChange.ContentChanges) {
+      mergedBuffer = mergedBuffer.ApplyTextChange(change);
+    }
+    entry.Buffer = mergedBuffer;
+
     // According to the LSP specification, document versions should increase monotonically but may be non-consecutive.
     // See: https://github.com/microsoft/language-server-protocol/blob/gh-pages/_specifications/specification-3-16.md?plain=1#L1195
     var oldVer = entry.Version;
@@ -45,14 +52,7 @@ public class LanguageServerFilesystem : IFileSystem {
     }
 
     entry.Version = newVersion!.Value;
-
-    var buffer = entry.Buffer;
-    var mergedBuffer = buffer;
-    foreach (var change in documentChange.ContentChanges) {
-      mergedBuffer = mergedBuffer.ApplyTextChange(change);
-    }
-
-    entry.Buffer = mergedBuffer;
+    
   }
 
   public void CloseDocument(TextDocumentIdentifier document) {

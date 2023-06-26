@@ -83,11 +83,10 @@ method Multiply(x: bv10, y: bv10) returns (product: bv10)
       // Save and wait for the final result
       await client.SaveDocumentAndWaitAsync(documentItem, CancellationTokenWithHighTimeout);
 
-      var document = await Projects.GetLastDocumentAsync(documentItem.Uri);
-      Assert.NotNull(document);
-      Assert.Equal(documentItem.Version + 11, document.Version);
-      Assert.Single(document.AllFileDiagnostics);
-      Assert.Equal("assertion might not hold", document.AllFileDiagnostics.First().Message);
+      var diagnostics = await GetLastDiagnosticsParams(documentItem, CancellationToken);
+      Assert.Equal(documentItem.Version + 11, diagnostics.Version);
+      Assert.Single(diagnostics.Diagnostics);
+      Assert.Equal("assertion might not hold", diagnostics.Diagnostics.First().Message);
     }
 
     [Fact(Timeout = MaxTestExecutionTimeMs)]

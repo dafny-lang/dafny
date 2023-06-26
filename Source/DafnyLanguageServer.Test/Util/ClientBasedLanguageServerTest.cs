@@ -78,12 +78,12 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
     return result?.Diagnostics.ToArray();
   }
   
-  public async Task<Diagnostic[]> GetLastDiagnostics(TextDocumentItem documentItem, CancellationToken cancellationToken) {
+  public async Task<PublishDiagnosticsParams> GetLastDiagnosticsParams(TextDocumentItem documentItem, CancellationToken cancellationToken) {
     await client.WaitForNotificationCompletionAsync(documentItem.Uri, cancellationToken);
     var compilation = (await Projects.GetLastDocumentAsync(documentItem))!;
     Assert.NotNull(compilation);
     Assert.True(documentItem.Version <= compilation.Version);
-    var expectedDiagnostics = compilation.GetDiagnostics(documentItem.Uri.ToUri()).Select(d => d.ToLspDiagnostic());
+    var expectedDiagnostics = compilation.GetDiagnostics(documentItem.Uri.ToUri()).Select(d => d.ToLspDiagnostic()).ToList();
     PublishDiagnosticsParams result;
     while (true) {
       result = await diagnosticsReceiver.AwaitNextNotificationAsync(cancellationToken);
@@ -92,7 +92,12 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
       }
     }
 
-    return result.Diagnostics.ToArray();
+    return result;
+  }
+  
+  public async Task<Diagnostic[]> GetLastDiagnostics(TextDocumentItem documentItem, CancellationToken cancellationToken) {
+    var paramsResult = await GetLastDiagnosticsParams(documentItem, CancellationToken);
+    return paramsResult.Diagnostics.ToArray();
   }
 
   public virtual Task InitializeAsync() {
