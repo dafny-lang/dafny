@@ -115,7 +115,6 @@ namespace Microsoft.Dafny {
     readonly Dictionary<Field/*!*/, Bpl.Function/*!*/>/*!*/ fieldFunctions = new Dictionary<Field/*!*/, Bpl.Function/*!*/>();
     readonly Dictionary<string, Bpl.Constant> fieldConstants = new Dictionary<string, Constant>();
     readonly Dictionary<string, Bpl.Constant> tytagConstants = new Dictionary<string, Constant>();
-    readonly ISet<string> abstractTypes = new HashSet<string>();
 
     // optimizing translation
     readonly ISet<MemberDecl> referencedMembers = new HashSet<MemberDecl>();
@@ -749,7 +748,7 @@ namespace Microsoft.Dafny {
         currentDeclaration = d;
         if (d is AbstractTypeDecl) {
           var dd = (AbstractTypeDecl)d;
-          AddTypeDecl(dd);
+          GetOrCreateTypeConstructor(dd);
           AddClassMembers(dd, true, true);
         } else if (d is NewtypeDecl) {
           var dd = (NewtypeDecl)d;
@@ -799,10 +798,9 @@ namespace Microsoft.Dafny {
 
       foreach (TopLevelDecl d in visibleTopLevelDecls) {
         currentDeclaration = d;
-        if (d is AbstractTypeDecl) {
-          var dd = (AbstractTypeDecl)d;
-          AddTypeDecl(dd);
-          AddClassMembers(dd, true, true);
+        if (d is AbstractTypeDecl abstractType) {
+          GetOrCreateTypeConstructor(abstractType);
+          AddClassMembers(abstractType, true, true);
         } else if (d is ModuleDecl) {
           // submodules have already been added as a top level module, ignore this.
         } else if (d is RevealableTypeDecl) {
@@ -1179,54 +1177,11 @@ namespace Microsoft.Dafny {
       }
     }
 
-    void AddTypeDecl_Aux(IToken tok, string nm, List<TypeParameter> typeArgs, TypeParameter.TypeParameterCharacteristics characteristics) {
-      Contract.Requires(tok != null);
-      Contract.Requires(nm != null);
-      Contract.Requires(typeArgs != null);
-
-      if (abstractTypes.Contains(nm)) {
-        // nothing to do; has already been added
-        return;
-      }
-      if (typeArgs.Count == 0) {
-        var c = new Bpl.Constant(tok, new TypedIdent(tok, nm, predef.Ty), false /* not unique */);
-        sink.AddTopLevelDeclaration(c);
-        var whereClause = GetTyWhereClause(new Bpl.IdentifierExpr(tok, nm, predef.Ty), characteristics);
-        if (whereClause != null) {
-          AddOtherDefinition(c, BplAxiom(whereClause));
-        }
-
-      } else {
-        // Note, the function produced is NOT necessarily injective, because the type may be replaced
-        // in a refinement module in such a way that the type arguments do not matter.
-        var args = new List<Bpl.Variable>(typeArgs.ConvertAll(a => (Bpl.Variable)BplFormalVar(null, predef.Ty, true)));
-        var func = new Bpl.Function(tok, nm, args, BplFormalVar(null, predef.Ty, false));
-        sink.AddTopLevelDeclaration(func);
-        // axiom (forall T0, T1, ... { T(T0, T1, T2) } :: WhereClause( T(T0, T1, T2) ));
-        var argBoundVars = new List<Bpl.Variable>();
-        var argExprs = typeArgs.ConvertAll(ta => BplBoundVar(ta.Name, predef.Ty, argBoundVars));
-        var funcAppl = FunctionCall(tok, nm, predef.Ty, argExprs);
-        var whereClause = GetTyWhereClause(funcAppl, characteristics);
-        if (whereClause != null) {
-          var tr = new Bpl.Trigger(tok, true, new List<Bpl.Expr> { funcAppl });
-          var axiom = BplAxiom(new Bpl.ForallExpr(tok, new List<Bpl.TypeVariable>(), argBoundVars, null, tr, whereClause));
-          AddOtherDefinition(func, axiom);
-        }
-      }
-      abstractTypes.Add(nm);
+    void AddAbstractTypeDecl(AbstractTypeDecl abstractType) {
+      Contract.Requires(abstractType != null);
+      GetOrCreateTypeConstructor(abstractType);
     }
 
-    void AddTypeDecl(AbstractTypeDecl td) {
-      Contract.Requires(td != null);
-      AddTypeDecl_Aux(td.tok, NameTypeParam(td), td.TypeArgs, td.Characteristics);
-    }
-
-
-    void AddTypeDecl(InternalTypeSynonymDecl td) {
-      Contract.Requires(td != null);
-      Contract.Requires(!RevealedInScope(td));
-      AddTypeDecl_Aux(td.tok, "#$" + td.Name, td.TypeArgs, td.Characteristics);
-    }
 
     void AddTypeDecl(RevealableTypeDecl d) {
       Contract.Requires(d != null);
@@ -1258,10 +1213,9 @@ namespace Microsoft.Dafny {
           Contract.Assert(false);
         }
       } else {
-        AddTypeDecl(d.SelfSynonymDecl());
-        var dd = d as TopLevelDeclWithMembers;
-        if (dd != null) {
-          AddClassMembers(dd, true, false);
+        GetOrCreateTypeConstructor(d.SelfSynonymDecl());
+        if (d is TopLevelDeclWithMembers topLevelDeclWithMembers) {
+          AddClassMembers(topLevelDeclWithMembers, true, false);
         }
       }
     }
@@ -4393,7 +4347,7 @@ namespace Microsoft.Dafny {
       {
         var args = new List<Bpl.Expr>();
         foreach (var p in GetTypeParams(f)) {
-          args.Add(TrTypeParamOrAbstractType(p));
+          args.Add(TrTypeParameter(p));
         }
         if (f.IsFuelAware()) {
           args.Add(etran.layerInterCluster.GetFunctionFuel(f));
@@ -4436,7 +4390,7 @@ namespace Microsoft.Dafny {
         var funcID = new Bpl.FunctionCall(new Bpl.IdentifierExpr(f.tok, f.FullSanitizedName, TrType(f.ResultType)));
         var args = new List<Bpl.Expr>();
         foreach (var p in GetTypeParams(f)) {
-          args.Add(TrTypeParamOrAbstractType(p));
+          args.Add(TrTypeParameter(p));
         }
         if (f.IsFuelAware()) {
           args.Add(etran.layerInterCluster.GetFunctionFuel(f));
@@ -6486,6 +6440,25 @@ namespace Microsoft.Dafny {
         var args = Enumerable.Range(0, td.TypeArgs.Count).Select(i => (Bpl.Variable)BplFormalVar(null, predef.Ty, true)).ToList();
         func = new Bpl.Function(td.tok, name, args, tyVarOut);
         sink.AddTopLevelDeclaration(func);
+
+        if (td is AbstractTypeDecl or InternalTypeSynonymDecl) {
+          // axiom (forall T0, T1, ... { T(T0, T1, T2) } :: WhereClause( T(T0, T1, T2) ));
+          var argBoundVars = new List<Bpl.Variable>();
+          var argExprs = td.TypeArgs.ConvertAll(ta => BplBoundVar(ta.Name, predef.Ty, argBoundVars));
+          var funcAppl = FunctionCall(td.tok, name, predef.Ty, argExprs);
+          var characteristics = td is AbstractTypeDecl ? ((AbstractTypeDecl)td).Characteristics : ((InternalTypeSynonymDecl)td).Characteristics;
+          var whereClause = GetTyWhereClause(funcAppl, characteristics);
+          if (whereClause != null) {
+            Bpl.Expr axiom;
+            if (td.TypeArgs.Count == 0) {
+              axiom = whereClause;
+            } else {
+              var tr = new Bpl.Trigger(td.tok, true, new List<Bpl.Expr> { funcAppl });
+              axiom = new Bpl.ForallExpr(td.tok, new List<Bpl.TypeVariable>(), argBoundVars, null, tr, whereClause);
+            }
+            AddOtherDefinition(func, BplAxiom(axiom));
+          }
+        }
       }
 
       declarationMapping[td] = func;
@@ -8251,9 +8224,12 @@ namespace Microsoft.Dafny {
 
       type = type.NormalizeExpandKeepConstraints();
 
-      if (type.IsTypeParameter || type.IsAbstractType) {
+      if (type.IsTypeParameter) {
         var udt = (UserDefinedType)type;
-        return TrTypeParamOrAbstractType(udt.ResolvedClass, udt.TypeArgs);
+        return TrTypeParameter((TypeParameter)udt.ResolvedClass);
+      } else if (type.IsAbstractType) {
+        var udt = (UserDefinedType)type;
+        return TrAbstractType((AbstractTypeDecl)udt.ResolvedClass, udt.TypeArgs);
       } else if (type is UserDefinedType) {
         // Classes, (co-)datatypes, newtypes, subset types, ...
         var args = type.TypeArgs.ConvertAll(TypeToTy);
@@ -8284,42 +8260,33 @@ namespace Microsoft.Dafny {
       } else if (type is BigOrdinalType) {
         return new Bpl.IdentifierExpr(Token.NoToken, "TORDINAL", predef.Ty);
       } else if (type is ParamTypeProxy) {
-        return TrTypeParamOrAbstractType(((ParamTypeProxy)type).orig);
+        return TrTypeParameter(((ParamTypeProxy)type).orig);
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected type
       }
     }
 
-    static string NameTypeParam(TopLevelDecl x) {
-      Contract.Requires(x is TypeParameter || x is AbstractTypeDecl);
-      if (x is TypeParameter tp && tp.Parent != null) {
-        return tp.Parent.FullName + "$" + x.Name;
+    static string NameTypeParam(TypeParameter tp) {
+      if (tp.Parent != null) {
+        return tp.Parent.FullName + "$" + tp.Name;
       } else {
         // This happens for builtins, like arrays, that don't have a parent
-        return "#$" + x.Name;
+        return "#$" + tp.Name;
       }
     }
 
-    Bpl.Expr TrTypeParamOrAbstractType(TopLevelDecl x, List<Type>/*?*/ tyArguments = null) {
-      Contract.Requires(x is TypeParameter || x is AbstractTypeDecl);
-      Contract.Requires(!(x is TypeParameter) || tyArguments == null || tyArguments.Count == 0);
-      Contract.Requires(!(x is AbstractTypeDecl) || tyArguments != null);
-      if (x is TypeParameter tp) {
-        Contract.Assert(tyArguments == null || tyArguments.Count == 0);
-        var nm = NameTypeParam(tp);
-        // return an identifier denoting a constant
-        return new Bpl.IdentifierExpr(x.tok, nm, predef.Ty);
-      } else {
-        var ot = (AbstractTypeDecl)x;
-        var nm = NameTypeParam(ot);
-        if (tyArguments.Count != 0) {
-          List<Bpl.Expr> args = tyArguments.ConvertAll(TypeToTy);
-          return FunctionCall(x.tok, nm, predef.Ty, args);
-        } else {
-          // return an identifier denoting a constant
-          return new Bpl.IdentifierExpr(x.tok, nm, predef.Ty);
-        }
-      }
+    Bpl.Expr TrTypeParameter(TypeParameter tp) {
+      var nm = NameTypeParam(tp);
+      // return an identifier denoting a constant
+      return new Bpl.IdentifierExpr(tp.tok, nm, predef.Ty);
+    }
+
+    Bpl.Expr TrAbstractType(AbstractTypeDecl abstractType, List<Type>/*?*/ tyArguments) {
+      Contract.Requires(tyArguments != null);
+
+      var fn = GetOrCreateTypeConstructor(abstractType);
+      var args = tyArguments.ConvertAll(TypeToTy);
+      return FunctionCall(abstractType.tok, fn.Name, predef.Ty, args);
     }
 
     public List<TypeParameter> GetTypeParams(IMethodCodeContext cc) {
