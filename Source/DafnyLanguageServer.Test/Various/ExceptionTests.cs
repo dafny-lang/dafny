@@ -58,8 +58,6 @@ public class ExceptionTests : ClientBasedLanguageServerTest {
 
     var documentItem = CreateTestDocument(source);
     client.OpenDocument(documentItem);
-    var openDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
-    Assert.Empty(openDiagnostics);
     CrashOnLoad = true;
     ApplyChange(ref documentItem, new Range(0, 0, 0, 0), " ");
     var crashDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
@@ -78,8 +76,6 @@ public class ExceptionTests : ClientBasedLanguageServerTest {
     CrashOnPrepareVerification = true;
     var documentItem = CreateTestDocument(source);
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-    var resolutionDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
-    Assert.Empty(resolutionDiagnostics);
     var translationCrashDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
     Assert.Single(translationCrashDiagnostics);
     Assert.True(translationCrashDiagnostics[0].Message.Contains("internal error"), translationCrashDiagnostics[0].Message);

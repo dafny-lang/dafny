@@ -84,9 +84,6 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
     Assert.NotNull(compilation);
     Assert.True(documentItem.Version <= compilation.Version);
     var expectedDiagnostics = compilation.GetDiagnostics(documentItem.Uri.ToUri()).Select(d => d.ToLspDiagnostic());
-    if (!expectedDiagnostics.Any()) {
-      return null;
-    }
     PublishDiagnosticsParams result;
     while (true) {
       result = await diagnosticsReceiver.AwaitNextNotificationAsync(cancellationToken);
