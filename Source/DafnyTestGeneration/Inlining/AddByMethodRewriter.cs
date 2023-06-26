@@ -55,7 +55,7 @@ public class AddByMethodRewriter : IRewriter {
     func.Attributes = RemoveOpaqueAttr(func.Attributes, new Cloner());
     if (func.IsGhost || 
         func.Body == null || 
-        func.ByMethodBody != null || 
+        func.ByMethodBody != null ||
         (!Utils.AttributeFinder.MembersHasAttribute(func, TestGenerationOptions.TestInlineAttribute) && !Utils.AttributeFinder.MembersHasAttribute(func, TestGenerationOptions.TestEntryAttribute))) {
       return;
     }

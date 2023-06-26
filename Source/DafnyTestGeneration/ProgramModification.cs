@@ -216,10 +216,7 @@ namespace DafnyTestGeneration {
       if (Options.Verbose) {
         await dafnyInfo.Options.OutputWriter.WriteLineAsync(
           $"// Test for {uniqueId} matches a test previously generated " +
-          $"for {duplicate.uniqueId}. This happens when test generation tool " +
-          $"does not know how to differentiate between counterexamples, " +
-          $"e.g. if branching is conditional on the result of a trait instance " +
-          $"method call.");
+          $"for {duplicate.uniqueId} - skipping.");
       }
       // return testMethod;
       return null;

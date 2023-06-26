@@ -662,7 +662,7 @@ namespace DafnyTestGeneration {
         var subsetTypeCondition = DafnyInfo.GetTypeCondition(line.type, line.id);
         if (subsetTypeCondition != null) {
           lines.Add("expect " + Printer.ExprToString(DafnyInfo.Options, subsetTypeCondition) +
-                    ", \"Test does not meet type constraints and should be removed\";");
+                    ", \"If this check fails at runtime, the test does not meet type constraints\";");
         }
       }
 
@@ -706,7 +706,7 @@ namespace DafnyTestGeneration {
         MethodName,
         receiver).Select(e =>
         "expect " + Printer.ExprToString(DafnyInfo.Options, e) +
-        ", \"Test does not meet preconditions and should be removed\";"));
+        ", \"If this check fails at runtime, the test does not meet preconditions\";"));
       if (!DafnyInfo.IsStatic(MethodName)) {
         ArgValues.Insert(0, receiver);
       }
