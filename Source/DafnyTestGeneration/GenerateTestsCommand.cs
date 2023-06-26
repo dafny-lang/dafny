@@ -14,7 +14,6 @@ public class GenerateTestsCommand : ICommandSpec {
       // appropriately copied over in the CopyForProcedure method below
       LoopUnroll,
       SequenceLengthLimit,
-      Target,
       BoogieOptionBag.SolverLog,
       BoogieOptionBag.SolverOption,
       BoogieOptionBag.SolverOptionHelp,
@@ -75,11 +74,7 @@ path - Prints path-coverage tests for the given program.");
       _ => throw new ArgumentOutOfRangeException()
     };
   }
-
-  public static readonly Option<string> Target = new("--target-method",
-    "If specified, only this method will be tested.") {
-    ArgumentHelpName = "name"
-  };
+  
   public static readonly Option<uint> SequenceLengthLimit = new("--length-limit",
     "Add an axiom that sets the length of all sequences to be no greater than <n>. 0 (default) indicates no limit.") {
   };
@@ -118,7 +113,6 @@ path - Prints path-coverage tests for the given program.");
     DooFile.RegisterNoChecksNeeded(
       LoopUnroll,
       SequenceLengthLimit,
-      Target,
       PrintBpl,
       PrintCfg,
       DisablePrune
