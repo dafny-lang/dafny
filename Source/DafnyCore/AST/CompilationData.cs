@@ -75,6 +75,10 @@ public class CompilationData {
     result.Add(new LocalLinter(reporter));
     result.Add(new PrecedenceLinter(reporter, this));
 
+    if (Options.Get(CommonOptionBag.AllOpaque)) {
+      result.Add(new AllOpaqueRevealStmtInserter(reporter));
+    }
+    
     foreach (var plugin in Options.Plugins) {
       result.AddRange(plugin.GetRewriters(reporter));
     }

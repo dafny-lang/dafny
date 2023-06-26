@@ -27,8 +27,6 @@ public class AllOpaqueRevealStmtInserter : IRewriter {
           }
         }
       }
-      
-      
     }
   }
 
