@@ -249,7 +249,7 @@ public class DocumentManager {
   }
 
   private IEnumerable<Position> GetChangedVerifiablesFromRanges(DocumentAfterResolution loaded, IEnumerable<Range> changedRanges) {
-    var tree = new DocumentVerificationTree(loaded.DocumentIdentifier);
+    var tree = new DocumentVerificationTree(loaded.Program, loaded.DocumentIdentifier);
     VerificationProgressReporter.UpdateTree(options, loaded, tree);
     var intervalTree = new IntervalTree<Position, Position>();
     foreach (var childTree in tree.Children) {

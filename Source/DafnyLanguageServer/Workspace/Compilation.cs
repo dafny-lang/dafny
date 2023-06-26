@@ -159,7 +159,7 @@ public class Compilation {
       loaded.ResolutionDiagnostics, loaded.SymbolTable, loaded.SignatureAndCompletionTable, loaded.GhostDiagnostics, verificationTasks,
       new(),
       initialViews,
-      migratedVerificationTree ?? new DocumentVerificationTree(loaded.DocumentIdentifier));
+      migratedVerificationTree ?? new DocumentVerificationTree(loaded.Program, loaded.DocumentIdentifier));
 
     translated.GutterProgressReporter.RecomputeVerificationTree();
 

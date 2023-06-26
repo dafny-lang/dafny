@@ -365,10 +365,37 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
   }
 
   public record DocumentVerificationTree(
+    INode Program,
     VersionedTextDocumentIdentifier DocumentIdentifier
   ) : VerificationTree("Document", DocumentIdentifier.Uri.ToString(), DocumentIdentifier.Uri.ToString(), DocumentIdentifier.Uri.ToString(),
     DocumentIdentifier.Uri.ToUri(),
-    new Range(0, 0, int.MaxValue, int.MaxValue), new Position(0, 0)) {
+    ComputeRange(Program, DocumentIdentifier.Uri.ToUri()), new Position(0, 0)) {
+
+    private static Range ComputeRange(INode program, Uri uri) {
+      var fileNode = FindFileNode(program, uri);
+      if (fileNode == null) {
+        return new Range(0, 0, 0, 0);
+      }
+
+      var end = fileNode!.RangeToken.EndToken;
+      while (end.Next != null) {
+        end = end.Next;
+      }
+
+      var endPosition = end.GetLspPosition();
+      var endTriviaLines = end.TrailingTrivia.Split("\n");
+      endPosition = new Position(endPosition.Line + endTriviaLines.Length - 1,
+        endPosition.Character + endTriviaLines[^1].Length);
+      
+      return new Range(new Position(0,0), endPosition);
+      INode? FindFileNode(INode node, Uri uri) {
+        if (node.Tok.Uri == uri) {
+          return node;
+        }
+
+        return node.Children.Select(child => FindFileNode(child, uri)).FirstOrDefault(x => x != null);
+      }
+    }
   }
 
   public record TopLevelDeclMemberVerificationTree(

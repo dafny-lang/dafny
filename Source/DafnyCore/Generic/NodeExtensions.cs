@@ -19,7 +19,7 @@ public static class NodeExtensions {
 
     return node;
   }
-
+  
   public static INode FindNode(this INode node, Uri uri, DafnyPosition position) {
     if (node.Tok.Uri != null) {
       if (node.Tok.Uri == uri) {

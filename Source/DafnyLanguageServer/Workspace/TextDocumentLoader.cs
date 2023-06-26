@@ -135,7 +135,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         Array.Empty<Counterexample>(),
         false,
         Array.Empty<Diagnostic>(),
-        new DocumentVerificationTree(textDocument)
+        new DocumentVerificationTree(new EmptyNode(), textDocument)
       );
     }
   }

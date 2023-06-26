@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using Microsoft.Dafny.LanguageServer.Language;
+using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 using OmniSharp.Extensions.LanguageServer.Protocol;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
@@ -25,11 +26,12 @@ public class DocumentAfterParsing : Document {
   public Program Program { get; }
 
   public override IdeState ToIdeState(IdeState previousState) {
-    return previousState with {
+    var baseResult = base.ToIdeState(previousState);
+    var rangeEnd = baseResult.VerificationTree.Range.End;
+    return baseResult with {
       Program = Program,
-      DocumentIdentifier = DocumentIdentifier,
       ResolutionDiagnostics = ComputeFileAndIncludesResolutionDiagnostics(),
-      ImplementationsWereUpdated = false,
+      VerificationTree = rangeEnd is { Line: 0, Character: 0 } ? new DocumentVerificationTree(Program, DocumentIdentifier) : baseResult.VerificationTree
     };
   }
 

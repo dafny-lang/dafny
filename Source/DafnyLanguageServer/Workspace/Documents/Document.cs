@@ -32,7 +32,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     public virtual IEnumerable<DafnyDiagnostic> AllFileDiagnostics => Enumerable.Empty<DafnyDiagnostic>();
 
     public IdeState InitialIdeState(DafnyOptions options) {
-      var outerModule = new DefaultModuleDefinition(new List<Uri>() { DocumentIdentifier.Uri.ToUri() }, false);
       return ToIdeState(new IdeState(DocumentIdentifier, new EmptyNode(),
         Array.Empty<Diagnostic>(),
         SymbolTable.Empty(), SignatureAndCompletionTable.Empty(options, DocumentIdentifier), new Dictionary<ImplementationId, IdeImplementationView>(),
@@ -42,7 +41,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     public virtual VerificationTree GetInitialDocumentVerificationTree() {
-      return new DocumentVerificationTree(DocumentIdentifier);
+      return new DocumentVerificationTree(new EmptyNode(), DocumentIdentifier);
     }
 
     /// <summary>

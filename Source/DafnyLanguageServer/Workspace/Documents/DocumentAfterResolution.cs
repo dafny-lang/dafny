@@ -26,10 +26,7 @@ public class DocumentAfterResolution : DocumentAfterParsing {
   public IReadOnlyList<Diagnostic> GhostDiagnostics { get; }
 
   public override IdeState ToIdeState(IdeState previousState) {
-    return previousState with {
-      DocumentIdentifier = DocumentIdentifier,
-      ImplementationsWereUpdated = false,
-      ResolutionDiagnostics = ComputeFileAndIncludesResolutionDiagnostics(),
+    return base.ToIdeState(previousState) with {
       SymbolTable = SymbolTable ?? previousState.SymbolTable,
       SignatureAndCompletionTable = SignatureAndCompletionTable.Resolved ? SignatureAndCompletionTable : previousState.SignatureAndCompletionTable,
       GhostDiagnostics = GhostDiagnostics

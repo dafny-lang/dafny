@@ -97,7 +97,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       }
 
       var errors = state.ResolutionDiagnostics.Where(x => x.Severity == DiagnosticSeverity.Error).ToList();
-      var linesCount = 200; // TODO resolve. state.DocumentIdentifier.NumberOfLines;
+      var linesCount = state.VerificationTree.Range.End.Line + 1;
       var verificationStatusGutter = VerificationStatusGutter.ComputeFrom(
         state.Uri,
         state.DocumentIdentifier.Version,
