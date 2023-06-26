@@ -13,7 +13,7 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using Xunit.Abstractions;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
-namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Diagnostics;
+namespace Microsoft.Dafny.LanguageServer.IntegrationTest.GutterStatus;
 
 public abstract class LinearVerificationGutterStatusTester : ClientBasedLanguageServerTest {
   protected TestNotificationReceiver<VerificationStatusGutter> verificationStatusGutterReceiver;
