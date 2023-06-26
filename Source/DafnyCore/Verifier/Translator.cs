@@ -3615,7 +3615,7 @@ namespace Microsoft.Dafny {
           argsC.Add(etran.layerInterCluster.GetFunctionFuel(f));
         }
 
-        if (f.IsOpaque) {
+        if (f.IsOpaque || (options.Get(CommonOptionBag.AllOpaque) && f.Name != "reads" && f.Name != "requires")) {
           argsC.Add(GetRevealConstant(f));
         }
 

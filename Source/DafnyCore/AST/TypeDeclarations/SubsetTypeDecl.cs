@@ -10,7 +10,7 @@ public class SubsetTypeDecl : TypeSynonymDecl, RedirectingTypeDecl {
   public readonly Expression Constraint;
   public enum WKind { CompiledZero, Compiled, Ghost, OptOut, Special }
   public readonly SubsetTypeDecl.WKind WitnessKind;
-  public readonly Expression/*?*/ Witness;  // non-null iff WitnessKind is Compiled or Ghost
+  public Expression/*?*/ Witness;  // non-null iff WitnessKind is Compiled or Ghost
   [FilledInDuringResolution] public bool ConstraintIsCompilable;
   [FilledInDuringResolution] public bool CheckedIfConstraintIsCompilable = false; // Set to true lazily by the Resolver when the Resolver fills in "ConstraintIsCompilable".
   public SubsetTypeDecl(RangeToken rangeToken, Name name, TypeParameter.TypeParameterCharacteristics characteristics, List<TypeParameter> typeArgs, ModuleDefinition module,

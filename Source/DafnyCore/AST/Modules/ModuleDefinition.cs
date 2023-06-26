@@ -77,6 +77,10 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
 
   [FilledInDuringResolution]
   public readonly Graph<ICallable> CallGraph = new();
+
+  [FilledInDuringResolution]
+  public readonly Graph<ICallable> InterModuleCallGraph = new();
+  
   [FilledInDuringResolution]
   public int Height;  // height in the topological sorting of modules;
 
