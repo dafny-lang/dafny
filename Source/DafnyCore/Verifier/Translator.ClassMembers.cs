@@ -348,7 +348,7 @@ namespace Microsoft.Dafny {
       Bpl.Expr is_o = BplAnd(
         ReceiverNotNull(o),
         !o.Type.Equals(predef.RefType) || c is TraitDecl
-          ? MkIs(o, o_ty) // $Is(o, ..)
+          ? MkIs(o, o_ty, ModeledAsBoxType(Resolver.GetThisType(c.tok, c))) // $Is(o, ..)
           : DType(o, o_ty)); // dtype(o) == o_ty
       ante = BplAnd(ante, is_o);
 
