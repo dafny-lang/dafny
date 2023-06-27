@@ -89,12 +89,12 @@ public class ProjectManager : IDisposable {
     CompilationManager.CancelPendingUpdates();
 
     var lastPublishedState = observer.LastPublishedState;
-    var migratedVerificationTrees = lastPublishedState.VerificationTree == null ? null 
+    var migratedVerificationTree = lastPublishedState.VerificationTree == null ? null 
       : relocator.RelocateVerificationTree(lastPublishedState.VerificationTree, documentChange, CancellationToken.None);
     lastPublishedState = lastPublishedState with {
       ImplementationIdToView = MigrateImplementationViews(documentChange, lastPublishedState.ImplementationIdToView),
       SignatureAndCompletionTable = relocator.RelocateSymbols(lastPublishedState.SignatureAndCompletionTable, documentChange, CancellationToken.None),
-      VerificationTree = migratedVerificationTrees
+      VerificationTree = migratedVerificationTree
     };
 
     lock (ChangedRanges) {
@@ -110,7 +110,7 @@ public class ProjectManager : IDisposable {
       boogieEngine,
       new Compilation(version, Project),
       // TODO do not pass this to CompilationManager but instead use it in FillMissingStateUsingLastPublishedDocument
-      migratedVerificationTrees
+      migratedVerificationTree
     );
 
     if (VerifyOnChange) {

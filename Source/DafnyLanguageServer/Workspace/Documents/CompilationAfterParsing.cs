@@ -25,12 +25,15 @@ public class CompilationAfterParsing : Compilation {
     return ResolutionDiagnostics.GetOrDefault(uri, Enumerable.Empty<DafnyDiagnostic>);
   }
 
+
   public override IdeState ToIdeState(IdeState previousState) {
-    return base.ToIdeState(previousState) with {
+    var baseResult = base.ToIdeState(previousState);
+    return baseResult with {
       Program = Program,
       ResolutionDiagnostics = ResolutionDiagnostics.ToDictionary(
         kv => kv.Key,
         kv => (IReadOnlyList<Diagnostic>)kv.Value.Select(d => d.ToLspDiagnostic()).ToList()),
+      VerificationTree = baseResult.VerificationTree ?? GetVerificationTree()
     };
   }
 
