@@ -135,21 +135,26 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         return;
       }
 
-      // var errors = state.ResolutionDiagnostics.Where(x => x.Severity == DiagnosticSeverity.Error).ToList();
-      // if (state.VerificationTree == null) {
-      //   return;
-      // }
-      //
-      // var linesCount = state.VerificationTree.Range.End.Line + 1;
-      // var verificationStatusGutter = VerificationStatusGutter.ComputeFrom(
-      //   state.Uri,
-      //   state.DocumentIdentifier.Version,
-      //   state.VerificationTree.Children.Select(child => child.GetCopyForNotification()).ToArray(),
-      //   errors,
-      //   linesCount,
-      //   verificationStarted
-      // );
-      // languageServer.TextDocument.SendNotification(verificationStatusGutter);
+      var root = state.Compilation.Project.UnsavedRootFile;
+      if (root == null) {
+        return;
+      }
+      var errors = state.ResolutionDiagnostics.GetOrDefault(root, Enumerable.Empty<Diagnostic>).
+        Where(x => x.Severity == DiagnosticSeverity.Error).ToList();
+      if (state.VerificationTree == null) {
+        return;
+      }
+      
+      var linesCount = state.VerificationTree.Range.End.Line + 1;
+      var verificationStatusGutter = VerificationStatusGutter.ComputeFrom(
+        root,
+        filesystem.GetVersion(root)!.Value,
+        state.VerificationTree.Children.Select(child => child.GetCopyForNotification()).ToArray(),
+        errors,
+        linesCount,
+        verificationStarted
+      );
+      languageServer.TextDocument.SendNotification(verificationStatusGutter);
     }
 
     private void PublishGhostDiagnostics(IdeState previousState, IdeState state) {

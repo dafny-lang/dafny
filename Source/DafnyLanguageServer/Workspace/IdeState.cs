@@ -28,8 +28,8 @@ public record IdeState(
   IReadOnlyDictionary<ImplementationId, IdeImplementationView> ImplementationIdToView,
   IReadOnlyList<Counterexample> Counterexamples,
   bool ImplementationsWereUpdated,
-  IReadOnlyDictionary<Uri, IReadOnlyList<Range>> GhostRanges
-// ImmutableDictionary<TextDocumentIdentifier, VerificationTree> VerificationTrees
+  IReadOnlyDictionary<Uri, IReadOnlyList<Range>> GhostRanges,
+  VerificationTree? VerificationTree
 ) {
 
   public int Version => Compilation.Version;
@@ -39,8 +39,6 @@ public record IdeState(
     var verificationDiagnostics = ImplementationIdToView.GroupBy(kv => kv.Key.Uri).Select(kv =>
       new KeyValuePair<Uri, IReadOnlyList<Diagnostic>>(kv.Key, kv.SelectMany(x => x.Value.Diagnostics).ToList()));
     return resolutionDiagnostics.Merge(verificationDiagnostics, Lists.Concat);
-    // TODO combine diagnostics for one Uri
-    return resolutionDiagnostics.AddRange(verificationDiagnostics);
   }
 }
 

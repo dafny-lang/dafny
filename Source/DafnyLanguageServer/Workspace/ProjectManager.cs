@@ -61,7 +61,7 @@ public class ProjectManager : IDisposable {
     CompilationManager = new CompilationManager(
       services,
       options, 
-      boogieEngine, new Compilation(version, project));
+      boogieEngine, new Compilation(version, project), null);
 
     observerSubscription = CompilationManager.CompilationUpdates.Select(d =>
       d.InitialIdeState(new Compilation(version, project), options)).Subscribe(observer);
@@ -90,13 +90,12 @@ public class ProjectManager : IDisposable {
     CompilationManager.CancelPendingUpdates();
 
     var lastPublishedState = observer.LastPublishedState;
-    // var migratedVerificationTrees =
-    //   lastPublishedState.VerificationTrees.ToImmutableDictionary(kv => kv.Key, 
-    //     kv => relocator.RelocateVerificationTree(kv.Value, documentChange, CancellationToken.None));
+    var migratedVerificationTrees = lastPublishedState.VerificationTree == null ? null 
+      : relocator.RelocateVerificationTree(lastPublishedState.VerificationTree, documentChange, CancellationToken.None);
     lastPublishedState = lastPublishedState with {
       ImplementationIdToView = MigrateImplementationViews(documentChange, lastPublishedState.ImplementationIdToView),
       SignatureAndCompletionTable = relocator.RelocateSymbols(lastPublishedState.SignatureAndCompletionTable, documentChange, CancellationToken.None),
-      // VerificationTrees = migratedVerificationTrees
+      VerificationTree = migratedVerificationTrees
     };
 
     lock (ChangedRanges) {
@@ -110,9 +109,9 @@ public class ProjectManager : IDisposable {
       services,
       options,
       boogieEngine,
-      new Compilation(version, Project)
-    // TODO do not pass this to CompilationManager but instead use it in FillMissingStateUsingLastPublishedDocument
-    // migratedVerificationTrees
+      new Compilation(version, Project),
+      // TODO do not pass this to CompilationManager but instead use it in FillMissingStateUsingLastPublishedDocument
+      migratedVerificationTrees
     );
 
     if (VerifyOnChange) {

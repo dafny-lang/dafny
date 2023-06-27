@@ -17,5 +17,5 @@ public interface IDafnyCodeActionInput {
   int Version { get; }
   Program? Program { get; }
   IReadOnlyList<DafnyDiagnostic> Diagnostics { get; }
-  // VerificationTree VerificationTree { get; }
+  VerificationTree? VerificationTree { get; }
 }

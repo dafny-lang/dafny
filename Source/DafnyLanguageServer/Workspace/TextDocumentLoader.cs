@@ -134,9 +134,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         new Dictionary<ImplementationId, IdeImplementationView>(),
         Array.Empty<Counterexample>(),
         false,
-        ImmutableDictionary<Uri, IReadOnlyList<Range>>.Empty
-      // , 
-      // ImmutableDictionary<TextDocumentIdentifier, VerificationTree>.Empty
+        ImmutableDictionary<Uri, IReadOnlyList<Range>>.Empty,
+      null
       );
     }
   }

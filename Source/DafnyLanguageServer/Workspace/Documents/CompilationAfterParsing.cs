@@ -26,50 +26,15 @@ public class CompilationAfterParsing : Compilation {
   }
 
   public override IdeState ToIdeState(IdeState previousState) {
-    return previousState with {
+    return base.ToIdeState(previousState) with {
       Program = Program,
       ResolutionDiagnostics = ResolutionDiagnostics.ToDictionary(
         kv => kv.Key,
         kv => (IReadOnlyList<Diagnostic>)kv.Value.Select(d => d.ToLspDiagnostic()).ToList()),
-      ImplementationsWereUpdated = false,
     };
   }
 
-  public virtual ImmutableDictionary<TextDocumentIdentifier, VerificationTree> GetVerificationTrees() {
-    throw new Exception();
-    // return new DocumentVerificationTree(Program, DocumentIdentifier);
+  public virtual VerificationTree? GetVerificationTree() {
+    return Project.UnsavedRootFile == null ? null : new DocumentVerificationTree(Program, Project.UnsavedRootFile);
   }
-  
-  // protected IEnumerable<Diagnostic> ComputeFileAndIncludesResolutionDiagnostics() {
-  //   var includeErrorDiagnostics = GetIncludeErrorDiagnostics();
-  //   return FileResolutionDiagnostics.Concat(includeErrorDiagnostics).Select(d => d.ToLspDiagnostic());
-  // }
-  //
-  // private IEnumerable<DafnyDiagnostic> GetIncludeErrorDiagnostics() {
-  //   var graph = new Graph<Uri>();
-  //   foreach (var edgesForUri in Program.Compilation.Includes.GroupBy(i => i.IncluderFilename)) {
-  //     foreach (var edge in edgesForUri) {
-  //       graph.AddEdge(edge.IncluderFilename, edge.IncludedFilename);
-  //     }
-  //   }
-  //
-  //   var sortedSccRoots = graph.TopologicallySortedComponents();
-  //   var sortedUris = sortedSccRoots.SelectMany(sccRoot => graph.GetSCC(sccRoot));
-  //   var sortedUrisWithoutRoot = sortedUris.SkipLast(1);
-  //   foreach (var include in sortedUrisWithoutRoot) {
-  //     var messageForIncludedFile =
-  //       ResolutionDiagnostics.GetOrDefault(include, () => (IReadOnlyList<DafnyDiagnostic>)ImmutableList<DafnyDiagnostic>.Empty);
-  //     var errorMessages = messageForIncludedFile.Where(m => m.Level == ErrorLevel.Error);
-  //     var firstErrorMessage = errorMessages.FirstOrDefault();
-  //     if (firstErrorMessage == null) {
-  //       continue;
-  //     }
-  //
-  //     var containsErrorSTheFirstOneIs = $"the included file {include.LocalPath} contains error(s). The first one is:{firstErrorMessage}";
-  //     var diagnostic = new DafnyDiagnostic(null, Program.GetFirstTopLevelToken(), containsErrorSTheFirstOneIs,
-  //       MessageSource.Parser, ErrorLevel.Error, new DafnyRelatedInformation[] { });
-  //     yield return diagnostic;
-  //     break;
-  //   }
-  // }
 }

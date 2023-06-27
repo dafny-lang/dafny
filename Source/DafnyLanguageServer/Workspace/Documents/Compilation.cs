@@ -40,8 +40,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         ImmutableDictionary<Uri, IReadOnlyList<Diagnostic>>.Empty,
         SymbolTable.Empty(), SignatureAndCompletionTable.Empty(options, compilation.Project), new Dictionary<ImplementationId, IdeImplementationView>(),
         Array.Empty<Counterexample>(),
-        false, ImmutableDictionary<Uri, IReadOnlyList<Range>>.Empty
-      // , null)
+        false, ImmutableDictionary<Uri, IReadOnlyList<Range>>.Empty,
+       null
       ));
     }
 
