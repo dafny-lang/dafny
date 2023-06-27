@@ -175,7 +175,7 @@ module N refines M
       Assert.Equal(
         "static non-ghost const field 't' of type 'T' (which does not have a default compiled value) must give a defining value",
         diagnostics[1].Message);
-      await AssertNoDiagnosticsAreComing2(CancellationToken);
+      await AssertNoDiagnosticsAreComing(CancellationToken);
     }
 
     [Fact]

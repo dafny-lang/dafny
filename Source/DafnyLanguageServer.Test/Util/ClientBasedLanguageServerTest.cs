@@ -54,29 +54,6 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
 
     return things.Select(t => t.DocumentSymbol!);
   }
-
-  public async Task<Diagnostic[]> GetLastDiagnostics2(CancellationToken cancellationToken) {
-    var verificationDocumentItem = CreateTestDocument("method Foo() { assert false; }", $"verification{fileIndex++}.dfy");
-    await client.OpenDocumentAndWaitAsync(verificationDocumentItem, CancellationToken.None);
-    
-    PublishDiagnosticsParams result;
-    PublishDiagnosticsParams newDocumentResult = null;
-    do {
-      result = newDocumentResult;
-      newDocumentResult = await diagnosticsReceiver.AwaitNextNotificationAsync(cancellationToken);
-    } while (newDocumentResult.Uri != verificationDocumentItem.Uri);
-    
-    Assert.Equal(verificationDocumentItem.Uri, newDocumentResult.Uri);
-    Assert.Single(newDocumentResult.Diagnostics);
-    client.DidCloseTextDocument(new DidCloseTextDocumentParams {
-      TextDocument = verificationDocumentItem
-    });
-    newDocumentResult = await diagnosticsReceiver.AwaitNextNotificationAsync(cancellationToken);
-    Assert.Equal(verificationDocumentItem.Uri, newDocumentResult.Uri);
-    Assert.Empty(newDocumentResult.Diagnostics);
-
-    return result?.Diagnostics.ToArray();
-  }
   
   public async Task<PublishDiagnosticsParams> GetLastDiagnosticsParams(TextDocumentItem documentItem, CancellationToken cancellationToken) {
     await client.WaitForNotificationCompletionAsync(documentItem.Uri, cancellationToken);
@@ -181,11 +158,6 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
     });
     var hideReport = await diagnosticsReceiver.AwaitNextNotificationAsync(cancellationToken);
     Assert.Equal(verificationDocumentItem.Uri, hideReport.Uri);
-  }
-
-  public async Task AssertNoDiagnosticsAreComing2(CancellationToken cancellationToken) {
-    var result = await GetLastDiagnostics2(cancellationToken);
-    Assert.Null(result);
   }
 
   public async Task AssertNoDiagnosticsAreComing(CancellationToken cancellationToken) {

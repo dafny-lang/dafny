@@ -90,50 +90,50 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
         return null;
       }
 
-      // if (state.VerificationTree == null) {
-      //   return null;
-      // }
-      // foreach (var node in state.VerificationTree.Children.OfType<TopLevelDeclMemberVerificationTree>()) {
-      //   if (!node.Range.Contains(position)) {
-      //     continue;
-      //   }
-      //
-      //   var assertionBatchCount = node.AssertionBatchCount;
-      //   var information = "";
-      //   var orderedAssertionBatches =
-      //     node.AssertionBatches
-      //       .OrderBy(keyValue => keyValue.Key, new AssertionBatchIndexComparer()).Select(keyValuePair => keyValuePair.Value)
-      //       .ToList();
-      //
-      //   foreach (var assertionBatch in orderedAssertionBatches) {
-      //     if (!assertionBatch.Range.Contains(position)) {
-      //       continue;
-      //     }
-      //
-      //     var assertionIndex = 0;
-      //     var assertions = assertionBatch.Children.OfType<AssertionVerificationTree>().ToList();
-      //     foreach (var assertionNode in assertions) {
-      //       if (assertionNode.Range.Contains(position) ||
-      //           assertionNode.ImmediatelyRelatedRanges.Any(range => range.Contains(position))) {
-      //         if (information != "") {
-      //           information += "\n\n";
-      //         }
-      //         information += GetAssertionInformation(state, position, assertionNode, assertionBatch, assertionIndex, assertionBatchCount, node);
-      //       }
-      //
-      //       assertionIndex++;
-      //     }
-      //   }
-      //
-      //   if (information != "") {
-      //     return information;
-      //   }
-      //   // Ok no assertion here. Maybe a method?
-      //   if (node.Position.Line == position.Line && node.Uri == state.Uri) {
-      //     areMethodStatistics = true;
-      //     return GetTopLevelInformation(node, orderedAssertionBatches);
-      //   }
-      // }
+      if (state.VerificationTree == null) {
+        return null;
+      }
+      foreach (var node in state.VerificationTree.Children.OfType<TopLevelDeclMemberVerificationTree>()) {
+        if (!node.Range.Contains(position)) {
+          continue;
+        }
+      
+        var assertionBatchCount = node.AssertionBatchCount;
+        var information = "";
+        var orderedAssertionBatches =
+          node.AssertionBatches
+            .OrderBy(keyValue => keyValue.Key, new AssertionBatchIndexComparer()).Select(keyValuePair => keyValuePair.Value)
+            .ToList();
+      
+        foreach (var assertionBatch in orderedAssertionBatches) {
+          if (!assertionBatch.Range.Contains(position)) {
+            continue;
+          }
+      
+          var assertionIndex = 0;
+          var assertions = assertionBatch.Children.OfType<AssertionVerificationTree>().ToList();
+          foreach (var assertionNode in assertions) {
+            if (assertionNode.Range.Contains(position) ||
+                assertionNode.ImmediatelyRelatedRanges.Any(range => range.Contains(position))) {
+              if (information != "") {
+                information += "\n\n";
+              }
+              information += GetAssertionInformation(state, position, assertionNode, assertionBatch, assertionIndex, assertionBatchCount, node);
+            }
+      
+            assertionIndex++;
+          }
+        }
+      
+        if (information != "") {
+          return information;
+        }
+        // Ok no assertion here. Maybe a method?
+        if (node.Position.Line == position.Line && node.Uri == state.Compilation.Project.UnsavedRootFile) {
+          areMethodStatistics = true;
+          return GetTopLevelInformation(node, orderedAssertionBatches);
+        }
+      }
 
       return null;
     }

@@ -219,10 +219,10 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
   /// <param name="verificationStarted">Whether verification already started at this point</param>
   /// <param name="document">The document to send. Can be a previous document</param>
   public void ReportRealtimeDiagnostics(bool verificationStarted, CompilationAfterResolution? document = null) {
-    // lock (LockProcessing) {
-    //   document ??= this.compilation;
-    //   notificationPublisher.PublishGutterIcons(this.compilation.InitialIdeState(options), verificationStarted);
-    // }
+    lock (LockProcessing) {
+      document ??= this.compilation;
+      notificationPublisher.PublishGutterIcons(compilation.InitialIdeState(compilation, options), verificationStarted);
+    }
   }
 
   /// <summary>
