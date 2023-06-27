@@ -16,6 +16,6 @@ public interface IDafnyCodeActionInput {
   /// </summary>
   int Version { get; }
   Program? Program { get; }
-  IReadOnlyList<DafnyDiagnostic> Diagnostics { get; }
+  IEnumerable<DafnyDiagnostic> Diagnostics { get; }
   VerificationTree? VerificationTree { get; }
 }

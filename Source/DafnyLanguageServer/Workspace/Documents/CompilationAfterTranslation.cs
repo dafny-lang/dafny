@@ -66,9 +66,6 @@ public class CompilationAfterTranslation : CompilationAfterResolution {
     };
   }
 
-  public override IEnumerable<DafnyDiagnostic> AllFileDiagnostics => base.AllFileDiagnostics.Concat(
-    ImplementationIdToView.SelectMany(kv => kv.Value.Diagnostics));
-
   public IReadOnlyList<IImplementationTask> VerificationTasks { get; set; }
   /// <summary>
   /// Contains the real-time status of all verification efforts.

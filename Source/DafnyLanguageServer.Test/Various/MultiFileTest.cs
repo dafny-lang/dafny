@@ -52,7 +52,7 @@ method Test() {
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var document = await Projects.GetLastDocumentAsync(documentItem.Uri);
       Assert.NotNull(document);
-      Assert.Single(document.AllFileDiagnostics);
+      Assert.Single(document.ResolutionDiagnostics.Values.SelectMany(x => x));
     }
 
     public MultiFileTest(ITestOutputHelper output) : base(output) {

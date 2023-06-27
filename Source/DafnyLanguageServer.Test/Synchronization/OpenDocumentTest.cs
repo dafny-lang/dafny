@@ -83,8 +83,9 @@ method Recurse(x: int) returns (r: int) {
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var document = await Projects.GetLastDocumentAsync(documentItem.Uri);
       Assert.NotNull(document);
-      Assert.Equal(1, document.AllFileDiagnostics.Count(d => d.Level == ErrorLevel.Error));
-      var message = document.AllFileDiagnostics.First(d => d.Level == ErrorLevel.Error);
+      var dafnyDiagnostics = document.GetDiagnostics(documentItem.Uri.ToUri()).ToList();
+      Assert.Equal(1, dafnyDiagnostics.Count(d => d.Level == ErrorLevel.Error));
+      var message = dafnyDiagnostics.First(d => d.Level == ErrorLevel.Error);
       Assert.Equal(MessageSource.Verifier, message.Source);
     }
 
