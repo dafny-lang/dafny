@@ -69,7 +69,6 @@ public class CompilationManager {
     statusPublisher = services.GetRequiredService<ICompilationStatusNotificationPublisher>();
 
     this.services = services;
-    // this.migratedVerificationTree = migratedVerificationTree;
     cancellationSource = new();
 
     MarkVerificationFinished();
@@ -91,7 +90,7 @@ public class CompilationManager {
       var state = documentAfterParsing.InitialIdeState(startingCompilation, options);
       state = state with {
         // TODO change logic so it fills in missing keys???
-        // VerificationTrees = migratedVerificationTree ?? state.VerificationTrees
+        VerificationTree = migratedVerificationTree ?? state.VerificationTree
       };
       notificationPublisher.PublishGutterIcons(state, false);
 

@@ -22,15 +22,15 @@ public record VerificationParams : TextDocumentPositionParams, IRequest<bool>;
 public record CancelVerificationParams : TextDocumentPositionParams, IRequest<bool>;
 
 public class VerificationHandler : IJsonRpcRequestHandler<VerificationParams, bool>, IJsonRpcRequestHandler<CancelVerificationParams, bool> {
-  private readonly IDocumentDatabase documents;
+  private readonly IProjectDatabase projects;
 
   public VerificationHandler(
-    IDocumentDatabase documents) {
-    this.documents = documents;
+    IProjectDatabase projects) {
+    this.projects = projects;
   }
 
   public async Task<bool> Handle(VerificationParams request, CancellationToken cancellationToken) {
-    var documentManager = documents.GetDocumentManager(request.TextDocument);
+    var documentManager = projects.GetDocumentManager(request.TextDocument);
     if (documentManager == null) {
       return false;
     }
@@ -53,7 +53,7 @@ public class VerificationHandler : IJsonRpcRequestHandler<VerificationParams, bo
   }
 
   public async Task<bool> Handle(CancelVerificationParams request, CancellationToken cancellationToken) {
-    var documentManager = documents.GetDocumentManager(request.TextDocument);
+    var documentManager = projects.GetDocumentManager(request.TextDocument);
     if (documentManager == null) {
       return false;
     }

@@ -13,7 +13,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
   /// <summary>
   /// Contains a collection of DocumentManagers
   /// </summary>
-  public class ProjectManagerDatabase : IDocumentDatabase {
+  public class ProjectManagerDatabase : IProjectDatabase {
 
     private readonly IServiceProvider services;
 

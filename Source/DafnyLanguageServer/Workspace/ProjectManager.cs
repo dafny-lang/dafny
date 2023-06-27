@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
 using System.Reactive.Linq;
@@ -175,6 +174,7 @@ public class ProjectManager : IDisposable {
     CompilationManager.CancelPendingUpdates();
     try {
       await CompilationManager.LastDocument;
+      observer.OnCompleted();
     } catch (TaskCanceledException) {
     }
   }

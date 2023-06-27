@@ -2,7 +2,6 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.Data;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
@@ -175,13 +174,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           }).ToArray(),
         });
       }
-    }
-
-    public void HideDiagnostics(TextDocumentIdentifier documentId) {
-      languageServer.TextDocument.PublishDiagnostics(new PublishDiagnosticsParams {
-        Uri = documentId.Uri,
-        Diagnostics = new Container<Diagnostic>()
-      });
     }
   }
 }

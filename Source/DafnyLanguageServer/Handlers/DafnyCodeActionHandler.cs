@@ -21,12 +21,12 @@ namespace Microsoft.Dafny.LanguageServer.Handlers;
 public class DafnyCodeActionHandler : CodeActionHandlerBase {
   private readonly DafnyOptions options;
   private readonly ILogger<DafnyCodeActionHandler> logger;
-  private readonly IDocumentDatabase documents;
+  private readonly IProjectDatabase projects;
 
-  public DafnyCodeActionHandler(DafnyOptions options, ILogger<DafnyCodeActionHandler> logger, IDocumentDatabase documents) {
+  public DafnyCodeActionHandler(DafnyOptions options, ILogger<DafnyCodeActionHandler> logger, IProjectDatabase projects) {
     this.options = options;
     this.logger = logger;
-    this.documents = documents;
+    this.projects = projects;
   }
 
   public record DafnyCodeActionWithId(DafnyCodeAction DafnyCodeAction, int Id);
@@ -60,7 +60,7 @@ public class DafnyCodeActionHandler : CodeActionHandlerBase {
   private readonly ConcurrentDictionary<string, IReadOnlyList<DafnyCodeActionWithId>> documentUriToDafnyCodeActiones = new();
 
   public override async Task<CommandOrCodeActionContainer> Handle(CodeActionParams request, CancellationToken cancellationToken) {
-    var document = await documents.GetLastDocumentAsync(request.TextDocument);
+    var document = await projects.GetLastDocumentAsync(request.TextDocument);
     if (document == null) {
       logger.LogWarning("dafny code actions requested for unloaded document {DocumentUri}", request.TextDocument.Uri);
       return new CommandOrCodeActionContainer();

@@ -9,7 +9,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
   /// <summary>
   /// Stores and manages the provided documents.
   /// </summary>
-  public interface IDocumentDatabase {
+  public interface IProjectDatabase {
     /// <summary>
     /// Closes the document with the specified ID.
     /// </summary>

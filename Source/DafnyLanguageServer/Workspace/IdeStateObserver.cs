@@ -14,6 +14,7 @@ class IdeStateObserver : IObserver<IdeState> {
   private readonly ILogger logger;
   private readonly ITelemetryPublisher telemetryPublisher;
   private readonly INotificationPublisher notificationPublisher;
+  private readonly ITextDocumentLoader loader;
   private readonly DafnyProject project;
 
   private readonly object lastPublishedStateLock = new();
@@ -29,10 +30,13 @@ class IdeStateObserver : IObserver<IdeState> {
     this.logger = logger;
     this.telemetryPublisher = telemetryPublisher;
     this.notificationPublisher = notificationPublisher;
+    this.loader = loader;
     this.project = project;
   }
 
   public void OnCompleted() {
+    var ideState = loader.CreateUnloaded(project) with { Compilation = new Compilation(LastPublishedState.Version + 1, LastPublishedState.Compilation.Project) };
+    notificationPublisher.PublishNotifications(LastPublishedState, ideState);
     telemetryPublisher.PublishUpdateComplete();
   }
 
