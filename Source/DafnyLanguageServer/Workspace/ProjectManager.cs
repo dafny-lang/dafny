@@ -45,7 +45,7 @@ public class ProjectManager : IDisposable {
     var serverOptions = services.GetRequiredService<DafnyOptions>();
     logger = services.GetRequiredService<ILogger<ProjectManager>>();
     relocator = services.GetRequiredService<IRelocator>();
-    
+
     options = DetermineProjectOptions(project, serverOptions);
     if (project.UnsavedRootFile != null) {
       options.CliRootSourceUris.Add(project.UnsavedRootFile);
@@ -56,17 +56,17 @@ public class ProjectManager : IDisposable {
       services.GetRequiredService<ITextDocumentLoader>(),
       project);
     boogieEngine = new ExecutionEngine(options, verificationCache);
-    
+
     CompilationManager = new CompilationManager(
       services,
-      options, 
+      options,
       boogieEngine, new Compilation(version, project), null);
 
     observerSubscription = CompilationManager.CompilationUpdates.Select(d =>
       d.InitialIdeState(new Compilation(version, project), options)).Subscribe(observer);
 
     options.Printer = new OutputLogger(logger);
-    
+
     if (VerifyOnOpen) {
       var _ = VerifyEverythingAsync();
     } else {
@@ -89,7 +89,7 @@ public class ProjectManager : IDisposable {
     CompilationManager.CancelPendingUpdates();
 
     var lastPublishedState = observer.LastPublishedState;
-    var migratedVerificationTree = lastPublishedState.VerificationTree == null ? null 
+    var migratedVerificationTree = lastPublishedState.VerificationTree == null ? null
       : relocator.RelocateVerificationTree(lastPublishedState.VerificationTree, documentChange, CancellationToken.None);
     lastPublishedState = lastPublishedState with {
       ImplementationIdToView = MigrateImplementationViews(documentChange, lastPublishedState.ImplementationIdToView),

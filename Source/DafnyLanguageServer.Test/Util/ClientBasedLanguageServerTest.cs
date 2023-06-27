@@ -54,7 +54,7 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
 
     return things.Select(t => t.DocumentSymbol!);
   }
-  
+
   public async Task<PublishDiagnosticsParams> GetLastDiagnosticsParams(TextDocumentItem documentItem, CancellationToken cancellationToken) {
     await client.WaitForNotificationCompletionAsync(documentItem.Uri, cancellationToken);
     var compilation = (await Projects.GetLastDocumentAsync(documentItem))!;
@@ -71,7 +71,7 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
 
     return result;
   }
-  
+
   public async Task<Diagnostic[]> GetLastDiagnostics(TextDocumentItem documentItem, CancellationToken cancellationToken) {
     var paramsResult = await GetLastDiagnosticsParams(documentItem, CancellationToken);
     return paramsResult.Diagnostics.ToArray();

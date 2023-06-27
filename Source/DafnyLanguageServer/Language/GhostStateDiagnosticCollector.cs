@@ -42,7 +42,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         var visitor = new GhostStateSyntaxTreeVisitor(cancellationToken);
         visitor.Visit(signatureAndCompletionTable.CompilationUnit.Program);
         return visitor.GhostDiagnostics.ToDictionary(
-          kv => kv.Key, 
+          kv => kv.Key,
           kv => (IReadOnlyList<Range>)kv.Value);
       } catch (Exception e) {
         logger.LogDebug(e, "encountered an exception while getting ghost state diagnostics of {Name}", signatureAndCompletionTable.CompilationUnit.Name);

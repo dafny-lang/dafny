@@ -97,19 +97,19 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
         if (!node.Range.Contains(position)) {
           continue;
         }
-      
+
         var assertionBatchCount = node.AssertionBatchCount;
         var information = "";
         var orderedAssertionBatches =
           node.AssertionBatches
             .OrderBy(keyValue => keyValue.Key, new AssertionBatchIndexComparer()).Select(keyValuePair => keyValuePair.Value)
             .ToList();
-      
+
         foreach (var assertionBatch in orderedAssertionBatches) {
           if (!assertionBatch.Range.Contains(position)) {
             continue;
           }
-      
+
           var assertionIndex = 0;
           var assertions = assertionBatch.Children.OfType<AssertionVerificationTree>().ToList();
           foreach (var assertionNode in assertions) {
@@ -120,11 +120,11 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
               }
               information += GetAssertionInformation(state, position, assertionNode, assertionBatch, assertionIndex, assertionBatchCount, node);
             }
-      
+
             assertionIndex++;
           }
         }
-      
+
         if (information != "") {
           return information;
         }

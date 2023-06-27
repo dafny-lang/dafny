@@ -20,7 +20,7 @@ public class CompilationAfterTranslation : CompilationAfterResolution {
     IReadOnlyDictionary<Uri, List<DafnyDiagnostic>> diagnostics,
     IReadOnlyList<IImplementationTask> verificationTasks,
     List<Counterexample> counterexamples,
-    Dictionary<ImplementationId, ImplementationView> implementationIdToView, 
+    Dictionary<ImplementationId, ImplementationView> implementationIdToView,
     VerificationTree? verificationTree
     )
     : base(compilationAfterResolution, diagnostics,

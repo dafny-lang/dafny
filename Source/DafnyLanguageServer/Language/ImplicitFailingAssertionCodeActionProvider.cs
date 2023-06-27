@@ -129,7 +129,7 @@ class ImplicitFailingAssertionCodeActionProvider : DiagnosticDafnyCodeActionProv
     if (failingExpressions.Count == 0) {
       return null;
     }
-    
+
     return failingExpressions.Select(failingExpression =>
       new ExplicitAssertionDafnyCodeAction(options, input.Program, failingExpression, selection)
     );

@@ -52,7 +52,7 @@ public class LanguageServerFilesystem : IFileSystem {
     }
 
     entry.Version = newVersion!.Value;
-    
+
   }
 
   public void CloseDocument(TextDocumentIdentifier document) {

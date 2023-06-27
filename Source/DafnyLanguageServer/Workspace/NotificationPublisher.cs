@@ -17,7 +17,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     private readonly ILanguageServerFacade languageServer;
     private readonly DafnyOptions options;
 
-    public NotificationPublisher(ILogger<NotificationPublisher> logger, ILanguageServerFacade languageServer, 
+    public NotificationPublisher(ILogger<NotificationPublisher> logger, ILanguageServerFacade languageServer,
       DafnyOptions options, LanguageServerFilesystem filesystem) {
       this.logger = logger;
       this.languageServer = languageServer;
@@ -99,33 +99,32 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           });
         }
       } else {
-          var diagnostics = new List<Diagnostic>();
-          foreach(var (key, value) in currentDiagnostics)
-          {
-            if (key == singleFileDiagnostics) {
-              diagnostics.AddRange(value);
-            } else {
-              if (value.Any()) {
-                var containsErrorSTheFirstOneIs =
-                  $"the referenced file {key.LocalPath} contains error(s). The first one is: {value.First().Message}";
-                var diagnostic = new Diagnostic() {
-                  Range = new Range(0, 0, 0, 1),
-                  Message = containsErrorSTheFirstOneIs,
-                  Severity = DiagnosticSeverity.Error,
-                  Source = MessageSource.Parser.ToString()
-                };
-                diagnostics.Add(diagnostic);
-              }
+        var diagnostics = new List<Diagnostic>();
+        foreach (var (key, value) in currentDiagnostics) {
+          if (key == singleFileDiagnostics) {
+            diagnostics.AddRange(value);
+          } else {
+            if (value.Any()) {
+              var containsErrorSTheFirstOneIs =
+                $"the referenced file {key.LocalPath} contains error(s). The first one is: {value.First().Message}";
+              var diagnostic = new Diagnostic() {
+                Range = new Range(0, 0, 0, 1),
+                Message = containsErrorSTheFirstOneIs,
+                Severity = DiagnosticSeverity.Error,
+                Source = MessageSource.Parser.ToString()
+              };
+              diagnostics.Add(diagnostic);
             }
           }
-          IEnumerable<Diagnostic> previous = previousStateDiagnostics.GetOrDefault(singleFileDiagnostics, Enumerable.Empty<Diagnostic>);
-          if (!previous.SequenceEqual(diagnostics)) {
-            languageServer.TextDocument.PublishDiagnostics(new PublishDiagnosticsParams {
-              Uri = singleFileDiagnostics,
-              Version = filesystem.GetVersion(singleFileDiagnostics),
-              Diagnostics = diagnostics,
-            });
-          }
+        }
+        IEnumerable<Diagnostic> previous = previousStateDiagnostics.GetOrDefault(singleFileDiagnostics, Enumerable.Empty<Diagnostic>);
+        if (!previous.SequenceEqual(diagnostics)) {
+          languageServer.TextDocument.PublishDiagnostics(new PublishDiagnosticsParams {
+            Uri = singleFileDiagnostics,
+            Version = filesystem.GetVersion(singleFileDiagnostics),
+            Diagnostics = diagnostics,
+          });
+        }
       }
     }
 
@@ -143,7 +142,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       if (state.VerificationTree == null) {
         return;
       }
-      
+
       var linesCount = state.VerificationTree.Range.End.Line + 1;
       var verificationStatusGutter = VerificationStatusGutter.ComputeFrom(
         root,

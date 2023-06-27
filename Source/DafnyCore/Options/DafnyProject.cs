@@ -58,7 +58,7 @@ public class DafnyProject {
     if (!Uri.IsFile) {
       return;
     }
-    
+
     var matcher = new Matcher();
     foreach (var includeGlob in Includes ?? new[] { "**/*.dfy" }) {
       matcher.AddInclude(includeGlob);
