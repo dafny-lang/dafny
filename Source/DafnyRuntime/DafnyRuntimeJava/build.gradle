@@ -3,6 +3,9 @@ plugins {
     id 'maven-publish'
 }
 
+group = 'org.dafny'
+version = '4.2.0-SNAPSHOT'
+
 repositories {
     mavenLocal()
     maven {
@@ -14,7 +17,6 @@ dependencies {
     testImplementation 'org.junit.jupiter:junit-jupiter-engine:5.5.2'
 }
 
-group = 'dafny.lang'
 sourceCompatibility = '1.8'
 
 tasks.withType(JavaCompile) {
@@ -30,3 +32,19 @@ clean {
     delete '../../../Binaries/DafnyRuntime.jar'
 }
 
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            artifactId = 'DafnyRuntime'
+            from components.java
+            versionMapping {
+                usage('java-api') {
+                    fromResolutionOf('runtimeClasspath')
+                }
+                usage('java-runtime') {
+                    fromResolutionResult()
+                }
+            }
+        }
+    }
+}

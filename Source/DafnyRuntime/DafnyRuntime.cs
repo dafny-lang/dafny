@@ -5,6 +5,8 @@
 //
 //-----------------------------------------------------------------------------
 
+
+using System.Threading;
 #if ISDAFNYRUNTIMELIB
 using System; // for Func
 using System.Numerics;
@@ -1282,6 +1284,7 @@ namespace Dafny {
         // IsDefault returns true if the underlying array is a null reference
         // https://devblogs.microsoft.com/dotnet/please-welcome-immutablearrayt/
         if (elmts.IsDefault) {
+          Thread.Sleep(500);
           elmts = ComputeElements();
           // We don't need the original sequences anymore; let them be
           // garbage-collected
@@ -1304,10 +1307,10 @@ namespace Dafny {
       var toVisit = new Stack<ISequence<T>>();
       var leftBuffer = left;
       var rightBuffer = right;
-      if (left == null || right == null) {
-        // elmts can't be .IsDefault while either left, or right are null
-        return elmts;
-      }
+      // if (left == null || right == null) {
+      //   // elmts can't be .IsDefault while either left, or right are null
+      //   return elmts;
+      // }
       toVisit.Push(rightBuffer);
       toVisit.Push(leftBuffer);
 
@@ -1316,13 +1319,13 @@ namespace Dafny {
         if (seq is ConcatSequence<T> cs && cs.elmts.IsDefault) {
           leftBuffer = cs.left;
           rightBuffer = cs.right;
-          if (cs.left == null || cs.right == null) {
-            // !cs.elmts.IsDefault, due to concurrent enumeration
-            toVisit.Push(cs);
-          } else {
+          // if (cs.left == null || cs.right == null) {
+          //   // !cs.elmts.IsDefault, due to concurrent enumeration
+          //   toVisit.Push(cs);
+          // } else {
             toVisit.Push(rightBuffer);
             toVisit.Push(leftBuffer);
-          }
+          // }
         } else {
           if (seq is Sequence<T> sq) {
             ansBuilder.AddRange(sq.ImmutableElements); // Optimized path for ImmutableArray
