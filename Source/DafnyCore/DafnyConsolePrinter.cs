@@ -50,8 +50,8 @@ public class DafnyConsolePrinter : ConsolePrinter {
     return "<nonexistent line>";
   }
 
-  public void WriteSourceCodeSnippet(Boogie.IToken tok, TextWriter tw) {
-    string line = GetFileLine(((IToken)tok).Filepath, tok.line - 1);
+  public void WriteSourceCodeSnippet(IToken tok, TextWriter tw) {
+    string line = GetFileLine(tok.Filepath, tok.line - 1);
     string lineNumber = tok.line.ToString();
     string lineNumberSpaces = new string(' ', lineNumber.Length);
     string columnSpaces = new string(' ', tok.col - 1);
@@ -102,7 +102,11 @@ public class DafnyConsolePrinter : ConsolePrinter {
     }
 
     if (Options.Get(ShowSnippets)) {
-      WriteSourceCodeSnippet(tok, tw);
+      if(tok is IToken dafnyTok) {
+        WriteSourceCodeSnippet(dafnyTok, tw);
+      } else {
+        ErrorWriteLine(tw, "No Dafny location information, so snippet can't be generated."); 
+      }
     }
 
     if (tok is Dafny.NestedToken) {
