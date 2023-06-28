@@ -1,5 +1,4 @@
-// RUN: %baredafny run %args -t:go "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachCompiler "%s"
 
 method Main() returns ()
 {
