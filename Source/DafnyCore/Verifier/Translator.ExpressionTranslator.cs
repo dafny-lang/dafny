@@ -229,9 +229,8 @@ namespace Microsoft.Dafny {
         Contract.Ensures(Contract.Result<Boogie.IdentifierExpr>() != null);
         Contract.Ensures(Contract.Result<Boogie.IdentifierExpr>().Type != null);
 
-        Boogie.TypeVariable alpha = new Boogie.TypeVariable(tok, "beta");
-        Boogie.Type fieldAlpha = predef.FieldName(tok, alpha);
-        Boogie.Type ty = new Boogie.MapType(tok, new List<TypeVariable> { alpha }, new List<Boogie.Type> { predef.RefType, fieldAlpha }, Boogie.Type.Bool);
+        Boogie.Type fieldAlpha = predef.FieldName(tok, predef.BoxType);
+        Boogie.Type ty = new Boogie.MapType(tok, new List<TypeVariable> { }, new List<Boogie.Type> { predef.RefType, fieldAlpha }, Boogie.Type.Bool);
         return new Boogie.IdentifierExpr(tok, this.modifiesFrame, ty);
       }
 

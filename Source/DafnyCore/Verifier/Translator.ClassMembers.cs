@@ -246,7 +246,7 @@ namespace Microsoft.Dafny {
     ///         $IsHeap(h) &&
     ///         o != null && $Is(o, TClassA(G))  // or dtype(o) = TClassA(G)
     ///         ==>
-    ///         $Is(h[o, f], TT(PP)));
+    ///         $IsBox(h[o, f], TT(PP)));
     ///
     ///     // allocation axiom:
     ///     // As above for "G" and "ii", but "h" is included no matter what.
@@ -257,7 +257,7 @@ namespace Microsoft.Dafny {
     ///         o != null && $Is(o, TClassA(G)) &&  // or dtype(o) = TClassA(G)
     ///         h[o, alloc]
     ///         ==>
-    ///         $IsAlloc(h[o, f], TT(PP), h));
+    ///         $IsAllocBox(h[o, f], TT(PP), h));
     /// </summary>
     private void AddInstanceFieldAllocationAxioms(Bpl.Declaration fieldDeclaration, Field f, TopLevelDeclWithMembers c,
       bool is_array, Expr heightAntecedent) {
@@ -280,7 +280,7 @@ namespace Microsoft.Dafny {
       Bpl.Expr isalloc_o;
       if (!(c is ClassLikeDecl)) {
         var udt = UserDefinedType.FromTopLevelDecl(c.tok, c);
-        isalloc_o = MkIsAlloc(o, udt, h);
+        isalloc_o = MkIsAllocBox(o, udt, h);
       } else if (RevealedInScope(c)) {
         isalloc_o = IsAlloced(c.tok, h, o);
       } else {
@@ -288,7 +288,7 @@ namespace Microsoft.Dafny {
         var cl = (ClassDecl)c;
         Contract.Assert(cl.NonNullTypeDecl != null);
         var udt = UserDefinedType.FromTopLevelDecl(c.tok, cl.NonNullTypeDecl);
-        isalloc_o = MkIsAlloc(o, udt, h);
+        isalloc_o = MkIsAllocBox(o, udt, h);
       }
 
       Bpl.Expr indexBounds = Bpl.Expr.True;
@@ -309,7 +309,7 @@ namespace Microsoft.Dafny {
           bvsAllocationAxiom.Add(v);
         }
 
-        oDotF = ReadHeap(c.tok, h, o, GetArrayIndexFieldName(c.tok, ixs));
+        oDotF = ReadHeapDirect(c.tok, h, o, GetArrayIndexFieldName(c.tok, ixs), predef.BoxType);
 
         for (int i = 0; i < ac.Dims; i++) {
           // 0 <= i && i < _System.array.Length(o)
@@ -320,7 +320,7 @@ namespace Microsoft.Dafny {
         }
       } else if (f.IsMutable) {
         // generate h[o,f]
-        oDotF = ReadHeap(c.tok, h, o, new Bpl.IdentifierExpr(c.tok, GetField(f)));
+        oDotF = ReadHeapDirect(c.tok, h, o, new Bpl.IdentifierExpr(c.tok, GetField(f)), predef.BoxType);
         bvsTypeAxiom.Add(hVar);
         bvsTypeAxiom.Add(oVar);
         bvsAllocationAxiom.Add(hVar);
@@ -369,8 +369,8 @@ namespace Microsoft.Dafny {
         is_hf = MkIs(oDotF, tyexprs[0], true);
         isalloc_hf = MkIsAlloc(oDotF, tyexprs[0], h, true);
       } else {
-        is_hf = MkIs(oDotF, f.Type); // $Is(h[o, f], ..)
-        isalloc_hf = MkIsAlloc(oDotF, f.Type, h); // $IsAlloc(h[o, f], ..)
+        is_hf = MkIsBox(oDotF, f.Type); // $IsBox(h[o, f], ..)
+        isalloc_hf = MkIsAllocBox(oDotF, f.Type, h); // $IsAllocBox(h[o, f], ..)
       }
 
       Bpl.Expr ax = BplForall(bvsTypeAxiom, tr, BplImp(ante, is_hf));
@@ -1329,30 +1329,29 @@ namespace Microsoft.Dafny {
       QKeyValue kv = etran.TrAttributes(m.Attributes, null);
 
       IToken tok = m.tok;
-      // Declare a local variable $_Frame: <alpha>[ref, Field alpha]bool
+      // Declare a local variable $_Frame: [ref, Field Box]bool
       Boogie.IdentifierExpr traitFrame = etran.TheFrame(m.OverriddenMethod.tok);  // this is a throw-away expression, used only to extract the type and name of the $_Frame variable
       traitFrame.Name = m.EnclosingClass.Name + "_" + traitFrame.Name;
       Contract.Assert(traitFrame.Type != null);  // follows from the postcondition of TheFrame
       Boogie.LocalVariable frame = new Boogie.LocalVariable(tok, new Boogie.TypedIdent(tok, null ?? traitFrame.Name, traitFrame.Type));
       localVariables.Add(frame);
-      // $_Frame := (lambda<alpha> $o: ref, $f: Field alpha :: $o != null && $Heap[$o,alloc] ==> ($o,$f) in Modifies/Reads-Clause);
-      Boogie.TypeVariable alpha = new Boogie.TypeVariable(tok, "alpha");
+      // $_Frame := (lambda $o: ref, $f: Field Box :: $o != null && $Heap[$o,alloc] ==> ($o,$f) in Modifies/Reads-Clause);
       Boogie.BoundVariable oVar = new Boogie.BoundVariable(tok, new Boogie.TypedIdent(tok, "$o", predef.RefType));
       Boogie.IdentifierExpr o = new Boogie.IdentifierExpr(tok, oVar);
-      Boogie.BoundVariable fVar = new Boogie.BoundVariable(tok, new Boogie.TypedIdent(tok, "$f", predef.FieldName(tok, alpha)));
+      Boogie.BoundVariable fVar = new Boogie.BoundVariable(tok, new Boogie.TypedIdent(tok, "$f", predef.FieldName(tok, predef.BoxType)));
       Boogie.IdentifierExpr f = new Boogie.IdentifierExpr(tok, fVar);
       Boogie.Expr ante = Boogie.Expr.And(Boogie.Expr.Neq(o, predef.Null), etran.IsAlloced(tok, o));
       Boogie.Expr consequent = InRWClause(tok, o, f, traitFrameExps, etran, null, null);
-      Boogie.Expr lambda = new Boogie.LambdaExpr(tok, new List<TypeVariable> { alpha }, new List<Variable> { oVar, fVar }, null,
+      Boogie.Expr lambda = new Boogie.LambdaExpr(tok, new List<TypeVariable> { }, new List<Variable> { oVar, fVar }, null,
         Boogie.Expr.Imp(ante, consequent));
 
       //to initialize $_Frame variable to Frame'
       builder.Add(Boogie.Cmd.SimpleAssign(tok, new Boogie.IdentifierExpr(tok, frame), lambda));
 
-      // emit: assert (forall<alpha> o: ref, f: Field alpha :: o != null && $Heap[o,alloc] && (o,f) in subFrame ==> $_Frame[o,f]);
+      // emit: assert (forall o: ref, f: Field Box :: o != null && $Heap[o,alloc] && (o,f) in subFrame ==> $_Frame[o,f]);
       Boogie.Expr oInCallee = InRWClause(tok, o, f, classFrameExps, etran, null, null);
       Boogie.Expr consequent2 = InRWClause(tok, o, f, traitFrameExps, etran, null, null);
-      Boogie.Expr q = new Boogie.ForallExpr(tok, new List<TypeVariable> { alpha }, new List<Variable> { oVar, fVar },
+      Boogie.Expr q = new Boogie.ForallExpr(tok, new List<TypeVariable> { }, new List<Variable> { oVar, fVar },
         Boogie.Expr.Imp(Boogie.Expr.And(ante, oInCallee), consequent2));
       builder.Add(Assert(tok, q, new PODesc.TraitFrame(m.WhatKind, true), kv));
     }

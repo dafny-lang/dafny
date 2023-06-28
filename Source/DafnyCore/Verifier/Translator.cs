@@ -1514,7 +1514,16 @@ namespace Microsoft.Dafny {
       Contract.Requires(e != null);
       Contract.Ensures(Contract.Result<Bpl.Expr>() != null);
 
-      return ReadHeap(tok, heapExpr, e, predef.Alloc(tok));
+      List<Bpl.Expr> args = new List<Bpl.Expr>();
+      args.Add(heapExpr);
+      args.Add(e);
+      args.Add(predef.Alloc(tok));
+      Bpl.Expr readCall =
+        Bpl.Expr.CoerceType(tok,
+          new Bpl.NAryExpr(tok,
+            new Bpl.FunctionCall(new Bpl.IdentifierExpr(tok, "read", Bpl.BasicType.Bool)),
+            args), Bpl.BasicType.Bool);
+      return readCall;
     }
 
     public static Bpl.Expr ReadHeap(IToken tok, Expr heap, Expr r, Expr f) {
@@ -1532,6 +1541,24 @@ namespace Microsoft.Dafny {
       Bpl.Expr readCall =
         new Bpl.NAryExpr(tok,
           new Bpl.FunctionCall(new Bpl.IdentifierExpr(tok, "read", t.AsCtor.Arguments[0])),
+          args);
+      return readCall;
+    }
+
+    public static Bpl.Expr ReadHeapDirect(IToken tok, Expr heap, Expr r, Expr f, Bpl.Type ty) {
+      Contract.Requires(tok != null);
+      Contract.Requires(heap != null);
+      Contract.Requires(r != null);
+      Contract.Requires(f != null);
+      Contract.Ensures(Contract.Result<Bpl.NAryExpr>() != null);
+
+      List<Bpl.Expr> args = new List<Bpl.Expr>();
+      args.Add(heap);
+      args.Add(r);
+      args.Add(f);
+      Bpl.Expr readCall =
+        new Bpl.NAryExpr(tok,
+          new Bpl.FunctionCall(new Bpl.IdentifierExpr(tok, "readDirect", ty)),
           args);
       return readCall;
     }
@@ -3715,30 +3742,29 @@ namespace Microsoft.Dafny {
       QKeyValue kv = etran.TrAttributes(func.Attributes, null);
 
       IToken tok = func.tok;
-      // Declare a local variable $_Frame: <alpha>[ref, Field alpha]bool
+      // Declare a local variable $_Frame: [ref, Field Box]bool
       Bpl.IdentifierExpr traitFrame = etran.TheFrame(func.OverriddenFunction.tok);  // this is a throw-away expression, used only to extract the type and name of the $_Frame variable
       traitFrame.Name = func.EnclosingClass.Name + "_" + traitFrame.Name;
       Contract.Assert(traitFrame.Type != null);  // follows from the postcondition of TheFrame
       Bpl.LocalVariable frame = new Bpl.LocalVariable(tok, new Bpl.TypedIdent(tok, null ?? traitFrame.Name, traitFrame.Type));
       localVariables.Add(frame);
-      // $_Frame := (lambda<alpha> $o: ref, $f: Field alpha :: $o != null && $Heap[$o,alloc] ==> ($o,$f) in Modifies/Reads-Clause);
-      Bpl.TypeVariable alpha = new Bpl.TypeVariable(tok, "alpha");
+      // $_Frame := (lambda $o: ref, $f: Field Box :: $o != null && $Heap[$o,alloc] ==> ($o,$f) in Modifies/Reads-Clause);
       Bpl.BoundVariable oVar = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "$o", predef.RefType));
       Bpl.IdentifierExpr o = new Bpl.IdentifierExpr(tok, oVar);
-      Bpl.BoundVariable fVar = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "$f", predef.FieldName(tok, alpha)));
+      Bpl.BoundVariable fVar = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "$f", predef.FieldName(tok, predef.BoxType)));
       Bpl.IdentifierExpr f = new Bpl.IdentifierExpr(tok, fVar);
       Bpl.Expr ante = Bpl.Expr.And(Bpl.Expr.Neq(o, predef.Null), etran.IsAlloced(tok, o));
       Bpl.Expr consequent = InRWClause(tok, o, f, traitFrameExps, etran, null, null);
-      Bpl.Expr lambda = new Bpl.LambdaExpr(tok, new List<TypeVariable> { alpha }, new List<Variable> { oVar, fVar }, null,
+      Bpl.Expr lambda = new Bpl.LambdaExpr(tok, new List<TypeVariable> { }, new List<Variable> { oVar, fVar }, null,
                                            Bpl.Expr.Imp(ante, consequent));
 
       //to initialize $_Frame variable to Frame'
       builder.Add(Bpl.Cmd.SimpleAssign(tok, new Bpl.IdentifierExpr(tok, frame), lambda));
 
-      // emit: assert (forall<alpha> o: ref, f: Field alpha :: o != null && $Heap[o,alloc] && (o,f) in subFrame ==> $_Frame[o,f]);
+      // emit: assert (forall o: ref, f: Field Box :: o != null && $Heap[o,alloc] && (o,f) in subFrame ==> $_Frame[o,f]);
       Bpl.Expr oInCallee = InRWClause(tok, o, f, func.Reads, etran, null, null);
       Bpl.Expr consequent2 = InRWClause(tok, o, f, traitFrameExps, etran, null, null);
-      Bpl.Expr q = new Bpl.ForallExpr(tok, new List<TypeVariable> { alpha }, new List<Variable> { oVar, fVar },
+      Bpl.Expr q = new Bpl.ForallExpr(tok, new List<TypeVariable> { }, new List<Variable> { oVar, fVar },
                                       Bpl.Expr.Imp(Bpl.Expr.And(ante, oInCallee), consequent2));
       builder.Add(Assert(tok, q, new PODesc.TraitFrame(func.WhatKind, false), kv));
     }
@@ -3904,22 +3930,21 @@ namespace Microsoft.Dafny {
         // sit inside of an "old" expression.
         etran = new ExpressionTranslator(this, predef, tok);
       }
-      // Declare a local variable $_Frame: <alpha>[ref, Field alpha]bool
+      // Declare a local variable $_Frame: [ref, Field Box]bool
       Bpl.IdentifierExpr theFrame = etran.TheFrame(tok);  // this is a throw-away expression, used only to extract the type and name of the $_Frame variable
       Contract.Assert(theFrame.Type != null);  // follows from the postcondition of TheFrame
       Bpl.LocalVariable frame = new Bpl.LocalVariable(tok, new Bpl.TypedIdent(tok, name ?? theFrame.Name, theFrame.Type));
       localVariables.Add(frame);
-      // $_Frame := (lambda<alpha> $o: ref, $f: Field alpha :: $o != null && $Heap[$o,alloc] ==> ($o,$f) in Modifies/Reads-Clause);
-      // $_Frame := (lambda<alpha> $o: ref, $f: Field alpha :: $o != null                    ==> ($o,$f) in Modifies/Reads-Clause);
-      Bpl.TypeVariable alpha = new Bpl.TypeVariable(tok, "alpha");
+      // $_Frame := (lambda $o: ref, $f: Field Box :: $o != null && $Heap[$o,alloc] ==> ($o,$f) in Modifies/Reads-Clause);
+      // $_Frame := (lambda $o: ref, $f: Field Box :: $o != null                    ==> ($o,$f) in Modifies/Reads-Clause);
       Bpl.BoundVariable oVar = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "$o", predef.RefType));
       Bpl.IdentifierExpr o = new Bpl.IdentifierExpr(tok, oVar);
-      Bpl.BoundVariable fVar = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "$f", predef.FieldName(tok, alpha)));
+      Bpl.BoundVariable fVar = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "$f", predef.FieldName(tok, predef.BoxType)));
       Bpl.IdentifierExpr f = new Bpl.IdentifierExpr(tok, fVar);
       Bpl.Expr oNotNull = Bpl.Expr.Neq(o, predef.Null);
       Bpl.Expr ante = Bpl.Expr.And(oNotNull, etran.IsAlloced(tok, o));
       Bpl.Expr consequent = InRWClause(tok, o, f, frameClause, etran, null, null);
-      Bpl.Expr lambda = new Bpl.LambdaExpr(tok, new List<TypeVariable> { alpha }, new List<Variable> { oVar, fVar }, null,
+      Bpl.Expr lambda = new Bpl.LambdaExpr(tok, new List<TypeVariable> { }, new List<Variable> { oVar, fVar }, null,
                                            Bpl.Expr.Imp(ante, consequent));
 
       builder.Add(Bpl.Cmd.SimpleAssign(tok, new Bpl.IdentifierExpr(tok, frame), lambda));
@@ -3948,17 +3973,16 @@ namespace Microsoft.Dafny {
       Contract.Requires(MakeAssert != null);
       Contract.Requires(predef != null);
 
-      // emit: assert (forall<alpha> o: ref, f: Field alpha :: o != null && $Heap[o,alloc] && (o,f) in subFrame ==> $_Frame[o,f]);
-      Bpl.TypeVariable alpha = new Bpl.TypeVariable(tok, "alpha");
+      // emit: assert (forall o: ref, f: Field Box :: o != null && $Heap[o,alloc] && (o,f) in subFrame ==> $_Frame[o,f]);
       Bpl.BoundVariable oVar = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "$o", predef.RefType));
       Bpl.IdentifierExpr o = new Bpl.IdentifierExpr(tok, oVar);
-      Bpl.BoundVariable fVar = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "$f", predef.FieldName(tok, alpha)));
+      Bpl.BoundVariable fVar = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "$f", predef.FieldName(tok, predef.BoxType)));
       Bpl.IdentifierExpr f = new Bpl.IdentifierExpr(tok, fVar);
       Bpl.Expr ante = Bpl.Expr.And(Bpl.Expr.Neq(o, predef.Null), etran.IsAlloced(tok, o));
       Bpl.Expr oInCallee = InRWClause(tok, o, f, calleeFrame, etran, receiverReplacement, substMap);
       Bpl.Expr inEnclosingFrame = Bpl.Expr.Select(etran.TheFrame(tok), o, f);
 
-      Bpl.Expr q = new Bpl.ForallExpr(tok, new List<TypeVariable> { alpha }, new List<Variable> { oVar, fVar },
+      Bpl.Expr q = new Bpl.ForallExpr(tok, new List<TypeVariable> { }, new List<Variable> { oVar, fVar },
                                       Bpl.Expr.Imp(Bpl.Expr.And(ante, oInCallee), inEnclosingFrame));
       if (IsExprAlways(q, true)) {
         return;
@@ -4017,7 +4041,7 @@ namespace Microsoft.Dafny {
     ///        heaps are well-formed and [formals are allocated AND]
     ///        IsHeapAnchor(h0) AND HeapSucc(h0,h1)
     ///        AND
-    ///        (forall(alpha) o: ref, f: Field alpha ::
+    ///        (forall o: ref, f: Field Box ::
     ///            o != null [AND h0[o,alloc] AND]  // note that HeapSucc(h0,h1) && h0[o,alloc] ==> h1[o,alloc]
     ///            o in reads clause of formals in h0
     ///            IMPLIES h0[o,f] == h1[o,f])
@@ -4060,17 +4084,16 @@ namespace Microsoft.Dafny {
         FunctionCall(f.tok, BuiltinFunction.IsGoodHeap, null, etran0.HeapExpr),
         FunctionCall(f.tok, BuiltinFunction.IsGoodHeap, null, etran1.HeapExpr));
 
-      Bpl.TypeVariable alpha = new Bpl.TypeVariable(f.tok, "alpha");
       Bpl.Expr o; var oVar = BplBoundVar("$o", predef.RefType, out o);
-      Bpl.Expr field; var fieldVar = BplBoundVar("$f", predef.FieldName(f.tok, alpha), out field);
+      Bpl.Expr field; var fieldVar = BplBoundVar("$f", predef.FieldName(f.tok, predef.BoxType), out field);
       Bpl.Expr oNotNull = Bpl.Expr.Neq(o, predef.Null);
       Bpl.Expr oNotNullAlloced = oNotNull;
-      Bpl.Expr unchanged = Bpl.Expr.Eq(ReadHeap(f.tok, h0, o, field), ReadHeap(f.tok, h1, o, field));
+      Bpl.Expr unchanged = Bpl.Expr.Eq(ReadHeapDirect(f.tok, h0, o, field, predef.BoxType), ReadHeapDirect(f.tok, h1, o, field, predef.BoxType));
 
       Bpl.Expr h0IsHeapAnchor = FunctionCall(h0.tok, BuiltinFunction.IsHeapAnchor, null, h0);
       Bpl.Expr heapSucc = HeapSucc(h0, h1);
       Bpl.Expr r0 = InRWClause(f.tok, o, field, f.Reads, etran0, null, null);
-      Bpl.Expr q0 = new Bpl.ForallExpr(f.tok, new List<TypeVariable> { alpha }, new List<Variable> { oVar, fieldVar },
+      Bpl.Expr q0 = new Bpl.ForallExpr(f.tok, new List<TypeVariable> { }, new List<Variable> { oVar, fieldVar },
         Bpl.Expr.Imp(Bpl.Expr.And(oNotNullAlloced, r0), unchanged));
 
       List<Bpl.Expr> tyexprs;
@@ -6177,10 +6200,9 @@ namespace Microsoft.Dafny {
             // inner forall vars
             var ivars = new List<Bpl.Variable>();
             var o = BplBoundVar("o", predef.RefType, ivars);
-            var a = new TypeVariable(tok, "a");
-            var fld = BplBoundVar("fld", predef.FieldName(tok, a), ivars);
+            var fld = BplBoundVar("fld", predef.FieldName(tok, predef.BoxType), ivars);
 
-            var inner_forall = new Bpl.ForallExpr(tok, Singleton(a), ivars, BplImp(
+            var inner_forall = new Bpl.ForallExpr(tok, new List<TypeVariable>(), ivars, BplImp(
               BplAnd(
                 Bpl.Expr.Neq(o, predef.Null),
                 // Note, the MkIsAlloc conjunct of "isness" implies that everything in the reads frame is allocated in "h0", which by HeapSucc(h0,h1) also implies the frame is allocated in "h1"
@@ -6189,7 +6211,7 @@ namespace Microsoft.Dafny {
                   FunctionCall(tok, BuiltinFunction.Box, null, o)
                 })
               ),
-              Bpl.Expr.Eq(ReadHeap(tok, h0, o, fld), ReadHeap(tok, h1, o, fld))));
+              Bpl.Expr.Eq(ReadHeapDirect(tok, h0, o, fld, predef.BoxType), ReadHeapDirect(tok, h1, o, fld, predef.BoxType))));
 
             Func<Bpl.Expr, Bpl.Expr> fn = h => FunctionCall(tok, fname, Bpl.Type.Bool, Concat(types, Cons(h, Cons<Bpl.Expr>(f, boxes))));
 
@@ -6626,7 +6648,7 @@ namespace Microsoft.Dafny {
         Contract.Assert(fc != null);
       } else {
         // const f: Field ty;
-        Bpl.Type ty = predef.FieldName(f.tok, TrType(f.Type));
+        Bpl.Type ty = predef.FieldName(f.tok, predef.BoxType);
         fc = new Bpl.Constant(f.tok, new Bpl.TypedIdent(f.tok, f.FullSanitizedName, ty), false);
         fields.Add(f, fc);
         // axiom FDim(f) == 0 && FieldOfDecl(C, name) == f &&
@@ -7055,7 +7077,7 @@ namespace Microsoft.Dafny {
       //
       // if field granularity:
       // generate:
-      //  (forall<alpha> o: ref, f: Field alpha :: { $Heap[o][f] }
+      //  (forall o: ref, f: Field Box :: { $Heap[o][f] }
       //      o != null
       // #if use==Modifies
       //      && old($Heap)[o][alloc]                     // include only in contexts that can allocate
@@ -7092,20 +7114,18 @@ namespace Microsoft.Dafny {
       var oVar = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "$o", predef.RefType));
       var o = new Bpl.IdentifierExpr(tok, oVar);
 
-      Bpl.TypeVariable alpha;
       Bpl.Expr f;
       List<Variable> quantifiedVars;
       List<TypeVariable> typeVars;
       Bpl.Expr heapOF;
       Bpl.Expr preHeapOF;
       if (fieldGranularity) {
-        alpha = new Bpl.TypeVariable(tok, "alpha");
-        typeVars = new List<TypeVariable> { alpha };
-        var fVar = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "$f", predef.FieldName(tok, alpha)));
+        typeVars = new List<TypeVariable> { };
+        var fVar = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "$f", predef.FieldName(tok, predef.BoxType)));
         f = new Bpl.IdentifierExpr(tok, fVar);
         quantifiedVars = new List<Variable> { oVar, fVar };
-        heapOF = ReadHeap(tok, etran.HeapExpr, o, f);
-        preHeapOF = ReadHeap(tok, etranPre.HeapExpr, o, f);
+        heapOF = ReadHeapDirect(tok, etran.HeapExpr, o, f, predef.BoxType);
+        preHeapOF = ReadHeapDirect(tok, etranPre.HeapExpr, o, f, predef.BoxType);
       } else {
         // object granularity
         typeVars = new List<TypeVariable>();
@@ -7135,25 +7155,24 @@ namespace Microsoft.Dafny {
       Contract.Ensures(Contract.Result<Bpl.Expr>() != null);
 
       // generate:
-      //  (forall<alpha> o: ref, f: Field alpha :: { $Heap[o,f] }
+      //  (forall o: ref, f: Field Box :: { $Heap[o,f] }
       //      o != null && old($Heap)[o,alloc] ==>
       //        $Heap[o,f] == PreHeap[o,f] ||
       //        $_Frame[o,f])
-      Bpl.TypeVariable alpha = new Bpl.TypeVariable(tok, "alpha");
       Bpl.BoundVariable oVar = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "$o", predef.RefType));
       Bpl.IdentifierExpr o = new Bpl.IdentifierExpr(tok, oVar);
-      Bpl.BoundVariable fVar = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "$f", predef.FieldName(tok, alpha)));
+      Bpl.BoundVariable fVar = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "$f", predef.FieldName(tok, predef.BoxType)));
       Bpl.IdentifierExpr f = new Bpl.IdentifierExpr(tok, fVar);
 
-      Bpl.Expr heapOF = ReadHeap(tok, etran.HeapExpr, o, f);
-      Bpl.Expr preHeapOF = ReadHeap(tok, etranPre.HeapExpr, o, f);
+      Bpl.Expr heapOF = ReadHeapDirect(tok, etran.HeapExpr, o, f, predef.BoxType);
+      Bpl.Expr preHeapOF = ReadHeapDirect(tok, etranPre.HeapExpr, o, f, predef.BoxType);
       Bpl.Expr ante = Bpl.Expr.And(Bpl.Expr.Neq(o, predef.Null), etranPre.IsAlloced(tok, o));
       Bpl.Expr consequent = Bpl.Expr.Eq(heapOF, preHeapOF);
 
       consequent = Bpl.Expr.Or(consequent, Bpl.Expr.SelectTok(tok, etranMod.TheFrame(tok), o, f));
 
       Bpl.Trigger tr = new Bpl.Trigger(tok, true, new List<Bpl.Expr> { heapOF });
-      return new Bpl.ForallExpr(tok, new List<TypeVariable> { alpha }, new List<Variable> { oVar, fVar }, null, tr, Bpl.Expr.Imp(ante, consequent));
+      return new Bpl.ForallExpr(tok, new List<TypeVariable> { }, new List<Variable> { oVar, fVar }, null, tr, Bpl.Expr.Imp(ante, consequent));
     }
     // ----- Type ---------------------------------------------------------------------------------
     // Translates a type into the representation Boogie type,

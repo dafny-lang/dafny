@@ -1159,13 +1159,13 @@ namespace Microsoft.Dafny {
       //     havoc $Heap;
       //     assume $HeapSucc(oldHeap, $Heap);
       //     (a)
-      //       assume (forall<alpha> o: ref, F: Field alpha ::
+      //       assume (forall o: ref, F: Field Box ::
       //         { $Heap[o,F] }
       //         $Heap[o,F] = oldHeap[o,F] ||
       //         (exists x,y :: Range(x,y) && o == E(x,y) && F = f));
       //       assume (forall x,y ::  Range ==> $Heap[ E[$Heap:=oldHeap], F] == G[$Heap:=oldHeap]); (**)
       //     (b)
-      //       assume (forall<alpha> o: ref, F: Field alpha ::
+      //       assume (forall o: ref, F: Field Box ::
       //         { $Heap[o,F] }
       //         $Heap[o,F] = oldHeap[o,F] ||
       //         (exists x,y :: Range(x,y) && o == A(x,y) && F = Index(I0,I1,...)));
@@ -1258,15 +1258,14 @@ namespace Microsoft.Dafny {
       updater.Add(TrAssumeCmd(s.Tok, HeapSucc(prevHeap, etran.HeapExpr)));
 
       // Here comes:
-      //   assume (forall<alpha> o: ref, f: Field alpha ::
+      //   assume (forall o: ref, f: Field Box ::
       //     { $Heap[o,f] }
       //     $Heap[o,f] = oldHeap[o,f] ||
       //     (exists x,y :: Range(x,y)[$Heap:=oldHeap] &&
       //                    o == Object(x,y)[$Heap:=oldHeap] && f == Field(x,y)[$Heap:=oldHeap]));
-      Bpl.TypeVariable alpha = new Bpl.TypeVariable(s.Tok, "alpha");
       Bpl.BoundVariable oVar = new Bpl.BoundVariable(s.Tok, new Bpl.TypedIdent(s.Tok, "$o", predef.RefType));
       Bpl.IdentifierExpr o = new Bpl.IdentifierExpr(s.Tok, oVar);
-      Bpl.BoundVariable fVar = new Bpl.BoundVariable(s.Tok, new Bpl.TypedIdent(s.Tok, "$f", predef.FieldName(s.Tok, alpha)));
+      Bpl.BoundVariable fVar = new Bpl.BoundVariable(s.Tok, new Bpl.TypedIdent(s.Tok, "$f", predef.FieldName(s.Tok, predef.BoxType)));
       Bpl.IdentifierExpr f = new Bpl.IdentifierExpr(s.Tok, fVar);
       Bpl.Expr heapOF = ReadHeap(s.Tok, etran.HeapExpr, o, f);
       Bpl.Expr oldHeapOF = ReadHeap(s.Tok, prevHeap, o, f);
@@ -1281,7 +1280,7 @@ namespace Microsoft.Dafny {
       Bpl.Expr xObjField = new Bpl.ExistsExpr(s.Tok, xBvars, xBody);  // LL_TRIGGER
       Bpl.Expr body = Bpl.Expr.Or(Bpl.Expr.Eq(heapOF, oldHeapOF), xObjField);
       var tr = new Trigger(s.Tok, true, new List<Expr>() { heapOF });
-      Bpl.Expr qq = new Bpl.ForallExpr(s.Tok, new List<TypeVariable> { alpha }, new List<Variable> { oVar, fVar }, null, tr, body);
+      Bpl.Expr qq = new Bpl.ForallExpr(s.Tok, new List<TypeVariable> { }, new List<Variable> { oVar, fVar }, null, tr, body);
       updater.Add(TrAssumeCmd(s.Tok, qq));
 
       if (s.ForallExpressions != null) {

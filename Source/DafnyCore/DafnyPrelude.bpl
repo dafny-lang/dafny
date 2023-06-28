@@ -511,42 +511,42 @@ axiom (forall<A> f : [LayerType]A, ly : LayerType :: { AtLayer(f,$LS(ly)) } AtLa
 
 type Field alpha;
 
-function FDim<T>(Field T): int uses {
+function FDim(Field Box): int uses {
   axiom FDim(alloc) == 0;
 }
 
 function IndexField(int): Field Box;
 axiom (forall i: int :: { IndexField(i) } FDim(IndexField(i)) == 1);
-function IndexField_Inverse<T>(Field T): int;
+function IndexField_Inverse(Field Box): int;
 axiom (forall i: int :: { IndexField(i) } IndexField_Inverse(IndexField(i)) == i);
 
 function MultiIndexField(Field Box, int): Field Box;
 axiom (forall f: Field Box, i: int :: { MultiIndexField(f,i) } FDim(MultiIndexField(f,i)) == FDim(f) + 1);
-function MultiIndexField_Inverse0<T>(Field T): Field T;
-function MultiIndexField_Inverse1<T>(Field T): int;
+function MultiIndexField_Inverse0(Field Box): Field Box;
+function MultiIndexField_Inverse1(Field Box): int;
 axiom (forall f: Field Box, i: int :: { MultiIndexField(f,i) }
   MultiIndexField_Inverse0(MultiIndexField(f,i)) == f &&
   MultiIndexField_Inverse1(MultiIndexField(f,i)) == i);
 
-function DeclType<T>(Field T): ClassName;
+function DeclType(Field Box): ClassName;
 
 type NameFamily;
-function DeclName<T>(Field T): NameFamily uses {
+function DeclName(Field Box): NameFamily uses {
   axiom DeclName(alloc) == allocName;
 }
-function FieldOfDecl<alpha>(ClassName, NameFamily): Field alpha;
-axiom (forall<T> cl : ClassName, nm: NameFamily ::
-   {FieldOfDecl(cl, nm): Field T}
-   DeclType(FieldOfDecl(cl, nm): Field T) == cl && DeclName(FieldOfDecl(cl, nm): Field T) == nm);
+function FieldOfDecl(ClassName, NameFamily): Field Box;
+axiom (forall cl : ClassName, nm: NameFamily ::
+   {FieldOfDecl(cl, nm): Field Box}
+   DeclType(FieldOfDecl(cl, nm): Field Box) == cl && DeclName(FieldOfDecl(cl, nm): Field Box) == nm);
 
-function $IsGhostField<T>(Field T): bool uses {
+function $IsGhostField(Field Box): bool uses {
    axiom $IsGhostField(alloc); // treat as ghost field, since it is allowed to be changed by ghost code
   
    axiom (forall h: Heap, k: Heap :: { $HeapSuccGhost(h,k) }
       $HeapSuccGhost(h,k) ==>
         $HeapSucc(h,k) &&
-        (forall<alpha> o: ref, f: Field alpha :: { read(k, o, f) }
-          !$IsGhostField(f) ==> read(h, o, f) == read(k, o, f)));
+        (forall o: ref, f: Field Box :: { readDirect(k, o, f) }
+          !$IsGhostField(f) ==> readDirect(h, o, f) == readDirect(k, o, f)));
 }
 
 // ---------------------------------------------------------------
@@ -565,7 +565,7 @@ axiom (forall h, k : Heap, bx : Box, t : Ty ::
 
 // No axioms for $Is and $IsBox since they don't talk about the heap.
 
-const unique alloc: Field bool;
+const unique alloc: Field Box;
 const unique allocName: NameFamily;
 
 // ---------------------------------------------------------------
@@ -590,8 +590,9 @@ function {:inline} _System.real.Floor(x: real): int { Int(x) }
 // -- The heap ---------------------------------------------------
 // ---------------------------------------------------------------
 type Heap = [ref]<alpha>[Field alpha]Box;
-function {:inline} read<alpha>(H: Heap, r: ref, f: Field alpha) : alpha { $Unbox(H[r][f]) }
-function {:inline} update<alpha>(H:Heap, r:ref, f:Field alpha, v:alpha): Heap { H[r := H[r][f := $Box(v)]] }
+function {:inline} read<alpha>(H: Heap, r: ref, f: Field Box) : alpha { $Unbox(H[r][f]) }
+function {:inline} readDirect(H: Heap, r: ref, f: Field Box) : Box { H[r][f] }
+function {:inline} update<alpha>(H:Heap, r:ref, f:Field Box, v:alpha): Heap { H[r := H[r][f := $Box(v)]] }
 
 function $IsGoodHeap(Heap): bool;
 function $IsHeapAnchor(Heap): bool;
@@ -605,13 +606,13 @@ const $OneHeap: Heap uses {
 }
 
 function $HeapSucc(Heap, Heap): bool;
-axiom (forall<alpha> h: Heap, r: ref, f: Field alpha, x: alpha :: { update(h, r, f, x) }
+axiom (forall h: Heap, r: ref, f: Field Box, x: Box :: { update(h, r, f, x) }
   $IsGoodHeap(update(h, r, f, x)) ==>
   $HeapSucc(h, update(h, r, f, x)));
 axiom (forall a,b,c: Heap :: { $HeapSucc(a,b), $HeapSucc(b,c) }
   a != c ==> $HeapSucc(a,b) && $HeapSucc(b,c) ==> $HeapSucc(a,c));
 axiom (forall h: Heap, k: Heap :: { $HeapSucc(h,k) }
-  $HeapSucc(h,k) ==> (forall o: ref :: { read(k, o, alloc) } read(h, o, alloc) ==> read(k, o, alloc)));
+  $HeapSucc(h,k) ==> (forall o: ref :: { readDirect(k, o, alloc) } read(h, o, alloc) ==> read(k, o, alloc)));
 
 function $HeapSuccGhost(Heap, Heap): bool;
 
@@ -622,31 +623,31 @@ function $HeapSuccGhost(Heap, Heap): bool;
 // havoc everything in $Heap, except {this}+rds+nw
 procedure $YieldHavoc(this: ref, rds: Set Box, nw: Set Box);
   modifies $Heap;
-  ensures (forall<alpha> $o: ref, $f: Field alpha :: { read($Heap, $o, $f) }
+  ensures (forall $o: ref, $f: Field Box :: { readDirect($Heap, $o, $f) }
             $o != null && read(old($Heap), $o, alloc) ==>
             $o == this || rds[$Box($o)] || nw[$Box($o)] ==>
-              read($Heap, $o, $f) == read(old($Heap), $o, $f));
+              readDirect($Heap, $o, $f) == readDirect(old($Heap), $o, $f));
   ensures $HeapSucc(old($Heap), $Heap);
 
 // havoc everything in $Heap, except rds-modi-{this}
 procedure $IterHavoc0(this: ref, rds: Set Box, modi: Set Box);
   modifies $Heap;
-  ensures (forall<alpha> $o: ref, $f: Field alpha :: { read($Heap, $o, $f) }
+  ensures (forall $o: ref, $f: Field Box :: { readDirect($Heap, $o, $f) }
             $o != null && read(old($Heap), $o, alloc) ==>
             rds[$Box($o)] && !modi[$Box($o)] && $o != this ==>
-              read($Heap, $o, $f) == read(old($Heap), $o, $f));
+              readDirect($Heap, $o, $f) == readDirect(old($Heap), $o, $f));
   ensures $HeapSucc(old($Heap), $Heap);
 
 // havoc $Heap at {this}+modi+nw
 procedure $IterHavoc1(this: ref, modi: Set Box, nw: Set Box);
   modifies $Heap;
-  ensures (forall<alpha> $o: ref, $f: Field alpha :: { read($Heap, $o, $f) }
+  ensures (forall $o: ref, $f: Field Box :: { readDirect($Heap, $o, $f) }
             $o != null && read(old($Heap), $o, alloc) ==>
-              read($Heap, $o, $f) == read(old($Heap), $o, $f) ||
+              readDirect($Heap, $o, $f) == readDirect(old($Heap), $o, $f) ||
               $o == this || modi[$Box($o)] || nw[$Box($o)]);
   ensures $HeapSucc(old($Heap), $Heap);
 
-procedure $IterCollectNewObjects(prevHeap: Heap, newHeap: Heap, this: ref, NW: Field (Set Box))
+procedure $IterCollectNewObjects(prevHeap: Heap, newHeap: Heap, this: ref, NW: Field Box)
                         returns (s: Set Box);
   ensures (forall bx: Box :: { s[bx] } s[bx] <==>
               (read(newHeap, this, NW) : Set Box)[bx] ||
@@ -1116,12 +1117,12 @@ axiom (forall h: Heap, a: ref ::
     // it's important to include both triggers, so that assertions about the
     // the relation between the array and the sequence can be proved in either
     // direction
-    { read(h, a, IndexField(i)) }
+    { readDirect(h, a, IndexField(i)) }
     { Seq#Index(Seq#FromArray(h, a): Seq Box, i) }
     0 <= i &&
     i < Seq#Length(Seq#FromArray(h, a))  // this will trigger the previous axiom to get a connection with _System.array.Length(a)
     ==>
-    Seq#Index(Seq#FromArray(h, a), i) == read(h, a, IndexField(i))));
+    Seq#Index(Seq#FromArray(h, a), i) == read(h, a, IndexField(i)) : Box));
 axiom (forall h0, h1: Heap, a: ref ::
   { Seq#FromArray(h1, a), $HeapSucc(h0, h1) }
   $IsGoodHeap(h0) && $IsGoodHeap(h1) && $HeapSucc(h0, h1) && h0[a] == h1[a]
