@@ -23,12 +23,11 @@ public class ProjectManager : IDisposable {
   private readonly IServiceProvider services;
   public DafnyProject Project { get; }
   private readonly IdeStateObserver observer;
-  public CompilationManager CompilationManager { get; private set; }
-  private IDisposable observerSubscription;
+  public CompilationManager? CompilationManager { get; private set; }
+  private IDisposable? observerSubscription;
   private readonly ILogger<ProjectManager> logger;
   private ExecutionEngine boogieEngine;
   private int version = 1;
-  private int openDocuments;
 
   private bool VerifyOnOpenChange => options.Get(ServerCommand.Verification) == VerifyOnMode.Change;
   private bool VerifyOnSave => options.Get(ServerCommand.Verification) == VerifyOnMode.Save;
@@ -77,7 +76,7 @@ public class ProjectManager : IDisposable {
   // TODO test that migration doesn't affect the wrong document.
   // Also test that changed ranges is computed for the right document.
   public void UpdateDocument(DidChangeTextDocumentParams documentChange) {
-    CompilationManager.CancelPendingUpdates();
+    CompilationManager?.CancelPendingUpdates();
 
     var lastPublishedState = observer.LastPublishedState;
     var migratedVerificationTree = lastPublishedState.VerificationTree == null ? null
@@ -168,6 +167,9 @@ public class ProjectManager : IDisposable {
   }
 
   public async Task CloseAsync() {
+    if (CompilationManager == null) {
+      return;
+    }
     CompilationManager.CancelPendingUpdates();
     try {
       await CompilationManager.LastDocument;
@@ -248,13 +250,7 @@ public class ProjectManager : IDisposable {
     return changedRanges.SelectMany(changeRange => intervalTree.Query(changeRange.Start, changeRange.End));
   }
 
-  public bool CloseDocument(TextDocumentIdentifier documentId) {
-    openDocuments--;
-    return openDocuments == 0;
-  }
-
   public void OpenDocument(TextDocumentItem document) {
-    openDocuments++;
     CompilationManager?.CancelPendingUpdates();
 
     var lastPublishedState = observer.LastPublishedState;

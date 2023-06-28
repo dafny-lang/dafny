@@ -56,7 +56,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     /// <returns>An instance of the managed document, <c>null</c> if the specified document was not found.</returns>
     Task<CompilationAfterParsing?> GetLastDocumentAsync(TextDocumentIdentifier documentId);
 
-    ProjectManager? GetDocumentManager(TextDocumentIdentifier documentId);
+    ProjectManager? GetProjectManager(TextDocumentIdentifier documentId);
 
     IEnumerable<ProjectManager> Managers { get; }
   }

@@ -23,7 +23,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers.Custom {
 
     public async Task<CounterExampleList> Handle(CounterExampleParams request, CancellationToken cancellationToken) {
       try {
-        var documentManager = projects.GetDocumentManager(request.TextDocument);
+        var documentManager = projects.GetProjectManager(request.TextDocument);
         if (documentManager != null) {
           var translatedDocument = await documentManager.CompilationManager.TranslatedCompilation;
           var verificationTasks = translatedDocument.VerificationTasks;

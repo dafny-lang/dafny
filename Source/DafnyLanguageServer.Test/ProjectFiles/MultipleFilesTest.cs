@@ -1,4 +1,6 @@
+using System.Collections;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
@@ -10,6 +12,41 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.ProjectFiles;
 
 public class MultipleFilesTest : ClientBasedLanguageServerTest {
 
+  [Fact]
+  public async Task ChangesToProjectFileAffectDiagnostics() {
+
+    var source = @"
+method Bar(shadowed: int) {
+  var i := shadowed;
+  while(i > 0) {
+    var shadowed := 1;
+    i := i - shadowed;
+  }
+}
+";
+
+    var projectFileSource = @"
+[options]
+warn-shadowing = true
+
+includes = [""src/**/*.dfy""]
+";
+    var directory = Path.GetRandomFileName();
+    var projectFile = CreateTestDocument(projectFileSource, Path.Combine(directory, "dfyconfig.toml"));
+    await client.OpenDocumentAndWaitAsync(projectFile, CancellationToken);
+    var consumer = CreateTestDocument(source, Path.Combine(directory, "src/file.dfy"));
+    await client.OpenDocumentAndWaitAsync(consumer, CancellationToken);
+
+    var diagnostics1 = await diagnosticsReceiver.AwaitNextWarningOrErrorDiagnosticsAsync(CancellationToken, consumer);
+    Assert.Single(diagnostics1);
+    Assert.Contains("Shadowed", diagnostics1[0].Message);
+
+    ApplyChange(ref projectFile, new Range(1, 17, 1, 21), "false");
+    
+    var diagnostics2 = await diagnosticsReceiver.AwaitNextWarningOrErrorDiagnosticsAsync(CancellationToken);
+    Assert.Empty(diagnostics2);
+  }
+  
   [Fact]
   public async Task OpenUpdateCloseIncludedFileWithExplicitProject() {
     var producerSource = @"

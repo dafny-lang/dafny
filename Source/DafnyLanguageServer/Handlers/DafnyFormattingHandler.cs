@@ -26,7 +26,7 @@ public class DafnyFormattingHandler : DocumentFormattingHandlerBase {
   }
 
   public override async Task<TextEditContainer?> Handle(DocumentFormattingParams request, CancellationToken cancellationToken) {
-    var documentManager = projects.GetDocumentManager(request.TextDocument.Uri);
+    var documentManager = projects.GetProjectManager(request.TextDocument.Uri);
     if (documentManager == null) {
       return null;
     }

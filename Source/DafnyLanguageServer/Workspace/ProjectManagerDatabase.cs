@@ -17,10 +17,10 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     private readonly IServiceProvider services;
 
-    private readonly Dictionary<DocumentUri, ProjectManager> managersByFile = new();
+    private readonly BidirectionalDictionary<DocumentUri, DocumentUri> projectFilesByFile = new();
     private readonly Dictionary<DocumentUri, ProjectManager> managersByProject = new();
     private readonly LanguageServerFilesystem fileSystem;
-    private VerificationResultCache verificationCache = new();
+    private readonly VerificationResultCache verificationCache = new();
 
     public ProjectManagerDatabase(IServiceProvider services) {
       this.services = services;
@@ -41,7 +41,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         projectManager = new ProjectManager(services, verificationCache, profileFile);
       }
 
-      managersByFile[document.Uri] = managersByProject[profileFile.Uri] = projectManager;
+      projectFilesByFile.Add(document.Uri, profileFile.Uri);
+      managersByProject[profileFile.Uri] = projectManager;
       projectManager.OpenDocument(document);
     }
 
@@ -64,9 +65,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       while (!string.IsNullOrEmpty(folder)) {
         var configFileUri = new Uri(Path.Combine(folder, "dfyconfig.toml"));
         if (fileSystem.Exists(configFileUri)) {
-          var errorWriter = TextWriter.Null;
-          var outputWriter = TextWriter.Null;
-          projectFile = DafnyProject.Open(fileSystem, configFileUri, outputWriter, errorWriter);
+          projectFile = OpenProject(configFileUri);
           if (projectFile != null) {
             break;
           }
@@ -78,52 +77,76 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       return projectFile;
     }
 
+    private DafnyProject OpenProject(Uri configFileUri)
+    {
+      var errorWriter = TextWriter.Null;
+      var outputWriter = TextWriter.Null;
+      return DafnyProject.Open(fileSystem, configFileUri, outputWriter, errorWriter);
+    }
+
     public void UpdateDocument(DidChangeTextDocumentParams documentChange) {
       fileSystem.UpdateDocument(documentChange);
       var documentUri = documentChange.TextDocument.Uri;
-      if (!managersByFile.TryGetValue(documentUri, out var state)) {
+      if (!projectFilesByFile.TryGetValue(documentUri, out var projectUri)) {
         throw new ArgumentException($"the document {documentUri} was not loaded before");
       }
 
-      state.UpdateDocument(documentChange);
+      if (projectUri == documentUri) {
+        var previousManager = managersByProject[projectUri];
+        var _ = previousManager.CloseAsync();
+        // TODO add tests that assert the affect of the new project manager, which is that nothing is migrated and last published state is lost.
+        var manager = new ProjectManager(services, verificationCache, OpenProject(projectUri.ToUri()));
+        managersByProject[projectUri] = manager;
+      }
+
+      managersByProject[projectUri].UpdateDocument(documentChange);
     }
 
     public void SaveDocument(TextDocumentIdentifier documentId) {
-      if (!managersByFile.TryGetValue(documentId.Uri, out var manager)) {
+      if (!projectFilesByFile.TryGetValue(documentId.Uri, out var projectUri)) {
         throw new ArgumentException($"the document {documentId.Uri} was not loaded before");
       }
 
-      manager.Save(documentId);
+      managersByProject[projectUri].Save(documentId);
     }
 
     public async Task<bool> CloseDocumentAsync(TextDocumentIdentifier documentId) {
       fileSystem.CloseDocument(documentId);
-      if (managersByFile.Remove(documentId.Uri, out var manager)) {
-        if (manager.CloseDocument(documentId)) {
-          managersByProject.Remove(manager.Project.Uri);
+      if (projectFilesByFile.Remove(documentId.Uri, out var unusedProject, out var projectUri)) {
+        var project = managersByProject[projectUri];
+        if (unusedProject) {
+          managersByProject.Remove(project.Project.Uri);
+          await project.CloseAsync();
         }
-        await manager.CloseAsync();
         return true;
       }
       return false;
     }
 
     public Task<IdeState?> GetResolvedDocumentAsync(TextDocumentIdentifier documentId) {
-      if (managersByFile.TryGetValue(documentId.Uri, out var manager)) {
+      var manager = GetProjectManager(documentId);
+      if (manager != null) {
         return manager.GetSnapshotAfterResolutionAsync()!;
       }
+
       return Task.FromResult<IdeState?>(null);
     }
 
     public Task<CompilationAfterParsing?> GetLastDocumentAsync(TextDocumentIdentifier documentId) {
-      if (managersByFile.TryGetValue(documentId.Uri, out var databaseEntry)) {
-        return databaseEntry.GetLastDocumentAsync()!;
+      var manager = GetProjectManager(documentId);
+      if (manager != null) {
+        return manager.GetLastDocumentAsync()!;
       }
+
       return Task.FromResult<CompilationAfterParsing?>(null);
     }
 
-    public ProjectManager? GetDocumentManager(TextDocumentIdentifier documentId) {
-      return managersByFile.GetValueOrDefault(documentId.Uri);
+    public ProjectManager? GetProjectManager(TextDocumentIdentifier documentId) {
+      if (projectFilesByFile.TryGetValue(documentId.Uri, out var projectFile)) {
+        return managersByProject.GetValueOrDefault(projectFile);
+      }
+
+      return null;
     }
 
     public IEnumerable<ProjectManager> Managers => managersByProject.Values;
