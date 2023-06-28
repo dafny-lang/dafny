@@ -746,10 +746,9 @@ namespace Microsoft.Dafny {
 
       foreach (TopLevelDecl d in program.SystemModuleManager.SystemModule.TopLevelDecls) {
         currentDeclaration = d;
-        if (d is AbstractTypeDecl) {
-          var dd = (AbstractTypeDecl)d;
-          GetOrCreateTypeConstructor(dd);
-          AddClassMembers(dd, true, true);
+        if (d is AbstractTypeDecl abstractType) {
+          GetOrCreateTypeConstructor(abstractType);
+          AddClassMembers(abstractType, true, true);
         } else if (d is NewtypeDecl) {
           var dd = (NewtypeDecl)d;
           AddTypeDecl(dd);
@@ -1176,12 +1175,6 @@ namespace Microsoft.Dafny {
         return Bpl.Expr.Eq(e0, e1);
       }
     }
-
-    void AddAbstractTypeDecl(AbstractTypeDecl abstractType) {
-      Contract.Requires(abstractType != null);
-      GetOrCreateTypeConstructor(abstractType);
-    }
-
 
     void AddTypeDecl(RevealableTypeDecl d) {
       Contract.Requires(d != null);
@@ -6377,29 +6370,38 @@ namespace Microsoft.Dafny {
       Contract.Requires(td != null);
       IToken tok = td.tok;
 
+      // use the internal type synonym, if any
+      if (!RevealedInScope(td) && td is RevealableTypeDecl revealableTypeDecl) {
+        td = revealableTypeDecl.SelfSynonymDecl();
+      }
+      Contract.Assume(td is SubsetTypeDecl or not TypeSynonymDecl); // this is expected of the caller
+
       var func = GetOrCreateTypeConstructor(td);
       var name = func.Name;
 
-      var tagAxiom = CreateTagAndCallingForTypeConstructor(td);
-      AddOtherDefinition(func, tagAxiom);
+      // Produce uniqueness or injectivity axioms, unless the type is one that may (non-uniquely) stand for another type.
+      if (td is not AbstractTypeDecl and not InternalTypeSynonymDecl) {
+        var tagAxiom = CreateTagAndCallingForTypeConstructor(td);
+        AddOtherDefinition(func, tagAxiom);
 
-      // Create the injectivity axiom and its function
-      /*
-         function List_0(Ty) : Ty;
-         axiom (forall t0: Ty :: { List(t0) } List_0(List(t0)) == t0);
-      */
-      for (int i = 0; i < func.InParams.Count; i++) {
-        var args = MkTyParamBinders(td.TypeArgs, out var argExprs);
-        var inner = FunctionCall(tok, name, predef.Ty, argExprs);
-        Bpl.Variable tyVarIn = BplFormalVar(null, predef.Ty, true);
-        Bpl.Variable tyVarOut = BplFormalVar(null, predef.Ty, false);
-        var injname = name + "_" + i;
-        var injfunc = new Bpl.Function(tok, injname, Singleton(tyVarIn), tyVarOut);
-        sink.AddTopLevelDeclaration(injfunc);
-        var outer = FunctionCall(tok, injname, args[i].TypedIdent.Type, inner);
-        Bpl.Expr qq = BplForall(args, BplTrigger(inner), Bpl.Expr.Eq(outer, argExprs[i]));
-        var injectivityAxiom = new Axiom(tok, qq, name + " injectivity " + i);
-        AddOtherDefinition(injfunc, injectivityAxiom);
+        // Create the injectivity axiom and its function
+        /*
+           function List_0(Ty) : Ty;
+           axiom (forall t0: Ty :: { List(t0) } List_0(List(t0)) == t0);
+        */
+        for (int i = 0; i < func.InParams.Count; i++) {
+          var args = MkTyParamBinders(td.TypeArgs, out var argExprs);
+          var inner = FunctionCall(tok, name, predef.Ty, argExprs);
+          Bpl.Variable tyVarIn = BplFormalVar(null, predef.Ty, true);
+          Bpl.Variable tyVarOut = BplFormalVar(null, predef.Ty, false);
+          var injname = name + "_" + i;
+          var injfunc = new Bpl.Function(tok, injname, Singleton(tyVarIn), tyVarOut);
+          sink.AddTopLevelDeclaration(injfunc);
+          var outer = FunctionCall(tok, injname, args[i].TypedIdent.Type, inner);
+          Bpl.Expr qq = BplForall(args, BplTrigger(inner), Bpl.Expr.Eq(outer, argExprs[i]));
+          var injectivityAxiom = new Axiom(tok, qq, name + " injectivity " + i);
+          AddOtherDefinition(injfunc, injectivityAxiom);
+        }
       }
 
       // Boxing axiom (important for the properties of unbox)
@@ -8281,7 +8283,7 @@ namespace Microsoft.Dafny {
       return new Bpl.IdentifierExpr(tp.tok, nm, predef.Ty);
     }
 
-    Bpl.Expr TrAbstractType(AbstractTypeDecl abstractType, List<Type>/*?*/ tyArguments) {
+    Bpl.Expr TrAbstractType(AbstractTypeDecl abstractType, List<Type> tyArguments) {
       Contract.Requires(tyArguments != null);
 
       var fn = GetOrCreateTypeConstructor(abstractType);
