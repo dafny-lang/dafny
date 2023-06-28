@@ -8,6 +8,7 @@ using Xunit;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
+  // TODO merge with MultipleFilesTest ???
   public class MultiFileTest : DafnyLanguageServerTestBase, IAsyncLifetime {
     private static readonly string TestFilePath = Path.Combine(Directory.GetCurrentDirectory(), "Various", "TestFiles", "testFile.dfy");
 

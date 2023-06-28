@@ -1,12 +1,15 @@
 using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.IO;
+using System.Linq;
+using Microsoft.Extensions.FileSystemGlobbing;
+using Microsoft.Extensions.FileSystemGlobbing.Abstractions;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace;
 
 public class LanguageServerFilesystem : IFileSystem {
+
   internal class Entry {
     public TextBuffer Buffer { get; set; }
     public int Version { get; set; }
@@ -68,7 +71,18 @@ public class LanguageServerFilesystem : IFileSystem {
       return new StringReader(entry.Buffer.Text);
     }
 
-    return new StreamReader(uri.LocalPath);
+    return OnDiskFileSystem.Instance.ReadFile(uri);
+  }
+
+  public bool Exists(Uri path) {
+    return openFiles.ContainsKey(path) || OnDiskFileSystem.Instance.Exists(path);
+  }
+
+  public DirectoryInfoBase GetDirectoryInfoBase(Uri uri) {
+    var root = Path.GetDirectoryName(uri.LocalPath);
+    var inMemory = new InMemoryDirectoryInfo(root, openFiles.Keys.Select(openFileUri => openFileUri.LocalPath));
+
+    return new CombinedDirectoryInfo(new[] { inMemory, OnDiskFileSystem.Instance.GetDirectoryInfoBase(uri) });
   }
 
   public int? GetVersion(Uri uri) {

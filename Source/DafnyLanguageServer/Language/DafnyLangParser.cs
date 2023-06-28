@@ -47,8 +47,9 @@ namespace Microsoft.Dafny.LanguageServer.Language {
 
       var beforeParsing = DateTime.Now;
       try {
+        var rootSourceUris = project.GetRootSourceUris(fileSystem, options).Concat(options.CliRootSourceUris);
         var result = cachingParser.ParseFiles(project.ProjectName,
-          reporter.Options.CliRootSourceUris.Select(uri =>
+          rootSourceUris.Select(uri =>
             new DafnyFile(reporter.Options, uri, fileSystem.ReadFile(uri))
           ).ToList(),
           reporter, cancellationToken);

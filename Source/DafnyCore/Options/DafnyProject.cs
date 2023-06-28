@@ -1,14 +1,10 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.CommandLine;
 using System.IO;
 using System.Linq;
-using System.Reflection.Metadata;
 using System.Runtime.Serialization;
-using System.Text.Json;
 using System.Text.RegularExpressions;
-using Microsoft.CodeAnalysis;
 using Microsoft.Extensions.FileSystemGlobbing;
 using Microsoft.Extensions.FileSystemGlobbing.Abstractions;
 using Tomlyn;
@@ -16,7 +12,7 @@ using Tomlyn.Model;
 
 namespace Microsoft.Dafny; 
 
-public class DafnyProject {
+public class DafnyProject : IEquatable<DafnyProject> {
   public const string FileName = "dfyconfig.toml";
 
   public string ProjectName => Uri.ToString();
@@ -29,13 +25,12 @@ public class DafnyProject {
   public string[] Excludes { get; set; }
   public Dictionary<string, object> Options { get; set; }
 
-  public static DafnyProject Open(Uri uri, TextWriter outputWriter, TextWriter errorWriter) {
+  public static DafnyProject Open(IFileSystem fileSystem, Uri uri, TextWriter outputWriter, TextWriter errorWriter) {
     if (Path.GetFileName(uri.LocalPath) != FileName) {
       outputWriter.WriteLine($"Warning: only Dafny project files named {FileName} are recognised by the Dafny IDE.");
     }
     try {
-      var file = File.Open(uri.LocalPath, FileMode.Open);
-      var model = Toml.ToModel<DafnyProject>(new StreamReader(file).ReadToEnd(), null, new TomlModelOptions());
+      var model = Toml.ToModel<DafnyProject>(fileSystem.ReadFile(uri).ReadToEnd(), null, new TomlModelOptions());
       model.Uri = uri;
       return model;
 
@@ -54,9 +49,34 @@ public class DafnyProject {
     }
   }
 
-  public void AddFilesToOptions(DafnyOptions options) {
+  class DirectoryInfoAroundFileSystem : DirectoryInfoBase {
+    private IFileSystem fileSystem;
+    private string root;
+
+    public DirectoryInfoAroundFileSystem(IFileSystem fileSystem, string root) {
+      this.fileSystem = fileSystem;
+      this.root = root;
+    }
+
+    public override string Name { get; }
+    public override string FullName { get; }
+    public override DirectoryInfoBase ParentDirectory { get; }
+    public override IEnumerable<FileSystemInfoBase> EnumerateFileSystemInfos() {
+      throw new NotImplementedException();
+    }
+
+    public override DirectoryInfoBase GetDirectory(string path) {
+      throw new NotImplementedException();
+    }
+
+    public override FileInfoBase GetFile(string path) {
+      throw new NotImplementedException();
+    }
+  }
+
+  public IEnumerable<Uri> GetRootSourceUris(IFileSystem fileSystem, DafnyOptions options) {
     if (!Uri.IsFile) {
-      return;
+      return Enumerable.Empty<Uri>();
     }
 
     var matcher = new Matcher();
@@ -68,11 +88,9 @@ public class DafnyProject {
     }
 
     var root = Path.GetDirectoryName(Uri.LocalPath);
-    var result = matcher.Execute(new DirectoryInfoWrapper(new DirectoryInfo(root!)));
+    var result = matcher.Execute(fileSystem.GetDirectoryInfoBase(Uri));
     var files = result.Files.Select(f => Path.Combine(root, f.Path));
-    foreach (var file in files) {
-      options.CliRootSourceUris.Add(new Uri(Path.GetFullPath(file)));
-    }
+    return files.Select(file => new Uri(Path.GetFullPath(file)));
   }
 
   public void Validate(TextWriter outputWriter, IEnumerable<Option> possibleOptions) {
@@ -143,5 +161,44 @@ public class DafnyProject {
       return default(T);
     }).ToList();
     return success;
+  }
+
+  public bool Equals(DafnyProject other) {
+    if (ReferenceEquals(null, other)) {
+      return false;
+    }
+
+    if (ReferenceEquals(this, other)) {
+      return true;
+    }
+
+    // TODO set instead of sequence equality
+    return Equals(UnsavedRootFile, other.UnsavedRootFile) && Equals(Uri, other.Uri) &&
+           NullableSequenceEqual(Includes, other.Includes) &&
+           NullableSequenceEqual(Excludes, other.Excludes) && Equals(Options, other.Options);
+  }
+
+  private static bool NullableSequenceEqual(IEnumerable<string> first, IEnumerable<string> second) {
+    return first?.SequenceEqual(second) ?? (second == null);
+  }
+
+  public override bool Equals(object obj) {
+    if (ReferenceEquals(null, obj)) {
+      return false;
+    }
+
+    if (ReferenceEquals(this, obj)) {
+      return true;
+    }
+
+    if (obj.GetType() != this.GetType()) {
+      return false;
+    }
+
+    return Equals((DafnyProject)obj);
+  }
+
+  public override int GetHashCode() {
+    return HashCode.Combine(UnsavedRootFile, Uri, Includes, Excludes, Options);
   }
 }

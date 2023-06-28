@@ -261,13 +261,12 @@ public static class CommandRegistry {
         dafnyOptions.ErrorWriter.WriteLine($"Error: file {filePathForErrors} not found");
         return false;
       }
-      var projectFile = DafnyProject.Open(new Uri(singleFile.FullName), dafnyOptions.OutputWriter, dafnyOptions.ErrorWriter);
+      var projectFile = DafnyProject.Open(OnDiskFileSystem.Instance, new Uri(singleFile.FullName), dafnyOptions.OutputWriter, dafnyOptions.ErrorWriter);
       if (projectFile == null) {
         return false;
       }
       projectFile.Validate(dafnyOptions.OutputWriter, AllOptions);
       dafnyOptions.DafnyProject = projectFile;
-      projectFile.AddFilesToOptions(dafnyOptions);
     } else {
       dafnyOptions.CliRootSourceUris.Add(new Uri(singleFile.FullName));
     }

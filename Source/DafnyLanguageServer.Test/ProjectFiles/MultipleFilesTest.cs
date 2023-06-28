@@ -6,11 +6,46 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using Xunit;
 using Xunit.Abstractions;
 
-namespace Microsoft.Dafny.LanguageServer.IntegrationTest; 
+namespace Microsoft.Dafny.LanguageServer.IntegrationTest.ProjectFiles; 
 
-public class MultipleFiles : ClientBasedLanguageServerTest {
+public class MultipleFilesTest : ClientBasedLanguageServerTest {
+
   [Fact]
-  public async Task OpenUpdateCloseIncludedFile() {
+  public async Task OpenUpdateCloseIncludedFileWithExplicitProject() {
+    var producerSource = @"
+method Foo(x: int) { 
+}
+".TrimStart();
+
+    var consumerSource = @"
+method Bar() {
+  Foo(true); 
+}
+";
+
+    var projectFileSource = @"
+includes = [""src/**/*.dfy""]
+";
+    var directory = Directory.GetCurrentDirectory();
+    var projectFile = CreateTestDocument(projectFileSource, Path.Combine(directory, "dfyconfig.toml"));
+    await client.OpenDocumentAndWaitAsync(projectFile, CancellationToken);
+    var producerItem = CreateTestDocument(producerSource, Path.Combine(directory, "src/producer.dfy"));
+    await client.OpenDocumentAndWaitAsync(producerItem, CancellationToken);
+    var consumer = CreateTestDocument(consumerSource, Path.Combine(directory, "src/consumer1.dfy"));
+    await client.OpenDocumentAndWaitAsync(consumer, CancellationToken);
+
+    var consumerDiagnostics1 = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, consumer);
+    Assert.Single(consumerDiagnostics1);
+    Assert.Contains("int", consumerDiagnostics1[0].Message);
+
+    ApplyChange(ref producerItem, new Range(0, 14, 0, 17), "bool");
+    var consumerDiagnostics2 = await diagnosticsReceiver.AwaitNextNotificationAsync(CancellationToken);
+    Assert.Equal(consumer.Uri, consumerDiagnostics2.Uri);
+    Assert.Empty(consumerDiagnostics2.Diagnostics);
+  }
+
+  [Fact]
+  public async Task OpenUpdateCloseIncludedFileWithImplicitProject() {
     var producerSource = @"
 method Foo() { 
 }
@@ -25,10 +60,10 @@ method Bar() {
 ";
     var producerItem = CreateTestDocument(producerSource, Path.Combine(Directory.GetCurrentDirectory(), "A.dfy"));
     await client.OpenDocumentAndWaitAsync(producerItem, CancellationToken);
-    var consumer1 = CreateTestDocument(consumerSource, Path.Combine(Directory.GetCurrentDirectory(), "consumer1.dfy"));
-    await client.OpenDocumentAndWaitAsync(consumer1, CancellationToken);
+    var consumer = CreateTestDocument(consumerSource, Path.Combine(Directory.GetCurrentDirectory(), "consumer1.dfy"));
+    await client.OpenDocumentAndWaitAsync(consumer, CancellationToken);
 
-    var consumer1Diagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, consumer1);
+    var consumer1Diagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, consumer);
     Assert.Single(consumer1Diagnostics);
     Assert.Contains("int", consumer1Diagnostics[0].Message);
 
@@ -51,6 +86,6 @@ method Bar() {
     Assert.Contains("Unable to open", consumer3Diagnostics[0].Message);
   }
 
-  public MultipleFiles(ITestOutputHelper output) : base(output) {
+  public MultipleFilesTest(ITestOutputHelper output) : base(output) {
   }
 }

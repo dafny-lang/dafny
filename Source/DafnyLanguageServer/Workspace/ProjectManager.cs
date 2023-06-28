@@ -30,62 +30,53 @@ public class ProjectManager : IDisposable {
   private int version = 1;
   private int openDocuments;
 
-  private bool VerifyOnOpen => options.Get(ServerCommand.Verification) == VerifyOnMode.Change;
-  private bool VerifyOnChange => options.Get(ServerCommand.Verification) == VerifyOnMode.Change;
+  private bool VerifyOnOpenChange => options.Get(ServerCommand.Verification) == VerifyOnMode.Change;
   private bool VerifyOnSave => options.Get(ServerCommand.Verification) == VerifyOnMode.Save;
   public List<Position> ChangedVerifiables { get; set; } = new();
   public List<Range> ChangedRanges { get; set; } = new();
 
   private readonly SemaphoreSlim workCompletedForCurrentVersion = new(0);
   private readonly DafnyOptions options;
+  private readonly IFileSystem fileSystem;
+  private DafnyOptions serverOptions;
 
   public ProjectManager(IServiceProvider services, VerificationResultCache verificationCache, DafnyProject project) {
     this.services = services;
     Project = project;
-    var serverOptions = services.GetRequiredService<DafnyOptions>();
+    serverOptions = services.GetRequiredService<DafnyOptions>();
     logger = services.GetRequiredService<ILogger<ProjectManager>>();
     relocator = services.GetRequiredService<IRelocator>();
+    fileSystem = services.GetRequiredService<IFileSystem>();
 
+    // Moet CliRootSourceUris uit options??? Of moet er een extra veld zijn, 
     options = DetermineProjectOptions(project, serverOptions);
-    if (project.UnsavedRootFile != null) {
-      options.CliRootSourceUris.Add(project.UnsavedRootFile);
-    }
     observer = new IdeStateObserver(services.GetRequiredService<ILogger<IdeStateObserver>>(),
       services.GetRequiredService<ITelemetryPublisher>(),
       services.GetRequiredService<INotificationPublisher>(),
       services.GetRequiredService<ITextDocumentLoader>(),
       project);
     boogieEngine = new ExecutionEngine(options, verificationCache);
-
-    CompilationManager = new CompilationManager(
-      services,
-      options,
-      boogieEngine, new Compilation(version, project), null);
-
-    observerSubscription = CompilationManager.CompilationUpdates.Select(d =>
-      d.InitialIdeState(new Compilation(version, project), options)).Subscribe(observer);
-
     options.Printer = new OutputLogger(logger);
 
-    if (VerifyOnOpen) {
-      var _ = VerifyEverythingAsync();
-    } else {
-      logger.LogDebug("Setting result for workCompletedForCurrentVersion");
-      workCompletedForCurrentVersion.Release();
-    }
-
-    CompilationManager.Start();
+    // Remove this next part???
+    // var compilationStart = new Compilation(version, Project);
+    // CompilationManager = new CompilationManager(
+    //   services,
+    //   options,
+    //   boogieEngine, compilationStart, null);
+    //
+    // observerSubscription = CompilationManager.CompilationUpdates.Select(d =>
+    //   d.InitialIdeState(compilationStart, options)).Subscribe(observer);
+    //
+    // CompilationManager.Start();
   }
 
   private const int MaxRememberedChanges = 100;
   private const int MaxRememberedChangedVerifiables = 5;
 
+  // TODO test that migration doesn't affect the wrong document.
+  // Also test that changed ranges is computed for the right document.
   public void UpdateDocument(DidChangeTextDocumentParams documentChange) {
-
-    version++;
-    logger.LogDebug("Clearing result for workCompletedForCurrentVersion");
-    var _1 = workCompletedForCurrentVersion.WaitAsync();
-
     CompilationManager.CancelPendingUpdates();
 
     var lastPublishedState = observer.LastPublishedState;
@@ -104,6 +95,15 @@ public class ProjectManager : IDisposable {
           Where(r => r != null).Take(MaxRememberedChanges).ToList()!;
     }
 
+    StartNewCompilation(documentChange.TextDocument.Uri.ToUri(), migratedVerificationTree, lastPublishedState);
+  }
+
+  private void StartNewCompilation(Uri triggeringFile, VerificationTree? migratedVerificationTree,
+    IdeState lastPublishedState) {
+    version++;
+    logger.LogDebug("Clearing result for workCompletedForCurrentVersion");
+    var _1 = workCompletedForCurrentVersion.WaitAsync();
+
     CompilationManager = new CompilationManager(
       services,
       options,
@@ -113,18 +113,17 @@ public class ProjectManager : IDisposable {
       migratedVerificationTree
     );
 
-    if (VerifyOnChange) {
-      var _ = VerifyEverythingAsync();
+    if (VerifyOnOpenChange) {
+      var _ = VerifyEverythingAsync(triggeringFile);
     } else {
       logger.LogDebug("Setting result for workCompletedForCurrentVersion");
       workCompletedForCurrentVersion.Release();
     }
 
-    observerSubscription.Dispose();
+    observerSubscription?.Dispose();
     var migratedUpdates = CompilationManager.CompilationUpdates.Select(document =>
       document.ToIdeState(lastPublishedState));
     observerSubscription = migratedUpdates.Subscribe(observer);
-    logger.LogDebug($"Finished processing document update for version {documentChange.TextDocument.Version}");
 
     CompilationManager.Start();
   }
@@ -139,8 +138,6 @@ public class ProjectManager : IDisposable {
         result.ApplyBinding(option);
       }
     }
-
-    projectOptions.AddFilesToOptions(result);
 
     return result;
   }
@@ -166,7 +163,7 @@ public class ProjectManager : IDisposable {
     if (VerifyOnSave) {
       logger.LogDebug("Clearing result for workCompletedForCurrentVersion");
       var _1 = workCompletedForCurrentVersion.WaitAsync();
-      var _2 = VerifyEverythingAsync();
+      var _2 = VerifyEverythingAsync(documentId.Uri.ToUri());
     }
   }
 
@@ -206,11 +203,13 @@ public class ProjectManager : IDisposable {
     return observer.LastPublishedState;
   }
 
-  private async Task VerifyEverythingAsync() {
+  // Test that when a project has multiple files, when saving/opening, only the affected Uri is verified when using OnSave.
+  private async Task VerifyEverythingAsync(Uri uri) {
     try {
       var translatedDocument = await CompilationManager.TranslatedCompilation;
 
-      var implementationTasks = translatedDocument.VerificationTasks;
+      var implementationTasks = translatedDocument.VerificationTasks.
+        Where(d => ((IToken)d.Implementation.tok).Uri == uri).ToList();
 
       if (!implementationTasks.Any()) {
         CompilationManager.FinishedNotifications(translatedDocument);
@@ -256,6 +255,12 @@ public class ProjectManager : IDisposable {
 
   public void OpenDocument(TextDocumentItem document) {
     openDocuments++;
+    CompilationManager?.CancelPendingUpdates();
+
+    var lastPublishedState = observer.LastPublishedState;
+    var migratedVerificationTree = lastPublishedState.VerificationTree;
+
+    StartNewCompilation(document.Uri.ToUri(), migratedVerificationTree, lastPublishedState);
   }
 
   public void Dispose() {

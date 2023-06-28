@@ -33,6 +33,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       ProjectManager? projectManager = managersByProject.GetValueOrDefault(profileFile.Uri);
 
       if (projectManager != null) {
+        // TODO add tests for this not equals path.
         if (!projectManager.Project.Equals(profileFile)) {
           projectManager = new ProjectManager(services, verificationCache, profileFile);
         }
@@ -61,11 +62,11 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
       var folder = Path.GetDirectoryName(uri.GetFileSystemPath());
       while (!string.IsNullOrEmpty(folder)) {
-        var children = Directory.GetFiles(folder, "dfyconfig.toml");
-        if (children.Length > 0) {
+        var configFileUri = new Uri(Path.Combine(folder, "dfyconfig.toml"));
+        if (fileSystem.Exists(configFileUri)) {
           var errorWriter = TextWriter.Null;
           var outputWriter = TextWriter.Null;
-          projectFile = DafnyProject.Open(new Uri(children[0]), outputWriter, errorWriter);
+          projectFile = DafnyProject.Open(fileSystem, configFileUri, outputWriter, errorWriter);
           if (projectFile != null) {
             break;
           }
