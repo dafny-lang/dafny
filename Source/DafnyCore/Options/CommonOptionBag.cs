@@ -172,7 +172,7 @@ true - Print debug information for the new type system.".TrimStart()) {
     "Treat warnings as errors.");
   public static readonly Option<bool> WarnMissingConstructorParenthesis = new("--warn-missing-constructor-parentheses",
     "Emits a warning when a constructor name in a case pattern is not followed by parentheses.");
-  public static readonly Option<bool> WarnShadowing = new("--warn-shadowing", 
+  public static readonly Option<bool> WarnShadowing = new("--warn-shadowing",
     "Emits a warning if the name of a declared variable caused another variable to be shadowed.");
 
   public static readonly Option<bool> IncludeRuntimeOption = new("--include-runtime",

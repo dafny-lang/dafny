@@ -92,7 +92,7 @@ public abstract class Node : INode {
       if (!beforeChildren(current)) {
         continue;
       }
-
+  
       var nodeAfterChildren = toVisit.First;
       foreach (var child in current.Children) {
         if (child == null) {

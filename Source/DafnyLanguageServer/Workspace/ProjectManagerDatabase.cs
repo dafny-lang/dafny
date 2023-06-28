@@ -77,8 +77,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       return projectFile;
     }
 
-    private DafnyProject OpenProject(Uri configFileUri)
-    {
+    private DafnyProject OpenProject(Uri configFileUri) {
       var errorWriter = TextWriter.Null;
       var outputWriter = TextWriter.Null;
       return DafnyProject.Open(fileSystem, configFileUri, outputWriter, errorWriter);

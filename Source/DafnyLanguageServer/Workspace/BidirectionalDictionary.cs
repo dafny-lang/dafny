@@ -11,8 +11,7 @@ class BidirectionalDictionary<TKey, TValue> where TKey : notnull where TValue : 
     return BackwardsInner(value);
   }
 
-  private ISet<TKey> BackwardsInner(TValue value)
-  {
+  private ISet<TKey> BackwardsInner(TValue value) {
     return backwards.GetOrCreate(value, () => new HashSet<TKey>());
   }
 

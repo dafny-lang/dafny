@@ -42,11 +42,11 @@ includes = [""src/**/*.dfy""]
     Assert.Contains("Shadowed", diagnostics1[0].Message);
 
     ApplyChange(ref projectFile, new Range(1, 17, 1, 21), "false");
-    
+
     var diagnostics2 = await diagnosticsReceiver.AwaitNextWarningOrErrorDiagnosticsAsync(CancellationToken);
     Assert.Empty(diagnostics2);
   }
-  
+
   [Fact]
   public async Task OpenUpdateCloseIncludedFileWithExplicitProject() {
     var producerSource = @"

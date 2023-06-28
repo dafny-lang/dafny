@@ -94,7 +94,7 @@ public class ProjectManager : IDisposable {
     }
 
     StartNewCompilation(migratedVerificationTree, lastPublishedState);
-    
+
 
     TriggerVerificationForFile(documentChange.TextDocument.Uri.ToUri());
   }
@@ -122,14 +122,10 @@ public class ProjectManager : IDisposable {
     CompilationManager.Start();
   }
 
-  public void TriggerVerificationForFile(Uri triggeringFile)
-  {
-    if (VerifyOnOpenChange)
-    {
+  public void TriggerVerificationForFile(Uri triggeringFile) {
+    if (VerifyOnOpenChange) {
       var _ = VerifyEverythingAsync(triggeringFile);
-    }
-    else
-    {
+    } else {
       logger.LogDebug("Setting result for workCompletedForCurrentVersion");
       workCompletedForCurrentVersion.Release();
     }
