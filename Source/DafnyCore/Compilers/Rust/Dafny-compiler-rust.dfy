@@ -86,7 +86,7 @@ module {:extern "DCOMP"} DCOMP {
       }
     }
 		
-	  static method Compile(p: seq<TopLevel>) returns (s: string) {
+    static method Compile(p: seq<TopLevel>) returns (s: string) {
       s := "#![allow(warnings)]\n";
       var i := 0;
       while i < |p| {
@@ -97,13 +97,13 @@ module {:extern "DCOMP"} DCOMP {
         }
 
         if i > 0 {
-           s := s + "\n";
+          s := s + "\n";
         }
 
         s := s + generated;
         i := i + 1;
       }
-		}
+    }
 
     static method EmitCallToMain(fullName: seq<string>) returns (s: string) {
       s := "fn main() {\n";
