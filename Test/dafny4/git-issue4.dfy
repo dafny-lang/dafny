@@ -1,5 +1,4 @@
-// RUN: %dafny /compile:3 "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment
 
 function IntToChar(i:int):char
   requires 0 <= i < 10

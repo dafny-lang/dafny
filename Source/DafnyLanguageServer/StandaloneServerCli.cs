@@ -14,17 +14,17 @@ using Microsoft.Extensions.DependencyInjection;
 using OmniSharpLanguageServer = OmniSharp.Extensions.LanguageServer.Server.LanguageServer;
 
 namespace Microsoft.Dafny.LanguageServer {
-  public class Program {
+  public class ServerProgram {
     public static async Task Main(string[] args) {
-      var dafnyOptions = GetOptionsFromArgs(args);
+      var dafnyOptions = GetOptionsFromArgs(Console.Out, Console.In, args);
 
       await Server.Start(dafnyOptions);
     }
 
-    public static DafnyOptions GetOptionsFromArgs(string[] args) {
+    public static DafnyOptions GetOptionsFromArgs(TextWriter outWriter, TextReader input, string[] args) {
       var configuration = CreateConfiguration(args);
 
-      var dafnyOptions = DafnyOptions.Create();
+      var dafnyOptions = DafnyOptions.Create(outWriter, input);
 
       var verifierOptions = new VerifierOptions();
       configuration.Bind(VerifierOptions.Section, verifierOptions);

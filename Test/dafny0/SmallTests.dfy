@@ -1,4 +1,4 @@
-// RUN: %exits-with 4 %dafny /compile:0 /print:"%t.print" /dprint:"%t.dprint.dfy" "%s" > "%t"
+// RUN: %exits-with 4 %dafny /compile:0 /deprecation:0 /print:"%t.print" /dprint:"%t.dprint.dfy" "%s" > "%t"
 // RUN: %dafny /noVerify /compile:0 "%t.dprint.dfy" >> "%t"
 // RUN: %diff "%s.expect" "%t"
 
@@ -294,8 +294,8 @@ class InitCalls {
     var f: object := new InitCalls.Init(19);
     assert c.z + d.z + e.z == 50;
 
-    assert var g: InitCalls := f; f == g;
-    assert var g: InitCalls := f; g.z == 19;
+    assert var g: InitCalls := f as InitCalls; f == g;
+    assert var g: InitCalls := f as InitCalls; g.z == 19;
 
     // test that the call is done before the assignment to the LHS
     var r := c;

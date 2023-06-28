@@ -34,7 +34,7 @@ namespace Microsoft.Dafny.Compilers {
     const string DafnyMapClass = "_dafny.Map";
 
     string FormatDefaultTypeParameterValue(TopLevelDecl tp) {
-      Contract.Requires(tp is TypeParameter || tp is OpaqueTypeDecl);
+      Contract.Requires(tp is TypeParameter || tp is AbstractTypeDecl);
       return $"_default_{tp.GetCompileName(Options)}";
     }
 
@@ -761,14 +761,11 @@ namespace Microsoft.Dafny.Compilers {
       } else if (xType is UserDefinedType) {
         var udt = (UserDefinedType)xType;
         if (udt.ResolvedClass is TypeParameter tp) {
-          return string.Format("{0}rtd$_{1}", thisContext != null && tp.Parent is ClassDecl && !(tp.Parent is TraitDecl) ? "this." : "", tp.GetCompileName(Options));
+          return string.Format("{0}rtd$_{1}", thisContext != null && tp.Parent is ClassDecl ? "this." : "", tp.GetCompileName(Options));
         }
         var cl = udt.ResolvedClass;
         Contract.Assert(cl != null);
-        bool isHandle = true;
-        if (Attributes.ContainsBool(cl.Attributes, "handle", ref isHandle) && isHandle) {
-          return "_dafny.Rtd_ref";
-        } else if (cl is ClassDecl) {
+        if (cl is ClassLikeDecl) {
           return "_dafny.Rtd_ref";
         } else if (cl is DatatypeDecl) {
           var dt = (DatatypeDecl)cl;
@@ -927,7 +924,7 @@ namespace Microsoft.Dafny.Compilers {
         } else {
           return FormatDefaultTypeParameterValue((TypeParameter)udt.ResolvedClass);
         }
-      } else if (cl is OpaqueTypeDecl opaque) {
+      } else if (cl is AbstractTypeDecl opaque) {
         return FormatDefaultTypeParameterValue(opaque);
       } else if (cl is NewtypeDecl) {
         var td = (NewtypeDecl)cl;
@@ -968,13 +965,8 @@ namespace Microsoft.Dafny.Compilers {
         } else {
           return TypeInitializationValue(td.RhsWithArgument(udt.TypeArgs), wr, tok, usePlaceboValue, constructTypeParameterDefaultsFromTypeDescriptors);
         }
-      } else if (cl is ClassDecl) {
-        bool isHandle = true;
-        if (Attributes.ContainsBool(cl.Attributes, "handle", ref isHandle) && isHandle) {
-          return "0";
-        } else {
-          return "null";
-        }
+      } else if (cl is ClassLikeDecl or ArrowTypeDecl) {
+        return "null";
       } else if (cl is DatatypeDecl) {
         var dt = (DatatypeDecl)cl;
         var s = dt is TupleTypeDecl ? "_dafny.Tuple" : FullTypeName(udt);
@@ -1165,7 +1157,7 @@ namespace Microsoft.Dafny.Compilers {
       var wStmts = wr.Fork();
       wr.Write("throw new _dafny.HaltException(");
       if (tok != null) {
-        wr.Write("\"" + Dafny.ErrorReporter.TokenToString(tok) + ": \" + ");
+        wr.Write("\"" + tok.TokenToString(Options) + ": \" + ");
       }
 
       TrParenExpr(messageExpr, wr, false, wStmts);
@@ -1526,10 +1518,10 @@ namespace Microsoft.Dafny.Compilers {
       var cl = udt.ResolvedClass;
       if (cl is TypeParameter) {
         return IdProtect(udt.GetCompileName(Options));
-      } else if (cl is ClassDecl cdecl && cdecl.IsDefaultClass && Attributes.Contains(cl.EnclosingModuleDefinition.Attributes, "extern") &&
-        member != null && Attributes.Contains(member.Attributes, "extern")) {
+      } else if (cl is DefaultClassDecl && Attributes.Contains(cl.EnclosingModuleDefinition.Attributes, "extern") &&
+                 member != null && Attributes.Contains(member.Attributes, "extern")) {
         // omit the default class name ("_default") in extern modules, when the class is used to qualify an extern member
-        Contract.Assert(!cl.EnclosingModuleDefinition.IsDefaultModule);  // default module is not marked ":extern"
+        Contract.Assert(!cl.EnclosingModuleDefinition.IsDefaultModule); // default module is not marked ":extern"
         return IdProtect(cl.EnclosingModuleDefinition.GetCompileName(Options));
       } else {
         return IdProtect(cl.EnclosingModuleDefinition.GetCompileName(Options)) + "." + IdProtect(cl.GetCompileName(Options));
@@ -1646,8 +1638,7 @@ namespace Microsoft.Dafny.Compilers {
         var formal = dtor.CorrespondingFormals[0];
         return SuffixLvalue(obj, "[{0}]", formal.NameForCompilation);
       } else if (member is SpecialField sf && !(member is ConstantField)) {
-        string compiledName, preStr, postStr;
-        GetSpecialFieldInfo(sf.SpecialId, sf.IdParam, objType, out compiledName, out preStr, out postStr);
+        GetSpecialFieldInfo(sf.SpecialId, sf.IdParam, objType, out var compiledName, out var preStr, out var postStr);
         if (compiledName.Length != 0) {
           return SuffixLvalue(obj, ".{0}", compiledName);
         } else {
@@ -2034,9 +2025,7 @@ namespace Microsoft.Dafny.Compilers {
 
         case BinaryExpr.ResolvedOpcode.EqCommon: {
             var eqType = DatatypeWrapperEraser.SimplifyType(Options, e0.Type);
-            if (IsHandleComparison(tok, e0, e1, errorWr)) {
-              opString = "===";
-            } else if (IsDirectlyComparable(eqType)) {
+            if (IsDirectlyComparable(eqType)) {
               opString = "===";
             } else if (eqType.IsIntegerType || eqType.IsBitVectorType) {
               callString = "isEqualTo";
@@ -2049,9 +2038,7 @@ namespace Microsoft.Dafny.Compilers {
           }
         case BinaryExpr.ResolvedOpcode.NeqCommon: {
             var eqType = DatatypeWrapperEraser.SimplifyType(Options, e0.Type);
-            if (IsHandleComparison(tok, e0, e1, errorWr)) {
-              opString = "!==";
-            } else if (IsDirectlyComparable(eqType)) {
+            if (IsDirectlyComparable(eqType)) {
               opString = "!==";
             } else if (eqType.IsIntegerType) {
               preOpString = "!";

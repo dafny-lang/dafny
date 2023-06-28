@@ -56,8 +56,8 @@ public class Compilation {
     DocumentTextBuffer textBuffer,
     VerificationTree? migratedVerificationTree) {
     this.options = options;
-    logger = services.GetRequiredService<ILogger<Compilation>>();
     documentLoader = services.GetRequiredService<ITextDocumentLoader>();
+    logger = services.GetRequiredService<ILogger<Compilation>>();
     notificationPublisher = services.GetRequiredService<INotificationPublisher>();
     verifier = services.GetRequiredService<IProgramVerifier>();
     statusPublisher = services.GetRequiredService<ICompilationStatusNotificationPublisher>();
@@ -126,12 +126,14 @@ public class Compilation {
   public async Task<DocumentAfterTranslation> PrepareVerificationTasksAsync(
     DocumentAfterResolution loaded,
     CancellationToken cancellationToken) {
-    if (loaded.ParseAndResolutionDiagnostics.Any(d =>
+    if (loaded.ResolutionDiagnostics.Values.SelectMany(x => x).Any(d =>
           d.Level == ErrorLevel.Error &&
           d.Source != MessageSource.Compiler &&
           d.Source != MessageSource.Verifier)) {
       throw new TaskCanceledException();
     }
+
+    statusPublisher.SendStatusNotification(loaded.TextDocumentItem, CompilationStatus.PreparingVerification);
 
     var verificationTasks =
       await verifier.GetVerificationTasksAsync(loaded, cancellationToken);
@@ -156,7 +158,7 @@ public class Compilation {
 
     var translated = new DocumentAfterTranslation(services,
       loaded.TextDocumentItem, loaded.Program,
-      loaded.ParseAndResolutionDiagnostics, loaded.SymbolTable, loaded.SignatureAndCompletionTable, loaded.GhostDiagnostics, verificationTasks,
+      loaded.ResolutionDiagnostics, loaded.SymbolTable, loaded.SignatureAndCompletionTable, loaded.GhostDiagnostics, verificationTasks,
       new(),
       initialViews,
       migratedVerificationTree ?? new DocumentVerificationTree(loaded.TextDocumentItem));
@@ -294,7 +296,7 @@ public class Compilation {
 
   private bool ReportGutterStatus => options.Get(ServerCommand.LineVerificationStatus);
 
-  private List<DafnyDiagnostic> GetDiagnosticsFromResult(Document document, VerificationResult result) {
+  private List<DafnyDiagnostic> GetDiagnosticsFromResult(DocumentAfterResolution document, VerificationResult result) {
     var errorReporter = new DiagnosticErrorReporter(options, document.TextDocumentItem.Text, document.Uri);
     foreach (var counterExample in result.Errors) {
       errorReporter.ReportBoogieError(counterExample.CreateErrorInformation(result.Outcome, options.ForceBplErrors));
@@ -368,7 +370,7 @@ public class Compilation {
   public async Task<TextEditContainer?> GetTextEditToFormatCode() {
     // TODO https://github.com/dafny-lang/dafny/issues/3416
     var parsedDocument = await ResolvedDocument;
-    if (parsedDocument.Diagnostics.Any(diagnostic =>
+    if (parsedDocument.AllFileDiagnostics.Any(diagnostic =>
           diagnostic.Level == ErrorLevel.Error &&
           diagnostic.Source == MessageSource.Parser
         )) {

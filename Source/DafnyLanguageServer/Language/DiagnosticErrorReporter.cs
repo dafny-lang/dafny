@@ -3,6 +3,7 @@ using Microsoft.Dafny.LanguageServer.Util;
 using OmniSharp.Extensions.LanguageServer.Protocol;
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -15,7 +16,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     private const string RelatedLocationMessage = RelatedLocationCategory;
 
     private readonly DocumentUri entryDocumentUri;
-    private readonly Dictionary<DocumentUri, IList<DafnyDiagnostic>> diagnostics = new();
+    private readonly Dictionary<DocumentUri, List<DafnyDiagnostic>> diagnostics = new();
     private readonly Dictionary<ErrorLevel, int> counts = new();
     private readonly Dictionary<ErrorLevel, int> countsNotVerificationOrCompiler = new();
     private readonly ReaderWriterLockSlim rwLock = new();
@@ -32,7 +33,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       this.entryDocumentUri = entryDocumentUri;
     }
 
-    public IReadOnlyDictionary<DocumentUri, IList<DafnyDiagnostic>> AllDiagnostics => diagnostics;
+    public IReadOnlyDictionary<DocumentUri, List<DafnyDiagnostic>> AllDiagnosticsCopy => diagnostics.ToImmutableDictionary();
 
     public IReadOnlyList<DafnyDiagnostic> GetDiagnostics(DocumentUri documentUri) {
       rwLock.EnterReadLock();
@@ -78,7 +79,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       );
     }
 
-    public static readonly string PostConditionFailingMessage = new EnsuresDescription().FailureDescription;
+    public static readonly string PostConditionFailingMessage = new ProofObligationDescription.EnsuresDescription(null, null).FailureDescription;
     private readonly string entryDocumentSource;
 
     public static string FormatRelated(string related) {
@@ -180,7 +181,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     }
 
     private DocumentUri GetDocumentUriOrDefault(IToken token) {
-      return token.Filename == null
+      return token.Filepath == null
         ? entryDocumentUri
         : token.GetDocumentUri();
     }

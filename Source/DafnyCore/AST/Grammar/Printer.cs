@@ -13,22 +13,31 @@ using System.CommandLine;
 using System.Diagnostics.Contracts;
 using System.Numerics;
 using System.Linq;
+using DafnyCore;
+using JetBrains.Annotations;
 using Bpl = Microsoft.Boogie;
 
 namespace Microsoft.Dafny {
 
   public enum PrintModes {
     Everything,
-    DllEmbed,
+    Serialization, // Serializing the program to a file for lossless loading later
     NoIncludes,
     NoGhost
   }
+
+
+  public record PrintFlags(bool UseOriginalDafnyNames = false);
 
   public class Printer {
     private DafnyOptions options;
     static Printer() {
       DafnyOptions.RegisterLegacyBinding(PrintMode, (options, value) => {
         options.PrintMode = value;
+      });
+
+      DooFile.RegisterNoChecksNeeded(new Option[] {
+        PrintMode
       });
     }
 
@@ -49,23 +58,25 @@ NoGhost - disable printing of functions, ghost methods, and proof
     bool afterResolver;
     bool printingExportSet = false;
     bool printingDesugared = false;
+    private readonly PrintFlags printFlags;
 
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(wr != null);
     }
 
-    public Printer(TextWriter wr, DafnyOptions options, PrintModes printMode = PrintModes.Everything) {
+    public Printer(TextWriter wr, DafnyOptions options, PrintModes printMode = PrintModes.Everything, [CanBeNull] PrintFlags printFlags = null) {
       Contract.Requires(wr != null);
       this.wr = wr;
       this.options = options;
       this.printMode = printMode;
+      this.printFlags = printFlags ?? new PrintFlags();
     }
 
-    public static string ExprToString(DafnyOptions options, Expression expr) {
+    public static string ExprToString(DafnyOptions options, Expression expr, [CanBeNull] PrintFlags printFlags = null) {
       Contract.Requires(expr != null);
       using var wr = new StringWriter();
-      var pr = new Printer(wr, options);
+      var pr = new Printer(wr, options, printFlags: printFlags);
       pr.PrintExpression(expr, false);
       return wr.ToString();
     }
@@ -148,16 +159,6 @@ NoGhost - disable printing of functions, ghost methods, and proof
       }
     }
 
-    public static string ModuleDefinitionToString(DafnyOptions options, ModuleDefinition m, PrintModes printMode = PrintModes.Everything) {
-      Contract.Requires(m != null);
-      using (var wr = new System.IO.StringWriter()) {
-        var pr = new Printer(wr, options, printMode);
-        pr.PrintModuleDefinition(m, m.VisibilityScope, 0, null, null);
-        return ToStringWithoutNewline(wr);
-      }
-    }
-
-
     /// <summary>
     /// Returns a string for all attributes on the list "a".  Each attribute is
     /// followed by a space.
@@ -189,6 +190,10 @@ NoGhost - disable printing of functions, ghost methods, and proof
       return sb.ToString(0, len);
     }
 
+    public void PrintProgramLargeStack(Program prog, bool afterResolver) {
+      DafnyMain.LargeStackFactory.StartNew(() => PrintProgram(prog, afterResolver)).Wait();
+    }
+
     public void PrintProgram(Program prog, bool afterResolver) {
       Contract.Requires(prog != null);
       this.afterResolver = afterResolver;
@@ -196,15 +201,15 @@ NoGhost - disable printing of functions, ghost methods, and proof
         wr.WriteLine("// " + options.Version);
         wr.WriteLine("// " + options.Environment);
       }
-      if (options.PrintMode != PrintModes.DllEmbed) {
+      if (options.PrintMode != PrintModes.Serialization) {
         wr.WriteLine("// {0}", prog.Name);
       }
       if (options.DafnyPrintResolvedFile != null && options.PrintMode == PrintModes.Everything) {
         wr.WriteLine();
         wr.WriteLine("/*");
-        PrintModuleDefinition(prog.BuiltIns.SystemModule, null, 0, null, Path.GetFullPath(options.DafnyPrintResolvedFile));
+        PrintModuleDefinition(prog.Compilation, prog.SystemModuleManager.SystemModule, null, 0, null, Path.GetFullPath(options.DafnyPrintResolvedFile));
         wr.Write("// bitvector types in use:");
-        foreach (var w in prog.BuiltIns.Bitwidths) {
+        foreach (var w in prog.SystemModuleManager.Bitwidths) {
           wr.Write(" bv{0}", w);
         }
         wr.WriteLine();
@@ -212,10 +217,10 @@ NoGhost - disable printing of functions, ghost methods, and proof
       }
       wr.WriteLine();
       PrintCallGraph(prog.DefaultModuleDef, 0);
-      PrintTopLevelDecls(prog.DefaultModuleDef.TopLevelDecls, 0, null, Path.GetFullPath(prog.FullName));
+      PrintTopLevelDecls(prog.Compilation, prog.DefaultModuleDef.TopLevelDecls, 0, null, Path.GetFullPath(prog.FullName));
       foreach (var tup in prog.DefaultModuleDef.PrefixNamedModules) {
-        var decls = new List<TopLevelDecl>() { tup.Item2 };
-        PrintTopLevelDecls(decls, 0, tup.Item1, Path.GetFullPath(prog.FullName));
+        var decls = new List<TopLevelDecl>() { tup.Module };
+        PrintTopLevelDecls(prog.Compilation, decls, 0, tup.Parts, Path.GetFullPath(prog.FullName));
       }
       wr.Flush();
     }
@@ -247,10 +252,10 @@ NoGhost - disable printing of functions, ghost methods, and proof
           }
           return string.CompareOrdinal(m.NameRelativeToModule, n.NameRelativeToModule);
         });
-        foreach (var clbl in SCCs) {
+        foreach (var callable in SCCs) {
           Indent(indent);
-          wr.WriteLine(" * SCC at height {0}:", module.CallGraph.GetSCCRepresentativePredecessorCount(clbl));
-          var r = module.CallGraph.GetSCC(clbl);
+          wr.WriteLine(" * SCC at height {0}:", module.CallGraph.GetSCCRepresentativePredecessorCount(callable));
+          var r = module.CallGraph.GetSCC(callable);
           foreach (var m in r) {
             Indent(indent);
             var maybeByMethod = m is Method method && method.IsByMethod ? " (by method)" : "";
@@ -261,14 +266,14 @@ NoGhost - disable printing of functions, ghost methods, and proof
       }
     }
 
-    public void PrintTopLevelDecls(List<TopLevelDecl> decls, int indent, List<IToken>/*?*/ prefixIds, string fileBeingPrinted) {
+    public void PrintTopLevelDecls(CompilationData compilation, IEnumerable<TopLevelDecl> decls, int indent, IEnumerable<IToken>/*?*/ prefixIds, string fileBeingPrinted) {
       Contract.Requires(decls != null);
       int i = 0;
       foreach (TopLevelDecl d in decls) {
         Contract.Assert(d != null);
         if (PrintModeSkipGeneral(d.tok, fileBeingPrinted)) { continue; }
-        if (d is OpaqueTypeDecl) {
-          var at = (OpaqueTypeDecl)d;
+        if (d is AbstractTypeDecl) {
+          var at = (AbstractTypeDecl)d;
           if (i++ != 0) { wr.WriteLine(); }
           Indent(indent);
           PrintClassMethodHelper("type", at.Attributes, at.Name + TPCharacteristicsSuffix(at.Characteristics), d.TypeArgs);
@@ -313,35 +318,10 @@ NoGhost - disable printing of functions, ghost methods, and proof
             Indent(indent);
             wr.WriteLine("}");
           }
-        } else if (d is SubsetTypeDecl) {
-          var dd = (SubsetTypeDecl)d;
+        } else if (d is SubsetTypeDecl subsetTypeDecl) {
           if (i++ != 0) { wr.WriteLine(); }
-          Indent(indent);
-          PrintClassMethodHelper("type", dd.Attributes, dd.Name + TPCharacteristicsSuffix(dd.Characteristics), dd.TypeArgs);
-          wr.Write(" = ");
-          wr.Write(dd.Var.DisplayName);
-          if (ShowType(dd.Var.Type)) {
-            wr.Write(": ");
-            PrintType(dd.Rhs);
-          }
-          if (dd is NonNullTypeDecl) {
-            wr.Write(" ");
-          } else {
-            wr.WriteLine();
-            Indent(indent + IndentAmount);
-          }
-          wr.Write("| ");
-          PrintExpression(dd.Constraint, true);
-          if (dd.WitnessKind != SubsetTypeDecl.WKind.CompiledZero) {
-            if (dd is NonNullTypeDecl) {
-              wr.Write(" ");
-            } else {
-              wr.WriteLine();
-              Indent(indent + IndentAmount);
-            }
-            PrintWitnessClause(dd);
-          }
-          wr.WriteLine();
+
+          PrintSubsetTypeDecl(subsetTypeDecl, indent);
         } else if (d is TypeSynonymDecl) {
           var dd = (TypeSynonymDecl)d;
           if (i++ != 0) { wr.WriteLine(); }
@@ -365,7 +345,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
             wr.WriteLine();
           }
 
-          if (options.DafnyPrintResolvedFile != null) {
+          if (afterResolver) {
             // also print the members that were created as part of the interpretation of the iterator
             Contract.Assert(iter.Members.Count != 0);  // filled in during resolution
             Indent(indent); wr.WriteLine("/*---------- iterator members ----------");
@@ -373,17 +353,17 @@ NoGhost - disable printing of functions, ghost methods, and proof
             Indent(indent); wr.WriteLine("---------- iterator members ----------*/");
           }
 
-        } else if (d is ClassDecl) {
-          ClassDecl cl = (ClassDecl)d;
-          if (!cl.IsDefaultClass) {
-            if (i++ != 0) { wr.WriteLine(); }
-            PrintClass(cl, indent, fileBeingPrinted);
-          } else if (cl.Members.Count == 0) {
+        } else if (d is DefaultClassDecl defaultClassDecl) {
+          if (defaultClassDecl.Members.Count == 0) {
             // print nothing
           } else {
             if (i++ != 0) { wr.WriteLine(); }
-            PrintMembers(cl.Members, indent, fileBeingPrinted);
+            PrintMembers(defaultClassDecl.Members, indent, fileBeingPrinted);
           }
+        } else if (d is ClassLikeDecl) {
+          var cl = (ClassLikeDecl)d;
+          if (i++ != 0) { wr.WriteLine(); }
+          PrintClass(cl, indent, fileBeingPrinted);
 
         } else if (d is ValuetypeDecl) {
           var vtd = (ValuetypeDecl)d;
@@ -394,31 +374,33 @@ NoGhost - disable printing of functions, ghost methods, and proof
             wr.WriteLine(" { }");
           } else {
             wr.WriteLine(" {");
-            PrintMembers(new List<MemberDecl>(vtd.Members.Values), indent + IndentAmount, fileBeingPrinted);
+            PrintMembers(vtd.Members, indent + IndentAmount, fileBeingPrinted);
             Indent(indent);
             wr.WriteLine("}");
           }
 
-        } else if (d is ModuleDecl) {
+        } else if (d is ModuleDecl md) {
           wr.WriteLine();
           Indent(indent);
           if (d is LiteralModuleDecl modDecl) {
+            if (printMode == PrintModes.Serialization && !modDecl.ModuleDef.ShouldCompile(compilation)) {
+              // This mode is used to losslessly serialize the source program by the C# and Library backends.
+              // Backends don't compile any code for modules not marked for compilation,
+              // so it's consistent to skip those modules here too. 
+              continue;
+            }
+
             VisibilityScope scope = null;
             if (modDecl.Signature != null) {
               scope = modDecl.Signature.VisibilityScope;
             }
-            PrintModuleDefinition(modDecl.ModuleDef, scope, indent, prefixIds, fileBeingPrinted);
+            PrintModuleDefinition(compilation, modDecl.ModuleDef, scope, indent, prefixIds, fileBeingPrinted);
           } else if (d is AliasModuleDecl) {
             var dd = (AliasModuleDecl)d;
 
             wr.Write("import");
             if (dd.Opened) {
               wr.Write(" opened");
-            }
-            if (dd.ResolvedHash.HasValue && this.printMode == PrintModes.DllEmbed) {
-              wr.Write(" /*");
-              wr.Write(dd.ResolvedHash);
-              wr.Write("*/");
             }
             wr.Write(" {0}", dd.Name);
             if (dd.Name != dd.TargetQId.ToString()) {
@@ -437,11 +419,6 @@ NoGhost - disable printing of functions, ghost methods, and proof
             wr.Write("import");
             if (dd.Opened) {
               wr.Write(" opened");
-            }
-            if (dd.ResolvedHash.HasValue && this.printMode == PrintModes.DllEmbed) {
-              wr.Write(" /*");
-              wr.Write(dd.ResolvedHash);
-              wr.Write("*/");
             }
             wr.Write(" {0} ", dd.Name);
             wr.Write(": {0}", dd.QId.ToString());
@@ -466,7 +443,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
             }
 
             wr.WriteLine();
-            PrintModuleExportDecl(e, indent + IndentAmount, fileBeingPrinted);
+            PrintModuleExportDecl(compilation, e, indent + IndentAmount, fileBeingPrinted);
             wr.WriteLine();
           } else {
             Contract.Assert(false); // unexpected ModuleDecl
@@ -475,6 +452,39 @@ NoGhost - disable printing of functions, ghost methods, and proof
           Contract.Assert(false); // unexpected TopLevelDecl
         }
       }
+    }
+
+    private void PrintSubsetTypeDecl(SubsetTypeDecl dd, int indent) {
+      Indent(indent);
+      PrintClassMethodHelper("type", dd.Attributes, dd.Name + TPCharacteristicsSuffix(dd.Characteristics), dd.TypeArgs);
+      wr.Write(" = ");
+      wr.Write(dd.Var.DisplayName);
+      if (ShowType(dd.Var.Type)) {
+        wr.Write(": ");
+        PrintType(dd.Rhs);
+      }
+
+      if (dd is NonNullTypeDecl) {
+        wr.Write(" ");
+      } else {
+        wr.WriteLine();
+        Indent(indent + IndentAmount);
+      }
+
+      wr.Write("| ");
+      PrintExpression(dd.Constraint, true);
+      if (dd.WitnessKind != SubsetTypeDecl.WKind.CompiledZero) {
+        if (dd is NonNullTypeDecl) {
+          wr.Write(" ");
+        } else {
+          wr.WriteLine();
+          Indent(indent + IndentAmount);
+        }
+
+        PrintWitnessClause(dd);
+      }
+
+      wr.WriteLine();
     }
 
     private void PrintWitnessClause(RedirectingTypeDecl dd) {
@@ -502,7 +512,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
       }
     }
 
-    void PrintModuleExportDecl(ModuleExportDecl m, int indent, string fileBeingPrinted) {
+    void PrintModuleExportDecl(CompilationData compilation, ModuleExportDecl m, int indent, string fileBeingPrinted) {
       Contract.Requires(m != null);
 
       if (m.RevealAll) {
@@ -533,7 +543,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
           for (int j = start; j < i; j++) {
             var id = m.Exports[j];
             if (id.Decl is TopLevelDecl) {
-              PrintTopLevelDecls(new List<TopLevelDecl> { (TopLevelDecl)id.Decl }, indent + IndentAmount, null, fileBeingPrinted);
+              PrintTopLevelDecls(compilation, new List<TopLevelDecl> { (TopLevelDecl)id.Decl }, indent + IndentAmount, null, fileBeingPrinted);
             } else if (id.Decl is MemberDecl) {
               PrintMembers(new List<MemberDecl> { (MemberDecl)id.Decl }, indent + IndentAmount, fileBeingPrinted);
             }
@@ -546,7 +556,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
       }
     }
 
-    public void PrintModuleDefinition(ModuleDefinition module, VisibilityScope scope, int indent, List<IToken>/*?*/ prefixIds, string fileBeingPrinted) {
+    public void PrintModuleDefinition(CompilationData compilation, ModuleDefinition module, VisibilityScope scope, int indent, IEnumerable<IToken>/*?*/ prefixIds, string fileBeingPrinted) {
       Contract.Requires(module != null);
       Contract.Requires(0 <= indent);
       Type.PushScope(scope);
@@ -563,37 +573,30 @@ NoGhost - disable printing of functions, ghost methods, and proof
       }
       wr.Write("{0} ", module.Name);
       if (module.RefinementQId != null) {
-        wr.Write("refines {0} ", module.RefinementQId.ToString());
+        wr.Write("refines {0} ", module.RefinementQId);
       }
-      if (module.TopLevelDecls.Count == 0) {
+      if (!module.TopLevelDecls.Any()) {
         wr.WriteLine("{ }");
       } else {
         wr.WriteLine("{");
         PrintCallGraph(module, indent + IndentAmount);
-        PrintTopLevelDeclsOrExportedView(module, indent, fileBeingPrinted);
+        PrintTopLevelDeclsOrExportedView(compilation, module, indent, fileBeingPrinted);
         Indent(indent);
         wr.WriteLine("}");
       }
       Type.PopScope(scope);
     }
 
-    void PrintTopLevelDeclsOrExportedView(ModuleDefinition module, int indent, string fileBeingPrinted) {
+    void PrintTopLevelDeclsOrExportedView(CompilationData compilation, ModuleDefinition module, int indent, string fileBeingPrinted) {
       var decls = module.TopLevelDecls;
       // only filter based on view name after resolver.
       if (afterResolver && options.DafnyPrintExportedViews.Count != 0) {
-        decls = new List<TopLevelDecl>();
-        foreach (var nameOfView in options.DafnyPrintExportedViews) {
-          foreach (var decl in module.TopLevelDecls) {
-            if (decl.FullName.Equals(nameOfView)) {
-              decls.Add(decl);
-            }
-          }
-        }
+        var views = options.DafnyPrintExportedViews.ToHashSet();
+        decls = decls.Where(d => views.Contains(d.FullName));
       }
-      PrintTopLevelDecls(decls, indent + IndentAmount, null, fileBeingPrinted);
+      PrintTopLevelDecls(compilation, decls, indent + IndentAmount, null, fileBeingPrinted);
       foreach (var tup in module.PrefixNamedModules) {
-        decls = new List<TopLevelDecl>() { tup.Item2 };
-        PrintTopLevelDecls(decls, indent + IndentAmount, tup.Item1, fileBeingPrinted);
+        PrintTopLevelDecls(compilation, new TopLevelDecl[] { tup.Module }, indent + IndentAmount, tup.Parts, fileBeingPrinted);
       }
     }
 
@@ -638,10 +641,10 @@ NoGhost - disable printing of functions, ghost methods, and proof
       Indent(indent); wr.WriteLine("}");
 
       Contract.Assert(iter.NonNullTypeDecl != null);
-      PrintTopLevelDecls(new List<TopLevelDecl> { iter.NonNullTypeDecl }, indent, null, fileBeingPrinted);
+      PrintSubsetTypeDecl(iter.NonNullTypeDecl, indent);
     }
 
-    public void PrintClass(ClassDecl c, int indent, string fileBeingPrinted) {
+    public void PrintClass(ClassLikeDecl c, int indent, string fileBeingPrinted) {
       Contract.Requires(c != null);
 
       Indent(indent);
@@ -670,7 +673,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
         if (!printingExportSet) {
           Indent(indent); wr.WriteLine("/*-- non-null type");
         }
-        PrintTopLevelDecls(new List<TopLevelDecl> { c.NonNullTypeDecl }, indent, null, fileBeingPrinted);
+        PrintSubsetTypeDecl(c.NonNullTypeDecl, indent);
         if (!printingExportSet) {
           Indent(indent); wr.WriteLine("*/");
         }
@@ -683,7 +686,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
       int state = 0;  // 0 - no members yet; 1 - previous member was a field; 2 - previous member was non-field
       foreach (MemberDecl m in members) {
         if (PrintModeSkipGeneral(m.tok, fileBeingPrinted)) { continue; }
-        if (printMode == PrintModes.DllEmbed && Attributes.Contains(m.Attributes, "auto_generated")) {
+        if (printMode == PrintModes.Serialization && Attributes.Contains(m.Attributes, "auto_generated")) {
           // omit this declaration
         } else if (m is Method) {
           if (state != 0) { wr.WriteLine(); }
@@ -731,7 +734,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
         PrintArrowType(ArrowType.PARTIAL_ARROW, name, typeArgs);
       } else if (ArrowType.IsTotalArrowTypeName(name)) {
         PrintArrowType(ArrowType.TOTAL_ARROW, name, typeArgs);
-      } else if (BuiltIns.IsTupleTypeName(name)) {
+      } else if (SystemModuleManager.IsTupleTypeName(name)) {
         wr.Write(" /*{0}*/ ({1})", name, Util.Comma(typeArgs, TypeParamString));
       } else {
         wr.Write(" {0}", name);
@@ -960,9 +963,9 @@ NoGhost - disable printing of functions, ghost methods, and proof
       return false;
     }
 
-    private bool PrintModeSkipGeneral(Bpl.IToken tok, string fileBeingPrinted) {
+    private bool PrintModeSkipGeneral(IToken tok, string fileBeingPrinted) {
       return (printMode == PrintModes.NoIncludes || printMode == PrintModes.NoGhost)
-             && tok.filename != null && fileBeingPrinted != null && Path.GetFullPath(tok.filename) != fileBeingPrinted;
+             && tok.Uri != null && fileBeingPrinted != null && tok.Uri.LocalPath != fileBeingPrinted;
     }
 
     public void PrintMethod(Method method, int indent, bool printSignatureOnly) {
@@ -1454,6 +1457,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
           var savedDesugarMode = printingDesugared;
           printingDesugared = true;
           Indent(indent); PrintStatement(s.Flattened, indent);
+          wr.WriteLine();
           printingDesugared = savedDesugarMode;
 
           if (!printingDesugared) {
@@ -1508,7 +1512,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
           wr.Write("case");
           PrintAttributes(mc.Attributes);
           wr.Write(" ");
-          if (!mc.Ctor.Name.StartsWith(BuiltIns.TupleTypeCtorNamePrefix)) {
+          if (!mc.Ctor.Name.StartsWith(SystemModuleManager.TupleTypeCtorNamePrefix)) {
             wr.Write(mc.Ctor.Name);
           }
 
@@ -1575,6 +1579,9 @@ NoGhost - disable printing of functions, ghost methods, and proof
 
       } else if (stmt is VarDeclPattern) {
         var s = (VarDeclPattern)stmt;
+        if (s.tok is AutoGeneratedToken) {
+          wr.Write("/* ");
+        }
         if (s.HasGhostModifier) {
           wr.Write("ghost ");
         }
@@ -1583,6 +1590,9 @@ NoGhost - disable printing of functions, ghost methods, and proof
         wr.Write(" := ");
         PrintExpression(s.RHS, true);
         wr.Write(";");
+        if (s.tok is AutoGeneratedToken) {
+          wr.Write(" */");
+        }
 
       } else if (stmt is SkeletonStatement) {
         var s = (SkeletonStatement)stmt;
@@ -2014,6 +2024,9 @@ NoGhost - disable printing of functions, ghost methods, and proof
       } else if (expr is LetExpr) {
         var e = (LetExpr)expr;
         Indent(indent);
+        if (e.tok is AutoGeneratedToken) {
+          wr.Write("/* ");
+        }
         if (e.LHSs.Exists(lhs => lhs != null && lhs.Var != null && lhs.Var.IsGhost)) { wr.Write("ghost "); }
         wr.Write("var ");
         string sep = "";
@@ -2029,7 +2042,11 @@ NoGhost - disable printing of functions, ghost methods, and proof
           wr.Write(" :| ");
         }
         PrintExpressionList(e.RHSs, true);
-        wr.WriteLine(";");
+        wr.Write(";");
+        if (e.tok is AutoGeneratedToken) {
+          wr.Write(" */");
+        }
+        wr.WriteLine();
         PrintExtendedExpr(e.Body, indent, isRightmost, endWithCloseParen);
       } else if (expr is StmtExpr && isRightmost) {
         var e = (StmtExpr)expr;
@@ -2145,12 +2162,17 @@ NoGhost - disable printing of functions, ghost methods, and proof
         wr.Write("this");
 
       } else if (expr is IdentifierExpr) {
-        wr.Write(((IdentifierExpr)expr).Name);
+        var e = (IdentifierExpr)expr;
+        if (printFlags.UseOriginalDafnyNames) {
+          wr.Write(e.DafnyName);
+        } else {
+          wr.Write(e.Name);
+        }
 
       } else if (expr is DatatypeValue) {
         var dtv = (DatatypeValue)expr;
         bool printParens;
-        if (dtv.MemberName.StartsWith(BuiltIns.TupleTypeCtorNamePrefix)) {
+        if (dtv.MemberName.StartsWith(SystemModuleManager.TupleTypeCtorNamePrefix)) {
           // we're looking at a tuple, whose printed constructor name is essentially the empty string
           printParens = true;
         } else {
@@ -2611,6 +2633,9 @@ NoGhost - disable printing of functions, ghost methods, and proof
         var e = (LetExpr)expr;
         bool parensNeeded = !isRightmost;
         if (parensNeeded) { wr.Write("("); }
+        if (e.tok is AutoGeneratedToken) {
+          wr.Write("/* ");
+        }
         if (e.LHSs.Exists(lhs => lhs != null && lhs.Var != null && lhs.Var.IsGhost)) { wr.Write("ghost "); }
         wr.Write("var ");
         string sep = "";
@@ -2627,6 +2652,9 @@ NoGhost - disable printing of functions, ghost methods, and proof
         }
         PrintExpressionList(e.RHSs, true);
         wr.Write("; ");
+        if (e.tok is AutoGeneratedToken) {
+          wr.Write("*/ ");
+        }
         PrintExpression(e.Body, !parensNeeded && isFollowedBySemicolon);
         if (parensNeeded) { wr.Write(")"); }
 
@@ -2799,7 +2827,10 @@ NoGhost - disable printing of functions, ghost methods, and proof
         int i = 0;
         foreach (var mc in e.Cases) {
           bool isLastCase = i == e.Cases.Count - 1;
-          wr.Write(" case {0}", mc.Pat.ToString());
+          wr.Write(" case");
+          PrintAttributes(mc.Attributes);
+          wr.Write(" ");
+          PrintExtendedPattern(mc.Pat);
           wr.Write(" => ");
           PrintExpression(mc.Body, isRightmost && isLastCase, !parensNeeded && isFollowedBySemicolon);
           i++;
@@ -2875,7 +2906,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
           PrintType(": ", v.OptionalType);
         }
       } else {
-        if (pat.Id.StartsWith(BuiltIns.TupleTypeCtorNamePrefix)) {
+        if (pat.Id.StartsWith(SystemModuleManager.TupleTypeCtorNamePrefix)) {
           Contract.Assert(pat.Arguments != null);
         } else {
           wr.Write(pat.Id);
@@ -2898,12 +2929,15 @@ NoGhost - disable printing of functions, ghost methods, and proof
       Contract.Requires(pat != null);
       switch (pat) {
         case IdPattern idPat:
-          if (idPat.Id.StartsWith(BuiltIns.TupleTypeCtorNamePrefix)) {
-          } else if (idPat.Id.StartsWith("_")) {
+          if (idPat.Id.StartsWith(SystemModuleManager.TupleTypeCtorNamePrefix)) {
+          } else if (idPat.IsWildcardPattern) {
             // In case of the universal match pattern, print '_' instead of
             // its node identifier, otherwise the printed program becomes
             // syntactically incorrect.
             wr.Write("_");
+            if (!idPat.IsWildcardExact) {
+              wr.Write($" /* {idPat.Id} */");
+            }
           } else {
             wr.Write(idPat.Id);
           }
@@ -2916,6 +2950,14 @@ NoGhost - disable printing of functions, ghost methods, and proof
               sep = ", ";
             }
             wr.Write(")");
+          } else if (options.DafnyPrintResolvedFile != null && idPat.ResolvedLit != null) {
+            Contract.Assert(idPat.BoundVar == null && idPat.Ctor == null);
+            wr.Write(" /*== ");
+            PrintExpression(idPat.ResolvedLit, false);
+            wr.Write("*/");
+          } else if (ShowType(idPat.Type)) {
+            wr.Write(": ");
+            PrintType(idPat.Type);
           }
           break;
         case DisjunctivePattern dPat:

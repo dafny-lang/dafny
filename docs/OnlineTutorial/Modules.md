@@ -31,7 +31,7 @@ A module body can consist of anything that you could put at the toplevel. This i
 ```dafny
 module Mod {
   class C {
-    var f: int;
+    var f: int
     method m()
   }
   datatype Option = A(int) | B(int)
@@ -49,7 +49,7 @@ module Mod {
   module Helpers {
     class C {
       method doIt()
-      var f: int;
+      var f: int
     }
   }
 }
@@ -65,7 +65,7 @@ module Mod {
     class C {
       constructor () { f := 0; }
       method doIt()
-      var f: int;
+      var f: int
     }
   }
   method m() {
@@ -217,7 +217,7 @@ module Mod3 {
 }
 ```
 
-We may also use `export` sets to control which type definitions are available. All type declarations (i.e. `newtype`, `type`, `datatype`, etc.) can be exported as `provides` or `reveals`. In the former case, modules which `import` that type will treat it as an opaque type.
+We may also use `export` sets to control which type definitions are available. All type declarations (i.e. `newtype`, `type`, `datatype`, etc.) can be exported as `provides` or `reveals`. In the former case, modules which `import` that type will treat it as an abstract type.
 
 <!-- %check-resolve Modules.2.expect -->
 ```dafny
@@ -234,7 +234,7 @@ module Mod {
 }
 ```
 
-Once an `export` has been imported that `reveals` a previously opaque type, all existing uses of it are known to be the inner type.
+Once an `export` has been imported that `reveals` a previously abstract type, all existing uses of it are known to be the inner type.
 
 <!-- %check-verify -->
 ```dafny

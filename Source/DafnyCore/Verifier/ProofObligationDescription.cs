@@ -1,16 +1,28 @@
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
+using System.Linq;
 using JetBrains.Annotations;
+using Microsoft.Boogie;
 
 namespace Microsoft.Dafny.ProofObligationDescription;
 
 public abstract class ProofObligationDescription : Boogie.ProofObligationDescription {
+  // An expression that, if verified, would trigger a success for this ProofObligationDescription
+  // It is only printed for the user, so it does not need to be resolved.
   public abstract Expression GetAssertedExpr(DafnyOptions options);
+
+  // Substituting replaces the token of a substituting expression by the token of the identifierExpr being susbstituted,
+  // Since the printer requires the token of IdentifierExpr to be Token.NoToken to print the custom name in Dafny mode,
+  // we just wrap the identifierExpr into a ParensExpression, as it is the case for any other expression.
+  protected static Expression ToSubstitutableExpression(BoundVar bvar) {
+    var expression = new IdentifierExpr(bvar.tok, bvar);
+    return new ParensExpression(bvar.tok, expression) { Type = bvar.Type, ResolvedExpression = expression };
+  }
 }
 
-// When there is no way to translate the asserted constraint in Dafny
+// When there is no way to translate the asserted constraint in Dafny yet
 public abstract class ProofObligationDescriptionWithNoExpr : ProofObligationDescription {
-  public override Expression GetAssertedExpr(DafnyOptions options) {
+  public sealed override Expression GetAssertedExpr(DafnyOptions options) {
     return null;
   }
 }
@@ -290,57 +302,99 @@ public class IsOlderProofObligation : ProofObligationDescriptionWithNoExpr {
 
 //// Contract constraints
 
-public class PreconditionSatisfied : ProofObligationDescriptionWithNoExpr {
-  public override string SuccessDescription =>
-    customErrMsg is null
-      ? "function precondition satisfied"
-      : $"error is impossible: {customErrMsg}";
+public abstract class ProofObligationDescriptionCustomMessages : ProofObligationDescriptionWithNoExpr {
+  protected readonly string customErrMsg;
+  private readonly string customSuccessMsg;
 
+  public override string SuccessDescription =>
+    customSuccessMsg ?? DefaultSuccessDescription;
+
+  public abstract string DefaultSuccessDescription { get; }
   public override string FailureDescription =>
-    customErrMsg ?? "function precondition might not hold";
+    customErrMsg ?? DefaultFailureDescription;
+  public abstract string DefaultFailureDescription { get; }
+  public ProofObligationDescriptionCustomMessages([CanBeNull] string customErrMsg, [CanBeNull] string customSuccessMsg) {
+    this.customErrMsg = customErrMsg;
+    this.customSuccessMsg = customSuccessMsg;
+  }
+}
+
+public class PreconditionSatisfied : ProofObligationDescriptionCustomMessages {
+  public override string DefaultSuccessDescription =>
+    "function precondition satisfied";
+
+  public override string DefaultFailureDescription =>
+    "function precondition could not be proved";
 
   public override string ShortDescription => "precondition";
 
-  private readonly string customErrMsg;
-
-  public PreconditionSatisfied([CanBeNull] string customErrMsg) {
-    this.customErrMsg = customErrMsg;
+  public PreconditionSatisfied([CanBeNull] string customErrMsg, [CanBeNull] string customSuccessMsg)
+    : base(customErrMsg, customSuccessMsg) {
   }
 }
 
-public class AssertStatement : ProofObligationDescriptionWithNoExpr {
-  public override string SuccessDescription =>
-    customErrMsg is null
-      ? "assertion always holds"
-      : $"error is impossible: {customErrMsg}";
+public class AssertStatement : ProofObligationDescriptionCustomMessages {
+  public override string DefaultSuccessDescription =>
+    "assertion always holds";
 
-  public override string FailureDescription =>
-    customErrMsg ?? "assertion might not hold";
+  public override string DefaultFailureDescription =>
+    "assertion might not hold";
 
   public override string ShortDescription => "assert statement";
 
-  private readonly string customErrMsg;
-
-  public AssertStatement([CanBeNull] string customErrMsg) {
-    this.customErrMsg = customErrMsg;
+  public AssertStatement([CanBeNull] string customErrMsg, [CanBeNull] string customSuccessMsg)
+    : base(customErrMsg, customSuccessMsg) {
   }
 }
 
-public class LoopInvariant : ProofObligationDescriptionWithNoExpr {
-  public override string SuccessDescription =>
-    customErrMsg is null
-      ? "loop invariant always holds"
-      : $"error is impossible: {customErrMsg}";
+// The Boogie version does not support custom error messages yet
+public class RequiresDescription : ProofObligationDescriptionCustomMessages {
+  public override string DefaultSuccessDescription =>
+    "the precondition always holds";
 
-  public override string FailureDescription =>
-    customErrMsg ?? "loop invariant violation";
+  public override string DefaultFailureDescription =>
+    "this is the precondition that could not be proved";
+
+  public override string ShortDescription => "requires";
+
+  public RequiresDescription([CanBeNull] string customErrMsg, [CanBeNull] string customSuccessMsg)
+    : base(customErrMsg, customSuccessMsg) {
+  }
+}
+
+// The Boogie version does not support custom error messages yet
+public class EnsuresDescription : ProofObligationDescriptionCustomMessages {
+  public override string DefaultSuccessDescription =>
+    "this postcondition holds";
+
+  public override string DefaultFailureDescription =>
+    "this is the postcondition that could not be proved";
+
+  // Same as FailureDescription but used not as a "related" error, but as an error by itself
+  public string FailureDescriptionSingle =>
+    customErrMsg ?? "this postcondition could not be proved on a return path";
+
+  public string FailureAtPathDescription =>
+    customErrMsg ?? new PostconditionDescription().FailureDescription;
+
+  public override string ShortDescription => "ensures";
+
+  public EnsuresDescription([CanBeNull] string customErrMsg, [CanBeNull] string customSuccessMsg)
+    : base(customErrMsg, customSuccessMsg) {
+  }
+}
+
+public class LoopInvariant : ProofObligationDescriptionCustomMessages {
+  public override string DefaultSuccessDescription =>
+"loop invariant always holds";
+
+  public override string DefaultFailureDescription =>
+    "loop invariant violation";
 
   public override string ShortDescription => "loop invariant";
 
-  private readonly string customErrMsg;
-
-  public LoopInvariant([CanBeNull] string customErrMsg) {
-    this.customErrMsg = customErrMsg;
+  public LoopInvariant([CanBeNull] string customErrMsg, [CanBeNull] string customSuccessMsg)
+    : base(customErrMsg, customSuccessMsg) {
   }
 }
 
@@ -349,7 +403,7 @@ public class CalculationStep : ProofObligationDescriptionWithNoExpr {
     "the calculation step between the previous line and this line always holds";
 
   public override string FailureDescription =>
-    "the calculation step between the previous line and this line might not hold";
+    "the calculation step between the previous line and this line could not be proved";
 
   public override string ShortDescription => "calc step";
 }
@@ -794,7 +848,9 @@ public class ForallLHSUnique : ProofObligationDescriptionWithNoExpr {
   public override string ShortDescription => "forall bound unique";
 }
 
-public class ElementInDomain : ProofObligationDescriptionWithNoExpr {
+public class ElementInDomain : ProofObligationDescription {
+  private readonly Expression sequence;
+  private readonly Expression index;
   public override string SuccessDescription =>
     "element is in domain";
 
@@ -802,6 +858,17 @@ public class ElementInDomain : ProofObligationDescriptionWithNoExpr {
     "element might not be in domain";
 
   public override string ShortDescription => "element in domain";
+
+  public ElementInDomain(Expression sequence, Expression index) {
+    this.sequence = sequence;
+    this.index = index;
+  }
+  public override Expression GetAssertedExpr(DafnyOptions options) {
+    return new BinaryExpr(sequence.tok, BinaryExpr.Opcode.In,
+      index,
+      sequence
+    );
+  }
 }
 
 public class DefiniteAssignment : ProofObligationDescriptionWithNoExpr {
@@ -822,21 +889,49 @@ public class DefiniteAssignment : ProofObligationDescriptionWithNoExpr {
   }
 }
 
-public class InRange : ProofObligationDescriptionWithNoExpr {
+public class InRange : ProofObligationDescription {
+  private readonly Expression sequence;
+  private readonly Expression index;
+  private readonly bool upperExcluded;
+  private readonly string what;
+  private readonly int dimension;
   public override string SuccessDescription => $"{what} in range";
 
   public override string FailureDescription => $"{what} out of range";
 
   public override string ShortDescription => "in range";
 
-  private readonly string what;
-
-  public InRange(string what) {
+  public InRange(Expression sequence, Expression index, bool upperExcluded, string what, int dimension = -1) {
+    this.sequence = sequence;
+    this.index = index;
     this.what = what;
+    this.upperExcluded = upperExcluded;
+    this.dimension = dimension;
+  }
+  public override Expression GetAssertedExpr(DafnyOptions options) {
+    if (sequence.Type is SeqType || sequence.Type.IsArrayType) {
+      Expression bound = sequence.Type.IsArrayType ?
+          new MemberSelectExpr(sequence.tok, sequence, "Length" + (dimension >= 0 ? "" + dimension : ""))
+        : new UnaryOpExpr(sequence.tok, UnaryOpExpr.Opcode.Cardinality, sequence);
+      return new ChainingExpression(sequence.tok, new List<Expression>() {
+        new LiteralExpr(sequence.tok, 0),
+        index,
+        bound
+      }, new List<BinaryExpr.Opcode>() {
+        BinaryExpr.Opcode.Le,
+        upperExcluded ? BinaryExpr.Opcode.Lt : BinaryExpr.Opcode.Le
+      }, new List<IToken>() { Token.NoToken, Token.NoToken },
+        new List<Expression>() { null, null });
+    }
+
+    return new BinaryExpr(sequence.tok, BinaryExpr.Opcode.In,
+      index,
+      sequence
+    );
   }
 }
 
-public class SequenceSelectRangeValid : ProofObligationDescriptionWithNoExpr {
+public class SequenceSelectRangeValid : ProofObligationDescription {
   public override string SuccessDescription =>
     $"upper bound within range of {what}";
 
@@ -846,9 +941,26 @@ public class SequenceSelectRangeValid : ProofObligationDescriptionWithNoExpr {
   public override string ShortDescription => "sequence select range valid";
 
   private readonly string what;
+  private readonly Expression sequence;
+  private readonly Expression lowerBound;
+  private readonly Expression upperBound;
 
-  public SequenceSelectRangeValid(string what) {
+  public SequenceSelectRangeValid(Expression sequence, Expression lowerBound, Expression upperBound, string what) {
     this.what = what;
+    this.sequence = sequence;
+    this.lowerBound = lowerBound;
+    this.upperBound = upperBound;
+  }
+
+  public override Expression GetAssertedExpr(DafnyOptions options) {
+    return new ChainingExpression(sequence.tok, new List<Expression>() {
+      lowerBound,
+      upperBound,
+      new UnaryOpExpr(sequence.tok, UnaryOpExpr.Opcode.Cardinality, sequence)
+    }, new List<BinaryExpr.Opcode>() {
+      BinaryExpr.Opcode.Le,
+      BinaryExpr.Opcode.Le
+    }, new List<IToken>() { Token.NoToken, Token.NoToken }, new List<Expression>() { null, null });
   }
 }
 
@@ -918,7 +1030,9 @@ public class ArrayInitEmpty : ProofObligationDescriptionWithNoExpr {
   }
 }
 
-public class LetSuchThanUnique : ProofObligationDescriptionWithNoExpr {
+public class LetSuchThatUnique : ProofObligationDescription {
+  private readonly Expression condition;
+  private readonly List<BoundVar> bvars;
   public override string SuccessDescription =>
     "the value of this let-such-that expression is uniquely determined";
 
@@ -926,9 +1040,39 @@ public class LetSuchThanUnique : ProofObligationDescriptionWithNoExpr {
     "to be compilable, the value of a let-such-that expression must be uniquely determined";
 
   public override string ShortDescription => "let-such-that unique";
+
+  public LetSuchThatUnique(Expression condition, List<BoundVar> bvars) {
+    this.condition = condition;
+    this.bvars = bvars;
+  }
+  public override Expression GetAssertedExpr(DafnyOptions options) {
+    var bvarsExprs = bvars.Select(bvar => new IdentifierExpr(bvar.tok, bvar)).ToList();
+    var bvarprimes = bvars.Select(bvar => new BoundVar(Token.NoToken, bvar.DafnyName + "'", bvar.Type)).ToList();
+    var bvarprimesExprs = bvarprimes.Select(ToSubstitutableExpression).ToList();
+    var subContract = new Substituter(null,
+      Enumerable.Zip(bvars, bvarprimesExprs).ToDictionary<(BoundVar, Expression), IVariable, Expression>(
+        item => item.Item1, item => item.Item2),
+      new Dictionary<TypeParameter, Type>()
+    );
+    var conditionSecondBoundVar = subContract.Substitute(condition);
+    var conclusion = new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Eq, bvarsExprs[0], bvarprimesExprs[0]);
+    for (var i = 1; i < bvarsExprs.Count; i++) {
+      conclusion = new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.And,
+        conclusion,
+        new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Eq, bvarsExprs[i], bvarprimesExprs[i])
+        );
+    }
+    return new ForallExpr(Token.NoToken, RangeToken.NoToken, bvars.Concat(bvarprimes).ToList(),
+      new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.And, condition, conditionSecondBoundVar),
+
+      conclusion, null);
+  }
 }
 
-public class LetSuchThatExists : ProofObligationDescriptionWithNoExpr {
+public class LetSuchThatExists : ProofObligationDescription {
+  private readonly Expression condition;
+  private readonly List<BoundVar> bvars;
+
   public override string SuccessDescription =>
     "a value exists that satisfies this let-such-that expression";
 
@@ -936,6 +1080,15 @@ public class LetSuchThatExists : ProofObligationDescriptionWithNoExpr {
     "cannot establish the existence of LHS values that satisfy the such-that predicate";
 
   public override string ShortDescription => "let-such-that exists";
+
+  public LetSuchThatExists(List<BoundVar> bvars, Expression condition) {
+    this.condition = condition;
+    this.bvars = bvars;
+  }
+  public override Expression GetAssertedExpr(DafnyOptions options) {
+    return new ExistsExpr(bvars[0].tok, bvars[0].RangeToken, bvars,
+      null, condition, null);
+  }
 }
 
 public class AssignmentShrinks : ProofObligationDescriptionWithNoExpr {

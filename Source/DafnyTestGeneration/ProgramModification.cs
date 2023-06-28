@@ -64,40 +64,34 @@ namespace DafnyTestGeneration {
     }
 
     /// <summary>
-    /// Setup CommandLineArguments to prepare verification. This is necessary
-    /// because the procsToCheck field in CommandLineOptions (part of Boogie)
-    /// is private meaning that the only way of setting this field is by calling
-    /// options.Parse() on a new DafnyObject.
+    /// Setup DafnyOptions to prepare for counterexample extraction
     /// </summary>
-    private static DafnyOptions SetupOptions(DafnyOptions original, string procedure) {
-      var options = DafnyOptions.Create();
-      options.Parse(new[] { "/proc:" + procedure });
+    private static void SetupForCounterexamples(DafnyOptions options) {
+      // Figure out the Z3 version in use:
+      var proverOptions = new SMTLibSolverOptions(options);
+      proverOptions.Parse(options.ProverOptions);
+      var z3Version = DafnyOptions.GetZ3Version(proverOptions.ProverPath);
+      // Based on Z3 version, determine the options to use:
+      var optionsToAdd = new List<string>() {
+        "O:model_evaluator.completion=true",
+        "O:model.completion=true"
+      };
+      if (z3Version is null || z3Version < new Version(4, 8, 6)) {
+        optionsToAdd.Add("O:model_compress=false");
+      } else {
+        optionsToAdd.Add("O:model.compact=false");
+      }
+      // (Re)set the options necessary for counterexample extraction:
+      foreach (var option in optionsToAdd) {
+        options.ProverOptions.RemoveAll(o => o.Split("=") == option.Split("="));
+        options.ProverOptions.Add(option);
+      }
       options.NormalizeNames = false;
       options.EmitDebugInformation = true;
       options.ErrorTrace = 1;
       options.EnhancedErrorMessages = 1;
       options.ModelViewFile = "-";
-      var proverOptions = new SMTLibSolverOptions(options);
-      proverOptions.Parse(options.ProverOptions);
-      var z3Version = DafnyOptions.GetZ3Version(proverOptions.ProverPath);
-      options.ProverOptions = new List<string>() {
-        "O:model_evaluator.completion=true",
-        "O:model.completion=true"
-      };
-      if (z3Version is null || z3Version < new Version(4, 8, 6)) {
-        options.ProverOptions.Insert(0, "O:model.compress=false");
-      } else {
-        options.ProverOptions.Insert(0, "O:model.compact=false");
-      }
-
-      options.Prune = !original.TestGenOptions.DisablePrune;
-      options.ProverOptions.AddRange(original.ProverOptions);
-      options.LoopUnrollCount = original.LoopUnrollCount;
-      options.DefiniteAssignmentLevel = original.DefiniteAssignmentLevel;
-      options.WarnShadowing = original.WarnShadowing;
-      options.VerifyAllModules = original.VerifyAllModules;
-      options.TimeLimit = original.TimeLimit;
-      return options;
+      options.Prune = !options.TestGenOptions.DisablePrune;
     }
 
     /// <summary>
@@ -110,7 +104,8 @@ namespace DafnyTestGeneration {
           (coversBlocks.Count != 0 && IsCovered(cache))) {
         return counterexampleLog;
       }
-      var options = SetupOptions(Options, procedure);
+      var options = GenerateTestsCommand.CopyForProcedure(Options, procedure);
+      SetupForCounterexamples(options);
       var engine = ExecutionEngine.CreateWithoutSharedCache(options);
       var guid = Guid.NewGuid().ToString();
       program.Resolve(options);
@@ -128,8 +123,8 @@ namespace DafnyTestGeneration {
       counterexampleStatus = Status.Failure;
       counterexampleLog = null;
       if (result is not Task<PipelineOutcome>) {
-        if (Options.TestGenOptions.Verbose) {
-          Console.WriteLine(
+        if (Options.Verbose) {
+          await options.OutputWriter.WriteLineAsync(
             $"// No test can be generated for {uniqueId} " +
             "because the verifier timed out.");
         }
@@ -144,24 +139,24 @@ namespace DafnyTestGeneration {
           counterexampleStatus = Status.Success;
           var blockId = int.Parse(Regex.Replace(line, @"\s+", "").Split('|')[2]);
           coversBlocks.Add(blockId);
-          if (Options.TestGenOptions.Verbose &&
+          if (Options.Verbose &&
               Options.TestGenOptions.Mode != TestGenerationOptions.Modes.Path) {
-            Console.WriteLine($"// Test targeting block {uniqueId} also covers block {blockId}");
+            await options.OutputWriter.WriteLineAsync($"// Test {uniqueId} covers block {blockId}");
           }
         }
       }
-      if (Options.TestGenOptions.Verbose && counterexampleLog == null) {
+      if (Options.Verbose && counterexampleLog == null) {
         if (log == "") {
-          Console.WriteLine(
+          await options.OutputWriter.WriteLineAsync(
             $"// No test is generated for {uniqueId} " +
             "because the verifier proved that no inputs could cause this block to be visited.");
         } else if (log.Contains("MODEL") || log.Contains("anon0")) {
-          Console.WriteLine(
+          await options.OutputWriter.WriteLineAsync(
             $"// No test is generated for {uniqueId} " +
             "because there is no enhanced error trace. This can be caused " +
             "by a bug in boogie counterexample model parsing.");
         } else {
-          Console.WriteLine(
+          await options.OutputWriter.WriteLineAsync(
             $"// No test is generated for {uniqueId} " +
             "because the verifier timed out.");
         }
@@ -170,8 +165,8 @@ namespace DafnyTestGeneration {
     }
 
     public async Task<TestMethod> GetTestMethod(Modifications cache, DafnyInfo dafnyInfo, bool returnNullIfNotUnique = true) {
-      if (Options.TestGenOptions.Verbose) {
-        Console.WriteLine(
+      if (Options.Verbose) {
+        await dafnyInfo.Options.OutputWriter.WriteLineAsync(
           $"// Extracting the test for {uniqueId} from the counterexample...");
       }
       var log = await GetCounterExampleLog(cache);
@@ -188,8 +183,8 @@ namespace DafnyTestGeneration {
       if (duplicate == null) {
         return testMethod;
       }
-      if (Options.TestGenOptions.Verbose) {
-        Console.WriteLine(
+      if (Options.Verbose) {
+        await dafnyInfo.Options.OutputWriter.WriteLineAsync(
           $"// Test for {uniqueId} matches a test previously generated " +
           $"for {duplicate.uniqueId}. This happens when test generation tool " +
           $"does not know how to differentiate between counterexamples, " +

@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 using System.Diagnostics.Contracts;
+using static Microsoft.Dafny.RewriterErrors;
 
 namespace Microsoft.Dafny {
   /// <summary>
@@ -13,6 +14,22 @@ namespace Microsoft.Dafny {
     /// </summary>
     protected ErrorReporter Reporter;
 
+    protected DafnyOptions Options => Reporter.Options;
+
+    /// <summary>
+    /// Constructor that accepts an ErrorReporter
+    /// You can obtain an ErrorReporter two following ways:
+    /// * Extend a PluginConfiguration class, and override the method GetRewriters(), whose first argument is an ErrorReporter
+    /// * Have no PluginConfiguration  class, and an ErrorReporter will be provided to your class's constructor.
+    /// 
+    /// Then you can use the protected field "reporter" like the following:
+    /// 
+    ///     reporter.Error(MessageSource.Compiler, token, "[Your plugin] Your error message here");
+    ///
+    /// The token is usually obtained on expressions and statements in the field `tok`
+    /// If you do not have access to them, use moduleDefinition.GetFirstTopLevelToken()
+    /// </summary>
+    /// <param name="reporter">The error reporter. Usually outputs automatically to IDE or command-line</param>
     protected internal IRewriter(ErrorReporter reporter) {
       Contract.Requires(reporter != null);
       this.Reporter = reporter;
@@ -47,18 +64,6 @@ namespace Microsoft.Dafny {
     /// </summary>
     /// <param name="moduleDefinition">A module definition after it is resolved and type-checked</param>
     internal virtual void PostResolveIntermediate(ModuleDefinition moduleDefinition) {
-      Contract.Requires(moduleDefinition != null);
-    }
-
-    /// <summary>
-    /// Phase 4/8
-    /// Override this method to obtain a module definition after the module
-    /// has been cloned and re-resolved prior to compilation.
-    /// You can then report errors using reporter.Error (see above)
-    /// </summary>
-    /// <param name="moduleDefinition">A module definition after it
-    /// is cloned and re-resolved for compilation.</param>
-    internal virtual void PostCompileCloneAndResolve(ModuleDefinition moduleDefinition) {
       Contract.Requires(moduleDefinition != null);
     }
 
@@ -105,6 +110,18 @@ namespace Microsoft.Dafny {
     /// <param name="program">The entire program after it is fully resolved</param>
     internal virtual void PostResolve(Program program) {
       Contract.Requires(program != null);
+    }
+
+    public virtual void PostVerification(Program program) {
+      Contract.Requires(program != null);
+    }
+
+    public virtual void ReportWarning(ErrorId errorId, IToken t, string msg, params object[] args) {
+      Reporter.Warning(MessageSource.Rewriter, errorId, t, msg, args);
+    }
+
+    public virtual void ReportError(ErrorId errorId, IToken t, string msg, params object[] args) {
+      Reporter.Error(MessageSource.Rewriter, errorId, t, msg, args);
     }
   }
 }

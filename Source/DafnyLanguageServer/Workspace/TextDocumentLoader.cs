@@ -21,7 +21,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
   /// </remarks>
   public class TextDocumentLoader : ITextDocumentLoader {
     private const int ResolverMaxStackSize = 0x10000000; // 256MB
-    private static readonly ThreadTaskScheduler ResolverScheduler = new(ResolverMaxStackSize);
 
     private readonly IDafnyParser parser;
     private readonly ISymbolResolver symbolResolver;
@@ -67,7 +66,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           // This diagnostic never gets sent to the client,
           // instead it forces the first computed diagnostics for a document to always be sent.
           // The message here describes the implicit client state before the first diagnostics have been sent.
-          Message = "Resolution diagnostics have not been computed yet."
+          Message = "Resolution diagnostics have not been computed yet.",
+          Range = new OmniSharp.Extensions.LanguageServer.Protocol.Models.Range(0, 0, 0,0)
         }}
       );
     }
@@ -75,42 +75,50 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     public async Task<DocumentAfterParsing> LoadAsync(DafnyOptions options, DocumentTextBuffer textDocument,
       CancellationToken cancellationToken) {
 #pragma warning disable CS1998
-      return await await Task.Factory.StartNew(
-        async () => LoadInternal(options, textDocument, cancellationToken), cancellationToken,
+      return await await DafnyMain.LargeStackFactory.StartNew(
+        async () => LoadInternal(options, textDocument, cancellationToken), cancellationToken
 #pragma warning restore CS1998
-        TaskCreationOptions.None, ResolverScheduler);
+        );
     }
 
     private DocumentAfterParsing LoadInternal(DafnyOptions options, DocumentTextBuffer textDocument,
       CancellationToken cancellationToken) {
       var errorReporter = new DiagnosticErrorReporter(options, textDocument.Text, textDocument.Uri);
-      statusPublisher.SendStatusNotification(textDocument, CompilationStatus.ResolutionStarted);
+      statusPublisher.SendStatusNotification(textDocument, CompilationStatus.Parsing);
       var program = parser.Parse(textDocument, errorReporter, cancellationToken);
-      var documentAfterParsing = new DocumentAfterParsing(textDocument, program, errorReporter.GetDiagnostics(textDocument.Uri));
+      var documentAfterParsing = new DocumentAfterParsing(textDocument, program, errorReporter.AllDiagnosticsCopy);
       if (errorReporter.HasErrors) {
         statusPublisher.SendStatusNotification(textDocument, CompilationStatus.ParsingFailed);
         return documentAfterParsing;
       }
 
-      var compilationUnit = symbolResolver.ResolveSymbols(textDocument, program, out _, cancellationToken);
-      var symbolTable = symbolTableFactory.CreateFrom(program, compilationUnit, cancellationToken);
+      statusPublisher.SendStatusNotification(textDocument, CompilationStatus.ResolutionStarted);
+      try {
+        var compilationUnit = symbolResolver.ResolveSymbols(textDocument, program, cancellationToken);
+        var legacySymbolTable = symbolTableFactory.CreateFrom(compilationUnit, cancellationToken);
 
-      var newSymbolTable = errorReporter.HasErrors ? null : symbolTableFactory.CreateFrom(program, documentAfterParsing, cancellationToken);
-      if (errorReporter.HasErrors) {
-        statusPublisher.SendStatusNotification(textDocument, CompilationStatus.ResolutionFailed);
-      } else {
-        statusPublisher.SendStatusNotification(textDocument, CompilationStatus.CompilationSucceeded);
+        var newSymbolTable = errorReporter.HasErrors
+          ? null
+          : symbolTableFactory.CreateFrom(program, documentAfterParsing, cancellationToken);
+        if (errorReporter.HasErrors) {
+          statusPublisher.SendStatusNotification(textDocument, CompilationStatus.ResolutionFailed);
+        } else {
+          statusPublisher.SendStatusNotification(textDocument, CompilationStatus.CompilationSucceeded);
+        }
+
+        var ghostDiagnostics = ghostStateDiagnosticCollector.GetGhostStateDiagnostics(legacySymbolTable, cancellationToken)
+          .ToArray();
+
+        return new DocumentAfterResolution(textDocument,
+          program,
+          errorReporter.AllDiagnosticsCopy,
+          newSymbolTable,
+          legacySymbolTable,
+          ghostDiagnostics
+        );
+      } catch (OperationCanceledException) {
+        return documentAfterParsing;
       }
-
-      var ghostDiagnostics = ghostStateDiagnosticCollector.GetGhostStateDiagnostics(symbolTable, cancellationToken).ToArray();
-
-      return new DocumentAfterResolution(textDocument,
-        program,
-        errorReporter.GetDiagnostics(textDocument.Uri),
-        newSymbolTable,
-        symbolTable,
-        ghostDiagnostics
-      );
     }
 
     private IdeState CreateDocumentWithEmptySymbolTable(

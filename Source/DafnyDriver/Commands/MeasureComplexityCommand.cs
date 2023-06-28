@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.CommandLine;
 using System.CommandLine.Invocation;
 using System.Linq;
+using DafnyCore;
 
 namespace Microsoft.Dafny;
 
@@ -15,6 +16,11 @@ public class MeasureComplexityCommand : ICommandSpec {
   static MeasureComplexityCommand() {
     DafnyOptions.RegisterLegacyBinding(Iterations, (o, v) => o.RandomizeVcIterations = (int)v);
     DafnyOptions.RegisterLegacyBinding(RandomSeed, (o, v) => o.RandomSeed = (int)v);
+
+    DooFile.RegisterNoChecksNeeded(
+      Iterations,
+      RandomSeed
+    );
   }
 
   private static readonly Option<uint> RandomSeed = new("--random-seed", () => 0U,

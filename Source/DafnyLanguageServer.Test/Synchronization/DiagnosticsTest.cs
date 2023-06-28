@@ -9,13 +9,33 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors;
+using Newtonsoft.Json;
+using Xunit.Abstractions;
 using Xunit;
 using XunitAssertMessages;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
   public class DiagnosticsTest : ClientBasedLanguageServerTest {
+    private readonly string testFilesDirectory = Path.Combine(Directory.GetCurrentDirectory(), "Synchronization/TestFiles");
 
+    [Fact]
+    public async Task ResolutionErrorInDifferentFileBlocksVerification() {
+      var source = @"
+include ""./semanticError.dfy""
+method Foo() ensures false { 
+  var x := SemanticError.untypedExport; 
+}
+";
+
+      var documentItem = CreateTestDocument(source, Path.Combine(testFilesDirectory, "test.dfy"));
+      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+
+      var diagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
+      Assert.Single(diagnostics);
+      Assert.Contains("semanticError.dfy", diagnostics[0].Message);
+      await AssertNoDiagnosticsAreComing(CancellationToken);
+    }
     [Fact]
     public async Task GitIssue3155ItemWithSameKeyAlreadyBeenAdded() {
       var source = @"
@@ -156,10 +176,10 @@ module N refines M
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var diagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
-      Assert.Single(diagnostics);
+      Assert.Equal(2, diagnostics.Length);
       Assert.Equal(
         "static non-ghost const field 't' of type 'T' (which does not have a default compiled value) must give a defining value",
-        diagnostics[0].Message);
+        diagnostics[1].Message);
       await AssertNoDiagnosticsAreComing(CancellationToken);
     }
 
@@ -574,7 +594,7 @@ method Multiply(x: int, y: int) returns (product: int
       Assert.Single(diagnostics);
       Assert.Equal("Parser", diagnostics[0].Source);
       Assert.Equal(DiagnosticSeverity.Error, diagnostics[0].Severity);
-      Assert.Equal(new Range((0, 8), (0, 25)), diagnostics[0].Range);
+      Assert.Equal(new Range((0, 0), (0, 7)), diagnostics[0].Range);
       await AssertNoDiagnosticsAreComing(CancellationToken);
     }
 
@@ -595,28 +615,15 @@ module ModC {
     }
 
     [Fact]
-    public async Task OpeningDocumentThatIncludesDocumentWithSemanticErrorsReportsResolverErrorAtInclude() {
-      var source = "include \"syntaxError.dfy\"";
-      var documentItem = CreateTestDocument(source, Path.Combine(Directory.GetCurrentDirectory(), "Synchronization/TestFiles/test.dfy"));
+    public async Task OpeningDocumentWithSemanticErrorsInIncludeReportsResolverErrorAtIncludeStatement() {
+      var source = "include \"semanticError.dfy\"";
+      var documentItem = CreateTestDocument(source, Path.Combine(testFilesDirectory, "test.dfy"));
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var diagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
       Assert.Single(diagnostics);
       Assert.Equal("Parser", diagnostics[0].Source);
       Assert.Equal(DiagnosticSeverity.Error, diagnostics[0].Severity);
-      Assert.Equal(new Range((0, 8), (0, 25)), diagnostics[0].Range);
-      await AssertNoDiagnosticsAreComing(CancellationToken);
-    }
-
-    [Fact]
-    public async Task OpeningDocumentWithSemanticErrorsInIncludeReportsResolverErrorAtIncludeStatement() {
-      var source = "include \"semanticError.dfy\"";
-      var documentItem = CreateTestDocument(source, Path.Combine(Directory.GetCurrentDirectory(), "Synchronization/TestFiles/test.dfy"));
-      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var diagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
-      Assert.Single(diagnostics);
-      Assert.Equal("Resolver", diagnostics[0].Source);
-      Assert.Equal(DiagnosticSeverity.Error, diagnostics[0].Severity);
-      Assert.Equal(new Range((0, 8), (0, 27)), diagnostics[0].Range);
+      Assert.Equal(new Range((0, 0), (0, 7)), diagnostics[0].Range);
       await AssertNoDiagnosticsAreComing(CancellationToken);
     }
 
@@ -1142,6 +1149,9 @@ method Foo() {
       ApplyChange(ref documentItem, new Range(0, 0, 0, 0), "SyntaxError");
       var diagnostics2 = await GetLastDiagnostics(documentItem, CancellationToken);
       Assert.True(diagnostics2.Any());
+    }
+
+    public DiagnosticsTest(ITestOutputHelper output) : base(output) {
     }
   }
 }

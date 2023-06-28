@@ -2,14 +2,14 @@
 // RUN: %diff "%s.expect" "%t"
 
 ghost function SimpleAssert(n: int): int
-  ensures n < 100;
+  ensures n < 100
 {
   assert n == 58;  // error: assert violation
   n  // but postcondition is fine
 }
 
 ghost function SimpleAssume(n: int): int
-  ensures n < 100;
+  ensures n < 100
 {
   assume n == 58; n  // all is fine
 }

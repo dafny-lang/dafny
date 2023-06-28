@@ -68,7 +68,7 @@ ghost function CalcTest3(s: seq<int>): int {
 
 // dangling hints:
 method CalcTest4(s: seq<int>)
-  requires forall n | n in s :: n > 0;
+  requires forall n | n in s :: n > 0
 {
   calc {
     1 + 1;

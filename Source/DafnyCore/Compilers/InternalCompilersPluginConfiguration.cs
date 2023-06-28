@@ -13,8 +13,9 @@ internal class InternalCompilersPluginConfiguration : Plugins.PluginConfiguratio
       new JavaBackend(options),
       new PythonBackend(options),
       new CppCompilerBackend(options),
+      new LibraryBackend(options),
       new DafnyBackend(options),
-      new RustBackend(options)
+      new RustBackend(options),
     };
   }
 }

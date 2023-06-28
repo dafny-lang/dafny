@@ -45,4 +45,32 @@ module ConcreteModule
   {
     return Success;
   }
+
+  method AdditionalWildcardTests(n: nat) {
+    match n {
+      case _ =>
+    }
+    match n {
+      case _: int =>
+    }
+    match n {
+      case _: nat =>
+    }
+    match n {
+      case 3 =>
+      case _: int =>
+    }
+    match n {
+      case x =>
+    }
+    match n {
+      case n => // bound variable shadows parameter n
+    }
+    match n {
+      case x: int =>
+    }
+    match n {
+      case n: int => // bound variable shadows parameter n
+    }
+  }
 }

@@ -1,5 +1,4 @@
-// RUN: %dafny /compile:3 /compileTarget:java "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment
 
 datatype Wrapper<T> = Wrapper(s: seq<T>)
 {

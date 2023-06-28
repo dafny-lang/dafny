@@ -31,7 +31,7 @@ namespace Microsoft.Dafny.Compilers {
     };
 
     string FormatDefaultTypeParameterValue(TopLevelDecl tp) {
-      Contract.Requires(tp is TypeParameter || tp is OpaqueTypeDecl);
+      Contract.Requires(tp is TypeParameter || tp is AbstractTypeDecl);
       return $"_default_{tp.GetCompileName(Options)}";
     }
 
@@ -71,7 +71,7 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    protected override void EmitBuiltInDecls(BuiltIns builtIns, ConcreteSyntaxTree wr) {
+    protected override void EmitBuiltInDecls(SystemModuleManager systemModuleManager, ConcreteSyntaxTree wr) {
     }
 
     private string DafnyTypeDescriptor => $"{HelperModulePrefix}TypeDescriptor";
@@ -208,7 +208,7 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override IClassWriter CreateClass(string moduleName, string name, bool isExtern, string/*?*/ fullPrintName,
       List<TypeParameter> typeParameters, TopLevelDecl cls, List<Type>/*?*/ superClasses, IToken tok, ConcreteSyntaxTree wr) {
-      var isDefaultClass = cls is ClassDecl c && c.IsDefaultClass;
+      var isDefaultClass = cls is DefaultClassDecl;
 
       bool isSequence = superClasses.Any(superClass => superClass is UserDefinedType udt && IsDafnySequence(udt.ResolvedClass));
       return CreateClass(name, isExtern, fullPrintName, typeParameters, superClasses, tok, wr, includeRtd: !isDefaultClass, includeEquals: !isSequence, includeString: !isSequence);
@@ -299,8 +299,7 @@ namespace Microsoft.Dafny.Compilers {
       }
 
       if (includeRtd) {
-        ConcreteSyntaxTree wDefault;
-        CreateRTD(name, typeParameters, out wDefault, w);
+        CreateRTD(name, typeParameters, out var wDefault, w);
 
         wDefault.WriteLine("return (*{0})(nil)", name);
       }
@@ -964,7 +963,7 @@ namespace Microsoft.Dafny.Compilers {
       }
       // RTD
       {
-        CreateRTD(IdName(sst), null, out var wDefaultBody, wr);
+        CreateRTD(IdName(sst), sst.TypeArgs, out var wDefaultBody, wr);
         var udt = UserDefinedType.FromTopLevelDecl(sst.tok, sst);
         var d = TypeInitializationValue(udt, wr, sst.tok, false, true);
         wDefaultBody.WriteLine("return {0}", d);
@@ -1325,29 +1324,28 @@ namespace Microsoft.Dafny.Compilers {
       } else if (xType.IsTypeParameter) {
         var tp = type.AsTypeParameter;
         Contract.Assert(tp != null);
-        return string.Format("{0}{1}", thisContext != null && tp.Parent is ClassDecl && !(tp.Parent is TraitDecl) ? "_this." : "", FormatRTDName(tp.GetCompileName(Options)));
+        string th;
+        if (thisContext != null && tp.Parent is ClassDecl) {
+          th = "_this.";
+        } else if (thisContext == null && tp.Parent is SubsetTypeDecl) {
+          th = "_this.";
+        } else {
+          th = "";
+        }
+        return string.Format("{0}{1}", th, FormatRTDName(tp.GetCompileName(Options)));
       } else if (xType.IsBuiltinArrowType) {
         return string.Format("_dafny.CreateStandardTypeDescriptor({0})", TypeInitializationValue(xType, wr, tok, false, true));
       } else if (xType is UserDefinedType udt) {
         var cl = udt.ResolvedClass;
         Contract.Assert(cl != null);
-        bool isHandle = true;
-        if (Attributes.ContainsBool(cl.Attributes, "handle", ref isHandle) && isHandle) {
-          return "_dafny.Int64Type";
-        } else if (cl is ClassDecl || cl is DatatypeDecl) {
-          var w = new ConcreteSyntaxTree();
-          w.Write("{0}(", cl is TupleTypeDecl ? "_dafny.TupleType" : TypeName_RTD(xType, w, tok));
-          var typeArgs = cl is DatatypeDecl dt ? UsedTypeParameters(dt, udt.TypeArgs) : TypeArgumentInstantiation.ListFromClass(cl, udt.TypeArgs);
-          EmitTypeDescriptorsActuals(typeArgs, udt.tok, w, true);
-          w.Write(")");
-          return w.ToString();
-        } else if (xType.IsNonNullRefType) {
-          // what we emit here will only be used to construct a dummy value that programmer-supplied code will overwrite later
-          return "_dafny.PossiblyNullType/*not used*/";
-        } else {
-          Contract.Assert(cl is NewtypeDecl || cl is SubsetTypeDecl);
-          return TypeName_RTD(xType, wr, udt.tok) + "()";
-        }
+
+        var w = new ConcreteSyntaxTree();
+        w.Write("{0}(", cl is TupleTypeDecl ? "_dafny.TupleType" : TypeName_RTD(xType, w, tok));
+        var typeArgs = cl is DatatypeDecl dt ? UsedTypeParameters(dt, udt.TypeArgs) : TypeArgumentInstantiation.ListFromClass(cl, udt.TypeArgs);
+        EmitTypeDescriptorsActuals(typeArgs, udt.tok, w, true);
+        w.Write(")");
+        return w.ToString();
+
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected type
       }
@@ -1428,10 +1426,7 @@ namespace Microsoft.Dafny.Compilers {
       } else if (xType is UserDefinedType udt) {
         var s = FullTypeName(udt, member);
         var cl = udt.ResolvedClass;
-        bool isHandle = true;
-        if (cl != null && Attributes.ContainsBool(cl.Attributes, "handle", ref isHandle) && isHandle) {
-          return "ulong";
-        } else if (xType is ArrowType at) {
+        if (xType is ArrowType at) {
           return string.Format("func ({0}) {1}", Util.Comma(at.Args, arg => TypeName(arg, wr, tok)), TypeName(at.Result, wr, tok));
         } else if (udt.IsTypeParameter) {
           return AnyType;
@@ -1513,7 +1508,7 @@ namespace Microsoft.Dafny.Compilers {
         } else {
           return FormatDefaultTypeParameterValue(tp);
         }
-      } else if (cl is OpaqueTypeDecl opaque) {
+      } else if (cl is AbstractTypeDecl opaque) {
         return FormatDefaultTypeParameterValue(opaque);
       } else if (cl is NewtypeDecl) {
         var td = (NewtypeDecl)cl;
@@ -1546,15 +1541,14 @@ namespace Microsoft.Dafny.Compilers {
         } else {
           return TypeInitializationValue(td.RhsWithArgument(udt.TypeArgs), wr, tok, usePlaceboValue, constructTypeParameterDefaultsFromTypeDescriptors);
         }
-      } else if (cl is ClassDecl) {
-        bool isHandle = true;
-        if (Attributes.ContainsBool(cl.Attributes, "handle", ref isHandle) && isHandle) {
-          return "0";
-        } else {
-          return nil();
-        }
+      } else if (cl is ClassLikeDecl or ArrowTypeDecl) {
+        return nil();
       } else if (cl is DatatypeDecl) {
         var dt = (DatatypeDecl)cl;
+        if (DatatypeWrapperEraser.GetInnerTypeOfErasableDatatypeWrapper(Options, dt, out var innerType)) {
+          var typeSubstMap = TypeParameter.SubstitutionMap(dt.TypeArgs, udt.TypeArgs);
+          return TypeInitializationValue(innerType.Subst(typeSubstMap), wr, tok, usePlaceboValue, constructTypeParameterDefaultsFromTypeDescriptors);
+        }
         // In an auto-init context (like a field initializer), we may not have
         // access to all the type descriptors, so we can't construct the
         // default value, but then an empty structure is an acceptable default, since
@@ -1677,7 +1671,7 @@ namespace Microsoft.Dafny.Compilers {
 
     protected void DeclareField(string name, bool isExtern, bool isStatic, bool isConst, Type type, IToken tok, string/*?*/ rhs, string className, ConcreteSyntaxTree wr, ConcreteSyntaxTree initWriter, ConcreteSyntaxTree concreteMethodWriter) {
       if (isExtern) {
-        Error(tok, "Unsupported field {0} in extern trait", wr, name);
+        Error(CompilerErrors.ErrorId.c_Go_unsupported_field, tok, "Unsupported field {0} in extern trait", wr, name);
       }
 
       if (isConst && rhs != null) {
@@ -1877,7 +1871,7 @@ namespace Microsoft.Dafny.Compilers {
       var wStmts = wr.Fork();
       wr.Write("panic(");
       if (tok != null) {
-        wr.Write("\"" + Dafny.ErrorReporter.TokenToString(tok) + ": \" + ");
+        wr.Write("\"" + tok.TokenToString(Options) + ": \" + ");
       }
 
       TrParenExpr(messageExpr, wr, false, wStmts);
@@ -2040,7 +2034,7 @@ namespace Microsoft.Dafny.Compilers {
       ConcreteSyntaxTree wStmts) {
       var cl = ((UserDefinedType)type.NormalizeExpand()).ResolvedClass;
       Contract.Assert(cl != null);
-      if (cl is ClassDecl clsDecl && clsDecl.IsObjectTrait) {
+      if (cl is TraitDecl { IsObjectTrait: true }) {
         wr.Write("_dafny.New_Object()");
       } else {
         wr.Write("{0}(", TypeName_Initializer(type, wr, tok));
@@ -2439,7 +2433,8 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     private bool IsExternMemberOfExternModule(MemberDecl/*?*/ member, TopLevelDecl cl) {
-      return member != null && cl is ClassDecl cdecl && cdecl.IsDefaultClass && Attributes.Contains(cdecl.EnclosingModuleDefinition.Attributes, "extern") && member.IsExtern(Options, out _, out _);
+      return cl is DefaultClassDecl && Attributes.Contains(cl.EnclosingModuleDefinition.Attributes, "extern") &&
+             member != null && member.IsExtern(Options, out _, out _);
     }
 
     protected override void EmitThis(ConcreteSyntaxTree wr) {
@@ -2572,8 +2567,7 @@ namespace Microsoft.Dafny.Compilers {
         return SimpleLvalue(wr => {
           wr = EmitCoercionIfNecessary(sf.Type, expectedType, Token.NoToken, wr);
           obj(wr);
-          string compiledName;
-          GetSpecialFieldInfo(sf.SpecialId, sf.IdParam, objType, out compiledName, out _, out _);
+          GetSpecialFieldInfo(sf.SpecialId, sf.IdParam, objType, out var compiledName, out _, out _);
           if (compiledName.Length != 0) {
             wr.Write(".{0}", Capitalize(compiledName));
           } else {
@@ -3076,7 +3070,7 @@ namespace Microsoft.Dafny.Compilers {
     private bool IsDirectlyComparable(Type t) {
       Contract.Requires(t != null);
       return t.IsBoolType || t.IsCharType || AsNativeType(t) != null || t.IsArrayType ||
-             (t.NormalizeExpand() is UserDefinedType udt && !t.IsArrowType && !t.IsTraitType && udt.ResolvedClass is ClassDecl);
+             t.NormalizeExpand() is UserDefinedType { ResolvedClass: ClassDecl };
     }
 
     private bool IsOrderedByCmp(Type t) {
@@ -3135,9 +3129,7 @@ namespace Microsoft.Dafny.Compilers {
 
         case BinaryExpr.ResolvedOpcode.EqCommon: {
             var eqType = DatatypeWrapperEraser.SimplifyType(Options, e0.Type);
-            if (IsHandleComparison(tok, e0, e1, errorWr)) {
-              opString = "==";
-            } else if (!EqualsUpToParameters(eqType, DatatypeWrapperEraser.SimplifyType(Options, e1.Type))) {
+            if (!EqualsUpToParameters(eqType, DatatypeWrapperEraser.SimplifyType(Options, e1.Type))) {
               staticCallString = $"{HelperModulePrefix}AreEqual";
             } else if (IsOrderedByCmp(eqType)) {
               callString = "Cmp";
@@ -3153,10 +3145,7 @@ namespace Microsoft.Dafny.Compilers {
           }
         case BinaryExpr.ResolvedOpcode.NeqCommon: {
             var eqType = DatatypeWrapperEraser.SimplifyType(Options, e0.Type);
-            if (IsHandleComparison(tok, e0, e1, errorWr)) {
-              opString = "!=";
-              postOpString = "/* handle */";
-            } else if (!EqualsUpToParameters(eqType, DatatypeWrapperEraser.SimplifyType(Options, e1.Type))) {
+            if (!EqualsUpToParameters(eqType, DatatypeWrapperEraser.SimplifyType(Options, e1.Type))) {
               preOpString = "!";
               staticCallString = $"{HelperModulePrefix}AreEqual";
             } else if (IsDirectlyComparable(eqType)) {
@@ -3587,7 +3576,7 @@ namespace Microsoft.Dafny.Compilers {
       } else {
         // It's unclear to me whether it's possible to hit this case with a valid Dafny program,
         // so I'm not using UnsupportedFeatureError for now.
-        Error(tok, "Cannot convert from {0} to {1}", wr, from, to);
+        Error(CompilerErrors.ErrorId.c_Go_infeasible_conversion, tok, "Cannot convert from {0} to {1}", wr, from, to);
         return wr;
       }
     }

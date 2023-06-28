@@ -1,7 +1,10 @@
+using System;
 using System.Collections.Generic;
 using System.CommandLine;
 using System.CommandLine.Invocation;
+using System.IO;
 using System.Linq;
+using DafnyCore;
 
 namespace Microsoft.Dafny;
 
@@ -15,9 +18,13 @@ class RunCommand : ICommandSpec {
   static RunCommand() {
     DafnyOptions.RegisterLegacyBinding(Inputs, (options, files) => {
       foreach (var file in files) {
-        options.AddFile(file);
+        options.CliRootSourceUris.Add(new Uri(Path.GetFullPath(file)));
       }
     });
+
+    DooFile.RegisterNoChecksNeeded(
+      Inputs
+    );
   }
 
   public IEnumerable<Option> Options =>
@@ -42,10 +49,9 @@ class RunCommand : ICommandSpec {
   public void PostProcess(DafnyOptions dafnyOptions, Options options, InvocationContext context) {
     dafnyOptions.MainArgs = context.ParseResult.GetValueForArgument(userProgramArguments).ToList();
     var inputFile = context.ParseResult.GetValueForArgument(CommandRegistry.FileArgument);
-    dafnyOptions.AddFile(inputFile.FullName);
+    dafnyOptions.CliRootSourceUris.Add(new Uri(Path.GetFullPath(inputFile.FullName)));
     dafnyOptions.Compile = true;
     dafnyOptions.RunAfterCompile = true;
     dafnyOptions.ForceCompile = dafnyOptions.Get(BoogieOptionBag.NoVerify);
-    dafnyOptions.CompileVerbose = false;
   }
 }

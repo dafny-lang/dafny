@@ -9,6 +9,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
+using Xunit.Abstractions;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
@@ -85,8 +86,8 @@ method Multiply(x: bv10, y: bv10) returns (product: bv10)
       var document = await Documents.GetLastDocumentAsync(documentItem.Uri);
       Assert.NotNull(document);
       Assert.Equal(documentItem.Version + 11, document.Version);
-      Assert.Single(document.Diagnostics);
-      Assert.Equal("assertion might not hold", document.Diagnostics.First().Message);
+      Assert.Single(document.AllFileDiagnostics);
+      Assert.Equal("assertion might not hold", document.AllFileDiagnostics.First().Message);
     }
 
     [Fact(Timeout = MaxTestExecutionTimeMs)]
@@ -177,6 +178,9 @@ method Multiply(x: int, y: int) returns (product: int)
         await Documents.CloseDocumentAsync(loadingDocument);
       }
       await AssertNoDiagnosticsAreComing(CancellationTokenWithHighTimeout);
+    }
+
+    public ConcurrentInteractionsTest(ITestOutputHelper output) : base(output) {
     }
   }
 }

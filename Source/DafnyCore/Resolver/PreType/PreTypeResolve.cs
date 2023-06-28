@@ -53,7 +53,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(tok != null);
       Contract.Requires(msg != null);
       Contract.Requires(args != null);
-      resolver.Reporter.Warning(MessageSource.Resolver, ErrorRegistry.NoneId, tok, msg, args);
+      resolver.Reporter.Warning(MessageSource.Resolver, ParseErrors.ErrorId.none, tok, msg, args);
     }
 
     protected void ReportInfo(IToken tok, string msg, params object[] args) {
@@ -74,18 +74,18 @@ namespace Microsoft.Dafny {
       }
       if (IsArrayName(name, out var dims)) {
         // make sure the array class has been created
-        var at = resolver.builtIns.ArrayType(Token.NoToken, dims,
-          new List<Type> { new InferredTypeProxy() }, true);
-        decl = resolver.builtIns.arrayTypeDecls[dims];
+        SystemModuleManager.ArrayType(Token.NoToken, dims,
+          new List<Type> { new InferredTypeProxy() }, true).ModifyBuiltins(resolver.SystemModuleManager);
+        decl = resolver.SystemModuleManager.arrayTypeDecls[dims];
       } else if (IsBitvectorName(name, out var width)) {
-        var bvDecl = new ValuetypeDecl(name, resolver.builtIns.SystemModule, t => t.IsBitVectorType,
+        var bvDecl = new ValuetypeDecl(name, resolver.SystemModuleManager.SystemModule, t => t.IsBitVectorType,
           typeArgs => new BitvectorType(resolver.Options, width));
         preTypeBuiltins.Add(name, bvDecl);
         AddRotateMember(bvDecl, "RotateLeft", width);
         AddRotateMember(bvDecl, "RotateRight", width);
         return bvDecl;
       } else {
-        foreach (var valueTypeDecl in resolver.valuetypeDecls) {
+        foreach (var valueTypeDecl in resolver.ProgramResolver.SystemModuleManager.valuetypeDecls) {
           if (valueTypeDecl.Name == name) {
             // bool, int, real, ORDINAL, map, imap
             decl = valueTypeDecl;
@@ -95,12 +95,12 @@ namespace Microsoft.Dafny {
         if (decl == null) {
           if (name == "set" || name == "seq" || name == "multiset") {
             var variances = new List<TypeParameter.TPVarianceSyntax>() { TypeParameter.TPVarianceSyntax.Covariant_Strict };
-            decl = new ValuetypeDecl(name, resolver.builtIns.SystemModule, variances, _ => false, null);
+            decl = new ValuetypeDecl(name, resolver.SystemModuleManager.SystemModule, variances, _ => false, null);
           } else if (name == "iset") {
             var variances = new List<TypeParameter.TPVarianceSyntax>() { TypeParameter.TPVarianceSyntax.Covariant_Permissive };
-            decl = new ValuetypeDecl(name, resolver.builtIns.SystemModule, variances, _ => false, null);
+            decl = new ValuetypeDecl(name, resolver.SystemModuleManager.SystemModule, variances, _ => false, null);
           } else {
-            decl = new ValuetypeDecl(name, resolver.builtIns.SystemModule, _ => false, null);
+            decl = new ValuetypeDecl(name, resolver.SystemModuleManager.SystemModule, _ => false, null);
           }
         }
       }
@@ -109,22 +109,22 @@ namespace Microsoft.Dafny {
     }
 
     public void AddRotateMember(ValuetypeDecl bitvectorTypeDecl, string name, int width) {
-      var argumentType = resolver.builtIns.Nat();
+      var argumentType = resolver.SystemModuleManager.Nat();
       var formals = new List<Formal> {
         new Formal(Token.NoToken, "w", argumentType, true, false, null, false) {
           PreType = Type2PreType(argumentType)
         }
       };
       var resultType = new BitvectorType(resolver.Options, width);
-      var rotateMember = new SpecialFunction(RangeToken.NoToken, name, resolver.builtIns.SystemModule, false, false,
+      var rotateMember = new SpecialFunction(RangeToken.NoToken, name, resolver.SystemModuleManager.SystemModule, false, false,
         new List<TypeParameter>(), formals, resultType,
         new List<AttributedExpression>(), new List<FrameExpression>(), new List<AttributedExpression>(),
         new Specification<Expression>(new List<Expression>(), null), null, null, null) {
         EnclosingClass = bitvectorTypeDecl,
         ResultPreType = Type2PreType(resultType)
       };
-      rotateMember.AddVisibilityScope(resolver.builtIns.SystemModule.VisibilityScope, false);
-      bitvectorTypeDecl.Members.Add(name, rotateMember);
+      rotateMember.AddVisibilityScope(resolver.SystemModuleManager.SystemModule.VisibilityScope, false);
+      bitvectorTypeDecl.Members.Add(rotateMember);
     }
 
     TopLevelDecl BuiltInArrowTypeDecl(int arity) {
@@ -132,7 +132,7 @@ namespace Microsoft.Dafny {
       var name = ArrowType.ArrowTypeName(arity);
       if (!preTypeBuiltins.TryGetValue(name, out var decl)) {
         // the arrow type declaration should already have been created by the parser
-        decl = resolver.builtIns.ArrowTypeDecls[arity];
+        decl = resolver.SystemModuleManager.ArrowTypeDecls[arity];
         preTypeBuiltins.Add(name, decl);
       }
       return decl;
@@ -218,6 +218,67 @@ namespace Microsoft.Dafny {
       return decl;
     }
 
+    /// <summary>
+    /// Returns the non-newtype ancestor of "decl".
+    /// This method assumes that the ancestors of "decl" do not form any cycles. That is, any such cycle detection must already
+    /// have been done.
+    /// </summary>
+    public static TopLevelDecl AncestorDecl(TopLevelDecl decl) {
+      while (decl is NewtypeDecl newtypeDecl) {
+        var parent = newtypeDecl.BasePreType.Normalize();
+        decl = ((DPreType)parent).Decl;
+      }
+      return decl;
+    }
+
+    [CanBeNull]
+    public static string/*?*/ AncestorName(PreType preType) {
+      var dp = preType.Normalize() as DPreType;
+      return dp == null ? null : AncestorDecl(dp.Decl).Name;
+    }
+
+    /// <summary>
+    /// Returns the non-newtype ancestor of "preType".
+    /// If the ancestor chain has a cycle or if some part of the chain hasn't yet been resolved, this method ends the traversal
+    /// early (and returns the last ancestor traversed). This method does not return any error; that's assumed to be done elsewhere.
+    /// </summary>
+    public DPreType NewTypeAncestor(DPreType preType) {
+      Contract.Requires(preType != null);
+      ISet<NewtypeDecl> visited = null;
+      while (preType.Decl is NewtypeDecl newtypeDecl) {
+        visited ??= new HashSet<NewtypeDecl>();
+        if (visited.Contains(newtypeDecl)) {
+          // The parents of the originally given "preType" are in a cycle; the error has been reported elsewhere, but here we just want to get out
+          break;
+        }
+        visited.Add(newtypeDecl);
+        var parent = newtypeDecl.BasePreType.Normalize() as DPreType;
+        if (parent == null) {
+          // The parent type of this newtype apparently hasn't been inferred yet, so stop traversal here
+          break;
+        }
+        var subst = PreType.PreTypeSubstMap(newtypeDecl.TypeArgs, preType.Arguments);
+        preType = (DPreType)parent.Substitute(subst);
+      }
+      return preType;
+    }
+
+    /// <summary>
+    /// AllParentTraits(decl) is like decl.ParentTraits, but also returns "object" if "decl" is a reference type.
+    /// </summary>
+    public IEnumerable<Type> AllParentTraits(TopLevelDeclWithMembers decl) {
+      foreach (var parentType in decl.ParentTraits) {
+        yield return parentType;
+      }
+      if (DPreType.IsReferenceTypeDecl(decl)) {
+        if (decl is TraitDecl trait && trait.IsObjectTrait) {
+          // don't return object itself
+        } else {
+          yield return resolver.SystemModuleManager.ObjectQ();
+        }
+      }
+    }
+
     public static bool HasTraitSupertypes(DPreType dp) {
       /*
        * When traits can be used as supertypes for non-reference types (and "object" is an implicit parent trait of every
@@ -235,6 +296,24 @@ namespace Microsoft.Dafny {
       }
       // any non-object reference type has "object" as an implicit parent trait
       return DPreType.IsReferenceTypeDecl(dp.Decl);
+    }
+
+    /// <summary>
+    /// Add to "ancestors" every TopLevelDecl that is a reflexive, transitive parent of "d",
+    /// but not exploring past any TopLevelDecl that is already in "ancestors".
+    void ComputeAncestors(TopLevelDecl decl, ISet<TopLevelDecl> ancestors) {
+      if (!ancestors.Contains(decl)) {
+        ancestors.Add(decl);
+        if (decl is TopLevelDeclWithMembers topLevelDeclWithMembers) {
+          topLevelDeclWithMembers.ParentTraitHeads.ForEach(parent => ComputeAncestors(parent, ancestors));
+        }
+        if (decl is ClassDecl { IsObjectTrait: true }) {
+          // we're done
+        } else if (DPreType.IsReferenceTypeDecl(decl)) {
+          // object is also a parent type
+          ComputeAncestors(resolver.SystemModuleManager.ObjectDecl, ancestors);
+        }
+      }
     }
 
     public static bool IsBitvectorName(string name, out int width) {
@@ -275,7 +354,7 @@ namespace Microsoft.Dafny {
     /// <summary>
     /// For every declaration in "declarations", resolve names and determine pre-types.
     /// </summary>
-    public void ResolveDeclarations(List<TopLevelDecl> declarations, string moduleName) {
+    public void ResolveDeclarations(List<TopLevelDecl> declarations) {
       // under construction... (the CLI option --type-system-refresh has informed the user that this mode is not yet ready)
     }
 

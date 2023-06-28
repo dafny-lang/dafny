@@ -1,5 +1,4 @@
-// RUN: %dafny /compile:3 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment
 
 // Rustan Leino
 // 13 April 2015, and many subsequent enhancements and revisions
@@ -219,14 +218,14 @@ ghost predicate MulTriple(n: int, d: int, a: int)
 
 lemma Exists(a: int, b: int)
   requires a > 0 && b > 0
-  ensures exists d :: DividesBoth(d, a, b) && forall m :: DividesBoth(m, a, b) ==> m <= d;
+  ensures exists d :: DividesBoth(d, a, b) && forall m :: DividesBoth(m, a, b) ==> m <= d
 {
   var d := ShowExists(a, b);
 }
 
 lemma ShowExists(a: int, b: int) returns (d: int)
   requires a > 0 && b > 0
-  ensures DividesBoth(d, a, b) && forall m :: DividesBoth(m, a, b) ==> m <= d;
+  ensures DividesBoth(d, a, b) && forall m :: DividesBoth(m, a, b) ==> m <= d
 {
   assert
     exists d :: DividesBoth(d, a, b)

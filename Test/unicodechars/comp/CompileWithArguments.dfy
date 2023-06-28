@@ -1,3 +1,4 @@
+// NONUNIFORM: Multiple testing scenarios, highly backend sensitive, testing CLI
 // Note that C++ is not supported yet
 
 // RUN: %dafny /compile:0 "%s" > "%t"

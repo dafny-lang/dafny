@@ -1,10 +1,5 @@
-// RUN: %dafny /compile:0 "%s" > "%t"
-// RUN: %dafny /noVerify /compile:4 /spillTargetCode:2 /compileTarget:cs "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /spillTargetCode:2 /compileTarget:java "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /spillTargetCode:2 /compileTarget:js "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /spillTargetCode:2 /compileTarget:go "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /spillTargetCode:2 /compileTarget:py "%s" >> "%t"
-// RUN: %diff "%s.expect" "%t"
+// NONUNIFORM: https://github.com/dafny-lang/dafny/issues/4174
+// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment --spill-translation
 
 trait Shape {
   function Center(): (real, real) reads this
@@ -114,7 +109,7 @@ method PrintMultiSet(shapes: multiset<Shape>) {
 
 lemma ThereIsASmallestInt(s: set<int>) returns (k: int)
   requires s != {}
-  ensures k in s && forall k' :: k' in s ==> k <= k';
+  ensures k in s && forall k' :: k' in s ==> k <= k'
 {
   k :| k in s;
   if k' :| k' in s && k' < k {
