@@ -4,6 +4,7 @@ using System.Linq;
 using System.Reactive.Threading.Tasks;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Boogie;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
 using Microsoft.Dafny.LanguageServer.Workspace;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
@@ -42,6 +43,24 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
         return namedVerifiableStatus;
       }
     }
+  }
+  
+  public async Task<IList<FileVerificationStatus>> WaitUntilCompletedForUris(int uriCount, CancellationToken cancellationToken) {
+    var result = new List<FileVerificationStatus>();
+    var donePerUri = new Dictionary<Uri, bool>();
+    while (true) {
+
+      if (donePerUri.Count == uriCount && donePerUri.Values.All(x => x)) {
+        break;
+      }
+      
+      var foundStatus = await verificationStatusReceiver.AwaitNextNotificationAsync(cancellationToken);
+      donePerUri[foundStatus.Uri.ToUri()] =
+        foundStatus.NamedVerifiables.All(n => n.Status >= PublishedVerificationStatus.Error);
+      result.Add(foundStatus);
+    }
+
+    return result;
   }
 
   public async Task<IEnumerable<DocumentSymbol>> RequestDocumentSymbol(TextDocumentItem documentItem) {

@@ -122,7 +122,7 @@ public class ProjectManager : IDisposable {
 
   public void TriggerVerificationForFile(Uri triggeringFile) {
     if (VerifyOnOpenChange) {
-      var _ = VerifyEverythingAsync(triggeringFile);
+      var _ = VerifyEverythingAsync(null);
     } else {
       logger.LogDebug("Setting result for workCompletedForCurrentVersion");
       workCompletedForCurrentVersion.Release();
@@ -205,14 +205,19 @@ public class ProjectManager : IDisposable {
   }
 
   // Test that when a project has multiple files, when saving/opening, only the affected Uri is verified when using OnSave.
-  private async Task VerifyEverythingAsync(Uri uri) {
+  // Test that when a project has multiple files, everything is verified on opening one of them.
+  private async Task VerifyEverythingAsync(Uri? uri) {
     try {
       var translatedDocument = await CompilationManager.TranslatedCompilation;
 
-      var implementationTasks = translatedDocument.VerificationTasks.
-        Where(d => ((IToken)d.Implementation.tok).Uri == uri).ToList();
+      var implementationTasks = translatedDocument.VerificationTasks;
+      if (uri != null) {
+        implementationTasks = implementationTasks.Where(d => ((IToken)d.Implementation.tok).Uri == uri).ToList();; 
+      }
 
       if (!implementationTasks.Any()) {
+        // This doesn't work like normal??? 
+        // What should change about CompilationManager.verificationCompleted
         CompilationManager.FinishedNotifications(translatedDocument);
       }
 
