@@ -80,7 +80,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       return projectFile;
     }
 
-    private DafnyProject OpenProject(Uri configFileUri) {
+    private DafnyProject? OpenProject(Uri configFileUri) {
       var errorWriter = TextWriter.Null;
       var outputWriter = TextWriter.Null;
       return DafnyProject.Open(fileSystem, configFileUri, outputWriter, errorWriter);
@@ -93,11 +93,12 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         throw new ArgumentException($"the document {documentUri} was not loaded before");
       }
 
-      if (projectUri == documentUri) {
+      var project = OpenProject(projectUri.ToUri());
+      if (project != null) {
         var previousManager = managersByProject[projectUri];
         var _ = previousManager.CloseAsync();
         // TODO add tests that assert the affect of the new project manager, which is that nothing is migrated and last published state is lost.
-        var manager = new ProjectManager(services, verificationCache, OpenProject(projectUri.ToUri()));
+        var manager = new ProjectManager(services, verificationCache, project);
         managersByProject[projectUri] = manager;
       }
 
