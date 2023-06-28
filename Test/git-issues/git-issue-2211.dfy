@@ -7,7 +7,7 @@ predicate P2(a: int)
 predicate Q(s: seq<int>) {
   forall i | 0 <= i < |s| ::
     && P1(s[i])
-    && P2(s[i])  // Line 6
+    && P2(s[i])
 }
 
 method M(s: seq<int>)
