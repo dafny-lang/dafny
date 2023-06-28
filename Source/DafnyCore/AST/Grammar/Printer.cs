@@ -14,6 +14,7 @@ using System.Diagnostics.Contracts;
 using System.Numerics;
 using System.Linq;
 using DafnyCore;
+using JetBrains.Annotations;
 using Bpl = Microsoft.Boogie;
 
 namespace Microsoft.Dafny {
@@ -24,6 +25,9 @@ namespace Microsoft.Dafny {
     NoIncludes,
     NoGhost
   }
+
+
+  public record PrintFlags(bool UseOriginalDafnyNames = false);
 
   public class Printer {
     private DafnyOptions options;
@@ -54,23 +58,25 @@ NoGhost - disable printing of functions, ghost methods, and proof
     bool afterResolver;
     bool printingExportSet = false;
     bool printingDesugared = false;
+    private readonly PrintFlags printFlags;
 
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(wr != null);
     }
 
-    public Printer(TextWriter wr, DafnyOptions options, PrintModes printMode = PrintModes.Everything) {
+    public Printer(TextWriter wr, DafnyOptions options, PrintModes printMode = PrintModes.Everything, [CanBeNull] PrintFlags printFlags = null) {
       Contract.Requires(wr != null);
       this.wr = wr;
       this.options = options;
       this.printMode = printMode;
+      this.printFlags = printFlags ?? new PrintFlags();
     }
 
-    public static string ExprToString(DafnyOptions options, Expression expr) {
+    public static string ExprToString(DafnyOptions options, Expression expr, [CanBeNull] PrintFlags printFlags = null) {
       Contract.Requires(expr != null);
       using var wr = new StringWriter();
-      var pr = new Printer(wr, options);
+      var pr = new Printer(wr, options, printFlags: printFlags);
       pr.PrintExpression(expr, false);
       return wr.ToString();
     }
@@ -396,11 +402,6 @@ NoGhost - disable printing of functions, ghost methods, and proof
             if (dd.Opened) {
               wr.Write(" opened");
             }
-            if (dd.ResolvedHash.HasValue && this.printMode == PrintModes.Serialization) {
-              wr.Write(" /*");
-              wr.Write(dd.ResolvedHash);
-              wr.Write("*/");
-            }
             wr.Write(" {0}", dd.Name);
             if (dd.Name != dd.TargetQId.ToString()) {
               wr.Write(" = {0}", dd.TargetQId.ToString());
@@ -418,11 +419,6 @@ NoGhost - disable printing of functions, ghost methods, and proof
             wr.Write("import");
             if (dd.Opened) {
               wr.Write(" opened");
-            }
-            if (dd.ResolvedHash.HasValue && this.printMode == PrintModes.Serialization) {
-              wr.Write(" /*");
-              wr.Write(dd.ResolvedHash);
-              wr.Write("*/");
             }
             wr.Write(" {0} ", dd.Name);
             wr.Write(": {0}", dd.QId.ToString());
@@ -2166,7 +2162,12 @@ NoGhost - disable printing of functions, ghost methods, and proof
         wr.Write("this");
 
       } else if (expr is IdentifierExpr) {
-        wr.Write(((IdentifierExpr)expr).Name);
+        var e = (IdentifierExpr)expr;
+        if (printFlags.UseOriginalDafnyNames) {
+          wr.Write(e.DafnyName);
+        } else {
+          wr.Write(e.Name);
+        }
 
       } else if (expr is DatatypeValue) {
         var dtv = (DatatypeValue)expr;

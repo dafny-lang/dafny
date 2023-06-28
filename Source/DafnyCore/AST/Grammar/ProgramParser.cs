@@ -35,11 +35,11 @@ public class ProgramParser {
 
     var verifiedRoots = files.Where(df => df.IsPreverified).Select(df => df.Uri).ToHashSet();
     var compiledRoots = files.Where(df => df.IsPrecompiled).Select(df => df.Uri).ToHashSet();
-    var compilation = new CompilationData(options, defaultModule.Includes, defaultModule.RootSourceUris, verifiedRoots,
+    var compilation = new CompilationData(errorReporter, defaultModule.Includes, defaultModule.RootSourceUris, verifiedRoots,
       compiledRoots);
     var program = new Program(
       programName,
-      new LiteralModuleDecl(defaultModule, null),
+      new LiteralModuleDecl(defaultModule, null, Guid.NewGuid()),
       builtIns,
       errorReporter, compilation
     );
@@ -135,9 +135,7 @@ public class ProgramParser {
         diagnostic.Message);
     }
 
-    foreach (var declToMove in fileModule.TopLevelDecls.
-               Where(d => d != null) // Can occur when there are parse errors. Error correction is at fault but we workaround it here
-             ) {
+    foreach (var declToMove in fileModule.TopLevelDecls) {
       declToMove.EnclosingModuleDefinition = defaultModule;
       if (declToMove is LiteralModuleDecl literalModuleDecl) {
         literalModuleDecl.ModuleDef.EnclosingModule = defaultModule;

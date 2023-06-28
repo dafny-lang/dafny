@@ -1,7 +1,11 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
+using System.Collections.Specialized;
 using System.Diagnostics.Contracts;
 using System.Linq;
+using System.Security.Cryptography;
+using System.Security.Policy;
 using Microsoft.Boogie;
 
 namespace Microsoft.Dafny;
@@ -18,8 +22,48 @@ public class SystemModuleManager {
 
   internal readonly ValuetypeDecl[] valuetypeDecls;
 
+  public ModuleSignature systemNameInfo;
+
   public int MaxNonGhostTupleSizeUsed { get; private set; }
   public IToken MaxNonGhostTupleSizeToken { get; private set; }
+
+  private byte[] hash;
+
+  public byte[] MyHash {
+    get {
+      if (hash == null) {
+
+        // A tuple type is defined by a list of booleans, where the size of the list determines how many elements the tuple has,
+        // and the value of each boolean determines whether that value is ghost or not.
+        // Here we represent the tuple type as an integer by translating each boolean to a bit and packing the bits in an int.
+        var tupleInts = tupleTypeDecls.Keys.Select(tuple => {
+          var vector32 = new BitVector32();
+          if (tuple.Count > 32) {
+            throw new Exception("Tuples of size larger than 32 are not supported");
+          }
+          for (var index = 0; index < tuple.Count; index++) {
+            vector32[index] = tuple[index];
+          }
+          return vector32.Data;
+        });
+        var ints =
+          new[] {
+            arrayTypeDecls.Count, ArrowTypeDecls.Count, PartialArrowTypeDecls.Count, TotalArrowTypeDecls.Count,
+            tupleTypeDecls.Count
+          }.
+            Concat(arrayTypeDecls.Keys.OrderBy(x => x)).
+            Concat(ArrowTypeDecls.Keys.OrderBy(x => x)).
+            Concat(PartialArrowTypeDecls.Keys.OrderBy(x => x)).
+            Concat(TotalArrowTypeDecls.Keys.OrderBy(x => x)).
+            Concat(tupleInts.OrderBy(x => x));
+        var bytes = ints.SelectMany(BitConverter.GetBytes).ToArray();
+        hash = HashAlgorithm.Create("SHA256")!.ComputeHash(bytes);
+      }
+
+      return hash;
+    }
+  }
+
   public readonly ISet<int> Bitwidths = new HashSet<int>();
   [FilledInDuringResolution] public SpecialField ORDINAL_Offset;  // used by the translator
 
@@ -63,7 +107,7 @@ public class SystemModuleManager {
     // Several methods and fields rely on 1-argument arrow types
     CreateArrowTypeDecl(1);
 
-    valuetypeDecls = new ValuetypeDecl[] {
+    valuetypeDecls = new[] {
         new ValuetypeDecl("bool", SystemModule, t => t.IsBoolType, typeArgs => Type.Bool),
         new ValuetypeDecl("int", SystemModule, t => t.IsNumericBased(Type.NumericPersuasion.Int), typeArgs => Type.Int),
         new ValuetypeDecl("real", SystemModule, t => t.IsNumericBased(Type.NumericPersuasion.Real), typeArgs => Type.Real),
@@ -231,7 +275,7 @@ public class SystemModuleManager {
       var readsIS = new FunctionCallExpr(tok, "reads", new ImplicitThisExpr(tok), tok, tok, argExprs) {
         Type = new SetType(true, ObjectQ()),
       };
-      var readsFrame = new List<FrameExpression> { new(tok, readsIS, null) };
+      var readsFrame = new List<FrameExpression> { new FrameExpression(tok, readsIS, null) };
       var function = new Function(RangeToken.NoToken, new Name(name), false, true, false,
         new List<TypeParameter>(), args, null, resultType,
         new List<AttributedExpression>(), readsFrame, new List<AttributedExpression>(),
@@ -407,6 +451,32 @@ public class SystemModuleManager {
   public static string TupleTypeCtorName(int dims) {
     Contract.Assert(0 <= dims);
     return TupleTypeCtorNamePrefix + dims;
+  }
+
+  public ValuetypeDecl AsValuetypeDecl(Type t) {
+    Contract.Requires(t != null);
+    foreach (var vtd in valuetypeDecls) {
+      if (vtd.IsThisType(t)) {
+        return vtd;
+      }
+    }
+    return null;
+  }
+
+  public void ResolveValueTypeDecls(ProgramResolver programResolver) {
+    var moduleResolver = new Resolver(programResolver);
+    moduleResolver.moduleInfo = systemNameInfo;
+    foreach (var valueTypeDecl in valuetypeDecls) {
+      foreach (var member in valueTypeDecl.Members) {
+        if (member is Function function) {
+          moduleResolver.ResolveFunctionSignature(function);
+          CallGraphBuilder.VisitFunction(function, programResolver.Reporter);
+        } else if (member is Method method) {
+          moduleResolver.ResolveMethodSignature(method);
+          CallGraphBuilder.VisitMethod(method, programResolver.Reporter);
+        }
+      }
+    }
   }
 }
 
