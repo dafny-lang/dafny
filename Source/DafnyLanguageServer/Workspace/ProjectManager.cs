@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -23,8 +24,8 @@ public class ProjectManager : IDisposable {
   private readonly IServiceProvider services;
   public DafnyProject Project { get; }
   private readonly IdeStateObserver observer;
-  public CompilationManager? CompilationManager { get; private set; }
-  private IDisposable? observerSubscription;
+  public CompilationManager CompilationManager { get; private set; }
+  private IDisposable observerSubscription;
   private readonly ILogger<ProjectManager> logger;
   private ExecutionEngine boogieEngine;
   private int version = 1;
@@ -57,17 +58,15 @@ public class ProjectManager : IDisposable {
     boogieEngine = new ExecutionEngine(options, verificationCache);
     options.Printer = new OutputLogger(logger);
 
-    // Remove this next part???
-    // var compilationStart = new Compilation(version, Project);
-    // CompilationManager = new CompilationManager(
-    //   services,
-    //   options,
-    //   boogieEngine, compilationStart, null);
-    //
-    // observerSubscription = CompilationManager.CompilationUpdates.Select(d =>
-    //   d.InitialIdeState(compilationStart, options)).Subscribe(observer);
-    //
-    // CompilationManager.Start();
+    CompilationManager = new CompilationManager(
+      services,
+      options,
+      boogieEngine,
+      new Compilation(version, Project),
+      null
+    );
+
+    observerSubscription = Disposable.Empty;
   }
 
   private const int MaxRememberedChanges = 100;
@@ -76,7 +75,7 @@ public class ProjectManager : IDisposable {
   // TODO test that migration doesn't affect the wrong document.
   // Also test that changed ranges is computed for the right document.
   public void UpdateDocument(DidChangeTextDocumentParams documentChange) {
-    CompilationManager?.CancelPendingUpdates();
+    CompilationManager.CancelPendingUpdates();
 
     var lastPublishedState = observer.LastPublishedState;
     var migratedVerificationTree = lastPublishedState.VerificationTree == null ? null
@@ -94,10 +93,13 @@ public class ProjectManager : IDisposable {
           Where(r => r != null).Take(MaxRememberedChanges).ToList()!;
     }
 
-    StartNewCompilation(documentChange.TextDocument.Uri.ToUri(), migratedVerificationTree, lastPublishedState);
+    StartNewCompilation(migratedVerificationTree, lastPublishedState);
+    
+
+    TriggerVerificationForFile(documentChange.TextDocument.Uri.ToUri());
   }
 
-  private void StartNewCompilation(Uri triggeringFile, VerificationTree? migratedVerificationTree,
+  private void StartNewCompilation(VerificationTree? migratedVerificationTree,
     IdeState lastPublishedState) {
     version++;
     logger.LogDebug("Clearing result for workCompletedForCurrentVersion");
@@ -112,19 +114,25 @@ public class ProjectManager : IDisposable {
       migratedVerificationTree
     );
 
-    if (VerifyOnOpenChange) {
-      var _ = VerifyEverythingAsync(triggeringFile);
-    } else {
-      logger.LogDebug("Setting result for workCompletedForCurrentVersion");
-      workCompletedForCurrentVersion.Release();
-    }
-
-    observerSubscription?.Dispose();
+    observerSubscription.Dispose();
     var migratedUpdates = CompilationManager.CompilationUpdates.Select(document =>
       document.ToIdeState(lastPublishedState));
     observerSubscription = migratedUpdates.Subscribe(observer);
 
     CompilationManager.Start();
+  }
+
+  public void TriggerVerificationForFile(Uri triggeringFile)
+  {
+    if (VerifyOnOpenChange)
+    {
+      var _ = VerifyEverythingAsync(triggeringFile);
+    }
+    else
+    {
+      logger.LogDebug("Setting result for workCompletedForCurrentVersion");
+      workCompletedForCurrentVersion.Release();
+    }
   }
 
   private static DafnyOptions DetermineProjectOptions(DafnyProject projectOptions, DafnyOptions serverOptions) {
@@ -250,13 +258,14 @@ public class ProjectManager : IDisposable {
     return changedRanges.SelectMany(changeRange => intervalTree.Query(changeRange.Start, changeRange.End));
   }
 
-  public void OpenDocument(TextDocumentItem document) {
-    CompilationManager?.CancelPendingUpdates();
+  public void OpenDocument(Uri uri) {
+    CompilationManager.CancelPendingUpdates();
 
     var lastPublishedState = observer.LastPublishedState;
     var migratedVerificationTree = lastPublishedState.VerificationTree;
 
-    StartNewCompilation(document.Uri.ToUri(), migratedVerificationTree, lastPublishedState);
+    StartNewCompilation(migratedVerificationTree, lastPublishedState);
+    TriggerVerificationForFile(uri);
   }
 
   public void Dispose() {

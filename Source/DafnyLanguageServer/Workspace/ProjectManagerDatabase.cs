@@ -43,7 +43,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
       projectFilesByFile.Add(document.Uri, profileFile.Uri);
       managersByProject[profileFile.Uri] = projectManager;
-      projectManager.OpenDocument(document);
+      projectManager.OpenDocument(document.Uri.ToUri());
     }
 
     public static DafnyProject ImplicitProject(TextDocumentIdentifier documentItem) {
