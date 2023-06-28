@@ -22,10 +22,6 @@ public class SymbolTable {
     Declarations = ImmutableDictionary<IDeclarationOrUsage, IDeclarationOrUsage>.Empty;
   }
 
-      return result;
-    });
-  }
-
   public SymbolTable(IReadOnlyList<(IDeclarationOrUsage usage, IDeclarationOrUsage declaration)> usages) {
     var safeUsages = usages.Where(k => k.declaration.NameToken.Uri != null).ToList();
     Declarations = safeUsages.DistinctBy(k => k.usage).
