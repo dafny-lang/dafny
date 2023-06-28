@@ -74,8 +74,6 @@ public class ProjectManager : IDisposable {
   // TODO test that migration doesn't affect the wrong document.
   // Also test that changed ranges is computed for the right document.
   public void UpdateDocument(DidChangeTextDocumentParams documentChange) {
-    CompilationManager.CancelPendingUpdates();
-
     var lastPublishedState = observer.LastPublishedState;
     var migratedVerificationTree = lastPublishedState.VerificationTree == null ? null
       : relocator.RelocateVerificationTree(lastPublishedState.VerificationTree, documentChange, CancellationToken.None);
