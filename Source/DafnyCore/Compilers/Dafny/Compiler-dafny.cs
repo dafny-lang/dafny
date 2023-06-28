@@ -9,9 +9,141 @@ using DAST;
 
 namespace Microsoft.Dafny.Compilers {
 
-  class DafnyCompiler : SinglePassCompiler {
+  class ProgramBuilder : ModuleContainer {
+    readonly List<TopLevel> items = new();
 
-    public ISequence<Rune> DafnyAST;
+    public void AddModule(Module item) {
+      items.Add((TopLevel)TopLevel.create_Module(item));
+    }
+
+    public ModuleBuilder Module(string name) {
+      return new ModuleBuilder(this, name);
+    }
+
+    public List<TopLevel> Finish() {
+      return items;
+    }
+  }
+
+  interface ModuleItemContainer {
+    void AddModuleItem(ModuleItem item);
+  }
+
+  interface ModuleContainer {
+    void AddModule(Module item);
+
+    public ModuleBuilder Module(string name) {
+      return new ModuleBuilder(this, name);
+    }
+  }
+
+  class ModuleBuilder : ModuleContainer, ClassContainer {
+    readonly ModuleContainer parent;
+    readonly string name;
+    List<ModuleItem> body = new List<ModuleItem>();
+
+    public ModuleBuilder(ModuleContainer parent, string name) {
+      this.parent = parent;
+      this.name = name;
+    }
+
+    public void AddModule(Module item) {
+      this.body.Add((ModuleItem)ModuleItem.create_Module(item));
+    }
+
+    public void AddClass(Class item) {
+      this.body.Add((ModuleItem)ModuleItem.create_Class(item));
+    }
+
+    public Object Finish() {
+      parent.AddModule((Module)Module.create(Sequence<Rune>.UnicodeFromString(this.name), Sequence<ModuleItem>.FromArray(body.ToArray())));
+      return parent;
+    }
+  }
+
+  interface ClassContainer {
+    void AddClass(Class item);
+
+    public ClassBuilder Class(string name) {
+      return new ClassBuilder(this, name);
+    }
+  }
+
+  class ClassBuilder : MethodContainer {
+    readonly ClassContainer parent;
+    readonly string name;
+    readonly List<ClassItem> body = new();
+
+    public ClassBuilder(ClassContainer parent, string name) {
+      this.parent = parent;
+      this.name = name;
+    }
+
+    public void AddMethod(DAST.Method item) {
+      this.body.Add((ClassItem)ClassItem.create_Method(item));
+    }
+
+    public Object Finish() {
+      parent.AddClass((Class)Class.create(Sequence<Rune>.UnicodeFromString(this.name), Sequence<ClassItem>.FromArray(body.ToArray())));
+      return parent;
+    }
+  }
+
+  interface MethodContainer {
+    void AddMethod(DAST.Method item);
+
+    public MethodBuilder Method(string name) {
+      return new MethodBuilder(this, name);
+    }
+  }
+
+  class MethodBuilder : StatementContainer {
+    readonly MethodContainer parent;
+    readonly string name;
+    readonly List<DAST.Statement> body = new();
+
+    public MethodBuilder(MethodContainer parent, string name) {
+      this.parent = parent;
+      this.name = name;
+    }
+
+    public void AddStatement(DAST.Statement item) {
+      this.body.Add(item);
+    }
+
+    public Object Finish() {
+      parent.AddMethod((DAST.Method)DAST.Method.create(Sequence<Rune>.UnicodeFromString(this.name), Sequence<DAST.Statement>.FromArray(body.ToArray())));
+      return parent;
+    }
+  }
+
+  interface StatementContainer {
+    void AddStatement(DAST.Statement item);
+
+    public void Print(DAST.Expression expr) {
+      this.AddStatement((DAST.Statement)DAST.Statement.create_Print(expr));
+    }
+  }
+
+  class DafnyCompiler : SinglePassCompiler {
+    ProgramBuilder items;
+    Object currentBuilder;
+
+    public void Start() {
+      if (items != null) {
+        throw new InvalidOperationException("");
+      }
+
+      items = new ProgramBuilder();
+      this.currentBuilder = items;
+    }
+
+    public List<TopLevel> Build() {
+      var res = items.Finish();
+      items = null;
+      this.currentBuilder = null;
+      return res;
+    }
 
     public DafnyCompiler(DafnyOptions options, ErrorReporter reporter) : base(options, reporter) {
       if (Options?.CoverageLegendFile != null) {
@@ -67,88 +199,89 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     public override void EmitCallToMain(Method mainMethod, string baseName, ConcreteSyntaxTree wr) {
-      wr.WriteLine("import opened i_module");
-      var wrBody = wr.NewBlock("method Main()", "");
-      wrBody.WriteLine("ii__default.iMain();");
-      //var test = StringUtils.OfCString("hello");
-      var test2 = Sequence<Rune>.UnicodeFromString("Hello, world!\n");
-      DafnyAST = ASTBuilder.CreateProgram(test2);
+      throw new NotImplementedException();
     }
 
     protected override ConcreteSyntaxTree CreateStaticMain(IClassWriter cw, string argsParameterName) {
-      throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
+      throw new NotImplementedException();
     }
 
     protected override ConcreteSyntaxTree CreateModule(string moduleName, bool isDefault, bool isExtern,
         string libraryName, ConcreteSyntaxTree wr) {
-      if (moduleName == "_System") {
-        return wr;
+      if (currentBuilder is ModuleContainer moduleBuilder) {
+        currentBuilder = moduleBuilder.Module(moduleName);
+      } else {
+        throw new NotImplementedException();
       }
-      if (!isDefault) {
-        throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
+
+      return wr;
+    }
+
+    protected override void FinishModule() {
+      if (currentBuilder is ModuleBuilder builder) {
+        currentBuilder = builder.Finish();
+      } else {
+        throw new NotImplementedException();
       }
-      return wr.NewBlock($"module {IdProtect(moduleName)}");
     }
 
     protected override string GetHelperModuleName() => DafnyRuntimeModule;
 
     private static string MangleName(string name) {
-      return "i" + name;
+      return name;
     }
 
     protected override IClassWriter CreateClass(string moduleName, string name, bool isExtern, string fullPrintName,
       List<TypeParameter> typeParameters, TopLevelDecl cls, List<Type> superClasses, IToken tok, ConcreteSyntaxTree wr) {
-
-      var methodWriter = wr.NewBlock($"class {IdProtect(name)}");
-      var block = methodWriter.NewBlock(header: $"constructor()");
-      var constructorWriter = block.Fork();
-      return new ClassWriter(this, constructorWriter, methodWriter);
-
+      if (currentBuilder is ClassContainer builder) {
+        return new ClassWriter(this, builder.Class(name));
+      } else {
+        throw new NotImplementedException();
+      }
     }
 
     protected override IClassWriter CreateTrait(string name, bool isExtern, List<TypeParameter> typeParameters,
       TopLevelDecl trait, List<Type> superClasses, IToken tok, ConcreteSyntaxTree wr) {
-      throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
+      throw new NotImplementedException();
     }
 
     protected override ConcreteSyntaxTree CreateIterator(IteratorDecl iter, ConcreteSyntaxTree wr) {
-      throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
+      throw new NotImplementedException();
     }
 
     protected override IClassWriter DeclareDatatype(DatatypeDecl dt, ConcreteSyntaxTree wr) {
-      throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
+      throw new NotImplementedException();
     }
 
     protected override IClassWriter DeclareNewtype(NewtypeDecl nt, ConcreteSyntaxTree wr) {
-      throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
+      throw new NotImplementedException();
     }
 
     protected override void DeclareSubsetType(SubsetTypeDecl sst, ConcreteSyntaxTree wr) {
       // Currently ignores subset types because they appear in the prelude
-      // throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
+      // throw new NotImplementedException();
     }
 
     protected override void GetNativeInfo(NativeType.Selection sel, out string name, out string literalSuffix, out bool needsCastAfterArithmetic) {
-      throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
+      throw new NotImplementedException();
     }
 
     private class ClassWriter : IClassWriter {
-      private readonly DafnyCompiler Compiler;
-      public readonly ConcreteSyntaxTree ConstructorWriter;
-      public readonly ConcreteSyntaxTree MethodWriter;
+      private readonly DafnyCompiler compiler;
+      private readonly ClassBuilder builder;
+      private readonly List<MethodBuilder> methods = new();
 
-      public ClassWriter(DafnyCompiler compiler, ConcreteSyntaxTree constructorWriter, ConcreteSyntaxTree methodWriter) {
-        Contract.Requires(compiler != null);
-        Contract.Requires(methodWriter != null);
-        Contract.Requires(constructorWriter != null);
-        Compiler = compiler;
-        ConstructorWriter = constructorWriter;
-        MethodWriter = methodWriter;
+      public ClassWriter(DafnyCompiler compiler, ClassBuilder builder) {
+        this.compiler = compiler;
+        this.builder = builder;
       }
 
       public ConcreteSyntaxTree CreateMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody,
         bool forBodyInheritance, bool lookasideBody) {
-        return Compiler.CreateMethod(m, typeArgs, createBody, MethodWriter, forBodyInheritance, lookasideBody);
+        var builder = ((MethodContainer)this.builder).Method(m.Name);
+        methods.Add(builder);
+        compiler.currentBuilder = builder;
+        return new ConcreteSyntaxTree();
       }
 
       public ConcreteSyntaxTree SynthesizeMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody, bool forBodyInheritance, bool lookasideBody) {
@@ -158,60 +291,36 @@ namespace Microsoft.Dafny.Compilers {
       public ConcreteSyntaxTree CreateFunction(string name, List<TypeArgumentInstantiation> typeArgs,
           List<Formal> formals, Type resultType, IToken tok, bool isStatic, bool createBody, MemberDecl member,
           bool forBodyInheritance, bool lookasideBody) {
-        return Compiler.CreateFunction(name, typeArgs, formals, resultType, tok, isStatic, createBody, member,
-          MethodWriter, forBodyInheritance, lookasideBody);
+        throw new NotImplementedException();
       }
 
       public ConcreteSyntaxTree CreateGetter(string name, TopLevelDecl enclosingDecl, Type resultType, IToken tok,
           bool isStatic, bool isConst, bool createBody, MemberDecl member, bool forBodyInheritance) {
-        return Compiler.CreateGetter(name, resultType, tok, isStatic, createBody, MethodWriter);
+        throw new NotImplementedException();
       }
 
       public ConcreteSyntaxTree CreateGetterSetter(string name, Type resultType, IToken tok,
           bool createBody, MemberDecl member, out ConcreteSyntaxTree setterWriter, bool forBodyInheritance) {
-        return Compiler.CreateGetterSetter(name, createBody, out setterWriter, methodWriter: MethodWriter);
+        throw new NotImplementedException();
       }
 
       public void DeclareField(string name, TopLevelDecl enclosingDecl, bool isStatic, bool isConst, Type type,
           IToken tok, string rhs, Field field) {
-        Compiler.DeclareField(name, isStatic, isConst, type, tok, rhs, ConstructorWriter);
+        throw new NotImplementedException();
       }
 
       public void InitializeField(Field field, Type instantiatedFieldType, TopLevelDeclWithMembers enclosingClass) {
         throw new cce.UnreachableException();
       }
 
-      public ConcreteSyntaxTree ErrorWriter() => MethodWriter;
+      public ConcreteSyntaxTree ErrorWriter() => null;
 
       public void Finish() {
-
+        foreach (var method in methods) {
+          method.Finish();
+        }
+        compiler.currentBuilder = this.builder.Finish();
       }
-    }
-
-    private void DeclareField(string name, bool isStatic, bool isConst, Type type, IToken tok, string rhs,
-        ConcreteSyntaxTree fieldWriter) {
-      throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
-    }
-
-    private ConcreteSyntaxTree CreateGetterSetter(string name, bool createBody, out ConcreteSyntaxTree setterWriter, ConcreteSyntaxTree methodWriter) {
-      throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
-    }
-
-    private ConcreteSyntaxTree CreateGetter(string name, Type resultType, IToken tok, bool isStatic, bool createBody, ConcreteSyntaxTree methodWriter) {
-      throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
-    }
-
-    private ConcreteSyntaxTree CreateMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody,
-        ConcreteSyntaxTree wr, bool forBodyInheritance, bool lookasideBody) {
-      var wrBody = wr.NewBlock($"static method {IdProtect(m.FullDafnyName)}()");
-      return wrBody;
-    }
-
-    private ConcreteSyntaxTree CreateFunction(string name, List<TypeArgumentInstantiation> typeArgs,
-      List<Formal> formals, Type resultType, IToken tok, bool isStatic, bool createBody, MemberDecl member,
-      ConcreteSyntaxTree wr, bool forBodyInheritance, bool lookasideBody) {
-      var wrBody = wr.NewBlock($"method {name}() returns (o: {resultType})");
-      return wrBody;
     }
 
     protected override string TypeDescriptor(Type type, ConcreteSyntaxTree wr, IToken tok) {
@@ -220,37 +329,37 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override ConcreteSyntaxTree EmitTailCallStructure(MemberDecl member, ConcreteSyntaxTree wr) {
-      throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
+      throw new NotImplementedException();
     }
 
     protected override void EmitJumpToTailCallStart(ConcreteSyntaxTree wr) {
-      throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
+      throw new NotImplementedException();
     }
 
     internal override string TypeName(Type type, ConcreteSyntaxTree wr, IToken tok, MemberDecl/*?*/ member = null) {
-      throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
+      throw new NotImplementedException();
     }
 
     protected override string TypeInitializationValue(Type type, ConcreteSyntaxTree wr, IToken tok,
         bool usePlaceboValue, bool constructTypeParameterDefaultsFromTypeDescriptors) {
-      throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
+      throw new NotImplementedException();
     }
 
     protected override string TypeName_UDT(string fullCompileName, List<TypeParameter.TPVariance> variance,
         List<Type> typeArgs, ConcreteSyntaxTree wr, IToken tok, bool omitTypeArguments) {
-      throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
+      throw new NotImplementedException();
     }
 
     protected override string TypeName_Companion(Type type, ConcreteSyntaxTree wr, IToken tok, MemberDecl member) {
-      throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
+      throw new NotImplementedException();
     }
 
     protected override void TypeArgDescriptorUse(bool isStatic, bool lookasideBody, TopLevelDeclWithMembers cl, out bool needsTypeParameter, out bool needsTypeDescriptor) {
-      throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
+      throw new NotImplementedException();
     }
 
     protected override bool DeclareFormal(string prefix, string name, Type type, IToken tok, bool isInParam, ConcreteSyntaxTree wr) {
-      throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
+      throw new NotImplementedException();
     }
 
     protected override void DeclareLocalVar(string name, Type type, IToken tok, bool leaveRoomForRhs, string rhs,
@@ -259,7 +368,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override ConcreteSyntaxTree DeclareLocalVar(string name, Type type, IToken tok, ConcreteSyntaxTree wr) {
-      throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
+      throw new NotImplementedException();
     }
 
     protected override bool UseReturnStyleOuts(Method m, int nonGhostOutCount) => true;
@@ -267,11 +376,11 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void DeclareLocalOutVar(string name, Type type, IToken tok, string rhs, bool useReturnStyleOuts,
         ConcreteSyntaxTree wr) {
-      throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
+      throw new NotImplementedException();
     }
 
     protected override void EmitActualTypeArgs(List<Type> typeArgs, IToken tok, ConcreteSyntaxTree wr) {
-      throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
+      throw new NotImplementedException();
     }
 
     protected override string GenerateLhsDecl(string target, Type type, ConcreteSyntaxTree wr, IToken tok) {
@@ -279,30 +388,27 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void EmitPrintStmt(ConcreteSyntaxTree wr, Expression arg) {
-      var wStmts = wr.Fork();
-      wr.Write("print(");
-      EmitToString(wr, arg, wStmts);
-      wr.WriteLine(");");
-    }
-
-    private void EmitToString(ConcreteSyntaxTree wr, Expression arg, ConcreteSyntaxTree wStmts) {
-      wr = Expr(arg, false, wStmts);
+      if (currentBuilder is StatementContainer statementContainer) {
+        statementContainer.Print((DAST.Expression)DAST.Expression.create_Literal(Literal.create_StringLiteral(Sequence<Rune>.UnicodeFromString(arg.ToString()))));
+      } else {
+        throw new NotImplementedException("");
+      }
     }
 
     protected override void EmitReturn(List<Formal> outParams, ConcreteSyntaxTree wr) {
-      throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
+      throw new NotImplementedException();
     }
 
     protected override ConcreteSyntaxTree CreateLabeledCode(string label, bool createContinueLabel, ConcreteSyntaxTree wr) {
-      throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
+      throw new NotImplementedException();
     }
 
     protected override void EmitBreak(string label, ConcreteSyntaxTree wr) {
-      throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
+      throw new NotImplementedException();
     }
 
     protected override void EmitContinue(string label, ConcreteSyntaxTree wr) {
-      throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
+      throw new NotImplementedException();
     }
 
     protected override void EmitYield(ConcreteSyntaxTree wr) {
@@ -310,19 +416,19 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void EmitAbsurd(string message, ConcreteSyntaxTree wr) {
-      throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
+      throw new NotImplementedException();
     }
 
     protected override void EmitHalt(IToken tok, Expression messageExpr, ConcreteSyntaxTree wr) {
-      throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
+      throw new NotImplementedException();
     }
 
     protected override ConcreteSyntaxTree EmitIf(out ConcreteSyntaxTree guardWriter, bool hasElse, ConcreteSyntaxTree wr) {
-      throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
+      throw new NotImplementedException();
     }
 
     protected override ConcreteSyntaxTree EmitBlock(ConcreteSyntaxTree wr) {
-      throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
+      throw new NotImplementedException();
     }
 
     protected override ConcreteSyntaxTree EmitForStmt(IToken tok, IVariable loopIndex, bool goingUp, string endVarName,
@@ -333,27 +439,27 @@ namespace Microsoft.Dafny.Compilers {
       // var bodyWr = wr.NewBlock();
       // TrStmtList(body, bodyWr);
       // return lowWr;
-      throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
+      throw new NotImplementedException();
     }
 
     protected override ConcreteSyntaxTree CreateWhileLoop(out ConcreteSyntaxTree guardWriter, ConcreteSyntaxTree wr) {
-      throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
+      throw new NotImplementedException();
     }
 
     protected override ConcreteSyntaxTree CreateForLoop(string indexVar, string bound, ConcreteSyntaxTree wr, string start = null) {
-      throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
+      throw new NotImplementedException();
     }
 
     protected override ConcreteSyntaxTree CreateDoublingForLoop(string indexVar, int start, ConcreteSyntaxTree wr) {
-      throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
+      throw new NotImplementedException();
     }
 
     protected override void EmitIncrementVar(string varName, ConcreteSyntaxTree wr) {
-      throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
+      throw new NotImplementedException();
     }
 
     protected override void EmitDecrementVar(string varName, ConcreteSyntaxTree wr) {
-      throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
+      throw new NotImplementedException();
     }
 
     protected override string GetQuantifierName(string bvType) {
@@ -362,42 +468,38 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override ConcreteSyntaxTree CreateForeachLoop(string tmpVarName, Type collectionElementType, IToken tok,
       out ConcreteSyntaxTree collectionWriter, ConcreteSyntaxTree wr) {
-      throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
+      throw new NotImplementedException();
     }
 
     protected override void EmitDowncastVariableAssignment(string boundVarName, Type boundVarType, string tmpVarName,
       Type collectionElementType, bool introduceBoundVar, IToken tok, ConcreteSyntaxTree wr) {
-      throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
+      throw new NotImplementedException();
     }
 
     protected override ConcreteSyntaxTree CreateForeachIngredientLoop(string boundVarName, int L, string tupleTypeArgs,
         out ConcreteSyntaxTree collectionWriter, ConcreteSyntaxTree wr) {
-      throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
+      throw new NotImplementedException();
     }
 
     protected override void EmitNew(Type type, IToken tok, CallStmt initCall, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
-      throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
+      throw new NotImplementedException();
     }
 
     protected override void EmitNewArray(Type elementType, IToken tok, List<string> dimensions,
       bool mustInitialize, [CanBeNull] string exampleElement, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
-      throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
+      throw new NotImplementedException();
     }
 
     protected override void EmitLiteralExpr(ConcreteSyntaxTree wr, LiteralExpr e) {
-      wr.Write(e.ToString());
+      throw new NotImplementedException();
     }
 
     protected override void EmitStringLiteral(string str, bool isVerbatim, ConcreteSyntaxTree wr) {
-      if (str.Contains("\"") || str.Contains("\\") || !str.All(char.IsAscii)) {
-        throw new UnsupportedFeatureException(Token.NoToken, Feature.UnicodeChars);
-      } else {
-        wr.Write($"\"{str}\"");
-      }
+      throw new NotImplementedException();
     }
 
     protected override ConcreteSyntaxTree EmitBitvectorTruncation(BitvectorType bvType, bool surroundByUnchecked, ConcreteSyntaxTree wr) {
-      throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
+      throw new NotImplementedException();
     }
 
     protected override void EmitRotate(Expression e0, Expression e1, bool isRotateLeft, ConcreteSyntaxTree wr,
@@ -426,7 +528,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override string FullTypeName(UserDefinedType udt, MemberDecl member = null) {
-      throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
+      throw new NotImplementedException();
     }
 
     protected override void EmitThis(ConcreteSyntaxTree wr) {
@@ -434,51 +536,51 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void EmitDatatypeValue(DatatypeValue dtv, string arguments, ConcreteSyntaxTree wr) {
-      throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
+      wr.Write(dtv.ToString());
     }
 
     protected override void GetSpecialFieldInfo(SpecialField.ID id, object idParam, Type receiverType,
         out string compiledName, out string preString, out string postString) {
-      throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
+      throw new NotImplementedException();
     }
 
     protected override ILvalue EmitMemberSelect(Action<ConcreteSyntaxTree> obj, Type objType, MemberDecl member,
       List<TypeArgumentInstantiation> typeArgs, Dictionary<TypeParameter, Type> typeMap, Type expectedType,
       string additionalCustomParameter = null, bool internalAccess = false) {
-      throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
+      throw new NotImplementedException();
     }
 
     protected override ConcreteSyntaxTree EmitArraySelect(List<string> indices, Type elmtType, ConcreteSyntaxTree wr) {
-      throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
+      throw new NotImplementedException();
     }
 
     protected override ConcreteSyntaxTree EmitArraySelect(List<Expression> indices, Type elmtType, bool inLetExprBody,
         ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
-      throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
+      throw new NotImplementedException();
     }
 
     protected override void EmitExprAsNativeInt(Expression expr, bool inLetExprBody, ConcreteSyntaxTree wr,
       ConcreteSyntaxTree wStmts) {
-      throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
+      throw new NotImplementedException();
     }
 
     protected override void EmitIndexCollectionSelect(Expression source, Expression index, bool inLetExprBody,
       ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
-      throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
+      throw new NotImplementedException();
     }
 
     protected override void EmitIndexCollectionUpdate(Expression source, Expression index, Expression value,
       CollectionType resultCollectionType, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
-      throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
+      throw new NotImplementedException();
     }
 
     protected override void EmitSeqSelectRange(Expression source, Expression lo, Expression hi, bool fromArray,
       bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
-      throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
+      throw new NotImplementedException();
     }
 
     protected override void EmitSeqConstructionExpr(SeqConstructionExpr expr, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
-      throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
+      throw new NotImplementedException();
     }
 
     protected override void EmitMultiSetFormingExpr(MultiSetFormingExpr expr, bool inLetExprBody, ConcreteSyntaxTree wr,
@@ -495,23 +597,23 @@ namespace Microsoft.Dafny.Compilers {
     protected override ConcreteSyntaxTree EmitBetaRedex(List<string> boundVars, List<Expression> arguments,
       List<Type> boundTypes, Type resultType, IToken resultTok, bool inLetExprBody, ConcreteSyntaxTree wr,
       ref ConcreteSyntaxTree wStmts) {
-      throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
+      throw new NotImplementedException();
     }
 
     protected override void EmitDestructor(string source, Formal dtor, int formalNonGhostIndex, DatatypeCtor ctor,
         List<Type> typeArgs, Type bvType, ConcreteSyntaxTree wr) {
-      throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
+      throw new NotImplementedException();
     }
 
     protected override bool TargetLambdasRestrictedToExpressions => true;
     protected override ConcreteSyntaxTree CreateLambda(List<Type> inTypes, IToken tok, List<string> inNames,
         Type resultType, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts, bool untyped = false) {
-      throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
+      throw new NotImplementedException();
     }
 
     protected override void CreateIIFE(string bvName, Type bvType, IToken bvTok, Type bodyType, IToken bodyTok,
       ConcreteSyntaxTree wr, ref ConcreteSyntaxTree wStmts, out ConcreteSyntaxTree wrRhs, out ConcreteSyntaxTree wrBody) {
-      throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
+      throw new NotImplementedException();
     }
 
     protected override ConcreteSyntaxTree CreateIIFE0(Type resultType, IToken resultTok, ConcreteSyntaxTree wr,
@@ -526,7 +628,7 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void EmitUnaryExpr(ResolvedUnaryOp op, Expression expr, bool inLetExprBody,
         ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
-      throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
+      throw new NotImplementedException();
     }
 
     protected override void CompileBinOp(BinaryExpr.ResolvedOpcode op,
@@ -693,11 +795,11 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void EmitITE(Expression guard, Expression thn, Expression els, Type resultType, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
-      throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
+      throw new NotImplementedException();
     }
 
     protected override void EmitIsZero(string varName, ConcreteSyntaxTree wr) {
-      throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
+      throw new NotImplementedException();
     }
 
     protected override void EmitConversionExpr(ConversionExpr e, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
@@ -725,7 +827,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void EmitSetBuilder_New(ConcreteSyntaxTree wr, SetComprehension e, string collectionName) {
-      throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
+      throw new NotImplementedException();
     }
 
     protected override void EmitMapBuilder_New(ConcreteSyntaxTree wr, MapComprehension e, string collectionName) {
@@ -734,7 +836,7 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void EmitSetBuilder_Add(CollectionType ct, string collName, Expression elmt, bool inLetExprBody,
         ConcreteSyntaxTree wr) {
-      throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
+      throw new NotImplementedException();
     }
 
     protected override ConcreteSyntaxTree EmitMapBuilder_Add(MapType mt, IToken tok, string collName, Expression term,
@@ -743,15 +845,15 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override string GetSubtypeCondition(string tmpVarName, Type boundVarType, IToken tok, ConcreteSyntaxTree wPreconditions) {
-      throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
+      throw new NotImplementedException();
     }
 
     protected override string GetCollectionBuilder_Build(CollectionType ct, IToken tok, string collName, ConcreteSyntaxTree wr) {
-      throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
+      throw new NotImplementedException();
     }
 
     protected override Type EmitIntegerRange(Type type, out ConcreteSyntaxTree wLo, out ConcreteSyntaxTree wHi, ConcreteSyntaxTree wr) {
-      throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
+      throw new NotImplementedException();
     }
 
     protected override void EmitSingleValueGenerator(Expression e, bool inLetExprBody, string type,
@@ -760,7 +862,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void EmitHaltRecoveryStmt(Statement body, string haltMessageVarName, Statement recoveryBody, ConcreteSyntaxTree wr) {
-      throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
+      throw new NotImplementedException();
     }
 
   }

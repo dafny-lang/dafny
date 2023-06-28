@@ -10,7 +10,7 @@ using App.ExactArithmetic;
 class Program {
   public static void Main(string[] args) {
     var apples = new Entry<Fruit>(Fruit.Apple, 3, new Decimal(1, 0));
-    var pears  = new Entry<Fruit>(Fruit.Pear,  2, new Decimal(15, -1));
+    var pears = new Entry<Fruit>(Fruit.Pear, 2, new Decimal(15, -1));
 
     var groceryList = new GroceryList<Fruit>(
       new Cons<Entry<Fruit>>(

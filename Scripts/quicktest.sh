@@ -26,6 +26,8 @@ echo Running with Go
 $DAFNY run -t:go c.dfy
 echo Running with Python
 $DAFNY run -t:py c.dfy
+echo Running with Rust
+$DAFNY run -t:rs c.dfy
 echo Building with C#
 rm -rf c-go c-java c-py c.jar c c.dll c.exe c.js c.runtimeconfig.json
 $DAFNY build -t:cs c.dfy
@@ -43,5 +45,8 @@ $DAFNY build -t:go c.dfy
 echo Building with Python
 $DAFNY build -t:py c.dfy
 python c-py/c.py
+echo Building with Rust
+$DAFNY build -t:rs c.dfy
+./c.exe
 
-rm -rf a.dfy b.dfy c.dfy c-go c-java c-py c.jar c c.dll c.exe c.js c.runtimeconfig.json
+rm -rf a.dfy b.dfy c.dfy c-go c-java c-py c.jar c c.dll c.exe c.js c.rs c.runtimeconfig.json

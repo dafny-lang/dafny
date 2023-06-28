@@ -24,7 +24,7 @@ public class RustBackend : DafnyExecutableBackend {
   private string ComputeExeName(string targetFilename) {
     return Path.ChangeExtension(Path.GetFullPath(targetFilename), "exe");
   }
-  
+
   public override bool CompileTargetProgram(string dafnyProgramName, string targetProgramText,
       string /*?*/ callToMain, string /*?*/ targetFilename, ReadOnlyCollection<string> otherFileNames,
       bool runAfterCompile, TextWriter outputWriter, out object compilationResult) {
@@ -35,7 +35,7 @@ public class RustBackend : DafnyExecutableBackend {
     });
     return 0 == RunProcess(psi, outputWriter, "Error while compiling Rust files.");
   }
-  
+
   public override bool RunTargetProgram(string dafnyProgramName, string targetProgramText, string /*?*/ callToMain,
     string targetFilename, ReadOnlyCollection<string> otherFileNames, object compilationResult, TextWriter outputWriter) {
     Contract.Requires(targetFilename != null || otherFileNames.Count == 0);
