@@ -10,7 +10,7 @@ module {:extern "DAST"} DAST {
   datatype Class = Class(name: string, body: seq<ClassItem>)
 
   datatype ClassItem = Method(Method) | Other(a: string)
-	
+
   datatype Method = Method(name: string, body: seq<Statement>)
 
   datatype Statement = Assign(name: string, value: Expression) | Print(Expression) | If(condition: Expression, body: seq<Statement>, elseBody: seq<Statement>)

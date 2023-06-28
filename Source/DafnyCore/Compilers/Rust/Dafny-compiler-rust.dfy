@@ -22,7 +22,7 @@ module {:extern "DCOMP"} DCOMP {
         }
 
         if i > 0 {
-           s := s + "\n";
+          s := s + "\n";
         }
 
         s := s + generated;
@@ -46,7 +46,7 @@ module {:extern "DCOMP"} DCOMP {
         }
 
         if i > 0 {
-           s := s + "\n";
+          s := s + "\n";
         }
 
         s := s + generated;
@@ -71,7 +71,7 @@ module {:extern "DCOMP"} DCOMP {
         }
 
         if i > 0 {
-           s := s + "\n";
+          s := s + "\n";
         }
 
         s := s + generated;
@@ -85,7 +85,7 @@ module {:extern "DCOMP"} DCOMP {
         case _ => "TODO"
       }
     }
-		
+
     static method Compile(p: seq<TopLevel>) returns (s: string) {
       s := "#![allow(warnings)]\n";
       var i := 0;
@@ -119,5 +119,5 @@ module {:extern "DCOMP"} DCOMP {
     }
 
   }
-		
+
 }
