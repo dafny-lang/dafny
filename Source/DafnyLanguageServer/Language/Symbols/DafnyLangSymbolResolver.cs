@@ -16,53 +16,53 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
   /// this resolver serializes all invocations.
   /// </remarks>
   public class DafnyLangSymbolResolver : ISymbolResolver {
+    private readonly ILoggerFactory loggerFactory;
     private readonly ILogger logger;
     private readonly SemaphoreSlim resolverMutex = new(1);
     private readonly ITelemetryPublisher telemetryPublisher;
 
-    public DafnyLangSymbolResolver(ILogger<DafnyLangSymbolResolver> logger, ITelemetryPublisher telemetryPublisher) {
-      this.logger = logger;
+    public DafnyLangSymbolResolver(ILoggerFactory loggerFactory, ITelemetryPublisher telemetryPublisher) {
+      this.loggerFactory = loggerFactory;
+      logger = loggerFactory.CreateLogger<DafnyLangSymbolResolver>();
       this.telemetryPublisher = telemetryPublisher;
     }
 
-    public CompilationUnit ResolveSymbols(TextDocumentItem textDocument, Dafny.Program program, out bool canDoVerification, CancellationToken cancellationToken) {
+    private readonly ResolutionCache resolutionCache = new();
+    public CompilationUnit ResolveSymbols(TextDocumentItem textDocument, Program program, CancellationToken cancellationToken) {
       // TODO The resolution requires mutual exclusion since it sets static variables of classes like Microsoft.Dafny.Type.
       //      Although, the variables are marked "ThreadStatic" - thus it might not be necessary. But there might be
       //      other classes as well.
       resolverMutex.Wait(cancellationToken);
       try {
-        if (!RunDafnyResolver(textDocument, program, cancellationToken)) {
-          // We cannot proceed without a successful resolution. Due to the contracts in dafny-lang, we cannot
-          // access a property without potential contract violations. For example, a variable may have an
-          // unresolved type represented by null. However, the contract prohibits the use of the type property
-          // because it must not be null.
-          canDoVerification = false;
+        RunDafnyResolver(textDocument, program, cancellationToken);
+        // We cannot proceed without a successful resolution. Due to the contracts in dafny-lang, we cannot
+        // access a property without potential contract violations. For example, a variable may have an
+        // unresolved type represented by null. However, the contract prohibits the use of the type property
+        // because it must not be null.
+        if (program.Reporter.HasErrorsUntilResolver) {
           return new CompilationUnit(textDocument.Uri.ToUri(), program);
         }
       }
       finally {
         resolverMutex.Release();
       }
-      canDoVerification = true;
       var beforeLegacyServerResolution = DateTime.Now;
       var compilationUnit = new SymbolDeclarationResolver(logger, cancellationToken).ProcessProgram(textDocument.Uri.ToUri(), program);
       telemetryPublisher.PublishTime("LegacyServerResolution", textDocument.Uri.ToString(), DateTime.Now - beforeLegacyServerResolution);
       return compilationUnit;
     }
 
-    private bool RunDafnyResolver(TextDocumentItem document, Dafny.Program program, CancellationToken cancellationToken) {
+    private void RunDafnyResolver(TextDocumentItem document, Program program, CancellationToken cancellationToken) {
       var beforeResolution = DateTime.Now;
       try {
-        var resolver = new Resolver(program);
-        resolver.ResolveProgram(program, cancellationToken);
+        var resolver = new CachingResolver(program, loggerFactory.CreateLogger<CachingResolver>(), resolutionCache);
+        resolver.Resolve(cancellationToken);
+        resolutionCache.Prune();
         int resolverErrors = resolver.Reporter.ErrorCountUntilResolver;
         if (resolverErrors > 0) {
           logger.LogDebug("encountered {ErrorCount} errors while resolving {DocumentUri}", resolverErrors,
             document.Uri);
-          return false;
         }
-
-        return true;
       }
       finally {
         telemetryPublisher.PublishTime("Resolution", document.Uri.ToString(), DateTime.Now - beforeResolution);

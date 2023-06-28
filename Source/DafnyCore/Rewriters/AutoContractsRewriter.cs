@@ -57,12 +57,15 @@ namespace Microsoft.Dafny;
 ///    reads Repr
 /// </summary>
 public class AutoContractsRewriter : IRewriter {
-  readonly SystemModuleManager systemModuleManager;
-  public AutoContractsRewriter(ErrorReporter reporter, SystemModuleManager systemModuleManager)
+  private SystemModuleManager systemModuleManager;
+  public AutoContractsRewriter(ErrorReporter reporter)
     : base(reporter) {
     Contract.Requires(reporter != null);
     Contract.Requires(systemModuleManager != null);
-    this.systemModuleManager = systemModuleManager;
+  }
+
+  internal override void PreResolve(Program program) {
+    systemModuleManager = program.SystemModuleManager;
   }
 
   internal override void PreResolve(ModuleDefinition m) {

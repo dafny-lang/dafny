@@ -66,6 +66,7 @@ path - Prints path-coverage tests for the given program.");
     dafnyOptions.DeprecationNoise = 0;
     dafnyOptions.ForbidNondeterminism = true;
     dafnyOptions.DefiniteAssignmentLevel = 2;
+    dafnyOptions.Set(DafnyConsolePrinter.ShowSnippets, false);
 
     var mode = context.ParseResult.GetValueForArgument(modeArgument);
     dafnyOptions.TestGenOptions.Mode = mode switch {
