@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
+using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using Xunit;
 using Xunit.Abstractions;
@@ -11,7 +12,39 @@ using Xunit.Abstractions;
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.ProjectFiles; 
 
 public class MultipleFilesTest : ClientBasedLanguageServerTest {
+  
+  [Fact]
+  public async Task MigrationOnlyAffectsChangedFile() {
+    var sourceA = @"
+const a := 3;
+const b := a + 2;
+".TrimStart();
+    
+    var sourceB = @"
+const c := 3;
+const d := c + 2;
+".TrimStart();
+    
+    var directory = Path.GetRandomFileName();
+    var projectFile = CreateTestDocument("", Path.Combine(directory, "dfyconfig.toml"));
+    await client.OpenDocumentAndWaitAsync(projectFile, CancellationToken);
+    var firstFile = CreateTestDocument(sourceA, Path.Combine(directory, "firstFile.dfy"));
+    await client.OpenDocumentAndWaitAsync(firstFile, CancellationToken);
+    var secondFile = CreateTestDocument(sourceB, Path.Combine(directory, "secondFile.dfy"));
+    await client.OpenDocumentAndWaitAsync(secondFile, CancellationToken);
+    
+    var result1 = await RequestDefinition(firstFile, new Position(1, 11));
+    Assert.Equal(new Range(0,6,0,7), result1.Single().Location!.Range);
 
+    ApplyChange(ref secondFile, new Range(0, 0, 0, 0), "\nparseFailure");
+
+    var result2 = await RequestDefinition(secondFile, new Position(2, 11));
+    Assert.Equal(new Range(1,6,1,7), result2.Single().Location!.Range);
+    
+    var result3 = await RequestDefinition(firstFile, new Position(1, 11));
+    Assert.Equal(result1.Single().Location!.Range, result3.Single().Location!.Range);
+  }
+  
   [Fact]
   public async Task ChangesToProjectFileAffectDiagnostics() {
 

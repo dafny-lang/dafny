@@ -93,7 +93,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         throw new ArgumentException($"the document {documentUri} was not loaded before");
       }
 
-      var project = OpenProject(projectUri.ToUri());
+      var project = OpenProject(documentChange.TextDocument.Uri.ToUri());
       if (project != null) {
         var previousManager = managersByProject[projectUri];
         var _ = previousManager.CloseAsync();

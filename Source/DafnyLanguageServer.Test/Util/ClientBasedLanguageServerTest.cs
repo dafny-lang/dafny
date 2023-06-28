@@ -199,6 +199,17 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
     return nextNotification.NamedVerifiables.Single().Status;
   }
 
+  protected Task<LocationOrLocationLinks> RequestDefinition(TextDocumentItem documentItem, Position position) {
+    return client.RequestDefinition(
+      new DefinitionParams {
+        TextDocument = documentItem.Uri,
+        Position = position
+      },
+      CancellationToken
+    ).AsTask();
+  }
+
+
   public ClientBasedLanguageServerTest(ITestOutputHelper output) : base(output) {
   }
 }

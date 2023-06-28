@@ -57,7 +57,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         .SelectMany(r => r.GetResolvedDeclarations().Select(declaration =>
           ((IDeclarationOrUsage)r, declaration))).ToList();
 
-      return new SymbolTable(compilation, usages);
+      return new SymbolTable(usages);
     }
 
     private static IDictionary<AstElement, ILocalizableSymbol> CreateDeclarationDictionary(CompilationUnit compilationUnit, CancellationToken cancellationToken) {

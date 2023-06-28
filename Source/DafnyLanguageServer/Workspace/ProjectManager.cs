@@ -28,7 +28,7 @@ public class ProjectManager : IDisposable {
   private IDisposable observerSubscription;
   private readonly ILogger<ProjectManager> logger;
   private ExecutionEngine boogieEngine;
-  private int version = 1;
+  private int version = 0;
 
   private bool VerifyOnOpenChange => options.Get(ServerCommand.Verification) == VerifyOnMode.Change;
   private bool VerifyOnSave => options.Get(ServerCommand.Verification) == VerifyOnMode.Save;
@@ -37,8 +37,7 @@ public class ProjectManager : IDisposable {
 
   private readonly SemaphoreSlim workCompletedForCurrentVersion = new(0);
   private readonly DafnyOptions options;
-  private readonly IFileSystem fileSystem;
-  private DafnyOptions serverOptions;
+  private readonly DafnyOptions serverOptions;
 
   public ProjectManager(IServiceProvider services, VerificationResultCache verificationCache, DafnyProject project) {
     this.services = services;
@@ -46,7 +45,7 @@ public class ProjectManager : IDisposable {
     serverOptions = services.GetRequiredService<DafnyOptions>();
     logger = services.GetRequiredService<ILogger<ProjectManager>>();
     relocator = services.GetRequiredService<IRelocator>();
-    fileSystem = services.GetRequiredService<IFileSystem>();
+    services.GetRequiredService<IFileSystem>();
 
     // Moet CliRootSourceUris uit options??? Of moet er een extra veld zijn, 
     options = DetermineProjectOptions(project, serverOptions);
@@ -105,6 +104,7 @@ public class ProjectManager : IDisposable {
     logger.LogDebug("Clearing result for workCompletedForCurrentVersion");
     var _1 = workCompletedForCurrentVersion.WaitAsync();
 
+    CompilationManager.CancelPendingUpdates();
     CompilationManager = new CompilationManager(
       services,
       options,
@@ -171,9 +171,6 @@ public class ProjectManager : IDisposable {
   }
 
   public async Task CloseAsync() {
-    if (CompilationManager == null) {
-      return;
-    }
     CompilationManager.CancelPendingUpdates();
     try {
       await CompilationManager.LastDocument;
@@ -255,8 +252,6 @@ public class ProjectManager : IDisposable {
   }
 
   public void OpenDocument(Uri uri) {
-    CompilationManager.CancelPendingUpdates();
-
     var lastPublishedState = observer.LastPublishedState;
     var migratedVerificationTree = lastPublishedState.VerificationTree;
 

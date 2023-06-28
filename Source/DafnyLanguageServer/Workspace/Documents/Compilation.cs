@@ -48,6 +48,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     /// </summary>
     public virtual IdeState ToIdeState(IdeState previousState) {
       return previousState with {
+        Compilation = this,
         ImplementationsWereUpdated = false,
       };
     }
