@@ -11,7 +11,7 @@ namespace Microsoft.Dafny.Compilers;
 public class RustBackend : DafnyExecutableBackend {
 
   public override IReadOnlySet<string> SupportedExtensions => new HashSet<string> { ".rs" };
-  public override string TargetLanguage => "Rust";
+  public override string TargetName => "Rust";
   public override string TargetExtension => "rs";
   public override int TargetIndentSize => 4;
   public override bool SupportsInMemoryCompilation => false;
@@ -33,14 +33,14 @@ public class RustBackend : DafnyExecutableBackend {
       "-o", ComputeExeName(targetFilename),
       targetFilename
     });
-    return 0 == RunProcess(psi, outputWriter, "Error while compiling Rust files.");
+    return 0 == RunProcess(psi, outputWriter, outputWriter, "Error while compiling Rust files.");
   }
 
   public override bool RunTargetProgram(string dafnyProgramName, string targetProgramText, string /*?*/ callToMain,
-    string targetFilename, ReadOnlyCollection<string> otherFileNames, object compilationResult, TextWriter outputWriter) {
+    string targetFilename, ReadOnlyCollection<string> otherFileNames, object compilationResult, TextWriter outputWriter, TextWriter errorWriter) {
     Contract.Requires(targetFilename != null || otherFileNames.Count == 0);
     var psi = PrepareProcessStartInfo(ComputeExeName(targetFilename), Options.MainArgs);
-    return 0 == RunProcess(psi, outputWriter);
+    return 0 == RunProcess(psi, outputWriter, errorWriter);
   }
 
   public RustBackend(DafnyOptions options) : base(options) {

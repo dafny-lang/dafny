@@ -47,7 +47,7 @@
   </ItemGroup>
 
   <ItemGroup>
-      <PackageReference Include="dafny.msbuild" Version="1.0.0" />
+    <ProjectReference Include="..\DafnyRuntime\DafnyRuntime.csproj" />
   </ItemGroup>
 
 </Project>
