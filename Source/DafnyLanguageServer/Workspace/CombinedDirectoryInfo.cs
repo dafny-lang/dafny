@@ -7,29 +7,29 @@ using Microsoft.Extensions.FileSystemGlobbing.Abstractions;
 namespace Microsoft.Dafny.LanguageServer.Workspace;
 
 class CombinedDirectoryInfo : DirectoryInfoBase {
-  private readonly DirectoryInfoBase[] parts;
+  public DirectoryInfoBase[] Parts { get; }
 
   public CombinedDirectoryInfo(DirectoryInfoBase[] parts) {
-    this.parts = parts;
+    this.Parts = parts;
   }
 
-  public override string Name => parts[0].Name;
-  public override string FullName => parts[0].FullName;
+  public override string Name => Parts[0].Name;
+  public override string FullName => Parts[0].FullName;
 
   public override DirectoryInfoBase ParentDirectory =>
-    new CombinedDirectoryInfo(parts.Select(part => part.ParentDirectory).ToArray());
+    new CombinedDirectoryInfo(Parts.Select(part => part.ParentDirectory).ToArray());
 
   public override IEnumerable<FileSystemInfoBase> EnumerateFileSystemInfos() {
-    return parts.SelectMany(part => part.EnumerateFileSystemInfos());
+    return Parts.SelectMany(part => part.EnumerateFileSystemInfos());
   }
 
   public override DirectoryInfoBase GetDirectory(string path) {
-    return new CombinedDirectoryInfo(parts.Select(part => part.GetDirectory(path)).ToArray());
+    return new CombinedDirectoryInfo(Parts.Select(part => part.GetDirectory(path)).ToArray());
   }
 
   public override FileInfoBase GetFile(string path) {
     Exception? lastException = null;
-    foreach (var part in parts) {
+    foreach (var part in Parts) {
       try {
         return part.GetFile(path);
       } catch (IOException e) {

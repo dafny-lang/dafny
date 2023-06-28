@@ -2,12 +2,15 @@
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
 
 using System.IO;
+using System.Linq;
 using System.Net.Mime;
 using System.Threading.Tasks;
 using Microsoft.Boogie;
+using Microsoft.Extensions.FileSystemGlobbing;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace {
   /// <summary>
@@ -48,7 +51,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     public static DafnyProject ImplicitProject(TextDocumentIdentifier documentItem) {
       var implicitProject = new DafnyProject {
-        Includes = Array.Empty<string>(),
+        Includes = new[] { documentItem.Uri.GetFileSystemPath() },
         Uri = documentItem.Uri.ToUri(),
         UnsavedRootFile = documentItem.Uri.ToUri()
       };

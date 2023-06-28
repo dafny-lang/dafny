@@ -47,9 +47,9 @@ include ""./cycleA.dfy""
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
     var diagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
     Assert.Equal(2, diagnostics.Length);
-    Assert.Contains("cycle of includes", diagnostics[0].Message);
-    Assert.Contains("the referenced file", diagnostics[1].Message);
-    Assert.Contains("cycleB.dfy", diagnostics[1].Message);
+    Assert.Contains(diagnostics, d => d.Message.Contains("cycle of includes"));
+    Assert.Contains(diagnostics, d => d.Message.Contains("the referenced file"));
+    Assert.Contains(diagnostics, d => d.Message.Contains("the referenced file") && d.Message.Contains("cycleB.dfy"));
   }
 
   [Fact]
