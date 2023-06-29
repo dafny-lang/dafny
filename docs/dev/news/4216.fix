@@ -1,0 +1,2 @@
+Disabled --show-snippets CLI option, which is otherwise on by default, during test generation
+Test generation modifies Boogie AST resulting from Dafny, and is, therefore, incompatible with --show-snippets

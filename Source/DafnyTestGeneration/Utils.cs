@@ -103,7 +103,7 @@ namespace DafnyTestGeneration {
       if (!resolve) {
         return program;
       }
-      new Resolver(program).ResolveProgram(program, CancellationToken.None);
+      new ProgramResolver(program).Resolve(CancellationToken.None);
       return program;
     }
 

@@ -12,6 +12,8 @@ using Microsoft.Boogie;
 namespace Microsoft.Dafny {
   public partial class Resolver {
     private class BoundsDiscoveryVisitor : ASTVisitor<BoundsDiscoveryVisitor.BoundsDiscoveryContext> {
+      private readonly Resolver resolver;
+
       public class BoundsDiscoveryContext : IASTVisitorContext {
         private readonly IASTVisitorContext astVisitorContext;
         readonly bool inLambdaExpression;
@@ -53,10 +55,10 @@ namespace Microsoft.Dafny {
         ModuleDefinition IASTVisitorContext.EnclosingModule => astVisitorContext.EnclosingModule;
       }
 
-      private readonly ErrorReporter reporter;
+      private ErrorReporter Reporter => resolver.Reporter;
 
-      public BoundsDiscoveryVisitor(ErrorReporter reporter) {
-        this.reporter = reporter;
+      public BoundsDiscoveryVisitor(Resolver resolver) {
+        this.resolver = resolver;
       }
 
       public override BoundsDiscoveryContext GetContext(IASTVisitorContext astVisitorContext, bool inFunctionPostcondition) {
@@ -67,7 +69,7 @@ namespace Microsoft.Dafny {
         if (stmt is ForallStmt forallStmt) {
           forallStmt.Bounds = DiscoverBestBounds_MultipleVars(forallStmt.BoundVars, forallStmt.Range, true);
           if (forallStmt.Body == null) {
-            reporter.Warning(MessageSource.Resolver, ErrorRegistry.NoneId, forallStmt.Tok, "note, this forall statement has no body");
+            Reporter.Warning(MessageSource.Resolver, ErrorRegistry.NoneId, forallStmt.Tok, "note, this forall statement has no body");
           }
         } else if (stmt is AssignSuchThatStmt assignSuchThatStmt) {
           if (assignSuchThatStmt.AssumeToken == null) {
@@ -79,7 +81,7 @@ namespace Microsoft.Dafny {
             assignSuchThatStmt.Bounds = DiscoverBestBounds_MultipleVars(varLhss, assignSuchThatStmt.Expr, true);
           }
         } else if (stmt is OneBodyLoopStmt oneBodyLoopStmt) {
-          oneBodyLoopStmt.ComputeBodySurrogate(reporter);
+          oneBodyLoopStmt.ComputeBodySurrogate(Reporter);
         }
 
         return base.VisitOneStatement(stmt, context);
@@ -205,7 +207,7 @@ namespace Microsoft.Dafny {
                   message += $" (perhaps declare its type as '{bv.Type}(!new)')";
                 }
                 message += " (see documentation for 'older' parameters)";
-                reporter.Error(MessageSource.Resolver, e, message);
+                Reporter.Error(MessageSource.Resolver, e, message);
               }
             }
 
@@ -218,7 +220,7 @@ namespace Microsoft.Dafny {
               } else {
                 // we cannot be sure that the set/map really is finite
                 foreach (var bv in ComprehensionExpr.BoundedPool.MissingBounds(e.BoundVars, e.Bounds, ComprehensionExpr.BoundedPool.PoolVirtues.Finite)) {
-                  reporter.Error(MessageSource.Resolver, e,
+                  Reporter.Error(MessageSource.Resolver, e,
                     "the result of a {0} must be finite, but Dafny's heuristics can't figure out how to produce a bounded set of values for '{1}'",
                     e.WhatKind, bv.Name);
                 }

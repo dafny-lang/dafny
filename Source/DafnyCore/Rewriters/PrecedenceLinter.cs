@@ -16,19 +16,18 @@ using static Microsoft.Dafny.RewriterErrors;
 namespace Microsoft.Dafny {
 
   public class PrecedenceLinter : IRewriter {
-    internal override void PostResolve(Program program) {
-      base.PostResolve(program);
-      foreach (var moduleDefinition in program.Modules()) {
-        foreach (var topLevelDecl in moduleDefinition.TopLevelDecls.OfType<TopLevelDeclWithMembers>()) {
-          foreach (var callable in topLevelDecl.Members.OfType<ICallable>()) {
-            var visitor = new PrecedenceLinterVisitor(program, Reporter);
-            visitor.Visit(callable, null);
-          }
+    private CompilationData compilation;
+    internal override void PostResolve(ModuleDefinition moduleDefinition) {
+      foreach (var topLevelDecl in moduleDefinition.TopLevelDecls.OfType<TopLevelDeclWithMembers>()) {
+        foreach (var callable in topLevelDecl.Members.OfType<ICallable>()) {
+          var visitor = new PrecedenceLinterVisitor(compilation, Reporter);
+          visitor.Visit(callable, null);
         }
       }
     }
 
-    public PrecedenceLinter(ErrorReporter reporter) : base(reporter) {
+    public PrecedenceLinter(ErrorReporter reporter, CompilationData compilation) : base(reporter) {
+      this.compilation = compilation;
     }
   }
 
@@ -69,11 +68,11 @@ namespace Microsoft.Dafny {
   /// an ordinary in-parameter to VisitOneExpr, since the method would only need to return a bool.
   /// </summary>
   class PrecedenceLinterVisitor : TopDownVisitor<LeftMargin> {
-    private readonly Program program;
+    private readonly CompilationData compilation;
     private readonly ErrorReporter reporter;
 
-    public PrecedenceLinterVisitor(Program program, ErrorReporter reporter) {
-      this.program = program;
+    public PrecedenceLinterVisitor(CompilationData compilation, ErrorReporter reporter) {
+      this.compilation = compilation;
       this.reporter = reporter;
     }
 
@@ -243,7 +242,7 @@ namespace Microsoft.Dafny {
     }
 
     void VisitRhsComponent(IToken errorToken, Expression expr, int rightMargin, string what) {
-      if (expr is ParensExpression || errorToken.FromIncludeDirective(program)) {
+      if (expr is ParensExpression || errorToken.FromIncludeDirective(compilation)) {
         VisitIndependentComponent(expr);
       } else {
         var st = new LeftMargin(rightMargin);

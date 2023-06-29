@@ -45,14 +45,16 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
     public static SignatureAndCompletionTable Empty(DafnyOptions options, DocumentTextBuffer textDocument) {
       var outerModule = new DefaultModuleDefinition(new List<Uri>() { textDocument.Uri.ToUri() }, false);
       var errorReporter = new DiagnosticErrorReporter(options, textDocument.Text, textDocument.Uri);
+      var compilation = new CompilationData(errorReporter, new List<Include>(), new List<Uri>(), Sets.Empty<Uri>(),
+        Sets.Empty<Uri>());
       return new SignatureAndCompletionTable(
         NullLogger<SignatureAndCompletionTable>.Instance,
-        new CompilationUnit(textDocument.Uri.ToUri(), new Dafny.Program(
+        new CompilationUnit(textDocument.Uri.ToUri(), new Program(
           textDocument.Uri.ToString(),
-          new LiteralModuleDecl(outerModule, null),
+          new LiteralModuleDecl(outerModule, null, Guid.NewGuid()),
           // BuiltIns cannot be initialized without Type.ResetScopes() before.
-          new BuiltIns(options), // TODO creating a BuiltIns is a heavy operation
-          errorReporter, Sets.Empty<Uri>(), Sets.Empty<Uri>()
+          new SystemModuleManager(options), // TODO creating a SystemModuleManager is a heavy operation
+          errorReporter, compilation
         )),
         new Dictionary<object, ILocalizableSymbol>(),
         new Dictionary<ISymbol, SymbolLocation>(),

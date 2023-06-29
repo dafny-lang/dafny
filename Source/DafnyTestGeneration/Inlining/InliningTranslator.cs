@@ -18,7 +18,7 @@ public static class InliningTranslator {
     // Remove short-circuiting expressions from method and byMethod bodies
     new RemoveShortCircuitingCloner().Visit(dafnyProgram);
     // Resolve the program (in particular, resolve all function calls)
-    new Resolver(dafnyProgram).ResolveProgram(dafnyProgram, CancellationToken.None); // now resolved
+    new ProgramResolver(dafnyProgram).Resolve(CancellationToken.None); // now resolved
     // Change by-method function calls to method calls
     new FunctionCallToMethodCallCloner().Visit(dafnyProgram);
     // Separate by-method methods into standalone methods so that translator adds Call$$ procedures for them

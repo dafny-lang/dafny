@@ -39,7 +39,7 @@ public class DocumentAfterParsing : Document {
 
   private IEnumerable<DafnyDiagnostic> GetIncludeErrorDiagnostics() {
     var graph = new Graph<Uri>();
-    foreach (var edgesForUri in Program.Includes.GroupBy(i => i.IncluderFilename)) {
+    foreach (var edgesForUri in Program.Compilation.Includes.GroupBy(i => i.IncluderFilename)) {
       foreach (var edge in edgesForUri) {
         graph.AddEdge(edge.IncluderFilename, edge.IncludedFilename);
       }
