@@ -1,4 +1,4 @@
-// RUN: %baredafny verify --rprint="%t.rprint" --use-basename-for-filename %s > %t
+// RUN: %baredafny verify %args %s > %t
 // RUN: %diff "%s.expect" "%t"
 
 module P {
