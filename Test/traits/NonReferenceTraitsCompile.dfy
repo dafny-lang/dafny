@@ -1,11 +1,4 @@
-// RUN: %dafny /compile:0 "%s" > "%t"
-// RUN: %dafny /noVerify /compile:4 /generalTraits:1 /compileTarget:cs "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /generalTraits:1 /compileTarget:js "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /generalTraits:1 /compileTarget:go "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /generalTraits:1 /compileTarget:java "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /generalTraits:1 /compileTarget:py "%s" >> "%t"
-// RUN: %diff "%s.expect" "%t"
-
+// RUN: %testDafnyForEachCompiler "%s" -- --general-traits
 
 method Main() {
   BoxingConcerns.Test();

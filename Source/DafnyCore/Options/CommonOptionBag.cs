@@ -310,6 +310,7 @@ Functionality is still being expanded. Currently only checks contracts on every 
       WarnShadowing,
       ManualLemmaInduction,
       TypeInferenceDebug,
+      GeneralTraits,
       TypeSystemRefresh,
       VerificationLogFormat,
       VerifyIncludedFiles,
