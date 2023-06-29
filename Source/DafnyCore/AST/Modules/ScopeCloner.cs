@@ -88,13 +88,13 @@ class ScopeCloner : DeepModuleSignatureCloner {
     return basem;
   }
 
-  public override TopLevelDecl CloneDeclaration(TopLevelDecl d, ModuleDefinition m) {
-    var based = base.CloneDeclaration(d, m);
+  public override TopLevelDecl CloneDeclaration(TopLevelDecl d, ModuleDefinition newParent) {
+    var based = base.CloneDeclaration(d, newParent);
     if (d is (RevealableTypeDecl or TopLevelDeclWithMembers) and not DefaultClassDecl && !RevealedInScope(d)) {
       var tps = d.TypeArgs.ConvertAll(CloneTypeParam);
       var characteristics = TypeParameter.GetExplicitCharacteristics(d);
       var members = based is TopLevelDeclWithMembers tm ? tm.Members : new List<MemberDecl>();
-      var otd = new AbstractTypeDecl(Range(d.RangeToken), d.NameNode.Clone(this), m, characteristics, tps, members, CloneAttributes(d.Attributes), d.IsRefining);
+      var otd = new AbstractTypeDecl(Range(d.RangeToken), d.NameNode.Clone(this), newParent, characteristics, tps, members, CloneAttributes(d.Attributes), d.IsRefining);
       based = otd;
       if (d is ClassLikeDecl { IsReferenceTypeDecl: true } cl) {
         reverseMap.Add(based, cl.NonNullTypeDecl);

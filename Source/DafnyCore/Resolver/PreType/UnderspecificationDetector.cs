@@ -72,7 +72,7 @@ namespace Microsoft.Dafny {
 
         } else if (d is DatatypeDecl) {
           var dd = (DatatypeDecl)d;
-          foreach (var member in resolver.classMembers[dd].Values) {
+          foreach (var member in resolver.GetClassMembers(dd)!.Values) {
             var dtor = member as DatatypeDestructor;
             if (dtor != null) {
               var rolemodel = dtor.CorrespondingFormals[0];

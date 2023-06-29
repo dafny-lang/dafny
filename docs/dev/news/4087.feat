@@ -1,0 +1,1 @@
+errors issued in command-line mode now show source code context by default; this behavior can be disabled using the option --show-snippets:false.
