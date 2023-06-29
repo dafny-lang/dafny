@@ -23,7 +23,7 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
     public readonly List<DafnyModelState> States = new();
     public static readonly UserDefinedType UnknownType =
       new(new Token(), "?", null);
-    private readonly DafnyFunc fSetSelect, fSeqLength, fSeqIndex, fBox,
+    private readonly ModelFuncWrapper fSetSelect, fSeqLength, fSeqIndex, fBox,
       fDim, fIndexField, fMultiIndexField, fDtype, fCharToInt, fTag, fBv, 
       fChar, fNull, fSetUnion, fSetIntersection, fSetDifference, fSetUnionOne,
       fSetEmpty, fSeqEmpty, fSeqBuild, fSeqAppend, fSeqDrop, fSeqTake,
@@ -47,142 +47,53 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
     private static readonly Regex BvTypeRegex = new("^bv[0-9]+Type$");
     private static readonly Regex UnderscoreRemovalRegex = new("__");
 
-    class DafnyFunc {
-
-      private readonly Model.Func func;
-      private readonly int tyArgs;
-      public DafnyFunc(DafnyModel model, DafnyOptions options, string name, int arity, int tyArgs) {
-        var extraTypeArguments = options.TypeEncodingMethod switch {
-          CoreOptions.TypeEncoding.Arguments => 1,
-          _ => 0
-        };
-        this.tyArgs = extraTypeArguments * tyArgs;
-        func = model.Model.MkFunc(name, arity + this.tyArgs);
-      }
-
-      private Model.FuncTuple ConvertFuncTuple(Model.FuncTuple tuple) {
-        if (tuple == null) {
-          return null;
-        }
-        return new Model.FuncTuple(func, tuple.Result, tuple.Args[tyArgs..]);
-      }
-
-      public Model.FuncTuple AppWithResult(Model.Element element) {
-        return ConvertFuncTuple(func.AppWithResult(element));
-      }
-
-      public IEnumerable<Model.FuncTuple> Apps => func.Apps.Select(ConvertFuncTuple);
-
-      public Model.Element GetConstant() {
-        return func.GetConstant();
-      }
-      
-      public Model.Element OptEval(Model.Element element) {
-        if (element == null) {
-          return null;
-        }
-        var app = func.AppWithArg(tyArgs, element);
-        if (app == null) {
-          return null;
-        }
-        return app.Result;
-      }
-      
-      public Model.Element OptEval(Model.Element first, Model.Element second) {
-        if (first == null || second == null) {
-          return null;
-        }
-        var app = func.AppsWithArgs(tyArgs, first, tyArgs+1, second);
-        if (app == null || !app.Any()) {
-          return null;
-        }
-        return app.First().Result;
-      }
-
-      public IEnumerable<Model.FuncTuple> AppsWithArg(int i, Model.Element element) {
-        return func.AppsWithArg(i + tyArgs, element).Select(ConvertFuncTuple);
-      }
-
-      public IEnumerable<Model.FuncTuple> AppsWithArgs(int i0, Model.Element element0, int i1, Model.Element element1) {
-        return func.AppsWithArgs(i0 + tyArgs, element0, i1 + tyArgs, element1).Select(ConvertFuncTuple);
-      }
-      
-      /// <summary>
-      /// Create a new function that merges together the applications of all the
-      /// functions that have a certain arity and whose name matches the
-      /// "^MapType[0-9]*Select$" pattern. This has previously been done by
-      /// Boogie's Model Parser as a preprocessing step but has been deprecated
-      /// since 2.9.2
-      /// </summary>
-      internal static DafnyFunc MergeFunctions(DafnyModel model, List<string> names, int arity) {
-        var name = "[" + arity + "]";
-        if (model.Model.HasFunc(name)) {
-          // Coming up with a new name if the ideal one is reserved
-          int id = 0;
-          while (model.Model.HasFunc(name + "#" + id)) {
-            id++;
-          }
-          name += "#" + id;
-        }
-        var result = new DafnyFunc(model, model.options, name, arity, 0);
-        foreach (var func in model.Model.Functions) {
-          if (!names.Contains(func.Name) || func.Arity == null || func.Arity < arity) {
-            continue;
-          }
-          // this removes type arguments when TypeEncodingMethod == Bpl.CoreOptions.TypeEncoding.Arguments
-          int offset = func.Arity.Value - arity; 
-          foreach (var app in func.Apps) {
-            result.func.AddApp(app.Result, app.Args[offset..]);
-          }
-          result.func.Else ??= func.Else;
-        }
-        return result;
-      }
-    }
-
     public DafnyModel(Model model, DafnyOptions options) {
       Model = model;
       this.options = options;
-      fSetSelect = DafnyFunc.MergeFunctions(this, new List<string> {"MapType0Select", "MapType1Select"}, 2);
-      fSeqLength = new DafnyFunc(this, options, "Seq#Length", 1, 1);
-      fSeqBuild = new DafnyFunc(this, options, "Seq#Build", 2, 1);
-      fSeqAppend = new DafnyFunc(this, options, "Seq#Append", 2, 1);
-      fSeqDrop = new DafnyFunc(this, options, "Seq#Drop", 2, 1);
-      fSeqTake = new DafnyFunc(this, options, "Seq#Take", 2, 1);
-      fSeqIndex = new DafnyFunc(this, options, "Seq#Index", 2, 1);
-      fSeqUpdate = new DafnyFunc(this, options, "Seq#Update", 3, 1);
-      fSeqCreate = new DafnyFunc(this, options, "Seq#Create", 4, 0);
-      fSeqEmpty = new DafnyFunc(this, options, "Seq#Empty", 1, 0);
-      fSetEmpty = new DafnyFunc(this, options, "Set#Empty", 1, 0);
-      fSetUnion = new DafnyFunc(this, options, "Set#Union", 2, 1);
-      fSetUnionOne = new DafnyFunc(this, options, "Set#UnionOne", 2, 1);
-      fSetIntersection = new DafnyFunc(this, options, "Set#Intersection", 2, 1);
-      fSetDifference = new DafnyFunc(this, options, "Set#Difference", 2, 1);
-      fMapDomain = new DafnyFunc(this, options, "Map#Domain", 1, 2);
-      fMapElements = new DafnyFunc(this, options, "Map#Elements", 1, 2);
-      fMapBuild = new DafnyFunc(this, options, "Map#Build", 3, 2);
-      fIs = new DafnyFunc(this, options, "$Is", 2, 1);
-      fIsBox = new DafnyFunc(this, options, "$IsBox", 2, 1);
-      fBox = new DafnyFunc(this, options, "$Box", 1, 1);
-      fDim = new DafnyFunc(this, options, "FDim", 1, 1);
-      fIndexField = new DafnyFunc(this, options, "IndexField", 1, 0);
-      fMultiIndexField = new DafnyFunc(this, options, "MultiIndexField", 2, 0);
-      fDtype = new DafnyFunc(this, options, "dtype", 1, 0);
-      fNull = new DafnyFunc(this, options, "null", 0, 0);
-      fCharToInt = new DafnyFunc(this, options, "char#ToInt", 1, 0);
-      fChar = new DafnyFunc(this, options, "charType", 0, 0);
-      fReal = new DafnyFunc(this, options, "realType", 0, 0);
-      fU2Real = new DafnyFunc(this, options, "U_2_real", 1, 0);
-      fBool = new DafnyFunc(this, options, "boolType", 0, 0);
-      fU2Bool = new DafnyFunc(this, options, "U_2_bool", 1, 0);
-      fInt = new DafnyFunc(this, options, "intType", 0, 0);
-      fU2Int = new DafnyFunc(this, options, "U_2_int", 1, 0);
-      fTag = new DafnyFunc(this, options, "Tag", 1, 0);
-      fBv = new DafnyFunc(this, options, "TBitvector", 1, 0);
-      fTChar = new DafnyFunc(this, options, "TChar", 0, 0);
-      fTInt = new DafnyFunc(this, options, "TInt", 0, 0);
-      fTReal = new DafnyFunc(this, options, "TReal", 0, 0);
-      fTBool = new DafnyFunc(this, options, "TBool", 0, 0);
+      var tyArgs = options.TypeEncodingMethod switch {
+        CoreOptions.TypeEncoding.Arguments => 1,
+        _ => 0
+      };
+      fSetSelect = ModelFuncWrapper.MergeFunctions(this, new List<string> {"MapType0Select", "MapType1Select"}, 2);
+      fSeqLength = new ModelFuncWrapper(this, "Seq#Length", 1, tyArgs);
+      fSeqBuild = new ModelFuncWrapper(this,"Seq#Build", 2, tyArgs);
+      fSeqAppend = new ModelFuncWrapper(this, "Seq#Append", 2, tyArgs);
+      fSeqDrop = new ModelFuncWrapper(this, "Seq#Drop", 2, tyArgs);
+      fSeqTake = new ModelFuncWrapper(this, "Seq#Take", 2, tyArgs);
+      fSeqIndex = new ModelFuncWrapper(this, "Seq#Index", 2, tyArgs);
+      fSeqUpdate = new ModelFuncWrapper(this, "Seq#Update", 3, tyArgs);
+      fSeqCreate = new ModelFuncWrapper(this, "Seq#Create", 4, 0);
+      fSeqEmpty = new ModelFuncWrapper(this, "Seq#Empty", 1, 0);
+      fSetEmpty = new ModelFuncWrapper(this, "Set#Empty", 1, 0);
+      fSetUnion = new ModelFuncWrapper(this, "Set#Union", 2, tyArgs);
+      fSetUnionOne = new ModelFuncWrapper(this, "Set#UnionOne", 2, tyArgs);
+      fSetIntersection = new ModelFuncWrapper(this, "Set#Intersection", 2, tyArgs);
+      fSetDifference = new ModelFuncWrapper(this, "Set#Difference", 2, tyArgs);
+      fMapDomain = new ModelFuncWrapper(this, "Map#Domain", 1, 2 * tyArgs);
+      fMapElements = new ModelFuncWrapper(this, "Map#Elements", 1, 2 * tyArgs);
+      fMapBuild = new ModelFuncWrapper(this, "Map#Build", 3, 2 * tyArgs);
+      fIs = new ModelFuncWrapper(this, "$Is", 2, tyArgs);
+      fIsBox = new ModelFuncWrapper(this, "$IsBox", 2, tyArgs);
+      fBox = new ModelFuncWrapper(this, "$Box", 1, tyArgs);
+      fDim = new ModelFuncWrapper(this, "FDim", 1, tyArgs);
+      fIndexField = new ModelFuncWrapper(this, "IndexField", 1, 0);
+      fMultiIndexField = new ModelFuncWrapper(this, "MultiIndexField", 2, 0);
+      fDtype = new ModelFuncWrapper(this, "dtype", 1, 0);
+      fNull = new ModelFuncWrapper(this, "null", 0, 0);
+      fCharToInt = new ModelFuncWrapper(this, "char#ToInt", 1, 0);
+      fChar = new ModelFuncWrapper(this, "charType", 0, 0);
+      fReal = new ModelFuncWrapper(this, "realType", 0, 0);
+      fU2Real = new ModelFuncWrapper(this, "U_2_real", 1, 0);
+      fBool = new ModelFuncWrapper(this, "boolType", 0, 0);
+      fU2Bool = new ModelFuncWrapper(this, "U_2_bool", 1, 0);
+      fInt = new ModelFuncWrapper(this, "intType", 0, 0);
+      fU2Int = new ModelFuncWrapper(this, "U_2_int", 1, 0);
+      fTag = new ModelFuncWrapper(this, "Tag", 1, 0);
+      fBv = new ModelFuncWrapper(this, "TBitvector", 1, 0);
+      fTChar = new ModelFuncWrapper(this, "TChar", 0, 0);
+      fTInt = new ModelFuncWrapper(this, "TInt", 0, 0);
+      fTReal = new ModelFuncWrapper(this, "TReal", 0, 0);
+      fTBool = new ModelFuncWrapper(this, "TBool", 0, 0);
       InitDataTypes();
       RegisterReservedChars();
       RegisterReservedInts();
