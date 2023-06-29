@@ -10,8 +10,6 @@ namespace Microsoft.Dafny;
 public class GenerateTestsCommand : ICommandSpec {
   public IEnumerable<Option> Options =>
     new Option[] {
-      // IMPORTANT: Before adding new options, make sure they are
-      // appropriately copied over in the CopyForProcedure method below
       LoopUnroll,
       SequenceLengthLimit,
       BoogieOptionBag.SolverLog,
@@ -79,7 +77,7 @@ path - Prints path-coverage tests for the given program.");
   public static readonly Option<uint> SequenceLengthLimit = new("--length-limit",
     "Add an axiom that sets the length of all sequences to be no greater than <n>. 0 (default) indicates no limit.") {
   };
-  public static readonly Option<int> LoopUnroll = new("--loop-unroll",
+  public static readonly Option<int> LoopUnroll = new("--loop-unroll", () => -1,
     "Higher values can improve accuracy of the analysis at the cost of taking longer to run.") {
   };
   public static readonly Option<string> PrintBpl = new("--print-bpl",
