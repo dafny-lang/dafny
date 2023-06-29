@@ -6439,7 +6439,7 @@ namespace Microsoft.Dafny {
         string name = "T" + inner_name;
 
         Bpl.Variable tyVarOut = BplFormalVar(null, predef.Ty, false);
-        var args = Enumerable.Range(0, td.TypeArgs.Count).Select(i => (Bpl.Variable)BplFormalVar(null, predef.Ty, true)).ToList();
+        var args = td.TypeArgs.ConvertAll(_ => (Bpl.Variable)BplFormalVar(null, predef.Ty, true));
         func = new Bpl.Function(td.tok, name, args, tyVarOut);
         sink.AddTopLevelDeclaration(func);
 
