@@ -61,13 +61,13 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       }
 
       return state.ImplementationIdToView.GroupBy(kv => kv.Key.Uri).
-        ToDictionary(kv => kv.Key, kv =>
-        new FileVerificationStatus(kv.Key, null,
-          GetNamedVerifiableStatuses(state.ImplementationIdToView)));
+        ToDictionary(kv => kv.Key, kvs =>
+        new FileVerificationStatus(kvs.Key, null,
+          GetNamedVerifiableStatuses(kvs.Select(kv => kv.Value))));
     }
 
-    private static List<NamedVerifiableStatus> GetNamedVerifiableStatuses(IReadOnlyDictionary<ImplementationId, IdeImplementationView> implementationViews) {
-      var namedVerifiableGroups = implementationViews.Values.GroupBy(task => task.Range);
+    private static List<NamedVerifiableStatus> GetNamedVerifiableStatuses(IEnumerable<IdeImplementationView> implementationViews) {
+      var namedVerifiableGroups = implementationViews.GroupBy(task => task.Range);
       return namedVerifiableGroups.Select(taskGroup => {
         var status = taskGroup.Select(kv => kv.Status).Aggregate(Combine);
         return new NamedVerifiableStatus(taskGroup.Key, status);

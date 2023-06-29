@@ -14,9 +14,11 @@ using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
-using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace;
+
+
+public record FilePosition(Uri Uri, Position Position);
 
 public class ProjectManager : IDisposable {
   private readonly IRelocator relocator;
@@ -32,8 +34,8 @@ public class ProjectManager : IDisposable {
 
   private bool VerifyOnOpenChange => options.Get(ServerCommand.Verification) == VerifyOnMode.Change;
   private bool VerifyOnSave => options.Get(ServerCommand.Verification) == VerifyOnMode.Save;
-  public List<Position> ChangedVerifiables { get; set; } = new();
-  public List<Range> ChangedRanges { get; set; } = new();
+  public List<FilePosition> ChangedVerifiables { get; set; } = new();
+  public List<Location> RecentChanges { get; set; } = new();
 
   private readonly SemaphoreSlim workCompletedForCurrentVersion = new(0);
   private readonly DafnyOptions options;
@@ -83,16 +85,26 @@ public class ProjectManager : IDisposable {
       VerificationTree = migratedVerificationTree
     };
 
-    lock (ChangedRanges) {
-      ChangedRanges = documentChange.ContentChanges.Select(contentChange => contentChange.Range).Concat(
-        ChangedRanges.Select(range =>
-            relocator.RelocateRange(range, documentChange, CancellationToken.None))).
-          Where(r => r != null).Take(MaxRememberedChanges).ToList()!;
+    lock (RecentChanges) {
+      var newChanges = documentChange.ContentChanges.Where(c => c.Range != null).
+        Select(contentChange => new Location {
+          Range = contentChange.Range!,
+          Uri = documentChange.TextDocument.Uri
+        });
+      var migratedChanges = RecentChanges.Select(location => {
+        var newRange = relocator.RelocateRange(location.Range, documentChange, CancellationToken.None);
+        if (newRange == null) {
+          return null;
+        }
+        return new Location {
+          Range = newRange,
+          Uri = location.Uri
+        };
+      }).Where(r => r != null);
+      RecentChanges = newChanges.Concat(migratedChanges).Take(MaxRememberedChanges).ToList()!;
     }
 
     StartNewCompilation(migratedVerificationTree, lastPublishedState);
-
-
     TriggerVerificationForFile(documentChange.TextDocument.Uri.ToUri());
   }
 
@@ -212,7 +224,7 @@ public class ProjectManager : IDisposable {
 
       var implementationTasks = translatedDocument.VerificationTasks;
       if (uri != null) {
-        implementationTasks = implementationTasks.Where(d => ((IToken)d.Implementation.tok).Uri == uri).ToList();; 
+        implementationTasks = implementationTasks.Where(d => ((IToken)d.Implementation.tok).Uri == uri).ToList(); ;
       }
 
       if (!implementationTasks.Any()) {
@@ -221,16 +233,16 @@ public class ProjectManager : IDisposable {
         CompilationManager.FinishedNotifications(translatedDocument);
       }
 
-      lock (ChangedRanges) {
-        var freshlyChangedVerifiables = GetChangedVerifiablesFromRanges(translatedDocument, ChangedRanges);
+      lock (RecentChanges) {
+        var freshlyChangedVerifiables = GetChangedVerifiablesFromRanges(translatedDocument, RecentChanges);
         ChangedVerifiables = freshlyChangedVerifiables.Concat(ChangedVerifiables).Distinct()
           .Take(MaxRememberedChangedVerifiables).ToList();
-        ChangedRanges = new List<Range>();
+        RecentChanges = new List<Location>();
       }
 
       var implementationOrder = ChangedVerifiables.Select((v, i) => (v, i)).ToDictionary(k => k.v, k => k.i);
       var orderedTasks = implementationTasks.OrderBy(t => t.Implementation.Priority).CreateOrderedEnumerable(
-        t => implementationOrder.GetOrDefault(t.Implementation.tok.GetLspPosition(), () => int.MaxValue),
+        t => implementationOrder.GetOrDefault(new FilePosition(((IToken)t.Implementation.tok).Uri, t.Implementation.tok.GetLspPosition()), () => int.MaxValue),
         null, false).ToList();
 
       foreach (var implementationTask in orderedTasks) {
@@ -243,15 +255,26 @@ public class ProjectManager : IDisposable {
     }
   }
 
-  private IEnumerable<Position> GetChangedVerifiablesFromRanges(CompilationAfterResolution loaded, IEnumerable<Range> changedRanges) {
-    var tree = new DocumentVerificationTree(loaded.Program, loaded.Project.Uri);
-    VerificationProgressReporter.UpdateTree(options, loaded, tree);
-    var intervalTree = new IntervalTree<Position, Position>();
-    foreach (var childTree in tree.Children) {
-      intervalTree.Add(childTree.Range.Start, childTree.Range.End, childTree.Position);
+  private IEnumerable<FilePosition> GetChangedVerifiablesFromRanges(CompilationAfterResolution loaded, IEnumerable<Location> changedRanges) {
+
+    IntervalTree<Position, Position> GetTree(Uri uri) {
+      // TODO see if we can replace this
+      var tree = new DocumentVerificationTree(loaded.Program, uri);
+      VerificationProgressReporter.UpdateTree(options, loaded, tree);
+      var intervalTree = new IntervalTree<Position, Position>();
+      foreach (var childTree in tree.Children) {
+        intervalTree.Add(childTree.Range.Start, childTree.Range.End, childTree.Position);
+      }
+
+      return intervalTree;
     }
 
-    return changedRanges.SelectMany(changeRange => intervalTree.Query(changeRange.Start, changeRange.End));
+    Dictionary<Uri, IntervalTree<Position, Position>> trees = new();
+
+    return changedRanges.SelectMany(changeRange => {
+      var tree = trees.GetOrCreate(changeRange.Uri.ToUri(), () => GetTree(changeRange.Uri.ToUri()));
+      return tree.Query(changeRange.Range.Start, changeRange.Range.End).Select(position => new FilePosition(changeRange.Uri.ToUri(), position));
+    });
   }
 
   public void OpenDocument(Uri uri) {

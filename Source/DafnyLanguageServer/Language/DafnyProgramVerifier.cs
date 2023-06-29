@@ -24,8 +24,6 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     public DafnyProgramVerifier(ILogger<DafnyProgramVerifier> logger) {
     }
 
-    private const int TranslatorMaxStackSize = 0x10000000; // 256MB
-
     public async Task<IReadOnlyList<IImplementationTask>> GetVerificationTasksAsync(
       ExecutionEngine engine,
       CompilationAfterResolution compilation,
