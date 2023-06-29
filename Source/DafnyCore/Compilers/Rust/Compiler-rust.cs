@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using System.Linq;
 using Dafny;
 using DCOMP;
@@ -8,7 +9,11 @@ namespace Microsoft.Dafny.Compilers {
   class RustCompiler : DafnyWrittenCompiler {
 
     public override ISequence<Rune> Compile(Sequence<DAST.TopLevel> program) {
-      return COMP.Compile(program);
+      var assembly = System.Reflection.Assembly.Load("DafnyPipeline");
+      var stream = assembly.GetManifestResourceStream("DafnyRuntimeRust.rs");
+      var contents = new StreamReader(stream).ReadToEnd();
+
+      return COMP.Compile(program, Sequence<Rune>.UnicodeFromString(contents));
     }
 
     public override ISequence<Rune> EmitCallToMain(string fullName) {

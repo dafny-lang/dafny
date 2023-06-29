@@ -389,7 +389,7 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void EmitPrintStmt(ConcreteSyntaxTree wr, Expression arg) {
       if (currentBuilder is StatementContainer statementContainer) {
-        statementContainer.Print((DAST.Expression)DAST.Expression.create_Literal(Literal.create_StringLiteral(Sequence<Rune>.UnicodeFromString(arg.ToString()))));
+        statementContainer.Print((DAST.Expression)DAST.Expression.create_PassThroughExpr(Sequence<Rune>.UnicodeFromString(arg.ToString())));
       } else {
         throw new NotImplementedException("");
       }

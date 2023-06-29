@@ -35,5 +35,4 @@ with open ('${output}Rust.cs', 'r' ) as f:
 with open('${output}Rust.cs', 'w') as w:
   w.write(content_new)
 "
-dotnet tool run dotnet-format -w --include $output.cs
-dotnet tool run dotnet-format -w --include ${output}Rust.cs
+dotnet tool run dotnet-format -w --include $output.cs ${output}Rust.cs

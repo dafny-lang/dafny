@@ -15,7 +15,7 @@ module {:extern "DAST"} DAST {
 
   datatype Statement = Assign(name: string, value: Expression) | Print(Expression) | If(condition: Expression, body: seq<Statement>, elseBody: seq<Statement>)
 
-  datatype Expression = Literal(Literal) | Other(a: string)
+  datatype Expression = PassThroughExpr(a: string) | Literal(Literal)
 
   datatype Literal = IntLiteral(int) | StringLiteral(string)
 }

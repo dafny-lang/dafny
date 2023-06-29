@@ -66,7 +66,7 @@ module {:extern "DCOMP"} DCOMP {
       while i < |body| {
         var generated: string;
         match body[i] {
-          case Print(e) => generated := "println!(\"{:?}\", " + GenExpr(e) + ");";
+          case Print(e) => generated := "print!(\"{}\", ::dafny_runtime::DafnyPrintWrapper(" + GenExpr(e) + "));";
           case _ => generated := "TODO";
         }
 
@@ -81,13 +81,15 @@ module {:extern "DCOMP"} DCOMP {
 
     static function GenExpr(e: Expression): string {
       match e {
-        case Literal(StringLiteral(s)) => s
+        case PassThroughExpr(s) => s
         case _ => "TODO"
       }
     }
 
-    static method Compile(p: seq<TopLevel>) returns (s: string) {
+    static method Compile(p: seq<TopLevel>, runtime: string) returns (s: string) {
       s := "#![allow(warnings)]\n";
+      s := s + "mod dafny_runtime {\n" + runtime + "\n}\n";
+
       var i := 0;
       while i < |p| {
         var generated: string;
