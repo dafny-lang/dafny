@@ -319,14 +319,14 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
     private Type GetDafnyType(Model.Uninterpreted element) {
       List<Model.Element> isOfType = GetIsResults(element);
       if (isOfType.Count > 0) { 
-        return ReconstructType(isOfType.First()); // TODO: How to choose the right one?
+        return ReconstructType(isOfType.First());
       }
       var seqOperation = fSeqAppend.AppWithResult(element);
       seqOperation ??= fSeqDrop.AppWithResult(element);
       seqOperation ??= fSeqTake.AppWithResult(element);
       seqOperation ??= fSeqUpdate.AppWithResult(element);
       if (seqOperation != null) {
-        return GetDafnyType(seqOperation.Args[0]); // TODO not sure about the index
+        return GetDafnyType(seqOperation.Args[0]);
       }
       seqOperation = fSeqBuild.AppWithResult(element);
       if (seqOperation != null) {
@@ -341,7 +341,7 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
       setOperation ??= fSetIntersection.AppWithResult(element);
       setOperation ??= fSetDifference.AppWithResult(element);
       if (setOperation != null) {
-        return GetDafnyType(setOperation.Args[0]); // TODO not sure about the index
+        return GetDafnyType(setOperation.Args[0]);
       }
       setOperation = fSetUnionOne.AppWithResult(element);
       if (setOperation != null) {
@@ -458,7 +458,7 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
         return vector.Numeral;
       }
       var primitiveType = GetIsResults(elt).FirstOrDefault();
-      if (type is BitvectorType bitvectorType) { // TODO: What if it is a type synonym?
+      if (type is BitvectorType bitvectorType) { 
         int width = bitvectorType.Width;
         var funcName = "U_2_bv" + width;
         if (!bitvectorTypes.ContainsKey(width)) {
