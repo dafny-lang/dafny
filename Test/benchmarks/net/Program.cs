@@ -38,8 +38,7 @@ namespace MyBenchmarks
         {
             var summary = BenchmarkRunner.Run<SequenceRace>(
               DefaultConfig.Instance.AddJob(
-                Job.Default.WithAffinity((IntPtr)(2 ^ Environment.ProcessorCount - 1))
-                  .WithIterationTime()));
+                Job.Default.WithAffinity((IntPtr)(2 ^ Environment.ProcessorCount - 1))));
         }
     }
 }
