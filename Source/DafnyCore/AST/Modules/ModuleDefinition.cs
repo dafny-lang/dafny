@@ -792,7 +792,11 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
         if (path is NameSegment nameSegment) {
           if (sig.TopLevels.TryGetValue(nameSegment.Name, out var topLevelDecl)) {
             return topLevelDecl;
-          } else if (resolver.moduleInfo.TopLevels.TryGetValue(nameSegment.Name, out topLevelDecl)) {
+          } else if (resolver.moduleInfo != null && resolver.moduleInfo.TopLevels.TryGetValue(nameSegment.Name, out topLevelDecl)) {
+            // For "object" and other reference-type declarations from other modules, we're picking up the NonNullTypeDecl; if so, return
+            // the original declaration.
+            return topLevelDecl is NonNullTypeDecl nntd ? nntd.ViewAsClass : topLevelDecl;
+          } else if (resolver.ProgramResolver.SystemModuleManager.systemNameInfo.TopLevels.TryGetValue(nameSegment.Name, out topLevelDecl)) {
             // For "object" and other reference-type declarations from other modules, we're picking up the NonNullTypeDecl; if so, return
             // the original declaration.
             return topLevelDecl is NonNullTypeDecl nntd ? nntd.ViewAsClass : topLevelDecl;
