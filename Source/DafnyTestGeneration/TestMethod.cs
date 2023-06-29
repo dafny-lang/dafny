@@ -3,7 +3,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
-using DafnyServer.CounterexampleGeneration;
 using Microsoft.Boogie;
 using Microsoft.Dafny;
 using Microsoft.Dafny.LanguageServer.CounterExampleGeneration;
@@ -342,20 +341,32 @@ namespace DafnyTestGeneration {
           return AddValue(asType ?? variableType, "(" +
             string.Join(",", variable.Children.Values
               .Select(v => ExtractVariable(v.First(), null))) + ")");
-        case DafnyModelTypeUtils.DatatypeType dataType:
-          if (variable.CanonicalName() == "") {
-            getDefaultValueParams = new();
-            return GetDefaultValue(dataType, asType);
+        case ArrowType arrowType:
+          var asBasicArrowType = GetBasicType(asType, type => type is ArrowType) as ArrowType;
+          return GetFunctionOfType(asBasicArrowType ?? arrowType);
+        case UserDefinedType unknown when unknown.Name == DafnyModel.UnknownType.Name:
+          if (asType != null) {
+            return GetDefaultValue(asType, asType);
           }
-
-          var basicType = GetBasicType(asType ?? dataType,
+          errorMessages.Add($"// Failed to determine a variable type (element {variable.Element}).");
+          return "null";
+        case UserDefinedType arrType when new Regex("^_System.array[0-9]*\\?$").IsMatch(arrType.Name):
+          errorMessages.Add($"// Failed because arrays are not yet supported (type {arrType} element {variable.Element})");
+          break;
+        case UserDefinedType _ when variable.CanonicalName() == "null":
+          return "null";
+        case UserDefinedType userDefinedType:
+          var basicType = GetBasicType(asType ?? userDefinedType,
             type => type == null || type is not UserDefinedType definedType ||
                     DafnyInfo.Datatypes.ContainsKey(definedType
                       .Name)) as UserDefinedType;
-          if (basicType == null ||
-              !DafnyInfo.Datatypes.ContainsKey(basicType.Name)) {
-            errorMessages.Add($"// Failed: Cannot find datatype {dataType} in DafnyInfo");
-            return dataType.ToString();
+          if (basicType == null || !DafnyInfo.Datatypes.ContainsKey(basicType.Name)) {
+            return GetClassTypeInstance(userDefinedType, asType, variable);
+          }
+
+          if (variable.CanonicalName() == "") {
+            getDefaultValueParams = new();
+            return GetDefaultValue(userDefinedType, asType);
           }
           var ctor = DafnyInfo.Datatypes[basicType.Name].Ctors.FirstOrDefault(ctor => ctor.Name == variable.CanonicalName(), null);
           if (ctor == null) {
@@ -381,11 +392,6 @@ namespace DafnyTestGeneration {
             var destructorType = Utils.CopyWithReplacements(
               Utils.UseFullName(ctor.Destructors[i].Type),
               ctor.EnclosingDatatype.TypeArgs.ConvertAll(arg => arg.Name), basicType.TypeArgs);
-            destructorType = DafnyModelTypeUtils.ReplaceType(destructorType,
-              _ => true,
-              t => DafnyInfo.Datatypes.ContainsKey(t.Name)
-                ? new DafnyModelTypeUtils.DatatypeType(t)
-                : new UserDefinedType(t.tok, t.Name, t.TypeArgs));
             fields.Add(ctor.Destructors[i].Name + ":=" +
                        ExtractVariable(variable.Children[fieldName].First(), destructorType));
           }
@@ -397,23 +403,7 @@ namespace DafnyTestGeneration {
             value += "." + variable.CanonicalName() + "(" +
                      string.Join(",", fields) + ")";
           }
-          return AddValue(asType ?? dataType, value);
-        case ArrowType arrowType:
-          var asBasicArrowType = GetBasicType(asType, type => type is ArrowType) as ArrowType;
-          return GetFunctionOfType(asBasicArrowType ?? arrowType);
-        case UserDefinedType unknown when unknown.Name == DafnyModel.UnknownType.Name:
-          if (asType != null) {
-            return GetDefaultValue(asType, asType);
-          }
-          errorMessages.Add($"// Failed to determine a variable type (element {variable.Element}).");
-          return "null";
-        case UserDefinedType arrType when new Regex("^_System.array[0-9]*\\?$").IsMatch(arrType.Name):
-          errorMessages.Add($"// Failed because arrays are not yet supported (type {arrType} element {variable.Element})");
-          break;
-        case UserDefinedType _ when variable.CanonicalName() == "null":
-          return "null";
-        case UserDefinedType userDefinedType:
-          return GetClassTypeInstance(userDefinedType, asType, variable);
+          return AddValue(asType ?? userDefinedType, value);
       }
       errorMessages.Add($"// Failed because variable has unknown type {variableType} (element {variable.Element})");
       return "null";
@@ -437,6 +427,10 @@ namespace DafnyTestGeneration {
       }
       string varId;
       var dafnyType = DafnyModelTypeUtils.GetNonNullable(asBasicType ?? type) as UserDefinedType;
+      if (!DafnyInfo.IsClassType(dafnyType)) {
+        errorMessages.Add($"// Failed to identify type class-type {dafnyType} in the AST");
+        return "null";
+      }
       if ((variable == null || (variable.Children.Count == 0))) {
         // this value is unconstrained by counterexample
         var constructorMethod = DafnyInfo.GetUserDefinedConstrutor(dafnyType);
@@ -545,11 +539,6 @@ namespace DafnyTestGeneration {
         return "\"Failed Tuple support\"";
       }
       type = GetBasicType(type, type => DafnyInfo.GetSupersetType(type) == null);
-      type = DafnyModelTypeUtils.ReplaceType(type,
-        _ => true,
-        t => DafnyInfo.Datatypes.ContainsKey(t.Name) ?
-          new DafnyModelTypeUtils.DatatypeType(t) :
-          new UserDefinedType(t.tok, t.Name, t.TypeArgs));
       type = DafnyModelTypeUtils.ReplaceTypeVariables(type, defaultType);
       if ((asType != null) && (DafnyInfo.GetWitnessForType(asType) != null)) {
         return DafnyInfo.GetWitnessForType(asType);
@@ -583,14 +572,17 @@ namespace DafnyTestGeneration {
             destructors.Add(GetDefaultValue(arg));
           }
           return AddValue(tupleType, "(" + string.Join(",", destructors) + ")");
-        case DafnyModelTypeUtils.DatatypeType datatypeType:
+        case ArrowType arrowType:
+          return GetFunctionOfType(arrowType);
+        case UserDefinedType unknown when unknown.Name == DafnyModel.UnknownType.Name:
+          errorMessages.Add($"// Failed to determine type of a default value");
+          return "null";
+        case UserDefinedType userDefinedType when userDefinedType.Name.EndsWith("?"):
+          return "null";
+        case UserDefinedType datatypeType when DafnyInfo.Datatypes.ContainsKey(datatypeType.Name):
           string value;
           if (getDefaultValueParams.Contains(datatypeType.Name)) {
             errorMessages.Add($"// Failed to non-recursively construct a default value for type {datatypeType}");
-            return datatypeType.Name + ".UNKNOWN";
-          }
-          if (!DafnyInfo.Datatypes.ContainsKey(datatypeType.Name)) {
-            errorMessages.Add($"// Failed to determine default constructors for datatype (type {datatypeType})");
             return datatypeType.Name + ".UNKNOWN";
           }
           getDefaultValueParams.Add(datatypeType.ToString());
@@ -610,15 +602,7 @@ namespace DafnyTestGeneration {
           var name = AddValue(asType ?? datatypeType, value);
           getDefaultValueParams.RemoveAt(getDefaultValueParams.Count - 1);
           return name;
-
-        case ArrowType arrowType:
-          return GetFunctionOfType(arrowType);
-        case UserDefinedType unknown when unknown.Name == DafnyModel.UnknownType.Name:
-          errorMessages.Add($"// Failed to determine type of a default value");
-          return "null";
-        case UserDefinedType userDefinedType when userDefinedType.Name.EndsWith("?"):
-          return "null";
-        case UserDefinedType userDefinedType:
+      case UserDefinedType userDefinedType:
           return GetClassTypeInstance(userDefinedType, asType, null);
       }
       errorMessages.Add(

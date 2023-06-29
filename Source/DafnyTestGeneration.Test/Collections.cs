@@ -1,21 +1,24 @@
+using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using Microsoft.Dafny;
 using Xunit;
 using Xunit.Abstractions;
 
 namespace DafnyTestGeneration.Test {
-
-  public class Collections {
+  
+  public class Collections: Setup {
     private readonly TextWriter output;
 
     public Collections(ITestOutputHelper output) {
       this.output = new WriterFromOutputHelper(output);
     }
     
-    [Fact]
-    public async Task Tuples() {
+    [Theory][MemberData(nameof(Setup.EncodingConfigurations))]
+    public async Task Tuples(List<Action<DafnyOptions>> optionSettings) {
       var source = @"
 module SimpleTest {
   method {:testEntry} tuple(tseq: seq<(int, (bool, char))>) returns (i:int) {
@@ -29,7 +32,7 @@ module SimpleTest {
   }
 }
 ".TrimStart();
-      var options = Setup.GetDafnyOptions(output);
+      var options = Setup.GetDafnyOptions(optionSettings, output);
       var program = Utils.Parse(options, source, false);
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
       Assert.True(3 <= methods.Count);
@@ -54,8 +57,8 @@ module SimpleTest {
         m.ValueCreation.Exists(vc => vc.value.ToString().Contains("\'R\')"))));
     }
 
-    [Fact(Skip = "Implementation doesn't always return correct results on Windows CI, https://github.com/dafny-lang/dafny/issues/3828")]
-    private async Task StringLength() {
+    [Theory(Skip = "Implementation doesn't always return correct results on Windows CI, https://github.com/dafny-lang/dafny/issues/3828")][MemberData(nameof(Setup.EncodingConfigurations))]
+    private async Task StringLength(List<Action<DafnyOptions>> optionSettings) {
       var source = @"
 module C {
   method {:testEntry} compareStringLengthToOne(s: string) returns (ret: int) {
@@ -70,7 +73,7 @@ module C {
 }
 
 ".TrimStart();
-      var options = Setup.GetDafnyOptions(output);
+      var options = Setup.GetDafnyOptions(optionSettings, output);
       var program = Utils.Parse(options, source, false);
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
       Assert.Equal(3, methods.Count);
@@ -87,8 +90,8 @@ module C {
         Regex.IsMatch(m.ValueCreation[0].value, "\"..+\"")));
     }
 
-    [Fact(Skip = "Implementation doesn't always return correct results on Windows CI, https://github.com/dafny-lang/dafny/issues/3828")]
-    private async Task SeqOfObjects() {
+    [Theory(Skip = "Implementation doesn't always return correct results on Windows CI, https://github.com/dafny-lang/dafny/issues/3828")][MemberData(nameof(Setup.EncodingConfigurations))]
+    private async Task SeqOfObjects(List<Action<DafnyOptions>> optionSettings) {
       var source = @"
 module SimpleTest {
 
@@ -116,7 +119,7 @@ module SimpleTest {
   }
 }
 ".TrimStart();
-      var options = Setup.GetDafnyOptions(output);
+      var options = Setup.GetDafnyOptions(optionSettings, output);
       var program = Utils.Parse(options, source, false);
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
       /*if (methods.Count != 3) { // This sometimes occurs on Windows

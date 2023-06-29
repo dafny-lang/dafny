@@ -425,6 +425,14 @@ namespace DafnyTestGeneration {
       }
       return result;
     }
+    
+    public bool IsClassType(UserDefinedType/*?*/ type) {
+      if (type == null || !classes.ContainsKey(type.Name)) {
+        return false;
+      }
+      return true;
+    }
+    
     public bool IsExtern(UserDefinedType/*?*/ type) {
       if (type == null || !classes.ContainsKey(type.Name)) {
         if (!suppressErrorMessages) {
@@ -433,7 +441,7 @@ namespace DafnyTestGeneration {
         }
 
         SetNonZeroExitCode = true;
-        return true;
+        return false;
       }
       return classes[type.Name].IsExtern(Options, out _, out _);
     }
