@@ -4,9 +4,9 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading;
-using DafnyServer.CounterexampleGeneration;
 using Microsoft.Boogie;
 using Microsoft.Dafny;
+using Microsoft.Dafny.LanguageServer.CounterExampleGeneration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Errors = Microsoft.Dafny.Errors;
@@ -179,6 +179,7 @@ namespace DafnyTestGeneration {
         func.ByMethodBody = new BlockStmt(
           new RangeToken(new Token(), new Token()),
           new List<Statement> { returnStatement });
+        func.ByMethodTok = func.Body.tok;
       }
     }
 

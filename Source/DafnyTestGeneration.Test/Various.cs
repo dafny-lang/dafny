@@ -283,21 +283,22 @@ module Paths {
 module Objects {
   class Node {
       var next: Node?;
-      constructor (next2:Node) {
-          next := next2;
+      constructor (next:Node?) {
+          this.next := next;
       }
   }
   class List {
-    static method IsACircleOfLessThanThree(node: Node) returns (b: bool) {
-        var curr:Node? := node.next;
-        var counter:int := 1;
-        while ((counter < 3) && (curr != null) && (curr != node))
-            invariant counter <= 3
-            decreases 3 - counter {
-            curr := curr.next;
-            counter := counter + 1;
+    static method IsACircleOfTwoOrLessNodes(node: Node) returns (b: bool) {
+        if node.next == null { 
+          return false;
+        } else if node.next == node { 
+          return true;
+        } else if node.next.next == null || node.next.next == node.next {
+          return false;
+        } else if node.next.next == node { 
+          return true;
         }
-        return curr == node;
+        return false;
     }
   }
 }
@@ -305,37 +306,37 @@ module Objects {
       var options = Setup.GetDafnyOptions(output);
       var program = Utils.Parse(options, source);
       options.TestGenOptions.TargetMethod =
-        "Objects.List.IsACircleOfLessThanThree";
+        "Objects.List.IsACircleOfTwoOrLessNodes";
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
-      Assert.True(methods.Count >= 2);
+      Assert.True(methods.Count >= 5);
       Assert.True(methods.All(m =>
-        m.MethodName == "Objects.List.IsACircleOfLessThanThree"));
+        m.MethodName == "Objects.List.IsACircleOfTwoOrLessNodes"));
       Assert.True(methods.All(m =>
-        m.DafnyInfo.IsStatic("Objects.List.IsACircleOfLessThanThree")));
+        m.DafnyInfo.IsStatic("Objects.List.IsACircleOfTwoOrLessNodes")));
       Assert.True(methods.All(m => m.ArgValues.Count == 1));
-      // This test is too specific. A test input may be valid and still not satisfy it.
-      /*
+      // First return statement:
       Assert.True(methods.Exists(m =>
-        (m.Assignments.Count == 1 && m.Assignments[0] == ("node0", "next", "node0") &&
-        m.ValueCreation.Count == 1) ||
-        (m.Assignments.Count == 2 && m.Assignments[1] == ("node0", "next", "node1") &&
-        m.Assignments[0] == ("node1", "next", "node0") &&
-        m.ValueCreation.Count == 2)));
-        */
+        (m.Assignments.Count == 1 && m.ValueCreation.Count == 1 &&
+         m.Assignments.Last() == ("node0", "next", "null"))));
+      // Second return statement:
+      Assert.True(methods.Exists(m =>
+        (m.Assignments.Count == 1 && m.ValueCreation.Count == 1 &&
+         m.Assignments.Last() == ("node0", "next", "node0"))));
+      // Third return statement (first case):
+      Assert.True(methods.Exists(m =>
+        (m.Assignments.Count == 2 && m.ValueCreation.Count == 2 &&
+         m.Assignments.Last() == ("node0", "next", "node1") &&
+         m.Assignments[^2] == ("node1", "next", "null"))));
+      // Fourth return statements:
+      Assert.True(methods.Exists(m =>
+        (m.Assignments.Count == 2 && m.ValueCreation.Count == 2 &&
+         m.Assignments.Last() == ("node0", "next", "node1") &&
+         m.Assignments[^2] == ("node1", "next", "node0"))));
+      // Final return statements:
       Assert.True(methods.Exists(m =>
         (m.Assignments.Count > 2 && m.ValueCreation.Count > 2 &&
-        m.Assignments.Last() == ("node0", "next", "node1") &&
-        m.Assignments[^2] == ("node1", "next", "node2")) ||
-        (m.Assignments.Count == 2 && m.ValueCreation.Count == 2 &&
-        m.Assignments[1] == ("node0", "next", "node1") &&
-        m.Assignments[0] == ("node1", "next", "node1"))));
-      Assert.True(methods.Exists(m =>
-        (m.Assignments.Count == 1 &&
-        m.Assignments[0] == ("node0", "next", "null") &&
-        m.ValueCreation.Count == 1) ||
-        (m.Assignments.Count == 2 && m.Assignments[1] == ("node0", "next", "node1") &&
-        m.Assignments[0] == ("node1", "next", "null") &&
-        m.ValueCreation.Count == 2)));
+         m.Assignments.Last() == ("node0", "next", "node1") &&
+         m.Assignments[^2] == ("node1", "next", "node2"))));
     }
 
     /// <summary>

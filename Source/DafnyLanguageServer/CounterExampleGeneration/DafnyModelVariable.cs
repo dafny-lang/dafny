@@ -6,7 +6,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
-using DafnyServer.CounterexampleGeneration;
 using Microsoft.Boogie;
 
 namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
@@ -90,12 +89,12 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
     }
 
     public string CanonicalName() {
-      return state.Model.CanonicalName(Element);
+      return state.Model.CanonicalName(Element, Type);
     }
 
     public virtual string Value {
       get {
-        var result = state.Model.CanonicalName(Element);
+        var result = state.Model.CanonicalName(Element, Type);
         if (children.Count == 0) {
           return result == "" ? "()" : result;
         }
@@ -121,8 +120,7 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
         return result + "(" + childValues + ")";
       }
     }
-
-    public bool IsPrimitive => DafnyModel.IsPrimitive(Element, state);
+    public bool IsPrimitive => Type is BasicType || state.Model.ElementIsNull(Element);
 
     public string ShortName {
       get {
