@@ -38,8 +38,7 @@ public class RunAllTestsMainMethod : IRewriter {
       new List<AttributedExpression>(), new Specification<Expression>(new List<Expression>(), null),
       null, noVerifyAttribute, null);
     mainMethod.Attributes = new Attributes("main", new List<Expression>(), mainMethod.Attributes);
-    var defaultModule = program.RawModules().Single(m => m.IsDefaultModule);
-    var defaultClass = (DefaultClassDecl)defaultModule.TopLevelDecls.Single(d => d is DefaultClassDecl);
+    var defaultClass = program.DefaultModule.ModuleDef.DefaultClass;
     defaultClass.Members.Add(mainMethod);
   }
 

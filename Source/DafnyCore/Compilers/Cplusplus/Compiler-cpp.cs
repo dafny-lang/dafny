@@ -228,7 +228,7 @@ namespace Microsoft.Dafny.Compilers {
         throw new UnsupportedFeatureException(tok, Feature.ExternalClasses, String.Format("extern in class {0}", name));
       }
       if (superClasses != null && superClasses.Any(trait => !trait.IsObject)) {
-        throw new UnsupportedFeatureException(tok, Feature.Traits, String.Format("traits in class {0}", name));
+        throw new UnsupportedFeatureException(tok, Feature.Traits);
       }
 
       var classDeclWriter = modDeclWr;
@@ -610,7 +610,7 @@ namespace Microsoft.Dafny.Compilers {
           wr.WriteLine("typedef {0} {1};", nt_name_def, nt.Name);
         }
       } else {
-        throw new UnsupportedFeatureException(nt.tok, Feature.NonNativeNewtypes, String.Format("non-native newtype {0}", nt));
+        throw new UnsupportedFeatureException(nt.tok, Feature.NonNativeNewtypes);
       }
       var className = "class_" + IdName(nt);
       var cw = CreateClass(nt.EnclosingModuleDefinition.GetCompileName(Options), className, nt, wr) as ClassWriter;
@@ -2168,8 +2168,7 @@ namespace Microsoft.Dafny.Compilers {
           if (resultType.IsCharType || AsNativeType(resultType) != null) {
             opString = "-";
           } else {
-            throw new UnsupportedFeatureException(tok, Feature.NonNativeNewtypes,
-                          "Subtraction of non-native type");
+            throw new UnsupportedFeatureException(tok, Feature.NonNativeNewtypes);
           }
           break;
         case BinaryExpr.ResolvedOpcode.Mul:
@@ -2179,8 +2178,7 @@ namespace Microsoft.Dafny.Compilers {
           if (AsNativeType(resultType) != null) {
             opString = "*";
           } else {
-            throw new UnsupportedFeatureException(tok, Feature.NonNativeNewtypes,
-                          "Multiplication of non-native type");
+            throw new UnsupportedFeatureException(tok, Feature.NonNativeNewtypes);
           }
           break;
         case BinaryExpr.ResolvedOpcode.Div:

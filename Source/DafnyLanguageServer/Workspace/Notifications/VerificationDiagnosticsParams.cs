@@ -172,7 +172,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
      // The position of the symbol name attached to this node, or Range.Start if it's anonymous
      Position Position
   ) {
-    public string PrefixedDisplayName => Kind + " " + DisplayName;
+    public string PrefixedDisplayName => Kind + " `" + DisplayName + "`";
 
     // Overriden by checking children if there are some
     public GutterVerificationStatus StatusVerification { get; set; } = GutterVerificationStatus.Nothing;
@@ -187,7 +187,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     public DateTime EndTime { get; protected set; }
     public int TimeSpent => (int)(Finished ? ((TimeSpan)(EndTime - StartTime)).TotalMilliseconds : Started ? (DateTime.Now - StartTime).TotalMilliseconds : 0);
     // Resources allocated at the end of the computation.
-    public int ResourceCount { get; set; } = 0;
+    public long ResourceCount { get; set; } = 0;
 
 
 

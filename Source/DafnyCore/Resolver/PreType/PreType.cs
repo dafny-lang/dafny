@@ -261,7 +261,7 @@ namespace Microsoft.Dafny {
 
     public static bool IsTupleType(TopLevelDecl decl) {
       Contract.Requires(decl != null);
-      return BuiltIns.IsTupleTypeName(decl.Name);
+      return SystemModuleManager.IsTupleTypeName(decl.Name);
     }
 
     public override PreType Substitute(Dictionary<TypeParameter, PreType> subst) {

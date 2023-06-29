@@ -34,7 +34,7 @@ class CheckTypeInferenceVisitor : ASTVisitor<TypeInferenceCheckingContext> {
       }
 
     } else if (decl is DatatypeDecl datatypeDecl) {
-      foreach (var member in resolver.classMembers[datatypeDecl].Values) {
+      foreach (var member in resolver.GetClassMembers(datatypeDecl).Values) {
         if (member is DatatypeDestructor dtor) {
           var rolemodel = dtor.CorrespondingFormals[0];
           for (var i = 1; i < dtor.CorrespondingFormals.Count; i++) {

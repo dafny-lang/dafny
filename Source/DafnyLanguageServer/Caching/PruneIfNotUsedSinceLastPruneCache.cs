@@ -20,6 +20,8 @@ public class PruneIfNotUsedSinceLastPruneCache<TKey, TValue>
 
   private readonly ConcurrentDictionary<TKey, Item> items;
 
+  public IEnumerable<TValue> Values => items.Select(i => i.Value.Value);
+
   public PruneIfNotUsedSinceLastPruneCache(IEqualityComparer<TKey> comparer) {
     items = new(comparer);
   }

@@ -21,7 +21,7 @@ namespace Microsoft.Dafny {
     private readonly Dictionary<IVariable, IVariable> clones = new();
     private readonly Dictionary<MemberDecl, MemberDecl> memberClones = new();
     private readonly Dictionary<TopLevelDecl, TopLevelDecl> typeParameterClones = new();
-    private readonly bool cloneLiteralModuleDefinition;
+    public bool CloneLiteralModuleDefinition { get; }
 
     public void AddStatementClone(Statement original, Statement clone) {
       statementClones.Add(original, clone);
@@ -32,7 +32,7 @@ namespace Microsoft.Dafny {
     }
 
     public Cloner(bool cloneLiteralModuleDefinition = false, bool cloneResolvedFields = false) {
-      this.cloneLiteralModuleDefinition = cloneLiteralModuleDefinition;
+      this.CloneLiteralModuleDefinition = cloneLiteralModuleDefinition;
       CloneResolvedFields = cloneResolvedFields;
     }
 
@@ -150,20 +150,16 @@ namespace Microsoft.Dafny {
         return new ClassDecl(Range(dd.RangeToken), dd.NameNode.Clone(this), newParent, tps, mm, CloneAttributes(dd.Attributes), dd.IsRefining, dd.ParentTraits.ConvertAll(CloneType));
       } else if (d is ModuleDecl) {
         if (d is LiteralModuleDecl moduleDecl) {
-          //var newModuleDefinition = moduleDecl.ModuleDef;
-          var newModuleDefinition = this.cloneLiteralModuleDefinition ? CloneModuleDefinition(moduleDecl.ModuleDef, newParent) : moduleDecl.ModuleDef;
-          return new LiteralModuleDecl(newModuleDefinition, newParent) {
-            DefaultExport = moduleDecl.DefaultExport
-          };
+          return new LiteralModuleDecl(this, moduleDecl, newParent);
         } else if (d is AliasModuleDecl) {
           var a = (AliasModuleDecl)d;
-          return new AliasModuleDecl(Range(a.RangeToken), a.TargetQId?.Clone(false), a.NameNode.Clone(this), newParent, a.Opened, a.Exports);
+          return new AliasModuleDecl(this, a, newParent);
         } else if (d is AbstractModuleDecl) {
           var a = (AbstractModuleDecl)d;
-          return new AbstractModuleDecl(Range(a.RangeToken), a.QId?.Clone(false), a.NameNode.Clone(this), newParent, a.Opened, a.Exports);
+          return new AbstractModuleDecl(this, a, newParent);
         } else if (d is ModuleExportDecl) {
           var a = (ModuleExportDecl)d;
-          return new ModuleExportDecl(Range(a.RangeToken), a.NameNode.Clone(this), newParent, a.Exports, a.Extends, a.ProvideAll, a.RevealAll, a.IsDefault, a.IsRefining);
+          return new ModuleExportDecl(this, a, newParent);
         } else {
           Contract.Assert(false);  // unexpected declaration
           return null;  // to please compiler
@@ -612,8 +608,8 @@ namespace Microsoft.Dafny {
     public DeepModuleSignatureCloner(bool cloneResolvedFields = false) : base(false, cloneResolvedFields) {
     }
 
-    public override TopLevelDecl CloneDeclaration(TopLevelDecl d, ModuleDefinition m) {
-      var dd = base.CloneDeclaration(d, m);
+    public override TopLevelDecl CloneDeclaration(TopLevelDecl d, ModuleDefinition newParent) {
+      var dd = base.CloneDeclaration(d, newParent);
       if (d is ModuleDecl) {
         ((ModuleDecl)dd).Signature = ((ModuleDecl)d).Signature;
         if (d is AbstractModuleDecl) {
@@ -621,13 +617,13 @@ namespace Microsoft.Dafny {
 
           ((AbstractModuleDecl)dd).OriginalSignature = sourcefacade.OriginalSignature;
           if (sourcefacade.QId.Root != null) {
-            ((AbstractModuleDecl)dd).QId.SetRoot((ModuleDecl)CloneDeclaration(sourcefacade.QId.Root, m));
+            ((AbstractModuleDecl)dd).QId.Root = (ModuleDecl)CloneDeclaration(sourcefacade.QId.Root, newParent);
           }
         } else if (d is AliasModuleDecl) {
           var sourcealias = (AliasModuleDecl)d;
 
           if (sourcealias.TargetQId.Root != null) {
-            ((AliasModuleDecl)dd).TargetQId.SetRoot((ModuleDecl)CloneDeclaration(sourcealias.TargetQId.Root, m));
+            ((AliasModuleDecl)dd).TargetQId.Root = (ModuleDecl)CloneDeclaration(sourcealias.TargetQId.Root, newParent);
           }
         }
       }

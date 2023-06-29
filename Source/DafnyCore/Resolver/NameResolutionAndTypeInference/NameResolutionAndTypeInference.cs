@@ -529,7 +529,7 @@ namespace Microsoft.Dafny {
             e.TypeApplication_JustMember.Add(prox);
           }
           subst = BuildTypeArgumentSubstitute(subst);
-          e.Type = SelectAppropriateArrowTypeForFunction(fn, subst, builtIns);
+          e.Type = SelectAppropriateArrowTypeForFunction(fn, subst, SystemModuleManager);
         } else if (member is Field) {
           var field = (Field)member;
           e.Member = field;
@@ -643,7 +643,7 @@ namespace Microsoft.Dafny {
         ResolveExpression(e.N, resolutionContext);
         ConstrainToIntegerType(e.N, false, "sequence construction must use an integer-based expression for the sequence size (got {0})");
         ResolveExpression(e.Initializer, resolutionContext);
-        var arrowType = new ArrowType(e.tok, builtIns.ArrowTypeDecls[1], new List<Type>() { builtIns.Nat() }, elementType);
+        var arrowType = new ArrowType(e.tok, SystemModuleManager.ArrowTypeDecls[1], new List<Type>() { SystemModuleManager.Nat() }, elementType);
         var hintString = " (perhaps write '_ =>' in front of the expression you gave in order to make it an arrow type)";
         ConstrainSubtypeRelation(arrowType, e.Initializer.Type, e.Initializer, "sequence-construction initializer expression expected to have type '{0}' (instead got '{1}'){2}",
           arrowType, e.Initializer.Type, new LazyString_OnTypeEquals(elementType, e.Initializer.Type, hintString));
@@ -1070,9 +1070,9 @@ namespace Microsoft.Dafny {
         ResolveExpression(e.Term, resolutionContext);
         Contract.Assert(e.Term.Type != null);
         scope.PopMarker();
-        expr.Type = SelectAppropriateArrowType(e.tok, e.BoundVars.ConvertAll(v => v.Type), e.Body.Type, e.Reads.Count != 0, e.Range != null, builtIns);
+        expr.Type = SelectAppropriateArrowType(e.tok, e.BoundVars.ConvertAll(v => v.Type), e.Body.Type, e.Reads.Count != 0, e.Range != null, SystemModuleManager);
       } else if (expr is WildcardExpr) {
-        expr.Type = new SetType(true, builtIns.ObjectQ());
+        expr.Type = new SetType(true, SystemModuleManager.ObjectQ());
       } else if (expr is StmtExpr) {
         var e = (StmtExpr)expr;
         int prevErrorCount = reporter.Count(ErrorLevel.Error);
@@ -1119,7 +1119,7 @@ namespace Microsoft.Dafny {
       DominatingStatementLabels.PopMarker();
     }
 
-    void ResolveTypeParameters(List<TypeParameter/*!*/>/*!*/ tparams, bool emitErrors, TypeParameter.ParentType/*!*/ parent) {
+    public void ResolveTypeParameters(List<TypeParameter/*!*/>/*!*/ tparams, bool emitErrors, TypeParameter.ParentType/*!*/ parent) {
       Contract.Requires(tparams != null);
       Contract.Requires(parent != null);
       // push non-duplicated type parameter names
@@ -1956,7 +1956,7 @@ namespace Microsoft.Dafny {
                 if (xc.ConstraintName == "IsRefType" || xc.ConstraintName == "IsNullableRefType") {
                   var proxy = xc.Types[0].Normalize() as TypeProxy;  // before we started processing default types, this would have been a proxy (since it's still in the A
                   if (proxy != null) {
-                    AssignProxyAndHandleItsConstraints(proxy, builtIns.ObjectQ());
+                    AssignProxyAndHandleItsConstraints(proxy, SystemModuleManager.ObjectQ());
                     anyNewConstraints = true;
                     continue;
                   }
@@ -2192,11 +2192,11 @@ namespace Microsoft.Dafny {
       Type join = null;
       foreach (var rhs in rhss) {
         if (rhs is TypeProxy) { return false; }
-        join = join == null ? rhs : Type.Join(join, rhs, builtIns);
+        join = join == null ? rhs : Type.Join(join, rhs, SystemModuleManager);
       }
       foreach (var sub in lhs.SubtypesKeepConstraints) {
         if (sub is TypeProxy) { return false; }
-        join = join == null ? sub : Type.Join(join, sub, builtIns);
+        join = join == null ? sub : Type.Join(join, sub, SystemModuleManager);
       }
       if (join == null) {
         return false;
@@ -2401,7 +2401,7 @@ namespace Microsoft.Dafny {
         }
         int i = 0;
         for (; i < joins.Count; i++) {
-          var j = Type.Join(joins[i], su, builtIns);
+          var j = Type.Join(joins[i], su, SystemModuleManager);
           if (j != null) {
             joins[i] = j;
             break;
@@ -2425,7 +2425,7 @@ namespace Microsoft.Dafny {
         }
         int i = 0;
         for (; i < meets.Count; i++) {
-          var j = Type.Meet(meets[i], su, builtIns);
+          var j = Type.Meet(meets[i], su, SystemModuleManager);
           if (j != null) {
             meets[i] = j;
             break;
@@ -2457,7 +2457,7 @@ namespace Microsoft.Dafny {
         } else {
           int i = 0;
           for (; i < joins.Count; i++) {
-            var j = Type.Join(joins[i], su, builtIns);
+            var j = Type.Join(joins[i], su, SystemModuleManager);
             if (j != null) {
               joins[i] = j;
               break;
@@ -2581,7 +2581,7 @@ namespace Microsoft.Dafny {
           }
           int i = 0;
           for (; i < joins.Count; i++) {
-            var j = Type.Join(joins[i], su, builtIns);
+            var j = Type.Join(joins[i], su, SystemModuleManager);
             if (j != null) {
               joins[i] = j;
               break;
@@ -2601,7 +2601,7 @@ namespace Microsoft.Dafny {
         }
         int i = 0;
         for (; i < meets.Count; i++) {
-          var j = Type.Meet(meets[i], su, builtIns);
+          var j = Type.Meet(meets[i], su, SystemModuleManager);
           if (j != null) {
             meets[i] = j;
             break;
@@ -3103,7 +3103,9 @@ namespace Microsoft.Dafny {
         if (isInitCall) {
           reporter.Error(MessageSource.Resolver, s, "a method called as an initialization method must not have any result arguments");
         } else {
-          reporter.Error(MessageSource.Resolver, s, "wrong number of method result arguments (got {0}, expected {1})", s.Lhs.Count, callee.Outs.Count);
+          reporter.Error(MessageSource.Resolver, s,
+            "the method returns {1} value{3} but is assigned to {0} variable{2} (all return values must be assigned)",
+            s.Lhs.Count, callee.Outs.Count, s.Lhs.Count > 1 ? "s" : "", callee.Outs.Count > 1 ? "s" : "");
           tryToResolve = true;
         }
       } else {
@@ -4184,7 +4186,7 @@ namespace Microsoft.Dafny {
       if (type is BitvectorType) {
         var t = (BitvectorType)type;
         // nothing to resolve, but record the fact that this bitvector width is in use
-        builtIns.Bitwidths.Add(t.Width);
+        SystemModuleManager.Bitwidths.Add(t.Width);
       } else if (type is BasicType) {
         // nothing to resolve
       } else if (type is MapType) {
@@ -4297,7 +4299,7 @@ namespace Microsoft.Dafny {
         if (t.ResolvedClass == null) {
           // There was some error. Still, we will set .ResolvedClass to some value to prevent some crashes in the downstream resolution.  The
           // 0-tuple is convenient, because it is always in scope.
-          t.ResolvedClass = builtIns.TupleType(t.tok, 0, false);
+          t.ResolvedClass = SystemModuleManager.TupleType(t.tok, 0, false);
           // clear out the TypeArgs since 0-tuple doesn't take TypeArg
           t.TypeArgs = new List<Type>();
         }
@@ -4410,12 +4412,12 @@ namespace Microsoft.Dafny {
             ResolveExpression(rr.ElementInit, resolutionContext);
             // Check
             //     int^N -> rr.EType  :>  rr.ElementInit.Type
-            builtIns.CreateArrowTypeDecl(rr.ArrayDimensions.Count);  // TODO: should this be done already in the parser?
+            SystemModuleManager.CreateArrowTypeDecl(rr.ArrayDimensions.Count);  // TODO: should this be done already in the parser?
             var args = new List<Type>();
             for (int ii = 0; ii < rr.ArrayDimensions.Count; ii++) {
-              args.Add(builtIns.Nat());
+              args.Add(SystemModuleManager.Nat());
             }
-            var arrowType = new ArrowType(rr.ElementInit.tok, builtIns.ArrowTypeDecls[rr.ArrayDimensions.Count], args, rr.EType);
+            var arrowType = new ArrowType(rr.ElementInit.tok, SystemModuleManager.ArrowTypeDecls[rr.ArrayDimensions.Count], args, rr.EType);
             var lambdaType = rr.ElementInit.Type.AsArrowType;
             if (lambdaType != null && lambdaType.TypeArgs[0] is InferredTypeProxy) {
               (lambdaType.TypeArgs[0] as InferredTypeProxy).KeepConstraints = true;
@@ -4536,9 +4538,9 @@ namespace Microsoft.Dafny {
       }
       Contract.Assert(receiverType is NonProxyType);  // there are only two kinds of types: proxies and non-proxies
 
-      foreach (var valuet in valuetypeDecls) {
+      foreach (var valuet in ProgramResolver.SystemModuleManager.valuetypeDecls) {
         if (valuet.IsThisType(receiverType)) {
-          if (classMembers[valuet].TryGetValue(memberName, out var member)) {
+          if (GetClassMembers(valuet).TryGetValue(memberName, out var member)) {
             SelfType resultType = null;
             if (member is SpecialFunction) {
               resultType = ((SpecialFunction)member).ResultType as SelfType;
@@ -4561,7 +4563,7 @@ namespace Microsoft.Dafny {
       var cd = ctype?.AsTopLevelTypeWithMembersBypassInternalSynonym;
       if (cd != null) {
         Contract.Assert(ctype.TypeArgs.Count == cd.TypeArgs.Count);  // follows from the fact that ctype was resolved
-        if (!classMembers[cd].TryGetValue(memberName, out var member)) {
+        if (!GetClassMembers(cd).TryGetValue(memberName, out var member)) {
           if (memberName == "_ctor") {
             reporter.Error(MessageSource.Resolver, tok, "{0} {1} does not have an anonymous constructor", cd.WhatKind, cd.Name);
           } else {
@@ -4932,7 +4934,7 @@ namespace Microsoft.Dafny {
         joinType = Type.HeadWithProxyArgs(t);
         return true;
       } else {
-        joinType = Type.Join(joinType, Type.HeadWithProxyArgs(t), builtIns);  // the only way this can succeed is if we obtain a (non-null or nullable) trait
+        joinType = Type.Join(joinType, Type.HeadWithProxyArgs(t), SystemModuleManager);  // the only way this can succeed is if we obtain a (non-null or nullable) trait
         Contract.Assert(joinType == null ||
                         joinType.IsObjectQ || joinType.IsObject ||
                         (joinType is UserDefinedType udt && (udt.ResolvedClass is TraitDecl || (udt.ResolvedClass is NonNullTypeDecl nntd && nntd.Class is TraitDecl))));
@@ -5002,7 +5004,7 @@ namespace Microsoft.Dafny {
         meet = Type.HeadWithProxyArgs(t);
         return true;
       } else {
-        meet = Type.Meet(meet, Type.HeadWithProxyArgs(t), builtIns);
+        meet = Type.Meet(meet, Type.HeadWithProxyArgs(t), SystemModuleManager);
         return meet != null;
       }
     }
@@ -5128,7 +5130,7 @@ namespace Microsoft.Dafny {
           reporter.Error(MessageSource.Resolver, entry.Item1, "duplicate update member '{0}'", destructor_str);
         } else {
           memberNames.Add(destructor_str);
-          if (!classMembers[dt].TryGetValue(destructor_str, out var member)) {
+          if (!GetClassMembers(dt).TryGetValue(destructor_str, out var member)) {
             reporter.Error(MessageSource.Resolver, entry.Item1, "member '{0}' does not exist in datatype '{1}'", destructor_str, dt.Name);
           } else if (!(member is DatatypeDestructor)) {
             reporter.Error(MessageSource.Resolver, entry.Item1, "member '{0}' is not a destructor in datatype '{1}'", destructor_str, dt.Name);
@@ -5328,7 +5330,7 @@ namespace Microsoft.Dafny {
           }
         }
         r = new IdentifierExpr(expr.tok, v);
-      } else if (currentClass is TopLevelDeclWithMembers cl && classMembers.TryGetValue(cl, out var members) && members.TryGetValue(name, out member)) {
+      } else if (currentClass is TopLevelDeclWithMembers cl && GetClassMembers(cl)?.TryGetValue(name, out member) == true) {
         // ----- 1. member of the enclosing class
 
         if (!member.IsStatic) {
@@ -5734,7 +5736,7 @@ namespace Microsoft.Dafny {
         var cd = r == null ? ty.AsTopLevelTypeWithMembersBypassInternalSynonym : null;
         if (cd != null) {
           // ----- LHS is a type with members
-          if (classMembers.TryGetValue(cd, out var members) && members.TryGetValue(name, out member)) {
+          if (GetClassMembers(cd)?.TryGetValue(name, out member) == true) {
             if (!VisibleInScope(member)) {
               reporter.Error(MessageSource.Resolver, expr.tok, "member '{0}' has not been imported in this scope and cannot be accessed here", name);
             }
@@ -5834,7 +5836,7 @@ namespace Microsoft.Dafny {
           rr.TypeApplication_AtEnclosingClass.AddRange(rType.AsParentType(member.EnclosingClass).TypeArgs);
         }
       } else {
-        var vtd = AsValuetypeDecl(rType);
+        var vtd = ProgramResolver.SystemModuleManager.AsValuetypeDecl(rType);
         if (vtd != null) {
           Contract.Assert(vtd.TypeArgs.Count == rType.TypeArgs.Count);
           subst = TypeParameter.SubstitutionMap(vtd.TypeArgs, rType.TypeArgs);
@@ -5868,7 +5870,7 @@ namespace Microsoft.Dafny {
           subst.Add(fn.TypeArgs[i], ta);
         }
         subst = BuildTypeArgumentSubstitute(subst, receiverTypeBound ?? receiver.Type);
-        rr.Type = SelectAppropriateArrowTypeForFunction(fn, subst, builtIns);
+        rr.Type = SelectAppropriateArrowTypeForFunction(fn, subst, SystemModuleManager);
       } else {
         // the member is a method
         var m = (Method)member;
