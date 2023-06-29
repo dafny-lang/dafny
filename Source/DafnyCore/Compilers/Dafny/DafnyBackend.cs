@@ -11,7 +11,8 @@ namespace Microsoft.Dafny.Compilers;
 public class DafnyBackend : ExecutableBackend {
 
   public override IReadOnlySet<string> SupportedExtensions => new HashSet<string> { ".dfy" };
-  public override string TargetName => "Simple Dafny";
+  public override string TargetName => "Dafny AST";
+  public override bool IsStable => false;
   public override string TargetExtension => "dfy";
   public override int TargetIndentSize => 4;
   public override string TargetBaseDir(string dafnyProgramName) =>
