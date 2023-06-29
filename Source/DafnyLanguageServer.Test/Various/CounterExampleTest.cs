@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using Microsoft.Dafny.LanguageServer.Handlers.Custom;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
@@ -6,6 +7,7 @@ using OmniSharp.Extensions.LanguageServer.Protocol;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using Microsoft.Boogie;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 using Microsoft.Dafny.LanguageServer.Workspace;
 using Xunit;
@@ -29,8 +31,22 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       );
     }
 
-    [Fact]
-    public async Task CounterexamplesStillWorksIfNothingHasBeenVerified() {
+    public static TheoryData<List<Action<DafnyOptions>>> EncodingConfigurations() {
+      var theoryData = new TheoryData<List<Action<DafnyOptions>>>();
+      theoryData.Add(new() { options => options.TypeEncodingMethod = CoreOptions.TypeEncoding.Arguments });
+      theoryData.Add(new() { options => options.TypeEncodingMethod = CoreOptions.TypeEncoding.Predicates });
+      return theoryData;
+    }
+
+    private async Task SetUpOptions(List<Action<DafnyOptions>> optionSettings) {
+      foreach (var optionSetting in optionSettings) {
+        await SetUp(options => optionSetting(options));
+      }
+    }
+
+    [Theory][MemberData(nameof(EncodingConfigurations))]
+    public async Task CounterexamplesStillWorksIfNothingHasBeenVerified(List<Action<DafnyOptions>> optionSettings) {
+      await SetUpOptions(optionSettings);
       await SetUp(options => options.Set(ServerCommand.Verification, VerifyOnMode.Never));
       var source = @"
       method Abs(x: int) returns (y: int)
@@ -47,8 +63,9 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       Assert.True(counterExamples[0].Variables.ContainsKey("y:int"));
     }
 
-    [Fact]
-    public async Task FileWithBodyLessMethodReturnsSingleCounterExampleForPostconditions() {
+    [Theory][MemberData(nameof(EncodingConfigurations))]
+    public async Task FileWithBodyLessMethodReturnsSingleCounterExampleForPostconditions(List<Action<DafnyOptions>> optionSettings) {
+      await SetUpOptions(optionSettings);
       var source = @"
       method Abs(x: int) returns (y: int)
         ensures y > 0
@@ -64,8 +81,9 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       Assert.True(counterExamples[0].Variables.ContainsKey("y:int"));
     }
 
-    [Fact]
-    public async Task FileWithMethodWithErrorsReturnsCounterExampleForPostconditionsAndEveryUpdateLine() {
+    [Theory][MemberData(nameof(EncodingConfigurations))]
+    public async Task FileWithMethodWithErrorsReturnsCounterExampleForPostconditionsAndEveryUpdateLine(List<Action<DafnyOptions>> optionSettings) {
+      await SetUpOptions(optionSettings);
       var source = @"
       method Abs(x: int) returns (y: int)
         ensures y >= 0
@@ -86,8 +104,9 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       Assert.True(counterExamples[2].Variables.ContainsKey("z:int"));
     }
 
-    [Fact]
-    public async Task FileWithMethodWithoutErrorsReturnsEmptyCounterExampleList() {
+    [Theory][MemberData(nameof(EncodingConfigurations))]
+    public async Task FileWithMethodWithoutErrorsReturnsEmptyCounterExampleList(List<Action<DafnyOptions>> optionSettings) {
+      await SetUpOptions(optionSettings);
       var source = @"
       method Abs(x: int) returns (y: int)
         ensures y >= 0
@@ -104,8 +123,9 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       Assert.Empty(counterExamples);
     }
 
-    [Fact]
-    public async Task GetCounterExampleWithMultipleMethodsWithErrorsReturnsCounterExamplesForEveryMethod() {
+    [Theory][MemberData(nameof(EncodingConfigurations))]
+    public async Task GetCounterExampleWithMultipleMethodsWithErrorsReturnsCounterExamplesForEveryMethod(List<Action<DafnyOptions>> optionSettings) {
+      await SetUpOptions(optionSettings);
       var source = @"
       method Abs(x: int) returns (y: int)
         ensures y > 0
@@ -133,8 +153,9 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       Assert.True(counterExamples[1].Variables.ContainsKey("b:int"));
     }
 
-    [Fact]
-    public async Task WholeNumberAsReal() {
+    [Theory][MemberData(nameof(EncodingConfigurations))]
+    public async Task WholeNumberAsReal(List<Action<DafnyOptions>> optionSettings) {
+      await SetUpOptions(optionSettings);
       var source = @"
       method a(r:real) {
         assert r != 1.0;
@@ -149,8 +170,9 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       Assert.Equal("1.0", counterExamples[0].Variables["r:real"]);
     }
 
-    [Fact]
-    public async Task FractionAsAReal() {
+    [Theory][MemberData(nameof(EncodingConfigurations))]
+    public async Task FractionAsAReal(List<Action<DafnyOptions>> optionSettings) {
+      await SetUpOptions(optionSettings);
       var source = @"
       method a(r:real) {
         assert r != 0.4;
@@ -165,8 +187,9 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       StringAssert.Matches(counterExamples[0].Variables["r:real"], new Regex("[0-9]+\\.[0-9]+/[0-9]+\\.[0-9]+"));
     }
 
-    [Fact]
-    public async Task WholeNumberFieldAsReal() {
+    [Theory][MemberData(nameof(EncodingConfigurations))]
+    public async Task WholeNumberFieldAsReal(List<Action<DafnyOptions>> optionSettings) {
+      await SetUpOptions(optionSettings);
       var source = @"
       class Value {
         var v:real;
@@ -184,8 +207,9 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       Assert.Equal("(v := 0.0)", counterExamples[0].Variables["v:_module.Value"]);
     }
 
-    [Fact]
-    public async Task ConstantField() {
+    [Theory][MemberData(nameof(EncodingConfigurations))]
+    public async Task ConstantField(List<Action<DafnyOptions>> optionSettings) {
+      await SetUpOptions(optionSettings);
       var source = @"
       class Value {
         const v:int;
@@ -203,8 +227,9 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       Assert.Equal("(v := 42)", counterExamples[0].Variables["v:_module.Value"]);
     }
 
-    [Fact]
-    public async Task FractionFieldAsReal() {
+    [Theory][MemberData(nameof(EncodingConfigurations))]
+    public async Task FractionFieldAsReal(List<Action<DafnyOptions>> optionSettings) {
+      await SetUpOptions(optionSettings);
       var source = @"
       class Value {
         var v:real;
@@ -222,8 +247,9 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       StringAssert.Matches(counterExamples[0].Variables["v:_module.Value"], new Regex("\\(v := [0-9]+\\.[0-9]+/[0-9]+\\.[0-9]+\\)"));
     }
 
-    [Fact]
-    public async Task SelfReferringObject() {
+    [Theory][MemberData(nameof(EncodingConfigurations))]
+    public async Task SelfReferringObject(List<Action<DafnyOptions>> optionSettings) {
+      await SetUpOptions(optionSettings);
       var source = @"
       class Node {
         var next: Node?;
@@ -241,8 +267,9 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       Assert.Equal("(next := n)", counterExamples[0].Variables["n:_module.Node"]);
     }
 
-    [Fact]
-    public async Task ObjectWithANonNullField() {
+    [Theory][MemberData(nameof(EncodingConfigurations))]
+    public async Task ObjectWithANonNullField(List<Action<DafnyOptions>> optionSettings) {
+      await SetUpOptions(optionSettings);
       var source = @"
       class Node {
         var next: Node?;
@@ -260,8 +287,9 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       StringAssert.Matches(counterExamples[0].Variables["n:_module.Node"], new Regex("\\(next := @[0-9]+\\)"));
     }
 
-    [Fact]
-    public async Task ObjectWithANullField() {
+    [Theory][MemberData(nameof(EncodingConfigurations))]
+    public async Task ObjectWithANullField(List<Action<DafnyOptions>> optionSettings) {
+      await SetUpOptions(optionSettings);
       var source = @"
       class Node {
         var next: Node?;
@@ -279,8 +307,9 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       Assert.Equal("(next := null)", counterExamples[0].Variables["n:_module.Node"]);
     }
 
-    [Fact]
-    public async Task ObjectWithAFieldOfBasicType() {
+    [Theory][MemberData(nameof(EncodingConfigurations))]
+    public async Task ObjectWithAFieldOfBasicType(List<Action<DafnyOptions>> optionSettings) {
+      await SetUpOptions(optionSettings);
       var source = @"
       class BankAccountUnsafe {
         var balance: int;
@@ -310,8 +339,9 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       StringAssert.Matches(counterExamples[1].Variables["this:_module.BankAccountUnsafe"], new Regex("\\(balance := \\-[0-9]+\\)"));
     }
 
-    [Fact]
-    public async Task SpecificCharacter() {
+    [Theory][MemberData(nameof(EncodingConfigurations))]
+    public async Task SpecificCharacter(List<Action<DafnyOptions>> optionSettings) {
+      await SetUpOptions(optionSettings);
       var source = @"
       method a(c:char) {
         assert c != '0';
@@ -326,8 +356,9 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       Assert.Equal("'0'", counterExamples[0].Variables["c:char"]);
     }
 
-    [Fact]
-    public async Task ArbitraryCharacter() {
+    [Theory][MemberData(nameof(EncodingConfigurations))]
+    public async Task ArbitraryCharacter(List<Action<DafnyOptions>> optionSettings) {
+      await SetUpOptions(optionSettings);
       var source = @"
       method a(c:char) {
         assert c == '0';
@@ -343,8 +374,9 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       Assert.NotEqual("'0'", counterExamples[0].Variables["c:char"]);
     }
 
-    [Fact]
-    public async Task DatatypeWithUnnamedDestructor() {
+    [Theory][MemberData(nameof(EncodingConfigurations))]
+    public async Task DatatypeWithUnnamedDestructor(List<Action<DafnyOptions>> optionSettings) {
+      await SetUpOptions(optionSettings);
       var source = @"
       datatype B = A(int)
       method a(b:B) {
@@ -360,8 +392,9 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       Assert.Equal("A(_h0 := 5)", counterExamples[0].Variables["b:_module.B"]);
     }
 
-    [Fact]
-    public async Task DatatypeWithDestructorThanIsADataValue() {
+    [Theory][MemberData(nameof(EncodingConfigurations))]
+    public async Task DatatypeWithDestructorThanIsADataValue(List<Action<DafnyOptions>> optionSettings) {
+      await SetUpOptions(optionSettings);
       var source = @"
       datatype A = B(x:real)
       method destructorNameTest(a:A) {
@@ -377,8 +410,9 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       StringAssert.Matches(counterExamples[0].Variables["a:_module.A"], new Regex("B\\(x := -[0-9]+\\.[0-9]+/[0-9]+\\.[0-9]+\\)"));
     }
 
-    [Fact]
-    public async Task DatatypeWithDifferentDestructorsForDifferentConstructors() {
+    [Theory][MemberData(nameof(EncodingConfigurations))]
+    public async Task DatatypeWithDifferentDestructorsForDifferentConstructors(List<Action<DafnyOptions>> optionSettings) {
+      await SetUpOptions(optionSettings);
       var source = @"
       datatype Hand = Left(x:int, y:int) | Right(a:int, b:int)
       method T_datatype0_1(h0:Hand, h1:Hand)
@@ -397,8 +431,9 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       StringAssert.Matches(counterExamples[0].Variables["h1:_module.Hand"], new Regex("Left\\([x|y] := -?[0-9]+, [x|y] := -?[0-9]+\\)"));
     }
 
-    [Fact]
-    public async Task DatatypeObjectWithTwoDestructorsWhoseValuesAreEqual() {
+    [Theory][MemberData(nameof(EncodingConfigurations))]
+    public async Task DatatypeObjectWithTwoDestructorsWhoseValuesAreEqual(List<Action<DafnyOptions>> optionSettings) {
+      await SetUpOptions(optionSettings);
       var source = @"
       datatype Hand = Left(a:int, b:int)
       method T_datatype0_1(h:Hand)  {
@@ -414,8 +449,9 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       StringAssert.Matches(counterExamples[0].Variables["h:_module.Hand"], new Regex("Left\\([a|b] := 3, [a|b] := 3\\)"));
     }
 
-    [Fact]
-    public async Task DatatypeWithDestructorsWhoseNamesShadowBuiltInDestructors() {
+    [Theory][MemberData(nameof(EncodingConfigurations))]
+    public async Task DatatypeWithDestructorsWhoseNamesShadowBuiltInDestructors(List<Action<DafnyOptions>> optionSettings) {
+      await SetUpOptions(optionSettings);
       var source = @"
       datatype A = B_(C_q:bool, B_q:bool, D_q:bool) | C(B_q:bool, C_q:bool, D_q:bool)
       method m (a:A) requires !a.B_?{
@@ -432,8 +468,9 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
     }
 
 
-    [Fact]
-    public async Task DatatypeWithTypeParameters() {
+    [Theory][MemberData(nameof(EncodingConfigurations))]
+    public async Task DatatypeWithTypeParameters(List<Action<DafnyOptions>> optionSettings) {
+      await SetUpOptions(optionSettings);
       var source = @"
       datatype A<T> = One(b:T) | Two(i:int)
       method m(a:A<bool>) requires a == One(false) || a == One(true) {
@@ -449,8 +486,9 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       Assert.Equal("One(b := false)", counterExamples[0].Variables["a:_module.A<bool>"]);
     }
 
-    [Fact]
-    public async Task ArbitraryBool() {
+    [Theory][MemberData(nameof(EncodingConfigurations))]
+    public async Task ArbitraryBool(List<Action<DafnyOptions>> optionSettings) {
+      await SetUpOptions(optionSettings);
       var source = @"
       datatype List<T> = Nil | Cons(head: T, tail: List<T>)
       method listHasSingleElement(list:List<bool>)
@@ -468,8 +506,9 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       StringAssert.Matches(counterExamples[0].Variables["list:_module.List<bool>"], new Regex("Cons\\(head := (true|false), tail := @[0-9]+\\)"));
     }
 
-    [Fact]
-    public async Task ArbitraryInt() {
+    [Theory][MemberData(nameof(EncodingConfigurations))]
+    public async Task ArbitraryInt(List<Action<DafnyOptions>> optionSettings) {
+      await SetUpOptions(optionSettings);
       var source = @"
       datatype List<T> = Nil | Cons(head: T, tail: List<T>)
       method listHasSingleElement(list:List<int>)
@@ -487,8 +526,9 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       StringAssert.Matches(counterExamples[0].Variables["list:_module.List<int>"], new Regex("Cons\\(head := -?[0-9]+, tail := @[0-9]+\\)"));
     }
 
-    [Fact]
-    public async Task ArbitraryReal() {
+    [Theory][MemberData(nameof(EncodingConfigurations))]
+    public async Task ArbitraryReal(List<Action<DafnyOptions>> optionSettings) {
+      await SetUpOptions(optionSettings);
       var source = @"
       datatype List<T> = Nil | Cons(head: T, tail: List<T>)
       method listHasSingleElement(list:List<real>)
@@ -506,8 +546,9 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       StringAssert.Matches(counterExamples[0].Variables["list:_module.List<real>"], new Regex("Cons\\(head := -?[0-9]+\\.[0-9], tail := @[0-9]+\\)"));
     }
 
-    [Fact]
-    public async Task ArraySimpleTest() {
+    [Theory][MemberData(nameof(EncodingConfigurations))]
+    public async Task ArraySimpleTest(List<Action<DafnyOptions>> optionSettings) {
+      await SetUpOptions(optionSettings);
       var source = @"
       method a(arr:array<int>) requires arr.Length == 2 {
         assert arr[0] != 4 || arr[1] != 5;
@@ -522,8 +563,9 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       Assert.Equal("(Length := 2, [0] := 4, [1] := 5)", counterExamples[0].Variables["arr:_System.array<int>"]);
     }
 
-    [Fact]
-    public async Task SequenceSimpleTest() {
+    [Theory][MemberData(nameof(EncodingConfigurations))]
+    public async Task SequenceSimpleTest(List<Action<DafnyOptions>> optionSettings) {
+      await SetUpOptions(optionSettings);
       var source = @"
       method a(s:seq<int>) requires |s| == 1 {
         assert s[0] != 4;
@@ -538,8 +580,9 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       Assert.Equal("[4]", counterExamples[0].Variables["s:seq<int>"]);
     }
 
-    [Fact]
-    public async Task SequenceOfBitVectors() {
+    [Theory][MemberData(nameof(EncodingConfigurations))]
+    public async Task SequenceOfBitVectors(List<Action<DafnyOptions>> optionSettings) {
+      await SetUpOptions(optionSettings);
       var source = @"
       method a(s:seq<bv5>) requires |s| == 2 {
         assert s[1] != (2 as bv5);
@@ -554,8 +597,9 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       Assert.Equal("(Length := 2, [1] := 2)", counterExamples[0].Variables["s:seq<bv5>"]);
     }
 
-    [Fact]
-    public async Task SpecificBitVector() {
+    [Theory][MemberData(nameof(EncodingConfigurations))]
+    public async Task SpecificBitVector(List<Action<DafnyOptions>> optionSettings) {
+      await SetUpOptions(optionSettings);
       var source = @"
       method a(bv:bv7) {
         assert bv != (2 as bv7);
@@ -570,8 +614,9 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       Assert.Equal("2", counterExamples[0].Variables["bv:bv7"]);
     }
 
-    [Fact]
-    public async Task ArbitraryBitVector() {
+    [Theory][MemberData(nameof(EncodingConfigurations))]
+    public async Task ArbitraryBitVector(List<Action<DafnyOptions>> optionSettings) {
+      await SetUpOptions(optionSettings);
       var source = @"
       method a(b:bv2) {
         assert b == (1 as bv2);
@@ -586,8 +631,9 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       StringAssert.Matches(counterExamples[0].Variables["b:bv2"], new Regex("[023]"));
     }
 
-    [Fact]
-    public async Task BitWiseAnd() {
+    [Theory][MemberData(nameof(EncodingConfigurations))]
+    public async Task BitWiseAnd(List<Action<DafnyOptions>> optionSettings) {
+      await SetUpOptions(optionSettings);
       var source = @"
       method m(a:bv1, b:bv1) {
         assert a & b != (1 as bv1);
@@ -604,8 +650,9 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       StringAssert.Matches(counterExamples[0].Variables["b:bv1"], new Regex("(1|a)"));
     }
 
-    [Fact]
-    public async Task BitVectorField() {
+    [Theory][MemberData(nameof(EncodingConfigurations))]
+    public async Task BitVectorField(List<Action<DafnyOptions>> optionSettings) {
+      await SetUpOptions(optionSettings);
       var source = @"
       class Value {
         var b:bv5;
@@ -623,8 +670,9 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       Assert.Equal("(b := 2)", counterExamples[0].Variables["v:_module.Value"]);
     }
 
-    [Fact]
-    public async Task SeqSetAndArrayAsTypeParameters() {
+    [Theory][MemberData(nameof(EncodingConfigurations))]
+    public async Task SeqSetAndArrayAsTypeParameters(List<Action<DafnyOptions>> optionSettings) {
+      await SetUpOptions(optionSettings);
       var source = @"
       method a(s:set<seq<set<array<int>>>>) requires |s| <= 1{
         assert |s| == 0;
@@ -638,8 +686,9 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       StringAssert.Matches(counterExamples[0].Variables["s:set<seq<set<_System.array<int>>>>"], new Regex("\\{@[0-9]+ := true\\}"));
     }
 
-    [Fact]
-    public async Task MultiDimensionalArray() {
+    [Theory][MemberData(nameof(EncodingConfigurations))]
+    public async Task MultiDimensionalArray(List<Action<DafnyOptions>> optionSettings) {
+      await SetUpOptions(optionSettings);
       var source = @"
       method m(a:array3<int>) requires a.Length0 == 4 requires a.Length1 == 5 requires a.Length2 == 6 {
         assert a[2, 3, 1] != 7;
@@ -654,8 +703,9 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       Assert.Equal("(Length0 := 4, Length1 := 5, Length2 := 6, [2,3,1] := 7)", counterExamples[0].Variables["a:_System.array3<int>"]);
     }
 
-    [Fact]
-    public async Task ArrayEqualityByReference() {
+    [Theory][MemberData(nameof(EncodingConfigurations))]
+    public async Task ArrayEqualityByReference(List<Action<DafnyOptions>> optionSettings) {
+      await SetUpOptions(optionSettings);
       var source = @"
       method test(x:array<int>, y:array<int>)   {
         assert x != y;
@@ -671,8 +721,9 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       Assert.True(counterExamples[0].Variables["y:_System.array<int>"] == "x" || counterExamples[0].Variables["x:_System.array<int>"] == "y");
     }
 
-    [Fact]
-    public async Task SetBasicOperations() {
+    [Theory][MemberData(nameof(EncodingConfigurations))]
+    public async Task SetBasicOperations(List<Action<DafnyOptions>> optionSettings) {
+      await SetUpOptions(optionSettings);
       var source = @"
       method a(s1:set<char>, s2:set<char>) {
         var sUnion:set<char> := s1 + s2;
@@ -708,8 +759,9 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       Assert.Contains("'b' := true", sInter);
     }
 
-    [Fact]
-    public async Task SetSingleElement() {
+    [Theory][MemberData(nameof(EncodingConfigurations))]
+    public async Task SetSingleElement(List<Action<DafnyOptions>> optionSettings) {
+      await SetUpOptions(optionSettings);
       var source = @"
       method test() {
         var s := {6};
@@ -724,8 +776,9 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       StringAssert.Matches(counterExamples[1].Variables["s:set<int>"], new Regex("\\{.*6 := true.*\\}"));
     }
 
-    [Fact]
-    public async Task StringBuilding() {
+    [Theory][MemberData(nameof(EncodingConfigurations))]
+    public async Task StringBuilding(List<Action<DafnyOptions>> optionSettings) {
+      await SetUpOptions(optionSettings);
       var source = "" +
       "method a(s:string) {" +
       "  assert s != \"abc\";" +
@@ -739,8 +792,9 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       Assert.Equal("['a', 'b', 'c']", counterExamples[0].Variables["s:seq<char>"]);
     }
 
-    [Fact]
-    public async Task SequenceEdit() {
+    [Theory][MemberData(nameof(EncodingConfigurations))]
+    public async Task SequenceEdit(List<Action<DafnyOptions>> optionSettings) {
+      await SetUpOptions(optionSettings);
       var source = "" +
       "method a(c:char, s1:string) requires s1 == \"abc\"{" +
       "  var s2:string := s1[1 := c];" +
@@ -758,8 +812,9 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       Assert.Equal("'d'", counterExamples[1].Variables["c:char"]);
     }
 
-    [Fact]
-    public async Task SequenceSingleElement() {
+    [Theory][MemberData(nameof(EncodingConfigurations))]
+    public async Task SequenceSingleElement(List<Action<DafnyOptions>> optionSettings) {
+      await SetUpOptions(optionSettings);
       var source = @"
       method test() {
         var s := [6];
@@ -774,8 +829,9 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       StringAssert.Matches(counterExamples[1].Variables["s:seq<int>"], new Regex("\\[6\\]"));
     }
 
-    [Fact]
-    public async Task SequenceConcat() {
+    [Theory][MemberData(nameof(EncodingConfigurations))]
+    public async Task SequenceConcat(List<Action<DafnyOptions>> optionSettings) {
+      await SetUpOptions(optionSettings);
       var source = @"
       method a(s1:string, s2:string) requires |s1| == 1 && |s2| == 1 {
         var sCat:string := s2 + s1;
@@ -794,8 +850,9 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       Assert.Equal("['a', 'b']", counterExamples[1].Variables["sCat:seq<char>"]);
     }
 
-    [Fact]
-    public async Task SequenceGenerate() {
+    [Theory][MemberData(nameof(EncodingConfigurations))]
+    public async Task SequenceGenerate(List<Action<DafnyOptions>> optionSettings) {
+      await SetUpOptions(optionSettings);
       var source = @"
       method a(multiplier:int) {
         var s:seq<int> := seq(3, i => i * multiplier);
@@ -811,8 +868,9 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       Assert.Equal("3", counterExamples[1].Variables["multiplier:int"]);
     }
 
-    [Fact]
-    public async Task SequenceSub() {
+    [Theory][MemberData(nameof(EncodingConfigurations))]
+    public async Task SequenceSub(List<Action<DafnyOptions>> optionSettings) {
+      await SetUpOptions(optionSettings);
       var source = @"
       method a(s:seq<char>) requires |s| == 5 {
         var sSub:seq<char> := s[2..4];
@@ -829,8 +887,9 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       StringAssert.Matches(counterExamples[0].Variables["s:seq<char>"], new Regex("\\(Length := 5,.*\\[2\\] := 'a', \\[3\\] := 'b'.*"));
     }
 
-    [Fact]
-    public async Task SequenceDrop() {
+    [Theory][MemberData(nameof(EncodingConfigurations))]
+    public async Task SequenceDrop(List<Action<DafnyOptions>> optionSettings) {
+      await SetUpOptions(optionSettings);
       var source = @"
       method a(s:seq<char>) requires |s| == 5 {
         var sSub:seq<char> := s[2..];
@@ -847,8 +906,9 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       StringAssert.Matches(counterExamples[0].Variables["s:seq<char>"], new Regex("\\(Length := 5,.*\\[2\\] := 'a', \\[3\\] := 'b', \\[4\\] := 'c'.*"));
     }
 
-    [Fact]
-    public async Task SequenceTake() {
+    [Theory][MemberData(nameof(EncodingConfigurations))]
+    public async Task SequenceTake(List<Action<DafnyOptions>> optionSettings) {
+      await SetUpOptions(optionSettings);
       var source = @"
       method a(s:seq<char>) requires |s| == 5 {
         var sSub:seq<char> := s[..3];
@@ -865,8 +925,9 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       StringAssert.Matches(counterExamples[0].Variables["s:seq<char>"], new Regex("\\(Length := 5,.*\\[0\\] := 'a', \\[1\\] := 'b', \\[2\\] := 'c'.*"));
     }
 
-    [Fact]
-    public async Task VariableNameShadowing() {
+    [Theory][MemberData(nameof(EncodingConfigurations))]
+    public async Task VariableNameShadowing(List<Action<DafnyOptions>> optionSettings) {
+      await SetUpOptions(optionSettings);
       var source = @"
       method test(m:set<int>) {
         var m := {6};
@@ -878,8 +939,9 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       Assert.Equal(2, counterExamples.Length);
     }
 
-    [Fact]
-    public async Task MapsCreation() {
+    [Theory][MemberData(nameof(EncodingConfigurations))]
+    public async Task MapsCreation(List<Action<DafnyOptions>> optionSettings) {
+      await SetUpOptions(optionSettings);
       var source = @"
       method test() {
         var m := map[3 := false];
@@ -894,8 +956,9 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       StringAssert.Matches(counterExamples[1].Variables["m:map<int, bool>"], new Regex("\\(.*3 := false.*"));
     }
 
-    [Fact]
-    public async Task MapsUpdate() {
+    [Theory][MemberData(nameof(EncodingConfigurations))]
+    public async Task MapsUpdate(List<Action<DafnyOptions>> optionSettings) {
+      await SetUpOptions(optionSettings);
       var source = @"
       method test(value:int) {
         var m := map[3 := -1];
@@ -919,8 +982,9 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       StringAssert.Matches(counterExamples[3].Variables["m:map<int, int>"], new Regex("\\(.*3 := [1-9].*"));
     }
 
-    [Fact]
-    public async Task MapsUpdateStoredInANewVariable() {
+    [Theory][MemberData(nameof(EncodingConfigurations))]
+    public async Task MapsUpdateStoredInANewVariable(List<Action<DafnyOptions>> optionSettings) {
+      await SetUpOptions(optionSettings);
       var source = @"
       method T_map1(m:map<int,int>, key:int, val:int)
         requires key in m.Keys
@@ -943,8 +1007,9 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       StringAssert.Matches(counterExamples[2].Variables["m':map<int, int>"], new Regex("\\(.*" + key + " := " + val + ".*"));
     }
 
-    [Fact]
-    public async Task MapsValuesUpdate() {
+    [Theory][MemberData(nameof(EncodingConfigurations))]
+    public async Task MapsValuesUpdate(List<Action<DafnyOptions>> optionSettings) {
+      await SetUpOptions(optionSettings);
       // This corner case previously triggered infinite loops
       var source = @"
       method T_map0(m:map<int,int>, key:int, val:int)
@@ -969,8 +1034,9 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     }
 
-    [Fact]
-    public async Task MapsKeys() {
+    [Theory][MemberData(nameof(EncodingConfigurations))]
+    public async Task MapsKeys(List<Action<DafnyOptions>> optionSettings) {
+      await SetUpOptions(optionSettings);
       var source = @"
       method test(m:map<int,char>) {
         var keys := m.Keys;
@@ -987,8 +1053,9 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       StringAssert.Matches(counterExamples[1].Variables["keys:set<int>"], new Regex("\\{.*25 := true.*"));
     }
 
-    [Fact]
-    public async Task MapsValues() {
+    [Theory][MemberData(nameof(EncodingConfigurations))]
+    public async Task MapsValues(List<Action<DafnyOptions>> optionSettings) {
+      await SetUpOptions(optionSettings);
       var source = @"
       method test(m:map<int,char>) {
         var values := m.Values;
@@ -1005,8 +1072,9 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       StringAssert.Matches(counterExamples[1].Variables["values:set<char>"], new Regex("\\{.*'c' := true.*"));
     }
 
-    [Fact]
-    public async Task MapsOfBitVectors() {
+    [Theory][MemberData(nameof(EncodingConfigurations))]
+    public async Task MapsOfBitVectors(List<Action<DafnyOptions>> optionSettings) {
+      await SetUpOptions(optionSettings);
       // This test case triggers a situation in which the model does not
       // specify concrete values for bit vectors and the counterexample extraction
       // tool has to come up with such a value
@@ -1023,8 +1091,9 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       StringAssert.Matches(counterExamples[0].Variables["m:map<bv2, bv3>"], new Regex("\\(.*[0-9]+ := [0-9]+.*"));
     }
 
-    [Fact]
-    public async Task ModuleRenaming() {
+    [Theory][MemberData(nameof(EncodingConfigurations))]
+    public async Task ModuleRenaming(List<Action<DafnyOptions>> optionSettings) {
+      await SetUpOptions(optionSettings);
       var source = @"
       module Mo_dule_ {
          module Module2_ {
@@ -1045,8 +1114,9 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       Assert.Equal("(i := 5)", counterExamples[0].Variables["this:Mo_dule_.Module2_.Cla__ss"]);
     }
 
-    [Fact]
-    public async Task UnboundedIntegers() {
+    [Theory][MemberData(nameof(EncodingConfigurations))]
+    public async Task UnboundedIntegers(List<Action<DafnyOptions>> optionSettings) {
+      await SetUpOptions(optionSettings);
       var source = @"
       ghost const NAT64_MAX := 0x7fff_ffff_ffff_ffff
 
@@ -1066,8 +1136,9 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       Assert.True(a + b < a || a + b < b);
     }
 
-    [Fact]
-    public async Task DatatypeWithPredicate() {
+    [Theory][MemberData(nameof(EncodingConfigurations))]
+    public async Task DatatypeWithPredicate(List<Action<DafnyOptions>> optionSettings) {
+      await SetUpOptions(optionSettings);
       var source = @"
       module M {
         datatype D = C(i:int) {
@@ -1092,8 +1163,9 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
     /// Test a situation in which two fields of an object are equal
     /// (the value is represented by one Element in the Model)
     /// </summary>
-    [Fact]
-    public async Task EqualFields() {
+    [Theory][MemberData(nameof(EncodingConfigurations))]
+    public async Task EqualFields(List<Action<DafnyOptions>> optionSettings) {
+      await SetUpOptions(optionSettings);
       var source = @"
       module M {
         class C { 
@@ -1120,8 +1192,9 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
     /// a counterexample.  This would previously crash the LSP before #3093.
     /// For more details, see https://github.com/dafny-lang/dafny/issues/3048 .
     /// </summary>
-    [Fact]
-    public async Task NonIntegerSeqIndices() {
+    [Theory][MemberData(nameof(EncodingConfigurations))]
+    public async Task NonIntegerSeqIndices(List<Action<DafnyOptions>> optionSettings) {
+      await SetUpOptions(optionSettings);
       string fp = Path.Combine(Directory.GetCurrentDirectory(), "Various", "TestFiles", "3048.dfy");
       var source = await File.ReadAllTextAsync(fp, CancellationToken);
       var documentItem = CreateTestDocument(source);
@@ -1162,8 +1235,9 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
         IsNegativeIndexedSeq(new KeyValuePair<string, string>("seq<seq<_module.uint8>>", "(Length := 1123, [(- 12345)] := @12)")));
     }
 
-    [Fact]
-    public async Task TypePolymorphism() {
+    [Theory][MemberData(nameof(EncodingConfigurations))]
+    public async Task TypePolymorphism(List<Action<DafnyOptions>> optionSettings) {
+      await SetUpOptions(optionSettings);
       var source = @"
       module M { 
         class C<T> {
