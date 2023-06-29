@@ -589,7 +589,7 @@ function {:inline} _System.real.Floor(x: real): int { Int(x) }
 // ---------------------------------------------------------------
 // -- The heap ---------------------------------------------------
 // ---------------------------------------------------------------
-type Heap = [ref]<alpha>[Field alpha]Box;
+type Heap = [ref][Field Box]Box;
 function {:inline} read<alpha>(H: Heap, r: ref, f: Field Box) : alpha { $Unbox(H[r][f]) }
 function {:inline} readDirect(H: Heap, r: ref, f: Field Box) : Box { H[r][f] }
 function {:inline} update<alpha>(H:Heap, r:ref, f:Field Box, v:alpha): Heap { H[r := H[r][f := $Box(v)]] }
