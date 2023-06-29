@@ -1,12 +1,12 @@
+TestAuditor.dfy(93,10): Warning: /!\ No terms found to trigger on.
+TestAuditor.dfy(95,4): Warning: /!\ No terms found to trigger on.
+TestAuditor.dfy(126,2): Warning: /!\ No terms found to trigger on.
 TestAuditor.dfy(137,9): Warning: Assertion with {:only} temporarily transforms other assertions into assumptions
 TestAuditor.dfy(141,7): Warning: Members with {:only} temporarily disable the verification of other members in the entire file
 TestAuditor.dfy(95,4): Warning: note, this forall statement has no body
 TestAuditor.dfy(102,4): Warning: note, this loop has no body (loop frame: i)
 TestAuditor.dfy(126,2): Warning: note, this forall statement has no body
 TestAuditor.dfy(130,2): Warning: note, this loop has no body (loop frame: i)
-TestAuditor.dfy(93,10): Warning: /!\ No terms found to trigger on.
-TestAuditor.dfy(95,4): Warning: /!\ No terms found to trigger on.
-TestAuditor.dfy(126,2): Warning: /!\ No terms found to trigger on.
 TestAuditor.dfy(89,27): Warning: T: Trait method calls may not terminate (uses `{:termination false}`). Possible mitigation: Remove if possible.
 TestAuditor.dfy(22,6): Warning: MinusBv8NoBody: Ghost declaration has no body and has an ensures clause. Possible mitigation: Provide a body or add `{:axiom}`.
 TestAuditor.dfy(27,15): Warning: LeftShiftBV128: Declaration has explicit `{:axiom}` attribute. Possible mitigation: Provide a proof or test.
