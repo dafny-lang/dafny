@@ -285,7 +285,7 @@ namespace Microsoft.Dafny {
         isalloc_o = IsAlloced(c.tok, h, o);
       } else {
         // c is only provided, not revealed, in the scope. Use the non-null type decl's internal synonym
-        var cl = (ClassDecl)c;
+        var cl = (ClassLikeDecl)c;
         Contract.Assert(cl.NonNullTypeDecl != null);
         var udt = UserDefinedType.FromTopLevelDecl(c.tok, cl.NonNullTypeDecl);
         isalloc_o = MkIsAlloc(o, udt, h);
