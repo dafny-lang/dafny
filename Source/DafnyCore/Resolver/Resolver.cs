@@ -975,7 +975,7 @@ namespace Microsoft.Dafny {
         } else if (d is ModuleDecl) {
           var decl = (ModuleDecl)d;
           if (!def.IsAbstract && decl is AliasModuleDecl am && decl.Signature.IsAbstract) {
-            reporter.Error(MessageSource.Resolver, am.TargetQId.rootToken(),
+            reporter.Error(MessageSource.Resolver, am.TargetQId.RootToken(),
               "a compiled module ({0}) is not allowed to import an abstract module ({1})", def.Name, am.TargetQId.ToString());
           }
         } else if (d is DatatypeDecl) {
@@ -4231,7 +4231,7 @@ namespace Microsoft.Dafny {
       return sig;
     }
 
-    private ModuleSignature GetSignature(ModuleSignature sig) {
+    public ModuleSignature GetSignature(ModuleSignature sig) {
       return GetSignatureExt(sig);
     }
 

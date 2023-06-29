@@ -580,6 +580,9 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
         registerThisDecl = nntd;
         registerUnderThisName = d.Name;
       } else {
+        // Register each class and trait C under its own name, C. Below, we will change this for reference types (which includes all classes
+        // and some of the traits), so that C? maps to the class/trait and C maps to the corresponding NonNullTypeDecl. We will need these
+        // initial mappings in order to look through the parent traits of traits, below.
         registerThisDecl = d;
         registerUnderThisName = d.Name;
       }
@@ -737,16 +740,22 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
       }
     }
 
-    // Now, for each class, register its possibly-null type
+    DetermineReferenceTypes(resolver, sig);
+
+    // Now, for each reference type (class and some traits), register its possibly-null type.
+    // In the big loop above, each class and trait was registered under its own name. We're now going to change that for the reference types.
     foreach (TopLevelDecl d in TopLevelDecls) {
-      if ((d as ClassLikeDecl)?.NonNullTypeDecl != null) {
+      if (d is ClassLikeDecl { NonNullTypeDecl: { } nntd }) {
         var name = d.Name + "?";
-        TopLevelDecl prev;
-        if (toplevels.TryGetValue(name, out prev)) {
+        if (toplevels.ContainsKey(name)) {
           resolver.reporter.Error(MessageSource.Resolver, d,
-            "a module that already contains a top-level declaration '{0}' is not allowed to declare a {1} '{2}'",
+            "a module that already contains a top-level declaration '{0}' is not allowed to declare a reference type ({1}) '{2}'",
             name, d.WhatKind, d.Name);
         } else {
+          // change the mapping of d.Name to d.NonNullTypeDecl
+          toplevels[d.Name] = nntd;
+          sig.TopLevels[d.Name] = nntd;
+          // map the name d.Name+"?" to d
           toplevels[name] = d;
           sig.TopLevels[name] = d;
         }
@@ -754,5 +763,100 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
     }
 
     return sig;
+  }
+
+  private void DetermineReferenceTypes(Resolver resolver, ModuleSignature sig) {
+    // Figure out which TraitDecl's are reference types, and for each of them, create a corresponding NonNullTypeDecl.
+    // To figure this out, we need to look at the parents of each TraitDecl, but those parents have not yet been resolved.
+    // Since we just need the head of each parent, we'll do that name resolution here (and will redo it later, when each parent
+    // type is resolved properly).
+    //
+    // Some inaccuracies can occur here, since possibly-null types have not yet been registered. However, since such types aren't allowed
+    // as parents, it doesn't matter that they aren't available yet.
+    //
+    // If the head of a parent trait cannot be resolved, it is ignored here. An error will be reported later, when trait declarations are
+    // resolved properly. Similarly, any cycle detected among the trait-parent heads is ignored. Cycles are detected (again) later and an
+    // error will be reported then (in the meantime, we may have computed incorrectly whether or not a TraitDecl is a reference type, but
+    // the cycle still remains, so an error will be reported later). (Btw, the later cycle detection detects not only cycles among parent
+    // heads, but also among the type arguments of parent traits.)
+    //
+    // In the following dictionary, a TraitDecl not being present among the keys means it has not been visited in the InheritsFromObject traversal.
+    // If a TraitDecl is a key and maps to "false", then it is currently being visited.
+    // If a TraitDecl is a key and maps to "true", then its .IsReferenceTypeDecl has been computed and is ready to be used.
+    var traitsProgress = new Dictionary<TraitDecl, bool>();
+    foreach (var decl in TopLevelDecls.Where(d => d is TraitDecl)) {
+      // Resolve a "path" to a top-level declaration, if possible. On error, return null.
+      // The path is expected to consist of NameSegment or ExprDotName nodes.
+      TopLevelDecl ResolveNamePath(Expression path) {
+        // A single NameSegment is a little different, because it may refer to built-in type (of interest here: "object").
+        if (path is NameSegment nameSegment) {
+          if (sig.TopLevels.TryGetValue(nameSegment.Name, out var topLevelDecl)) {
+            return topLevelDecl;
+          } else if (resolver.moduleInfo.TopLevels.TryGetValue(nameSegment.Name, out topLevelDecl)) {
+            // For "object" and other reference-type declarations from other modules, we're picking up the NonNullTypeDecl; if so, return
+            // the original declaration.
+            return topLevelDecl is NonNullTypeDecl nntd ? nntd.ViewAsClass : topLevelDecl;
+          } else {
+            return null;
+          }
+        }
+
+        // convert the ExprDotName to a list of strings
+        var names = new List<string>();
+        while (path is ExprDotName exprDotName) {
+          names.Add(exprDotName.SuffixName);
+          path = exprDotName.Lhs;
+        }
+        names.Add(((NameSegment)path).Name);
+        var s = sig;
+        var i = names.Count;
+        while (true) {
+          i--;
+          if (!s.TopLevels.TryGetValue(names[i], out var topLevelDecl)) {
+            return null;
+          } else if (i == 0) {
+            // For reference-type declarations from other modules, we're picking up the NonNullTypeDecl; if so, return
+            // the original declaration.
+            return topLevelDecl is NonNullTypeDecl nntd ? nntd.ViewAsClass : topLevelDecl;
+          } else if (topLevelDecl is ModuleDecl moduleDecl) {
+            var signature = moduleDecl.AccessibleSignature(false);
+            s = resolver.GetSignature(signature);
+          } else {
+            return null;
+          }
+        }
+      }
+
+      bool InheritsFromObject(TraitDecl traitDecl) {
+        if (traitsProgress.TryGetValue(traitDecl, out var isDone)) {
+          if (isDone) {
+            return traitDecl.IsReferenceTypeDecl;
+          } else {
+            // there is a cycle among the parents, so we'll suppose the trait does inherit from "object"
+            return true;
+          }
+        }
+        traitsProgress[traitDecl] = false; // indicate that traitDecl is currently being visited
+
+        var inheritsFromObject = traitDecl.IsObjectTrait;
+        foreach (var parent in traitDecl.ParentTraits) {
+          if (parent is UserDefinedType udt) {
+            if (ResolveNamePath(udt.NamePath) is TraitDecl parentTrait) {
+              if (parentTrait.EnclosingModuleDefinition == this) {
+                inheritsFromObject = InheritsFromObject(parentTrait) || inheritsFromObject;
+              } else {
+                inheritsFromObject = parentTrait.IsReferenceTypeDecl || inheritsFromObject;
+              }
+            }
+          }
+        }
+
+        traitDecl.SetUpAsReferenceType(resolver.Options.Get(CommonOptionBag.GeneralTraits) ? inheritsFromObject : true);
+        traitsProgress[traitDecl] = true; // indicate that traitDecl.IsReferenceTypeDecl can now be called
+        return inheritsFromObject;
+      }
+
+      InheritsFromObject((TraitDecl)decl);
+    }
   }
 }
