@@ -1,0 +1,2 @@
+// https://github.com/dafny-lang/dafny/issues/4120
+// CHECK: Y \(variable of type interface{}\) is not a type

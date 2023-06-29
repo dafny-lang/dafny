@@ -1,9 +1,4 @@
-// RUN: %baredafny verify --relax-definite-assignment %args "%s" > "%t"
-// RUN: %baredafny run --no-verify --target=cs %args "%s" >> "%t"
-// RUN: %baredafny run --no-verify --target=js %args  "%s" >> "%t"
-// RUN: %baredafny run --no-verify --target=go %args  "%s" >> "%t"
-// RUN: %baredafny run --no-verify --target=py %args  "%s" >> "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment
 
 /* Note, compiling to arrays in Java is difficult. In fact, this is currently
  * broken, see https://github.com/dafny-lang/dafny/issues/3055. Until this gets

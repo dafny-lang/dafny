@@ -37,13 +37,23 @@ public class DocumentAfterParsing : Document {
   }
 
   private IEnumerable<DafnyDiagnostic> GetIncludeErrorDiagnostics() {
-    foreach (var include in Program.Includes) {
+    var graph = new Graph<Uri>();
+    foreach (var edgesForUri in Program.Includes.GroupBy(i => i.IncluderFilename)) {
+      foreach (var edge in edgesForUri) {
+        graph.AddEdge(edge.IncluderFilename, edge.IncludedFilename);
+      }
+    }
+
+    var sortedUris = graph.TopologicallySortedComponents();
+    var sortedUrisWithoutRoot = sortedUris.SkipLast(1);
+    foreach (var include in sortedUrisWithoutRoot) {
       var messageForIncludedFile =
-        ResolutionDiagnostics.GetOrDefault(include.IncludedFilename, Enumerable.Empty<DafnyDiagnostic>);
+        ResolutionDiagnostics.GetOrDefault(include, Enumerable.Empty<DafnyDiagnostic>);
       if (messageForIncludedFile.Any(m => m.Level == ErrorLevel.Error)) {
-        var diagnostic = new DafnyDiagnostic(null, Program.GetFirstTopLevelToken(), "the included file " + include.IncludedFilename.LocalPath + " contains error(s)",
+        var diagnostic = new DafnyDiagnostic(null, Program.GetFirstTopLevelToken(), "the included file " + include.LocalPath + " contains error(s)",
           MessageSource.Parser, ErrorLevel.Error, new DafnyRelatedInformation[] { });
         yield return diagnostic;
+        break;
       }
     }
   }

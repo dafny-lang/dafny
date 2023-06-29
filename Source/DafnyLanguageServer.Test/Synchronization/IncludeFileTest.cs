@@ -25,9 +25,10 @@ include ""./syntaxError.dfy""
   }
 
   [Fact]
-  public async Task IndirectlyIncludedFileFails() {
+  public async Task IndirectlyIncludedFileFailsSyntax() {
     var source = @"
 include ""./includesSyntaxError.dfy""
+include ""./syntaxError.dfy""
 ".TrimStart();
     var documentItem = CreateTestDocument(source, Path.Combine(Directory.GetCurrentDirectory(), "Synchronization/TestFiles/test.dfy"));
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
@@ -35,6 +36,20 @@ include ""./includesSyntaxError.dfy""
     Assert.Single(diagnostics);
     Assert.Contains("the included file", diagnostics[0].Message);
     Assert.Contains("syntaxError.dfy", diagnostics[0].Message);
+  }
+
+  [Fact]
+  public async Task IndirectlyIncludedFileFailsSemantic() {
+    var source = @"
+include ""./includesSemanticError.dfy""
+include ""./semanticError.dfy""
+".TrimStart();
+    var documentItem = CreateTestDocument(source, Path.Combine(Directory.GetCurrentDirectory(), "Synchronization/TestFiles/test.dfy"));
+    await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+    var diagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
+    Assert.Single(diagnostics);
+    Assert.Contains("the included file", diagnostics[0].Message);
+    Assert.Contains("semanticError.dfy", diagnostics[0].Message);
   }
 
   [Fact]
