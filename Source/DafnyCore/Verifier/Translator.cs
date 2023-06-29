@@ -798,12 +798,11 @@ namespace Microsoft.Dafny {
       foreach (TopLevelDecl d in visibleTopLevelDecls) {
         currentDeclaration = d;
         if (d is AbstractTypeDecl abstractType) {
-          GetOrCreateTypeConstructor(abstractType);
           AddClassMembers(abstractType, true, true);
         } else if (d is ModuleDecl) {
           // submodules have already been added as a top level module, ignore this.
-        } else if (d is RevealableTypeDecl) {
-          AddTypeDecl((RevealableTypeDecl)d);
+        } else if (d is RevealableTypeDecl revealableTypeDecl) {
+          AddRevealableTypeDecl(revealableTypeDecl);
         } else {
           Contract.Assert(false);
         }
@@ -1176,7 +1175,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    void AddTypeDecl(RevealableTypeDecl d) {
+    void AddRevealableTypeDecl(RevealableTypeDecl d) {
       Contract.Requires(d != null);
       if (RevealedInScope(d)) {
         if (d is NewtypeDecl) {
@@ -1206,7 +1205,16 @@ namespace Microsoft.Dafny {
           Contract.Assert(false);
         }
       } else {
-        GetOrCreateTypeConstructor(d.SelfSynonymDecl());
+        // Create a type constructor for the export-provided type. But note:
+        //   -- A DefaultClassDecl does not need a type constructor.
+        //   -- Reference types give rise to two type declarations, the nullable version and the non-null version.
+        //      For a type that is only export-provided, the type that is exported is an abstract-type version
+        //      of the non-null type. Thus, for a class declaration and reference-type trait declaration, we
+        //      do not create a type constructor.
+        if (d is not DefaultClassDecl && d is not ClassLikeDecl { IsReferenceTypeDecl: true }) {
+          GetOrCreateTypeConstructor(d.SelfSynonymDecl());
+        }
+
         if (d is TopLevelDeclWithMembers topLevelDeclWithMembers) {
           AddClassMembers(topLevelDeclWithMembers, true, false);
         }
