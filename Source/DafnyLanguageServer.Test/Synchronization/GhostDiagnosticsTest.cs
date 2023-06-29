@@ -1,4 +1,5 @@
-﻿using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
+﻿using System.IO;
+using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Linq;
@@ -8,6 +9,46 @@ using Xunit.Abstractions;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
   public class GhostDiagnosticsTest : ClientBasedLanguageServerTest {
+
+    [Fact]
+    public async Task ExplicitProject() {
+      var sourceA = @"
+method Foo()
+{
+  FooLemma(); // this is ghost
+}
+
+lemma FooLemma()".TrimStart();
+      var sourceB = @"
+lemma BarLemma()
+
+method Bar()
+{
+  BarLemma(); // this is ghost
+}".TrimStart();
+      await SetUp(options => {
+        options.Set(ServerCommand.GhostIndicators, true);
+      });
+
+      var directory = Path.GetRandomFileName();
+      var projectFile = CreateTestDocument("", Path.Combine(directory, "dfyconfig.toml"));
+      await client.OpenDocumentAndWaitAsync(projectFile, CancellationToken);
+      var docA = CreateTestDocument(sourceA, Path.Combine(directory, "a.dfy"));
+      await client.OpenDocumentAndWaitAsync(docA, CancellationToken);
+      var docB = CreateTestDocument(sourceB, Path.Combine(directory, "b.dfy"));
+      await client.OpenDocumentAndWaitAsync(docB, CancellationToken);
+
+      var report = await ghostnessReceiver.AwaitNextNotificationAsync(CancellationToken);
+      var report2 = await ghostnessReceiver.AwaitNextNotificationAsync(CancellationToken);
+      Assert.Single(report.Diagnostics);
+      Assert.Equal(docA.Uri.ToUri(), report.Uri);
+      Assert.Equal(2, report.Diagnostics.Single().Range.Start.Line);
+
+      Assert.Single(report2.Diagnostics);
+      Assert.Equal(docB.Uri.ToUri(), report2.Uri);
+      Assert.Equal(4, report2.Diagnostics.Single().Range.Start.Line);
+    }
+
 
     [Fact]
     public async Task OpeningFlawlessDocumentWithoutGhostMarkDoesNotMarkAnything() {
