@@ -87,7 +87,7 @@ public class DafnyProject : IEquatable<DafnyProject> {
       matcher.AddExclude(includeGlob);
     }
 
-    var root = Path.GetPathRoot(Uri.LocalPath);
+    var root = Path.GetDirectoryName(Uri.LocalPath);
     var result = matcher.Execute(fileSystem.GetDirectoryInfoBase(Uri));
     var files = result.Files.Select(f => Path.Combine(root, f.Path));
     return files.Select(file => new Uri(Path.GetFullPath(file)));

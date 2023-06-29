@@ -79,7 +79,7 @@ public class LanguageServerFilesystem : IFileSystem {
   }
 
   public DirectoryInfoBase GetDirectoryInfoBase(Uri uri) {
-    var root = Path.GetPathRoot(uri.LocalPath)!;
+    var root = Path.GetDirectoryName(uri.LocalPath)!;
     var inMemoryFiles = openFiles.Keys.Select(openFileUri => openFileUri.LocalPath);
     var inMemory = new InMemoryDirectoryInfoFromDotNet8(root, inMemoryFiles);
 
