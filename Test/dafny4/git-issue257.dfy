@@ -3,11 +3,11 @@
 
 module  M {
   trait T {
-    function f(): nat
+    ghost function f(): nat
   }
   class C extends T {
     constructor () { }
-    function f(): nat { 0 }
+    ghost function f(): nat { 0 }
   }
 }
 

@@ -1,0 +1,3 @@
+// https://github.com/dafny-lang/dafny/issues/4162
+// CHECK-L: assert "LIFO" == __name__
+// CHECK-L: AssertionError

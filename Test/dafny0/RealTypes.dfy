@@ -1,4 +1,4 @@
-// RUN: %dafny_0 /compile:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %exits-with 4 %dafny /compile:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 method R1(ghost x: real, ghost y: real, i: int) {
@@ -30,7 +30,7 @@ method R3() {
 }
 
 // Check that real value in decreases clause doesn't scare Dafny
-function R4(x:int, r:real) : int
+ghost function R4(x:int, r:real) : int
 {
   if x < 0 then 5
   else R4(x - 1, r)

@@ -1,5 +1,4 @@
-// RUN: %dafny /compile:3 "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment
 
 class Node<T> {
   ghost var List: seq<T>
@@ -8,7 +7,7 @@ class Node<T> {
   var data: T
   var next: Node?<T>
 
-  predicate Valid()
+  ghost predicate Valid()
     reads this, Repr
     ensures Valid() ==> this in Repr
   {
@@ -31,8 +30,8 @@ class Node<T> {
 
   constructor InitAsPredecessor(d: T, succ: Node<T>)
     requires succ.Valid()
-    ensures Valid() && fresh(Repr - succ.Repr);
-    ensures List == [d] + succ.List;
+    ensures Valid() && fresh(Repr - succ.Repr)
+    ensures List == [d] + succ.List
   {
     data, next := d, succ;
     List := [d] + succ.List;

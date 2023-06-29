@@ -24,7 +24,7 @@ ForLoops.dfy(311,16): Error: result of operation might violate newtype constrain
 ForLoops.dfy(344,11): Error: assertion might not hold
 ForLoops.dfy(362,11): Error: assertion might not hold
 ForLoops.dfy(372,11): Error: assertion might not hold
-ForLoops.dfy(415,28): Error: This loop invariant might not be maintained by the loop.
+ForLoops.dfy(415,28): Error: this invariant could not be proved to be maintained by the loop
 ForLoops.dfy(415,28): Related message: loop invariant violation
 ForLoops.dfy(434,26): Error: decreases expression must be bounded below by 0 at end of loop iteration
 ForLoops.dfy(443,18): Error: decreases expression must be bounded below by 0 at end of loop iteration

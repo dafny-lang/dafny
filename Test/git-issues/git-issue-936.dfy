@@ -1,10 +1,10 @@
-// RUN: %dafny_0 /compile:0 "%s" > "%t"
+// RUN: %exits-with 4 %dafny /compile:0 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 datatype Status = Failure(msg: string) | Success
 {
-  function method IsFailure(): bool { Failure? }
-  function method PropagateFailure(): Status { this }
+  function IsFailure(): bool { Failure? }
+  function PropagateFailure(): Status { this }
 }
 
 method q(i: int) returns (r: Status)
@@ -77,7 +77,7 @@ method t2() returns (r: Status, z: int)
 
 method t3() returns (r: Status, z: int)
   ensures r.Failure?
-  ensures z == 0;
+  ensures z == 0
 {
   r := Success;
   z := 0;

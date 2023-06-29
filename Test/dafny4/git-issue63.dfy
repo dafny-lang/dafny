@@ -3,21 +3,21 @@
 
 type globalsmap = map<string, seq<int>>
 
-predicate {:axiom} ValidGlobal(g:string)
+ghost predicate {:axiom} ValidGlobal(g:string)
 
-predicate {:opaque} ValidGlobalStateOpaque(globals: globalsmap)
+ghost predicate {:opaque} ValidGlobalStateOpaque(globals: globalsmap)
 {
     forall g :: ValidGlobal(g) <==> g in globals && |globals[g]| == 1
 }
 
-function GlobalWord(gm:globalsmap, g:string): int
+ghost function GlobalWord(gm:globalsmap, g:string): int
     requires ValidGlobalStateOpaque(gm) && ValidGlobal(g)
 {
     reveal_ValidGlobalStateOpaque();
     gm[g][0]
 }
 
-function GlobalUpdate(gm: globalsmap, g:string, v:int): globalsmap
+ghost function GlobalUpdate(gm: globalsmap, g:string, v:int): globalsmap
     requires ValidGlobalStateOpaque(gm) && ValidGlobal(g)
     ensures ValidGlobalStateOpaque(GlobalUpdate(gm, g, v))
 {
@@ -37,12 +37,12 @@ lemma test()
 
 datatype reg = R0|R1|R2|R3
 
-predicate {:opaque} ValidRegState(regs:map<reg, int>)
+ghost predicate {:opaque} ValidRegState(regs:map<reg, int>)
 {
     forall r:reg :: r in regs
 }
 
-function sp_update_reg(r:reg, sM:map<reg, int>, sK:map<reg, int>): map<reg, int>
+ghost function sp_update_reg(r:reg, sM:map<reg, int>, sK:map<reg, int>): map<reg, int>
     requires ValidRegState(sK) && ValidRegState(sM)
     ensures ValidRegState(sp_update_reg(r, sM, sK))
 {

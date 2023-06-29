@@ -1,3 +1,4 @@
+// NONUNIFORM: https://github.com/dafny-lang/dafny/issues/4108
 // RUN: %dafny /compile:3 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
@@ -41,7 +42,7 @@ abstract module Specification {
     var known: set<Name>
     var birthday: map<Name, Date>
 
-    predicate Valid() {
+    ghost predicate Valid() {
       // In Z notation:  known = dom birthday
       known == birthday.Keys
     }

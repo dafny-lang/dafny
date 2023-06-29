@@ -1,7 +1,6 @@
-// RUN: %dafny /compile:3 /rprint:"%t.rprint" "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment
 
-function method Sum(a: array<int>, lo: int, hi: int): int
+function Sum(a: array<int>, lo: int, hi: int): int
   requires 0 <= lo <= hi <= a.Length
   reads a
   decreases hi - lo

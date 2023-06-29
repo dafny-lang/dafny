@@ -28,19 +28,19 @@ lemma Same(a: Matrix, b: Matrix)
 }
 
 /** Σ f(i) where i ranges from 0 to less than n */
-function method Sum_n(f: Index -> int, n: nat): int
+function Sum_n(f: Index -> int, n: nat): int
     requires n <= N
 {
     if n == 0 then 0 else f(n - 1) + Sum_n(f, n - 1)
 }
 
 /** Σ f(i) where i ranges from 0 to less than N */
-function method Sum(f: Index -> int): int {
+function Sum(f: Index -> int): int {
     Sum_n(f, N)
 }
 
 /** Matrix multiplication */
-function method mult(a: Matrix, b: Matrix): Matrix
+function mult(a: Matrix, b: Matrix): Matrix
 {
     ((x: Index) => (y: Index) =>
         Sum((k: Index) => a(x)(k) * b(k)(y)))
@@ -166,7 +166,7 @@ lemma sum_assoc_mult(a: Matrix, b: Matrix, c: Matrix, i: Index, j: Index)
 }
 
 /** (a * (b * c))(i, j) == ((a * b) * c)(i, j) */
-lemma mult_assoc_ij(a: Matrix, b: Matrix, c: Matrix, i: Index, j: Index)
+lemma {:vcs_split_on_every_assert} mult_assoc_ij(a: Matrix, b: Matrix, c: Matrix, i: Index, j: Index)
     ensures mult(mult(a, b), c)(i)(j) == mult(a, mult(b, c))(i)(j)
 {
     calc {
@@ -221,7 +221,7 @@ lemma mult_assoc_ij(a: Matrix, b: Matrix, c: Matrix, i: Index, j: Index)
             forall k: Index
                 ensures Sum((l: Index) => b(k)(l) * c(l)(j)) * a(i)(k)
                         ==
-                        Sum((l: Index) => b(k)(l) * c(l)(j) * a(i)(k));
+                        Sum((l: Index) => b(k)(l) * c(l)(j) * a(i)(k))
             {
                 var g := (l: Index) => b(k)(l) * c(l)(j);
                 var x := a(i)(k);

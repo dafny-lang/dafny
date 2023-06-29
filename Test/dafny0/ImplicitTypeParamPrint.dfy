@@ -1,3 +1,4 @@
+// NONUNIFORM: Multiple tests in one, fairly C# specific
 // RUN: %dafny /dafnyVerify:0 /compile:0 /env:0 /rprint:"%t.dfy" "%s"
 // RUN: %dafny /dafnyVerify:0 /compile:0 /env:0 /printMode:DllEmbed /rprint:"%t1.dfy" "%t.dfy"
 // RUN: %dafny /env:0 /compile:3 /printMode:DllEmbed /rprint:"%t2.dfy" "%t1.dfy" > "%t"
@@ -6,17 +7,17 @@
 
 datatype List<T> = Nil | Cons(car: T, cdr: List)
 
-function method funkyNil(l: List): List
+function funkyNil(l: List): List
 {
   match l
-  case Cons(x,y) => funkyNil(y)
+  case Cons(x, y) => funkyNil(y)
   case Nil => l
 }
 
 method H(a: array, l: List)
 {
   match l
-  case Cons(x,y) =>
+  case Cons(x, y) =>
     if a.Length > 0 && a[0] == x {
     }
   case Nil =>
@@ -28,4 +29,13 @@ method Main() {
   var nil := funkyNil(xs);
   H(a, xs);
   print nil, "\n";
+  print nonExtendedPrintExpr(xs), "\n";
+}
+
+function nonExtendedPrintExpr(l: List): int
+{
+  25 +
+  match l
+  case Cons(x, y) => 10
+  case Nil => 11
 }

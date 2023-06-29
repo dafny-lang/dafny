@@ -1,5 +1,4 @@
-// RUN: %dafny /compile:3 /quantifierSyntax:4 /print:"%t.print" /dprint:"%t.dprint" /autoTriggers:0 "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachCompiler "%s" -- --quantifier-syntax:4 --relax-definite-assignment
 
 method Main() {
   var c := new MyClass;

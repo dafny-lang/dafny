@@ -6,35 +6,35 @@
 abstract module M0 {
   /******* State *******/
   type State
-  function DomSt(st: State): set<Path>
-  function GetSt(p: Path, st: State): Artifact
-    requires p in DomSt(st);
+  ghost function DomSt(st: State): set<Path>
+  ghost function GetSt(p: Path, st: State): Artifact
+    requires p in DomSt(st)
 
-  predicate ValidState(st: State)
+  ghost predicate ValidState(st: State)
   {
     forall p :: p in DomSt(st) ==> WellFounded(p)
   }
-  predicate WellFounded(p: Path)
+  ghost predicate WellFounded(p: Path)
 
   // The specification given for this Union is liberal enough to allow incompatible
   // states, that is, st and st' are allowed to disagree on some paths.  Any such disagreement
   // will be resolved in favor of st.  For the purpose of supporting function Combine, we are
   // only ever interested in combining/unioning compatible states anyhow.
-  function Union(st: State, st': State): State
+  ghost function Union(st: State, st': State): State
     ensures
       var result := Union(st, st');
       DomSt(result) == DomSt(st) + DomSt(st') &&
       forall p :: p in DomSt(result) ==>
-        GetSt(p, result) == GetSt(p, if p in DomSt(st) then st else st');
+        GetSt(p, result) == GetSt(p, if p in DomSt(st) then st else st')
 
-  predicate Compatible(sts: set<State>)
+  ghost predicate Compatible(sts: set<State>)
   {
     forall st, st', p :: st in sts && st' in sts && p in DomSt(st) && p in DomSt(st') ==>
       GetSt(p, st) == GetSt(p, st')
   }
 
-  function Combine(sts: set<State>): State
-    requires sts != {};
+  ghost function Combine(sts: set<State>): State
+    requires sts != {}
   {
     var st :| st in sts;
     if sts == {st} then
@@ -43,55 +43,55 @@ abstract module M0 {
       Union(st, Combine(sts - {st}))
   }
   lemma Lemma_Combine(sts: set<State>, parent: State)
-    requires sts != {};
-    requires forall st :: st in sts ==> ValidState(st) && Extends(parent, st);
-    ensures ValidState(Combine(sts)) && Extends(parent, Combine(sts));
+    requires sts != {}
+    requires forall st :: st in sts ==> ValidState(st) && Extends(parent, st)
+    ensures ValidState(Combine(sts)) && Extends(parent, Combine(sts))
   {
     forall st | st in sts && (sts == {st} || Combine(sts) == Union(st, Combine(sts - {st})))
-      ensures Extends(parent, Combine(sts));
+      ensures Extends(parent, Combine(sts))
     {
     }
   }
 
   /******* Environment *******/
   type Env
-  predicate ValidEnv(env: Env)
-  function EmptyEnv(): Env
-    ensures ValidEnv(EmptyEnv());
-  function GetEnv(id: Identifier, env: Env): Expression
-    requires ValidEnv(env);
-    ensures Value(GetEnv(id, env));
-  function SetEnv(id: Identifier, expr: Expression, env: Env): Env
-    requires ValidEnv(env) && Value(expr);
-    ensures ValidEnv(SetEnv(id, expr, env));
+  ghost predicate ValidEnv(env: Env)
+  ghost function EmptyEnv(): Env
+    ensures ValidEnv(EmptyEnv())
+  ghost function GetEnv(id: Identifier, env: Env): Expression
+    requires ValidEnv(env)
+    ensures Value(GetEnv(id, env))
+  ghost function SetEnv(id: Identifier, expr: Expression, env: Env): Env
+    requires ValidEnv(env) && Value(expr)
+    ensures ValidEnv(SetEnv(id, expr, env))
 
   /******* Primitive function 'exec' *******/
-  function exec(cmd: string, deps: set<Path>, exps: set<string>, st: State): Tuple<set<Path>, State>
+  ghost function exec(cmd: string, deps: set<Path>, exps: set<string>, st: State): Tuple<set<Path>, State>
 
   lemma ExecProperty(cmd: string, deps: set<Path>, exps: set<string>, st: State)
     requires
       ValidState(st) &&
       deps <= DomSt(st) &&
-      Pre(cmd, deps, exps, st);
+      Pre(cmd, deps, exps, st)
     ensures
       var Pair(paths, st') := exec(cmd, deps, exps, st);
       ValidState(st') &&
       Extends(st, st') &&
       OneToOne(cmd, deps, exps, paths) &&
-      Post(cmd, deps, exps, st');
+      Post(cmd, deps, exps, st')
 
-  predicate Pre(cmd: string, deps: set<Path>, exps: set<string>, st: State)
+  ghost predicate Pre(cmd: string, deps: set<Path>, exps: set<string>, st: State)
   {
     forall e :: e in exps ==>
       Loc(cmd, deps, e) in DomSt(st) ==> GetSt(Loc(cmd, deps, e), st) == Oracle(Loc(cmd, deps, e), st)
   }
 
-  predicate OneToOne(cmd: string, deps: set<Path>, exps: set<string>, paths: set<Path>)
+  ghost predicate OneToOne(cmd: string, deps: set<Path>, exps: set<string>, paths: set<Path>)
   {
     forall e :: e in exps ==> Loc(cmd, deps, e) in paths
   }
 
-  predicate Post(cmd: string, deps: set<Path>, exps: set<string>, st: State)
+  ghost predicate Post(cmd: string, deps: set<Path>, exps: set<string>, st: State)
   {
     forall e :: e in exps ==>
       Loc(cmd, deps, e) in DomSt(st) && GetSt(Loc(cmd, deps, e), st) == Oracle(Loc(cmd, deps, e), st)
@@ -101,15 +101,15 @@ abstract module M0 {
   // that may live at that path.  This is less magical than it seems, because Loc is injective,
   // and therefore one can extract a unique (cmd,deps,exp) from p, and it's not so hard to see
   // how the oracle may "know" the artifact that results from that.
-  function Oracle(p: Path, st: State): Artifact
+  ghost function Oracle(p: Path, st: State): Artifact
 
   // The oracle never changes its mind.  Therefore, if st0 is extended into st1 only by following
   // what the oracle predicts, then no predictions change.
   lemma OracleProperty(p: Path, st0: State, st1: State)
-    requires Extends(st0, st1);
-    ensures Oracle(p, st0) == Oracle(p, st1);
+    requires Extends(st0, st1)
+    ensures Oracle(p, st0) == Oracle(p, st1)
 
-  predicate Extends(st: State, st': State)
+  ghost predicate Extends(st: State, st': State)
   {
     DomSt(st) <= DomSt(st') &&
     (forall p :: p in DomSt(st) ==> GetSt(p, st') == GetSt(p, st)) &&
@@ -117,8 +117,8 @@ abstract module M0 {
   }
 
   lemma Lemma_ExtendsTransitive(st0: State, st1: State, st2: State)
-    requires Extends(st0, st1) && Extends(st1, st2);
-    ensures Extends(st0, st2);
+    requires Extends(st0, st1) && Extends(st1, st2)
+    ensures Extends(st0, st2)
   {
     forall p { OracleProperty(p, st0, st1); }
   }
@@ -151,7 +151,7 @@ abstract module M0 {
   datatype Reason = rCompatibility | rValidity
 
   type Path(==,00,!new)
-  function Loc(cmd: string, deps: set<Path>, exp: string): Path
+  ghost function Loc(cmd: string, deps: set<Path>, exp: string): Path
 
   type Artifact(00)
   type Identifier
@@ -159,7 +159,7 @@ abstract module M0 {
   datatype Tuple<A, B> = Pair(fst: A, snd: B)
 
   /******* Values *******/
-  predicate Value(expr: Expression)
+  ghost predicate Value(expr: Expression)
   {
     expr.exprLiteral?
   }
@@ -167,15 +167,15 @@ abstract module M0 {
   /******* Semantics *******/
 
   /******* Function 'build' *******/
-  function build(prog: Program, st: State): Tuple<Expression, State>
-    requires Legal(prog.stmts);
+  ghost function build(prog: Program, st: State): Tuple<Expression, State>
+    requires Legal(prog.stmts)
   {
     do(prog.stmts, st, EmptyEnv())
   }
 
   /******* Function 'do' *******/
-  function do(stmts: seq<Statement>, st: State, env: Env): Tuple<Expression, State>
-    requires Legal(stmts) && ValidEnv(env);
+  ghost function do(stmts: seq<Statement>, st: State, env: Env): Tuple<Expression, State>
+    requires Legal(stmts) && ValidEnv(env)
   {
     var stmt := stmts[0];
     if stmt.stmtVariable? then
@@ -193,15 +193,15 @@ abstract module M0 {
       eval(stmt.ret, st, env)
   }
 
-  predicate Legal(stmts: seq<Statement>)
+  ghost predicate Legal(stmts: seq<Statement>)
   {
     |stmts| != 0
   }
 
   /******* Function 'eval' *******/
-  function eval(expr: Expression, st: State, env: Env): Tuple<Expression, State>
-     requires ValidEnv(env);
-     decreases expr;
+  ghost function eval(expr: Expression, st: State, env: Env): Tuple<Expression, State>
+     requires ValidEnv(env)
+     decreases expr
   {
     if Value(expr) then
       Pair(expr, st)
@@ -265,11 +265,11 @@ abstract module M0 {
       Pair(exprError(rValidity), st)
   }
 
-  function evalArgs(context: Expression, args: seq<Expression>, stOrig: State, env: Env): Tuple<seq<Expression>, set<State>>
+  ghost function evalArgs(context: Expression, args: seq<Expression>, stOrig: State, env: Env): Tuple<seq<Expression>, set<State>>
     requires
       ValidEnv(env) &&
-      forall arg :: arg in args ==> arg < context;
-    decreases context, |args|;
+      forall arg :: arg in args ==> arg < context
+    decreases context, |args|
   {
     if args == [] then
       Pair([], {})
@@ -279,16 +279,16 @@ abstract module M0 {
       Pair([r.fst] + rr.fst, {r.snd} + rr.snd)
   }
 
-  function Arity(prim: Primitive): nat
+  ghost function Arity(prim: Primitive): nat
   {
     match prim
     case primCreatePath => 1
     case primExec => 3
   }
 
-  predicate ValidArgs(prim: Primitive, args: seq<Expression>, st: State)
-    requires prim.primExec? ==> |args| == 3;
-    requires prim.primCreatePath? ==> |args| == 1;
+  ghost predicate ValidArgs(prim: Primitive, args: seq<Expression>, st: State)
+    requires prim.primExec? ==> |args| == 3
+    requires prim.primCreatePath? ==> |args| == 1
   {
     match prim
     case primCreatePath => false
@@ -303,22 +303,22 @@ abstract module M0 {
 
   /******* Parallel builds are race-free *******/
   lemma ParallelBuildsTheorem(prog: Program, st: State)
-    requires Legal(prog.stmts) && ValidState(st);
+    requires Legal(prog.stmts) && ValidState(st)
     ensures
       var Pair(expr', st') := build(prog, st);
       ValidState(st') &&
-      (expr'.exprError? ==> expr'.r == rValidity);
+      (expr'.exprError? ==> expr'.r == rValidity)
   {
     var _, _ := BuildLemma(prog, st);
   }
 
   lemma BuildLemma(prog: Program, st: State) returns (expr': Expression, st': State)
-    requires Legal(prog.stmts) && ValidState(st);
+    requires Legal(prog.stmts) && ValidState(st)
     ensures
       build(prog, st) == Pair(expr', st') &&
       ValidState(st') &&
       Extends(st, st') &&
-      (expr'.exprError? ==> expr'.r == rValidity);
+      (expr'.exprError? ==> expr'.r == rValidity)
   {
     var result := build(prog, st);
     expr', st' := result.fst, result.snd;
@@ -326,12 +326,12 @@ abstract module M0 {
   }
 
   lemma DoLemma(stmts: seq<Statement>, st: State, env: Env) returns (expr': Expression, st': State)
-    requires Legal(stmts) && ValidState(st) && ValidEnv(env);
+    requires Legal(stmts) && ValidState(st) && ValidEnv(env)
     ensures
       Pair(expr', st') == do(stmts, st, env) &&
       ValidState(st') &&
       Extends(st, st') &&
-      (expr'.exprError? ==> expr'.r == rValidity);
+      (expr'.exprError? ==> expr'.r == rValidity)
   {
     var result := do(stmts, st, env);
     expr', st' := result.fst, result.snd;
@@ -353,13 +353,13 @@ abstract module M0 {
   }
 
   lemma EvalLemma(expr: Expression, st: State, env: Env) returns (expr': Expression, st': State)
-    requires ValidState(st) && ValidEnv(env);
+    requires ValidState(st) && ValidEnv(env)
     ensures
       Pair(expr', st') == eval(expr, st, env) &&
       ValidState(st') &&
       Extends(st, st') &&
-      (expr'.exprError? ==> expr'.r == rValidity);
-    decreases expr;
+      (expr'.exprError? ==> expr'.r == rValidity)
+    decreases expr
   {
     var result := eval(expr, st, env);
     expr', st' := result.fst, result.snd;
@@ -413,11 +413,11 @@ abstract module M0 {
   lemma EvalArgsLemma(context: Expression, args: seq<Expression>, stOrig: State, env: Env) returns (args': seq<Expression>, sts': set<State>)
     requires
       ValidState(stOrig) && ValidEnv(env) &&
-      forall arg :: arg in args ==> arg < context;
+      forall arg :: arg in args ==> arg < context
     ensures
       Pair(args', sts') == evalArgs(context, args, stOrig, env) &&
-      forall st' :: st' in sts' ==> ValidState(st') && Extends(stOrig, st');
-    decreases context, |args|;
+      forall st' :: st' in sts' ==> ValidState(st') && Extends(stOrig, st')
+    decreases context, |args|
   {
     if args == [] {
       args', sts' := [], {};
@@ -432,13 +432,13 @@ abstract module M0 {
 abstract module M1 refines M0 {
   datatype State = StateCons(m: map<Path, Artifact>)
 
-  function GetSt(p: Path, st: State): Artifact
+  ghost function GetSt(p: Path, st: State): Artifact
   {
     st.m[p]
   }
 
-  function DomSt(st: State): set<Path>
-    ensures forall p :: p in DomSt(st) ==> p in st.m;
+  ghost function DomSt(st: State): set<Path>
+    ensures forall p :: p in DomSt(st) ==> p in st.m
   {
     set p | p in st.m
   }
@@ -465,33 +465,33 @@ abstract module M1 refines M0 {
 
 // This module does the heavy lifting of the consistency proof.
 abstract module M2 refines M1 {
-  function SetSt(p: Path, a: Artifact, st: State): State
+  ghost function SetSt(p: Path, a: Artifact, st: State): State
   {
     StateCons(st.m[p := a])
   }
 
-  function Restrict(paths: set<Path>, st: State): map<Path, Artifact>
+  ghost function Restrict(paths: set<Path>, st: State): map<Path, Artifact>
   {
     map p | p in paths && p in DomSt(st) :: GetSt(p, st)
   }
   lemma RestrictMonotonicity(paths: set<Path>, st0: State, st1: State)
-    requires paths <= DomSt(st0) && Extends(st0, st1);
-    ensures Restrict(paths, st0) == Restrict(paths, st1);
+    requires paths <= DomSt(st0) && Extends(st0, st1)
+    ensures Restrict(paths, st0) == Restrict(paths, st1)
   {
   }
 
-  function PickOne<T>(s: set<T>): T
-    requires s != {};
+  ghost function PickOne<T>(s: set<T>): T
+    requires s != {}
   {
     var x :| x in s; x
   }
 
-  predicate WellFounded(p: Path)
+  ghost predicate WellFounded(p: Path)
   {
     exists cert :: CheckWellFounded(p, cert)
   }
-  predicate CheckWellFounded(p: Path, cert: WFCertificate)
-    decreases cert;
+  ghost predicate CheckWellFounded(p: Path, cert: WFCertificate)
+    decreases cert
   {
     cert.p == p &&
     (forall d :: d in LocInv_Deps(p) ==> exists c :: c in cert.certs && c.p == d) &&
@@ -504,13 +504,13 @@ abstract module M2 refines M1 {
   // Instead of reading the system state directly and restricting such reads to the
   // given set of dependencies, "RunTool" is not given the whole system state but only
   // a part of it, namely the part that has artifacts for the declared dependencies.
-  function RunTool(cmd: string, deps: map<Path, Artifact>, exp: string): Artifact
+  ghost function RunTool(cmd: string, deps: map<Path, Artifact>, exp: string): Artifact
 
-  function exec(cmd: string, deps: set<Path>, exps: set<string>, st: State): Tuple<set<Path>, State>
+  ghost function exec(cmd: string, deps: set<Path>, exps: set<string>, st: State): Tuple<set<Path>, State>
   {
     execOne(cmd, deps, Restrict(deps, st), exps, st)
   }
-  function execOne(cmd: string, deps: set<Path>, restrictedState: map<Path, Artifact>, exps: set<string>, st: State): Tuple<set<Path>, State>
+  ghost function execOne(cmd: string, deps: set<Path>, restrictedState: map<Path, Artifact>, exps: set<string>, st: State): Tuple<set<Path>, State>
   {
     if exps == {} then
       Pair({}, st)
@@ -530,14 +530,14 @@ abstract module M2 refines M1 {
       ValidState(st) &&
       deps <= DomSt(st) &&
       Pre(cmd, deps, exps, st) &&
-      restrictedState == Restrict(deps, st);
+      restrictedState == Restrict(deps, st)
     ensures
       var result'' := execOne(cmd, deps, restrictedState, exps, st);
       var paths'', st'' := result''.fst, result''.snd;
       ValidState(st'') &&
       Extends(st, st'') &&
       OneToOne(cmd, deps, exps, paths'') &&
-      Post(cmd, deps, exps, st'');
+      Post(cmd, deps, exps, st'')
   {
     if exps == {} {
     } else {
@@ -560,7 +560,7 @@ abstract module M2 refines M1 {
       }
 
       forall
-        ensures Extends(st', st'') && Extends(st, st'');
+        ensures Extends(st', st'') && Extends(st, st'')
       {
         LocInjectivity(cmd, deps, exp);
         if p !in DomSt(st') {
@@ -589,7 +589,7 @@ abstract module M2 refines M1 {
       assert OneToOne(cmd, deps, exps, paths'');
 
       forall e | e in exps
-        ensures Loc(cmd, deps, e) in DomSt(st'') && GetSt(Loc(cmd, deps, e), st'') == Oracle(Loc(cmd, deps, e), st'');
+        ensures Loc(cmd, deps, e) in DomSt(st'') && GetSt(Loc(cmd, deps, e), st'') == Oracle(Loc(cmd, deps, e), st'')
       {
         var p := Loc(cmd, deps, e);
         assert p in DomSt(st'');
@@ -618,53 +618,53 @@ abstract module M2 refines M1 {
     }
   }
   lemma ExecOne_Lemma0(p: Path)
-    requires forall d :: d in LocInv_Deps(p) ==> WellFounded(d);
-    ensures WellFounded(p);
+    requires forall d :: d in LocInv_Deps(p) ==> WellFounded(d)
+    ensures WellFounded(p)
   {
     var certs := set d | d in LocInv_Deps(p) :: GetCert(d);
     assert CheckWellFounded(p, Cert(p, certs));
   }
-  function GetCert(p: Path): WFCertificate
-    requires WellFounded(p);
-    ensures CheckWellFounded(p, GetCert(p));
+  ghost function GetCert(p: Path): WFCertificate
+    requires WellFounded(p)
+    ensures CheckWellFounded(p, GetCert(p))
   {
     var c :| CheckWellFounded(p, c);
     c
   }
 
   // Loc is injective.  Here are its inverse functions:
-  function LocInv_Cmd(p: Path): string
-  function LocInv_Deps(p: Path): set<Path>
-  function LocInv_Exp(p: Path): string
+  ghost function LocInv_Cmd(p: Path): string
+  ghost function LocInv_Deps(p: Path): set<Path>
+  ghost function LocInv_Exp(p: Path): string
   lemma LocInjectivity(cmd: string, deps: set<Path>, exp: string)
-    ensures LocInv_Cmd(Loc(cmd, deps, exp)) == cmd;
-    ensures LocInv_Deps(Loc(cmd, deps, exp)) == deps;
-    ensures LocInv_Exp(Loc(cmd, deps, exp)) == exp;
+    ensures LocInv_Cmd(Loc(cmd, deps, exp)) == cmd
+    ensures LocInv_Deps(Loc(cmd, deps, exp)) == deps
+    ensures LocInv_Exp(Loc(cmd, deps, exp)) == exp
 
-  function Oracle(p: Path, st: State): Artifact
+  ghost function Oracle(p: Path, st: State): Artifact
   {
     if WellFounded(p) then OracleWF(p, GetCert(p), st) else OracleArbitrary(p)
   }
-  function OracleArbitrary(p: Path): Artifact
+  ghost function OracleArbitrary(p: Path): Artifact
   {
     var a :| true;
     a  // return an arbitrary artifact (note, the same "a" will be used for every call to function OracleArbitrary(p) for the same "p")
   }
-  function OracleWF(p: Path, cert: WFCertificate, st: State): Artifact
-    requires CheckWellFounded(p, cert);
-    decreases cert, 1;
+  ghost function OracleWF(p: Path, cert: WFCertificate, st: State): Artifact
+    requires CheckWellFounded(p, cert)
+    decreases cert, 1
   {
     var cmd, deps, e := LocInv_Cmd(p), LocInv_Deps(p), LocInv_Exp(p);
     RunTool(cmd, CollectDependencies(p, cert, deps, st), e)
   }
-  function CollectDependencies(p: Path, cert: WFCertificate, deps: set<Path>, st: State): map<Path, Artifact>
-    requires CheckWellFounded(p, cert) && deps == LocInv_Deps(p);
-    decreases cert, 0;
+  ghost function CollectDependencies(p: Path, cert: WFCertificate, deps: set<Path>, st: State): map<Path, Artifact>
+    requires CheckWellFounded(p, cert) && deps == LocInv_Deps(p)
+    decreases cert, 0
   {
     map d | d in deps :: if d in DomSt(st) then GetSt(d, st) else OracleWF(d, FindCert(d, cert.certs), st)
   }
-  function FindCert(d: Path, certs: set<WFCertificate>): WFCertificate
-    requires exists c :: c in certs && c.p == d;
+  ghost function FindCert(d: Path, certs: set<WFCertificate>): WFCertificate
+    requires exists c :: c in certs && c.p == d
   {
     var c :| c in certs && c.p == d;
     c
@@ -673,29 +673,29 @@ abstract module M2 refines M1 {
   // A well-founded path has a certificate, but certificates are not unique.  However, OracleWF gives the same value
   // for any cerificate for the path.
   lemma OracleWF_CertificateInsensitivity(p: Path, cert0: WFCertificate, cert1: WFCertificate, st: State)
-    requires CheckWellFounded(p, cert0) && CheckWellFounded(p, cert1);
-    ensures OracleWF(p, cert0, st) == OracleWF(p, cert1, st);
-    decreases cert0, 1;
+    requires CheckWellFounded(p, cert0) && CheckWellFounded(p, cert1)
+    ensures OracleWF(p, cert0, st) == OracleWF(p, cert1, st)
+    decreases cert0, 1
   {
     Collect_CertificateInsensitivity(p, cert0, cert1, LocInv_Deps(p), st);
   }
   lemma Collect_CertificateInsensitivity(p: Path, cert0: WFCertificate, cert1: WFCertificate, deps: set<Path>, st: State)
-    requires CheckWellFounded(p, cert0) && CheckWellFounded(p, cert1) && deps == LocInv_Deps(p);
-    ensures CollectDependencies(p, cert0, deps, st) == CollectDependencies(p, cert1, deps, st);
-    decreases cert0, 0;
+    requires CheckWellFounded(p, cert0) && CheckWellFounded(p, cert1) && deps == LocInv_Deps(p)
+    ensures CollectDependencies(p, cert0, deps, st) == CollectDependencies(p, cert1, deps, st)
+    decreases cert0, 0
   {
     forall d | d in deps { OracleWF_CertificateInsensitivity(d, FindCert(d, cert0.certs), FindCert(d, cert1.certs), st); }
   }
 
   lemma CollectRestrict_Lemma(p: Path, cert: WFCertificate, deps: set<Path>, st: State)
-    requires ValidState(st) && deps <= DomSt(st);
-    requires CheckWellFounded(p, cert) && deps == LocInv_Deps(p);
-    ensures CollectDependencies(p, cert, deps, st) == Restrict(deps, st);
+    requires ValidState(st) && deps <= DomSt(st)
+    requires CheckWellFounded(p, cert) && deps == LocInv_Deps(p)
+    ensures CollectDependencies(p, cert, deps, st) == Restrict(deps, st)
   {
     var a, b := CollectDependencies(p, cert, deps, st), Restrict(deps, st);
     assert (set q | q in a) == deps == (set q | q in b);
     forall d | d in deps
-      ensures a[d] == b[d];
+      ensures a[d] == b[d]
     {
       calc {
         a[d];
@@ -720,21 +720,21 @@ abstract module M2 refines M1 {
     }
   }
   lemma OracleWF_Property(p: Path, cert: WFCertificate, st0: State, st1: State)
-    requires Extends(st0, st1) && CheckWellFounded(p, cert);
-    ensures OracleWF(p, cert, st0) == OracleWF(p, cert, st1);
-    decreases cert, 1;
+    requires Extends(st0, st1) && CheckWellFounded(p, cert)
+    ensures OracleWF(p, cert, st0) == OracleWF(p, cert, st1)
+    decreases cert, 1
   {
     var cmd, deps, e := LocInv_Cmd(p), LocInv_Deps(p), LocInv_Exp(p);
     CollectProperty(p, cert, deps, st0, st1);
   }
   lemma CollectProperty(p: Path, cert: WFCertificate, deps: set<Path>, st0: State, st1: State)
-    requires Extends(st0, st1) && CheckWellFounded(p, cert) && deps == LocInv_Deps(p);
-    ensures CollectDependencies(p, cert, deps, st0) == CollectDependencies(p, cert, deps, st1);
-    decreases cert, 0;
+    requires Extends(st0, st1) && CheckWellFounded(p, cert) && deps == LocInv_Deps(p)
+    ensures CollectDependencies(p, cert, deps, st0) == CollectDependencies(p, cert, deps, st1)
+    decreases cert, 0
   {
     forall d | d in deps
       ensures (if d in DomSt(st0) then GetSt(d, st0) else OracleWF(d, FindCert(d, cert.certs), st0)) ==
-              (if d in DomSt(st1) then GetSt(d, st1) else OracleWF(d, FindCert(d, cert.certs), st1));
+              (if d in DomSt(st1) then GetSt(d, st1) else OracleWF(d, FindCert(d, cert.certs), st1))
     {
       if d in DomSt(st0) {
         assert d in DomSt(st1);
@@ -760,17 +760,17 @@ abstract module M2 refines M1 {
   }
 }
 
-// Finally, this module defines any remaining opaque types and function bodies and proves any
+// Finally, this module defines any remaining abstract types and function bodies and proves any
 // remaining lemmas about these.  The actual definitions are not so interesting and are not meant
 // to suggest that a deployed CloudMake use these definitions.  Rather, these definitions are here
 // only to establish mathematical feasibility of previously axiomatized properties.
 module M3 refines M2 {
-  function Union(st: State, st': State): State
+  ghost function Union(st: State, st': State): State
   {
     StateCons(map p | p in DomSt(st) + DomSt(st') :: GetSt(p, if p in DomSt(st) then st else st'))
   }
 
-  function RunTool(cmd: string, deps: map<Path, Artifact>, exp: string): Artifact
+  ghost function RunTool(cmd: string, deps: map<Path, Artifact>, exp: string): Artifact
   {
     // return an arbitrary artifact
     var a :| true;
@@ -783,30 +783,30 @@ module M3 refines M2 {
   datatype Path =
     InternalPath(cmd: string, deps: set<Path>, exp: string) |
     ExternalPath(string)
-  function createPath(fn: string): Path
+  ghost function createPath(fn: string): Path
   {
     ExternalPath(fn)
   }
   lemma PathProperty(fn: string, fn': string)
   {
   }
-  function Loc(cmd: string, deps: set<Path>, exp: string): Path
+  ghost function Loc(cmd: string, deps: set<Path>, exp: string): Path
   {
     InternalPath(cmd, deps, exp)
   }
-  function LocInv_Cmd(p: Path): string
+  ghost function LocInv_Cmd(p: Path): string
   {
     match p
     case InternalPath(cmd, deps, exp) => cmd
     case ExternalPath(_) => var cmd :| true; cmd
   }
-  function LocInv_Deps(p: Path): set<Path>
+  ghost function LocInv_Deps(p: Path): set<Path>
   {
     match p
     case InternalPath(cmd, deps, exp) => deps
     case ExternalPath(_) => var deps :| true; deps
   }
-  function LocInv_Exp(p: Path): string
+  ghost function LocInv_Exp(p: Path): string
   {
     match p
     case InternalPath(cmd, deps, exp) => exp
@@ -817,19 +817,19 @@ module M3 refines M2 {
   }
 
   datatype Env = EnvCons(m: map<Identifier, Expression>)
-  function EmptyEnv(): Env
+  ghost function EmptyEnv(): Env
   {
     EnvCons(map[])
   }
-  function GetEnv(id: Identifier, env: Env): Expression
+  ghost function GetEnv(id: Identifier, env: Env): Expression
   {
     if id in env.m then env.m[id] else var lit :| true; exprLiteral(lit)
   }
-  function SetEnv(id: Identifier, expr: Expression, env: Env): Env
+  ghost function SetEnv(id: Identifier, expr: Expression, env: Env): Env
   {
     EnvCons(env.m[id := expr])
   }
-  predicate ValidEnv(env: Env)
+  ghost predicate ValidEnv(env: Env)
   {
     forall id :: id in env.m ==> Value(env.m[id])
   }

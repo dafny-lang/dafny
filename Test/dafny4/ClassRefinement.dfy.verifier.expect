@@ -1,0 +1,6 @@
+ClassRefinement.dfy(68,9): Warning: the ... refinement feature in statements is deprecated
+ClassRefinement.dfy(69,13): Warning: the ... refinement feature in statements is deprecated
+ClassRefinement.dfy(74,9): Warning: the ... refinement feature in statements is deprecated
+ClassRefinement.dfy(75,13): Warning: the ... refinement feature in statements is deprecated
+ClassRefinement.dfy(77,6): Warning: the modify statement with a block statement is deprecated
+ClassRefinement.dfy(78,13): Warning: the ... refinement feature in statements is deprecated

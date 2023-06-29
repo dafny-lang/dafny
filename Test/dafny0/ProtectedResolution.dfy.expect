@@ -1,3 +1,3 @@
-ProtectedResolution.dfy(9,11): Error: a refining function is not allowed to extend/change the body
-ProtectedResolution.dfy(10,12): Error: a refining predicate is not allowed to extend/change the body
+ProtectedResolution.dfy(9,17): Error: a refining function is not allowed to extend/change the body
+ProtectedResolution.dfy(10,18): Error: a refining predicate is not allowed to extend/change the body
 2 resolution/type errors detected in ProtectedResolution.dfy

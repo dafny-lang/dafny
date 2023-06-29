@@ -2,12 +2,12 @@
 Dafny program verifier finished with 1 verified, 0 errors
 
 Dafny program verifier did not attempt verification
-[Program halted] C# arrays may not be larger than the max 32-bit integer: 9223372036854775808
+[Program halted] array size exceeds memory limit: 9223372036854775808
 
 Dafny program verifier did not attempt verification
 
 Dafny program verifier did not attempt verification
-[Program halted] runtime error: makeslice: len out of range
+[Program halted] array size exceeds memory limit: 9223372036854775808
 
 Dafny program verifier did not attempt verification
 [Program halted] Java arrays may be no larger than the maximum 32-bit signed int: 9223372036854775808

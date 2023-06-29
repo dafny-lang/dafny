@@ -1,4 +1,4 @@
-// RUN: %dafny_0 /compile:0 "%s" > "%t"
+// RUN: %exits-with 4 %dafny /compile:0 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 type Empty = x: object | false witness *
@@ -10,6 +10,6 @@ const i := 0 as EmptyInt // Error
 
 type foo = x: object? | x != null witness *
 
-function method m(): foo {
+function m(): foo {
   null // Error
 }

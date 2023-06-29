@@ -1,17 +1,17 @@
-// RUN: %dafny_0 /compile:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %exits-with 4 %dafny /compile:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module A {
   method M(p: int) returns (y: int)
-    requires p <= 30;
+    requires p <= 30
   {
     assume p < 100;
     var x;
     assume x == p + 20;
     x := x + 1;
     while (*)
-      invariant x <= 120;
-      decreases 120 - x;
+      invariant x <= 120
+      decreases 120 - x
     {
       if (x == 120) { break; }
       x := x + 1;
@@ -30,7 +30,7 @@ module B refines A {
     var k := x + 1;
     ...;
     while ...
-      invariant k == x;
+      invariant k == x
     {
       k := k + 1;
     }
@@ -41,21 +41,21 @@ module B refines A {
 
 module C0 refines B {
   method M ...
-    ensures y == 120;  // error: this holds only if the loop does not end early
+    ensures y == 120  // error: this holds only if the loop does not end early
   {
   }
 }
 
 module C1 refines B {
   method M ...
-    ensures y <= 120;
+    ensures y <= 120
   {
   }
 }
 
 module C2 refines B {
   method M ...
-    ensures y == 120;
+    ensures y == 120
   {
     ...;
     while (true)

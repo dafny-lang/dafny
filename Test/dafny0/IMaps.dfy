@@ -1,4 +1,4 @@
-// RUN: %dafny_0 /compile:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %exits-with 4 %dafny /compile:0 /deprecation:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // This method can be used to test compilation.
@@ -70,7 +70,7 @@ lemma m7()
    assert 3 in a;
    assert forall i | i < 1 || i > 3 :: i !in a;
 }
-function Update<K, V>(a:imap<K, V>, k:K, v:V):imap<K, V>
+ghost function Update<K, V>(a:imap<K, V>, k:K, v:V):imap<K, V>
 {// imap j | (j == k || j in a) :: (if j == k then v else a[j])
     imap j | j in iset{k} + a.Keys :: (if j == k then v else a[j])
 }
@@ -99,7 +99,7 @@ lemma m12()
 }
 
 /*
-function domain<U, V>(m: imap<U,V>): set<U>
+ghost function domain<U, V>(m: imap<U,V>): set<U>
    ensures forall i :: i in domain(m) <==> i in m;
 {
    set s | s in m // UNSAFE, m may have infinite domain

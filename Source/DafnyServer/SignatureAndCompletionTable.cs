@@ -13,7 +13,7 @@ using Program = Microsoft.Dafny.Program;
 namespace DafnyServer {
   public class LegacySymbolTable {
     private readonly Program _dafnyProgram;
-    private readonly List<SymbolInformation> _information = new List<SymbolInformation>();
+    private readonly List<SymbolInformation> _information = new();
 
     public LegacySymbolTable(Program dafnyProgram) {
       _dafnyProgram = dafnyProgram;
@@ -29,9 +29,8 @@ namespace DafnyServer {
     }
 
     private void AddMethods(ModuleDefinition module, List<SymbolInformation> information) {
-      foreach (
-          var clbl in
-          ModuleDefinition.AllCallables(module.TopLevelDecls).Where(e => e != null && !(e.Tok is IncludeToken))) {
+      foreach (var clbl in ModuleDefinition.AllCallables(module.TopLevelDecls).
+                 Where(e => e != null && !e.Tok.FromIncludeDirective(_dafnyProgram))) {
 
         if (clbl is Predicate) {
           var predicate = clbl as Predicate;
@@ -41,7 +40,7 @@ namespace DafnyServer {
             ParentClass = predicate.EnclosingClass.Name,
             SymbolType = SymbolInformation.Type.Predicate,
             StartToken = predicate.tok,
-            EndToken = predicate.BodyEndTok
+            EndToken = predicate.EndToken
           };
           information.Add(predicateSymbol);
 
@@ -53,10 +52,10 @@ namespace DafnyServer {
             ParentClass = fn.EnclosingClass.Name,
             SymbolType = SymbolInformation.Type.Function,
             StartToken = fn.tok,
-            EndColumn = fn.BodyEndTok.col,
-            EndLine = fn.BodyEndTok.line,
-            EndPosition = fn.BodyEndTok.pos,
-            EndToken = fn.BodyEndTok
+            EndColumn = fn.EndToken.col,
+            EndLine = fn.EndToken.line,
+            EndPosition = fn.EndToken.pos,
+            EndToken = fn.EndToken
           };
           information.Add(functionSymbol);
         } else {
@@ -76,10 +75,10 @@ namespace DafnyServer {
             References =
                   FindMethodReferencesInternal(m.EnclosingClass.EnclosingModuleDefinition.Name + "." + m.EnclosingClass.Name + "." +
                                    m.Name),
-            EndColumn = m.BodyEndTok.col,
-            EndLine = m.BodyEndTok.line,
-            EndPosition = m.BodyEndTok.pos,
-            EndToken = m.BodyEndTok
+            EndColumn = m.EndToken.col,
+            EndLine = m.EndToken.line,
+            EndPosition = m.EndToken.pos,
+            EndToken = m.EndToken
           };
           information.Add(methodSymbol);
         }
@@ -87,8 +86,8 @@ namespace DafnyServer {
     }
 
     private void AddFields(ModuleDefinition module, List<SymbolInformation> information) {
-      foreach (
-          var fs in ModuleDefinition.AllFields(module.TopLevelDecls).Where(e => e != null && !(e.tok is IncludeToken))) {
+      foreach (var fs in ModuleDefinition.AllFields(module.TopLevelDecls).
+                 Where(e => e != null && !e.Tok.FromIncludeDirective(_dafnyProgram))) {
 
         var fieldSymbol = new SymbolInformation {
           Module = fs.EnclosingClass.EnclosingModuleDefinition.Name,
@@ -107,25 +106,26 @@ namespace DafnyServer {
       }
     }
 
-    private static void AddClasses(ModuleDefinition module, List<SymbolInformation> information) {
-      foreach (var cs in ModuleDefinition.AllClasses(module.TopLevelDecls).Where(cl => !(cl.tok is IncludeToken))) {
+    private void AddClasses(ModuleDefinition module, List<SymbolInformation> information) {
+      foreach (var cs in module.TopLevelDecls.Where(t => t is ClassLikeDecl or DefaultClassDecl).
+                 Where(cl => !cl.Tok.FromIncludeDirective(_dafnyProgram))) {
         if (cs.EnclosingModuleDefinition != null && cs.tok != null) {
           var classSymbol = new SymbolInformation {
             Module = cs.EnclosingModuleDefinition.Name,
             Name = cs.Name,
             SymbolType = SymbolInformation.Type.Class,
             StartToken = cs.tok,
-            EndToken = cs.BodyEndTok
+            EndToken = cs.EndToken
           };
           information.Add(classSymbol);
         }
       }
     }
 
-    private static ICollection<string> ParseContracts(IEnumerable<AttributedExpression> contractClauses) {
+    private ICollection<string> ParseContracts(IEnumerable<AttributedExpression> contractClauses) {
       var requires = new List<string>();
       foreach (var maybeFreeExpression in contractClauses) {
-        requires.Add(Printer.ExprToString(maybeFreeExpression.E));
+        requires.Add(Printer.ExprToString(_dafnyProgram.Options, maybeFreeExpression.E));
       }
       return requires;
     }
@@ -155,8 +155,8 @@ namespace DafnyServer {
                   ParentClass = userType.ResolvedClass.SanitizedName,
                   Module = userType.ResolvedClass.EnclosingModuleDefinition.SanitizedName,
                   SymbolType = SymbolInformation.Type.Definition,
-                  StartToken = method.BodyStartTok,
-                  EndToken = method.BodyEndTok
+                  StartToken = method.StartToken,
+                  EndToken = method.EndToken
                 });
               }
             }
@@ -173,7 +173,7 @@ namespace DafnyServer {
                 ParentClass = autoGhost.Resolved.Type.ToString(),
                 SymbolType = SymbolInformation.Type.Definition,
                 StartToken = updateStatement.Tok,
-                EndToken = updateStatement.EndTok
+                EndToken = updateStatement.EndToken
               });
             }
           }
@@ -254,7 +254,8 @@ namespace DafnyServer {
       var information = new List<ReferenceInformation>();
 
       foreach (var module in _dafnyProgram.Modules()) {
-        foreach (var clbl in ModuleDefinition.AllCallables(module.TopLevelDecls).Where(e => !(e.Tok is IncludeToken))) {
+        foreach (var clbl in ModuleDefinition.AllCallables(module.TopLevelDecls).
+                   Where(e => !e.Tok.FromIncludeDirective(_dafnyProgram))) {
           if (!(clbl is Method)) {
             continue;
           }
@@ -272,7 +273,8 @@ namespace DafnyServer {
       var information = new List<ReferenceInformation>();
 
       foreach (var module in _dafnyProgram.Modules()) {
-        foreach (var clbl in ModuleDefinition.AllCallables(module.TopLevelDecls).Where(e => !(e.Tok is IncludeToken))) {
+        foreach (var clbl in ModuleDefinition.AllCallables(module.TopLevelDecls).
+                   Where(e => !e.Tok.FromIncludeDirective(_dafnyProgram))) {
           if (!(clbl is Method)) {
             continue;
           }

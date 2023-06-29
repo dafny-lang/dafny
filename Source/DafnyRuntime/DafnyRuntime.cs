@@ -24,6 +24,89 @@ namespace Dafny {
   using System.Collections.Immutable;
   using System.Linq;
 
+  // Similar to System.Text.Rune, which would be perfect to use
+  // except that it isn't available in the platforms we support
+  // (.NET Standard 2.0 and .NET Framework 4.5.2)
+  public readonly struct Rune : IComparable, IComparable<Rune>, IEquatable<Rune> {
+
+    private readonly uint _value;
+
+    public Rune(int value)
+      : this((uint)value) {
+    }
+
+    public Rune(uint value) {
+      if (!(value < 0xD800 || (0xE000 <= value && value < 0x11_0000))) {
+        throw new ArgumentException();
+      }
+
+      _value = value;
+    }
+
+    public int Value => (int)_value;
+
+    public bool Equals(Rune other) => this == other;
+
+    public override bool Equals(object obj) => (obj is Rune other) && Equals(other);
+
+    public override int GetHashCode() => Value;
+
+    // Values are always between 0 and 0x11_0000, so overflow isn't possible
+    public int CompareTo(Rune other) => this.Value - other.Value;
+
+    int IComparable.CompareTo(object obj) {
+      switch (obj) {
+        case null:
+          return 1; // non-null ("this") always sorts after null
+        case Rune other:
+          return CompareTo(other);
+        default:
+          throw new ArgumentException();
+      }
+    }
+
+    public static bool operator ==(Rune left, Rune right) => left._value == right._value;
+
+    public static bool operator !=(Rune left, Rune right) => left._value != right._value;
+
+    public static bool operator <(Rune left, Rune right) => left._value < right._value;
+
+    public static bool operator <=(Rune left, Rune right) => left._value <= right._value;
+
+    public static bool operator >(Rune left, Rune right) => left._value > right._value;
+
+    public static bool operator >=(Rune left, Rune right) => left._value >= right._value;
+
+    public static explicit operator Rune(int value) => new Rune(value);
+    public static explicit operator Rune(BigInteger value) => new Rune((uint)value);
+
+    // Defined this way to be consistent with System.Text.Rune,
+    // but note that Dafny will use Helpers.ToString(rune),
+    // which will print in the style of a character literal instead.
+    public override string ToString() {
+      return char.ConvertFromUtf32(Value);
+    }
+
+    // Replacement for String.EnumerateRunes() from newer platforms
+    public static IEnumerable<Rune> Enumerate(string s) {
+      var sLength = s.Length;
+      for (var i = 0; i < sLength; i++) {
+        if (char.IsHighSurrogate(s[i])) {
+          if (char.IsLowSurrogate(s[i + 1])) {
+            yield return (Rune)char.ConvertToUtf32(s[i], s[i + 1]);
+            i++;
+          } else {
+            throw new ArgumentException();
+          }
+        } else if (char.IsLowSurrogate(s[i])) {
+          throw new ArgumentException();
+        } else {
+          yield return (Rune)s[i];
+        }
+      }
+    }
+  }
+
   public interface ISet<out T> {
     int Count { get; }
     long LongCount { get; }
@@ -324,8 +407,7 @@ namespace Dafny {
         if (t == null) {
           occurrencesOfNull++;
         } else {
-          BigInteger i;
-          if (!d.TryGetValue(t, out i)) {
+          if (!d.TryGetValue(t, out var i)) {
             i = BigInteger.Zero;
           }
           d[t] = i + 1;
@@ -341,9 +423,8 @@ namespace Dafny {
         if (t == null) {
           occurrencesOfNull++;
         } else {
-          BigInteger i;
           if (!d.TryGetValue(t,
-            out i)) {
+                out var i)) {
             i = BigInteger.Zero;
           }
 
@@ -362,9 +443,8 @@ namespace Dafny {
         if (t == null) {
           occurrencesOfNull++;
         } else {
-          BigInteger i;
           if (!d.TryGetValue(t,
-            out i)) {
+                out var i)) {
             i = BigInteger.Zero;
           }
 
@@ -494,8 +574,8 @@ namespace Dafny {
       if (t == null) {
         return occurrencesOfNull;
       }
-      BigInteger m;
-      if (t is T && dict.TryGetValue((T)(object)t, out m)) {
+
+      if (t is T && dict.TryGetValue((T)(object)t, out var m)) {
         return m;
       } else {
         return BigInteger.Zero;
@@ -523,15 +603,13 @@ namespace Dafny {
       var b = FromIMultiSet(other);
       var r = ImmutableDictionary<T, BigInteger>.Empty.ToBuilder();
       foreach (T t in a.dict.Keys) {
-        BigInteger i;
-        if (!r.TryGetValue(t, out i)) {
+        if (!r.TryGetValue(t, out var i)) {
           i = BigInteger.Zero;
         }
         r[t] = i + a.dict[t];
       }
       foreach (T t in b.dict.Keys) {
-        BigInteger i;
-        if (!r.TryGetValue(t, out i)) {
+        if (!r.TryGetValue(t, out var i)) {
           i = BigInteger.Zero;
         }
         r[t] = i + b.dict[t];
@@ -887,10 +965,11 @@ namespace Dafny {
     ISequence<T> Subsequence(BigInteger lo, BigInteger hi);
     bool EqualsAux(ISequence<object> other);
     ISequence<U> DowncastClone<U>(Func<T, U> converter);
+    string ToVerbatimString(bool asLiteral);
   }
 
   public abstract class Sequence<T> : ISequence<T> {
-    public static readonly ISequence<T> Empty = new ArraySequence<T>(Array.Empty<T>());
+    public static readonly ISequence<T> Empty = new ArraySequence<T>(new T[0]);
 
     private static readonly TypeDescriptor<ISequence<T>> _TYPE = new Dafny.TypeDescriptor<ISequence<T>>(Empty);
     public static TypeDescriptor<ISequence<T>> _TypeDescriptor() {
@@ -914,6 +993,14 @@ namespace Dafny {
     public static ISequence<char> FromString(string s) {
       return new ArraySequence<char>(s.ToCharArray());
     }
+    public static ISequence<Rune> UnicodeFromString(string s) {
+      var runes = new List<Rune>();
+
+      foreach (var rune in Rune.Enumerate(s)) {
+        runes.Add(rune);
+      }
+      return new ArraySequence<Rune>(runes.ToArray());
+    }
 
     public static ISequence<ISequence<char>> FromMainArguments(string[] args) {
       Dafny.ISequence<char>[] dafnyArgs = new Dafny.ISequence<char>[args.Length + 1];
@@ -923,6 +1010,15 @@ namespace Dafny {
       }
 
       return Sequence<ISequence<char>>.FromArray(dafnyArgs);
+    }
+    public static ISequence<ISequence<Rune>> UnicodeFromMainArguments(string[] args) {
+      Dafny.ISequence<Rune>[] dafnyArgs = new Dafny.ISequence<Rune>[args.Length + 1];
+      dafnyArgs[0] = Dafny.Sequence<Rune>.UnicodeFromString("dotnet");
+      for (var i = 0; i < args.Length; i++) {
+        dafnyArgs[i + 1] = Dafny.Sequence<Rune>.UnicodeFromString(args[i]);
+      }
+
+      return Sequence<ISequence<Rune>>.FromArray(dafnyArgs);
     }
 
     public ISequence<U> DowncastClone<U>(Func<T, U> converter) {
@@ -1067,6 +1163,25 @@ namespace Dafny {
       }
     }
 
+    public string ToVerbatimString(bool asLiteral) {
+      var builder = new System.Text.StringBuilder();
+      if (asLiteral) {
+        builder.Append('"');
+      }
+      foreach (var c in this) {
+        var rune = (Rune)(object)c;
+        if (asLiteral) {
+          builder.Append(Helpers.EscapeCharacter(rune));
+        } else {
+          builder.Append(char.ConvertFromUtf32(rune.Value));
+        }
+      }
+      if (asLiteral) {
+        builder.Append('"');
+      }
+      return builder.ToString();
+    }
+
     public bool Contains<G>(G g) {
       if (g == null || g is T) {
         var t = (T)(object)g;
@@ -1187,7 +1302,8 @@ namespace Dafny {
       // Traverse the tree formed by all descendants which are ConcatSequences
       var ansBuilder = ImmutableArray.CreateBuilder<T>(count);
       var toVisit = new Stack<ISequence<T>>();
-      var (leftBuffer, rightBuffer) = (left, right);
+      var leftBuffer = left;
+      var rightBuffer = right;
       if (left == null || right == null) {
         // elmts can't be .IsDefault while either left, or right are null
         return elmts;
@@ -1198,7 +1314,8 @@ namespace Dafny {
       while (toVisit.Count != 0) {
         var seq = toVisit.Pop();
         if (seq is ConcatSequence<T> cs && cs.elmts.IsDefault) {
-          (leftBuffer, rightBuffer) = (cs.left, cs.right);
+          leftBuffer = cs.left;
+          rightBuffer = cs.right;
           if (cs.left == null || cs.right == null) {
             // !cs.elmts.IsDefault, due to concurrent enumeration
             toVisit.Push(cs);
@@ -1278,16 +1395,33 @@ namespace Dafny {
         return "null";
       } else if (g is bool) {
         return (bool)(object)g ? "true" : "false";  // capitalize boolean literals like in Dafny
+      } else if (g is Rune) {
+        return "'" + EscapeCharacter((Rune)(object)g) + "'";
       } else {
         return g.ToString();
       }
     }
+
+    public static string EscapeCharacter(Rune r) {
+      switch (r.Value) {
+        case '\n': return "\\n";
+        case '\r': return "\\r";
+        case '\t': return "\\t";
+        case '\0': return "\\0";
+        case '\'': return "\\'";
+        case '\"': return "\\\"";
+        case '\\': return "\\\\";
+        default: return r.ToString();
+      };
+    }
+
     public static void Print<G>(G g) {
       System.Console.Write(ToString(g));
     }
 
     public static readonly TypeDescriptor<bool> BOOL = new TypeDescriptor<bool>(false);
     public static readonly TypeDescriptor<char> CHAR = new TypeDescriptor<char>('D');  // See CharType.DefaultValue in Dafny source code
+    public static readonly TypeDescriptor<Rune> RUNE = new TypeDescriptor<Rune>(new Rune('D'));  // See CharType.DefaultValue in Dafny source code
     public static readonly TypeDescriptor<BigInteger> INT = new TypeDescriptor<BigInteger>(BigInteger.Zero);
     public static readonly TypeDescriptor<BigRational> REAL = new TypeDescriptor<BigRational>(BigRational.ZERO);
     public static readonly TypeDescriptor<byte> UINT8 = new TypeDescriptor<byte>(0);
@@ -1315,8 +1449,16 @@ namespace Dafny {
       yield return true;
     }
     public static IEnumerable<char> AllChars() {
-      for (int i = 0; i < 0x10000; i++) {
+      for (int i = 0; i < 0x1_0000; i++) {
         yield return (char)i;
+      }
+    }
+    public static IEnumerable<Rune> AllUnicodeChars() {
+      for (int i = 0; i < 0xD800; i++) {
+        yield return new Rune(i);
+      }
+      for (int i = 0xE000; i < 0x11_0000; i++) {
+        yield return new Rune(i);
       }
     }
     public static IEnumerable<BigInteger> AllIntegers() {
@@ -1485,7 +1627,37 @@ namespace Dafny {
         action();
       } catch (HaltException e) {
         Console.WriteLine("[Program halted] " + e.Message);
+        // This is unfriendly given that Dafny's C# compiler will
+        // invoke the compiled main method directly,
+        // so we might be exiting the whole Dafny process here.
+        // That's the best we can do until Dafny main methods support
+        // a return value though (https://github.com/dafny-lang/dafny/issues/2699).
+        // If we just set Environment.ExitCode here, the Dafny CLI
+        // will just override that with 0.
+        Environment.Exit(1);
       }
+    }
+
+    public static Rune AddRunes(Rune left, Rune right) {
+      return (Rune)(left.Value + right.Value);
+    }
+
+    public static Rune SubtractRunes(Rune left, Rune right) {
+      return (Rune)(left.Value - right.Value);
+    }
+
+    public static uint Bv32ShiftLeft(uint a, int amount) {
+      return amount == 32 ? 0 : a << amount;
+    }
+    public static ulong Bv64ShiftLeft(ulong a, int amount) {
+      return amount == 64 ? 0 : a << amount;
+    }
+
+    public static uint Bv32ShiftRight(uint a, int amount) {
+      return amount == 32 ? 0 : a >> amount;
+    }
+    public static ulong Bv64ShiftRight(ulong a, int amount) {
+      return amount == 64 ? 0 : a >> amount;
     }
   }
 
@@ -1513,10 +1685,9 @@ namespace Dafny {
     public readonly BigInteger num, den;  // invariant 1 <= den || (num == 0 && den == 0)
 
     public override string ToString() {
-      int log10;
       if (num.IsZero || den.IsOne) {
         return string.Format("{0}.0", num);
-      } else if (IsPowerOf10(den, out log10)) {
+      } else if (IsPowerOf10(den, out var log10)) {
         string sign;
         string digits;
         if (num.Sign < 0) {
@@ -1663,8 +1834,8 @@ namespace Dafny {
       } else if (bsign <= 0 && 0 < asign) {
         return 1;
       }
-      BigInteger aa, bb, dd;
-      Normalize(this, that, out aa, out bb, out dd);
+
+      Normalize(this, that, out var aa, out var bb, out var dd);
       return aa.CompareTo(bb);
     }
     public int Sign {
@@ -1701,13 +1872,11 @@ namespace Dafny {
       return a.CompareTo(b) <= 0;
     }
     public static BigRational operator +(BigRational a, BigRational b) {
-      BigInteger aa, bb, dd;
-      Normalize(a, b, out aa, out bb, out dd);
+      Normalize(a, b, out var aa, out var bb, out var dd);
       return new BigRational(aa + bb, dd);
     }
     public static BigRational operator -(BigRational a, BigRational b) {
-      BigInteger aa, bb, dd;
-      Normalize(a, b, out aa, out bb, out dd);
+      Normalize(a, b, out var aa, out var bb, out var dd);
       return new BigRational(aa - bb, dd);
     }
     public static BigRational operator -(BigRational a) {

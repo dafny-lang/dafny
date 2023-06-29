@@ -1,5 +1,4 @@
-// RUN: %dafny /compile:3 /rprint:"%t.rprint" "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment
 
 // Rustan Leino, 8 Sep 2015.
 // This file proves that the Ackermann function is monotonic in each argument
@@ -10,7 +9,7 @@ method Main() {
 }
 
 // Here is the definition of the Ackermann function:
-function method Ack(m: nat, n: nat): nat
+function Ack(m: nat, n: nat): nat
 {
   if m == 0 then
     n + 1
@@ -44,12 +43,12 @@ lemma MonotonicN(m: nat, n: nat, n': nat)
 
 // To prove the other direction, we consider an alternative formulation
 // of the Ackermann function, namely a curried form:
-function CurriedAckermann(m: int, n: int): int
+ghost function CurriedAckermann(m: int, n: int): int
 {
   A(m)(n)
 }
 
-function A(m: int): int -> int
+ghost function A(m: int): int -> int
 {
   if m <= 0 then
     n => n + 1
@@ -57,7 +56,7 @@ function A(m: int): int -> int
     n => Iter(A(m-1), n)
 }
 
-function Iter(f: int -> int, n: int): int
+ghost function Iter(f: int -> int, n: int): int
   decreases n
 {
   if n <= 0 then
@@ -103,19 +102,19 @@ lemma MonotonicM(m: nat, n: nat, m': nat)
 // The first property is a relation on functions.  It is the property that above was referred
 // to as "f is a function that is always below g".  The lemma ABelow(m, m') used above establishes
 // FunctionBelow(A(m), A(m')).
-predicate FunctionBelow(f: int -> int, g: int -> int)
+ghost predicate FunctionBelow(f: int -> int, g: int -> int)
 {
   forall n :: f(n) <= g(n)
 }
 
 // The next property says that a function is monotonic.
-predicate FunctionMonotonic(f: int -> int)
+ghost predicate FunctionMonotonic(f: int -> int)
 {
   forall n,n' :: n <= n' ==> f(n) <= f(n')
 }
 
 // The third property says that a function's return value is strictly greater than its argument.
-predicate Expanding(f: int -> int)
+ghost predicate Expanding(f: int -> int)
 {
   forall n :: n < f(n)
 }

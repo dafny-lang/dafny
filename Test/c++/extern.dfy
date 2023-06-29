@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:3 /spillTargetCode:2 /compileTarget:cpp "%s" ExternDefs.h > "%t"
+// RUN: %dafny /compile:3 /spillTargetCode:2 /compileTarget:cpp /unicodeChar:0 "%s" ExternDefs.h > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module {:extern "Extern"} Extern {
@@ -26,7 +26,7 @@ module TestMod {
   type {:extern "struct"} DestructorFunction<A>
 
   class C {
-    var s:state;
+    var s:state
 
     constructor (i:state) {
       this.s := i;
@@ -34,7 +34,7 @@ module TestMod {
   }
 
   class D {
-    var s:uint64;
+    var s:uint64
 
     constructor (i:uint64) {
       this.s := i;
@@ -44,7 +44,7 @@ module TestMod {
   method TestClass(e:ExternClass) {
     var x := e.my_method0(0);
     var y := e.my_method1(1);
-    print x,y;
+    print x, y, "\n";
   }
 
   method TestExternClass2() {

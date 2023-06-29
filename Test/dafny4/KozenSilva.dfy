@@ -48,11 +48,11 @@ greatest lemma Theorem1_LexLess_Is_Transitive_Automatic[nat](s: Stream<int>, t: 
 
 // The following predicate captures the (inductively defined) negation of (the
 // co-inductively defined) LexLess above.
-predicate NotLexLess(s: Stream<int>, t: Stream<int>)
+ghost predicate NotLexLess(s: Stream<int>, t: Stream<int>)
 {
   exists k: nat :: NotLexLess'(k, s, t)
 }
-predicate NotLexLess'(k: nat, s: Stream<int>, t: Stream<int>)
+ghost predicate NotLexLess'(k: nat, s: Stream<int>, t: Stream<int>)
 {
   if k == 0 then false else
     !(s.hd <= t.hd) || (s.hd == t.hd && NotLexLess'(k-1, s.tl, t.tl))
@@ -118,7 +118,7 @@ lemma Theorem1_Alt_Lemma(k: nat, s: Stream<int>, t: Stream<int>, u: Stream<int>)
 {
 }
 
-function PointwiseAdd(s: Stream<int>, t: Stream<int>): Stream<int>
+ghost function PointwiseAdd(s: Stream<int>, t: Stream<int>): Stream<int>
 {
   Cons(s.hd + t.hd, PointwiseAdd(s.tl, t.tl))
 }
@@ -205,19 +205,19 @@ greatest lemma Theorem4b_ValBelow_Is_Transitive[nat](u: Val, v: Val, w: Val)
 datatype Capsule = Cap(e: Term, s: map<Var, ConstOrAbs>)
 datatype ConstOrAbs = CC(c: Const) | AA(abs: LambdaAbs)
 
-predicate IsCapsule(cap: Capsule)
+ghost predicate IsCapsule(cap: Capsule)
 {
   cap.e.TermAbs?
 }
 
-function ClosureConversion(cap: Capsule): Cl
+ghost function ClosureConversion(cap: Capsule): Cl
   requires IsCapsule(cap)
 {
   Closure(cap.e.abs, ClosureConvertedMap(cap.s))
   // In the Kozen and Silva paper, there are more conditions, having to do with free variables,
   // but, apparently, they don't matter for the theorems being proved here.
 }
-function ClosureConvertedMap(s: map<Var, ConstOrAbs>): ClEnv
+ghost function ClosureConvertedMap(s: map<Var, ConstOrAbs>): ClEnv
 {
   // The following line uses a map comprehension.  In the notation "map y | D :: E",
   // D constrains the domain of the map to be all values of y satisfying D, and
@@ -225,7 +225,7 @@ function ClosureConvertedMap(s: map<Var, ConstOrAbs>): ClEnv
   ClEnvironment(map y: Var | y in s :: if s[y].AA? then ValCl(Closure(s[y].abs, ClosureConvertedMap(s))) else ValConst(s[y].c))
 }
 
-predicate CapsuleEnvironmentBelow(s: map<Var, ConstOrAbs>, t: map<Var, ConstOrAbs>)
+ghost predicate CapsuleEnvironmentBelow(s: map<Var, ConstOrAbs>, t: map<Var, ConstOrAbs>)
 {
   forall y :: y in s ==> y in t && s[y] == t[y]
 }
@@ -259,7 +259,7 @@ greatest lemma Theorem6_Bisim_Is_Symmetric(s: Stream, t: Stream)
   // proof is automatic
 }
 
-function merge(s: Stream, t: Stream): Stream
+ghost function merge(s: Stream, t: Stream): Stream
 {
   Cons(s.hd, merge(t, s.tl))
 }
@@ -276,11 +276,11 @@ function merge(s: Stream, t: Stream): Stream
 // and "decreases 1" to SplitRight.  With these "decreases" clauses, the
 // termination check of SplitRight's call to SplitLeft will simply be "0 < 1",
 // which is trivial to check.
-function SplitLeft(s: Stream): Stream
+ghost function SplitLeft(s: Stream): Stream
 {
   Cons(s.hd, SplitRight(s.tl))
 }
-function SplitRight(s: Stream): Stream
+ghost function SplitRight(s: Stream): Stream
 {
   SplitLeft(s.tl)
 }

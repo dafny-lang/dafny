@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
+using System.IO;
 using Bpl = Microsoft.Boogie;
 using static Microsoft.Dafny.Util;
 
@@ -52,6 +53,7 @@ namespace Microsoft.Dafny {
       AsFuelBottom,
       CharFromInt,
       CharToInt,
+      IsChar,
 
       Is, IsBox,
       IsAlloc, IsAllocBox,
@@ -244,6 +246,10 @@ namespace Microsoft.Dafny {
           Contract.Assert(args.Length == 1);
           Contract.Assert(typeInstantiation == null);
           return FunctionCall(tok, "char#ToInt", predef.CharType, args);
+        case BuiltinFunction.IsChar:
+          Contract.Assert(args.Length == 1);
+          Contract.Assert(typeInstantiation == null);
+          return FunctionCall(tok, "char#IsChar", Bpl.Type.Bool, args);
 
         case BuiltinFunction.Is:
           Contract.Assert(args.Length == 2);
@@ -656,7 +662,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(1 <= totalDims);
       Contract.Requires(0 <= dim && dim < totalDims);
 
-      string name = "_System." + BuiltIns.ArrayClassName(totalDims) + ".Length";
+      string name = "_System." + SystemModuleManager.ArrayClassName(totalDims) + ".Length";
       if (totalDims != 1) {
         name += dim;
       }
@@ -773,9 +779,9 @@ namespace Microsoft.Dafny {
       }
     }
 
-    private static void BplIfIf(Bpl.IToken tk, bool yes, Bpl.Expr guard, BoogieStmtListBuilder builder, Action<BoogieStmtListBuilder> k) {
+    private void BplIfIf(Bpl.IToken tk, bool yes, Bpl.Expr guard, BoogieStmtListBuilder builder, Action<BoogieStmtListBuilder> k) {
       if (yes) {
-        var newBuilder = new BoogieStmtListBuilder(builder.tran);
+        var newBuilder = new BoogieStmtListBuilder(builder.tran, options);
         k(newBuilder);
         builder.Add(new Bpl.IfCmd(tk, guard, newBuilder.Collect(tk), null, null));
       } else {
@@ -878,13 +884,15 @@ namespace Microsoft.Dafny {
       } else if (exprTok == Boogie.Token.NoToken) {
         return Token.NoToken;
       } else {
+        // These boogie Tokens can be created by TokenTextWriter
         // This is defensive programming but we aren't expecting to hit this case
         return new Token {
           col = exprTok.col,
-          Filename = exprTok.filename,
+          Uri = new Uri("untitled:" + exprTok.filename),
           kind = exprTok.kind,
           LeadingTrivia = "",
           line = exprTok.line,
+          Next = null,
           pos = exprTok.pos,
           TrailingTrivia = "",
           val = exprTok.val

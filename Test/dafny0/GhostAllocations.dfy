@@ -1,4 +1,4 @@
-// RUN: %dafny_0 /compile:0 "%s" > "%t"
+// RUN: %exits-with 4 %dafny /compile:0 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 class Cell {
@@ -17,7 +17,7 @@ lemma L() returns (c: Cell)
 twostate lemma L2() returns (c: Cell)
   ensures fresh(c)
 
-predicate P(c: Cell)
+ghost predicate P(c: Cell)
 least lemma Least()
   ensures exists c: Cell :: P(c) && fresh(c)
 
@@ -185,4 +185,18 @@ class GhostablePossibleEmpty {
 
   ghost constructor D() {
   } // error (x2): g and h are never assigned
+}
+
+method EmptyModifiesClause()
+  modifies {}, iset{}, [], multiset{}
+
+function EmptyReadsClause(): int
+  reads {}, iset{}, [], multiset{}
+
+method CallerOfEmpty() {
+  var x := EmptyReadsClause();
+  EmptyModifiesClause();
+  var cell := new Cell;
+  cell.data := cell.data + 10;
+  assert x == EmptyReadsClause();
 }

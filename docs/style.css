@@ -1,28 +1,74 @@
 body {
-  background-color: light-blue;
+    font-family: ui-sans-serif, sans-serif;
+    max-width: 40em;
+    margin: auto;
+    padding: 1em;
+    position: relative;
+    line-height: 1.5;
 }
 
 h1 {
-  color: blue;
-  text-align: center;
-  background-color: #fceb6c
+    text-align: center;
 }
 
-p {
-  font-size: 18px
+#logo {
+    width: 100%;
 }
 
-td {
-  font-size: 18px
+@media (min-width: 25em) {
+    #logo {
+        float: left;
+        margin: 0 1em 0.5em 0;
+        max-width: 100%;
+        width: 10em;
+    }
 }
 
-li {
-  font-size: 18px
+nav {
+    margin: 1.35em 0;
 }
 
-img {
-    display: block;
-    margin-left: auto;
-    margin-right: auto;
+nav h2 {
+    margin-bottom: 0.5em;
 }
 
+nav ul {
+    margin: 0;
+}
+
+@media (min-width: 67em) {
+    body {
+        max-width: 65em;
+    }
+
+    nav {
+        float: right;
+        margin-top: 0;
+        position: sticky;
+        top: 1em;
+        width: 22.5em;
+    }
+
+    nav h2 {
+        margin-top: 0;
+        margin-left: 0.5em;
+    }
+
+    main {
+        margin-right: 22.5em;
+    }
+}
+
+#snapshot {
+    margin: 0;
+}
+
+#snapshot img {
+    width: 100%;
+}
+
+#snapshot figcaption {
+    font-style: italic;
+    margin-top: 0.25em;
+    text-align: center;
+}

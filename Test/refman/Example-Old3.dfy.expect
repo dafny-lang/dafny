@@ -1,3 +1,0 @@
-Example-Old3.dfy(18,11): Warning: Argument to 'old' does not dereference the mutable heap, so this use of 'old' has no effect
-
-Dafny program verifier finished with 2 verified, 0 errors

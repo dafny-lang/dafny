@@ -1,5 +1,4 @@
-// RUN: %dafny /compile:3 /rprint:"%t.rprint" "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment
 // Rustan Leino, Nov 2015
 
 // Module M0 gives the high-level specification of the UnionFind data structure
@@ -8,10 +7,10 @@ abstract module M0 {
 
   class {:autocontracts} UnionFind {
     ghost var M: map<Element, Element>
-    predicate Valid() {
+    ghost predicate Valid() {
       ValidM1()
     }
-    predicate {:autocontracts false} ValidM1()
+    ghost predicate {:autocontracts false} ValidM1()
       reads this, Repr
       ensures M == map[] ==> ValidM1()
 
@@ -46,13 +45,13 @@ abstract module M1 refines M0 {
   }
 
   type CMap = map<Element, Contents>
-  predicate GoodCMap(C: CMap)
+  ghost predicate GoodCMap(C: CMap)
   {
     forall f :: f in C && C[f].Link? ==> C[f].next in C
   }
 
   class UnionFind ... {
-    predicate ValidM1()
+    ghost predicate ValidM1()
     {
       M.Keys <= Repr &&
       (forall e :: e in M ==> M[e] in M && M[M[e]] == M[e]) &&
@@ -61,14 +60,14 @@ abstract module M1 refines M0 {
     }
 
     // This function returns a snapshot of the .c fields of the objects in the domain of M
-    function {:autocontracts false} Collect(): CMap
+    ghost function {:autocontracts false} Collect(): CMap
       requires forall f :: f in M && f.c.Link? ==> f.c.next in M
-      reads this, set a | a in M
+      reads this, set a: Element | a in M
       ensures GoodCMap(Collect())
     {
       map e | e in M :: e.c
     }
-    predicate {:autocontracts false} Reaches(d: nat, e: Element, r: Element, C: CMap)
+    ghost predicate {:autocontracts false} Reaches(d: nat, e: Element, r: Element, C: CMap)
       requires GoodCMap(C)
       requires e in C
     {
@@ -115,7 +114,7 @@ abstract module M1 refines M0 {
 
   // stupid help lemma to get around boxing
   lemma MapsEqual<D>(m: map<D, D>, n: map<D, D>)
-    requires forall d :: d in m <==> d in n;
+    requires forall d :: d in m <==> d in n
     requires forall d :: d in m ==> m[d] == n[d]
     ensures m == n
   {
@@ -183,7 +182,7 @@ abstract module M2 refines M1 {
       requires GoodCMap(C)
       requires e in C
       requires Reaches(d, e, r, C)
-      requires tt in C && Reaches(td, tt, tm, C);
+      requires tt in C && Reaches(td, tt, tm, C)
       requires C' == C[tt := Link(tm)] && C'[tt].Link? && tm in C' && C'[tm].Root?
       requires GoodCMap(C')
       ensures Reaches(d, e, r, C')

@@ -1,15 +1,10 @@
-// RUN: %dafny /compile:0 /dprint:"%t.dprint" "%s" > "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:cs "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:java "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:js "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:go "%s" >> "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment
 
 abstract module M0 {
   class Counter {
     ghost var N: int
     ghost var Repr: set<object>
-    predicate Valid()
+    ghost predicate Valid()
       reads this, Repr
       ensures Valid() ==> this in Repr
 
@@ -55,7 +50,7 @@ module M1 refines M0 {
   class Counter ... {
     var c: Cell
     var d: Cell
-    predicate Valid...
+    ghost predicate Valid...
     {
       this in Repr &&
       c in Repr &&

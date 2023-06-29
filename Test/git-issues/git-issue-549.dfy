@@ -1,15 +1,12 @@
-// RUN: %dafny /compile:0 "%s" > "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:cs "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:py "%s" >> "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment
 
 trait T {
-  function method bar(): bv8
+  function bar(): bv8
 }
 
 class F extends T {
   // once upon a time, the following used to crash Dafny
-  function method bar(): bv8 {
+  function bar(): bv8 {
     1
   }
 }

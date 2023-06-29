@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:0 "%s" > "%t"
+// RUN: %dafny /compile:0 /deprecation:0 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // Note:  We used integers instead of a generic Comparable type, because
@@ -25,18 +25,18 @@ class Queue<T> {
     requires 0 < |contents|;
     modifies this;
     ensures contents == old(contents)[1..] && x == old(contents)[0];
-  function method Head(): T
+  function Head(): T
     requires 0 < |contents|;
     reads this;
   { contents[0] }
-  function method Get(i: int): T
+  function Get(i: int): T
     requires 0 <= i < |contents|;
     reads this;
   { contents[i] }
 }
 
 class Comparable {
-  function AtMost(c: Comparable): bool
+  ghost function AtMost(c: Comparable): bool
     reads this, c;
 }
 

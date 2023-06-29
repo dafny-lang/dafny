@@ -1,4 +1,4 @@
-// RUN: %dafny_0 /compile:0 "%s" > "%t"
+// RUN: %exits-with 2 %dafny /compile:0 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module M {
@@ -260,7 +260,7 @@ module Option {
 module ClientOfOption {
   import opened Option
 
-  function Foo(o: Option<int>): int {
+  ghost function Foo(o: Option<int>): int {
     match o
     case Some(x) => x
     case None => 0

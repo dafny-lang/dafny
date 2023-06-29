@@ -1,22 +1,18 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
-using Microsoft.Extensions.Configuration;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-using OmniSharp.Extensions.LanguageServer.Protocol.Client;
-using OmniSharp.Extensions.LanguageServer.Protocol.Document;
+using Xunit.Abstractions;
+using Xunit;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various;
 
-public abstract class PluginsTestBase : DafnyLanguageServerTestBase {
-  protected ILanguageClient Client;
-  protected DiagnosticsReceiver DiagnosticReceiver;
+public abstract class PluginsTestBase : ClientBasedLanguageServerTest {
   protected string LibraryPath;
 
   /// <summary>
@@ -27,7 +23,7 @@ public abstract class PluginsTestBase : DafnyLanguageServerTestBase {
     var assembly = Assembly.GetExecutingAssembly();
     string[] names = assembly.GetManifestResourceNames();
     Stream codeStream = assembly.GetManifestResourceStream($"Microsoft.Dafny.LanguageServer.IntegrationTest._plugins.{assemblyName}.cs");
-    Assert.IsNotNull(codeStream);
+    Assert.NotNull(codeStream);
     string code = new StreamReader(codeStream).ReadToEnd();
 
     var temp = Path.GetTempFileName();
@@ -62,7 +58,7 @@ public abstract class PluginsTestBase : DafnyLanguageServerTestBase {
     var assemblyPath = $"{temp}.dll";
     var result = compilation.Emit(assemblyPath);
 
-    Assert.IsTrue(result.Success, string.Join("\n", result.Diagnostics.Select(d => d.ToString())));
+    Assert.True(result.Success, string.Join("\n", result.Diagnostics.Select(d => d.ToString())));
     return assemblyPath;
   }
 
@@ -70,17 +66,15 @@ public abstract class PluginsTestBase : DafnyLanguageServerTestBase {
 
   protected abstract string[] CommandLineArgument { get; }
 
-  public async Task SetUpPlugin() {
-    DiagnosticReceiver = new();
+  protected override Task SetUp(Action<DafnyOptions> modifyOptions) {
     LibraryPath = GetLibrary(LibraryName);
-    Client = await InitializeClient(options => options.OnPublishDiagnostics(DiagnosticReceiver.NotificationReceived));
+    void ModifyOptions(DafnyOptions options) {
+      options.Set(CommonOptionBag.Plugin, CommandLineArgument.ToList());
+      modifyOptions?.Invoke(options);
+    }
+    return base.SetUp(ModifyOptions);
   }
 
-  protected void CleanupPlugin() {
-    DafnyOptions.O.Plugins = new List<Plugin>(DafnyOptions.DefaultPlugins);
-  }
-
-  protected override IConfiguration CreateConfiguration() {
-    return new ConfigurationBuilder().AddCommandLine(CommandLineArgument).Build();
+  protected PluginsTestBase(ITestOutputHelper output) : base(output) {
   }
 }

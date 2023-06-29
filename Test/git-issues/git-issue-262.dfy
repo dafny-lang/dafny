@@ -1,10 +1,7 @@
-// RUN: %dafny /compile:4 /compileTarget:cs "%s" > "%t"
-// RUN: %dafny /compile:4 /compileTarget:js "%s" >> "%t"
-// RUN: %dafny /compile:4 /compileTarget:go "%s" >> "%t"
-// RUN: %dafny /compile:4 /compileTarget:java "%s" >> "%t"
-// RUN: %diff "%s.expect" "%t"
+// NONUNIFORM: https://github.com/dafny-lang/dafny/issues/4119
+// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment
 
-function method tst(x: nat): nat {
+function tst(x: nat): nat {
     x + 1
 }
 

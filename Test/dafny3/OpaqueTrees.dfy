@@ -3,14 +3,14 @@
 
 datatype Tree<T> = Leaf(T) | Node(Tree, Tree)
 
-function {:opaque} size(t: Tree): nat
+ghost function {:opaque} size(t: Tree): nat
 {
   match t
   case Leaf(_) => 1
   case Node(left, right) => 1 + size(left) + size(right)
 }
 
-function {:opaque} mirror<T>(t: Tree<T>): Tree<T>
+ghost function {:opaque} mirror<T>(t: Tree<T>): Tree<T>
 {
   match t
   case Leaf(_) => t
@@ -18,7 +18,7 @@ function {:opaque} mirror<T>(t: Tree<T>): Tree<T>
 }
 
 lemma {:induction false} MirrorSize(t: Tree)
-  ensures size(mirror(t)) == size(t);
+  ensures size(mirror(t)) == size(t)
 {
   match t {
     case Leaf(x) =>

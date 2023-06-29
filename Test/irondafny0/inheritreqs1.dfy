@@ -1,9 +1,9 @@
-// RUN: %dafny_0 /compile:3 /optimize /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %exits-with 4 %dafny /compile:3 /optimize /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 abstract module Spec {
     method Greet(b: bool)
-        requires b;
+        requires b
 }
 
 module Impl refines Spec {
@@ -12,7 +12,7 @@ module Impl refines Spec {
     }
 
     method Xyzzy(b: bool)
-        requires b;
+        requires b
     {}
 
     method Main() {

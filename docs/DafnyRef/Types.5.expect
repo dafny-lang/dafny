@@ -1,0 +1,2 @@
+text.dfy(4,14): Error: literal (25) is too large for the bitvector type bv4
+1 resolution/type errors detected in text.dfy

@@ -1,4 +1,4 @@
-// RUN: %dafny_0 /compile:0 /printTooltips "%s" > "%t"
+// RUN: %exits-with 2 %dafny /compile:0 /printTooltips "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // resolution errors
@@ -29,19 +29,19 @@ module StartingFromOpaqueType {
   abstract module A {
     type Ty<X> {
       const c: nat
-      function method F(x: nat): nat
+      function F(x: nat): nat
       method M(x: nat) returns (r: nat)
     }
   }
   module OpaqueType refines A {
     type Ty<X, Y> ... { // error: wrong number of type parameters
-      function method F<Z>(x: nat): Z // error (x2): wrong number of type parametes, and wrong result type
+      function F<Z>(x: nat): Z // error (x2): wrong number of type parametes, and wrong result type
       method M<Z>(x: nat) returns (r: Z) { r := c; } // error (x2): wrong number of type parameters, and wrong out-parameter type
     }
   }
   module Datatype refines A {
     datatype Ty = Make(x: int) { // error: wrong number of type parameters
-      function method F<Z>(x: nat): Z // error (x2): wrong number of type parametes, and wrong result type
+      function F<Z>(x: nat): Z // error (x2): wrong number of type parametes, and wrong result type
       method M<Z>(x: nat) returns (r: Z) { r := c; } // error (x2): wrong number of type parametes, and wrong out-parameter type
     }
   }
@@ -50,7 +50,7 @@ module StartingFromOpaqueType {
   }
   module Codatatype refines A {
     codatatype Ty = Make(w: int) { // error: wrong number of type parameters
-      function method F<Z>(x: nat): Z // error (x2): wrong number of type parametes, and wrong result type
+      function F<Z>(x: nat): Z // error (x2): wrong number of type parametes, and wrong result type
       method M<Z>(x: nat) returns (r: Z) { r := c; } // error (x2): wrong number of type parametes, and wrong out-parameter type
     }
   }
@@ -59,19 +59,19 @@ module StartingFromOpaqueType {
   }
   module Newtype refines A {
     newtype Ty = int { // error: wrong number of type parameters
-      function method F<Z>(x: nat): Z // error (x2): wrong number of type parametes, and wrong result type
+      function F<Z>(x: nat): Z // error (x2): wrong number of type parametes, and wrong result type
       method M<Z>(x: nat) returns (r: Z) { r := c; } // error (x2): wrong number of type parametes, and wrong out-parameter type
     }
   }
   module Class refines A {
     class Ty { // error: wrong number of type parameters
-      function method F<Z>(x: nat): Z // error (x2): wrong number of type parametes, and wrong result type
+      function F<Z>(x: nat): Z // error (x2): wrong number of type parametes, and wrong result type
       method M<Z>(x: nat) returns (r: Z) { r := c; } // error (x2): wrong number of type parametes, and wrong out-parameter type
     }
   }
   module Trait refines A {
     trait Ty { // error: wrong number of type parameters
-      function method F<Z>(x: nat): Z // error (x2): wrong number of type parametes, and wrong result type
+      function F<Z>(x: nat): Z // error (x2): wrong number of type parametes, and wrong result type
       method M<Z>(x: nat) returns (r: Z) { r := c; } // error (x2): wrong number of type parametes, and wrong out-parameter type
     }
   }
@@ -84,15 +84,15 @@ module StartingFromDatatype {
   abstract module A {
     datatype Ty = Make(w: int) {
       const c: nat
-      function method F(x: nat): nat
+      function F(x: nat): nat
       method M(x: nat) returns (r: nat)
     }
   }
   module OpaqueType refines A {
-    type Ty ... // error: cannot refine a datatype with an opaque type
+    type Ty ... // error: cannot refine a datatype with an abstract type
   }
   module OpaqueType' refines A {
-    type Ty ... { } // error: cannot refine a datatype with an opaque type
+    type Ty ... { } // error: cannot refine a datatype with an abstract type
   }
   module Datatype refines A {
     datatype Ty ... {
@@ -119,12 +119,12 @@ module StartingFromCodatatype {
   abstract module A {
     codatatype Ty = Make(w: int) {
       const c: nat
-      function method F(x: nat): nat
+      function F(x: nat): nat
       method M(x: nat) returns (r: nat)
     }
   }
   module OpaqueType refines A {
-    type Ty ... // error: cannot refine a codatatype with an opaque type
+    type Ty ... // error: cannot refine a codatatype with an abstract type
   }
   module Datatype refines A {
     datatype Ty ... // error: cannot refine a codatatype with a datatype
@@ -151,12 +151,12 @@ module StartingFromNewtype {
   abstract module A {
     newtype Ty = int {
       const c: nat
-      function method F(x: nat): nat
+      function F(x: nat): nat
       method M(x: nat) returns (r: nat)
     }
   }
   module OpaqueType refines A {
-    type Ty ... // error: cannot refine a newtype with an opaque type
+    type Ty ... // error: cannot refine a newtype with an abstract type
   }
   module Datatype refines A {
     datatype Ty ... // error: cannot refine a newtype with a datatype
@@ -180,12 +180,12 @@ module StartingFromClass {
   abstract module A {
     class Ty {
       const c: nat
-      function method F(x: nat): nat
+      function F(x: nat): nat
       method M(x: nat) returns (r: nat)
     }
   }
   module OpaqueType refines A {
-    type Ty ... // error: cannot refine a class with an opaque type
+    type Ty ... // error: cannot refine a class with an abstract type
   }
   module Datatype refines A {
     datatype Ty ... // error: cannot refine a class with a datatype
@@ -209,12 +209,12 @@ module StartingFromTrait {
   abstract module A {
     trait Ty {
       const c: nat
-      function method F(x: nat): nat
+      function F(x: nat): nat
       method M(x: nat) returns (r: nat)
     }
   }
   module OpaqueType refines A {
-    type Ty ... // error: cannot refine a trait with an opaque type
+    type Ty ... // error: cannot refine a trait with an abstract type
   }
   module Datatype refines A {
     datatype Ty ... // error: cannot refine a trait with a datatype

@@ -1,4 +1,4 @@
-// RUN: %dafny_0 /compile:0 "%s" > "%t"
+// RUN: %exits-with 4 %dafny /compile:0 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module Types {
@@ -128,7 +128,7 @@ module Members {
   {
     const n := 100
 
-    function F(): int {
+    ghost function F(): int {
       3
     }
 

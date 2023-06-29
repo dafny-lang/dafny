@@ -1,10 +1,9 @@
-// RUN: %dafny /compile:3 /rprint:"%t.rprint" "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment
 
 datatype Cell = Cell(x: int)
 type EvenCell = c: Cell | c.x % 2 == 0 witness Cell(0)
 
-function method doubleEvenCell(c: EvenCell): int
+function doubleEvenCell(c: EvenCell): int
 {
   if c.x % 2 == 1 then 1/0 else c.x * 2
 }

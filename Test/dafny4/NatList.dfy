@@ -1,5 +1,4 @@
-// RUN: %dafny /compile:3 /rprint:"%t.rprint" "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment
 
 // This file tests some programs where "nat" is a type parameter to
 // a datatype.
@@ -21,21 +20,21 @@ method Main() {
   ConvertAndPrint(ns, -12);
 }
 
-function method Sum(ns: List<nat>): nat
+function Sum(ns: List<nat>): nat
 {
   match ns
   case Nil => 0
   case Cons(n, tail) => n + Sum(tail)
 }
 
-function method Append<T>(xs: List<T>, ys: List<T>): List<T>
+function Append<T>(xs: List<T>, ys: List<T>): List<T>
 {
   match xs
   case Nil => ys
   case Cons(t, tail) => Cons(t, Append(tail, ys))
 }
 
-function method Negate(xs: List<int>): List<int>
+function Negate(xs: List<int>): List<int>
 {
   match xs
   case Nil => Nil
@@ -79,14 +78,14 @@ lemma {:induction false} Conversion_Nat2Int(ns: List<nat>) returns (xs: List<int
   xs := ns;  // easy!
 }
 
-predicate ElementsAreNat(xs: List<int>)
+ghost predicate ElementsAreNat(xs: List<int>)
 {
   match xs
   case Nil => true
   case Cons(x, tail) => 0 <= x && ElementsAreNat(tail)
 }
 
-predicate ElementsAreTan(xs: List<int>)
+ghost predicate ElementsAreTan(xs: List<int>)
 {
   match xs
   case Nil => true

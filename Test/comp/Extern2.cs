@@ -42,5 +42,23 @@ namespace Library {
     public static void P() {
       System.Console.WriteLine("AllExtern.P");
     }
+    public static Wrappers._IOption<BigInteger> MaybeInt() {
+      return Wrappers.Option<BigInteger>.create_Some(42);
+    }
+    public static Wrappers._IPair<BigInteger, BigInteger> IntPair() {
+      return Wrappers.Pair<BigInteger, BigInteger>.create_Pair(3, 7);
+    }
+  }
+
+  public partial class SingletonOptimization {
+    public static int SingletonTuple(int a) {
+      return a + 1;
+    }
+    public static int NoWrapper(int a) {
+      return a + 1;
+    }
+    public static int GhostWrapper(int a) {
+      return a + 1;
+    }
   }
 }

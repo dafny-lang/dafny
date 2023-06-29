@@ -1,4 +1,4 @@
-// RUN: %dafny_0 "%s" > "%t"
+// RUN: %exits-with 4 %dafny "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module A {
@@ -10,8 +10,8 @@ module B {
 
   type T = A.X
   type NewT = t: T | Pred(t) witness Witness()
-  predicate Pred(t: T)
-  function method Witness(): T
+  ghost predicate Pred(t: T)
+  function Witness(): T
     ensures Pred(Witness())
 
   method Bad(x: T) returns (tt: NewT) {
@@ -32,9 +32,9 @@ module M {
   type X = Dt
   type T = t: X | true witness SomeValue
 
-  function G(t: X): int
+  ghost function G(t: X): int
 
-  function F(t: T): int {
+  ghost function F(t: T): int {
     // this once used to give an error, because type checking/inference didn't skip
     // all intermediate layers of type synonyms when checking subtyping
     G(t)

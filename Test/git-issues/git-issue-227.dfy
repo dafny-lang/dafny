@@ -1,4 +1,4 @@
-// RUN: %dafny_0 /compile:0 "%s" > "%t"
+// RUN: %exits-with 2 %dafny /compile:0 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 /* This is a trimmed down version of the original bug. The original program can be found in Issue #227.
    This trimmed version is only for the purpose of testing the type-checking error messages. */
@@ -11,12 +11,12 @@ module AbstractMap {
 
   datatype Step = CompleteSync | SpontaneousCrashStep | Stutter
 
-  predicate NextStep(k: Constants, s: Variables, s': Variables, step: Step)
+  ghost predicate NextStep(k: Constants, s: Variables, s': Variables, step: Step)
   {
       true
   }
 
-  predicate Next(k: Constants, s: Variables, s': Variables)
+  ghost predicate Next(k: Constants, s: Variables, s': Variables)
   {
       true
   }
@@ -31,17 +31,17 @@ module LogImpl {
       CrashAndRecover
     | TerminateScan
 
-  predicate NextStep(k: Constants, s: Variables, s': Variables, step: Step)
+  ghost predicate NextStep(k: Constants, s: Variables, s': Variables, step: Step)
   {
     true
   }
 
-  predicate Next(k: Constants, s: Variables, s': Variables)
+  ghost predicate Next(k: Constants, s: Variables, s': Variables)
   {
     true
   }
 
-  predicate Inv(k: Constants, s: Variables)
+  ghost predicate Inv(k: Constants, s: Variables)
   {
     true
   }
@@ -53,20 +53,20 @@ module RefinementProof {
   import opened LogImpl
   import AbstractMap
 
-  function IViews(k: Constants, s: Variables): seq<AbstractMap.View>
+  ghost function IViews(k: Constants, s: Variables): seq<AbstractMap.View>
     requires Inv(k, s)
   {
     []
   }
 
   // Refinement to an AbstractMap
-  function I(k: Constants, s: Variables): AbstractMap.Variables
+  ghost function I(k: Constants, s: Variables): AbstractMap.Variables
     requires Inv(k, s)
   {
     AbstractMap.Variables
   }
 
-  function Ik(k:Constants) : AbstractMap.Constants
+  ghost function Ik(k:Constants) : AbstractMap.Constants
   {
     AbstractMap.Constants
   }

@@ -19,7 +19,7 @@ module B {
   import ASpec = A`Spec
   import ABody = A`Body
 
-  function f(): ABody.T { 0 }
+  ghost function f(): ABody.T { 0 }
 
 }
 
@@ -63,8 +63,8 @@ module E {
   export Body reveals f,g provides CABody
   export AnotherBody reveals f,g provides DABody
 
-  function f(): CABody.T { 0 }
-  function g(): DABody.T { f() }
+  ghost function f(): CABody.T { 0 }
+  ghost function g(): DABody.T { f() }
 
 }
 

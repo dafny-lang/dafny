@@ -1,7 +1,6 @@
-// RUN: %dafny /compile:3 /rprint:"%t.rprint" "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment
 
-function method returnNat(c: nat): int
+function returnNat(c: nat): int
 {
   if c < 0 then 1/0 else c
 }

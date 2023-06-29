@@ -1,7 +1,13 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 using Bpl = Microsoft.Boogie;
 using Xunit;
 using Microsoft.Dafny;
+using Microsoft.Dafny.ProofObligationDescription;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace DafnyPipeline.Test;
 

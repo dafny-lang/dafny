@@ -1,4 +1,4 @@
-// RUN: %dafny_0 /compile:0 "%s" > "%t"
+// RUN: %exits-with 2 %dafny /compile:0 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 datatype Result<T> = Failure(error: string) | Success(value: T)
@@ -24,19 +24,19 @@ method n3(d: D<E>) {} // error: codataypes are not (==)
 ghost method g2(d: D<int->int>) {}
 ghost method g3(d: D<E>) {}
 
-function g<T(==)>(t: T): T { // Warning: unnecessary (==)
+ghost function g<T(==)>(t: T): T { // Warning: unnecessary (==)
   t
 }
 
-function gx<T>(t: T): T {
+ghost function gx<T>(t: T): T {
   t
 }
 
-function method gg<T(==)>(t: T): T {
+function gg<T(==)>(t: T): T {
   t
 }
 
-function method ggx<T>(t: T): T {
+function ggx<T>(t: T): T {
   t
 }
 

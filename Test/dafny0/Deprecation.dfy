@@ -1,5 +1,4 @@
-// RUN: %dafny /compile:3 /dprint:"%t.dprint" "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment
 
 // This file contains tests for messags about various deprecated features.
 // As those features go away completely, so can the corresponding tests.

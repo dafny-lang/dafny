@@ -1,4 +1,5 @@
-﻿using IntervalTree;
+﻿using System;
+using IntervalTree;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
@@ -7,6 +8,7 @@ using Microsoft.Dafny.LanguageServer.Workspace;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using AstElement = System.Object;
+using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
   /// <summary>
@@ -40,16 +42,19 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
 
     private readonly DafnyLangTypeResolver typeResolver;
 
-    public static SignatureAndCompletionTable Empty(DocumentTextBuffer textDocument) {
-      var errorReporter = new DiagnosticErrorReporter(textDocument.Text, textDocument.Uri);
+    public static SignatureAndCompletionTable Empty(DafnyOptions options, DocumentTextBuffer textDocument) {
+      var outerModule = new DefaultModuleDefinition(new List<Uri>() { textDocument.Uri.ToUri() }, false);
+      var errorReporter = new DiagnosticErrorReporter(options, textDocument.Text, textDocument.Uri);
+      var compilation = new CompilationData(errorReporter, new List<Include>(), new List<Uri>(), Sets.Empty<Uri>(),
+        Sets.Empty<Uri>());
       return new SignatureAndCompletionTable(
         NullLogger<SignatureAndCompletionTable>.Instance,
-        new CompilationUnit(new Dafny.Program(
+        new CompilationUnit(textDocument.Uri.ToUri(), new Program(
           textDocument.Uri.ToString(),
-          new LiteralModuleDecl(new DefaultModuleDecl(), null),
+          new LiteralModuleDecl(outerModule, null, Guid.NewGuid()),
           // BuiltIns cannot be initialized without Type.ResetScopes() before.
-          new BuiltIns(),
-          errorReporter
+          new SystemModuleManager(options), // TODO creating a SystemModuleManager is a heavy operation
+          errorReporter, compilation
         )),
         new Dictionary<object, ILocalizableSymbol>(),
         new Dictionary<ISymbol, SymbolLocation>(),

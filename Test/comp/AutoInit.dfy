@@ -1,10 +1,4 @@
-// RUN: %dafny /compile:0 "%s" > "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:cs "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:java "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:js "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:go "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:py "%s" >> "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment
 
 // This file tests the compilation of some default values. It also includes some
 // regression tests for equality, printing, and tuples.
@@ -17,7 +11,7 @@ class WClass<W> {
   constructor Make(w: W) {
     strm := Generate(w);
   }
-  static function method Generate(w: W): Stream<W> {
+  static function Generate(w: W): Stream<W> {
     Next(w, Generate(w))
   }
 }
@@ -34,7 +28,7 @@ class Class {
   }
 }
 
-predicate method Same<A(==)>(a0: A, a1: A) {
+predicate Same<A(==)>(a0: A, a1: A) {
   a0 == a1
 }
 
@@ -43,7 +37,7 @@ method Main() {
   print w.strm.tail.head, " ", w.pair.0, " ", w.pair.1, "\n";  // 3 false 0
 
   var c := new Class();
-  print c.cell, " ", c.cell.data, " ", c.cell.Cell?, "\n";  // Cell.Cell(false) false true
+  print c.cell, " ", c.cell.data, " ", c.cell.Cell?, "\n";  // false false true
 
   var x0: ();
   var x4: (int, bool, bool, seq<real>);
@@ -51,10 +45,10 @@ method Main() {
 
   var null2: (SomeObject?, Cell<int>);
   var null2': (SomeObject?, Cell<int>);
-  print null2, " ", null2', " ", null2 == null2', "\n";  // (null, Cell.Cell(0)) (null, Cell.Cell(0)) true
+  print null2, " ", null2', " ", null2 == null2', "\n";  // (null, 0) (null, 0) true
   var null4: (SomeObject?, Class?, WClass?<bool>, Cell<int>);
   var null4': (SomeObject?, Class?, WClass?<bool>, Cell<int>);
-  print null4, " ", null4', " ", null4 == null4', "\n";  // (null, null, null, Cell.Cell(0)) (null, null, null, Cell.Cell(0)) true
+  print null4, " ", null4', " ", null4 == null4', "\n";  // (null, null, null, 0) (null, null, null, 0) true
   print c == c, " ", c == null4.1, " ", null4.1 == c, " ", null4.1 == null, "\n";  // true false false true
   print Same(c, c), " ", Same(c, null4.1), " ", Same(null4.1, c), " ", Same(null4.1, null), "\n";  // true false false true
 
@@ -195,7 +189,7 @@ module NilRegression {
   method Gimmie<R(0)>() returns (r: R) { }
   method Gimmie2<R(0), S(0)>() returns (r: R, s: S) { }
 
-  function method Id<X>(x: X): X { x }
+  function Id<X>(x: X): X { x }
 
   method NilRegression3() {
     // test out-parameters of methods
@@ -254,12 +248,12 @@ module DatatypeDefaultValues {
     var d: GenericTree<int>;
     var e: Complicated<int, bool, real, bv3>;
     var f: CellCell<int, real>;
-    print a, "\n  ", b, "\n  ", c, "\n";
-    print d, "\n  ", e, "\n  ", f, "\n";
+    print a, "\n  ", b, "\n  ", c, "\n"; // MakeZero Nil 0
+    print d, "\n  ", e, "\n  ", f, "\n"; // Leaf ComplA(0, false) MakeCellCell(0)
 
     var g: Difficult;
     var h: GenDifficult<int>;
-    print g, "\n  ", h, "\n";
+    print g, "\n  ", h, "\n"; // null null
   }
 }
 
@@ -295,7 +289,7 @@ module GhostWitness {
     | forall a :: f.reads(a) == {}
     ghost witness GhostEffectlessArrowWitness<A, B>
 
-  function GhostEffectlessArrowWitness<A, B(00)>(a: A): B
+  ghost function GhostEffectlessArrowWitness<A, B(00)>(a: A): B
   {
     var b: B :| true; b
   }
@@ -304,7 +298,7 @@ module GhostWitness {
 
   class MyClass { }
 
-  predicate Total<A(!new), B>(f: A ~> B)  // (is this (!new) really necessary?)
+  ghost predicate Total<A(!new), B>(f: A ~> B)  // (is this (!new) really necessary?)
     reads f.reads
   {
     forall a :: f.reads(a) == {} && f.requires(a)
@@ -314,7 +308,7 @@ module GhostWitness {
     | Total(f)
     ghost witness TotalWitness<A, B>
 
-  function TotalWitness<A, B(00)>(a: A): B
+  ghost function TotalWitness<A, B(00)>(a: A): B
   {
     var b: B :| true; b
   }

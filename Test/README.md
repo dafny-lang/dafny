@@ -25,6 +25,45 @@ dotnet test --logger "console;verbosity=normal" Source/IntegrationTests --filter
 [See here](https://docs.microsoft.com/en-us/dotnet/core/tools/dotnet-test) for more information about
 the `dotnet test` command and other supported options.
 
+## Writing tests
+
+Lit tests use a very restricted form of command-line: executables and their arguments, piping,
+`>` and `>>` redirections (for respectively writing and appending stdout to a file) 
+and `2>` and `2>>` redirections (for respectively writing and appending both stdout and stderr to a file).
+
+To work cross-platform, use a number of macros: %verify, %resolve, %build, %run, %translate (with %trargs),
+%exits-with, %diff, %sed and others you can find defined in lit.site.cfg
+
+`Any new macros defined here must also be defied in Source/IntegrationTests/LitTests.cs`
+
+A typical simple test for a single source file that has verification errors is
+```
+// RUN: %exits-with 4 %verify "%s" > "%t"
+// RUN: %diff "%s.expect" "%t"
+```
+
+There are many examples in the .dfy files under this directory.
+
+## Uniform backend testing
+
+In order to maximum testing coverage across all supported backends,
+especially as additional backends are added in the future,
+the default command for any test that compiles and/or executes a valid Dafny program should be:
+
+```
+// RUN: %testDafnyForEachCompiler "%s"
+```
+
+This command will run the program with each backend
+and assert that the program output matches the content of `<test file>.expect`.
+See [the TestDafny utility](../Source/TestDafny/) for more details.
+
+Any test that manually compiles and/or executes a program against one or more backends
+will be flagged by CI, and should be fixed by either converting it to use
+`%testDafnyForEachCompiler` or adding a `// NONUNIFORM: <reason>` command
+to flag it as intentionally inconsistent,
+for tests of backend-specific externs for example.
+
 ## Executing Tests from JetBrains Rider
 
 You will likely find it more convenient to run tests from an IDE such as
@@ -52,9 +91,10 @@ a particular test much more convenient. By default this is disabled and the runn
 just as LIT does, however. This is because the main CLI implementation currently has shared static state, which
 causes errors when invoking the CLI in the same process on multiple inputs in sequence, much less in parallel.
 Future changes will address this so that the in-process Main invocation can be used instead, however,
-which will likely improve performance but more importantly allow us to measure code coverage of the test suite.
+which will likely improve performance.
 
-To debug a single test, change the value of the `InvokeMainMethodsDirectly` boolean constant in the
-[LitTests class](../Source/IntegrationTests/LitTests.cs) to `true`, and then right-click the test you wish to debug and select
+To debug a single test, you change the value of the `DAFNY_INTEGRATION_TESTS_IN_PROCESS` environment variable
+to `true` (See https://www.jetbrains.com/help/rider/Reference__Options__Tools__Unit_Testing__Test_Runner.html),
+and then right-click the test you wish to debug and select
 `Debug Selected Unit Tests`. You will see exceptions if the test you are running makes multiple calls to commands like `%dafny`,
 so you may wish to remove the calls you are not interested in first, e.g. if you are debugging an issue with a specific compiler.

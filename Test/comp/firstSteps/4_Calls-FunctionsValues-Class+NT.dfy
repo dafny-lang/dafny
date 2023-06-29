@@ -1,6 +1,4 @@
-// RUN: %dafny /compile:0 "%s" > "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:py "%s" >> "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment
 //
 // This fragment of comp/Calls.dfy serves to facilitate incremental compiler development.
 
@@ -27,13 +25,13 @@ module FunctionValues {
   class Class {
     const x: int
     constructor (x: int) { this.x := x; }
-    function method F(): int { x }
-    static function method G(): int { 3 }
+    function F(): int { x }
+    static function G(): int { 3 }
   }
 
   newtype NT = x | 0 <= x < 15 {
-    function method F(): int { this as int }
-    static function method G(): int { 3 }
+    function F(): int { this as int }
+    static function G(): int { 3 }
   }
 }
 

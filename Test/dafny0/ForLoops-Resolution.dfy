@@ -1,4 +1,4 @@
-// RUN: %dafny_0 "%s" > "%t"
+// RUN: %exits-with 2 %dafny "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module Tests {
@@ -18,8 +18,8 @@ module Tests {
   }
 
   newtype Nat = x | 0 <= x
-  function method F(): nat
-  function method G(): Nat
+  function F(): nat
+  function G(): Nat
 
   method P0(x: int) returns (r: nat) {
     for i := F() to 5 {
@@ -51,7 +51,7 @@ module Tests {
     }
   }
 
-  function method Pow(b: nat, n: nat): nat {
+  function Pow(b: nat, n: nat): nat {
     if n == 0 then 1 else b * Pow(b, n - 1)
   }
 
@@ -194,7 +194,7 @@ module Tests {
       }
     }
   }
-
+} module BodyLessLoops {
   method BodyLessLoop(a: nat, b: nat) {
     for i := a to b // body-less loop
   }
@@ -210,7 +210,7 @@ module Tests {
     for i := a to b // body-less loop (loop frame: $Heap)
       modifies arr
   }
-
+} module MoreTests {
   method LoopSpecs(a: array<int>, b: array<int>)
     modifies a, b
   {

@@ -1,11 +1,10 @@
-// RUN: %dafny /compile:3 /spillTargetCode:2 /compileTarget:cpp "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment --spill-translation --unicode-char:false
 
 newtype uint8 = i:int | 0 <= i < 0x100
 newtype uint32 = i:int | 0 <= i < 0x100000000
 
 class C {
-  var x:uint8;
+  var x:uint8
 }
 
 method TestSeqOfClass() returns (s:seq<C>)

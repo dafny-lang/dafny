@@ -1,0 +1,9 @@
+git-issue-3461.dfy(4,0): Error: a method cannot be declared 'opaque'
+git-issue-3461.dfy(11,0): Error: a class cannot be declared 'opaque'
+git-issue-3461.dfy(12,0): Error: a datatype or codatatype cannot be declared 'opaque'
+git-issue-3461.dfy(13,0): Error: a newtype cannot be declared 'opaque'
+git-issue-3461.dfy(14,0): Error: a subset type cannot be declared 'opaque'
+git-issue-3461.dfy(17,2): Warning: opaque is deprecated as an identifier. It will soon become a reserved word. Use a different name.
+git-issue-3461.dfy(17,9): Error: invalid UpdateStmt
+git-issue-3461.dfy(18,0): Error: this symbol not expected in VarDeclStatement
+7 parse errors detected in git-issue-3461.dfy

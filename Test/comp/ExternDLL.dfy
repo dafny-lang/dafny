@@ -11,11 +11,11 @@ module {:extern "Modx"} Mod1
 {
   class {:extern "classx"} Class1
   {
-    static function method {:extern "Fun1x"} Fun1() : int
+    static function {:extern "Fun1x"} Fun1() : int
       ensures Fun1() > 0
     static method {:extern "Method1x"} Method1() returns (x: int)
       ensures x > 0
-    static function method Fun2() : int
+    static function Fun2() : int
       ensures Fun2() > 0
     {
       Fun1()
@@ -69,7 +69,7 @@ module TwoArgumentExtern {
   method {:extern "ABC.DEF", "MX"} M(x: int) returns (r: int)
 
   // git issue 423
-  function method {:extern "ABC.DEF", "FX"} F(x: int): int
+  function {:extern "ABC.DEF", "FX"} F(x: int): int
 
   method Test() {
     var y := M(2);  // calls ABC.DEF.MX

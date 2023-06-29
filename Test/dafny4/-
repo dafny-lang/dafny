@@ -1,0 +1,180 @@
+// git-issue228.dfy
+
+/*
+module _System {
+  /* CALL GRAPH for module _System:
+   * SCC at height 1:
+   *   RotateRight
+   * SCC at height 1:
+   *   RotateLeft
+   * SCC at height 0:
+   *   nat
+   */
+  type string(==,0) = seq<char>
+
+  type {:axiom} nat(==,0) = x: int
+    | 0 <= x
+
+  trait {:compile false} object { }
+  /*-- non-null type
+  type {:axiom} object(==) = c: object? | c != null /*special witness*/
+  */
+
+  class {:compile false} array<arg> {
+    var Length: int  // immutable
+  }
+  /*-- non-null type
+  type {:axiom} array(==)<arg> = c: array?<arg> | c != null /*special witness*/
+  */
+
+  class {:compile false} /*_#Func1*/ -T0 ~> +R {
+    function requires(x0: T0): bool
+      reads reads(x0)
+
+    function reads(x0: T0): set<object?>
+      reads reads(x0)
+  }
+
+  type {:compile false} /*_#PartialFunc1*/ -T0 --> +R = f: T0 ~> R
+    | forall x0: T0 :: f.reads(x0) == {}
+    /*special witness*/
+
+  type {:compile false} /*_#TotalFunc1*/ -T0 -> +R = f: T0 --> R
+    | forall x0: T0 :: f.requires(x0)
+    /*special witness*/
+
+  class {:compile false} /*_#Func0*/ () ~> +R {
+    function requires(): bool
+      reads reads()
+
+    function reads(): set<object?>
+      reads reads()
+  }
+
+  type {:compile false} /*_#PartialFunc0*/ () --> +R = f: () ~> R
+    | f.reads() == {}
+    /*special witness*/
+
+  type {:compile false} /*_#TotalFunc0*/ () -> +R = f: () --> R
+    | f.requires()
+    /*special witness*/
+
+  datatype {:compile false} /*_tuple#2*/ (+T0, +T1) = _#Make2(0: T0, 1: T1)
+
+  type bool { }
+
+  type int { }
+
+  type real {
+    var Floor: int  // immutable
+  }
+
+  type ORDINAL {
+    var IsLimit: bool  // immutable
+    var IsSucc: bool  // immutable
+    var Offset: int  // immutable
+    var IsNat: bool  // immutable
+  }
+
+  type _bv {
+    function method RotateLeft(w: nat): selftype
+
+    function method RotateRight(w: nat): selftype
+  }
+
+  type map<T, U> {
+    var Keys: set<T>  // immutable
+    var Values: set<U>  // immutable
+    var Items: set<(T, U)>  // immutable
+  }
+
+  type imap<T, U> {
+    var Keys: iset<T>  // immutable
+    var Values: iset<U>  // immutable
+    var Items: iset<(T, U)>  // immutable
+  }
+
+  datatype {:compile false} /*_tuple#0*/ () = _#Make0
+}
+// bitvector types in use: bv0 bv19
+*/
+
+/* CALL GRAPH for module _module:
+ * SCC at height 0:
+ *   Sets
+ * SCC at height 0:
+ *   Sequences
+ * SCC at height 1:
+ *   SubsetTypes
+ * SCC at height 0:
+ *   Subset_Byte
+ * SCC at height 0:
+ *   Subset_NegIsOdd
+ * SCC at height 1:
+ *   ConstrainedIntermediateExpressions
+ * SCC at height 0:
+ *   Byte
+ * SCC at height 0:
+ *   NegIsOdd
+ * SCC at height 1:
+ *   Numerics
+ * SCC at height 0:
+ *   nat
+ */
+newtype NegIsOdd = x: int
+  | x < 0 ==> x % 2 == 1
+  witness 1
+
+newtype Byte = x: int
+  | 0 <= x < 256
+
+type Subset_NegIsOdd = x: int
+  | x < 0 ==> x % 2 == 1
+  witness 1
+
+type Subset_Byte = x: int
+  | 0 <= x < 256
+
+lemma Sequences(s: seq, t: seq, u: seq)
+  ensures s + t + u == s + (t + u)
+  decreases s, t, u
+{
+}
+
+lemma Sets(s: set, t: set, u: set)
+  ensures s + t + u == s + (t + u)
+  ensures s * t * u == s * (t * u)
+  decreases s, t, u
+{
+}
+
+method Numerics()
+    returns (x: int, n: nat, r: real, o: ORDINAL, b: bv0, c: bv19)
+{
+  x := x + x + x + x;
+  n := n + n + n + n;
+  r := r + r + r + r;
+  o := o + o + o + o;
+  b := b + b + b + b;
+  c := c + c + c + c;
+}
+
+method ConstrainedIntermediateExpressions(a: NegIsOdd, b: NegIsOdd, x: Byte, z: Byte)
+  requires 0 <= b && z == 0
+  decreases a, b, x, z
+{
+  var c0: NegIsOdd := a + (b + b);
+  var c1: NegIsOdd := a + b + b;
+  var d0: Byte := x * (x * z);
+  var d1: Byte := x * x * z;
+}
+
+method SubsetTypes(a: Subset_NegIsOdd, b: Subset_NegIsOdd, x: Subset_Byte, z: Subset_Byte)
+  requires 0 <= b && z == 0
+  decreases a, b, x, z
+{
+  var c0: int := a + b + b;
+  var c1: int := a + b + b;
+  var d0: int := x * x * z;
+  var d1: int := x * x * z;
+}

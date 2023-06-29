@@ -1,12 +1,11 @@
-// RUN: %dafny /compile:4 "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment
 
 /// Check that the compiler accepts `:- assume {:axiom} …`.
 
 datatype Result<+T> = | Success(value: T) | Failure {
-  predicate method IsFailure() { Failure? }
-  function method PropagateFailure<U>(): Result<U> requires Failure? { Failure() }
-  function method Extract(): T requires Success? { value }
+  predicate IsFailure() { Failure? }
+  function PropagateFailure<U>(): Result<U> requires Failure? { Failure() }
+  function Extract(): T requires Success? { value }
 }
 
 method Main() {

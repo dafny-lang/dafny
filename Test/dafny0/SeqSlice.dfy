@@ -1,4 +1,4 @@
-// RUN: %dafny_0 /compile:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %exits-with 4 %dafny /compile:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 method test(x:seq<int>)
@@ -43,7 +43,7 @@ method NumericSlice<T>(x: seq<T>, two: MyNumeric) returns (y: seq<T>)
   return middle(slices);
 }
 
-function method middle<G>(s: seq<G>): G
+function middle<G>(s: seq<G>): G
   requires |s| % 2 == 1
 {
   s[|s| / 2]
@@ -73,5 +73,5 @@ method Print(s: seq<char>, i: bv24, j: bv10)
     var t := s[..i] + s[i..j] + s[j..];
   }
 }
-const Base64Alphabet := "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+const Base64Alphabet := "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
 

@@ -16,7 +16,11 @@ namespace Microsoft.Dafny {
       Contract.Requires(dt != null);
       Contract.Requires(sink != null && predef != null);
 
-      var constructorFunctions = dt.Ctors.ToDictionary(ctor => ctor, ctor => AddDataTypeConstructor(dt, ctor));
+      var mayInvolveReferences = UserDefinedType.FromTopLevelDecl(dt.tok, dt).MayInvolveReferences;
+      var constructorFunctions = dt.Ctors.ToDictionary(ctor => ctor, ctor => AddDataTypeConstructor(dt, ctor, mayInvolveReferences));
+      if (!mayInvolveReferences) {
+        AddCommonIsAllocConstructorAxiom(dt);
+      }
 
       AddDepthOneCaseSplitFunction(dt);
 
@@ -31,19 +35,16 @@ namespace Microsoft.Dafny {
       //         { Dt.Ctor1?(G,d) }
       //         $Is(d, T(G)) ==> Dt.Ctor0?(G,d) || Dt.Ctor1?(G,d) || ...);
       {
-        var tyvars = MkTyParamBinders(dt.TypeArgs, out var tyexprs);
-        Bpl.Expr d;
-        var dVar = BplBoundVar("d", predef.DatatypeType, out d);
-        var d_is = MkIs(d, ClassTyCon(dt, tyexprs));
+        MkIsPredicateForDatatype(dt, out var boundVariables, out var d, out _, out var isPredicate);
         Bpl.Expr cases_body = Bpl.Expr.False;
         Bpl.Trigger tr = null;
         foreach (DatatypeCtor ctor in dt.Ctors) {
           var disj = FunctionCall(ctor.tok, ctor.QueryField.FullSanitizedName, Bpl.Type.Bool, d);
           cases_body = BplOr(cases_body, disj);
-          tr = new Bpl.Trigger(ctor.tok, true, new List<Bpl.Expr> { disj, d_is }, tr);
+          tr = new Bpl.Trigger(ctor.tok, true, new List<Bpl.Expr> { disj, isPredicate }, tr);
         }
-        var body = Bpl.Expr.Imp(d_is, cases_body);
-        var ax = BplForall(Snoc(tyvars, dVar), tr, body);
+        var body = Bpl.Expr.Imp(isPredicate, cases_body);
+        var ax = BplForall(boundVariables, tr, body);
         var axiom = new Bpl.Axiom(dt.tok, ax, "Questionmark data type disjunctivity");
         sink.AddTopLevelDeclaration(axiom);
       }
@@ -91,10 +92,8 @@ namespace Microsoft.Dafny {
       sink.AddTopLevelDeclaration(new Bpl.Function(dt.tok, dtEqualName, args, ctorEqualResult,
         "Datatype extensional equality declaration"));
 
-      Bpl.Expr a;
-      var aVar = BplBoundVar("a", predef.DatatypeType, out a);
-      Bpl.Expr b;
-      var bVar = BplBoundVar("b", predef.DatatypeType, out b);
+      var aVar = BplBoundVar("a", predef.DatatypeType, out var a);
+      var bVar = BplBoundVar("b", predef.DatatypeType, out var b);
 
       var dtEqual = FunctionCall(dt.tok, dtEqualName, Bpl.Type.Bool, a, b);
 
@@ -166,12 +165,10 @@ namespace Microsoft.Dafny {
         (typeOfK, K) => {
           Func<string, List<TypeParameter>> renew = s =>
             Map(codecl.TypeArgs, tp =>
-              new TypeParameter(tp.tok, tp.Name + "#" + s, tp.PositionalIndex, tp.Parent));
+              new TypeParameter(tp.RangeToken, tp.NameNode.Append("#" + s), tp.PositionalIndex, tp.Parent));
           List<TypeParameter> typaramsL = renew("l"), typaramsR = renew("r");
-          List<Bpl.Expr> lexprs;
-          var lvars = MkTyParamBinders(typaramsL, out lexprs);
-          List<Bpl.Expr> rexprs;
-          var rvars = MkTyParamBinders(typaramsR, out rexprs);
+          var lvars = MkTyParamBinders(typaramsL, out var lexprs);
+          var rvars = MkTyParamBinders(typaramsR, out var rexprs);
           Func<List<TypeParameter>, List<Type>> Types = l => Map(l, tp => (Type)new UserDefinedType(tp));
           var tyargs = Tuple.Create(Types(typaramsL), Types(typaramsR));
 
@@ -366,8 +363,7 @@ namespace Microsoft.Dafny {
 
       sink.AddTopLevelDeclaration(cases_fn);
       // and here comes the actual axiom:
-      Bpl.Expr d;
-      var dVar = BplBoundVar("d", predef.DatatypeType, out d);
+      var dVar = BplBoundVar("d", predef.DatatypeType, out var d);
       var lhs = FunctionCall(dt.tok, cases_fn.Name, Bpl.Type.Bool, d);
       Bpl.Expr cases_body = Bpl.Expr.False;
       foreach (DatatypeCtor ctor in dt.Ctors) {
@@ -379,7 +375,7 @@ namespace Microsoft.Dafny {
       sink.AddTopLevelDeclaration(new Bpl.Axiom(dt.tok, ax, "Depth-one case-split axiom"));
     }
 
-    private Bpl.Function AddDataTypeConstructor(DatatypeDecl dt, DatatypeCtor ctor) {
+    private Bpl.Function AddDataTypeConstructor(DatatypeDecl dt, DatatypeCtor ctor, bool includeIsAllocAxiom) {
       // Add:  function #dt.ctor(tyVars, paramTypes) returns (DatatypeType);
 
       List<Bpl.Variable> argTypes = new List<Bpl.Variable>();
@@ -454,14 +450,12 @@ namespace Microsoft.Dafny {
         sink.AddTopLevelDeclaration(new Bpl.Axiom(ctor.tok, q, "Constructor questionmark has arguments"));
       }
 
-      AddConstructorAxioms(dt, ctor, fn);
+      AddConstructorAxioms(dt, ctor, fn, includeIsAllocAxiom);
 
       if (dt is IndDatatypeDecl) {
         // Add Lit axiom:
         // axiom (forall p0, ..., pn :: #dt.ctor(Lit(p0), ..., Lit(pn)) == Lit(#dt.ctor(p0, .., pn)));
-        List<Bpl.Variable> bvs;
-        List<Bpl.Expr> args;
-        CreateBoundVariables(ctor.Formals, out bvs, out args);
+        CreateBoundVariables(ctor.Formals, out var bvs, out var args);
         var litargs = new List<Bpl.Expr>();
         foreach (Bpl.Expr arg in args) {
           litargs.Add(Lit(arg));
@@ -491,9 +485,7 @@ namespace Microsoft.Dafny {
         }
 
         // axiom (forall params :: ##dt.ctor#i(#dt.ctor(params)) == params_i);
-        List<Bpl.Variable> bvs;
-        List<Bpl.Expr> args;
-        CreateBoundVariables(ctor.Formals, out bvs, out args);
+        CreateBoundVariables(ctor.Formals, out var bvs, out var args);
         var inner = FunctionCall(ctor.tok, ctor.FullName, predef.DatatypeType, args);
         var outer = FunctionCall(ctor.tok, fn.Name, TrType(arg.Type), inner);
         var q = BplForall(bvs, BplTrigger(inner), Bpl.Expr.Eq(outer, args[i]));
@@ -631,14 +623,16 @@ namespace Microsoft.Dafny {
       return fn;
     }
 
-    private void AddConstructorAxioms(DatatypeDecl dt, DatatypeCtor ctor, Bpl.Function ctorFunction) {
+    private void AddConstructorAxioms(DatatypeDecl dt, DatatypeCtor ctor, Bpl.Function ctorFunction, bool includeIsAllocAxiom) {
       var tyvars = MkTyParamBinders(dt.TypeArgs, out var tyexprs);
       CreateBoundVariables(ctor.Formals, out var bvs, out var args);
       bvs.InsertRange(0, tyvars);
       var c_params = FunctionCall(ctor.tok, ctor.FullName, predef.DatatypeType, args);
       var c_ty = ClassTyCon(dt, tyexprs);
       AddsIsConstructorAxiom(ctor, ctorFunction, args, bvs, c_params, c_ty);
-      AddIsAllocConstructorAxiom(dt, ctor, ctorFunction, args, bvs, c_params, c_ty);
+      if (includeIsAllocAxiom) {
+        AddIsAllocConstructorAxiom(dt, ctor, ctorFunction, args, bvs, c_params, c_ty);
+      }
       AddDestructorAxiom(dt, ctor, ctorFunction, tyvars, c_ty);
     }
 
@@ -656,12 +650,10 @@ namespace Microsoft.Dafny {
       Bpl.Expr conj = Bpl.Expr.True;
       for (var i = 0; i < ctor.Formals.Count; i++) {
         var arg = ctor.Formals[i];
-        if (CommonHeapUse || (NonGhostsUseHeap && !arg.IsGhost)) {
-          conj = BplAnd(conj, MkIsAlloc(args[i], arg.Type, h));
-        }
+        conj = BplAnd(conj, MkIsAlloc(args[i], arg.Type, h));
       }
 
-      if (CommonHeapUse || NonGhostsUseHeap) {
+      {
         var isGoodHeap = FunctionCall(ctor.tok, BuiltinFunction.IsGoodHeap, null, h);
         var c_alloc = MkIsAlloc(c_params, c_ty, h);
         bvs.Add(hVar);
@@ -673,6 +665,52 @@ namespace Microsoft.Dafny {
       }
     }
 
+    /// <summary>
+    /// If no value of the datatype depends on allocation, then this axiom states the property
+    /// for all datatype values. It can be used in place of one axiom per constructor.
+    ///
+    /// (forall d: DatatypeValue, T0,T1,...: Ty, H: Heap •
+    ///   { $IsAlloc(d, T(T0,T1,...), H) }
+    ///   IsGoodHeap(H) && $Is(d, T(T0,T1,...)) ==>
+    ///     $IsAlloc(d, T(T0,T1,...), H))
+    /// </summary>
+    private void AddCommonIsAllocConstructorAxiom(DatatypeDecl dt) {
+
+      MkIsPredicateForDatatype(dt, out var boundVariables, out var d, out var tyExpr, out var isPredicate);
+
+      var hVar = BplBoundVar("$h", predef.HeapType, out var h);
+      var isGoodHeap = FunctionCall(dt.tok, BuiltinFunction.IsGoodHeap, null, h);
+
+      var isAlloc = MkIsAlloc(d, tyExpr, h);
+
+      var body = BplImp(BplAnd(isGoodHeap, isPredicate), isAlloc);
+
+      {
+        var tr = BplTrigger(isAlloc);
+        var ax = new Bpl.Axiom(dt.tok, BplForall(Snoc(boundVariables, hVar), tr, body), "Datatype $IsAlloc");
+        sink.AddTopLevelDeclaration(ax);
+      }
+    }
+
+    /// <summary>
+    /// Return list of variables
+    ///     d: DatatypeValue, T0,T1,...: Ty  // in out-parameter "boundVariables"
+    /// expression
+    ///     d                                // in out-parameter "varExpression"
+    /// expression
+    ///     T(T0,T1,...)                     // in out-parameter "typeExpression"
+    /// and predicate
+    ///     $Is(d, T(T0,T1,...))             // in out-parameter "isPredicate"
+    /// </summary>
+    private void MkIsPredicateForDatatype(DatatypeDecl datatypeDecl, out List<Bpl.Variable> boundVariables,
+      out Bpl.Expr varExpression, out Bpl.Expr typeExpression, out Bpl.Expr isPredicate) {
+      var typeVariables = MkTyParamBinders(datatypeDecl.TypeArgs, out var typeExpressions);
+      var dVar = BplBoundVar("d", predef.DatatypeType, out varExpression);
+      boundVariables = Snoc(typeVariables, dVar);
+      typeExpression = ClassTyCon(datatypeDecl, typeExpressions);
+      isPredicate = MkIs(varExpression, typeExpression);
+    }
+
     /* (forall d : DatatypeType, G : Ty, H : Heap •
                { $IsAlloc[Box](Dtor(d), D(G), H) }
                IsGoodHeap(H) &&
@@ -682,16 +720,12 @@ namespace Microsoft.Dafny {
                    $IsAlloc[Box](Dtor(d), D(G), H))
          */
     private void AddDestructorAxiom(DatatypeDecl dt, DatatypeCtor ctor, Bpl.Function ctorFunction, List<Variable> tyvars, Expr c_ty) {
-      if (!CommonHeapUse || AlwaysUseHeap) {
-        return;
-      }
 
       var hVar = BplBoundVar("$h", predef.HeapType, out var h);
       for (int i = 0; i < ctor.Formals.Count; i++) {
         var arg = ctor.Formals[i];
         var dtor = GetReadonlyField(ctor.Destructors[i]);
-        Bpl.Expr dId;
-        var dBv = BplBoundVar("d", predef.DatatypeType, out dId);
+        var dBv = BplBoundVar("d", predef.DatatypeType, out var dId);
         var isGoodHeap = FunctionCall(ctor.tok, BuiltinFunction.IsGoodHeap, null, h);
         Bpl.Expr dtq = FunctionCall(ctor.tok, ctor.QueryField.FullSanitizedName, Bpl.Type.Bool, dId);
         var c_alloc = MkIsAlloc(dId, c_ty, h);
@@ -751,9 +785,7 @@ namespace Microsoft.Dafny {
 
     private Axiom CreateConstructorIdentifierAxiom(DatatypeCtor ctor, Expr c) {
       // Add:  axiom (forall params :: DatatypeCtorId(#dt.ctor(params)) == ##dt.ctor);
-      List<Bpl.Variable> bvs;
-      List<Bpl.Expr> args;
-      CreateBoundVariables(ctor.Formals, out bvs, out args);
+      CreateBoundVariables(ctor.Formals, out var bvs, out var args);
       var constructor_call = FunctionCall(ctor.tok, ctor.FullName, predef.DatatypeType, args);
       var lhs = FunctionCall(ctor.tok, BuiltinFunction.DatatypeCtorId, null, constructor_call);
       Bpl.Expr q = Bpl.Expr.Eq(lhs, c);

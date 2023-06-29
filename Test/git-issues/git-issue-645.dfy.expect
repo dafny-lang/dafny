@@ -1,1 +1,1 @@
-*** Error: Command-line argument '/xyz' is neither a recognized option nor a filename with a supported extension (.dfy, .cs, .dll).
+*** Error: Command-line argument 'xyz' is neither a recognized option nor a filename with a supported extension (.dfy, .cs, .dll).

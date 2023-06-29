@@ -1,24 +1,23 @@
-// RUN: %dafny /compile:3 "%s" /rprint:"%t.rprint" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment
 include "./NatOutcomeDt.dfy"
 include "./VoidOutcomeDt.dfy"
 
-function method Switch(b: bool, v: nat): NatOutcome {
+function Switch(b: bool, v: nat): NatOutcome {
     if b then NatSuccess(v) else NatFailure("bad luck")
 }
 
-function method TestControlFlowCase_Nat(switch1: bool, switch2: bool, switch3: bool): NatOutcome {
+function TestControlFlowCase_Nat(switch1: bool, switch2: bool, switch3: bool): NatOutcome {
     var n1 :- Switch(switch1, 88);
     var n2: nat :- Switch(switch2, 42);
     var n1 :- Switch(switch3, 33);
     NatSuccess(100)
 }
 
-function method FailIf(b: bool): VoidOutcome {
+function FailIf(b: bool): VoidOutcome {
     if b then VoidSuccess() else VoidFailure("void bad luck")
 }
 
-function method TestControlFlowCase_Void(switch1: bool, switch2: bool, switch3: bool): VoidOutcome {
+function TestControlFlowCase_Void(switch1: bool, switch2: bool, switch3: bool): VoidOutcome {
     :- FailIf(switch1);
     :- FailIf(switch2);
     :- FailIf(switch3);
@@ -49,7 +48,7 @@ method TestControlFlow() {
     }
 }
 
-function TestExpressionParsing(b: bool, n: nat, o1: NatOutcome, o2: NatOutcome): NatOutcome {
+ghost function TestExpressionParsing(b: bool, n: nat, o1: NatOutcome, o2: NatOutcome): NatOutcome {
     var expr1: nat :- (var x := if b then o1 else o2; x);
     var use_expr1: nat := expr1;
     var expr2 :- (var x := if b then o1 else o2; x);

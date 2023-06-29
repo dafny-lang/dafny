@@ -8,8 +8,6 @@ using Microsoft.Boogie;
 using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Workspace;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
-using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various;
 
@@ -17,7 +15,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various;
 /// this verifier will return a task that only completes when cancelled
 /// which can be useful to test against race conditions
 class SlowVerifier : IProgramVerifier {
-  public SlowVerifier(ILogger<DafnyProgramVerifier> logger, IOptions<VerifierOptions> options) {
+  public SlowVerifier(ILogger<DafnyProgramVerifier> logger, DafnyOptions options) {
     verifier = new DafnyProgramVerifier(logger, options);
   }
 
@@ -36,8 +34,6 @@ class SlowVerifier : IProgramVerifier {
 
     return tasks;
   }
-
-  public IObservable<AssertionBatchResult> BatchCompletions => verifier.BatchCompletions;
 
   class NeverVerifiesImplementationTask : IImplementationTask {
     private readonly IImplementationTask original;
@@ -61,5 +57,9 @@ class SlowVerifier : IProgramVerifier {
     public void Cancel() {
       source.OnError(new TaskCanceledException());
     }
+  }
+
+  public void Dispose() {
+    verifier?.Dispose();
   }
 }

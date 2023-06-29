@@ -1,4 +1,4 @@
-// RUN: %dafny_0 /compile:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %exits-with 4 %dafny /compile:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module Library {
@@ -6,9 +6,9 @@ module Library {
     reveals F, G
     provides H
 
-  function F(): int { 5 }
-  function {:opaque} G(): int { 5 }
-  function H(): int { 5 }
+  ghost function F(): int { 5 }
+  ghost function {:opaque} G(): int { 5 }
+  ghost function H(): int { 5 }
 
   lemma L0() {
     assert F() == 5;

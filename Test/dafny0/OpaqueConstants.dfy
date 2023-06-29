@@ -1,4 +1,4 @@
-// RUN: %dafny_0 /compile:0 "%s" > "%t"
+// RUN: %exits-with 4 %dafny /compile:0 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module Module {
@@ -74,7 +74,7 @@ module TypeMembers {
       }
   }
 
-  function IsUneven(i: int): bool { i % 2 == 1 }
+  ghost function IsUneven(i: int): bool { i % 2 == 1 }
 
   method StaticTest() {
     if

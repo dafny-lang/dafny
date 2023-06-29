@@ -1,4 +1,4 @@
-// RUN: %dafny_0 "%s" > "%t"
+// RUN: %exits-with 4 %dafny "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // Some tests for the type inference that was revamped
@@ -17,22 +17,22 @@ class VariousArrows {
     }
   }
 
-  function method F(x: int): char  // F has type int -> char
+  function F(x: int): char  // F has type int -> char
   { 'D' }
 
-  function method F'(x: int): char
+  function F'(x: int): char
     requires true  // the presence of a requires clause makes F' have type int --> char
   { 'D' }
 
-  function method F''(x: int): char
+  function F''(x: int): char
     reads {}  // the presence of a reads clause makes F' have type int ~> char
   { 'D' }
 
-  function method G(x: int): char
+  function G(x: int): char
     requires x < 1900
   { 'D' }
 
-  function method G'(x: int): char
+  function G'(x: int): char
     reads this
   { 'D' }
 

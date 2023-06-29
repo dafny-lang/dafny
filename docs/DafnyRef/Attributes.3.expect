@@ -1,0 +1,3 @@
+text.dfy(25,14): Error: assertion might not hold
+
+Dafny program verifier finished with 0 verified, 1 error

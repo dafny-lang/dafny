@@ -1,4 +1,4 @@
-// RUN: %dafny_0 /print:"%t.print" "%s" > "%t"
+// RUN: %exits-with 2 %dafny /print:"%t.print" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 newtype Lower = x | -2 <= x
@@ -13,12 +13,12 @@ method Main()
   b := forall r': NR :: true ==> Q(r' as real);  // error: cannot find finite range
 }
 
-predicate method P(x: int)
+predicate P(x: int)
 {
   x == 157
 }
 
-predicate method Q(r: real)
+predicate Q(r: real)
 {
   r / 2.0 <= r
 }
@@ -58,7 +58,7 @@ class K {
   var u: int
 }
 
-function method Max(ks: set<K>): int
+function Max(ks: set<K>): int
   requires ks != {}
   reads ks
 {

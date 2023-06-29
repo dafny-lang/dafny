@@ -1,16 +1,16 @@
-// RUN: %dafny_0 /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %exits-with 4 %dafny /dprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 const N: nat
-const M := 12;
+const M := 12
 
-function Fibonacci(n: int): int
+ghost function Fibonacci(n: int): int
 {
   if n < 2 then n
   else Fibonacci(n - 2) + Fibonacci(n - 1)
 }
 
-function Wrong(): bool
+ghost function Wrong(): bool
 {
   // The following assertion should fail.
   // Specifically, the verifier should not attempt to

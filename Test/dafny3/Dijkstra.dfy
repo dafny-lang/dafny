@@ -6,10 +6,10 @@
 // Transcribed into Dafny by Valentin Wüstholz and Nadia Polikarpova.
 
 // f is an arbitrary function on the natural numbers
-function f(n: nat) : nat
+ghost function f(n: nat) : nat
 
 // Predicate P() says that f satisfies a peculiar property
-predicate P()
+ghost predicate P()
 {
   forall m: nat :: f(f(m)) < f(m + 1)
 }

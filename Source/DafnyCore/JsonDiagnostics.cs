@@ -8,6 +8,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.Boogie;
 using VCGeneration;
+using static Microsoft.Dafny.ErrorRegistry;
 
 namespace Microsoft.Dafny;
 
@@ -24,7 +25,7 @@ record DiagnosticMessageData(MessageSource source, ErrorLevel level, Boogie.ITok
     var range = new JsonObject {
       ["start"] = SerializePosition(tok),
     };
-    if (tok is RangeToken rt) {
+    if (tok is BoogieRangeToken rt) {
       range["end"] = SerializePosition(rt.EndToken);
     }
     return range;
@@ -33,6 +34,7 @@ record DiagnosticMessageData(MessageSource source, ErrorLevel level, Boogie.ITok
   private static JsonObject SerializeToken(Boogie.IToken tok) {
     return new JsonObject {
       ["filename"] = tok.filename,
+      ["uri"] = ((IToken)tok).Uri.AbsoluteUri,
       ["range"] = SerializeRange(tok)
     };
   }
@@ -101,15 +103,21 @@ public class DafnyJsonConsolePrinter : DafnyConsolePrinter {
       errorInfo.Tok, errorInfo.Category, errorInfo.Msg, related).WriteJsonTo(tw);
     tw.Flush();
   }
+
+  public DafnyJsonConsolePrinter(DafnyOptions options) : base(options) {
+  }
 }
 
 public class JsonConsoleErrorReporter : BatchErrorReporter {
-  public override bool Message(MessageSource source, ErrorLevel level, Dafny.IToken tok, string msg) {
-    if (base.Message(source, level, tok, msg) && (DafnyOptions.O is { PrintTooltips: true } || level != ErrorLevel.Info)) {
-      new DiagnosticMessageData(source, level, tok, null, msg, null).WriteJsonTo(Console.Out);
+  public override bool Message(MessageSource source, ErrorLevel level, string errorID, Dafny.IToken tok, string msg) {
+    if (base.Message(source, level, errorID, tok, msg) && (Options is { PrintTooltips: true } || level != ErrorLevel.Info)) {
+      new DiagnosticMessageData(source, level, tok, null, msg, null).WriteJsonTo(Options.OutputWriter);
       return true;
     }
 
     return false;
+  }
+
+  public JsonConsoleErrorReporter(DafnyOptions options) : base(options) {
   }
 }

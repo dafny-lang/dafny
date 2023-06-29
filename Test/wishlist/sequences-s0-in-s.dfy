@@ -1,4 +1,4 @@
-// RUN: %dafny_0 /compile:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %exits-with 4 %dafny /compile:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // The following is also due to a weakness in the axiomatization: namely, it is
@@ -6,7 +6,7 @@
 // prove it, but it doesn't come for free.
 
 method InSeqTriggers(s: seq<int>, i: nat)
-  requires forall x :: x in s ==> x > 0;
+  requires forall x :: x in s ==> x > 0
   requires |s| > 0 {
     if * {
       // Fails
@@ -19,7 +19,7 @@ method InSeqTriggers(s: seq<int>, i: nat)
 }
 
 method InSeqNoAutoTriggers(s: seq<int>, i: nat)
-  requires forall x {:autotriggers false} :: x in s ==> x > 0;
+  requires forall x {:autotriggers false} :: x in s ==> x > 0
   requires |s| > 0 {
     assert s[0] > 0; // Works (Z3 matches on $Box above)
 }

@@ -1,9 +1,9 @@
 ResolveError.dfy(7,9): Error: the number of left-hand sides (1) and right-hand sides (2) must match for a multi-assignment
 ResolveError.dfy(8,9): Error: the number of left-hand sides (1) and right-hand sides (2) must match for a multi-assignment
 ResolveError.dfy(21,6): Error: LHS of assignment must denote a mutable field
-ResolveError.dfy(32,12): Error: wrong number of arguments (function type 'int ~> int' expects 1, got 2)
-ResolveError.dfy(36,21): Error: wrong number of arguments (function 'requires' expects 1, got 2)
-ResolveError.dfy(39,18): Error: wrong number of arguments (function 'reads' expects 1, got 2)
+ResolveError.dfy(32,12): Error: wrong number of arguments (got 2, but function type 'int ~> int' expects 1: (_#p0: int))
+ResolveError.dfy(36,21): Error: wrong number of arguments (got 2, but function 'requires' expects 1: (x0: T0))
+ResolveError.dfy(39,18): Error: wrong number of arguments (got 2, but function 'reads' expects 1: (x0: T0))
 ResolveError.dfy(31,16): Error: arguments must have comparable types (got int and bool)
 ResolveError.dfy(33,12): Error: incorrect argument type for function application parameter (expected int, found bool)
 ResolveError.dfy(34,21): Error: incorrect argument type for function parameter 'x0' (expected int, found bool)

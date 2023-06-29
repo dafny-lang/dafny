@@ -35,7 +35,7 @@ Dafny supports the following kinds of types:
   subset is characterized by a constraint on `B`)
 
 In addition, there are _type synonyms_ (which are just that--synonyms for other types) and
-_opaque types_ (which cannot be compiled, so they don't play a role here).
+_abstract types_ (which cannot be compiled, so they don't play a role here).
 
 Notes:
 * `nat` is a built-in subset type of `int`
@@ -65,7 +65,7 @@ type                            | C# target type
 `int`                           | `BigInteger`
 `real`                          | `BigRational`
 `bool`                          | `bool`
-`char`                          | `char`
+`char`                          | `char` (for `/unicodeChar:0`)<br>`Rune` (for `/unicodeChar:1`)
 bitvectors                      | `byte`, `ushort`, `uint`, `ulong`, or `BigInteger`
 `ORDINAL`                       | `BigInteger`
 integer-based `newtype`         | bounded C# integer or `BigInteger`

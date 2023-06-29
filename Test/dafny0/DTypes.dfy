@@ -1,4 +1,4 @@
-// RUN: %dafny_0 /compile:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %exits-with 4 %dafny /compile:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 class C {
@@ -31,7 +31,7 @@ class C {
     assert forall b: CP?<int,Stack> {:nowarn} :: x == b ==> b == null;  // follows from type antecedents
   }
 
-  var a2x: set<CP?<C,Node>>;
+  var a2x: set<CP?<C,Node>>
   method A2(b: set<CP?<Node,C>>)
     requires null !in b
   {
@@ -57,12 +57,12 @@ class C {
   }
 
   method A5()
-    decreases *;
+    decreases *
   {
     var a := new CP<int,C>;
     var b := new CP<int,object>;
     while (a != null)  // warning: "a" is never null
-      decreases *;  // omit loop termination check (in fact, the loop does not terminate)
+      decreases *  // omit loop termination check (in fact, the loop does not terminate)
     {
       var x: object? := a;
       var y: object? := b;
@@ -80,7 +80,7 @@ class CP<T,U> {
 
 datatype Data = Lemon | Kiwi(int)
 
-function G(d: Data): int
+ghost function G(d: Data): int
   requires d != Data.Lemon
 {
   match d
@@ -93,7 +93,7 @@ function G(d: Data): int
 datatype Tree<T> = Leaf(T) | Branch(Tree<T>, Tree<T>)
 
 class DatatypeInduction<T(!new)> {
-  function LeafCount<G>(tree: Tree<G>): int
+  ghost function LeafCount<G>(tree: Tree<G>): int
   {
     match tree
     case Leaf(t) => 1
@@ -127,7 +127,7 @@ class DatatypeInduction<T(!new)> {
     assert forall t: Tree<T> {:induction} :: 2 <= LeafCount(t);  // error: fails for Leaf case
   }
 
-  function Predicate(): bool
+  ghost function Predicate(): bool
   {
     forall t: Tree<T> {:induction} :: 2 <= LeafCount(t)
   }
@@ -157,7 +157,7 @@ class DatatypeInduction<T(!new)> {
   }
 }
 
-// --- opaque types with type parameters ---
+// --- abstract types with type parameters ---
 
 abstract module OpaqueTypesWithParameters {
   type P<A>
@@ -173,9 +173,9 @@ abstract module OpaqueTypesWithParameters {
     // would be different types, and then the types of 'a' and 'b' would be different,
     // which would imply that the following postcondition would hold.
     // However, it is NOT necessarily the case that the type parameters of an opaque
-    // type actually make the opaque type different.  For example, see the refinement
+    // type actually make the abstract type different.  For example, see the refinement
     // module CaseInPoint below.
-    ensures a != b;  // error
+    ensures a != b  // error
   {
   }
 }
