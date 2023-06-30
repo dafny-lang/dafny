@@ -1,19 +1,5 @@
 // git-issue228.dfy
 
-newtype NegIsOdd = x
-  | x < 0 ==> x % 2 == 1
-  witness 1
-
-newtype Byte = x
-  | 0 <= x < 256
-
-type Subset_NegIsOdd = x
-  | x < 0 ==> x % 2 == 1
-  witness 1
-
-type Subset_Byte = x
-  | 0 <= x < 256
-
 lemma Sequences(s: seq, t: seq, u: seq)
   ensures s + t + u == s + (t + u)
 {
@@ -36,6 +22,13 @@ method Numerics()
   c := c + c + (c + c);
 }
 
+newtype NegIsOdd = x
+  | x < 0 ==> x % 2 == 1
+  witness 1
+
+newtype Byte = x
+  | 0 <= x < 256
+
 method ConstrainedIntermediateExpressions(a: NegIsOdd, b: NegIsOdd, x: Byte, z: Byte)
   requires 0 <= b && z == 0
 {
@@ -44,6 +37,13 @@ method ConstrainedIntermediateExpressions(a: NegIsOdd, b: NegIsOdd, x: Byte, z: 
   var d0 := x * (x * z);
   var d1 := x * x * z;
 }
+
+type Subset_NegIsOdd = x
+  | x < 0 ==> x % 2 == 1
+  witness 1
+
+type Subset_Byte = x
+  | 0 <= x < 256
 
 method SubsetTypes(a: Subset_NegIsOdd, b: Subset_NegIsOdd, x: Subset_Byte, z: Subset_Byte)
   requires 0 <= b && z == 0
@@ -182,20 +182,6 @@ module _System {
  * SCC at height 0:
  *   Subset_NegIsOdd
  */
-newtype NegIsOdd = x: int
-  | x < 0 ==> x % 2 == 1
-  witness 1
-
-newtype Byte = x: int
-  | 0 <= x < 256
-
-type Subset_NegIsOdd = x: int
-  | x < 0 ==> x % 2 == 1
-  witness 1
-
-type Subset_Byte = x: int
-  | 0 <= x < 256
-
 lemma Sequences(s: seq, t: seq, u: seq)
   ensures s + t + u == s + (t + u)
   decreases s, t, u
@@ -220,6 +206,13 @@ method Numerics()
   c := c + c + c + c;
 }
 
+newtype NegIsOdd = x: int
+  | x < 0 ==> x % 2 == 1
+  witness 1
+
+newtype Byte = x: int
+  | 0 <= x < 256
+
 method ConstrainedIntermediateExpressions(a: NegIsOdd, b: NegIsOdd, x: Byte, z: Byte)
   requires 0 <= b && z == 0
   decreases a, b, x, z
@@ -229,6 +222,13 @@ method ConstrainedIntermediateExpressions(a: NegIsOdd, b: NegIsOdd, x: Byte, z: 
   var d0: Byte := x * (x * z);
   var d1: Byte := x * x * z;
 }
+
+type Subset_NegIsOdd = x: int
+  | x < 0 ==> x % 2 == 1
+  witness 1
+
+type Subset_Byte = x: int
+  | 0 <= x < 256
 
 method SubsetTypes(a: Subset_NegIsOdd, b: Subset_NegIsOdd, x: Subset_Byte, z: Subset_Byte)
   requires 0 <= b && z == 0

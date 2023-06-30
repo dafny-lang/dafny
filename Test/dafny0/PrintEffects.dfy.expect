@@ -17,10 +17,6 @@ Start of Iter 0
 Start of Iter 1
 Cl.NoPrint ctor
 Cl.Print ctor
-PrintEffects.dfy(54,2): Error: to use a print statement, the enclosing iterator must be marked with {:print}
-PrintEffects.dfy(56,2): Error: to use a print statement, the enclosing iterator must be marked with {:print}
-PrintEffects.dfy(68,4): Error: to use a print statement, the enclosing constructor must be marked with {:print}
-PrintEffects.dfy(82,4): Error: to use a print statement, the enclosing method must be marked with {:print}
 PrintEffects.dfy(7,2): Error: to use a print statement, the enclosing method must be marked with {:print}
 PrintEffects.dfy(8,3): Error: to call a method with print effects, the enclosing method must be marked with {:print}
 PrintEffects.dfy(12,25): Error: to call a method with print effects, the enclosing method must be marked with {:print}
@@ -28,6 +24,10 @@ PrintEffects.dfy(14,20): Error: to call a method with print effects, the enclosi
 PrintEffects.dfy(37,29): Error: to call a method with print effects, the enclosing method must be marked with {:print}
 PrintEffects.dfy(42,2): Error: to use a print statement, the enclosing method must be marked with {:print}
 PrintEffects.dfy(48,2): Error: a function-by-method is not allowed to use print statements
+PrintEffects.dfy(54,2): Error: to use a print statement, the enclosing iterator must be marked with {:print}
+PrintEffects.dfy(56,2): Error: to use a print statement, the enclosing iterator must be marked with {:print}
+PrintEffects.dfy(68,4): Error: to use a print statement, the enclosing constructor must be marked with {:print}
+PrintEffects.dfy(82,4): Error: to use a print statement, the enclosing method must be marked with {:print}
 PrintEffects.dfy(103,12): Error: to call a method with print effects, the enclosing method must be marked with {:print}
 PrintEffects.dfy(104,16): Error: to call a method with print effects, the enclosing method must be marked with {:print}
 PrintEffects.dfy(107,16): Error: to call a method with print effects, the enclosing method must be marked with {:print}

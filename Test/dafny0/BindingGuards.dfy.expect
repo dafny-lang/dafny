@@ -1,7 +1,5 @@
 // BindingGuards.dfy
 
-datatype Color = Red | Green | Blue
-
 ghost predicate P(n: int)
 {
   n % 2 == 0
@@ -172,6 +170,8 @@ predicate AltSyntaxP(x: int)
 {
   true
 }
+
+datatype Color = Red | Green | Blue
 
 method AltSyntax0(x: int, y: int, c: Color)
     returns (z: int)

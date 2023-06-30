@@ -9,7 +9,6 @@ TestAuditor.dfy(126,2): Warning: note, this forall statement has no body
 TestAuditor.dfy(130,2): Warning: note, this loop has no body (loop frame: i)
 
 Dafny program verifier did not attempt verification
-TestAuditor.dfy(89,27): Error: Trait method calls may not terminate (uses [{:termination false}]).
 TestAuditor.dfy(22,6): Error: Ghost declaration has no body and has an ensures clause.
 TestAuditor.dfy(27,15): Error: Ghost declaration has no body and has an ensures clause.
 TestAuditor.dfy(38,2): Error: Definition has [assume] statement in body.
@@ -22,6 +21,7 @@ TestAuditor.dfy(68,17): Error: Declaration with [{:extern}] has a requires claus
 TestAuditor.dfy(72,19): Error: Function with [{:extern}] attribute.
 TestAuditor.dfy(72,19): Error: Declaration with [{:extern}] has a ensures clause.
 TestAuditor.dfy(83,7): Error: Method may not terminate (uses [decreases *]).
+TestAuditor.dfy(89,27): Error: Trait method calls may not terminate (uses [{:termination false}]).
 TestAuditor.dfy(95,4): Error: Definition contains [forall] statement with no body.
 TestAuditor.dfy(102,4): Error: Definition contains loop with no body.
 TestAuditor.dfy(118,21): Error: Declaration has [{:concurrent}] attribute.
