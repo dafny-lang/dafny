@@ -86,6 +86,7 @@ public class ParseErrors {
     p_no_return_type_for_predicate,
     p_no_wild_expression,
     p_no_wild_frame_expression,
+    p_missing_semicolon,
     p_invalid_colon,
     p_initializing_display_only_for_1D_arrays,
     p_no_equal_for_initializing,

@@ -1,13 +1,12 @@
-using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
+using System.Collections.Generic;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
-using System.Threading.Tasks;
+using Microsoft.Dafny.LanguageServer.Workspace;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
-  public class TextInsertionTest : SynchronizationTestBase {
+  public class TextInsertionTest {
     [Fact]
-    public async Task InsertTextAtStart() {
+    public void InsertTextAtStart() {
       var source = @"
 function GetConstant(): int {
   1
@@ -18,15 +17,7 @@ function GetConstant2(): int {
 }
 
 ".TrimStart();
-      var documentItem = CreateTestDocument(source);
-      await Client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      await ApplyChangeAndWaitCompletionAsync(
-        documentItem,
-        new Range((0, 0), (0, 0)),
-        change
-      );
-      var document = await Documents.GetResolvedDocumentAsync(documentItem.Uri);
-      Assert.NotNull(document);
+      var range = new Range((0, 0), (0, 0));
       var expected = @"
 function GetConstant2(): int {
   2
@@ -35,11 +26,11 @@ function GetConstant2(): int {
 function GetConstant(): int {
   1
 }".TrimStart();
-      Assert.Equal(expected, document.TextDocumentItem.Text);
+      AssertCorrectBufferUpdate(source, range, change, expected);
     }
 
     [Fact]
-    public async Task InsertTextAtEnd() {
+    public void InsertTextAtEnd() {
       var source = @"
 function GetConstant(): int {
   1
@@ -50,15 +41,7 @@ function GetConstant(): int {
 function GetConstant2(): int {
   2
 }".TrimStart();
-      var documentItem = CreateTestDocument(source);
-      await Client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      await ApplyChangeAndWaitCompletionAsync(
-        documentItem,
-        new Range((4, 0), (4, 0)),
-        change
-      );
-      var document = await Documents.GetResolvedDocumentAsync(documentItem.Uri);
-      Assert.NotNull(document);
+      var range = new Range((4, 0), (4, 0));
       var expected = @"
 function GetConstant(): int {
   1
@@ -67,11 +50,11 @@ function GetConstant(): int {
 function GetConstant2(): int {
   2
 }".TrimStart();
-      Assert.Equal(expected, document.TextDocumentItem.Text);
+      AssertCorrectBufferUpdate(source, range, change, expected);
     }
 
     [Fact]
-    public async Task InsertTextInTheMiddle() {
+    public void InsertTextInTheMiddle() {
       var source = @"
 function GetConstant(): int {
   1
@@ -86,15 +69,7 @@ function GetConstant2(): int {
 }
 
 ".TrimStart();
-      var documentItem = CreateTestDocument(source);
-      await Client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      await ApplyChangeAndWaitCompletionAsync(
-        documentItem,
-        new Range((4, 0), (4, 0)),
-        change
-      );
-      var document = await Documents.GetResolvedDocumentAsync(documentItem.Uri);
-      Assert.NotNull(document);
+      var range = new Range((4, 0), (4, 0));
       var expected = @"
 function GetConstant(): int {
   1
@@ -107,34 +82,26 @@ function GetConstant2(): int {
 function GetConstant3(): int {
   3
 }".TrimStart();
-      Assert.Equal(expected, document.TextDocumentItem.Text);
+      AssertCorrectBufferUpdate(source, range, change, expected);
     }
 
     [Fact]
-    public async Task InsertSingleLineTextInTheMiddleOfALine() {
+    public void InsertSingleLineTextInTheMiddleOfALine() {
       var source = @"
 function GetConstant(): int {
   1
 }".TrimStart();
       var change = "Another";
-      var documentItem = CreateTestDocument(source);
-      await Client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      await ApplyChangeAndWaitCompletionAsync(
-        documentItem,
-        new Range((0, 12), (0, 12)),
-        change
-      );
-      var document = await Documents.GetResolvedDocumentAsync(documentItem.Uri);
-      Assert.NotNull(document);
+      var range = new Range((0, 12), (0, 12));
       var expected = @"
 function GetAnotherConstant(): int {
   1
 }".TrimStart();
-      Assert.Equal(expected, document.TextDocumentItem.Text);
+      AssertCorrectBufferUpdate(source, range, change, expected);
     }
 
     [Fact]
-    public async Task InsertMultiLineTextInTheMiddleOfALine() {
+    public void InsertMultiLineTextInTheMiddleOfALine() {
       var source = @"
 function GetConstant(): int {
   1
@@ -144,15 +111,7 @@ function GetConstant(): int {
 }
 
 function Some";
-      var documentItem = CreateTestDocument(source);
-      await Client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      await ApplyChangeAndWaitCompletionAsync(
-        documentItem,
-        new Range((0, 12), (0, 12)),
-        change
-      );
-      var document = await Documents.GetResolvedDocumentAsync(documentItem.Uri);
-      Assert.NotNull(document);
+      var range = new Range((0, 12), (0, 12));
       var expected = @"
 function GetIt(): string {
   ""test""
@@ -161,47 +120,44 @@ function GetIt(): string {
 function SomeConstant(): int {
   1
 }".TrimStart();
-      Assert.Equal(expected, document.TextDocumentItem.Text);
+      AssertCorrectBufferUpdate(source, range, change, expected);
     }
 
     [Fact]
-    public async Task InsertMultipleInSingleChange() {
+    public void InsertMultipleInSingleChange() {
       // Note: line breaks are explicitly defined to avoid compatibility issues of \r and \r\n between
       // the change and the verification.
       var source = "function GetConstant(): int { 1 }";
-      var documentItem = CreateTestDocument(source);
-      await Client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      await ApplyChangesAndWaitCompletionAsync(
-        documentItem,
-        new TextDocumentContentChangeEvent {
-          Range = new Range((0, 0), (0, 0)),
-          Text = @"class Test {
-"
-        },
-        new TextDocumentContentChangeEvent {
-          Range = new Range((1, 0), (1, 0)),
-          Text = "  "
-        },
-        new TextDocumentContentChangeEvent {
-          Range = new Range((1, 35), (1, 35)),
-          Text = @"
-"
-        },
-        new TextDocumentContentChangeEvent {
-          Range = new Range((2, 0), (2, 0)),
-          Text = "}"
-        }
-      );
-      var document = await Documents.GetResolvedDocumentAsync(documentItem.Uri);
-      Assert.NotNull(document);
+      var ranges = new[] {
+        (new Range((0, 0), (0, 0)), @"class Test {
+"),
+        (new Range((1, 0), (1, 0)), "  "),
+        (new Range((1, 35), (1, 35)), @"
+"),
+        (new Range((2, 0), (2, 0)), "}")
+      };
       var expected = @"
 class Test {
   function GetConstant(): int { 1 }
 }".TrimStart();
-      Assert.Equal(expected, document.TextDocumentItem.Text);
+      AssertCorrectBufferUpdate(source, ranges, expected);
     }
 
-    public TextInsertionTest(ITestOutputHelper output) : base(output) {
+    private static void AssertCorrectBufferUpdate(string source, Range range, string change, string expected) {
+      AssertCorrectBufferUpdate(source, new[] { (range, change) }, expected);
+    }
+
+    private static void AssertCorrectBufferUpdate(string source, IEnumerable<(Range Range, string Change)> ranges, string expected) {
+      var buffer = new TextBuffer(source);
+
+      foreach (var (range, change) in ranges) {
+        buffer = buffer.ApplyTextChange(new TextDocumentContentChangeEvent() {
+          Range = range,
+          RangeLength = range.End.Character - range.Start.Character,
+          Text = change
+        });
+      }
+      Assert.Equal(expected, buffer.Text);
     }
   }
 }
