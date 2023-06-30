@@ -258,7 +258,7 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
     public override string Value {
       get {
         if (Mappings.Count == 0) {
-          return "()";
+          return "map[]";
         }
         // maps a key-value pair to how many times it appears in the map
         // a key value pair can appear many times in a map due to "?:int" etc.
@@ -276,13 +276,13 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
             mapStrings.GetValueOrDefault(mapString, 0) + 1;
         }
 
-        return "(" + string.Join(", ", mapStrings.Keys.ToList()
+        return "map[" + string.Join(", ", mapStrings.Keys.ToList()
                  .ConvertAll(keyValuePair =>
                    mapStrings[keyValuePair] == 1
                      ? keyValuePair
                      : keyValuePair + " [+" + (mapStrings[keyValuePair] - 1) +
                        "]")) +
-               ")";
+               "]";
       }
     }
 

@@ -16,7 +16,7 @@ namespace DafnyTestGeneration.Test {
       this.output = new WriterFromOutputHelper(output);
     }
 
-    [Theory][MemberData(nameof(Setup.EncodingConfigurations))]
+    [Theory][MemberData(nameof(OptionSettings))]
     public async Task Ints(List<Action<DafnyOptions>> optionSettings) {
       var source = @"
 module SimpleTest {
@@ -30,7 +30,7 @@ module SimpleTest {
   }
 }
 ".TrimStart();
-      var options = Setup.GetDafnyOptions(optionSettings, output);
+      var options = GetDafnyOptions(optionSettings, output);
       var program = Utils.Parse(options, source);
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
       Assert.Equal(3, methods.Count);
@@ -47,7 +47,7 @@ module SimpleTest {
         Regex.IsMatch(m.ArgValues[0], "[1-9][0-9]*")));
     }
 
-    [Theory][MemberData(nameof(Setup.EncodingConfigurations))]
+    [Theory][MemberData(nameof(OptionSettings))]
     public async Task Bools(List<Action<DafnyOptions>> optionSettings) {
       var source = @"
 module SimpleTest {
@@ -59,7 +59,7 @@ module SimpleTest {
   }
 }
 ".TrimStart();
-      var program = Utils.Parse(Setup.GetDafnyOptions(optionSettings, output), source);
+      var program = Utils.Parse(GetDafnyOptions(optionSettings, output), source);
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
       Assert.Equal(2, methods.Count);
       Assert.True(methods.All(m => m.MethodName == "SimpleTest.checkIfTrue"));
@@ -71,7 +71,7 @@ module SimpleTest {
       Assert.True(methods.Exists(m => m.ArgValues[0] == "true"));
     }
 
-    [Theory][MemberData(nameof(Setup.EncodingConfigurations))]
+    [Theory][MemberData(nameof(OptionSettings))]
     public async Task Reals(List<Action<DafnyOptions>> optionSettings) {
       var source = @"
 module SimpleTest {
@@ -93,7 +93,7 @@ module SimpleTest {
   }
 }
 ".TrimStart();
-      var program = Utils.Parse(Setup.GetDafnyOptions(optionSettings, output), source);
+      var program = Utils.Parse(GetDafnyOptions(optionSettings, output), source);
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
       Assert.Equal(7, methods.Count);
       Assert.True(
@@ -111,7 +111,7 @@ module SimpleTest {
         "[1-9][0-9]*\\.[0-9]*/[1-9][0-9]*\\.[0-9]*")));
     }
 
-    [Theory][MemberData(nameof(Setup.EncodingConfigurations))]
+    [Theory][MemberData(nameof(OptionSettings))]
     public async Task BitVectors(List<Action<DafnyOptions>> optionSettings) {
       var source = @"
 module SimpleTest {
@@ -126,7 +126,7 @@ module SimpleTest {
   }
 }
 ".TrimStart();
-      var program = Utils.Parse(Setup.GetDafnyOptions(optionSettings, output), source);
+      var program = Utils.Parse(GetDafnyOptions(optionSettings, output), source);
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
       Assert.Equal(3, methods.Count);
       Assert.True(
@@ -142,7 +142,7 @@ module SimpleTest {
         Regex.IsMatch(m.ArgValues[0], "\\([1-9][0-9]+ as bv10\\)")));
     }
 
-    [Theory][MemberData(nameof(Setup.EncodingConfigurations))]
+    [Theory][MemberData(nameof(OptionSettings))]
     public async Task Chars(List<Action<DafnyOptions>> optionSettings) {
       var source = @"
 module SimpleTest {
@@ -157,7 +157,7 @@ module SimpleTest {
   }
 }
 ".TrimStart();
-      var program = Utils.Parse(Setup.GetDafnyOptions(optionSettings, output), source);
+      var program = Utils.Parse(GetDafnyOptions(optionSettings, output), source);
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
       Assert.Equal(3, methods.Count);
       Assert.True(methods.All(m => m.MethodName == "SimpleTest.compareToB"));
@@ -172,7 +172,7 @@ module SimpleTest {
         m.ArgValues[0].Length == 3 && m.ArgValues[0][1] < 'B'));
     }
 
-    [Theory][MemberData(nameof(Setup.EncodingConfigurations))]
+    [Theory][MemberData(nameof(OptionSettings))]
     public async Task CharsUnspecified(List<Action<DafnyOptions>> optionSettings) {
       // This test case is different from the one above because the model would
       // not specify the exact value of c when the only constraint on it is that
@@ -188,7 +188,7 @@ module SimpleTest {
   }
 }
 ".TrimStart();
-      var program = Utils.Parse(Setup.GetDafnyOptions(optionSettings, output), source);
+      var program = Utils.Parse(GetDafnyOptions(optionSettings, output), source);
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
       Assert.Equal(2, methods.Count);
       Assert.True(methods.All(m => m.MethodName == "SimpleTest.compareToB"));

@@ -16,7 +16,7 @@ namespace DafnyTestGeneration.Test {
       this.testOutputHelper = testOutputHelper;
     }
 
-    [Theory(Skip = "Implementation doesn't always return correct results on Windows CI, https://github.com/dafny-lang/dafny/issues/3828")][MemberData(nameof(Setup.EncodingConfigurations))]
+    [Theory(Skip = "Implementation doesn't always return correct results on Windows CI, https://github.com/dafny-lang/dafny/issues/3828")][MemberData(nameof(OptionSettings))]
     private async Task StringLength(List<Action<DafnyOptions>> optionSettings) {
       var source = @"
 module C {
@@ -32,7 +32,7 @@ module C {
 }
 
 ".TrimStart();
-      var program = Utils.Parse(Setup.GetDafnyOptions(optionSettings, new WriterFromOutputHelper(testOutputHelper)), source);
+      var program = Utils.Parse(GetDafnyOptions(optionSettings, new WriterFromOutputHelper(testOutputHelper)), source);
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
       Assert.Equal(3, methods.Count);
       Assert.True(methods.All(m =>
@@ -48,7 +48,7 @@ module C {
         Regex.IsMatch(m.ValueCreation[0].value, "\"..+\"")));
     }
 
-    [Theory(Skip = "Implementation doesn't always return correct results on Windows CI, https://github.com/dafny-lang/dafny/issues/3828")][MemberData(nameof(Setup.EncodingConfigurations))]
+    [Theory(Skip = "Implementation doesn't always return correct results on Windows CI, https://github.com/dafny-lang/dafny/issues/3828")][MemberData(nameof(OptionSettings))]
     private async Task SeqOfObjects(List<Action<DafnyOptions>> optionSettings) {
       var source = @"
 module SimpleTest {
@@ -77,7 +77,7 @@ module SimpleTest {
   }
 }
 ".TrimStart();
-      var program = Utils.Parse(Setup.GetDafnyOptions(optionSettings, new WriterFromOutputHelper(testOutputHelper)), source);
+      var program = Utils.Parse(GetDafnyOptions(optionSettings, new WriterFromOutputHelper(testOutputHelper)), source);
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
       if (methods.Count != 3) { // This sometimes occurs on Windows
         testOutputHelper.WriteLine("methods.Count != 3, printing methods");

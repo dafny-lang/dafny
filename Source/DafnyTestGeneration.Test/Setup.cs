@@ -8,9 +8,7 @@ using Xunit;
 namespace DafnyTestGeneration.Test {
 
   public class Setup {
-
-
-    public static DafnyOptions GetDafnyOptions(List<Action<DafnyOptions>> optionSettings, TextWriter writer, params string[] arguments) {
+    protected static DafnyOptions GetDafnyOptions(List<Action<DafnyOptions>> optionSettings, TextWriter writer, params string[] arguments) {
       var options = DafnyOptions.Create(writer, TextReader.Null, arguments ?? System.Array.Empty<string>());
       options.DefiniteAssignmentLevel = 3;
       options.WarnShadowing = true;
@@ -26,11 +24,11 @@ namespace DafnyTestGeneration.Test {
       return options;
     }
     
-    public static TheoryData<List<Action<DafnyOptions>>> EncodingConfigurations() {
-      var theoryData = new TheoryData<List<Action<DafnyOptions>>>();
-      theoryData.Add(new() { options => options.TypeEncodingMethod = CoreOptions.TypeEncoding.Arguments });
-      theoryData.Add(new() { options => options.TypeEncodingMethod = CoreOptions.TypeEncoding.Predicates });
-      return theoryData;
+    public static TheoryData<List<Action<DafnyOptions>>> OptionSettings() {
+      var optionSettings = new TheoryData<List<Action<DafnyOptions>>>();
+      optionSettings.Add(new() { options => options.TypeEncodingMethod = CoreOptions.TypeEncoding.Arguments });
+      optionSettings.Add(new() { options => options.TypeEncodingMethod = CoreOptions.TypeEncoding.Predicates });
+      return optionSettings;
     }
   }
 }
