@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 #nullable disable
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Boogie;
@@ -28,19 +29,19 @@ class ModelFuncWrapper {
     func = model.Model.MkFunc(name, arity + this.argsToSkip);
   }
 
-  private Model.FuncTuple ConvertFuncTuple(Model.FuncTuple tuple) {
-    return tuple == null ? null : new Model.FuncTuple(func, tuple.Result, tuple.Args[argsToSkip..]);
+  private ModelFuncTupleWrapper ConvertFuncTuple(Model.FuncTuple tuple) {
+    return tuple == null ? null : new ModelFuncTupleWrapper(func, tuple.Result, tuple.Args[argsToSkip..]);
   }
 
-  public Model.FuncTuple AppWithResult(Model.Element element) {
+  public ModelFuncTupleWrapper AppWithResult(Model.Element element) {
     return ConvertFuncTuple(func.AppWithResult(element));
   }
   
-  public IEnumerable<Model.FuncTuple> AppsWithResult(Model.Element element) {
+  public IEnumerable<ModelFuncTupleWrapper> AppsWithResult(Model.Element element) {
     return func.AppsWithResult(element).Select(ConvertFuncTuple);
   }
 
-  public IEnumerable<Model.FuncTuple> Apps => func.Apps.Select(ConvertFuncTuple);
+  public IEnumerable<ModelFuncTupleWrapper> Apps => func.Apps.Select(ConvertFuncTuple);
 
   public Model.Element GetConstant() {
     return func.GetConstant();
@@ -62,20 +63,17 @@ class ModelFuncWrapper {
     return !apps.Any() ? null : apps.First().Result;
   }
 
-  public IEnumerable<Model.FuncTuple> AppsWithArg(int i, Model.Element element) {
+  public IEnumerable<ModelFuncTupleWrapper> AppsWithArg(int i, Model.Element element) {
     return func.AppsWithArg(i + argsToSkip, element).Select(ConvertFuncTuple);
   }
 
-  public IEnumerable<Model.FuncTuple> AppsWithArgs(int i0, Model.Element element0, int i1, Model.Element element1) {
+  public IEnumerable<ModelFuncTupleWrapper> AppsWithArgs(int i0, Model.Element element0, int i1, Model.Element element1) {
     return func.AppsWithArgs(i0 + argsToSkip, element0, i1 + argsToSkip, element1).Select(ConvertFuncTuple);
   }
 
   /// <summary>
-  /// Create a new function that merges together the applications of all the
-  /// functions that have a certain arity and whose name matches the
-  /// "^MapType[0-9]*Select$" pattern. This has previously been done by
-  /// Boogie's Model Parser as a preprocessing step but has been deprecated
-  /// since 2.9.2
+  /// Create a new function that merges together the applications of all functions with the given name and arity
+  /// at least equal to <param name="arity"></param>
   /// </summary>
   internal static ModelFuncWrapper MergeFunctions(DafnyModel model, List<string> names, int arity) {
     var name = "[" + arity + "]";
@@ -100,5 +98,20 @@ class ModelFuncWrapper {
       result.func.Else ??= func.Else;
     }
     return result;
+  }
+  
+  public class ModelFuncTupleWrapper {
+    
+    static readonly Model.Element[] EmptyArgs = Array.Empty<Model.Element>();
+    
+    public readonly Model.Func Func;
+    public Model.Element Result;
+    public readonly Model.Element[] Args;
+
+    public ModelFuncTupleWrapper(Model.Func func, Model.Element res, Model.Element[] args) {
+      Args = args ?? EmptyArgs;
+      Func = func;
+      Result = res;
+    }
   }
 }

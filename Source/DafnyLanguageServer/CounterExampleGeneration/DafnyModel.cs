@@ -811,7 +811,7 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
       // Reaching this code means elt is an index into an array
       var indices = new Model.Element[(int)dims];
       for (int i = (int)dims; 0 <= --i;) {
-        Model.FuncTuple dimTuple;
+        ModelFuncWrapper.ModelFuncTupleWrapper dimTuple;
         if (i == 0) {
           dimTuple = fIndexField.AppWithResult(elt);
           if (dimTuple == null) {
