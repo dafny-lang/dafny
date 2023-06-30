@@ -57,6 +57,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override ConcreteSyntaxTree CreateModule(string moduleName, bool isDefault, bool isExtern, string/*?*/ libraryName, ConcreteSyntaxTree wr) {
+      moduleName = IdProtect(moduleName);
       if (!isExtern || libraryName != null) {
         wr.Write("let {0} = ", moduleName);
       }
