@@ -3864,6 +3864,10 @@ namespace Microsoft.Dafny.Compilers {
       return new SimpleLvalueImpl(this, lvalueAction, rvalueAction);
     }
 
+    protected virtual ILvalue VariableLvalue(IVariable var) {
+      return StringLvalue(IdName(var));
+    }
+
     protected ILvalue StringLvalue(string str) {
       return new SimpleLvalueImpl(this, wr => wr.Write(str));
     }
@@ -3998,7 +4002,7 @@ namespace Microsoft.Dafny.Compilers {
       lhs = lhs.Resolved;
       if (lhs is IdentifierExpr) {
         var ll = (IdentifierExpr)lhs;
-        return StringLvalue(IdName(ll.Var));
+        return VariableLvalue(ll.Var);
 
       } else if (lhs is MemberSelectExpr) {
         var ll = (MemberSelectExpr)lhs;

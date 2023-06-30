@@ -19,6 +19,7 @@ module {:extern "DCOMP"} DCOMP {
         match body[i] {
           case Module(m) => generated := GenModule(m);
           case Class(c) => generated := GenClass(c);
+          case Newtype(n) => generated := "TODO";
         }
 
         if i > 0 {
@@ -67,6 +68,10 @@ module {:extern "DCOMP"} DCOMP {
         var generated: string;
         match body[i] {
           case Print(e) => generated := "print!(\"{}\", ::dafny_runtime::DafnyPrintWrapper(" + GenExpr(e) + "));";
+          case DeclareVar(name, Ident(Ident(typ)), expression) => {
+            var expr := GenExpr(expression);
+            generated := "let mut " + name + ": " + typ + " = " + expr + ";";
+          }
           case _ => generated := "TODO";
         }
 

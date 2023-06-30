@@ -5,7 +5,13 @@ module {:extern "DAST"} DAST {
 
   datatype Module = Module(name: string, body: seq<ModuleItem>)
 
-  datatype ModuleItem = Module(Module) | Class(Class)
+  datatype ModuleItem = Module(Module) | Class(Class) | Newtype(Newtype)
+
+  datatype Newtype = Newtype(name: string, base: Type)
+
+  datatype Type = Ident(Ident) | Other(a: string)
+
+  datatype Ident = Ident(string)
 
   datatype Class = Class(name: string, body: seq<ClassItem>)
 
@@ -13,7 +19,7 @@ module {:extern "DAST"} DAST {
 
   datatype Method = Method(name: string, body: seq<Statement>)
 
-  datatype Statement = Assign(name: string, value: Expression) | Print(Expression) | If(condition: Expression, body: seq<Statement>, elseBody: seq<Statement>)
+  datatype Statement = DeclareVar(name: string, typ: Type, value: Expression) | Assign(name: string, value: Expression) | Print(Expression)
 
   datatype Expression = PassThroughExpr(a: string) | Literal(Literal)
 

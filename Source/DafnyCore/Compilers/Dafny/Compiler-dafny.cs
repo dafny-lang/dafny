@@ -6,18 +6,23 @@ using System.Runtime.CompilerServices;
 using Dafny;
 using JetBrains.Annotations;
 using DAST;
+using Tomlyn.Syntax;
 
 namespace Microsoft.Dafny.Compilers {
 
   class ProgramBuilder : ModuleContainer {
+    public readonly DafnyCompiler _compiler;
+    public DafnyCompiler compiler { get => _compiler; }
+
+
     readonly List<TopLevel> items = new();
+
+    public ProgramBuilder(DafnyCompiler compiler) {
+      this._compiler = compiler;
+    }
 
     public void AddModule(Module item) {
       items.Add((TopLevel)TopLevel.create_Module(item));
-    }
-
-    public ModuleBuilder Module(string name) {
-      return new ModuleBuilder(this, name);
     }
 
     public List<TopLevel> Finish() {
@@ -25,11 +30,9 @@ namespace Microsoft.Dafny.Compilers {
     }
   }
 
-  interface ModuleItemContainer {
-    void AddModuleItem(ModuleItem item);
-  }
-
   interface ModuleContainer {
+    DafnyCompiler compiler { get; }
+
     void AddModule(Module item);
 
     public ModuleBuilder Module(string name) {
@@ -37,7 +40,8 @@ namespace Microsoft.Dafny.Compilers {
     }
   }
 
-  class ModuleBuilder : ModuleContainer, ClassContainer {
+  class ModuleBuilder : ClassContainer, NewtypeContainer {
+    public DafnyCompiler compiler { get => parent.compiler; }
     readonly ModuleContainer parent;
     readonly string name;
     List<ModuleItem> body = new List<ModuleItem>();
@@ -48,11 +52,15 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     public void AddModule(Module item) {
-      this.body.Add((ModuleItem)ModuleItem.create_Module(item));
+      body.Add((ModuleItem)ModuleItem.create_Module(item));
     }
 
     public void AddClass(Class item) {
-      this.body.Add((ModuleItem)ModuleItem.create_Class(item));
+      body.Add((ModuleItem)ModuleItem.create_Class(item));
+    }
+
+    public void AddNewtype(Newtype item) {
+      body.Add((ModuleItem)ModuleItem.create_Newtype(item));
     }
 
     public Object Finish() {
@@ -61,7 +69,13 @@ namespace Microsoft.Dafny.Compilers {
     }
   }
 
+  interface NewtypeContainer {
+    DafnyCompiler compiler { get; }
+    void AddNewtype(Newtype item);
+  }
+
   interface ClassContainer {
+    DafnyCompiler compiler { get; }
     void AddClass(Class item);
 
     public ClassBuilder Class(string name) {
@@ -70,6 +84,7 @@ namespace Microsoft.Dafny.Compilers {
   }
 
   class ClassBuilder : MethodContainer {
+    public DafnyCompiler compiler { get => parent.compiler; }
     readonly ClassContainer parent;
     readonly string name;
     readonly List<ClassItem> body = new();
@@ -80,7 +95,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     public void AddMethod(DAST.Method item) {
-      this.body.Add((ClassItem)ClassItem.create_Method(item));
+      body.Add((ClassItem)ClassItem.create_Method(item));
     }
 
     public Object Finish() {
@@ -90,6 +105,7 @@ namespace Microsoft.Dafny.Compilers {
   }
 
   interface MethodContainer {
+    DafnyCompiler compiler { get; }
     void AddMethod(DAST.Method item);
 
     public MethodBuilder Method(string name) {
@@ -98,6 +114,7 @@ namespace Microsoft.Dafny.Compilers {
   }
 
   class MethodBuilder : StatementContainer {
+    public DafnyCompiler compiler { get => parent.compiler; }
     readonly MethodContainer parent;
     readonly string name;
     readonly List<DAST.Statement> body = new();
@@ -108,7 +125,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     public void AddStatement(DAST.Statement item) {
-      this.body.Add(item);
+      body.Add(item);
     }
 
     public Object Finish() {
@@ -118,23 +135,86 @@ namespace Microsoft.Dafny.Compilers {
   }
 
   interface StatementContainer {
+    DafnyCompiler compiler { get; }
     void AddStatement(DAST.Statement item);
 
     public void Print(DAST.Expression expr) {
-      this.AddStatement((DAST.Statement)DAST.Statement.create_Print(expr));
+      AddStatement((DAST.Statement)DAST.Statement.create_Print(expr));
+    }
+
+    public AssignBuilder Assign() {
+      return new AssignBuilder(this, false, null);
+    }
+
+    public AssignBuilder DeclareAndAssign(DAST.Type type) {
+      return new AssignBuilder(this, true, type);
+    }
+  }
+
+  class AssignBuilder : ExprContainer {
+    public DafnyCompiler compiler { get => parent.compiler; }
+    readonly StatementContainer parent;
+    readonly bool isDeclare;
+    readonly DAST.Type type;
+    string name = null;
+    DAST.Expression value;
+
+    public AssignBuilder(StatementContainer parent, bool isDeclare, DAST.Type type) {
+      this.parent = parent;
+      this.isDeclare = isDeclare;
+      this.type = type;
+    }
+
+    public void SetName(string name) {
+      if (this.name != null) {
+        throw new InvalidOperationException();
+      } else {
+        this.name = name;
+      }
+    }
+
+    public void AddExpr(DAST.Expression value) {
+      if (this.value != null) {
+        throw new InvalidOperationException();
+      } else {
+        this.value = value;
+        if (compiler.currentBuilder == this) {
+          compiler.currentBuilder = this.Finish();
+        } else {
+          throw new InvalidOperationException();
+        }
+      }
+    }
+
+    public Object Finish() {
+      if (isDeclare) {
+        parent.AddStatement((DAST.Statement)DAST.Statement.create_DeclareVar(Sequence<Rune>.UnicodeFromString(name), type, value));
+      } else {
+        parent.AddStatement((DAST.Statement)DAST.Statement.create_Assign(Sequence<Rune>.UnicodeFromString(name), value));
+      }
+      return parent;
+    }
+  }
+
+  interface ExprContainer {
+    DafnyCompiler compiler { get; }
+    void AddExpr(DAST.Expression item);
+
+    public void PassThrough(string expr) {
+      AddExpr((DAST.Expression)DAST.Expression.create_PassThroughExpr(Sequence<Rune>.UnicodeFromString(expr)));
     }
   }
 
   class DafnyCompiler : SinglePassCompiler {
     ProgramBuilder items;
-    Object currentBuilder;
+    public Object currentBuilder;
 
     public void Start() {
       if (items != null) {
         throw new InvalidOperationException("");
       }
 
-      items = new ProgramBuilder();
+      items = new ProgramBuilder(this);
       this.currentBuilder = items;
     }
 
@@ -191,7 +271,7 @@ namespace Microsoft.Dafny.Compilers {
     private const string DafnyRuntimeModule = "_dafny";
     private const string DafnyDefaultModule = "module_";
 
-    protected override string AssignmentSymbol { get => " := "; }
+    protected override string AssignmentSymbol { get => null; }
 
     protected override void EmitHeader(Program program, ConcreteSyntaxTree wr) {
       wr.WriteLine($"// Dafny program {program.Name} compiled into Simple Dafny");
@@ -236,7 +316,7 @@ namespace Microsoft.Dafny.Compilers {
       if (currentBuilder is ClassContainer builder) {
         return new ClassWriter(this, builder.Class(name));
       } else {
-        throw new NotImplementedException();
+        throw new InvalidOperationException();
       }
     }
 
@@ -254,7 +334,35 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override IClassWriter DeclareNewtype(NewtypeDecl nt, ConcreteSyntaxTree wr) {
-      throw new NotImplementedException();
+      if (currentBuilder is NewtypeContainer builder) {
+        builder.AddNewtype((Newtype)Newtype.create_Newtype(
+          Sequence<Rune>.UnicodeFromString(nt.Name),
+          GenType(nt.BaseType)
+        ));
+
+        return new NullClassWriter();
+      } else {
+        throw new InvalidOperationException();
+      }
+    }
+
+    private DAST.Type GenType(Type typ) {
+      // TODO(shadaj): this is leaking Rust types into the AST, but we do need native types
+      if (typ is IntType) {
+        return (DAST.Type)DAST.Type.create_Ident(Sequence<Rune>.UnicodeFromString("i32"));
+      } else {
+        return (DAST.Type)(AsNativeType(typ).Sel switch {
+          NativeType.Selection.Byte => DAST.Type.create_Ident(Sequence<Rune>.UnicodeFromString("u8")),
+          NativeType.Selection.SByte => DAST.Type.create_Ident(Sequence<Rune>.UnicodeFromString("i8")),
+          NativeType.Selection.Short => DAST.Type.create_Ident(Sequence<Rune>.UnicodeFromString("u16")),
+          NativeType.Selection.UShort => DAST.Type.create_Ident(Sequence<Rune>.UnicodeFromString("i16")),
+          NativeType.Selection.Int => DAST.Type.create_Ident(Sequence<Rune>.UnicodeFromString("u32")),
+          NativeType.Selection.UInt => DAST.Type.create_Ident(Sequence<Rune>.UnicodeFromString("i32")),
+          NativeType.Selection.Long => DAST.Type.create_Ident(Sequence<Rune>.UnicodeFromString("u64")),
+          NativeType.Selection.ULong => DAST.Type.create_Ident(Sequence<Rune>.UnicodeFromString("i64")),
+          _ => throw new InvalidOperationException(),
+        });
+      }
     }
 
     protected override void DeclareSubsetType(SubsetTypeDecl sst, ConcreteSyntaxTree wr) {
@@ -340,9 +448,19 @@ namespace Microsoft.Dafny.Compilers {
       throw new NotImplementedException();
     }
 
+    DAST.Expression initializationValue = null;
+
     protected override string TypeInitializationValue(Type type, ConcreteSyntaxTree wr, IToken tok,
         bool usePlaceboValue, bool constructTypeParameterDefaultsFromTypeDescriptors) {
-      throw new NotImplementedException();
+      if (this.initializationValue != null) {
+        throw new InvalidOperationException();
+      } else {
+        this.initializationValue = (DAST.Expression)DAST.Expression.create_PassThroughExpr(
+          Sequence<Rune>.UnicodeFromString("TODO")
+        );
+
+        return null; // used by DeclareLocal(Out)Var
+      }
     }
 
     protected override string TypeName_UDT(string fullCompileName, List<TypeParameter.TPVariance> variance,
@@ -364,7 +482,27 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void DeclareLocalVar(string name, Type type, IToken tok, bool leaveRoomForRhs, string rhs,
         ConcreteSyntaxTree wr) {
-      wr.Write("var ");
+      // rhs is null because it is normally computed by TypeInitializationValue, which breaks our control flow
+      if (currentBuilder is StatementContainer statementContainer) {
+        var typ = GenType(type);
+
+        if (initializationValue == null) {
+          currentBuilder = statementContainer.DeclareAndAssign(typ);
+        } else {
+          var rhsValue = initializationValue;
+          initializationValue = null;
+
+          statementContainer.AddStatement(
+            (DAST.Statement)DAST.Statement.create_DeclareVar(
+              Sequence<Rune>.UnicodeFromString(name),
+              typ,
+              rhsValue
+            )
+          );
+        }
+      } else {
+        throw new InvalidOperationException();
+      }
     }
 
     protected override ConcreteSyntaxTree DeclareLocalVar(string name, Type type, IToken tok, ConcreteSyntaxTree wr) {
@@ -376,7 +514,7 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void DeclareLocalOutVar(string name, Type type, IToken tok, string rhs, bool useReturnStyleOuts,
         ConcreteSyntaxTree wr) {
-      throw new NotImplementedException();
+      DeclareLocalVar(name, type, tok, true, rhs, wr);
     }
 
     protected override void EmitActualTypeArgs(List<Type> typeArgs, IToken tok, ConcreteSyntaxTree wr) {
@@ -384,7 +522,47 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override string GenerateLhsDecl(string target, Type type, ConcreteSyntaxTree wr, IToken tok) {
-      return target;
+      throw new NotImplementedException();
+    }
+
+    private class BuilderLvalue : ILvalue {
+      readonly DafnyCompiler compiler;
+      readonly string name;
+
+      public BuilderLvalue(DafnyCompiler compiler, string name) {
+        this.compiler = compiler;
+        this.name = name;
+      }
+
+      public void EmitRead(ConcreteSyntaxTree wr) {
+        throw new NotImplementedException();
+      }
+
+      public ConcreteSyntaxTree EmitWrite(ConcreteSyntaxTree wr) {
+        if (compiler.currentBuilder is AssignBuilder builder) {
+          builder.SetName(name);
+          return new ConcreteSyntaxTree();
+        } else {
+          throw new InvalidOperationException();
+        }
+      }
+    }
+
+    protected override ILvalue VariableLvalue(IVariable var) {
+      return new BuilderLvalue(this, IdName(var));
+    }
+
+    protected override ConcreteSyntaxTree EmitAssignment(ILvalue wLhs, Type lhsType /*?*/, Type rhsType /*?*/,
+      ConcreteSyntaxTree wr, IToken tok) {
+      if (currentBuilder is AssignBuilder) {
+        // do nothing (we are assigning to a declared var)
+      } else if (currentBuilder is StatementContainer builder) {
+        currentBuilder = builder.Assign();
+      } else {
+        throw new InvalidOperationException();
+      }
+
+      return base.EmitAssignment(wLhs, lhsType, rhsType, wr, tok);
     }
 
     protected override void EmitPrintStmt(ConcreteSyntaxTree wr, Expression arg) {
@@ -491,7 +669,11 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void EmitLiteralExpr(ConcreteSyntaxTree wr, LiteralExpr e) {
-      throw new NotImplementedException();
+      if (currentBuilder is ExprContainer builder) {
+        builder.PassThrough(e.ToString());
+      } else {
+        throw new NotImplementedException();
+      }
     }
 
     protected override void EmitStringLiteral(string str, bool isVerbatim, ConcreteSyntaxTree wr) {
