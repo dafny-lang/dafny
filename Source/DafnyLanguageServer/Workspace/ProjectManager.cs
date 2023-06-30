@@ -31,6 +31,7 @@ public class ProjectManager : IDisposable {
   private readonly ILogger<ProjectManager> logger;
   private ExecutionEngine boogieEngine;
   private int version = 0;
+  public int OpenFileCount { get; private set; }
 
   private bool VerifyOnOpenChange => options.Get(ServerCommand.Verification) == VerifyOnMode.Change;
   private bool VerifyOnSave => options.Get(ServerCommand.Verification) == VerifyOnMode.Save;
@@ -180,6 +181,16 @@ public class ProjectManager : IDisposable {
     }
   }
 
+  public async Task<bool> CloseDocument() {
+    OpenFileCount--;
+    if (OpenFileCount == 0) {
+      await CloseAsync();
+      return true;
+    }
+
+    return false;
+  }
+  
   public async Task CloseAsync() {
     CompilationManager.CancelPendingUpdates();
     try {
@@ -278,6 +289,7 @@ public class ProjectManager : IDisposable {
   }
 
   public void OpenDocument(Uri uri) {
+    OpenFileCount++;
     var lastPublishedState = observer.LastPublishedState;
     var migratedVerificationTree = lastPublishedState.VerificationTree;
 

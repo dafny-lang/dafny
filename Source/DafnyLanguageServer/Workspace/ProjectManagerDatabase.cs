@@ -20,7 +20,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     private readonly IServiceProvider services;
 
-    private readonly BidirectionalDictionary<DocumentUri, DocumentUri> projectFilesByFile = new();
+    private readonly Dictionary<DocumentUri, DocumentUri> projectFilesByFile = new();
     private readonly Dictionary<DocumentUri, ProjectManager> managersByProject = new();
     private readonly LanguageServerFilesystem fileSystem;
     private readonly VerificationResultCache verificationCache = new();
@@ -115,11 +115,10 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     public async Task<bool> CloseDocumentAsync(TextDocumentIdentifier documentId) {
       fileSystem.CloseDocument(documentId);
-      if (projectFilesByFile.Remove(documentId.Uri, out var unusedProject, out var projectUri)) {
+      if (projectFilesByFile.Remove(documentId.Uri, out var projectUri)) {
         var project = managersByProject[projectUri];
-        if (unusedProject) {
+        if (await project.CloseDocument()) {
           managersByProject.Remove(project.Project.Uri);
-          await project.CloseAsync();
         }
         return true;
       }

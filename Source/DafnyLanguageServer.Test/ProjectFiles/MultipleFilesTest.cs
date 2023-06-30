@@ -17,6 +17,16 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.ProjectFiles;
 public class MultipleFilesTest : ClientBasedLanguageServerTest {
 
   [Fact]
+  public void FileGetsRemappedToProjectByCreatingProjectFile() {
+    Assert.Fail(" not impl");
+  }
+
+  [Fact]
+  public void ClosingAProjectWithTwoFilesPreventsDiagnosticsFromComingIn() {
+    
+  }
+  
+  [Fact]
   public async Task ChangeRangesWorksWithMultipleFiles() {
     await SetUp(options => {
       options.Set(BoogieOptionBag.Cores, 1U);
