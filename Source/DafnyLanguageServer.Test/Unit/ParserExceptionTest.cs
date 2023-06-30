@@ -29,7 +29,9 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit {
         .WriteTo.InMemory().CreateLogger();
       var factory = LoggerFactory.Create(b => b.AddSerilog(logger));
 
-      parser = DafnyLangParser.Create(DafnyOptions.Create(new WriterFromOutputHelper(output)), Mock.Of<ITelemetryPublisher>(), factory);
+      parser = DafnyLangParser.Create(DafnyOptions.Create(new WriterFromOutputHelper(output)),
+        Mock.Of<IFileSystem>(),
+      Mock.Of<ITelemetryPublisher>(), factory);
     }
 
     [Fact(Timeout = MaxTestExecutionTimeMs)]
@@ -39,7 +41,9 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit {
       var documentItem = CreateTestDocument(source, TestFilePath);
       var uri = new Uri("file:///" + TestFilePath);
       var errorReporter = new ParserExceptionSimulatingErrorReporter(options);
-      parser.Parse(new DocumentTextBuffer(documentItem), errorReporter, default);
+      var fileSystem = new LanguageServerFilesystem();
+      fileSystem.OpenDocument(documentItem);
+      parser.Parse(new DocumentTextBuffer(documentItem), fileSystem, errorReporter, default);
       Assert.Contains(sink.LogEvents, le => le.MessageTemplate.Text.Contains($"encountered an exception while parsing {uri}"));
       Assert.Equal($"/{TestFilePath}(1,0): Error: [internal error] Parser exception: Simulated parser internal error", errorReporter.LastMessage);
     }

@@ -11,7 +11,7 @@ namespace Microsoft.Dafny.LanguageServer.Language;
 public class CachingParser : ProgramParser {
   private readonly PruneIfNotUsedSinceLastPruneCache<byte[], DfyParseResult> parseCache = new(new HashEquality());
 
-  public CachingParser(ILogger<ProgramParser> logger) : base(logger) {
+  public CachingParser(ILogger<ProgramParser> logger, IFileSystem fileSystem) : base(logger, fileSystem) {
   }
 
   public void Prune() {
