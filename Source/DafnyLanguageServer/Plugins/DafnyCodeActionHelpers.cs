@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using Microsoft.Boogie;
+using Microsoft.Dafny.LanguageServer.Handlers.Custom;
 using Microsoft.Dafny.LanguageServer.Language;
 using OmniSharp.Extensions.LanguageServer.Protocol;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
@@ -23,7 +24,7 @@ public static class DafnyCodeActionHelpers {
   ///       Some code here:
   ///     }
   /// ```
-  /// the method will return ("  ", "    "), so that it someone inserted the first value,
+  /// the method will return ("  ", "    "), so that if someone inserted the first value,
   /// "assert X;\n" and the second value, the resulting code would be
   /// ```
   ///     {
@@ -36,36 +37,41 @@ public static class DafnyCodeActionHelpers {
   /// <param name="endToken">The position of the closing brace</param>
   /// <param name="text">The document text</param>
   /// <returns>(extra indentation for a statement, current indentation)</returns>
-  public static (string, string) GetIndentationBefore(IToken endToken, int startLine, int startCol, string text) {
-    var pos = endToken.pos + endToken.val.Length - 1;
+  public static (string, string) GetIndentationBefore(IToken endToken, int startLine, int startCol) {
     var indentation = 0;
     var indentationBrace = endToken.col - 1;
     var firstNewline = true;
     var useTabs = false;
-    // Look for the first newline
-    while (0 <= pos && pos < text.Length && (text[pos] != '\n' || firstNewline)) {
-      if (text[pos] == '\t') {
-        useTabs = true;
-      }
 
-      if (text[pos] == '\n') {
+    var token = endToken;
+    while (token != null) {
+      var text = token.LeadingTrivia + token.val + token.TrailingTrivia;
+      for (int index = text.Length - 1; index >= 0; index--) {
+        var c = text[index];
+
+        if (c == '\n') {
+          if (!firstNewline) {
+            goto Exit;
+          }
+
+          firstNewline = false;
+        }
+
+        if (c == '\t') {
+          useTabs = true;
+        }
+
         if (!firstNewline) {
-          break;
-        }
-
-        firstNewline = false;
-      }
-
-      if (!firstNewline) {
-        if (text[pos] == ' ' || text[pos] == '\t') {
-          indentation++;
-        } else {
-          indentation = 0;
+          if (c == ' ' || c == '\t') {
+            indentation++;
+          } else {
+            indentation = 0;
+          }
         }
       }
-
-      pos--;
+      token = token.Prev;
     }
+  Exit:
 
     if (startLine == endToken.line - 1) {
       // Override case {\n} with some spacing, we return a default value of 2 spaces or 1 tab, if we find some
@@ -113,7 +119,7 @@ public static class DafnyCodeActionHelpers {
       return (null, "", "");
     }
 
-    var (extraIndentation, indentationUntilBrace) = GetIndentationBefore(endToken, line, col, input.Code);
+    var (extraIndentation, indentationUntilBrace) = GetIndentationBefore(endToken, line, col);
     var beforeClosingBrace = new RangeToken(endToken, null);
     return (beforeClosingBrace, extraIndentation, indentationUntilBrace);
   }
