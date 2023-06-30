@@ -17,9 +17,19 @@
 
 // RUN: java -cp %binaryDir/DafnyRuntime.jar:%S/Inputs/producer/timesTwo-java:%S/consumer/usesTimesTwo-java usesTimesTwo >> "%t"
 
+// Python
+
+// TODO: Can we refer to the runtime separately?
+// RUN: %baredafny translate py --output=%S/Inputs/producer/timesTwo %S/Inputs/producer/timesTwo.dfy --include-runtime
+
+// RUN: %baredafny translate py --output=%S/consumer/usesTimesTwo --library=%S/Inputs/producer/timesTwo.dfy %s
+
+// TODO: Won't work on windows
+// RUN: env PYTHONPATH=%S/Inputs/producer/timesTwo-py python3 %S/consumer/usesTimesTwo-py/usesTimesTwo.py >> "%t"
+
 // Go
 
-// Must --include-runtime since DafnyRuntime.go isn't usable
+// Must --include-runtime since DafnyRuntime.go isn't usable:
 // https://github.com/dafny-lang/dafny/issues/494
 // RUN: %baredafny translate go --output=%S/Inputs/producer/timesTwo %S/Inputs/producer/timesTwo.dfy --include-runtime
 

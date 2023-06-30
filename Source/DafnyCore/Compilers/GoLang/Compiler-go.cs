@@ -135,12 +135,7 @@ namespace Microsoft.Dafny.Compilers {
       return wr.NewNamedBlock("func (_this * {0}) Main({1} _dafny.Sequence)", FormatCompanionTypeName(((GoCompiler.ClassWriter)cw).ClassName), argsParameterName);
     }
 
-    protected override ConcreteSyntaxTree CreateModule(string moduleName, bool isDefault, bool isExtern, string/*?*/ libraryName, ConcreteSyntaxTree wr) {
-      if (isDefault) {
-        // Fold the default module into the main module
-        return wr;
-      }
-
+    private Import CreateImport(string moduleName, bool isDefault, bool isExtern, string /*?*/ libraryName) {
       string pkgName;
       if (libraryName != null) {
         pkgName = libraryName;
@@ -149,9 +144,8 @@ namespace Microsoft.Dafny.Compilers {
         // to rewrite "__default" to "default__".
         pkgName = moduleName;
         if (pkgName != "" && pkgName.All(c => c == '_')) {
-          UnsupportedFeatureError(Token.NoToken, Feature.AllUnderscoreExternalModuleNames,
-            "Cannot have a package name with only underscores: {0}", wr, pkgName);
-          return wr;
+          throw new UnsupportedFeatureException(Token.NoToken, Feature.AllUnderscoreExternalModuleNames,
+            $"Cannot have a package name with only underscores: {pkgName}");
         }
         while (pkgName.StartsWith("_")) {
           pkgName = pkgName.Substring(1) + "_";
@@ -166,7 +160,18 @@ namespace Microsoft.Dafny.Compilers {
         }
       }
 
-      var filename = string.Format("{0}/{0}.go", pkgName);
+      return import;
+    }
+    
+    protected override ConcreteSyntaxTree CreateModule(string moduleName, bool isDefault, bool isExtern, string/*?*/ libraryName, ConcreteSyntaxTree wr) {
+      if (isDefault) {
+        // Fold the default module into the main module
+        return wr;
+      }
+
+      var import = CreateImport(moduleName, isDefault, isExtern, libraryName);
+
+      var filename = string.Format("{0}/{0}.go", import.Path);
       var w = wr.NewFile(filename);
       ModuleName = moduleName;
       EmitModuleHeader(w);
@@ -174,6 +179,11 @@ namespace Microsoft.Dafny.Compilers {
       AddImport(import);
 
       return w;
+    }
+
+    protected override void DependOnModule(string moduleName, bool isDefault, bool isExtern, string libraryName) {
+      var import = CreateImport(moduleName, isDefault, isExtern, libraryName);
+      AddImport(import);
     }
 
     protected override void FinishModule() {
