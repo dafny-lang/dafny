@@ -64,12 +64,6 @@ public class Parser {
     }
     errDist = 0;
   }
-
-  public void SemErr(string errorId, IToken tok, string msg) {
-    Contract.Requires(tok != null);
-    Contract.Requires(msg != null);
-    errors.SemErr(errorId, tok, msg);
-  }
   
   public void SemErr(Enum errorId, IToken tok, string msg) {
     Contract.Requires(tok != null);

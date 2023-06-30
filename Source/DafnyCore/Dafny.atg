@@ -3029,7 +3029,7 @@ UpdateStmt<out Statement/*!*/ s>
     ";"                            (. endTok = t; rhss.Add(new ExprRhs(e, attrs) { RangeToken = new RangeToken(e.StartToken, endToken) }); .)   
   | { Attribute<ref attrs> }       (. endToken = t; .)
                                    (. endTok = t; rhss.Add(new ExprRhs(e, attrs) { RangeToken = new RangeToken(e.StartToken, endToken) });
-                                      SemErr("statementMissingSemicolon", new RangeToken(startToken, t), "missing semicolon at end of statement");
+                                      SemErr(ErrorId.p_missing_semicolon, new RangeToken(startToken, t), "missing semicolon at end of statement");
                                    .)   
   )
 | ":-"                             (. x = t; startToken = t; .)
