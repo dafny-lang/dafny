@@ -161,7 +161,7 @@ lemma {:neverVerify} HasNeverVerifyAttribute(p: nat, q: nat)
     private static void SetupTestLogging(ILoggingBuilder builder) {
       builder
         .AddFilter("OmniSharp", LogLevel.Warning)
-        .AddFilter("Microsoft.Dafny", LogLevel.Debug)
+        .AddFilter("Microsoft.Dafny", LogLevel.Information)
         .SetMinimumLevel(LogLevel.Debug)
         .AddConsole();
     }
