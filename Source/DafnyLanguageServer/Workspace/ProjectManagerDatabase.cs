@@ -71,7 +71,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       return Task.FromResult<CompilationAfterParsing?>(null);
     }
 
-    public ProjectManager? GetDocumentManager(TextDocumentIdentifier documentId) {
+    public ProjectManager? GetProjectManager(TextDocumentIdentifier documentId) {
       return documents.GetValueOrDefault(documentId.Uri);
     }
 
