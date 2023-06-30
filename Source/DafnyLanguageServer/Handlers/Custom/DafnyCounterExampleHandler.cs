@@ -13,22 +13,22 @@ namespace Microsoft.Dafny.LanguageServer.Handlers.Custom {
   public class DafnyCounterExampleHandler : ICounterExampleHandler {
     private DafnyOptions options;
     private readonly ILogger logger;
-    private readonly IDocumentDatabase documents;
+    private readonly IProjectDatabase projects;
 
-    public DafnyCounterExampleHandler(DafnyOptions options, ILogger<DafnyCounterExampleHandler> logger, IDocumentDatabase documents) {
+    public DafnyCounterExampleHandler(DafnyOptions options, ILogger<DafnyCounterExampleHandler> logger, IProjectDatabase projects) {
       this.logger = logger;
-      this.documents = documents;
+      this.projects = projects;
       this.options = options;
     }
 
     public async Task<CounterExampleList> Handle(CounterExampleParams request, CancellationToken cancellationToken) {
       try {
-        var documentManager = documents.GetDocumentManager(request.TextDocument);
+        var documentManager = projects.GetDocumentManager(request.TextDocument);
         if (documentManager != null) {
-          var translatedDocument = await documentManager.Compilation.TranslatedDocument;
+          var translatedDocument = await documentManager.CompilationManager.TranslatedDocument;
           var verificationTasks = translatedDocument.VerificationTasks;
           foreach (var task in verificationTasks) {
-            documentManager.Compilation.VerifyTask(translatedDocument, task);
+            documentManager.CompilationManager.VerifyTask(translatedDocument, task);
           }
 
           var state = await documentManager.GetIdeStateAfterVerificationAsync();

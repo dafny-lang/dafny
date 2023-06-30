@@ -99,12 +99,12 @@ public class ExceptionTests : ClientBasedLanguageServerTest {
       this.verifier = verifier;
     }
 
-    public Task<IReadOnlyList<IImplementationTask>> GetVerificationTasksAsync(DocumentAfterResolution document, CancellationToken cancellationToken) {
+    public Task<IReadOnlyList<IImplementationTask>> GetVerificationTasksAsync(CompilationAfterResolution compilation, CancellationToken cancellationToken) {
 
       if (tests.CrashOnPrepareVerification) {
         throw new Exception("crash");
       }
-      return verifier.GetVerificationTasksAsync(document, cancellationToken);
+      return verifier.GetVerificationTasksAsync(compilation, cancellationToken);
     }
 
     public void Dispose() {
@@ -125,7 +125,7 @@ public class ExceptionTests : ClientBasedLanguageServerTest {
       return loader.CreateUnloaded(documentIdentifier, cancellationToken);
     }
 
-    public Task<DocumentAfterParsing> LoadAsync(DafnyOptions options, VersionedTextDocumentIdentifier documentIdentifier,
+    public Task<CompilationAfterParsing> LoadAsync(DafnyOptions options, VersionedTextDocumentIdentifier documentIdentifier,
         IFileSystem fileSystem, CancellationToken cancellationToken) {
       if (tests.CrashOnLoad) {
         throw new IOException("crash");

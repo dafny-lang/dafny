@@ -53,7 +53,7 @@ lemma {:neverVerify} HasNeverVerifyAttribute(p: nat, q: nat)
 
     public ILanguageServer Server { get; private set; }
 
-    public IDocumentDatabase Documents => Server.GetRequiredService<IDocumentDatabase>();
+    public IProjectDatabase Projects => Server.GetRequiredService<IProjectDatabase>();
 
     public DafnyLanguageServerTestBase(ITestOutputHelper output) : base(new JsonRpcTestOptions(LoggerFactory.Create(
       builder => builder.AddConsole().SetMinimumLevel(LogLevel.Warning)))) {
