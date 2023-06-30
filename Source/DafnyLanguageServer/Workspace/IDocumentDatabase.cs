@@ -25,7 +25,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     /// Loads (or updates if newer) the specified document into the database.
     /// </summary>
     /// <param name="document">The document to load.</param>
-    void OpenDocument(DocumentTextBuffer document);
+    void OpenDocument(TextDocumentItem document);
 
     /// <summary>
     /// Updates a document with the specified changes.

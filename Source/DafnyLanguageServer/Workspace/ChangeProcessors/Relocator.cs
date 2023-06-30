@@ -41,13 +41,11 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
     }
 
     public VerificationTree RelocateVerificationTree(VerificationTree originalVerificationTree,
-      int lines,
       DidChangeTextDocumentParams changes, CancellationToken cancellationToken) {
       var changeProcessor = new ChangeProcessor(logger, loggerSymbolTable, changes.ContentChanges, cancellationToken);
       var migratedChildren = changeProcessor.MigrateVerificationTrees(originalVerificationTree.Children);
       return originalVerificationTree with {
         Children = migratedChildren.ToList(),
-        Range = DocumentVerificationTree.LinesToRange(lines),
         StatusCurrent = CurrentStatus.Obsolete
       };
     }

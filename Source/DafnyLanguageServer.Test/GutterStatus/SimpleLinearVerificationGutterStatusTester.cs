@@ -3,8 +3,9 @@ using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
 using Xunit;
 using Xunit.Abstractions;
 
-namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Diagnostics;
+namespace Microsoft.Dafny.LanguageServer.IntegrationTest.GutterStatus;
 
+[Collection("Sequential Collection")]
 public class SimpleLinearVerificationGutterStatusTester : LinearVerificationGutterStatusTester {
   private const int MaxTestExecutionTimeMs = 10000;
 
