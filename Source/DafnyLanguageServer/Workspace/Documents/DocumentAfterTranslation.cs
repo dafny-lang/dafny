@@ -15,7 +15,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace;
 public class DocumentAfterTranslation : DocumentAfterResolution {
   public DocumentAfterTranslation(
     IServiceProvider services,
-    DocumentTextBuffer textDocumentItem,
+    VersionedTextDocumentIdentifier documentIdentifier,
     Dafny.Program program,
     IReadOnlyDictionary<DocumentUri, List<DafnyDiagnostic>> diagnostics,
     SymbolTable? symbolTable,
@@ -25,7 +25,7 @@ public class DocumentAfterTranslation : DocumentAfterResolution {
     List<Counterexample> counterexamples,
     Dictionary<ImplementationId, ImplementationView> implementationIdToView,
     VerificationTree verificationTree)
-    : base(textDocumentItem, program, diagnostics, symbolTable, signatureAndCompletionTable, ghostDiagnostics) {
+    : base(documentIdentifier, program, diagnostics, symbolTable, signatureAndCompletionTable, ghostDiagnostics) {
     VerificationTree = verificationTree;
     VerificationTasks = verificationTasks;
     Counterexamples = counterexamples;
@@ -38,7 +38,7 @@ public class DocumentAfterTranslation : DocumentAfterResolution {
       services.GetRequiredService<DafnyOptions>());
   }
 
-  public override VerificationTree GetInitialDocumentVerificationTree() {
+  public override VerificationTree GetVerificationTree() {
     return VerificationTree;
   }
 
