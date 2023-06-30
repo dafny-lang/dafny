@@ -50,7 +50,7 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
     public DafnyModel(Model model, DafnyOptions options) {
       Model = model;
       this.options = options;
-      var tyArgs = options.TypeEncodingMethod switch {
+      var tyArgMultiplier = options.TypeEncodingMethod switch {
         CoreOptions.TypeEncoding.Arguments => 1,
         _ => 0
       };
