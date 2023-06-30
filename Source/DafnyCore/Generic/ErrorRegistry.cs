@@ -1,13 +1,27 @@
 // Copyright by the contributors to the Dafny Project
 // SPDX-License-Identifier: MIT
 
+using System;
 using System.Collections.Generic;
 
 namespace Microsoft.Dafny;
 
-public record DafnyPosition(int Line, int Column);
+public record DafnyPosition(int Line, int Column) : IComparable<DafnyPosition> {
+  public int CompareTo(DafnyPosition other) {
+    var lineComparison = Line.CompareTo(other.Line);
+    if (lineComparison != 0) {
+      return lineComparison;
+    }
 
-public record DafnyRange(DafnyPosition Start, DafnyPosition ExclusiveEnd);
+    return Column.CompareTo(other.Column);
+  }
+}
+
+public record DafnyRange(DafnyPosition Start, DafnyPosition ExclusiveEnd) {
+  public bool Contains(DafnyPosition position) {
+    return Start.LessThanOrEquals(position) && position.LessThanOrEquals(ExclusiveEnd);
+  }
+}
 
 /// <summary>
 /// A quick fix replaces a range with the replacing text.
