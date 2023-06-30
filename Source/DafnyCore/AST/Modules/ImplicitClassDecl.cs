@@ -5,6 +5,7 @@ namespace Microsoft.Dafny;
 
 public class ImplicitClassDecl : TopLevelDeclWithMembers, RevealableTypeDecl {
   public override string WhatKind => "top-level module declaration";
+  public override string FullDafnyName => EnclosingModuleDefinition.FullDafnyName;
   public override bool AcceptThis => false;
 
   public TopLevelDecl AsTopLevelDecl => this;

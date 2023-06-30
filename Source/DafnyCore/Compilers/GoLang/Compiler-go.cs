@@ -1629,7 +1629,7 @@ namespace Microsoft.Dafny.Compilers {
       // don't do it here, we end up passing the name of the module to
       // FormatCompanionName, which doesn't help anyone
       if (type is UserDefinedType udt && udt.ResolvedClass != null && IsExternMemberOfExternModule(member, udt.ResolvedClass)) {
-        // omit the default class name ("_default") in extern modules, when the class is used to qualify an extern member
+        // omit the implicit class name in extern modules, when the class is used to qualify an extern member
         Contract.Assert(!udt.ResolvedClass.EnclosingModuleDefinition.IsDefaultModule);  // default module is not marked ":extern"
         return IdProtect(udt.ResolvedClass.EnclosingModuleDefinition.GetCompileName(Options));
       }
@@ -2407,7 +2407,7 @@ namespace Microsoft.Dafny.Compilers {
 
     private string UserDefinedTypeName(TopLevelDecl cl, bool full, MemberDecl/*?*/ member = null) {
       if (IsExternMemberOfExternModule(member, cl)) {
-        // omit the default class name ("_default") in extern modules, when the class is used to qualify an extern member
+        // omit the implicit class name in extern modules, when the class is used to qualify an extern member
         Contract.Assert(!cl.EnclosingModuleDefinition.IsDefaultModule);  // default module is not marked ":extern"
         return IdProtect(cl.EnclosingModuleDefinition.GetCompileName(Options));
       } else {
