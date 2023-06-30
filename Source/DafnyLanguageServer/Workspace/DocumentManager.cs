@@ -124,13 +124,13 @@ public class DocumentManager {
   }
 
   private static DafnyOptions DetermineDocumentOptions(DafnyOptions serverOptions, DocumentUri uri) {
-    ProjectFile? projectFile = null;
+    DafnyProject? projectFile = null;
 
     var folder = Path.GetDirectoryName(uri.GetFileSystemPath());
     while (!string.IsNullOrEmpty(folder)) {
       var children = Directory.GetFiles(folder, "dfyconfig.toml");
       if (children.Length > 0) {
-        projectFile = ProjectFile.Open(new Uri(children[0]), serverOptions.OutputWriter, serverOptions.ErrorWriter);
+        projectFile = DafnyProject.Open(new Uri(children[0]), serverOptions.OutputWriter, serverOptions.ErrorWriter);
         if (projectFile != null) {
           break;
         }
