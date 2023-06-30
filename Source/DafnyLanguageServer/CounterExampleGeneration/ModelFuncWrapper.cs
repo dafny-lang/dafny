@@ -36,7 +36,7 @@ class ModelFuncWrapper {
   public ModelFuncTupleWrapper AppWithResult(Model.Element element) {
     return ConvertFuncTuple(func.AppWithResult(element));
   }
-  
+
   public IEnumerable<ModelFuncTupleWrapper> AppsWithResult(Model.Element element) {
     return func.AppsWithResult(element).Select(ConvertFuncTuple);
   }
@@ -103,11 +103,11 @@ class ModelFuncWrapper {
     }
     return result;
   }
-  
+
   public class ModelFuncTupleWrapper {
-    
+
     static readonly Model.Element[] EmptyArgs = Array.Empty<Model.Element>();
-    
+
     public readonly Model.Func Func;
     public Model.Element Result;
     public readonly Model.Element[] Args;

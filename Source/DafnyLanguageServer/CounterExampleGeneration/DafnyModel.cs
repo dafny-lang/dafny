@@ -24,7 +24,7 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
     public static readonly UserDefinedType UnknownType =
       new(new Token(), "?", null);
     private readonly ModelFuncWrapper fSetSelect, fSeqLength, fSeqIndex, fBox,
-      fDim, fIndexField, fMultiIndexField, fDtype, fCharToInt, fTag, fBv, 
+      fDim, fIndexField, fMultiIndexField, fDtype, fCharToInt, fTag, fBv,
       fNull, fSetUnion, fSetIntersection, fSetDifference, fSetUnionOne,
       fSetEmpty, fSeqEmpty, fSeqBuild, fSeqAppend, fSeqDrop, fSeqTake,
       fSeqUpdate, fSeqCreate, fU2Real, fU2Bool, fU2Int,
@@ -54,9 +54,9 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
         CoreOptions.TypeEncoding.Arguments => 1,
         _ => 0
       };
-      fSetSelect = ModelFuncWrapper.MergeFunctions(this, new List<string> {"MapType0Select", "MapType1Select"}, 2);
+      fSetSelect = ModelFuncWrapper.MergeFunctions(this, new List<string> { "MapType0Select", "MapType1Select" }, 2);
       fSeqLength = new ModelFuncWrapper(this, "Seq#Length", 1, tyArgs);
-      fSeqBuild = new ModelFuncWrapper(this,"Seq#Build", 2, tyArgs);
+      fSeqBuild = new ModelFuncWrapper(this, "Seq#Build", 2, tyArgs);
       fSeqAppend = new ModelFuncWrapper(this, "Seq#Append", 2, tyArgs);
       fSeqDrop = new ModelFuncWrapper(this, "Seq#Drop", 2, tyArgs);
       fSeqTake = new ModelFuncWrapper(this, "Seq#Take", 2, tyArgs);
@@ -251,7 +251,7 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
           continue;
         }
         // Special characters below appear in type parameters. This method returns the concrete type if possible
-        if ((name == null) || name.Contains("$") || name.StartsWith("#") || name.Contains("@")) { 
+        if ((name == null) || name.Contains("$") || name.StartsWith("#") || name.Contains("@")) {
           name = funcTuple.Func.Name;
         } else if (!funcTuple.Func.Name.Contains("$") && !funcTuple.Func.Name.StartsWith("#") && !funcTuple.Func.Name.Contains("@")) {
           return null;
@@ -336,9 +336,9 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
           return new SetType(true, GetDafnyType(setElement.Args[1]));
         }
         // not possible to infer the type argument in this case if type encoding is Arguments
-        return new SetType(true, UnknownType); 
+        return new SetType(true, UnknownType);
       }
-      var mapOperation = fMapBuild.AppWithResult(element); 
+      var mapOperation = fMapBuild.AppWithResult(element);
       if (mapOperation != null) {
         return new MapType(true, GetDafnyType(Unbox(mapOperation.Args[1])), GetDafnyType(Unbox(mapOperation.Args[2])));
       }
@@ -364,7 +364,7 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
       if (finalResult != UnknownType) {
         return finalResult;
       }
-      var dtypeElement = fDtype.OptEval(element); 
+      var dtypeElement = fDtype.OptEval(element);
       return dtypeElement != null ? ReconstructType(dtypeElement) : finalResult;
     }
 
@@ -466,29 +466,29 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
       }
       switch (type) {
         case BitvectorType bitvectorType: {
-          int width = bitvectorType.Width;
-          var funcName = "U_2_bv" + width;
-          if (!bitvectorTypes.ContainsKey(width)) {
-            bitvectorTypes[width] = new BitvectorType(options, width);
-            reservedNumerals[bitvectorTypes[width]] = new HashSet<int>();
-          }
-          if (!Model.HasFunc(funcName)) {
+            int width = bitvectorType.Width;
+            var funcName = "U_2_bv" + width;
+            if (!bitvectorTypes.ContainsKey(width)) {
+              bitvectorTypes[width] = new BitvectorType(options, width);
+              reservedNumerals[bitvectorTypes[width]] = new HashSet<int>();
+            }
+            if (!Model.HasFunc(funcName)) {
+              return GetUnreservedNumericValue(elt, bitvectorTypes[width]);
+            }
+            if (Model.GetFunc(funcName).OptEval(elt) != null) {
+              return (Model.GetFunc(funcName).OptEval(elt) as Model.Number)?.Numeral;
+            }
             return GetUnreservedNumericValue(elt, bitvectorTypes[width]);
           }
-          if (Model.GetFunc(funcName).OptEval(elt) != null) {
-            return (Model.GetFunc(funcName).OptEval(elt) as Model.Number)?.Numeral;
-          }
-          return GetUnreservedNumericValue(elt, bitvectorTypes[width]);
-        }
         case CharType: {
-          if (fCharToInt.OptEval(elt) != null) {
-            if (int.TryParse(((Model.Integer)fCharToInt.OptEval(elt)).Numeral,
-                  out var UTFCode) && UTFCode is <= char.MaxValue and >= 0) {
-              return PrettyPrintChar(UTFCode);
+            if (fCharToInt.OptEval(elt) != null) {
+              if (int.TryParse(((Model.Integer)fCharToInt.OptEval(elt)).Numeral,
+                    out var UTFCode) && UTFCode is <= char.MaxValue and >= 0) {
+                return PrettyPrintChar(UTFCode);
+              }
             }
+            return GetUnreservedCharValue(elt);
           }
-          return GetUnreservedCharValue(elt);
-        }
         case RealType when fU2Real.OptEval(elt) != null:
           return CanonicalName(fU2Real.OptEval(elt), type);
         case RealType:
@@ -620,122 +620,122 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
         }
         return result;
       }
-      
+
       switch (var.Type) {
         case SeqType: {
-          var seqLen = fSeqLength.OptEval(var.Element);
-          if (seqLen != null) {
-            var length = DafnyModelVariableFactory.Get(state, seqLen, "Length", var);
-            result.Add(length);
-            (var as SeqVariable)?.SetLength(length);
-          }
+            var seqLen = fSeqLength.OptEval(var.Element);
+            if (seqLen != null) {
+              var length = DafnyModelVariableFactory.Get(state, seqLen, "Length", var);
+              result.Add(length);
+              (var as SeqVariable)?.SetLength(length);
+            }
 
-          // Sequences can be constructed with the build operator:
-          List<Model.Element> elements = new();
+            // Sequences can be constructed with the build operator:
+            List<Model.Element> elements = new();
 
-          var substring = var.Element;
-          while (fSeqBuild.AppWithResult(substring) != null) {
-            elements.Insert(0, Unbox(fSeqBuild.AppWithResult(substring).Args[1]));
-            substring = fSeqBuild.AppWithResult(substring).Args[0];
-          }
-          for (int i = 0; i < elements.Count; i++) {
-            var e = DafnyModelVariableFactory.Get(state, Unbox(elements[i]), "[" + i + "]", var);
-            result.Add(e);
-            (var as SeqVariable)?.AddAtIndex(e, i.ToString());
-          }
-          if (elements.Count > 0) {
+            var substring = var.Element;
+            while (fSeqBuild.AppWithResult(substring) != null) {
+              elements.Insert(0, Unbox(fSeqBuild.AppWithResult(substring).Args[1]));
+              substring = fSeqBuild.AppWithResult(substring).Args[0];
+            }
+            for (int i = 0; i < elements.Count; i++) {
+              var e = DafnyModelVariableFactory.Get(state, Unbox(elements[i]), "[" + i + "]", var);
+              result.Add(e);
+              (var as SeqVariable)?.AddAtIndex(e, i.ToString());
+            }
+            if (elements.Count > 0) {
+              return result;
+            }
+
+            // Otherwise, sequences can be reconstructed index by index, ensuring indices are in ascending order.
+            // NB: per https://github.com/dafny-lang/dafny/issues/3048 , not all indices may be parsed as a BigInteger,
+            // so ensure we do not try to sort those numerically.
+            var intIndices = new List<(Model.Element, BigInteger)>();
+            var otherIndices = new List<(Model.Element, String)>();
+            foreach (var tpl in fSeqIndex.AppsWithArg(0, var.Element)) {
+              var asString = tpl.Args[1].ToString();
+              if (BigInteger.TryParse(asString, out var bi)) {
+                intIndices.Add((Unbox(tpl.Result), bi));
+              } else {
+                otherIndices.Add((Unbox(tpl.Result), asString));
+              }
+            }
+
+            var sortedIndices = intIndices
+              .OrderBy(p => p.Item2)
+              .Select(p => (p.Item1, p.Item2.ToString()))
+              .Concat(otherIndices);
+
+            foreach (var (res, idx) in sortedIndices) {
+              var e = DafnyModelVariableFactory.Get(state, res, "[" + idx + "]", var);
+              result.Add(e);
+              (var as SeqVariable)?.AddAtIndex(e, idx);
+            }
+
             return result;
           }
-
-          // Otherwise, sequences can be reconstructed index by index, ensuring indices are in ascending order.
-          // NB: per https://github.com/dafny-lang/dafny/issues/3048 , not all indices may be parsed as a BigInteger,
-          // so ensure we do not try to sort those numerically.
-          var intIndices = new List<(Model.Element, BigInteger)>();
-          var otherIndices = new List<(Model.Element, String)>();
-          foreach (var tpl in fSeqIndex.AppsWithArg(0, var.Element)) {
-            var asString = tpl.Args[1].ToString();
-            if (BigInteger.TryParse(asString, out var bi)) {
-              intIndices.Add((Unbox(tpl.Result), bi));
-            } else {
-              otherIndices.Add((Unbox(tpl.Result), asString));
-            }
-          }
-
-          var sortedIndices = intIndices
-            .OrderBy(p => p.Item2)
-            .Select(p => (p.Item1, p.Item2.ToString()))
-            .Concat(otherIndices);
-
-          foreach (var (res, idx) in sortedIndices) {
-            var e = DafnyModelVariableFactory.Get(state, res, "[" + idx + "]", var);
-            result.Add(e);
-            (var as SeqVariable)?.AddAtIndex(e, idx);
-          }
-
-          return result;
-        }
         case SetType: {
-          foreach (var tpl in fSetSelect.AppsWithArg(0, var.Element)) {
-            var setElement = tpl.Args[1];
-            var containment = tpl.Result;
-            if (containment.Kind != Model.ElementKind.Boolean) {
-              continue;
-            }
+            foreach (var tpl in fSetSelect.AppsWithArg(0, var.Element)) {
+              var setElement = tpl.Args[1];
+              var containment = tpl.Result;
+              if (containment.Kind != Model.ElementKind.Boolean) {
+                continue;
+              }
 
-            result.Add(DafnyModelVariableFactory.Get(state, Unbox(setElement),
-              ((Model.Boolean)containment).ToString(), var));
+              result.Add(DafnyModelVariableFactory.Get(state, Unbox(setElement),
+                ((Model.Boolean)containment).ToString(), var));
+            }
+            return result;
           }
-          return result;
-        }
         case MapType: {
-          var mapKeysAdded = new HashSet<Model.Element>(); // prevents mapping a key to multiple values
-          var mapsElementsVisited = new HashSet<Model.Element>(); // prevents infinite recursion
-          var current = var.Element;
-          var mapBuilds = fMapBuild.AppsWithResult(var.Element).ToList();
-          while (mapBuilds.Count != 0) {
-            foreach (var mapBuild in mapBuilds.Where(m => m.Args[0] == current && !mapKeysAdded.Contains(m.Args[1]) )) {
+            var mapKeysAdded = new HashSet<Model.Element>(); // prevents mapping a key to multiple values
+            var mapsElementsVisited = new HashSet<Model.Element>(); // prevents infinite recursion
+            var current = var.Element;
+            var mapBuilds = fMapBuild.AppsWithResult(var.Element).ToList();
+            while (mapBuilds.Count != 0) {
+              foreach (var mapBuild in mapBuilds.Where(m => m.Args[0] == current && !mapKeysAdded.Contains(m.Args[1]))) {
+                result.UnionWith(AddMappingHelper(
+                  state,
+                  var as MapVariable,
+                  Unbox(mapBuild.Args[1]),
+                  Unbox(mapBuild.Args[2]),
+                  mapKeysAdded));
+              }
+              mapsElementsVisited.Add(current);
+              var nextMapBuild = mapBuilds.FirstOrDefault(m => !mapsElementsVisited.Contains(m.Args[0]));
+              if (nextMapBuild == null) {
+                break;
+              }
+              current = nextMapBuild.Args[0];
+              mapBuilds = fMapBuild.AppsWithResult(nextMapBuild.Args[0]).Where(m => !mapsElementsVisited.Contains(m.Args[0])).ToList();
+              if (mapKeysAdded.Contains(nextMapBuild.Args[1])) {
+                continue;
+              }
               result.UnionWith(AddMappingHelper(
-                state, 
-                var as MapVariable, 
-                Unbox(mapBuild.Args[1]), 
-                Unbox(mapBuild.Args[2]), 
+                state,
+                var as MapVariable,
+                Unbox(nextMapBuild.Args[1]),
+                Unbox(nextMapBuild.Args[2]),
                 mapKeysAdded));
             }
-            mapsElementsVisited.Add(current);
-            var nextMapBuild = mapBuilds.FirstOrDefault(m => !mapsElementsVisited.Contains(m.Args[0]));
-            if (nextMapBuild == null) {
-              break;
+            var mapDomain = fMapDomain.OptEval(current);
+            var mapElements = fMapElements.OptEval(current);
+            if (mapDomain == null || mapElements == null) {
+              return result;
             }
-            current = nextMapBuild.Args[0];
-            mapBuilds = fMapBuild.AppsWithResult(nextMapBuild.Args[0]).Where(m => !mapsElementsVisited.Contains(m.Args[0])).ToList();
-            if (mapKeysAdded.Contains(nextMapBuild.Args[1])) {
-              continue;
+            foreach (var app in fSetSelect.AppsWithArg(0, mapDomain)) {
+              if (!((Model.Boolean)app.Result).Value) {
+                continue;
+              }
+              result.UnionWith(AddMappingHelper(
+                state,
+                var as MapVariable,
+                Unbox(app.Args[1]),
+                Unbox(fSetSelect.OptEval(mapElements, app.Args[1])),
+                mapKeysAdded));
             }
-            result.UnionWith(AddMappingHelper(
-              state,
-              var as MapVariable, 
-              Unbox(nextMapBuild.Args[1]), 
-              Unbox(nextMapBuild.Args[2]),
-              mapKeysAdded));
-          }
-          var mapDomain = fMapDomain.OptEval(current);
-          var mapElements = fMapElements.OptEval(current);
-          if (mapDomain == null || mapElements == null) {
             return result;
           }
-          foreach (var app in fSetSelect.AppsWithArg(0, mapDomain)) {
-            if (!((Model.Boolean)app.Result).Value) {
-              continue;
-            }
-            result.UnionWith(AddMappingHelper(
-              state,
-              var as MapVariable, 
-              Unbox(app.Args[1]), 
-              Unbox(fSetSelect.OptEval(mapElements, app.Args[1])),
-              mapKeysAdded));
-          }
-          return result;
-        }
       }
 
       // Elt is an array or an object:

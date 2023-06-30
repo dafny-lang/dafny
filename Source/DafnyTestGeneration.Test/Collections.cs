@@ -9,14 +9,15 @@ using Xunit.Abstractions;
 
 namespace DafnyTestGeneration.Test {
 
-  public class Collections: Setup {
+  public class Collections : Setup {
     private readonly ITestOutputHelper testOutputHelper;
 
     public Collections(ITestOutputHelper testOutputHelper) {
       this.testOutputHelper = testOutputHelper;
     }
 
-    [Theory(Skip = "Implementation doesn't always return correct results on Windows CI, https://github.com/dafny-lang/dafny/issues/3828")][MemberData(nameof(OptionSettings))]
+    [Theory(Skip = "Implementation doesn't always return correct results on Windows CI, https://github.com/dafny-lang/dafny/issues/3828")]
+    [MemberData(nameof(OptionSettings))]
     private async Task StringLength(List<Action<DafnyOptions>> optionSettings) {
       var source = @"
 module C {
@@ -48,7 +49,8 @@ module C {
         Regex.IsMatch(m.ValueCreation[0].value, "\"..+\"")));
     }
 
-    [Theory(Skip = "Implementation doesn't always return correct results on Windows CI, https://github.com/dafny-lang/dafny/issues/3828")][MemberData(nameof(OptionSettings))]
+    [Theory(Skip = "Implementation doesn't always return correct results on Windows CI, https://github.com/dafny-lang/dafny/issues/3828")]
+    [MemberData(nameof(OptionSettings))]
     private async Task SeqOfObjects(List<Action<DafnyOptions>> optionSettings) {
       var source = @"
 module SimpleTest {

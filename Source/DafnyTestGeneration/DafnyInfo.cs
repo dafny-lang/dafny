@@ -371,14 +371,14 @@ namespace DafnyTestGeneration {
       }
       return result;
     }
-    
+
     public bool IsClassType(UserDefinedType/*?*/ type) {
       if (type == null || !classes.ContainsKey(type.Name)) {
         return false;
       }
       return true;
     }
-    
+
     public bool IsExtern(UserDefinedType/*?*/ type) {
       if (type == null || !classes.ContainsKey(type.Name)) {
         Options.Printer.ErrorWriteLine(Options.ErrorWriter, $"*** Error: Cannot identify type {type?.Name ?? " (null) "}");

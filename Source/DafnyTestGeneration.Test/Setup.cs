@@ -23,7 +23,7 @@ namespace DafnyTestGeneration.Test {
       }
       return options;
     }
-    
+
     public static TheoryData<List<Action<DafnyOptions>>> OptionSettings() {
       var optionSettings = new TheoryData<List<Action<DafnyOptions>>>();
       optionSettings.Add(new() { options => options.TypeEncodingMethod = CoreOptions.TypeEncoding.Arguments });

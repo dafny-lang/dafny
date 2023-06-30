@@ -44,7 +44,8 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       }
     }
 
-    [Theory][MemberData(nameof(OptionSettings))]
+    [Theory]
+    [MemberData(nameof(OptionSettings))]
     public async Task CounterexamplesStillWorksIfNothingHasBeenVerified(List<Action<DafnyOptions>> optionSettings) {
       await SetUpOptions(optionSettings);
       await SetUp(options => options.Set(ServerCommand.Verification, VerifyOnMode.Never));
@@ -58,13 +59,14 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
-OrderBy(counterexample => counterexample.Position).ToArray();
+        OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Single(counterExamples);
       Assert.Equal((2, 6), counterExamples[0].Position);
       Assert.True(counterExamples[0].Variables.ContainsKey("y:int"));
     }
 
-    [Theory][MemberData(nameof(OptionSettings))]
+    [Theory]
+    [MemberData(nameof(OptionSettings))]
     public async Task FileWithBodyLessMethodReturnsSingleCounterExampleForPostconditions(List<Action<DafnyOptions>> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
@@ -77,13 +79,14 @@ OrderBy(counterexample => counterexample.Position).ToArray();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
-OrderBy(counterexample => counterexample.Position).ToArray();
+        OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Single(counterExamples);
       Assert.Equal((2, 6), counterExamples[0].Position);
       Assert.True(counterExamples[0].Variables.ContainsKey("y:int"));
     }
 
-    [Theory][MemberData(nameof(OptionSettings))]
+    [Theory]
+    [MemberData(nameof(OptionSettings))]
     public async Task FileWithMethodWithErrorsReturnsCounterExampleForPostconditionsAndEveryUpdateLine(List<Action<DafnyOptions>> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
@@ -97,7 +100,7 @@ OrderBy(counterexample => counterexample.Position).ToArray();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
-OrderBy(counterexample => counterexample.Position).ToArray();
+        OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Equal(3, counterExamples.Length);
       Assert.Equal((2, 6), counterExamples[0].Position);
       Assert.Equal((3, 18), counterExamples[1].Position);
@@ -107,7 +110,8 @@ OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.True(counterExamples[2].Variables.ContainsKey("z:int"));
     }
 
-    [Theory][MemberData(nameof(OptionSettings))]
+    [Theory]
+    [MemberData(nameof(OptionSettings))]
     public async Task FileWithMethodWithoutErrorsReturnsEmptyCounterExampleList(List<Action<DafnyOptions>> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
@@ -123,11 +127,12 @@ OrderBy(counterexample => counterexample.Position).ToArray();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
-OrderBy(counterexample => counterexample.Position).ToArray();
+        OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Empty(counterExamples);
     }
 
-    [Theory][MemberData(nameof(OptionSettings))]
+    [Theory]
+    [MemberData(nameof(OptionSettings))]
     public async Task GetCounterExampleWithMultipleMethodsWithErrorsReturnsCounterExamplesForEveryMethod(List<Action<DafnyOptions>> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
@@ -149,7 +154,7 @@ OrderBy(counterexample => counterexample.Position).ToArray();
       var counterExamples = (await RequestCounterExamples(documentItem.Uri))
         .OrderBy(counterExample => counterExample.Position)
         .
-OrderBy(counterexample => counterexample.Position).ToArray();
+        OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Equal(2, counterExamples.Length);
       Assert.Equal((2, 6), counterExamples[0].Position);
       Assert.True(counterExamples[0].Variables.ContainsKey("y:int"));
@@ -158,7 +163,8 @@ OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.True(counterExamples[1].Variables.ContainsKey("b:int"));
     }
 
-    [Theory][MemberData(nameof(OptionSettings))]
+    [Theory]
+    [MemberData(nameof(OptionSettings))]
     public async Task WholeNumberAsReal(List<Action<DafnyOptions>> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
@@ -169,14 +175,15 @@ OrderBy(counterexample => counterexample.Position).ToArray();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
-OrderBy(counterexample => counterexample.Position).ToArray();
+        OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Single(counterExamples);
       Assert.Equal(1, counterExamples[0].Variables.Count);
       Assert.True(counterExamples[0].Variables.ContainsKey("r:real"));
       Assert.Equal("1.0", counterExamples[0].Variables["r:real"]);
     }
 
-    [Theory][MemberData(nameof(OptionSettings))]
+    [Theory]
+    [MemberData(nameof(OptionSettings))]
     public async Task FractionAsAReal(List<Action<DafnyOptions>> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
@@ -187,14 +194,15 @@ OrderBy(counterexample => counterexample.Position).ToArray();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
-OrderBy(counterexample => counterexample.Position).ToArray();
+        OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Single(counterExamples);
       Assert.Equal(1, counterExamples[0].Variables.Count);
       Assert.True(counterExamples[0].Variables.ContainsKey("r:real"));
       StringAssert.Matches(counterExamples[0].Variables["r:real"], new Regex("[0-9]+\\.[0-9]+/[0-9]+\\.[0-9]+"));
     }
 
-    [Theory][MemberData(nameof(OptionSettings))]
+    [Theory]
+    [MemberData(nameof(OptionSettings))]
     public async Task WholeNumberFieldAsReal(List<Action<DafnyOptions>> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
@@ -208,14 +216,15 @@ OrderBy(counterexample => counterexample.Position).ToArray();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
-OrderBy(counterexample => counterexample.Position).ToArray();
+        OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Single(counterExamples);
       Assert.Equal(1, counterExamples[0].Variables.Count);
       Assert.True(counterExamples[0].Variables.ContainsKey("v:_module.Value"));
       Assert.Equal("(v := 0.0)", counterExamples[0].Variables["v:_module.Value"]);
     }
 
-    [Theory][MemberData(nameof(OptionSettings))]
+    [Theory]
+    [MemberData(nameof(OptionSettings))]
     public async Task ConstantFields(List<Action<DafnyOptions>> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
@@ -229,14 +238,15 @@ OrderBy(counterexample => counterexample.Position).ToArray();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
-OrderBy(counterexample => counterexample.Position).ToArray();
+        OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Single(counterExamples);
       Assert.Equal(1, counterExamples[0].Variables.Count);
       Assert.True(counterExamples[0].Variables.ContainsKey("v:_module.Value"));
       Assert.Equal("(with_underscore_ := 42)", counterExamples[0].Variables["v:_module.Value"]);
     }
 
-    [Theory][MemberData(nameof(OptionSettings))]
+    [Theory]
+    [MemberData(nameof(OptionSettings))]
     public async Task FractionFieldAsReal(List<Action<DafnyOptions>> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
@@ -250,14 +260,15 @@ OrderBy(counterexample => counterexample.Position).ToArray();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
-OrderBy(counterexample => counterexample.Position).ToArray();
+        OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Single(counterExamples);
       Assert.Equal(1, counterExamples[0].Variables.Count);
       Assert.True(counterExamples[0].Variables.ContainsKey("v:_module.Value"));
       StringAssert.Matches(counterExamples[0].Variables["v:_module.Value"], new Regex("\\(v := [0-9]+\\.[0-9]+/[0-9]+\\.[0-9]+\\)"));
     }
 
-    [Theory][MemberData(nameof(OptionSettings))]
+    [Theory]
+    [MemberData(nameof(OptionSettings))]
     public async Task SelfReferringObject(List<Action<DafnyOptions>> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
@@ -271,14 +282,15 @@ OrderBy(counterexample => counterexample.Position).ToArray();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
-OrderBy(counterexample => counterexample.Position).ToArray();
+        OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Single(counterExamples);
       Assert.Equal(1, counterExamples[0].Variables.Count);
       Assert.True(counterExamples[0].Variables.ContainsKey("n:_module.Node"));
       Assert.Equal("(next := n)", counterExamples[0].Variables["n:_module.Node"]);
     }
 
-    [Theory][MemberData(nameof(OptionSettings))]
+    [Theory]
+    [MemberData(nameof(OptionSettings))]
     public async Task ObjectWithANonNullField(List<Action<DafnyOptions>> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
@@ -292,14 +304,15 @@ OrderBy(counterexample => counterexample.Position).ToArray();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
-OrderBy(counterexample => counterexample.Position).ToArray();
+        OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Single(counterExamples);
       Assert.Equal(2, counterExamples[0].Variables.Count);
       Assert.True(counterExamples[0].Variables.ContainsKey("n:_module.Node"));
       StringAssert.Matches(counterExamples[0].Variables["n:_module.Node"], new Regex("\\(next := @[0-9]+\\)"));
     }
 
-    [Theory][MemberData(nameof(OptionSettings))]
+    [Theory]
+    [MemberData(nameof(OptionSettings))]
     public async Task ObjectWithANullField(List<Action<DafnyOptions>> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
@@ -313,14 +326,15 @@ OrderBy(counterexample => counterexample.Position).ToArray();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
-OrderBy(counterexample => counterexample.Position).ToArray();
+        OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Single(counterExamples);
       Assert.Equal(1, counterExamples[0].Variables.Count);
       Assert.True(counterExamples[0].Variables.ContainsKey("n:_module.Node"));
       Assert.Equal("(next := null)", counterExamples[0].Variables["n:_module.Node"]);
     }
 
-    [Theory][MemberData(nameof(OptionSettings))]
+    [Theory]
+    [MemberData(nameof(OptionSettings))]
     public async Task ObjectWithAFieldOfBasicType(List<Action<DafnyOptions>> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
@@ -341,7 +355,7 @@ OrderBy(counterexample => counterexample.Position).ToArray();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
-OrderBy(counterexample => counterexample.Position).ToArray();
+        OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Equal(2, counterExamples.Length);
       Assert.Equal(2, counterExamples[0].Variables.Count);
       Assert.Equal(2, counterExamples[1].Variables.Count);
@@ -353,7 +367,8 @@ OrderBy(counterexample => counterexample.Position).ToArray();
       StringAssert.Matches(counterExamples[1].Variables["this:_module.BankAccountUnsafe"], new Regex("\\(balance := \\-[0-9]+\\)"));
     }
 
-    [Theory][MemberData(nameof(OptionSettings))]
+    [Theory]
+    [MemberData(nameof(OptionSettings))]
     public async Task SpecificCharacter(List<Action<DafnyOptions>> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
@@ -364,14 +379,15 @@ OrderBy(counterexample => counterexample.Position).ToArray();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
-OrderBy(counterexample => counterexample.Position).ToArray();
+        OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Single(counterExamples);
       Assert.Equal(1, counterExamples[0].Variables.Count);
       Assert.True(counterExamples[0].Variables.ContainsKey("c:char"));
       Assert.Equal("'0'", counterExamples[0].Variables["c:char"]);
     }
 
-    [Theory][MemberData(nameof(OptionSettings))]
+    [Theory]
+    [MemberData(nameof(OptionSettings))]
     public async Task ArbitraryCharacter(List<Action<DafnyOptions>> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
@@ -382,7 +398,7 @@ OrderBy(counterexample => counterexample.Position).ToArray();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
-OrderBy(counterexample => counterexample.Position).ToArray();
+        OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Single(counterExamples);
       Assert.Equal(1, counterExamples[0].Variables.Count);
       Assert.True(counterExamples[0].Variables.ContainsKey("c:char"));
@@ -390,7 +406,8 @@ OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.NotEqual("'0'", counterExamples[0].Variables["c:char"]);
     }
 
-    [Theory][MemberData(nameof(OptionSettings))]
+    [Theory]
+    [MemberData(nameof(OptionSettings))]
     public async Task DatatypeWithUnnamedDestructor(List<Action<DafnyOptions>> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
@@ -402,14 +419,15 @@ OrderBy(counterexample => counterexample.Position).ToArray();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
-OrderBy(counterexample => counterexample.Position).ToArray();
+        OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Single(counterExamples);
       Assert.Equal(1, counterExamples[0].Variables.Count);
       Assert.True(counterExamples[0].Variables.ContainsKey("b:_module.B"));
       Assert.Equal("A(_h0 := 5)", counterExamples[0].Variables["b:_module.B"]);
     }
 
-    [Theory][MemberData(nameof(OptionSettings))]
+    [Theory]
+    [MemberData(nameof(OptionSettings))]
     public async Task DatatypeWithDestructorThanIsADataValue(List<Action<DafnyOptions>> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
@@ -421,14 +439,15 @@ OrderBy(counterexample => counterexample.Position).ToArray();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
-OrderBy(counterexample => counterexample.Position).ToArray();
+        OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Single(counterExamples);
       Assert.Equal(1, counterExamples[0].Variables.Count);
       Assert.True(counterExamples[0].Variables.ContainsKey("a:_module.A"));
       StringAssert.Matches(counterExamples[0].Variables["a:_module.A"], new Regex("B\\(x := -[0-9]+\\.[0-9]+/[0-9]+\\.[0-9]+\\)"));
     }
 
-    [Theory][MemberData(nameof(OptionSettings))]
+    [Theory]
+    [MemberData(nameof(OptionSettings))]
     public async Task DatatypeWithDifferentDestructorsForDifferentConstructors(List<Action<DafnyOptions>> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
@@ -441,7 +460,7 @@ OrderBy(counterexample => counterexample.Position).ToArray();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
-OrderBy(counterexample => counterexample.Position).ToArray();
+        OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Single(counterExamples);
       Assert.Equal(2, counterExamples[0].Variables.Count);
       Assert.True(counterExamples[0].Variables.ContainsKey("h0:_module.Hand"));
@@ -450,7 +469,8 @@ OrderBy(counterexample => counterexample.Position).ToArray();
       StringAssert.Matches(counterExamples[0].Variables["h1:_module.Hand"], new Regex("Left\\([x|y] := -?[0-9]+, [x|y] := -?[0-9]+\\)"));
     }
 
-    [Theory][MemberData(nameof(OptionSettings))]
+    [Theory]
+    [MemberData(nameof(OptionSettings))]
     public async Task DatatypeObjectWithTwoDestructorsWhoseValuesAreEqual(List<Action<DafnyOptions>> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
@@ -462,14 +482,15 @@ OrderBy(counterexample => counterexample.Position).ToArray();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
-OrderBy(counterexample => counterexample.Position).ToArray();
+        OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Single(counterExamples);
       Assert.Equal(1, counterExamples[0].Variables.Count);
       Assert.True(counterExamples[0].Variables.ContainsKey("h:_module.Hand"));
       StringAssert.Matches(counterExamples[0].Variables["h:_module.Hand"], new Regex("Left\\([a|b] := 3, [a|b] := 3\\)"));
     }
 
-    [Theory][MemberData(nameof(OptionSettings))]
+    [Theory]
+    [MemberData(nameof(OptionSettings))]
     public async Task DatatypeWithDestructorsWhoseNamesShadowBuiltInDestructors(List<Action<DafnyOptions>> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
@@ -481,7 +502,7 @@ OrderBy(counterexample => counterexample.Position).ToArray();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
-OrderBy(counterexample => counterexample.Position).ToArray();
+        OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Single(counterExamples);
       Assert.Equal(1, counterExamples[0].Variables.Count);
       Assert.True(counterExamples[0].Variables.ContainsKey("a:_module.A"));
@@ -489,7 +510,8 @@ OrderBy(counterexample => counterexample.Position).ToArray();
     }
 
 
-    [Theory][MemberData(nameof(OptionSettings))]
+    [Theory]
+    [MemberData(nameof(OptionSettings))]
     public async Task DatatypeWithTypeParameters(List<Action<DafnyOptions>> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
@@ -501,14 +523,15 @@ OrderBy(counterexample => counterexample.Position).ToArray();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
-OrderBy(counterexample => counterexample.Position).ToArray();
+        OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Single(counterExamples);
       Assert.Equal(1, counterExamples[0].Variables.Count);
       Assert.True(counterExamples[0].Variables.ContainsKey("a:_module.A<bool>"));
       Assert.Equal("One(b := false)", counterExamples[0].Variables["a:_module.A<bool>"]);
     }
 
-    [Theory][MemberData(nameof(OptionSettings))]
+    [Theory]
+    [MemberData(nameof(OptionSettings))]
     public async Task ArbitraryBool(List<Action<DafnyOptions>> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
@@ -522,14 +545,15 @@ OrderBy(counterexample => counterexample.Position).ToArray();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
-OrderBy(counterexample => counterexample.Position).ToArray();
+        OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Single(counterExamples);
       Assert.Equal(2, counterExamples[0].Variables.Count);
       Assert.True(counterExamples[0].Variables.ContainsKey("list:_module.List<bool>"));
       StringAssert.Matches(counterExamples[0].Variables["list:_module.List<bool>"], new Regex("Cons\\(head := (true|false), tail := @[0-9]+\\)"));
     }
 
-    [Theory][MemberData(nameof(OptionSettings))]
+    [Theory]
+    [MemberData(nameof(OptionSettings))]
     public async Task ArbitraryInt(List<Action<DafnyOptions>> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
@@ -543,14 +567,15 @@ OrderBy(counterexample => counterexample.Position).ToArray();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
-OrderBy(counterexample => counterexample.Position).ToArray();
+        OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Single(counterExamples);
       Assert.Equal(2, counterExamples[0].Variables.Count);
       Assert.True(counterExamples[0].Variables.ContainsKey("list:_module.List<int>"));
       StringAssert.Matches(counterExamples[0].Variables["list:_module.List<int>"], new Regex("Cons\\(head := -?[0-9]+, tail := @[0-9]+\\)"));
     }
 
-    [Theory][MemberData(nameof(OptionSettings))]
+    [Theory]
+    [MemberData(nameof(OptionSettings))]
     public async Task ArbitraryReal(List<Action<DafnyOptions>> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
@@ -564,14 +589,15 @@ OrderBy(counterexample => counterexample.Position).ToArray();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
-OrderBy(counterexample => counterexample.Position).ToArray();
+        OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Single(counterExamples);
       Assert.Equal(2, counterExamples[0].Variables.Count);
       Assert.True(counterExamples[0].Variables.ContainsKey("list:_module.List<real>"));
       StringAssert.Matches(counterExamples[0].Variables["list:_module.List<real>"], new Regex("Cons\\(head := -?[0-9]+\\.[0-9], tail := @[0-9]+\\)"));
     }
 
-    [Theory][MemberData(nameof(OptionSettings))]
+    [Theory]
+    [MemberData(nameof(OptionSettings))]
     public async Task ArraySimpleTest(List<Action<DafnyOptions>> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
@@ -582,14 +608,15 @@ OrderBy(counterexample => counterexample.Position).ToArray();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
-OrderBy(counterexample => counterexample.Position).ToArray();
+        OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Single(counterExamples);
       Assert.Equal(1, counterExamples[0].Variables.Count);
       Assert.True(counterExamples[0].Variables.ContainsKey("arr:_System.array<int>"), string.Join(", ", counterExamples[0].Variables));
       Assert.Equal("(Length := 2, [0] := 4, [1] := 5)", counterExamples[0].Variables["arr:_System.array<int>"]);
     }
 
-    [Theory][MemberData(nameof(OptionSettings))]
+    [Theory]
+    [MemberData(nameof(OptionSettings))]
     public async Task SequenceSimpleTest(List<Action<DafnyOptions>> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
@@ -600,14 +627,15 @@ OrderBy(counterexample => counterexample.Position).ToArray();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
-OrderBy(counterexample => counterexample.Position).ToArray();
+        OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Single(counterExamples);
       Assert.Equal(1, counterExamples[0].Variables.Count);
       Assert.True(counterExamples[0].Variables.ContainsKey("s:seq<int>"));
       Assert.Equal("[4]", counterExamples[0].Variables["s:seq<int>"]);
     }
 
-    [Theory][MemberData(nameof(OptionSettings))]
+    [Theory]
+    [MemberData(nameof(OptionSettings))]
     public async Task SequenceOfBitVectors(List<Action<DafnyOptions>> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
@@ -618,14 +646,15 @@ OrderBy(counterexample => counterexample.Position).ToArray();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
-OrderBy(counterexample => counterexample.Position).ToArray();
+        OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Single(counterExamples);
       Assert.Equal(1, counterExamples[0].Variables.Count);
       Assert.True(counterExamples[0].Variables.ContainsKey("s:seq<bv5>"));
       Assert.Equal("(Length := 2, [1] := 2)", counterExamples[0].Variables["s:seq<bv5>"]);
     }
 
-    [Theory][MemberData(nameof(OptionSettings))]
+    [Theory]
+    [MemberData(nameof(OptionSettings))]
     public async Task SpecificBitVector(List<Action<DafnyOptions>> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
@@ -636,14 +665,15 @@ OrderBy(counterexample => counterexample.Position).ToArray();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
-OrderBy(counterexample => counterexample.Position).ToArray();
+        OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Single(counterExamples);
       Assert.Equal(1, counterExamples[0].Variables.Count);
       Assert.True(counterExamples[0].Variables.ContainsKey("bv:bv7"));
       Assert.Equal("2", counterExamples[0].Variables["bv:bv7"]);
     }
 
-    [Theory][MemberData(nameof(OptionSettings))]
+    [Theory]
+    [MemberData(nameof(OptionSettings))]
     public async Task ArbitraryBitVector(List<Action<DafnyOptions>> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
@@ -654,14 +684,15 @@ OrderBy(counterexample => counterexample.Position).ToArray();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
-OrderBy(counterexample => counterexample.Position).ToArray();
+        OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Single(counterExamples);
       Assert.Equal(1, counterExamples[0].Variables.Count);
       Assert.True(counterExamples[0].Variables.ContainsKey("b:bv2"));
       StringAssert.Matches(counterExamples[0].Variables["b:bv2"], new Regex("[023]"));
     }
 
-    [Theory][MemberData(nameof(OptionSettings))]
+    [Theory]
+    [MemberData(nameof(OptionSettings))]
     public async Task BitWiseAnd(List<Action<DafnyOptions>> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
@@ -672,7 +703,7 @@ OrderBy(counterexample => counterexample.Position).ToArray();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
-OrderBy(counterexample => counterexample.Position).ToArray();
+        OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Single(counterExamples);
       Assert.Equal(2, counterExamples[0].Variables.Count);
       Assert.True(counterExamples[0].Variables.ContainsKey("a:bv1"));
@@ -681,7 +712,8 @@ OrderBy(counterexample => counterexample.Position).ToArray();
       StringAssert.Matches(counterExamples[0].Variables["b:bv1"], new Regex("(1|a)"));
     }
 
-    [Theory][MemberData(nameof(OptionSettings))]
+    [Theory]
+    [MemberData(nameof(OptionSettings))]
     public async Task BitVectorField(List<Action<DafnyOptions>> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
@@ -695,14 +727,15 @@ OrderBy(counterexample => counterexample.Position).ToArray();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
-OrderBy(counterexample => counterexample.Position).ToArray();
+        OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Single(counterExamples);
       Assert.Equal(1, counterExamples[0].Variables.Count);
       Assert.True(counterExamples[0].Variables.ContainsKey("v:_module.Value"));
       Assert.Equal("(b := 2)", counterExamples[0].Variables["v:_module.Value"]);
     }
 
-    [Theory][MemberData(nameof(OptionSettings))]
+    [Theory]
+    [MemberData(nameof(OptionSettings))]
     public async Task SeqSetAndArrayAsTypeParameters(List<Action<DafnyOptions>> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
@@ -713,13 +746,14 @@ OrderBy(counterexample => counterexample.Position).ToArray();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
-OrderBy(counterexample => counterexample.Position).ToArray();
+        OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Single(counterExamples);
       Assert.True(counterExamples[0].Variables.ContainsKey("s:set<seq<set<_System.array<int>>>>"));
       StringAssert.Matches(counterExamples[0].Variables["s:set<seq<set<_System.array<int>>>>"], new Regex("\\{@[0-9]+ := true\\}"));
     }
 
-    [Theory][MemberData(nameof(OptionSettings))]
+    [Theory]
+    [MemberData(nameof(OptionSettings))]
     public async Task MultiDimensionalArray(List<Action<DafnyOptions>> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
@@ -730,14 +764,15 @@ OrderBy(counterexample => counterexample.Position).ToArray();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
-OrderBy(counterexample => counterexample.Position).ToArray();
+        OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Single(counterExamples);
       Assert.Equal(1, counterExamples[0].Variables.Count);
       Assert.True(counterExamples[0].Variables.ContainsKey("a:_System.array3<int>"), string.Join(", ", counterExamples[0].Variables));
       Assert.Equal("(Length0 := 4, Length1 := 5, Length2 := 6, [2,3,1] := 7)", counterExamples[0].Variables["a:_System.array3<int>"]);
     }
 
-    [Theory][MemberData(nameof(OptionSettings))]
+    [Theory]
+    [MemberData(nameof(OptionSettings))]
     public async Task ArrayEqualityByReference(List<Action<DafnyOptions>> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
@@ -748,7 +783,7 @@ OrderBy(counterexample => counterexample.Position).ToArray();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
-OrderBy(counterexample => counterexample.Position).ToArray();
+        OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Single(counterExamples);
       Assert.Equal(2, counterExamples[0].Variables.Count);
       Assert.True(counterExamples[0].Variables.ContainsKey("x:_System.array<int>"));
@@ -756,7 +791,8 @@ OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.True(counterExamples[0].Variables["y:_System.array<int>"] == "x" || counterExamples[0].Variables["x:_System.array<int>"] == "y");
     }
 
-    [Theory][MemberData(nameof(OptionSettings))]
+    [Theory]
+    [MemberData(nameof(OptionSettings))]
     public async Task SetBasicOperations(List<Action<DafnyOptions>> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
@@ -770,7 +806,7 @@ OrderBy(counterexample => counterexample.Position).ToArray();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
-OrderBy(counterexample => counterexample.Position).ToArray();
+        OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Equal(4, counterExamples.Length);
       Assert.Equal(5, counterExamples[2].Variables.Count);
       Assert.True(counterExamples[3].Variables.ContainsKey("s1:set<char>"));
@@ -795,7 +831,8 @@ OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Contains("'b' := true", sInter);
     }
 
-    [Theory][MemberData(nameof(OptionSettings))]
+    [Theory]
+    [MemberData(nameof(OptionSettings))]
     public async Task SetSingleElement(List<Action<DafnyOptions>> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
@@ -806,14 +843,15 @@ OrderBy(counterexample => counterexample.Position).ToArray();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
-OrderBy(counterexample => counterexample.Position).ToArray();
+        OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Equal(2, counterExamples.Length);
       Assert.Equal(1, counterExamples[1].Variables.Count);
       Assert.True(counterExamples[1].Variables.ContainsKey("s:set<int>"));
       StringAssert.Matches(counterExamples[1].Variables["s:set<int>"], new Regex("\\{.*6 := true.*\\}"));
     }
 
-    [Theory][MemberData(nameof(OptionSettings))]
+    [Theory]
+    [MemberData(nameof(OptionSettings))]
     public async Task StringBuilding(List<Action<DafnyOptions>> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = "" +
@@ -823,14 +861,15 @@ OrderBy(counterexample => counterexample.Position).ToArray();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
-OrderBy(counterexample => counterexample.Position).ToArray();
+        OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Single(counterExamples);
       Assert.Equal(1, counterExamples[0].Variables.Count);
       Assert.True(counterExamples[0].Variables.ContainsKey("s:seq<char>"));
       Assert.Equal("['a', 'b', 'c']", counterExamples[0].Variables["s:seq<char>"]);
     }
 
-    [Theory][MemberData(nameof(OptionSettings))]
+    [Theory]
+    [MemberData(nameof(OptionSettings))]
     public async Task SequenceEdit(List<Action<DafnyOptions>> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = "" +
@@ -840,7 +879,7 @@ OrderBy(counterexample => counterexample.Position).ToArray();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
-OrderBy(counterexample => counterexample.Position).ToArray();
+        OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Equal(2, counterExamples.Length);
       Assert.Equal(3, counterExamples[1].Variables.Count);
       Assert.True(counterExamples[1].Variables.ContainsKey("s1:seq<char>"));
@@ -851,7 +890,8 @@ OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Equal("'d'", counterExamples[1].Variables["c:char"]);
     }
 
-    [Theory][MemberData(nameof(OptionSettings))]
+    [Theory]
+    [MemberData(nameof(OptionSettings))]
     public async Task SequenceSingleElement(List<Action<DafnyOptions>> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
@@ -862,14 +902,15 @@ OrderBy(counterexample => counterexample.Position).ToArray();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
-OrderBy(counterexample => counterexample.Position).ToArray();
+        OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Equal(2, counterExamples.Length);
       Assert.Equal(1, counterExamples[1].Variables.Count);
       Assert.True(counterExamples[1].Variables.ContainsKey("s:seq<int>"));
       StringAssert.Matches(counterExamples[1].Variables["s:seq<int>"], new Regex("\\[6\\]"));
     }
 
-    [Theory][MemberData(nameof(OptionSettings))]
+    [Theory]
+    [MemberData(nameof(OptionSettings))]
     public async Task SequenceConcat(List<Action<DafnyOptions>> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
@@ -880,7 +921,7 @@ OrderBy(counterexample => counterexample.Position).ToArray();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
-OrderBy(counterexample => counterexample.Position).ToArray();
+        OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Equal(2, counterExamples.Length);
       Assert.Equal(3, counterExamples[1].Variables.Count);
       Assert.True(counterExamples[1].Variables.ContainsKey("s1:seq<char>"));
@@ -891,7 +932,8 @@ OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Equal("['a', 'b']", counterExamples[1].Variables["sCat:seq<char>"]);
     }
 
-    [Theory][MemberData(nameof(OptionSettings))]
+    [Theory]
+    [MemberData(nameof(OptionSettings))]
     public async Task SequenceGenerate(List<Action<DafnyOptions>> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
@@ -902,7 +944,7 @@ OrderBy(counterexample => counterexample.Position).ToArray();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
-OrderBy(counterexample => counterexample.Position).ToArray();
+        OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Equal(2, counterExamples.Length);
       Assert.True(counterExamples[1].Variables.ContainsKey("multiplier:int"));
       Assert.True(counterExamples[1].Variables.ContainsKey("s:seq<int>"));
@@ -910,7 +952,8 @@ OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Equal("3", counterExamples[1].Variables["multiplier:int"]);
     }
 
-    [Theory][MemberData(nameof(OptionSettings))]
+    [Theory]
+    [MemberData(nameof(OptionSettings))]
     public async Task SequenceSub(List<Action<DafnyOptions>> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
@@ -921,7 +964,7 @@ OrderBy(counterexample => counterexample.Position).ToArray();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
-OrderBy(counterexample => counterexample.Position).ToArray();
+        OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Equal(2, counterExamples.Length);
       Assert.Equal(2, counterExamples[1].Variables.Count);
       Assert.True(counterExamples[1].Variables.ContainsKey("sSub:seq<char>"));
@@ -930,7 +973,8 @@ OrderBy(counterexample => counterexample.Position).ToArray();
       StringAssert.Matches(counterExamples[0].Variables["s:seq<char>"], new Regex("\\(Length := 5,.*\\[2\\] := 'a', \\[3\\] := 'b'.*"));
     }
 
-    [Theory][MemberData(nameof(OptionSettings))]
+    [Theory]
+    [MemberData(nameof(OptionSettings))]
     public async Task SequenceDrop(List<Action<DafnyOptions>> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
@@ -941,7 +985,7 @@ OrderBy(counterexample => counterexample.Position).ToArray();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
-OrderBy(counterexample => counterexample.Position).ToArray();
+        OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Equal(2, counterExamples.Length);
       Assert.Equal(2, counterExamples[1].Variables.Count);
       Assert.True(counterExamples[1].Variables.ContainsKey("sSub:seq<char>"));
@@ -950,7 +994,8 @@ OrderBy(counterexample => counterexample.Position).ToArray();
       StringAssert.Matches(counterExamples[0].Variables["s:seq<char>"], new Regex("\\(Length := 5,.*\\[2\\] := 'a', \\[3\\] := 'b', \\[4\\] := 'c'.*"));
     }
 
-    [Theory][MemberData(nameof(OptionSettings))]
+    [Theory]
+    [MemberData(nameof(OptionSettings))]
     public async Task SequenceTake(List<Action<DafnyOptions>> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
@@ -961,7 +1006,7 @@ OrderBy(counterexample => counterexample.Position).ToArray();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
-OrderBy(counterexample => counterexample.Position).ToArray();
+        OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Equal(2, counterExamples.Length);
       Assert.Equal(2, counterExamples[1].Variables.Count);
       Assert.True(counterExamples[1].Variables.ContainsKey("sSub:seq<char>"));
@@ -970,7 +1015,8 @@ OrderBy(counterexample => counterexample.Position).ToArray();
       StringAssert.Matches(counterExamples[0].Variables["s:seq<char>"], new Regex("\\(Length := 5,.*\\[0\\] := 'a', \\[1\\] := 'b', \\[2\\] := 'c'.*"));
     }
 
-    [Theory][MemberData(nameof(OptionSettings))]
+    [Theory]
+    [MemberData(nameof(OptionSettings))]
     public async Task VariableNameShadowing(List<Action<DafnyOptions>> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
@@ -981,11 +1027,12 @@ OrderBy(counterexample => counterexample.Position).ToArray();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
-OrderBy(counterexample => counterexample.Position).ToArray();
+        OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Equal(2, counterExamples.Length);
     }
 
-    [Theory][MemberData(nameof(OptionSettings))]
+    [Theory]
+    [MemberData(nameof(OptionSettings))]
     public async Task MapsCreation(List<Action<DafnyOptions>> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
@@ -996,14 +1043,15 @@ OrderBy(counterexample => counterexample.Position).ToArray();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
-OrderBy(counterexample => counterexample.Position).ToArray();
+        OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Equal(2, counterExamples.Length);
       Assert.Equal(1, counterExamples[1].Variables.Count);
       Assert.True(counterExamples[1].Variables.ContainsKey("m:map<int, bool>"));
       StringAssert.Matches(counterExamples[1].Variables["m:map<int, bool>"], new Regex("map\\[.*3 := false.*"));
     }
-    
-    [Theory][MemberData(nameof(OptionSettings))]
+
+    [Theory]
+    [MemberData(nameof(OptionSettings))]
     public async Task MapsEmpty(List<Action<DafnyOptions>> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
@@ -1014,14 +1062,15 @@ OrderBy(counterexample => counterexample.Position).ToArray();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
-OrderBy(counterexample => counterexample.Position).ToArray();
+        OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Equal(2, counterExamples.Length);
       Assert.Equal(1, counterExamples[1].Variables.Count);
       Assert.True(counterExamples[1].Variables.ContainsKey("m:map<int, int>"));
       Assert.Equal("map[]", counterExamples[1].Variables["m:map<int, int>"]);
     }
-    
-    [Theory][MemberData(nameof(OptionSettings))]
+
+    [Theory]
+    [MemberData(nameof(OptionSettings))]
     public async Task TraitType(List<Action<DafnyOptions>> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
@@ -1036,13 +1085,14 @@ OrderBy(counterexample => counterexample.Position).ToArray();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
-OrderBy(counterexample => counterexample.Position).ToArray();
+        OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Single(counterExamples);
       Assert.Single(counterExamples[0].Variables);
       Assert.True(counterExamples[0].Variables.ContainsKey("c:M.C"));
     }
-    
-    [Theory][MemberData(nameof(OptionSettings))]
+
+    [Theory]
+    [MemberData(nameof(OptionSettings))]
     public async Task ArrowType(List<Action<DafnyOptions>> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
@@ -1055,11 +1105,12 @@ OrderBy(counterexample => counterexample.Position).ToArray();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
-OrderBy(counterexample => counterexample.Position).ToArray();
+        OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.True(counterExamples[^1].Variables.ContainsKey("c:(int, bool) ~> real"));
     }
-    
-    [Theory][MemberData(nameof(OptionSettings))]
+
+    [Theory]
+    [MemberData(nameof(OptionSettings))]
     public async Task MapAsTypeArgument(List<Action<DafnyOptions>> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
@@ -1070,13 +1121,14 @@ OrderBy(counterexample => counterexample.Position).ToArray();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
-OrderBy(counterexample => counterexample.Position).ToArray();
+        OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Equal(2, counterExamples.Length);
       Assert.Equal(2, counterExamples[1].Variables.Count);
       Assert.True(counterExamples[1].Variables.ContainsKey("s:set<map<int, int>>"));
     }
-    
-    [Theory][MemberData(nameof(OptionSettings))]
+
+    [Theory]
+    [MemberData(nameof(OptionSettings))]
     public async Task DatatypeTypeAsTypeArgument(List<Action<DafnyOptions>> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
@@ -1090,14 +1142,15 @@ OrderBy(counterexample => counterexample.Position).ToArray();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
-OrderBy(counterexample => counterexample.Position).ToArray();
+        OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Equal(2, counterExamples.Length);
       Assert.Equal(2, counterExamples[1].Variables.Count);
       Assert.True(counterExamples[1].Variables.ContainsKey("s:set<M.C>"));
       Assert.Contains(counterExamples[1].Variables.Keys, key => key.EndsWith("M.C"));
     }
-    
-    [Theory][MemberData(nameof(OptionSettings))]
+
+    [Theory]
+    [MemberData(nameof(OptionSettings))]
     public async Task SetsEmpty(List<Action<DafnyOptions>> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
@@ -1108,7 +1161,7 @@ OrderBy(counterexample => counterexample.Position).ToArray();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
-OrderBy(counterexample => counterexample.Position).ToArray();
+        OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Equal(2, counterExamples.Length);
       Assert.Equal(1, counterExamples[1].Variables.Count);
       // Cannot infer the type when Arguments polymorphic encoding is used
@@ -1116,7 +1169,8 @@ OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Equal("{}", counterExamples[1].Variables["s:set<?>"]);
     }
 
-    [Theory][MemberData(nameof(OptionSettings))]
+    [Theory]
+    [MemberData(nameof(OptionSettings))]
     public async Task MapsUpdate(List<Action<DafnyOptions>> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
@@ -1129,7 +1183,7 @@ OrderBy(counterexample => counterexample.Position).ToArray();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
-OrderBy(counterexample => counterexample.Position).ToArray();
+        OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Equal(4, counterExamples.Length);
       Assert.Equal(2, counterExamples[1].Variables.Count);
       Assert.True(counterExamples[1].Variables.ContainsKey("m:map<int, int>"));
@@ -1143,7 +1197,8 @@ OrderBy(counterexample => counterexample.Position).ToArray();
       StringAssert.Matches(counterExamples[3].Variables["m:map<int, int>"], new Regex("map\\[.*3 := [1-9].*"));
     }
 
-    [Theory][MemberData(nameof(OptionSettings))]
+    [Theory]
+    [MemberData(nameof(OptionSettings))]
     public async Task MapsUpdateStoredInANewVariable(List<Action<DafnyOptions>> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
@@ -1157,7 +1212,7 @@ OrderBy(counterexample => counterexample.Position).ToArray();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
-OrderBy(counterexample => counterexample.Position).ToArray();
+        OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Equal(3, counterExamples.Length);
       Assert.Equal(4, counterExamples[2].Variables.Count);
       Assert.True(counterExamples[2].Variables.ContainsKey("m:map<int, int>"));
@@ -1168,8 +1223,9 @@ OrderBy(counterexample => counterexample.Position).ToArray();
       var val = counterExamples[2].Variables["val:int"];
       StringAssert.Matches(counterExamples[2].Variables["m':map<int, int>"], new Regex("map\\[.*" + key + " := " + val + ".*"));
     }
-    
-    [Theory][MemberData(nameof(OptionSettings))]
+
+    [Theory]
+    [MemberData(nameof(OptionSettings))]
     public async Task MapsBuildRecursive(List<Action<DafnyOptions>> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
@@ -1184,14 +1240,15 @@ OrderBy(counterexample => counterexample.Position).ToArray();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
-OrderBy(counterexample => counterexample.Position).ToArray();
+        OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Equal(5, counterExamples.Length);
       Assert.Equal(1, counterExamples[4].Variables.Count);
       Assert.True(counterExamples[4].Variables.ContainsKey("m:map<int, int>"));
       StringAssert.Matches(counterExamples[4].Variables["m:map<int, int>"], new Regex("map\\[.*5 := 36.*"));
     }
 
-    [Theory][MemberData(nameof(OptionSettings))]
+    [Theory]
+    [MemberData(nameof(OptionSettings))]
     public async Task MapsValuesUpdate(List<Action<DafnyOptions>> optionSettings) {
       await SetUpOptions(optionSettings);
       // This corner case previously triggered infinite loops
@@ -1204,7 +1261,7 @@ OrderBy(counterexample => counterexample.Position).ToArray();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
-OrderBy(counterexample => counterexample.Position).ToArray();
+        OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Equal(2, counterExamples.Length);
       Assert.Equal(4, counterExamples[1].Variables.Count);
       Assert.True(counterExamples[1].Variables.ContainsKey("m:map<int, int>"));
@@ -1219,7 +1276,8 @@ OrderBy(counterexample => counterexample.Position).ToArray();
 
     }
 
-    [Theory][MemberData(nameof(OptionSettings))]
+    [Theory]
+    [MemberData(nameof(OptionSettings))]
     public async Task MapsKeys(List<Action<DafnyOptions>> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
@@ -1230,7 +1288,7 @@ OrderBy(counterexample => counterexample.Position).ToArray();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
-OrderBy(counterexample => counterexample.Position).ToArray();
+        OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Equal(2, counterExamples.Length);
       Assert.Equal(2, counterExamples[1].Variables.Count);
       Assert.True(counterExamples[1].Variables.ContainsKey("m:map<int, char>"));
@@ -1239,7 +1297,8 @@ OrderBy(counterexample => counterexample.Position).ToArray();
       StringAssert.Matches(counterExamples[1].Variables["keys:set<int>"], new Regex("\\{.*25 := true.*"));
     }
 
-    [Theory][MemberData(nameof(OptionSettings))]
+    [Theory]
+    [MemberData(nameof(OptionSettings))]
     public async Task MapsValues(List<Action<DafnyOptions>> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
@@ -1250,7 +1309,7 @@ OrderBy(counterexample => counterexample.Position).ToArray();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
-OrderBy(counterexample => counterexample.Position).ToArray();
+        OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Equal(2, counterExamples.Length);
       Assert.Equal(2, counterExamples[1].Variables.Count);
       Assert.True(counterExamples[1].Variables.ContainsKey("m:map<int, char>"));
@@ -1259,7 +1318,8 @@ OrderBy(counterexample => counterexample.Position).ToArray();
       StringAssert.Matches(counterExamples[1].Variables["values:set<char>"], new Regex("\\{.*'c' := true.*"));
     }
 
-    [Theory][MemberData(nameof(OptionSettings))]
+    [Theory]
+    [MemberData(nameof(OptionSettings))]
     public async Task MapsOfBitVectors(List<Action<DafnyOptions>> optionSettings) {
       await SetUpOptions(optionSettings);
       // This test case triggers a situation in which the model does not
@@ -1272,14 +1332,15 @@ OrderBy(counterexample => counterexample.Position).ToArray();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
-OrderBy(counterexample => counterexample.Position).ToArray();
+        OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Single(counterExamples);
       Assert.Equal(1, counterExamples[0].Variables.Count);
       Assert.True(counterExamples[0].Variables.ContainsKey("m:map<bv2, bv3>"));
       StringAssert.Matches(counterExamples[0].Variables["m:map<bv2, bv3>"], new Regex("map\\[.*[0-9]+ := [0-9]+.*"));
     }
 
-    [Theory][MemberData(nameof(OptionSettings))]
+    [Theory]
+    [MemberData(nameof(OptionSettings))]
     public async Task ModuleRenaming(List<Action<DafnyOptions>> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
@@ -1296,14 +1357,15 @@ OrderBy(counterexample => counterexample.Position).ToArray();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
-OrderBy(counterexample => counterexample.Position).ToArray();
+        OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Single(counterExamples);
       Assert.Equal(1, counterExamples[0].Variables.Count);
       Assert.True(counterExamples[0].Variables.ContainsKey("this:Mo_dule_.Module2_.Cla__ss"));
       Assert.Equal("(i := 5)", counterExamples[0].Variables["this:Mo_dule_.Module2_.Cla__ss"]);
     }
 
-    [Theory][MemberData(nameof(OptionSettings))]
+    [Theory]
+    [MemberData(nameof(OptionSettings))]
     public async Task UnboundedIntegers(List<Action<DafnyOptions>> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
@@ -1317,7 +1379,7 @@ OrderBy(counterexample => counterexample.Position).ToArray();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
-OrderBy(counterexample => counterexample.Position).ToArray();
+        OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Single(counterExamples);
       Assert.True(counterExamples[0].Variables.ContainsKey("a:int"));
       Assert.True(counterExamples[0].Variables.ContainsKey("b:int"));
@@ -1326,7 +1388,8 @@ OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.True(a + b < a || a + b < b);
     }
 
-    [Theory][MemberData(nameof(OptionSettings))]
+    [Theory]
+    [MemberData(nameof(OptionSettings))]
     public async Task DatatypeWithPredicate(List<Action<DafnyOptions>> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
@@ -1344,14 +1407,15 @@ OrderBy(counterexample => counterexample.Position).ToArray();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
-OrderBy(counterexample => counterexample.Position).ToArray();
+        OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Single(counterExamples);
       Assert.True(counterExamples[0].Variables.ContainsKey("d:M.D"));
       Assert.Equal("C(i := 123)", counterExamples[0].Variables["d:M.D"]);
     }
 
     /** Makes sure the counterexample lists the base type of a variable */
-    [Theory][MemberData(nameof(OptionSettings))]
+    [Theory]
+    [MemberData(nameof(OptionSettings))]
     public async Task SubsetType(List<Action<DafnyOptions>> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = "" +
@@ -1362,7 +1426,7 @@ OrderBy(counterexample => counterexample.Position).ToArray();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
-OrderBy(counterexample => counterexample.Position).ToArray();
+        OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Single(counterExamples);
       Assert.True(counterExamples[0].Variables.ContainsKey("s:seq<char>"));
       Assert.Equal("['a', 'w', 's']", counterExamples[0].Variables["s:seq<char>"]);
@@ -1372,7 +1436,8 @@ OrderBy(counterexample => counterexample.Position).ToArray();
     /// Test a situation in which two fields of an object are equal
     /// (the value is represented by one Element in the Model)
     /// </summary>
-    [Theory][MemberData(nameof(OptionSettings))]
+    [Theory]
+    [MemberData(nameof(OptionSettings))]
     public async Task EqualFields(List<Action<DafnyOptions>> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
@@ -1389,7 +1454,7 @@ OrderBy(counterexample => counterexample.Position).ToArray();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
-OrderBy(counterexample => counterexample.Position).ToArray();
+        OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Single(counterExamples);
       Assert.True(counterExamples[0].Variables.ContainsKey("c:M.C?"));
       Assert.True(counterExamples[0].Variables["c:M.C?"] is
@@ -1402,7 +1467,8 @@ OrderBy(counterexample => counterexample.Position).ToArray();
     /// a counterexample.  This would previously crash the LSP before #3093.
     /// For more details, see https://github.com/dafny-lang/dafny/issues/3048 .
     /// </summary>
-    [Theory][MemberData(nameof(OptionSettings))]
+    [Theory]
+    [MemberData(nameof(OptionSettings))]
     public async Task NonIntegerSeqIndices(List<Action<DafnyOptions>> optionSettings) {
       await SetUpOptions(optionSettings);
       string fp = Path.Combine(Directory.GetCurrentDirectory(), "Various", "TestFiles", "3048.dfy");
@@ -1445,7 +1511,8 @@ OrderBy(counterexample => counterexample.Position).ToArray();
         IsNegativeIndexedSeq(new KeyValuePair<string, string>("seq<seq<_module.uint8>>", "(Length := 1123, [(- 12345)] := @12)")));
     }
 
-    [Theory][MemberData(nameof(OptionSettings))]
+    [Theory]
+    [MemberData(nameof(OptionSettings))]
     public async Task TypePolymorphism(List<Action<DafnyOptions>> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
@@ -1457,7 +1524,7 @@ OrderBy(counterexample => counterexample.Position).ToArray();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
-OrderBy(counterexample => counterexample.Position).ToArray();
+        OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Single(counterExamples);
       Assert.Equal(3, counterExamples[0].Variables.Count);
       Assert.True(counterExamples[0].Variables.ContainsKey("a:M.C.Equal$T"));
