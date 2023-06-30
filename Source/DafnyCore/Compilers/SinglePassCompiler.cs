@@ -1426,7 +1426,7 @@ namespace Microsoft.Dafny.Compilers {
             var w = CreateTrait(trait.GetCompileName(Options), trait.IsExtern(Options, out _, out _), trait.TypeArgs, trait, trait.ParentTypeInformation.UniqueParentTraits(), trait.tok, wr);
             CompileClassMembers(program, trait, w);
 
-          } else if (d is DefaultClassDecl defaultClassDecl) {
+          } else if (d is ImplicitClassDecl defaultClassDecl) {
             Contract.Assert(defaultClassDecl.InheritedMembers.Count == 0);
             Predicate<MemberDecl> compilationMaterial = x =>
               !x.IsGhost && (Options.DisallowExterns || !Attributes.Contains(x.Attributes, "extern"));

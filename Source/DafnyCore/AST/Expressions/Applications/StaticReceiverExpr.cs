@@ -43,7 +43,7 @@ public class StaticReceiverExpr : LiteralExpr, ICloneable<StaticReceiverExpr> {
     Contract.Requires(tok != null);
     Contract.Requires(cl != null);
     var typeArgs = cl.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp));
-    Type = new UserDefinedType(tok, cl is DefaultClassDecl ? cl.Name : cl.Name + "?", cl, typeArgs);
+    Type = new UserDefinedType(tok, cl is ImplicitClassDecl ? cl.Name : cl.Name + "?", cl, typeArgs);
     UnresolvedType = Type;
     IsImplicit = isImplicit;
     ObjectToDiscard = lhs;

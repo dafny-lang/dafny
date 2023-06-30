@@ -106,7 +106,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         switch (topLevelDeclaration) {
           case ClassLikeDecl classDeclaration:
             return ProcessClass(moduleSymbol, classDeclaration);
-          case DefaultClassDecl defaultClassDecl:
+          case ImplicitClassDecl defaultClassDecl:
             return ProcessClass(moduleSymbol, defaultClassDecl);
           case LiteralModuleDecl literalModuleDeclaration:
             return ProcessModule(moduleSymbol, literalModuleDeclaration.ModuleDef);

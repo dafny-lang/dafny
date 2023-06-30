@@ -928,7 +928,7 @@ namespace Microsoft.Dafny.Compilers {
       // make sure the (static fields associated with the) type method come after the Witness static field
       var wTypeMethod = wBody;
       var wRestOfBody = wBody.Fork();
-      if (cls is not DefaultClassDecl) {
+      if (cls is not ImplicitClassDecl) {
         EmitTypeDescriptorMethod(cls, typeParameters, null, null, wTypeMethod);
       }
 

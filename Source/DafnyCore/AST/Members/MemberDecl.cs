@@ -11,7 +11,7 @@ public abstract class MemberDecl : Declaration {
   public readonly bool HasStaticKeyword;
   public virtual bool IsStatic {
     get {
-      return HasStaticKeyword || EnclosingClass is DefaultClassDecl;
+      return HasStaticKeyword || EnclosingClass is ImplicitClassDecl;
     }
   }
 

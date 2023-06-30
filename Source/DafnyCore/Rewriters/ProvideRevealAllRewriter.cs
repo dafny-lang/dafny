@@ -32,7 +32,7 @@ public class ProvideRevealAllRewriter : IRewriter {
               continue;
             }
 
-            if (newt is not DefaultClassDecl) {
+            if (newt is not ImplicitClassDecl) {
               me.Exports.Add(new ExportSignature(newt.tok, newt.Name, !revealAll || !newt.CanBeRevealed()));
             }
 
@@ -41,7 +41,7 @@ public class ProvideRevealAllRewriter : IRewriter {
 
               foreach (var mem in cl.Members) {
                 var opaque = !revealAll || !mem.CanBeRevealed();
-                if (newt is DefaultClassDecl) {
+                if (newt is ImplicitClassDecl) {
                   // add everything from the default class
                   me.Exports.Add(new ExportSignature(mem.tok, mem.Name, opaque));
                 } else if (mem is Constructor && !newtIsRevealed) {

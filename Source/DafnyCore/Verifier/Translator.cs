@@ -849,8 +849,8 @@ namespace Microsoft.Dafny {
       }
 
       foreach (var top in m.TopLevelDecls) {
-        if (top is DefaultClassDecl) {
-          if (((DefaultClassDecl)top).Members.Count > 0) {
+        if (top is ImplicitClassDecl) {
+          if (((ImplicitClassDecl)top).Members.Count > 0) {
             return true;
           }
         } else if (!(top is ModuleDecl)) {
@@ -1235,7 +1235,7 @@ namespace Microsoft.Dafny {
           var dd = (NewtypeDecl)d;
           AddTypeDecl(dd);
           AddClassMembers(dd, true, true);
-        } else if (d is DefaultClassDecl defaultClassDecl) {
+        } else if (d is ImplicitClassDecl defaultClassDecl) {
           AddClassMembers(defaultClassDecl, options.OptimizeResolution < 1, true);
         } else if (d is ClassLikeDecl) {
           var cl = (ClassLikeDecl)d;

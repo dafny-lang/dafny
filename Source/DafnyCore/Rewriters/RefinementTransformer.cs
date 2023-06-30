@@ -441,9 +441,9 @@ namespace Microsoft.Dafny {
         } else {
           Error(ErrorId.ref_declaration_must_refine, nw, commonMsg, nw.WhatKind, nw.Name);
         }
-      } else if (nw is DefaultClassDecl) {
-        if (d is DefaultClassDecl) {
-          nwPointer.Set((DefaultClassDecl)MergeClass((DefaultClassDecl)nw, (DefaultClassDecl)d));
+      } else if (nw is ImplicitClassDecl) {
+        if (d is ImplicitClassDecl) {
+          nwPointer.Set((ImplicitClassDecl)MergeClass((ImplicitClassDecl)nw, (ImplicitClassDecl)d));
         } else {
           Error(ErrorId.ref_declaration_must_refine, nw, commonMsg, nw.WhatKind, nw.Name);
         }

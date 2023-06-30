@@ -144,7 +144,7 @@ public class ConstantField : SpecialField, ICallable {
   public bool AllowsNontermination { get { throw new cce.UnreachableException(); } }
   public string NameRelativeToModule {
     get {
-      if (EnclosingClass is DefaultClassDecl) {
+      if (EnclosingClass is ImplicitClassDecl) {
         return Name;
       } else {
         return EnclosingClass.Name + "." + Name;

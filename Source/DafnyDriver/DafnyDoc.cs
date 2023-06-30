@@ -197,7 +197,7 @@ class DafnyDoc {
       fullName = RootName;
       parent = null;
     }
-    var defaultClass = moduleDef.TopLevelDecls.First(d => d is DefaultClassDecl cd) as DefaultClassDecl;
+    var defaultClass = moduleDef.TopLevelDecls.First(d => d is ImplicitClassDecl cd) as ImplicitClassDecl;
 
     var info = new Info(register, this, "module", module == null ? null : module.Tok, moduleDef.IsDefaultModule ? "_" : moduleDef.Name, fullName);
     info.Contents = new List<Info>();
@@ -393,7 +393,7 @@ class DafnyDoc {
          DashShortDocstring(imp));
       details.Append(Code($"import {openText}{name} = {QualifiedNameWithLinks(target.FullDafnyName)}`{exportsets}"));
       list = imp.AccessibleSignature(true).StaticMembers.Values.ToList();
-      list2 = imp.AccessibleSignature(true).TopLevels.Values.Where(d => !(d is DefaultClassDecl)).ToList();
+      list2 = imp.AccessibleSignature(true).TopLevels.Values.Where(d => !(d is ImplicitClassDecl)).ToList();
     } else if (md is AbstractModuleDecl aimp) {
       var openText = aimp.Opened ? "opened " : "";
       var target = aimp.OriginalSignature.ModuleDef.FullDafnyName;
@@ -401,7 +401,7 @@ class DafnyDoc {
          DashShortDocstring(aimp));
       details.Append(Code($"import {openText}{name} : {QualifiedNameWithLinks(target)}"));
       list = aimp.AccessibleSignature(true).StaticMembers.Values.ToList();
-      list2 = aimp.AccessibleSignature(true).TopLevels.Values.Where(d => !(d is DefaultClassDecl)).ToList();
+      list2 = aimp.AccessibleSignature(true).TopLevels.Values.Where(d => !(d is ImplicitClassDecl)).ToList();
     }
 
     details.Append(br).Append(br).Append(eol);
@@ -463,11 +463,11 @@ class DafnyDoc {
   public void AddTypeSummaries(ModuleDefinition module, StringBuilder summaries, Info owner, bool register) {
     var types = module.TopLevelDecls.Where(c => IsType(c) && !IsGeneratedName(c.Name)).ToList();
     types.Sort((f, ff) => f.Name.CompareTo(ff.Name));
-    if (types.Count() > 1 || (types.Count() == 1 && (types[0] is DefaultClassDecl))) {
+    if (types.Count() > 1 || (types.Count() == 1 && (types[0] is ImplicitClassDecl))) {
       summaries.Append(Heading3("Types"));
       summaries.Append(TableStart());
       foreach (var t in types) {
-        if (t is DefaultClassDecl) {
+        if (t is ImplicitClassDecl) {
           continue;
         }
         var info = TypeInfo(register, t, module, owner);

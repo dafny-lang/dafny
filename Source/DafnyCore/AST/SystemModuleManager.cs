@@ -13,7 +13,7 @@ namespace Microsoft.Dafny;
 public class SystemModuleManager {
   public DafnyOptions Options { get; }
   public readonly ModuleDefinition SystemModule = new(RangeToken.NoToken, new Name("_System"), new List<IToken>(),
-    false, false, null, null, null, true, false);
+    false, false, null, null, null, true);
   internal readonly Dictionary<int, ClassDecl> arrayTypeDecls = new();
   public readonly Dictionary<int, ArrowTypeDecl> ArrowTypeDecls = new();
   public readonly Dictionary<int, SubsetTypeDecl> PartialArrowTypeDecls = new();  // same keys as arrowTypeDecl

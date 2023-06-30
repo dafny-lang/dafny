@@ -132,7 +132,7 @@ public class AuditReport {
           continue;
         }
         text.AppendLine("");
-        if (topLevelDecl is DefaultClassDecl) {
+        if (topLevelDecl is ImplicitClassDecl) {
           text.AppendLine($"## Top level");
         } else {
           text.AppendLine($"## Type `{topLevelDecl.Name}`");

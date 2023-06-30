@@ -148,14 +148,7 @@ public class ProgramParser {
       if (declToMove is ClassLikeDecl classDecl) {
         classDecl.NonNullTypeDecl.EnclosingModuleDefinition = defaultModule;
       }
-      if (declToMove is DefaultClassDecl defaultClassDecl) {
-        foreach (var member in defaultClassDecl.Members) {
-          defaultModule.DefaultClass.Members.Add(member);
-          member.EnclosingClass = defaultModule.DefaultClass;
-        }
-      } else {
-        defaultModule.SourceDecls.Add(declToMove);
-      }
+      defaultModule.SourceDecls.Add(declToMove);
     }
 
     foreach (var include in fileModule.Includes) {
@@ -165,8 +158,6 @@ public class ProgramParser {
     foreach (var prefixNamedModule in fileModule.PrefixNamedModules) {
       defaultModule.PrefixNamedModules.Add(prefixNamedModule);
     }
-
-    defaultModule.DefaultClass.SetMembersBeforeResolution();
   }
 
   public IList<DfyParseResult> TryParseIncludes(
@@ -272,7 +263,7 @@ public class ProgramParser {
     Parser parser = SetupParser(s, uri, batchErrorReporter);
     parser.Parse();
 
-    if (parser.theModule.DefaultClass.Members.Count == 0 && parser.theModule.Includes.Count == 0 && !parser.theModule.SourceDecls.Any()
+    if (parser.theModule.Includes.Count == 0 && !parser.theModule.SourceDecls.Any()
         && (parser.theModule.PrefixNamedModules == null || parser.theModule.PrefixNamedModules.Count == 0)) {
       batchErrorReporter.Warning(MessageSource.Parser, ErrorId.p_file_has_no_code, new Token(1, 1) { Uri = uri }, "File contains no code");
     }

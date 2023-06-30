@@ -48,32 +48,16 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
   public readonly bool IsAbstract;
   public readonly bool IsFacade; // True iff this module represents a module facade (that is, an abstract interface)
   private readonly bool IsBuiltinName; // true if this is something like _System that shouldn't have it's name mangled.
-  private readonly bool defaultClassFirst;
-
-  public DefaultClassDecl DefaultClass { get; set; }
 
   public readonly List<TopLevelDecl> SourceDecls = new();
   [FilledInDuringResolution]
   public readonly List<TopLevelDecl> ResolvedPrefixNamedModules = new();
   [FilledInDuringResolution]
   public readonly List<PrefixNameModule> PrefixNamedModules = new();  // filled in by the parser; emptied by the resolver
-  public virtual IEnumerable<TopLevelDecl> TopLevelDecls =>
-    defaultClassFirst ? DefaultClasses.
-        Concat(SourceDecls).
-        Concat(ResolvedPrefixNamedModules)
-      : SourceDecls.
-        Concat(DefaultClasses).
-        Concat(ResolvedPrefixNamedModules);
+  public virtual IEnumerable<TopLevelDecl> TopLevelDecls => SourceDecls.Concat(ResolvedPrefixNamedModules);
 
   public IEnumerable<IPointer<TopLevelDecl>> TopLevelDeclPointers =>
-    (DefaultClass == null
-      ? Enumerable.Empty<Pointer<TopLevelDecl>>()
-      : new[] { new Pointer<TopLevelDecl>(() => DefaultClass, v => DefaultClass = (DefaultClassDecl)v) }).
-    Concat(SourceDecls.ToPointers()).Concat(ResolvedPrefixNamedModules.ToPointers());
-
-  protected IEnumerable<TopLevelDecl> DefaultClasses {
-    get { return DefaultClass == null ? Enumerable.Empty<TopLevelDecl>() : new TopLevelDecl[] { DefaultClass }; }
-  }
+    SourceDecls.ToPointers().Concat(ResolvedPrefixNamedModules.ToPointers());
 
   [FilledInDuringResolution]
   public readonly Graph<ICallable> CallGraph = new();
@@ -100,12 +84,10 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
     Attributes = original.Attributes;
     IsAbstract = original.IsAbstract;
     RefinementQId = original.RefinementQId == null ? null : new ModuleQualifiedId(cloner, original.RefinementQId);
-    defaultClassFirst = original.defaultClassFirst;
     foreach (var d in original.SourceDecls) {
       SourceDecls.Add(cloner.CloneDeclaration(d, this));
     }
 
-    DefaultClass = (DefaultClassDecl)cloner.CloneDeclaration(original.DefaultClass, this);
     foreach (var tup in original.PrefixNamedModules) {
       var newTup = tup with {
         Module = (LiteralModuleDecl)cloner.CloneDeclaration(tup.Module, this)
@@ -127,7 +109,7 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
 
   public ModuleDefinition(RangeToken tok, Name name, List<IToken> prefixIds, bool isAbstract, bool isFacade,
     ModuleQualifiedId refinementQId, ModuleDefinition parent, Attributes attributes,
-    bool isBuiltinName, bool defaultClassFirst = false) : base(tok) {
+    bool isBuiltinName) : base(tok) {
     Contract.Requires(tok != null);
     Contract.Requires(name != null);
     this.NameNode = name;
@@ -138,11 +120,6 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
     this.IsAbstract = isAbstract;
     this.IsFacade = isFacade;
     this.IsBuiltinName = isBuiltinName;
-    this.defaultClassFirst = defaultClassFirst;
-
-    if (Name != "_System") {
-      DefaultClass = new DefaultClassDecl(this, new List<MemberDecl>());
-    }
   }
 
   private VisibilityScope visibilityScope;
@@ -603,15 +580,15 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
         var iter = (IteratorDecl)d;
         iter.Resolve(resolver);
 
-      } else if (d is DefaultClassDecl defaultClassDecl) {
+      } else if (d is ImplicitClassDecl implicitClassDecl) {
         var preMemberErrs = resolver.reporter.Count(ErrorLevel.Error);
 
         // register the names of the class members
         var members = new Dictionary<string, MemberDecl>();
-        resolver.AddClassMembers(defaultClassDecl, members);
-        defaultClassDecl.RegisterMembers(resolver, members);
+        resolver.AddClassMembers(implicitClassDecl, members);
+        implicitClassDecl.RegisterMembers(resolver, members);
 
-        Contract.Assert(preMemberErrs != resolver.reporter.Count(ErrorLevel.Error) || !defaultClassDecl.Members.Except(members.Values).Any());
+        Contract.Assert(preMemberErrs != resolver.reporter.Count(ErrorLevel.Error) || !implicitClassDecl.Members.Except(members.Values).Any());
 
         foreach (MemberDecl m in members.Values) {
           Contract.Assert(!m.HasStaticKeyword || Attributes.Contains(m.Attributes, "opaque_reveal"));

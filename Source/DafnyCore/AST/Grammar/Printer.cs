@@ -353,7 +353,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
             Indent(indent); wr.WriteLine("---------- iterator members ----------*/");
           }
 
-        } else if (d is DefaultClassDecl defaultClassDecl) {
+        } else if (d is ImplicitClassDecl defaultClassDecl) {
           if (defaultClassDecl.Members.Count == 0) {
             // print nothing
           } else {

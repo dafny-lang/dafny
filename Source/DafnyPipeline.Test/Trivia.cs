@@ -88,7 +88,7 @@ ensures true
         var trait2 = topLevelDecls[2];
         var subsetType = topLevelDecls[3];
         var class1 = topLevelDecls[4] as ClassDecl;
-        var defaultClass = topLevelDecls[5] as DefaultClassDecl;
+        var defaultClass = topLevelDecls[5] as ImplicitClassDecl;
         Assert.NotNull(moduleTest);
         Assert.NotNull(class1);
         Assert.NotNull(defaultClass);
