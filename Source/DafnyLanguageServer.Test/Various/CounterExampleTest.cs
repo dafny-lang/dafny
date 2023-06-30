@@ -1099,7 +1099,8 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       module M {
         method test() {
           var c: (int, bool) ~> real;
-          assert c(1, false) == 2.4;
+          var x := c(1, false);
+          assert x == 2.4;
         }
       }".TrimStart();
       var documentItem = CreateTestDocument(source);
