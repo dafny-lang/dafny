@@ -35,6 +35,10 @@ class ModelFuncWrapper {
   public Model.FuncTuple AppWithResult(Model.Element element) {
     return ConvertFuncTuple(func.AppWithResult(element));
   }
+  
+  public IEnumerable<Model.FuncTuple> AppsWithResult(Model.Element element) {
+    return func.AppsWithResult(element).Select(ConvertFuncTuple);
+  }
 
   public IEnumerable<Model.FuncTuple> Apps => func.Apps.Select(ConvertFuncTuple);
 

@@ -1006,6 +1006,49 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       var val = counterExamples[2].Variables["val:int"];
       StringAssert.Matches(counterExamples[2].Variables["m':map<int, int>"], new Regex("\\(.*" + key + " := " + val + ".*"));
     }
+    
+    [Theory][MemberData(nameof(EncodingConfigurations))]
+    public async Task MapsBuildRecursive(List<Action<DafnyOptions>> optionSettings) {
+      await SetUpOptions(optionSettings);
+      var source = @"
+      method T_map2()
+      {
+        var m := map[5 := 39];
+        m := m[5 := 38];
+        m := m[5 := 37];
+        m := m[5 := 36];
+        assert 5 !in m;
+      }".TrimStart();
+      var documentItem = CreateTestDocument(source);
+      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+      var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
+      Assert.Equal(5, counterExamples.Length);
+      Assert.Equal(1, counterExamples[4].Variables.Count);
+      Assert.True(counterExamples[4].Variables.ContainsKey("m:map<int, int>"));
+      StringAssert.Matches(counterExamples[4].Variables["m:map<int, int>"], new Regex("\\(.*5 := 36.*"));
+    }
+    
+    [Theory][MemberData(nameof(EncodingConfigurations))]
+    public async Task MapsBuildRecursive2(List<Action<DafnyOptions>> optionSettings) {
+      await SetUpOptions(optionSettings);
+      var source = @"
+      method T_map2()
+      {
+        var m := map[5 := 39];
+        m := m[5 := 38];
+        var m' := m[4 := 30];
+        m' := m'[4 := 31];
+        assert 5 !in m';
+      }".TrimStart();
+      var documentItem = CreateTestDocument(source);
+      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+      var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
+      Assert.Equal(5, counterExamples.Length);
+      Assert.Equal(2, counterExamples[4].Variables.Count);
+      Assert.True(counterExamples[4].Variables.ContainsKey("m':map<int, int>"));
+      StringAssert.Matches(counterExamples[4].Variables["m':map<int, int>"], new Regex("\\(.*5 := 38.*"));
+      StringAssert.Matches(counterExamples[4].Variables["m':map<int, int>"], new Regex("\\(.*4 := 31.*"));
+    }
 
     [Theory][MemberData(nameof(EncodingConfigurations))]
     public async Task MapsValuesUpdate(List<Action<DafnyOptions>> optionSettings) {
@@ -1157,6 +1200,25 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       Assert.Single(counterExamples);
       Assert.True(counterExamples[0].Variables.ContainsKey("d:M.D"));
       Assert.Equal("C(i := 123)", counterExamples[0].Variables["d:M.D"]);
+    }
+
+    /**
+     * Makes sure the counterexample extracts the base type of a variable
+     */
+    [Theory][MemberData(nameof(EncodingConfigurations))]
+    public async Task SubsetType(List<Action<DafnyOptions>> optionSettings) {
+      await SetUpOptions(optionSettings);
+      var source = "" +
+      "type String = s:string | |s| > 0 witness \"a\"" +
+      "method a(s:String) {" +
+      "  assert s != \"aws\";" +
+      "}".TrimStart();
+      var documentItem = CreateTestDocument(source);
+      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+      var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
+      Assert.Single(counterExamples);
+      Assert.True(counterExamples[0].Variables.ContainsKey("s:seq<char>"));
+      Assert.Equal("['a', 'w', 's']", counterExamples[0].Variables["s:seq<char>"]);
     }
 
     /// <summary>

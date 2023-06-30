@@ -215,7 +215,18 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
             out var value)) {
         return value;
       }
-      return -1;
+      // Since the length is not explicitly specified, the index of the last known element should suffice
+      int lastId = 0;
+      foreach (var id in seqElements.Keys) {
+        if (int.TryParse(id, out var idAsInt)) {
+          if (lastId < idAsInt + 1) {
+            lastId = idAsInt + 1;
+          }
+        } else {
+          return -1; // Failed to parse the index, so just say that the length is unknown
+        }
+      }
+      return lastId;
     }
 
     public DafnyModelVariable this[int index] => seqElements.GetValueOrDefault(index.ToString(), null);
