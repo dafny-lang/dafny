@@ -567,7 +567,7 @@ module Math {
       Assert.True(methods.Exists(m => int.Parse(m.ArgValues[0]) < int.Parse(m.ArgValues[1])));
       Assert.True(methods.Exists(m => int.Parse(m.ArgValues[1]) >= int.Parse(m.ArgValues[0])));
     }
-
+    
     [Theory]
     [MemberData(nameof(OptionSettings))]
     public async Task FunctionMethodShortCircuit(List<Action<DafnyOptions>> optionSettings) {

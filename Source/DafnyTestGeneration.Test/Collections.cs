@@ -16,7 +16,7 @@ namespace DafnyTestGeneration.Test {
     public Collections(ITestOutputHelper output) {
       this.output = new WriterFromOutputHelper(output);
     }
-
+    
     [Theory]
     [MemberData(nameof(OptionSettings))]
     public async Task Tuples(List<Action<DafnyOptions>> optionSettings) {
@@ -57,7 +57,7 @@ module SimpleTest {
         m.ValueCreation.Count == 3 &&
         m.ValueCreation.Exists(vc => vc.value.ToString().Contains("\'R\')"))));
     }
-
+    
     [Theory(Skip = "Implementation doesn't always return correct results on Windows CI, https://github.com/dafny-lang/dafny/issues/3828")]
     [MemberData(nameof(OptionSettings))]
     private async Task StringLength(List<Action<DafnyOptions>> optionSettings) {
