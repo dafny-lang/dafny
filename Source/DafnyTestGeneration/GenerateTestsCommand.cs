@@ -73,7 +73,7 @@ path - Prints path-coverage tests for the given program.");
       _ => throw new ArgumentOutOfRangeException()
     };
   }
-  
+
   public static readonly Option<uint> SequenceLengthLimit = new("--length-limit",
     "Add an axiom that sets the length of all sequences to be no greater than <n>. 0 (default) indicates no limit.") {
   };

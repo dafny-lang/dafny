@@ -545,8 +545,8 @@ namespace DafnyTestGeneration {
       }
       var constructorMethod = DafnyInfo.GetUserDefinedConstrutor(asType);
       if (constructorMethod != null) {
-          var varId = AddValue(asType, constructorMethod);
-          return varId;
+        var varId = AddValue(asType, constructorMethod);
+        return varId;
       }
       switch (type) {
         case IntType:
@@ -602,7 +602,7 @@ namespace DafnyTestGeneration {
           var name = AddValue(asType ?? datatypeType, value);
           getDefaultValueParams.RemoveAt(getDefaultValueParams.Count - 1);
           return name;
-      case UserDefinedType userDefinedType:
+        case UserDefinedType userDefinedType:
           return GetClassTypeInstance(userDefinedType, asType, null);
       }
       errorMessages.Add(

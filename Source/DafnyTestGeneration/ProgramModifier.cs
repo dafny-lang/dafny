@@ -58,7 +58,7 @@ namespace DafnyTestGeneration {
 
     protected bool ImplementationIsToBeTested(Implementation impl) =>
       // TODO: Remove second part of || clause once the latest changes to Boogie are merged
-      (Utils.DeclarationHasAttribute(impl, TestGenerationOptions.TestEntryAttribute)) &&
+      Utils.DeclarationHasAttribute(impl, TestGenerationOptions.TestEntryAttribute) &&
       impl.Name.StartsWith(ImplPrefix) && !impl.Name.EndsWith(CtorPostfix) &&
       !DafnyInfo.IsGhost(impl.VerboseName.Split(" ").First());
 

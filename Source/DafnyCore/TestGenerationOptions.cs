@@ -51,7 +51,7 @@ namespace Microsoft.Dafny {
             PrintBpl = args[ps.i];
           }
           return true;
-        
+
         case "generateTestPrintCfg":
           if (ps.ConfirmArgumentCount(1)) {
             PrintCfg = args[ps.i];

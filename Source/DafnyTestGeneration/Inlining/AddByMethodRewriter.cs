@@ -51,10 +51,10 @@ public class AddByMethodRewriter : IRewriter {
   }
 
   private void AddByMethod(Function func) {
-    
+
     func.Attributes = RemoveOpaqueAttr(func.Attributes, new Cloner());
-    if (func.IsGhost || 
-        func.Body == null || 
+    if (func.IsGhost ||
+        func.Body == null ||
         func.ByMethodBody != null ||
         (!Utils.AttributeFinder.MembersHasAttribute(func, TestGenerationOptions.TestInlineAttribute) && !Utils.AttributeFinder.MembersHasAttribute(func, TestGenerationOptions.TestEntryAttribute))) {
       return;

@@ -93,7 +93,7 @@ namespace DafnyTestGeneration {
     /// Generate test methods for a certain Dafny program.
     /// </summary>
     /// <returns></returns>
-    public static async IAsyncEnumerable<TestMethod> GetTestMethodsForProgram(Program program, Modifications cache=null) {
+    public static async IAsyncEnumerable<TestMethod> GetTestMethodsForProgram(Program program, Modifications cache = null) {
 
       var options = program.Options;
       options.PrintMode = PrintModes.Everything;
@@ -153,14 +153,14 @@ namespace DafnyTestGeneration {
           yield return $"import {dafnyInfo.ToImportAs[module]} = {module}";
         }
       }
-      
+
       var cache = new Modifications(options);
       var methodsGenerated = 0;
       await foreach (var method in GetTestMethodsForProgram(program, cache)) {
         yield return method.ToString();
         methodsGenerated++;
       }
-      
+
       foreach (var implementation in cache.Values
                  .Select(modification => modification.implementation).ToHashSet()) {
         int failedQueries = cache.ModificationsWithStatus(implementation,

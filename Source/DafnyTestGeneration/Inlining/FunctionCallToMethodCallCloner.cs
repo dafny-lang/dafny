@@ -13,10 +13,10 @@ namespace DafnyTestGeneration.Inlining;
 /// <summary>
 /// Change by-method function calls to method calls (after resolution)
 /// </summary>
-public class FunctionCallToMethodCallCloner: Cloner {
+public class FunctionCallToMethodCallCloner : Cloner {
 
   public FunctionCallToMethodCallCloner() : base(false, true) { }
-  
+
   public void Visit(Program program) {
     Visit(program.DefaultModule);
   }
@@ -54,14 +54,14 @@ public class FunctionCallToMethodCallCloner: Cloner {
     if (stmt == null || stmt.IsGhost || stmt is not UpdateStmt updateStmt) {
       return base.CloneStmt(stmt);
     }
-    var clonedUpdate = (UpdateStmt) base.CloneStmt(updateStmt);
+    var clonedUpdate = (UpdateStmt)base.CloneStmt(updateStmt);
     var newResolvedStmts = new List<Statement>();
     foreach (var resolvedStmt in clonedUpdate.ResolvedStatements) {
       if (!resolvedStmt.IsGhost &&
           resolvedStmt is AssignStmt { Rhs: ExprRhs exprRhs } &&
           exprRhs.Expr.Resolved is FunctionCallExpr { IsByMethodCall: true } funcCallExpr) {
         var memberSelectExpr = new MemberSelectExpr(
-          funcCallExpr.tok, 
+          funcCallExpr.tok,
           CloneExpr(funcCallExpr.Receiver.Resolved),
           funcCallExpr.Function.ByMethodDecl.Name);
         memberSelectExpr.Member = funcCallExpr.Function.ByMethodDecl;

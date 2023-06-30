@@ -9,15 +9,16 @@ using Xunit;
 using Xunit.Abstractions;
 
 namespace DafnyTestGeneration.Test {
-  
-  public class Collections: Setup {
+
+  public class Collections : Setup {
     private readonly TextWriter output;
 
     public Collections(ITestOutputHelper output) {
       this.output = new WriterFromOutputHelper(output);
     }
-    
-    [Theory][MemberData(nameof(Setup.EncodingConfigurations))]
+
+    [Theory]
+    [MemberData(nameof(OptionSettings))]
     public async Task Tuples(List<Action<DafnyOptions>> optionSettings) {
       var source = @"
 module SimpleTest {
@@ -32,7 +33,7 @@ module SimpleTest {
   }
 }
 ".TrimStart();
-      var options = Setup.GetDafnyOptions(optionSettings, output);
+      var options = GetDafnyOptions(optionSettings, output);
       var program = Utils.Parse(options, source, false);
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
       Assert.True(3 <= methods.Count);
@@ -41,23 +42,24 @@ module SimpleTest {
       Assert.True(methods.All(m =>
         m.DafnyInfo.IsStatic("SimpleTest.tuple")));
       Assert.True(methods.All(m => m.ArgValues.Count == 1));
-      Assert.True(methods.Exists(m => 
-        m.ValueCreation.Count == 1 && 
+      Assert.True(methods.Exists(m =>
+        m.ValueCreation.Count == 1 &&
         m.ValueCreation.First().type.ToString() == "seq<(int, (bool, char))>"));
-      Assert.True(methods.Count(m => 
-        m.ValueCreation.Count == 3 && 
+      Assert.True(methods.Count(m =>
+        m.ValueCreation.Count == 3 &&
         m.ValueCreation.Exists(vc => vc.type.ToString() == "(bool, char)") &&
         m.ValueCreation.Exists(vc => vc.type.ToString() == "(int, (bool, char))") &&
         m.ValueCreation.Exists(vc => vc.type.ToString() == "seq<(int, (bool, char))>")) >= 2);
-      Assert.True(methods.Exists(m => 
-        m.ValueCreation.Count == 3 && 
+      Assert.True(methods.Exists(m =>
+        m.ValueCreation.Count == 3 &&
         m.ValueCreation.Exists(vc => vc.value.ToString().StartsWith("(5,"))));
-      Assert.True(methods.Exists(m => 
-        m.ValueCreation.Count == 3 && 
+      Assert.True(methods.Exists(m =>
+        m.ValueCreation.Count == 3 &&
         m.ValueCreation.Exists(vc => vc.value.ToString().Contains("\'R\')"))));
     }
 
-    [Theory(Skip = "Implementation doesn't always return correct results on Windows CI, https://github.com/dafny-lang/dafny/issues/3828")][MemberData(nameof(Setup.EncodingConfigurations))]
+    [Theory(Skip = "Implementation doesn't always return correct results on Windows CI, https://github.com/dafny-lang/dafny/issues/3828")]
+    [MemberData(nameof(OptionSettings))]
     private async Task StringLength(List<Action<DafnyOptions>> optionSettings) {
       var source = @"
 module C {
@@ -73,7 +75,7 @@ module C {
 }
 
 ".TrimStart();
-      var options = Setup.GetDafnyOptions(optionSettings, output);
+      var options = GetDafnyOptions(optionSettings, output);
       var program = Utils.Parse(options, source, false);
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
       Assert.Equal(3, methods.Count);
@@ -90,7 +92,8 @@ module C {
         Regex.IsMatch(m.ValueCreation[0].value, "\"..+\"")));
     }
 
-    [Theory(Skip = "Implementation doesn't always return correct results on Windows CI, https://github.com/dafny-lang/dafny/issues/3828")][MemberData(nameof(Setup.EncodingConfigurations))]
+    [Theory(Skip = "Implementation doesn't always return correct results on Windows CI, https://github.com/dafny-lang/dafny/issues/3828")]
+    [MemberData(nameof(OptionSettings))]
     private async Task SeqOfObjects(List<Action<DafnyOptions>> optionSettings) {
       var source = @"
 module SimpleTest {
@@ -119,7 +122,7 @@ module SimpleTest {
   }
 }
 ".TrimStart();
-      var options = Setup.GetDafnyOptions(optionSettings, output);
+      var options = GetDafnyOptions(optionSettings, output);
       var program = Utils.Parse(options, source, false);
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
       /*if (methods.Count != 3) { // This sometimes occurs on Windows

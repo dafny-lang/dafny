@@ -221,8 +221,8 @@ namespace DafnyTestGeneration {
       // return testMethod;
       return null;
     }
-    
+
     public bool IsCovered(Modifications cache) => cache.NumberOfBlocksCovered(CapturedStates) == CapturedStates.Count;
-    
+
   }
 }

@@ -63,7 +63,7 @@ namespace DafnyTestGeneration {
         return "_tuple#" + typeName[13..];
       }
       return typeName;
-    } 
+    }
 
     /// <summary>
     /// Copy a <param name="type"></param> and recursively replace type
@@ -137,7 +137,7 @@ namespace DafnyTestGeneration {
       options.PrintFile = oldPrintFile;
       return output.ToString();
     }
-    
+
     public static IList<object> GetAttributeValue(Implementation implementation, string attribute) {
       var attributes = implementation.Attributes;
       while (attributes != null) {
@@ -159,14 +159,14 @@ namespace DafnyTestGeneration {
       }
       return false;
     }
-    
+
     public static void PrintCfg(DafnyOptions options,
       Microsoft.Boogie.Program program) {
       program = DeepCloneResolvedProgram(program, options);
       // TODO: Check that this allows identifying the testEntry attribute
       var implementation = program.Implementations.First(
         implementation =>
-          DeclarationHasAttribute(implementation, TestGenerationOptions.TestEntryAttribute) && 
+          DeclarationHasAttribute(implementation, TestGenerationOptions.TestEntryAttribute) &&
           implementation.Name.StartsWith("Impl$$"));
       using var streamWriter = new StreamWriter(options.TestGenOptions.PrintCfg);
       var engine = ExecutionEngine.CreateWithoutSharedCache(options);

@@ -31,7 +31,7 @@ public static class InliningTranslator {
     program = new AddImplementationsForCallsRewriter(options).VisitProgram(program);
     return program;
   }
-  
+
   /// <summary>
   /// Merge Boogie Programs by removing any duplicate top level declarations
   /// </summary>
@@ -60,5 +60,5 @@ public static class InliningTranslator {
     toRemove.ForEach(x => program.RemoveTopLevelDeclaration(x));
     return program;
   }
-  
+
 }

@@ -33,7 +33,7 @@ namespace DafnyTestGeneration {
     public bool SetNonZeroExitCode = false;
     private readonly bool suppressErrorMessages = false;
 
-    public DafnyInfo(Program program, bool suppressErrorMessages=false) {
+    public DafnyInfo(Program program, bool suppressErrorMessages = false) {
       this.suppressErrorMessages = suppressErrorMessages;
       this.Options = program.Options;
       subsetToSuperset["_System.string"] = new(
@@ -425,14 +425,14 @@ namespace DafnyTestGeneration {
       }
       return result;
     }
-    
+
     public bool IsClassType(UserDefinedType/*?*/ type) {
       if (type == null || !classes.ContainsKey(type.Name)) {
         return false;
       }
       return true;
     }
-    
+
     public bool IsExtern(UserDefinedType/*?*/ type) {
       if (type == null || !classes.ContainsKey(type.Name)) {
         if (!suppressErrorMessages) {

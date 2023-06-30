@@ -1,19 +1,18 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using DafnyTestGeneration.Inlining;
 using Microsoft.Dafny;
-
-namespace DafnyTestGeneration.Test; 
-
-using System.IO;
-using System.Threading.Tasks;
 using Xunit;
 using Xunit.Abstractions;
 
-public class Inlining {
-  
+namespace DafnyTestGeneration.Test; 
+
+public class Inlining : Setup {
+
   private readonly TextWriter output;
 
   public Inlining(ITestOutputHelper output) {
@@ -24,8 +23,8 @@ public class Inlining {
     return Regex.Replace(input, "[ \t\n]", "");
   }
 
-  private async Task ShortCircuitRemovalTest(string source, string expectedResult, bool isByMethod=true) {
-    var options = Setup.GetDafnyOptions(new List<Action<DafnyOptions>>(), output);
+  private async Task ShortCircuitRemovalTest(string source, string expectedResult, bool isByMethod = true) {
+    var options = GetDafnyOptions(new List<Action<DafnyOptions>>(), output);
     var program = Utils.Parse(options, source, false);
     var boogieProgram = InliningTranslator.TranslateAndInline(program, options);
     var method = program.DefaultModuleDef.Children.OfType<DefaultClassDecl>().First()?.Children.OfType<Method>().First();
@@ -61,7 +60,7 @@ predicate {:testEntry} And(a:bool, b:bool) {
     var expectedResult = $"{{ var {tmpVar} : bool; {tmpVar} := a; if {tmpVar} {{ {tmpVar} := b; }} else {tmpVar} := {tmpVar}; return {tmpVar}; }}";
     await ShortCircuitRemovalTest(source, expectedResult);
   }
-  
+
   [Fact]
   public async Task RemoveShortCircuitingOr() {
     var source = @"
@@ -73,7 +72,7 @@ predicate {:testEntry} And(a:bool, b:bool) {
     var expectedResult = $"{{ var {tmpVar} : bool; {tmpVar} := a; if !{tmpVar} {{ {tmpVar} := b; }} else {tmpVar} := {tmpVar}; return {tmpVar}; }}";
     await ShortCircuitRemovalTest(source, expectedResult);
   }
-  
+
   [Fact]
   public async Task RemoveShortCircuitingImp() {
     var source = @"
@@ -86,7 +85,7 @@ predicate {:testEntry} And(a:bool, b:bool) {
       $"{{ var {tmpVar} : bool; {tmpVar} := a; if {tmpVar} {{ {tmpVar} := b; }} else {tmpVar} := true; return {tmpVar}; }}";
     await ShortCircuitRemovalTest(source, expectedResult);
   }
-  
+
   [Fact]
   public async Task RemoveShortCircuitingExp() {
     var source = @"
@@ -98,7 +97,7 @@ predicate {:testEntry} And(a:bool, b:bool) {
     var expectedResult = $"{{ var {tmpVar} : bool; {tmpVar} := a; if {tmpVar} {{ {tmpVar} := b; }} else {tmpVar} := true; return {tmpVar}; }}";
     await ShortCircuitRemovalTest(source, expectedResult);
   }
-  
+
   [Fact]
   public async Task RemoveShortCircuitingIfThenElse() {
     var source = @"
@@ -110,7 +109,7 @@ function {:testEntry} And(a:bool):int {
     var expectedResult = $"{{ var {tmpVar}; if a {{ {tmpVar} := 1; }} else {tmpVar} := 2; return {tmpVar}; }}";
     await ShortCircuitRemovalTest(source, expectedResult);
   }
-  
+
   [Fact]
   public async Task RemoveLet() {
     var source = @"
@@ -122,7 +121,7 @@ function {:testEntry} And(a:bool):int {
     var expectedResult = $"{{ var {tmpVar}; {{ var a := 7; {tmpVar} := a; }} return {tmpVar}; }}";
     await ShortCircuitRemovalTest(source, expectedResult);
   }
-  
+
   [Fact]
   public async Task RemoveNestedLet() {
     var source = @"
@@ -135,7 +134,7 @@ function {:testEntry} And(a:bool):int {
     var expectedResult = $"{{ var {tmpVar}; {{ var a := 7.5; var {tmpVar2}; {{ var a := 4; {tmpVar2} := a; }} {tmpVar} := {tmpVar2}; }} return {tmpVar}; }}";
     await ShortCircuitRemovalTest(source, expectedResult);
   }
-  
+
   [Fact]
   public async Task RemoveIfInsideLet() {
     var source = @"
@@ -148,7 +147,7 @@ function {:testEntry} And(a:bool):int {
     var expectedResult = $"{{ var {tmpVar}; {{ var a := false; var {tmpVar2}; if a {{ {tmpVar2} := 5; }} else {tmpVar2} := 7; {tmpVar} := {tmpVar2}; }} return {tmpVar}; }}";
     await ShortCircuitRemovalTest(source, expectedResult);
   }
-  
+
   [Fact]
   public async Task RemoveShortCircuitInElseBranch() {
     var source = @"
@@ -161,7 +160,7 @@ function {:testEntry} And(a:bool, b:bool):int {
     var expectedResult = $"{{ var {tmpVar}; if a {{ {tmpVar} := 5; }} else {{ var {tmpVar2}; if b {{ {tmpVar2} := 3; }} else {tmpVar2} := 1; {tmpVar} := {tmpVar2}; }} return {tmpVar}; }}";
     await ShortCircuitRemovalTest(source, expectedResult);
   }
-  
+
   [Fact]
   public async Task RemoveStmtExpression() {
     var source = @"
@@ -174,7 +173,7 @@ function {:testEntry} And(a:int):int {
     var expectedResult = $"{{ var {tmpVar}; var {tmpVar2}; {{ var a := true; {tmpVar2} := a; }} if {tmpVar2} {{ {tmpVar} := 5; }} else {tmpVar} := 3; return {tmpVar}; }}";
     await ShortCircuitRemovalTest(source, expectedResult);
   }
-  
+
   [Fact]
   public async Task RemoveSimpleMatch() {
     var source = @"
@@ -188,7 +187,7 @@ function {:testEntry} IsNone(o: Option): bool {
     var tmpVar = RemoveShortCircuitingCloner.TmpVarName + 0;
     await ShortCircuitRemovalTest(source, $"{{ var {tmpVar}; match o case {{:split false}} None() => {tmpVar} := true; case {{:split false}} Some() =>  {tmpVar} := false; return {tmpVar}; }}");
   }
-  
+
   [Fact]
   public async Task RemoveMatchWithDestructors() {
     var source = @"
@@ -202,7 +201,7 @@ function {:testEntry} UnBoxOrZero(o: Option): int {
     var tmpVar = RemoveShortCircuitingCloner.TmpVarName + 0;
     await ShortCircuitRemovalTest(source, $"{{ var {tmpVar}; match o case {{:split false}} None() => {tmpVar} := 0; case {{:split false}} Some(r) =>  {tmpVar} := r; return {tmpVar}; }}");
   }
-  
+
   [Fact]
   public async Task LiftFunctionCall() {
     var source = @"
@@ -214,7 +213,7 @@ function Min(a:int, b:int):int { if a < b then a else b }
     var tmpVar = RemoveShortCircuitingCloner.TmpVarName + 0;
     await ShortCircuitRemovalTest(source, $"{{ var {tmpVar}; {tmpVar} := Min(-a, -b); return -{tmpVar}; }}");
   }
-  
+
   [Fact]
   public async Task LiftNestedFunctionCall() {
     var source = @"
@@ -230,7 +229,7 @@ function Min(a:int, b:int):int { if a < b then a else b }
     var tmpVar4 = RemoveShortCircuitingCloner.TmpVarName + 3;
     await ShortCircuitRemovalTest(source, $"{{ var {tmpVar}; var {tmpVar2}; var {tmpVar3}; {tmpVar3} := Negate(a); var {tmpVar4}; {tmpVar4} := Negate(b); {tmpVar2} := Min({tmpVar3}, {tmpVar4}); {tmpVar} := Negate({tmpVar2}); return {tmpVar}; }}");
   }
-  
+
   [Fact]
   public async Task LiftFunctionCallWithShortCircuitingArgs() {
     var source = @"
@@ -243,7 +242,7 @@ function IsTrue(a:bool):bool { a }
     var tmpVar2 = RemoveShortCircuitingCloner.TmpVarName + 1;
     await ShortCircuitRemovalTest(source, $"{{ var {tmpVar}; var {tmpVar2}:bool; {tmpVar2} := a; if !{tmpVar2} {{ {tmpVar2} := b; }} else {tmpVar2} := {tmpVar2}; {tmpVar} := IsTrue({tmpVar2}); return {tmpVar}; }}");
   }
-  
+
   [Fact]
   public async Task ProcessWhileStmt() {
     var source = @"
