@@ -1,12 +1,8 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics.Contracts;
-using System.Linq;
-using System.Runtime.CompilerServices;
 using Dafny;
 using JetBrains.Annotations;
 using DAST;
-using Tomlyn.Syntax;
 
 namespace Microsoft.Dafny.Compilers {
 
@@ -234,36 +230,42 @@ namespace Microsoft.Dafny.Compilers {
     public override IReadOnlySet<Feature> UnsupportedFeatures => new HashSet<Feature> {
       Feature.UnboundedIntegers,
       Feature.RealNumbers,
+      Feature.Ordinals,
+      Feature.FunctionValues,
+      Feature.Iterators,
       Feature.CollectionsOfTraits,
+      Feature.AllUnderscoreExternalModuleNames,
       Feature.Codatatypes,
       Feature.Multisets,
-      Feature.ExternalClasses,
-      Feature.Traits,
-      Feature.Iterators,
-      Feature.NonNativeNewtypes,
       Feature.RuntimeTypeDescriptors,
       Feature.MultiDimensionalArrays,
-      Feature.CollectionsOfTraits,
-      Feature.Quantifiers,
-      Feature.NewObject,
-      Feature.BitvectorRotateFunctions,
-      Feature.NonSequentializableForallStatements,
-      Feature.FunctionValues,
-      Feature.ArrayLength,
-      Feature.Ordinals,
-      Feature.MapItems,
-      Feature.Codatatypes,
+      Feature.MapComprehensions,
+      Feature.Traits,
       Feature.LetSuchThatExpressions,
       Feature.NonNativeNewtypes,
+      Feature.MethodSynthesis,
+      Feature.ExternalClasses,
+      Feature.NewObject,
+      Feature.NonSequentializableForallStatements,
+      Feature.ArrayLength,
+      Feature.MapItems,
+      Feature.RunAllTests,
+      Feature.IntBoundedPool,
+      Feature.ExactBoundedPool,
+      Feature.SequenceDisplaysOfCharacters,
       Feature.TypeTests,
       Feature.SubsetTypeTests,
-      Feature.SequenceDisplaysOfCharacters,
-      Feature.MapComprehensions,
-      Feature.ExactBoundedPool,
-      Feature.RunAllTests,
-      Feature.MethodSynthesis,
-      Feature.UnicodeChars,
-      Feature.ConvertingValuesToStrings
+      Feature.Quantifiers,
+      Feature.BitvectorRotateFunctions,
+      Feature.ForLoops,
+      Feature.ContinueStatements,
+      Feature.AssignSuchThatWithNonFiniteBounds,
+      Feature.SequenceUpdateExpressions,
+      Feature.SequenceConstructionsWithNonLambdaInitializers,
+      Feature.ExternalConstructors,
+      Feature.TupleInitialization,
+      Feature.SubtypeConstraintsInQuantifiers,
+      Feature.TuplesWiderThan20,
     };
 
     private readonly List<string> Imports = new() { DafnyDefaultModule };
