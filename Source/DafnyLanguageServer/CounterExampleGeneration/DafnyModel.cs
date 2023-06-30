@@ -25,10 +25,10 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
       new(new Token(), "?", null);
     private readonly ModelFuncWrapper fSetSelect, fSeqLength, fSeqIndex, fBox,
       fDim, fIndexField, fMultiIndexField, fDtype, fCharToInt, fTag, fBv, 
-      fChar, fNull, fSetUnion, fSetIntersection, fSetDifference, fSetUnionOne,
+      fNull, fSetUnion, fSetIntersection, fSetDifference, fSetUnionOne,
       fSetEmpty, fSeqEmpty, fSeqBuild, fSeqAppend, fSeqDrop, fSeqTake,
-      fSeqUpdate, fSeqCreate, fReal, fU2Real, fBool, fU2Bool, fInt, fU2Int,
-      fMapDomain, fMapElements, fMapBuild, fIs, fIsBox, fTChar, fTReal, fTBool, fTInt;
+      fSeqUpdate, fSeqCreate, fU2Real, fU2Bool, fU2Int,
+      fMapDomain, fMapElements, fMapBuild, fIs, fIsBox;
     private readonly Dictionary<Model.Element, Model.FuncTuple> datatypeValues = new();
 
     // maps a numeric type (int, real, bv4, etc.) to the set of integer
@@ -81,19 +81,11 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
       fDtype = new ModelFuncWrapper(this, "dtype", 1, 0);
       fNull = new ModelFuncWrapper(this, "null", 0, 0);
       fCharToInt = new ModelFuncWrapper(this, "char#ToInt", 1, 0);
-      fChar = new ModelFuncWrapper(this, "charType", 0, 0);
-      fReal = new ModelFuncWrapper(this, "realType", 0, 0);
       fU2Real = new ModelFuncWrapper(this, "U_2_real", 1, 0);
-      fBool = new ModelFuncWrapper(this, "boolType", 0, 0);
       fU2Bool = new ModelFuncWrapper(this, "U_2_bool", 1, 0);
-      fInt = new ModelFuncWrapper(this, "intType", 0, 0);
       fU2Int = new ModelFuncWrapper(this, "U_2_int", 1, 0);
       fTag = new ModelFuncWrapper(this, "Tag", 1, 0);
       fBv = new ModelFuncWrapper(this, "TBitvector", 1, 0);
-      fTChar = new ModelFuncWrapper(this, "TChar", 0, 0);
-      fTInt = new ModelFuncWrapper(this, "TInt", 0, 0);
-      fTReal = new ModelFuncWrapper(this, "TReal", 0, 0);
-      fTBool = new ModelFuncWrapper(this, "TBool", 0, 0);
       InitDataTypes();
       RegisterReservedChars();
       RegisterReservedInts();
@@ -286,7 +278,7 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
             return GetDafnyType(
               ((Model.DatatypeValue)element).Arguments.First());
           }
-          return UnknownType; // This shouldn't be reachable.
+          return UnknownType;
         default:
           return UnknownType;
       }
@@ -339,7 +331,12 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
       }
       setOperation = fSetEmpty.AppWithResult(element);
       if (setOperation != null) {
-        return new SetType(true, ReconstructType(setOperation.Args.First()));
+        var setElement = fSetSelect.AppWithArg(0, element);
+        if (setElement != null) {
+          return new SetType(true, GetDafnyType(setElement.Args[1]));
+        }
+        // not possible to infer the type argument in this case if type encoding is Arguments
+        return new SetType(true, UnknownType); 
       }
       var mapOperation = fMapBuild.AppWithResult(element); 
       if (mapOperation != null) {
@@ -615,7 +612,7 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
               UnderscoreRemovalRegex.Replace(func.Name.Split(".").Last(), "_"), var));
           }
         } else {
-          // we don't now destructor names, so we use indices instead
+          // we don't know destructor names, so we use indices instead
           for (int i = 0; i < fnTuple.Args.Length; i++) {
             result.Add(DafnyModelVariableFactory.Get(state, Unbox(fnTuple.Args[i]),
               "[" + i + "]", var));

@@ -33,8 +33,8 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     public static TheoryData<List<Action<DafnyOptions>>> OptionSettings() {
       var optionSettings = new TheoryData<List<Action<DafnyOptions>>>();
-      optionSettings.Add(new() { options => options.TypeEncodingMethod = CoreOptions.TypeEncoding.Arguments });
       optionSettings.Add(new() { options => options.TypeEncodingMethod = CoreOptions.TypeEncoding.Predicates });
+      optionSettings.Add(new() { options => options.TypeEncodingMethod = CoreOptions.TypeEncoding.Arguments });
       return optionSettings;
     }
 
@@ -971,6 +971,96 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       Assert.Equal(1, counterExamples[1].Variables.Count);
       Assert.True(counterExamples[1].Variables.ContainsKey("m:map<int, int>"));
       Assert.Equal("map[]", counterExamples[1].Variables["m:map<int, int>"]);
+    }
+    
+    [Theory][MemberData(nameof(OptionSettings))]
+    public async Task TraitType(List<Action<DafnyOptions>> optionSettings) {
+      await SetUpOptions(optionSettings);
+      var source = @"
+      module M {
+        trait C {
+          predicate Valid() {false}
+        }
+        method test(c:C) {
+          assert c.Valid();
+        }
+      }".TrimStart();
+      var documentItem = CreateTestDocument(source);
+      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+      var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
+      Assert.Single(counterExamples);
+      Assert.Single(counterExamples[0].Variables);
+      Assert.True(counterExamples[0].Variables.ContainsKey("c:M.C"));
+    }
+    
+    [Theory][MemberData(nameof(OptionSettings))]
+    public async Task ArrowType(List<Action<DafnyOptions>> optionSettings) {
+      await SetUpOptions(optionSettings);
+      var source = @"
+      module M {
+        method test() {
+          var c: (int, bool) ~> real;
+          assert c(1, false) == 2.4;
+        }
+      }".TrimStart();
+      var documentItem = CreateTestDocument(source);
+      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+      var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
+      Assert.True(counterExamples[^1].Variables.ContainsKey("c:(int, bool) ~> real"));
+    }
+    
+    [Theory][MemberData(nameof(OptionSettings))]
+    public async Task MapAsTypeArgument(List<Action<DafnyOptions>> optionSettings) {
+      await SetUpOptions(optionSettings);
+      var source = @"
+      method test() {
+        var s : set<map<int,int>> := {map[3:=5]};
+        assert |s| == 0;
+      }".TrimStart();
+      var documentItem = CreateTestDocument(source);
+      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+      var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
+      Assert.Equal(2, counterExamples.Length);
+      Assert.Equal(2, counterExamples[1].Variables.Count);
+      Assert.True(counterExamples[1].Variables.ContainsKey("s:set<map<int, int>>"));
+    }
+    
+    [Theory][MemberData(nameof(OptionSettings))]
+    public async Task DatatypeTypeAsTypeArgument(List<Action<DafnyOptions>> optionSettings) {
+      await SetUpOptions(optionSettings);
+      var source = @"
+      module M {
+        datatype C = A | B
+        method test() {
+          var s : set<C> := {A};
+          assert |s| == 0;
+        }
+      }".TrimStart();
+      var documentItem = CreateTestDocument(source);
+      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+      var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
+      Assert.Equal(2, counterExamples.Length);
+      Assert.Equal(2, counterExamples[1].Variables.Count);
+      Assert.True(counterExamples[1].Variables.ContainsKey("s:set<M.C>"));
+      Assert.Contains(counterExamples[1].Variables.Keys, key => key.EndsWith("M.C"));
+    }
+    
+    [Theory][MemberData(nameof(OptionSettings))]
+    public async Task SetsEmpty(List<Action<DafnyOptions>> optionSettings) {
+      await SetUpOptions(optionSettings);
+      var source = @"
+      method test() {
+        var s : set<int> := {};
+        assert false;
+      }".TrimStart();
+      var documentItem = CreateTestDocument(source);
+      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+      var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
+      Assert.Equal(2, counterExamples.Length);
+      Assert.Equal(1, counterExamples[1].Variables.Count);
+      // Cannot infer the type when Arguments polymorphic encoding is used
+      Assert.True(counterExamples[1].Variables.ContainsKey("s:set<?>"));
+      Assert.Equal("{}", counterExamples[1].Variables["s:set<?>"]);
     }
 
     [Theory][MemberData(nameof(OptionSettings))]

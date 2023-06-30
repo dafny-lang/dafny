@@ -55,6 +55,10 @@ class ModelFuncWrapper {
     return app?.Result;
   }
 
+  public ModelFuncTupleWrapper AppWithArg(int index, Model.Element element) {
+    return ConvertFuncTuple(func.AppWithArg(argsToSkip + index, element));
+  }
+
   public Model.Element OptEval(Model.Element first, Model.Element second) {
     if (first == null || second == null) {
       return null;

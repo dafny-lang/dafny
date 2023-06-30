@@ -96,7 +96,10 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
       get {
         var result = state.Model.CanonicalName(Element, Type);
         if (children.Count == 0) {
-          return result == "" ? "()" : result;
+          if (result != "") {
+            return result;
+          }
+          return Type is SetType ? "{}" : "()";
         }
 
         List<(string ChildName, string ChildValue)> childList = new();
