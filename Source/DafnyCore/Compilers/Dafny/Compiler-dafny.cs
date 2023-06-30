@@ -14,7 +14,7 @@ namespace Microsoft.Dafny.Compilers {
     readonly List<TopLevel> items = new();
 
     public ProgramBuilder(DafnyCompiler compiler) {
-      this._compiler = compiler;
+      _compiler = compiler;
     }
 
     public void AddModule(Module item) {
@@ -40,7 +40,7 @@ namespace Microsoft.Dafny.Compilers {
     public DafnyCompiler compiler { get => parent.compiler; }
     readonly ModuleContainer parent;
     readonly string name;
-    List<ModuleItem> body = new List<ModuleItem>();
+    readonly List<ModuleItem> body = new();
 
     public ModuleBuilder(ModuleContainer parent, string name) {
       this.parent = parent;
@@ -59,7 +59,7 @@ namespace Microsoft.Dafny.Compilers {
       body.Add((ModuleItem)ModuleItem.create_Newtype(item));
     }
 
-    public Object Finish() {
+    public object Finish() {
       parent.AddModule((Module)Module.create(Sequence<Rune>.UnicodeFromString(this.name), Sequence<ModuleItem>.FromArray(body.ToArray())));
       return parent;
     }
@@ -94,7 +94,7 @@ namespace Microsoft.Dafny.Compilers {
       body.Add((ClassItem)ClassItem.create_Method(item));
     }
 
-    public Object Finish() {
+    public object Finish() {
       parent.AddClass((Class)Class.create(Sequence<Rune>.UnicodeFromString(this.name), Sequence<ClassItem>.FromArray(body.ToArray())));
       return parent;
     }
@@ -124,7 +124,7 @@ namespace Microsoft.Dafny.Compilers {
       body.Add(item);
     }
 
-    public Object Finish() {
+    public object Finish() {
       parent.AddMethod((DAST.Method)DAST.Method.create(Sequence<Rune>.UnicodeFromString(this.name), Sequence<DAST.Statement>.FromArray(body.ToArray())));
       return parent;
     }
@@ -182,7 +182,7 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    public Object Finish() {
+    public object Finish() {
       if (isDeclare) {
         parent.AddStatement((DAST.Statement)DAST.Statement.create_DeclareVar(Sequence<Rune>.UnicodeFromString(name), type, value));
       } else {
@@ -203,7 +203,7 @@ namespace Microsoft.Dafny.Compilers {
 
   class DafnyCompiler : SinglePassCompiler {
     ProgramBuilder items;
-    public Object currentBuilder;
+    public object currentBuilder;
 
     public void Start() {
       if (items != null) {
@@ -429,7 +429,7 @@ namespace Microsoft.Dafny.Compilers {
         foreach (var method in methods) {
           method.Finish();
         }
-        compiler.currentBuilder = this.builder.Finish();
+        compiler.currentBuilder = builder.Finish();
       }
     }
 
@@ -450,14 +450,16 @@ namespace Microsoft.Dafny.Compilers {
       throw new NotImplementedException();
     }
 
-    DAST.Expression initializationValue = null;
+    // sometimes, the compiler generates the initial value before the declaration,
+    // so we buffer it here
+    DAST.Expression bufferedInitializationValue = null;
 
     protected override string TypeInitializationValue(Type type, ConcreteSyntaxTree wr, IToken tok,
         bool usePlaceboValue, bool constructTypeParameterDefaultsFromTypeDescriptors) {
-      if (this.initializationValue != null) {
+      if (bufferedInitializationValue != null) {
         throw new InvalidOperationException();
       } else {
-        this.initializationValue = (DAST.Expression)DAST.Expression.create_PassThroughExpr(
+        bufferedInitializationValue = (DAST.Expression)DAST.Expression.create_PassThroughExpr(
           Sequence<Rune>.UnicodeFromString("TODO")
         );
 
@@ -484,15 +486,15 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void DeclareLocalVar(string name, Type type, IToken tok, bool leaveRoomForRhs, string rhs,
         ConcreteSyntaxTree wr) {
-      // rhs is null because it is normally computed by TypeInitializationValue, which breaks our control flow
       if (currentBuilder is StatementContainer statementContainer) {
         var typ = GenType(type);
 
-        if (initializationValue == null) {
+        if (bufferedInitializationValue == null) {
+          // we expect an initializer to come *after* this declaration
           currentBuilder = statementContainer.DeclareAndAssign(typ);
         } else {
-          var rhsValue = initializationValue;
-          initializationValue = null;
+          var rhsValue = bufferedInitializationValue;
+          bufferedInitializationValue = null;
 
           statementContainer.AddStatement(
             (DAST.Statement)DAST.Statement.create_DeclareVar(
@@ -557,7 +559,7 @@ namespace Microsoft.Dafny.Compilers {
     protected override ConcreteSyntaxTree EmitAssignment(ILvalue wLhs, Type lhsType /*?*/, Type rhsType /*?*/,
       ConcreteSyntaxTree wr, IToken tok) {
       if (currentBuilder is AssignBuilder) {
-        // do nothing (we are assigning to a declared var)
+        // do nothing (we are assigning to variable that is being declared)
       } else if (currentBuilder is StatementContainer builder) {
         currentBuilder = builder.Assign();
       } else {
@@ -716,11 +718,11 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void EmitThis(ConcreteSyntaxTree wr) {
-      wr.Write("this");
+      throw new NotImplementedException();
     }
 
     protected override void EmitDatatypeValue(DatatypeValue dtv, string arguments, ConcreteSyntaxTree wr) {
-      wr.Write(dtv.ToString());
+      throw new NotImplementedException();
     }
 
     protected override void GetSpecialFieldInfo(SpecialField.ID id, object idParam, Type receiverType,
@@ -774,8 +776,7 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void EmitApplyExpr(Type functionType, IToken tok, Expression function,
         List<Expression> arguments, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
-      wr.Append(Expr(function, inLetExprBody, wStmts));
-      TrExprList(arguments, wr, inLetExprBody, wStmts);
+      throw new NotImplementedException();
     }
 
     protected override ConcreteSyntaxTree EmitBetaRedex(List<string> boundVars, List<Expression> arguments,
@@ -838,144 +839,56 @@ namespace Microsoft.Dafny.Compilers {
       convertE1_to_int = false;
       coerceE1 = false;
 
-      switch (op) {
-        case BinaryExpr.ResolvedOpcode.Iff:
-          opString = "<==>";
-          break;
-        case BinaryExpr.ResolvedOpcode.Imp:
-          opString = "==>";
-          break;
-        case BinaryExpr.ResolvedOpcode.And:
-          opString = "&&";
-          break;
-        case BinaryExpr.ResolvedOpcode.Or:
-          opString = "||";
-          break;
-        case BinaryExpr.ResolvedOpcode.BitwiseAnd:
-          opString = "&";
-          break;
-        case BinaryExpr.ResolvedOpcode.BitwiseOr:
-          opString = "|";
-          break;
-        case BinaryExpr.ResolvedOpcode.BitwiseXor:
-          opString = "^";
-          break;
-        case BinaryExpr.ResolvedOpcode.EqCommon:
-          opString = "==";
-          break;
-        case BinaryExpr.ResolvedOpcode.NeqCommon:
-          opString = "!=";
-          break;
-        case BinaryExpr.ResolvedOpcode.Lt:
-          opString = "<";
-          break;
-        case BinaryExpr.ResolvedOpcode.Le:
-          opString = "<=";
-          break;
-        case BinaryExpr.ResolvedOpcode.Ge:
-          opString = ">=";
-          break;
-        case BinaryExpr.ResolvedOpcode.Gt:
-          opString = ">";
-          break;
-        case BinaryExpr.ResolvedOpcode.LeftShift:
-          opString = "<<";
-          break;
-        case BinaryExpr.ResolvedOpcode.RightShift:
-          opString = ">>";
-          break;
-        case BinaryExpr.ResolvedOpcode.Add:
-          opString = "+";
-          break;
-        case BinaryExpr.ResolvedOpcode.Sub:
-          opString = "-";
-          break;
-        case BinaryExpr.ResolvedOpcode.Mul:
-          opString = "*";
-          break;
-        case BinaryExpr.ResolvedOpcode.Div:
-          opString = "/";
-          break;
-        case BinaryExpr.ResolvedOpcode.Mod:
-          opString = "%";
-          break;
-        case BinaryExpr.ResolvedOpcode.SetEq:
-          opString = "==";
-          break;
-        case BinaryExpr.ResolvedOpcode.MultiSetEq:
-          opString = "==";
-          break;
-        case BinaryExpr.ResolvedOpcode.SeqEq:
-          opString = "==";
-          break;
-        case BinaryExpr.ResolvedOpcode.MapEq:
-          opString = "==";
-          break;
-        case BinaryExpr.ResolvedOpcode.ProperSubset:
-          opString = "<";
-          break;
-        case BinaryExpr.ResolvedOpcode.ProperMultiSubset:
-          opString = "<";
-          break;
-        case BinaryExpr.ResolvedOpcode.Subset:
-          opString = "<=";
-          break;
-        case BinaryExpr.ResolvedOpcode.MultiSubset:
-          opString = "<=";
-          break;
-        case BinaryExpr.ResolvedOpcode.Disjoint:
-          opString = "!!";
-          break;
-        case BinaryExpr.ResolvedOpcode.MultiSetDisjoint:
-          opString = "!!";
-          break;
-        case BinaryExpr.ResolvedOpcode.InSet:
-          opString = "in";
-          break;
-        case BinaryExpr.ResolvedOpcode.InMultiSet:
-          opString = "in";
-          break;
-        case BinaryExpr.ResolvedOpcode.InMap:
-          opString = "in";
-          break;
-        case BinaryExpr.ResolvedOpcode.Union:
-          opString = "+";
-          break;
-        case BinaryExpr.ResolvedOpcode.MultiSetUnion:
-          opString = "+";
-          break;
-        case BinaryExpr.ResolvedOpcode.MapMerge:
-          opString = "+";
-          break;
-        case BinaryExpr.ResolvedOpcode.Intersection:
-          opString = "*";
-          break;
-        case BinaryExpr.ResolvedOpcode.MultiSetIntersection:
-          opString = "*";
-          break;
-        case BinaryExpr.ResolvedOpcode.SetDifference:
-          opString = "-";
-          break;
-        case BinaryExpr.ResolvedOpcode.MultiSetDifference:
-          opString = "-";
-          break;
-        case BinaryExpr.ResolvedOpcode.MapSubtraction:
-          opString = "-";
-          break;
-        case BinaryExpr.ResolvedOpcode.ProperPrefix:
-          opString = "<=";
-          break;
-        case BinaryExpr.ResolvedOpcode.Prefix:
-          opString = "<";
-          break;
-        case BinaryExpr.ResolvedOpcode.Concat:
-          opString = "+";
-          break;
-        case BinaryExpr.ResolvedOpcode.InSeq:
-          opString = "in";
-          break;
-      }
+      opString = op switch {
+        BinaryExpr.ResolvedOpcode.Iff => "<==>",
+        BinaryExpr.ResolvedOpcode.Imp => "==>",
+        BinaryExpr.ResolvedOpcode.And => "&&",
+        BinaryExpr.ResolvedOpcode.Or => "||",
+        BinaryExpr.ResolvedOpcode.BitwiseAnd => "&",
+        BinaryExpr.ResolvedOpcode.BitwiseOr => "|",
+        BinaryExpr.ResolvedOpcode.BitwiseXor => "^",
+        BinaryExpr.ResolvedOpcode.EqCommon => "==",
+        BinaryExpr.ResolvedOpcode.NeqCommon => "!=",
+        BinaryExpr.ResolvedOpcode.Lt => "<",
+        BinaryExpr.ResolvedOpcode.Le => "<=",
+        BinaryExpr.ResolvedOpcode.Ge => ">=",
+        BinaryExpr.ResolvedOpcode.Gt => ">",
+        BinaryExpr.ResolvedOpcode.LeftShift => "<<",
+        BinaryExpr.ResolvedOpcode.RightShift => ">>",
+        BinaryExpr.ResolvedOpcode.Add => "+",
+        BinaryExpr.ResolvedOpcode.Sub => "-",
+        BinaryExpr.ResolvedOpcode.Mul => "*",
+        BinaryExpr.ResolvedOpcode.Div => "/",
+        BinaryExpr.ResolvedOpcode.Mod => "%",
+        BinaryExpr.ResolvedOpcode.SetEq => "==",
+        BinaryExpr.ResolvedOpcode.MultiSetEq => "==",
+        BinaryExpr.ResolvedOpcode.SeqEq => "==",
+        BinaryExpr.ResolvedOpcode.MapEq => "==",
+        BinaryExpr.ResolvedOpcode.ProperSubset => "<",
+        BinaryExpr.ResolvedOpcode.ProperMultiSubset => "<",
+        BinaryExpr.ResolvedOpcode.Subset => "<=",
+        BinaryExpr.ResolvedOpcode.MultiSubset => "<=",
+        BinaryExpr.ResolvedOpcode.Disjoint => "!!",
+        BinaryExpr.ResolvedOpcode.MultiSetDisjoint => "!!",
+        BinaryExpr.ResolvedOpcode.InSet => "in",
+        BinaryExpr.ResolvedOpcode.InMultiSet => "in",
+        BinaryExpr.ResolvedOpcode.InMap => "in",
+        BinaryExpr.ResolvedOpcode.Union => "+",
+        BinaryExpr.ResolvedOpcode.MultiSetUnion => "+",
+        BinaryExpr.ResolvedOpcode.MapMerge => "+",
+        BinaryExpr.ResolvedOpcode.Intersection => "*",
+        BinaryExpr.ResolvedOpcode.MultiSetIntersection => "*",
+        BinaryExpr.ResolvedOpcode.SetDifference => "-",
+        BinaryExpr.ResolvedOpcode.MultiSetDifference => "-",
+        BinaryExpr.ResolvedOpcode.MapSubtraction => "-",
+        BinaryExpr.ResolvedOpcode.ProperPrefix => "<=",
+        BinaryExpr.ResolvedOpcode.Prefix => "<",
+        BinaryExpr.ResolvedOpcode.Concat => "+",
+        BinaryExpr.ResolvedOpcode.InSeq => "in",
+        _ => throw new NotImplementedException(),
+      };
 
+      throw new NotImplementedException();
     }
 
     protected override void EmitITE(Expression guard, Expression thn, Expression els, Type resultType, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
@@ -987,27 +900,21 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void EmitConversionExpr(ConversionExpr e, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
-      wr.Write(e.ToString());
+      throw new NotImplementedException();
     }
 
     protected override void EmitTypeTest(string localName, Type fromType, Type toType, IToken tok, ConcreteSyntaxTree wr) {
-      throw new UnsupportedFeatureException(tok, Feature.TypeTests);
+      throw new NotImplementedException();
     }
 
     protected override void EmitCollectionDisplay(CollectionType ct, IToken tok, List<Expression> elements,
       bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
-      var (open, close) = ct switch {
-        SeqType => ("[", "]"),
-        _ => ("{", "}")
-      };
-      wr.Write(open);
-      TrExprList(elements, wr, inLetExprBody, wStmts, parens: false);
-      wr.Write(close);
+      throw new NotImplementedException();
     }
 
     protected override void EmitMapDisplay(MapType mt, IToken tok, List<ExpressionPair> elements, bool inLetExprBody,
       ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
-      throw new UnsupportedFeatureException(tok, Feature.MapComprehensions);
+      throw new NotImplementedException();
     }
 
     protected override void EmitSetBuilder_New(ConcreteSyntaxTree wr, SetComprehension e, string collectionName) {
@@ -1015,7 +922,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void EmitMapBuilder_New(ConcreteSyntaxTree wr, MapComprehension e, string collectionName) {
-      throw new UnsupportedFeatureException(e.tok, Feature.MapComprehensions);
+      throw new NotImplementedException();
     }
 
     protected override void EmitSetBuilder_Add(CollectionType ct, string collName, Expression elmt, bool inLetExprBody,
@@ -1025,7 +932,7 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override ConcreteSyntaxTree EmitMapBuilder_Add(MapType mt, IToken tok, string collName, Expression term,
         bool inLetExprBody, ConcreteSyntaxTree wr) {
-      throw new UnsupportedFeatureException(tok, Feature.MapComprehensions);
+      throw new NotImplementedException();
     }
 
     protected override string GetSubtypeCondition(string tmpVarName, Type boundVarType, IToken tok, ConcreteSyntaxTree wPreconditions) {
@@ -1042,7 +949,7 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void EmitSingleValueGenerator(Expression e, bool inLetExprBody, string type,
       ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
-      throw new UnsupportedFeatureException(Token.NoToken, Feature.ExactBoundedPool);
+      throw new NotImplementedException();
     }
 
     protected override void EmitHaltRecoveryStmt(Statement body, string haltMessageVarName, Statement recoveryBody, ConcreteSyntaxTree wr) {
