@@ -525,7 +525,7 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
     sig.VisibilityScope.Augment(VisibilityScope);
 
     // This is solely used to detect duplicates amongst the various e
-    Dictionary<string, TopLevelDecl> toplevels = new Dictionary<string, TopLevelDecl>();
+    ISet<string> toplevels = new HashSet<string>();
     // Now add the things present
     var anonymousImportCount = 0;
     foreach (TopLevelDecl d in TopLevelDecls) {
@@ -549,7 +549,7 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
         registerThisDecl = d;
         registerUnderThisName = string.Format("{0}#{1}", d.Name, anonymousImportCount);
         anonymousImportCount++;
-      } else if (toplevels.ContainsKey(d.Name)) {
+      } else if (toplevels.Contains(d.Name)) {
         resolver.reporter.Error(MessageSource.Resolver, d, "duplicate name of top-level declaration: {0}", d.Name);
       } else if (d is ClassLikeDecl { NonNullTypeDecl: { } nntd }) {
         registerThisDecl = nntd;
@@ -560,7 +560,7 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
       }
 
       if (registerThisDecl != null) {
-        toplevels[registerUnderThisName] = registerThisDecl;
+        toplevels.Add(registerUnderThisName);
         sig.TopLevels[registerUnderThisName] = registerThisDecl;
       }
 
@@ -594,8 +594,10 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
             sig.StaticMembers[m.Name] = m;
           }
 
-          if (toplevels.ContainsKey(m.Name)) {
+          if (toplevels.Contains(m.Name)) {
             resolver.reporter.Error(MessageSource.Resolver, m.tok, $"duplicate declaration for name {m.Name}");
+          } else {
+            toplevels.Add(m.Name);
           }
         }
 
@@ -716,13 +718,12 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
     foreach (TopLevelDecl d in TopLevelDecls) {
       if ((d as ClassLikeDecl)?.NonNullTypeDecl != null) {
         var name = d.Name + "?";
-        TopLevelDecl prev;
-        if (toplevels.TryGetValue(name, out prev)) {
+        if (toplevels.Contains(name)) {
           resolver.reporter.Error(MessageSource.Resolver, d,
             "a module that already contains a top-level declaration '{0}' is not allowed to declare a {1} '{2}'",
             name, d.WhatKind, d.Name);
         } else {
-          toplevels[name] = d;
+          toplevels.Add(name);
           sig.TopLevels[name] = d;
         }
       }
