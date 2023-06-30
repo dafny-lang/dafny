@@ -1267,8 +1267,8 @@ namespace Microsoft.Dafny {
       Bpl.IdentifierExpr o = new Bpl.IdentifierExpr(s.Tok, oVar);
       Bpl.BoundVariable fVar = new Bpl.BoundVariable(s.Tok, new Bpl.TypedIdent(s.Tok, "$f", predef.FieldName(s.Tok, predef.BoxType)));
       Bpl.IdentifierExpr f = new Bpl.IdentifierExpr(s.Tok, fVar);
-      Bpl.Expr heapOF = ReadHeap(s.Tok, etran.HeapExpr, o, f);
-      Bpl.Expr oldHeapOF = ReadHeap(s.Tok, prevHeap, o, f);
+      Bpl.Expr heapOF = ReadHeapDirect(s.Tok, etran.HeapExpr, o, f, predef.BoxType);
+      Bpl.Expr oldHeapOF = ReadHeapDirect(s.Tok, prevHeap, o, f, predef.BoxType);
       List<bool> freeOfAlloc = ComprehensionExpr.BoundedPool.HasBounds(s.Bounds, ComprehensionExpr.BoundedPool.PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc);
       List<Variable> xBvars = new List<Variable>();
       var xBody = etran.TrBoundVariables(s.BoundVars, xBvars, false, freeOfAlloc);

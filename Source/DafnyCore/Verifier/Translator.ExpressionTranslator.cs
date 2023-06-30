@@ -437,9 +437,10 @@ namespace Microsoft.Dafny {
               var e = selectExpr;
               return e.MemberSelectCase(
                 field => {
+                  var fieldType = translator.TrType(field.Type);
                   var useSurrogateLocal = translator.inBodyInitContext && Expression.AsThis(e.Obj) != null && !field.IsInstanceIndependentConstant;
                   if (useSurrogateLocal) {
-                    return new Boogie.IdentifierExpr(GetToken(expr), translator.SurrogateName(field), translator.TrType(field.Type));
+                    return new Boogie.IdentifierExpr(GetToken(expr), translator.SurrogateName(field), fieldType);
                   } else if (field is ConstantField) {
                     var typeMap = e.TypeArgumentSubstitutionsWithParents();
                     var args = GetTypeParams(field.EnclosingClass).ConvertAll(tp => translator.TypeToTy(typeMap[tp]));
@@ -457,7 +458,7 @@ namespace Microsoft.Dafny {
                     Boogie.Expr obj = TrExpr(e.Obj);
                     Boogie.Expr result;
                     if (field.IsMutable) {
-                      result = ReadHeap(GetToken(expr), HeapExpr, obj, new Boogie.IdentifierExpr(GetToken(expr), translator.GetField(field)));
+                      result = ReadHeap(GetToken(expr), HeapExpr, obj, new Boogie.IdentifierExpr(GetToken(expr), translator.GetField(field)), fieldType);
                       return translator.CondApplyUnbox(GetToken(expr), result, field.Type, expr.Type);
                     } else {
                       result = new Boogie.NAryExpr(GetToken(expr), new Boogie.FunctionCall(translator.GetReadonlyField(field)),
@@ -523,7 +524,7 @@ namespace Microsoft.Dafny {
                 Boogie.Expr x;
                 if (seqType.IsArrayType) {
                   Boogie.Expr fieldName = translator.FunctionCall(GetToken(selectExpr), BuiltinFunction.IndexField, null, e0);
-                  x = ReadHeap(GetToken(selectExpr), HeapExpr, TrExpr(e.Seq), fieldName);
+                  x = ReadHeap(GetToken(selectExpr), HeapExpr, TrExpr(e.Seq), fieldName, predef.BoxType);
                 } else if (seqType is SeqType) {
                   x = translator.FunctionCall(GetToken(selectExpr), BuiltinFunction.SeqIndex, predef.BoxType, seq, e0);
                 } else if (seqType is MapType) {
@@ -591,7 +592,7 @@ namespace Microsoft.Dafny {
               Boogie.Type elType = translator.TrType(elmtType);
 
               Boogie.Expr fieldName = GetArrayIndexFieldName(GetToken(selectExpr), e.Indices);
-              Boogie.Expr x = ReadHeap(GetToken(selectExpr), HeapExpr, TrExpr(e.Array), fieldName);
+              Boogie.Expr x = ReadHeap(GetToken(selectExpr), HeapExpr, TrExpr(e.Array), fieldName, predef.BoxType);
               if (!ModeledAsBoxType(elmtType)) {
                 x = translator.FunctionCall(GetToken(selectExpr), BuiltinFunction.Unbox, elType, x);
               }

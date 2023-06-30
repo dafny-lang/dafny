@@ -1959,7 +1959,7 @@ namespace Microsoft.Dafny {
           FunctionCall(iter.tok, BuiltinFunction.SeqLength, null,
           ReadHeap(iter.tok, etran.HeapExpr,
             new Bpl.IdentifierExpr(iter.tok, etran.This, predef.RefType),
-            new Bpl.IdentifierExpr(iter.tok, GetField(ys))))));
+            new Bpl.IdentifierExpr(iter.tok, GetField(ys)), TrType(ys.Type)))));
       }
       return wh;
     }
