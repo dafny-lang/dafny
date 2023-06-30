@@ -190,7 +190,7 @@ public class ProjectManager : IDisposable {
 
     return false;
   }
-  
+
   public async Task CloseAsync() {
     CompilationManager.CancelPendingUpdates();
     try {

@@ -22,8 +22,31 @@ public class MultipleFilesTest : ClientBasedLanguageServerTest {
   }
 
   [Fact]
-  public void ClosingAProjectWithTwoFilesPreventsDiagnosticsFromComingIn() {
+  public async Task ClosingAllFilesInAProjectClosesTheProject() {
+    await SetUp(options => {
+      options.Set(BoogieOptionBag.Cores, 1U);
+    });
+
+    var directory = Path.GetRandomFileName();
+    var projectFile = CreateTestDocument("", Path.Combine(directory, "dfyconfig.toml"));
+    await client.OpenDocumentAndWaitAsync(projectFile, CancellationToken);
+    var codeFile = CreateTestDocument("method Foo() {}", Path.Combine(directory, "firstFile.dfy"));
+    await client.OpenDocumentAndWaitAsync(codeFile, CancellationToken);
     
+    Assert.NotEmpty(Projects.Managers);
+    
+    await client.CloseDocumentAndWaitAsync(projectFile, CancellationToken);
+    Assert.NotEmpty(Projects.Managers);
+    
+    await client.CloseDocumentAndWaitAsync(codeFile, CancellationToken);
+
+    var retryCount = 10;
+    for (int i = 0; i < retryCount; i++) {
+      if (!Projects.Managers.Any()) {
+        break;
+      }
+      await Task.Delay(100);
+    }
   }
   
   [Fact]
