@@ -38,14 +38,7 @@
 // TODO: Won't work on windows
 // RUN: env GO111MODULE=auto GOPATH=%S/Inputs/producer/timesTwo-go:%S/consumer/usesTimesTwo-go go run %S/consumer/usesTimesTwo-go/src/usesTimesTwo.go >> "%t"
 
-// Javascript
-
-// Must --include-runtime?
-// RUN: %baredafny translate js --output=%S/Inputs/producer/timesTwo %S/Inputs/producer/timesTwo.dfy --include-runtime
-
-// RUN: %baredafny translate js --output=%S/consumer/usesTimesTwo --library=%S/Inputs/producer/timesTwo.dfy %s
-
-// TODO: Probably needs actual package.json files like C#
+// (Javascript doesn't support this yet)
 
 // Final output check for all runs
 
