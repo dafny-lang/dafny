@@ -215,117 +215,6 @@ module _System {
  * SCC at height 0:
  *   MyClass.S
  */
-class MyClass<A, B> {
-  greatest predicate P<X, Y>(x: X, y: Y)
-  {
-    P(x, y)
-  }
-  /*** (note, what is printed here does not show substitutions of calls to prefix predicates)
-  predicate P#<X, Y>[_k: ORDINAL](x: X, y: Y)
-    decreases _k
-  {
-    P(x, y)
-  }
-  ***/
-
-  greatest predicate R<T>()
-  {
-    R<T>()
-  }
-  /*** (note, what is printed here does not show substitutions of calls to prefix predicates)
-  predicate R#<T>[_k: ORDINAL]()
-    decreases _k
-  {
-    R<T>()
-  }
-  ***/
-
-  static greatest predicate S<Q>()
-  {
-    S<Q>()
-  }
-  /*** (note, what is printed here does not show substitutions of calls to prefix predicates)
-  static predicate S#<Q>[_k: ORDINAL]()
-    decreases _k
-  {
-    S<Q>()
-  }
-  ***/
-
-  static greatest predicate RST<QQ>()
-  {
-    MyClass<B, A>.RST<QQ>()
-  }
-  /*** (note, what is printed here does not show substitutions of calls to prefix predicates)
-  static predicate RST#<QQ>[_k: ORDINAL]()
-    decreases _k
-  {
-    MyClass<B, A>.RST<QQ>()
-  }
-  ***/
-
-  static greatest predicate RST_Nat<QQ>[nat]()
-  {
-    MyClass<B, A>.RST_Nat<QQ>()
-  }
-  /*** (note, what is printed here does not show substitutions of calls to prefix predicates)
-  static predicate RST_Nat#<QQ>[_k: nat]()
-    decreases _k
-  {
-    MyClass<B, A>.RST_Nat<QQ>()
-  }
-  ***/
-
-  greatest lemma L<U, V>(u: U, v: V)
-    ensures P(u, v)
-  {
-    L(u, v);
-  }
-  /***
-  lemma /*{:_induction this, _k}*/ L#<U, V>[_k: ORDINAL](u: U, v: V)
-    ensures P#[_k](u, v)
-    decreases _k
-  {
-    if 0 < _k.Offset {
-      L#[_k - 1](u, v);
-    } else {
-      forall _k': ORDINAL, u: U, v: V /*{:_autorequires}*/ /*{:_trustWellformed}*/ {:auto_generated} {:trigger this.P#[_k'](u, v)} | _k' < _k
-        ensures this.P#[_k'](u, v)
-      {
-        L#[_k'](u, v)
-      }
-    }
-  }
-  ***/
-
-  greatest lemma M<W>()
-    ensures R<char>()
-  {
-    M<W>();
-    assert R#<char>[_k - 1]();
-  }
-  /***
-  lemma /*{:_induction this, _k}*/ M#<W>[_k: ORDINAL]()
-    ensures R#<char>[_k]()
-    decreases _k
-  {
-    if 0 < _k.Offset {
-      M#<W>[_k - 1]();
-      assert R#<char>[_k - 1]();
-    } else {
-      forall _k': ORDINAL /*{:_autorequires}*/ /*{:_trustWellformed}*/ {:auto_generated} {:trigger this.R#[_k']()} {:trigger _k' < _k} | _k' < _k
-        ensures this.R#[_k']()
-      {
-        M#[_k']()
-      }
-    }
-  }
-  ***/
-}
-/*-- non-null type
-type {:axiom} MyClass(==)<A, B> = c: MyClass?<A, B> | c != null /*special witness*/
-*/
-
 greatest lemma N<D0, D1, D2>(o: MyClass<D0, D1>)
   ensures o.R<D2>()
 {
@@ -621,6 +510,117 @@ lemma /*{:_induction _k}*/ RstRst10#<alpha, beta, gamma>[_k: nat]()
   }
 }
 ***/
+
+class MyClass<A, B> {
+  greatest predicate P<X, Y>(x: X, y: Y)
+  {
+    P(x, y)
+  }
+  /*** (note, what is printed here does not show substitutions of calls to prefix predicates)
+  predicate P#<X, Y>[_k: ORDINAL](x: X, y: Y)
+    decreases _k
+  {
+    P(x, y)
+  }
+  ***/
+
+  greatest predicate R<T>()
+  {
+    R<T>()
+  }
+  /*** (note, what is printed here does not show substitutions of calls to prefix predicates)
+  predicate R#<T>[_k: ORDINAL]()
+    decreases _k
+  {
+    R<T>()
+  }
+  ***/
+
+  static greatest predicate S<Q>()
+  {
+    S<Q>()
+  }
+  /*** (note, what is printed here does not show substitutions of calls to prefix predicates)
+  static predicate S#<Q>[_k: ORDINAL]()
+    decreases _k
+  {
+    S<Q>()
+  }
+  ***/
+
+  static greatest predicate RST<QQ>()
+  {
+    MyClass<B, A>.RST<QQ>()
+  }
+  /*** (note, what is printed here does not show substitutions of calls to prefix predicates)
+  static predicate RST#<QQ>[_k: ORDINAL]()
+    decreases _k
+  {
+    MyClass<B, A>.RST<QQ>()
+  }
+  ***/
+
+  static greatest predicate RST_Nat<QQ>[nat]()
+  {
+    MyClass<B, A>.RST_Nat<QQ>()
+  }
+  /*** (note, what is printed here does not show substitutions of calls to prefix predicates)
+  static predicate RST_Nat#<QQ>[_k: nat]()
+    decreases _k
+  {
+    MyClass<B, A>.RST_Nat<QQ>()
+  }
+  ***/
+
+  greatest lemma L<U, V>(u: U, v: V)
+    ensures P(u, v)
+  {
+    L(u, v);
+  }
+  /***
+  lemma /*{:_induction this, _k}*/ L#<U, V>[_k: ORDINAL](u: U, v: V)
+    ensures P#[_k](u, v)
+    decreases _k
+  {
+    if 0 < _k.Offset {
+      L#[_k - 1](u, v);
+    } else {
+      forall _k': ORDINAL, u: U, v: V /*{:_autorequires}*/ /*{:_trustWellformed}*/ {:auto_generated} {:trigger this.P#[_k'](u, v)} | _k' < _k
+        ensures this.P#[_k'](u, v)
+      {
+        L#[_k'](u, v)
+      }
+    }
+  }
+  ***/
+
+  greatest lemma M<W>()
+    ensures R<char>()
+  {
+    M<W>();
+    assert R#<char>[_k - 1]();
+  }
+  /***
+  lemma /*{:_induction this, _k}*/ M#<W>[_k: ORDINAL]()
+    ensures R#<char>[_k]()
+    decreases _k
+  {
+    if 0 < _k.Offset {
+      M#<W>[_k - 1]();
+      assert R#<char>[_k - 1]();
+    } else {
+      forall _k': ORDINAL /*{:_autorequires}*/ /*{:_trustWellformed}*/ {:auto_generated} {:trigger this.R#[_k']()} {:trigger _k' < _k} | _k' < _k
+        ensures this.R#[_k']()
+      {
+        M#[_k']()
+      }
+    }
+  }
+  ***/
+}
+/*-- non-null type
+type {:axiom} MyClass(==)<A, B> = c: MyClass?<A, B> | c != null /*special witness*/
+*/
 PrefixTypeSubst.dfy(52,0): Error: a postcondition could not be proved on this return path
 PrefixTypeSubst.dfy(51,30): Related location: this is the postcondition that could not be proved
 PrefixTypeSubst.dfy(19,17): Related location
