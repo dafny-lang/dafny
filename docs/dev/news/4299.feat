@@ -1,0 +1,1 @@
+Counterexample parsing now supports both the 'Arguments' and 'Predicates' polymorphism encoding in Boogie.
