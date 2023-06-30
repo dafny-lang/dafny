@@ -10,10 +10,11 @@ using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 using OmniSharp.Extensions.JsonRpc;
 using OmniSharp.Extensions.LanguageServer.Client;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
+using Xunit;
 using Xunit.Abstractions;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
-namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Diagnostics;
+namespace Microsoft.Dafny.LanguageServer.IntegrationTest.GutterStatus;
 
 public abstract class LinearVerificationGutterStatusTester : ClientBasedLanguageServerTest {
   protected TestNotificationReceiver<VerificationStatusGutter> verificationStatusGutterReceiver;
@@ -80,6 +81,7 @@ public abstract class LinearVerificationGutterStatusTester : ClientBasedLanguage
       renderedCode += ":";
       renderedCode += codeLines[line];
     }
+    Assert.All(statusesTrace, trace => Assert.Equal(codeLines.Length, trace.Length));
 
     return renderedCode;
   }

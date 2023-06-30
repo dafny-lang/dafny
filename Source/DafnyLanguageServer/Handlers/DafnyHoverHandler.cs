@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using Microsoft.Dafny.LanguageServer.Language.Symbols;
@@ -89,6 +90,11 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
             diagnostic.Source == MessageSource.Resolver.ToString()))) {
         return null;
       }
+
+      if (state.VerificationTree == null) {
+        return null;
+      }
+
       foreach (var node in state.VerificationTree.Children.OfType<TopLevelDeclMemberVerificationTree>()) {
         if (!node.Range.Contains(position)) {
           continue;
@@ -363,7 +369,11 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
         nodeResourceCount /= 1000;
         suffix += 1; // We don't go past 4 because no suffix beyond T should be useful
       }
-      var nodeResourceCountStr = $"{nodeResourceCount:n0}";
+      var nfi = new NumberFormatInfo() {
+        NumberDecimalDigits = 0,
+        NumberGroupSeparator = "",
+      };
+      var nodeResourceCountStr = nodeResourceCount.ToString(nfi);
       var fractionalStr = nodeResourceCountStr.Length >= SignificativeDigits || suffix == 0 ?
         "" :
         "." + $"{fractional:000}".Remove(SignificativeDigits - nodeResourceCountStr.Length);

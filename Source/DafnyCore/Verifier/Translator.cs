@@ -1327,16 +1327,17 @@ namespace Microsoft.Dafny {
     void AddRedirectingTypeDeclAxioms<T>(bool is_alloc, T dd, string fullName)
       where T : TopLevelDecl, RedirectingTypeDecl {
       Contract.Requires(dd != null);
+      Contract.Requires((dd.Var != null && dd.Constraint != null) || dd is NewtypeDecl);
       Contract.Requires(fullName != null);
-
-      var rhsType = (dd as NewtypeDecl)?.BaseType ?? dd.Var.Type;
 
       List<Bpl.Expr> typeArgs;
       var vars = MkTyParamBinders(dd.TypeArgs, out typeArgs);
       var o_ty = ClassTyCon(dd, typeArgs);
 
-      var oBplType = TrType(rhsType);
-      var o = BplBoundVar(dd.Var != null ? dd.Var.AssignUniqueName(dd.IdGenerator) : "$this", oBplType, vars);
+      var baseType = dd.Var != null ? dd.Var.Type : ((NewtypeDecl)(object)dd).BaseType;
+      var oBplType = TrType(baseType);
+      var c = new BoundVar(dd.tok, CurrentIdGenerator.FreshId("c"), baseType);
+      var o = BplBoundVar((dd.Var ?? c).AssignUniqueName((dd.IdGenerator)), oBplType, vars);
 
       Bpl.Expr body, is_o;
       string comment;
@@ -1345,34 +1346,29 @@ namespace Microsoft.Dafny {
         comment = $"$IsAlloc axiom for {dd.WhatKind} {fullName}";
         var h = BplBoundVar("$h", predef.HeapType, vars);
         // $IsAlloc(o, ..)
-        is_o = MkIsAlloc(o, o_ty, h, ModeledAsBoxType(rhsType));
-        if (rhsType.IsNumericBased() || rhsType.IsBitVectorType || rhsType.IsBoolType || rhsType.IsCharType) {
+        is_o = MkIsAlloc(o, o_ty, h, ModeledAsBoxType(baseType));
+        if (baseType.IsNumericBased() || baseType.IsBitVectorType || baseType.IsBoolType || baseType.IsCharType) {
           body = is_o;
         } else {
-          Bpl.Expr rhs = MkIsAlloc(o, rhsType, h);
+          Bpl.Expr rhs = MkIsAlloc(o, baseType, h);
           body = BplIff(is_o, rhs);
         }
       } else {
         comment = $"$Is axiom for {dd.WhatKind} {fullName}";
         // $Is(o, ..)
-        is_o = MkIs(o, o_ty, ModeledAsBoxType(rhsType));
+        is_o = MkIs(o, o_ty, ModeledAsBoxType(baseType));
         var etran = new ExpressionTranslator(this, predef, NewOneHeapExpr(dd.tok));
         Bpl.Expr parentConstraint, constraint;
-        if (rhsType.IsNumericBased() || rhsType.IsBitVectorType || rhsType.IsBoolType || rhsType.IsCharType) {
+        if (baseType.IsNumericBased() || baseType.IsBitVectorType || baseType.IsBoolType || baseType.IsCharType) {
           // optimize this to only use the numeric/bitvector constraint, not the whole $Is thing on the base type
           parentConstraint = Bpl.Expr.True;
           var udt = UserDefinedType.FromTopLevelDecl(dd.tok, dd);
-          Expression c;
-          if (dd.Var != null) {
-            c = Resolver.GetImpliedTypeConstraint(dd.Var, udt);
-          } else {
-            c = Resolver.GetImpliedTypeConstraint(new BoogieWrapper(o, rhsType), udt);
-          }
-          constraint = etran.TrExpr(c);
+          var substitutee = Expression.CreateIdentExpr(dd.Var ?? c);
+          constraint = etran.TrExpr(Resolver.GetImpliedTypeConstraint(substitutee, udt));
         } else {
-          parentConstraint = MkIs(o, rhsType);
+          parentConstraint = MkIs(o, baseType);
           // conjoin the constraint
-          constraint = etran.TrExpr(dd.Constraint);
+          constraint = etran.TrExpr(dd.Constraint ?? Expression.CreateBoolLiteral(dd.tok, true));
         }
         body = BplIff(is_o, BplAnd(parentConstraint, constraint));
       }
