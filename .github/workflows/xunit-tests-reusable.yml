@@ -33,7 +33,7 @@ jobs:
     env:
       solutionPath: Source/Dafny.sln
       z3BaseUri: https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2023-02-17
-      Logging__LogLevel__Microsoft: Information
+      Logging__LogLevel__Microsoft: Debug
     steps:
     - uses: actions/checkout@v3
       with:
