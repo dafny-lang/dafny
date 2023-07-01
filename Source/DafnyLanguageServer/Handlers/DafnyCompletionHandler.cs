@@ -15,14 +15,14 @@ using System.Threading.Tasks;
 namespace Microsoft.Dafny.LanguageServer.Handlers {
   public class DafnyCompletionHandler : CompletionHandlerBase {
     private readonly ILogger logger;
-    private readonly IDocumentDatabase documents;
+    private readonly IProjectDatabase projects;
     private readonly ISymbolGuesser symbolGuesser;
     private DafnyOptions options;
 
-    public DafnyCompletionHandler(ILogger<DafnyCompletionHandler> logger, IDocumentDatabase documents,
+    public DafnyCompletionHandler(ILogger<DafnyCompletionHandler> logger, IProjectDatabase projects,
       ISymbolGuesser symbolGuesser, DafnyOptions options) {
       this.logger = logger;
-      this.documents = documents;
+      this.projects = projects;
       this.symbolGuesser = symbolGuesser;
       this.options = options;
     }
@@ -43,7 +43,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
 
     public override async Task<CompletionList> Handle(CompletionParams request, CancellationToken cancellationToken) {
       logger.LogDebug("Completion params received");
-      var document = await documents.GetResolvedDocumentAsync(request.TextDocument);
+      var document = await projects.GetResolvedDocumentAsync(request.TextDocument);
       if (document == null) {
         logger.LogWarning("location requested for unloaded document {DocumentUri}", request.TextDocument.Uri);
         return new CompletionList();
