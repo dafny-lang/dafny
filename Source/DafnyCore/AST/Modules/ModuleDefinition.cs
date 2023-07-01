@@ -380,7 +380,7 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
   /// resolved, a caller has to check for both a change in error count and a "false"
   /// return value.
   /// </summary>
-  public bool Resolve(ModuleSignature sig, Resolver resolver, bool isAnExport = false) {
+  public bool Resolve(ModuleSignature sig, ModuleResolver resolver, bool isAnExport = false) {
     Contract.Requires(resolver.AllTypeConstraints.Count == 0);
     Contract.Ensures(resolver.AllTypeConstraints.Count == 0);
 
@@ -421,9 +421,9 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
     }
 
     var oldModuleInfo = resolver.moduleInfo;
-    resolver.moduleInfo = Resolver.MergeSignature(sig, resolver.ProgramResolver.SystemModuleManager.systemNameInfo);
+    resolver.moduleInfo = ModuleResolver.MergeSignature(sig, resolver.ProgramResolver.SystemModuleManager.systemNameInfo);
     Type.PushScope(resolver.moduleInfo.VisibilityScope);
-    Resolver.ResolveOpenedImports(resolver.moduleInfo, this, resolver.Reporter, resolver); // opened imports do not persist
+    ModuleResolver.ResolveOpenedImports(resolver.moduleInfo, this, resolver.Reporter, resolver); // opened imports do not persist
     var datatypeDependencies = new Graph<IndDatatypeDecl>();
     var codatatypeDependencies = new Graph<CoDatatypeDecl>();
     var allDeclarations = AllDeclarationsAndNonNullTypeDecls(TopLevelDecls).ToList();
@@ -541,7 +541,7 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
     return prefixNameModule with { Parts = rest };
   }
 
-  public ModuleSignature RegisterTopLevelDecls(Resolver resolver, bool useImports) {
+  public ModuleSignature RegisterTopLevelDecls(ModuleResolver resolver, bool useImports) {
     Contract.Requires(this != null);
     var sig = new ModuleSignature();
     sig.ModuleDef = this;
@@ -765,7 +765,7 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
     return sig;
   }
 
-  private void DetermineReferenceTypes(Resolver resolver, ModuleSignature sig) {
+  private void DetermineReferenceTypes(ModuleResolver resolver, ModuleSignature sig) {
     // Figure out which TraitDecl's are reference types, and for each of them, create a corresponding NonNullTypeDecl.
     // To figure this out, we need to look at the parents of each TraitDecl, but those parents have not yet been resolved.
     // Since we just need the head of each parent, we'll do that name resolution here (and will redo it later, when each parent

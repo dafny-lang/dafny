@@ -54,7 +54,7 @@ class ScopeCloner : DeepModuleSignatureCloner {
         vismap.Add(def, new VisibilityScope());
       }
 
-      sigmap[def] = Resolver.MergeSignature(sigmap[def], import.Signature);
+      sigmap[def] = ModuleResolver.MergeSignature(sigmap[def], import.Signature);
       sigmap[def].ModuleDef = def;
       declmap[def].Add((AliasModuleDecl)top);
       if (VisibleInScope(import)) {

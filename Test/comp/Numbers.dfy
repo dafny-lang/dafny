@@ -630,12 +630,12 @@ module EuclideanDivisionRegressions {
   }
 
   method TestWraparound() {
-    var s0: bv3 := 6 + 3; // 1
-    var s1: bv3 := -1; // 7
-    var s2: bv3 := 4 + 5 - 2; // 7
-    var s3: bv7 := 126 + 3; // 1
-    var s4: bv7 := -1; // 127
-    var s5: bv7 := 64 + 65 - 2; // 127
+    var s0: bv3 := 6 + 3;
+    var s1: bv3 := -1;
+    var s2: bv3 := 4 + 5 - 2;
+    var s3: bv7 := 126 + 3;
+    var s4: bv7 := -1;
+    var s5: bv7 := 64 + 65 - 2;
     print s0, " ", s1, " ", s2, " ", s3, " ", s4, " ", s5, "\n"; // 1 7 7 1 127 127
   }
 

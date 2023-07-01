@@ -13,15 +13,15 @@ namespace Microsoft.Dafny.LanguageServer.Workspace;
 
 public class VerificationProgressReporter : IVerificationProgressReporter {
   private DafnyOptions options;
-  private readonly DocumentAfterTranslation document;
+  private readonly CompilationAfterTranslation compilation;
   private readonly ILogger<VerificationProgressReporter> logger;
   private readonly INotificationPublisher notificationPublisher;
 
   public VerificationProgressReporter(ILogger<VerificationProgressReporter> logger,
-    DocumentAfterTranslation document,
+    CompilationAfterTranslation compilation,
     INotificationPublisher notificationPublisher,
     DafnyOptions options) {
-    this.document = document;
+    this.compilation = compilation;
     this.logger = logger;
     this.notificationPublisher = notificationPublisher;
     this.options = options;
@@ -32,10 +32,10 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
   /// Possibly migrates previous diagnostics
   /// </summary>
   public void RecomputeVerificationTree() {
-    UpdateTree(options, document, document.VerificationTree);
+    UpdateTree(options, compilation, compilation.VerificationTree);
   }
 
-  public static void UpdateTree(DafnyOptions options, DocumentAfterParsing parsedDocument, VerificationTree rootVerificationTree) {
+  public static void UpdateTree(DafnyOptions options, CompilationAfterParsing parsedCompilation, VerificationTree rootVerificationTree) {
     var previousTrees = rootVerificationTree.Children;
 
     List<VerificationTree> result = new List<VerificationTree>();
@@ -61,8 +61,8 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
       }
     }
 
-    var documentFilePath = parsedDocument.Uri.ToUri();
-    foreach (var module in parsedDocument.Program.Modules()) {
+    var documentFilePath = parsedCompilation.Uri.ToUri();
+    foreach (var module in parsedCompilation.Program.Modules()) {
       foreach (var topLevelDecl in module.TopLevelDecls) {
         if (topLevelDecl is DatatypeDecl datatypeDecl) {
           foreach (DatatypeCtor ctor in datatypeDecl.Ctors) {
@@ -76,7 +76,7 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
                 ctor.Name,
                 ctor.GetCompileName(options),
                 ctor.tok.Filepath,
-                parsedDocument.Uri.ToUri(),
+                parsedCompilation.Uri.ToUri(),
                 verificationTreeRange,
                 ctor.tok.GetLspPosition());
               AddAndPossiblyMigrateVerificationTree(verificationTree);
@@ -103,7 +103,7 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
                 member.Name,
                 member.GetCompileName(options),
                 member.tok.Filepath,
-                parsedDocument.Uri.ToUri(),
+                parsedCompilation.Uri.ToUri(),
                 verificationTreeRange,
                 member.tok.GetLspPosition());
               AddAndPossiblyMigrateVerificationTree(verificationTree);
@@ -114,7 +114,7 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
                 member.Name,
                 member.GetCompileName(options),
                 member.tok.Filepath,
-                parsedDocument.Uri.ToUri(),
+                parsedCompilation.Uri.ToUri(),
                 verificationTreeRange,
                 member.tok.GetLspPosition());
               AddAndPossiblyMigrateVerificationTree(verificationTree);
@@ -125,7 +125,7 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
                   member.Name,
                   member.GetCompileName(options) + "_by_method",
                   member.tok.Filepath,
-                  parsedDocument.Uri.ToUri(),
+                  parsedCompilation.Uri.ToUri(),
                   verificationTreeRangeByMethod,
                   function.ByMethodTok.GetLspPosition());
                 AddAndPossiblyMigrateVerificationTree(verificationTreeByMethod);
@@ -145,7 +145,7 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
             subsetTypeDecl.Name,
             subsetTypeDecl.GetCompileName(options),
             subsetTypeDecl.tok.Filepath,
-            parsedDocument.Uri.ToUri(),
+            parsedCompilation.Uri.ToUri(),
             verificationTreeRange,
             subsetTypeDecl.tok.GetLspPosition());
           AddAndPossiblyMigrateVerificationTree(verificationTree);
@@ -165,7 +165,7 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
   public virtual void ReportImplementationsBeforeVerification(Implementation[] implementations) {
     // We migrate existing implementations to the new provided ones if they exist.
     // (same child number, same file and same position)
-    foreach (var methodTree in document.VerificationTree.Children) {
+    foreach (var methodTree in compilation.VerificationTree.Children) {
       methodTree.ResetNewChildren();
     }
 
@@ -174,9 +174,9 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
       var targetMethodNode = GetTargetMethodTree(implementation, out var oldImplementationNode, true);
       if (targetMethodNode == null) {
         var position = implementation.tok.GetLspPosition();
-        var availableMethodNodes = string.Join(",", document.VerificationTree.Children.Select(vt =>
+        var availableMethodNodes = string.Join(",", compilation.VerificationTree.Children.Select(vt =>
           $"{vt.Kind} {vt.DisplayName} at {vt.Filename}:{vt.Position.Line}"));
-        logger.LogError($"In document {document.Uri} and filename {document.VerificationTree.Filename}, " +
+        logger.LogError($"In document {compilation.Uri} and filename {compilation.VerificationTree.Filename}, " +
                         $"no method node at {implementation.tok.filename}:{position.Line}:{position.Character}.\n" +
                         $"Available:" + availableMethodNodes);
         continue;
@@ -197,7 +197,7 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
       targetMethodNode?.AddNewChild(newImplementationNode);
     }
 
-    foreach (var methodNode in document.VerificationTree.Children.OfType<TopLevelDeclMemberVerificationTree>()) {
+    foreach (var methodNode in compilation.VerificationTree.Children.OfType<TopLevelDeclMemberVerificationTree>()) {
       methodNode.SaveNewChildren();
       if (!methodNode.Children.Any()) {
         methodNode.Start();
@@ -215,10 +215,10 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
   /// </summary>
   /// <param name="verificationStarted">Whether verification already started at this point</param>
   /// <param name="document">The document to send. Can be a previous document</param>
-  public void ReportRealtimeDiagnostics(bool verificationStarted, DocumentAfterResolution? document = null) {
+  public void ReportRealtimeDiagnostics(bool verificationStarted, CompilationAfterResolution? document = null) {
     lock (LockProcessing) {
-      document ??= this.document;
-      notificationPublisher.PublishGutterIcons(this.document.InitialIdeState(options), verificationStarted);
+      document ??= this.compilation;
+      notificationPublisher.PublishGutterIcons(this.compilation.InitialIdeState(options), verificationStarted);
     }
   }
 
@@ -398,7 +398,7 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
   /// <param name="nameBased">Whether it should try to locate the implementation using the name rather than the position. Used to relocate previous diagnostics.</param>
   /// <returns>The top-level verification tree</returns>
   private TopLevelDeclMemberVerificationTree? GetTargetMethodTree(Implementation implementation, out ImplementationVerificationTree? implementationTree, bool nameBased = false) {
-    var targetMethodNode = document.VerificationTree.Children.OfType<TopLevelDeclMemberVerificationTree>().FirstOrDefault(
+    var targetMethodNode = compilation.VerificationTree.Children.OfType<TopLevelDeclMemberVerificationTree>().FirstOrDefault(
       node => node?.Position == implementation.tok.GetLspPosition() &&
               node?.Uri == ((IToken)implementation.tok).Uri
       , null);

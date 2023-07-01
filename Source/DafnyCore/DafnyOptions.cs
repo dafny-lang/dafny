@@ -41,7 +41,7 @@ namespace Microsoft.Dafny {
 
     public IList<Uri> CliRootSourceUris = new List<Uri>();
 
-    public ProjectFile ProjectFile { get; set; }
+    public DafnyProject DafnyProject { get; set; }
     public Command CurrentCommand { get; set; }
 
 

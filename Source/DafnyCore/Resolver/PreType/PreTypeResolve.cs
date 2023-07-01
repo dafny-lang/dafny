@@ -12,9 +12,9 @@ using JetBrains.Annotations;
 
 namespace Microsoft.Dafny {
   public abstract class ResolverPass {
-    protected readonly Resolver resolver;
+    protected readonly ModuleResolver resolver;
 
-    protected ResolverPass(Resolver resolver) {
+    protected ResolverPass(ModuleResolver resolver) {
       Contract.Requires(resolver != null);
       this.resolver = resolver;
     }
@@ -431,7 +431,7 @@ namespace Microsoft.Dafny {
 
     private readonly PreTypeInferenceModuleState preTypeInferenceModuleState;
 
-    private PreTypeResolver(Resolver resolver, PreTypeInferenceModuleState preTypeInferenceModuleState)
+    private PreTypeResolver(ModuleResolver resolver, PreTypeInferenceModuleState preTypeInferenceModuleState)
       : base(resolver) {
       this.preTypeInferenceModuleState = preTypeInferenceModuleState;
 

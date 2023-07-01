@@ -12,8 +12,8 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace;
 
-public class DocumentAfterTranslation : DocumentAfterResolution {
-  public DocumentAfterTranslation(
+public class CompilationAfterTranslation : CompilationAfterResolution {
+  public CompilationAfterTranslation(
     IServiceProvider services,
     VersionedTextDocumentIdentifier documentIdentifier,
     Dafny.Program program,

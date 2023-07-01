@@ -79,14 +79,15 @@ public class BigRational {
         log10++;
       }
 
+      BigInteger two = BigInteger.valueOf(2); // note, in Java 9, one can use BigInteger.TWO
       BigInteger five = BigInteger.valueOf(5);
       while (i.mod(five).equals(BigInteger.ZERO)) {
         i = i.divide(five);
-        factor = factor.multiply(BigInteger.TWO);
+        factor = factor.multiply(two);
         log10++;
       }
-      while (i.mod(BigInteger.TWO).equals(BigInteger.ZERO)) {
-        i = i.divide(BigInteger.TWO);
+      while (i.mod(two).equals(BigInteger.ZERO)) {
+        i = i.divide(two);
         factor = factor.multiply(five);
         log10++;
       }
