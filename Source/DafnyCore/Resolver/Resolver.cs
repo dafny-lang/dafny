@@ -2864,7 +2864,7 @@ namespace Microsoft.Dafny {
     }
 
     private TopLevelDeclWithMembers currentClass;
-    public readonly Scope<TypeParameter>/*!*/ allTypeParameters;
+    public Scope<TypeParameter>/*!*/ allTypeParameters;
     public readonly Scope<IVariable>/*!*/ scope;
 
     /// <summary>
@@ -4231,7 +4231,7 @@ namespace Microsoft.Dafny {
       return isGhost ? "ghost " : "";
     }
 
-    private static ModuleSignature GetSignatureExt(ModuleSignature sig) {
+    internal static ModuleSignature GetSignatureExt(ModuleSignature sig) {
       Contract.Requires(sig != null);
       Contract.Ensures(Contract.Result<ModuleSignature>() != null);
       return sig;

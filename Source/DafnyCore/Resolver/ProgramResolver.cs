@@ -137,6 +137,14 @@ public class ProgramResolver {
     systemModuleResolver.RevealAllInScope(SystemModuleManager.SystemModule.TopLevelDecls, SystemModuleManager.systemNameInfo.VisibilityScope);
     SystemModuleManager.ResolveValueTypeDecls(this);
 
+#if NEED_MORE_CLARITY_FROM_RECENT_RESOLVER_REFACTORING // TODO
+    if (Options.Get(CommonOptionBag.TypeSystemRefresh)) {
+      PreTypeResolver.ResolveDeclarations(
+        SystemModuleManager.SystemModule.TopLevelDecls.Where(d => d is not ClassDecl).ToList(),
+        this, true);
+    }
+#endif
+
     // The SystemModule is constructed with all its members already being resolved. Except for
     // the non-null type corresponding to class types.  They are resolved here:
     var systemModuleClassesWithNonNullTypes =

@@ -719,7 +719,7 @@ namespace Microsoft.Dafny {
             AdviceTarget.Int => Type2PreType(Type.Int),
             AdviceTarget.Real => Type2PreType(Type.Real),
             AdviceTarget.String => Type2PreType(StringDecl()),
-            AdviceTarget.Object => Type2PreType(resolver.builtIns.ObjectQ()),
+            AdviceTarget.Object => Type2PreType(resolver.SystemModuleManager.ObjectQ()),
             _ => throw new cce.UnreachableException() // unexpected case
           };
           proxy.Set(target);

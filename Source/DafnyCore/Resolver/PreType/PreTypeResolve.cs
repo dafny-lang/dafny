@@ -87,9 +87,11 @@ namespace Microsoft.Dafny {
         AddRotateMember(bvDecl, "RotateLeft", width);
         AddRotateMember(bvDecl, "RotateRight", width);
         // register the names of the type members
+#if NEED_MORE_CLARITY_FROM_RECENT_RESOLVER_REFACTORING // TODO
         var members = new Dictionary<string, MemberDecl>();
-        resolver.classMembers.Add(bvDecl, members);
-        resolver.RegisterMembers(bvDecl.EnclosingModuleDefinition, bvDecl, members);
+        resolver.ProgramResolver.classMembers.Add(bvDecl, members);
+        resolver.ProgramResolver.RegisterMembers(bvDecl.EnclosingModuleDefinition, bvDecl, members);
+#endif
         return bvDecl;
       } else {
         decl = null;
@@ -108,7 +110,7 @@ namespace Microsoft.Dafny {
             var variances = new List<TypeParameter.TPVarianceSyntax>() { TypeParameter.TPVarianceSyntax.Covariant_Permissive };
             decl = new ValuetypeDecl(name, resolver.SystemModuleManager.SystemModule, variances, _ => false, null);
           } else if (name == "object?") {
-            decl = resolver.builtIns.ObjectDecl;
+            decl = resolver.SystemModuleManager.ObjectDecl;
           } else {
             decl = new ValuetypeDecl(name, resolver.SystemModuleManager.SystemModule, _ => false, null);
           }

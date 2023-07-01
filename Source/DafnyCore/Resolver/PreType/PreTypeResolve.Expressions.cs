@@ -107,8 +107,8 @@ namespace Microsoft.Dafny {
         var dtv = (DatatypeValue)expr;
         if (!resolver.moduleInfo.TopLevels.TryGetValue(dtv.DatatypeName, out var decl)) {
           ReportError(expr.tok, "Undeclared datatype: {0}", dtv.DatatypeName);
-        } else if (decl is Resolver.AmbiguousTopLevelDecl) {
-          var ad = (Resolver.AmbiguousTopLevelDecl)decl;
+        } else if (decl is AmbiguousTopLevelDecl) {
+          var ad = (AmbiguousTopLevelDecl)decl;
           ReportError(expr.tok,
             "The name {0} ambiguously refers to a type in one of the modules {1} (try qualifying the type name with the module name)",
             dtv.DatatypeName, ad.ModuleNames());
@@ -376,7 +376,7 @@ namespace Microsoft.Dafny {
         ResolveExpression(e.N, resolutionContext);
         ConstrainToIntFamily(e.N.PreType, e.N.tok, "sequence construction must use an integer-based expression for the sequence size (got {0})");
         ResolveExpression(e.Initializer, resolutionContext);
-        var intPreType = Type2PreType(resolver.builtIns.Nat());
+        var intPreType = Type2PreType(resolver.SystemModuleManager.Nat());
         var arrowPreType = new DPreType(BuiltInArrowTypeDecl(1), new List<PreType>() { intPreType, elementPreType });
         var resultPreType = new DPreType(BuiltInTypeDecl("seq"), new List<PreType>() { elementPreType });
         AddSubtypeConstraint(arrowPreType, e.Initializer.PreType, e.Initializer.tok,
@@ -1032,7 +1032,7 @@ namespace Microsoft.Dafny {
         if (dReceiver == null) {
           // If there is a subtype constraint "super<X> :> proxy" where "super" has a member "memberName", then that is the correct member.
           foreach (var super in AllSuperBounds(proxy, new HashSet<PreTypeProxy>())) {
-            if (super.Decl is TopLevelDeclWithMembers md && resolver.classMembers[md].ContainsKey(memberName)) {
+            if (super.Decl is TopLevelDeclWithMembers md && resolver.ProgramResolver.GetClassMembers(md).ContainsKey(memberName)) {
               dReceiver = super;
               break;
             }
@@ -1051,7 +1051,7 @@ namespace Microsoft.Dafny {
       if (receiverDecl is TopLevelDeclWithMembers receiverDeclWithMembers) {
         // TODO: does this case need to do something like this?  var cd = ctype?.AsTopLevelTypeWithMembersBypassInternalSynonym;
 
-        if (!resolver.classMembers[receiverDeclWithMembers].TryGetValue(memberName, out var member)) {
+        if (!resolver.ProgramResolver.GetClassMembers(receiverDeclWithMembers).TryGetValue(memberName, out var member)) {
           if (memberName == "_ctor") {
             ReportError(tok, $"{receiverDecl.WhatKind} '{receiverDecl.Name}' does not have an anonymous constructor");
           } else {
@@ -1156,7 +1156,8 @@ namespace Microsoft.Dafny {
         r = new IdentifierExpr(expr.tok, v) {
           PreType = v.PreType
         };
-      } else if (currentClass is TopLevelDeclWithMembers cl && resolver.classMembers.TryGetValue(cl, out var members) &&
+      } else if (currentClass is TopLevelDeclWithMembers cl &&
+                 resolver.ProgramResolver.GetClassMembers(cl) is {} members &&
                  members.TryGetValue(name, out member)) {
         // ----- 1. member of the enclosing class
         Expression receiver;
@@ -1188,7 +1189,7 @@ namespace Microsoft.Dafny {
 
       } else if (resolver.moduleInfo.TopLevels.TryGetValue(name, out var decl)) {
         // ----- 3. Member of the enclosing module
-        if (decl is Resolver.AmbiguousTopLevelDecl ambiguousTopLevelDecl) {
+        if (decl is AmbiguousTopLevelDecl ambiguousTopLevelDecl) {
           if (complain) {
             ReportError(expr.tok,
               "The name {0} ambiguously refers to a type in one of the modules {1} (try qualifying the type name with the module name)",
@@ -1220,7 +1221,7 @@ namespace Microsoft.Dafny {
       } else if (resolver.moduleInfo.StaticMembers.TryGetValue(name, out member)) {
         // ----- 4. static member of the enclosing module
         Contract.Assert(member.IsStatic); // moduleInfo.StaticMembers is supposed to contain only static members of the module's implicit class _default
-        if (member is Resolver.AmbiguousMemberDecl ambiguousMember) {
+        if (member is AmbiguousMemberDecl ambiguousMember) {
           if (complain) {
             ReportError(expr.tok, "The name {0} ambiguously refers to a static member in one of the modules {1} (try qualifying the member name with the module name)", expr.Name, ambiguousMember.ModuleNames());
           } else {
@@ -1392,8 +1393,8 @@ namespace Microsoft.Dafny {
       var lhs = expr.Lhs.Resolved;
       if (lhs != null && lhs.PreType is PreTypePlaceholderModule) {
         var ri = (Resolver_IdentifierExpr)lhs;
-        var sig = ((ModuleDecl)ri.Decl).AccessibleSignature(resolver.useCompileSignatures);
-        sig = Resolver.GetSignatureExt(sig, resolver.useCompileSignatures);
+        var sig = ((ModuleDecl)ri.Decl).AccessibleSignature(false);
+        sig = Resolver.GetSignatureExt(sig);
 
         if (isLastNameSegment && sig.Ctors.TryGetValue(name, out var pair)) {
           // ----- 0. datatype constructor
@@ -1416,8 +1417,8 @@ namespace Microsoft.Dafny {
           }
         } else if (sig.TopLevels.TryGetValue(name, out var decl)) {
           // ----- 1. Member of the specified module
-          if (decl is Resolver.AmbiguousTopLevelDecl) {
-            var ad = (Resolver.AmbiguousTopLevelDecl)decl;
+          if (decl is AmbiguousTopLevelDecl) {
+            var ad = (AmbiguousTopLevelDecl)decl;
             ReportError(expr.tok, "The name {0} ambiguously refers to a type in one of the modules {1} (try qualifying the type name with the module name)", expr.SuffixName, ad.ModuleNames());
           } else {
             // We have found a module name or a type name, neither of which is an expression. However, the ExprDotName we're
@@ -1436,8 +1437,8 @@ namespace Microsoft.Dafny {
         } else if (sig.StaticMembers.TryGetValue(name, out var member)) {
           // ----- 2. static member of the specified module
           Contract.Assert(member.IsStatic); // moduleInfo.StaticMembers is supposed to contain only static members of the module's implicit class _default
-          if (member is Resolver.AmbiguousMemberDecl) {
-            var ambiguousMember = (Resolver.AmbiguousMemberDecl)member;
+          if (member is AmbiguousMemberDecl) {
+            var ambiguousMember = (AmbiguousMemberDecl)member;
             ReportError(expr.tok, "The name {0} ambiguously refers to a static member in one of the modules {1} (try qualifying the member name with the module name)", expr.SuffixName, ambiguousMember.ModuleNames());
           } else {
             var receiver = new StaticReceiverExpr(expr.tok, (TopLevelDeclWithMembers)member.EnclosingClass, true);
@@ -1473,7 +1474,7 @@ namespace Microsoft.Dafny {
         var cd = r == null ? ty.AsTopLevelTypeWithMembersBypassInternalSynonym : null;
         if (cd != null) {
           // ----- LHS is a type with members
-          if (resolver.classMembers.TryGetValue(cd, out var members) && members.TryGetValue(name, out var member)) {
+          if (resolver.ProgramResolver.GetClassMembers(cd) is {} members && members.TryGetValue(name, out var member)) {
             if (!resolver.VisibleInScope(member)) {
               ReportError(expr.tok, $"member '{name}' has not been imported in this scope and cannot be accessed here");
             }
@@ -1603,10 +1604,10 @@ namespace Microsoft.Dafny {
       return rr;
     }
 
-    MethodCallInformation ResolveApplySuffix(ApplySuffix e, ResolutionContext resolutionContext, bool allowMethodCall) {
+    Resolver.MethodCallInformation ResolveApplySuffix(ApplySuffix e, ResolutionContext resolutionContext, bool allowMethodCall) {
       Contract.Requires(e != null);
       Contract.Requires(resolutionContext != null);
-      Contract.Ensures(Contract.Result<MethodCallInformation>() == null || allowMethodCall);
+      Contract.Ensures(Contract.Result<Resolver.MethodCallInformation>() == null || allowMethodCall);
 
       Expression r = null;  // upon success, the expression to which the ApplySuffix resolves
       var errorCount = ErrorCount;
@@ -1698,7 +1699,7 @@ namespace Microsoft.Dafny {
                 }
               }
               if (allowMethodCall) {
-                return new MethodCallInformation(e.RangeToken, mse, e.Bindings.ArgumentBindings);
+                return new Resolver.MethodCallInformation(e.RangeToken, mse, e.Bindings.ArgumentBindings);
               } else {
                 ReportError(e.tok, "{0} call is not allowed to be used in an expression resolutionContext ({1})", mse.Member.WhatKind, mse.Member.Name);
               }
@@ -1763,7 +1764,7 @@ namespace Microsoft.Dafny {
           ReportError(updateToken, $"duplicate update member '{updateName}'");
         } else {
           memberNames.Add(updateName);
-          if (!resolver.classMembers[dt].TryGetValue(updateName, out var member)) {
+          if (!resolver.ProgramResolver.GetClassMembers(dt).TryGetValue(updateName, out var member)) {
             ReportError(updateToken, "member '{0}' does not exist in datatype '{1}'", updateName, dt.Name);
           } else if (member is not DatatypeDestructor) {
             ReportError(updateToken, "member '{0}' is not a destructor in datatype '{1}'", updateName, dt.Name);

@@ -122,9 +122,9 @@ namespace Microsoft.Dafny {
         return;
       } else {
         // this is an error; if tuples are involved, specialize the error message
-        if (idPattern.Id == BuiltIns.TupleTypeCtorName(1)) {
+        if (idPattern.Id == SystemModuleManager.TupleTypeCtorName(1)) {
           ReportError(idPattern.Tok, "parentheses are not allowed around a pattern");
-        } else if (idPattern.Id.StartsWith(BuiltIns.TupleTypeCtorNamePrefix)) {
+        } else if (idPattern.Id.StartsWith(SystemModuleManager.TupleTypeCtorNamePrefix)) {
           ReportError(pattern.Tok, $"tuple type does not match type '{preType}'");
         } else {
           ReportError(idPattern.Tok, $"type '{preType}' does not contain a datatype constructor '{idPattern.Id}'");

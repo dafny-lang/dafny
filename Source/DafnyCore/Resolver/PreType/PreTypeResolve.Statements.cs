@@ -673,7 +673,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(update != null);
       Contract.Requires(resolutionContext != null);
       IToken firstEffectfulRhs = null;
-      MethodCallInformation methodCallInfo = null;
+      Resolver.MethodCallInformation methodCallInfo = null;
       update.ResolvedStatements = new();
       foreach (var rhs in update.Rhss) {
         bool isEffectful;
@@ -1221,8 +1221,8 @@ namespace Microsoft.Dafny {
           ResolveExpression(rr.ElementInit, resolutionContext);
           // Check (the pre-type version of)
           //     nat^N -> rr.EType  :>  rr.ElementInit.Type
-          resolver.builtIns.CreateArrowTypeDecl(dims);  // TODO: should this be done already in the parser?
-          var indexPreTypes = Enumerable.Repeat(Type2PreType(resolver.builtIns.Nat()), dims).ToList();
+          resolver.SystemModuleManager.CreateArrowTypeDecl(dims);  // TODO: should this be done already in the parser?
+          var indexPreTypes = Enumerable.Repeat(Type2PreType(resolver.SystemModuleManager.Nat()), dims).ToList();
           var arrowPreType = BuiltInArrowType(indexPreTypes, Type2PreType(rr.EType));
           AddSubtypeConstraint(arrowPreType, rr.ElementInit.PreType, rr.ElementInit.tok, () => {
             var hintString = !PreType.Same(arrowPreType, rr.ElementInit.PreType) ? "" :
