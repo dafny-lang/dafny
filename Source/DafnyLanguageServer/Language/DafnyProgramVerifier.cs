@@ -38,9 +38,9 @@ namespace Microsoft.Dafny.LanguageServer.Language {
 
     private const int TranslatorMaxStackSize = 0x10000000; // 256MB
 
-    public async Task<IReadOnlyList<IImplementationTask>> GetVerificationTasksAsync(DocumentAfterResolution document,
+    public async Task<IReadOnlyList<IImplementationTask>> GetVerificationTasksAsync(CompilationAfterResolution compilation,
       CancellationToken cancellationToken) {
-      var program = document.Program;
+      var program = compilation.Program;
       var errorReporter = (DiagnosticErrorReporter)program.Reporter;
 
       cancellationToken.ThrowIfCancellationRequested();

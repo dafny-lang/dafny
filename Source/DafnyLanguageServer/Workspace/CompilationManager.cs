@@ -26,7 +26,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace;
 ///
 /// Compilation is agnostic to document updates, it does not handle the migration of old document state.
 /// </summary>
-public class Compilation {
+public class CompilationManager {
 
   private readonly ILogger logger;
   private readonly ITextDocumentLoader documentLoader;
@@ -42,13 +42,13 @@ public class Compilation {
   private TaskCompletionSource started = new();
   private readonly IScheduler verificationUpdateScheduler = new EventLoopScheduler();
   private readonly CancellationTokenSource cancellationSource;
-  private readonly Subject<Document> documentUpdates = new();
-  public IObservable<Document> DocumentUpdates => documentUpdates;
+  private readonly Subject<Compilation> documentUpdates = new();
+  public IObservable<Compilation> DocumentUpdates => documentUpdates;
 
-  public Task<DocumentAfterParsing> ResolvedDocument { get; }
-  public Task<DocumentAfterTranslation> TranslatedDocument { get; }
+  public Task<CompilationAfterParsing> ResolvedDocument { get; }
+  public Task<CompilationAfterTranslation> TranslatedDocument { get; }
 
-  public Compilation(IServiceProvider services,
+  public CompilationManager(IServiceProvider services,
     DafnyOptions options,
     VersionedTextDocumentIdentifier documentIdentifier,
     VerificationTree? migratedVerificationTree) {
@@ -56,7 +56,7 @@ public class Compilation {
     this.documentIdentifier = documentIdentifier;
     this.fileSystem = services.GetRequiredService<IFileSystem>();
     documentLoader = services.GetRequiredService<ITextDocumentLoader>();
-    logger = services.GetRequiredService<ILogger<Compilation>>();
+    logger = services.GetRequiredService<ILogger<CompilationManager>>();
     notificationPublisher = services.GetRequiredService<INotificationPublisher>();
     verifier = services.GetRequiredService<IProgramVerifier>();
     statusPublisher = services.GetRequiredService<ICompilationStatusNotificationPublisher>();
@@ -75,7 +75,7 @@ public class Compilation {
     started.TrySetResult();
   }
 
-  private async Task<DocumentAfterParsing> ResolveAsync() {
+  private async Task<CompilationAfterParsing> ResolveAsync() {
     try {
       await started.Task;
       var documentAfterParsing = await documentLoader.LoadAsync(options, documentIdentifier, fileSystem, cancellationSource.Token);
@@ -98,12 +98,12 @@ public class Compilation {
     }
   }
 
-  private async Task<DocumentAfterTranslation> TranslateAsync() {
+  private async Task<CompilationAfterTranslation> TranslateAsync() {
     var parsedCompilation = await ResolvedDocument;
     if (!options.Verify) {
       throw new OperationCanceledException();
     }
-    if (parsedCompilation is not DocumentAfterResolution resolvedCompilation) {
+    if (parsedCompilation is not CompilationAfterResolution resolvedCompilation) {
       throw new OperationCanceledException();
     }
 
@@ -121,8 +121,8 @@ public class Compilation {
     }
   }
 
-  public async Task<DocumentAfterTranslation> PrepareVerificationTasksAsync(
-    DocumentAfterResolution loaded,
+  public async Task<CompilationAfterTranslation> PrepareVerificationTasksAsync(
+    CompilationAfterResolution loaded,
     CancellationToken cancellationToken) {
     if (loaded.ResolutionDiagnostics.Values.SelectMany(x => x).Any(d =>
           d.Level == ErrorLevel.Error &&
@@ -154,7 +154,7 @@ public class Compilation {
       }
     }
 
-    var translated = new DocumentAfterTranslation(services,
+    var translated = new CompilationAfterTranslation(services,
       loaded.DocumentIdentifier, loaded.Program,
       loaded.ResolutionDiagnostics, loaded.SymbolTable, loaded.SignatureAndCompletionTable, loaded.GhostDiagnostics, verificationTasks,
       new(),
@@ -182,24 +182,24 @@ public class Compilation {
     return new ImplementationId(implementation.tok.GetLspPosition(), prefix);
   }
 
-  private void SetAllUnvisitedMethodsAsVerified(DocumentAfterTranslation document) {
-    foreach (var tree in document.VerificationTree.Children) {
+  private void SetAllUnvisitedMethodsAsVerified(CompilationAfterTranslation compilation) {
+    foreach (var tree in compilation.VerificationTree.Children) {
       tree.SetVerifiedIfPending();
     }
   }
 
   private int runningVerificationJobs = 0;
-  public bool VerifyTask(DocumentAfterTranslation document, IImplementationTask implementationTask) {
+  public bool VerifyTask(CompilationAfterTranslation compilation, IImplementationTask implementationTask) {
 
     var statusUpdates = implementationTask.TryRun();
     if (statusUpdates == null) {
       if (implementationTask.CacheStatus is Completed completedCache) {
         foreach (var result in completedCache.Result.VCResults) {
-          document.GutterProgressReporter.ReportVerifyImplementationRunning(implementationTask.Implementation);
-          document.GutterProgressReporter.ReportAssertionBatchResult(
+          compilation.GutterProgressReporter.ReportVerifyImplementationRunning(implementationTask.Implementation);
+          compilation.GutterProgressReporter.ReportAssertionBatchResult(
             new AssertionBatchResult(implementationTask.Implementation, result));
         }
-        document.GutterProgressReporter.ReportEndVerifyImplementation(implementationTask.Implementation,
+        compilation.GutterProgressReporter.ReportEndVerifyImplementation(implementationTask.Implementation,
           completedCache.Result);
       }
 
@@ -211,7 +211,7 @@ public class Compilation {
     statusUpdates.ObserveOn(verificationUpdateScheduler).Subscribe(
       update => {
         try {
-          HandleStatusUpdate(document, implementationTask, update);
+          HandleStatusUpdate(compilation, implementationTask, update);
         } catch (Exception e) {
           logger.LogCritical(e, "Caught exception in statusUpdates OnNext.");
         }
@@ -227,8 +227,8 @@ public class Compilation {
       try {
         var remainingJobs = Interlocked.Decrement(ref runningVerificationJobs);
         if (remainingJobs == 0) {
-          logger.LogDebug($"Calling FinishedNotifications because there are no remaining verification jobs for version {document.Version}.");
-          FinishedNotifications(document);
+          logger.LogDebug($"Calling FinishedNotifications because there are no remaining verification jobs for version {compilation.Version}.");
+          FinishedNotifications(compilation);
         }
       } catch (Exception e) {
         logger.LogCritical(e, "Caught exception while handling finally code of statusUpdates handler.");
@@ -238,36 +238,36 @@ public class Compilation {
     return true;
   }
 
-  public void FinishedNotifications(DocumentAfterTranslation document) {
+  public void FinishedNotifications(CompilationAfterTranslation compilation) {
     MarkVerificationFinished();
     if (ReportGutterStatus) {
       // All unvisited trees need to set them as "verified"
       if (!cancellationSource.IsCancellationRequested) {
-        SetAllUnvisitedMethodsAsVerified(document);
+        SetAllUnvisitedMethodsAsVerified(compilation);
       }
 
-      document.GutterProgressReporter.ReportRealtimeDiagnostics(true, document);
+      compilation.GutterProgressReporter.ReportRealtimeDiagnostics(true, compilation);
     }
   }
 
-  private void HandleStatusUpdate(DocumentAfterTranslation document, IImplementationTask implementationTask, IVerificationStatus boogieStatus) {
+  private void HandleStatusUpdate(CompilationAfterTranslation compilation, IImplementationTask implementationTask, IVerificationStatus boogieStatus) {
     var id = GetImplementationId(implementationTask.Implementation);
     var status = StatusFromBoogieStatus(boogieStatus);
     var implementationRange = implementationTask.Implementation.tok.GetLspRange();
     logger.LogDebug($"Received status {boogieStatus} for {implementationTask.Implementation.Name}");
     if (boogieStatus is Running) {
-      document.GutterProgressReporter.ReportVerifyImplementationRunning(implementationTask.Implementation);
+      compilation.GutterProgressReporter.ReportVerifyImplementationRunning(implementationTask.Implementation);
     }
 
     if (boogieStatus is BatchCompleted batchCompleted) {
-      document.GutterProgressReporter.ReportAssertionBatchResult(
+      compilation.GutterProgressReporter.ReportAssertionBatchResult(
         new AssertionBatchResult(implementationTask.Implementation, batchCompleted.VcResult));
     }
 
     if (boogieStatus is Completed completed) {
       var verificationResult = completed.Result;
       foreach (var counterExample in verificationResult.Errors) {
-        document.Counterexamples.Add(counterExample);
+        compilation.Counterexamples.Add(counterExample);
       }
       // Sometimes, the boogie status is set as Completed
       // but the assertion batches were not reported yet.
@@ -275,27 +275,27 @@ public class Compilation {
       // This loop will ensure that every vc result has been dealt with
       // before we report that the verification of the implementation is finished 
       foreach (var result in completed.Result.VCResults) {
-        document.GutterProgressReporter.ReportAssertionBatchResult(
+        compilation.GutterProgressReporter.ReportAssertionBatchResult(
           new AssertionBatchResult(implementationTask.Implementation, result));
       }
 
-      var diagnostics = GetDiagnosticsFromResult(document, verificationResult).ToList();
+      var diagnostics = GetDiagnosticsFromResult(compilation, verificationResult).ToList();
       var view = new ImplementationView(implementationRange, status, diagnostics);
-      document.ImplementationIdToView[id] = view;
-      document.GutterProgressReporter.ReportEndVerifyImplementation(implementationTask.Implementation, verificationResult);
+      compilation.ImplementationIdToView[id] = view;
+      compilation.GutterProgressReporter.ReportEndVerifyImplementation(implementationTask.Implementation, verificationResult);
     } else {
-      var existingView = document.ImplementationIdToView.GetValueOrDefault(id) ??
+      var existingView = compilation.ImplementationIdToView.GetValueOrDefault(id) ??
                          new ImplementationView(implementationRange, status, Array.Empty<DafnyDiagnostic>());
-      document.ImplementationIdToView[id] = existingView with { Status = status };
+      compilation.ImplementationIdToView[id] = existingView with { Status = status };
     }
 
-    documentUpdates.OnNext(document);
+    documentUpdates.OnNext(compilation);
   }
 
   private bool ReportGutterStatus => options.Get(ServerCommand.LineVerificationStatus);
 
-  private List<DafnyDiagnostic> GetDiagnosticsFromResult(DocumentAfterResolution document, VerificationResult result) {
-    var errorReporter = new DiagnosticErrorReporter(options, document.Uri);
+  private List<DafnyDiagnostic> GetDiagnosticsFromResult(CompilationAfterResolution compilation, VerificationResult result) {
+    var errorReporter = new DiagnosticErrorReporter(options, compilation.Uri);
     foreach (var counterExample in result.Errors) {
       errorReporter.ReportBoogieError(counterExample.CreateErrorInformation(result.Outcome, options.ForceBplErrors));
     }
@@ -305,7 +305,7 @@ public class Compilation {
       errorReporter.ReportBoogieError(outcomeError);
     }
 
-    var diagnostics = errorReporter.GetDiagnostics(document.Uri);
+    var diagnostics = errorReporter.GetDiagnostics(compilation.Uri);
     return diagnostics.OrderBy(d => d.Token.GetLspPosition()).ToList();
   }
 
@@ -351,7 +351,7 @@ public class Compilation {
     verificationCompleted.TrySetResult();
   }
 
-  public Task<DocumentAfterParsing> LastDocument => TranslatedDocument.ContinueWith(
+  public Task<CompilationAfterParsing> LastDocument => TranslatedDocument.ContinueWith(
     t => {
       if (t.IsCompletedSuccessfully) {
 #pragma warning disable VSTHRD103
@@ -359,7 +359,7 @@ public class Compilation {
         return verificationCompleted.Task.ContinueWith(
           verificationCompletedTask => {
             logger.LogDebug($"verificationCompleted finished with status {verificationCompletedTask.Status}");
-            return Task.FromResult<DocumentAfterParsing>(t.Result);
+            return Task.FromResult<CompilationAfterParsing>(t.Result);
           }, TaskScheduler.Current).Unwrap();
 #pragma warning restore VSTHRD103
       }

@@ -11,11 +11,11 @@ namespace Microsoft.Dafny.LanguageServer.Handlers;
 
 public class DafnyFormattingHandler : DocumentFormattingHandlerBase {
   private readonly ILogger<DafnyFormattingHandler> logger;
-  private readonly IDocumentDatabase documents;
+  private readonly IProjectDatabase projects;
 
-  public DafnyFormattingHandler(ILogger<DafnyFormattingHandler> logger, IDocumentDatabase documents) {
+  public DafnyFormattingHandler(ILogger<DafnyFormattingHandler> logger, IProjectDatabase projects) {
     this.logger = logger;
-    this.documents = documents;
+    this.projects = projects;
   }
 
   protected override DocumentFormattingRegistrationOptions CreateRegistrationOptions(DocumentFormattingCapability capability,
@@ -26,11 +26,11 @@ public class DafnyFormattingHandler : DocumentFormattingHandlerBase {
   }
 
   public override async Task<TextEditContainer?> Handle(DocumentFormattingParams request, CancellationToken cancellationToken) {
-    var documentManager = documents.GetDocumentManager(request.TextDocument.Uri);
+    var documentManager = projects.GetProjectManager(request.TextDocument.Uri);
     if (documentManager == null) {
       return null;
     }
-    var edits = await documentManager.Compilation.GetTextEditToFormatCode();
+    var edits = await documentManager.CompilationManager.GetTextEditToFormatCode();
     return edits;
   }
 }

@@ -9,8 +9,8 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace;
 
-public class DocumentAfterResolution : DocumentAfterParsing {
-  public DocumentAfterResolution(VersionedTextDocumentIdentifier documentIdentifier,
+public class CompilationAfterResolution : CompilationAfterParsing {
+  public CompilationAfterResolution(VersionedTextDocumentIdentifier documentIdentifier,
     Program program,
     IReadOnlyDictionary<DocumentUri, List<DafnyDiagnostic>> diagnostics,
     SymbolTable? symbolTable,
