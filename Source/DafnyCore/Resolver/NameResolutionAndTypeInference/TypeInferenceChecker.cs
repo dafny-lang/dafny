@@ -2,7 +2,7 @@ using static Microsoft.Dafny.ResolutionErrors;
 
 namespace Microsoft.Dafny;
 
-partial class Resolver {
+partial class ModuleResolver {
   public void ReportWarning(ErrorId errorId, IToken t, string msg, params object[] args) {
     reporter.Warning(MessageSource.Resolver, errorId, t, msg, args);
   }

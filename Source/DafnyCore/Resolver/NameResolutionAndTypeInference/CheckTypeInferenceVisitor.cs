@@ -7,10 +7,10 @@ using Microsoft.Boogie;
 namespace Microsoft.Dafny;
 
 class CheckTypeInferenceVisitor : ASTVisitor<TypeInferenceCheckingContext> {
-  private readonly Resolver resolver;
+  private readonly ModuleResolver resolver;
   private ErrorReporter reporter => resolver.reporter;
 
-  public CheckTypeInferenceVisitor(Resolver resolver) {
+  public CheckTypeInferenceVisitor(ModuleResolver resolver) {
     this.resolver = resolver;
   }
 
@@ -110,7 +110,7 @@ class CheckTypeInferenceVisitor : ASTVisitor<TypeInferenceCheckingContext> {
         var n = (BigInteger)e.Value;
         var absN = n < 0 ? -n : n;
         // For bitvectors, check that the magnitude fits the width
-        if (e.Type.IsBitVectorType && Resolver.MaxBV(e.Type.AsBitVectorType.Width) < absN) {
+        if (e.Type.IsBitVectorType && ModuleResolver.MaxBV(e.Type.AsBitVectorType.Width) < absN) {
           resolver.ReportError(ResolutionErrors.ErrorId.r_literal_too_large_for_bitvector, e.tok, "literal ({0}) is too large for the bitvector type {1}", absN, e.Type);
         }
         // For bitvectors and ORDINALs, check for a unary minus that, earlier, was mistaken for a negative literal
@@ -237,7 +237,7 @@ class CheckTypeInferenceVisitor : ASTVisitor<TypeInferenceCheckingContext> {
         }
       } else if (expr is BinaryExpr) {
         var e = (BinaryExpr)expr;
-        e.ResolvedOp = Resolver.ResolveOp(e.Op, e.E0.Type, e.E1.Type);
+        e.ResolvedOp = ModuleResolver.ResolveOp(e.Op, e.E0.Type, e.E1.Type);
         // Check for useless comparisons with "null"
         Expression other = null;  // if "null" if one of the operands, then "other" is the other
         if (e.E0 is LiteralExpr && ((LiteralExpr)e.E0).Value == null) {

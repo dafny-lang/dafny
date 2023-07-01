@@ -21,7 +21,7 @@ using System.Threading.Tasks;
 namespace Microsoft.Dafny.LanguageServer.Handlers {
   /// <summary>
   /// LSP Synchronization handler for document based events, such as change, open, close and save.
-  /// The documents are managed using an implementation of <see cref="IDocumentDatabase"/>.
+  /// The documents are managed using an implementation of <see cref="IProjectDatabase"/>.
   /// </summary>
   /// <remarks>
   /// The <see cref="CancellationToken"/> of all requests is not used here. The reason for this is because document changes are applied in the
@@ -34,16 +34,16 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
     private const string LanguageId = "dafny";
 
     private readonly ILogger logger;
-    private readonly IDocumentDatabase documents;
+    private readonly IProjectDatabase projects;
     private readonly ITelemetryPublisher telemetryPublisher;
     private readonly INotificationPublisher notificationPublisher;
 
     public DafnyTextDocumentHandler(
-      ILogger<DafnyTextDocumentHandler> logger, IDocumentDatabase documents,
+      ILogger<DafnyTextDocumentHandler> logger, IProjectDatabase projects,
       ITelemetryPublisher telemetryPublisher, INotificationPublisher notificationPublisher
     ) {
       this.logger = logger;
-      this.documents = documents;
+      this.projects = projects;
       this.telemetryPublisher = telemetryPublisher;
       this.notificationPublisher = notificationPublisher;
     }
@@ -62,7 +62,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
     public override Task<Unit> Handle(DidOpenTextDocumentParams notification, CancellationToken cancellationToken) {
       logger.LogTrace("received open notification {DocumentUri}", notification.TextDocument.Uri);
       try {
-        documents.OpenDocument(new DocumentTextBuffer(notification.TextDocument));
+        projects.OpenDocument(new DocumentTextBuffer(notification.TextDocument));
       } catch (Exception e) {
         telemetryPublisher.PublishUnhandledException(e);
       }
@@ -82,7 +82,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
     public override Task<Unit> Handle(DidChangeTextDocumentParams notification, CancellationToken cancellationToken) {
       logger.LogDebug("received change notification {DocumentUri}", notification.TextDocument.Uri);
       try {
-        documents.UpdateDocument(notification);
+        projects.UpdateDocument(notification);
       } catch (Exception e) {
         telemetryPublisher.PublishUnhandledException(e);
       }
@@ -92,7 +92,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
     public override Task<Unit> Handle(DidSaveTextDocumentParams notification, CancellationToken cancellationToken) {
       logger.LogTrace("received save notification {DocumentUri}", notification.TextDocument.Uri);
       try {
-        documents.SaveDocument(notification.TextDocument);
+        projects.SaveDocument(notification.TextDocument);
       } catch (Exception e) {
         telemetryPublisher.PublishUnhandledException(e);
       }
@@ -102,7 +102,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
 
     private async Task CloseDocumentAndHideDiagnosticsAsync(TextDocumentIdentifier documentId) {
       try {
-        await documents.CloseDocumentAsync(documentId);
+        await projects.CloseDocumentAsync(documentId);
         notificationPublisher.HideDiagnostics(documentId);
       } catch (Exception e) {
         telemetryPublisher.PublishUnhandledException(e);

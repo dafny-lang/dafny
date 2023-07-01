@@ -37,7 +37,7 @@ public class XConstraint {
   /// that this XConstraint has finished serving its purpose).
   /// If there's not enough information to confirm or refute the XConstraint, then "false" is returned.
   /// </summary>
-  public bool Confirm(Resolver resolver, bool fullstrength, out bool convertedIntoOtherTypeConstraints, out bool moreXConstraints) {
+  public bool Confirm(ModuleResolver resolver, bool fullstrength, out bool convertedIntoOtherTypeConstraints, out bool moreXConstraints) {
     Contract.Requires(resolver != null);
     convertedIntoOtherTypeConstraints = false;
     moreXConstraints = false;
@@ -337,7 +337,7 @@ public class XConstraint {
               return true;
             } else if (fullstrength) {
               // the following is rather aggressive
-              if (Resolver.TypeConstraintsIncludeProxy(other, proxy)) {
+              if (ModuleResolver.TypeConstraintsIncludeProxy(other, proxy)) {
                 return false;
               } else {
                 if (other.IsRefType && resolver.HasApplicableNullableRefTypeConstraint_SubDirection(proxy)) {
@@ -389,7 +389,7 @@ public class XConstraint {
               return true;
             } else if (fullstrength) {
               // the following is rather aggressive
-              if (Resolver.TypeConstraintsIncludeProxy(other, proxy)) {
+              if (ModuleResolver.TypeConstraintsIncludeProxy(other, proxy)) {
                 return false;
               } else {
                 if (other.IsRefType && resolver.HasApplicableNullableRefTypeConstraint_SubDirection(proxy)) {
@@ -505,7 +505,7 @@ public class XConstraint {
     return true;  // the XConstraint has served its purpose
   }
 
-  public bool ProxyWithNoSubTypeConstraint(Type u, Resolver resolver) {
+  public bool ProxyWithNoSubTypeConstraint(Type u, ModuleResolver resolver) {
     Contract.Requires(u != null);
     Contract.Requires(resolver != null);
     var proxy = u as TypeProxy;
