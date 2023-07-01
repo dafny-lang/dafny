@@ -84,6 +84,11 @@ public class PythonBackend : ExecutableBackend {
         return false;
       }
     }
+    if (!runAfterCompile) {
+      var psi = PrepareProcessStartInfo("python3");
+      psi.Arguments = $"-m compileall -q {Path.GetDirectoryName(targetFilename)}";
+      return 0 == RunProcess(psi, outputWriter, outputWriter, "Error while compiling Python files.");
+    }
     return true;
   }
 

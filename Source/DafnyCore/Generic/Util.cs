@@ -23,6 +23,11 @@ namespace Microsoft.Dafny {
   }
   public static class Util {
 
+    public static bool LessThanOrEquals<T>(this T first, T second)
+      where T : IComparable<T> {
+      return first.CompareTo(second) != 1;
+    }
+
     public static Task<U> SelectMany<T, U>(this Task<T> task, Func<T, Task<U>> f) {
 #pragma warning disable VSTHRD003
       return Select(task, f).Unwrap();
@@ -505,6 +510,24 @@ namespace Microsoft.Dafny {
       }
 
       return createValue();
+    }
+
+    public static Action<T> Concat<T>(Action<T> first, Action<T> second) {
+      return v => {
+        first(v);
+        second(v);
+      };
+    }
+
+    public static V AddOrUpdate<K, V>(this IDictionary<K, V> dictionary, K key, V newValue, Func<V, V, V> update) {
+      if (dictionary.TryGetValue(key, out var existingValue)) {
+        var updated = update(existingValue, newValue);
+        dictionary[key] = updated;
+        return updated;
+      }
+
+      dictionary[key] = newValue;
+      return newValue;
     }
 
     public static V GetOrCreate<K, V>(this IDictionary<K, V> dictionary, K key, Func<V> createValue) {

@@ -1252,13 +1252,13 @@ public abstract class Type : TokenNode {
   /// For a positive direction (Co), computes Meet(a[i], b[i]), provided this meet exists.
   /// Returns null if any operation fails.
   /// </summary>
-  public static List<Type> ComputeExtrema(List<TypeParameter.TPVariance> directions, List<Type> a, List<Type> b, BuiltIns builtIns) {
+  public static List<Type> ComputeExtrema(List<TypeParameter.TPVariance> directions, List<Type> a, List<Type> b, SystemModuleManager systemModuleManager) {
     Contract.Requires(directions != null);
     Contract.Requires(a != null);
     Contract.Requires(b != null);
     Contract.Requires(directions.Count == a.Count);
     Contract.Requires(directions.Count == b.Count);
-    Contract.Requires(builtIns != null);
+    Contract.Requires(systemModuleManager != null);
     var n = directions.Count;
     var r = new List<Type>(n);
     for (int i = 0; i < n; i++) {
@@ -1273,7 +1273,7 @@ public abstract class Type : TokenNode {
           return null;
         }
       } else {
-        var t = directions[i] == TypeParameter.TPVariance.Contra ? Join(a[i], b[i], builtIns) : Meet(a[i], b[i], builtIns);
+        var t = directions[i] == TypeParameter.TPVariance.Contra ? Join(a[i], b[i], systemModuleManager) : Meet(a[i], b[i], systemModuleManager);
         if (t == null) {
           return null;
         }
@@ -1290,20 +1290,20 @@ public abstract class Type : TokenNode {
   /// really a join, so the caller should set up additional constraints that the result is
   /// assignable to both a and b.
   /// </summary>
-  public static Type Join(Type a, Type b, BuiltIns builtIns) {
+  public static Type Join(Type a, Type b, SystemModuleManager systemModuleManager) {
     Contract.Requires(a != null);
     Contract.Requires(b != null);
-    Contract.Requires(builtIns != null);
-    var j = JoinX(a, b, builtIns);
-    if (builtIns.Options.Get(CommonOptionBag.TypeInferenceDebug)) {
-      builtIns.Options.OutputWriter.WriteLine("DEBUG: Join( {0}, {1} ) = {2}", a, b, j);
+    Contract.Requires(systemModuleManager != null);
+    var j = JoinX(a, b, systemModuleManager);
+    if (systemModuleManager.Options.Get(CommonOptionBag.TypeInferenceDebug)) {
+      systemModuleManager.Options.OutputWriter.WriteLine("DEBUG: Join( {0}, {1} ) = {2}", a, b, j);
     }
     return j;
   }
-  public static Type JoinX(Type a, Type b, BuiltIns builtIns) {
+  public static Type JoinX(Type a, Type b, SystemModuleManager systemModuleManager) {
     Contract.Requires(a != null);
     Contract.Requires(b != null);
-    Contract.Requires(builtIns != null);
+    Contract.Requires(systemModuleManager != null);
 
     // As a special-case optimization, check for equality here, which will better preserve un-expanded type synonyms
     if (a.Equals(b, true)) {
@@ -1327,7 +1327,7 @@ public abstract class Type : TokenNode {
         }
         Contract.Assert(a.TypeArgs.Count == b.TypeArgs.Count);
         var directions = udtA.ResolvedClass.TypeArgs.ConvertAll(tp => TypeParameter.Negate(tp.Variance));
-        var typeArgs = ComputeExtrema(directions, a.TypeArgs, b.TypeArgs, builtIns);
+        var typeArgs = ComputeExtrema(directions, a.TypeArgs, b.TypeArgs, systemModuleManager);
         if (typeArgs == null) {
           return null;
         }
@@ -1360,7 +1360,7 @@ public abstract class Type : TokenNode {
         return null;
       }
       // sets are co-variant in their argument type
-      var typeArg = Join(a.TypeArgs[0], b.TypeArgs[0], builtIns);
+      var typeArg = Join(a.TypeArgs[0], b.TypeArgs[0], systemModuleManager);
       return typeArg == null ? null : new SetType(aa.Finite, typeArg);
     } else if (a is MultiSetType) {
       var aa = (MultiSetType)a;
@@ -1369,7 +1369,7 @@ public abstract class Type : TokenNode {
         return null;
       }
       // multisets are co-variant in their argument type
-      var typeArg = Join(a.TypeArgs[0], b.TypeArgs[0], builtIns);
+      var typeArg = Join(a.TypeArgs[0], b.TypeArgs[0], systemModuleManager);
       return typeArg == null ? null : new MultiSetType(typeArg);
     } else if (a is SeqType) {
       var aa = (SeqType)a;
@@ -1378,7 +1378,7 @@ public abstract class Type : TokenNode {
         return null;
       }
       // sequences are co-variant in their argument type
-      var typeArg = Join(a.TypeArgs[0], b.TypeArgs[0], builtIns);
+      var typeArg = Join(a.TypeArgs[0], b.TypeArgs[0], systemModuleManager);
       return typeArg == null ? null : new SeqType(typeArg);
     } else if (a is MapType) {
       var aa = (MapType)a;
@@ -1387,8 +1387,8 @@ public abstract class Type : TokenNode {
         return null;
       }
       // maps are co-variant in both argument types
-      var typeArgDomain = Join(a.TypeArgs[0], b.TypeArgs[0], builtIns);
-      var typeArgRange = Join(a.TypeArgs[1], b.TypeArgs[1], builtIns);
+      var typeArgDomain = Join(a.TypeArgs[0], b.TypeArgs[0], systemModuleManager);
+      var typeArgRange = Join(a.TypeArgs[1], b.TypeArgs[1], systemModuleManager);
       return typeArgDomain == null || typeArgRange == null ? null : new MapType(aa.Finite, typeArgDomain, typeArgRange);
     } else if (a.IsDatatype) {
       var aa = a.AsDatatype;
@@ -1400,7 +1400,7 @@ public abstract class Type : TokenNode {
       }
       Contract.Assert(a.TypeArgs.Count == b.TypeArgs.Count);
       var directions = aa.TypeArgs.ConvertAll(tp => TypeParameter.Negate(tp.Variance));
-      var typeArgs = ComputeExtrema(directions, a.TypeArgs, b.TypeArgs, builtIns);
+      var typeArgs = ComputeExtrema(directions, a.TypeArgs, b.TypeArgs, systemModuleManager);
       if (typeArgs == null) {
         return null;
       }
@@ -1421,7 +1421,7 @@ public abstract class Type : TokenNode {
         directions.Add(TypeParameter.Negate(TypeParameter.TPVariance.Contra));  // arrow types are contra-variant in the argument types, so compute joins of these
       }
       directions.Add(TypeParameter.Negate(TypeParameter.TPVariance.Co));  // arrow types are co-variant in the result type, so compute the meet of these
-      var typeArgs = ComputeExtrema(directions, a.TypeArgs, b.TypeArgs, builtIns);
+      var typeArgs = ComputeExtrema(directions, a.TypeArgs, b.TypeArgs, systemModuleManager);
       if (typeArgs == null) {
         return null;
       }
@@ -1446,7 +1446,7 @@ public abstract class Type : TokenNode {
       } else if (aa == bb) {
         Contract.Assert(a.TypeArgs.Count == b.TypeArgs.Count);
         var directions = aa.TypeArgs.ConvertAll(tp => TypeParameter.Negate(tp.Variance));
-        var typeArgs = ComputeExtrema(directions, a.TypeArgs, b.TypeArgs, builtIns);
+        var typeArgs = ComputeExtrema(directions, a.TypeArgs, b.TypeArgs, systemModuleManager);
         if (typeArgs == null) {
           return null;
         }
@@ -1472,7 +1472,7 @@ public abstract class Type : TokenNode {
           return abNonNullTypes ? UserDefinedType.CreateNonNullType(r) : r;
         } else {
           // the unfortunate part is when commonTraits.Count > 1 here :(
-          return abNonNullTypes ? UserDefinedType.CreateNonNullType(builtIns.ObjectQ()) : builtIns.ObjectQ();
+          return abNonNullTypes ? UserDefinedType.CreateNonNullType(systemModuleManager.ObjectQ()) : systemModuleManager.ObjectQ();
         }
       } else {
         return null;
@@ -1487,10 +1487,10 @@ public abstract class Type : TokenNode {
   /// really a meet, so the caller should set up additional constraints that the result is
   /// assignable to both a and b.
   /// </summary>
-  public static Type Meet(Type a, Type b, BuiltIns builtIns) {
+  public static Type Meet(Type a, Type b, SystemModuleManager systemModuleManager) {
     Contract.Requires(a != null);
     Contract.Requires(b != null);
-    Contract.Requires(builtIns != null);
+    Contract.Requires(systemModuleManager != null);
     a = a.NormalizeExpandKeepConstraints();
     b = b.NormalizeExpandKeepConstraints();
 
@@ -1498,12 +1498,12 @@ public abstract class Type : TokenNode {
     Type j;
     if (a is UserDefinedType { ResolvedClass: NonNullTypeDecl aClass }) {
       joinNeedsNonNullConstraint = true;
-      j = MeetX(aClass.RhsWithArgument(a.TypeArgs), b, builtIns);
+      j = MeetX(aClass.RhsWithArgument(a.TypeArgs), b, systemModuleManager);
     } else if (b is UserDefinedType { ResolvedClass: NonNullTypeDecl bClass }) {
       joinNeedsNonNullConstraint = true;
-      j = MeetX(a, bClass.RhsWithArgument(b.TypeArgs), builtIns);
+      j = MeetX(a, bClass.RhsWithArgument(b.TypeArgs), systemModuleManager);
     } else {
-      j = MeetX(a, b, builtIns);
+      j = MeetX(a, b, systemModuleManager);
     }
     if (j != null && joinNeedsNonNullConstraint && !j.IsNonNullRefType) {
       // try to make j into a non-null type; if that's not possible, then there is no meet
@@ -1516,15 +1516,15 @@ public abstract class Type : TokenNode {
         j = null;
       }
     }
-    if (builtIns.Options.Get(CommonOptionBag.TypeInferenceDebug)) {
-      builtIns.Options.OutputWriter.WriteLine("DEBUG: Meet( {0}, {1} ) = {2}", a, b, j);
+    if (systemModuleManager.Options.Get(CommonOptionBag.TypeInferenceDebug)) {
+      systemModuleManager.Options.OutputWriter.WriteLine("DEBUG: Meet( {0}, {1} ) = {2}", a, b, j);
     }
     return j;
   }
-  public static Type MeetX(Type a, Type b, BuiltIns builtIns) {
+  public static Type MeetX(Type a, Type b, SystemModuleManager systemModuleManager) {
     Contract.Requires(a != null);
     Contract.Requires(b != null);
-    Contract.Requires(builtIns != null);
+    Contract.Requires(systemModuleManager != null);
 
     a = a.NormalizeExpandKeepConstraints();
     b = b.NormalizeExpandKeepConstraints();
@@ -1565,7 +1565,7 @@ public abstract class Type : TokenNode {
         }
         Contract.Assert(a.TypeArgs.Count == b.TypeArgs.Count);
         var directions = udtA.ResolvedClass.TypeArgs.ConvertAll(tp => tp.Variance);
-        var typeArgs = ComputeExtrema(directions, a.TypeArgs, b.TypeArgs, builtIns);
+        var typeArgs = ComputeExtrema(directions, a.TypeArgs, b.TypeArgs, systemModuleManager);
         if (typeArgs == null) {
           return null;
         }
@@ -1586,7 +1586,7 @@ public abstract class Type : TokenNode {
         return null;
       }
       // sets are co-variant in their argument type
-      var typeArg = Meet(a.TypeArgs[0], b.TypeArgs[0], builtIns);
+      var typeArg = Meet(a.TypeArgs[0], b.TypeArgs[0], systemModuleManager);
       return typeArg == null ? null : new SetType(aa.Finite, typeArg);
     } else if (a is MultiSetType) {
       var aa = (MultiSetType)a;
@@ -1595,7 +1595,7 @@ public abstract class Type : TokenNode {
         return null;
       }
       // multisets are co-variant in their argument type
-      var typeArg = Meet(a.TypeArgs[0], b.TypeArgs[0], builtIns);
+      var typeArg = Meet(a.TypeArgs[0], b.TypeArgs[0], systemModuleManager);
       return typeArg == null ? null : new MultiSetType(typeArg);
     } else if (a is SeqType) {
       var aa = (SeqType)a;
@@ -1604,7 +1604,7 @@ public abstract class Type : TokenNode {
         return null;
       }
       // sequences are co-variant in their argument type
-      var typeArg = Meet(a.TypeArgs[0], b.TypeArgs[0], builtIns);
+      var typeArg = Meet(a.TypeArgs[0], b.TypeArgs[0], systemModuleManager);
       return typeArg == null ? null : new SeqType(typeArg);
     } else if (a is MapType) {
       var aa = (MapType)a;
@@ -1613,8 +1613,8 @@ public abstract class Type : TokenNode {
         return null;
       }
       // maps are co-variant in both argument types
-      var typeArgDomain = Meet(a.TypeArgs[0], b.TypeArgs[0], builtIns);
-      var typeArgRange = Meet(a.TypeArgs[1], b.TypeArgs[1], builtIns);
+      var typeArgDomain = Meet(a.TypeArgs[0], b.TypeArgs[0], systemModuleManager);
+      var typeArgRange = Meet(a.TypeArgs[1], b.TypeArgs[1], systemModuleManager);
       return typeArgDomain == null || typeArgRange == null ? null : new MapType(aa.Finite, typeArgDomain, typeArgRange);
     } else if (a.IsDatatype) {
       var aa = a.AsDatatype;
@@ -1626,7 +1626,7 @@ public abstract class Type : TokenNode {
       }
       Contract.Assert(a.TypeArgs.Count == b.TypeArgs.Count);
       var directions = aa.TypeArgs.ConvertAll(tp => tp.Variance);
-      var typeArgs = ComputeExtrema(directions, a.TypeArgs, b.TypeArgs, builtIns);
+      var typeArgs = ComputeExtrema(directions, a.TypeArgs, b.TypeArgs, systemModuleManager);
       if (typeArgs == null) {
         return null;
       }
@@ -1647,7 +1647,7 @@ public abstract class Type : TokenNode {
         directions.Add(TypeParameter.TPVariance.Contra);  // arrow types are contra-variant in the argument types, so compute joins of these
       }
       directions.Add(TypeParameter.TPVariance.Co);  // arrow types are co-variant in the result type, so compute the meet of these
-      var typeArgs = ComputeExtrema(directions, a.TypeArgs, b.TypeArgs, builtIns);
+      var typeArgs = ComputeExtrema(directions, a.TypeArgs, b.TypeArgs, systemModuleManager);
       if (typeArgs == null) {
         return null;
       }
@@ -1670,7 +1670,7 @@ public abstract class Type : TokenNode {
       } else if (aa == bb) {
         Contract.Assert(a.TypeArgs.Count == b.TypeArgs.Count);
         var directions = aa.TypeArgs.ConvertAll(tp => tp.Variance);
-        var typeArgs = ComputeExtrema(directions, a.TypeArgs, b.TypeArgs, builtIns);
+        var typeArgs = ComputeExtrema(directions, a.TypeArgs, b.TypeArgs, systemModuleManager);
         if (typeArgs == null) {
           return null;
         }
@@ -2281,7 +2281,7 @@ public class UserDefinedType : NonProxyType {
   public UserDefinedType(Cloner cloner, UserDefinedType original)
     : this(cloner.Tok(original.tok), cloner.CloneExpr(original.NamePath)) {
     if (cloner.CloneResolvedFields) {
-      ResolvedClass = original.ResolvedClass;
+      ResolvedClass = cloner.GetCloneIfAvailable(original.ResolvedClass);
       TypeArgs = original.TypeArgs.Select(cloner.CloneType).ToList();
     }
   }
@@ -2535,9 +2535,9 @@ public class UserDefinedType : NonProxyType {
   [System.Diagnostics.Contracts.Pure]
   public override string TypeName(DafnyOptions options, ModuleDefinition context, bool parseAble) {
     Contract.Ensures(Contract.Result<string>() != null);
-    if (BuiltIns.IsTupleTypeName(Name)) {
+    if (SystemModuleManager.IsTupleTypeName(Name)) {
       // Unfortunately, ResolveClass may be null, so Name is all we have.  Reverse-engineer the string name.
-      IEnumerable<bool> argumentGhostness = BuiltIns.ArgumentGhostnessFromString(Name, TypeArgs.Count);
+      IEnumerable<bool> argumentGhostness = SystemModuleManager.ArgumentGhostnessFromString(Name, TypeArgs.Count);
       return "(" + Util.Comma(System.Linq.Enumerable.Zip(TypeArgs, argumentGhostness),
         (ty_u) => Resolver.GhostPrefix(ty_u.Item2) + ty_u.Item1.TypeName(options, context, parseAble)) + ")";
     } else if (ArrowType.IsPartialArrowTypeName(Name)) {
@@ -2778,7 +2778,7 @@ public abstract class TypeProxy : Type {
     }
   }
 
-  public IEnumerable<Type> SubtypesKeepConstraints_WithAssignable(List<Resolver.XConstraint> allXConstraints) {
+  public IEnumerable<Type> SubtypesKeepConstraints_WithAssignable(List<XConstraint> allXConstraints) {
     Contract.Requires(allXConstraints != null);
     foreach (var c in SubtypeConstraints) {
       yield return c.Sub.NormalizeExpandKeepConstraints();
@@ -2875,11 +2875,11 @@ public abstract class TypeProxy : Type {
     Contract.Requires(t != null);
     return t is ArtificialType;
   }
-  internal Type InClusterOfArtificial(List<Resolver.XConstraint> allXConstraints) {
+  internal Type InClusterOfArtificial(List<XConstraint> allXConstraints) {
     Contract.Requires(allXConstraints != null);
     return InClusterOfArtificial_aux(new HashSet<TypeProxy>(), allXConstraints);
   }
-  private Type InClusterOfArtificial_aux(ISet<TypeProxy> visitedProxies, List<Resolver.XConstraint> allXConstraints) {
+  private Type InClusterOfArtificial_aux(ISet<TypeProxy> visitedProxies, List<XConstraint> allXConstraints) {
     Contract.Requires(visitedProxies != null);
     Contract.Requires(allXConstraints != null);
     if (visitedProxies.Contains(this)) {

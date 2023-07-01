@@ -10,13 +10,13 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 namespace Microsoft.Dafny.LanguageServer.Workspace;
 
 public class DocumentAfterResolution : DocumentAfterParsing {
-  public DocumentAfterResolution(DocumentTextBuffer textDocumentItem,
-    Dafny.Program program,
-    IReadOnlyDictionary<DocumentUri, IList<DafnyDiagnostic>> diagnostics,
+  public DocumentAfterResolution(VersionedTextDocumentIdentifier documentIdentifier,
+    Program program,
+    IReadOnlyDictionary<DocumentUri, List<DafnyDiagnostic>> diagnostics,
     SymbolTable? symbolTable,
     SignatureAndCompletionTable signatureAndCompletionTable,
     IReadOnlyList<Diagnostic> ghostDiagnostics) :
-    base(textDocumentItem, program, diagnostics) {
+    base(documentIdentifier, program, diagnostics) {
     SymbolTable = symbolTable;
     SignatureAndCompletionTable = signatureAndCompletionTable;
     GhostDiagnostics = ghostDiagnostics;
@@ -26,10 +26,7 @@ public class DocumentAfterResolution : DocumentAfterParsing {
   public IReadOnlyList<Diagnostic> GhostDiagnostics { get; }
 
   public override IdeState ToIdeState(IdeState previousState) {
-    return previousState with {
-      TextDocumentItem = TextDocumentItem,
-      ImplementationsWereUpdated = false,
-      ResolutionDiagnostics = ComputeFileAndIncludesResolutionDiagnostics(),
+    return base.ToIdeState(previousState) with {
       SymbolTable = SymbolTable ?? previousState.SymbolTable,
       SignatureAndCompletionTable = SignatureAndCompletionTable.Resolved ? SignatureAndCompletionTable : previousState.SignatureAndCompletionTable,
       GhostDiagnostics = GhostDiagnostics

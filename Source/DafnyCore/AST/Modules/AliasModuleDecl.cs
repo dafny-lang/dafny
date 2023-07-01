@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
@@ -12,8 +13,17 @@ public class AliasModuleDecl : ModuleDecl, IHasUsages, ICanFormat {
   public readonly List<IToken> Exports; // list of exports sets
   [FilledInDuringResolution] public bool ShadowsLiteralModule;  // initialized early during Resolution (and used not long after that); true for "import opened A = A" where "A" is a literal module in the same scope
 
-  public AliasModuleDecl(RangeToken rangeToken, ModuleQualifiedId path, Name name, ModuleDefinition parent, bool opened, List<IToken> exports)
-    : base(rangeToken, name, parent, opened, false) {
+  public AliasModuleDecl(Cloner cloner, AliasModuleDecl original, ModuleDefinition parent)
+    : base(cloner, original, parent) {
+    if (original.TargetQId != null) { // TODO is this null check necessary?
+      TargetQId = new ModuleQualifiedId(cloner, original.TargetQId);
+    }
+    Exports = original.Exports;
+  }
+
+  public AliasModuleDecl(RangeToken rangeToken, ModuleQualifiedId path, Name name,
+    ModuleDefinition parent, bool opened, List<IToken> exports, Guid cloneId)
+    : base(rangeToken, name, parent, opened, false, cloneId) {
     Contract.Requires(path != null && path.Path.Count > 0);
     Contract.Requires(exports != null);
     Contract.Requires(exports.Count == 0 || path.Path.Count == 1);

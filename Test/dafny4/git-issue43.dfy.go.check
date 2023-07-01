@@ -1,0 +1,3 @@
+// https://github.com/dafny-lang/dafny/issues/4120
+// CHECK: syntax error: unexpected -, expected semicolon or newline
+

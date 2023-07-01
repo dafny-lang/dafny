@@ -460,6 +460,7 @@ There are four ways to use the formatter:
 * `dafny format --check <files and/or folders>` does not alter files. It will print a message concerning which files need formatting and return a non-zero exit code if any files would be changed by formatting.
 
 You can also use `--stdin` instead of providing a file, to format a full Dafny file from the standard input.
+Input files can be named along with `--stdin`, in which case both the files and the content of the stdin are formatted.
 
 Each version of `dafny format` returns a non-zero return code if there are any command-line or parsing
 errors or if --check is stipulated and at least one file is not the same as its formatted version.  
@@ -562,12 +563,12 @@ The documentation for the root module is in `_.html`.
 
 #### 13.5.1.12. `dafny generate-tests` {#sec-dafny-generate-tests}
 
-This _experimental_ command (verifies the program and) then generates unit test code (as Dafny source code) that provides
-complete coverage of the method.
+This _experimental_ command generates unit test code (as Dafny source code) that provides
+complete coverage of a method indicated with the --target-method option.
 
-Such methods must be static and have no input parameters.
+This command enforces determinism by default and disables the functionality provided by the --snow-snippets option.
 
-_This command is under development and not yet functional._
+_This command is under development and not yet fully functional._
 
 #### 13.5.1.13. `dafny find-dead-code` {#sec-dafny-find-dead-code}
 

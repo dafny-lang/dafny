@@ -33,11 +33,11 @@ public class DeadCodeCommand : ICommandSpec {
     dafnyOptions.Compile = true;
     dafnyOptions.RunAfterCompile = false;
     dafnyOptions.ForceCompile = false;
-    dafnyOptions.Verbose = false;
     dafnyOptions.ForbidNondeterminism = true;
     dafnyOptions.DefiniteAssignmentLevel = 2;
 
     dafnyOptions.TestGenOptions.Mode = TestGenerationOptions.Modes.Block;
     dafnyOptions.TestGenOptions.WarnDeadCode = true;
+    dafnyOptions.Set(DafnyConsolePrinter.ShowSnippets, false);
   }
 }

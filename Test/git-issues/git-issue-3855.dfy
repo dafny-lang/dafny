@@ -1,4 +1,4 @@
-// RUN: %exits-with 4 %baredafny verify --warn-deprecation:false --use-basename-for-filename "%s" > "%t"
+// RUN: %exits-with 4 %baredafny verify --show-snippets:false --warn-deprecation:false --use-basename-for-filename "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 // Nearly verbatim copy of the text case given in the issue
 //SIMULADA 

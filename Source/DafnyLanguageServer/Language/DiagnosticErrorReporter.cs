@@ -16,7 +16,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     private const string RelatedLocationMessage = RelatedLocationCategory;
 
     private readonly DocumentUri entryDocumentUri;
-    private readonly Dictionary<DocumentUri, IList<DafnyDiagnostic>> diagnostics = new();
+    private readonly Dictionary<DocumentUri, List<DafnyDiagnostic>> diagnostics = new();
     private readonly Dictionary<ErrorLevel, int> counts = new();
     private readonly Dictionary<ErrorLevel, int> countsNotVerificationOrCompiler = new();
     private readonly ReaderWriterLockSlim rwLock = new();
@@ -28,12 +28,11 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     /// <remarks>
     /// The uri of the entry document is necessary to report general compiler errors as part of this document.
     /// </remarks>
-    public DiagnosticErrorReporter(DafnyOptions options, string documentSource, DocumentUri entryDocumentUri) : base(options) {
-      this.entryDocumentSource = documentSource;
+    public DiagnosticErrorReporter(DafnyOptions options, DocumentUri entryDocumentUri) : base(options) {
       this.entryDocumentUri = entryDocumentUri;
     }
 
-    public IReadOnlyDictionary<DocumentUri, IList<DafnyDiagnostic>> AllDiagnosticsCopy => diagnostics.ToImmutableDictionary();
+    public IReadOnlyDictionary<DocumentUri, List<DafnyDiagnostic>> AllDiagnosticsCopy => diagnostics.ToImmutableDictionary();
 
     public IReadOnlyList<DafnyDiagnostic> GetDiagnostics(DocumentUri documentUri) {
       rwLock.EnterReadLock();
@@ -79,8 +78,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       );
     }
 
-    public static readonly string PostConditionFailingMessage = new EnsuresDescription().FailureDescription;
-    private readonly string entryDocumentSource;
+    public static readonly string PostConditionFailingMessage = new ProofObligationDescription.EnsuresDescription(null, null).FailureDescription;
 
     public static string FormatRelated(string related) {
       return $"Could not prove: {related}";
@@ -89,29 +87,11 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     private IEnumerable<DafnyRelatedInformation> CreateDiagnosticRelatedInformationFor(IToken token, string message) {
       var (tokenForMessage, inner) = token is NestedToken nestedToken ? (nestedToken.Outer, nestedToken.Inner) : (token, null);
       if (tokenForMessage is BoogieRangeToken range) {
-        var rangeLength = range.EndToken.pos + range.EndToken.val.Length - range.StartToken.pos;
         if (message == PostConditionFailingMessage) {
-          var postcondition = entryDocumentSource.Substring(range.StartToken.pos, rangeLength);
+          var postcondition = range.PrintOriginal();
           message = $"This postcondition might not hold: {postcondition}";
         } else if (message == "Related location") {
-          var tokenUri = tokenForMessage.GetDocumentUri();
-          if (tokenUri == entryDocumentUri) {
-            message = FormatRelated(entryDocumentSource.Substring(range.StartToken.pos, rangeLength));
-          } else {
-            var fileName = tokenForMessage.GetDocumentUri().GetFileSystemPath();
-            message = "";
-            try {
-              var content = File.ReadAllText(fileName);
-              message = FormatRelated(content.Substring(range.StartToken.pos, rangeLength));
-            } catch (IOException) {
-              message = message + "(could not open file " + fileName + ")";
-            } catch (ArgumentOutOfRangeException) {
-              message = "Related location (could not read position in file " + fileName + ")";
-            }
-            if (message == "") {
-              message = "Related location (could not read file " + fileName + ")";
-            }
-          }
+          message = FormatRelated(range.PrintOriginal());
         }
       }
 

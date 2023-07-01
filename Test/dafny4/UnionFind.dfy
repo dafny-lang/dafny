@@ -1,5 +1,4 @@
-// RUN: %dafny /compile:3 /rprint:"%t.rprint" "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment
 // Rustan Leino, Nov 2015
 
 // Module M0 gives the high-level specification of the UnionFind data structure
@@ -63,7 +62,7 @@ abstract module M1 refines M0 {
     // This function returns a snapshot of the .c fields of the objects in the domain of M
     ghost function {:autocontracts false} Collect(): CMap
       requires forall f :: f in M && f.c.Link? ==> f.c.next in M
-      reads this, set a | a in M
+      reads this, set a: Element | a in M
       ensures GoodCMap(Collect())
     {
       map e | e in M :: e.c

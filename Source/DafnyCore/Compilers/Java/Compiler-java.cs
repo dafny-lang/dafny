@@ -320,9 +320,9 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     // Only exists to make sure method is overriden
-    protected override void EmitBuiltInDecls(BuiltIns builtIns, ConcreteSyntaxTree wr) {
-      if (builtIns.MaxNonGhostTupleSizeUsed > 20) {
-        UnsupportedFeatureError(builtIns.MaxNonGhostTupleSizeToken, Feature.TuplesWiderThan20);
+    protected override void EmitBuiltInDecls(SystemModuleManager systemModuleManager, ConcreteSyntaxTree wr) {
+      if (systemModuleManager.MaxNonGhostTupleSizeUsed > 20) {
+        UnsupportedFeatureError(systemModuleManager.MaxNonGhostTupleSizeToken, Feature.TuplesWiderThan20);
       }
     }
 

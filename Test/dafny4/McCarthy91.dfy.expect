@@ -1,5 +1,3 @@
-
-Dafny program verifier finished with 5 verified, 0 errors
 M(3) = 91
 M(99) = 91
 M(100) = 91

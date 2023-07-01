@@ -38,40 +38,10 @@ public class GenerateTestsCommand : ICommandSpec {
   /// parameter in everything except the value of the ProcsToCheck field that
   /// determines the procedures to be verified and should be set to the value of
   /// the <param name="procedureToVerify"></param> parameter.
-  /// Note that this cannot be refactored to use the DafnyOptions.CopyTo method
-  /// because we have to modify ProcsToCheck list, which does not have a setter.
   /// </summary>
   internal static DafnyOptions CopyForProcedure(DafnyOptions options, string procedureToVerify) {
-    var copy = DafnyOptions.Create(options.OutputWriter, options.Input, new[] { "/proc:" + procedureToVerify });
-    // Options set by the user:
-    copy.LoopUnrollCount = options.LoopUnrollCount;
-    copy.TestGenOptions.SeqLengthLimit = options.TestGenOptions.SeqLengthLimit;
-    copy.TestGenOptions.TargetMethod = options.TestGenOptions.TargetMethod;
-    copy.ProverLogFilePath = options.ProverLogFilePath;
-    copy.ProverLogFileAppend = options.ProverLogFileAppend;
-    copy.ProverOptions.Clear();
-    copy.ProverOptions.AddRange(options.ProverOptions);
-    copy.ResourceLimit = options.ResourceLimit;
-    copy.TimeLimit = options.TimeLimit;
-    copy.ProverDllName = options.ProverDllName;
-    copy.TheProverFactory = options.TheProverFactory;
-    copy.TestGenOptions.Verbose = options.TestGenOptions.Verbose;
-    copy.TestGenOptions.PrintBpl = options.TestGenOptions.PrintBpl;
-    copy.TestGenOptions.DisablePrune = options.TestGenOptions.DisablePrune;
-    copy.Prune = !options.TestGenOptions.DisablePrune;
-    // Options set by default in PostProcess:
-    copy.CompilerName = options.CompilerName;
-    copy.Compile = options.Compile;
-    copy.RunAfterCompile = options.RunAfterCompile;
-    copy.ForceCompile = options.ForceCompile;
-    copy.Verbose = options.Verbose;
-    copy.DeprecationNoise = options.DeprecationNoise;
-    copy.ForbidNondeterminism = options.ForbidNondeterminism;
-    copy.DefiniteAssignmentLevel = options.DefiniteAssignmentLevel;
-    copy.TestGenOptions.Mode = options.TestGenOptions.Mode;
-    copy.TestGenOptions.WarnDeadCode = options.TestGenOptions.WarnDeadCode;
-    // Options that may be modified by Test Generation itself:
-    copy.VerifyAllModules = options.VerifyAllModules;
+    var copy = new DafnyOptions(options);
+    copy.ProcsToCheck = new List<string>() { procedureToVerify };
     return copy;
   }
 
@@ -93,10 +63,10 @@ path - Prints path-coverage tests for the given program.");
     dafnyOptions.Compile = true;
     dafnyOptions.RunAfterCompile = false;
     dafnyOptions.ForceCompile = false;
-    dafnyOptions.Verbose = false;
     dafnyOptions.DeprecationNoise = 0;
     dafnyOptions.ForbidNondeterminism = true;
     dafnyOptions.DefiniteAssignmentLevel = 2;
+    dafnyOptions.Set(DafnyConsolePrinter.ShowSnippets, false);
 
     var mode = context.ParseResult.GetValueForArgument(modeArgument);
     dafnyOptions.TestGenOptions.Mode = mode switch {
@@ -116,9 +86,6 @@ path - Prints path-coverage tests for the given program.");
   public static readonly Option<int> LoopUnroll = new("--loop-unroll",
     "Higher values can improve accuracy of the analysis at the cost of taking longer to run.") {
   };
-  public static readonly Option<bool> Verbose = new("--verbose",
-    "Print various debugging info as comments for the generated tests.") {
-  };
   public static readonly Option<string> PrintBpl = new("--print-bpl",
     "Print the Boogie code used during test generation.") {
     ArgumentHelpName = "filename"
@@ -136,9 +103,6 @@ path - Prints path-coverage tests for the given program.");
     DafnyOptions.RegisterLegacyBinding(Target, (options, value) => {
       options.TestGenOptions.TargetMethod = value;
     });
-    DafnyOptions.RegisterLegacyBinding(Verbose, (options, value) => {
-      options.TestGenOptions.Verbose = value;
-    });
     DafnyOptions.RegisterLegacyBinding(PrintBpl, (options, value) => {
       options.TestGenOptions.PrintBpl = value;
     });
@@ -150,7 +114,6 @@ path - Prints path-coverage tests for the given program.");
       LoopUnroll,
       SequenceLengthLimit,
       Target,
-      Verbose,
       PrintBpl,
       DisablePrune
     );

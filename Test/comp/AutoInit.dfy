@@ -1,10 +1,4 @@
-// RUN: %dafny /compile:0 "%s" > "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:cs "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:java "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:js "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:go "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:py "%s" >> "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment
 
 // This file tests the compilation of some default values. It also includes some
 // regression tests for equality, printing, and tuples.

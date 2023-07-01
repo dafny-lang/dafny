@@ -1,5 +1,4 @@
-// RUN: %dafny /compile:3 /rprint:"%t.rprint" "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment
 
 // This file tests some programs where "nat" is a type parameter to
 // a datatype.

@@ -21,8 +21,8 @@ class IdeStateObserver : IObserver<IdeState> {
     ITelemetryPublisher telemetryPublisher,
     INotificationPublisher notificationPublisher,
     ITextDocumentLoader loader,
-    DocumentTextBuffer document) {
-    LastPublishedState = loader.CreateUnloaded(document, CancellationToken.None);
+    VersionedTextDocumentIdentifier documentIdentifier) {
+    LastPublishedState = loader.CreateUnloaded(documentIdentifier, CancellationToken.None);
     this.logger = logger;
     this.telemetryPublisher = telemetryPublisher;
     this.notificationPublisher = notificationPublisher;

@@ -3585,6 +3585,18 @@ a lemma. Whereas the inductive proof is performing proofs for deeper
 and deeper equalities, the greatest lemma can be understood as producing the
 infinite proof on demand.
 
+#### 5.14.3.7. Abstemious and voracious functions {#sec-abstemious}
+
+Some functions on codatatypes are _abstemious_, meaning that they do not
+need to unfold a datatype instance very far (perhaps just one destructor call) 
+to prove a relevant property. Knowing this is the case can aid the proofs of
+properties about the function. The attribute `{:abstemious}` can be applied to
+a function definition to indicate this.
+
+_TODO: Say more about the effect of this attribute and when it should be applied
+(and likely, correct the paragraph above)._
+
+
 # 6. Member declarations
 
 Members are the various kinds of methods, the various kinds of functions, mutable fields,
@@ -4290,9 +4302,8 @@ A function is usually transparent up to some unrolling level (up to
 transparent all the way.
 
 But the transparency of a function is affected by
-whether the function was declared with an `opaque` modifier, as explained
-in [Section 11.2.8](#sec-opaque)),
-the reveal statement ([Section 8.20](#sec-reveal-statement)),
+whether the function was declared with an [`opaque` modifier]((#sec-opaque),
+the ([reveal statement](#sec-reveal-statement)),
 and whether it was `reveal`ed in an export set.
 
 - Inside the module where the function is declared:

@@ -118,17 +118,17 @@ namespace Microsoft.Dafny.Compilers {
       wr.WriteLine();
     }
 
-    protected override void EmitBuiltInDecls(BuiltIns builtIns, ConcreteSyntaxTree wr) {
-      if (builtIns.MaxNonGhostTupleSizeUsed > 20) {
-        UnsupportedFeatureError(builtIns.MaxNonGhostTupleSizeToken, Feature.TuplesWiderThan20);
+    protected override void EmitBuiltInDecls(SystemModuleManager systemModuleManager, ConcreteSyntaxTree wr) {
+      if (systemModuleManager.MaxNonGhostTupleSizeUsed > 20) {
+        UnsupportedFeatureError(systemModuleManager.MaxNonGhostTupleSizeToken, Feature.TuplesWiderThan20);
       }
 
       var dafnyNamespace = CreateModule("Dafny", false, false, null, wr);
-      EmitInitNewArrays(builtIns, dafnyNamespace);
+      EmitInitNewArrays(systemModuleManager, dafnyNamespace);
       if (Synthesize) {
         CsharpSynthesizer.EmitMultiMatcher(dafnyNamespace);
       }
-      EmitFuncExtensions(builtIns, wr);
+      EmitFuncExtensions(systemModuleManager, wr);
     }
 
     // Generates casts for functions of those arities present in the program, like:
@@ -140,9 +140,9 @@ namespace Microsoft.Dafny.Compilers {
     //     ...
     //   }
     // They aren't in any namespace to make them universally accessible.
-    private void EmitFuncExtensions(BuiltIns builtIns, ConcreteSyntaxTree wr) {
+    private void EmitFuncExtensions(SystemModuleManager systemModuleManager, ConcreteSyntaxTree wr) {
       var funcExtensions = wr.NewNamedBlock("internal static class FuncExtensions");
-      foreach (var kv in builtIns.ArrowTypeDecls) {
+      foreach (var kv in systemModuleManager.ArrowTypeDecls) {
         int arity = kv.Key;
 
         List<string> TypeParameterList(string prefix) {
@@ -178,9 +178,9 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    private void EmitInitNewArrays(BuiltIns builtIns, ConcreteSyntaxTree dafnyNamespace) {
+    private void EmitInitNewArrays(SystemModuleManager systemModuleManager, ConcreteSyntaxTree dafnyNamespace) {
       var arrayHelpers = dafnyNamespace.NewNamedBlock("internal class ArrayHelpers");
-      foreach (var decl in builtIns.SystemModule.TopLevelDecls) {
+      foreach (var decl in systemModuleManager.SystemModule.TopLevelDecls) {
         if (decl is ArrayClassDecl classDecl) {
           int dims = classDecl.Dims;
 

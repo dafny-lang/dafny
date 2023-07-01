@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using Microsoft.Dafny.LanguageServer.Language.Symbols;
+using Microsoft.Dafny.LanguageServer.Workspace;
 using Microsoft.Extensions.Logging;
 using Moq;
 
@@ -12,7 +13,8 @@ public class DafnyLangSymbolResolverTest {
   public DafnyLangSymbolResolverTest() {
     var loggerFactory = new Mock<ILoggerFactory>();
     dafnyLangSymbolResolver = new DafnyLangSymbolResolver(
-      loggerFactory.Object.CreateLogger<DafnyLangSymbolResolver>()
+      loggerFactory.Object,
+      new Mock<ITelemetryPublisher>().Object
     );
   }
 
@@ -27,7 +29,7 @@ public class DafnyLangSymbolResolverTest {
 
   class DummyModuleDecl : LiteralModuleDecl {
     public DummyModuleDecl() : base(
-      new DefaultModuleDefinition(new List<Uri>(), false), null) {
+      new DefaultModuleDefinition(new List<Uri>(), false), null, Guid.NewGuid()) {
     }
     public override object Dereference() {
       return this;

@@ -567,12 +567,12 @@ namespace Microsoft.Dafny {
             if (!fnCoreType.IsArrowTypeWithoutPreconditions) {
               // check precond
               var precond = FunctionCall(e.tok, Requires(arity), Bpl.Type.Bool, args);
-              builder.Add(Assert(GetToken(expr), precond, new PODesc.PreconditionSatisfied(null)));
+              builder.Add(Assert(GetToken(expr), precond, new PODesc.PreconditionSatisfied(null, null)));
             }
 
             if (wfOptions.DoReadsChecks && !fnCoreType.IsArrowTypeWithoutReadEffects) {
               // check read effects
-              Type objset = new SetType(true, program.BuiltIns.ObjectQ());
+              Type objset = new SetType(true, program.SystemModuleManager.ObjectQ());
               Expression wrap = new BoogieWrapper(
                 FunctionCall(e.tok, Reads(arity), TrType(objset), args),
                 objset);
@@ -698,16 +698,16 @@ namespace Microsoft.Dafny {
               // check that the preconditions for the call hold
               foreach (AttributedExpression p in e.Function.Req) {
                 Expression precond = Substitute(p.E, e.Receiver, substMap, e.GetTypeArgumentSubstitutions());
-                string errorMessage = CustomErrorMessage(p.Attributes);
+                var (errorMessage, successMessage) = CustomErrorMessage(p.Attributes);
                 foreach (var ss in TrSplitExpr(precond, etran, true, out var splitHappened)) {
                   if (ss.IsChecked) {
                     var tok = new NestedToken(GetToken(expr), ss.Tok);
-                    var desc = new PODesc.PreconditionSatisfied(errorMessage);
+                    var desc = new PODesc.PreconditionSatisfied(errorMessage, successMessage);
                     if (wfOptions.AssertKv != null) {
                       // use the given assert attribute only
-                      builder.Add(Assert(tok, ss.E, new PODesc.PreconditionSatisfied(errorMessage), wfOptions.AssertKv));
+                      builder.Add(Assert(tok, ss.E, new PODesc.PreconditionSatisfied(errorMessage, successMessage), wfOptions.AssertKv));
                     } else {
-                      builder.Add(AssertNS(tok, ss.E, new PODesc.PreconditionSatisfied(errorMessage)));
+                      builder.Add(AssertNS(tok, ss.E, new PODesc.PreconditionSatisfied(errorMessage, successMessage)));
                     }
                   }
                 }
@@ -956,7 +956,7 @@ namespace Microsoft.Dafny {
               case BinaryExpr.ResolvedOpcode.NeqCommon:
                 CheckWellformed(e.E1, wfOptions, locals, builder, etran);
                 if (e.InCompiledContext) {
-                  if (Resolver.CanCompareWith(e.E0) || Resolver.CanCompareWith(e.E1)) {
+                  if (CheckTypeCharacteristics_Visitor.CanCompareWith(e.E0) || CheckTypeCharacteristics_Visitor.CanCompareWith(e.E1)) {
                     // everything's fine
                   } else {
                     Contract.Assert(!e.E0.Type.SupportsEquality); // otherwise, CanCompareWith would have returned "true" above

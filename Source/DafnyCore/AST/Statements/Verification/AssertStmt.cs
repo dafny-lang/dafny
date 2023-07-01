@@ -57,7 +57,7 @@ public class AssertStmt : PredicateStmt, ICloneable<AssertStmt>, ICanFormat {
   }
 
   public override IEnumerable<Assumption> Assumptions(Declaration decl) {
-    if (Attributes.Contains(Attributes, "only")) {
+    if (this.HasUserAttribute("only", out _)) {
       yield return new Assumption(decl, tok, AssumptionDescription.AssertOnly);
     }
   }
@@ -67,9 +67,8 @@ public class AssertStmt : PredicateStmt, ICloneable<AssertStmt>, ICanFormat {
   }
 
   public bool HasAssertOnlyAttribute(out AssertOnlyKind assertOnlyKind) {
-
     assertOnlyKind = AssertOnlyKind.Single;
-    if (Attributes.Find(Attributes, "only") is not UserSuppliedAttributes attribute) {
+    if (!this.HasUserAttribute("only", out var attribute)) {
       return false;
     }
 

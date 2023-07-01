@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 
@@ -13,14 +14,22 @@ public class AbstractModuleDecl : ModuleDecl, ICanFormat {
   public ModuleDecl CompileRoot;
   public ModuleSignature OriginalSignature;
 
-  public AbstractModuleDecl(RangeToken rangeToken, ModuleQualifiedId qid, Name name, ModuleDefinition parent, bool opened, List<IToken> exports)
-    : base(rangeToken, name, parent, opened, false) {
+  public AbstractModuleDecl(Cloner cloner, AbstractModuleDecl original, ModuleDefinition parent)
+    : base(cloner, original, parent) {
+    Exports = original.Exports;
+    QId = new ModuleQualifiedId(cloner, original.QId);
+  }
+
+  public AbstractModuleDecl(RangeToken rangeToken, ModuleQualifiedId qid, Name name,
+    ModuleDefinition parent, bool opened, List<IToken> exports, Guid cloneId)
+    : base(rangeToken, name, parent, opened, false, cloneId) {
     Contract.Requires(qid != null && qid.Path.Count > 0);
     Contract.Requires(exports != null);
 
     QId = qid;
     Exports = exports;
   }
+
   public override object Dereference() { return this; }
   public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
     foreach (var token in OwnedTokens) {

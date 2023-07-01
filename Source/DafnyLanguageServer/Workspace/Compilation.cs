@@ -1,11 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reactive;
 using System.Reactive.Concurrency;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
-using System.Reactive.Threading.Tasks;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Boogie;
@@ -36,7 +34,6 @@ public class Compilation {
   private readonly INotificationPublisher notificationPublisher;
   private readonly IProgramVerifier verifier;
 
-  public DocumentTextBuffer TextBuffer { get; }
   private readonly IServiceProvider services;
 
   // TODO CompilationManager shouldn't be aware of migration
@@ -53,16 +50,17 @@ public class Compilation {
 
   public Compilation(IServiceProvider services,
     DafnyOptions options,
-    DocumentTextBuffer textBuffer,
+    VersionedTextDocumentIdentifier documentIdentifier,
     VerificationTree? migratedVerificationTree) {
     this.options = options;
+    this.documentIdentifier = documentIdentifier;
+    this.fileSystem = services.GetRequiredService<IFileSystem>();
     documentLoader = services.GetRequiredService<ITextDocumentLoader>();
     logger = services.GetRequiredService<ILogger<Compilation>>();
     notificationPublisher = services.GetRequiredService<INotificationPublisher>();
     verifier = services.GetRequiredService<IProgramVerifier>();
     statusPublisher = services.GetRequiredService<ICompilationStatusNotificationPublisher>();
 
-    TextBuffer = textBuffer;
     this.services = services;
     this.migratedVerificationTree = migratedVerificationTree;
     cancellationSource = new();
@@ -80,7 +78,7 @@ public class Compilation {
   private async Task<DocumentAfterParsing> ResolveAsync() {
     try {
       await started.Task;
-      var documentAfterParsing = await documentLoader.LoadAsync(options, TextBuffer, cancellationSource.Token);
+      var documentAfterParsing = await documentLoader.LoadAsync(options, documentIdentifier, fileSystem, cancellationSource.Token);
 
       // TODO, let gutter icon publications also used the published CompilationView.
       var state = documentAfterParsing.InitialIdeState(options);
@@ -126,14 +124,14 @@ public class Compilation {
   public async Task<DocumentAfterTranslation> PrepareVerificationTasksAsync(
     DocumentAfterResolution loaded,
     CancellationToken cancellationToken) {
-    if (loaded.AllFileDiagnostics.Any(d =>
+    if (loaded.ResolutionDiagnostics.Values.SelectMany(x => x).Any(d =>
           d.Level == ErrorLevel.Error &&
           d.Source != MessageSource.Compiler &&
           d.Source != MessageSource.Verifier)) {
       throw new TaskCanceledException();
     }
 
-    statusPublisher.SendStatusNotification(loaded.TextDocumentItem, CompilationStatus.PreparingVerification);
+    statusPublisher.SendStatusNotification(loaded.DocumentIdentifier, CompilationStatus.PreparingVerification);
 
     var verificationTasks =
       await verifier.GetVerificationTasksAsync(loaded, cancellationToken);
@@ -157,11 +155,11 @@ public class Compilation {
     }
 
     var translated = new DocumentAfterTranslation(services,
-      loaded.TextDocumentItem, loaded.Program,
+      loaded.DocumentIdentifier, loaded.Program,
       loaded.ResolutionDiagnostics, loaded.SymbolTable, loaded.SignatureAndCompletionTable, loaded.GhostDiagnostics, verificationTasks,
       new(),
       initialViews,
-      migratedVerificationTree ?? new DocumentVerificationTree(loaded.TextDocumentItem));
+      migratedVerificationTree ?? new DocumentVerificationTree(loaded.Program, loaded.DocumentIdentifier));
 
     translated.GutterProgressReporter.RecomputeVerificationTree();
 
@@ -297,7 +295,7 @@ public class Compilation {
   private bool ReportGutterStatus => options.Get(ServerCommand.LineVerificationStatus);
 
   private List<DafnyDiagnostic> GetDiagnosticsFromResult(DocumentAfterResolution document, VerificationResult result) {
-    var errorReporter = new DiagnosticErrorReporter(options, document.TextDocumentItem.Text, document.Uri);
+    var errorReporter = new DiagnosticErrorReporter(options, document.Uri);
     foreach (var counterExample in result.Errors) {
       errorReporter.ReportBoogieError(counterExample.CreateErrorInformation(result.Outcome, options.ForceBplErrors));
     }
@@ -338,6 +336,8 @@ public class Compilation {
 
   private TaskCompletionSource verificationCompleted = new();
   private readonly DafnyOptions options;
+  private readonly VersionedTextDocumentIdentifier documentIdentifier;
+  private readonly IFileSystem fileSystem;
 
   public void MarkVerificationStarted() {
     logger.LogTrace("MarkVerificationStarted called");
@@ -384,9 +384,14 @@ public class Compilation {
     var result = Formatting.__default.ReindentProgramFromFirstToken(firstToken,
       IndentationFormatter.ForProgram(parsedDocument.Program));
 
+    var lastToken = firstToken;
+    while (lastToken.Next != null) {
+      lastToken = lastToken.Next;
+    }
     // TODO: https://github.com/dafny-lang/dafny/issues/3415
     return new TextEditContainer(new TextEdit[] {
-      new() {NewText = result, Range = parsedDocument.TextDocumentItem.Range}
+      // TODO end position doesn't take into account trailing trivia
+      new() {NewText = result, Range = new Range(new Position(0,0), lastToken.GetLspPosition())}
     });
 
   }
