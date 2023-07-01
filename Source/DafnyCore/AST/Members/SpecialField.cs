@@ -118,7 +118,7 @@ public class DatatypeDestructor : SpecialField {
 
 public class ConstantField : SpecialField, ICallable {
   public override string WhatKind => "const field";
-  public readonly Expression Rhs;
+  public Expression Rhs;
 
   public override bool IsOpaque { get; }
 

@@ -46,7 +46,8 @@ class CheckDividedConstructorInit_Visitor : ResolverTopDownVisitor<int> {
         VisitExpr(s.Lhs);  // (++)
         s.Rhs.SubExpressions.Iter(VisitExpr);  // (+++)
       }
-    } else {
+    } //else if (stmt is RevealStmt) {} 
+    else {
       stmt.SubExpressions.Iter(VisitExpr);  // (*)
     }
     stmt.SubStatements.Iter(CheckInit);  // (**)
