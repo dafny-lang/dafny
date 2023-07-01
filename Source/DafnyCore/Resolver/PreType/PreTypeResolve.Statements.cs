@@ -673,7 +673,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(update != null);
       Contract.Requires(resolutionContext != null);
       IToken firstEffectfulRhs = null;
-      Resolver.MethodCallInformation methodCallInfo = null;
+      ModuleResolver.MethodCallInformation methodCallInfo = null;
       update.ResolvedStatements = new();
       foreach (var rhs in update.Rhss) {
         bool isEffectful;
@@ -1254,7 +1254,7 @@ namespace Microsoft.Dafny {
           // * If the all-but-last components of rr.Path denote a type, then do EType,initCallName := allButLast(EType),last(EType)
           // * Otherwise, report an error
           var ret = resolver.ResolveTypeLenient(rr.Tok, rr.Path, resolutionContext,
-            new Resolver.ResolveTypeOption(ResolveTypeOptionEnum.InferTypeProxies), null, true);
+            new ModuleResolver.ResolveTypeOption(ResolveTypeOptionEnum.InferTypeProxies), null, true);
           if (ret != null) {
             // The all-but-last components of rr.Path denote a type (namely, ret.ReplacementType).
             rr.EType = ret.ReplacementType;

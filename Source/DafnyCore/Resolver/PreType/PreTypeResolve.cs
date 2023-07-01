@@ -520,7 +520,7 @@ namespace Microsoft.Dafny {
     /// <summary>
     /// For every declaration in "declarations", resolve names and determine pre-types.
     /// </summary>
-    public static void ResolveDeclarations(List<TopLevelDecl> declarations, Resolver resolver, bool firstPhaseOnly = false) {
+    public static void ResolveDeclarations(List<TopLevelDecl> declarations, ModuleResolver resolver, bool firstPhaseOnly = false) {
       // Each (top-level or member) declaration is done in two phases.
       //
       // The goal of the first phase is to fill in the pre-types in the declaration's signature. For many declarations,
@@ -559,7 +559,7 @@ namespace Microsoft.Dafny {
       ResolvePreTypeSignature(d, preTypeInferenceModuleState, resolver);
     }
 
-    private static void ResolvePreTypeSignature(Declaration d, PreTypeInferenceModuleState preTypeInferenceModuleState, Resolver resolver) {
+    private static void ResolvePreTypeSignature(Declaration d, PreTypeInferenceModuleState preTypeInferenceModuleState, ModuleResolver resolver) {
       var preTypeResolver = new PreTypeResolver(resolver, preTypeInferenceModuleState);
 
       // The "allTypeParameters" scope is stored in "resolver", and there's only one such "resolver". Since
@@ -867,7 +867,7 @@ namespace Microsoft.Dafny {
           allowMoreRequiredParameters = false;
           ResolveExpression(d, new ResolutionContext(codeContext, codeContext is TwoStateFunction || codeContext is TwoStateLemma));
           AddSubtypeConstraint(Type2PreType(formal.Type), d.PreType, d.tok, "default-value expression (of type '{1}') is not assignable to formal (of type '{0}')");
-          foreach (var v in Resolver.FreeVariables(d)) {
+          foreach (var v in ModuleResolver.FreeVariables(d)) {
             dependencies.AddEdge(formal, v);
           }
         } else if (!allowMoreRequiredParameters) {

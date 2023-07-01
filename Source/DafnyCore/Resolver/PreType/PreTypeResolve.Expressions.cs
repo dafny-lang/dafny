@@ -90,7 +90,7 @@ namespace Microsoft.Dafny {
         } else if (currentClass == null) {
           Contract.Assert(resolver.reporter.HasErrors);
         } else {
-          var ty = Resolver.GetThisType(expr.tok, currentClass);  // do this regardless of scope.AllowInstance, for better error reporting
+          var ty = ModuleResolver.GetThisType(expr.tok, currentClass);  // do this regardless of scope.AllowInstance, for better error reporting
           expr.PreType = Type2PreType(ty, "type of 'this'");
         }
 
@@ -464,7 +464,7 @@ namespace Microsoft.Dafny {
         var e = (ConversionExpr)expr;
         ResolveExpression(e.E, resolutionContext);
         var prevErrorCount = ErrorCount;
-        resolver.ResolveType(e.tok, e.ToType, resolutionContext, new Resolver.ResolveTypeOption(ResolveTypeOptionEnum.InferTypeProxies), null);
+        resolver.ResolveType(e.tok, e.ToType, resolutionContext, new ModuleResolver.ResolveTypeOption(ResolveTypeOptionEnum.InferTypeProxies), null);
         if (ErrorCount == prevErrorCount) {
           var toPreType = (DPreType)Type2PreType(e.ToType);
           var ancestorDecl = AncestorDecl(toPreType.Decl);
@@ -503,7 +503,7 @@ namespace Microsoft.Dafny {
         var e = (TypeTestExpr)expr;
         ResolveExpression(e.E, resolutionContext);
         expr.PreType = ConstrainResultToBoolFamilyOperator(expr.tok, "is");
-        resolver.ResolveType(e.tok, e.ToType, resolutionContext, new Resolver.ResolveTypeOption(ResolveTypeOptionEnum.InferTypeProxies), null);
+        resolver.ResolveType(e.tok, e.ToType, resolutionContext, new ModuleResolver.ResolveTypeOption(ResolveTypeOptionEnum.InferTypeProxies), null);
         var toPreType = Type2PreType(e.ToType);
         AddComparableConstraint(toPreType, e.E.PreType, expr.tok, "type test for type '{0}' must be from an expression assignable to it (got '{1}')");
         AddConfirmation(() => {
@@ -1176,7 +1176,7 @@ namespace Microsoft.Dafny {
             // nevertheless, set "receiver" to a value so we can continue resolution
           }
           receiver = new ImplicitThisExpr(expr.tok);
-          receiver.Type = Resolver.GetThisType(expr.tok, currentClass);
+          receiver.Type = ModuleResolver.GetThisType(expr.tok, currentClass);
           receiver.PreType = Type2PreType(receiver.Type);
         }
         r = ResolveExprDotCall(expr.tok, receiver, null, member, args, expr.OptTypeArguments, resolutionContext, allowMethodCall);
@@ -1394,7 +1394,7 @@ namespace Microsoft.Dafny {
       if (lhs != null && lhs.PreType is PreTypePlaceholderModule) {
         var ri = (Resolver_IdentifierExpr)lhs;
         var sig = ((ModuleDecl)ri.Decl).AccessibleSignature(false);
-        sig = Resolver.GetSignatureExt(sig);
+        sig = ModuleResolver.GetSignatureExt(sig);
 
         if (isLastNameSegment && sig.Ctors.TryGetValue(name, out var pair)) {
           // ----- 0. datatype constructor
@@ -1604,10 +1604,10 @@ namespace Microsoft.Dafny {
       return rr;
     }
 
-    Resolver.MethodCallInformation ResolveApplySuffix(ApplySuffix e, ResolutionContext resolutionContext, bool allowMethodCall) {
+    ModuleResolver.MethodCallInformation ResolveApplySuffix(ApplySuffix e, ResolutionContext resolutionContext, bool allowMethodCall) {
       Contract.Requires(e != null);
       Contract.Requires(resolutionContext != null);
-      Contract.Ensures(Contract.Result<Resolver.MethodCallInformation>() == null || allowMethodCall);
+      Contract.Ensures(Contract.Result<ModuleResolver.MethodCallInformation>() == null || allowMethodCall);
 
       Expression r = null;  // upon success, the expression to which the ApplySuffix resolves
       var errorCount = ErrorCount;
@@ -1699,7 +1699,7 @@ namespace Microsoft.Dafny {
                 }
               }
               if (allowMethodCall) {
-                return new Resolver.MethodCallInformation(e.RangeToken, mse, e.Bindings.ArgumentBindings);
+                return new ModuleResolver.MethodCallInformation(e.RangeToken, mse, e.Bindings.ArgumentBindings);
               } else {
                 ReportError(e.tok, "{0} call is not allowed to be used in an expression resolutionContext ({1})", mse.Member.WhatKind, mse.Member.Name);
               }
