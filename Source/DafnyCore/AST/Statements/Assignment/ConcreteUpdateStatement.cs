@@ -27,7 +27,7 @@ public abstract class ConcreteUpdateStatement : Statement, ICanFormat {
     return formatter.SetIndentUpdateStmt(this, indentBefore, false);
   }
 
-  public override void Resolve(Resolver resolver, ResolutionContext context) {
+  public override void Resolve(ModuleResolver resolver, ResolutionContext context) {
     foreach (var lhs in Lhss) {
       var ec = resolver.Reporter.Count(ErrorLevel.Error);
       resolver.ResolveExpression(lhs, context);

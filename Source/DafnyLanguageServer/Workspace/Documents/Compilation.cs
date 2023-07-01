@@ -20,12 +20,12 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
   /// When verification starts, no new instances of Compilation will be created for this version.
   /// There can be different verification threads that update the state of this object.
   /// </summary>
-  public class Document {
+  public class Compilation {
     public VersionedTextDocumentIdentifier DocumentIdentifier { get; }
     public DocumentUri Uri => DocumentIdentifier.Uri;
     public int Version => DocumentIdentifier.Version;
 
-    public Document(VersionedTextDocumentIdentifier documentIdentifier) {
+    public Compilation(VersionedTextDocumentIdentifier documentIdentifier) {
       DocumentIdentifier = documentIdentifier;
     }
 

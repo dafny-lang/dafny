@@ -271,7 +271,7 @@ namespace Microsoft.Dafny {
       // This is the typical case (that is, f is not a static const field)
 
       var hVar = BplBoundVar("$h", predef.HeapType, out var h);
-      var oVar = BplBoundVar("$o", TrType(Resolver.GetThisType(c.tok, c)), out var o);
+      var oVar = BplBoundVar("$o", TrType(ModuleResolver.GetThisType(c.tok, c)), out var o);
 
       Bpl.Expr o_ty; // to hold TClassA(G)
       var isGoodHeap = FunctionCall(c.tok, BuiltinFunction.IsGoodHeap, null, h);
@@ -582,7 +582,7 @@ namespace Microsoft.Dafny {
               // this corresponds to "this"
               Contract.Assert(!m.IsStatic);  // if "m" is static, "this" should never have gone into the _induction attribute
               Contract.Assert(receiverSubst == null);  // we expect at most one
-              var receiverType = Resolver.GetThisType(m.tok, (TopLevelDeclWithMembers)m.EnclosingClass);
+              var receiverType = ModuleResolver.GetThisType(m.tok, (TopLevelDeclWithMembers)m.EnclosingClass);
               bv = new BoundVar(m.tok, CurrentIdGenerator.FreshId("$ih#this"), receiverType); // use this temporary variable counter, but for a Dafny name (the idea being that the number and the initial "_" in the name might avoid name conflicts)
               var ie = new IdentifierExpr(m.tok, bv.Name) {
                 Var = bv,
@@ -863,7 +863,7 @@ namespace Microsoft.Dafny {
         var th = new Boogie.IdentifierExpr(f.tok, "this", TrReceiverType(f));
         Boogie.Expr wh = Boogie.Expr.And(
           ReceiverNotNull(th),
-          etran.GoodRef(f.tok, th, Resolver.GetReceiverType(f.tok, f)));
+          etran.GoodRef(f.tok, th, ModuleResolver.GetReceiverType(f.tok, f)));
         Boogie.Formal thVar = new Boogie.Formal(f.tok, new Boogie.TypedIdent(f.tok, "this", TrReceiverType(f), wh), true);
         inParams.Add(thVar);
       }
@@ -1088,7 +1088,7 @@ namespace Microsoft.Dafny {
       }
 
       // Add receiver parameter
-      Type thisType = Resolver.GetReceiverType(f.tok, overridingFunction);
+      Type thisType = ModuleResolver.GetReceiverType(f.tok, overridingFunction);
       var bvThis = new Boogie.BoundVariable(f.tok, new Boogie.TypedIdent(f.tok, etran.This, TrType(thisType)));
       forallFormals.Add(bvThis);
       var bvThisExpr = new Boogie.IdentifierExpr(f.tok, bvThis);

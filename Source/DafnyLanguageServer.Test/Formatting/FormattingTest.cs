@@ -149,10 +149,10 @@ module A {
     var documentItem = CreateTestDocument(source);
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
     var verificationDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
-    DocumentAfterParsing document = await Documents.GetLastDocumentAsync(documentItem);
+    CompilationAfterParsing compilation = await Projects.GetLastDocumentAsync(documentItem);
     var edits = await RequestFormattingAsync(documentItem);
     edits.Reverse();
-    Assert.NotNull(document);
+    Assert.NotNull(compilation);
 
     if (edits.Count == 0) {
       Assert.Equal(target, source);
