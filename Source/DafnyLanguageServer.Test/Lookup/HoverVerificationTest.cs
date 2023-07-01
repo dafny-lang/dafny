@@ -507,7 +507,7 @@ lemma {:rlimit 12000} SquareRoot2NotRational(p: nat, q: nat)
       source = source.TrimStart();
       var documentItem = CreateTestDocument(source, filename);
       await Client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      await Documents.GetLastDocumentAsync(documentItem);
+      await Projects.GetLastDocumentAsync(documentItem);
       return documentItem;
     }
 
