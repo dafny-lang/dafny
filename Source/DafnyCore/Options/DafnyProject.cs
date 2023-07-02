@@ -6,7 +6,6 @@ using System.Linq;
 using System.Runtime.Serialization;
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.FileSystemGlobbing;
-using Microsoft.Extensions.FileSystemGlobbing.Abstractions;
 using Tomlyn;
 using Tomlyn.Model;
 
@@ -49,49 +48,23 @@ public class DafnyProject : IEquatable<DafnyProject> {
     }
   }
 
-  class DirectoryInfoAroundFileSystem : DirectoryInfoBase {
-    private IFileSystem fileSystem;
-    private string root;
-
-    public DirectoryInfoAroundFileSystem(IFileSystem fileSystem, string root) {
-      this.fileSystem = fileSystem;
-      this.root = root;
-    }
-
-    public override string Name { get; }
-    public override string FullName { get; }
-    public override DirectoryInfoBase ParentDirectory { get; }
-    public override IEnumerable<FileSystemInfoBase> EnumerateFileSystemInfos() {
-      throw new NotImplementedException();
-    }
-
-    public override DirectoryInfoBase GetDirectory(string path) {
-      throw new NotImplementedException();
-    }
-
-    public override FileInfoBase GetFile(string path) {
-      throw new NotImplementedException();
-    }
-  }
-
-  // TODO ugly method. Can we do better?
   public IEnumerable<Uri> GetRootSourceUris(IFileSystem fileSystem, DafnyOptions options) {
     if (!Uri.IsFile) {
       return Enumerable.Empty<Uri>();
     }
 
-    var projectRoot = Path.GetDirectoryName(Uri.LocalPath);
+    var projectRoot = Path.GetDirectoryName(Uri.LocalPath)!;
     var matcher = new Matcher();
     foreach (var includeGlob in Includes ?? new[] { "**/*.dfy" }) {
-      matcher.AddInclude(Path.IsPathRooted(includeGlob) ? includeGlob : Path.Join(projectRoot, includeGlob));
+      matcher.AddInclude(Path.GetFullPath(includeGlob, projectRoot));
     }
     foreach (var includeGlob in Excludes ?? Enumerable.Empty<string>()) {
-      matcher.AddExclude(Path.IsPathRooted(includeGlob) ? includeGlob : Path.Join(projectRoot, includeGlob));
+      matcher.AddExclude(Path.GetFullPath(includeGlob, projectRoot));
     }
 
-    var root = Path.GetPathRoot(Uri.LocalPath);
-    var result = matcher.Execute(fileSystem.GetDirectoryInfoBase(root));
-    var files = result.Files.Select(f => Path.Combine(root, f.Path));
+    var diskRoot = Path.GetPathRoot(Uri.LocalPath);
+    var result = matcher.Execute(fileSystem.GetDirectoryInfoBase(diskRoot));
+    var files = result.Files.Select(f => Path.Combine(diskRoot, f.Path));
     return files.Select(file => new Uri(Path.GetFullPath(file)));
   }
 
