@@ -43,7 +43,9 @@ public class ProjectManager : IDisposable {
   private DafnyOptions options;
   private readonly DafnyOptions serverOptions;
 
+#pragma warning disable CS8618
   public ProjectManager(IServiceProvider services, VerificationResultCache verificationCache, DafnyProject project) {
+#pragma warning restore CS8618
     this.services = services;
     this.verificationCache = verificationCache;
     Project = project;
@@ -308,6 +310,9 @@ public class ProjectManager : IDisposable {
     CompilationManager.Start();
   }
 
+  
+  // TODO Consider replacing this with creating a new Project, although then openFile and version must be migrated.
+  // This way, the non-nullables can easily be set in the constructor.
   public void Migrate(DafnyProject newProject) {
     var _ = CloseAsync();
     ConfigureProject(newProject);
