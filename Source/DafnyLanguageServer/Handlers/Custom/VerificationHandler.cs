@@ -35,12 +35,12 @@ public class VerificationHandler : IJsonRpcRequestHandler<VerificationParams, bo
       return false;
     }
 
-    var translatedDocument = await projectManager.CompilationManager.TranslatedCompilation;
+    var translatedCompilation = await projectManager.CompilationManager.TranslatedCompilation;
     var requestPosition = request.Position;
     var someTasksAreRunning = false;
-    var tasksAtPosition = GetTasksAtPosition(translatedDocument, requestPosition);
+    var tasksAtPosition = GetTasksAtPosition(translatedCompilation, requestPosition);
     foreach (var taskToRun in tasksAtPosition) {
-      someTasksAreRunning |= projectManager.CompilationManager.VerifyTask(translatedDocument, taskToRun);
+      someTasksAreRunning |= projectManager.CompilationManager.VerifyTask(translatedCompilation, taskToRun);
     }
     return someTasksAreRunning;
   }

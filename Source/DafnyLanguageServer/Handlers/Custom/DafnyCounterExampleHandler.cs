@@ -23,15 +23,15 @@ namespace Microsoft.Dafny.LanguageServer.Handlers.Custom {
 
     public async Task<CounterExampleList> Handle(CounterExampleParams request, CancellationToken cancellationToken) {
       try {
-        var documentManager = projects.GetProjectManager(request.TextDocument);
-        if (documentManager != null) {
-          var translatedDocument = await documentManager.CompilationManager.TranslatedCompilation;
-          var verificationTasks = translatedDocument.VerificationTasks;
+        var projectManager = projects.GetProjectManager(request.TextDocument);
+        if (projectManager != null) {
+          var translatedCompilation = await projectManager.CompilationManager.TranslatedCompilation;
+          var verificationTasks = translatedCompilation.VerificationTasks;
           foreach (var task in verificationTasks) {
-            documentManager.CompilationManager.VerifyTask(translatedDocument, task);
+            projectManager.CompilationManager.VerifyTask(translatedCompilation, task);
           }
 
-          var state = await documentManager.GetIdeStateAfterVerificationAsync();
+          var state = await projectManager.GetIdeStateAfterVerificationAsync();
           logger.LogDebug("counter-examples retrieved IDE state");
           return new CounterExampleLoader(options, logger, state, request.CounterExampleDepth, cancellationToken).GetCounterExamples();
         }
