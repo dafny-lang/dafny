@@ -148,7 +148,7 @@ namespace Microsoft.Dafny {
           boundVarUses.Add(new IdentifierExpr(e.tok, bv.Name) { Type = bv.Type, Var = bv });
           i++;
         }
-        var objVar = new BoundVar(e.tok, "_obj", elementType);
+        var objVar = new BoundVar(e.tok, "_obj", elementType.NormalizeExpand());
         var objUse = new IdentifierExpr(e.tok, objVar.Name) { Type = objVar.Type, Var = objVar };
         boundVarDecls.Add(objVar);
 
