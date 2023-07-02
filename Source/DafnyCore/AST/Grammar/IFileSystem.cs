@@ -8,7 +8,7 @@ public interface IFileSystem {
   TextReader ReadFile(Uri uri);
 
   public bool Exists(Uri path);
-  DirectoryInfoBase GetDirectoryInfoBase(Uri uri);
+  DirectoryInfoBase GetDirectoryInfoBase(string root);
 }
 
 public class OnDiskFileSystem : IFileSystem {
@@ -25,8 +25,7 @@ public class OnDiskFileSystem : IFileSystem {
     return File.Exists(path.LocalPath);
   }
 
-  public DirectoryInfoBase GetDirectoryInfoBase(Uri uri) {
-    var root = Path.GetDirectoryName(uri.LocalPath);
+  public DirectoryInfoBase GetDirectoryInfoBase(string root) {
     return new DirectoryInfoWrapper(new DirectoryInfo(root!));
   }
 }

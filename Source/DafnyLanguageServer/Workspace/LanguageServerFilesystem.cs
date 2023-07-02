@@ -78,12 +78,11 @@ public class LanguageServerFilesystem : IFileSystem {
     return openFiles.ContainsKey(path) || OnDiskFileSystem.Instance.Exists(path);
   }
 
-  public DirectoryInfoBase GetDirectoryInfoBase(Uri uri) {
-    var root = Path.GetDirectoryName(uri.LocalPath)!;
+  public DirectoryInfoBase GetDirectoryInfoBase(string root) {
     var inMemoryFiles = openFiles.Keys.Select(openFileUri => openFileUri.LocalPath);
     var inMemory = new InMemoryDirectoryInfoFromDotNet8(root, inMemoryFiles);
 
-    return new CombinedDirectoryInfo(new[] { inMemory, OnDiskFileSystem.Instance.GetDirectoryInfoBase(uri) });
+    return new CombinedDirectoryInfo(new[] { inMemory, OnDiskFileSystem.Instance.GetDirectoryInfoBase(root) });
   }
 
   public int? GetVersion(Uri uri) {

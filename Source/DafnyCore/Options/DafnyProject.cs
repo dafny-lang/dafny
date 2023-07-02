@@ -74,21 +74,23 @@ public class DafnyProject : IEquatable<DafnyProject> {
     }
   }
 
+  // TODO ugly method. Can we do better?
   public IEnumerable<Uri> GetRootSourceUris(IFileSystem fileSystem, DafnyOptions options) {
     if (!Uri.IsFile) {
       return Enumerable.Empty<Uri>();
     }
 
+    var projectRoot = Path.GetDirectoryName(Uri.LocalPath);
     var matcher = new Matcher();
     foreach (var includeGlob in Includes ?? new[] { "**/*.dfy" }) {
-      matcher.AddInclude(includeGlob);
+      matcher.AddInclude(Path.IsPathRooted(includeGlob) ? includeGlob : Path.Join(projectRoot, includeGlob));
     }
     foreach (var includeGlob in Excludes ?? Enumerable.Empty<string>()) {
-      matcher.AddExclude(includeGlob);
+      matcher.AddExclude(Path.IsPathRooted(includeGlob) ? includeGlob : Path.Join(projectRoot, includeGlob));
     }
 
-    var root = Path.GetDirectoryName(Uri.LocalPath);
-    var result = matcher.Execute(fileSystem.GetDirectoryInfoBase(Uri));
+    var root = Path.GetPathRoot(Uri.LocalPath);
+    var result = matcher.Execute(fileSystem.GetDirectoryInfoBase(root));
     var files = result.Files.Select(f => Path.Combine(root, f.Path));
     return files.Select(file => new Uri(Path.GetFullPath(file)));
   }
