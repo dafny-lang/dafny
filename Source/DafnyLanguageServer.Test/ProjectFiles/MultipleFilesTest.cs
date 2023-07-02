@@ -17,8 +17,31 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.ProjectFiles;
 public class MultipleFilesTest : ClientBasedLanguageServerTest {
 
   [Fact]
-  public void FileGetsRemappedToProjectByCreatingProjectFile() {
-    Assert.Fail(" not impl");
+  public async Task FileGetsRemappedToProjectByCreatingProjectFile() {
+    var consumerSource = @"
+method Consumes() {
+  Produces();
+}
+".TrimStart();
+
+    var producer = @"
+method Produces() {}
+".TrimStart();
+
+    var directory = Path.GetRandomFileName();
+    var consumer = CreateTestDocument(consumerSource, Path.Combine(directory, "firstFile.dfy"));
+    await client.OpenDocumentAndWaitAsync(consumer, CancellationToken);
+    var secondFile = CreateTestDocument(producer, Path.Combine(directory, "secondFile.dfy"));
+    await client.OpenDocumentAndWaitAsync(secondFile, CancellationToken);
+
+    var producesDefinition1 = await RequestDefinition(consumer, new Position(1, 3));
+    Assert.Empty(producesDefinition1);
+
+    var projectFile = CreateTestDocument("", Path.Combine(directory, "dfyconfig.toml"));
+    await client.OpenDocumentAndWaitAsync(projectFile, CancellationToken);
+
+    var producesDefinition2 = await RequestDefinition(consumer, new Position(1, 3));
+    Assert.Single(producesDefinition2);
   }
 
   [Fact]
@@ -32,12 +55,12 @@ public class MultipleFilesTest : ClientBasedLanguageServerTest {
     await client.OpenDocumentAndWaitAsync(projectFile, CancellationToken);
     var codeFile = CreateTestDocument("method Foo() {}", Path.Combine(directory, "firstFile.dfy"));
     await client.OpenDocumentAndWaitAsync(codeFile, CancellationToken);
-    
+
     Assert.NotEmpty(Projects.Managers);
-    
+
     await client.CloseDocumentAndWaitAsync(projectFile, CancellationToken);
     Assert.NotEmpty(Projects.Managers);
-    
+
     await client.CloseDocumentAndWaitAsync(codeFile, CancellationToken);
 
     var retryCount = 10;
@@ -48,9 +71,9 @@ public class MultipleFilesTest : ClientBasedLanguageServerTest {
       await Task.Delay(100);
     }
   }
-  
+
   [Fact]
-  public async Task ChangeRangesWorksWithMultipleFiles() {
+  public async Task VerificationPriorityBasedOnChangesWorksWithMultipleFiles() {
     await SetUp(options => {
       options.Set(BoogieOptionBag.Cores, 1U);
     });
@@ -105,8 +128,7 @@ const b := a + 2;
   }
 
   [Fact]
-  public async Task ChangesToProjectFileAffectDiagnostics() {
-
+  public async Task ChangesToProjectFileAffectDiagnosticsAndLoseMigration() {
     var source = @"
 method Bar(shadowed: int) {
   var i := shadowed;
@@ -115,28 +137,33 @@ method Bar(shadowed: int) {
     i := i - shadowed;
   }
 }
+
+method Foo() {
+  assert false;
+}
 ";
 
     var projectFileSource = @"
+includes = [""src/**/*.dfy""]
+
 [options]
 warn-shadowing = true
-
-includes = [""src/**/*.dfy""]
-";
+"; // includes must come before [options], even if there is a blank line
     var directory = Path.GetRandomFileName();
     var projectFile = CreateTestDocument(projectFileSource, Path.Combine(directory, "dfyconfig.toml"));
     await client.OpenDocumentAndWaitAsync(projectFile, CancellationToken);
-    var consumer = CreateTestDocument(source, Path.Combine(directory, "src/file.dfy"));
-    await client.OpenDocumentAndWaitAsync(consumer, CancellationToken);
+    var sourceFile = CreateTestDocument(source, Path.Combine(directory, "src/file.dfy"));
+    await client.OpenDocumentAndWaitAsync(sourceFile, CancellationToken);
 
-    var diagnostics1 = await diagnosticsReceiver.AwaitNextWarningOrErrorDiagnosticsAsync(CancellationToken, consumer);
-    Assert.Single(diagnostics1);
+    var diagnostics1 = await GetLastDiagnostics(sourceFile, CancellationToken);
+    Assert.Equal(2, diagnostics1.Length);
     Assert.Contains("Shadowed", diagnostics1[0].Message);
 
     ApplyChange(ref projectFile, new Range(1, 17, 1, 21), "false");
 
-    var diagnostics2 = await diagnosticsReceiver.AwaitNextWarningOrErrorDiagnosticsAsync(CancellationToken);
-    Assert.Empty(diagnostics2);
+    var resolutionDiagnostics2 = await diagnosticsReceiver.AwaitNextWarningOrErrorDiagnosticsAsync(CancellationToken);
+    // The shadowed warning is no longer produced, and the verification error is not migrated. 
+    Assert.Empty(resolutionDiagnostics2);
   }
 
   [Fact]

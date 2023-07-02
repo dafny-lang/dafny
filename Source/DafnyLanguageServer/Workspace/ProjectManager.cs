@@ -24,8 +24,9 @@ public class ProjectManager : IDisposable {
   private readonly IRelocator relocator;
 
   private readonly IServiceProvider services;
+  private readonly VerificationResultCache verificationCache;
   public DafnyProject Project { get; }
-  private readonly IdeStateObserver observer;
+  private IdeStateObserver observer;
   public CompilationManager CompilationManager { get; private set; }
   private IDisposable observerSubscription;
   private readonly ILogger<ProjectManager> logger;
@@ -38,24 +39,29 @@ public class ProjectManager : IDisposable {
   public List<FilePosition> ChangedVerifiables { get; set; } = new();
   public List<Location> RecentChanges { get; set; } = new();
 
-  private readonly SemaphoreSlim workCompletedForCurrentVersion = new(0);
-  private readonly DafnyOptions options;
+  private readonly SemaphoreSlim workCompletedForCurrentVersion = new(1);
+  private DafnyOptions options;
   private readonly DafnyOptions serverOptions;
 
   public ProjectManager(IServiceProvider services, VerificationResultCache verificationCache, DafnyProject project) {
     this.services = services;
+    this.verificationCache = verificationCache;
     Project = project;
     serverOptions = services.GetRequiredService<DafnyOptions>();
     logger = services.GetRequiredService<ILogger<ProjectManager>>();
     relocator = services.GetRequiredService<IRelocator>();
     services.GetRequiredService<IFileSystem>();
 
-    // Moet CliRootSourceUris uit options??? Of moet er een extra veld zijn, 
+    ConfigureProject(project);
+  }
+
+  private void ConfigureProject(DafnyProject project)
+  {
     options = DetermineProjectOptions(project, serverOptions);
     observer = new IdeStateObserver(services.GetRequiredService<ILogger<IdeStateObserver>>(),
-      services.GetRequiredService<ITelemetryPublisher>(),
-      services.GetRequiredService<INotificationPublisher>(),
-      services.GetRequiredService<ITextDocumentLoader>(),
+      this.services.GetRequiredService<ITelemetryPublisher>(),
+      this.services.GetRequiredService<INotificationPublisher>(),
+      this.services.GetRequiredService<ITextDocumentLoader>(),
       project);
     boogieEngine = new ExecutionEngine(options, verificationCache);
     options.Printer = new OutputLogger(logger);
@@ -74,7 +80,6 @@ public class ProjectManager : IDisposable {
   private const int MaxRememberedChanges = 100;
   private const int MaxRememberedChangedVerifiables = 5;
 
-  // TODO test that migration doesn't affect the wrong document.
   // Also test that changed ranges is computed for the right document.
   public void UpdateDocument(DidChangeTextDocumentParams documentChange) {
     var lastPublishedState = observer.LastPublishedState;
@@ -113,7 +118,6 @@ public class ProjectManager : IDisposable {
     IdeState lastPublishedState) {
     version++;
     logger.LogDebug("Clearing result for workCompletedForCurrentVersion");
-    var _1 = workCompletedForCurrentVersion.WaitAsync();
 
     CompilationManager.CancelPendingUpdates();
     CompilationManager = new CompilationManager(
@@ -138,7 +142,6 @@ public class ProjectManager : IDisposable {
       var _ = VerifyEverythingAsync(null);
     } else {
       logger.LogDebug("Setting result for workCompletedForCurrentVersion");
-      workCompletedForCurrentVersion.Release();
     }
   }
 
@@ -176,7 +179,6 @@ public class ProjectManager : IDisposable {
   public void Save(TextDocumentIdentifier documentId) {
     if (VerifyOnSave) {
       logger.LogDebug("Clearing result for workCompletedForCurrentVersion");
-      var _1 = workCompletedForCurrentVersion.WaitAsync();
       var _2 = VerifyEverythingAsync(documentId.Uri.ToUri());
     }
   }
@@ -230,6 +232,7 @@ public class ProjectManager : IDisposable {
   // Test that when a project has multiple files, when saving/opening, only the affected Uri is verified when using OnSave.
   // Test that when a project has multiple files, everything is verified on opening one of them.
   private async Task VerifyEverythingAsync(Uri? uri) {
+    var _1 = workCompletedForCurrentVersion.WaitAsync();
     try {
       var translatedDocument = await CompilationManager.TranslatedCompilation;
 
@@ -299,5 +302,14 @@ public class ProjectManager : IDisposable {
 
   public void Dispose() {
     boogieEngine.Dispose();
+  }
+
+  public void StartCompilation() {
+    CompilationManager.Start();
+  }
+
+  public void Migrate(DafnyProject newProject) {
+    var _ = CloseAsync();
+    ConfigureProject(newProject);
   }
 }

@@ -172,10 +172,14 @@ public class DafnyProject : IEquatable<DafnyProject> {
       return true;
     }
 
-    // TODO set instead of sequence equality
+    var orderedOptions = Options?.OrderBy(kv => kv.Key) ?? Enumerable.Empty<KeyValuePair<string, object>>();
+    var otherOrderedOptions = other.Options?.OrderBy(kv => kv.Key) ?? Enumerable.Empty<KeyValuePair<string, object>>();
+    
     return Equals(UnsavedRootFile, other.UnsavedRootFile) && Equals(Uri, other.Uri) &&
+           // TODO set instead of sequence equality
            NullableSequenceEqual(Includes, other.Includes) &&
-           NullableSequenceEqual(Excludes, other.Excludes) && Equals(Options, other.Options);
+           NullableSequenceEqual(Excludes, other.Excludes) &&
+           orderedOptions.SequenceEqual(otherOrderedOptions);
   }
 
   private static bool NullableSequenceEqual(IEnumerable<string> first, IEnumerable<string> second) {

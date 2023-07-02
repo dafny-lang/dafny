@@ -340,6 +340,7 @@ public class CompilationManager {
     cancellationSource.Cancel();
   }
 
+  // TODO doesn't seem to work if no verification was started??
   private TaskCompletionSource verificationCompleted = new();
   private readonly DafnyOptions options;
   private readonly Compilation startingCompilation;
