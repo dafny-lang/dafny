@@ -53,7 +53,7 @@ lemma {:neverVerify} HasNeverVerifyAttribute(p: nat, q: nat)
 
     public ILanguageServer Server { get; private set; }
 
-    public IDocumentDatabase Documents => Server.GetRequiredService<IDocumentDatabase>();
+    public IProjectDatabase Projects => Server.GetRequiredService<IProjectDatabase>();
 
     public DafnyLanguageServerTestBase(ITestOutputHelper output) : base(new JsonRpcTestOptions(LoggerFactory.Create(
       builder => builder.AddConsole().SetMinimumLevel(LogLevel.Warning)))) {
@@ -161,7 +161,7 @@ lemma {:neverVerify} HasNeverVerifyAttribute(p: nat, q: nat)
     private static void SetupTestLogging(ILoggingBuilder builder) {
       builder
         .AddFilter("OmniSharp", LogLevel.Warning)
-        .AddFilter("Microsoft.Dafny", LogLevel.Debug)
+        .AddFilter("Microsoft.Dafny", LogLevel.Information)
         .SetMinimumLevel(LogLevel.Debug)
         .AddConsole();
     }

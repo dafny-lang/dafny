@@ -99,7 +99,7 @@ public class TextBuffer {
     if (end < start) {
       throw new ArgumentException();
     }
-    if (start < 0 || end >= Text.Length) {
+    if (start < 0 || end > Text.Length) {
       throw new ArgumentOutOfRangeException();
     }
 

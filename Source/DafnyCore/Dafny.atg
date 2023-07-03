@@ -2999,9 +2999,8 @@ UpdateStmt<out Statement/*!*/ s>
      IToken endToken = Token.NoToken;
   .)
 ( Lhs<out e>                       (. x = e.tok; startToken = e.StartToken; endToken = t; .)
-  ( { Attribute<ref attrs> }       (. endToken = t; .)
-    ";"                            (. endTok = t; rhss.Add(new ExprRhs(e, attrs) { RangeToken = new RangeToken(e.StartToken, endToken) }); .)
-  |                                (. lhss.Add(e); .)
+  ( 
+                                   (. lhss.Add(e); .)
     { "," Lhs<out e>               (. lhss.Add(e); .)
     }
     ( ":="                         (. x = t; .)
@@ -3026,6 +3025,12 @@ UpdateStmt<out Statement/*!*/ s>
     )
     ";"                            (. endTok = t; .)
   | ":"                            (. SemErr(ErrorId.p_invalid_colon, new RangeToken(startToken, t), "invalid statement beginning here (is a 'label' keyword missing? or a 'const' or 'var' keyword?)"); .)
+  | { Attribute<ref attrs> }       (. endToken = t; .)
+    ";"                            (. endTok = t; rhss.Add(new ExprRhs(e, attrs) { RangeToken = new RangeToken(e.StartToken, endToken) }); .)   
+  | { Attribute<ref attrs> }       (. endToken = t; .)
+                                   (. endTok = t; rhss.Add(new ExprRhs(e, attrs) { RangeToken = new RangeToken(e.StartToken, endToken) });
+                                      SemErr(ErrorId.p_missing_semicolon, new RangeToken(startToken, t), "missing semicolon at end of statement");
+                                   .)   
   )
 | ":-"                             (. x = t; startToken = t; .)
    [ IF(IsAssumeTypeKeyword(la))      /* an Expression can also begin with these keywords, so this says to resolve it to pick up the keyword here */

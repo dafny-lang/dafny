@@ -12,14 +12,14 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
     // TODO this is a very basic implementation that only displays the signature when typing an opening parenthese.
     //      It should be enriched to show information about the actual parameter depending on the cursor's position.
     private readonly ILogger logger;
-    private readonly IDocumentDatabase documents;
+    private readonly IProjectDatabase projects;
     private readonly ISymbolGuesser symbolGuesser;
     private DafnyOptions options;
 
-    public DafnySignatureHelpHandler(ILogger<DafnySignatureHelpHandler> logger, IDocumentDatabase documents,
+    public DafnySignatureHelpHandler(ILogger<DafnySignatureHelpHandler> logger, IProjectDatabase projects,
       ISymbolGuesser symbolGuesser, DafnyOptions options) {
       this.logger = logger;
-      this.documents = documents;
+      this.projects = projects;
       this.symbolGuesser = symbolGuesser;
       this.options = options;
     }
@@ -33,7 +33,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
 
     public override async Task<SignatureHelp?> Handle(SignatureHelpParams request, CancellationToken cancellationToken) {
       logger.LogDebug("received signature request for document {DocumentUri}", request.TextDocument.Uri);
-      var document = await documents.GetResolvedDocumentAsync(request.TextDocument);
+      var document = await projects.GetResolvedDocumentAsync(request.TextDocument);
       if (document == null) {
         logger.LogWarning("location requested for unloaded document {DocumentUri}", request.TextDocument.Uri);
         return null;
@@ -58,7 +58,8 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
       }
 
       public SignatureHelp? Process() {
-        if (!symbolGuesser.TryGetSymbolBefore(state, GetOpenParenthesisPosition(), cancellationToken, out var symbol)) {
+        if (!symbolGuesser.TryGetSymbolBefore(state,
+              request.TextDocument.Uri.ToUri(), GetOpenParenthesisPosition(), cancellationToken, out var symbol)) {
           return null;
         }
         return CreateSignatureHelp(symbol);

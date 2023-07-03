@@ -747,17 +747,19 @@ let _dafny = (function() {
       if (this.num.isZero() || this.den.isEqualTo(1)) {
         return this.num.toFixed() + ".0";
       }
-      let log10 = this.isPowerOf10(this.den);
-      if (log10 !== undefined) {
+      let answer = this.dividesAPowerOf10(this.den);
+      if (answer !== undefined) {
+        let n = this.num.multipliedBy(answer[0]);
+        let log10 = answer[1];
         let sign, digits;
         if (this.num.isLessThan(0)) {
-          sign = "-"; digits = this.num.negated().toFixed();
+          sign = "-"; digits = n.negated().toFixed();
         } else {
-          sign = ""; digits = this.num.toFixed();
+          sign = ""; digits = n.toFixed();
         }
         if (log10 < digits.length) {
-          let n = digits.length - log10;
-          return sign + digits.slice(0, n) + "." + digits.slice(n);
+          let digitCount = digits.length - log10;
+          return sign + digits.slice(0, digitCount) + "." + digits.slice(digitCount);
         } else {
           return sign + "0." + "0".repeat(log10 - digits.length) + digits;
         }
@@ -781,6 +783,36 @@ let _dafny = (function() {
         }
       }
     }
+    dividesAPowerOf10(i) {
+      let factor = _dafny.ONE;
+      let log10 = 0;
+      if (i.isLessThanOrEqualTo(_dafny.ZERO)) {
+        return undefined;
+      }
+
+      // invariant: 1 <= i && i * 10^log10 == factor * old(i)
+      while (i.mod(10).isZero()) {
+        i = i.dividedToIntegerBy(10);
+       log10++;
+      }
+
+      while (i.mod(5).isZero()) {
+        i = i.dividedToIntegerBy(5);
+        factor = factor.multipliedBy(2);
+        log10++;
+      }
+      while (i.mod(2).isZero()) {
+        i = i.dividedToIntegerBy(2);
+        factor = factor.multipliedBy(5);
+        log10++;
+      }
+
+      if (i.isEqualTo(_dafny.ONE)) {
+        return [factor, log10];
+      } else {
+        return undefined;
+      }
+}
     toBigNumber() {
       if (this.num.isZero() || this.den.isEqualTo(1)) {
         return this.num;

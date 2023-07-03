@@ -3,33 +3,39 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using Microsoft.Dafny.LanguageServer.Language;
+using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 using OmniSharp.Extensions.LanguageServer.Protocol;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace;
 
-public class DocumentAfterParsing : Document {
+public class CompilationAfterParsing : Compilation {
   public IReadOnlyDictionary<DocumentUri, List<DafnyDiagnostic>> ResolutionDiagnostics { get; }
 
-  public DocumentAfterParsing(DocumentTextBuffer textDocumentItem,
-    Dafny.Program program,
-    IReadOnlyDictionary<DocumentUri, List<DafnyDiagnostic>> diagnostics) : base(textDocumentItem) {
-    this.ResolutionDiagnostics = diagnostics;
+  public CompilationAfterParsing(VersionedTextDocumentIdentifier documentIdentifier,
+    Program program,
+    IReadOnlyDictionary<DocumentUri, List<DafnyDiagnostic>> diagnostics) : base(documentIdentifier) {
+    ResolutionDiagnostics = diagnostics;
     Program = program;
   }
 
   public override IEnumerable<DafnyDiagnostic> AllFileDiagnostics => FileResolutionDiagnostics;
 
-  private IEnumerable<DafnyDiagnostic> FileResolutionDiagnostics => ResolutionDiagnostics.GetOrDefault(TextDocumentItem.Uri, Enumerable.Empty<DafnyDiagnostic>);
+  private IEnumerable<DafnyDiagnostic> FileResolutionDiagnostics => ResolutionDiagnostics.GetOrDefault(DocumentIdentifier.Uri, Enumerable.Empty<DafnyDiagnostic>);
 
-  public Dafny.Program Program { get; }
+  public Program Program { get; }
 
   public override IdeState ToIdeState(IdeState previousState) {
-    return previousState with {
-      TextDocumentItem = TextDocumentItem,
+    var baseResult = base.ToIdeState(previousState);
+    return baseResult with {
+      Program = Program,
       ResolutionDiagnostics = ComputeFileAndIncludesResolutionDiagnostics(),
-      ImplementationsWereUpdated = false,
+      VerificationTree = baseResult.VerificationTree ?? GetVerificationTree()
     };
+  }
+
+  public virtual VerificationTree GetVerificationTree() {
+    return new DocumentVerificationTree(Program, DocumentIdentifier);
   }
 
   protected IEnumerable<Diagnostic> ComputeFileAndIncludesResolutionDiagnostics() {

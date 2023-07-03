@@ -4,10 +4,10 @@ using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 using OmniSharp.Extensions.JsonRpc;
-using Xunit.Abstractions;
 using Xunit;
+using Xunit.Abstractions;
 
-namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Diagnostics;
+namespace Microsoft.Dafny.LanguageServer.IntegrationTest.GutterStatus;
 
 [Collection("Sequential Collection")] // Because this class contains tests that can easily time out
 public class ConcurrentLinearVerificationGutterStatusTester : LinearVerificationGutterStatusTester {

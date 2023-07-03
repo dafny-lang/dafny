@@ -38,5 +38,6 @@ public class DeadCodeCommand : ICommandSpec {
 
     dafnyOptions.TestGenOptions.Mode = TestGenerationOptions.Modes.Block;
     dafnyOptions.TestGenOptions.WarnDeadCode = true;
+    dafnyOptions.Set(DafnyConsolePrinter.ShowSnippets, false);
   }
 }

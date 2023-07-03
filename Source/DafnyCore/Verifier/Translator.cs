@@ -1275,12 +1275,13 @@ namespace Microsoft.Dafny {
 
       if (dd.Var != null) {
         AddWellformednessCheck(dd);
-        currentModule = dd.EnclosingModuleDefinition;
-        // Add $Is and $IsAlloc axioms for the newtype
-        AddRedirectingTypeDeclAxioms(false, dd, dd.FullName);
-        AddRedirectingTypeDeclAxioms(true, dd, dd.FullName);
-        currentModule = null;
       }
+
+      currentModule = dd.EnclosingModuleDefinition;
+      // Add $Is and $IsAlloc axioms for the newtype
+      AddRedirectingTypeDeclAxioms(false, dd, dd.FullName);
+      AddRedirectingTypeDeclAxioms(true, dd, dd.FullName);
+      currentModule = null;
       this.fuelContext = oldFuelContext;
     }
 
@@ -1319,15 +1320,17 @@ namespace Microsoft.Dafny {
     void AddRedirectingTypeDeclAxioms<T>(bool is_alloc, T dd, string fullName)
       where T : TopLevelDecl, RedirectingTypeDecl {
       Contract.Requires(dd != null);
-      Contract.Requires(dd.Var != null && dd.Constraint != null);
+      Contract.Requires((dd.Var != null && dd.Constraint != null) || dd is NewtypeDecl);
       Contract.Requires(fullName != null);
 
       List<Bpl.Expr> typeArgs;
       var vars = MkTyParamBinders(dd.TypeArgs, out typeArgs);
       var o_ty = ClassTyCon(dd, typeArgs);
 
-      var oBplType = TrType(dd.Var.Type);
-      var o = BplBoundVar(dd.Var.AssignUniqueName(dd.IdGenerator), oBplType, vars);
+      var baseType = dd.Var != null ? dd.Var.Type : ((NewtypeDecl)(object)dd).BaseType;
+      var oBplType = TrType(baseType);
+      var c = new BoundVar(dd.tok, CurrentIdGenerator.FreshId("c"), baseType);
+      var o = BplBoundVar((dd.Var ?? c).AssignUniqueName((dd.IdGenerator)), oBplType, vars);
 
       Bpl.Expr body, is_o;
       string comment = string.Format("{0}: {1} ", fullName, dd.WhatKind);
@@ -1336,29 +1339,29 @@ namespace Microsoft.Dafny {
         comment += "$IsAlloc";
         var h = BplBoundVar("$h", predef.HeapType, vars);
         // $IsAlloc(o, ..)
-        is_o = MkIsAlloc(o, o_ty, h, ModeledAsBoxType(dd.Var.Type));
-        if (dd.Var.Type.IsNumericBased() || dd.Var.Type.IsBitVectorType || dd.Var.Type.IsBoolType || dd.Var.Type.IsCharType) {
+        is_o = MkIsAlloc(o, o_ty, h, ModeledAsBoxType(baseType));
+        if (baseType.IsNumericBased() || baseType.IsBitVectorType || baseType.IsBoolType || baseType.IsCharType) {
           body = is_o;
         } else {
-          Bpl.Expr rhs = MkIsAlloc(o, dd.Var.Type, h);
+          Bpl.Expr rhs = MkIsAlloc(o, baseType, h);
           body = BplIff(is_o, rhs);
         }
       } else {
         comment += "$Is";
         // $Is(o, ..)
-        is_o = MkIs(o, o_ty, ModeledAsBoxType(dd.Var.Type));
+        is_o = MkIs(o, o_ty, ModeledAsBoxType(baseType));
         var etran = new ExpressionTranslator(this, predef, NewOneHeapExpr(dd.tok));
         Bpl.Expr parentConstraint, constraint;
-        if (dd.Var.Type.IsNumericBased() || dd.Var.Type.IsBitVectorType || dd.Var.Type.IsBoolType) {
+        if (baseType.IsNumericBased() || baseType.IsBitVectorType || baseType.IsBoolType) {
           // optimize this to only use the numeric/bitvector constraint, not the whole $Is thing on the base type
           parentConstraint = Bpl.Expr.True;
           var udt = UserDefinedType.FromTopLevelDecl(dd.tok, dd);
-          var c = Resolver.GetImpliedTypeConstraint(dd.Var, udt);
-          constraint = etran.TrExpr(c);
+          var substitutee = Expression.CreateIdentExpr(dd.Var ?? c);
+          constraint = etran.TrExpr(ModuleResolver.GetImpliedTypeConstraint(substitutee, udt));
         } else {
-          parentConstraint = MkIs(o, dd.Var.Type);
+          parentConstraint = MkIs(o, baseType);
           // conjoin the constraint
-          constraint = etran.TrExpr(dd.Constraint);
+          constraint = etran.TrExpr(dd.Constraint ?? Expression.CreateBoolLiteral(dd.tok, true));
         }
         body = BplIff(is_o, BplAnd(parentConstraint, constraint));
       }
@@ -1419,7 +1422,7 @@ namespace Microsoft.Dafny {
             var aa = CondApplyUnbox(tok, a, ty, tyA);
             var bb = CondApplyUnbox(tok, b, ty, tyB);
             var equal = new BinaryExpr(tok, BinaryExpr.Opcode.Eq, new BoogieWrapper(aa, tyA), new BoogieWrapper(bb, tyB));
-            equal.ResolvedOp = Resolver.ResolveOp(equal.Op, tyA, tyB);  // resolve here
+            equal.ResolvedOp = ModuleResolver.ResolveOp(equal.Op, tyA, tyB);  // resolve here
             equal.Type = Type.Bool;  // resolve here
             q = etran.TrExpr(equal);
           }
@@ -2014,7 +2017,7 @@ namespace Microsoft.Dafny {
         if (f.IsStatic) {
           Contract.Assert(usesThis == null);
         } else {
-          var surrogate = new ThisSurrogate(f.tok, Resolver.GetReceiverType(f.tok, f));
+          var surrogate = new ThisSurrogate(f.tok, ModuleResolver.GetReceiverType(f.tok, f));
           allFormals.Add(surrogate);
           if (usesThis != null) {
             decs.Add(surrogate);
@@ -2154,7 +2157,7 @@ namespace Microsoft.Dafny {
         var bvThisIdExpr = new Bpl.IdentifierExpr(f.tok, bvThis);
         args.Add(bvThisIdExpr);
         // add well-typedness conjunct to antecedent
-        Type thisType = Resolver.GetReceiverType(f.tok, f);
+        Type thisType = ModuleResolver.GetReceiverType(f.tok, f);
         Bpl.Expr wh = Bpl.Expr.And(
           ReceiverNotNull(bvThisIdExpr),
           (f is TwoStateFunction ? etran.Old : etran).GoodRef(f.tok, bvThisIdExpr, thisType));
@@ -2290,7 +2293,7 @@ namespace Microsoft.Dafny {
       if (!f.IsStatic) {
         var th = new Bpl.IdentifierExpr(f.tok, inParams[i]);
         i++;
-        var wh = GetWhereClause(f.tok, th, Resolver.GetReceiverType(f.tok, f), etran, ISALLOC, true);
+        var wh = GetWhereClause(f.tok, th, ModuleResolver.GetReceiverType(f.tok, f), etran, ISALLOC, true);
         newer = BplAnd(newer, wh);
       }
       foreach (var formal in f.Formals) {
@@ -2490,7 +2493,7 @@ namespace Microsoft.Dafny {
         }
 
         // add well-typedness conjunct to antecedent
-        Type thisType = Resolver.GetReceiverType(f.tok, f);
+        Type thisType = ModuleResolver.GetReceiverType(f.tok, f);
         Bpl.Expr wh = Bpl.Expr.And(
           ReceiverNotNull(bvThisIdExpr),
           (f is TwoStateFunction ? etran.Old : etran).GoodRef(f.tok, bvThisIdExpr, thisType));
@@ -2665,7 +2668,7 @@ namespace Microsoft.Dafny {
 
     Bpl.Type TrReceiverType(MemberDecl f) {
       Contract.Requires(f != null);
-      return TrType(Resolver.GetReceiverType(f.tok, f));
+      return TrType(ModuleResolver.GetReceiverType(f.tok, f));
     }
 
     Bpl.Expr ReceiverNotNull(Bpl.Expr th) {
@@ -2846,7 +2849,7 @@ namespace Microsoft.Dafny {
         receiver = receiverSubst;
       } else {
         receiver = new ImplicitThisExpr(tok);
-        receiver.Type = Resolver.GetReceiverType(tok, member);  // resolve here
+        receiver.Type = ModuleResolver.GetReceiverType(tok, member);  // resolve here
       }
 
       arguments = new List<Expression>();
@@ -3076,7 +3079,7 @@ namespace Microsoft.Dafny {
         prefixArgsLimited.Add(bvThisIdExpr);
         prefixArgsLimitedM.Add(bvThisIdExpr);
         // add well-typedness conjunct to antecedent
-        Type thisType = Resolver.GetReceiverType(tok, pp);
+        Type thisType = ModuleResolver.GetReceiverType(tok, pp);
         Bpl.Expr wh = Bpl.Expr.And(
           ReceiverNotNull(bvThisIdExpr),
           GetWhereClause(tok, bvThisIdExpr, thisType, etran, NOALLOC));
@@ -4080,7 +4083,7 @@ namespace Microsoft.Dafny {
         bvars.Add(thVar);
         f0args.Add(th); f1args.Add(th); f0argsCanCall.Add(th); f1argsCanCall.Add(th);
 
-        Type thisType = Resolver.GetReceiverType(f.tok, f);
+        Type thisType = ModuleResolver.GetReceiverType(f.tok, f);
         Bpl.Expr wh = Bpl.Expr.And(ReceiverNotNull(th), GetWhereClause(f.tok, th, thisType, etran0, useAlloc));
         wellFormed = Bpl.Expr.And(wellFormed, wh);
       }
@@ -4259,7 +4262,7 @@ namespace Microsoft.Dafny {
         var th = new Bpl.IdentifierExpr(f.tok, "this", TrReceiverType(f));
         Bpl.Expr wh = Bpl.Expr.And(
           ReceiverNotNull(th),
-          (f is TwoStateFunction ? etran.Old : etran).GoodRef(f.tok, th, Resolver.GetReceiverType(f.tok, f)));
+          (f is TwoStateFunction ? etran.Old : etran).GoodRef(f.tok, th, ModuleResolver.GetReceiverType(f.tok, f)));
         Bpl.Formal thVar = new Bpl.Formal(f.tok, new Bpl.TypedIdent(f.tok, "this", TrReceiverType(f), wh), true);
         inParams.Add(thVar);
       }
@@ -4674,7 +4677,7 @@ namespace Microsoft.Dafny {
       // parameters of the procedure
       List<Variable> inParams = MkTyParamFormals(GetTypeParams(decl.EnclosingClass), true);
       if (!decl.IsStatic) {
-        var receiverType = Resolver.GetThisType(decl.tok, (TopLevelDeclWithMembers)decl.EnclosingClass);
+        var receiverType = ModuleResolver.GetThisType(decl.tok, (TopLevelDeclWithMembers)decl.EnclosingClass);
         Contract.Assert(VisibleInScope(receiverType));
 
         var th = new Bpl.IdentifierExpr(decl.tok, "this", TrReceiverType(decl));
@@ -6881,7 +6884,7 @@ namespace Microsoft.Dafny {
       // Add type parameters first, always!
       inParams.AddRange(MkTyParamFormals(GetTypeParams(m), true));
       if (includeReceiver) {
-        var receiverType = m is MemberDecl ? Resolver.GetReceiverType(tok, (MemberDecl)m) : Resolver.GetThisType(tok, (IteratorDecl)m);
+        var receiverType = m is MemberDecl ? ModuleResolver.GetReceiverType(tok, (MemberDecl)m) : ModuleResolver.GetThisType(tok, (IteratorDecl)m);
         Contract.Assert(VisibleInScope(receiverType));
 
         Bpl.Expr wh;
@@ -7655,7 +7658,7 @@ namespace Microsoft.Dafny {
         yield return lit;
       }
 
-      var bounds = Resolver.DiscoverAllBounds_SingleVar(x, expr);
+      var bounds = ModuleResolver.DiscoverAllBounds_SingleVar(x, expr);
       foreach (var bound in bounds) {
         if (bound is ComprehensionExpr.IntBoundedPool) {
           var bnd = (ComprehensionExpr.IntBoundedPool)bound;
@@ -8431,7 +8434,7 @@ namespace Microsoft.Dafny {
         }
       } else if ((normType.AsTypeSynonym != null || normType.AsNewtype != null) &&
         (normType.IsNumericBased() || normType.IsBitVectorType || normType.IsBoolType)) {
-        var constraint = Resolver.GetImpliedTypeConstraint(new BoogieWrapper(x, normType), normType);
+        var constraint = ModuleResolver.GetImpliedTypeConstraint(new BoogieWrapper(x, normType), normType);
         isPred = etran.TrExpr(constraint);
       } else {
         // go for the symbolic name
