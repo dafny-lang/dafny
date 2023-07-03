@@ -243,14 +243,14 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
           SymbolLookup.Add(range.Start, range.End, symbol);
           if (designators.TryGetValue(node, out var registeredSymbol)) {
             if (registeredSymbol != symbol) {
-              logger.LogInformation("Conflicting symbol resolution of designator named {Identifier} in {Filename}@({Line},{Column})",
+              logger.LogDebug("Conflicting symbol resolution of designator named {Identifier} in {Filename}@({Line},{Column})",
                 identifier, token.GetDocumentFileName(), token.line, token.col);
             }
           } else {
             designators.Add(node, symbol);
           }
         } else {
-          logger.LogInformation("could not resolve the symbol of designator named {Identifier} in {Filename}@({Line},{Column})",
+          logger.LogDebug("could not resolve the symbol of designator named {Identifier} in {Filename}@({Line},{Column})",
             identifier, token.GetDocumentFileName(), token.line, token.col);
         }
       }
