@@ -132,27 +132,32 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     public async Task<ProjectManager?> GetProjectManager(TextDocumentIdentifier documentId, 
       bool createOnDemand, bool startIfMigrated) {
       var project = GetProject(documentId);
-      var projectManager = managersBySourceFile.GetValueOrDefault(documentId.Uri.ToUri());
+      var projectManagerForFile = managersBySourceFile.GetValueOrDefault(documentId.Uri.ToUri());
 
-      if (projectManager != null) {
-        if (!projectManager.Project.Equals(project)) {
-          await projectManager.CloseDocument();
-          projectManager = new ProjectManager(services, verificationCache, project);
+      if (projectManagerForFile != null) {
+        if (!projectManagerForFile.Project.Equals(project)) {
+          await projectManagerForFile.CloseDocument();
+          projectManagerForFile = new ProjectManager(services, verificationCache, project);
           // TODO does this OpenDocument call trigger too much verification?
           // TODO do we have issues with previous ideState not being properly accounted for? Should we always publish reset notifications when a new project is created?
-          projectManager.OpenDocument(documentId.Uri.ToUri());
+          projectManagerForFile.OpenDocument(documentId.Uri.ToUri());
         }
       } else {
-        if (createOnDemand) {
-          projectManager = new ProjectManager(services, verificationCache, project);
+        var managerForProject = managersByProject.GetValueOrDefault(project.Uri);
+        if (managerForProject != null) {
+          projectManagerForFile = managerForProject;
         } else {
-          return null;
+          if (createOnDemand) {
+            projectManagerForFile = new ProjectManager(services, verificationCache, project);
+          } else {
+            return null;
+          }
         }
       }
 
-      managersBySourceFile[documentId.Uri.ToUri()] = projectManager;
-      managersByProject[project.Uri] = projectManager;
-      return projectManager;
+      managersBySourceFile[documentId.Uri.ToUri()] = projectManagerForFile;
+      managersByProject[project.Uri] = projectManagerForFile;
+      return projectManagerForFile;
     }
 
     public IEnumerable<ProjectManager> Managers => managersByProject.Values;
