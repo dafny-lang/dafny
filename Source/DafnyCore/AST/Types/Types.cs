@@ -303,6 +303,12 @@ public abstract class Type : TokenNode {
   }
 
   /// <summary>
+  /// Returns true if the type has two representations at run time, the ordinary representation and a
+  /// "fat pointer" representation (which is a boxing of the ordinary representation, plus a vtable pointer).
+  /// </summary>
+  public bool HasFatPointer => NormalizeExpand() is UserDefinedType { ResolvedClass: NewtypeDecl { ParentTraits: { Count: > 0 } } };
+
+  /// <summary>
   /// This property returns true if the type is known to be nonempty.
   /// This property should be used only after successful resolution. It is assumed that all type proxies have
   /// been resolved and that all recursion through types comes to an end.
