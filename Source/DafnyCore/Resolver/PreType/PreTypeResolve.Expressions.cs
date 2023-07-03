@@ -1032,7 +1032,7 @@ namespace Microsoft.Dafny {
         if (dReceiver == null) {
           // If there is a subtype constraint "super<X> :> proxy" where "super" has a member "memberName", then that is the correct member.
           foreach (var super in AllSuperBounds(proxy, new HashSet<PreTypeProxy>())) {
-            if (super.Decl is TopLevelDeclWithMembers md && resolver.ProgramResolver.GetClassMembers(md).ContainsKey(memberName)) {
+            if (super.Decl is TopLevelDeclWithMembers md && resolver.GetClassMembers(md).ContainsKey(memberName)) {
               dReceiver = super;
               break;
             }
@@ -1051,7 +1051,7 @@ namespace Microsoft.Dafny {
       if (receiverDecl is TopLevelDeclWithMembers receiverDeclWithMembers) {
         // TODO: does this case need to do something like this?  var cd = ctype?.AsTopLevelTypeWithMembersBypassInternalSynonym;
 
-        if (!resolver.ProgramResolver.GetClassMembers(receiverDeclWithMembers).TryGetValue(memberName, out var member)) {
+        if (!resolver.GetClassMembers(receiverDeclWithMembers).TryGetValue(memberName, out var member)) {
           if (memberName == "_ctor") {
             ReportError(tok, $"{receiverDecl.WhatKind} '{receiverDecl.Name}' does not have an anonymous constructor");
           } else {
@@ -1156,8 +1156,7 @@ namespace Microsoft.Dafny {
         r = new IdentifierExpr(expr.tok, v) {
           PreType = v.PreType
         };
-      } else if (currentClass is TopLevelDeclWithMembers cl &&
-                 resolver.ProgramResolver.GetClassMembers(cl) is {} members &&
+      } else if (currentClass != null && resolver.GetClassMembers(currentClass) is {} members &&
                  members.TryGetValue(name, out member)) {
         // ----- 1. member of the enclosing class
         Expression receiver;
@@ -1474,7 +1473,7 @@ namespace Microsoft.Dafny {
         var cd = r == null ? ty.AsTopLevelTypeWithMembersBypassInternalSynonym : null;
         if (cd != null) {
           // ----- LHS is a type with members
-          if (resolver.ProgramResolver.GetClassMembers(cd) is {} members && members.TryGetValue(name, out var member)) {
+          if (resolver.GetClassMembers(cd) is {} members && members.TryGetValue(name, out var member)) {
             if (!resolver.VisibleInScope(member)) {
               ReportError(expr.tok, $"member '{name}' has not been imported in this scope and cannot be accessed here");
             }
@@ -1764,7 +1763,7 @@ namespace Microsoft.Dafny {
           ReportError(updateToken, $"duplicate update member '{updateName}'");
         } else {
           memberNames.Add(updateName);
-          if (!resolver.ProgramResolver.GetClassMembers(dt).TryGetValue(updateName, out var member)) {
+          if (!resolver.GetClassMembers(dt).TryGetValue(updateName, out var member)) {
             ReportError(updateToken, "member '{0}' does not exist in datatype '{1}'", updateName, dt.Name);
           } else if (member is not DatatypeDestructor) {
             ReportError(updateToken, "member '{0}' is not a destructor in datatype '{1}'", updateName, dt.Name);

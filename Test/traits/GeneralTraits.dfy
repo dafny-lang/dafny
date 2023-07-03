@@ -108,3 +108,43 @@ module ComparableTypes1 {
     r := Grey == a; // error: TraitA does not support equality
   }
 }
+
+// This module contains litmus tests that members can be looked up in built-in types, user-defined
+// types in the current module, and user-defined types in an imported module.
+module MemberLookups {
+  module Library {
+    trait LibTrait {
+      static const n: nat := 18
+      const r: nat
+    }
+  }
+
+  module Client {
+    import L = Library
+
+    trait Parent {
+      static const m: nat := 18
+      const k: nat
+    }
+
+    method TestParent(p: Parent) {
+      var u := Parent.m;
+      var v := p.m;
+      var w := p.k;
+    }
+
+    method TestLibrary(t: L.LibTrait) {
+      var a := L.LibTrait.n;
+      var b := t.n;
+      var c := t.r;
+    }
+
+    method Bitvectors(v: bv13) {
+      var w := v.RotateLeft(2);
+    }
+
+    method Reals(r: real) returns (x: int) {
+      x := r.Floor;
+    }
+  }
+}

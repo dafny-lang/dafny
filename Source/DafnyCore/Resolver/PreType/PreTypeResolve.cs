@@ -86,12 +86,9 @@ namespace Microsoft.Dafny {
         preTypeInferenceModuleState.PreTypeBuiltins.Add(name, bvDecl);
         AddRotateMember(bvDecl, "RotateLeft", width);
         AddRotateMember(bvDecl, "RotateRight", width);
-        // register the names of the type members
-#if NEED_MORE_CLARITY_FROM_RECENT_RESOLVER_REFACTORING // TODO
-        var members = new Dictionary<string, MemberDecl>();
-        resolver.ProgramResolver.classMembers.Add(bvDecl, members);
-        resolver.ProgramResolver.RegisterMembers(bvDecl.EnclosingModuleDefinition, bvDecl, members);
-#endif
+        resolver.SystemModuleManager.SystemModule.SourceDecls.Add(bvDecl);
+        var memberDictionary = bvDecl.Members.ToDictionary(member => member.Name, member => member);
+        resolver.ProgramResolver.AddSystemClass(bvDecl, memberDictionary);
         return bvDecl;
       } else {
         decl = null;
