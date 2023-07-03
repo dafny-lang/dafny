@@ -38,11 +38,13 @@ public class ProjectManager {
 
   private readonly SemaphoreSlim workCompletedForCurrentVersion = new(0);
   private readonly DafnyOptions options;
+  private readonly IFileSystem fileSystem;
 
   public ProjectManager(
     IServiceProvider services,
     VersionedTextDocumentIdentifier documentIdentifier) {
     this.services = services;
+    fileSystem = services.GetRequiredService<IFileSystem>();
     options = services.GetRequiredService<DafnyOptions>();
     logger = services.GetRequiredService<ILogger<ProjectManager>>();
     relocator = services.GetRequiredService<IRelocator>();
@@ -123,37 +125,61 @@ public class ProjectManager {
     CompilationManager.Start();
   }
 
-  private static DafnyOptions DetermineDocumentOptions(DafnyOptions serverOptions, DocumentUri uri) {
+  private DafnyOptions DetermineDocumentOptions(DafnyOptions serverOptions, DocumentUri uri) {
+    DafnyProject? projectFile = GetProject(uri);
+
+    var result = new DafnyOptions(serverOptions);
+
+    foreach (var option in ServerCommand.Instance.Options) {
+      object? projectFileValue = null;
+      var hasProjectFileValue = projectFile?.TryGetValue(option, TextWriter.Null, out projectFileValue) ?? false;
+      if (hasProjectFileValue) {
+        result.Options.OptionArguments[option] = projectFileValue;
+        result.ApplyBinding(option);
+      }
+    }
+
+    return result;
+
+  }
+  
+  private DafnyProject GetProject(DocumentUri uri) {
+    return FindProjectFile(uri.ToUri()) ?? ImplicitProject(uri);
+  }
+
+  public static DafnyProject ImplicitProject(DocumentUri uri) {
+    var implicitProject = new DafnyProject {
+      Includes = new [] { uri.GetFileSystemPath() },
+      Uri = uri.ToUri(),
+    };
+    return implicitProject;
+  }
+
+  private DafnyProject? FindProjectFile(Uri uri) {
+
     DafnyProject? projectFile = null;
 
-    var folder = Path.GetDirectoryName(uri.GetFileSystemPath());
+    var folder = Path.GetDirectoryName(uri.LocalPath);
     while (!string.IsNullOrEmpty(folder)) {
-      var children = Directory.GetFiles(folder, "dfyconfig.toml");
-      if (children.Length > 0) {
-        projectFile = DafnyProject.Open(new Uri(children[0]), serverOptions.OutputWriter, serverOptions.ErrorWriter);
+      var configFileUri = new Uri(Path.Combine(folder, "dfyconfig.toml"));
+      // TODO add temporal caching of configFileUri -> DafnyProject?
+      if (fileSystem.Exists(configFileUri)) {
+        projectFile = OpenProject(configFileUri);
         if (projectFile != null) {
           break;
         }
       }
+
       folder = Path.GetDirectoryName(folder);
     }
 
-    if (projectFile != null) {
-      var result = new DafnyOptions(serverOptions);
-
-      foreach (var option in ServerCommand.Instance.Options) {
-        object? projectFileValue = null;
-        var hasProjectFileValue = projectFile?.TryGetValue(option, TextWriter.Null, out projectFileValue) ?? false;
-        if (hasProjectFileValue) {
-          result.Options.OptionArguments[option] = projectFileValue;
-          result.ApplyBinding(option);
-        }
-      }
-
-      return result;
-    }
-
-    return serverOptions;
+    return projectFile;
+  }
+  
+  private DafnyProject? OpenProject(Uri configFileUri) {
+    var errorWriter = TextWriter.Null;
+    var outputWriter = TextWriter.Null;
+    return DafnyProject.Open(fileSystem, configFileUri, outputWriter, errorWriter);
   }
 
   private Dictionary<ImplementationId, IdeImplementationView> MigrateImplementationViews(DidChangeTextDocumentParams documentChange,

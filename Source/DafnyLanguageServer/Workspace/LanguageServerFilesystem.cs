@@ -1,12 +1,15 @@
 using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.IO;
+using System.Linq;
+using Microsoft.Extensions.FileSystemGlobbing;
+using Microsoft.Extensions.FileSystemGlobbing.Abstractions;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace;
 
 public class LanguageServerFilesystem : IFileSystem {
+
   internal class Entry {
     public TextBuffer Buffer { get; set; }
     public int Version { get; set; }
@@ -34,6 +37,13 @@ public class LanguageServerFilesystem : IFileSystem {
       throw new InvalidOperationException("Cannot update file that has not been opened");
     }
 
+    var buffer = entry.Buffer;
+    var mergedBuffer = buffer;
+    foreach (var change in documentChange.ContentChanges) {
+      mergedBuffer = mergedBuffer.ApplyTextChange(change);
+    }
+    entry.Buffer = mergedBuffer;
+
     // According to the LSP specification, document versions should increase monotonically but may be non-consecutive.
     // See: https://github.com/microsoft/language-server-protocol/blob/gh-pages/_specifications/specification-3-16.md?plain=1#L1195
     var oldVer = entry.Version;
@@ -46,13 +56,6 @@ public class LanguageServerFilesystem : IFileSystem {
 
     entry.Version = newVersion!.Value;
 
-    var buffer = entry.Buffer;
-    var mergedBuffer = buffer;
-    foreach (var change in documentChange.ContentChanges) {
-      mergedBuffer = mergedBuffer.ApplyTextChange(change);
-    }
-
-    entry.Buffer = mergedBuffer;
   }
 
   public void CloseDocument(TextDocumentIdentifier document) {
@@ -68,6 +71,25 @@ public class LanguageServerFilesystem : IFileSystem {
       return new StringReader(entry.Buffer.Text);
     }
 
-    return new StreamReader(uri.LocalPath);
+    return OnDiskFileSystem.Instance.ReadFile(uri);
+  }
+
+  public bool Exists(Uri path) {
+    return openFiles.ContainsKey(path) || OnDiskFileSystem.Instance.Exists(path);
+  }
+
+  public DirectoryInfoBase GetDirectoryInfoBase(string root) {
+    var inMemoryFiles = openFiles.Keys.Select(openFileUri => openFileUri.LocalPath);
+    var inMemory = new InMemoryDirectoryInfoFromDotNet8(root, inMemoryFiles);
+
+    return new CombinedDirectoryInfo(new[] { inMemory, OnDiskFileSystem.Instance.GetDirectoryInfoBase(root) });
+  }
+
+  public int? GetVersion(Uri uri) {
+    if (openFiles.TryGetValue(uri, out var file)) {
+      return file.Version;
+    }
+
+    return null;
   }
 }
