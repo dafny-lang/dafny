@@ -1,10 +1,12 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.CommandLine;
 using System.IO;
 using System.Linq;
 using System.Runtime.Serialization;
 using System.Text.RegularExpressions;
+using JetBrains.Annotations;
 using Microsoft.Extensions.FileSystemGlobbing;
 using Tomlyn;
 using Tomlyn.Model;
@@ -16,12 +18,13 @@ public class DafnyProject : IEquatable<DafnyProject> {
 
   public string ProjectName => Uri.ToString();
 
+  // TODO change to boolean? Evaluate usage.
   public Uri UnsavedRootFile { get; set; }
 
   [IgnoreDataMember]
   public Uri Uri { get; set; }
-  public string[] Includes { get; set; }
-  public string[] Excludes { get; set; }
+  public ISet<string> Includes { get; set; }
+  public ISet<string> Excludes { get; set; }
   public Dictionary<string, object> Options { get; set; }
 
   public static DafnyProject Open(IFileSystem fileSystem, Uri uri, TextWriter outputWriter, TextWriter errorWriter) {
@@ -55,7 +58,7 @@ public class DafnyProject : IEquatable<DafnyProject> {
 
     var projectRoot = Path.GetDirectoryName(Uri.LocalPath)!;
     var matcher = new Matcher();
-    foreach (var includeGlob in Includes ?? new[] { "**/*.dfy" }) {
+    foreach (var includeGlob in Includes ?? new HashSet<string> { "**/*.dfy" }) {
       matcher.AddInclude(Path.GetFullPath(includeGlob, projectRoot));
     }
     foreach (var includeGlob in Excludes ?? Enumerable.Empty<string>()) {
@@ -138,6 +141,8 @@ public class DafnyProject : IEquatable<DafnyProject> {
     return success;
   }
 
+  // TODO add various equality tests
+  // Can options be enumerables?
   public bool Equals(DafnyProject other) {
     if (ReferenceEquals(null, other)) {
       return false;
@@ -151,12 +156,75 @@ public class DafnyProject : IEquatable<DafnyProject> {
     var otherOrderedOptions = other.Options?.OrderBy(kv => kv.Key) ?? Enumerable.Empty<KeyValuePair<string, object>>();
     
     return Equals(UnsavedRootFile, other.UnsavedRootFile) && Equals(Uri, other.Uri) &&
-           // TODO set instead of sequence equality
-           NullableSequenceEqual(Includes, other.Includes) &&
-           NullableSequenceEqual(Excludes, other.Excludes) &&
-           orderedOptions.SequenceEqual(otherOrderedOptions);
+           NullableSetEqual(Includes, other.Includes) &&
+           NullableSetEqual(Excludes, other.Excludes) &&
+           orderedOptions.SequenceEqual(otherOrderedOptions, new LambdaEqualityComparer<KeyValuePair<string, object>>(
+             (kv1, kv2) => kv1.Key == kv2.Key && GenericEquals(kv1.Value, kv2.Value), 
+             kv => kv.GetHashCode()));
   }
 
+  class LambdaEqualityComparer<T> : IEqualityComparer<T> {
+    private Func<T, T, bool> equals;
+    private Func<T, int> hashCode;
+
+    public LambdaEqualityComparer(Func<T, T, bool> equals, Func<T, int> hashCode) {
+      this.equals = equals;
+      this.hashCode = hashCode;
+    }
+
+    public bool Equals(T x, T y) {
+      return equals(x, y);
+    }
+
+    public int GetHashCode(T obj) {
+      return hashCode(obj);
+    }
+  }
+
+  public static bool GenericEquals(object first, object second) {
+    if (first == null && second == null) {
+      return true;
+    }
+
+    if (first == null || second == null) {
+      return false;
+    }
+  
+    if (first is IEnumerable firstEnumerable && second is IEnumerable secondEnumerable) {
+      var firstEnumerator = firstEnumerable.GetEnumerator();
+      var secondEnumerator = secondEnumerable.GetEnumerator();
+
+      while (true) {
+        var a = firstEnumerator.MoveNext();
+        var b = secondEnumerator.MoveNext();
+        if (a != b) {
+          return false;
+        }
+
+        if (!a) {
+          return true;
+        }
+
+        if (!GenericEquals(firstEnumerator.Current, secondEnumerator.Current)) {
+          return false;
+        }
+      }
+    }
+
+    return first.Equals(second);
+  }
+
+  private static bool NullableSetEqual(ISet<string> first, ISet<string> second) {
+    if (first == null && second == null) {
+      return true;
+    }
+
+    if (first == null || second == null) {
+      return false;
+    }
+    return first.Count == second.Count && first.All(second.Contains);
+  }
+  
   private static bool NullableSequenceEqual(IEnumerable<string> first, IEnumerable<string> second) {
     return first?.SequenceEqual(second) ?? (second == null);
   }
