@@ -136,7 +136,12 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
       if (projectManagerForFile != null) {
         if (!projectManagerForFile.Project.Equals(project)) {
-          await projectManagerForFile.CloseDocument();
+          if (projectManagerForFile.Project.Uri == project.Uri) {
+            // TODO hack until we have a global IdeState.
+            await projectManagerForFile.CloseAsync();
+          } else {
+            await projectManagerForFile.CloseDocument();
+          }
           projectManagerForFile = new ProjectManager(services, verificationCache, project);
           // TODO does this OpenDocument call trigger too much verification?
           // TODO do we have issues with previous ideState not being properly accounted for? Should we always publish reset notifications when a new project is created?

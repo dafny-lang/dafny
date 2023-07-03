@@ -197,7 +197,7 @@ public class ProjectManager : IDisposable {
     return false;
   }
 
-  private async Task CloseAsync() {
+  public async Task CloseAsync() {
     CompilationManager.CancelPendingUpdates();
     try {
       await CompilationManager.LastDocument;
