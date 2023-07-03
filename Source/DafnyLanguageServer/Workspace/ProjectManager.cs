@@ -17,20 +17,27 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace;
 
+/*
+ * Ideal view is if there is a single Global IdeState,
+ * Compilations may then update only part of this global state, the part for which they have affecting Uris.
+ * 
+ */
 
 public record FilePosition(Uri Uri, Position Position);
 
+// TODO test that it does not send diagnostics for files that it does not own.
+// How do you determine ownership when two projects include the same unopened file?
 public class ProjectManager : IDisposable {
   private readonly IRelocator relocator;
 
   private readonly IServiceProvider services;
   private readonly VerificationResultCache verificationCache;
-  public DafnyProject Project { get; private set; }
-  private IdeStateObserver observer;
+  public DafnyProject Project { get; }
+  private readonly IdeStateObserver observer;
   public CompilationManager CompilationManager { get; private set; }
   private IDisposable observerSubscription;
   private readonly ILogger<ProjectManager> logger;
-  private ExecutionEngine boogieEngine;
+  private readonly ExecutionEngine boogieEngine;
   private int version = 0;
   public int OpenFileCount { get; private set; }
 
@@ -40,7 +47,7 @@ public class ProjectManager : IDisposable {
   public List<Location> RecentChanges { get; set; } = new();
 
   private readonly SemaphoreSlim workCompletedForCurrentVersion = new(1);
-  private DafnyOptions options;
+  private readonly DafnyOptions options;
   private readonly DafnyOptions serverOptions;
 
 #pragma warning disable CS8618
@@ -54,22 +61,18 @@ public class ProjectManager : IDisposable {
     relocator = services.GetRequiredService<IRelocator>();
     services.GetRequiredService<IFileSystem>();
 
-    ConfigureProject(project);
-  }
-
-  private void ConfigureProject(DafnyProject project) {
     Project = project;
     options = DetermineProjectOptions(project, serverOptions);
-    observer = new IdeStateObserver(services.GetRequiredService<ILogger<IdeStateObserver>>(),
-      services.GetRequiredService<ITelemetryPublisher>(),
-      services.GetRequiredService<INotificationPublisher>(),
+    observer = new IdeStateObserver(this.services.GetRequiredService<ILogger<IdeStateObserver>>(),
+      this.services.GetRequiredService<ITelemetryPublisher>(),
+      this.services.GetRequiredService<INotificationPublisher>(),
       this.services.GetRequiredService<ITextDocumentLoader>(),
       project);
-    boogieEngine = new ExecutionEngine(options, verificationCache);
+    boogieEngine = new ExecutionEngine(options, this.verificationCache);
     options.Printer = new OutputLogger(logger);
 
     CompilationManager = new CompilationManager(
-      services,
+      this.services,
       options,
       boogieEngine,
       new Compilation(version, Project),
@@ -194,7 +197,7 @@ public class ProjectManager : IDisposable {
     return false;
   }
 
-  public async Task CloseAsync() {
+  private async Task CloseAsync() {
     CompilationManager.CancelPendingUpdates();
     try {
       await CompilationManager.LastDocument;
@@ -303,16 +306,5 @@ public class ProjectManager : IDisposable {
 
   public void Dispose() {
     boogieEngine.Dispose();
-  }
-
-  // TODO Consider replacing this with creating a new Project, although then openFile and version must be migrated.
-  // This way, the non-nullables can easily be set in the constructor.
-  public void Migrate(DafnyProject newProject, bool startIfMigrated) {
-    var _ = CloseAsync();
-    var oldObserver = observer;
-    ConfigureProject(newProject);
-    if (startIfMigrated) {
-      StartNewCompilation(null, oldObserver.LastPublishedState);
-    }
   }
 }

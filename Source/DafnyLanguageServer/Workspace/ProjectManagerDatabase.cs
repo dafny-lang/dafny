@@ -9,13 +9,14 @@ using Microsoft.Boogie;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace {
   /// <summary>
-  /// Contains a collection of DocumentManagers
+  /// Contains a collection of ProjectManagers
   /// </summary>
   public class ProjectManagerDatabase : IProjectDatabase {
 
     private readonly IServiceProvider services;
 
     private readonly Dictionary<Uri, ProjectManager> managersByProject = new();
+    private readonly Dictionary<Uri, ProjectManager> managersBySourceFile = new();
     private readonly LanguageServerFilesystem fileSystem;
     private readonly VerificationResultCache verificationCache = new();
 
@@ -24,11 +25,11 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       this.fileSystem = services.GetRequiredService<LanguageServerFilesystem>();
     }
 
-    public void OpenDocument(TextDocumentItem document) {
+    public async Task OpenDocument(TextDocumentItem document) {
       fileSystem.OpenDocument(document);
 
-      var projectManager = GetProjectManager(document, true, false)!;
-      projectManager.OpenDocument(document.Uri.ToUri());
+      var projectManager = await GetProjectManager(document, true, false)!;
+      projectManager!.OpenDocument(document.Uri.ToUri());
     }
 
     private DafnyProject GetProject(TextDocumentIdentifier document) {
@@ -71,10 +72,10 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       return DafnyProject.Open(fileSystem, configFileUri, outputWriter, errorWriter);
     }
 
-    public void UpdateDocument(DidChangeTextDocumentParams documentChange) {
+    public async Task UpdateDocument(DidChangeTextDocumentParams documentChange) {
       fileSystem.UpdateDocument(documentChange);
       var documentUri = documentChange.TextDocument.Uri;
-      var manager = GetProjectManager(documentUri, false, false);
+      var manager = await GetProjectManager(documentUri, false, false);
       if (manager == null) {
         throw new ArgumentException($"the document {documentUri} was not loaded before");
       }
@@ -82,8 +83,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       manager.UpdateDocument(documentChange);
     }
 
-    public void SaveDocument(TextDocumentIdentifier documentId) {
-      var manager = GetProjectManager(documentId, false, false);
+    public async Task SaveDocument(TextDocumentIdentifier documentId) {
+      var manager = await GetProjectManager(documentId, false, false);
       if (manager == null) {
         throw new ArgumentException($"the document {documentId.Uri} was not loaded before");
       }
@@ -93,7 +94,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     public async Task<bool> CloseDocumentAsync(TextDocumentIdentifier documentId) {
       fileSystem.CloseDocument(documentId);
-      var manager = GetProjectManager(documentId, false, false);
+
+      managersBySourceFile.TryGetValue(documentId.Uri.ToUri(), out var manager);
       if (manager == null) {
         return false;
       }
@@ -101,40 +103,44 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       if (await manager.CloseDocument()) {
         managersByProject.Remove(manager.Project.Uri);
       }
+
       return true;
     }
 
-    public Task<IdeState?> GetResolvedDocumentAsync(TextDocumentIdentifier documentId) {
-      var manager = GetProjectManager(documentId, false, true);
+    public async Task<IdeState?> GetResolvedDocumentAsync(TextDocumentIdentifier documentId) {
+      var manager = await GetProjectManager(documentId, false, true);
       if (manager != null) {
-        return manager.GetSnapshotAfterResolutionAsync()!;
+        return await manager.GetSnapshotAfterResolutionAsync()!;
       }
 
-      return Task.FromResult<IdeState?>(null);
+      return null;
     }
 
-    public Task<CompilationAfterParsing?> GetLastDocumentAsync(TextDocumentIdentifier documentId) {
-      var manager = GetProjectManager(documentId, false, true);
+    public async Task<CompilationAfterParsing?> GetLastDocumentAsync(TextDocumentIdentifier documentId) {
+      var manager = await GetProjectManager(documentId, false, true);
       if (manager != null) {
-        return manager.GetLastDocumentAsync()!;
+        return await manager.GetLastDocumentAsync()!;
       }
 
-      return Task.FromResult<CompilationAfterParsing?>(null);
+      return null;
     }
 
-    public ProjectManager? GetProjectManager(TextDocumentIdentifier documentId) {
+    public Task<ProjectManager?> GetProjectManager(TextDocumentIdentifier documentId) {
       return GetProjectManager(documentId, false, true);
     }
 
-    public ProjectManager? GetProjectManager(TextDocumentIdentifier documentId, 
+    public async Task<ProjectManager?> GetProjectManager(TextDocumentIdentifier documentId, 
       bool createOnDemand, bool startIfMigrated) {
       var project = GetProject(documentId);
-      var projectManager = managersByProject.GetValueOrDefault(project.Uri);
+      var projectManager = managersBySourceFile.GetValueOrDefault(documentId.Uri.ToUri());
 
       if (projectManager != null) {
         if (!projectManager.Project.Equals(project)) {
-          var _= projectManager.CloseAsync();
-          projectManager.Migrate(project, startIfMigrated);
+          await projectManager.CloseDocument();
+          projectManager = new ProjectManager(services, verificationCache, project);
+          // TODO does this OpenDocument call trigger too much verification?
+          // TODO do we have issues with previous ideState not being properly accounted for? Should we always publish reset notifications when a new project is created?
+          projectManager.OpenDocument(documentId.Uri.ToUri());
         }
       } else {
         if (createOnDemand) {
@@ -144,6 +150,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         }
       }
 
+      managersBySourceFile[documentId.Uri.ToUri()] = projectManager;
       managersByProject[project.Uri] = projectManager;
       return projectManager;
     }

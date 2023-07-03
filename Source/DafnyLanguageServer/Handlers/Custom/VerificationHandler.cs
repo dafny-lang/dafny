@@ -30,7 +30,7 @@ public class VerificationHandler : IJsonRpcRequestHandler<VerificationParams, bo
   }
 
   public async Task<bool> Handle(VerificationParams request, CancellationToken cancellationToken) {
-    var projectManager = projects.GetProjectManager(request.TextDocument);
+    var projectManager = await projects.GetProjectManager(request.TextDocument);
     if (projectManager == null) {
       return false;
     }
@@ -53,12 +53,12 @@ public class VerificationHandler : IJsonRpcRequestHandler<VerificationParams, bo
   }
 
   public async Task<bool> Handle(CancelVerificationParams request, CancellationToken cancellationToken) {
-    var documentManager = projects.GetProjectManager(request.TextDocument);
-    if (documentManager == null) {
+    var projectManager = await projects.GetProjectManager(request.TextDocument);
+    if (projectManager == null) {
       return false;
     }
 
-    var translatedDocument = await documentManager.CompilationManager.TranslatedCompilation;
+    var translatedDocument = await projectManager.CompilationManager.TranslatedCompilation;
     var requestPosition = request.Position;
     foreach (var taskToRun in GetTasksAtPosition(translatedDocument, requestPosition)) {
       taskToRun.Cancel();

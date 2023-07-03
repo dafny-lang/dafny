@@ -224,7 +224,7 @@ warn-shadowing = true
   }
 
   [Fact]
-  public async Task OpenUpdateCloseIncludedFileWithExplicitProject() {
+  public async Task UpdateIncludedFileWithExplicitProject() {
     var producerSource = @"
 method Foo(x: int) { 
 }
