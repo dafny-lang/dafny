@@ -58,12 +58,12 @@ public class CompilationAfterParsing : Compilation {
       var messageForIncludedFile =
         ResolutionDiagnostics.GetOrDefault(include, () => (IReadOnlyList<DafnyDiagnostic>)ImmutableList<DafnyDiagnostic>.Empty);
       var errorMessages = messageForIncludedFile.Where(m => m.Level == ErrorLevel.Error);
-      var firstErrorMessage = errorMessages.FirstOrDefault();
-      if (firstErrorMessage == null) {
+      var firstErrorDiagnostic = errorMessages.FirstOrDefault();
+      if (firstErrorDiagnostic == null) {
         continue;
       }
 
-      var containsErrorSTheFirstOneIs = $"the included file {include.LocalPath} contains error(s). The first one is:{firstErrorMessage}";
+      var containsErrorSTheFirstOneIs = $"the included file {include.LocalPath} contains error(s). The first one is:{firstErrorDiagnostic.Message}";
       var diagnostic = new DafnyDiagnostic(null, Program.GetFirstTopLevelToken(), containsErrorSTheFirstOneIs,
         MessageSource.Parser, ErrorLevel.Error, new DafnyRelatedInformation[] { });
       yield return diagnostic;
