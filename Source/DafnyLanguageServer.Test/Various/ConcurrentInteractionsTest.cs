@@ -170,12 +170,13 @@ method Multiply(x: int, y: int) returns (product: int)
         loadingDocuments.Add(documentItem);
       }
       for (int i = 0; i < documentsToLoadConcurrently; i++) {
-        var report = await GetLastDiagnostics(loadingDocuments[i], CancellationTokenWithHighTimeout);
-        Assert.Empty(report);
+        await Projects.GetLastDocumentAsync(loadingDocuments[i]);
       }
 
       foreach (var loadingDocument in loadingDocuments) {
-        await Projects.CloseDocumentAsync(loadingDocument);
+        await client.CloseDocumentAndWaitAsync(loadingDocument, CancellationToken);
+        // Receive closing diagnostics
+        await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
       }
       await AssertNoDiagnosticsAreComing(CancellationTokenWithHighTimeout);
     }

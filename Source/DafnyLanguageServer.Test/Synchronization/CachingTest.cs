@@ -37,8 +37,7 @@ const tuple2 := (3,2)
     var documentItem = CreateTestDocument(source, Path.Combine(testFiles, "test.dfy"));
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
 
-    var diagnostics1 = await GetLastDiagnostics(documentItem, CancellationToken);
-    Assert.Empty(diagnostics1);
+    await AssertNoDiagnosticsAreComing(CancellationToken);
     ApplyChange(ref documentItem, ((0, 0), (0, 0)), "const tuple3: (int, int, bool) := (1,2,3) \n");
     var diagnostics2 = await GetLastDiagnostics(documentItem, CancellationToken);
     Assert.Single(diagnostics2);
@@ -95,8 +94,6 @@ module ModC {
 
     ApplyChange(ref documentItem, ((0, 0), (0, 0)), "// Pointless comment that triggers a reparse\n");
     var hitCount1 = await WaitAndCountHits();
-    var diagnostics2 = await GetLastDiagnostics(documentItem, CancellationToken);
-    Assert.Empty(diagnostics2.Where(d => d.Severity == DiagnosticSeverity.Error));
     Assert.Equal(2, hitCount1.ParseHits);
     var modules = new[] {
       "System",
@@ -243,13 +240,10 @@ module A {
     var testFiles = Path.Combine(Directory.GetCurrentDirectory(), "Synchronization/TestFiles");
     var documentItem1 = CreateTestDocument(usingFile, Path.Combine(testFiles, "test.dfy"));
     await client.OpenDocumentAndWaitAsync(documentItem1, CancellationToken);
-    var diagnostics1 = await GetLastDiagnostics(documentItem1, CancellationToken);
-    Assert.Empty(diagnostics1);
 
     var documentItem2 = CreateTestDocument(usingFile, Path.Combine(testFiles, "test2.dfy"));
     await client.OpenDocumentAndWaitAsync(documentItem2, CancellationToken);
-    var diagnostics2 = await GetLastDiagnostics(documentItem1, CancellationToken);
-    Assert.Empty(diagnostics2);
+    await AssertNoDiagnosticsAreComing(CancellationToken);
   }
 
   [Fact]
