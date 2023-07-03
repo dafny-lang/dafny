@@ -39,7 +39,7 @@ public class NonNullTypeDecl : SubsetTypeDecl {
     foreach (var rhsParentType in Class.ParentTypes(typeArgs)) {
       var rhsParentUdt = (UserDefinedType)rhsParentType; // all parent types of .Class are expected to be possibly-null class types
       Contract.Assert(rhsParentUdt.ResolvedClass is TraitDecl);
-      result.Add(UserDefinedType.CreateNonNullType(rhsParentUdt));
+      result.Add(UserDefinedType.CreateNonNullTypeIfReferenceType(rhsParentUdt));
     }
 
     return result;

@@ -1111,9 +1111,13 @@ namespace Microsoft.Dafny {
             continue;
           }
           foreach (var parentType in c.ParentTraits) {
+            var childType = UserDefinedType.FromTopLevelDecl(c.tok, c);
+
             Bpl.Expr heap; var heapVar = BplBoundVar("$heap", predef.HeapType, out heap);
-            Bpl.Expr o; var oVar = BplBoundVar("$o", predef.RefType, out o);
-            Bpl.Expr oNotNull = Bpl.Expr.Neq(o, predef.Null);
+            Bpl.Expr o; var oVar = BplBoundVar("$o", TrType(childType), out o);
+            Bpl.Expr oNotNull = childType.IsRefType ? Bpl.Expr.Neq(o, predef.Null) : Bpl.Expr.True;
+
+            var oj = BoxifyForTraitParent(c.tok, o, ((UserDefinedType)parentType.NormalizeExpand()).ResolvedClass, childType);
 
             List<Bpl.Expr> tyexprs;
             var bvarsTypeParameters = MkTyParamBinders(GetTypeParams(c), out tyexprs);
@@ -1121,28 +1125,30 @@ namespace Microsoft.Dafny {
             // axiom (forall T: Ty, $o: ref ::
             //     { $Is($o, C(T)) }
             //     $o != null && $Is($o, C(T)) ==> $Is($o, J(G(T)));
-            var isC = MkIs(o, UserDefinedType.FromTopLevelDecl(c.tok, c));
-            var isJ = MkIs(o, parentType);
+            var isC = MkIs(o, childType);
+            var isJ = MkIs(oj, parentType);
             var bvs = new List<Bpl.Variable>();
             bvs.AddRange(bvarsTypeParameters);
             bvs.Add(oVar);
             var tr = BplTrigger(isC);
             var body = BplImp(BplAnd(oNotNull, isC), isJ);
 
-            sink.AddTopLevelDeclaration(new Bpl.Axiom(c.tok, new Bpl.ForallExpr(c.tok, bvs, tr, body)));
+            sink.AddTopLevelDeclaration(new Bpl.Axiom(c.tok, new Bpl.ForallExpr(c.tok, bvs, tr, body),
+              $"type axiom for trait parent: {d} extends {parentType}"));
 
             // axiom (forall T: Ty, $Heap: Heap, $o: ref ::
             //     { $IsAlloc($o, C(T), $Heap) }
             //     $o != null && $IsAlloc($o, C(T), $Heap) ==> $IsAlloc($o, J(G(T)), $Heap);
-            var isAllocC = MkIsAlloc(o, UserDefinedType.FromTopLevelDecl(c.tok, c), heap);
-            var isAllocJ = MkIsAlloc(o, parentType, heap);
+            var isAllocC = MkIsAlloc(o, childType, heap);
+            var isAllocJ = MkIsAlloc(oj, parentType, heap);
             bvs = new List<Bpl.Variable>();
             bvs.AddRange(bvarsTypeParameters);
             bvs.Add(oVar);
             bvs.Add(heapVar);
             tr = BplTrigger(isAllocC);
             body = BplImp(BplAnd(oNotNull, isAllocC), isAllocJ);
-            sink.AddTopLevelDeclaration(new Bpl.Axiom(c.tok, new Bpl.ForallExpr(c.tok, bvs, tr, body)));
+            sink.AddTopLevelDeclaration(new Bpl.Axiom(c.tok, new Bpl.ForallExpr(c.tok, bvs, tr, body),
+              $"allocation axiom for trait parent: {d} extends {parentType}"));
           }
         }
       }
@@ -1232,11 +1238,12 @@ namespace Microsoft.Dafny {
         AddWellformednessCheck(dd);
       }
 
-      currentModule = dd.EnclosingModuleDefinition;
       // Add $Is and $IsAlloc axioms for the newtype
+      currentModule = dd.EnclosingModuleDefinition;
       AddRedirectingTypeDeclAxioms(false, dd, dd.FullName);
       AddRedirectingTypeDeclAxioms(true, dd, dd.FullName);
       currentModule = null;
+
       this.fuelContext = oldFuelContext;
     }
 
@@ -1288,10 +1295,10 @@ namespace Microsoft.Dafny {
       var o = BplBoundVar((dd.Var ?? c).AssignUniqueName((dd.IdGenerator)), oBplType, vars);
 
       Bpl.Expr body, is_o;
-      string comment = string.Format("{0}: {1} ", fullName, dd.WhatKind);
+      string comment;
 
       if (is_alloc) {
-        comment += "$IsAlloc";
+        comment = $"$IsAlloc axiom for {dd.WhatKind} {fullName}";
         var h = BplBoundVar("$h", predef.HeapType, vars);
         // $IsAlloc(o, ..)
         is_o = MkIsAlloc(o, o_ty, h, ModeledAsBoxType(baseType));
@@ -1302,12 +1309,12 @@ namespace Microsoft.Dafny {
           body = BplIff(is_o, rhs);
         }
       } else {
-        comment += "$Is";
+        comment = $"$Is axiom for {dd.WhatKind} {fullName}";
         // $Is(o, ..)
         is_o = MkIs(o, o_ty, ModeledAsBoxType(baseType));
         var etran = new ExpressionTranslator(this, predef, NewOneHeapExpr(dd.tok));
         Bpl.Expr parentConstraint, constraint;
-        if (baseType.IsNumericBased() || baseType.IsBitVectorType || baseType.IsBoolType) {
+        if (baseType.IsNumericBased() || baseType.IsBitVectorType || baseType.IsBoolType || baseType.IsCharType) {
           // optimize this to only use the numeric/bitvector constraint, not the whole $Is thing on the base type
           parentConstraint = Bpl.Expr.True;
           var udt = UserDefinedType.FromTopLevelDecl(dd.tok, dd);
@@ -5428,8 +5435,20 @@ namespace Microsoft.Dafny {
           Contract.Assert(false, $"No translation implemented from {fromType} to {toType}");
         }
         return r;
-      } else if (fromType.IsRefType) {
+      } else if (fromType.IsRefType && toType.IsRefType) {
         return r;
+      } else if (fromType.IsRefType) {
+        Contract.Assert(toType.IsTraitType);
+        return BoxIfNecessary(r.tok, r, fromType);
+      } else if (toType.IsRefType) {
+        Contract.Assert(fromType.IsTraitType);
+        return UnboxIfBoxed(r, toType);
+      } else if (toType.IsTraitType) {
+        // cast to a non-reference trait
+        return BoxIfNecessary(r.tok, r, fromType);
+      } else if (fromType.IsTraitType) {
+        // cast from a non-reference trait
+        return UnboxIfBoxed(r, toType);
       } else {
         Contract.Assert(false, $"No translation implemented from {fromType} to {toType}");
       }
@@ -5463,7 +5482,7 @@ namespace Microsoft.Dafny {
 
       // Lazily create a local variable "o" to hold the value of the from-expression
       Bpl.IdentifierExpr o = null;
-      System.Action PutSourceIntoLocal = () => {
+      void PutSourceIntoLocal() {
         if (o == null) {
           var oType = expr.Type.IsCharType ? Type.Int : expr.Type;
           var oVar = new Bpl.LocalVariable(tok, new Bpl.TypedIdent(tok, CurrentIdGenerator.FreshId("newtype$check#"), TrType(oType)));
@@ -5475,10 +5494,14 @@ namespace Microsoft.Dafny {
           }
           builder.Add(Bpl.Cmd.SimpleAssign(tok, o, rhs));
         }
-      };
+      }
 
-      Contract.Assert(expr.Type.IsRefType == toType.IsRefType);
+      Contract.Assert(options.Get(CommonOptionBag.GeneralTraits) || expr.Type.IsRefType == toType.IsRefType);
       if (toType.IsRefType) {
+        PutSourceIntoLocal();
+        CheckSubrange(tok, o, expr.Type, toType, builder, errorMsgPrefix);
+        return;
+      } else if (expr.Type.IsTraitType) {
         PutSourceIntoLocal();
         CheckSubrange(tok, o, expr.Type, toType, builder, errorMsgPrefix);
         return;
@@ -7164,6 +7187,9 @@ namespace Microsoft.Dafny {
       } else if (type.IsRefType) {
         // object and class types translate to ref
         return predef.RefType;
+      } else if (type is UserDefinedType { ResolvedClass: TraitDecl }) {
+        // non-reference trait type
+        return predef.BoxType;
       } else if (type.IsDatatype) {
         return predef.DatatypeType;
       } else if (type is SetType) {
@@ -7256,6 +7282,17 @@ namespace Microsoft.Dafny {
       }
     }
 
+    public Boogie.Expr BoxifyForTraitParent(Bpl.IToken tok, Boogie.Expr obj, MemberDecl member, Type fromType) {
+      return BoxifyForTraitParent(tok, obj, member.EnclosingClass, fromType);
+    }
+
+    public Boogie.Expr BoxifyForTraitParent(Bpl.IToken tok, Boogie.Expr obj, TopLevelDecl topLevelDecl, Type fromType) {
+      if (topLevelDecl is TraitDecl { IsReferenceTypeDecl: false }) {
+        return BoxIfNecessary(tok, obj, fromType);
+      }
+      return obj;
+    }
+
     public static bool ModeledAsBoxType(Type t) {
       Contract.Requires(t != null);
       t = t.NormalizeExpand();
@@ -7263,7 +7300,7 @@ namespace Microsoft.Dafny {
         // unresolved proxy
         return false;
       }
-      var res = t.IsTypeParameter || t.IsAbstractType || t.IsInternalTypeSynonym;
+      var res = t.IsTypeParameter || (t.IsTraitType && !t.IsRefType) || t.IsAbstractType || t.IsInternalTypeSynonym;
       Contract.Assert(t.IsArrowType ? !res : true);
       return res;
     }
@@ -8373,7 +8410,8 @@ namespace Microsoft.Dafny {
     /// To do this in Dafny, Dafny would have to compute loop targets, which is better done in Boogie (which
     /// already has to do it).
     /// </summary>
-    Bpl.Expr GetWhereClause(IToken tok, Bpl.Expr x, Type type, ExpressionTranslator etran, IsAllocType alloc, bool allocatednessOnly = false) {
+    Bpl.Expr GetWhereClause(IToken tok, Bpl.Expr x, Type type, ExpressionTranslator etran, IsAllocType alloc,
+      bool allocatednessOnly = false, bool alwaysUseSymbolicName = false) {
       Contract.Requires(tok != null);
       Contract.Requires(x != null);
       Contract.Requires(type != null);
@@ -8401,7 +8439,10 @@ namespace Microsoft.Dafny {
       }
 
       Bpl.Expr isPred = null;
-      if (normType is BoolType || normType is IntType || normType is RealType || normType is BigOrdinalType) {
+      if (alwaysUseSymbolicName) {
+        // go for the symbolic name
+        isPred = MkIs(x, normType);
+      } else if (normType is BoolType || normType is IntType || normType is RealType || normType is BigOrdinalType) {
         // nothing to do
       } else if (normType is BitvectorType) {
         var t = (BitvectorType)normType;
@@ -8863,10 +8904,10 @@ namespace Microsoft.Dafny {
           builder.Add(cmd);
           return bGivenLhs;
         } else {
-          // do the assignment, then box the result
-          var cmd = Bpl.Cmd.SimpleAssign(tok, bLhs, bRhs);
+          // box from RHS type to tmp-var type, then do the assignment; then return LHS, boxed from tmp-var type to result type
+          var cmd = Bpl.Cmd.SimpleAssign(tok, bLhs, CondApplyBox(tok, bRhs, e.Expr.Type, rhsTypeConstraint));
           builder.Add(cmd);
-          return CondApplyBox(tok, bLhs, e.Expr.Type, lhsType);
+          return CondApplyBox(tok, bLhs, rhsTypeConstraint, lhsType);
         }
 
       } else if (rhs is HavocRhs) {
@@ -9067,10 +9108,10 @@ namespace Microsoft.Dafny {
       if (includeHavoc) {
         // havoc $nw;
         builder.Add(new Bpl.HavocCmd(tok, new List<Bpl.IdentifierExpr> { nw }));
-        // assume $nw != null && dtype($nw) == RHS;
+        // assume $nw != null && $Is($nw, type);
         var nwNotNull = Bpl.Expr.Neq(nw, predef.Null);
-        // drop the dtype conjunct if the type is "object", because "new object" allocates an object of an arbitrary type
-        var rightType = type.IsObjectQ ? Bpl.Expr.True : DType(nw, TypeToTy(type));
+        // drop the $Is conjunct if the type is "object", because "new object" allocates an object of an arbitrary type
+        var rightType = type.IsObjectQ ? Bpl.Expr.True : MkIs(nw, type);
         builder.Add(TrAssumeCmd(tok, Bpl.Expr.And(nwNotNull, rightType)));
       }
       // assume !$Heap[$nw, alloc];
@@ -9112,7 +9153,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(sourceType != null);
       Contract.Requires(targetType != null);
 
-      if (Type.IsSupertype(targetType, sourceType)) {
+      if (Type.IsSupertype(targetType, sourceType) && !(sourceType.IsRefType && !sourceType.IsNonNullRefType && !targetType.IsRefType)) {
         // We should always be able to use Is, but this is an optimisation.
         desc = null;
         return null;
@@ -9120,8 +9161,13 @@ namespace Microsoft.Dafny {
       targetType = targetType.NormalizeExpandKeepConstraints();
       var udt = targetType as UserDefinedType;
       Bpl.Expr cre;
-      if (udt?.ResolvedClass is RedirectingTypeDecl redirectingTypeDecl && ModeledAsBoxType(redirectingTypeDecl.Var.Type)) {
+      if (udt?.ResolvedClass is RedirectingTypeDecl redirectingTypeDecl &&
+          ModeledAsBoxType((redirectingTypeDecl as NewtypeDecl)?.BaseType ?? redirectingTypeDecl.Var.Type)) {
         cre = MkIs(BoxIfNecessary(bSource.tok, bSource, sourceType), TypeToTy(targetType), true);
+      } else if (ModeledAsBoxType(sourceType)) {
+        cre = MkIs(bSource, TypeToTy(targetType), true);
+      } else if (targetType is UserDefinedType targetUdt) {
+        cre = MkIs(BoxifyForTraitParent(bSource.tok, bSource, udt.ResolvedClass, sourceType), targetType);
       } else {
         cre = MkIs(bSource, targetType);
       }
@@ -9141,7 +9187,12 @@ namespace Microsoft.Dafny {
         desc = new PODesc.SubrangeCheck(errorMessagePrefix, sourceType.ToString(), targetType.ToString(), true, false,
           "it may have read effects");
       } else {
-        desc = new PODesc.SubrangeCheck(errorMessagePrefix, sourceType.ToString(), targetType.ToString(), true, false, null);
+        desc = new PODesc.SubrangeCheck(errorMessagePrefix, sourceType.ToString(), targetType.ToString(),
+          targetType.NormalizeExpandKeepConstraints() is UserDefinedType
+          {
+            ResolvedClass: SubsetTypeDecl or NewtypeDecl { Var: { } }
+          },
+          false, null);
       }
       return cre;
     }

@@ -23,8 +23,8 @@ namespace Microsoft.Dafny {
           AddAllocationAxiom(null, null, (ArrayClassDecl)c, true);
         }
 
-        if (c is ClassLikeDecl) {
-          AddIsAndIsAllocForClassLike(c);
+        if (c is ClassLikeDecl { IsReferenceTypeDecl: true } referenceTypeDecl) {
+          AddIsAndIsAllocForReferenceType(referenceTypeDecl);
         }
 
         if (c is TraitDecl) {
@@ -93,8 +93,10 @@ namespace Microsoft.Dafny {
             { $IsAlloc(p, TClassA(G), h) }
             $IsAlloc(p, TClassA(G), h) => (p == null || h[p, alloc]);
      */
-    private void AddIsAndIsAllocForClassLike(TopLevelDeclWithMembers c) {
-      MapM(c is ClassLikeDecl ? Bools : new List<bool>(), is_alloc => {
+    private void AddIsAndIsAllocForReferenceType(ClassLikeDecl c) {
+      Contract.Requires(c.IsReferenceTypeDecl);
+
+      MapM(Bools, is_alloc => {
         var vars = MkTyParamBinders(GetTypeParams(c), out var tyexprs);
 
         var o = BplBoundVar("$o", predef.RefType, vars);
@@ -105,13 +107,13 @@ namespace Microsoft.Dafny {
         string name;
 
         if (is_alloc) {
-          name = c + ": Class $IsAlloc";
+          name = $"$IsAlloc axiom for {c.WhatKind} {c}";
           var h = BplBoundVar("$h", predef.HeapType, vars);
           // $IsAlloc(o, ..)
           is_o = MkIsAlloc(o, o_ty, h);
           body = BplIff(is_o, BplOr(o_null, IsAlloced(c.tok, h, o)));
         } else {
-          name = c + ": Class $Is";
+          name = $"$Is axiom for {c.WhatKind} {c}";
           // $Is(o, ..)
           is_o = MkIs(o, o_ty);
           Bpl.Expr rhs;
@@ -464,7 +466,8 @@ namespace Microsoft.Dafny {
       var vars = MkTyParamBinders(GetTypeParams(c), out var tyexprs);
 
       foreach (var parent in c.ParentTraits) {
-        var trait = (TraitDecl)((NonNullTypeDecl)((UserDefinedType)parent).ResolvedClass).ViewAsClass;
+        var trait = ((UserDefinedType)parent).AsParentTraitDecl();
+        Contract.Assert(trait != null);
         var arg = ClassTyCon(c, tyexprs);
         var args = new List<Bpl.Expr> { arg };
         foreach (var targ in parent.TypeArgs) {
@@ -1092,10 +1095,11 @@ namespace Microsoft.Dafny {
       var bvThis = new Boogie.BoundVariable(f.tok, new Boogie.TypedIdent(f.tok, etran.This, TrType(thisType)));
       forallFormals.Add(bvThis);
       var bvThisExpr = new Boogie.IdentifierExpr(f.tok, bvThis);
-      argsJF.Add(bvThisExpr);
+      argsJF.Add(BoxifyForTraitParent(f.tok, bvThisExpr, f, thisType));
       moreArgsCF.Add(bvThisExpr);
       // $Is(this, C)
-      var isOfSubtype = GetWhereClause(overridingFunction.tok, bvThisExpr, thisType, f is TwoStateFunction ? etran.Old : etran, IsAllocType.NEVERALLOC);
+      var isOfSubtype = GetWhereClause(overridingFunction.tok, bvThisExpr, thisType, f is TwoStateFunction ? etran.Old : etran,
+        IsAllocType.NEVERALLOC, alwaysUseSymbolicName: true);
 
       Bpl.Expr ante = Boogie.Expr.And(ReceiverNotNull(bvThisExpr), isOfSubtype);
 
