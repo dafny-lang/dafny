@@ -10,6 +10,7 @@ using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.FileSystemGlobbing;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
@@ -30,14 +31,14 @@ public class ProjectManager {
   private IDisposable observerSubscription;
   private readonly ILogger<ProjectManager> logger;
 
-  private bool VerifyOnOpen => options.Get(ServerCommand.Verification) == VerifyOnMode.Change;
-  private bool VerifyOnChange => options.Get(ServerCommand.Verification) == VerifyOnMode.Change;
-  private bool VerifyOnSave => options.Get(ServerCommand.Verification) == VerifyOnMode.Save;
+  private bool VerifyOnOpen => serverOptions.Get(ServerCommand.Verification) == VerifyOnMode.Change;
+  private bool VerifyOnChange => serverOptions.Get(ServerCommand.Verification) == VerifyOnMode.Change;
+  private bool VerifyOnSave => serverOptions.Get(ServerCommand.Verification) == VerifyOnMode.Save;
   public List<Position> ChangedVerifiables { get; set; } = new();
   public List<Range> ChangedRanges { get; set; } = new();
 
   private readonly SemaphoreSlim workCompletedForCurrentVersion = new(0);
-  private readonly DafnyOptions options;
+  private readonly DafnyOptions serverOptions;
   private readonly IFileSystem fileSystem;
 
   public ProjectManager(
@@ -45,7 +46,7 @@ public class ProjectManager {
     VersionedTextDocumentIdentifier documentIdentifier) {
     this.services = services;
     fileSystem = services.GetRequiredService<IFileSystem>();
-    options = services.GetRequiredService<DafnyOptions>();
+    serverOptions = services.GetRequiredService<DafnyOptions>();
     logger = services.GetRequiredService<ILogger<ProjectManager>>();
     relocator = services.GetRequiredService<IRelocator>();
 
@@ -56,11 +57,11 @@ public class ProjectManager {
       documentIdentifier);
     CompilationManager = new CompilationManager(
       services,
-      DetermineDocumentOptions(options, documentIdentifier.Uri),
+      DetermineDocumentOptions(serverOptions, documentIdentifier.Uri),
       documentIdentifier,
       null);
 
-    observerSubscription = CompilationManager.DocumentUpdates.Select(d => d.InitialIdeState(options)).Subscribe(observer);
+    observerSubscription = CompilationManager.DocumentUpdates.Select(d => d.InitialIdeState(serverOptions)).Subscribe(observer);
 
     if (VerifyOnOpen) {
       var _ = VerifyEverythingAsync();
@@ -97,7 +98,7 @@ public class ProjectManager {
           Where(r => r != null).Take(MaxRememberedChanges).ToList()!;
     }
 
-    var dafnyOptions = DetermineDocumentOptions(options, documentChange.TextDocument.Uri);
+    var dafnyOptions = DetermineDocumentOptions(serverOptions, documentChange.TextDocument.Uri);
     CompilationManager = new CompilationManager(
       services,
       dafnyOptions,
@@ -142,14 +143,14 @@ public class ProjectManager {
     return result;
 
   }
-  
+
   private DafnyProject GetProject(DocumentUri uri) {
     return FindProjectFile(uri.ToUri()) ?? ImplicitProject(uri);
   }
 
   public static DafnyProject ImplicitProject(DocumentUri uri) {
     var implicitProject = new DafnyProject {
-      Includes = new [] { uri.GetFileSystemPath() },
+      Includes = new[] { uri.GetFileSystemPath() },
       Uri = uri.ToUri(),
     };
     return implicitProject;
@@ -166,7 +167,10 @@ public class ProjectManager {
       if (fileSystem.Exists(configFileUri)) {
         projectFile = OpenProject(configFileUri);
         if (projectFile != null) {
-          break;
+          var projectIncludes = projectFile.GetMatcher().Match(uri.LocalPath);
+          if (projectIncludes.HasMatches) {
+            break;
+          }
         }
       }
 
@@ -175,7 +179,7 @@ public class ProjectManager {
 
     return projectFile;
   }
-  
+
   private DafnyProject? OpenProject(Uri configFileUri) {
     var errorWriter = TextWriter.Null;
     var outputWriter = TextWriter.Null;
@@ -276,7 +280,7 @@ public class ProjectManager {
 
   private IEnumerable<Position> GetChangedVerifiablesFromRanges(CompilationAfterResolution loaded, IEnumerable<Range> changedRanges) {
     var tree = new DocumentVerificationTree(loaded.Program, loaded.DocumentIdentifier);
-    VerificationProgressReporter.UpdateTree(options, loaded, tree);
+    VerificationProgressReporter.UpdateTree(serverOptions, loaded, tree);
     var intervalTree = new IntervalTree<Position, Position>();
     foreach (var childTree in tree.Children) {
       intervalTree.Add(childTree.Range.Start, childTree.Range.End, childTree.Position);

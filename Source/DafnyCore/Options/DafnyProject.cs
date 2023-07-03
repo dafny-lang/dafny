@@ -50,29 +50,36 @@ public class DafnyProject {
   }
 
   public void AddFilesToOptions(IFileSystem fileSystem, DafnyOptions options) {
-    foreach (var file in GetRootSourceUris(fileSystem,options)) {
+    foreach (var file in GetRootSourceUris(fileSystem)) {
       options.CliRootSourceUris.Add(file);
     }
   }
-  
-  public IEnumerable<Uri> GetRootSourceUris(IFileSystem fileSystem, DafnyOptions options) {
+
+  public IEnumerable<Uri> GetRootSourceUris(IFileSystem fileSystem) {
     if (!Uri.IsFile) {
       return Enumerable.Empty<Uri>();
     }
 
-    var projectRoot = Path.GetDirectoryName(Uri.LocalPath)!;
-    var matcher = new Matcher();
-    foreach (var includeGlob in Includes ?? new [] { "**/*.dfy" }) {
-      matcher.AddInclude(Path.GetFullPath(includeGlob, projectRoot));
-    }
-    foreach (var includeGlob in Excludes ?? Enumerable.Empty<string>()) {
-      matcher.AddExclude(Path.GetFullPath(includeGlob, projectRoot));
-    }
+    var matcher = GetMatcher();
 
     var diskRoot = Path.GetPathRoot(Uri.LocalPath);
     var result = matcher.Execute(fileSystem.GetDirectoryInfoBase(diskRoot));
     var files = result.Files.Select(f => Path.Combine(diskRoot, f.Path));
     return files.Select(file => new Uri(Path.GetFullPath(file)));
+  }
+
+  public Matcher GetMatcher() {
+    var projectRoot = Path.GetDirectoryName(Uri.LocalPath)!;
+    var matcher = new Matcher();
+    foreach (var includeGlob in Includes ?? new[] { "**/*.dfy" }) {
+      matcher.AddInclude(Path.GetFullPath(includeGlob, projectRoot));
+    }
+
+    foreach (var includeGlob in Excludes ?? Enumerable.Empty<string>()) {
+      matcher.AddExclude(Path.GetFullPath(includeGlob, projectRoot));
+    }
+
+    return matcher;
   }
 
   public void Validate(TextWriter outputWriter, IEnumerable<Option> possibleOptions) {

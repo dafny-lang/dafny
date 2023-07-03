@@ -43,10 +43,10 @@ warn-shadowing = true
     var directory = Path.GetTempPath();
     var outerProjectFile = CreateTestDocument(projectFileSource, Path.Combine(directory, "dfyconfig.toml"));
     await client.OpenDocumentAndWaitAsync(outerProjectFile, CancellationToken);
-    
+
     var innerProjectFile = CreateTestDocument("includes = []", Path.Combine(directory, "nested", "dfyconfig.toml"));
     await client.OpenDocumentAndWaitAsync(innerProjectFile, CancellationToken);
-      
+
     var filePath = Path.Combine(Directory.GetCurrentDirectory(), "ProjectFiles/TestFiles/noWarnShadowing.dfy");
     var source = await File.ReadAllTextAsync(filePath);
     var documentItem = CreateTestDocument(source, Path.Combine(directory, "nested/A.dfy"));
@@ -55,7 +55,7 @@ warn-shadowing = true
     Assert.Single(diagnostics);
     Assert.Contains("Shadowed", diagnostics[0].Message);
   }
-  
+
   [Fact]
   public async Task InMemoryProjectFileOverridesOptions() {
     await SetUp(options => options.WarnShadowing = false);
@@ -67,7 +67,7 @@ warn-shadowing = true
     var directory = Path.GetTempPath();
     var projectFile = CreateTestDocument(projectFileSource, Path.Combine(directory, "dfyconfig.toml"));
     await client.OpenDocumentAndWaitAsync(projectFile, CancellationToken);
-      
+
     var filePath = Path.Combine(Directory.GetCurrentDirectory(), "ProjectFiles/TestFiles/noWarnShadowing.dfy");
     var source = await File.ReadAllTextAsync(filePath);
     var documentItem = CreateTestDocument(source, Path.Combine(directory, "A.dfy"));
