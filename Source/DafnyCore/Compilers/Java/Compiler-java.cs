@@ -3508,8 +3508,9 @@ namespace Microsoft.Dafny.Compilers {
       wr.NewNamedBlock($"public {IdName(nt)}({targetTypeName} value)")
         .WriteLine("_value = value;");
 
-      // public override string toString() {
-      //   return _value.toString();
+      // @Override
+      // public java.lang.String toString() {
+      //   return java.lang.String.valueOf(_value);
       // }
       wr.WriteLine("@Override");
       var wBody = wr.NewNamedBlock("public java.lang.String toString()");
