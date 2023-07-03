@@ -17,8 +17,8 @@ public class IndDatatypeDecl : DatatypeDecl {
   public ES EqualitySupport = ES.NotYetComputed;
 
   public IndDatatypeDecl(RangeToken rangeToken, Name name, ModuleDefinition module, List<TypeParameter> typeArgs,
-    [Captured] List<DatatypeCtor> ctors, List<MemberDecl> members, Attributes attributes, bool isRefining)
-    : base(rangeToken, name, module, typeArgs, ctors, members, attributes, isRefining) {
+    [Captured] List<DatatypeCtor> ctors, List<Type> parentTraits, List<MemberDecl> members, Attributes attributes, bool isRefining)
+    : base(rangeToken, name, module, typeArgs, ctors, parentTraits, members, attributes, isRefining) {
     Contract.Requires(rangeToken != null);
     Contract.Requires(name != null);
     Contract.Requires(module != null);
