@@ -83,7 +83,7 @@ module ChildIsRefTrait {
       ensures p < yy + F(5) + 900
   }
 
-  trait ChildTrait extends Trait {
+  trait ChildTrait extends Trait, object {
     function F(umpa: int): nat
       requires yy < 800
       ensures F(umpa) < yy + 100
