@@ -129,7 +129,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
           return information;
         }
         // Ok no assertion here. Maybe a method?
-        if (node.Position.Line == position.Line && node.Uri == state.Compilation.Project.UnsavedRootFile) {
+        if (node.Position.Line == position.Line && state.Compilation.Project.IsImplicitProject && node.Uri == state.Compilation.Project.Uri) {
           areMethodStatistics = true;
           return GetTopLevelInformation(node, orderedAssertionBatches);
         }

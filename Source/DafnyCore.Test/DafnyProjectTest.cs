@@ -8,8 +8,8 @@ public class DafnyProjectTest {
     var randomFileName = Path.GetTempFileName();
     var first = new DafnyProject() {
       Uri = new Uri(randomFileName, UriKind.Absolute),
-      Includes = new HashSet<string> { "a", "a2" },
-      Excludes = new HashSet<string> { "b" ,"b2" },
+      Includes = new [] { "a", "a2" },
+      Excludes = new [] { "b" ,"b2" },
       Options = new Dictionary<string, object>() {
         { "c", "d" },
         { "e", "f" }
@@ -18,8 +18,8 @@ public class DafnyProjectTest {
 
     var second = new DafnyProject() {
       Uri = new Uri(randomFileName, UriKind.Absolute),
-      Includes = new HashSet<string> { "a2", "a" },
-      Excludes = new HashSet<string> { "b2", "b" },
+      Includes = new [] { "a2", "a" },
+      Excludes = new [] { "b2", "b" },
       Options = new Dictionary<string, object>() {
         { "e", "f" },
         { "c", "d" },

@@ -165,7 +165,7 @@ public class CompilationManager {
       loaded.ResolutionDiagnostics, verificationTasks,
       new(),
       initialViews,
-      migratedVerificationTree ?? (loaded.Project.UnsavedRootFile == null ? null : new DocumentVerificationTree(loaded.Program, loaded.Project.UnsavedRootFile))
+      migratedVerificationTree ?? (loaded.Project.IsImplicitProject ? null : new DocumentVerificationTree(loaded.Program, loaded.Project.Uri))
       );
 
     translated.GutterProgressReporter?.RecomputeVerificationTree();
@@ -274,7 +274,6 @@ public class CompilationManager {
       foreach (var counterExample in verificationResult.Errors) {
         compilation.Counterexamples.Add(counterExample);
       }
-      // TODO can't we remove this already?
       // Sometimes, the boogie status is set as Completed
       // but the assertion batches were not reported yet.
       // because they are on a different thread.

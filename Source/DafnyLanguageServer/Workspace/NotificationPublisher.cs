@@ -81,8 +81,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     private void PublishDocumentDiagnostics(IdeState previousState, IdeState state) {
       var previousStateDiagnostics = previousState.GetDiagnostics();
       var currentDiagnostics = state.GetDiagnostics();
-      var singleFileDiagnostics = state.Compilation.Project.UnsavedRootFile;
-      if (singleFileDiagnostics == null) {
+      if (state.Compilation.Project.IsImplicitProject) {
+        PublishImplicitProjectDiagnostics(state, currentDiagnostics, previousStateDiagnostics);
+      } else {
         var uris = previousStateDiagnostics.Keys.Concat(currentDiagnostics.Keys).Distinct();
 
         foreach (var uri in uris) {
@@ -98,33 +99,44 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
             Diagnostics = current.ToList(),
           });
         }
-      } else {
-        var diagnostics = new List<Diagnostic>();
-        foreach (var (key, value) in currentDiagnostics) {
-          if (key == singleFileDiagnostics) {
-            diagnostics.AddRange(value);
-          } else {
-            if (value.Any()) {
-              var containsErrorSTheFirstOneIs =
-                $"the referenced file {key.LocalPath} contains error(s). The first one is: {value.First().Message}";
-              var diagnostic = new Diagnostic() {
-                Range = new Range(0, 0, 0, 1),
-                Message = containsErrorSTheFirstOneIs,
-                Severity = DiagnosticSeverity.Error,
-                Source = MessageSource.Parser.ToString()
-              };
-              diagnostics.Add(diagnostic);
-            }
-          }
+      }
+    }
+
+    private void PublishImplicitProjectDiagnostics(IdeState state, ImmutableDictionary<Uri, IReadOnlyList<Diagnostic>> currentDiagnostics,
+      ImmutableDictionary<Uri, IReadOnlyList<Diagnostic>> previousStateDiagnostics)
+    {
+      var diagnostics = new List<Diagnostic>();
+      foreach (var (key, value) in currentDiagnostics)
+      {
+        if (key == state.Compilation.Project.Uri)
+        {
+          diagnostics.AddRange(value);
         }
-        IEnumerable<Diagnostic> previous = previousStateDiagnostics.GetOrDefault(singleFileDiagnostics, Enumerable.Empty<Diagnostic>);
-        if (!previous.SequenceEqual(diagnostics)) {
-          languageServer.TextDocument.PublishDiagnostics(new PublishDiagnosticsParams {
-            Uri = singleFileDiagnostics,
-            Version = filesystem.GetVersion(singleFileDiagnostics),
-            Diagnostics = diagnostics,
+        else {
+          if (!value.Any()) {
+            continue;
+          }
+
+          diagnostics.Add(new Diagnostic {
+            Range = new Range(0, 0, 0, 1),
+            Message = $"the referenced file {key.LocalPath} contains error(s). The first one is: {value.First().Message}",
+            Severity = DiagnosticSeverity.Error,
+            Source = MessageSource.Parser.ToString()
           });
         }
+      }
+
+      IEnumerable<Diagnostic> previous =
+        previousStateDiagnostics.GetOrDefault(state.Compilation.Project.Uri,
+          Enumerable.Empty<Diagnostic>);
+      if (!previous.SequenceEqual(diagnostics))
+      {
+        languageServer.TextDocument.PublishDiagnostics(new PublishDiagnosticsParams
+        {
+          Uri = state.Compilation.Project.Uri,
+          Version = filesystem.GetVersion(state.Compilation.Project.Uri),
+          Diagnostics = diagnostics,
+        });
       }
     }
 
@@ -133,10 +145,10 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         return;
       }
 
-      var root = state.Compilation.Project.UnsavedRootFile;
-      if (root == null) {
+      if (!state.Compilation.Project.IsImplicitProject) {
         return;
       }
+      var root = state.Compilation.Project.Uri;
       var errors = state.ResolutionDiagnostics.GetOrDefault(root, Enumerable.Empty<Diagnostic>).
         Where(x => x.Severity == DiagnosticSeverity.Error).ToList();
       if (state.VerificationTree == null) {

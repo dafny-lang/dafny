@@ -18,13 +18,12 @@ public class DafnyProject : IEquatable<DafnyProject> {
 
   public string ProjectName => Uri.ToString();
 
-  // TODO change to boolean? Evaluate usage.
-  public Uri UnsavedRootFile { get; set; }
+  public bool IsImplicitProject { get; set; }
 
   [IgnoreDataMember]
   public Uri Uri { get; set; }
-  public ISet<string> Includes { get; set; }
-  public ISet<string> Excludes { get; set; }
+  public string[] Includes { get; set; }
+  public string[] Excludes { get; set; }
   public Dictionary<string, object> Options { get; set; }
 
   public static DafnyProject Open(IFileSystem fileSystem, Uri uri, TextWriter outputWriter, TextWriter errorWriter) {
@@ -58,7 +57,7 @@ public class DafnyProject : IEquatable<DafnyProject> {
 
     var projectRoot = Path.GetDirectoryName(Uri.LocalPath)!;
     var matcher = new Matcher();
-    foreach (var includeGlob in Includes ?? new HashSet<string> { "**/*.dfy" }) {
+    foreach (var includeGlob in Includes ?? new [] { "**/*.dfy" }) {
       matcher.AddInclude(Path.GetFullPath(includeGlob, projectRoot));
     }
     foreach (var includeGlob in Excludes ?? Enumerable.Empty<string>()) {
@@ -141,8 +140,6 @@ public class DafnyProject : IEquatable<DafnyProject> {
     return success;
   }
 
-  // TODO add various equality tests
-  // Can options be enumerables?
   public bool Equals(DafnyProject other) {
     if (ReferenceEquals(null, other)) {
       return false;
@@ -155,9 +152,9 @@ public class DafnyProject : IEquatable<DafnyProject> {
     var orderedOptions = Options?.OrderBy(kv => kv.Key) ?? Enumerable.Empty<KeyValuePair<string, object>>();
     var otherOrderedOptions = other.Options?.OrderBy(kv => kv.Key) ?? Enumerable.Empty<KeyValuePair<string, object>>();
     
-    return Equals(UnsavedRootFile, other.UnsavedRootFile) && Equals(Uri, other.Uri) &&
-           NullableSetEqual(Includes, other.Includes) &&
-           NullableSetEqual(Excludes, other.Excludes) &&
+    return Equals(IsImplicitProject, other.IsImplicitProject) && Equals(Uri, other.Uri) &&
+           NullableSetEqual(Includes?.ToHashSet(), other.Includes) &&
+           NullableSetEqual(Excludes?.ToHashSet(), other.Excludes) &&
            orderedOptions.SequenceEqual(otherOrderedOptions, new LambdaEqualityComparer<KeyValuePair<string, object>>(
              (kv1, kv2) => kv1.Key == kv2.Key && GenericEquals(kv1.Value, kv2.Value), 
              kv => kv.GetHashCode()));
@@ -214,7 +211,7 @@ public class DafnyProject : IEquatable<DafnyProject> {
     return first.Equals(second);
   }
 
-  private static bool NullableSetEqual(ISet<string> first, ISet<string> second) {
+  private static bool NullableSetEqual(ISet<string> first, IReadOnlyCollection<string> second) {
     if (first == null && second == null) {
       return true;
     }
@@ -222,7 +219,7 @@ public class DafnyProject : IEquatable<DafnyProject> {
     if (first == null || second == null) {
       return false;
     }
-    return first.Count == second.Count && first.All(second.Contains);
+    return first.Count == second.Count && second.All(first.Contains);
   }
   
   private static bool NullableSequenceEqual(IEnumerable<string> first, IEnumerable<string> second) {
@@ -246,6 +243,6 @@ public class DafnyProject : IEquatable<DafnyProject> {
   }
 
   public override int GetHashCode() {
-    return HashCode.Combine(UnsavedRootFile, Uri, Includes, Excludes, Options);
+    return HashCode.Combine(IsImplicitProject, Uri, Includes, Excludes, Options);
   }
 }

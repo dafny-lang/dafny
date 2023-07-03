@@ -1,12 +1,8 @@
-using System;
-using System.Collections;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
-using Microsoft.Dafny.LanguageServer.Workspace;
-using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using Xunit;
 using Xunit.Abstractions;
@@ -16,6 +12,34 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.ProjectFiles;
 
 public class MultipleFilesTest : ClientBasedLanguageServerTest {
 
+  [Fact]
+  public async Task FileGetsRemappedToProjectByCreatingProjectFileOnDisk() {
+    var consumerSource = @"
+method Consumes() {
+  Produces();
+}
+".TrimStart();
+
+    var producer = @"
+method Produces() {}
+".TrimStart();
+
+    var directory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+    Directory.CreateDirectory(directory);
+    var consumer = CreateTestDocument(consumerSource, Path.Combine(directory, "firstFile.dfy"));
+    await client.OpenDocumentAndWaitAsync(consumer, CancellationToken);
+    var secondFile = CreateTestDocument(producer, Path.Combine(directory, "secondFile.dfy"));
+    await client.OpenDocumentAndWaitAsync(secondFile, CancellationToken);
+
+    var producesDefinition1 = await RequestDefinition(consumer, new Position(1, 3));
+    Assert.Empty(producesDefinition1);
+
+    await File.WriteAllTextAsync(Path.Combine(directory, "dfyconfig.toml"), "");
+
+    var producesDefinition2 = await RequestDefinition(consumer, new Position(1, 3));
+    Assert.Single(producesDefinition2);
+  }
+  
   [Fact]
   public async Task FileGetsRemappedToProjectByCreatingProjectFile() {
     var consumerSource = @"
@@ -127,6 +151,39 @@ const b := a + 2;
     Assert.Equal(new Range(0, 6, 0, 7), result1.Single().Location!.Range);
   }
 
+  [Fact]
+  public async Task OnDiskChangesToProjectFileAffectCodeNavigation() {
+    var projectFileSource = @"includes = [""firstFile.dfy""]";
+    
+    var consumerSource = @"
+method Consumes() {
+  Produces();
+}
+".TrimStart();
+
+    var producer = @"
+method Produces() {}
+".TrimStart();
+
+    var directory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+    Directory.CreateDirectory(directory);
+    await File.WriteAllTextAsync(Path.Combine(directory, "dfyconfig.toml"), projectFileSource);
+    
+    var consumer = CreateTestDocument(consumerSource, Path.Combine(directory, "firstFile.dfy"));
+    await client.OpenDocumentAndWaitAsync(consumer, CancellationToken);
+    var secondFile = CreateTestDocument(producer, Path.Combine(directory, "secondFile.dfy"));
+    await client.OpenDocumentAndWaitAsync(secondFile, CancellationToken);
+
+    var producesDefinition1 = await RequestDefinition(consumer, new Position(1, 3));
+    Assert.Empty(producesDefinition1);
+    
+    await File.WriteAllTextAsync(Path.Combine(directory, "dfyconfig.toml"), 
+      @"includes = [""firstFile.dfy"", ""secondFile.dfy""]");
+
+    var producesDefinition2 = await RequestDefinition(consumer, new Position(1, 3));
+    Assert.Single(producesDefinition2);
+  }
+  
   [Fact]
   public async Task ChangesToProjectFileAffectDiagnosticsAndLoseMigration() {
     var source = @"

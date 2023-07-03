@@ -37,9 +37,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     public static DafnyProject ImplicitProject(TextDocumentIdentifier documentItem) {
       var implicitProject = new DafnyProject {
-        Includes = new[] { documentItem.Uri.GetFileSystemPath() },
+        Includes = new [] { documentItem.Uri.GetFileSystemPath() },
         Uri = documentItem.Uri.ToUri(),
-        UnsavedRootFile = documentItem.Uri.ToUri()
+        IsImplicitProject = true
       };
       return implicitProject;
     }
@@ -126,7 +126,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       return GetProjectManager(documentId, false, true);
     }
 
-    // TODO add test where the project changes during a nonOpen/Change but like a code navigation
     public ProjectManager? GetProjectManager(TextDocumentIdentifier documentId, 
       bool createOnDemand, bool startIfMigrated) {
       var project = GetProject(documentId);
@@ -135,10 +134,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       if (projectManager != null) {
         if (!projectManager.Project.Equals(project)) {
           var _= projectManager.CloseAsync();
-          projectManager.Migrate(project);
-          if (startIfMigrated) {
-            projectManager.StartCompilation();
-          }
+          projectManager.Migrate(project, startIfMigrated);
         }
       } else {
         if (createOnDemand) {

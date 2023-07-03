@@ -25,7 +25,7 @@ public class ProjectManager : IDisposable {
 
   private readonly IServiceProvider services;
   private readonly VerificationResultCache verificationCache;
-  public DafnyProject Project { get; }
+  public DafnyProject Project { get; private set; }
   private IdeStateObserver observer;
   public CompilationManager CompilationManager { get; private set; }
   private IDisposable observerSubscription;
@@ -57,12 +57,12 @@ public class ProjectManager : IDisposable {
     ConfigureProject(project);
   }
 
-  private void ConfigureProject(DafnyProject project)
-  {
+  private void ConfigureProject(DafnyProject project) {
+    Project = project;
     options = DetermineProjectOptions(project, serverOptions);
     observer = new IdeStateObserver(services.GetRequiredService<ILogger<IdeStateObserver>>(),
-      this.services.GetRequiredService<ITelemetryPublisher>(),
-      this.services.GetRequiredService<INotificationPublisher>(),
+      services.GetRequiredService<ITelemetryPublisher>(),
+      services.GetRequiredService<INotificationPublisher>(),
       this.services.GetRequiredService<ITextDocumentLoader>(),
       project);
     boogieEngine = new ExecutionEngine(options, verificationCache);
@@ -82,7 +82,6 @@ public class ProjectManager : IDisposable {
   private const int MaxRememberedChanges = 100;
   private const int MaxRememberedChangedVerifiables = 5;
 
-  // Also test that changed ranges is computed for the right document.
   public void UpdateDocument(DidChangeTextDocumentParams documentChange) {
     var lastPublishedState = observer.LastPublishedState;
     var migratedVerificationTree = lastPublishedState.VerificationTree == null ? null
@@ -306,15 +305,14 @@ public class ProjectManager : IDisposable {
     boogieEngine.Dispose();
   }
 
-  public void StartCompilation() {
-    CompilationManager.Start();
-  }
-
-  
   // TODO Consider replacing this with creating a new Project, although then openFile and version must be migrated.
   // This way, the non-nullables can easily be set in the constructor.
-  public void Migrate(DafnyProject newProject) {
+  public void Migrate(DafnyProject newProject, bool startIfMigrated) {
     var _ = CloseAsync();
+    var oldObserver = observer;
     ConfigureProject(newProject);
+    if (startIfMigrated) {
+      StartNewCompilation(null, oldObserver.LastPublishedState);
+    }
   }
 }
