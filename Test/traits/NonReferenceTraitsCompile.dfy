@@ -67,6 +67,8 @@ module RefAndBoxConversions {
     }
   }
 
+  newtype MyInt extends Parent = x | -0x8000_0000 <= x < 0x8000_0000
+
   method Test0(u: bool) returns (p: Parent, q: RefParent, r: RefParent?) {
     if u {
       var x := new Class;
@@ -111,6 +113,8 @@ module RefAndBoxConversions {
     Print(p, q, r);
     p, q, r := Test2(false);
     Print(p, q, r);
+    var n: MyInt := 200;
+    print n, " ", n.aa, "\n";
   }
 
   method Print(p: Parent, q: RefParent, r: RefParent?) {

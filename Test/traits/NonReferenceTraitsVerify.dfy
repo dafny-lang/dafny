@@ -83,7 +83,7 @@ module ChildIsRefTrait {
       ensures p < yy + F(5) + 900
   }
 
-  trait Class extends Trait {
+  trait ChildTrait extends Trait {
     function F(umpa: int): nat
       requires yy < 800
       ensures F(umpa) < yy + 100
@@ -131,7 +131,7 @@ module ChildIsRefTrait {
     }
   }
 
-  method Test(tr: Trait, cl: Class)
+  method Test(tr: Trait, cl: ChildTrait)
     requires tr == cl as Trait
   {
     if cl.yy == 0 {
