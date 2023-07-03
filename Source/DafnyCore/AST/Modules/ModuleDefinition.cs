@@ -766,7 +766,7 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
   }
 
   private void DetermineReferenceTypes(ModuleResolver resolver, ModuleSignature sig) {
-    // Figure out which TraitDecl's are reference types, and for each of them, create a corresponding NonNullTypeDecl.
+    // Figure out which TraitDecl's are reference types, and for each of these, create a corresponding NonNullTypeDecl.
     // To figure this out, we need to look at the parents of each TraitDecl, but those parents have not yet been resolved.
     // Since we just need the head of each parent, we'll do that name resolution here (and will redo it later, when each parent
     // type is resolved properly).

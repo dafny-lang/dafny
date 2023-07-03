@@ -1974,6 +1974,7 @@ namespace Microsoft.Dafny.Compilers {
       } else {
         return wr;
       }
+
     }
 
     protected override void EmitUnaryExpr(ResolvedUnaryOp op, Expression expr, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {

@@ -785,6 +785,10 @@ namespace Microsoft.Dafny.Compilers {
       return wr;
     }
 
+    protected virtual ConcreteSyntaxTree UnboxNewtypeValue(ConcreteSyntaxTree wr) {
+      return wr;
+    }
+
     /// <summary>
     /// Change from the fat-pointer representation of "type" to the ordinary representation of "type".
     /// If these are the same, acts as the identity.

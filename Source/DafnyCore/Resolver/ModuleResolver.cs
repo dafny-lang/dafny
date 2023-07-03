@@ -1004,12 +1004,10 @@ namespace Microsoft.Dafny {
         // check that only reference types (classes and some traits) inherit from 'object'
         foreach (TopLevelDecl d in declarations.Where(d => d is TopLevelDeclWithMembers and not ClassLikeDecl)) {
           var nonReferenceTypeDecl = (TopLevelDeclWithMembers)d;
-          foreach (var parentType in nonReferenceTypeDecl.ParentTraits) {
-            if (parentType.IsRefType) {
-              reporter.Error(MessageSource.Resolver, parentType is UserDefinedType parentUdt ? parentUdt.tok : nonReferenceTypeDecl.tok,
-                $"{nonReferenceTypeDecl.WhatKind} is not allowed to extend '{parentType}', because it is a reference type");
-              break; // one error message per "decl" is enough
-            }
+          foreach (var parentType in nonReferenceTypeDecl.ParentTraits.Where(t => t.IsRefType)) {
+            reporter.Error(MessageSource.Resolver, parentType is UserDefinedType parentUdt ? parentUdt.tok : nonReferenceTypeDecl.tok,
+              $"{nonReferenceTypeDecl.WhatKind} is not allowed to extend '{parentType}', because it is a reference type");
+            break; // one error message per "decl" is enough
           }
         }
       }
