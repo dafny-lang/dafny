@@ -396,13 +396,7 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
           importSig = ((AbstractModuleDecl)d).OriginalSignature;
         }
 
-        if (importSig.ModuleDef == null || !importSig.ModuleDef.SuccessfullyResolved) {
-          if (!IsEssentiallyEmptyModuleBody()) {
-            // say something only if this will cause any testing to be omitted
-            resolver.reporter.Error(MessageSource.Resolver, d,
-              "not resolving module '{0}' because there were errors in resolving its import '{1}'", Name, d.Name);
-          }
-
+        if (importSig.ModuleDef is not { SuccessfullyResolved: true }) {
           return false;
         }
       } else if (d is LiteralModuleDecl) {
