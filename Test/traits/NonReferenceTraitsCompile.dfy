@@ -29,7 +29,7 @@ module BoxingConcerns {
     var y: int, z: int;
     y, z := g.x, g.x;
 
-    g.x, g.x := y, y;
+    g.x, g.x := y, z;
   }
 
   method Q(h: Generic<Parent>, cl: Class)
