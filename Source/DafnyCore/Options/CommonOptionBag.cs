@@ -146,6 +146,13 @@ true - Use an updated type-inference engine. Warning: This mode is under constru
     IsHidden = true
   };
 
+  public static readonly Option<bool> GeneralTraits = new("--general-traits", () => false,
+    @"
+false - Every trait implicitly extends 'object', and thus is a reference type. Only traits and reference types can extend traits.
+true - A trait is a reference type only if it or one of its ancestor traits is 'object'. Any type with members can extend traits.".TrimStart()) {
+    IsHidden = true
+  };
+
   public static readonly Option<bool> TypeInferenceDebug = new("--type-inference-trace", () => false,
     @"
 false - Don't print type-inference debug information.
@@ -303,6 +310,7 @@ Functionality is still being expanded. Currently only checks contracts on every 
       WarnShadowing,
       ManualLemmaInduction,
       TypeInferenceDebug,
+      GeneralTraits,
       TypeSystemRefresh,
       VerificationLogFormat,
       VerifyIncludedFiles,
