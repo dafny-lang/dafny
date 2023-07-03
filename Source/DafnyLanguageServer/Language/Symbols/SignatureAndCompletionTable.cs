@@ -42,24 +42,30 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
 
     private readonly DafnyLangTypeResolver typeResolver;
 
-    public static SignatureAndCompletionTable Empty(DafnyOptions options, DocumentTextBuffer textDocument) {
-      var outerModule = new DefaultModuleDefinition(new List<Uri>() { textDocument.Uri.ToUri() }, false);
-      var errorReporter = new DiagnosticErrorReporter(options, textDocument.Text, textDocument.Uri);
-      var compilation = new CompilationData(errorReporter, new List<Include>(), new List<Uri>(), Sets.Empty<Uri>(),
-        Sets.Empty<Uri>());
+    public static SignatureAndCompletionTable Empty(DafnyOptions options, VersionedTextDocumentIdentifier documentIdentifier) {
+      var emptyProgram = GetEmptyProgram(options, documentIdentifier);
       return new SignatureAndCompletionTable(
         NullLogger<SignatureAndCompletionTable>.Instance,
-        new CompilationUnit(textDocument.Uri.ToUri(), new Program(
-          textDocument.Uri.ToString(),
-          new LiteralModuleDecl(outerModule, null, Guid.NewGuid()),
-          // BuiltIns cannot be initialized without Type.ResetScopes() before.
-          new SystemModuleManager(options), // TODO creating a SystemModuleManager is a heavy operation
-          errorReporter, compilation
-        )),
+        new CompilationUnit(documentIdentifier.Uri.ToUri(), emptyProgram),
         new Dictionary<object, ILocalizableSymbol>(),
         new Dictionary<ISymbol, SymbolLocation>(),
         new IntervalTree<Position, ILocalizableSymbol>(),
         symbolsResolved: false);
+    }
+
+    public static Program GetEmptyProgram(DafnyOptions options, VersionedTextDocumentIdentifier documentIdentifier) {
+      var outerModule = new DefaultModuleDefinition(new List<Uri>() { documentIdentifier.Uri.ToUri() }, false);
+      var errorReporter = new DiagnosticErrorReporter(options, documentIdentifier.Uri);
+      var compilation = new CompilationData(errorReporter, new List<Include>(), new List<Uri>(), Sets.Empty<Uri>(),
+        Sets.Empty<Uri>());
+      var emptyProgram = new Program(
+        documentIdentifier.Uri.ToString(),
+        new LiteralModuleDecl(outerModule, null, Guid.NewGuid()),
+        // BuiltIns cannot be initialized without Type.ResetScopes() before.
+        new SystemModuleManager(options), // TODO creating a BuiltIns is a heavy operation
+        errorReporter, compilation
+      );
+      return emptyProgram;
     }
 
     public SignatureAndCompletionTable(

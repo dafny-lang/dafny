@@ -15,8 +15,7 @@ public interface IDafnyCodeActionInput {
   /// This might be helpful for caching any pre-computation.
   /// </summary>
   int Version { get; }
-  string Code { get; }
-  Dafny.Program? Program { get; }
+  Program? Program { get; }
   IReadOnlyList<DafnyDiagnostic> Diagnostics { get; }
   VerificationTree VerificationTree { get; }
 }
