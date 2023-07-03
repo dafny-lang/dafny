@@ -101,7 +101,7 @@ Usage: dafny [ option ... ] [ filename ... ]
   
   /generalTraits:<value>
       0 (default) - Every trait implicitly extends 'object', and thus is a reference type. Only traits and reference types can extend traits.
-      1 - A trait is a reference type only if it or one of its ancestor traits is 'object'. Any type with members can extend traits.
+      1 - A trait is a reference type iff it or one of its ancestor traits is 'object'. Any type with members can extend traits.
 
   /ntitrace:<value>
       0 (default) - Don't print debug information for the new type system.
