@@ -374,7 +374,6 @@ module UninitializedStaticConsts {
   }
 
   trait ReferenceTrait extends object {
-    // the implementing class will provide initialization as needed
     static const a: AutoInit
     static const b: AutoInit := 15
     static ghost const A: AutoInit
