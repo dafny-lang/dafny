@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Runtime.Caching;
 using System.Threading;
 using System.Threading.Tasks;
 using IntervalTree;
@@ -12,6 +13,7 @@ using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.FileSystemGlobbing;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
@@ -140,6 +142,7 @@ public class ProjectManager : IDisposable {
 
     CompilationManager.Start();
   }
+
 
   public void TriggerVerificationForFile(Uri triggeringFile) {
     if (VerifyOnOpenChange) {

@@ -2,7 +2,6 @@ using System;
 using System.Collections.Concurrent;
 using System.IO;
 using System.Linq;
-using Microsoft.Extensions.FileSystemGlobbing;
 using Microsoft.Extensions.FileSystemGlobbing.Abstractions;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 

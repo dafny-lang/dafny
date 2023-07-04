@@ -103,16 +103,12 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     private void PublishImplicitProjectDiagnostics(IdeState state, ImmutableDictionary<Uri, IReadOnlyList<Diagnostic>> currentDiagnostics,
-      ImmutableDictionary<Uri, IReadOnlyList<Diagnostic>> previousStateDiagnostics)
-    {
+      ImmutableDictionary<Uri, IReadOnlyList<Diagnostic>> previousStateDiagnostics) {
       var diagnostics = new List<Diagnostic>();
-      foreach (var (key, value) in currentDiagnostics)
-      {
-        if (key == state.Compilation.Project.Uri)
-        {
+      foreach (var (key, value) in currentDiagnostics) {
+        if (key == state.Compilation.Project.Uri) {
           diagnostics.AddRange(value);
-        }
-        else {
+        } else {
           if (!value.Any()) {
             continue;
           }
@@ -129,10 +125,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       IEnumerable<Diagnostic> previous =
         previousStateDiagnostics.GetOrDefault(state.Compilation.Project.Uri,
           Enumerable.Empty<Diagnostic>);
-      if (!previous.SequenceEqual(diagnostics))
-      {
-        languageServer.TextDocument.PublishDiagnostics(new PublishDiagnosticsParams
-        {
+      if (!previous.SequenceEqual(diagnostics)) {
+        languageServer.TextDocument.PublishDiagnostics(new PublishDiagnosticsParams {
           Uri = state.Compilation.Project.Uri,
           Version = filesystem.GetVersion(state.Compilation.Project.Uri),
           Diagnostics = diagnostics,

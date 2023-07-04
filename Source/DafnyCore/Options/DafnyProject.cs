@@ -6,7 +6,7 @@ using System.IO;
 using System.Linq;
 using System.Runtime.Serialization;
 using System.Text.RegularExpressions;
-using JetBrains.Annotations;
+using DafnyCore.Options;
 using Microsoft.Extensions.FileSystemGlobbing;
 using Tomlyn;
 using Tomlyn.Model;
@@ -55,19 +55,31 @@ public class DafnyProject : IEquatable<DafnyProject> {
       return Enumerable.Empty<Uri>();
     }
 
-    var projectRoot = Path.GetDirectoryName(Uri.LocalPath)!;
-    var matcher = new Matcher();
-    foreach (var includeGlob in Includes ?? new [] { "**/*.dfy" }) {
-      matcher.AddInclude(Path.GetFullPath(includeGlob, projectRoot));
-    }
-    foreach (var includeGlob in Excludes ?? Enumerable.Empty<string>()) {
-      matcher.AddExclude(Path.GetFullPath(includeGlob, projectRoot));
-    }
+    var matcher = GetMatcher();
 
     var diskRoot = Path.GetPathRoot(Uri.LocalPath);
     var result = matcher.Execute(fileSystem.GetDirectoryInfoBase(diskRoot));
     var files = result.Files.Select(f => Path.Combine(diskRoot, f.Path));
     return files.Select(file => new Uri(Path.GetFullPath(file)));
+  }
+
+  public bool ContainsSourceFile(Uri uri) {
+    var fileSystemWithSourceFile = new InMemoryDirectoryInfoFromDotNet8(Path.GetPathRoot(uri.LocalPath)!, new[] { uri.LocalPath });
+    return GetMatcher().Execute(fileSystemWithSourceFile).HasMatches;
+  }
+
+  private Matcher GetMatcher() {
+    var projectRoot = Path.GetDirectoryName(Uri.LocalPath)!;
+    var matcher = new Matcher();
+    foreach (var includeGlob in Includes ?? new[] { "**/*.dfy" }) {
+      matcher.AddInclude(Path.GetFullPath(includeGlob, projectRoot));
+    }
+
+    foreach (var includeGlob in Excludes ?? Enumerable.Empty<string>()) {
+      matcher.AddExclude(Path.GetFullPath(includeGlob, projectRoot));
+    }
+
+    return matcher;
   }
 
   public void Validate(TextWriter outputWriter, IEnumerable<Option> possibleOptions) {
@@ -151,12 +163,12 @@ public class DafnyProject : IEquatable<DafnyProject> {
 
     var orderedOptions = Options?.OrderBy(kv => kv.Key) ?? Enumerable.Empty<KeyValuePair<string, object>>();
     var otherOrderedOptions = other.Options?.OrderBy(kv => kv.Key) ?? Enumerable.Empty<KeyValuePair<string, object>>();
-    
+
     return Equals(IsImplicitProject, other.IsImplicitProject) && Equals(Uri, other.Uri) &&
            NullableSetEqual(Includes?.ToHashSet(), other.Includes) &&
            NullableSetEqual(Excludes?.ToHashSet(), other.Excludes) &&
            orderedOptions.SequenceEqual(otherOrderedOptions, new LambdaEqualityComparer<KeyValuePair<string, object>>(
-             (kv1, kv2) => kv1.Key == kv2.Key && GenericEquals(kv1.Value, kv2.Value), 
+             (kv1, kv2) => kv1.Key == kv2.Key && GenericEquals(kv1.Value, kv2.Value),
              kv => kv.GetHashCode()));
   }
 
@@ -186,7 +198,7 @@ public class DafnyProject : IEquatable<DafnyProject> {
     if (first == null || second == null) {
       return false;
     }
-  
+
     if (first is IEnumerable firstEnumerable && second is IEnumerable secondEnumerable) {
       var firstEnumerator = firstEnumerable.GetEnumerator();
       var secondEnumerator = secondEnumerable.GetEnumerator();
@@ -221,7 +233,7 @@ public class DafnyProject : IEquatable<DafnyProject> {
     }
     return first.Count == second.Count && second.All(first.Contains);
   }
-  
+
   private static bool NullableSequenceEqual(IEnumerable<string> first, IEnumerable<string> second) {
     return first?.SequenceEqual(second) ?? (second == null);
   }

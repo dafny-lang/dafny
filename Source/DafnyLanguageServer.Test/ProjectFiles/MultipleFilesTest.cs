@@ -39,7 +39,7 @@ method Produces() {}
     var producesDefinition2 = await RequestDefinition(consumer, new Position(1, 3));
     Assert.Single(producesDefinition2);
   }
-  
+
   [Fact]
   public async Task FileGetsRemappedToProjectByCreatingProjectFile() {
     var consumerSource = @"
@@ -154,7 +154,7 @@ const b := a + 2;
   [Fact]
   public async Task OnDiskChangesToProjectFileAffectCodeNavigation() {
     var projectFileSource = @"includes = [""firstFile.dfy""]";
-    
+
     var consumerSource = @"
 method Consumes() {
   Produces();
@@ -168,7 +168,7 @@ method Produces() {}
     var directory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
     Directory.CreateDirectory(directory);
     await File.WriteAllTextAsync(Path.Combine(directory, "dfyconfig.toml"), projectFileSource);
-    
+
     var consumer = CreateTestDocument(consumerSource, Path.Combine(directory, "firstFile.dfy"));
     await client.OpenDocumentAndWaitAsync(consumer, CancellationToken);
     var secondFile = CreateTestDocument(producer, Path.Combine(directory, "secondFile.dfy"));
@@ -176,14 +176,14 @@ method Produces() {}
 
     var producesDefinition1 = await RequestDefinition(consumer, new Position(1, 3));
     Assert.Empty(producesDefinition1);
-    
-    await File.WriteAllTextAsync(Path.Combine(directory, "dfyconfig.toml"), 
+
+    await File.WriteAllTextAsync(Path.Combine(directory, "dfyconfig.toml"),
       @"includes = [""firstFile.dfy"", ""secondFile.dfy""]");
 
     var producesDefinition2 = await RequestDefinition(consumer, new Position(1, 3));
     Assert.Single(producesDefinition2);
   }
-  
+
   [Fact]
   public async Task ChangesToProjectFileAffectDiagnosticsAndLoseMigration() {
     var source = @"
