@@ -172,24 +172,6 @@ public class DafnyProject : IEquatable<DafnyProject> {
              kv => kv.GetHashCode()));
   }
 
-  class LambdaEqualityComparer<T> : IEqualityComparer<T> {
-    private Func<T, T, bool> equals;
-    private Func<T, int> hashCode;
-
-    public LambdaEqualityComparer(Func<T, T, bool> equals, Func<T, int> hashCode) {
-      this.equals = equals;
-      this.hashCode = hashCode;
-    }
-
-    public bool Equals(T x, T y) {
-      return equals(x, y);
-    }
-
-    public int GetHashCode(T obj) {
-      return hashCode(obj);
-    }
-  }
-
   public static bool GenericEquals(object first, object second) {
     if (first == null && second == null) {
       return true;
