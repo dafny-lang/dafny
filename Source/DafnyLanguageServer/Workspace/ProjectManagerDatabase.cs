@@ -81,6 +81,10 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       }
 
       DafnyProject? projectFile = DafnyProject.Open(fileSystem, configFileUri, TextWriter.Null, TextWriter.Null);
+      if (projectFile.Uri == sourceFile) {
+        return projectFile;
+      }
+
       if (projectFile?.ContainsSourceFile(sourceFile) == false) {
         return null;
       }

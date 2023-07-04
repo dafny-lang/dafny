@@ -3,6 +3,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
+using Microsoft.Dafny.LanguageServer.Workspace;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using Xunit;
 using Xunit.Abstractions;
@@ -35,6 +36,7 @@ method Produces() {}
     Assert.Empty(producesDefinition1);
 
     await File.WriteAllTextAsync(Path.Combine(directory, "dfyconfig.toml"), "includes = [\"*.dfy\"]");
+    await Task.Delay(ProjectManagerDatabase.ProjectFileCacheExpiryTime);
 
     var producesDefinition2 = await RequestDefinition(consumer, new Position(1, 3));
     Assert.Single(producesDefinition2);
@@ -63,6 +65,8 @@ method Produces() {}
 
     var projectFile = CreateTestDocument("", Path.Combine(directory, "dfyconfig.toml"));
     await client.OpenDocumentAndWaitAsync(projectFile, CancellationToken);
+
+    await Task.Delay(ProjectManagerDatabase.ProjectFileCacheExpiryTime);
 
     var producesDefinition2 = await RequestDefinition(consumer, new Position(1, 3));
     Assert.Single(producesDefinition2);
@@ -124,6 +128,7 @@ method Produces() {}
 
     await File.WriteAllTextAsync(Path.Combine(directory, "dfyconfig.toml"),
       @"includes = [""firstFile.dfy"", ""secondFile.dfy""]");
+    await Task.Delay(ProjectManagerDatabase.ProjectFileCacheExpiryTime);
 
     var producesDefinition2 = await RequestDefinition(consumer, new Position(1, 3));
     Assert.Single(producesDefinition2);
@@ -159,9 +164,10 @@ warn-shadowing = true
 
     var diagnostics1 = await GetLastDiagnostics(sourceFile, CancellationToken);
     Assert.Equal(2, diagnostics1.Length);
-    Assert.Contains("Shadowed", diagnostics1[0].Message);
+    Assert.Contains(diagnostics1, s => s.Message.Contains("Shadowed"));
 
     ApplyChange(ref projectFile, new Range(1, 17, 1, 21), "false");
+    await Task.Delay(ProjectManagerDatabase.ProjectFileCacheExpiryTime);
 
     var resolutionDiagnostics2 = await diagnosticsReceiver.AwaitNextWarningOrErrorDiagnosticsAsync(CancellationToken);
     // The shadowed warning is no longer produced, and the verification error is not migrated. 

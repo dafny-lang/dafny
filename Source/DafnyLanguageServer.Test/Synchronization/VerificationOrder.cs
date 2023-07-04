@@ -48,7 +48,6 @@ method Bar() {
     Assert.Equal(secondFile.Uri.ToUri(), history2[^1].Uri);
   }
 
-  public VerificationOrder(ITestOutputHelper output) : base(output)
-  {
+  public VerificationOrder(ITestOutputHelper output) : base(output) {
   }
 }

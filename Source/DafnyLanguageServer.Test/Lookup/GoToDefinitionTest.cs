@@ -30,7 +30,7 @@ const b := a + 2;
       var result1 = await RequestDefinition(firstFile, new Position(1, 11));
       Assert.Equal(new Range(0, 6, 0, 7), result1.Single().Location!.Range);
     }
-    
+
     [Fact]
     public async Task WhileLoop() {
       var source = @"
