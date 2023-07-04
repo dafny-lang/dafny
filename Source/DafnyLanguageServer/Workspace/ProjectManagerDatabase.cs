@@ -164,7 +164,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
             await projectManagerForFile.CloseDocument();
           }
           projectManagerForFile = new ProjectManager(services, verificationCache, project);
-          // TODO does this OpenDocument call trigger too much verification?
           projectManagerForFile.OpenDocument(documentId.Uri.ToUri());
         }
       } else {
