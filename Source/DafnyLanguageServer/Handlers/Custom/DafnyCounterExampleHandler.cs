@@ -1,5 +1,4 @@
-﻿using DafnyServer.CounterexampleGeneration;
-using Microsoft.Boogie;
+﻿using Microsoft.Boogie;
 using Microsoft.Dafny.LanguageServer.Workspace;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;

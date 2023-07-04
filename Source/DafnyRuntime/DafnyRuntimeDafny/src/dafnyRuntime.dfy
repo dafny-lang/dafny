@@ -62,10 +62,10 @@ abstract module {:options "/functionSyntax:4"} Dafny {
   newtype size_t = x: nat | x < SIZE_T_LIMIT witness (EnsureSizeTLimitAboveMinimum(); 0)
 
   const SIZE_T_MAX: size_t := (EnsureSizeTLimitAboveMinimum(); (SIZE_T_LIMIT - 1) as size_t)
-  const ZERO_SIZE: size_t := (EnsureSizeTLimitAboveMinimum(); 0 as size_t);
-  const ONE_SIZE: size_t := (EnsureSizeTLimitAboveMinimum(); 1 as size_t);
-  const TWO_SIZE: size_t := (EnsureSizeTLimitAboveMinimum(); 2 as size_t);
-  const TEN_SIZE: size_t := (EnsureSizeTLimitAboveMinimum(); 10 as size_t);
+  const ZERO_SIZE: size_t := (EnsureSizeTLimitAboveMinimum(); 0 as size_t)
+  const ONE_SIZE: size_t := (EnsureSizeTLimitAboveMinimum(); 1 as size_t)
+  const TWO_SIZE: size_t := (EnsureSizeTLimitAboveMinimum(); 2 as size_t)
+  const TEN_SIZE: size_t := (EnsureSizeTLimitAboveMinimum(); 10 as size_t)
 
   predicate SizeAdditionInRange(a: size_t, b: size_t) {
     a as int + b as int < SIZE_T_LIMIT
@@ -711,7 +711,7 @@ abstract module {:options "/functionSyntax:4"} Dafny {
     decreases e.NodeCount
     ensures builder.ValidAndDisjoint()
     ensures e.Valid()
-    ensures builder.Value() == old(builder.Value()) + e.Value();
+    ensures builder.Value() == old(builder.Value()) + e.Value()
   {
     if e is ConcatSequence<T> {
       var concat := e as ConcatSequence<T>;
@@ -731,14 +731,14 @@ abstract module {:options "/functionSyntax:4"} Dafny {
     requires e.Valid()
     requires builder.Valid()
     requires stack.Valid()
-    requires builder.Repr !! stack.Repr;
+    requires builder.Repr !! stack.Repr
     requires forall expr <- stack.Value() :: expr.Valid()
     requires builder.size as int + e.Cardinality() as int + CardinalitySum(stack.Value()) < SIZE_T_LIMIT
     modifies builder.Repr, stack.Repr
     decreases e.NodeCount + NodeCountSum(stack.Value())
     ensures builder.Valid()
     ensures stack.Valid()
-    ensures builder.Value() == old(builder.Value()) + e.Value() + ConcatValueOnStack(old(stack.Value()));
+    ensures builder.Value() == old(builder.Value()) + e.Value() + ConcatValueOnStack(old(stack.Value()))
   {
     if e is ConcatSequence<T> {
       var concat := e as ConcatSequence<T>;

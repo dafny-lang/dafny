@@ -8,9 +8,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 using Microsoft.Boogie;
-using Microsoft.Dafny.LanguageServer.CounterExampleGeneration;
 
-namespace DafnyServer.CounterexampleGeneration {
+namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
 
   /// <summary>
   /// Represents a program state in a DafnyModel
@@ -167,7 +166,7 @@ namespace DafnyServer.CounterexampleGeneration {
           continue;
         }
         var name = f.Name.Substring(0, n);
-        if (!name.Contains('#')) {
+        if (!name.Contains('#') || name.Contains("$")) {
           continue;
         }
 

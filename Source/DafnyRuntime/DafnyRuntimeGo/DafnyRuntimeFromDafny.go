@@ -334,6 +334,11 @@ var Companion_Size__t_ = CompanionStruct_Size__t_ {
 func (*Size__t) String() string {
   return "dafny.Size__t"
 }
+func (_this *Size__t) ParentTraits_() []*TraitID {
+  return [](*TraitID){};
+}
+var _ TraitOffspring = &Size__t{}
+
 func (_this *CompanionStruct_Size__t_) IntegerRange(lo Int, hi Int) Iterator {
   iter := IntegerRange(lo, hi)
   return func() (interface{}, bool) {
@@ -489,6 +494,11 @@ func (_this type_ArrayCell_) Default() interface{} {
 func (_this type_ArrayCell_) String() string {
   return "dafny.ArrayCell"
 }
+func (_this ArrayCell) ParentTraits_() []*TraitID {
+  return [](*TraitID){};
+}
+var _ TraitOffspring = ArrayCell{}
+
 // End of datatype ArrayCell
 
 // Definition of trait ImmutableArray
@@ -563,6 +573,7 @@ func (_this *Vector) ParentTraits_() []*TraitID {
 }
 var _ Validatable = &Vector{}
 var _ TraitOffspring = &Vector{}
+
 func (_this *Vector) Ctor__(length uint32) {
   {
     var _18_storage NativeArray
@@ -719,6 +730,7 @@ func (_this *ArraySequence) ParentTraits_() []*TraitID {
 }
 var _ Sequence = &ArraySequence{}
 var _ TraitOffspring = &ArraySequence{}
+
 func (_this *ArraySequence) SetString() Sequence {
   var _out22 Sequence
   _ = _out22
@@ -829,6 +841,7 @@ func (_this *ConcatSequence) ParentTraits_() []*TraitID {
 }
 var _ Sequence = &ConcatSequence{}
 var _ TraitOffspring = &ConcatSequence{}
+
 func (_this *ConcatSequence) SetString() Sequence {
   var _out27 Sequence
   _ = _out27
@@ -964,6 +977,7 @@ func (_this *LazySequence) ParentTraits_() []*TraitID {
 }
 var _ Sequence = &LazySequence{}
 var _ TraitOffspring = &LazySequence{}
+
 func (_this *LazySequence) SetString() Sequence {
   var _out33 Sequence
   _ = _out33
@@ -1106,6 +1120,7 @@ func (_this *Default__) ParentTraits_() []*TraitID {
   return [](*TraitID){};
 }
 var _ TraitOffspring = &Default__{}
+
 func (_static *CompanionStruct_Default___) SizeAdditionInRange(a uint32, b uint32) bool {
   var _hresult bool = false
   _ = _hresult
