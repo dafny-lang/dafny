@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
@@ -10,13 +11,49 @@ using Xunit.Abstractions;
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various;
 
 public class IncludeFileTest : ClientBasedLanguageServerTest {
+  private static readonly string TestFileDirectory = Path.Combine(Directory.GetCurrentDirectory(), "Synchronization", "TestFiles");
+  private static readonly string TestFilePath = Path.Combine(TestFileDirectory, "testFile.dfy");
+
+  // https://github.com/dafny-lang/language-server-csharp/issues/40
+  [Fact]
+  public async Task ImplicitlyIncludingTheSameModuleTwiceDoesNotResultInDuplicateError() {
+    var source = @"
+include ""multi1.dfy""
+include ""multi2.dfy""
+
+method Test() {
+  assert true;
+}";
+    var documentItem = CreateTestDocument(source, TestFilePath);
+    await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+    var document = await Projects.GetResolvedDocumentAsync(documentItem.Uri);
+    Assert.NotNull(document);
+    Assert.True(!document.GetDiagnostics().Any());
+  }
+
+  // https://github.com/dafny-lang/language-server-csharp/issues/40
+  [Fact]
+  public async Task ImplicitlyIncludingTheSameModuleTwiceDoesNotOverrideActualError() {
+    var source = @"
+include ""multi1.dfy""
+include ""multi2.dfy""
+
+method Test() {
+  assert false;
+}";
+    var documentItem = CreateTestDocument(source, TestFilePath);
+    await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+    var document = await Projects.GetLastDocumentAsync(documentItem.Uri);
+    Assert.NotNull(document);
+    Assert.Single(document.GetDiagnostics(documentItem.Uri.ToUri()));
+  }
 
   [Fact]
   public async Task DirectlyIncludedFileFails() {
     var source = @"
 include ""./syntaxError.dfy""
 ".TrimStart();
-    var documentItem = CreateTestDocument(source, Path.Combine(Directory.GetCurrentDirectory(), "Synchronization/TestFiles/test.dfy"));
+    var documentItem = CreateTestDocument(source, TestFilePath);
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
     var diagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
     Assert.Single(diagnostics);
@@ -30,7 +67,7 @@ include ""./syntaxError.dfy""
 include ""./includesSyntaxError.dfy""
 include ""./syntaxError.dfy""
 ".TrimStart();
-    var documentItem = CreateTestDocument(source, Path.Combine(Directory.GetCurrentDirectory(), "Synchronization/TestFiles/test.dfy"));
+    var documentItem = CreateTestDocument(source, TestFilePath);
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
     var diagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
     Assert.Single(diagnostics);
@@ -43,7 +80,7 @@ include ""./syntaxError.dfy""
     var source = @"
 include ""./cycleA.dfy""
 ".TrimStart();
-    var documentItem = CreateTestDocument(source, Path.Combine(Directory.GetCurrentDirectory(), "Synchronization/TestFiles/test.dfy"));
+    var documentItem = CreateTestDocument(source, TestFilePath);
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
     var diagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
     Assert.Equal(2, diagnostics.Length);
@@ -58,7 +95,7 @@ include ""./cycleA.dfy""
 include ""./includesSemanticError.dfy""
 include ""./semanticError.dfy""
 ".TrimStart();
-    var documentItem = CreateTestDocument(source, Path.Combine(Directory.GetCurrentDirectory(), "Synchronization/TestFiles/test.dfy"));
+    var documentItem = CreateTestDocument(source, TestFilePath);
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
     var diagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
     Assert.Single(diagnostics);
