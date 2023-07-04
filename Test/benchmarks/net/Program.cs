@@ -10,10 +10,10 @@ namespace MyBenchmarks
 {
     public class SequenceRace
     {
-        private readonly Dafny.ISequence<int> s;
-        
+        private Dafny.ISequence<int> s;
 
-        public SequenceRace() {
+        [IterationSetup]
+        public void Setup() {
           s = Dafny.Sequence<int>.FromArray(Array.Empty<int>());
           for (var i = 0; i <= 1000; i++) {
             s = Dafny.Sequence<int>.Concat(s, Dafny.Sequence<int>.FromArray(new int[]{ i }));
@@ -22,10 +22,9 @@ namespace MyBenchmarks
 
         [Benchmark]
         public void LazyRaceParallel() {
-          Parallel.For(0, 10, _ => {
-            LazyRace();
-          });
+          Parallel.For(0, 10, _ => LazyRace());
         }
+        
         
         private void LazyRace() {
           s.Select(0);
@@ -38,7 +37,8 @@ namespace MyBenchmarks
         {
             var summary = BenchmarkRunner.Run<SequenceRace>(
               DefaultConfig.Instance.AddJob(
-                Job.Default.WithAffinity((IntPtr)(2 ^ Environment.ProcessorCount - 1))));
+                Job.Default.WithAffinity((IntPtr)((1 << Environment.ProcessorCount) - 1))
+                  .WithIterationCount(200)));
         }
     }
 }
