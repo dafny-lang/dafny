@@ -23,6 +23,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     public ProjectManagerDatabase(IServiceProvider services) {
       this.services = services;
+      serverOptions = services.GetRequiredService<DafnyOptions>();
       this.fileSystem = services.GetRequiredService<LanguageServerFilesystem>();
     }
 
@@ -33,64 +34,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       projectManager!.OpenDocument(document.Uri.ToUri());
     }
 
-    private DafnyProject GetProject(TextDocumentIdentifier document) {
-      return FindProjectFile(document.Uri.ToUri()) ?? ImplicitProject(document);
-    }
-
-    public static DafnyProject ImplicitProject(TextDocumentIdentifier documentItem) {
-      var implicitProject = new DafnyProject {
-        Includes = new[] { documentItem.Uri.GetFileSystemPath() },
-        Uri = documentItem.Uri.ToUri(),
-        IsImplicitProject = true
-      };
-      return implicitProject;
-    }
-
-    private DafnyProject? FindProjectFile(Uri uri) {
-      DafnyProject? projectFile = null;
-
-      var folder = Path.GetDirectoryName(uri.LocalPath);
-      while (!string.IsNullOrEmpty(folder) && projectFile == null) {
-        projectFile = GetProjectFile(uri, folder);
-        folder = Path.GetDirectoryName(folder);
-      }
-
-      return projectFile;
-    }
-
-    public const int ProjectFileCacheExpiryTime = 100;
-    private readonly MemoryCache projectFilePerFolderCache = new("projectFiles");
-    private readonly object nullRepresentative = new(); // Needed because you can't store null in the MemoryCache, but that's a value we want to cache.
-    private DafnyProject? GetProjectFile(Uri sourceFile, string folderPath) {
-      var cachedResult = projectFilePerFolderCache.Get(folderPath);
-      if (cachedResult != null) {
-        return cachedResult == nullRepresentative ? null : (DafnyProject?)cachedResult;
-      }
-
-      var result = GetProjectFileFromUriUncached(sourceFile, folderPath);
-      projectFilePerFolderCache.Set(new CacheItem(folderPath, (object?)result ?? nullRepresentative), new CacheItemPolicy {
-        AbsoluteExpiration = new DateTimeOffset(DateTime.Now.Add(TimeSpan.FromMilliseconds(ProjectFileCacheExpiryTime)))
-      });
-      return result;
-    }
-
-    private DafnyProject? GetProjectFileFromUriUncached(Uri sourceFile, string folderPath) {
-      var configFileUri = new Uri(Path.Combine(folderPath, DafnyProject.FileName));
-      if (!fileSystem.Exists(configFileUri)) {
-        return null;
-      }
-
-      DafnyProject? projectFile = DafnyProject.Open(fileSystem, configFileUri, TextWriter.Null, TextWriter.Null);
-      if (projectFile.Uri == sourceFile) {
-        return projectFile;
-      }
-
-      if (projectFile?.ContainsSourceFile(sourceFile) == false) {
-        return null;
-      }
-
-      return projectFile;
-    }
 
     public async Task UpdateDocument(DidChangeTextDocumentParams documentChange) {
       fileSystem.UpdateDocument(documentChange);
@@ -182,6 +125,72 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       managersBySourceFile[documentId.Uri.ToUri()] = projectManagerForFile;
       managersByProject[project.Uri] = projectManagerForFile;
       return projectManagerForFile;
+    }
+    
+    private DafnyProject GetProject(TextDocumentIdentifier document) {
+      return FindProjectFile(document.Uri.ToUri()) ?? ImplicitProject(document);
+    }
+
+    public static DafnyProject ImplicitProject(TextDocumentIdentifier documentItem) {
+      var implicitProject = new DafnyProject {
+        Includes = new[] { documentItem.Uri.GetFileSystemPath() },
+        Uri = documentItem.Uri.ToUri(),
+        IsImplicitProject = true
+      };
+      return implicitProject;
+    }
+
+    private DafnyProject? FindProjectFile(Uri uri) {
+      DafnyProject? projectFile = null;
+
+      var folder = Path.GetDirectoryName(uri.LocalPath);
+      while (!string.IsNullOrEmpty(folder) && projectFile == null) {
+        projectFile = GetProjectFile(uri, folder);
+        folder = Path.GetDirectoryName(folder);
+      }
+
+      return projectFile;
+    }
+
+    public const int ProjectFileCacheExpiryTime = 100;
+    private readonly MemoryCache projectFilePerFolderCache = new("projectFiles");
+    private readonly object nullRepresentative = new(); // Needed because you can't store null in the MemoryCache, but that's a value we want to cache.
+    private readonly DafnyOptions serverOptions;
+
+    private DafnyProject? GetProjectFile(Uri sourceFile, string folderPath) {
+      var cachedResult = projectFilePerFolderCache.Get(folderPath);
+      if (cachedResult != null) {
+        return cachedResult == nullRepresentative ? null : (DafnyProject?)cachedResult;
+      }
+
+      var result = GetProjectFileFromUriUncached(sourceFile, folderPath);
+      projectFilePerFolderCache.Set(new CacheItem(folderPath, (object?)result ?? nullRepresentative), new CacheItemPolicy {
+        AbsoluteExpiration = new DateTimeOffset(DateTime.Now.Add(TimeSpan.FromMilliseconds(ProjectFileCacheExpiryTime)))
+      });
+      return result;
+    }
+
+    private DafnyProject? GetProjectFileFromUriUncached(Uri sourceFile, string folderPath) {
+      var configFileUri = new Uri(Path.Combine(folderPath, DafnyProject.FileName));
+      if (!fileSystem.Exists(configFileUri)) {
+        return null;
+      }
+
+      DafnyProject? projectFile = DafnyProject.Open(fileSystem, configFileUri, TextWriter.Null, TextWriter.Null);
+      if (!serverOptions.Get(ServerCommand.ProjectMode)) {
+        projectFile.Uri = sourceFile;
+        projectFile.IsImplicitProject = true;
+        projectFile.Includes = new[] { sourceFile.LocalPath };
+      }
+      if (configFileUri == sourceFile) {
+        return projectFile;
+      }
+
+      if (projectFile?.ContainsSourceFile(sourceFile) == false) {
+        return null;
+      }
+
+      return projectFile;
     }
 
     public IEnumerable<ProjectManager> Managers => managersByProject.Values;
