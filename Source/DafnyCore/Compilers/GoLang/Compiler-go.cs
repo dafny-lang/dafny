@@ -162,7 +162,7 @@ namespace Microsoft.Dafny.Compilers {
 
       return import;
     }
-    
+
     protected override ConcreteSyntaxTree CreateModule(string moduleName, bool isDefault, bool isExtern, string/*?*/ libraryName, ConcreteSyntaxTree wr) {
       if (isDefault) {
         // Fold the default module into the main module

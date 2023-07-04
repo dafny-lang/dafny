@@ -175,7 +175,7 @@ public enum Feature {
   // Only used internally for the DooBackend to skip legacy CLI tests
   [FeatureDescription("Legacy CLI without commands", "sec-dafny-commands")]
   LegacyCLI,
-  
+
   [FeatureDescription("Separate compilation", "sec-compilation")]
   SeparateCompilation
 }
