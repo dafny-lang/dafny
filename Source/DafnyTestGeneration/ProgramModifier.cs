@@ -26,6 +26,7 @@ namespace DafnyTestGeneration {
     internal const string ImplPrefix = "Impl$$";
     internal const string CtorPostfix = "__ctor";
     protected DafnyInfo DafnyInfo;
+    protected HashSet<string> TestEntries;
 
     /// <summary>
     /// Create tests and return the list of bpl test files
@@ -41,13 +42,17 @@ namespace DafnyTestGeneration {
       AddAxioms(options, program);
       program.Resolve(options);
       program.Typecheck(options);
-      // TODO: Uncomment the following 5 lines once Boogie > 2.16.9 is merged to optimize performance.
+      // TODO: Uncomment the following 4 lines once Boogie > 2.16.9 is merged to optimize performance.
       // TODO: Also make TODO marked changes in ImplementationIsToBeTested and ProgramModification
       /*engine.EliminateDeadVariables(program);
       engine.CollectModSets(program);
       engine.Inline(program);
-      program.RemoveTopLevelDeclarations(declaration => declaration is Implementation or Procedure && Utils.DeclarationHasAttribute(declaration, "inline"));
-      program = new RemoveChecks(options).VisitProgram(program);*/
+      program.RemoveTopLevelDeclarations(declaration => declaration is Implementation or Procedure && Utils.DeclarationHasAttribute(declaration, "inline"));*/
+      program = new RemoveChecks(options).VisitProgram(program);
+      TestEntries = program.Implementations
+        .Where(implementation =>
+          Utils.DeclarationHasAttribute(implementation, TestGenerationOptions.TestEntryAttribute) &&
+          implementation.Name.StartsWith(ImplPrefix)).Select(implementation => implementation.VerboseName).ToHashSet();
       if (options.TestGenOptions.PrintBpl != null) {
         File.WriteAllText(options.TestGenOptions.PrintBpl,
           Utils.GetStringRepresentation(options, program));
@@ -61,7 +66,7 @@ namespace DafnyTestGeneration {
       // TODO: Remove the second clause once Boogie > 2.16.9 is merged to optimize performance. 
       // TODO: Also make TODO marked changes in ProgramModification and ProgramModifier
       (Utils.DeclarationHasAttribute(impl, TestGenerationOptions.TestEntryAttribute) || 
-       Utils.DeclarationHasAttribute(impl, "inline")) &&
+       Utils.DeclarationHasAttribute(impl, TestGenerationOptions.TestInlineAttribute)) &&
       impl.Name.StartsWith(ImplPrefix) && !impl.Name.EndsWith(CtorPostfix) &&
       !DafnyInfo.IsGhost(impl.VerboseName.Split(" ").First());
 

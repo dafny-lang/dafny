@@ -5,6 +5,12 @@
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Boogie;
+using Microsoft.Dafny;
+using IdentifierExpr = Microsoft.Boogie.IdentifierExpr;
+using LiteralExpr = Microsoft.Boogie.LiteralExpr;
+using Program = Microsoft.Boogie.Program;
+using Token = Microsoft.Boogie.Token;
+using Type = Microsoft.Boogie.Type;
 
 namespace DafnyTestGeneration {
 
@@ -28,9 +34,11 @@ namespace DafnyTestGeneration {
       VisitProgram(p); // populates paths
       foreach (var path in paths) {
         path.AssertPath();
-        var name = path.Impl.VerboseName;
-        yield return modifications.GetProgramModification(p, path.Impl, new HashSet<string>(), name,
-          $"{name.Split(" ")[0]}" + path.name);
+        var testEntryNames = Utils.DeclarationHasAttribute(path.Impl, TestGenerationOptions.TestInlineAttribute)
+          ? TestEntries
+          : new() { path.Impl.VerboseName };
+        yield return modifications.GetProgramModification(p, path.Impl, new HashSet<string>(), testEntryNames,
+          $"{path.Impl.VerboseName.Split(" ")[0]}" + path.name);
         path.NoAssertPath();
       }
     }

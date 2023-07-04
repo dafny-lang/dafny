@@ -37,11 +37,11 @@ public class GenerateTestsCommand : ICommandSpec {
   /// of test generation) is identical to the <param name="options"></param>
   /// parameter in everything except the value of the ProcsToCheck field that
   /// determines the procedures to be verified and should be set to the value of
-  /// the <param name="procedureToVerify"></param> parameter.
+  /// the <param name="proceduresToVerify"></param> parameter.
   /// </summary>
-  internal static DafnyOptions CopyForProcedure(DafnyOptions options, string procedureToVerify) {
+  internal static DafnyOptions CopyForProcedure(DafnyOptions options, HashSet<string> proceduresToVerify) {
     var copy = new DafnyOptions(options);
-    copy.ProcsToCheck = new List<string>() { procedureToVerify };
+    copy.ProcsToCheck = proceduresToVerify.ToList();
     return copy;
   }
 

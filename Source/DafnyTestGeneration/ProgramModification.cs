@@ -22,11 +22,11 @@ namespace DafnyTestGeneration {
 
     private readonly Dictionary<string, ProgramModification> idToModification = new();
     public ProgramModification GetProgramModification(Program program,
-      Implementation impl, HashSet<string> capturedStates, string procedure,
+      Implementation impl, HashSet<string> capturedStates, HashSet<string> testEntryNames,
       string uniqueId) {
       if (!idToModification.ContainsKey(uniqueId)) {
         idToModification[uniqueId] =
-          new ProgramModification(options, program, impl, capturedStates, procedure, uniqueId);
+          new ProgramModification(options, program, impl, capturedStates, testEntryNames, uniqueId);
       }
       return idToModification[uniqueId];
     }
@@ -68,19 +68,19 @@ namespace DafnyTestGeneration {
     private readonly string uniqueId;
     public readonly HashSet<string> CapturedStates;
 
-    private readonly string procedure; // procedure to start verification from
+    private readonly HashSet<string> testEntryNames;
     private Program/*?*/ program;
     private string/*?*/ counterexampleLog;
     internal TestMethod TestMethod;
 
     public ProgramModification(DafnyOptions options, Program program, Implementation impl,
       HashSet<string> capturedStates,
-      string procedure, string uniqueId) {
+      HashSet<string> testEntryNames, string uniqueId) {
       Options = options;
       Implementation = impl;
       CounterexampleStatus = Status.Untested;
       this.program = Utils.DeepCloneProgram(options, program);
-      this.procedure = procedure;
+      this.testEntryNames = testEntryNames;
       CapturedStates = capturedStates;
       this.uniqueId = uniqueId;
       counterexampleLog = null;
@@ -128,19 +128,18 @@ namespace DafnyTestGeneration {
           (CapturedStates.Count != 0 && IsCovered(cache))) {
         return counterexampleLog;
       }
-      var options = GenerateTestsCommand.CopyForProcedure(Options, procedure);
+      var options = GenerateTestsCommand.CopyForProcedure(Options, testEntryNames);
       SetupForCounterexamples(options);
       var engine = ExecutionEngine.CreateWithoutSharedCache(options);
       var guid = Guid.NewGuid().ToString();
       program.Resolve(options);
       program.Typecheck(options);
-      // TODO: Move the following 5 lines to ProgramModifier once Boogie > 2.16.9 is merged to optimize performance
+      // TODO: Move the following 4 lines to ProgramModifier once Boogie > 2.16.9 is merged to optimize performance
       // TODO: Also make TODO marked changes in ProgramModifier
       engine.EliminateDeadVariables(program);
       engine.CollectModSets(program);
       engine.Inline(program);
       program.RemoveTopLevelDeclarations(declaration => declaration is Microsoft.Boogie.Implementation or Procedure && Utils.DeclarationHasAttribute(declaration, "inline"));
-      program = new ProgramModifier.RemoveChecks(options).VisitProgram(program);
       var writer = new StringWriter();
       var result = await Task.WhenAny(engine.InferAndVerify(writer, program,
             new PipelineStatistics(), null,

@@ -16,9 +16,8 @@ using Type = Microsoft.Dafny.Type;
 namespace DafnyTestGeneration.Inlining;
 
 public class RemoveShortCircuitingCloner : Cloner {
-
-  public static readonly string TmpVarName = "#tmp";
-  private List<List<Statement>> newStatements = new();
+  public const string TmpVarName = "#tmp";
+  private readonly List<List<Statement>> newStatements = new();
   private List<Statement> newStmts = new();
   private bool foundShortCircuit = false;
   private int nextVariableId = 0;
@@ -205,7 +204,7 @@ public class RemoveShortCircuitingCloner : Cloner {
         return CloneNestedMatchStmt(nestedMatchStatement);
       case PrintStmt printStatement:
         return ClonePrintStmt(printStatement);
-      case AssertStmt or AssumeStmt or ForallStmt or RevealStmt: // ghost and hence not modified
+      case PredicateStmt or ForallStmt or RevealStmt: // ghost and hence not modified
         return statement;
       case WhileStmt whileStmt:
         return CloneWhileStmt(whileStmt);
