@@ -71,6 +71,7 @@ jobs:
       if: runner.os == 'MacOS'
       uses: Wandalen/wretry.action@master
       with:
+        attempt_limit: 3
         command: |
           brew update-reset && brew update
           brew install pandoc

@@ -101,6 +101,7 @@ jobs:
     - name: Install latex pandoc
       uses: Wandalen/wretry.action@master
       with:
+        attempt_limit: 3
         command: |
           brew untap Homebrew/core
           brew update-reset && brew update
