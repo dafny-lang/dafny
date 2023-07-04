@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: MIT
 
 #nullable disable
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Dafny;
@@ -36,7 +35,7 @@ namespace DafnyTestGeneration {
 
     public DafnyInfo(Program program, bool suppressErrorMessages = false) {
       this.suppressErrorMessages = suppressErrorMessages;
-      this.Options = program.Options;
+      Options = program.Options;
       subsetToSuperset["_System.string"] = new(
         new List<TypeParameter>(),
         new SeqType(new CharType()));
@@ -159,7 +158,10 @@ namespace DafnyTestGeneration {
       return true;
     }
 
-    private uint GetTestInlineAttributeValue(MemberDecl callable) {
+    /// <summary>
+    /// Check that function/methods annotated with :testInline use this attribute correctly
+    /// </summary>
+    private void CheckInlineAttributeValue(MemberDecl callable) {
       Attributes attributes = callable.Attributes;
       while (attributes != null) {
         if (attributes.Name == TestGenerationOptions.TestInlineAttribute) {
@@ -172,10 +174,10 @@ namespace DafnyTestGeneration {
             }
 
             SetNonZeroExitCode = true;
-            return 1;
+            return;
           }
           if (uint.TryParse(attributes.Args.First().ToString(), out uint result) && result > 0) {
-            return result;
+            return;
           }
 
           if (!suppressErrorMessages) {
@@ -185,27 +187,10 @@ namespace DafnyTestGeneration {
           }
 
           SetNonZeroExitCode = true;
-          return 0;
+          return;
         }
         attributes = attributes.Prev;
       }
-      return 0;
-    }
-
-    /// <summary>
-    /// Return the number of times a given Dafny method should be inlined for
-    /// test generation purposes.
-    /// </summary>
-    /// <param name="callable"></param>
-    /// <returns></returns>
-    public uint TimesToInline(string callable) {
-      if (methods.ContainsKey(callable)) {
-        return GetTestInlineAttributeValue(methods[callable]);
-      }
-      if (functions.ContainsKey(callable)) {
-        return GetTestInlineAttributeValue(functions[callable]);
-      }
-      return 0;
     }
 
     public bool IsAccessible(string callable) {
@@ -569,22 +554,12 @@ which may not match the associated condition, if any".TrimStart();
       }
 
       private void Visit(MemberDecl d) {
+        info.CheckInlineAttributeValue(d);
         if (d is Method method) {
           Visit(method);
         } else if (d is Function function) {
           Visit(function);
         }
-      }
-
-      private static bool HasAttribute(Declaration d, string attribute) {
-        var curr = d.Attributes;
-        while (curr != null) {
-          if (curr.Name == attribute) {
-            return true;
-          }
-          curr = curr.Prev;
-        }
-        return false;
       }
 
       private new void Visit(Method m) {

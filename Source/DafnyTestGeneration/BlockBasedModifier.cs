@@ -33,7 +33,7 @@ namespace DafnyTestGeneration {
       }
 
       var state = Utils.GetBlockId(node);
-      if (state == node.Label) { // ignore blocks with zero commands
+      if (state == null) {
         return null;
       }
 

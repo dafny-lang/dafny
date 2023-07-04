@@ -47,21 +47,11 @@ namespace DafnyTestGeneration {
       return DafnyModelTypeUtils
         .ReplaceType(type, _ => true, typ => new UserDefinedType(
           new Token(),
-          RemoveSystemPrefixForTuples(
+          DafnyModelTypeUtils.ConvertTupleName(
             typ?.ResolvedClass?.FullName == null ?
             typ.Name :
             typ.ResolvedClass.FullName + (typ.Name.Last() == '?' ? "?" : "")),
           typ.TypeArgs));
-    }
-
-    private static string RemoveSystemPrefixForTuples(string typeName) {
-      if (typeName.ToLower().StartsWith("_system._tuple#")) {
-        return typeName[8..];
-      }
-      if (typeName.StartsWith("_System.Tuple")) {
-        return "_tuple#" + typeName[13..];
-      }
-      return typeName;
     }
 
     /// <summary>
@@ -84,8 +74,8 @@ namespace DafnyTestGeneration {
       replacements["_System.object"] =
         new UserDefinedType(new Token(), "object", new List<Type>());
       return DafnyModelTypeUtils.ReplaceType(type, _ => true,
-        typ => replacements.ContainsKey(typ.Name) ?
-          replacements[typ.Name] :
+        typ => replacements.TryGetValue(typ.Name, out var replacement) ?
+          replacement :
           new UserDefinedType(typ.tok, typ.Name, typ.TypeArgs));
     }
 
@@ -136,6 +126,19 @@ namespace DafnyTestGeneration {
       options.PrintFile = oldPrintFile;
       return output.ToString();
     }
+    
+    /// <summary>
+    /// Extract string mapping this basic block to a location in Dafny code.
+    /// </summary>
+    public static string GetBlockId(Block block) {
+      var state = block.cmds.OfType<AssumeCmd>().FirstOrDefault(
+          cmd => cmd.Attributes != null &&
+                 cmd.Attributes.Key == "captureState" &&
+                 cmd.Attributes.Params != null &&
+                 cmd.Attributes.Params.Count() == 1)
+        ?.Attributes.Params[0].ToString();
+      return state == null ? null : Regex.Replace(state, @"\s+", "");
+    }
 
     public static IList<object> GetAttributeValue(Implementation implementation, string attribute) {
       var attributes = implementation.Attributes;
@@ -159,50 +162,31 @@ namespace DafnyTestGeneration {
       return false;
     }
 
-    /// <summary>
-    /// Extract the unique id assigned to the block during test generation.
-    /// </summary>
-    public static string GetBlockId(Block block) {
-      var state = block.cmds.OfType<AssumeCmd>().FirstOrDefault(
-        cmd => cmd.Attributes != null &&
-               cmd.Attributes.Key == "captureState" &&
-               cmd.Attributes.Params != null &&
-               cmd.Attributes.Params.Count() == 1)
-        ?.Attributes.Params[0].ToString();
-      return state == null ? block.Label : Regex.Replace(state, @"\s+", "");
+    public static bool ProgramHasAttribute(Program program, string attribute) {
+        return DeclarationHasAttribute(program.DefaultModule, attribute);
     }
 
-    /// <summary>
-    /// Scan an unresolved dafny program to look for a specific attribute
-    /// </summary>
-    internal class AttributeFinder {
-
-      public static bool ProgramHasAttribute(Program program, string attribute) {
-        return DeclarationHasAttribute(program.DefaultModule, attribute);
+    private static bool DeclarationHasAttribute(TopLevelDecl decl, string attribute) {
+      if (decl is LiteralModuleDecl moduleDecl) {
+        return moduleDecl.ModuleDef.TopLevelDecls
+          .Any(declaration => DeclarationHasAttribute(declaration, attribute));
       }
-
-      private static bool DeclarationHasAttribute(TopLevelDecl decl, string attribute) {
-        if (decl is LiteralModuleDecl moduleDecl) {
-          return moduleDecl.ModuleDef.TopLevelDecls
-            .Any(declaration => DeclarationHasAttribute(declaration, attribute));
-        }
-        if (decl is TopLevelDeclWithMembers withMembers) {
-          return withMembers.Members
-            .Any(member => MembersHasAttribute(member, attribute));
-        }
-        return false;
+      if (decl is TopLevelDeclWithMembers withMembers) {
+        return withMembers.Members
+          .Any(member => MembersHasAttribute(member, attribute));
       }
+      return false;
+    }
 
-      public static bool MembersHasAttribute(MemberDecl member, string attribute) {
-        var attributes = member.Attributes;
-        while (attributes != null) {
-          if (attributes.Name == attribute) {
-            return true;
-          }
-          attributes = attributes.Prev;
+    public static bool MembersHasAttribute(MemberDecl member, string attribute) {
+      var attributes = member.Attributes;
+      while (attributes != null) {
+        if (attributes.Name == attribute) {
+          return true;
         }
-        return false;
+        attributes = attributes.Prev;
       }
+      return false;
     }
   }
 }

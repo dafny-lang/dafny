@@ -76,7 +76,7 @@ namespace DafnyTestGeneration {
       var boogieProgram = Inlining.InliningTranslator.TranslateAndInline(program, options);
       var dafnyInfo = new DafnyInfo(program);
       SetNonZeroExitCode = dafnyInfo.SetNonZeroExitCode || SetNonZeroExitCode;
-      if (!Utils.AttributeFinder.ProgramHasAttribute(program,
+      if (!Utils.ProgramHasAttribute(program,
             TestGenerationOptions.TestEntryAttribute)) {
         options.Printer.ErrorWriteLine(options.ErrorWriter,
           $"Error: Found no methods or functions annotated with {TestGenerationOptions.TestEntryAttribute}. " +
@@ -104,6 +104,7 @@ namespace DafnyTestGeneration {
 
       cache ??= new Modifications(options);
       var programModifications = GetModifications(cache, program).ToList();
+      // Suppressing error messages which will be printed when dafnyInfo is initialized again in GetModifications
       var dafnyInfo = new DafnyInfo(program, true);
       SetNonZeroExitCode = dafnyInfo.SetNonZeroExitCode || SetNonZeroExitCode;
       foreach (var modification in programModifications) {
@@ -133,11 +134,11 @@ namespace DafnyTestGeneration {
       if (program == null) {
         yield break;
       }
-      if (Utils.AttributeFinder.ProgramHasAttribute(program,
+      if (Utils.ProgramHasAttribute(program,
             TestGenerationOptions.TestInlineAttribute)) {
         options.VerifyAllModules = true;
       }
-      // Suppressing error messages here because dafnyInfo is going to be initialized one more time later on
+      // Suppressing error messages which will be printed when dafnyInfo is initialized again in GetModifications
       var dafnyInfo = new DafnyInfo(program, true);
       program = Utils.Parse(options, source, false, uri);
       SetNonZeroExitCode = dafnyInfo.SetNonZeroExitCode || SetNonZeroExitCode;
@@ -165,7 +166,7 @@ namespace DafnyTestGeneration {
       }
 
       foreach (var implementation in cache.Values
-                 .Select(modification => modification.implementation).ToHashSet()) {
+                 .Select(modification => modification.Implementation).ToHashSet()) {
         int failedQueries = cache.ModificationsWithStatus(implementation,
           ProgramModification.Status.Failure);
         int queries = failedQueries + cache.ModificationsWithStatus(implementation,

@@ -35,21 +35,21 @@ namespace DafnyTestGeneration {
 
     public int NumberOfBlocksCovered(Implementation implementation, bool onlyIfTestsExists = false) {
       return NumberOfBlocksCovered(implementation.Blocks
-        .Where(block => Utils.GetBlockId(block) != block.Label)
+        .Where(block => Utils.GetBlockId(block) != null)
         .Select(Utils.GetBlockId).ToHashSet(), onlyIfTestsExists);
     }
 
     public int NumberOfBlocksCovered(HashSet<string> blockIds, bool onlyIfTestsExists = false) {
       var relevantModifications = Values.Where(modification =>
-        modification.counterexampleStatus == ProgramModification.Status.Success && (!onlyIfTestsExists || (modification.testMethod != null && modification.testMethod.IsValid)));
+        modification.CounterexampleStatus == ProgramModification.Status.Success && (!onlyIfTestsExists || (modification.TestMethod != null && modification.TestMethod.IsValid)));
       return blockIds.Count(blockId =>
         relevantModifications.Any(mod => mod.CapturedStates.Contains(blockId)));
     }
 
     internal int ModificationsWithStatus(Implementation implementation, ProgramModification.Status status) =>
       Values.Where(modification =>
-          modification.implementation == implementation)
-        .Count(mod => mod.counterexampleStatus == status);
+          modification.Implementation == implementation)
+        .Count(mod => mod.CounterexampleStatus == status);
   }
 
   /// <summary>
@@ -58,12 +58,12 @@ namespace DafnyTestGeneration {
   /// visited / path is taken.
   /// </summary>
   public class ProgramModification {
-    public DafnyOptions Options { get; }
+    private DafnyOptions Options { get; }
 
     internal enum Status { Success, Failure, Untested }
 
-    internal Status counterexampleStatus;
-    public readonly Implementation implementation; // implementation under test
+    internal Status CounterexampleStatus;
+    public readonly Implementation Implementation; // implementation under test
 
     private readonly string uniqueId;
     public readonly HashSet<string> CapturedStates;
@@ -71,20 +71,20 @@ namespace DafnyTestGeneration {
     private readonly string procedure; // procedure to start verification from
     private Program/*?*/ program;
     private string/*?*/ counterexampleLog;
-    internal TestMethod testMethod;
+    internal TestMethod TestMethod;
 
     public ProgramModification(DafnyOptions options, Program program, Implementation impl,
       HashSet<string> capturedStates,
       string procedure, string uniqueId) {
       Options = options;
-      implementation = impl;
-      counterexampleStatus = Status.Untested;
+      Implementation = impl;
+      CounterexampleStatus = Status.Untested;
       this.program = Utils.DeepCloneProgram(options, program);
       this.procedure = procedure;
       CapturedStates = capturedStates;
       this.uniqueId = uniqueId;
       counterexampleLog = null;
-      testMethod = null;
+      TestMethod = null;
     }
 
     /// <summary>
@@ -124,7 +124,7 @@ namespace DafnyTestGeneration {
     /// counterexample does not cover any new SourceModifications.
     /// </summary>
     public async Task<string>/*?*/ GetCounterExampleLog(Modifications cache) {
-      if (counterexampleStatus != Status.Untested ||
+      if (CounterexampleStatus != Status.Untested ||
           (CapturedStates.Count != 0 && IsCovered(cache))) {
         return counterexampleLog;
       }
@@ -139,7 +139,7 @@ namespace DafnyTestGeneration {
       engine.EliminateDeadVariables(program);
       engine.CollectModSets(program);
       engine.Inline(program);
-      program.RemoveTopLevelDeclarations(declaration => declaration is Implementation or Procedure && Utils.DeclarationHasAttribute(declaration, "inline"));
+      program.RemoveTopLevelDeclarations(declaration => declaration is Microsoft.Boogie.Implementation or Procedure && Utils.DeclarationHasAttribute(declaration, "inline"));
       program = new ProgramModifier.RemoveChecks(options).VisitProgram(program);
       var writer = new StringWriter();
       var result = await Task.WhenAny(engine.InferAndVerify(writer, program,
@@ -148,7 +148,7 @@ namespace DafnyTestGeneration {
           Task.Delay(TimeSpan.FromSeconds(Options.TimeLimit <= 0 ?
             TestGenerationOptions.DefaultTimeLimit : Options.TimeLimit)));
       program = null; // allows to garbage collect what is no longer needed
-      counterexampleStatus = Status.Failure;
+      CounterexampleStatus = Status.Failure;
       counterexampleLog = null;
       if (result is not Task<PipelineOutcome>) {
         if (Options.Verbose) {
@@ -159,6 +159,8 @@ namespace DafnyTestGeneration {
         return counterexampleLog;
       }
       var log = writer.ToString();
+      // If Dafny finds several assertion violations (e.g. because of inlining one trap assertion multiple times),
+      // pick the first execution trace and extract the counterexample from it
       const string executionTraceString = "Execution trace";
       var firstTraceIndex = log.IndexOf(executionTraceString, 0, StringComparison.Ordinal);
       if (firstTraceIndex > 0 && log.Length > firstTraceIndex + executionTraceString.Length) {
@@ -172,7 +174,7 @@ namespace DafnyTestGeneration {
       while (await stringReader.ReadLineAsync() is { } line) {
         if (line.StartsWith("Block |")) {
           counterexampleLog = log;
-          counterexampleStatus = Status.Success;
+          CounterexampleStatus = Status.Success;
           var blockId = Regex.Replace(line, @"\s+", "").Split('|')[2];
           if (Options.Verbose &&
               Options.TestGenOptions.Mode != TestGenerationOptions.Modes.Path && !CapturedStates.Contains(blockId)) {
@@ -209,22 +211,22 @@ namespace DafnyTestGeneration {
       if (log == null) {
         return null;
       }
-      testMethod = new TestMethod(dafnyInfo, log);
-      if (!testMethod.IsValid || !returnNullIfNotUnique) {
-        return testMethod;
+      TestMethod = new TestMethod(dafnyInfo, log);
+      if (!TestMethod.IsValid || !returnNullIfNotUnique) {
+        return TestMethod;
       }
       var duplicate = cache.Values
-        .Where(mod => mod != this && Equals(mod.testMethod, testMethod))
+        .Where(mod => mod != this && Equals(mod.TestMethod, TestMethod))
         .FirstOrDefault((ProgramModification)null);
       if (duplicate == null) {
-        return testMethod;
+        return TestMethod;
       }
       if (Options.Verbose) {
         await dafnyInfo.Options.OutputWriter.WriteLineAsync(
           $"// Test for {uniqueId} matches a test previously generated " +
-          $"for {duplicate.uniqueId} - skipping.");
+          $"for {duplicate.uniqueId} - this may occur if the code under test is non-deterministic, " +
+          $"if a method/function is not inlined, or if test generation cannot extract a value from a counterexample.");
       }
-      // return testMethod;
       return null;
     }
 

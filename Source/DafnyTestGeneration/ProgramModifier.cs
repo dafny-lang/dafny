@@ -23,8 +23,8 @@ namespace DafnyTestGeneration {
   /// condition is met (such as when a block is visited or a path is taken)
   /// </summary>
   public abstract class ProgramModifier {
-    internal static readonly string ImplPrefix = "Impl$$";
-    internal static readonly string CtorPostfix = "__ctor";
+    internal const string ImplPrefix = "Impl$$";
+    internal const string CtorPostfix = "__ctor";
     protected DafnyInfo DafnyInfo;
 
     /// <summary>
@@ -37,7 +37,7 @@ namespace DafnyTestGeneration {
       var options = dafnyInfo.Options;
       var engine = ExecutionEngine.CreateWithoutSharedCache(options);
       engine.CoalesceBlocks(program); // removes redundant basic blocks
-      program = new AnnotationVisitor(this, options).VisitProgram(program);
+      program = new AnnotationVisitor().VisitProgram(program);
       AddAxioms(options, program);
       program.Resolve(options);
       program.Typecheck(options);
@@ -127,24 +127,18 @@ namespace DafnyTestGeneration {
     /// (2)     the end of each block, to get execution trace.
     /// </summary>
     private class AnnotationVisitor : StandardVisitor {
-      private DafnyOptions options;
       private Implementation/*?*/ implementation;
-      private readonly ProgramModifier modifier;
-
-      public AnnotationVisitor(ProgramModifier modifier, DafnyOptions options) {
-        this.modifier = modifier;
-        this.options = options;
-      }
 
       public override Block VisitBlock(Block node) {
         var state = Utils.GetBlockId(node);
-        if (state == node.Label) {
-          return base.VisitBlock(node); // ignore blocks with zero commands
+        if (state == null) { // cannot map back to Dafny source location
+          return base.VisitBlock(node);
         }
         var data = new List<object>
           { "Block", implementation.Name, state };
         int afterPartition = node.cmds.FindIndex(cmd =>
           cmd is not AssumeCmd assumeCmd || assumeCmd.Attributes == null || assumeCmd.Attributes.Key != "partition");
+        afterPartition = afterPartition > -1 ? afterPartition : 0;
         node.cmds.Insert(afterPartition, GetAssumePrintCmd(data));
         return node;
       }
@@ -163,7 +157,6 @@ namespace DafnyTestGeneration {
         node.Blocks[0].cmds.Insert(0, GetAssumePrintCmd(data));
         if (Utils.DeclarationHasAttribute(node, TestGenerationOptions.TestInlineAttribute)) {
           // This method is inlined (and hence tested)
-          // TODO: Should you test that the argument exists and is an integer?
           var depthExpression = Utils.GetAttributeValue(node, TestGenerationOptions.TestInlineAttribute).First();
           var attribute = new QKeyValue(new Token(), "inline",
             new List<object>() { depthExpression }, null);
@@ -186,8 +179,8 @@ namespace DafnyTestGeneration {
     /// Replace assertions with assumptions and ensures with free ensures to
     /// alleviate the verification burden. Return a reresolved copy of the AST.
     /// </summary>
-    public class RemoveChecks : StandardVisitor {
-      private DafnyOptions options;
+    internal class RemoveChecks : StandardVisitor {
+      private readonly DafnyOptions options;
 
       public RemoveChecks(DafnyOptions options) {
         this.options = options;

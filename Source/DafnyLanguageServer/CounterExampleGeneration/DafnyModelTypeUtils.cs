@@ -60,9 +60,13 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
       newName = newName.Split("@")[0];
       // The code below converts every "__" to "_":
       newName = UnderscoreRemovalRegex.Replace(newName, "_");
-      newName = TupleRegex.Replace(newName, "_tuple#");
+      newName = ConvertTupleName(newName);
       return new UserDefinedType(new Token(), newName,
         type.TypeArgs.ConvertAll(t => TransformType(t, GetInDafnyFormat)));
+    }
+
+    public static string ConvertTupleName(string name) {
+      return TupleRegex.Replace(name, "_tuple#");
     }
 
     /// <summary>

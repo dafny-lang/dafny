@@ -99,7 +99,7 @@ namespace DafnyTestGeneration {
       // if the block contains a return command, it is the last one in the path:
       if (block.TransferCmd is ReturnCmd) {
         paths.Add(new Path(impl, currSet.ToList(), block,
-          $"(path through {string.Join(",", currList.ConvertAll(block => Utils.GetBlockId(block)))},{Utils.GetBlockId(block)})"));
+          $"(path through {string.Join(",", currList.ConvertAll(Utils.GetBlockId).Where(id => id != null))},{Utils.GetBlockId(block)??""})"));
         return;
       }
 

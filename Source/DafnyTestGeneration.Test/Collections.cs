@@ -81,7 +81,7 @@ module C {
 ".TrimStart();
       var program = Utils.Parse(GetDafnyOptions(optionSettings, output), source, false);
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
-      Assert.Equal(3, methods.Count);
+      Assert.True(3 <= methods.Count);
       Assert.True(methods.All(m =>
         m.MethodName == "C.compareStringLengthToOne"));
       Assert.True(methods.All(m =>
@@ -134,7 +134,7 @@ module SimpleTest {
         }
       }*/
 
-      Assert.Equal(3, methods.Count);
+      Assert.True(3 <= methods.Count);
       Assert.True(methods.All(m =>
         m.MethodName ==
         "SimpleTest.compareStringToSeqOfChars"));

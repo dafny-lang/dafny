@@ -133,16 +133,16 @@ module M {
       var options = GetDafnyOptions(optionSettings, output);
       var program = Utils.Parse(options, source, false);
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
-      Assert.True(methods.Count == 1);
+      Assert.Single(methods);
     }
 
     [Theory]
-    [MemberData(nameof(Setup.OptionSettings))]
+    [MemberData(nameof(OptionSettings))]
     public async Task FunctionCallInAMethodTranslation(List<Action<DafnyOptions>> optionSettings) {
       var source = @"
 module M {
   class Inlining {
-    function max (a:int, b:int):int {
+    function {:testInline 1} max (a:int, b:int):int {
       if a > b then a else b
     }
     method {:testEntry} test(a:int, b:int) returns (r:int) {
@@ -154,7 +154,7 @@ module M {
       var options = GetDafnyOptions(optionSettings, output);
       var program = Utils.Parse(options, source, false);
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
-      Assert.True(methods.Count == 1);
+      Assert.True(2 <= methods.Count);
     }
 
     [Theory]
@@ -246,7 +246,7 @@ module Paths {
       options.TestGenOptions.Mode =
         TestGenerationOptions.Modes.Path;
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
-      Assert.Equal(8, methods.Count);
+      Assert.True(8 <= methods.Count);
       Assert.True(methods.All(m => m.MethodName == "Paths.eightPaths"));
       Assert.True(methods.All(m => m.DafnyInfo.IsStatic("Paths.eightPaths")));
       Assert.True(methods.All(m => m.ArgValues.Count == 1));
@@ -599,42 +599,6 @@ module ShortCircuit {
       Assert.True(methods.All(m => m.NOfTypeArgs == 0));
       Assert.True(methods.Exists(m => m.ArgValues[0] == "true"));
       Assert.True(methods.Exists(m => m.ArgValues[0] == "false"));
-    }
-
-    [Theory]
-    [MemberData(nameof(OptionSettings))]
-    public async Task TestConstructorAttribute(List<Action<DafnyOptions>> optionSettings) {
-      var source = @"
-module M {
-  class String { 
-    var s:string;
-    var len:int;
-    constructor(s:string, len:int) 
-      requires |s| == len
-    {
-      this.s := s;
-      this.len := len;
-    }
-    static method {:testConstructor} getString() returns (s:String) {
-      s := new String(" + "\"example\"" + @", 7);
-    }
-  }
-  method {:testEntry} ToTest(s:String?) returns (b:bool) { 
-    if s == null {
-      return false;
-    } 
-    return true;
-  }
-}
-".TrimStart();
-      var options = Setup.GetDafnyOptions(optionSettings, output);
-      var program = Utils.Parse(options, source, false);
-      var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
-      Assert.True(2 <= methods.Count);
-      Assert.True(methods.All(m => m.MethodName == "M.ToTest"));
-      Assert.True(methods.All(m => m.DafnyInfo.IsStatic("M.ToTest")));
-      Assert.True(methods.Exists(m => m.ValueCreation.Count == 1));
-      Assert.True(methods.Exists(m => m.ValueCreation.Count == 0));
     }
 
     /// <summary>

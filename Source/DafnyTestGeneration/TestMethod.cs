@@ -49,9 +49,6 @@ namespace DafnyTestGeneration {
     // similar to above but for objects
     private readonly HashSet<string> getClassTypeInstanceParams = new();
     private Dictionary<string, string> defaultValueForType = new();
-    // types for which values have already been created with the use of
-    // :testConstructor annotated methods
-    private readonly HashSet<string> typesAlreadyConstructed = new();
 
     public TestMethod(DafnyInfo dafnyInfo, string log) {
       DafnyInfo = dafnyInfo;
@@ -528,11 +525,6 @@ namespace DafnyTestGeneration {
         errorMessages.Add("// Failed - cannot determine type");
         return "";
       }
-      if (type.ToString().Contains("_System.Tuple") ||
-          (asType?.ToString() ?? "").Contains("_System.Tuple")) {
-        // errorMessages.Add("// Failed - temporary disable tuple support");
-        return "\"Failed Tuple support\"";
-      }
       type = GetBasicType(type, type => DafnyInfo.GetSupersetType(type) == null);
       type = DafnyModelTypeUtils.ReplaceTypeVariables(type, defaultType);
       if ((asType != null) && (DafnyInfo.GetWitnessForType(asType) != null)) {
@@ -556,7 +548,6 @@ namespace DafnyTestGeneration {
         case MapType mapType:
           return AddValue(asType ?? type, mapType.Finite ? "map[]" : "imap[]");
         case UserDefinedType tupleType when tupleType.Name.StartsWith("_tuple#"):
-          // errorMessages.Add("// Failed - temporary disable tuple support");
           var destructors = new List<string>();
           foreach (var arg in tupleType.TypeArgs) {
             destructors.Add(GetDefaultValue(arg));
@@ -636,7 +627,7 @@ namespace DafnyTestGeneration {
         var subsetTypeCondition = DafnyInfo.GetTypeCondition(line.type, line.id);
         if (subsetTypeCondition != null) {
           lines.Add("expect " + Printer.ExprToString(DafnyInfo.Options, subsetTypeCondition) +
-                    ", \"If this check fails at runtime, the test does not meet type constraints\";");
+                    ", \"If this check fails at runtime, the test does not meet the type constraints\";");
         }
       }
 
@@ -666,7 +657,7 @@ namespace DafnyTestGeneration {
         returnParNames.Add("r" + i);
       }
 
-      lines.Add($"method {{:test}} {{:timeLimit 300}} test{id}() {{");
+      lines.Add($"method {{:test}} test{id}() {{");
 
       lines.AddRange(TestInputConstructionLines());
 
@@ -680,7 +671,7 @@ namespace DafnyTestGeneration {
         MethodName,
         receiver).Select(e =>
         "expect " + Printer.ExprToString(DafnyInfo.Options, e) +
-        ", \"If this check fails at runtime, the test does not meet preconditions\";"));
+        ", \"If this check fails at runtime, the test does not meet the preconditions\";"));
       if (!DafnyInfo.IsStatic(MethodName)) {
         ArgValues.Insert(0, receiver);
       }
