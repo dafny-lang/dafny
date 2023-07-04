@@ -155,27 +155,16 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       var projectManagerForFile = managersBySourceFile.GetValueOrDefault(documentId.Uri.ToUri());
 
       if (projectManagerForFile != null) {
-        if (!projectManagerForFile.Project.Equals(project)) {
-          if (projectManagerForFile.Project.Uri == project.Uri) {
-            /* It's nice and simple if we only need to think about each file that the IDE interacts with.
-             
-               If a project changes, how do we know for which files to reset diagnostics?
-               If we have a global IdeState, then we don't need to publish reset diagnostics, 
-               
-               When a file is closed, how do you know whether to reset diagnostics?
-               Currently each ProjectManager has its own IdeState LastPublishedState
-               Which assumes that each project has a separate IdeState
-               However, different projects may relate to the same IdeState
-             */
-            // TODO hack until we have a global IdeState.
+        var filesProjectHasChanged = !projectManagerForFile.Project.Equals(project);
+        if (filesProjectHasChanged) {
+          var projectFileHasChanged = projectManagerForFile.Project.Uri == project.Uri;
+          if (projectFileHasChanged) {
             await projectManagerForFile.CloseAsync();
-            // await projectManagerForFile.CloseDocument();
           } else {
             await projectManagerForFile.CloseDocument();
           }
           projectManagerForFile = new ProjectManager(services, verificationCache, project);
           // TODO does this OpenDocument call trigger too much verification?
-          // TODO do we have issues with previous ideState not being properly accounted for? Should we always publish reset notifications when a new project is created?
           projectManagerForFile.OpenDocument(documentId.Uri.ToUri());
         }
       } else {
