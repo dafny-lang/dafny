@@ -130,6 +130,7 @@ public class ProjectManager {
     DafnyProject? projectFile = GetProject(uri);
 
     var result = new DafnyOptions(serverOptions);
+    result.Printer = new OutputLogger(logger);
 
     foreach (var option in ServerCommand.Instance.Options) {
       object? projectFileValue = null;
@@ -167,8 +168,7 @@ public class ProjectManager {
       if (fileSystem.Exists(configFileUri)) {
         projectFile = OpenProject(configFileUri);
         if (projectFile != null) {
-          var projectIncludes = projectFile.GetMatcher().Match(uri.LocalPath);
-          if (projectIncludes.HasMatches) {
+          if (projectFile.ContainsSourceFile(uri)) {
             break;
           }
         }

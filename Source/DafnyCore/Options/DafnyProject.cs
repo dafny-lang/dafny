@@ -9,6 +9,7 @@ using System.Runtime.Serialization;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using Microsoft.CodeAnalysis;
+using Microsoft.Dafny.LanguageServer.Workspace;
 using Microsoft.Extensions.FileSystemGlobbing;
 using Microsoft.Extensions.FileSystemGlobbing.Abstractions;
 using Tomlyn;
@@ -68,7 +69,12 @@ public class DafnyProject {
     return files.Select(file => new Uri(Path.GetFullPath(file)));
   }
 
-  public Matcher GetMatcher() {
+  public bool ContainsSourceFile(Uri uri) {
+    var fileSystemWithSourceFile = new InMemoryDirectoryInfoFromDotNet8(Path.GetPathRoot(uri.LocalPath), new[] { uri.LocalPath });
+    return GetMatcher().Execute(fileSystemWithSourceFile).HasMatches;
+  }
+
+  private Matcher GetMatcher() {
     var projectRoot = Path.GetDirectoryName(Uri.LocalPath)!;
     var matcher = new Matcher();
     foreach (var includeGlob in Includes ?? new[] { "**/*.dfy" }) {
