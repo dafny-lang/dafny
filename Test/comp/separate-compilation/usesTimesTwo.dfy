@@ -1,3 +1,5 @@
+// NONUNIFORM: Highly target language specific
+
 // C#
 
 // RUN: %baredafny translate cs %args --output=%S/Inputs/producer/timesTwo %S/Inputs/producer/timesTwo.dfy
