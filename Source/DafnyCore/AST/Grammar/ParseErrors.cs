@@ -32,7 +32,6 @@ public class ParseErrors {
     p_module_level_function_always_static,
     p_module_level_method_always_static,
     p_bad_datatype_refinement,
-    p_no_mutable_fields_in_value_types,
     p_module_level_const_always_static,
     p_const_decl_missing_identifier,
     p_bad_const_initialize_op,
@@ -138,7 +137,7 @@ public class ParseErrors {
     p_deprecated_statement_refinement,
     p_internal_exception,
     p_file_has_no_code,
-
+    p_general_traits_beta,
   }
 
   static ParseErrors() {
@@ -152,6 +151,11 @@ Such repetition would be superfluous even if allowed.
     Add(ErrorId.p_abstract_not_allowed,
     @"
 Only modules may be declared abstract.
+", Remove(true));
+
+    Add(ErrorId.p_general_traits_beta,
+      @"
+Use of traits as non-reference types is a beta feature. To engage, use /generalTraits:1.
 ", Remove(true));
 
     Add(ErrorId.p_no_ghost_for_by_method,
@@ -298,13 +302,6 @@ Rather, you may want the declaration to be a `const` declaration or you may want
 There are limitations on refining a datatype, namely that the set of constructors cannot be changed.
 It is only allowed to add members to the body of the datatype.
 ");
-
-    Add(ErrorId.p_no_mutable_fields_in_value_types,
-    @"
-The `var` declaration declares a mutable field, which is only permitted within
-classes, traits and iterators. 
-`const` declarations can be members of value-types, such as datatypes.
-", Replace("const"));
 
     Add(ErrorId.p_module_level_function_always_static,
     @"

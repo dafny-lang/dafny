@@ -313,7 +313,7 @@ namespace DafnyTestGeneration {
       if (type == null || !classes.ContainsKey(type.Name)) {
         Options.Printer.ErrorWriteLine(Options.ErrorWriter, $"*** Error: Cannot identify type {type?.Name ?? " (null) "}");
         SetNonZeroExitCode = true;
-        return true;
+        return false;
       }
       return classes[type.Name] is TraitDecl;
     }
@@ -371,11 +371,19 @@ namespace DafnyTestGeneration {
       }
       return result;
     }
+
+    public bool IsClassType(UserDefinedType/*?*/ type) {
+      if (type == null || !classes.ContainsKey(type.Name)) {
+        return false;
+      }
+      return true;
+    }
+
     public bool IsExtern(UserDefinedType/*?*/ type) {
       if (type == null || !classes.ContainsKey(type.Name)) {
         Options.Printer.ErrorWriteLine(Options.ErrorWriter, $"*** Error: Cannot identify type {type?.Name ?? " (null) "}");
         SetNonZeroExitCode = true;
-        return true;
+        return false;
       }
       return classes[type.Name].IsExtern(Options, out _, out _);
     }

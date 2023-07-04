@@ -145,8 +145,8 @@ public class ProgramParser {
         literalModuleDecl.ModuleDef.EnclosingModule = defaultModule;
       }
 
-      if (declToMove is ClassLikeDecl classDecl) {
-        classDecl.NonNullTypeDecl.EnclosingModuleDefinition = defaultModule;
+      if (declToMove is ClassLikeDecl { NonNullTypeDecl: { } nonNullTypeDecl }) {
+        nonNullTypeDecl.EnclosingModuleDefinition = defaultModule;
       }
       if (declToMove is DefaultClassDecl defaultClassDecl) {
         foreach (var member in defaultClassDecl.Members) {
