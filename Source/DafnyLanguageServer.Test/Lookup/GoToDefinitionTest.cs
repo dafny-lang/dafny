@@ -12,7 +12,25 @@ using Xunit;
 using Xunit.Abstractions;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
-  public class DefinitionTest : ClientBasedLanguageServerTest {
+  public class GoToDefinitionTest : ClientBasedLanguageServerTest {
+
+    [Fact]
+    public async Task ExplicitProjectToGoDefinitionWorks() {
+      var sourceA = @"
+const a := 3;
+const b := a + 2;
+".TrimStart();
+
+      var directory = Path.GetRandomFileName();
+      var projectFile = CreateTestDocument("", Path.Combine(directory, "dfyconfig.toml"));
+      await client.OpenDocumentAndWaitAsync(projectFile, CancellationToken);
+      var firstFile = CreateTestDocument(sourceA, Path.Combine(directory, "firstFile.dfy"));
+      await client.OpenDocumentAndWaitAsync(firstFile, CancellationToken);
+
+      var result1 = await RequestDefinition(firstFile, new Position(1, 11));
+      Assert.Equal(new Range(0, 6, 0, 7), result1.Single().Location!.Range);
+    }
+    
     [Fact]
     public async Task WhileLoop() {
       var source = @"
@@ -454,7 +472,7 @@ module B refines ><A {
       await AssertPositionsLineUpWithRanges(source);
     }
 
-    public DefinitionTest(ITestOutputHelper output) : base(output) {
+    public GoToDefinitionTest(ITestOutputHelper output) : base(output) {
     }
   }
 }

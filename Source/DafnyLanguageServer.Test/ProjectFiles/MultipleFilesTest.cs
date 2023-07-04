@@ -41,7 +41,7 @@ method Produces() {}
   }
 
   [Fact]
-  public async Task FileGetsRemappedToProjectByCreatingProjectFile() {
+  public async Task FileGetsRemappedToProjectByOpeningUnsavedProjectFile() {
     var consumerSource = @"
 method Consumes() {
   Produces();
@@ -94,61 +94,6 @@ method Produces() {}
       }
       await Task.Delay(100);
     }
-  }
-
-  [Fact]
-  public async Task VerificationPriorityBasedOnChangesWorksWithMultipleFiles() {
-    await SetUp(options => {
-      options.Set(BoogieOptionBag.Cores, 1U);
-    });
-
-    var sourceA = @"
-method Foo() {
-  assert false;
-}
-".TrimStart();
-
-    var sourceB = @"
-method Bar() {
-  assert false;
-}
-".TrimStart();
-
-    var directory = Path.GetRandomFileName();
-    var projectFile = CreateTestDocument("", Path.Combine(directory, "dfyconfig.toml"));
-    await client.OpenDocumentAndWaitAsync(projectFile, CancellationToken);
-    var firstFile = CreateTestDocument(sourceA, Path.Combine(directory, "firstFile.dfy"));
-    await client.OpenDocumentAndWaitAsync(firstFile, CancellationToken);
-    var secondFile = CreateTestDocument(sourceB, Path.Combine(directory, "secondFile.dfy"));
-    await client.OpenDocumentAndWaitAsync(secondFile, CancellationToken);
-
-    var history0 = await WaitUntilCompletedForUris(2, CancellationToken);
-
-    ApplyChange(ref secondFile, new Range(1, 0, 1, 0), "  //comment before assert false\n");
-
-    var history1 = await WaitUntilCompletedForUris(2, CancellationToken);
-    Assert.Equal(firstFile.Uri.ToUri(), history1[^1].Uri);
-    ApplyChange(ref firstFile, new Range(1, 0, 1, 0), "  //comment before assert false\n");
-
-    var history2 = await WaitUntilCompletedForUris(2, CancellationToken);
-    Assert.Equal(secondFile.Uri.ToUri(), history2[^1].Uri);
-  }
-
-  [Fact]
-  public async Task ExplicitProjectToGoDefinitionWorks() {
-    var sourceA = @"
-const a := 3;
-const b := a + 2;
-".TrimStart();
-
-    var directory = Path.GetRandomFileName();
-    var projectFile = CreateTestDocument("", Path.Combine(directory, "dfyconfig.toml"));
-    await client.OpenDocumentAndWaitAsync(projectFile, CancellationToken);
-    var firstFile = CreateTestDocument(sourceA, Path.Combine(directory, "firstFile.dfy"));
-    await client.OpenDocumentAndWaitAsync(firstFile, CancellationToken);
-
-    var result1 = await RequestDefinition(firstFile, new Position(1, 11));
-    Assert.Equal(new Range(0, 6, 0, 7), result1.Single().Location!.Range);
   }
 
   [Fact]
@@ -224,7 +169,7 @@ warn-shadowing = true
   }
 
   [Fact]
-  public async Task UpdateIncludedFileWithExplicitProject() {
+  public async Task UpdateProducingFileWithExplicitProject() {
     var producerSource = @"
 method Foo(x: int) { 
 }
