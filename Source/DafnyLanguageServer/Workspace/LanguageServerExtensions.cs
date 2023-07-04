@@ -25,16 +25,17 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     private static IServiceCollection WithDafnyWorkspace(this IServiceCollection services) {
       return services
-        .AddSingleton<IDocumentDatabase>(serviceProvider => new DocumentManagerDatabase(serviceProvider))
+        .AddSingleton<IProjectDatabase>(serviceProvider => new ProjectManagerDatabase(serviceProvider))
+        .AddSingleton<IFileSystem, LanguageServerFilesystem>()
         .AddSingleton<IDafnyParser>(serviceProvider => {
           var options = serviceProvider.GetRequiredService<DafnyOptions>();
           return DafnyLangParser.Create(options,
+            serviceProvider.GetRequiredService<IFileSystem>(),
             serviceProvider.GetRequiredService<ITelemetryPublisher>(),
             serviceProvider.GetRequiredService<ILoggerFactory>());
         })
         .AddSingleton<ITextDocumentLoader>(CreateTextDocumentLoader)
         .AddSingleton<INotificationPublisher, NotificationPublisher>()
-        .AddSingleton<ITextChangeProcessor, TextChangeProcessor>()
         .AddSingleton<IRelocator, Relocator>()
         .AddSingleton<ISymbolGuesser, SymbolGuesser>()
         .AddSingleton<ICompilationStatusNotificationPublisher, CompilationStatusNotificationPublisher>()

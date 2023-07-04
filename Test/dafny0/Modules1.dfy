@@ -154,7 +154,7 @@ module ModuleContainTraitAndClass {
   const g0 := 16
   const g1: int
 
-  trait Trait {
+  trait Trait extends object {
     static const s0 := 17
     static const s1: int
     const t0 := 18

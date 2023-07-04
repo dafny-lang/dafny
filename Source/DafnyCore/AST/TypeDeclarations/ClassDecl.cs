@@ -8,7 +8,6 @@ public class ClassDecl : ClassLikeDecl, IHasDocstring {
   public override bool IsReferenceTypeDecl => true;
   public override bool AcceptThis => true;
 
-  public override bool CanBeRevealed() { return true; }
   [FilledInDuringResolution] public bool HasConstructor;  // filled in (early) during resolution; true iff there exists a member that is a Constructor
   [ContractInvariantMethod]
   void ObjectInvariant() {

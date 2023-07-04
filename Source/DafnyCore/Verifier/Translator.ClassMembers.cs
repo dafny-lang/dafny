@@ -23,8 +23,8 @@ namespace Microsoft.Dafny {
           AddAllocationAxiom(null, null, (ArrayClassDecl)c, true);
         }
 
-        if (c is ClassLikeDecl) {
-          AddIsAndIsAllocForClassLike(c);
+        if (c is ClassLikeDecl { IsReferenceTypeDecl: true } referenceTypeDecl) {
+          AddIsAndIsAllocForReferenceType(referenceTypeDecl);
         }
 
         if (c is TraitDecl) {
@@ -93,8 +93,10 @@ namespace Microsoft.Dafny {
             { $IsAlloc(p, TClassA(G), h) }
             $IsAlloc(p, TClassA(G), h) => (p == null || h[p, alloc]);
      */
-    private void AddIsAndIsAllocForClassLike(TopLevelDeclWithMembers c) {
-      MapM(c is ClassLikeDecl ? Bools : new List<bool>(), is_alloc => {
+    private void AddIsAndIsAllocForReferenceType(ClassLikeDecl c) {
+      Contract.Requires(c.IsReferenceTypeDecl);
+
+      MapM(Bools, is_alloc => {
         var vars = MkTyParamBinders(GetTypeParams(c), out var tyexprs);
 
         var o = BplBoundVar("$o", predef.RefType, vars);
@@ -105,13 +107,13 @@ namespace Microsoft.Dafny {
         string name;
 
         if (is_alloc) {
-          name = c + ": Class $IsAlloc";
+          name = $"$IsAlloc axiom for {c.WhatKind} {c}";
           var h = BplBoundVar("$h", predef.HeapType, vars);
           // $IsAlloc(o, ..)
           is_o = MkIsAlloc(o, o_ty, h);
           body = BplIff(is_o, BplOr(o_null, IsAlloced(c.tok, h, o)));
         } else {
-          name = c + ": Class $Is";
+          name = $"$Is axiom for {c.WhatKind} {c}";
           // $Is(o, ..)
           is_o = MkIs(o, o_ty);
           Bpl.Expr rhs;
@@ -271,14 +273,14 @@ namespace Microsoft.Dafny {
       // This is the typical case (that is, f is not a static const field)
 
       var hVar = BplBoundVar("$h", predef.HeapType, out var h);
-      var oVar = BplBoundVar("$o", TrType(Resolver.GetThisType(c.tok, c)), out var o);
+      var oVar = BplBoundVar("$o", TrType(ModuleResolver.GetThisType(c.tok, c)), out var o);
 
       // TClassA(G)
       Bpl.Expr o_ty = ClassTyCon(c, tyexprs);
 
       var isGoodHeap = FunctionCall(c.tok, BuiltinFunction.IsGoodHeap, null, h);
       Bpl.Expr isalloc_o;
-      if (!(c is ClassLikeDecl)) {
+      if (c is (not ClassLikeDecl) or TraitDecl { IsReferenceTypeDecl: false }) {
         var udt = UserDefinedType.FromTopLevelDecl(c.tok, c);
         isalloc_o = MkIsAlloc(o, udt, h);
       } else if (RevealedInScope(c)) {
@@ -345,12 +347,10 @@ namespace Microsoft.Dafny {
         // Note: for the allocation axiom, isGoodHeap is added back in for !f.IsMutable below
       }
 
-      if (!(f is ConstantField)) {
-        Bpl.Expr is_o = BplAnd(
-          ReceiverNotNull(o),
-          c is TraitDecl ? MkIs(o, o_ty) : DType(o, o_ty)); // $Is(o, ..)  or  dtype(o) == o_ty
-        ante = BplAnd(ante, is_o);
-      }
+      Bpl.Expr is_o = BplAnd(
+        ReceiverNotNull(o),
+        !o.Type.Equals(predef.RefType) || c is TraitDecl ? MkIs(o, UserDefinedType.FromTopLevelDecl(c.tok, c)) : DType(o, o_ty)); // $Is(o, ..)  or  dtype(o) == o_ty
+      ante = BplAnd(ante, is_o);
 
       ante = BplAnd(ante, indexBounds);
 
@@ -463,7 +463,8 @@ namespace Microsoft.Dafny {
       var vars = MkTyParamBinders(GetTypeParams(c), out var tyexprs);
 
       foreach (var parent in c.ParentTraits) {
-        var trait = (TraitDecl)((NonNullTypeDecl)((UserDefinedType)parent).ResolvedClass).ViewAsClass;
+        var trait = ((UserDefinedType)parent).AsParentTraitDecl();
+        Contract.Assert(trait != null);
         var arg = ClassTyCon(c, tyexprs);
         var args = new List<Bpl.Expr> { arg };
         foreach (var targ in parent.TypeArgs) {
@@ -581,7 +582,7 @@ namespace Microsoft.Dafny {
               // this corresponds to "this"
               Contract.Assert(!m.IsStatic);  // if "m" is static, "this" should never have gone into the _induction attribute
               Contract.Assert(receiverSubst == null);  // we expect at most one
-              var receiverType = Resolver.GetThisType(m.tok, (TopLevelDeclWithMembers)m.EnclosingClass);
+              var receiverType = ModuleResolver.GetThisType(m.tok, (TopLevelDeclWithMembers)m.EnclosingClass);
               bv = new BoundVar(m.tok, CurrentIdGenerator.FreshId("$ih#this"), receiverType); // use this temporary variable counter, but for a Dafny name (the idea being that the number and the initial "_" in the name might avoid name conflicts)
               var ie = new IdentifierExpr(m.tok, bv.Name) {
                 Var = bv,
@@ -862,7 +863,7 @@ namespace Microsoft.Dafny {
         var th = new Boogie.IdentifierExpr(f.tok, "this", TrReceiverType(f));
         Boogie.Expr wh = Boogie.Expr.And(
           ReceiverNotNull(th),
-          etran.GoodRef(f.tok, th, Resolver.GetReceiverType(f.tok, f)));
+          etran.GoodRef(f.tok, th, ModuleResolver.GetReceiverType(f.tok, f)));
         Boogie.Formal thVar = new Boogie.Formal(f.tok, new Boogie.TypedIdent(f.tok, "this", TrReceiverType(f), wh), true);
         inParams.Add(thVar);
       }
@@ -1087,14 +1088,15 @@ namespace Microsoft.Dafny {
       }
 
       // Add receiver parameter
-      Type thisType = Resolver.GetReceiverType(f.tok, overridingFunction);
+      Type thisType = ModuleResolver.GetReceiverType(f.tok, overridingFunction);
       var bvThis = new Boogie.BoundVariable(f.tok, new Boogie.TypedIdent(f.tok, etran.This, TrType(thisType)));
       forallFormals.Add(bvThis);
       var bvThisExpr = new Boogie.IdentifierExpr(f.tok, bvThis);
-      argsJF.Add(bvThisExpr);
+      argsJF.Add(BoxifyForTraitParent(f.tok, bvThisExpr, f, thisType));
       moreArgsCF.Add(bvThisExpr);
       // $Is(this, C)
-      var isOfSubtype = GetWhereClause(overridingFunction.tok, bvThisExpr, thisType, f is TwoStateFunction ? etran.Old : etran, IsAllocType.NEVERALLOC);
+      var isOfSubtype = GetWhereClause(overridingFunction.tok, bvThisExpr, thisType, f is TwoStateFunction ? etran.Old : etran,
+        IsAllocType.NEVERALLOC, alwaysUseSymbolicName: true);
 
       Bpl.Expr ante = Boogie.Expr.And(ReceiverNotNull(bvThisExpr), isOfSubtype);
 

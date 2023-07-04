@@ -2,7 +2,7 @@ MiscTypeInferenceTests.dfy(85,11): Warning: the type of the other operand is a n
 MiscTypeInferenceTests.dfy(95,16): Warning: the type of the other operand is a set of non-null elements, so the non-inclusion test of 'null' will always return 'true'
 MiscTypeInferenceTests.dfy(14,59): Error: value does not satisfy the subset constraints of 'neg'
 MiscTypeInferenceTests.dfy(24,11): Error: value does not satisfy the subset constraints of 'int -> int' (possible cause: it may be partial or have read effects)
-MiscTypeInferenceTests.dfy(27,11): Error: value does not satisfy the subset constraints of 'int ~> nat'
+MiscTypeInferenceTests.dfy(27,11): Error: value of expression (of type 'int -> int') is not known to be an instance of type 'int ~> nat'
 MiscTypeInferenceTests.dfy(50,13): Error: function precondition could not be proved
 MiscTypeInferenceTests.dfy(50,16): Error: assertion might not hold
 MiscTypeInferenceTests.dfy(109,18): Error: cannot establish the existence of LHS values that satisfy the such-that predicate

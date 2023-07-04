@@ -41,7 +41,7 @@ namespace Microsoft.Dafny {
 
     public IList<Uri> CliRootSourceUris = new List<Uri>();
 
-    public ProjectFile ProjectFile { get; set; }
+    public DafnyProject DafnyProject { get; set; }
     public Command CurrentCommand { get; set; }
 
 
@@ -75,6 +75,9 @@ features like traits or co-inductive types.".TrimStart(), "cs");
       RegisterLegacyUi(CommonOptionBag.TypeSystemRefresh, ParseBoolean, "Language feature selection", "typeSystemRefresh", @"
 0 (default) - The type-inference engine and supported types are those of Dafny 4.0.
 1 - Use an updated type-inference engine. Warning: This mode is under construction and probably won't work at this time.".TrimStart(), defaultValue: false);
+      RegisterLegacyUi(CommonOptionBag.GeneralTraits, ParseBoolean, "Language feature selection", "generalTraits", @"
+0 (default) - Every trait implicitly extends 'object', and thus is a reference type. Only traits and classes can extend traits.
+1 - A trait is a reference type iff it or one of its ancestor traits is 'object'. Any type with members can extend traits.".TrimStart(), false);
       RegisterLegacyUi(CommonOptionBag.TypeInferenceDebug, ParseBoolean, "Language feature selection", "titrace", @"
 0 (default) - Don't print type-inference debug information.
 1 - Print type-inference debug information.".TrimStart(), defaultValue: false);

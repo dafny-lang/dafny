@@ -8,7 +8,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
   /// </summary>
   public interface IVerificationProgressReporter {
     void RecomputeVerificationTree();
-    void ReportRealtimeDiagnostics(bool verificationStarted, DocumentAfterResolution document);
+    void ReportRealtimeDiagnostics(bool verificationStarted, CompilationAfterResolution compilation);
 
     void ReportVerifyImplementationRunning(Implementation implToken);
     void ReportEndVerifyImplementation(Implementation implToken, Boogie.VerificationResult verificationResult);
