@@ -72,7 +72,6 @@ jobs:
       uses: Wandalen/wretry.action@master
       with:
         command: |
-          brew untap Homebrew/core
           brew update-reset && brew update
           brew install pandoc
           brew install --cask basictex

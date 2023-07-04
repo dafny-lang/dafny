@@ -99,18 +99,20 @@ jobs:
       run: dotnet nuget push --skip-duplicate "dafny/Binaries/Dafny*.nupkg" -k ${{ secrets.nuget_api_key }} -s https://api.nuget.org/v3/index.json
 
     - name: Install latex pandoc
-      run: |
-        brew untap Homebrew/core
-        brew update-reset && brew update
-        brew install pandoc
-        brew install --cask mactex
-        eval "$(/usr/libexec/path_helper)"
-        sudo tlmgr update --self
-        sudo tlmgr install framed tcolorbox environ trimspaces unicode-math
-        pandoc -v
-        which latex || echo NOT FOUND latex
-        which xelatex || echo NOT FOUND xelatex
-        sudo gem install rouge -v 3.30.0
+      uses: Wandalen/wretry.action@master
+      with:
+        command: |
+          brew untap Homebrew/core
+          brew update-reset && brew update
+          brew install pandoc
+          brew install --cask mactex
+          eval "$(/usr/libexec/path_helper)"
+          sudo tlmgr update --self
+          sudo tlmgr install framed tcolorbox environ trimspaces unicode-math
+          pandoc -v
+          which latex || echo NOT FOUND latex
+          which xelatex || echo NOT FOUND xelatex
+          sudo gem install rouge -v 3.30.0
     - name: Clean Dafny
       run: dotnet clean dafny/Source/Dafny.sln
     # First we build the ZIPs (which do not include the refman)
