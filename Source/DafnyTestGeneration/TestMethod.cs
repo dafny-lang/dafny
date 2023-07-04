@@ -1,3 +1,6 @@
+// Copyright by the contributors to the Dafny Project
+// SPDX-License-Identifier: MIT
+
 #nullable disable
 using System;
 using System.Collections.Generic;
@@ -431,14 +434,6 @@ namespace DafnyTestGeneration {
         errorMessages.Add($"// Failed to identify type class-type {dafnyType} in the AST");
         return "null";
       }
-      if ((variable == null || (variable.Children.Count == 0))) {
-        // this value is unconstrained by counterexample
-        var constructorMethod = DafnyInfo.GetUserDefinedConstrutor(dafnyType);
-        if (constructorMethod != null) {
-          varId = AddValue(dafnyType, constructorMethod);
-          return varId;
-        }
-      }
       if (getClassTypeInstanceParams.Contains(dafnyType.ToString())) {
         errorMessages.Add(
           $"// Failed to find a non-recursive way of constructing value (type {dafnyType})");
@@ -542,11 +537,6 @@ namespace DafnyTestGeneration {
       type = DafnyModelTypeUtils.ReplaceTypeVariables(type, defaultType);
       if ((asType != null) && (DafnyInfo.GetWitnessForType(asType) != null)) {
         return DafnyInfo.GetWitnessForType(asType);
-      }
-      var constructorMethod = DafnyInfo.GetUserDefinedConstrutor(asType);
-      if (constructorMethod != null) {
-        var varId = AddValue(asType, constructorMethod);
-        return varId;
       }
       switch (type) {
         case IntType:

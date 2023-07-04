@@ -1,3 +1,6 @@
+// Copyright by the contributors to the Dafny Project
+// SPDX-License-Identifier: MIT
+
 #nullable disable
 using System;
 using System.Collections.Generic;
@@ -131,10 +134,13 @@ namespace DafnyTestGeneration {
       var guid = Guid.NewGuid().ToString();
       program.Resolve(options);
       program.Typecheck(options);
-      // TODO: Remove next 3 lines when latest changes with Boogie are merged
-      /*engine.EliminateDeadVariables(program);
+      // TODO: Move the following 5 lines to ProgramModifier once Boogie > 2.16.9 is merged to optimize performance
+      // TODO: Also make TODO marked changes in ProgramModifier
+      engine.EliminateDeadVariables(program);
       engine.CollectModSets(program);
-      engine.Inline(program);*/
+      engine.Inline(program);
+      program.RemoveTopLevelDeclarations(declaration => declaration is Implementation or Procedure && Utils.DeclarationHasAttribute(declaration, "inline"));
+      program = new ProgramModifier.RemoveChecks(options).VisitProgram(program);
       var writer = new StringWriter();
       var result = await Task.WhenAny(engine.InferAndVerify(writer, program,
             new PipelineStatistics(), null,

@@ -1,3 +1,6 @@
+// Copyright by the contributors to the Dafny Project
+// SPDX-License-Identifier: MIT
+
 #nullable disable
 using System;
 using System.Collections.Generic;
@@ -8,11 +11,7 @@ using System.Threading;
 using Microsoft.Boogie;
 using Microsoft.Dafny;
 using Microsoft.Dafny.LanguageServer.CounterExampleGeneration;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
 using Declaration = Microsoft.Boogie.Declaration;
-using Errors = Microsoft.Dafny.Errors;
-using Parser = Microsoft.Dafny.Parser;
 using Program = Microsoft.Dafny.Program;
 using Token = Microsoft.Dafny.Token;
 using Type = Microsoft.Dafny.Type;
@@ -158,21 +157,6 @@ namespace DafnyTestGeneration {
         attributes = attributes.Next;
       }
       return false;
-    }
-
-    public static void PrintCfg(DafnyOptions options,
-      Microsoft.Boogie.Program program) {
-      program = DeepCloneResolvedProgram(program, options);
-      // TODO: Check that this allows identifying the testEntry attribute
-      var implementation = program.Implementations.First(
-        implementation =>
-          DeclarationHasAttribute(implementation, TestGenerationOptions.TestEntryAttribute) &&
-          implementation.Name.StartsWith("Impl$$"));
-      using var streamWriter = new StreamWriter(options.TestGenOptions.PrintCfg);
-      var engine = ExecutionEngine.CreateWithoutSharedCache(options);
-      engine.Inline(program);
-      streamWriter.Write(program.ProcessLoops(options, implementation)
-        .ToDot(GetBlockId));
     }
 
     /// <summary>

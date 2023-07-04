@@ -1,5 +1,7 @@
-#nullable disable
+// Copyright by the contributors to the Dafny Project
+// SPDX-License-Identifier: MIT
 
+#nullable disable
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Boogie;
@@ -9,7 +11,6 @@ using IdentifierExpr = Microsoft.Dafny.IdentifierExpr;
 using LetExpr = Microsoft.Dafny.LetExpr;
 using LocalVariable = Microsoft.Dafny.LocalVariable;
 using Program = Microsoft.Dafny.Program;
-using Token = Microsoft.Dafny.Token;
 using Type = Microsoft.Dafny.Type;
 
 namespace DafnyTestGeneration.Inlining;

@@ -4,7 +4,10 @@ using System.CommandLine;
 using System.CommandLine.Invocation;
 using System.Linq;
 using DafnyCore;
+// Copyright by the contributors to the Dafny Project
+// SPDX-License-Identifier: MIT
 
+#nullable disable
 namespace Microsoft.Dafny;
 
 public class GenerateTestsCommand : ICommandSpec {
@@ -20,7 +23,6 @@ public class GenerateTestsCommand : ICommandSpec {
       BoogieOptionBag.SolverResourceLimit,
       BoogieOptionBag.VerificationTimeLimit,
       PrintBpl,
-      PrintCfg,
       DisablePrune
     }.Concat(ICommandSpec.ConsoleOutputOptions).
       Concat(ICommandSpec.ResolverOptions);
@@ -84,11 +86,6 @@ path - Prints path-coverage tests for the given program.");
     "Print the Boogie code used during test generation.") {
     ArgumentHelpName = "filename"
   };
-  public static readonly Option<string> PrintCfg = new("--print-cfg",
-    "Print the control flow graph of the Boogie procedure " +
-    "corresponding to the target method that is used for test generation.") {
-    ArgumentHelpName = "filename"
-  };
   public static readonly Option<bool> DisablePrune = new("--no-prune",
     "Disable axiom pruning that Dafny uses to speed up verification.") {
   };
@@ -102,9 +99,6 @@ path - Prints path-coverage tests for the given program.");
     DafnyOptions.RegisterLegacyBinding(PrintBpl, (options, value) => {
       options.TestGenOptions.PrintBpl = value;
     });
-    DafnyOptions.RegisterLegacyBinding(PrintCfg, (options, value) => {
-      options.TestGenOptions.PrintCfg = value;
-    });
     DafnyOptions.RegisterLegacyBinding(DisablePrune, (options, value) => {
       options.TestGenOptions.DisablePrune = value;
     });
@@ -113,7 +107,6 @@ path - Prints path-coverage tests for the given program.");
       LoopUnroll,
       SequenceLengthLimit,
       PrintBpl,
-      PrintCfg,
       DisablePrune
     );
   }

@@ -1,4 +1,7 @@
-﻿#nullable disable
+﻿// Copyright by the contributors to the Dafny Project
+// SPDX-License-Identifier: MIT
+
+#nullable disable
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -38,18 +41,16 @@ namespace DafnyTestGeneration {
       AddAxioms(options, program);
       program.Resolve(options);
       program.Typecheck(options);
-      // TODO: Uncomment when latest changes with Boogie are merged
-      engine.EliminateDeadVariables(program);
+      // TODO: Uncomment the following 5 lines once Boogie > 2.16.9 is merged to optimize performance.
+      // TODO: Also make TODO marked changes in ImplementationIsToBeTested and ProgramModification
+      /*engine.EliminateDeadVariables(program);
       engine.CollectModSets(program);
       engine.Inline(program);
       program.RemoveTopLevelDeclarations(declaration => declaration is Implementation or Procedure && Utils.DeclarationHasAttribute(declaration, "inline"));
-      program = new RemoveChecks(options).VisitProgram(program);
+      program = new RemoveChecks(options).VisitProgram(program);*/
       if (options.TestGenOptions.PrintBpl != null) {
         File.WriteAllText(options.TestGenOptions.PrintBpl,
           Utils.GetStringRepresentation(options, program));
-      }
-      if (options.TestGenOptions.PrintCfg != null) {
-        Utils.PrintCfg(options, program);
       }
       return GetModifications(program);
     }
@@ -57,8 +58,10 @@ namespace DafnyTestGeneration {
     protected abstract IEnumerable<ProgramModification> GetModifications(Program p);
 
     protected bool ImplementationIsToBeTested(Implementation impl) =>
-      // TODO: Remove second part of || clause once the latest changes to Boogie are merged
-      Utils.DeclarationHasAttribute(impl, TestGenerationOptions.TestEntryAttribute) &&
+      // TODO: Remove the second clause once Boogie > 2.16.9 is merged to optimize performance. 
+      // TODO: Also make TODO marked changes in ProgramModification and ProgramModifier
+      (Utils.DeclarationHasAttribute(impl, TestGenerationOptions.TestEntryAttribute) || 
+       Utils.DeclarationHasAttribute(impl, "inline")) &&
       impl.Name.StartsWith(ImplPrefix) && !impl.Name.EndsWith(CtorPostfix) &&
       !DafnyInfo.IsGhost(impl.VerboseName.Split(" ").First());
 
@@ -183,7 +186,7 @@ namespace DafnyTestGeneration {
     /// Replace assertions with assumptions and ensures with free ensures to
     /// alleviate the verification burden. Return a reresolved copy of the AST.
     /// </summary>
-    private class RemoveChecks : StandardVisitor {
+    public class RemoveChecks : StandardVisitor {
       private DafnyOptions options;
 
       public RemoveChecks(DafnyOptions options) {

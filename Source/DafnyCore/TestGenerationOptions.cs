@@ -13,10 +13,8 @@ namespace Microsoft.Dafny {
     public Modes Mode = Modes.None;
     public uint SeqLengthLimit = 0;
     [CanBeNull] public string PrintBpl = null;
-    [CanBeNull] public string PrintCfg = null;
     public bool DisablePrune = false;
     public const uint DefaultTimeLimit = 10;
-    public const string TestConstructorAttribute = "testConstructor";
 
     public bool ParseOption(string name, Bpl.CommandLineParseState ps) {
       var args = ps.args;
@@ -52,12 +50,6 @@ namespace Microsoft.Dafny {
           }
           return true;
 
-        case "generateTestPrintCfg":
-          if (ps.ConfirmArgumentCount(1)) {
-            PrintCfg = args[ps.i];
-          }
-          return true;
-
         case "generateTestNoPrune":
           DisablePrune = true;
           return true;
@@ -79,9 +71,6 @@ namespace Microsoft.Dafny {
 /generateTestSeqLengthLimit:<n>
     Add an axiom that sets the length of all sequences to be no greater 
     than <n>. 0 (default) indicates no limit.
-/generateTestPrintCfg:<fileName>
-    Print the control flow graph of the Boogie procedure corresponding to the
-    target method that is used for test generation.
 /generateTestPrintBpl:<fileName>
     Print the Boogie code used during test generation.
 /generateTestNoPrune
