@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reactive.Linq;
+using System.Runtime.Caching;
 using System.Threading;
 using System.Threading.Tasks;
 using IntervalTree;
@@ -75,6 +76,8 @@ public class ProjectManager {
 
   private const int MaxRememberedChanges = 100;
   private const int MaxRememberedChangedVerifiables = 5;
+  public const int ProjectFileCacheExpiryTime = 100;
+
   public void UpdateDocument(DidChangeTextDocumentParams documentChange) {
 
     logger.LogDebug("Clearing result for workCompletedForCurrentVersion");
@@ -162,28 +165,41 @@ public class ProjectManager {
     DafnyProject? projectFile = null;
 
     var folder = Path.GetDirectoryName(uri.LocalPath);
-    while (!string.IsNullOrEmpty(folder)) {
-      var configFileUri = new Uri(Path.Combine(folder, "dfyconfig.toml"));
-      // TODO add temporal caching of configFileUri -> DafnyProject?
-      if (fileSystem.Exists(configFileUri)) {
-        projectFile = OpenProject(configFileUri);
-        if (projectFile != null) {
-          if (projectFile.ContainsSourceFile(uri)) {
-            break;
-          }
-        }
-      }
-
+    while (!string.IsNullOrEmpty(folder) && projectFile == null) {
+      projectFile = GetProjectFile(uri, folder);
       folder = Path.GetDirectoryName(folder);
     }
 
     return projectFile;
   }
 
-  private DafnyProject? OpenProject(Uri configFileUri) {
-    var errorWriter = TextWriter.Null;
-    var outputWriter = TextWriter.Null;
-    return DafnyProject.Open(fileSystem, configFileUri, outputWriter, errorWriter);
+  private readonly MemoryCache projectFilePerFolderCache = new("projectFiles");
+  private readonly object nullRepresentative = new(); // Needed because you can't store null in the MemoryCache, but that's a value we want to cache.
+  private DafnyProject? GetProjectFile(Uri sourceFile, string folderPath) {
+    var cachedResult = projectFilePerFolderCache.Get(folderPath);
+    if (cachedResult != null) {
+      return cachedResult == nullRepresentative ? null : (DafnyProject?)cachedResult;
+    }
+
+    var result = GetProjectFileFromUriUncached(sourceFile, folderPath);
+    projectFilePerFolderCache.Set(new CacheItem(folderPath, (object?)result ?? nullRepresentative), new CacheItemPolicy {
+      AbsoluteExpiration = new DateTimeOffset(DateTime.Now.Add(TimeSpan.FromMilliseconds(ProjectFileCacheExpiryTime)))
+    });
+    return result;
+  }
+
+  private DafnyProject? GetProjectFileFromUriUncached(Uri sourceFile, string folderPath) {
+    var configFileUri = new Uri(Path.Combine(folderPath, DafnyProject.FileName));
+    if (!fileSystem.Exists(configFileUri)) {
+      return null;
+    }
+
+    DafnyProject? projectFile = DafnyProject.Open(fileSystem, configFileUri, TextWriter.Null, TextWriter.Null);
+    if (projectFile?.ContainsSourceFile(sourceFile) == false) {
+      return null;
+    }
+
+    return projectFile;
   }
 
   private Dictionary<ImplementationId, IdeImplementationView> MigrateImplementationViews(DidChangeTextDocumentParams documentChange,
