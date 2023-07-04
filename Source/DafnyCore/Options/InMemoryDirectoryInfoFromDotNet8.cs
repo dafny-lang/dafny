@@ -1,10 +1,11 @@
+#nullable enable
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Microsoft.Extensions.FileSystemGlobbing.Abstractions;
 
-namespace Microsoft.Dafny.LanguageServer.Workspace;
+namespace DafnyCore.Options;
 
 /// <summary>
 /// Contains a bugfix that's available in DotNet8
