@@ -23,6 +23,11 @@ namespace Microsoft.Dafny {
   }
   public static class Util {
 
+    public static bool LessThanOrEquals<T>(this T first, T second)
+      where T : IComparable<T> {
+      return first.CompareTo(second) != 1;
+    }
+
     public static Task<U> SelectMany<T, U>(this Task<T> task, Func<T, Task<U>> f) {
 #pragma warning disable VSTHRD003
       return Select(task, f).Unwrap();

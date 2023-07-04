@@ -76,6 +76,7 @@ public class CallableWrapper : CodeContextWrapper, ICallable {
 
   protected ICallable cwInner => (ICallable)inner;
   public IToken Tok => cwInner.Tok;
+  public IEnumerable<Node> Children => cwInner.Children;
 
   public string WhatKind => cwInner.WhatKind;
   public string NameRelativeToModule => cwInner.NameRelativeToModule;
@@ -101,6 +102,8 @@ public class DontUseICallable : ICallable {
   public string FullSanitizedName { get { throw new cce.UnreachableException(); } }
   public bool AllowsNontermination { get { throw new cce.UnreachableException(); } }
   public IToken Tok { get { throw new cce.UnreachableException(); } }
+  public IEnumerable<Node> Children => throw new cce.UnreachableException();
+
   public string GetDocstring(DafnyOptions options) {
     throw new cce.UnreachableException();
   }

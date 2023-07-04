@@ -16,7 +16,7 @@ namespace DafnyTestGeneration.Test {
     public Collections(ITestOutputHelper output) {
       this.output = new WriterFromOutputHelper(output);
     }
-    
+
     [Theory]
     [MemberData(nameof(OptionSettings))]
     public async Task Tuples(List<Action<DafnyOptions>> optionSettings) {
@@ -75,8 +75,7 @@ module C {
 }
 
 ".TrimStart();
-      var options = GetDafnyOptions(optionSettings, output);
-      var program = Utils.Parse(options, source, false);
+      var program = Utils.Parse(GetDafnyOptions(optionSettings, output), source, false);
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
       Assert.Equal(3, methods.Count);
       Assert.True(methods.All(m =>
@@ -122,8 +121,7 @@ module SimpleTest {
   }
 }
 ".TrimStart();
-      var options = GetDafnyOptions(optionSettings, output);
-      var program = Utils.Parse(options, source, false);
+      var program = Utils.Parse(GetDafnyOptions(optionSettings, output), source, false);
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
       /*if (methods.Count != 3) { // This sometimes occurs on Windows
         testOutputHelper.WriteLine("methods.Count != 3, printing methods");

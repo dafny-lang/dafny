@@ -14,10 +14,10 @@ namespace Microsoft.Dafny.LanguageServer.Util {
     /// Gets the path of the file represented by the given dafny document. The path returned is
     /// in the standard system format. E.g. C:\data\test.dfy for windows or /home/test.dfy for linux.
     /// </summary>
-    /// <param name="document">The document to get the file path of.</param>
+    /// <param name="compilation">The document to get the file path of.</param>
     /// <returns>The file path.</returns>
-    public static string GetFilePath(this Document document) {
-      return GetFilePath(document.Uri);
+    public static string GetFilePath(this Compilation compilation) {
+      return GetFilePath(compilation.Uri);
     }
 
     /// <summary>

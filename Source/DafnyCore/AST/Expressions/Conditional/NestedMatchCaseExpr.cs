@@ -21,7 +21,7 @@ public class NestedMatchCaseExpr : NestedMatchCase, IAttributeBearingDeclaration
 
   public override IEnumerable<Node> PreResolveChildren => Children;
 
-  public void Resolve(Resolver resolver,
+  public void Resolve(ModuleResolver resolver,
     ResolutionContext resolutionContext,
     Type resultType,
     Type sourceType) {

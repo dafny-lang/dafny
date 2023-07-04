@@ -28,31 +28,31 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
     }
 
     private readonly ResolutionCache resolutionCache = new();
-    public CompilationUnit ResolveSymbols(TextDocumentItem textDocument, Program program, CancellationToken cancellationToken) {
+    public CompilationUnit ResolveSymbols(TextDocumentIdentifier documentIdentifier, Program program, CancellationToken cancellationToken) {
       // TODO The resolution requires mutual exclusion since it sets static variables of classes like Microsoft.Dafny.Type.
       //      Although, the variables are marked "ThreadStatic" - thus it might not be necessary. But there might be
       //      other classes as well.
       resolverMutex.Wait(cancellationToken);
       try {
-        RunDafnyResolver(textDocument, program, cancellationToken);
+        RunDafnyResolver(documentIdentifier, program, cancellationToken);
         // We cannot proceed without a successful resolution. Due to the contracts in dafny-lang, we cannot
         // access a property without potential contract violations. For example, a variable may have an
         // unresolved type represented by null. However, the contract prohibits the use of the type property
         // because it must not be null.
         if (program.Reporter.HasErrorsUntilResolver) {
-          return new CompilationUnit(textDocument.Uri.ToUri(), program);
+          return new CompilationUnit(documentIdentifier.Uri.ToUri(), program);
         }
       }
       finally {
         resolverMutex.Release();
       }
       var beforeLegacyServerResolution = DateTime.Now;
-      var compilationUnit = new SymbolDeclarationResolver(logger, cancellationToken).ProcessProgram(textDocument.Uri.ToUri(), program);
-      telemetryPublisher.PublishTime("LegacyServerResolution", textDocument.Uri.ToString(), DateTime.Now - beforeLegacyServerResolution);
+      var compilationUnit = new SymbolDeclarationResolver(logger, cancellationToken).ProcessProgram(documentIdentifier.Uri.ToUri(), program);
+      telemetryPublisher.PublishTime("LegacyServerResolution", documentIdentifier.Uri.ToString(), DateTime.Now - beforeLegacyServerResolution);
       return compilationUnit;
     }
 
-    private void RunDafnyResolver(TextDocumentItem document, Program program, CancellationToken cancellationToken) {
+    private void RunDafnyResolver(TextDocumentIdentifier document, Program program, CancellationToken cancellationToken) {
       var beforeResolution = DateTime.Now;
       try {
         var resolver = new CachingResolver(program, loggerFactory.CreateLogger<CachingResolver>(), resolutionCache);

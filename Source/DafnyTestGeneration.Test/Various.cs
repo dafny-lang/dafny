@@ -126,7 +126,7 @@ module M {
   }
 }
 ".TrimStart();
-      var options = Setup.GetDafnyOptions(optionSettings, output);
+      var options = GetDafnyOptions(optionSettings, output);
       var program = Utils.Parse(options, source, false);
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
       Assert.True(methods.Count == 1);
@@ -556,7 +556,8 @@ module Math {
   }
 }
 ".TrimStart();
-      var program = Utils.Parse(GetDafnyOptions(optionSettings, output), source, false);
+      var options = GetDafnyOptions(optionSettings, output);
+      var program = Utils.Parse(options, source, false);
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
       Assert.True(2 <= methods.Count);
       Assert.True(methods.All(m => m.MethodName == "Math.Min"));
@@ -567,7 +568,7 @@ module Math {
       Assert.True(methods.Exists(m => int.Parse(m.ArgValues[0]) < int.Parse(m.ArgValues[1])));
       Assert.True(methods.Exists(m => int.Parse(m.ArgValues[1]) >= int.Parse(m.ArgValues[0])));
     }
-    
+
     [Theory]
     [MemberData(nameof(OptionSettings))]
     public async Task FunctionMethodShortCircuit(List<Action<DafnyOptions>> optionSettings) {
@@ -583,7 +584,8 @@ module ShortCircuit {
   }
 }
 ".TrimStart();
-      var program = Utils.Parse(GetDafnyOptions(optionSettings, output), source, false);
+      var options = GetDafnyOptions(optionSettings, output);
+      var program = Utils.Parse(options, source, false);
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
       Assert.True(2 <= methods.Count);
       Assert.True(methods.All(m => m.MethodName == "ShortCircuit.Or"));
@@ -648,7 +650,8 @@ module C {
   function {:testEntry} m(r:real):real requires r == 0.0 { r }
 }
 ".TrimStart();
-      var program = Utils.Parse(GetDafnyOptions(optionSettings, output), source, false);
+      var options = GetDafnyOptions(optionSettings, output);
+      var program = Utils.Parse(options, source, false);
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
       Assert.Equal(3, methods.Count);
       Assert.True(methods.Exists(m => m.MethodName == "A.m" &&
@@ -688,7 +691,8 @@ module M {
   }  
 }
 ".TrimStart();
-      var program = Utils.Parse(GetDafnyOptions(optionSettings, output), source, false);
+      var options = GetDafnyOptions(optionSettings, output);
+      var program = Utils.Parse(options, source, false);
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
       Assert.Single(methods);
       Assert.True(methods.All(m =>
@@ -717,7 +721,8 @@ module M {
   }
 }
 ".TrimStart();
-      var program = Utils.Parse(GetDafnyOptions(optionSettings, output), source, false);
+      var options = GetDafnyOptions(optionSettings, output);
+      var program = Utils.Parse(options, source, false);
       await Main.GetTestMethodsForProgram(program).ToListAsync();
     }
 

@@ -381,11 +381,11 @@ namespace DafnyTestGeneration {
             }
 
             if (!variable.Children.ContainsKey(fieldName)) {
-              // TODO: Fix underscore bug
               errorMessages.Add($"// Failed: Cannot find destructor " +
                                 $"{ctor.Destructors[i].Name} of constructor " +
                                 $"{variable.CanonicalName()} for datatype " +
-                                $"{basicType}. Available destructors are: " + string.Join(",", variable.Children.Keys.ToList()));
+                                $"{basicType}. Available destructors are: " + 
+                                string.Join(",", variable.Children.Keys.ToList()));
               return basicType.ToString();
             }
 
