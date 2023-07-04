@@ -34,7 +34,7 @@ method Produces() {}
     var producesDefinition1 = await RequestDefinition(consumer, new Position(1, 3));
     Assert.Empty(producesDefinition1);
 
-    await File.WriteAllTextAsync(Path.Combine(directory, "dfyconfig.toml"), "");
+    await File.WriteAllTextAsync(Path.Combine(directory, "dfyconfig.toml"), "includes = [\"*.dfy\"]");
 
     var producesDefinition2 = await RequestDefinition(consumer, new Position(1, 3));
     Assert.Single(producesDefinition2);
