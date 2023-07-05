@@ -30,7 +30,9 @@ public class Inlining : Setup {
     var options = GetDafnyOptions(new List<Action<DafnyOptions>>(), output);
     var program = Utils.Parse(options, source, false);
     var boogieProgram = InliningTranslator.TranslateAndInline(program, options);
-    var method = program.DefaultModuleDef.Children.OfType<DefaultClassDecl>().First()?.Children.OfType<Method>().First();
+    var method = program.DefaultModuleDef.Children
+      .OfType<TopLevelDeclWithMembers>().First(classDef => classDef.Children.Count() != 0)?
+      .Children.OfType<Method>().First();
     Assert.NotNull(method);
     Assert.Equal(isByMethod, method.IsByMethod);
     var writer = new StringWriter();
@@ -59,7 +61,7 @@ predicate {:testEntry} And(a:bool, b:bool) {
   a && b
 }
 ".TrimStart();
-    var tmpVar = RemoveShortCircuitingCloner.TmpVarName + 0;
+    var tmpVar = RemoveShortCircuitingCloner.TmpVarPrefix + 0;
     var expectedResult = $"{{ var {tmpVar} : bool; {tmpVar} := a; if {tmpVar} {{ {tmpVar} := b; }} else {tmpVar} := {tmpVar}; return {tmpVar}; }}";
     ShortCircuitRemovalTest(source, expectedResult);
   }
@@ -71,7 +73,7 @@ predicate {:testEntry} And(a:bool, b:bool) {
   a || b
 }
 ".TrimStart();
-    var tmpVar = RemoveShortCircuitingCloner.TmpVarName + 0;
+    var tmpVar = RemoveShortCircuitingCloner.TmpVarPrefix + 0;
     var expectedResult = $"{{ var {tmpVar} : bool; {tmpVar} := a; if !{tmpVar} {{ {tmpVar} := b; }} else {tmpVar} := {tmpVar}; return {tmpVar}; }}";
     ShortCircuitRemovalTest(source, expectedResult);
   }
@@ -83,7 +85,7 @@ predicate {:testEntry} And(a:bool, b:bool) {
   a ==> b
 }
 ".TrimStart();
-    var tmpVar = RemoveShortCircuitingCloner.TmpVarName + 0;
+    var tmpVar = RemoveShortCircuitingCloner.TmpVarPrefix + 0;
     var expectedResult =
       $"{{ var {tmpVar} : bool; {tmpVar} := a; if {tmpVar} {{ {tmpVar} := b; }} else {tmpVar} := true; return {tmpVar}; }}";
     ShortCircuitRemovalTest(source, expectedResult);
@@ -96,7 +98,7 @@ predicate {:testEntry} And(a:bool, b:bool) {
   a <== b
 }
 ".TrimStart();
-    var tmpVar = RemoveShortCircuitingCloner.TmpVarName + 0;
+    var tmpVar = RemoveShortCircuitingCloner.TmpVarPrefix + 0;
     var expectedResult = $"{{ var {tmpVar} : bool; {tmpVar} := a; if {tmpVar} {{ {tmpVar} := b; }} else {tmpVar} := true; return {tmpVar}; }}";
     ShortCircuitRemovalTest(source, expectedResult);
   }
@@ -108,7 +110,7 @@ function {:testEntry} And(a:bool):int {
   if a then 1 else 2
 }
 ".TrimStart();
-    var tmpVar = RemoveShortCircuitingCloner.TmpVarName + 0;
+    var tmpVar = RemoveShortCircuitingCloner.TmpVarPrefix + 0;
     var expectedResult = $"{{ var {tmpVar}; if a {{ {tmpVar} := 1; }} else {tmpVar} := 2; return {tmpVar}; }}";
     ShortCircuitRemovalTest(source, expectedResult);
   }
@@ -120,7 +122,7 @@ function {:testEntry} And(a:bool):int {
   var a:int := 7; a
 }
 ".TrimStart();
-    var tmpVar = RemoveShortCircuitingCloner.TmpVarName + 0;
+    var tmpVar = RemoveShortCircuitingCloner.TmpVarPrefix + 0;
     var expectedResult = $"{{ var {tmpVar}; {{ var a := 7; {tmpVar} := a; }} return {tmpVar}; }}";
     ShortCircuitRemovalTest(source, expectedResult);
   }
@@ -132,8 +134,8 @@ function {:testEntry} And(a:bool):int {
   var a:real := 7.5; var a:int := 4; a
 }
 ".TrimStart();
-    var tmpVar = RemoveShortCircuitingCloner.TmpVarName + 0;
-    var tmpVar2 = RemoveShortCircuitingCloner.TmpVarName + 1;
+    var tmpVar = RemoveShortCircuitingCloner.TmpVarPrefix + 0;
+    var tmpVar2 = RemoveShortCircuitingCloner.TmpVarPrefix + 1;
     var expectedResult = $"{{ var {tmpVar}; {{ var a := 7.5; var {tmpVar2}; {{ var a := 4; {tmpVar2} := a; }} {tmpVar} := {tmpVar2}; }} return {tmpVar}; }}";
     ShortCircuitRemovalTest(source, expectedResult);
   }
@@ -145,8 +147,8 @@ function {:testEntry} And(a:bool):int {
   var a := false; if a then 5 else 7
 }
 ".TrimStart();
-    var tmpVar = RemoveShortCircuitingCloner.TmpVarName + 0;
-    var tmpVar2 = RemoveShortCircuitingCloner.TmpVarName + 1;
+    var tmpVar = RemoveShortCircuitingCloner.TmpVarPrefix + 0;
+    var tmpVar2 = RemoveShortCircuitingCloner.TmpVarPrefix + 1;
     var expectedResult = $"{{ var {tmpVar}; {{ var a := false; var {tmpVar2}; if a {{ {tmpVar2} := 5; }} else {tmpVar2} := 7; {tmpVar} := {tmpVar2}; }} return {tmpVar}; }}";
     ShortCircuitRemovalTest(source, expectedResult);
   }
@@ -158,8 +160,8 @@ function {:testEntry} And(a:bool, b:bool):int {
   if a then 5 else if b then 3 else 1
 }
 ".TrimStart();
-    var tmpVar = RemoveShortCircuitingCloner.TmpVarName + 0;
-    var tmpVar2 = RemoveShortCircuitingCloner.TmpVarName + 1;
+    var tmpVar = RemoveShortCircuitingCloner.TmpVarPrefix + 0;
+    var tmpVar2 = RemoveShortCircuitingCloner.TmpVarPrefix + 1;
     var expectedResult = $"{{ var {tmpVar}; if a {{ {tmpVar} := 5; }} else {{ var {tmpVar2}; if b {{ {tmpVar2} := 3; }} else {tmpVar2} := 1; {tmpVar} := {tmpVar2}; }} return {tmpVar}; }}";
     ShortCircuitRemovalTest(source, expectedResult);
   }
@@ -171,8 +173,8 @@ function {:testEntry} And(a:int):int {
   if (var a := true; a) then 5 else 3
 }
 ".TrimStart();
-    var tmpVar = RemoveShortCircuitingCloner.TmpVarName + 0;
-    var tmpVar2 = RemoveShortCircuitingCloner.TmpVarName + 1;
+    var tmpVar = RemoveShortCircuitingCloner.TmpVarPrefix + 0;
+    var tmpVar2 = RemoveShortCircuitingCloner.TmpVarPrefix + 1;
     var expectedResult = $"{{ var {tmpVar}; var {tmpVar2}; {{ var a := true; {tmpVar2} := a; }} if {tmpVar2} {{ {tmpVar} := 5; }} else {tmpVar} := 3; return {tmpVar}; }}";
     ShortCircuitRemovalTest(source, expectedResult);
   }
@@ -187,7 +189,7 @@ function {:testEntry} IsNone(o: Option): bool {
     case Some => false
 }
 ".TrimStart();
-    var tmpVar = RemoveShortCircuitingCloner.TmpVarName + 0;
+    var tmpVar = RemoveShortCircuitingCloner.TmpVarPrefix + 0;
     ShortCircuitRemovalTest(source, $"{{ var {tmpVar}; match o case {{:split false}} None() => {tmpVar} := true; case {{:split false}} Some() =>  {tmpVar} := false; return {tmpVar}; }}");
   }
 
@@ -201,7 +203,7 @@ function {:testEntry} UnBoxOrZero(o: Option): int {
     case Some(r) => r
 }
 ".TrimStart();
-    var tmpVar = RemoveShortCircuitingCloner.TmpVarName + 0;
+    var tmpVar = RemoveShortCircuitingCloner.TmpVarPrefix + 0;
     ShortCircuitRemovalTest(source, $"{{ var {tmpVar}; match o case {{:split false}} None() => {tmpVar} := 0; case {{:split false}} Some(r) =>  {tmpVar} := r; return {tmpVar}; }}");
   }
 
@@ -213,7 +215,7 @@ function {:testEntry} Max(a:int, b:int):int {
 }
 function Min(a:int, b:int):int { if a < b then a else b }
 ".TrimStart();
-    var tmpVar = RemoveShortCircuitingCloner.TmpVarName + 0;
+    var tmpVar = RemoveShortCircuitingCloner.TmpVarPrefix + 0;
     ShortCircuitRemovalTest(source, $"{{ var {tmpVar}; {tmpVar} := Min(-a, -b); return -{tmpVar}; }}");
   }
 
@@ -226,10 +228,10 @@ function {:testEntry} Max(a:int, b:int):int {
 function Negate(a:int):int   { -a }
 function Min(a:int, b:int):int { if a < b then a else b }
 ".TrimStart();
-    var tmpVar = RemoveShortCircuitingCloner.TmpVarName + 0;
-    var tmpVar2 = RemoveShortCircuitingCloner.TmpVarName + 1;
-    var tmpVar3 = RemoveShortCircuitingCloner.TmpVarName + 2;
-    var tmpVar4 = RemoveShortCircuitingCloner.TmpVarName + 3;
+    var tmpVar = RemoveShortCircuitingCloner.TmpVarPrefix + 0;
+    var tmpVar2 = RemoveShortCircuitingCloner.TmpVarPrefix + 1;
+    var tmpVar3 = RemoveShortCircuitingCloner.TmpVarPrefix + 2;
+    var tmpVar4 = RemoveShortCircuitingCloner.TmpVarPrefix + 3;
     ShortCircuitRemovalTest(source, $"{{ var {tmpVar}; var {tmpVar2}; var {tmpVar3}; {tmpVar3} := Negate(a); var {tmpVar4}; {tmpVar4} := Negate(b); {tmpVar2} := Min({tmpVar3}, {tmpVar4}); {tmpVar} := Negate({tmpVar2}); return {tmpVar}; }}");
   }
 
@@ -241,9 +243,26 @@ function {:testEntry} Max(a:bool, b:bool):bool {
 }
 function IsTrue(a:bool):bool { a }
 ".TrimStart();
-    var tmpVar = RemoveShortCircuitingCloner.TmpVarName + 0;
-    var tmpVar2 = RemoveShortCircuitingCloner.TmpVarName + 1;
+    var tmpVar = RemoveShortCircuitingCloner.TmpVarPrefix + 0;
+    var tmpVar2 = RemoveShortCircuitingCloner.TmpVarPrefix + 1;
     ShortCircuitRemovalTest(source, $"{{ var {tmpVar}; var {tmpVar2}:bool; {tmpVar2} := a; if !{tmpVar2} {{ {tmpVar2} := b; }} else {tmpVar2} := {tmpVar2}; {tmpVar} := IsTrue({tmpVar2}); return {tmpVar}; }}");
+  }
+  
+  [Fact]
+  public void ProcessConstructor() {
+    var source = @"
+class C {
+  var i:int
+  constructor {:testEntry} C() { 
+    i := if true then 0 else 1;
+    new;
+    i := if true then 0 else 1;
+  }
+}
+".TrimStart();
+    var tmpVar = RemoveShortCircuitingCloner.TmpVarPrefix + 0;
+    var tmpVar2 = RemoveShortCircuitingCloner.TmpVarPrefix + 1;
+    ShortCircuitRemovalTest(source, $"{{ var {tmpVar}; if true then {{ {tmpVar} := 0; }} else {tmpVar} := 1; i := {tmpVar}; var {tmpVar2}; if true then {{ {tmpVar2} := 0; }} else {tmpVar2} := 1; i := {tmpVar2};}}", isByMethod:false);
   }
 
   [Fact]
@@ -263,7 +282,7 @@ method {:testEntry} Sum(n:int) returns (s:int)
   return s;
 }
 ".TrimStart();
-    var tmpVar = RemoveShortCircuitingCloner.TmpVarName + 0;
+    var tmpVar = RemoveShortCircuitingCloner.TmpVarPrefix + 0;
     ShortCircuitRemovalTest(source, $"{{ var i := 0; s := 0; var {tmpVar}; {{var n:= n; {tmpVar} := i <= n;}} while {tmpVar} decreases n-i {{s := s+i; i:= i+1; {{var n:= n; {tmpVar} := i <= n;}}}} return s;}}", false);
   }
 

@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 #nullable disable
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Boogie;
@@ -9,6 +10,7 @@ using Microsoft.Dafny;
 using Function = Microsoft.Dafny.Function;
 using IdentifierExpr = Microsoft.Dafny.IdentifierExpr;
 using LetExpr = Microsoft.Dafny.LetExpr;
+using LiteralExpr = Microsoft.Dafny.LiteralExpr;
 using LocalVariable = Microsoft.Dafny.LocalVariable;
 using Program = Microsoft.Dafny.Program;
 using Type = Microsoft.Dafny.Type;
@@ -16,12 +18,35 @@ using Type = Microsoft.Dafny.Type;
 namespace DafnyTestGeneration.Inlining;
 
 public class RemoveShortCircuitingCloner : Cloner {
-  public const string TmpVarName = "#tmp";
-  private readonly List<List<Statement>> newStatements = new();
-  private List<Statement> newStmts = new();
-  private bool foundShortCircuit = false;
-  private int nextVariableId = 0;
-  private bool insideUpdateStatement = true;
+
+  // At any point during the AST traversal, newStmtStack.Last() contains the list of statements that must be inserted
+  // before the currently processed expression/statement. E.g. when cloning the statement x := f1(f0(a)),
+  // CloneStmt will return a new statement x := f1(#tmp0), and newStmtStack.Last() will be populated
+  // with a statement #tmp0 := f0(a)
+  private readonly List<List<Statement>> newStmtStack = new();
+  // If foundShortCircuit==true, this class behaves exactly like a regular Cloner when processing expressions.
+  // Must set this field to true before recursing on children of a short-circuiting expression that is being processed.
+  private bool foundShortCircuit; 
+  public const string TmpVarPrefix = "#tmp"; // prefix to start the names of all newly created special variables
+  private int nextVariableId; // the id to use when creating a new variable
+  // If processingRhs==true, the parent of the currently processed AST node is UpdateStmt or AssignOrReturnStmt.
+  // In the example above, f0(a) is not the right hand side of an update statement and so a special variable is created
+  // to store the result of the function call, whereas f1(f0(a)) is a right hand side of an update statement and so
+  // the result is stored in an already existing variable.
+  private bool processingRhs;
+  // determines whether short circuiting should be removed from method/function
+  private readonly Func<MemberDecl, bool> shouldProcessPredicate;
+  public RemoveShortCircuitingCloner(Func<MemberDecl, bool> shouldProcessPredicate)
+    : base(cloneLiteralModuleDefinition: false, cloneResolvedFields: false) {
+    this.shouldProcessPredicate = shouldProcessPredicate;
+  }
+  
+  private void ResetVariableIds() {
+    nextVariableId = 0;
+  }
+  private string GetNewLocalVariableName() {
+    return TmpVarPrefix + nextVariableId++;
+  }
 
   public void Visit(Program program) {
     Visit(program.DefaultModule);
@@ -31,8 +56,8 @@ public class RemoveShortCircuitingCloner : Cloner {
     if (d is LiteralModuleDecl moduleDecl) {
       moduleDecl.ModuleDef.TopLevelDecls.Iter(Visit);
     } else if (d is TopLevelDeclWithMembers withMembers) {
-      withMembers.Members.OfType<Microsoft.Dafny.Function>().Iter(Visit);
-      withMembers.Members.OfType<Method>().Iter(Visit);
+      withMembers.Members.Where(shouldProcessPredicate).OfType<Function>().Iter(Visit);
+      withMembers.Members.Where(shouldProcessPredicate).OfType<Method>().Iter(Visit);
     }
   }
 
@@ -45,12 +70,12 @@ public class RemoveShortCircuitingCloner : Cloner {
 
   private void Visit(Method method) {
     ResetVariableIds();
-    if (method.Body != null && method.Name != "_ctor") { // TODO constructors!
+    if (method.Body != null) {
       method.Body = CloneBlockStmt(method.Body);
     }
   }
 
-  private List<AssignmentRhs> CloneRhss(List<AssignmentRhs> rhss, bool insideUpdateStatement) {
+  private List<AssignmentRhs> CloneRhss(List<AssignmentRhs> rhss, bool processingRhs) {
     if (rhss == null) {
       return null;
     }
@@ -60,9 +85,9 @@ public class RemoveShortCircuitingCloner : Cloner {
         newRhss.Add(rhs);
         continue;
       }
-      var noCircuits = RemoveShortCircuit((rhs as ExprRhs)?.Expr, insideUpdateStatement);
+      var noCircuits = RemoveShortCircuit((rhs as ExprRhs)?.Expr, processingRhs);
       if (noCircuits.stmts != null) {
-        newStatements.Last().AddRange(noCircuits.stmts);
+        newStmtStack.Last().AddRange(noCircuits.stmts);
       }
       newRhss.Add(new ExprRhs(noCircuits.expr, rhs.Attributes));
     }
@@ -77,7 +102,7 @@ public class RemoveShortCircuitingCloner : Cloner {
     foreach (var expression in expressions) {
       var noCircuits = RemoveShortCircuit(expression, true);
       if (noCircuits.stmts != null) {
-        newStatements.Last().AddRange(noCircuits.stmts);
+        newStmtStack.Last().AddRange(noCircuits.stmts);
       }
       newExpressions.Add(noCircuits.expr);
     }
@@ -92,7 +117,7 @@ public class RemoveShortCircuitingCloner : Cloner {
     if (ifStatement.Guard != null) {
       var noCircuits = RemoveShortCircuit(ifStatement.Guard, false);
       guard = noCircuits.expr;
-      newStatements.Last().AddRange(noCircuits.stmts);
+      newStmtStack.Last().AddRange(noCircuits.stmts);
     }
     if (ifStatement.Thn != null) {
       thn = CloneBlockStmt(ifStatement.Thn);
@@ -110,9 +135,9 @@ public class RemoveShortCircuitingCloner : Cloner {
   private Statement CloneAssignOrReturnStmt(AssignOrReturnStmt assignOrReturnStmt) {
     ExprRhs rhs = null;
     if (assignOrReturnStmt.Rhs != null) {
-      var noCircuits = RemoveShortCircuit(assignOrReturnStmt.Rhs.Expr, insideUpdateStatement);
+      var noCircuits = RemoveShortCircuit(assignOrReturnStmt.Rhs.Expr, true);
       if (noCircuits.stmts != null) {
-        newStatements.Last().AddRange(noCircuits.stmts);
+        newStmtStack.Last().AddRange(noCircuits.stmts);
       }
       rhs = new ExprRhs(noCircuits.expr, assignOrReturnStmt.Rhs.Attributes);
     }
@@ -126,7 +151,7 @@ public class RemoveShortCircuitingCloner : Cloner {
 
   private Statement CloneNestedMatchStmt(NestedMatchStmt nestedMatchStatement) {
     var noCircuits = RemoveShortCircuit(nestedMatchStatement.Source, false);
-    newStatements.Last().AddRange(noCircuits.stmts);
+    newStmtStack.Last().AddRange(noCircuits.stmts);
     var newCases = new List<NestedMatchCaseStmt>();
     foreach (var nestedMatchCase in nestedMatchStatement.Cases) {
       newCases.Add(new NestedMatchCaseStmt(nestedMatchCase.RangeToken, nestedMatchCase.Pat, ProcessStmtList(nestedMatchCase.Body)));
@@ -139,7 +164,7 @@ public class RemoveShortCircuitingCloner : Cloner {
     foreach (var argument in printStatement.Args) {
       var noCircuits = RemoveShortCircuit(argument, false);
       if (noCircuits.stmts != null) {
-        newStatements.Last().AddRange(noCircuits.stmts);
+        newStmtStack.Last().AddRange(noCircuits.stmts);
       }
 
       newArgs.Add(noCircuits.expr);
@@ -180,10 +205,9 @@ public class RemoveShortCircuitingCloner : Cloner {
 
   private Statement CloneWhileStmt(WhileStmt whileStmt) {
     var noCircuits = RemoveShortCircuit(whileStmt.Guard, false);
-    newStatements.Last().AddRange(noCircuits.stmts);
+    newStmtStack.Last().AddRange(noCircuits.stmts);
     var newBody = CloneBlockStmt(whileStmt.Body);
     newBody.Body.AddRange(ProcessStmtList(noCircuits.stmts.Where(stmt => stmt is not VarDeclStmt).ToList()));
-    // TODO: Clone invariants/decreases/modifies?
     return new WhileStmt(whileStmt.RangeToken, noCircuits.expr, whileStmt.Invariants, whileStmt.Decreases, whileStmt.Mod, newBody);
   }
 
@@ -224,54 +248,48 @@ public class RemoveShortCircuitingCloner : Cloner {
   }
 
   private List<Statement> ProcessStmt(Statement statement) {
-    newStatements.Add(new List<Statement>());
+    newStmtStack.Add(new List<Statement>());
     var newStatement = CloneStmt(statement);
     var result = new List<Statement> { newStatement };
-    if (newStatements.Last().Count == 0) {
-      newStatements.RemoveAt(newStatements.Count - 1);
+    if (newStmtStack.Last().Count == 0) {
+      newStmtStack.RemoveAt(newStmtStack.Count - 1);
       return result;
     }
-    result.InsertRange(0, newStatements.Last());
-    newStatements.RemoveAt(newStatements.Count - 1);
+    result.InsertRange(0, newStmtStack.Last());
+    newStmtStack.RemoveAt(newStmtStack.Count - 1);
     return result;
   }
 
   private List<Statement> ProcessStmtList(List<Statement> statements) {
-    var result = new List<Statement> { };
+    var result = new List<Statement>();
     foreach (var statement in statements) {
       result.AddRange(ProcessStmt(statement));
     }
     return result;
   }
 
-  private (List<Statement> stmts, Expression expr) RemoveShortCircuit(Expression expr, bool insideUpdateStatement) {
-    var result = RemoveOneShortCircuit(expr, insideUpdateStatement);
-    if (result.stmts.Count == 0) {
-      return (result.stmts, result.expr);
+  private (List<Statement> stmts, Expression expr) RemoveShortCircuit(Expression expr, bool processingRhs) {
+    var newStmts = new List<Statement>();
+    newStmtStack.Add(new List<Statement>());
+    this.processingRhs = processingRhs;
+    var result = RemoveOneShortCircuit(expr);
+    newStmts.AddRange(newStmtStack.Last());
+    newStmtStack.RemoveAt(newStmtStack.Count - 1);
+    if (newStmts.Count == 0) {
+      return (newStmts, result);
     }
 
-    var resultTmp = RemoveShortCircuit(result.expr, insideUpdateStatement);
-    if (resultTmp.stmts.Count != 0) {
-      result.stmts.AddRange(resultTmp.stmts);
-    }
-
-    var statements = ProcessStmtList(result.stmts);
+    var resultTmp = RemoveShortCircuit(result, processingRhs);
+    newStmts.AddRange(resultTmp.stmts);
+    
+    var statements = ProcessStmtList(newStmts);
     return (statements, resultTmp.expr);
   }
 
-  private void ResetVariableIds() {
-    nextVariableId = 0;
-  }
-  private string GetNewLocalVariableName() {
-    return TmpVarName + nextVariableId++;
-  }
-
-  private (List<Statement> stmts, Expression expr) RemoveOneShortCircuit(Expression expr, bool insideUpdateStatement) {
-    newStmts = new();
+  private Expression RemoveOneShortCircuit(Expression expr) {
     foundShortCircuit = false;
-    this.insideUpdateStatement = insideUpdateStatement;
     var newExpr = CloneExpr(expr);
-    return (newStmts, newExpr);
+    return newExpr;
   }
 
   private Expression CreateIf(string tmpVarName, Type typ, Expression initialExpr, Expression testExpr,
@@ -282,24 +300,24 @@ public class RemoveShortCircuitingCloner : Cloner {
     typ ??= new InferredTypeProxy();
     var varDecl = new VarDeclStmt(
         new RangeToken(original.StartToken, original.StartToken),
-        new List<LocalVariable>() { new(new RangeToken(original.StartToken, original.StartToken), tmpVarName, typ, false) }, null);
-    newStmts = new List<Statement>() { varDecl };
+        new List<LocalVariable> { new(new RangeToken(original.StartToken, original.StartToken), tmpVarName, typ, false) }, null);
+    newStmtStack.Last().Add(varDecl);
     if (initialExpr != null) {
-      var updateStmt = new UpdateStmt(new RangeToken(original.StartToken, original.StartToken), new List<Expression>() { identifierExpr },
-          new List<AssignmentRhs>() { new ExprRhs(initialExpr) });
-      newStmts.Add(updateStmt);
+      var updateStmt = new UpdateStmt(new RangeToken(original.StartToken, original.StartToken), new List<Expression> { identifierExpr },
+          new List<AssignmentRhs> { new ExprRhs(initialExpr) });
+      newStmtStack.Last().Add(updateStmt);
     }
     var thenStmt = new UpdateStmt(
       new RangeToken(thenToken, thenToken),
-      new List<Expression>() { identifierExpr },
-      new List<AssignmentRhs>() { new ExprRhs(thenExpr) });
+      new List<Expression> { identifierExpr },
+      new List<AssignmentRhs> { new ExprRhs(thenExpr) });
     var elseStmt = elseExpr != null
-      ? new UpdateStmt(new RangeToken(elseToken, elseToken), new List<Expression>() { identifierExpr },
-        new List<AssignmentRhs>() { new ExprRhs(elseExpr) })
+      ? new UpdateStmt(new RangeToken(elseToken, elseToken), new List<Expression> { identifierExpr },
+        new List<AssignmentRhs> { new ExprRhs(elseExpr) })
       : null;
     var ifStmt = new IfStmt(new RangeToken(original.StartToken, original.StartToken), false, testExpr,
-      new BlockStmt(thenStmt.RangeToken, new List<Statement>() { thenStmt }), elseStmt);
-    newStmts.Add(ifStmt);
+      new BlockStmt(thenStmt.RangeToken, new List<Statement> { thenStmt }), elseStmt);
+    newStmtStack.Last().Add(ifStmt);
     return identifierExpr;
   }
 
@@ -309,18 +327,18 @@ public class RemoveShortCircuitingCloner : Cloner {
     if (expr == null) {
       return null;
     }
-    var insideUpdateStatement = this.insideUpdateStatement;
-    this.insideUpdateStatement = false;
     if (foundShortCircuit) {
       return base.CloneExpr(expr);
     }
+    var wasProcessingRhs = processingRhs;
+    processingRhs = false;
 
     foundShortCircuit = true;
     var tmpVarName = GetNewLocalVariableName();
     var identifierExpr = new IdentifierExpr(expr.StartToken, tmpVarName);
     VarDeclStmt varDecl = new VarDeclStmt(
       new RangeToken(expr.StartToken, expr.StartToken),
-      new List<LocalVariable>() { new(new RangeToken(expr.StartToken, expr.StartToken), tmpVarName, new InferredTypeProxy(), false) }, null);
+      new List<LocalVariable> { new(new RangeToken(expr.StartToken, expr.StartToken), tmpVarName, new InferredTypeProxy(), false) }, null);
     UpdateStmt updateStmt;
     int i = 0;
 
@@ -334,78 +352,76 @@ public class RemoveShortCircuitingCloner : Cloner {
           new UnaryOpExpr(binaryExpr.E0.StartToken, UnaryOpExpr.Opcode.Not, identifierExpr), binaryExpr.E1, new IdentifierExpr(binaryExpr.E0.EndToken, tmpVarName), binaryExpr);
       case BinaryExpr { Op: BinaryExpr.Opcode.Imp } binaryExpr:
         return CreateIf(tmpVarName, Type.Bool, binaryExpr.E0, identifierExpr, binaryExpr.E1,
-          new Microsoft.Dafny.LiteralExpr(binaryExpr.E0.EndToken, true), binaryExpr);
+          new LiteralExpr(binaryExpr.E0.EndToken, true), binaryExpr);
       case BinaryExpr { Op: BinaryExpr.Opcode.Exp } binaryExpr:
         return CreateIf(tmpVarName, Type.Bool, binaryExpr.E1, identifierExpr, binaryExpr.E0,
-          new Microsoft.Dafny.LiteralExpr(binaryExpr.E1.EndToken, true), binaryExpr);
+          new LiteralExpr(binaryExpr.E1.EndToken, true), binaryExpr);
       case StmtExpr stmtExpr:
-        newStmts.Add(varDecl);
-        updateStmt = new UpdateStmt(stmtExpr.E.RangeToken, new List<Expression>() { identifierExpr },
-          new List<AssignmentRhs>() { new ExprRhs(stmtExpr.E) });
+        newStmtStack.Last().Add(varDecl);
+        updateStmt = new UpdateStmt(stmtExpr.E.RangeToken, new List<Expression> { identifierExpr },
+          new List<AssignmentRhs> { new ExprRhs(stmtExpr.E) });
         var stmtBlockUpdate = new BlockStmt(new RangeToken(stmtExpr.S.StartToken, stmtExpr.E.EndToken), new List<Statement>());
         stmtBlockUpdate.Body.Add(stmtExpr.S);
         stmtBlockUpdate.Body.Add(updateStmt);
-        newStmts.Add(stmtBlockUpdate);
+        newStmtStack.Last().Add(stmtBlockUpdate);
         return identifierExpr;
       case NestedMatchExpr matchExpr:
-        newStmts.Add(varDecl);
+        newStmtStack.Last().Add(varDecl);
         var caseStmts = new List<NestedMatchCaseStmt>();
         foreach (var c in matchExpr.Cases) {
-          updateStmt = new UpdateStmt(new RangeToken(c.Body.StartToken, c.Body.StartToken), new List<Expression>() { identifierExpr },
-            new List<AssignmentRhs>() { new ExprRhs(c.Body) });
-          caseStmts.Add(new NestedMatchCaseStmt(new RangeToken(c.StartToken, c.StartToken), c.Pat, new List<Statement>() { updateStmt }));
+          updateStmt = new UpdateStmt(new RangeToken(c.Body.StartToken, c.Body.StartToken), new List<Expression> { identifierExpr },
+            new List<AssignmentRhs> { new ExprRhs(c.Body) });
+          caseStmts.Add(new NestedMatchCaseStmt(new RangeToken(c.StartToken, c.StartToken), c.Pat, new List<Statement> { updateStmt }));
         }
         var matchStmt = new NestedMatchStmt(matchExpr.RangeToken, matchExpr.Source, caseStmts, false, matchExpr.Attributes);
-        newStmts.Add(matchStmt);
+        newStmtStack.Last().Add(matchStmt);
         return identifierExpr;
       case LetOrFailExpr letOrFailExpr:
-        newStmts.Add(varDecl);
+        newStmtStack.Last().Add(varDecl);
         var boundIdentifierExpr = new IdentifierExpr(letOrFailExpr.Rhs.StartToken, letOrFailExpr.Lhs.Var.Name);
-        var assignSuchThat = new AssignOrReturnStmt(letOrFailExpr.Rhs.RangeToken, new List<Expression>() { boundIdentifierExpr }, new ExprRhs(letOrFailExpr.Rhs), null, new List<AssignmentRhs>());
+        var assignSuchThat = new AssignOrReturnStmt(letOrFailExpr.Rhs.RangeToken, new List<Expression> { boundIdentifierExpr }, new ExprRhs(letOrFailExpr.Rhs), null, new List<AssignmentRhs>());
         varDecl = new VarDeclStmt(
           new RangeToken(letOrFailExpr.Lhs.Var.StartToken, letOrFailExpr.Rhs.EndToken),
-          new List<LocalVariable>() { new(letOrFailExpr.Lhs.Var.RangeToken, letOrFailExpr.Lhs.Var.Name, new InferredTypeProxy(), false) }, assignSuchThat);
-        updateStmt = new UpdateStmt(letOrFailExpr.Body.RangeToken, new List<Expression>() { identifierExpr },
-          new List<AssignmentRhs>() { new ExprRhs(letOrFailExpr.Body) });
-        newStmts.Add(new BlockStmt(letOrFailExpr.RangeToken, new List<Statement>() { varDecl, updateStmt }));
+          new List<LocalVariable> { new(letOrFailExpr.Lhs.Var.RangeToken, letOrFailExpr.Lhs.Var.Name, new InferredTypeProxy(), false) }, assignSuchThat);
+        updateStmt = new UpdateStmt(letOrFailExpr.Body.RangeToken, new List<Expression> { identifierExpr },
+          new List<AssignmentRhs> { new ExprRhs(letOrFailExpr.Body) });
+        newStmtStack.Last().Add(new BlockStmt(letOrFailExpr.RangeToken, new List<Statement> { varDecl, updateStmt }));
         return identifierExpr;
       case LetExpr letExpr:
         if (letExpr.Exact == false || letExpr.BoundVars.Count() != letExpr.RHSs.Count) {
           // TODO
-          foundShortCircuit = true;
           return base.CloneExpr(expr);
         }
-        newStmts.Add(varDecl);
+        newStmtStack.Last().Add(varDecl);
         i = 0;
         var blockUpdate = new BlockStmt(letExpr.RangeToken, new List<Statement>());
         foreach (var boundVar in letExpr.BoundVars) {
           identifierExpr = new IdentifierExpr(letExpr.RHSs[i].StartToken, boundVar.Name);
-          updateStmt = new UpdateStmt(letExpr.RHSs[i].RangeToken, new List<Expression>() { identifierExpr },
-              new List<AssignmentRhs>() { new ExprRhs(letExpr.RHSs[i]) });
+          updateStmt = new UpdateStmt(letExpr.RHSs[i].RangeToken, new List<Expression> { identifierExpr },
+              new List<AssignmentRhs> { new ExprRhs(letExpr.RHSs[i]) });
           varDecl = new VarDeclStmt(
             new RangeToken(boundVar.StartToken, letExpr.RHSs[i].EndToken),
-            new List<LocalVariable>() { new(boundVar.RangeToken, boundVar.Name, new InferredTypeProxy(), false) }, updateStmt);
+            new List<LocalVariable> { new(boundVar.RangeToken, boundVar.Name, new InferredTypeProxy(), false) }, updateStmt);
           blockUpdate.Body.Add(varDecl);
           i += 1;
         }
         identifierExpr = new IdentifierExpr(letExpr.Body.StartToken, tmpVarName);
-        updateStmt = new UpdateStmt(letExpr.Body.RangeToken, new List<Expression>() { identifierExpr },
-          new List<AssignmentRhs>() { new ExprRhs(letExpr.Body) });
+        updateStmt = new UpdateStmt(letExpr.Body.RangeToken, new List<Expression> { identifierExpr },
+          new List<AssignmentRhs> { new ExprRhs(letExpr.Body) });
         blockUpdate.Body.Add(updateStmt);
-        newStmts.Add(blockUpdate);
+        newStmtStack.Last().Add(blockUpdate);
         return identifierExpr;
       case ApplySuffix applySuffix:
-        if (insideUpdateStatement) {
+        if (wasProcessingRhs) {
           break;
         }
-        updateStmt = new UpdateStmt(applySuffix.RangeToken, new List<Expression>() { identifierExpr },
-          new List<AssignmentRhs>() { new ExprRhs(applySuffix) });
-        newStmts.Add(varDecl);
-        newStmts.Add(updateStmt);
+        updateStmt = new UpdateStmt(applySuffix.RangeToken, new List<Expression> { identifierExpr },
+          new List<AssignmentRhs> { new ExprRhs(applySuffix) });
+        newStmtStack.Last().Add(varDecl);
+        newStmtStack.Last().Add(updateStmt);
         return identifierExpr;
       case ComprehensionExpr or MatchExpr:
-        foundShortCircuit = true; // TODO
-        return base.CloneExpr(expr);
+        return base.CloneExpr(expr); // TODO
     }
     nextVariableId--; // the new variable was not used in the end
     foundShortCircuit = false;

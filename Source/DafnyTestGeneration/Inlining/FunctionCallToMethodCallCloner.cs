@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 #nullable disable
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Boogie;
@@ -16,8 +17,13 @@ namespace DafnyTestGeneration.Inlining;
 /// Change by-method function calls to method calls (after resolution)
 /// </summary>
 public class FunctionCallToMethodCallCloner : Cloner {
+  
+  // determines whether function calls should be replaced with method calls in a given method/function
+  private readonly Func<MemberDecl, bool> shouldProcessPredicate;
 
-  public FunctionCallToMethodCallCloner() : base(false, true) { }
+  public FunctionCallToMethodCallCloner(Func<MemberDecl, bool> shouldProcessPredicate) : base(false, true) {
+    this.shouldProcessPredicate = shouldProcessPredicate;
+  }
 
   public void Visit(Program program) {
     Visit(program.DefaultModule);
@@ -27,8 +33,8 @@ public class FunctionCallToMethodCallCloner : Cloner {
     if (d is LiteralModuleDecl moduleDecl) {
       moduleDecl.ModuleDef.TopLevelDecls.Iter(Visit);
     } else if (d is TopLevelDeclWithMembers withMembers) {
-      withMembers.Members.OfType<Function>().Iter(Visit);
-      withMembers.Members.OfType<Method>().Iter(Visit);
+      withMembers.Members.Where(shouldProcessPredicate).OfType<Function>().Iter(Visit);
+      withMembers.Members.Where(shouldProcessPredicate).OfType<Method>().Iter(Visit);
     }
   }
 

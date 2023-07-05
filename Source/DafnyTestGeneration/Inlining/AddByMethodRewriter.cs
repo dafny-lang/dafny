@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 #nullable disable
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Boogie;
@@ -13,8 +14,14 @@ namespace DafnyTestGeneration.Inlining;
 
 /// <summary> Turns each function into a function-by-method and removes all opaque attributes. </summary>
 public class AddByMethodRewriter : IRewriter {
+  
+  // determines whether byMethod body should be added to a function
+  private readonly Func<MemberDecl, bool> shouldProcessPredicate;
 
-  protected internal AddByMethodRewriter(ErrorReporter reporter) : base(reporter) { }
+  protected internal AddByMethodRewriter(ErrorReporter reporter, Func<MemberDecl, bool> shouldProcessPredicate)
+    : base(reporter) {
+    this.shouldProcessPredicate = shouldProcessPredicate;
+  }
 
   internal void PreResolve(Program program) {
     AddByMethod(program.DefaultModule);
@@ -57,8 +64,7 @@ public class AddByMethodRewriter : IRewriter {
     func.Attributes = RemoveOpaqueAttr(func.Attributes, new Cloner());
     if (func.IsGhost ||
         func.Body == null ||
-        func.ByMethodBody != null ||
-        (!Utils.MembersHasAttribute(func, TestGenerationOptions.TestInlineAttribute) && !Utils.MembersHasAttribute(func, TestGenerationOptions.TestEntryAttribute))) {
+        func.ByMethodBody != null || !shouldProcessPredicate(func)) {
       return;
     }
 
