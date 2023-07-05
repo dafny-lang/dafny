@@ -5,8 +5,8 @@ module {:extern "DCOMP"} DCOMP {
 
   // https://stackoverflow.com/questions/62722832/convert-numbers-to-strings
   type stringNat = s: string |
-    |s| > 0 && (|s| > 1 ==> s[0] != '0') &&
-    forall i | 0 <= i < |s| :: s[i] in "0123456789"
+      |s| > 0 && (|s| > 1 ==> s[0] != '0') &&
+      forall i | 0 <= i < |s| :: s[i] in "0123456789"
     witness "1"
 
   function natToString(n: nat): stringNat {
