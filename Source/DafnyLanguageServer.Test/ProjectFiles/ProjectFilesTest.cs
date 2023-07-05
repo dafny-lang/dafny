@@ -10,7 +10,7 @@ using Xunit.Abstractions;
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest; 
 
 public class ProjectFilesTest : ClientBasedLanguageServerTest {
-  
+
   [Fact]
   public async Task ProjectFileChangesArePickedUpAfterCacheExpiration() {
     await SetUp(options => options.WarnShadowing = false);
@@ -34,13 +34,13 @@ method Foo() {
 warn-shadowing = true";
     await File.WriteAllTextAsync(projectFilePath, warnShadowingOn);
     await Task.Delay(ProjectManager.ProjectFileCacheExpiryTime);
-    ApplyChange(ref documentItem, new Range(0,0,0,0), "//touch comment\n");
+    ApplyChange(ref documentItem, new Range(0, 0, 0, 0), "//touch comment\n");
     var diagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
 
     Assert.Single(diagnostics);
     Assert.Equal("Shadowed local-variable name: x", diagnostics[0].Message);
   }
-  
+
   [Fact]
   public async Task ClosestProjectFileIsFound() {
     var filePath = Path.Combine(Directory.GetCurrentDirectory(), "ProjectFiles/TestFiles/Nesting/src/foo.dfy");
