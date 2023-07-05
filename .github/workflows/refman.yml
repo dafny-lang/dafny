@@ -70,6 +70,8 @@ jobs:
     - name: Install latex pandoc - MacOS
       if: runner.os == 'MacOS'
       run: |
+        unset HOMEBREW_NO_INSTALL_FROM_API
+        brew untap Homebrew/core
         brew update-reset && brew update
         brew install pandoc
         brew install --cask basictex

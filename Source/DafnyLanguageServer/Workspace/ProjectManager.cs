@@ -205,7 +205,7 @@ public class ProjectManager : IDisposable {
     try {
       await CompilationManager.LastDocument;
       observer.OnCompleted();
-    } catch (TaskCanceledException) {
+    } catch (OperationCanceledException) {
     }
   }
 

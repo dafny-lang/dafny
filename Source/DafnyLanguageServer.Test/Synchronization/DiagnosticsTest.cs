@@ -903,7 +903,10 @@ method test()
       await SetUp(options => options.Set(BoogieOptionBag.Cores, 1U));
       var documentItem = CreateTestDocument(source);
       client.OpenDocument(documentItem);
+<<<<<<< HEAD
       await AssertNoDiagnosticsAreComing(CancellationToken);
+=======
+>>>>>>> fork/doNotPublishEmptyDiagnosticsOnStart
       var firstVerificationDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken.None, documentItem);
       var secondVerificationDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken.None, documentItem);
 
@@ -924,6 +927,10 @@ method test(x: int) {
       await SetUp(options => options.Set(BoogieOptionBag.Cores, 1U));
       var documentItem = CreateTestDocument(source);
       client.OpenDocument(documentItem);
+<<<<<<< HEAD
+=======
+      await AssertNoDiagnosticsAreComing(CancellationToken);
+>>>>>>> fork/doNotPublishEmptyDiagnosticsOnStart
       var firstVerificationDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken.None, documentItem);
 
       Assert.Equal(2, firstVerificationDiagnostics.Length);
@@ -1007,6 +1014,10 @@ method test2() {
       await SetUp(options => options.Set(BoogieOptionBag.Cores, 1U));
       var documentItem = CreateTestDocument(source);
       client.OpenDocument(documentItem);
+<<<<<<< HEAD
+=======
+      await AssertNoDiagnosticsAreComing(CancellationToken);
+>>>>>>> fork/doNotPublishEmptyDiagnosticsOnStart
       var firstVerificationDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
       var secondVerificationDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
       Assert.Single(firstVerificationDiagnostics);
