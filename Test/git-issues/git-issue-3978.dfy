@@ -1,13 +1,13 @@
 // RUN: %testDafnyForEachCompiler "%s"
 
-method Main() returns ()
+method Main()
 {
- for v_int_7 := 3 to 18
+ for v := 3 to 18
  {
-  if (false) {
+  if false {
     continue;
   }
-  var v_int_93 := 1;
-  print v_int_93, "\n";
+  var x := 1;
+  print x, "\n";
  }
 }
