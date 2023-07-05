@@ -62,20 +62,6 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       }
     }
 
-    private static Dafny.Program NewDafnyProgram(TextDocumentItem document, ErrorReporter errorReporter) {
-      // Ensure that the statically kept scopes are empty when parsing a new document.
-      Type.ResetScopes();
-      var compilation = new CompilationData(errorReporter, new List<Include>(), new List<Uri>(),
-        Sets.Empty<Uri>(), Sets.Empty<Uri>());
-      return new Dafny.Program(
-        document.Uri.ToString(),
-        new LiteralModuleDecl(new DefaultModuleDefinition(new List<Uri>(), false), null, Guid.NewGuid()),
-        // BuiltIns cannot be initialized without Type.ResetScopes() before.
-        new SystemModuleManager(errorReporter.Options),
-        errorReporter, compilation
-      );
-    }
-
     public void Dispose() {
       mutex.Dispose();
     }
