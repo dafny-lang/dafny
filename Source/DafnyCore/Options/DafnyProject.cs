@@ -220,6 +220,15 @@ public class DafnyProject : IEquatable<DafnyProject> {
     return first?.SequenceEqual(second) ?? (second == null);
   }
 
+  public DafnyProject Clone() {
+    return new DafnyProject() {
+      Uri = Uri,
+      Includes = Includes?.ToArray(),
+      Excludes = Excludes?.ToArray(),
+      Options = Options?.ToDictionary(kv => kv.Key, kv => kv.Value)
+    };
+  }
+
   public override bool Equals(object obj) {
     if (ReferenceEquals(null, obj)) {
       return false;
