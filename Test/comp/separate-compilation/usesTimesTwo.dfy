@@ -12,12 +12,12 @@
 // Java
 
 // RUN: %baredafny translate java --output=%S/Inputs/producer/timesTwo %S/Inputs/producer/timesTwo.dfy
-// RUN: javac -cp %binaryDir/DafnyRuntime.jar:%S/Inputs/producer/timesTwo-java %S/Inputs/producer/timesTwo-java/timesTwo.java %S/Inputs/producer/timesTwo-java/*/*.java
+// RUN: javac -cp %binaryDir/DafnyRuntime.jar%{pathsep}%S/Inputs/producer/timesTwo-java %S/Inputs/producer/timesTwo-java/timesTwo.java %S/Inputs/producer/timesTwo-java/*/*.java
 
 // RUN: %baredafny translate java --output=%S/consumer/usesTimesTwo --library=%S/Inputs/producer/timesTwo.dfy %s
-// RUN: javac -cp %binaryDir/DafnyRuntime.jar:%S/Inputs/producer/timesTwo-java:%S/consumer/usesTimesTwo-java %S/consumer/usesTimesTwo-java/usesTimesTwo.java %S/consumer/usesTimesTwo-java/*/*.java
+// RUN: javac -cp %binaryDir/DafnyRuntime.jar%{pathsep}%S/Inputs/producer/timesTwo-java%{pathsep}%S/consumer/usesTimesTwo-java %S/consumer/usesTimesTwo-java/usesTimesTwo.java %S/consumer/usesTimesTwo-java/*/*.java
 
-// RUN: java -cp %binaryDir/DafnyRuntime.jar:%S/Inputs/producer/timesTwo-java:%S/consumer/usesTimesTwo-java usesTimesTwo >> "%t"
+// RUN: java -cp %binaryDir/DafnyRuntime.jar%{pathsep}%S/Inputs/producer/timesTwo-java%{pathsep}%S/consumer/usesTimesTwo-java usesTimesTwo >> "%t"
 
 // Python
 
@@ -37,8 +37,7 @@
 
 // RUN: %baredafny translate go --output=%S/consumer/usesTimesTwo --library=%S/Inputs/producer/timesTwo.dfy %s
 
-// TODO: Won't work on windows
-// RUN: env GO111MODULE=auto GOPATH=%S/Inputs/producer/timesTwo-go:%S/consumer/usesTimesTwo-go go run %S/consumer/usesTimesTwo-go/src/usesTimesTwo.go >> "%t"
+// RUN: env GO111MODULE=auto GOPATH=%S/Inputs/producer/timesTwo-go%{pathsep}%S/consumer/usesTimesTwo-go go run %S/consumer/usesTimesTwo-go/src/usesTimesTwo.go >> "%t"
 
 // (Javascript doesn't support this yet)
 
