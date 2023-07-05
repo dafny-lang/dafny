@@ -384,12 +384,12 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void TrCallStmt(CallStmt s, string receiverReplacement, ConcreteSyntaxTree wr) {
       if (currentBuilder is StatementContainer builder) {
-        // currentBuilder = builder.Call();
-        // base.TrCallStmt(s, receiverReplacement, wr);
-      } else if (currentBuilder is ExprContainer exprBuilder) {
-        // TODO: call expr
-        exprBuilder.AddExpr((DAST.Expression)DAST.Expression.create_Literal(
+        builder.Print((DAST.Expression)DAST.Expression.create_Literal(
           DAST.Literal.create_StringLiteral(Sequence<Rune>.UnicodeFromString("TODO (call stmt)"))
+        ));
+      } else if (currentBuilder is ExprContainer exprBuilder) {
+        exprBuilder.AddExpr((DAST.Expression)DAST.Expression.create_Literal(
+          DAST.Literal.create_StringLiteral(Sequence<Rune>.UnicodeFromString("TODO (call expr)"))
         ));
       } else {
         throw new InvalidOperationException("Cannot call statement in this context: " + currentBuilder);
