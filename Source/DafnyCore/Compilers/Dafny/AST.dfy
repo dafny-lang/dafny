@@ -21,7 +21,7 @@ module {:extern "DAST"} DAST {
 
   datatype Statement = DeclareVar(name: string, typ: Type, value: Expression) | Assign(name: string, value: Expression) | Print(Expression)
 
-  datatype Expression = PassThroughExpr(a: string) | Literal(Literal)
+  datatype Expression = Literal(Literal) | DatatypeValue(contents: seq<Expression>)
 
   datatype Literal = IntLiteral(int) | StringLiteral(string)
 }

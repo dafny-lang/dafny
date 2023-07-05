@@ -1,8 +1,20 @@
 include "../Dafny/AST.dfy"
 
 module {:extern "DCOMP"} DCOMP {
-
   import opened DAST
+
+  // https://stackoverflow.com/questions/62722832/convert-numbers-to-strings
+  type stringNat = s: string |
+    |s| > 0 && (|s| > 1 ==> s[0] != '0') &&
+    forall i | 0 <= i < |s| :: s[i] in "0123456789"
+    witness "1"
+
+  function natToString(n: nat): stringNat {
+    match n
+    case 0 => "0" case 1 => "1" case 2 => "2" case 3 => "3" case 4 => "4"
+    case 5 => "5" case 6 => "6" case 7 => "7" case 8 => "8" case 9 => "9"
+    case _ => natToString(n / 10) + natToString(n % 10)
+  }
 
   class COMP {
 
@@ -67,7 +79,10 @@ module {:extern "DCOMP"} DCOMP {
       while i < |body| {
         var generated: string;
         match body[i] {
-          case Print(e) => generated := "print!(\"{}\", ::dafny_runtime::DafnyPrintWrapper(" + GenExpr(e) + "));";
+          case Print(e) => {
+            var printedExpr := GenExpr(e);
+            generated := "print!(\"{}\", ::dafny_runtime::DafnyPrintWrapper(" + printedExpr + "));";
+          }
           case DeclareVar(name, Ident(Ident(typ)), expression) => {
             var expr := GenExpr(expression);
             generated := "let mut " + name + ": " + typ + " = " + expr + ";";
@@ -84,10 +99,32 @@ module {:extern "DCOMP"} DCOMP {
       }
     }
 
-    static function GenExpr(e: Expression): string {
+    static method GenExpr(e: Expression) returns (s: string) {
       match e {
-        case PassThroughExpr(s) => s
-        case _ => "TODO"
+        case Literal(IntLiteral(i)) => {
+          if (i < 0) {
+            s := "-" + natToString(-i);
+          } else {
+            s := natToString(i);
+          }
+        }
+        case Literal(StringLiteral(l)) => {
+          // TODO(shadaj): handle unicode properly
+          s := "\"" + l + "\"";
+        }
+        case DatatypeValue(values) => {
+          var i := 0;
+          s := "(";
+          while i < |values| {
+            if i > 0 {
+              s := s + ", ";
+            }
+            var recursiveGen := GenExpr(values[i]);
+            s := s + recursiveGen;
+            i := i + 1;
+          }
+          s := s + ")";
+        }
       }
     }
 

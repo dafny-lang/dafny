@@ -3,6 +3,9 @@ using System.Collections.Generic;
 using Dafny;
 using JetBrains.Annotations;
 using DAST;
+using System.Data;
+using System.Numerics;
+using Microsoft.BaseTypes;
 
 namespace Microsoft.Dafny.Compilers {
 
@@ -252,7 +255,30 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     internal override string TypeName(Type type, ConcreteSyntaxTree wr, IToken tok, MemberDecl/*?*/ member = null) {
-      throw new NotImplementedException();
+      var xType = DatatypeWrapperEraser.SimplifyType(Options, type);
+
+      if (xType.IsObjectQ) {
+        return "object";
+      }
+
+      switch (xType) {
+        case BoolType:
+          return "bool";
+        case CharType:
+          return "str";
+        case IntType or BigOrdinalType or BitvectorType:
+          return "int";
+        case RealType:
+          return $"{DafnyRuntimeModule}.BigRational";
+        case UserDefinedType udt: {
+            var s = FullTypeName(udt, member);
+            return TypeName_UDT(s, udt, wr, udt.tok);
+          }
+        case CollectionType:
+          throw new NotImplementedException();
+      }
+
+      throw new cce.UnreachableException();
     }
 
     // sometimes, the compiler generates the initial value before the declaration,
@@ -264,9 +290,10 @@ namespace Microsoft.Dafny.Compilers {
       if (bufferedInitializationValue != null) {
         throw new InvalidOperationException();
       } else {
-        bufferedInitializationValue = (DAST.Expression)DAST.Expression.create_PassThroughExpr(
-          Sequence<Rune>.UnicodeFromString("TODO")
-        );
+        throw new NotImplementedException();
+        // bufferedInitializationValue = (DAST.Expression)DAST.Expression.create_PassThroughExpr(
+        //   Sequence<Rune>.UnicodeFromString("TODO")
+        // );
 
         return null; // used by DeclareLocal(Out)Var
       }
@@ -274,11 +301,18 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override string TypeName_UDT(string fullCompileName, List<TypeParameter.TPVariance> variance,
         List<Type> typeArgs, ConcreteSyntaxTree wr, IToken tok, bool omitTypeArguments) {
-      throw new NotImplementedException();
+      return fullCompileName;
     }
 
     protected override string TypeName_Companion(Type type, ConcreteSyntaxTree wr, IToken tok, MemberDecl member) {
-      throw new NotImplementedException();
+      type = UserDefinedType.UpcastToMemberEnclosingType(type, member);
+      if (type.NormalizeExpandKeepConstraints() is UserDefinedType udt && udt.ResolvedClass is DatatypeDecl dt &&
+          DatatypeWrapperEraser.IsErasableDatatypeWrapper(Options, dt, out _)) {
+        var s = FullTypeName(udt, member);
+        return TypeName_UDT(s, udt, wr, udt.tok);
+      } else {
+        return TypeName(type, wr, tok, member);
+      }
     }
 
     protected override void TypeArgDescriptorUse(bool isStatic, bool lookasideBody, TopLevelDeclWithMembers cl, out bool needsTypeParameter, out bool needsTypeDescriptor) {
@@ -376,7 +410,11 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void EmitPrintStmt(ConcreteSyntaxTree wr, Expression arg) {
       if (currentBuilder is StatementContainer statementContainer) {
-        statementContainer.Print((DAST.Expression)DAST.Expression.create_PassThroughExpr(Sequence<Rune>.UnicodeFromString(arg.ToString())));
+        ExprBuffer buffer = new(this);
+        currentBuilder = buffer;
+        Console.WriteLine(this.currentBuilder);
+        Expr(arg, false, new ConcreteSyntaxTree());
+        statementContainer.Print(buffer.Finish());
       } else {
         throw new NotImplementedException("");
       }
@@ -479,9 +517,40 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void EmitLiteralExpr(ConcreteSyntaxTree wr, LiteralExpr e) {
       if (currentBuilder is ExprContainer builder) {
-        builder.PassThrough(e.ToString());
+        switch (e) {
+          case CharLiteralExpr:
+            throw new NotImplementedException();
+            break;
+          case StringLiteralExpr str:
+            builder.AddExpr((DAST.Expression) DAST.Expression.create_Literal(DAST.Literal.create_StringLiteral(
+              Sequence<Rune>.UnicodeFromString(str.AsStringLiteral())
+            )));
+            break;
+          case StaticReceiverExpr:
+            throw new NotImplementedException();
+            break;
+          default:
+            switch (e.Value) {
+              case null:
+                throw new NotImplementedException();
+                break;
+              case bool value:
+                throw new NotImplementedException();
+                break;
+              case BigInteger integer:
+                builder.AddExpr((DAST.Expression) DAST.Expression.create_Literal(DAST.Literal.create_IntLiteral(integer)));
+                break;
+              case BigDec n:
+                throw new NotImplementedException();
+                break;
+              default:
+                // TODO: This may not be exhaustive
+                throw new cce.UnreachableException();
+            }
+            break;
+        }
       } else {
-        throw new NotImplementedException();
+        throw new InvalidOperationException("Cannot emit literal expression outside of expression context: " + currentBuilder);
       }
     }
 
@@ -519,7 +588,17 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override string FullTypeName(UserDefinedType udt, MemberDecl member = null) {
-      throw new NotImplementedException();
+      if (udt is ArrowType) {
+        throw new NotImplementedException();
+      }
+
+      var cl = udt.ResolvedClass;
+      return cl switch {
+        TypeParameter => throw new NotImplementedException(),
+        ArrayClassDecl => throw new NotImplementedException(),
+        TupleTypeDecl => throw new NotImplementedException(),
+        _ => IdProtect(cl.GetFullCompileName(Options))
+      };
     }
 
     protected override void EmitThis(ConcreteSyntaxTree wr, bool callToInheritedMember) {
@@ -527,7 +606,14 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void EmitDatatypeValue(DatatypeValue dtv, string arguments, ConcreteSyntaxTree wr) {
-      throw new NotImplementedException();
+      if (currentBuilder is ExprBuffer builder) {
+        List<DAST.Expression> contents = builder.PopN(dtv.Arguments.Count);
+        builder.AddExpr((DAST.Expression) DAST.Expression.create_DatatypeValue(
+          Sequence<DAST.Expression>.FromArray(contents.ToArray())
+        ));
+      } else {
+        throw new InvalidOperationException("Cannot emit datatype value outside of expression context: " + currentBuilder);
+      }
     }
 
     protected override void GetSpecialFieldInfo(SpecialField.ID id, object idParam, Type receiverType,

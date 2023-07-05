@@ -191,13 +191,45 @@ namespace Microsoft.Dafny.Compilers {
     }
   }
 
+  class ExprBuffer: ExprContainer {
+    public DafnyCompiler compiler { get; }
+    Stack<DAST.Expression> exprs = new();
+    readonly object parent;
+
+    public ExprBuffer(DafnyCompiler compiler) {
+      this.compiler = compiler;
+      this.parent = compiler.currentBuilder;
+    }
+
+    public void AddExpr(DAST.Expression item) {
+      exprs.Push(item);
+    }
+
+    public List<DAST.Expression> PopN(int n) {
+      if (exprs.Count < n) {
+        throw new InvalidOperationException();
+      } else {
+        var result = new List<DAST.Expression>();
+        for (int i = 0; i < n; i++) {
+          result.Insert(0, exprs.Pop());
+        }
+        return result;
+      }
+    }
+
+    public DAST.Expression Finish() {
+      if (exprs.Count != 1) {
+        throw new InvalidOperationException();
+      } else {
+        compiler.currentBuilder = parent;
+        return exprs.Pop();
+      }
+    }
+  }
+
   interface ExprContainer {
     DafnyCompiler compiler { get; }
     void AddExpr(DAST.Expression item);
-
-    public void PassThrough(string expr) {
-      AddExpr((DAST.Expression)DAST.Expression.create_PassThroughExpr(Sequence<Rune>.UnicodeFromString(expr)));
-    }
   }
 
 }
