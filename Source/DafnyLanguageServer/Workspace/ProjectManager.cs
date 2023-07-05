@@ -185,7 +185,7 @@ public class ProjectManager {
     CompilationManager.CancelPendingUpdates();
     try {
       await CompilationManager.LastDocument;
-    } catch (TaskCanceledException) {
+    } catch (OperationCanceledException) {
     }
   }
 
