@@ -3193,6 +3193,7 @@ namespace Microsoft.Dafny.Compilers {
       w.WriteLine();
       EmitSuppression(w); //TODO: Fix implementations so they do not need this suppression
       var typeParamString = TypeParameters(typeParameters);
+      var headerWriter = w.Fork();
       w.Write($"public interface {IdProtect(name)}{typeParamString}");
       if (superClasses != null) {
         string sep = " extends ";
@@ -3220,7 +3221,7 @@ namespace Microsoft.Dafny.Compilers {
       var ctorBodyWriter = staticMemberWriter.NewBlock($"public _Companion_{name}()");
 
       EmitTypeDescriptorMethod(null, typeParameters, name + typeParamString, initializer: null, wr: staticMemberWriter);
-      return new ClassWriter(this, instanceMemberWriter, ctorBodyWriter, staticMemberWriter);
+      return new ClassWriter(this, headerWriter, instanceMemberWriter, ctorBodyWriter, staticMemberWriter);
     }
 
     protected override void EmitDestructor(string source, Formal dtor, int formalNonGhostIndex, DatatypeCtor ctor, List<Type> typeArgs, Type bvType, ConcreteSyntaxTree wr) {
