@@ -87,6 +87,10 @@ module {:extern "DCOMP"} DCOMP {
             var expr := GenExpr(expression);
             generated := "let mut " + name + ": " + typ + " = " + expr + ";";
           }
+          case Assign(name, expression) => {
+            var expr := GenExpr(expression);
+            generated := name + " = " + expr + ";";
+          }
           case _ => generated := "TODO";
         }
 
@@ -108,9 +112,16 @@ module {:extern "DCOMP"} DCOMP {
             s := natToString(i);
           }
         }
+        case Literal(DecLiteral(l)) => {
+          // TODO(shadaj): handle unicode properly
+          s := l;
+        }
         case Literal(StringLiteral(l)) => {
           // TODO(shadaj): handle unicode properly
           s := "\"" + l + "\"";
+        }
+        case Ident(name) => {
+          s := name;
         }
         case DatatypeValue(values) => {
           var i := 0;
@@ -124,6 +135,11 @@ module {:extern "DCOMP"} DCOMP {
             i := i + 1;
           }
           s := s + ")";
+        }
+        case BinOp(op, l, r) => {
+          var left := GenExpr(l);
+          var right := GenExpr(r);
+          s := "(" + left + " " + op + " " + right + ")";
         }
       }
     }

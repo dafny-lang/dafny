@@ -83,6 +83,14 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override string AssignmentSymbol { get => null; }
 
+    public override void EndStmt(ConcreteSyntaxTree wr) {
+      if (currentBuilder is CallBuilder callBuilder) {
+        currentBuilder = callBuilder.Finish();
+      } else {
+        throw new InvalidOperationException();
+      }
+    }
+
     protected override void EmitHeader(Program program, ConcreteSyntaxTree wr) {
       wr.WriteLine($"// Dafny program {program.Name} compiled into Simple Dafny");
       wr.WriteLine();
@@ -158,8 +166,21 @@ namespace Microsoft.Dafny.Compilers {
 
     private DAST.Type GenType(Type typ) {
       // TODO(shadaj): this is leaking Rust types into the AST, but we do need native types
-      if (typ is IntType) {
+      var xType = DatatypeWrapperEraser.SimplifyType(Options, typ);
+
+      if (xType is IntType) {
         return (DAST.Type)DAST.Type.create_Ident(Sequence<Rune>.UnicodeFromString("i32"));
+      } else if (xType is RealType) {
+        return (DAST.Type)DAST.Type.create_Ident(Sequence<Rune>.UnicodeFromString("f32"));
+      } else if (xType is UserDefinedType udt) {
+        if (udt.ResolvedClass is TypeParameter tp) {
+          if (thisContext != null && thisContext.ParentFormalTypeParametersToActuals.TryGetValue(tp, out var instantiatedTypeParameter)) {
+            throw new NotImplementedException();
+            // return TypeName(instantiatedTypeParameter, wr, tok, true, member);
+          }
+        }
+
+        return (DAST.Type)DAST.Type.create_Ident(Sequence<Rune>.UnicodeFromString(FullTypeName(udt, null)));
       } else {
         return (DAST.Type)(AsNativeType(typ).Sel switch {
           NativeType.Selection.Byte => DAST.Type.create_Ident(Sequence<Rune>.UnicodeFromString("u8")),
@@ -290,10 +311,9 @@ namespace Microsoft.Dafny.Compilers {
       if (bufferedInitializationValue != null) {
         throw new InvalidOperationException();
       } else {
-        throw new NotImplementedException();
-        // bufferedInitializationValue = (DAST.Expression)DAST.Expression.create_PassThroughExpr(
-        //   Sequence<Rune>.UnicodeFromString("TODO")
-        // );
+        bufferedInitializationValue = (DAST.Expression)DAST.Expression.create_Literal(
+          DAST.Literal.create_StringLiteral(Sequence<Rune>.UnicodeFromString("TODO (type initialization value)"))
+        );
 
         return null; // used by DeclareLocal(Out)Var
       }
@@ -330,7 +350,9 @@ namespace Microsoft.Dafny.Compilers {
 
         if (bufferedInitializationValue == null) {
           // we expect an initializer to come *after* this declaration
-          currentBuilder = statementContainer.DeclareAndAssign(typ);
+          var variable = statementContainer.DeclareAndAssign(typ);
+          currentBuilder = variable;
+          variable.SetName(name);
         } else {
           var rhsValue = bufferedInitializationValue;
           bufferedInitializationValue = null;
@@ -360,8 +382,22 @@ namespace Microsoft.Dafny.Compilers {
       DeclareLocalVar(name, type, tok, true, rhs, wr);
     }
 
+    protected override void TrCallStmt(CallStmt s, string receiverReplacement, ConcreteSyntaxTree wr) {
+      if (currentBuilder is StatementContainer builder) {
+        // currentBuilder = builder.Call();
+        // base.TrCallStmt(s, receiverReplacement, wr);
+      } else if (currentBuilder is ExprContainer exprBuilder) {
+        // TODO: call expr
+        exprBuilder.AddExpr((DAST.Expression)DAST.Expression.create_Literal(
+          DAST.Literal.create_StringLiteral(Sequence<Rune>.UnicodeFromString("TODO (call stmt)"))
+        ));
+      } else {
+        throw new InvalidOperationException("Cannot call statement in this context: " + currentBuilder);
+      }
+    }
+
     protected override void EmitActualTypeArgs(List<Type> typeArgs, IToken tok, ConcreteSyntaxTree wr) {
-      throw new NotImplementedException();
+      /* TODO(shadaj) */
     }
 
     protected override string GenerateLhsDecl(string target, Type type, ConcreteSyntaxTree wr, IToken tok) {
@@ -412,11 +448,10 @@ namespace Microsoft.Dafny.Compilers {
       if (currentBuilder is StatementContainer statementContainer) {
         ExprBuffer buffer = new(this);
         currentBuilder = buffer;
-        Console.WriteLine(this.currentBuilder);
         Expr(arg, false, new ConcreteSyntaxTree());
         statementContainer.Print(buffer.Finish());
       } else {
-        throw new NotImplementedException("");
+        throw new InvalidOperationException("Cannot print outside of a statement container: " + currentBuilder);
       }
     }
 
@@ -515,6 +550,16 @@ namespace Microsoft.Dafny.Compilers {
       throw new NotImplementedException();
     }
 
+    protected override void EmitIdentifierExpr(IdentifierExpr e, bool inLetExprBody, ConcreteSyntaxTree wr) {
+      if (currentBuilder is ExprContainer builder) {
+        builder.AddExpr((DAST.Expression)DAST.Expression.create_Ident(
+          Sequence<Rune>.UnicodeFromString(IdName(e.Var))
+        ));
+      } else {
+        throw new InvalidOperationException();
+      }
+    }
+
     protected override void EmitLiteralExpr(ConcreteSyntaxTree wr, LiteralExpr e) {
       if (currentBuilder is ExprContainer builder) {
         switch (e) {
@@ -522,7 +567,7 @@ namespace Microsoft.Dafny.Compilers {
             throw new NotImplementedException();
             break;
           case StringLiteralExpr str:
-            builder.AddExpr((DAST.Expression) DAST.Expression.create_Literal(DAST.Literal.create_StringLiteral(
+            builder.AddExpr((DAST.Expression)DAST.Expression.create_Literal(DAST.Literal.create_StringLiteral(
               Sequence<Rune>.UnicodeFromString(str.AsStringLiteral())
             )));
             break;
@@ -538,10 +583,12 @@ namespace Microsoft.Dafny.Compilers {
                 throw new NotImplementedException();
                 break;
               case BigInteger integer:
-                builder.AddExpr((DAST.Expression) DAST.Expression.create_Literal(DAST.Literal.create_IntLiteral(integer)));
+                builder.AddExpr((DAST.Expression)DAST.Expression.create_Literal(DAST.Literal.create_IntLiteral(integer)));
                 break;
               case BigDec n:
-                throw new NotImplementedException();
+                builder.AddExpr((DAST.Expression)DAST.Expression.create_Literal(DAST.Literal.create_DecLiteral(
+                  Sequence<Rune>.UnicodeFromString(n.ToString())
+                )));
                 break;
               default:
                 // TODO: This may not be exhaustive
@@ -594,7 +641,7 @@ namespace Microsoft.Dafny.Compilers {
 
       var cl = udt.ResolvedClass;
       return cl switch {
-        TypeParameter => throw new NotImplementedException(),
+        TypeParameter => IdProtect(udt.GetCompileName(Options)),
         ArrayClassDecl => throw new NotImplementedException(),
         TupleTypeDecl => throw new NotImplementedException(),
         _ => IdProtect(cl.GetFullCompileName(Options))
@@ -608,7 +655,7 @@ namespace Microsoft.Dafny.Compilers {
     protected override void EmitDatatypeValue(DatatypeValue dtv, string arguments, ConcreteSyntaxTree wr) {
       if (currentBuilder is ExprBuffer builder) {
         List<DAST.Expression> contents = builder.PopN(dtv.Arguments.Count);
-        builder.AddExpr((DAST.Expression) DAST.Expression.create_DatatypeValue(
+        builder.AddExpr((DAST.Expression)DAST.Expression.create_DatatypeValue(
           Sequence<DAST.Expression>.FromArray(contents.ToArray())
         ));
       } else {
@@ -719,67 +766,70 @@ namespace Microsoft.Dafny.Compilers {
       out bool convertE1_to_int,
       out bool coerceE1,
       ConcreteSyntaxTree errorWr) {
+      if (currentBuilder is ExprContainer builder) {
+        opString = null;
+        preOpString = "";
+        postOpString = "";
+        callString = null;
+        staticCallString = null;
+        reverseArguments = false;
+        truncateResult = false;
+        convertE1_to_int = false;
+        coerceE1 = false;
 
-      opString = null;
-      preOpString = "";
-      postOpString = "";
-      callString = null;
-      staticCallString = null;
-      reverseArguments = false;
-      truncateResult = false;
-      convertE1_to_int = false;
-      coerceE1 = false;
+        opString = op switch {
+          BinaryExpr.ResolvedOpcode.Iff => "<==>",
+          BinaryExpr.ResolvedOpcode.Imp => "==>",
+          BinaryExpr.ResolvedOpcode.And => "&&",
+          BinaryExpr.ResolvedOpcode.Or => "||",
+          BinaryExpr.ResolvedOpcode.BitwiseAnd => "&",
+          BinaryExpr.ResolvedOpcode.BitwiseOr => "|",
+          BinaryExpr.ResolvedOpcode.BitwiseXor => "^",
+          BinaryExpr.ResolvedOpcode.EqCommon => "==",
+          BinaryExpr.ResolvedOpcode.NeqCommon => "!=",
+          BinaryExpr.ResolvedOpcode.Lt => "<",
+          BinaryExpr.ResolvedOpcode.Le => "<=",
+          BinaryExpr.ResolvedOpcode.Ge => ">=",
+          BinaryExpr.ResolvedOpcode.Gt => ">",
+          BinaryExpr.ResolvedOpcode.LeftShift => "<<",
+          BinaryExpr.ResolvedOpcode.RightShift => ">>",
+          BinaryExpr.ResolvedOpcode.Add => "+",
+          BinaryExpr.ResolvedOpcode.Sub => "-",
+          BinaryExpr.ResolvedOpcode.Mul => "*",
+          BinaryExpr.ResolvedOpcode.Div => "/",
+          BinaryExpr.ResolvedOpcode.Mod => "%",
+          BinaryExpr.ResolvedOpcode.SetEq => "==",
+          BinaryExpr.ResolvedOpcode.MultiSetEq => "==",
+          BinaryExpr.ResolvedOpcode.SeqEq => "==",
+          BinaryExpr.ResolvedOpcode.MapEq => "==",
+          BinaryExpr.ResolvedOpcode.ProperSubset => "<",
+          BinaryExpr.ResolvedOpcode.ProperMultiSubset => "<",
+          BinaryExpr.ResolvedOpcode.Subset => "<=",
+          BinaryExpr.ResolvedOpcode.MultiSubset => "<=",
+          BinaryExpr.ResolvedOpcode.Disjoint => "!!",
+          BinaryExpr.ResolvedOpcode.MultiSetDisjoint => "!!",
+          BinaryExpr.ResolvedOpcode.InSet => "in",
+          BinaryExpr.ResolvedOpcode.InMultiSet => "in",
+          BinaryExpr.ResolvedOpcode.InMap => "in",
+          BinaryExpr.ResolvedOpcode.Union => "+",
+          BinaryExpr.ResolvedOpcode.MultiSetUnion => "+",
+          BinaryExpr.ResolvedOpcode.MapMerge => "+",
+          BinaryExpr.ResolvedOpcode.Intersection => "*",
+          BinaryExpr.ResolvedOpcode.MultiSetIntersection => "*",
+          BinaryExpr.ResolvedOpcode.SetDifference => "-",
+          BinaryExpr.ResolvedOpcode.MultiSetDifference => "-",
+          BinaryExpr.ResolvedOpcode.MapSubtraction => "-",
+          BinaryExpr.ResolvedOpcode.ProperPrefix => "<=",
+          BinaryExpr.ResolvedOpcode.Prefix => "<",
+          BinaryExpr.ResolvedOpcode.Concat => "+",
+          BinaryExpr.ResolvedOpcode.InSeq => "in",
+          _ => throw new NotImplementedException(),
+        };
 
-      opString = op switch {
-        BinaryExpr.ResolvedOpcode.Iff => "<==>",
-        BinaryExpr.ResolvedOpcode.Imp => "==>",
-        BinaryExpr.ResolvedOpcode.And => "&&",
-        BinaryExpr.ResolvedOpcode.Or => "||",
-        BinaryExpr.ResolvedOpcode.BitwiseAnd => "&",
-        BinaryExpr.ResolvedOpcode.BitwiseOr => "|",
-        BinaryExpr.ResolvedOpcode.BitwiseXor => "^",
-        BinaryExpr.ResolvedOpcode.EqCommon => "==",
-        BinaryExpr.ResolvedOpcode.NeqCommon => "!=",
-        BinaryExpr.ResolvedOpcode.Lt => "<",
-        BinaryExpr.ResolvedOpcode.Le => "<=",
-        BinaryExpr.ResolvedOpcode.Ge => ">=",
-        BinaryExpr.ResolvedOpcode.Gt => ">",
-        BinaryExpr.ResolvedOpcode.LeftShift => "<<",
-        BinaryExpr.ResolvedOpcode.RightShift => ">>",
-        BinaryExpr.ResolvedOpcode.Add => "+",
-        BinaryExpr.ResolvedOpcode.Sub => "-",
-        BinaryExpr.ResolvedOpcode.Mul => "*",
-        BinaryExpr.ResolvedOpcode.Div => "/",
-        BinaryExpr.ResolvedOpcode.Mod => "%",
-        BinaryExpr.ResolvedOpcode.SetEq => "==",
-        BinaryExpr.ResolvedOpcode.MultiSetEq => "==",
-        BinaryExpr.ResolvedOpcode.SeqEq => "==",
-        BinaryExpr.ResolvedOpcode.MapEq => "==",
-        BinaryExpr.ResolvedOpcode.ProperSubset => "<",
-        BinaryExpr.ResolvedOpcode.ProperMultiSubset => "<",
-        BinaryExpr.ResolvedOpcode.Subset => "<=",
-        BinaryExpr.ResolvedOpcode.MultiSubset => "<=",
-        BinaryExpr.ResolvedOpcode.Disjoint => "!!",
-        BinaryExpr.ResolvedOpcode.MultiSetDisjoint => "!!",
-        BinaryExpr.ResolvedOpcode.InSet => "in",
-        BinaryExpr.ResolvedOpcode.InMultiSet => "in",
-        BinaryExpr.ResolvedOpcode.InMap => "in",
-        BinaryExpr.ResolvedOpcode.Union => "+",
-        BinaryExpr.ResolvedOpcode.MultiSetUnion => "+",
-        BinaryExpr.ResolvedOpcode.MapMerge => "+",
-        BinaryExpr.ResolvedOpcode.Intersection => "*",
-        BinaryExpr.ResolvedOpcode.MultiSetIntersection => "*",
-        BinaryExpr.ResolvedOpcode.SetDifference => "-",
-        BinaryExpr.ResolvedOpcode.MultiSetDifference => "-",
-        BinaryExpr.ResolvedOpcode.MapSubtraction => "-",
-        BinaryExpr.ResolvedOpcode.ProperPrefix => "<=",
-        BinaryExpr.ResolvedOpcode.Prefix => "<",
-        BinaryExpr.ResolvedOpcode.Concat => "+",
-        BinaryExpr.ResolvedOpcode.InSeq => "in",
-        _ => throw new NotImplementedException(),
-      };
-
-      throw new NotImplementedException();
+        currentBuilder = builder.BinOp(opString);
+      } else {
+        throw new InvalidOperationException();
+      }
     }
 
     protected override void EmitITE(Expression guard, Expression thn, Expression els, Type resultType, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {

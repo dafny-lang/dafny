@@ -144,6 +144,10 @@ namespace Microsoft.Dafny.Compilers {
     public AssignBuilder DeclareAndAssign(DAST.Type type) {
       return new AssignBuilder(this, true, type);
     }
+
+    public CallBuilder Call() {
+      return new CallBuilder(this);
+    }
   }
 
   class AssignBuilder : ExprContainer {
@@ -161,7 +165,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     public void SetName(string name) {
-      if (this.name != null) {
+      if (this.name != null && this.name != name) {
         throw new InvalidOperationException();
       } else {
         this.name = name;
@@ -174,7 +178,8 @@ namespace Microsoft.Dafny.Compilers {
       } else {
         this.value = value;
         if (compiler.currentBuilder == this) {
-          compiler.currentBuilder = this.Finish();
+          compiler.currentBuilder = this.parent;
+          this.Finish();
         } else {
           throw new InvalidOperationException();
         }
@@ -191,7 +196,37 @@ namespace Microsoft.Dafny.Compilers {
     }
   }
 
-  class ExprBuffer: ExprContainer {
+  class CallBuilder : ExprContainer {
+    public DafnyCompiler compiler { get => parent.compiler; }
+    readonly StatementContainer parent;
+
+    string name = null;
+    readonly List<DAST.Expression> args = new();
+
+    public CallBuilder(StatementContainer parent) {
+      this.parent = parent;
+    }
+
+    public void SetName(string name) {
+      if (this.name != null) {
+        throw new InvalidOperationException();
+      } else {
+        this.name = name;
+      }
+    }
+
+    public void AddExpr(DAST.Expression value) {
+      args.Add(value);
+    }
+
+    public object Finish() {
+      throw new NotImplementedException();
+      // parent.AddStatement((DAST.Statement)DAST.Statement.create_Call(Sequence<Rune>.UnicodeFromString(name), Sequence<DAST.Expression>.FromArray(args.ToArray())));
+      return parent;
+    }
+  }
+
+  class ExprBuffer : ExprContainer {
     public DafnyCompiler compiler { get; }
     Stack<DAST.Expression> exprs = new();
     readonly object parent;
@@ -230,6 +265,44 @@ namespace Microsoft.Dafny.Compilers {
   interface ExprContainer {
     DafnyCompiler compiler { get; }
     void AddExpr(DAST.Expression item);
+
+    BinOpBuilder BinOp(string op) {
+      return new BinOpBuilder(this, op);
+    }
+  }
+
+  class BinOpBuilder : ExprContainer {
+    public DafnyCompiler compiler { get => parent.compiler; }
+    readonly ExprContainer parent;
+    readonly string op;
+    DAST.Expression left = null;
+    DAST.Expression right = null;
+
+    public BinOpBuilder(ExprContainer parent, string op) {
+      this.parent = parent;
+      this.op = op;
+    }
+
+    public void AddExpr(DAST.Expression item) {
+      if (left == null) {
+        left = item;
+      } else if (right == null) {
+        right = item;
+        if (compiler.currentBuilder == this) {
+          compiler.currentBuilder = this.parent;
+          this.Finish();
+        } else {
+          throw new InvalidOperationException();
+        }
+      } else {
+        throw new InvalidOperationException();
+      }
+    }
+
+    public object Finish() {
+      parent.AddExpr((DAST.Expression)DAST.Expression.create_BinOp(Sequence<Rune>.UnicodeFromString(op), left, right));
+      return parent;
+    }
   }
 
 }

@@ -23,6 +23,7 @@ macro_rules! impl_print_display {
 
 impl_print_display! { String }
 impl_print_display! { &str }
+impl_print_display! { bool }
 impl_print_display! { u8 }
 impl_print_display! { u16 }
 impl_print_display! { u32 }
@@ -33,6 +34,8 @@ impl_print_display! { i16 }
 impl_print_display! { i32 }
 impl_print_display! { i64 }
 impl_print_display! { i128 }
+impl_print_display! { f32 }
+impl_print_display! { f64 }
 
 macro_rules! impl_tuple_print {
     ($($items:ident)*) => {

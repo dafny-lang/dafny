@@ -19,9 +19,9 @@ module {:extern "DAST"} DAST {
 
   datatype Method = Method(name: string, body: seq<Statement>)
 
-  datatype Statement = DeclareVar(name: string, typ: Type, value: Expression) | Assign(name: string, value: Expression) | Print(Expression)
+  datatype Statement = DeclareVar(name: string, typ: Type, value: Expression) | Assign(name: string, value: Expression) | Call(name: string, args: seq<Expression>) | Print(Expression)
 
-  datatype Expression = Literal(Literal) | DatatypeValue(contents: seq<Expression>)
+  datatype Expression = Literal(Literal) | Ident(string) | DatatypeValue(contents: seq<Expression>) | BinOp(op: string, left: Expression, right: Expression)
 
-  datatype Literal = IntLiteral(int) | StringLiteral(string)
+  datatype Literal = IntLiteral(int) | DecLiteral(string) | StringLiteral(string)
 }
