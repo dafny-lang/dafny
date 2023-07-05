@@ -73,7 +73,7 @@ public class AssignSuchThatStmt : ConcreteUpdateStatement, ICloneable<AssignSuch
     }
   }
 
-  public override void Resolve(Resolver resolver, ResolutionContext resolutionContext) {
+  public override void Resolve(ModuleResolver resolver, ResolutionContext resolutionContext) {
     Contract.Requires(this != null);
     Contract.Requires(resolutionContext != null);
 

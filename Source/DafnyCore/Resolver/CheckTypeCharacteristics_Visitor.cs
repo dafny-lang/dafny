@@ -154,11 +154,15 @@ class CheckTypeCharacteristics_Visitor : ResolverTopDownVisitor<bool> {
       switch (e.Op) {
         case BinaryExpr.Opcode.Eq:
         case BinaryExpr.Opcode.Neq:
-          // First, check some special cases that can always be compared against--for example, a datatype value (like Nil) that takes no parameters
-          if (CanCompareWith(e.E0)) {
-            // that's cool
-          } else if (CanCompareWith(e.E1)) {
-            // oh yeah!
+          if (t0.IsTraitType || t1.IsTraitType) {
+            // Non-reference-type traits do not support equality, but reference-trait types do.
+            if (!t0.SupportsEquality) {
+              reporter.Error(MessageSource.Resolver, e.E0, "{0} can only be applied to expressions of types that support equality (got {1}){2}", BinaryExpr.OpcodeString(e.Op), t0, TypeEqualityErrorMessageHint(t0));
+            } else if (!t1.SupportsEquality) {
+              reporter.Error(MessageSource.Resolver, e.E1, "{0} can only be applied to expressions of types that support equality (got {1}){2}", BinaryExpr.OpcodeString(e.Op), t1, TypeEqualityErrorMessageHint(t1));
+            }
+          } else if (CanCompareWith(e.E0) || CanCompareWith(e.E1)) {
+            // These are special cases with values that can always be compared against--for example, a datatype value (like Nil) that takes no parameters
           } else if (!t0.PartiallySupportsEquality) {
             reporter.Error(MessageSource.Resolver, e.E0, "{0} can only be applied to expressions of types that support equality (got {1}){2}", BinaryExpr.OpcodeString(e.Op), t0, TypeEqualityErrorMessageHint(t0));
           } else if (!t1.PartiallySupportsEquality) {

@@ -17,6 +17,19 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions {
       });
     }
 
+    public static void CloseDocument(this ILanguageClient client, TextDocumentItem documentItem) {
+      client.DidCloseTextDocument(new DidCloseTextDocumentParams {
+        TextDocument = new TextDocumentIdentifier() {
+          Uri = documentItem.Uri
+        }
+      });
+    }
+
+    public static Task CloseDocumentAndWaitAsync(this ILanguageClient client, TextDocumentItem documentItem, CancellationToken cancellationToken) {
+      client.CloseDocument(documentItem);
+      return client.WaitForNotificationCompletionAsync(documentItem.Uri, cancellationToken);
+    }
+
     public static Task OpenDocumentAndWaitAsync(this ILanguageClient client, TextDocumentItem documentItem, CancellationToken cancellationToken) {
       client.OpenDocument(documentItem);
       return client.WaitForNotificationCompletionAsync(documentItem.Uri, cancellationToken);

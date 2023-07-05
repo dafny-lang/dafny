@@ -24,7 +24,7 @@ public class DisjunctivePattern : ExtendedPattern {
     }
   }
 
-  public override void Resolve(Resolver resolver, ResolutionContext resolutionContext,
+  public override void Resolve(ModuleResolver resolver, ResolutionContext resolutionContext,
     Type sourceType, bool isGhost, bool inStatementContext,
     bool inPattern, bool inDisjunctivePattern) {
 

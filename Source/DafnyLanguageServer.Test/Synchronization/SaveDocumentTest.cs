@@ -17,7 +17,7 @@ function GetConstant(): int {
 }".Trim();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      await GetLastDiagnostics(documentItem, CancellationToken);
+      await AssertNoDiagnosticsAreComing(CancellationToken);
       await client.SaveDocumentAndWaitAsync(documentItem, CancellationToken);
       await AssertNoDiagnosticsAreComing(CancellationToken);
     }
@@ -31,7 +31,7 @@ function GetConstant(): int {
       await SetUp(options => options.Set(ServerCommand.Verification, VerifyOnMode.Never));
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      await GetLastDiagnostics(documentItem, CancellationToken);
+      await AssertNoDiagnosticsAreComing(CancellationToken);
       await client.SaveDocumentAndWaitAsync(documentItem, CancellationToken);
       await AssertNoDiagnosticsAreComing(CancellationToken);
     }
@@ -73,7 +73,7 @@ function GetConstant(): int {
       await SetUp(options => options.Set(ServerCommand.Verification, VerifyOnMode.Save));
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      await GetLastDiagnostics(documentItem, CancellationToken);
+      await AssertNoDiagnosticsAreComing(CancellationToken);
       await client.SaveDocumentAndWaitAsync(documentItem, CancellationToken);
       await AssertNoDiagnosticsAreComing(CancellationToken);
     }
@@ -87,7 +87,7 @@ method DoIt() {
       await SetUp(options => options.Set(ServerCommand.Verification, VerifyOnMode.Save));
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      await GetLastDiagnostics(documentItem, CancellationToken);
+      await AssertNoDiagnosticsAreComing(CancellationToken);
       await client.SaveDocumentAndWaitAsync(documentItem, CancellationToken);
       var afterSaveDiagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
       Assert.Single(afterSaveDiagnostics);
