@@ -165,7 +165,7 @@ public class CompilationManager {
       loaded.ResolutionDiagnostics, verificationTasks,
       new(),
       initialViews,
-      migratedVerificationTree ?? (loaded.Project.IsImplicitProject ? null : new DocumentVerificationTree(loaded.Program, loaded.Project.Uri))
+      migratedVerificationTree ?? (loaded.Project.IsImplicitProject ? new DocumentVerificationTree(loaded.Program, loaded.Project.Uri) : null)
       );
 
     translated.GutterProgressReporter?.RecomputeVerificationTree();

@@ -38,6 +38,6 @@ public class CompilationAfterParsing : Compilation {
   }
 
   public virtual VerificationTree? GetVerificationTree() {
-    return Project.IsImplicitProject ? null : new DocumentVerificationTree(Program, Project.Uri);
+    return Project.IsImplicitProject ? new DocumentVerificationTree(Program, Project.Uri) : null;
   }
 }

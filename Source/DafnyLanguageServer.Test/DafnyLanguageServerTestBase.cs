@@ -164,7 +164,7 @@ lemma {:neverVerify} HasNeverVerifyAttribute(p: nat, q: nat)
         .SetMinimumLevel(LogLevel.Debug)
         .AddConsole();
     }
-
+    
     protected static TextDocumentItem CreateTestDocument(string source, string filePath = null, int version = 1) {
       filePath ??= $"testFile{fileIndex++}.dfy";
       return new TextDocumentItem {

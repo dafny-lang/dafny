@@ -1,3 +1,4 @@
+using System;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
@@ -9,10 +10,16 @@ using Xunit;
 using Xunit.Abstractions;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
-namespace Microsoft.Dafny.LanguageServer.IntegrationTest.ProjectFiles; 
+namespace Microsoft.Dafny.LanguageServer.IntegrationTest.ProjectFiles;
 
 public class MultipleFilesTest : ClientBasedLanguageServerTest {
-
+  protected override Task SetUp(Action<DafnyOptions> modifyOptions) {
+    return base.SetUp(o => {
+      o.Set(ServerCommand.ProjectMode, true);
+      modifyOptions?.Invoke(o);
+    });
+  }
+  
   [Fact]
   public async Task FileGetsRemappedToProjectByCreatingProjectFileOnDisk() {
     var consumerSource = @"
@@ -27,10 +34,8 @@ method Produces() {}
 
     var directory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
     Directory.CreateDirectory(directory);
-    var consumer = CreateTestDocument(consumerSource, Path.Combine(directory, "firstFile.dfy"));
-    await client.OpenDocumentAndWaitAsync(consumer, CancellationToken);
-    var secondFile = CreateTestDocument(producer, Path.Combine(directory, "secondFile.dfy"));
-    await client.OpenDocumentAndWaitAsync(secondFile, CancellationToken);
+    var consumer = await CreateAndOpenTestDocument(consumerSource, Path.Combine(directory, "firstFile.dfy"));
+    await CreateAndOpenTestDocument(producer, Path.Combine(directory, "secondFile.dfy"));
 
     var producesDefinition1 = await RequestDefinition(consumer, new Position(1, 3));
     Assert.Empty(producesDefinition1);
@@ -55,16 +60,13 @@ method Produces() {}
 ".TrimStart();
 
     var directory = Path.GetRandomFileName();
-    var consumer = CreateTestDocument(consumerSource, Path.Combine(directory, "firstFile.dfy"));
-    await client.OpenDocumentAndWaitAsync(consumer, CancellationToken);
-    var secondFile = CreateTestDocument(producer, Path.Combine(directory, "secondFile.dfy"));
-    await client.OpenDocumentAndWaitAsync(secondFile, CancellationToken);
+    var consumer = await CreateAndOpenTestDocument(consumerSource, Path.Combine(directory, "firstFile.dfy"));
+    var secondFile = await CreateAndOpenTestDocument(producer, Path.Combine(directory, "secondFile.dfy"));
 
     var producesDefinition1 = await RequestDefinition(consumer, new Position(1, 3));
     Assert.Empty(producesDefinition1);
 
-    var projectFile = CreateTestDocument("", Path.Combine(directory, "dfyconfig.toml"));
-    await client.OpenDocumentAndWaitAsync(projectFile, CancellationToken);
+    await CreateAndOpenTestDocument("", Path.Combine(directory, "dfyconfig.toml"));
 
     await Task.Delay(ProjectManagerDatabase.ProjectFileCacheExpiryTime);
 
@@ -79,10 +81,8 @@ method Produces() {}
     });
 
     var directory = Path.GetRandomFileName();
-    var projectFile = CreateTestDocument("", Path.Combine(directory, "dfyconfig.toml"));
-    await client.OpenDocumentAndWaitAsync(projectFile, CancellationToken);
-    var codeFile = CreateTestDocument("method Foo() {}", Path.Combine(directory, "firstFile.dfy"));
-    await client.OpenDocumentAndWaitAsync(codeFile, CancellationToken);
+    var projectFile = await CreateAndOpenTestDocument("", Path.Combine(directory, "dfyconfig.toml"));
+    var codeFile = await CreateAndOpenTestDocument("method Foo() {}", Path.Combine(directory, "firstFile.dfy"));
 
     Assert.NotEmpty(Projects.Managers);
 
@@ -118,10 +118,8 @@ method Produces() {}
     Directory.CreateDirectory(directory);
     await File.WriteAllTextAsync(Path.Combine(directory, "dfyconfig.toml"), projectFileSource);
 
-    var consumer = CreateTestDocument(consumerSource, Path.Combine(directory, "firstFile.dfy"));
-    await client.OpenDocumentAndWaitAsync(consumer, CancellationToken);
-    var secondFile = CreateTestDocument(producer, Path.Combine(directory, "secondFile.dfy"));
-    await client.OpenDocumentAndWaitAsync(secondFile, CancellationToken);
+    var consumer = await CreateAndOpenTestDocument(consumerSource, Path.Combine(directory, "firstFile.dfy"));
+    var secondFile = await CreateAndOpenTestDocument(producer, Path.Combine(directory, "secondFile.dfy"));
 
     var producesDefinition1 = await RequestDefinition(consumer, new Position(1, 3));
     Assert.Empty(producesDefinition1);
@@ -157,10 +155,8 @@ includes = [""src/**/*.dfy""]
 warn-shadowing = true
 "; // includes must come before [options], even if there is a blank line
     var directory = Path.GetRandomFileName();
-    var projectFile = CreateTestDocument(projectFileSource, Path.Combine(directory, "dfyconfig.toml"));
-    await client.OpenDocumentAndWaitAsync(projectFile, CancellationToken);
-    var sourceFile = CreateTestDocument(source, Path.Combine(directory, "src/file.dfy"));
-    await client.OpenDocumentAndWaitAsync(sourceFile, CancellationToken);
+    var projectFile = await CreateAndOpenTestDocument(projectFileSource, Path.Combine(directory, "dfyconfig.toml"));
+    var sourceFile = await CreateAndOpenTestDocument(source, Path.Combine(directory, "src/file.dfy"));
 
     var diagnostics1 = await GetLastDiagnostics(sourceFile, CancellationToken);
     Assert.Equal(2, diagnostics1.Length);
@@ -191,12 +187,9 @@ method Bar() {
 includes = [""src/**/*.dfy""]
 ";
     var directory = Directory.GetCurrentDirectory();
-    var projectFile = CreateTestDocument(projectFileSource, Path.Combine(directory, "dfyconfig.toml"));
-    await client.OpenDocumentAndWaitAsync(projectFile, CancellationToken);
-    var producerItem = CreateTestDocument(producerSource, Path.Combine(directory, "src/producer.dfy"));
-    await client.OpenDocumentAndWaitAsync(producerItem, CancellationToken);
-    var consumer = CreateTestDocument(consumerSource, Path.Combine(directory, "src/consumer1.dfy"));
-    await client.OpenDocumentAndWaitAsync(consumer, CancellationToken);
+    var projectFile = await CreateAndOpenTestDocument(projectFileSource, Path.Combine(directory, "dfyconfig.toml"));
+    var producerItem = await CreateAndOpenTestDocument(producerSource, Path.Combine(directory, "src/producer.dfy"));
+    var consumer = await CreateAndOpenTestDocument(consumerSource, Path.Combine(directory, "src/consumer1.dfy"));
 
     var consumerDiagnostics1 = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, consumer);
     Assert.Single(consumerDiagnostics1);
@@ -222,10 +215,8 @@ method Bar() {
   var x: int := true; 
 }
 ";
-    var producerItem = CreateTestDocument(producerSource, Path.Combine(Directory.GetCurrentDirectory(), "A.dfy"));
-    await client.OpenDocumentAndWaitAsync(producerItem, CancellationToken);
-    var consumer = CreateTestDocument(consumerSource, Path.Combine(Directory.GetCurrentDirectory(), "consumer1.dfy"));
-    await client.OpenDocumentAndWaitAsync(consumer, CancellationToken);
+    var producerItem = await CreateAndOpenTestDocument(producerSource, Path.Combine(Directory.GetCurrentDirectory(), "A.dfy"));
+    var consumer = await CreateAndOpenTestDocument(consumerSource, Path.Combine(Directory.GetCurrentDirectory(), "consumer1.dfy"));
 
     var consumer1Diagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, consumer);
     Assert.Single(consumer1Diagnostics);
@@ -235,16 +226,14 @@ method Bar() {
     var producerDiagnostics2 = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, producerItem);
     Assert.Single(producerDiagnostics2); // File has no code
 
-    var consumer2 = CreateTestDocument(consumerSource, Path.Combine(Directory.GetCurrentDirectory(), "consumer2.dfy"));
-    await client.OpenDocumentAndWaitAsync(consumer2, CancellationToken);
+    var consumer2 = await CreateAndOpenTestDocument(consumerSource, Path.Combine(Directory.GetCurrentDirectory(), "consumer2.dfy"));
     var consumer2Diagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, consumer2);
     Assert.True(consumer2Diagnostics.Length > 1);
 
     await client.CloseDocumentAndWaitAsync(producerItem, CancellationToken);
     var producerDiagnostics3 = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
     Assert.Empty(producerDiagnostics3); // File has no code
-    var consumer3 = CreateTestDocument(consumerSource, Path.Combine(Directory.GetCurrentDirectory(), "consumer3.dfy"));
-    await client.OpenDocumentAndWaitAsync(consumer3, CancellationToken);
+    var consumer3 = await CreateAndOpenTestDocument(consumerSource, Path.Combine(Directory.GetCurrentDirectory(), "consumer3.dfy"));
     var consumer3Diagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, consumer3);
     Assert.Single(consumer3Diagnostics);
     Assert.Contains("Unable to open", consumer3Diagnostics[0].Message);

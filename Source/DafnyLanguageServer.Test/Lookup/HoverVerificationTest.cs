@@ -17,22 +17,8 @@ using Assert = Xunit.Assert;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
   [Collection("Sequential Collection")] // Let slow tests run sequentially
-  public class HoverVerificationTest : SynchronizationTestBase {
+  public class HoverVerificationTest : ClientBasedLanguageServerTest {
     private const int MaxTestExecutionTimeMs = 30000;
-
-    private TestNotificationReceiver<CompilationStatusParams> notificationReceiver;
-
-    public override async Task InitializeAsync() {
-      await SetUp(null);
-    }
-
-    private async Task SetUp(Action<DafnyOptions> modifyOptions) {
-      notificationReceiver = new();
-      Client = await InitializeClient(options => {
-        options
-          .AddHandler(DafnyRequestNames.CompilationStatus, NotificationHandler.For<CompilationStatusParams>(notificationReceiver.NotificationReceived));
-      }, modifyOptions);
-    }
 
     [Fact(Timeout = MaxTestExecutionTimeMs)]
     public async Task HoverGetsBasicAssertionInformation() {
@@ -506,52 +492,9 @@ lemma {:rlimit 12000} SquareRoot2NotRational(p: nat, q: nat)
     private async Task<TextDocumentItem> GetDocumentItem(string source, string filename) {
       source = source.TrimStart();
       var documentItem = CreateTestDocument(source, filename);
-      await Client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      await Projects.GetLastDocumentAsync(documentItem);
+      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+      var document = await Projects.GetLastDocumentAsync(documentItem);
       return documentItem;
-    }
-
-    private static Regex errorTests = new Regex(@"\*\*Error:\*\*|\*\*Success:\*\*");
-
-    private async Task AssertHoverMatches(TextDocumentItem documentItem, Position hoverPosition, [CanBeNull] string expected) {
-      if (expected != null && errorTests.Matches(expected).Count >= 2) {
-        Assert.Fail("Found multiple hover messages in one test; the order is currently not stable, so please test one at a time.");
-      }
-      var hover = await RequestHover(documentItem, hoverPosition);
-      if (expected == null) {
-        Assert.True(hover == null || hover.Contents.MarkupContent is null or { Value: "" });
-        return;
-      }
-      AssertM.NotNull(hover, $"No hover message found at {hoverPosition}");
-      var markup = hover.Contents.MarkupContent;
-      Assert.NotNull(markup);
-      Assert.Equal(MarkupKind.Markdown, markup.Kind);
-      AssertMatchRegex(expected.ReplaceLineEndings("\n"), markup.Value);
-    }
-
-    private void AssertMatchRegex(string expected, string value) {
-      var regexExpected = Regex.Escape(expected).Replace(@"\?\?\?", "[\\s\\S]*");
-      var matched = new Regex(regexExpected).Match(value).Success;
-      if (!matched) {
-        // A simple helper to determine what portion of the regex did not match
-        var helper = "";
-        foreach (var chunk in expected.Split("???")) {
-          if (!value.Contains(chunk)) {
-            helper += $"\nThe result string did not contain '{chunk}'";
-          }
-        }
-        Assert.Fail($"{value} did not match {regexExpected}." + helper);
-      }
-    }
-
-    private Task<Hover> RequestHover(TextDocumentItem documentItem, Position position) {
-      return Client.RequestHover(
-        new HoverParams {
-          TextDocument = documentItem.Uri,
-          Position = position
-        },
-        CancellationToken
-      );
     }
 
     public HoverVerificationTest(ITestOutputHelper output) : base(output) {
