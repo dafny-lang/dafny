@@ -14,6 +14,7 @@ public class VerificationOrder : ClientBasedLanguageServerTest {
   public async Task VerificationPriorityBasedOnChangesWorksWithMultipleFiles() {
     await SetUp(options => {
       options.Set(BoogieOptionBag.Cores, 1U);
+      options.Set(ServerCommand.ProjectMode, true);
     });
 
     var sourceA = @"
@@ -29,12 +30,9 @@ method Bar() {
 ".TrimStart();
 
     var directory = Path.GetRandomFileName();
-    var projectFile = CreateTestDocument("", Path.Combine(directory, "dfyconfig.toml"));
-    await client.OpenDocumentAndWaitAsync(projectFile, CancellationToken);
-    var firstFile = CreateTestDocument(sourceA, Path.Combine(directory, "firstFile.dfy"));
-    await client.OpenDocumentAndWaitAsync(firstFile, CancellationToken);
-    var secondFile = CreateTestDocument(sourceB, Path.Combine(directory, "secondFile.dfy"));
-    await client.OpenDocumentAndWaitAsync(secondFile, CancellationToken);
+    var projectFile = await CreateAndOpenTestDocument("", Path.Combine(directory, "dfyconfig.toml"));
+    var firstFile = await CreateAndOpenTestDocument(sourceA, Path.Combine(directory, "firstFile.dfy"));
+    var secondFile = await CreateAndOpenTestDocument(sourceB, Path.Combine(directory, "secondFile.dfy"));
 
     var history0 = await WaitUntilCompletedForUris(2, CancellationToken);
 

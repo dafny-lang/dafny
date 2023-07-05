@@ -72,7 +72,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
     public override async Task<Unit> Handle(DidCloseTextDocumentParams notification, CancellationToken cancellationToken) {
       logger.LogTrace("received close notification {DocumentUri}", notification.TextDocument.Uri);
       try {
-        await CloseDocumentAndHideDiagnosticsAsync(notification.TextDocument);
+        await projects.CloseDocumentAsync(notification.TextDocument);
       } catch (Exception e) {
         telemetryPublisher.PublishUnhandledException(e);
       }
@@ -98,14 +98,6 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
       }
 
       return Unit.Task;
-    }
-
-    private async Task CloseDocumentAndHideDiagnosticsAsync(TextDocumentIdentifier documentId) {
-      try {
-        await projects.CloseDocumentAsync(documentId);
-      } catch (Exception e) {
-        telemetryPublisher.PublishUnhandledException(e);
-      }
     }
   }
 }

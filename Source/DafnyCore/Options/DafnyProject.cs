@@ -52,7 +52,7 @@ public class DafnyProject : IEquatable<DafnyProject> {
 
   public IEnumerable<Uri> GetRootSourceUris(IFileSystem fileSystem, DafnyOptions options) {
     if (!Uri.IsFile) {
-      return Enumerable.Empty<Uri>();
+      return new [] { Uri };
     }
 
     var matcher = GetMatcher();

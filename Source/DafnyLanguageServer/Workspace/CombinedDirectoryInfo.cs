@@ -20,7 +20,7 @@ class CombinedDirectoryInfo : DirectoryInfoBase {
     new CombinedDirectoryInfo(Parts.Select(part => part.ParentDirectory).ToArray());
 
   public override IEnumerable<FileSystemInfoBase> EnumerateFileSystemInfos() {
-    return Parts.SelectMany(part => part.EnumerateFileSystemInfos());
+    return Parts.SelectMany(part => part.EnumerateFileSystemInfos()).DistinctBy(f => f.FullName);
   }
 
   public override DirectoryInfoBase GetDirectory(string path) {
