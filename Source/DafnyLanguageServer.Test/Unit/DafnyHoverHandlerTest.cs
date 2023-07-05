@@ -21,7 +21,7 @@ public class DafnyHoverHandlerTest {
     OneTest("872M RU", 872000000);
     OneTest("872G RU", 872000000000);
     OneTest("872T RU", 872000000000000);
-    OneTest("8,720T RU", 8724000000000000);
+    OneTest("8720T RU", 8724000000000000);
 
     // Rounds
     OneTest("8.72K RU", 8724);

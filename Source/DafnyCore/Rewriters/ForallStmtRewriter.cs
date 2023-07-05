@@ -81,7 +81,7 @@ public class ForallStmtRewriter : IRewriter {
                 var j = new BoundVar(i.tok, i.Name + "#inv", Fi.Type);
                 var jj = Expression.CreateIdentExpr(j);
                 var jList = new List<BoundVar>() { j };
-                var range = Expression.CreateAnd(Resolver.GetImpliedTypeConstraint(i, i.Type), s.Range);
+                var range = Expression.CreateAnd(ModuleResolver.GetImpliedTypeConstraint(i, i.Type), s.Range);
                 var vals = InvertExpression(i, j, range, Fi);
 #if DEBUG_PRINT
           resolve.Options.Writer.WriteLine("DEBUG: Trying to invert:");

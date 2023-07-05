@@ -277,6 +277,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
           if (i++ != 0) { wr.WriteLine(); }
           Indent(indent);
           PrintClassMethodHelper("type", at.Attributes, at.Name + TPCharacteristicsSuffix(at.Characteristics), d.TypeArgs);
+          PrintExtendsClause(at);
           if (at.Members.Count == 0) {
             wr.WriteLine();
           } else {
@@ -290,6 +291,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
           if (i++ != 0) { wr.WriteLine(); }
           Indent(indent);
           PrintClassMethodHelper("newtype", dd.Attributes, dd.Name, new List<TypeParameter>());
+          PrintExtendsClause(dd);
           wr.Write(" = ");
           if (dd.Var == null) {
             PrintType(dd.BaseType);
@@ -365,6 +367,11 @@ NoGhost - disable printing of functions, ghost methods, and proof
           if (i++ != 0) { wr.WriteLine(); }
           PrintClass(cl, indent, fileBeingPrinted);
 
+        } else if (d is ClassLikeDecl) {
+          var cl = (ClassLikeDecl)d;
+          if (i++ != 0) { wr.WriteLine(); }
+          PrintClass(cl, indent, fileBeingPrinted);
+
         } else if (d is ValuetypeDecl) {
           var vtd = (ValuetypeDecl)d;
           if (i++ != 0) { wr.WriteLine(); }
@@ -402,11 +409,6 @@ NoGhost - disable printing of functions, ghost methods, and proof
             if (dd.Opened) {
               wr.Write(" opened");
             }
-            if (dd.ResolvedHash.HasValue && this.printMode == PrintModes.Serialization) {
-              wr.Write(" /*");
-              wr.Write(dd.ResolvedHash);
-              wr.Write("*/");
-            }
             wr.Write(" {0}", dd.Name);
             if (dd.Name != dd.TargetQId.ToString()) {
               wr.Write(" = {0}", dd.TargetQId.ToString());
@@ -424,11 +426,6 @@ NoGhost - disable printing of functions, ghost methods, and proof
             wr.Write("import");
             if (dd.Opened) {
               wr.Write(" opened");
-            }
-            if (dd.ResolvedHash.HasValue && this.printMode == PrintModes.Serialization) {
-              wr.Write(" /*");
-              wr.Write(dd.ResolvedHash);
-              wr.Write("*/");
             }
             wr.Write(" {0} ", dd.Name);
             wr.Write(": {0}", dd.QId.ToString());
@@ -614,7 +611,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
       Indent(indent);
       PrintClassMethodHelper("iterator", iter.Attributes, iter.Name, iter.TypeArgs);
       if (iter.IsRefining) {
-        wr.Write(" ... ");
+        wr.Write(" ...");
       } else {
         PrintFormals(iter.Ins, iter);
         if (iter.Outs.Count != 0) {
@@ -660,14 +657,9 @@ NoGhost - disable printing of functions, ghost methods, and proof
       Indent(indent);
       PrintClassMethodHelper((c is TraitDecl) ? "trait" : "class", c.Attributes, c.Name, c.TypeArgs);
       if (c.IsRefining) {
-        wr.Write(" ... ");
+        wr.Write(" ...");
       } else {
-        string sep = " extends ";
-        foreach (var trait in c.ParentTraits) {
-          wr.Write(sep);
-          PrintType(trait);
-          sep = ", ";
-        }
+        PrintExtendsClause(c);
       }
 
       if (c.Members.Count == 0) {
@@ -687,6 +679,15 @@ NoGhost - disable printing of functions, ghost methods, and proof
         if (!printingExportSet) {
           Indent(indent); wr.WriteLine("*/");
         }
+      }
+    }
+
+    private void PrintExtendsClause(TopLevelDeclWithMembers c) {
+      string sep = " extends ";
+      foreach (var trait in c.ParentTraits) {
+        wr.Write(sep);
+        PrintType(trait);
+        sep = ", ";
       }
     }
 
@@ -815,6 +816,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
       Contract.Requires(dt != null);
       Indent(indent);
       PrintClassMethodHelper(dt is IndDatatypeDecl ? "datatype" : "codatatype", dt.Attributes, dt.Name, dt.TypeArgs);
+      PrintExtendsClause(dt);
       wr.Write(" =");
       string sep = "";
       foreach (DatatypeCtor ctor in dt.Ctors) {

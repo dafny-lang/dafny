@@ -133,7 +133,7 @@ namespace Microsoft.Dafny.Compilers {
         return compiler.CreateClass(moduleName, name, isExtern, fullPrintName, typeParameters, cls, superClasses, tok, wr);
       }
 
-      public override IClassWriter CreateTrait(string name, bool isExtern, List<TypeParameter> typeParameters, TopLevelDecl trait, List<Type> superClasses,
+      public override IClassWriter CreateTrait(string name, bool isExtern, List<TypeParameter> typeParameters, TraitDecl trait, List<Type> superClasses,
         IToken tok, ConcreteSyntaxTree wr) {
         return compiler.CreateTrait(name, isExtern, typeParameters, trait, superClasses, tok, wr);
       }
@@ -152,7 +152,8 @@ namespace Microsoft.Dafny.Compilers {
     protected virtual bool SupportsStaticsInGenericClasses => true;
     protected virtual bool TraitRepeatsInheritedDeclarations => false;
     protected IClassWriter CreateClass(string moduleName, string name, TopLevelDecl cls, ConcreteSyntaxTree wr) {
-      return ClassWriterFactory.CreateClass(moduleName, name, false, null, cls.TypeArgs, cls, null, null, wr);
+      return ClassWriterFactory.CreateClass(moduleName, name, false, null, cls.TypeArgs,
+        cls, (cls as TopLevelDeclWithMembers)?.ParentTypeInformation.UniqueParentTraits(), null, wr);
     }
 
     /// <summary>
@@ -165,7 +166,7 @@ namespace Microsoft.Dafny.Compilers {
     /// "tok" can be "null" if "superClasses" is.
     /// </summary>
     protected abstract IClassWriter CreateTrait(string name, bool isExtern, List<TypeParameter> typeParameters /*?*/,
-      TopLevelDecl trait, List<Type> superClasses /*?*/, IToken tok, ConcreteSyntaxTree wr);
+      TraitDecl trait, List<Type> superClasses /*?*/, IToken tok, ConcreteSyntaxTree wr);
     protected virtual bool SupportsProperties => true;
     protected abstract ConcreteSyntaxTree CreateIterator(IteratorDecl iter, ConcreteSyntaxTree wr);
     /// <summary>
@@ -604,7 +605,7 @@ namespace Microsoft.Dafny.Compilers {
     ///     foreach(collectionElementType tmpVarName in collectionWriter) {
     ///       if(tmpVarName is [boundVar.type]) {
     ///         var [IDName(boundVar)] = ([boundVar.type])(tmpvarName);
-    ///         if(constraints_of_boundvar.Type([IDName(boundVar)])) {
+    ///         if(constraints_of_boundvar.Type([IdName(boundVar)])) {
     ///           ...
     ///         }
     ///       }
@@ -793,6 +794,10 @@ namespace Microsoft.Dafny.Compilers {
       return wr;
     }
 
+    protected virtual ConcreteSyntaxTree UnboxNewtypeValue(ConcreteSyntaxTree wr) {
+      return wr;
+    }
+
     /// <summary>
     /// Determine if "to" is a supertype of "from" in the target language, if "!typeEqualityOnly".
     /// Determine if "to" is equal to "from" in the target language, if "typeEqualityOnly".
@@ -866,6 +871,10 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Requires(member != null);
       return IdProtect(member.GetCompileName(Options));
     }
+
+    protected virtual string CompanionMemberIdName(MemberDecl member) {
+      return IdName(member);
+    }
     protected virtual string IdName(TypeParameter tp) {
       Contract.Requires(tp != null);
       return IdProtect(tp.GetCompileName(Options));
@@ -883,7 +892,7 @@ namespace Microsoft.Dafny.Compilers {
       return name;
     }
     protected abstract string FullTypeName(UserDefinedType udt, MemberDecl/*?*/ member = null);
-    protected abstract void EmitThis(ConcreteSyntaxTree wr);
+    protected abstract void EmitThis(ConcreteSyntaxTree wr, bool callToInheritedMember = false);
     protected virtual void EmitNull(Type type, ConcreteSyntaxTree wr) {
       wr.Write("null");
     }
@@ -1887,20 +1896,23 @@ namespace Microsoft.Dafny.Compilers {
           } else if (member is ConstantField) {
             var cf = (ConstantField)member;
             var cfType = cf.Type.Subst(c.ParentFormalTypeParametersToActuals);
-            if (cf.Rhs == null) {
+            if (cf.Rhs == null && c is ClassLikeDecl) {
+              // create a backing field, since this constant field may be assigned in constructors
               Contract.Assert(!cf.IsStatic); // as checked above, only instance members can be inherited
               classWriter.DeclareField("_" + cf.GetCompileName(Options), c, false, false, cfType, cf.tok, PlaceboValue(cfType, errorWr, cf.tok, true), cf);
             }
             var w = CreateFunctionOrGetter(cf, IdName(cf), c, false, true, true, classWriter);
             Contract.Assert(w != null);  // since the previous line asked for a body
-            if (cf.Rhs == null) {
+            if (cf.Rhs != null) {
+              EmitCallToInheritedConstRHS(cf, w);
+            } else if (!cf.IsStatic && c is ClassLikeDecl) {
               var sw = EmitReturnExpr(w);
               sw = EmitCoercionIfNecessary(cfType, cf.Type, cf.tok, sw);
               // get { return this._{0}; }
               EmitThis(sw);
               sw.Write("._{0}", cf.GetCompileName(Options));
             } else {
-              EmitCallToInheritedConstRHS(cf, w);
+              EmitReturnExpr(PlaceboValue(cfType, errorWr, cf.tok, true), w);
             }
           } else if (member is Field f) {
             var fType = f.Type.Subst(c.ParentFormalTypeParametersToActuals);
@@ -1926,13 +1938,13 @@ namespace Microsoft.Dafny.Compilers {
             if (!Attributes.Contains(fn.Attributes, "extern")) {
               Contract.Assert(fn.Body != null);
               var w = classWriter.CreateFunction(IdName(fn), CombineAllTypeArguments(fn), fn.Formals, fn.ResultType, fn.tok, fn.IsStatic, true, fn, true, false);
-              EmitCallToInheritedFunction(fn, w);
+              EmitCallToInheritedFunction(fn, false, w);
             }
           } else if (member is Method method) {
             if (!Attributes.Contains(method.Attributes, "extern")) {
               Contract.Assert(method.Body != null);
               var w = classWriter.CreateMethod(method, CombineAllTypeArguments(member), true, true, false, out var headerWriter);
-              EmitCallToInheritedMethod(method, w);
+              EmitCallToInheritedMethod(method, false, w);
             }
           } else {
             Contract.Assert(false);  // unexpected member
@@ -2005,7 +2017,7 @@ namespace Microsoft.Dafny.Compilers {
                   var typeSubst = new Dictionary<TypeParameter, Type>();
                   cf.EnclosingClass.TypeArgs.ForEach(tp => typeSubst.Add(tp, (Type)new UserDefinedType(tp)));
                   var typeArgs = CombineAllTypeArguments(cf);
-                  EmitMemberSelect(EmitThis, UserDefinedType.FromTopLevelDecl(c.tok, c), cf,
+                  EmitMemberSelect(wr => EmitThis(wr), UserDefinedType.FromTopLevelDecl(c.tok, c), cf,
                     typeArgs, typeSubst, f.Type, internalAccess: true).EmitRead(sw);
                 } else {
                   EmitReturnExpr(PlaceboValue(cf.Type, wBody, cf.tok, true), wBody);
@@ -2041,7 +2053,8 @@ namespace Microsoft.Dafny.Compilers {
             }
 
             if (Attributes.Contains(f.Attributes, "test")) {
-              Error(ErrorId.c_test_function_must_be_compilable, f.tok, "Function {0} must be compiled to use the {{:test}} attribute", errorWr, f.FullName);
+              Error(ErrorId.c_test_function_must_be_compilable, f.tok,
+                "Function {0} must be compiled to use the {{:test}} attribute", errorWr, f.FullName);
             }
           } else if (c is TraitDecl && !f.IsStatic) {
             if (f.OverriddenMember == null) {
@@ -2053,6 +2066,11 @@ namespace Microsoft.Dafny.Compilers {
             if (f.Body != null) {
               CompileFunction(f, classWriter, true);
             }
+          } else if (c is NewtypeDecl && f != f.Original) {
+            CompileFunction(f, classWriter, false);
+            var w = classWriter.CreateFunction(IdName(f), CombineAllTypeArguments(f), f.Formals, f.ResultType, f.tok,
+              false, true, f, true, false);
+            EmitCallToInheritedFunction(f, true, w);
           } else {
             CompileFunction(f, classWriter, false);
           }
@@ -2062,9 +2080,8 @@ namespace Microsoft.Dafny.Compilers {
             if (m.IsStatic && m.Outs.Count > 0 && m.Body == null) {
               classWriter.SynthesizeMethod(m, CombineAllTypeArguments(m), true, true, false);
             } else {
-              Error(ErrorId.c_invalid_synthesize_method, m.tok, "Method {0} is annotated with :synthesize but " +
-                           "is not static, has a body, or does not return " +
-                           "anything",
+              Error(ErrorId.c_invalid_synthesize_method, m.tok,
+                "Method {0} is annotated with :synthesize but is not static, has a body, or does not return anything",
                 errorWr, m.FullName);
             }
           } else if (m.Body == null && !(c is TraitDecl && !m.IsStatic) &&
@@ -2082,13 +2099,17 @@ namespace Microsoft.Dafny.Compilers {
           } else if (c is TraitDecl && !m.IsStatic) {
             if (m.OverriddenMember == null) {
               var w = classWriter.CreateMethod(m, CombineAllTypeArguments(m), false, false, false, out var headerWriter);
-              Contract.Assert(w == null);  // since we requested no body
+              Contract.Assert(w == null); // since we requested no body
             } else if (TraitRepeatsInheritedDeclarations) {
               RedeclareInheritedMember(m, classWriter);
             }
             if (m.Body != null) {
               CompileMethod(program, m, classWriter, true);
             }
+          } else if (c is NewtypeDecl && m != m.Original) {
+            CompileMethod(program, m, classWriter, false);
+            var w = classWriter.CreateMethod(m, CombineAllTypeArguments(member), true, true, false, out var headerWriter);
+            EmitCallToInheritedMethod(m, true, w);
           } else {
             CompileMethod(program, m, classWriter, false);
           }
@@ -2160,11 +2181,11 @@ namespace Microsoft.Dafny.Compilers {
 
       wr.Write(sep);
       var w = EmitCoercionIfNecessary(UserDefinedType.FromTopLevelDecl(f.tok, thisContext), calleeReceiverType, f.tok, wr);
-      EmitThis(w);
+      EmitThis(w, true);
       wr.Write(")");
     }
 
-    protected void EmitCallToInheritedFunction(Function f, ConcreteSyntaxTree wr) {
+    protected void EmitCallToInheritedFunction(Function f, bool unboxReceiver, ConcreteSyntaxTree wr) {
       Contract.Requires(f != null);
       Contract.Requires(!f.IsStatic);
       Contract.Requires(f.EnclosingClass is TraitDecl);
@@ -2175,28 +2196,29 @@ namespace Microsoft.Dafny.Compilers {
       // There are three types involved.
       // First, "f.Original.EnclosingClass" is the trait where the function was first declared.
       // In descendant traits from there on, the function may occur several times, each time with
-      // a strengthening of the specification. Those traits do no play a role here.
+      // a strengthening of the specification. Those traits do not play a role here.
       // Second, there is "f.EnclosingClass", which is the trait where the function is given a body.
       // Often, "f.EnclosingClass" and "f.Original.EnclosingClass" will be the same.
       // Third and finally, there is "thisContext", which is the class that inherits "f" and its
-      // implementation, and for which we're about to generate a call to body compiled for "f".
+      // implementation, and for which we're about to generate a call to the body compiled for "f".
 
       // In a target language that requires type coercions, the function declared in "thisContext" has
       // the same signature as in "f.Original.EnclosingClass".
       wr = EmitReturnExpr(wr);
       wr = EmitCoercionIfNecessary(f.ResultType, f.Original.ResultType, f.tok, wr);
 
+      var companionName = CompanionMemberIdName(f);
       var calleeReceiverType = UserDefinedType.FromTopLevelDecl(f.tok, f.EnclosingClass).Subst(thisContext.ParentFormalTypeParametersToActuals);
       wr.Write("{0}{1}", TypeName_Companion(calleeReceiverType, wr, f.tok, f), ModuleSeparator);
       var typeArgs = CombineAllTypeArguments(f, thisContext);
-      EmitNameAndActualTypeArgs(IdName(f), TypeArgumentInstantiation.ToActuals(ForTypeParameters(typeArgs, f, true)), f.tok, wr);
+      EmitNameAndActualTypeArgs(companionName, TypeArgumentInstantiation.ToActuals(ForTypeParameters(typeArgs, f, true)), f.tok, wr);
       wr.Write("(");
       var sep = "";
       EmitTypeDescriptorsActuals(ForTypeDescriptors(typeArgs, f.EnclosingClass, f, true), f.tok, wr, ref sep);
 
       wr.Write(sep);
       var w = EmitCoercionIfNecessary(UserDefinedType.FromTopLevelDecl(f.tok, thisContext), calleeReceiverType, f.tok, wr);
-      EmitThis(w);
+      EmitThis(unboxReceiver ? UnboxNewtypeValue(w) : w, true);
       sep = ", ";
 
       for (int j = 0, l = 0; j < f.Formals.Count; j++) {
@@ -2212,7 +2234,7 @@ namespace Microsoft.Dafny.Compilers {
       wr.Write(")");
     }
 
-    protected void EmitCallToInheritedMethod(Method method, ConcreteSyntaxTree wr) {
+    protected void EmitCallToInheritedMethod(Method method, bool unboxReceiver, ConcreteSyntaxTree wr) {
       Contract.Requires(method != null);
       Contract.Requires(!method.IsStatic);
       Contract.Requires(method.EnclosingClass is TraitDecl);
@@ -2245,20 +2267,20 @@ namespace Microsoft.Dafny.Compilers {
         wr.Write("{0} = ", Util.Comma(outTmps));
       }
 
-      var protectedName = IdName(method);
+      var companionName = CompanionMemberIdName(method);
       var calleeReceiverType = UserDefinedType.FromTopLevelDecl(method.tok, method.EnclosingClass).Subst(thisContext.ParentFormalTypeParametersToActuals);
       wr.Write(TypeName_Companion(calleeReceiverType, wr, method.tok, method));
       wr.Write(ClassAccessor);
 
       var typeArgs = CombineAllTypeArguments(method, thisContext);
-      EmitNameAndActualTypeArgs(protectedName, TypeArgumentInstantiation.ToActuals(ForTypeParameters(typeArgs, method, true)), method.tok, wr);
+      EmitNameAndActualTypeArgs(companionName, TypeArgumentInstantiation.ToActuals(ForTypeParameters(typeArgs, method, true)), method.tok, wr);
       wr.Write("(");
       var sep = "";
       EmitTypeDescriptorsActuals(ForTypeDescriptors(typeArgs, method.EnclosingClass, method, true), method.tok, wr, ref sep);
 
       wr.Write(sep);
       var w = EmitCoercionIfNecessary(UserDefinedType.FromTopLevelDecl(method.tok, thisContext), calleeReceiverType, method.tok, wr);
-      EmitThis(w);
+      EmitThis(unboxReceiver ? UnboxNewtypeValue(w) : w, true);
       sep = ", ";
 
       for (int j = 0, l = 0; j < method.Ins.Count; j++) {
@@ -3542,7 +3564,7 @@ namespace Microsoft.Dafny.Compilers {
       ConcreteSyntaxTree guardWriter = new ConcreteSyntaxTree();
       var wStmts = guardWriter.Fork();
       wr = EmitIf(out guardWriter, false, wr);
-      foreach (var bvConstraints in bvs.Select(bv => Resolver.GetImpliedTypeConstraint(bv, bv.Type))) {
+      foreach (var bvConstraints in bvs.Select(bv => ModuleResolver.GetImpliedTypeConstraint(bv, bv.Type))) {
         TrParenExpr(bvConstraints, guardWriter, false, wStmts);
         guardWriter.Write($" {Conj} ");
       }
@@ -4510,7 +4532,7 @@ namespace Microsoft.Dafny.Compilers {
           var toType = outTypes[0];
           wr = EmitDowncastIfNecessary(instantiatedFromType, toType, s.Tok, wr);
         }
-        var protectedName = IdName(s.Method);
+        var protectedName = receiverReplacement == null && customReceiver ? CompanionMemberIdName(s.Method) : IdName(s.Method);
         if (receiverReplacement != null) {
           wr.Write(IdProtect(receiverReplacement));
           wr.Write(ClassAccessor);
@@ -4518,8 +4540,13 @@ namespace Microsoft.Dafny.Compilers {
           wr.Write(TypeName_Companion(s.Receiver.Type, wr, s.Tok, s.Method));
           wr.Write(ClassAccessor);
         } else if (!s.Method.IsStatic) {
-          TrParenExpr(s.Receiver, wr, false, wStmts);
-          wr.Write(ClassAccessor);
+          wr.Write("(");
+          var wReceiver = wr;
+          if (s.Method.EnclosingClass is TraitDecl traitDecl && s.Receiver.Type.AsTraitType != traitDecl) {
+            wReceiver = EmitCoercionIfNecessary(s.Receiver.Type, UserDefinedType.UpcastToMemberEnclosingType(s.Receiver.Type, s.Method), s.Tok, wr);
+          }
+          wReceiver.Append(Expr(s.Receiver, false, wStmts));
+          wr.Write($"){ClassAccessor}");
         } else if (s.Method.IsExtern(Options, out var qual, out var compileName) && qual != null) {
           wr.Write("{0}{1}", qual, ModuleSeparator);
           protectedName = compileName;
@@ -4756,6 +4783,13 @@ namespace Microsoft.Dafny.Compilers {
 
     protected virtual void WriteCast(string s, ConcreteSyntaxTree wr) { }
 
+    protected ConcreteSyntaxTree CoercedExpr(Expression expr, Type toType, bool inLetExprBody, ConcreteSyntaxTree wStmts) {
+      var result = new ConcreteSyntaxTree();
+      var w = EmitCoercionIfNecessary(expr.Type, toType, expr.tok, result);
+      w.Append(Expr(expr, inLetExprBody, wStmts));
+      return result;
+    }
+
     public ConcreteSyntaxTree Expr(Expression expr, bool inLetExprBody, ConcreteSyntaxTree wStmts) {
       var result = new ConcreteSyntaxTree();
       var wr = result;
@@ -4960,8 +4994,8 @@ namespace Microsoft.Dafny.Compilers {
         EmitUnaryExpr(UnaryOpCodeMap[e.ResolvedOp], e.E, inLetExprBody, wr, wStmts);
       } else if (expr is ConversionExpr) {
         var e = (ConversionExpr)expr;
-        Contract.Assert(e.ToType.IsRefType == e.E.Type.IsRefType);
-        if (e.ToType.IsRefType) {
+        Contract.Assert(Options.Get(CommonOptionBag.GeneralTraits) || e.ToType.IsRefType == e.E.Type.IsRefType);
+        if (e.ToType.IsRefType || e.ToType.IsTraitType || e.E.Type.IsTraitType) {
           var w = EmitCoercionIfNecessary(e.E.Type, e.ToType, e.tok, wr);
           w = EmitDowncastIfNecessary(e.E.Type, e.ToType, e.tok, w);
           w.Append(Expr(e.E, inLetExprBody, wStmts));
@@ -5567,11 +5601,15 @@ namespace Microsoft.Dafny.Compilers {
         wr.Write("{0}{1}", qual, ModuleSeparator);
       } else if (f.IsStatic || customReceiver) {
         wr.Write("{0}{1}", TypeName_Companion(e.Receiver.Type, wr, e.tok, f), ModuleSeparator);
-        compileName = IdName(f);
+        compileName = customReceiver ? CompanionMemberIdName(f) : IdName(f);
       } else {
         wr.Write("(");
-        tr(e.Receiver, wr, inLetExprBody, wStmts);
-        wr.Write("){0}", ClassAccessor);
+        var wReceiver = wr;
+        if (f.EnclosingClass is TraitDecl traitDecl && e.Receiver.Type.AsTraitType != traitDecl) {
+          wReceiver = EmitCoercionIfNecessary(e.Receiver.Type, UserDefinedType.UpcastToMemberEnclosingType(e.Receiver.Type, f), e.tok, wr);
+        }
+        tr(e.Receiver, wReceiver, inLetExprBody, wStmts);
+        wr.Write($"){ClassAccessor}");
         compileName = IdName(f);
       }
       var typeArgs = CombineAllTypeArguments(f, e.TypeApplication_AtEnclosingClass, e.TypeApplication_JustFunction);

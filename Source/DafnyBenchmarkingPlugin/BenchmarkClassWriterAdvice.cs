@@ -34,7 +34,7 @@ public class JavaBenchmarkClassWriterFactory : IClassWriterFactory {
     return new JavaBenchmarkClassWriter(wrappedWriter);
   }
 
-  public override IClassWriter CreateTrait(string name, bool isExtern, List<TypeParameter> typeParameters, TopLevelDecl trait, List<Type> superClasses,
+  public override IClassWriter CreateTrait(string name, bool isExtern, List<TypeParameter> typeParameters, TraitDecl trait, List<Type> superClasses,
     IToken tok, ConcreteSyntaxTree wr) {
     return wrapped.CreateTrait(name, isExtern, typeParameters, trait, superClasses, tok, wr);
   }

@@ -5,32 +5,6 @@ using System.Linq;
 
 namespace Microsoft.Dafny;
 
-public class CompilationData {
-  public CompilationData(DafnyOptions options, List<Include> includes, IList<Uri> rootSourceUris, ISet<Uri> alreadyVerifiedRoots, ISet<Uri> alreadyCompiledRoots) {
-    Includes = includes;
-    Options = options;
-    RootSourceUris = rootSourceUris;
-    AlreadyVerifiedRoots = alreadyVerifiedRoots;
-    AlreadyCompiledRoots = alreadyCompiledRoots;
-  }
-
-  public IList<IRewriter> Rewriters { get; set; }
-
-  public DafnyOptions Options { get; }
-  public IList<Uri> RootSourceUris { get; }
-
-  public ISet<Uri> AlreadyVerifiedRoots { get; }
-  public ISet<Uri> AlreadyCompiledRoots { get; }
-
-  public List<Include> Includes;
-  // TODO move to DocumentAfterParsing once that's used by the CLI
-  [FilledInDuringResolution]
-  public ISet<Uri> UrisToVerify;
-  // TODO move to DocumentAfterParsing once that's used by the CLI
-  [FilledInDuringResolution]
-  public ISet<Uri> UrisToCompile;
-
-}
 public static class ShouldCompileOrVerify {
 
   public static bool ShouldCompile(this ModuleDefinition module, CompilationData program) {

@@ -18,20 +18,20 @@ public class ExpressionTester {
   ///     added from the caller to the by-method.
   ///   - .Constraint_Bounds of LetExpr will be updated
   /// </summary>
-  [CanBeNull] private readonly Resolver resolver; // if non-null, CheckIsCompilable will update some fields in the resolver
+  [CanBeNull] private readonly ModuleResolver resolver; // if non-null, CheckIsCompilable will update some fields in the resolver
 
-  private ExpressionTester([CanBeNull] Resolver resolver, [CanBeNull] ErrorReporter reporter, DafnyOptions options) {
+  private ExpressionTester([CanBeNull] ModuleResolver resolver, [CanBeNull] ErrorReporter reporter, DafnyOptions options) {
     this.resolver = resolver;
     this.reporter = reporter;
     this.options = options;
   }
 
   // Static call to CheckIsCompilable
-  public static bool CheckIsCompilable(DafnyOptions options, [CanBeNull] Resolver resolver, Expression expr, ICodeContext codeContext) {
+  public static bool CheckIsCompilable(DafnyOptions options, [CanBeNull] ModuleResolver resolver, Expression expr, ICodeContext codeContext) {
     return new ExpressionTester(resolver, resolver?.Reporter, options).CheckIsCompilable(expr, codeContext, true);
   }
 
-  public static bool CheckIsCompilable(Resolver resolver, ErrorReporter reporter, Expression expr, ICodeContext codeContext) {
+  public static bool CheckIsCompilable(ModuleResolver resolver, ErrorReporter reporter, Expression expr, ICodeContext codeContext) {
     return new ExpressionTester(resolver, reporter, reporter.Options).CheckIsCompilable(expr, codeContext, true);
   }
 
@@ -250,7 +250,7 @@ public class ExpressionTester {
         Contract.Assert(letExpr.RHSs.Count == 1);  // if we got this far, the resolver will have checked this condition successfully
         var constraint = letExpr.RHSs[0];
         if (resolver != null) {
-          letExpr.Constraint_Bounds = Resolver.DiscoverBestBounds_MultipleVars(letExpr.BoundVars.ToList<IVariable>(), constraint, true);
+          letExpr.Constraint_Bounds = ModuleResolver.DiscoverBestBounds_MultipleVars(letExpr.BoundVars.ToList<IVariable>(), constraint, true);
         }
       }
       return isCompilable;

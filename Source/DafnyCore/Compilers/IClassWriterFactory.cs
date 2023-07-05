@@ -15,7 +15,7 @@ public abstract class IClassWriterFactory {
     ConcreteSyntaxTree wr);
   
   public abstract IClassWriter CreateTrait(string name, bool isExtern, List<TypeParameter> typeParameters /*?*/,
-    TopLevelDecl trait, List<Type> superClasses /*?*/, IToken tok, ConcreteSyntaxTree wr);
+    TraitDecl trait, List<Type> superClasses /*?*/, IToken tok, ConcreteSyntaxTree wr);
   
   public abstract IClassWriter DeclareNewtype(NewtypeDecl nt, ConcreteSyntaxTree wr);
   

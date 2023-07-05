@@ -2,6 +2,7 @@
 using OmniSharp.Extensions.LanguageServer.Protocol;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Collections.Generic;
+using System.Dynamic;
 using System.Linq;
 using Microsoft.Boogie;
 using Microsoft.Dafny.LanguageServer.Language.Symbols;
@@ -19,27 +20,24 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
   /// When verification starts, no new instances of Compilation will be created for this version.
   /// There can be different verification threads that update the state of this object.
   /// </summary>
-  public class Document {
-    public DocumentTextBuffer TextDocumentItem { get; }
-    public DocumentUri Uri => TextDocumentItem.Uri;
-    public int Version => TextDocumentItem.Version!.Value;
+  public class Compilation {
+    public VersionedTextDocumentIdentifier DocumentIdentifier { get; }
+    public DocumentUri Uri => DocumentIdentifier.Uri;
+    public int Version => DocumentIdentifier.Version;
 
-    public Document(DocumentTextBuffer textDocumentItem) {
-      TextDocumentItem = textDocumentItem;
+    public Compilation(VersionedTextDocumentIdentifier documentIdentifier) {
+      DocumentIdentifier = documentIdentifier;
     }
 
     public virtual IEnumerable<DafnyDiagnostic> AllFileDiagnostics => Enumerable.Empty<DafnyDiagnostic>();
 
     public IdeState InitialIdeState(DafnyOptions options) {
-      return ToIdeState(new IdeState(TextDocumentItem, Array.Empty<Diagnostic>(),
-        SymbolTable.Empty(), SignatureAndCompletionTable.Empty(options, TextDocumentItem), new Dictionary<ImplementationId, IdeImplementationView>(),
+      return ToIdeState(new IdeState(DocumentIdentifier, new EmptyNode(),
+        Array.Empty<Diagnostic>(),
+        SymbolTable.Empty(), SignatureAndCompletionTable.Empty(options, DocumentIdentifier), new Dictionary<ImplementationId, IdeImplementationView>(),
         Array.Empty<Counterexample>(),
         false, Array.Empty<Diagnostic>(),
-        GetInitialDocumentVerificationTree()));
-    }
-
-    public virtual VerificationTree GetInitialDocumentVerificationTree() {
-      return new DocumentVerificationTree(TextDocumentItem);
+        null));
     }
 
     /// <summary>
@@ -47,7 +45,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     /// </summary>
     public virtual IdeState ToIdeState(IdeState previousState) {
       return previousState with {
-        TextDocumentItem = TextDocumentItem,
+        DocumentIdentifier = DocumentIdentifier,
         ImplementationsWereUpdated = false,
       };
     }
