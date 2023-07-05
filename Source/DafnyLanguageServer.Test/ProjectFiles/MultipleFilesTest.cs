@@ -19,7 +19,7 @@ public class MultipleFilesTest : ClientBasedLanguageServerTest {
       modifyOptions?.Invoke(o);
     });
   }
-  
+
   [Fact]
   public async Task FileGetsRemappedToProjectByCreatingProjectFileOnDisk() {
     var consumerSource = @"

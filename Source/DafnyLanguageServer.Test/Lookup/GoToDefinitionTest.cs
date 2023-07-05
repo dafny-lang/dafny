@@ -16,18 +16,21 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
 
     [Fact]
     public async Task ExplicitProjectToGoDefinitionWorks() {
+      await SetUp(o => o.Set(ServerCommand.ProjectMode, true));
       var sourceA = @"
 const a := 3;
+".TrimStart();
+      
+      var sourceB = @"
 const b := a + 2;
 ".TrimStart();
 
       var directory = Path.GetRandomFileName();
-      var projectFile = CreateTestDocument("", Path.Combine(directory, "dfyconfig.toml"));
-      await client.OpenDocumentAndWaitAsync(projectFile, CancellationToken);
-      var firstFile = CreateTestDocument(sourceA, Path.Combine(directory, "firstFile.dfy"));
-      await client.OpenDocumentAndWaitAsync(firstFile, CancellationToken);
+      await CreateAndOpenTestDocument("", Path.Combine(directory, "dfyconfig.toml"));
+      var aFile = await CreateAndOpenTestDocument(sourceA, Path.Combine(directory, "A.dfy"));
+      var bFile = await CreateAndOpenTestDocument(sourceB, Path.Combine(directory, "B.dfy"));
 
-      var result1 = await RequestDefinition(firstFile, new Position(1, 11));
+      var result1 = await RequestDefinition(bFile, new Position(0, 11));
       Assert.Equal(new Range(0, 6, 0, 7), result1.Single().Location!.Range);
     }
 

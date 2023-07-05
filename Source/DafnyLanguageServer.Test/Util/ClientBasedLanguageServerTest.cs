@@ -46,7 +46,7 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
     await client.OpenDocumentAndWaitAsync(document, CancellationToken);
     return document;
   }
-  
+
   protected async Task AssertHoverMatches(TextDocumentItem documentItem, Position hoverPosition, [CanBeNull] string expected) {
     if (expected != null && errorTests.Matches(expected).Count >= 2) {
       Assert.Fail("Found multiple hover messages in one test; the order is currently not stable, so please test one at a time.");
@@ -87,7 +87,7 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
       Assert.Fail($"{value} did not match {regexExpected}." + helper);
     }
   }
-  
+
   public async Task<NamedVerifiableStatus> WaitForStatus(Range nameRange, PublishedVerificationStatus statusToFind,
     CancellationToken cancellationToken) {
     while (true) {
@@ -173,7 +173,7 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
 
   protected virtual void InitialiseClientHandler(LanguageClientOptions options) {
     options.OnPublishDiagnostics(diagnosticsReceiver.NotificationReceived);
-    options.AddHandler(DafnyRequestNames.CompilationStatus, 
+    options.AddHandler(DafnyRequestNames.CompilationStatus,
       NotificationHandler.For<CompilationStatusParams>(compilationStatusReceiver.NotificationReceived));
     options.AddHandler(DafnyRequestNames.GhostDiagnostics,
       NotificationHandler.For<GhostDiagnosticsParams>(ghostnessReceiver.NotificationReceived));

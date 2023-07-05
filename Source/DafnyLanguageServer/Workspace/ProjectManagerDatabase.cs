@@ -126,7 +126,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       managersByProject[project.Uri] = projectManagerForFile;
       return projectManagerForFile;
     }
-    
+
     private DafnyProject GetProject(TextDocumentIdentifier document) {
       return FindProjectFile(document.Uri.ToUri()) ?? ImplicitProject(document);
     }
@@ -150,16 +150,16 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         if (projectFile != null && projectFile.Uri != sourceUri && projectFile.ContainsSourceFile(sourceUri) == false) {
           projectFile = null;
         }
-        
+
         folder = Path.GetDirectoryName(folder);
       }
 
       if (projectFile != null && !serverOptions.Get(ServerCommand.ProjectMode)) {
         projectFile.Uri = sourceUri;
         projectFile.IsImplicitProject = true;
-        projectFile.Includes = new [] { sourceUri.LocalPath };
+        projectFile.Includes = new[] { sourceUri.LocalPath };
       }
-      
+
       return projectFile;
     }
 
