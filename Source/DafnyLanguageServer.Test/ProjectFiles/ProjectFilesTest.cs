@@ -14,7 +14,7 @@ public class ProjectFilesTest : ClientBasedLanguageServerTest {
   [Fact]
   public async Task ProjectFileChangesArePickedUpAfterCacheExpiration() {
     await SetUp(options => options.WarnShadowing = false);
-    var tempDirectory = Path.GetTempPath();
+    var tempDirectory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
     var projectFilePath = Path.Combine(tempDirectory, DafnyProject.FileName);
     await File.WriteAllTextAsync(projectFilePath, "");
 
@@ -70,7 +70,7 @@ warn-shadowing = true";
 [options]
 warn-shadowing = true
 ";
-    var directory = Path.GetTempPath();
+    var directory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
     var outerProjectFile = CreateTestDocument(projectFileSource, Path.Combine(directory, DafnyProject.FileName));
     await client.OpenDocumentAndWaitAsync(outerProjectFile, CancellationToken);
 
@@ -94,7 +94,7 @@ warn-shadowing = true
 [options]
 warn-shadowing = true
 ";
-    var directory = Path.GetTempPath();
+    var directory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
     var projectFile = CreateTestDocument(projectFileSource, Path.Combine(directory, DafnyProject.FileName));
     await client.OpenDocumentAndWaitAsync(projectFile, CancellationToken);
 
