@@ -60,18 +60,10 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     public IdeState CreateUnloaded(VersionedTextDocumentIdentifier documentIdentifier, CancellationToken cancellationToken) {
-      return CreateDocumentWithEmptySymbolTable(documentIdentifier,
-        new[] { new Diagnostic {
-          // This diagnostic never gets sent to the client,
-          // instead it forces the first computed diagnostics for a document to always be sent.
-          // The message here describes the implicit client state before the first diagnostics have been sent.
-          Message = "Resolution diagnostics have not been computed yet.",
-          Range = new OmniSharp.Extensions.LanguageServer.Protocol.Models.Range(0, 0, 0,0)
-        }}
-      );
+      return CreateDocumentWithEmptySymbolTable(documentIdentifier, Array.Empty<Diagnostic>());
     }
 
-    public async Task<DocumentAfterParsing> LoadAsync(DafnyOptions options, VersionedTextDocumentIdentifier documentIdentifier,
+    public async Task<CompilationAfterParsing> LoadAsync(DafnyOptions options, VersionedTextDocumentIdentifier documentIdentifier,
       IFileSystem fileSystem, CancellationToken cancellationToken) {
 #pragma warning disable CS1998
       return await await DafnyMain.LargeStackFactory.StartNew(
@@ -80,12 +72,12 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         );
     }
 
-    private DocumentAfterParsing LoadInternal(DafnyOptions options, VersionedTextDocumentIdentifier documentIdentifier,
+    private CompilationAfterParsing LoadInternal(DafnyOptions options, VersionedTextDocumentIdentifier documentIdentifier,
       IFileSystem fileSystem, CancellationToken cancellationToken) {
       var errorReporter = new DiagnosticErrorReporter(options, documentIdentifier.Uri);
       statusPublisher.SendStatusNotification(documentIdentifier, CompilationStatus.Parsing);
       var program = parser.Parse(documentIdentifier, fileSystem, errorReporter, cancellationToken);
-      var documentAfterParsing = new DocumentAfterParsing(documentIdentifier, program, errorReporter.AllDiagnosticsCopy);
+      var documentAfterParsing = new CompilationAfterParsing(documentIdentifier, program, errorReporter.AllDiagnosticsCopy);
       if (errorReporter.HasErrors) {
         statusPublisher.SendStatusNotification(documentIdentifier, CompilationStatus.ParsingFailed);
         return documentAfterParsing;
@@ -108,7 +100,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         var ghostDiagnostics = ghostStateDiagnosticCollector.GetGhostStateDiagnostics(legacySymbolTable, cancellationToken)
           .ToArray();
 
-        return new DocumentAfterResolution(documentIdentifier,
+        return new CompilationAfterResolution(documentIdentifier,
           program,
           errorReporter.AllDiagnosticsCopy,
           newSymbolTable,

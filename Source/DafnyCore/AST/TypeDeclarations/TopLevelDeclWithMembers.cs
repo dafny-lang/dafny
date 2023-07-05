@@ -96,6 +96,21 @@ public abstract class TopLevelDeclWithMembers : TopLevelDecl {
     MembersBeforeResolution = Members.ToImmutableList();
   }
 
+  public List<Type> RawTraitsWithArgument(List<Type> typeArgs) {
+    Contract.Requires(typeArgs != null);
+    Contract.Requires(typeArgs.Count == TypeArgs.Count);
+    // Instantiate with the actual type arguments
+    var subst = TypeParameter.SubstitutionMap(TypeArgs, typeArgs);
+    return ParentTraits.ConvertAll(traitType => {
+      var ty = (UserDefinedType)traitType.Subst(subst);
+      return (Type)UserDefinedType.CreateNullableTypeIfReferenceType(ty);
+    });
+  }
+
+  public override List<Type> ParentTypes(List<Type> typeArgs) {
+    return RawTraitsWithArgument(typeArgs);
+  }
+
   public static List<UserDefinedType> CommonTraits(TopLevelDeclWithMembers a, TopLevelDeclWithMembers b) {
     Contract.Requires(a != null);
     Contract.Requires(b != null);
@@ -132,8 +147,12 @@ public abstract class TopLevelDeclWithMembers : TopLevelDecl {
     Contract.Requires(s != null);
     foreach (var parent in ParentTraits) {
       var udt = (UserDefinedType)parent;  // in a successfully resolved program, we expect all .ParentTraits to be a UserDefinedType
-      var nntd = (NonNullTypeDecl)udt.ResolvedClass;  // we expect the trait type to be the non-null version of the trait type
-      var tr = (TraitDecl)nntd.Class;
+      TraitDecl tr;
+      if (udt.ResolvedClass is NonNullTypeDecl nntd) {
+        tr = (TraitDecl)nntd.Class;
+      } else {
+        tr = (TraitDecl)udt.ResolvedClass;
+      }
       s.Add(tr);
       tr.AddTraitAncestors(s);
     }
@@ -154,7 +173,7 @@ public abstract class TopLevelDeclWithMembers : TopLevelDecl {
     return Members.SelectMany(m => m.Assumptions(this));
   }
 
-  public void RegisterMembers(Resolver resolver, Dictionary<string, MemberDecl> members) {
+  public void RegisterMembers(ModuleResolver resolver, Dictionary<string, MemberDecl> members) {
     Contract.Requires(this != null);
     Contract.Requires(members != null);
 
@@ -229,7 +248,7 @@ public abstract class TopLevelDeclWithMembers : TopLevelDecl {
           extraMember.InheritVisibility(m, false);
           members.Add(extraName.Value, extraMember);
         } else if (m is Function f && f.ByMethodBody != null) {
-          Resolver.RegisterByMethod(f, this);
+          ModuleResolver.RegisterByMethod(f, this);
         }
       } else if (m is Constructor && !((Constructor)m).HasName) {
         resolver.reporter.Error(MessageSource.Resolver, m, "More than one anonymous constructor");

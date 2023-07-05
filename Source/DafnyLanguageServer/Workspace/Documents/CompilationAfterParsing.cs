@@ -9,10 +9,10 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace;
 
-public class DocumentAfterParsing : Document {
+public class CompilationAfterParsing : Compilation {
   public IReadOnlyDictionary<DocumentUri, List<DafnyDiagnostic>> ResolutionDiagnostics { get; }
 
-  public DocumentAfterParsing(VersionedTextDocumentIdentifier documentIdentifier,
+  public CompilationAfterParsing(VersionedTextDocumentIdentifier documentIdentifier,
     Program program,
     IReadOnlyDictionary<DocumentUri, List<DafnyDiagnostic>> diagnostics) : base(documentIdentifier) {
     ResolutionDiagnostics = diagnostics;
@@ -58,12 +58,12 @@ public class DocumentAfterParsing : Document {
       var messageForIncludedFile =
         ResolutionDiagnostics.GetOrDefault(include, () => (IReadOnlyList<DafnyDiagnostic>)ImmutableList<DafnyDiagnostic>.Empty);
       var errorMessages = messageForIncludedFile.Where(m => m.Level == ErrorLevel.Error);
-      var firstErrorMessage = errorMessages.FirstOrDefault();
-      if (firstErrorMessage == null) {
+      var firstErrorDiagnostic = errorMessages.FirstOrDefault();
+      if (firstErrorDiagnostic == null) {
         continue;
       }
 
-      var containsErrorSTheFirstOneIs = $"the included file {include.LocalPath} contains error(s). The first one is:{firstErrorMessage}";
+      var containsErrorSTheFirstOneIs = $"the included file {include.LocalPath} contains error(s). The first one is:{firstErrorDiagnostic.Message}";
       var diagnostic = new DafnyDiagnostic(null, Program.GetFirstTopLevelToken(), containsErrorSTheFirstOneIs,
         MessageSource.Parser, ErrorLevel.Error, new DafnyRelatedInformation[] { });
       yield return diagnostic;

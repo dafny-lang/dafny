@@ -23,12 +23,12 @@ namespace Microsoft.Dafny {
     );
 
   interface ICanResolve {
-    void Resolve(Resolver resolver, ResolutionContext context);
+    void Resolve(ModuleResolver resolver, ResolutionContext context);
   }
 
   public enum FrameExpressionUse { Reads, Modifies, Unchanged }
 
-  public partial class Resolver { // TODO rename to ModuleResolver in fast-follow-up
+  public partial class ModuleResolver {
     public ProgramResolver ProgramResolver { get; }
     public DafnyOptions Options { get; }
     public SystemModuleManager SystemModuleManager;
@@ -81,11 +81,11 @@ namespace Microsoft.Dafny {
 
     private Dictionary<TypeParameter, Type> SelfTypeSubstitution;
 
-    public Resolver(DafnyOptions options) {
+    public ModuleResolver(DafnyOptions options) {
       Options = options;
     }
 
-    public Resolver(ProgramResolver programResolver) {
+    public ModuleResolver(ProgramResolver programResolver) {
       this.ProgramResolver = programResolver;
       Options = programResolver.Options;
 
@@ -315,10 +315,8 @@ namespace Microsoft.Dafny {
 
             decl = lmem;
           } else if (sig.TopLevels.TryGetValue(name, out var tdecl)) {
-            if (tdecl is ClassLikeDecl { NonNullTypeDecl: { } }) {
+            if (tdecl is ClassLikeDecl { NonNullTypeDecl: { } nn }) {
               // cldecl is a possibly-null type (syntactically given with a question mark at the end)
-              var nn = ((ClassLikeDecl)tdecl).NonNullTypeDecl;
-              Contract.Assert(nn != null);
               reporter.Error(MessageSource.Resolver, export.Tok,
                 export.Opaque
                   ? "Type '{1}' can only be revealed, not provided"
@@ -652,7 +650,7 @@ namespace Microsoft.Dafny {
       return info;
     }
 
-    public static void ResolveOpenedImports(ModuleSignature sig, ModuleDefinition moduleDef, ErrorReporter reporter, Resolver resolver) {
+    public static void ResolveOpenedImports(ModuleSignature sig, ModuleDefinition moduleDef, ErrorReporter reporter, ModuleResolver resolver) {
       var declarations = sig.TopLevels.Values.ToList<TopLevelDecl>();
       var importedSigs = new HashSet<ModuleSignature>() { sig };
 
@@ -977,7 +975,8 @@ namespace Microsoft.Dafny {
         } else if (d is ModuleDecl) {
           var decl = (ModuleDecl)d;
           if (!def.IsAbstract && decl is AliasModuleDecl am && decl.Signature.IsAbstract) {
-            reporter.Error(MessageSource.Resolver, am.TargetQId.RootToken(), "a compiled module ({0}) is not allowed to import an abstract module ({1})", def.Name, am.TargetQId.ToString());
+            reporter.Error(MessageSource.Resolver, am.TargetQId.RootToken(),
+              "a compiled module ({0}) is not allowed to import an abstract module ({1})", def.Name, am.TargetQId.ToString());
           }
         } else if (d is DatatypeDecl) {
           var dd = (DatatypeDecl)d;
@@ -1000,6 +999,17 @@ namespace Microsoft.Dafny {
       // Check for cycles among parent traits
       foreach (var cycle in parentRelation.AllCycles()) {
         ReportCycleError(reporter, cycle, m => m.tok, m => m.Name, "trait definitions contain a cycle");
+      }
+      if (prevErrorCount == reporter.Count(ErrorLevel.Error)) {
+        // check that only reference types (classes and some traits) inherit from 'object'
+        foreach (TopLevelDecl d in declarations.Where(d => d is TopLevelDeclWithMembers and not ClassLikeDecl)) {
+          var nonReferenceTypeDecl = (TopLevelDeclWithMembers)d;
+          foreach (var parentType in nonReferenceTypeDecl.ParentTraits.Where(t => t.IsRefType)) {
+            reporter.Error(MessageSource.Resolver, parentType is UserDefinedType parentUdt ? parentUdt.tok : nonReferenceTypeDecl.tok,
+              $"{nonReferenceTypeDecl.WhatKind} is not allowed to extend '{parentType}', because it is a reference type");
+            break; // one error message per "decl" is enough
+          }
+        }
       }
       if (prevErrorCount == reporter.Count(ErrorLevel.Error)) {
         // Register the trait members in the classes that inherit them
@@ -1488,28 +1498,42 @@ namespace Microsoft.Dafny {
         // Also check that static fields (which are necessarily const) have initializers.
         var cdci = new CheckDividedConstructorInit_Visitor(reporter);
         foreach (var cl in ModuleDefinition.AllTypesWithMembers(declarations)) {
-          if (cl is not ClassDecl and not TraitDecl) {
+          // only reference types (classes and reference-type traits) are allowed to declare mutable fields
+          if (cl is not ClassLikeDecl { IsReferenceTypeDecl: true }) {
+            foreach (var member in cl.Members.Where(member => member is Field and not SpecialField)) {
+              var traitHint = cl is TraitDecl ? " or declaring the trait with 'extends object'" : "";
+              reporter.Error(MessageSource.Resolver, member,
+                $"mutable fields are allowed only in reference types (consider declaring the field as a 'const'{traitHint})");
+            }
+          }
+
+          if (cl is not ClassLikeDecl) {
             if (!isAnExport && !cl.EnclosingModuleDefinition.IsAbstract) {
-              // non-reference types (datatype, newtype, opaque) don't have constructors that can initialize fields
+              // non-reference, non-trait types (datatype, newtype, opaque) don't have constructors that can initialize fields
               foreach (var member in cl.Members) {
                 if (member is ConstantField f && f.Rhs == null && !f.IsExtern(Options, out _, out _)) {
-                  CheckIsOkayWithoutRHS(f);
+                  CheckIsOkayWithoutRHS(f, false);
                 }
               }
             }
             continue;
           }
-          if (cl is TraitDecl) {
+          if (cl is TraitDecl traitDecl) {
             if (!isAnExport && !cl.EnclosingModuleDefinition.IsAbstract) {
-              // traits never have constructors, but check for static consts
+              // check for static consts, and check for instance fields in non-reference traits
               foreach (var member in cl.Members) {
-                if (member is ConstantField f && f.IsStatic && f.Rhs == null && !f.IsExtern(Options, out _, out _)) {
-                  CheckIsOkayWithoutRHS(f);
+                if (member is ConstantField f && f.Rhs == null && !f.IsExtern(Options, out _, out _)) {
+                  if (f.IsStatic) {
+                    CheckIsOkayWithoutRHS(f, false);
+                  } else if (!traitDecl.IsReferenceTypeDecl) {
+                    CheckIsOkayWithoutRHS(f, true);
+                  }
                 }
               }
             }
             continue;
           }
+
           var hasConstructor = false;
           Field fieldWithoutKnownInitializer = null;
           foreach (var member in cl.Members) {
@@ -1522,7 +1546,7 @@ namespace Microsoft.Dafny {
             } else if (member is ConstantField && member.IsStatic) {
               var f = (ConstantField)member;
               if (!isAnExport && !cl.EnclosingModuleDefinition.IsAbstract && f.Rhs == null && !f.IsExtern(Options, out _, out _)) {
-                CheckIsOkayWithoutRHS(f);
+                CheckIsOkayWithoutRHS(f, false);
               }
             } else if (member is Field && fieldWithoutKnownInitializer == null) {
               var f = (Field)member;
@@ -1844,15 +1868,18 @@ namespace Microsoft.Dafny {
       }
     }
 
-    private void CheckIsOkayWithoutRHS(ConstantField f) {
+    private void CheckIsOkayWithoutRHS(ConstantField f, bool giveNonReferenceTypeTraitHint) {
+      var hint = giveNonReferenceTypeTraitHint && !f.IsStatic
+        ? " (consider changing the field to be a function, or restricting the enclosing trait to be a reference type by adding 'extends object')"
+        : "";
+      var statik = f.IsStatic ? "static " : "";
+
       if (f.IsGhost && !f.Type.IsNonempty) {
         reporter.Error(MessageSource.Resolver, f.tok,
-          "{0}ghost const field '{1}' of type '{2}' (which may be empty) must give a defining value",
-          f.IsStatic ? "static " : "", f.Name, f.Type);
+          $"{statik}ghost const field '{f.Name}' of type '{f.Type}' (which may be empty) must give a defining value{hint}");
       } else if (!f.IsGhost && !f.Type.HasCompilableValue) {
         reporter.Error(MessageSource.Resolver, f.tok,
-          "{0}non-ghost const field '{1}' of type '{2}' (which does not have a default compiled value) must give a defining value",
-          f.IsStatic ? "static " : "", f.Name, f.Type);
+          $"{statik}non-ghost const field '{f.Name}' of type '{f.Type}' (which does not have a default compiled value) must give a defining value{hint}");
       }
     }
 
@@ -2649,7 +2676,7 @@ namespace Microsoft.Dafny {
     /// This method computes ghost interests in the statement portion of StmtExpr's and
     /// checks for hint restrictions in any CalcStmt.
     /// </summary>
-    void CheckExpression(Expression expr, Resolver resolver, ICodeContext codeContext) {
+    void CheckExpression(Expression expr, ModuleResolver resolver, ICodeContext codeContext) {
       Contract.Requires(expr != null);
       Contract.Requires(resolver != null);
       Contract.Requires(codeContext != null);
@@ -2662,7 +2689,7 @@ namespace Microsoft.Dafny {
     /// changes the bound variables of all let- and let-such-that expressions to ghost.
     /// It also performs substitutions in DefaultValueExpression's.
     /// </summary>
-    void CheckExpression(Statement stmt, Resolver resolver, ICodeContext codeContext) {
+    void CheckExpression(Statement stmt, ModuleResolver resolver, ICodeContext codeContext) {
       Contract.Requires(stmt != null);
       Contract.Requires(resolver != null);
       Contract.Requires(codeContext != null);
@@ -2671,7 +2698,7 @@ namespace Microsoft.Dafny {
     }
     class CheckExpression_Visitor : ResolverBottomUpVisitor {
       readonly ICodeContext CodeContext;
-      public CheckExpression_Visitor(Resolver resolver, ICodeContext codeContext)
+      public CheckExpression_Visitor(ModuleResolver resolver, ICodeContext codeContext)
         : base(resolver) {
         Contract.Requires(resolver != null);
         Contract.Requires(codeContext != null);
@@ -2753,7 +2780,7 @@ namespace Microsoft.Dafny {
     }
 
     class ReportOtherAdditionalInformation_Visitor : ResolverBottomUpVisitor {
-      public ReportOtherAdditionalInformation_Visitor(Resolver resolver)
+      public ReportOtherAdditionalInformation_Visitor(ModuleResolver resolver)
         : base(resolver) {
         Contract.Requires(resolver != null);
       }
@@ -2843,12 +2870,14 @@ namespace Microsoft.Dafny {
       currentClass = cl;
       allTypeParameters.PushMarker();
       ResolveTypeParameters(cl.TypeArgs, false, cl);
-      foreach (var tt in cl.ParentTraits) {
+      foreach (var parentTrait in cl.ParentTraits) {
         var prevErrorCount = reporter.Count(ErrorLevel.Error);
-        ResolveType(cl.tok, tt, new NoContext(cl.EnclosingModuleDefinition), ResolveTypeOptionEnum.DontInfer, null);
+        ResolveType(cl.tok, parentTrait, new NoContext(cl.EnclosingModuleDefinition), ResolveTypeOptionEnum.DontInfer, null);
         if (prevErrorCount == reporter.Count(ErrorLevel.Error)) {
-          var udt = tt as UserDefinedType;
-          if (udt != null && udt.ResolvedClass is NonNullTypeDecl nntd && nntd.ViewAsClass is TraitDecl trait) {
+          var parentTypeToken = parentTrait is UserDefinedType parentTraitUdt ? parentTraitUdt.tok : cl.tok;
+
+          var trait = parentTrait.UseInternalSynonym().IsInternalTypeSynonym ? null : (parentTrait as UserDefinedType)?.AsParentTraitDecl();
+          if (trait != null) {
             // disallowing inheritance in multi module case
             bool termination = true;
             if (cl.EnclosingModuleDefinition == trait.EnclosingModuleDefinition || trait.IsObjectTrait || (Attributes.ContainsBool(trait.Attributes, "termination", ref termination) && !termination)) {
@@ -2858,10 +2887,12 @@ namespace Microsoft.Dafny {
                 parentRelation.AddEdge(cl, trait);
               }
             } else {
-              reporter.Error(MessageSource.Resolver, udt.tok, "{0} '{1}' is in a different module than trait '{2}'. A {0} may only extend a trait in the same module, unless the parent trait is annotated with {{:termination false}}.", cl.WhatKind, cl.Name, trait.FullName);
+              reporter.Error(MessageSource.Resolver, parentTypeToken,
+                $"{cl.WhatKind} '{cl.Name}' is in a different module than trait '{trait.FullName}'. A {cl.WhatKind} may only extend a trait " +
+                "in the same module, unless the parent trait is annotated with {:termination false}.");
             }
           } else {
-            reporter.Error(MessageSource.Resolver, udt != null ? udt.tok : cl.tok, "a {0} can only extend traits (found '{1}')", cl.WhatKind, tt);
+            reporter.Error(MessageSource.Resolver, parentTypeToken, $"a {cl.WhatKind} can only extend traits (found '{parentTrait}')");
           }
         }
       }
@@ -2886,8 +2917,7 @@ namespace Microsoft.Dafny {
       // populate .ParentTypeInformation and .ParentFormalTypeParametersToActuals for the immediate parent traits
       foreach (var tt in cl.ParentTraits) {
         var udt = (UserDefinedType)tt;
-        var nntd = (NonNullTypeDecl)udt.ResolvedClass;
-        var trait = (TraitDecl)nntd.ViewAsClass;
+        var trait = (TraitDecl)((udt.ResolvedClass as NonNullTypeDecl)?.ViewAsClass ?? udt.ResolvedClass);
         cl.ParentTypeInformation.Record(trait, udt);
         Contract.Assert(trait.TypeArgs.Count == udt.TypeArgs.Count);
         for (var i = 0; i < trait.TypeArgs.Count; i++) {
@@ -4128,9 +4158,9 @@ namespace Microsoft.Dafny {
     }
 
     class DefaultValueSubstituter : Substituter {
-      private readonly Resolver resolver;
+      private readonly ModuleResolver resolver;
       private readonly Dictionary<DefaultValueExpression, WorkProgress> visited;
-      public DefaultValueSubstituter(Resolver resolver, Dictionary<DefaultValueExpression, WorkProgress> visited,
+      public DefaultValueSubstituter(ModuleResolver resolver, Dictionary<DefaultValueExpression, WorkProgress> visited,
         Expression /*?*/ receiverReplacement, Dictionary<IVariable, Expression> substMap, Dictionary<TypeParameter, Type> typeMap)
         : base(receiverReplacement, substMap, typeMap) {
         Contract.Requires(resolver != null);
@@ -4199,7 +4229,7 @@ namespace Microsoft.Dafny {
       return sig;
     }
 
-    private ModuleSignature GetSignature(ModuleSignature sig) {
+    public ModuleSignature GetSignature(ModuleSignature sig) {
       return GetSignatureExt(sig);
     }
 

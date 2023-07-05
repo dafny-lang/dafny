@@ -33,7 +33,7 @@ method Test() {
 }";
       var documentItem = CreateTestDocument(source, TestFilePath);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var document = await Documents.GetResolvedDocumentAsync(documentItem.Uri);
+      var document = await Projects.GetResolvedDocumentAsync(documentItem.Uri);
       Assert.NotNull(document);
       Assert.True(!document.Diagnostics.Any());
     }
@@ -50,7 +50,7 @@ method Test() {
 }";
       var documentItem = CreateTestDocument(source, TestFilePath);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var document = await Documents.GetLastDocumentAsync(documentItem.Uri);
+      var document = await Projects.GetLastDocumentAsync(documentItem.Uri);
       Assert.NotNull(document);
       Assert.Single(document.AllFileDiagnostics);
     }
