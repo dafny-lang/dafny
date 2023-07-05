@@ -58,10 +58,7 @@ warn-shadowing = true";
     await SetUp(options => options.WarnShadowing = true);
     var filePath = Path.Combine(Directory.GetCurrentDirectory(), "ProjectFiles/TestFiles/noWarnShadowing.dfy");
     var source = await File.ReadAllTextAsync(filePath);
-    var documentItem = CreateTestDocument(source, filePath);
-    await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-    var diagnostics = await diagnosticsReceiver.AwaitNextNotificationAsync(CancellationToken);
-    Assert.Contains("foo.dfy", diagnostics.Uri.ToString());
+    await CreateAndOpenTestDocument(source, filePath);
     await AssertNoDiagnosticsAreComing(CancellationToken);
   }
 
