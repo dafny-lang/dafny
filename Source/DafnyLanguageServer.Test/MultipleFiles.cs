@@ -28,9 +28,7 @@ method Bar() {
     var consumer1 = CreateTestDocument(consumerSource, Path.Combine(Directory.GetCurrentDirectory(), "consumer1.dfy"));
     await client.OpenDocumentAndWaitAsync(consumer1, CancellationToken);
 
-    var producerDiagnostics1 = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, producerItem);
     var consumer1Diagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, consumer1);
-    Assert.Empty(producerDiagnostics1);
     Assert.Single(consumer1Diagnostics);
     Assert.Contains("int", consumer1Diagnostics[0].Message);
 

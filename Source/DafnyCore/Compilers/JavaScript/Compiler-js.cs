@@ -25,7 +25,8 @@ namespace Microsoft.Dafny.Compilers {
     public override IReadOnlySet<Feature> UnsupportedFeatures => new HashSet<Feature> {
       Feature.MethodSynthesis,
       Feature.ExternalConstructors,
-      Feature.SubsetTypeTests
+      Feature.SubsetTypeTests,
+      Feature.SeparateCompilation
     };
 
     const string DafnySetClass = "_dafny.Set";
