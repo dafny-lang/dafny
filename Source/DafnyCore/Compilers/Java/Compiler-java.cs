@@ -326,8 +326,13 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    public static string TransformToClassName(string baseName) =>
-      Regex.Replace(baseName, "[^_A-Za-z0-9$]", "_");
+    public static string TransformToClassName(string baseName) {
+      var sanitizedName = Regex.Replace(baseName, "[^_A-Za-z0-9$]", "_");
+      if (!Regex.IsMatch(sanitizedName, "^[_A-Za-z]")) {
+        sanitizedName = "_" + sanitizedName;
+      }
+      return sanitizedName;
+    }
 
     public override void EmitCallToMain(Method mainMethod, string baseName, ConcreteSyntaxTree wr) {
       var className = TransformToClassName(baseName);
