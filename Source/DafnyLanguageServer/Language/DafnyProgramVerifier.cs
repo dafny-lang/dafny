@@ -54,9 +54,9 @@ namespace Microsoft.Dafny.LanguageServer.Language {
 
       if (engine.Options.PrintFile != null) {
         var moduleCount = Translator.VerifiableModules(program).Count();
-        foreach (var t in translated) {
-          var fileName = moduleCount > 1 ? DafnyMain.BoogieProgramSuffix(engine.Options.PrintFile, t.Item1) : engine.Options.PrintFile;
-          ExecutionEngine.PrintBplFile(engine.Options, fileName, t.Item2, false, false, engine.Options.PrettyPrint);
+        foreach (var (suffix, program) in translated) {
+          var fileName = moduleCount > 1 ? DafnyMain.BoogieProgramSuffix(engine.Options.PrintFile, suffix) : engine.Options.PrintFile;
+          ExecutionEngine.PrintBplFile(engine.Options, fileName, program, false, false, engine.Options.PrettyPrint);
         }
       }
 
