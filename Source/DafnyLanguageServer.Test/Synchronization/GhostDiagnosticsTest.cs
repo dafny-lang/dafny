@@ -31,12 +31,9 @@ method Bar()
       });
 
       var directory = Path.GetRandomFileName();
-      var projectFile = CreateTestDocument("", Path.Combine(directory, "dfyconfig.toml"));
-      await client.OpenDocumentAndWaitAsync(projectFile, CancellationToken);
-      var docA = CreateTestDocument(sourceA, Path.Combine(directory, "a.dfy"));
-      await client.OpenDocumentAndWaitAsync(docA, CancellationToken);
-      var docB = CreateTestDocument(sourceB, Path.Combine(directory, "b.dfy"));
-      await client.OpenDocumentAndWaitAsync(docB, CancellationToken);
+      var projectFile = await CreateAndOpenTestDocument("", Path.Combine(directory, "dfyconfig.toml"));
+      var docA = await CreateAndOpenTestDocument(sourceA, Path.Combine(directory, "a.dfy"));
+      var docB = await CreateAndOpenTestDocument(sourceB, Path.Combine(directory, "b.dfy"));
 
       var report = await ghostnessReceiver.AwaitNextNotificationAsync(CancellationToken);
       var report2 = await ghostnessReceiver.AwaitNextNotificationAsync(CancellationToken);
@@ -48,7 +45,6 @@ method Bar()
       Assert.Equal(docB.Uri.ToUri(), report2.Uri);
       Assert.Equal(4, report2.Diagnostics.Single().Range.Start.Line);
     }
-
 
     [Fact]
     public async Task OpeningFlawlessDocumentWithoutGhostMarkDoesNotMarkAnything() {

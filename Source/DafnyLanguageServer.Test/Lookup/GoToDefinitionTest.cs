@@ -20,7 +20,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
       var sourceA = @"
 const a := 3;
 ".TrimStart();
-      
+
       var sourceB = @"
 const b := a + 2;
 ".TrimStart();
@@ -82,8 +82,7 @@ datatype Result<T, E> = Ok(value: T) | Err({>1:error<}: E) {
       MarkupTestFile.GetPositionsAndNamedRanges(source, out var cleanSource,
         out var positions, out var ranges);
 
-      var documentItem = CreateTestDocument(cleanSource);
-      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+      var documentItem = await CreateAndOpenTestDocument(cleanSource);
       for (var index = 0; index < positions.Count; index++) {
         var position = positions[index];
         var range = ranges.ContainsKey(string.Empty) ? ranges[string.Empty][index] : ranges[index.ToString()].Single();

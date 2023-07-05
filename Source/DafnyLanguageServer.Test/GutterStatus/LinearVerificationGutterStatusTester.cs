@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
@@ -236,7 +237,7 @@ public abstract class LinearVerificationGutterStatusTester : ClientBasedLanguage
   }
 
   // If testTrace is false, codeAndTree should not contain a trace to test.
-  public async Task VerifyTrace(string codeAndTrace, string fileName = null, bool testTrace = true, bool intermediates = true,
+  public async Task VerifyTrace(string codeAndTrace, bool explicitProject, string fileName = null, bool testTrace = true, bool intermediates = true,
     TestNotificationReceiver<VerificationStatusGutter> verificationStatusGutterReceiver = null) {
     if (verificationStatusGutterReceiver == null) {
       verificationStatusGutterReceiver = this.verificationStatusGutterReceiver;
@@ -246,8 +247,11 @@ public abstract class LinearVerificationGutterStatusTester : ClientBasedLanguage
       codeAndTrace;
     var codeAndChanges = testTrace ? ExtractCode(codeAndTrace) : codeAndTrace;
     var (code, changes) = ExtractCodeAndChanges(codeAndChanges);
-    var documentItem = CreateTestDocument(code, fileName);
-    client.OpenDocument(documentItem);
+    if (explicitProject) {
+      await CreateAndOpenTestDocument("", Path.Combine(Path.GetDirectoryName(fileName)!, DafnyProject.FileName));
+    }
+
+    var documentItem = await CreateAndOpenTestDocument(code, fileName);
     var traces = new List<LineVerificationStatus[]>();
     traces.AddRange(await GetAllLineVerificationStatuses(documentItem, verificationStatusGutterReceiver, intermediates: intermediates));
     foreach (var (range, inserted) in changes) {
