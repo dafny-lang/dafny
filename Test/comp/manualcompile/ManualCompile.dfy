@@ -1,3 +1,5 @@
+// NONUNIFORM: Highly target language specific
+
 // RUN: %baredafny translate cs %args --verbose --include-runtime "%s" > "%t"
 // RUN: dotnet build %S/ManualCompile.csproj
 // RUN: dotnet %S/bin/Debug/net6.0/ManualCompile.dll >> "%t"
