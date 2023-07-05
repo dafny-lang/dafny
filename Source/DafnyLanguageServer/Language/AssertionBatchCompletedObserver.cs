@@ -30,7 +30,7 @@ public class OutputLogger : OutputPrinter {
   }
 
   public void Inform(string s, TextWriter tw) {
-    logger.LogInformation(s);
+    logger.LogDebug(s);
   }
 
   public void ReportBplError(Boogie.IToken tok, string message, bool error, TextWriter tw, [AllowNull] string category) {

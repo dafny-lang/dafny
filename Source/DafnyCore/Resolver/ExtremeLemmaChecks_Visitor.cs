@@ -4,7 +4,7 @@ namespace Microsoft.Dafny;
 
 class ExtremeLemmaChecks_Visitor : ResolverBottomUpVisitor {
   ExtremeLemma context;
-  public ExtremeLemmaChecks_Visitor(Resolver resolver, ExtremeLemma context)
+  public ExtremeLemmaChecks_Visitor(ModuleResolver resolver, ExtremeLemma context)
     : base(resolver) {
     Contract.Requires(resolver != null);
     Contract.Requires(context != null);

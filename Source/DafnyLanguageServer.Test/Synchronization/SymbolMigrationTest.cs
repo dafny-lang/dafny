@@ -27,7 +27,7 @@ function GetConstant2(): int {
         new Range((0, 0), (0, 0)),
         change
       );
-      var document = await Documents.GetResolvedDocumentAsync(documentItem.Uri);
+      var document = await Projects.GetResolvedDocumentAsync(documentItem.Uri);
       Assert.NotNull(document);
       Assert.True(document.SignatureAndCompletionTable.Resolved);
       Assert.Equal(2, document.SignatureAndCompletionTable.Locations.Keys.OfType<FunctionSymbol>().Count());
@@ -52,7 +52,7 @@ function GetConstant2(): int {
         new Range((0, 0), (0, 0)),
         change
       );
-      var document = await Documents.GetResolvedDocumentAsync(documentItem.Uri);
+      var document = await Projects.GetResolvedDocumentAsync(documentItem.Uri);
       Assert.NotNull(document);
     }
 
@@ -72,7 +72,7 @@ function GetConstant(): int {
         new Range((4, 0), (4, 0)),
         change
       );
-      var document = await Documents.GetResolvedDocumentAsync(documentItem.Uri);
+      var document = await Projects.GetResolvedDocumentAsync(documentItem.Uri);
       Assert.NotNull(document);
     }
 
@@ -95,7 +95,7 @@ method GetIt(x: int) returns (y: int) {
         new Range((1, 0), (1, 11)),
         change
       );
-      var document = await Documents.GetResolvedDocumentAsync(documentItem.Uri);
+      var document = await Projects.GetResolvedDocumentAsync(documentItem.Uri);
       Assert.NotNull(document);
       Assert.True(document.SignatureAndCompletionTable.Resolved);
       Assert.Single(document.SignatureAndCompletionTable.Locations.Keys.OfType<MethodSymbol>());

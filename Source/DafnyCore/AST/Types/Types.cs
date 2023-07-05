@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
 using System.Threading;
+using JetBrains.Annotations;
 
 namespace Microsoft.Dafny;
 
@@ -103,10 +104,10 @@ public abstract class Type : TokenNode {
     }
   }
 
-  [Pure]
+  [System.Diagnostics.Contracts.Pure]
   public abstract string TypeName(DafnyOptions options, ModuleDefinition/*?*/ context, bool parseAble = false);
 
-  [Pure]
+  [System.Diagnostics.Contracts.Pure]
   public override string ToString() {
     return TypeName(DafnyOptions.DefaultImmutableOptions, null, false);
   }
@@ -148,7 +149,7 @@ public abstract class Type : TokenNode {
   ///
   /// For more documentation, see method Normalize().
   /// </summary>
-  [Pure]
+  [System.Diagnostics.Contracts.Pure]
   public Type NormalizeExpand(bool keepConstraints = false) {
     Contract.Ensures(Contract.Result<Type>() != null);
     Contract.Ensures(!(Contract.Result<Type>() is TypeProxy) || ((TypeProxy)Contract.Result<Type>()).T == null);  // return a proxy only if .T == null
@@ -222,7 +223,7 @@ public abstract class Type : TokenNode {
   ///
   /// For more documentation, see method Normalize().
   /// </summary>
-  [Pure]
+  [System.Diagnostics.Contracts.Pure]
   public Type NormalizeExpandKeepConstraints() {
     return NormalizeExpand(true);
   }
@@ -267,7 +268,7 @@ public abstract class Type : TokenNode {
   /// <summary>
   /// Returns whether or not "this" and "that" denote the same type, modulo proxies and type synonyms and subset types.
   /// </summary>
-  [Pure]
+  [System.Diagnostics.Contracts.Pure]
   public abstract bool Equals(Type that, bool keepConstraints = false);
 
   public bool IsBoolType { get { return NormalizeExpand() is BoolType; } }
@@ -283,7 +284,7 @@ public abstract class Type : TokenNode {
     return t.IsIntegerType || t.IsRealType || t.AsNewtype != null;
   }
   public enum NumericPersuasion { Int, Real }
-  [Pure]
+  [System.Diagnostics.Contracts.Pure]
   public bool IsNumericBased(NumericPersuasion p) {
     Type t = this;
     while (true) {
@@ -870,7 +871,11 @@ public abstract class Type : TokenNode {
   public bool IsOrdered {
     get {
       var ct = NormalizeExpand();
-      return !ct.IsTypeParameter && !ct.IsAbstractType && !ct.IsInternalTypeSynonym && !ct.IsCoDatatype && !ct.IsArrowType && !ct.IsIMapType && !ct.IsISetType;
+      if (ct.IsTypeParameter || ct.IsAbstractType || ct.IsInternalTypeSynonym || ct.IsCoDatatype || ct.IsArrowType || ct.IsIMapType || ct.IsISetType ||
+          ct is UserDefinedType { ResolvedClass: TraitDecl { IsReferenceTypeDecl: false } }) {
+        return false;
+      }
+      return true;
     }
   }
 
@@ -1770,7 +1775,7 @@ public abstract class ArtificialType : Type {
 /// or a bitvector type.
 /// </summary>
 public class IntVarietiesSupertype : ArtificialType {
-  [Pure]
+  [System.Diagnostics.Contracts.Pure]
   public override string TypeName(DafnyOptions options, ModuleDefinition context, bool parseAble) {
     return "int";
   }
@@ -1779,7 +1784,7 @@ public class IntVarietiesSupertype : ArtificialType {
   }
 }
 public class RealVarietiesSupertype : ArtificialType {
-  [Pure]
+  [System.Diagnostics.Contracts.Pure]
   public override string TypeName(DafnyOptions options, ModuleDefinition context, bool parseAble) {
     return "real";
   }
@@ -1810,7 +1815,7 @@ public abstract class BasicType : NonProxyType {
 }
 
 public class BoolType : BasicType {
-  [Pure]
+  [System.Diagnostics.Contracts.Pure]
   public override string TypeName(DafnyOptions options, ModuleDefinition context, bool parseAble) {
     return "bool";
   }
@@ -1822,7 +1827,7 @@ public class BoolType : BasicType {
 public class CharType : BasicType {
   public const char DefaultValue = 'D';
   public const string DefaultValueAsString = "'D'";
-  [Pure]
+  [System.Diagnostics.Contracts.Pure]
   public override string TypeName(DafnyOptions options, ModuleDefinition context, bool parseAble) {
     return "char";
   }
@@ -1832,7 +1837,7 @@ public class CharType : BasicType {
 }
 
 public class IntType : BasicType {
-  [Pure]
+  [System.Diagnostics.Contracts.Pure]
   public override string TypeName(DafnyOptions options, ModuleDefinition context, bool parseAble) {
     return "int";
   }
@@ -1848,7 +1853,7 @@ public class IntType : BasicType {
 }
 
 public class RealType : BasicType {
-  [Pure]
+  [System.Diagnostics.Contracts.Pure]
   public override string TypeName(DafnyOptions options, ModuleDefinition context, bool parseAble) {
     return "real";
   }
@@ -1864,7 +1869,7 @@ public class RealType : BasicType {
 }
 
 public class BigOrdinalType : BasicType {
-  [Pure]
+  [System.Diagnostics.Contracts.Pure]
   public override string TypeName(DafnyOptions options, ModuleDefinition context, bool parseAble) {
     return "ORDINAL";
   }
@@ -1886,7 +1891,7 @@ public class BitvectorType : BasicType {
     : base() {
     Contract.Requires(0 <= width);
     Width = width;
-    foreach (var nativeType in Resolver.NativeTypes) {
+    foreach (var nativeType in ModuleResolver.NativeTypes) {
       if (options.Backend.SupportedNativeTypes.Contains(nativeType.Name) && width <= nativeType.Bitwidth) {
         NativeType = nativeType;
         break;
@@ -1894,7 +1899,7 @@ public class BitvectorType : BasicType {
     }
   }
 
-  [Pure]
+  [System.Diagnostics.Contracts.Pure]
   public override string TypeName(DafnyOptions options, ModuleDefinition context, bool parseAble) {
     return "bv" + Width;
   }
@@ -1917,7 +1922,7 @@ public class SelfType : NonProxyType {
     TypeArg = new TypeParameter(RangeToken.NoToken, new Name("selfType"), TypeParameter.TPVarianceSyntax.NonVariant_Strict);
   }
 
-  [Pure]
+  [System.Diagnostics.Contracts.Pure]
   public override string TypeName(DafnyOptions options, ModuleDefinition context, bool parseAble) {
     return "selftype";
   }
@@ -1965,6 +1970,7 @@ public abstract class CollectionType : NonProxyType {
 
   [FilledInDuringResolution]
   private Type arg;
+  public Type ValueArg => TypeArgs.Last();
 
   // The following methods, HasTypeArg and SetTypeArg/SetTypeArgs, are to be called during resolution to make sure that "arg" becomes set.
   public bool HasTypeArg() {
@@ -2035,7 +2041,7 @@ public class SetType : CollectionType {
     this.finite = finite;
   }
   public override string CollectionTypeName { get { return finite ? "set" : "iset"; } }
-  [Pure]
+  [System.Diagnostics.Contracts.Pure]
   public override bool Equals(Type that, bool keepConstraints = false) {
     var t = that.NormalizeExpand(keepConstraints) as SetType;
     return t != null && Finite == t.Finite && Arg.Equals(t.Arg, keepConstraints);
@@ -2157,7 +2163,7 @@ public class MapType : CollectionType {
     get { return Arg; }
   }
   public override string CollectionTypeName { get { return finite ? "map" : "imap"; } }
-  [Pure]
+  [System.Diagnostics.Contracts.Pure]
   public override string TypeName(DafnyOptions options, ModuleDefinition context, bool parseAble) {
     Contract.Ensures(Contract.Result<string>() != null);
     var targs = HasTypeArg() ? this.TypeArgsToString(options, context, parseAble) : "";
@@ -2364,6 +2370,18 @@ public class UserDefinedType : NonProxyType {
     return new UserDefinedType(udtNonNullType.tok, nntd.Class.Name + "?", nntd.Class, udtNonNullType.TypeArgs);
   }
 
+  public static UserDefinedType CreateNonNullTypeIfReferenceType(UserDefinedType classLikeType) {
+    Contract.Requires(classLikeType != null);
+    Contract.Requires(classLikeType.ResolvedClass is ClassLikeDecl);
+    return classLikeType.IsRefType ? CreateNonNullType(classLikeType) : classLikeType;
+  }
+
+  public static UserDefinedType CreateNullableTypeIfReferenceType(UserDefinedType classLikeType) {
+    Contract.Requires(classLikeType != null);
+    Contract.Requires(!classLikeType.IsRefType || classLikeType.ResolvedClass is NonNullTypeDecl);
+    return classLikeType.IsRefType ? CreateNullableType(classLikeType) : classLikeType;
+  }
+
   /// <summary>
   /// This constructor constructs a resolved type parameter
   /// </summary>
@@ -2484,16 +2502,38 @@ public class UserDefinedType : NonProxyType {
     return udt.TypeArgs[0];
   }
 
+  /// <summary>
+  /// This method converts a UserDefinedType given in an "extends" clause to the TraitDecl it refers to.
+  /// Return null if the UserDefinedType does not refer to a trait in this way.
+  /// </summary>
+  [CanBeNull]
+  public TraitDecl AsParentTraitDecl() {
+    // If .Name == "Tr" and "Tr" is a reference-type trait, then .ResolvedClass will be a NonNullTypeDecl
+    // whose .ViewAsClass is that trait declaration we're looking for.
+    if (ResolvedClass is NonNullTypeDecl { ViewAsClass: TraitDecl trait0 }) {
+      Contract.Assert(trait0.IsReferenceTypeDecl);
+      return trait0;
+    }
+    // If .Name == "Tr?" where "Tr" is a reference trait, then the "extends" clause is malformed. In this case,
+    // .ResolvedClass will still be a TraitDecl, but we don't want to return it. To distinguish this case, we
+    // compare the given .Name with the name of the trait declaration.
+    if (ResolvedClass is TraitDecl trait1 && trait1.Name == Name) {
+      Contract.Assert(!trait1.IsReferenceTypeDecl);
+      return trait1;
+    }
+    return null;
+  }
+
   public override IEnumerable<Node> Nodes => new[] { this }.Concat(TypeArgs.SelectMany(t => t.Nodes));
 
-  [Pure]
+  [System.Diagnostics.Contracts.Pure]
   public override string TypeName(DafnyOptions options, ModuleDefinition context, bool parseAble) {
     Contract.Ensures(Contract.Result<string>() != null);
     if (SystemModuleManager.IsTupleTypeName(Name)) {
       // Unfortunately, ResolveClass may be null, so Name is all we have.  Reverse-engineer the string name.
       IEnumerable<bool> argumentGhostness = SystemModuleManager.ArgumentGhostnessFromString(Name, TypeArgs.Count);
       return "(" + Util.Comma(System.Linq.Enumerable.Zip(TypeArgs, argumentGhostness),
-        (ty_u) => Resolver.GhostPrefix(ty_u.Item2) + ty_u.Item1.TypeName(options, context, parseAble)) + ")";
+        (ty_u) => ModuleResolver.GhostPrefix(ty_u.Item2) + ty_u.Item1.TypeName(options, context, parseAble)) + ")";
     } else if (ArrowType.IsPartialArrowTypeName(Name)) {
       return ArrowType.PrettyArrowTypeName(options, ArrowType.PARTIAL_ARROW, TypeArgs, null, context, parseAble);
     } else if (ArrowType.IsTotalArrowTypeName(Name)) {
@@ -2517,9 +2557,9 @@ public class UserDefinedType : NonProxyType {
 
   public override bool SupportsEquality {
     get {
-      if (ResolvedClass is ClassLikeDecl { IsReferenceTypeDecl: true } || ResolvedClass is NewtypeDecl) {
+      if (ResolvedClass is ClassLikeDecl { IsReferenceTypeDecl: true } or NewtypeDecl) {
         return ResolvedClass.IsRevealedInScope(Type.GetScope());
-      } else if (ResolvedClass is ClassDecl) {
+      } else if (ResolvedClass is TraitDecl) {
         return false;
       } else if (ResolvedClass is CoDatatypeDecl) {
         return false;
@@ -2788,7 +2828,7 @@ public abstract class TypeProxy : Type {
   static int _id = 0;
   int id = _id++;
 #endif
-  [Pure]
+  [System.Diagnostics.Contracts.Pure]
   public override string TypeName(DafnyOptions options, ModuleDefinition context, bool parseAble) {
     Contract.Ensures(Contract.Result<string>() != null);
 #if TI_DEBUG_PRINT
@@ -2824,7 +2864,7 @@ public abstract class TypeProxy : Type {
     }
   }
 
-  [Pure]
+  [System.Diagnostics.Contracts.Pure]
   internal static bool IsSupertypeOfLiteral(Type t) {
     Contract.Requires(t != null);
     return t is ArtificialType;

@@ -4,12 +4,8 @@
 using System;
 using System.Linq;
 using System.Text.RegularExpressions;
-using Microsoft.Dafny;
-using MapType = Microsoft.Dafny.MapType;
-using Token = Microsoft.Dafny.Token;
-using Type = Microsoft.Dafny.Type;
 
-namespace DafnyServer.CounterexampleGeneration {
+namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
 
   /// <summary>
   /// This class stores various transformations that could be useful to perform
@@ -21,23 +17,13 @@ namespace DafnyServer.CounterexampleGeneration {
     private static readonly Regex ModuleSeparatorRegex = new("(?<=[^_](__)*)_m");
     private static readonly Regex UnderscoreRemovalRegex = new("__");
 
-    // Used to distinguish between class types and algebraic datatypes
-    public class DatatypeType : UserDefinedType {
-      public DatatypeType(UserDefinedType type)
-        : base(new Token(), type.Name, type.TypeArgs) { }
-    }
-
     public static Type GetNonNullable(Type type) {
       if (type is not UserDefinedType userType) {
         return type;
       }
 
-      var newType = new UserDefinedType(new Token(),
+      return new UserDefinedType(new Token(),
         userType.Name.TrimEnd('?'), userType.TypeArgs);
-      if (type is DatatypeType) {
-        return new DatatypeType(newType);
-      }
-      return newType;
     }
 
     public static Type ReplaceTypeVariables(Type type, Type with) {
@@ -59,12 +45,8 @@ namespace DafnyServer.CounterexampleGeneration {
       if (newType is not UserDefinedType newUserType) {
         return newType;
       }
-      newUserType = new UserDefinedType(newUserType.tok, newUserType.Name,
+      return new UserDefinedType(newUserType.tok, newUserType.Name,
         newUserType.TypeArgs);
-      if (newType is DatatypeType) {
-        return new DatatypeType(newUserType);
-      }
-      return newUserType;
     }
 
     public static Type GetInDafnyFormat(Type type) {
@@ -77,18 +59,14 @@ namespace DafnyServer.CounterexampleGeneration {
       newName = newName.Split("@")[0];
       // The code below converts every "__" to "_":
       newName = UnderscoreRemovalRegex.Replace(newName, "_");
-      var newType = new UserDefinedType(new Token(), newName,
+      return new UserDefinedType(new Token(), newName,
         type.TypeArgs.ConvertAll(t => TransformType(t, GetInDafnyFormat)));
-      if (type is DatatypeType) {
-        return new DatatypeType(newType);
-      }
-      return newType;
     }
 
     /// <summary>
     /// Recursively transform all UserDefinedType objects within a given type
     /// </summary>
-    public static Type TransformType(Type type, Func<UserDefinedType, Type> transform) {
+    private static Type TransformType(Type type, Func<UserDefinedType, Type> transform) {
       if (type is ArrowType || type.AsArrowType != null) {
         var arrowType = type.AsArrowType;
         return new ArrowType(new Token(),
@@ -96,7 +74,7 @@ namespace DafnyServer.CounterexampleGeneration {
           TransformType(arrowType.Result, transform));
       }
       switch (type) {
-        case Microsoft.Dafny.BasicType:
+        case BasicType:
           return type;
         case MapType mapType:
           return new MapType(mapType.Finite,
