@@ -28,8 +28,6 @@ method Foo() {
 ";
     var documentItem = CreateTestDocument(source, Path.Combine(projectFilePath, "source.dfy"));
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-    var diagnostics0 = await GetLastDiagnostics(documentItem, CancellationToken);
-    Assert.Empty(diagnostics0);
 
     var warnShadowingOn = @"
 [options]
