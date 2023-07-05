@@ -903,10 +903,6 @@ method test()
       await SetUp(options => options.Set(BoogieOptionBag.Cores, 1U));
       var documentItem = CreateTestDocument(source);
       client.OpenDocument(documentItem);
-<<<<<<< HEAD
-      await AssertNoDiagnosticsAreComing(CancellationToken);
-=======
->>>>>>> fork/doNotPublishEmptyDiagnosticsOnStart
       var firstVerificationDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken.None, documentItem);
       var secondVerificationDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken.None, documentItem);
 
