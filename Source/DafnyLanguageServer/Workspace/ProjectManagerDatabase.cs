@@ -154,7 +154,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         folder = Path.GetDirectoryName(folder);
       }
 
-      if (projectFile != null && !serverOptions.Get(ServerCommand.ProjectMode)) {
+      if (projectFile != null && projectFile.Uri != sourceUri && !serverOptions.Get(ServerCommand.ProjectMode)) {
         projectFile.Uri = sourceUri;
         projectFile.IsImplicitProject = true;
         projectFile.Includes = new[] { sourceUri.LocalPath };
