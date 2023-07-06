@@ -1,6 +1,5 @@
 AutoReq.dfy(247,4): Error: function precondition could not be proved
 AutoReq.dfy(239,13): Related location
-AutoReq.dfy(239,35): Related location
 AutoReq.dfy(13,2): Error: function precondition could not be proved
 AutoReq.dfy(5,13): Related location
 AutoReq.dfy(25,2): Error: function precondition could not be proved
