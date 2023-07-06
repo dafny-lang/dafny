@@ -23,7 +23,7 @@ public class ShortCircuitRemoval : Setup {
   }
 
   private static string RemoveSpaces(string input) {
-    return Regex.Replace(input, "[ \t\n]", "");
+    return Regex.Replace(input, "[ \t\n\r]", "");
   }
 
   /// <summary>
