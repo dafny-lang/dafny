@@ -314,7 +314,7 @@ namespace DafnyTestGeneration {
             return string.Join("+", chunkStrs);
           }
 
-          if (seqType.Arg is CharType) {
+          if (seqType.Arg is CharType ||  asBasicSeqType?.TypeArgs?.FirstOrDefault((Type/*?*/)null) is CharType) {
             return $"\"{string.Join("", elements.SelectMany(c => c[1..^1]))}\"";
           }
           return AddValue(asType ?? variableType, $"[{string.Join(", ", elements)}]");
@@ -537,7 +537,7 @@ namespace DafnyTestGeneration {
       }
       switch (type) {
         case IntType:
-          return GetPrimitiveAsType("987654321", asType);
+          return GetPrimitiveAsType("0", asType);
         case RealType:
           return GetPrimitiveAsType("0.0", asType);
         case BoolType:
@@ -547,7 +547,7 @@ namespace DafnyTestGeneration {
         case BitvectorType bitvectorType:
           return GetPrimitiveAsType($"(0 as bv{bitvectorType.Width})", asType);
         case SeqType seqType:
-          return seqType.Arg is CharType ? "\"DefaultStringValue\"" : AddValue(asType ?? type, "[]");
+          return seqType.Arg is CharType ? "\"\"" : AddValue(asType ?? type, "[]");
         case SetType:
           return AddValue(asType ?? type, "{}");
         case MapType mapType:

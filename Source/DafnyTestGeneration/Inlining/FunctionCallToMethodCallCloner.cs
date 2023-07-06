@@ -41,25 +41,20 @@ public class FunctionCallToMethodCallCloner : Cloner {
   private void Visit(Function function) {
     if (function.ByMethodBody != null && !function.IsGhost) {
       function.ByMethodBody = CloneBlockStmt(function.ByMethodBody);
+      function.ByMethodDecl.Body = function.ByMethodBody;
     }
   }
 
   private void Visit(Method method) {
-    if (method.Body == null || method.IsGhost) {
-      return;
-    }
-    if (method.Body is DividedBlockStmt dividedBlockStmt) {
-      method.Body = CloneDividedBlockStmt(dividedBlockStmt);
-    } else {
-      method.Body = CloneBlockStmt(method.Body);
-    }
-  }
-
-  private void Visit(BlockStmt blockStatement) {
-    for (int i = 0; i < blockStatement.Body.Count; i++) {
-      var stmt = blockStatement.Body[i];
-      blockStatement.Body.RemoveAt(i);
-      blockStatement.Body.Insert(i, CloneStmt(stmt));
+    if (method.Body != null && !method.IsGhost) {
+      if (method.Body == null || method.IsGhost) {
+        return;
+      }
+      if (method.Body is DividedBlockStmt dividedBlockStmt) {
+        method.Body = CloneDividedBlockStmt(dividedBlockStmt);
+      } else {
+        method.Body = CloneBlockStmt(method.Body);
+      }
     }
   }
 
