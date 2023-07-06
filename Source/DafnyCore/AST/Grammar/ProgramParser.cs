@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading;
+using Microsoft.CodeAnalysis;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using static Microsoft.Dafny.ParseErrors;
@@ -19,15 +20,18 @@ public record DfyParseResult(
 
 public class ProgramParser {
   protected readonly ILogger<ProgramParser> logger;
+  private readonly IFileSystem fileSystem;
 
-  public ProgramParser() : this(NullLogger<ProgramParser>.Instance) {
+  public ProgramParser() : this(NullLogger<ProgramParser>.Instance, OnDiskFileSystem.Instance) {
   }
 
-  public ProgramParser(ILogger<ProgramParser> logger) {
+  public ProgramParser(ILogger<ProgramParser> logger, IFileSystem fileSystem) {
     this.logger = logger;
+    this.fileSystem = fileSystem;
   }
 
-  public Program ParseFiles(string programName, IReadOnlyList<DafnyFile> files, ErrorReporter errorReporter,
+  public Program ParseFiles(string programName, IReadOnlyList<DafnyFile> files,
+    ErrorReporter errorReporter,
     CancellationToken cancellationToken) {
     var options = errorReporter.Options;
     var builtIns = new SystemModuleManager(options);
@@ -141,8 +145,8 @@ public class ProgramParser {
         literalModuleDecl.ModuleDef.EnclosingModule = defaultModule;
       }
 
-      if (declToMove is ClassLikeDecl classDecl) {
-        classDecl.NonNullTypeDecl.EnclosingModuleDefinition = defaultModule;
+      if (declToMove is ClassLikeDecl { NonNullTypeDecl: { } nonNullTypeDecl }) {
+        nonNullTypeDecl.EnclosingModuleDefinition = defaultModule;
       }
       if (declToMove is DefaultClassDecl defaultClassDecl) {
         foreach (var member in defaultClassDecl.Members) {
@@ -215,13 +219,15 @@ public class ProgramParser {
     return result;
   }
 
-  private static DafnyFile IncludeToDafnyFile(SystemModuleManager systemModuleManager, ErrorReporter errorReporter, Include include) {
+  private DafnyFile IncludeToDafnyFile(SystemModuleManager systemModuleManager, ErrorReporter errorReporter, Include include) {
     try {
-      return new DafnyFile(systemModuleManager.Options, include.IncludedFilename);
-    } catch (IllegalDafnyFile) {
-      errorReporter.Error(MessageSource.Parser, include.tok, $"Include of file '{include.IncludedFilename}' failed.");
+      return new DafnyFile(systemModuleManager.Options, include.IncludedFilename,
+        fileSystem.ReadFile(include.IncludedFilename));
+    } catch (IOException e) {
+      errorReporter.Error(MessageSource.Parser, include.tok,
+        $"Unable to open the include {include.IncludedFilename} because {e.Message}.");
       return null;
-    } catch (IOException) {
+    } catch (IllegalDafnyFile) {
       errorReporter.Error(MessageSource.Parser, include.tok,
         $"Unable to open the include {include.IncludedFilename}.");
       return null;

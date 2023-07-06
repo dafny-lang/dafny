@@ -941,7 +941,7 @@ Dafny
                                  Util.ValidateEscaping(theOptions, t, includedFile, isVerbatimString, errors);
                                  includedFile = Util.RemoveEscaping(theOptions, includedFile, isVerbatimString);
                                  if (!Path.IsPathRooted(includedFile)) {
-                                   string basePath = Path.GetDirectoryName(parsedFile.LocalPath);
+                                   string basePath = parsedFile.Scheme == "stdin" ? "" : Path.GetDirectoryName(parsedFile.LocalPath);
                                    includedFile = Path.Combine(basePath, includedFile);
                                  }
                                  var oneInclude = new Include(t, parsedFile, new Uri(Path.GetFullPath(includedFile)));
@@ -1009,7 +1009,7 @@ TopDecl<. ModuleDefinition module, bool isTopLevel, bool isAbstract .>
                                                     module.SourceDecls.Add(trait);
                                                   } 
                                                .)
-  | ClassMemberDecl<dmod, module.DefaultClass.Members, false, true, true> (. module.DefaultClass.SetMembersBeforeResolution(); .)
+  | ClassMemberDecl<dmod, module.DefaultClass.Members, false, true> (. module.DefaultClass.SetMembersBeforeResolution(); .)
   )
   .
 
@@ -1231,7 +1231,6 @@ ClassDecl<DeclModifierData dmodClass, ModuleDefinition/*!*/ module, out TopLevel
      Contract.Ensures(Contract.ValueAtReturn(out c) != null);
      Name/*!*/ name;
      IToken tokenWithTrailingDocString = Token.NoToken;
-     Type parentTrait;
      List<Type> parentTraits = new List<Type>();
      Attributes attrs = null;
      bool isRefining = false;
@@ -1246,16 +1245,14 @@ ClassDecl<DeclModifierData dmodClass, ModuleDefinition/*!*/ module, out TopLevel
   { Attribute<ref attrs> }
   ClassName<out name>                     (. tokenWithTrailingDocString = t; .)
   [ GenericParameters<typeArgs, true> ] (. tokenWithTrailingDocString = t; .)
-  [ "extends"
-    Type<out parentTrait>       (. parentTraits.Add(parentTrait); tokenWithTrailingDocString = t; .)
-    {"," Type<out parentTrait>  (. parentTraits.Add(parentTrait); tokenWithTrailingDocString = t; .) }
+  [ ExtendsClause<parentTraits, out tokenWithTrailingDocString, null>
   | ellipsis                    (. isRefining = true; tokenWithTrailingDocString = t; .)
   ]
   SYNC
   "{"                                            (. bodyStart = t;  .)
     { (. dmod = new DeclModifierData(); .)
       { DeclModifier<ref dmod> }
-      ClassMemberDecl<dmod, members, true, false, false>
+      ClassMemberDecl<dmod, members, true, false>
     }
   "}"
   (. c = new ClassDecl(new RangeToken(dmodClass.FirstToken, t), name, module, typeArgs, members, attrs, isRefining, parentTraits);
@@ -1264,13 +1261,24 @@ ClassDecl<DeclModifierData dmodClass, ModuleDefinition/*!*/ module, out TopLevel
   .)
   .
 
+ExtendsClause<. List<Type> parentTraits, out IToken tokenWithTrailingDocString, string requiresNonReferenceTraitsFor .>
+= (. Type parentTrait;
+  .)
+  "extends"                   (. if (requiresNonReferenceTraitsFor != null && !theOptions.Get(CommonOptionBag.GeneralTraits)) {
+                                   SemErr(ErrorId.p_general_traits_beta, t,
+                                     $"{requiresNonReferenceTraitsFor} extending traits is a beta feature; use /generalTraits:1 to engage");
+                                 }
+                              .)
+  Type<out parentTrait>       (. parentTraits.Add(parentTrait); tokenWithTrailingDocString = t; .)
+  {"," Type<out parentTrait>  (. parentTraits.Add(parentTrait); tokenWithTrailingDocString = t; .) }
+  .
+
 /*------------------------------------------------------------------------*/
 TraitDecl<DeclModifierData dmodIn, ModuleDefinition/*!*/ module, out TraitDecl/*!*/ trait>
 = (. Contract.Requires(module != null);
      Contract.Ensures(Contract.ValueAtReturn(out trait) != null);
      CheckDeclModifiers(ref dmodIn, "trait", AllowedDeclModifiers.None);
      IToken/*!*/ tokenWithTrailingDocString;
-     Type parentTrait;
      List<Type> parentTraits = new List<Type>();
      Attributes attrs = null;
      bool isRefining = false;
@@ -1284,15 +1292,13 @@ TraitDecl<DeclModifierData dmodIn, ModuleDefinition/*!*/ module, out TraitDecl/*
   { Attribute<ref attrs> }
   ClassName<out var name>                         (. tokenWithTrailingDocString = t; .)
   [ GenericParameters<typeArgs, true> ]     (. tokenWithTrailingDocString = t; .)
-  [ "extends"
-    Type<out parentTrait>       (. parentTraits.Add(parentTrait); tokenWithTrailingDocString = t; .)
-    {"," Type<out parentTrait>  (. parentTraits.Add(parentTrait); tokenWithTrailingDocString = t; .) }
+  [ ExtendsClause<parentTraits, out tokenWithTrailingDocString, null>
   | ellipsis                    (. isRefining = true; tokenWithTrailingDocString = t; .)
   ]
   "{"                                            (. bodyStart = t; .)
     { (. dmod  = new DeclModifierData(); .)
       { DeclModifier<ref dmod> }
-      ClassMemberDecl<dmod, members, true, false, false>
+      ClassMemberDecl<dmod, members, true, false>
     }
   "}"
   (. trait = new TraitDecl(new RangeToken(dmodIn.FirstToken, t), name, module, typeArgs, members, attrs, isRefining, parentTraits);
@@ -1302,7 +1308,7 @@ TraitDecl<DeclModifierData dmodIn, ModuleDefinition/*!*/ module, out TraitDecl/*
   .
 
 /*------------------------------------------------------------------------*/
-ClassMemberDecl<. DeclModifierData dmod, List<MemberDecl> mm, bool allowConstructors, bool isValueType, bool moduleLevelDecl.>
+ClassMemberDecl<. DeclModifierData dmod, List<MemberDecl> mm, bool allowConstructors, bool moduleLevelDecl.>
 = (. Contract.Requires(cce.NonNullElements(mm));
      Method/*!*/ m;
      Function/*!*/ f;
@@ -1312,7 +1318,7 @@ ClassMemberDecl<. DeclModifierData dmod, List<MemberDecl> mm, bool allowConstruc
          dmod.IsStatic = false;
        }
     .)
-    FieldDecl<dmod, !moduleLevelDecl && isValueType, mm> /* The !isModuleLevelDecl is just to prevent cascading errors */
+    FieldDecl<dmod, mm> /* The !isModuleLevelDecl is just to prevent cascading errors */
   | ConstantFieldDecl<dmod, mm, moduleLevelDecl>
   | IF(IsFunctionDecl())
     (. if (moduleLevelDecl && dmod.StaticToken != null) {
@@ -1339,6 +1345,7 @@ DatatypeDecl<DeclModifierData dmod, ModuleDefinition/*!*/ module, out DatatypeDe
      Name/*!*/ name;
      Attributes attrs = null;
      List<TypeParameter/*!*/> typeArgs = new List<TypeParameter/*!*/>();
+     List<Type> parentTraits = new List<Type>();
      List<DatatypeCtor/*!*/> ctors = new List<DatatypeCtor/*!*/>();
      IToken bodyStart = Token.NoToken;  // dummy assignment
      bool isRefining = false;
@@ -1353,6 +1360,7 @@ DatatypeDecl<DeclModifierData dmod, ModuleDefinition/*!*/ module, out DatatypeDe
   { Attribute<ref attrs> }
   DatatypeName<out name>
   [ GenericParameters<typeArgs, true> ]
+  [ ExtendsClause<parentTraits, out _, co ? "codatatype" : "datatype"> ]
   (
   "="                                      (. bodyStart = t; .)
   [ ellipsis                               (. SemErr(ErrorId.p_bad_datatype_refinement, t, // Help users adjust to the new syntax
@@ -1364,9 +1372,9 @@ DatatypeDecl<DeclModifierData dmod, ModuleDefinition/*!*/ module, out DatatypeDe
   )
   [ TypeMembers<module, members> ]
   (. if (co) {
-       dt = new CoDatatypeDecl(new RangeToken(dmod.FirstToken, t), name, module, typeArgs, ctors, members, attrs, isRefining);
+       dt = new CoDatatypeDecl(new RangeToken(dmod.FirstToken, t), name, module, typeArgs, ctors, parentTraits, members, attrs, isRefining);
      } else {
-       dt = new IndDatatypeDecl(new RangeToken(dmod.FirstToken, t), name, module, typeArgs, ctors, members, attrs, isRefining);
+       dt = new IndDatatypeDecl(new RangeToken(dmod.FirstToken, t), name, module, typeArgs, ctors, parentTraits, members, attrs, isRefining);
      }
      dt.BodyStartTok = bodyStart;
      dt.TokenWithTrailingDocString = bodyStart;
@@ -1401,37 +1409,29 @@ TypeMembers<. ModuleDefinition/*!*/ module, List<MemberDecl> members .>
   "{"
   { (. dmod = new DeclModifierData(); .)
     { DeclModifier<ref dmod> }
-    ClassMemberDecl<dmod, members, false, true, false>
+    ClassMemberDecl<dmod, members, false, false>
   }
   "}"
   .
 
 /*------------------------------------------------------------------------*/
-FieldDecl<.DeclModifierData dmod, bool isValueType, List<MemberDecl> mm.>
+FieldDecl<.DeclModifierData dmod, List<MemberDecl> mm.>
 = (. Contract.Requires(cce.NonNullElements(mm));
      Attributes attrs = null;
      Type/*!*/ ty;
      Name name;
      CheckDeclModifiers(ref dmod, "field", AllowedDeclModifiers.Ghost);
      var startToken = dmod.FirstToken;
-     if (isValueType) {
-       // we're about to produce an error; put fields into a throw-away list, so we don't return them
-       mm = new List<MemberDecl>();
-     }
   .)
   SYNC
-  "var"                               (. startToken = startToken ?? t;
-                                         if (isValueType) {
-                                           SemErr(ErrorId.p_no_mutable_fields_in_value_types, t, "mutable fields are not allowed in value types");
-                                         }
-                                      .)
+  "var"                                (. startToken = startToken ?? t; .)
   { Attribute<ref attrs> }
-  FIdentType<out name, out ty>           (. var f = new Field(new RangeToken(startToken, t), name, dmod.IsGhost, ty, attrs); 
-                                             mm.Add(f); f.TokenWithTrailingDocString = t;
-                                           .)
+  FIdentType<out name, out ty>         (. var f = new Field(new RangeToken(startToken, t), name, dmod.IsGhost, ty, attrs);
+                                          mm.Add(f); f.TokenWithTrailingDocString = t;
+                                       .)
   { ","                                (. startToken = t; .)
-    FIdentType<out name, out ty>         (. f = new Field(new RangeToken(startToken, t), name, dmod.IsGhost, ty, attrs); 
-                                            mm.Add(f); f.TokenWithTrailingDocString = t;
+    FIdentType<out name, out ty>       (. f = new Field(new RangeToken(startToken, t), name, dmod.IsGhost, ty, attrs);
+                                          mm.Add(f); f.TokenWithTrailingDocString = t;
                                        .)
   }
   OldSemi
@@ -1482,11 +1482,13 @@ NewtypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl td>
      Expression constraint;
      Expression witness = null;
      CheckDeclModifiers(ref dmod, "newtype", AllowedDeclModifiers.None);
+     List<Type> parentTraits = new List<Type>();
      var members = new List<MemberDecl>();
   .)
   "newtype" (. CheckAndSetTokenOnce(ref dmod.FirstToken); .)
   { Attribute<ref attrs> }
   NewtypeName<out name>
+  [ ExtendsClause<parentTraits, out _, "newtype"> ]
   (
   "="
   [ ellipsis                               (. SemErr(ErrorId.p_misplaced_ellipsis_in_newtype, t, // Help users adjust to the new syntax
@@ -1512,16 +1514,16 @@ NewtypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl td>
          new BoundVar(bvId, bvId.val, baseType){ 
             IsTypeExplicit = true 
          }, 
-         constraint, witnessKind, witness, members, attrs, isRefining: false);
+         constraint, witnessKind, witness, parentTraits, members, attrs, isRefining: false);
     .)
   | Type<out baseType>
     [ TypeMembers<module, members> ]
-    (. td = new NewtypeDecl(new RangeToken(dmod.FirstToken, t), name, module, baseType, members, attrs, isRefining: false); .)
+    (. td = new NewtypeDecl(new RangeToken(dmod.FirstToken, t), name, module, baseType, parentTraits, members, attrs, isRefining: false); .)
   )
   | ellipsis
     [ TypeMembers<module, members> ]
     (. baseType = null; // Base type is not known yet
-       td = new NewtypeDecl(new RangeToken(dmod.FirstToken, t), name, module, baseType, members, attrs, isRefining: true);
+       td = new NewtypeDecl(new RangeToken(dmod.FirstToken, t), name, module, baseType, parentTraits, members, attrs, isRefining: true);
     .)
   )  (. if (td != null) {
           td.TokenWithTrailingDocString = t; 
@@ -1542,6 +1544,7 @@ SynonymTypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl
      Expression constraint;
      Expression witness = null;
      var kind = "abstract type";
+     List<Type> parentTraits = new List<Type>();
      var members = new List<MemberDecl>();
      var isRefining = false;
   .)
@@ -1578,6 +1581,8 @@ SynonymTypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl
     )
   | ellipsis                               (. isRefining = true; .)
     [ TypeMembers<module, members> ]
+  | ExtendsClause<parentTraits, out _, "abstract type">
+    [ TypeMembers<module, members> ]
   | TypeMembers<module, members>
   ]
   (. if (td == null) {
@@ -1585,7 +1590,7 @@ SynonymTypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl
          // abstract type declarations at the very outermost program scope get an automatic (!new)
          characteristics.ContainsNoReferenceTypes = true;
        }
-       td = new AbstractTypeDecl(new RangeToken(dmod.FirstToken, t), name, module, characteristics, typeArgs, members, attrs, isRefining);
+       td = new AbstractTypeDecl(new RangeToken(dmod.FirstToken, t), name, module, characteristics, typeArgs, parentTraits, members, attrs, isRefining);
      }
      td.TokenWithTrailingDocString = t;
   .)
@@ -1911,7 +1916,7 @@ MethodDecl<DeclModifierData dmod, bool allowConstructor, out Method/*!*/ m>
   | "twostate"                      (. CheckAndSetTokenOnce(ref dmod.FirstToken); .)
     "lemma"                         (. isTwoStateLemma = true; caption = "two-state lemma";
                                        allowed = AllowedDeclModifiers.AlreadyGhost | AllowedDeclModifiers.Static; .)
-  | "constructor"                   (.  CheckAndSetTokenOnce(ref dmod.FirstToken);
+  | "constructor"                   (. CheckAndSetTokenOnce(ref dmod.FirstToken);
                                        if (allowConstructor) {
                                          isConstructor = true;
                                        } else {
@@ -2999,9 +3004,8 @@ UpdateStmt<out Statement/*!*/ s>
      IToken endToken = Token.NoToken;
   .)
 ( Lhs<out e>                       (. x = e.tok; startToken = e.StartToken; endToken = t; .)
-  ( { Attribute<ref attrs> }       (. endToken = t; .)
-    ";"                            (. endTok = t; rhss.Add(new ExprRhs(e, attrs) { RangeToken = new RangeToken(e.StartToken, endToken) }); .)
-  |                                (. lhss.Add(e); .)
+  ( 
+                                   (. lhss.Add(e); .)
     { "," Lhs<out e>               (. lhss.Add(e); .)
     }
     ( ":="                         (. x = t; .)
@@ -3026,6 +3030,12 @@ UpdateStmt<out Statement/*!*/ s>
     )
     ";"                            (. endTok = t; .)
   | ":"                            (. SemErr(ErrorId.p_invalid_colon, new RangeToken(startToken, t), "invalid statement beginning here (is a 'label' keyword missing? or a 'const' or 'var' keyword?)"); .)
+  | { Attribute<ref attrs> }       (. endToken = t; .)
+    ";"                            (. endTok = t; rhss.Add(new ExprRhs(e, attrs) { RangeToken = new RangeToken(e.StartToken, endToken) }); .)   
+  | { Attribute<ref attrs> }       (. endToken = t; .)
+                                   (. endTok = t; rhss.Add(new ExprRhs(e, attrs) { RangeToken = new RangeToken(e.StartToken, endToken) });
+                                      SemErr(ErrorId.p_missing_semicolon, new RangeToken(startToken, t), "missing semicolon at end of statement");
+                                   .)   
   )
 | ":-"                             (. x = t; startToken = t; .)
    [ IF(IsAssumeTypeKeyword(la))      /* an Expression can also begin with these keywords, so this says to resolve it to pick up the keyword here */

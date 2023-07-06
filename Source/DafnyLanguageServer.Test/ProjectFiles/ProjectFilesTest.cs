@@ -27,9 +27,7 @@ public class ProjectFilesTest : ClientBasedLanguageServerTest {
     var source = await File.ReadAllTextAsync(filePath);
     var documentItem = CreateTestDocument(source, filePath);
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-    var diagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
-
-    Assert.Empty(diagnostics);
+    await AssertNoDiagnosticsAreComing(CancellationToken);
   }
 
   public ProjectFilesTest(ITestOutputHelper output) : base(output) {

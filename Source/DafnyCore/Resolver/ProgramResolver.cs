@@ -122,14 +122,14 @@ public class ProgramResolver {
 
     // check for cycles in the import graph
     foreach (var cycle in dependencies.AllCycles()) {
-      Resolver.ReportCycleError(Reporter, cycle, m => m.tok,
+      ModuleResolver.ReportCycleError(Reporter, cycle, m => m.tok,
         m => (m is AliasModuleDecl ? "import " : "module ") + m.Name,
         "module definition contains a cycle (note: parent modules implicitly depend on submodules)");
     }
   }
 
   protected virtual Dictionary<TopLevelDeclWithMembers, Dictionary<string, MemberDecl>> ResolveSystemModule(Program program) {
-    var systemModuleResolver = new Resolver(this);
+    var systemModuleResolver = new ModuleResolver(this);
 
     SystemModuleManager.systemNameInfo = SystemModuleManager.SystemModule.RegisterTopLevelDecls(systemModuleResolver, false);
     systemModuleResolver.moduleInfo = SystemModuleManager.systemNameInfo;
@@ -157,7 +157,7 @@ public class ProgramResolver {
   }
 
   protected virtual ModuleResolutionResult ResolveModuleDeclaration(CompilationData compilation, ModuleDecl decl) {
-    var moduleResolver = new Resolver(this);
+    var moduleResolver = new ModuleResolver(this);
     return moduleResolver.ResolveModuleDeclaration(compilation, decl);
   }
 

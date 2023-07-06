@@ -16,7 +16,7 @@ using Tomlyn.Model;
 
 namespace Microsoft.Dafny; 
 
-public class ProjectFile {
+public class DafnyProject {
   public const string FileName = "dfyconfig.toml";
 
   [IgnoreDataMember]
@@ -25,13 +25,13 @@ public class ProjectFile {
   public string[] Excludes { get; set; }
   public Dictionary<string, object> Options { get; set; }
 
-  public static ProjectFile Open(Uri uri, TextWriter outputWriter, TextWriter errorWriter) {
+  public static DafnyProject Open(Uri uri, TextWriter outputWriter, TextWriter errorWriter) {
     if (Path.GetFileName(uri.LocalPath) != FileName) {
       outputWriter.WriteLine($"Warning: only Dafny project files named {FileName} are recognised by the Dafny IDE.");
     }
     try {
       var file = File.Open(uri.LocalPath, FileMode.Open);
-      var model = Toml.ToModel<ProjectFile>(new StreamReader(file).ReadToEnd(), null, new TomlModelOptions());
+      var model = Toml.ToModel<DafnyProject>(new StreamReader(file).ReadToEnd(), null, new TomlModelOptions());
       model.Uri = uri;
       return model;
 
@@ -41,7 +41,7 @@ public class ProjectFile {
     } catch (TomlException tomlException) {
       errorWriter.WriteLine($"The Dafny project file {uri.LocalPath} contains the following errors:");
       var regex = new Regex(
-        @$"\((\d+),(\d+)\) : error : The property `(\w+)` was not found on object type {typeof(ProjectFile).FullName}");
+        @$"\((\d+),(\d+)\) : error : The property `(\w+)` was not found on object type {typeof(DafnyProject).FullName}");
       var newMessage = regex.Replace(tomlException.Message,
         match =>
           $"({match.Groups[1].Value},{match.Groups[2].Value}): the property {match.Groups[3].Value} does not exist.");
