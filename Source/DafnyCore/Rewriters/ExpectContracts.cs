@@ -115,7 +115,7 @@ public class ExpectContracts : IRewriter {
     newFunc.NameNode.Value = newName;
 
     var args = newFunc.Formals.Select(Expression.CreateIdentExpr).ToList();
-    var receiver = Resolver.GetReceiver(parent, origFunc, decl.tok);
+    var receiver = ModuleResolver.GetReceiver(parent, origFunc, decl.tok);
     var callExpr = new FunctionCallExpr(tok, origFunc.Name, receiver, null, null, args) {
       Function = origFunc,
       TypeApplication_JustFunction = newFunc.TypeArgs.Select(tp => (Type)new UserDefinedType(tp)).ToList(),
@@ -173,7 +173,7 @@ public class ExpectContracts : IRewriter {
 
     var args = newMethod.Ins.Select(Expression.CreateIdentExpr).ToList();
     var outs = newMethod.Outs.Select(Expression.CreateIdentExpr).ToList();
-    var receiver = Resolver.GetReceiver(parent, origMethod, decl.tok);
+    var receiver = ModuleResolver.GetReceiver(parent, origMethod, decl.tok);
     var memberSelectExpr = new MemberSelectExpr(decl.tok, receiver, origMethod.Name);
     memberSelectExpr.Member = origMethod;
     memberSelectExpr.TypeApplication_JustMember =

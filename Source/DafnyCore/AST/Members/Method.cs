@@ -219,7 +219,7 @@ public class Method : MemberDecl, TypeParameter.ParentType, IMethodCodeContext, 
   /// <summary>
   /// Assumes type parameters have already been pushed
   /// </summary>
-  public void Resolve(Resolver resolver) {
+  public void Resolve(ModuleResolver resolver) {
     Contract.Requires(this != null);
     Contract.Requires(resolver.AllTypeConstraints.Count == 0);
     Contract.Ensures(resolver.AllTypeConstraints.Count == 0);

@@ -58,8 +58,6 @@ public class ExceptionTests : ClientBasedLanguageServerTest {
 
     var documentItem = CreateTestDocument(source);
     client.OpenDocument(documentItem);
-    var openDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
-    Assert.Empty(openDiagnostics);
     CrashOnLoad = true;
     ApplyChange(ref documentItem, new Range(0, 0, 0, 0), " ");
     var crashDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
@@ -78,8 +76,6 @@ public class ExceptionTests : ClientBasedLanguageServerTest {
     CrashOnPrepareVerification = true;
     var documentItem = CreateTestDocument(source);
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-    var resolutionDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
-    Assert.Empty(resolutionDiagnostics);
     var translationCrashDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
     Assert.Single(translationCrashDiagnostics);
     Assert.True(translationCrashDiagnostics[0].Message.Contains("internal error"), translationCrashDiagnostics[0].Message);
@@ -99,12 +95,12 @@ public class ExceptionTests : ClientBasedLanguageServerTest {
       this.verifier = verifier;
     }
 
-    public Task<IReadOnlyList<IImplementationTask>> GetVerificationTasksAsync(DocumentAfterResolution document, CancellationToken cancellationToken) {
+    public Task<IReadOnlyList<IImplementationTask>> GetVerificationTasksAsync(CompilationAfterResolution compilation, CancellationToken cancellationToken) {
 
       if (tests.CrashOnPrepareVerification) {
         throw new Exception("crash");
       }
-      return verifier.GetVerificationTasksAsync(document, cancellationToken);
+      return verifier.GetVerificationTasksAsync(compilation, cancellationToken);
     }
 
     public void Dispose() {
@@ -125,7 +121,7 @@ public class ExceptionTests : ClientBasedLanguageServerTest {
       return loader.CreateUnloaded(documentIdentifier, cancellationToken);
     }
 
-    public Task<DocumentAfterParsing> LoadAsync(DafnyOptions options, VersionedTextDocumentIdentifier documentIdentifier,
+    public Task<CompilationAfterParsing> LoadAsync(DafnyOptions options, VersionedTextDocumentIdentifier documentIdentifier,
         IFileSystem fileSystem, CancellationToken cancellationToken) {
       if (tests.CrashOnLoad) {
         throw new IOException("crash");

@@ -464,7 +464,7 @@ public class SystemModuleManager {
   }
 
   public void ResolveValueTypeDecls(ProgramResolver programResolver) {
-    var moduleResolver = new Resolver(programResolver);
+    var moduleResolver = new ModuleResolver(programResolver);
     moduleResolver.moduleInfo = systemNameInfo;
     foreach (var valueTypeDecl in valuetypeDecls) {
       foreach (var member in valueTypeDecl.Members) {

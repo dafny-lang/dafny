@@ -234,8 +234,8 @@ namespace Microsoft.Dafny {
       var prev = module.RefinementQId.Def;
 
       //copy the signature, including its opened imports
-      refinedSigOpened = Resolver.MergeSignature(new ModuleSignature(), RefinedSig);
-      Resolver.ResolveOpenedImports(refinedSigOpened, module.RefinementQId.Def, Reporter, null);
+      refinedSigOpened = ModuleResolver.MergeSignature(new ModuleSignature(), RefinedSig);
+      ModuleResolver.ResolveOpenedImports(refinedSigOpened, module.RefinementQId.Def, Reporter, null);
 
       // Create a simple name-to-decl dictionary.  Ignore any duplicates at this time.
       var declaredNames = new Dictionary<string, IPointer<TopLevelDecl>>();
@@ -740,7 +740,7 @@ namespace Microsoft.Dafny {
     TopLevelDeclWithMembers MergeClass(TopLevelDeclWithMembers nw, TopLevelDeclWithMembers prev) {
       CheckAgreement_TypeParameters(nw.tok, prev.TypeArgs, nw.TypeArgs, nw.Name, nw.WhatKind);
 
-      prev.ParentTraits.ForEach(item => nw.ParentTraits.Add(item));
+      prev.ParentTraits.ForEach(item => nw.ParentTraits.Add(refinementCloner.CloneType(item)));
       nw.Attributes = refinementCloner.MergeAttributes(prev.Attributes, nw.Attributes);
 
       // Create a simple name-to-member dictionary.  Ignore any duplicates at this time.

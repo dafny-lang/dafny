@@ -12,7 +12,7 @@ module m1
   }
 
 
-  trait I2       //all is fine in this trait
+  trait I2 extends object       //all is fine in this trait
   {
     var x: int
 
@@ -95,7 +95,7 @@ module m1
 }
 
 module MoreTests {
-  trait I0
+  trait I0 extends object
   {
     var x: int
     constructor I0(x0: int) // error: constructor is not allowed in a trait
@@ -117,7 +117,7 @@ module MoreTests {
     var i1 := new I1;   //error: new is not allowed in a trait
   }
 
-  trait I2       //all is fine in this trait
+  trait I2 extends object       //all is fine in this trait
   {
     var x: int
 

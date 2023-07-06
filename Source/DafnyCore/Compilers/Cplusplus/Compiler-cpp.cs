@@ -269,7 +269,7 @@ namespace Microsoft.Dafny.Compilers {
     protected override bool SupportsProperties { get => false; }
 
     protected override IClassWriter CreateTrait(string name, bool isExtern, List<TypeParameter> typeParameters /*?*/,
-      TopLevelDecl trait, List<Type> superClasses /*?*/, IToken tok, ConcreteSyntaxTree wr) {
+      TraitDecl trait, List<Type> superClasses /*?*/, IToken tok, ConcreteSyntaxTree wr) {
       throw new UnsupportedFeatureException(tok, Feature.Traits);
     }
 
@@ -1660,7 +1660,7 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    protected override void EmitThis(ConcreteSyntaxTree wr) {
+    protected override void EmitThis(ConcreteSyntaxTree wr, bool callToInheritedMember) {
       wr.Write("this");
     }
 
@@ -1866,7 +1866,7 @@ namespace Microsoft.Dafny.Compilers {
       wr.Write(".update(");
       wr.Append(Expr(index, inLetExprBody, wStmts));
       wr.Write(", ");
-      wr.Append(Expr(value, inLetExprBody, wStmts));
+      wr.Append(CoercedExpr(value, resultCollectionType.ValueArg, inLetExprBody, wStmts));
       wr.Write(")");
     }
 

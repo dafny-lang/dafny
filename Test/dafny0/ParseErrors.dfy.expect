@@ -36,9 +36,6 @@ ParseErrors.dfy(142,21): Error: formal cannot be declared 'ghost' in this contex
 ParseErrors.dfy(143,22): Error: formal cannot be declared 'ghost' in this context
 ParseErrors.dfy(155,18): Error: a set comprehension with more than one bound variable must have a term expression
 ParseErrors.dfy(156,22): Error: a set comprehension with more than one bound variable must have a term expression
-ParseErrors.dfy(163,2): Error: mutable fields are not allowed in value types
-ParseErrors.dfy(167,2): Error: mutable fields are not allowed in value types
-ParseErrors.dfy(170,2): Error: mutable fields are not allowed in value types
 ParseErrors.dfy(178,14): Error: use of the 'nameonly' modifier must be accompanied with a parameter name
 ParseErrors.dfy(179,14): Error: use of the 'nameonly' modifier must be accompanied with a parameter name
 ParseErrors.dfy(183,29): Error: closeparen expected
@@ -83,4 +80,4 @@ ParseErrors.dfy(267,12): Error: arrow-type arguments may not be declared as 'gho
 ParseErrors.dfy(272,18): Error: arrow-type arguments may not be declared as 'ghost'
 ParseErrors.dfy(272,35): Error: arrow-type arguments may not be declared as 'ghost'
 ParseErrors.dfy(278,10): Error: invalid NewtypeDecl
-80 parse errors detected in ParseErrors.dfy
+77 parse errors detected in ParseErrors.dfy

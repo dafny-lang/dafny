@@ -20,7 +20,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.Dafny.Plugins;
 
 namespace Microsoft.Dafny {
-  public partial class Resolver {
+  public partial class ModuleResolver {
     List<Statement> loopStack = new List<Statement>();  // the enclosing loops (from which it is possible to break out)
     public readonly Scope<Label>/*!*/ DominatingStatementLabels;
     Scope<Statement>/*!*/ enclosingStatementLabels;
@@ -725,6 +725,8 @@ namespace Microsoft.Dafny {
             AddXConstraint(expr.tok, "NumericOrBitvectorOrCharOrORDINAL", e.E.Type, "type conversion to an ORDINAL type is allowed only from numeric and bitvector types, char, and ORDINAL (got {0})");
           } else if (e.ToType.IsRefType) {
             AddAssignableConstraint(expr.tok, e.ToType, e.E.Type, "type cast to reference type '{0}' must be from an expression assignable to it (got '{1}')");
+          } else if (e.ToType.IsTraitType) {
+            AddAssignableConstraint(expr.tok, e.ToType, e.E.Type, "type cast to trait type '{0}' must be from an expression assignable to it (got '{1}')");
           } else {
             reporter.Error(MessageSource.Resolver, expr, "type conversions are not supported to this type (got {0})", e.ToType);
           }
@@ -1667,7 +1669,12 @@ namespace Microsoft.Dafny {
         case TypeProxy.Family.Opaque:
           break;  // more elaborate work below
         case TypeProxy.Family.Unknown:
-          return null;
+          if (super is UserDefinedType) {
+            // more elaborate work below
+            break;
+          } else {
+            return null;
+          }
         default:
           Contract.Assert(false);  // unexpected type (the precondition of ConstrainTypeHead says "no proxies")
           return null;  // please compiler
@@ -5564,7 +5571,19 @@ namespace Microsoft.Dafny {
 #endif
       } else {
         // ----- None of the above
-        reporter.Error(MessageSource.Resolver, expr.tok, "Type or type parameter is not declared in this scope: {0} (did you forget to qualify a name or declare a module import 'opened'? names in outer modules are not visible in nested modules)", expr.Name);
+        var hint0 = "(did you forget to qualify a name or declare a module import 'opened'?)";
+        var hint1 = " (note that names in outer modules are not visible in contained modules)";
+        var hint2 = "";
+        if (Options.Get(CommonOptionBag.GeneralTraits) && expr.Name.EndsWith("?")) {
+          var nameWithoutQuestionMark = expr.Name[..^1];
+          if (nameWithoutQuestionMark.Length != 0 &&
+              moduleInfo.TopLevels.TryGetValue(nameWithoutQuestionMark, out decl) && decl is TraitDecl) {
+            hint2 =
+              $" (if you intended to refer to a possibly null '{nameWithoutQuestionMark}', " +
+              "then you must declare that trait with 'extends object' to make it a reference type)";
+          }
+        }
+        reporter.Error(MessageSource.Resolver, expr.tok, $"Type or type parameter is not declared in this scope: {expr.Name} {hint0}{hint1}{hint2}");
       }
 
       if (r == null) {

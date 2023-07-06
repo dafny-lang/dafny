@@ -25,7 +25,8 @@ namespace Microsoft.Dafny.Compilers {
     public override IReadOnlySet<Feature> UnsupportedFeatures => new HashSet<Feature> {
       Feature.MethodSynthesis,
       Feature.ExternalConstructors,
-      Feature.SubsetTypeTests
+      Feature.SubsetTypeTests,
+      Feature.SeparateCompilation
     };
 
     const string DafnySetClass = "_dafny.Set";
@@ -84,8 +85,12 @@ namespace Microsoft.Dafny.Compilers {
       List<TypeParameter> typeParameters, TopLevelDecl cls, List<Type>/*?*/ superClasses, IToken tok, ConcreteSyntaxTree wr) {
       var w = wr.NewBlock(string.Format("$module.{0} = class {0}" + (isExtern ? " extends $module.{0}" : ""), name), ";");
       w.Write("constructor (");
-      if (typeParameters != null) {
-        WriteRuntimeTypeDescriptorsFormals(typeParameters, false, w);
+      var sep = "";
+      if (typeParameters != null && WriteRuntimeTypeDescriptorsFormals(typeParameters, false, w) > 0) {
+        sep = ", ";
+      }
+      if (cls is NewtypeDecl { ParentTraits: { } parentTraits } && parentTraits.Count > 0) {
+        w.Write($"{sep}value");
       }
       var fieldWriter = w.NewBlock(")");
       if (isExtern) {
@@ -115,7 +120,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override IClassWriter CreateTrait(string name, bool isExtern, List<TypeParameter> typeParameters /*?*/,
-      TopLevelDecl trait, List<Type> superClasses /*?*/, IToken tok, ConcreteSyntaxTree wr) {
+      TraitDecl trait, List<Type> superClasses /*?*/, IToken tok, ConcreteSyntaxTree wr) {
       var w = wr.NewBlock(string.Format("$module.{0} = class {0}", IdProtect(name)), ";");
       var fieldWriter = w;  // not used for traits, but we need a value to give to the ClassWriter
       var methodWriter = w;
@@ -567,6 +572,19 @@ namespace Microsoft.Dafny.Compilers {
       var udt = new UserDefinedType(nt.tok, nt.Name, nt, new List<Type>());
       var d = TypeInitializationValue(udt, wr, nt.tok, false, false);
       wDefault.WriteLine("return {0};", d);
+
+      if (nt.ParentTraits.Count != 0) {
+        // in constructor:
+        //   this._value = value;
+        cw.FieldWriter.WriteLine("this._value = value;");
+
+        // toString() {
+        //   return _dafny.toString(this._value)
+        // }
+        var wBody = cw.MethodWriter.NewNamedBlock("toString()");
+        wBody.WriteLine("return _dafny.toString(this._value)");
+      }
+
       return cw;
     }
 
@@ -1528,7 +1546,7 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    protected override void EmitThis(ConcreteSyntaxTree wr) {
+    protected override void EmitThis(ConcreteSyntaxTree wr, bool callToInheritedMember) {
       wr.Write("_this");
     }
 
@@ -1800,7 +1818,7 @@ namespace Microsoft.Dafny.Compilers {
       }
       wr.Append(Expr(index, inLetExprBody, wStmts));
       wr.Write(", ");
-      wr.Append(Expr(value, inLetExprBody, wStmts));
+      wr.Append(CoercedExpr(value, resultCollectionType.ValueArg, inLetExprBody, wStmts));
       wr.Write(")");
     }
 
@@ -1909,6 +1927,23 @@ namespace Microsoft.Dafny.Compilers {
       var w = wr.NewExprBlock("function ({0})", bvName);
       wr.Write("({0})", source);
       return w;
+    }
+
+    protected override ConcreteSyntaxTree UnboxNewtypeValue(ConcreteSyntaxTree wr) {
+      var w = wr.ForkInParens();
+      wr.Write("._value");
+      return w;
+    }
+
+    protected override ConcreteSyntaxTree EmitCoercionIfNecessary(Type @from, Type to, IToken tok, ConcreteSyntaxTree wr) {
+      if (from != null && to != null && from.IsTraitType && to.AsNewtype != null) {
+        return UnboxNewtypeValue(wr);
+      }
+      if (from != null && to != null && from.AsNewtype != null && to.IsTraitType && (enclosingMethod != null || enclosingFunction != null)) {
+        wr.Write($"new {from.AsNewtype.GetFullCompileName(Options)}");
+        return wr.ForkInParens();
+      }
+      return base.EmitCoercionIfNecessary(@from, to, tok, wr);
     }
 
     protected override void EmitUnaryExpr(ResolvedUnaryOp op, Expression expr, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
@@ -2170,7 +2205,7 @@ namespace Microsoft.Dafny.Compilers {
           }
           break;
         case BinaryExpr.ResolvedOpcode.Div:
-          if (resultType.IsRealType) {
+          if (resultType.IsNumericBased(Type.NumericPersuasion.Real)) {
             callString = "dividedBy";
           } else if (resultType.IsIntegerType || AsNativeType(resultType) == null) {
             staticCallString = "_dafny.EuclideanDivision";
@@ -2361,11 +2396,11 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Requires(fromType.IsRefType);
       Contract.Requires(toType.IsRefType);
 
-      if (!fromType.IsNonNullRefType) {
+      if (fromType.IsRefType && !fromType.IsNonNullRefType && toType.IsRefType) {
         if (toType.IsNonNullRefType) {
           wr.Write($"{localName} != null && ");
         } else {
-          wr.Write($"{localName} == null || (");
+          wr = wr.Write($"{localName} == null || ").ForkInParens();
         }
       }
 
@@ -2373,6 +2408,8 @@ namespace Microsoft.Dafny.Compilers {
         wr.Write("true");
       } else if (toType.IsTraitType) {
         wr.Write($"_dafny.InstanceOfTrait({localName}, {TypeName(toType, wr, tok)})");
+      } else if (fromType.IsTraitType && toType.AsNewtype != null) {
+        wr.Write($"{localName} instanceof {toType.AsNewtype.GetFullCompileName(Options)}");
       } else {
         wr.Write($"{localName} instanceof {TypeName(toType, wr, tok)}");
       }
@@ -2381,10 +2418,6 @@ namespace Microsoft.Dafny.Compilers {
       if (udtTo.ResolvedClass is SubsetTypeDecl && !(udtTo.ResolvedClass is NonNullTypeDecl)) {
         // TODO: test constraints
         throw new UnsupportedFeatureException(tok, Feature.SubsetTypeTests);
-      }
-
-      if (!fromType.IsNonNullRefType && !toType.IsNonNullRefType) {
-        wr.Write(")");
       }
     }
 
@@ -2410,12 +2443,7 @@ namespace Microsoft.Dafny.Compilers {
           wrElements = wr.Fork();
           wr.Write(")");
         }
-        string sep = "";
-        foreach (var e in elements) {
-          wrElements.Write(sep);
-          wrElements.Append(Expr(e, inLetExprBody, wStmts));
-          sep = ", ";
-        }
+        TrExprList(elements, wrElements, inLetExprBody, wStmts, typeAt: _ => ct.Arg, parens: false);
       }
     }
 

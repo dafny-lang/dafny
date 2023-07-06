@@ -69,7 +69,10 @@ namespace Microsoft.Dafny {
 
       if (d is AbstractTypeDecl) {
         var dd = (AbstractTypeDecl)d;
-        return new AbstractTypeDecl(Range(dd.RangeToken), dd.NameNode.Clone(this), newParent, CloneTPChar(dd.Characteristics), dd.TypeArgs.ConvertAll(CloneTypeParam), dd.Members.ConvertAll(d => CloneMember(d, false)), CloneAttributes(dd.Attributes), dd.IsRefining);
+        return new AbstractTypeDecl(Range(dd.RangeToken), dd.NameNode.Clone(this), newParent,
+          CloneTPChar(dd.Characteristics), dd.TypeArgs.ConvertAll(CloneTypeParam),
+          dd.ParentTraits.ConvertAll(CloneType),
+          dd.Members.ConvertAll(d => CloneMember(d, false)), CloneAttributes(dd.Attributes), dd.IsRefining);
       } else if (d is SubsetTypeDecl) {
         Contract.Assume(!(d is NonNullTypeDecl));  // don't clone the non-null type declaration; close the class, which will create a new non-null type declaration
         var dd = (SubsetTypeDecl)d;
@@ -83,10 +86,12 @@ namespace Microsoft.Dafny {
         var dd = (NewtypeDecl)d;
         if (dd.Var == null) {
           return new NewtypeDecl(Range(dd.RangeToken), dd.NameNode.Clone(this), newParent, CloneType(dd.BaseType),
+            dd.ParentTraits.ConvertAll(CloneType),
             dd.Members.ConvertAll(d => CloneMember(d, false)), CloneAttributes(dd.Attributes), dd.IsRefining);
         } else {
           return new NewtypeDecl(Range(dd.RangeToken), dd.NameNode.Clone(this), newParent, CloneBoundVar(dd.Var, false),
             CloneExpr(dd.Constraint), dd.WitnessKind, CloneExpr(dd.Witness),
+            dd.ParentTraits.ConvertAll(CloneType),
             dd.Members.ConvertAll(d => CloneMember(d, false)), CloneAttributes(dd.Attributes), dd.IsRefining);
         }
       } else if (d is TupleTypeDecl) {
@@ -97,13 +102,17 @@ namespace Microsoft.Dafny {
         var dd = (IndDatatypeDecl)d;
         var tps = dd.TypeArgs.ConvertAll(CloneTypeParam);
         var ctors = dd.Ctors.ConvertAll(CloneCtor);
-        var dt = new IndDatatypeDecl(Range(dd.RangeToken), dd.NameNode.Clone(this), newParent, tps, ctors, dd.Members.ConvertAll(d => CloneMember(d, false)), CloneAttributes(dd.Attributes), dd.IsRefining);
+        var dt = new IndDatatypeDecl(Range(dd.RangeToken), dd.NameNode.Clone(this), newParent, tps, ctors,
+          dd.ParentTraits.ConvertAll(CloneType),
+          dd.Members.ConvertAll(d => CloneMember(d, false)), CloneAttributes(dd.Attributes), dd.IsRefining);
         return dt;
       } else if (d is CoDatatypeDecl) {
         var dd = (CoDatatypeDecl)d;
         var tps = dd.TypeArgs.ConvertAll(CloneTypeParam);
         var ctors = dd.Ctors.ConvertAll(CloneCtor);
-        var dt = new CoDatatypeDecl(Range(dd.RangeToken), dd.NameNode.Clone(this), newParent, tps, ctors, dd.Members.ConvertAll(d => CloneMember(d, false)), CloneAttributes(dd.Attributes), dd.IsRefining);
+        var dt = new CoDatatypeDecl(Range(dd.RangeToken), dd.NameNode.Clone(this), newParent, tps, ctors,
+          dd.ParentTraits.ConvertAll(CloneType),
+          dd.Members.ConvertAll(d => CloneMember(d, false)), CloneAttributes(dd.Attributes), dd.IsRefining);
         return dt;
       } else if (d is IteratorDecl) {
         var dd = (IteratorDecl)d;

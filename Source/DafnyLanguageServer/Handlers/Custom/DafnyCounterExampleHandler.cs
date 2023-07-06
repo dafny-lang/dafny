@@ -1,5 +1,4 @@
-﻿using DafnyServer.CounterexampleGeneration;
-using Microsoft.Boogie;
+﻿using Microsoft.Boogie;
 using Microsoft.Dafny.LanguageServer.Workspace;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
@@ -13,25 +12,25 @@ namespace Microsoft.Dafny.LanguageServer.Handlers.Custom {
   public class DafnyCounterExampleHandler : ICounterExampleHandler {
     private DafnyOptions options;
     private readonly ILogger logger;
-    private readonly IDocumentDatabase documents;
+    private readonly IProjectDatabase projects;
 
-    public DafnyCounterExampleHandler(DafnyOptions options, ILogger<DafnyCounterExampleHandler> logger, IDocumentDatabase documents) {
+    public DafnyCounterExampleHandler(DafnyOptions options, ILogger<DafnyCounterExampleHandler> logger, IProjectDatabase projects) {
       this.logger = logger;
-      this.documents = documents;
+      this.projects = projects;
       this.options = options;
     }
 
     public async Task<CounterExampleList> Handle(CounterExampleParams request, CancellationToken cancellationToken) {
       try {
-        var documentManager = documents.GetDocumentManager(request.TextDocument);
-        if (documentManager != null) {
-          var translatedDocument = await documentManager.Compilation.TranslatedDocument;
+        var projectManager = projects.GetProjectManager(request.TextDocument);
+        if (projectManager != null) {
+          var translatedDocument = await projectManager.CompilationManager.TranslatedDocument;
           var verificationTasks = translatedDocument.VerificationTasks;
           foreach (var task in verificationTasks) {
-            documentManager.Compilation.VerifyTask(translatedDocument, task);
+            projectManager.CompilationManager.VerifyTask(translatedDocument, task);
           }
 
-          var state = await documentManager.GetIdeStateAfterVerificationAsync();
+          var state = await projectManager.GetIdeStateAfterVerificationAsync();
           logger.LogDebug("counter-examples retrieved IDE state");
           return new CounterExampleLoader(options, logger, state, request.CounterExampleDepth, cancellationToken).GetCounterExamples();
         }

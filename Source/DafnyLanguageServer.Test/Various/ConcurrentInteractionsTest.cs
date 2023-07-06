@@ -13,6 +13,8 @@ using Xunit.Abstractions;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
+
+  [Collection("Sequential Collection")]
   public class ConcurrentInteractionsTest : ClientBasedLanguageServerTest {
     // Implementation note: These tests assume that no diagnostics are published
     // when a document (re-load) was canceled.
@@ -83,7 +85,7 @@ method Multiply(x: bv10, y: bv10) returns (product: bv10)
       // Save and wait for the final result
       await client.SaveDocumentAndWaitAsync(documentItem, CancellationTokenWithHighTimeout);
 
-      var document = await Documents.GetLastDocumentAsync(documentItem.Uri);
+      var document = await Projects.GetLastDocumentAsync(documentItem.Uri);
       Assert.NotNull(document);
       Assert.Equal(documentItem.Version + 11, document.Version);
       Assert.Single(document.AllFileDiagnostics);
@@ -170,12 +172,13 @@ method Multiply(x: int, y: int) returns (product: int)
         loadingDocuments.Add(documentItem);
       }
       for (int i = 0; i < documentsToLoadConcurrently; i++) {
-        var report = await GetLastDiagnostics(loadingDocuments[i], CancellationTokenWithHighTimeout);
-        Assert.Empty(report);
+        await Projects.GetLastDocumentAsync(loadingDocuments[i]);
       }
 
       foreach (var loadingDocument in loadingDocuments) {
-        await Documents.CloseDocumentAsync(loadingDocument);
+        await client.CloseDocumentAndWaitAsync(loadingDocument, CancellationTokenWithHighTimeout);
+        // Receive closing diagnostics
+        await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationTokenWithHighTimeout);
       }
       await AssertNoDiagnosticsAreComing(CancellationTokenWithHighTimeout);
     }
