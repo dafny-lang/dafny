@@ -17,25 +17,33 @@ public static class InliningTranslator {
 
   /// <summary>
   /// Take an unresolved <param name="dafnyProgram"></param> and translate it to Boogie while enabling inlining.
+  /// Return false if encountered any errors along the way
   /// </summary>
-  public static Microsoft.Boogie.Program TranslateAndInline(Program dafnyProgram, DafnyOptions options) {
+  public static bool TranslateForFutureInlining(Program dafnyProgram, DafnyOptions options, out Microsoft.Boogie.Program boogieProgram) {
+    boogieProgram = null;
     // Substitute all :testInline-annotated functions with function-by-methods and remove all opaque attributes
     new AddByMethodRewriter(new ConsoleErrorReporter(options), ShouldProcessForInlining).PreResolve(dafnyProgram);
     // Remove short-circuiting expressions from method and byMethod bodies
     new RemoveShortCircuitingCloner(ShouldProcessForInlining).Visit(dafnyProgram);
     // Resolve the program (in particular, resolve all function calls)
     new ProgramResolver(dafnyProgram).Resolve(CancellationToken.None); // now resolved
+    if (dafnyProgram.Reporter.HasErrors) {
+      return false;
+    }
     // Change by-method function calls to method calls
     new FunctionCallToMethodCallCloner(ShouldProcessForInlining).Visit(dafnyProgram);
     // Separate by-method methods into standalone methods so that translator adds Call$$ procedures for them
     new SeparateByMethodRewriter(new ConsoleErrorReporter(options), ShouldProcessForInlining).PostResolve(dafnyProgram);
     // Translate Dafny to Boogie. 
     var boogiePrograms = Utils.Translate(dafnyProgram);
+    if (dafnyProgram.Reporter.HasErrors) {
+      return false;
+    }
     // If translation returns several modules, merge them all together to enable inlining across modules
-    var program = MergeBoogiePrograms(boogiePrograms);
+    boogieProgram = MergeBoogiePrograms(boogiePrograms);
     // Finally, create bodies for the Call$$ procedures that call out to Impl$$ procedures
-    program = new AddImplementationsForCallsRewriter(options).VisitProgram(program);
-    return program;
+    boogieProgram = new AddImplementationsForCallsRewriter(options).VisitProgram(boogieProgram);
+    return true;
   }
 
   /// <summary>

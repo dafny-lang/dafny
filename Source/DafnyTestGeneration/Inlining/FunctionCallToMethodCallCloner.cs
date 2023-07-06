@@ -39,17 +39,14 @@ public class FunctionCallToMethodCallCloner : Cloner {
   }
 
   private void Visit(Function function) {
-    if (function.ByMethodBody != null && !function.IsGhost) {
+    if (function.ByMethodBody != null) {
       function.ByMethodBody = CloneBlockStmt(function.ByMethodBody);
       function.ByMethodDecl.Body = function.ByMethodBody;
     }
   }
 
   private void Visit(Method method) {
-    if (method.Body != null && !method.IsGhost) {
-      if (method.Body == null || method.IsGhost) {
-        return;
-      }
+    if (method.Body != null) {
       if (method.Body is DividedBlockStmt dividedBlockStmt) {
         method.Body = CloneDividedBlockStmt(dividedBlockStmt);
       } else {
@@ -59,7 +56,7 @@ public class FunctionCallToMethodCallCloner : Cloner {
   }
 
   public override Statement CloneStmt(Statement stmt) {
-    if (stmt == null || stmt.IsGhost || stmt is not UpdateStmt updateStmt) {
+    if (stmt == null || stmt is not UpdateStmt updateStmt) {
       return base.CloneStmt(stmt);
     }
     var clonedUpdate = (UpdateStmt)base.CloneStmt(updateStmt);

@@ -549,14 +549,14 @@ module Test {
 
     [Theory]
     [MemberData(nameof(OptionSettings))]
-    public async Task FunctionMethod(List<Action<DafnyOptions>> optionSettings) {
+    public async Task InlineGhostCode(List<Action<DafnyOptions>> optionSettings) {
       var source = @"
 module Math {
-  function {:testInline 1} Max(a:int, b:int):int {
-    if (a > b) then a else b
+  lemma {:testInline 1} Max(a:int, b:int) returns (i:int) {
+    return if (a > b) then a else b;
   }
-  function {:testEntry} Min(a:int, b:int):int {
-    -Max(-a, -b)
+  lemma {:testEntry} Min(a:int, b:int) returns (i:int)  {
+    return -Max(-a, -b);
   }
 }
 ".TrimStart();

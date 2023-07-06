@@ -73,7 +73,13 @@ namespace DafnyTestGeneration {
 
     private static IEnumerable<ProgramModification> GetModifications(Modifications cache, Program program) {
       var options = program.Options;
-      var boogieProgram = Inlining.InliningTranslator.TranslateAndInline(program, options);
+      var success = Inlining.InliningTranslator.TranslateForFutureInlining(program, options, out var boogieProgram);
+      if (!success) {
+        options.Printer.ErrorWriteLine(options.ErrorWriter,
+          $"Error: Failed at resolving or translating the inlined Dafny code.");
+        SetNonZeroExitCode = true;
+        return new List<ProgramModification>();
+      }
       var dafnyInfo = new DafnyInfo(program);
       SetNonZeroExitCode = dafnyInfo.SetNonZeroExitCode || SetNonZeroExitCode;
       if (!Utils.ProgramHasAttribute(program,

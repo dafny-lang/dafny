@@ -74,6 +74,79 @@ public class RemoveShortCircuitingCloner : Cloner {
       method.Body = CloneBlockStmt(method.Body);
     }
   }
+  
+  public override BlockStmt CloneBlockStmt(BlockStmt blockStatement) {
+    if (blockStatement == null) {
+      return null;
+    }
+    if (blockStatement is DividedBlockStmt dividedBlockStmt) {
+      return CloneDividedBlockStmt(dividedBlockStmt);
+    }
+    List<Statement> newBody = new();
+    foreach (var statement in blockStatement.Body) {
+      newBody.AddRange(ProcessStmt(statement));
+    }
+    return new BlockStmt(blockStatement.RangeToken, newBody);
+  }
+
+  public override DividedBlockStmt CloneDividedBlockStmt(DividedBlockStmt blockStatement) {
+    List<Statement> newBodyInit = new();
+    List<Statement> newBodyProper = new();
+    foreach (var statement in blockStatement.BodyInit) {
+      var processed = ProcessStmt(statement);
+      newBodyInit.AddRange(processed);
+    }
+    foreach (var statement in blockStatement.BodyProper) {
+      var processed = ProcessStmt(statement);
+      newBodyProper.AddRange(processed);
+    }
+    return new DividedBlockStmt(blockStatement.RangeToken, newBodyInit, blockStatement.SeparatorTok, newBodyProper);
+  }
+
+  private List<Statement> ProcessStmt(Statement statement) {
+    newStmtStack.Add(new List<Statement>());
+    var newStatement = CloneStmt(statement);
+    var result = new List<Statement> { newStatement };
+    if (newStmtStack.Last().Count == 0) {
+      newStmtStack.RemoveAt(newStmtStack.Count - 1);
+      return result;
+    }
+    result.InsertRange(0, newStmtStack.Last());
+    newStmtStack.RemoveAt(newStmtStack.Count - 1);
+    return result;
+  }
+  
+  public override Statement CloneStmt(Statement statement) {
+    if (statement == null) {
+      return null;
+    }
+    switch (statement) {
+      case IfStmt ifStatement:
+        return CloneIfStmt(ifStatement);
+      case UpdateStmt updateStatement:
+        return CloneUpdateStmt(updateStatement);
+      case ReturnStmt returnStatement:
+        return CloneReturnStmt(returnStatement);
+      case BlockStmt blockStatement:
+        return CloneBlockStmt(blockStatement);
+      case NestedMatchStmt nestedMatchStatement:
+        return CloneNestedMatchStmt(nestedMatchStatement);
+      case PrintStmt printStatement:
+        return ClonePrintStmt(printStatement);
+      case WhileStmt whileStmt:
+        return CloneWhileStmt(whileStmt);
+      case AssignOrReturnStmt assignOrReturnStmt:
+        return CloneAssignOrReturnStmt(assignOrReturnStmt);
+      case ForLoopStmt forLoopStmt:
+        return CloneForLoopStmt(forLoopStmt);
+      case CallStmt callStmt:
+        return CloneCallStmt(callStmt);
+      case PredicateStmt or ForallStmt or RevealStmt: // always ghost
+        return statement;
+      default:
+        return base.CloneStmt(statement); 
+    }
+  }
 
   private List<AssignmentRhs> CloneRhss(List<AssignmentRhs> rhss, bool processingRhs) {
     if (rhss == null) {
@@ -149,6 +222,10 @@ public class RemoveShortCircuitingCloner : Cloner {
     return new ReturnStmt(returnStatement.RangeToken, CloneRhss(returnStatement.Rhss, false));
   }
 
+  private Statement CloneCallStmt(CallStmt callStmt) {
+    return new CallStmt(callStmt.RangeToken, CloneExpressionList(callStmt.Lhs), callStmt.MethodSelect, CloneExpressionList(callStmt.Args));
+  }
+
   private Statement CloneNestedMatchStmt(NestedMatchStmt nestedMatchStatement) {
     var noCircuits = RemoveShortCircuit(nestedMatchStatement.Source, false);
     newStmtStack.Last().AddRange(noCircuits.stmts);
@@ -160,47 +237,7 @@ public class RemoveShortCircuitingCloner : Cloner {
   }
 
   private Statement ClonePrintStmt(PrintStmt printStatement) {
-    List<Expression> newArgs = new();
-    foreach (var argument in printStatement.Args) {
-      var noCircuits = RemoveShortCircuit(argument, false);
-      if (noCircuits.stmts != null) {
-        newStmtStack.Last().AddRange(noCircuits.stmts);
-      }
-
-      newArgs.Add(noCircuits.expr);
-    }
-
-    printStatement.Args.Clear();
-    printStatement.Args.AddRange(newArgs);
-    return printStatement;
-  }
-
-  public override BlockStmt CloneBlockStmt(BlockStmt blockStatement) {
-    if (blockStatement == null) {
-      return null;
-    }
-    if (blockStatement is DividedBlockStmt dividedBlockStmt) {
-      return CloneDividedBlockStmt(dividedBlockStmt);
-    }
-    List<Statement> newBody = new();
-    foreach (var statement in blockStatement.Body) {
-      newBody.AddRange(ProcessStmt(statement));
-    }
-    return new BlockStmt(blockStatement.RangeToken, newBody);
-  }
-
-  public override DividedBlockStmt CloneDividedBlockStmt(DividedBlockStmt blockStatement) {
-    List<Statement> newBodyInit = new();
-    List<Statement> newBodyProper = new();
-    foreach (var statement in blockStatement.BodyInit) {
-      var processed = ProcessStmt(statement);
-      newBodyInit.AddRange(processed);
-    }
-    foreach (var statement in blockStatement.BodyProper) {
-      var processed = ProcessStmt(statement);
-      newBodyProper.AddRange(processed);
-    }
-    return new DividedBlockStmt(blockStatement.RangeToken, newBodyInit, blockStatement.SeparatorTok, newBodyProper);
+    return new PrintStmt(printStatement.RangeToken, CloneExpressionList(printStatement.Args));
   }
 
   private Statement CloneWhileStmt(WhileStmt whileStmt) {
@@ -211,32 +248,14 @@ public class RemoveShortCircuitingCloner : Cloner {
     return new WhileStmt(whileStmt.RangeToken, noCircuits.expr, whileStmt.Invariants, whileStmt.Decreases, whileStmt.Mod, newBody);
   }
 
-  public override Statement CloneStmt(Statement statement) {
-    if (statement == null) {
-      return null;
-    }
-    switch (statement) {
-      case IfStmt ifStatement:
-        return CloneIfStmt(ifStatement);
-      case UpdateStmt updateStatement:
-        return CloneUpdateStmt(updateStatement);
-      case ReturnStmt returnStatement:
-        return CloneReturnStmt(returnStatement);
-      case BlockStmt blockStatement:
-        return CloneBlockStmt(blockStatement);
-      case NestedMatchStmt nestedMatchStatement:
-        return CloneNestedMatchStmt(nestedMatchStatement);
-      case PrintStmt printStatement:
-        return ClonePrintStmt(printStatement);
-      case PredicateStmt or ForallStmt or RevealStmt: // ghost and hence not modified
-        return statement;
-      case WhileStmt whileStmt:
-        return CloneWhileStmt(whileStmt);
-      case AssignOrReturnStmt assignOrReturnStmt:
-        return CloneAssignOrReturnStmt(assignOrReturnStmt);
-      default:
-        return base.CloneStmt(statement); // TODO
-    }
+  private Statement CloneForLoopStmt(ForLoopStmt forLoopStmt) {
+    var start = RemoveShortCircuit(forLoopStmt.Start, false);
+    newStmtStack.Last().AddRange(start.stmts);
+    var end = RemoveShortCircuit(forLoopStmt.End, false);
+    newStmtStack.Last().AddRange(end.stmts);
+    var newBody = CloneBlockStmt(forLoopStmt.Body);
+    return new ForLoopStmt(forLoopStmt.RangeToken, forLoopStmt.LoopIndex, start.expr, end.expr, forLoopStmt.GoingUp,
+      forLoopStmt.Invariants, forLoopStmt.Decreases, forLoopStmt.Mod, newBody, forLoopStmt.Attributes);
   }
 
   private Statement ProcessStmtToStmt(Statement statement) {
@@ -245,19 +264,6 @@ public class RemoveShortCircuitingCloner : Cloner {
       return statements[0];
     }
     return new BlockStmt(statement.RangeToken, statements);
-  }
-
-  private List<Statement> ProcessStmt(Statement statement) {
-    newStmtStack.Add(new List<Statement>());
-    var newStatement = CloneStmt(statement);
-    var result = new List<Statement> { newStatement };
-    if (newStmtStack.Last().Count == 0) {
-      newStmtStack.RemoveAt(newStmtStack.Count - 1);
-      return result;
-    }
-    result.InsertRange(0, newStmtStack.Last());
-    newStmtStack.RemoveAt(newStmtStack.Count - 1);
-    return result;
   }
 
   private List<Statement> ProcessStmtList(List<Statement> statements) {
@@ -322,8 +328,6 @@ public class RemoveShortCircuitingCloner : Cloner {
   }
 
   public override Expression CloneExpr(Expression expr) {
-    // the newStmt should not be made into a block!!!
-    // TODO: isGhost and isBindingGuard below are not clear
     if (expr == null) {
       return null;
     }
@@ -376,16 +380,23 @@ public class RemoveShortCircuitingCloner : Cloner {
         var matchStmt = new NestedMatchStmt(matchExpr.RangeToken, matchExpr.Source, caseStmts, false, matchExpr.Attributes);
         newStmtStack.Last().Add(matchStmt);
         return identifierExpr;
-      case LetOrFailExpr letOrFailExpr:
+      case LetOrFailExpr { Lhs: not null } letOrFailExpr:
         newStmtStack.Last().Add(varDecl);
         var boundIdentifierExpr = new IdentifierExpr(letOrFailExpr.Rhs.StartToken, letOrFailExpr.Lhs.Var.Name);
-        var assignSuchThat = new AssignOrReturnStmt(letOrFailExpr.Rhs.RangeToken, new List<Expression> { boundIdentifierExpr }, new ExprRhs(letOrFailExpr.Rhs), null, new List<AssignmentRhs>());
+        var assignOrReturn = new AssignOrReturnStmt(letOrFailExpr.Rhs.RangeToken, new List<Expression> { boundIdentifierExpr }, new ExprRhs(letOrFailExpr.Rhs), null, new List<AssignmentRhs>());
         varDecl = new VarDeclStmt(
           new RangeToken(letOrFailExpr.Lhs.Var.StartToken, letOrFailExpr.Rhs.EndToken),
-          new List<LocalVariable> { new(letOrFailExpr.Lhs.Var.RangeToken, letOrFailExpr.Lhs.Var.Name, new InferredTypeProxy(), false) }, assignSuchThat);
+          new List<LocalVariable> { new(letOrFailExpr.Lhs.Var.RangeToken, letOrFailExpr.Lhs.Var.Name, new InferredTypeProxy(), false) }, assignOrReturn);
         updateStmt = new UpdateStmt(letOrFailExpr.Body.RangeToken, new List<Expression> { identifierExpr },
           new List<AssignmentRhs> { new ExprRhs(letOrFailExpr.Body) });
         newStmtStack.Last().Add(new BlockStmt(letOrFailExpr.RangeToken, new List<Statement> { varDecl, updateStmt }));
+        return identifierExpr;
+      case LetOrFailExpr letOrFailExpr:
+        newStmtStack.Last().Add(varDecl);
+        var assignOrReturnNoLhs = new AssignOrReturnStmt(letOrFailExpr.Rhs.RangeToken, new List<Expression>(), new ExprRhs(letOrFailExpr.Rhs), null, new List<AssignmentRhs>());
+        updateStmt = new UpdateStmt(letOrFailExpr.Body.RangeToken, new List<Expression> { identifierExpr },
+          new List<AssignmentRhs> { new ExprRhs(letOrFailExpr.Body) });
+        newStmtStack.Last().Add(new BlockStmt(letOrFailExpr.RangeToken, new List<Statement> { assignOrReturnNoLhs, updateStmt }));
         return identifierExpr;
       case LetExpr letExpr:
         if (letExpr.Exact == false || letExpr.BoundVars.Count() != letExpr.RHSs.Count) {

@@ -26,15 +26,20 @@ public class ShortCircuitRemoval : Setup {
     return Regex.Replace(input, "[ \t\n]", "");
   }
 
-  private void ShortCircuitRemovalTest(string source, string expected, bool isByMethod = true) {
+  /// <summary>
+  /// Perform shared checks and return the target method for further testing on a case by case basis
+  /// </summary>
+  private Method ShortCircuitRemovalTest(string source, string expected, bool isByMethod = true) {
     // If the following assertion fails, rename the corresponding variables in expected output of each test
     Assert.Equal(RemoveShortCircuitingCloner.TmpVarPrefix, "#tmp");
     var options = GetDafnyOptions(new List<Action<DafnyOptions>>(), output);
     var program = Utils.Parse(options, source, false);
-    var boogieProgram = InliningTranslator.TranslateAndInline(program, options);
+    var success = InliningTranslator.TranslateForFutureInlining(program, options, out var boogieProgram);
+    Assert.True(success);
     var method = program.DefaultModuleDef.Children
-      .OfType<TopLevelDeclWithMembers>().First(classDef => classDef.Children.Count() != 0)?
-      .Children.OfType<Method>().First();
+      .OfType<TopLevelDeclWithMembers>()
+      .Select(classDef => classDef.Members.Where(member => member is Method && Utils.MembersHasAttribute(member, "testEntry")))?
+      .Where(members => members.Count() != 0).FirstOrDefault()?.First() as Method;
     Assert.NotNull(method);
     Assert.Equal(isByMethod, method.IsByMethod);
     var writer = new StringWriter();
@@ -43,6 +48,7 @@ public class ShortCircuitRemoval : Setup {
     Assert.Equal(RemoveSpaces(expected), result);
     Assert.False(program.Reporter.HasErrors);
     boogieProgram.Resolve(options);
+    return method;
   }
 
   [Fact]
@@ -57,13 +63,12 @@ function {:testEntry} Identity(i:int):int {
   }
 
   [Fact]
-  public void RemoveShortCircuitingAnd() {
+  public void And() {
     var source = @"
 predicate {:testEntry} And(a:bool, b:bool) {
   a && b
 }
 ".TrimStart();
-    var unused = RemoveShortCircuitingCloner.TmpVarPrefix + 0;
     var expected = @"
 { 
   var #tmp0 : bool; 
@@ -78,7 +83,7 @@ predicate {:testEntry} And(a:bool, b:bool) {
   }
 
   [Fact]
-  public void RemoveShortCircuitingOr() {
+  public void Or() {
     var source = @"
 predicate {:testEntry} Or(a:bool, b:bool) {
   a || b
@@ -98,7 +103,7 @@ predicate {:testEntry} Or(a:bool, b:bool) {
   }
 
   [Fact]
-  public void RemoveShortCircuitingImp() {
+  public void Imp() {
     var source = @"
 predicate {:testEntry} Imp(a:bool, b:bool) {
   a ==> b
@@ -119,7 +124,7 @@ predicate {:testEntry} Imp(a:bool, b:bool) {
   }
 
   [Fact]
-  public void RemoveShortCircuitingExp() {
+  public void Exp() {
     var source = @"
 predicate {:testEntry} Exp(a:bool, b:bool) {
   a <== b
@@ -139,7 +144,7 @@ predicate {:testEntry} Exp(a:bool, b:bool) {
   }
 
   [Fact]
-  public void RemoveShortCircuitingIfThenElse() {
+  public void IfThenElse() {
     var source = @"
 function {:testEntry} IfThenElse(a:bool):int {
   if a then 1 else 2
@@ -158,7 +163,7 @@ function {:testEntry} IfThenElse(a:bool):int {
   }
 
   [Fact]
-  public void RemoveLet() {
+  public void Let() {
     var source = @"
 function {:testEntry} Let(a:bool):int {
   var a:int := 7; a
@@ -177,7 +182,7 @@ function {:testEntry} Let(a:bool):int {
   }
 
   [Fact]
-  public void RemoveNestedLet() {
+  public void NestedLet() {
     var source = @"
 function {:testEntry} NestedLet(a:bool):int {
   var a:real := 7.5; var a:int := 4; a
@@ -200,7 +205,7 @@ return #tmp0; }";
   }
 
   [Fact]
-  public void RemoveIfInsideLet() {
+  public void IfInsideLet() {
     var source = @"
 function {:testEntry} Let(a:bool):int {
   var a := false; if a then 5 else 7
@@ -224,7 +229,7 @@ function {:testEntry} Let(a:bool):int {
   }
 
   [Fact]
-  public void RemoveShortCircuitInElseBranch() {
+  public void InElseBranch() {
     var source = @"
 function {:testEntry} NestedIfTheElse(a:bool, b:bool):int {
   if a then 5 else if b then 3 else 1
@@ -249,7 +254,7 @@ function {:testEntry} NestedIfTheElse(a:bool, b:bool):int {
   }
 
   [Fact]
-  public void RemoveStmtExpression() {
+  public void StmtExpression() {
     var source = @"
 function {:testEntry} StmtExpression(a:int):int {
   if (var a := true; a) then 5 else 3
@@ -270,7 +275,7 @@ function {:testEntry} StmtExpression(a:int):int {
   }
 
   [Fact]
-  public void RemoveSimpleMatch() {
+  public void Match() {
     var source = @"
 datatype Option = None | Some
 function {:testEntry} IsNone(o: Option): bool {
@@ -291,7 +296,7 @@ function {:testEntry} IsNone(o: Option): bool {
   }
 
   [Fact]
-  public void RemoveMatchWithDestructors() {
+  public void MatchWithDestructors() {
     var source = @"
 datatype Option = None | Some(val:int)
 function {:testEntry} UnBoxOrZero(o: Option): int {
@@ -312,7 +317,7 @@ function {:testEntry} UnBoxOrZero(o: Option): int {
   }
 
   [Fact]
-  public void LiftFunctionCall() {
+  public void FunctionCall() {
     var source = @"
 function {:testEntry} Max(a:int, b:int):int {
   -Min(-a, -b)
@@ -329,7 +334,7 @@ function Min(a:int, b:int):int { if a < b then a else b }
   }
 
   [Fact]
-  public void LiftNestedFunctionCall() {
+  public void NestedFunctionCall() {
     var source = @"
 function {:testEntry} Max(a:int, b:int):int {
   Negate(Min(Negate(a), Negate(b)))
@@ -353,7 +358,7 @@ function Min(a:int, b:int):int { if a < b then a else b }
   }
 
   [Fact]
-  public void LiftFunctionCallWithShortCircuitingArgs() {
+  public void FunctionCallWithShortCircuitingArgs() {
     var source = @"
 function {:testEntry} Arguments(a:bool, b:bool):bool {
   IsTrue(a || b)
@@ -376,7 +381,7 @@ function IsTrue(a:bool):bool { a }
   }
   
   [Fact]
-  public void ProcessConstructor() {
+  public void Constructor() {
     var source = @"
 class C {
   var i:int
@@ -407,7 +412,7 @@ class C {
   }
 
   [Fact]
-  public void ProcessWhileStmt() {
+  public void While() {
     var source = @"
 method {:testEntry} Sum(n:int) returns (s:int)
   requires n >= 0
@@ -437,6 +442,171 @@ method {:testEntry} Sum(n:int) returns (s:int)
     { var n:= n; #tmp0 := i <= n;}
   } 
   return s;
+}";
+    ShortCircuitRemovalTest(source, expected, false);
+  }
+  
+  [Fact]
+  public void LetOrFail() {
+    var source = @"
+datatype Result<T> = Success(value:T) | Failure {
+  predicate IsFailure() {true}
+  function PropagateFailure():Result<T> {this}
+}
+function {:testInline 1} Fail():Result<bool> {Failure}
+function {:testEntry} EntryLetOrFail():Result<bool> {
+  :- Fail(); Success(true)
+}
+".TrimStart();
+    var expected = @"
+{
+  var #tmp0;
+  { 
+    :- Fail();
+    #tmp0 := Success(true);
+  }
+  return #tmp0;
+}";
+    var resultingMethod = ShortCircuitRemovalTest(source, expected);
+    Assert.True(resultingMethod.Body.Body[1] is BlockStmt);
+    var blockStmt = resultingMethod.Body.Body[1] as BlockStmt;
+    Assert.True(blockStmt.Body[0] is AssignOrReturnStmt);
+    var assignOrReturn = blockStmt.Body[0] as AssignOrReturnStmt; // :- Fail() prior to desugaring
+    Assert.True(assignOrReturn.Children.ToList()[1] is UpdateStmt);
+    var updateStmt = assignOrReturn.Children.ToList()[1] as UpdateStmt; // := Fail(), which is part of desugaring
+    Assert.Contains(updateStmt.ResolvedStatements, statement => statement is CallStmt); // Fail() is a method call
+  }
+  
+  [Fact]
+  public void LetOrFailWithAssignment() {
+    var source = @"
+datatype Result<T> = Success(value:T) | Failure {
+  predicate IsFailure() {true}
+  function PropagateFailure():Result<T> {this}
+  function Extract():T requires !IsFailure() {value}
+}
+function {:testInline 1} Fail():Result<bool> {Failure}
+function {:testEntry} EntryLetOrFail():Result<bool> {
+  var x :- Fail(); Success(x)
+}
+".TrimStart();
+    var expected = @"
+{
+  var #tmp0;
+  { 
+    var x :- Fail();
+    #tmp0 := Success(x);
+  }
+  return #tmp0;
+}";
+    var resultingMethod = ShortCircuitRemovalTest(source, expected);
+    Assert.True(resultingMethod.Body.Body[1] is BlockStmt);
+    var blockStmt = resultingMethod.Body.Body[1] as BlockStmt;
+    Assert.True(blockStmt.Body[0] is VarDeclStmt);
+    var varDeclStmt = blockStmt.Body[0] as VarDeclStmt; // x :- Fail() prior to desugaring
+    Assert.True(varDeclStmt.Update.Children.ToList()[1] is UpdateStmt);
+    var updateStmt = varDeclStmt.Update.Children.ToList()[1] as UpdateStmt; // x := Fail(), which is part of desugaring
+    Assert.Contains(updateStmt.ResolvedStatements, statement => statement is CallStmt); // Fail() is a method call
+  }
+  
+  [Fact]
+  public void TypeRhs() {
+    var source = @"
+class A { 
+  constructor () {}
+}
+method {:testEntry} allocateA() {
+  var a := new A();
+}
+".TrimStart();
+    var expected = @"
+{
+  var a := new A();
+}";
+    ShortCircuitRemovalTest(source, expected, false);
+  }
+  
+  [Fact]
+  public void Print() {
+    var source = @"
+method {:testEntry} Print(b:bool) {
+  print if b then ['a', 'b', 'c'] else [];
+}
+".TrimStart();
+    var expected = @"
+{
+  var #tmp0;
+  if b {
+    #tmp0 := ['a', 'b', 'c'];
+  } else
+    #tmp0 := [];
+  print #tmp0;
+}";
+    ShortCircuitRemovalTest(source, expected, false);
+  }
+  
+  [Fact]
+  public void ForLoop() {
+    var source = @"
+method {:testEntry} Sum(n:int) returns (s:int)
+  requires n >= 0
+{
+  s := 0;
+  for i := 0 to (var n:=n-1; n+1) {
+    s := s + i;
+  }
+  return s;
+}
+".TrimStart();
+    var expected = @"
+{
+  s := 0;
+  var #tmp0; 
+  { var n := n - 1; #tmp0 := n + 1; }
+  for i:int := 0 to #tmp0 {
+    s := s + i;
+  }
+  return s;
+}";
+    ShortCircuitRemovalTest(source, expected, false);
+  }
+  
+  [Fact]
+  public void CallStmt() {
+    var source = @"
+method callee(a:int) {}
+method {:testEntry} caller() {
+  callee(if false then 0 else 1);
+}
+".TrimStart();
+    var expected = @"
+{
+  var #tmp0;
+  if false { 
+    #tmp0 := 0;
+  } else
+    #tmp0 := 1;
+  callee(#tmp0);
+}";
+    ShortCircuitRemovalTest(source, expected, false);
+  }
+  
+  [Fact]
+  public void CallStmtWithUpdate() {
+    var source = @"
+method callee(a:int) returns (i:int) { return a; }
+method {:testEntry} caller() {
+  var x := callee(if false then 0 else 1);
+}
+".TrimStart();
+    var expected = @"
+{
+  var #tmp0;
+  if false { 
+    #tmp0 := 0;
+  } else
+    #tmp0 := 1;
+  var x := callee(#tmp0);
 }";
     ShortCircuitRemovalTest(source, expected, false);
   }

@@ -67,8 +67,7 @@ namespace DafnyTestGeneration {
       // TODO: Also make TODO marked changes in ProgramModification and ProgramModifier
       (Utils.DeclarationHasAttribute(impl, TestGenerationOptions.TestEntryAttribute) || 
        Utils.DeclarationHasAttribute(impl, TestGenerationOptions.TestInlineAttribute)) &&
-      impl.Name.StartsWith(ImplPrefix) && !impl.Name.EndsWith(CtorPostfix) &&
-      !DafnyInfo.IsGhost(impl.VerboseName.Split(" ").First());
+      impl.Name.StartsWith(ImplPrefix) && !impl.Name.EndsWith(CtorPostfix);
 
     /// <summary>
     /// Add axioms necessary for counterexample generation to work efficiently
@@ -77,7 +76,7 @@ namespace DafnyTestGeneration {
       if (options.TestGenOptions.SeqLengthLimit == 0) {
         return;
       }
-      var limit = (uint)options.TestGenOptions.SeqLengthLimit;
+      var limit = options.TestGenOptions.SeqLengthLimit;
       Parser.Parse($"axiom (forall<T> y: Seq T :: " +
                    $"{{ Seq#Length(y) }} Seq#Length(y) <= {limit});",
         "", out var tmpProgram);
