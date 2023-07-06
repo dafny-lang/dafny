@@ -16,17 +16,21 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
   private readonly CompilationAfterTranslation compilation;
   private readonly ILogger<VerificationProgressReporter> logger;
   private readonly INotificationPublisher notificationPublisher;
+  private readonly IProjectDatabase projectManagerDatabase;
 
   public VerificationProgressReporter(ILogger<VerificationProgressReporter> logger,
     CompilationAfterTranslation compilation,
-    INotificationPublisher notificationPublisher,
+    INotificationPublisher notificationPublisher, 
+    IProjectDatabase projectManagerDatabase,
     DafnyOptions options,
-    VerificationTree tree) {
+    VerificationTree tree) 
+  {
     this.compilation = compilation;
     this.logger = logger;
     this.notificationPublisher = notificationPublisher;
     this.options = options;
     this.Tree = tree;
+    this.projectManagerDatabase = projectManagerDatabase;
   }
 
   public VerificationTree Tree { get; }
@@ -221,7 +225,7 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
   public void ReportRealtimeDiagnostics(bool verificationStarted, CompilationAfterResolution? document = null) {
     lock (LockProcessing) {
       document ??= this.compilation;
-      notificationPublisher.PublishGutterIcons(compilation.InitialIdeState(compilation, options), verificationStarted);
+      notificationPublisher.PublishGutterIcons(compilation.InitialIdeState(projectManagerDatabase, compilation, options), verificationStarted);
     }
   }
 

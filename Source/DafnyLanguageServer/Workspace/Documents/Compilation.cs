@@ -33,20 +33,22 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     public virtual IEnumerable<DafnyDiagnostic> GetDiagnostics(Uri uri) => Enumerable.Empty<DafnyDiagnostic>();
 
-    public IdeState InitialIdeState(Compilation compilation, DafnyOptions options) {
-      return ToIdeState(new IdeState(compilation, new EmptyNode(),
+    public IdeState InitialIdeState(IProjectDatabase projectManagerDatabase, Compilation compilation, DafnyOptions options) {
+      return ToIdeState(projectManagerDatabase, new IdeState(compilation, 
+        new EmptyNode(),
+        Sets.Empty<Uri>(),
         ImmutableDictionary<Uri, IReadOnlyList<Diagnostic>>.Empty,
         SymbolTable.Empty(), SignatureAndCompletionTable.Empty(options, compilation.Project), new Dictionary<ImplementationId, IdeImplementationView>(),
         Array.Empty<Counterexample>(),
         false, ImmutableDictionary<Uri, IReadOnlyList<Range>>.Empty,
-       null
+        null
       ));
     }
 
     /// <summary>
     /// Collects information to present to the IDE
     /// </summary>
-    public virtual IdeState ToIdeState(IdeState previousState) {
+    public virtual IdeState ToIdeState(IProjectDatabase projectManagerDatabase, IdeState previousState) {
       return previousState with {
         Compilation = this,
         ImplementationsWereUpdated = false,

@@ -35,6 +35,7 @@ public class CompilationAfterTranslation : CompilationAfterResolution {
         services.GetRequiredService<ILogger<VerificationProgressReporter>>(),
         this,
         services.GetRequiredService<INotificationPublisher>(),
+        services.GetRequiredService<IProjectDatabase>(),
         services.GetRequiredService<DafnyOptions>(), verificationTree);
     }
   }
@@ -48,7 +49,7 @@ public class CompilationAfterTranslation : CompilationAfterResolution {
     return base.GetDiagnostics(uri).Concat(views.SelectMany(view => view.Value.Diagnostics));
   }
 
-  public override IdeState ToIdeState(IdeState previousState) {
+  public override IdeState ToIdeState(IProjectDatabase projectManagerDatabase, IdeState previousState) {
     IEnumerable<KeyValuePair<ImplementationId, IdeImplementationView>> implementationViewsWithMigratedDiagnostics = ImplementationIdToView.Select(kv => {
       IEnumerable<Diagnostic> diagnostics = kv.Value.Diagnostics.Select(d => Util.ToLspDiagnostic(d));
       if (kv.Value.Status < PublishedVerificationStatus.Error) {
@@ -58,7 +59,7 @@ public class CompilationAfterTranslation : CompilationAfterResolution {
       var value = new IdeImplementationView(kv.Value.Range, kv.Value.Status, diagnostics.ToList());
       return new KeyValuePair<ImplementationId, IdeImplementationView>(kv.Key, value);
     });
-    return base.ToIdeState(previousState) with {
+    return base.ToIdeState(projectManagerDatabase, previousState) with {
       ImplementationsWereUpdated = true,
       VerificationTree = GetVerificationTree(),
       Counterexamples = new List<Counterexample>(Counterexamples),

@@ -25,8 +25,8 @@ public class CompilationAfterResolution : CompilationAfterParsing {
   public SignatureAndCompletionTable SignatureAndCompletionTable { get; }
   public IReadOnlyDictionary<Uri, IReadOnlyList<Range>> GhostDiagnostics { get; }
 
-  public override IdeState ToIdeState(IdeState previousState) {
-    return base.ToIdeState(previousState) with {
+  public override IdeState ToIdeState(IProjectDatabase projectManagerDatabase, IdeState previousState) {
+    return base.ToIdeState(projectManagerDatabase, previousState) with {
       SymbolTable = SymbolTable ?? previousState.SymbolTable,
       SignatureAndCompletionTable = SignatureAndCompletionTable.Resolved ? SignatureAndCompletionTable : previousState.SignatureAndCompletionTable,
       GhostRanges = GhostDiagnostics

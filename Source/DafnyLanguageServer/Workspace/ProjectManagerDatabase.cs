@@ -30,7 +30,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     public async Task OpenDocument(TextDocumentItem document) {
       fileSystem.OpenDocument(document);
 
-      var projectManager = await GetProjectManager(document, true, false)!;
+      var projectManager = await GetProjectManager(document.Uri.ToUri(), true, false)!;
       projectManager!.OpenDocument(document.Uri.ToUri());
     }
 
@@ -38,7 +38,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     public async Task UpdateDocument(DidChangeTextDocumentParams documentChange) {
       fileSystem.UpdateDocument(documentChange);
       var documentUri = documentChange.TextDocument.Uri;
-      var manager = await GetProjectManager(documentUri, false, false);
+      var manager = await GetProjectManager(documentUri.ToUri(), false, false);
       if (manager == null) {
         throw new ArgumentException($"the document {documentUri} was not loaded before");
       }
@@ -47,7 +47,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     public async Task SaveDocument(TextDocumentIdentifier documentId) {
-      var manager = await GetProjectManager(documentId, false, false);
+      var manager = await GetProjectManager(documentId.Uri.ToUri(), false, false);
       if (manager == null) {
         throw new ArgumentException($"the document {documentId.Uri} was not loaded before");
       }
@@ -71,7 +71,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     public async Task<IdeState?> GetResolvedDocumentAsync(TextDocumentIdentifier documentId) {
-      var manager = await GetProjectManager(documentId, false, true);
+      var manager = await GetProjectManager(documentId.Uri.ToUri(), false, true);
       if (manager != null) {
         return await manager.GetSnapshotAfterResolutionAsync()!;
       }
@@ -80,7 +80,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     public async Task<CompilationAfterParsing?> GetLastDocumentAsync(TextDocumentIdentifier documentId) {
-      var manager = await GetProjectManager(documentId, false, true);
+      var manager = await GetProjectManager(documentId.Uri.ToUri(), false, true);
       if (manager != null) {
         return await manager.GetLastDocumentAsync()!;
       }
@@ -89,13 +89,13 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     public Task<ProjectManager?> GetProjectManager(TextDocumentIdentifier documentId) {
-      return GetProjectManager(documentId, false, true);
+      return GetProjectManager(documentId.Uri.ToUri(), false, true);
     }
 
-    public async Task<ProjectManager?> GetProjectManager(TextDocumentIdentifier documentId,
+    public async Task<ProjectManager?> GetProjectManager(Uri uri,
       bool createOnDemand, bool startIfMigrated) {
-      var project = GetProject(documentId);
-      var projectManagerForFile = managersBySourceFile.GetValueOrDefault(documentId.Uri.ToUri());
+      var project = GetProject(uri);
+      var projectManagerForFile = managersBySourceFile.GetValueOrDefault(uri);
 
       if (projectManagerForFile != null) {
         var filesProjectHasChanged = !projectManagerForFile.Project.Equals(project);
@@ -107,7 +107,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
             await projectManagerForFile.CloseDocument();
           }
           projectManagerForFile = new ProjectManager(services, verificationCache, project);
-          projectManagerForFile.OpenDocument(documentId.Uri.ToUri());
+          projectManagerForFile.OpenDocument(uri);
         }
       } else {
         var managerForProject = managersByProject.GetValueOrDefault(project.Uri);
@@ -122,19 +122,19 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         }
       }
 
-      managersBySourceFile[documentId.Uri.ToUri()] = projectManagerForFile;
+      managersBySourceFile[uri] = projectManagerForFile;
       managersByProject[project.Uri] = projectManagerForFile;
       return projectManagerForFile;
     }
 
-    private DafnyProject GetProject(TextDocumentIdentifier document) {
-      return FindProjectFile(document.Uri.ToUri()) ?? ImplicitProject(document);
+    public DafnyProject GetProject(Uri sourceFile) {
+      return FindProjectFile(sourceFile) ?? ImplicitProject(sourceFile);
     }
 
-    public static DafnyProject ImplicitProject(TextDocumentIdentifier documentItem) {
+    public static DafnyProject ImplicitProject(Uri uri) {
       var implicitProject = new DafnyProject {
-        Includes = new[] { documentItem.Uri.GetFileSystemPath() },
-        Uri = documentItem.Uri.ToUri(),
+        Includes = new[] { uri.LocalPath },
+        Uri = uri,
         IsImplicitProject = true
       };
       return implicitProject;
@@ -145,7 +145,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
       var folder = Path.GetDirectoryName(sourceUri.LocalPath);
       while (!string.IsNullOrEmpty(folder) && projectFile == null) {
-        projectFile = OpenProjectInFolder(folder);
+        projectFile = OpenProjectFromFolder(folder);
 
         if (projectFile != null && projectFile.Uri != sourceUri && projectFile.ContainsSourceFile(sourceUri) == false) {
           projectFile = null;
@@ -154,7 +154,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         folder = Path.GetDirectoryName(folder);
       }
 
-      if (projectFile != null && !serverOptions.Get(ServerCommand.ProjectMode)) {
+      if (projectFile != null && projectFile.Uri != sourceUri && !serverOptions.Get(ServerCommand.ProjectMode)) {
         projectFile.Uri = sourceUri;
         projectFile.IsImplicitProject = true;
         projectFile.Includes = new[] { sourceUri.LocalPath };
@@ -168,26 +168,32 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     private readonly object nullRepresentative = new(); // Needed because you can't store null in the MemoryCache, but that's a value we want to cache.
     private readonly DafnyOptions serverOptions;
 
-    private DafnyProject? OpenProjectInFolder(string folderPath) {
+    private DafnyProject? OpenProjectFromFolder(string folderPath) {
       var cachedResult = projectFilePerFolderCache.Get(folderPath);
       if (cachedResult != null) {
         return cachedResult == nullRepresentative ? null : (DafnyProject?)cachedResult;
       }
 
-      var result = OpenProjectInFolderUncached(folderPath);
+      var result = OpenProjectFromFolderUncached(folderPath);
       projectFilePerFolderCache.Set(new CacheItem(folderPath, (object?)result ?? nullRepresentative), new CacheItemPolicy {
         AbsoluteExpiration = new DateTimeOffset(DateTime.Now.Add(TimeSpan.FromMilliseconds(ProjectFileCacheExpiryTime)))
       });
       return result?.Clone();
     }
 
-    private DafnyProject? OpenProjectInFolderUncached(string folderPath) {
+    private DafnyProject? OpenProjectFromFolderUncached(string folderPath) {
       var configFileUri = new Uri(Path.Combine(folderPath, DafnyProject.FileName));
-      if (!fileSystem.Exists(configFileUri)) {
-        return null;
+      DafnyProject? result = null;
+      if (fileSystem.Exists(configFileUri)) {
+        result = DafnyProject.Open(fileSystem, configFileUri, TextWriter.Null, TextWriter.Null);
       }
 
-      return DafnyProject.Open(fileSystem, configFileUri, TextWriter.Null, TextWriter.Null);
+      if (result != null) {
+        return result;
+      }
+
+      var parent = Path.GetDirectoryName(folderPath);
+      return parent == null ? null : OpenProjectFromFolder(parent);
     }
 
     public IEnumerable<ProjectManager> Managers => managersByProject.Values;

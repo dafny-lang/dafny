@@ -120,6 +120,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       return new IdeState(
         new Compilation(0, project),
         new EmptyNode(),
+        Sets.Empty<Uri>(),
         resolutionDiagnostics,
         SymbolTable.Empty(),
         SignatureAndCompletionTable.Empty(dafnyOptions, project),

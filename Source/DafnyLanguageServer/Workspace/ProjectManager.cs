@@ -33,6 +33,7 @@ public class ProjectManager : IDisposable {
   private readonly IRelocator relocator;
 
   private readonly IServiceProvider services;
+  private readonly IProjectDatabase projectManagerDatabase;
   private readonly VerificationResultCache verificationCache;
   public DafnyProject Project { get; }
   private readonly IdeStateObserver observer;
@@ -61,6 +62,7 @@ public class ProjectManager : IDisposable {
     serverOptions = services.GetRequiredService<DafnyOptions>();
     logger = services.GetRequiredService<ILogger<ProjectManager>>();
     relocator = services.GetRequiredService<IRelocator>();
+    projectManagerDatabase = this.services.GetRequiredService<IProjectDatabase>();
     services.GetRequiredService<IFileSystem>();
 
     Project = project;
@@ -137,7 +139,7 @@ public class ProjectManager : IDisposable {
 
     observerSubscription.Dispose();
     var migratedUpdates = CompilationManager.CompilationUpdates.Select(document =>
-      document.ToIdeState(lastPublishedState));
+      document.ToIdeState(projectManagerDatabase, lastPublishedState));
     observerSubscription = migratedUpdates.Subscribe(observer);
 
     CompilationManager.Start();
