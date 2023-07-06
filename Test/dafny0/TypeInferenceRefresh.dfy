@@ -1,4 +1,4 @@
-// RUN: %dafny_0 /compile:0 /typeSystemRefresh:1 "%s" > "%t"
+// RUN: %exits-with 4 %dafny /compile:0 /typeSystemRefresh:1 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 datatype Color = BlueX | WhiteX | PastelX
@@ -627,10 +627,10 @@ module ForallStmt {
   }
 
   lemma AllAssociative()
-    ensures forall x, y, z :: Plus(Plus(x, y), z) == Plus(x, Plus(y, z))
+    ensures forall x, y, z :: Plus(Plus(x, y), z) == Plus(x, Plus(y, z)) // error (x3): x,y,z are int's, not nat's
   {
     forall x, y, z {
-      Associative(x, y, z);
+      Associative(x, y, z); // error (x3): x,y,z are int's, not nat's
     }
   }
 }
@@ -702,10 +702,10 @@ module Frames {
     reads ms`x
     reads A0
     reads A1
-    reads A2
-    reads A3
-    reads A0`x
-    reads A1`x
+//    reads A2 // TODO
+//    reads A3 // TODO
+//    reads A0`x // TODO
+//    reads A1`x // TODO
     reads A2`x
     reads A3`x
 

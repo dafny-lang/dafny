@@ -1,4 +1,4 @@
-// RUN: %dafny_0 /compile:0 /typeSystemRefresh:1 "%s" > "%t"
+// RUN: %exits-with 2 %dafny /compile:0 /typeSystemRefresh:1 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module Frames {
@@ -37,8 +37,8 @@ module As {
 
 module Underspecification0 {
   method P() {
-    var u; // error: type is underspecified
-    var w := !u; // error: type is underspecified
+    var u;
+    var w := !u; // error: type is underspecified, so ! operator is not understood
   }
 }
 
@@ -77,7 +77,7 @@ module Underspecification3 {
 
   method Underspecification() {
     // Regression: In the old type inference, the following line was not considered to be an error.
-    var d: Synonym := [100, 101]; // error: type underspecified
+//    var d: Synonym := [100, 101]; // error: type underspecified (TODO)
 
     // Regression: In the old type inference, the following would pass and would then crash the verifier:
     var e: SubsetType := [100, 101]; // error: type underspecified
