@@ -13,9 +13,9 @@ public class ProjectFilesTest : ClientBasedLanguageServerTest {
 
   [Fact]
   public async Task ProjectFileByItselfHasNoDiagnostics() {
-      var tempDirectory = Path.GetRandomFileName();
-      await CreateAndOpenTestDocument("", Path.Combine(tempDirectory, DafnyProject.FileName));
-      await AssertNoDiagnosticsAreComing(CancellationToken);
+    var tempDirectory = Path.GetRandomFileName();
+    await CreateAndOpenTestDocument("", Path.Combine(tempDirectory, DafnyProject.FileName));
+    await AssertNoDiagnosticsAreComing(CancellationToken);
   }
 
   [Fact]

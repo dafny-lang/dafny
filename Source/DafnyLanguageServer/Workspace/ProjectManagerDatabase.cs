@@ -94,7 +94,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     public async Task<ProjectManager?> GetProjectManager(TextDocumentIdentifier documentId,
       bool createOnDemand, bool startIfMigrated) {
-      var project = GetProject(documentId);
+      var project = GetProject(documentId.Uri.ToUri());
       var projectManagerForFile = managersBySourceFile.GetValueOrDefault(documentId.Uri.ToUri());
 
       if (projectManagerForFile != null) {
@@ -127,14 +127,14 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       return projectManagerForFile;
     }
 
-    private DafnyProject GetProject(TextDocumentIdentifier document) {
-      return FindProjectFile(document.Uri.ToUri()) ?? ImplicitProject(document);
+    public DafnyProject GetProject(Uri uri) {
+      return FindProjectFile(uri) ?? ImplicitProject(uri);
     }
 
-    public static DafnyProject ImplicitProject(TextDocumentIdentifier documentItem) {
+    public static DafnyProject ImplicitProject(Uri uri) {
       var implicitProject = new DafnyProject {
-        Includes = new[] { documentItem.Uri.GetFileSystemPath() },
-        Uri = documentItem.Uri.ToUri(),
+        Includes = new[] { uri.LocalPath },
+        Uri = uri,
         IsImplicitProject = true
       };
       return implicitProject;
