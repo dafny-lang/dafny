@@ -57,7 +57,7 @@ namespace DafnyTestGeneration {
     protected abstract IEnumerable<ProgramModification> GetModifications(Program p);
 
     protected bool ImplementationIsToBeTested(Implementation impl) =>
-      (Utils.DeclarationHasAttribute(impl, TestGenerationOptions.TestEntryAttribute) || 
+      (Utils.DeclarationHasAttribute(impl, TestGenerationOptions.TestEntryAttribute) ||
        Utils.DeclarationHasAttribute(impl, TestGenerationOptions.TestInlineAttribute)) &&
       impl.Name.StartsWith(ImplPrefix) && !impl.Name.EndsWith(CtorPostfix);
 

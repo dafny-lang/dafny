@@ -14,7 +14,7 @@ namespace DafnyTestGeneration.Inlining;
 
 /// <summary> Turns each function into a function-by-method and removes all opaque attributes. </summary>
 public class AddByMethodRewriter : IRewriter {
-  
+
   // determines whether byMethod body should be added to a function
   private readonly Func<MemberDecl, bool> shouldProcessPredicate;
 

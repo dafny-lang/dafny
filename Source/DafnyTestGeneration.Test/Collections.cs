@@ -61,7 +61,7 @@ module SimpleTest {
         m.ValueCreation.Count == 3 &&
         m.ValueCreation.Exists(vc => vc.value.ToString().Contains("\'R\')"))));
     }
-    
+
     [Theory]
     [MemberData(nameof(OptionSettings))]
     private async Task StringLength(List<Action<DafnyOptions>> optionSettings) {

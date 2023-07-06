@@ -17,7 +17,7 @@ namespace DafnyTestGeneration.Inlining;
 /// Change by-method function calls to method calls (after resolution)
 /// </summary>
 public class FunctionCallToMethodCallRewriter : Cloner {
-  
+
   // determines whether function calls should be replaced with method calls in a given method/function
   private readonly Func<MemberDecl, bool> shouldProcessPredicate;
 

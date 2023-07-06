@@ -26,7 +26,7 @@ public class RemoveShortCircuitingRewriter : Cloner {
   private readonly List<List<Statement>> newStmtStack = new();
   // If foundShortCircuit==true, this class behaves exactly like a regular Cloner when processing expressions.
   // Must set this field to true before recursing on children of a short-circuiting expression that is being processed.
-  private bool foundShortCircuit; 
+  private bool foundShortCircuit;
   public const string TmpVarPrefix = "#tmp"; // prefix to start the names of all newly created special variables
   private int nextVariableId; // the id to use when creating a new variable
   // If processingRhs==true, the parent of the currently processed AST node is UpdateStmt or AssignOrReturnStmt.
@@ -40,7 +40,7 @@ public class RemoveShortCircuitingRewriter : Cloner {
     : base(cloneLiteralModuleDefinition: false, cloneResolvedFields: false) {
     this.shouldProcessPredicate = shouldProcessPredicate;
   }
-  
+
   private void ResetVariableIds() {
     nextVariableId = 0;
   }
@@ -74,7 +74,7 @@ public class RemoveShortCircuitingRewriter : Cloner {
       method.Body = CloneBlockStmt(method.Body);
     }
   }
-  
+
   public override BlockStmt CloneBlockStmt(BlockStmt blockStatement) {
     if (blockStatement == null) {
       return null;
@@ -115,7 +115,7 @@ public class RemoveShortCircuitingRewriter : Cloner {
     newStmtStack.RemoveAt(newStmtStack.Count - 1);
     return result;
   }
-  
+
   public override Statement CloneStmt(Statement statement) {
     if (statement == null) {
       return null;
@@ -144,7 +144,7 @@ public class RemoveShortCircuitingRewriter : Cloner {
       case PredicateStmt or ForallStmt or RevealStmt: // always ghost
         return statement;
       default:
-        return base.CloneStmt(statement); 
+        return base.CloneStmt(statement);
     }
   }
 
@@ -287,7 +287,7 @@ public class RemoveShortCircuitingRewriter : Cloner {
 
     var resultTmp = RemoveShortCircuit(result, processingRhs);
     newStmts.AddRange(resultTmp.stmts);
-    
+
     var statements = ProcessStmtList(newStmts);
     return (statements, resultTmp.expr);
   }

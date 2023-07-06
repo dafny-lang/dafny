@@ -379,7 +379,7 @@ function IsTrue(a:bool):bool { a }
 }";
     ShortCircuitRemovalTest(source, expected);
   }
-  
+
   [Fact]
   public void Constructor() {
     var source = @"
@@ -408,7 +408,7 @@ class C {
     #tmp1 := 1;
   i := #tmp1;
 }";
-    ShortCircuitRemovalTest(source, expected, isByMethod:false);
+    ShortCircuitRemovalTest(source, expected, isByMethod: false);
   }
 
   [Fact]
@@ -445,7 +445,7 @@ method {:testEntry} Sum(n:int) returns (s:int)
 }";
     ShortCircuitRemovalTest(source, expected, false);
   }
-  
+
   [Fact]
   public void LetOrFail() {
     var source = @"
@@ -476,7 +476,7 @@ function {:testEntry} EntryLetOrFail():Result<bool> {
     var updateStmt = assignOrReturn.Children.ToList()[1] as UpdateStmt; // := Fail(), which is part of desugaring
     Assert.Contains(updateStmt.ResolvedStatements, statement => statement is CallStmt); // Fail() is a method call
   }
-  
+
   [Fact]
   public void LetOrFailWithAssignment() {
     var source = @"
@@ -508,7 +508,7 @@ function {:testEntry} EntryLetOrFail():Result<bool> {
     var updateStmt = varDeclStmt.Update.Children.ToList()[1] as UpdateStmt; // x := Fail(), which is part of desugaring
     Assert.Contains(updateStmt.ResolvedStatements, statement => statement is CallStmt); // Fail() is a method call
   }
-  
+
   [Fact]
   public void TypeRhs() {
     var source = @"
@@ -525,7 +525,7 @@ method {:testEntry} allocateA() {
 }";
     ShortCircuitRemovalTest(source, expected, false);
   }
-  
+
   [Fact]
   public void Print() {
     var source = @"
@@ -544,7 +544,7 @@ method {:testEntry} Print(b:bool) {
 }";
     ShortCircuitRemovalTest(source, expected, false);
   }
-  
+
   [Fact]
   public void ForLoop() {
     var source = @"
@@ -570,7 +570,7 @@ method {:testEntry} Sum(n:int) returns (s:int)
 }";
     ShortCircuitRemovalTest(source, expected, false);
   }
-  
+
   [Fact]
   public void CallStmt() {
     var source = @"
@@ -590,7 +590,7 @@ method {:testEntry} caller() {
 }";
     ShortCircuitRemovalTest(source, expected, false);
   }
-  
+
   [Fact]
   public void CallStmtWithUpdate() {
     var source = @"

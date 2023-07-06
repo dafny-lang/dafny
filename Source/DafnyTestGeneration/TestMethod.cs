@@ -314,7 +314,7 @@ namespace DafnyTestGeneration {
             return string.Join("+", chunkStrs);
           }
 
-          if (seqType.Arg is CharType ||  asBasicSeqType?.TypeArgs?.FirstOrDefault((Type/*?*/)null) is CharType) {
+          if (seqType.Arg is CharType || asBasicSeqType?.TypeArgs?.FirstOrDefault((Type/*?*/)null) is CharType) {
             return $"\"{string.Join("", elements.SelectMany(c => c[1..^1]))}\"";
           }
           return AddValue(asType ?? variableType, $"[{string.Join(", ", elements)}]");
@@ -384,7 +384,7 @@ namespace DafnyTestGeneration {
               errorMessages.Add($"// Failed: Cannot find destructor " +
                                 $"{ctor.Destructors[i].Name} of constructor " +
                                 $"{variable.CanonicalName()} for datatype " +
-                                $"{basicType}. Available destructors are: " + 
+                                $"{basicType}. Available destructors are: " +
                                 string.Join(",", variable.Children.Keys.ToList()));
               return basicType.ToString();
             }

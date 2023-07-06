@@ -126,7 +126,7 @@ namespace DafnyTestGeneration {
       options.PrintFile = oldPrintFile;
       return output.ToString();
     }
-    
+
     /// <summary>
     /// Extract string mapping this basic block to a location in Dafny code.
     /// </summary>
@@ -163,7 +163,7 @@ namespace DafnyTestGeneration {
     }
 
     public static bool ProgramHasAttribute(Program program, string attribute) {
-        return DeclarationHasAttribute(program.DefaultModule, attribute);
+      return DeclarationHasAttribute(program.DefaultModule, attribute);
     }
 
     private static bool DeclarationHasAttribute(TopLevelDecl decl, string attribute) {
