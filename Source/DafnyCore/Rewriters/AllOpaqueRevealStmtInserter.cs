@@ -43,7 +43,7 @@ public class AllOpaqueRevealStmtInserter : IRewriter {
                   var newFunc = enumerator.Current;
       
                   var origExpr = cf.Rhs;
-                  var revealStmt = BuildRevealStmt(newFunc, cf.Rhs.Tok);
+                  var revealStmt = BuildRevealStmt(newFunc, cf.Rhs.Tok, moduleDefinition);
 
                   if (revealStmt is not null) {
                     var newExpr = new StmtExpr(cf.Rhs.Tok, revealStmt, origExpr) {
@@ -61,7 +61,7 @@ public class AllOpaqueRevealStmtInserter : IRewriter {
         foreach (var expression in functionCalls) {
           if (expression is FunctionCallExpr funcExpr) {
             var func = funcExpr.Function;
-            var revealStmt0 = BuildRevealStmt(func, expr.Witness.Tok);
+            var revealStmt0 = BuildRevealStmt(func, expr.Witness.Tok, moduleDefinition);
             
             if (revealStmt0 is not null) {
               var newExpr = new StmtExpr(expr.Witness.Tok, revealStmt0, expr.Witness) {
@@ -75,7 +75,7 @@ public class AllOpaqueRevealStmtInserter : IRewriter {
               var newFunc = enumerator.Current;
       
               var origExpr = expr.Witness;
-              var revealStmt = BuildRevealStmt(newFunc, expr.Witness.Tok);
+              var revealStmt = BuildRevealStmt(newFunc, expr.Witness.Tok, moduleDefinition);
 
               if (revealStmt is not null) {
                 var newExpr = new StmtExpr(expr.Witness.Tok, revealStmt, origExpr) {
@@ -124,7 +124,7 @@ public class AllOpaqueRevealStmtInserter : IRewriter {
     while (enumerator.MoveNext())
     {
       var func = enumerator.Current;
-      var revealStmt = BuildRevealStmt(func, m.Tok);
+      var revealStmt = BuildRevealStmt(func, m.Tok, m.EnclosingClass.EnclosingModuleDefinition);
 
       if (revealStmt is not null) {
         addedReveals.Add(revealStmt);
@@ -160,7 +160,7 @@ public class AllOpaqueRevealStmtInserter : IRewriter {
       }
       
       var origExpr = f.Body;
-      var revealStmt = BuildRevealStmt(func, f.Tok);
+      var revealStmt = BuildRevealStmt(func, f.Tok, f.EnclosingClass.EnclosingModuleDefinition);
 
       if (revealStmt is not null) {
         addedReveals.Add(revealStmt);
@@ -215,20 +215,6 @@ public class AllOpaqueRevealStmtInserter : IRewriter {
       }
     );
 
-    // foreach (var expression in subexpressions) {
-    //   if (expression.Type is Type { AsSubsetType: not null} subsetType) {
-    //     foreach (var subexpression in subsetType.AsSubsetType.Constraint.SubExpressions) {
-    //       if (subexpression is FunctionCallExpr funcExpr) {
-    //         var func = funcExpr.Function;
-    //         var newVertex = func.EnclosingClass.EnclosingModuleDefinition.CallGraph.FindVertex(func);
-    //         if (newVertex is not null) {
-    //           queue.Enqueue(new GraphTraversalVertex(newVertex, false));
-    //         }
-    //       }
-    //     }
-    //   }
-    // }
-
     if (interModuleVertex is not null) {
       foreach (var callable in interModuleVertex.Successors) {
         queue.Enqueue(new GraphTraversalVertex(callable, false));
@@ -267,7 +253,7 @@ public class AllOpaqueRevealStmtInserter : IRewriter {
 
         var callable = origNewVertex.N;
         
-        if (callable is Function { IsOpaque: false } func && func is not ExtremePredicate) {
+        if (callable is Function { IsOpaque: false } func && func.DoesAllOpaqueMakeOpaque(Options)) {
           yield return func;
         }
       }
@@ -287,29 +273,63 @@ public class AllOpaqueRevealStmtInserter : IRewriter {
     return subexpressionTypeList.Concat(subSubexpressionListConcat);
   }
 
-  private static RevealStmt BuildRevealStmt(Function callable, IToken tok) {
+  private static RevealStmt BuildRevealStmt(Function callable, IToken tok, ModuleDefinition currentModule) {
 
     Expression resolveExpr;
-
-    var callableFullName = callable.FullDafnyName;
-
-    var callableSeparatedName = callableFullName.Split(".");
     
-    var callableSeparatedNameSegment =
-      callableSeparatedName.Select(name => new NameSegment(tok, name, new List<Type>())).ToList();
+    var traversingModule = callable.EnclosingClass.EnclosingModuleDefinition;
+    var namesList = new List<NameSegment> { new NameSegment(tok, callable.Name, new List<Type>()) };
 
-    if (callableSeparatedNameSegment.Count() == 1) {
-      resolveExpr = callableSeparatedNameSegment[0];
-    } else  {
-      if ((callableSeparatedNameSegment.Count() == 0)) {
-        Contract.Assert(false);
+    if (callable.EnclosingClass.Name != "_default") {
+      List<Type> args = new List<Type>();
+      for (int i = 0; i < callable.EnclosingClass.TypeArgs.Count(); i++) {
+        args.Add(new IntType());
       }
       
-      var seed = new ExprDotName(tok, callableSeparatedNameSegment[0], callableSeparatedName[1], new List<Type>());
-      resolveExpr = callableSeparatedName.Skip(2)
-        .Aggregate(seed, (acc, name) => new ExprDotName(tok, acc, name, new List<Type>()));
+      namesList.Add(new NameSegment(tok, callable.EnclosingClass.Name, args));
     }
     
+    while (traversingModule is not null && traversingModule.Name != "_module" && traversingModule.Name != currentModule.Name) {
+      var rootReached = false;
+      foreach (var name in traversingModule.Name.Split(".").Reverse()) {
+        // Have to do this double nested traversal because for the following example:
+        //
+            // module M1 {
+            //   function p() : bool { true }
+            // }
+            //
+            // abstract module M2 {
+            //   import M: M1
+            //
+            //   function g(): bool {
+            //   M.p()
+            //   }
+            // }
+        //
+        // p.EnclosingClass.EnclosingModule is actually `M2.M.Abs` instead of something like `M`.
+
+        if (name != currentModule.Name) {
+          if (name != "Abs") {
+            namesList.Add(new NameSegment(tok, name, new List<Type>()));
+          }
+        } else {
+          rootReached = true;
+          break;
+        }
+      }
+
+      if (rootReached) {
+        break;
+      }
+
+      traversingModule = traversingModule.EnclosingModule;
+    }
+
+    namesList.Reverse();
+    Expression nameSeed = namesList[0];
+    resolveExpr = namesList.Skip(1)
+      .Aggregate(nameSeed, (acc, name) => new ExprDotName(tok, acc, name.Name, name.OptTypeArguments));
+
     List<Expression> expressionList = new List<Expression> {
       new ApplySuffix(tok, null,
         resolveExpr,
@@ -345,167 +365,3 @@ public class AllOpaqueRevealStmtInserter : IRewriter {
     return revealStmt;
   }
 }
-
-
-// ----------------
-
-
-  // var vertex = currentClass.EnclosingModuleDefinition.CallGraph.FindVertex(m);
-    // var interModuleVertex = currentClass.EnclosingModuleDefinition.InterModuleCallGraph.FindVertex(m);
-    //
-    // if (vertex is null) {
-    //   return;
-    // }  //vertex can be null if m is a Test method.
-    //
-    // var visited = new HashSet<GraphTraversalVertex>();
-    // var queue = new Queue<GraphTraversalVertex>();
-    //
-    // foreach (var callable in vertex.Successors) {
-    //   queue.Enqueue(new GraphTraversalVertex(callable, true));
-    // }
-    //
-    // if (interModuleVertex is not null) {
-    //   foreach (var callable in interModuleVertex.Successors) {
-    //     queue.Enqueue(new GraphTraversalVertex(callable, false));
-    //   }
-    // }
-    //
-    // while (queue.Any()) {
-    //   var newVertex = queue.Dequeue();
-    //   if (!visited.Contains(newVertex)) {
-    //     Graph<ICallable>.Vertex origNewVertex;
-    //     Graph<ICallable>.Vertex newInterModuleVertex;
-    //
-    //     if (newVertex.local) {
-    //       origNewVertex = newVertex.vertex;
-    //       newInterModuleVertex = origNewVertex.N.EnclosingModule.InterModuleCallGraph.FindVertex(origNewVertex.N);
-    //     } else {
-    //       origNewVertex = newVertex.vertex.N.EnclosingModule.CallGraph.FindVertex(newVertex.vertex.N);
-    //       
-    //       if (origNewVertex is null) {
-    //         continue;
-    //       }
-    //       newInterModuleVertex = origNewVertex.N.EnclosingModule.InterModuleCallGraph.FindVertex(origNewVertex.N);
-    //     }
-    //     
-    //     foreach (var vertex0 in origNewVertex.Successors) {
-    //       queue.Enqueue(new GraphTraversalVertex(vertex0, true));
-    //     }
-    //
-    //     if (newInterModuleVertex is not null) {
-    //       foreach (var vertex0 in newInterModuleVertex.Successors) {
-    //         queue.Enqueue(new GraphTraversalVertex(vertex0, false));
-    //       }
-    //     }
-    //
-    //     var callable = origNewVertex.N;
-    //     
-    //     if (callable is Function { IsOpaque: false } func) {
-    //       var revealStmt = BuildRevealStmt(func, currentClass, m.Tok);
-    //
-    //       if (revealStmt is not null) {
-    //         m.Body.Body.Insert(0, revealStmt);
-    //       }
-    //     }
-    //
-    //     visited.Add(newVertex);
-    //   }
-    // }
-
-    // foreach (var callable in vertex.Successors.Select(iCallable => iCallable.N))
-    // {
-    //   if (callable is Function { IsOpaque: false } func) {
-    //     var revealStmt = BuildRevealStmt(func, currentClass, m.Tok);
-    //
-    //     if (revealStmt is not null) {
-    //       m.Body.Body.Insert(0, revealStmt);
-    //     }
-    //   }
-    // }
-    
-    
-    
-    //----
-    
-        
-    // var vertex = currentClass.EnclosingModuleDefinition.CallGraph.FindVertex(f);
-    // var interModuleVertex = currentClass.EnclosingModuleDefinition.InterModuleCallGraph.FindVertex(f);
-    //
-    //
-    // if (vertex is null) {
-    //   return;
-    // }  //vertex can be null if m is a Test method.
-    //
-    // var visited = new HashSet<GraphTraversalVertex>();
-    // var queue = new Queue<GraphTraversalVertex>();
-    //
-    // foreach (var callable in vertex.Successors) {
-    //   queue.Enqueue(new GraphTraversalVertex(callable, true));
-    // }
-    //
-    // if (interModuleVertex is not null) {
-    //   foreach (var callable in interModuleVertex.Successors) {
-    //     queue.Enqueue(new GraphTraversalVertex(callable, false));
-    //   }
-    // }
-    //
-    // while (queue.Any()) {
-    //   var newVertex = queue.Dequeue();
-    //   if (!visited.Contains(newVertex)) {
-    //     Graph<ICallable>.Vertex origNewVertex;
-    //     Graph<ICallable>.Vertex newInterModuleVertex;
-    //     
-    //     if (newVertex.local) {
-    //       origNewVertex = newVertex.vertex;
-    //       newInterModuleVertex = origNewVertex.N.EnclosingModule.InterModuleCallGraph.FindVertex(origNewVertex.N);
-    //     } else {
-    //       origNewVertex = newVertex.vertex.N.EnclosingModule.CallGraph.FindVertex(newVertex.vertex.N);
-    //
-    //       if (origNewVertex is null) {
-    //         continue;
-    //       }
-    //       newInterModuleVertex = origNewVertex.N.EnclosingModule.InterModuleCallGraph.FindVertex(origNewVertex.N);
-    //     }
-    //     
-    //     foreach (var vertex0 in origNewVertex.Successors) {
-    //       queue.Enqueue(new GraphTraversalVertex(vertex0, true));
-    //     }
-    //     
-    //     if (newInterModuleVertex is not null) {
-    //       foreach (var vertex0 in newInterModuleVertex.Successors) {
-    //         queue.Enqueue(new GraphTraversalVertex(vertex0, false));
-    //       }
-    //     }
-    //
-    //     var callable = origNewVertex.N;
-    //     
-    //     if (callable is Function { IsOpaque: false } func) {
-    //       var origExpr = f.Body;
-    //       var revealStmt = BuildRevealStmt(func, currentClass, f.Tok);
-    //
-    //       if (revealStmt is not null) {
-    //         var newExpr = new StmtExpr(f.Tok, BuildRevealStmt(func, currentClass, f.Tok), origExpr) {
-    //           Type = origExpr.Type
-    //         };
-    //         f.Body = newExpr;
-    //       }
-    //
-    //     }
-    //
-    //     visited.Add(newVertex);
-    //   }
-    // }
-
-    // foreach (var callable in vertex.Successors.Select(iCallable => iCallable.N)) {
-    //   
-    //   if (callable is Function { IsOpaque: false } func) {
-    //     var origExpr = f.Body;
-    //     var revealStmt = BuildRevealStmt(func, currentClass, f.Tok);
-    //
-    //     if (revealStmt is not null) {
-    //       var newExpr = new StmtExpr(f.Tok, BuildRevealStmt(func, currentClass, f.Tok), origExpr);
-    //       newExpr.Type = origExpr.Type;
-    //       f.Body = newExpr;
-    //     }
-    //   }
-    // }

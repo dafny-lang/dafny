@@ -34,10 +34,12 @@ public class Function : MemberDecl, TypeParameter.ParentType, ICallable, ICanFor
   public override bool IsOpaque { get; }
 
   public bool DoesAllOpaqueMakeOpaque(DafnyOptions options) {
-    return options.Get(CommonOptionBag.AllOpaque) 
+    return options.Get(CommonOptionBag.AllOpaque)
            && this is not ExtremePredicate
            && this is not PrefixPredicate
            && Name != "reads" && Name != "requires";
+    // && Name != "Valid";
+    // && (EnclosingClass is null || !(Name == "Valid" && Attributes.Contains(EnclosingClass.Attributes, "autocontracts")));
   }
   
   public override bool CanBeRevealed() {

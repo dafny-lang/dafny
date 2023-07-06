@@ -316,7 +316,49 @@ namespace Microsoft.Dafny {
         if (attr.Args != null) {
           foreach (var arg in attr.Args) {
             Contract.Assert(arg != null);
-            ResolveExpression(arg, resolutionContext);
+            if (!(Attributes.Contains(attributeHost.Attributes, "opaque_reveal") && attr.Name == "fuel" && arg is NameSegment)) {
+              ResolveExpression(arg, resolutionContext);
+            } else {
+              // Manually resolving NameSegments that are present in fuel attributes of reveal lemmas.
+              // This is because reveal lemmas are static and we want to allow a refence to non-static original procedures
+              // in static context in this setting.
+              //
+              // Most of the following code is copied from AnnotateRevealFunction() in OpaqueMemberRewriter.cs.
+
+              MemberDecl member = null;
+              var ret = GetClassMembers(currentClass).TryGetValue(((NameSegment)arg).Name, out member);
+              Contract.Assert(ret);
+
+              var f = (Function) member;
+              Expression receiver;
+              if (f.IsStatic) {
+                receiver = new StaticReceiverExpr(f.tok, (TopLevelDeclWithMembers)f.EnclosingClass, true);
+              } else {
+                receiver = new ImplicitThisExpr(f.tok);
+                receiver.Type = GetThisType(f.tok, (TopLevelDeclWithMembers)member.EnclosingClass);
+              }
+
+              var typeApplication = new List<Type>();
+              var typeApplication_JustForMember = new List<Type>();
+              for (int i = 0; i < f.TypeArgs.Count; i++) {
+                // doesn't matter what type, just so we have it to make the resolver happy when resolving function member of
+                // the fuel attribute. This might not be needed after fixing codeplex issue #172.
+                typeApplication.Add(new IntType());
+                typeApplication_JustForMember.Add(new IntType());
+              }
+
+              var rr = new MemberSelectExpr(f.tok, receiver, f.Name);
+              rr.Member = f;
+              rr.TypeApplication_AtEnclosingClass = typeApplication;
+              rr.TypeApplication_JustMember = typeApplication_JustForMember;
+              List<Type> args = new List<Type>();
+              for (int i = 0; i < f.Formals.Count; i++) {
+                args.Add(new IntType());
+              }
+              rr.Type = new ArrowType(f.tok, args, new IntType());
+              ((NameSegment)arg).ResolvedExpression = rr;
+              arg.Type = rr.Type;
+            }
           }
         }
       }
