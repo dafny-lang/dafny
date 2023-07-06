@@ -1,8 +1,8 @@
-GhostAllocations-Resolution.dfy(408,4): Warning: the modify statement with a block statement is deprecated
-GhostAllocations-Resolution.dfy(432,6): Warning: the modify statement with a block statement is deprecated
-GhostAllocations-Resolution.dfy(456,4): Warning: the modify statement with a block statement is deprecated
-GhostAllocations-Resolution.dfy(501,6): Warning: the modify statement with a block statement is deprecated
-GhostAllocations-Resolution.dfy(537,10): Warning: the modify statement with a block statement is deprecated
+GhostAllocations-Resolution.dfy(407,13): Warning: the modify statement with a block statement is deprecated
+GhostAllocations-Resolution.dfy(431,15): Warning: the modify statement with a block statement is deprecated
+GhostAllocations-Resolution.dfy(455,13): Warning: the modify statement with a block statement is deprecated
+GhostAllocations-Resolution.dfy(500,15): Warning: the modify statement with a block statement is deprecated
+GhostAllocations-Resolution.dfy(536,19): Warning: the modify statement with a block statement is deprecated
 GhostAllocations-Resolution.dfy(17,11): Error: ghost variables such as g are allowed only in specification contexts. g was inferred to be ghost based on its declaration or initialization.
 GhostAllocations-Resolution.dfy(39,11): Error: ghost variables such as g are allowed only in specification contexts. g was inferred to be ghost based on its declaration or initialization.
 GhostAllocations-Resolution.dfy(47,22): Error: ghost variables such as n' are allowed only in specification contexts. n' was inferred to be ghost based on its declaration or initialization.
