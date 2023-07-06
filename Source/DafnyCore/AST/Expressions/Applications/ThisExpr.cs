@@ -22,7 +22,7 @@ public class ThisExpr : Expression, ICloneable<ThisExpr> {
     Contract.Requires(m.tok != null);
     Contract.Requires(m.EnclosingClass != null);
     Contract.Requires(!m.IsStatic);
-    Type = Resolver.GetReceiverType(m.tok, m);
+    Type = ModuleResolver.GetReceiverType(m.tok, m);
   }
 
   /// <summary>
@@ -34,7 +34,7 @@ public class ThisExpr : Expression, ICloneable<ThisExpr> {
     : base(cl.tok) {
     Contract.Requires(cl != null);
     Contract.Requires(cl.tok != null);
-    Type = Resolver.GetThisType(cl.tok, cl);
+    Type = ModuleResolver.GetThisType(cl.tok, cl);
   }
 
   public ThisExpr Clone(Cloner cloner) {

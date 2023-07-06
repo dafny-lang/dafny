@@ -6,7 +6,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
-using DafnyServer.CounterexampleGeneration;
 using Microsoft.Boogie;
 
 namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
@@ -90,14 +89,17 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
     }
 
     public string CanonicalName() {
-      return state.Model.CanonicalName(Element);
+      return state.Model.CanonicalName(Element, Type);
     }
 
     public virtual string Value {
       get {
-        var result = state.Model.CanonicalName(Element);
+        var result = state.Model.CanonicalName(Element, Type);
         if (children.Count == 0) {
-          return result == "" ? "()" : result;
+          if (result != "") {
+            return result;
+          }
+          return Type is SetType ? "{}" : "()";
         }
 
         List<(string ChildName, string ChildValue)> childList = new();
@@ -121,8 +123,7 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
         return result + "(" + childValues + ")";
       }
     }
-
-    public bool IsPrimitive => DafnyModel.IsPrimitive(Element, state);
+    public bool IsPrimitive => Type is BasicType || state.Model.ElementIsNull(Element);
 
     public string ShortName {
       get {
@@ -217,7 +218,18 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
             out var value)) {
         return value;
       }
-      return -1;
+      // Since the length is not explicitly specified, the index of the last known element should suffice
+      int lastId = 0;
+      foreach (var id in seqElements.Keys) {
+        if (int.TryParse(id, out var idAsInt)) {
+          if (lastId < idAsInt + 1) {
+            lastId = idAsInt + 1;
+          }
+        } else {
+          return -1; // Failed to parse the index, so just say that the length is unknown
+        }
+      }
+      return lastId;
     }
 
     public DafnyModelVariable this[int index] => seqElements.GetValueOrDefault(index.ToString(), null);
@@ -249,7 +261,7 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
     public override string Value {
       get {
         if (Mappings.Count == 0) {
-          return "()";
+          return "map[]";
         }
         // maps a key-value pair to how many times it appears in the map
         // a key value pair can appear many times in a map due to "?:int" etc.
@@ -267,13 +279,13 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
             mapStrings.GetValueOrDefault(mapString, 0) + 1;
         }
 
-        return "(" + string.Join(", ", mapStrings.Keys.ToList()
+        return "map[" + string.Join(", ", mapStrings.Keys.ToList()
                  .ConvertAll(keyValuePair =>
                    mapStrings[keyValuePair] == 1
                      ? keyValuePair
                      : keyValuePair + " [+" + (mapStrings[keyValuePair] - 1) +
                        "]")) +
-               ")";
+               "]";
       }
     }
 

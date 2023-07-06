@@ -18,7 +18,16 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
       return Task.CompletedTask;
     }
 
-    protected Task ApplyChangeAndWaitCompletionAsync(TextDocumentItem documentItem, Range range, string newText) {
+    protected Task ApplyChangeAndWaitCompletionAsync(TextDocumentItem documentItem, Range range,
+      string newText) {
+      var versionedTextDocumentIdentifier = new VersionedTextDocumentIdentifier() {
+        Version = documentItem.Version!.Value,
+        Uri = documentItem.Uri
+      };
+      return ApplyChangeAndWaitCompletionAsync(versionedTextDocumentIdentifier, range, newText);
+    }
+
+    protected Task ApplyChangeAndWaitCompletionAsync(VersionedTextDocumentIdentifier documentItem, Range range, string newText) {
       return ApplyChangesAndWaitCompletionAsync(
         documentItem,
         new TextDocumentContentChangeEvent {
@@ -28,7 +37,15 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
       );
     }
 
-    protected Task ApplyChangesAndWaitCompletionAsync(TextDocumentItem documentItem, params TextDocumentContentChangeEvent[] changes) {
+    protected Task ApplyChangesAndWaitCompletionAsync(TextDocumentItem documentItem,
+      params TextDocumentContentChangeEvent[] changes) {
+      return ApplyChangesAndWaitCompletionAsync(new VersionedTextDocumentIdentifier() {
+        Version = documentItem.Version!.Value,
+        Uri = documentItem.Uri
+      }, changes);
+    }
+
+    protected Task ApplyChangesAndWaitCompletionAsync(VersionedTextDocumentIdentifier documentItem, params TextDocumentContentChangeEvent[] changes) {
       Client.DidChangeTextDocument(new DidChangeTextDocumentParams {
         TextDocument = new OptionalVersionedTextDocumentIdentifier {
           Uri = documentItem.Uri,

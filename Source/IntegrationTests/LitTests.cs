@@ -220,7 +220,7 @@ namespace IntegrationTests {
               return false;
             }
 
-            if (arguments.Any(arg => arg is "/compile:3" or "/compile:4" or "run")) {
+            if (arguments.Any(arg => arg is "/compile:3" or "/compile:4" or "run" or "translate")) {
               return true;
             }
           }
