@@ -87,7 +87,7 @@ namespace Microsoft.Dafny.Compilers {
       if (currentBuilder is CallBuilder callBuilder) {
         currentBuilder = callBuilder.Finish();
       } else {
-        throw new InvalidOperationException();
+        throw new InvalidOperationException("Unxpected current builder when ending statement: " + currentBuilder);
       }
     }
 
@@ -315,7 +315,7 @@ namespace Microsoft.Dafny.Compilers {
           DAST.Literal.create_StringLiteral(Sequence<Rune>.UnicodeFromString("TODO (type initialization value)"))
         );
 
-        return null; // used by DeclareLocal(Out)Var
+        return ""; // used by DeclareLocal(Out)Var
       }
     }
 
@@ -345,15 +345,32 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void DeclareLocalVar(string name, Type type, IToken tok, bool leaveRoomForRhs, string rhs,
         ConcreteSyntaxTree wr) {
-      if (currentBuilder is StatementContainer statementContainer) {
+      var statementBuilder = currentBuilder;
+      var returnToBuilder = currentBuilder;
+      if (statementBuilder is CallBuilder callBuilder) {
+        statementBuilder = callBuilder.parent;
+        returnToBuilder = callBuilder;
+      }
+
+      if (statementBuilder is StatementContainer statementContainer) {
         var typ = GenType(type);
 
-        if (bufferedInitializationValue == null) {
+        if (rhs == null) {
           // we expect an initializer to come *after* this declaration
-          var variable = statementContainer.DeclareAndAssign(typ);
+          var variable = statementContainer.DeclareAndAssign(typ, returnToBuilder);
           currentBuilder = variable;
           variable.SetName(name);
+
+          if (!leaveRoomForRhs) {
+            variable.AddExpr((DAST.Expression)DAST.Expression.create_Literal(
+              DAST.Literal.create_StringLiteral(Sequence<Rune>.UnicodeFromString("TODO (local var without initial value)"))
+            ));
+          }
         } else {
+          if (bufferedInitializationValue == null) {
+            throw new InvalidOperationException("Cannot declare local var without an initial value");
+          }
+
           var rhsValue = bufferedInitializationValue;
           bufferedInitializationValue = null;
 
@@ -366,7 +383,7 @@ namespace Microsoft.Dafny.Compilers {
           );
         }
       } else {
-        throw new InvalidOperationException();
+        throw new InvalidOperationException("Cannot declare local var outside of a statement container: " + currentBuilder);
       }
     }
 
@@ -387,10 +404,18 @@ namespace Microsoft.Dafny.Compilers {
         builder.Print((DAST.Expression)DAST.Expression.create_Literal(
           DAST.Literal.create_StringLiteral(Sequence<Rune>.UnicodeFromString("TODO (call stmt)"))
         ));
+
+        currentBuilder = builder.Call();
+
+        base.TrCallStmt(s, receiverReplacement, wr);
       } else if (currentBuilder is ExprContainer exprBuilder) {
         exprBuilder.AddExpr((DAST.Expression)DAST.Expression.create_Literal(
           DAST.Literal.create_StringLiteral(Sequence<Rune>.UnicodeFromString("TODO (call expr)"))
         ));
+
+        // currentBuilder = exprBuilder.Call();
+
+        // base.TrCallStmt(s, receiverReplacement, wr);
       } else {
         throw new InvalidOperationException("Cannot call statement in this context: " + currentBuilder);
       }
@@ -436,9 +461,9 @@ namespace Microsoft.Dafny.Compilers {
       if (currentBuilder is AssignBuilder) {
         // do nothing (we are assigning to variable that is being declared)
       } else if (currentBuilder is StatementContainer builder) {
-        currentBuilder = builder.Assign();
+        currentBuilder = builder.Assign(currentBuilder);
       } else {
-        throw new InvalidOperationException();
+        throw new InvalidOperationException("Cannot assign in this context: " + currentBuilder);
       }
 
       return base.EmitAssignment(wLhs, lhsType, rhsType, wr, tok);
@@ -550,10 +575,10 @@ namespace Microsoft.Dafny.Compilers {
       throw new NotImplementedException();
     }
 
-    protected override void EmitIdentifierExpr(IdentifierExpr e, bool inLetExprBody, ConcreteSyntaxTree wr) {
+    protected override void EmitIdentifier(string ident, ConcreteSyntaxTree wr) {
       if (currentBuilder is ExprContainer builder) {
         builder.AddExpr((DAST.Expression)DAST.Expression.create_Ident(
-          Sequence<Rune>.UnicodeFromString(IdName(e.Var))
+          Sequence<Rune>.UnicodeFromString(ident)
         ));
       } else {
         throw new InvalidOperationException();
@@ -833,7 +858,15 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void EmitITE(Expression guard, Expression thn, Expression els, Type resultType, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
-      throw new NotImplementedException();
+      if (currentBuilder is ExprContainer builder) {
+        builder.AddExpr((DAST.Expression)DAST.Expression.create_Literal(
+          DAST.Literal.create_StringLiteral(
+            Sequence<Rune>.UnicodeFromString("TODO (ite)")
+          )
+        ));
+      } else {
+        throw new InvalidOperationException();
+      }
     }
 
     protected override void EmitIsZero(string varName, ConcreteSyntaxTree wr) {
@@ -841,7 +874,15 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void EmitConversionExpr(ConversionExpr e, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
-      throw new NotImplementedException();
+      if (currentBuilder is ExprContainer builder) {
+        builder.AddExpr((DAST.Expression)DAST.Expression.create_Literal(
+          DAST.Literal.create_StringLiteral(
+            Sequence<Rune>.UnicodeFromString("TODO (conversion)")
+          )
+        ));
+      } else {
+        throw new InvalidOperationException();
+      }
     }
 
     protected override void EmitTypeTest(string localName, Type fromType, Type toType, IToken tok, ConcreteSyntaxTree wr) {

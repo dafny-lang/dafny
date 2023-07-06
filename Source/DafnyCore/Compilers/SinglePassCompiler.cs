@@ -4592,7 +4592,7 @@ namespace Microsoft.Dafny.Compilers {
               // The type information here takes care both of implicit upcasts and
               // implicit downcasts from type parameters (see above).
               ConcreteSyntaxTree wRhs = EmitAssignment(lvalue, s.Lhs[j].Type, outTypes[l], wr, s.Tok);
-              wRhs.Write(outTmps[l]);
+              EmitIdentifier(outTmps[l], wRhs);
               // Coercion from the out type to the LHS type is the responsibility
               // of the EmitAssignment above
             }
@@ -4780,16 +4780,20 @@ namespace Microsoft.Dafny.Compilers {
       return result;
     }
 
-    protected virtual void EmitIdentifierExpr(IdentifierExpr e, bool inLetExprBody, ConcreteSyntaxTree wr) {
+    protected virtual void EmitIdentifier(string ident, ConcreteSyntaxTree wr) {
+      wr.Write(ident);
+    }
+
+    protected void EmitIdentifierExpr(IdentifierExpr e, bool inLetExprBody, ConcreteSyntaxTree wr) {
       if (inLetExprBody && !(e.Var is BoundVar)) {
         // copy variable to a temp since
         //   - C# doesn't allow out param in letExpr body, and
         //   - Java doesn't allow any non-final variable in letExpr body.
         var name = ProtectedFreshId("_pat_let_tv");
-        wr.Write(name);
+        EmitIdentifier(name, wr);
         DeclareLocalVar(name, null, null, false, IdName(e.Var), copyInstrWriters.Peek(), e.Type);
       } else {
-        wr.Write(IdName(e.Var));
+        EmitIdentifier(IdName(e.Var), wr);
       }
     }
 

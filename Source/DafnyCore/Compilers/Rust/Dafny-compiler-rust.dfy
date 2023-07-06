@@ -70,7 +70,7 @@ module {:extern "DCOMP"} DCOMP {
     static method GenMethod(m: Method) returns (s: string) {
       // var params := GenParams(m.params);
       var body := GenStmts(m.body);
-      s := "pub fn " + m.name + "(" + "" + ") {" + body + "}\n";
+      s := "pub fn " + m.name + "(" + "" + ") {\n" + body + "\n}\n";
     }
 
     static method GenStmts(body: seq<Statement>) returns (s: string) {
