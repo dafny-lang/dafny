@@ -21,8 +21,7 @@ public class SimpleLinearVerificationGutterStatusTester : LinearVerificationGutt
  | :}
  | :
 [ ]:method {:rlimit 1} Test(s: seq<nat>)
-[=]:  requires |s| >= 1 && s[0] >= 0 {
-[=]:  assert fib(10) == 1; assert {:split_here} s[0] >= 0;
+[=]:  requires |s| >= 1 && s[0] >= 0 { assert fib(10) == 1; assert {:split_here} s[0] >= 0;
 [ ]:}", intermediates: false);
   }
 
