@@ -1,42 +1,23 @@
-ModuleExport.dfy(5,18): Error: Cannot export type member 'f' without providing its enclosing top-level module declaration '_implicitClassForf'
-ModuleExport.dfy(5,29): Error: Cannot export type member 'h' without providing its enclosing top-level module declaration '_implicitClassForh'
-ModuleExport.dfy(6,20): Error: Cannot export type member 'f' without providing its enclosing top-level module declaration '_implicitClassForf'
-ModuleExport.dfy(6,30): Error: Cannot export type member 'g' without providing its enclosing top-level module declaration '_implicitClassForg'
-ModuleExport.dfy(5,18): Error: Cannot export type member 'f' without providing its enclosing top-level module declaration '_implicitClassForf'
-ModuleExport.dfy(5,29): Error: Cannot export type member 'h' without providing its enclosing top-level module declaration '_implicitClassForh'
-ModuleExport.dfy(6,20): Error: Cannot export type member 'f' without providing its enclosing top-level module declaration '_implicitClassForf'
-ModuleExport.dfy(6,30): Error: Cannot export type member 'g' without providing its enclosing top-level module declaration '_implicitClassForg'
-ModuleExport.dfy(8,34): Error: Cannot export type member 'g' without providing its enclosing top-level module declaration '_implicitClassForg'
-ModuleExport.dfy(5,18): Error: Cannot export type member 'f' without providing its enclosing top-level module declaration '_implicitClassForf'
-ModuleExport.dfy(5,29): Error: Cannot export type member 'h' without providing its enclosing top-level module declaration '_implicitClassForh'
-ModuleExport.dfy(26,9): Error: not resolving module 'B' because there were errors in resolving its import 'X'
-ModuleExport.dfy(37,9): Error: not resolving module 'C' because there were errors in resolving its import 'X'
-ModuleExport.dfy(48,16): Error: not resolving module 'D' because there were errors in resolving its import 'A'
-ModuleExport.dfy(58,16): Error: not resolving module 'E' because there were errors in resolving its import 'A'
+ModuleExport.dfy(30,11): Error: unresolved identifier: g
+ModuleExport.dfy(31,11): Error: unresolved identifier: k
+ModuleExport.dfy(32,4): Error: unresolved identifier: T
+ModuleExport.dfy(32,7): Error: expected method call, found expression
+ModuleExport.dfy(42,11): Error: unresolved identifier: k
+ModuleExport.dfy(52,9): Error: unresolved identifier: g
+ModuleExport.dfy(53,9): Error: unresolved identifier: k
+ModuleExport.dfy(66,2): Warning: this branch is redundant
 ModuleExport.dfy(73,19): Error: Public2 must be an export of F to be extended
 ModuleExport.dfy(74,34): Error: 'g2' must be a member of 'F' to be exported
-ModuleExport.dfy(91,24): Error: Cannot export type member 'f' without providing its enclosing top-level module declaration '_implicitClassForf'
-ModuleExport.dfy(91,35): Error: Cannot export type member 'h' without providing its enclosing top-level module declaration '_implicitClassForh'
 ModuleExport.dfy(100,9): Error: no default export set declared in module: G
 ModuleExport.dfy(125,8): Error: when allocating an object of type 'C', one of its constructor methods must be called
 ModuleExport.dfy(126,17): Error: member 'Init' has not been imported in this scope and cannot be accessed here
 ModuleExport.dfy(126,8): Error: when allocating an object of type 'C', one of its constructor methods must be called
 ModuleExport.dfy(127,12): Error: when allocating an object of imported type 'D', one of its constructor methods must be called
-ModuleExport.dfy(197,14): Error: Cannot export type member '300' without providing its enclosing top-level module declaration '_implicitClassFor300'
-ModuleExport.dfy(200,14): Error: Cannot export type member '300' without providing its enclosing top-level module declaration '_implicitClassFor300'
-ModuleExport.dfy(209,11): Error: not resolving module 'MM' because there were errors in resolving its import 'A'
 ModuleExport.dfy(224,11): Error: Type or type parameter is not declared in this scope: X (did you forget to qualify a name or declare a module import 'opened'? names in outer modules are not visible in nested modules)
-ModuleExport.dfy(227,19): Error: Cannot export type member 'pi' without providing its enclosing top-level module declaration '_implicitClassForpi'
-ModuleExport.dfy(233,19): Error: Cannot export type member 'pi' without providing its enclosing top-level module declaration '_implicitClassForpi'
-ModuleExport.dfy(238,19): Error: Cannot export type member 'pi' without providing its enclosing top-level module declaration '_implicitClassForpi'
-ModuleExport.dfy(243,19): Error: Cannot export type member 'pi' without providing its enclosing top-level module declaration '_implicitClassForpi'
 ModuleExport.dfy(252,8): Error: duplicate declaration for name X
-ModuleExport.dfy(250,9): Error: not resolving module 'ModuleName5' because there were errors in resolving its import 'X'
 ModuleExport.dfy(259,13): Error: no default export set declared in module: ModuleName4
 ModuleExport.dfy(262,25): Error: no export set 'Y' in module 'ModuleName4'
 ModuleExport.dfy(266,9): Error: duplicate name of export set: X
-ModuleExport.dfy(265,19): Error: Cannot export type member 'pi' without providing its enclosing top-level module declaration '_implicitClassForpi'
-ModuleExport.dfy(266,19): Error: Cannot export type member 'e' without providing its enclosing top-level module declaration '_implicitClassFore'
 ModuleExport.dfy(272,2): Error: module export contains a cycle: ExportCycle0 -> A -> B -> ExportCycle0
 ModuleExport.dfy(278,9): Error: module export contains a cycle: A -> B -> C -> A
-41 resolution/type errors detected in ModuleExport.dfy
+21 resolution/type errors detected in ModuleExport.dfy

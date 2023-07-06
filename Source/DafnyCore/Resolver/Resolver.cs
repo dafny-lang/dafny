@@ -12,6 +12,7 @@ using System.Numerics;
 using System.Diagnostics.Contracts;
 using JetBrains.Annotations;
 using Microsoft.Boogie;
+using Microsoft.CodeAnalysis.CSharp;
 using static Microsoft.Dafny.ResolutionErrors;
 
 namespace Microsoft.Dafny {
@@ -244,13 +245,11 @@ namespace Microsoft.Dafny {
       List<ModuleExportDecl> sortedExportDecls = exportDependencies.TopologicallySortedComponents();
       ModuleExportDecl defaultExport = null;
 
-      // sig.TopLevels.TryGetValue("_default", out var defaultClass);
-      // Contract.Assert(defaultClass is ImplicitClassDecl);
-      // defaultClass.AddVisibilityScope(m.VisibilityScope, true);
-
       foreach (var exportDecl in sortedExportDecls) {
 
-        // defaultClass.AddVisibilityScope(exportDecl.ThisScope, true);
+        foreach (var implicitClass in m.TopLevelDecls.OfType<ImplicitClassDecl>()) {
+          implicitClass.AddVisibilityScope(exportDecl.ThisScope, true);
+        }
 
         foreach (var eexports in exportDecl.ExtendDecls.Select(e => e.Exports)) {
           exportDecl.Exports.AddRange(eexports);

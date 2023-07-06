@@ -46,10 +46,10 @@ ParallelResolveErrors.dfy(174,6): Error: a forall statement is not allowed to up
 ParallelResolveErrors.dfy(176,6): Error: a forall statement is not allowed to update a variable it doesn't declare
 ParallelResolveErrors.dfy(178,6): Error: a forall statement is not allowed to update a variable it doesn't declare
 ParallelResolveErrors.dfy(190,18): Error: return statement is not allowed in this context (because it is guarded by a specification-only expression)
-(0,-1): Error: to redeclare and refine declaration '_implicitClassForW' from module 'ModifyStmtBreak0', you must use the refining (`...`) notation
-ParallelResolveErrors.dfy(246,9): Error: method signature can be omitted only in refining methods
-(0,-1): Error: to redeclare and refine declaration '_implicitClassForW' from module 'ModifyStmtBreak0', you must use the refining (`...`) notation
-ParallelResolveErrors.dfy(262,9): Error: method signature can be omitted only in refining methods
-(0,-1): Error: to redeclare and refine declaration '_implicitClassForW' from module 'ModifyStmtBreak0', you must use the refining (`...`) notation
-ParallelResolveErrors.dfy(278,9): Error: method signature can be omitted only in refining methods
+ParallelResolveErrors.dfy(251,10): Error: break statement in skeleton is not allowed to break outside the skeleton fragment
+ParallelResolveErrors.dfy(253,10): Error: break statement in skeleton is not allowed to break outside the skeleton fragment
+ParallelResolveErrors.dfy(267,10): Error: break statement in skeleton is not allowed to break outside the skeleton fragment
+ParallelResolveErrors.dfy(269,10): Error: break statement in skeleton is not allowed to break outside the skeleton fragment
+ParallelResolveErrors.dfy(283,10): Error: continue statement in skeleton is not allowed to break outside the skeleton fragment
+ParallelResolveErrors.dfy(285,10): Error: continue statement in skeleton is not allowed to break outside the skeleton fragment
 39 resolution/type errors detected in ParallelResolveErrors.dfy

@@ -48,11 +48,6 @@ EqualityTypesModuleExports.dfy(255,7): Error: == can only be applied to expressi
 EqualityTypesModuleExports.dfy(258,7): Error: == can only be applied to expressions of types that support equality (got WWW0.WT)
 EqualityTypesModuleExports.dfy(283,7): Error: type 'A' declared as supporting equality, but the RHS type (QQQ1.Syn<int>) might not
 EqualityTypesModuleExports.dfy(298,7): Error: type 'ExportedType' declared as supporting equality, but the RHS type (PrivateType<A>) might not
-EqualityTypesModuleExports.dfy(304,32): Error: Cannot export type member 'Empty' without providing its enclosing top-level module declaration '_implicitClassForEmpty'
-EqualityTypesModuleExports.dfy(312,32): Error: Cannot export type member 'Empty' without providing its enclosing top-level module declaration '_implicitClassForEmpty'
-EqualityTypesModuleExports.dfy(319,9): Error: not resolving module 'Client2' because there were errors in resolving its import 'EE'
-EqualityTypesModuleExports.dfy(327,32): Error: Cannot export type member 'Empty' without providing its enclosing top-level module declaration '_implicitClassForEmpty'
-EqualityTypesModuleExports.dfy(327,39): Error: Cannot export type member 'IsEmpty' without providing its enclosing top-level module declaration '_implicitClassForIsEmpty'
 EqualityTypesModuleExports.dfy(346,4): Error: == can only be applied to expressions of types that support equality (got List<A>)
 EqualityTypesModuleExports.dfy(366,9): Warning: note, this export set is empty (did you perhaps forget the 'provides' or 'reveals' keyword?)
 EqualityTypesModuleExports.dfy(409,7): Error: type 'Synonym' declared as being nonempty, but the RHS type (Empty) may be empty
@@ -65,4 +60,4 @@ EqualityTypesModuleExports.dfy(426,7): Error: type 'AnotherSubset' declared as b
 EqualityTypesModuleExports.dfy(429,7): Error: type 'NESynonym' declared as auto-initialization type, but the RHS type (NonEmpty) does not support auto-initialization
 EqualityTypesModuleExports.dfy(433,7): Error: type 'NoReference' declared as containing no reference types, but the RHS type (C?) may contain reference types
 EqualityTypesModuleExports.dfy(436,7): Error: type 'PipeDreamEquality' declared as supporting equality, but the RHS type (Stream) might not
-66 resolution/type errors detected in EqualityTypesModuleExports.dfy
+61 resolution/type errors detected in EqualityTypesModuleExports.dfy

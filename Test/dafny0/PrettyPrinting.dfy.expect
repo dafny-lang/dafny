@@ -189,7 +189,7 @@ module New {
     a := new [] [20, 50, 70];
   }
 }
-(0,-1): Error: to redeclare and refine declaration '_implicitClassForM' from module 'A', you must use the refining (`...`) notation
-PrettyPrinting.dfy(9,9): Error: method signature can be omitted only in refining methods
+PrettyPrinting.dfy(18,4): Error: skeleton statements are allowed only in refining methods
+PrettyPrinting.dfy(19,4): Error: skeleton statements are allowed only in refining methods
 PrettyPrinting.dfy(73,16): Error: a possibly infinite loop is allowed only if the enclosing method is declared (with 'decreases *') to be possibly non-terminating
 3 resolution/type errors detected in PrettyPrinting.dfy

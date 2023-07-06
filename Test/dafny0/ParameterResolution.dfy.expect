@@ -40,13 +40,12 @@ ParameterResolution.dfy(109,32): Error: ghost variables such as y are allowed on
 ParameterResolution.dfy(127,14): Error: wrong number of arguments (got 0, but function 'N' expects 1: (x: int))
 ParameterResolution.dfy(133,14): Error: wrong number of arguments (got 0, but function 'O' expects 1: (x: int))
 ParameterResolution.dfy(147,12): Error: wrong number of arguments (got 0, but function 'O' expects 1: (x: int))
-(0,-1): Error: to redeclare and refine declaration '_implicitClassForM' from module 'RefinementA', you must use the refining (`...`) notation
-(0,-1): Error: to redeclare and refine declaration '_implicitClassForN' from module 'RefinementA', you must use the refining (`...`) notation
-(0,-1): Error: to redeclare and refine declaration '_implicitClassForO' from module 'RefinementA', you must use the refining (`...`) notation
-(0,-1): Error: to redeclare and refine declaration '_implicitClassForFF' from module 'RefinementA', you must use the refining (`...`) notation
-(0,-1): Error: to redeclare and refine declaration '_implicitClassForMM' from module 'RefinementA', you must use the refining (`...`) notation
-ParameterResolution.dfy(168,12): Error: wrong number of arguments (got 0, but function 'N' expects 1: (x: int))
-ParameterResolution.dfy[RefinementB](146,12): Error: wrong number of arguments (got 0, but function 'N' expects 1: (x: int))
+ParameterResolution.dfy(161,13): Error: a refining formal parameter ('x') in a refinement module is not allowed to give a default-value expression
+ParameterResolution.dfy(163,13): Error: a refining formal parameter ('x') in a refinement module is not allowed to give a default-value expression
+ParameterResolution.dfy(172,14): Error: a refining formal parameter ('x') in a refinement module is not allowed to give a default-value expression
+ParameterResolution.dfy(174,12): Error: a refining formal parameter ('x') in a refinement module is not allowed to give a default-value expression
+ParameterResolution.dfy(169,12): Error: wrong number of arguments (got 0, but function 'O' expects 1: (x: int))
+ParameterResolution.dfy[RefinementB](147,12): Error: wrong number of arguments (got 0, but function 'O' expects 1: (x: int))
 ParameterResolution.dfy(193,21): Error: type parameter 'X' (inferred to be '?') in the function call to 'F' could not be determined
 ParameterResolution.dfy(194,13): Error: type parameter 'X' (inferred to be '?') in the function call to 'F' could not be determined
 ParameterResolution.dfy(196,29): Error: type parameter 'X' (inferred to be '?') in the function call to 'F' could not be determined
@@ -101,4 +100,4 @@ ParameterResolution.dfy(368,79): Error: this parameter is effectively nameonly (
 ParameterResolution.dfy(369,73): Error: this parameter is effectively nameonly (because of the earlier nameonly parameter 'baz'); declare it as nameonly or give it a default-value expression
 ParameterResolution.dfy(370,71): Error: this parameter is effectively nameonly (because of the earlier nameonly parameter 'baz'); declare it as nameonly or give it a default-value expression
 ParameterResolution.dfy(377,9): Error: wrong number of arguments (got 0, but datatype constructor 'Foo' expects at least 1: (bar: string, baz: string, qux: int))
-103 resolution/type errors detected in ParameterResolution.dfy
+102 resolution/type errors detected in ParameterResolution.dfy
