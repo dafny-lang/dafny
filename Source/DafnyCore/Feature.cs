@@ -169,12 +169,15 @@ public enum Feature {
   [FeatureDescription("Unicode chars", "#sec-characters")]
   UnicodeChars,
 
-  [FeatureDescription("Converting values to strings", "#sec-print-statement")]
+  [FeatureDescription("Converting values to strings", "sec-print-statement")]
   ConvertingValuesToStrings,
 
   // Only used internally for the DooBackend to skip legacy CLI tests
-  [FeatureDescription("Legacy CLI without commands", "##sec-dafny-commands")]
-  LegacyCLI
+  [FeatureDescription("Legacy CLI without commands", "sec-dafny-commands")]
+  LegacyCLI,
+
+  [FeatureDescription("Separate compilation", "sec-compilation")]
+  SeparateCompilation
 }
 
 public class UnsupportedFeatureException : Exception {

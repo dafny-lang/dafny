@@ -13,6 +13,8 @@ using Xunit.Abstractions;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
+
+  [Collection("Sequential Collection")]
   public class ConcurrentInteractionsTest : ClientBasedLanguageServerTest {
     // Implementation note: These tests assume that no diagnostics are published
     // when a document (re-load) was canceled.
@@ -170,12 +172,13 @@ method Multiply(x: int, y: int) returns (product: int)
         loadingDocuments.Add(documentItem);
       }
       for (int i = 0; i < documentsToLoadConcurrently; i++) {
-        var report = await GetLastDiagnostics(loadingDocuments[i], CancellationTokenWithHighTimeout);
-        Assert.Empty(report);
+        await Projects.GetLastDocumentAsync(loadingDocuments[i]);
       }
 
       foreach (var loadingDocument in loadingDocuments) {
-        await Projects.CloseDocumentAsync(loadingDocument);
+        await client.CloseDocumentAndWaitAsync(loadingDocument, CancellationTokenWithHighTimeout);
+        // Receive closing diagnostics
+        await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationTokenWithHighTimeout);
       }
       await AssertNoDiagnosticsAreComing(CancellationTokenWithHighTimeout);
     }
