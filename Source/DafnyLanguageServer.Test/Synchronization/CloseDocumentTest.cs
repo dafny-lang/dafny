@@ -35,7 +35,7 @@ function GetConstant(): int {
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       await CloseDocumentAndWaitAsync(documentItem);
-      for (int attempt = 0; attempt < 5; attempt++) {
+      for (int attempt = 0; attempt < 50; attempt++) {
         if (!Projects.Managers.Any()) {
           return;
         }

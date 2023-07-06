@@ -247,11 +247,11 @@ public abstract class LinearVerificationGutterStatusTester : ClientBasedLanguage
       codeAndTrace;
     var codeAndChanges = testTrace ? ExtractCode(codeAndTrace) : codeAndTrace;
     var (code, changes) = ExtractCodeAndChanges(codeAndChanges);
-    if (explicitProject) {
-      await CreateAndOpenTestDocument("", Path.Combine(Path.GetDirectoryName(fileName)!, DafnyProject.FileName));
-    }
 
     var documentItem = CreateTestDocument(code, fileName, 1);
+    if (explicitProject) {
+      await CreateAndOpenTestDocument("", Path.Combine(Path.GetDirectoryName(documentItem.Uri.GetFileSystemPath())!, DafnyProject.FileName));
+    }
     client.OpenDocument(documentItem);
     var traces = new List<LineVerificationStatus[]>();
     traces.AddRange(await GetAllLineVerificationStatuses(documentItem, verificationStatusGutterReceiver, intermediates: intermediates));
