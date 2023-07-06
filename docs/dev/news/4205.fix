@@ -1,1 +1,1 @@
-Handling of opaque methods in traits overriding check
+Traits with opaque functions can now be extended without errors
