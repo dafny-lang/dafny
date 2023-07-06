@@ -244,9 +244,9 @@ namespace Microsoft.Dafny {
       List<ModuleExportDecl> sortedExportDecls = exportDependencies.TopologicallySortedComponents();
       ModuleExportDecl defaultExport = null;
 
-      sig.TopLevels.TryGetValue("_default", out var defaultClass);
-      Contract.Assert(defaultClass is ImplicitClassDecl);
-      defaultClass.AddVisibilityScope(m.VisibilityScope, true);
+      // sig.TopLevels.TryGetValue("_default", out var defaultClass);
+      // Contract.Assert(defaultClass is ImplicitClassDecl);
+      // defaultClass.AddVisibilityScope(m.VisibilityScope, true);
 
       foreach (var exportDecl in sortedExportDecls) {
 
