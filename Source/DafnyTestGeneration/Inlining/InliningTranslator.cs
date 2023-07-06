@@ -24,14 +24,14 @@ public static class InliningTranslator {
     // Substitute all :testInline-annotated functions with function-by-methods and remove all opaque attributes
     new AddByMethodRewriter(new ConsoleErrorReporter(options), ShouldProcessForInlining).PreResolve(dafnyProgram);
     // Remove short-circuiting expressions from method and byMethod bodies
-    new RemoveShortCircuitingCloner(ShouldProcessForInlining).Visit(dafnyProgram);
+    new RemoveShortCircuitingRewriter(ShouldProcessForInlining).PreResolve(dafnyProgram);
     // Resolve the program (in particular, resolve all function calls)
     new ProgramResolver(dafnyProgram).Resolve(CancellationToken.None); // now resolved
     if (dafnyProgram.Reporter.HasErrors) {
       return false;
     }
     // Change by-method function calls to method calls
-    new FunctionCallToMethodCallCloner(ShouldProcessForInlining).Visit(dafnyProgram);
+    new FunctionCallToMethodCallRewriter(ShouldProcessForInlining).PostResolve(dafnyProgram);
     // Separate by-method methods into standalone methods so that translator adds Call$$ procedures for them
     new SeparateByMethodRewriter(new ConsoleErrorReporter(options), ShouldProcessForInlining).PostResolve(dafnyProgram);
     // Translate Dafny to Boogie. 

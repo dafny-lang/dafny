@@ -17,7 +17,7 @@ using Type = Microsoft.Dafny.Type;
 
 namespace DafnyTestGeneration.Inlining;
 
-public class RemoveShortCircuitingCloner : Cloner {
+public class RemoveShortCircuitingRewriter : Cloner {
 
   // At any point during the AST traversal, newStmtStack.Last() contains the list of statements that must be inserted
   // before the currently processed expression/statement. E.g. when cloning the statement x := f1(f0(a)),
@@ -36,7 +36,7 @@ public class RemoveShortCircuitingCloner : Cloner {
   private bool processingRhs;
   // determines whether short circuiting should be removed from method/function
   private readonly Func<MemberDecl, bool> shouldProcessPredicate;
-  public RemoveShortCircuitingCloner(Func<MemberDecl, bool> shouldProcessPredicate)
+  public RemoveShortCircuitingRewriter(Func<MemberDecl, bool> shouldProcessPredicate)
     : base(cloneLiteralModuleDefinition: false, cloneResolvedFields: false) {
     this.shouldProcessPredicate = shouldProcessPredicate;
   }
@@ -48,7 +48,7 @@ public class RemoveShortCircuitingCloner : Cloner {
     return TmpVarPrefix + nextVariableId++;
   }
 
-  public void Visit(Program program) {
+  public void PreResolve(Program program) {
     Visit(program.DefaultModule);
   }
 
@@ -400,7 +400,6 @@ public class RemoveShortCircuitingCloner : Cloner {
         return identifierExpr;
       case LetExpr letExpr:
         if (letExpr.Exact == false || letExpr.BoundVars.Count() != letExpr.RHSs.Count) {
-          // TODO
           return base.CloneExpr(expr);
         }
         newStmtStack.Last().Add(varDecl);
@@ -431,8 +430,6 @@ public class RemoveShortCircuitingCloner : Cloner {
         newStmtStack.Last().Add(varDecl);
         newStmtStack.Last().Add(updateStmt);
         return identifierExpr;
-      case ComprehensionExpr or MatchExpr:
-        return base.CloneExpr(expr); // TODO
     }
     nextVariableId--; // the new variable was not used in the end
     foundShortCircuit = false;

@@ -31,7 +31,7 @@ public class ShortCircuitRemoval : Setup {
   /// </summary>
   private Method ShortCircuitRemovalTest(string source, string expected, bool isByMethod = true) {
     // If the following assertion fails, rename the corresponding variables in expected output of each test
-    Assert.Equal(RemoveShortCircuitingCloner.TmpVarPrefix, "#tmp");
+    Assert.Equal(RemoveShortCircuitingRewriter.TmpVarPrefix, "#tmp");
     var options = GetDafnyOptions(new List<Action<DafnyOptions>>(), output);
     var program = Utils.Parse(options, source, false);
     var success = InliningTranslator.TranslateForFutureInlining(program, options, out var boogieProgram);

@@ -16,16 +16,16 @@ namespace DafnyTestGeneration.Inlining;
 /// <summary>
 /// Change by-method function calls to method calls (after resolution)
 /// </summary>
-public class FunctionCallToMethodCallCloner : Cloner {
+public class FunctionCallToMethodCallRewriter : Cloner {
   
   // determines whether function calls should be replaced with method calls in a given method/function
   private readonly Func<MemberDecl, bool> shouldProcessPredicate;
 
-  public FunctionCallToMethodCallCloner(Func<MemberDecl, bool> shouldProcessPredicate) : base(false, true) {
+  public FunctionCallToMethodCallRewriter(Func<MemberDecl, bool> shouldProcessPredicate) : base(false, true) {
     this.shouldProcessPredicate = shouldProcessPredicate;
   }
 
-  public void Visit(Program program) {
+  public void PostResolve(Program program) {
     Visit(program.DefaultModule);
   }
 
