@@ -12,13 +12,6 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest;
 public class ProjectFilesTest : ClientBasedLanguageServerTest {
 
   [Fact]
-  public async Task ProjectFileByItselfHasNoDiagnostics() {
-    var tempDirectory = Path.GetRandomFileName();
-    var documentItem = await CreateAndOpenTestDocument("", Path.Combine(tempDirectory, DafnyProject.FileName));
-    await AssertNoDiagnosticsAreComing(CancellationToken);
-  }
-
-  [Fact]
   public async Task ProjectFileChangesArePickedUpAfterCacheExpiration() {
     await SetUp(options => options.WarnShadowing = false);
     var tempDirectory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());

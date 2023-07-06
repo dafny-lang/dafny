@@ -25,21 +25,11 @@ public class CompilationAfterParsing : Compilation {
     return ResolutionDiagnostics.GetOrDefault(uri, Enumerable.Empty<DafnyDiagnostic>);
   }
 
-  public override IdeState ToIdeState(IProjectDatabase projectManagerDatabase, IdeState previousState) {
-    var baseResult = base.ToIdeState(projectManagerDatabase, previousState);
-    var moduleUris = Program.DefaultModuleDef.SourceDecls.Select(m => m.Tok.Uri);
-    var memberUris = Program.DefaultModuleDef.DefaultClass.Members.Select(m => m.Tok.Uri);
-    var sources = moduleUris.Concat(memberUris).Distinct();
-    var ownedUris = sources.Where(uri => {
-      if (uri == null) {
-        return false;
-      }
-      var uriProject = projectManagerDatabase.GetProject(uri);
-      return uriProject.Equals(Project);
-    }).ToHashSet();
+
+  public override IdeState ToIdeState(IdeState previousState) {
+    var baseResult = base.ToIdeState(previousState);
     return baseResult with {
       Program = Program,
-      OwnedUris = ownedUris,
       ResolutionDiagnostics = ResolutionDiagnostics.ToDictionary(
         kv => kv.Key,
         kv => (IReadOnlyList<Diagnostic>)kv.Value.Select(d => d.ToLspDiagnostic()).ToList()),

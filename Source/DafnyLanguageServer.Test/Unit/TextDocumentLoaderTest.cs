@@ -86,7 +86,8 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit {
 
     private static Compilation GetCompilation() {
       var versionedTextDocumentIdentifier = CreateTestDocumentId();
-      return new Compilation(0, ProjectManagerDatabase.ImplicitProject(versionedTextDocumentIdentifier.Uri.ToUri()));
+      var compilation = new Compilation(0, ProjectManagerDatabase.ImplicitProject(versionedTextDocumentIdentifier));
+      return compilation;
     }
 
     [Fact]

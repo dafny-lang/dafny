@@ -15,15 +15,12 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     private readonly ILogger<NotificationPublisher> logger;
     private readonly LanguageServerFilesystem filesystem;
     private readonly ILanguageServerFacade languageServer;
-    private readonly IProjectDatabase projectManagerDatabase;
     private readonly DafnyOptions options;
 
     public NotificationPublisher(ILogger<NotificationPublisher> logger, ILanguageServerFacade languageServer,
-      IProjectDatabase projectManagerDatabase,
       DafnyOptions options, LanguageServerFilesystem filesystem) {
       this.logger = logger;
       this.languageServer = languageServer;
-      this.projectManagerDatabase = projectManagerDatabase;
       this.options = options;
       this.filesystem = filesystem;
     }
@@ -84,42 +81,56 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     private void PublishDocumentDiagnostics(IdeState previousState, IdeState state) {
       var previousStateDiagnostics = previousState.GetDiagnostics();
       var currentDiagnostics = state.GetDiagnostics();
-      
-      var projectDiagnostics = new List<Diagnostic>();
-      foreach (var (uri, value) in currentDiagnostics) {
-        if (state.OwnedUris.Contains(uri)) {
-          if (uri == state.Compilation.Project.Uri) {
-            // Delay publication of project diagnostics,
-            // since it also serves as a bucket for diagnostics from unowned files
-            projectDiagnostics.AddRange(value);
-          } else {
-            PublishForUri(uri, currentDiagnostics.GetOrDefault(uri, Enumerable.Empty<Diagnostic>).ToArray());
+      if (state.Compilation.Project.IsImplicitProject) {
+        PublishImplicitProjectDiagnostics(state, currentDiagnostics, previousStateDiagnostics);
+      } else {
+        var uris = previousStateDiagnostics.Keys.Concat(currentDiagnostics.Keys).Distinct();
+
+        foreach (var uri in uris) {
+          IEnumerable<Diagnostic> current = currentDiagnostics.GetOrDefault(uri, Enumerable.Empty<Diagnostic>);
+          IEnumerable<Diagnostic> previous = previousStateDiagnostics.GetOrDefault(uri, Enumerable.Empty<Diagnostic>);
+          if (previous.SequenceEqual(current)) {
+            continue;
           }
+
+          languageServer.TextDocument.PublishDiagnostics(new PublishDiagnosticsParams {
+            Uri = uri,
+            Version = filesystem.GetVersion(uri),
+            Diagnostics = current.ToList(),
+          });
+        }
+      }
+    }
+
+    private void PublishImplicitProjectDiagnostics(IdeState state, ImmutableDictionary<Uri, IReadOnlyList<Diagnostic>> currentDiagnostics,
+      ImmutableDictionary<Uri, IReadOnlyList<Diagnostic>> previousStateDiagnostics) {
+      var diagnostics = new List<Diagnostic>();
+      foreach (var (key, value) in currentDiagnostics) {
+        if (key == state.Compilation.Project.Uri) {
+          diagnostics.AddRange(value);
         } else {
           if (!value.Any()) {
             continue;
           }
 
-          projectDiagnostics.Add(new Diagnostic {
+          diagnostics.Add(new Diagnostic {
             Range = new Range(0, 0, 0, 1),
-            Message = $"the referenced file {uri.LocalPath} contains error(s) but belongs to another project. The first error is: {value.First().Message}",
+            Message = $"the referenced file {key.LocalPath} contains error(s). The first one is: {value.First().Message}",
             Severity = DiagnosticSeverity.Error,
             Source = MessageSource.Parser.ToString()
           });
         }
       }
 
-      PublishForUri(state.Compilation.Project.Uri, projectDiagnostics.ToArray());
-
-      void PublishForUri(Uri publishUri, Diagnostic[] diagnostics) {
-        var previous = previousStateDiagnostics.GetOrDefault(publishUri, Enumerable.Empty<Diagnostic>);
-        if (!previous.SequenceEqual(diagnostics)) {
-          languageServer.TextDocument.PublishDiagnostics(new PublishDiagnosticsParams {
-            Uri = publishUri,
-            Version = filesystem.GetVersion(publishUri),
-            Diagnostics = diagnostics,
-          });
-        }
+      IEnumerable<Diagnostic> previous =
+        previousStateDiagnostics.GetOrDefault(state.Compilation.Project.Uri,
+          Enumerable.Empty<Diagnostic>);
+      if (!previous.SequenceEqual(diagnostics)) {
+        languageServer.TextDocument.PublishDiagnostics(new PublishDiagnosticsParams {
+          Uri = state.Compilation.Project.Uri,
+          Version = filesystem.GetVersion(state.Compilation.Project.Uri),
+          Diagnostics = diagnostics,
+        });
       }
     }
 

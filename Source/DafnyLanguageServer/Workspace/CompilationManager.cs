@@ -33,7 +33,6 @@ public class CompilationManager {
   private readonly ITextDocumentLoader documentLoader;
   private readonly ICompilationStatusNotificationPublisher statusPublisher;
   private readonly INotificationPublisher notificationPublisher;
-  private readonly IProjectDatabase projectManagerDatabase;
   private readonly IProgramVerifier verifier;
 
   private readonly IServiceProvider services;
@@ -63,7 +62,6 @@ public class CompilationManager {
 
 
     fileSystem = services.GetRequiredService<IFileSystem>();
-    projectManagerDatabase = services.GetRequiredService<IProjectDatabase>();
     documentLoader = services.GetRequiredService<ITextDocumentLoader>();
     logger = services.GetRequiredService<ILogger<CompilationManager>>();
     notificationPublisher = services.GetRequiredService<INotificationPublisher>();
@@ -89,7 +87,7 @@ public class CompilationManager {
       var documentAfterParsing = await documentLoader.LoadAsync(options, startingCompilation, fileSystem, cancellationSource.Token);
 
       // TODO, let gutter icon publications also used the published CompilationView.
-      var state = documentAfterParsing.InitialIdeState(projectManagerDatabase, startingCompilation, options);
+      var state = documentAfterParsing.InitialIdeState(startingCompilation, options);
       state = state with {
         VerificationTree = migratedVerificationTree ?? state.VerificationTree
       };

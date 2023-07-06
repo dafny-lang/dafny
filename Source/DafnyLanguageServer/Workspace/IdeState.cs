@@ -22,7 +22,6 @@ public record IdeImplementationView(Range Range, PublishedVerificationStatus Sta
 public record IdeState(
   Compilation Compilation,
   Node Program,
-  ISet<Uri> OwnedUris,
   IReadOnlyDictionary<Uri, IReadOnlyList<Diagnostic>> ResolutionDiagnostics,
   SymbolTable SymbolTable,
   SignatureAndCompletionTable SignatureAndCompletionTable,
@@ -32,7 +31,7 @@ public record IdeState(
   IReadOnlyDictionary<Uri, IReadOnlyList<Range>> GhostRanges,
   VerificationTree? VerificationTree
 ) {
-  
+
   public int Version => Compilation.Version;
 
   public ImmutableDictionary<Uri, IReadOnlyList<Diagnostic>> GetDiagnostics() {
