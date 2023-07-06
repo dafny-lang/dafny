@@ -265,7 +265,7 @@ namespace Microsoft.Dafny {
           // Top-level functions and methods are actually recorded as members of the _default class.  We look up the
           // export-set name there.  If the export-set name happens to coincide with some other top-level declaration,
           // then an error will already have been produced ("duplicate name of top-level declaration").
-          if (sig.TopLevels.ContainsKey(ImplicitClassDecl.GetName(exportDecl.Name))) {
+          if (sig.TopLevels.Keys.Any(key => key.StartsWith(ImplicitClassDecl.GetName(exportDecl.Name)))) {
             reporter.Warning(MessageSource.Resolver, ErrorRegistry.NoneId, exportDecl.tok,
               "note, this export set is empty (did you perhaps forget the 'provides' or 'reveals' keyword?)");
           }
@@ -823,7 +823,7 @@ namespace Microsoft.Dafny {
       }
 
       mod.SourceDecls.AddRange(p.StaticMembers.Values.Select(staticMember => CloneDeclaration(p.VisibilityScope, new ImplicitClassDecl(mod,
-        staticMember), mod, mods, name)));
+        staticMember, mod.SourceDecls.Count), mod, mods, name)));
 
       var sig = mod.RegisterTopLevelDecls(this, true);
       sig.Refines = p.Refines;

@@ -7,7 +7,7 @@
     public string? EnclosingTypeName {
       get {
         var typeName = (Scope as TypeWithMembersSymbolBase)?.Name;
-        return typeName == ImplicitClassDecl.GetName(Name) ? null : typeName;
+        return typeName?.StartsWith(ImplicitClassDecl.GetName(Name)) == true ? null : typeName;
       }
     }
 
