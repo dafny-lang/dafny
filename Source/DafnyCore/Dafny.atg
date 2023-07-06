@@ -1013,7 +1013,7 @@ TopDecl<. ModuleDefinition module, bool isTopLevel, bool isAbstract .>
   | ClassMemberDecl<dmod, memberDeclContainer, false, true, true> 
                                                (. 
                                                    foreach(var memberDecl in memberDeclContainer) {
-                                                     module.SourceDecls.Add(new ImplicitClassDecl(module, memberDecl, module.SourceDecls.Count));
+                                                     module.SourceDecls.Add(new ImplicitClassDecl(module, memberDecl));
                                                    } 
                                                .)
   )

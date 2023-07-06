@@ -556,6 +556,7 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
       } else if (d is ClassLikeDecl { NonNullTypeDecl: { } nntd }) {
         registerThisDecl = nntd;
         registerUnderThisName = d.Name;
+      } else if (d is ImplicitClassDecl) {
       } else {
         registerThisDecl = d;
         registerUnderThisName = d.Name;

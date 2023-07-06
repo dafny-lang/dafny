@@ -130,7 +130,7 @@ namespace Microsoft.Dafny {
         var cl = new TraitDecl(Range(dd.RangeToken), dd.NameNode.Clone(this), newParent, tps, mm, CloneAttributes(dd.Attributes), dd.IsRefining, dd.ParentTraits.ConvertAll(CloneType));
         return cl;
       } else if (d is ImplicitClassDecl implicitClassDecl) {
-        return new ImplicitClassDecl(newParent, CloneMember(implicitClassDecl.Members[0], false), implicitClassDecl.Index);
+        return new ImplicitClassDecl(newParent, CloneMember(implicitClassDecl.Members[0], false));
       } else if (d is ClassDecl) {
         var dd = (ClassDecl)d;
         var tps = dd.TypeArgs.ConvertAll(CloneTypeParam);

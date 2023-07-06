@@ -12,15 +12,14 @@ public class ImplicitClassDecl : TopLevelDeclWithMembers, RevealableTypeDecl {
   public TopLevelDecl AsTopLevelDecl => this;
   public TypeDeclSynonymInfo SynonymInfo { get; set; }
 
-  public ImplicitClassDecl(ModuleDefinition module, MemberDecl member, int index)
-    : base(RangeToken.NoToken, new Name(GetName(member.Name) + "_" + index), module, new List<TypeParameter>(),
+  public ImplicitClassDecl(ModuleDefinition module, MemberDecl member)
+    : base(member.RangeToken, new Name(GetName(member.Name)), module, new List<TypeParameter>(),
       new List<MemberDecl>() { member }, null, false, null) {
     Contract.Requires(module != null);
-    Index = index;
     this.NewSelfSynonym();
   }
 
   public static string GetName(string memberName) {
-    return "_implicitClassFor" + memberName;
+    return memberName;
   }
 }

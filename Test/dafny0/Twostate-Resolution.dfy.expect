@@ -772,12 +772,8 @@ Twostate-Resolution.dfy(535,28): Error: parameter 'a' of function P cannot be ch
 Twostate-Resolution.dfy(536,22): Error: parameter 'a' of function Q cannot be changed, compared to in the overridden function, from older to non-older
 Twostate-Resolution.dfy(537,29): Error: parameter 'a' of function X cannot be changed, compared to in the overridden function, from non-new to new
 Twostate-Resolution.dfy(538,25): Error: parameter 'a' of function Y cannot be changed, compared to in the overridden function, from new to non-new
-Twostate-Resolution.dfy[GoodRefinement](544,18): Error: duplicate declaration for name P
-Twostate-Resolution.dfy[GoodRefinement](545,18): Error: duplicate declaration for name Q
-Twostate-Resolution.dfy[GoodRefinement](546,21): Error: duplicate declaration for name X
-Twostate-Resolution.dfy[GoodRefinement](547,21): Error: duplicate declaration for name Y
-Twostate-Resolution.dfy[BadRefinement](544,18): Error: duplicate declaration for name P
-Twostate-Resolution.dfy[BadRefinement](545,18): Error: duplicate declaration for name Q
-Twostate-Resolution.dfy[BadRefinement](546,21): Error: duplicate declaration for name X
-Twostate-Resolution.dfy[BadRefinement](547,21): Error: duplicate declaration for name Y
-77 resolution/type errors detected in Twostate-Resolution.dfy
+Twostate-Resolution.dfy(558,26): Error: parameter 'a' of function P cannot be changed, compared to the corresponding function in the module it refines, from non-older to older
+Twostate-Resolution.dfy(559,20): Error: parameter 'a' of function Q cannot be changed, compared to the corresponding function in the module it refines, from older to non-older
+Twostate-Resolution.dfy(560,27): Error: parameter 'a' of function X cannot be changed, compared to the corresponding function in the module it refines, from non-new to new
+Twostate-Resolution.dfy(561,23): Error: parameter 'a' of function Y cannot be changed, compared to the corresponding function in the module it refines, from new to non-new
+73 resolution/type errors detected in Twostate-Resolution.dfy
