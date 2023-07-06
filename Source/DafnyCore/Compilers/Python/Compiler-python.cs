@@ -192,7 +192,7 @@ namespace Microsoft.Dafny.Compilers {
       var constructorWriter = block.Fork();
       block.WriteLine("pass");
 
-      if (cls is not DefaultClassDecl && (fullPrintName != null || isNewtypeWithTraits)) {
+      if (cls is not ImplicitClassDecl && (fullPrintName != null || isNewtypeWithTraits)) {
         var wBody = methodWriter.NewBlockPy("def __dafnystr__(self) -> str:");
         if (isNewtypeWithTraits) {
           wBody.WriteLine("return _dafny.string_of(self._value)");

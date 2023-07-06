@@ -31,8 +31,8 @@
         case ClassLikeDecl classDeclaration:
           Visit(classDeclaration);
           break;
-        case ImplicitClassDecl defaultClassDecl:
-          Visit(defaultClassDecl);
+        case ImplicitClassDecl implicitClassDecl:
+          Visit(implicitClassDecl);
           break;
         case DatatypeDecl dataTypeDeclaration:
           Visit(dataTypeDeclaration);
