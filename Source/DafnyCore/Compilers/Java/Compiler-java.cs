@@ -327,6 +327,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     public static string TransformToClassName(string baseName) {
+      baseName = PublicIdProtectAux(baseName);
       var sanitizedName = Regex.Replace(baseName, "[^_A-Za-z0-9$]", "_");
       if (!Regex.IsMatch(sanitizedName, "^[_A-Za-z]")) {
         sanitizedName = "_" + sanitizedName;
@@ -2231,10 +2232,14 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override string IdProtect(string name) {
-      return PublicIdProtect(name);
+      return PublicIdProtectAux(name);
     }
 
     public override string PublicIdProtect(string name) {
+      return PublicIdProtectAux(name);
+    }
+
+    private static string PublicIdProtectAux(string name) {
       name = name.Replace("_module", "_System");
       if (name == "" || name.First() == '_') {
         return name; // no need to further protect this name
