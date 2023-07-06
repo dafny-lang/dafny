@@ -134,8 +134,6 @@ namespace DafnyTestGeneration {
       var guid = Guid.NewGuid().ToString();
       program.Resolve(options);
       program.Typecheck(options);
-      // TODO: Move the following 4 lines to ProgramModifier once Boogie > 2.16.9 is merged to optimize performance
-      // TODO: Also make TODO marked changes in ProgramModifier
       engine.EliminateDeadVariables(program);
       engine.CollectModSets(program);
       engine.Inline(program);
