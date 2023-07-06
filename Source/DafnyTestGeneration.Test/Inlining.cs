@@ -262,7 +262,7 @@ class C {
 ".TrimStart();
     var tmpVar = RemoveShortCircuitingCloner.TmpVarPrefix + 0;
     var tmpVar2 = RemoveShortCircuitingCloner.TmpVarPrefix + 1;
-    ShortCircuitRemovalTest(source, $"{{ var {tmpVar}; if true then {{ {tmpVar} := 0; }} else {tmpVar} := 1; i := {tmpVar}; var {tmpVar2}; if true then {{ {tmpVar2} := 0; }} else {tmpVar2} := 1; i := {tmpVar2};}}", isByMethod:false);
+    ShortCircuitRemovalTest(source, $"{{ var {tmpVar}; if true {{ {tmpVar} := 0; }} else {tmpVar} := 1; i := {tmpVar}; new; var {tmpVar2}; if true {{ {tmpVar2} := 0; }} else {tmpVar2} := 1; i := {tmpVar2};}}", isByMethod:false);
   }
 
   [Fact]

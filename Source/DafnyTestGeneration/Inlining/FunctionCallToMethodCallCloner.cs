@@ -40,13 +40,18 @@ public class FunctionCallToMethodCallCloner : Cloner {
 
   private void Visit(Function function) {
     if (function.ByMethodBody != null && !function.IsGhost) {
-      Visit(function.ByMethodBody);
+      function.ByMethodBody = CloneBlockStmt(function.ByMethodBody);
     }
   }
 
   private void Visit(Method method) {
-    if (method.Body != null && !method.IsGhost) {
-      Visit(method.Body);
+    if (method.Body == null || method.IsGhost) {
+      return;
+    }
+    if (method.Body is DividedBlockStmt dividedBlockStmt) {
+      method.Body = CloneDividedBlockStmt(dividedBlockStmt);
+    } else {
+      method.Body = CloneBlockStmt(method.Body);
     }
   }
 

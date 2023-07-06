@@ -374,15 +374,16 @@ namespace DafnyTestGeneration {
             return basicType.ToString();
           }
           List<string> fields = new();
-          for (int i = 0; i < ctor.Destructors.Count; i++) {
-            var fieldName = ctor.Destructors[i].Name;
+          var orderedDestructors = ctor.Destructors.OrderBy(x => x.Name).ToList();
+          for (int i = 0; i < orderedDestructors.Count; i++) {
+            var fieldName = orderedDestructors[i].Name;
             if (!variable.Children.ContainsKey(fieldName)) {
               fieldName = $"[{i}]";
             }
 
             if (!variable.Children.ContainsKey(fieldName)) {
               errorMessages.Add($"// Failed: Cannot find destructor " +
-                                $"{ctor.Destructors[i].Name} of constructor " +
+                                $"{orderedDestructors[i].Name} of constructor " +
                                 $"{variable.CanonicalName()} for datatype " +
                                 $"{basicType}. Available destructors are: " + 
                                 string.Join(",", variable.Children.Keys.ToList()));
@@ -390,10 +391,14 @@ namespace DafnyTestGeneration {
             }
 
             var destructorType = Utils.CopyWithReplacements(
-              Utils.UseFullName(ctor.Destructors[i].Type),
+              Utils.UseFullName(orderedDestructors[i].Type),
               ctor.EnclosingDatatype.TypeArgs.ConvertAll(arg => arg.Name), basicType.TypeArgs);
-            fields.Add(ctor.Destructors[i].Name + ":=" +
-                       ExtractVariable(variable.Children[fieldName].First(), destructorType));
+            if (orderedDestructors[i].Name.StartsWith("#")) {
+              fields.Add(ExtractVariable(variable.Children[fieldName].First(), destructorType));
+            } else {
+              fields.Add(orderedDestructors[i].Name + ":=" +
+                         ExtractVariable(variable.Children[fieldName].First(), destructorType));
+            }
           }
 
           var value = basicType.ToString();
@@ -571,8 +576,8 @@ namespace DafnyTestGeneration {
           if (ctor.Destructors.Count == 0) {
             value = datatypeType + "." + ctor.Name;
           } else {
-            var assignments = ctor.Destructors.Select(destructor =>
-              destructor.Name + ":=" + GetDefaultValue(
+            var assignments = ctor.Destructors.OrderBy(x => x.Name).Select(destructor =>
+              (destructor.Name.StartsWith("#") ? "" : destructor.Name + ":=") + GetDefaultValue(
                 Utils.CopyWithReplacements(Utils.UseFullName(destructor.Type),
                     ctor.EnclosingDatatype.TypeArgs.ConvertAll(arg => arg.Name), datatypeType.TypeArgs),
                 Utils.CopyWithReplacements(Utils.UseFullName(destructor.Type),
