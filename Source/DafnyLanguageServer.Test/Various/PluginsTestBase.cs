@@ -44,7 +44,8 @@ public abstract class PluginsTestBase : ClientBasedLanguageServerTest {
       "DafnyLanguageServer",
       "System.Runtime",
       "Boogie.Core",
-      "System.Collections"
+      "System.Collections",
+      "System.Linq"
     };
     compilation = compilation.AddReferences(standardLibraries.Select(fileName =>
         MetadataReference.CreateFromFile(Assembly.Load((string)fileName).Location)))
