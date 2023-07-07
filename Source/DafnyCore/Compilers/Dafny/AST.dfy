@@ -5,7 +5,7 @@ module {:extern "DAST"} DAST {
 
   datatype Module = Module(name: string, body: seq<ModuleItem>)
 
-  datatype ModuleItem = Module(Module) | Class(Class) | Newtype(Newtype)
+  datatype ModuleItem = Module(Module) | Class(Class) | Newtype(Newtype) | Datatype(Datatype)
 
   datatype Newtype = Newtype(name: string, base: Type)
 
@@ -14,6 +14,8 @@ module {:extern "DAST"} DAST {
   datatype Ident = Ident(string)
 
   datatype Class = Class(name: string, body: seq<ClassItem>)
+
+  datatype Datatype = Datatype(name: string, body: seq<ClassItem>)
 
   datatype ClassItem = Method(Method) | Other(a: string)
 

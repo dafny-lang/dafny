@@ -32,6 +32,7 @@ module {:extern "DCOMP"} DCOMP {
           case Module(m) => generated := GenModule(m);
           case Class(c) => generated := GenClass(c);
           case Newtype(n) => generated := "TODO";
+          case Datatype(n) => generated := "TODO";
         }
 
         if i > 0 {

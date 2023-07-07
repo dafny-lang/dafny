@@ -35,7 +35,7 @@ namespace Microsoft.Dafny.Compilers {
     }
   }
 
-  class ModuleBuilder : ClassContainer, NewtypeContainer {
+  class ModuleBuilder : ClassContainer, NewtypeContainer, DatatypeContainer {
     public DafnyCompiler compiler { get => parent.compiler; }
     readonly ModuleContainer parent;
     readonly string name;
@@ -58,18 +58,13 @@ namespace Microsoft.Dafny.Compilers {
       body.Add((ModuleItem)ModuleItem.create_Newtype(item));
     }
 
+    public void AddDatatype(Datatype item) {
+      body.Add((ModuleItem)ModuleItem.create_Datatype(item));
+    }
+
     public object Finish() {
       parent.AddModule((Module)Module.create(Sequence<Rune>.UnicodeFromString(this.name), Sequence<ModuleItem>.FromArray(body.ToArray())));
       return parent;
-    }
-  }
-
-  interface NewtypeContainer {
-    DafnyCompiler compiler { get; }
-    void AddNewtype(Newtype item);
-
-    public NewtypeBuilder Newtype(string name, DAST.Type baseType) {
-      return new NewtypeBuilder(this, name, baseType);
     }
   }
 
@@ -103,6 +98,15 @@ namespace Microsoft.Dafny.Compilers {
     }
   }
 
+  interface NewtypeContainer {
+    DafnyCompiler compiler { get; }
+    void AddNewtype(Newtype item);
+
+    public NewtypeBuilder Newtype(string name, DAST.Type baseType) {
+      return new NewtypeBuilder(this, name, baseType);
+    }
+  }
+
   class NewtypeBuilder : MethodContainer {
     public DafnyCompiler compiler { get => parent.compiler; }
     readonly NewtypeContainer parent;
@@ -123,6 +127,38 @@ namespace Microsoft.Dafny.Compilers {
 
     public object Finish() {
       parent.AddNewtype((Newtype)Newtype.create(Sequence<Rune>.UnicodeFromString(this.name), this.baseType));
+      return parent;
+    }
+  }
+
+  interface DatatypeContainer {
+    DafnyCompiler compiler { get; }
+    void AddDatatype(Datatype item);
+
+    public DatatypeBuilder Datatype(string name) {
+      return new DatatypeBuilder(this, name);
+    }
+  }
+
+  class DatatypeBuilder : MethodContainer {
+    public DafnyCompiler compiler { get => parent.compiler; }
+    readonly DatatypeContainer parent;
+    readonly string name;
+    // readonly List<?> ctors = new();
+    readonly List<ClassItem> body = new();
+
+    public DatatypeBuilder(DatatypeContainer parent, string name) {
+      this.parent = parent;
+      this.name = name;
+    }
+
+    public void AddMethod(DAST.Method item) {
+      // body.Add((ClassItem)ClassItem.create_Method(item));
+      // TODO
+    }
+
+    public object Finish() {
+      parent.AddDatatype((Datatype)Datatype.create(Sequence<Rune>.UnicodeFromString(this.name), Sequence<ClassItem>.FromArray(body.ToArray())));
       return parent;
     }
   }

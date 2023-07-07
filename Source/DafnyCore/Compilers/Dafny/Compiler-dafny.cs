@@ -145,7 +145,11 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override IClassWriter DeclareDatatype(DatatypeDecl dt, ConcreteSyntaxTree wr) {
-      throw new NotImplementedException();
+      if (currentBuilder is DatatypeContainer builder) {
+        return new ClassWriter(this, builder.Datatype(dt.Name));
+      } else {
+        throw new InvalidOperationException("Cannot declare datatype outside of a module: " + currentBuilder);
+      }
     }
 
     protected override IClassWriter DeclareNewtype(NewtypeDecl nt, ConcreteSyntaxTree wr) {

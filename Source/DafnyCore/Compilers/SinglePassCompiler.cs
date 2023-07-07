@@ -1405,6 +1405,7 @@ namespace Microsoft.Dafny.Compilers {
             var w = DeclareNewtype(nt, wr);
             v.Visit(nt);
             CompileClassMembers(program, nt, w);
+            w.Finish();
           } else if ((d as TupleTypeDecl)?.NonGhostDims == 1 && SupportsDatatypeWrapperErasure && Options.Get(CommonOptionBag.OptimizeErasableDatatypeWrapper)) {
             // ignore this type declaration
           } else if (d is DatatypeDecl) {
@@ -1420,6 +1421,7 @@ namespace Microsoft.Dafny.Compilers {
             var w = DeclareDatatype(dt, wr);
             if (w != null) {
               CompileClassMembers(program, dt, w);
+              w.Finish();
             } else if (DatatypeDeclarationAndMemberCompilationAreSeparate) {
               continue;
             }
