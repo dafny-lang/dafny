@@ -7,7 +7,7 @@ module {:extern "dafny"} {:options "/functionSyntax:4"} DafnyGo refines Dafny {
 
   lemma EnsureSizeTLimitAboveMinimum() ensures 128 <= SIZE_T_LIMIT {}
 
-  trait {:extern} Sequence<T> ... {
+  trait {:extern} Sequence<T(==)> ... {
 
     method SetString() returns (ret: Sequence<T>)
       modifies this

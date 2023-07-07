@@ -376,7 +376,7 @@ abstract module {:options "/functionSyntax:4"} Dafny {
       requires inv(t)
   }
 
-  trait {:extern} Sequence<T> {
+  trait {:extern} Sequence<T(==)> {
 
     // This is only here to support the attempts some runtimes make to
     // track what sequence values are actually sequences of characters.
@@ -594,7 +594,7 @@ abstract module {:options "/functionSyntax:4"} Dafny {
     }
   }
 
-  class ArraySequence<T> extends Sequence<T> {
+  class ArraySequence<T(==)> extends Sequence<T> {
     const values: ImmutableArray<T>
 
     ghost predicate Valid()
@@ -641,7 +641,7 @@ abstract module {:options "/functionSyntax:4"} Dafny {
     }
   }
 
-  class ConcatSequence<T> extends Sequence<T> {
+  class ConcatSequence<T(==)> extends Sequence<T> {
     const left: Sequence<T>
     const right: Sequence<T>
     const length: size_t
@@ -795,7 +795,7 @@ abstract module {:options "/functionSyntax:4"} Dafny {
       CardinalitySum(s[..last]) + s[last].Cardinality() as nat
   }
 
-  class LazySequence<T> extends Sequence<T> {
+  class LazySequence<T(==)> extends Sequence<T> {
     ghost const value: seq<T>
     const box: AtomicBox<Sequence<T>>
     const length: size_t
