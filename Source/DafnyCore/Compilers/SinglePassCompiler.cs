@@ -116,6 +116,11 @@ namespace Microsoft.Dafny.Compilers {
     /// </summary>
     protected abstract ConcreteSyntaxTree CreateStaticMain(IClassWriter wr, string argsParameterName);
     protected abstract ConcreteSyntaxTree CreateModule(string moduleName, bool isDefault, bool isExtern, string/*?*/ libraryName, ConcreteSyntaxTree wr);
+    /// <summary>
+    /// Indicates the current program depends on the given module without creating it.
+    /// Called when a module is out of scope for compilation, such as when using --library.
+    /// </summary>
+    protected virtual void DependOnModule(string moduleName, bool isDefault, bool isExtern, string/*?*/ libraryName) { }
     protected abstract string GetHelperModuleName();
     protected interface IClassWriter {
       ConcreteSyntaxTree/*?*/ CreateMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody, bool forBodyInheritance, bool lookasideBody);
@@ -1378,9 +1383,6 @@ namespace Microsoft.Dafny.Compilers {
           // the purpose of an abstract module is to skip compilation
           continue;
         }
-        if (!m.ShouldCompile(program.Compilation)) {
-          continue;
-        }
         var moduleIsExtern = false;
         string libraryName = null;
         if (!Options.DisallowExterns) {
@@ -1391,6 +1393,10 @@ namespace Microsoft.Dafny.Compilers {
             }
             moduleIsExtern = true;
           }
+        }
+        if (!m.ShouldCompile(program.Compilation)) {
+          DependOnModule(m.GetCompileName(Options), m.IsDefaultModule, moduleIsExtern, libraryName);
+          continue;
         }
         var wr = CreateModule(m.GetCompileName(Options), m.IsDefaultModule, moduleIsExtern, libraryName, wrx);
         var v = new CheckHasNoAssumes_Visitor(this, wr);
