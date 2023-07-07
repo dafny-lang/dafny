@@ -85,6 +85,11 @@ public class LanguageServerFilesystem : IFileSystem {
     return new CombinedDirectoryInfo(new[] { inMemory, OnDiskFileSystem.Instance.GetDirectoryInfoBase(root) });
   }
 
+  /// <summary>
+  /// Return the version of a particular file.
+  /// When the client sends file updates, it includes a new version for this file, which we store and return here.
+  /// File version are important to the client because it can use them to do client side migration of positions.
+  /// </summary>
   public int? GetVersion(Uri uri) {
     if (openFiles.TryGetValue(uri, out var file)) {
       return file.Version;
