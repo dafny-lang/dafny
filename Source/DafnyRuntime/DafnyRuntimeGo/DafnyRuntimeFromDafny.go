@@ -394,7 +394,7 @@ type ArrayCell struct {
   Data_ArrayCell_
 }
 
-func (_this ArrayCell) Get() Data_ArrayCell_ {
+func (_this ArrayCell) Get_() Data_ArrayCell_ {
   return _this.Data_ArrayCell_
 }
 
@@ -418,7 +418,7 @@ func (CompanionStruct_ArrayCell_) Create_Set_(Value interface{}) ArrayCell {
 }
 
 func (_this ArrayCell) Is_Set() bool {
-  _, ok := _this.Get().(ArrayCell_Set)
+  _, ok := _this.Get_().(ArrayCell_Set)
   return ok
 }
 
@@ -432,7 +432,7 @@ func (CompanionStruct_ArrayCell_) Create_Unset_() ArrayCell {
 }
 
 func (_this ArrayCell) Is_Unset() bool {
-  _, ok := _this.Get().(ArrayCell_Unset)
+  _, ok := _this.Get_().(ArrayCell_Unset)
   return ok
 }
 
@@ -441,11 +441,11 @@ func (CompanionStruct_ArrayCell_) Default() ArrayCell {
 }
 
 func (_this ArrayCell) Dtor_value() interface{} {
-  return _this.Get().(ArrayCell_Set).Value
+  return _this.Get_().(ArrayCell_Set).Value
 }
 
 func (_this ArrayCell) String() string {
-  switch data := _this.Get().(type) {
+  switch data := _this.Get_().(type) {
     case nil: return "null"
     case ArrayCell_Set: {
       return "DafnyGo.ArrayCell.Set" + "(" + String(data.Value) + ")"
@@ -460,13 +460,13 @@ func (_this ArrayCell) String() string {
 }
 
 func (_this ArrayCell) Equals(other ArrayCell) bool {
-  switch data1 := _this.Get().(type) {
+  switch data1 := _this.Get_().(type) {
     case ArrayCell_Set: {
-      data2, ok := other.Get().(ArrayCell_Set)
+      data2, ok := other.Get_().(ArrayCell_Set)
       return ok && AreEqual(data1.Value, data2.Value)
     }
     case ArrayCell_Unset: {
-      _, ok := other.Get().(ArrayCell_Unset)
+      _, ok := other.Get_().(ArrayCell_Unset)
       return ok
     }
     default: {
