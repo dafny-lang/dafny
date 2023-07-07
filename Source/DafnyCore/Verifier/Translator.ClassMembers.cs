@@ -244,7 +244,7 @@ namespace Microsoft.Dafny {
     ///     // so "h" and $IsHeap(h) are omitted.
     ///     axiom fh < FunctionContextHeight ==>
     ///       (forall o: ref, h: Heap, G : Ty ::
-    ///         { h[o, f], TClassA(G) }  // if "f" is a const, omit TClassA(G) from the trigger and just use { f(G,o) }
+    ///         { h[o, f], TClassA(G) }
     ///         $IsHeap(h) &&
     ///         o != null && $Is(o, TClassA(G))  // or dtype(o) = TClassA(G)
     ///         ==>
@@ -254,7 +254,7 @@ namespace Microsoft.Dafny {
     ///     // As above for "G" and "ii", but "h" is included no matter what.
     ///     axiom fh < FunctionContextHeight ==>
     ///       (forall o: ref, h: Heap, G : Ty ::
-    ///         { h[o, f], TClassA(G) }  // if "f" is a const, use the trigger { f(G,o), h[o, alloc] }; for other readonly fields, use { f(o), h[o, alloc], TClassA(G) }
+    ///         { h[o, f], TClassA(G) }
     ///         $IsHeap(h) &&
     ///         o != null && $Is(o, TClassA(G)) &&  // or dtype(o) = TClassA(G)
     ///         h[o, alloc]
@@ -275,20 +275,21 @@ namespace Microsoft.Dafny {
       var hVar = BplBoundVar("$h", predef.HeapType, out var h);
       var oVar = BplBoundVar("$o", TrType(ModuleResolver.GetThisType(c.tok, c)), out var o);
 
-      // TClassA(G)
-      Bpl.Expr o_ty = ClassTyCon(c, tyexprs);
-
+      Bpl.Expr o_ty; // to hold TClassA(G)
       var isGoodHeap = FunctionCall(c.tok, BuiltinFunction.IsGoodHeap, null, h);
       Bpl.Expr isalloc_o;
-      if (c is (not ClassLikeDecl) or TraitDecl { IsReferenceTypeDecl: false }) {
+      if (c is not ClassLikeDecl { IsReferenceTypeDecl: true }) {
         var udt = UserDefinedType.FromTopLevelDecl(c.tok, c);
+        o_ty = ClassTyCon(c, tyexprs);
         isalloc_o = MkIsAlloc(o, udt, h);
       } else if (RevealedInScope(c)) {
+        o_ty = ClassTyCon(c, tyexprs);
         isalloc_o = IsAlloced(c.tok, h, o);
       } else {
         // c is only provided, not revealed, in the scope. Use the non-null type decl's internal synonym
-        var cl = (ClassDecl)c;
+        var cl = (ClassLikeDecl)c;
         Contract.Assert(cl.NonNullTypeDecl != null);
+        o_ty = ClassTyCon(cl.NonNullTypeDecl, tyexprs);
         var udt = UserDefinedType.FromTopLevelDecl(c.tok, cl.NonNullTypeDecl);
         isalloc_o = MkIsAlloc(o, udt, h);
       }
@@ -349,7 +350,9 @@ namespace Microsoft.Dafny {
 
       Bpl.Expr is_o = BplAnd(
         ReceiverNotNull(o),
-        !o.Type.Equals(predef.RefType) || c is TraitDecl ? MkIs(o, UserDefinedType.FromTopLevelDecl(c.tok, c)) : DType(o, o_ty)); // $Is(o, ..)  or  dtype(o) == o_ty
+        !o.Type.Equals(predef.RefType) || c is TraitDecl
+          ? MkIs(o, o_ty, ModeledAsBoxType(ModuleResolver.GetThisType(c.tok, c))) // $Is(o, ..)
+          : DType(o, o_ty)); // dtype(o) == o_ty
       ante = BplAnd(ante, is_o);
 
       ante = BplAnd(ante, indexBounds);
