@@ -148,7 +148,10 @@ namespace Microsoft.Dafny.Compilers {
     public override void EmitCallToMain(Method mainMethod, string baseName, ConcreteSyntaxTree wr) {
       var w = wr.NewBlock("int main(int argc, char *argv[])");
       var tryWr = w.NewBlock("try");
-      tryWr.WriteLine(string.Format("{0}::{1}::{2}(dafny_get_args(argc, argv));", mainMethod.EnclosingClass.EnclosingModuleDefinition.GetCompileName(Options), mainMethod.EnclosingClass.GetCompileName(Options), mainMethod.Name));
+      tryWr.WriteLine("{0}::{1}::{2}(dafny_get_args(argc, argv));",
+        mainMethod.EnclosingClass.EnclosingModuleDefinition.GetCompileName(Options),
+        mainMethod.EnclosingClass.GetCompileName(Options),
+        IdName(mainMethod));
       var catchWr = w.NewBlock("catch (DafnyHaltException & e)");
       catchWr.WriteLine("std::cout << \"Program halted: \" << e.what() << std::endl;");
     }
