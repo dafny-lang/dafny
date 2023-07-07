@@ -941,7 +941,7 @@ Dafny
                                  Util.ValidateEscaping(theOptions, t, includedFile, isVerbatimString, errors);
                                  includedFile = Util.RemoveEscaping(theOptions, includedFile, isVerbatimString);
                                  if (!Path.IsPathRooted(includedFile)) {
-                                   string basePath = Path.GetDirectoryName(parsedFile.LocalPath);
+                                   string basePath = parsedFile.Scheme == "stdin" ? "" : Path.GetDirectoryName(parsedFile.LocalPath);
                                    includedFile = Path.Combine(basePath, includedFile);
                                  }
                                  var oneInclude = new Include(t, parsedFile, new Uri(Path.GetFullPath(includedFile)));

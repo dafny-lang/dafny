@@ -1,0 +1,3 @@
+function Bar(): int {
+  true
+}
