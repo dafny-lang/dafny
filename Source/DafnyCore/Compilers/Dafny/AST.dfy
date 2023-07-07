@@ -25,5 +25,5 @@ module {:extern "DAST"} DAST {
 
   datatype Expression = Literal(Literal) | Ident(string) | DatatypeValue(contents: seq<Expression>) | BinOp(op: string, left: Expression, right: Expression) | Todo(reason: string)
 
-  datatype Literal = IntLiteral(int) | DecLiteral(string) | StringLiteral(string)
+  datatype Literal = BoolLiteral(bool) | IntLiteral(int) | DecLiteral(string) | StringLiteral(string)
 }

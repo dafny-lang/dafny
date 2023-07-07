@@ -133,6 +133,12 @@ module {:extern "DCOMP"} DCOMP {
 
     static method GenExpr(e: Expression) returns (s: string) {
       match e {
+        case Literal(BoolLiteral(false)) => {
+          s := "false";
+        }
+        case Literal(BoolLiteral(true)) => {
+          s := "true";
+        }
         case Literal(IntLiteral(i)) => {
           if (i < 0) {
             s := "-" + natToString(-i);

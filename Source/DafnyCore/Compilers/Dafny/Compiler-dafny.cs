@@ -140,11 +140,11 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override IClassWriter CreateTrait(string name, bool isExtern, List<TypeParameter> typeParameters,
       TraitDecl trait, List<Type> superClasses, IToken tok, ConcreteSyntaxTree wr) {
-      throw new NotImplementedException();
+      throw new UnsupportedFeatureException(Token.NoToken, Feature.Traits);
     }
 
     protected override ConcreteSyntaxTree CreateIterator(IteratorDecl iter, ConcreteSyntaxTree wr) {
-      throw new NotImplementedException();
+      throw new UnsupportedFeatureException(Token.NoToken, Feature.Iterators);
     }
 
     protected override IClassWriter DeclareDatatype(DatatypeDecl dt, ConcreteSyntaxTree wr) {
@@ -168,7 +168,9 @@ namespace Microsoft.Dafny.Compilers {
       // TODO(shadaj): this is leaking Rust types into the AST, but we do need native types
       var xType = DatatypeWrapperEraser.SimplifyType(Options, typ);
 
-      if (xType is IntType) {
+      if (xType is BoolType) {
+        return (DAST.Type)DAST.Type.create_Ident(Sequence<Rune>.UnicodeFromString("bool"));
+      } else if (xType is IntType) {
         return (DAST.Type)DAST.Type.create_Ident(Sequence<Rune>.UnicodeFromString("i32"));
       } else if (xType is RealType) {
         return (DAST.Type)DAST.Type.create_Ident(Sequence<Rune>.UnicodeFromString("f32"));
@@ -490,7 +492,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void EmitContinue(string label, ConcreteSyntaxTree wr) {
-      throw new NotImplementedException();
+      throw new UnsupportedFeatureException(Token.NoToken, Feature.ContinueStatements);
     }
 
     protected override void EmitYield(ConcreteSyntaxTree wr) {
@@ -529,11 +531,11 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override ConcreteSyntaxTree CreateForLoop(string indexVar, string bound, ConcreteSyntaxTree wr, string start = null) {
-      throw new NotImplementedException();
+      throw new UnsupportedFeatureException(Token.NoToken, Feature.ForLoops);
     }
 
     protected override ConcreteSyntaxTree CreateDoublingForLoop(string indexVar, int start, ConcreteSyntaxTree wr) {
-      throw new NotImplementedException();
+      throw new UnsupportedFeatureException(Token.NoToken, Feature.ForLoops);
     }
 
     protected override void EmitIncrementVar(string varName, ConcreteSyntaxTree wr) {
@@ -602,7 +604,7 @@ namespace Microsoft.Dafny.Compilers {
                 throw new NotImplementedException();
                 break;
               case bool value:
-                throw new NotImplementedException();
+                builder.AddExpr((DAST.Expression)DAST.Expression.create_Literal(DAST.Literal.create_BoolLiteral(value)));
                 break;
               case BigInteger integer:
                 builder.AddExpr((DAST.Expression)DAST.Expression.create_Literal(DAST.Literal.create_IntLiteral(integer)));
