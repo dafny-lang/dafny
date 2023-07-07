@@ -95,6 +95,10 @@ namespace Microsoft.Dafny.Compilers {
       return file;
     }
 
+    protected override void DependOnModule(string moduleName, bool isDefault, bool isExtern, string libraryName) {
+      Imports.Add(moduleName);
+    }
+
     private void EmitImports(string moduleName, ConcreteSyntaxTree wr) {
       wr.WriteLine("import sys");
       wr.WriteLine("from typing import Callable, Any, TypeVar, NamedTuple");
