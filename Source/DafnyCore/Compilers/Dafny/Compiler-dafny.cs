@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using Dafny;
 using JetBrains.Annotations;
 using DAST;
-using System.Data;
 using System.Numerics;
 using Microsoft.BaseTypes;
 
@@ -92,8 +91,6 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void EmitHeader(Program program, ConcreteSyntaxTree wr) {
-      wr.WriteLine($"// Dafny program {program.Name} compiled into Simple Dafny");
-      wr.WriteLine();
     }
 
     public override void EmitCallToMain(Method mainMethod, string baseName, ConcreteSyntaxTree wr) {
@@ -153,12 +150,7 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override IClassWriter DeclareNewtype(NewtypeDecl nt, ConcreteSyntaxTree wr) {
       if (currentBuilder is NewtypeContainer builder) {
-        builder.AddNewtype((Newtype)Newtype.create_Newtype(
-          Sequence<Rune>.UnicodeFromString(nt.Name),
-          GenType(nt.BaseType)
-        ));
-
-        return new NullClassWriter();
+        return new ClassWriter(this, builder.Newtype(nt.Name, GenType(nt.BaseType)));
       } else {
         throw new InvalidOperationException();
       }
@@ -183,7 +175,7 @@ namespace Microsoft.Dafny.Compilers {
         }
 
         return (DAST.Type)DAST.Type.create_Ident(Sequence<Rune>.UnicodeFromString(FullTypeName(udt, null)));
-      } else {
+      } else if (AsNativeType(typ) != null) {
         return (DAST.Type)(AsNativeType(typ).Sel switch {
           NativeType.Selection.Byte => DAST.Type.create_Ident(Sequence<Rune>.UnicodeFromString("u8")),
           NativeType.Selection.SByte => DAST.Type.create_Ident(Sequence<Rune>.UnicodeFromString("i8")),
@@ -195,6 +187,8 @@ namespace Microsoft.Dafny.Compilers {
           NativeType.Selection.ULong => DAST.Type.create_Ident(Sequence<Rune>.UnicodeFromString("i64")),
           _ => throw new InvalidOperationException(),
         });
+      } else {
+        throw new NotImplementedException("Type name for " + typ);
       }
     }
 
@@ -209,10 +203,10 @@ namespace Microsoft.Dafny.Compilers {
 
     private class ClassWriter : IClassWriter {
       private readonly DafnyCompiler compiler;
-      private readonly ClassBuilder builder;
+      private readonly MethodContainer builder;
       private readonly List<MethodBuilder> methods = new();
 
-      public ClassWriter(DafnyCompiler compiler, ClassBuilder builder) {
+      public ClassWriter(DafnyCompiler compiler, MethodContainer builder) {
         this.compiler = compiler;
         this.builder = builder;
       }
@@ -224,7 +218,7 @@ namespace Microsoft.Dafny.Compilers {
           formals.Add((DAST.Type)DAST.Type.create_Ident(Sequence<Rune>.UnicodeFromString(compiler.IdProtect(typeArg.Formal.GetCompileName(compiler.Options)))));
         }
 
-        var builder = ((MethodContainer)this.builder).Method(m.Name, formals);
+        var builder = this.builder.Method(m.Name, formals);
         methods.Add(builder);
         compiler.currentBuilder = builder;
         return new ConcreteSyntaxTree();
@@ -409,10 +403,18 @@ namespace Microsoft.Dafny.Compilers {
         currentBuilder = builder.Call();
         base.TrCallStmt(s, receiverReplacement, wr);
       } else if (currentBuilder is ExprContainer exprBuilder) {
-        currentBuilder = exprBuilder.Call();
-        base.TrCallStmt(s, receiverReplacement, wr);
+        throw new NotImplementedException();
       } else {
         throw new InvalidOperationException("Cannot call statement in this context: " + currentBuilder);
+      }
+    }
+
+    protected override void CompileFunctionCallExpr(FunctionCallExpr e, ConcreteSyntaxTree wr, bool inLetExprBody,
+        ConcreteSyntaxTree wStmts, FCE_Arg_Translator tr) {
+      if (currentBuilder is ExprContainer exprBuilder) {
+        throw new NotImplementedException();
+      } else {
+        throw new InvalidOperationException("Cannot call function in this context: " + currentBuilder);
       }
     }
 

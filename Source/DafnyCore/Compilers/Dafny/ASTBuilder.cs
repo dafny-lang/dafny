@@ -67,6 +67,10 @@ namespace Microsoft.Dafny.Compilers {
   interface NewtypeContainer {
     DafnyCompiler compiler { get; }
     void AddNewtype(Newtype item);
+
+    public NewtypeBuilder Newtype(string name, DAST.Type baseType) {
+      return new NewtypeBuilder(this, name, baseType);
+    }
   }
 
   interface ClassContainer {
@@ -99,6 +103,30 @@ namespace Microsoft.Dafny.Compilers {
     }
   }
 
+  class NewtypeBuilder : MethodContainer {
+    public DafnyCompiler compiler { get => parent.compiler; }
+    readonly NewtypeContainer parent;
+    readonly string name;
+    readonly DAST.Type baseType;
+    // readonly List<NewtypeItem> body = new();
+
+    public NewtypeBuilder(NewtypeContainer parent, string name, DAST.Type baseType) {
+      this.parent = parent;
+      this.name = name;
+      this.baseType = baseType;
+    }
+
+    public void AddMethod(DAST.Method item) {
+      // body.Add((NewtypeItem)NewtypeItem.create_Method(item));
+      // TODO
+    }
+
+    public object Finish() {
+      parent.AddNewtype((Newtype)Newtype.create(Sequence<Rune>.UnicodeFromString(this.name), this.baseType));
+      return parent;
+    }
+  }
+
   interface MethodContainer {
     DafnyCompiler compiler { get; }
     void AddMethod(DAST.Method item);
@@ -106,6 +134,8 @@ namespace Microsoft.Dafny.Compilers {
     public MethodBuilder Method(string name, List<DAST.Type> typeArgs) {
       return new MethodBuilder(this, name, typeArgs);
     }
+
+    public object Finish();
   }
 
   class MethodBuilder : StatementContainer {

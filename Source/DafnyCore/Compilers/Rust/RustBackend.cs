@@ -5,6 +5,7 @@ using System.Diagnostics;
 using System.Diagnostics.Contracts;
 using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 
 namespace Microsoft.Dafny.Compilers;
 
@@ -17,6 +18,9 @@ public class RustBackend : DafnyExecutableBackend {
   public override int TargetIndentSize => 4;
   public override bool SupportsInMemoryCompilation => false;
   public override bool TextualTargetIsExecutable => false;
+
+  public override string TargetBasename(string dafnyProgramName) =>
+    Regex.Replace(base.TargetBasename(dafnyProgramName), "[^_A-Za-z0-9]", "_");
 
   protected override DafnyWrittenCompiler CreateDafnyWrittenCompiler() {
     return new RustCompiler();
