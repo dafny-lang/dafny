@@ -103,8 +103,8 @@ namespace Microsoft.Dafny.Compilers {
     DafnyCompiler compiler { get; }
     void AddMethod(DAST.Method item);
 
-    public MethodBuilder Method(string name) {
-      return new MethodBuilder(this, name);
+    public MethodBuilder Method(string name, List<DAST.Type> typeArgs) {
+      return new MethodBuilder(this, name, typeArgs);
     }
   }
 
@@ -112,11 +112,13 @@ namespace Microsoft.Dafny.Compilers {
     public DafnyCompiler compiler { get => parent.compiler; }
     readonly MethodContainer parent;
     readonly string name;
+    readonly List<DAST.Type> typeArgs;
     readonly List<DAST.Statement> body = new();
 
-    public MethodBuilder(MethodContainer parent, string name) {
+    public MethodBuilder(MethodContainer parent, string name, List<DAST.Type> typeArgs) {
       this.parent = parent;
       this.name = name;
+      this.typeArgs = typeArgs;
     }
 
     public void AddStatement(DAST.Statement item) {
@@ -124,7 +126,11 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     public object Finish() {
-      parent.AddMethod((DAST.Method)DAST.Method.create(Sequence<Rune>.UnicodeFromString(this.name), Sequence<DAST.Statement>.FromArray(body.ToArray())));
+      parent.AddMethod((DAST.Method)DAST.Method.create(
+        Sequence<Rune>.UnicodeFromString(this.name),
+        Sequence<DAST.Type>.FromArray(typeArgs.ToArray()),
+        Sequence<DAST.Statement>.FromArray(body.ToArray()))
+      );
       return parent;
     }
   }
@@ -190,7 +196,11 @@ namespace Microsoft.Dafny.Compilers {
 
     public object Finish() {
       if (isDeclare) {
-        parent.AddStatement((DAST.Statement)DAST.Statement.create_DeclareVar(Sequence<Rune>.UnicodeFromString(name), type, value));
+        if (this.value == null) {
+          parent.AddStatement((DAST.Statement)DAST.Statement.create_DeclareVar(Sequence<Rune>.UnicodeFromString(name), type, DAST.Optional<DAST._IExpression>.create_None()));
+        } else {
+          parent.AddStatement((DAST.Statement)DAST.Statement.create_DeclareVar(Sequence<Rune>.UnicodeFromString(name), type, DAST.Optional<DAST._IExpression>.create_Some(this.value)));
+        }
       } else {
         parent.AddStatement((DAST.Statement)DAST.Statement.create_Assign(Sequence<Rune>.UnicodeFromString(name), value));
       }
@@ -222,10 +232,8 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     public object Finish() {
-      parent.AddStatement((DAST.Statement)DAST.Statement.create_Print(
-        DAST.Expression.create_Literal(DAST.Literal.create_StringLiteral(
-          Sequence<Rune>.UnicodeFromString("TODO (call stmt)")
-        ))
+      parent.AddStatement((DAST.Statement)DAST.Statement.create_Todo(
+        Sequence<Rune>.UnicodeFromString("call stmt")
       ));
 
       return parent;
@@ -256,9 +264,9 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     public object Finish() {
-      parent.AddExpr((DAST.Expression)DAST.Expression.create_Literal(DAST.Literal.create_StringLiteral(
-        Sequence<Rune>.UnicodeFromString("TODO (call stmt)")
-      )));
+      parent.AddExpr((DAST.Expression)DAST.Expression.create_Todo(
+        Sequence<Rune>.UnicodeFromString("call expr")
+      ));
       return parent;
     }
   }

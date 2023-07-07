@@ -17,11 +17,13 @@ module {:extern "DAST"} DAST {
 
   datatype ClassItem = Method(Method) | Other(a: string)
 
-  datatype Method = Method(name: string, body: seq<Statement>)
+  datatype Method = Method(name: string, typeArgs: seq<Type>, body: seq<Statement>)
 
-  datatype Statement = DeclareVar(name: string, typ: Type, value: Expression) | Assign(name: string, value: Expression) | Call(name: string, args: seq<Expression>) | Print(Expression)
+  datatype Optional<T> = Some(T) | None
 
-  datatype Expression = Literal(Literal) | Ident(string) | DatatypeValue(contents: seq<Expression>) | BinOp(op: string, left: Expression, right: Expression)
+  datatype Statement = DeclareVar(name: string, typ: Type, maybeValue: Optional<Expression>) | Assign(name: string, value: Expression) | Call(name: string, args: seq<Expression>) | Print(Expression) | Todo(reason: string)
+
+  datatype Expression = Literal(Literal) | Ident(string) | DatatypeValue(contents: seq<Expression>) | BinOp(op: string, left: Expression, right: Expression) | Todo(reason: string)
 
   datatype Literal = IntLiteral(int) | DecLiteral(string) | StringLiteral(string)
 }

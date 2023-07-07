@@ -70,7 +70,29 @@ module {:extern "DCOMP"} DCOMP {
     static method GenMethod(m: Method) returns (s: string) {
       // var params := GenParams(m.params);
       var body := GenStmts(m.body);
-      s := "pub fn " + m.name + "(" + "" + ") {\n" + body + "\n}\n";
+      s := "pub fn " + m.name;
+
+      if (|m.typeArgs| > 0) {
+        s := s + "<";
+
+        var i := 0;
+        while i < |m.typeArgs| {
+          if i > 0 {
+            s := s + ", ";
+          }
+
+          match m.typeArgs[i] {
+            case Ident(Ident(name)) => s := s + name;
+            case _ => s := s + "TODO";
+          }
+
+          i := i + 1;
+        }
+
+        s := s + ">";
+      }
+
+      s := s + "(" + "" + ") {\n" + body + "\n}\n";
     }
 
     static method GenStmts(body: seq<Statement>) returns (s: string) {
@@ -83,13 +105,19 @@ module {:extern "DCOMP"} DCOMP {
             var printedExpr := GenExpr(e);
             generated := "print!(\"{}\", ::dafny_runtime::DafnyPrintWrapper(" + printedExpr + "));";
           }
-          case DeclareVar(name, Ident(Ident(typ)), expression) => {
+          case DeclareVar(name, Ident(Ident(typ)), Some(expression)) => {
             var expr := GenExpr(expression);
             generated := "let mut " + name + ": " + typ + " = " + expr + ";";
+          }
+          case DeclareVar(name, Ident(Ident(typ)), None) => {
+            generated := "let mut " + name + ": " + typ + ";";
           }
           case Assign(name, expression) => {
             var expr := GenExpr(expression);
             generated := name + " = " + expr + ";";
+          }
+          case Todo(reason) => {
+            generated := "todo!();";
           }
           case _ => generated := "TODO";
         }
@@ -140,6 +168,9 @@ module {:extern "DCOMP"} DCOMP {
           var left := GenExpr(l);
           var right := GenExpr(r);
           s := "(" + left + " " + op + " " + right + ")";
+        }
+        case Todo(reason) => {
+          s := "todo!()";
         }
       }
     }
