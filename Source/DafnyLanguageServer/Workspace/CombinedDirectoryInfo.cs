@@ -6,6 +6,11 @@ using Microsoft.Extensions.FileSystemGlobbing.Abstractions;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace;
 
+/// <summary>
+/// Merges multiple filesystems into a combined one.
+/// The order in which the filesystems are given matters,
+/// when multiple filesystem contain the same file, the first containing filesystem returns it.
+/// </summary>
 class CombinedDirectoryInfo : DirectoryInfoBase {
   public DirectoryInfoBase[] Parts { get; }
 
