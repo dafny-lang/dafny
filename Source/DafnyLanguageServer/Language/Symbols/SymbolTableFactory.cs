@@ -326,13 +326,13 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
 
       private Unit VisitTypeSymbol<TNode>(TypeWithMembersSymbolBase<TNode> typeSymbol) where TNode : TopLevelDeclWithMembers {
         cancellationToken.ThrowIfCancellationRequested();
-          RegisterLocation(
-            typeSymbol,
-            typeSymbol.Declaration.tok,
-            typeSymbol.Declaration.tok.GetLspRange(),
-            new Range(typeSymbol.Declaration.RangeToken.StartToken.GetLspPosition(),
-              typeSymbol.Declaration.RangeToken.EndToken.GetLspPosition())
-          );
+        RegisterLocation(
+          typeSymbol,
+          typeSymbol.Declaration.tok,
+          typeSymbol.Declaration.tok.GetLspRange(),
+          new Range(typeSymbol.Declaration.RangeToken.StartToken.GetLspPosition(),
+            typeSymbol.Declaration.RangeToken.EndToken.GetLspPosition())
+        );
 
         VisitChildren(typeSymbol);
         return Unit.Value;

@@ -105,16 +105,16 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
       private IEnumerable<Symbol> ProcessTopLevelDeclaration(ModuleSymbol moduleSymbol, TopLevelDecl topLevelDeclaration) {
         switch (topLevelDeclaration) {
           case ClassLikeDecl classDeclaration:
-            return new [] { ProcessClass(moduleSymbol, classDeclaration) };
+            return new[] { ProcessClass(moduleSymbol, classDeclaration) };
           case ImplicitClassDecl implicitClassDecl:
             return implicitClassDecl.Members.Select(member => ProcessTypeMember(moduleSymbol, member)).
               Where(o => o != null)!;
           case LiteralModuleDecl literalModuleDeclaration:
-            return new [] { ProcessModule(moduleSymbol, literalModuleDeclaration.ModuleDef) };
+            return new[] { ProcessModule(moduleSymbol, literalModuleDeclaration.ModuleDef) };
           case ValuetypeDecl valueTypeDeclaration:
-            return new [] { ProcessValueType(moduleSymbol, valueTypeDeclaration) };
+            return new[] { ProcessValueType(moduleSymbol, valueTypeDeclaration) };
           case DatatypeDecl dataTypeDeclaration:
-            return new [] { ProcessDataType(moduleSymbol, dataTypeDeclaration) };
+            return new[] { ProcessDataType(moduleSymbol, dataTypeDeclaration) };
           default:
             logger.LogTrace("encountered unknown top level declaration {Name} of type {Type}", topLevelDeclaration.Name, topLevelDeclaration.GetType());
             return Enumerable.Empty<Symbol>();
