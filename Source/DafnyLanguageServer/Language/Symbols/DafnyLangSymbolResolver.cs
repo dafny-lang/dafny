@@ -94,29 +94,30 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         var moduleSymbol = new ModuleSymbol(scope, moduleDefinition);
         foreach (var declaration in moduleDefinition.TopLevelDecls) {
           cancellationToken.ThrowIfCancellationRequested();
-          var topLevelSymbol = ProcessTopLevelDeclaration(moduleSymbol, declaration);
-          if (topLevelSymbol != null) {
+          var topLevelSymbols = ProcessTopLevelDeclaration(moduleSymbol, declaration);
+          foreach (var topLevelSymbol in topLevelSymbols) {
             moduleSymbol.Declarations.Add(topLevelSymbol);
           }
         }
         return moduleSymbol;
       }
 
-      private Symbol? ProcessTopLevelDeclaration(ModuleSymbol moduleSymbol, TopLevelDecl topLevelDeclaration) {
+      private IEnumerable<Symbol> ProcessTopLevelDeclaration(ModuleSymbol moduleSymbol, TopLevelDecl topLevelDeclaration) {
         switch (topLevelDeclaration) {
           case ClassLikeDecl classDeclaration:
-            return ProcessClass(moduleSymbol, classDeclaration);
+            return new [] { ProcessClass(moduleSymbol, classDeclaration) };
           case ImplicitClassDecl implicitClassDecl:
-            return ProcessClass(moduleSymbol, implicitClassDecl);
+            return implicitClassDecl.Members.Select(member => ProcessTypeMember(moduleSymbol, member)).
+              Where(o => o != null)!;
           case LiteralModuleDecl literalModuleDeclaration:
-            return ProcessModule(moduleSymbol, literalModuleDeclaration.ModuleDef);
+            return new [] { ProcessModule(moduleSymbol, literalModuleDeclaration.ModuleDef) };
           case ValuetypeDecl valueTypeDeclaration:
-            return ProcessValueType(moduleSymbol, valueTypeDeclaration);
+            return new [] { ProcessValueType(moduleSymbol, valueTypeDeclaration) };
           case DatatypeDecl dataTypeDeclaration:
-            return ProcessDataType(moduleSymbol, dataTypeDeclaration);
+            return new [] { ProcessDataType(moduleSymbol, dataTypeDeclaration) };
           default:
             logger.LogTrace("encountered unknown top level declaration {Name} of type {Type}", topLevelDeclaration.Name, topLevelDeclaration.GetType());
-            return null;
+            return Enumerable.Empty<Symbol>();
         }
       }
 
