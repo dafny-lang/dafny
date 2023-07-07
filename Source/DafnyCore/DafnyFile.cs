@@ -9,7 +9,7 @@ using DafnyCore;
 namespace Microsoft.Dafny;
 
 public class DafnyFile {
-  public string FilePath { get; private set; }
+  public string FilePath => Uri.LocalPath;
   public string CanonicalPath { get; private set; }
   public string BaseName { get; private set; }
   public bool IsPreverified { get; set; }
@@ -36,7 +36,7 @@ public class DafnyFile {
     // So we will just use the absolute path, lowercased for all file systems.
     // cf. IncludeComparer.CompareTo
     CanonicalPath = contentOverride == null ? Canonicalize(filePath).LocalPath : "<stdin>";
-    FilePath = CanonicalPath;
+    filePath = CanonicalPath;
 
     var filePathForErrors = options.UseBaseNameForFileName ? Path.GetFileName(filePath) : filePath;
     if (contentOverride != null) {
