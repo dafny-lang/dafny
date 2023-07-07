@@ -233,7 +233,7 @@ namespace Microsoft.Dafny.Compilers {
 
     public object Finish() {
       parent.AddStatement((DAST.Statement)DAST.Statement.create_Todo(
-        Sequence<Rune>.UnicodeFromString("call stmt")
+        Sequence<Rune>.UnicodeFromString($"call stmt ({this.name}, {this.args})")
       ));
 
       return parent;

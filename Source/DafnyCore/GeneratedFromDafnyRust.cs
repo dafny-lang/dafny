@@ -1651,7 +1651,7 @@ namespace DCOMP {
           Dafny.ISequence<Dafny.Rune> _46___mcc_h24 = _source4.dtor_reason;
           Dafny.ISequence<Dafny.Rune> _47_reason = _46___mcc_h24;
           {
-            _22_generated = Dafny.Sequence<Dafny.Rune>.UnicodeFromString("todo!();");
+            _22_generated = Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("todo!(\""), _47_reason), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("\");"));
           }
         }
         if ((_21_i).Sign == 1) {
@@ -1739,7 +1739,7 @@ namespace DCOMP {
         Dafny.ISequence<Dafny.Rune> _69___mcc_h9 = _source8.dtor_reason;
         Dafny.ISequence<Dafny.Rune> _70_reason = _69___mcc_h9;
         {
-          s = Dafny.Sequence<Dafny.Rune>.UnicodeFromString("todo!()");
+          s = Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("todo!(\""), _70_reason), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("\")"));
         }
       }
       return s;

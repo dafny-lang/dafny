@@ -117,7 +117,7 @@ module {:extern "DCOMP"} DCOMP {
             generated := name + " = " + expr + ";";
           }
           case Todo(reason) => {
-            generated := "todo!();";
+            generated := "todo!(\"" + reason + "\");";
           }
           case _ => generated := "TODO";
         }
@@ -170,7 +170,7 @@ module {:extern "DCOMP"} DCOMP {
           s := "(" + left + " " + op + " " + right + ")";
         }
         case Todo(reason) => {
-          s := "todo!()";
+          s := "todo!(\"" + reason + "\")";
         }
       }
     }
