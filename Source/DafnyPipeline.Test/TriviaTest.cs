@@ -12,11 +12,11 @@ using Xunit.Abstractions;
 
 namespace DafnyPipeline.Test {
   [Collection("Singleton Test Collection - Trivia")]
-  public class Trivia {
+  public class TriviaTest {
 
     private readonly TextWriter output;
 
-    public Trivia(ITestOutputHelper output) {
+    public TriviaTest(ITestOutputHelper output) {
       this.output = new WriterFromOutputHelper(output);
     }
 
@@ -82,21 +82,18 @@ ensures true
         var reporter = dafnyProgram.Reporter;
         Assert.Equal(0, reporter.ErrorCount);
         var topLevelDecls = dafnyProgram.DefaultModuleDef.TopLevelDecls.ToList();
-        Assert.Equal(6, topLevelDecls.Count());
+        Assert.Equal(9, topLevelDecls.Count);
         var moduleTest = topLevelDecls[0] as LiteralModuleDecl;
         var trait1 = topLevelDecls[1];
         var trait2 = topLevelDecls[2];
         var subsetType = topLevelDecls[3];
         var class1 = topLevelDecls[4] as ClassDecl;
-        var defaultClass = topLevelDecls[5] as ImplicitClassDecl;
         Assert.NotNull(moduleTest);
         Assert.NotNull(class1);
-        Assert.NotNull(defaultClass);
-        Assert.Equal(4, defaultClass.Members.Count);
-        var c = defaultClass.Members[0];
-        var f = defaultClass.Members[1];
-        var g = defaultClass.Members[2];
-        var m = defaultClass.Members[3];
+        var c = ((ImplicitClassDecl)topLevelDecls[5]).Members[0];
+        var f = ((ImplicitClassDecl)topLevelDecls[6]).Members[0];
+        var g = ((ImplicitClassDecl)topLevelDecls[7]).Members[0];
+        var m = ((ImplicitClassDecl)topLevelDecls[8]).Members[0];
         Assert.NotNull(trait1.StartToken.Next);
         Assert.Equal("Trait1", trait1.StartToken.Next.val);
 
