@@ -13,7 +13,7 @@ public class CommonOptionBag {
     new("--compile-suffix", "Add the suffix _Compile to module names without :extern") {
       IsHidden = true
     };
-  
+
   public static readonly Option<bool> ManualLemmaInduction =
     new("--manual-lemma-induction", "Turn off automatic induction for lemmas.");
 
