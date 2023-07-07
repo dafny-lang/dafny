@@ -34,10 +34,16 @@ public class RustBackend : DafnyExecutableBackend {
       string /*?*/ callToMain, string /*?*/ targetFilename, ReadOnlyCollection<string> otherFileNames,
       bool runAfterCompile, TextWriter outputWriter, out object compilationResult) {
     compilationResult = null;
-    var psi = PrepareProcessStartInfo("rustc", new List<string> {
+    var args = new List<string> {
       "-o", ComputeExeName(targetFilename),
       targetFilename
-    });
+    };
+
+    if (callToMain == null) {
+      args.Add("--crate-type=lib");
+    }
+
+    var psi = PrepareProcessStartInfo("rustc", args);
     return 0 == RunProcess(psi, outputWriter, outputWriter, "Error while compiling Rust files.");
   }
 
