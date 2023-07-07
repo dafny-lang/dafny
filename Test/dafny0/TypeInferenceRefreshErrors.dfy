@@ -69,18 +69,35 @@ module Underspecification2 {
 }
 
 module Underspecification3 {
-  datatype Option<X> = None | Some(X)
-
   type Synonym<X, Unused> = seq<X>
-
-  type SubsetType<X, Unused> = s: seq<X> | |s| == 0
 
   method Underspecification() {
     // Regression: In the old type inference, the following line was not considered to be an error.
-//    var d: Synonym := [100, 101]; // error: type underspecified (TODO)
+    var d: Synonym := [100, 101]; // error: type underspecified
+  }
+}
 
+module Underspecification4 {
+  type SubsetType<X, Unused> = s: seq<X> | |s| == 0
+
+  method Underspecification() {
     // Regression: In the old type inference, the following would pass and would then crash the verifier:
     var e: SubsetType := [100, 101]; // error: type underspecified
+  }
+}
+
+module Underspecification5 {
+  type Synonym<A, Unused> = seq<A>
+
+  method SM(x: Synonym<int, real>, y: seq<bool>) {
+    var m: seq := y;
+
+    var a := x;
+
+    var b: Synonym := x; // error: type underspecified
+
+    var k: seq := x;
+    var y: Synonym := k; // error: type underspecified
   }
 }
 

@@ -172,12 +172,35 @@ namespace Microsoft.Dafny {
     public PreType Type2PreType(Type type, string description = null, Type2PreTypeOption option = Type2PreTypeOption.GoodForBoth) {
       Contract.Requires(type != null);
 
-      var originalType = type.Normalize();
+      type = type.Normalize(); // keep type synonyms
+      if (type.AsTypeSynonym is {} typeSynonymDecl and not SubsetTypeDecl && option != Type2PreTypeOption.GoodForInference) {
+        // Compute a pre-type for the non-instantiated ("raw") RHS type (that is, for the RHS of the type-synonym declaration with the
+        // formal type parameters of the type-synonym declaration).
+        var rawRhsType = UserDefinedType.FromTopLevelDecl(typeSynonymDecl.tok, typeSynonymDecl);
+        var preTypeArguments = type.TypeArgs.ConvertAll(ty => Type2PreType(ty, null, Type2PreTypeOption.GoodForBoth));
+
+        // The printable pre-type is the original type synonym, but with preTypeArguments as arguments
+        var printablePreType = new DPreType(typeSynonymDecl, preTypeArguments);
+
+        // The expanded pre-type is the raw RHS pre-type, but substituting in preTypeArguments for the type parameters
+        var rawRhsPreTypeForInference = Type2PreType(rawRhsType, null, Type2PreTypeOption.GoodForInference);
+        var preType = rawRhsPreTypeForInference.Substitute(PreType.PreTypeSubstMap(typeSynonymDecl.TypeArgs, preTypeArguments));
+
+        // Typically, preType is a DPreType. However, it could be that the RHS of the type synonym fizzles out to just one of the type
+        // parameters of the type synonym, and if that type synonym started off a proxy, then "preType" will be a proxy.
+        if (preType is DPreType dPreType) {
+          return new DPreType(dPreType.Decl, dPreType.Arguments, printablePreType);
+        } else {
+          // TODO: it would be nice to have a place to include "printablePreType" as part of what's returned, but currently only DPreType allows that
+          return preType;
+        }
+      }
+
       type = type.NormalizeExpandKeepConstraints(); // blow past proxies and type synonyms
       if (type.AsSubsetType is { } subsetType) {
         ResolvePreTypeSignature(subsetType);
         Contract.Assert(subsetType.Var.PreType != null);
-        var typeArguments = type.TypeArgs.ConvertAll(ty => Type2PreType(ty, null, Type2PreTypeOption.GoodForInference));
+        var typeArguments = type.TypeArgs.ConvertAll(ty => Type2PreType(ty, null, option));
         var preTypeMap = PreType.PreTypeSubstMap(subsetType.TypeArgs, typeArguments);
         return subsetType.Var.PreType.Substitute(preTypeMap);
       } else if (type is UserDefinedType { ResolvedClass: NewtypeDecl newtypeDecl }) {
@@ -191,23 +214,9 @@ namespace Microsoft.Dafny {
         return CreatePreTypeProxy(description ?? $"from type proxy {type}");
       }
 
-      DPreType printablePreType = null;
-#if GOOD_IDEA_WORTH_PURSUING_FURTHER_AT_A_LATER_TIME
-      if (option != Type2PreTypeOption.GoodForInference) {
-#else
-      if (option == Type2PreTypeOption.GoodForPrinting) {
-#endif
-        var printableDecl = Type2Decl(originalType);
-        var printableArguments = originalType.TypeArgs.ConvertAll(ty => Type2PreType(ty, null, Type2PreTypeOption.GoodForPrinting));
-        printablePreType = new DPreType(printableDecl, printableArguments, null);
-        if (option == Type2PreTypeOption.GoodForPrinting) {
-          return printablePreType;
-        }
-      }
-
       var decl = Type2Decl(type);
-      var arguments = type.TypeArgs.ConvertAll(ty => Type2PreType(ty, null, Type2PreTypeOption.GoodForInference));
-      return new DPreType(decl, arguments, printablePreType);
+      var arguments = type.TypeArgs.ConvertAll(ty => Type2PreType(ty, null, option));
+      return new DPreType(decl, arguments);
     }
 
     TopLevelDecl Type2Decl(Type type) {

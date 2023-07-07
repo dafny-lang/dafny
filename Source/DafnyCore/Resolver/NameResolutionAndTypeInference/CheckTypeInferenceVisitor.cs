@@ -375,7 +375,7 @@ class CheckTypeInferenceVisitor : ASTVisitor<TypeInferenceCheckingContext> {
     Contract.Requires(tok != null);
     Contract.Requires(t != null);
     Contract.Requires(what != null);
-    t = t.NormalizeExpandKeepConstraints();
+    t = t.Normalize(); // note, this keeps type synonyms, by design
 
     if (t is TypeProxy) {
       var proxy = (TypeProxy)t;

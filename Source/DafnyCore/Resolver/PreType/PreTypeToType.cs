@@ -27,8 +27,12 @@ class PreTypeToTypeVisitor : ASTVisitor<IASTVisitorContext> {
   }
 
   public static Type PreType2Type(PreType preType) {
+    return PreType2Type(preType, true);
+  }
+
+  public static Type PreType2Type(PreType preType, bool usePrintablePreType) {
     var pt = (DPreType)preType.Normalize(); // all pre-types should have been filled in and resolved to a non-proxy
-    if (pt.PrintablePreType != null) {
+    if (usePrintablePreType && pt.PrintablePreType != null) {
       pt = pt.PrintablePreType;
     }
     switch (pt.Decl.Name) {
@@ -77,7 +81,7 @@ class PreTypeToTypeVisitor : ASTVisitor<IASTVisitorContext> {
   }
 
   private void UpdateIfOmitted(Type type, PreType preType) {
-    var preTypeConverted = PreType2Type(preType);
+    var preTypeConverted = PreType2Type(preType, false);
     UpdateIfOmitted(type, preTypeConverted);
   }
 

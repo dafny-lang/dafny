@@ -19,10 +19,10 @@ method SM(x: Synonym<int, real>, y: seq<bool>) {
 
   var a := x;
 
-  var b: Synonym := x;
-  
+  var b: Synonym<int, bool> := x; // fine
+
   var k: seq := x;
-  var y: Synonym := k;
+  var y: Synonym<int, bv29> := k; // fine
 }
 
 type ParamSub<X> = s | s == CC.GetEmpty<X>()
