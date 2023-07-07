@@ -652,7 +652,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     private string BoxedTypeNames(List<Type> types, ConcreteSyntaxTree wr, IToken tok) {
-      return Util.Comma(types, t => BoxedTypeName(t, wr, tok));
+      return types.Comma(t => BoxedTypeName(t, wr, tok));
     }
 
     protected override string TypeArgumentName(Type type, ConcreteSyntaxTree wr, IToken tok) {
@@ -671,7 +671,8 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    private string TypeName(Type type, ConcreteSyntaxTree wr, IToken tok, bool boxed, bool erased, MemberDecl/*?*/ member = null) {
+    private string TypeName(Type type, ConcreteSyntaxTree wr, IToken tok,
+      bool boxed, bool omitTypeArguments, MemberDecl/*?*/ member = null) {
       Contract.Ensures(Contract.Result<string>() != null);
       Contract.Assume(type != null);  // precondition; this ought to be declared as a Requires in the superclass
 
@@ -692,14 +693,14 @@ namespace Microsoft.Dafny.Compilers {
         if (nativeType != null) {
           return GetNativeTypeName(nativeType, boxed);
         }
-        return TypeName(xType.AsNewtype.BaseType, wr, tok, boxed, erased);
+        return TypeName(xType.AsNewtype.BaseType, wr, tok, boxed, omitTypeArguments);
       } else if (xType.IsObjectQ) {
         return "Object";
       } else if (xType.IsArrayType) {
         ArrayClassDecl at = xType.AsArrayType;
         Contract.Assert(at != null);  // follows from type.IsArrayType
         Type elType = UserDefinedType.ArrayElementType(xType);
-        return ArrayTypeName(elType, at.Dims, wr, tok, erased);
+        return ArrayTypeName(elType, at.Dims, wr, tok, omitTypeArguments);
       } else if (xType is UserDefinedType udt) {
         if (udt.ResolvedClass is TypeParameter tp) {
           if (thisContext != null && thisContext.ParentFormalTypeParametersToActuals.TryGetValue(tp, out var instantiatedTypeParameter)) {
@@ -716,32 +717,32 @@ namespace Microsoft.Dafny.Compilers {
         }
         // When accessing a static member, leave off the type arguments
         if (member != null) {
-          return TypeName_UDT(s, new List<TypeParameter.TPVariance>(), new List<Type>(), wr, udt.tok, erased);
+          return TypeName_UDT(s, new List<TypeParameter.TPVariance>(), new List<Type>(), wr, udt.tok, omitTypeArguments);
         } else {
-          return TypeName_UDT(s, udt, wr, udt.tok, erased);
+          return TypeName_UDT(s, udt, wr, udt.tok, omitTypeArguments);
         }
       } else if (xType is SetType) {
         var argType = ((SetType)xType).Arg;
-        if (erased) {
+        if (omitTypeArguments) {
           return DafnySetClass;
         }
         return $"{DafnySetClass}<{ActualTypeArgument(argType, TypeParameter.TPVariance.Co, wr, tok)}>";
       } else if (xType is SeqType) {
         var argType = ((SeqType)xType).Arg;
-        if (erased) {
+        if (omitTypeArguments) {
           return DafnySeqClass;
         }
         return $"{DafnySeqClass}<{ActualTypeArgument(argType, TypeParameter.TPVariance.Co, wr, tok)}>";
       } else if (xType is MultiSetType) {
         var argType = ((MultiSetType)xType).Arg;
-        if (erased) {
+        if (omitTypeArguments) {
           return DafnyMultiSetClass;
         }
         return $"{DafnyMultiSetClass}<{ActualTypeArgument(argType, TypeParameter.TPVariance.Co, wr, tok)}>";
       } else if (xType is MapType) {
         var domType = ((MapType)xType).Domain;
         var ranType = ((MapType)xType).Range;
-        if (erased) {
+        if (omitTypeArguments) {
           return DafnyMapClass;
         }
         return $"{DafnyMapClass}<{ActualTypeArgument(domType, TypeParameter.TPVariance.Co, wr, tok)}, {ActualTypeArgument(ranType, TypeParameter.TPVariance.Co, wr, tok)}>";
