@@ -245,6 +245,10 @@ Functionality is still being expanded. Currently only checks contracts on every 
     DafnyOptions.RegisterLegacyBinding(StdIn, (options, value) => {
       options.UseStdin = value;
     });
+    
+    DafnyOptions.RegisterLegacyBinding(AddCompileSuffix, (options, value) => {
+      // options.UseStdin = value;
+    });
 
     DafnyOptions.RegisterLegacyBinding(FormatPrint, (options, value) => {
       options.DafnyPrintFile = value ? "-" : null;
@@ -295,6 +299,9 @@ Functionality is still being expanded. Currently only checks contracts on every 
         // target language code from referencing compiled internal code,
         // so to be conservative we flag this as not compatible in general.
         { OptimizeErasableDatatypeWrapper, DooFile.CheckOptionMatches },
+        // Similarly this shouldn't matter if external code ONLY refers to {:extern}s,
+        // but in practice it does.
+        { AddCompileSuffix, DooFile.CheckOptionMatches }
       }
     );
     DooFile.RegisterNoChecksNeeded(
