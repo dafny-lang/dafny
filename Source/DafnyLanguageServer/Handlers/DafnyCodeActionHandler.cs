@@ -151,7 +151,6 @@ public class DafnyCodeActionInput : IDafnyCodeActionInput {
   }
 
   public string Uri => Compilation.Uri.ToString();
-  public int Version => Compilation.Version;
   public Program Program => Compilation.Program;
   public CompilationAfterParsing Compilation { get; }
 

@@ -40,7 +40,14 @@ public class ProjectManager : IDisposable {
   private IDisposable observerSubscription;
   private readonly ILogger<ProjectManager> logger;
   private readonly ExecutionEngine boogieEngine;
-  private int version = 0;
+
+  /// <summary>
+  /// The version of this project.
+  /// Is incremented when any file in the project is updated.
+  /// Is used as part of project-wide notifications.
+  /// Can be used by the client to ignore outdated notifications
+  /// </summary>
+  private int version;
   public int OpenFileCount { get; private set; }
 
   private bool VerifyOnOpenChange => options.Get(ServerCommand.Verification) == VerifyOnMode.Change;
@@ -276,12 +283,14 @@ public class ProjectManager : IDisposable {
     }
   }
 
-  private IEnumerable<FilePosition> GetChangedVerifiablesFromRanges(CompilationAfterResolution loaded, IEnumerable<Location> changedRanges) {
+  private IEnumerable<FilePosition> GetChangedVerifiablesFromRanges(CompilationAfterTranslation translated, IEnumerable<Location> changedRanges) {
 
     IntervalTree<Position, Position> GetTree(Uri uri) {
-      // TODO see if we can replace this
-      var tree = new DocumentVerificationTree(loaded.Program, uri);
-      VerificationProgressReporter.UpdateTree(options, loaded, tree);
+      // Refactor: use the translated Boogie program
+      // instead of redoing part of that translation with the `DocumentVerificationTree` 
+      // https://github.com/dafny-lang/dafny/issues/4264
+      var tree = new DocumentVerificationTree(translated.Program, uri);
+      VerificationProgressReporter.UpdateTree(options, translated, tree);
       var intervalTree = new IntervalTree<Position, Position>();
       foreach (var childTree in tree.Children) {
         intervalTree.Add(childTree.Range.Start, childTree.Range.End, childTree.Position);
