@@ -99,7 +99,7 @@ namespace Microsoft.Dafny.Compilers {
       Error(ErrorId.c_unsupported_feature, tok, message, wr, args);
     }
 
-    protected string IntSelect = ",int";
+    protected string IntSelect = ", int"; // native integer in the target language, with a comma in front
     protected string LambdaExecute = "";
 
     protected bool UnicodeCharEnabled => Options.Get(CommonOptionBag.UnicodeCharacters);
@@ -3394,7 +3394,7 @@ namespace Microsoft.Dafny.Compilers {
             }
 
           }
-          tupleTypeArgs += "," + TypeArgumentName(rhs.Type, wr, rhs.tok);
+          tupleTypeArgs += ", " + TypeArgumentName(rhs.Type, wr, rhs.tok);
           tupleTypeArgsList.Add(rhs.Type);
 
           // declare and construct "ingredients"

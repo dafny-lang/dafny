@@ -19,7 +19,7 @@ using static Microsoft.Dafny.ConcreteSyntaxTreeUtils;
 namespace Microsoft.Dafny.Compilers {
   class JavaCompiler : SinglePassCompiler {
     public JavaCompiler(DafnyOptions options, ErrorReporter reporter) : base(options, reporter) {
-      IntSelect = ",java.math.BigInteger";
+      IntSelect = ", java.math.BigInteger";
       LambdaExecute = ".apply";
     }
 
