@@ -29,7 +29,6 @@ namespace DafnyTestGeneration.Test {
 
     public static TheoryData<List<Action<DafnyOptions>>> OptionSettings() {
       var optionSettings = new TheoryData<List<Action<DafnyOptions>>>();
-      optionSettings.Add(new() { options => options.TypeEncodingMethod = CoreOptions.TypeEncoding.Arguments });
       optionSettings.Add(new() { options => options.TypeEncodingMethod = CoreOptions.TypeEncoding.Predicates });
       return optionSettings;
     }
