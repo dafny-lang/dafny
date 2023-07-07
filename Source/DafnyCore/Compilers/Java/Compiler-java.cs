@@ -4113,7 +4113,7 @@ namespace Microsoft.Dafny.Compilers {
     }
     protected override ConcreteSyntaxTree CreateStaticMain(IClassWriter cw, string argsParameterName) {
       var wr = ((ClassWriter)cw).StaticMemberWriter;
-      return wr.NewBlock($"public static void __Main(dafny.DafnySequence<? extends dafny.DafnySequence<? extends {CharTypeName(true)}>> {argsParameterName})");
+      return wr.NewBlock($"public static void ___Main(dafny.DafnySequence<? extends dafny.DafnySequence<? extends {CharTypeName(true)}>> {argsParameterName})");
     }
 
     protected override void CreateIIFE(string bvName, Type bvType, IToken bvTok, Type bodyType, IToken bodyTok,
