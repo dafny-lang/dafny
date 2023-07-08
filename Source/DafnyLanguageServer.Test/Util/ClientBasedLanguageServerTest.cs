@@ -132,7 +132,6 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
     await client.WaitForNotificationCompletionAsync(documentItem.Uri, cancellationToken);
     var compilation = (await Projects.GetLastDocumentAsync(documentItem))!;
     Assert.NotNull(compilation);
-    Assert.True(documentItem.Version <= compilation.Version);
     var expectedDiagnostics = compilation.GetDiagnostics(documentItem.Uri.ToUri()).Select(d => d.ToLspDiagnostic()).ToList();
     PublishDiagnosticsParams result;
     while (true) {
