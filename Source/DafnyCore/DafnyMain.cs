@@ -60,7 +60,6 @@ namespace Microsoft.Dafny {
       Contract.Requires(files != null);
       program = null;
 
-      var defaultClassFirst = options.VerifyAllModules;
       ErrorReporter reporter = options.DiagnosticsFormat switch {
         DafnyOptions.DiagnosticsFormats.PlainText => new ConsoleErrorReporter(options),
         DafnyOptions.DiagnosticsFormats.JSON => new JsonConsoleErrorReporter(options),
