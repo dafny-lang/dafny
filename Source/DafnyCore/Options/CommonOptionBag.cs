@@ -246,10 +246,6 @@ Functionality is still being expanded. Currently only checks contracts on every 
       options.UseStdin = value;
     });
 
-    DafnyOptions.RegisterLegacyBinding(AddCompileSuffix, (options, value) => {
-      // options.UseStdin = value;
-    });
-
     DafnyOptions.RegisterLegacyBinding(FormatPrint, (options, value) => {
       options.DafnyPrintFile = value ? "-" : null;
     });
