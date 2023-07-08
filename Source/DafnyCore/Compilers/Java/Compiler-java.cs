@@ -338,7 +338,7 @@ namespace Microsoft.Dafny.Compilers {
       var addCompileSuffix = Options.Get(CommonOptionBag.AddCompileSuffix);
       var defaultModuleCompileName = addCompileSuffix ? "_module_Compile" : "_module";
       var enclosingModuleCompileNAme = mainMethod.EnclosingClass.EnclosingModuleDefinition.GetCompileName(Options);
-      var modName = enclosingModuleCompileNAme == defaultModuleCompileName 
+      var modName = enclosingModuleCompileNAme == defaultModuleCompileName
         ? (addCompileSuffix ? "_System_Compile." : "_System.")
         : "";
       companion = modName + companion;
