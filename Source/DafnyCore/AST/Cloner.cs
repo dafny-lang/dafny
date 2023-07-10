@@ -257,7 +257,10 @@ namespace Microsoft.Dafny {
     public virtual Formal CloneFormal(Formal formal, bool isReference) {
       return (Formal)clones.GetOrCreate(formal, () => isReference ? formal :
         new Formal(Tok(formal.tok), formal.Name, CloneType(formal.Type), formal.InParam, formal.IsGhost,
-        CloneExpr(formal.DefaultValue), formal.IsOld, formal.IsNameOnly, formal.IsOlder, formal.NameForCompilation));
+        CloneExpr(formal.DefaultValue), formal.IsOld, formal.IsNameOnly, formal.IsOlder, formal.NameForCompilation)
+      {
+        RangeToken = formal.RangeToken, IsTypeExplicit = formal.IsTypeExplicit
+      });
     }
 
     public virtual BoundVar CloneBoundVar(BoundVar bv, bool isReference) {
@@ -528,37 +531,14 @@ namespace Microsoft.Dafny {
 
     public virtual Method CloneMethod(Method m) {
       Contract.Requires(m != null);
-
-      var tps = CloneResolvedFields ? m.TypeArgs : m.TypeArgs.ConvertAll(CloneTypeParam);
-      var ins = m.Ins.ConvertAll(p => CloneFormal(p, false));
-      var req = m.Req.ConvertAll(CloneAttributedExpr);
-      var mod = CloneSpecFrameExpr(m.Mod);
-      var decreases = CloneSpecExpr(m.Decreases);
-
-      var ens = m.Ens.ConvertAll(CloneAttributedExpr);
-
-      BlockStmt body = CloneMethodBody(m);
-
-      if (m is Constructor) {
-        return new Constructor(Range(m.RangeToken), m.NameNode.Clone(this), m.IsGhost, tps, ins,
-          req, mod, ens, decreases, (DividedBlockStmt)body, CloneAttributes(m.Attributes), null);
-      } else if (m is LeastLemma) {
-        return new LeastLemma(Range(m.RangeToken), m.NameNode.Clone(this), m.HasStaticKeyword, ((LeastLemma)m).TypeOfK, tps, ins, m.Outs.ConvertAll(o => CloneFormal(o, false)),
-          req, mod, ens, decreases, body, CloneAttributes(m.Attributes), null);
-      } else if (m is GreatestLemma) {
-        return new GreatestLemma(Range(m.RangeToken), m.NameNode.Clone(this), m.HasStaticKeyword, ((GreatestLemma)m).TypeOfK, tps, ins, m.Outs.ConvertAll(o => CloneFormal(o, false)),
-          req, mod, ens, decreases, body, CloneAttributes(m.Attributes), null);
-      } else if (m is Lemma) {
-        return new Lemma(Range(m.RangeToken), m.NameNode.Clone(this), m.HasStaticKeyword, tps, ins, m.Outs.ConvertAll(o => CloneFormal(o, false)),
-          req, mod, ens, decreases, body, CloneAttributes(m.Attributes), null);
-      } else if (m is TwoStateLemma) {
-        var two = (TwoStateLemma)m;
-        return new TwoStateLemma(Range(m.RangeToken), m.NameNode.Clone(this), m.HasStaticKeyword, tps, ins, m.Outs.ConvertAll(o => CloneFormal(o, false)),
-          req, mod, ens, decreases, body, CloneAttributes(m.Attributes), null);
-      } else {
-        return new Method(Range(m.RangeToken), m.NameNode.Clone(this), m.HasStaticKeyword, m.IsGhost, tps, ins, m.Outs.ConvertAll(o => CloneFormal(o, false)),
-          req, mod, ens, decreases, body, CloneAttributes(m.Attributes), m.SignatureEllipsis, m.IsByMethod);
-      }
+      return m switch {
+        Constructor constructor => new Constructor(this, constructor),
+        LeastLemma leastLemma => new LeastLemma(this, leastLemma),
+        GreatestLemma greatestLemma => new GreatestLemma(this, greatestLemma),
+        Lemma lemma => new Lemma(this, lemma),
+        TwoStateLemma lemma => new TwoStateLemma(this, lemma),
+        _ => new Method(this, m)
+      };
     }
 
     public virtual BlockStmt CloneMethodBody(Method m) {

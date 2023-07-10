@@ -92,6 +92,7 @@ namespace DafnyPipeline.Test {
           options.ErrorWriter.WriteLine("Formatting after resolution generates an error:");
           Assert.Equal(expectedProgram, reprinted);
         }
+
         var initErrorCount = reporter.ErrorCount;
 
         // Verify that the formatting is stable.
