@@ -363,6 +363,10 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
+    public List<DAST.Expression> PopAll() {
+      return PopN(exprs.Count);
+    }
+
     public DAST.Expression Finish() {
       if (exprs.Count != 1) {
         throw new InvalidOperationException();

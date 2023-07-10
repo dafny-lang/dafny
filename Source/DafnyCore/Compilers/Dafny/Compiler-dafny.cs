@@ -678,16 +678,45 @@ namespace Microsoft.Dafny.Compilers {
       };
     }
 
+    public override ConcreteSyntaxTree Expr(Expression expr, bool inLetExprBody, ConcreteSyntaxTree wStmts) {
+      if (expr is DatatypeValue) {
+        ExprBuffer buffer = new(this);
+        currentBuilder = buffer;
+        var result = base.Expr(expr, inLetExprBody, wStmts);
+
+        if (currentBuilder == buffer) {
+          // in some situations, EmitDatatypeValue will not have been called
+          var popped = buffer.Finish();
+          if (currentBuilder is ExprContainer container) {
+            container.AddExpr(popped);
+          } else {
+            throw new InvalidOperationException();
+          }
+        }
+
+        return result;
+      } else {
+        return base.Expr(expr, inLetExprBody, wStmts);
+      }
+    }
+
     protected override void EmitThis(ConcreteSyntaxTree wr, bool callToInheritedMember) {
       throw new NotImplementedException();
     }
 
     protected override void EmitDatatypeValue(DatatypeValue dtv, string arguments, ConcreteSyntaxTree wr) {
       if (currentBuilder is ExprBuffer builder) {
-        List<DAST.Expression> contents = builder.PopN(dtv.Arguments.Count);
+        List<DAST.Expression> contents = builder.PopAll();
         builder.AddExpr((DAST.Expression)DAST.Expression.create_DatatypeValue(
           Sequence<DAST.Expression>.FromArray(contents.ToArray())
         ));
+
+        DAST.Expression datatypeExpr = builder.Finish();
+        if (currentBuilder is ExprContainer container) {
+          container.AddExpr(datatypeExpr);
+        } else {
+          throw new InvalidOperationException("Cannot emit datatype value outside of expression context: " + currentBuilder);
+        }
       } else {
         throw new InvalidOperationException("Cannot emit datatype value outside of expression context: " + currentBuilder);
       }
