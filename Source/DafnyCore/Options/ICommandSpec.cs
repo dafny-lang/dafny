@@ -49,7 +49,8 @@ public interface ICommandSpec {
     CommonOptionBag.EnforceDeterminism,
     CommonOptionBag.OptimizeErasableDatatypeWrapper,
     CommonOptionBag.TestAssumptions,
-    DeveloperOptionBag.Bootstrapping
+    DeveloperOptionBag.Bootstrapping,
+    CommonOptionBag.AddCompileSuffix,
   }.Concat(VerificationOptions).ToList();
 
   public static IReadOnlyList<Option> ExecutionOptions = new Option[] {

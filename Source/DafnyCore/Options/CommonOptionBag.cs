@@ -9,6 +9,11 @@ namespace Microsoft.Dafny;
 
 public class CommonOptionBag {
 
+  public static readonly Option<bool> AddCompileSuffix =
+    new("--compile-suffix", "Add the suffix _Compile to module names without :extern") {
+      IsHidden = true
+    };
+
   public static readonly Option<bool> ManualLemmaInduction =
     new("--manual-lemma-induction", "Turn off automatic induction for lemmas.");
 
@@ -290,6 +295,9 @@ Functionality is still being expanded. Currently only checks contracts on every 
         // target language code from referencing compiled internal code,
         // so to be conservative we flag this as not compatible in general.
         { OptimizeErasableDatatypeWrapper, DooFile.CheckOptionMatches },
+        // Similarly this shouldn't matter if external code ONLY refers to {:extern}s,
+        // but in practice it does.
+        { AddCompileSuffix, DooFile.CheckOptionMatches }
       }
     );
     DooFile.RegisterNoChecksNeeded(
