@@ -7,6 +7,26 @@ namespace DafnyPipeline.Test;
 [Collection("Singleton Test Collection - FormatterForTopLevelDeclarations")]
 public class FormatterIssues : FormatterBaseTest {
   [Fact]
+    public void GitIssue4269FormatLemmaIde() {
+      FormatterWorksFor(@"
+module Foo {
+
+  function Baz()
+    :(a: string)
+    ensures a == ""asdf""
+  {
+    ""asdf""
+  }
+
+  lemma Bar(t: string)
+    requires t == Baz()
+    ensures t == ""asdf""
+    {}
+}
+");
+    }
+    
+    [Fact]
   public void GitIssue3912FormatterCollectionArrow() {
     FormatterWorksFor(@"
 const i :=
