@@ -17,9 +17,11 @@ module {:extern "DAST"} DAST {
 
   datatype Datatype = Datatype(name: string, body: seq<ClassItem>)
 
-  datatype ClassItem = Method(Method) | Other(a: string)
+  datatype ClassItem = Method(Method) | Function(Function) | Other(a: string)
 
   datatype Method = Method(name: string, typeArgs: seq<Type>, body: seq<Statement>)
+
+  datatype Function = Function(name: string, typeArgs: seq<Type>, body: Expression)
 
   datatype Optional<T> = Some(T) | None
 

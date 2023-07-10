@@ -77,7 +77,7 @@ namespace Microsoft.Dafny.Compilers {
     }
   }
 
-  class ClassBuilder : MethodContainer {
+  class ClassBuilder : MethodFunctionContainer {
     public DafnyCompiler compiler { get => parent.compiler; }
     readonly ClassContainer parent;
     readonly string name;
@@ -90,6 +90,10 @@ namespace Microsoft.Dafny.Compilers {
 
     public void AddMethod(DAST.Method item) {
       body.Add((ClassItem)ClassItem.create_Method(item));
+    }
+
+    public void AddFunction(DAST.Function item) {
+      body.Add((ClassItem)ClassItem.create_Function(item));
     }
 
     public object Finish() {
@@ -107,7 +111,7 @@ namespace Microsoft.Dafny.Compilers {
     }
   }
 
-  class NewtypeBuilder : MethodContainer {
+  class NewtypeBuilder : MethodFunctionContainer {
     public DafnyCompiler compiler { get => parent.compiler; }
     readonly NewtypeContainer parent;
     readonly string name;
@@ -122,6 +126,11 @@ namespace Microsoft.Dafny.Compilers {
 
     public void AddMethod(DAST.Method item) {
       // body.Add((NewtypeItem)NewtypeItem.create_Method(item));
+      // TODO
+    }
+
+    public void AddFunction(DAST.Function item) {
+      // body.Add((NewtypeItem)NewtypeItem.create_Function(item));
       // TODO
     }
 
@@ -140,7 +149,7 @@ namespace Microsoft.Dafny.Compilers {
     }
   }
 
-  class DatatypeBuilder : MethodContainer {
+  class DatatypeBuilder : MethodFunctionContainer {
     public DafnyCompiler compiler { get => parent.compiler; }
     readonly DatatypeContainer parent;
     readonly string name;
@@ -157,18 +166,29 @@ namespace Microsoft.Dafny.Compilers {
       // TODO
     }
 
+    public void AddFunction(DAST.Function item) {
+      // body.Add((ClassItem)ClassItem.create_Function(item));
+      // TODO
+    }
+
     public object Finish() {
       parent.AddDatatype((Datatype)Datatype.create(Sequence<Rune>.UnicodeFromString(this.name), Sequence<ClassItem>.FromArray(body.ToArray())));
       return parent;
     }
   }
 
-  interface MethodContainer {
+  interface MethodFunctionContainer {
     DafnyCompiler compiler { get; }
     void AddMethod(DAST.Method item);
 
+    void AddFunction(DAST.Function item);
+
     public MethodBuilder Method(string name, List<DAST.Type> typeArgs) {
       return new MethodBuilder(this, name, typeArgs);
+    }
+
+    public FunctionBuilder Function(string name, List<DAST.Type> typeArgs) {
+      return new FunctionBuilder(this, name, typeArgs);
     }
 
     public object Finish();
@@ -176,12 +196,12 @@ namespace Microsoft.Dafny.Compilers {
 
   class MethodBuilder : StatementContainer {
     public DafnyCompiler compiler { get => parent.compiler; }
-    readonly MethodContainer parent;
+    readonly MethodFunctionContainer parent;
     readonly string name;
     readonly List<DAST.Type> typeArgs;
     readonly List<DAST.Statement> body = new();
 
-    public MethodBuilder(MethodContainer parent, string name, List<DAST.Type> typeArgs) {
+    public MethodBuilder(MethodFunctionContainer parent, string name, List<DAST.Type> typeArgs) {
       this.parent = parent;
       this.name = name;
       this.typeArgs = typeArgs;
@@ -197,6 +217,37 @@ namespace Microsoft.Dafny.Compilers {
         Sequence<DAST.Type>.FromArray(typeArgs.ToArray()),
         Sequence<DAST.Statement>.FromArray(body.ToArray()))
       );
+      return parent;
+    }
+  }
+
+  class FunctionBuilder : ExprContainer {
+    public DafnyCompiler compiler { get => parent.compiler; }
+    readonly MethodFunctionContainer parent;
+    readonly string name;
+    readonly List<DAST.Type> typeArgs;
+    DAST.Expression body;
+
+    public FunctionBuilder(MethodFunctionContainer parent, string name, List<DAST.Type> typeArgs) {
+      this.parent = parent;
+      this.name = name;
+      this.typeArgs = typeArgs;
+    }
+
+    public void AddExpr(DAST.Expression item) {
+      if (body != null) {
+        throw new InvalidOperationException("Function body already set");
+      } else {
+        body = item;
+      }
+    }
+
+    public object Finish() {
+      parent.AddFunction((DAST.Function)DAST.Function.create(
+        Sequence<Rune>.UnicodeFromString(this.name),
+        Sequence<DAST.Type>.FromArray(typeArgs.ToArray()),
+        body
+      ));
       return parent;
     }
   }

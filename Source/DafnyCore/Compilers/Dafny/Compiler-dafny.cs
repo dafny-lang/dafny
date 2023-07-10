@@ -207,22 +207,23 @@ namespace Microsoft.Dafny.Compilers {
 
     private class ClassWriter : IClassWriter {
       private readonly DafnyCompiler compiler;
-      private readonly MethodContainer builder;
+      private readonly MethodFunctionContainer builder;
       private readonly List<MethodBuilder> methods = new();
+      private readonly List<FunctionBuilder> functions = new();
 
-      public ClassWriter(DafnyCompiler compiler, MethodContainer builder) {
+      public ClassWriter(DafnyCompiler compiler, MethodFunctionContainer builder) {
         this.compiler = compiler;
         this.builder = builder;
       }
 
       public ConcreteSyntaxTree CreateMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody,
         bool forBodyInheritance, bool lookasideBody) {
-        List<DAST.Type> formals = new();
+        List<DAST.Type> astTypeArgs = new();
         foreach (var typeArg in typeArgs) {
-          formals.Add((DAST.Type)DAST.Type.create_Ident(Sequence<Rune>.UnicodeFromString(compiler.IdProtect(typeArg.Formal.GetCompileName(compiler.Options)))));
+          astTypeArgs.Add((DAST.Type)DAST.Type.create_Ident(Sequence<Rune>.UnicodeFromString(compiler.IdProtect(typeArg.Formal.GetCompileName(compiler.Options)))));
         }
 
-        var builder = this.builder.Method(m.Name, formals);
+        var builder = this.builder.Method(m.Name, astTypeArgs);
         methods.Add(builder);
         compiler.currentBuilder = builder;
         return new ConcreteSyntaxTree();
@@ -235,7 +236,15 @@ namespace Microsoft.Dafny.Compilers {
       public ConcreteSyntaxTree CreateFunction(string name, List<TypeArgumentInstantiation> typeArgs,
           List<Formal> formals, Type resultType, IToken tok, bool isStatic, bool createBody, MemberDecl member,
           bool forBodyInheritance, bool lookasideBody) {
-        throw new NotImplementedException();
+        List<DAST.Type> astTypeArgs = new();
+        foreach (var typeArg in typeArgs) {
+          astTypeArgs.Add((DAST.Type)DAST.Type.create_Ident(Sequence<Rune>.UnicodeFromString(compiler.IdProtect(typeArg.Formal.GetCompileName(compiler.Options)))));
+        }
+
+        var builder = this.builder.Function(name, astTypeArgs);
+        functions.Add(builder);
+        compiler.currentBuilder = builder;
+        return new ConcreteSyntaxTree();
       }
 
       public ConcreteSyntaxTree CreateGetter(string name, TopLevelDecl enclosingDecl, Type resultType, IToken tok,
@@ -263,8 +272,17 @@ namespace Microsoft.Dafny.Compilers {
         foreach (var method in methods) {
           method.Finish();
         }
+
+        foreach (var function in functions) {
+          function.Finish();
+        }
+
         compiler.currentBuilder = builder.Finish();
       }
+    }
+
+    protected override ConcreteSyntaxTree EmitReturnExpr(ConcreteSyntaxTree wr) {
+      return new ConcreteSyntaxTree();
     }
 
     protected override string TypeDescriptor(Type type, ConcreteSyntaxTree wr, IToken tok) {
