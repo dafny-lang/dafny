@@ -791,8 +791,8 @@ namespace Microsoft.Dafny.Compilers {
       throw new cce.UnreachableException();  // unexpected type
     }
 
-    protected override string TypeName_UDT(string fullCompileName, List<TypeParameter.TPVariance> variance,
-        List<Type> typeArgs, ConcreteSyntaxTree wr, IToken tok, bool omitTypeArguments) {
+    protected override string TypeName_UDT(string fullCompileName, List<TypeParameter.TPVariance> variances,
+      List<Type> typeArgs, ConcreteSyntaxTree wr, IToken tok, bool omitTypeArguments) {
       return fullCompileName;
     }
 

@@ -291,7 +291,7 @@ namespace Microsoft.Dafny.Compilers {
       var typeArgs = SelectNonGhost(cl, udt.TypeArgs);
       return TypeName_UDT(fullCompileName, typeParams.ConvertAll(tp => tp.Variance), typeArgs, wr, tok, omitTypeArguments);
     }
-    protected abstract string TypeName_UDT(string fullCompileName, List<TypeParameter.TPVariance> variance, List<Type> typeArgs,
+    protected abstract string TypeName_UDT(string fullCompileName, List<TypeParameter.TPVariance> variances, List<Type> typeArgs,
       ConcreteSyntaxTree wr, IToken tok, bool omitTypeArguments);
     protected abstract string/*?*/ TypeName_Companion(Type type, ConcreteSyntaxTree wr, IToken tok, MemberDecl/*?*/ member);
     protected string TypeName_Companion(TopLevelDecl cls, ConcreteSyntaxTree wr, IToken tok) {
@@ -768,7 +768,7 @@ namespace Microsoft.Dafny.Compilers {
 
     protected ConcreteSyntaxTree CoercionIfNecessary(Type/*?*/ from, Type/*?*/ to, IToken tok, ICanRender inner) {
       var result = new ConcreteSyntaxTree();
-      EmitCoercionIfNecessary(from, to, tok, result).Append(inner);
+      EmitCoercionIfNecessary(@from, to, tok, result).Append(inner);
       return result;
     }
 
@@ -2627,7 +2627,7 @@ namespace Microsoft.Dafny.Compilers {
           var wStmts = wr.Fork();
           var w = DeclareLocalVar(IdProtect(bv.CompileName), bv.Type, rhsTok, wr);
           if (rhs != null) {
-            w = EmitCoercionIfNecessary(from: rhs.Type, to: bv.Type, tok: rhsTok, wr: w);
+            w = EmitCoercionIfNecessary(@from: rhs.Type, to: bv.Type, tok: rhsTok, wr: w);
             w.Append(Expr(rhs, inLetExprBody, wStmts));
           } else {
             w.Write(rhs_string);
@@ -3531,19 +3531,19 @@ namespace Microsoft.Dafny.Compilers {
 
       var typeArgs = TypeArgumentInstantiation.ListFromMember(lhs.Member, null, lhs.TypeApplication_JustMember);
       var lvalue = EmitMemberSelect(w => {
-        var wObj = EmitCoercionIfNecessary(from: null, to: tupleTypeArgsList[0], s0.Tok, w);
+        var wObj = EmitCoercionIfNecessary(@from: null, to: tupleTypeArgsList[0], tok: s0.Tok, wr: w);
         EmitTupleSelect(tup, 0, wObj);
       }, lhs.Obj.Type, lhs.Member, typeArgs, lhs.TypeArgumentSubstitutionsWithParents(), lhs.Type);
 
       var wRhs = EmitAssignment(lvalue, lhs.Type, tupleTypeArgsList[1], wr, s0.Tok);
-      var wCoerced = EmitCoercionIfNecessary(from: null, to: tupleTypeArgsList[1], tok: s0.Tok, wr: wRhs);
+      var wCoerced = EmitCoercionIfNecessary(@from: null, to: tupleTypeArgsList[1], tok: s0.Tok, wr: wRhs);
       EmitTupleSelect(tup, 1, wCoerced);
     }
 
     protected virtual void EmitSeqSelect(AssignStmt s0, List<Type> tupleTypeArgsList, ConcreteSyntaxTree wr, string tup) {
       var lhs = (SeqSelectExpr)s0.Lhs;
       EmitIndexCollectionUpdate(lhs.Seq.Type, out var wColl, out var wIndex, out var wValue, wr, nativeIndex: true);
-      var wCoerce = EmitCoercionIfNecessary(from: null, to: lhs.Seq.Type, tok: s0.Tok, wr: wColl);
+      var wCoerce = EmitCoercionIfNecessary(@from: null, to: lhs.Seq.Type, tok: s0.Tok, wr: wColl);
       EmitTupleSelect(tup, 0, wCoerce);
       var wCast = EmitCoercionToNativeInt(wIndex);
       EmitTupleSelect(tup, 1, wCast);
@@ -3554,7 +3554,7 @@ namespace Microsoft.Dafny.Compilers {
     protected virtual void EmitMultiSelect(AssignStmt s0, List<Type> tupleTypeArgsList, ConcreteSyntaxTree wr, string tup, int L) {
       var lhs = (MultiSelectExpr)s0.Lhs;
       var wArray = new ConcreteSyntaxTree(wr.RelativeIndentLevel);
-      var wCoerced = EmitCoercionIfNecessary(from: null, to: tupleTypeArgsList[0], tok: s0.Tok, wr: wArray);
+      var wCoerced = EmitCoercionIfNecessary(@from: null, to: tupleTypeArgsList[0], tok: s0.Tok, wr: wArray);
       EmitTupleSelect(tup, 0, wCoerced);
       var array = wArray.ToString();
       var indices = new List<string>();
@@ -3993,7 +3993,7 @@ namespace Microsoft.Dafny.Compilers {
       }
 
       public void EmitRead(ConcreteSyntaxTree wr) {
-        wr = Compiler.EmitCoercionIfNecessary(from, to, Token.NoToken, wr);
+        wr = Compiler.EmitCoercionIfNecessary(@from, to, Token.NoToken, wr);
         lvalue.EmitRead(wr);
       }
 
