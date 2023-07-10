@@ -91,8 +91,9 @@ class PreTypeToTypeVisitor : ASTVisitor<IASTVisitorContext> {
     } else {
       type = type.NormalizeExpand();
       // TODO: "type" should also be moved up to the parent type that corresponds to "preType.Decl"
-      Contract.Assert((type as UserDefinedType)?.ResolvedClass == (preTypeConverted as UserDefinedType)?.ResolvedClass);
-      Contract.Assert(type.TypeArgs.Count == preTypeConverted.TypeArgs.Count);
+      var preTypeConvertedExpanded = preTypeConverted.NormalizeExpand();
+      Contract.Assert((type as UserDefinedType)?.ResolvedClass == (preTypeConvertedExpanded as UserDefinedType)?.ResolvedClass);
+      Contract.Assert(type.TypeArgs.Count == preTypeConvertedExpanded.TypeArgs.Count);
       for (var i = 0; i < type.TypeArgs.Count; i++) {
         UpdateIfOmitted(type.TypeArgs[i], preTypeConverted.TypeArgs[i]);
       }

@@ -365,11 +365,18 @@ namespace Microsoft.Dafny.Compilers {
       EmitOutParameterSplits(outCollector, actualOutParamNames, wr);
     }
 
-    protected abstract void EmitActualTypeArgs(List<Type> typeArgs, IToken tok, ConcreteSyntaxTree wr);
+    protected abstract void EmitActualTypeArgs(List<Type> typeArgs, List<TypeParameter> typeParameters, IToken tok, ConcreteSyntaxTree wr);
 
-    protected virtual void EmitNameAndActualTypeArgs(string protectedName, List<Type> typeArgs, IToken tok, ConcreteSyntaxTree wr) {
+    protected void EmitNameAndActualTypeArgs(string protectedName, List<TypeArgumentInstantiation> typeArgumentInstantiations, IToken tok,
+      ConcreteSyntaxTree wr) {
+      EmitNameAndActualTypeArgs(protectedName, TypeArgumentInstantiation.ToActuals(typeArgumentInstantiations),
+        TypeArgumentInstantiation.ToFormals(typeArgumentInstantiations), tok, wr);
+    }
+
+    protected virtual void EmitNameAndActualTypeArgs(string protectedName, List<Type> typeArgs, List<TypeParameter> typeParameters,
+      IToken tok, ConcreteSyntaxTree wr) {
       wr.Write(protectedName);
-      EmitActualTypeArgs(typeArgs, tok, wr);
+      EmitActualTypeArgs(typeArgs, typeParameters, tok, wr);
     }
     protected abstract string GenerateLhsDecl(string target, Type/*?*/ type, ConcreteSyntaxTree wr, IToken tok);
 
@@ -2189,7 +2196,7 @@ namespace Microsoft.Dafny.Compilers {
       var calleeReceiverType = UserDefinedType.FromTopLevelDecl(f.tok, f.EnclosingClass).Subst(thisContext.ParentFormalTypeParametersToActuals);
       wr.Write("{0}{1}", TypeName_Companion(calleeReceiverType, wr, f.tok, f), ModuleSeparator);
       var typeArgs = CombineAllTypeArguments(f, thisContext);
-      EmitNameAndActualTypeArgs(IdName(f), TypeArgumentInstantiation.ToActuals(ForTypeParameters(typeArgs, f, true)), f.tok, wr);
+      EmitNameAndActualTypeArgs(IdName(f), ForTypeParameters(typeArgs, f, true), f.tok, wr);
       wr.Write("(");
       var sep = "";
       EmitTypeDescriptorsActuals(ForTypeDescriptors(typeArgs, f.EnclosingClass, f, true), f.tok, wr, ref sep);
@@ -2230,7 +2237,7 @@ namespace Microsoft.Dafny.Compilers {
       var calleeReceiverType = UserDefinedType.FromTopLevelDecl(f.tok, f.EnclosingClass).Subst(thisContext.ParentFormalTypeParametersToActuals);
       wr.Write("{0}{1}", TypeName_Companion(calleeReceiverType, wr, f.tok, f), ModuleSeparator);
       var typeArgs = CombineAllTypeArguments(f, thisContext);
-      EmitNameAndActualTypeArgs(companionName, TypeArgumentInstantiation.ToActuals(ForTypeParameters(typeArgs, f, true)), f.tok, wr);
+      EmitNameAndActualTypeArgs(companionName, ForTypeParameters(typeArgs, f, true), f.tok, wr);
       wr.Write("(");
       var sep = "";
       EmitTypeDescriptorsActuals(ForTypeDescriptors(typeArgs, f.EnclosingClass, f, true), f.tok, wr, ref sep);
@@ -2296,7 +2303,7 @@ namespace Microsoft.Dafny.Compilers {
       wr.Write(ClassAccessor);
 
       var typeArgs = CombineAllTypeArguments(method, thisContext);
-      EmitNameAndActualTypeArgs(companionName, TypeArgumentInstantiation.ToActuals(ForTypeParameters(typeArgs, method, true)), method.tok, wr);
+      EmitNameAndActualTypeArgs(companionName, ForTypeParameters(typeArgs, method, true), method.tok, wr);
       wr.Write("(");
       var sep = "";
       EmitTypeDescriptorsActuals(ForTypeDescriptors(typeArgs, method.EnclosingClass, method, true), method.tok, wr, ref sep);
@@ -2587,7 +2594,7 @@ namespace Microsoft.Dafny.Compilers {
           var companion = TypeName_Companion(UserDefinedType.FromTopLevelDeclWithAllBooleanTypeParameters(m.EnclosingClass), w, m.tok, m);
           w.Write("{0}.", companion);
         }
-        EmitNameAndActualTypeArgs(IdName(m), TypeArgumentInstantiation.ToActuals(ForTypeParameters(typeArgs, m, false)), m.tok, w);
+        EmitNameAndActualTypeArgs(IdName(m), ForTypeParameters(typeArgs, m, false), m.tok, w);
         w.Write("(");
         var sep = "";
         if (receiver != null && customReceiver) {
@@ -4578,7 +4585,7 @@ namespace Microsoft.Dafny.Compilers {
           wr.Write(ModuleSeparator);
         }
         var typeArgs = CombineAllTypeArguments(s.Method, s.MethodSelect.TypeApplication_AtEnclosingClass, s.MethodSelect.TypeApplication_JustMember);
-        EmitNameAndActualTypeArgs(protectedName, TypeArgumentInstantiation.ToActuals(ForTypeParameters(typeArgs, s.Method, false)), s.Tok, wr);
+        EmitNameAndActualTypeArgs(protectedName, ForTypeParameters(typeArgs, s.Method, false), s.Tok, wr);
         wr.Write("(");
         var sep = "";
         EmitTypeDescriptorsActuals(ForTypeDescriptors(typeArgs, s.Method.EnclosingClass, s.Method, false), s.Tok, wr, ref sep);
@@ -4867,7 +4874,7 @@ namespace Microsoft.Dafny.Compilers {
             var typeArgs = e.TypeApplication_AtEnclosingClass;
             Contract.Assert(typeArgs.Count == sf.EnclosingClass.TypeArgs.Count);
             wr.Write("{0}.", TypeName_Companion(e.Obj.Type, wr, e.tok, sf));
-            EmitNameAndActualTypeArgs(IdName(e.Member), typeArgs, e.tok, wr);
+            EmitNameAndActualTypeArgs(IdName(e.Member), typeArgs, sf.EnclosingClass.TypeArgs, e.tok, wr);
             var tas = TypeArgumentInstantiation.ListFromClass(sf.EnclosingClass, typeArgs);
             EmitTypeDescriptorsActuals(tas, e.tok, wr.ForkInParens());
           } else {
@@ -5652,7 +5659,7 @@ namespace Microsoft.Dafny.Compilers {
         compileName = IdName(f);
       }
       var typeArgs = CombineAllTypeArguments(f, e.TypeApplication_AtEnclosingClass, e.TypeApplication_JustFunction);
-      EmitNameAndActualTypeArgs(compileName, TypeArgumentInstantiation.ToActuals(ForTypeParameters(typeArgs, f, false)), f.tok, wr);
+      EmitNameAndActualTypeArgs(compileName, ForTypeParameters(typeArgs, f, false), f.tok, wr);
       wr.Write("(");
       var sep = "";
       EmitTypeDescriptorsActuals(ForTypeDescriptors(typeArgs, f.EnclosingClass, f, false), e.tok, wr, ref sep);

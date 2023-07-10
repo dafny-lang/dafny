@@ -1502,6 +1502,20 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     internal override string TypeName(Type type, ConcreteSyntaxTree wr, IToken tok, MemberDecl/*?*/ member = null) {
+      return TypeName(type, wr, tok, boxed: false, TypeParameter.TPVariance.Non, member);
+    }
+
+    private string BoxedTypeNames(List<Type> types, List<TypeParameter.TPVariance> variances, ConcreteSyntaxTree wr, IToken tok) {
+      Contract.Requires(types.Count == variances.Count);
+      return Enumerable.Zip(types, variances).Comma(pair => BoxedTypeName(pair.First, pair.Second, wr, tok));
+    }
+
+    private string BoxedTypeName(Type type, TypeParameter.TPVariance variance, ConcreteSyntaxTree wr, IToken tok) {
+      return TypeName(type, wr, tok, boxed: true, variance);
+    }
+
+    private string TypeName(Type type, ConcreteSyntaxTree wr, IToken tok,
+      bool boxed, TypeParameter.TPVariance varianceIfBoxed, MemberDecl/*?*/ member = null) {
       Contract.Ensures(Contract.Result<string>() != null);
       Contract.Assume(type != null);  // precondition; this ought to be declared as a Requires in the superclass
 
@@ -1518,6 +1532,11 @@ namespace Microsoft.Dafny.Compilers {
         var t = (BitvectorType)xType;
         return t.NativeType != null ? GetNativeTypeName(t.NativeType) : "BigInteger";
       } else if (xType.AsNewtype != null && member == null) { // when member is given, use UserDefinedType case below
+        if (boxed && xType.HasFatPointer && varianceIfBoxed == TypeParameter.TPVariance.Co) {
+          var udt = (UserDefinedType)xType;
+          var s = FullTypeName(udt, null);
+          return TypeName_UDT(s, udt, wr, udt.tok);
+        }
         var nativeType = xType.AsNewtype.NativeType;
         if (nativeType != null) {
           return GetNativeTypeName(nativeType);
@@ -1542,17 +1561,17 @@ namespace Microsoft.Dafny.Compilers {
         return TypeName_UDT(s, udt, wr, udt.tok);
       } else if (xType is SetType) {
         Type argType = ((SetType)xType).Arg;
-        return DafnyISet + "<" + TypeName(argType, wr, tok) + ">";
+        return DafnyISet + "<" + BoxedTypeName(argType, TypeParameter.TPVariance.Co, wr, tok) + ">";
       } else if (xType is SeqType) {
         Type argType = ((SeqType)xType).Arg;
-        return DafnyISeq + "<" + TypeName(argType, wr, tok) + ">";
+        return DafnyISeq + "<" + BoxedTypeName(argType, TypeParameter.TPVariance.Co, wr, tok) + ">";
       } else if (xType is MultiSetType) {
         Type argType = ((MultiSetType)xType).Arg;
-        return DafnyIMultiset + "<" + TypeName(argType, wr, tok) + ">";
-      } else if (xType is MapType) {
-        Type domType = ((MapType)xType).Domain;
-        Type ranType = ((MapType)xType).Range;
-        return DafnyIMap + "<" + TypeName(domType, wr, tok) + "," + TypeName(ranType, wr, tok) + ">";
+        return DafnyIMultiset + "<" + BoxedTypeName(argType, TypeParameter.TPVariance.Co, wr, tok) + ">";
+      } else if (xType is MapType mapType) {
+        var domain = BoxedTypeName(mapType.Domain, TypeParameter.TPVariance.Co, wr, tok);
+        var range = BoxedTypeName(mapType.Range, TypeParameter.TPVariance.Co, wr, tok);
+        return $"{DafnyIMap}<{domain}, {range}>";
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected type
       }
@@ -1590,14 +1609,18 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
+    /// <summary>
+    /// Returns a boxed type name suitable for passing in as a co-variant parameter. The type is that
+    /// for "a" if "b" is null or is equal to "a"; and is "object" otherwise.
+    /// </summary>
     public string CommonTypeName(Type a, Type /*?*/ b, ConcreteSyntaxTree wr, IToken tok) {
       if (b == null) {
-        return TypeName(a, wr, tok);
+        return BoxedTypeName(a, TypeParameter.TPVariance.Co, wr, tok);
       }
       a = a.NormalizeExpand();
       b = b.NormalizeExpand();
       if (a.Equals(b)) {
-        return TypeName(a, wr, tok);
+        return BoxedTypeName(a, TypeParameter.TPVariance.Co, wr, tok);
       }
       // It would be nice to use Meet(a, b) here. Unfortunately, Resolver.Meet also needs a Builtins argument, which we
       // don't have here.
@@ -1707,7 +1730,7 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Assume(variances.Count == typeArgs.Count);
       string s = IdProtect(fullCompileName);
       if (typeArgs.Count != 0) {
-        s += "<" + TypeNames(typeArgs, wr, tok) + ">";
+        s += "<" + BoxedTypeNames(typeArgs, variances, wr, tok) + ">";
       }
       return s;
     }
@@ -1918,7 +1941,7 @@ namespace Microsoft.Dafny.Compilers {
       EmitAssignment(actualOutParamNames[0], null, outCollector, null, wr);
     }
 
-    protected override void EmitActualTypeArgs(List<Type> typeArgs, IToken tok, ConcreteSyntaxTree wr) {
+    protected override void EmitActualTypeArgs(List<Type> typeArgs, List<TypeParameter> typeParameters, IToken tok, ConcreteSyntaxTree wr) {
       if (typeArgs.Count != 0) {
         wr.Write("<" + TypeNames(typeArgs, wr, tok) + ">");
       }
@@ -2436,21 +2459,21 @@ namespace Microsoft.Dafny.Compilers {
         return IdProtect(udt.GetCompileName(Options));
       }
 
-      //Use the interface if applicable (not handwritten, or incompatible variance)
-      if ((cl is DatatypeDecl)
-          && !ignoreInterface
-          && (member is null || !NeedsCustomReceiver(member))) {
-        return (cl.EnclosingModuleDefinition.IsDefaultModule ? "" : IdProtect(cl.EnclosingModuleDefinition.GetCompileName(Options)) + ".") + DtTypeName(cl, false);
+      // Use the interface if applicable (not handwritten, or incompatible variance)
+      if (cl is DatatypeDecl && !ignoreInterface && (member is null || !NeedsCustomReceiver(member))) {
+        var module = cl.EnclosingModuleDefinition;
+        return (module.IsDefaultModule ? "" : IdProtect(module.GetCompileName(Options)) + ".") + DtTypeName(cl, false);
       }
 
+      string name = cl.GetCompileName(Options);
       if (cl.EnclosingModuleDefinition.IsDefaultModule) {
-        return IdProtect(cl.GetCompileName(Options));
+        return IdProtect(name);
       }
 
       if (cl.IsExtern(Options, out _, out _)) {
-        return cl.EnclosingModuleDefinition.GetCompileName(Options) + "." + cl.GetCompileName(Options);
+        return cl.EnclosingModuleDefinition.GetCompileName(Options) + "." + name;
       }
-      return IdProtect(cl.EnclosingModuleDefinition.GetCompileName(Options)) + "." + IdProtect(cl.GetCompileName(Options));
+      return IdProtect(cl.EnclosingModuleDefinition.GetCompileName(Options)) + "." + IdProtect(name);
     }
 
     protected override void EmitThis(ConcreteSyntaxTree wr, bool callToInheritedMember) {
@@ -2569,7 +2592,7 @@ namespace Microsoft.Dafny.Compilers {
         }
       } else if (member is Function fn) {
         var wr = new ConcreteSyntaxTree();
-        EmitNameAndActualTypeArgs(IdName(member), TypeArgumentInstantiation.ToActuals(ForTypeParameters(typeArgs, member, false)), member.tok, wr);
+        EmitNameAndActualTypeArgs(IdName(member), ForTypeParameters(typeArgs, member, false), member.tok, wr);
         if (typeArgs.Count == 0 && additionalCustomParameter == null) {
           var nameAndTypeArgs = wr.ToString();
           return SuffixLvalue(obj, $".{nameAndTypeArgs}");
