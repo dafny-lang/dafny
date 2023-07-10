@@ -1890,11 +1890,10 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override ConcreteSyntaxTree CreateLabeledCode(string label, bool createContinueLabel, ConcreteSyntaxTree wr) {
-      wr.WriteLine("{");
-      var w = wr.Fork();
+      var wBody = wr.NewBlock(open: BlockStyle.Brace);
+      var w = wBody.Fork();
       var prefix = createContinueLabel ? "C" : "L";
-      wr.WriteLine($"goto {prefix}{label};");
-      wr.WriteLine("}");
+      wBody.WriteLine($"goto {prefix}{label};");
       wr.Fork(-1).WriteLine($"{prefix}{label}:");
       return w;
     }
