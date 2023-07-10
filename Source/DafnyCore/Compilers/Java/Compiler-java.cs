@@ -707,9 +707,6 @@ namespace Microsoft.Dafny.Compilers {
           }
         }
         var s = FullTypeName(udt, member);
-        if (s.Equals("string")) {
-          return "String";
-        }
         var cl = udt.ResolvedClass;
         if (cl is TupleTypeDecl tupleDecl) {
           s = DafnyTupleClass(tupleDecl.NonGhostDims);
