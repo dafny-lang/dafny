@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reactive.Linq;
+using System.Runtime.Caching;
 using System.Threading;
 using System.Threading.Tasks;
 using IntervalTree;
@@ -10,6 +11,7 @@ using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.FileSystemGlobbing;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
@@ -30,20 +32,22 @@ public class ProjectManager {
   private IDisposable observerSubscription;
   private readonly ILogger<ProjectManager> logger;
 
-  private bool VerifyOnOpen => options.Get(ServerCommand.Verification) == VerifyOnMode.Change;
-  private bool VerifyOnChange => options.Get(ServerCommand.Verification) == VerifyOnMode.Change;
-  private bool VerifyOnSave => options.Get(ServerCommand.Verification) == VerifyOnMode.Save;
+  private bool VerifyOnOpen => serverOptions.Get(ServerCommand.Verification) == VerifyOnMode.Change;
+  private bool VerifyOnChange => serverOptions.Get(ServerCommand.Verification) == VerifyOnMode.Change;
+  private bool VerifyOnSave => serverOptions.Get(ServerCommand.Verification) == VerifyOnMode.Save;
   public List<Position> ChangedVerifiables { get; set; } = new();
   public List<Range> ChangedRanges { get; set; } = new();
 
   private readonly SemaphoreSlim workCompletedForCurrentVersion = new(0);
-  private readonly DafnyOptions options;
+  private readonly DafnyOptions serverOptions;
+  private readonly IFileSystem fileSystem;
 
   public ProjectManager(
     IServiceProvider services,
     VersionedTextDocumentIdentifier documentIdentifier) {
     this.services = services;
-    options = services.GetRequiredService<DafnyOptions>();
+    fileSystem = services.GetRequiredService<IFileSystem>();
+    serverOptions = services.GetRequiredService<DafnyOptions>();
     logger = services.GetRequiredService<ILogger<ProjectManager>>();
     relocator = services.GetRequiredService<IRelocator>();
 
@@ -54,11 +58,11 @@ public class ProjectManager {
       documentIdentifier);
     CompilationManager = new CompilationManager(
       services,
-      DetermineDocumentOptions(options, documentIdentifier.Uri),
+      DetermineDocumentOptions(serverOptions, documentIdentifier.Uri),
       documentIdentifier,
       null);
 
-    observerSubscription = CompilationManager.DocumentUpdates.Select(d => d.InitialIdeState(options)).Subscribe(observer);
+    observerSubscription = CompilationManager.DocumentUpdates.Select(d => d.InitialIdeState(serverOptions)).Subscribe(observer);
 
     if (VerifyOnOpen) {
       var _ = VerifyEverythingAsync();
@@ -72,6 +76,8 @@ public class ProjectManager {
 
   private const int MaxRememberedChanges = 100;
   private const int MaxRememberedChangedVerifiables = 5;
+  public const int ProjectFileCacheExpiryTime = 100;
+
   public void UpdateDocument(DidChangeTextDocumentParams documentChange) {
 
     logger.LogDebug("Clearing result for workCompletedForCurrentVersion");
@@ -95,7 +101,7 @@ public class ProjectManager {
           Where(r => r != null).Take(MaxRememberedChanges).ToList()!;
     }
 
-    var dafnyOptions = DetermineDocumentOptions(options, documentChange.TextDocument.Uri);
+    var dafnyOptions = DetermineDocumentOptions(serverOptions, documentChange.TextDocument.Uri);
     CompilationManager = new CompilationManager(
       services,
       dafnyOptions,
@@ -123,37 +129,77 @@ public class ProjectManager {
     CompilationManager.Start();
   }
 
-  private static DafnyOptions DetermineDocumentOptions(DafnyOptions serverOptions, DocumentUri uri) {
+  private DafnyOptions DetermineDocumentOptions(DafnyOptions serverOptions, DocumentUri uri) {
+    DafnyProject? projectFile = GetProject(uri);
+
+    var result = new DafnyOptions(serverOptions);
+    result.Printer = new OutputLogger(logger);
+
+    foreach (var option in ServerCommand.Instance.Options) {
+      object? projectFileValue = null;
+      var hasProjectFileValue = projectFile?.TryGetValue(option, TextWriter.Null, out projectFileValue) ?? false;
+      if (hasProjectFileValue) {
+        result.Options.OptionArguments[option] = projectFileValue;
+        result.ApplyBinding(option);
+      }
+    }
+
+    return result;
+
+  }
+
+  private DafnyProject GetProject(DocumentUri uri) {
+    return FindProjectFile(uri.ToUri()) ?? ImplicitProject(uri);
+  }
+
+  public static DafnyProject ImplicitProject(DocumentUri uri) {
+    var implicitProject = new DafnyProject {
+      Includes = new[] { uri.GetFileSystemPath() },
+      Uri = uri.ToUri(),
+    };
+    return implicitProject;
+  }
+
+  private DafnyProject? FindProjectFile(Uri uri) {
+
     DafnyProject? projectFile = null;
 
-    var folder = Path.GetDirectoryName(uri.GetFileSystemPath());
-    while (!string.IsNullOrEmpty(folder)) {
-      var children = Directory.GetFiles(folder, "dfyconfig.toml");
-      if (children.Length > 0) {
-        projectFile = DafnyProject.Open(new Uri(children[0]), serverOptions.OutputWriter, serverOptions.ErrorWriter);
-        if (projectFile != null) {
-          break;
-        }
-      }
+    var folder = Path.GetDirectoryName(uri.LocalPath);
+    while (!string.IsNullOrEmpty(folder) && projectFile == null) {
+      projectFile = GetProjectFile(uri, folder);
       folder = Path.GetDirectoryName(folder);
     }
 
-    if (projectFile != null) {
-      var result = new DafnyOptions(serverOptions);
+    return projectFile;
+  }
 
-      foreach (var option in ServerCommand.Instance.Options) {
-        object? projectFileValue = null;
-        var hasProjectFileValue = projectFile?.TryGetValue(option, TextWriter.Null, out projectFileValue) ?? false;
-        if (hasProjectFileValue) {
-          result.Options.OptionArguments[option] = projectFileValue;
-          result.ApplyBinding(option);
-        }
-      }
-
-      return result;
+  private readonly MemoryCache projectFilePerFolderCache = new("projectFiles");
+  private readonly object nullRepresentative = new(); // Needed because you can't store null in the MemoryCache, but that's a value we want to cache.
+  private DafnyProject? GetProjectFile(Uri sourceFile, string folderPath) {
+    var cachedResult = projectFilePerFolderCache.Get(folderPath);
+    if (cachedResult != null) {
+      return cachedResult == nullRepresentative ? null : (DafnyProject?)cachedResult;
     }
 
-    return serverOptions;
+    var result = GetProjectFileFromUriUncached(sourceFile, folderPath);
+    projectFilePerFolderCache.Set(new CacheItem(folderPath, (object?)result ?? nullRepresentative), new CacheItemPolicy {
+      AbsoluteExpiration = new DateTimeOffset(DateTime.Now.Add(TimeSpan.FromMilliseconds(ProjectFileCacheExpiryTime)))
+    });
+    return result;
+  }
+
+  private DafnyProject? GetProjectFileFromUriUncached(Uri sourceFile, string folderPath) {
+    var configFileUri = new Uri(Path.Combine(folderPath, DafnyProject.FileName));
+    if (!fileSystem.Exists(configFileUri)) {
+      return null;
+    }
+
+    DafnyProject? projectFile = DafnyProject.Open(fileSystem, configFileUri, TextWriter.Null, TextWriter.Null);
+    if (projectFile?.ContainsSourceFile(sourceFile) == false) {
+      return null;
+    }
+
+    return projectFile;
   }
 
   private Dictionary<ImplementationId, IdeImplementationView> MigrateImplementationViews(DidChangeTextDocumentParams documentChange,
@@ -250,7 +296,7 @@ public class ProjectManager {
 
   private IEnumerable<Position> GetChangedVerifiablesFromRanges(CompilationAfterResolution loaded, IEnumerable<Range> changedRanges) {
     var tree = new DocumentVerificationTree(loaded.Program, loaded.DocumentIdentifier);
-    VerificationProgressReporter.UpdateTree(options, loaded, tree);
+    VerificationProgressReporter.UpdateTree(serverOptions, loaded, tree);
     var intervalTree = new IntervalTree<Position, Position>();
     foreach (var childTree in tree.Children) {
       intervalTree.Add(childTree.Range.Start, childTree.Range.End, childTree.Position);
