@@ -146,7 +146,18 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override IClassWriter DeclareDatatype(DatatypeDecl dt, ConcreteSyntaxTree wr) {
       if (currentBuilder is DatatypeContainer builder) {
-        return new ClassWriter(this, builder.Datatype(dt.Name));
+        List<DAST.DatatypeCtor> ctors = new();
+        foreach (var ctor in dt.Ctors) {
+          List<DAST.Formal> args = new();
+          foreach (var arg in ctor.Formals) {
+            if (!arg.IsGhost) {
+              args.Add((DAST.Formal) DAST.Formal.create_Formal(Sequence<Rune>.UnicodeFromString(arg.Name), GenType(arg.Type)));
+            }
+          }
+          ctors.Add((DAST.DatatypeCtor)DAST.DatatypeCtor.create_DatatypeCtor(Sequence<Rune>.UnicodeFromString(ctor.Name), Sequence<DAST.Formal>.FromArray(args.ToArray())));
+        }
+
+        return new ClassWriter(this, builder.Datatype(dt.Name, ctors));
       } else {
         throw new InvalidOperationException("Cannot declare datatype outside of a module: " + currentBuilder);
       }
@@ -738,11 +749,15 @@ namespace Microsoft.Dafny.Compilers {
         case TupleTypeDecl:
           throw new NotImplementedException();
         default:
-          List<ISequence<Rune>> path = new();
-          path.Add(Sequence<Rune>.UnicodeFromString(cl.EnclosingModuleDefinition.GetCompileName(Options)));
-          path.Add(Sequence<Rune>.UnicodeFromString(cl.GetCompileName(Options)));
-          return (DAST.Type)DAST.Type.create_Path(Sequence<ISequence<Rune>>.FromArray(path.ToArray()));
+          return TypeNameASTFromTopLevel(cl);
       }
+    }
+
+    private DAST.Type TypeNameASTFromTopLevel(TopLevelDecl topLevel) {
+      List<ISequence<Rune>> path = new();
+      path.Add(Sequence<Rune>.UnicodeFromString(topLevel.EnclosingModuleDefinition.GetCompileName(Options)));
+      path.Add(Sequence<Rune>.UnicodeFromString(topLevel.GetCompileName(Options)));
+      return (DAST.Type)DAST.Type.create_Path(Sequence<ISequence<Rune>>.FromArray(path.ToArray()));
     }
 
     public override ConcreteSyntaxTree Expr(Expression expr, bool inLetExprBody, ConcreteSyntaxTree wStmts) {
@@ -774,8 +789,33 @@ namespace Microsoft.Dafny.Compilers {
     protected override void EmitDatatypeValue(DatatypeValue dtv, string arguments, ConcreteSyntaxTree wr) {
       if (currentBuilder is ExprBuffer builder) {
         List<DAST.Expression> contents = builder.PopAll();
+        List<_System._ITuple2<ISequence<Rune>, DAST.Expression>> namedContents = new();
+
+        int argI = 0;
+        for (int i = 0; i < dtv.Ctor.Formals.Count; i++) {
+          var formal = dtv.Ctor.Formals[i];
+          if (formal.IsGhost) {
+            continue;
+          }
+
+          var actual = contents[argI];
+          namedContents.Add(_System.Tuple2<ISequence<Rune>, DAST.Expression>.create(
+            Sequence<Rune>.UnicodeFromString(formal.Name),
+            actual
+          ));
+
+          argI++;
+        }
+
+        if (argI != contents.Count) {
+          throw new InvalidOperationException("Datatype constructor " + dtv.Ctor.Name + " expects " + dtv.Ctor.Formals.Count + " arguments, but " + contents.Count + " were provided");
+        }
+
+        DAST.Type datatypeType = TypeNameASTFromTopLevel(dtv.Ctor.EnclosingDatatype);
         builder.AddExpr((DAST.Expression)DAST.Expression.create_DatatypeValue(
-          Sequence<DAST.Expression>.FromArray(contents.ToArray())
+          datatypeType,
+          Sequence<Rune>.UnicodeFromString(dtv.Ctor.GetCompileName(Options)),
+          Sequence<_System._ITuple2<ISequence<Rune>, DAST.Expression>>.FromArray(namedContents.ToArray())
         ));
 
         DAST.Expression datatypeExpr = builder.Finish();

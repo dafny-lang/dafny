@@ -12,7 +12,9 @@ module {:extern "DAST"} DAST {
 
   datatype Class = Class(name: string, body: seq<ClassItem>)
 
-  datatype Datatype = Datatype(name: string, body: seq<ClassItem>)
+  datatype Datatype = Datatype(name: string, ctors: seq<DatatypeCtor>, body: seq<ClassItem>)
+
+  datatype DatatypeCtor = DatatypeCtor(name: string, args: seq<Formal>)
 
   datatype ClassItem = Method(Method) | Function(Function) | Field(Formal)
 
@@ -26,7 +28,7 @@ module {:extern "DAST"} DAST {
 
   datatype Statement = DeclareVar(name: string, typ: Type, maybeValue: Optional<Expression>) | Assign(name: string, value: Expression) | Call(enclosing: Optional<Type>, name: string, args: seq<Expression>) | Print(Expression) | Todo(reason: string)
 
-  datatype Expression = Literal(Literal) | Ident(string) | DatatypeValue(contents: seq<Expression>) | BinOp(op: string, left: Expression, right: Expression) | Todo(reason: string)
+  datatype Expression = Literal(Literal) | Ident(string) | DatatypeValue(typ: Type, variant: string, contents: seq<(string, Expression)>) | BinOp(op: string, left: Expression, right: Expression) | Todo(reason: string)
 
   datatype Literal = BoolLiteral(bool) | IntLiteral(int) | DecLiteral(string) | StringLiteral(string)
 }

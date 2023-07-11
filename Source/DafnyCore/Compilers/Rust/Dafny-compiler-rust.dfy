@@ -54,8 +54,27 @@ module {:extern "DCOMP"} DCOMP {
     }
 
     static method GenDatatype(c: Datatype) returns (s: string) {
+      var ctors := "";
+      var i := 0;
+      while i < |c.ctors| {
+        var ctor := c.ctors[i];
+        var ctorBody := ctor.name + " { ";
+        var j := 0;
+        while j < |ctor.args| {
+          var formal := ctor.args[j];
+          var formalType := GenType(formal.typ);
+          ctorBody := ctorBody + formal.name + ": " + formalType + ", ";
+          j := j + 1;
+        }
+
+        ctorBody := ctorBody + "}";
+
+        ctors := ctors + ctorBody + ",\n";
+        i := i + 1;
+      }
+
       var implBody := GenClassImplBody(c.body);
-      s := "pub struct " + c.name + " {\n" + "" +  "\n}" + "\n" + "impl " + c.name + " {\n" + implBody + "\n}";
+      s := "pub enum " + c.name + " {\n" + ctors +  "\n}" + "\n" + "impl " + c.name + " {\n" + implBody + "\n}";
     }
 
     static method GenType(c: Type) returns (s: string) {
@@ -203,7 +222,6 @@ module {:extern "DCOMP"} DCOMP {
           case Todo(reason) => {
             generated := "todo!(\"" + reason + "\");";
           }
-          case _ => generated := "TODO";
         }
 
         if i > 0 {
@@ -241,18 +259,23 @@ module {:extern "DCOMP"} DCOMP {
         case Ident(name) => {
           s := name;
         }
-        case DatatypeValue(values) => {
+        case DatatypeValue(typ, variant, values) => {
+          s := GenType(typ);
+          s := s + "::";
+          s := s + variant;
+
           var i := 0;
-          s := "(";
+          s := s + " {";
           while i < |values| {
+            var (name, value) := values[i];
             if i > 0 {
               s := s + ", ";
             }
-            var recursiveGen := GenExpr(values[i]);
-            s := s + recursiveGen;
+            var recursiveGen := GenExpr(value);
+            s := s + name + ": " + recursiveGen;
             i := i + 1;
           }
-          s := s + ")";
+          s := s + " }";
         }
         case BinOp(op, l, r) => {
           var left := GenExpr(l);
