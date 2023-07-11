@@ -14,7 +14,6 @@ using Xunit;
 using Xunit.Abstractions;
 
 namespace DafnyPipeline.Test {
-
   // Simple test cases (FormatterWorksFor with only one argument)
   // consist of removing all the indentation from the program,
   // adding it through the formatter, and checking if we obtain the initial result
@@ -60,7 +59,7 @@ namespace DafnyPipeline.Test {
         var uri = new Uri("virtual:virtual");
         var reporter = new BatchErrorReporter(options);
         Microsoft.Dafny.Type.ResetScopes();
-        
+
         var dafnyProgram = new ProgramParser().Parse(programNotIndented, uri, reporter);
 
         if (reporter.ErrorCount > 0) {
@@ -82,6 +81,7 @@ namespace DafnyPipeline.Test {
           Console.Out.WriteLine("Formatting after parsing generates an error:");
           Assert.Equal(expectedProgram, reprinted);
         }
+
         // Formatting should work even if we clone the program after parsing
         Cloner clone = new();
         dafnyProgram.Visit((Node n) => {
@@ -106,7 +106,7 @@ namespace DafnyPipeline.Test {
           Console.Out.WriteLine("Formatting after parsing + cloning generates an error:");
           Assert.Equal(expectedProgram, reprinted);
         }
-        
+
 
         // Formatting should work after resolution as well.
         DafnyMain.Resolve(dafnyProgram);
@@ -124,7 +124,8 @@ namespace DafnyPipeline.Test {
         // Verify that the formatting is stable.
         Microsoft.Dafny.Type.ResetScopes();
         var newReporter = new BatchErrorReporter(options);
-        dafnyProgram = new ProgramParser().Parse(reprinted, uri, newReporter); ;
+        dafnyProgram = new ProgramParser().Parse(reprinted, uri, newReporter);
+        ;
 
         Assert.Equal(initErrorCount, reporter.ErrorCount + newReporter.ErrorCount);
         firstToken = dafnyProgram.GetFirstTopLevelToken();
@@ -135,6 +136,7 @@ namespace DafnyPipeline.Test {
         if (reprinted != reprinted2) {
           Console.Write("Double formatting is not stable:\n");
         }
+
         Assert.Equal(reprinted, reprinted2);
       }
     }
@@ -159,7 +161,8 @@ namespace DafnyPipeline.Test {
       ReportNotOwnedToken(programNotIndented, notOwnedToken, posToOwnerNode);
     }
 
-    private static void ReportNotOwnedToken(string programNotIndented, IToken notOwnedToken, Dictionary<int, List<Node>> posToOwnerNode) {
+    private static void ReportNotOwnedToken(string programNotIndented, IToken notOwnedToken,
+      Dictionary<int, List<Node>> posToOwnerNode) {
       var nextOwnedToken = notOwnedToken.Next;
       while (nextOwnedToken != null && !posToOwnerNode.ContainsKey(nextOwnedToken.pos)) {
         nextOwnedToken = nextOwnedToken.Next;
@@ -188,7 +191,8 @@ namespace DafnyPipeline.Test {
       return notOwnedToken;
     }
 
-    private static HashSet<int> CollectTokensWithoutOwner(Program dafnyProgram, IToken firstToken, out Dictionary<int, List<Node>> posToOwnerNode) {
+    private static HashSet<int> CollectTokensWithoutOwner(Program dafnyProgram, IToken firstToken,
+      out Dictionary<int, List<Node>> posToOwnerNode) {
       HashSet<int> tokensWithoutOwner = new HashSet<int>();
       var posToOwnerNodeInner = new Dictionary<int, List<Node>>();
 

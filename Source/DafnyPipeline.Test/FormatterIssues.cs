@@ -17,7 +17,7 @@ module Foo {
 }
 ");
   }
-  
+
   [Fact]
   public void GitIssue4269BFormatMapIde() {
     FormatterWorksFor(@"
@@ -30,7 +30,7 @@ module Foo {
 }
 ");
   }
-  
+
   [Fact]
   public void GitIssue3912FormatterCollectionArrow() {
     FormatterWorksFor(@"

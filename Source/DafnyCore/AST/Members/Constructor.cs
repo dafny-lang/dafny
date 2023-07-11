@@ -47,7 +47,7 @@ public class Constructor : Method {
     Contract.Requires(decreases != null);
   }
 
-  public Constructor(Cloner cloner, Constructor m) : base(cloner, m) {
+  public Constructor(Cloner cloner, Constructor original) : base(cloner, original) {
   }
 
   public bool HasName {

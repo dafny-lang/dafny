@@ -102,20 +102,20 @@ public class Method : MemberDecl, TypeParameter.ParentType, IMethodCodeContext, 
     Contract.Invariant(Decreases != null);
   }
 
-  public Method(Cloner cloner, Method m) : base(cloner, m) {
-    this.TypeArgs = cloner.CloneResolvedFields ? m.TypeArgs : m.TypeArgs.ConvertAll(cloner.CloneTypeParam);
-    this.Ins = m.Ins.ConvertAll(p => cloner.CloneFormal(p, false));
-    if (m.Outs != null) {
-      this.Outs = m.Outs.ConvertAll(p => cloner.CloneFormal(p, false));
+  public Method(Cloner cloner, Method original) : base(cloner, original) {
+    this.TypeArgs = cloner.CloneResolvedFields ? original.TypeArgs : original.TypeArgs.ConvertAll(cloner.CloneTypeParam);
+    this.Ins = original.Ins.ConvertAll(p => cloner.CloneFormal(p, false));
+    if (original.Outs != null) {
+      this.Outs = original.Outs.ConvertAll(p => cloner.CloneFormal(p, false));
     }
 
-    this.Req = m.Req.ConvertAll(cloner.CloneAttributedExpr);
-    this.Mod = cloner.CloneSpecFrameExpr(m.Mod);
-    this.Decreases = cloner.CloneSpecExpr(m.Decreases);
-    this.Ens = m.Ens.ConvertAll(cloner.CloneAttributedExpr);
-    this.Body = cloner.CloneMethodBody(m);
-    this.SignatureEllipsis = m.SignatureEllipsis;
-    this.IsByMethod = m.IsByMethod;
+    this.Req = original.Req.ConvertAll(cloner.CloneAttributedExpr);
+    this.Mod = cloner.CloneSpecFrameExpr(original.Mod);
+    this.Decreases = cloner.CloneSpecExpr(original.Decreases);
+    this.Ens = original.Ens.ConvertAll(cloner.CloneAttributedExpr);
+    this.Body = cloner.CloneMethodBody(original);
+    this.SignatureEllipsis = original.SignatureEllipsis;
+    this.IsByMethod = original.IsByMethod;
   }
 
   public Method(RangeToken rangeToken, Name name,

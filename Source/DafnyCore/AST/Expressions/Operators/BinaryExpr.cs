@@ -323,8 +323,6 @@ public class BinaryExpr : Expression, ICloneable<BinaryExpr>, ICanFormat {
     if (cloner.CloneResolvedFields) {
       ResolvedOp = original.ResolvedOp;
     }
-
-    RangeToken = original.rangeToken;
   }
 
   public BinaryExpr(IToken tok, Opcode op, Expression e0, Expression e1)
