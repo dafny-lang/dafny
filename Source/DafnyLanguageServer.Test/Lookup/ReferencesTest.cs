@@ -25,19 +25,22 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
     }
 
     /// <summary>
-    /// Assert that when finding-references at each cursor position,
+    /// Assert that when finding-references at each cursor position and each regular span,
     /// the client returns all ranges marked with regular spans.
     /// </summary>
     /// <param name="source"></param>
     private async Task AssertReferences(string source) {
       MarkupTestFile.GetPositionsAndRanges(
-        source, out var cleanSource, out var positions, out var expectedRangesArray);
+        source, out var cleanSource, out var explicitPositions, out var expectedRangesArray);
       var expectedRanges = new HashSet<Range>(expectedRangesArray);
+
+      var positionsFromRanges = expectedRangesArray.SelectMany(r => new[] { r.Start, r.End });
+      var allPositions = explicitPositions.Concat(positionsFromRanges);
 
       var documentItem = CreateTestDocument(cleanSource);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
 
-      foreach (var position in positions) {
+      foreach (var position in allPositions) {
         var result = await RequestReferences(documentItem, position);
         var resultRanges = result.Select(location => location.Range).ToHashSet();
         Assert.Equal(expectedRanges, resultRanges);
@@ -49,10 +52,10 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
       var source = @"
 const ><c := 1
 method M1() {
-  print [>><c<];
+  print [>c<];
 }
 method M2() {
-  print [>c><<];
+  print [>c<];
 }
 ".TrimStart();
 
@@ -64,9 +67,9 @@ method M2() {
       var source = @"
 method M() {
   var ><v := 1;
-  print [>><v<];
-  print [>><v<];
-  var v2 := [>><v<] + [>><v<];
+  print [>v<];
+  print [>v<];
+  var v2 := [>v<] + [>v<];
 }
 ".TrimStart();
 
@@ -79,10 +82,10 @@ method M() {
 method ><M1() {
 }
 method M2() {
-  [>><M1<]();
+  [>M1<]();
 }
 method M3() {
-  [>><M1<]();
+  [>M1<]();
 }
 ".TrimStart();
 
@@ -93,7 +96,7 @@ method M3() {
     public async Task Parameter() {
       var source = @"
 method M(><x: int) {
-  print [>><x<];
+  print [>x<];
 }
 ".TrimStart();
 
@@ -106,12 +109,12 @@ method M(><x: int) {
 module ><M1 {
 }
 module M2 {
-  import [>><M1<]
+  import [>M1<]
 }
 module M3 {
-  import [>><M1<]
+  import [>M1<]
 }
-module MR refines [>><M1<] {}
+module MR refines [>M1<] {}
 ".TrimStart();
 
       await AssertReferences(source);
@@ -122,7 +125,7 @@ module MR refines [>><M1<] {}
     public async Task DatatypeDeclaration() {
       var source = @"
 datatype ><D = D
-method M(d: [>><D<]) {
+method M(d: [>D<]) {
   print (match d
     case D => 1
   );
@@ -138,7 +141,7 @@ method M(d: [>><D<]) {
 datatype Letter = ><A | B | C
 method M(l: Letter) {
   print match l
-    case [>><A<] => 1
+    case [>A<] => 1
     case B => 2
     case C => 3
   ;
@@ -155,7 +158,7 @@ datatype Option = None | Some(><value: int)
 method M(o: Option) {
   print match o
     case None => 0
-    case Some(value) => value + o.[>><value<]
+    case Some(value) => value + o.[>value<]
   ;
 }
 ".TrimStart();
@@ -168,7 +171,7 @@ method M(o: Option) {
     public async Task Type() {
       var source = @"
 type ><T = int
-method M(t: [>><T<]) {}
+method M(t: [>T<]) {}
 ".TrimStart();
 
       await AssertReferences(source);
@@ -179,7 +182,7 @@ method M(t: [>><T<]) {}
     public async Task Newtype() {
       var source = @"
 newtype ><T = int
-method M(t: [>><T<]) {}
+method M(t: [>T<]) {}
 ".TrimStart();
 
       await AssertReferences(source);
@@ -189,7 +192,7 @@ method M(t: [>><T<]) {}
     public async Task Trait() {
       var source = @"
 trait ><T {}
-class C extends [>><T<] {}
+class C extends [>T<] {}
 ".TrimStart();
 
       await AssertReferences(source);
@@ -200,7 +203,7 @@ class C extends [>><T<] {}
     public async Task ClassDeclaration() {
       var source = @"
 class ><C {}
-method M(c: [>><C<]) {}
+method M(c: [>C<]) {}
 ".TrimStart();
 
       await AssertReferences(source);
@@ -211,10 +214,10 @@ method M(c: [>><C<]) {}
       var source = @"
 class C {
   var ><f: int
-  constructor() { [>><f<] := 0; }
+  constructor() { [>f<] := 0; }
 }
 method M(c: C) {
-  print c.[>><f<];
+  print c.[>f<];
 }
 ".TrimStart();
 
@@ -228,7 +231,7 @@ class C {
   method ><CM() {}
 }
 method M(c: C) {
-  c.[>><CM<]();
+  c.[>CM<]();
 }
 ".TrimStart();
 
