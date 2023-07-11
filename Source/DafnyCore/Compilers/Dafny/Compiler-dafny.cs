@@ -135,7 +135,7 @@ namespace Microsoft.Dafny.Compilers {
         ConstructorWriter = constructorWriter;
         MethodWriter = methodWriter;
       }
-      
+
       public ConcreteSyntaxTree CreateMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody,
         bool forBodyInheritance, bool lookasideBody) {
         return Compiler.CreateMethod(m, typeArgs, createBody, MethodWriter, forBodyInheritance, lookasideBody);

@@ -723,10 +723,6 @@ namespace Microsoft.Dafny.Compilers {
         this.Finisher = finisher;
       }
 
-      public ConcreteSyntaxTree ClassHeaderWriter() {
-        return null;
-      }
-      
       public ConcreteSyntaxTree/*?*/ CreateMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody, bool forBodyInheritance, bool lookasideBody) {
         return Compiler.CreateMethod(m, typeArgs, createBody, MethodDeclWriter, MethodWriter, lookasideBody);
       }

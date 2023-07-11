@@ -76,7 +76,7 @@ namespace Microsoft.Dafny.Compilers {
       this.Options = options;
       Reporter = reporter;
       Coverage = new CoverageInstrumenter(this);
-      System.Runtime.CompilerServices.RuntimeHelpers.RunClassConstructor(typeof(CompilerErrors).TypeHandle); 
+      System.Runtime.CompilerServices.RuntimeHelpers.RunClassConstructor(typeof(CompilerErrors).TypeHandle);
     }
 
     protected static void ReportError(ErrorId errorId, ErrorReporter reporter, IToken tok, string msg, ConcreteSyntaxTree/*?*/ wr, params object[] args) {
@@ -123,7 +123,22 @@ namespace Microsoft.Dafny.Compilers {
     /// </summary>
     protected virtual void DependOnModule(string moduleName, bool isDefault, bool isExtern, string/*?*/ libraryName) { }
     protected abstract string GetHelperModuleName();
-
+    protected interface IClassWriter {
+      ConcreteSyntaxTree/*?*/ CreateMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody, bool forBodyInheritance, bool lookasideBody);
+      ConcreteSyntaxTree/*?*/ SynthesizeMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody, bool forBodyInheritance, bool lookasideBody);
+      ConcreteSyntaxTree/*?*/ CreateFunction(string name, List<TypeArgumentInstantiation> typeArgs, List<Formal> formals, Type resultType, IToken tok, bool isStatic, bool createBody,
+        MemberDecl member, bool forBodyInheritance, bool lookasideBody);
+      ConcreteSyntaxTree/*?*/ CreateGetter(string name, TopLevelDecl enclosingDecl, Type resultType, IToken tok, bool isStatic, bool isConst, bool createBody, MemberDecl/*?*/ member, bool forBodyInheritance);  // returns null iff !createBody
+      ConcreteSyntaxTree/*?*/ CreateGetterSetter(string name, Type resultType, IToken tok, bool createBody, MemberDecl/*?*/ member, out ConcreteSyntaxTree setterWriter, bool forBodyInheritance);  // if createBody, then result and setterWriter are non-null, else both are null
+      void DeclareField(string name, TopLevelDecl enclosingDecl, bool isStatic, bool isConst, Type type, IToken tok, string rhs, Field/*?*/ field);
+      /// <summary>
+      /// InitializeField is called for inherited fields. It is in lieu of calling DeclareField and is called only if
+      /// ClassesRedeclareInheritedFields==false for the compiler.
+      /// </summary>
+      void InitializeField(Field field, Type instantiatedFieldType, TopLevelDeclWithMembers enclosingClass);
+      ConcreteSyntaxTree/*?*/ ErrorWriter();
+      void Finish();
+    }
     protected virtual bool IncludeExternMembers { get => false; }
     protected virtual bool SupportsStaticsInGenericClasses => true;
     protected virtual bool TraitRepeatsInheritedDeclarations => false;
@@ -1504,10 +1519,6 @@ namespace Microsoft.Dafny.Compilers {
         block = abyss.NewBlock("");
       }
       
-      public ConcreteSyntaxTree ClassHeaderWriter() {
-        return null;
-      }
-
       public ConcreteSyntaxTree/*?*/ CreateMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody, bool forBodyInheritance, bool lookasideBody) {
         return createBody ? block : null;
       }

@@ -1095,10 +1095,6 @@ namespace Microsoft.Dafny.Compilers {
         this.StaticFieldInitWriter = staticFieldInitWriter;
       }
 
-      public ConcreteSyntaxTree ClassHeaderWriter() {
-        return null;
-      }
-      
       public ConcreteSyntaxTree FieldWriter(bool isStatic) {
         return isStatic ? StaticFieldWriter : InstanceFieldWriter;
       }
