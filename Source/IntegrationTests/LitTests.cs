@@ -6,9 +6,6 @@ using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using Microsoft.Dafny;
-using Microsoft.Extensions.FileSystemGlobbing;
-using Microsoft.Extensions.FileSystemGlobbing.Abstractions;
-using Microsoft.Extensions.Logging.Abstractions;
 using TestDafny;
 using Xunit;
 using Xunit.Abstractions;
@@ -223,7 +220,7 @@ namespace IntegrationTests {
               return false;
             }
 
-            if (arguments.Any(arg => arg is "/compile:3" or "/compile:4" or "run")) {
+            if (arguments.Any(arg => arg is "/compile:3" or "/compile:4" or "run" or "translate")) {
               return true;
             }
           }

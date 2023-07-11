@@ -28,7 +28,7 @@ public abstract class Statement : RangeNode, IAttributeBearingDeclaration {
 
   [FilledInDuringResolution] public bool IsGhost { get; set; }
 
-  public virtual void Resolve(Resolver resolver, ResolutionContext resolutionContext) {
+  public virtual void Resolve(ModuleResolver resolver, ResolutionContext resolutionContext) {
     resolver.ResolveAttributes(this, resolutionContext);
   }
 

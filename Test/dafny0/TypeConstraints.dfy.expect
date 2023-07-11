@@ -417,6 +417,7 @@ module SimpleClassesAndTraits {
    */
   method Infer(c: C, o: object, k: K, d: D)
       returns (k': K)
+    decreases c, o, k, d
   {
     var delayme: object := c;
     var x: C := c;
@@ -635,6 +636,7 @@ module OtherTraitsAndClasses {
    *   Q0
    */
   method Basics(x: int) returns (y: int)
+    decreases x
   {
     var k: int := x;
     var m: int;
@@ -642,6 +644,7 @@ module OtherTraitsAndClasses {
   }
 
   method Displays(c: C, d: D, e: E, j: J, k: K)
+    decreases c, d, e, j, k
   {
     var s: set<C> := {c, c};
     var t: set<J> := {c, j};
@@ -652,6 +655,7 @@ module OtherTraitsAndClasses {
   }
 
   method G(c: C)
+    decreases c
   {
     var s: set<C> := {c};
     var t: set<C> := s;
@@ -668,11 +672,13 @@ module OtherTraitsAndClasses {
   }
 
   method Q0(s: set<char>) returns (t: set<char>)
+    decreases s
   {
     var p: set<char> := s + t;
   }
 
   method Q1<T>(s: set<MyClass>) returns (t: set<MyClass>)
+    decreases s
   {
     var p: set<MyClass> := s + t;
     var q: set<object> := s + t;
@@ -722,6 +728,7 @@ module LetPatterns {
    */
   ghost function M(m: MyDt): int
     requires m.AAA?
+    decreases m
   {
     var AAA(u: int) := m;
     u
@@ -735,6 +742,7 @@ module LetPatterns {
   }
 
   method Q(x: int, r: real)
+    decreases x, r
   {
     var o: real;
     var u: (int, real) := (x, o);
@@ -845,6 +853,7 @@ module TypeArgumentPrintTests {
 
   class B<Y> {
     function H(y: Y, b: bool): int
+      decreases b
     {
       if b then
         A<Y>.F(y)
@@ -868,6 +877,7 @@ module PrettyPrintingBindingPowers {
    */
   method M(m: map<int, real>, n: map<int, real>, a: set<int>, b: set<int>, c: set<int>)
       returns (r: map<int, real>)
+    decreases m, n, a, b, c
   {
     r := m - b - c;
     r := m - b + n;

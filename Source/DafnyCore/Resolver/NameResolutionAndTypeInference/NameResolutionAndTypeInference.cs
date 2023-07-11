@@ -20,7 +20,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.Dafny.Plugins;
 
 namespace Microsoft.Dafny {
-  public partial class Resolver {
+  public partial class ModuleResolver {
     List<Statement> loopStack = new List<Statement>();  // the enclosing loops (from which it is possible to break out)
     public readonly Scope<Label>/*!*/ DominatingStatementLabels;
     Scope<Statement>/*!*/ enclosingStatementLabels;
@@ -725,6 +725,8 @@ namespace Microsoft.Dafny {
             AddXConstraint(expr.tok, "NumericOrBitvectorOrCharOrORDINAL", e.E.Type, "type conversion to an ORDINAL type is allowed only from numeric and bitvector types, char, and ORDINAL (got {0})");
           } else if (e.ToType.IsRefType) {
             AddAssignableConstraint(expr.tok, e.ToType, e.E.Type, "type cast to reference type '{0}' must be from an expression assignable to it (got '{1}')");
+          } else if (e.ToType.IsTraitType) {
+            AddAssignableConstraint(expr.tok, e.ToType, e.E.Type, "type cast to trait type '{0}' must be from an expression assignable to it (got '{1}')");
           } else {
             reporter.Error(MessageSource.Resolver, expr, "type conversions are not supported to this type (got {0})", e.ToType);
           }
@@ -1117,7 +1119,7 @@ namespace Microsoft.Dafny {
       DominatingStatementLabels.PopMarker();
     }
 
-    void ResolveTypeParameters(List<TypeParameter/*!*/>/*!*/ tparams, bool emitErrors, TypeParameter.ParentType/*!*/ parent) {
+    public void ResolveTypeParameters(List<TypeParameter/*!*/>/*!*/ tparams, bool emitErrors, TypeParameter.ParentType/*!*/ parent) {
       Contract.Requires(tparams != null);
       Contract.Requires(parent != null);
       // push non-duplicated type parameter names
@@ -1667,7 +1669,12 @@ namespace Microsoft.Dafny {
         case TypeProxy.Family.Opaque:
           break;  // more elaborate work below
         case TypeProxy.Family.Unknown:
-          return null;
+          if (super is UserDefinedType) {
+            // more elaborate work below
+            break;
+          } else {
+            return null;
+          }
         default:
           Contract.Assert(false);  // unexpected type (the precondition of ConstrainTypeHead says "no proxies")
           return null;  // please compiler
@@ -4531,9 +4538,9 @@ namespace Microsoft.Dafny {
       }
       Contract.Assert(receiverType is NonProxyType);  // there are only two kinds of types: proxies and non-proxies
 
-      foreach (var valuet in SystemModuleManager.valuetypeDecls) {
+      foreach (var valuet in ProgramResolver.SystemModuleManager.valuetypeDecls) {
         if (valuet.IsThisType(receiverType)) {
-          if (classMembers[valuet].TryGetValue(memberName, out var member)) {
+          if (GetClassMembers(valuet).TryGetValue(memberName, out var member)) {
             SelfType resultType = null;
             if (member is SpecialFunction) {
               resultType = ((SpecialFunction)member).ResultType as SelfType;
@@ -4556,7 +4563,7 @@ namespace Microsoft.Dafny {
       var cd = ctype?.AsTopLevelTypeWithMembersBypassInternalSynonym;
       if (cd != null) {
         Contract.Assert(ctype.TypeArgs.Count == cd.TypeArgs.Count);  // follows from the fact that ctype was resolved
-        if (!classMembers[cd].TryGetValue(memberName, out var member)) {
+        if (!GetClassMembers(cd).TryGetValue(memberName, out var member)) {
           if (memberName == "_ctor") {
             reporter.Error(MessageSource.Resolver, tok, "{0} {1} does not have an anonymous constructor", cd.WhatKind, cd.Name);
           } else {
@@ -5123,7 +5130,7 @@ namespace Microsoft.Dafny {
           reporter.Error(MessageSource.Resolver, entry.Item1, "duplicate update member '{0}'", destructor_str);
         } else {
           memberNames.Add(destructor_str);
-          if (!classMembers[dt].TryGetValue(destructor_str, out var member)) {
+          if (!GetClassMembers(dt).TryGetValue(destructor_str, out var member)) {
             reporter.Error(MessageSource.Resolver, entry.Item1, "member '{0}' does not exist in datatype '{1}'", destructor_str, dt.Name);
           } else if (!(member is DatatypeDestructor)) {
             reporter.Error(MessageSource.Resolver, entry.Item1, "member '{0}' is not a destructor in datatype '{1}'", destructor_str, dt.Name);
@@ -5323,7 +5330,7 @@ namespace Microsoft.Dafny {
           }
         }
         r = new IdentifierExpr(expr.tok, v);
-      } else if (currentClass is TopLevelDeclWithMembers cl && classMembers.TryGetValue(cl, out var members) && members.TryGetValue(name, out member)) {
+      } else if (currentClass is TopLevelDeclWithMembers cl && GetClassMembers(cl)?.TryGetValue(name, out member) == true) {
         // ----- 1. member of the enclosing class
 
         if (!member.IsStatic) {
@@ -5564,7 +5571,19 @@ namespace Microsoft.Dafny {
 #endif
       } else {
         // ----- None of the above
-        reporter.Error(MessageSource.Resolver, expr.tok, "Type or type parameter is not declared in this scope: {0} (did you forget to qualify a name or declare a module import 'opened'? names in outer modules are not visible in nested modules)", expr.Name);
+        var hint0 = "(did you forget to qualify a name or declare a module import 'opened'?)";
+        var hint1 = " (note that names in outer modules are not visible in contained modules)";
+        var hint2 = "";
+        if (Options.Get(CommonOptionBag.GeneralTraits) && expr.Name.EndsWith("?")) {
+          var nameWithoutQuestionMark = expr.Name[..^1];
+          if (nameWithoutQuestionMark.Length != 0 &&
+              moduleInfo.TopLevels.TryGetValue(nameWithoutQuestionMark, out decl) && decl is TraitDecl) {
+            hint2 =
+              $" (if you intended to refer to a possibly null '{nameWithoutQuestionMark}', " +
+              "then you must declare that trait with 'extends object' to make it a reference type)";
+          }
+        }
+        reporter.Error(MessageSource.Resolver, expr.tok, $"Type or type parameter is not declared in this scope: {expr.Name} {hint0}{hint1}{hint2}");
       }
 
       if (r == null) {
@@ -5717,7 +5736,7 @@ namespace Microsoft.Dafny {
         var cd = r == null ? ty.AsTopLevelTypeWithMembersBypassInternalSynonym : null;
         if (cd != null) {
           // ----- LHS is a type with members
-          if (classMembers.TryGetValue(cd, out var members) && members.TryGetValue(name, out member)) {
+          if (GetClassMembers(cd)?.TryGetValue(name, out member) == true) {
             if (!VisibleInScope(member)) {
               reporter.Error(MessageSource.Resolver, expr.tok, "member '{0}' has not been imported in this scope and cannot be accessed here", name);
             }
@@ -5817,7 +5836,7 @@ namespace Microsoft.Dafny {
           rr.TypeApplication_AtEnclosingClass.AddRange(rType.AsParentType(member.EnclosingClass).TypeArgs);
         }
       } else {
-        var vtd = AsValuetypeDecl(rType);
+        var vtd = ProgramResolver.SystemModuleManager.AsValuetypeDecl(rType);
         if (vtd != null) {
           Contract.Assert(vtd.TypeArgs.Count == rType.TypeArgs.Count);
           subst = TypeParameter.SubstitutionMap(vtd.TypeArgs, rType.TypeArgs);

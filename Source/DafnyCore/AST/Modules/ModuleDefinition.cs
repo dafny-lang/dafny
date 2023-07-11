@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics.Contracts;
 using System.Linq;
-using Microsoft.Boogie;
 using Microsoft.Dafny.Auditor;
 
 namespace Microsoft.Dafny;
@@ -11,7 +10,7 @@ namespace Microsoft.Dafny;
 public record PrefixNameModule(IReadOnlyList<IToken> Parts, LiteralModuleDecl Module);
 
 public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearingDeclaration, ICloneable<ModuleDefinition> {
-  public Guid UniqueParseContentHash { get; set; }
+
   public IToken BodyStartTok = Token.NoToken;
   public IToken TokenWithTrailingDocString = Token.NoToken;
   public string DafnyName => NameNode.StartToken.val; // The (not-qualified) name as seen in Dafny source code
@@ -95,7 +94,7 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
     IsFacade = original.IsFacade;
     Attributes = original.Attributes;
     IsAbstract = original.IsAbstract;
-    RefinementQId = original.RefinementQId;
+    RefinementQId = original.RefinementQId == null ? null : new ModuleQualifiedId(cloner, original.RefinementQId);
     foreach (var d in original.SourceDecls) {
       SourceDecls.Add(cloner.CloneDeclaration(d, this));
     }
@@ -171,12 +170,13 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
   public string GetCompileName(DafnyOptions options) {
     if (compileName == null) {
       var externArgs = options.DisallowExterns ? null : Attributes.FindExpressions(this.Attributes, "extern");
+      var nonExternSuffix = (options.Get(CommonOptionBag.AddCompileSuffix) ? "_Compile" : "");
       if (externArgs != null && 1 <= externArgs.Count && externArgs[0] is StringLiteralExpr) {
         compileName = (string)((StringLiteralExpr)externArgs[0]).Value;
       } else if (externArgs != null) {
-        compileName = Name;
+        compileName = Name + nonExternSuffix;
       } else {
-        compileName = SanitizedName;
+        compileName = SanitizedName + nonExternSuffix;
       }
     }
 
@@ -374,11 +374,11 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
   /// resolved, a caller has to check for both a change in error count and a "false"
   /// return value.
   /// </summary>
-  public bool Resolve(ModuleSignature sig, Resolver resolver, bool isAnExport = false) {
+  public bool Resolve(ModuleSignature sig, ModuleResolver resolver, bool isAnExport = false) {
     Contract.Requires(resolver.AllTypeConstraints.Count == 0);
     Contract.Ensures(resolver.AllTypeConstraints.Count == 0);
 
-    sig.VisibilityScope.Augment(resolver.systemNameInfo.VisibilityScope);
+    sig.VisibilityScope.Augment(resolver.ProgramResolver.SystemModuleManager.systemNameInfo.VisibilityScope);
     // make sure all imported modules were successfully resolved
     foreach (var d in TopLevelDecls) {
       if (d is AliasModuleDecl || d is AbstractModuleDecl) {
@@ -390,13 +390,7 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
           importSig = ((AbstractModuleDecl)d).OriginalSignature;
         }
 
-        if (importSig.ModuleDef == null || !importSig.ModuleDef.SuccessfullyResolved) {
-          if (!IsEssentiallyEmptyModuleBody()) {
-            // say something only if this will cause any testing to be omitted
-            resolver.reporter.Error(MessageSource.Resolver, d,
-              "not resolving module '{0}' because there were errors in resolving its import '{1}'", Name, d.Name);
-          }
-
+        if (importSig.ModuleDef is not { SuccessfullyResolved: true }) {
           return false;
         }
       } else if (d is LiteralModuleDecl) {
@@ -415,9 +409,9 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
     }
 
     var oldModuleInfo = resolver.moduleInfo;
-    resolver.moduleInfo = Resolver.MergeSignature(sig, resolver.systemNameInfo);
+    resolver.moduleInfo = ModuleResolver.MergeSignature(sig, resolver.ProgramResolver.SystemModuleManager.systemNameInfo);
     Type.PushScope(resolver.moduleInfo.VisibilityScope);
-    Resolver.ResolveOpenedImports(resolver.moduleInfo, this, resolver); // opened imports do not persist
+    ModuleResolver.ResolveOpenedImports(resolver.moduleInfo, this, resolver.Reporter, resolver); // opened imports do not persist
     var datatypeDependencies = new Graph<IndDatatypeDecl>();
     var codatatypeDependencies = new Graph<CoDatatypeDecl>();
     var allDeclarations = AllDeclarationsAndNonNullTypeDecls(TopLevelDecls).ToList();
@@ -439,75 +433,94 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
     return true;
   }
 
-  public ModuleBindings BindModuleNames(Resolver resolver, ModuleBindings parentBindings) {
+  public void ProcessPrefixNamedModules() {
+    // moduleDecl.PrefixNamedModules is a list of pairs like:
+    //     A.B.C  ,  module D { ... }
+    // We collect these according to the first component of the prefix, like so:
+    //     "A"   ->   (A.B.C  ,  module D { ... })
+    var prefixModulesByFirstPart = PrefixNamedModules.
+      GroupBy(prefixNameModule => prefixNameModule.Parts[0].val).
+      ToDictionary(g => g.Key, g => g.ToList());
+
+    PrefixNamedModules.Clear();
+
+    // First, register all literal modules, and transferring their prefix-named modules downwards
+    foreach (var subDecl in TopLevelDecls.OfType<LiteralModuleDecl>()) {
+      // Transfer prefix-named modules downwards into the sub-module
+      if (prefixModulesByFirstPart.TryGetValue(subDecl.Name, out var prefixModules)) {
+        prefixModulesByFirstPart.Remove(subDecl.Name);
+        prefixModules = prefixModules.ConvertAll(ShortenPrefix);
+      }
+
+      ProcessPrefixNamedModules(prefixModules, subDecl);
+    }
+
+    // Next, add new modules for any remaining entries in "prefixNames".
+    foreach (var (name, prefixNamedModules) in prefixModulesByFirstPart) {
+      var firstPartToken = prefixNamedModules.First().Parts[0];
+      var modDef = new ModuleDefinition(firstPartToken.ToRange(), new Name(firstPartToken.ToRange(), name), new List<IToken>(), false,
+        false, null, this, null, false);
+      // Add the new module to the top-level declarations of its parent and then bind its names as usual
+
+      // Use an empty cloneId because these are empty module declarations.
+      var cloneId = Guid.Empty;
+      var subDecl = new LiteralModuleDecl(modDef, this, cloneId);
+      ResolvedPrefixNamedModules.Add(subDecl);
+      ProcessPrefixNamedModules(prefixNamedModules.ConvertAll(ShortenPrefix), subDecl);
+    }
+  }
+
+  private static void ProcessPrefixNamedModules(List<PrefixNameModule> prefixModules, LiteralModuleDecl subDecl) {
+    // Transfer prefix-named modules downwards into the sub-module
+    if (prefixModules != null) {
+      foreach (var prefixModule in prefixModules) {
+        if (prefixModule.Parts.Count == 0) {
+          // change the parent, now that we have found the right parent module for the prefix-named module
+          prefixModule.Module.ModuleDef.EnclosingModule = subDecl.ModuleDef;
+          var sm = new LiteralModuleDecl(prefixModule.Module.ModuleDef, subDecl.ModuleDef,
+            prefixModule.Module.CloneId);
+          subDecl.ModuleDef.ResolvedPrefixNamedModules.Add(sm);
+        } else {
+          subDecl.ModuleDef.PrefixNamedModules.Add(prefixModule);
+        }
+      }
+    }
+
+    subDecl.ModuleDef.ProcessPrefixNamedModules();
+  }
+
+  public ModuleBindings BindModuleNames(ProgramResolver resolver, ModuleBindings parentBindings) {
     var bindings = new ModuleBindings(parentBindings);
 
-    BindChildrenAndPrefixNamedModules(resolver, bindings);
+    foreach (var subLiteral in TopLevelDecls.OfType<LiteralModuleDecl>()) {
+      subLiteral.BindModuleNames(resolver, bindings);
+    }
 
-    // Finally, go through import declarations (that is, AbstractModuleDecl's and AliasModuleDecl's).
-    foreach (var tld in TopLevelDecls) {
-      if (tld is not (AbstractModuleDecl or AliasModuleDecl)) {
+    // Go through import declarations (that is, AbstractModuleDecl's and AliasModuleDecl's).
+    foreach (var subDecl in TopLevelDecls.OfType<ModuleDecl>()) {
+      if (subDecl is not (AbstractModuleDecl or AliasModuleDecl)) {
         continue;
       }
 
-      var subdecl = (ModuleDecl)tld;
-      if (bindings.BindName(subdecl.Name, subdecl, null)) {
+      if (bindings.BindName(subDecl.Name, subDecl, null)) {
         // the add was successful
       } else {
         // there's already something with this name
-        var yes = bindings.TryLookup(subdecl.tok, out var prevDecl);
+        var yes = bindings.TryLookup(subDecl.tok, out var prevDecl);
         Contract.Assert(yes);
         if (prevDecl is AbstractModuleDecl || prevDecl is AliasModuleDecl) {
-          resolver.reporter.Error(MessageSource.Resolver, subdecl.tok, "Duplicate name of import: {0}", subdecl.Name);
-        } else if (tld is AliasModuleDecl importDecl && importDecl.Opened && importDecl.TargetQId.Path.Count == 1 &&
+          resolver.Reporter.Error(MessageSource.Resolver, subDecl.tok, "Duplicate name of import: {0}", subDecl.Name);
+        } else if (subDecl is AliasModuleDecl { Opened: true } importDecl && importDecl.TargetQId.Path.Count == 1 &&
                    importDecl.Name == importDecl.TargetQId.RootName()) {
           importDecl.ShadowsLiteralModule = true;
         } else {
-          resolver.reporter.Error(MessageSource.Resolver, subdecl.tok,
-            "Import declaration uses same name as a module in the same scope: {0}", subdecl.Name);
+          resolver.Reporter.Error(MessageSource.Resolver, subDecl.tok,
+            "Import declaration uses same name as a module in the same scope: {0}", subDecl.Name);
         }
       }
     }
 
     return bindings;
-  }
-
-  private void BindChildrenAndPrefixNamedModules(Resolver resolver, ModuleBindings bindings) {
-    // moduleDecl.PrefixNamedModules is a list of pairs like:
-    //     A.B.C  ,  module D { ... }
-    // We collect these according to the first component of the prefix, like so:
-    //     "A"   ->   (A.B.C  ,  module D { ... })
-    var prefixModulesByFirstPart = new Dictionary<string, List<PrefixNameModule>>();
-    foreach (var prefixNameModule in PrefixNamedModules) {
-      var firstPartName = prefixNameModule.Parts[0].val;
-      var prev = prefixModulesByFirstPart.GetOrCreate(firstPartName, () => new List<PrefixNameModule>());
-      prev.Add(prefixNameModule);
-    }
-
-    PrefixNamedModules.Clear();
-
-    // First, register all literal modules, and transferring their prefix-named modules downwards
-    foreach (var subdecl in TopLevelDecls.OfType<LiteralModuleDecl>()) {
-      // Transfer prefix-named modules downwards into the sub-module
-      if (prefixModulesByFirstPart.TryGetValue(subdecl.Name, out var prefixModules)) {
-        prefixModulesByFirstPart.Remove(subdecl.Name);
-        prefixModules = prefixModules.ConvertAll(ShortenPrefix);
-      }
-
-      subdecl.BindModuleName(resolver, prefixModules, bindings);
-    }
-
-    // Next, add new modules for any remaining entries in "prefixNames".
-    foreach (var entry in prefixModulesByFirstPart) {
-      var prefixNamedModules = entry.Value;
-      var tok = prefixNamedModules.First().Parts[0];
-      var modDef = new ModuleDefinition(tok.ToRange(), new Name(tok.ToRange(), entry.Key), new List<IToken>(), false,
-        false, null, this, null, false);
-      // Add the new module to the top-level declarations of its parent and then bind its names as usual
-      var subdecl = new LiteralModuleDecl(modDef, this);
-      ResolvedPrefixNamedModules.Add(subdecl);
-      subdecl.BindModuleName(resolver, prefixNamedModules.ConvertAll(ShortenPrefix), bindings);
-    }
   }
 
   private static PrefixNameModule ShortenPrefix(PrefixNameModule prefixNameModule) {
@@ -516,7 +529,7 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
     return prefixNameModule with { Parts = rest };
   }
 
-  public ModuleSignature RegisterTopLevelDecls(Resolver resolver, bool useImports) {
+  public ModuleSignature RegisterTopLevelDecls(ModuleResolver resolver, bool useImports) {
     Contract.Requires(this != null);
     var sig = new ModuleSignature();
     sig.ModuleDef = this;
@@ -555,6 +568,9 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
         registerThisDecl = nntd;
         registerUnderThisName = d.Name;
       } else {
+        // Register each class and trait C under its own name, C. Below, we will change this for reference types (which includes all classes
+        // and some of the traits), so that C? maps to the class/trait and C maps to the corresponding NonNullTypeDecl. We will need these
+        // initial mappings in order to look through the parent traits of traits, below.
         registerThisDecl = d;
         registerUnderThisName = d.Name;
       }
@@ -572,7 +588,7 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
         var cl = (TopLevelDeclWithMembers)d;
         // register the names of the type members
         var members = new Dictionary<string, MemberDecl>();
-        resolver.classMembers.Add(cl, members);
+        resolver.AddClassMembers(cl, members);
         cl.RegisterMembers(resolver, members);
       } else if (d is IteratorDecl) {
         var iter = (IteratorDecl)d;
@@ -583,7 +599,7 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
 
         // register the names of the class members
         var members = new Dictionary<string, MemberDecl>();
-        resolver.classMembers.Add(defaultClassDecl, members);
+        resolver.AddClassMembers(defaultClassDecl, members);
         defaultClassDecl.RegisterMembers(resolver, members);
 
         Contract.Assert(preMemberErrs != resolver.reporter.Count(ErrorLevel.Error) || !defaultClassDecl.Members.Except(members.Values).Any());
@@ -607,7 +623,7 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
 
         // register the names of the class members
         var members = new Dictionary<string, MemberDecl>();
-        resolver.classMembers.Add(cl, members);
+        resolver.AddClassMembers(cl, members);
         cl.RegisterMembers(resolver, members);
 
         Contract.Assert(preMemberErrs != resolver.reporter.Count(ErrorLevel.Error) || !cl.Members.Except(members.Values).Any());
@@ -619,7 +635,7 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
         dt.ConstructorsByName = new();
         // ... and of the other members
         var members = new Dictionary<string, MemberDecl>();
-        resolver.classMembers.Add(dt, members);
+        resolver.AddClassMembers(dt, members);
 
         foreach (DatatypeCtor ctor in dt.Ctors) {
           if (ctor.Name.EndsWith("?")) {
@@ -709,26 +725,131 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
         var cl = (ValuetypeDecl)d;
         // register the names of the type members
         var members = new Dictionary<string, MemberDecl>();
-        resolver.classMembers.Add(cl, members);
+        resolver.AddClassMembers(cl, members);
         cl.RegisterMembers(resolver, members);
       }
     }
 
-    // Now, for each class, register its possibly-null type
+    DetermineReferenceTypes(resolver, sig);
+
+    // Now, for each reference type (class and some traits), register its possibly-null type.
+    // In the big loop above, each class and trait was registered under its own name. We're now going to change that for the reference types.
     foreach (TopLevelDecl d in TopLevelDecls) {
-      if ((d as ClassLikeDecl)?.NonNullTypeDecl != null) {
+      if (d is ClassLikeDecl { NonNullTypeDecl: { } nntd }) {
         var name = d.Name + "?";
         if (toplevels.Contains(name)) {
           resolver.reporter.Error(MessageSource.Resolver, d,
-            "a module that already contains a top-level declaration '{0}' is not allowed to declare a {1} '{2}'",
+            "a module that already contains a top-level declaration '{0}' is not allowed to declare a reference type ({1}) '{2}'",
             name, d.WhatKind, d.Name);
         } else {
           toplevels.Add(name);
+          toplevels.Add(d.Name);
+          // change the mapping of d.Name to d.NonNullTypeDecl
+          sig.TopLevels[d.Name] = nntd;
           sig.TopLevels[name] = d;
         }
       }
     }
 
     return sig;
+  }
+
+  private void DetermineReferenceTypes(ModuleResolver resolver, ModuleSignature sig) {
+    // Figure out which TraitDecl's are reference types, and for each of these, create a corresponding NonNullTypeDecl.
+    // To figure this out, we need to look at the parents of each TraitDecl, but those parents have not yet been resolved.
+    // Since we just need the head of each parent, we'll do that name resolution here (and will redo it later, when each parent
+    // type is resolved properly).
+    //
+    // Some inaccuracies can occur here, since possibly-null types have not yet been registered. However, since such types aren't allowed
+    // as parents, it doesn't matter that they aren't available yet.
+    //
+    // If the head of a parent trait cannot be resolved, it is ignored here. An error will be reported later, when trait declarations are
+    // resolved properly. Similarly, any cycle detected among the trait-parent heads is ignored. Cycles are detected (again) later and an
+    // error will be reported then (in the meantime, we may have computed incorrectly whether or not a TraitDecl is a reference type, but
+    // the cycle still remains, so an error will be reported later). (Btw, the later cycle detection detects not only cycles among parent
+    // heads, but also among the type arguments of parent traits.)
+    //
+    // In the following dictionary, a TraitDecl not being present among the keys means it has not been visited in the InheritsFromObject traversal.
+    // If a TraitDecl is a key and maps to "false", then it is currently being visited.
+    // If a TraitDecl is a key and maps to "true", then its .IsReferenceTypeDecl has been computed and is ready to be used.
+    var traitsProgress = new Dictionary<TraitDecl, bool>();
+    foreach (var decl in TopLevelDecls.Where(d => d is TraitDecl)) {
+      // Resolve a "path" to a top-level declaration, if possible. On error, return null.
+      // The path is expected to consist of NameSegment or ExprDotName nodes.
+      TopLevelDecl ResolveNamePath(Expression path) {
+        // A single NameSegment is a little different, because it may refer to built-in type (of interest here: "object").
+        if (path is NameSegment nameSegment) {
+          if (sig.TopLevels.TryGetValue(nameSegment.Name, out var topLevelDecl)) {
+            return topLevelDecl;
+          } else if (resolver.moduleInfo != null && resolver.moduleInfo.TopLevels.TryGetValue(nameSegment.Name, out topLevelDecl)) {
+            // For "object" and other reference-type declarations from other modules, we're picking up the NonNullTypeDecl; if so, return
+            // the original declaration.
+            return topLevelDecl is NonNullTypeDecl nntd ? nntd.ViewAsClass : topLevelDecl;
+          } else if (resolver.ProgramResolver.SystemModuleManager.systemNameInfo.TopLevels.TryGetValue(nameSegment.Name, out topLevelDecl)) {
+            // For "object" and other reference-type declarations from other modules, we're picking up the NonNullTypeDecl; if so, return
+            // the original declaration.
+            return topLevelDecl is NonNullTypeDecl nntd ? nntd.ViewAsClass : topLevelDecl;
+          } else {
+            return null;
+          }
+        }
+
+        // convert the ExprDotName to a list of strings
+        var names = new List<string>();
+        while (path is ExprDotName exprDotName) {
+          names.Add(exprDotName.SuffixName);
+          path = exprDotName.Lhs;
+        }
+        names.Add(((NameSegment)path).Name);
+        var s = sig;
+        var i = names.Count;
+        while (true) {
+          i--;
+          if (!s.TopLevels.TryGetValue(names[i], out var topLevelDecl)) {
+            return null;
+          } else if (i == 0) {
+            // For reference-type declarations from other modules, we're picking up the NonNullTypeDecl; if so, return
+            // the original declaration.
+            return topLevelDecl is NonNullTypeDecl nntd ? nntd.ViewAsClass : topLevelDecl;
+          } else if (topLevelDecl is ModuleDecl moduleDecl) {
+            var signature = moduleDecl.AccessibleSignature(false);
+            s = resolver.GetSignature(signature);
+          } else {
+            return null;
+          }
+        }
+      }
+
+      bool InheritsFromObject(TraitDecl traitDecl) {
+        if (traitsProgress.TryGetValue(traitDecl, out var isDone)) {
+          if (isDone) {
+            return traitDecl.IsReferenceTypeDecl;
+          } else {
+            // there is a cycle among the parents, so we'll suppose the trait does inherit from "object"
+            return true;
+          }
+        }
+        traitsProgress[traitDecl] = false; // indicate that traitDecl is currently being visited
+
+        var inheritsFromObject = traitDecl.IsObjectTrait;
+        foreach (var parent in traitDecl.ParentTraits) {
+          if (parent is UserDefinedType udt) {
+            if (ResolveNamePath(udt.NamePath) is TraitDecl parentTrait) {
+              if (parentTrait.EnclosingModuleDefinition == this) {
+                inheritsFromObject = InheritsFromObject(parentTrait) || inheritsFromObject;
+              } else {
+                inheritsFromObject = parentTrait.IsReferenceTypeDecl || inheritsFromObject;
+              }
+            }
+          }
+        }
+
+        traitDecl.SetUpAsReferenceType(resolver.Options.Get(CommonOptionBag.GeneralTraits) ? inheritsFromObject : true);
+        traitsProgress[traitDecl] = true; // indicate that traitDecl.IsReferenceTypeDecl can now be called
+        return inheritsFromObject;
+      }
+
+      InheritsFromObject((TraitDecl)decl);
+    }
   }
 }

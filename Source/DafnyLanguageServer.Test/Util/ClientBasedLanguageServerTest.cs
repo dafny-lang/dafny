@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Reactive.Threading.Tasks;
 using System.Threading;
@@ -57,7 +58,7 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
 
   public async Task<Diagnostic[]> GetLastDiagnostics(TextDocumentItem documentItem, CancellationToken cancellationToken) {
     await client.WaitForNotificationCompletionAsync(documentItem.Uri, cancellationToken);
-    var document = (await Documents.GetLastDocumentAsync(documentItem))!;
+    var document = (await Projects.GetLastDocumentAsync(documentItem))!;
     Assert.NotNull(document);
     Assert.Equal(documentItem.Version, document.Version);
     Diagnostic[] result;
@@ -113,7 +114,7 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
   }
 
   public async Task AssertNoVerificationStatusIsComing(TextDocumentItem documentItem, CancellationToken cancellationToken) {
-    foreach (var entry in Documents.Documents) {
+    foreach (var entry in Projects.Managers) {
       try {
         await entry.GetLastDocumentAsync();
       } catch (TaskCanceledException) {
@@ -130,7 +131,7 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
   }
 
   public async Task AssertNoGhostnessIsComing(CancellationToken cancellationToken) {
-    foreach (var entry in Documents.Documents) {
+    foreach (var entry in Projects.Managers) {
       try {
         await entry.GetLastDocumentAsync();
       } catch (TaskCanceledException) {
@@ -152,7 +153,7 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
   }
 
   public async Task AssertNoDiagnosticsAreComing(CancellationToken cancellationToken) {
-    foreach (var entry in Documents.Documents) {
+    foreach (var entry in Projects.Managers) {
       try {
         await entry.GetLastDocumentAsync();
       } catch (TaskCanceledException) {
@@ -175,7 +176,7 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
   }
 
   protected async Task AssertNoResolutionErrors(TextDocumentItem documentItem) {
-    var resolutionDiagnostics = (await Documents.GetResolvedDocumentAsync(documentItem))!.Diagnostics.ToList();
+    var resolutionDiagnostics = (await Projects.GetResolvedDocumentAsync(documentItem))!.Diagnostics.ToList();
     var resolutionErrors = resolutionDiagnostics.Count(d => d.Severity == DiagnosticSeverity.Error);
     if (0 != resolutionErrors) {
       await Console.Out.WriteAsync(string.Join("\n", resolutionDiagnostics.Where(d => d.Severity == DiagnosticSeverity.Error).Select(d => d.ToString())));
