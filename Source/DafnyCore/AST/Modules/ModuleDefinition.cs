@@ -177,12 +177,13 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
   public string GetCompileName(DafnyOptions options) {
     if (compileName == null) {
       var externArgs = options.DisallowExterns ? null : Attributes.FindExpressions(this.Attributes, "extern");
+      var nonExternSuffix = (options.Get(CommonOptionBag.AddCompileSuffix) ? "_Compile" : "");
       if (externArgs != null && 1 <= externArgs.Count && externArgs[0] is StringLiteralExpr) {
         compileName = (string)((StringLiteralExpr)externArgs[0]).Value;
       } else if (externArgs != null) {
-        compileName = Name;
+        compileName = Name + nonExternSuffix;
       } else {
-        compileName = SanitizedName;
+        compileName = SanitizedName + nonExternSuffix;
       }
     }
 

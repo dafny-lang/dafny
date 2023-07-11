@@ -70,13 +70,16 @@ public class DafnyProject : IEquatable<DafnyProject> {
 
   private Matcher GetMatcher() {
     var projectRoot = Path.GetDirectoryName(Uri.LocalPath)!;
+    var root = Path.GetPathRoot(Uri.LocalPath)!;
     var matcher = new Matcher();
     foreach (var includeGlob in Includes ?? new[] { "**/*.dfy" }) {
-      matcher.AddInclude(Path.GetFullPath(includeGlob, projectRoot));
+      var fullPath = Path.GetFullPath(includeGlob, projectRoot);
+      matcher.AddInclude(Path.GetRelativePath(root, fullPath));
     }
 
     foreach (var includeGlob in Excludes ?? Enumerable.Empty<string>()) {
-      matcher.AddExclude(Path.GetFullPath(includeGlob, projectRoot));
+      var fullPath = Path.GetFullPath(includeGlob, projectRoot);
+      matcher.AddExclude(Path.GetRelativePath(root, fullPath));
     }
 
     return matcher;
