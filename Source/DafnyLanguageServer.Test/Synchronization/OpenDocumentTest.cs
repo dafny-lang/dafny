@@ -34,7 +34,7 @@ function GetConstant(): int {
 }".Trim();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var document = await Documents.GetResolvedDocumentAsync(documentItem.Uri);
+      var document = await Projects.GetResolvedDocumentAsync(documentItem.Uri);
       Assert.NotNull(document);
       Assert.Empty(document.Diagnostics);
     }
@@ -47,7 +47,7 @@ function GetConstant() int {
 }".Trim();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var document = await Documents.GetResolvedDocumentAsync(documentItem.Uri);
+      var document = await Projects.GetResolvedDocumentAsync(documentItem.Uri);
       Assert.NotNull(document);
       Assert.Single(document.Diagnostics);
       var message = document.Diagnostics.ElementAt(0);
@@ -62,7 +62,7 @@ function GetConstant(): int {
 }".Trim();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var document = await Documents.GetResolvedDocumentAsync(documentItem.Uri);
+      var document = await Projects.GetResolvedDocumentAsync(documentItem.Uri);
       Assert.NotNull(document);
       Assert.Single(document.Diagnostics);
       var message = document.Diagnostics.ElementAt(0);
@@ -81,7 +81,7 @@ method Recurse(x: int) returns (r: int) {
 }".Trim();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var document = await Documents.GetLastDocumentAsync(documentItem.Uri);
+      var document = await Projects.GetLastDocumentAsync(documentItem.Uri);
       Assert.NotNull(document);
       Assert.Equal(1, document.AllFileDiagnostics.Count(d => d.Level == ErrorLevel.Error));
       var message = document.AllFileDiagnostics.First(d => d.Level == ErrorLevel.Error);
@@ -102,7 +102,7 @@ method Recurse(x: int) returns (r: int) {
       await SetUp(options => options.Set(ServerCommand.Verification, VerifyOnMode.Never));
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var document = await Documents.GetResolvedDocumentAsync(documentItem.Uri);
+      var document = await Projects.GetResolvedDocumentAsync(documentItem.Uri);
       Assert.NotNull(document);
       Assert.True(!document.Diagnostics.Any(d => d.Severity == DiagnosticSeverity.Error));
     }
@@ -112,7 +112,7 @@ method Recurse(x: int) returns (r: int) {
       var source = "";
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var document = await Documents.GetResolvedDocumentAsync(documentItem.Uri);
+      var document = await Projects.GetResolvedDocumentAsync(documentItem.Uri);
       Assert.NotNull(document);
       // Empty files currently yield only a warning.
       Assert.True(document.Diagnostics.All(d => d.Severity != DiagnosticSeverity.Error));
@@ -123,7 +123,7 @@ method Recurse(x: int) returns (r: int) {
       var source = "";
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var document = await Documents.GetResolvedDocumentAsync(documentItem.Uri);
+      var document = await Projects.GetResolvedDocumentAsync(documentItem.Uri);
       Assert.NotNull(document);
       Assert.True(document.Diagnostics.All(d => d.Severity != DiagnosticSeverity.Error));
     }
@@ -133,7 +133,7 @@ method Recurse(x: int) returns (r: int) {
       var source = "include \"empty.dfy\"";
       var documentItem = CreateTestDocument(source, Path.Combine(Directory.GetCurrentDirectory(), "Synchronization/TestFiles/test.dfy"));
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var document = await Documents.GetResolvedDocumentAsync(documentItem.Uri);
+      var document = await Projects.GetResolvedDocumentAsync(documentItem.Uri);
       Assert.NotNull(document);
       Assert.True(!document.Diagnostics.Any());
     }

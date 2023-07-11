@@ -23,8 +23,8 @@ namespace Microsoft.Dafny {
           AddAllocationAxiom(null, null, (ArrayClassDecl)c, true);
         }
 
-        if (c is ClassLikeDecl) {
-          AddIsAndIsAllocForClassLike(c);
+        if (c is ClassLikeDecl { IsReferenceTypeDecl: true } referenceTypeDecl) {
+          AddIsAndIsAllocForReferenceType(referenceTypeDecl);
         }
 
         if (c is TraitDecl) {
@@ -93,8 +93,10 @@ namespace Microsoft.Dafny {
             { $IsAlloc(p, TClassA(G), h) }
             $IsAlloc(p, TClassA(G), h) => (p == null || h[p, alloc]);
      */
-    private void AddIsAndIsAllocForClassLike(TopLevelDeclWithMembers c) {
-      MapM(c is ClassLikeDecl ? Bools : new List<bool>(), is_alloc => {
+    private void AddIsAndIsAllocForReferenceType(ClassLikeDecl c) {
+      Contract.Requires(c.IsReferenceTypeDecl);
+
+      MapM(Bools, is_alloc => {
         var vars = MkTyParamBinders(GetTypeParams(c), out var tyexprs);
 
         var o = BplBoundVar("$o", predef.RefType, vars);
@@ -105,13 +107,13 @@ namespace Microsoft.Dafny {
         string name;
 
         if (is_alloc) {
-          name = c + ": Class $IsAlloc";
+          name = $"$IsAlloc axiom for {c.WhatKind} {c}";
           var h = BplBoundVar("$h", predef.HeapType, vars);
           // $IsAlloc(o, ..)
           is_o = MkIsAlloc(o, o_ty, h);
           body = BplIff(is_o, BplOr(o_null, IsAlloced(c.tok, h, o)));
         } else {
-          name = c + ": Class $Is";
+          name = $"$Is axiom for {c.WhatKind} {c}";
           // $Is(o, ..)
           is_o = MkIs(o, o_ty);
           Bpl.Expr rhs;
@@ -242,7 +244,7 @@ namespace Microsoft.Dafny {
     ///     // so "h" and $IsHeap(h) are omitted.
     ///     axiom fh < FunctionContextHeight ==>
     ///       (forall o: ref, h: Heap, G : Ty ::
-    ///         { h[o, f], TClassA(G) }  // if "f" is a const, omit TClassA(G) from the trigger and just use { f(G,o) }
+    ///         { h[o, f], TClassA(G) }
     ///         $IsHeap(h) &&
     ///         o != null && $Is(o, TClassA(G))  // or dtype(o) = TClassA(G)
     ///         ==>
@@ -252,7 +254,7 @@ namespace Microsoft.Dafny {
     ///     // As above for "G" and "ii", but "h" is included no matter what.
     ///     axiom fh < FunctionContextHeight ==>
     ///       (forall o: ref, h: Heap, G : Ty ::
-    ///         { h[o, f], TClassA(G) }  // if "f" is a const, use the trigger { f(G,o), h[o, alloc] }; for other readonly fields, use { f(o), h[o, alloc], TClassA(G) }
+    ///         { h[o, f], TClassA(G) }
     ///         $IsHeap(h) &&
     ///         o != null && $Is(o, TClassA(G)) &&  // or dtype(o) = TClassA(G)
     ///         h[o, alloc]
@@ -271,22 +273,23 @@ namespace Microsoft.Dafny {
       // This is the typical case (that is, f is not a static const field)
 
       var hVar = BplBoundVar("$h", predef.HeapType, out var h);
-      var oVar = BplBoundVar("$o", TrType(Resolver.GetThisType(c.tok, c)), out var o);
+      var oVar = BplBoundVar("$o", TrType(ModuleResolver.GetThisType(c.tok, c)), out var o);
 
-      // TClassA(G)
-      Bpl.Expr o_ty = ClassTyCon(c, tyexprs);
-
+      Bpl.Expr o_ty; // to hold TClassA(G)
       var isGoodHeap = FunctionCall(c.tok, BuiltinFunction.IsGoodHeap, null, h);
       Bpl.Expr isalloc_o;
-      if (!(c is ClassLikeDecl)) {
+      if (c is not ClassLikeDecl { IsReferenceTypeDecl: true }) {
         var udt = UserDefinedType.FromTopLevelDecl(c.tok, c);
+        o_ty = ClassTyCon(c, tyexprs);
         isalloc_o = MkIsAlloc(o, udt, h);
       } else if (RevealedInScope(c)) {
+        o_ty = ClassTyCon(c, tyexprs);
         isalloc_o = IsAlloced(c.tok, h, o);
       } else {
         // c is only provided, not revealed, in the scope. Use the non-null type decl's internal synonym
-        var cl = (ClassDecl)c;
+        var cl = (ClassLikeDecl)c;
         Contract.Assert(cl.NonNullTypeDecl != null);
+        o_ty = ClassTyCon(cl.NonNullTypeDecl, tyexprs);
         var udt = UserDefinedType.FromTopLevelDecl(c.tok, cl.NonNullTypeDecl);
         isalloc_o = MkIsAlloc(o, udt, h);
       }
@@ -345,12 +348,12 @@ namespace Microsoft.Dafny {
         // Note: for the allocation axiom, isGoodHeap is added back in for !f.IsMutable below
       }
 
-      if (!(f is ConstantField)) {
-        Bpl.Expr is_o = BplAnd(
-          ReceiverNotNull(o),
-          c is TraitDecl ? MkIs(o, o_ty) : DType(o, o_ty)); // $Is(o, ..)  or  dtype(o) == o_ty
-        ante = BplAnd(ante, is_o);
-      }
+      Bpl.Expr is_o = BplAnd(
+        ReceiverNotNull(o),
+        !o.Type.Equals(predef.RefType) || c is TraitDecl
+          ? MkIs(o, o_ty, ModeledAsBoxType(ModuleResolver.GetThisType(c.tok, c))) // $Is(o, ..)
+          : DType(o, o_ty)); // dtype(o) == o_ty
+      ante = BplAnd(ante, is_o);
 
       ante = BplAnd(ante, indexBounds);
 
@@ -463,7 +466,8 @@ namespace Microsoft.Dafny {
       var vars = MkTyParamBinders(GetTypeParams(c), out var tyexprs);
 
       foreach (var parent in c.ParentTraits) {
-        var trait = (TraitDecl)((NonNullTypeDecl)((UserDefinedType)parent).ResolvedClass).ViewAsClass;
+        var trait = ((UserDefinedType)parent).AsParentTraitDecl();
+        Contract.Assert(trait != null);
         var arg = ClassTyCon(c, tyexprs);
         var args = new List<Bpl.Expr> { arg };
         foreach (var targ in parent.TypeArgs) {
@@ -581,7 +585,7 @@ namespace Microsoft.Dafny {
               // this corresponds to "this"
               Contract.Assert(!m.IsStatic);  // if "m" is static, "this" should never have gone into the _induction attribute
               Contract.Assert(receiverSubst == null);  // we expect at most one
-              var receiverType = Resolver.GetThisType(m.tok, (TopLevelDeclWithMembers)m.EnclosingClass);
+              var receiverType = ModuleResolver.GetThisType(m.tok, (TopLevelDeclWithMembers)m.EnclosingClass);
               bv = new BoundVar(m.tok, CurrentIdGenerator.FreshId("$ih#this"), receiverType); // use this temporary variable counter, but for a Dafny name (the idea being that the number and the initial "_" in the name might avoid name conflicts)
               var ie = new IdentifierExpr(m.tok, bv.Name) {
                 Var = bv,
@@ -862,7 +866,7 @@ namespace Microsoft.Dafny {
         var th = new Boogie.IdentifierExpr(f.tok, "this", TrReceiverType(f));
         Boogie.Expr wh = Boogie.Expr.And(
           ReceiverNotNull(th),
-          etran.GoodRef(f.tok, th, Resolver.GetReceiverType(f.tok, f)));
+          etran.GoodRef(f.tok, th, ModuleResolver.GetReceiverType(f.tok, f)));
         Boogie.Formal thVar = new Boogie.Formal(f.tok, new Boogie.TypedIdent(f.tok, "this", TrReceiverType(f), wh), true);
         inParams.Add(thVar);
       }
@@ -889,13 +893,13 @@ namespace Microsoft.Dafny {
       // the procedure itself
       var req = new List<Boogie.Requires>();
       // free requires fh == FunctionContextHeight;
-      req.Add(Requires(f.tok, true, etran.HeightContext(f), null, null));
+      req.Add(Requires(f.tok, true, etran.HeightContext(f), null, null, null));
       if (f is TwoStateFunction) {
         // free requires prevHeap == Heap && HeapSucc(prevHeap, currHeap) && IsHeap(currHeap)
         var a0 = Boogie.Expr.Eq(prevHeap, ordinaryEtran.HeapExpr);
         var a1 = HeapSucc(prevHeap, currHeap);
         var a2 = FunctionCall(f.tok, BuiltinFunction.IsGoodHeap, null, currHeap);
-        req.Add(Requires(f.tok, true, BplAnd(a0, BplAnd(a1, a2)), null, null));
+        req.Add(Requires(f.tok, true, BplAnd(a0, BplAnd(a1, a2)), null, null, null));
       }
       // modifies $Heap
       var mod = new List<Boogie.IdentifierExpr> {
@@ -1087,14 +1091,15 @@ namespace Microsoft.Dafny {
       }
 
       // Add receiver parameter
-      Type thisType = Resolver.GetReceiverType(f.tok, overridingFunction);
+      Type thisType = ModuleResolver.GetReceiverType(f.tok, overridingFunction);
       var bvThis = new Boogie.BoundVariable(f.tok, new Boogie.TypedIdent(f.tok, etran.This, TrType(thisType)));
       forallFormals.Add(bvThis);
       var bvThisExpr = new Boogie.IdentifierExpr(f.tok, bvThis);
-      argsJF.Add(bvThisExpr);
+      argsJF.Add(BoxifyForTraitParent(f.tok, bvThisExpr, f, thisType));
       moreArgsCF.Add(bvThisExpr);
       // $Is(this, C)
-      var isOfSubtype = GetWhereClause(overridingFunction.tok, bvThisExpr, thisType, f is TwoStateFunction ? etran.Old : etran, IsAllocType.NEVERALLOC);
+      var isOfSubtype = GetWhereClause(overridingFunction.tok, bvThisExpr, thisType, f is TwoStateFunction ? etran.Old : etran,
+        IsAllocType.NEVERALLOC, alwaysUseSymbolicName: true);
 
       Bpl.Expr ante = Boogie.Expr.And(ReceiverNotNull(bvThisExpr), isOfSubtype);
 
@@ -1439,13 +1444,13 @@ namespace Microsoft.Dafny {
       // FREE PRECONDITIONS
       if (kind == MethodTranslationKind.SpecWellformedness || kind == MethodTranslationKind.Implementation || kind == MethodTranslationKind.OverrideCheck) {  // the other cases have no need for a free precondition
         // free requires mh == ModuleContextHeight && fh == FunctionContextHeight;
-        req.Add(Requires(m.tok, true, etran.HeightContext(m), null, null));
+        req.Add(Requires(m.tok, true, etran.HeightContext(m), null, null, null));
         if (m is TwoStateLemma) {
           // free requires prevHeap == Heap && HeapSucc(prevHeap, currHeap) && IsHeap(currHeap)
           var a0 = Boogie.Expr.Eq(prevHeap, ordinaryEtran.HeapExpr);
           var a1 = HeapSucc(prevHeap, currHeap);
           var a2 = FunctionCall(m.tok, BuiltinFunction.IsGoodHeap, null, currHeap);
-          req.Add(Requires(m.tok, true, BplAnd(a0, BplAnd(a1, a2)), null, null));
+          req.Add(Requires(m.tok, true, BplAnd(a0, BplAnd(a1, a2)), null, null, null));
         }
       }
       if (m is TwoStateLemma) {
@@ -1457,7 +1462,7 @@ namespace Microsoft.Dafny {
             var pIdx = m.Ins.Count == 1 ? "" : " at index " + index;
             var desc = new PODesc.IsAllocated($"parameter{pIdx} ('{formal.Name}')", "in the two-state lemma's previous state");
             var require = Requires(formal.tok, false, MkIsAlloc(etran.TrExpr(dafnyFormalIdExpr), formal.Type, prevHeap),
-              desc.FailureDescription, null);
+              desc.FailureDescription, desc.SuccessDescription, null);
             require.Description = desc;
             req.Add(require);
           }
@@ -1472,7 +1477,7 @@ namespace Microsoft.Dafny {
         // USER-DEFINED SPECIFICATIONS
         var comment = "user-defined preconditions";
         foreach (var p in m.Req) {
-          string errorMessage = CustomErrorMessage(p.Attributes);
+          var (errorMessage, successMessage) = CustomErrorMessage(p.Attributes);
           if (p.Label != null && kind == MethodTranslationKind.Implementation) {
             // don't include this precondition here, but record it for later use
             p.Label.E = (m is TwoStateLemma ? ordinaryEtran : etran.Old).TrExpr(p.E);
@@ -1483,7 +1488,7 @@ namespace Microsoft.Dafny {
               } else if (s.IsOnlyFree && !bodyKind) {
                 // don't include in split -- it would be ignored, anyhow
               } else {
-                req.Add(Requires(s.Tok, s.IsOnlyFree, s.E, errorMessage, comment));
+                req.Add(Requires(s.Tok, s.IsOnlyFree, s.E, errorMessage, successMessage, comment));
                 comment = null;
                 // the free here is not linked to the free on the original expression (this is free things generated in the splitting.)
               }
@@ -1492,8 +1497,8 @@ namespace Microsoft.Dafny {
         }
         comment = "user-defined postconditions";
         foreach (var p in m.Ens) {
-          string errorMessage = CustomErrorMessage(p.Attributes);
-          AddEnsures(ens, Ensures(p.E.tok, true, CanCallAssumption(p.E, etran), errorMessage, comment));
+          var (errorMessage, successMessage) = CustomErrorMessage(p.Attributes);
+          AddEnsures(ens, Ensures(p.E.tok, true, CanCallAssumption(p.E, etran), errorMessage, successMessage, comment));
           comment = null;
           foreach (var s in TrSplitExprForMethodSpec(p.E, etran, kind)) {
             var post = s.E;
@@ -1506,16 +1511,16 @@ namespace Microsoft.Dafny {
             } else if (s.IsOnlyChecked && !bodyKind) {
               // don't include in split
             } else {
-              AddEnsures(ens, Ensures(s.Tok, s.IsOnlyFree || this.assertionOnlyFilter != null, post, errorMessage, null));
+              AddEnsures(ens, Ensures(s.Tok, s.IsOnlyFree || this.assertionOnlyFilter != null, post, errorMessage, successMessage, null));
             }
           }
         }
         if (m is Constructor && kind == MethodTranslationKind.Call) {
           var fresh = Boogie.Expr.Not(etran.Old.IsAlloced(m.tok, new Boogie.IdentifierExpr(m.tok, "this", TrReceiverType(m))));
-          AddEnsures(ens, Ensures(m.tok, false || this.assertionOnlyFilter != null, fresh, null, "constructor allocates the object"));
+          AddEnsures(ens, Ensures(m.tok, false || this.assertionOnlyFilter != null, fresh, null, null, "constructor allocates the object"));
         }
         foreach (BoilerplateTriple tri in GetTwoStateBoilerplate(m.tok, m.Mod.Expressions, m.IsGhost, m.AllowsAllocation, ordinaryEtran.Old, ordinaryEtran, ordinaryEtran.Old)) {
-          AddEnsures(ens, Ensures(tri.tok, tri.IsFree || this.assertionOnlyFilter != null, tri.Expr, tri.ErrorMessage, tri.Comment));
+          AddEnsures(ens, Ensures(tri.tok, tri.IsFree || this.assertionOnlyFilter != null, tri.Expr, tri.ErrorMessage, tri.SuccessMessage, tri.Comment));
         }
 
         // add the fuel assumption for the reveal method of a opaque method
@@ -1533,11 +1538,11 @@ namespace Microsoft.Dafny {
                 Boogie.Expr layer = etran.layerInterCluster.LayerN(1, moreFuel_expr);
                 Boogie.Expr layerAssert = etran.layerInterCluster.LayerN(2, moreFuel_expr);
 
-                AddEnsures(ens, Ensures(m.tok, true, Boogie.Expr.Eq(startFuel, layer), null, null));
-                AddEnsures(ens, Ensures(m.tok, true, Boogie.Expr.Eq(startFuelAssert, layerAssert), null, null));
-                AddEnsures(ens, Ensures(m.tok, true, GetRevealConstant(f), null, null));
+                AddEnsures(ens, Ensures(m.tok, true, Boogie.Expr.Eq(startFuel, layer), null, null, null));
+                AddEnsures(ens, Ensures(m.tok, true, Boogie.Expr.Eq(startFuelAssert, layerAssert), null, null, null));
+                AddEnsures(ens, Ensures(m.tok, true, GetRevealConstant(f), null, null, null));
 
-                AddEnsures(ens, Ensures(m.tok, true, Boogie.Expr.Eq(FunctionCall(f.tok, BuiltinFunction.AsFuelBottom, null, moreFuel_expr), moreFuel_expr), null, "Shortcut to LZ"));
+                AddEnsures(ens, Ensures(m.tok, true, Boogie.Expr.Eq(FunctionCall(f.tok, BuiltinFunction.AsFuelBottom, null, moreFuel_expr), moreFuel_expr), null, null, "Shortcut to LZ"));
               }
             }
           }

@@ -563,12 +563,12 @@ The documentation for the root module is in `_.html`.
 
 #### 13.5.1.12. `dafny generate-tests` {#sec-dafny-generate-tests}
 
-This _experimental_ command (verifies the program and) then generates unit test code (as Dafny source code) that provides
-complete coverage of the method.
+This _experimental_ command generates unit test code (as Dafny source code) that provides
+complete coverage of a method indicated with the --target-method option.
 
-Such methods must be static and have no input parameters.
+This command enforces determinism by default and disables the functionality provided by the --snow-snippets option.
 
-_This command is under development and not yet functional._
+_This command is under development and not yet fully functional._
 
 #### 13.5.1.13. `dafny find-dead-code` {#sec-dafny-find-dead-code}
 

@@ -11,7 +11,6 @@
 //---------------------------------------------------------------------------------------------
 
 using System.Collections.Concurrent;
-using DafnyServer.CounterexampleGeneration;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
@@ -26,6 +25,7 @@ using Microsoft.Boogie;
 using Bpl = Microsoft.Boogie;
 using System.Diagnostics;
 using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.Dafny.LanguageServer.CounterExampleGeneration;
 using Microsoft.Dafny.Plugins;
 
 namespace Microsoft.Dafny {
@@ -607,16 +607,16 @@ namespace Microsoft.Dafny {
     }
 
     public static IEnumerable<Tuple<string, Bpl.Program>> Translate(ExecutionEngineOptions options, Program dafnyProgram) {
-      var nmodules = Translator.VerifiableModules(dafnyProgram).Count();
+      var modulesCount = Translator.VerifiableModules(dafnyProgram).Count();
 
 
       foreach (var prog in Translator.Translate(dafnyProgram, dafnyProgram.Reporter)) {
 
         if (options.PrintFile != null) {
 
-          var nm = nmodules > 1 ? Dafny.DafnyMain.BoogieProgramSuffix(options.PrintFile, prog.Item1) : options.PrintFile;
+          var fileName = modulesCount > 1 ? Dafny.DafnyMain.BoogieProgramSuffix(options.PrintFile, prog.Item1) : options.PrintFile;
 
-          ExecutionEngine.PrintBplFile(options, nm, prog.Item2, false, false, options.PrettyPrint);
+          ExecutionEngine.PrintBplFile(options, fileName, prog.Item2, false, false, options.PrettyPrint);
         }
 
         yield return prog;

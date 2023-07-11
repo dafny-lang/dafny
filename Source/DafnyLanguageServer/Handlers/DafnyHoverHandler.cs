@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using Microsoft.Dafny.LanguageServer.Language.Symbols;
@@ -14,21 +15,23 @@ using Microsoft.Boogie;
 using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 using Microsoft.Dafny.ProofObligationDescription;
+using EnsuresDescription = Microsoft.Dafny.ProofObligationDescription.EnsuresDescription;
+using RequiresDescription = Microsoft.Dafny.ProofObligationDescription.RequiresDescription;
 
 namespace Microsoft.Dafny.LanguageServer.Handlers {
   public class DafnyHoverHandler : HoverHandlerBase {
     // TODO add the range of the name to the hover.
     private readonly ILogger logger;
-    private readonly IDocumentDatabase documents;
+    private readonly IProjectDatabase projects;
     private DafnyOptions options;
 
     private const long RuLimitToBeOverCostly = 10000000;
     private const string OverCostlyMessage =
       " [⚠](https://dafny-lang.github.io/dafny/DafnyRef/DafnyRef#sec-verification-debugging-slow)";
 
-    public DafnyHoverHandler(ILogger<DafnyHoverHandler> logger, IDocumentDatabase documents, DafnyOptions options) {
+    public DafnyHoverHandler(ILogger<DafnyHoverHandler> logger, IProjectDatabase projects, DafnyOptions options) {
       this.logger = logger;
-      this.documents = documents;
+      this.projects = projects;
       this.options = options;
     }
 
@@ -40,7 +43,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
 
     public override async Task<Hover?> Handle(HoverParams request, CancellationToken cancellationToken) {
       logger.LogDebug("received hover request for {Document}", request.TextDocument);
-      var document = await documents.GetResolvedDocumentAsync(request.TextDocument);
+      var document = await projects.GetResolvedDocumentAsync(request.TextDocument);
       if (document == null) {
         logger.LogWarning("the document {Document} is not loaded", request.TextDocument);
         return null;
@@ -87,6 +90,11 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
             diagnostic.Source == MessageSource.Resolver.ToString()))) {
         return null;
       }
+
+      if (state.VerificationTree == null) {
+        return null;
+      }
+
       foreach (var node in state.VerificationTree.Children.OfType<TopLevelDeclMemberVerificationTree>()) {
         if (!node.Range.Contains(position)) {
           continue;
@@ -213,15 +221,19 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
 
       string GetDescription(Boogie.ProofObligationDescription? description) {
         switch (assertionNode?.StatusVerification) {
-          case GutterVerificationStatus.Verified:
-            return $"{obsolescence}<span style='color:green'>**Success:**</span> " +
-                   (description?.SuccessDescription ?? "_no message_");
+          case GutterVerificationStatus.Verified: {
+              var successDescription = description?.SuccessDescription ?? "_no message_";
+              return $"{obsolescence}<span style='color:green'>**Success:**</span> " +
+                     successDescription;
+            }
           case GutterVerificationStatus.Error:
             var failureDescription = description?.FailureDescription ?? "_no message_";
-            if (currentlyHoveringPostcondition &&
-                  (failureDescription == new PostconditionDescription().FailureDescription ||
-                   failureDescription == new EnsuresDescription().FailureDescription)) {
-              failureDescription = "This postcondition might not hold on a return path.";
+            if (description is EnsuresDescription ensuresDescription) {
+              if (currentlyHoveringPostcondition) {
+                failureDescription = ensuresDescription.FailureDescriptionSingle;
+              } else {
+                failureDescription = ensuresDescription.FailureAtPathDescription;
+              }
             }
             return $"{obsolescence}[**Error:**](https://dafny-lang.github.io/dafny/DafnyRef/DafnyRef#sec-verification-debugging) " +
                    failureDescription;
@@ -235,7 +247,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
 
       string information = "";
 
-      string couldProveOrNotPrefix = (assertionNode?.StatusVerification) switch {
+      string couldProveOrNotPrefix = (assertionNode.StatusVerification) switch {
         GutterVerificationStatus.Verified => "Did prove: ",
         GutterVerificationStatus.Error => "Could not prove: ",
         GutterVerificationStatus.Inconclusive => "Not able to prove: ",
@@ -257,7 +269,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
           // however, nested postconditions should be displayed
           if (errorToken is BoogieRangeToken rangeToken && !hoveringPostcondition) {
             var originalText = rangeToken.PrintOriginal();
-            deltaInformation += "  \n" + couldProveOrNotPrefix + originalText;
+            deltaInformation += "  \n" + (token == null ? couldProveOrNotPrefix : "Inside ") + "`" + originalText + "`";
           }
 
           hoveringPostcondition = false;
@@ -267,15 +279,36 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
       }
 
       if (counterexample is ReturnCounterexample returnCounterexample) {
-        information += GetDescription(returnCounterexample.FailingReturn.Description);
+        if (assertionNode.StatusVerification == GutterVerificationStatus.Error &&
+            returnCounterexample.FailingEnsures.Description.SuccessDescription != "assertion always holds") {
+          // Specialization for ensures marked with {:error} attribute
+          // Note that GetDescription checks if user is hovering postcondition
+          // so if there is no {:error}, it falls back to a correct error message
+          information += GetDescription(returnCounterexample.FailingEnsures.Description);
+        } else {
+          information += GetDescription(returnCounterexample.FailingReturn.Description);
+        }
         information += MoreInformation(returnCounterexample.FailingAssert.tok, currentlyHoveringPostcondition);
       } else if (counterexample is CallCounterexample callCounterexample) {
-        information += GetDescription(callCounterexample.FailingCall.Description);
+        if (assertionNode.StatusVerification == GutterVerificationStatus.Error &&
+            callCounterexample.FailingRequires.Description.SuccessDescription != "assertion always holds"
+            ) {
+          // Specialization for requires marked with {:error} attribute
+          information += GetDescription(callCounterexample.FailingRequires.Description);
+        } else {
+          information += GetDescription(callCounterexample.FailingCall.Description);
+        }
         information += MoreInformation(callCounterexample.FailingRequires.tok, false);
+      } else if (assertCmd is AssertRequiresCmd assertRequiresCmd) {
+        information += GetDescription(assertRequiresCmd.Description);
+        information += MoreInformation(assertRequiresCmd.Requires.tok, currentlyHoveringPostcondition);
+      } else if (assertCmd is AssertEnsuresCmd assertEnsuresCmd) {
+        information += GetDescription(assertEnsuresCmd.Description);
+        information += MoreInformation(assertEnsuresCmd.Ensures.tok, currentlyHoveringPostcondition);
       } else {
         information += GetDescription(assertCmd?.Description);
         if (assertCmd?.tok is NestedToken) {
-          information += MoreInformation(assertCmd.tok, true);
+          information += MoreInformation(assertCmd.tok, currentlyHoveringPostcondition);
         }
       }
 
@@ -336,7 +369,11 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
         nodeResourceCount /= 1000;
         suffix += 1; // We don't go past 4 because no suffix beyond T should be useful
       }
-      var nodeResourceCountStr = $"{nodeResourceCount:n0}";
+      var nfi = new NumberFormatInfo() {
+        NumberDecimalDigits = 0,
+        NumberGroupSeparator = "",
+      };
+      var nodeResourceCountStr = nodeResourceCount.ToString(nfi);
       var fractionalStr = nodeResourceCountStr.Length >= SignificativeDigits || suffix == 0 ?
         "" :
         "." + $"{fractional:000}".Remove(SignificativeDigits - nodeResourceCountStr.Length);

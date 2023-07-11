@@ -71,7 +71,6 @@ include ""./semanticError.dfy""
   [Fact]
   public async Task MethodWhosePostConditionFailsAndDependsOnIncludedFile() {
     var temp = (Path.GetTempFileName() + ".dfy").Replace("\\", "/");
-    Console.WriteLine("temp file is: " + temp);
     var producer = @"
 function Foo(x: int): bool {
   x == 2

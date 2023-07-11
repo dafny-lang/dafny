@@ -20,8 +20,8 @@ public abstract class DatatypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl
   public override IEnumerable<Node> PreResolveChildren => Ctors.Concat<Node>(base.PreResolveChildren);
 
   public DatatypeDecl(RangeToken rangeToken, Name name, ModuleDefinition module, List<TypeParameter> typeArgs,
-    [Captured] List<DatatypeCtor> ctors, List<MemberDecl> members, Attributes attributes, bool isRefining)
-    : base(rangeToken, name, module, typeArgs, members, attributes, isRefining) {
+    [Captured] List<DatatypeCtor> ctors, List<Type> parentTraits, List<MemberDecl> members, Attributes attributes, bool isRefining)
+    : base(rangeToken, name, module, typeArgs, members, attributes, isRefining, parentTraits) {
     Contract.Requires(rangeToken != null);
     Contract.Requires(name != null);
     Contract.Requires(module != null);
