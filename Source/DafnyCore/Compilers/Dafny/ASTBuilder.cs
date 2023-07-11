@@ -10,17 +10,17 @@ namespace Microsoft.Dafny.Compilers {
     public DafnyCompiler compiler { get => _compiler; }
 
 
-    readonly List<TopLevel> items = new();
+    readonly List<Module> items = new();
 
     public ProgramBuilder(DafnyCompiler compiler) {
       _compiler = compiler;
     }
 
     public void AddModule(Module item) {
-      items.Add((TopLevel)TopLevel.create_Module(item));
+      items.Add(item);
     }
 
-    public List<TopLevel> Finish() {
+    public List<Module> Finish() {
       return items;
     }
   }

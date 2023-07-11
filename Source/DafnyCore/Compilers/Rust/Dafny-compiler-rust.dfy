@@ -31,8 +31,8 @@ module {:extern "DCOMP"} DCOMP {
         match body[i] {
           case Module(m) => generated := GenModule(m);
           case Class(c) => generated := GenClass(c);
-          case Newtype(n) => generated := "TODO";
-          case Datatype(n) => generated := "TODO";
+          case Newtype(n) => generated := GenNewtype(n);
+          case Datatype(d) => generated := GenDatatype(d);
         }
 
         if i > 0 {
@@ -49,6 +49,15 @@ module {:extern "DCOMP"} DCOMP {
       s := "pub struct " + c.name + " {\n" + "" +  "\n}" + "\n" + "impl " + c.name + " {\n" + implBody + "\n}";
     }
 
+    static method GenNewtype(c: Newtype) returns (s: string) {
+      s := "pub struct " + c.name + " {\n" + "" +  "\n}" + "\n";
+    }
+
+    static method GenDatatype(c: Datatype) returns (s: string) {
+      var implBody := GenClassImplBody(c.body);
+      s := "pub struct " + c.name + " {\n" + "" +  "\n}" + "\n" + "impl " + c.name + " {\n" + implBody + "\n}";
+    }
+
     static method GenClassImplBody(body: seq<ClassItem>) returns (s: string) {
       s := "";
       var i := 0;
@@ -56,7 +65,7 @@ module {:extern "DCOMP"} DCOMP {
         var generated: string;
         match body[i] {
           case Method(m) => generated := GenMethod(m);
-          case _ => generated := "TODO";
+          case Function(m) => generated := GenFunction(m);
         }
 
         if i > 0 {
@@ -83,8 +92,36 @@ module {:extern "DCOMP"} DCOMP {
           }
 
           match m.typeArgs[i] {
-            case Ident(Ident(name)) => s := s + name;
-            case _ => s := s + "TODO";
+            case Path(Ident(name)) => s := s + name;
+            case TypeArg(Ident(name)) => s := s + "TODO";
+          }
+
+          i := i + 1;
+        }
+
+        s := s + ">";
+      }
+
+      s := s + "(" + "" + ") {\n" + body + "\n}\n";
+    }
+
+    static method GenFunction(m: Function) returns (s: string) {
+      // var params := GenParams(m.params);
+      var body := GenExpr(m.body);
+      s := "pub fn " + m.name;
+
+      if (|m.typeArgs| > 0) {
+        s := s + "<";
+
+        var i := 0;
+        while i < |m.typeArgs| {
+          if i > 0 {
+            s := s + ", ";
+          }
+
+          match m.typeArgs[i] {
+            case Path(Ident(name)) => s := s + name;
+            case TypeArg(Ident(name)) => s := s + name;
           }
 
           i := i + 1;
@@ -106,11 +143,18 @@ module {:extern "DCOMP"} DCOMP {
             var printedExpr := GenExpr(e);
             generated := "print!(\"{}\", ::dafny_runtime::DafnyPrintWrapper(" + printedExpr + "));";
           }
-          case DeclareVar(name, Ident(Ident(typ)), Some(expression)) => {
+          case DeclareVar(name, Path(Ident(typ)), Some(expression)) => {
             var expr := GenExpr(expression);
             generated := "let mut " + name + ": " + typ + " = " + expr + ";";
           }
-          case DeclareVar(name, Ident(Ident(typ)), None) => {
+          case DeclareVar(name, TypeArg(Ident(typ)), Some(expression)) => {
+            var expr := GenExpr(expression);
+            generated := "let mut " + name + ": " + typ + " = " + expr + ";";
+          }
+          case DeclareVar(name, Path(Ident(typ)), None) => {
+            generated := "let mut " + name + ": " + typ + ";";
+          }
+          case DeclareVar(name, TypeArg(Ident(typ)), None) => {
             generated := "let mut " + name + ": " + typ + ";";
           }
           case Assign(name, expression) => {
@@ -182,17 +226,14 @@ module {:extern "DCOMP"} DCOMP {
       }
     }
 
-    static method Compile(p: seq<TopLevel>, runtime: string) returns (s: string) {
+    static method Compile(p: seq<Module>, runtime: string) returns (s: string) {
       s := "#![allow(warnings)]\n";
       s := s + "mod dafny_runtime {\n" + runtime + "\n}\n";
 
       var i := 0;
       while i < |p| {
         var generated: string;
-        match p[i] {
-          case Module(m) => generated := GenModule(m);
-          case Other(_, _) => generated := "TODO";
-        }
+        generated := GenModule(p[i]);
 
         if i > 0 {
           s := s + "\n";
@@ -204,7 +245,7 @@ module {:extern "DCOMP"} DCOMP {
     }
 
     static method EmitCallToMain(fullName: seq<string>) returns (s: string) {
-      s := "fn main() {\n";
+      s := "\nfn main() {\n";
       var i := 0;
       while i < |fullName| {
         if i > 0 {

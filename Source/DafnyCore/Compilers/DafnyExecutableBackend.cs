@@ -32,7 +32,7 @@ public abstract class DafnyExecutableBackend : ExecutableBackend {
     ((DafnyCompiler)compiler).Start();
     compiler.Compile(dafnyProgram, new ConcreteSyntaxTree());
     var dast = ((DafnyCompiler)compiler).Build();
-    var o = dafnyCompiler.Compile((Sequence<DAST.TopLevel>)Sequence<DAST.TopLevel>.FromArray(dast.ToArray()));
+    var o = dafnyCompiler.Compile((Sequence<DAST.Module>)Sequence<DAST.Module>.FromArray(dast.ToArray()));
     output.Write(o.ToVerbatimString(false));
   }
 

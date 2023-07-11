@@ -1,15 +1,12 @@
 
 module {:extern "DAST"} DAST {
-
-  datatype TopLevel = Module(Module) | Other(a: string, b: string)
-
   datatype Module = Module(name: string, body: seq<ModuleItem>)
 
   datatype ModuleItem = Module(Module) | Class(Class) | Newtype(Newtype) | Datatype(Datatype)
 
   datatype Newtype = Newtype(name: string, base: Type)
 
-  datatype Type = Ident(Ident) | Other(a: string)
+  datatype Type = Path(Ident) | TypeArg(Ident)
 
   datatype Ident = Ident(string)
 
@@ -17,7 +14,7 @@ module {:extern "DAST"} DAST {
 
   datatype Datatype = Datatype(name: string, body: seq<ClassItem>)
 
-  datatype ClassItem = Method(Method) | Function(Function) | Other(a: string)
+  datatype ClassItem = Method(Method) | Function(Function)
 
   datatype Method = Method(name: string, typeArgs: seq<Type>, body: seq<Statement>)
 

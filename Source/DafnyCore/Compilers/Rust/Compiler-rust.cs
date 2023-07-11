@@ -8,7 +8,7 @@ namespace Microsoft.Dafny.Compilers {
 
   class RustCompiler : DafnyWrittenCompiler {
 
-    public override ISequence<Rune> Compile(Sequence<DAST.TopLevel> program) {
+    public override ISequence<Rune> Compile(Sequence<DAST.Module> program) {
       var assembly = System.Reflection.Assembly.Load("DafnyPipeline");
       var stream = assembly.GetManifestResourceStream("DafnyRuntimeRust.rs");
       var contents = new StreamReader(stream).ReadToEnd();

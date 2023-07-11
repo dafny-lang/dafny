@@ -21,7 +21,7 @@ namespace Microsoft.Dafny.Compilers {
       this.currentBuilder = items;
     }
 
-    public List<TopLevel> Build() {
+    public List<Module> Build() {
       var res = items.Finish();
       items = null;
       this.currentBuilder = null;
@@ -165,11 +165,11 @@ namespace Microsoft.Dafny.Compilers {
       var xType = DatatypeWrapperEraser.SimplifyType(Options, typ);
 
       if (xType is BoolType) {
-        return (DAST.Type)DAST.Type.create_Ident(Sequence<Rune>.UnicodeFromString("bool"));
+        return (DAST.Type)DAST.Type.create_Path(Sequence<Rune>.UnicodeFromString("bool"));
       } else if (xType is IntType) {
-        return (DAST.Type)DAST.Type.create_Ident(Sequence<Rune>.UnicodeFromString("i32"));
+        return (DAST.Type)DAST.Type.create_Path(Sequence<Rune>.UnicodeFromString("i32"));
       } else if (xType is RealType) {
-        return (DAST.Type)DAST.Type.create_Ident(Sequence<Rune>.UnicodeFromString("f32"));
+        return (DAST.Type)DAST.Type.create_Path(Sequence<Rune>.UnicodeFromString("f32"));
       } else if (xType is UserDefinedType udt) {
         if (udt.ResolvedClass is TypeParameter tp) {
           if (thisContext != null && thisContext.ParentFormalTypeParametersToActuals.TryGetValue(tp, out var instantiatedTypeParameter)) {
@@ -178,17 +178,17 @@ namespace Microsoft.Dafny.Compilers {
           }
         }
 
-        return (DAST.Type)DAST.Type.create_Ident(Sequence<Rune>.UnicodeFromString(FullTypeName(udt, null)));
+        return (DAST.Type)DAST.Type.create_Path(Sequence<Rune>.UnicodeFromString(FullTypeName(udt, null)));
       } else if (AsNativeType(typ) != null) {
         return (DAST.Type)(AsNativeType(typ).Sel switch {
-          NativeType.Selection.Byte => DAST.Type.create_Ident(Sequence<Rune>.UnicodeFromString("u8")),
-          NativeType.Selection.SByte => DAST.Type.create_Ident(Sequence<Rune>.UnicodeFromString("i8")),
-          NativeType.Selection.Short => DAST.Type.create_Ident(Sequence<Rune>.UnicodeFromString("u16")),
-          NativeType.Selection.UShort => DAST.Type.create_Ident(Sequence<Rune>.UnicodeFromString("i16")),
-          NativeType.Selection.Int => DAST.Type.create_Ident(Sequence<Rune>.UnicodeFromString("u32")),
-          NativeType.Selection.UInt => DAST.Type.create_Ident(Sequence<Rune>.UnicodeFromString("i32")),
-          NativeType.Selection.Long => DAST.Type.create_Ident(Sequence<Rune>.UnicodeFromString("u64")),
-          NativeType.Selection.ULong => DAST.Type.create_Ident(Sequence<Rune>.UnicodeFromString("i64")),
+          NativeType.Selection.Byte => DAST.Type.create_Path(Sequence<Rune>.UnicodeFromString("u8")),
+          NativeType.Selection.SByte => DAST.Type.create_Path(Sequence<Rune>.UnicodeFromString("i8")),
+          NativeType.Selection.Short => DAST.Type.create_Path(Sequence<Rune>.UnicodeFromString("u16")),
+          NativeType.Selection.UShort => DAST.Type.create_Path(Sequence<Rune>.UnicodeFromString("i16")),
+          NativeType.Selection.Int => DAST.Type.create_Path(Sequence<Rune>.UnicodeFromString("u32")),
+          NativeType.Selection.UInt => DAST.Type.create_Path(Sequence<Rune>.UnicodeFromString("i32")),
+          NativeType.Selection.Long => DAST.Type.create_Path(Sequence<Rune>.UnicodeFromString("u64")),
+          NativeType.Selection.ULong => DAST.Type.create_Path(Sequence<Rune>.UnicodeFromString("i64")),
           _ => throw new InvalidOperationException(),
         });
       } else {
@@ -220,7 +220,7 @@ namespace Microsoft.Dafny.Compilers {
         bool forBodyInheritance, bool lookasideBody) {
         List<DAST.Type> astTypeArgs = new();
         foreach (var typeArg in typeArgs) {
-          astTypeArgs.Add((DAST.Type)DAST.Type.create_Ident(Sequence<Rune>.UnicodeFromString(compiler.IdProtect(typeArg.Formal.GetCompileName(compiler.Options)))));
+          astTypeArgs.Add((DAST.Type)DAST.Type.create_TypeArg(Sequence<Rune>.UnicodeFromString(compiler.IdProtect(typeArg.Formal.GetCompileName(compiler.Options)))));
         }
 
         var builder = this.builder.Method(m.Name, astTypeArgs);
@@ -238,7 +238,7 @@ namespace Microsoft.Dafny.Compilers {
           bool forBodyInheritance, bool lookasideBody) {
         List<DAST.Type> astTypeArgs = new();
         foreach (var typeArg in typeArgs) {
-          astTypeArgs.Add((DAST.Type)DAST.Type.create_Ident(Sequence<Rune>.UnicodeFromString(compiler.IdProtect(typeArg.Formal.GetCompileName(compiler.Options)))));
+          astTypeArgs.Add((DAST.Type)DAST.Type.create_TypeArg(Sequence<Rune>.UnicodeFromString(compiler.IdProtect(typeArg.Formal.GetCompileName(compiler.Options)))));
         }
 
         var builder = this.builder.Function(name, astTypeArgs);
