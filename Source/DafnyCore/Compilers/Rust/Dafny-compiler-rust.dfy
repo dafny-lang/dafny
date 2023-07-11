@@ -93,7 +93,7 @@ module {:extern "DCOMP"} DCOMP {
 
           match m.typeArgs[i] {
             case Path(Ident(name)) => s := s + name;
-            case TypeArg(Ident(name)) => s := s + "TODO";
+            case TypeArg(Ident(name)) => s := s + name;
           }
 
           i := i + 1;

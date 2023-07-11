@@ -1709,7 +1709,7 @@ namespace DCOMP {
             {
               Dafny.ISequence<Dafny.Rune> _25___mcc_h3 = _source4;
               Dafny.ISequence<Dafny.Rune> _26_name = _25___mcc_h3;
-              s = Dafny.Sequence<Dafny.Rune>.Concat(s, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("TODO"));
+              s = Dafny.Sequence<Dafny.Rune>.Concat(s, _26_name);
             }
           }
           _20_i = (_20_i) + (BigInteger.One);
@@ -1980,7 +1980,7 @@ namespace DCOMP {
     }
     public static Dafny.ISequence<Dafny.Rune> EmitCallToMain(Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> fullName) {
       Dafny.ISequence<Dafny.Rune> s = Dafny.Sequence<Dafny.Rune>.Empty;
-      s = Dafny.Sequence<Dafny.Rune>.UnicodeFromString("fn main() {\n");
+      s = Dafny.Sequence<Dafny.Rune>.UnicodeFromString("\nfn main() {\n");
       BigInteger _96_i;
       _96_i = BigInteger.Zero;
       while ((_96_i) < (new BigInteger((fullName).Count))) {
