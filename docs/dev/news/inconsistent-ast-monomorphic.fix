@@ -1,0 +1,1 @@
+Fixes invalid declaration errors when verifying directly from Dafny using /typeEncoding:m.
