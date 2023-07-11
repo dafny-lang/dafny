@@ -24,7 +24,7 @@ module {:extern "DAST"} DAST {
 
   datatype Optional<T> = Some(T) | None
 
-  datatype Statement = DeclareVar(name: string, typ: Type, maybeValue: Optional<Expression>) | Assign(name: string, value: Expression) | Call(name: string, args: seq<Expression>) | Print(Expression) | Todo(reason: string)
+  datatype Statement = DeclareVar(name: string, typ: Type, maybeValue: Optional<Expression>) | Assign(name: string, value: Expression) | Call(enclosing: Optional<Type>, name: string, args: seq<Expression>) | Print(Expression) | Todo(reason: string)
 
   datatype Expression = Literal(Literal) | Ident(string) | DatatypeValue(contents: seq<Expression>) | BinOp(op: string, left: Expression, right: Expression) | Todo(reason: string)
 

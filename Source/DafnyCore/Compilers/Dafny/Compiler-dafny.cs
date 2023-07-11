@@ -363,20 +363,31 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override string TypeName_Companion(Type type, ConcreteSyntaxTree wr, IToken tok, MemberDecl member) {
-      // type = UserDefinedType.UpcastToMemberEnclosingType(type, member);
-      // if (type.NormalizeExpandKeepConstraints() is UserDefinedType udt && udt.ResolvedClass is DatatypeDecl dt &&
-      //     DatatypeWrapperEraser.IsErasableDatatypeWrapper(Options, dt, out _)) {
-      //   var s = FullTypeName(udt, member);
-      //   return TypeName_UDT(s, udt, wr, udt.tok);
-      // } else {
-      //   return TypeName(type, wr, tok, member);
-      // }
+      type = UserDefinedType.UpcastToMemberEnclosingType(type, member);
 
-      if (currentBuilder is CallBuilder) {
-        throw new NotImplementedException();
+      if (currentBuilder is CallBuilder call) {
+        if (type.NormalizeExpandKeepConstraints() is UserDefinedType udt && udt.ResolvedClass is DatatypeDecl dt &&
+            DatatypeWrapperEraser.IsErasableDatatypeWrapper(Options, dt, out _)) {
+          call.SetEnclosing(FullTypeNameAST(udt, member));
+          return "";
+        } else {
+          call.SetEnclosing(GenType(type));
+          return "";
+        }
       } else {
         throw new InvalidOperationException();
       }
+    }
+
+    protected override void EmitNameAndActualTypeArgs(string protectedName, List<Type> typeArgs, IToken tok, ConcreteSyntaxTree wr) {
+      if (currentBuilder is CallBuilder call) {
+        call.SetName(protectedName);
+        // TODO(shadaj): add type args
+      } else {
+        throw new InvalidOperationException();
+      }
+
+      base.EmitNameAndActualTypeArgs(protectedName, typeArgs, tok, wr);
     }
 
     protected override void TypeArgDescriptorUse(bool isStatic, bool lookasideBody, TopLevelDeclWithMembers cl, out bool needsTypeParameter, out bool needsTypeDescriptor) {

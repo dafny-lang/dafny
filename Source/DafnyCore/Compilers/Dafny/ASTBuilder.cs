@@ -339,11 +339,20 @@ namespace Microsoft.Dafny.Compilers {
     public DafnyCompiler compiler { get => parent.compiler; }
     public readonly StatementContainer parent;
 
+    DAST.Type enclosing = null;
     string name = null;
     readonly List<DAST.Expression> args = new();
 
     public CallBuilder(StatementContainer parent) {
       this.parent = parent;
+    }
+
+    public void SetEnclosing(DAST.Type enclosing) {
+      if (this.enclosing != null) {
+        throw new InvalidOperationException();
+      } else {
+        this.enclosing = enclosing;
+      }
     }
 
     public void SetName(string name) {
@@ -359,8 +368,10 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     public object Finish() {
-      parent.AddStatement((DAST.Statement)DAST.Statement.create_Todo(
-        Sequence<Rune>.UnicodeFromString($"call stmt ({this.name}, {this.args})")
+      parent.AddStatement((DAST.Statement)DAST.Statement.create_Call(
+        enclosing == null ? DAST.Optional<DAST._IType>.create_None() : DAST.Optional<DAST._IType>.create_Some(enclosing),
+        Sequence<Rune>.UnicodeFromString(name),
+        Sequence<DAST.Expression>.FromArray(args.ToArray())
       ));
 
       return parent;

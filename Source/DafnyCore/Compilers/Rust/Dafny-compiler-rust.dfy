@@ -173,6 +173,33 @@ module {:extern "DCOMP"} DCOMP {
             var expr := GenExpr(expression);
             generated := name + " = " + expr + ";";
           }
+          case Call(enclosing, name, args) => {
+            var argString := "";
+            var i := 0;
+            while i < |args| {
+              if i > 0 {
+                argString := argString + ", ";
+              }
+
+              var argExpr := GenExpr(args[i]);
+              argString := argString + argExpr;
+
+              i := i + 1;
+            }
+
+            var enclosingString := "";
+            match enclosing {
+              case Some(e) => {
+                enclosingString := GenType(e);
+                enclosingString := enclosingString + "::";
+              }
+              case None => {
+                enclosingString := "";
+              }
+            }
+
+            generated := enclosingString + name + "(" + argString + ");";
+          }
           case Todo(reason) => {
             generated := "todo!(\"" + reason + "\");";
           }
