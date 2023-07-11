@@ -3,7 +3,8 @@ using System.Linq;
 
 namespace Microsoft.Dafny;
 
-public abstract class AssignmentRhs : TokenNode, IAttributeBearingDeclaration {
+public abstract class AssignmentRhs : TokenNode, IAttributeBearingDeclaration
+{
   private Attributes attributes;
   public Attributes Attributes {
     get {
@@ -21,6 +22,7 @@ public abstract class AssignmentRhs : TokenNode, IAttributeBearingDeclaration {
   internal AssignmentRhs(Cloner cloner, AssignmentRhs original) {
     tok = cloner.Tok(original.tok);
     Attributes = cloner.CloneAttributes(original.Attributes);
+    RangeToken = original.rangeToken;
   }
 
   internal AssignmentRhs(IToken tok, Attributes attrs = null) {

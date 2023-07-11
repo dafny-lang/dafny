@@ -370,21 +370,13 @@ namespace Microsoft.Dafny {
       return new NameSegment(this, (NameSegment)expr);
     }
 
-    public virtual AssignmentRhs CloneRHS(AssignmentRhs rhs) {
-      AssignmentRhs c;
+    public virtual AssignmentRhs CloneRHS(AssignmentRhs rhs)
+    {
       if (rhs is ICloneable<AssignmentRhs> cloneable) {
         return cloneable.Clone(this);
       }
 
-      if (rhs is ExprRhs) {
-        var r = (ExprRhs)rhs;
-        c = new ExprRhs(CloneExpr(r.Expr), CloneAttributes(rhs.Attributes));
-      } else if (rhs is HavocRhs) {
-        c = new HavocRhs(Tok(rhs.Tok));
-      } else {
-        throw new cce.UnreachableException();
-      }
-      return c;
+      throw new Exception($"No clone implementation found for {rhs.GetType()}"); // unexpected RHS
     }
 
     public virtual BlockStmt CloneBlockStmt(BlockStmt stmt) {

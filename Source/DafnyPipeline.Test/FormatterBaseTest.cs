@@ -1,6 +1,7 @@
 #nullable enable
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.IO;
 using System.Text.RegularExpressions;
 using DafnyTestGeneration;
@@ -59,7 +60,7 @@ namespace DafnyPipeline.Test {
         var uri = new Uri("virtual:virtual");
         var reporter = new BatchErrorReporter(options);
         Microsoft.Dafny.Type.ResetScopes();
-
+        
         var dafnyProgram = new ProgramParser().Parse(programNotIndented, uri, reporter);
 
         if (reporter.ErrorCount > 0) {
@@ -78,9 +79,34 @@ namespace DafnyPipeline.Test {
           : programString;
         EnsureEveryTokenIsOwned(programNotIndented, dafnyProgram);
         if (expectedProgram != reprinted) {
-          Console.Out.WriteLine("Formatting before resolution generates an error:");
+          Console.Out.WriteLine("Formatting after parsing generates an error:");
           Assert.Equal(expectedProgram, reprinted);
         }
+        // Formatting should work even if we clone the program after parsing
+        Cloner clone = new();
+        dafnyProgram.Visit((Node n) => {
+          if (n is TopLevelDeclWithMembers nWithMembers) {
+            var newMembers = new List<MemberDecl>();
+            foreach (var member in nWithMembers.MembersBeforeResolution) {
+              newMembers.Add(clone.CloneMember(member, false));
+            }
+
+            nWithMembers.MembersBeforeResolution = newMembers.ToImmutableList();
+            return false;
+          }
+
+          return true;
+        });
+        var reprintedCloned = firstToken != null && firstToken.line > 0
+          ? Formatting.__default.ReindentProgramFromFirstToken(firstToken,
+            IndentationFormatter.ForProgram(dafnyProgram, reduceBlockiness))
+          : programString;
+        EnsureEveryTokenIsOwned(programNotIndented, dafnyProgram);
+        if (expectedProgram != reprintedCloned) {
+          Console.Out.WriteLine("Formatting after parsing + cloning generates an error:");
+          Assert.Equal(expectedProgram, reprinted);
+        }
+        
 
         // Formatting should work after resolution as well.
         DafnyMain.Resolve(dafnyProgram);
