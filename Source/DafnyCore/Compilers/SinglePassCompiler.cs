@@ -1518,7 +1518,7 @@ namespace Microsoft.Dafny.Compilers {
       public NullClassWriter() {
         block = abyss.NewBlock("");
       }
-      
+
       public ConcreteSyntaxTree/*?*/ CreateMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody, bool forBodyInheritance, bool lookasideBody) {
         return createBody ? block : null;
       }
