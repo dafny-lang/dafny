@@ -206,8 +206,9 @@ method M(c: [>><C<]) {}
     [Fact]
     public async Task ClassField() {
       var source = @"
-class ><C {
-  var f: int := 0
+class C {
+  var ><f: int
+  constructor() { [>><f<] := 0; }
 }
 method M(c: C) {
   print c.[>><f<];
