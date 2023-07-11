@@ -1579,14 +1579,18 @@ namespace Microsoft.Dafny {
     ///   - "f" has a body
     ///   - "f" is not opaque
     /// </summary>
-    static bool FunctionBodyIsAvailable(Function f, ModuleDefinition context, VisibilityScope scope, bool revealProtectedBody) {
+    bool FunctionBodyIsAvailable(Function f, ModuleDefinition context, VisibilityScope scope, bool revealProtectedBody) {
       Contract.Requires(f != null);
       Contract.Requires(context != null);
       return f.Body != null && !IsOpaque(f) && f.IsRevealedInScope(scope);
     }
-    static bool IsOpaque(MemberDecl f) {
+    bool IsOpaque(MemberDecl f) {
       Contract.Requires(f != null);
-      return Attributes.Contains(f.Attributes, "opaque") || f.IsOpaque;
+      if (f is Function f1) {
+        return Attributes.Contains(f.Attributes, "opaque") || f.IsOpaque || f1.DoesAllOpaqueMakeOpaque(options);
+      } else {
+        return Attributes.Contains(f.Attributes, "opaque") || f.IsOpaque;
+      }
     }
     static bool IsOpaqueRevealLemma(Method m) {
       Contract.Requires(m != null);

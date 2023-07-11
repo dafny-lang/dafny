@@ -4,6 +4,7 @@ using System.Diagnostics.Contracts;
 using System.Linq;
 using System.Linq.Expressions;
 using Microsoft.Boogie;
+using Microsoft.Dafny.Plugins;
 
 namespace Microsoft.Dafny; 
 
@@ -13,10 +14,9 @@ public class AllOpaqueRevealStmtInserter : IRewriter {
   internal override void PostResolveIntermediate(ModuleDefinition moduleDefinition) {
     Contract.Requires(moduleDefinition != null);
 
-    // foreach (var decl in ModuleDefinition.AllCallables(moduleDefinition.TopLevelDecls)) {
     foreach (var decl in moduleDefinition.TopLevelDecls) {
       if (decl is TopLevelDeclWithMembers cl) {
-        foreach (var member in cl.Members) { //.Where(member => member is ICallable and not ConstantField)) {
+        foreach (var member in cl.Members) {
           if (member is ICallable and not ConstantField) {
 
             var mem = (ICallable)member;
@@ -25,9 +25,9 @@ public class AllOpaqueRevealStmtInserter : IRewriter {
             }
 
             if (mem is Method { Body: not null } method) {
-              AddMethodReveals(method);
+              AddMethodReveals(method, Reporter);
             } else if (mem is Function { Body: not null } func) {
-              AddFunctionReveals(func);
+              AddFunctionReveals(func, Reporter);
             }
           }
           
@@ -61,15 +61,18 @@ public class AllOpaqueRevealStmtInserter : IRewriter {
         foreach (var expression in functionCalls) {
           if (expression is FunctionCallExpr funcExpr) {
             var func = funcExpr.Function;
-            var revealStmt0 = BuildRevealStmt(func, expr.Witness.Tok, moduleDefinition);
-            
-            if (revealStmt0 is not null) {
-              var newExpr = new StmtExpr(expr.Witness.Tok, revealStmt0, expr.Witness) {
-                Type = expr.Witness.Type
-              };
-              expr.Witness = newExpr;
+
+            if (!func.IsOpaque && func.DoesAllOpaqueMakeOpaque(Options)) {
+              var revealStmt0 = BuildRevealStmt(func, expr.Witness.Tok, moduleDefinition);
+
+              if (revealStmt0 is not null) {
+                var newExpr = new StmtExpr(expr.Witness.Tok, revealStmt0, expr.Witness) {
+                  Type = expr.Witness.Type
+                };
+                expr.Witness = newExpr;
+              }
             }
-              
+
             using IEnumerator<Function> enumerator = GetEnumerator(func, func.EnclosingClass, new List<Expression>());
             while (enumerator.MoveNext()) {
               var newFunc = enumerator.Current;
@@ -93,28 +96,28 @@ public class AllOpaqueRevealStmtInserter : IRewriter {
   }
   
   internal class GraphTraversalVertex {
-    public readonly Graph<ICallable>.Vertex vertex;
-    public readonly bool local;
+    public readonly Graph<ICallable>.Vertex Vertex;
+    public readonly bool Local;
 
     public GraphTraversalVertex(Graph<ICallable>.Vertex vertex, bool local) {
-      this.vertex = vertex;
-      this.local = local;
+      this.Vertex = vertex;
+      this.Local = local;
     }
 
     public override bool Equals(object obj)
     {
       GraphTraversalVertex other = obj as GraphTraversalVertex;
-      return other.vertex == vertex && other.local == local;
+      return other.Vertex == Vertex && other.Local == Local;
     }
 
     public override int GetHashCode()
     {
-      return HashCode.Combine(vertex, local);
+      return HashCode.Combine(Vertex, Local);
     }
 
   }
 
-  private void AddMethodReveals(Method m) {
+  private void AddMethodReveals(Method m, ErrorReporter reporter) {
     Contract.Requires(m != null);
 
     var currentClass = m.EnclosingClass;
@@ -128,24 +131,32 @@ public class AllOpaqueRevealStmtInserter : IRewriter {
 
       if (revealStmt is not null) {
         addedReveals.Add(revealStmt);
-        m.Body.Body.Insert(0, revealStmt);
+
+        if (!Attributes.Contains(m.Attributes, "allOpaque")) {
+          m.Body.Body.Insert(0, revealStmt);
+        }
       }
     }
 
-    if (m.Req.Any() || m.Ens.Any()) {
-      Expression reqExpr = new LiteralExpr(m.Tok, true);
-      reqExpr.Type = Type.Bool;
-      foreach (var revealStmt0 in addedReveals) {
-        reqExpr = new StmtExpr(reqExpr.tok, revealStmt0, reqExpr);
+    if (!Attributes.Contains(m.Attributes, "allOpaque")) {
+      if (m.Req.Any() || m.Ens.Any()) {
+        Expression reqExpr = new LiteralExpr(m.Tok, true);
         reqExpr.Type = Type.Bool;
-      }
+        foreach (var revealStmt0 in addedReveals) {
+          reqExpr = new StmtExpr(reqExpr.tok, revealStmt0, reqExpr);
+          reqExpr.Type = Type.Bool;
+        }
 
-      m.Req.Add(new AttributedExpression(reqExpr));
+        m.Req.Add(new AttributedExpression(reqExpr));
+      }
+    }
+
+    if (addedReveals.Any()) {
+      reporter.Message(MessageSource.Rewriter, ErrorLevel.Info, null, m.tok, RenderedRevealStmts(addedReveals));
     }
   }
-  
-  
-  private void AddFunctionReveals(Function f) {
+
+  private void AddFunctionReveals(Function f, ErrorReporter reporter) {
     Contract.Requires(f != null);
 
     var currentClass = f.EnclosingClass;
@@ -164,26 +175,42 @@ public class AllOpaqueRevealStmtInserter : IRewriter {
 
       if (revealStmt is not null) {
         addedReveals.Add(revealStmt);
-        var newExpr = new StmtExpr(f.Tok, revealStmt, origExpr) {
-          Type = origExpr.Type
-        };
-        f.Body = newExpr;
+        
+        if (!Attributes.Contains(f.Attributes, "allOpaque")) {
+          var newExpr = new StmtExpr(f.Tok, revealStmt, origExpr) {
+            Type = origExpr.Type
+          };
+          f.Body = newExpr;
+        }
       }
     }
 
-    if (f.Req.Any() || f.Ens.Any()) {
-      Expression reqExpr = new LiteralExpr(f.Tok, true);
-      reqExpr.Type = Type.Bool;
-      foreach (var revealStmt0 in addedReveals) {
-        reqExpr = new StmtExpr(reqExpr.tok, revealStmt0, reqExpr);
+    if (!Attributes.Contains(f.Attributes, "allOpaque")) {
+      if (f.Req.Any() || f.Ens.Any()) {
+        Expression reqExpr = new LiteralExpr(f.Tok, true);
         reqExpr.Type = Type.Bool;
-      }
+        foreach (var revealStmt0 in addedReveals) {
+          reqExpr = new StmtExpr(reqExpr.tok, revealStmt0, reqExpr);
+          reqExpr.Type = Type.Bool;
+        }
 
-      f.Req.Add(new AttributedExpression(reqExpr));
+        f.Req.Add(new AttributedExpression(reqExpr));
+      }
+    }
+
+    if (addedReveals.Any()) {
+      reporter.Message(MessageSource.Rewriter, ErrorLevel.Info, null, f.tok, RenderedRevealStmts(addedReveals));
     }
   }
   
+  private static string RenderedRevealStmts(List<RevealStmt> revealStmtList) {
+    Contract.Requires(revealStmtList.Any());
+    return revealStmtList.Aggregate("", (s, stmt) => s + " " + stmt)[1..];
+  }
+  
   private IEnumerator<Function> GetEnumerator(ICallable m, TopLevelDecl currentClass, IEnumerable<Expression> subexpressions) {
+    Dictionary<ModuleDefinition, List<Expression>> moduleLookup = new Dictionary<ModuleDefinition, List<Expression>>();
+
     var vertex = currentClass.EnclosingModuleDefinition.CallGraph.FindVertex(m);
     var interModuleVertex = currentClass.EnclosingModuleDefinition.InterModuleCallGraph.FindVertex(m);
 
@@ -198,9 +225,13 @@ public class AllOpaqueRevealStmtInserter : IRewriter {
       queue.Enqueue(new GraphTraversalVertex(callable, true));
     }
 
-    Type[] typeList = exprListToTypeList(subexpressions.ToArray()).ToArray();
+    Type[] typeList = ExprListToTypeList(subexpressions.ToArray()).ToArray();
     
     typeList.Iter(newType => {
+        // if (!moduleLookup.Keys.Contains(newType.AsTopLevelTypeWithMembers.EnclosingModuleDefinition)) {
+        //   moduleLookup.Add(newType.AsTopLevelTypeWithMembers.EnclosingModuleDefinition, computeRelativeModuleName(currentClass.EnclosingModuleDefinition, newType.AsTopLevelTypeWithMembers.EnclosingModuleDefinition));
+        // } 
+        
         if (newType is Type { AsSubsetType: not null } subsetType) {
           foreach (var subexpression in subsetType.AsSubsetType.Constraint.SubExpressions) {
             if (subexpression is FunctionCallExpr funcExpr) {
@@ -229,11 +260,11 @@ public class AllOpaqueRevealStmtInserter : IRewriter {
         Graph<ICallable>.Vertex origNewVertex;
         Graph<ICallable>.Vertex newInterModuleVertex;
 
-        if (newVertex.local) {
-          origNewVertex = newVertex.vertex;
+        if (newVertex.Local) {
+          origNewVertex = newVertex.Vertex;
           newInterModuleVertex = origNewVertex.N.EnclosingModule.InterModuleCallGraph.FindVertex(origNewVertex.N);
         } else {
-          origNewVertex = newVertex.vertex.N.EnclosingModule.CallGraph.FindVertex(newVertex.vertex.N);
+          origNewVertex = newVertex.Vertex.N.EnclosingModule.CallGraph.FindVertex(newVertex.Vertex.N);
           
           if (origNewVertex is null) {
             continue;
@@ -260,12 +291,20 @@ public class AllOpaqueRevealStmtInserter : IRewriter {
     }
   }
 
-  private static IEnumerable<Type> exprListToTypeList(IEnumerable<Expression> exprList) {
+  // struct computeRelativeModuleReturnType {
+  //   private bool isRevealed;
+  //   private List<Expression> relativeModName;
+  // }
+  // computeRelativeModuleReturnType computeRelativeModuleName(ModuleDefinition origMod, ModuleDefinition destMod) {
+  //   origMod.
+  // }
+
+  private static IEnumerable<Type> ExprListToTypeList(IEnumerable<Expression> exprList) {
     if (exprList is null || !exprList.Any()) {
       return new List<Type>();
     } 
     
-    var subSubexpressionTypeList = exprList.Select(expr => exprListToTypeList(expr.SubExpressions));
+    var subSubexpressionTypeList = exprList.Select(expr => ExprListToTypeList(expr.SubExpressions));
 
     var subexpressionTypeList = exprList.Select(expr => expr.Type).ToArray();
     var subSubexpressionListConcat = subSubexpressionTypeList.SelectMany(x => x);
@@ -330,12 +369,6 @@ public class AllOpaqueRevealStmtInserter : IRewriter {
     resolveExpr = namesList.Skip(1)
       .Aggregate(nameSeed, (acc, name) => new ExprDotName(tok, acc, name.Name, name.OptTypeArguments));
 
-    List<Expression> expressionList = new List<Expression> {
-      new ApplySuffix(tok, null,
-        resolveExpr,
-        new List<ActualBinding>(), tok)
-    };
-
     var callableClass = ((TopLevelDeclWithMembers)callable.EnclosingClass);
 
     var callableName = "reveal_" + callable.Name;
@@ -349,18 +382,30 @@ public class AllOpaqueRevealStmtInserter : IRewriter {
 
     callableName = ((ICallable)member).NameRelativeToModule;
     var rr = new MemberSelectExpr(callable.Tok, receiver, callableName);
-    rr.Type = new UserDefinedType(tok, "_default", new List<Type>());;
+    rr.Type = new InferredTypeProxy();
     rr.Member = member;
     rr.TypeApplication_JustMember = new List<Type>();
     rr.TypeApplication_AtEnclosingClass = new List<Type>();
 
     var call = new CallStmt(callable.RangeToken, new List<Expression>(), rr, new List<ActualBinding>(),
       callable.Tok);
+    call.IsGhost = true;
     call.Bindings.AcceptArgumentExpressionsAsExactParameterList(new List<Expression>());
 
+    resolveExpr.Type = new InferredTypeProxy();
+    ((ConcreteSyntaxExpression)resolveExpr).ResolvedExpression = rr;
+    
+    List<Expression> expressionList = new List<Expression> {
+      new ApplySuffix(tok, null,
+        resolveExpr,
+        new List<ActualBinding>(), tok)
+    };
+    
     var revealStmt = new RevealStmt(callable.RangeToken, expressionList);
     revealStmt.ResolvedStatements.Add(call);
     revealStmt.IsGhost = true;
+    
+    
 
     return revealStmt;
   }

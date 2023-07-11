@@ -669,7 +669,7 @@ namespace Microsoft.Dafny {
                 result = translator.CondApplyUnbox(GetToken(e), result, e.Function.ResultType, e.Type);
 
                 bool callIsLit = argsAreLit
-                                 && Translator.FunctionBodyIsAvailable(e.Function, translator.currentModule, translator.currentScope, true)
+                                 && translator.FunctionBodyIsAvailable(e.Function, translator.currentModule, translator.currentScope, true)
                                  && !e.Function.Reads.Any(); // Function could depend on external values
                 if (callIsLit) {
                   result = MaybeLit(result, ty);
