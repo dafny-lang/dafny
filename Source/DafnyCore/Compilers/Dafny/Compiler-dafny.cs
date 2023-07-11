@@ -207,11 +207,11 @@ namespace Microsoft.Dafny.Compilers {
 
     private class ClassWriter : IClassWriter {
       private readonly DafnyCompiler compiler;
-      private readonly MethodFunctionContainer builder;
+      private readonly ClassLike builder;
       private readonly List<MethodBuilder> methods = new();
       private readonly List<FunctionBuilder> functions = new();
 
-      public ClassWriter(DafnyCompiler compiler, MethodFunctionContainer builder) {
+      public ClassWriter(DafnyCompiler compiler, ClassLike builder) {
         this.compiler = compiler;
         this.builder = builder;
       }
@@ -259,7 +259,22 @@ namespace Microsoft.Dafny.Compilers {
 
       public void DeclareField(string name, TopLevelDecl enclosingDecl, bool isStatic, bool isConst, Type type,
           IToken tok, string rhs, Field field) {
-        throw new NotImplementedException();
+        DAST.Expression rhsExpr = null;
+        if (rhs != null) {
+          rhsExpr = compiler.bufferedInitializationValue;
+          compiler.bufferedInitializationValue = null;
+
+          if (rhsExpr == null) {
+            throw new InvalidOperationException();
+          }
+        }
+
+        // TODO(shadaj): do something with rhsExpr
+
+        builder.AddField((DAST.Formal)DAST.Formal.create_Formal(
+          Sequence<Rune>.UnicodeFromString(name),
+          compiler.GenType(type)
+        ));
       }
 
       public void InitializeField(Field field, Type instantiatedFieldType, TopLevelDeclWithMembers enclosingClass) {
@@ -532,7 +547,13 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override ConcreteSyntaxTree EmitIf(out ConcreteSyntaxTree guardWriter, bool hasElse, ConcreteSyntaxTree wr) {
-      throw new NotImplementedException();
+      if (currentBuilder is StatementContainer statementContainer) {
+        throw new NotImplementedException();
+      } else if (currentBuilder is ExprContainer exprContainer) {
+        throw new NotImplementedException();
+      } else {
+        throw new InvalidOperationException();
+      }
     }
 
     protected override ConcreteSyntaxTree EmitBlock(ConcreteSyntaxTree wr) {

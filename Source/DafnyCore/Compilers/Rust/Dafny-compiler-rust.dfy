@@ -66,6 +66,7 @@ module {:extern "DCOMP"} DCOMP {
         match body[i] {
           case Method(m) => generated := GenMethod(m);
           case Function(m) => generated := GenFunction(m);
+          case Field(f) => generated := "TODO";
         }
 
         if i > 0 {

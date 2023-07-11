@@ -77,7 +77,7 @@ namespace Microsoft.Dafny.Compilers {
     }
   }
 
-  class ClassBuilder : MethodFunctionContainer {
+  class ClassBuilder : ClassLike {
     public DafnyCompiler compiler { get => parent.compiler; }
     readonly ClassContainer parent;
     readonly string name;
@@ -96,6 +96,10 @@ namespace Microsoft.Dafny.Compilers {
       body.Add((ClassItem)ClassItem.create_Function(item));
     }
 
+    public void AddField(DAST.Formal item) {
+      body.Add((ClassItem)ClassItem.create_Field(item));
+    }
+
     public object Finish() {
       parent.AddClass((Class)Class.create(Sequence<Rune>.UnicodeFromString(this.name), Sequence<ClassItem>.FromArray(body.ToArray())));
       return parent;
@@ -111,7 +115,7 @@ namespace Microsoft.Dafny.Compilers {
     }
   }
 
-  class NewtypeBuilder : MethodFunctionContainer {
+  class NewtypeBuilder : ClassLike {
     public DafnyCompiler compiler { get => parent.compiler; }
     readonly NewtypeContainer parent;
     readonly string name;
@@ -125,12 +129,14 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     public void AddMethod(DAST.Method item) {
-      // body.Add((NewtypeItem)NewtypeItem.create_Method(item));
       // TODO
     }
 
     public void AddFunction(DAST.Function item) {
-      // body.Add((NewtypeItem)NewtypeItem.create_Function(item));
+      // TODO
+    }
+
+    public void AddField(DAST.Formal item) {
       // TODO
     }
 
@@ -149,7 +155,7 @@ namespace Microsoft.Dafny.Compilers {
     }
   }
 
-  class DatatypeBuilder : MethodFunctionContainer {
+  class DatatypeBuilder : ClassLike {
     public DafnyCompiler compiler { get => parent.compiler; }
     readonly DatatypeContainer parent;
     readonly string name;
@@ -162,12 +168,14 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     public void AddMethod(DAST.Method item) {
-      // body.Add((ClassItem)ClassItem.create_Method(item));
       // TODO
     }
 
     public void AddFunction(DAST.Function item) {
-      // body.Add((ClassItem)ClassItem.create_Function(item));
+      // TODO
+    }
+
+    public void AddField(DAST.Formal item) {
       // TODO
     }
 
@@ -177,11 +185,13 @@ namespace Microsoft.Dafny.Compilers {
     }
   }
 
-  interface MethodFunctionContainer {
+  interface ClassLike {
     DafnyCompiler compiler { get; }
     void AddMethod(DAST.Method item);
 
     void AddFunction(DAST.Function item);
+
+    void AddField(DAST.Formal item);
 
     public MethodBuilder Method(string name, List<DAST.Type> typeArgs) {
       return new MethodBuilder(this, name, typeArgs);
@@ -196,12 +206,12 @@ namespace Microsoft.Dafny.Compilers {
 
   class MethodBuilder : StatementContainer {
     public DafnyCompiler compiler { get => parent.compiler; }
-    readonly MethodFunctionContainer parent;
+    readonly ClassLike parent;
     readonly string name;
     readonly List<DAST.Type> typeArgs;
     readonly List<DAST.Statement> body = new();
 
-    public MethodBuilder(MethodFunctionContainer parent, string name, List<DAST.Type> typeArgs) {
+    public MethodBuilder(ClassLike parent, string name, List<DAST.Type> typeArgs) {
       this.parent = parent;
       this.name = name;
       this.typeArgs = typeArgs;
@@ -223,12 +233,12 @@ namespace Microsoft.Dafny.Compilers {
 
   class FunctionBuilder : ExprContainer {
     public DafnyCompiler compiler { get => parent.compiler; }
-    readonly MethodFunctionContainer parent;
+    readonly ClassLike parent;
     readonly string name;
     readonly List<DAST.Type> typeArgs;
     DAST.Expression body;
 
-    public FunctionBuilder(MethodFunctionContainer parent, string name, List<DAST.Type> typeArgs) {
+    public FunctionBuilder(ClassLike parent, string name, List<DAST.Type> typeArgs) {
       this.parent = parent;
       this.name = name;
       this.typeArgs = typeArgs;
