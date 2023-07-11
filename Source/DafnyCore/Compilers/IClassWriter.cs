@@ -3,7 +3,7 @@ using System.Collections.Generic;
 namespace Microsoft.Dafny.Compilers; 
 
 public interface IClassWriter {
-  ConcreteSyntaxTree/*?*/ CreateMethod(Method m, List<SinglePassCompiler.TypeArgumentInstantiation> typeArgs, bool createBody, bool forBodyInheritance, bool lookasideBody, out ConcreteSyntaxTree headerWriter);
+  ConcreteSyntaxTree/*?*/ CreateMethod(Method m, List<SinglePassCompiler.TypeArgumentInstantiation> typeArgs, bool createBody, bool forBodyInheritance, bool lookasideBody);
   ConcreteSyntaxTree/*?*/ SynthesizeMethod(Method m, List<SinglePassCompiler.TypeArgumentInstantiation> typeArgs, bool createBody, bool forBodyInheritance, bool lookasideBody);
   ConcreteSyntaxTree/*?*/ CreateFunction(string name, List<SinglePassCompiler.TypeArgumentInstantiation> typeArgs, List<Formal> formals, Type resultType, IToken tok, bool isStatic, bool createBody,
     MemberDecl member, bool forBodyInheritance, bool lookasideBody);

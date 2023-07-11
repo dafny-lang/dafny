@@ -1508,8 +1508,7 @@ namespace Microsoft.Dafny.Compilers {
         return null;
       }
 
-      public ConcreteSyntaxTree/*?*/ CreateMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody, bool forBodyInheritance, bool lookasideBody, out ConcreteSyntaxTree headerWriter) {
-        headerWriter = null;
+      public ConcreteSyntaxTree/*?*/ CreateMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody, bool forBodyInheritance, bool lookasideBody) {
         return createBody ? block : null;
       }
 
@@ -1920,7 +1919,7 @@ namespace Microsoft.Dafny.Compilers {
           } else if (member is Method method) {
             if (!Attributes.Contains(method.Attributes, "extern")) {
               Contract.Assert(method.Body != null);
-              var w = classWriter.CreateMethod(method, CombineAllTypeArguments(member), true, true, false, out var headerWriter);
+              var w = classWriter.CreateMethod(method, CombineAllTypeArguments(member), true, true, false);
               EmitCallToInheritedMethod(method, false, w);
             }
           } else {
@@ -2075,7 +2074,7 @@ namespace Microsoft.Dafny.Compilers {
             }
           } else if (c is TraitDecl && !m.IsStatic) {
             if (m.OverriddenMember == null) {
-              var w = classWriter.CreateMethod(m, CombineAllTypeArguments(m), false, false, false, out var headerWriter);
+              var w = classWriter.CreateMethod(m, CombineAllTypeArguments(m), false, false, false);
               Contract.Assert(w == null); // since we requested no body
             } else if (TraitRepeatsInheritedDeclarations) {
               RedeclareInheritedMember(m, classWriter);
@@ -2085,7 +2084,7 @@ namespace Microsoft.Dafny.Compilers {
             }
           } else if (c is NewtypeDecl && m != m.Original) {
             CompileMethod(program, m, classWriter, false);
-            var w = classWriter.CreateMethod(m, CombineAllTypeArguments(member), true, true, false, out var headerWriter);
+            var w = classWriter.CreateMethod(m, CombineAllTypeArguments(member), true, true, false);
             EmitCallToInheritedMethod(m, true, w);
           } else {
             CompileMethod(program, m, classWriter, false);
@@ -2126,7 +2125,7 @@ namespace Microsoft.Dafny.Compilers {
         Contract.Assert(wBody == null); // since the previous line said not to create a body
       } else if (member is Method) {
         var method = ((Method)member).Original;
-        var wBody = classWriter.CreateMethod(method, CombineAllTypeArguments(method), false, false, false, out var headerWriter);
+        var wBody = classWriter.CreateMethod(method, CombineAllTypeArguments(method), false, false, false);
         Contract.Assert(wBody == null); // since the previous line said not to create a body
       } else {
         Contract.Assert(false); // unexpected member
@@ -2485,7 +2484,7 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Requires(m != null);
       Contract.Requires(m.Body != null || (IncludeExternMembers && Attributes.Contains(m.Attributes, "extern")));
 
-      var w = cw.CreateMethod(m, CombineAllTypeArguments(m), !m.IsExtern(Options, out _, out _), false, lookasideBody, out var headerWriter);
+      var w = cw.CreateMethod(m, CombineAllTypeArguments(m), !m.IsExtern(Options, out _, out _), false, lookasideBody);
       if (w != null) {
         if (m.IsTailRecursive) {
           w = EmitTailCallStructure(m, w);
