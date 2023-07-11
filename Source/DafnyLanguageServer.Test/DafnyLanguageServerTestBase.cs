@@ -167,7 +167,8 @@ lemma {:neverVerify} HasNeverVerifyAttribute(p: nat, q: nat)
     }
 
     protected static TextDocumentItem CreateTestDocument(string source, string filePath = null, int version = 1) {
-      filePath ??= Path.Combine(Directory.GetCurrentDirectory(), $"testFile{fileIndex++}.dfy");
+      filePath ??= $"testFile{fileIndex++}.dfy";
+      filePath = Path.GetFullPath(filePath);
       return new TextDocumentItem {
         LanguageId = LanguageId,
         Text = source,

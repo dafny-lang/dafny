@@ -160,8 +160,7 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
 
       }
     }
-    var verificationDocumentItem = CreateTestDocument("class X {does not parse",
-      Path.Combine(Directory.GetCurrentDirectory(), $"AssertNoDiagnosticsAreComing{fileIndex++}.dfy"));
+    var verificationDocumentItem = CreateTestDocument("class X {does not parse", $"AssertNoDiagnosticsAreComing{fileIndex++}.dfy");
     await client.OpenDocumentAndWaitAsync(verificationDocumentItem, CancellationToken.None);
     var resolutionReport = await diagnosticsReceiver.AwaitNextNotificationAsync(cancellationToken);
     AssertM.Equal(verificationDocumentItem.Uri, resolutionReport.Uri,
