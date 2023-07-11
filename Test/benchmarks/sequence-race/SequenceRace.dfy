@@ -1,4 +1,8 @@
 
+// RUN: dafny translate java "%s" --plugin:DafnyBenchmarkingPlugin.dll
+// RUN: mkdir -p %S/java/src/jmh
+// RUN: cp -r %S/SequenceRace-java %S/java/src/jmh/java
+// RUN: %S/java/gradlew jmh -p %S/java
 
 class {:benchmark} SequenceRace {
 
