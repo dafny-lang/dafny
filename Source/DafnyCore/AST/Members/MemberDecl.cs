@@ -59,9 +59,10 @@ public abstract class MemberDecl : Declaration {
     return false;
   }
 
-  protected MemberDecl(Cloner cloner, MemberDecl memberDecl) : base(cloner, memberDecl) {
-    this.hasStaticKeyword = memberDecl.hasStaticKeyword;
-    this.isGhost = memberDecl.isGhost;
+  protected MemberDecl(Cloner cloner, MemberDecl original) : base(cloner, original) {
+    this.hasStaticKeyword = original.hasStaticKeyword;
+    this.EnclosingClass = original.EnclosingClass;
+    this.isGhost = original.isGhost;
   }
 
   protected MemberDecl(RangeToken rangeToken, Name name, bool hasStaticKeyword, bool isGhost, Attributes attributes, bool isRefining)
