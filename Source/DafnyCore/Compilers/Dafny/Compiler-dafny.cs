@@ -165,11 +165,11 @@ namespace Microsoft.Dafny.Compilers {
       var xType = DatatypeWrapperEraser.SimplifyType(Options, typ);
 
       if (xType is BoolType) {
-        return (DAST.Type)DAST.Type.create_Path(Sequence<Rune>.UnicodeFromString("bool"));
+        return (DAST.Type)DAST.Type.create_Passthrough(Sequence<Rune>.UnicodeFromString("bool"));
       } else if (xType is IntType) {
-        return (DAST.Type)DAST.Type.create_Path(Sequence<Rune>.UnicodeFromString("i32"));
+        return (DAST.Type)DAST.Type.create_Passthrough(Sequence<Rune>.UnicodeFromString("i32"));
       } else if (xType is RealType) {
-        return (DAST.Type)DAST.Type.create_Path(Sequence<Rune>.UnicodeFromString("f32"));
+        return (DAST.Type)DAST.Type.create_Passthrough(Sequence<Rune>.UnicodeFromString("f32"));
       } else if (xType is UserDefinedType udt) {
         if (udt.ResolvedClass is TypeParameter tp) {
           if (thisContext != null && thisContext.ParentFormalTypeParametersToActuals.TryGetValue(tp, out var instantiatedTypeParameter)) {
@@ -178,17 +178,17 @@ namespace Microsoft.Dafny.Compilers {
           }
         }
 
-        return (DAST.Type)DAST.Type.create_Path(Sequence<Rune>.UnicodeFromString(FullTypeName(udt, null)));
+        return FullTypeNameAST(udt, null);
       } else if (AsNativeType(typ) != null) {
         return (DAST.Type)(AsNativeType(typ).Sel switch {
-          NativeType.Selection.Byte => DAST.Type.create_Path(Sequence<Rune>.UnicodeFromString("u8")),
-          NativeType.Selection.SByte => DAST.Type.create_Path(Sequence<Rune>.UnicodeFromString("i8")),
-          NativeType.Selection.Short => DAST.Type.create_Path(Sequence<Rune>.UnicodeFromString("u16")),
-          NativeType.Selection.UShort => DAST.Type.create_Path(Sequence<Rune>.UnicodeFromString("i16")),
-          NativeType.Selection.Int => DAST.Type.create_Path(Sequence<Rune>.UnicodeFromString("u32")),
-          NativeType.Selection.UInt => DAST.Type.create_Path(Sequence<Rune>.UnicodeFromString("i32")),
-          NativeType.Selection.Long => DAST.Type.create_Path(Sequence<Rune>.UnicodeFromString("u64")),
-          NativeType.Selection.ULong => DAST.Type.create_Path(Sequence<Rune>.UnicodeFromString("i64")),
+          NativeType.Selection.Byte => DAST.Type.create_Passthrough(Sequence<Rune>.UnicodeFromString("u8")),
+          NativeType.Selection.SByte => DAST.Type.create_Passthrough(Sequence<Rune>.UnicodeFromString("i8")),
+          NativeType.Selection.Short => DAST.Type.create_Passthrough(Sequence<Rune>.UnicodeFromString("u16")),
+          NativeType.Selection.UShort => DAST.Type.create_Passthrough(Sequence<Rune>.UnicodeFromString("i16")),
+          NativeType.Selection.Int => DAST.Type.create_Passthrough(Sequence<Rune>.UnicodeFromString("u32")),
+          NativeType.Selection.UInt => DAST.Type.create_Passthrough(Sequence<Rune>.UnicodeFromString("i32")),
+          NativeType.Selection.Long => DAST.Type.create_Passthrough(Sequence<Rune>.UnicodeFromString("u64")),
+          NativeType.Selection.ULong => DAST.Type.create_Passthrough(Sequence<Rune>.UnicodeFromString("i64")),
           _ => throw new InvalidOperationException(),
         });
       } else {
@@ -363,13 +363,19 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override string TypeName_Companion(Type type, ConcreteSyntaxTree wr, IToken tok, MemberDecl member) {
-      type = UserDefinedType.UpcastToMemberEnclosingType(type, member);
-      if (type.NormalizeExpandKeepConstraints() is UserDefinedType udt && udt.ResolvedClass is DatatypeDecl dt &&
-          DatatypeWrapperEraser.IsErasableDatatypeWrapper(Options, dt, out _)) {
-        var s = FullTypeName(udt, member);
-        return TypeName_UDT(s, udt, wr, udt.tok);
+      // type = UserDefinedType.UpcastToMemberEnclosingType(type, member);
+      // if (type.NormalizeExpandKeepConstraints() is UserDefinedType udt && udt.ResolvedClass is DatatypeDecl dt &&
+      //     DatatypeWrapperEraser.IsErasableDatatypeWrapper(Options, dt, out _)) {
+      //   var s = FullTypeName(udt, member);
+      //   return TypeName_UDT(s, udt, wr, udt.tok);
+      // } else {
+      //   return TypeName(type, wr, tok, member);
+      // }
+
+      if (currentBuilder is CallBuilder) {
+        throw new NotImplementedException();
       } else {
-        return TypeName(type, wr, tok, member);
+        throw new InvalidOperationException();
       }
     }
 
@@ -704,17 +710,28 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override string FullTypeName(UserDefinedType udt, MemberDecl member = null) {
+      throw new NotImplementedException();
+    }
+
+    private DAST.Type FullTypeNameAST(UserDefinedType udt, MemberDecl member = null) {
       if (udt is ArrowType) {
         throw new NotImplementedException();
       }
 
       var cl = udt.ResolvedClass;
-      return cl switch {
-        TypeParameter => IdProtect(udt.GetCompileName(Options)),
-        ArrayClassDecl => throw new NotImplementedException(),
-        TupleTypeDecl => throw new NotImplementedException(),
-        _ => IdProtect(cl.GetFullCompileName(Options))
-      };
+      switch (cl) {
+        case TypeParameter:
+          return (DAST.Type)DAST.Type.create_TypeArg(Sequence<Rune>.UnicodeFromString(IdProtect(udt.GetCompileName(Options))));
+        case ArrayClassDecl:
+          throw new NotImplementedException();
+        case TupleTypeDecl:
+          throw new NotImplementedException();
+        default:
+          List<ISequence<Rune>> path = new();
+          path.Add(Sequence<Rune>.UnicodeFromString(cl.EnclosingModuleDefinition.GetCompileName(Options)));
+          path.Add(Sequence<Rune>.UnicodeFromString(cl.GetCompileName(Options)));
+          return (DAST.Type)DAST.Type.create_Path(Sequence<ISequence<Rune>>.FromArray(path.ToArray()));
+      }
     }
 
     public override ConcreteSyntaxTree Expr(Expression expr, bool inLetExprBody, ConcreteSyntaxTree wStmts) {

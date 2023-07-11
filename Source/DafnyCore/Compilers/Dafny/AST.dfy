@@ -6,9 +6,9 @@ module {:extern "DAST"} DAST {
 
   datatype Newtype = Newtype(name: string, base: Type)
 
-  datatype Type = Path(Ident) | TypeArg(Ident)
+  datatype Type = Path(seq<Ident>) | Passthrough(string) | TypeArg(Ident)
 
-  datatype Ident = Ident(string)
+  datatype Ident = Ident(id: string)
 
   datatype Class = Class(name: string, body: seq<ClassItem>)
 

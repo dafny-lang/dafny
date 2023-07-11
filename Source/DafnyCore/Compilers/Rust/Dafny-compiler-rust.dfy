@@ -58,6 +58,26 @@ module {:extern "DCOMP"} DCOMP {
       s := "pub struct " + c.name + " {\n" + "" +  "\n}" + "\n" + "impl " + c.name + " {\n" + implBody + "\n}";
     }
 
+    static method GenType(c: Type) returns (s: string) {
+      match c {
+        case Path(p) => {
+          s := "super::";
+          var i := 0;
+          while i < |p| {
+            if i > 0 {
+              s := s + "::";
+            }
+
+            s := s + p[i].id;
+
+            i := i + 1;
+          }
+        }
+        case TypeArg(Ident(name)) => s := name;
+        case Passthrough(v) => s := v;
+      }
+    }
+
     static method GenClassImplBody(body: seq<ClassItem>) returns (s: string) {
       s := "";
       var i := 0;
@@ -92,10 +112,8 @@ module {:extern "DCOMP"} DCOMP {
             s := s + ", ";
           }
 
-          match m.typeArgs[i] {
-            case Path(Ident(name)) => s := s + name;
-            case TypeArg(Ident(name)) => s := s + name;
-          }
+          var typeString := GenType(m.typeArgs[i]);
+          s := s + typeString;
 
           i := i + 1;
         }
@@ -120,10 +138,8 @@ module {:extern "DCOMP"} DCOMP {
             s := s + ", ";
           }
 
-          match m.typeArgs[i] {
-            case Path(Ident(name)) => s := s + name;
-            case TypeArg(Ident(name)) => s := s + name;
-          }
+          var typeString := GenType(m.typeArgs[i]);
+          s := s + typeString;
 
           i := i + 1;
         }
@@ -144,19 +160,14 @@ module {:extern "DCOMP"} DCOMP {
             var printedExpr := GenExpr(e);
             generated := "print!(\"{}\", ::dafny_runtime::DafnyPrintWrapper(" + printedExpr + "));";
           }
-          case DeclareVar(name, Path(Ident(typ)), Some(expression)) => {
+          case DeclareVar(name, typ, Some(expression)) => {
             var expr := GenExpr(expression);
-            generated := "let mut " + name + ": " + typ + " = " + expr + ";";
+            var typeString := GenType(typ);
+            generated := "let mut " + name + ": " + typeString + " = " + expr + ";";
           }
-          case DeclareVar(name, TypeArg(Ident(typ)), Some(expression)) => {
-            var expr := GenExpr(expression);
-            generated := "let mut " + name + ": " + typ + " = " + expr + ";";
-          }
-          case DeclareVar(name, Path(Ident(typ)), None) => {
-            generated := "let mut " + name + ": " + typ + ";";
-          }
-          case DeclareVar(name, TypeArg(Ident(typ)), None) => {
-            generated := "let mut " + name + ": " + typ + ";";
+          case DeclareVar(name, typ, None) => {
+            var typeString := GenType(typ);
+            generated := "let mut " + name + ": " + typeString + ";";
           }
           case Assign(name, expression) => {
             var expr := GenExpr(expression);
