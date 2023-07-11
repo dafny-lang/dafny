@@ -574,7 +574,9 @@ namespace Microsoft.Dafny {
     }
 
     public virtual RangeToken Range(RangeToken range) {
-      Contract.Requires(range != null);
+      if (range == null) {
+        return null;
+      }
       return new RangeToken(Tok(range.StartToken), Tok(range.EndToken));
     }
 
