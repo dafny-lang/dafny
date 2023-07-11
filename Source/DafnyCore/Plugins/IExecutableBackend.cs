@@ -161,6 +161,5 @@ public abstract class IExecutableBackend {
     ReadOnlyCollection<string> otherFileNames, object compilationResult, TextWriter outputWriter,
     TextWriter errorWriter);
 
-  public virtual void ApplyClassWriterAdvice(IEnumerable<ClassWriterAdvice> advices) {
-  }
+  public abstract void InstrumentCompiler(CompilerInstrumenter instrumenter);
 }

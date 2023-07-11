@@ -876,8 +876,10 @@ namespace Microsoft.Dafny {
       var options = dafnyProgram.Options;
       options.Backend.OnPreCompile(dafnyProgram.Reporter, otherFileNames);
       
-      // Now that an internal compiler is instantiated, apply any plugin advice.
-      options.Backend.ApplyClassWriterAdvice(options.Plugins.SelectMany(p => p.GetClassWriterAdvisors(options)));
+      // Now that an internal compiler is instantiated, apply any plugin instrumentation.
+      foreach (var compilerInstrumenter in options.Plugins.SelectMany(p => p.GetCompilerInstrumenters(options))) {
+        options.Backend.InstrumentCompiler(compilerInstrumenter);
+      }
       
       var compiler = options.Backend;
 
@@ -987,6 +989,10 @@ namespace Microsoft.Dafny {
       string pathsFilename,
       ReadOnlyCollection<string> otherFileNames, object compilationResult, TextWriter outputWriter,
       TextWriter errorWriter) {
+      throw new NotSupportedException();
+    }
+
+    public override void InstrumentCompiler(CompilerInstrumenter instrumenter) {
       throw new NotSupportedException();
     }
   }

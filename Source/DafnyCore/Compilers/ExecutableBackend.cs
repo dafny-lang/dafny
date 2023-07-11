@@ -5,6 +5,7 @@ using System.Diagnostics;
 using System.Diagnostics.Contracts;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.Dafny.Plugins;
@@ -138,6 +139,14 @@ public abstract class ExecutableBackend : Plugins.IExecutableBackend {
     return true;
   }
 
+  public override void InstrumentCompiler(CompilerInstrumenter instrumenter) {
+    if (compiler == null) {
+      return;
+    }
+   
+    instrumenter.Instrument(compiler);
+  }
+
   protected static void WriteFromFile(string inputFilename, TextWriter outputWriter) {
     var rd = new StreamReader(new FileStream(inputFilename, FileMode.Open, FileAccess.Read));
     SinglePassCompiler.WriteFromStream(rd, outputWriter);
@@ -210,15 +219,5 @@ public abstract class ExecutableBackend : Plugins.IExecutableBackend {
     }
 
     return true;
-  }
-
-  public override void ApplyClassWriterAdvice(IEnumerable<ClassWriterAdvice> advices) {
-    if (compiler == null) {
-      return;
-    }
-    
-    foreach (var advice in advices) {
-      compiler.ClassWriterFactory = advice.WrapClassWriterFactory(compiler.ClassWriterFactory);
-    }
   }
 }

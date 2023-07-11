@@ -17,7 +17,7 @@ using JetBrains.Annotations;
 using static Microsoft.Dafny.ConcreteSyntaxTreeUtils;
 
 namespace Microsoft.Dafny.Compilers {
-  class JavaCompiler : SinglePassCompiler {
+  public class JavaCompiler : SinglePassCompiler {
     public JavaCompiler(DafnyOptions options, ErrorReporter reporter) : base(options, reporter) {
       IntSelect = ",java.math.BigInteger";
       LambdaExecute = ".apply";
@@ -76,6 +76,12 @@ namespace Microsoft.Dafny.Compilers {
 
     private record Import(string Name, string Path);
 
+    private readonly List<GenericInstrumenter> Instrumenters = new();
+
+    public void AddInstrumenter(GenericInstrumenter instrumenter) {
+      Instrumenters.Add(instrumenter);
+    }
+    
     protected override bool UseReturnStyleOuts(Method m, int nonGhostOutCount) => true;
 
 
@@ -390,7 +396,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void DeclareSubsetType(SubsetTypeDecl sst, ConcreteSyntaxTree wr) {
-      var cw = DowncastClassWriter(CreateClass(IdProtect(sst.EnclosingModuleDefinition.GetCompileName(Options)), IdName(sst), sst, wr));
+      var cw = (ClassWriter)CreateClass(IdProtect(sst.EnclosingModuleDefinition.GetCompileName(Options)), IdName(sst), sst, wr);
       if (sst.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
         var sw = new ConcreteSyntaxTree(cw.InstanceMemberWriter.RelativeIndentLevel);
         var wStmts = cw.InstanceMemberWriter.Fork();
@@ -3483,16 +3489,8 @@ namespace Microsoft.Dafny.Compilers {
       wr.WriteLine(");");
     }
 
-    private ClassWriter DowncastClassWriter(IClassWriter classWriter) {
-      while (classWriter is IClassWriterAdaptor adaptor) {
-        classWriter = adaptor.Wrapped;
-      }
-
-      return (ClassWriter)classWriter;
-    }
-    
     protected override IClassWriter DeclareNewtype(NewtypeDecl nt, ConcreteSyntaxTree wr) {
-      var cw = DowncastClassWriter(CreateClass(IdProtect(nt.EnclosingModuleDefinition.GetCompileName(Options)), IdName(nt), nt, wr));
+      var cw = (ClassWriter)CreateClass(IdProtect(nt.EnclosingModuleDefinition.GetCompileName(Options)), IdName(nt), nt, wr);
       var w = cw.StaticMemberWriter;
       if (nt.NativeType != null) {
         var nativeType = GetBoxedNativeTypeName(nt.NativeType);
@@ -4140,7 +4138,7 @@ namespace Microsoft.Dafny.Compilers {
       return true;
     }
     protected override ConcreteSyntaxTree CreateStaticMain(IClassWriter cw, string argsParameterName) {
-      var wr = DowncastClassWriter(cw).StaticMemberWriter;
+      var wr = ((ClassWriter)cw).StaticMemberWriter;
       return wr.NewBlock($"public static void __Main(dafny.DafnySequence<? extends dafny.DafnySequence<? extends {CharTypeName(true)}>> {argsParameterName})");
     }
 

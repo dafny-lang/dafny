@@ -77,7 +77,6 @@ namespace Microsoft.Dafny.Compilers {
       Reporter = reporter;
       Coverage = new CoverageInstrumenter(this);
       System.Runtime.CompilerServices.RuntimeHelpers.RunClassConstructor(typeof(CompilerErrors).TypeHandle); 
-      ClassWriterFactory = new DefaultFactory(this);
     }
 
     protected static void ReportError(ErrorId errorId, ErrorReporter reporter, IToken tok, string msg, ConcreteSyntaxTree/*?*/ wr, params object[] args) {
@@ -125,39 +124,11 @@ namespace Microsoft.Dafny.Compilers {
     protected virtual void DependOnModule(string moduleName, bool isDefault, bool isExtern, string/*?*/ libraryName) { }
     protected abstract string GetHelperModuleName();
 
-    private class DefaultFactory : IClassWriterFactory {
-      private SinglePassCompiler compiler;
-      public DefaultFactory(SinglePassCompiler compiler) {
-        this.compiler = compiler;
-      }
-
-      public override IClassWriter CreateClass(string moduleName, string name,
-        bool isExtern, string fullPrintName, List<TypeParameter> typeParameters, TopLevelDecl cls, List<Type> superClasses, IToken tok,
-        ConcreteSyntaxTree wr) {
-
-        return compiler.CreateClass(moduleName, name, isExtern, fullPrintName, typeParameters, cls, superClasses, tok, wr);
-      }
-
-      public override IClassWriter CreateTrait(string name, bool isExtern, List<TypeParameter> typeParameters, TraitDecl trait, List<Type> superClasses,
-        IToken tok, ConcreteSyntaxTree wr) {
-        return compiler.CreateTrait(name, isExtern, typeParameters, trait, superClasses, tok, wr);
-      }
-
-      public override IClassWriter DeclareNewtype(NewtypeDecl nt, ConcreteSyntaxTree wr) {
-        return compiler.DeclareNewtype(nt, wr);
-      }
-
-      public override IClassWriter DeclareDatatype(DatatypeDecl dt, ConcreteSyntaxTree wr) {
-        return compiler.DeclareDatatype(dt, wr);
-      }
-    }
-    public IClassWriterFactory ClassWriterFactory { get; set; }
-
     protected virtual bool IncludeExternMembers { get => false; }
     protected virtual bool SupportsStaticsInGenericClasses => true;
     protected virtual bool TraitRepeatsInheritedDeclarations => false;
     protected IClassWriter CreateClass(string moduleName, string name, TopLevelDecl cls, ConcreteSyntaxTree wr) {
-      return ClassWriterFactory.CreateClass(moduleName, name, false, null, cls.TypeArgs,
+      return CreateClass(moduleName, name, false, null, cls.TypeArgs,
         cls, (cls as TopLevelDeclWithMembers)?.ParentTypeInformation.UniqueParentTraits(), null, wr);
     }
 
@@ -1471,7 +1442,7 @@ namespace Microsoft.Dafny.Compilers {
               }
             }
             if (include) {
-              var cw = ClassWriterFactory.CreateClass(IdProtect(d.EnclosingModuleDefinition.GetCompileName(Options)), IdName(defaultClassDecl),
+              var cw = CreateClass(IdProtect(d.EnclosingModuleDefinition.GetCompileName(Options)), IdName(defaultClassDecl),
                 classIsExtern, defaultClassDecl.FullName,
                 defaultClassDecl.TypeArgs, defaultClassDecl, defaultClassDecl.ParentTypeInformation.UniqueParentTraits(), defaultClassDecl.tok, wr);
               CompileClassMembers(program, defaultClassDecl, cw);
@@ -1498,7 +1469,7 @@ namespace Microsoft.Dafny.Compilers {
               Error(ErrorId.c_constructorless_class_forbidden, cl.tok, "since fields are initialized arbitrarily, constructor-less classes are forbidden by the --enforce-determinism option", wr);
             }
             if (include) {
-              var cw = ClassWriterFactory.CreateClass(IdProtect(d.EnclosingModuleDefinition.GetCompileName(Options)), IdName(cl), classIsExtern, cl.FullName,
+              var cw = CreateClass(IdProtect(d.EnclosingModuleDefinition.GetCompileName(Options)), IdName(cl), classIsExtern, cl.FullName,
                 cl.TypeArgs, cl, cl.ParentTypeInformation.UniqueParentTraits(), cl.tok, wr);
               CompileClassMembers(program, cl, cw);
               cw.Finish();

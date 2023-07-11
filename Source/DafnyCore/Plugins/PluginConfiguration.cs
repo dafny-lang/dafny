@@ -50,7 +50,7 @@ public abstract class PluginConfiguration {
   }
   
   
-  public virtual ClassWriterAdvice[] GetClassWriterAdvisors(DafnyOptions options) {
-    return Array.Empty<ClassWriterAdvice>();
+  public virtual CompilerInstrumenter[] GetCompilerInstrumenters(DafnyOptions options) {
+    return Array.Empty<CompilerInstrumenter>();
   }
 }
