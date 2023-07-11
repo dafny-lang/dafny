@@ -27,12 +27,6 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       ILogger<DafnyProgramVerifier> logger,
       DafnyOptions options
       ) {
-      // TODO This may be subject to change. See Microsoft.Boogie.Counterexample
-      //      A dash means write to the textwriter instead of a file.
-      // https://github.com/boogie-org/boogie/blob/b03dd2e4d5170757006eef94cbb07739ba50dddb/Source/VCGeneration/Couterexample.cs#L217
-      options.ModelViewFile = "-";
-
-      options.Printer = new OutputLogger(logger);
       engine = new ExecutionEngine(options, cache);
     }
 
@@ -52,10 +46,17 @@ namespace Microsoft.Dafny.LanguageServer.Language {
 
       cancellationToken.ThrowIfCancellationRequested();
 
+      if (engine.Options.PrintFile != null) {
+        var moduleCount = Translator.VerifiableModules(program).Count();
+        foreach (var (suffix, boogieProgram) in translated) {
+          var fileName = moduleCount > 1 ? DafnyMain.BoogieProgramSuffix(engine.Options.PrintFile, suffix) : engine.Options.PrintFile;
+          ExecutionEngine.PrintBplFile(engine.Options, fileName, boogieProgram, false, false, engine.Options.PrettyPrint);
+        }
+      }
+
       return translated.SelectMany(t => {
         var (_, boogieProgram) = t;
-        var results = engine.GetImplementationTasks(boogieProgram);
-        return results;
+        return engine.GetImplementationTasks(boogieProgram);
       }).ToList();
     }
 
