@@ -43,8 +43,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DafnyCore.Test", "DafnyCore
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DafnyBenchmarkingPlugin", "DafnyBenchmarkingPlugin\DafnyBenchmarkingPlugin.csproj", "{96B8ADA8-6190-49F7-8C38-CDA60DC92293}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "net", "..\Test\benchmarks\net\net.csproj", "{59D71C6A-C744-4DC0-BFBB-86BF5FCAA49B}"
-EndProject
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -132,10 +130,6 @@ Global
 		{96B8ADA8-6190-49F7-8C38-CDA60DC92293}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{96B8ADA8-6190-49F7-8C38-CDA60DC92293}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{96B8ADA8-6190-49F7-8C38-CDA60DC92293}.Release|Any CPU.Build.0 = Release|Any CPU
-		{59D71C6A-C744-4DC0-BFBB-86BF5FCAA49B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{59D71C6A-C744-4DC0-BFBB-86BF5FCAA49B}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{59D71C6A-C744-4DC0-BFBB-86BF5FCAA49B}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{59D71C6A-C744-4DC0-BFBB-86BF5FCAA49B}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
