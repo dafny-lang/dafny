@@ -4,21 +4,24 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
+using OmniSharp.Extensions.LanguageServer.Protocol;
 using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
-using OmniSharp.Extensions.LanguageServer.Protocol.Progress;
 using Xunit;
 using Xunit.Abstractions;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
   public class ReferencesTest : ClientBasedLanguageServerTest {
-    private IRequestProgressObservable<IEnumerable<Location>, LocationContainer> RequestReferences(
+    private async Task<LocationContainer> RequestReferences(
       TextDocumentItem documentItem, Position position) {
-      return client.RequestReferences(
+      // We don't want resolution errors, but other diagnostics (like a cyclic-include warning) are okay
+      await AssertNoResolutionErrors(documentItem);
+
+      return await client.RequestReferences(
         new ReferenceParams {
           TextDocument = documentItem.Uri,
           Position = position
-        }, CancellationToken);
+        }, CancellationToken).AsTask();
     }
 
     /// <summary>
@@ -35,7 +38,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
 
       foreach (var position in positions) {
-        var result = await RequestReferences(documentItem, position).AsTask();
+        var result = await RequestReferences(documentItem, position);
         var resultRanges = result.Select(location => location.Range).ToHashSet();
         Assert.Equal(expectedRanges, resultRanges);
       }
@@ -232,44 +235,27 @@ method M(c: C) {
       await AssertReferences(source);
     }
 
-    // TODO - not sure why both primary assertions are failing
     [Fact]
     public async Task AcrossFiles() {
-      var sourceA = @"
-include ""B.dfy""
-module ><A {}
-".TrimStart();
-      var sourceB = @"
-include ""A.dfy""
-module B {
-  import [>><A<]
-}
-".TrimStart();
-
-      MarkupTestFile.GetPositionsAndRanges(
-        sourceA, out var cleanSourceA, out var positionsA, out var rangesA);
-      MarkupTestFile.GetPositionsAndRanges(
-        sourceB, out var cleanSourceB, out var positionsB, out var rangesB);
-      Assert.Single(positionsA);
-      Assert.Single(positionsB);
-      Assert.Single(rangesB);
-
       var cwd = Directory.GetCurrentDirectory();
-      var pathA = Path.Combine(cwd, "Lookup/TestFiles/A.dfy");
-      var pathB = Path.Combine(cwd, "Lookup/TestFiles/B.dfy");
+      var pathA = Path.Combine(cwd, "Lookup/TestFiles/find-refs-a.dfy");
+      var pathB = Path.Combine(cwd, "Lookup/TestFiles/find-refs-b.dfy");
+      var documentItemA = CreateTestDocument(await File.ReadAllTextAsync(pathA), pathA);
+      var documentItemB = CreateTestDocument(await File.ReadAllTextAsync(pathB), pathB);
 
-      var documentItemA = CreateTestDocument(cleanSourceA, pathA);
       await client.OpenDocumentAndWaitAsync(documentItemA, CancellationToken);
-      var refA = (await RequestReferences(documentItemA, positionsA.First()).AsTask()).Single();
-      Assert.Equal(rangesB[0], refA.Range);
-
-      // Shouldn't need both documents open
-      await client.CloseDocumentAndWaitAsync(documentItemA, CancellationToken);
-
-      var documentItemB = CreateTestDocument(cleanSourceB, pathB);
       await client.OpenDocumentAndWaitAsync(documentItemB, CancellationToken);
-      var refB = (await RequestReferences(documentItemB, positionsB.First()).AsTask()).Single();
-      Assert.Equal(rangesB[0], refB.Range);
+
+      var expectedRef = new Location {
+        Uri = DocumentUri.File(pathB),
+        Range = new Range(2, 9, 2, 10),
+      };
+
+      var refFromA = (await RequestReferences(documentItemA, new Position(1, 7))).Single();
+      Assert.Equal(expectedRef, refFromA);
+
+      var refFromB = (await RequestReferences(documentItemB, new Position(2, 9))).Single();
+      Assert.Equal(expectedRef, refFromB);
     }
 
     public ReferencesTest(ITestOutputHelper output) : base(output) {

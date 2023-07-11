@@ -34,15 +34,18 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
         return new LocationContainer();
       }
 
-      // If the position is not on a definition, return references to its definition
-      var definition = document.SymbolTable.GetDeclaration(request.Position);
-      if (definition != null) {
-        return document.SymbolTable.GetUsages(definition.Range.Start).ToArray();
+      var declaration = document.SymbolTable.GetDeclaration(request.Position);
+
+      // The declaration graph is not reflexive, so the position might be on a declaration; return references to it
+      if (declaration == null) {
+        return document.SymbolTable.GetUsages(request.Position).ToArray();
       }
 
-      // The position might itself be a definition; return references to it
-      var usages = document.SymbolTable.GetUsages(request.Position);
-      return usages.ToArray();
+      // If the position is not on a declaration, return references to its declaration
+      var definingDocument = declaration.Uri == document.Uri
+        ? document
+        : await projects.GetResolvedDocumentAsync(declaration.Uri);
+      return definingDocument?.SymbolTable.GetUsages(declaration.Range.Start).ToArray() ?? new LocationContainer();
     }
   }
 }
