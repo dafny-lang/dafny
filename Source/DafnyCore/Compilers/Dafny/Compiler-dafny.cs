@@ -151,7 +151,7 @@ namespace Microsoft.Dafny.Compilers {
           List<DAST.Formal> args = new();
           foreach (var arg in ctor.Formals) {
             if (!arg.IsGhost) {
-              args.Add((DAST.Formal) DAST.Formal.create_Formal(Sequence<Rune>.UnicodeFromString(arg.Name), GenType(arg.Type)));
+              args.Add((DAST.Formal)DAST.Formal.create_Formal(Sequence<Rune>.UnicodeFromString(arg.Name), GenType(arg.Type)));
             }
           }
           ctors.Add((DAST.DatatypeCtor)DAST.DatatypeCtor.create_DatatypeCtor(Sequence<Rune>.UnicodeFromString(ctor.Name), Sequence<DAST.Formal>.FromArray(args.ToArray())));
