@@ -1,10 +1,3 @@
-EqualityTypesModuleExports.dfy(13,8): Error: set argument type must support equality (got Klm) (perhaps try declaring type parameter 'Klm' on line 11 as 'Klm(==)', which says it can only be instantiated with a type that supports equality)
-EqualityTypesModuleExports.dfy(13,23): Error: set argument type must support equality (got Klm) (perhaps try declaring type parameter 'Klm' on line 11 as 'Klm(==)', which says it can only be instantiated with a type that supports equality)
-EqualityTypesModuleExports.dfy(32,15): Error: type parameter (X) passed to function Fib must support equality (got Y) (perhaps try declaring type parameter 'Y' on line 26 as 'Y(==)', which says it can only be instantiated with a type that supports equality)
-EqualityTypesModuleExports.dfy(32,23): Error: set argument type must support equality (got Y) (perhaps try declaring type parameter 'Y' on line 26 as 'Y(==)', which says it can only be instantiated with a type that supports equality)
-EqualityTypesModuleExports.dfy(34,13): Error: set argument type must support equality (got GG) (perhaps try declaring type parameter 'GG' on line 21 as 'GG(==)', which says it can only be instantiated with a type that supports equality)
-EqualityTypesModuleExports.dfy(84,7): Error: type 'Syn4' declared as supporting equality, but the RHS type ((real, A)) might not
-EqualityTypesModuleExports.dfy(92,7): Error: type 'Subset4' declared as supporting equality, but the RHS type ((A, int)) might not
 EqualityTypesModuleExports.dfy(50,11): Error: type parameter (X) passed to type Dt0 must support equality (got M) (perhaps try declaring type parameter 'M' on line 48 as 'M(==)', which says it can only be instantiated with a type that supports equality)
 EqualityTypesModuleExports.dfy(51,11): Error: type parameter (Y) passed to type Dt1 must support equality (got M) (perhaps try declaring type parameter 'M' on line 48 as 'M(==)', which says it can only be instantiated with a type that supports equality)
 EqualityTypesModuleExports.dfy(52,11): Error: type parameter (Z) passed to type Dt2 must support equality (got M) (perhaps try declaring type parameter 'M' on line 48 as 'M(==)', which says it can only be instantiated with a type that supports equality)
@@ -22,6 +15,13 @@ EqualityTypesModuleExports.dfy(133,11): Error: type parameter (A) passed to type
 EqualityTypesModuleExports.dfy(134,11): Error: type parameter (A) passed to type Syn5 must support equality (got Co2<int, int>)
 EqualityTypesModuleExports.dfy(135,11): Error: type parameter (A) passed to type Syn5 must support equality (got Opaque0) (perhaps try declaring abstract type 'Opaque0' on line 73 as 'Opaque0(==)', which says it can only be instantiated with a type that supports equality)
 EqualityTypesModuleExports.dfy(139,11): Error: type parameter (A) passed to type Syn5 must support equality (got Syn1<int -> int>)
+EqualityTypesModuleExports.dfy(13,8): Error: set argument type must support equality (got Klm) (perhaps try declaring type parameter 'Klm' on line 11 as 'Klm(==)', which says it can only be instantiated with a type that supports equality)
+EqualityTypesModuleExports.dfy(13,23): Error: set argument type must support equality (got Klm) (perhaps try declaring type parameter 'Klm' on line 11 as 'Klm(==)', which says it can only be instantiated with a type that supports equality)
+EqualityTypesModuleExports.dfy(32,15): Error: type parameter (X) passed to function Fib must support equality (got Y) (perhaps try declaring type parameter 'Y' on line 26 as 'Y(==)', which says it can only be instantiated with a type that supports equality)
+EqualityTypesModuleExports.dfy(32,23): Error: set argument type must support equality (got Y) (perhaps try declaring type parameter 'Y' on line 26 as 'Y(==)', which says it can only be instantiated with a type that supports equality)
+EqualityTypesModuleExports.dfy(34,13): Error: set argument type must support equality (got GG) (perhaps try declaring type parameter 'GG' on line 21 as 'GG(==)', which says it can only be instantiated with a type that supports equality)
+EqualityTypesModuleExports.dfy(84,7): Error: type 'Syn4' declared as supporting equality, but the RHS type ((real, A)) might not
+EqualityTypesModuleExports.dfy(92,7): Error: type 'Subset4' declared as supporting equality, but the RHS type ((A, int)) might not
 EqualityTypesModuleExports.dfy(153,11): Error: type parameter (A) passed to type MyClass must support equality (got Noeq)
 EqualityTypesModuleExports.dfy(154,11): Error: type parameter (A) passed to type Dt must support equality (got Noeq)
 EqualityTypesModuleExports.dfy(155,11): Error: type parameter (A) passed to type Co must support equality (got Noeq)
@@ -34,9 +34,9 @@ EqualityTypesModuleExports.dfy(176,11): Error: type parameter (A) passed to type
 EqualityTypesModuleExports.dfy(177,11): Error: type parameter (A) passed to type Syn must support equality (got Noeq)
 EqualityTypesModuleExports.dfy(178,11): Error: type parameter (A) passed to type SubsetCo must support equality (got Noeq)
 EqualityTypesModuleExports.dfy(170,7): Error: recursive constraint dependency involving a subset type: SubsetCo -> Co -> SubsetCo
+EqualityTypesModuleExports.dfy(195,11): Error: type parameter (A) passed to type MyClass must support equality (got Noeq)
 EqualityTypesModuleExports.dfy(188,22): Error: set argument type must support equality (got A) (perhaps try declaring type parameter 'A' on line 188 as 'A(==)', which says it can only be instantiated with a type that supports equality)
 EqualityTypesModuleExports.dfy(189,24): Error: iset argument type must support equality (got A) (perhaps try declaring type parameter 'A' on line 189 as 'A(==)', which says it can only be instantiated with a type that supports equality)
-EqualityTypesModuleExports.dfy(195,11): Error: type parameter (A) passed to type MyClass must support equality (got Noeq)
 EqualityTypesModuleExports.dfy(191,7): Error: recursive constraint dependency involving a subset type: SubsetCo -> Co -> SubsetCo
 EqualityTypesModuleExports.dfy(214,7): Error: type 'Opa', which does not support equality, is used to refine an abstract type with equality support
 EqualityTypesModuleExports.dfy(230,12): Error: type parameter (A) passed to type S must support equality (got GGG.Opa'<int>) (perhaps try declaring abstract type 'Opa'' on line 208 as 'Opa'(==)', which says it can only be instantiated with a type that supports equality)

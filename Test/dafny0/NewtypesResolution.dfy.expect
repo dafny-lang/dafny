@@ -43,9 +43,12 @@ NewtypesResolution.dfy(304,7): Error: recursive constraint dependency involving 
 NewtypesResolution.dfy(317,10): Error: recursive constraint dependency involving a newtype: X -> P -> M -> X
 NewtypesResolution.dfy(332,10): Error: recursive constraint dependency involving a newtype: Y -> P -> M -> X -> Y
 NewtypesResolution.dfy(350,7): Error: recursive constraint dependency involving a subset type: G3 -> G5 -> G6 -> G0 -> G1 -> G2 -> G3
-NewtypesResolution.dfy(360,10): Error: recursive constraint dependency involving a newtype: G4 -> G5 -> G6 -> P -> G0 -> G1 -> G2 -> G3 -> G4
+NewtypesResolution.dfy(360,10): Error: recursive constraint dependency involving a newtype: G4 -> P -> G5 -> G6 -> G0 -> G1 -> G2 -> G3 -> G4
 NewtypesResolution.dfy(371,33): Error: a forall expression involved in a newtype definition is not allowed to depend on the set of allocated references, but values of 'r' (of type 'G5') may contain references (see documentation for 'older' parameters)
 NewtypesResolution.dfy(381,7): Error: recursive constraint dependency involving a subset type: Y -> M -> X -> Y
+NewtypesResolution.dfy(488,14): Error: const definition contains a cycle: c0 -> R0 -> c0
+NewtypesResolution.dfy(495,8): Error: const definition contains a cycle: c1 -> R1 -> R1 -> c1
+NewtypesResolution.dfy(502,8): Error: const definition contains a cycle: c2 -> R2 -> c2
 NewtypesResolution.dfy(400,10): Error: recursive constraint dependency involving a newtype: NT0 -> P0 -> NT0
 NewtypesResolution.dfy(414,7): Error: recursive constraint dependency involving a subset type: ST0 -> Q0 -> ST0
 NewtypesResolution.dfy(430,10): Error: recursive constraint dependency involving a newtype: NW0 -> NWitness0 -> NW0
@@ -54,7 +57,4 @@ NewtypesResolution.dfy(451,10): Error: recursive constraint dependency involving
 NewtypesResolution.dfy(458,7): Error: recursive constraint dependency involving a subset type: SW0 -> SWitness0 -> SW0
 NewtypesResolution.dfy(472,7): Error: recursive constraint dependency involving a subset type: SW2 -> SWitness2 -> SWitness2 -> SW2
 NewtypesResolution.dfy(479,7): Error: recursive constraint dependency involving a subset type: SW3 -> SWitness3 -> SW3
-NewtypesResolution.dfy(488,14): Error: const definition contains a cycle: c0 -> R0 -> c0
-NewtypesResolution.dfy(495,8): Error: const definition contains a cycle: c1 -> R1 -> R1 -> c1
-NewtypesResolution.dfy(502,8): Error: const definition contains a cycle: c2 -> R2 -> c2
 59 resolution/type errors detected in NewtypesResolution.dfy
