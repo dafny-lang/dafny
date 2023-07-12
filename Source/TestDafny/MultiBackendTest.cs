@@ -258,8 +258,7 @@ public class MultiBackendTest {
 
   private static bool OnlyUnsupportedFeaturesErrors(IExecutableBackend backend, string output) {
     using StringReader sr = new StringReader(output);
-    string? line;
-    while ((line = sr.ReadLine()) != null) {
+    while (sr.ReadLine() is { } line) {
       if (!IsAllowedOutputLine(backend, line)) {
         return false;
       }

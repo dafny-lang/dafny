@@ -3580,6 +3580,10 @@ namespace Microsoft.Dafny {
           argsC.Add(etran.layerInterCluster.GetFunctionFuel(f));
         }
 
+        if (f.IsOpaque) {
+          argsC.Add(GetRevealConstant(f));
+        }
+
         // add heap arguments
         if (f is TwoStateFunction) {
           argsC.Add(etran.Old.HeapExpr);
