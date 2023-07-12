@@ -1,0 +1,20 @@
+concurrentverification.dfy(13,22): Error: assertion could not be proved
+concurrentverification.dfy(14,22): Error: assertion could not be proved
+concurrentverification.dfy(17,23): Error: assertion could not be proved
+concurrentverification.dfy(18,23): Error: assertion could not be proved
+concurrentverification.dfy(23,14): Error: assertion could not be proved
+concurrentverification.dfy(26,4): Error: cannot prove that 'a' is modifyLocked. Wrap with `lockModify(a) { ... }` or `requires modifyLocked(a)`
+concurrentverification.dfy(35,25): Error: assertion could not be proved
+concurrentverification.dfy(38,26): Error: assertion could not be proved
+concurrentverification.dfy(44,4): Error: cannot prove that 'a' is modifyLocked. Wrap with `lockModify(a) { ... }` or `requires modifyLocked(a)`
+concurrentverification.dfy(48,21): Error: assertion could not be proved
+concurrentverification.dfy(49,23): Error: assertion could not be proved
+concurrentverification.dfy(52,23): Error: assertion could not be proved
+concurrentverification.dfy(53,21): Error: assertion could not be proved
+concurrentverification.dfy(68,21): Error: assertion could not be proved
+concurrentverification.dfy(69,23): Error: assertion could not be proved
+concurrentverification.dfy(72,23): Error: assertion could not be proved
+concurrentverification.dfy(73,21): Error: assertion could not be proved
+
+Dafny program verifier finished with 1 verified, 2 errors
+

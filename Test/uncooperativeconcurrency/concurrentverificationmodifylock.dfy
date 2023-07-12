@@ -1,4 +1,4 @@
-// RUN: %exits-with 4 %baredafny verify --concurrent %args "%s" > "%t"
+// RUN: %baredafny verify --concurrent %args "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 class A {
@@ -6,7 +6,7 @@ class A {
 }
 
 method TowardsZero(a: A, b: A)
-  requires writeLocked(a) && writeLocked(b)
+  requires modifyLocked(a) && modifyLocked(b)
   modifies a, b
   ensures a.x == b.x && a.x >= 0
 {
