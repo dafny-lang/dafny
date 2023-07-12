@@ -1,1 +1,0 @@
-method test(int i) {}

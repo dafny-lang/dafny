@@ -1,3 +1,0 @@
-text.dfy(10,33): Error: 'A' is not a type that can declare members
-text.dfy(10,38): Error: 'A' is not a type that can declare members
-2 resolution/type errors detected in text.dfy
