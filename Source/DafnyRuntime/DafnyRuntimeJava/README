@@ -1,7 +1,0 @@
-To build and copy the Dafny Java runtime JAR to Binaries
-
-$ gradle copyJarToBinaries
-
-To run tests
-
-$ gradle test

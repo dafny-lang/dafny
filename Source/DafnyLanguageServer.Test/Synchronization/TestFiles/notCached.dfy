@@ -1,1 +1,0 @@
-// Needs to exist for the test to pass since language server doesn't have a virtual filesystem yet.

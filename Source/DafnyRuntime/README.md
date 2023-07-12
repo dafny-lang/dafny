@@ -1,1 +1,0 @@
-To generate the tuples in DafnyRuntime and DafnyRuntimeJava/src, the file tuplesForDafnyRuntime.dfy was used. 
