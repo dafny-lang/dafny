@@ -148,7 +148,10 @@ namespace Microsoft.Dafny.Compilers {
     public override void EmitCallToMain(Method mainMethod, string baseName, ConcreteSyntaxTree wr) {
       var w = wr.NewBlock("int main(int argc, char *argv[])");
       var tryWr = w.NewBlock("try");
-      tryWr.WriteLine(string.Format("{0}::{1}::{2}(dafny_get_args(argc, argv));", mainMethod.EnclosingClass.EnclosingModuleDefinition.GetCompileName(Options), mainMethod.EnclosingClass.GetCompileName(Options), mainMethod.Name));
+      tryWr.WriteLine("{0}::{1}::{2}(dafny_get_args(argc, argv));",
+        mainMethod.EnclosingClass.EnclosingModuleDefinition.GetCompileName(Options),
+        mainMethod.EnclosingClass.GetCompileName(Options),
+        IdName(mainMethod));
       var catchWr = w.NewBlock("catch (DafnyHaltException & e)");
       catchWr.WriteLine("std::cout << \"Program halted: \" << e.what() << std::endl;");
     }
@@ -1642,9 +1645,9 @@ namespace Microsoft.Dafny.Compilers {
       var cl = udt.ResolvedClass;
       if (cl is TypeParameter) {
         return IdProtect(udt.GetCompileName(Options));
-      } else if (cl is DefaultClassDecl && Attributes.Contains(cl.EnclosingModuleDefinition.Attributes, "extern") &&
+      } else if (cl is ImplicitClassDecl && Attributes.Contains(cl.EnclosingModuleDefinition.Attributes, "extern") &&
                  member != null && Attributes.Contains(member.Attributes, "extern")) {
-        // omit the default class name ("_default") in extern modules, when the class is used to qualify an extern member
+        // omit the implicit class name in extern modules, when the class is used to qualify an extern member
         Contract.Assert(!cl.EnclosingModuleDefinition.IsDefaultModule); // default module is not marked ":extern"
         return IdProtect(cl.EnclosingModuleDefinition.GetCompileName(Options));
       } else if (Attributes.Contains(cl.Attributes, "extern")) {

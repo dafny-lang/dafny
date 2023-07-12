@@ -933,7 +933,7 @@ namespace Microsoft.Dafny.Compilers {
       // make sure the (static fields associated with the) type method come after the Witness static field
       var wTypeMethod = wBody;
       var wRestOfBody = wBody.Fork();
-      if (cls is not DefaultClassDecl) {
+      if (cls is not ImplicitClassDecl) {
         EmitTypeDescriptorMethod(cls, typeParameters, null, null, wTypeMethod);
       }
 
@@ -4118,7 +4118,7 @@ namespace Microsoft.Dafny.Compilers {
     }
     protected override ConcreteSyntaxTree CreateStaticMain(IClassWriter cw, string argsParameterName) {
       var wr = ((ClassWriter)cw).StaticMemberWriter;
-      return wr.NewBlock($"public static void __Main(dafny.DafnySequence<? extends dafny.DafnySequence<? extends {CharTypeName(true)}>> {argsParameterName})");
+      return wr.NewBlock($"public static void ___Main(dafny.DafnySequence<? extends dafny.DafnySequence<? extends {CharTypeName(true)}>> {argsParameterName})");
     }
 
     protected override void CreateIIFE(string bvName, Type bvType, IToken bvTok, Type bodyType, IToken bodyTok,

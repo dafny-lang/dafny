@@ -218,7 +218,7 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override IClassWriter CreateClass(string moduleName, string name, bool isExtern, string/*?*/ fullPrintName,
       List<TypeParameter> typeParameters, TopLevelDecl cls, List<Type>/*?*/ superClasses, IToken tok, ConcreteSyntaxTree wr) {
-      var isDefaultClass = cls is DefaultClassDecl;
+      var isDefaultClass = cls is ImplicitClassDecl;
 
       bool isSequence = superClasses.Any(superClass => superClass is UserDefinedType udt && IsDafnySequence(udt.ResolvedClass));
       return CreateClass(cls, name, isExtern, fullPrintName, typeParameters, superClasses, tok, wr, includeRtd: !isDefaultClass, includeEquals: !isSequence, includeString: !isSequence);
@@ -1684,7 +1684,7 @@ namespace Microsoft.Dafny.Compilers {
       // don't do it here, we end up passing the name of the module to
       // FormatCompanionName, which doesn't help anyone
       if (type is UserDefinedType udt && udt.ResolvedClass != null && IsExternMemberOfExternModule(member, udt.ResolvedClass)) {
-        // omit the default class name ("_default") in extern modules, when the class is used to qualify an extern member
+        // omit the implicit class name in extern modules, when the class is used to qualify an extern member
         Contract.Assert(!udt.ResolvedClass.EnclosingModuleDefinition.IsDefaultModule);  // default module is not marked ":extern"
         return IdProtect(udt.ResolvedClass.EnclosingModuleDefinition.GetCompileName(Options));
       }
@@ -2463,7 +2463,7 @@ namespace Microsoft.Dafny.Compilers {
 
     private string UserDefinedTypeName(TopLevelDecl cl, bool full, MemberDecl/*?*/ member = null) {
       if (IsExternMemberOfExternModule(member, cl)) {
-        // omit the default class name ("_default") in extern modules, when the class is used to qualify an extern member
+        // omit the implicit class name in extern modules, when the class is used to qualify an extern member
         Contract.Assert(!cl.EnclosingModuleDefinition.IsDefaultModule);  // default module is not marked ":extern"
         return IdProtect(cl.EnclosingModuleDefinition.GetCompileName(Options));
       } else {
@@ -2489,7 +2489,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     private bool IsExternMemberOfExternModule(MemberDecl/*?*/ member, TopLevelDecl cl) {
-      return cl is DefaultClassDecl && Attributes.Contains(cl.EnclosingModuleDefinition.Attributes, "extern") &&
+      return cl is ImplicitClassDecl && Attributes.Contains(cl.EnclosingModuleDefinition.Attributes, "extern") &&
              member != null && member.IsExtern(Options, out _, out _);
     }
 

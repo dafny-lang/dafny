@@ -2340,7 +2340,7 @@ public class UserDefinedType : NonProxyType {
     // and in then name==cd.Name for a ClassDecl.
     //Contract.Requires(!(cd is ClassDecl) || name == cd.Name + "?");
     Contract.Requires(!(cd is ArrowTypeDecl) || name == cd.Name);
-    Contract.Requires(!(cd is DefaultClassDecl) || name == cd.Name);
+    Contract.Requires(!(cd is ImplicitClassDecl) || name == cd.Name);
     this.tok = tok;
     this.Name = name;
     this.ResolvedClass = cd;

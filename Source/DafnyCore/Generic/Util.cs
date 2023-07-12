@@ -580,11 +580,8 @@ namespace Microsoft.Dafny {
         foreach (var decl in module.TopLevelDecls) {
           if (decl is DatatypeDecl) {
             IncrementStat(stats, "Datatypes");
-          } else if (decl is ClassLikeDecl) {
-            var c = (ClassLikeDecl)decl;
-            if (c.Name != "_default") {
-              IncrementStat(stats, "Classes");
-            }
+          } else if (decl is ClassLikeDecl c) {
+            IncrementStat(stats, "Classes");
 
             foreach (var member in c.Members) {
               if (member is Function) {

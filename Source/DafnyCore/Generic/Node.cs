@@ -46,7 +46,7 @@ public abstract class Node : INode {
   /// </summary>
   public abstract IEnumerable<Node> PreResolveChildren { get; }
 
-  // Nodes like DefaultClassDecl have children but no OwnedTokens as they are not "physical"
+  // Nodes like ImplicitClassDecl have children but no OwnedTokens as they are not "physical"
   // Therefore, we have to find all the concrete children by unwrapping such nodes.
   private IEnumerable<Node> GetConcreteChildren() {
     foreach (var child in PreResolveChildren) {

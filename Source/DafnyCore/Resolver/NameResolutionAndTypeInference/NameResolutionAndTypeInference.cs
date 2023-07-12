@@ -412,7 +412,7 @@ namespace Microsoft.Dafny {
         if (!scope.AllowInstance) {
           reporter.Error(MessageSource.Resolver, expr, "'this' is not allowed in a 'static' context");
         }
-        if (currentClass is DefaultClassDecl) {
+        if (currentClass is ImplicitClassDecl) {
           // there's no type
         } else {
           if (currentClass == null) {

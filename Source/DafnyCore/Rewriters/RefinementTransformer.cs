@@ -254,7 +254,7 @@ namespace Microsoft.Dafny {
           module.SourceDecls.Add(clone);
         } else {
           var newDeclaration = newPointer.Get();
-          if (originalDeclaration.Name == "_default" || newDeclaration.IsRefining || originalDeclaration is AbstractTypeDecl) {
+          if (originalDeclaration is ImplicitClassDecl || newDeclaration.IsRefining || originalDeclaration is AbstractTypeDecl) {
             MergeTopLevelDecls(module, newPointer, originalDeclaration);
           } else if (newDeclaration is TypeSynonymDecl) {
             var msg = $"a type synonym ({newDeclaration.Name}) is not allowed to replace a {originalDeclaration.WhatKind} from the refined module ({module.RefinementQId}), even if it denotes the same type";
@@ -441,9 +441,9 @@ namespace Microsoft.Dafny {
         } else {
           Error(ErrorId.ref_declaration_must_refine, nw, commonMsg, nw.WhatKind, nw.Name);
         }
-      } else if (nw is DefaultClassDecl) {
-        if (d is DefaultClassDecl) {
-          nwPointer.Set((DefaultClassDecl)MergeClass((DefaultClassDecl)nw, (DefaultClassDecl)d));
+      } else if (nw is ImplicitClassDecl) {
+        if (d is ImplicitClassDecl) {
+          nwPointer.Set((ImplicitClassDecl)MergeClass((ImplicitClassDecl)nw, (ImplicitClassDecl)d));
         } else {
           Error(ErrorId.ref_declaration_must_refine, nw, commonMsg, nw.WhatKind, nw.Name);
         }

@@ -27,14 +27,10 @@ public abstract class TopLevelDecl : Declaration, TypeParameter.ParentType {
     TypeArgs = typeArgs;
   }
 
-  public string FullDafnyName {
+  public virtual string FullDafnyName {
     get {
       if (Name == "_module") {
         return "";
-      }
-
-      if (Name == "_default") {
-        return EnclosingModuleDefinition.FullDafnyName;
       }
 
       string n = EnclosingModuleDefinition.FullDafnyName;

@@ -1,6 +1,8 @@
 using Microsoft.Dafny;
 using Microsoft.Dafny.Plugins;
 using System.Collections;
+using System.Linq;
+using System.Collections.Generic;
 
 namespace PluginsAdvancedTest {
 
@@ -28,6 +30,10 @@ namespace PluginsAdvancedTest {
 
     public override void PostResolve(Program program) {
       foreach (var moduleDefinition in program.Modules()) {
+        var allModuleMembers = moduleDefinition.TopLevelDecls.
+          OfType<TopLevelDeclWithMembers>().
+          SelectMany(d => d.Members).
+          ToHashSet();
         foreach (var topLevelDecl in moduleDefinition.TopLevelDecls) {
           if (topLevelDecl is TopLevelDeclWithMembers cd) {
             foreach (var member in cd.Members) {
@@ -36,7 +42,7 @@ namespace PluginsAdvancedTest {
                   // Verify that there exists a test method which references this extern method.
                   var tested = false;
                   Method candidate = null;
-                  foreach (var member2 in cd.Members) {
+                  foreach (var member2 in allModuleMembers) {
                     if (member2 == member || !(member2 is Method methodTest)) {
                       continue;
                     }

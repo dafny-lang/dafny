@@ -197,7 +197,7 @@ public class ExpectContracts : IRewriter {
     // To construct the receiver, we want to know if the function is static or instance. That information is ordinarily computed
     // by f.IsStatic, which looks at f.HasStaticKeyword and f.EnclosingClass. However, at this time, f.EnclosingClass hasn't yet
     // been set. Instead, we compute here directly from f.HasStaticKeyword and "cl".
-    var isStatic = f.HasStaticKeyword || cl is DefaultClassDecl;
+    var isStatic = f.HasStaticKeyword || cl is ImplicitClassDecl;
     var receiver = isStatic ? (Expression)new StaticReceiverExpr(tok, cl, true) : new ImplicitThisExpr(tok);
     var fn = new FunctionCallExpr(tok, f.Name, receiver, null, null,
       f.Formals.ConvertAll(Expression.CreateIdentExpr));

@@ -199,9 +199,6 @@ module Tests {
 module HereAreErrors {
   /* CALL GRAPH for module HereAreErrors:
    */
-  newtype MyInt = x: int
-    | true
-
   method Error0() returns (x: int, z: bool)
   {
     var a: int, b: int, c: int;
@@ -234,6 +231,9 @@ module HereAreErrors {
     x := a;
     z := b;
   }
+
+  newtype MyInt = x: int
+    | true
 
   method Literals() returns (r: int, s: MyInt)
   {
@@ -275,9 +275,6 @@ module PlusTests {
 module PlusTests' {
   /* CALL GRAPH for module PlusTests':
    */
-  newtype MyInt = x: int
-    | true
-
   method Plus1()
   {
     var a: bool;
@@ -306,6 +303,9 @@ module PlusTests' {
     a := b + c;
     r := a;
   }
+
+  newtype MyInt = x: int
+    | true
 
   method Plus5(y: MyInt)
   {
@@ -515,8 +515,6 @@ module Datatypes {
    */
   datatype Color = Red | Green | Blue
 
-  datatype Record<T, U> = Record(t: T, u: U)
-
   method M() returns (c: Color)
   {
     var x: Color := c;
@@ -525,6 +523,8 @@ module Datatypes {
     w := z;
     c := w;
   }
+
+  datatype Record<T, U> = Record(t: T, u: U)
 
   method P() returns (r: Record<int, bool>)
   {
@@ -635,6 +635,14 @@ module OtherTraitsAndClasses {
    * SCC at height 0:
    *   Q0
    */
+  method Basics(x: int) returns (y: int)
+    decreases x
+  {
+    var k: int := x;
+    var m: int;
+    y := m + m;
+  }
+
   trait J { }
   /*-- non-null type
   type {:axiom} J(==) = c: J? | c != null /*special witness*/
@@ -659,19 +667,6 @@ module OtherTraitsAndClasses {
   /*-- non-null type
   type {:axiom} E(==) = c: E? | c != null /*special witness*/
   */
-
-  class MyClass { }
-  /*-- non-null type
-  type {:axiom} MyClass(==) = c: MyClass? | c != null /*special witness*/
-  */
-
-  method Basics(x: int) returns (y: int)
-    decreases x
-  {
-    var k: int := x;
-    var m: int;
-    y := m + m;
-  }
 
   method Displays(c: C, d: D, e: E, j: J, k: K)
     decreases c, d, e, j, k
@@ -713,6 +708,11 @@ module OtherTraitsAndClasses {
     var p: set<MyClass> := s + t;
     var q: set<object> := s + t;
   }
+
+  class MyClass { }
+  /*-- non-null type
+  type {:axiom} MyClass(==) = c: MyClass? | c != null /*special witness*/
+  */
 }
 
 module LetPatterns {

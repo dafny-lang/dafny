@@ -972,6 +972,7 @@ TopDecl<. ModuleDefinition module, bool isTopLevel, bool isAbstract .>
 = (. DeclModifierData dmod = new DeclModifierData(); ModuleDecl submodule;
      DatatypeDecl/*!*/ dt; TopLevelDecl td; IteratorDecl iter;
      TraitDecl/*!*/ trait;
+     List<MemberDecl> memberDeclContainer = new();
   .)
   { DeclModifier<ref dmod> }
   ( SubModuleDecl<dmod, module, out submodule, isTopLevel>
@@ -1009,7 +1010,12 @@ TopDecl<. ModuleDefinition module, bool isTopLevel, bool isAbstract .>
                                                     module.SourceDecls.Add(trait);
                                                   } 
                                                .)
-  | ClassMemberDecl<dmod, module.DefaultClass.Members, false, true> (. module.DefaultClass.SetMembersBeforeResolution(); .)
+  | ClassMemberDecl<dmod, memberDeclContainer, false, true> 
+                                               (. 
+                                                   foreach(var memberDecl in memberDeclContainer) {
+                                                     module.SourceDecls.Add(new ImplicitClassDecl(module, memberDecl));
+                                                   } 
+                                               .)
   )
   .
 

@@ -167,15 +167,6 @@ module _System {
  * SCC at height 0:
  *   TestActualShifting
  */
-newtype EvenInt = x: int
-  | x % 2 == 0
-
-newtype SmallReal = r: real
-  | -4.0 <= r < 300.0
-
-newtype Handful = x: int
-  | 0 <= x < 80
-
 method M()
 {
   var h: bv8 := 5;
@@ -273,6 +264,15 @@ method R(x: bv60, y: bv60)
   a0, a1 := x <= y, y >= x;
   assert a0 == a1;
 }
+
+newtype EvenInt = x: int
+  | x % 2 == 0
+
+newtype SmallReal = r: real
+  | -4.0 <= r < 300.0
+
+newtype Handful = x: int
+  | 0 <= x < 80
 
 ghost predicate PQ(x: int, n: nat, r: real, even: EvenInt, small: SmallReal, b67: bv67, w: bv32, seven: bv7, bb: bv2, noll: bv0, h: Handful)
   decreases x, n, r, even, small, b67, w, seven, bb, noll, h

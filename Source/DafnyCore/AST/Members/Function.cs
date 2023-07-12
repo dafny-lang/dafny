@@ -265,7 +265,7 @@ public class Function : MemberDecl, TypeParameter.ParentType, ICallable, ICanFor
   List<Formal> ICodeContext.Ins { get { return this.Formals; } }
   string ICallable.NameRelativeToModule {
     get {
-      if (EnclosingClass is DefaultClassDecl) {
+      if (EnclosingClass is ImplicitClassDecl) {
         return Name;
       } else {
         return EnclosingClass.Name + "." + Name;

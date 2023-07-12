@@ -140,7 +140,7 @@ public class Method : MemberDecl, TypeParameter.ParentType, IMethodCodeContext, 
   Specification<FrameExpression> IMethodCodeContext.Modifies { get { return Mod; } }
   string ICallable.NameRelativeToModule {
     get {
-      if (EnclosingClass is DefaultClassDecl) {
+      if (EnclosingClass is ImplicitClassDecl) {
         return Name;
       } else {
         return EnclosingClass.Name + "." + Name;

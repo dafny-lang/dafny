@@ -417,7 +417,7 @@ namespace DafnyTestGeneration {
       private void Visit(TopLevelDecl d) {
         if (d is LiteralModuleDecl moduleDecl) {
           Visit(moduleDecl);
-        } else if (d is ClassLikeDecl or DefaultClassDecl) {
+        } else if (d is ClassLikeDecl or ImplicitClassDecl) {
           VisitClass((TopLevelDeclWithMembers)d);
         } else if (d is IndDatatypeDecl datatypeDecl) {
           Visit(datatypeDecl);

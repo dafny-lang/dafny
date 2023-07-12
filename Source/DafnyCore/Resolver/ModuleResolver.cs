@@ -12,6 +12,7 @@ using System.Numerics;
 using System.Diagnostics.Contracts;
 using JetBrains.Annotations;
 using Microsoft.Boogie;
+using Microsoft.CodeAnalysis.CSharp;
 using static Microsoft.Dafny.ResolutionErrors;
 
 namespace Microsoft.Dafny {
@@ -244,13 +245,11 @@ namespace Microsoft.Dafny {
       List<ModuleExportDecl> sortedExportDecls = exportDependencies.TopologicallySortedComponents();
       ModuleExportDecl defaultExport = null;
 
-      sig.TopLevels.TryGetValue("_default", out var defaultClass);
-      Contract.Assert(defaultClass is DefaultClassDecl);
-      defaultClass.AddVisibilityScope(m.VisibilityScope, true);
-
       foreach (var exportDecl in sortedExportDecls) {
 
-        defaultClass.AddVisibilityScope(exportDecl.ThisScope, true);
+        foreach (var implicitClass in m.TopLevelDecls.OfType<ImplicitClassDecl>()) {
+          implicitClass.AddVisibilityScope(exportDecl.ThisScope, true);
+        }
 
         foreach (var eexports in exportDecl.ExtendDecls.Select(e => e.Exports)) {
           exportDecl.Exports.AddRange(eexports);
@@ -266,7 +265,7 @@ namespace Microsoft.Dafny {
           // Top-level functions and methods are actually recorded as members of the _default class.  We look up the
           // export-set name there.  If the export-set name happens to coincide with some other top-level declaration,
           // then an error will already have been produced ("duplicate name of top-level declaration").
-          if (GetClassMembers((DefaultClassDecl)defaultClass)?.TryGetValue(exportDecl.Name, out var member) == true) {
+          if (sig.TopLevels.ContainsKey(ImplicitClassDecl.GetName(exportDecl.Name))) {
             reporter.Warning(MessageSource.Resolver, ErrorRegistry.NoneId, exportDecl.tok,
               "note, this export set is empty (did you perhaps forget the 'provides' or 'reveals' keyword?)");
           }
@@ -670,12 +669,14 @@ namespace Microsoft.Dafny {
 
       if (resolver != null) {
         //needed because ResolveOpenedImports is used statically for a refinement check
-        if (sig.TopLevels["_default"] is AmbiguousTopLevelDecl) {
-          Contract.Assert(sig.TopLevels["_default"].WhatKind == "class");
-          var cl = new DefaultClassDecl(moduleDef, sig.StaticMembers.Values.ToList());
-          sig.TopLevels["_default"] = cl;
-          resolver.AddClassMembers(cl, cl.Members.ToDictionary(m => m.Name));
-        }
+        // if (sig.TopLevels["_default"] is AmbiguousTopLevelDecl) {
+        //   Contract.Assert(sig.TopLevels["_default"].WhatKind == "class");
+        //   foreach (var staticMember in sig.StaticMembers.Values) {
+        //     var cl = new ImplicitClassDecl(moduleDef, staticMember);
+        //     sig.TopLevels[cl.Name] = cl;
+        //     resolver.AddClassMembers(cl, cl.Members.ToDictionary(m => m.Name));
+        //   }
+        // }
       }
     }
 
@@ -785,7 +786,7 @@ namespace Microsoft.Dafny {
       // To construct the receiver, we want to know if the function is static or instance. That information is ordinarily computed
       // by f.IsStatic, which looks at f.HasStaticKeyword and f.EnclosingClass. However, at this time, f.EnclosingClass hasn't yet
       // been set. Instead, we compute here directly from f.HasStaticKeyword and "cl".
-      var isStatic = f.HasStaticKeyword || cl is DefaultClassDecl;
+      var isStatic = f.HasStaticKeyword || cl is ImplicitClassDecl;
       var receiver = isStatic ? (Expression)new StaticReceiverExpr(tok, cl, true) : new ImplicitThisExpr(tok);
       var fn = new ApplySuffix(tok, null,
         new ExprDotName(tok, receiver, f.Name, null),
@@ -813,14 +814,14 @@ namespace Microsoft.Dafny {
         false);
       mod.Height = height;
       foreach (var kv in p.TopLevels) {
-        if (!(kv.Value is NonNullTypeDecl or DefaultClassDecl)) {
+        if (!(kv.Value is NonNullTypeDecl or ImplicitClassDecl)) {
           var clone = CloneDeclaration(p.VisibilityScope, kv.Value, mod, mods, name);
           mod.SourceDecls.Add(clone);
         }
       }
 
-      var defaultClassDecl = new DefaultClassDecl(mod, p.StaticMembers.Values.ToList());
-      mod.DefaultClass = (DefaultClassDecl)CloneDeclaration(p.VisibilityScope, defaultClassDecl, mod, mods, name);
+      mod.SourceDecls.AddRange(p.StaticMembers.Values.Select(staticMember => CloneDeclaration(p.VisibilityScope, new ImplicitClassDecl(mod,
+        staticMember), mod, mods, name)));
 
       var sig = mod.RegisterTopLevelDecls(this, true);
       sig.Refines = p.Refines;
@@ -1664,7 +1665,7 @@ namespace Microsoft.Dafny {
               }
             }
           }
-        } else if (d is ClassLikeDecl or DefaultClassDecl) {
+        } else if (d is ClassLikeDecl or ImplicitClassDecl) {
           var cl = (TopLevelDeclWithMembers)d;
           foreach (var member in cl.Members) {
             if (!member.IsGhost) {

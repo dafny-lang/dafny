@@ -7,7 +7,6 @@ TestAuditor.dfy(95,4): Warning: note, this forall statement has no body
 TestAuditor.dfy(102,4): Warning: note, this loop has no body (loop frame: i)
 TestAuditor.dfy(126,2): Warning: note, this forall statement has no body
 TestAuditor.dfy(130,2): Warning: note, this loop has no body (loop frame: i)
-TestAuditor.dfy(89,27): Warning: T: Trait method calls may not terminate (uses `{:termination false}`). Possible mitigation: Remove if possible.
 TestAuditor.dfy(22,6): Warning: MinusBv8NoBody: Ghost declaration has no body and has an ensures clause. Possible mitigation: Provide a body or add `{:axiom}`.
 TestAuditor.dfy(27,15): Warning: LeftShiftBV128: Declaration has explicit `{:axiom}` attribute. Possible mitigation: Provide a proof or test.
 TestAuditor.dfy(38,2): Warning: MinusBv8Assume: Definition has `assume` statement in body. Possible mitigation: Replace with `assert` and prove or add `{:axiom}`.
@@ -20,6 +19,7 @@ TestAuditor.dfy(68,17): Warning: GenerateBytesNoGuarantee: Declaration with `{:e
 TestAuditor.dfy(72,19): Warning: ExternFunction: Function with `{:extern}` attribute. Possible mitigation: Turn into a `method` with `modifies *` or test thoroughly for lack of side effects.
 TestAuditor.dfy(72,19): Warning: ExternFunction: Declaration with `{:extern}` has a ensures clause. Possible mitigation: Test external callee (maybe with `/testContracts`).
 TestAuditor.dfy(83,7): Warning: DoesNotTerminate: Method may not terminate (uses `decreases *`). Possible mitigation: Provide a valid `decreases` clause.
+TestAuditor.dfy(89,27): Warning: T: Trait method calls may not terminate (uses `{:termination false}`). Possible mitigation: Remove if possible.
 TestAuditor.dfy(95,4): Warning: ForallWithoutBody: Definition contains `forall` statement with no body. Possible mitigation: Provide a body.
 TestAuditor.dfy(102,4): Warning: LoopWithoutBody: Definition contains loop with no body. Possible mitigation: Provide a body.
 TestAuditor.dfy(118,21): Warning: ConcurrentMethod: Declaration has `{:concurrent}` attribute. Possible mitigation: Manually review and test in a concurrent setting.

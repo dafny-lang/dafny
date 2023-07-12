@@ -74,6 +74,12 @@ module DependencyChecks {
   type B = y: int
     | F(y)
 
+  ghost predicate F(y: int)
+  {
+    var i: A := 5;
+    i < 32
+  }
+
   datatype Q = Q(x: R)
 
   type R = x: S
@@ -81,12 +87,6 @@ module DependencyChecks {
 
   type S = y: int
     | G(y)
-
-  ghost predicate F(y: int)
-  {
-    var i: A := 5;
-    i < 32
-  }
 
   ghost predicate G(y: int)
   {

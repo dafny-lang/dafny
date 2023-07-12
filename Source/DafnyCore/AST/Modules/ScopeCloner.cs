@@ -90,7 +90,7 @@ class ScopeCloner : DeepModuleSignatureCloner {
 
   public override TopLevelDecl CloneDeclaration(TopLevelDecl d, ModuleDefinition newParent) {
     var based = base.CloneDeclaration(d, newParent);
-    if (d is (RevealableTypeDecl or TopLevelDeclWithMembers) and not DefaultClassDecl && !RevealedInScope(d)) {
+    if (d is (RevealableTypeDecl or TopLevelDeclWithMembers) and not ImplicitClassDecl && !RevealedInScope(d)) {
       var tps = d.TypeArgs.ConvertAll(CloneTypeParam);
       var characteristics = TypeParameter.GetExplicitCharacteristics(d);
       var members = based is TopLevelDeclWithMembers tm ? tm.Members : new List<MemberDecl>();
