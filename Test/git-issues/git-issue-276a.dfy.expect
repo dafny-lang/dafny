@@ -1,6 +1,6 @@
 git-issue-276a.dfy(23,10): Info: newtype c0 resolves as {:nativeType "byte"} (Detected Range: 0 .. 100)
-git-issue-276a.dfy(25,10): Info: newtype c1 resolves as {:nativeType "byte"} (Detected Range: 0 .. 100)
-git-issue-276a.dfy(26,10): Info: newtype c2 resolves as {:nativeType "byte"} (Detected Range: 0 .. 50)
+git-issue-276a.dfy(27,10): Info: newtype c1 resolves as {:nativeType "byte"} (Detected Range: 0 .. 100)
+git-issue-276a.dfy(28,10): Info: newtype c2 resolves as {:nativeType "byte"} (Detected Range: 0 .. 50)
 git-issue-276a.dfy(5,10): Error: cannot find witness that shows type is inhabited (only tried 0); try giving a hint through a 'witness' or 'ghost witness' clause, or use 'witness *' to treat as a possibly empty type
 git-issue-276a.dfy(5,26): Related location
 git-issue-276a.dfy(5,29): Error: possible division by zero
@@ -34,8 +34,8 @@ git-issue-276a.dfy(20,40): Error: shift amount must be non-negative
 git-issue-276a.dfy(21,10): Error: cannot find witness that shows type is inhabited (only tried 0); try giving a hint through a 'witness' or 'ghost witness' clause, or use 'witness *' to treat as a possibly empty type
 git-issue-276a.dfy(21,27): Related location
 git-issue-276a.dfy(21,40): Error: shift amount must be non-negative
-git-issue-276a.dfy(28,10): Error: cannot find witness that shows type is inhabited (only tried 0); try giving a hint through a 'witness' or 'ghost witness' clause, or use 'witness *' to treat as a possibly empty type
-git-issue-276a.dfy(28,26): Related location
-git-issue-276a.dfy(28,35): Error: index out of range
+git-issue-276a.dfy(30,10): Error: cannot find witness that shows type is inhabited (only tried 0); try giving a hint through a 'witness' or 'ghost witness' clause, or use 'witness *' to treat as a possibly empty type
+git-issue-276a.dfy(30,26): Related location
+git-issue-276a.dfy(30,35): Error: index out of range
 
 Dafny program verifier finished with 4 verified, 27 errors
