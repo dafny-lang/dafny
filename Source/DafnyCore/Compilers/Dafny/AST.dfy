@@ -1,4 +1,3 @@
-
 module {:extern "DAST"} DAST {
   datatype Module = Module(name: string, body: seq<ModuleItem>)
 
@@ -32,7 +31,12 @@ module {:extern "DAST"} DAST {
     Print(Expression) |
     Todo(reason: string)
 
-  datatype Expression = Literal(Literal) | Ident(string) | DatatypeValue(typ: Type, variant: string, contents: seq<(string, Expression)>) | BinOp(op: string, left: Expression, right: Expression) | Todo(reason: string)
+  datatype Expression =
+    Literal(Literal) |
+    Ident(string) |
+    DatatypeValue(typ: Type, variant: string, contents: seq<(string, Expression)>) |
+    BinOp(op: string, left: Expression, right: Expression) |
+    Todo(reason: string)
 
   datatype Literal = BoolLiteral(bool) | IntLiteral(int) | DecLiteral(string) | StringLiteral(string)
 }

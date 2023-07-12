@@ -17,7 +17,6 @@ module {:extern "DCOMP"} DCOMP {
   }
 
   class COMP {
-
     static method GenModule(mod: Module) returns (s: string) {
       var body := GenModuleBody(mod.body);
       s := "mod " + mod.name + " {\n" + body + "\n}";
@@ -295,7 +294,5 @@ module {:extern "DCOMP"} DCOMP {
       }
       s := s + "();\n}";
     }
-
   }
-
 }
