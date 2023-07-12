@@ -1,0 +1,4 @@
+concurrentverification.dfy(14,5): Error: cannot prove that 'a' is modifyLocked. Wrap with `lockModify(a) { ... }` or `requires modifyLocked(a)`
+concurrentverification.dfy(21,3): Error: cannot prove that 'b' is modifyLocked. Wrap with `lockModify(b) { ... }` or `requires modifyLocked(a)`
+
+Dafny program verifier finished with 1 verified, 2 errors
