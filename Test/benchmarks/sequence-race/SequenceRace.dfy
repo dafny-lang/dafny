@@ -10,7 +10,7 @@
 // Note the intentional ">" as opposed to ">>", so we can check just the benchmark run output.
 // RUN: %S/java/gradlew jmh -p %S/java > "%t"
 // RUN: %OutputCheck --file-to-check "%t" "%s"
-// We manually verify the benchmark fails (since the bug isn't fixed yet), because unfortunatley
+// We manually verify the benchmark fails (since the bug isn't fixed yet), because unfortunately
 // we can't trust the JMH gradle plugin to: https://github.com/melix/jmh-gradle-plugin/issues/255
 // CHECK: <failure>
 
