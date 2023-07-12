@@ -6,9 +6,12 @@ using Microsoft.Dafny;
 public abstract class GenericCompilationInstrumenter {
   
   // <summary>
-  // Invoked just before outputting the
+  // Invoked just before outputting the code for a Dafny class.
   // </summary>
-  public abstract void BeforeClass(TopLevelDecl cls, ConcreteSyntaxTree wr);
-  
-  public abstract void BeforeMethod(Method m, ConcreteSyntaxTree wr);
+  public virtual void BeforeClass(TopLevelDecl cls, ConcreteSyntaxTree wr) {}
+
+  // <summary>
+  // Invoked just before outputting the code for a Dafny method.
+  // </summary>
+  public virtual void BeforeMethod(Method m, ConcreteSyntaxTree wr) {}
 }
