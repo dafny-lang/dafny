@@ -68,6 +68,18 @@ module Depen {
 }
 
 module DependencyChecks {
+  ghost predicate F(y: int)
+  {
+    var i: A := 5;
+    i < 32
+  }
+
+  ghost predicate G(y: int)
+  {
+    var q: Q :| true;
+    q.x < 32
+  }
+
   type A = x: B
     | true
 
@@ -81,18 +93,6 @@ module DependencyChecks {
 
   type S = y: int
     | G(y)
-
-  ghost predicate F(y: int)
-  {
-    var i: A := 5;
-    i < 32
-  }
-
-  ghost predicate G(y: int)
-  {
-    var q: Q :| true;
-    q.x < 32
-  }
 }
 
 module Cycle0 {
@@ -101,17 +101,17 @@ module Cycle0 {
 }
 
 module Cycle1 {
+  ghost predicate P(x: int)
+
   type A = x: int
     | var a: A :| true; P(x)
-
-  ghost predicate P(x: int)
 }
 
 module Cycle2 {
+  ghost function f(x: int): C
+
   type C = x: int
     | f(x) == f(x)
-
-  ghost function f(x: int): C
 }
 
 module MoreDependencyCycles0 {
