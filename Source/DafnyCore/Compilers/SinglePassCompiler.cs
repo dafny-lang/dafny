@@ -13,7 +13,6 @@ using System.IO;
 using System.Diagnostics.Contracts;
 using JetBrains.Annotations;
 using Microsoft.BaseTypes;
-using Microsoft.Dafny.Plugins;
 using static Microsoft.Dafny.Compilers.CompilerErrors;
 
 
