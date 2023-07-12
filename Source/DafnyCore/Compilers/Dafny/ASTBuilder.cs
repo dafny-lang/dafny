@@ -92,10 +92,6 @@ namespace Microsoft.Dafny.Compilers {
       body.Add((ClassItem)ClassItem.create_Method(item));
     }
 
-    public void AddFunction(DAST.Function item) {
-      body.Add((ClassItem)ClassItem.create_Function(item));
-    }
-
     public void AddField(DAST.Formal item) {
       body.Add((ClassItem)ClassItem.create_Field(item));
     }
@@ -129,10 +125,6 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     public void AddMethod(DAST.Method item) {
-      // TODO
-    }
-
-    public void AddFunction(DAST.Function item) {
       // TODO
     }
 
@@ -172,10 +164,6 @@ namespace Microsoft.Dafny.Compilers {
       // TODO
     }
 
-    public void AddFunction(DAST.Function item) {
-      // TODO
-    }
-
     public void AddField(DAST.Formal item) {
       // TODO
     }
@@ -194,16 +182,10 @@ namespace Microsoft.Dafny.Compilers {
     DafnyCompiler compiler { get; }
     void AddMethod(DAST.Method item);
 
-    void AddFunction(DAST.Function item);
-
     void AddField(DAST.Formal item);
 
     public MethodBuilder Method(string name, List<DAST.Type> typeArgs) {
       return new MethodBuilder(this, name, typeArgs);
-    }
-
-    public FunctionBuilder Function(string name, List<DAST.Type> typeArgs) {
-      return new FunctionBuilder(this, name, typeArgs);
     }
 
     public object Finish();
@@ -236,37 +218,6 @@ namespace Microsoft.Dafny.Compilers {
     }
   }
 
-  class FunctionBuilder : ExprContainer {
-    public DafnyCompiler compiler { get => parent.compiler; }
-    readonly ClassLike parent;
-    readonly string name;
-    readonly List<DAST.Type> typeArgs;
-    DAST.Expression body;
-
-    public FunctionBuilder(ClassLike parent, string name, List<DAST.Type> typeArgs) {
-      this.parent = parent;
-      this.name = name;
-      this.typeArgs = typeArgs;
-    }
-
-    public void AddExpr(DAST.Expression item) {
-      if (body != null) {
-        throw new InvalidOperationException("Function body already set");
-      } else {
-        body = item;
-      }
-    }
-
-    public object Finish() {
-      parent.AddFunction((DAST.Function)DAST.Function.create(
-        Sequence<Rune>.UnicodeFromString(this.name),
-        Sequence<DAST.Type>.FromArray(typeArgs.ToArray()),
-        body
-      ));
-      return parent;
-    }
-  }
-
   interface StatementContainer {
     DafnyCompiler compiler { get; }
     void AddStatement(DAST.Statement item);
@@ -285,6 +236,10 @@ namespace Microsoft.Dafny.Compilers {
 
     public CallBuilder Call() {
       return new CallBuilder(this);
+    }
+
+    public ReturnBuilder Return() {
+      return new ReturnBuilder(this);
     }
   }
 
@@ -379,6 +334,36 @@ namespace Microsoft.Dafny.Compilers {
         Sequence<DAST.Expression>.FromArray(args.ToArray())
       ));
 
+      return parent;
+    }
+  }
+
+  class ReturnBuilder : ExprContainer {
+    public DafnyCompiler compiler { get => parent.compiler; }
+    readonly StatementContainer parent;
+
+    DAST.Expression value = null;
+
+    public ReturnBuilder(StatementContainer parent) {
+      this.parent = parent;
+    }
+
+    public void AddExpr(DAST.Expression value) {
+      if (this.value != null) {
+        throw new InvalidOperationException();
+      } else {
+        this.value = value;
+        if (compiler.currentBuilder == this) {
+          compiler.currentBuilder = parent;
+          this.Finish();
+        } else {
+          throw new InvalidOperationException();
+        }
+      }
+    }
+
+    public object Finish() {
+      parent.AddStatement((DAST.Statement)DAST.Statement.create_Return(value));
       return parent;
     }
   }

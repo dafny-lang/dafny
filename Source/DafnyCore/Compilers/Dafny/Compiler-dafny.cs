@@ -220,7 +220,6 @@ namespace Microsoft.Dafny.Compilers {
       private readonly DafnyCompiler compiler;
       private readonly ClassLike builder;
       private readonly List<MethodBuilder> methods = new();
-      private readonly List<FunctionBuilder> functions = new();
 
       public ClassWriter(DafnyCompiler compiler, ClassLike builder) {
         this.compiler = compiler;
@@ -252,8 +251,8 @@ namespace Microsoft.Dafny.Compilers {
           astTypeArgs.Add((DAST.Type)DAST.Type.create_TypeArg(Sequence<Rune>.UnicodeFromString(compiler.IdProtect(typeArg.Formal.GetCompileName(compiler.Options)))));
         }
 
-        var builder = this.builder.Function(name, astTypeArgs);
-        functions.Add(builder);
+        var builder = this.builder.Method(name, astTypeArgs);
+        methods.Add(builder);
         compiler.currentBuilder = builder;
         return new ConcreteSyntaxTree();
       }
@@ -299,16 +298,17 @@ namespace Microsoft.Dafny.Compilers {
           method.Finish();
         }
 
-        foreach (var function in functions) {
-          function.Finish();
-        }
-
         compiler.currentBuilder = builder.Finish();
       }
     }
 
     protected override ConcreteSyntaxTree EmitReturnExpr(ConcreteSyntaxTree wr) {
-      return new ConcreteSyntaxTree();
+      if (currentBuilder is StatementContainer container) {
+        currentBuilder = container.Return();
+        return new ConcreteSyntaxTree();
+      } else {
+        throw new InvalidOperationException();
+      }
     }
 
     protected override string TypeDescriptor(Type type, ConcreteSyntaxTree wr, IToken tok) {
@@ -423,6 +423,8 @@ namespace Microsoft.Dafny.Compilers {
 
         if (rhs == null) {
           // we expect an initializer to come *after* this declaration
+          // variables are emitted in the middle of generating a call statement,
+          // so we add the variable above the call but then return to building the call
           var variable = statementContainer.DeclareAndAssign(typ, returnToBuilder);
           currentBuilder = variable;
           variable.SetName(name);

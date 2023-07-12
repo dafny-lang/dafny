@@ -104,7 +104,6 @@ module {:extern "DCOMP"} DCOMP {
         var generated: string;
         match body[i] {
           case Method(m) => generated := GenMethod(m);
-          case Function(m) => generated := GenFunction(m);
           case Field(f) => generated := "TODO";
         }
 
@@ -120,32 +119,6 @@ module {:extern "DCOMP"} DCOMP {
     static method GenMethod(m: Method) returns (s: string) {
       // var params := GenParams(m.params);
       var body := GenStmts(m.body);
-      s := "pub fn " + m.name;
-
-      if (|m.typeArgs| > 0) {
-        s := s + "<";
-
-        var i := 0;
-        while i < |m.typeArgs| {
-          if i > 0 {
-            s := s + ", ";
-          }
-
-          var typeString := GenType(m.typeArgs[i]);
-          s := s + typeString;
-
-          i := i + 1;
-        }
-
-        s := s + ">";
-      }
-
-      s := s + "(" + "" + ") {\n" + body + "\n}\n";
-    }
-
-    static method GenFunction(m: Function) returns (s: string) {
-      // var params := GenParams(m.params);
-      var body := GenExpr(m.body);
       s := "pub fn " + m.name;
 
       if (|m.typeArgs| > 0) {
@@ -218,6 +191,10 @@ module {:extern "DCOMP"} DCOMP {
             }
 
             generated := enclosingString + name + "(" + argString + ");";
+          }
+          case Return(expr) => {
+            var exprString := GenExpr(expr);
+            generated := "return " + exprString + ";";
           }
           case Todo(reason) => {
             generated := "todo!(\"" + reason + "\");";
