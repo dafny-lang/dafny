@@ -167,15 +167,6 @@ module _System {
  * SCC at height 0:
  *   TestActualShifting
  */
-newtype EvenInt = x: int
-  | x % 2 == 0
-
-newtype SmallReal = r: real
-  | -4.0 <= r < 300.0
-
-newtype Handful = x: int
-  | 0 <= x < 80
-
 method M()
 {
   var h: bv8 := 5;
@@ -441,6 +432,15 @@ method TestActualRotate()
   var a: bv5 := 12;
   assert a == a.RotateLeft(3).RotateRight(3);
 }
+
+newtype EvenInt = x: int
+  | x % 2 == 0
+
+newtype SmallReal = r: real
+  | -4.0 <= r < 300.0
+
+newtype Handful = x: int
+  | 0 <= x < 80
 BitvectorsMore.dfy(13,9): Error: possible division by zero
 BitvectorsMore.dfy(17,13): Error: possible division by zero
 BitvectorsMore.dfy(21,13): Error: possible division by zero

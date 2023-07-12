@@ -1,7 +1,5 @@
 // BindingGuards.dfy
 
-datatype Color = Red | Green | Blue
-
 ghost predicate P(n: int)
 {
   n % 2 == 0
@@ -302,6 +300,8 @@ method AltSyntax9(x: int, y: int, c: Color)
   }
   z := x + y;
 }
+
+datatype Color = Red | Green | Blue
 BindingGuards.dfy(85,10): Error: a postcondition could not be proved on this return path
 BindingGuards.dfy(71,12): Related location: this is the postcondition that could not be proved
 BindingGuards.dfy(134,9): Error: assertion might not hold

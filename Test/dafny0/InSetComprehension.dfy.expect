@@ -1,7 +1,3 @@
-InSetComprehension.dfy(53,24): Info: Selected triggers: {x in elems}
-InSetComprehension.dfy(51,25): Info: Selected triggers: {x in elems}
-InSetComprehension.dfy(67,24): Info: Selected triggers: {x in elems}
-InSetComprehension.dfy(65,25): Info: Selected triggers: {x in elems}
 InSetComprehension.dfy(10,17): Warning: /!\ No terms found to trigger on.
 InSetComprehension.dfy(12,17): Warning: /!\ No terms found to trigger on.
 InSetComprehension.dfy(14,16): Info: Selected triggers: {Even(m)}
@@ -16,5 +12,9 @@ InSetComprehension.dfy(76,13): Info: Selected triggers: {x in si}
 InSetComprehension.dfy(78,13): Info: Selected triggers: {y in ti}
 InSetComprehension.dfy(81,13): Info: Selected triggers: {n in si}
 InSetComprehension.dfy(82,5): Info: Selected triggers: {si[i]}
+InSetComprehension.dfy(53,24): Info: Selected triggers: {x in elems}
+InSetComprehension.dfy(51,25): Info: Selected triggers: {x in elems}
+InSetComprehension.dfy(67,24): Info: Selected triggers: {x in elems}
+InSetComprehension.dfy(65,25): Info: Selected triggers: {x in elems}
 
 Dafny program verifier finished with 8 verified, 0 errors

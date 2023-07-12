@@ -1,9 +1,5 @@
 # Default module
 
-## Type `T`
-
-* Trait method calls may not terminate (uses `{:termination false}`). MUST remove `{:termination false}` or justify.
-
 ## Top level
 
 ### Member `MinusBv8NoBody`
@@ -81,3 +77,7 @@
 ### Member `MethodOnly`
 
 * Member has explicit temporary `{:only}` attribute. MUST remove the `{:only}` attribute.
+
+## Type `T`
+
+* Trait method calls may not terminate (uses `{:termination false}`). MUST remove `{:termination false}` or justify.
