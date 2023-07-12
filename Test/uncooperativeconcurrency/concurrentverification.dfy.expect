@@ -1,0 +1,4 @@
+concurrentverification.dfy(16,11): Error: possible division by zero
+concurrentverification.dfy(18,13): Error: assertion might not hold
+
+Dafny program verifier finished with 1 verified, 2 errors
