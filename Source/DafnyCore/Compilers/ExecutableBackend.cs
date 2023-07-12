@@ -143,7 +143,7 @@ public abstract class ExecutableBackend : Plugins.IExecutableBackend {
     if (compiler == null) {
       return;
     }
-   
+
     instrumenter.Instrument(this, compiler, dafnyProgram);
   }
 

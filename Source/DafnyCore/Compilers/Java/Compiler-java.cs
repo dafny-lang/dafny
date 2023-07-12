@@ -81,7 +81,7 @@ namespace Microsoft.Dafny.Compilers {
     public void AddInstrumenter(GenericCompilationInstrumenter compilationInstrumenter) {
       Instrumenters.Add(compilationInstrumenter);
     }
-    
+
     protected override bool UseReturnStyleOuts(Method m, int nonGhostOutCount) => true;
 
 

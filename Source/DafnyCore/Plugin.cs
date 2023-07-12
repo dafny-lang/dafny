@@ -114,12 +114,12 @@ public class AssemblyPlugin : ConfiguredPlugin {
       errorReporter => (Rewriter)Activator.CreateInstance(type, errorReporter);
 
     private Func<IExecutableBackend>[] Compilers { get; init; }
-    
+
     private Func<ErrorReporter, CompilerInstrumenter>[] CompilerInstrumenters { get; init; }
 
     Func<IExecutableBackend> CreateCompilerFactory(System.Type type) =>
       () => (IExecutableBackend)Activator.CreateInstance(type);
-    
+
     Func<ErrorReporter, CompilerInstrumenter> CreateCompilerInstrumenterFactory(System.Type type) =>
       errorReporter => (CompilerInstrumenter)Activator.CreateInstance(type, errorReporter);
 

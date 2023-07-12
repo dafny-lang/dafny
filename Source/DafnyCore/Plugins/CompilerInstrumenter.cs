@@ -6,9 +6,9 @@ namespace Microsoft.Dafny.Plugins;
 /// A hook for plugins to customize some of the code generation of other IExecutableBackends.
 /// </summary>
 public abstract class CompilerInstrumenter : ErrorReportingBase {
-  
-  public CompilerInstrumenter(ErrorReporter reporter) : base(reporter) {}
-  
+
+  public CompilerInstrumenter(ErrorReporter reporter) : base(reporter) { }
+
   /// <summary>
   /// Instrument the given compiler.
   /// 

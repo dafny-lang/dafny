@@ -4,8 +4,8 @@ using Microsoft.Dafny.Compilers;
 using Microsoft.Dafny.Plugins;
 
 public class BenchmarkingCompilerInstrumenter : CompilerInstrumenter {
-  public BenchmarkingCompilerInstrumenter(ErrorReporter reporter) : base(reporter) {}
-  
+  public BenchmarkingCompilerInstrumenter(ErrorReporter reporter) : base(reporter) { }
+
   public override void Instrument(IExecutableBackend backend, SinglePassCompiler compiler, Program program) {
     if (compiler is JavaCompiler javaCompiler) {
       javaCompiler.AddInstrumenter(new JavaBenchmarkCompilationInstrumenter(Reporter));
