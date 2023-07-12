@@ -15,8 +15,8 @@ public class UnchangedExpr : Expression, ICloneable<UnchangedExpr>, ICanFormat {
   public UnchangedExpr Clone(Cloner cloner) {
     return new UnchangedExpr(cloner, this);
   }
-  
-  public UnchangedExpr(Cloner cloner, UnchangedExpr original): base(cloner, original) {
+
+  public UnchangedExpr(Cloner cloner, UnchangedExpr original) : base(cloner, original) {
     Frame = original.Frame.ConvertAll(cloner.CloneFrameExpr);
     At = original.At;
     if (cloner.CloneResolvedFields) {

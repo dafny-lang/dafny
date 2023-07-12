@@ -17,7 +17,7 @@ public class ClonerTest {
 
   [Fact]
   public void ClonerKeepsBodyStartTok() {
-    var tokenBodyStart = new Token() {line = 2};
+    var tokenBodyStart = new Token() { line = 2 };
     var rangeToken = new RangeToken(Token.NoToken, Token.NoToken);
     var specificationFrame = new LiteralExpr(Microsoft.Dafny.Token.NoToken, 1);
     var formal1 = new Formal(Token.NoToken, "a", Microsoft.Dafny.Type.Bool, true, false, null) {
@@ -29,7 +29,7 @@ public class ClonerTest {
       IsTypeExplicit = false
     };
     var dummyDecl = new Method(rangeToken, new Name(rangeToken, "hello"),
-      false, false, new List<TypeParameter>(), new List<Formal> {formal1, formal2},
+      false, false, new List<TypeParameter>(), new List<Formal> { formal1, formal2 },
       new List<Formal>(), new List<AttributedExpression>(),
       new Specification<FrameExpression>(new List<FrameExpression>(), null),
       new List<AttributedExpression>(), new Specification<Expression>(new List<Expression>(), null),
