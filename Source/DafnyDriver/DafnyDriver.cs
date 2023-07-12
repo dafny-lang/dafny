@@ -877,8 +877,8 @@ namespace Microsoft.Dafny {
       options.Backend.OnPreCompile(dafnyProgram.Reporter, otherFileNames);
       
       // Now that an internal compiler is instantiated, apply any plugin instrumentation.
-      foreach (var compilerInstrumenter in options.Plugins.SelectMany(p => p.GetCompilerInstrumenters(options))) {
-        options.Backend.InstrumentCompiler(compilerInstrumenter);
+      foreach (var compilerInstrumenter in options.Plugins.SelectMany(p => p.GetCompilerInstrumenters(dafnyProgram.Reporter))) {
+        options.Backend.InstrumentCompiler(compilerInstrumenter, dafnyProgram);
       }
       
       var compiler = options.Backend;
@@ -992,7 +992,7 @@ namespace Microsoft.Dafny {
       throw new NotSupportedException();
     }
 
-    public override void InstrumentCompiler(CompilerInstrumenter instrumenter) {
+    public override void InstrumentCompiler(CompilerInstrumenter instrumenter, Program dafnyProgram) {
       throw new NotSupportedException();
     }
   }

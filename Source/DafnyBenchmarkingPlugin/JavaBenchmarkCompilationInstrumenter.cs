@@ -3,7 +3,7 @@ using Microsoft.Dafny.Plugins;
 
 namespace DafnyBenchmarkingPlugin;
 
-public class JavaBenchmarkInstrumenter : GenericInstrumenter {
+public class JavaBenchmarkCompilationInstrumenter : GenericCompilationInstrumenter {
 
   public override void BeforeClass(TopLevelDecl cls, ConcreteSyntaxTree wr) {
     if (Attributes.Contains(cls.Attributes, "benchmark")) {

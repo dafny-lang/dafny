@@ -11,7 +11,7 @@ namespace Microsoft.Dafny.Plugins;
 /// A class that plugins should extend in order to provide an extra Compiler to the pipeline.
 ///
 /// If the plugin defines no PluginConfiguration, then Dafny will instantiate every sub-class
-/// of Compiler from the plugin.
+/// of IExecutableBackend from the plugin.
 /// </summary>
 public abstract class IExecutableBackend {
   /// <summary>
@@ -161,5 +161,8 @@ public abstract class IExecutableBackend {
     ReadOnlyCollection<string> otherFileNames, object compilationResult, TextWriter outputWriter,
     TextWriter errorWriter);
 
-  public abstract void InstrumentCompiler(CompilerInstrumenter instrumenter);
+  /// <summary>
+  /// Instruments the underlying SinglePassCompiler, if it exists.
+  /// </summary>
+  public abstract void InstrumentCompiler(CompilerInstrumenter instrumenter, Program dafnyProgram);
 }

@@ -76,10 +76,10 @@ namespace Microsoft.Dafny.Compilers {
 
     private record Import(string Name, string Path);
 
-    private readonly List<GenericInstrumenter> Instrumenters = new();
+    private readonly List<GenericCompilationInstrumenter> Instrumenters = new();
 
-    public void AddInstrumenter(GenericInstrumenter instrumenter) {
-      Instrumenters.Add(instrumenter);
+    public void AddInstrumenter(GenericCompilationInstrumenter compilationInstrumenter) {
+      Instrumenters.Add(compilationInstrumenter);
     }
     
     protected override bool UseReturnStyleOuts(Method m, int nonGhostOutCount) => true;

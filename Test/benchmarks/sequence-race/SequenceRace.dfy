@@ -1,11 +1,21 @@
 
-// RUN: dafny translate java "%s" --plugin:DafnyBenchmarkingPlugin.dll
+// Sanity test of the benchmarking plugin,
+// and a regression test for https://github.com/dafny-lang/dafny/issues/1454.
+
+// Ensure trying to use an unsupported compilation target results in a clean error message.
+// RUN: %exits-with 3 %baredafny translate cs %args "%s" --plugin:DafnyBenchmarkingPlugin.dll > "%t"
+// RUN: %diff "%s.expect" "%t"
+
+// RUN: %baredafny translate java %args "%s" --plugin:DafnyBenchmarkingPlugin.dll
 // RUN: mkdir -p %S/java/src/jmh
 // RUN: cp -r %S/SequenceRace-java %S/java/src/jmh/java
-// RUN: %S/java/gradlew jmh -p %S/java
 
-// TODO: Should expect the gradle build to fail since the bug is still present,
-// but even with failOnError.set(true) it doesn't... :(
+// Note the intentional ">" as opposed to ">>", so we can check just the benchmark run output.
+// RUN: %S/java/gradlew jmh -p %S/java > "%t"
+// RUN: %OutputCheck --file-to-check "%t" "%s"
+// We manually verify the benchmark doesn't fail, because unfortunatley
+// we can't trust the JMH gradle plugin to: https://github.com/melix/jmh-gradle-plugin/issues/255
+// CHECK-NOT: <failure>
 
 class {:benchmark} SequenceRace {
 

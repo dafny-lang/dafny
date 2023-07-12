@@ -139,12 +139,12 @@ public abstract class ExecutableBackend : Plugins.IExecutableBackend {
     return true;
   }
 
-  public override void InstrumentCompiler(CompilerInstrumenter instrumenter) {
+  public override void InstrumentCompiler(CompilerInstrumenter instrumenter, Program dafnyProgram) {
     if (compiler == null) {
       return;
     }
    
-    instrumenter.Instrument(compiler);
+    instrumenter.Instrument(this, compiler, dafnyProgram);
   }
 
   protected static void WriteFromFile(string inputFilename, TextWriter outputWriter) {
