@@ -1,8 +1,0 @@
-<Project>
-
-  <PropertyGroup>
-    <VersionPrefix>4.1.0</VersionPrefix>
-    <NoWarn>1701;1702;VSTHRD200</NoWarn>
-  </PropertyGroup>
- 
-</Project>

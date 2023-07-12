@@ -1,3 +1,0 @@
-IMaps2.dfy(9,3): Error: the result of a set comprehension must be finite, but Dafny's heuristics can't figure out how to produce a bounded set of values for 's'
-IMaps2.dfy(17,3): Error: the result of a set comprehension must be finite, but Dafny's heuristics can't figure out how to produce a bounded set of values for 's'
-2 resolution/type errors detected in IMaps2.dfy

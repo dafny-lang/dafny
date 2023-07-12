@@ -1,3 +1,0 @@
-git-issue-362.dfy(9,2): Error: value does not satisfy the subset constraints of 'Letter'
-
-Dafny program verifier finished with 1 verified, 1 error

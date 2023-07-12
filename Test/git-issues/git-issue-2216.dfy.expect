@@ -1,7 +1,0 @@
-
-Dafny program verifier did not attempt verification
-Running...
-
-ElementsCopiedToPerformLengthCheck... done.
-EqualityAtLeastLinear... done.
-NoPhysicalEqualityOnSequences... done.

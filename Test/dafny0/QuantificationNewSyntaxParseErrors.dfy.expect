@@ -1,7 +1,0 @@
-QuantificationNewSyntaxParseErrors.dfy(17,32): Error: invalid UnaryExpression
-QuantificationNewSyntaxParseErrors.dfy(25,31): Error: a set comprehension with more than one bound variable must have a term expression
-QuantificationNewSyntaxParseErrors.dfy(26,36): Error: a set comprehension with more than one bound variable must have a term expression
-QuantificationNewSyntaxParseErrors.dfy(29,36): Error: a set comprehension with more than one bound variable must have a term expression
-QuantificationNewSyntaxParseErrors.dfy(30,41): Error: a set comprehension with more than one bound variable must have a term expression
-QuantificationNewSyntaxParseErrors.dfy(32,32): Error: invalid UnaryExpression
-6 parse errors detected in QuantificationNewSyntaxParseErrors.dfy

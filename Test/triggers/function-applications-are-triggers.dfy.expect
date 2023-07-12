@@ -1,9 +1,0 @@
-function-applications-are-triggers.dfy(9,9): Info: Selected triggers: {P.requires(f)}
-function-applications-are-triggers.dfy(10,9): Info: Selected triggers:
-   {f(10)}, {f.requires(10)}, {P(f)}
-function-applications-are-triggers.dfy(11,9): Info: Selected triggers:
-   {f(10)}, {f.requires(10)}
-function-applications-are-triggers.dfy(12,5): Info: Selected triggers:
-   {g(x)}, {f(x)}, {g.requires(x)}, {f.requires(x)}
-
-Dafny program verifier finished with 1 verified, 0 errors

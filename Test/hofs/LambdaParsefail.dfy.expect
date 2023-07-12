@@ -1,6 +1,0 @@
-LambdaParsefail.dfy(5,18): Error: this symbol not expected in VarDeclStatement
-LambdaParsefail.dfy(6,18): Error: this symbol not expected in VarDeclStatement
-LambdaParsefail.dfy(7,20): Error: this symbol not expected in VarDeclStatement
-LambdaParsefail.dfy(8,14): Error: cannot declare identifier beginning with underscore
-LambdaParsefail.dfy(9,16): Error: this symbol not expected in VarDeclStatement
-5 parse errors detected in LambdaParsefail.dfy

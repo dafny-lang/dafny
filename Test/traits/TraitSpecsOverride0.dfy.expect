@@ -1,2 +1,0 @@
-TraitSpecsOverride0.dfy(70,11): Error: not allowed to override a terminating method with a possibly non-terminating method ('N')
-1 resolution/type errors detected in TraitSpecsOverride0.dfy

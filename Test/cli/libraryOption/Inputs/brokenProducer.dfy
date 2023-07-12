@@ -1,3 +1,0 @@
-function Bar(): int {
-  true
-}

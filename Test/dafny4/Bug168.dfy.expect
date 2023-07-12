@@ -1,3 +1,0 @@
-Bug168.dfy(10,14): Error: RHS is not certain to look like the pattern 'Nil'
-
-Dafny program verifier finished with 2 verified, 1 error
