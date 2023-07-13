@@ -184,8 +184,7 @@ namespace Microsoft.Dafny.Compilers {
       } else if (xType is UserDefinedType udt) {
         if (udt.ResolvedClass is TypeParameter tp) {
           if (thisContext != null && thisContext.ParentFormalTypeParametersToActuals.TryGetValue(tp, out var instantiatedTypeParameter)) {
-            throw new NotImplementedException();
-            // return TypeName(instantiatedTypeParameter, wr, tok, true, member);
+            return GenType(instantiatedTypeParameter);
           }
         }
 
@@ -522,6 +521,10 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override ILvalue VariableLvalue(IVariable var) {
       return new BuilderLvalue(this, IdName(var));
+    }
+
+    protected override ILvalue SeqSelectLvalue(SeqSelectExpr ll, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
+      throw new NotImplementedException();
     }
 
     protected override ConcreteSyntaxTree EmitAssignment(ILvalue wLhs, Type lhsType /*?*/, Type rhsType /*?*/,

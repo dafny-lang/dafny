@@ -3898,6 +3898,15 @@ namespace Microsoft.Dafny.Compilers {
       return StringLvalue(IdName(var));
     }
 
+    protected virtual ILvalue SeqSelectLvalue(SeqSelectExpr ll, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
+      var arr = StabilizeExpr(ll.Seq, "_arr", wr, wStmts);
+      var index = StabilizeExpr(ll.E0, "_index", wr, wStmts);
+      if (ll.Seq.Type.IsArrayType || ll.Seq.Type.AsSeqType != null) {
+        index = ArrayIndexToNativeInt(index, ll.E0.Type);
+      }
+      return new ArrayLvalueImpl(this, arr, new List<string>() { index }, ll.Type);
+    }
+
     protected ILvalue StringLvalue(string str) {
       return new SimpleLvalueImpl(this, wr => wr.Write(str));
     }
@@ -4033,7 +4042,6 @@ namespace Microsoft.Dafny.Compilers {
       if (lhs is IdentifierExpr) {
         var ll = (IdentifierExpr)lhs;
         return VariableLvalue(ll.Var);
-
       } else if (lhs is MemberSelectExpr) {
         var ll = (MemberSelectExpr)lhs;
         Contract.Assert(!ll.Member.IsInstanceIndependentConstant);  // instance-independent const's don't have assignment statements
@@ -4044,13 +4052,7 @@ namespace Microsoft.Dafny.Compilers {
 
       } else if (lhs is SeqSelectExpr) {
         var ll = (SeqSelectExpr)lhs;
-        var arr = StabilizeExpr(ll.Seq, "_arr", wr, wStmts);
-        var index = StabilizeExpr(ll.E0, "_index", wr, wStmts);
-        if (ll.Seq.Type.IsArrayType || ll.Seq.Type.AsSeqType != null) {
-          index = ArrayIndexToNativeInt(index, ll.E0.Type);
-        }
-        return new ArrayLvalueImpl(this, arr, new List<string>() { index }, ll.Type);
-
+        return SeqSelectLvalue(ll, wr, wStmts);
       } else {
         var ll = (MultiSelectExpr)lhs;
         string arr = StabilizeExpr(ll.Array, "_arr", wr, wStmts);
