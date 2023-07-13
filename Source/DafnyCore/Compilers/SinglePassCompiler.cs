@@ -498,7 +498,7 @@ namespace Microsoft.Dafny.Compilers {
     protected virtual void EmitReturnExpr(Expression expr, Type resultType, bool inLetExprBody, ConcreteSyntaxTree wr) {  // emits "return <expr>;" for function bodies
       var wStmts = wr.Fork();
       var w = EmitReturnExpr(wr);
-      w.Append(Expr(expr, inLetExprBody, wStmts));
+      EmitExpr(expr, inLetExprBody, w, wStmts);
     }
     protected virtual void EmitReturnExpr(string returnExpr, ConcreteSyntaxTree wr) {  // emits "return <returnExpr>;" for function bodies
       var w = EmitReturnExpr(wr);
@@ -2593,7 +2593,7 @@ namespace Microsoft.Dafny.Compilers {
           var w = DeclareLocalVar(IdProtect(bv.CompileName), bv.Type, rhsTok, wr);
           if (rhs != null) {
             w = EmitCoercionIfNecessary(from: rhs.Type, to: bv.Type, tok: rhsTok, wr: w);
-            w.Append(Expr(rhs, inLetExprBody, wStmts));
+            EmitExpr(rhs, inLetExprBody, w, wStmts);
           } else {
             w.Write(rhs_string);
           }
@@ -4149,7 +4149,7 @@ namespace Microsoft.Dafny.Compilers {
 
       if (typeRhs == null) {
         var eRhs = (ExprRhs)rhs; // it's not HavocRhs (by the precondition) or TypeRhs (by the "if" test), so it's gotta be ExprRhs
-        wr.Append(Expr(eRhs.Expr, false, wStmts));
+        EmitExpr(eRhs.Expr, false, wr, wStmts);
 
       } else if (typeRhs.ArrayDimensions != null) {
         var nw = ProtectedFreshId("_nw");
@@ -4804,7 +4804,11 @@ namespace Microsoft.Dafny.Compilers {
     public virtual ConcreteSyntaxTree Expr(Expression expr, bool inLetExprBody, ConcreteSyntaxTree wStmts) {
       var result = new ConcreteSyntaxTree();
       var wr = result;
+      EmitExpr(expr, inLetExprBody, wr, wStmts);
+      return result;
+    }
 
+    public virtual void EmitExpr(Expression expr, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       if (expr is LiteralExpr) {
         LiteralExpr e = (LiteralExpr)expr;
         EmitLiteralExpr(wr, e);
@@ -4927,7 +4931,7 @@ namespace Microsoft.Dafny.Compilers {
         if (e.Members.All(member => member.IsGhost)) {
           // all fields to be updated are ghost, which doesn't change the value
           wr.Append(Expr(e.Root, inLetExprBody, wStmts));
-          return result;
+          return;
         }
         if (DatatypeWrapperEraser.IsErasableDatatypeWrapper(Options, e.Root.Type.AsDatatype, out var dtor)) {
           var i = e.Members.IndexOf(dtor);
@@ -4938,7 +4942,7 @@ namespace Microsoft.Dafny.Compilers {
             Contract.Assert(e.Members.Count == e.Updates.Count);
             var rhs = e.Updates[i].Item3;
             wr.Append(Expr(rhs, inLetExprBody, wStmts));
-            return result;
+            return;
           }
         }
         // the optimized cases don't apply, so proceed according to the desugaring
@@ -4967,8 +4971,8 @@ namespace Microsoft.Dafny.Compilers {
         if (DatatypeWrapperEraser.IsErasableDatatypeWrapper(Options, dtv.Ctor.EnclosingDatatype, out var dtor)) {
           var i = dtv.Ctor.Destructors.IndexOf(dtor);
           Contract.Assert(0 <= i);
-          wr.Append(Expr(dtv.Arguments[i], inLetExprBody, wStmts));
-          return result;
+          EmitExpr(dtv.Arguments[i], inLetExprBody, wr, wStmts);
+          return;
         }
 
         var wrArgumentList = new ConcreteSyntaxTree();
@@ -5008,7 +5012,7 @@ namespace Microsoft.Dafny.Compilers {
         var e = (TypeTestExpr)expr;
         var fromType = e.E.Type;
         if (fromType.IsSubtypeOf(e.ToType, false, false)) {
-          wr.Append(Expr(Expression.CreateBoolLiteral(e.tok, true), inLetExprBody, wStmts));
+          EmitExpr(Expression.CreateBoolLiteral(e.tok, true), inLetExprBody, wr, wStmts);
         } else {
           var name = $"_is_{GetUniqueAstNumber(e)}";
           wr = CreateIIFE_ExprBody(name, fromType, e.tok, e.E, inLetExprBody, Type.Bool, e.tok, wr, ref wStmts);
@@ -5133,7 +5137,7 @@ namespace Microsoft.Dafny.Compilers {
           }
         }
       } else if (expr is NestedMatchExpr nestedMatchExpr) {
-        wr.Append(Expr(nestedMatchExpr.Flattened, inLetExprBody, wStmts));
+        EmitExpr(nestedMatchExpr.Flattened, inLetExprBody, wr, wStmts);
       } else if (expr is MatchExpr) {
         var e = (MatchExpr)expr;
         // ((System.Func<SourceType, TargetType>)((SourceType _source) => {
@@ -5308,11 +5312,11 @@ namespace Microsoft.Dafny.Compilers {
         wr = EmitReturnExpr(wr);
         // May need an upcast or boxing conversion to coerce to the generic arrow result type
         wr = EmitCoercionIfNecessary(e.Body.Type, TypeForCoercion(e.Type.AsArrowType.Result), e.Body.tok, wr);
-        wr.Append(Expr(su.Substitute(e.Body), inLetExprBody, wStmts));
+        EmitExpr(su.Substitute(e.Body), inLetExprBody, wr, wStmts);
 
       } else if (expr is StmtExpr) {
         var e = (StmtExpr)expr;
-        wr.Append(Expr(e.E, inLetExprBody, wStmts));
+        EmitExpr(e.E, inLetExprBody, wr, wStmts);
 
       } else if (expr is ITEExpr) {
         var e = (ITEExpr)expr;
@@ -5323,13 +5327,11 @@ namespace Microsoft.Dafny.Compilers {
 
       } else if (expr is ConcreteSyntaxExpression) {
         var e = (ConcreteSyntaxExpression)expr;
-        wr.Append(Expr(e.ResolvedExpression, inLetExprBody, wStmts));
+        EmitExpr(e.ResolvedExpression, inLetExprBody, wr, wStmts);
 
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression
       }
-
-      return result;
     }
 
     /// <summary>
