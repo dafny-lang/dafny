@@ -2,6 +2,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
+        <NoWarn>CS3021; CS0162; CS0164; CS8981</NoWarn>
         <TargetFramework>net7.0</TargetFramework>
         <OutputType>Exe</OutputType>
     </PropertyGroup>
