@@ -37,14 +37,12 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit {
       logger = new Mock<ILoggerFactory>();
       diagnosticPublisher = new Mock<INotificationPublisher>();
       textDocumentLoader = TextDocumentLoader.Create(
-        DafnyOptions.Create(this.output, TextReader.Null),
         parser.Object,
         symbolResolver.Object,
         symbolTableFactory.Object,
         ghostStateDiagnosticCollector.Object,
         notificationPublisher.Object,
-        logger.Object,
-        diagnosticPublisher.Object
+        logger.Object
       );
     }
 
@@ -69,11 +67,10 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit {
       var source = new CancellationTokenSource();
       parser.Setup(p => p.Parse(
           It.IsAny<VersionedTextDocumentIdentifier>(),
-          It.IsAny<IFileSystem>(),
           It.IsAny<ErrorReporter>(),
           It.IsAny<CancellationToken>())).Callback(() => source.Cancel())
         .Throws<TaskCanceledException>();
-      var task = textDocumentLoader.LoadAsync(DafnyOptions.Default, CreateTestDocumentId(), fileSystem.Object, source.Token);
+      var task = textDocumentLoader.LoadAsync(DafnyOptions.Default, CreateTestDocumentId(), source.Token);
       try {
         await task;
         Assert.Fail("document load was not cancelled");
@@ -87,11 +84,10 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit {
     [Fact]
     public async Task LoadReturnsFaultedTaskIfAnyExceptionOccured() {
       parser.Setup(p => p.Parse(It.IsAny<VersionedTextDocumentIdentifier>(),
-          It.IsAny<IFileSystem>(),
           It.IsAny<ErrorReporter>(),
           It.IsAny<CancellationToken>()))
         .Throws<InvalidOperationException>();
-      var task = textDocumentLoader.LoadAsync(DafnyOptions.Default, CreateTestDocumentId(), fileSystem.Object, default);
+      var task = textDocumentLoader.LoadAsync(DafnyOptions.Default, CreateTestDocumentId(), default);
       try {
         await task;
         Assert.Fail("document load did not fail");

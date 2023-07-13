@@ -35,8 +35,6 @@ public class CompilationManager {
   private readonly IProgramVerifier verifier;
   private readonly IVerificationProgressReporter verificationProgressReporter;
 
-  private readonly IServiceProvider services;
-
   // TODO CompilationManager shouldn't be aware of migration
   private readonly VerificationTree? migratedVerificationTree;
 
@@ -55,7 +53,6 @@ public class CompilationManager {
     VerificationTree? migratedVerificationTree) {
     this.options = options;
     this.documentIdentifier = documentIdentifier;
-    fileSystem = services.GetRequiredService<IFileSystem>();
     documentLoader = services.GetRequiredService<ITextDocumentLoader>();
     logger = services.GetRequiredService<ILogger<CompilationManager>>();
     notificationPublisher = services.GetRequiredService<INotificationPublisher>();
@@ -63,7 +60,6 @@ public class CompilationManager {
     statusPublisher = services.GetRequiredService<ICompilationStatusNotificationPublisher>();
     verificationProgressReporter = services.GetRequiredService<IVerificationProgressReporter>();
 
-    this.services = services;
     this.migratedVerificationTree = migratedVerificationTree;
     cancellationSource = new();
 
@@ -80,7 +76,7 @@ public class CompilationManager {
   private async Task<CompilationAfterParsing> ResolveAsync() {
     try {
       await started.Task;
-      var documentAfterParsing = await documentLoader.LoadAsync(options, documentIdentifier, fileSystem, cancellationSource.Token);
+      var documentAfterParsing = await documentLoader.LoadAsync(options, documentIdentifier, cancellationSource.Token);
 
       // TODO, let gutter icon publications also used the published CompilationView.
       var state = documentAfterParsing.InitialIdeState(options);
@@ -339,7 +335,6 @@ public class CompilationManager {
   private TaskCompletionSource verificationCompleted = new();
   private readonly DafnyOptions options;
   private readonly VersionedTextDocumentIdentifier documentIdentifier;
-  private readonly IFileSystem fileSystem;
 
   public void MarkVerificationStarted() {
     logger.LogTrace("MarkVerificationStarted called");

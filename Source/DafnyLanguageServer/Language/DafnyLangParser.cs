@@ -4,9 +4,6 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using Microsoft.Dafny.LanguageServer.Workspace;
-using OmniSharp.Extensions.LanguageServer.Protocol.Document;
-using OmniSharp.Extensions.LanguageServer.Protocol.Server;
-using OmniSharp.Extensions.LanguageServer.Protocol.Window;
 
 namespace Microsoft.Dafny.LanguageServer.Language {
   /// <summary>
@@ -19,6 +16,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
   /// </remarks>
   public sealed class DafnyLangParser : IDafnyParser, IDisposable {
     private readonly DafnyOptions options;
+    private readonly IFileSystem fileSystem;
     private readonly ITelemetryPublisher telemetryPublisher;
     private readonly ILogger logger;
     private readonly SemaphoreSlim mutex = new(1);
@@ -26,6 +24,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
 
     private DafnyLangParser(DafnyOptions options, IFileSystem fileSystem, ITelemetryPublisher telemetryPublisher, ILoggerFactory loggerFactory) {
       this.options = options;
+      this.fileSystem = fileSystem;
       this.telemetryPublisher = telemetryPublisher;
       logger = loggerFactory.CreateLogger<DafnyLangParser>();
       cachingParser = new CachingParser(loggerFactory.CreateLogger<CachingParser>(), fileSystem);
@@ -40,7 +39,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       return new DafnyLangParser(options, fileSystem, telemetryPublisher, loggerFactory);
     }
 
-    public Program Parse(TextDocumentIdentifier document, IFileSystem fileSystem, ErrorReporter reporter,
+    public Program Parse(TextDocumentIdentifier document, ErrorReporter reporter,
       CancellationToken cancellationToken) {
       mutex.Wait(cancellationToken);
 

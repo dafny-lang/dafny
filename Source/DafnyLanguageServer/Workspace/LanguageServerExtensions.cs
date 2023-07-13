@@ -44,14 +44,12 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     public static TextDocumentLoader CreateTextDocumentLoader(IServiceProvider services) {
       return TextDocumentLoader.Create(
-        services.GetRequiredService<DafnyOptions>(),
         services.GetRequiredService<IDafnyParser>(),
         services.GetRequiredService<ISymbolResolver>(),
         services.GetRequiredService<ISymbolTableFactory>(),
         services.GetRequiredService<IGhostStateDiagnosticCollector>(),
         services.GetRequiredService<ICompilationStatusNotificationPublisher>(),
-        services.GetRequiredService<ILoggerFactory>(),
-        services.GetRequiredService<INotificationPublisher>()
+        services.GetRequiredService<ILoggerFactory>()
       );
     }
   }
