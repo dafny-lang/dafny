@@ -245,7 +245,7 @@ namespace Microsoft.Dafny.Compilers {
 
   class AssignBuilder : ExprContainer {
     public DafnyCompiler compiler { get => parent.compiler; }
-    readonly StatementContainer parent;
+    public readonly StatementContainer parent;
     readonly object returnTo;
     readonly bool isDeclare;
     readonly DAST.Type type;

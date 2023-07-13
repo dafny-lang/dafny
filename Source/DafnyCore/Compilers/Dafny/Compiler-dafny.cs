@@ -8,6 +8,18 @@ using Microsoft.BaseTypes;
 
 namespace Microsoft.Dafny.Compilers {
 
+  class BuilderSyntaxTree<T> : ConcreteSyntaxTree {
+    public readonly T Builder;
+
+    public BuilderSyntaxTree(T builder) {
+      Builder = builder;
+    }
+
+    public override ConcreteSyntaxTree Fork(int relativeIndent = 0) {
+      return new BuilderSyntaxTree<T>(Builder);
+    }
+  }
+
   class DafnyCompiler : SinglePassCompiler {
     ProgramBuilder items;
     public object currentBuilder;
@@ -234,8 +246,7 @@ namespace Microsoft.Dafny.Compilers {
 
         var builder = this.builder.Method(m.Name, astTypeArgs);
         methods.Add(builder);
-        compiler.currentBuilder = builder;
-        return new ConcreteSyntaxTree();
+        return new BuilderSyntaxTree<StatementContainer>(builder);
       }
 
       public ConcreteSyntaxTree SynthesizeMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody, bool forBodyInheritance, bool lookasideBody) {
@@ -252,8 +263,7 @@ namespace Microsoft.Dafny.Compilers {
 
         var builder = this.builder.Method(name, astTypeArgs);
         methods.Add(builder);
-        compiler.currentBuilder = builder;
-        return new ConcreteSyntaxTree();
+        return new BuilderSyntaxTree<StatementContainer>(builder);
       }
 
       public ConcreteSyntaxTree CreateGetter(string name, TopLevelDecl enclosingDecl, Type resultType, IToken tok,
@@ -302,8 +312,8 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override ConcreteSyntaxTree EmitReturnExpr(ConcreteSyntaxTree wr) {
-      if (currentBuilder is StatementContainer container) {
-        currentBuilder = container.Return();
+      if (wr is BuilderSyntaxTree<StatementContainer> stmtContainer) {
+        currentBuilder = stmtContainer.Builder.Return();
         return new ConcreteSyntaxTree();
       } else {
         throw new InvalidOperationException();
@@ -410,21 +420,14 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void DeclareLocalVar(string name, Type type, IToken tok, bool leaveRoomForRhs, string rhs,
         ConcreteSyntaxTree wr) {
-      var statementBuilder = currentBuilder;
-      var returnToBuilder = currentBuilder;
-      if (statementBuilder is CallBuilder callBuilder) {
-        statementBuilder = callBuilder.parent;
-        returnToBuilder = callBuilder;
-      }
-
-      if (statementBuilder is StatementContainer statementContainer) {
+      if (wr is BuilderSyntaxTree<StatementContainer> stmtContainer) {
         var typ = GenType(type);
 
         if (rhs == null) {
           // we expect an initializer to come *after* this declaration
           // variables are emitted in the middle of generating a call statement,
           // so we add the variable above the call but then return to building the call
-          var variable = statementContainer.DeclareAndAssign(typ, returnToBuilder);
+          var variable = stmtContainer.Builder.DeclareAndAssign(typ, currentBuilder);
           currentBuilder = variable;
           variable.SetName(name);
 
@@ -439,7 +442,7 @@ namespace Microsoft.Dafny.Compilers {
           var rhsValue = bufferedInitializationValue;
           bufferedInitializationValue = null;
 
-          statementContainer.AddStatement(
+          stmtContainer.Builder.AddStatement(
             (DAST.Statement)DAST.Statement.create_DeclareVar(
               Sequence<Rune>.UnicodeFromString(name),
               typ,
@@ -448,12 +451,13 @@ namespace Microsoft.Dafny.Compilers {
           );
         }
       } else {
-        throw new InvalidOperationException("Cannot declare local var outside of a statement container: " + currentBuilder);
+        throw new InvalidOperationException("Cannot declare local var outside of a statement container: " + wr);
       }
     }
 
     protected override ConcreteSyntaxTree DeclareLocalVar(string name, Type type, IToken tok, ConcreteSyntaxTree wr) {
-      throw new NotImplementedException();
+      DeclareLocalVar(name, type, tok, true, null, wr);
+      return new ConcreteSyntaxTree();
     }
 
     protected override bool UseReturnStyleOuts(Method m, int nonGhostOutCount) => true;
@@ -465,8 +469,8 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void TrCallStmt(CallStmt s, string receiverReplacement, ConcreteSyntaxTree wr) {
-      if (currentBuilder is StatementContainer builder) {
-        currentBuilder = builder.Call();
+      if (wr is BuilderSyntaxTree<StatementContainer> stmtContainer) {
+        currentBuilder = stmtContainer.Builder.Call();
         base.TrCallStmt(s, receiverReplacement, wr);
       } else if (currentBuilder is ExprContainer exprBuilder) {
         throw new NotImplementedException();
@@ -531,8 +535,8 @@ namespace Microsoft.Dafny.Compilers {
       ConcreteSyntaxTree wr, IToken tok) {
       if (currentBuilder is AssignBuilder) {
         // do nothing (we are assigning to variable that is being declared)
-      } else if (currentBuilder is StatementContainer builder) {
-        currentBuilder = builder.Assign(currentBuilder);
+      } else if (wr is BuilderSyntaxTree<StatementContainer> stmtContainer) {
+        currentBuilder = stmtContainer.Builder.Assign(currentBuilder);
       } else {
         throw new InvalidOperationException("Cannot assign in this context: " + currentBuilder);
       }
@@ -541,11 +545,11 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void EmitPrintStmt(ConcreteSyntaxTree wr, Expression arg) {
-      if (currentBuilder is StatementContainer statementContainer) {
+      if (wr is BuilderSyntaxTree<StatementContainer> stmtContainer) {
         ExprBuffer buffer = new(this);
         currentBuilder = buffer;
-        Expr(arg, false, new ConcreteSyntaxTree());
-        statementContainer.Print(buffer.Finish());
+        Expr(arg, false, wr);
+        stmtContainer.Builder.Print(buffer.Finish());
       } else {
         throw new InvalidOperationException("Cannot print outside of a statement container: " + currentBuilder);
       }
@@ -580,9 +584,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override ConcreteSyntaxTree EmitIf(out ConcreteSyntaxTree guardWriter, bool hasElse, ConcreteSyntaxTree wr) {
-      if (currentBuilder is StatementContainer statementContainer) {
-        throw new NotImplementedException();
-      } else if (currentBuilder is ExprContainer exprContainer) {
+      if (wr is BuilderSyntaxTree<StatementContainer> statementContainer) {
         throw new NotImplementedException();
       } else {
         throw new InvalidOperationException();
