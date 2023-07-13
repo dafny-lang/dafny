@@ -10,13 +10,6 @@ using System.Numerics;
 using System.Collections;
 namespace Formatting {
 
-  public interface IIndentationFormatter {
-    System.String GetNewLeadingTrivia(Microsoft.Dafny.IToken token);
-    System.String GetNewTrailingTrivia(Microsoft.Dafny.IToken token);
-  }
-  public class _Companion_IIndentationFormatter {
-  }
-
   public partial class __default {
     public static System.String ReindentProgramFromFirstToken(Microsoft.Dafny.IToken firstToken, Formatting.IIndentationFormatter reindent) {
       System.String s = default(System.String);
@@ -40,6 +33,13 @@ namespace Formatting {
       s = _out0;
       return s;
     }
+  }
+
+  public interface IIndentationFormatter {
+    System.String GetNewLeadingTrivia(Microsoft.Dafny.IToken token);
+    System.String GetNewTrailingTrivia(Microsoft.Dafny.IToken token);
+  }
+  public class _Companion_IIndentationFormatter {
   }
 } // end of namespace Formatting
 
