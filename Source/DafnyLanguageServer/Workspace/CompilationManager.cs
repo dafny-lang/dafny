@@ -17,6 +17,11 @@ using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace;
 
+public delegate CompilationManager CreateCompilationManager(
+  DafnyOptions options,
+  VersionedTextDocumentIdentifier documentIdentifier,
+  VerificationTree? migratedVerificationTree);
+
 /// <summary>
 /// The compilation of a single document version.
 /// The document will be parsed, resolved, translated to Boogie and verified.
@@ -47,18 +52,24 @@ public class CompilationManager {
   public Task<CompilationAfterParsing> ResolvedDocument { get; }
   public Task<CompilationAfterTranslation> TranslatedDocument { get; }
 
-  public CompilationManager(IServiceProvider services,
+  public CompilationManager(
+    ILogger<CompilationManager> logger,
+    ITextDocumentLoader documentLoader,
+    INotificationPublisher notificationPublisher,
+    IProgramVerifier verifier,
+    ICompilationStatusNotificationPublisher statusPublisher,
+    IVerificationProgressReporter verificationProgressReporter,
     DafnyOptions options,
     VersionedTextDocumentIdentifier documentIdentifier,
     VerificationTree? migratedVerificationTree) {
     this.options = options;
     this.documentIdentifier = documentIdentifier;
-    documentLoader = services.GetRequiredService<ITextDocumentLoader>();
-    logger = services.GetRequiredService<ILogger<CompilationManager>>();
-    notificationPublisher = services.GetRequiredService<INotificationPublisher>();
-    verifier = services.GetRequiredService<IProgramVerifier>();
-    statusPublisher = services.GetRequiredService<ICompilationStatusNotificationPublisher>();
-    verificationProgressReporter = services.GetRequiredService<IVerificationProgressReporter>();
+    this.documentLoader = documentLoader;
+    this.logger = logger;
+    this.notificationPublisher = notificationPublisher;
+    this.verifier = verifier;
+    this.statusPublisher = statusPublisher;
+    this.verificationProgressReporter = verificationProgressReporter;
 
     this.migratedVerificationTree = migratedVerificationTree;
     cancellationSource = new();

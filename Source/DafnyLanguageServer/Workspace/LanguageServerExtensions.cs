@@ -25,7 +25,15 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     private static IServiceCollection WithDafnyWorkspace(this IServiceCollection services) {
       return services
-        .AddSingleton<IProjectDatabase>(serviceProvider => new ProjectManagerDatabase(serviceProvider))
+        .AddSingleton<IProjectDatabase, ProjectManagerDatabase>()
+        .AddSingleton<CreateProjectManager>(provider => documentIdentifier => new ProjectManager(
+          provider.GetRequiredService<IFileSystem>(),
+          provider.GetRequiredService<DafnyOptions>(),
+          provider.GetRequiredService<ILogger<ProjectManager>>(),
+          provider.GetRequiredService<IRelocator>(),
+          provider.GetRequiredService<CreateCompilationManager>(),
+          provider.GetRequiredService<CreateIdeStateObserver>(),
+          documentIdentifier))
         .AddSingleton<IFileSystem, LanguageServerFilesystem>()
         .AddSingleton<IDafnyParser>(serviceProvider => {
           var options = serviceProvider.GetRequiredService<DafnyOptions>();
