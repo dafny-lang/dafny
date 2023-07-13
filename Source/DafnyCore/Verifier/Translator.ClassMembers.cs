@@ -1058,6 +1058,7 @@ namespace Microsoft.Dafny {
 
       var moreArgsCF = new List<Boogie.Expr>();
       Expr layer = null;
+      Expr reveal = null;
 
       // Add the fuel argument
       if (f.IsFuelAware()) {
@@ -1070,6 +1071,18 @@ namespace Microsoft.Dafny {
         // We can't use a bound variable $fuel, because then one of the triggers won't be mentioning this $fuel.
         // Instead, we do the next best thing: use the literal $LZ.
         layer = new Boogie.IdentifierExpr(f.tok, "$LZ", predef.LayerType); // $LZ
+      }
+
+      if (f.IsOpaque) {
+        Contract.Assert(overridingFunction.IsOpaque);
+        var revealVar = new Boogie.BoundVariable(f.tok, new Boogie.TypedIdent(f.tok, "reveal", Boogie.Type.Bool));
+        forallFormals.Add(revealVar);
+        reveal = new Boogie.IdentifierExpr(f.tok, revealVar);
+        argsJF.Add(reveal);
+      } else if (overridingFunction.IsOpaque) {
+        // We can't use a bound variable $fuel, because then one of the triggers won't be mentioning this $fuel.
+        // Instead, we do the next best thing: use the literal false.
+        reveal = new Boogie.LiteralExpr(f.tok, false);
       }
 
       // Add heap arguments
@@ -1125,6 +1138,10 @@ namespace Microsoft.Dafny {
 
       if (layer != null) {
         argsCF.Add(layer);
+      }
+
+      if (reveal != null) {
+        argsCF.Add(reveal);
       }
 
       argsCF = Concat(argsCF, moreArgsCF);
