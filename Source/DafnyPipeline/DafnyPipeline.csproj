@@ -7,11 +7,11 @@
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
     <OutputPath>..\..\Binaries\</OutputPath>
     <DefineConstants>TRACE</DefineConstants>
-    <TargetFramework>net6.0</TargetFramework>
+    <TargetFramework>net7.0</TargetFramework>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
   </PropertyGroup>
 
-  <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|net6.0|AnyCPU'">
+  <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|net7.0|AnyCPU'">
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
   </PropertyGroup>

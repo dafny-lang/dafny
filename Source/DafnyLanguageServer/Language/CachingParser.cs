@@ -19,7 +19,7 @@ public class CachingParser : ProgramParser {
   }
 
   protected override DfyParseResult ParseFile(DafnyOptions options, TextReader reader, Uri uri) {
-    var (newReader, hash) = ComputeHashFromReader(uri, reader, HashAlgorithm.Create("SHA256")!);
+    var (newReader, hash) = ComputeHashFromReader(uri, reader, SHA256.Create());
     if (!parseCache.TryGet(hash, out var result)) {
       logger.LogDebug($"Parse cache miss for {uri}");
       result = base.ParseFile(options, newReader, uri);

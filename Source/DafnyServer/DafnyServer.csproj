@@ -5,11 +5,11 @@
       <AssemblyName>DafnyServer</AssemblyName>
       <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
       <DefineConstants>TRACE</DefineConstants>
-      <TargetFramework>net6.0</TargetFramework>
+      <TargetFramework>net7.0</TargetFramework>
       <OutputPath>..\..\Binaries\</OutputPath>
   </PropertyGroup>
 
-  <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|net6.0|AnyCPU'">
+  <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|net7.0|AnyCPU'">
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
   </PropertyGroup>
