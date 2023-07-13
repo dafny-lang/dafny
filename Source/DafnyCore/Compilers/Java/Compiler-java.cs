@@ -17,7 +17,7 @@ using JetBrains.Annotations;
 using static Microsoft.Dafny.ConcreteSyntaxTreeUtils;
 
 namespace Microsoft.Dafny.Compilers {
-  public class JavaCompiler : SinglePassCompiler {
+  class JavaCompiler : SinglePassCompiler {
     public JavaCompiler(DafnyOptions options, ErrorReporter reporter) : base(options, reporter) {
       IntSelect = ",java.math.BigInteger";
       LambdaExecute = ".apply";
@@ -75,12 +75,6 @@ namespace Microsoft.Dafny.Compilers {
     private ConcreteSyntaxTree RootImportWriter;
 
     private record Import(string Name, string Path);
-
-    private readonly List<GenericCompilationInstrumenter> Instrumenters = new();
-
-    public void AddInstrumenter(GenericCompilationInstrumenter compilationInstrumenter) {
-      Instrumenters.Add(compilationInstrumenter);
-    }
 
     protected override bool UseReturnStyleOuts(Method m, int nonGhostOutCount) => true;
 
@@ -343,8 +337,8 @@ namespace Microsoft.Dafny.Compilers {
       var wBody = wr.NewNamedBlock("public static void main(String[] args)");
       var addCompileSuffix = Options.Get(CommonOptionBag.AddCompileSuffix);
       var defaultModuleCompileName = addCompileSuffix ? "_module_Compile" : "_module";
-      var enclosingModuleCompileName = mainMethod.EnclosingClass.EnclosingModuleDefinition.GetCompileName(Options);
-      var modName = enclosingModuleCompileName == defaultModuleCompileName
+      var enclosingModuleCompileNAme = mainMethod.EnclosingClass.EnclosingModuleDefinition.GetCompileName(Options);
+      var modName = enclosingModuleCompileNAme == defaultModuleCompileName
         ? (addCompileSuffix ? "_System_Compile." : "_System.")
         : "";
       companion = modName + companion;
@@ -532,9 +526,6 @@ namespace Microsoft.Dafny.Compilers {
       }
       var customReceiver = createBody && !forBodyInheritance && NeedsCustomReceiver(m);
       var receiverType = UserDefinedType.FromTopLevelDecl(m.tok, m.EnclosingClass);
-      foreach (var instrumenter in Instrumenters) {
-        instrumenter.BeforeMethod(m, wr);
-      }
       wr.Write("public {0}{1}", !createBody && !(m.EnclosingClass is TraitDecl) ? "abstract " : "", m.IsStatic || customReceiver ? "static " : "");
       wr.Write(TypeParameters(TypeArgumentInstantiation.ToFormals(ForTypeParameters(typeArgs, m, lookasideBody)), " "));
       wr.Write("{0} {1}", targetReturnTypeReplacement ?? "void", IdName(m));
@@ -903,9 +894,6 @@ namespace Microsoft.Dafny.Compilers {
       w.WriteLine();
       //TODO: Fix implementations so they do not need this suppression
       EmitSuppression(w);
-      foreach (var instrumenter in Instrumenters) {
-        instrumenter.BeforeClass(cls, w);
-      }
       var abstractness = isExtern ? "abstract " : "";
       w.Write($"public {abstractness}class {javaName}{TypeParameters(typeParameters)}");
       string sep;

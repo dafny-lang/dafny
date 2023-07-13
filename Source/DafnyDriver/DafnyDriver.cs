@@ -875,12 +875,6 @@ namespace Microsoft.Dafny {
       var oldErrorCount = dafnyProgram.Reporter.Count(ErrorLevel.Error);
       var options = dafnyProgram.Options;
       options.Backend.OnPreCompile(dafnyProgram.Reporter, otherFileNames);
-
-      // Now that an internal compiler is instantiated, apply any plugin instrumentation.
-      foreach (var compilerInstrumenter in options.Plugins.SelectMany(p => p.GetCompilerInstrumenters(dafnyProgram.Reporter))) {
-        options.Backend.InstrumentCompiler(compilerInstrumenter, dafnyProgram);
-      }
-
       var compiler = options.Backend;
 
       var hasMain = Compilers.SinglePassCompiler.HasMain(dafnyProgram, out var mainMethod);
@@ -989,10 +983,6 @@ namespace Microsoft.Dafny {
       string pathsFilename,
       ReadOnlyCollection<string> otherFileNames, object compilationResult, TextWriter outputWriter,
       TextWriter errorWriter) {
-      throw new NotSupportedException();
-    }
-
-    public override void InstrumentCompiler(CompilerInstrumenter instrumenter, Program dafnyProgram) {
       throw new NotSupportedException();
     }
   }
