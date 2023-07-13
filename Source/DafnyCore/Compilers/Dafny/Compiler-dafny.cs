@@ -464,19 +464,6 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    protected override void DeclareLocalVar(string name, Type/*?*/ type, IToken/*?*/ tok, Expression rhs, bool inLetExprBody, ConcreteSyntaxTree wr) {
-      if (wr is BuilderSyntaxTree<StatementContainer> stmtContainer) {
-        var wStmts = wr.Fork();
-        var variable = stmtContainer.Builder.DeclareAndAssign(GenType(type));
-        variable.SetName(name);
-        var buffer = new ExprBuffer(this);
-        EmitExpr(rhs, inLetExprBody, new BuilderSyntaxTree<ExprContainer>(buffer), wStmts);
-        variable.AddExpr(buffer.Finish());
-      } else {
-        throw new InvalidOperationException();
-      }
-    }
-
     protected override bool UseReturnStyleOuts(Method m, int nonGhostOutCount) => true;
     protected override bool SupportsMultipleReturns => true;
 
