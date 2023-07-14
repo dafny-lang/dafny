@@ -246,6 +246,9 @@ module {:extern "DCOMP"} DCOMP {
         case Ident(name) => {
           s := name;
         }
+        case InitializationValue(typ) => {
+          s := "std::default::Default::default()";
+        }
         case DatatypeValue(typ, variant, values) => {
           s := GenType(typ);
           s := s + "::";

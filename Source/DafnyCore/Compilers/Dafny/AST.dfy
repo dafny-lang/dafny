@@ -37,6 +37,7 @@ module {:extern "DAST"} DAST {
     Ident(string) |
     DatatypeValue(typ: Type, variant: string, contents: seq<(string, Expression)>) |
     BinOp(op: string, left: Expression, right: Expression) |
+    InitializationValue(typ: Type) |
     Todo(reason: string)
 
   datatype Literal = BoolLiteral(bool) | IntLiteral(int) | DecLiteral(string) | StringLiteral(string)

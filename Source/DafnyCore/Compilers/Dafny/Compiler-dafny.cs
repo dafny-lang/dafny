@@ -369,9 +369,8 @@ namespace Microsoft.Dafny.Compilers {
       if (bufferedInitializationValue != null) {
         throw new InvalidOperationException();
       } else {
-        throw new NotImplementedException();
-        // bufferedInitializationValue = /* TODO */;
-        // return ""; // used by DeclareLocal(Out)Var
+        bufferedInitializationValue = (DAST.Expression)DAST.Expression.create_InitializationValue(GenType(type));
+        return ""; // used by DeclareLocal(Out)Var
       }
     }
 
@@ -797,7 +796,7 @@ namespace Microsoft.Dafny.Compilers {
         actualWr = new BuilderSyntaxTree<ExprContainer>(buf);
       }
 
-      if (actualWr is BuilderSyntaxTree<ExprContainer>) {
+      if (actualWr is BuilderSyntaxTree<ExprContainer> container) {
         if (expr is DatatypeValue) {
           ExprBuffer buffer = new(this);
           var origBuilder = currentBuilder;
@@ -805,7 +804,9 @@ namespace Microsoft.Dafny.Compilers {
           base.EmitExpr(expr, inLetExprBody, actualWr, wStmts);
 
           if (currentBuilder == buffer) {
+            // sometimes, we don't actually call EmitDatatypeValue
             currentBuilder = origBuilder;
+            container.Builder.AddExpr(buffer.Finish());
           }
         } else {
           base.EmitExpr(expr, inLetExprBody, actualWr, wStmts);

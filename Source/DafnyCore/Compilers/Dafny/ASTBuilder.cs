@@ -311,7 +311,11 @@ namespace Microsoft.Dafny.Compilers {
           return (DAST.Statement)DAST.Statement.create_DeclareVar(Sequence<Rune>.UnicodeFromString(name), type, DAST.Optional<DAST._IExpression>.create_Some(this.value));
         }
       } else {
-        return (DAST.Statement)DAST.Statement.create_Assign(Sequence<Rune>.UnicodeFromString(name), value);
+        if (this.value == null) {
+          throw new InvalidOperationException("Cannot assign null value to variable: " + name);
+        } else {
+          return (DAST.Statement)DAST.Statement.create_Assign(Sequence<Rune>.UnicodeFromString(name), value);
+        }
       }
     }
   }
