@@ -10,15 +10,14 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
   /// Contains a collection of DocumentManagers
   /// </summary>
   public class ProjectManagerDatabase : IProjectDatabase {
-
-    private readonly IServiceProvider services;
+    private readonly CreateProjectManager createProjectManager;
 
     private readonly Dictionary<DocumentUri, ProjectManager> documents = new();
     private readonly LanguageServerFilesystem fileSystem;
 
-    public ProjectManagerDatabase(IServiceProvider services) {
-      this.services = services;
-      this.fileSystem = services.GetRequiredService<LanguageServerFilesystem>();
+    public ProjectManagerDatabase(LanguageServerFilesystem fileSystem, CreateProjectManager createProjectManager) {
+      this.createProjectManager = createProjectManager;
+      this.fileSystem = fileSystem;
     }
 
     public void OpenDocument(TextDocumentItem document) {
@@ -27,7 +26,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         Uri = document.Uri
       };
       fileSystem.OpenDocument(document);
-      documents.Add(document.Uri, new ProjectManager(services, identifier));
+      documents.Add(document.Uri, createProjectManager(identifier));
     }
 
     public void UpdateDocument(DidChangeTextDocumentParams documentChange) {
