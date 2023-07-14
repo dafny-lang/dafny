@@ -177,8 +177,7 @@ namespace Microsoft.Dafny {
           var function = functionCallExpr.Function;
           if (function is ExtremePredicate extremePredicate) {
             extremePredicate.Uses.Add(functionCallExpr);
-          }
-          AddCallGraphEdge(context.CodeContext, function, functionCallExpr,
+          } AddCallGraphEdge(context.CodeContext, function, functionCallExpr,
             IsFunctionReturnValue(function, functionCallExpr.Receiver, functionCallExpr.Args, context));
 
         } else if (expr is QuantifierExpr quantifierExpr) {
@@ -304,7 +303,7 @@ namespace Microsoft.Dafny {
         if (callerModule != calleeModule) {
           // inter-module call; don't record in call graph
           if (callingContext is ICallable context && callable is Function { EnclosingClass: TraitDecl }) {
-            callerModule.CallGraph.AddEdge(context, callable);
+            callerModule.InterModuleCallGraph.AddEdge(context, callable);
           } else if (callingContext is ICallable caller0) {
             callerModule.InterModuleCallGraph.AddEdge(caller0, callable);
             if (caller0 is Function f) {
