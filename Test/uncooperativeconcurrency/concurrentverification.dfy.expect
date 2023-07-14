@@ -1,6 +1,6 @@
 concurrentverification.dfy(13,5): Error: cannot prove that 'a' is modifyLocked. Wrap with `lockModify(a) { ... }` or `requires modifyLocked(a)`
 concurrentverification.dfy(17,3): Error: cannot prove that 'b' is modifyLocked. Wrap with `lockModify(b) { ... }` or `requires modifyLocked(a)`
 concurrentverification.dfy(19,11): Error: possible division by zero
-concurrentverification.dfy(22,13): Error: assertion might not hold
+concurrentverification.dfy(25,13): Error: assertion could not be proved
 
 Dafny program verifier finished with 1 verified, 2 errors
