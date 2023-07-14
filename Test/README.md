@@ -44,6 +44,10 @@ A typical simple test for a single source file that has verification errors is
 
 There are many examples in the .dfy files under this directory.
 
+If you need an extra dafny file without any verification on it, use the command:
+
+    // RUN: echo 'lit should ignore this file' 
+
 ## Uniform backend testing
 
 In order to maximum testing coverage across all supported backends,

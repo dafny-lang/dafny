@@ -43,10 +43,6 @@ module B refines A {
 }
 
 module C {
-  class Cell {
-    var data: int
-  }
-
   method For()
   {
     ghost var (x, y) := (123, 234);
@@ -93,6 +89,10 @@ module C {
       modifies c, {c}, {c}
     {
     }
+  }
+
+  class Cell {
+    var data: int
   }
 }
 

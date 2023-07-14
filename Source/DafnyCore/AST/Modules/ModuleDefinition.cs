@@ -48,7 +48,6 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
   public readonly bool IsAbstract;
   public readonly bool IsFacade; // True iff this module represents a module facade (that is, an abstract interface)
   private readonly bool IsBuiltinName; // true if this is something like _System that shouldn't have it's name mangled.
-  private readonly bool defaultClassFirst;
 
   public DefaultClassDecl DefaultClass { get; set; }
 
@@ -57,12 +56,8 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
   public readonly List<TopLevelDecl> ResolvedPrefixNamedModules = new();
   [FilledInDuringResolution]
   public readonly List<PrefixNameModule> PrefixNamedModules = new();  // filled in by the parser; emptied by the resolver
-  public virtual IEnumerable<TopLevelDecl> TopLevelDecls =>
-    defaultClassFirst ? DefaultClasses.
+  public virtual IEnumerable<TopLevelDecl> TopLevelDecls => DefaultClasses.
         Concat(SourceDecls).
-        Concat(ResolvedPrefixNamedModules)
-      : SourceDecls.
-        Concat(DefaultClasses).
         Concat(ResolvedPrefixNamedModules);
 
   public IEnumerable<IPointer<TopLevelDecl>> TopLevelDeclPointers =>
@@ -104,7 +99,6 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
     Attributes = original.Attributes;
     IsAbstract = original.IsAbstract;
     RefinementQId = original.RefinementQId == null ? null : new ModuleQualifiedId(cloner, original.RefinementQId);
-    defaultClassFirst = original.defaultClassFirst;
     foreach (var d in original.SourceDecls) {
       SourceDecls.Add(cloner.CloneDeclaration(d, this));
     }
@@ -131,7 +125,7 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
 
   public ModuleDefinition(RangeToken tok, Name name, List<IToken> prefixIds, bool isAbstract, bool isFacade,
     ModuleQualifiedId refinementQId, ModuleDefinition parent, Attributes attributes,
-    bool isBuiltinName, bool defaultClassFirst = false) : base(tok) {
+    bool isBuiltinName) : base(tok) {
     Contract.Requires(tok != null);
     Contract.Requires(name != null);
     this.NameNode = name;
@@ -142,7 +136,6 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
     this.IsAbstract = isAbstract;
     this.IsFacade = isFacade;
     this.IsBuiltinName = isBuiltinName;
-    this.defaultClassFirst = defaultClassFirst;
 
     if (Name != "_System") {
       DefaultClass = new DefaultClassDecl(this, new List<MemberDecl>());
@@ -549,7 +542,7 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
     sig.VisibilityScope.Augment(VisibilityScope);
 
     // This is solely used to detect duplicates amongst the various e
-    Dictionary<string, TopLevelDecl> toplevels = new Dictionary<string, TopLevelDecl>();
+    ISet<string> toplevels = new HashSet<string>();
     // Now add the things present
     var anonymousImportCount = 0;
     foreach (TopLevelDecl d in TopLevelDecls) {
@@ -573,7 +566,7 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
         registerThisDecl = d;
         registerUnderThisName = string.Format("{0}#{1}", d.Name, anonymousImportCount);
         anonymousImportCount++;
-      } else if (toplevels.ContainsKey(d.Name)) {
+      } else if (toplevels.Contains(d.Name)) {
         resolver.reporter.Error(MessageSource.Resolver, d, "duplicate name of top-level declaration: {0}", d.Name);
       } else if (d is ClassLikeDecl { NonNullTypeDecl: { } nntd }) {
         registerThisDecl = nntd;
@@ -587,7 +580,7 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
       }
 
       if (registerThisDecl != null) {
-        toplevels[registerUnderThisName] = registerThisDecl;
+        toplevels.Add(registerUnderThisName);
         sig.TopLevels[registerUnderThisName] = registerThisDecl;
       }
 
@@ -621,8 +614,10 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
             sig.StaticMembers[m.Name] = m;
           }
 
-          if (toplevels.ContainsKey(m.Name)) {
+          if (toplevels.Contains(m.Name)) {
             resolver.reporter.Error(MessageSource.Resolver, m.tok, $"duplicate declaration for name {m.Name}");
+          } else {
+            toplevels.Add(m.Name);
           }
         }
 
@@ -746,16 +741,15 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
     foreach (TopLevelDecl d in TopLevelDecls) {
       if (d is ClassLikeDecl { NonNullTypeDecl: { } nntd }) {
         var name = d.Name + "?";
-        if (toplevels.ContainsKey(name)) {
+        if (toplevels.Contains(name)) {
           resolver.reporter.Error(MessageSource.Resolver, d,
             "a module that already contains a top-level declaration '{0}' is not allowed to declare a reference type ({1}) '{2}'",
             name, d.WhatKind, d.Name);
         } else {
+          toplevels.Add(name);
+          toplevels.Add(d.Name);
           // change the mapping of d.Name to d.NonNullTypeDecl
-          toplevels[d.Name] = nntd;
           sig.TopLevels[d.Name] = nntd;
-          // map the name d.Name+"?" to d
-          toplevels[name] = d;
           sig.TopLevels[name] = d;
         }
       }

@@ -14,9 +14,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace;
 
 public class CompilationAfterTranslation : CompilationAfterResolution {
   public CompilationAfterTranslation(
-    IServiceProvider services,
     VersionedTextDocumentIdentifier documentIdentifier,
-    Dafny.Program program,
+    Program program,
     IReadOnlyDictionary<DocumentUri, List<DafnyDiagnostic>> diagnostics,
     SymbolTable? symbolTable,
     SignatureAndCompletionTable signatureAndCompletionTable,
@@ -30,12 +29,6 @@ public class CompilationAfterTranslation : CompilationAfterResolution {
     VerificationTasks = verificationTasks;
     Counterexamples = counterexamples;
     ImplementationIdToView = implementationIdToView;
-
-    GutterProgressReporter = new VerificationProgressReporter(
-      services.GetRequiredService<ILogger<VerificationProgressReporter>>(),
-      this,
-      services.GetRequiredService<INotificationPublisher>(),
-      services.GetRequiredService<DafnyOptions>());
   }
 
   public override VerificationTree GetVerificationTree() {
@@ -70,7 +63,6 @@ public class CompilationAfterTranslation : CompilationAfterResolution {
   /// </summary>
   public VerificationTree VerificationTree { get; set; }
   public IReadOnlyList<IImplementationTask> VerificationTasks { get; set; }
-  public IVerificationProgressReporter GutterProgressReporter { get; set; }
   public List<Counterexample> Counterexamples { get; set; }
   public Dictionary<ImplementationId, ImplementationView> ImplementationIdToView { get; set; }
 }
