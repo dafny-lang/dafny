@@ -11,7 +11,7 @@ public class BlockStmt : Statement, ICloneable<BlockStmt>, ICanFormat {
     return new BlockStmt(cloner, this);
   }
 
-  public BlockStmt(Cloner cloner, BlockStmt original) : base(cloner, original) {
+  protected BlockStmt(Cloner cloner, BlockStmt original) : base(cloner, original) {
     Body = original.Body.Select(cloner.CloneStmt).ToList();
   }
 

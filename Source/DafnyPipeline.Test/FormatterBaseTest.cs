@@ -1,6 +1,7 @@
 #nullable enable
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.IO;
 using System.Text.RegularExpressions;
 using DafnyTestGeneration;
@@ -13,7 +14,6 @@ using Xunit;
 using Xunit.Abstractions;
 
 namespace DafnyPipeline.Test {
-
   // Simple test cases (FormatterWorksFor with only one argument)
   // consist of removing all the indentation from the program,
   // adding it through the formatter, and checking if we obtain the initial result
@@ -78,9 +78,35 @@ namespace DafnyPipeline.Test {
           : programString;
         EnsureEveryTokenIsOwned(programNotIndented, dafnyProgram);
         if (expectedProgram != reprinted) {
-          Console.Out.WriteLine("Formatting before resolution generates an error:");
+          Console.Out.WriteLine("Formatting after parsing generates an error:");
           Assert.Equal(expectedProgram, reprinted);
         }
+
+        // Formatting should work even if we clone the program after parsing
+        Cloner clone = new();
+        dafnyProgram.Visit((Node n) => {
+          if (n is TopLevelDeclWithMembers nWithMembers) {
+            var newMembers = new List<MemberDecl>();
+            foreach (var member in nWithMembers.MembersBeforeResolution) {
+              newMembers.Add(clone.CloneMember(member, false));
+            }
+
+            nWithMembers.MembersBeforeResolution = newMembers.ToImmutableList();
+            return false;
+          }
+
+          return true;
+        });
+        var reprintedCloned = firstToken != null && firstToken.line > 0
+          ? Formatting.__default.ReindentProgramFromFirstToken(firstToken,
+            IndentationFormatter.ForProgram(dafnyProgram, reduceBlockiness))
+          : programString;
+        EnsureEveryTokenIsOwned(programNotIndented, dafnyProgram);
+        if (expectedProgram != reprintedCloned) {
+          Console.Out.WriteLine("Formatting after parsing + cloning generates an error:");
+          Assert.Equal(expectedProgram, reprinted);
+        }
+
 
         // Formatting should work after resolution as well.
         DafnyMain.Resolve(dafnyProgram);
@@ -92,12 +118,14 @@ namespace DafnyPipeline.Test {
           options.ErrorWriter.WriteLine("Formatting after resolution generates an error:");
           Assert.Equal(expectedProgram, reprinted);
         }
+
         var initErrorCount = reporter.ErrorCount;
 
         // Verify that the formatting is stable.
         Microsoft.Dafny.Type.ResetScopes();
         var newReporter = new BatchErrorReporter(options);
-        dafnyProgram = new ProgramParser().Parse(reprinted, uri, newReporter); ;
+        dafnyProgram = new ProgramParser().Parse(reprinted, uri, newReporter);
+        ;
 
         Assert.Equal(initErrorCount, reporter.ErrorCount + newReporter.ErrorCount);
         firstToken = dafnyProgram.GetFirstTopLevelToken();
@@ -108,6 +136,7 @@ namespace DafnyPipeline.Test {
         if (reprinted != reprinted2) {
           Console.Write("Double formatting is not stable:\n");
         }
+
         Assert.Equal(reprinted, reprinted2);
       }
     }
@@ -132,7 +161,8 @@ namespace DafnyPipeline.Test {
       ReportNotOwnedToken(programNotIndented, notOwnedToken, posToOwnerNode);
     }
 
-    private static void ReportNotOwnedToken(string programNotIndented, IToken notOwnedToken, Dictionary<int, List<Node>> posToOwnerNode) {
+    private static void ReportNotOwnedToken(string programNotIndented, IToken notOwnedToken,
+      Dictionary<int, List<Node>> posToOwnerNode) {
       var nextOwnedToken = notOwnedToken.Next;
       while (nextOwnedToken != null && !posToOwnerNode.ContainsKey(nextOwnedToken.pos)) {
         nextOwnedToken = nextOwnedToken.Next;
@@ -161,7 +191,8 @@ namespace DafnyPipeline.Test {
       return notOwnedToken;
     }
 
-    private static HashSet<int> CollectTokensWithoutOwner(Program dafnyProgram, IToken firstToken, out Dictionary<int, List<Node>> posToOwnerNode) {
+    private static HashSet<int> CollectTokensWithoutOwner(Program dafnyProgram, IToken firstToken,
+      out Dictionary<int, List<Node>> posToOwnerNode) {
       HashSet<int> tokensWithoutOwner = new HashSet<int>();
       var posToOwnerNodeInner = new Dictionary<int, List<Node>>();
 
