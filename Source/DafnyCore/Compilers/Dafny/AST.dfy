@@ -26,6 +26,7 @@ module {:extern "DAST"} DAST {
   datatype Statement =
     DeclareVar(name: string, typ: Type, maybeValue: Optional<Expression>) |
     Assign(name: string, value: Expression) |
+    If(cond: Expression, thn: seq<Statement>, els: seq<Statement>) |
     Call(enclosing: Optional<Type>, name: string, args: seq<Expression>) |
     Return(expr: Expression) |
     Print(Expression) |

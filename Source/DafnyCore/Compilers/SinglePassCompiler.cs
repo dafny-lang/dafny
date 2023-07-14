@@ -2671,7 +2671,7 @@ namespace Microsoft.Dafny.Compilers {
           case ITEExpr.ITECompilation.CompileBothBranches:
             var wStmts = wr.Fork();
             var thn = EmitIf(out var guardWriter, true, wr);
-            guardWriter.Append(Expr(e.Test, false, wStmts));
+            EmitExpr(e.Test, false, guardWriter, wStmts);
             Coverage.Instrument(e.Thn.tok, "then branch", thn);
             TrExprOpt(e.Thn, resultType, thn, accumulatorVar);
             ConcreteSyntaxTree els = wr;
@@ -3128,7 +3128,7 @@ namespace Microsoft.Dafny.Compilers {
         ConcreteSyntaxTree bodyWriter = EmitIf(out var guardWriter, false, wr);
         var negated = new UnaryOpExpr(s.Tok, UnaryOpExpr.Opcode.Not, s.Expr);
         negated.Type = Type.Bool;
-        guardWriter.Append(Expr(negated, false, wStmts));
+        EmitExpr(negated, false, guardWriter, wStmts);
         EmitHalt(s.Tok, s.Message, bodyWriter);
 
       } else if (stmt is CallStmt) {
@@ -3173,7 +3173,7 @@ namespace Microsoft.Dafny.Compilers {
 
           var coverageForElse = Coverage.IsRecording && !(s.Els is IfStmt);
           var thenWriter = EmitIf(out var guardWriter, s.Els != null || coverageForElse, wr);
-          guardWriter.Append(Expr(s.IsBindingGuard ? Translator.AlphaRename((ExistsExpr)s.Guard, "eg_d") : s.Guard, false, wStmts));
+          EmitExpr(s.IsBindingGuard ? Translator.AlphaRename((ExistsExpr)s.Guard, "eg_d") : s.Guard, false, guardWriter, wStmts);
           // We'd like to do "TrStmt(s.Thn, indent)", except we want the scope of any existential variables to come inside the block
           if (s.IsBindingGuard) {
             IntroduceAndAssignBoundVars((ExistsExpr)s.Guard, thenWriter);

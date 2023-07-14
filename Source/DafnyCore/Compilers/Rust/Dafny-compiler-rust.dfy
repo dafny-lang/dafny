@@ -141,71 +141,81 @@ module {:extern "DCOMP"} DCOMP {
       s := s + "(" + "" + ") {\n" + body + "\n}\n";
     }
 
-    static method GenStmts(body: seq<Statement>) returns (s: string) {
-      s := "";
+    static method GenStmts(stmts: seq<Statement>) returns (generated: string) {
+      generated := "";
       var i := 0;
-      while i < |body| {
-        var generated: string;
-        match body[i] {
-          case Print(e) => {
-            var printedExpr := GenExpr(e);
-            generated := "print!(\"{}\", ::dafny_runtime::DafnyPrintWrapper(" + printedExpr + "));";
-          }
-          case DeclareVar(name, typ, Some(expression)) => {
-            var expr := GenExpr(expression);
-            var typeString := GenType(typ);
-            generated := "let mut " + name + ": " + typeString + " = " + expr + ";";
-          }
-          case DeclareVar(name, typ, None) => {
-            var typeString := GenType(typ);
-            generated := "let mut " + name + ": " + typeString + ";";
-          }
-          case Assign(name, expression) => {
-            var expr := GenExpr(expression);
-            generated := name + " = " + expr + ";";
-          }
-          case Call(enclosing, name, args) => {
-            var argString := "";
-            var i := 0;
-            while i < |args| {
-              if i > 0 {
-                argString := argString + ", ";
-              }
-
-              var argExpr := GenExpr(args[i]);
-              argString := argString + argExpr;
-
-              i := i + 1;
-            }
-
-            var enclosingString := "";
-            match enclosing {
-              case Some(e) => {
-                enclosingString := GenType(e);
-                enclosingString := enclosingString + "::";
-              }
-              case None => {
-                enclosingString := "";
-              }
-            }
-
-            generated := enclosingString + name + "(" + argString + ");";
-          }
-          case Return(expr) => {
-            var exprString := GenExpr(expr);
-            generated := "return " + exprString + ";";
-          }
-          case Todo(reason) => {
-            generated := "todo!(\"" + reason + "\");";
-          }
-        }
+      while i < |stmts| {
+        var stmt := stmts[i];
+        var stmtString := GenStmt(stmt);
 
         if i > 0 {
-          s := s + "\n";
+          generated := generated + "\n";
         }
 
-        s := s + generated;
+        generated := generated + stmtString;
         i := i + 1;
+      }
+    }
+
+    static method GenStmt(stmt: Statement) returns (generated: string) {
+      match stmt {
+        case DeclareVar(name, typ, Some(expression)) => {
+          var expr := GenExpr(expression);
+          var typeString := GenType(typ);
+          generated := "let mut " + name + ": " + typeString + " = " + expr + ";";
+        }
+        case DeclareVar(name, typ, None) => {
+          var typeString := GenType(typ);
+          generated := "let mut " + name + ": " + typeString + ";";
+        }
+        case Assign(name, expression) => {
+          var expr := GenExpr(expression);
+          generated := name + " = " + expr + ";";
+        }
+        case If(cond, thn, els) => {
+          var condString := GenExpr(cond);
+          var thnString := GenStmts(thn);
+          var elsString := GenStmts(els);
+          generated := "if " + condString + " {\n" + thnString + "\n} else {\n" + elsString + "\n}";
+        }
+        case Call(enclosing, name, args) => {
+          var argString := "";
+          var i := 0;
+          while i < |args| {
+            if i > 0 {
+              argString := argString + ", ";
+            }
+
+            var argExpr := GenExpr(args[i]);
+            argString := argString + argExpr;
+
+            i := i + 1;
+          }
+
+          var enclosingString := "";
+          match enclosing {
+            case Some(e) => {
+              enclosingString := GenType(e);
+              enclosingString := enclosingString + "::";
+            }
+            case None => {
+              enclosingString := "";
+            }
+          }
+
+          generated := enclosingString + name + "(" + argString + ");";
+        }
+        case Return(expr) => {
+          var exprString := GenExpr(expr);
+          generated := "return " + exprString + ";";
+        }
+        case Print(e) => {
+          var printedExpr := GenExpr(e);
+          generated := "print!(\"{}\", ::dafny_runtime::DafnyPrintWrapper(" + printedExpr + "));";
+        }
+        case Todo(reason) => {
+          generated := "todo!(\"" + reason + "\");";
+        }
       }
     }
 

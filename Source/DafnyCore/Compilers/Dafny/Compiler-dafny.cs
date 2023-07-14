@@ -572,16 +572,40 @@ namespace Microsoft.Dafny.Compilers {
       throw new NotImplementedException();
     }
 
+    private IfElseBuilder builderForElse = null;
+
     protected override ConcreteSyntaxTree EmitIf(out ConcreteSyntaxTree guardWriter, bool hasElse, ConcreteSyntaxTree wr) {
-      if (wr is BuilderSyntaxTree<StatementContainer> statementContainer) {
-        throw new NotImplementedException();
+      if (builderForElse != null) { // else-if
+        var ifBuilder = ((StatementContainer)builderForElse).IfElse();
+        builderForElse = null;
+
+        if (hasElse) {
+          builderForElse = ifBuilder;
+        }
+
+        guardWriter = new BuilderSyntaxTree<ExprContainer>(ifBuilder);
+        return new BuilderSyntaxTree<StatementContainer>(ifBuilder);
+      } else if (wr is BuilderSyntaxTree<StatementContainer> statementContainer) {
+        var ifBuilder = statementContainer.Builder.IfElse();
+        if (hasElse) {
+          builderForElse = ifBuilder;
+        }
+
+        guardWriter = new BuilderSyntaxTree<ExprContainer>(ifBuilder);
+        return new BuilderSyntaxTree<StatementContainer>(ifBuilder);
       } else {
         throw new InvalidOperationException();
       }
     }
 
     protected override ConcreteSyntaxTree EmitBlock(ConcreteSyntaxTree wr) {
-      throw new NotImplementedException();
+      if (builderForElse != null) {
+        var ret = new BuilderSyntaxTree<StatementContainer>(builderForElse.Else());
+        builderForElse = null;
+        return ret;
+      } else {
+        throw new NotImplementedException();
+      }
     }
 
     protected override ConcreteSyntaxTree EmitForStmt(IToken tok, IVariable loopIndex, bool goingUp, string endVarName,

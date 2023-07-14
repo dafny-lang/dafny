@@ -254,6 +254,12 @@ namespace Microsoft.Dafny.Compilers {
       return ret;
     }
 
+    public IfElseBuilder IfElse() {
+      var ret = new IfElseBuilder(this);
+      AddBuildable(ret);
+      return ret;
+    }
+
     public CallBuilder Call() {
       return new CallBuilder(this);
     }
@@ -307,6 +313,94 @@ namespace Microsoft.Dafny.Compilers {
       } else {
         return (DAST.Statement)DAST.Statement.create_Assign(Sequence<Rune>.UnicodeFromString(name), value);
       }
+    }
+  }
+
+  class IfElseBuilder : ExprContainer, StatementContainer, BuildableStatement {
+    public DafnyCompiler compiler { get => parent.compiler; }
+    public readonly StatementContainer parent;
+
+    DAST.Expression condition = null;
+    readonly List<object> ifBody = new();
+    readonly List<object> elseBody = new();
+
+    public IfElseBuilder(StatementContainer parent) {
+      this.parent = parent;
+    }
+
+    public void AddExpr(DAST.Expression value) {
+      if (condition != null) {
+        throw new InvalidOperationException();
+      } else {
+        condition = value;
+      }
+    }
+
+    public void AddStatement(DAST.Statement item) {
+      ifBody.Add(item);
+    }
+
+    public void AddBuildable(BuildableStatement item) {
+      ifBody.Add(item);
+    }
+
+    public void AddElseStatement(DAST.Statement item) {
+      elseBody.Add(item);
+    }
+
+    public void AddElseBuildable(BuildableStatement item) {
+      elseBody.Add(item);
+    }
+
+    public ElseBuilder Else() {
+      return new ElseBuilder(this);
+    }
+
+    public DAST.Statement Build() {
+      List<DAST.Statement> builtIfStatements = new();
+      foreach (var maybeBuilt in ifBody) {
+        if (maybeBuilt is DAST.Statement built) {
+          builtIfStatements.Add(built);
+        } else if (maybeBuilt is BuildableStatement buildable) {
+          builtIfStatements.Add(buildable.Build());
+        } else {
+          throw new InvalidOperationException("Unknown buildable type");
+        }
+      }
+
+      List<DAST.Statement> builtElseStatements = new();
+      foreach (var maybeBuilt in elseBody) {
+        if (maybeBuilt is DAST.Statement built) {
+          builtElseStatements.Add(built);
+        } else if (maybeBuilt is BuildableStatement buildable) {
+          builtElseStatements.Add(buildable.Build());
+        } else {
+          throw new InvalidOperationException("Unknown buildable type");
+        }
+      }
+
+      return (DAST.Statement)DAST.Statement.create_If(
+        condition,
+        Sequence<DAST.Statement>.FromArray(builtIfStatements.ToArray()),
+        Sequence<DAST.Statement>.FromArray(builtElseStatements.ToArray())
+      );
+    }
+  }
+
+  class ElseBuilder : StatementContainer {
+    public DafnyCompiler compiler { get => parent.compiler; }
+    public readonly IfElseBuilder parent;
+
+    public ElseBuilder(IfElseBuilder parent) {
+      this.parent = parent;
+    }
+
+    public void AddStatement(DAST.Statement item) {
+      parent.AddElseStatement(item);
+    }
+
+    public void AddBuildable(BuildableStatement item) {
+      parent.AddElseBuildable(item);
     }
   }
 
