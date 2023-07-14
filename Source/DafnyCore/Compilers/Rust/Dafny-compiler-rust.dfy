@@ -49,7 +49,8 @@ module {:extern "DCOMP"} DCOMP {
     }
 
     static method GenNewtype(c: Newtype) returns (s: string) {
-      s := "pub struct " + c.name + " {\n" + "" +  "\n}" + "\n";
+      var underlyingType := GenType(c.base);
+      s := "pub type " + c.name + " =" + underlyingType +  ";\n";
     }
 
     static method GenDatatype(c: Datatype) returns (s: string) {

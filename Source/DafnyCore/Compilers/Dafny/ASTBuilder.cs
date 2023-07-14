@@ -501,7 +501,7 @@ namespace Microsoft.Dafny.Compilers {
   class ExprBuffer : ExprContainer {
     public DafnyCompiler compiler { get; }
     Stack<DAST.Expression> exprs = new();
-    readonly object parent;
+    public readonly object parent;
 
     public ExprBuffer(DafnyCompiler compiler) {
       this.compiler = compiler;
