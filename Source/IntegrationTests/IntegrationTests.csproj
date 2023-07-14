@@ -21,6 +21,7 @@
     </ItemGroup>
 
     <ItemGroup>
+        <ProjectReference Include="..\DafnyBenchmarkingPlugin\DafnyBenchmarkingPlugin.csproj" />
         <ProjectReference Include="..\Dafny\Dafny.csproj" />
         <ProjectReference Include="..\DafnyServer\DafnyServer.csproj" />
         <ProjectReference Include="..\TestDafny\TestDafny.csproj" />

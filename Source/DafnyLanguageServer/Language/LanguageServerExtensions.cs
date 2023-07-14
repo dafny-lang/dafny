@@ -32,7 +32,23 @@ namespace Microsoft.Dafny.LanguageServer.Language {
           serviceProvider.GetRequiredService<ITelemetryPublisher>(),
           serviceProvider.GetRequiredService<LoggerFactory>()))
         .AddSingleton<ISymbolResolver, DafnyLangSymbolResolver>()
+        .AddSingleton<CreateIdeStateObserver>(serviceProvider => documentIdentifier =>
+          new IdeStateObserver(serviceProvider.GetRequiredService<ILogger<IdeStateObserver>>(),
+            serviceProvider.GetRequiredService<ITelemetryPublisher>(),
+            serviceProvider.GetRequiredService<INotificationPublisher>(),
+            serviceProvider.GetRequiredService<ITextDocumentLoader>(),
+            documentIdentifier))
+        .AddSingleton<IVerificationProgressReporter, VerificationProgressReporter>()
         .AddSingleton(CreateVerifier)
+        .AddSingleton<CreateCompilationManager>(serviceProvider => (options, document, migratedVerificationTree) => new CompilationManager(
+          serviceProvider.GetRequiredService<ILogger<CompilationManager>>(),
+          serviceProvider.GetRequiredService<ITextDocumentLoader>(),
+          serviceProvider.GetRequiredService<INotificationPublisher>(),
+          serviceProvider.GetRequiredService<IProgramVerifier>(),
+          serviceProvider.GetRequiredService<ICompilationStatusNotificationPublisher>(),
+          serviceProvider.GetRequiredService<IVerificationProgressReporter>(),
+          options, document, migratedVerificationTree
+          ))
         .AddSingleton<ISymbolTableFactory, SymbolTableFactory>()
         .AddSingleton<IGhostStateDiagnosticCollector, GhostStateDiagnosticCollector>();
     }
