@@ -106,29 +106,30 @@ namespace DafnyTestGeneration {
       }
       var options = GenerateTestsCommand.CopyForProcedure(Options, procedure);
       SetupForCounterexamples(options);
-      var engine = ExecutionEngine.CreateWithoutSharedCache(options);
-      var guid = Guid.NewGuid().ToString();
-      program.Resolve(options);
-      program.Typecheck(options);
-      engine.EliminateDeadVariables(program);
-      engine.CollectModSets(program);
-      engine.Inline(program);
       var writer = new StringWriter();
-      var result = await Task.WhenAny(engine.InferAndVerify(writer, program,
+      using (var engine = ExecutionEngine.CreateWithoutSharedCache(options)) {
+        var guid = Guid.NewGuid().ToString();
+        program.Resolve(options);
+        program.Typecheck(options);
+        engine.EliminateDeadVariables(program);
+        engine.CollectModSets(program);
+        engine.Inline(program);
+        var result = await Task.WhenAny(engine.InferAndVerify(writer, program,
             new PipelineStatistics(), null,
             _ => { }, guid),
           Task.Delay(TimeSpan.FromSeconds(Options.TimeLimit <= 0 ?
             TestGenerationOptions.DefaultTimeLimit : Options.TimeLimit)));
-      program = null; // allows to garbage collect what is no longer needed
-      counterexampleStatus = Status.Failure;
-      counterexampleLog = null;
-      if (result is not Task<PipelineOutcome>) {
-        if (Options.Verbose) {
-          await options.OutputWriter.WriteLineAsync(
-            $"// No test can be generated for {uniqueId} " +
-            "because the verifier timed out.");
+        program = null; // allows to garbage collect what is no longer needed
+        counterexampleStatus = Status.Failure;
+        counterexampleLog = null;
+        if (result is not Task<PipelineOutcome>) {
+          if (Options.Verbose) {
+            await options.OutputWriter.WriteLineAsync(
+              $"// No test can be generated for {uniqueId} " +
+              "because the verifier timed out.");
+          }
+          return counterexampleLog;
         }
-        return counterexampleLog;
       }
       var log = writer.ToString();
       // make sure that there is a counterexample (i.e. no parse errors, etc):
