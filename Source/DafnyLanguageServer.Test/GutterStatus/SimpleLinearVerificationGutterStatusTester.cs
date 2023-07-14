@@ -14,6 +14,14 @@ public class SimpleLinearVerificationGutterStatusTester : LinearVerificationGutt
   // Add '//Next<n>:' to edit a line multiple times
 
   [Fact]
+  public async Task GitIssue4287GutterHighlightingBroken() {
+    await VerifyTrace(@"
+method Test() {
+  assert false;
+}", intermediates: false);
+  }
+ 
+  [Fact]
   public async Task GitIssue3821GutterIgnoredProblem() {
     await VerifyTrace(@"
  | :function fib(n: nat): nat {
