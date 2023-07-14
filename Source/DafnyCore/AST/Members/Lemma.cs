@@ -18,6 +18,9 @@ public class Lemma : Method {
     : base(rangeToken, name, hasStaticKeyword, true, typeArgs, ins, outs, req, mod, ens, decreases, body, attributes, signatureEllipsis) {
   }
 
+  public Lemma(Cloner cloner, Lemma lemma) : base(cloner, lemma) {
+  }
+
   public override bool AllowsAllocation => false;
 }
 
@@ -45,6 +48,9 @@ public class TwoStateLemma : Method {
     Contract.Requires(mod != null);
     Contract.Requires(ens != null);
     Contract.Requires(decreases != null);
+  }
+
+  public TwoStateLemma(Cloner cloner, TwoStateLemma lemma) : base(cloner, lemma) {
   }
 
   public override bool AllowsAllocation => false;
