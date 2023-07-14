@@ -172,6 +172,10 @@ public class MultiBackendTest {
       return false;
     }
 
+    if (option is "--compile-suffix") {
+      return false;
+    }
+
     return true;
   }
 
