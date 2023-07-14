@@ -8,7 +8,9 @@ using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace;
 
-class IdeStateObserver : IObserver<IdeState> {
+public delegate IdeStateObserver CreateIdeStateObserver(VersionedTextDocumentIdentifier documentIdentifier);
+
+public class IdeStateObserver : IObserver<IdeState> {
   private readonly ILogger logger;
   private readonly ITelemetryPublisher telemetryPublisher;
   private readonly INotificationPublisher notificationPublisher;

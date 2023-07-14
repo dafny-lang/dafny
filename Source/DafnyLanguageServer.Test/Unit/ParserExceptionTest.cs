@@ -1,8 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
 using Microsoft.Dafny.LanguageServer.Language;
-using System.IO;
-using System.Linq;
 using Microsoft.Dafny.LanguageServer.Workspace;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -21,6 +18,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit {
     private const int MaxTestExecutionTimeMs = 10_000;
     private DafnyLangParser parser;
     private readonly InMemorySink sink;
+    private LanguageServerFilesystem fileSystem;
 
     public ParserExceptionTest(ITestOutputHelper output) {
 
@@ -29,9 +27,9 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit {
         .WriteTo.InMemory().CreateLogger();
       var factory = LoggerFactory.Create(b => b.AddSerilog(logger));
 
+      fileSystem = new LanguageServerFilesystem();
       parser = DafnyLangParser.Create(DafnyOptions.Create(new WriterFromOutputHelper(output)),
-        Mock.Of<IFileSystem>(),
-      Mock.Of<ITelemetryPublisher>(), factory);
+        fileSystem, Mock.Of<ITelemetryPublisher>(), factory);
     }
 
     [Fact(Timeout = MaxTestExecutionTimeMs)]
@@ -40,10 +38,9 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit {
       var options = new DafnyOptions(DafnyOptions.DefaultImmutableOptions);
       var documentItem = CreateTestDocument(source, TestFilePath);
       var uri = new Uri("file:///" + TestFilePath);
-      var errorReporter = new ParserExceptionSimulatingErrorReporter(options);
-      var fileSystem = new LanguageServerFilesystem();
       fileSystem.OpenDocument(documentItem);
-      parser.Parse(new DocumentTextBuffer(documentItem), fileSystem, errorReporter, default);
+      var errorReporter = new ParserExceptionSimulatingErrorReporter(options);
+      parser.Parse(new DocumentTextBuffer(documentItem), errorReporter, default);
       Assert.Contains(sink.LogEvents, le => le.MessageTemplate.Text.Contains($"encountered an exception while parsing {uri}"));
       Assert.Equal($"/{TestFilePath}(1,0): Error: [internal error] Parser exception: Simulated parser internal error", errorReporter.LastMessage);
     }
