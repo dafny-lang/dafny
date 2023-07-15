@@ -644,6 +644,15 @@ namespace Microsoft.Dafny.Compilers {
       return BoxedTypeName(type, TypeParameter.TPVariance.Non, wr, tok);
     }
 
+    /// <summary>
+    /// This version of the BoxedTypeName method is appropriate if the result needs the fat-pointer version of
+    /// the given type, if any.
+    /// </summary>
+    private string FatPointerTypeName(Type type, ConcreteSyntaxTree wr, IToken tok) {
+      // Using Co in the following line will have the effect of forcing use of the fat-pointer name, if any.
+      return BoxedTypeName(type, TypeParameter.TPVariance.Co, wr, tok);
+    }
+
     private string BoxedTypeName(Type type, TypeParameter.TPVariance variance, ConcreteSyntaxTree wr, IToken tok) {
       return TypeName(type, wr, tok, boxed: true, variance);
     }
@@ -2593,7 +2602,8 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void EmitSetBuilder_New(ConcreteSyntaxTree wr, SetComprehension e, string collectionName) {
-      wr.WriteLine($"java.util.ArrayList<{BoxedTypeName(e.Type.AsSetType.Arg, TypeParameter.TPVariance.Co, wr, e.tok)}> {collectionName} = new java.util.ArrayList<>();");
+      var boxTypeName = BoxedTypeName(e.Type.AsSetType.Arg, TypeParameter.TPVariance.Co, wr, e.tok);
+      wr.WriteLine($"java.util.ArrayList<{boxTypeName}> {collectionName} = new java.util.ArrayList<>();");
     }
 
     protected override void EmitMapBuilder_New(ConcreteSyntaxTree wr, MapComprehension e, string collectionName) {
@@ -3457,7 +3467,7 @@ namespace Microsoft.Dafny.Compilers {
 
       // We may have to coerce from the boxed type used in collections
       var needsCoercion = IsCoercionNecessary(NativeObjectType, collectionElementType);
-      var boxedType = BoxedTypeNameOneOff(collectionElementType, wr, tok);
+      var boxedType = FatPointerTypeName(collectionElementType, wr, tok);
       var loopVarName = needsCoercion ? ProtectedFreshId(tmpVarName + "_boxed") : tmpVarName;
       wr.Write($"for ({boxedType} {loopVarName} : ");
       collectionWriter = wr.Fork();
@@ -3508,8 +3518,7 @@ namespace Microsoft.Dafny.Compilers {
       if (ct is SetType) {
         var wStmts = wr.Fork();
         wr.Write($"{collName}.add(");
-        var coercedWr = EmitCoercionIfNecessary(elmt.Type, NativeObjectType, elmt.tok, wr);
-        coercedWr.Append(Expr(elmt, inLetExprBody, wStmts));
+        wr.Append(CoercedExpr(elmt, ct.Arg, inLetExprBody, wStmts, true));
         wr.WriteLine(");");
       } else {
         Contract.Assume(false);  // unexpected collection type
@@ -3574,11 +3583,22 @@ namespace Microsoft.Dafny.Compilers {
       var cw = (ClassWriter)CreateClass(IdProtect(nt.EnclosingModuleDefinition.GetCompileName(Options)), IdName(nt), nt, wr);
       var w = cw.StaticMemberWriter;
       if (nt.NativeType != null) {
-        var nativeType = GetBoxedNativeTypeName(nt.NativeType);
-        var wEnum = w.NewNamedBlock($"public static java.util.ArrayList<{nativeType}> IntegerRange(java.math.BigInteger lo, java.math.BigInteger hi)");
-        wEnum.WriteLine($"java.util.ArrayList<{nativeType}> arr = new java.util.ArrayList<>();");
-        var numberval = $"{GetNativeTypeName(nt.NativeType)}Value()";
-        wEnum.WriteLine($"for (java.math.BigInteger j = lo; j.compareTo(hi) < 0; j = j.add(java.math.BigInteger.ONE)) {{ arr.add({nativeType}.valueOf(j.{numberval})); }}");
+        var hasFatPointerType = nt.ParentTraits.Count > 0;
+        var elementType = hasFatPointerType
+          ? FatPointerTypeName(UserDefinedType.FromTopLevelDecl(nt.tok, nt), wr, nt.tok)
+          : GetBoxedNativeTypeName(nt.NativeType);
+        var wEnum = w.NewNamedBlock($"public static java.util.ArrayList<{elementType}> IntegerRange(java.math.BigInteger lo, java.math.BigInteger hi)");
+        wEnum.WriteLine($"java.util.ArrayList<{elementType}> arr = new java.util.ArrayList<>();");
+        var wLoopBody = wEnum.NewBlock("for (java.math.BigInteger j = lo; j.compareTo(hi) < 0; j = j.add(java.math.BigInteger.ONE))");
+        var nativeValue = $"j.{GetNativeTypeName(nt.NativeType)}Value()";
+        var wBoxedValue = new ConcreteSyntaxTree();
+        if (hasFatPointerType) {
+          ToFatPointer(UserDefinedType.FromTopLevelDecl(nt.tok, nt), wBoxedValue)
+            .Write(nativeValue);
+        } else {
+          wBoxedValue.Write($"{elementType}.valueOf({nativeValue})");
+        }
+        wLoopBody.WriteLine($"arr.add({wBoxedValue});");
         wEnum.WriteLine("return arr;");
       }
       if (nt.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
@@ -3952,7 +3972,7 @@ namespace Microsoft.Dafny.Compilers {
           return w;
         }
 
-        if (from is { IsCharType: true } && IsNativeObjectType(to)) {
+        if (from is { IsCharType: true } && (IsNativeObjectType(to) || targetUsesFatPointers)) {
           wr.Write("dafny.CodePoint.valueOf(");
           var w = wr.Fork();
           wr.Write(")");

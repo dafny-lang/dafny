@@ -2421,7 +2421,7 @@ namespace Microsoft.Dafny.Compilers {
       }
       var wStmts = wr.Fork();
       wr.Write("{0}.set.emplace(", collName);
-      wr.Append(Expr(elmt, inLetExprBody, wStmts));
+      wr.Append(CoercedExpr(elmt, ct.Arg, inLetExprBody, wStmts, true));
       wr.WriteLine(");");
     }
 

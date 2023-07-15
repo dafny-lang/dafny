@@ -2512,7 +2512,7 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Assume(ct is SetType or MultiSetType);  // follows from precondition
       var wStmts = wr.Fork();
       wr.Write("{0}.add(", collName);
-      wr.Append(Expr(elmt, inLetExprBody, wStmts));
+      wr.Append(CoercedExpr(elmt, ct.Arg, inLetExprBody, wStmts, true));
       wr.WriteLine(");");
     }
 

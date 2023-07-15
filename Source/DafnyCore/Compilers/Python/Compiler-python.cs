@@ -1787,7 +1787,7 @@ namespace Microsoft.Dafny.Compilers {
     protected override void EmitSetBuilder_Add(CollectionType ct, string collName, Expression elmt, bool inLetExprBody,
         ConcreteSyntaxTree wr) {
       var wStmts = wr.Fork();
-      wr.WriteLine($"{collName} = {collName}.union({DafnySetClass}([{Expr(elmt, inLetExprBody, wStmts)}]))");
+      wr.WriteLine($"{collName} = {collName}.union({DafnySetClass}([{CoercedExpr(elmt, ct.Arg, inLetExprBody, wStmts, true)}]))");
     }
 
     protected override ConcreteSyntaxTree EmitMapBuilder_Add(MapType mt, IToken tok, string collName, Expression term,

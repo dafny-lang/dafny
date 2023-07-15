@@ -3346,21 +3346,22 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void EmitSetBuilder_New(ConcreteSyntaxTree wr, SetComprehension e, string collectionName) {
       var wrVarInit = DeclareLocalVar(collectionName, null, null, wr);
-      wrVarInit.Write("new System.Collections.Generic.List<{0}>()", TypeName(e.Type.AsSetType.Arg, wrVarInit, e.tok));
+      var boxTypeName = BoxedTypeName(e.Type.AsSetType.Arg, TypeParameter.TPVariance.Co, wrVarInit, e.tok);
+      wrVarInit.Write($"new System.Collections.Generic.List<{boxTypeName}>()");
     }
 
     protected override void EmitMapBuilder_New(ConcreteSyntaxTree wr, MapComprehension e, string collectionName) {
       var wrVarInit = DeclareLocalVar(collectionName, null, null, wr);
       var mt = e.Type.AsMapType;
-      var domtypeName = TypeName(mt.Domain, wrVarInit, e.tok);
-      var rantypeName = TypeName(mt.Range, wrVarInit, e.tok);
-      wrVarInit.Write($"new System.Collections.Generic.List<Dafny.Pair<{domtypeName},{rantypeName}>>()");
+      var domtypeName = BoxedTypeName(mt.Domain, TypeParameter.TPVariance.Co, wrVarInit, e.tok);
+      var rantypeName = BoxedTypeName(mt.Range, TypeParameter.TPVariance.Co, wrVarInit, e.tok);
+      wrVarInit.Write($"new System.Collections.Generic.List<Dafny.Pair<{domtypeName}, {rantypeName}>>()");
     }
 
     protected override void EmitSetBuilder_Add(CollectionType ct, string collName, Expression elmt, bool inLetExprBody, ConcreteSyntaxTree wr) {
       if (ct is SetType) {
         var wStmts = wr.Fork();
-        wr.FormatLine($"{collName}.Add({Expr(elmt, inLetExprBody, wStmts)});");
+        wr.FormatLine($"{collName}.Add({CoercedExpr(elmt, ct.Arg, inLetExprBody, wStmts, true)});");
       } else {
         Contract.Assume(false);  // unexpected collection type
       }
@@ -3377,13 +3378,13 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override string GetCollectionBuilder_Build(CollectionType ct, IToken tok, string collName, ConcreteSyntaxTree wr) {
       if (ct is SetType) {
-        var typeName = TypeName(ct.Arg, wr, tok);
+        var typeName = BoxedTypeName(ct.Arg, TypeParameter.TPVariance.Co, wr, tok);
         return string.Format($"{DafnySetClass}<{typeName}>.FromCollection({collName})");
       } else if (ct is MapType) {
         var mt = (MapType)ct;
-        var domtypeName = TypeName(mt.Domain, wr, tok);
-        var rantypeName = TypeName(mt.Range, wr, tok);
-        return $"{DafnyMapClass}<{domtypeName},{rantypeName}>.FromCollection({collName})";
+        var domtypeName = BoxedTypeName(mt.Domain, TypeParameter.TPVariance.Co, wr, tok);
+        var rantypeName = BoxedTypeName(mt.Range, TypeParameter.TPVariance.Co, wr, tok);
+        return $"{DafnyMapClass}<{domtypeName}, {rantypeName}>.FromCollection({collName})";
       } else {
         Contract.Assume(false);  // unexpected collection type
         throw new cce.UnreachableException();  // please compiler
