@@ -1151,7 +1151,7 @@ namespace Microsoft.Dafny.Compilers {
     protected abstract void EmitExprAsNativeInt(Expression expr, bool inLetExprBody, ConcreteSyntaxTree wr,
       ConcreteSyntaxTree wStmts);
 
-    protected virtual void EmitIndexCollectionSelect(Expression source, Expression index, bool inLetExprBody,
+    protected void EmitIndexCollectionSelect(Expression source, Expression index, bool inLetExprBody,
       ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       var xType = source.Type.NormalizeExpand();
       if (xType is SeqType seqType) {
@@ -1172,13 +1172,10 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    protected virtual void EmitIndexCollectionSelect(CollectionType collectionType, ConcreteSyntaxTree wr,
-      ConcreteSyntaxTree wSource, ConcreteSyntaxTree wIndex) {
-      // Note, a subclass only needs to override one of the two EmitIndexCollectionSelect methods.
-      throw new NotImplementedException();
-    }
+    protected abstract void EmitIndexCollectionSelect(CollectionType collectionType, ConcreteSyntaxTree wr,
+      ConcreteSyntaxTree wSource, ConcreteSyntaxTree wIndex);
 
-    protected virtual void EmitIndexCollectionUpdate(Expression source, Expression index, Expression value,
+    protected void EmitIndexCollectionUpdate(Expression source, Expression index, Expression value,
       CollectionType resultCollectionType, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       var xType = source.Type.NormalizeExpand();
       var wSource = Expr(source, inLetExprBody, wStmts);
@@ -1198,11 +1195,8 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    protected virtual void EmitIndexCollectionUpdate(CollectionType collectionType, ConcreteSyntaxTree wr,
-      ConcreteSyntaxTree wSource, ConcreteSyntaxTree wIndex, ConcreteSyntaxTree wValue) {
-      // Note, a subclass only needs to override one of the two EmitIndexCollectionUpdate methods.
-      throw new NotImplementedException();
-    }
+    protected abstract void EmitIndexCollectionUpdate(CollectionType collectionType, ConcreteSyntaxTree wr,
+      ConcreteSyntaxTree wSource, ConcreteSyntaxTree wIndex, ConcreteSyntaxTree wValue);
 
     protected virtual void EmitIndexCollectionUpdate(Type sourceType, out ConcreteSyntaxTree wSource, out ConcreteSyntaxTree wIndex, out ConcreteSyntaxTree wValue, ConcreteSyntaxTree wr, bool nativeIndex) {
       wSource = wr.Fork();

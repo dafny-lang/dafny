@@ -2894,27 +2894,13 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    protected override void EmitIndexCollectionUpdate(Expression source, Expression index, Expression value,
-        CollectionType resultCollectionType, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
-      if (source.Type.AsSeqType != null) {
-        wr.Write($"{DafnySequenceCompanion}.Update(");
-        wr.Append(Expr(source, inLetExprBody, wStmts));
-        wr.Write(", ");
-        TrExprToSizeT(index, inLetExprBody, wr, wStmts);
-        wr.Write(", ");
-        wr.Append(CoercedExpr(value, resultCollectionType.ValueArg, inLetExprBody, wStmts, true));
-        wr.Write(")");
-      } else if (source.Type.AsMapType != null) {
-        EmitIndexCollectionUpdate(source.Type, out var wSource, out var wIndex, out var wValue, wr, false);
-        TrParenExpr(source, wSource, inLetExprBody, wSource);
-        wIndex.Append(CoercedExpr(index, ((MapType)resultCollectionType).Domain, inLetExprBody, wSource, true));
-        wValue.Append(CoercedExpr(value, ((MapType)resultCollectionType).Range, inLetExprBody, wSource, true));
+    protected override void EmitIndexCollectionUpdate(CollectionType collectionType, ConcreteSyntaxTree wr, ConcreteSyntaxTree wSource, ConcreteSyntaxTree wIndex,
+      ConcreteSyntaxTree wValue) {
+      if (collectionType is SeqType) {
+        wr.Write($"{DafnySequenceCompanion}.Update({wSource}, {wIndex}, {wValue})");
       } else {
-        Contract.Assert(source.Type.AsMultiSetType != null);
-        EmitIndexCollectionUpdate(source.Type, out var wSource, out var wIndex, out var wValue, wr, false);
-        TrParenExpr(source, wSource, inLetExprBody, wSource);
-        wIndex.Append(CoercedExpr(index, resultCollectionType.Arg, inLetExprBody, wSource, true));
-        wValue.Append(Expr(value, inLetExprBody, wSource));
+        Contract.Assert(collectionType is MultiSetType or MapType);
+        wr.Write($"({wSource}).Update({wIndex}, {wValue})");
       }
     }
 

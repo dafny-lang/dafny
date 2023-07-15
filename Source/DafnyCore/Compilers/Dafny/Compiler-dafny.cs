@@ -452,13 +452,13 @@ namespace Microsoft.Dafny.Compilers {
       throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
     }
 
-    protected override void EmitIndexCollectionSelect(Expression source, Expression index, bool inLetExprBody,
-      ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
+    protected override void EmitIndexCollectionSelect(CollectionType collectionType, ConcreteSyntaxTree wr,
+      ConcreteSyntaxTree wSource, ConcreteSyntaxTree wIndex) {
       throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
     }
 
-    protected override void EmitIndexCollectionUpdate(Expression source, Expression index, Expression value,
-      CollectionType resultCollectionType, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
+    protected override void EmitIndexCollectionUpdate(CollectionType collectionType, ConcreteSyntaxTree wr,
+      ConcreteSyntaxTree wSource, ConcreteSyntaxTree wIndex, ConcreteSyntaxTree wValue) {
       throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
     }
 
