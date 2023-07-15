@@ -2904,16 +2904,15 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    protected override void EmitIndexCollectionUpdate(Type sourceType, out ConcreteSyntaxTree wSource, out ConcreteSyntaxTree wIndex, out ConcreteSyntaxTree wValue, ConcreteSyntaxTree wr, bool nativeIndex) {
+    protected override void EmitIndexCollectionUpdateNativeIndex(Type sourceType, out ConcreteSyntaxTree wSource, out ConcreteSyntaxTree wIndex, out ConcreteSyntaxTree wValue, ConcreteSyntaxTree wr) {
       if (sourceType.IsArrayType) {
-        Contract.Assume(nativeIndex);
         (wSource, var wArguments) = CallArrayGetOrSet(false, 1, null, wr);
         wValue = wArguments.Fork();
         wArguments.Write(", ");
         wIndex = wArguments.Fork();
       } else {
         wSource = wr.ForkInParens();
-        wr.Write(nativeIndex ? ".UpdateInt(" : ".Update(");
+        wr.Write(".UpdateInt(");
         wIndex = wr.Fork();
         wr.Write(", ");
         wValue = wr.Fork();

@@ -1198,7 +1198,7 @@ namespace Microsoft.Dafny.Compilers {
     protected abstract void EmitIndexCollectionUpdate(CollectionType collectionType, ConcreteSyntaxTree wr,
       ConcreteSyntaxTree wSource, ConcreteSyntaxTree wIndex, ConcreteSyntaxTree wValue);
 
-    protected virtual void EmitIndexCollectionUpdate(Type sourceType, out ConcreteSyntaxTree wSource, out ConcreteSyntaxTree wIndex, out ConcreteSyntaxTree wValue, ConcreteSyntaxTree wr, bool nativeIndex) {
+    protected virtual void EmitIndexCollectionUpdateNativeIndex(Type sourceType, out ConcreteSyntaxTree wSource, out ConcreteSyntaxTree wIndex, out ConcreteSyntaxTree wValue, ConcreteSyntaxTree wr) {
       wSource = wr.Fork();
       wr.Write('[');
       wIndex = wr.Fork();
@@ -3465,11 +3465,11 @@ namespace Microsoft.Dafny.Compilers {
             tup = wTup.ToString();
           }
           if (s0.Lhs is MemberSelectExpr) {
-            EmitMemberSelect(s0, tupleTypeArgsList, wr, tup);
+            EmitLhsMemberSelect(s0, tupleTypeArgsList, wr, tup);
           } else if (s0.Lhs is SeqSelectExpr) {
-            EmitSeqSelect(s0, tupleTypeArgsList, wr, tup);
+            EmitLhsSeqSelect(s0, tupleTypeArgsList, wr, tup);
           } else {
-            EmitMultiSelect(s0, tupleTypeArgsList, wr, tup, L);
+            EmitLhsMultiSelect(s0, tupleTypeArgsList, wr, tup, L);
           }
         }
       } else if (stmt is NestedMatchStmt nestedMatchStmt) {
@@ -3578,7 +3578,7 @@ namespace Microsoft.Dafny.Compilers {
       return fce.IsByMethodCall && fce.Function.ByMethodDecl == enclosingMethod && fce.Function.ByMethodDecl.IsTailRecursive;
     }
 
-    protected virtual void EmitMemberSelect(AssignStmt s0, List<Type> tupleTypeArgsList, ConcreteSyntaxTree wr, string tup) {
+    protected void EmitLhsMemberSelect(AssignStmt s0, List<Type> tupleTypeArgsList, ConcreteSyntaxTree wr, string tup) {
       var lhs = (MemberSelectExpr)s0.Lhs;
 
       var typeArgs = TypeArgumentInstantiation.ListFromMember(lhs.Member, null, lhs.TypeApplication_JustMember);
@@ -3592,9 +3592,9 @@ namespace Microsoft.Dafny.Compilers {
       EmitTupleSelect(tup, 1, wCoerced);
     }
 
-    protected virtual void EmitSeqSelect(AssignStmt s0, List<Type> tupleTypeArgsList, ConcreteSyntaxTree wr, string tup) {
+    protected virtual void EmitLhsSeqSelect(AssignStmt s0, List<Type> tupleTypeArgsList, ConcreteSyntaxTree wr, string tup) {
       var lhs = (SeqSelectExpr)s0.Lhs;
-      EmitIndexCollectionUpdate(lhs.Seq.Type, out var wColl, out var wIndex, out var wValue, wr, nativeIndex: true);
+      EmitIndexCollectionUpdateNativeIndex(lhs.Seq.Type, out var wColl, out var wIndex, out var wValue, wr);
       var wCoerce = EmitCoercionIfNecessary(@from: null, to: lhs.Seq.Type, tok: s0.Tok, wr: wColl);
       EmitTupleSelect(tup, 0, wCoerce);
       var wCast = EmitCoercionToNativeInt(wIndex);
@@ -3603,7 +3603,7 @@ namespace Microsoft.Dafny.Compilers {
       EndStmt(wr);
     }
 
-    protected virtual void EmitMultiSelect(AssignStmt s0, List<Type> tupleTypeArgsList, ConcreteSyntaxTree wr, string tup, int L) {
+    protected virtual void EmitLhsMultiSelect(AssignStmt s0, List<Type> tupleTypeArgsList, ConcreteSyntaxTree wr, string tup, int L) {
       var lhs = (MultiSelectExpr)s0.Lhs;
       var wArray = new ConcreteSyntaxTree(wr.RelativeIndentLevel);
       var wCoerced = EmitCoercionIfNecessary(@from: null, to: tupleTypeArgsList[0], tok: s0.Tok, wr: wArray);
