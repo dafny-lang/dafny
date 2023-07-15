@@ -3960,10 +3960,10 @@ namespace Microsoft.Dafny.Compilers {
         }
       }
 
-      if ((from == null || from.IsTraitType) && to?.AsNewtype != null) {
+      if ((from == null || from.IsTraitType) && (to != null && to.HasFatPointer)) {
         return FromFatPointer(to, wr);
       }
-      if (from != null && ((to != null && to.IsTraitType) || targetUsesFatPointers) && (enclosingMethod != null || enclosingFunction != null)) {
+      if ((from != null && from.HasFatPointer) && ((to != null && to.IsTraitType) || targetUsesFatPointers) && (enclosingMethod != null || enclosingFunction != null)) {
         return ToFatPointer(from, wr);
       }
 

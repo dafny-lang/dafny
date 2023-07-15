@@ -3622,18 +3622,19 @@ namespace Microsoft.Dafny.Compilers {
         return wr;
       }
 
-      if ((from == null || from.IsTraitType) && to.AsNewtype != null) {
+      from = from == null ? null : DatatypeWrapperEraser.SimplifyType(Options, from);
+      to = DatatypeWrapperEraser.SimplifyType(Options, to);
+
+      if ((from == null || from.IsTraitType) && to.HasFatPointer) {
         wr = FromFatPointer(to, wr);
         var w = wr.ForkInParens();
         wr.Write($".(*{UserDefinedTypeName(to.AsNewtype, true)})");
         return w;
       }
-      if (from?.AsNewtype != null && (to.IsTraitType || targetUsesFatPointers) && (enclosingMethod != null || enclosingFunction != null)) {
+      if ((from != null && from.HasFatPointer) && (to.IsTraitType || targetUsesFatPointers) && (enclosingMethod != null || enclosingFunction != null)) {
         return ToFatPointer(from, wr);
       }
 
-      from = from == null ? null : DatatypeWrapperEraser.SimplifyType(Options, from);
-      to = DatatypeWrapperEraser.SimplifyType(Options, to);
       if (from != null && from.IsArrowType && to.IsArrowType && !from.Equals(to)) {
         // Need to convert functions more often, so do this before the
         // EqualsUpToParameters check below

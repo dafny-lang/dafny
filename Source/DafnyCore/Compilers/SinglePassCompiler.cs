@@ -766,10 +766,13 @@ namespace Microsoft.Dafny.Compilers {
     /// </summary>
     protected virtual ConcreteSyntaxTree EmitCoercionIfNecessary(Type @from /*?*/, Type to /*?*/, IToken tok, ConcreteSyntaxTree wr,
       bool targetUsesFatPointers = false) {
+      from = from == null ? null : DatatypeWrapperEraser.SimplifyType(Options, from);
+      to = to == null ? null : DatatypeWrapperEraser.SimplifyType(Options, to);
+
       if ((from == null || from.IsTraitType) && to != null && to.HasFatPointer) {
         return FromFatPointer(to, wr);
       }
-      if (from != null && ((to != null && to.IsTraitType) || targetUsesFatPointers) && (enclosingMethod != null || enclosingFunction != null)) {
+      if ((from != null && from.HasFatPointer) && ((to != null && to.IsTraitType) || targetUsesFatPointers) && (enclosingMethod != null || enclosingFunction != null)) {
         return ToFatPointer(from, wr);
       }
       return wr;
