@@ -78,7 +78,7 @@ public static class ShouldCompileOrVerify {
     var edges = compilation.Includes.GroupBy(i => i.IncluderFilename)
       .ToDictionary(g => g.Key, g => g.Select(x => x.IncludedFilename).ToList());
 
-    ISet<Uri> Search(Stack<Uri> roots, ISet<Uri> excluded) {
+    ISet<Uri> Visit(Stack<Uri> roots, ISet<Uri> excluded) {
       var toVisit = roots;
 
       var visited = new HashSet<Uri>();
@@ -101,9 +101,9 @@ public static class ShouldCompileOrVerify {
       return visited;
     }
 
-    var excluded = Search(new Stack<Uri>(stopUris), new HashSet<Uri>());
+    var excluded = Visit(new Stack<Uri>(stopUris), new HashSet<Uri>());
 
-    return Search(new Stack<Uri>(compilation.RootSourceUris), excluded);
+    return Visit(new Stack<Uri>(compilation.RootSourceUris), excluded);
   }
 
 }
