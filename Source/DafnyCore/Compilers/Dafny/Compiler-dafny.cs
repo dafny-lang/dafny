@@ -528,8 +528,9 @@ namespace Microsoft.Dafny.Compilers {
       out string staticCallString,
       out bool reverseArguments,
       out bool truncateResult,
-      out bool convertE1_to_int,
+      out bool convertE1ToInt,
       out bool coerceE1,
+      out bool convertE1ToFatPointer,
       ConcreteSyntaxTree errorWr) {
 
       opString = null;
@@ -539,7 +540,8 @@ namespace Microsoft.Dafny.Compilers {
       staticCallString = null;
       reverseArguments = false;
       truncateResult = false;
-      convertE1_to_int = false;
+      convertE1ToFatPointer = false;
+      convertE1ToInt = false;
       coerceE1 = false;
 
       switch (op) {
@@ -634,12 +636,15 @@ namespace Microsoft.Dafny.Compilers {
           opString = "!!";
           break;
         case BinaryExpr.ResolvedOpcode.InSet:
+          convertE1ToFatPointer = true;
           opString = "in";
           break;
         case BinaryExpr.ResolvedOpcode.InMultiSet:
+          convertE1ToFatPointer = true;
           opString = "in";
           break;
         case BinaryExpr.ResolvedOpcode.InMap:
+          convertE1ToFatPointer = true;
           opString = "in";
           break;
         case BinaryExpr.ResolvedOpcode.Union:
@@ -676,6 +681,7 @@ namespace Microsoft.Dafny.Compilers {
           opString = "+";
           break;
         case BinaryExpr.ResolvedOpcode.InSeq:
+          convertE1ToFatPointer = true;
           opString = "in";
           break;
       }

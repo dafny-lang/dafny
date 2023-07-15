@@ -7,6 +7,7 @@
 //-----------------------------------------------------------------------------
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Numerics;
 using System.IO;
@@ -763,20 +764,15 @@ namespace Microsoft.Dafny.Compilers {
     ///   (a) we need to represent upcasts as explicit operations (like Go, or array types in Java), or
     ///   (b) there's static typing but no parametric polymorphism (like Go) so that lots of things need to be boxed and unboxed.
     /// </summary>
-    protected virtual ConcreteSyntaxTree EmitCoercionIfNecessary(Type/*?*/ from, Type/*?*/ to, IToken tok, ConcreteSyntaxTree wr) {
-      if (from != null && to != null && from.IsTraitType && to.AsNewtype != null) {
+    protected virtual ConcreteSyntaxTree EmitCoercionIfNecessary(Type @from /*?*/, Type to /*?*/, IToken tok, ConcreteSyntaxTree wr,
+      bool targetUsesFatPointers = false) {
+      if ((from == null || from.IsTraitType) && to != null && to.HasFatPointer) {
         return FromFatPointer(to, wr);
       }
-      if (from != null && to != null && from.AsNewtype != null && to.IsTraitType && (enclosingMethod != null || enclosingFunction != null)) {
+      if (from != null && ((to != null && to.IsTraitType) || targetUsesFatPointers) && (enclosingMethod != null || enclosingFunction != null)) {
         return ToFatPointer(from, wr);
       }
       return wr;
-    }
-
-    protected ConcreteSyntaxTree CoercionIfNecessary(Type/*?*/ from, Type/*?*/ to, IToken tok, ICanRender inner) {
-      var result = new ConcreteSyntaxTree();
-      EmitCoercionIfNecessary(@from, to, tok, result).Append(inner);
-      return result;
     }
 
     protected ConcreteSyntaxTree EmitDowncastIfNecessary(Type /*?*/ from, Type /*?*/ to, IToken tok, ConcreteSyntaxTree wr) {
@@ -1151,10 +1147,60 @@ namespace Microsoft.Dafny.Compilers {
 
     protected abstract void EmitExprAsNativeInt(Expression expr, bool inLetExprBody, ConcreteSyntaxTree wr,
       ConcreteSyntaxTree wStmts);
-    protected abstract void EmitIndexCollectionSelect(Expression source, Expression index, bool inLetExprBody,
-      ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts);
-    protected abstract void EmitIndexCollectionUpdate(Expression source, Expression index, Expression value,
-      CollectionType resultCollectionType, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts);
+
+    protected virtual void EmitIndexCollectionSelect(Expression source, Expression index, bool inLetExprBody,
+      ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
+      var xType = source.Type.NormalizeExpand();
+      if (xType is SeqType seqType) {
+        var wSource = Expr(source, inLetExprBody, wStmts);
+        var wIndex = Expr(index, inLetExprBody, wStmts);
+        wr = EmitCoercionIfNecessary(null, seqType.Arg, source.tok, wr, true);
+        EmitIndexCollectionSelect(seqType, wr, wSource, wIndex);
+      } else if (xType is MultiSetType multiSetType) {
+        var wSource = Expr(source, inLetExprBody, wStmts);
+        var wIndex = CoercedExpr(index, multiSetType.Arg, inLetExprBody, wStmts, true);
+        EmitIndexCollectionSelect(multiSetType, wr, wSource, wIndex);
+      } else {
+        var mapType = (MapType)xType;
+        var wSource = Expr(source, inLetExprBody, wStmts);
+        var wIndex = CoercedExpr(index, mapType.Domain, inLetExprBody, wStmts, true);
+        wr = EmitCoercionIfNecessary(null, mapType.Range, source.tok, wr, true);
+        EmitIndexCollectionSelect(mapType, wr, wSource, wIndex);
+      }
+    }
+
+    protected virtual void EmitIndexCollectionSelect(CollectionType collectionType, ConcreteSyntaxTree wr,
+      ConcreteSyntaxTree wSource, ConcreteSyntaxTree wIndex) {
+      // Note, a subclass only needs to override one of the two EmitIndexCollectionSelect methods.
+      throw new NotImplementedException();
+    }
+
+    protected virtual void EmitIndexCollectionUpdate(Expression source, Expression index, Expression value,
+      CollectionType resultCollectionType, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
+      var xType = source.Type.NormalizeExpand();
+      var wSource = Expr(source, inLetExprBody, wStmts);
+      if (xType is SeqType seqType) {
+        var wIndex = Expr(index, inLetExprBody, wStmts);
+        var wValue = CoercedExpr(value, seqType.ValueArg, inLetExprBody, wStmts, targetUsesFatPointers: true);
+        EmitIndexCollectionUpdate(seqType, wr, wSource, wIndex, wValue);
+      } else if (xType is MultiSetType multiSetType) {
+        var wIndex = CoercedExpr(index, multiSetType.Arg, inLetExprBody, wStmts, targetUsesFatPointers: true);
+        var wValue = Expr(value, inLetExprBody, wStmts);
+        EmitIndexCollectionUpdate(multiSetType, wr, wSource, wIndex, wValue);
+      } else {
+        var mapType = (MapType)xType;
+        var wIndex = CoercedExpr(index, mapType.Domain, inLetExprBody, wStmts, targetUsesFatPointers: true);
+        var wValue = CoercedExpr(value, mapType.Range, inLetExprBody, wStmts, targetUsesFatPointers: true);
+        EmitIndexCollectionUpdate(mapType, wr, wSource, wIndex, wValue);
+      }
+    }
+
+    protected virtual void EmitIndexCollectionUpdate(CollectionType collectionType, ConcreteSyntaxTree wr,
+      ConcreteSyntaxTree wSource, ConcreteSyntaxTree wIndex, ConcreteSyntaxTree wValue) {
+      // Note, a subclass only needs to override one of the two EmitIndexCollectionUpdate methods.
+      throw new NotImplementedException();
+    }
+
     protected virtual void EmitIndexCollectionUpdate(Type sourceType, out ConcreteSyntaxTree wSource, out ConcreteSyntaxTree wIndex, out ConcreteSyntaxTree wValue, ConcreteSyntaxTree wr, bool nativeIndex) {
       wSource = wr.Fork();
       wr.Write('[');
@@ -1232,8 +1278,9 @@ namespace Microsoft.Dafny.Compilers {
       out string staticCallString,
       out bool reverseArguments,
       out bool truncateResult,
-      out bool convertE1_to_int,
+      out bool convertE1ToInt,
       out bool coerceE1,
+      out bool convertE1ToFatPointer,
       ConcreteSyntaxTree errorWr) {
 
       // This default implementation does not handle all cases. It handles some cases that look the same
@@ -1246,7 +1293,8 @@ namespace Microsoft.Dafny.Compilers {
       staticCallString = null;
       reverseArguments = false;
       truncateResult = false;
-      convertE1_to_int = false;
+      convertE1ToFatPointer = false;
+      convertE1ToInt = false;
       coerceE1 = false;
 
       BinaryExpr.ResolvedOpcode dualOp = BinaryExpr.ResolvedOpcode.Add;  // NOTE! "Add" is used to say "there is no dual op"
@@ -1318,14 +1366,14 @@ namespace Microsoft.Dafny.Compilers {
         Contract.Assert(negatedOp == BinaryExpr.ResolvedOpcode.Add);
         CompileBinOp(dualOp,
           e1, e0, tok, resultType,
-          out opString, out preOpString, out postOpString, out callString, out staticCallString, out reverseArguments, out truncateResult, out convertE1_to_int, out coerceE1,
-          errorWr);
+          out opString, out preOpString, out postOpString, out callString, out staticCallString, out reverseArguments, out truncateResult, out convertE1ToInt, out coerceE1,
+          out convertE1ToFatPointer, errorWr);
         reverseArguments = !reverseArguments;
       } else if (negatedOp != BinaryExpr.ResolvedOpcode.Add) {  // remember from above that Add stands for "there is no negated op"
         CompileBinOp(negatedOp,
           e0, e1, tok, resultType,
-          out opString, out preOpString, out postOpString, out callString, out staticCallString, out reverseArguments, out truncateResult, out convertE1_to_int, out coerceE1,
-          errorWr);
+          out opString, out preOpString, out postOpString, out callString, out staticCallString, out reverseArguments, out truncateResult, out convertE1ToInt, out coerceE1,
+          out convertE1ToFatPointer, errorWr);
         preOpString = "!" + preOpString;
       }
     }
@@ -4795,7 +4843,7 @@ namespace Microsoft.Dafny.Compilers {
     /// Before calling TrExprList(exprs), the caller must have spilled the let variables declared in expressions in "exprs".
     /// </summary>
     protected void TrExprList(List<Expression> exprs, ConcreteSyntaxTree wr, bool inLetExprBody, ConcreteSyntaxTree wStmts,
-        Func<int, Type> typeAt = null, bool parens = true) {
+        Func<int, Type> typeAt = null, bool parens = true, bool targetUsesFatPointers = false) {
       Contract.Requires(cce.NonNullElements(exprs));
       if (parens) { wr = wr.ForkInParens(); }
 
@@ -4803,7 +4851,7 @@ namespace Microsoft.Dafny.Compilers {
         ConcreteSyntaxTree w;
         if (typeAt != null) {
           w = wr.Fork();
-          w = EmitCoercionIfNecessary(e.Type, typeAt(index), e.tok, w);
+          w = EmitCoercionIfNecessary(e.Type, typeAt(index), e.tok, w, targetUsesFatPointers);
         } else {
           w = wr;
         }
@@ -4813,9 +4861,9 @@ namespace Microsoft.Dafny.Compilers {
 
     protected virtual void WriteCast(string s, ConcreteSyntaxTree wr) { }
 
-    protected ConcreteSyntaxTree CoercedExpr(Expression expr, Type toType, bool inLetExprBody, ConcreteSyntaxTree wStmts) {
+    protected ConcreteSyntaxTree CoercedExpr(Expression expr, Type toType, bool inLetExprBody, ConcreteSyntaxTree wStmts, bool targetUsesFatPointers = false) {
       var result = new ConcreteSyntaxTree();
-      var w = EmitCoercionIfNecessary(expr.Type, toType, expr.tok, result);
+      var w = EmitCoercionIfNecessary(expr.Type, toType, expr.tok, result, targetUsesFatPointers);
       w.Append(Expr(expr, inLetExprBody, wStmts));
       return result;
     }
@@ -5067,9 +5115,9 @@ namespace Microsoft.Dafny.Compilers {
             out var staticCallString,
             out var reverseArguments,
             out var truncateResult,
-            out var convertE1_to_int,
+            out var convertE1ToInt,
             out var coerceE1,
-            wr);
+            out var convertE1ToFatPointer, wr);
 
           if (truncateResult && e.Type.IsBitVectorType) {
             wr = EmitBitvectorTruncation(e.Type.AsBitVectorType, true, wr);
@@ -5078,13 +5126,20 @@ namespace Microsoft.Dafny.Compilers {
           var e1 = reverseArguments ? e.E0 : e.E1;
 
           var left = Expr(e0, inLetExprBody, wStmts);
+          if (!reverseArguments && convertE1ToFatPointer) {
+            var r = new ConcreteSyntaxTree();
+            EmitCoercionIfNecessary(e0.Type, TypeForCoercion(e0.Type), e0.tok, r, true).Append(left);
+            left = r;
+          }
           ConcreteSyntaxTree right;
-          if (convertE1_to_int) {
+          if (convertE1ToInt) {
             right = ExprAsNativeInt(e1, inLetExprBody, wStmts);
           } else {
             right = Expr(e1, inLetExprBody, wStmts);
-            if (coerceE1) {
-              right = CoercionIfNecessary(e1.Type, TypeForCoercion(e1.Type), e1.tok, right);
+            if (coerceE1 || (reverseArguments && convertE1ToFatPointer)) {
+              var r = new ConcreteSyntaxTree();
+              EmitCoercionIfNecessary(e1.Type, TypeForCoercion(e1.Type), e1.tok, r, reverseArguments && convertE1ToFatPointer).Append(right);
+              right = r;
             }
           }
 

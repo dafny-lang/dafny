@@ -1062,11 +1062,7 @@ namespace Microsoft.Dafny.Compilers {
         i = 0;
         foreach (var arg in ctor.Formals) {
           if (!arg.IsGhost) {
-            var nm = FieldName(arg, i);
-            w.Write(IsDirectlyComparable(DatatypeWrapperEraser.SimplifyType(Options, arg.Type))
-              ? $" && this.{nm} == oth.{nm}"
-              : $" && object.Equals(this.{nm}, oth.{nm})");
-
+            EmitFieldEqualityConjunct(FieldName(arg, i), arg.Type, w);
             i++;
           }
         }
@@ -1088,7 +1084,7 @@ namespace Microsoft.Dafny.Compilers {
           }
         }
 
-        w.WriteLine("return (int) hash;");
+        w.WriteLine("return (int)hash;");
       }
 
       {
@@ -1136,6 +1132,14 @@ namespace Microsoft.Dafny.Compilers {
             w.WriteLine($"return {tempVar};");
             break;
         }
+      }
+    }
+
+    private void EmitFieldEqualityConjunct(string fieldName, Type fieldType, ConcreteSyntaxTree w) {
+      if (IsDirectlyComparable(DatatypeWrapperEraser.SimplifyType(Options, fieldType))) {
+        w.Write($" && this.{fieldName} == oth.{fieldName}");
+      } else {
+        w.Write($" && object.Equals(this.{fieldName}, oth.{fieldName})");
       }
     }
 
@@ -1238,6 +1242,26 @@ namespace Microsoft.Dafny.Compilers {
       // }
       wBody = wr.NewNamedBlock("public override string ToString()");
       wBody.WriteLine("return _value.ToString();");
+
+      // public override bool Equals(object other) {
+      //   var oth = other as NewtypeName;
+      //   return oth != null && this._value == oth._value;
+      // }
+      wBody = wr.NewNamedBlock("public override bool Equals(object other)");
+      wBody.WriteLine($"var oth = other as {IdName(nt)};");
+      wBody.Write("return oth != null");
+      EmitFieldEqualityConjunct("_value", UserDefinedType.FromTopLevelDecl(nt.tok, nt), wBody);
+      wBody.WriteLine(";");
+
+      // public override int GetHashCode() {
+      //   ulong hash = 5381;
+      //   hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._value));
+      //   return (int)hash;
+      // }
+      wBody = wr.NewNamedBlock("public override int GetHashCode()");
+      wBody.WriteLine("ulong hash = 5381;");
+      wBody.WriteLine("hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._value));");
+      wBody.WriteLine("return (int)hash;");
     }
 
     protected override void DeclareSubsetType(SubsetTypeDecl sst, ConcreteSyntaxTree wr) {
@@ -2690,35 +2714,25 @@ namespace Microsoft.Dafny.Compilers {
       TrParenExpr("(int)", expr, wr, inLetExprBody, wStmts);
     }
 
-    protected override void EmitIndexCollectionSelect(Expression source, Expression index, bool inLetExprBody,
-      ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
-      var xType = source.Type.NormalizeExpand();
-      if (xType is MapType) {
-        var inner = wr.Write(TypeHelperName(xType, wr, source.tok) + ".Select").ForkInParens();
-        inner.Append(Expr(source, inLetExprBody, wStmts));
-        inner.Write(",");
-        inner.Append(Expr(index, inLetExprBody, wStmts));
+    protected override void EmitIndexCollectionSelect(CollectionType collectionType, ConcreteSyntaxTree wr,
+      ConcreteSyntaxTree wSource, ConcreteSyntaxTree wIndex) {
+      if (collectionType is SeqType or MultiSetType) {
+        wr.Write($"({wSource}).Select({wIndex})");
       } else {
-        TrParenExpr(source, wr, inLetExprBody, wStmts);
-        TrParenExpr(".Select", index, wr, inLetExprBody, wStmts);
+        Contract.Assert(collectionType is MapType);
+        wr.Write($"{TypeHelperName(collectionType, wr, collectionType.tok)}.Select({wSource}, {wIndex})");
       }
     }
 
-    protected override void EmitIndexCollectionUpdate(Expression source, Expression index, Expression value,
-        CollectionType resultCollectionType, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
-      var xType = source.Type.NormalizeExpand();
-      if (xType is SeqType || xType is MapType) {
-        wr.Write(TypeHelperName(xType, wr, source.tok) + ".Update");
-        wr.Append(ParensList(
-          Expr(source, inLetExprBody, wStmts),
-          Expr(index, inLetExprBody, wStmts),
-          CoercedExpr(value, resultCollectionType.ValueArg, inLetExprBody, wStmts)));
+    protected override void EmitIndexCollectionUpdate(CollectionType collectionType, ConcreteSyntaxTree wr,
+      ConcreteSyntaxTree wSource, ConcreteSyntaxTree wIndex, ConcreteSyntaxTree wValue) {
+      if (collectionType is SeqType) {
+        wr.Write($"{TypeHelperName(collectionType, wr, collectionType.tok)}.Update({wSource}, {wIndex}, {wValue})");
+      } else if (collectionType is MultiSetType) {
+        wr.Write($"({wSource}).Update({wIndex}, {wValue})");
       } else {
-        TrParenExpr(source, wr, inLetExprBody, wStmts);
-        wr.Write(".Update");
-        wr.Append(ParensList(
-          Expr(index, inLetExprBody, wStmts),
-          CoercedExpr(value, resultCollectionType.ValueArg, inLetExprBody, wStmts)));
+        Contract.Assert(collectionType is MapType);
+        wr.Write($"{TypeHelperName(collectionType, wr, collectionType.tok)}.Update({wSource}, {wIndex}, {wValue})");
       }
     }
 
@@ -2996,8 +3010,9 @@ namespace Microsoft.Dafny.Compilers {
       out string staticCallString,
       out bool reverseArguments,
       out bool truncateResult,
-      out bool convertE1_to_int,
+      out bool convertE1ToInt,
       out bool coerceE1,
+      out bool convertE1ToFatPointer,
       ConcreteSyntaxTree errorWr) {
 
       opString = null;
@@ -3007,8 +3022,9 @@ namespace Microsoft.Dafny.Compilers {
       staticCallString = null;
       reverseArguments = false;
       truncateResult = false;
-      convertE1_to_int = false;
+      convertE1ToInt = false;
       coerceE1 = false;
+      convertE1ToFatPointer = false;
 
       switch (op) {
         case BinaryExpr.ResolvedOpcode.EqCommon: {
@@ -3044,21 +3060,21 @@ namespace Microsoft.Dafny.Compilers {
         case BinaryExpr.ResolvedOpcode.LeftShift:
           if (resultType.AsBitVectorType is { Width: var width and (32 or 64) }) {
             staticCallString = $"{DafnyHelpersClass}.Bv{width}ShiftLeft";
-            convertE1_to_int = true;
+            convertE1ToInt = true;
             truncateResult = true;
           } else {
             opString = "<<";
             truncateResult = true;
-            convertE1_to_int = true;
+            convertE1ToInt = true;
           }
           break;
         case BinaryExpr.ResolvedOpcode.RightShift:
           if (resultType.AsBitVectorType is { Width: var width2 and (32 or 64) }) {
             staticCallString = $"{DafnyHelpersClass}.Bv{width2}ShiftRight";
-            convertE1_to_int = true;
+            convertE1ToInt = true;
           } else {
             opString = ">>";
-            convertE1_to_int = true;
+            convertE1ToInt = true;
           }
           break;
         case BinaryExpr.ResolvedOpcode.Add:
@@ -3126,6 +3142,7 @@ namespace Microsoft.Dafny.Compilers {
         case BinaryExpr.ResolvedOpcode.InMultiSet:
         case BinaryExpr.ResolvedOpcode.InMap:
         case BinaryExpr.ResolvedOpcode.InSeq:
+          convertE1ToFatPointer = true;
           callString = "Contains"; reverseArguments = true; break;
 
         case BinaryExpr.ResolvedOpcode.Union:
@@ -3152,8 +3169,8 @@ namespace Microsoft.Dafny.Compilers {
 
         default:
           base.CompileBinOp(op, e0, e1, tok, resultType,
-            out opString, out preOpString, out postOpString, out callString, out staticCallString, out reverseArguments, out truncateResult, out convertE1_to_int, out coerceE1,
-            errorWr);
+            out opString, out preOpString, out postOpString, out callString, out staticCallString, out reverseArguments, out truncateResult, out convertE1ToInt, out coerceE1,
+            out convertE1ToFatPointer, errorWr);
           break;
       }
     }
@@ -3309,15 +3326,19 @@ namespace Microsoft.Dafny.Compilers {
     protected override void EmitCollectionDisplay(CollectionType ct, IToken tok, List<Expression> elements,
         bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       wr.Write("{0}.FromElements", TypeHelperName(ct, wr, tok));
-      TrExprList(elements, wr, inLetExprBody, wStmts, typeAt: _ => ct.Arg);
+      TrExprList(elements, wr, inLetExprBody, wStmts, typeAt: _ => ct.Arg, targetUsesFatPointers: true);
     }
 
     protected override void EmitMapDisplay(MapType mt, IToken tok, List<ExpressionPair> elements,
         bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       var arguments = elements.Select(p => {
         var result = new ConcreteSyntaxTree();
-        result.Format($"new Dafny.Pair{BracketList((LineSegment)TypeName(p.A.Type, result, p.A.tok), (LineSegment)TypeName(p.B.Type, result, p.B.tok))}");
-        result.Append(ParensList(Expr(p.A, inLetExprBody, wStmts), Expr(p.B, inLetExprBody, wStmts)));
+        var domainTypeName = BoxedTypeName(p.A.Type, TypeParameter.TPVariance.Co, result, p.A.tok);
+        var rangeTypeName = BoxedTypeName(p.B.Type, TypeParameter.TPVariance.Co, result, p.B.tok);
+        result.Format($"new Dafny.Pair{BracketList((LineSegment)domainTypeName, (LineSegment)rangeTypeName)}");
+        result.Append(ParensList(
+          CoercedExpr(p.A, mt.Domain, inLetExprBody, wStmts, true),
+          CoercedExpr(p.B, mt.Range, inLetExprBody, wStmts, true)));
         return result;
       }).ToArray<ICanRender>();
       wr.Write($"{TypeHelperName(mt, wr, tok)}.FromElements{ParensList(arguments)}");

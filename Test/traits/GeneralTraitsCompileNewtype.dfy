@@ -13,6 +13,7 @@ method Main() {
   Functions.Test();
   Consts.Test();
 //  TailRecursion.Test();
+  Collections.Test();
 }
 
 module Basics {
@@ -418,3 +419,61 @@ module TailRecursion {
   }
 }
 *****/
+
+module Collections {
+  trait Trait { }
+  newtype IntWithParent extends Trait = x: int | 0 <= x < 128
+
+  datatype TestWrapper<XTYPE> = TestWrapperCtor(x: XTYPE, y: IntWithParent)
+
+  method Test() {
+    var mm: IntWithParent := 15;
+    var nn: IntWithParent := 16;
+
+    TestConversions(mm, nn);
+    TestSets(mm, nn);
+    TestUpdateSelect(mm, nn);
+  }
+
+  method TestConversions(mm: IntWithParent, nn: IntWithParent) {
+    var s: seq<IntWithParent> := [mm, mm, mm];
+    var t: seq<Trait> := s;
+    var x: IntWithParent := s[0];
+    var y: Trait := s[1];
+    var z: IntWithParent := y as IntWithParent;
+    assert x == y == z;
+    if x != z {
+      print "BAD!\n";
+    }
+    print x, " ", y, " ", z, "\n"; // 15 15 15
+  }
+
+  method TestSets(mm: IntWithParent, nn: IntWithParent) {
+    var t: set<IntWithParent> := {mm, mm};
+    print |t|, " ", mm in t, "/", mm !in t, " ", nn in t, "/", nn !in t, "\n"; // 1 true/false false/true
+  }
+
+  method TestUpdateSelect(mm: IntWithParent, nn: IntWithParent) {
+    // construct
+    var s: seq<IntWithParent> := [mm, mm, mm];
+    var u: multiset<IntWithParent> := multiset{mm, mm, mm};
+    var m: map<IntWithParent, bool> := map[mm := true];
+    var n: map<bool, IntWithParent> := map[true := mm];
+    print s, " ", u, " ", m, " ", n, "\n"; // [15, 15, 15] multiset{15, 15, 15} map[15 := true] map[true := 15]
+    // update
+    s := s[1 := nn];
+    u := u[nn := 7];
+    m := m[nn := false];
+    n := n[false := nn];
+    // select what was updated
+    print s[1], " ", u[nn], " ", m[nn], " ", n[false], "\n"; // 16 7 false 16
+    // select what was not updated
+    s := s[0 := nn];
+    u := u[nn := 9];
+    m := m[nn := false];
+    n := n[false := nn];
+    print s[2], " ", u[mm], " ", m[mm], " ", n[true], "\n"; // 15 3 true 15
+    // in
+    print mm in s, "/", mm !in s, " ", mm in u, "/", mm !in u, " ", mm in m, "/", mm !in m, "\n"; // true/false true/false true/false
+  }
+}

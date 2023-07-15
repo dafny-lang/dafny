@@ -1316,12 +1316,20 @@ namespace Microsoft.Dafny.Compilers {
       if (ct is SeqType && (!IsJavaPrimitiveType(ct.Arg) || (UnicodeCharEnabled && ct.Arg.IsCharType))) {
         wr.Write(TypeDescriptor(ct.Arg, wr, tok));
         sep = ", ";
+      } else if (ct is SeqType && ct.Arg.HasFatPointer) {
+        // Because the Java backend uses type descriptors for all sequences, types with fat pointers would need _two_
+        // type descriptors, one for the normal value and one for the fat-pointer (boxed) version of the value. Here, we directly
+        // encode the fat-pointer version (without regard to the actual normal default value of the type), since all DafnySequence
+        // really needs to know is that the type descriptor gives rise to an object (not a primitive type).
+        var fatPointerTypeNameWithoutTypeParameters = TypeName(ct.Arg, wr, tok, true, TypeParameter.TPVariance.Co, omitTypeArguments: true);
+        wr.Write($"{DafnyTypeDescriptor}.reference({fatPointerTypeNameWithoutTypeParameters}.class)");
+        sep = ", ";
       }
 
       if (elements.Count != 0) {
         wr.Write(sep);
       }
-      TrExprList(elements, wr, inLetExprBody, wStmts, typeAt: _ => NativeObjectType, parens: false);
+      TrExprList(elements, wr, inLetExprBody, wStmts, typeAt: _ => NativeObjectType, parens: false, targetUsesFatPointers: true);
 
       wr.Write(")");
     }
@@ -1333,11 +1341,8 @@ namespace Microsoft.Dafny.Compilers {
       string sep = "";
       foreach (ExpressionPair p in elements) {
         wr.Write(sep);
-        wr.Write($"new {DafnyTupleClass(2)}(");
-        wr.Append(Expr(p.A, inLetExprBody, wStmts));
-        wr.Write(", ");
-        wr.Append(Expr(p.B, inLetExprBody, wStmts));
-        wr.Write(")");
+        wr.Write($"new {DafnyTupleClass(2)}");
+        TrExprList(new List<Expression>() { p.A, p.B }, wr, inLetExprBody, wStmts, _ => NativeObjectType, targetUsesFatPointers: true);
         sep = ", ";
       }
       wr.Write(")");
@@ -1672,23 +1677,27 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void EmitIndexCollectionSelect(Expression source, Expression index, bool inLetExprBody,
         ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
-      // Taken from C# compiler, assuming source is a DafnySequence type.
-      if (source.Type.AsMultiSetType != null) {
-        wr = EmitCoercionIfNecessary(from: NativeObjectType, to: Type.Int, tok: source.tok, wr: wr);
-        wr.Write($"{DafnyMultiSetClass}.<{BoxedTypeName(source.Type.AsMultiSetType.Arg, TypeParameter.TPVariance.Co, wr, Token.NoToken)}>multiplicity(");
-        TrParenExpr(source, wr, inLetExprBody, wStmts);
-        wr.Write(", ");
-        wr.Append(Expr(index, inLetExprBody, wStmts));
-        wr.Write(")");
-      } else if (source.Type.AsMapType != null) {
-        wr = EmitCoercionIfNecessary(from: NativeObjectType, to: source.Type.AsMapType.Range, tok: source.tok, wr: wr);
-        TrParenExpr(source, wr, inLetExprBody, wStmts);
-        TrParenExpr(".get", index, wr, inLetExprBody, wStmts);
-      } else {
-        wr = EmitCoercionIfNecessary(from: NativeObjectType, to: source.Type.AsCollectionType.Arg, tok: source.tok, wr: wr);
+      var xType = source.Type.NormalizeExpand();
+      if (xType is SeqType seqType) {
+        wr = EmitCoercionIfNecessary(from: NativeObjectType, to: seqType.Arg, tok: source.tok, wr: wr);
         TrParenExpr(source, wr, inLetExprBody, wStmts);
         wr.Write(".select");
         TrParenExprAsInt(index, wr, inLetExprBody, wStmts);
+      } else {
+        base.EmitIndexCollectionSelect(source, index, inLetExprBody, wr, wStmts);
+      }
+    }
+
+    protected override void EmitIndexCollectionSelect(CollectionType collectionType, ConcreteSyntaxTree wr,
+      ConcreteSyntaxTree wSource, ConcreteSyntaxTree wIndex) {
+      if (collectionType is SeqType) {
+        wr.Write($"({wSource}).Select({wIndex})");
+      } else if (collectionType is MultiSetType multiSetType) {
+        var boxTypeName = BoxedTypeName(multiSetType.Arg, TypeParameter.TPVariance.Co, wr, Token.NoToken);
+        wr.Write($"{DafnyMultiSetClass}.<{boxTypeName}>multiplicity({wSource}, {wIndex})");
+      } else {
+        Contract.Assert(collectionType is MapType);
+        wr.Write($"({wSource}).get({wIndex})");
       }
     }
 
@@ -1701,28 +1710,30 @@ namespace Microsoft.Dafny.Compilers {
     protected override void EmitIndexCollectionUpdate(Expression source, Expression index, Expression value,
         CollectionType resultCollectionType, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       var tok = source.tok;
-      if (source.Type.AsSeqType != null) {
+      var sourceValue = Expr(source, inLetExprBody, wStmts);
+      var xType = source.Type.NormalizeExpand();
+      if (xType is SeqType) {
         wr.Write($"{DafnySeqClass}.<{BoxedTypeName(resultCollectionType.Arg, TypeParameter.TPVariance.Co, wr, tok)}>update(");
-        wr.Append(Expr(source, inLetExprBody, wStmts));
+        wr.Append(sourceValue);
         wr.Write(", ");
         TrExprAsInt(index, wr, inLetExprBody, wStmts);
-      } else if (source.Type.AsMapType != null) {
+      } else if (xType is MapType) {
         var mapType = (MapType)resultCollectionType;
         var domain = BoxedTypeName(mapType.Domain, TypeParameter.TPVariance.Co, wr, tok);
         var range = BoxedTypeName(mapType.Range, TypeParameter.TPVariance.Co, wr, tok);
         wr.Write($"{DafnyMapClass}.<{domain}, {range}>update(");
-        wr.Append(Expr(source, inLetExprBody, wStmts));
+        wr.Append(sourceValue);
         wr.Write(", ");
-        wr.Append(Expr(index, inLetExprBody, wStmts));
+        wr.Append(CoercedExpr(index, source.Type.AsMapType.Range, inLetExprBody, wStmts, targetUsesFatPointers: true));
       } else {
-        Contract.Assert(source.Type.AsMultiSetType != null);
+        Contract.Assert(xType is MultiSetType);
         wr.Write($"{DafnyMultiSetClass}.<{BoxedTypeName(resultCollectionType.Arg, TypeParameter.TPVariance.Co, wr, tok)}>update(");
-        wr.Append(Expr(source, inLetExprBody, wStmts));
+        wr.Append(sourceValue);
         wr.Write(", ");
-        wr.Append(Expr(index, inLetExprBody, wStmts));
+        wr.Append(CoercedExpr(index, resultCollectionType.Arg, inLetExprBody, wStmts, targetUsesFatPointers: true));
       }
       wr.Write(", ");
-      wr.Append(CoercedExpr(value, NativeObjectType, inLetExprBody, wStmts));
+      wr.Append(CoercedExpr(value, NativeObjectType, inLetExprBody, wStmts, targetUsesFatPointers: true));
       wr.Write(")");
     }
 
@@ -2108,13 +2119,7 @@ namespace Microsoft.Dafny.Compilers {
         i = 0;
         foreach (var arg in ctor.Formals) {
           if (!arg.IsGhost) {
-            var nm = FieldName(arg, i);
-            w.Write(" && ");
-            if (IsDirectlyComparable(DatatypeWrapperEraser.SimplifyType(Options, arg.Type))) {
-              w.Write($"this.{nm} == o.{nm}");
-            } else {
-              w.Write($"java.util.Objects.equals(this.{nm}, o.{nm})");
-            }
+            EmitFieldEqualityConjunct(FieldName(arg, i), arg.Type, "o", w);
             i++;
           }
         }
@@ -2129,13 +2134,7 @@ namespace Microsoft.Dafny.Compilers {
         i = 0;
         foreach (Formal arg in ctor.Formals) {
           if (!arg.IsGhost) {
-            string nm = FieldName(arg, i);
-            w.Write("hash = ((hash << 5) + hash) + ");
-            if (IsJavaPrimitiveType(arg.Type)) {
-              w.WriteLine($"{BoxedTypeNameOneOff(arg.Type, w, Token.NoToken)}.hashCode(this.{nm});");
-            } else {
-              w.WriteLine($"java.util.Objects.hashCode(this.{nm});");
-            }
+            UpdateHashCode(FieldName(arg, i), arg.Type, w, arg.tok);
             i++;
           }
         }
@@ -2188,6 +2187,23 @@ namespace Microsoft.Dafny.Compilers {
           }
           w.WriteLine($"return {tempVar}.toString();");
         }
+      }
+    }
+
+    private void EmitFieldEqualityConjunct(string fieldName, Type fieldType, string otherName, ConcreteSyntaxTree w) {
+      if (IsDirectlyComparable(DatatypeWrapperEraser.SimplifyType(Options, fieldType))) {
+        w.Write($" && this.{fieldName} == {otherName}.{fieldName}");
+      } else {
+        w.Write($" && java.util.Objects.equals(this.{fieldName}, {otherName}.{fieldName})");
+      }
+    }
+
+    private void UpdateHashCode(string fieldName, Type fieldType, ConcreteSyntaxTree wr, IToken tok) {
+      wr.Write("hash = ((hash << 5) + hash) + ");
+      if (IsJavaPrimitiveType(fieldType)) {
+        wr.WriteLine($"{BoxedTypeNameOneOff(fieldType, wr, tok)}.hashCode(this.{fieldName});");
+      } else {
+        wr.WriteLine($"java.util.Objects.hashCode(this.{fieldName});");
       }
     }
 
@@ -2735,7 +2751,9 @@ namespace Microsoft.Dafny.Compilers {
     protected override void CompileBinOp(BinaryExpr.ResolvedOpcode op, Expression e0, Expression e1, IToken tok,
       Type resultType, out string opString,
       out string preOpString, out string postOpString, out string callString, out string staticCallString,
-      out bool reverseArguments, out bool truncateResult, out bool convertE1_to_int, out bool coerceE1, ConcreteSyntaxTree errorWr) {
+      out bool reverseArguments, out bool truncateResult, out bool convertE1ToInt, out bool coerceE1,
+      out bool convertE1ToFatPointer,
+      ConcreteSyntaxTree errorWr) {
       opString = null;
       preOpString = "";
       postOpString = "";
@@ -2743,8 +2761,9 @@ namespace Microsoft.Dafny.Compilers {
       staticCallString = null;
       reverseArguments = false;
       truncateResult = false;
-      convertE1_to_int = false;
+      convertE1ToInt = false;
       coerceE1 = false;
+      convertE1ToFatPointer = false;
 
       void doPossiblyNativeBinOp(string o, string name, out string preOpS, out string opS,
         out string postOpS, out string callS, out string staticCallS) {
@@ -2867,11 +2886,11 @@ namespace Microsoft.Dafny.Compilers {
         case BinaryExpr.ResolvedOpcode.LeftShift:
           doPossiblyNativeBinOp("<<", "shiftLeft", out preOpString, out opString, out postOpString, out callString, out staticCallString);
           truncateResult = true;
-          convertE1_to_int = AsNativeType(e1.Type) == null;
+          convertE1ToInt = AsNativeType(e1.Type) == null;
           break;
         case BinaryExpr.ResolvedOpcode.RightShift:
           doPossiblyNativeBinOp(">>>", "shiftRight", out preOpString, out opString, out postOpString, out callString, out staticCallString);
-          convertE1_to_int = AsNativeType(e1.Type) == null;
+          convertE1ToInt = AsNativeType(e1.Type) == null;
           break;
         case BinaryExpr.ResolvedOpcode.Add:
           truncateResult = true;
@@ -2952,6 +2971,7 @@ namespace Microsoft.Dafny.Compilers {
         case BinaryExpr.ResolvedOpcode.InSet:
         case BinaryExpr.ResolvedOpcode.InMultiSet:
         case BinaryExpr.ResolvedOpcode.InMap:
+          convertE1ToFatPointer = true;
           callString = $"<{BoxedTypeNameOneOff(e0.Type, errorWr, tok)}>contains";
           reverseArguments = true;
           coerceE1 = true;
@@ -2992,14 +3012,15 @@ namespace Microsoft.Dafny.Compilers {
           staticCallString = $"{DafnySeqClass}.<{BoxedTypeNameOneOff(resultType.AsSeqType.Arg, errorWr, tok)}>concatenate";
           break;
         case BinaryExpr.ResolvedOpcode.InSeq:
+          convertE1ToFatPointer = true;
           callString = "contains";
           reverseArguments = true;
           coerceE1 = true;
           break;
         default:
           base.CompileBinOp(op, e0, e1, tok, resultType,
-            out opString, out preOpString, out postOpString, out callString, out staticCallString, out reverseArguments, out truncateResult, out convertE1_to_int, out coerceE1,
-            errorWr);
+            out opString, out preOpString, out postOpString, out callString, out staticCallString, out reverseArguments, out truncateResult, out convertE1ToInt, out coerceE1,
+            out convertE1ToFatPointer, errorWr);
           break;
       }
     }
@@ -3631,6 +3652,28 @@ namespace Microsoft.Dafny.Compilers {
       EmitToString(wBody, UserDefinedType.FromTopLevelDecl(nt.tok, nt))
         .Write("_value");
       wBody.WriteLine(";");
+
+      // @Override
+      // public boolean equals(Object other) {
+      //   return other instanceof NewtypeName && this._value == ((NewtypeName)other)._value;
+      // }
+      wr.WriteLine("@Override");
+      wBody = wr.NewNamedBlock("public boolean equals(Object other)");
+      wBody.Write($"return other instanceof {IdName(nt)}");
+      EmitFieldEqualityConjunct("_value", UserDefinedType.FromTopLevelDecl(nt.tok, nt), $"(({IdName(nt)})other)", wBody);
+      wBody.WriteLine(";");
+
+      // @Override
+      // public int hashCode() {
+      //   long hash = 5381;
+      //   hash = ((hash << 5) + hash) + java.lang.Byte.hashCode(this._value);
+      //   return (int)hash;
+      // }
+      wr.WriteLine("@Override");
+      wBody = wr.NewNamedBlock("public int hashCode()");
+      wBody.WriteLine("long hash = 5381;");
+      UpdateHashCode("_value", UserDefinedType.FromTopLevelDecl(nt.tok, nt), wBody, nt.tok);
+      wBody.WriteLine("return (int)hash;");
     }
 
     protected override string ArrayIndexToNativeInt(string s, Type type) {
@@ -3914,13 +3957,8 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    protected override ConcreteSyntaxTree EmitCoercionIfNecessary(Type/*?*/ from, Type/*?*/ to, IToken tok, ConcreteSyntaxTree wr) {
-      if (from != null && to != null && from.IsTraitType && to.AsNewtype != null) {
-        return FromFatPointer(to, wr);
-      }
-      if (from != null && to != null && from.AsNewtype != null && to.IsTraitType && (enclosingMethod != null || enclosingFunction != null)) {
-        return ToFatPointer(from, wr);
-      }
+    protected override ConcreteSyntaxTree EmitCoercionIfNecessary(Type @from /*?*/, Type to /*?*/, IToken tok, ConcreteSyntaxTree wr,
+      bool targetUsesFatPointers = false) {
 
       from = from == null ? null : DatatypeWrapperEraser.SimplifyType(Options, from);
       to = to == null ? null : DatatypeWrapperEraser.SimplifyType(Options, to);
@@ -3941,6 +3979,13 @@ namespace Microsoft.Dafny.Compilers {
           wr.Write(")");
           return w;
         }
+      }
+
+      if ((from == null || from.IsTraitType) && to?.AsNewtype != null) {
+        return FromFatPointer(to, wr);
+      }
+      if (from != null && ((to != null && to.IsTraitType) || targetUsesFatPointers) && (enclosingMethod != null || enclosingFunction != null)) {
+        return ToFatPointer(from, wr);
       }
 
       if (IsCoercionNecessary(from, to)) {
