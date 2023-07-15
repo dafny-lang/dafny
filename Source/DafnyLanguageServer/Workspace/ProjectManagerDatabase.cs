@@ -13,23 +13,21 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
   /// Contains a collection of ProjectManagers
   /// </summary>
   public class ProjectManagerDatabase : IProjectDatabase {
-
-    private readonly IServiceProvider services;
+    private readonly CreateProjectManager createProjectManager;
 
     private readonly Dictionary<Uri, ProjectManager> managersByProject = new();
     private readonly Dictionary<Uri, ProjectManager> managersBySourceFile = new();
     private readonly LanguageServerFilesystem fileSystem;
     private readonly VerificationResultCache verificationCache = new();
 
-    public ProjectManagerDatabase(IServiceProvider services) {
-      this.services = services;
-      serverOptions = services.GetRequiredService<DafnyOptions>();
-      this.fileSystem = services.GetRequiredService<LanguageServerFilesystem>();
+    public ProjectManagerDatabase(DafnyOptions serverOptions, LanguageServerFilesystem fileSystem, CreateProjectManager createProjectManager) {
+      this.serverOptions = serverOptions;
+      this.createProjectManager = createProjectManager;
+      this.fileSystem = fileSystem;
     }
 
     public async Task OpenDocument(TextDocumentItem document) {
       fileSystem.OpenDocument(document);
-
       var projectManager = await GetProjectManager(document, true, false)!;
       projectManager!.OpenDocument(document.Uri.ToUri());
     }
@@ -106,7 +104,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           } else {
             await projectManagerForFile.CloseDocument();
           }
-          projectManagerForFile = new ProjectManager(services, verificationCache, project);
+          projectManagerForFile = createProjectManager(verificationCache, project);
           projectManagerForFile.OpenDocument(documentId.Uri.ToUri());
         }
       } else {
@@ -115,7 +113,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           projectManagerForFile = managerForProject;
         } else {
           if (createOnDemand) {
-            projectManagerForFile = new ProjectManager(services, verificationCache, project);
+            projectManagerForFile = createProjectManager(verificationCache, project);
           } else {
             return null;
           }

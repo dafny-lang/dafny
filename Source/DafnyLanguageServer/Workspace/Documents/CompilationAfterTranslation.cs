@@ -1,21 +1,14 @@
 using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.Linq;
 using Microsoft.Boogie;
-using Microsoft.Dafny.LanguageServer.Language;
-using Microsoft.Dafny.LanguageServer.Language.Symbols;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
-using OmniSharp.Extensions.LanguageServer.Protocol;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace;
 
 public class CompilationAfterTranslation : CompilationAfterResolution {
   public CompilationAfterTranslation(
-    IServiceProvider services,
     CompilationAfterResolution compilationAfterResolution,
     IReadOnlyDictionary<Uri, List<DafnyDiagnostic>> diagnostics,
     IReadOnlyList<IImplementationTask> verificationTasks,
@@ -29,18 +22,10 @@ public class CompilationAfterTranslation : CompilationAfterResolution {
     VerificationTasks = verificationTasks;
     Counterexamples = counterexamples;
     ImplementationIdToView = implementationIdToView;
-
-    if (verificationTree != null) {
-      GutterProgressReporter = new VerificationProgressReporter(
-        services.GetRequiredService<ILogger<VerificationProgressReporter>>(),
-        this,
-        services.GetRequiredService<INotificationPublisher>(),
-        services.GetRequiredService<DafnyOptions>(), verificationTree);
-    }
   }
 
   public override VerificationTree? GetVerificationTree() {
-    return GutterProgressReporter?.Tree;
+    return VerificationTree;
   }
 
   public override IEnumerable<DafnyDiagnostic> GetDiagnostics(Uri uri) {
@@ -66,13 +51,13 @@ public class CompilationAfterTranslation : CompilationAfterResolution {
     };
   }
 
-  public IReadOnlyList<IImplementationTask> VerificationTasks { get; set; }
   /// <summary>
   /// Contains the real-time status of all verification efforts.
   /// Can be migrated from a previous document
   /// The position and the range are never sent to the client.
   /// </summary>
-  public IVerificationProgressReporter? GutterProgressReporter { get; set; }
+  public VerificationTree? VerificationTree { get; set; }
+  public IReadOnlyList<IImplementationTask> VerificationTasks { get; set; }
   public List<Counterexample> Counterexamples { get; set; }
   public Dictionary<ImplementationId, ImplementationView> ImplementationIdToView { get; set; }
 }

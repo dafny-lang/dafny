@@ -36,8 +36,8 @@ GhostAllocations-Resolution.dfy(249,22): Error: in a hint, calls are allowed onl
 GhostAllocations-Resolution.dfy(254,18): Error: an assert-by body is not allowed to use 'new'
 GhostAllocations-Resolution.dfy(255,18): Error: an assert-by body is not allowed to use 'new'
 GhostAllocations-Resolution.dfy(255,18): Error: in an assert-by body, calls are allowed only to lemmas
-GhostAllocations-Resolution.dfy(274,11): Error: assignment to non-ghost field is not allowed in this context, because this is a ghost method
 GhostAllocations-Resolution.dfy(285,11): Error: ghost variables such as b are allowed only in specification contexts. b was inferred to be ghost based on its declaration or initialization.
+GhostAllocations-Resolution.dfy(274,11): Error: assignment to non-ghost field is not allowed in this context, because this is a ghost method
 GhostAllocations-Resolution.dfy(303,13): Error: a lemma is not allowed to use 'new'
 GhostAllocations-Resolution.dfy(304,13): Error: a lemma is not allowed to use 'new'
 GhostAllocations-Resolution.dfy(308,15): Error: a lemma is not allowed to use 'new'

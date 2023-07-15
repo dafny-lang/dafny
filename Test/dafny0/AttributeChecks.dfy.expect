@@ -2,82 +2,6 @@
 
 
 module JustAboutEverything {
-  datatype List<T> = Nil | Cons(hd: T, tl: List<T>)
-
-  datatype {:dt 0} {:dt false + 3} Datatype = {:dt k, this} Blue | {:dt 50} Green
-
-  datatype {:dt 0} {:dt false + 3} AnotherDatatype = {:dt 50} Blue | {:dt k, this} Green
-
-  iterator Iter(x: int) yields (y: int)
-    requires {:myAttr false + 3} true
-    modifies {:myAttr false + 3} {}
-    yield requires {:myAttr false + 3} true
-    yield ensures {:myAttr false + 3} true
-    ensures {:myAttr false + 3} true
-    decreases {:myAttr false + 3} x
-  {
-  }
-
-  iterator Jter(x: int) yields (y: int)
-    requires {:myAttr old(3)} true
-    modifies {:myAttr old(3)} {}
-    yield requires {:myAttr old(3)} true
-    yield ensures {:myAttr old(3)} true
-    ensures {:myAttr old(3)} true
-    decreases {:myAttr old(3)} x
-  {
-  }
-
-  iterator Kter(x: int) yields (y: int)
-    requires {:myAttr x, y, ys} true
-    modifies {:myAttr x, y, ys} {}
-    yield requires {:myAttr x, y, ys} true
-    yield ensures {:myAttr x, y, ys} true
-    ensures {:myAttr x, y, ys} true
-    decreases {:myAttr x, y, ys} x
-  {
-  }
-
-  class CClass { }
-
-  class DClass {
-    constructor ()
-    {
-    }
-  }
-
-  datatype Option<+T> = None | Some(value: T) {
-    predicate IsFailure()
-    {
-      None?
-    }
-
-    function PropagateFailure<U>(): Option<U>
-      requires None?
-    {
-      None
-    }
-
-    function Extract(): T
-      requires Some?
-    {
-      value
-    }
-  }
-
-  datatype MustHave<+T> = HasIt | DoesNotHave(value: T) {
-    predicate IsFailure()
-    {
-      DoesNotHave?
-    }
-
-    function PropagateFailure(): Option<T>
-      requires DoesNotHave?
-    {
-      None
-    }
-  }
-
   method If(n: int) returns (k: int)
   {
     var i := 0;
@@ -344,6 +268,82 @@ module JustAboutEverything {
   method GiveOptions() returns (r: Option<int>, s: int)
 
   method GiveMustHave() returns (r: MustHave<int>)
+
+  datatype List<T> = Nil | Cons(hd: T, tl: List<T>)
+
+  datatype {:dt 0} {:dt false + 3} Datatype = {:dt k, this} Blue | {:dt 50} Green
+
+  datatype {:dt 0} {:dt false + 3} AnotherDatatype = {:dt 50} Blue | {:dt k, this} Green
+
+  iterator Iter(x: int) yields (y: int)
+    requires {:myAttr false + 3} true
+    modifies {:myAttr false + 3} {}
+    yield requires {:myAttr false + 3} true
+    yield ensures {:myAttr false + 3} true
+    ensures {:myAttr false + 3} true
+    decreases {:myAttr false + 3} x
+  {
+  }
+
+  iterator Jter(x: int) yields (y: int)
+    requires {:myAttr old(3)} true
+    modifies {:myAttr old(3)} {}
+    yield requires {:myAttr old(3)} true
+    yield ensures {:myAttr old(3)} true
+    ensures {:myAttr old(3)} true
+    decreases {:myAttr old(3)} x
+  {
+  }
+
+  iterator Kter(x: int) yields (y: int)
+    requires {:myAttr x, y, ys} true
+    modifies {:myAttr x, y, ys} {}
+    yield requires {:myAttr x, y, ys} true
+    yield ensures {:myAttr x, y, ys} true
+    ensures {:myAttr x, y, ys} true
+    decreases {:myAttr x, y, ys} x
+  {
+  }
+
+  class CClass { }
+
+  class DClass {
+    constructor ()
+    {
+    }
+  }
+
+  datatype Option<+T> = None | Some(value: T) {
+    predicate IsFailure()
+    {
+      None?
+    }
+
+    function PropagateFailure<U>(): Option<U>
+      requires None?
+    {
+      None
+    }
+
+    function Extract(): T
+      requires Some?
+    {
+      value
+    }
+  }
+
+  datatype MustHave<+T> = HasIt | DoesNotHave(value: T) {
+    predicate IsFailure()
+    {
+      DoesNotHave?
+    }
+
+    function PropagateFailure(): Option<T>
+      requires DoesNotHave?
+    {
+      None
+    }
+  }
 }
 
 module {:myAttr false + 3} {:myAttr old(3)} {:myAttr k} Modu {
@@ -410,36 +410,6 @@ module TopLevelAttributesModule {
   module {:myAttr this} Module {
   }
 }
-AttributeChecks.dfy(104,9): Error: unresolved identifier: k
-AttributeChecks.dfy(104,12): Error: 'this' is not allowed in a 'static' context
-AttributeChecks.dfy(103,30): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like or map-like type (instead got bool)
-AttributeChecks.dfy(103,30): Error: type of right argument to + (int) must agree with the result type (bool)
-AttributeChecks.dfy(107,27): Error: unresolved identifier: k
-AttributeChecks.dfy(107,30): Error: 'this' is not allowed in a 'static' context
-AttributeChecks.dfy(106,30): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like or map-like type (instead got bool)
-AttributeChecks.dfy(106,30): Error: type of right argument to + (int) must agree with the result type (bool)
-AttributeChecks.dfy(211,29): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like or map-like type (instead got bool)
-AttributeChecks.dfy(208,28): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like or map-like type (instead got bool)
-AttributeChecks.dfy(206,28): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like or map-like type (instead got bool)
-AttributeChecks.dfy(207,34): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like or map-like type (instead got bool)
-AttributeChecks.dfy(209,33): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like or map-like type (instead got bool)
-AttributeChecks.dfy(210,27): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like or map-like type (instead got bool)
-AttributeChecks.dfy(211,29): Error: type of right argument to + (int) must agree with the result type (bool)
-AttributeChecks.dfy(208,28): Error: type of right argument to + (int) must agree with the result type (bool)
-AttributeChecks.dfy(206,28): Error: type of right argument to + (int) must agree with the result type (bool)
-AttributeChecks.dfy(207,34): Error: type of right argument to + (int) must agree with the result type (bool)
-AttributeChecks.dfy(209,33): Error: type of right argument to + (int) must agree with the result type (bool)
-AttributeChecks.dfy(210,27): Error: type of right argument to + (int) must agree with the result type (bool)
-AttributeChecks.dfy(221,23): Error: old expressions are not allowed in this context
-AttributeChecks.dfy(218,22): Error: old expressions are not allowed in this context
-AttributeChecks.dfy(216,22): Error: old expressions are not allowed in this context
-AttributeChecks.dfy(217,28): Error: old expressions are not allowed in this context
-AttributeChecks.dfy(231,26): Error: unresolved identifier: y
-AttributeChecks.dfy(231,29): Error: unresolved identifier: ys
-AttributeChecks.dfy(228,25): Error: unresolved identifier: y
-AttributeChecks.dfy(228,28): Error: unresolved identifier: ys
-AttributeChecks.dfy(226,25): Error: unresolved identifier: y
-AttributeChecks.dfy(226,28): Error: unresolved identifier: ys
 AttributeChecks.dfy(19,19): Error: type of left argument to + (int) must agree with the result type (bool)
 AttributeChecks.dfy(19,19): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like or map-like type (instead got bool)
 AttributeChecks.dfy(29,37): Error: type of right argument to + (int) must agree with the result type (bool)
@@ -611,6 +581,36 @@ AttributeChecks.dfy(325,34): Error: type of right argument to + (int) must agree
 AttributeChecks.dfy(329,28): Error: type of right argument to + (int) must agree with the result type (bool)
 AttributeChecks.dfy(335,28): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like or map-like type (instead got bool)
 AttributeChecks.dfy(335,28): Error: type of right argument to + (int) must agree with the result type (bool)
+AttributeChecks.dfy(104,9): Error: unresolved identifier: k
+AttributeChecks.dfy(104,12): Error: 'this' is not allowed in a 'static' context
+AttributeChecks.dfy(103,30): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like or map-like type (instead got bool)
+AttributeChecks.dfy(103,30): Error: type of right argument to + (int) must agree with the result type (bool)
+AttributeChecks.dfy(107,27): Error: unresolved identifier: k
+AttributeChecks.dfy(107,30): Error: 'this' is not allowed in a 'static' context
+AttributeChecks.dfy(106,30): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like or map-like type (instead got bool)
+AttributeChecks.dfy(106,30): Error: type of right argument to + (int) must agree with the result type (bool)
+AttributeChecks.dfy(211,29): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like or map-like type (instead got bool)
+AttributeChecks.dfy(208,28): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like or map-like type (instead got bool)
+AttributeChecks.dfy(206,28): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like or map-like type (instead got bool)
+AttributeChecks.dfy(207,34): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like or map-like type (instead got bool)
+AttributeChecks.dfy(209,33): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like or map-like type (instead got bool)
+AttributeChecks.dfy(210,27): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like or map-like type (instead got bool)
+AttributeChecks.dfy(211,29): Error: type of right argument to + (int) must agree with the result type (bool)
+AttributeChecks.dfy(208,28): Error: type of right argument to + (int) must agree with the result type (bool)
+AttributeChecks.dfy(206,28): Error: type of right argument to + (int) must agree with the result type (bool)
+AttributeChecks.dfy(207,34): Error: type of right argument to + (int) must agree with the result type (bool)
+AttributeChecks.dfy(209,33): Error: type of right argument to + (int) must agree with the result type (bool)
+AttributeChecks.dfy(210,27): Error: type of right argument to + (int) must agree with the result type (bool)
+AttributeChecks.dfy(221,23): Error: old expressions are not allowed in this context
+AttributeChecks.dfy(218,22): Error: old expressions are not allowed in this context
+AttributeChecks.dfy(216,22): Error: old expressions are not allowed in this context
+AttributeChecks.dfy(217,28): Error: old expressions are not allowed in this context
+AttributeChecks.dfy(231,26): Error: unresolved identifier: y
+AttributeChecks.dfy(231,29): Error: unresolved identifier: ys
+AttributeChecks.dfy(228,25): Error: unresolved identifier: y
+AttributeChecks.dfy(228,28): Error: unresolved identifier: ys
+AttributeChecks.dfy(226,25): Error: unresolved identifier: y
+AttributeChecks.dfy(226,28): Error: unresolved identifier: ys
 AttributeChecks.dfy(380,11): Error: unresolved identifier: k
 AttributeChecks.dfy(379,11): Error: old expressions are not allowed in this context
 AttributeChecks.dfy(378,17): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like or map-like type (instead got bool)

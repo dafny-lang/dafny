@@ -4,7 +4,6 @@ using System.IO;
 using System.Linq;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
-using System.Runtime.Caching;
 using System.Threading;
 using System.Threading.Tasks;
 using IntervalTree;
@@ -12,8 +11,6 @@ using Microsoft.Boogie;
 using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.FileSystemGlobbing;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
@@ -29,6 +26,12 @@ public record FilePosition(Uri Uri, Position Position);
 
 // TODO test that it does not send diagnostics for files that it does not own.
 // How do you determine ownership when two projects include the same unopened file?
+public delegate ProjectManager CreateProjectManager(VerificationResultCache verificationResultCache, DafnyProject project);
+
+/// <summary>
+/// Handles operation on a single document.
+/// Handles migration of previously published document state
+/// </summary>
 public class ProjectManager : IDisposable {
   private readonly IRelocator relocator;
 
@@ -58,30 +61,31 @@ public class ProjectManager : IDisposable {
   private readonly SemaphoreSlim workCompletedForCurrentVersion = new(1);
   private readonly DafnyOptions options;
   private readonly DafnyOptions serverOptions;
+  private readonly CreateCompilationManager createCompilationManager;
 
 #pragma warning disable CS8618
-  public ProjectManager(IServiceProvider services, VerificationResultCache verificationCache, DafnyProject project) {
+  public ProjectManager(
+    DafnyOptions serverOptions,
+    ILogger<ProjectManager> logger,
+    IRelocator relocator,
+    CreateCompilationManager createCompilationManager,
+    CreateIdeStateObserver createIdeStateObserver,
+    VerificationResultCache verificationCache, DafnyProject project) {
 #pragma warning restore CS8618
-    this.services = services;
     this.verificationCache = verificationCache;
     Project = project;
-    serverOptions = services.GetRequiredService<DafnyOptions>();
-    logger = services.GetRequiredService<ILogger<ProjectManager>>();
-    relocator = services.GetRequiredService<IRelocator>();
-    services.GetRequiredService<IFileSystem>();
+    this.serverOptions = serverOptions;
+    this.createCompilationManager = createCompilationManager;
+    this.relocator = relocator;
+    this.logger = logger;
 
     Project = project;
     options = DetermineProjectOptions(project, serverOptions);
-    observer = new IdeStateObserver(this.services.GetRequiredService<ILogger<IdeStateObserver>>(),
-      this.services.GetRequiredService<ITelemetryPublisher>(),
-      this.services.GetRequiredService<INotificationPublisher>(),
-      this.services.GetRequiredService<ITextDocumentLoader>(),
-      project);
+    observer = createIdeStateObserver(project);
     boogieEngine = new ExecutionEngine(options, this.verificationCache);
     options.Printer = new OutputLogger(logger);
 
-    CompilationManager = new CompilationManager(
-      this.services,
+    CompilationManager = this.createCompilationManager(
       options,
       boogieEngine,
       new Compilation(version, Project),
@@ -133,11 +137,10 @@ public class ProjectManager : IDisposable {
     logger.LogDebug("Clearing result for workCompletedForCurrentVersion");
 
     CompilationManager.CancelPendingUpdates();
-    CompilationManager = new CompilationManager(
-      services,
-      options,
-      boogieEngine,
-      new Compilation(version, Project),
+    CompilationManager = createCompilationManager(
+                           options,
+                           boogieEngine,
+                           new Compilation(version, Project),
       // TODO do not pass this to CompilationManager but instead use it in FillMissingStateUsingLastPublishedDocument
       migratedVerificationTree
     );
@@ -149,7 +152,6 @@ public class ProjectManager : IDisposable {
 
     CompilationManager.Start();
   }
-
 
   public void TriggerVerificationForFile(Uri triggeringFile) {
     if (VerifyOnOpenChange) {

@@ -30,9 +30,8 @@ using Microsoft.Dafny.Plugins;
 
 namespace Microsoft.Dafny {
 
-  public class DafnyDriver {
+  public class DafnyDriver : IDisposable {
     public DafnyOptions Options { get; }
-
 
     private readonly ExecutionEngine engine;
 
@@ -138,10 +137,11 @@ namespace Microsoft.Dafny {
             return 0;
           }
 
-          var driver = new DafnyDriver(dafnyOptions);
+          using (var driver = new DafnyDriver(dafnyOptions)) {
 #pragma warning disable VSTHRD002
-          exitValue = driver.ProcessFilesAsync(dafnyFiles, otherFiles.AsReadOnly(), dafnyOptions).Result;
+            exitValue = driver.ProcessFilesAsync(dafnyFiles, otherFiles.AsReadOnly(), dafnyOptions).Result;
 #pragma warning restore VSTHRD002
+          }
           break;
         case CommandLineArgumentsResult.PREPROCESSING_ERROR:
           return (int)ExitValue.PREPROCESSING_ERROR;
@@ -881,6 +881,12 @@ namespace Microsoft.Dafny {
       var oldErrorCount = dafnyProgram.Reporter.Count(ErrorLevel.Error);
       var options = dafnyProgram.Options;
       options.Backend.OnPreCompile(dafnyProgram.Reporter, otherFileNames);
+
+      // Now that an internal compiler is instantiated, apply any plugin instrumentation.
+      foreach (var compilerInstrumenter in options.Plugins.SelectMany(p => p.GetCompilerInstrumenters(dafnyProgram.Reporter))) {
+        options.Backend.InstrumentCompiler(compilerInstrumenter, dafnyProgram);
+      }
+
       var compiler = options.Backend;
 
       var hasMain = Compilers.SinglePassCompiler.HasMain(dafnyProgram, out var mainMethod);
@@ -959,6 +965,9 @@ namespace Microsoft.Dafny {
 
     #endregion
 
+    public void Dispose() {
+      engine.Dispose();
+    }
   }
 
   class NoExecutableBackend : IExecutableBackend {
@@ -989,6 +998,10 @@ namespace Microsoft.Dafny {
       string pathsFilename,
       ReadOnlyCollection<string> otherFileNames, object compilationResult, TextWriter outputWriter,
       TextWriter errorWriter) {
+      throw new NotSupportedException();
+    }
+
+    public override void InstrumentCompiler(CompilerInstrumenter instrumenter, Program dafnyProgram) {
       throw new NotSupportedException();
     }
   }

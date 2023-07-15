@@ -30,7 +30,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     private readonly IGhostStateDiagnosticCollector ghostStateDiagnosticCollector;
     protected readonly ICompilationStatusNotificationPublisher statusPublisher;
     protected readonly ILoggerFactory loggerFactory;
-    protected readonly INotificationPublisher NotificationPublisher;
 
     protected TextDocumentLoader(
       ILoggerFactory loggerFactory,
@@ -38,49 +37,43 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       ISymbolResolver symbolResolver,
       ISymbolTableFactory symbolTableFactory,
       IGhostStateDiagnosticCollector ghostStateDiagnosticCollector,
-      ICompilationStatusNotificationPublisher statusPublisher,
-      INotificationPublisher notificationPublisher) {
+      ICompilationStatusNotificationPublisher statusPublisher) {
       this.parser = parser;
       this.symbolResolver = symbolResolver;
       this.symbolTableFactory = symbolTableFactory;
       this.ghostStateDiagnosticCollector = ghostStateDiagnosticCollector;
       this.statusPublisher = statusPublisher;
       this.loggerFactory = loggerFactory;
-      NotificationPublisher = notificationPublisher;
     }
 
     public static TextDocumentLoader Create(
-      DafnyOptions options,
       IDafnyParser parser,
       ISymbolResolver symbolResolver,
       ISymbolTableFactory symbolTableFactory,
       IGhostStateDiagnosticCollector ghostStateDiagnosticCollector,
       ICompilationStatusNotificationPublisher statusPublisher,
-      ILoggerFactory loggerFactory,
-      INotificationPublisher notificationPublisher
+      ILoggerFactory loggerFactory
       ) {
-      return new TextDocumentLoader(loggerFactory, parser, symbolResolver, symbolTableFactory, ghostStateDiagnosticCollector, statusPublisher, notificationPublisher);
+      return new TextDocumentLoader(loggerFactory, parser, symbolResolver, symbolTableFactory, ghostStateDiagnosticCollector, statusPublisher);
     }
 
     public IdeState CreateUnloaded(DafnyProject project) {
       return CreateDocumentWithEmptySymbolTable(project, ImmutableDictionary<Uri, IReadOnlyList<Diagnostic>>.Empty);
     }
 
-    public async Task<CompilationAfterParsing> LoadAsync(DafnyOptions options, Compilation compilation,
-      IFileSystem fileSystem, CancellationToken cancellationToken) {
+    public async Task<CompilationAfterParsing> LoadAsync(DafnyOptions options, Compilation compilation, CancellationToken cancellationToken) {
 #pragma warning disable CS1998
       return await await DafnyMain.LargeStackFactory.StartNew(
-        async () => LoadInternal(options, compilation, fileSystem, cancellationToken), cancellationToken
+        async () => LoadInternal(options, compilation, cancellationToken), cancellationToken
 #pragma warning restore CS1998
         );
     }
 
-    private CompilationAfterParsing LoadInternal(DafnyOptions options, Compilation compilation,
-      IFileSystem fileSystem, CancellationToken cancellationToken) {
+    private CompilationAfterParsing LoadInternal(DafnyOptions options, Compilation compilation, CancellationToken cancellationToken) {
       var project = compilation.Project;
       var errorReporter = new DiagnosticErrorReporter(options, project.Uri);
       statusPublisher.SendStatusNotification(compilation, CompilationStatus.Parsing);
-      var program = parser.Parse(project, fileSystem, errorReporter, cancellationToken);
+      var program = parser.Parse(project, errorReporter, cancellationToken);
       var compilationAfterParsing = new CompilationAfterParsing(compilation, program, errorReporter.AllDiagnosticsCopy);
       if (errorReporter.HasErrors) {
         statusPublisher.SendStatusNotification(compilation, CompilationStatus.ParsingFailed);
