@@ -26,7 +26,7 @@ const b := a + 2;
 ".TrimStart();
 
       var directory = Path.GetRandomFileName();
-      await CreateAndOpenTestDocument("", Path.Combine(directory, "dfyconfig.toml"));
+      await CreateAndOpenTestDocument("", Path.Combine(directory, DafnyProject.FileName));
       var aFile = await CreateAndOpenTestDocument(sourceA, Path.Combine(directory, "A.dfy"));
       var bFile = await CreateAndOpenTestDocument(sourceB, Path.Combine(directory, "B.dfy"));
 

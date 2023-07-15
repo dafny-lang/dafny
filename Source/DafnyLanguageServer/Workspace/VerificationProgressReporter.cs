@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Boogie;
 using Microsoft.Dafny.LanguageServer.Language;
@@ -29,7 +28,9 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
   /// Possibly migrates previous diagnostics
   /// </summary>
   public void RecomputeVerificationTree(CompilationAfterTranslation compilation) {
-    UpdateTree(options, compilation, compilation.VerificationTree);
+    if (compilation.VerificationTree != null) {
+      UpdateTree(options, compilation, compilation.VerificationTree);
+    }
   }
 
   public static void UpdateTree(DafnyOptions options, CompilationAfterParsing parsedCompilation, VerificationTree rootVerificationTree) {
@@ -157,13 +158,14 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
   /// to its original method tree.
   /// Also set the implementation priority depending on the last edited methods 
   /// </summary>
+  /// <param name="implementations">The implementations to be verified</param>
   public virtual void ReportImplementationsBeforeVerification(CompilationAfterTranslation compilation, Implementation[] implementations) {
-    // We migrate existing implementations to the new provided ones if they exist.
-    // (same child number, same file and same position)
     if (compilation.VerificationTree == null) {
       return;
     }
 
+    // We migrate existing implementations to the new provided ones if they exist.
+    // (same child number, same file and same position)
     foreach (var methodTree in compilation.VerificationTree.Children) {
       methodTree.ResetNewChildren();
     }
@@ -213,6 +215,9 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
   /// Triggers sending of the current verification diagnostics to the client
   /// </summary>
   public void ReportRealtimeDiagnostics(CompilationAfterTranslation compilation, bool verificationStarted) {
+    if (compilation.VerificationTree == null) {
+      return;
+    }
     lock (LockProcessing) {
       notificationPublisher.PublishGutterIcons(compilation.InitialIdeState(options), verificationStarted);
     }
@@ -222,7 +227,6 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
   /// Called when the verifier starts verifying an implementation
   /// </summary>
   public void ReportVerifyImplementationRunning(CompilationAfterTranslation compilation, Implementation implementation) {
-
     if (compilation.VerificationTree == null) {
       return;
     }
@@ -297,7 +301,6 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
   /// Called when a split is finished to be verified
   /// </summary>
   public void ReportAssertionBatchResult(CompilationAfterTranslation compilation, AssertionBatchResult batchResult) {
-
     if (compilation.VerificationTree == null) {
       return;
     }
@@ -416,7 +419,6 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
   /// <returns>The top-level verification tree</returns>
   private TopLevelDeclMemberVerificationTree? GetTargetMethodTree(VerificationTree tree,
     Implementation implementation, out ImplementationVerificationTree? implementationTree, bool nameBased = false) {
-
     var targetMethodNode = tree.Children.OfType<TopLevelDeclMemberVerificationTree>().FirstOrDefault(
       node => node?.Position == implementation.tok.GetLspPosition() &&
               node?.Uri == ((IToken)implementation.tok).Uri

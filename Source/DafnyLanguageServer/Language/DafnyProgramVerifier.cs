@@ -20,6 +20,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
   /// this verifier serializes all invocations.
   /// </remarks>
   public class DafnyProgramVerifier : IProgramVerifier {
+    private readonly SemaphoreSlim mutex = new(1);
 
     public DafnyProgramVerifier(ILogger<DafnyProgramVerifier> logger) {
     }
@@ -28,30 +29,41 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       ExecutionEngine engine,
       CompilationAfterResolution compilation,
       CancellationToken cancellationToken) {
-      var program = compilation.Program;
-      var errorReporter = (DiagnosticErrorReporter)program.Reporter;
+      await mutex.WaitAsync(cancellationToken);
+      try {
 
-      cancellationToken.ThrowIfCancellationRequested();
+        var program = compilation.Program;
+        var errorReporter = (DiagnosticErrorReporter)program.Reporter;
 
-      var translated = await DafnyMain.LargeStackFactory.StartNew(() => Translator.Translate(program, errorReporter, new Translator.TranslatorFlags(errorReporter.Options) {
-        InsertChecksums = true,
-        ReportRanges = true
-      }).ToList(), cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
 
-      cancellationToken.ThrowIfCancellationRequested();
+        var translated = await DafnyMain.LargeStackFactory.StartNew(() => Translator.Translate(program, errorReporter, new Translator.TranslatorFlags(errorReporter.Options) {
+          InsertChecksums = true,
+          ReportRanges = true
+        }).ToList(), cancellationToken);
 
-      if (engine.Options.PrintFile != null) {
-        var moduleCount = Translator.VerifiableModules(program).Count();
-        foreach (var (suffix, boogieProgram) in translated) {
-          var fileName = moduleCount > 1 ? DafnyMain.BoogieProgramSuffix(engine.Options.PrintFile, suffix) : engine.Options.PrintFile;
-          ExecutionEngine.PrintBplFile(engine.Options, fileName, boogieProgram, false, false, engine.Options.PrettyPrint);
+        cancellationToken.ThrowIfCancellationRequested();
+
+        if (engine.Options.PrintFile != null) {
+          var moduleCount = Translator.VerifiableModules(program).Count();
+          foreach (var (suffix, boogieProgram) in translated) {
+            var fileName = moduleCount > 1 ? DafnyMain.BoogieProgramSuffix(engine.Options.PrintFile, suffix) : engine.Options.PrintFile;
+            ExecutionEngine.PrintBplFile(engine.Options, fileName, boogieProgram, false, false, engine.Options.PrettyPrint);
+          }
         }
-      }
 
-      return translated.SelectMany(t => {
-        var (_, boogieProgram) = t;
-        return engine.GetImplementationTasks(boogieProgram);
-      }).ToList();
+        return translated.SelectMany(t => {
+          var (_, boogieProgram) = t;
+          return engine.GetImplementationTasks(boogieProgram);
+        }).ToList();
+      }
+      finally {
+        mutex.Release();
+      }
+    }
+
+    public void Dispose() {
+      mutex.Dispose();
     }
   }
 }

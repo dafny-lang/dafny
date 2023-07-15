@@ -4,13 +4,20 @@ using System.IO;
 using System.Linq;
 using DafnyCore.Options;
 using Microsoft.Extensions.FileSystemGlobbing.Abstractions;
+using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
+using Serilog.Core;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace;
 
 public class LanguageServerFilesystem : IFileSystem {
+  private readonly ILogger<LanguageServerFilesystem> logger;
 
-  internal class Entry {
+  public LanguageServerFilesystem(ILogger<LanguageServerFilesystem> logger) {
+    this.logger = logger;
+  }
+
+  private class Entry {
     public TextBuffer Buffer { get; set; }
     public int Version { get; set; }
 
@@ -61,8 +68,9 @@ public class LanguageServerFilesystem : IFileSystem {
   public void CloseDocument(TextDocumentIdentifier document) {
     var uri = document.Uri.ToUri();
 
+    logger.LogWarning($"Closing document {document.Uri}");
     if (!openFiles.TryRemove(uri, out _)) {
-      throw new InvalidOperationException($"Cannot close file {uri} because it was not open.");
+      logger.LogError($"Could not close file {uri} because it was not open.");
     }
   }
 

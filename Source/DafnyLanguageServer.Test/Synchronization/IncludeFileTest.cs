@@ -49,6 +49,18 @@ method Test() {
   }
 
   [Fact]
+  public async Task NonErrorDiagnosticDoesNotProduceAnError() {
+    var source = @"
+include ""./hasWarning.dfy""
+".TrimStart();
+    var warningSource = "const tooManySemiColons := 3;";
+    await CreateAndOpenTestDocument(warningSource, Path.Combine(TestFileDirectory, "hasWarning.dfy"));
+    await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
+    await CreateAndOpenTestDocument(source, TestFilePath);
+    await AssertNoDiagnosticsAreComing(CancellationToken);
+  }
+
+  [Fact]
   public async Task DirectlyIncludedFileFails() {
     var source = @"
 include ""./syntaxError.dfy""

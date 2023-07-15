@@ -1,5 +1,7 @@
 ﻿using Microsoft.Extensions.Logging;
 using System;
+using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading;
 using Microsoft.Dafny.LanguageServer.Workspace;
@@ -13,7 +15,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
   /// dafny-lang makes use of static members and assembly loading. Since thread-safety of this is not guaranteed,
   /// this parser serializes all invocations.
   /// </remarks>
-  public sealed class DafnyLangParser : IDafnyParser, IDisposable {
+  public sealed class DafnyLangParser : IDafnyParser {
     private readonly DafnyOptions options;
     private readonly IFileSystem fileSystem;
     private readonly ITelemetryPublisher telemetryPublisher;
@@ -38,18 +40,21 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       return new DafnyLangParser(options, fileSystem, telemetryPublisher, loggerFactory);
     }
 
-    public Program Parse(DafnyProject project, ErrorReporter reporter,
-      CancellationToken cancellationToken) {
+    public Program Parse(DafnyProject project, ErrorReporter reporter, CancellationToken cancellationToken) {
       mutex.Wait(cancellationToken);
 
       var beforeParsing = DateTime.Now;
       try {
         var rootSourceUris = project.GetRootSourceUris(fileSystem, options).Concat(options.CliRootSourceUris);
-        var result = cachingParser.ParseFiles(project.ProjectName,
-          rootSourceUris.Select(uri =>
-            new DafnyFile(reporter.Options, uri, fileSystem.ReadFile(uri))
-          ).ToList(),
-          reporter, cancellationToken);
+        List<DafnyFile> dafnyFiles = new();
+        foreach (var rootSourceUri in rootSourceUris) {
+          try {
+            dafnyFiles.Add(new DafnyFile(reporter.Options, rootSourceUri, fileSystem.ReadFile(rootSourceUri)));
+          } catch (FileNotFoundException e) {
+            logger.LogError($"Tried to parse file {rootSourceUri} that could not be found");
+          }
+        }
+        var result = cachingParser.ParseFiles(project.ProjectName, dafnyFiles, reporter, cancellationToken);
         cachingParser.Prune();
         return result;
       }
@@ -57,10 +62,6 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         telemetryPublisher.PublishTime("Parse", project.Uri.ToString(), DateTime.Now - beforeParsing);
         mutex.Release();
       }
-    }
-
-    public void Dispose() {
-      mutex.Dispose();
     }
   }
 }

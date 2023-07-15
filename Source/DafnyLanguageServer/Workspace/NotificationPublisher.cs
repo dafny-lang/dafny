@@ -62,7 +62,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
       return state.ImplementationIdToView.GroupBy(kv => kv.Key.Uri).
         ToDictionary(kv => kv.Key, kvs =>
-        new FileVerificationStatus(kvs.Key, null,
+        new FileVerificationStatus(kvs.Key, state.Compilation.Version,
           GetNamedVerifiableStatuses(kvs.Select(kv => kv.Value))));
     }
 
@@ -109,13 +109,14 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         if (key == state.Compilation.Project.Uri) {
           diagnostics.AddRange(value);
         } else {
-          if (!value.Any()) {
+          var errors = value.Where(d => d.Severity == DiagnosticSeverity.Error).ToList();
+          if (!errors.Any()) {
             continue;
           }
 
           diagnostics.Add(new Diagnostic {
             Range = new Range(0, 0, 0, 1),
-            Message = $"the referenced file {key.LocalPath} contains error(s). The first one is: {value.First().Message}",
+            Message = $"the referenced file {key.LocalPath} contains error(s). The first one is: {errors.First().Message}",
             Severity = DiagnosticSeverity.Error,
             Source = MessageSource.Parser.ToString()
           });

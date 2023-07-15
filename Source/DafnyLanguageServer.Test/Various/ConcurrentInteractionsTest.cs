@@ -166,7 +166,7 @@ method Multiply(x: int, y: int) returns (product: int)
 }".TrimStart();
       var loadingDocuments = new List<TextDocumentItem>();
       for (int i = 0; i < documentsToLoadConcurrently; i++) {
-        var documentItem = CreateTestDocument(source, $"test_{i}.dfy");
+        var documentItem = CreateTestDocument(source, $"current_test_{i}.dfy");
         client.OpenDocument(documentItem);
         loadingDocuments.Add(documentItem);
       }

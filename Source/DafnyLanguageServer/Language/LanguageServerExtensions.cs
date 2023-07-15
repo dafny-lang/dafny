@@ -40,14 +40,14 @@ namespace Microsoft.Dafny.LanguageServer.Language {
             documentIdentifier))
         .AddSingleton<IVerificationProgressReporter, VerificationProgressReporter>()
         .AddSingleton(CreateVerifier)
-        .AddSingleton<CreateCompilationManager>(serviceProvider => (options, boogieEngine, compilation, migratedVerificationTree) => new CompilationManager(
+        .AddSingleton<CreateCompilationManager>(serviceProvider => (options, engine, compilation, migratedVerificationTree) => new CompilationManager(
           serviceProvider.GetRequiredService<ILogger<CompilationManager>>(),
           serviceProvider.GetRequiredService<ITextDocumentLoader>(),
           serviceProvider.GetRequiredService<INotificationPublisher>(),
           serviceProvider.GetRequiredService<IProgramVerifier>(),
           serviceProvider.GetRequiredService<ICompilationStatusNotificationPublisher>(),
           serviceProvider.GetRequiredService<IVerificationProgressReporter>(),
-          options, boogieEngine, compilation, migratedVerificationTree
+          options, engine, compilation, migratedVerificationTree
           ))
         .AddSingleton<ISymbolTableFactory, SymbolTableFactory>()
         .AddSingleton<IGhostStateDiagnosticCollector, GhostStateDiagnosticCollector>();

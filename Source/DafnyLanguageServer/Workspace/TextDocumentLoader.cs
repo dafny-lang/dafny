@@ -61,7 +61,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       return CreateDocumentWithEmptySymbolTable(project, ImmutableDictionary<Uri, IReadOnlyList<Diagnostic>>.Empty);
     }
 
-    public async Task<CompilationAfterParsing> LoadAsync(DafnyOptions options, Compilation compilation, CancellationToken cancellationToken) {
+    public async Task<CompilationAfterParsing> LoadAsync(DafnyOptions options, Compilation compilation,
+      CancellationToken cancellationToken) {
 #pragma warning disable CS1998
       return await await DafnyMain.LargeStackFactory.StartNew(
         async () => LoadInternal(options, compilation, cancellationToken), cancellationToken
@@ -69,7 +70,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         );
     }
 
-    private CompilationAfterParsing LoadInternal(DafnyOptions options, Compilation compilation, CancellationToken cancellationToken) {
+    private CompilationAfterParsing LoadInternal(DafnyOptions options, Compilation compilation,
+      CancellationToken cancellationToken) {
       var project = compilation.Project;
       var errorReporter = new DiagnosticErrorReporter(options, project.Uri);
       statusPublisher.SendStatusNotification(compilation, CompilationStatus.Parsing);

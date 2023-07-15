@@ -1,8 +1,14 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using Microsoft.Boogie;
+using Microsoft.Dafny.LanguageServer.Language;
+using Microsoft.Dafny.LanguageServer.Language.Symbols;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using OmniSharp.Extensions.LanguageServer.Protocol;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace;
@@ -19,6 +25,7 @@ public class CompilationAfterTranslation : CompilationAfterResolution {
     : base(compilationAfterResolution, diagnostics,
       compilationAfterResolution.SymbolTable, compilationAfterResolution.SignatureAndCompletionTable,
       compilationAfterResolution.GhostDiagnostics) {
+    VerificationTree = verificationTree;
     VerificationTasks = verificationTasks;
     Counterexamples = counterexamples;
     ImplementationIdToView = implementationIdToView;
@@ -51,13 +58,13 @@ public class CompilationAfterTranslation : CompilationAfterResolution {
     };
   }
 
+  public IReadOnlyList<IImplementationTask> VerificationTasks { get; set; }
   /// <summary>
   /// Contains the real-time status of all verification efforts.
   /// Can be migrated from a previous document
   /// The position and the range are never sent to the client.
   /// </summary>
   public VerificationTree? VerificationTree { get; set; }
-  public IReadOnlyList<IImplementationTask> VerificationTasks { get; set; }
   public List<Counterexample> Counterexamples { get; set; }
   public Dictionary<ImplementationId, ImplementationView> ImplementationIdToView { get; set; }
 }
