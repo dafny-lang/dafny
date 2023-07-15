@@ -1153,7 +1153,7 @@ namespace Microsoft.Dafny.Compilers {
       var xType = source.Type.NormalizeExpand();
       if (xType is SeqType seqType) {
         var wSource = Expr(source, inLetExprBody, wStmts);
-        var wIndex = Expr(index, inLetExprBody, wStmts);
+        var wIndex = ExprAsSizeT(index, inLetExprBody, wStmts);
         wr = EmitCoercionIfNecessary(null, seqType.Arg, source.tok, wr, true);
         EmitIndexCollectionSelect(seqType, wr, wSource, wIndex);
       } else if (xType is MultiSetType multiSetType) {
@@ -1180,7 +1180,7 @@ namespace Microsoft.Dafny.Compilers {
       var xType = source.Type.NormalizeExpand();
       var wSource = Expr(source, inLetExprBody, wStmts);
       if (xType is SeqType seqType) {
-        var wIndex = Expr(index, inLetExprBody, wStmts);
+        var wIndex = ExprAsSizeT(index, inLetExprBody, wStmts);
         var wValue = CoercedExpr(value, seqType.ValueArg, inLetExprBody, wStmts, targetUsesFatPointers: true);
         EmitIndexCollectionUpdate(seqType, wr, wSource, wIndex, wValue);
       } else if (xType is MultiSetType multiSetType) {
@@ -4860,6 +4860,10 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected virtual void WriteCast(string s, ConcreteSyntaxTree wr) { }
+
+    protected virtual ConcreteSyntaxTree ExprAsSizeT(Expression expr, bool inLetExprBody, ConcreteSyntaxTree wStmts) {
+      return Expr(expr, inLetExprBody, wStmts);
+    }
 
     protected ConcreteSyntaxTree CoercedExpr(Expression expr, Type toType, bool inLetExprBody, ConcreteSyntaxTree wStmts, bool targetUsesFatPointers = false) {
       var result = new ConcreteSyntaxTree();

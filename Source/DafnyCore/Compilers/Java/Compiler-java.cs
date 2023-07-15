@@ -1675,23 +1675,10 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    protected override void EmitIndexCollectionSelect(Expression source, Expression index, bool inLetExprBody,
-        ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
-      var xType = source.Type.NormalizeExpand();
-      if (xType is SeqType seqType) {
-        wr = EmitCoercionIfNecessary(from: NativeObjectType, to: seqType.Arg, tok: source.tok, wr: wr);
-        TrParenExpr(source, wr, inLetExprBody, wStmts);
-        wr.Write(".select");
-        TrParenExprAsInt(index, wr, inLetExprBody, wStmts);
-      } else {
-        base.EmitIndexCollectionSelect(source, index, inLetExprBody, wr, wStmts);
-      }
-    }
-
     protected override void EmitIndexCollectionSelect(CollectionType collectionType, ConcreteSyntaxTree wr,
       ConcreteSyntaxTree wSource, ConcreteSyntaxTree wIndex) {
       if (collectionType is SeqType) {
-        wr.Write($"({wSource}).Select({wIndex})");
+        wr.Write($"({wSource}).select({wIndex})");
       } else if (collectionType is MultiSetType multiSetType) {
         var boxTypeName = BoxedTypeName(multiSetType.Arg, TypeParameter.TPVariance.Co, wr, Token.NoToken);
         wr.Write($"{DafnyMultiSetClass}.<{boxTypeName}>multiplicity({wSource}, {wIndex})");
@@ -1707,34 +1694,20 @@ namespace Microsoft.Dafny.Compilers {
       wr.Write(".asDafnyMultiset()");
     }
 
-    protected override void EmitIndexCollectionUpdate(Expression source, Expression index, Expression value,
-        CollectionType resultCollectionType, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
-      var tok = source.tok;
-      var sourceValue = Expr(source, inLetExprBody, wStmts);
-      var xType = source.Type.NormalizeExpand();
-      if (xType is SeqType) {
-        wr.Write($"{DafnySeqClass}.<{BoxedTypeName(resultCollectionType.Arg, TypeParameter.TPVariance.Co, wr, tok)}>update(");
-        wr.Append(sourceValue);
-        wr.Write(", ");
-        TrExprAsInt(index, wr, inLetExprBody, wStmts);
-      } else if (xType is MapType) {
-        var mapType = (MapType)resultCollectionType;
-        var domain = BoxedTypeName(mapType.Domain, TypeParameter.TPVariance.Co, wr, tok);
-        var range = BoxedTypeName(mapType.Range, TypeParameter.TPVariance.Co, wr, tok);
-        wr.Write($"{DafnyMapClass}.<{domain}, {range}>update(");
-        wr.Append(sourceValue);
-        wr.Write(", ");
-        wr.Append(CoercedExpr(index, source.Type.AsMapType.Range, inLetExprBody, wStmts, targetUsesFatPointers: true));
+    protected override void EmitIndexCollectionUpdate(CollectionType collectionType, ConcreteSyntaxTree wr, ConcreteSyntaxTree wSource, ConcreteSyntaxTree wIndex,
+      ConcreteSyntaxTree wValue) {
+      if (collectionType is SeqType seqType) {
+        var boxTypeName = BoxedTypeName(seqType.Arg, TypeParameter.TPVariance.Co, wr, collectionType.tok);
+        wr.Write($"{DafnySeqClass}.<{boxTypeName}>update({wSource}, {wIndex}, {wValue})");
+      } else if (collectionType is MultiSetType multiSetType) {
+        var boxTypeName = BoxedTypeName(multiSetType.Arg, TypeParameter.TPVariance.Co, wr, collectionType.tok);
+        wr.Write($"{DafnyMultiSetClass}.<{boxTypeName}>update({wSource}, {wIndex}, {wValue})");
       } else {
-        Contract.Assert(xType is MultiSetType);
-        wr.Write($"{DafnyMultiSetClass}.<{BoxedTypeName(resultCollectionType.Arg, TypeParameter.TPVariance.Co, wr, tok)}>update(");
-        wr.Append(sourceValue);
-        wr.Write(", ");
-        wr.Append(CoercedExpr(index, resultCollectionType.Arg, inLetExprBody, wStmts, targetUsesFatPointers: true));
+        var mapType = (MapType)collectionType;
+        var domain = BoxedTypeName(mapType.Domain, TypeParameter.TPVariance.Co, wr, collectionType.tok);
+        var range = BoxedTypeName(mapType.Range, TypeParameter.TPVariance.Co, wr, collectionType.tok);
+        wr.Write($"{DafnyMapClass}.<{domain}, {range}>update({wSource}, {wIndex}, {wValue})");
       }
-      wr.Write(", ");
-      wr.Append(CoercedExpr(value, NativeObjectType, inLetExprBody, wStmts, targetUsesFatPointers: true));
-      wr.Write(")");
     }
 
     protected override void EmitRotate(Expression e0, Expression e1, bool isRotateLeft, ConcreteSyntaxTree wr,
@@ -3687,6 +3660,12 @@ namespace Microsoft.Dafny.Compilers {
       } else {
         return $"{DafnyHelpersClass}.toInt({s})";
       }
+    }
+
+    protected override ConcreteSyntaxTree ExprAsSizeT(Expression expr, bool inLetExprBody, ConcreteSyntaxTree wStmts) {
+      var wr = new ConcreteSyntaxTree();
+      TrExprAsInt(expr, wr, inLetExprBody, wStmts);
+      return wr;
     }
 
     // if checkRange is false, msg is ignored

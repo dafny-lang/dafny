@@ -2861,7 +2861,12 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    // This will probably move up to the superclass once more compilers are using dafnyRuntime.dfy
+    protected override ConcreteSyntaxTree ExprAsSizeT(Expression expr, bool inLetExprBody, ConcreteSyntaxTree wStmts) {
+      var wr = new ConcreteSyntaxTree();
+      TrExprToSizeT(expr, inLetExprBody, wr, wStmts);
+      return wr;
+    }
+
     protected void TrExprToSizeT(Expression expr, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       if (expr is LiteralExpr lit) {
         wr.Write(lit.Value.ToString());
@@ -2877,32 +2882,15 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    protected override void EmitIndexCollectionSelect(Expression source, Expression index, bool inLetExprBody,
-        ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
-      var type = source.Type.NormalizeExpand();
-      if (type is SeqType seqType) {
-        wr = EmitCoercionIfNecessary(null, seqType.Arg, source.tok, wr, true);
-        TrParenExpr(source, wr, inLetExprBody, wStmts);
-        wr.Write(".Select(");
-        TrExprToSizeT(index, inLetExprBody, wr, wStmts);
-        wr.Write(")");
-      } else if (type is MapType mapType) {
-        wr = EmitCoercionIfNecessary(null, mapType.Range, source.tok, wr, true);
-        TrParenExpr(source, wr, inLetExprBody, wStmts);
-        wr.Write(".Get(");
-        wr.Append(CoercedExpr(index, mapType.Domain, inLetExprBody, wStmts, true));
-        wr.Write(")");
-      } else {
-        base.EmitIndexCollectionSelect(source, index, inLetExprBody, wr, wStmts);
-      }
-    }
-
     protected override void EmitIndexCollectionSelect(CollectionType collectionType, ConcreteSyntaxTree wr,
       ConcreteSyntaxTree wSource, ConcreteSyntaxTree wIndex) {
-      if (collectionType is MultiSetType) {
+      if (collectionType is SeqType) {
+        wr.Write($"({wSource}).Select({wIndex})");
+      } else if (collectionType is MultiSetType) {
         wr.Write($"({wSource}).Multiplicity({wIndex})");
       } else {
-        base.EmitIndexCollectionSelect(collectionType, wr, wSource, wIndex);
+        Contract.Assert(collectionType is MapType);
+        wr.Write($"({wSource}).Get({wIndex})");
       }
     }
 
