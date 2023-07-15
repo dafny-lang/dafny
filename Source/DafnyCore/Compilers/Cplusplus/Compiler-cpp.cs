@@ -2414,7 +2414,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void EmitSetBuilder_Add(CollectionType ct, string collName, Expression elmt, bool inLetExprBody, ConcreteSyntaxTree wr) {
-      Contract.Assume(ct is SetType || ct is MultiSetType);  // follows from precondition
+      Contract.Assume(ct is SetType or MultiSetType);  // follows from precondition
       if (ct is MultiSetType) {
         // This should never occur since there is no syntax for multiset comprehensions yet
         throw new cce.UnreachableException();
