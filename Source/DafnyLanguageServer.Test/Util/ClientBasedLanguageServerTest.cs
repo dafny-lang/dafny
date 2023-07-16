@@ -236,12 +236,14 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
     Assert.Equal(verificationDocumentItem.Uri, hideReport.Uri);
   }
 
-  public async Task AssertNoDiagnosticsAreComing(CancellationToken cancellationToken) {
-    foreach (var entry in Projects.Managers) {
-      try {
-        await entry.GetLastDocumentAsync();
-      } catch (TaskCanceledException) {
+  public async Task AssertNoDiagnosticsAreComing(CancellationToken cancellationToken, bool waitFirst = true) {
+    if (waitFirst) {
+      foreach (var entry in Projects.Managers) {
+        try {
+          await entry.GetLastDocumentAsync();
+        } catch (TaskCanceledException) {
 
+        }
       }
     }
     var verificationDocumentItem = CreateTestDocument("class X {does not parse", $"AssertNoDiagnosticsAreComing{fileIndex++}.dfy");

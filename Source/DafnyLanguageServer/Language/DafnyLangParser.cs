@@ -50,7 +50,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         foreach (var rootSourceUri in rootSourceUris) {
           try {
             dafnyFiles.Add(new DafnyFile(reporter.Options, rootSourceUri, fileSystem.ReadFile(rootSourceUri)));
-          } catch (FileNotFoundException e) {
+          } catch (IOException e) {
             logger.LogError($"Tried to parse file {rootSourceUri} that could not be found");
           }
         }
