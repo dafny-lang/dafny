@@ -294,11 +294,10 @@ namespace Microsoft.Dafny.Compilers {
       int numberOfEmittedTypeDescriptors = 0;
       if (typeParametersForClass != null) {
         var sep = "";
-        var j = 0;
-        foreach (var ta in TypeArgumentInstantiation.ListFromFormals(typeParametersForClass)) {
+        foreach (var (ta, index) in TypeArgumentInstantiation.ListFromFormals(typeParametersForClass).Indexed()) {
           if (NeedsTypeDescriptor(ta.Formal)) {
-            var fieldName = FormatTypeDescriptorVariable((alternateTypeParameters == null ? ta.Formal : alternateTypeParameters[j]).GetCompileName(Options));
-            var actualType = alternateTypeParameters == null ? ta.Actual : new UserDefinedType(ta.Formal.tok, alternateTypeParameters[j]);
+            var fieldName = FormatTypeDescriptorVariable((alternateTypeParameters == null ? ta.Formal : alternateTypeParameters[index]).GetCompileName(Options));
+            var actualType = alternateTypeParameters == null ? ta.Actual : new UserDefinedType(ta.Formal.tok, alternateTypeParameters[index]);
             var paramName = TypeDescriptor(actualType, wError, ta.Formal.tok);
             var decl = $"{DafnyTypeDescriptor}<{TypeName(actualType, wError, ta.Formal.tok)}> {fieldName}";
 
@@ -312,7 +311,6 @@ namespace Microsoft.Dafny.Compilers {
             sep = ", ";
             numberOfEmittedTypeDescriptors++;
           }
-          j++;
         }
       }
       return numberOfEmittedTypeDescriptors;
