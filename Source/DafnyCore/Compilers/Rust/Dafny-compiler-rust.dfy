@@ -110,7 +110,20 @@ module {:extern "DCOMP"} DCOMP {
 
       printImpl := printImpl + "}\n}\n}\n";
 
-      s := enumBody + "\n" + printImpl;
+      var defaultImpl := "";
+      if |c.ctors| > 0 {
+        defaultImpl := "impl Default for " + c.name + " {\n" + "fn default() -> Self {\n" + c.name + "::" + c.ctors[0].name + " {\n";
+        i := 0;
+        while i < |c.ctors[0].args| {
+          var formal := c.ctors[0].args[i];
+          defaultImpl := defaultImpl + formal.name + ": Default::default(),\n";
+          i := i + 1;
+        }
+
+        defaultImpl := defaultImpl + "}\n}\n}\n";
+      }
+
+      s := enumBody + "\n" + printImpl + "\n" + defaultImpl;
     }
 
     static method GenType(c: Type) returns (s: string) {
@@ -170,6 +183,9 @@ module {:extern "DCOMP"} DCOMP {
 
     static method GenMethod(m: Method) returns (s: string) {
       var params := GenParams(m.params);
+      if (!m.isStatic) {
+        params := "&self, " + params;
+      }
 
       var retType := if |m.outTypes| != 1 then "(" else "";
 
@@ -328,7 +344,7 @@ module {:extern "DCOMP"} DCOMP {
         }
         case Print(e) => {
           var printedExpr := GenExpr(e);
-          generated := "print!(\"{}\", ::dafny_runtime::DafnyPrintWrapper(" + printedExpr + "));";
+          generated := "print!(\"{}\", ::dafny_runtime::DafnyPrintWrapper(&" + printedExpr + "));";
         }
         case Todo(reason) => {
           generated := "todo!(\"" + reason + "\");";
@@ -403,7 +419,7 @@ module {:extern "DCOMP"} DCOMP {
           var right := GenExpr(r);
           s := "(" + left + " " + op + " " + right + ")";
         }
-        case Call(enclosing, name, args) => {
+        case Call(enclosing, on, name, args) => {
           var argString := "";
           var i := 0;
           while i < |args| {
@@ -424,7 +440,13 @@ module {:extern "DCOMP"} DCOMP {
               enclosingString := enclosingString + "::";
             }
             case None => {
-              enclosingString := "";
+              match on {
+                case Some(e) => {
+                  enclosingString := GenExpr(e);
+                  enclosingString := enclosingString + ".";
+                }
+                case None => {}
+              }
             }
           }
 

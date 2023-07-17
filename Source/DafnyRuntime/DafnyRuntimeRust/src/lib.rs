@@ -1,7 +1,7 @@
 use std::fmt::{Display, Formatter};
 
 pub struct DafnyPrintWrapper<T>(pub T);
-impl <T: DafnyPrint> Display for DafnyPrintWrapper<T> {
+impl <T: DafnyPrint> Display for DafnyPrintWrapper<&T> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         self.0.fmt_print(f)
     }

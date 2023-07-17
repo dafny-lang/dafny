@@ -161,11 +161,11 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     public void AddMethod(DAST.Method item) {
-      // TODO
+      body.Add((ClassItem)ClassItem.create_Method(item));
     }
 
     public void AddField(DAST.Formal item) {
-      // TODO
+      throw new NotImplementedException();
     }
 
     public object Finish() {
@@ -184,8 +184,8 @@ namespace Microsoft.Dafny.Compilers {
 
     void AddField(DAST.Formal item);
 
-    public MethodBuilder Method(string name, List<DAST.Type> typeArgs, List<DAST.Formal> params_, List<DAST.Type> outTypes, List<ISequence<Rune>> outVars) {
-      return new MethodBuilder(this, name, typeArgs, params_, outTypes, outVars);
+    public MethodBuilder Method(bool isStatic, string name, List<DAST.Type> typeArgs, List<DAST.Formal> params_, List<DAST.Type> outTypes, List<ISequence<Rune>> outVars) {
+      return new MethodBuilder(this, isStatic, name, typeArgs, params_, outTypes, outVars);
     }
 
     public object Finish();
@@ -195,14 +195,16 @@ namespace Microsoft.Dafny.Compilers {
     public DafnyCompiler compiler { get => parent.compiler; }
     readonly ClassLike parent;
     readonly string name;
+    readonly bool isStatic;
     readonly List<DAST.Type> typeArgs;
     readonly List<DAST.Formal> params_;
     readonly List<DAST.Type> outTypes;
     readonly List<ISequence<Rune>> outVars;
     readonly List<object> body = new();
 
-    public MethodBuilder(ClassLike parent, string name, List<DAST.Type> typeArgs, List<DAST.Formal> params_, List<DAST.Type> outTypes, List<ISequence<Rune>> outVars) {
+    public MethodBuilder(ClassLike parent, bool isStatic, string name, List<DAST.Type> typeArgs, List<DAST.Formal> params_, List<DAST.Type> outTypes, List<ISequence<Rune>> outVars) {
       this.parent = parent;
+      this.isStatic = isStatic;
       this.name = name;
       this.typeArgs = typeArgs;
       this.params_ = params_;
@@ -231,6 +233,7 @@ namespace Microsoft.Dafny.Compilers {
       }
 
       return (DAST.Method)DAST.Method.create(
+        isStatic,
         Sequence<Rune>.UnicodeFromString(this.name),
         Sequence<DAST.Type>.FromArray(typeArgs.ToArray()),
         Sequence<DAST.Formal>.FromArray(params_.ToArray()),
@@ -583,6 +586,7 @@ namespace Microsoft.Dafny.Compilers {
     public readonly ExprContainer parent;
 
     DAST.Type enclosing = null;
+    DAST.Expression on = null;
     string name = null;
     readonly List<DAST.Expression> args = new();
     List<ISequence<Rune>> outs = null;
@@ -608,6 +612,11 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     public void AddExpr(DAST.Expression value) {
+      if (enclosing == null && on == null) {
+        on = value;
+        return;
+      }
+
       args.Add(value);
     }
 
@@ -622,6 +631,7 @@ namespace Microsoft.Dafny.Compilers {
     public object Finish() {
       parent.AddExpr((DAST.Expression)DAST.Expression.create_Call(
         enclosing == null ? DAST.Optional<DAST._IType>.create_None() : DAST.Optional<DAST._IType>.create_Some(enclosing),
+        on == null ? DAST.Optional<DAST._IExpression>.create_None() : DAST.Optional<DAST._IExpression>.create_Some(on),
         Sequence<Rune>.UnicodeFromString(name),
         Sequence<DAST.Expression>.FromArray(args.ToArray())
       ));

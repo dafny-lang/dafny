@@ -261,7 +261,7 @@ namespace Microsoft.Dafny.Compilers {
           outTypes.Add(compiler.GenType(outVar.Type));
         }
 
-        var builder = this.builder.Method(m.Name, astTypeArgs, params_, outTypes, outVars);
+        var builder = this.builder.Method(m.IsStatic, m.Name, astTypeArgs, params_, outTypes, outVars);
         methods.Add(builder);
         return new BuilderSyntaxTree<StatementContainer>(builder);
       }
@@ -283,7 +283,7 @@ namespace Microsoft.Dafny.Compilers {
           params_.Add((DAST.Formal)DAST.Formal.create_Formal(Sequence<Rune>.UnicodeFromString(compiler.IdProtect(param.Name)), compiler.GenType(param.Type)));
         }
 
-        var builder = this.builder.Method(name, astTypeArgs, params_, new() {
+        var builder = this.builder.Method(isStatic, name, astTypeArgs, params_, new() {
           compiler.GenType(resultType)
         }, null);
         methods.Add(builder);
