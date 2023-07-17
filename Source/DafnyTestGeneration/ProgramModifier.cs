@@ -60,8 +60,7 @@ namespace DafnyTestGeneration {
       program = new FunctionToMethodCallRewriter(this, options).VisitProgram(program);
       program = new AddImplementationsForCalls(options).VisitProgram(program);
       program = new RemoveChecks(options).VisitProgram(program);
-      var engine = ExecutionEngine.CreateWithoutSharedCache(options);
-      engine.CoalesceBlocks(program); // removes redundant basic blocks
+      BlockCoalescer.CoalesceBlocks(program);
       var annotator = new AnnotationVisitor(this, options);
       program = annotator.VisitProgram(program);
       AddAxioms(options, program);
