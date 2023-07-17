@@ -19,6 +19,8 @@ using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace;
 
+public delegate ProjectManager CreateProjectManager(VersionedTextDocumentIdentifier documentIdentifier);
+
 /// <summary>
 /// Handles operation on a single document.
 /// Handles migration of previously published document state
@@ -26,7 +28,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace;
 public class ProjectManager {
   private readonly IRelocator relocator;
 
-  private readonly IServiceProvider services;
   private readonly IdeStateObserver observer;
   public CompilationManager CompilationManager { get; private set; }
   private IDisposable observerSubscription;
@@ -42,22 +43,21 @@ public class ProjectManager {
   private readonly DafnyOptions serverOptions;
   private readonly IFileSystem fileSystem;
 
-  public ProjectManager(
-    IServiceProvider services,
+  public ProjectManager(IFileSystem fileSystem,
+    DafnyOptions serverOptions,
+    ILogger<ProjectManager> logger,
+    IRelocator relocator,
+    CreateCompilationManager createCompilationManager,
+    CreateIdeStateObserver createIdeStateObserver,
     VersionedTextDocumentIdentifier documentIdentifier) {
-    this.services = services;
-    fileSystem = services.GetRequiredService<IFileSystem>();
-    serverOptions = services.GetRequiredService<DafnyOptions>();
-    logger = services.GetRequiredService<ILogger<ProjectManager>>();
-    relocator = services.GetRequiredService<IRelocator>();
+    this.fileSystem = fileSystem;
+    this.serverOptions = serverOptions;
+    this.createCompilationManager = createCompilationManager;
+    this.relocator = relocator;
+    this.logger = logger;
 
-    observer = new IdeStateObserver(services.GetRequiredService<ILogger<IdeStateObserver>>(),
-      services.GetRequiredService<ITelemetryPublisher>(),
-      services.GetRequiredService<INotificationPublisher>(),
-      services.GetRequiredService<ITextDocumentLoader>(),
-      documentIdentifier);
-    CompilationManager = new CompilationManager(
-      services,
+    observer = createIdeStateObserver(documentIdentifier);
+    CompilationManager = createCompilationManager(
       DetermineDocumentOptions(serverOptions, documentIdentifier.Uri),
       documentIdentifier,
       null);
@@ -102,8 +102,7 @@ public class ProjectManager {
     }
 
     var dafnyOptions = DetermineDocumentOptions(serverOptions, documentChange.TextDocument.Uri);
-    CompilationManager = new CompilationManager(
-      services,
+    CompilationManager = createCompilationManager(
       dafnyOptions,
       new VersionedTextDocumentIdentifier {
         Version = documentChange.TextDocument.Version!.Value,
@@ -175,6 +174,8 @@ public class ProjectManager {
 
   private readonly MemoryCache projectFilePerFolderCache = new("projectFiles");
   private readonly object nullRepresentative = new(); // Needed because you can't store null in the MemoryCache, but that's a value we want to cache.
+  private readonly CreateCompilationManager createCompilationManager;
+
   private DafnyProject? GetProjectFile(Uri sourceFile, string folderPath) {
     var cachedResult = projectFilePerFolderCache.Get(folderPath);
     if (cachedResult != null) {
