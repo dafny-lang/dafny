@@ -60,7 +60,7 @@ Send notifications about the verification status of each line in the program.
     ArgumentHelpName = "level"
   };
 
-  public IEnumerable<Option> Options => new Option[] { 
+  public IEnumerable<Option> Options => new Option[] {
     ProjectMode,
     BoogieOptionBag.NoVerify,
     Verification,

@@ -21,7 +21,7 @@ public class MultipleFilesTest : ClientBasedLanguageServerTest {
   }
 
   [Fact]
-  public async Task OnDiskProducer() {
+  public async Task OnDiskProducerResolutionErrors() {
     var producerSource = @"
 method Foo(x: int) { 
   var y: char := 3.0;
@@ -47,7 +47,37 @@ method Bar() {
     Assert.Single(diagnostics2.Diagnostics);
     Assert.Contains("int", diagnostics2.Diagnostics.First().Message);
   }
-  
+
+  [Fact]
+  public async Task OnDiskProducerVerification() {
+    var producerSource = @"
+method Foo(x: int) 
+{
+  assert false; 
+}
+".TrimStart();
+
+    var consumerSource = @"
+method Bar() {
+  Foo(3); 
+  assert false; 
+}
+";
+
+    var directory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+    Directory.CreateDirectory(directory);
+    await File.WriteAllTextAsync(Path.Combine(directory, "producer.dfy"), producerSource);
+    await CreateAndOpenTestDocument("", Path.Combine(directory, DafnyProject.FileName));
+    await CreateAndOpenTestDocument(consumerSource, Path.Combine(directory, "src/consumer1.dfy"));
+
+    var diagnostics1 = await diagnosticsReceiver.AwaitNextNotificationAsync(CancellationToken);
+    var diagnostics2 = await diagnosticsReceiver.AwaitNextNotificationAsync(CancellationToken);
+    Assert.Single(diagnostics1.Diagnostics);
+    Assert.Contains("assertion might not hold", diagnostics1.Diagnostics.First().Message);
+    Assert.Single(diagnostics2.Diagnostics);
+    Assert.Contains("assertion might not hold", diagnostics2.Diagnostics.First().Message);
+  }
+
   [Fact]
   public async Task FileGetsRemappedToProjectByCreatingProjectFileOnDisk() {
     var consumerSource = @"

@@ -38,7 +38,7 @@ class CombinedDirectoryInfo : DirectoryInfoBase {
       }
 
       if (directories.Length == 1) {
-        return new [] { directories[0] };
+        return new[] { directories[0] };
       }
 
       return new[] { new CombinedDirectoryInfo(directories) };
