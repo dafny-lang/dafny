@@ -29,6 +29,7 @@ public record FilePosition(Uri Uri, Position Position);
 public class ProjectManager : IDisposable {
   private readonly IRelocator relocator;
   public DafnyProject Project { get; }
+  
   private readonly IdeStateObserver observer;
   public CompilationManager CompilationManager { get; private set; }
   private IDisposable observerSubscription;
@@ -70,7 +71,6 @@ public class ProjectManager : IDisposable {
     this.logger = logger;
     this.boogieEngine = boogieEngine;
 
-    Project = project;
     options = DetermineProjectOptions(project, serverOptions);
     observer = createIdeStateObserver(project);
     options.Printer = new OutputLogger(logger);
