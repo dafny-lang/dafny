@@ -882,10 +882,10 @@ final class ConcatDafnySequence<T> extends LazyDafnySequence<T> {
                 leftBuffer = cseq.left;
                 rightBuffer = cseq.right;
                 if (leftBuffer == null || rightBuffer == null) {
+                    copier.copyFrom(cseq.ans);
+                } else {
                     toVisit.push(rightBuffer);
                     toVisit.push(leftBuffer);
-                } else {
-                    copier.copyFrom(cseq.ans);
                 }
             } else {
                 copier.copyFrom(seq);
