@@ -11,6 +11,7 @@ using Xunit.Abstractions;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization; 
 
+[Collection("Sequential Collection")]
 public class ProjectManagerDatabaseTest : ClientBasedLanguageServerTest {
 
   [Fact]
@@ -39,14 +40,15 @@ public class ProjectManagerDatabaseTest : ClientBasedLanguageServerTest {
     int documentsToLoadConcurrently = 50;
     var source = "// comment";
     var loadingDocuments = new List<TextDocumentItem>();
+    var directory = Path.GetRandomFileName();
     for (int i = 0; i < documentsToLoadConcurrently; i++) {
-      var documentItem = await CreateAndOpenTestDocument(source, $"nested{i}/test.dfy");
+      var documentItem = await CreateAndOpenTestDocument(source, Path.Combine(directory, $"nested{i}/test.dfy"));
       loadingDocuments.Add(documentItem);
     }
 
     // Create a project file for each test document.
     for (int i = 0; i < documentsToLoadConcurrently; i++) {
-      await CreateAndOpenTestDocument(source, $"nested{i}/{DafnyProject.FileName}");
+      await CreateAndOpenTestDocument(source, Path.Combine(directory, $"nested{i}/{DafnyProject.FileName}"));
     }
 
     // Concurrently migrate projects
