@@ -29,8 +29,7 @@ module {:extern "DAST"} DAST {
     If(cond: Expression, thn: seq<Statement>, els: seq<Statement>) |
     Call(enclosing: Optional<Type>, name: string, args: seq<Expression>, outs: Optional<seq<Ident>>) |
     Return(expr: Expression) |
-    Print(Expression) |
-    Todo(reason: string)
+    Print(Expression)
 
   datatype Expression =
     Literal(Literal) |
@@ -39,8 +38,7 @@ module {:extern "DAST"} DAST {
     DatatypeValue(typ: Type, variant: string, contents: seq<(string, Expression)>) |
     BinOp(op: string, left: Expression, right: Expression) |
     Call(enclosing: Optional<Type>, on: Optional<Expression>, name: string, args: seq<Expression>) |
-    InitializationValue(typ: Type) |
-    Todo(reason: string)
+    InitializationValue(typ: Type)
 
   datatype Literal = BoolLiteral(bool) | IntLiteral(int) | DecLiteral(string) | StringLiteral(string)
 }

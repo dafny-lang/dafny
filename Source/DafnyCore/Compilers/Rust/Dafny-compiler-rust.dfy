@@ -348,9 +348,6 @@ module {:extern "DCOMP"} DCOMP {
           var printedExpr := GenExpr(e);
           generated := "print!(\"{}\", ::dafny_runtime::DafnyPrintWrapper(&" + printedExpr + "));";
         }
-        case Todo(reason) => {
-          generated := "todo!(\"" + reason + "\");";
-        }
       }
     }
 
@@ -452,9 +449,6 @@ module {:extern "DCOMP"} DCOMP {
           }
 
           s := enclosingString + "r#" + name + "(" + argString + ")";
-        }
-        case Todo(reason) => {
-          s := "todo!(\"" + reason + "\")";
         }
       }
     }
