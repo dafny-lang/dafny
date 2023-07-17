@@ -7,7 +7,7 @@ impl <T: DafnyPrint> Display for DafnyPrintWrapper<T> {
     }
 }
 
-trait DafnyPrint {
+pub trait DafnyPrint {
     fn fmt_print(&self, f: &mut Formatter<'_>) -> std::fmt::Result;
 }
 

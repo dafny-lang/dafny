@@ -74,7 +74,43 @@ module {:extern "DCOMP"} DCOMP {
       }
 
       var implBody := GenClassImplBody(c.body);
-      s := "pub enum " + c.name + " {\n" + ctors +  "\n}" + "\n" + "impl " + c.name + " {\n" + implBody + "\n}";
+      var enumBody := "pub enum " + c.name + " {\n" + ctors +  "\n}" + "\n" + "impl " + c.name + " {\n" + implBody + "\n}";
+
+      var printImpl := "impl ::dafny_runtime::DafnyPrint for " + c.name + " {\n" + "fn fmt_print(&self, f: &mut ::std::fmt::Formatter) -> std::fmt::Result {\n" + "match self {\n";
+      i := 0;
+      while i < |c.ctors| {
+        var ctor := c.ctors[i];
+        var ctorMatch := ctor.name + " { ";
+        var printRhs := "write!(f, \"" + c.name + "." + ctor.name + (if ctor.hasAnyArgs then "(\")?;" else "\")?;");
+
+        var j := 0;
+        while j < |ctor.args| {
+          var formal := ctor.args[j];
+          ctorMatch := ctorMatch + formal.name + ", ";
+
+          if (j > 0) {
+            printRhs := printRhs + "\nwrite!(f, \", \")?;";
+          }
+          printRhs := printRhs + "\n::dafny_runtime::DafnyPrint::fmt_print(" + formal.name + ", f)?;";
+
+          j := j + 1;
+        }
+
+        ctorMatch := ctorMatch + "}";
+
+        if (ctor.hasAnyArgs) {
+          printRhs := printRhs + "\nwrite!(f, \")\")?;";
+        }
+
+        printRhs := printRhs + "\nOk(())";
+
+        printImpl := printImpl + c.name + "::" + ctorMatch + " => {\n" + printRhs + "\n}\n";
+        i := i + 1;
+      }
+
+      printImpl := printImpl + "}\n}\n}\n";
+
+      s := enumBody + "\n" + printImpl;
     }
 
     static method GenType(c: Type) returns (s: string) {
