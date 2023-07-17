@@ -116,7 +116,7 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
       }
     });
   }
-  
+
   protected void ApplyChanges(ref TextDocumentItem documentItem, List<Change> changes) {
     documentItem = documentItem with { Version = documentItem.Version + 1 };
     client.DidChangeTextDocument(new DidChangeTextDocumentParams {

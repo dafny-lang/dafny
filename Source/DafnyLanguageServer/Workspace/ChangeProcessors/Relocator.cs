@@ -45,7 +45,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
       var changeProcessor = new ChangeProcessor(logger, loggerSymbolTable, changes.ContentChanges, cancellationToken);
       var migratedChildren = changeProcessor.MigrateVerificationTrees(originalVerificationTree.Children);
       var migratedRange = changeProcessor.MigrateRange(originalVerificationTree.Range) ??
-                          originalVerificationTree.Range; 
+                          originalVerificationTree.Range;
       return originalVerificationTree with {
         Children = migratedChildren.ToList(),
         Range = migratedRange,

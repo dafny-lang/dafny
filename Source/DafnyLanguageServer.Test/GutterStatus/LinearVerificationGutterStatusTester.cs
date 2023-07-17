@@ -237,7 +237,7 @@ public abstract class LinearVerificationGutterStatusTester : ClientBasedLanguage
       var toInsert = firstChangeMatch.Groups["toInsert"].Value;
       var toInsertIndex = firstChangeMatch.Groups["toInsert"].Index;
       var allNewlinesOrDoubleBackslashes = newLineOrDoubleBackslashMatcher.Matches(toInsert);
-      
+
 
       Position IndexToPosition(int index) {
         var before = code.Substring(0, index);
@@ -251,7 +251,7 @@ public abstract class LinearVerificationGutterStatusTester : ClientBasedLanguage
 
         return new Position(line, character);
       }
-      
+
       // If there are \n characters in the comments, we replace them by newlines
       // If there are \\ characters in the comments, we replace them by single slashes
       var resultingChange = new List<Change>();
@@ -260,14 +260,14 @@ public abstract class LinearVerificationGutterStatusTester : ClientBasedLanguage
         var isNewline = newlineOrDoubleBackslash.Value == @"\n";
         var index = newlineOrDoubleBackslash.Index;
         var absoluteIndex = toInsertIndex + index;
-        var absoluteIndexEnd = absoluteIndex + newlineOrDoubleBackslash.Value.Length; 
+        var absoluteIndexEnd = absoluteIndex + newlineOrDoubleBackslash.Value.Length;
         var replacement = isNewline ? "\n" : @"\";
-        resultingChange.Add(new (
+        resultingChange.Add(new(
             new Range(IndexToPosition(absoluteIndex), IndexToPosition(absoluteIndexEnd)), replacement
           ));
         code = code.Substring(0, absoluteIndex) + replacement + code.Substring(absoluteIndexEnd);
       }
-      
+
       resultingChange.Add(new(
         new Range(IndexToPosition(startRemove), IndexToPosition(endRemove)), ""));
       code = code.Substring(0, startRemove) + code.Substring(endRemove);

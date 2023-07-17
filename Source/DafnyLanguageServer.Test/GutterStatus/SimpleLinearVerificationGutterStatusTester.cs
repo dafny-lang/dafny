@@ -20,7 +20,7 @@ public class SimpleLinearVerificationGutterStatusTester : LinearVerificationGutt
 ### | [=]:
 ######[ ]:", intermediates: false);
   }
- 
+
   [Fact]
   public async Task GitIssue3821GutterIgnoredProblem() {
     await VerifyTrace(@"

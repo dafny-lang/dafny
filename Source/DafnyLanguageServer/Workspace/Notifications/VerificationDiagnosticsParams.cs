@@ -378,7 +378,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
           end = end.Next;
         }
       }
-      if(end == null) {
+      if (end == null) {
         var fileNode = FindFileNode(program, uri);
         if (fileNode == null) {
           return new Range(0, 0, 0, 0);
