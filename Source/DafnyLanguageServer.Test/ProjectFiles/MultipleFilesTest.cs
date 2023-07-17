@@ -24,6 +24,7 @@ public class MultipleFilesTest : ClientBasedLanguageServerTest {
   public async Task OnDiskProducer() {
     var producerSource = @"
 method Foo(x: int) { 
+  var y: char := 3.0;
 }
 ".TrimStart();
 
@@ -37,11 +38,14 @@ method Bar() {
     Directory.CreateDirectory(directory);
     await File.WriteAllTextAsync(Path.Combine(directory, "producer.dfy"), producerSource);
     await CreateAndOpenTestDocument("", Path.Combine(directory, DafnyProject.FileName));
-    var consumer = await CreateAndOpenTestDocument(consumerSource, Path.Combine(directory, "src/consumer1.dfy"));
+    await CreateAndOpenTestDocument(consumerSource, Path.Combine(directory, "src/consumer1.dfy"));
 
-    var consumerDiagnostics1 = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, consumer);
-    Assert.Single(consumerDiagnostics1);
-    Assert.Contains("int", consumerDiagnostics1[0].Message);
+    var diagnostics1 = await diagnosticsReceiver.AwaitNextNotificationAsync(CancellationToken);
+    var diagnostics2 = await diagnosticsReceiver.AwaitNextNotificationAsync(CancellationToken);
+    Assert.Single(diagnostics1.Diagnostics);
+    Assert.Contains("char", diagnostics1.Diagnostics.First().Message);
+    Assert.Single(diagnostics2.Diagnostics);
+    Assert.Contains("int", diagnostics2.Diagnostics.First().Message);
   }
   
   [Fact]

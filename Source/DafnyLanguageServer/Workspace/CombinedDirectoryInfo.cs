@@ -36,6 +36,11 @@ class CombinedDirectoryInfo : DirectoryInfoBase {
       if (files.Count > 0) {
         return new[] { files[0] };
       }
+
+      if (directories.Length == 1) {
+        return new [] { directories[0] };
+      }
+
       return new[] { new CombinedDirectoryInfo(directories) };
     });
   }
