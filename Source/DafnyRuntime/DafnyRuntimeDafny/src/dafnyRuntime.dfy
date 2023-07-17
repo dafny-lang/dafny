@@ -468,10 +468,6 @@ abstract module {:options "/functionSyntax:4"} Dafny {
       this
     }
 
-    static function {:extern} UniqueElements<X(==)>(s: Sequence<X>): set<X>
-      requires s.Valid()
-      ensures UniqueElements(s) == set t | t in s.Value()
-
     // Sequence creation methods
 
     static method Create<T>(cardinality: size_t, initFn: size_t -> T) returns (ret: Sequence<T>) {
