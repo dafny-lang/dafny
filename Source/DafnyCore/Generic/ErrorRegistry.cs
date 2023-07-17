@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using JetBrains.Annotations;
 
 namespace Microsoft.Dafny;
 
@@ -31,6 +32,16 @@ public record DafnyRange(DafnyPosition Start, DafnyPosition ExclusiveEnd) {
 public record DafnyCodeActionEdit(DafnyRange Range, string Replacement = "") {
   public DafnyCodeActionEdit(RangeToken rangeToken, string replacement = "", bool includeTrailingWhitespace = false)
     : this(rangeToken.ToDafnyRange(includeTrailingWhitespace), replacement) {
+  }
+
+  public static DafnyCodeActionEdit InsertBefore(string insertion, IToken token) {
+    var range = token.ToRange();
+    return new DafnyCodeActionEdit(range, insertion + range.PrintOriginal());
+  }
+
+  public static DafnyCodeActionEdit InsertAfter(IToken token, string insertion) {
+    var range = token.ToRange();
+    return new DafnyCodeActionEdit(range, range.PrintOriginal() + insertion);
   }
 }
 
