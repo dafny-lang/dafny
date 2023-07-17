@@ -222,7 +222,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void DeclareSubsetType(SubsetTypeDecl sst, ConcreteSyntaxTree wr) {
-      // Currently ignores subset types because they appear in the prelude
+      // TODO(shadaj): currently ignores subset types because they appear in the prelude
       // throw new NotImplementedException();
     }
 
@@ -541,9 +541,9 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void EmitActualTypeArgs(List<Type> typeArgs, IToken tok, ConcreteSyntaxTree wr) {
       if (currentBuilder is CallStmtBuilder callStmt) {
-        /* TODO(shadaj) */
+        callStmt.SetTypeArgs(typeArgs.Select(GenType).ToList());
       } else if (currentBuilder is CallExprBuilder callExpr) {
-        /* TODO(shadaj) */
+        callExpr.SetTypeArgs(typeArgs.Select(GenType).ToList());
       } else {
         throw new InvalidOperationException("Cannot emit actual type args in this context: " + currentBuilder);
       }

@@ -27,7 +27,7 @@ module {:extern "DAST"} DAST {
     DeclareVar(name: string, typ: Type, maybeValue: Optional<Expression>) |
     Assign(name: string, value: Expression) |
     If(cond: Expression, thn: seq<Statement>, els: seq<Statement>) |
-    Call(enclosing: Optional<Type>, name: string, args: seq<Expression>, outs: Optional<seq<Ident>>) |
+    Call(enclosing: Optional<Type>, name: string, typeArgs: seq<Type>, args: seq<Expression>, outs: Optional<seq<Ident>>) |
     Return(expr: Expression) |
     Print(Expression)
 
@@ -37,7 +37,7 @@ module {:extern "DAST"} DAST {
     Tuple(seq<Expression>) |
     DatatypeValue(typ: Type, variant: string, contents: seq<(string, Expression)>) |
     BinOp(op: string, left: Expression, right: Expression) |
-    Call(enclosing: Optional<Type>, on: Optional<Expression>, name: string, args: seq<Expression>) |
+    Call(enclosing: Optional<Type>, on: Optional<Expression>, name: string, typeArgs: seq<Type>, args: seq<Expression>) |
     InitializationValue(typ: Type)
 
   datatype Literal = BoolLiteral(bool) | IntLiteral(int) | DecLiteral(string) | StringLiteral(string)

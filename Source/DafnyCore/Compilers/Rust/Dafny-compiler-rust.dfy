@@ -287,7 +287,24 @@ module {:extern "DCOMP"} DCOMP {
           var elsString := GenStmts(els);
           generated := "if " + condString + " {\n" + thnString + "\n} else {\n" + elsString + "\n}";
         }
-        case Call(enclosing, name, args, maybeOutVars) => {
+        case Call(enclosing, name, typeArgs, args, maybeOutVars) => {
+          var typeArgString := "";
+          if (|typeArgs| >= 1) {
+            var typeI := 0;
+            typeArgString := "::<";
+            while typeI < |typeArgs| {
+              if typeI > 0 {
+                typeArgString := typeArgString + ", ";
+              }
+
+              var typeString := GenType(typeArgs[typeI]);
+              typeArgString := typeArgString + typeString;
+
+              typeI := typeI + 1;
+            }
+            typeArgString := typeArgString + ">";
+          }
+
           var argString := "";
           var i := 0;
           while i < |args| {
@@ -338,7 +355,7 @@ module {:extern "DCOMP"} DCOMP {
 
           generated :=
             (if receiver != "" then (receiver + " = ") else "") +
-            enclosingString + "r#" + name + "(" + argString + ");";
+            enclosingString + "r#" + name + typeArgString + "(" + argString + ");";
         }
         case Return(expr) => {
           var exprString := GenExpr(expr);
@@ -417,7 +434,24 @@ module {:extern "DCOMP"} DCOMP {
           var right := GenExpr(r);
           s := "(" + left + " " + op + " " + right + ")";
         }
-        case Call(enclosing, on, name, args) => {
+        case Call(enclosing, on, name, typeArgs, args) => {
+          var typeArgString := "";
+          if (|typeArgs| >= 1) {
+            var typeI := 0;
+            typeArgString := "::<";
+            while typeI < |typeArgs| {
+              if typeI > 0 {
+                typeArgString := typeArgString + ", ";
+              }
+
+              var typeString := GenType(typeArgs[typeI]);
+              typeArgString := typeArgString + typeString;
+
+              typeI := typeI + 1;
+            }
+            typeArgString := typeArgString + ">";
+          }
+
           var argString := "";
           var i := 0;
           while i < |args| {
@@ -448,7 +482,7 @@ module {:extern "DCOMP"} DCOMP {
             }
           }
 
-          s := enclosingString + "r#" + name + "(" + argString + ")";
+          s := enclosingString + "r#" + name + typeArgString + "(" + argString + ")";
         }
       }
     }

@@ -116,7 +116,6 @@ namespace Microsoft.Dafny.Compilers {
     readonly NewtypeContainer parent;
     readonly string name;
     readonly DAST.Type baseType;
-    // readonly List<NewtypeItem> body = new();
 
     public NewtypeBuilder(NewtypeContainer parent, string name, DAST.Type baseType) {
       this.parent = parent;
@@ -125,11 +124,11 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     public void AddMethod(DAST.Method item) {
-      // TODO
+      throw new NotImplementedException();
     }
 
     public void AddField(DAST.Formal item) {
-      // TODO
+      throw new NotImplementedException();
     }
 
     public object Finish() {
@@ -430,6 +429,7 @@ namespace Microsoft.Dafny.Compilers {
 
     DAST.Type enclosing = null;
     string name = null;
+    List<DAST.Type> typeArgs = null;
     readonly List<DAST.Expression> args = new();
     List<ISequence<Rune>> outs = null;
 
@@ -454,6 +454,14 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
+    public void SetTypeArgs(List<DAST.Type> typeArgs) {
+      if (this.typeArgs != null) {
+        throw new InvalidOperationException();
+      } else {
+        this.typeArgs = typeArgs;
+      }
+    }
+
     public void AddExpr(DAST.Expression value) {
       args.Add(value);
     }
@@ -470,6 +478,7 @@ namespace Microsoft.Dafny.Compilers {
       parent.AddStatement((DAST.Statement)DAST.Statement.create_Call(
         enclosing == null ? DAST.Optional<DAST._IType>.create_None() : DAST.Optional<DAST._IType>.create_Some(enclosing),
         Sequence<Rune>.UnicodeFromString(name),
+        Sequence<DAST.Type>.FromArray(typeArgs.ToArray()),
         Sequence<DAST.Expression>.FromArray(args.ToArray()),
         outs == null ? DAST.Optional<ISequence<ISequence<Rune>>>.create_None() : DAST.Optional<ISequence<ISequence<Rune>>>.create_Some(Sequence<ISequence<Rune>>.FromArray(outs.ToArray()))
       ));
@@ -591,6 +600,7 @@ namespace Microsoft.Dafny.Compilers {
     DAST.Type enclosing = null;
     DAST.Expression on = null;
     string name = null;
+    List<DAST.Type> typeArgs = null;
     readonly List<DAST.Expression> args = new();
     List<ISequence<Rune>> outs = null;
 
@@ -611,6 +621,14 @@ namespace Microsoft.Dafny.Compilers {
         throw new InvalidOperationException();
       } else {
         this.name = name;
+      }
+    }
+
+    public void SetTypeArgs(List<DAST.Type> typeArgs) {
+      if (this.typeArgs != null) {
+        throw new InvalidOperationException();
+      } else {
+        this.typeArgs = typeArgs;
       }
     }
 
@@ -636,6 +654,7 @@ namespace Microsoft.Dafny.Compilers {
         enclosing == null ? DAST.Optional<DAST._IType>.create_None() : DAST.Optional<DAST._IType>.create_Some(enclosing),
         on == null ? DAST.Optional<DAST._IExpression>.create_None() : DAST.Optional<DAST._IExpression>.create_Some(on),
         Sequence<Rune>.UnicodeFromString(name),
+        Sequence<DAST.Type>.FromArray(typeArgs.ToArray()),
         Sequence<DAST.Expression>.FromArray(args.ToArray())
       ));
 
