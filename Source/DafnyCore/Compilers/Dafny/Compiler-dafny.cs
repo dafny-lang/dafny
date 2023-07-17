@@ -246,7 +246,21 @@ namespace Microsoft.Dafny.Compilers {
           astTypeArgs.Add((DAST.Type)DAST.Type.create_TypeArg(Sequence<Rune>.UnicodeFromString(compiler.IdProtect(typeArg.Formal.GetCompileName(compiler.Options)))));
         }
 
-        var builder = this.builder.Method(m.Name, astTypeArgs);
+        List<DAST.Formal> params_ = new();
+        foreach (var param in m.Ins) {
+          if (param is not ImplicitFormal) {
+            params_.Add((DAST.Formal)DAST.Formal.create_Formal(Sequence<Rune>.UnicodeFromString(compiler.IdProtect(param.Name)), compiler.GenType(param.Type)));
+          }
+        }
+
+        List<ISequence<Rune>> outVars = new();
+        List<DAST.Type> outTypes = new();
+        foreach (var outVar in m.Outs) {
+          outVars.Add(Sequence<Rune>.UnicodeFromString(compiler.IdProtect(outVar.Name)));
+          outTypes.Add(compiler.GenType(outVar.Type));
+        }
+
+        var builder = this.builder.Method(m.Name, astTypeArgs, params_, outTypes, outVars);
         methods.Add(builder);
         return new BuilderSyntaxTree<StatementContainer>(builder);
       }
@@ -263,7 +277,14 @@ namespace Microsoft.Dafny.Compilers {
           astTypeArgs.Add((DAST.Type)DAST.Type.create_TypeArg(Sequence<Rune>.UnicodeFromString(compiler.IdProtect(typeArg.Formal.GetCompileName(compiler.Options)))));
         }
 
-        var builder = this.builder.Method(name, astTypeArgs);
+        List<DAST.Formal> params_ = new();
+        foreach (var param in formals) {
+          params_.Add((DAST.Formal)DAST.Formal.create_Formal(Sequence<Rune>.UnicodeFromString(compiler.IdProtect(param.Name)), compiler.GenType(param.Type)));
+        }
+
+        var builder = this.builder.Method(name, astTypeArgs, params_, new() {
+          compiler.GenType(resultType)
+        }, new List<ISequence<Rune>>());
         methods.Add(builder);
         return new BuilderSyntaxTree<StatementContainer>(builder);
       }
@@ -468,6 +489,14 @@ namespace Microsoft.Dafny.Compilers {
     protected override void DeclareLocalOutVar(string name, Type type, IToken tok, string rhs, bool useReturnStyleOuts,
         ConcreteSyntaxTree wr) {
       DeclareLocalVar(name, type, tok, true, rhs, wr);
+    }
+
+    protected override void EmitCallReturnOuts(List<string> outTmps, ConcreteSyntaxTree wr) {
+      if (currentBuilder is CallBuilder call) {
+        call.SetOuts(outTmps.Select(i => Sequence<Rune>.UnicodeFromString(i)).ToList());
+      } else {
+        throw new InvalidOperationException();
+      }
     }
 
     protected override void TrCallStmt(CallStmt s, string receiverReplacement, ConcreteSyntaxTree wr) {

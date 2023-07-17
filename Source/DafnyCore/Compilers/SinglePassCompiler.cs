@@ -2222,6 +2222,10 @@ namespace Microsoft.Dafny.Compilers {
       wr.Write(")");
     }
 
+    protected virtual void EmitCallReturnOuts(List<string> outTmps, ConcreteSyntaxTree wr) {
+      wr.Write("{0} = ", Util.Comma(outTmps));
+    }
+
     protected void EmitCallToInheritedMethod(Method method, bool unboxReceiver, ConcreteSyntaxTree wr) {
       Contract.Requires(method != null);
       Contract.Requires(!method.IsStatic);
@@ -2252,7 +2256,7 @@ namespace Microsoft.Dafny.Compilers {
       if (returnStyleOutCollector != null) {
         DeclareSpecificOutCollector(returnStyleOutCollector, wr, outTypes, outTypes);
       } else if (nonGhostOutParameterCount > 0 && returnStyleOuts) {
-        wr.Write("{0} = ", Util.Comma(outTmps));
+        EmitCallReturnOuts(outTmps, wr);
       }
 
       var companionName = CompanionMemberIdName(method);
@@ -4518,7 +4522,7 @@ namespace Microsoft.Dafny.Compilers {
         if (returnStyleOutCollector != null) {
           DeclareSpecificOutCollector(returnStyleOutCollector, wr, outFormalTypes, outLhsTypes);
         } else if (outTmps.Count > 0 && returnStyleOuts) {
-          wr.Write("{0} = ", Util.Comma(outTmps));
+          EmitCallReturnOuts(outTmps, wr);
         }
         var wrOrig = wr;
         if (returnStyleOutCollector == null && outTmps.Count == 1 && returnStyleOuts) {

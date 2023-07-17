@@ -152,9 +152,43 @@ module {:extern "DCOMP"} DCOMP {
       }
     }
 
+    static method GenParams(params: seq<Formal>) returns (s: string) {
+      s := "";
+      var i := 0;
+      while i < |params| {
+        var param := params[i];
+        var paramType := GenType(param.typ);
+        s := s + param.name + ": " + paramType;
+
+        if i < |params| - 1 {
+          s := s + ", ";
+        }
+
+        i := i + 1;
+      }
+    }
+
     static method GenMethod(m: Method) returns (s: string) {
-      // var params := GenParams(m.params);
-      var body := GenStmts(m.body);
+      var params := GenParams(m.params);
+
+      var retType := if |m.outTypes| != 1 then "(" else "";
+
+      var typeI := 0;
+      while typeI < |m.outTypes| {
+        if typeI > 0 {
+          retType := retType + ", ";
+        }
+
+        var typeString := GenType(m.outTypes[typeI]);
+        retType := retType + typeString;
+
+        typeI := typeI + 1;
+      }
+
+      if |m.outTypes| != 1 {
+        retType := retType + ")";
+      }
+
       s := "pub fn " + m.name;
 
       if (|m.typeArgs| > 0) {
@@ -175,7 +209,27 @@ module {:extern "DCOMP"} DCOMP {
         s := s + ">";
       }
 
-      s := s + "(" + "" + ") {\n" + body + "\n}\n";
+      var body := GenStmts(m.body);
+      match m.outVars {
+        case Some(outVars) => {
+          body := body + "\nreturn (";
+          var outI := 0;
+          while outI < |outVars| {
+            if outI > 0 {
+              body := body + ", ";
+            }
+
+            var outVar := outVars[outI];
+            body := body + outVar.id;
+
+            outI := outI + 1;
+          }
+          body := body + ");";
+        }
+        case None => {}
+      }
+
+      s := s + "(" + params + ") -> " + retType + " {\n" + body + "\n}\n";
     }
 
     static method GenStmts(stmts: seq<Statement>) returns (generated: string) {
@@ -215,7 +269,7 @@ module {:extern "DCOMP"} DCOMP {
           var elsString := GenStmts(els);
           generated := "if " + condString + " {\n" + thnString + "\n} else {\n" + elsString + "\n}";
         }
-        case Call(enclosing, name, args) => {
+        case Call(enclosing, name, args, maybeOutVars) => {
           var argString := "";
           var i := 0;
           while i < |args| {
@@ -240,7 +294,33 @@ module {:extern "DCOMP"} DCOMP {
             }
           }
 
-          generated := enclosingString + name + "(" + argString + ");";
+          var receiver := "";
+          match maybeOutVars {
+            case Some(outVars) => {
+              if (|outVars| > 1) {
+                receiver := "(";
+              }
+              var outI := 0;
+              while outI < |outVars| {
+                if outI > 0 {
+                  receiver := receiver + ", ";
+                }
+
+                var outVar := outVars[outI];
+                receiver := receiver + outVar.id;
+
+                outI := outI + 1;
+              }
+              if (|outVars| > 1) {
+                receiver := receiver + ")";
+              }
+            }
+            case None => {}
+          }
+
+          generated :=
+            (if receiver != "" then (receiver + " = ") else "") +
+            enclosingString + name + "(" + argString + ");";
         }
         case Return(expr) => {
           var exprString := GenExpr(expr);

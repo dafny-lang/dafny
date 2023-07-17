@@ -19,7 +19,7 @@ module {:extern "DAST"} DAST {
 
   datatype Formal = Formal(name: string, typ: Type)
 
-  datatype Method = Method(name: string, typeArgs: seq<Type>, body: seq<Statement>)
+  datatype Method = Method(name: string, typeArgs: seq<Type>, params: seq<Formal>, body: seq<Statement>, outTypes: seq<Type>, outVars: Optional<seq<Ident>>)
 
   datatype Optional<T> = Some(T) | None
 
@@ -27,7 +27,7 @@ module {:extern "DAST"} DAST {
     DeclareVar(name: string, typ: Type, maybeValue: Optional<Expression>) |
     Assign(name: string, value: Expression) |
     If(cond: Expression, thn: seq<Statement>, els: seq<Statement>) |
-    Call(enclosing: Optional<Type>, name: string, args: seq<Expression>) |
+    Call(enclosing: Optional<Type>, name: string, args: seq<Expression>, outs: Optional<seq<Ident>>) |
     Return(expr: Expression) |
     Print(Expression) |
     Todo(reason: string)

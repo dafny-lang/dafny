@@ -184,8 +184,8 @@ namespace Microsoft.Dafny.Compilers {
 
     void AddField(DAST.Formal item);
 
-    public MethodBuilder Method(string name, List<DAST.Type> typeArgs) {
-      return new MethodBuilder(this, name, typeArgs);
+    public MethodBuilder Method(string name, List<DAST.Type> typeArgs, List<DAST.Formal> params_, List<DAST.Type> outTypes, List<ISequence<Rune>> outVars) {
+      return new MethodBuilder(this, name, typeArgs, params_, outTypes, outVars);
     }
 
     public object Finish();
@@ -196,12 +196,18 @@ namespace Microsoft.Dafny.Compilers {
     readonly ClassLike parent;
     readonly string name;
     readonly List<DAST.Type> typeArgs;
+    readonly List<DAST.Formal> params_;
+    readonly List<DAST.Type> outTypes;
+    readonly List<ISequence<Rune>> outVars;
     readonly List<object> body = new();
 
-    public MethodBuilder(ClassLike parent, string name, List<DAST.Type> typeArgs) {
+    public MethodBuilder(ClassLike parent, string name, List<DAST.Type> typeArgs, List<DAST.Formal> params_, List<DAST.Type> outTypes, List<ISequence<Rune>> outVars) {
       this.parent = parent;
       this.name = name;
       this.typeArgs = typeArgs;
+      this.params_ = params_;
+      this.outTypes = outTypes;
+      this.outVars = outVars;
     }
 
     public void AddStatement(DAST.Statement item) {
@@ -227,7 +233,10 @@ namespace Microsoft.Dafny.Compilers {
       return (DAST.Method)DAST.Method.create(
         Sequence<Rune>.UnicodeFromString(this.name),
         Sequence<DAST.Type>.FromArray(typeArgs.ToArray()),
-        Sequence<DAST.Statement>.FromArray(builtStatements.ToArray())
+        Sequence<DAST.Formal>.FromArray(params_.ToArray()),
+        Sequence<DAST.Statement>.FromArray(builtStatements.ToArray()),
+        Sequence<DAST.Type>.FromArray(outTypes.ToArray()),
+        outVars != null ? Optional<ISequence<ISequence<Rune>>>.create_Some(Sequence<ISequence<Rune>>.FromArray(outVars.ToArray())) : Optional<ISequence<ISequence<Rune>>>.create_None()
       );
     }
   }
@@ -415,6 +424,7 @@ namespace Microsoft.Dafny.Compilers {
     DAST.Type enclosing = null;
     string name = null;
     readonly List<DAST.Expression> args = new();
+    List<ISequence<Rune>> outs = null;
 
     public CallBuilder(StatementContainer parent) {
       this.parent = parent;
@@ -440,11 +450,20 @@ namespace Microsoft.Dafny.Compilers {
       args.Add(value);
     }
 
+    public void SetOuts(List<ISequence<Rune>> outs) {
+      if (this.outs != null) {
+        throw new InvalidOperationException();
+      } else {
+        this.outs = outs;
+      }
+    }
+
     public object Finish() {
       parent.AddStatement((DAST.Statement)DAST.Statement.create_Call(
         enclosing == null ? DAST.Optional<DAST._IType>.create_None() : DAST.Optional<DAST._IType>.create_Some(enclosing),
         Sequence<Rune>.UnicodeFromString(name),
-        Sequence<DAST.Expression>.FromArray(args.ToArray())
+        Sequence<DAST.Expression>.FromArray(args.ToArray()),
+        outs == null ? DAST.Optional<ISequence<ISequence<Rune>>>.create_None() : DAST.Optional<ISequence<ISequence<Rune>>>.create_Some(Sequence<ISequence<Rune>>.FromArray(outs.ToArray()))
       ));
 
       return parent;
