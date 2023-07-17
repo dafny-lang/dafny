@@ -285,6 +285,21 @@ module {:extern "DCOMP"} DCOMP {
         case InitializationValue(typ) => {
           s := "std::default::Default::default()";
         }
+        case Tuple(values) => {
+          s := "(";
+          var i := 0;
+          while i < |values| {
+            if i > 0 {
+              s := s + ", ";
+            }
+
+            var recursiveGen := GenExpr(values[i]);
+            s := s + recursiveGen;
+
+            i := i + 1;
+          }
+          s := s + ")";
+        }
         case DatatypeValue(typ, variant, values) => {
           s := GenType(typ);
           s := s + "::";

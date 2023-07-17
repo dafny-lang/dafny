@@ -6,6 +6,7 @@ using DAST;
 using System.Numerics;
 using Microsoft.BaseTypes;
 using Microsoft.Boogie;
+using System.Linq;
 
 namespace Microsoft.Dafny.Compilers {
 
@@ -846,12 +847,18 @@ namespace Microsoft.Dafny.Compilers {
           throw new InvalidOperationException("Datatype constructor " + dtv.Ctor.Name + " expects " + dtv.Ctor.Formals.Count + " arguments, but " + contents.Count + " were provided");
         }
 
-        DAST.Type datatypeType = TypeNameASTFromTopLevel(dtv.Ctor.EnclosingDatatype);
-        builder.Builder.AddExpr((DAST.Expression)DAST.Expression.create_DatatypeValue(
-          datatypeType,
-          Sequence<Rune>.UnicodeFromString(dtv.Ctor.GetCompileName(Options)),
-          Sequence<_System._ITuple2<ISequence<Rune>, DAST.Expression>>.FromArray(namedContents.ToArray())
-        ));
+        if (dtv.Ctor.EnclosingDatatype is TupleTypeDecl tupleDecl) {
+          builder.Builder.AddExpr((DAST.Expression)DAST.Expression.create_Tuple(
+            Sequence<DAST.Expression>.FromArray(namedContents.Select(x => x.dtor__1).ToArray())
+          ));
+        } else {
+          DAST.Type datatypeType = TypeNameASTFromTopLevel(dtv.Ctor.EnclosingDatatype);
+          builder.Builder.AddExpr((DAST.Expression)DAST.Expression.create_DatatypeValue(
+            datatypeType,
+            Sequence<Rune>.UnicodeFromString(dtv.Ctor.GetCompileName(Options)),
+            Sequence<_System._ITuple2<ISequence<Rune>, DAST.Expression>>.FromArray(namedContents.ToArray())
+          ));
+        }
       } else {
         throw new InvalidOperationException("Cannot emit datatype value outside of expression context: " + wr.GetType());
       }
