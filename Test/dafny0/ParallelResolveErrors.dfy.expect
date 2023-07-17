@@ -27,7 +27,6 @@ ParallelResolveErrors.dfy(73,24): Error: a 'break break' statement is allowed on
 ParallelResolveErrors.dfy(74,30): Error: break label is undefined or not in scope: OutsideLoop
 ParallelResolveErrors.dfy(85,26): Error: a 'break break' statement is allowed only in contexts with 2 enclosing loops, but the current context only has 1
 ParallelResolveErrors.dfy(86,32): Error: break label is undefined or not in scope: WhileOutsideForall
-ParallelResolveErrors.dfy(105,11): Error: assignment to non-ghost field is not allowed in this context, because this is a ghost method
 ParallelResolveErrors.dfy(129,15): Error: a forall statement is not allowed to use 'new'
 ParallelResolveErrors.dfy(130,15): Error: a forall statement is not allowed to use 'new'
 ParallelResolveErrors.dfy(130,21): Error: in a forall statement, calls are allowed only to lemmas
@@ -41,6 +40,7 @@ ParallelResolveErrors.dfy(143,7): Error: cannot assign to array element in a gho
 ParallelResolveErrors.dfy(149,31): Error: in a forall statement, calls are allowed only to lemmas
 ParallelResolveErrors.dfy(154,31): Error: in a forall statement, calls are allowed only to lemmas
 ParallelResolveErrors.dfy(162,6): Error: print statement is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)
+ParallelResolveErrors.dfy(105,11): Error: assignment to non-ghost field is not allowed in this context, because this is a ghost method
 ParallelResolveErrors.dfy(178,12): Error: in a forall statement, calls are allowed only to lemmas
 ParallelResolveErrors.dfy(174,6): Error: a forall statement is not allowed to update a variable it doesn't declare
 ParallelResolveErrors.dfy(176,6): Error: a forall statement is not allowed to update a variable it doesn't declare

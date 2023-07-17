@@ -75,27 +75,35 @@ public static class ShouldCompileOrVerify {
   }
 
   private static ISet<Uri> GetReachableUris(CompilationData compilation, ISet<Uri> stopUris) {
-    var toVisit = new Stack<Uri>(compilation.RootSourceUris);
-
-    var visited = new HashSet<Uri>();
     var edges = compilation.Includes.GroupBy(i => i.IncluderFilename)
       .ToDictionary(g => g.Key, g => g.Select(x => x.IncludedFilename).ToList());
-    while (toVisit.Any()) {
-      var uri = toVisit.Pop();
-      if (stopUris.Contains(uri)) {
-        continue;
+
+    ISet<Uri> Visit(Stack<Uri> roots, ISet<Uri> excluded) {
+      var toVisit = roots;
+
+      var visited = new HashSet<Uri>();
+
+      while (toVisit.Any()) {
+        var uri = toVisit.Pop();
+        if (excluded.Contains(uri)) {
+          continue;
+        }
+
+        if (!visited.Add(uri)) {
+          continue;
+        }
+
+        foreach (var included in edges.GetOrDefault(uri, Enumerable.Empty<Uri>)) {
+          toVisit.Push(included);
+        }
       }
 
-      if (!visited.Add(uri)) {
-        continue;
-      }
-
-      foreach (var included in edges.GetOrDefault(uri, Enumerable.Empty<Uri>)) {
-        toVisit.Push(included);
-      }
+      return visited;
     }
 
-    return visited;
+    var excluded = Visit(new Stack<Uri>(stopUris), new HashSet<Uri>());
+
+    return Visit(new Stack<Uri>(compilation.RootSourceUris), excluded);
   }
 
 }

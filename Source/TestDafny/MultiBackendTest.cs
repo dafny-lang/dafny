@@ -164,15 +164,15 @@ public class MultiBackendTest {
   // Ideally we could hook into the general `dafny` options parsing logic
   // and `ICommandSpec` commands instead.
   private static bool OptionAppliesToVerifyCommand(string option) {
-    if (option is "--spill-translation") {
-      return false;
-    }
+    var name = option[2..].Split(':')[0];
 
-    if (option.StartsWith("--optimize-erasable-datatype-wrapper")) {
-      return false;
-    }
+    var compileOptions = new List<Option> {
+      CommonOptionBag.SpillTranslation,
+      CommonOptionBag.OptimizeErasableDatatypeWrapper,
+      CommonOptionBag.AddCompileSuffix
+    }.Select(o => o.Name);
 
-    return true;
+    return !compileOptions.Contains(name);
   }
 
   private int RunWithCompiler(ForEachCompilerOptions options, IExecutableBackend backend, string expectedOutput, string? checkFile) {
@@ -258,8 +258,7 @@ public class MultiBackendTest {
 
   private static bool OnlyUnsupportedFeaturesErrors(IExecutableBackend backend, string output) {
     using StringReader sr = new StringReader(output);
-    string? line;
-    while ((line = sr.ReadLine()) != null) {
+    while (sr.ReadLine() is { } line) {
       if (!IsAllowedOutputLine(backend, line)) {
         return false;
       }
