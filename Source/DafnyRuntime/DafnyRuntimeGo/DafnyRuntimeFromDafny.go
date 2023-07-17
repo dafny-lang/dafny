@@ -91,7 +91,7 @@ func (_static *CompanionStruct_Default___) AppendOptimized(builder *Vector, e Se
     _ = _4_concat
     _4_concat = e.(*ConcatSequence)
     if (!(Companion_Default___.SizeAdditionInRange(stack.Size, Companion_Default___.ONE__SIZE()))) {
-      panic("dafnyRuntime.dfy[DafnyGo](743,6): " + (SeqOfString("expectation violation")).String())
+      panic("dafnyRuntime.dfy[DafnyGo](766,6): " + (SeqOfString("expectation violation")).String())
     }
     (stack).AddLast((_4_concat).Right())
     var _in0 *Vector = builder
@@ -153,7 +153,7 @@ func (_static *CompanionStruct_Default___) AppendOptimized(builder *Vector, e Se
     }
   } else {
     if (!(false)) {
-      panic("dafnyRuntime.dfy[DafnyGo](761,6): " + (SeqOfString("Unsupported Sequence implementation")).String())
+      panic("dafnyRuntime.dfy[DafnyGo](784,6): " + (SeqOfString("Unsupported Sequence implementation")).String())
     }
   }
 }
@@ -196,6 +196,7 @@ type Sequence interface {
   Subsequence(lo uint32, hi uint32) Sequence
   ToArray() ImmutableArray
   Elements() Sequence
+  UniqueElements() Set
 }
 func (_static *CompanionStruct_Sequence_) SetString(_this Sequence) Sequence {
   {
@@ -414,7 +415,7 @@ func (_static *CompanionStruct_Sequence_) Concatenate(left Sequence, right Seque
   var ret Sequence = (Sequence)(nil)
   _ = ret
   if (!(Companion_Default___.SizeAdditionInRange((left).Cardinality(), (right).Cardinality()))) {
-    panic("dafnyRuntime.dfy[DafnyGo](571,6): " + (Companion_Sequence_.Concatenate(Companion_Sequence_.Concatenate(SeqOfString("Concatenation result cardinality would be larger than the maximum ("), Companion_Helpers_.DafnyValueToDafnyString(Companion_Default___.SIZE__T__MAX())), SeqOfString(")"))).String())
+    panic("dafnyRuntime.dfy[DafnyGo](594,6): " + (Companion_Sequence_.Concatenate(Companion_Sequence_.Concatenate(SeqOfString("Concatenation result cardinality would be larger than the maximum ("), Companion_Helpers_.DafnyValueToDafnyString(Companion_Default___.SIZE__T__MAX())), SeqOfString(")"))).String())
   }
   var _22_left_k Sequence
   _ = _22_left_k
