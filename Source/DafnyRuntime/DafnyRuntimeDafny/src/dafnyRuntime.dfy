@@ -747,16 +747,19 @@ abstract module {:options "/functionSyntax:4"} Dafny {
       expect SizeAdditionInRange(stack.size, ONE_SIZE);
       stack.AddLast(concat.right);
       AppendOptimized(builder, concat.left, stack);
+      assert builder.Value() == old(builder.Value()) + concat.left.Value() + ConcatValueOnStack(old(stack.Value()));
     } else if e is LazySequence<T> {
       var lazy := e as LazySequence<T>;
       var boxed := lazy.box.Get();
       AppendOptimized(builder, boxed, stack);
+      assert builder.Value() == old(builder.Value()) + boxed.Value() + ConcatValueOnStack(old(stack.Value()));
     } else if e is ArraySequence<T> {
       var a := e as ArraySequence<T>;
       builder.Append(a.values);
       if 0 < stack.size {
         var next: Sequence<T> := stack.RemoveLast();
         AppendOptimized(builder, next, stack);
+        assert builder.Value() == old(builder.Value()) + next.Value() + ConcatValueOnStack(old(stack.Value()));
       }
     } else {
       // I'd prefer to just call Sequence.ToArray(),
