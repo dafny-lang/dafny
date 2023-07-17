@@ -21,6 +21,30 @@ public class MultipleFilesTest : ClientBasedLanguageServerTest {
   }
 
   [Fact]
+  public async Task OnDiskProducer() {
+    var producerSource = @"
+method Foo(x: int) { 
+}
+".TrimStart();
+
+    var consumerSource = @"
+method Bar() {
+  Foo(true); 
+}
+";
+
+    var directory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+    Directory.CreateDirectory(directory);
+    await File.WriteAllTextAsync(Path.Combine(directory, "producer.dfy"), producerSource);
+    await CreateAndOpenTestDocument("", Path.Combine(directory, DafnyProject.FileName));
+    var consumer = await CreateAndOpenTestDocument(consumerSource, Path.Combine(directory, "src/consumer1.dfy"));
+
+    var consumerDiagnostics1 = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, consumer);
+    Assert.Single(consumerDiagnostics1);
+    Assert.Contains("int", consumerDiagnostics1[0].Message);
+  }
+  
+  [Fact]
   public async Task FileGetsRemappedToProjectByCreatingProjectFileOnDisk() {
     var consumerSource = @"
 method Consumes() {
