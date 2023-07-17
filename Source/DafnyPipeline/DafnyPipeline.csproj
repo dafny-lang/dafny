@@ -61,7 +61,7 @@
       <LogicalName>DafnyRuntime.h</LogicalName>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </EmbeddedResource>
-    <EmbeddedResource Include="..\DafnyRuntime\DafnyRuntimeJava\build\libs\DafnyRuntime.jar">
+    <EmbeddedResource Include="..\DafnyRuntime\DafnyRuntimeJava\build\libs\DafnyRuntime-4.2.0.jar">
       <LogicalName>DafnyRuntime.jar</LogicalName>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </EmbeddedResource>
