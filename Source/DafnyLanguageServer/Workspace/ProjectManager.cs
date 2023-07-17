@@ -28,7 +28,6 @@ public delegate ProjectManager CreateProjectManager(VersionedTextDocumentIdentif
 public class ProjectManager {
   private readonly IRelocator relocator;
 
-  private readonly IServiceProvider services;
   private readonly IdeStateObserver observer;
   public CompilationManager CompilationManager { get; private set; }
   private IDisposable observerSubscription;
