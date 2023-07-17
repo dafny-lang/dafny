@@ -715,9 +715,7 @@ namespace Microsoft.Dafny.Compilers {
         wLazyGet.WriteLine("return _this.value");
 
         wr.WriteLine();
-        var wrFormals = new ConcreteSyntaxTree();
-        var wrActuals = new ConcreteSyntaxTree();
-        var typeDescriptorCount = WriteRuntimeTypeDescriptorsFormals(dt.TypeArgs, false, wrFormals, wrActuals);
+        var typeDescriptorCount = WriteRuntimeTypeDescriptorsFormals(dt.TypeArgs, false, out var wrFormals, out var wrActuals);
         var sep = typeDescriptorCount > 0 ? ", " : "";
         var wLazyCreate = wr.NewNamedBlock($"func ({companionTypeName}) {FormatLazyConstructorName(name)}({wrFormals}{sep}f func () {name}) {name}");
         wLazyCreate.WriteLine($"return {name}{{{wrActuals}{sep}&lazy_{name}_{{nil, f}}}}");
@@ -736,9 +734,7 @@ namespace Microsoft.Dafny.Compilers {
       string typeDescriptorDeclarations;
       string typeDescriptorUses;
       {
-        var wTypeDescriptorDeclarations = new ConcreteSyntaxTree();
-        var wTypeDescriptorUses = new ConcreteSyntaxTree();
-        WriteRuntimeTypeDescriptorsFormals(dt.TypeArgs, false, wTypeDescriptorDeclarations, wTypeDescriptorUses);
+        WriteRuntimeTypeDescriptorsFormals(dt.TypeArgs, false, out var wTypeDescriptorDeclarations, out var wTypeDescriptorUses);
         typeDescriptorDeclarations = wTypeDescriptorDeclarations.ToString();
         typeDescriptorUses = wTypeDescriptorUses.ToString();
       }
@@ -1045,7 +1041,8 @@ namespace Microsoft.Dafny.Compilers {
 
       wr.WriteLine();
       wr.Write($"func {FormatRTDName(typeName)}(");
-      WriteRuntimeTypeDescriptorsFormals(usedParams, true, wr, null);
+      WriteRuntimeTypeDescriptorsFormals(usedParams, true, out var wrFormals, out _);
+      wr.Append(wrFormals);
       var wTypeMethod = wr.NewBlock($") {DafnyTypeDescriptor}");
       wTypeMethod.WriteLine($"return type_{typeName}_{{{usedParams.Comma(tp => FormatRTDName(tp.GetCompileName(Options)))}}}");
 
@@ -1317,16 +1314,18 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     int WriteRuntimeTypeDescriptorsFormals(List<TypeParameter> typeParams, bool useAllTypeArgs,
-      [CanBeNull] ConcreteSyntaxTree wrFormals, [CanBeNull] ConcreteSyntaxTree wrActuals) {
+      out ConcreteSyntaxTree wrFormals, out ConcreteSyntaxTree wrActuals) {
       Contract.Requires(typeParams != null);
 
+      wrFormals = new ConcreteSyntaxTree();
+      wrActuals = new ConcreteSyntaxTree();
       var count = 0;
       var prefix = "";
       foreach (var tp in typeParams) {
         if (useAllTypeArgs || NeedsTypeDescriptor(tp)) {
           var parameterName = FormatRTDName(tp.GetCompileName(Options));
-          wrFormals?.Write($"{prefix}{parameterName} {DafnyTypeDescriptor}");
-          wrActuals?.Write($"{prefix}{parameterName}");
+          wrFormals.Write($"{prefix}{parameterName} {DafnyTypeDescriptor}");
+          wrActuals.Write($"{prefix}{parameterName}");
           prefix = ", ";
           count++;
         }
