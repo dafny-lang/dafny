@@ -17,6 +17,9 @@
 // Verify the benchmark actually ran and did not hit any exceptions.
 // CHECK: # Benchmark: _System.SequenceRace.LazyRace
 // CHECK-NOT: <failure>
+// Verify the teardown is only run once per iteration
+// CHECK: Iteration   1: That's all folks!
+// CHECK: Iteration   2: That's all folks!
 // CHECK: # Run complete.
 
 //
@@ -47,7 +50,7 @@ class {:benchmarks} SequenceRace {
     expect s[0] == 0;
   }
 
-  // method {:benchmarkTearDown} TearDown() {
-  //   print "Tear it down, boys\n";
-  // }
+  method {:benchmarkTearDown} TearDown() {
+    print "That's all folks!\n";
+  }
 }
