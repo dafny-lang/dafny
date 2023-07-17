@@ -269,8 +269,8 @@ namespace Microsoft.Dafny.Compilers {
       return ret;
     }
 
-    public CallBuilder Call() {
-      return new CallBuilder(this);
+    public CallStmtBuilder Call(object returnTo) {
+      return new CallStmtBuilder(this, returnTo);
     }
 
     public ReturnBuilder Return() {
@@ -417,17 +417,19 @@ namespace Microsoft.Dafny.Compilers {
     }
   }
 
-  class CallBuilder : ExprContainer {
+  class CallStmtBuilder : ExprContainer {
     public DafnyCompiler compiler { get => parent.compiler; }
     public readonly StatementContainer parent;
+    public readonly object returnTo;
 
     DAST.Type enclosing = null;
     string name = null;
     readonly List<DAST.Expression> args = new();
     List<ISequence<Rune>> outs = null;
 
-    public CallBuilder(StatementContainer parent) {
+    public CallStmtBuilder(StatementContainer parent, object returnTo) {
       this.parent = parent;
+      this.returnTo = returnTo;
     }
 
     public void SetEnclosing(DAST.Type enclosing) {
@@ -458,15 +460,13 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    public object Finish() {
+    public void Finish() {
       parent.AddStatement((DAST.Statement)DAST.Statement.create_Call(
         enclosing == null ? DAST.Optional<DAST._IType>.create_None() : DAST.Optional<DAST._IType>.create_Some(enclosing),
         Sequence<Rune>.UnicodeFromString(name),
         Sequence<DAST.Expression>.FromArray(args.ToArray()),
         outs == null ? DAST.Optional<ISequence<ISequence<Rune>>>.create_None() : DAST.Optional<ISequence<ISequence<Rune>>>.create_Some(Sequence<ISequence<Rune>>.FromArray(outs.ToArray()))
       ));
-
-      return parent;
     }
   }
 
@@ -487,37 +487,6 @@ namespace Microsoft.Dafny.Compilers {
         this.value = value;
         parent.AddStatement((DAST.Statement)DAST.Statement.create_Return(value));
       }
-    }
-  }
-
-  class CallExprBuilder : ExprContainer {
-    public DafnyCompiler compiler { get => parent.compiler; }
-    readonly ExprContainer parent;
-
-    string name = null;
-    readonly List<DAST.Expression> args = new();
-
-    public CallExprBuilder(ExprContainer parent) {
-      this.parent = parent;
-    }
-
-    public void SetName(string name) {
-      if (this.name != null) {
-        throw new InvalidOperationException();
-      } else {
-        this.name = name;
-      }
-    }
-
-    public void AddExpr(DAST.Expression value) {
-      args.Add(value);
-    }
-
-    public object Finish() {
-      parent.AddExpr((DAST.Expression)DAST.Expression.create_Todo(
-        Sequence<Rune>.UnicodeFromString("call expr")
-      ));
-      return parent;
     }
   }
 
@@ -553,7 +522,7 @@ namespace Microsoft.Dafny.Compilers {
 
     public DAST.Expression Finish() {
       if (exprs.Count != 1) {
-        throw new InvalidOperationException();
+        throw new InvalidOperationException("Expected exactly one expression in buffer, got " + exprs.Comma(e => e.ToString()));
       } else {
         return exprs.Pop();
       }
@@ -605,6 +574,58 @@ namespace Microsoft.Dafny.Compilers {
 
     public object Finish() {
       parent.AddExpr((DAST.Expression)DAST.Expression.create_BinOp(Sequence<Rune>.UnicodeFromString(op), left, right));
+      return parent;
+    }
+  }
+
+  class CallExprBuilder : ExprContainer {
+    public DafnyCompiler compiler { get => parent.compiler; }
+    public readonly ExprContainer parent;
+
+    DAST.Type enclosing = null;
+    string name = null;
+    readonly List<DAST.Expression> args = new();
+    List<ISequence<Rune>> outs = null;
+
+    public CallExprBuilder(ExprContainer parent) {
+      this.parent = parent;
+    }
+
+    public void SetEnclosing(DAST.Type enclosing) {
+      if (this.enclosing != null) {
+        throw new InvalidOperationException();
+      } else {
+        this.enclosing = enclosing;
+      }
+    }
+
+    public void SetName(string name) {
+      if (this.name != null) {
+        throw new InvalidOperationException();
+      } else {
+        this.name = name;
+      }
+    }
+
+    public void AddExpr(DAST.Expression value) {
+      args.Add(value);
+    }
+
+    public void SetOuts(List<ISequence<Rune>> outs) {
+      if (this.outs != null) {
+        throw new InvalidOperationException();
+      } else {
+        this.outs = outs;
+      }
+    }
+
+    public object Finish() {
+      parent.AddExpr((DAST.Expression)DAST.Expression.create_Call(
+        enclosing == null ? DAST.Optional<DAST._IType>.create_None() : DAST.Optional<DAST._IType>.create_Some(enclosing),
+        Sequence<Rune>.UnicodeFromString(name),
+        Sequence<DAST.Expression>.FromArray(args.ToArray())
+      ));
+
       return parent;
     }
   }

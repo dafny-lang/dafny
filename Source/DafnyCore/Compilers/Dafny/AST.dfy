@@ -38,6 +38,7 @@ module {:extern "DAST"} DAST {
     Tuple(seq<Expression>) |
     DatatypeValue(typ: Type, variant: string, contents: seq<(string, Expression)>) |
     BinOp(op: string, left: Expression, right: Expression) |
+    Call(enclosing: Optional<Type>, name: string, args: seq<Expression>) |
     InitializationValue(typ: Type) |
     Todo(reason: string)
 

@@ -1433,6 +1433,7 @@ namespace DAST {
     bool is_Tuple { get; }
     bool is_DatatypeValue { get; }
     bool is_BinOp { get; }
+    bool is_Call { get; }
     bool is_InitializationValue { get; }
     bool is_Todo { get; }
     DAST._ILiteral dtor_Literal_a0 { get; }
@@ -1444,6 +1445,9 @@ namespace DAST {
     Dafny.ISequence<Dafny.Rune> dtor_op { get; }
     DAST._IExpression dtor_left { get; }
     DAST._IExpression dtor_right { get; }
+    DAST._IOptional<DAST._IType> dtor_enclosing { get; }
+    Dafny.ISequence<Dafny.Rune> dtor_name { get; }
+    Dafny.ISequence<DAST._IExpression> dtor_args { get; }
     Dafny.ISequence<Dafny.Rune> dtor_reason { get; }
     _IExpression DowncastClone();
   }
@@ -1472,6 +1476,9 @@ namespace DAST {
     public static _IExpression create_BinOp(Dafny.ISequence<Dafny.Rune> op, DAST._IExpression left, DAST._IExpression right) {
       return new Expression_BinOp(op, left, right);
     }
+    public static _IExpression create_Call(DAST._IOptional<DAST._IType> enclosing, Dafny.ISequence<Dafny.Rune> name, Dafny.ISequence<DAST._IExpression> args) {
+      return new Expression_Call(enclosing, name, args);
+    }
     public static _IExpression create_InitializationValue(DAST._IType typ) {
       return new Expression_InitializationValue(typ);
     }
@@ -1483,6 +1490,7 @@ namespace DAST {
     public bool is_Tuple { get { return this is Expression_Tuple; } }
     public bool is_DatatypeValue { get { return this is Expression_DatatypeValue; } }
     public bool is_BinOp { get { return this is Expression_BinOp; } }
+    public bool is_Call { get { return this is Expression_Call; } }
     public bool is_InitializationValue { get { return this is Expression_InitializationValue; } }
     public bool is_Todo { get { return this is Expression_Todo; } }
     public DAST._ILiteral dtor_Literal_a0 {
@@ -1538,6 +1546,24 @@ namespace DAST {
       get {
         var d = this;
         return ((Expression_BinOp)d)._right;
+      }
+    }
+    public DAST._IOptional<DAST._IType> dtor_enclosing {
+      get {
+        var d = this;
+        return ((Expression_Call)d)._enclosing;
+      }
+    }
+    public Dafny.ISequence<Dafny.Rune> dtor_name {
+      get {
+        var d = this;
+        return ((Expression_Call)d)._name;
+      }
+    }
+    public Dafny.ISequence<DAST._IExpression> dtor_args {
+      get {
+        var d = this;
+        return ((Expression_Call)d)._args;
       }
     }
     public Dafny.ISequence<Dafny.Rune> dtor_reason {
@@ -1703,6 +1729,43 @@ namespace DAST {
       return s;
     }
   }
+  public class Expression_Call : Expression {
+    public readonly DAST._IOptional<DAST._IType> _enclosing;
+    public readonly Dafny.ISequence<Dafny.Rune> _name;
+    public readonly Dafny.ISequence<DAST._IExpression> _args;
+    public Expression_Call(DAST._IOptional<DAST._IType> enclosing, Dafny.ISequence<Dafny.Rune> name, Dafny.ISequence<DAST._IExpression> args) {
+      this._enclosing = enclosing;
+      this._name = name;
+      this._args = args;
+    }
+    public override _IExpression DowncastClone() {
+      if (this is _IExpression dt) { return dt; }
+      return new Expression_Call(_enclosing, _name, _args);
+    }
+    public override bool Equals(object other) {
+      var oth = other as DAST.Expression_Call;
+      return oth != null && object.Equals(this._enclosing, oth._enclosing) && object.Equals(this._name, oth._name) && object.Equals(this._args, oth._args);
+    }
+    public override int GetHashCode() {
+      ulong hash = 5381;
+      hash = ((hash << 5) + hash) + 5;
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._enclosing));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._name));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._args));
+      return (int)hash;
+    }
+    public override string ToString() {
+      string s = "DAST.Expression.Call";
+      s += "(";
+      s += Dafny.Helpers.ToString(this._enclosing);
+      s += ", ";
+      s += this._name.ToVerbatimString(true);
+      s += ", ";
+      s += Dafny.Helpers.ToString(this._args);
+      s += ")";
+      return s;
+    }
+  }
   public class Expression_InitializationValue : Expression {
     public readonly DAST._IType _typ;
     public Expression_InitializationValue(DAST._IType typ) {
@@ -1718,7 +1781,7 @@ namespace DAST {
     }
     public override int GetHashCode() {
       ulong hash = 5381;
-      hash = ((hash << 5) + hash) + 5;
+      hash = ((hash << 5) + hash) + 6;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._typ));
       return (int)hash;
     }
@@ -1745,7 +1808,7 @@ namespace DAST {
     }
     public override int GetHashCode() {
       ulong hash = 5381;
-      hash = ((hash << 5) + hash) + 6;
+      hash = ((hash << 5) + hash) + 7;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._reason));
       return (int)hash;
     }
@@ -2564,17 +2627,59 @@ namespace DCOMP {
           _143_right = _out31;
           s = Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("("), _142_left), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" ")), _141_op), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" ")), _143_right), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(")"));
         }
+      } else if (_source9.is_Call) {
+        DAST._IOptional<DAST._IType> _144___mcc_h13 = _source9.dtor_enclosing;
+        Dafny.ISequence<Dafny.Rune> _145___mcc_h14 = _source9.dtor_name;
+        Dafny.ISequence<DAST._IExpression> _146___mcc_h15 = _source9.dtor_args;
+        Dafny.ISequence<DAST._IExpression> _147_args = _146___mcc_h15;
+        Dafny.ISequence<Dafny.Rune> _148_name = _145___mcc_h14;
+        DAST._IOptional<DAST._IType> _149_enclosing = _144___mcc_h13;
+        {
+          Dafny.ISequence<Dafny.Rune> _150_argString;
+          _150_argString = Dafny.Sequence<Dafny.Rune>.UnicodeFromString("");
+          BigInteger _151_i;
+          _151_i = BigInteger.Zero;
+          while ((_151_i) < (new BigInteger((_147_args).Count))) {
+            if ((_151_i).Sign == 1) {
+              _150_argString = Dafny.Sequence<Dafny.Rune>.Concat(_150_argString, Dafny.Sequence<Dafny.Rune>.UnicodeFromString(", "));
+            }
+            Dafny.ISequence<Dafny.Rune> _152_argExpr;
+            Dafny.ISequence<Dafny.Rune> _out32;
+            _out32 = DCOMP.COMP.GenExpr((_147_args).Select(_151_i));
+            _152_argExpr = _out32;
+            _150_argString = Dafny.Sequence<Dafny.Rune>.Concat(_150_argString, _152_argExpr);
+            _151_i = (_151_i) + (BigInteger.One);
+          }
+          Dafny.ISequence<Dafny.Rune> _153_enclosingString;
+          _153_enclosingString = Dafny.Sequence<Dafny.Rune>.UnicodeFromString("");
+          DAST._IOptional<DAST._IType> _source11 = _149_enclosing;
+          if (_source11.is_Some) {
+            DAST._IType _154___mcc_h18 = _source11.dtor_Some_a0;
+            DAST._IType _155_e = _154___mcc_h18;
+            {
+              Dafny.ISequence<Dafny.Rune> _out33;
+              _out33 = DCOMP.COMP.GenType(_155_e);
+              _153_enclosingString = _out33;
+              _153_enclosingString = Dafny.Sequence<Dafny.Rune>.Concat(_153_enclosingString, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("::"));
+            }
+          } else {
+            {
+              _153_enclosingString = Dafny.Sequence<Dafny.Rune>.UnicodeFromString("");
+            }
+          }
+          s = Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(_153_enclosingString, _148_name), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("(")), _150_argString), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(")"));
+        }
       } else if (_source9.is_InitializationValue) {
-        DAST._IType _144___mcc_h13 = _source9.dtor_typ;
-        DAST._IType _145_typ = _144___mcc_h13;
+        DAST._IType _156___mcc_h16 = _source9.dtor_typ;
+        DAST._IType _157_typ = _156___mcc_h16;
         {
           s = Dafny.Sequence<Dafny.Rune>.UnicodeFromString("std::default::Default::default()");
         }
       } else {
-        Dafny.ISequence<Dafny.Rune> _146___mcc_h14 = _source9.dtor_reason;
-        Dafny.ISequence<Dafny.Rune> _147_reason = _146___mcc_h14;
+        Dafny.ISequence<Dafny.Rune> _158___mcc_h17 = _source9.dtor_reason;
+        Dafny.ISequence<Dafny.Rune> _159_reason = _158___mcc_h17;
         {
-          s = Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("todo!(\""), _147_reason), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("\")"));
+          s = Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("todo!(\""), _159_reason), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("\")"));
         }
       }
       return s;
@@ -2583,32 +2688,32 @@ namespace DCOMP {
       Dafny.ISequence<Dafny.Rune> s = Dafny.Sequence<Dafny.Rune>.Empty;
       s = Dafny.Sequence<Dafny.Rune>.UnicodeFromString("#![allow(warnings)]\n");
       s = Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(s, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("mod dafny_runtime {\n")), runtime), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("\n}\n"));
-      BigInteger _148_i;
-      _148_i = BigInteger.Zero;
-      while ((_148_i) < (new BigInteger((p).Count))) {
-        Dafny.ISequence<Dafny.Rune> _149_generated = Dafny.Sequence<Dafny.Rune>.Empty;
-        Dafny.ISequence<Dafny.Rune> _out32;
-        _out32 = DCOMP.COMP.GenModule((p).Select(_148_i));
-        _149_generated = _out32;
-        if ((_148_i).Sign == 1) {
+      BigInteger _160_i;
+      _160_i = BigInteger.Zero;
+      while ((_160_i) < (new BigInteger((p).Count))) {
+        Dafny.ISequence<Dafny.Rune> _161_generated = Dafny.Sequence<Dafny.Rune>.Empty;
+        Dafny.ISequence<Dafny.Rune> _out34;
+        _out34 = DCOMP.COMP.GenModule((p).Select(_160_i));
+        _161_generated = _out34;
+        if ((_160_i).Sign == 1) {
           s = Dafny.Sequence<Dafny.Rune>.Concat(s, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("\n"));
         }
-        s = Dafny.Sequence<Dafny.Rune>.Concat(s, _149_generated);
-        _148_i = (_148_i) + (BigInteger.One);
+        s = Dafny.Sequence<Dafny.Rune>.Concat(s, _161_generated);
+        _160_i = (_160_i) + (BigInteger.One);
       }
       return s;
     }
     public static Dafny.ISequence<Dafny.Rune> EmitCallToMain(Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> fullName) {
       Dafny.ISequence<Dafny.Rune> s = Dafny.Sequence<Dafny.Rune>.Empty;
       s = Dafny.Sequence<Dafny.Rune>.UnicodeFromString("\nfn main() {\n");
-      BigInteger _150_i;
-      _150_i = BigInteger.Zero;
-      while ((_150_i) < (new BigInteger((fullName).Count))) {
-        if ((_150_i).Sign == 1) {
+      BigInteger _162_i;
+      _162_i = BigInteger.Zero;
+      while ((_162_i) < (new BigInteger((fullName).Count))) {
+        if ((_162_i).Sign == 1) {
           s = Dafny.Sequence<Dafny.Rune>.Concat(s, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("::"));
         }
-        s = Dafny.Sequence<Dafny.Rune>.Concat(s, (fullName).Select(_150_i));
-        _150_i = (_150_i) + (BigInteger.One);
+        s = Dafny.Sequence<Dafny.Rune>.Concat(s, (fullName).Select(_162_i));
+        _162_i = (_162_i) + (BigInteger.One);
       }
       s = Dafny.Sequence<Dafny.Rune>.Concat(s, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("();\n}"));
       return s;

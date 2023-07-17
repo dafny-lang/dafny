@@ -403,6 +403,33 @@ module {:extern "DCOMP"} DCOMP {
           var right := GenExpr(r);
           s := "(" + left + " " + op + " " + right + ")";
         }
+        case Call(enclosing, name, args) => {
+          var argString := "";
+          var i := 0;
+          while i < |args| {
+            if i > 0 {
+              argString := argString + ", ";
+            }
+
+            var argExpr := GenExpr(args[i]);
+            argString := argString + argExpr;
+
+            i := i + 1;
+          }
+
+          var enclosingString := "";
+          match enclosing {
+            case Some(e) => {
+              enclosingString := GenType(e);
+              enclosingString := enclosingString + "::";
+            }
+            case None => {
+              enclosingString := "";
+            }
+          }
+
+          s := enclosingString + name + "(" + argString + ")";
+        }
         case Todo(reason) => {
           s := "todo!(\"" + reason + "\")";
         }
