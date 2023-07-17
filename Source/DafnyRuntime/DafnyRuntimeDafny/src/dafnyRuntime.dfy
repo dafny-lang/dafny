@@ -468,10 +468,6 @@ abstract module {:options "/functionSyntax:4"} Dafny {
       this
     }
 
-    function {:extern} UniqueElements(): set<T>
-      requires Valid()
-      ensures UniqueElements() == set t | t in Value()
-
     // Sequence creation methods
 
     static method Create<T>(cardinality: size_t, initFn: size_t -> T) returns (ret: Sequence<T>) {
