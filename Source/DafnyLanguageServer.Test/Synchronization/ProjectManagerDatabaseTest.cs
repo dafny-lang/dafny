@@ -30,11 +30,6 @@ public class ProjectManagerDatabaseTest : ClientBasedLanguageServerTest {
       tasks.Add(client.RequestHover(new HoverParams { Position = (0, 0), TextDocument = loadingDocument.Uri }, CancellationToken));
       tasks.Add(client.CloseDocumentAndWaitAsync(loadingDocument, CancellationToken));
     }
-    foreach (var _ in loadingDocuments) {
-      await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
-      // They either have a File contains no code diagnostics or no diagnostics if parsing failed to happen due 
-      // to the file already having been closed.
-    }
 
     await Task.WhenAll(tasks);
   }
@@ -83,11 +78,6 @@ public class ProjectManagerDatabaseTest : ClientBasedLanguageServerTest {
     foreach (var loadingDocument in loadingDocuments) {
       tasks.Add(client.RequestHover(new HoverParams { Position = (0, 0), TextDocument = loadingDocument.Uri }, CancellationToken));
       tasks.Add(client.CloseDocumentAndWaitAsync(loadingDocument, CancellationToken));
-    }
-    foreach (var _ in loadingDocuments) {
-      await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
-      // They either have a File contains no code diagnostics or no diagnostics if parsing failed to happen due 
-      // to the file already having been closed.
     }
 
     await Task.WhenAll(tasks);
