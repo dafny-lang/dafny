@@ -219,7 +219,7 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
       return;
     }
     lock (LockProcessing) {
-      notificationPublisher.PublishGutterIcons(compilation.InitialIdeState(options), verificationStarted);
+      notificationPublisher.PublishGutterIcons(compilation.InitialIdeState(compilation, options), verificationStarted);
     }
   }
 
