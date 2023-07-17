@@ -4792,19 +4792,6 @@ namespace Microsoft.Dafny.Compilers {
       wr.Write(ident);
     }
 
-    protected void EmitIdentifierExpr(IdentifierExpr e, bool inLetExprBody, ConcreteSyntaxTree wr) {
-      if (inLetExprBody && !(e.Var is BoundVar)) {
-        // copy variable to a temp since
-        //   - C# doesn't allow out param in letExpr body, and
-        //   - Java doesn't allow any non-final variable in letExpr body.
-        var name = ProtectedFreshId("_pat_let_tv");
-        EmitIdentifier(name, wr);
-        DeclareLocalVar(name, null, null, false, IdName(e.Var), copyInstrWriters.Peek(), e.Type);
-      } else {
-        EmitIdentifier(IdName(e.Var), wr);
-      }
-    }
-
     public virtual ConcreteSyntaxTree Expr(Expression expr, bool inLetExprBody, ConcreteSyntaxTree wStmts) {
       var result = new ConcreteSyntaxTree();
       var wr = result;
@@ -4825,7 +4812,17 @@ namespace Microsoft.Dafny.Compilers {
         EmitThis(wr);
 
       } else if (expr is IdentifierExpr) {
-        EmitIdentifierExpr((IdentifierExpr)expr, inLetExprBody, wr);
+        var e = (IdentifierExpr)expr;
+        if (inLetExprBody && !(e.Var is BoundVar)) {
+          // copy variable to a temp since
+          //   - C# doesn't allow out param in letExpr body, and
+          //   - Java doesn't allow any non-final variable in letExpr body.
+          var name = ProtectedFreshId("_pat_let_tv");
+          EmitIdentifier(name, wr);
+          DeclareLocalVar(name, null, null, false, IdName(e.Var), copyInstrWriters.Peek(), e.Type);
+        } else {
+          EmitIdentifier(IdName(e.Var), wr);
+        }
       } else if (expr is SetDisplayExpr) {
         var e = (SetDisplayExpr)expr;
         EmitCollectionDisplay(e.Type.AsSetType, e.tok, e.Elements, inLetExprBody, wr, wStmts);
