@@ -802,7 +802,7 @@ final class ConcatDafnySequence<T> extends LazyDafnySequence<T> {
     // INVARIANT: Either these are both non-null and ans is null or both are
     // null and ans is non-null.
     private DafnySequence<T> left, right;
-    private NonLazyDafnySequence<T> ans = null;
+    private volatile NonLazyDafnySequence<T> ans = null;
     private final int length;
 
     ConcatDafnySequence(DafnySequence<T> left, DafnySequence<T> right) {
@@ -841,6 +841,11 @@ final class ConcatDafnySequence<T> extends LazyDafnySequence<T> {
         // use recursion, but there could easily be enough sequences being
         // concatenated to exhaust the system stack.)
         Deque<DafnySequence<T>> toVisit = new ArrayDeque<>();
+
+        // Another thread may have already completed force() at this point.
+        if (left == null || right == null) {
+            return ans;
+        }
 
         toVisit.push(right);
         DafnySequence<T> first = left;
