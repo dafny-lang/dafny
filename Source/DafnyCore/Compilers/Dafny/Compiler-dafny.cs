@@ -172,7 +172,7 @@ namespace Microsoft.Dafny.Compilers {
           ctors.Add((DAST.DatatypeCtor)DAST.DatatypeCtor.create_DatatypeCtor(Sequence<Rune>.UnicodeFromString(ctor.Name), Sequence<DAST.Formal>.FromArray(args.ToArray()), ctor.Formals.Count > 0));
         }
 
-        return new ClassWriter(this, builder.Datatype(dt.Name, ctors));
+        return new ClassWriter(this, builder.Datatype(dt.Name, Sequence<Rune>.UnicodeFromString(dt.EnclosingModuleDefinition.GetCompileName(Options)), ctors));
       } else {
         throw new InvalidOperationException("Cannot declare datatype outside of a module: " + currentBuilder);
       }

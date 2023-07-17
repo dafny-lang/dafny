@@ -142,8 +142,8 @@ namespace Microsoft.Dafny.Compilers {
     DafnyCompiler compiler { get; }
     void AddDatatype(Datatype item);
 
-    public DatatypeBuilder Datatype(string name, List<DAST.DatatypeCtor> ctors) {
-      return new DatatypeBuilder(this, name, ctors);
+    public DatatypeBuilder Datatype(string name, ISequence<Rune> enclosingModule, List<DAST.DatatypeCtor> ctors) {
+      return new DatatypeBuilder(this, name, enclosingModule, ctors);
     }
   }
 
@@ -151,12 +151,14 @@ namespace Microsoft.Dafny.Compilers {
     public DafnyCompiler compiler { get => parent.compiler; }
     readonly DatatypeContainer parent;
     readonly string name;
+    readonly ISequence<Rune> enclosingModule;
     readonly List<DAST.DatatypeCtor> ctors;
     readonly List<ClassItem> body = new();
 
-    public DatatypeBuilder(DatatypeContainer parent, string name, List<DAST.DatatypeCtor> ctors) {
+    public DatatypeBuilder(DatatypeContainer parent, string name, ISequence<Rune> enclosingModule, List<DAST.DatatypeCtor> ctors) {
       this.parent = parent;
       this.name = name;
+      this.enclosingModule = enclosingModule;
       this.ctors = ctors;
     }
 
@@ -171,6 +173,7 @@ namespace Microsoft.Dafny.Compilers {
     public object Finish() {
       parent.AddDatatype((Datatype)Datatype.create(
         Sequence<Rune>.UnicodeFromString(this.name),
+        this.enclosingModule,
         Sequence<DAST.DatatypeCtor>.FromArray(ctors.ToArray()),
         Sequence<ClassItem>.FromArray(body.ToArray())
       ));

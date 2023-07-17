@@ -11,7 +11,7 @@ module {:extern "DAST"} DAST {
 
   datatype Class = Class(name: string, body: seq<ClassItem>)
 
-  datatype Datatype = Datatype(name: string, ctors: seq<DatatypeCtor>, body: seq<ClassItem>)
+  datatype Datatype = Datatype(name: string, enclosingModule: Ident, ctors: seq<DatatypeCtor>, body: seq<ClassItem>)
 
   datatype DatatypeCtor = DatatypeCtor(name: string, args: seq<Formal>, hasAnyArgs: bool /* includes ghost */)
 

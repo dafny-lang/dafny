@@ -81,7 +81,9 @@ module {:extern "DCOMP"} DCOMP {
       while i < |c.ctors| {
         var ctor := c.ctors[i];
         var ctorMatch := "r#" + ctor.name + " { ";
-        var printRhs := "write!(f, \"" + c.name + "." + ctor.name + (if ctor.hasAnyArgs then "(\")?;" else "\")?;");
+
+        var modulePrefix := if c.enclosingModule.id == "_module" then "" else c.enclosingModule.id + ".";
+        var printRhs := "write!(f, \"" + modulePrefix + c.name + "." + ctor.name + (if ctor.hasAnyArgs then "(\")?;" else "\")?;");
 
         var j := 0;
         while j < |ctor.args| {
