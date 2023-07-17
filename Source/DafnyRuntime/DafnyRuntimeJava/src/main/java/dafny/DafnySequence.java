@@ -801,8 +801,8 @@ abstract class LazyDafnySequence<T> extends DafnySequence<T> {
 final class ConcatDafnySequence<T> extends LazyDafnySequence<T> {
     // INVARIANT: Either these are both non-null and ans is null or both are
     // null and ans is non-null.
-    private DafnySequence<T> left, right;
-    private volatile NonLazyDafnySequence<T> ans = null;
+    private volatile DafnySequence<T> left, right;
+    private NonLazyDafnySequence<T> ans = null;
     private final int length;
 
     ConcatDafnySequence(DafnySequence<T> left, DafnySequence<T> right) {

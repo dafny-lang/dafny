@@ -6,6 +6,7 @@
 // RUN: %diff "%s.expect" "%t"
 
 // RUN: %baredafny translate java %args "%s" --plugin:DafnyBenchmarkingPlugin.dll
+// RUN: rm -rf %S/java/src/jmh
 // RUN: mkdir -p %S/java/src/jmh
 // RUN: cp -r %S/SequenceRace-java %S/java/src/jmh/java
 
@@ -13,10 +14,9 @@
 // RUN: %S/java/gradlew jmh -p %S/java > "%t"
 // RUN: %OutputCheck --file-to-check "%t" "%s"
 
-// I'd like to verify that the benchmark always fails since the bug isn't fixed yet,
-// but that could easily lead to a flaky test since it's not guaranteed to fail every time.
-// For now we just verify that the benchmark code was actually picked up by JMH and ran to completion.
+// Verify the benchmark actually ran and did not hit any exceptions.
 // CHECK: # Benchmark: _System.SequenceRace.LazyRace
+// CHECK-NOT: <failure>
 // CHECK: # Run complete.
 
 //
@@ -47,4 +47,7 @@ class {:benchmarks} SequenceRace {
     expect s[0] == 0;
   }
 
+  // method {:benchmarkTearDown} TearDown() {
+  //   print "Tear it down, boys\n";
+  // }
 }
