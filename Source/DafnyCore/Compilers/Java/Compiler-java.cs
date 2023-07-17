@@ -341,12 +341,7 @@ namespace Microsoft.Dafny.Compilers {
 
       var companion = TypeName_Companion(UserDefinedType.FromTopLevelDeclWithAllBooleanTypeParameters(mainMethod.EnclosingClass), wr, mainMethod.tok, mainMethod);
       var wBody = wr.NewNamedBlock("public static void main(String[] args)");
-      var addCompileSuffix = Options.Get(CommonOptionBag.AddCompileSuffix);
-      var defaultModuleCompileName = addCompileSuffix ? "_module_Compile" : "_module";
-      var enclosingModuleCompileName = mainMethod.EnclosingClass.EnclosingModuleDefinition.GetCompileName(Options);
-      var modName = enclosingModuleCompileName == defaultModuleCompileName
-        ? (addCompileSuffix ? "_System_Compile." : "_System.")
-        : "";
+      var modName = mainMethod.EnclosingClass.EnclosingModuleDefinition.GetCompileName(Options) == "_module" ? "_System." : "";
       companion = modName + companion;
       Coverage.EmitSetup(wBody);
       wBody.WriteLine($"{DafnyHelpersClass}.withHaltHandling(() -> {{ {companion}.__Main({DafnyHelpersClass}.{CharMethodQualifier}FromMainArguments(args)); }} );");
