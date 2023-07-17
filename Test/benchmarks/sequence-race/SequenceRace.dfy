@@ -1,3 +1,5 @@
+// Only because we're calling gradlew rather than gradlew.bat
+// UNSUPPORTED: windows
 
 // Ensure trying to use an unsupported compilation target results in a clean error message.
 // RUN: %exits-with 3 %baredafny translate cs %args "%s" --plugin:DafnyBenchmarkingPlugin.dll > "%t"
@@ -10,9 +12,12 @@
 // Note the intentional ">" as opposed to ">>", so we can check just the benchmark run output.
 // RUN: %S/java/gradlew jmh -p %S/java > "%t"
 // RUN: %OutputCheck --file-to-check "%t" "%s"
-// We manually verify the benchmark fails (since the bug isn't fixed yet), because unfortunately
-// we can't trust the JMH gradle plugin to: https://github.com/melix/jmh-gradle-plugin/issues/255
-// CHECK: <failure>
+
+// I'd like to verify that the benchmark always fails since the bug isn't fixed yet,
+// but that could easily lead to a flaky test since it's not guaranteed to fail every time.
+// For now we just verify that the benchmark code was actually picked up by JMH and ran to completion.
+// CHECK: # Benchmark: _System.SequenceRace.LazyRace
+// CHECK: # Run complete.
 
 //
 // Sanity test of the benchmarking plugin,

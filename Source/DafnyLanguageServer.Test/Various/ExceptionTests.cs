@@ -122,11 +122,11 @@ public class ExceptionTests : ClientBasedLanguageServerTest {
     }
 
     public Task<CompilationAfterParsing> LoadAsync(DafnyOptions options, VersionedTextDocumentIdentifier documentIdentifier,
-        IFileSystem fileSystem, CancellationToken cancellationToken) {
+        CancellationToken cancellationToken) {
       if (tests.CrashOnLoad) {
         throw new IOException("crash");
       }
-      return loader.LoadAsync(options, documentIdentifier, fileSystem, cancellationToken);
+      return loader.LoadAsync(options, documentIdentifier, cancellationToken);
     }
   }
 
