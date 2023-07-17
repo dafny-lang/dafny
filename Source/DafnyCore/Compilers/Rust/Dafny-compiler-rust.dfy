@@ -19,7 +19,7 @@ module {:extern "DCOMP"} DCOMP {
   class COMP {
     static method GenModule(mod: Module) returns (s: string) {
       var body := GenModuleBody(mod.body);
-      s := "mod " + mod.name + " {\n" + body + "\n}";
+      s := "mod r#" + mod.name + " {\n" + body + "\n}";
     }
 
     static method GenModuleBody(body: seq<ModuleItem>) returns (s: string) {
@@ -45,12 +45,12 @@ module {:extern "DCOMP"} DCOMP {
 
     static method GenClass(c: Class) returns (s: string) {
       var implBody := GenClassImplBody(c.body);
-      s := "pub struct " + c.name + " {\n" + "" +  "\n}" + "\n" + "impl " + c.name + " {\n" + implBody + "\n}";
+      s := "pub struct r#" + c.name + " {\n" + "" +  "\n}" + "\n" + "impl r#" + c.name + " {\n" + implBody + "\n}";
     }
 
     static method GenNewtype(c: Newtype) returns (s: string) {
       var underlyingType := GenType(c.base);
-      s := "pub type " + c.name + " =" + underlyingType +  ";\n";
+      s := "pub type r#" + c.name + " =" + underlyingType +  ";\n";
     }
 
     static method GenDatatype(c: Datatype) returns (s: string) {
@@ -58,7 +58,7 @@ module {:extern "DCOMP"} DCOMP {
       var i := 0;
       while i < |c.ctors| {
         var ctor := c.ctors[i];
-        var ctorBody := ctor.name + " { ";
+        var ctorBody := "r#" + ctor.name + " { ";
         var j := 0;
         while j < |ctor.args| {
           var formal := ctor.args[j];
@@ -74,13 +74,13 @@ module {:extern "DCOMP"} DCOMP {
       }
 
       var implBody := GenClassImplBody(c.body);
-      var enumBody := "pub enum " + c.name + " {\n" + ctors +  "\n}" + "\n" + "impl " + c.name + " {\n" + implBody + "\n}";
+      var enumBody := "pub enum r#" + c.name + " {\n" + ctors +  "\n}" + "\n" + "impl r#" + c.name + " {\n" + implBody + "\n}";
 
-      var printImpl := "impl ::dafny_runtime::DafnyPrint for " + c.name + " {\n" + "fn fmt_print(&self, f: &mut ::std::fmt::Formatter) -> std::fmt::Result {\n" + "match self {\n";
+      var printImpl := "impl ::dafny_runtime::DafnyPrint for r#" + c.name + " {\n" + "fn fmt_print(&self, f: &mut ::std::fmt::Formatter) -> std::fmt::Result {\n" + "match self {\n";
       i := 0;
       while i < |c.ctors| {
         var ctor := c.ctors[i];
-        var ctorMatch := ctor.name + " { ";
+        var ctorMatch := "r#" + ctor.name + " { ";
         var printRhs := "write!(f, \"" + c.name + "." + ctor.name + (if ctor.hasAnyArgs then "(\")?;" else "\")?;");
 
         var j := 0;
@@ -104,7 +104,7 @@ module {:extern "DCOMP"} DCOMP {
 
         printRhs := printRhs + "\nOk(())";
 
-        printImpl := printImpl + c.name + "::" + ctorMatch + " => {\n" + printRhs + "\n}\n";
+        printImpl := printImpl + "r#" + c.name + "::" + ctorMatch + " => {\n" + printRhs + "\n}\n";
         i := i + 1;
       }
 
@@ -112,7 +112,7 @@ module {:extern "DCOMP"} DCOMP {
 
       var defaultImpl := "";
       if |c.ctors| > 0 {
-        defaultImpl := "impl Default for " + c.name + " {\n" + "fn default() -> Self {\n" + c.name + "::" + c.ctors[0].name + " {\n";
+        defaultImpl := "impl Default for r#" + c.name + " {\n" + "fn default() -> Self {\n" + "r#" + c.name + "::r#" + c.ctors[0].name + " {\n";
         i := 0;
         while i < |c.ctors[0].args| {
           var formal := c.ctors[0].args[i];
@@ -136,7 +136,7 @@ module {:extern "DCOMP"} DCOMP {
               s := s + "::";
             }
 
-            s := s + p[i].id;
+            s := s + "r#" + p[i].id;
 
             i := i + 1;
           }
@@ -171,7 +171,7 @@ module {:extern "DCOMP"} DCOMP {
       while i < |params| {
         var param := params[i];
         var paramType := GenType(param.typ);
-        s := s + param.name + ": " + paramType;
+        s := s + "r#" + param.name + ": " + paramType;
 
         if i < |params| - 1 {
           s := s + ", ";
@@ -205,7 +205,7 @@ module {:extern "DCOMP"} DCOMP {
         retType := retType + ")";
       }
 
-      s := "pub fn " + m.name;
+      s := "pub fn r#" + m.name;
 
       if (|m.typeArgs| > 0) {
         s := s + "<";
@@ -236,7 +236,7 @@ module {:extern "DCOMP"} DCOMP {
             }
 
             var outVar := outVars[outI];
-            body := body + outVar.id;
+            body := body + "r#" + outVar.id;
 
             outI := outI + 1;
           }
@@ -269,15 +269,15 @@ module {:extern "DCOMP"} DCOMP {
         case DeclareVar(name, typ, Some(expression)) => {
           var expr := GenExpr(expression);
           var typeString := GenType(typ);
-          generated := "let mut " + name + ": " + typeString + " = " + expr + ";";
+          generated := "let mut r#" + name + ": " + typeString + " = " + expr + ";";
         }
         case DeclareVar(name, typ, None) => {
           var typeString := GenType(typ);
-          generated := "let mut " + name + ": " + typeString + ";";
+          generated := "let mut r#" + name + ": " + typeString + ";";
         }
         case Assign(name, expression) => {
           var expr := GenExpr(expression);
-          generated := name + " = " + expr + ";";
+          generated := "r#" + name + " = " + expr + ";";
         }
         case If(cond, thn, els) => {
           var condString := GenExpr(cond);
@@ -336,7 +336,7 @@ module {:extern "DCOMP"} DCOMP {
 
           generated :=
             (if receiver != "" then (receiver + " = ") else "") +
-            enclosingString + name + "(" + argString + ");";
+            enclosingString + "r#" + name + "(" + argString + ");";
         }
         case Return(expr) => {
           var exprString := GenExpr(expr);
@@ -376,7 +376,7 @@ module {:extern "DCOMP"} DCOMP {
           s := "\"" + l + "\"";
         }
         case Ident(name) => {
-          s := name;
+          s := "r#" + name;
         }
         case InitializationValue(typ) => {
           s := "std::default::Default::default()";
@@ -398,8 +398,7 @@ module {:extern "DCOMP"} DCOMP {
         }
         case DatatypeValue(typ, variant, values) => {
           s := GenType(typ);
-          s := s + "::";
-          s := s + variant;
+          s := s + "::r#" + variant;
 
           var i := 0;
           s := s + " {";
@@ -450,7 +449,7 @@ module {:extern "DCOMP"} DCOMP {
             }
           }
 
-          s := enclosingString + name + "(" + argString + ")";
+          s := enclosingString + "r#" + name + "(" + argString + ")";
         }
         case Todo(reason) => {
           s := "todo!(\"" + reason + "\")";
