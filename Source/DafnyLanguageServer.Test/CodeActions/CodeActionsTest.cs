@@ -277,6 +277,39 @@ function Foo(i: int): int
 }");
     }
 
+    [Fact]
+    public async Task AllOpaqueInsertionsTODO() {
+      await TestCodeAction(@"
+function test(): int {
+  1
+}
+
+function goalFun(): int {
+  test()
+}
+
+function goalFun2(): (v: int)
+  ensures v >= 1
+{
+  test()
+}
+
+method goal() returns (x: int)
+  ensures x >= 1
+{
+  x := test();
+}
+
+method goal2() returns (x: int) {
+  x := test();
+}
+
+method goal3() {
+  var x := test();
+}
+");
+    }
+
     private static readonly Regex NewlineRegex = new Regex("\r?\n");
 
     private async Task TestCodeAction(string source) {
