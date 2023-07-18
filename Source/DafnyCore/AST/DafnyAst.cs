@@ -52,6 +52,7 @@ namespace Microsoft.Dafny {
 
     public Method MainMethod; // Method to be used as main if compiled
     public LiteralModuleDecl DefaultModule;
+    public IList<FileModuleDefinition> Files { get; } = new List<FileModuleDefinition>();
     public DefaultModuleDefinition DefaultModuleDef => (DefaultModuleDefinition)DefaultModule.ModuleDef;
     public SystemModuleManager SystemModuleManager;
     public DafnyOptions Options => Reporter.Options;
