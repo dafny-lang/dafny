@@ -18,7 +18,7 @@ public class SimpleLinearVerificationGutterStatusTester : LinearVerificationGutt
     await VerifyTrace(@"
  |  | [ ]://Insert1:method Test() {//Insert2:\\n  assert false;\n}
 ### | [=]:
-######[ ]:", intermediates: false);
+######[ ]:", false, intermediates: false);
   }
 
   [Fact]
