@@ -31,7 +31,7 @@ namespace Microsoft.Dafny.Compilers {
         throw new InvalidOperationException("");
       }
 
-      items = new ProgramBuilder(this);
+      items = new ProgramBuilder();
       this.currentBuilder = items;
     }
 
@@ -587,7 +587,7 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void EmitPrintStmt(ConcreteSyntaxTree wr, Expression arg) {
       if (wr is BuilderSyntaxTree<StatementContainer> stmtContainer) {
-        ExprBuffer buffer = new(this);
+        ExprBuffer buffer = new(currentBuilder);
         EmitExpr(arg, false, new BuilderSyntaxTree<ExprContainer>(buffer), wr);
         stmtContainer.Builder.Print(buffer.Finish());
       } else {
@@ -855,7 +855,7 @@ namespace Microsoft.Dafny.Compilers {
 
       if (actualWr is BuilderSyntaxTree<ExprContainer> container) {
         if (expr is DatatypeValue) {
-          ExprBuffer buffer = new(this);
+          ExprBuffer buffer = new(currentBuilder);
           var origBuilder = currentBuilder;
           currentBuilder = buffer;
           base.EmitExpr(expr, inLetExprBody, actualWr, wStmts);
@@ -1083,7 +1083,7 @@ namespace Microsoft.Dafny.Compilers {
           _ => throw new NotImplementedException(),
         };
 
-        currentBuilder = builder.Builder.BinOp(opString, currentBuilder);
+        currentBuilder = builder.Builder.BinOp(opString, this, currentBuilder);
       } else {
         throw new InvalidOperationException();
       }

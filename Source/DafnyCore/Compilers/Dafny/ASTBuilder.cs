@@ -6,15 +6,7 @@ using DAST;
 namespace Microsoft.Dafny.Compilers {
 
   class ProgramBuilder : ModuleContainer {
-    public readonly DafnyCompiler _compiler;
-    public DafnyCompiler compiler { get => _compiler; }
-
-
     readonly List<Module> items = new();
-
-    public ProgramBuilder(DafnyCompiler compiler) {
-      _compiler = compiler;
-    }
 
     public void AddModule(Module item) {
       items.Add(item);
@@ -26,7 +18,6 @@ namespace Microsoft.Dafny.Compilers {
   }
 
   interface ModuleContainer {
-    DafnyCompiler compiler { get; }
 
     void AddModule(Module item);
 
@@ -36,7 +27,6 @@ namespace Microsoft.Dafny.Compilers {
   }
 
   class ModuleBuilder : ClassContainer, NewtypeContainer, DatatypeContainer {
-    public DafnyCompiler compiler { get => parent.compiler; }
     readonly ModuleContainer parent;
     readonly string name;
     readonly List<ModuleItem> body = new();
@@ -69,7 +59,6 @@ namespace Microsoft.Dafny.Compilers {
   }
 
   interface ClassContainer {
-    DafnyCompiler compiler { get; }
     void AddClass(Class item);
 
     public ClassBuilder Class(string name) {
@@ -78,7 +67,6 @@ namespace Microsoft.Dafny.Compilers {
   }
 
   class ClassBuilder : ClassLike {
-    public DafnyCompiler compiler { get => parent.compiler; }
     readonly ClassContainer parent;
     readonly string name;
     readonly List<ClassItem> body = new();
@@ -103,7 +91,6 @@ namespace Microsoft.Dafny.Compilers {
   }
 
   interface NewtypeContainer {
-    DafnyCompiler compiler { get; }
     void AddNewtype(Newtype item);
 
     public NewtypeBuilder Newtype(string name, DAST.Type baseType) {
@@ -112,7 +99,6 @@ namespace Microsoft.Dafny.Compilers {
   }
 
   class NewtypeBuilder : ClassLike {
-    public DafnyCompiler compiler { get => parent.compiler; }
     readonly NewtypeContainer parent;
     readonly string name;
     readonly DAST.Type baseType;
@@ -138,7 +124,6 @@ namespace Microsoft.Dafny.Compilers {
   }
 
   interface DatatypeContainer {
-    DafnyCompiler compiler { get; }
     void AddDatatype(Datatype item);
 
     public DatatypeBuilder Datatype(string name, ISequence<Rune> enclosingModule, List<DAST.DatatypeCtor> ctors) {
@@ -147,7 +132,6 @@ namespace Microsoft.Dafny.Compilers {
   }
 
   class DatatypeBuilder : ClassLike {
-    public DafnyCompiler compiler { get => parent.compiler; }
     readonly DatatypeContainer parent;
     readonly string name;
     readonly ISequence<Rune> enclosingModule;
@@ -181,7 +165,6 @@ namespace Microsoft.Dafny.Compilers {
   }
 
   interface ClassLike {
-    DafnyCompiler compiler { get; }
     void AddMethod(DAST.Method item);
 
     void AddField(DAST.Formal item);
@@ -194,7 +177,6 @@ namespace Microsoft.Dafny.Compilers {
   }
 
   class MethodBuilder : StatementContainer {
-    public DafnyCompiler compiler { get => parent.compiler; }
     readonly ClassLike parent;
     readonly string name;
     readonly bool isStatic;
@@ -247,7 +229,6 @@ namespace Microsoft.Dafny.Compilers {
   }
 
   interface StatementContainer {
-    DafnyCompiler compiler { get; }
     void AddStatement(DAST.Statement item);
 
     void AddBuildable(BuildableStatement item);
@@ -288,7 +269,6 @@ namespace Microsoft.Dafny.Compilers {
   }
 
   class AssignBuilder : ExprContainer, BuildableStatement {
-    public DafnyCompiler compiler { get => parent.compiler; }
     public readonly StatementContainer parent;
     readonly bool isDeclare;
     readonly DAST.Type type;
@@ -335,7 +315,6 @@ namespace Microsoft.Dafny.Compilers {
   }
 
   class IfElseBuilder : ExprContainer, StatementContainer, BuildableStatement {
-    public DafnyCompiler compiler { get => parent.compiler; }
     public readonly StatementContainer parent;
 
     DAST.Expression condition = null;
@@ -406,7 +385,6 @@ namespace Microsoft.Dafny.Compilers {
   }
 
   class ElseBuilder : StatementContainer {
-    public DafnyCompiler compiler { get => parent.compiler; }
     public readonly IfElseBuilder parent;
 
     public ElseBuilder(IfElseBuilder parent) {
@@ -423,7 +401,6 @@ namespace Microsoft.Dafny.Compilers {
   }
 
   class CallStmtBuilder : ExprContainer {
-    public DafnyCompiler compiler { get => parent.compiler; }
     public readonly StatementContainer parent;
     public readonly object returnTo;
 
@@ -486,7 +463,6 @@ namespace Microsoft.Dafny.Compilers {
   }
 
   class ReturnBuilder : ExprContainer {
-    public DafnyCompiler compiler { get => parent.compiler; }
     readonly StatementContainer parent;
 
     DAST.Expression value = null;
@@ -506,13 +482,11 @@ namespace Microsoft.Dafny.Compilers {
   }
 
   class ExprBuffer : ExprContainer {
-    public DafnyCompiler compiler { get; }
     Stack<DAST.Expression> exprs = new();
     public readonly object parent;
 
-    public ExprBuffer(DafnyCompiler compiler) {
-      this.compiler = compiler;
-      this.parent = compiler.currentBuilder;
+    public ExprBuffer(object returnTo) {
+      this.parent = returnTo;
     }
 
     public void AddExpr(DAST.Expression item) {
@@ -545,11 +519,10 @@ namespace Microsoft.Dafny.Compilers {
   }
 
   interface ExprContainer {
-    DafnyCompiler compiler { get; }
     void AddExpr(DAST.Expression item);
 
-    BinOpBuilder BinOp(string op, object returnTo) {
-      return new BinOpBuilder(this, op, returnTo);
+    BinOpBuilder BinOp(string op, DafnyCompiler compiler, object returnTo) {
+      return new BinOpBuilder(compiler, this, op, returnTo);
     }
 
     CallExprBuilder Call() {
@@ -558,14 +531,15 @@ namespace Microsoft.Dafny.Compilers {
   }
 
   class BinOpBuilder : ExprContainer {
-    public DafnyCompiler compiler { get => parent.compiler; }
+    readonly DafnyCompiler compiler;
     readonly ExprContainer parent;
     readonly string op;
     readonly object returnTo;
     DAST.Expression left = null;
     DAST.Expression right = null;
 
-    public BinOpBuilder(ExprContainer parent, string op, object returnTo) {
+    public BinOpBuilder(DafnyCompiler compiler, ExprContainer parent, string op, object returnTo) {
+      this.compiler = compiler;
       this.parent = parent;
       this.op = op;
       this.returnTo = returnTo;
@@ -587,14 +561,12 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    public object Finish() {
+    public void Finish() {
       parent.AddExpr((DAST.Expression)DAST.Expression.create_BinOp(Sequence<Rune>.UnicodeFromString(op), left, right));
-      return parent;
     }
   }
 
   class CallExprBuilder : ExprContainer {
-    public DafnyCompiler compiler { get => parent.compiler; }
     public readonly ExprContainer parent;
 
     DAST.Type enclosing = null;
