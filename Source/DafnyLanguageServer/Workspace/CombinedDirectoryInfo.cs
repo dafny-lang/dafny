@@ -25,7 +25,24 @@ class CombinedDirectoryInfo : DirectoryInfoBase {
     new CombinedDirectoryInfo(Parts.Select(part => part.ParentDirectory).ToArray());
 
   public override IEnumerable<FileSystemInfoBase> EnumerateFileSystemInfos() {
-    return Parts.SelectMany(part => part.EnumerateFileSystemInfos()).DistinctBy(f => f.FullName);
+    return Parts.SelectMany(part => part.EnumerateFileSystemInfos()).GroupBy(f => f.FullName).SelectMany(g => {
+      var files = g.OfType<FileInfoBase>().ToList();
+      var directories = g.OfType<DirectoryInfoBase>().ToArray();
+      if (files.Any() && directories.Any()) {
+        // Cannot combine files and directories
+        return Enumerable.Empty<FileSystemInfoBase>();
+      }
+
+      if (files.Count > 0) {
+        return new[] { files[0] };
+      }
+
+      if (directories.Length == 1) {
+        return new[] { directories[0] };
+      }
+
+      return new[] { new CombinedDirectoryInfo(directories) };
+    });
   }
 
   public override DirectoryInfoBase GetDirectory(string path) {
