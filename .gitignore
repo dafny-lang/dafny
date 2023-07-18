@@ -12,7 +12,6 @@
 
 .gradle/
 .idea/
-.vs/
 
 Binaries/*.dll
 Binaries/*.mdb

@@ -27,13 +27,13 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
     }
 
     public override async Task<LocationOrLocationLinks> Handle(DefinitionParams request, CancellationToken cancellationToken) {
-      var state = await projects.GetResolvedDocumentAsync(request.TextDocument);
-      if (state == null) {
+      var document = await projects.GetResolvedDocumentAsync(request.TextDocument);
+      if (document == null) {
         logger.LogWarning("location requested for unloaded document {DocumentUri}", request.TextDocument.Uri);
         return new LocationOrLocationLinks();
       }
 
-      var result = state.SymbolTable.GetDeclaration(request.TextDocument.Uri.ToUri(), request.Position);
+      var result = document.SymbolTable.GetDeclaration(request.Position);
       if (result == null) {
         logger.LogDebug("no symbol was found at {Position} in {Document}", request.Position, request.TextDocument);
         return new LocationOrLocationLinks();

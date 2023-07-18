@@ -1,7 +1,5 @@
 
 using System;
-using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.Linq;
 using System.Threading;
 using Microsoft.Extensions.Logging;
@@ -10,14 +8,12 @@ using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace;
 
-public delegate IdeStateObserver CreateIdeStateObserver(DafnyProject project);
+public delegate IdeStateObserver CreateIdeStateObserver(VersionedTextDocumentIdentifier documentIdentifier);
 
 public class IdeStateObserver : IObserver<IdeState> {
   private readonly ILogger logger;
   private readonly ITelemetryPublisher telemetryPublisher;
   private readonly INotificationPublisher notificationPublisher;
-  private readonly ITextDocumentLoader loader;
-  private readonly DafnyProject project;
 
   private readonly object lastPublishedStateLock = new();
 
@@ -27,18 +23,14 @@ public class IdeStateObserver : IObserver<IdeState> {
     ITelemetryPublisher telemetryPublisher,
     INotificationPublisher notificationPublisher,
     ITextDocumentLoader loader,
-    DafnyProject project) {
-    LastPublishedState = loader.CreateUnloaded(project);
+    VersionedTextDocumentIdentifier documentIdentifier) {
+    LastPublishedState = loader.CreateUnloaded(documentIdentifier, CancellationToken.None);
     this.logger = logger;
     this.telemetryPublisher = telemetryPublisher;
     this.notificationPublisher = notificationPublisher;
-    this.loader = loader;
-    this.project = project;
   }
 
   public void OnCompleted() {
-    var ideState = loader.CreateUnloaded(project) with { Compilation = new Compilation(LastPublishedState.Version + 1, LastPublishedState.Compilation.Project) };
-    notificationPublisher.PublishNotifications(LastPublishedState, ideState);
     telemetryPublisher.PublishUpdateComplete();
   }
 
@@ -56,7 +48,7 @@ public class IdeStateObserver : IObserver<IdeState> {
       Range = new Range(0, 0, 0, 1)
     };
     var documentToPublish = LastPublishedState with {
-      ResolutionDiagnostics = ImmutableDictionary<Uri, IReadOnlyList<Diagnostic>>.Empty.Add(project.Uri, new[] { internalErrorDiagnostic })
+      ResolutionDiagnostics = new[] { internalErrorDiagnostic }
     };
 
     OnNext(documentToPublish);
@@ -72,6 +64,7 @@ public class IdeStateObserver : IObserver<IdeState> {
         return;
       }
 
+      logger.LogDebug($"Publishing notification for {snapshot.Uri} version {snapshot.Version}.");
       notificationPublisher.PublishNotifications(LastPublishedState, snapshot);
       LastPublishedState = snapshot;
     }

@@ -4,14 +4,11 @@ using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.Linq;
-using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Boogie;
 using Microsoft.Extensions.Logging;
-using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace {
   /// <summary>
@@ -57,76 +54,78 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       return new TextDocumentLoader(loggerFactory, parser, symbolResolver, symbolTableFactory, ghostStateDiagnosticCollector, statusPublisher);
     }
 
-    public IdeState CreateUnloaded(DafnyProject project) {
-      return CreateDocumentWithEmptySymbolTable(project, ImmutableDictionary<Uri, IReadOnlyList<Diagnostic>>.Empty);
+    public IdeState CreateUnloaded(VersionedTextDocumentIdentifier documentIdentifier, CancellationToken cancellationToken) {
+      return CreateDocumentWithEmptySymbolTable(documentIdentifier, Array.Empty<Diagnostic>());
     }
 
-    public async Task<CompilationAfterParsing> LoadAsync(DafnyOptions options, Compilation compilation,
+    public async Task<CompilationAfterParsing> LoadAsync(DafnyOptions options, VersionedTextDocumentIdentifier documentIdentifier,
       CancellationToken cancellationToken) {
 #pragma warning disable CS1998
       return await await DafnyMain.LargeStackFactory.StartNew(
-        async () => LoadInternal(options, compilation, cancellationToken), cancellationToken
+        async () => LoadInternal(options, documentIdentifier, cancellationToken), cancellationToken
 #pragma warning restore CS1998
         );
     }
 
-    private CompilationAfterParsing LoadInternal(DafnyOptions options, Compilation compilation,
+    private CompilationAfterParsing LoadInternal(DafnyOptions options, VersionedTextDocumentIdentifier documentIdentifier,
       CancellationToken cancellationToken) {
-      var project = compilation.Project;
-      var errorReporter = new DiagnosticErrorReporter(options, project.Uri);
-      statusPublisher.SendStatusNotification(compilation, CompilationStatus.Parsing);
-      var program = parser.Parse(project, errorReporter, cancellationToken);
-      var compilationAfterParsing = new CompilationAfterParsing(compilation, program, errorReporter.AllDiagnosticsCopy);
+      var errorReporter = new DiagnosticErrorReporter(options, documentIdentifier.Uri);
+      statusPublisher.SendStatusNotification(documentIdentifier, CompilationStatus.Parsing);
+      var program = parser.Parse(documentIdentifier, errorReporter, cancellationToken);
+      var documentAfterParsing = new CompilationAfterParsing(documentIdentifier, program, errorReporter.AllDiagnosticsCopy);
       if (errorReporter.HasErrors) {
-        statusPublisher.SendStatusNotification(compilation, CompilationStatus.ParsingFailed);
-        return compilationAfterParsing;
+        statusPublisher.SendStatusNotification(documentIdentifier, CompilationStatus.ParsingFailed);
+        return documentAfterParsing;
       }
 
-      statusPublisher.SendStatusNotification(compilation, CompilationStatus.ResolutionStarted);
+      statusPublisher.SendStatusNotification(documentIdentifier, CompilationStatus.ResolutionStarted);
       try {
-        var compilationUnit = symbolResolver.ResolveSymbols(project, program, cancellationToken);
+        var compilationUnit = symbolResolver.ResolveSymbols(documentIdentifier, program, cancellationToken);
         var legacySymbolTable = symbolTableFactory.CreateFrom(compilationUnit, cancellationToken);
 
         var newSymbolTable = errorReporter.HasErrors
           ? null
-          : symbolTableFactory.CreateFrom(program, compilationAfterParsing, cancellationToken);
+          : symbolTableFactory.CreateFrom(program, documentAfterParsing, cancellationToken);
         if (errorReporter.HasErrors) {
-          statusPublisher.SendStatusNotification(compilation, CompilationStatus.ResolutionFailed);
+          statusPublisher.SendStatusNotification(documentIdentifier, CompilationStatus.ResolutionFailed);
         } else {
-          statusPublisher.SendStatusNotification(compilation, CompilationStatus.CompilationSucceeded);
+          statusPublisher.SendStatusNotification(documentIdentifier, CompilationStatus.CompilationSucceeded);
         }
 
-        var ghostDiagnostics = ghostStateDiagnosticCollector.GetGhostStateDiagnostics(legacySymbolTable, cancellationToken);
+        var ghostDiagnostics = ghostStateDiagnosticCollector.GetGhostStateDiagnostics(legacySymbolTable, cancellationToken)
+          .ToArray();
 
-        return new CompilationAfterResolution(compilationAfterParsing,
+        return new CompilationAfterResolution(documentIdentifier,
+          program,
           errorReporter.AllDiagnosticsCopy,
           newSymbolTable,
           legacySymbolTable,
           ghostDiagnostics
         );
       } catch (OperationCanceledException) {
-        return compilationAfterParsing;
+        return documentAfterParsing;
       }
     }
 
-    private IdeState CreateDocumentWithEmptySymbolTable(DafnyProject project,
-      IReadOnlyDictionary<Uri, IReadOnlyList<Diagnostic>> resolutionDiagnostics) {
+    private IdeState CreateDocumentWithEmptySymbolTable(
+      VersionedTextDocumentIdentifier textDocument,
+      IReadOnlyList<Diagnostic> diagnostics
+    ) {
       var dafnyOptions = DafnyOptions.Default;
       return new IdeState(
-        new Compilation(0, project),
+        textDocument,
         new EmptyNode(),
-        resolutionDiagnostics,
+        diagnostics,
         SymbolTable.Empty(),
-        SignatureAndCompletionTable.Empty(dafnyOptions, project),
+        SignatureAndCompletionTable.Empty(dafnyOptions, textDocument),
         new Dictionary<ImplementationId, IdeImplementationView>(),
         Array.Empty<Counterexample>(),
         false,
-        ImmutableDictionary<Uri, IReadOnlyList<Range>>.Empty,
-      null
-      );
+        Array.Empty<Diagnostic>(),
+null);
     }
   }
 }
 
 
-public record ImplementationId(Uri Uri, Position Position, string Name);
+public record ImplementationId(Position NamedVerificationTask, string Name);

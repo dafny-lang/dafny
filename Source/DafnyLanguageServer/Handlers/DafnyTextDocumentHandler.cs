@@ -69,17 +69,14 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
       return Unit.Task;
     }
 
-    /// <summary>
-    /// Can be called in parallel
-    /// </summary>
-    public override async Task<Unit> Handle(DidCloseTextDocumentParams notification, CancellationToken cancellationToken) {
+    public override Task<Unit> Handle(DidCloseTextDocumentParams notification, CancellationToken cancellationToken) {
       logger.LogTrace("received close notification {DocumentUri}", notification.TextDocument.Uri);
       try {
-        await projects.CloseDocumentAsync(notification.TextDocument);
+        CloseDocumentAndHideDiagnosticsAsync(notification.TextDocument);
       } catch (Exception e) {
         telemetryPublisher.PublishUnhandledException(e);
       }
-      return Unit.Value;
+      return Unit.Task;
     }
 
     public override Task<Unit> Handle(DidChangeTextDocumentParams notification, CancellationToken cancellationToken) {
@@ -101,6 +98,16 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
       }
 
       return Unit.Task;
+    }
+
+    private async Task CloseDocumentAndHideDiagnosticsAsync(TextDocumentIdentifier documentId) {
+      try {
+        await projects.CloseDocumentAsync(documentId);
+        notificationPublisher.HideDiagnostics(documentId);
+      } catch (Exception e) {
+        telemetryPublisher.PublishUnhandledException(e);
+      }
+
     }
   }
 }

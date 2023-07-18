@@ -19,51 +19,49 @@ namespace Microsoft.Dafny.LanguageServer.Language {
   /// dafny-lang makes use of static members and assembly loading. Since thread-safety of this is not guaranteed,
   /// this verifier serializes all invocations.
   /// </remarks>
-  public class DafnyProgramVerifier : IProgramVerifier {
-    private readonly SemaphoreSlim mutex = new(1);
+  public class DafnyProgramVerifier : IProgramVerifier, IDisposable {
+    private readonly VerificationResultCache cache = new();
+    private readonly ExecutionEngine engine;
 
-    public DafnyProgramVerifier(ILogger<DafnyProgramVerifier> logger) {
+    public DafnyProgramVerifier(
+      ILogger<DafnyProgramVerifier> logger,
+      DafnyOptions options
+      ) {
+      engine = new ExecutionEngine(options, cache);
     }
 
-    public async Task<IReadOnlyList<IImplementationTask>> GetVerificationTasksAsync(
-      ExecutionEngine engine,
-      CompilationAfterResolution compilation,
+    private const int TranslatorMaxStackSize = 0x10000000; // 256MB
+
+    public async Task<IReadOnlyList<IImplementationTask>> GetVerificationTasksAsync(CompilationAfterResolution compilation,
       CancellationToken cancellationToken) {
-      await mutex.WaitAsync(cancellationToken);
-      try {
+      var program = compilation.Program;
+      var errorReporter = (DiagnosticErrorReporter)program.Reporter;
 
-        var program = compilation.Program;
-        var errorReporter = (DiagnosticErrorReporter)program.Reporter;
+      cancellationToken.ThrowIfCancellationRequested();
 
-        cancellationToken.ThrowIfCancellationRequested();
+      var translated = await DafnyMain.LargeStackFactory.StartNew(() => Translator.Translate(program, errorReporter, new Translator.TranslatorFlags(errorReporter.Options) {
+        InsertChecksums = true,
+        ReportRanges = true
+      }).ToList(), cancellationToken);
 
-        var translated = await DafnyMain.LargeStackFactory.StartNew(() => Translator.Translate(program, errorReporter, new Translator.TranslatorFlags(errorReporter.Options) {
-          InsertChecksums = true,
-          ReportRanges = true
-        }).ToList(), cancellationToken);
+      cancellationToken.ThrowIfCancellationRequested();
 
-        cancellationToken.ThrowIfCancellationRequested();
-
-        if (engine.Options.PrintFile != null) {
-          var moduleCount = Translator.VerifiableModules(program).Count();
-          foreach (var (suffix, boogieProgram) in translated) {
-            var fileName = moduleCount > 1 ? DafnyMain.BoogieProgramSuffix(engine.Options.PrintFile, suffix) : engine.Options.PrintFile;
-            ExecutionEngine.PrintBplFile(engine.Options, fileName, boogieProgram, false, false, engine.Options.PrettyPrint);
-          }
+      if (engine.Options.PrintFile != null) {
+        var moduleCount = Translator.VerifiableModules(program).Count();
+        foreach (var (suffix, boogieProgram) in translated) {
+          var fileName = moduleCount > 1 ? DafnyMain.BoogieProgramSuffix(engine.Options.PrintFile, suffix) : engine.Options.PrintFile;
+          ExecutionEngine.PrintBplFile(engine.Options, fileName, boogieProgram, false, false, engine.Options.PrettyPrint);
         }
+      }
 
-        return translated.SelectMany(t => {
-          var (_, boogieProgram) = t;
-          return engine.GetImplementationTasks(boogieProgram);
-        }).ToList();
-      }
-      finally {
-        mutex.Release();
-      }
+      return translated.SelectMany(t => {
+        var (_, boogieProgram) = t;
+        return engine.GetImplementationTasks(boogieProgram);
+      }).ToList();
     }
 
     public void Dispose() {
-      mutex.Dispose();
+      engine.Dispose();
     }
   }
 }

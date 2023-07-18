@@ -366,8 +366,10 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
 
   public record DocumentVerificationTree(
     INode Program,
-    Uri Uri)
-    : VerificationTree("Document", Uri.ToString(), Uri.ToString(), Uri.ToString(), Uri, ComputeRange(Program, Uri), new Position(0, 0)) {
+    VersionedTextDocumentIdentifier DocumentIdentifier
+  ) : VerificationTree("Document", DocumentIdentifier.Uri.ToString(), DocumentIdentifier.Uri.ToString(), DocumentIdentifier.Uri.ToString(),
+    DocumentIdentifier.Uri.ToUri(),
+    ComputeRange(Program, DocumentIdentifier.Uri.ToUri()), new Position(0, 0)) {
 
     private static Range ComputeRange(INode program, Uri uri) {
       var fileNode = FindFileNode(program, uri);

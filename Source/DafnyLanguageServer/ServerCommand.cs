@@ -42,11 +42,6 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
 Send notifications about the verification status of each line in the program.
 ".TrimStart());
 
-  public static readonly Option<bool> ProjectMode = new("--project-mode",
-    "New mode with working with project files. Will become the default") {
-    IsHidden = true
-  };
-
   public static readonly Option<uint> VerifySnapshots = new("--cache-verification", @"
 (experimental)
 0 - do not use any verification result caching (default)
@@ -82,7 +77,6 @@ Send notifications about the verification status of each line in the program.
   public static void ConfigureDafnyOptionsForServer(DafnyOptions dafnyOptions) {
     dafnyOptions.RunLanguageServer = true;
     dafnyOptions.Set(DafnyConsolePrinter.ShowSnippets, true);
-
     dafnyOptions.PrintIncludesMode = DafnyOptions.IncludesModes.None;
 
     // TODO This may be subject to change. See Microsoft.Boogie.Counterexample
