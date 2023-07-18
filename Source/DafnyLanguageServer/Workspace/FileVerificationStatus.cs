@@ -9,7 +9,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace;
 
 public record FileVerificationStatus(
   DocumentUri Uri,
-  int? Version,
+  int Version,
   IReadOnlyList<NamedVerifiableStatus> NamedVerifiables) : IRequest {
   public override string ToString() {
     return $"{nameof(NamedVerifiables)}: {string.Join(", ", NamedVerifiables)}";

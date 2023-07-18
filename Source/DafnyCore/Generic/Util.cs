@@ -21,6 +21,7 @@ namespace Microsoft.Dafny {
       return new HashSet<T>();
     }
   }
+
   public static class Util {
 
     public static bool LessThanOrEquals<T>(this T first, T second)
