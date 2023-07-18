@@ -63,7 +63,7 @@ module {:extern "DCOMP"} DCOMP {
         while j < |ctor.args| {
           var formal := ctor.args[j];
           var formalType := GenType(formal.typ);
-          ctorBody := ctorBody + formal.name + ": " + formalType + ", ";
+          ctorBody := ctorBody + "r#" + formal.name + ": " + formalType + ", ";
           j := j + 1;
         }
 
@@ -74,7 +74,7 @@ module {:extern "DCOMP"} DCOMP {
       }
 
       var implBody := GenClassImplBody(c.body);
-      var enumBody := "pub enum r#" + c.name + " {\n" + ctors +  "\n}" + "\n" + "impl r#" + c.name + " {\n" + implBody + "\n}";
+      var enumBody := "#[derive(PartialEq)]\npub enum r#" + c.name + " {\n" + ctors +  "\n}" + "\n" + "impl r#" + c.name + " {\n" + implBody + "\n}";
 
       var printImpl := "impl ::dafny_runtime::DafnyPrint for r#" + c.name + " {\n" + "fn fmt_print(&self, f: &mut ::std::fmt::Formatter) -> std::fmt::Result {\n" + "match self {\n";
       i := 0;
@@ -441,7 +441,7 @@ module {:extern "DCOMP"} DCOMP {
               s := s + ", ";
             }
             var recursiveGen := GenExpr(value);
-            s := s + name + ": " + recursiveGen;
+            s := s + "r#" + name + ": " + recursiveGen;
             i := i + 1;
           }
           s := s + " }";

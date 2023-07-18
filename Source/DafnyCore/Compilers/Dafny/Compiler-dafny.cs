@@ -171,7 +171,7 @@ namespace Microsoft.Dafny.Compilers {
           List<DAST.Formal> args = new();
           foreach (var arg in ctor.Formals) {
             if (!arg.IsGhost) {
-              args.Add((DAST.Formal)DAST.Formal.create_Formal(Sequence<Rune>.UnicodeFromString(arg.Name), GenType(arg.Type)));
+              args.Add((DAST.Formal)DAST.Formal.create_Formal(Sequence<Rune>.UnicodeFromString(arg.CompileName), GenType(arg.Type)));
             }
           }
           ctors.Add((DAST.DatatypeCtor)DAST.DatatypeCtor.create_DatatypeCtor(Sequence<Rune>.UnicodeFromString(ctor.Name), Sequence<DAST.Formal>.FromArray(args.ToArray()), ctor.Formals.Count > 0));
@@ -255,15 +255,17 @@ namespace Microsoft.Dafny.Compilers {
         List<DAST.Formal> params_ = new();
         foreach (var param in m.Ins) {
           if (param is not ImplicitFormal) {
-            params_.Add((DAST.Formal)DAST.Formal.create_Formal(Sequence<Rune>.UnicodeFromString(compiler.IdProtect(param.Name)), compiler.GenType(param.Type)));
+            params_.Add((DAST.Formal)DAST.Formal.create_Formal(Sequence<Rune>.UnicodeFromString(compiler.IdProtect(param.CompileName)), compiler.GenType(param.Type)));
           }
         }
 
         List<ISequence<Rune>> outVars = new();
         List<DAST.Type> outTypes = new();
         foreach (var outVar in m.Outs) {
-          outVars.Add(Sequence<Rune>.UnicodeFromString(compiler.IdProtect(outVar.Name)));
-          outTypes.Add(compiler.GenType(outVar.Type));
+          if (!outVar.IsGhost) {
+            outVars.Add(Sequence<Rune>.UnicodeFromString(compiler.IdProtect(outVar.CompileName)));
+            outTypes.Add(compiler.GenType(outVar.Type));
+          }
         }
 
         var builder = this.builder.Method(m.IsStatic, m.Name, astTypeArgs, params_, outTypes, outVars);
@@ -285,7 +287,7 @@ namespace Microsoft.Dafny.Compilers {
 
         List<DAST.Formal> params_ = new();
         foreach (var param in formals) {
-          params_.Add((DAST.Formal)DAST.Formal.create_Formal(Sequence<Rune>.UnicodeFromString(compiler.IdProtect(param.Name)), compiler.GenType(param.Type)));
+          params_.Add((DAST.Formal)DAST.Formal.create_Formal(Sequence<Rune>.UnicodeFromString(compiler.IdProtect(param.CompileName)), compiler.GenType(param.Type)));
         }
 
         var builder = this.builder.Method(isStatic, name, astTypeArgs, params_, new() {
@@ -900,7 +902,7 @@ namespace Microsoft.Dafny.Compilers {
 
           var actual = contents[argI];
           namedContents.Add(_System.Tuple2<ISequence<Rune>, DAST.Expression>.create(
-            Sequence<Rune>.UnicodeFromString(formal.Name),
+            Sequence<Rune>.UnicodeFromString(formal.CompileName),
             actual
           ));
 
@@ -945,7 +947,7 @@ namespace Microsoft.Dafny.Compilers {
     protected override ILvalue EmitMemberSelect(Action<ConcreteSyntaxTree> obj, Type objType, MemberDecl member,
       List<TypeArgumentInstantiation> typeArgs, Dictionary<TypeParameter, Type> typeMap, Type expectedType,
       string additionalCustomParameter = null, bool internalAccess = false) {
-      var objReceiver = new ExprBuffer(currentBuilder);
+      var objReceiver = new ExprBuffer(null);
       obj(new BuilderSyntaxTree<ExprContainer>(objReceiver));
       var objExpr = objReceiver.Finish();
       return new ExprLvalue((DAST.Expression)DAST.Expression.create_Select(
