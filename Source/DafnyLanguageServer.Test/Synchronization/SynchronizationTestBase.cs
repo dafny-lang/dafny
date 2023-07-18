@@ -18,12 +18,13 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
       return Task.CompletedTask;
     }
 
-    protected Task ApplyChangeAndWaitCompletionAsync(TextDocumentItem documentItem, Range range,
+    protected Task ApplyChangeAndWaitCompletionAsync(ref TextDocumentItem documentItem, Range range,
       string newText) {
       var versionedTextDocumentIdentifier = new VersionedTextDocumentIdentifier() {
         Version = documentItem.Version!.Value,
         Uri = documentItem.Uri
       };
+      documentItem = documentItem with { Version = documentItem.Version + 1 };
       return ApplyChangeAndWaitCompletionAsync(versionedTextDocumentIdentifier, range, newText);
     }
 

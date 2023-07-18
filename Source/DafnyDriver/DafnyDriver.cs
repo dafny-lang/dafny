@@ -225,6 +225,12 @@ namespace Microsoft.Dafny {
         return CommandLineArgumentsResult.OK;
       }
 
+      if (options.DafnyProject != null) {
+        foreach (var uri in options.DafnyProject.GetRootSourceUris(OnDiskFileSystem.Instance, options)) {
+          options.CliRootSourceUris.Add(uri);
+        }
+      }
+
       var nonOutOptions = options;
       var compilers = options.Plugins.SelectMany(p => p.GetCompilers(nonOutOptions)).ToList();
       var compiler = compilers.LastOrDefault(c => c.TargetId == nonOutOptions.CompilerName);

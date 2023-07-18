@@ -47,7 +47,7 @@ class Test {
       var documentItem = CreateTestDocument(source);
       await Client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       await ApplyChangeAndWaitCompletionAsync(
-        documentItem,
+        ref documentItem,
         new Range((10, 0), (14, 0)),
         change
       );
@@ -86,7 +86,7 @@ class Test {
       var documentItem = CreateTestDocument(source);
       await Client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       await ApplyChangeAndWaitCompletionAsync(
-        documentItem,
+        ref documentItem,
         new Range((12, 0), (14, 0)),
         change
       );
@@ -133,7 +133,7 @@ class Test {
       var documentItem = CreateTestDocument(source);
       await Client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       await ApplyChangeAndWaitCompletionAsync(
-        documentItem,
+        ref documentItem,
         new Range((10, 0), (14, 0)),
         change
       );
@@ -172,7 +172,7 @@ class Test {
       var documentItem = CreateTestDocument(source);
       await Client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       await ApplyChangeAndWaitCompletionAsync(
-        documentItem,
+        ref documentItem,
         new Range((12, 0), (14, 0)),
         change
       );
@@ -199,7 +199,7 @@ class Test {
       var documentItem = CreateTestDocument(source);
       await Client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       await ApplyChangeAndWaitCompletionAsync(
-        documentItem,
+        ref documentItem,
         new Range((6, 10), (6, 10)),
         change
       );
@@ -226,7 +226,7 @@ class Test {
       var documentItem = CreateTestDocument(source);
       await Client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       await ApplyChangeAndWaitCompletionAsync(
-        documentItem,
+        ref documentItem,
         new Range((6, 4), (6, 9)),
         change
       );
@@ -257,7 +257,7 @@ class Test {
       var lookupCountBefore = originalDocument.SignatureAndCompletionTable.LookupTree.Count;
 
       await ApplyChangeAndWaitCompletionAsync(
-        documentItem,
+        ref documentItem,
         new Range((6, 9), (6, 10)),
         change
       );

@@ -31,7 +31,7 @@ public class SimpleLinearVerificationGutterStatusTester : LinearVerificationGutt
 [ ]:method {:rlimit 1} Test(s: seq<nat>)
 [=]:  requires |s| >= 1 && s[0] >= 0 {
 [=]:  assert fib(10) == 1; assert {:split_here} s[0] >= 0;
-[ ]:}", intermediates: false);
+[ ]:}", true, intermediates: false);
   }
 
   [Fact]
@@ -53,7 +53,7 @@ method Foo() ensures false { } ";
     await VerifyTrace(@"
  .  | :method x() {
  .  | :  // Nothing here
- .  | :}");
+ .  | :}", false);
   }
 
   [Fact/*, Timeout(MaxTestExecutionTimeMs)*/]
@@ -76,7 +76,7 @@ method Foo() ensures false { } ";
     |  |  |  I  I  |  | :    
  .  |  |  |  I  I  |  | :predicate OkBis() {
  .  |  |  |  I  I  |  | :  false
- .  |  |  |  I  I  |  | :}");
+ .  |  |  |  I  I  |  | :}", true);
   }
   [Fact(Timeout = MaxTestExecutionTimeMs)]
   public async Task EnsuresItWorksForSubsetTypes() {
@@ -89,7 +89,7 @@ method Foo() ensures false { } ";
  .  |  |  |  I  I  |  |  |  I  I  |  |  | :}
     |  |  |  I  I  |  |  |  I  I  |  |  | :
  .  S  S  |  I  .  S  S [=] I  .  S  S  | :type IssueId = i : int | isIssueIdValid(i)
- .  S  |  |  I  .  S  | [=] I  .  S  |  | :  witness 101 //Replace1:   witness 99 //Replace2:   witness 101 ");
+ .  S  |  |  I  .  S  | [=] I  .  S  |  | :  witness 101 //Replace1:   witness 99 //Replace2:   witness 101 ", false);
   }
 
   [Fact(Timeout = MaxTestExecutionTimeMs)]
@@ -102,7 +102,7 @@ method Foo() ensures false { } ";
  .  S [S][ ]:method H()
  .  S [=][=]:  ensures F(1)
  .  S [=][=]:{
- .  S [S][ ]:}");
+ .  S [S][ ]:}", true);
   }
 
   [Fact(Timeout = MaxTestExecutionTimeMs * 10)]
@@ -114,7 +114,7 @@ method Foo() ensures false { } ";
  .  S [S][ ][I] | :method Main() {
  .  S [=][=][I] | :  ghost var x :| P(x); //Replace:  ghost var x := 1;
  .  S [S][ ][I] | :}
-                | :// Comment to not trim this line");
+                | :// Comment to not trim this line", false);
     }
   }
 
@@ -123,7 +123,7 @@ method Foo() ensures false { } ";
     await VerifyTrace(@"
  | :class A {
  | :}
- | :// Comment so test does not trim this line");
+ | :// Comment so test does not trim this line", true);
   }
 
 
@@ -131,13 +131,13 @@ method Foo() ensures false { } ";
   public async Task EnsuresEmptyDocumentWithParseErrorShowsError() {
     await VerifyTrace(@"
 /!\:class A {/
-   :}");
+   :}", false);
   }
 
   [Fact/*(Timeout = MaxTestExecutionTimeMs)*/]
   public async Task EnsuresDefaultArgumentsShowsError() {
     await VerifyTrace(@"
- .  S [~][=]:datatype D = T(i: nat := -2)");
+ .  S [~][=]:datatype D = T(i: nat := -2)", true);
   }
 
   [Fact/*(Timeout = MaxTestExecutionTimeMs)*/]
@@ -146,7 +146,7 @@ method Foo() ensures false { } ";
     |  |  | :// The following should trigger only one error
  .  |  |  | :ghost const a := [1, 2];
     |  |  | :
- .  S [~][=]:ghost const b := a[-1];");
+ .  S [~][=]:ghost const b := a[-1];", false);
   }
 
   [Fact/*(Timeout = MaxTestExecutionTimeMs)*/]
@@ -156,7 +156,7 @@ method Foo() ensures false { } ";
  .  S [S][ ][I][S][ ][I][S][ ]:  //Replace1:\n  //Replace2:\\n  
  .  S [=][=][I][S][ ][I][S][ ]:  assert x == 2; }
 ############[-][~][=][I][S][ ]:
-#####################[-][~][=]:");
+#####################[-][~][=]:", true);
   }
 
   [Fact/*(Timeout = MaxTestExecutionTimeMs)*/]
@@ -171,7 +171,7 @@ method Foo() ensures false { } ";
  .  S [S][ ][-][~][~][=]:    y := y + 1;
  .  S [S][ ][I][S][S][ ]:  }
  .  S [S][ ][I][S][S][ ]:}
-############[I][S][S][ ]:");
+############[I][S][S][ ]:", false);
   }
 
   [Fact]
@@ -180,7 +180,7 @@ method Foo() ensures false { } ";
  .  S [S][ ]:method x() {
  .  S [=][=]:  assert false
  .  S [=][=]:    || false;
- .  S [S][ ]:}");
+ .  S [S][ ]:}", true);
   }
 
   [Fact]
@@ -198,7 +198,7 @@ method Foo() ensures false { } ";
     |  |  | :
  .  |  |  | :predicate test2(x: nat) {
  .  |  |  | :  true
- .  |  |  | :}");
+ .  |  |  | :}", false);
   }
 
 
@@ -217,7 +217,7 @@ method Foo() ensures false { } ";
     |  |  | :
  .  |  |  | :predicate test2(x: nat) {
  .  |  |  | :  true
- .  |  |  | :}");
+ .  |  |  | :}", true);
   }
 
   public SimpleLinearVerificationGutterStatusTester(ITestOutputHelper output) : base(output) {
