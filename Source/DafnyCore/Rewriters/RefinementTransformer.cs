@@ -1682,9 +1682,10 @@ namespace Microsoft.Dafny {
     readonly ModuleDefinition moduleUnderConstruction;
     private bool wrapWithRefinementToken = true;
 
-    public RefinementCloner(ModuleDefinition m) {
+    public RefinementCloner(ModuleDefinition m) : base(false, false) {
       moduleUnderConstruction = m;
     }
+
     public override BlockStmt CloneMethodBody(Method m) {
       if (m.Body is DividedBlockStmt) {
         return CloneDividedBlockStmt((DividedBlockStmt)m.Body);
