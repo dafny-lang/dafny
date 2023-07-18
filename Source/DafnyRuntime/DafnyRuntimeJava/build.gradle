@@ -80,8 +80,7 @@ publishing {
 signing {
     // Signing is required if building a release version and if we're going to publish it.
     // Otherwise, signing will only occur if signatory credentials are configured.
-    // TODO: Doesn't work in this version of Gradle
-//    required { isReleaseVersion && gradle.taskGraph.hasTask('publish') }
+    required { gradle.taskGraph.hasTask('publish') }
 
     sign publishing.publications.mavenJava
 }
