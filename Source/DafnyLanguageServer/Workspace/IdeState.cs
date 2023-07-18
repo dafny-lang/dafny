@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using Microsoft.Boogie;
 using Microsoft.Dafny.LanguageServer.Language;
@@ -19,23 +20,26 @@ public record IdeImplementationView(Range Range, PublishedVerificationStatus Sta
 /// to provide the IDE with as much information as possible.
 /// </summary>
 public record IdeState(
-  VersionedTextDocumentIdentifier DocumentIdentifier,
+  Compilation Compilation,
   Node Program,
-  IEnumerable<Diagnostic> ResolutionDiagnostics,
+  IReadOnlyDictionary<Uri, IReadOnlyList<Diagnostic>> ResolutionDiagnostics,
   SymbolTable SymbolTable,
   SignatureAndCompletionTable SignatureAndCompletionTable,
   IReadOnlyDictionary<ImplementationId, IdeImplementationView> ImplementationIdToView,
   IReadOnlyList<Counterexample> Counterexamples,
   bool ImplementationsWereUpdated,
-  IEnumerable<Diagnostic> GhostDiagnostics,
+  IReadOnlyDictionary<Uri, IReadOnlyList<Range>> GhostRanges,
   VerificationTree? VerificationTree
 ) {
 
-  public DocumentUri Uri => DocumentIdentifier.Uri;
-  public int? Version => DocumentIdentifier.Version;
+  public int Version => Compilation.Version;
 
-  public IEnumerable<Diagnostic> Diagnostics =>
-    ResolutionDiagnostics.Concat(ImplementationIdToView.Values.SelectMany(v => v.Diagnostics));
+  public ImmutableDictionary<Uri, IReadOnlyList<Diagnostic>> GetDiagnostics() {
+    var resolutionDiagnostics = ResolutionDiagnostics.ToImmutableDictionary();
+    var verificationDiagnostics = ImplementationIdToView.GroupBy(kv => kv.Key.Uri).Select(kv =>
+      new KeyValuePair<Uri, IReadOnlyList<Diagnostic>>(kv.Key, kv.SelectMany(x => x.Value.Diagnostics).ToList()));
+    return resolutionDiagnostics.Merge(verificationDiagnostics, Lists.Concat);
+  }
 }
 
 public static class Util {

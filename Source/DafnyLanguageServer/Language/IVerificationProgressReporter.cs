@@ -1,5 +1,7 @@
+using System.Diagnostics;
 using Microsoft.Boogie;
 using Microsoft.Dafny.LanguageServer.Workspace;
+using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 using VC;
 
 namespace Microsoft.Dafny.LanguageServer.Language {
@@ -14,5 +16,6 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     void ReportEndVerifyImplementation(CompilationAfterTranslation compilation, Implementation implToken, Boogie.VerificationResult verificationResult);
     void ReportImplementationsBeforeVerification(CompilationAfterTranslation compilation, Implementation[] implementations);
     void ReportAssertionBatchResult(CompilationAfterTranslation compilation, AssertionBatchResult batchResult);
+    void SetAllUnvisitedMethodsAsVerified(CompilationAfterTranslation compilation);
   }
 }

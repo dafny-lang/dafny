@@ -14,7 +14,8 @@ public class ProjectFilesTest : ClientBasedLanguageServerTest {
   [Fact]
   public async Task ProjectFileChangesArePickedUpAfterCacheExpiration() {
     await SetUp(options => options.WarnShadowing = false);
-    var tempDirectory = Path.GetTempPath();
+    var tempDirectory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+    Directory.CreateDirectory(tempDirectory);
     var projectFilePath = Path.Combine(tempDirectory, DafnyProject.FileName);
     await File.WriteAllTextAsync(projectFilePath, "");
 
@@ -26,14 +27,16 @@ method Foo() {
   }
 }
 ";
-    var documentItem = CreateTestDocument(source, Path.Combine(projectFilePath, "source.dfy"));
+    var documentItem = CreateTestDocument(source, Path.Combine(tempDirectory, "source.dfy"));
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
 
     var warnShadowingOn = @"
 [options]
 warn-shadowing = true";
+    // Wait to prevent an IOException because the file is already in use.
+    await Task.Delay(100);
     await File.WriteAllTextAsync(projectFilePath, warnShadowingOn);
-    await Task.Delay(ProjectManager.ProjectFileCacheExpiryTime);
+    await Task.Delay(ProjectManagerDatabase.ProjectFileCacheExpiryTime);
     ApplyChange(ref documentItem, new Range(0, 0, 0, 0), "//touch comment\n");
     var diagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
 
@@ -58,8 +61,7 @@ warn-shadowing = true";
     await SetUp(options => options.WarnShadowing = true);
     var filePath = Path.Combine(Directory.GetCurrentDirectory(), "ProjectFiles/TestFiles/noWarnShadowing.dfy");
     var source = await File.ReadAllTextAsync(filePath);
-    var documentItem = CreateTestDocument(source, filePath);
-    await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+    await CreateAndOpenTestDocument(source, filePath);
     await AssertNoDiagnosticsAreComing(CancellationToken);
   }
 
@@ -71,7 +73,7 @@ warn-shadowing = true";
 [options]
 warn-shadowing = true
 ";
-    var directory = Path.GetTempPath();
+    var directory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
     var outerProjectFile = CreateTestDocument(projectFileSource, Path.Combine(directory, DafnyProject.FileName));
     await client.OpenDocumentAndWaitAsync(outerProjectFile, CancellationToken);
 
@@ -95,7 +97,7 @@ warn-shadowing = true
 [options]
 warn-shadowing = true
 ";
-    var directory = Path.GetTempPath();
+    var directory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
     var projectFile = CreateTestDocument(projectFileSource, Path.Combine(directory, DafnyProject.FileName));
     await client.OpenDocumentAndWaitAsync(projectFile, CancellationToken);
 

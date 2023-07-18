@@ -26,6 +26,6 @@ public class OnDiskFileSystem : IFileSystem {
   }
 
   public DirectoryInfoBase GetDirectoryInfoBase(string root) {
-    return new DirectoryInfoWrapper(new DirectoryInfo(root!));
+    return new CustomDirectoryInfoWrapper(new DirectoryInfo(root!));
   }
 }
