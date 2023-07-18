@@ -801,7 +801,14 @@ abstract class LazyDafnySequence<T> extends DafnySequence<T> {
 final class ConcatDafnySequence<T> extends LazyDafnySequence<T> {
     // INVARIANT: Either these are both non-null and ans is null or both are
     // null and ans is non-null.
-    private DafnySequence<T> left, right;
+    // Under concurrent access this is more complicated though:
+    // the only safe pattern is to read left and right into temporary variables first
+    // and judge based on their values whether ans is populated or not.
+    // The opposite order is subject to race conditions:
+    // if you observe ans as null first and then attempt to read left or right,
+    // another thread could complete force() in-between and clear left and right
+    // before you get to them!
+    private volatile DafnySequence<T> left, right;
     private NonLazyDafnySequence<T> ans = null;
     private final int length;
 
@@ -830,7 +837,7 @@ final class ConcatDafnySequence<T> extends LazyDafnySequence<T> {
 
     private NonLazyDafnySequence<T> computeElements() {
         // Somewhat arbitrarily, the copier will be created by the leftmost
-        // sequence.  This is fine unless native Java code is uncareful and has
+        // sequence.  This is fine unless native Java code is uncareful and
         // has created ArrayDafnySequences of boxed primitive types.
         Copier<T> copier;
 
@@ -842,12 +849,25 @@ final class ConcatDafnySequence<T> extends LazyDafnySequence<T> {
         // concatenated to exhaust the system stack.)
         Deque<DafnySequence<T>> toVisit = new ArrayDeque<>();
 
-        toVisit.push(right);
-        DafnySequence<T> first = left;
-        while (first instanceof ConcatDafnySequence<?> &&
-                ((ConcatDafnySequence<T>) first).ans == null) {
-            toVisit.push(((ConcatDafnySequence<T>) first).right);
-            first = ((ConcatDafnySequence<T>) first).left;
+        // Another thread may have already completed force() at this point.
+        DafnySequence<T> leftBuffer = left;
+        DafnySequence<T> rightBuffer = right;
+        if (leftBuffer == null || rightBuffer == null) {
+            return ans;
+        }
+
+        toVisit.push(rightBuffer);
+        DafnySequence<T> first = leftBuffer;
+        while (first instanceof ConcatDafnySequence<?>) {
+            ConcatDafnySequence<T> cfirst = (ConcatDafnySequence<T>) first;
+            leftBuffer = cfirst.left;
+            rightBuffer = cfirst.right;
+            if (leftBuffer == null || rightBuffer == null) {
+                break;
+            } else {
+                toVisit.push(rightBuffer);
+                first = leftBuffer;
+            }
         }
         toVisit.push(first);
 
@@ -859,11 +879,13 @@ final class ConcatDafnySequence<T> extends LazyDafnySequence<T> {
             if (seq instanceof ConcatDafnySequence<?>) {
                 ConcatDafnySequence<T> cseq = (ConcatDafnySequence<T>) seq;
 
-                if (cseq.ans != null) {
+                leftBuffer = cseq.left;
+                rightBuffer = cseq.right;
+                if (leftBuffer == null || rightBuffer == null) {
                     copier.copyFrom(cseq.ans);
                 } else {
-                    toVisit.push(cseq.right);
-                    toVisit.push(cseq.left);
+                    toVisit.push(rightBuffer);
+                    toVisit.push(leftBuffer);
                 }
             } else {
                 copier.copyFrom(seq);
