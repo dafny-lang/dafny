@@ -177,7 +177,7 @@ namespace Microsoft.Dafny.Compilers {
           ctors.Add((DAST.DatatypeCtor)DAST.DatatypeCtor.create_DatatypeCtor(Sequence<Rune>.UnicodeFromString(ctor.Name), Sequence<DAST.Formal>.FromArray(args.ToArray()), ctor.Formals.Count > 0));
         }
 
-        return new ClassWriter(this, builder.Datatype(dt.Name, Sequence<Rune>.UnicodeFromString(dt.EnclosingModuleDefinition.GetCompileName(Options)), ctors));
+        return new ClassWriter(this, builder.Datatype(dt.GetCompileName(Options), Sequence<Rune>.UnicodeFromString(dt.EnclosingModuleDefinition.GetCompileName(Options)), ctors));
       } else {
         throw new InvalidOperationException("Cannot declare datatype outside of a module: " + currentBuilder);
       }
@@ -185,7 +185,7 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override IClassWriter DeclareNewtype(NewtypeDecl nt, ConcreteSyntaxTree wr) {
       if (currentBuilder is NewtypeContainer builder) {
-        return new ClassWriter(this, builder.Newtype(nt.Name, GenType(nt.BaseType)));
+        return new ClassWriter(this, builder.Newtype(nt.GetCompileName(Options), GenType(nt.BaseType)));
       } else {
         throw new InvalidOperationException();
       }
@@ -268,7 +268,7 @@ namespace Microsoft.Dafny.Compilers {
           }
         }
 
-        var builder = this.builder.Method(m.IsStatic, m.Name, astTypeArgs, params_, outTypes, outVars);
+        var builder = this.builder.Method(m.IsStatic, m.GetCompileName(compiler.Options), astTypeArgs, params_, outTypes, outVars);
         methods.Add(builder);
         return new BuilderSyntaxTree<StatementContainer>(builder);
       }
