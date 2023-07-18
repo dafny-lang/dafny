@@ -79,15 +79,19 @@ public class InferDecreasesClause {
 
       if (clbl is Function || clbl is Method) {
         TopLevelDeclWithMembers enclosingType;
+        MemberDecl originalMember;
         if (clbl is Function fc && !fc.IsStatic) {
           enclosingType = (TopLevelDeclWithMembers)fc.EnclosingClass;
+          originalMember = fc.Original;
         } else if (clbl is Method mc && !mc.IsStatic) {
           enclosingType = (TopLevelDeclWithMembers)mc.EnclosingClass;
+          originalMember = mc.Original;
         } else {
           enclosingType = null;
+          originalMember = null;
         }
 
-        if (enclosingType != null) {
+        if (enclosingType != null && originalMember == clbl) {
           var receiverType = ModuleResolver.GetThisType(clbl.Tok, enclosingType);
           if (receiverType.IsOrdered && !receiverType.IsRefType) {
             var th = new ThisExpr(clbl.Tok) { Type = receiverType }; // resolve here
