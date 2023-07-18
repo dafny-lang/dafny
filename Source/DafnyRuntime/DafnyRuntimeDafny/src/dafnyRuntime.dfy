@@ -212,7 +212,7 @@ abstract module {:options "/functionSyntax:4"} Dafny {
     var storage: NativeArray<T>
     var size: size_t
 
-    opaque ghost predicate Valid()
+    ghost predicate Valid()
       reads this, Repr
       decreases Repr, 1
       ensures Valid() ==> this in Repr
@@ -270,7 +270,6 @@ abstract module {:options "/functionSyntax:4"} Dafny {
       requires size as int + 1 < SIZE_T_LIMIT
       modifies Repr
       ensures ValidAndDisjoint()
-      ensures Valid()
       ensures Value() == old(Value()) + [t]
     {
       EnsureCapacity(size + ONE_SIZE);
@@ -311,7 +310,6 @@ abstract module {:options "/functionSyntax:4"} Dafny {
       requires 0 < size
       modifies Repr
       ensures ValidAndDisjoint()
-      ensures Valid()
       ensures old(Value()) == Value() + [t]
       ensures Value() == old(Value()[..(size - 1)])
       ensures t in old(Value())
@@ -326,7 +324,6 @@ abstract module {:options "/functionSyntax:4"} Dafny {
       requires size as int + other.Length() as int < SIZE_T_LIMIT
       modifies Repr
       ensures ValidAndDisjoint()
-      ensures Valid()
       ensures Value() == old(Value()) + other.values
     {
       var newSize := size + other.Length();
@@ -749,14 +746,11 @@ abstract module {:options "/functionSyntax:4"} Dafny {
       // Length() if we add the invariant that no leaf nodes are empty.
       expect SizeAdditionInRange(stack.size, ONE_SIZE);
       stack.AddLast(concat.right);
-      label L1:
-      assert builder.Valid() by { reveal builder.Valid(); reveal ConcatValueOnStack(); }
       AppendOptimized(builder, concat.left, stack);
-      assert builder.Value() == old@L1(builder.Value()) + concat.left.Value() + ConcatValueOnStack(old@L1(stack.Value()));
+      assert builder.Value() == old(builder.Value()) + concat.left.Value() + ConcatValueOnStack(old(stack.Value()));
     } else if e is LazySequence<T> {
       var lazy := e as LazySequence<T>;
       var boxed := lazy.box.Get();
-      assert builder.Valid() by { reveal builder.Valid(); reveal ConcatValueOnStack(); }
       AppendOptimized(builder, boxed, stack);
       assert builder.Value() == old(builder.Value()) + boxed.Value() + ConcatValueOnStack(old(stack.Value()));
     } else if e is ArraySequence<T> {
@@ -764,28 +758,18 @@ abstract module {:options "/functionSyntax:4"} Dafny {
       builder.Append(a.values);
       if 0 < stack.size {
         var next: Sequence<T> := stack.RemoveLast();
-        label L2:
-        assert builder.Valid() by { reveal builder.Valid(); reveal ConcatValueOnStack(); }
         AppendOptimized(builder, next, stack);
-        assert builder.Value() == old@L2(builder.Value()) + next.Value() + ConcatValueOnStack(old@L2(stack.Value()));
+        assert builder.Value() == old(builder.Value()) + next.Value() + ConcatValueOnStack(old(stack.Value()));
       }
     } else {
       // I'd prefer to just call Sequence.ToArray(),
       // but Dafny doesn't support tail recursion optimization of mutually-recursive functions.
       // Alternatively we could use a datatype, which would be a significant rewrite.
       expect false, "Unsupported Sequence implementation";
-      assert builder.Value() == old(builder.Value()) + e.Value() + ConcatValueOnStack(old(stack.Value())) by {
-        reveal builder.Valid();
-        reveal ConcatValueOnStack();
-      }
-    }
-    assert builder.Value() == old(builder.Value()) + e.Value() + ConcatValueOnStack(old(stack.Value())) by {
-      reveal builder.Valid();
-      reveal ConcatValueOnStack();
     }
   }
 
-  opaque ghost function ConcatValueOnStack<T>(s: seq<Sequence<T>>): seq<T>
+  ghost function ConcatValueOnStack<T>(s: seq<Sequence<T>>): seq<T>
     requires (forall e <- s :: e.Valid())
   {
     if |s| == 0 then
