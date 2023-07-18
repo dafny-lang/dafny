@@ -43,7 +43,7 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
 Send notifications about the verification status of each line in the program.
 ".TrimStart());
 
-  public static readonly Option<bool> ProjectMode = new("--project-mode", () => true,
+  public static readonly Option<bool> ProjectMode = new("--project-mode", () => false,
     "New mode with working with project files. Will become the default") {
     IsHidden = true
   };
