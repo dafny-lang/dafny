@@ -49,7 +49,7 @@ method Bar() {
   }
 
   [Fact]
-  public async Task OnDiskProducerVerification() {
+  public async Task OnDiskProducerVerificationErrors() {
     var producerSource = @"
 method Foo(x: int) 
 {
