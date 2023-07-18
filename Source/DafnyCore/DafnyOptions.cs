@@ -44,6 +44,7 @@ namespace Microsoft.Dafny {
     public DafnyProject DafnyProject { get; set; }
     public Command CurrentCommand { get; set; }
 
+
     static DafnyOptions() {
       RegisterLegacyUi(CommonOptionBag.Target, ParseString, "Compilation options", "compileTarget", @"
 cs (default) - Compile to .NET via C#.

@@ -3,21 +3,15 @@ using System.Collections.Concurrent;
 using System.IO;
 using System.Linq;
 using DafnyCore.Options;
+using Microsoft.Extensions.FileSystemGlobbing;
 using Microsoft.Extensions.FileSystemGlobbing.Abstractions;
-using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
-using Serilog.Core;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace;
 
 public class LanguageServerFilesystem : IFileSystem {
-  private readonly ILogger<LanguageServerFilesystem> logger;
 
-  public LanguageServerFilesystem(ILogger<LanguageServerFilesystem> logger) {
-    this.logger = logger;
-  }
-
-  private class Entry {
+  internal class Entry {
     public TextBuffer Buffer { get; set; }
     public int Version { get; set; }
 
@@ -68,9 +62,8 @@ public class LanguageServerFilesystem : IFileSystem {
   public void CloseDocument(TextDocumentIdentifier document) {
     var uri = document.Uri.ToUri();
 
-    logger.LogWarning($"Closing document {document.Uri}");
     if (!openFiles.TryRemove(uri, out _)) {
-      logger.LogError($"Could not close file {uri} because it was not open.");
+      throw new InvalidOperationException($"Cannot close file {uri} because it was not open.");
     }
   }
 
@@ -93,11 +86,6 @@ public class LanguageServerFilesystem : IFileSystem {
     return new CombinedDirectoryInfo(new[] { inMemory, OnDiskFileSystem.Instance.GetDirectoryInfoBase(root) });
   }
 
-  /// <summary>
-  /// Return the version of a particular file.
-  /// When the client sends file updates, it includes a new version for this file, which we store and return here.
-  /// File version are important to the client because it can use them to do client side migration of positions.
-  /// </summary>
   public int? GetVersion(Uri uri) {
     if (openFiles.TryGetValue(uri, out var file)) {
       return file.Version;

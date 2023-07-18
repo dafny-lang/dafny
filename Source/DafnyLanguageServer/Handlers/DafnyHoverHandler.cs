@@ -14,7 +14,9 @@ using System.Threading.Tasks;
 using Microsoft.Boogie;
 using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
+using Microsoft.Dafny.ProofObligationDescription;
 using EnsuresDescription = Microsoft.Dafny.ProofObligationDescription.EnsuresDescription;
+using RequiresDescription = Microsoft.Dafny.ProofObligationDescription.RequiresDescription;
 
 namespace Microsoft.Dafny.LanguageServer.Handlers {
   public class DafnyHoverHandler : HoverHandlerBase {
@@ -46,7 +48,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
         logger.LogWarning("the document {Document} is not loaded", request.TextDocument);
         return null;
       }
-      var diagnosticHoverContent = GetDiagnosticsHover(document, request.TextDocument.Uri.ToUri(), request.Position, out var areMethodStatistics);
+      var diagnosticHoverContent = GetDiagnosticsHover(document, request.Position, out var areMethodStatistics);
       if (!document.SignatureAndCompletionTable.TryGetSymbolAt(request.Position, out var symbol)) {
         logger.LogDebug("no symbol was found at {Position} in {Document}", request.Position, request.TextDocument);
       }
@@ -71,10 +73,9 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
       }
     }
 
-    private string? GetDiagnosticsHover(IdeState state, Uri uri, Position position, out bool areMethodStatistics) {
+    private string? GetDiagnosticsHover(IdeState state, Position position, out bool areMethodStatistics) {
       areMethodStatistics = false;
-      var uriDiagnostics = state.GetDiagnostics().GetOrDefault(uri, Enumerable.Empty<Diagnostic>).ToList();
-      foreach (var diagnostic in uriDiagnostics) {
+      foreach (var diagnostic in state.Diagnostics) {
         if (diagnostic.Range.Contains(position)) {
           string? detail = ErrorRegistry.GetDetail(diagnostic.Code);
           if (detail is not null) {
@@ -83,7 +84,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
         }
       }
 
-      if (uriDiagnostics.Any(diagnostic =>
+      if (state.Diagnostics.Any(diagnostic =>
             diagnostic.Severity == DiagnosticSeverity.Error && (
             diagnostic.Source == MessageSource.Parser.ToString() ||
             diagnostic.Source == MessageSource.Resolver.ToString()))) {
@@ -93,6 +94,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
       if (state.VerificationTree == null) {
         return null;
       }
+
       foreach (var node in state.VerificationTree.Children.OfType<TopLevelDeclMemberVerificationTree>()) {
         if (!node.Range.Contains(position)) {
           continue;
@@ -129,7 +131,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
           return information;
         }
         // Ok no assertion here. Maybe a method?
-        if (node.Position.Line == position.Line && state.Compilation.Project.IsImplicitProject && node.Uri == state.Compilation.Project.Uri) {
+        if (node.Position.Line == position.Line && node.Uri == state.Uri) {
           areMethodStatistics = true;
           return GetTopLevelInformation(node, orderedAssertionBatches);
         }

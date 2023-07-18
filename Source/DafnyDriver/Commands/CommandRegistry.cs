@@ -11,7 +11,6 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using System.Threading.Tasks;
 using DafnyCore;
 using JetBrains.Annotations;
 using Microsoft.Boogie;
@@ -141,7 +140,7 @@ public static class CommandRegistry {
     }
 
     var errorOccurred = false;
-    async Task CommandHandler(InvocationContext context) {
+    void CommandHandler(InvocationContext context) {
       wasInvoked = true;
       var command = context.ParseResult.CommandResult.Command;
       var commandSpec = commandToSpec[command];
@@ -149,7 +148,7 @@ public static class CommandRegistry {
 
       var singleFile = context.ParseResult.GetValueForArgument(FileArgument);
       if (singleFile != null) {
-        if (!await ProcessFile(dafnyOptions, singleFile)) {
+        if (!ProcessFile(dafnyOptions, singleFile)) {
           errorOccurred = true;
           return;
         }
@@ -157,7 +156,7 @@ public static class CommandRegistry {
       var files = context.ParseResult.GetValueForArgument(ICommandSpec.FilesArgument);
       if (files != null) {
         foreach (var file in files) {
-          if (!await ProcessFile(dafnyOptions, file)) {
+          if (!ProcessFile(dafnyOptions, file)) {
             errorOccurred = true;
             return;
           }
@@ -248,26 +247,27 @@ public static class CommandRegistry {
     return generic.Invoke(result, new object[] { option });
   }
 
-  private static async Task<bool> ProcessFile(DafnyOptions dafnyOptions, FileInfo singleFile) {
+  private static bool ProcessFile(DafnyOptions dafnyOptions, FileInfo singleFile) {
     var filePathForErrors = dafnyOptions.UseBaseNameForFileName
       ? Path.GetFileName(singleFile.FullName)
       : singleFile.FullName;
     if (Path.GetExtension(singleFile.FullName) == ".toml") {
       if (dafnyOptions.DafnyProject != null) {
-        await dafnyOptions.ErrorWriter.WriteLineAsync($"Only one project file can be used at a time. Both {dafnyOptions.DafnyProject.Uri.LocalPath} and {filePathForErrors} were specified");
+        dafnyOptions.ErrorWriter.WriteLine($"Only one project file can be used at a time. Both {dafnyOptions.DafnyProject.Uri.LocalPath} and {filePathForErrors} were specified");
         return false;
       }
 
       if (!File.Exists(singleFile.FullName)) {
-        await dafnyOptions.ErrorWriter.WriteLineAsync($"Error: file {filePathForErrors} not found");
+        dafnyOptions.ErrorWriter.WriteLine($"Error: file {filePathForErrors} not found");
         return false;
       }
-      var projectFile = await DafnyProject.Open(OnDiskFileSystem.Instance, new Uri(singleFile.FullName), dafnyOptions.OutputWriter, dafnyOptions.ErrorWriter);
+      var projectFile = DafnyProject.Open(OnDiskFileSystem.Instance, new Uri(singleFile.FullName), dafnyOptions.OutputWriter, dafnyOptions.ErrorWriter);
       if (projectFile == null) {
         return false;
       }
       projectFile.Validate(dafnyOptions.OutputWriter, AllOptions);
       dafnyOptions.DafnyProject = projectFile;
+      projectFile.AddFilesToOptions(OnDiskFileSystem.Instance, dafnyOptions);
     } else {
       dafnyOptions.CliRootSourceUris.Add(new Uri(singleFile.FullName));
     }

@@ -36,7 +36,7 @@ function GetConstant(): int {
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var document = await Projects.GetResolvedDocumentAsync(documentItem.Uri);
       Assert.NotNull(document);
-      Assert.Empty(document.GetDiagnostics());
+      Assert.Empty(document.Diagnostics);
     }
 
     [Fact]
@@ -49,8 +49,8 @@ function GetConstant() int {
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var document = await Projects.GetResolvedDocumentAsync(documentItem.Uri);
       Assert.NotNull(document);
-      Assert.Single(document.GetDiagnostics());
-      var message = document.GetDiagnostics()[documentItem.Uri.ToUri()].ElementAt(0);
+      Assert.Single(document.Diagnostics);
+      var message = document.Diagnostics.ElementAt(0);
       Assert.Equal(MessageSource.Parser.ToString(), message.Source);
     }
 
@@ -64,8 +64,8 @@ function GetConstant(): int {
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var document = await Projects.GetResolvedDocumentAsync(documentItem.Uri);
       Assert.NotNull(document);
-      Assert.Single(document.GetDiagnostics());
-      var message = document.GetDiagnostics()[documentItem.Uri.ToUri()].ElementAt(0);
+      Assert.Single(document.Diagnostics);
+      var message = document.Diagnostics.ElementAt(0);
       Assert.Equal(MessageSource.Resolver.ToString(), message.Source);
     }
 
@@ -83,9 +83,8 @@ method Recurse(x: int) returns (r: int) {
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var document = await Projects.GetLastDocumentAsync(documentItem.Uri);
       Assert.NotNull(document);
-      var dafnyDiagnostics = document.GetDiagnostics(documentItem.Uri.ToUri()).ToList();
-      Assert.Equal(1, dafnyDiagnostics.Count(d => d.Level == ErrorLevel.Error));
-      var message = dafnyDiagnostics.First(d => d.Level == ErrorLevel.Error);
+      Assert.Equal(1, document.AllFileDiagnostics.Count(d => d.Level == ErrorLevel.Error));
+      var message = document.AllFileDiagnostics.First(d => d.Level == ErrorLevel.Error);
       Assert.Equal(MessageSource.Verifier, message.Source);
     }
 
@@ -105,7 +104,7 @@ method Recurse(x: int) returns (r: int) {
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var document = await Projects.GetResolvedDocumentAsync(documentItem.Uri);
       Assert.NotNull(document);
-      Assert.True(document.GetDiagnostics()[documentItem.Uri.ToUri()].All(d => d.Severity != DiagnosticSeverity.Error));
+      Assert.True(!document.Diagnostics.Any(d => d.Severity == DiagnosticSeverity.Error));
     }
 
     [Fact]
@@ -116,7 +115,7 @@ method Recurse(x: int) returns (r: int) {
       var document = await Projects.GetResolvedDocumentAsync(documentItem.Uri);
       Assert.NotNull(document);
       // Empty files currently yield only a warning.
-      Assert.True(document.GetDiagnostics()[documentItem.Uri.ToUri()].All(d => d.Severity != DiagnosticSeverity.Error));
+      Assert.True(document.Diagnostics.All(d => d.Severity != DiagnosticSeverity.Error));
     }
 
     [Fact]
@@ -126,7 +125,7 @@ method Recurse(x: int) returns (r: int) {
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var document = await Projects.GetResolvedDocumentAsync(documentItem.Uri);
       Assert.NotNull(document);
-      Assert.True(document.GetDiagnostics()[documentItem.Uri.ToUri()].All(d => d.Severity != DiagnosticSeverity.Error));
+      Assert.True(document.Diagnostics.All(d => d.Severity != DiagnosticSeverity.Error));
     }
 
     [Fact]
@@ -136,7 +135,7 @@ method Recurse(x: int) returns (r: int) {
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var document = await Projects.GetResolvedDocumentAsync(documentItem.Uri);
       Assert.NotNull(document);
-      Assert.False(document.GetDiagnostics().ContainsKey(documentItem.Uri.ToUri()));
+      Assert.True(!document.Diagnostics.Any());
     }
 
     public OpenDocumentTest(ITestOutputHelper output) : base(output) {

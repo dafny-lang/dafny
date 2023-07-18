@@ -19,7 +19,7 @@ public abstract class Type : TokenNode {
   public static Type String() { return new UserDefinedType(Token.NoToken, "string", null); }  // note, this returns an unresolved type
   public static readonly BigOrdinalType BigOrdinal = new BigOrdinalType();
 
-  private static ThreadLocal<List<VisibilityScope>> _scopes = new();
+  private static AsyncLocal<List<VisibilityScope>> _scopes = new();
   private static List<VisibilityScope> Scopes => _scopes.Value ??= new();
 
   [ThreadStatic]

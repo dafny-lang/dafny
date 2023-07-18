@@ -62,7 +62,8 @@ lemma {:neverVerify} HasNeverVerifyAttribute(p: nat, q: nat)
 
     protected virtual IServiceCollection ServerOptionsAction(LanguageServerOptions serverOptions) {
       return serverOptions.Services.AddSingleton<IProgramVerifier>(serviceProvider => new SlowVerifier(
-        serviceProvider.GetRequiredService<ILogger<DafnyProgramVerifier>>()
+        serviceProvider.GetRequiredService<ILogger<DafnyProgramVerifier>>(),
+        serviceProvider.GetRequiredService<DafnyOptions>()
       ));
     }
 
@@ -129,8 +130,6 @@ lemma {:neverVerify} HasNeverVerifyAttribute(p: nat, q: nat)
       );
 
       Disposable.Add(client);
-      Disposable.Add(Server);
-      Disposable.Add((IDisposable)Server.Services); // Testing shows that the services are not disposed automatically when the server is disposed.
 
       return client;
     }
@@ -154,6 +153,8 @@ lemma {:neverVerify} HasNeverVerifyAttribute(p: nat, q: nat)
       Server.Initialize(CancellationToken);
 #pragma warning restore VSTHRD110 // Observe result of async calls
 
+      Disposable.Add(Server);
+      Disposable.Add((IDisposable)Server.Services); // Testing shows that the services are not disposed automatically when the server is disposed.
       return (clientPipe.Reader.AsStream(), serverPipe.Writer.AsStream());
     }
 

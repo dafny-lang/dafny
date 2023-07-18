@@ -177,7 +177,7 @@ public class MultiBackendTest {
 
   private int RunWithCompiler(ForEachCompilerOptions options, IExecutableBackend backend, string expectedOutput, string? checkFile) {
     output.WriteLine($"Executing on {backend.TargetName}...");
-    IEnumerable<string> dafnyArgs = new List<string> {
+    var dafnyArgs = new List<string>() {
       "run",
       "--no-verify",
       $"--target:{backend.TargetId}",

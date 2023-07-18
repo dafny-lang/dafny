@@ -40,14 +40,14 @@ namespace Microsoft.Dafny.LanguageServer.Language {
             documentIdentifier))
         .AddSingleton<IVerificationProgressReporter, VerificationProgressReporter>()
         .AddSingleton(CreateVerifier)
-        .AddSingleton<CreateCompilationManager>(serviceProvider => (options, engine, compilation, migratedVerificationTree) => new CompilationManager(
+        .AddSingleton<CreateCompilationManager>(serviceProvider => (options, document, migratedVerificationTree) => new CompilationManager(
           serviceProvider.GetRequiredService<ILogger<CompilationManager>>(),
           serviceProvider.GetRequiredService<ITextDocumentLoader>(),
           serviceProvider.GetRequiredService<INotificationPublisher>(),
           serviceProvider.GetRequiredService<IProgramVerifier>(),
           serviceProvider.GetRequiredService<ICompilationStatusNotificationPublisher>(),
           serviceProvider.GetRequiredService<IVerificationProgressReporter>(),
-          options, engine, compilation, migratedVerificationTree
+          options, document, migratedVerificationTree
           ))
         .AddSingleton<ISymbolTableFactory, SymbolTableFactory>()
         .AddSingleton<IGhostStateDiagnosticCollector, GhostStateDiagnosticCollector>();
@@ -55,7 +55,8 @@ namespace Microsoft.Dafny.LanguageServer.Language {
 
     private static IProgramVerifier CreateVerifier(IServiceProvider serviceProvider) {
       return new DafnyProgramVerifier(
-        serviceProvider.GetRequiredService<ILogger<DafnyProgramVerifier>>()
+        serviceProvider.GetRequiredService<ILogger<DafnyProgramVerifier>>(),
+        serviceProvider.GetRequiredService<DafnyOptions>()
       );
     }
   }

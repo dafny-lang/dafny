@@ -7,7 +7,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
   /// DTO used to communicate the current compilation status to the LSP client.
   /// </summary>
   [Method(DafnyRequestNames.CompilationStatus, Direction.ServerToClient)]
-  public class CompilationStatusParams : IRequest {
+  public class CompilationStatusParams : IRequest, IRequest<Unit> {
     /// <summary>
     /// Gets the URI of the document whose verification completed.
     /// </summary>

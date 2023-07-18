@@ -1,9 +1,7 @@
-﻿using System;
-using Microsoft.Dafny.LanguageServer.Language.Symbols;
+﻿using Microsoft.Dafny.LanguageServer.Language.Symbols;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Collections.Generic;
 using System.Threading;
-using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.Language {
   /// <summary>
@@ -19,7 +17,6 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     /// <returns>All the ghost variables and functions collected as LSP diagnostics.</returns>
     /// <exception cref="System.OperationCanceledException">Thrown when the cancellation was requested before completion.</exception>
     /// <exception cref="System.ObjectDisposedException">Thrown if the cancellation token was disposed before the completion.</exception>
-    IReadOnlyDictionary<Uri, IReadOnlyList<Range>> GetGhostStateDiagnostics(
-      SignatureAndCompletionTable signatureAndCompletionTable, CancellationToken cancellationToken);
+    IEnumerable<Diagnostic> GetGhostStateDiagnostics(SignatureAndCompletionTable signatureAndCompletionTable, CancellationToken cancellationToken);
   }
 }

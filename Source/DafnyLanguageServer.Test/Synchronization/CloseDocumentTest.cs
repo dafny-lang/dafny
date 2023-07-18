@@ -1,4 +1,3 @@
-using System.Linq;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
 using OmniSharp.Extensions.LanguageServer.Protocol.Client;
 using OmniSharp.Extensions.LanguageServer.Protocol.Document;
@@ -35,14 +34,7 @@ function GetConstant(): int {
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       await CloseDocumentAndWaitAsync(documentItem);
-      for (int attempt = 0; attempt < 50; attempt++) {
-        if (!Projects.Managers.Any()) {
-          return;
-        }
-
-        await Task.Delay(100);
-      }
-      Assert.Fail("all attempts failed");
+      Assert.Null(await Projects.GetResolvedDocumentAsync(documentItem.Uri));
     }
 
     [Fact]
