@@ -1,4 +1,4 @@
-// RUN: %baredafny resolve %args %s
+// RUN: %baredafny resolve --use-basename-for-filename %s
 
 module Aliased {
   module Nested {
