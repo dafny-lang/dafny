@@ -111,8 +111,8 @@ public class ExceptionTests : ClientBasedLanguageServerTest {
       this.loader = loader;
     }
 
-    public IdeState CreateUnloaded(DafnyProject project) {
-      return loader.CreateUnloaded(project);
+    public IdeState CreateUnloaded(Compilation compilation) {
+      return loader.CreateUnloaded(compilation);
     }
 
     public Task<CompilationAfterParsing> LoadAsync(DafnyOptions options, Compilation compilation,

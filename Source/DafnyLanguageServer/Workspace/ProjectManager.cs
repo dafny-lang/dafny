@@ -54,17 +54,20 @@ public class ProjectManager : IDisposable {
   private readonly DafnyOptions serverOptions;
   private readonly CreateCompilationManager createCompilationManager;
   private readonly ExecutionEngine boogieEngine;
+  private readonly IFileSystem fileSystem;
 
   public ProjectManager(
     DafnyOptions serverOptions,
     ILogger<ProjectManager> logger,
     IRelocator relocator,
+    IFileSystem fileSystem,
     CreateCompilationManager createCompilationManager,
     CreateIdeStateObserver createIdeStateObserver,
     ExecutionEngine boogieEngine,
     DafnyProject project) {
     Project = project;
     this.serverOptions = serverOptions;
+    this.fileSystem = fileSystem;
     this.createCompilationManager = createCompilationManager;
     this.relocator = relocator;
     this.logger = logger;
@@ -72,16 +75,22 @@ public class ProjectManager : IDisposable {
 
     Project = project;
     options = DetermineProjectOptions(project, serverOptions);
-    observer = createIdeStateObserver(project);
     options.Printer = new OutputLogger(logger);
 
-    observer = createIdeStateObserver(Project);
-    var initialCompilation = new Compilation(version, Project);
+    var initialCompilation = CreateInitialCompilation();
+    observer = createIdeStateObserver(initialCompilation);
     CompilationManager = createCompilationManager(
         options, boogieEngine, initialCompilation, null
     );
 
     observerSubscription = Disposable.Empty;
+  }
+
+  private Compilation CreateInitialCompilation()
+  {
+    var rootUris = Project.GetRootSourceUris(fileSystem, options).Concat(options.CliRootSourceUris).ToList();
+    var initialCompilation = new Compilation(version, Project, rootUris);
+    return initialCompilation;
   }
 
   private const int MaxRememberedChanges = 100;
@@ -125,11 +134,12 @@ public class ProjectManager : IDisposable {
     version++;
     logger.LogDebug("Clearing result for workCompletedForCurrentVersion");
 
+    
     CompilationManager.CancelPendingUpdates();
     CompilationManager = createCompilationManager(
       options,
       boogieEngine,
-      new Compilation(version, Project),
+      CreateInitialCompilation(),
       migratedVerificationTree);
 
     observerSubscription.Dispose();

@@ -57,8 +57,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       return new TextDocumentLoader(loggerFactory, parser, symbolResolver, symbolTableFactory, ghostStateDiagnosticCollector, statusPublisher);
     }
 
-    public IdeState CreateUnloaded(DafnyProject project) {
-      return CreateDocumentWithEmptySymbolTable(project, ImmutableDictionary<Uri, IReadOnlyList<Diagnostic>>.Empty);
+    public IdeState CreateUnloaded(Compilation compilation) {
+      return CreateDocumentWithEmptySymbolTable(compilation, ImmutableDictionary<Uri, IReadOnlyList<Diagnostic>>.Empty);
     }
 
     public async Task<CompilationAfterParsing> LoadAsync(DafnyOptions options, Compilation compilation,
@@ -75,7 +75,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       var project = compilation.Project;
       var errorReporter = new DiagnosticErrorReporter(options, project.Uri);
       statusPublisher.SendStatusNotification(compilation, CompilationStatus.Parsing);
-      var program = parser.Parse(project, errorReporter, cancellationToken);
+      var program = parser.Parse(compilation, errorReporter, cancellationToken);
       var compilationAfterParsing = new CompilationAfterParsing(compilation, program, errorReporter.AllDiagnosticsCopy);
       if (errorReporter.HasErrors) {
         statusPublisher.SendStatusNotification(compilation, CompilationStatus.ParsingFailed);
@@ -109,15 +109,15 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       }
     }
 
-    private IdeState CreateDocumentWithEmptySymbolTable(DafnyProject project,
+    private IdeState CreateDocumentWithEmptySymbolTable(Compilation compilation,
       IReadOnlyDictionary<Uri, IReadOnlyList<Diagnostic>> resolutionDiagnostics) {
       var dafnyOptions = DafnyOptions.Default;
       return new IdeState(
-        new Compilation(0, project),
+        compilation,
         new EmptyNode(),
         resolutionDiagnostics,
         SymbolTable.Empty(),
-        SignatureAndCompletionTable.Empty(dafnyOptions, project),
+        SignatureAndCompletionTable.Empty(dafnyOptions, compilation.Project),
         new Dictionary<ImplementationId, IdeImplementationView>(),
         Array.Empty<Counterexample>(),
         false,

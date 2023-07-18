@@ -13,12 +13,14 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     public void SendStatusNotification(Compilation compilation, CompilationStatus status,
       string? message = null) {
-      languageServer.SendNotification(new CompilationStatusParams {
-        Uri = compilation.Uri,
-        Version = compilation.Version,
-        Status = status,
-        Message = message
-      });
+      foreach (var uri in compilation.RootUris) {
+        languageServer.SendNotification(new CompilationStatusParams {
+          Uri = uri,
+          Version = compilation.Version,
+          Status = status,
+          Message = message
+        });
+      }
     }
   }
 }
