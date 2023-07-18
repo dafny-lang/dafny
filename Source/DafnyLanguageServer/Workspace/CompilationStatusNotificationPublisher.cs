@@ -14,6 +14,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     public void SendStatusNotification(Compilation compilation, CompilationStatus status,
       string? message = null) {
       foreach (var uri in compilation.RootUris) {
+        // TODO only send if this uri is owned by the project.
         languageServer.SendNotification(new CompilationStatusParams {
           Uri = uri,
           Version = compilation.Version,

@@ -42,11 +42,10 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     public async Task OpenDocument(TextDocumentItem document) {
-      fileSystem.OpenDocument(document);
-      var projectManager = await GetProjectManager(document, true)!;
-      projectManager!.OpenDocument(document.Uri.ToUri());
+      // When we have caching of all compilation components, we might not need to do this change detection at the start
+      var changed = fileSystem.OpenDocument(document);
+      await GetProjectManager(document, true, changed);
     }
-
 
     public async Task UpdateDocument(DidChangeTextDocumentParams documentChange) {
       fileSystem.UpdateDocument(documentChange);
@@ -112,7 +111,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       return GetProjectManager(documentId, false);
     }
 
-    private async Task<ProjectManager?> GetProjectManager(TextDocumentIdentifier documentId, bool createOnDemand) {
+    private async Task<ProjectManager?> GetProjectManager(TextDocumentIdentifier documentId, bool createOnDemand, bool changedOnOpen = false) {
       if (!fileSystem.Exists(documentId.Uri.ToUri())) {
         return null;
       }
@@ -133,15 +132,19 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
             }
 
             projectManagerForFile = createProjectManager(boogieEngine, project);
-            projectManagerForFile.OpenDocument(documentId.Uri.ToUri());
+            projectManagerForFile.OpenDocument(documentId.Uri.ToUri(), true);
           }
         } else {
           var managerForProject = managersByProject.GetValueOrDefault(project.Uri);
           if (managerForProject != null) {
             projectManagerForFile = managerForProject;
+            if (changedOnOpen) {
+              projectManagerForFile.UpdateDocument(new DidChangeTextDocumentParams());
+            }
           } else {
             if (createOnDemand) {
               projectManagerForFile = createProjectManager(boogieEngine, project);
+              projectManagerForFile.OpenDocument(documentId.Uri.ToUri(), true);
             } else {
               return null;
             }

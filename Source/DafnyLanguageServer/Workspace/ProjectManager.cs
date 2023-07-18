@@ -86,8 +86,7 @@ public class ProjectManager : IDisposable {
     observerSubscription = Disposable.Empty;
   }
 
-  private Compilation CreateInitialCompilation()
-  {
+  private Compilation CreateInitialCompilation() {
     var rootUris = Project.GetRootSourceUris(fileSystem, options).Concat(options.CliRootSourceUris).ToList();
     var initialCompilation = new Compilation(version, Project, rootUris);
     return initialCompilation;
@@ -134,7 +133,7 @@ public class ProjectManager : IDisposable {
     version++;
     logger.LogDebug("Clearing result for workCompletedForCurrentVersion");
 
-    
+
     CompilationManager.CancelPendingUpdates();
     CompilationManager = createCompilationManager(
       options,
@@ -310,13 +309,15 @@ public class ProjectManager : IDisposable {
     });
   }
 
-  public void OpenDocument(Uri uri) {
+  public void OpenDocument(Uri uri, bool triggerCompilation) {
     Interlocked.Increment(ref openFileCount);
     var lastPublishedState = observer.LastPublishedState;
     var migratedVerificationTree = lastPublishedState.VerificationTree;
 
-    StartNewCompilation(migratedVerificationTree, lastPublishedState);
-    TriggerVerificationForFile(uri);
+    if (triggerCompilation) {
+      StartNewCompilation(migratedVerificationTree, lastPublishedState);
+      TriggerVerificationForFile(uri);
+    }
   }
 
   public void Dispose() {

@@ -29,13 +29,20 @@ public class LanguageServerFilesystem : IFileSystem {
 
   private readonly ConcurrentDictionary<Uri, Entry> openFiles = new();
 
-  public void OpenDocument(TextDocumentItem document) {
+  public bool OpenDocument(TextDocumentItem document) {
     var uri = document.Uri.ToUri();
     if (openFiles.ContainsKey(uri)) {
       throw new InvalidOperationException($"Cannot open file {uri} because it is already open");
     }
 
+    string existingText = "";
+    try {
+      existingText = OnDiskFileSystem.Instance.ReadFile(document.Uri.ToUri()).ReadToEnd();
+    } catch (IOException) {
+
+    }
     openFiles[uri] = new Entry(new TextBuffer(document.Text), document.Version!.Value);
+    return existingText != document.Text;
   }
 
   public void UpdateDocument(DidChangeTextDocumentParams documentChange) {
