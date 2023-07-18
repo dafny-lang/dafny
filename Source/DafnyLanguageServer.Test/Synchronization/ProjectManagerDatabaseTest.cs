@@ -11,6 +11,7 @@ using Xunit.Abstractions;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization; 
 
+[Collection("Sequential Collection")]
 public class ProjectManagerDatabaseTest : ClientBasedLanguageServerTest {
 
   [Fact]
@@ -19,8 +20,7 @@ public class ProjectManagerDatabaseTest : ClientBasedLanguageServerTest {
     var source = "// comment";
     var loadingDocuments = new List<TextDocumentItem>();
     for (int i = 0; i < documentsToLoadConcurrently; i++) {
-      var documentItem = CreateTestDocument(source, $"test_{i}.dfy");
-      client.OpenDocument(documentItem);
+      var documentItem = await CreateAndOpenTestDocument(source, $"pmdtest1_{i}.dfy");
       loadingDocuments.Add(documentItem);
     }
 
@@ -39,14 +39,15 @@ public class ProjectManagerDatabaseTest : ClientBasedLanguageServerTest {
     int documentsToLoadConcurrently = 50;
     var source = "// comment";
     var loadingDocuments = new List<TextDocumentItem>();
+    var directory = Path.GetRandomFileName();
     for (int i = 0; i < documentsToLoadConcurrently; i++) {
-      var documentItem = await CreateAndOpenTestDocument(source, $"nested{i}/test.dfy");
+      var documentItem = await CreateAndOpenTestDocument(source, Path.Combine(directory, $"nested{i}/pmdtest2.dfy"));
       loadingDocuments.Add(documentItem);
     }
 
     // Create a project file for each test document.
     for (int i = 0; i < documentsToLoadConcurrently; i++) {
-      await CreateAndOpenTestDocument(source, $"nested{i}/{DafnyProject.FileName}");
+      await CreateAndOpenTestDocument("", Path.Combine(directory, $"nested{i}/{DafnyProject.FileName}"));
     }
 
     // Concurrently migrate projects
@@ -69,7 +70,7 @@ public class ProjectManagerDatabaseTest : ClientBasedLanguageServerTest {
     var project = CreateTestDocument("", Path.Combine(directory, DafnyProject.FileName));
     client.OpenDocument(project);
     for (int i = 0; i < documentsToLoadConcurrently; i++) {
-      var documentItem = CreateTestDocument(source, Path.Combine(directory, $"test_{i}.dfy"));
+      var documentItem = CreateTestDocument(source, Path.Combine(directory, $"pmdtest3_{i}.dfy"));
       client.OpenDocument(documentItem);
       loadingDocuments.Add(documentItem);
     }

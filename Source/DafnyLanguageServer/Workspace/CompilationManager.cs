@@ -99,7 +99,7 @@ public class CompilationManager {
       var documentAfterParsing = await documentLoader.LoadAsync(options, startingCompilation, cancellationSource.Token);
 
       // TODO, let gutter icon publications also used the published CompilationView.
-      var state = documentAfterParsing.InitialIdeState(options);
+      var state = documentAfterParsing.InitialIdeState(startingCompilation, options);
       state = state with {
         VerificationTree = migratedVerificationTree ?? state.VerificationTree
       };
