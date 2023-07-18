@@ -171,11 +171,12 @@ method Multiply(x: int, y: int) returns (product: int)
         loadingDocuments.Add(documentItem);
       }
       for (int i = 0; i < documentsToLoadConcurrently; i++) {
+        await client.WaitForNotificationCompletionAsync(loadingDocuments[i].Uri, CancellationTokenWithHighTimeout);
         await Projects.GetLastDocumentAsync(loadingDocuments[i]).WaitAsync(CancellationTokenWithHighTimeout);
       }
 
       foreach (var loadingDocument in loadingDocuments) {
-        await client.CloseDocumentAndWaitAsync(loadingDocument, CancellationTokenWithHighTimeout);
+        client.CloseDocument(loadingDocument);
       }
       await AssertNoDiagnosticsAreComing(CancellationTokenWithHighTimeout);
     }
