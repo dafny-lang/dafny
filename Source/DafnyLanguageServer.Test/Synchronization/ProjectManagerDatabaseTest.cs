@@ -26,9 +26,9 @@ public class ProjectManagerDatabaseTest : ClientBasedLanguageServerTest {
 
     List<Task> tasks = new();
     foreach (var loadingDocument in loadingDocuments) {
-      // Mix regular and close requests, both can be handled in parallel.
+      // Mix regular and close requests, both can be handled in parallel, although the hover might fail for a closed document.
       tasks.Add(client.RequestHover(new HoverParams { Position = (0, 0), TextDocument = loadingDocument.Uri }, CancellationToken));
-      tasks.Add(client.CloseDocumentAndWaitAsync(loadingDocument, CancellationToken));
+      client.CloseDocument(loadingDocument);
     }
 
     await Task.WhenAll(tasks);
@@ -78,7 +78,7 @@ public class ProjectManagerDatabaseTest : ClientBasedLanguageServerTest {
     List<Task> tasks = new();
     foreach (var loadingDocument in loadingDocuments) {
       tasks.Add(client.RequestHover(new HoverParams { Position = (0, 0), TextDocument = loadingDocument.Uri }, CancellationToken));
-      tasks.Add(client.CloseDocumentAndWaitAsync(loadingDocument, CancellationToken));
+      client.CloseDocument(loadingDocument);
     }
 
     await Task.WhenAll(tasks);
