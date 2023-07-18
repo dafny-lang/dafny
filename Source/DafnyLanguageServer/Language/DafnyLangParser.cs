@@ -45,7 +45,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
 
       var beforeParsing = DateTime.Now;
       try {
-        var rootSourceUris = project.GetRootSourceUris(fileSystem, options).Concat(options.CliRootSourceUris);
+        var rootSourceUris = project.GetRootSourceUris(fileSystem, options).Concat(options.CliRootSourceUris).ToList();
         List<DafnyFile> dafnyFiles = new();
         foreach (var rootSourceUri in rootSourceUris) {
           try {
