@@ -4049,9 +4049,9 @@ namespace Microsoft.Dafny.Compilers {
       } else if (lhs is MemberSelectExpr) {
         var ll = (MemberSelectExpr)lhs;
         Contract.Assert(!ll.Member.IsInstanceIndependentConstant);  // instance-independent const's don't have assignment statements
-        var obj = StabilizeExpr(ll.Obj, "_obj", wr, wStmts);
+        var writeStabilized = EmitStabilizedExpr(ll.Obj, "_obj", wr, wStmts);
         var typeArgs = TypeArgumentInstantiation.ListFromMember(ll.Member, null, ll.TypeApplication_JustMember);
-        return EmitMemberSelect(w => w.Write(obj), ll.Obj.Type, ll.Member, typeArgs, ll.TypeArgumentSubstitutionsWithParents(), lhs.Type,
+        return EmitMemberSelect(writeStabilized, ll.Obj.Type, ll.Member, typeArgs, ll.TypeArgumentSubstitutionsWithParents(), lhs.Type,
           internalAccess: enclosingMethod is Constructor);
 
       } else if (lhs is SeqSelectExpr) {
@@ -4072,6 +4072,16 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
+    private Action<ConcreteSyntaxTree> EmitStabilizedExpr(Expression e, string prefix, ConcreteSyntaxTree surrounding, ConcreteSyntaxTree wStmts) {
+      if (IsStableExpr(e)) {
+        return outWr => TrParenExpr(e, outWr, false, wStmts);
+      } else {
+        var v = ProtectedFreshId(prefix);
+        DeclareLocalVar(v, null, null, e, false, surrounding);
+        return outWr => EmitIdentifier(v, outWr);
+      }
+    }
+
     /// <summary>
     /// If the given expression's value is stable, translate it and return the
     /// string form.  Otherwise, output code to evaluate the expression, then
@@ -4086,15 +4096,9 @@ namespace Microsoft.Dafny.Compilers {
     /// expression</returns>
     /// <seealso cref="IsStableExpr"/>
     private string StabilizeExpr(Expression e, string prefix, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
-      if (IsStableExpr(e)) {
-        var sw = new ConcreteSyntaxTree();
-        TrParenExpr(e, sw, false, wStmts);
-        return sw.ToString();
-      } else {
-        var v = ProtectedFreshId(prefix);
-        DeclareLocalVar(v, null, null, e, false, wr);
-        return v;
-      }
+      var localWr = new ConcreteSyntaxTree();
+      EmitStabilizedExpr(e, prefix, wr, wStmts)(localWr);
+      return localWr.ToString();
     }
 
     /// <summary>

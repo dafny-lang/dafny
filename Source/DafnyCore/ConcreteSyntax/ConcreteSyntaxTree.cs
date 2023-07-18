@@ -158,7 +158,7 @@ namespace Microsoft.Dafny {
 
     // ----- Nested blocks ------------------------------
 
-    public ConcreteSyntaxTree ForkInParens() {
+    public virtual ConcreteSyntaxTree ForkInParens() {
       var result = new ConcreteSyntaxTree();
       Write("(");
       Append(result);

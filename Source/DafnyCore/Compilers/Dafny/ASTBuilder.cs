@@ -18,7 +18,6 @@ namespace Microsoft.Dafny.Compilers {
   }
 
   interface ModuleContainer {
-
     void AddModule(Module item);
 
     public ModuleBuilder Module(string name) {
@@ -404,7 +403,7 @@ namespace Microsoft.Dafny.Compilers {
     public readonly StatementContainer parent;
     public readonly object returnTo;
 
-    DAST.Type enclosing = null;
+    DAST.Expression on = null;
     string name = null;
     List<DAST.Type> typeArgs = null;
     readonly List<DAST.Expression> args = new();
@@ -413,14 +412,6 @@ namespace Microsoft.Dafny.Compilers {
     public CallStmtBuilder(StatementContainer parent, object returnTo) {
       this.parent = parent;
       this.returnTo = returnTo;
-    }
-
-    public void SetEnclosing(DAST.Type enclosing) {
-      if (this.enclosing != null) {
-        throw new InvalidOperationException();
-      } else {
-        this.enclosing = enclosing;
-      }
     }
 
     public void SetName(string name) {
@@ -440,7 +431,11 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     public void AddExpr(DAST.Expression value) {
-      args.Add(value);
+      if (on == null) {
+        on = value;
+      } else {
+        args.Add(value);
+      }
     }
 
     public void SetOuts(List<ISequence<Rune>> outs) {
@@ -453,7 +448,7 @@ namespace Microsoft.Dafny.Compilers {
 
     public void Finish() {
       parent.AddStatement((DAST.Statement)DAST.Statement.create_Call(
-        enclosing == null ? DAST.Optional<DAST._IType>.create_None() : DAST.Optional<DAST._IType>.create_Some(enclosing),
+        on,
         Sequence<Rune>.UnicodeFromString(name),
         Sequence<DAST.Type>.FromArray(typeArgs.ToArray()),
         Sequence<DAST.Expression>.FromArray(args.ToArray()),
@@ -569,7 +564,6 @@ namespace Microsoft.Dafny.Compilers {
   class CallExprBuilder : ExprContainer {
     public readonly ExprContainer parent;
 
-    DAST.Type enclosing = null;
     DAST.Expression on = null;
     string name = null;
     List<DAST.Type> typeArgs = null;
@@ -578,14 +572,6 @@ namespace Microsoft.Dafny.Compilers {
 
     public CallExprBuilder(ExprContainer parent) {
       this.parent = parent;
-    }
-
-    public void SetEnclosing(DAST.Type enclosing) {
-      if (this.enclosing != null) {
-        throw new InvalidOperationException();
-      } else {
-        this.enclosing = enclosing;
-      }
     }
 
     public void SetName(string name) {
@@ -605,12 +591,11 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     public void AddExpr(DAST.Expression value) {
-      if (enclosing == null && on == null) {
+      if (on == null) {
         on = value;
-        return;
+      } else {
+        args.Add(value);
       }
-
-      args.Add(value);
     }
 
     public void SetOuts(List<ISequence<Rune>> outs) {
@@ -623,8 +608,7 @@ namespace Microsoft.Dafny.Compilers {
 
     public object Finish() {
       parent.AddExpr((DAST.Expression)DAST.Expression.create_Call(
-        enclosing == null ? DAST.Optional<DAST._IType>.create_None() : DAST.Optional<DAST._IType>.create_Some(enclosing),
-        on == null ? DAST.Optional<DAST._IExpression>.create_None() : DAST.Optional<DAST._IExpression>.create_Some(on),
+        on,
         Sequence<Rune>.UnicodeFromString(name),
         Sequence<DAST.Type>.FromArray(typeArgs.ToArray()),
         Sequence<DAST.Expression>.FromArray(args.ToArray())

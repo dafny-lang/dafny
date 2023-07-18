@@ -143,6 +143,21 @@ module {:extern "DCOMP"} DCOMP {
             i := i + 1;
           }
         }
+        case Tuple(types) => {
+          s := "(";
+          var i := 0;
+          while i < |types| {
+            if i > 0 {
+              s := s + ", ";
+            }
+
+            var generated := GenType(types[i]);
+            s := s + generated;
+            i := i + 1;
+          }
+
+          s := s + ")";
+        }
         case TypeArg(Ident(name)) => s := name;
         case Passthrough(v) => s := v;
       }
@@ -287,7 +302,7 @@ module {:extern "DCOMP"} DCOMP {
           var elsString := GenStmts(els);
           generated := "if " + condString + " {\n" + thnString + "\n} else {\n" + elsString + "\n}";
         }
-        case Call(enclosing, name, typeArgs, args, maybeOutVars) => {
+        case Call(on, name, typeArgs, args, maybeOutVars) => {
           var typeArgString := "";
           if (|typeArgs| >= 1) {
             var typeI := 0;
@@ -318,14 +333,13 @@ module {:extern "DCOMP"} DCOMP {
             i := i + 1;
           }
 
-          var enclosingString := "";
-          match enclosing {
-            case Some(e) => {
-              enclosingString := GenType(e);
+          var enclosingString := GenExpr(on);
+          match on {
+            case Companion(_) => {
               enclosingString := enclosingString + "::";
             }
-            case None => {
-              enclosingString := "";
+            case _ => {
+              enclosingString := enclosingString + ".";
             }
           }
 
@@ -394,6 +408,9 @@ module {:extern "DCOMP"} DCOMP {
         case Ident(name) => {
           s := "r#" + name;
         }
+        case Companion(typ) => {
+          s := GenType(typ);
+        }
         case InitializationValue(typ) => {
           s := "std::default::Default::default()";
         }
@@ -434,7 +451,11 @@ module {:extern "DCOMP"} DCOMP {
           var right := GenExpr(r);
           s := "(" + left + " " + op + " " + right + ")";
         }
-        case Call(enclosing, on, name, typeArgs, args) => {
+        case Select(on, field) => {
+          var onString := GenExpr(on);
+          s := onString + ".r#" + field;
+        }
+        case Call(on, name, typeArgs, args) => {
           var typeArgString := "";
           if (|typeArgs| >= 1) {
             var typeI := 0;
@@ -465,20 +486,13 @@ module {:extern "DCOMP"} DCOMP {
             i := i + 1;
           }
 
-          var enclosingString := "";
-          match enclosing {
-            case Some(e) => {
-              enclosingString := GenType(e);
+          var enclosingString := GenExpr(on);
+          match on {
+            case Companion(_) => {
               enclosingString := enclosingString + "::";
             }
-            case None => {
-              match on {
-                case Some(e) => {
-                  enclosingString := GenExpr(e);
-                  enclosingString := enclosingString + ".";
-                }
-                case None => {}
-              }
+            case _ => {
+              enclosingString := enclosingString + ".";
             }
           }
 
