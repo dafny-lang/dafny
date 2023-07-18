@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
+using Microsoft.CodeAnalysis;
 
 namespace Microsoft.Dafny;
 
@@ -17,6 +18,14 @@ public class AliasModuleDecl : ModuleDecl, IHasUsages, ICanFormat {
     : base(cloner, original, parent) {
     if (original.TargetQId != null) { // TODO is this null check necessary?
       TargetQId = new ModuleQualifiedId(cloner, original.TargetQId);
+
+      /*
+       * Refinement cloning happens in PreResolver, which is after the ModuleQualifiedId.Root fields are set,
+       * so this field must be copied as part of refinement cloning.
+       * However, letting refinement cloning set CloneResolvedFields==true causes exceptions for an uninvestigated reason,
+       * so we will clone this field even when !CloneResolvedFields.
+       */
+      TargetQId.Root = original.TargetQId.Root;
     }
     Exports = original.Exports;
   }
