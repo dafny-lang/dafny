@@ -1,5 +1,3 @@
-LabeledAssertsResolution.dfy(52,11): Error: assert label shadows a dominating label
-LabeledAssertsResolution.dfy(54,11): Error: assert label shadows a dominating label
 LabeledAssertsResolution.dfy(9,13): Error: assert label shadows a dominating label
 LabeledAssertsResolution.dfy(19,12): Error: label shadows a dominating label
 LabeledAssertsResolution.dfy(20,12): Error: label shadows a dominating label
@@ -10,8 +8,8 @@ LabeledAssertsResolution.dfy(73,12): Error: break label is undefined or not in s
 LabeledAssertsResolution.dfy(81,17): Error: cannot reveal 'C' because no constant, assert label, or requires label in the current scope is named 'C'
 LabeledAssertsResolution.dfy(94,17): Error: no label 'XYZ' in scope at this time
 LabeledAssertsResolution.dfy(115,14): Error: cannot reveal 'X' because no constant, assert label, or requires label in the current scope is named 'X'
-LabeledAssertsResolution.dfy(246,10): Error: yield statement is not allowed in this context (because it is guarded by a specification-only expression)
-LabeledAssertsResolution.dfy(251,6): Error: yield statement is not allowed in this context (because it is guarded by a specification-only expression)
+LabeledAssertsResolution.dfy(52,11): Error: assert label shadows a dominating label
+LabeledAssertsResolution.dfy(54,11): Error: assert label shadows a dominating label
 LabeledAssertsResolution.dfy(125,6): Error: an assert-by body is not allowed to update a variable it doesn't declare
 LabeledAssertsResolution.dfy(139,8): Error: assignment to non-ghost variable is not allowed in this context, because the statement is in a ghost context; e.g., it may be guarded by a specification-only expression
 LabeledAssertsResolution.dfy(139,6): Error: an assert-by body is not allowed to update a variable it doesn't declare
@@ -44,8 +42,9 @@ LabeledAssertsResolution.dfy(222,31): Error: return statement is not allowed in 
 LabeledAssertsResolution.dfy(223,43): Error: return statement is not allowed in this context (because it is guarded by a specification-only expression)
 LabeledAssertsResolution.dfy(232,14): Error: return statement is not allowed in this context (because it is guarded by a specification-only expression)
 LabeledAssertsResolution.dfy(237,10): Error: return statement is not allowed in this context (because it is guarded by a specification-only expression)
+LabeledAssertsResolution.dfy(246,10): Error: yield statement is not allowed in this context (because it is guarded by a specification-only expression)
+LabeledAssertsResolution.dfy(251,6): Error: yield statement is not allowed in this context (because it is guarded by a specification-only expression)
 LabeledAssertsResolution.dfy(297,8): Warning: the conclusion of the body of this forall statement will not be known outside the forall statement; consider using an 'ensures' clause
-LabeledAssertsResolution.dfy(318,6): Error: yield statement is not allowed in this context (because it is guarded by a specification-only expression)
 LabeledAssertsResolution.dfy(284,14): Error: in a forall statement, calls are allowed only to lemmas
 LabeledAssertsResolution.dfy(283,6): Error: a forall statement is not allowed to update a variable it doesn't declare
 LabeledAssertsResolution.dfy(284,6): Error: a forall statement is not allowed to update a variable it doesn't declare
@@ -53,6 +52,7 @@ LabeledAssertsResolution.dfy(298,10): Error: a forall statement is not allowed t
 LabeledAssertsResolution.dfy(299,10): Error: a forall statement is not allowed to update a variable it doesn't declare
 LabeledAssertsResolution.dfy(300,10): Error: a forall statement is not allowed to update a variable it doesn't declare
 LabeledAssertsResolution.dfy(310,6): Error: return statement is not allowed in this context (because it is guarded by a specification-only expression)
+LabeledAssertsResolution.dfy(318,6): Error: yield statement is not allowed in this context (because it is guarded by a specification-only expression)
 LabeledAssertsResolution.dfy(329,14): Error: a non-labeled 'break' statement is allowed only in loops
 LabeledAssertsResolution.dfy(331,20): Error: break label is undefined or not in scope: A
 LabeledAssertsResolution.dfy(336,10): Error: a non-labeled 'break' statement is allowed only in loops

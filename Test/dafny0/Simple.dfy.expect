@@ -2,6 +2,16 @@ Simple.dfy(98,7): Warning: the ... refinement feature in statements is deprecate
 Simple.dfy(101,7): Warning: the ... refinement feature in statements is deprecated
 // Simple.dfy
 
+lemma M(x: int)
+  ensures x < 8
+{
+}
+
+greatest lemma M'(x': int)
+  ensures true
+{
+}
+
 class MyClass<T, U> {
   var x: int
 
@@ -96,16 +106,6 @@ module B refines A {
     }
     ...;
   }
-}
-
-lemma M(x: int)
-  ensures x < 8
-{
-}
-
-greatest lemma M'(x': int)
-  ensures true
-{
 }
 Simple.dfy(14,12): Warning: Argument to 'old' does not dereference the mutable heap, so this use of 'old' has no effect
 

@@ -45,8 +45,7 @@ namespace XUnitExtensions.Lit {
       config = config.WithSubstitutions(new Dictionary<string, object> {
         {"%s", filePath.Replace(@"\", "/")},
         // For class path separators
-        {".jar:%S", ".jar" + Path.PathSeparator + fullDirectoryPath},
-        {"-java:", "-java" + Path.PathSeparator}, // In Windows path separators are ";"
+        {"%{pathsep}", Path.PathSeparator.ToString()},
         {"%S", fullDirectoryPath},
         {"%t", Path.Join(fullDirectoryPath, "Output", $"{fileName}.tmp")}
       });

@@ -123,6 +123,8 @@ NoGhost - disable printing of functions, ghost methods, and proof
           }
         }
       }
+
+      RegisterLegacyUi(CommonOptionBag.AddCompileSuffix, ParseBoolean, "Compilation options", "compileSuffix");
     }
 
     public void ApplyBinding(Option option) {

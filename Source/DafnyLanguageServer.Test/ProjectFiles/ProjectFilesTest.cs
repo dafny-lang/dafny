@@ -22,6 +22,7 @@ public class ProjectFilesTest : ClientBasedLanguageServerTest {
   public async Task ProjectFileChangesArePickedUpAfterCacheExpiration() {
     await SetUp(options => options.WarnShadowing = false);
     var tempDirectory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+    Directory.CreateDirectory(tempDirectory);
     var projectFilePath = Path.Combine(tempDirectory, DafnyProject.FileName);
     await File.WriteAllTextAsync(projectFilePath, "");
 
@@ -33,12 +34,14 @@ method Foo() {
   }
 }
 ";
-    var documentItem = CreateTestDocument(source, Path.Combine(projectFilePath, "source.dfy"));
+    var documentItem = CreateTestDocument(source, Path.Combine(tempDirectory, "source.dfy"));
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
 
     var warnShadowingOn = @"
 [options]
 warn-shadowing = true";
+    // Wait to prevent an IOException because the file is already in use.
+    await Task.Delay(100);
     await File.WriteAllTextAsync(projectFilePath, warnShadowingOn);
     await Task.Delay(ProjectManagerDatabase.ProjectFileCacheExpiryTime);
     ApplyChange(ref documentItem, new Range(0, 0, 0, 0), "//touch comment\n");

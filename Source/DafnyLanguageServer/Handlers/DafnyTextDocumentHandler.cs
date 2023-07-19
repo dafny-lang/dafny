@@ -69,6 +69,9 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
       return Unit.Task;
     }
 
+    /// <summary>
+    /// Can be called in parallel
+    /// </summary>
     public override async Task<Unit> Handle(DidCloseTextDocumentParams notification, CancellationToken cancellationToken) {
       logger.LogTrace("received close notification {DocumentUri}", notification.TextDocument.Uri);
       try {

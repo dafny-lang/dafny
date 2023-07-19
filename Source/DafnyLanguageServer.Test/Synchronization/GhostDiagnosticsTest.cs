@@ -31,7 +31,7 @@ method Bar()
       });
 
       var directory = Path.GetRandomFileName();
-      var projectFile = await CreateAndOpenTestDocument("", Path.Combine(directory, "dfyconfig.toml"));
+      var projectFile = await CreateAndOpenTestDocument("", Path.Combine(directory, DafnyProject.FileName));
       var docA = await CreateAndOpenTestDocument(sourceA, Path.Combine(directory, "a.dfy"));
       var docB = await CreateAndOpenTestDocument(sourceB, Path.Combine(directory, "b.dfy"));
 

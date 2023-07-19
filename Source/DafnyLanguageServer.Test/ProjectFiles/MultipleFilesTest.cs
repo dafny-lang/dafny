@@ -40,7 +40,7 @@ method Produces() {}
     var producesDefinition1 = await RequestDefinition(consumer, new Position(1, 3));
     Assert.Empty(producesDefinition1);
 
-    await File.WriteAllTextAsync(Path.Combine(directory, "dfyconfig.toml"), "includes = [\"*.dfy\"]");
+    await File.WriteAllTextAsync(Path.Combine(directory, DafnyProject.FileName), "includes = [\"*.dfy\"]");
     await Task.Delay(ProjectManagerDatabase.ProjectFileCacheExpiryTime);
 
     var producesDefinition2 = await RequestDefinition(consumer, new Position(1, 3));
@@ -66,7 +66,7 @@ method Produces() {}
     var producesDefinition1 = await RequestDefinition(consumer, new Position(1, 3));
     Assert.Empty(producesDefinition1);
 
-    await CreateAndOpenTestDocument("", Path.Combine(directory, "dfyconfig.toml"));
+    await CreateAndOpenTestDocument("", Path.Combine(directory, DafnyProject.FileName));
 
     await Task.Delay(ProjectManagerDatabase.ProjectFileCacheExpiryTime);
 
@@ -81,7 +81,7 @@ method Produces() {}
     });
 
     var directory = Path.GetRandomFileName();
-    var projectFile = await CreateAndOpenTestDocument("", Path.Combine(directory, "dfyconfig.toml"));
+    var projectFile = await CreateAndOpenTestDocument("", Path.Combine(directory, DafnyProject.FileName));
     var codeFile = await CreateAndOpenTestDocument("method Foo() {}", Path.Combine(directory, "firstFile.dfy"));
 
     Assert.NotEmpty(Projects.Managers);
@@ -116,7 +116,7 @@ method Produces() {}
 
     var directory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
     Directory.CreateDirectory(directory);
-    await File.WriteAllTextAsync(Path.Combine(directory, "dfyconfig.toml"), projectFileSource);
+    await File.WriteAllTextAsync(Path.Combine(directory, DafnyProject.FileName), projectFileSource);
 
     var consumer = await CreateAndOpenTestDocument(consumerSource, Path.Combine(directory, "firstFile.dfy"));
     var secondFile = await CreateAndOpenTestDocument(producer, Path.Combine(directory, "secondFile.dfy"));
@@ -124,7 +124,7 @@ method Produces() {}
     var producesDefinition1 = await RequestDefinition(consumer, new Position(1, 3));
     Assert.Empty(producesDefinition1);
 
-    await File.WriteAllTextAsync(Path.Combine(directory, "dfyconfig.toml"),
+    await File.WriteAllTextAsync(Path.Combine(directory, DafnyProject.FileName),
       @"includes = [""firstFile.dfy"", ""secondFile.dfy""]");
     await Task.Delay(ProjectManagerDatabase.ProjectFileCacheExpiryTime);
 
@@ -155,15 +155,15 @@ includes = [""src/**/*.dfy""]
 warn-shadowing = true
 "; // includes must come before [options], even if there is a blank line
     var directory = Path.GetRandomFileName();
-    var projectFile = await CreateAndOpenTestDocument(projectFileSource, Path.Combine(directory, "dfyconfig.toml"));
+    var projectFile = await CreateAndOpenTestDocument(projectFileSource, Path.Combine(directory, DafnyProject.FileName));
     var sourceFile = await CreateAndOpenTestDocument(source, Path.Combine(directory, "src/file.dfy"));
 
     var diagnostics1 = await GetLastDiagnostics(sourceFile, CancellationToken);
     Assert.Equal(2, diagnostics1.Length);
     Assert.Contains(diagnostics1, s => s.Message.Contains("Shadowed"));
 
-    ApplyChange(ref projectFile, new Range(1, 17, 1, 21), "false");
     await Task.Delay(ProjectManagerDatabase.ProjectFileCacheExpiryTime);
+    ApplyChange(ref projectFile, new Range(1, 17, 1, 21), "false");
 
     var resolutionDiagnostics2 = await diagnosticsReceiver.AwaitNextWarningOrErrorDiagnosticsAsync(CancellationToken);
     // The shadowed warning is no longer produced, and the verification error is not migrated. 
@@ -186,8 +186,8 @@ method Bar() {
     var projectFileSource = @"
 includes = [""src/**/*.dfy""]
 ";
-    var directory = Directory.GetCurrentDirectory();
-    var projectFile = await CreateAndOpenTestDocument(projectFileSource, Path.Combine(directory, "dfyconfig.toml"));
+    var directory = Path.GetRandomFileName();
+    var projectFile = await CreateAndOpenTestDocument(projectFileSource, Path.Combine(directory, DafnyProject.FileName));
     var producerItem = await CreateAndOpenTestDocument(producerSource, Path.Combine(directory, "src/producer.dfy"));
     var consumer = await CreateAndOpenTestDocument(consumerSource, Path.Combine(directory, "src/consumer1.dfy"));
 

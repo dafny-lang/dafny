@@ -65,7 +65,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
       return state.ImplementationIdToView.GroupBy(kv => kv.Key.Uri).
         ToDictionary(kv => kv.Key, kvs =>
-        new FileVerificationStatus(kvs.Key, null,
+        new FileVerificationStatus(kvs.Key, state.Compilation.Version,
           GetNamedVerifiableStatuses(kvs.Select(kv => kv.Value))));
     }
 
@@ -103,13 +103,14 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
             PublishForUri(uri, currentDiagnostics.GetOrDefault(uri, Enumerable.Empty<Diagnostic>).ToArray());
           }
         } else {
-          if (!current.Any()) {
+          var errors = current.Where(d => d.Severity == DiagnosticSeverity.Error).ToList();
+          if (!errors.Any()) {
             continue;
           }
 
           projectDiagnostics.Add(new Diagnostic {
             Range = new Range(0, 0, 0, 1),
-            Message = $"the referenced file {uri.LocalPath} contains error(s) but belongs to another project. The first error is: {current.First().Message}",
+            Message = $"the referenced file {uri.LocalPath} contains error(s) but belongs to another project. The first error is: {errors.First().Message}",
             Severity = DiagnosticSeverity.Error,
             Source = MessageSource.Parser.ToString()
           });

@@ -33,6 +33,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DafnyTestGeneration.Test", 
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestDafny", "TestDafny\TestDafny.csproj", "{FBE70430-9890-405C-A282-61D33259CE30}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DafnyBenchmarkingPlugin", "DafnyBenchmarkingPlugin\DafnyBenchmarkingPlugin.csproj", "{96B8ADA8-6190-49F7-8C38-CDA60DC92293}"
+EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AutoExtern", "AutoExtern\AutoExtern.csproj", "{F185BDC2-1327-47A4-A293-D3FCDC419867}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AutoExtern.Test", "AutoExtern.Test\AutoExtern.Test.csproj", "{A47E2F45-DEA3-4700-A82F-9506FEEB199A}"
@@ -124,6 +126,10 @@ Global
 		{33C29F26-A27B-474D-B436-83EA615B09FC}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{33C29F26-A27B-474D-B436-83EA615B09FC}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{33C29F26-A27B-474D-B436-83EA615B09FC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{96B8ADA8-6190-49F7-8C38-CDA60DC92293}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{96B8ADA8-6190-49F7-8C38-CDA60DC92293}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{96B8ADA8-6190-49F7-8C38-CDA60DC92293}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{96B8ADA8-6190-49F7-8C38-CDA60DC92293}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

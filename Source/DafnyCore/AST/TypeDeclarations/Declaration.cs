@@ -28,6 +28,8 @@ public abstract class Declaration : RangeNode, IAttributeBearingDeclaration, IDe
 
   protected Declaration(Cloner cloner, Declaration original) : base(cloner, original) {
     NameNode = original.NameNode.Clone(cloner);
+    BodyStartTok = cloner.Tok(original.BodyStartTok);
+    Attributes = cloner.CloneAttributes(original.Attributes);
   }
 
   protected Declaration(RangeToken rangeToken, Name name, Attributes attributes, bool isRefining) : base(rangeToken) {

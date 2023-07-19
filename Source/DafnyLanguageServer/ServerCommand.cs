@@ -65,6 +65,7 @@ Send notifications about the verification status of each line in the program.
     GhostIndicators,
     LineVerificationStatus,
     VerifySnapshots,
+    DeveloperOptionBag.BoogiePrint,
     CommonOptionBag.EnforceDeterminism,
     CommonOptionBag.UseJavadocLikeDocstringRewriterOption
   }.Concat(ICommandSpec.VerificationOptions).

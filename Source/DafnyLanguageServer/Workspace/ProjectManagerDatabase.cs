@@ -1,36 +1,49 @@
 ﻿using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
-using Microsoft.Extensions.DependencyInjection;
-
 using System.IO;
 using System.Runtime.Caching;
 using System.Threading.Tasks;
 using Microsoft.Boogie;
+using Microsoft.Extensions.Logging;
+using OmniSharp.Extensions.LanguageServer.Protocol;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace {
   /// <summary>
   /// Contains a collection of ProjectManagers
   /// </summary>
-  public class ProjectManagerDatabase : IProjectDatabase {
+  public class ProjectManagerDatabase : IProjectDatabase, IDisposable {
+    private object myLock = new();
+    public const int ProjectFileCacheExpiryTime = 100;
 
-    private readonly IServiceProvider services;
+    private readonly CreateProjectManager createProjectManager;
+    private readonly ILogger<ProjectManagerDatabase> logger;
+    private readonly ExecutionEngine boogieEngine;
 
     private readonly Dictionary<Uri, ProjectManager> managersByProject = new();
     private readonly Dictionary<Uri, ProjectManager> managersBySourceFile = new();
     private readonly LanguageServerFilesystem fileSystem;
     private readonly VerificationResultCache verificationCache = new();
+    private readonly MemoryCache projectFilePerFolderCache = new("projectFiles");
+    private readonly object nullRepresentative = new(); // Needed because you can't store null in the MemoryCache, but that's a value we want to cache.
+    private readonly DafnyOptions serverOptions;
 
-    public ProjectManagerDatabase(IServiceProvider services) {
-      this.services = services;
-      serverOptions = services.GetRequiredService<DafnyOptions>();
-      this.fileSystem = services.GetRequiredService<LanguageServerFilesystem>();
+    public ProjectManagerDatabase(
+      LanguageServerFilesystem fileSystem,
+      DafnyOptions serverOptions,
+      CreateProjectManager createProjectManager,
+      ILogger<ProjectManagerDatabase> logger) {
+      this.createProjectManager = createProjectManager;
+      this.logger = logger;
+      this.fileSystem = fileSystem;
+      this.serverOptions = serverOptions;
+      boogieEngine = new ExecutionEngine(serverOptions, verificationCache);
     }
 
     public async Task OpenDocument(TextDocumentItem document) {
       fileSystem.OpenDocument(document);
-
-      var projectManager = await GetProjectManager(document, true, false)!;
+      var projectManager = await GetProjectManager(document, true)!;
       projectManager!.OpenDocument(document.Uri.ToUri());
     }
 
@@ -38,7 +51,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     public async Task UpdateDocument(DidChangeTextDocumentParams documentChange) {
       fileSystem.UpdateDocument(documentChange);
       var documentUri = documentChange.TextDocument.Uri;
-      var manager = await GetProjectManager(documentUri, false, false);
+      var manager = await GetProjectManager(documentUri, false);
       if (manager == null) {
         throw new ArgumentException($"the document {documentUri} was not loaded before");
       }
@@ -47,7 +60,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     public async Task SaveDocument(TextDocumentIdentifier documentId) {
-      var manager = await GetProjectManager(documentId, false, false);
+      var manager = await GetProjectManager(documentId, false);
       if (manager == null) {
         throw new ArgumentException($"the document {documentId.Uri} was not loaded before");
       }
@@ -55,23 +68,24 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       manager.Save(documentId);
     }
 
-    public async Task<bool> CloseDocumentAsync(TextDocumentIdentifier documentId) {
+    public async Task CloseDocumentAsync(TextDocumentIdentifier documentId) {
       fileSystem.CloseDocument(documentId);
 
-      managersBySourceFile.TryGetValue(documentId.Uri.ToUri(), out var manager);
-      if (manager == null) {
-        return false;
-      }
+      Task close;
+      lock (myLock) {
+        if (!managersBySourceFile.Remove(documentId.Uri.ToUri(), out var manager)) {
+          return;
+        }
 
-      if (await manager.CloseDocument()) {
-        managersByProject.Remove(manager.Project.Uri);
+        if (manager.CloseDocument(out close)) {
+          managersByProject.Remove(manager.Project.Uri, out _);
+        }
       }
-
-      return true;
+      await close;
     }
 
     public async Task<IdeState?> GetResolvedDocumentAsync(TextDocumentIdentifier documentId) {
-      var manager = await GetProjectManager(documentId, false, true);
+      var manager = await GetProjectManager(documentId, false);
       if (manager != null) {
         return await manager.GetSnapshotAfterResolutionAsync()!;
       }
@@ -80,7 +94,13 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     public async Task<CompilationAfterParsing?> GetLastDocumentAsync(TextDocumentIdentifier documentId) {
-      var manager = await GetProjectManager(documentId, false, true);
+      // Resolves drive letter capitalisation issues in Windows that occur when this method is called
+      // from an in-process client without serializing documentId
+      var normalizedUri = DocumentUri.From(documentId.Uri.ToString());
+      documentId = documentId with {
+        Uri = normalizedUri
+      };
+      var manager = await GetProjectManager(documentId, false);
       if (manager != null) {
         return await manager.GetLastDocumentAsync()!;
       }
@@ -89,46 +109,53 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     public Task<ProjectManager?> GetProjectManager(TextDocumentIdentifier documentId) {
-      return GetProjectManager(documentId, false, true);
+      return GetProjectManager(documentId, false);
     }
 
-    public async Task<ProjectManager?> GetProjectManager(TextDocumentIdentifier documentId,
-      bool createOnDemand, bool startIfMigrated) {
-      var project = GetProject(documentId.Uri.ToUri());
-      var projectManagerForFile = managersBySourceFile.GetValueOrDefault(documentId.Uri.ToUri());
-
-      if (projectManagerForFile != null) {
-        var filesProjectHasChanged = !projectManagerForFile.Project.Equals(project);
-        if (filesProjectHasChanged) {
-          var projectFileHasChanged = projectManagerForFile.Project.Uri == project.Uri;
-          if (projectFileHasChanged) {
-            await projectManagerForFile.CloseAsync();
-          } else {
-            await projectManagerForFile.CloseDocument();
-          }
-          projectManagerForFile = new ProjectManager(services, verificationCache, project);
-          projectManagerForFile.OpenDocument(documentId.Uri.ToUri());
-        }
-      } else {
-        var managerForProject = managersByProject.GetValueOrDefault(project.Uri);
-        if (managerForProject != null) {
-          projectManagerForFile = managerForProject;
-        } else {
-          if (createOnDemand) {
-            projectManagerForFile = new ProjectManager(services, verificationCache, project);
-          } else {
-            return null;
-          }
-        }
+    private async Task<ProjectManager?> GetProjectManager(TextDocumentIdentifier documentId, bool createOnDemand) {
+      if (!fileSystem.Exists(documentId.Uri.ToUri())) {
+        return null;
       }
 
-      managersBySourceFile[documentId.Uri.ToUri()] = projectManagerForFile;
-      managersByProject[project.Uri] = projectManagerForFile;
-      return projectManagerForFile;
+      var project = await GetProject(documentId.Uri.ToUri());
+
+      lock (myLock) {
+        var projectManagerForFile = managersBySourceFile.GetValueOrDefault(documentId.Uri.ToUri());
+
+        if (projectManagerForFile != null) {
+          var filesProjectHasChanged = !projectManagerForFile.Project.Equals(project);
+          if (filesProjectHasChanged) {
+            var projectFileHasChanged = projectManagerForFile.Project.Uri == project.Uri;
+            if (projectFileHasChanged) {
+              var _ = projectManagerForFile.CloseAsync();
+            } else {
+              projectManagerForFile.CloseDocument(out _);
+            }
+
+            projectManagerForFile = createProjectManager(boogieEngine, project);
+            projectManagerForFile.OpenDocument(documentId.Uri.ToUri());
+          }
+        } else {
+          var managerForProject = managersByProject.GetValueOrDefault(project.Uri);
+          if (managerForProject != null) {
+            projectManagerForFile = managerForProject;
+          } else {
+            if (createOnDemand) {
+              projectManagerForFile = createProjectManager(boogieEngine, project);
+            } else {
+              return null;
+            }
+          }
+        }
+
+        managersBySourceFile[documentId.Uri.ToUri()] = projectManagerForFile;
+        managersByProject[project.Uri] = projectManagerForFile;
+        return projectManagerForFile;
+      }
     }
 
-    public DafnyProject GetProject(Uri uri) {
-      return FindProjectFile(uri) ?? ImplicitProject(uri);
+    public async Task<DafnyProject> GetProject(Uri uri) {
+      return (await FindProjectFile(uri)) ?? ImplicitProject(uri);
     }
 
     public static DafnyProject ImplicitProject(Uri uri) {
@@ -140,12 +167,12 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       return implicitProject;
     }
 
-    private DafnyProject? FindProjectFile(Uri sourceUri) {
+    private async Task<DafnyProject?> FindProjectFile(Uri sourceUri) {
       DafnyProject? projectFile = null;
 
       var folder = Path.GetDirectoryName(sourceUri.LocalPath);
       while (!string.IsNullOrEmpty(folder) && projectFile == null) {
-        projectFile = OpenProjectInFolder(folder);
+        projectFile = await OpenProjectInFolder(folder);
 
         if (projectFile != null && projectFile.Uri != sourceUri && projectFile.ContainsSourceFile(sourceUri) == false) {
           projectFile = null;
@@ -163,33 +190,34 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       return projectFile;
     }
 
-    public const int ProjectFileCacheExpiryTime = 100;
-    private readonly MemoryCache projectFilePerFolderCache = new("projectFiles");
-    private readonly object nullRepresentative = new(); // Needed because you can't store null in the MemoryCache, but that's a value we want to cache.
-    private readonly DafnyOptions serverOptions;
-
-    private DafnyProject? OpenProjectInFolder(string folderPath) {
+    private async Task<DafnyProject?> OpenProjectInFolder(string folderPath) {
       var cachedResult = projectFilePerFolderCache.Get(folderPath);
       if (cachedResult != null) {
         return cachedResult == nullRepresentative ? null : (DafnyProject?)cachedResult;
       }
 
-      var result = OpenProjectInFolderUncached(folderPath);
+      var result = await OpenProjectInFolderUncached(folderPath);
       projectFilePerFolderCache.Set(new CacheItem(folderPath, (object?)result ?? nullRepresentative), new CacheItemPolicy {
         AbsoluteExpiration = new DateTimeOffset(DateTime.Now.Add(TimeSpan.FromMilliseconds(ProjectFileCacheExpiryTime)))
       });
       return result?.Clone();
     }
 
-    private DafnyProject? OpenProjectInFolderUncached(string folderPath) {
+    private Task<DafnyProject?> OpenProjectInFolderUncached(string folderPath) {
       var configFileUri = new Uri(Path.Combine(folderPath, DafnyProject.FileName));
       if (!fileSystem.Exists(configFileUri)) {
-        return null;
+        return Task.FromResult<DafnyProject?>(null);
       }
 
       return DafnyProject.Open(fileSystem, configFileUri, TextWriter.Null, TextWriter.Null);
     }
 
     public IEnumerable<ProjectManager> Managers => managersByProject.Values;
+    public void Dispose() {
+      boogieEngine.Dispose();
+      foreach (var manager in Managers) {
+        manager.Dispose();
+      }
+    }
   }
 }

@@ -6,6 +6,7 @@ using System.IO;
 using System.Linq;
 using System.Runtime.Serialization;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using DafnyCore.Options;
 using Microsoft.Extensions.FileSystemGlobbing;
 using Tomlyn;
@@ -26,12 +27,13 @@ public class DafnyProject : IEquatable<DafnyProject> {
   public string[] Excludes { get; set; }
   public Dictionary<string, object> Options { get; set; }
 
-  public static DafnyProject Open(IFileSystem fileSystem, Uri uri, TextWriter outputWriter, TextWriter errorWriter) {
+  public static async Task<DafnyProject> Open(IFileSystem fileSystem, Uri uri, TextWriter outputWriter, TextWriter errorWriter) {
     if (Path.GetFileName(uri.LocalPath) != FileName) {
       outputWriter.WriteLine($"Warning: only Dafny project files named {FileName} are recognised by the Dafny IDE.");
     }
     try {
-      var model = Toml.ToModel<DafnyProject>(fileSystem.ReadFile(uri).ReadToEnd(), null, new TomlModelOptions());
+      var text = await fileSystem.ReadFile(uri).ReadToEndAsync();
+      var model = Toml.ToModel<DafnyProject>(text, null, new TomlModelOptions());
       model.Uri = uri;
       return model;
 
@@ -70,13 +72,16 @@ public class DafnyProject : IEquatable<DafnyProject> {
 
   private Matcher GetMatcher() {
     var projectRoot = Path.GetDirectoryName(Uri.LocalPath)!;
+    var root = Path.GetPathRoot(Uri.LocalPath)!;
     var matcher = new Matcher();
     foreach (var includeGlob in Includes ?? new[] { "**/*.dfy" }) {
-      matcher.AddInclude(Path.GetFullPath(includeGlob, projectRoot));
+      var fullPath = Path.GetFullPath(includeGlob, projectRoot);
+      matcher.AddInclude(Path.GetRelativePath(root, fullPath));
     }
 
     foreach (var includeGlob in Excludes ?? Enumerable.Empty<string>()) {
-      matcher.AddExclude(Path.GetFullPath(includeGlob, projectRoot));
+      var fullPath = Path.GetFullPath(includeGlob, projectRoot);
+      matcher.AddExclude(Path.GetRelativePath(root, fullPath));
     }
 
     return matcher;

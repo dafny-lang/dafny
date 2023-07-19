@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Reactive.Threading.Tasks;
 using System.Text.RegularExpressions;
@@ -132,7 +133,6 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
     await client.WaitForNotificationCompletionAsync(documentItem.Uri, cancellationToken);
     var compilation = (await Projects.GetLastDocumentAsync(documentItem))!;
     Assert.NotNull(compilation);
-    Assert.True(documentItem.Version <= compilation.Version);
     var expectedDiagnostics = compilation.GetDiagnostics(documentItem.Uri.ToUri()).Select(d => d.ToLspDiagnostic()).ToList();
     PublishDiagnosticsParams result;
     while (true) {
@@ -236,12 +236,14 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
     Assert.Equal(verificationDocumentItem.Uri, hideReport.Uri);
   }
 
-  public async Task AssertNoDiagnosticsAreComing(CancellationToken cancellationToken) {
-    foreach (var entry in Projects.Managers) {
-      try {
-        await entry.GetLastDocumentAsync();
-      } catch (TaskCanceledException) {
+  public async Task AssertNoDiagnosticsAreComing(CancellationToken cancellationToken, bool waitFirst = true) {
+    if (waitFirst) {
+      foreach (var entry in Projects.Managers) {
+        try {
+          await entry.GetLastDocumentAsync();
+        } catch (TaskCanceledException) {
 
+        }
       }
     }
     var verificationDocumentItem = CreateTestDocument("class X {does not parse", $"AssertNoDiagnosticsAreComing{fileIndex++}.dfy");

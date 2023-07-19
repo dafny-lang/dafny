@@ -116,11 +116,11 @@ public class ExceptionTests : ClientBasedLanguageServerTest {
     }
 
     public Task<CompilationAfterParsing> LoadAsync(DafnyOptions options, Compilation compilation,
-      IFileSystem fileSystem, CancellationToken cancellationToken) {
+        CancellationToken cancellationToken) {
       if (tests.CrashOnLoad) {
         throw new IOException("crash");
       }
-      return loader.LoadAsync(options, compilation, fileSystem, cancellationToken);
+      return loader.LoadAsync(options, compilation, cancellationToken);
     }
   }
 

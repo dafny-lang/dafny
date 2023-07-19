@@ -14,12 +14,11 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     /// Closes the document with the specified ID.
     /// </summary>
     /// <param name="documentId">The ID of the document to close.</param>
-    /// <returns><c>true</c> if the document was present in the database.</returns>
     /// <remarks>
     /// The task represents any outstanding work of the document. It should be awaited to ensure
     /// that no processing occurs after the document is closed.
     /// </remarks>
-    Task<bool> CloseDocumentAsync(TextDocumentIdentifier documentId);
+    Task CloseDocumentAsync(TextDocumentIdentifier documentId);
 
     /// <summary>
     /// Loads (or updates if newer) the specified document into the database.
@@ -59,6 +58,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     Task<ProjectManager?> GetProjectManager(TextDocumentIdentifier documentId);
 
     IEnumerable<ProjectManager> Managers { get; }
-    DafnyProject GetProject(Uri uri);
+    Task<DafnyProject> GetProject(Uri uri);
   }
 }

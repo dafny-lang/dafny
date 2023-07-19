@@ -4,7 +4,6 @@ using System.IO;
 using System.Linq;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
-using System.Runtime.Caching;
 using System.Threading;
 using System.Threading.Tasks;
 using IntervalTree;
@@ -12,36 +11,39 @@ using Microsoft.Boogie;
 using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.FileSystemGlobbing;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace;
 
-/*
- * Ideal view is if there is a single Global IdeState,
- * Compilations may then update only part of this global state, the part for which they have affecting Uris.
- * 
- */
+public delegate ProjectManager CreateProjectManager(
+  ExecutionEngine boogieEngine,
+  DafnyProject project);
 
 public record FilePosition(Uri Uri, Position Position);
 
-// TODO test that it does not send diagnostics for files that it does not own.
-// How do you determine ownership when two projects include the same unopened file?
+/// <summary>
+/// Handles operation on a single document.
+/// Handles migration of previously published document state
+/// </summary>
 public class ProjectManager : IDisposable {
   private readonly IRelocator relocator;
-
-  private readonly IServiceProvider services;
-  private readonly VerificationResultCache verificationCache;
   public DafnyProject Project { get; }
+
   private readonly IdeStateObserver observer;
   public CompilationManager CompilationManager { get; private set; }
   private IDisposable observerSubscription;
   private readonly ILogger<ProjectManager> logger;
-  private readonly ExecutionEngine boogieEngine;
-  private int version = 0;
-  public int OpenFileCount { get; private set; }
+
+  /// <summary>
+  /// The version of this project.
+  /// Is incremented when any file in the project is updated.
+  /// Is used as part of project-wide notifications.
+  /// Can be used by the client to ignore outdated notifications
+  /// </summary>
+  private int version;
+
+  private int openFileCount;
 
   private bool VerifyOnOpenChange => options.Get(ServerCommand.Verification) == VerifyOnMode.Change;
   private bool VerifyOnSave => options.Get(ServerCommand.Verification) == VerifyOnMode.Save;
@@ -51,34 +53,32 @@ public class ProjectManager : IDisposable {
   private readonly SemaphoreSlim workCompletedForCurrentVersion = new(1);
   private readonly DafnyOptions options;
   private readonly DafnyOptions serverOptions;
+  private readonly CreateCompilationManager createCompilationManager;
+  private readonly ExecutionEngine boogieEngine;
 
-#pragma warning disable CS8618
-  public ProjectManager(IServiceProvider services, VerificationResultCache verificationCache, DafnyProject project) {
-#pragma warning restore CS8618
-    this.services = services;
-    this.verificationCache = verificationCache;
+  public ProjectManager(
+    DafnyOptions serverOptions,
+    ILogger<ProjectManager> logger,
+    IRelocator relocator,
+    CreateCompilationManager createCompilationManager,
+    CreateIdeStateObserver createIdeStateObserver,
+    ExecutionEngine boogieEngine,
+    DafnyProject project) {
     Project = project;
-    serverOptions = services.GetRequiredService<DafnyOptions>();
-    logger = services.GetRequiredService<ILogger<ProjectManager>>();
-    relocator = services.GetRequiredService<IRelocator>();
-    services.GetRequiredService<IFileSystem>();
+    this.serverOptions = serverOptions;
+    this.createCompilationManager = createCompilationManager;
+    this.relocator = relocator;
+    this.logger = logger;
+    this.boogieEngine = boogieEngine;
 
-    Project = project;
     options = DetermineProjectOptions(project, serverOptions);
-    observer = new IdeStateObserver(this.services.GetRequiredService<ILogger<IdeStateObserver>>(),
-      this.services.GetRequiredService<ITelemetryPublisher>(),
-      this.services.GetRequiredService<INotificationPublisher>(),
-      this.services.GetRequiredService<ITextDocumentLoader>(),
-      project);
-    boogieEngine = new ExecutionEngine(options, this.verificationCache);
+    observer = createIdeStateObserver(project);
     options.Printer = new OutputLogger(logger);
 
-    CompilationManager = new CompilationManager(
-      this.services,
-      options,
-      boogieEngine,
-      new Compilation(version, Project),
-      null
+    observer = createIdeStateObserver(Project);
+    var initialCompilation = new Compilation(version, Project);
+    CompilationManager = createCompilationManager(
+        options, boogieEngine, initialCompilation, null
     );
 
     observerSubscription = Disposable.Empty;
@@ -126,14 +126,11 @@ public class ProjectManager : IDisposable {
     logger.LogDebug("Clearing result for workCompletedForCurrentVersion");
 
     CompilationManager.CancelPendingUpdates();
-    CompilationManager = new CompilationManager(
-      services,
+    CompilationManager = createCompilationManager(
       options,
       boogieEngine,
       new Compilation(version, Project),
-      // TODO do not pass this to CompilationManager but instead use it in FillMissingStateUsingLastPublishedDocument
-      migratedVerificationTree
-    );
+      migratedVerificationTree);
 
     observerSubscription.Dispose();
     var migratedUpdates = CompilationManager.CompilationUpdates.Select(document =>
@@ -142,7 +139,6 @@ public class ProjectManager : IDisposable {
 
     CompilationManager.Start();
   }
-
 
   public void TriggerVerificationForFile(Uri triggeringFile) {
     if (VerifyOnOpenChange) {
@@ -190,13 +186,17 @@ public class ProjectManager : IDisposable {
     }
   }
 
-  public async Task<bool> CloseDocument() {
-    OpenFileCount--;
-    if (OpenFileCount == 0) {
-      await CloseAsync();
+  /// <summary>
+  /// Needs to be thread-safe
+  /// </summary>
+  /// <returns></returns>
+  public bool CloseDocument(out Task close) {
+    if (Interlocked.Decrement(ref openFileCount) == 0) {
+      close = CloseAsync();
       return true;
     }
 
+    close = Task.CompletedTask;
     return false;
   }
 
@@ -276,12 +276,14 @@ public class ProjectManager : IDisposable {
     }
   }
 
-  private IEnumerable<FilePosition> GetChangedVerifiablesFromRanges(CompilationAfterResolution loaded, IEnumerable<Location> changedRanges) {
+  private IEnumerable<FilePosition> GetChangedVerifiablesFromRanges(CompilationAfterTranslation translated, IEnumerable<Location> changedRanges) {
 
     IntervalTree<Position, Position> GetTree(Uri uri) {
-      // TODO see if we can replace this
-      var tree = new DocumentVerificationTree(loaded.Program, uri);
-      VerificationProgressReporter.UpdateTree(options, loaded, tree);
+      // Refactor: use the translated Boogie program
+      // instead of redoing part of that translation with the `DocumentVerificationTree` 
+      // https://github.com/dafny-lang/dafny/issues/4264
+      var tree = new DocumentVerificationTree(translated.Program, uri);
+      VerificationProgressReporter.UpdateTree(options, translated, tree);
       var intervalTree = new IntervalTree<Position, Position>();
       foreach (var childTree in tree.Children) {
         intervalTree.Add(childTree.Range.Start, childTree.Range.End, childTree.Position);
@@ -299,7 +301,7 @@ public class ProjectManager : IDisposable {
   }
 
   public void OpenDocument(Uri uri) {
-    OpenFileCount++;
+    Interlocked.Increment(ref openFileCount);
     var lastPublishedState = observer.LastPublishedState;
     var migratedVerificationTree = lastPublishedState.VerificationTree;
 
@@ -308,6 +310,6 @@ public class ProjectManager : IDisposable {
   }
 
   public void Dispose() {
-    boogieEngine.Dispose();
+    CompilationManager.CancelPendingUpdates();
   }
 }

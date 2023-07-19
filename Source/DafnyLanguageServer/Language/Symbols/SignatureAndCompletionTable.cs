@@ -54,7 +54,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
     }
 
     public static Program GetEmptyProgram(DafnyOptions options, Uri uri) {
-      var outerModule = new DefaultModuleDefinition(new List<Uri>() { uri }, false);
+      var outerModule = new DefaultModuleDefinition(new List<Uri>() { uri });
       var errorReporter = new DiagnosticErrorReporter(options, uri);
       var compilation = new CompilationData(errorReporter, new List<Include>(), new List<Uri>(), Sets.Empty<Uri>(),
         Sets.Empty<Uri>());

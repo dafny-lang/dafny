@@ -28,7 +28,7 @@ method Test() {
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
     var document = await Projects.GetResolvedDocumentAsync(documentItem.Uri);
     Assert.NotNull(document);
-    Assert.Empty(document.GetDiagnostics());
+    Assert.All(document.GetDiagnostics(), a => Assert.Empty(a.Value));
   }
 
   // https://github.com/dafny-lang/language-server-csharp/issues/40
@@ -46,6 +46,18 @@ method Test() {
     var document = await Projects.GetLastDocumentAsync(documentItem.Uri);
     Assert.NotNull(document);
     Assert.Single(document.GetDiagnostics(documentItem.Uri.ToUri()));
+  }
+
+  [Fact]
+  public async Task NonErrorDiagnosticDoesNotProduceAnError() {
+    var source = @"
+include ""./hasWarning.dfy""
+".TrimStart();
+    var warningSource = "const tooManySemiColons := 3;";
+    await CreateAndOpenTestDocument(warningSource, Path.Combine(TestFileDirectory, "hasWarning.dfy"));
+    await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
+    await CreateAndOpenTestDocument(source, TestFilePath);
+    await AssertNoDiagnosticsAreComing(CancellationToken);
   }
 
   [Fact]

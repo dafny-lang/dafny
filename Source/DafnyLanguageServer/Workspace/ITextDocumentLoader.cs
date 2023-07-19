@@ -21,6 +21,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     IdeState CreateUnloaded(DafnyProject project);
 
     Task<CompilationAfterParsing> LoadAsync(DafnyOptions options, Compilation compilation,
-      IFileSystem fileSystem, CancellationToken cancellationToken);
+      CancellationToken cancellationToken);
   }
 }

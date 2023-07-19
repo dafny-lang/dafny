@@ -15,7 +15,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace;
 
 public class CompilationAfterTranslation : CompilationAfterResolution {
   public CompilationAfterTranslation(
-    IServiceProvider services,
     CompilationAfterResolution compilationAfterResolution,
     IReadOnlyDictionary<Uri, List<DafnyDiagnostic>> diagnostics,
     IReadOnlyList<IImplementationTask> verificationTasks,
@@ -26,21 +25,14 @@ public class CompilationAfterTranslation : CompilationAfterResolution {
     : base(compilationAfterResolution, diagnostics,
       compilationAfterResolution.SymbolTable, compilationAfterResolution.SignatureAndCompletionTable,
       compilationAfterResolution.GhostDiagnostics) {
+    VerificationTree = verificationTree;
     VerificationTasks = verificationTasks;
     Counterexamples = counterexamples;
     ImplementationIdToView = implementationIdToView;
-
-    if (verificationTree != null) {
-      GutterProgressReporter = new VerificationProgressReporter(
-        services.GetRequiredService<ILogger<VerificationProgressReporter>>(),
-        this,
-        services.GetRequiredService<INotificationPublisher>(),
-        services.GetRequiredService<DafnyOptions>(), verificationTree);
-    }
   }
 
   public override VerificationTree? GetVerificationTree() {
-    return GutterProgressReporter?.Tree;
+    return VerificationTree;
   }
 
   public override IEnumerable<DafnyDiagnostic> GetDiagnostics(Uri uri) {
@@ -72,7 +64,7 @@ public class CompilationAfterTranslation : CompilationAfterResolution {
   /// Can be migrated from a previous document
   /// The position and the range are never sent to the client.
   /// </summary>
-  public IVerificationProgressReporter? GutterProgressReporter { get; set; }
+  public VerificationTree? VerificationTree { get; set; }
   public List<Counterexample> Counterexamples { get; set; }
   public Dictionary<ImplementationId, ImplementationView> ImplementationIdToView { get; set; }
 }
