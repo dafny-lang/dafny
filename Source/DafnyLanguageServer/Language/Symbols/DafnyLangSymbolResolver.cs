@@ -16,14 +16,14 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
   /// this resolver serializes all invocations.
   /// </remarks>
   public class DafnyLangSymbolResolver : ISymbolResolver {
-    private readonly ILoggerFactory loggerFactory;
     private readonly ILogger logger;
+    private readonly ILogger<CachingResolver> innerLogger;
     private readonly SemaphoreSlim resolverMutex = new(1);
     private readonly ITelemetryPublisher telemetryPublisher;
 
-    public DafnyLangSymbolResolver(ILoggerFactory loggerFactory, ITelemetryPublisher telemetryPublisher) {
-      this.loggerFactory = loggerFactory;
-      logger = loggerFactory.CreateLogger<DafnyLangSymbolResolver>();
+    public DafnyLangSymbolResolver(ILogger<DafnyLangSymbolResolver> logger, ILogger<CachingResolver> innerLogger, ITelemetryPublisher telemetryPublisher) {
+      this.logger = logger;
+      this.innerLogger = innerLogger;
       this.telemetryPublisher = telemetryPublisher;
     }
 
@@ -55,7 +55,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
     private void RunDafnyResolver(DafnyProject project, Program program, CancellationToken cancellationToken) {
       var beforeResolution = DateTime.Now;
       try {
-        var resolver = new CachingResolver(program, loggerFactory.CreateLogger<CachingResolver>(), resolutionCache);
+        var resolver = new CachingResolver(program, innerLogger, resolutionCache);
         resolver.Resolve(cancellationToken);
         resolutionCache.Prune();
         int resolverErrors = resolver.Reporter.ErrorCountUntilResolver;
