@@ -6,8 +6,11 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection.Metadata;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using OmniSharp.Extensions.JsonRpc.Server;
 using Xunit;
 using Xunit.Abstractions;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
@@ -19,6 +22,24 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
     // Implementation note: These tests assume that no diagnostics are published
     // when a document (re-load) was canceled.
     private const int MaxTestExecutionTimeMs = 240_000;
+
+    [Fact]
+    public async Task UpdateDuringARequestWillCancelTheRequest() {
+      var programThatResolvesSlowlyEnough = RepeatStrBuilder(@"method Foo() {}", 1000);
+      var documentItem = CreateTestDocument(programThatResolvesSlowlyEnough);
+      client.OpenDocument(documentItem);
+      var hoverTask = client.RequestHover(new HoverParams { Position = (0, 0), TextDocument = documentItem }, CancellationToken);
+      ApplyChange(ref documentItem, new Range(0, 0, 0, 0), "//comment\n");
+#pragma warning disable VSTHRD003
+      await Assert.ThrowsAsync<ContentModifiedException>(() => hoverTask);
+#pragma warning restore VSTHRD003
+    }
+
+    private static string RepeatStrBuilder(string text, uint n) {
+      return new StringBuilder(text.Length * (int)n)
+        .Insert(0, text, (int)n)
+        .ToString();
+    }
 
     [Fact(Timeout = MaxTestExecutionTimeMs)]
     public async Task VerificationErrorDetectedAfterCanceledSave() {
@@ -171,11 +192,12 @@ method Multiply(x: int, y: int) returns (product: int)
         loadingDocuments.Add(documentItem);
       }
       for (int i = 0; i < documentsToLoadConcurrently; i++) {
+        await client.WaitForNotificationCompletionAsync(loadingDocuments[i].Uri, CancellationTokenWithHighTimeout);
         await Projects.GetLastDocumentAsync(loadingDocuments[i]).WaitAsync(CancellationTokenWithHighTimeout);
       }
 
       foreach (var loadingDocument in loadingDocuments) {
-        await client.CloseDocumentAndWaitAsync(loadingDocument, CancellationTokenWithHighTimeout);
+        client.CloseDocument(loadingDocument);
       }
       await AssertNoDiagnosticsAreComing(CancellationTokenWithHighTimeout);
     }

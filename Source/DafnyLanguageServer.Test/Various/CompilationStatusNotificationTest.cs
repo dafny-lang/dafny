@@ -29,9 +29,8 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     protected async Task SetUp(Action<DafnyOptions> modifyOptions) {
       notificationReceiver = new();
-      client = await InitializeClient(options => {
-        options
-          .AddHandler(DafnyRequestNames.CompilationStatus, NotificationHandler.For<CompilationStatusParams>(notificationReceiver.NotificationReceived));
+      (client, Server) = await Initialize(clientOptions => {
+        clientOptions.AddHandler(DafnyRequestNames.CompilationStatus, NotificationHandler.For<CompilationStatusParams>(notificationReceiver.NotificationReceived));
       }, modifyOptions);
     }
 

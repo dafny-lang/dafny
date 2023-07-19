@@ -87,6 +87,10 @@ namespace Microsoft.Dafny {
       return res;
     }
 
+    public static IEnumerable<(T, int)> Indexed<T>(this IEnumerable<T> enumerable) {
+      return enumerable.Select((value, index) => (value, index));
+    }
+
     public static string PrintableNameList(List<string> names, string grammaticalConjunction) {
       Contract.Requires(names != null);
       Contract.Requires(1 <= names.Count);
