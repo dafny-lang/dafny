@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Language.Symbols;
 using Microsoft.Dafny.LanguageServer.Workspace;
 using Microsoft.Extensions.Logging;
@@ -13,7 +14,8 @@ public class DafnyLangSymbolResolverTest {
   public DafnyLangSymbolResolverTest() {
     var loggerFactory = new Mock<ILoggerFactory>();
     dafnyLangSymbolResolver = new DafnyLangSymbolResolver(
-      loggerFactory.Object,
+      new Mock<ILogger<DafnyLangSymbolResolver>>().Object,
+      new Mock<ILogger<CachingResolver>>().Object,
       new Mock<ITelemetryPublisher>().Object
     );
   }
