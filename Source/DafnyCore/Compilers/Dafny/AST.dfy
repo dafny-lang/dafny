@@ -38,8 +38,9 @@ module {:extern "DAST"} DAST {
     Tuple(seq<Expression>) |
     DatatypeValue(typ: Type, variant: string, contents: seq<(string, Expression)>) |
     BinOp(op: string, left: Expression, right: Expression) |
-    Select(expr: Expression, field: string) |
+    Select(expr: Expression, field: string, onDatatype: bool) |
     Call(on: Expression, name: string, typeArgs: seq<Type>, args: seq<Expression>) |
+    TypeTest(on: Expression, dType: Type, variant: string) |
     InitializationValue(typ: Type)
 
   datatype Literal = BoolLiteral(bool) | IntLiteral(int) | DecLiteral(string) | StringLiteral(string)

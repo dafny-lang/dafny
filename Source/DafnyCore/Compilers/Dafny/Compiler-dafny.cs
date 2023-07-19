@@ -444,7 +444,8 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void TypeArgDescriptorUse(bool isStatic, bool lookasideBody, TopLevelDeclWithMembers cl, out bool needsTypeParameter, out bool needsTypeDescriptor) {
-      throw new NotImplementedException();
+      needsTypeParameter = false;
+      needsTypeDescriptor = false;
     }
 
     protected override bool DeclareFormal(string prefix, string name, Type type, IToken tok, bool isInParam, ConcreteSyntaxTree wr) {
@@ -950,10 +951,33 @@ namespace Microsoft.Dafny.Compilers {
       var objReceiver = new ExprBuffer(null);
       obj(new BuilderSyntaxTree<ExprContainer>(objReceiver));
       var objExpr = objReceiver.Finish();
-      return new ExprLvalue((DAST.Expression)DAST.Expression.create_Select(
-        objExpr,
-        Sequence<Rune>.UnicodeFromString(member.GetCompileName(Options))
-      ));
+
+      var memberStatus = DatatypeWrapperEraser.GetMemberStatus(Options, member);
+
+      if (memberStatus == DatatypeWrapperEraser.MemberCompileStatus.Identity) {
+        return new ExprLvalue(objExpr);
+      } else if (memberStatus == DatatypeWrapperEraser.MemberCompileStatus.AlwaysTrue) {
+        return new ExprLvalue((DAST.Expression)DAST.Expression.create_Literal(DAST.Literal.create_BoolLiteral(true)));
+      } else if (member is SpecialField sf && sf.SpecialId != SpecialField.ID.UseIdParam) {
+        GetSpecialFieldInfo(sf.SpecialId, sf.IdParam, objType, out var compiledName, out _, out _);
+        return new ExprLvalue((DAST.Expression)DAST.Expression.create_Select(
+          objExpr,
+          Sequence<Rune>.UnicodeFromString(compiledName),
+          member.EnclosingClass is DatatypeDecl
+        ));
+      } else if (member is SpecialField sf2 && sf2.SpecialId == SpecialField.ID.UseIdParam && sf2.IdParam is string fieldName && fieldName.StartsWith("is_")) {
+        return new ExprLvalue((DAST.Expression)DAST.Expression.create_TypeTest(
+          objExpr,
+          GenType(objType),
+          Sequence<Rune>.UnicodeFromString(fieldName.Substring(3))
+        ));
+      } else {
+        return new ExprLvalue((DAST.Expression)DAST.Expression.create_Select(
+          objExpr,
+          Sequence<Rune>.UnicodeFromString(member.GetCompileName(Options)),
+          member.EnclosingClass is DatatypeDecl
+        ));
+      }
     }
 
     protected override ConcreteSyntaxTree EmitArraySelect(List<string> indices, Type elmtType, ConcreteSyntaxTree wr) {

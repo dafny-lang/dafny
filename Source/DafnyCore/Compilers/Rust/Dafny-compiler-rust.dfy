@@ -74,7 +74,56 @@ module {:extern "DCOMP"} DCOMP {
       }
 
       var implBody := GenClassImplBody(c.body);
-      var enumBody := "#[derive(PartialEq)]\npub enum r#" + c.name + " {\n" + ctors +  "\n}" + "\n" + "impl r#" + c.name + " {\n" + implBody + "\n}";
+      i := 0;
+      var emittedFields: set<string> := {};
+      while i < |c.ctors| {
+        // we know that across all ctors, each any fields with the same name have the same type
+        // so we want to emit methods for each field that pull the appropriate value given
+        // the current variant (and panic if we have a variant with no such field)
+        var ctor := c.ctors[i];
+        var j := 0;
+        while j < |ctor.args| {
+          var formal := ctor.args[j];
+          if !(formal.name in emittedFields) {
+            emittedFields := emittedFields + {formal.name};
+
+            var formalType := GenType(formal.typ);
+            var methodBody := "match self {\n";
+            var k := 0;
+            while k < |c.ctors| {
+              var ctor2 := c.ctors[k];
+              var ctorMatch := "r#" + c.name + "::" + "r#" + ctor2.name + " { ";
+              var l := 0;
+              var hasMatchingField := false;
+              while l < |ctor2.args| {
+                var formal2 := ctor2.args[l];
+                if formal.name == formal2.name {
+                  hasMatchingField := true;
+                }
+                ctorMatch := ctorMatch + "r#" + formal2.name + ", ";
+                l := l + 1;
+              }
+
+              if hasMatchingField {
+                ctorMatch := ctorMatch + "} => " + formal.name + ",\n";
+              } else {
+                ctorMatch := ctorMatch + "} => panic!(\"field does not exist on this variant\"),\n";
+              }
+              methodBody := methodBody + ctorMatch;
+              k := k + 1;
+            }
+
+            methodBody := methodBody + "}\n";
+
+            implBody := implBody + "pub fn " + formal.name + "(&self) -> &" + formalType + " {\n" + methodBody + "}\n";
+          }
+          j := j + 1;
+        }
+
+        i := i + 1;
+      }
+
+      var enumBody := "#[derive(Clone, PartialEq)]\npub enum r#" + c.name + " {\n" + ctors +  "\n}" + "\n" + "impl r#" + c.name + " {\n" + implBody + "\n}";
 
       var printImpl := "impl ::dafny_runtime::DafnyPrint for r#" + c.name + " {\n" + "fn fmt_print(&self, f: &mut ::std::fmt::Formatter) -> std::fmt::Result {\n" + "match self {\n";
       i := 0;
@@ -451,9 +500,14 @@ module {:extern "DCOMP"} DCOMP {
           var right := GenExpr(r);
           s := "(" + left + " " + op + " " + right + ")";
         }
-        case Select(on, field) => {
+        case Select(on, field, isDatatype) => {
           var onString := GenExpr(on);
-          s := onString + ".r#" + field;
+
+          if isDatatype {
+            s := onString + ".r#" + field + "().clone()";
+          } else {
+            s := onString + ".r#" + field + ".clone()";
+          }
         }
         case Call(on, name, typeArgs, args) => {
           var typeArgString := "";
@@ -498,11 +552,16 @@ module {:extern "DCOMP"} DCOMP {
 
           s := enclosingString + "r#" + name + typeArgString + "(" + argString + ")";
         }
+        case TypeTest(on, dType, variant) => {
+          var exprGen := GenExpr(on);
+          var typeGen := GenType(dType);
+          s := "matches!(" + exprGen + ", " + typeGen + "::r#" + variant + "{ .. })";
+        }
       }
     }
 
     static method Compile(p: seq<Module>, runtime: string) returns (s: string) {
-      s := "#![allow(warnings)]\n";
+      s := "#![allow(warnings, unconditional_panic)]\n";
       s := s + "mod dafny_runtime {\n" + runtime + "\n}\n";
 
       var i := 0;
