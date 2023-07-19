@@ -37,6 +37,7 @@ method Main() {
   TestGhostDestructors();
 
   TestNumericDestructorNames();
+  TypeDescriptorsInCovariantPositions.Test();
 }
 
 function Up(m: nat, n: nat): List
@@ -187,4 +188,23 @@ method TestNumericDestructorNames() {
       print a, " ", b, " ", c, "\n"; // 800 801 802
   }
   print j.0, " ", j.0_3, " ", j.012, "\n"; // 800 801 802
+}
+
+module TypeDescriptorsInCovariantPositions {
+  // This module contains two regression tests. One is that the compiler to C# once didn't consider
+  // that type descriptors are in-parameters whose type may mention co-variant type parameters. The
+  // other is that the compiler to Go once used the name "Get()" as the name of one of its internal
+  // methods, which then could conflict with a user-defined method with that name.
+  datatype Unit<+X(0)> = Unit
+  {
+    method Get(x: X) returns (r: X) { }
+    method Het() returns (r: X) { }
+  }
+
+  method Test() {
+    var u: Unit<real>;
+    var r0 := u.Get(3.2);
+    var r1 := u.Het();
+    print u, " ", r0, " ", r1, "\n";
+  }
 }
