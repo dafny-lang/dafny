@@ -197,11 +197,11 @@ module {:extern "DCOMP"} DCOMP {
           var i := 0;
           while i < |types| {
             if i > 0 {
-              s := s + ", ";
+              s := s + " ";
             }
 
             var generated := GenType(types[i]);
-            s := s + generated;
+            s := s + generated + ",";
             i := i + 1;
           }
 
@@ -273,17 +273,17 @@ module {:extern "DCOMP"} DCOMP {
 
       s := "pub fn r#" + m.name;
 
-      if (|m.typeArgs| > 0) {
+      if (|m.typeParams| > 0) {
         s := s + "<";
 
         var i := 0;
-        while i < |m.typeArgs| {
+        while i < |m.typeParams| {
           if i > 0 {
             s := s + ", ";
           }
 
-          var typeString := GenType(m.typeArgs[i]);
-          s := s + typeString;
+          var typeString := GenType(m.typeParams[i]);
+          s := s + typeString + ": std::default::Default";
 
           i := i + 1;
         }
@@ -468,11 +468,11 @@ module {:extern "DCOMP"} DCOMP {
           var i := 0;
           while i < |values| {
             if i > 0 {
-              s := s + ", ";
+              s := s + " ";
             }
 
             var recursiveGen := GenExpr(values[i]);
-            s := s + recursiveGen;
+            s := s + recursiveGen + ",";
 
             i := i + 1;
           }
@@ -508,6 +508,10 @@ module {:extern "DCOMP"} DCOMP {
           } else {
             s := onString + ".r#" + field + ".clone()";
           }
+        }
+        case TupleSelect(on, idx) => {
+          var onString := GenExpr(on);
+          s := onString + "." + natToString(idx) + ".clone()";
         }
         case Call(on, name, typeArgs, args) => {
           var typeArgString := "";

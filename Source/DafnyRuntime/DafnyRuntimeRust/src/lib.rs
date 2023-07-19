@@ -37,6 +37,12 @@ impl_print_display! { i128 }
 impl_print_display! { f32 }
 impl_print_display! { f64 }
 
+impl DafnyPrint for () {
+    fn fmt_print(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "()")
+    }
+}
+
 macro_rules! impl_tuple_print {
     ($($items:ident)*) => {
         impl <$($items,)*> DafnyPrint for ($($items,)*)
@@ -76,5 +82,10 @@ macro_rules! impl_tuple_print_loop {
     };
 }
 
-// 10 elements ought to be enough for everyone
-impl_tuple_print_loop! { A0 A1 A2 A3 A4 A5 A6 A7 A8 A9 A10 }
+// 32 elements ought to be enough for everyone
+impl_tuple_print_loop! {
+    A0 A1 A2 A3 A4 A5 A6 A7 A8 A9 A10
+    A11 A12 A13 A14 A15 A16 A17 A18 A19 A20
+    A21 A22 A23 A24 A25 A26 A27 A28 A29 A30
+    A31
+}

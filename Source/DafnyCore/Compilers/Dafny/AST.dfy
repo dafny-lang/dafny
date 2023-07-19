@@ -19,7 +19,7 @@ module {:extern "DAST"} DAST {
 
   datatype Formal = Formal(name: string, typ: Type)
 
-  datatype Method = Method(isStatic: bool, name: string, typeArgs: seq<Type>, params: seq<Formal>, body: seq<Statement>, outTypes: seq<Type>, outVars: Optional<seq<Ident>>)
+  datatype Method = Method(isStatic: bool, name: string, typeParams: seq<Type>, params: seq<Formal>, body: seq<Statement>, outTypes: seq<Type>, outVars: Optional<seq<Ident>>)
 
   datatype Optional<T> = Some(T) | None
 
@@ -39,6 +39,7 @@ module {:extern "DAST"} DAST {
     DatatypeValue(typ: Type, variant: string, contents: seq<(string, Expression)>) |
     BinOp(op: string, left: Expression, right: Expression) |
     Select(expr: Expression, field: string, onDatatype: bool) |
+    TupleSelect(expr: Expression, index: nat) |
     Call(on: Expression, name: string, typeArgs: seq<Type>, args: seq<Expression>) |
     TypeTest(on: Expression, dType: Type, variant: string) |
     InitializationValue(typ: Type)

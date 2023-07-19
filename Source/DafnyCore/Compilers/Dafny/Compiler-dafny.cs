@@ -836,7 +836,7 @@ namespace Microsoft.Dafny.Compilers {
           throw new NotImplementedException();
         case TupleTypeDecl:
           return (DAST.Type)DAST.Type.create_Tuple(Sequence<DAST.Type>.FromArray(
-            ((TupleTypeDecl)cl).GroundingCtor.Formals.Select(m => GenType(m.Type)).ToArray()
+            udt.TypeArgs.Select(m => GenType(m)).ToArray()
           ));
         default:
           return TypeNameASTFromTopLevel(cl);
@@ -958,6 +958,19 @@ namespace Microsoft.Dafny.Compilers {
         return new ExprLvalue(objExpr);
       } else if (memberStatus == DatatypeWrapperEraser.MemberCompileStatus.AlwaysTrue) {
         return new ExprLvalue((DAST.Expression)DAST.Expression.create_Literal(DAST.Literal.create_BoolLiteral(true)));
+      } else if (member is DatatypeDestructor dtor) {
+        if (dtor.EnclosingClass is TupleTypeDecl) {
+          return new ExprLvalue((DAST.Expression)DAST.Expression.create_TupleSelect(
+            objExpr,
+            int.Parse(dtor.CorrespondingFormals[0].NameForCompilation)
+          ));
+        } else {
+          return new ExprLvalue((DAST.Expression)DAST.Expression.create_Select(
+            objExpr,
+            Sequence<Rune>.UnicodeFromString(member.GetCompileName(Options)),
+            member.EnclosingClass is DatatypeDecl
+          ));
+        }
       } else if (member is SpecialField sf && sf.SpecialId != SpecialField.ID.UseIdParam) {
         GetSpecialFieldInfo(sf.SpecialId, sf.IdParam, objType, out var compiledName, out _, out _);
         return new ExprLvalue((DAST.Expression)DAST.Expression.create_Select(
