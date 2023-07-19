@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using Microsoft.Boogie;
 using Microsoft.Dafny.LanguageServer.Language;
@@ -14,32 +15,29 @@ namespace Microsoft.Dafny.LanguageServer.Workspace;
 
 public class CompilationAfterTranslation : CompilationAfterResolution {
   public CompilationAfterTranslation(
-    IServiceProvider services,
-    VersionedTextDocumentIdentifier documentIdentifier,
-    Dafny.Program program,
-    IReadOnlyDictionary<DocumentUri, List<DafnyDiagnostic>> diagnostics,
-    SymbolTable? symbolTable,
-    SignatureAndCompletionTable signatureAndCompletionTable,
-    IReadOnlyList<Diagnostic> ghostDiagnostics,
+    CompilationAfterResolution compilationAfterResolution,
+    IReadOnlyDictionary<Uri, List<DafnyDiagnostic>> diagnostics,
     IReadOnlyList<IImplementationTask> verificationTasks,
     List<Counterexample> counterexamples,
     Dictionary<ImplementationId, ImplementationView> implementationIdToView,
-    VerificationTree verificationTree)
-    : base(documentIdentifier, program, diagnostics, symbolTable, signatureAndCompletionTable, ghostDiagnostics) {
+    VerificationTree? verificationTree
+    )
+    : base(compilationAfterResolution, diagnostics,
+      compilationAfterResolution.SymbolTable, compilationAfterResolution.SignatureAndCompletionTable,
+      compilationAfterResolution.GhostDiagnostics) {
     VerificationTree = verificationTree;
     VerificationTasks = verificationTasks;
     Counterexamples = counterexamples;
     ImplementationIdToView = implementationIdToView;
-
-    GutterProgressReporter = new VerificationProgressReporter(
-      services.GetRequiredService<ILogger<VerificationProgressReporter>>(),
-      this,
-      services.GetRequiredService<INotificationPublisher>(),
-      services.GetRequiredService<DafnyOptions>());
   }
 
-  public override VerificationTree GetVerificationTree() {
+  public override VerificationTree? GetVerificationTree() {
     return VerificationTree;
+  }
+
+  public override IEnumerable<DafnyDiagnostic> GetDiagnostics(Uri uri) {
+    var views = ImplementationIdToView.Where(kv => kv.Key.Uri == uri).ToList();
+    return base.GetDiagnostics(uri).Concat(views.SelectMany(view => view.Value.Diagnostics));
   }
 
   public override IdeState ToIdeState(IdeState previousState) {
@@ -54,23 +52,19 @@ public class CompilationAfterTranslation : CompilationAfterResolution {
     });
     return base.ToIdeState(previousState) with {
       ImplementationsWereUpdated = true,
-      VerificationTree = VerificationTree,
+      VerificationTree = GetVerificationTree(),
       Counterexamples = new List<Counterexample>(Counterexamples),
       ImplementationIdToView = new Dictionary<ImplementationId, IdeImplementationView>(implementationViewsWithMigratedDiagnostics)
     };
   }
 
-  public override IEnumerable<DafnyDiagnostic> AllFileDiagnostics => base.AllFileDiagnostics.Concat(
-    ImplementationIdToView.SelectMany(kv => kv.Value.Diagnostics));
-
+  public IReadOnlyList<IImplementationTask> VerificationTasks { get; set; }
   /// <summary>
   /// Contains the real-time status of all verification efforts.
   /// Can be migrated from a previous document
   /// The position and the range are never sent to the client.
   /// </summary>
-  public VerificationTree VerificationTree { get; set; }
-  public IReadOnlyList<IImplementationTask> VerificationTasks { get; set; }
-  public IVerificationProgressReporter GutterProgressReporter { get; set; }
+  public VerificationTree? VerificationTree { get; set; }
   public List<Counterexample> Counterexamples { get; set; }
   public Dictionary<ImplementationId, ImplementationView> ImplementationIdToView { get; set; }
 }

@@ -9,13 +9,18 @@ using System.Threading.Tasks;
 using Microsoft.Boogie;
 using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using VC;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace;
+
+public delegate CompilationManager CreateCompilationManager(
+  DafnyOptions options,
+  ExecutionEngine boogieEngine,
+  Compilation compilation,
+  VerificationTree? migratedVerificationTree);
 
 /// <summary>
 /// The compilation of a single document version.
@@ -33,8 +38,7 @@ public class CompilationManager {
   private readonly ICompilationStatusNotificationPublisher statusPublisher;
   private readonly INotificationPublisher notificationPublisher;
   private readonly IProgramVerifier verifier;
-
-  private readonly IServiceProvider services;
+  private readonly IVerificationProgressReporter verificationProgressReporter;
 
   // TODO CompilationManager shouldn't be aware of migration
   private readonly VerificationTree? migratedVerificationTree;
@@ -42,33 +46,47 @@ public class CompilationManager {
   private TaskCompletionSource started = new();
   private readonly IScheduler verificationUpdateScheduler = new EventLoopScheduler();
   private readonly CancellationTokenSource cancellationSource;
-  private readonly Subject<Compilation> documentUpdates = new();
-  public IObservable<Compilation> DocumentUpdates => documentUpdates;
 
-  public Task<CompilationAfterParsing> ResolvedDocument { get; }
-  public Task<CompilationAfterTranslation> TranslatedDocument { get; }
+  private TaskCompletionSource verificationCompleted = new();
+  private readonly DafnyOptions options;
+  private readonly Compilation startingCompilation;
+  private readonly ExecutionEngine boogieEngine;
 
-  public CompilationManager(IServiceProvider services,
+  private readonly Subject<Compilation> compilationUpdates = new();
+  public IObservable<Compilation> CompilationUpdates => compilationUpdates;
+
+  public Task<CompilationAfterParsing> ResolvedCompilation { get; }
+  public Task<CompilationAfterTranslation> TranslatedCompilation { get; }
+
+  public CompilationManager(
+    ILogger<CompilationManager> logger,
+    ITextDocumentLoader documentLoader,
+    INotificationPublisher notificationPublisher,
+    IProgramVerifier verifier,
+    ICompilationStatusNotificationPublisher statusPublisher,
+    IVerificationProgressReporter verificationProgressReporter,
     DafnyOptions options,
-    VersionedTextDocumentIdentifier documentIdentifier,
-    VerificationTree? migratedVerificationTree) {
+    ExecutionEngine boogieEngine,
+    Compilation compilation,
+    VerificationTree? migratedVerificationTree
+    ) {
     this.options = options;
-    this.documentIdentifier = documentIdentifier;
-    this.fileSystem = services.GetRequiredService<IFileSystem>();
-    documentLoader = services.GetRequiredService<ITextDocumentLoader>();
-    logger = services.GetRequiredService<ILogger<CompilationManager>>();
-    notificationPublisher = services.GetRequiredService<INotificationPublisher>();
-    verifier = services.GetRequiredService<IProgramVerifier>();
-    statusPublisher = services.GetRequiredService<ICompilationStatusNotificationPublisher>();
-
-    this.services = services;
+    startingCompilation = compilation;
+    this.boogieEngine = boogieEngine;
     this.migratedVerificationTree = migratedVerificationTree;
+
+    this.documentLoader = documentLoader;
+    this.logger = logger;
+    this.notificationPublisher = notificationPublisher;
+    this.verifier = verifier;
+    this.statusPublisher = statusPublisher;
+    this.verificationProgressReporter = verificationProgressReporter;
     cancellationSource = new();
 
     MarkVerificationFinished();
 
-    ResolvedDocument = ResolveAsync();
-    TranslatedDocument = TranslateAsync();
+    ResolvedCompilation = ResolveAsync();
+    TranslatedCompilation = TranslateAsync();
   }
 
   public void Start() {
@@ -78,28 +96,28 @@ public class CompilationManager {
   private async Task<CompilationAfterParsing> ResolveAsync() {
     try {
       await started.Task;
-      var documentAfterParsing = await documentLoader.LoadAsync(options, documentIdentifier, fileSystem, cancellationSource.Token);
+      var documentAfterParsing = await documentLoader.LoadAsync(options, startingCompilation, cancellationSource.Token);
 
       // TODO, let gutter icon publications also used the published CompilationView.
-      var state = documentAfterParsing.InitialIdeState(options);
+      var state = documentAfterParsing.InitialIdeState(startingCompilation, options);
       state = state with {
         VerificationTree = migratedVerificationTree ?? state.VerificationTree
       };
       notificationPublisher.PublishGutterIcons(state, false);
 
-      logger.LogDebug($"documentUpdates.HasObservers: {documentUpdates.HasObservers}, threadId: {Thread.CurrentThread.ManagedThreadId}");
-      documentUpdates.OnNext(documentAfterParsing);
+      logger.LogDebug($"documentUpdates.HasObservers: {compilationUpdates.HasObservers}, threadId: {Thread.CurrentThread.ManagedThreadId}");
+      compilationUpdates.OnNext(documentAfterParsing);
       logger.LogDebug($"Passed documentAfterParsing to documentUpdates.OnNext, resolving ResolvedDocument task for version {documentAfterParsing.Version}.");
       return documentAfterParsing;
 
     } catch (Exception e) {
-      documentUpdates.OnError(e);
+      compilationUpdates.OnError(e);
       throw;
     }
   }
 
   private async Task<CompilationAfterTranslation> TranslateAsync() {
-    var parsedCompilation = await ResolvedDocument;
+    var parsedCompilation = await ResolvedCompilation;
     if (!options.Verify) {
       throw new OperationCanceledException();
     }
@@ -109,14 +127,14 @@ public class CompilationManager {
 
     try {
       var translatedDocument = await PrepareVerificationTasksAsync(resolvedCompilation, cancellationSource.Token);
-      documentUpdates.OnNext(translatedDocument);
+      compilationUpdates.OnNext(translatedDocument);
       foreach (var task in translatedDocument.VerificationTasks!) {
         cancellationSource.Token.Register(task.Cancel);
       }
 
       return translatedDocument;
     } catch (Exception e) {
-      documentUpdates.OnError(e);
+      compilationUpdates.OnError(e);
       throw;
     }
   }
@@ -131,10 +149,10 @@ public class CompilationManager {
       throw new TaskCanceledException();
     }
 
-    statusPublisher.SendStatusNotification(loaded.DocumentIdentifier, CompilationStatus.PreparingVerification);
+    statusPublisher.SendStatusNotification(loaded, CompilationStatus.PreparingVerification);
 
     var verificationTasks =
-      await verifier.GetVerificationTasksAsync(loaded, cancellationToken);
+      await verifier.GetVerificationTasksAsync(boogieEngine, loaded, cancellationToken);
 
     var initialViews = new Dictionary<ImplementationId, ImplementationView>();
     foreach (var task in verificationTasks) {
@@ -154,19 +172,20 @@ public class CompilationManager {
       }
     }
 
-    var translated = new CompilationAfterTranslation(services,
-      loaded.DocumentIdentifier, loaded.Program,
-      loaded.ResolutionDiagnostics, loaded.SymbolTable, loaded.SignatureAndCompletionTable, loaded.GhostDiagnostics, verificationTasks,
+    var translated = new CompilationAfterTranslation(
+      loaded,
+      loaded.ResolutionDiagnostics, verificationTasks,
       new(),
       initialViews,
-      migratedVerificationTree ?? new DocumentVerificationTree(loaded.Program, loaded.DocumentIdentifier));
+      migratedVerificationTree ?? (loaded.Project.IsImplicitProject ? new DocumentVerificationTree(loaded.Program, loaded.Project.Uri) : null)
+      );
 
-    translated.GutterProgressReporter.RecomputeVerificationTree();
+    verificationProgressReporter.RecomputeVerificationTree(translated);
 
     if (ReportGutterStatus) {
-      translated.GutterProgressReporter.ReportRealtimeDiagnostics(false, translated);
+      verificationProgressReporter.ReportRealtimeDiagnostics(translated, false);
     }
-    translated.GutterProgressReporter.ReportImplementationsBeforeVerification(
+    verificationProgressReporter.ReportImplementationsBeforeVerification(translated,
       verificationTasks.Select(t => t.Implementation).ToArray());
     return translated;
   }
@@ -179,13 +198,11 @@ public class CompilationManager {
     if (implementation.tok is RefinementToken refinementToken) {
       prefix += "." + refinementToken.InheritingModule.Name;
     }
-    return new ImplementationId(implementation.tok.GetLspPosition(), prefix);
+    return new ImplementationId(((IToken)implementation.tok).Uri, implementation.tok.GetLspPosition(), prefix);
   }
 
   private void SetAllUnvisitedMethodsAsVerified(CompilationAfterTranslation compilation) {
-    foreach (var tree in compilation.VerificationTree.Children) {
-      tree.SetVerifiedIfPending();
-    }
+    verificationProgressReporter.SetAllUnvisitedMethodsAsVerified(compilation);
   }
 
   private int runningVerificationJobs = 0;
@@ -195,11 +212,11 @@ public class CompilationManager {
     if (statusUpdates == null) {
       if (implementationTask.CacheStatus is Completed completedCache) {
         foreach (var result in completedCache.Result.VCResults) {
-          compilation.GutterProgressReporter.ReportVerifyImplementationRunning(implementationTask.Implementation);
-          compilation.GutterProgressReporter.ReportAssertionBatchResult(
+          verificationProgressReporter.ReportVerifyImplementationRunning(compilation, implementationTask.Implementation);
+          verificationProgressReporter.ReportAssertionBatchResult(compilation,
             new AssertionBatchResult(implementationTask.Implementation, result));
         }
-        compilation.GutterProgressReporter.ReportEndVerifyImplementation(implementationTask.Implementation,
+        verificationProgressReporter.ReportEndVerifyImplementation(compilation, implementationTask.Implementation,
           completedCache.Result);
       }
 
@@ -246,7 +263,7 @@ public class CompilationManager {
         SetAllUnvisitedMethodsAsVerified(compilation);
       }
 
-      compilation.GutterProgressReporter.ReportRealtimeDiagnostics(true, compilation);
+      verificationProgressReporter.ReportRealtimeDiagnostics(compilation, true);
     }
   }
 
@@ -256,11 +273,11 @@ public class CompilationManager {
     var implementationRange = implementationTask.Implementation.tok.GetLspRange();
     logger.LogDebug($"Received status {boogieStatus} for {implementationTask.Implementation.Name}");
     if (boogieStatus is Running) {
-      compilation.GutterProgressReporter.ReportVerifyImplementationRunning(implementationTask.Implementation);
+      verificationProgressReporter.ReportVerifyImplementationRunning(compilation, implementationTask.Implementation);
     }
 
     if (boogieStatus is BatchCompleted batchCompleted) {
-      compilation.GutterProgressReporter.ReportAssertionBatchResult(
+      verificationProgressReporter.ReportAssertionBatchResult(compilation,
         new AssertionBatchResult(implementationTask.Implementation, batchCompleted.VcResult));
     }
 
@@ -275,27 +292,27 @@ public class CompilationManager {
       // This loop will ensure that every vc result has been dealt with
       // before we report that the verification of the implementation is finished 
       foreach (var result in completed.Result.VCResults) {
-        compilation.GutterProgressReporter.ReportAssertionBatchResult(
+        verificationProgressReporter.ReportAssertionBatchResult(compilation,
           new AssertionBatchResult(implementationTask.Implementation, result));
       }
 
       var diagnostics = GetDiagnosticsFromResult(compilation, verificationResult).ToList();
       var view = new ImplementationView(implementationRange, status, diagnostics);
       compilation.ImplementationIdToView[id] = view;
-      compilation.GutterProgressReporter.ReportEndVerifyImplementation(implementationTask.Implementation, verificationResult);
+      verificationProgressReporter.ReportEndVerifyImplementation(compilation, implementationTask.Implementation, verificationResult);
     } else {
       var existingView = compilation.ImplementationIdToView.GetValueOrDefault(id) ??
                          new ImplementationView(implementationRange, status, Array.Empty<DafnyDiagnostic>());
       compilation.ImplementationIdToView[id] = existingView with { Status = status };
     }
 
-    documentUpdates.OnNext(compilation);
+    compilationUpdates.OnNext(compilation);
   }
 
   private bool ReportGutterStatus => options.Get(ServerCommand.LineVerificationStatus);
 
   private List<DafnyDiagnostic> GetDiagnosticsFromResult(CompilationAfterResolution compilation, VerificationResult result) {
-    var errorReporter = new DiagnosticErrorReporter(options, compilation.Uri);
+    var errorReporter = new DiagnosticErrorReporter(options, compilation.Uri.ToUri());
     foreach (var counterExample in result.Errors) {
       errorReporter.ReportBoogieError(counterExample.CreateErrorInformation(result.Outcome, options.ForceBplErrors));
     }
@@ -334,11 +351,6 @@ public class CompilationManager {
     cancellationSource.Cancel();
   }
 
-  private TaskCompletionSource verificationCompleted = new();
-  private readonly DafnyOptions options;
-  private readonly VersionedTextDocumentIdentifier documentIdentifier;
-  private readonly IFileSystem fileSystem;
-
   public void MarkVerificationStarted() {
     logger.LogTrace("MarkVerificationStarted called");
     if (verificationCompleted.Task.IsCompleted) {
@@ -351,7 +363,7 @@ public class CompilationManager {
     verificationCompleted.TrySetResult();
   }
 
-  public Task<CompilationAfterParsing> LastDocument => TranslatedDocument.ContinueWith(
+  public Task<CompilationAfterParsing> LastDocument => TranslatedCompilation.ContinueWith(
     t => {
       if (t.IsCompletedSuccessfully) {
 #pragma warning disable VSTHRD103
@@ -364,13 +376,13 @@ public class CompilationManager {
 #pragma warning restore VSTHRD103
       }
 
-      return ResolvedDocument;
+      return ResolvedCompilation;
     }, TaskScheduler.Current).Unwrap();
 
-  public async Task<TextEditContainer?> GetTextEditToFormatCode() {
+  public async Task<TextEditContainer?> GetTextEditToFormatCode(Uri uri) {
     // TODO https://github.com/dafny-lang/dafny/issues/3416
-    var parsedDocument = await ResolvedDocument;
-    if (parsedDocument.AllFileDiagnostics.Any(diagnostic =>
+    var parsedDocument = await ResolvedCompilation;
+    if (parsedDocument.GetDiagnostics(uri).Any(diagnostic =>
           diagnostic.Level == ErrorLevel.Error &&
           diagnostic.Source == MessageSource.Parser
         )) {

@@ -52,6 +52,7 @@ Here are some ways to get started with Dafny:
 * [Dafny libraries](https://github.com/dafny-lang/libraries), a standard library of useful Dafny functions and lemmas
 * [Dafny Power User](http://leino.science/dafny-power-user)
 * Videos at [Verification Corner](https://www.youtube.com/channel/UCP2eLEql4tROYmIYm5mA27A)
+* [Blog](https://dafny.org/blog)
 
 The language itself draws pieces of influence from:
 

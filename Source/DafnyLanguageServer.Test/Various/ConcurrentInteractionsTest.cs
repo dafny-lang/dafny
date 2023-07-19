@@ -85,11 +85,10 @@ method Multiply(x: bv10, y: bv10) returns (product: bv10)
       // Save and wait for the final result
       await client.SaveDocumentAndWaitAsync(documentItem, CancellationTokenWithHighTimeout);
 
-      var document = await Projects.GetLastDocumentAsync(documentItem.Uri);
-      Assert.NotNull(document);
-      Assert.Equal(documentItem.Version + 11, document.Version);
-      Assert.Single(document.AllFileDiagnostics);
-      Assert.Equal("assertion might not hold", document.AllFileDiagnostics.First().Message);
+      var diagnostics = await GetLastDiagnosticsParams(documentItem, CancellationToken);
+      Assert.Equal(documentItem.Version + 11, diagnostics.Version);
+      Assert.Single(diagnostics.Diagnostics);
+      Assert.Equal("assertion might not hold", diagnostics.Diagnostics.First().Message);
     }
 
     [Fact(Timeout = MaxTestExecutionTimeMs)]
@@ -145,7 +144,7 @@ method Multiply(x: bv10, y: bv10) returns (product: bv10)
       await AssertNoDiagnosticsAreComing(CancellationToken);
     }
 
-    [Fact(Timeout = MaxTestExecutionTimeMs)]
+    [Fact]
     public async Task CanLoadMultipleDocumentsConcurrently() {
       // The current implementation of DafnyLangParser, DafnyLangSymbolResolver, and DafnyProgramVerifier are only mutual
       // exclusive to themselves. This "stress test" ensures that loading multiple documents at once is possible.
@@ -167,18 +166,17 @@ method Multiply(x: int, y: int) returns (product: int)
 }".TrimStart();
       var loadingDocuments = new List<TextDocumentItem>();
       for (int i = 0; i < documentsToLoadConcurrently; i++) {
-        var documentItem = CreateTestDocument(source, $"test_{i}.dfy");
+        var documentItem = CreateTestDocument(source, $"current_test_{i}.dfy");
         client.OpenDocument(documentItem);
         loadingDocuments.Add(documentItem);
       }
       for (int i = 0; i < documentsToLoadConcurrently; i++) {
-        await Projects.GetLastDocumentAsync(loadingDocuments[i]);
+        await client.WaitForNotificationCompletionAsync(loadingDocuments[i].Uri, CancellationTokenWithHighTimeout);
+        await Projects.GetLastDocumentAsync(loadingDocuments[i]).WaitAsync(CancellationTokenWithHighTimeout);
       }
 
       foreach (var loadingDocument in loadingDocuments) {
-        await client.CloseDocumentAndWaitAsync(loadingDocument, CancellationTokenWithHighTimeout);
-        // Receive closing diagnostics
-        await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationTokenWithHighTimeout);
+        client.CloseDocument(loadingDocument);
       }
       await AssertNoDiagnosticsAreComing(CancellationTokenWithHighTimeout);
     }

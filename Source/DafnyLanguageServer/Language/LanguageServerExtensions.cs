@@ -32,15 +32,30 @@ namespace Microsoft.Dafny.LanguageServer.Language {
           serviceProvider.GetRequiredService<ITelemetryPublisher>(),
           serviceProvider.GetRequiredService<LoggerFactory>()))
         .AddSingleton<ISymbolResolver, DafnyLangSymbolResolver>()
+        .AddSingleton<CreateIdeStateObserver>(serviceProvider => documentIdentifier =>
+          new IdeStateObserver(serviceProvider.GetRequiredService<ILogger<IdeStateObserver>>(),
+            serviceProvider.GetRequiredService<ITelemetryPublisher>(),
+            serviceProvider.GetRequiredService<INotificationPublisher>(),
+            serviceProvider.GetRequiredService<ITextDocumentLoader>(),
+            documentIdentifier))
+        .AddSingleton<IVerificationProgressReporter, VerificationProgressReporter>()
         .AddSingleton(CreateVerifier)
+        .AddSingleton<CreateCompilationManager>(serviceProvider => (options, engine, compilation, migratedVerificationTree) => new CompilationManager(
+          serviceProvider.GetRequiredService<ILogger<CompilationManager>>(),
+          serviceProvider.GetRequiredService<ITextDocumentLoader>(),
+          serviceProvider.GetRequiredService<INotificationPublisher>(),
+          serviceProvider.GetRequiredService<IProgramVerifier>(),
+          serviceProvider.GetRequiredService<ICompilationStatusNotificationPublisher>(),
+          serviceProvider.GetRequiredService<IVerificationProgressReporter>(),
+          options, engine, compilation, migratedVerificationTree
+          ))
         .AddSingleton<ISymbolTableFactory, SymbolTableFactory>()
         .AddSingleton<IGhostStateDiagnosticCollector, GhostStateDiagnosticCollector>();
     }
 
     private static IProgramVerifier CreateVerifier(IServiceProvider serviceProvider) {
       return new DafnyProgramVerifier(
-        serviceProvider.GetRequiredService<ILogger<DafnyProgramVerifier>>(),
-        serviceProvider.GetRequiredService<DafnyOptions>()
+        serviceProvider.GetRequiredService<ILogger<DafnyProgramVerifier>>()
       );
     }
   }

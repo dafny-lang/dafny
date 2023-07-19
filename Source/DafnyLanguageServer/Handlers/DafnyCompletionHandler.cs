@@ -48,7 +48,6 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
         logger.LogWarning("location requested for unloaded document {DocumentUri}", request.TextDocument.Uri);
         return new CompletionList();
       }
-      logger.LogDebug($"Completion params retrieved document state with version {document.Version}");
       return new CompletionProcessor(symbolGuesser, document, request, cancellationToken, options).Process();
     }
 

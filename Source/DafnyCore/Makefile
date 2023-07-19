@@ -17,7 +17,7 @@ build-regenerated-from-dafny:
 	./DafnyGeneratedFromDafny.sh $(REGENERATED_FROM_DAFNY)
 
 test: build-regenerated-from-dafny
-	(diff $(GENERATED_FROM_DAFNY) $(REGENERATED_FROM_DAFNY) && rm $(REGENERATED_FROM_DAFNY)) || (rm $(REGENERATED_FROM_DAFNY) && (exit 1))
+	(diff $(GENERATED_FROM_DAFNY) $(REGENERATED_FROM_DAFNY) && rm $(REGENERATED_FROM_DAFNY)) || (rm $(REGENERATED_FROM_DAFNY) && (echo 'Consider running ./DafnyGeneratedFromDafny.sh GeneratedFromDafny.cs') && (exit 1))
 
 check-format:
 	../../Scripts/dafny format . --check
