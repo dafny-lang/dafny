@@ -35,7 +35,7 @@ public class ProgramParser {
     CancellationToken cancellationToken) {
     var options = errorReporter.Options;
     var builtIns = new SystemModuleManager(options);
-    var defaultModule = new DefaultModuleDefinition(files.Where(f => !f.IsPreverified).Select(f => f.Uri).ToList(), options.VerifyAllModules);
+    var defaultModule = new DefaultModuleDefinition(files.Where(f => !f.IsPreverified).Select(f => f.Uri).ToList());
 
     var verifiedRoots = files.Where(df => df.IsPreverified).Select(df => df.Uri).ToHashSet();
     var compiledRoots = files.Where(df => df.IsPrecompiled).Select(df => df.Uri).ToHashSet();

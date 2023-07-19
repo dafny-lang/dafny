@@ -1,13 +1,23 @@
 using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.IO;
+using System.Linq;
+using DafnyCore.Options;
+using Microsoft.Extensions.FileSystemGlobbing.Abstractions;
+using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
+using Serilog.Core;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace;
 
 public class LanguageServerFilesystem : IFileSystem {
-  internal class Entry {
+  private readonly ILogger<LanguageServerFilesystem> logger;
+
+  public LanguageServerFilesystem(ILogger<LanguageServerFilesystem> logger) {
+    this.logger = logger;
+  }
+
+  private class Entry {
     public TextBuffer Buffer { get; set; }
     public int Version { get; set; }
 
@@ -34,6 +44,13 @@ public class LanguageServerFilesystem : IFileSystem {
       throw new InvalidOperationException("Cannot update file that has not been opened");
     }
 
+    var buffer = entry.Buffer;
+    var mergedBuffer = buffer;
+    foreach (var change in documentChange.ContentChanges) {
+      mergedBuffer = mergedBuffer.ApplyTextChange(change);
+    }
+    entry.Buffer = mergedBuffer;
+
     // According to the LSP specification, document versions should increase monotonically but may be non-consecutive.
     // See: https://github.com/microsoft/language-server-protocol/blob/gh-pages/_specifications/specification-3-16.md?plain=1#L1195
     var oldVer = entry.Version;
@@ -46,20 +63,14 @@ public class LanguageServerFilesystem : IFileSystem {
 
     entry.Version = newVersion!.Value;
 
-    var buffer = entry.Buffer;
-    var mergedBuffer = buffer;
-    foreach (var change in documentChange.ContentChanges) {
-      mergedBuffer = mergedBuffer.ApplyTextChange(change);
-    }
-
-    entry.Buffer = mergedBuffer;
   }
 
   public void CloseDocument(TextDocumentIdentifier document) {
     var uri = document.Uri.ToUri();
 
+    logger.LogInformation($"Closing document {document.Uri}");
     if (!openFiles.TryRemove(uri, out _)) {
-      throw new InvalidOperationException($"Cannot close file {uri} because it was not open.");
+      logger.LogError($"Could not close file {uri} because it was not open.");
     }
   }
 
@@ -68,6 +79,30 @@ public class LanguageServerFilesystem : IFileSystem {
       return new StringReader(entry.Buffer.Text);
     }
 
-    return new StreamReader(uri.LocalPath);
+    return OnDiskFileSystem.Instance.ReadFile(uri);
+  }
+
+  public bool Exists(Uri path) {
+    return openFiles.ContainsKey(path) || OnDiskFileSystem.Instance.Exists(path);
+  }
+
+  public DirectoryInfoBase GetDirectoryInfoBase(string root) {
+    var inMemoryFiles = openFiles.Keys.Select(openFileUri => openFileUri.LocalPath);
+    var inMemory = new InMemoryDirectoryInfoFromDotNet8(root, inMemoryFiles);
+
+    return new CombinedDirectoryInfo(new[] { inMemory, OnDiskFileSystem.Instance.GetDirectoryInfoBase(root) });
+  }
+
+  /// <summary>
+  /// Return the version of a particular file.
+  /// When the client sends file updates, it includes a new version for this file, which we store and return here.
+  /// File version are important to the client because it can use them to do client side migration of positions.
+  /// </summary>
+  public int? GetVersion(Uri uri) {
+    if (openFiles.TryGetValue(uri, out var file)) {
+      return file.Version;
+    }
+
+    return null;
   }
 }

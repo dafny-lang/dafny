@@ -5,8 +5,10 @@ using System.Diagnostics;
 using System.Diagnostics.Contracts;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
+using Microsoft.Dafny.Plugins;
 using Microsoft.Win32;
 
 namespace Microsoft.Dafny.Compilers;
@@ -135,6 +137,14 @@ public abstract class ExecutableBackend : Plugins.IExecutableBackend {
     Contract.Requires(otherFileNames.Count == 0 || targetFilename != null);
     Contract.Requires(outputWriter != null);
     return true;
+  }
+
+  public override void InstrumentCompiler(CompilerInstrumenter instrumenter, Program dafnyProgram) {
+    if (compiler == null) {
+      return;
+    }
+
+    instrumenter.Instrument(this, compiler, dafnyProgram);
   }
 
   protected static void WriteFromFile(string inputFilename, TextWriter outputWriter) {

@@ -15,8 +15,8 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     private const string RelatedLocationCategory = "Related location";
     private const string RelatedLocationMessage = RelatedLocationCategory;
 
-    private readonly DocumentUri entryDocumentUri;
-    private readonly Dictionary<DocumentUri, List<DafnyDiagnostic>> diagnostics = new();
+    private readonly Uri entryUri;
+    private readonly Dictionary<Uri, List<DafnyDiagnostic>> diagnostics = new();
     private readonly Dictionary<ErrorLevel, int> counts = new();
     private readonly Dictionary<ErrorLevel, int> countsNotVerificationOrCompiler = new();
     private readonly ReaderWriterLockSlim rwLock = new();
@@ -24,15 +24,15 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     /// <summary>
     /// Creates a new instance with the given uri of the entry document.
     /// </summary>
-    /// <param name="entryDocumentUri">The entry document's uri.</param>
+    /// <param name="entryUri">The entry document's uri.</param>
     /// <remarks>
     /// The uri of the entry document is necessary to report general compiler errors as part of this document.
     /// </remarks>
-    public DiagnosticErrorReporter(DafnyOptions options, DocumentUri entryDocumentUri) : base(options) {
-      this.entryDocumentUri = entryDocumentUri;
+    public DiagnosticErrorReporter(DafnyOptions options, Uri entryUri) : base(options) {
+      this.entryUri = entryUri;
     }
 
-    public IReadOnlyDictionary<DocumentUri, List<DafnyDiagnostic>> AllDiagnosticsCopy => diagnostics.ToImmutableDictionary();
+    public IReadOnlyDictionary<Uri, List<DafnyDiagnostic>> AllDiagnosticsCopy => diagnostics.ToImmutableDictionary();
 
     public IReadOnlyList<DafnyDiagnostic> GetDiagnostics(DocumentUri documentUri) {
       rwLock.EnterReadLock();
@@ -40,7 +40,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         // Concurrency: Return a copy of the list not to expose a reference to an object that requires synchronization.
         // LATER: Make the Diagnostic type immutable, since we're not protecting it from concurrent accesses
         return new List<DafnyDiagnostic>(
-          diagnostics.GetValueOrDefault(documentUri) ??
+          diagnostics.GetValueOrDefault(documentUri.ToUri()) ??
           Enumerable.Empty<DafnyDiagnostic>());
       }
       finally {
@@ -153,7 +153,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
           countsNotVerificationOrCompiler[dafnyDiagnostic.Level] =
             countsNotVerificationOrCompiler.GetValueOrDefault(dafnyDiagnostic.Level, 0) + 1;
         }
-        diagnostics.GetOrCreate(documentUri, () => new List<DafnyDiagnostic>()).Add(dafnyDiagnostic);
+        diagnostics.GetOrCreate(documentUri.ToUri(), () => new List<DafnyDiagnostic>()).Add(dafnyDiagnostic);
       }
       finally {
         rwLock.ExitWriteLock();
@@ -162,7 +162,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
 
     private DocumentUri GetDocumentUriOrDefault(IToken token) {
       return token.Filepath == null
-        ? entryDocumentUri
+        ? DocumentUri.From(entryUri)
         : token.GetDocumentUri();
     }
   }

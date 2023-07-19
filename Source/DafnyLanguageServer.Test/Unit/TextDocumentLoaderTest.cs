@@ -23,7 +23,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit {
     private Mock<IGhostStateDiagnosticCollector> ghostStateDiagnosticCollector;
     private Mock<ICompilationStatusNotificationPublisher> notificationPublisher;
     private TextDocumentLoader textDocumentLoader;
-    private Mock<ILoggerFactory> logger;
+    private Mock<ILogger<ITextDocumentLoader>> logger;
     private Mock<INotificationPublisher> diagnosticPublisher;
 
     public TextDocumentLoaderTest(ITestOutputHelper output) {
@@ -34,17 +34,15 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit {
       ghostStateDiagnosticCollector = new();
       notificationPublisher = new();
       fileSystem = new();
-      logger = new Mock<ILoggerFactory>();
+      logger = new Mock<ILogger<ITextDocumentLoader>>();
       diagnosticPublisher = new Mock<INotificationPublisher>();
       textDocumentLoader = TextDocumentLoader.Create(
-        DafnyOptions.Create(this.output, TextReader.Null),
         parser.Object,
         symbolResolver.Object,
         symbolTableFactory.Object,
         ghostStateDiagnosticCollector.Object,
         notificationPublisher.Object,
-        logger.Object,
-        diagnosticPublisher.Object
+        logger.Object
       );
     }
 
@@ -68,12 +66,11 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit {
     public async Task LoadReturnsCanceledTaskIfOperationIsCanceled() {
       var source = new CancellationTokenSource();
       parser.Setup(p => p.Parse(
-          It.IsAny<VersionedTextDocumentIdentifier>(),
-          It.IsAny<IFileSystem>(),
+          It.IsAny<DafnyProject>(),
           It.IsAny<ErrorReporter>(),
           It.IsAny<CancellationToken>())).Callback(() => source.Cancel())
         .Throws<TaskCanceledException>();
-      var task = textDocumentLoader.LoadAsync(DafnyOptions.Default, CreateTestDocumentId(), fileSystem.Object, source.Token);
+      var task = textDocumentLoader.LoadAsync(DafnyOptions.Default, GetCompilation(), source.Token);
       try {
         await task;
         Assert.Fail("document load was not cancelled");
@@ -84,14 +81,19 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit {
       }
     }
 
+    private static Compilation GetCompilation() {
+      var versionedTextDocumentIdentifier = CreateTestDocumentId();
+      var compilation = new Compilation(0, ProjectManagerDatabase.ImplicitProject(versionedTextDocumentIdentifier));
+      return compilation;
+    }
+
     [Fact]
     public async Task LoadReturnsFaultedTaskIfAnyExceptionOccured() {
-      parser.Setup(p => p.Parse(It.IsAny<VersionedTextDocumentIdentifier>(),
-          It.IsAny<IFileSystem>(),
+      parser.Setup(p => p.Parse(It.IsAny<DafnyProject>(),
           It.IsAny<ErrorReporter>(),
           It.IsAny<CancellationToken>()))
         .Throws<InvalidOperationException>();
-      var task = textDocumentLoader.LoadAsync(DafnyOptions.Default, CreateTestDocumentId(), fileSystem.Object, default);
+      var task = textDocumentLoader.LoadAsync(DafnyOptions.Default, GetCompilation(), default);
       try {
         await task;
         Assert.Fail("document load did not fail");

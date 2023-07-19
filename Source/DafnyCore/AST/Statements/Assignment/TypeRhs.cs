@@ -192,11 +192,14 @@ public class TypeRhs : AssignmentRhs, ICloneable<TypeRhs> {
     }
   }
   public override IEnumerable<Node> PreResolveChildren =>
-    new[] { EType, Type }.OfType<UserDefinedType>()
+    new[] { EType, Type, Path }.OfType<Node>()
       .Concat<Node>(ArrayDimensions ?? Enumerable.Empty<Node>())
       .Concat<Node>(ElementInit != null ? new[] { ElementInit } : Enumerable.Empty<Node>())
       .Concat<Node>(InitDisplay ?? Enumerable.Empty<Node>())
-      .Concat<Node>((Bindings != null ? Arguments : null) ?? Enumerable.Empty<Node>());
+      .Concat<Node>((Bindings != null && Bindings.ArgumentBindings != null ?
+                       Bindings.ArgumentBindings.Select(a => a.Actual) : null) ??
+                    (Bindings != null ? Arguments : null) ??
+                    Enumerable.Empty<Node>());
 
   public override IEnumerable<Statement> PreResolveSubStatements => Enumerable.Empty<Statement>();
 }

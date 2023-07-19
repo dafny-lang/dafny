@@ -4,20 +4,22 @@ using System.Collections.Generic;
 using System.CommandLine;
 using System.IO;
 using System.Linq;
-using System.Reflection.Metadata;
 using System.Runtime.Serialization;
-using System.Text.Json;
 using System.Text.RegularExpressions;
-using Microsoft.CodeAnalysis;
+using System.Threading.Tasks;
+using DafnyCore.Options;
 using Microsoft.Extensions.FileSystemGlobbing;
-using Microsoft.Extensions.FileSystemGlobbing.Abstractions;
 using Tomlyn;
 using Tomlyn.Model;
 
 namespace Microsoft.Dafny; 
 
-public class DafnyProject {
+public class DafnyProject : IEquatable<DafnyProject> {
   public const string FileName = "dfyconfig.toml";
+
+  public string ProjectName => Uri.ToString();
+
+  public bool IsImplicitProject { get; set; }
 
   [IgnoreDataMember]
   public Uri Uri { get; set; }
@@ -25,13 +27,13 @@ public class DafnyProject {
   public string[] Excludes { get; set; }
   public Dictionary<string, object> Options { get; set; }
 
-  public static DafnyProject Open(Uri uri, TextWriter outputWriter, TextWriter errorWriter) {
+  public static async Task<DafnyProject> Open(IFileSystem fileSystem, Uri uri, TextWriter outputWriter, TextWriter errorWriter) {
     if (Path.GetFileName(uri.LocalPath) != FileName) {
       outputWriter.WriteLine($"Warning: only Dafny project files named {FileName} are recognised by the Dafny IDE.");
     }
     try {
-      var file = File.Open(uri.LocalPath, FileMode.Open);
-      var model = Toml.ToModel<DafnyProject>(new StreamReader(file).ReadToEnd(), null, new TomlModelOptions());
+      var text = await fileSystem.ReadFile(uri).ReadToEndAsync();
+      var model = Toml.ToModel<DafnyProject>(text, null, new TomlModelOptions());
       model.Uri = uri;
       return model;
 
@@ -50,21 +52,39 @@ public class DafnyProject {
     }
   }
 
-  public void AddFilesToOptions(DafnyOptions options) {
-    var matcher = new Matcher();
-    foreach (var includeGlob in Includes ?? new[] { "**/*.dfy" }) {
-      matcher.AddInclude(includeGlob);
-    }
-    foreach (var includeGlob in Excludes ?? Enumerable.Empty<string>()) {
-      matcher.AddExclude(includeGlob);
+  public IEnumerable<Uri> GetRootSourceUris(IFileSystem fileSystem, DafnyOptions options) {
+    if (!Uri.IsFile) {
+      return new[] { Uri };
     }
 
-    var root = Path.GetDirectoryName(Uri.LocalPath);
-    var result = matcher.Execute(new DirectoryInfoWrapper(new DirectoryInfo(root!)));
-    var files = result.Files.Select(f => Path.Combine(root, f.Path));
-    foreach (var file in files) {
-      options.CliRootSourceUris.Add(new Uri(Path.GetFullPath(file)));
+    var matcher = GetMatcher();
+
+    var diskRoot = Path.GetPathRoot(Uri.LocalPath);
+    var result = matcher.Execute(fileSystem.GetDirectoryInfoBase(diskRoot));
+    var files = result.Files.Select(f => Path.Combine(diskRoot, f.Path));
+    return files.Select(file => new Uri(Path.GetFullPath(file)));
+  }
+
+  public bool ContainsSourceFile(Uri uri) {
+    var fileSystemWithSourceFile = new InMemoryDirectoryInfoFromDotNet8(Path.GetPathRoot(uri.LocalPath)!, new[] { uri.LocalPath });
+    return GetMatcher().Execute(fileSystemWithSourceFile).HasMatches;
+  }
+
+  private Matcher GetMatcher() {
+    var projectRoot = Path.GetDirectoryName(Uri.LocalPath)!;
+    var root = Path.GetPathRoot(Uri.LocalPath)!;
+    var matcher = new Matcher();
+    foreach (var includeGlob in Includes ?? new[] { "**/*.dfy" }) {
+      var fullPath = Path.GetFullPath(includeGlob, projectRoot);
+      matcher.AddInclude(Path.GetRelativePath(root, fullPath));
     }
+
+    foreach (var includeGlob in Excludes ?? Enumerable.Empty<string>()) {
+      var fullPath = Path.GetFullPath(includeGlob, projectRoot);
+      matcher.AddExclude(Path.GetRelativePath(root, fullPath));
+    }
+
+    return matcher;
   }
 
   public void Validate(TextWriter outputWriter, IEnumerable<Option> possibleOptions) {
@@ -135,5 +155,102 @@ public class DafnyProject {
       return default(T);
     }).ToList();
     return success;
+  }
+
+  public bool Equals(DafnyProject other) {
+    if (ReferenceEquals(null, other)) {
+      return false;
+    }
+
+    if (ReferenceEquals(this, other)) {
+      return true;
+    }
+
+    var orderedOptions = Options?.OrderBy(kv => kv.Key) ?? Enumerable.Empty<KeyValuePair<string, object>>();
+    var otherOrderedOptions = other.Options?.OrderBy(kv => kv.Key) ?? Enumerable.Empty<KeyValuePair<string, object>>();
+
+    return Equals(IsImplicitProject, other.IsImplicitProject) && Equals(Uri, other.Uri) &&
+           NullableSetEqual(Includes?.ToHashSet(), other.Includes) &&
+           NullableSetEqual(Excludes?.ToHashSet(), other.Excludes) &&
+           orderedOptions.SequenceEqual(otherOrderedOptions, new LambdaEqualityComparer<KeyValuePair<string, object>>(
+             (kv1, kv2) => kv1.Key == kv2.Key && GenericEquals(kv1.Value, kv2.Value),
+             kv => kv.GetHashCode()));
+  }
+
+  public static bool GenericEquals(object first, object second) {
+    if (first == null && second == null) {
+      return true;
+    }
+
+    if (first == null || second == null) {
+      return false;
+    }
+
+    if (first is IEnumerable firstEnumerable && second is IEnumerable secondEnumerable) {
+      var firstEnumerator = firstEnumerable.GetEnumerator();
+      var secondEnumerator = secondEnumerable.GetEnumerator();
+
+      while (true) {
+        var a = firstEnumerator.MoveNext();
+        var b = secondEnumerator.MoveNext();
+        if (a != b) {
+          return false;
+        }
+
+        if (!a) {
+          return true;
+        }
+
+        if (!GenericEquals(firstEnumerator.Current, secondEnumerator.Current)) {
+          return false;
+        }
+      }
+    }
+
+    return first.Equals(second);
+  }
+
+  private static bool NullableSetEqual(ISet<string> first, IReadOnlyCollection<string> second) {
+    if (first == null && second == null) {
+      return true;
+    }
+
+    if (first == null || second == null) {
+      return false;
+    }
+    return first.Count == second.Count && second.All(first.Contains);
+  }
+
+  private static bool NullableSequenceEqual(IEnumerable<string> first, IEnumerable<string> second) {
+    return first?.SequenceEqual(second) ?? (second == null);
+  }
+
+  public DafnyProject Clone() {
+    return new DafnyProject() {
+      Uri = Uri,
+      Includes = Includes?.ToArray(),
+      Excludes = Excludes?.ToArray(),
+      Options = Options?.ToDictionary(kv => kv.Key, kv => kv.Value)
+    };
+  }
+
+  public override bool Equals(object obj) {
+    if (ReferenceEquals(null, obj)) {
+      return false;
+    }
+
+    if (ReferenceEquals(this, obj)) {
+      return true;
+    }
+
+    if (obj.GetType() != this.GetType()) {
+      return false;
+    }
+
+    return Equals((DafnyProject)obj);
+  }
+
+  public override int GetHashCode() {
+    return HashCode.Combine(IsImplicitProject, Uri, Includes, Excludes, Options);
   }
 }

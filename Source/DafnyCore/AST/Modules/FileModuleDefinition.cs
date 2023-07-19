@@ -13,7 +13,7 @@ public class FileModuleDefinition : ModuleDefinition {
 
   public FileModuleDefinition(IToken token) :
     base(token.ToRange(), new Name("_module"), new List<IToken>(),
-      false, false, null, null, null, true, false) {
+      false, false, null, null, null, true) {
     {
     }
   }
