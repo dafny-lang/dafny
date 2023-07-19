@@ -6,8 +6,11 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection.Metadata;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using OmniSharp.Extensions.JsonRpc.Server;
 using Xunit;
 using Xunit.Abstractions;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
@@ -19,6 +22,16 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
     // Implementation note: These tests assume that no diagnostics are published
     // when a document (re-load) was canceled.
     private const int MaxTestExecutionTimeMs = 240_000;
+
+    [Fact]
+    public async Task UpdateDuringARequestWillCancelTheRequest() {
+      var programThatResolvesSlowlyEnough = @"method Foo() {}";
+      var documentItem = CreateTestDocument(programThatResolvesSlowlyEnough);
+      client.OpenDocument(documentItem);
+      var hoverTask = client.RequestHover(new HoverParams { Position = (0, 0), TextDocument = documentItem }, CancellationToken);
+      ApplyChange(ref documentItem, new Range(0, 0, 0, 0), "//comment\n");
+      await Assert.ThrowsAsync<ContentModifiedException>(() => hoverTask);
+    }
 
     [Fact(Timeout = MaxTestExecutionTimeMs)]
     public async Task VerificationErrorDetectedAfterCanceledSave() {
