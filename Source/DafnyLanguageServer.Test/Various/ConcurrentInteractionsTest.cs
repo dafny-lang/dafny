@@ -30,11 +30,12 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       client.OpenDocument(documentItem);
       var hoverTask = client.RequestHover(new HoverParams { Position = (0, 0), TextDocument = documentItem }, CancellationToken);
       ApplyChange(ref documentItem, new Range(0, 0, 0, 0), "//comment\n");
+#pragma warning disable VSTHRD003
       await Assert.ThrowsAsync<ContentModifiedException>(() => hoverTask);
+#pragma warning restore VSTHRD003
     }
 
-    private static string RepeatStrBuilder(string text, uint n)
-    {
+    private static string RepeatStrBuilder(string text, uint n) {
       return new StringBuilder(text.Length * (int)n)
         .Insert(0, text, (int)n)
         .ToString();

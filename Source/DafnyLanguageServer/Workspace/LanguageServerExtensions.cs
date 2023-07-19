@@ -37,10 +37,11 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         .AddSingleton<IFileSystem, LanguageServerFilesystem>()
         .AddSingleton<IDafnyParser>(serviceProvider => {
           var options = serviceProvider.GetRequiredService<DafnyOptions>();
-          return DafnyLangParser.Create(options,
+          return new DafnyLangParser(options,
             serviceProvider.GetRequiredService<IFileSystem>(),
             serviceProvider.GetRequiredService<ITelemetryPublisher>(),
-            serviceProvider.GetRequiredService<ILoggerFactory>());
+            serviceProvider.GetRequiredService<ILogger<DafnyLangParser>>(),
+            serviceProvider.GetRequiredService<ILogger<CachingParser>>());
         })
         .AddSingleton<ITextDocumentLoader>(CreateTextDocumentLoader)
         .AddSingleton<INotificationPublisher, NotificationPublisher>()
