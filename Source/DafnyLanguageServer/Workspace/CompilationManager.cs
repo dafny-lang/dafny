@@ -149,7 +149,7 @@ public class CompilationManager {
       throw new TaskCanceledException();
     }
 
-    statusPublisher.SendStatusNotification(loaded, CompilationStatus.PreparingVerification);
+    var _ = statusPublisher.SendStatusNotification(loaded, CompilationStatus.PreparingVerification);
 
     var verificationTasks =
       await verifier.GetVerificationTasksAsync(boogieEngine, loaded, cancellationToken);

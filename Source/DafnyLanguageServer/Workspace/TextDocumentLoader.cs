@@ -74,15 +74,15 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       CancellationToken cancellationToken) {
       var project = compilation.Project;
       var errorReporter = new DiagnosticErrorReporter(options, project.Uri);
-      statusPublisher.SendStatusNotification(compilation, CompilationStatus.Parsing);
+      var _ = statusPublisher.SendStatusNotification(compilation, CompilationStatus.Parsing);
       var program = parser.Parse(compilation, errorReporter, cancellationToken);
       var compilationAfterParsing = new CompilationAfterParsing(compilation, program, errorReporter.AllDiagnosticsCopy);
       if (errorReporter.HasErrors) {
-        statusPublisher.SendStatusNotification(compilation, CompilationStatus.ParsingFailed);
+        var _2 = statusPublisher.SendStatusNotification(compilation, CompilationStatus.ParsingFailed);
         return compilationAfterParsing;
       }
 
-      statusPublisher.SendStatusNotification(compilation, CompilationStatus.ResolutionStarted);
+      var _3 = statusPublisher.SendStatusNotification(compilation, CompilationStatus.ResolutionStarted);
       try {
         var compilationUnit = symbolResolver.ResolveSymbols(project, program, cancellationToken);
         var legacySymbolTable = symbolTableFactory.CreateFrom(compilationUnit, cancellationToken);
@@ -91,9 +91,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           ? null
           : symbolTableFactory.CreateFrom(program, compilationAfterParsing, cancellationToken);
         if (errorReporter.HasErrors) {
-          statusPublisher.SendStatusNotification(compilation, CompilationStatus.ResolutionFailed);
+          var _4 = statusPublisher.SendStatusNotification(compilation, CompilationStatus.ResolutionFailed);
         } else {
-          statusPublisher.SendStatusNotification(compilation, CompilationStatus.CompilationSucceeded);
+          var _5 = statusPublisher.SendStatusNotification(compilation, CompilationStatus.CompilationSucceeded);
         }
 
         var ghostDiagnostics = ghostStateDiagnosticCollector.GetGhostStateDiagnostics(legacySymbolTable, cancellationToken);
