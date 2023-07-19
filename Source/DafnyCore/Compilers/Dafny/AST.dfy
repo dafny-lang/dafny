@@ -29,6 +29,7 @@ module {:extern "DAST"} DAST {
     If(cond: Expression, thn: seq<Statement>, els: seq<Statement>) |
     Call(on: Expression, name: string, typeArgs: seq<Type>, args: seq<Expression>, outs: Optional<seq<Ident>>) |
     Return(expr: Expression) |
+    EarlyReturn() |
     Print(Expression)
 
   datatype Expression =

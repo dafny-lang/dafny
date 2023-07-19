@@ -613,7 +613,11 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void EmitReturn(List<Formal> outParams, ConcreteSyntaxTree wr) {
-      throw new NotImplementedException();
+      if (wr is BuilderSyntaxTree<StatementContainer> stmtContainer) {
+        stmtContainer.Builder.AddStatement((DAST.Statement)DAST.Statement.create_EarlyReturn());
+      } else {
+        throw new InvalidOperationException("Cannot return outside of a statement container: " + currentBuilder);
+      }
     }
 
     protected override ConcreteSyntaxTree CreateLabeledCode(string label, bool createContinueLabel, ConcreteSyntaxTree wr) {

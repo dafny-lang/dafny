@@ -291,22 +291,30 @@ module {:extern "DCOMP"} DCOMP {
         s := s + ">";
       }
 
-      var body := GenStmts(m.body);
+      var earlyReturn := "return;";
       match m.outVars {
         case Some(outVars) => {
-          body := body + "\nreturn (";
+          earlyReturn := "return (";
           var outI := 0;
           while outI < |outVars| {
             if outI > 0 {
-              body := body + ", ";
+              earlyReturn := earlyReturn + ", ";
             }
 
             var outVar := outVars[outI];
-            body := body + "r#" + outVar.id;
+            earlyReturn := earlyReturn + "r#" + outVar.id;
 
             outI := outI + 1;
           }
-          body := body + ");";
+          earlyReturn := earlyReturn + ");";
+        }
+        case None => {}
+      }
+
+      var body := GenStmts(m.body, earlyReturn);
+      match m.outVars {
+        case Some(outVars) => {
+          body := body + "\n" + earlyReturn;
         }
         case None => {}
       }
@@ -314,12 +322,12 @@ module {:extern "DCOMP"} DCOMP {
       s := s + "(" + params + ") -> " + retType + " {\n" + body + "\n}\n";
     }
 
-    static method GenStmts(stmts: seq<Statement>) returns (generated: string) {
+    static method GenStmts(stmts: seq<Statement>, earlyReturn: string) returns (generated: string) {
       generated := "";
       var i := 0;
       while i < |stmts| {
         var stmt := stmts[i];
-        var stmtString := GenStmt(stmt);
+        var stmtString := GenStmt(stmt, earlyReturn);
 
         if i > 0 {
           generated := generated + "\n";
@@ -330,7 +338,7 @@ module {:extern "DCOMP"} DCOMP {
       }
     }
 
-    static method GenStmt(stmt: Statement) returns (generated: string) {
+    static method GenStmt(stmt: Statement, earlyReturn: string) returns (generated: string) {
       match stmt {
         case DeclareVar(name, typ, Some(expression)) => {
           var expr := GenExpr(expression);
@@ -347,8 +355,8 @@ module {:extern "DCOMP"} DCOMP {
         }
         case If(cond, thn, els) => {
           var condString := GenExpr(cond);
-          var thnString := GenStmts(thn);
-          var elsString := GenStmts(els);
+          var thnString := GenStmts(thn, earlyReturn);
+          var elsString := GenStmts(els, earlyReturn);
           generated := "if " + condString + " {\n" + thnString + "\n} else {\n" + elsString + "\n}";
         }
         case Call(on, name, typeArgs, args, maybeOutVars) => {
@@ -423,6 +431,9 @@ module {:extern "DCOMP"} DCOMP {
         case Return(expr) => {
           var exprString := GenExpr(expr);
           generated := "return " + exprString + ";";
+        }
+        case EarlyReturn() => {
+          generated := earlyReturn;
         }
         case Print(e) => {
           var printedExpr := GenExpr(e);
