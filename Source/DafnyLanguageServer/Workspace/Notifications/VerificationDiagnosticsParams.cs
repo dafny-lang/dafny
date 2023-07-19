@@ -370,14 +370,23 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
   ) : VerificationTree("Document", DocumentIdentifier.Uri.ToString(), DocumentIdentifier.Uri.ToString(), DocumentIdentifier.Uri.ToString(),
     DocumentIdentifier.Uri.ToUri(),
     ComputeRange(Program, DocumentIdentifier.Uri.ToUri()), new Position(0, 0)) {
+    internal static Range ComputeRange(INode program, Uri uri) {
+      IToken? end = null;
+      if (program is Program dafnyProgram) {
+        end = dafnyProgram.DefaultModuleDef.RangeToken.StartToken;
+        while (end != null && end.Uri != uri) {
+          end = end.Next;
+        }
+      }
+      if (end == null) {
+        var fileNode = FindFileNode(program, uri);
+        if (fileNode == null) {
+          return new Range(0, 0, 0, 0);
+        }
 
-    private static Range ComputeRange(INode program, Uri uri) {
-      var fileNode = FindFileNode(program, uri);
-      if (fileNode == null) {
-        return new Range(0, 0, 0, 0);
+        end = fileNode!.RangeToken.EndToken;
       }
 
-      var end = fileNode!.RangeToken.EndToken;
       while (end.Next != null) {
         end = end.Next;
       }
