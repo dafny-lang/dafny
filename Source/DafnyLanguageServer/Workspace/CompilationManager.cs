@@ -278,6 +278,7 @@ public class CompilationManager {
     }
 
     if (boogieStatus is BatchCompleted batchCompleted) {
+      logger.LogWarning($"Received batch completed for {implementationTask.Implementation.tok}");
       verificationProgressReporter.ReportAssertionBatchResult(compilation,
         new AssertionBatchResult(implementationTask.Implementation, batchCompleted.VcResult));
     }
