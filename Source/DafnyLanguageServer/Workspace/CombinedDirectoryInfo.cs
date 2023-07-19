@@ -26,22 +26,18 @@ class CombinedDirectoryInfo : DirectoryInfoBase {
 
   public override IEnumerable<FileSystemInfoBase> EnumerateFileSystemInfos() {
     return Parts.SelectMany(part => part.EnumerateFileSystemInfos()).GroupBy(f => f.FullName).SelectMany(g => {
-      var files = g.OfType<FileInfoBase>().ToList();
+      // Just like when reading file contents, give priority to the earlier Parts.
+      var first = g.First();
+      if (first is FileInfoBase) {
+        // Files can not be combined
+        return new[] { first };
+      }
+
+      // First is a directory, combine all directories
       var directories = g.OfType<DirectoryInfoBase>().ToArray();
-      if (files.Any() && directories.Any()) {
-        // Cannot combine files and directories
-        return Enumerable.Empty<FileSystemInfoBase>();
-      }
-
-      if (files.Count > 0) {
-        // Just like when reading file contents, give priority to the earlier Parts.
-        return new[] { files[0] };
-      }
-
       if (directories.Length == 1) {
         return new[] { directories[0] };
       }
-
       return new[] { new CombinedDirectoryInfo(directories) };
     });
   }
