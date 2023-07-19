@@ -59,14 +59,15 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
       return new TextDocumentAttributes(uri, LanguageId);
     }
 
-    public override Task<Unit> Handle(DidOpenTextDocumentParams notification, CancellationToken cancellationToken) {
+    public override async Task<Unit> Handle(DidOpenTextDocumentParams notification, CancellationToken cancellationToken) {
       logger.LogTrace("received open notification {DocumentUri}", notification.TextDocument.Uri);
       try {
-        projects.OpenDocument(new DocumentTextBuffer(notification.TextDocument));
+        await projects.OpenDocument(new DocumentTextBuffer(notification.TextDocument));
       } catch (Exception e) {
         telemetryPublisher.PublishUnhandledException(e);
       }
-      return Unit.Task;
+
+      return Unit.Value;
     }
 
     /// <summary>
