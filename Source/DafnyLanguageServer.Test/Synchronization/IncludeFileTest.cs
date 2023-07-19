@@ -84,6 +84,8 @@ include ""./syntaxError.dfy""
     var diagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
     Assert.Single(diagnostics);
     Assert.Contains("the referenced file", diagnostics[0].Message);
+    Assert.Contains(@"The first error is:
+rbrace expected", diagnostics[0].Message);
     Assert.Contains("syntaxError.dfy", diagnostics[0].Message);
   }
 
