@@ -14,6 +14,7 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Server;
 using OmniSharp.Extensions.LanguageServer.Server;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Various;
 using Microsoft.Dafny.LanguageServer.Language;
@@ -62,7 +63,27 @@ lemma {:neverVerify} HasNeverVerifyAttribute(p: nat, q: nat)
     }
 
     protected Task<(ILanguageClient client, ILanguageServer server)> Initialize(Action<LanguageClientOptions> clientOptionsAction, Action<DafnyOptions> serverOptionsAction) {
+      /*
+       * I would rather use LanguageServerOptions.RegisterForDisposal, but it doesn't seem to work
+       * Alternatively one can do Disposable.Add((IDisposable)Server.Services), but we've seen many
+       * ObjectDisposedExceptions in tests that might relate to this, so let's be more specific and only dispose
+       * IProjectDatabase
+       */
+      Disposable.Add(new AnonymousDisposable(() => {
+        var database = Server.Services.GetRequiredService<IProjectDatabase>();
+        database.Dispose();
+      }));
       return base.Initialize(clientOptionsAction, GetServerOptionsAction(serverOptionsAction));
+    }
+
+    private sealed class AnonymousDisposable : IDisposable {
+      private Action action;
+
+      public AnonymousDisposable(Action action) {
+        this.action = action;
+      }
+
+      public void Dispose() => Interlocked.Exchange(ref action, null)?.Invoke();
     }
 
     private Action<LanguageServerOptions> GetServerOptionsAction(Action<DafnyOptions> modifyOptions) {
