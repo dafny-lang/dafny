@@ -25,12 +25,19 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     [Fact]
     public async Task UpdateDuringARequestWillCancelTheRequest() {
-      var programThatResolvesSlowlyEnough = @"method Foo() {}";
+      var programThatResolvesSlowlyEnough = RepeatStrBuilder(@"method Foo() {}", 1000);
       var documentItem = CreateTestDocument(programThatResolvesSlowlyEnough);
       client.OpenDocument(documentItem);
       var hoverTask = client.RequestHover(new HoverParams { Position = (0, 0), TextDocument = documentItem }, CancellationToken);
       ApplyChange(ref documentItem, new Range(0, 0, 0, 0), "//comment\n");
       await Assert.ThrowsAsync<ContentModifiedException>(() => hoverTask);
+    }
+
+    private static string RepeatStrBuilder(string text, uint n)
+    {
+      return new StringBuilder(text.Length * (int)n)
+        .Insert(0, text, (int)n)
+        .ToString();
     }
 
     [Fact(Timeout = MaxTestExecutionTimeMs)]
