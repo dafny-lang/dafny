@@ -25,7 +25,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
     }
 
     public async Task InitializeAsync() {
-      client = await InitializeClient();
+      (client, Server) = await Initialize(_ => { }, _ => { });
     }
 
     public Task DisposeAsync() {

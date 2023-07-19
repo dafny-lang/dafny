@@ -23,7 +23,7 @@ function GetConstant2(): int {
       var documentItem = CreateTestDocument(source);
       await Client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       await ApplyChangeAndWaitCompletionAsync(
-        documentItem,
+        ref documentItem,
         new Range((0, 0), (0, 0)),
         change
       );
@@ -48,7 +48,7 @@ function GetConstant2(): int {
       var documentItem = CreateTestDocument(source);
       await Client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       await ApplyChangeAndWaitCompletionAsync(
-        documentItem,
+        ref documentItem,
         new Range((0, 0), (0, 0)),
         change
       );
@@ -68,7 +68,7 @@ function GetConstant(): int {
       var documentItem = CreateTestDocument(source);
       await Client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       await ApplyChangeAndWaitCompletionAsync(
-        documentItem,
+        ref documentItem,
         new Range((4, 0), (4, 0)),
         change
       );
@@ -91,7 +91,7 @@ method GetIt(x: int) returns (y: int) {
       var documentItem = CreateTestDocument(source);
       await Client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       await ApplyChangeAndWaitCompletionAsync(
-        documentItem,
+        ref documentItem,
         new Range((1, 0), (1, 11)),
         change
       );

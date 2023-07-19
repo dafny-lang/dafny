@@ -1384,6 +1384,7 @@ namespace Microsoft.Dafny {
                 foreach (var p in f.Formals) {
                   CheckTypeCharacteristics_Type(p.tok, p.Type, f.IsGhost || p.IsGhost);
                 }
+                CheckTypeCharacteristics_Type(f.Result?.tok ?? f.tok, f.ResultType, f.IsGhost);
                 if (f.Body != null) {
                   CheckTypeCharacteristics_Expr(f.Body, f.IsGhost);
                 }
@@ -1487,6 +1488,12 @@ namespace Microsoft.Dafny {
             var dd = (DatatypeDecl)d;
             foreach (var ctor in dd.Ctors) {
               ctor.Formals.Iter(formal => CheckVariance(formal.Type, dd, TypeParameter.TPVariance.Co, false));
+            }
+          }
+
+          if (d is TopLevelDeclWithMembers topLevelDeclWithMembers) {
+            foreach (var parentTrait in topLevelDeclWithMembers.ParentTraits) {
+              CheckVariance(parentTrait, topLevelDeclWithMembers, TypeParameter.TPVariance.Co, false);
             }
           }
         }

@@ -2,6 +2,7 @@
 using OmniSharp.Extensions.LanguageServer.Protocol;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Dynamic;
 using System.Linq;
 using Microsoft.Boogie;
@@ -21,23 +22,25 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
   /// There can be different verification threads that update the state of this object.
   /// </summary>
   public class Compilation {
-    public VersionedTextDocumentIdentifier DocumentIdentifier { get; }
-    public DocumentUri Uri => DocumentIdentifier.Uri;
-    public int Version => DocumentIdentifier.Version;
+    public int Version { get; }
+    public DafnyProject Project { get; }
+    public DocumentUri Uri => Project.Uri;
 
-    public Compilation(VersionedTextDocumentIdentifier documentIdentifier) {
-      DocumentIdentifier = documentIdentifier;
+    public Compilation(int version, DafnyProject project) {
+      Version = version;
+      Project = project;
     }
 
-    public virtual IEnumerable<DafnyDiagnostic> AllFileDiagnostics => Enumerable.Empty<DafnyDiagnostic>();
+    public virtual IEnumerable<DafnyDiagnostic> GetDiagnostics(Uri uri) => Enumerable.Empty<DafnyDiagnostic>();
 
-    public IdeState InitialIdeState(DafnyOptions options) {
-      return ToIdeState(new IdeState(DocumentIdentifier, new EmptyNode(),
-        Array.Empty<Diagnostic>(),
-        SymbolTable.Empty(), SignatureAndCompletionTable.Empty(options, DocumentIdentifier), new Dictionary<ImplementationId, IdeImplementationView>(),
+    public IdeState InitialIdeState(Compilation compilation, DafnyOptions options) {
+      return ToIdeState(new IdeState(compilation, new EmptyNode(),
+        ImmutableDictionary<Uri, IReadOnlyList<Diagnostic>>.Empty,
+        SymbolTable.Empty(), SignatureAndCompletionTable.Empty(options, compilation.Project), new Dictionary<ImplementationId, IdeImplementationView>(),
         Array.Empty<Counterexample>(),
-        false, Array.Empty<Diagnostic>(),
-        null));
+        false, ImmutableDictionary<Uri, IReadOnlyList<Range>>.Empty,
+       null
+      ));
     }
 
     /// <summary>
@@ -45,7 +48,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     /// </summary>
     public virtual IdeState ToIdeState(IdeState previousState) {
       return previousState with {
-        DocumentIdentifier = DocumentIdentifier,
+        Compilation = this,
         ImplementationsWereUpdated = false,
       };
     }

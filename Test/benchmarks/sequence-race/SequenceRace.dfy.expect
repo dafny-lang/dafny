@@ -1,0 +1,4 @@
+
+Dafny program verifier finished with 2 verified, 0 errors
+SequenceRace.dfy(35,0): Error: The benchmarking plugin does not support this compilation target: Microsoft.Dafny.Compilers.CsharpCompiler (--target:cs)
+Wrote textual form of partial target program to SequenceRace.cs

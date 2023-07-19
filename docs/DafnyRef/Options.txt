@@ -348,6 +348,9 @@ Usage: dafny [ option ... ] [ filename ... ]
       Disable axiom pruning that Dafny uses to speed up verification.
   ---- Compilation options ---------------------------------------------------
   
+  /compileSuffix:<value>
+      Add the suffix _Compile to module names without :extern
+
   /compileTarget:<language>
       cs (default) - Compile to .NET via C#.
       go - Compile to Go.

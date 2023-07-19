@@ -27,7 +27,7 @@ public class ConcurrentLinearVerificationGutterStatusTester : LinearVerification
       verificationStatusGutterReceivers[i] = new();
     }
     verificationStatusGutterReceiver = new();
-    client = await InitializeClient(options =>
+    (client, Server) = await Initialize(options =>
       options
         .AddHandler(DafnyRequestNames.VerificationStatusGutter,
           NotificationHandler.For<VerificationStatusGutter>(NotifyAllVerificationGutterStatusReceivers))
@@ -51,7 +51,7 @@ public class ConcurrentLinearVerificationGutterStatusTester : LinearVerification
  .  S [S][ ][I][S][ ]:method H()
  .  S [=][=][-][~][O]:  ensures F(1)
  .  S [=][=][-][~][=]:{//Next: { assert false;
- .  S [S][ ][I][S][ ]:}", $"testfile{i}.dfy", true, true, verificationStatusGutterReceivers[i]));
+ .  S [S][ ][I][S][ ]:}", false, $"testfile{i}.dfy", true, true, verificationStatusGutterReceivers[i]));
     }
 
     for (var i = 0; i < MaxSimultaneousVerificationTasks; i++) {

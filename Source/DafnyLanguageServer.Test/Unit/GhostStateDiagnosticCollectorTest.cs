@@ -49,7 +49,7 @@ public class GhostStateDiagnosticCollectorTest {
 
   class DummyModuleDecl : LiteralModuleDecl {
     public DummyModuleDecl(IList<Uri> rootUris) : base(
-      new DefaultModuleDefinition(rootUris, false), null, Guid.NewGuid()) {
+      new DefaultModuleDefinition(rootUris), null, Guid.NewGuid()) {
     }
     public override object Dereference() {
       return this;

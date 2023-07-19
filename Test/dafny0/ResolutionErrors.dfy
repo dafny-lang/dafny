@@ -3906,3 +3906,13 @@ module UseOfThis {
     const K: int
   }
 }
+
+module AutoInitTypeCheckRegression {
+  codatatype AutoStream<G(0)> = AutoNext(head: G, tail: AutoStream<G>)
+
+  function In<G>(a: AutoStream<G>): int // error: the argument to AutoStream is supposed to be an auto-init type
+  function Out<G>(g: G): AutoStream<G> // error: the argument to AutoStream is supposed to be an auto-init type
+
+  method M<G>(a: AutoStream<G>) // error: the argument to AutoStream is supposed to be an auto-init type
+  method N<G>(g: G) returns (a: AutoStream<G>) // error: the argument to AutoStream is supposed to be an auto-init type
+}
