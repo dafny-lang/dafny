@@ -261,14 +261,14 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
       }
 
       public Range? MigrateRange(Range rangeToMigrate, TextDocumentContentChangeEvent change, bool isFullRange = false) {
-        if (change.Range == null || !rangeToMigrate.Contains(change.Range!) && rangeToMigrate.Intersects(change.Range!)) {
+        if (change.Range == null || (!rangeToMigrate.Contains(change.Range!) && rangeToMigrate.Intersects(change.Range!))) {
           // Do not migrate ranges that partially overlap with the change
           if (change.Range == null && isFullRange) {
             var newLineRegex = new Regex("\n(?<LastColumn>.*)");
             var matches = newLineRegex.Matches(change.Text);
             var line = matches.Count;
             var col = matches.Count == 0 ? change.Text.Length : matches[^1].Groups["LastColumn"].Value.Length;
-              
+
             var endPosition = (line, col);
             return new Range((0, 0), endPosition);
           }
