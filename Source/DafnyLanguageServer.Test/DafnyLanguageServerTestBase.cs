@@ -120,37 +120,6 @@ lemma {:neverVerify} HasNeverVerifyAttribute(p: nat, q: nat)
       }
     }
 
-    // protected virtual ILanguageClient CreateClient(
-    //   Action<LanguageClientOptions> clientOptionsAction = null,
-    //   Action<LanguageServerOptions> serverOptionsAction = null) {
-    //   var client = LanguageClient.PreInit(
-    //     options => {
-    //       var (reader, writer) = SetupServer(serverOptionsAction);
-    //       options
-    //         .WithInput(reader)
-    //         .WithOutput(writer)
-    //         .WithLoggerFactory(TestOptions.ClientLoggerFactory)
-    //         .WithAssemblies(TestOptions.Assemblies)
-    //         .WithAssemblies(typeof(LanguageProtocolTestBase).Assembly, GetType().Assembly)
-    //         .ConfigureLogging(x => x.SetMinimumLevel(LogLevel.Trace))
-    //         .WithInputScheduler(options.InputScheduler)
-    //         .WithOutputScheduler(options.OutputScheduler)
-    //         .WithDefaultScheduler(options.DefaultScheduler)
-    //         .Services
-    //         .AddTransient(typeof(IPipelineBehavior<,>), typeof(SettlePipeline<,>))
-    //         .AddSingleton(Events as IRequestSettler);
-    //
-    //       clientOptionsAction?.Invoke(options);
-    //     }
-    //   );
-    //
-    //   Disposable.Add(client);
-    //   Disposable.Add(Server);
-    //   Disposable.Add((IDisposable)Server.Services); // Testing shows that the services are not disposed automatically when the server is disposed.
-    //
-    //   return client;
-    // }
-
     private static void SetupTestLogging(ILoggingBuilder builder) {
       builder
         .AddFilter("OmniSharp", LogLevel.Warning)
