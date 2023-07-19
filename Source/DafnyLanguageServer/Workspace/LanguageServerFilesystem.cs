@@ -37,7 +37,9 @@ public class LanguageServerFilesystem : IFileSystem {
 
     string existingText = "";
     try {
-      existingText = OnDiskFileSystem.Instance.ReadFile(document.Uri.ToUri()).ReadToEnd();
+      if (OnDiskFileSystem.Instance.Exists(uri)) {
+        existingText = OnDiskFileSystem.Instance.ReadFile(uri).ReadToEnd();
+      }
     } catch (IOException) {
 
     }

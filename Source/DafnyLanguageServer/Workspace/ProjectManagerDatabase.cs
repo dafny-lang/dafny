@@ -139,7 +139,12 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           if (managerForProject != null) {
             projectManagerForFile = managerForProject;
             if (changedOnOpen) {
-              projectManagerForFile.UpdateDocument(new DidChangeTextDocumentParams());
+              projectManagerForFile.UpdateDocument(new DidChangeTextDocumentParams {
+                ContentChanges = Array.Empty<TextDocumentContentChangeEvent>(),
+                TextDocument = new OptionalVersionedTextDocumentIdentifier {
+                  Uri = documentId.Uri
+                }
+              });
             }
           } else {
             if (createOnDemand) {
