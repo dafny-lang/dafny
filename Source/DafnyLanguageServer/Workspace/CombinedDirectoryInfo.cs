@@ -34,6 +34,7 @@ class CombinedDirectoryInfo : DirectoryInfoBase {
       }
 
       if (files.Count > 0) {
+        // Just like when reading file contents, give priority to the earlier Parts.
         return new[] { files[0] };
       }
 

@@ -86,8 +86,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     public async Task<IdeState?> GetResolvedDocumentAsync(TextDocumentIdentifier documentId) {
       var manager = await GetProjectManager(documentId, false);
       if (manager != null) {
-        var result = await manager.GetSnapshotAfterResolutionAsync()!;
-        return result;
+        return await manager.GetSnapshotAfterResolutionAsync()!;
       }
 
       return null;
@@ -102,8 +101,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       };
       var manager = await GetProjectManager(documentId, false);
       if (manager != null) {
-        var result = await manager.GetLastDocumentAsync()!;
-        return result;
+        return await manager.GetLastDocumentAsync()!;
       }
 
       return null;
@@ -118,7 +116,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         return null;
       }
 
-      var project = await GetProject(documentId);
+      var project = await GetProject(documentId.Uri.ToUri());
 
       lock (myLock) {
         var projectManagerForFile = managersBySourceFile.GetValueOrDefault(documentId.Uri.ToUri());
@@ -159,14 +157,14 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       }
     }
 
-    private async Task<DafnyProject> GetProject(TextDocumentIdentifier document) {
-      return (await FindProjectFile(document.Uri.ToUri())) ?? ImplicitProject(document);
+    public async Task<DafnyProject> GetProject(Uri uri) {
+      return (await FindProjectFile(uri)) ?? ImplicitProject(uri);
     }
 
-    public static DafnyProject ImplicitProject(TextDocumentIdentifier documentItem) {
+    public static DafnyProject ImplicitProject(Uri uri) {
       var implicitProject = new DafnyProject {
-        Includes = new[] { documentItem.Uri.GetFileSystemPath() },
-        Uri = documentItem.Uri.ToUri(),
+        Includes = new[] { uri.LocalPath },
+        Uri = uri,
         IsImplicitProject = true
       };
       return implicitProject;
@@ -186,7 +184,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         folder = Path.GetDirectoryName(folder);
       }
 
-      if (projectFile != null && !serverOptions.Get(ServerCommand.ProjectMode)) {
+      if (projectFile != null && projectFile.Uri != sourceUri && !serverOptions.Get(ServerCommand.ProjectMode)) {
         projectFile.Uri = sourceUri;
         projectFile.IsImplicitProject = true;
         projectFile.Includes = new[] { sourceUri.LocalPath };

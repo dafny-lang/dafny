@@ -16,3 +16,5 @@ true false
 HasConst.MakeC(4) (4, 4)
 4 (4, 4)
 OptimizationChecks.Ints.Ints(5, 7) OptimizationChecks.Ints.Ints(5, 7) OptimizationChecks.Ints.AnotherIntsWrapper(OptimizationChecks.Ints.Ints(5, 7))
+D D
+5 5

@@ -58,5 +58,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     Task<ProjectManager?> GetProjectManager(TextDocumentIdentifier documentId);
 
     IEnumerable<ProjectManager> Managers { get; }
+    Task<DafnyProject> GetProject(Uri uri);
   }
 }
