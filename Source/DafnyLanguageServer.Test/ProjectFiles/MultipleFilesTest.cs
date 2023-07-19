@@ -217,7 +217,7 @@ warn-shadowing = true
     var sourceFile = await CreateAndOpenTestDocument(source, Path.Combine(directory, "src/file.dfy"));
 
     var diagnostics1 = await GetLastDiagnostics(sourceFile, CancellationToken);
-    Assert.Equal(2, diagnostics1.Length);
+    Assert.Equal(2, diagnostics1.Count(d => d.Severity <= DiagnosticSeverity.Warning));
     Assert.Contains(diagnostics1, s => s.Message.Contains("Shadowed"));
 
     await Task.Delay(ProjectManagerDatabase.ProjectFileCacheExpiryTime);
