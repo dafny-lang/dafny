@@ -1,7 +1,5 @@
 ﻿using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
-using OmniSharp.Extensions.LanguageServer.Protocol.Document;
-using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using OmniSharp.Extensions.LanguageServer.Protocol.Server;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace {

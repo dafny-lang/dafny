@@ -26,7 +26,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsyncLifetime {
   protected ILanguageClient client;
   protected TestNotificationReceiver<FileVerificationStatus> verificationStatusReceiver;
-  private TestNotificationReceiver<CompilationStatusParams> compilationStatusReceiver;
+  protected TestNotificationReceiver<CompilationStatusParams> compilationStatusReceiver;
   protected DiagnosticsReceiver diagnosticsReceiver;
   protected TestNotificationReceiver<GhostDiagnosticsParams> ghostnessReceiver;
 
