@@ -121,21 +121,6 @@ module ConcreteModule {
    * SCC at height 0:
    *   Status.IsFailure
    */
-  datatype Status = Success | Failure(error: nat) {
-    predicate IsFailure()
-      decreases this
-    {
-      this.Failure?
-    }
-
-    function PropagateFailure(): Status
-      requires IsFailure()
-      decreases this
-    {
-      Failure(this.error)
-    }
-  }
-
   method execute_external_method(n: nat, m: nat) returns (r: Status)
     decreases n, m
   {
@@ -278,6 +263,21 @@ module ConcreteModule {
     ---------- end flattened ----------*/
     match n {
       case {:split false} n: int =>
+    }
+  }
+
+  datatype Status = Success | Failure(error: nat) {
+    predicate IsFailure()
+      decreases this
+    {
+      this.Failure?
+    }
+
+    function PropagateFailure(): Status
+      requires IsFailure()
+      decreases this
+    {
+      Failure(this.error)
     }
   }
 }

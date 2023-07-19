@@ -26,11 +26,11 @@ public class DafnyFormattingHandler : DocumentFormattingHandlerBase {
   }
 
   public override async Task<TextEditContainer?> Handle(DocumentFormattingParams request, CancellationToken cancellationToken) {
-    var documentManager = projects.GetProjectManager(request.TextDocument.Uri);
-    if (documentManager == null) {
+    var projectManager = await projects.GetProjectManager(request.TextDocument.Uri);
+    if (projectManager == null) {
       return null;
     }
-    var edits = await documentManager.CompilationManager.GetTextEditToFormatCode();
+    var edits = await projectManager.CompilationManager.GetTextEditToFormatCode(request.TextDocument.Uri.ToUri());
     return edits;
   }
 }

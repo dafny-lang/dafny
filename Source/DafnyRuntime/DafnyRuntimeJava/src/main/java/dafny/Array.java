@@ -12,9 +12,9 @@ import java.util.List;
  * to operate on possibly-primitive arrays.
  *
  * This isn't used by generated Dafny code, which directly uses values of type
- * Object when the element type isn't known, relying on a {@link Type} passed
+ * Object when the element type isn't known, relying on a {@link TypeDescriptor} passed
  * in.  It's much more pleasant to use, and more type-safe, than the bare
- * {@link Type} operations, however, so extern implementors may be interested.
+ * {@link TypeDescriptor} operations, however, so extern implementors may be interested.
  * It is also used to implement {@link DafnySequence}.
  *
  * @param <T> The type of the elements in the array, or if that type is

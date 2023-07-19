@@ -75,3 +75,22 @@ module Client_Revealing {
     assert false;  // error
   }
 }
+
+module BadCastRegression {
+  module Library {
+    export
+      provides *
+
+    // declaring D as a trait once caused Dafny to crash with a bad cast
+    trait D {
+      const n: int
+    }
+  }
+
+  module Client {
+    import Library
+
+    method M() {
+    }
+  }
+}

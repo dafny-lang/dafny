@@ -1,4 +1,5 @@
-﻿using OmniSharp.Extensions.LanguageServer.Protocol;
+﻿using System;
+using OmniSharp.Extensions.LanguageServer.Protocol;
 using OmniSharp.Extensions.LanguageServer.Protocol.Client;
 using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
@@ -23,11 +24,6 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions {
           Uri = documentItem.Uri
         }
       });
-    }
-
-    public static Task CloseDocumentAndWaitAsync(this ILanguageClient client, TextDocumentItem documentItem, CancellationToken cancellationToken) {
-      client.CloseDocument(documentItem);
-      return client.WaitForNotificationCompletionAsync(documentItem.Uri, cancellationToken);
     }
 
     public static Task OpenDocumentAndWaitAsync(this ILanguageClient client, TextDocumentItem documentItem, CancellationToken cancellationToken) {

@@ -25,14 +25,23 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     private static IServiceCollection WithDafnyWorkspace(this IServiceCollection services) {
       return services
-        .AddSingleton<IProjectDatabase>(serviceProvider => new ProjectManagerDatabase(serviceProvider))
+        .AddSingleton<IProjectDatabase, ProjectManagerDatabase>()
+        .AddSingleton<CreateProjectManager>(provider => (boogieEngine, documentIdentifier) => new ProjectManager(
+          provider.GetRequiredService<DafnyOptions>(),
+          provider.GetRequiredService<ILogger<ProjectManager>>(),
+          provider.GetRequiredService<IRelocator>(),
+          provider.GetRequiredService<CreateCompilationManager>(),
+          provider.GetRequiredService<CreateIdeStateObserver>(),
+          boogieEngine,
+          documentIdentifier))
         .AddSingleton<IFileSystem, LanguageServerFilesystem>()
         .AddSingleton<IDafnyParser>(serviceProvider => {
           var options = serviceProvider.GetRequiredService<DafnyOptions>();
-          return DafnyLangParser.Create(options,
+          return new DafnyLangParser(options,
             serviceProvider.GetRequiredService<IFileSystem>(),
             serviceProvider.GetRequiredService<ITelemetryPublisher>(),
-            serviceProvider.GetRequiredService<ILoggerFactory>());
+            serviceProvider.GetRequiredService<ILogger<DafnyLangParser>>(),
+            serviceProvider.GetRequiredService<ILogger<CachingParser>>());
         })
         .AddSingleton<ITextDocumentLoader>(CreateTextDocumentLoader)
         .AddSingleton<INotificationPublisher, NotificationPublisher>()
@@ -44,14 +53,12 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     public static TextDocumentLoader CreateTextDocumentLoader(IServiceProvider services) {
       return TextDocumentLoader.Create(
-        services.GetRequiredService<DafnyOptions>(),
         services.GetRequiredService<IDafnyParser>(),
         services.GetRequiredService<ISymbolResolver>(),
         services.GetRequiredService<ISymbolTableFactory>(),
         services.GetRequiredService<IGhostStateDiagnosticCollector>(),
         services.GetRequiredService<ICompilationStatusNotificationPublisher>(),
-        services.GetRequiredService<ILoggerFactory>(),
-        services.GetRequiredService<INotificationPublisher>()
+        services.GetRequiredService<ILogger<ITextDocumentLoader>>()
       );
     }
   }

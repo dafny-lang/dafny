@@ -11,6 +11,8 @@ ParameterResolution.dfy(27,15): Error: function parameter 'z' at index 2 require
 ParameterResolution.dfy(30,14): Error: datatype constructor parameter at index 1 requires an argument of type bool
 ParameterResolution.dfy(31,34): Error: the parameter named 'a' is already given positionally
 ParameterResolution.dfy(31,14): Error: datatype constructor parameter at index 1 requires an argument of type bool
+ParameterResolution.dfy(60,12): Error: default-value expressions for parameters contain a cycle: x -> x
+ParameterResolution.dfy(62,12): Error: default-value expressions for parameters contain a cycle: x -> y -> z -> x
 ParameterResolution.dfy(41,24): Error: default-value expression (of type 'bool') is not assignable to formal (of type 'int')
 ParameterResolution.dfy(51,34): Error: 'this' is not allowed in a 'static' context
 ParameterResolution.dfy(52,42): Error: 'this' is not allowed in a 'static' context
@@ -20,23 +22,21 @@ ParameterResolution.dfy(53,44): Error: 'this' is not allowed in a 'static' conte
 ParameterResolution.dfy(53,48): Error: 'this' is not allowed in a 'static' context
 ParameterResolution.dfy(54,29): Error: 'this' is not allowed in a 'static' context
 ParameterResolution.dfy(58,39): Error: unresolved identifier: b
-ParameterResolution.dfy(60,12): Error: default-value expressions for parameters contain a cycle: x -> x
-ParameterResolution.dfy(62,12): Error: default-value expressions for parameters contain a cycle: x -> y -> z -> x
 ParameterResolution.dfy(66,24): Error: default-valued expressions are cyclicly dependent; this is not allowed, since it would cause infinite expansion
 ParameterResolution.dfy(68,30): Error: default-valued expressions are cyclicly dependent; this is not allowed, since it would cause infinite expansion
 ParameterResolution.dfy(68,30): Error: default-valued expressions are cyclicly dependent; this is not allowed, since it would cause infinite expansion
 ParameterResolution.dfy(68,45): Error: default-valued expressions are cyclicly dependent; this is not allowed, since it would cause infinite expansion
 ParameterResolution.dfy(73,62): Error: default-valued expressions are cyclicly dependent; this is not allowed, since it would cause infinite expansion
 ParameterResolution.dfy(74,54): Error: default-valued expressions are cyclicly dependent; this is not allowed, since it would cause infinite expansion
-ParameterResolution.dfy(99,89): Error: ghost variables such as x are allowed only in specification contexts. x was inferred to be ghost based on its declaration or initialization.
-ParameterResolution.dfy(101,89): Error: ghost variables such as x are allowed only in specification contexts. x was inferred to be ghost based on its declaration or initialization.
-ParameterResolution.dfy(104,27): Error: ghost variables such as y are allowed only in specification contexts. y was inferred to be ghost based on its declaration or initialization.
-ParameterResolution.dfy(109,32): Error: ghost variables such as y are allowed only in specification contexts. y was inferred to be ghost based on its declaration or initialization.
 ParameterResolution.dfy(79,22): Error: ghost variables such as y are allowed only in specification contexts. y was inferred to be ghost based on its declaration or initialization.
 ParameterResolution.dfy(86,52): Error: a call to a ghost function is allowed only in specification contexts (consider declaring the function without the 'ghost' keyword)
 ParameterResolution.dfy(88,58): Error: a call to a ghost function is allowed only in specification contexts (consider declaring the function without the 'ghost' keyword)
 ParameterResolution.dfy(95,89): Error: ghost variables such as x are allowed only in specification contexts. x was inferred to be ghost based on its declaration or initialization.
 ParameterResolution.dfy(97,82): Error: ghost variables such as x are allowed only in specification contexts. x was inferred to be ghost based on its declaration or initialization.
+ParameterResolution.dfy(99,89): Error: ghost variables such as x are allowed only in specification contexts. x was inferred to be ghost based on its declaration or initialization.
+ParameterResolution.dfy(101,89): Error: ghost variables such as x are allowed only in specification contexts. x was inferred to be ghost based on its declaration or initialization.
+ParameterResolution.dfy(104,27): Error: ghost variables such as y are allowed only in specification contexts. y was inferred to be ghost based on its declaration or initialization.
+ParameterResolution.dfy(109,32): Error: ghost variables such as y are allowed only in specification contexts. y was inferred to be ghost based on its declaration or initialization.
 ParameterResolution.dfy(127,14): Error: wrong number of arguments (got 0, but function 'N' expects 1: (x: int))
 ParameterResolution.dfy(133,14): Error: wrong number of arguments (got 0, but function 'O' expects 1: (x: int))
 ParameterResolution.dfy(147,12): Error: wrong number of arguments (got 0, but function 'O' expects 1: (x: int))
@@ -46,12 +46,12 @@ ParameterResolution.dfy(172,14): Error: a refining formal parameter ('x') in a r
 ParameterResolution.dfy(174,12): Error: a refining formal parameter ('x') in a refinement module is not allowed to give a default-value expression
 ParameterResolution.dfy(169,12): Error: wrong number of arguments (got 0, but function 'O' expects 1: (x: int))
 ParameterResolution.dfy[RefinementB](147,12): Error: wrong number of arguments (got 0, but function 'O' expects 1: (x: int))
-ParameterResolution.dfy(197,26): Error: type parameter 'X' (inferred to be '?') in the function call to 'F' could not be determined
-ParameterResolution.dfy(197,26): Error: type parameter 'X' (inferred to be '?') in the function call to 'F' could not be determined
-ParameterResolution.dfy(198,37): Error: type parameter 'X' (inferred to be '?') in the function call to 'F' could not be determined
 ParameterResolution.dfy(193,21): Error: type parameter 'X' (inferred to be '?') in the function call to 'F' could not be determined
 ParameterResolution.dfy(194,13): Error: type parameter 'X' (inferred to be '?') in the function call to 'F' could not be determined
 ParameterResolution.dfy(196,29): Error: type parameter 'X' (inferred to be '?') in the function call to 'F' could not be determined
+ParameterResolution.dfy(197,26): Error: type parameter 'X' (inferred to be '?') in the function call to 'F' could not be determined
+ParameterResolution.dfy(197,26): Error: type parameter 'X' (inferred to be '?') in the function call to 'F' could not be determined
+ParameterResolution.dfy(198,37): Error: type parameter 'X' (inferred to be '?') in the function call to 'F' could not be determined
 ParameterResolution.dfy(211,23): Error: old expressions are not allowed in this context
 ParameterResolution.dfy(213,25): Error: old expressions are not allowed in this context
 ParameterResolution.dfy(216,32): Error: old expressions are not allowed in this context
@@ -68,13 +68,6 @@ ParameterResolution.dfy(252,21): Error: Duplicate parameter name: x
 ParameterResolution.dfy(259,11): Error: default-value expressions for parameters contain a cycle: x -> x
 ParameterResolution.dfy(260,35): Error: unresolved identifier: _k
 ParameterResolution.dfy(261,26): Error: unresolved identifier: _k
-ParameterResolution.dfy(278,33): Error: this parameter is effectively nameonly (because of the earlier nameonly parameter 'u'); declare it as nameonly or give it a default-value expression
-ParameterResolution.dfy(278,33): Error: this parameter is effectively nameonly (because of the earlier nameonly parameter 'u'); declare it as nameonly or give it a default-value expression
-ParameterResolution.dfy(281,45): Error: this parameter is effectively nameonly (because of the earlier nameonly parameter '1'); declare it as nameonly or give it a default-value expression
-ParameterResolution.dfy(284,27): Error: because of a later nameless parameter, this default value is never used; remove it or name all subsequent parameters
-ParameterResolution.dfy(285,39): Error: this parameter is effectively nameonly (because of the earlier nameonly parameter 'b'); declare it as nameonly or give it a default-value expression
-ParameterResolution.dfy(286,34): Error: this parameter is effectively nameonly (because of the earlier nameonly parameter 'b'); declare it as nameonly or give it a default-value expression
-ParameterResolution.dfy(368,79): Error: this parameter is effectively nameonly (because of the earlier nameonly parameter 'baz'); declare it as nameonly or give it a default-value expression
 ParameterResolution.dfy(290,21): Error: nameonly parameter 'c' must be passed using a name binding; it cannot be passed positionally
 ParameterResolution.dfy(297,26): Error: nameonly parameter 'c' must be passed using a name binding; it cannot be passed positionally
 ParameterResolution.dfy(301,34): Error: a positional argument is not allowed to follow named arguments
@@ -100,4 +93,11 @@ ParameterResolution.dfy(356,25): Error: the binding named '90_0' does not corres
 ParameterResolution.dfy(369,73): Error: this parameter is effectively nameonly (because of the earlier nameonly parameter 'baz'); declare it as nameonly or give it a default-value expression
 ParameterResolution.dfy(370,71): Error: this parameter is effectively nameonly (because of the earlier nameonly parameter 'baz'); declare it as nameonly or give it a default-value expression
 ParameterResolution.dfy(377,9): Error: wrong number of arguments (got 0, but datatype constructor 'Foo' expects at least 1: (bar: string, baz: string, qux: int))
+ParameterResolution.dfy(278,33): Error: this parameter is effectively nameonly (because of the earlier nameonly parameter 'u'); declare it as nameonly or give it a default-value expression
+ParameterResolution.dfy(278,33): Error: this parameter is effectively nameonly (because of the earlier nameonly parameter 'u'); declare it as nameonly or give it a default-value expression
+ParameterResolution.dfy(281,45): Error: this parameter is effectively nameonly (because of the earlier nameonly parameter '1'); declare it as nameonly or give it a default-value expression
+ParameterResolution.dfy(284,27): Error: because of a later nameless parameter, this default value is never used; remove it or name all subsequent parameters
+ParameterResolution.dfy(285,39): Error: this parameter is effectively nameonly (because of the earlier nameonly parameter 'b'); declare it as nameonly or give it a default-value expression
+ParameterResolution.dfy(286,34): Error: this parameter is effectively nameonly (because of the earlier nameonly parameter 'b'); declare it as nameonly or give it a default-value expression
+ParameterResolution.dfy(368,79): Error: this parameter is effectively nameonly (because of the earlier nameonly parameter 'baz'); declare it as nameonly or give it a default-value expression
 102 resolution/type errors detected in ParameterResolution.dfy
