@@ -41,7 +41,7 @@ method Bar() {
     var consumer2Diagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, consumer2);
     Assert.True(consumer2Diagnostics.Length > 1);
 
-    await client.CloseDocumentAndWaitAsync(producerItem, CancellationToken);
+    client.CloseDocument(producerItem);
     var producerDiagnostics3 = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
     Assert.Empty(producerDiagnostics3); // File has no code
     var consumer3 = CreateTestDocument(consumerSource, Path.Combine(Directory.GetCurrentDirectory(), "consumer3.dfy"));
