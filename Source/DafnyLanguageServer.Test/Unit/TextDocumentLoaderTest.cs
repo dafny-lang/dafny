@@ -23,7 +23,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit {
     private Mock<IGhostStateDiagnosticCollector> ghostStateDiagnosticCollector;
     private Mock<ICompilationStatusNotificationPublisher> notificationPublisher;
     private TextDocumentLoader textDocumentLoader;
-    private Mock<ILoggerFactory> logger;
+    private Mock<ILogger<ITextDocumentLoader>> logger;
     private Mock<INotificationPublisher> diagnosticPublisher;
 
     public TextDocumentLoaderTest(ITestOutputHelper output) {
@@ -34,7 +34,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit {
       ghostStateDiagnosticCollector = new();
       notificationPublisher = new();
       fileSystem = new();
-      logger = new Mock<ILoggerFactory>();
+      logger = new Mock<ILogger<ITextDocumentLoader>>();
       diagnosticPublisher = new Mock<INotificationPublisher>();
       textDocumentLoader = TextDocumentLoader.Create(
         parser.Object,
