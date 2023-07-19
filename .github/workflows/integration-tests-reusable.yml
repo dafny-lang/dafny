@@ -99,6 +99,14 @@ jobs:
       with:
         path: dafny
         submodules: true # Until the libraries work again
+    - name: Install Java runtime locally (non-Windows)
+      if: runner.os != 'Windows'
+      working-directory: dafny/Source/DafnyRuntime/DafnyRuntimeJava
+      run: ./gradlew publishToMavenLocal
+    - name: Install Java runtime locally (Windows)
+      if: runner.os == 'Windows'
+      working-directory: dafny/Source/DafnyRuntime/DafnyRuntimeJava
+      run: ./gradlew.bat publishToMavenLocal
 #    - name: Clean up libraries for testing
 #      run: |
 #        rm dafny/Test/libraries/lit.site.cfg # we remove the lit configuration file in the library repo (a git submodule) to prevent override
