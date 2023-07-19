@@ -87,8 +87,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     public async Task<IdeState?> GetResolvedDocumentAsync(TextDocumentIdentifier documentId) {
       var manager = await GetProjectManager(documentId, false);
       if (manager != null) {
-        var result = await manager.GetSnapshotAfterResolutionAsync()!;
-        return result;
+        return await manager.GetSnapshotAfterResolutionAsync()!;
       }
 
       return null;
@@ -103,8 +102,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       };
       var manager = await GetProjectManager(documentId, false);
       if (manager != null) {
-        var result = await manager.GetLastDocumentAsync()!;
-        return result;
+        return await manager.GetLastDocumentAsync()!;
       }
 
       return null;
