@@ -30,17 +30,17 @@ public class VerificationHandler : IJsonRpcRequestHandler<VerificationParams, bo
   }
 
   public async Task<bool> Handle(VerificationParams request, CancellationToken cancellationToken) {
-    var projectManager = projects.GetProjectManager(request.TextDocument);
+    var projectManager = await projects.GetProjectManager(request.TextDocument);
     if (projectManager == null) {
       return false;
     }
 
-    var translatedDocument = await projectManager.CompilationManager.TranslatedDocument;
+    var translatedCompilation = await projectManager.CompilationManager.TranslatedCompilation;
     var requestPosition = request.Position;
     var someTasksAreRunning = false;
-    var tasksAtPosition = GetTasksAtPosition(translatedDocument, requestPosition);
+    var tasksAtPosition = GetTasksAtPosition(translatedCompilation, requestPosition);
     foreach (var taskToRun in tasksAtPosition) {
-      someTasksAreRunning |= projectManager.CompilationManager.VerifyTask(translatedDocument, taskToRun);
+      someTasksAreRunning |= projectManager.CompilationManager.VerifyTask(translatedCompilation, taskToRun);
     }
     return someTasksAreRunning;
   }
@@ -53,12 +53,12 @@ public class VerificationHandler : IJsonRpcRequestHandler<VerificationParams, bo
   }
 
   public async Task<bool> Handle(CancelVerificationParams request, CancellationToken cancellationToken) {
-    var documentManager = projects.GetProjectManager(request.TextDocument);
-    if (documentManager == null) {
+    var projectManager = await projects.GetProjectManager(request.TextDocument);
+    if (projectManager == null) {
       return false;
     }
 
-    var translatedDocument = await documentManager.CompilationManager.TranslatedDocument;
+    var translatedDocument = await projectManager.CompilationManager.TranslatedCompilation;
     var requestPosition = request.Position;
     foreach (var taskToRun in GetTasksAtPosition(translatedDocument, requestPosition)) {
       taskToRun.Cancel();

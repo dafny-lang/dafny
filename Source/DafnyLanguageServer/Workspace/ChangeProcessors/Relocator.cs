@@ -25,24 +25,24 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
     }
 
     public Position RelocatePosition(Position position, DidChangeTextDocumentParams changes, CancellationToken cancellationToken) {
-      return new ChangeProcessor(logger, loggerSymbolTable, changes.ContentChanges, cancellationToken).MigratePosition(position);
+      return new ChangeProcessor(logger, loggerSymbolTable, changes, cancellationToken).MigratePosition(position);
     }
 
     public Range? RelocateRange(Range range, DidChangeTextDocumentParams changes, CancellationToken cancellationToken) {
-      return new ChangeProcessor(logger, loggerSymbolTable, changes.ContentChanges, cancellationToken).MigrateRange(range);
+      return new ChangeProcessor(logger, loggerSymbolTable, changes, cancellationToken).MigrateRange(range);
     }
 
     public SignatureAndCompletionTable RelocateSymbols(SignatureAndCompletionTable originalSymbolTable, DidChangeTextDocumentParams changes, CancellationToken cancellationToken) {
-      return new ChangeProcessor(logger, loggerSymbolTable, changes.ContentChanges, cancellationToken).MigrateSymbolTable(originalSymbolTable);
+      return new ChangeProcessor(logger, loggerSymbolTable, changes, cancellationToken).MigrateSymbolTable(originalSymbolTable);
     }
 
     public IReadOnlyList<Diagnostic> RelocateDiagnostics(IReadOnlyList<Diagnostic> originalDiagnostics, DidChangeTextDocumentParams changes, CancellationToken cancellationToken) {
-      return new ChangeProcessor(logger, loggerSymbolTable, changes.ContentChanges, cancellationToken).MigrateDiagnostics(originalDiagnostics);
+      return new ChangeProcessor(logger, loggerSymbolTable, changes, cancellationToken).MigrateDiagnostics(originalDiagnostics);
     }
 
     public VerificationTree RelocateVerificationTree(VerificationTree originalVerificationTree,
       DidChangeTextDocumentParams changes, CancellationToken cancellationToken) {
-      var changeProcessor = new ChangeProcessor(logger, loggerSymbolTable, changes.ContentChanges, cancellationToken);
+      var changeProcessor = new ChangeProcessor(logger, loggerSymbolTable, changes, cancellationToken);
       var migratedChildren = changeProcessor.MigrateVerificationTrees(originalVerificationTree.Children);
       return originalVerificationTree with {
         Children = migratedChildren.ToList(),
@@ -52,7 +52,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
 
     public ImmutableList<Position> RelocatePositions(ImmutableList<Position> originalPositions,
       DidChangeTextDocumentParams changes, CancellationToken cancellationToken) {
-      var migratePositions = new ChangeProcessor(logger, loggerSymbolTable, changes.ContentChanges, cancellationToken)
+      var migratePositions = new ChangeProcessor(logger, loggerSymbolTable, changes, cancellationToken)
         .MigratePositions(originalPositions);
       return migratePositions;
     }
@@ -61,24 +61,24 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
 
       private readonly ILogger logger;
       // Invariant: Item1.Range == null <==> Item2 == null 
-      private readonly List<TextDocumentContentChangeEvent> contentChanges;
+      private readonly DidChangeTextDocumentParams changeParams;
       private readonly CancellationToken cancellationToken;
       private readonly ILogger<SignatureAndCompletionTable> loggerSymbolTable;
 
       public ChangeProcessor(
         ILogger logger,
         ILogger<SignatureAndCompletionTable> loggerSymbolTable,
-        Container<TextDocumentContentChangeEvent> contentChanges,
+        DidChangeTextDocumentParams changeParams,
         CancellationToken cancellationToken
       ) {
         this.logger = logger;
-        this.contentChanges = contentChanges.ToList();
+        this.changeParams = changeParams;
         this.cancellationToken = cancellationToken;
         this.loggerSymbolTable = loggerSymbolTable;
       }
 
       public Position MigratePosition(Position position) {
-        return contentChanges.Aggregate(position, (partiallyMigratedPosition, change) => {
+        return changeParams.ContentChanges.Aggregate(position, (partiallyMigratedPosition, change) => {
           if (change.Range == null) {
             return partiallyMigratedPosition;
           }
@@ -88,16 +88,16 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
       }
 
       public Range? MigrateRange(Range range) {
-        return contentChanges.Aggregate<TextDocumentContentChangeEvent, Range?>(range,
+        return changeParams.ContentChanges.Aggregate<TextDocumentContentChangeEvent, Range?>(range,
           (intermediateRange, change) => intermediateRange == null ? null : MigrateRange(intermediateRange, change));
       }
 
       public IReadOnlyList<Diagnostic> MigrateDiagnostics(IReadOnlyList<Diagnostic> originalDiagnostics) {
-        return contentChanges.Aggregate(originalDiagnostics, MigrateDiagnostics);
+        return changeParams.ContentChanges.Aggregate(originalDiagnostics, MigrateDiagnostics);
       }
 
       public ImmutableList<Position> MigratePositions(ImmutableList<Position> originalRanges) {
-        return contentChanges.Aggregate(originalRanges, MigratePositions);
+        return changeParams.ContentChanges.Aggregate(originalRanges, MigratePositions);
       }
 
       private IReadOnlyList<Diagnostic> MigrateDiagnostics(IReadOnlyList<Diagnostic> originalDiagnostics, TextDocumentContentChangeEvent change) {
@@ -160,14 +160,14 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
       public SignatureAndCompletionTable MigrateSymbolTable(SignatureAndCompletionTable originalSymbolTable) {
         var migratedLookupTree = originalSymbolTable.LookupTree;
         var migratedDeclarations = originalSymbolTable.Locations;
-        foreach (var change in contentChanges) {
+        foreach (var change in changeParams.ContentChanges) {
           cancellationToken.ThrowIfCancellationRequested();
           if (change.Range == null) {
             migratedLookupTree = new IntervalTree<Position, ILocalizableSymbol>();
           } else {
             migratedLookupTree = ApplyLookupTreeChange(migratedLookupTree, change);
           }
-          migratedDeclarations = ApplyDeclarationsChange(originalSymbolTable, migratedDeclarations, change.Range, GetPositionAtEndOfAppliedChange(change));
+          migratedDeclarations = ApplyDeclarationsChange(originalSymbolTable, migratedDeclarations, change, GetPositionAtEndOfAppliedChange(change));
         }
         logger.LogTrace("migrated the lookup tree, lookup before={SymbolsBefore}, after={SymbolsAfter}",
           originalSymbolTable.LookupTree.Count, migratedLookupTree.Count);
@@ -298,20 +298,20 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
       private IDictionary<ISymbol, SymbolLocation> ApplyDeclarationsChange(
         SignatureAndCompletionTable originalSymbolTable,
         IDictionary<ISymbol, SymbolLocation> previousDeclarations,
-        Range? changeRange,
+        TextDocumentContentChangeEvent changeRange,
         Position? afterChangeEndOffset
       ) {
         var migratedDeclarations = new Dictionary<ISymbol, SymbolLocation>();
         foreach (var (symbol, location) in previousDeclarations) {
           cancellationToken.ThrowIfCancellationRequested();
-          if (!originalSymbolTable.CompilationUnit.Program.IsEntryDocument(location.Uri)) {
+          if (location.Uri != changeParams.TextDocument.Uri.ToUri()) {
             migratedDeclarations.Add(symbol, location);
             continue;
           }
-          if (changeRange == null || afterChangeEndOffset == null) {
+          if (changeRange.Range == null || afterChangeEndOffset == null) {
             continue;
           }
-          var newLocation = ComputeNewSymbolLocation(location, changeRange, afterChangeEndOffset);
+          var newLocation = ComputeNewSymbolLocation(location, changeRange.Range, afterChangeEndOffset);
           if (newLocation != null) {
             migratedDeclarations.Add(symbol, newLocation);
           }
@@ -353,7 +353,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
       }
 
       public IEnumerable<VerificationTree> MigrateVerificationTrees(IEnumerable<VerificationTree> originalDiagnostics) {
-        return contentChanges.Aggregate(originalDiagnostics, MigrateVerificationTrees);
+        return changeParams.ContentChanges.Aggregate(originalDiagnostics, MigrateVerificationTrees);
       }
       private IEnumerable<VerificationTree> MigrateVerificationTrees(IEnumerable<VerificationTree> verificationTrees, TextDocumentContentChangeEvent change) {
         if (change.Range == null) {
