@@ -6,7 +6,7 @@ See [docs/dev/news/](docs/dev/news/).
 
 ## New features
 
-- the --show-snippets options is implemented for errors printed to the console (https://github.com/dafny-lang/dafny/pull/3304)
+- The --show-snippets options is implemented for errors printed to the console (https://github.com/dafny-lang/dafny/pull/3304)
 
 - * {:error} now accepts success messages
   * Better hover messages when using the IDE
@@ -17,22 +17,19 @@ See [docs/dev/news/](docs/dev/news/).
 
 - Allow the Dafny IDE to publish 'Parsing' and 'Preparing Verification' messages to let the user better understand what they're waiting for. (https://github.com/dafny-lang/dafny/pull/4031)
 
-- removed obsolete options /mimicVerificationOf, /allowGlobals (https://github.com/dafny-lang/dafny/pull/4062)
+- Removed obsolete options /mimicVerificationOf, /allowGlobals (https://github.com/dafny-lang/dafny/pull/4062)
 
 - Allow the `{:only}` attribute to be used on members in addition to `assert` statements (https://github.com/dafny-lang/dafny/pull/4074)
 
-- the obsolete and unsound option /allocated is removed; the behavior of dafny is locked to the case of /allocated:4. (https://github.com/dafny-lang/dafny/pull/4076)
+- The obsolete and unsound option /allocated is removed; the behavior of dafny is locked to the case of /allocated:4. (https://github.com/dafny-lang/dafny/pull/4076)
 
 - When using the Dafny CLI, error messages of the form "the included file <filename> contains error(s)" are no longer reported, since the actual errors for these included files are shown as well. When using the Dafny server, errors like these are still shown, since the Dafny server only shows errors for currently opened files. In addition, such errors are now also shown for files that are indirectly included by an opened file. (https://github.com/dafny-lang/dafny/pull/4083)
 
 - When using the Dafny IDE, parsing is now cached in order to improve performance when making changes in multi-file projects. (https://github.com/dafny-lang/dafny/pull/4085)
 
-- errors issued in command-line mode now show source code context by default; this behavior can be disabled using the option --show-snippets:false. (https://github.com/dafny-lang/dafny/pull/4087)
+- Errors issued in command-line mode now show source code context by default; this behavior can be disabled using the option --show-snippets:false. (https://github.com/dafny-lang/dafny/pull/4087)
 
 - Reduced resolution time by up to 50%. Measurements on large codebases show a 35% average reduction in resolution time.
-
-  Dafny modules translated to other languages no longer contain the suffix '_Compile' in their name, which removes the need of adding {:extern <pinnedName>} to modules to pin their name.
-  (https://github.com/dafny-lang/dafny/pull/4136)
 
 - After generating Python code we run the byte-code compiler to surface possible issues earlier, if it's not subsequently run. (https://github.com/dafny-lang/dafny/pull/4155)
 
