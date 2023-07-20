@@ -2470,7 +2470,7 @@ namespace Microsoft.Dafny.Compilers {
       return Attributes.Contains(decl.Attributes, CapitalizationConflictAttribute);
     }
 
-    private static string CapitalizationConflictAttribute = "_capitalizationConflict";
+    private static readonly string CapitalizationConflictAttribute = "_capitalizationConflict";
 
     private void CompileFunction(Function f, IClassWriter cw, bool lookasideBody) {
       Contract.Requires(f != null);
