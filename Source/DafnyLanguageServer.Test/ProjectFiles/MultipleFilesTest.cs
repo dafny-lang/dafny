@@ -43,10 +43,11 @@ method Bar() {
 
     var diagnostics1 = await diagnosticsReceiver.AwaitNextNotificationAsync(CancellationToken);
     var diagnostics2 = await diagnosticsReceiver.AwaitNextNotificationAsync(CancellationToken);
+    var diagnostics = new[] { diagnostics1, diagnostics2 };
     Assert.Single(diagnostics1.Diagnostics);
-    Assert.Contains("char", diagnostics1.Diagnostics.First().Message);
     Assert.Single(diagnostics2.Diagnostics);
-    Assert.Contains("int", diagnostics2.Diagnostics.First().Message);
+    Assert.Contains(diagnostics, d => d.Diagnostics.First().Message.Contains("char"));
+    Assert.Contains(diagnostics, d => d.Diagnostics.First().Message.Contains("int"));
   }
 
   [Fact]
