@@ -38,7 +38,7 @@ method Bar() {
     var directory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
     Directory.CreateDirectory(directory);
     await File.WriteAllTextAsync(Path.Combine(directory, "producer.dfy"), producerSource);
-    await CreateAndOpenTestDocument("", Path.Combine(directory, DafnyProject.FileName));
+    await File.WriteAllTextAsync(Path.Combine(directory, DafnyProject.FileName), "");
     await CreateAndOpenTestDocument(consumerSource, Path.Combine(directory, "src/consumer1.dfy"));
 
     var diagnostics1 = await diagnosticsReceiver.AwaitNextNotificationAsync(CancellationToken);
