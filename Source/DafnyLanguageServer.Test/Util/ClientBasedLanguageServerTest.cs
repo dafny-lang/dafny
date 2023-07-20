@@ -99,8 +99,6 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
 
   public record Change(Range range, String inserted);
 
-  public record Changes(List<Change> changes);
-
   protected void ApplyChange(ref TextDocumentItem documentItem, Range range, string text) {
     documentItem = documentItem with { Version = documentItem.Version + 1 };
     client.DidChangeTextDocument(new DidChangeTextDocumentParams {
