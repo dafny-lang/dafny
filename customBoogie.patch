@@ -62,7 +62,16 @@ index 4a8b2f89b..a308be9bf 100644
        <PackageReference Include="System.Runtime.Numerics" Version="4.3.0" />
        <PackageReference Include="System.Collections.Immutable" Version="1.7.0" />
 -      <PackageReference Include="Boogie.ExecutionEngine" Version="3.0.0" />
-+      <ProjectReference Include="..\..\boogie\Source\ExecutionEngine\ExecutionEngine.csproj" />
++     <ProjectReference Include="..\..\boogie\Source\BaseTypes\BaseTypes.csproj" />
++     <ProjectReference Include="..\..\boogie\Source\Concurrency\Concurrency.csproj" />
++     <ProjectReference Include="..\..\boogie\Source\CodeContractsExtender\CodeContractsExtender.csproj" />
++     <ProjectReference Include="..\..\boogie\Source\Core\Core.csproj" />
++     <ProjectReference Include="..\..\boogie\Source\ExecutionEngine\ExecutionEngine.csproj" />
++     <ProjectReference Include="..\..\boogie\Source\Graph\Graph.csproj" />
++     <ProjectReference Include="..\..\boogie\Source\Houdini\Houdini.csproj" />
++     <ProjectReference Include="..\..\boogie\Source\Model\Model.csproj" />
++     <ProjectReference Include="..\..\boogie\Source\Provers\SMTLib\SMTLib.csproj" />
++     <ProjectReference Include="..\..\boogie\Source\VCGeneration\VCGeneration.csproj" />
        <PackageReference Include="Tomlyn" Version="0.16.2" />
    </ItemGroup>
  

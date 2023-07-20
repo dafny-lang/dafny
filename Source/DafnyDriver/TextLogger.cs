@@ -9,8 +9,10 @@ namespace Microsoft.Dafny;
 public class TextLogger {
   private TextWriter tw;
   private TextWriter outWriter;
+  private Translator.ProofDependencyManager depManager;
 
-  public TextLogger(TextWriter outWriter) {
+  public TextLogger(Translator.ProofDependencyManager depManager, TextWriter outWriter) {
+    this.depManager = depManager;
     this.outWriter = outWriter;
   }
 
@@ -41,7 +43,16 @@ public class TextLogger {
         tw.WriteLine("    Assertions:");
         foreach (var cmd in vcResult.asserts) {
           tw.WriteLine(
-            $"      {((IToken)cmd.tok).Filepath}({cmd.tok.line},{cmd.tok.col}): {cmd.Description.SuccessDescription}");
+            $"      {((IToken)cmd.tok).filename}({cmd.tok.line},{cmd.tok.col}): {cmd.Description.SuccessDescription}");
+        }
+
+        if (vcResult.coveredElements.Any()) {
+          tw.WriteLine("");
+          tw.WriteLine("    Proof dependencies:");
+          foreach (var depId in vcResult.coveredElements) {
+            var dep = depManager.GetFullIdDependency(depId);
+            tw.WriteLine($"      {dep.LocationString()}: {dep.Description}");
+          }
         }
 
       }

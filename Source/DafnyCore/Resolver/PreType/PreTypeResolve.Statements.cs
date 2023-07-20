@@ -13,7 +13,6 @@ using System.Numerics;
 using System.Diagnostics.Contracts;
 using System.Runtime.Intrinsics.X86;
 using JetBrains.Annotations;
-using Microsoft.Boogie;
 using Bpl = Microsoft.Boogie;
 using ResolutionContext = Microsoft.Dafny.ResolutionContext;
 

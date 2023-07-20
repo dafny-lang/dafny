@@ -154,7 +154,7 @@ namespace Microsoft.Dafny {
               CheckWellformedAndAssume(e.E0, wfOptions, locals, bAnd, etran);
               CheckWellformedAndAssume(e.E1, wfOptions, locals, bAnd, etran);
               var bImp = new BoogieStmtListBuilder(this, options);
-              bImp.Add(TrAssumeCmd(expr.tok, etran.TrExpr(expr)));
+              bImp.Add(TrAssumeCmdWithDependencies(etran, expr.tok, expr));
               builder.Add(new Bpl.IfCmd(expr.tok, null, bAnd.Collect(expr.tok), null, bImp.Collect(expr.tok)));
             }
             return;
@@ -168,7 +168,7 @@ namespace Microsoft.Dafny {
               var b0 = new BoogieStmtListBuilder(this, options);
               CheckWellformedAndAssume(e.E0, wfOptions, locals, b0, etran);
               var b1 = new BoogieStmtListBuilder(this, options);
-              b1.Add(TrAssumeCmd(expr.tok, Bpl.Expr.Not(etran.TrExpr(e.E0))));
+              b1.Add(TrAssumeCmd(expr.tok, Bpl.Expr.Not(etran.TrExpr(e.E0)))); // TODO: dependencies
               CheckWellformedAndAssume(e.E1, wfOptions, locals, b1, etran);
               builder.Add(new Bpl.IfCmd(expr.tok, null, b0.Collect(expr.tok), null, b1.Collect(expr.tok)));
             }
@@ -189,7 +189,7 @@ namespace Microsoft.Dafny {
         CheckWellformedAndAssume(e.Test, wfOptions, locals, bThn, etran);
         CheckWellformedAndAssume(e.Thn, wfOptions, locals, bThn, etran);
         var bEls = new BoogieStmtListBuilder(this, options);
-        bEls.Add(TrAssumeCmd(expr.tok, Bpl.Expr.Not(etran.TrExpr(e.Test))));
+        bEls.Add(TrAssumeCmd(expr.tok, Bpl.Expr.Not(etran.TrExpr(e.Test)))); // TODO: dependencies
         CheckWellformedAndAssume(e.Els, wfOptions, locals, bEls, etran);
         builder.Add(new Bpl.IfCmd(expr.tok, null, bThn.Collect(expr.tok), null, bEls.Collect(expr.tok)));
         return;
@@ -210,7 +210,7 @@ namespace Microsoft.Dafny {
         if (e is ForallExpr) {
           // Although we do the WF check on the original quantifier, we assume the split one.
           // This ensures that cases like forall x :: x != null && f(x.a) do not fail to verify.
-          builder.Add(TrAssumeCmd(expr.tok, etran.TrExpr(e.SplitQuantifierExpression ?? e)));
+          builder.Add(TrAssumeCmdWithDependencies(etran, expr.tok, e.SplitQuantifierExpression ?? e));
         }
         return;
       }
@@ -222,7 +222,7 @@ namespace Microsoft.Dafny {
       //       the splitting and proceeded to decompose the full quantifier as
       //       normal. This call to TrExpr, on the other hand, will indeed use the
       //       split quantifier.
-      builder.Add(TrAssumeCmd(expr.tok, etran.TrExpr(expr)));
+      builder.Add(TrAssumeCmdWithDependencies(etran, expr.tok, expr));
     }
 
     /// <summary>
@@ -705,9 +705,9 @@ namespace Microsoft.Dafny {
                     var desc = new PODesc.PreconditionSatisfied(errorMessage, successMessage);
                     if (wfOptions.AssertKv != null) {
                       // use the given assert attribute only
-                      builder.Add(Assert(tok, ss.E, new PODesc.PreconditionSatisfied(errorMessage, successMessage), wfOptions.AssertKv));
+                      builder.Add(Assert(tok, ss.E, desc, wfOptions.AssertKv));
                     } else {
-                      builder.Add(AssertNS(tok, ss.E, new PODesc.PreconditionSatisfied(errorMessage, successMessage)));
+                      builder.Add(AssertNS(tok, ss.E, desc));
                     }
                   }
                 }

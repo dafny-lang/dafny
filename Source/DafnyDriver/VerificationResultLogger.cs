@@ -27,7 +27,7 @@ namespace Microsoft.Dafny {
 
     public static TestProperty ResourceCountProperty = TestProperty.Register("TestResult.ResourceCount", "TestResult.ResourceCount", typeof(int), typeof(TestResult));
 
-    public static void RaiseTestLoggerEvents(DafnyOptions options) {
+    public static void RaiseTestLoggerEvents(DafnyOptions options, Translator.ProofDependencyManager depManager) {
       var loggerConfigs = options.VerificationLoggerConfigs;
       // Provide just enough configuration for the loggers to work
       var parameters = new Dictionary<string, string> {
@@ -63,7 +63,7 @@ namespace Microsoft.Dafny {
         } else if (loggerName == "text") {
           // This logger doesn't implement the ITestLogger interface because
           // it uses information that's tricky to encode in a TestResult.
-          var textLogger = new TextLogger(options.OutputWriter);
+          var textLogger = new TextLogger(depManager, options.OutputWriter);
           textLogger.Initialize(parameters);
           textLogger.LogResults(verificationResults);
           return;

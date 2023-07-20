@@ -21,6 +21,7 @@ using System.Threading;
 using Microsoft.Boogie;
 using static Microsoft.Dafny.Util;
 using Core;
+using DafnyCore.Verifier;
 using Microsoft.BaseTypes;
 using Microsoft.Dafny.Triggers;
 using Action = System.Action;
@@ -43,7 +44,7 @@ namespace Microsoft.Dafny {
         case null:
           break;
         case Boogie.Function boogieFunction:
-          boogieFunction.AddOtherDefinitionAxiom(axiom);
+          boogieFunction.OtherDefinitionAxioms.Add(axiom);
           break;
         case Boogie.Constant boogieConstant:
           boogieConstant.DefinitionAxioms.Add(axiom);
@@ -65,9 +66,10 @@ namespace Microsoft.Dafny {
     }
 
     [NotDelayed]
-    public Translator(ErrorReporter reporter, TranslatorFlags flags = null) {
+    public Translator(ErrorReporter reporter, ProofDependencyManager depManager, TranslatorFlags flags = null) {
       this.options = reporter.Options;
       this.flags = new TranslatorFlags(options);
+      this.proofDependencies = depManager;
       triggersCollector = new Triggers.TriggersCollector(new Dictionary<Expression, HashSet<OldExpr>>(), options);
       this.reporter = reporter;
       if (flags == null) {
@@ -95,7 +97,6 @@ namespace Microsoft.Dafny {
       verificationScope.Augment(currentScope);
 
       currentScope.Augment(systemModule.VisibilityScope);
-
       foreach (var decl in m.TopLevelDecls) {
         if (decl is ModuleDecl && !(decl is ModuleExportDecl)) {
           var mdecl = (ModuleDecl)decl;
@@ -115,6 +116,56 @@ namespace Microsoft.Dafny {
     readonly Dictionary<Field/*!*/, Bpl.Function/*!*/>/*!*/ fieldFunctions = new Dictionary<Field/*!*/, Bpl.Function/*!*/>();
     readonly Dictionary<string, Bpl.Constant> fieldConstants = new Dictionary<string, Constant>();
     readonly Dictionary<string, Bpl.Constant> tytagConstants = new Dictionary<string, Constant>();
+
+    public class ProofDependencyManager {
+      // proof dependency tracking state
+      public Dictionary<string, ProofDependency> ProofDependenciesById { get; } = new();
+      private UInt64 proofDependencyIdCount = 0;
+
+      public string GetProofDependencyId(ProofDependency dep) {
+        // TODO: track whether we've seen this node before
+        var idString = $"id{proofDependencyIdCount}";
+        ProofDependenciesById[idString] = dep;
+        proofDependencyIdCount++;
+        return idString;
+      }
+
+      public void AddProofDependencyId(ICarriesAttributes boogieNode, IToken tok, ProofDependency dep) {
+        var idString = GetProofDependencyId(dep);
+        boogieNode.Attributes =
+          new QKeyValue(tok, "id", new List<object>() { idString }, boogieNode.Attributes);
+      }
+
+      // Get the full ProofDependency indicated by a compound ID string.
+      public ProofDependency GetFullIdDependency(string idString) {
+        var parts = idString.Split('$');
+        if (idString.EndsWith("$requires") && parts.Length == 3) {
+          var reqId = ProofDependenciesById[parts[0]];
+          var callId = ProofDependenciesById[parts[1]];
+          return new CallRequiresDependency((CallDependency)callId, (RequiresDependency)reqId);
+        } else if (idString.EndsWith("$requires_assumed") && parts.Length == 3) {
+          var reqId = ProofDependenciesById[parts[0]];
+          var callId = ProofDependenciesById[parts[1]];
+          return new CallRequiresDependency((CallDependency)callId, (RequiresDependency)reqId);
+        } else if (idString.EndsWith("$ensures") && parts.Length == 3) {
+          var ensId = ProofDependenciesById[parts[0]];
+          var callId = ProofDependenciesById[parts[1]];
+          return new CallEnsuresDependency((CallDependency)callId, (EnsuresDependency)ensId);
+        } else if (idString.EndsWith("$established") && parts.Length == 2) {
+          return ProofDependenciesById[parts[0]];
+        } else if (idString.EndsWith("$maintained") && parts.Length == 2) {
+          return ProofDependenciesById[parts[0]];
+        } else if (idString.EndsWith("$assume_in_body") && parts.Length == 2) {
+          return ProofDependenciesById[parts[0]];
+        } else if (parts.Length > 1) {
+          throw new ArgumentException($"Malformed dependency ID string: {idString}");
+        } else {
+          return ProofDependenciesById[idString];
+        }
+      }
+    }
+
+    private ProofDependencyManager proofDependencies;
 
     // optimizing translation
     readonly ISet<MemberDecl> referencedMembers = new HashSet<MemberDecl>();
@@ -203,7 +254,7 @@ namespace Microsoft.Dafny {
     private bool InsertChecksums { get { return flags.InsertChecksums; } }
     private string UniqueIdPrefix { get { return flags.UniqueIdPrefix; } }
 
-    internal class PredefinedDecls {
+    public class PredefinedDecls {
       public readonly Bpl.Type CharType;
       public readonly Bpl.Type RefType;
       public readonly Bpl.Type BoxType;
@@ -877,7 +928,7 @@ namespace Microsoft.Dafny {
       Type.ResetScopes();
 
       foreach (ModuleDefinition outerModule in VerifiableModules(p)) {
-        var translator = new Translator(reporter, flags);
+        var translator = new Translator(reporter, p.ProofDependencyManager, flags);
 
         if (translator.sink == null || translator.sink == null) {
           // something went wrong during construction, which reads the prelude; an error has
@@ -1726,7 +1777,7 @@ namespace Microsoft.Dafny {
 
       // Next, we assume about this.* whatever we said that the iterator constructor promises
       foreach (var p in iter.Member_Init.Ens) {
-        builder.Add(TrAssumeCmd(p.E.tok, etran.TrExpr(p.E)));
+        builder.Add(TrAssumeCmdWithDependencies(etran, p.E.tok, p.E));
       }
 
       // play havoc with the heap, except at the locations prescribed by (this._reads - this._modifies - {this})
@@ -1859,12 +1910,12 @@ namespace Microsoft.Dafny {
           // don't include this precondition here
           Contract.Assert(p.Label.E != null);  // it should already have been recorded
         } else {
-          builder.Add(TrAssumeCmd(p.E.tok, etran.TrExpr(p.E)));
+          builder.Add(TrAssumeCmdWithDependencies(etran, p.E.tok, p.E));
         }
       }
       foreach (var p in iter.Member_Init.Ens) {
         // these postconditions are two-state predicates, but that's okay, because we haven't changed anything yet
-        builder.Add(TrAssumeCmd(p.E.tok, etran.TrExpr(p.E)));
+        builder.Add(TrAssumeCmdWithDependencies(etran, p.E.tok, p.E));
       }
       // add the _yieldCount variable, and assume its initial value to be 0
       yieldCountVariable = new Bpl.LocalVariable(iter.tok,
@@ -3606,7 +3657,7 @@ namespace Microsoft.Dafny {
 
       //generating class post-conditions
       foreach (var en in f.Ens) {
-        builder.Add(TrAssumeCmd(f.tok, etran.TrExpr(en.E)));
+        builder.Add(TrAssumeCmdWithDependencies(etran, f.tok, en.E));
       }
 
       //generating assume C.F(ins) == out, if a result variable was given
@@ -3742,7 +3793,7 @@ namespace Microsoft.Dafny {
       FunctionCallSubstituter sub = null;
       foreach (var req in f.OverriddenFunction.Req) {
         sub ??= new FunctionCallSubstituter(substMap, typeMap, (TraitDecl)f.OverriddenFunction.EnclosingClass, (ClassLikeDecl)f.EnclosingClass);
-        builder.Add(TrAssumeCmd(f.tok, etran.TrExpr(sub.Substitute(req.E))));
+        builder.Add(TrAssumeCmdWithDependencies(etran, f.tok, sub.Substitute(req.E)));
       }
       //generating class pre-conditions
       foreach (var s in f.Req.SelectMany(req => TrSplitExpr(req.E, etran, false, out _).Where(s => s.IsChecked))) {
@@ -4312,7 +4363,7 @@ namespace Microsoft.Dafny {
         var (errorMessage, successMessage) = CustomErrorMessage(p.Attributes);
         foreach (var s in splits) {
           if (s.IsChecked && !RefinementToken.IsInherited(s.Tok, currentModule)) {
-            AddEnsures(ens, Ensures(s.Tok, false, s.E, errorMessage, successMessage, null));
+            AddEnsures(ens, EnsuresWithCoverage(s.Tok, false, p.E, s.E, errorMessage, successMessage, null));
           }
         }
       }
@@ -7367,7 +7418,9 @@ namespace Microsoft.Dafny {
     }
 
     Bpl.PredicateCmd Assert(IToken tok, Bpl.Expr condition, PODesc.ProofObligationDescription description, Bpl.QKeyValue kv = null) {
-      return Assert(tok, condition, description, tok, kv);
+      var cmd = Assert(tok, condition, description, tok, kv);
+      proofDependencies.AddProofDependencyId(cmd, tok, new ProofObligationDependency(tok, description));
+      return cmd;
     }
 
     Bpl.PredicateCmd Assert(IToken tok, Bpl.Expr condition, PODesc.ProofObligationDescription description, IToken refinesToken, Bpl.QKeyValue kv = null) {
@@ -7375,15 +7428,17 @@ namespace Microsoft.Dafny {
       Contract.Requires(condition != null);
       Contract.Ensures(Contract.Result<Bpl.PredicateCmd>() != null);
 
+      Bpl.PredicateCmd cmd;
       if (assertAsAssume
           || (assertionOnlyFilter != null && !assertionOnlyFilter(tok))
           || (RefinementToken.IsInherited(refinesToken, currentModule) && (codeContext == null || !codeContext.MustReverify))) {
         // produce an assume instead
-        return TrAssumeCmd(tok, condition, kv);
+        cmd = TrAssumeCmd(tok, condition, kv);
       } else {
-        var cmd = TrAssertCmdDesc(ForceCheckToken.Unwrap(tok), condition, description, kv);
-        return cmd;
+        cmd = TrAssertCmdDesc(ForceCheckToken.Unwrap(tok), condition, description, kv);
       }
+      proofDependencies.AddProofDependencyId(cmd, tok, new ProofObligationDependency(tok, description));
+      return cmd;
     }
 
     Bpl.PredicateCmd AssertNS(IToken tok, Bpl.Expr condition, PODesc.ProofObligationDescription desc) {
@@ -7396,17 +7451,30 @@ namespace Microsoft.Dafny {
       Contract.Requires(condition != null);
       Contract.Ensures(Contract.Result<Bpl.PredicateCmd>() != null);
 
+      Bpl.PredicateCmd cmd;
       if ((assertionOnlyFilter != null && !assertionOnlyFilter(tok)) ||
           (RefinementToken.IsInherited(refinesTok, currentModule) && (codeContext == null || !codeContext.MustReverify))) {
         // produce a "skip" instead
-        return TrAssumeCmd(tok, Bpl.Expr.True, kv);
+        cmd = TrAssumeCmd(tok, Bpl.Expr.True, kv);
       } else {
         tok = ForceCheckToken.Unwrap(tok);
         var args = new List<object>();
         args.Add(Bpl.Expr.Literal(0));
-        Bpl.AssertCmd cmd = TrAssertCmdDesc(tok, condition, desc, new Bpl.QKeyValue(tok, "subsumption", args, kv));
-        return cmd;
+        cmd = TrAssertCmdDesc(tok, condition, desc, new Bpl.QKeyValue(tok, "subsumption", args, kv));
       }
+
+      proofDependencies.AddProofDependencyId(cmd, tok, new ProofObligationDependency(tok, desc));
+      return cmd;
+    }
+
+    Bpl.Ensures EnsuresWithCoverage(IToken tok, bool free, Expression dafnyCondition, Bpl.Expr condition, string errorMessage, string successMessage, string comment) {
+      Contract.Requires(tok != null);
+      Contract.Requires(dafnyCondition != null);
+      Contract.Ensures(Contract.Result<Bpl.Ensures>() != null);
+
+      var ens = Ensures(tok, free, condition, errorMessage, successMessage, comment);
+      proofDependencies.AddProofDependencyId(ens, tok, new EnsuresDependency(dafnyCondition));
+      return ens;
     }
 
     Bpl.Ensures Ensures(IToken tok, bool free, Bpl.Expr condition, string errorMessage, string successMessage, string comment) {
@@ -7417,6 +7485,16 @@ namespace Microsoft.Dafny {
       Bpl.Ensures ens = new Bpl.Ensures(ForceCheckToken.Unwrap(tok), free, condition, comment);
       ens.Description = new PODesc.EnsuresDescription(errorMessage, successMessage);
       return ens;
+    }
+
+    Bpl.Requires RequiresWithCoverage(IToken tok, bool free, Expression dafnyCondition, Bpl.Expr condition, string errorMessage, string successMessage, string comment) {
+      Contract.Requires(tok != null);
+      Contract.Requires(dafnyCondition != null);
+      Contract.Ensures(Contract.Result<Bpl.Ensures>() != null);
+
+      var req = Requires(tok, free, condition, errorMessage, successMessage, comment);
+      proofDependencies.AddProofDependencyId(req, tok, new RequiresDependency(dafnyCondition));
+      return req;
     }
 
     Bpl.Requires Requires(IToken tok, bool free, Bpl.Expr condition, string errorMessage, string successMessage, string comment) {

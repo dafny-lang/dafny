@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
-using Microsoft.Boogie;
 using System.Text.RegularExpressions;
 using static Microsoft.Dafny.RewriterErrors;
 

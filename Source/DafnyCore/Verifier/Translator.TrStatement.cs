@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
+using DafnyCore.Verifier;
 using Microsoft.Boogie;
 using Bpl = Microsoft.Boogie;
 using BplParser = Microsoft.Boogie.Parser;
@@ -110,7 +111,7 @@ namespace Microsoft.Dafny {
               builder.Add(AssertNS(yieldToken, split.E, desc, stmt.Tok, null));
             }
           }
-          builder.Add(TrAssumeCmd(stmt.Tok, yeEtran.TrExpr(p.E)));
+          builder.Add(TrAssumeCmdWithDependencies(yeEtran, stmt.Tok, p.E));
         }
         YieldHavoc(iter.tok, iter, builder, etran);
         builder.AddCaptureState(s);
@@ -205,7 +206,7 @@ namespace Microsoft.Dafny {
         builder.Add(new Bpl.HavocCmd(s.Tok, bHavocLHSs));
 
         // End by doing the assume
-        builder.Add(TrAssumeCmd(s.Tok, etran.TrExpr(s.Expr)));
+        builder.Add(TrAssumeCmdWithDependencies(etran, s.Tok, s.Expr));
         builder.AddCaptureState(s);  // just do one capture state--here, at the very end (that is, don't do one before the assume)
 
       } else if (stmt is UpdateStmt) {
@@ -594,7 +595,7 @@ namespace Microsoft.Dafny {
             // Adding the assume stmt, resetting the stmtContext
             stmtContext = StmtType.ASSUME;
             adjustFuelForExists = true;
-            b.Add(TrAssumeCmd(stmt.Tok, etran.TrExpr(stmt.Expr)));
+            b.Add(TrAssumeCmdWithDependencies(etran, stmt.Tok, stmt.Expr));
             stmtContext = StmtType.NONE;
           }
         }
@@ -605,7 +606,7 @@ namespace Microsoft.Dafny {
           // Adding the assume stmt, resetting the stmtContext
           stmtContext = StmtType.ASSUME;
           adjustFuelForExists = true;
-          builder.Add(TrAssumeCmd(stmt.Tok, etran.TrExpr(stmt.Expr)));
+          builder.Add(TrAssumeCmdWithDependencies(etran, stmt.Tok, stmt.Expr));
           stmtContext = StmtType.NONE;
         }
       } else if (stmt is ExpectStmt) {
@@ -633,7 +634,7 @@ namespace Microsoft.Dafny {
         var s = (AssumeStmt)stmt;
         stmtContext = StmtType.ASSUME;
         TrStmt_CheckWellformed(s.Expr, builder, locals, etran, false);
-        builder.Add(TrAssumeCmd(stmt.Tok, etran.TrExpr(s.Expr), etran.TrAttributes(stmt.Attributes, null)));
+        builder.Add(TrAssumeCmdWithDependencies(etran, stmt.Tok, s.Expr, etran.TrAttributes(stmt.Attributes, null)));
         stmtContext = StmtType.NONE; // done with translating assume stmt.
       }
       this.fuelContext = FuelSetting.PopFuelContext();
@@ -688,7 +689,7 @@ namespace Microsoft.Dafny {
           if (stmt.Steps[i] is BinaryExpr && (((BinaryExpr)stmt.Steps[i]).ResolvedOp == BinaryExpr.ResolvedOpcode.Imp)) {
             // assume line<i>:
             AddComment(b, stmt, "assume lhs");
-            b.Add(TrAssumeCmd(stmt.Tok, etran.TrExpr(CalcStmt.Lhs(stmt.Steps[i]))));
+            b.Add(TrAssumeCmdWithDependencies(etran, stmt.Tok, CalcStmt.Lhs(stmt.Steps[i])));
           }
           // hint:
           AddComment(b, stmt, "Hint" + i.ToString());
@@ -734,7 +735,7 @@ namespace Microsoft.Dafny {
         builder.Add(ifCmd);
         // assume result:
         if (stmt.Steps.Count > 1) {
-          builder.Add(TrAssumeCmd(stmt.Tok, etran.TrExpr(stmt.Result)));
+          builder.Add(TrAssumeCmdWithDependencies(etran, stmt.Tok, stmt.Result));
         }
       }
       CurrentIdGenerator.Pop();
@@ -1611,7 +1612,7 @@ namespace Microsoft.Dafny {
           var exists = (ExistsExpr)alternative.Guard;  // the original (that is, not alpha-renamed) guard
           IntroduceAndAssignExistentialVars(exists, b, builder, locals, etran, isGhost);
         } else {
-          b.Add(new AssumeCmd(alternative.Guard.tok, etran.TrExpr(alternative.Guard)));
+          b.Add(TrAssumeCmdWithDependencies(etran, alternative.Guard.tok, alternative.Guard));
         }
         var prevDefiniteAssignmentTrackerCount = definiteAssignmentTrackers.Count;
         TrStmtList(alternative.Body, b, locals, etran);
@@ -1667,7 +1668,7 @@ namespace Microsoft.Dafny {
         builder.Add(Bpl.Cmd.SimpleAssign(s.Tok, initHeap, etran.HeapExpr));
       }
       builder.Add(new CommentCmd("TrCallStmt: Before ProcessCallStmt"));
-      ProcessCallStmt(GetToken(s), tySubst, GetTypeParams(s.Method), s.Receiver, actualReceiver, s.Method, s.MethodSelect.AtLabel, s.Args, bLhss, lhsTypes, builder, locals, etran);
+      ProcessCallStmt(s, tySubst, actualReceiver, bLhss, lhsTypes, builder, locals, etran);
       builder.Add(new CommentCmd("TrCallStmt: After ProcessCallStmt"));
       for (int i = 0; i < lhsBuilders.Count; i++) {
         var lhs = s.Lhs[i];
@@ -1707,32 +1708,28 @@ namespace Microsoft.Dafny {
       builder.AddCaptureState(s);
     }
 
-    void ProcessCallStmt(IToken tok,
-      Dictionary<TypeParameter, Type> tySubst, List<TypeParameter> tyArgs,
-      Expression dafnyReceiver, Bpl.Expr bReceiver,
-      Method method, Label/*?*/ atLabel, List<Expression> Args,
+    void ProcessCallStmt(CallStmt cs, Dictionary<TypeParameter, Type> tySubst, Bpl.Expr bReceiver,
       List<Bpl.IdentifierExpr> Lhss, List<Type> LhsTypes,
       BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran) {
 
-      Contract.Requires(tok != null);
-      Contract.Requires(dafnyReceiver != null || bReceiver != null);
-      Contract.Requires(method != null);
-      Contract.Requires(VisibleInScope(method));
-      Contract.Requires(method is TwoStateLemma || atLabel == null);
-      Contract.Requires(Args != null);
+      Contract.Requires(cs != null);
       Contract.Requires(Lhss != null);
       Contract.Requires(LhsTypes != null);
       // Note, a Dafny class constructor is declared to have no output parameters, but it is encoded in Boogie as
       // having an output parameter.
-      Contract.Requires(method is Constructor || method.Outs.Count == Lhss.Count);
-      Contract.Requires(method is Constructor || method.Outs.Count == LhsTypes.Count);
-      Contract.Requires(!(method is Constructor) || (method.Outs.Count == 0 && Lhss.Count == 1 && LhsTypes.Count == 1));
+      Contract.Requires(cs.Method is Constructor || cs.Method.Outs.Count == Lhss.Count);
+      Contract.Requires(cs.Method is Constructor || cs.Method.Outs.Count == LhsTypes.Count);
+      Contract.Requires(!(cs.Method is Constructor) || (cs.Method.Outs.Count == 0 && Lhss.Count == 1 && LhsTypes.Count == 1));
       Contract.Requires(builder != null);
       Contract.Requires(locals != null);
       Contract.Requires(etran != null);
       Contract.Requires(tySubst != null);
-      Contract.Requires(tyArgs != null);
-      Contract.Requires(tyArgs.Count <= tySubst.Count);  // more precisely, the members of tyArgs are required to be keys of tySubst, but this is a cheap sanity test
+      var tok = GetToken(cs);
+      var tyArgs = GetTypeParams(cs.Method);
+      var dafnyReceiver = cs.Receiver;
+      var method = cs.Method;
+      var atLabel = cs.MethodSelect.AtLabel;
+      var Args = cs.Args;
 
       // Figure out if the call is recursive or not, which will be used below to determine the need for a
       // termination check and the need to include an implicit _k-1 argument.
@@ -1931,6 +1928,7 @@ namespace Microsoft.Dafny {
       // Make the call
       AddReferencedMember(callee);
       Bpl.CallCmd call = Call(tok, MethodName(callee, kind), ins, outs);
+      proofDependencies.AddProofDependencyId(call, tok, new CallDependency(cs));
       if (
         (assertionOnlyFilter != null && !assertionOnlyFilter(tok)) ||
         (module != currentModule && RefinementToken.IsInherited(tok, currentModule) && (codeContext == null || !codeContext.MustReverify))) {

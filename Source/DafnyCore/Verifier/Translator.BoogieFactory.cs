@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.IO;
+using DafnyCore.Verifier;
 using Bpl = Microsoft.Boogie;
 using static Microsoft.Dafny.Util;
 
@@ -195,6 +196,13 @@ namespace Microsoft.Dafny {
         expr = litArgument;
       }
       return attributes == null ? new Bpl.AssumeCmd(tok, expr) : new Bpl.AssumeCmd(tok, expr, attributes);
+    }
+
+    public Bpl.AssumeCmd TrAssumeCmdWithDependencies(ExpressionTranslator etran, Bpl.IToken tok, Expression dafnyExpr, Bpl.QKeyValue attributes = null) {
+      var expr = etran.TrExpr(dafnyExpr);
+      var cmd = TrAssumeCmd(tok, expr, attributes);
+      proofDependencies.AddProofDependencyId(cmd, dafnyExpr.tok, new AssumptionDependency(dafnyExpr));
+      return cmd;
     }
 
     static Bpl.Expr RemoveLit(Bpl.Expr expr) {

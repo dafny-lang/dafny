@@ -676,7 +676,7 @@ namespace Microsoft.Dafny {
             Boogie.Expr wh = GetWhereClause(e.tok, etran.TrExpr(e), e.Type, etran.Old, ISALLOC, true);
             if (wh != null) {
               var desc = new PODesc.IsAllocated("default value", "in the two-state lemma's previous state");
-              builder.Add(Assert(e.tok, wh, desc));
+              builder.Add(Assert(e.RangeToken, wh, desc));
             }
           }
         }
@@ -1236,14 +1236,14 @@ namespace Microsoft.Dafny {
       Contract.Requires(substMap != null);
       //generating class post-conditions
       foreach (var en in m.Ens) {
-        builder.Add(TrAssumeCmd(m.tok, etran.TrExpr(en.E)));
+        builder.Add(TrAssumeCmdWithDependencies(etran, m.tok, en.E));
       }
       //generating trait post-conditions with class variables
       FunctionCallSubstituter sub = null;
       foreach (var en in m.OverriddenMethod.Ens) {
         sub ??= new FunctionCallSubstituter(substMap, typeMap, (TraitDecl)m.OverriddenMethod.EnclosingClass, (ClassLikeDecl)m.EnclosingClass);
         foreach (var s in TrSplitExpr(sub.Substitute(en.E), etran, false, out _).Where(s => s.IsChecked)) {
-          builder.Add(Assert(m.tok, s.E, new PODesc.EnsuresStronger()));
+          builder.Add(Assert(m.RangeToken, s.E, new PODesc.EnsuresStronger()));
         }
       }
     }
@@ -1259,11 +1259,11 @@ namespace Microsoft.Dafny {
       FunctionCallSubstituter sub = null;
       foreach (var req in m.OverriddenMethod.Req) {
         sub ??= new FunctionCallSubstituter(substMap, typeMap, (TraitDecl)m.OverriddenMethod.EnclosingClass, (ClassLikeDecl)m.EnclosingClass);
-        builder.Add(TrAssumeCmd(m.tok, etran.TrExpr(sub.Substitute(req.E))));
+        builder.Add(TrAssumeCmdWithDependencies(etran, m.tok, sub.Substitute(req.E)));
       }
       //generating class pre-conditions
       foreach (var s in m.Req.SelectMany(req => TrSplitExpr(req.E, etran, false, out _).Where(s => s.IsChecked))) {
-        builder.Add(Assert(m.tok, s.E, new PODesc.RequiresWeaker()));
+        builder.Add(Assert(m.RangeToken, s.E, new PODesc.RequiresWeaker()));
       }
     }
 
@@ -1331,7 +1331,7 @@ namespace Microsoft.Dafny {
       //   as "false".
       bool allowNoChange = N == decrCountT && decrCountT <= decrCountC;
       var decrChk = DecreasesCheck(toks, types0, types1, callee, caller, null, null, allowNoChange, false);
-      builder.Add(Assert(original.Tok, decrChk, new PODesc.TraitDecreases(original.WhatKind)));
+      builder.Add(Assert(original.RangeToken, decrChk, new PODesc.TraitDecreases(original.WhatKind)));
     }
 
     private void AddMethodOverrideSubsetChk(Method m, BoogieStmtListBuilder builder, ExpressionTranslator etran, List<Variable> localVariables,
@@ -1376,7 +1376,7 @@ namespace Microsoft.Dafny {
       Boogie.Expr consequent2 = InRWClause(tok, o, f, traitFrameExps, etran, null, null);
       Boogie.Expr q = new Boogie.ForallExpr(tok, new List<TypeVariable> { alpha }, new List<Variable> { oVar, fVar },
         Boogie.Expr.Imp(Boogie.Expr.And(ante, oInCallee), consequent2));
-      builder.Add(Assert(tok, q, new PODesc.TraitFrame(m.WhatKind, true), kv));
+      builder.Add(Assert(m.RangeToken, q, new PODesc.TraitFrame(m.WhatKind, true), kv));
     }
 
     // Return a way to know if an assertion should be converted to an assumption
@@ -1505,7 +1505,7 @@ namespace Microsoft.Dafny {
               } else if (s.IsOnlyFree && !bodyKind) {
                 // don't include in split -- it would be ignored, anyhow
               } else {
-                req.Add(Requires(s.Tok, s.IsOnlyFree, s.E, errorMessage, successMessage, comment));
+                req.Add(RequiresWithCoverage(s.Tok, s.IsOnlyFree, p.E, s.E, errorMessage, successMessage, comment));
                 comment = null;
                 // the free here is not linked to the free on the original expression (this is free things generated in the splitting.)
               }
@@ -1528,7 +1528,7 @@ namespace Microsoft.Dafny {
             } else if (s.IsOnlyChecked && !bodyKind) {
               // don't include in split
             } else {
-              AddEnsures(ens, Ensures(s.Tok, s.IsOnlyFree || this.assertionOnlyFilter != null, post, errorMessage, successMessage, null));
+              AddEnsures(ens, EnsuresWithCoverage(s.Tok, s.IsOnlyFree || this.assertionOnlyFilter != null, p.E, post, errorMessage, successMessage, null));
             }
           }
         }
