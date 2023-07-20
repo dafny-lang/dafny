@@ -44,7 +44,7 @@ public class LanguageServerFilesystem : IFileSystem {
     openFiles[uri] = new Entry(new TextBuffer(document.Text), document.Version!.Value);
   }
 
-  
+
   public class AssertWithDiff {
     public static string Equal(string expected, string actual) {
       var diff = InlineDiffBuilder.Instance.BuildDiffModel(expected, actual);
@@ -69,7 +69,7 @@ public class LanguageServerFilesystem : IFileSystem {
     }
   }
 
-  
+
   public void UpdateDocument(DidChangeTextDocumentParams documentChange) {
     var uri = documentChange.TextDocument.Uri.ToUri();
     if (!openFiles.TryGetValue(uri, out var entry)) {

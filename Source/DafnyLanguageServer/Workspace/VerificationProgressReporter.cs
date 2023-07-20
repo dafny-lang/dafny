@@ -292,8 +292,7 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
     }
   }
 
-  private void NoMethodNodeAtLogging(string methodName, CompilationAfterTranslation compilation, Implementation implementation)
-  {
+  private void NoMethodNodeAtLogging(string methodName, CompilationAfterTranslation compilation, Implementation implementation) {
     var position = implementation.tok.GetLspPosition();
     var availableMethodNodes = string.Join(",", compilation.VerificationTree!.Children.Select(vt =>
       $"{vt.Kind} {vt.DisplayName} at {vt.Filename}:{vt.Position.Line}"));
