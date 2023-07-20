@@ -11,7 +11,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
     protected ILanguageClient Client { get; set; }
 
     public virtual async Task InitializeAsync() {
-      Client = await InitializeClient();
+      (Client, Server) = await Initialize(_ => { }, _ => { });
     }
 
     public Task DisposeAsync() {

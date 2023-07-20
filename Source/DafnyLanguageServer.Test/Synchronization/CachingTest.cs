@@ -18,12 +18,12 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization;
 public class CachingTest : ClientBasedLanguageServerTest {
   private InMemorySink sink;
 
-  protected override IServiceCollection ServerOptionsAction(LanguageServerOptions serverOptions) {
+  protected override void ServerOptionsAction(LanguageServerOptions serverOptions) {
     sink = InMemorySink.Instance;
     var logger = new LoggerConfiguration().MinimumLevel.Debug()
       .WriteTo.InMemory().CreateLogger();
     var factory = LoggerFactory.Create(b => b.AddSerilog(logger));
-    return base.ServerOptionsAction(serverOptions.WithServices(c => c.Replace(new ServiceDescriptor(typeof(ILoggerFactory), factory))));
+    serverOptions.Services.Replace(new ServiceDescriptor(typeof(ILoggerFactory), factory));
   }
 
   [Fact]
