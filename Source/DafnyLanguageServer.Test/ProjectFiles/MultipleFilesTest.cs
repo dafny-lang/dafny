@@ -6,6 +6,7 @@ using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 using Microsoft.Dafny.LanguageServer.Workspace;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
+using Serilog.Core;
 using Xunit;
 using Xunit.Abstractions;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
@@ -37,7 +38,7 @@ method Bar() {
     var directory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
     Directory.CreateDirectory(directory);
     await File.WriteAllTextAsync(Path.Combine(directory, "producer.dfy"), producerSource);
-    await CreateAndOpenTestDocument("", Path.Combine(directory, DafnyProject.FileName));
+    await File.WriteAllTextAsync(Path.Combine(directory, DafnyProject.FileName), "");
     await CreateAndOpenTestDocument(consumerSource, Path.Combine(directory, "src/consumer1.dfy"));
 
     var diagnostics1 = await diagnosticsReceiver.AwaitNextNotificationAsync(CancellationToken);
@@ -66,9 +67,9 @@ method Bar() {
 
     var directory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
     Directory.CreateDirectory(directory);
-    await File.WriteAllTextAsync(Path.Combine(directory, "producer.dfy"), producerSource);
-    await CreateAndOpenTestDocument("", Path.Combine(directory, DafnyProject.FileName));
-    await CreateAndOpenTestDocument(consumerSource, Path.Combine(directory, "src/consumer1.dfy"));
+    await File.WriteAllTextAsync(Path.Combine(directory, "OnDiskProducerVerificationErrors_producer.dfy"), producerSource);
+    await File.WriteAllTextAsync(Path.Combine(directory, DafnyProject.FileName), "");
+    await CreateAndOpenTestDocument(consumerSource, Path.Combine(directory, "OnDiskProducerVerificationErrors_consumer1.dfy"));
 
     var diagnostics1 = await diagnosticsReceiver.AwaitNextNotificationAsync(CancellationToken);
     var diagnostics2 = await diagnosticsReceiver.AwaitNextNotificationAsync(CancellationToken);

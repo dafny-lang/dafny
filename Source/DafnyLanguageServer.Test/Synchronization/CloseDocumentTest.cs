@@ -12,7 +12,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
     private ILanguageClient client;
 
     public async Task InitializeAsync() {
-      client = await InitializeClient();
+      (client, Server) = await Initialize(_ => { }, _ => { });
     }
 
     public Task DisposeAsync() {
