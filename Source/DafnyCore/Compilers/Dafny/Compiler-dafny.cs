@@ -423,7 +423,7 @@ namespace Microsoft.Dafny.Compilers {
       wr.Write("this");
     }
 
-    protected override void EmitDatatypeValue(DatatypeValue dtv, string arguments, ConcreteSyntaxTree wr) {
+    protected override void EmitDatatypeValue(DatatypeValue dtv, string typeDescriptorArguments, string arguments, ConcreteSyntaxTree wr) {
       throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
     }
 
