@@ -24,6 +24,7 @@ using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 
 public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsyncLifetime {
+
   protected ILanguageClient client;
   protected TestNotificationReceiver<FileVerificationStatus> verificationStatusReceiver;
   protected TestNotificationReceiver<CompilationStatusParams> compilationStatusReceiver;
@@ -171,7 +172,7 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
     compilationStatusReceiver = new();
     verificationStatusReceiver = new();
     ghostnessReceiver = new();
-    client = await InitializeClient(InitialiseClientHandler, modifyOptions);
+    (client, Server) = await Initialize(InitialiseClientHandler, modifyOptions);
   }
 
   protected virtual void InitialiseClientHandler(LanguageClientOptions options) {

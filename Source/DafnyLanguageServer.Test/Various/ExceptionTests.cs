@@ -23,8 +23,8 @@ public class ExceptionTests : ClientBasedLanguageServerTest {
   public bool CrashOnPrepareVerification { get; set; }
   public bool CrashOnLoad { get; set; }
 
-  protected override IServiceCollection ServerOptionsAction(LanguageServerOptions serverOptions) {
-    return serverOptions.Services
+  protected override void ServerOptionsAction(LanguageServerOptions serverOptions) {
+    serverOptions.Services
       .AddSingleton<ITextDocumentLoader>(serviceProvider => new CrashingLoader(this,
         LanguageServerExtensions.CreateTextDocumentLoader(serviceProvider)))
       .AddSingleton<IProgramVerifier>(serviceProvider => new CrashingVerifier(this,

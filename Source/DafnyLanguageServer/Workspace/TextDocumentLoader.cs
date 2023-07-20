@@ -23,27 +23,26 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
   /// The increased stack size is necessary to solve the issue https://github.com/dafny-lang/dafny/issues/1447.
   /// </remarks>
   public class TextDocumentLoader : ITextDocumentLoader {
-
+    private readonly ILogger<ITextDocumentLoader> documentLoader;
     private readonly IDafnyParser parser;
     private readonly ISymbolResolver symbolResolver;
     private readonly ISymbolTableFactory symbolTableFactory;
     private readonly IGhostStateDiagnosticCollector ghostStateDiagnosticCollector;
     protected readonly ICompilationStatusNotificationPublisher statusPublisher;
-    protected readonly ILoggerFactory loggerFactory;
 
     protected TextDocumentLoader(
-      ILoggerFactory loggerFactory,
+      ILogger<ITextDocumentLoader> documentLoader,
       IDafnyParser parser,
       ISymbolResolver symbolResolver,
       ISymbolTableFactory symbolTableFactory,
       IGhostStateDiagnosticCollector ghostStateDiagnosticCollector,
       ICompilationStatusNotificationPublisher statusPublisher) {
+      this.documentLoader = documentLoader;
       this.parser = parser;
       this.symbolResolver = symbolResolver;
       this.symbolTableFactory = symbolTableFactory;
       this.ghostStateDiagnosticCollector = ghostStateDiagnosticCollector;
       this.statusPublisher = statusPublisher;
-      this.loggerFactory = loggerFactory;
     }
 
     public static TextDocumentLoader Create(
@@ -52,9 +51,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       ISymbolTableFactory symbolTableFactory,
       IGhostStateDiagnosticCollector ghostStateDiagnosticCollector,
       ICompilationStatusNotificationPublisher statusPublisher,
-      ILoggerFactory loggerFactory
+      ILogger<ITextDocumentLoader> logger
       ) {
-      return new TextDocumentLoader(loggerFactory, parser, symbolResolver, symbolTableFactory, ghostStateDiagnosticCollector, statusPublisher);
+      return new TextDocumentLoader(logger, parser, symbolResolver, symbolTableFactory, ghostStateDiagnosticCollector, statusPublisher);
     }
 
     public IdeState CreateUnloaded(Compilation compilation) {

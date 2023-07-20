@@ -1444,7 +1444,7 @@ namespace Microsoft.Dafny {
             invariants.Add(TrAssumeCmd(s.Tok, tri.Expr));
           } else {
             Contract.Assert(tri.ErrorMessage != null);  // follows from BoilerplateTriple invariant
-            invariants.Add(Assert(s.Tok, tri.Expr, new PODesc.BoilerplateTriple(tri.ErrorMessage)));
+            invariants.Add(Assert(s.Tok, tri.Expr, new PODesc.BoilerplateTriple(tri.ErrorMessage, tri.SuccessMessage, tri.Comment)));
           }
         }
         // add a free invariant which says that the heap hasn't changed outside of the modifies clause.

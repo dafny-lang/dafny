@@ -26,11 +26,12 @@ namespace Microsoft.Dafny.LanguageServer.Language {
 
     private static IServiceCollection WithDafnyLanguage(this IServiceCollection services) {
       return services
-        .AddSingleton<IDafnyParser>(serviceProvider => DafnyLangParser.Create(
+        .AddSingleton<IDafnyParser>(serviceProvider => new DafnyLangParser(
           serviceProvider.GetRequiredService<DafnyOptions>(),
           serviceProvider.GetRequiredService<IFileSystem>(),
           serviceProvider.GetRequiredService<ITelemetryPublisher>(),
-          serviceProvider.GetRequiredService<LoggerFactory>()))
+          serviceProvider.GetRequiredService<ILogger<DafnyLangParser>>(),
+          serviceProvider.GetRequiredService<ILogger<CachingParser>>()))
         .AddSingleton<ISymbolResolver, DafnyLangSymbolResolver>()
         .AddSingleton<CreateIdeStateObserver>(serviceProvider => compilation =>
           new IdeStateObserver(serviceProvider.GetRequiredService<ILogger<IdeStateObserver>>(),

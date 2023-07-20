@@ -82,6 +82,7 @@ public class CompilationManager {
     this.statusPublisher = statusPublisher;
     this.verificationProgressReporter = verificationProgressReporter;
     cancellationSource = new();
+    cancellationSource.Token.Register(() => started.TrySetCanceled(cancellationSource.Token));
 
     MarkVerificationFinished();
 
