@@ -110,10 +110,15 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
         break;
       }
 
-      var foundStatus = await verificationStatusReceiver.AwaitNextNotificationAsync(cancellationToken);
-      donePerUri[foundStatus.Uri.ToUri()] =
-        foundStatus.NamedVerifiables.All(n => n.Status >= PublishedVerificationStatus.Error);
-      result.Add(foundStatus);
+      try {
+        var foundStatus = await verificationStatusReceiver.AwaitNextNotificationAsync(cancellationToken);
+        donePerUri[foundStatus.Uri.ToUri()] =
+          foundStatus.NamedVerifiables.All(n => n.Status >= PublishedVerificationStatus.Error);
+        result.Add(foundStatus);
+      } catch (OperationCanceledException) {
+        await output.WriteLineAsync($"\nOld to new history was: {verificationStatusReceiver.History.Stringify()}");
+        throw;
+      }
     }
 
     return result;
