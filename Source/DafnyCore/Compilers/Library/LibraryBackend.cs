@@ -15,6 +15,7 @@ public class LibraryBackend : ExecutableBackend {
   public override IReadOnlySet<string> SupportedExtensions => new HashSet<string> { };
 
   public override string TargetName => "Dafny Library (.doo)";
+  public override bool IsStable => false;
 
   public override string TargetExtension => "doo";
   public override string TargetId => "lib";
