@@ -14,6 +14,7 @@ public class JavaScriptBackend : ExecutableBackend {
   public override IReadOnlySet<string> SupportedExtensions => new HashSet<string> { ".js" };
 
   public override string TargetName => "JavaScript";
+  public override bool IsStable => true;
   public override string TargetExtension => "js";
 
   public override bool SupportsInMemoryCompilation => true;
