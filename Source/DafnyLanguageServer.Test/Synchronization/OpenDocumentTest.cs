@@ -23,7 +23,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
     }
 
     private async Task SetUp(Action<DafnyOptions> modifyOptions) {
-      client = await InitializeClient(options => { }, modifyOptions);
+      (client, Server) = await Initialize(options => { }, modifyOptions);
     }
 
     [Fact]
