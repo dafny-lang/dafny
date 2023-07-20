@@ -189,7 +189,7 @@ namespace DafnyTestGeneration {
           await options.OutputWriter.WriteLineAsync(
             $"// No test is generated for {uniqueId} " +
             "because there is no enhanced error trace. This can be caused " +
-            "by a bug in boogie counterexample model parsing.");
+            "by a bug in Boogie error reporting.");
         } else {
           await options.OutputWriter.WriteLineAsync(
             $"// No test is generated for {uniqueId} " +
@@ -202,7 +202,7 @@ namespace DafnyTestGeneration {
     public async Task<TestMethod> GetTestMethod(Modifications cache, DafnyInfo dafnyInfo, bool returnNullIfNotUnique = true) {
       if (Options.Verbose) {
         await dafnyInfo.Options.OutputWriter.WriteLineAsync(
-          $"// Extracting the test for {uniqueId} from the counterexample...");
+          $"// Constructing the test for {uniqueId}...");
       }
       var log = await GetCounterExampleLog(cache);
       if (log == null) {
@@ -222,7 +222,8 @@ namespace DafnyTestGeneration {
         await dafnyInfo.Options.OutputWriter.WriteLineAsync(
           $"// Test for {uniqueId} matches a test previously generated " +
           $"for {duplicate.uniqueId} - this may occur if the code under test is non-deterministic, " +
-          $"if a method/function is not inlined, or if test generation cannot extract a value from a counterexample.");
+          $"if a method/function is not inlined, or the input parameters are of a type not supported by " +
+          $"test generation (trait types and function types).");
       }
       return null;
     }

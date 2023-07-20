@@ -185,10 +185,10 @@ namespace DafnyTestGeneration {
                      $"{coveredByTests} should be covered by tests " +
                      $"(assuming no tests were found to be duplicates of each other). " +
                      $"Moreover, {coveredByCounterexamples} locations have been found to be reachable " +
-                     $"(i.e. the verifier returned a counterexample and did not timeout). " +
+                     $"(i.e. the verifier did not timeout and produced example inputs to reach these locations). " +
                      $"A total of {queries} SMT queries were made to cover " +
                      $"this method or the method into which this method was inlined. " +
-                     $"{failedQueries} queries did not return a counterexample.";
+                     $"{failedQueries} queries timed out or identified potential dead code.";
       }
 
       yield return TestMethod.EmitSynthesizeMethods(dafnyInfo);
