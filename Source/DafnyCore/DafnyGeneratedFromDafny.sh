@@ -16,16 +16,23 @@
 if [ "$#" != 0 ]; then
   output="$1"
 else
-  output="GeneratedFromDafny.cs"
+  output="GeneratedFromDafny"
 fi
 
-../../Scripts/dafny translate cs --output $output AST/Formatting.dfy
+../../Scripts/dafny translate cs --output $output.cs AST/Formatting.dfy
+../../Scripts/dafny translate cs --output "${output}Rust.cs" Compilers/Rust/Dafny-compiler-rust.dfy
 python -c "
 import re
-with open ('$output', 'r' ) as f:
+with open ('$output.cs', 'r' ) as f:
   content = f.read()
   content_new = re.sub('\\[assembly[\\s\\S]*?(?=namespace Formatting)|namespace\\s+\\w+\\s*\\{\\s*\\}\\s*//.*|_\\d_', '', content, flags = re.M)
-with open('$output', 'w') as w:
+with open('$output.cs', 'w') as w:
+  w.write(content_new)
+
+with open ('${output}Rust.cs', 'r' ) as f:
+  content = f.read()
+  content_new = re.sub('\\[assembly[\\s\\S]*?(?=namespace DAST)|namespace\\s+\\w+\\s*\\{\\s*\\}\\s*//.*|_\\d_', '', content, flags = re.M)
+with open('${output}Rust.cs', 'w') as w:
   w.write(content_new)
 "
-dotnet tool run dotnet-format -w --include $output
+dotnet tool run dotnet-format -w --include $output.cs ${output}Rust.cs
