@@ -1,2 +1,0 @@
-In VSCode, resource units are now always displayed with 3 digit precision.
-Moreover, they can now display values greater than MAX_INT without displaying a negative result.
