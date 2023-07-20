@@ -1,10 +1,10 @@
+IteratorResolution.dfy(22,9): Error: LHS of assignment must denote a mutable field
+IteratorResolution.dfy(24,9): Error: LHS of assignment must denote a mutable field
 IteratorResolution.dfy(64,9): Error: LHS of assignment must denote a mutable field
 IteratorResolution.dfy(84,13): Error: when allocating an object of type 'GenericIteratorResult', one of its constructor methods must be called
 IteratorResolution.dfy(69,18): Error: arguments must have comparable types (got _T0 and int)
 IteratorResolution.dfy(86,16): Error: incorrect argument type for constructor in-parameter 't' (expected bool, found int)
 IteratorResolution.dfy(81,19): Error: RHS (of type bool) not assignable to LHS (of type int)
-IteratorResolution.dfy(22,9): Error: LHS of assignment must denote a mutable field
-IteratorResolution.dfy(24,9): Error: LHS of assignment must denote a mutable field
 IteratorResolution.dfy(129,11): Error: unresolved identifier: _decreases3
 IteratorResolution.dfy(131,4): Error: LHS of assignment must denote a mutable field
 IteratorResolution.dfy(130,26): Error: type of 'null' is a reference type, but it is used as int

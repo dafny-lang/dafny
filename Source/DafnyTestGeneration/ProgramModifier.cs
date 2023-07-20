@@ -36,8 +36,7 @@ namespace DafnyTestGeneration {
       DafnyInfo dafnyInfo) {
       DafnyInfo = dafnyInfo;
       var options = dafnyInfo.Options;
-      var engine = ExecutionEngine.CreateWithoutSharedCache(options);
-      engine.CoalesceBlocks(program); // removes redundant basic blocks
+      BlockCoalescer.CoalesceBlocks(program);
       program = new AnnotationVisitor().VisitProgram(program);
       AddAxioms(options, program);
       program.Resolve(options);

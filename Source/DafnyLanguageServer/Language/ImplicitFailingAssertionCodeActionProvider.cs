@@ -114,8 +114,9 @@ class ImplicitFailingAssertionCodeActionProvider : DiagnosticDafnyCodeActionProv
     if (input.Program == null || diagnostic.Source != MessageSource.Verifier) {
       return null;
     }
+
     var failingExpressions = new List<Expression>() { };
-    input.VerificationTree.Visit(tree => {
+    input.VerificationTree?.Visit(tree => {
       if (tree is AssertionVerificationTree assertTree &&
           assertTree.Finished &&
             assertTree.Range.Intersects(selection) &&

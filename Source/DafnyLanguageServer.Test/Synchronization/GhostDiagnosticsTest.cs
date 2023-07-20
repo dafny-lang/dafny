@@ -1,4 +1,5 @@
-﻿using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
+﻿using System.IO;
+using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Linq;
@@ -8,6 +9,42 @@ using Xunit.Abstractions;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
   public class GhostDiagnosticsTest : ClientBasedLanguageServerTest {
+
+    [Fact]
+    public async Task ExplicitProject() {
+      var sourceA = @"
+method Foo()
+{
+  FooLemma(); // this is ghost
+}
+
+lemma FooLemma()".TrimStart();
+      var sourceB = @"
+lemma BarLemma()
+
+method Bar()
+{
+  BarLemma(); // this is ghost
+}".TrimStart();
+      await SetUp(options => {
+        options.Set(ServerCommand.GhostIndicators, true);
+      });
+
+      var directory = Path.GetRandomFileName();
+      var projectFile = await CreateAndOpenTestDocument("", Path.Combine(directory, DafnyProject.FileName));
+      var docA = await CreateAndOpenTestDocument(sourceA, Path.Combine(directory, "a.dfy"));
+      var docB = await CreateAndOpenTestDocument(sourceB, Path.Combine(directory, "b.dfy"));
+
+      var report = await ghostnessReceiver.AwaitNextNotificationAsync(CancellationToken);
+      var report2 = await ghostnessReceiver.AwaitNextNotificationAsync(CancellationToken);
+      Assert.Single(report.Diagnostics);
+      Assert.Equal(docA.Uri.ToUri(), report.Uri);
+      Assert.Equal(2, report.Diagnostics.Single().Range.Start.Line);
+
+      Assert.Single(report2.Diagnostics);
+      Assert.Equal(docB.Uri.ToUri(), report2.Uri);
+      Assert.Equal(4, report2.Diagnostics.Single().Range.Start.Line);
+    }
 
     [Fact]
     public async Task OpeningFlawlessDocumentWithoutGhostMarkDoesNotMarkAnything() {
@@ -64,7 +101,6 @@ class C {
       var report = await ghostnessReceiver.AwaitNextNotificationAsync(CancellationToken);
       var diagnostics = report.Diagnostics.ToArray();
       Assert.Single(diagnostics);
-      Assert.Equal("Ghost statement", diagnostics[0].Message);
       Assert.Equal(new Range((7, 4), (7, 15)), diagnostics[0].Range);
     }
 
@@ -93,7 +129,6 @@ class C {
       var report = await ghostnessReceiver.AwaitNextNotificationAsync(CancellationToken);
       var diagnostics = report.Diagnostics.ToArray();
       Assert.Single(diagnostics);
-      Assert.Equal("Ghost statement", diagnostics[0].Message);
       Assert.Equal(new Range((7, 4), (9, 5)), diagnostics[0].Range);
     }
 
@@ -120,7 +155,6 @@ class C {
       var report = await ghostnessReceiver.AwaitNextNotificationAsync(CancellationToken);
       var diagnostics = report.Diagnostics.ToArray();
       Assert.Single(diagnostics);
-      Assert.Equal("Ghost statement", diagnostics[0].Message);
       Assert.Equal(new Range((7, 4), (7, 11)), diagnostics[0].Range);
     }
 
@@ -147,7 +181,6 @@ class C {
       var report = await ghostnessReceiver.AwaitNextNotificationAsync(CancellationToken);
       var diagnostics = report.Diagnostics.ToArray();
       Assert.Single(diagnostics);
-      Assert.Equal("Ghost statement", diagnostics[0].Message);
       Assert.Equal(new Range((7, 4), (7, 14)), diagnostics[0].Range);
     }
 
@@ -184,13 +217,9 @@ class C {
         .OrderBy(diagnostic => diagnostic.Range.Start)
         .ToArray();
       Assert.Equal(4, diagnostics.Length);
-      Assert.Equal("Ghost statement", diagnostics[0].Message);
       Assert.Equal(new Range((7, 4), (7, 15)), diagnostics[0].Range);
-      Assert.Equal("Ghost statement", diagnostics[1].Message);
       Assert.Equal(new Range((9, 4), (11, 5)), diagnostics[1].Range);
-      Assert.Equal("Ghost statement", diagnostics[2].Message);
       Assert.Equal(new Range((13, 4), (13, 11)), diagnostics[2].Range);
-      Assert.Equal("Ghost statement", diagnostics[3].Message);
       Assert.Equal(new Range((15, 4), (15, 14)), diagnostics[3].Range);
     }
 

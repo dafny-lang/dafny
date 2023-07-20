@@ -21,6 +21,7 @@ namespace Microsoft.Dafny {
       return new HashSet<T>();
     }
   }
+
   public static class Util {
 
     public static bool LessThanOrEquals<T>(this T first, T second)
@@ -84,6 +85,10 @@ namespace Microsoft.Dafny {
         c = comma;
       }
       return res;
+    }
+
+    public static IEnumerable<(T, int)> Indexed<T>(this IEnumerable<T> enumerable) {
+      return enumerable.Select((value, index) => (value, index));
     }
 
     public static string PrintableNameList(List<string> names, string grammaticalConjunction) {

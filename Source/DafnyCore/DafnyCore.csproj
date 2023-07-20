@@ -45,4 +45,9 @@
       <LogicalName>audit_template.html</LogicalName>
     </EmbeddedResource>
   </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\DafnyRuntime\DafnyRuntime.csproj" />
+  </ItemGroup>
+
 </Project>

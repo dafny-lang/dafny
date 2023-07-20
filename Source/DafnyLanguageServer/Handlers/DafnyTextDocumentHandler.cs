@@ -59,24 +59,28 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
       return new TextDocumentAttributes(uri, LanguageId);
     }
 
-    public override Task<Unit> Handle(DidOpenTextDocumentParams notification, CancellationToken cancellationToken) {
+    public override async Task<Unit> Handle(DidOpenTextDocumentParams notification, CancellationToken cancellationToken) {
       logger.LogTrace("received open notification {DocumentUri}", notification.TextDocument.Uri);
       try {
-        projects.OpenDocument(new DocumentTextBuffer(notification.TextDocument));
+        await projects.OpenDocument(new DocumentTextBuffer(notification.TextDocument));
       } catch (Exception e) {
         telemetryPublisher.PublishUnhandledException(e);
       }
-      return Unit.Task;
+
+      return Unit.Value;
     }
 
-    public override Task<Unit> Handle(DidCloseTextDocumentParams notification, CancellationToken cancellationToken) {
+    /// <summary>
+    /// Can be called in parallel
+    /// </summary>
+    public override async Task<Unit> Handle(DidCloseTextDocumentParams notification, CancellationToken cancellationToken) {
       logger.LogTrace("received close notification {DocumentUri}", notification.TextDocument.Uri);
       try {
-        CloseDocumentAndHideDiagnosticsAsync(notification.TextDocument);
+        await projects.CloseDocumentAsync(notification.TextDocument);
       } catch (Exception e) {
         telemetryPublisher.PublishUnhandledException(e);
       }
-      return Unit.Task;
+      return Unit.Value;
     }
 
     public override Task<Unit> Handle(DidChangeTextDocumentParams notification, CancellationToken cancellationToken) {
@@ -98,16 +102,6 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
       }
 
       return Unit.Task;
-    }
-
-    private async Task CloseDocumentAndHideDiagnosticsAsync(TextDocumentIdentifier documentId) {
-      try {
-        await projects.CloseDocumentAsync(documentId);
-        notificationPublisher.HideDiagnostics(documentId);
-      } catch (Exception e) {
-        telemetryPublisher.PublishUnhandledException(e);
-      }
-
     }
   }
 }

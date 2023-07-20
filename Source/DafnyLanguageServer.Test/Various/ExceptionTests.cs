@@ -10,7 +10,6 @@ using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Workspace;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using OmniSharp.Extensions.LanguageServer.Server;
 using Xunit;
 using Xunit.Abstractions;
@@ -24,14 +23,12 @@ public class ExceptionTests : ClientBasedLanguageServerTest {
   public bool CrashOnPrepareVerification { get; set; }
   public bool CrashOnLoad { get; set; }
 
-  protected override IServiceCollection ServerOptionsAction(LanguageServerOptions serverOptions) {
-    return serverOptions.Services
+  protected override void ServerOptionsAction(LanguageServerOptions serverOptions) {
+    serverOptions.Services
       .AddSingleton<ITextDocumentLoader>(serviceProvider => new CrashingLoader(this,
         LanguageServerExtensions.CreateTextDocumentLoader(serviceProvider)))
       .AddSingleton<IProgramVerifier>(serviceProvider => new CrashingVerifier(this,
-        new DafnyProgramVerifier(
-          serviceProvider.GetRequiredService<ILogger<DafnyProgramVerifier>>(),
-          serviceProvider.GetRequiredService<DafnyOptions>())
+        new DafnyProgramVerifier(serviceProvider.GetRequiredService<ILogger<DafnyProgramVerifier>>())
     ));
   }
 
@@ -95,16 +92,13 @@ public class ExceptionTests : ClientBasedLanguageServerTest {
       this.verifier = verifier;
     }
 
-    public Task<IReadOnlyList<IImplementationTask>> GetVerificationTasksAsync(CompilationAfterResolution compilation, CancellationToken cancellationToken) {
+    public Task<IReadOnlyList<IImplementationTask>> GetVerificationTasksAsync(ExecutionEngine engine,
+      CompilationAfterResolution compilation, CancellationToken cancellationToken) {
 
       if (tests.CrashOnPrepareVerification) {
         throw new Exception("crash");
       }
-      return verifier.GetVerificationTasksAsync(compilation, cancellationToken);
-    }
-
-    public void Dispose() {
-      verifier?.Dispose();
+      return verifier.GetVerificationTasksAsync(engine, compilation, cancellationToken);
     }
   }
 
@@ -117,16 +111,16 @@ public class ExceptionTests : ClientBasedLanguageServerTest {
       this.loader = loader;
     }
 
-    public IdeState CreateUnloaded(VersionedTextDocumentIdentifier documentIdentifier, CancellationToken cancellationToken) {
-      return loader.CreateUnloaded(documentIdentifier, cancellationToken);
+    public IdeState CreateUnloaded(DafnyProject project) {
+      return loader.CreateUnloaded(project);
     }
 
-    public Task<CompilationAfterParsing> LoadAsync(DafnyOptions options, VersionedTextDocumentIdentifier documentIdentifier,
-        IFileSystem fileSystem, CancellationToken cancellationToken) {
+    public Task<CompilationAfterParsing> LoadAsync(DafnyOptions options, Compilation compilation,
+        CancellationToken cancellationToken) {
       if (tests.CrashOnLoad) {
         throw new IOException("crash");
       }
-      return loader.LoadAsync(options, documentIdentifier, fileSystem, cancellationToken);
+      return loader.LoadAsync(options, compilation, cancellationToken);
     }
   }
 

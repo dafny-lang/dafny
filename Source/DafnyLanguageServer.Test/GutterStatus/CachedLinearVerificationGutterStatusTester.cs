@@ -25,7 +25,7 @@ public class CachedLinearVerificationGutterStatusTester : LinearVerificationGutt
  .  S  S  |  I  $  | :method test() {
  .  S  |  |  I  $  | :  assert true;
  .  S  S  |  I  $  | :  //Next: 
- .  S  S  |  I  $  | :}");
+ .  S  S  |  I  $  | :}", true);
   }
 
   [Fact(Timeout = MaxTestExecutionTimeMs)]
@@ -39,7 +39,7 @@ public class CachedLinearVerificationGutterStatusTester : LinearVerificationGutt
  .  S [O][O][o][Q][O][O]:  assert true;
  .  S [=][=][-][~][=][=]:  assert false;
  .  S [S][ ][I][S][S][ ]:  //Next: 
- .  S [S][ ][I][S][S][ ]:}");
+ .  S [S][ ][I][S][S][ ]:}", false);
   }
 
   public CachedLinearVerificationGutterStatusTester(ITestOutputHelper output) : base(output) {

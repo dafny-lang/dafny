@@ -1400,8 +1400,7 @@ namespace Microsoft.Dafny.Compilers {
       var cl = (type.NormalizeExpand() as UserDefinedType)?.ResolvedClass;
       if (cl != null && cl.Name == "object") {
         //wr.Write("_dafny.NewObject()");
-        throw new UnsupportedFeatureException(tok, Feature.NewObject,
-          "Tried to emit new generic object, which C++ doesn't do");
+        throw new UnsupportedFeatureException(tok, Feature.NewObject);
       } else {
         var ctor = initCall == null ? null : (Constructor)initCall.Method;  // correctness of cast follows from precondition of "EmitNew"
         wr.Write("std::make_shared<{0}> (", TypeName(type, wr, tok, null, true));
@@ -1664,7 +1663,7 @@ namespace Microsoft.Dafny.Compilers {
       wr.Write("this");
     }
 
-    protected override void EmitDatatypeValue(DatatypeValue dtv, string arguments, ConcreteSyntaxTree wr) {
+    protected override void EmitDatatypeValue(DatatypeValue dtv, string typeDescriptorArguments, string arguments, ConcreteSyntaxTree wr) {
       EmitDatatypeValue(dtv, dtv.Ctor, dtv.IsCoCall, arguments, wr);
     }
 

@@ -8,7 +8,7 @@ using DafnyServer;
 using Microsoft.Boogie;
 
 namespace Microsoft.Dafny {
-  public class Server {
+  public class Server : IDisposable {
     private bool running;
     private readonly ExecutionEngine engine;
 
@@ -228,6 +228,11 @@ namespace Microsoft.Dafny {
 
     void Exit() {
       this.running = false;
+      Dispose();
+    }
+
+    public void Dispose() {
+      engine.Dispose();
     }
   }
 

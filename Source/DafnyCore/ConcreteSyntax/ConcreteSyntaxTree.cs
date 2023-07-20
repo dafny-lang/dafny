@@ -27,7 +27,7 @@ namespace Microsoft.Dafny {
     public IEnumerable<ICanRender> Nodes => _nodes;
     public IEnumerable<ICanRender> Descendants => Nodes.Concat(Nodes.OfType<ConcreteSyntaxTree>().SelectMany(n => n.Descendants));
 
-    public ConcreteSyntaxTree Fork(int relativeIndent = 0) {
+    public virtual ConcreteSyntaxTree Fork(int relativeIndent = 0) {
       var result = new ConcreteSyntaxTree(relativeIndent);
       _nodes.Add(result);
       return result;
@@ -158,7 +158,7 @@ namespace Microsoft.Dafny {
 
     // ----- Nested blocks ------------------------------
 
-    public ConcreteSyntaxTree ForkInParens() {
+    public virtual ConcreteSyntaxTree ForkInParens() {
       var result = new ConcreteSyntaxTree();
       Write("(");
       Append(result);
