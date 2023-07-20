@@ -7,6 +7,7 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using OmniSharp.Extensions.LanguageServer.Protocol.Server;
 using System.Linq;
+using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
@@ -34,7 +35,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       }
 
       PublishVerificationStatus(previousState, state);
-      PublishDocumentDiagnostics(state);
+      var _ = PublishDocumentDiagnostics(state);
       PublishGhostDiagnostics(previousState, state);
     }
 
@@ -83,16 +84,13 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     private Dictionary<Uri, IList<Diagnostic>> publishedDiagnostics = new();
 
-    private void PublishDocumentDiagnostics(IdeState state) {
+    private async Task PublishDocumentDiagnostics(IdeState state) {
       var currentDiagnostics = state.GetDiagnostics();
 
-      var castedProgram = ((Program)state.Program);
-      var sources = castedProgram.DefaultModuleDef.SourceDecls
-        .Concat<INode>(castedProgram.DefaultModuleDef.DefaultClass.Members).Select(n => n.Tok.Uri).Concat(currentDiagnostics.Keys).Distinct();
       var projectDiagnostics = new List<Diagnostic>();
-      foreach (var uri in sources) {
+      foreach (var uri in state.Compilation.RootUris) {
         var current = currentDiagnostics.GetOrDefault(uri, Enumerable.Empty<Diagnostic>).ToArray();
-        var uriProject = projectManagerDatabase.GetProject(uri);
+        var uriProject = await projectManagerDatabase.GetProject(uri);
         var ownedUri = uriProject.Equals(state.Compilation.Project);
         if (ownedUri) {
           if (uri == state.Compilation.Project.Uri) {
