@@ -625,7 +625,6 @@ namespace Microsoft.Dafny {
       if (preTypeInferenceModuleState.InFirstPhase.Contains(d)) {
         var cycle = Util.Comma(" -> ", preTypeInferenceModuleState.InFirstPhase, d => d.ToString());
         ReportError(d, $"Cyclic dependency among declarations: {d} -> {cycle}");
-        // to avoid duplicate error message, mark as done below
       } else {
         preTypeInferenceModuleState.InFirstPhase.Push(d);
         FillInPreTypesInSignature(d);
@@ -646,6 +645,7 @@ namespace Microsoft.Dafny {
 
       void ComputePreTypeField(Field field) {
         Contract.Assume(field.PreType == null); // precondition
+        field.PreType = CreatePreTypeProxy("temporary proxy until after cyclicity tests have completed");
         field.PreType = Type2PreType(field.Type);
         if (field is ConstantField cfield) {
           var parent = (TopLevelDeclWithMembers)cfield.EnclosingClass;

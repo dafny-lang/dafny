@@ -1087,7 +1087,9 @@ namespace Microsoft.Dafny {
         }
 
         if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
-          new PreTypeToTypeVisitor().VisitDeclarations(declarations);
+          var preType2TypeVisitor = new PreTypeToTypeVisitor();
+          preType2TypeVisitor.VisitConstantsAndRedirectingTypes(declarations);
+          preType2TypeVisitor.VisitDeclarations(declarations);
         }
 
       } else {

@@ -20,3 +20,5 @@ function FE(): E
 
 newtype F = x | x == f()
 function f(): F
+
+const g := g // error: cycle

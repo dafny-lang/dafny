@@ -119,3 +119,43 @@ newtype N = x | x == n witness 2
 const n: int := 2
 
 const n' := 2
+
+module VariationOnOrdering0 {
+  type ParamSub<X> = s | s == CC.GetEmpty<X>()
+
+  class CC {
+    static function GetEmpty<Y>(): seq<Y> {
+      []
+    }
+  }
+
+  class QQ {
+    // In this module, Q0 follows ParamSub and GetEmpty
+    method Q0() returns (b: array<ParamSub<real>>)
+    {
+      // The following gives a verification error, because the inferred RHS type is the pre-type array<seq<real>>.
+      // (Once type improvement for subset types is implemented, this error will go away.)
+      b := new ParamSub<real>[20];
+    }
+  }
+}
+
+module VariationOnOrdering1 {
+  class QQ {
+    // In this module, Q0 precedes ParamSub and GetEmpty
+    method Q0() returns (b: array<ParamSub<real>>)
+    {
+      // The following gives a verification error, because the inferred RHS type is the pre-type array<seq<real>>.
+      // (Once type improvement for subset types is implemented, this error will go away.)
+      b := new ParamSub<real>[20];
+    }
+  }
+
+  type ParamSub<X> = s | s == CC.GetEmpty<X>()
+
+  class CC {
+    static function GetEmpty<Y>(): seq<Y> {
+      []
+    }
+  }
+}

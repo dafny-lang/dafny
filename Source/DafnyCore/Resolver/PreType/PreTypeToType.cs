@@ -7,7 +7,7 @@
 
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
-using Microsoft.Boogie;
+using System.Linq;
 
 namespace Microsoft.Dafny;
 
@@ -71,13 +71,21 @@ class PreTypeToTypeVisitor : ASTVisitor<IASTVisitorContext> {
     }
   }
 
-  protected override void VisitOneDeclaration(TopLevelDecl decl) {
-    if (decl is NewtypeDecl newtypeDecl) {
-      UpdateIfOmitted(newtypeDecl.BaseType, newtypeDecl.BasePreType);
-    } else if (decl is SubsetTypeDecl subsetTypeDecl) {
-      UpdateIfOmitted(subsetTypeDecl.Var.Type, subsetTypeDecl.Var.PreType);
+  public void VisitConstantsAndRedirectingTypes(List<TopLevelDecl> declarations) {
+    foreach (var decl in declarations) {
+      if (decl is NewtypeDecl newtypeDecl) {
+        UpdateIfOmitted(newtypeDecl.BaseType, newtypeDecl.BasePreType);
+      } else if (decl is SubsetTypeDecl subsetTypeDecl) {
+        UpdateIfOmitted(subsetTypeDecl.Var.Type, subsetTypeDecl.Var.PreType);
+      }
+      if (decl is TopLevelDeclWithMembers topLevelDeclWithMembers) {
+        foreach (var member in topLevelDeclWithMembers.Members.Where(member => member is ConstantField)) {
+          var constField = (ConstantField)member;
+          // The type of the const might have been omitted in the program text and then inferred
+          UpdateIfOmitted(constField.Type, constField.PreType);
+        }
+      }
     }
-    base.VisitOneDeclaration(decl);
   }
 
   private void UpdateIfOmitted(Type type, PreType preType) {
@@ -104,12 +112,6 @@ class PreTypeToTypeVisitor : ASTVisitor<IASTVisitorContext> {
     foreach (var v in variables) {
       UpdateIfOmitted(v.Type, v.PreType);
     }
-  }
-
-  public override void VisitField(Field field) {
-    // The type of the const might have been omitted in the program text and then inferred
-    UpdateIfOmitted(field.Type, field.PreType);
-    base.VisitField(field);
   }
 
   protected override void PostVisitOneExpression(Expression expr, IASTVisitorContext context) {
