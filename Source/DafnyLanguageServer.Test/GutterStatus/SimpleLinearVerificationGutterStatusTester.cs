@@ -149,7 +149,7 @@ method Foo() ensures false { } ";
  .  S [S][ ][I][S][ ][I][S][ ]:  //Next1:\n  //Next2:\n  
  .  S [=][=][I][S][ ][I][S][ ]:  assert x == 2; }
             [-][~][=][I][S][ ]:
-                     [-][~][=]:", true);
+                     [-][~][=]:", true, "EnsuresAddingNewlinesMigratesPositions.dfy");
   }
 
   [Fact/*(Timeout = MaxTestExecutionTimeMs)*/]
