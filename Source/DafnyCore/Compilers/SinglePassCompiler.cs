@@ -1383,6 +1383,9 @@ namespace Microsoft.Dafny.Compilers {
           // the purpose of an abstract module is to skip compilation
           continue;
         }
+
+        DetectAndMarkCapitalizationConflicts(m);
+
         var moduleIsExtern = false;
         string libraryName = null;
         if (!Options.DisallowExterns) {
@@ -1438,10 +1441,6 @@ namespace Microsoft.Dafny.Compilers {
             // ignore this type declaration
           } else if (d is DatatypeDecl) {
             var dt = (DatatypeDecl)d;
-            CheckForCapitalizationConflicts(dt.Ctors);
-            foreach (var ctor in dt.Ctors) {
-              CheckForCapitalizationConflicts(ctor.Destructors);
-            }
 
             if (!DeclaredDatatypes.Add((m, dt.GetCompileName(Options)))) {
               continue;
@@ -1535,6 +1534,20 @@ namespace Microsoft.Dafny.Compilers {
         FinishModule();
       }
       EmitFooter(program, wrx);
+    }
+
+    private void DetectAndMarkCapitalizationConflicts(ModuleDefinition module) {
+      foreach (TopLevelDecl d in module.TopLevelDecls) {
+        if (d is DatatypeDecl datatypeDecl) {
+          CheckForCapitalizationConflicts(datatypeDecl.Ctors);
+          foreach (var ctor in datatypeDecl.Ctors) {
+            CheckForCapitalizationConflicts(ctor.Destructors);
+          }
+        }
+        if (d is TopLevelDeclWithMembers topLevelDeclWithMembers) {
+          CheckForCapitalizationConflicts(topLevelDeclWithMembers.Members, topLevelDeclWithMembers.InheritedMembers);
+        }
+      }
     }
 
     public ISet<(ModuleDefinition, string)> DeclaredDatatypes { get; } = new HashSet<(ModuleDefinition, string)>();
@@ -1896,7 +1909,6 @@ namespace Microsoft.Dafny.Compilers {
       var v = new CheckHasNoAssumes_Visitor(this, errorWr);
 
       var inheritedMembers = c.InheritedMembers;
-      CheckForCapitalizationConflicts(c.Members, inheritedMembers);
       OrderedBySCC(inheritedMembers, c);
       OrderedBySCC(c.Members, c);
 
