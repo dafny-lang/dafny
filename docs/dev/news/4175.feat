@@ -1,1 +1,0 @@
-Improve the responsiveness of the Dafny language server when making changes while it is in the 'Resolving...' state.
