@@ -41,4 +41,6 @@
     </ItemGroup>
   </Target>
 
+  <Target Name="GetCopyToPublishDirectoryItems" />
+
 </Project>
