@@ -11,12 +11,15 @@ namespace Microsoft.Dafny;
 public class AutoReqFunctionRewriter : IRewriter {
   Function parentFunction;
   bool containsMatch; // TODO: Track this per-requirement, rather than per-function
-  private BuiltIns builtIns;
+  private SystemModuleManager systemModuleManager;
 
-  public AutoReqFunctionRewriter(ErrorReporter reporter, BuiltIns builtIns)
+  public AutoReqFunctionRewriter(ErrorReporter reporter)
     : base(reporter) {
     Contract.Requires(reporter != null);
-    this.builtIns = builtIns;
+  }
+
+  internal override void PreResolve(Program program) {
+    systemModuleManager = program.SystemModuleManager;
   }
 
   internal override void PostResolveIntermediate(ModuleDefinition m) {
@@ -145,12 +148,29 @@ public class AutoReqFunctionRewriter : IRewriter {
       }
 
       foreach (var req in f.Req) {
-        Substituter sub = new Substituter(f_this, substMap, typeMap, null, builtIns);
+        var sub = new AutoReqSubstituter(f_this, substMap, typeMap, systemModuleManager);
         translated_f_reqs.Add(sub.Substitute(req.E));
       }
     }
 
     return translated_f_reqs;
+  }
+
+  class AutoReqSubstituter : Substituter {
+    public AutoReqSubstituter(Expression receiverReplacement, Dictionary<IVariable, Expression> substMap, Dictionary<TypeParameter, Type> typeMap,
+      SystemModuleManager systemModuleManager)
+      : base(receiverReplacement, substMap, typeMap, null, systemModuleManager) {
+    }
+
+    public override Expression Substitute(Expression expr) {
+      var r = base.Substitute(expr);
+      if (r is MemberSelectExpr memberSelectExpr) {
+        return Expression.WrapResolvedMemberSelect(memberSelectExpr);
+      } else if (r is FunctionCallExpr functionCallExpr) {
+        return Expression.WrapResolvedCall(functionCallExpr, SystemModuleManager);
+      }
+      return r;
+    }
   }
 
   List<Expression> GenerateAutoReqs(Expression expr) {
@@ -262,7 +282,9 @@ public class AutoReqFunctionRewriter : IRewriter {
           reqs.AddRange(GenerateAutoReqs(e.E0));
           foreach (var req in GenerateAutoReqs(e.E1)) {
             // We only care about this req if E0 is true, since And short-circuits
-            reqs.Add(Expression.CreateImplies(e.E0, req));
+            var cloner = new Cloner(false, true);
+            var e0 = cloner.CloneExpr(e.E0);
+            reqs.Add(Expression.CreateImplies(e0, req));
           }
           break;
 
@@ -270,7 +292,9 @@ public class AutoReqFunctionRewriter : IRewriter {
           reqs.AddRange(GenerateAutoReqs(e.E0));
           foreach (var req in GenerateAutoReqs(e.E1)) {
             // We only care about this req if E0 is false, since Or short-circuits
-            reqs.Add(Expression.CreateImplies(Expression.CreateNot(e.E1.tok, e.E0), req));
+            var cloner = new Cloner(false, true);
+            var e0 = cloner.CloneExpr(e.E0);
+            reqs.Add(Expression.CreateImplies(Expression.CreateNot(e.E1.tok, e0), req));
           }
           break;
 

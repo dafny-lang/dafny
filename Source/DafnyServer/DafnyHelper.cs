@@ -7,8 +7,11 @@ using System.IO;
 using System.Linq;
 using System.Runtime.Serialization.Json;
 using System.Text;
+using System.Threading;
 using Microsoft.Boogie;
 using DafnyServer;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Bpl = Microsoft.Boogie;
 
 namespace Microsoft.Dafny {
@@ -40,27 +43,26 @@ namespace Microsoft.Dafny {
 
     private bool Parse() {
       var uri = new Uri("transcript:///" + fname);
-      var defaultModuleDefinition = new DefaultModuleDefinition(new List<Uri>() { uri });
-      var module = new LiteralModuleDecl(defaultModuleDefinition, null);
-      reporter = new ConsoleErrorReporter(options, defaultModuleDefinition);
-      BuiltIns builtIns = new BuiltIns(options);
-      var success = (Parser.Parse(source, uri, module, builtIns, new Errors(reporter)) == 0 &&
-                     DafnyMain.ParseIncludesDepthFirstNotCompiledFirst(Console.In, module, builtIns, new HashSet<string>(), new Errors(reporter)) == null);
+      reporter = new ConsoleErrorReporter(options);
+      var program = new ProgramParser().ParseFiles(fname, new DafnyFile[] { new(reporter.Options, uri, new StringReader(source)) },
+        reporter, CancellationToken.None);
+
+      var success = reporter.ErrorCount == 0;
       if (success) {
-        dafnyProgram = new Program(fname, module, builtIns, reporter);
+        dafnyProgram = program;
       }
       return success;
     }
 
     private bool Resolve() {
-      var resolver = new Resolver(dafnyProgram);
-      resolver.ResolveProgram(dafnyProgram);
+      var resolver = new ProgramResolver(dafnyProgram);
+      resolver.Resolve(CancellationToken.None);
       return reporter.Count(ErrorLevel.Error) == 0;
     }
 
     private bool Translate() {
       boogiePrograms = Translator.Translate(dafnyProgram, reporter,
-          new Translator.TranslatorFlags(options) { InsertChecksums = true, UniqueIdPrefix = fname }); // FIXME how are translation errors reported?
+          new Translator.TranslatorFlags(options) { InsertChecksums = true, UniqueIdPrefix = fname }).ToList(); // FIXME how are translation errors reported?
       return true;
     }
 

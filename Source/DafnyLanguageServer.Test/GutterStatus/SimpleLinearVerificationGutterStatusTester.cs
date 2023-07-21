@@ -3,8 +3,9 @@ using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
 using Xunit;
 using Xunit.Abstractions;
 
-namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Diagnostics;
+namespace Microsoft.Dafny.LanguageServer.IntegrationTest.GutterStatus;
 
+[Collection("Sequential Collection")]
 public class SimpleLinearVerificationGutterStatusTester : LinearVerificationGutterStatusTester {
   private const int MaxTestExecutionTimeMs = 10000;
 
@@ -22,7 +23,7 @@ public class SimpleLinearVerificationGutterStatusTester : LinearVerificationGutt
 [ ]:method {:rlimit 1} Test(s: seq<nat>)
 [=]:  requires |s| >= 1 && s[0] >= 0 {
 [=]:  assert fib(10) == 1; assert {:split_here} s[0] >= 0;
-[ ]:}", intermediates: false);
+[ ]:}", true, intermediates: false);
   }
 
   [Fact]
@@ -44,7 +45,7 @@ method Foo() ensures false { } ";
     await VerifyTrace(@"
  .  | :method x() {
  .  | :  // Nothing here
- .  | :}");
+ .  | :}", false);
   }
 
   [Fact/*, Timeout(MaxTestExecutionTimeMs)*/]
@@ -67,7 +68,7 @@ method Foo() ensures false { } ";
     |  |  |  I  I  |  | :    
  .  |  |  |  I  I  |  | :predicate OkBis() {
  .  |  |  |  I  I  |  | :  false
- .  |  |  |  I  I  |  | :}");
+ .  |  |  |  I  I  |  | :}", true);
   }
   [Fact(Timeout = MaxTestExecutionTimeMs)]
   public async Task EnsuresItWorksForSubsetTypes() {
@@ -80,7 +81,7 @@ method Foo() ensures false { } ";
  .  |  |  |  I  I  |  |  |  I  I  |  |  | :}
     |  |  |  I  I  |  |  |  I  I  |  |  | :
  .  S  S  |  I  .  S  S [=] I  .  S  S  | :type IssueId = i : int | isIssueIdValid(i)
- .  S  |  |  I  .  S  | [=] I  .  S  |  | :  witness 101 //Next1:   witness 99 //Next2:   witness 101 ");
+ .  S  |  |  I  .  S  | [=] I  .  S  |  | :  witness 101 //Next1:   witness 99 //Next2:   witness 101 ", false);
   }
 
   [Fact(Timeout = MaxTestExecutionTimeMs)]
@@ -93,7 +94,7 @@ method Foo() ensures false { } ";
  .  S [S][ ]:method H()
  .  S [=][=]:  ensures F(1)
  .  S [=][=]:{
- .  S [S][ ]:}");
+ .  S [S][ ]:}", true);
   }
 
   [Fact(Timeout = MaxTestExecutionTimeMs * 10)]
@@ -105,7 +106,7 @@ method Foo() ensures false { } ";
  .  S [S][ ][I] | :method Main() {
  .  S [=][=][I] | :  ghost var x :| P(x); //Next:  ghost var x := 1;
  .  S [S][ ][I] | :}
-                | :");
+                | :", false);
     }
   }
 
@@ -114,7 +115,7 @@ method Foo() ensures false { } ";
     await VerifyTrace(@"
  | :class A {
  | :}
- | :");
+ | :", true);
   }
 
 
@@ -123,13 +124,13 @@ method Foo() ensures false { } ";
     await VerifyTrace(@"
 /!\:class A {/
    :}
-   :");
+   :", false);
   }
 
   [Fact/*(Timeout = MaxTestExecutionTimeMs)*/]
   public async Task EnsuresDefaultArgumentsShowsError() {
     await VerifyTrace(@"
- .  S [~][=]:datatype D = T(i: nat := -2)");
+ .  S [~][=]:datatype D = T(i: nat := -2)", true);
   }
 
   [Fact/*(Timeout = MaxTestExecutionTimeMs)*/]
@@ -138,7 +139,7 @@ method Foo() ensures false { } ";
     |  |  | :// The following should trigger only one error
  .  |  |  | :ghost const a := [1, 2];
     |  |  | :
- .  S [~][=]:ghost const b := a[-1];");
+ .  S [~][=]:ghost const b := a[-1];", false);
   }
 
   [Fact/*(Timeout = MaxTestExecutionTimeMs)*/]
@@ -148,7 +149,7 @@ method Foo() ensures false { } ";
  .  S [S][ ][I][S][ ][I][S][ ]:  //Next1:\n  //Next2:\n  
  .  S [=][=][I][S][ ][I][S][ ]:  assert x == 2; }
             [-][~][=][I][S][ ]:
-                     [-][~][=]:");
+                     [-][~][=]:", true);
   }
 
   [Fact/*(Timeout = MaxTestExecutionTimeMs)*/]
@@ -163,7 +164,7 @@ method Foo() ensures false { } ";
  .  S [S][ ][-][~][~][=]:    y := y + 1;
  .  S [S][ ][I][S][S][ ]:  }
  .  S [S][ ][I][S][S][ ]:}
-            [I][S][S][ ]:");
+            [I][S][S][ ]:", false);
   }
 
   [Fact]
@@ -172,7 +173,7 @@ method Foo() ensures false { } ";
  .  S [S][ ]:method x() {
  .  S [=][=]:  assert false
  .  S [=][=]:    || false;
- .  S [S][ ]:}");
+ .  S [S][ ]:}", true);
   }
 
   [Fact]
@@ -190,7 +191,7 @@ method Foo() ensures false { } ";
     |  |  | :
  .  |  |  | :predicate test2(x: nat) {
  .  |  |  | :  true
- .  |  |  | :}");
+ .  |  |  | :}", false);
   }
 
 
@@ -209,7 +210,7 @@ method Foo() ensures false { } ";
     |  |  | :
  .  |  |  | :predicate test2(x: nat) {
  .  |  |  | :  true
- .  |  |  | :}");
+ .  |  |  | :}", true);
   }
 
   public SimpleLinearVerificationGutterStatusTester(ITestOutputHelper output) : base(output) {

@@ -53,7 +53,7 @@ module _System {
   type {:axiom} array(==)<arg> = c: array?<arg> | c != null /*special witness*/
   */
 
-  class {:compile false} /*_#Func1*/ -T0 ~> +R {
+  type {:compile false} /*_#Func1*/ -T0 ~> +R {
     ghost function requires(x0: T0): bool
       reads reads(x0)
 
@@ -69,7 +69,7 @@ module _System {
     | forall x0: T0 :: f.requires(x0)
     /*special witness*/
 
-  class {:compile false} /*_#Func0*/ () ~> +R {
+  type {:compile false} /*_#Func0*/ () ~> +R {
     ghost function requires(): bool
       reads reads()
 
@@ -86,22 +86,6 @@ module _System {
     /*special witness*/
 
   datatype {:compile false} /*_tuple#2*/ (+T0, +T1) = _#Make2(0: T0, 1: T1)
-
-  class {:compile false} /*_#Func2*/ (-T0, -T1) ~> +R {
-    ghost function requires(x0: T0, x1: T1): bool
-      reads reads(x0, x1)
-
-    ghost function reads(x0: T0, x1: T1): set<object?>
-      reads reads(x0, x1)
-  }
-
-  type {:compile false} /*_#PartialFunc2*/ (-T0, -T1) --> +R = f: (T0, T1) ~> R
-    | forall x0: T0, x1: T1 :: f.reads(x0, x1) == {}
-    /*special witness*/
-
-  type {:compile false} /*_#TotalFunc2*/ (-T0, -T1) -> +R = f: (T0, T1) --> R
-    | forall x0: T0, x1: T1 :: f.requires(x0, x1)
-    /*special witness*/
 
   type bool { }
 
@@ -137,6 +121,22 @@ module _System {
   }
 
   datatype {:compile false} /*_tuple#0*/ () = _#Make0
+
+  type {:compile false} /*_#Func2*/ (-T0, -T1) ~> +R {
+    ghost function requires(x0: T0, x1: T1): bool
+      reads reads(x0, x1)
+
+    ghost function reads(x0: T0, x1: T1): set<object?>
+      reads reads(x0, x1)
+  }
+
+  type {:compile false} /*_#PartialFunc2*/ (-T0, -T1) --> +R = f: (T0, T1) ~> R
+    | forall x0: T0, x1: T1 :: f.reads(x0, x1) == {}
+    /*special witness*/
+
+  type {:compile false} /*_#TotalFunc2*/ (-T0, -T1) -> +R = f: (T0, T1) --> R
+    | forall x0: T0, x1: T1 :: f.requires(x0, x1)
+    /*special witness*/
 }
 // bitvector types in use:
 */
@@ -157,6 +157,22 @@ module Tests {
    * SCC at height 0:
    *   ChainOfAssignments
    */
+  method ChainOfAssignments() returns (x: int, y: int, n: nat)
+  {
+    var a: int;
+    var b: int := a;
+    var c: int := b;
+    x := c;
+    y := x;
+    var k: int, l: int, m: int;
+    k := l;
+    l := m;
+    m := x;
+    var p: nat, q: nat;
+    p := q;
+    q := n;
+  }
+
   class CC {
     var f: nat
     var g: int
@@ -173,34 +189,16 @@ module Tests {
     }
 
     method N(m: nat) returns (n: nat)
+      decreases m
   }
   /*-- non-null type
   type {:axiom} CC(==) = c: CC? | c != null /*special witness*/
   */
-
-  method ChainOfAssignments() returns (x: int, y: int, n: nat)
-  {
-    var a: int;
-    var b: int := a;
-    var c: int := b;
-    x := c;
-    y := x;
-    var k: int, l: int, m: int;
-    k := l;
-    l := m;
-    m := x;
-    var p: nat, q: nat;
-    p := q;
-    q := n;
-  }
 }
 
 module HereAreErrors {
   /* CALL GRAPH for module HereAreErrors:
    */
-  newtype MyInt = x: int
-    | true
-
   method Error0() returns (x: int, z: bool)
   {
     var a: int, b: int, c: int;
@@ -247,6 +245,9 @@ module HereAreErrors {
     var d: int, e: int;
     d, e := e, b;
   }
+
+  newtype MyInt = x: int
+    | true
 }
 
 module PL {
@@ -274,9 +275,6 @@ module PlusTests {
 module PlusTests' {
   /* CALL GRAPH for module PlusTests':
    */
-  newtype MyInt = x: int
-    | true
-
   method Plus1()
   {
     var a: bool;
@@ -312,19 +310,14 @@ module PlusTests' {
     a := b + c;
     a := y;
   }
+
+  newtype MyInt = x: int
+    | true
 }
 
 module MorePlusTests {
   /* CALL GRAPH for module MorePlusTests:
    */
-  newtype MyInt = x: int
-    | true
-
-  class C { }
-  /*-- non-null type
-  type {:axiom} C(==) = c: C? | c != null /*special witness*/
-  */
-
   method Plusses(b: bool, i: int, j: MyInt, r: real)
   {
     var ii: int := i + i;
@@ -344,31 +337,19 @@ module MorePlusTests {
     var c: C := new C;
     var cc: C := c + c;
   }
+
+  newtype MyInt = x: int
+    | true
+
+  class C { }
+  /*-- non-null type
+  type {:axiom} C(==) = c: C? | c != null /*special witness*/
+  */
 }
 
 module References {
   /* CALL GRAPH for module References:
    */
-  class C extends K, M { }
-  /*-- non-null type
-  type {:axiom} C(==) = c: C? | c != null /*special witness*/
-  */
-
-  trait R { }
-  /*-- non-null type
-  type {:axiom} R(==) = c: R? | c != null /*special witness*/
-  */
-
-  trait K { }
-  /*-- non-null type
-  type {:axiom} K(==) = c: K? | c != null /*special witness*/
-  */
-
-  trait M { }
-  /*-- non-null type
-  type {:axiom} M(==) = c: M? | c != null /*special witness*/
-  */
-
   method M0() returns (c: C, r: R)
   {
     var o: object, k: K, m: M;
@@ -397,6 +378,26 @@ module References {
   {
     r := o;
   }
+
+  class C extends K, M { }
+  /*-- non-null type
+  type {:axiom} C(==) = c: C? | c != null /*special witness*/
+  */
+
+  trait R { }
+  /*-- non-null type
+  type {:axiom} R(==) = c: R? | c != null /*special witness*/
+  */
+
+  trait K { }
+  /*-- non-null type
+  type {:axiom} K(==) = c: K? | c != null /*special witness*/
+  */
+
+  trait M { }
+  /*-- non-null type
+  type {:axiom} M(==) = c: M? | c != null /*special witness*/
+  */
 }
 
 module SimpleClassesAndTraits {
@@ -414,6 +415,32 @@ module SimpleClassesAndTraits {
    * SCC at height 0:
    *   R
    */
+  method Infer(c: C, o: object, k: K, d: D)
+      returns (k': K)
+    decreases c, o, k, d
+  {
+    var delayme: object := c;
+    var x: C := c;
+    var yy: int := x.h;
+    delayme := o;
+    var u: K := k;
+    var v: object := k;
+    v := o;
+    v := c;
+    var w: K := c;
+    w := k;
+    var z: object := c;
+    z := o;
+    var p: object := o;
+    var y: C;
+    var d: C := y;
+    var n: object? := null;
+    var n': K? := null;
+    n' := k;
+    var n'': K? := null;
+    k' := n'';
+  }
+
   class C extends K, M { }
   /*-- non-null type
   type {:axiom} C(==) = c: C? | c != null /*special witness*/
@@ -440,31 +467,6 @@ module SimpleClassesAndTraits {
   /*-- non-null type
   type {:axiom} M(==) = c: M? | c != null /*special witness*/
   */
-
-  method Infer(c: C, o: object, k: K, d: D)
-      returns (k': K)
-  {
-    var delayme: object := c;
-    var x: C := c;
-    var yy: int := x.h;
-    delayme := o;
-    var u: K := k;
-    var v: object := k;
-    v := o;
-    v := c;
-    var w: K := c;
-    w := k;
-    var z: object := c;
-    z := o;
-    var p: object := o;
-    var y: C;
-    var d: C := y;
-    var n: object? := null;
-    var n': K? := null;
-    n' := k;
-    var n'': K? := null;
-    k' := n'';
-  }
 }
 
 module TypeParameters {
@@ -472,12 +474,6 @@ module TypeParameters {
    * SCC at height 0:
    *   M
    */
-  type A
-
-  type B
-
-  type C<T, U>
-
   method M<G, H>(a: A, b: B, c0: C<int, bool>, g: G)
       returns (c1: C<real, real>, h: H)
   {
@@ -498,6 +494,12 @@ module TypeParameters {
     var r: C<real, real>;
     r := c1;
   }
+
+  type A
+
+  type B
+
+  type C<T, U>
 }
 
 module Datatypes {
@@ -511,10 +513,6 @@ module Datatypes {
    * SCC at height 0:
    *   Record
    */
-  datatype Color = Red | Green | Blue
-
-  datatype Record<T, U> = Record(t: T, u: U)
-
   method M() returns (c: Color)
   {
     var x: Color := c;
@@ -538,6 +536,10 @@ module Datatypes {
     var tt: bool, uu: char;
     tt, uu := t.t, t.u;
   }
+
+  datatype Color = Red | Green | Blue
+
+  datatype Record<T, U> = Record(t: T, u: U)
 }
 
 module TraitStuff {
@@ -633,6 +635,55 @@ module OtherTraitsAndClasses {
    * SCC at height 0:
    *   Q0
    */
+  method Basics(x: int) returns (y: int)
+    decreases x
+  {
+    var k: int := x;
+    var m: int;
+    y := m + m;
+  }
+
+  method Displays(c: C, d: D, e: E, j: J, k: K)
+    decreases c, d, e, j, k
+  {
+    var s: set<C> := {c, c};
+    var t: set<J> := {c, j};
+    var t': set<J> := {j, c};
+    var u: set<J> := {c, d};
+    var v: set<object> := {c, e};
+    var w: set<object> := {k, c};
+  }
+
+  method G(c: C)
+    decreases c
+  {
+    var s: set<C> := {c};
+    var t: set<C> := s;
+    var u: set<object> := s;
+  }
+
+  method M() returns (r: nat)
+  {
+    var x: nat, y: nat, z: bool, w: int;
+    x := x + y;
+    z := true;
+    y := r;
+    w := 0;
+  }
+
+  method Q0(s: set<char>) returns (t: set<char>)
+    decreases s
+  {
+    var p: set<char> := s + t;
+  }
+
+  method Q1<T>(s: set<MyClass>) returns (t: set<MyClass>)
+    decreases s
+  {
+    var p: set<MyClass> := s + t;
+    var q: set<object> := s + t;
+  }
+
   trait J { }
   /*-- non-null type
   type {:axiom} J(==) = c: J? | c != null /*special witness*/
@@ -662,50 +713,6 @@ module OtherTraitsAndClasses {
   /*-- non-null type
   type {:axiom} MyClass(==) = c: MyClass? | c != null /*special witness*/
   */
-
-  method Basics(x: int) returns (y: int)
-  {
-    var k: int := x;
-    var m: int;
-    y := m + m;
-  }
-
-  method Displays(c: C, d: D, e: E, j: J, k: K)
-  {
-    var s: set<C> := {c, c};
-    var t: set<J> := {c, j};
-    var t': set<J> := {j, c};
-    var u: set<J> := {c, d};
-    var v: set<object> := {c, e};
-    var w: set<object> := {k, c};
-  }
-
-  method G(c: C)
-  {
-    var s: set<C> := {c};
-    var t: set<C> := s;
-    var u: set<object> := s;
-  }
-
-  method M() returns (r: nat)
-  {
-    var x: nat, y: nat, z: bool, w: int;
-    x := x + y;
-    z := true;
-    y := r;
-    w := 0;
-  }
-
-  method Q0(s: set<char>) returns (t: set<char>)
-  {
-    var p: set<char> := s + t;
-  }
-
-  method Q1<T>(s: set<MyClass>) returns (t: set<MyClass>)
-  {
-    var p: set<MyClass> := s + t;
-    var q: set<object> := s + t;
-  }
 }
 
 module LetPatterns {
@@ -719,10 +726,9 @@ module LetPatterns {
    * SCC at height 0:
    *   Q
    */
-  datatype MyDt = AAA(x: int) | BBB(y: int)
-
   ghost function M(m: MyDt): int
     requires m.AAA?
+    decreases m
   {
     var AAA(u: int) := m;
     u
@@ -736,11 +742,14 @@ module LetPatterns {
   }
 
   method Q(x: int, r: real)
+    decreases x, r
   {
     var o: real;
     var u: (int, real) := (x, o);
     o := r;
   }
+
+  datatype MyDt = AAA(x: int) | BBB(y: int)
 }
 
 module Arrays_and_SubsetTypes {
@@ -844,6 +853,7 @@ module TypeArgumentPrintTests {
 
   class B<Y> {
     function H(y: Y, b: bool): int
+      decreases b
     {
       if b then
         A<Y>.F(y)
@@ -865,11 +875,9 @@ module PrettyPrintingBindingPowers {
    * SCC at height 0:
    *   MyInt
    */
-  newtype MyInt = u: int
-    | u != 193
-
   method M(m: map<int, real>, n: map<int, real>, a: set<int>, b: set<int>, c: set<int>)
       returns (r: map<int, real>)
+    decreases m, n, a, b, c
   {
     r := m - b - c;
     r := m - b + n;
@@ -891,6 +899,9 @@ module PrettyPrintingBindingPowers {
     e := e + (e + e);
     m := m + (m + m);
   }
+
+  newtype MyInt = u: int
+    | u != 193
 }
 
 module SameSCC {

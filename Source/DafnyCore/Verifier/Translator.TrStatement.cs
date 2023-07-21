@@ -518,7 +518,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(etran != null);
 
       var stmtBuilder = new BoogieStmtListBuilder(this, options);
-      string errorMessage = CustomErrorMessage(stmt.Attributes);
+      var (errorMessage, successMessage) = CustomErrorMessage(stmt.Attributes);
       this.fuelContext = FuelSetting.ExpandFuelContext(stmt.Attributes, stmt.Tok, this.fuelContext, this.reporter);
       var defineFuel = DefineFuelConstant(stmt.Tok, stmt.Attributes, stmtBuilder, etran);
       var b = defineFuel ? stmtBuilder : builder;
@@ -548,14 +548,14 @@ namespace Microsoft.Dafny {
         var ss = TrSplitExpr(stmt.Expr, etran, true, out var splitHappened);
         if (!splitHappened) {
           var tok = enclosingToken == null ? GetToken(stmt.Expr) : new NestedToken(enclosingToken, GetToken(stmt.Expr));
-          var desc = new PODesc.AssertStatement(errorMessage);
+          var desc = new PODesc.AssertStatement(errorMessage, successMessage);
           (proofBuilder ?? b).Add(Assert(tok, etran.TrExpr(stmt.Expr), desc, stmt.Tok,
             etran.TrAttributes(stmt.Attributes, null)));
         } else {
           foreach (var split in ss) {
             if (split.IsChecked) {
               var tok = enclosingToken == null ? split.E.tok : new NestedToken(enclosingToken, split.Tok);
-              var desc = new PODesc.AssertStatement(errorMessage);
+              var desc = new PODesc.AssertStatement(errorMessage, successMessage);
               (proofBuilder ?? b).Add(AssertNS(ToDafnyToken(tok), split.E, desc, stmt.Tok,
                 etran.TrAttributes(stmt.Attributes, null))); // attributes go on every split
             }
@@ -827,7 +827,7 @@ namespace Microsoft.Dafny {
           var ctorId = matchCase.Ctor.Name;
           if (match.Source.Type.AsDatatype is TupleTypeDecl) {
             var tuple = (TupleTypeDecl)match.Source.Type.AsDatatype;
-            ctorId = BuiltIns.TupleTypeCtorName(tuple.Dims);
+            ctorId = SystemModuleManager.TupleTypeCtorName(tuple.Dims);
           }
 
           if (constructors.ContainsKey(ctorId)) {
@@ -1041,10 +1041,8 @@ namespace Microsoft.Dafny {
         // Note, it would be nicer (and arguably more appropriate) to do a SetupBoundVarsAsLocals
         // here (rather than a TrBoundVariables).  However, there is currently no way to apply
         // a substMap to a statement (in particular, to s.Body), so that doesn't work here.
-        List<bool> freeOfAlloc = null;
-        if (options.FrugalHeapUseX) {
-          freeOfAlloc = ComprehensionExpr.BoundedPool.HasBounds(s.Bounds, ComprehensionExpr.BoundedPool.PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc);
-        }
+        List<bool> freeOfAlloc = ComprehensionExpr.BoundedPool.HasBounds(s.Bounds, ComprehensionExpr.BoundedPool.PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc);
+
         var bVars = new List<Variable>();
         var typeAntecedent = etran.TrBoundVariables(s.BoundVars, bVars, true, freeOfAlloc);
         locals.AddRange(bVars);
@@ -1272,10 +1270,7 @@ namespace Microsoft.Dafny {
       Bpl.IdentifierExpr f = new Bpl.IdentifierExpr(s.Tok, fVar);
       Bpl.Expr heapOF = ExpressionTranslator.ReadHeap(s.Tok, etran.HeapExpr, o, f);
       Bpl.Expr oldHeapOF = ExpressionTranslator.ReadHeap(s.Tok, prevHeap, o, f);
-      List<bool> freeOfAlloc = null;
-      if (options.FrugalHeapUseX) {
-        freeOfAlloc = ComprehensionExpr.BoundedPool.HasBounds(s.Bounds, ComprehensionExpr.BoundedPool.PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc);
-      }
+      List<bool> freeOfAlloc = ComprehensionExpr.BoundedPool.HasBounds(s.Bounds, ComprehensionExpr.BoundedPool.PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc);
       List<Variable> xBvars = new List<Variable>();
       var xBody = etran.TrBoundVariables(s.BoundVars, xBvars, false, freeOfAlloc);
       xBody = BplAnd(xBody, prevEtran.TrExpr(s.Range));
@@ -1315,17 +1310,14 @@ namespace Microsoft.Dafny {
     private Bpl.Expr TrForall_NewValueAssumption(IToken tok, List<BoundVar> boundVars, List<ComprehensionExpr.BoundedPool> bounds, Expression range, Expression lhs, Expression rhs, Attributes attributes, ExpressionTranslator etran, ExpressionTranslator prevEtran) {
       Contract.Requires(tok != null);
       Contract.Requires(boundVars != null);
-      Contract.Requires(!options.FrugalHeapUseX || bounds != null);
+      Contract.Requires(bounds != null);
       Contract.Requires(range != null);
       Contract.Requires(lhs != null);
       Contract.Requires(rhs != null);
       Contract.Requires(etran != null);
       Contract.Requires(prevEtran != null);
 
-      List<bool> freeOfAlloc = null;
-      if (options.FrugalHeapUseX) {
-        freeOfAlloc = ComprehensionExpr.BoundedPool.HasBounds(bounds, ComprehensionExpr.BoundedPool.PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc);
-      }
+      List<bool> freeOfAlloc = ComprehensionExpr.BoundedPool.HasBounds(bounds, ComprehensionExpr.BoundedPool.PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc);
       var xBvars = new List<Variable>();
       Bpl.Expr xAnte = etran.TrBoundVariables(boundVars, xBvars, false, freeOfAlloc);
       xAnte = BplAnd(xAnte, prevEtran.TrExpr(range));
@@ -1413,7 +1405,7 @@ namespace Microsoft.Dafny {
       }
       BoogieStmtListBuilder invDefinednessBuilder = new BoogieStmtListBuilder(this, options);
       foreach (AttributedExpression loopInv in s.Invariants) {
-        string errorMessage = CustomErrorMessage(loopInv.Attributes);
+        var (errorMessage, successMessage) = CustomErrorMessage(loopInv.Attributes);
         TrStmt_CheckWellformed(loopInv.E, invDefinednessBuilder, locals, etran, false);
         invDefinednessBuilder.Add(TrAssumeCmd(loopInv.E.tok, etran.TrExpr(loopInv.E)));
 
@@ -1421,12 +1413,12 @@ namespace Microsoft.Dafny {
         var ss = TrSplitExpr(loopInv.E, etran, false, out var splitHappened);
         if (!splitHappened) {
           var wInv = Bpl.Expr.Imp(w, etran.TrExpr(loopInv.E));
-          invariants.Add(Assert(loopInv.E.tok, wInv, new PODesc.LoopInvariant(errorMessage)));
+          invariants.Add(Assert(loopInv.E.tok, wInv, new PODesc.LoopInvariant(errorMessage, successMessage)));
         } else {
           foreach (var split in ss) {
             var wInv = Bpl.Expr.Binary(split.E.tok, BinaryOperator.Opcode.Imp, w, split.E);
             if (split.IsChecked) {
-              invariants.Add(Assert(split.Tok, wInv, new PODesc.LoopInvariant(errorMessage)));  // TODO: it would be fine to have this use {:subsumption 0}
+              invariants.Add(Assert(split.Tok, wInv, new PODesc.LoopInvariant(errorMessage, successMessage)));  // TODO: it would be fine to have this use {:subsumption 0}
             } else {
               invariants.Add(TrAssumeCmd(split.E.tok, wInv));
             }
@@ -1452,7 +1444,7 @@ namespace Microsoft.Dafny {
             invariants.Add(TrAssumeCmd(s.Tok, tri.Expr));
           } else {
             Contract.Assert(tri.ErrorMessage != null);  // follows from BoilerplateTriple invariant
-            invariants.Add(Assert(s.Tok, tri.Expr, new PODesc.BoilerplateTriple(tri.ErrorMessage)));
+            invariants.Add(Assert(s.Tok, tri.Expr, new PODesc.BoilerplateTriple(tri.ErrorMessage, tri.SuccessMessage, tri.Comment)));
           }
         }
         // add a free invariant which says that the heap hasn't changed outside of the modifies clause.
@@ -1789,7 +1781,11 @@ namespace Microsoft.Dafny {
             CheckNonNull(dafnyReceiver.tok, dafnyReceiver, builder, etran, null);
           }
         }
-        ins.Add(etran.TrExpr(receiver));
+        var obj = etran.TrExpr(receiver);
+        if (bReceiver == null) {
+          obj = BoxifyForTraitParent(tok, obj, method, dafnyReceiver.Type);
+        }
+        ins.Add(obj);
       } else if (receiver is StaticReceiverExpr stexpr) {
         if (stexpr.ObjectToDiscard != null) {
           TrStmt_CheckWellformed(stexpr.ObjectToDiscard, builder, locals, etran, true);
@@ -1994,7 +1990,7 @@ namespace Microsoft.Dafny {
       //     assume false;
       //   } else {
       //     initHeap := $Heap;
-      //     advance $Heap, Tick;
+      //     advance $Heap;
       //     assume (forall x,y :: (Range(x,y) && additionalRange)[INIT] &&
       //                           ==> Post[old($Heap) := initHeap]( E(x,y)[INIT], Args(x,y)[INIT] ));
       //   }
@@ -2006,10 +2002,7 @@ namespace Microsoft.Dafny {
           // Note, it would be nicer (and arguably more appropriate) to do a SetupBoundVarsAsLocals
           // here (rather than a TrBoundVariables).  However, there is currently no way to apply
           // a substMap to a statement (in particular, to s.Body), so that doesn't work here.
-          List<bool> freeOfAlloc = null;
-          if (options.FrugalHeapUseX) {
-            freeOfAlloc = ComprehensionExpr.BoundedPool.HasBounds(bounds, ComprehensionExpr.BoundedPool.PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc);
-          }
+          List<bool> freeOfAlloc = ComprehensionExpr.BoundedPool.HasBounds(bounds, ComprehensionExpr.BoundedPool.PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc);
           List<Variable> bvars = new List<Variable>();
           var ante = etran.TrBoundVariables(boundVars, bvars, true, freeOfAlloc);
           locals.AddRange(bvars);
@@ -2041,8 +2034,8 @@ namespace Microsoft.Dafny {
         // initHeap := $Heap;
         exporter.Add(Bpl.Cmd.SimpleAssign(tok, initHeap, etran.HeapExpr));
         var heapIdExpr = etran.HeapCastToIdentifierExpr;
-        // advance $Heap, Tick;
-        exporter.Add(new Bpl.HavocCmd(tok, new List<Bpl.IdentifierExpr> { heapIdExpr, etran.Tick() }));
+        // advance $Heap;
+        exporter.Add(new Bpl.HavocCmd(tok, new List<Bpl.IdentifierExpr> { heapIdExpr }));
         Contract.Assert(s0.Method.Mod.Expressions.Count == 0);  // checked by the resolver
         foreach (BoilerplateTriple tri in GetTwoStateBoilerplate(tok, new List<FrameExpression>(), s0.IsGhost, s0.Method.AllowsAllocation, initEtran, etran, initEtran)) {
           if (tri.IsFree) {

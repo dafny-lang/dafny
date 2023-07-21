@@ -42,22 +42,30 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
 
     private readonly DafnyLangTypeResolver typeResolver;
 
-    public static SignatureAndCompletionTable Empty(DafnyOptions options, DocumentTextBuffer textDocument) {
-      var outerModule = new DefaultModuleDefinition(new List<Uri>() { textDocument.Uri.ToUri() });
-      var errorReporter = new DiagnosticErrorReporter(options, outerModule, textDocument.Text, textDocument.Uri);
+    public static SignatureAndCompletionTable Empty(DafnyOptions options, DafnyProject project) {
+      var emptyProgram = GetEmptyProgram(options, project.Uri);
       return new SignatureAndCompletionTable(
         NullLogger<SignatureAndCompletionTable>.Instance,
-        new CompilationUnit(textDocument.Uri.ToUri(), new Dafny.Program(
-          textDocument.Uri.ToString(),
-          new LiteralModuleDecl(outerModule, null),
-          // BuiltIns cannot be initialized without Type.ResetScopes() before.
-          new BuiltIns(options), // TODO creating a BuiltIns is a heavy operation
-          errorReporter
-        )),
+        new CompilationUnit(project.Uri, emptyProgram),
         new Dictionary<object, ILocalizableSymbol>(),
         new Dictionary<ISymbol, SymbolLocation>(),
         new IntervalTree<Position, ILocalizableSymbol>(),
         symbolsResolved: false);
+    }
+
+    public static Program GetEmptyProgram(DafnyOptions options, Uri uri) {
+      var outerModule = new DefaultModuleDefinition(new List<Uri>() { uri });
+      var errorReporter = new DiagnosticErrorReporter(options, uri);
+      var compilation = new CompilationData(errorReporter, new List<Include>(), new List<Uri>(), Sets.Empty<Uri>(),
+        Sets.Empty<Uri>());
+      var emptyProgram = new Program(
+                           uri.ToString(),
+        new LiteralModuleDecl(outerModule, null, Guid.NewGuid()),
+        // BuiltIns cannot be initialized without Type.ResetScopes() before.
+        new SystemModuleManager(options), // TODO creating a BuiltIns is a heavy operation
+        errorReporter, compilation
+      );
+      return emptyProgram;
     }
 
     public SignatureAndCompletionTable(

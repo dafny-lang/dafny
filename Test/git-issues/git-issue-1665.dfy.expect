@@ -31,7 +31,7 @@ module _System {
   type {:axiom} array(==)<arg> = c: array?<arg> | c != null /*special witness*/
   */
 
-  class {:compile false} /*_#Func1*/ -T0 ~> +R {
+  type {:compile false} /*_#Func1*/ -T0 ~> +R {
     ghost function requires(x0: T0): bool
       reads reads(x0)
 
@@ -47,7 +47,7 @@ module _System {
     | forall x0: T0 :: f.requires(x0)
     /*special witness*/
 
-  class {:compile false} /*_#Func0*/ () ~> +R {
+  type {:compile false} /*_#Func0*/ () ~> +R {
     ghost function requires(): bool
       reads reads()
 
@@ -121,21 +121,6 @@ module ConcreteModule {
    * SCC at height 0:
    *   Status.IsFailure
    */
-  datatype Status = Success | Failure(error: nat) {
-    predicate IsFailure()
-      decreases this
-    {
-      this.Failure?
-    }
-
-    function PropagateFailure(): Status
-      requires IsFailure()
-      decreases this
-    {
-      Failure(this.error)
-    }
-  }
-
   method execute_external_method(n: nat, m: nat) returns (r: Status)
     decreases n, m
   {
@@ -278,6 +263,21 @@ module ConcreteModule {
     ---------- end flattened ----------*/
     match n {
       case {:split false} n: int =>
+    }
+  }
+
+  datatype Status = Success | Failure(error: nat) {
+    predicate IsFailure()
+      decreases this
+    {
+      this.Failure?
+    }
+
+    function PropagateFailure(): Status
+      requires IsFailure()
+      decreases this
+    {
+      Failure(this.error)
     }
   }
 }

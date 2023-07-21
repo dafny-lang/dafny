@@ -11,24 +11,23 @@ using System;
 using System.Diagnostics.Contracts;
 using JetBrains.Annotations;
 using Microsoft.Boogie;
-using static Microsoft.Dafny.ErrorRegistry;
+using static Microsoft.Dafny.RewriterErrors;
 
 namespace Microsoft.Dafny {
 
   public class PrecedenceLinter : IRewriter {
-    internal override void PostResolve(Program program) {
-      base.PostResolve(program);
-      foreach (var moduleDefinition in program.Modules()) {
-        foreach (var topLevelDecl in moduleDefinition.TopLevelDecls.OfType<TopLevelDeclWithMembers>()) {
-          foreach (var callable in topLevelDecl.Members.OfType<ICallable>()) {
-            var visitor = new PrecedenceLinterVisitor(program, Reporter);
-            visitor.Visit(callable, null);
-          }
+    private CompilationData compilation;
+    internal override void PostResolve(ModuleDefinition moduleDefinition) {
+      foreach (var topLevelDecl in moduleDefinition.TopLevelDecls.OfType<TopLevelDeclWithMembers>()) {
+        foreach (var callable in topLevelDecl.Members.OfType<ICallable>()) {
+          var visitor = new PrecedenceLinterVisitor(compilation, Reporter);
+          visitor.Visit(callable, null);
         }
       }
     }
 
-    public PrecedenceLinter(ErrorReporter reporter) : base(reporter) {
+    public PrecedenceLinter(ErrorReporter reporter, CompilationData compilation) : base(reporter) {
+      this.compilation = compilation;
     }
   }
 
@@ -69,11 +68,11 @@ namespace Microsoft.Dafny {
   /// an ordinary in-parameter to VisitOneExpr, since the method would only need to return a bool.
   /// </summary>
   class PrecedenceLinterVisitor : TopDownVisitor<LeftMargin> {
-    private readonly Program program;
+    private readonly CompilationData compilation;
     private readonly ErrorReporter reporter;
 
-    public PrecedenceLinterVisitor(Program program, ErrorReporter reporter) {
-      this.program = program;
+    public PrecedenceLinterVisitor(CompilationData compilation, ErrorReporter reporter) {
+      this.compilation = compilation;
       this.reporter = reporter;
     }
 
@@ -227,7 +226,7 @@ namespace Microsoft.Dafny {
         var st = new LeftMargin(leftMargin);
         Visit(expr, st);
         if (st.Column < leftMargin) {
-          this.reporter.Warning(MessageSource.Rewriter, ErrorRegistry.NoneId, errorToken,
+          reporter.Warning(MessageSource.Rewriter, ErrorId.rw_unusual_indentation_start, errorToken,
             $"unusual indentation in {what} (which starts at {LineCol(expr.StartToken)}); do you perhaps need parentheses?");
         }
       }
@@ -243,13 +242,13 @@ namespace Microsoft.Dafny {
     }
 
     void VisitRhsComponent(IToken errorToken, Expression expr, int rightMargin, string what) {
-      if (expr is ParensExpression || errorToken.WasIncluded(program)) {
+      if (expr is ParensExpression || errorToken.FromIncludeDirective(compilation)) {
         VisitIndependentComponent(expr);
       } else {
         var st = new LeftMargin(rightMargin);
         Visit(expr, st);
         if (st.Column < rightMargin) {
-          this.reporter.Warning(MessageSource.Rewriter, NoneId, errorToken,
+          reporter.Warning(MessageSource.Rewriter, ErrorId.rw_unusual_indentation_end, errorToken,
             $"unusual indentation in {what} (which ends at {LineCol(expr.RangeToken.EndToken)}); do you perhaps need parentheses?");
         }
       }

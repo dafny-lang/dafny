@@ -28,7 +28,7 @@ module Misc {
   }
 
   method SB(b: array2<int>, s: int) returns (x: int, y: int)
-    requires b != null;
+    requires b != null
   {
     while
     {
@@ -39,7 +39,7 @@ module Misc {
   // -------- name resolution
 
   class Global {
-    var X: int;
+    var X: int
     function F(x: int): int { x }
     static ghost function G(x: int): int { x }
     method M(x: int) returns (r: int)
@@ -81,7 +81,7 @@ module Misc {
   ghost function Tuv(arg0: Abc, arg1: bool): int { 10 }
 
   class EE {
-    var Eleanor: bool;
+    var Eleanor: bool
     method TestNameResolution1() {
       var a0 := Abel;
       var a1 := Alberta;
@@ -158,8 +158,8 @@ module HereAreMoreGhostTests {
       var n := 0;
       ghost var k := 0;
       while (true)
-        invariant n <= 112;
-        decreases 112 - n;
+        invariant n <= 112
+        decreases 112 - n
       {
         label MyStructure: {
           if (k % 17 == 0) { break MyStructure; }  // this is fine, because it's a ghost method
@@ -186,8 +186,8 @@ module HereAreMoreGhostTests {
       ghost var k := 0;
       var p := 0;
       while (true)
-        invariant n <= 112;
-        decreases 112 - n;
+        invariant n <= 112
+        decreases 112 - n
       {
         label MyStructure: {
           k := k + 1;
@@ -237,8 +237,8 @@ module HereAreMoreGhostTests {
       ghost var k := 0;
       var p := 0;
       while (true)
-        invariant n <= 112;
-        decreases 112 - n;
+        invariant n <= 112
+        decreases 112 - n
       {
         label MyStructure: {
           if (k % 17 == 0) { break MyStructure; }  // error: break from ghost to non-ghost point
@@ -316,14 +316,14 @@ module MiscMore {
   // --------------- constructors -------------------------------------
 
   class ClassWithConstructor {
-    var y: int;
+    var y: int
     method NotTheOne() { }
     constructor InitA() { }
-    constructor InitB() modifies this; { y := 20; }  // error: don't use "this" in modifies of constructor
+    constructor InitB() modifies this { y := 20; }  // error: don't use "this" in modifies of constructor
   }
 
   class ClassWithoutConstructor {
-    method Init() modifies this; { }
+    method Init() modifies this { }
   }
 
   method ConstructorTests()
@@ -373,11 +373,11 @@ module GhostPrintAttempts {
 // ------------------- auto-added type arguments ------------------------------
 
 module MiscEvenMore {
-  class GenericClass<T> { var data: T; }
+  class GenericClass<T> { var data: T }
 
   method MG0(a: GenericClass, b: GenericClass)
-    requires a != null && b != null;
-    modifies a;
+    requires a != null && b != null
+    modifies a
   {
     a.data := b.data;  // allowed, since both a and b get the same auto type argument
   }
@@ -435,18 +435,18 @@ module MiscEvenMore {
 
 module MyOwnModule {
   class SideEffectChecks {
-    ghost var ycalc: int;
+    ghost var ycalc: int
 
     ghost method Mod(a: int)
-      modifies this;
-      ensures ycalc == a;
+      modifies this
+      ensures ycalc == a
     {
       ycalc := a;
     }
 
     ghost method Bad()
-      modifies this;
-      ensures 0 == 1;
+      modifies this
+      ensures 0 == 1
     {
       var x: int;
       calc {
@@ -471,7 +471,7 @@ module MyOwnModule {
 
 module MiscAgain {
   class Y {
-    var data: int;
+    var data: int
     constructor (x: int)
     {
       data := x;
@@ -620,7 +620,7 @@ module GhostAllocationTests {
   iterator GIter() { }
   class H { constructor () }
   lemma GhostNew0()
-    ensures exists o: G :: fresh(o);
+    ensures exists o: G :: fresh(o)
   {
     var p := new G;  // error: lemma context is not allowed to allocate state
     p := new G;  // error: ditto
@@ -698,9 +698,9 @@ module MiscLemma {
 
   // a lemma is allowed to have out-parameters, but not a modifies clause
   lemma MyLemma(x: int, l: L) returns (y: int)
-    requires 0 <= x;
-    modifies l;
-    ensures 0 <= y;
+    requires 0 <= x
+    modifies l
+    ensures 0 <= y
   {
     y := x;
   }
@@ -711,7 +711,7 @@ module MiscLemma {
 module StatementsInExpressions {
   class MyClass {
     ghost method SideEffect()
-      modifies this;
+      modifies this
     {
     }
 
@@ -748,8 +748,8 @@ module StatementsInExpressions {
       5
     }
 
-    var MyField: int;
-    ghost var MyGhostField: int;
+    var MyField: int
+    ghost var MyGhostField: int
 
     method N()
     {
@@ -845,7 +845,7 @@ module ObjectType {
   class MyClass { }
 
   method M<G>(zz: array<B>, j: int, b: B, co: CoDt, g: G) returns (o: object)
-    requires zz != null && 0 <= j < zz.Length;
+    requires zz != null && 0 <= j < zz.Length
   {
     o := b;  // error
     o := 17;  // error
@@ -864,30 +864,30 @@ module ObjectType {
 
 module MiscModify {
   class ModifyStatementClass {
-    var x: int;
-    ghost var g: int;
+    var x: int
+    ghost var g: int
     method M()
     {
       modify x;  // error: type error
     }
     ghost method G0()
-      modifies `g;
-      modifies `x;  // error: non-ghost field mentioned in ghost context
+      modifies `g
+      modifies `x  // error: non-ghost field mentioned in ghost context
   }
 }
 
 module ModifyStatementClass_More {
   class C {
-    var x: int;
-    ghost var g: int;
+    var x: int
+    ghost var g: int
     ghost method G0()
-      modifies `g;
+      modifies `g
     {
       modify `g;
       modify `x;  // error: non-ghost field mentioned in ghost context
     }
     method G1()
-      modifies this;
+      modifies this
     {
       modify `x;
       if g < 100 {
@@ -896,13 +896,13 @@ module ModifyStatementClass_More {
       }
     }
     method G2(y: nat)
-      modifies this;
+      modifies this
     {
       if g < 100 {
         // we're now in a ghost context
         var n := 0;
         while n < y
-          modifies `x;  // error: non-ghost field mentioned in ghost context
+          modifies `x  // error: non-ghost field mentioned in ghost context
         {
           if * {
             g := g + 1;  // if we got as far as verification, this would be flagged as an error too
@@ -913,7 +913,7 @@ module ModifyStatementClass_More {
       modify `x;  // fine
       ghost var i := 0;
       while i < y
-        modifies `x;  // error: non-ghost field mentioned in ghost context
+        modifies `x  // error: non-ghost field mentioned in ghost context
       {
         i := i + 1;
       }
@@ -951,7 +951,7 @@ module LhsLvalue {
 // ------------------- dirty loops -------------------
 module MiscEtc {
   method DirtyM(S: set<int>) {
-    forall s | s in S ensures s < 0;
+    forall s | s in S ensures s < 0
     assert s < 0; // error: s is unresolved
   }
 
@@ -1009,7 +1009,7 @@ module MiscEtc {
 
 module TypeArgumentCount {
   class C<T> {
-    var f: T;
+    var f: T
   }
 
   method R0(a: array3, c: C)
@@ -1054,7 +1054,7 @@ module CycleErrors3 {
   type A = (B, D<bool>)
   type B = C
   class C {
-    var a: A;  // this is fine
+    var a: A  // this is fine
   }
   datatype D<X> = Make(A, B, C)  // error: cannot construct a D<X>
 }
@@ -1181,10 +1181,10 @@ module MiscTests {
   }
 
   method NonTermination_B()
-    decreases *;
+    decreases *
   {
     while true
-      decreases *;
+      decreases *
     {
     }
   }
@@ -1192,19 +1192,19 @@ module MiscTests {
   method NonTermination_C()
   {
     while true
-      decreases *;  // error: to use an infinite loop, the enclosing method must be marked 'decreases *'
+      decreases *  // error: to use an infinite loop, the enclosing method must be marked 'decreases *'
     {
     }
   }
 
   method NonTermination_D()
-    decreases *;
+    decreases *
   {
     var n := 0;
     while n < 100  // note, no 'decreases *' here, even if the nested loop may fail to terminate
     {
       while *
-        decreases *;
+        decreases *
       {
       }
       n := n + 1;
@@ -1216,7 +1216,7 @@ module MiscTests {
 
 module NonInferredTypeVariables {
   class C<CT> {
-    var f: CT;
+    var f: CT
   }
 
   predicate P<PT>(x: int)
@@ -1457,13 +1457,13 @@ module GhostTests {
   }
 
   ghost method GhostNew4(g: G)
-    modifies g;
+    modifies g
   {
   }
 
   class MyClass {
     ghost method SideEffect()
-      modifies this;
+      modifies this
     {
     }
 
@@ -1472,7 +1472,7 @@ module GhostTests {
     }
 
     ghost method M()
-      modifies this;
+      modifies this
     {
       calc {
         5;
@@ -1512,8 +1512,8 @@ module GhostTests {
       }
       5
     }
-    var MyField: int;
-    ghost var MyGhostField: int;
+    var MyField: int
+    ghost var MyGhostField: int
     method N()
     {
       var y :=
@@ -1564,7 +1564,7 @@ module CallsInStmtExpr {
 
 module EvenMoreGhostTests {
   ghost method NiceTry()
-    ensures false;
+    ensures false
   {
     while (true)
       decreases *  // error:  not allowed here
@@ -2801,15 +2801,15 @@ module GhostRhsConst {
   class C {
     ghost function F(n: nat): nat { n }  // a ghost function
     static ghost function G(n: nat): nat { n }  // a ghost function
-    const b := F(0);  // error: RHS uses a ghost function
-    static const u := G(0);  // error: RHS uses a ghost function
+    const b := F(0)  // error: RHS uses a ghost function
+    static const u := G(0)  // error: RHS uses a ghost function
   }
 
   trait R {
     ghost function F(n: nat): nat { n }  // a ghost function
     static ghost function G(n: nat): nat { n }  // a ghost function
-    const b := F(0);  // error: RHS uses a ghost function
-    static const u := G(0);  // error: RHS uses a ghost function
+    const b := F(0)  // error: RHS uses a ghost function
+    static const u := G(0)  // error: RHS uses a ghost function
   }
 }
 
@@ -3905,4 +3905,14 @@ module UseOfThis {
   {
     const K: int
   }
+}
+
+module AutoInitTypeCheckRegression {
+  codatatype AutoStream<G(0)> = AutoNext(head: G, tail: AutoStream<G>)
+
+  function In<G>(a: AutoStream<G>): int // error: the argument to AutoStream is supposed to be an auto-init type
+  function Out<G>(g: G): AutoStream<G> // error: the argument to AutoStream is supposed to be an auto-init type
+
+  method M<G>(a: AutoStream<G>) // error: the argument to AutoStream is supposed to be an auto-init type
+  method N<G>(g: G) returns (a: AutoStream<G>) // error: the argument to AutoStream is supposed to be an auto-init type
 }

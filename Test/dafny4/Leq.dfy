@@ -1,5 +1,5 @@
-// RUN: %dafny /compile:3 /rprint:"%t.rprint" "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// UNSUPPORTED: windows, macosx
+// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment
 
 // Rustan Leino, 22 Sep 2015.
 // This file considers two definitions of Leq on naturals+infinity.  One

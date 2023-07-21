@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using Microsoft.Boogie;
+using Microsoft.Dafny.LanguageServer.Handlers.Custom;
 using Microsoft.Dafny.LanguageServer.Language;
 using OmniSharp.Extensions.LanguageServer.Protocol;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
@@ -23,7 +24,7 @@ public static class DafnyCodeActionHelpers {
   ///       Some code here:
   ///     }
   /// ```
-  /// the method will return ("  ", "    "), so that it someone inserted the first value,
+  /// the method will return ("  ", "    "), so that if someone inserted the first value,
   /// "assert X;\n" and the second value, the resulting code would be
   /// ```
   ///     {
@@ -36,36 +37,41 @@ public static class DafnyCodeActionHelpers {
   /// <param name="endToken">The position of the closing brace</param>
   /// <param name="text">The document text</param>
   /// <returns>(extra indentation for a statement, current indentation)</returns>
-  public static (string, string) GetIndentationBefore(IToken endToken, int startLine, int startCol, string text) {
-    var pos = endToken.pos + endToken.val.Length - 1;
+  public static (string, string) GetIndentationBefore(IToken endToken, int startLine, int startCol) {
     var indentation = 0;
     var indentationBrace = endToken.col - 1;
     var firstNewline = true;
     var useTabs = false;
-    // Look for the first newline
-    while (0 <= pos && pos < text.Length && (text[pos] != '\n' || firstNewline)) {
-      if (text[pos] == '\t') {
-        useTabs = true;
-      }
 
-      if (text[pos] == '\n') {
+    var token = endToken;
+    while (token != null) {
+      var text = token.LeadingTrivia + token.val + token.TrailingTrivia;
+      for (int index = text.Length - 1; index >= 0; index--) {
+        var c = text[index];
+
+        if (c == '\n') {
+          if (!firstNewline) {
+            goto Exit;
+          }
+
+          firstNewline = false;
+        }
+
+        if (c == '\t') {
+          useTabs = true;
+        }
+
         if (!firstNewline) {
-          break;
-        }
-
-        firstNewline = false;
-      }
-
-      if (!firstNewline) {
-        if (text[pos] == ' ' || text[pos] == '\t') {
-          indentation++;
-        } else {
-          indentation = 0;
+          if (c == ' ' || c == '\t') {
+            indentation++;
+          } else {
+            indentation = 0;
+          }
         }
       }
-
-      pos--;
+      token = token.Prev;
     }
+  Exit:
 
     if (startLine == endToken.line - 1) {
       // Override case {\n} with some spacing, we return a default value of 2 spaces or 1 tab, if we find some
@@ -113,7 +119,7 @@ public static class DafnyCodeActionHelpers {
       return (null, "", "");
     }
 
-    var (extraIndentation, indentationUntilBrace) = GetIndentationBefore(endToken, line, col, input.Code);
+    var (extraIndentation, indentationUntilBrace) = GetIndentationBefore(endToken, line, col);
     var beforeClosingBrace = new RangeToken(endToken, null);
     return (beforeClosingBrace, extraIndentation, indentationUntilBrace);
   }
@@ -130,27 +136,30 @@ public static class DafnyCodeActionHelpers {
   private static IToken? GetMatchingEndToken(Dafny.Program program, string documentUri, int line, int col) {
     // Look in methods for BlockStmt with the IToken as opening brace
     // Return the EndTok of them.
-    foreach (var module in program.Modules()) {
-      foreach (var topLevelDecl in module.TopLevelDecls) {
-        if (topLevelDecl is ClassDecl classDecl && (classDecl.StartToken.line == 0 || (classDecl.StartToken.Filepath == documentUri && classDecl.StartToken.line <= line && line <= classDecl.EndToken.line))) {
-          foreach (var member in classDecl.Members) {
-            if (member is Method method && method.tok.Uri == new Uri(documentUri) && method.Body != null &&
-                method.StartToken.line <= line && line <= method.EndToken.line &&
-                GetMatchingEndToken(line, col, method.Body) is { } token) {
-              return token;
-            }
-
-            if (member is Function { ByMethodBody: { } } function &&
-                function.StartToken.line <= line && line <= function.EndToken.line &&
-                GetMatchingEndToken(line, col, function.ByMethodBody) is { } token2) {
-              return token2;
-            }
-          }
-        }
+    IToken? tokenFound = null;
+    program.Visit((Node n) => {
+      if (tokenFound != null) {
+        return false;
       }
-    }
 
-    return null;
+      if (n.StartToken.line != 0 &&
+          (n.StartToken.Uri.ToString() != documentUri
+           || n.StartToken.line > line || line > n.EndToken.line)) {
+        return false; // Outside of the current scope
+      }
+
+      if (n is Method method && method.tok.Uri == new Uri(documentUri) && method.Body != null &&
+          method.StartToken.line <= line && line <= method.EndToken.line &&
+          GetMatchingEndToken(line, col, method.Body) is { } token) {
+        tokenFound = token;
+      } else if (n is Function { ByMethodBody: { } } function &&
+                 function.StartToken.line <= line && line <= function.EndToken.line &&
+                 GetMatchingEndToken(line, col, function.ByMethodBody) is { } token2) {
+        tokenFound = token2;
+      }
+      return tokenFound == null;
+    }, node => { });
+    return tokenFound;
   }
 
   /// <summary>

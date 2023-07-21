@@ -31,7 +31,7 @@ module _System {
   type {:axiom} array(==)<arg> = c: array?<arg> | c != null /*special witness*/
   */
 
-  class {:compile false} /*_#Func1*/ -T0 ~> +R {
+  type {:compile false} /*_#Func1*/ -T0 ~> +R {
     ghost function requires(x0: T0): bool
       reads reads(x0)
 
@@ -47,7 +47,7 @@ module _System {
     | forall x0: T0 :: f.requires(x0)
     /*special witness*/
 
-  class {:compile false} /*_#Func0*/ () ~> +R {
+  type {:compile false} /*_#Func0*/ () ~> +R {
     ghost function requires(): bool
       reads reads()
 
@@ -384,7 +384,7 @@ module N1 refines N0 {
    * SCC at height 0:
    *   C.Valid
    */
-  class {:autocontracts} C ...  {
+  class {:autocontracts} C ... {
     constructor X()
       ensures Valid()
       ensures fresh(Repr)
@@ -486,7 +486,7 @@ module N2 refines N1 {
    * SCC at height 0:
    *   C.Valid
    */
-  class {:autocontracts} C ...  {
+  class {:autocontracts} C ... {
     constructor X()
       ensures Valid()
       ensures fresh(Repr)

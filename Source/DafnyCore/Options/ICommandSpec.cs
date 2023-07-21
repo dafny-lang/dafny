@@ -22,7 +22,6 @@ public interface ICommandSpec {
 
   public static IEnumerable<Option> FormatOptions => new Option[] {
     CommonOptionBag.Check,
-    CommonOptionBag.Verbose,
     CommonOptionBag.FormatPrint,
   }.Concat(ParserOptions);
 
@@ -50,7 +49,8 @@ public interface ICommandSpec {
     CommonOptionBag.EnforceDeterminism,
     CommonOptionBag.OptimizeErasableDatatypeWrapper,
     CommonOptionBag.TestAssumptions,
-    DeveloperOptionBag.Bootstrapping
+    DeveloperOptionBag.Bootstrapping,
+    CommonOptionBag.AddCompileSuffix,
   }.Concat(VerificationOptions).ToList();
 
   public static IReadOnlyList<Option> ExecutionOptions = new Option[] {
@@ -69,14 +69,17 @@ public interface ICommandSpec {
 
   public static IReadOnlyList<Option> ParserOptions = new List<Option>(new Option[] {
     CommonOptionBag.StdIn,
+    CommonOptionBag.Verbose,
     BoogieOptionBag.Cores,
     CommonOptionBag.Libraries,
+    CommonOptionBag.WarnDeprecation,
     CommonOptionBag.Plugin,
     CommonOptionBag.Prelude,
     Function.FunctionSyntaxOption,
     CommonOptionBag.QuantifierSyntax,
     CommonOptionBag.UnicodeCharacters,
     CommonOptionBag.UseBaseFileName,
+    CommonOptionBag.GeneralTraits,
     CommonOptionBag.TypeSystemRefresh,
     CommonOptionBag.TypeInferenceDebug,
     CommonOptionBag.NewTypeInferenceDebug,

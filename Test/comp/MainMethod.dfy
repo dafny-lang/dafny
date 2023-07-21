@@ -1,3 +1,4 @@
+// NONUNIFORM: multiple testing scenarios (could be split into several uniform tests)
 // RUN: %dafny /compile:0 "%s" > "%t"
 
 // RUN: %dafny /noVerify /compile:4 /Main:Cl.Static   /compileTarget:cs "%s" >> "%t"

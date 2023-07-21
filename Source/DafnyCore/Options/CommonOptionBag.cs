@@ -9,6 +9,11 @@ namespace Microsoft.Dafny;
 
 public class CommonOptionBag {
 
+  public static readonly Option<bool> AddCompileSuffix =
+    new("--compile-suffix", "Add the suffix _Compile to module names without :extern") {
+      IsHidden = true
+    };
+
   public static readonly Option<bool> ManualLemmaInduction =
     new("--manual-lemma-induction", "Turn off automatic induction for lemmas.");
 
@@ -29,6 +34,10 @@ true - In the compiled target code, transform any non-extern
 
   public static readonly Option<bool> Verbose = new("--verbose",
     "Print additional information such as which files are emitted where.") {
+  };
+
+  public static readonly Option<bool> WarnDeprecation = new("--warn-deprecation", () => true,
+    "Warn about the use of deprecated features (default true).") {
   };
 
   public static readonly Option<bool> DisableNonLinearArithmetic = new("--disable-nonlinear-arithmetic",
@@ -142,6 +151,13 @@ true - Use an updated type-inference engine. Warning: This mode is under constru
     IsHidden = true
   };
 
+  public static readonly Option<bool> GeneralTraits = new("--general-traits", () => false,
+    @"
+false - Every trait implicitly extends 'object', and thus is a reference type. Only traits and reference types can extend traits.
+true - A trait is a reference type only if it or one of its ancestor traits is 'object'. Any type with members can extend traits.".TrimStart()) {
+    IsHidden = true
+  };
+
   public static readonly Option<bool> TypeInferenceDebug = new("--type-inference-trace", () => false,
     @"
 false - Don't print type-inference debug information.
@@ -243,8 +259,9 @@ Functionality is still being expanded. Currently only checks contracts on every 
       (options, value) => { options.LibraryFiles = value.Select(fi => fi.FullName).ToHashSet(); });
     DafnyOptions.RegisterLegacyBinding(Output, (options, value) => { options.DafnyPrintCompiledFile = value?.FullName; });
 
-    DafnyOptions.RegisterLegacyBinding(Verbose, (o, v) => o.CompileVerbose = v);
+    DafnyOptions.RegisterLegacyBinding(Verbose, (o, v) => o.Verbose = v);
     DafnyOptions.RegisterLegacyBinding(DisableNonLinearArithmetic, (o, v) => o.DisableNLarith = v);
+    DafnyOptions.RegisterLegacyBinding(WarnDeprecation, (o, v) => o.DeprecationNoise = v ? 1 : 0);
 
     DafnyOptions.RegisterLegacyBinding(VerificationLogFormat, (o, v) => o.VerificationLoggerConfigs = v);
     DafnyOptions.RegisterLegacyBinding(SpillTranslation, (o, f) => o.SpillTargetCode = f ? 1U : 0U);
@@ -278,6 +295,9 @@ Functionality is still being expanded. Currently only checks contracts on every 
         // target language code from referencing compiled internal code,
         // so to be conservative we flag this as not compatible in general.
         { OptimizeErasableDatatypeWrapper, DooFile.CheckOptionMatches },
+        // Similarly this shouldn't matter if external code ONLY refers to {:extern}s,
+        // but in practice it does.
+        { AddCompileSuffix, DooFile.CheckOptionMatches }
       }
     );
     DooFile.RegisterNoChecksNeeded(
@@ -288,6 +308,7 @@ Functionality is still being expanded. Currently only checks contracts on every 
       Prelude,
       Target,
       Verbose,
+      WarnDeprecation,
       FormatPrint,
       JsonDiagnostics,
       QuantifierSyntax,
@@ -297,6 +318,7 @@ Functionality is still being expanded. Currently only checks contracts on every 
       WarnShadowing,
       ManualLemmaInduction,
       TypeInferenceDebug,
+      GeneralTraits,
       TypeSystemRefresh,
       VerificationLogFormat,
       VerifyIncludedFiles,

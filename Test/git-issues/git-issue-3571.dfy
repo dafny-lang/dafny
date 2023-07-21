@@ -1,3 +1,4 @@
+// NONUNIFORM: Testing CLI options handling, not actual compilation
 // RUN: %resolve --function-syntax:4 --function-syntax:3 "%s" > "%t"
 // RUN: %resolve --quantifier-syntax:3 --quantifier-syntax:4  "%s" >> "%t"
 // RUN: %build --target:java --target:cs  "%s" >> "%t"

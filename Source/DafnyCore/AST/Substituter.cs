@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
 using JetBrains.Annotations;
-using Microsoft.Boogie.Clustering;
 
 namespace Microsoft.Dafny {
   /// <summary>
@@ -17,18 +16,18 @@ namespace Microsoft.Dafny {
     protected readonly Dictionary<IVariable, Expression> substMap;
     protected readonly Dictionary<TypeParameter, Type> typeMap;
     protected readonly Label oldHeapLabel;
-    [CanBeNull] private readonly BuiltIns builtIns; // if non-null, substitutions into FunctionCallExpr's will be wrapped
+    [CanBeNull] protected readonly SystemModuleManager SystemModuleManager; // if non-null, substitutions into FunctionCallExpr's will be wrapped
 
     public static readonly Substituter EMPTY = new Substituter(null, new Dictionary<IVariable, Expression>(), new Dictionary<TypeParameter, Type>());
 
-    public Substituter(Expression receiverReplacement, Dictionary<IVariable, Expression> substMap, Dictionary<TypeParameter, Type> typeMap, Label oldHeapLabel = null, BuiltIns builtIns = null) {
+    public Substituter(Expression receiverReplacement, Dictionary<IVariable, Expression> substMap, Dictionary<TypeParameter, Type> typeMap, Label oldHeapLabel = null, SystemModuleManager systemModuleManager = null) {
       Contract.Requires(substMap != null);
       Contract.Requires(typeMap != null);
       this.receiverReplacement = receiverReplacement;
       this.substMap = substMap;
       this.typeMap = typeMap;
       this.oldHeapLabel = oldHeapLabel;
-      this.builtIns = builtIns;
+      this.SystemModuleManager = systemModuleManager;
     }
     public virtual Expression Substitute(Expression expr) {
       Contract.Requires(expr != null);
@@ -174,11 +173,11 @@ namespace Microsoft.Dafny {
             TypeApplication_JustFunction = newTypeApplicationJustFunction,
             IsByMethodCall = e.IsByMethodCall
           };
-          if (builtIns == null) {
+          if (SystemModuleManager == null) {
             newExpr = newFce;
           } else {
             newFce.Type = expr.Type.Subst(typeMap);
-            newExpr = Expression.WrapResolvedCall(newFce, builtIns);
+            newExpr = Expression.WrapResolvedCall(newFce, SystemModuleManager);
           }
         }
 
@@ -315,7 +314,7 @@ namespace Microsoft.Dafny {
               case IdPattern idPattern:
                 if (idPattern.BoundVar == null) {
                   return new IdPattern(idPattern.Tok, idPattern.Id, idPattern.Type,
-                    idPattern.Arguments.Select(SubstituteForPattern).ToList(), idPattern.IsGhost);
+                    idPattern.Arguments?.Select(SubstituteForPattern).ToList(), idPattern.IsGhost);
                 }
 
                 discoveredBvs.Add((BoundVar)idPattern.BoundVar);

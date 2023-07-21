@@ -1,12 +1,10 @@
-﻿using Microsoft.Dafny.LanguageServer.Util;
-using Microsoft.Extensions.Logging;
-using OmniSharp.Extensions.LanguageServer.Protocol.Models;
+﻿using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Threading;
-using Microsoft.Boogie;
-using OmniSharp.Extensions.LanguageServer.Protocol;
+using Microsoft.Dafny.LanguageServer.Workspace;
 
 namespace Microsoft.Dafny.LanguageServer.Language {
   /// <summary>
@@ -17,150 +15,45 @@ namespace Microsoft.Dafny.LanguageServer.Language {
   /// dafny-lang makes use of static members and assembly loading. Since thread-safety of this is not guaranteed,
   /// this parser serializes all invocations.
   /// </remarks>
-  public sealed class DafnyLangParser : IDafnyParser, IDisposable {
+  public sealed class DafnyLangParser : IDafnyParser {
     private readonly DafnyOptions options;
-    private readonly ILogger logger;
+    private readonly IFileSystem fileSystem;
+    private readonly ITelemetryPublisher telemetryPublisher;
+    private readonly ILogger<DafnyLangParser> logger;
     private readonly SemaphoreSlim mutex = new(1);
+    private readonly CachingParser cachingParser;
 
-    private DafnyLangParser(DafnyOptions options, ILogger<DafnyLangParser> logger) {
+    public DafnyLangParser(DafnyOptions options, IFileSystem fileSystem, ITelemetryPublisher telemetryPublisher,
+      ILogger<DafnyLangParser> logger, ILogger<CachingParser> innerParserLogger) {
       this.options = options;
+      this.fileSystem = fileSystem;
+      this.telemetryPublisher = telemetryPublisher;
       this.logger = logger;
+      cachingParser = new CachingParser(innerParserLogger, fileSystem);
     }
 
-    /// <summary>
-    /// Factory method to safely create a new instance of the parser.
-    /// </summary>
-    /// <param name="logger">A logger instance that may be used by this parser instance.</param>
-    /// <returns>A safely created dafny parser instance.</returns>
-    public static DafnyLangParser Create(DafnyOptions options, ILogger<DafnyLangParser> logger) {
-      return new DafnyLangParser(options, logger);
-    }
-
-    public Dafny.Program CreateUnparsed(TextDocumentItem document, ErrorReporter errorReporter, CancellationToken cancellationToken) {
+    public Program Parse(DafnyProject project, ErrorReporter reporter, CancellationToken cancellationToken) {
       mutex.Wait(cancellationToken);
+
+      var beforeParsing = DateTime.Now;
       try {
-        return NewDafnyProgram(document, errorReporter);
-      }
-      finally {
-        mutex.Release();
-      }
-    }
-
-    public Dafny.Program Parse(TextDocumentItem document, ErrorReporter errorReporter, CancellationToken cancellationToken) {
-      mutex.Wait(cancellationToken);
-      var program = NewDafnyProgram(document, errorReporter);
-      try {
-        var parseErrors = Parser.Parse(
-          document.Text,
-          // We use the full path as filename so we can better re-construct the DocumentUri for the definition lookup.
-          document.Uri.ToUri(),
-          program.DefaultModule,
-          program.BuiltIns,
-          errorReporter
-        );
-        if (parseErrors != 0) {
-          logger.LogDebug("encountered {ErrorCount} errors while parsing {DocumentUri}", parseErrors, document.Uri);
-        }
-
-        if (!TryParseIncludesOfModule(document.Uri, program.DefaultModule, program.BuiltIns, errorReporter, cancellationToken)) {
-          logger.LogDebug("encountered error while parsing the includes of {DocumentUri}", document.Uri);
-        }
-
-        return program;
-      } catch (Exception e) {
-        logger.LogDebug(e, "encountered an exception while parsing {DocumentUri}", document.Uri);
-        var internalErrorDummyToken = new Token {
-          Uri = document.Uri.ToUri(),
-          line = 1,
-          col = 1,
-          pos = 0,
-          val = string.Empty
-        };
-        errorReporter.Error(MessageSource.Parser, internalErrorDummyToken, "[internal error] Parser exception: " + e.Message);
-        return program;
-      }
-      finally {
-        mutex.Release();
-      }
-    }
-
-    private Dafny.Program NewDafnyProgram(TextDocumentItem document, ErrorReporter errorReporter) {
-      // Ensure that the statically kept scopes are empty when parsing a new document.
-      Type.ResetScopes();
-      return new Dafny.Program(
-        document.Uri.ToString(),
-        new LiteralModuleDecl(errorReporter.OuterModule, null),
-        // BuiltIns cannot be initialized without Type.ResetScopes() before.
-        new BuiltIns(errorReporter.Options),
-        errorReporter
-      );
-    }
-
-    public void Dispose() {
-      mutex.Dispose();
-    }
-
-    // TODO The following methods are based on the ones from DafnyPipeline/DafnyMain.cs.
-    //      It could be convenient to adapt them in the main-repo so location info could be extracted.
-    private bool TryParseIncludesOfModule(
-      DocumentUri root,
-      ModuleDecl module,
-      BuiltIns builtIns,
-      ErrorReporter errorReporter,
-      CancellationToken cancellationToken
-    ) {
-      var errors = new Errors(errorReporter);
-      // Issue #40:
-      // A HashSet must not be used here since equals treats A included by B not equal to A included by C.
-      // In contrast, the compareTo-Method treats them as the same.
-      var resolvedIncludes = new SortedSet<Include>();
-      resolvedIncludes.Add(new Include(Token.NoToken, root.ToUri(), root.ToString(), false));
-
-      bool newIncludeParsed = true;
-      while (newIncludeParsed) {
-        cancellationToken.ThrowIfCancellationRequested();
-        newIncludeParsed = false;
-        // Parser.Parse appears to modify the include list; thus, we create a copy to avoid concurrent modifications.
-        var moduleIncludes = new List<Include>(((LiteralModuleDecl)module).ModuleDef.Includes);
-        foreach (var include in moduleIncludes) {
-          bool isNewInclude = resolvedIncludes.Add(include);
-          if (isNewInclude) {
-            newIncludeParsed = true;
-            if (!TryParseInclude(include, module, builtIns, errorReporter, errors)) {
-              return false;
-            }
+        var rootSourceUris = project.GetRootSourceUris(fileSystem, options).Concat(options.CliRootSourceUris).ToList();
+        List<DafnyFile> dafnyFiles = new();
+        foreach (var rootSourceUri in rootSourceUris) {
+          try {
+            dafnyFiles.Add(new DafnyFile(reporter.Options, rootSourceUri, fileSystem.ReadFile(rootSourceUri)));
+          } catch (IOException) {
+            logger.LogError($"Tried to parse file {rootSourceUri} that could not be found");
           }
         }
+        var result = cachingParser.ParseFiles(project.ProjectName, dafnyFiles, reporter, cancellationToken);
+        cachingParser.Prune();
+        return result;
       }
-
-      return true;
-    }
-
-    private bool TryParseInclude(Include include, ModuleDecl module, BuiltIns builtIns, ErrorReporter errorReporter, Errors errors) {
-      try {
-        var dafnyFile = new DafnyFile(builtIns.Options, include.IncludedFilename);
-        int errorCount = Parser.Parse(
-          (TextReader)null!,
-          dafnyFile.Uri,
-          module,
-          builtIns,
-          errors,
-          verifyThisFile: false,
-          compileThisFile: false
-        );
-        if (errorCount != 0) {
-          return false;
-        }
-      } catch (IllegalDafnyFile e) {
-        errorReporter.Error(MessageSource.Parser, include.tok, $"Include of file '{include.IncludedFilename}' failed.");
-        logger.LogDebug(e, "encountered include of illegal dafny file {Filename}", include.IncludedFilename);
-        return false;
-      } catch (IOException e) {
-        errorReporter.Error(MessageSource.Parser, include.tok, $"Unable to open the include {include.IncludedFilename}.");
-        logger.LogDebug(e, "could not open file {Filename}", include.IncludedFilename);
-        return false;
+      finally {
+        telemetryPublisher.PublishTime("Parse", project.Uri.ToString(), DateTime.Now - beforeParsing);
+        mutex.Release();
       }
-      return true;
     }
   }
 }

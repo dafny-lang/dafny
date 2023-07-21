@@ -137,7 +137,7 @@ public class DooFile {
 
       object libraryValue = null;
       if (Manifest.Options.TryGetValue(option.Name, out var manifestValue)) {
-        if (!ProjectFile.TryGetValueFromToml(Console.Out, null,
+        if (!DafnyProject.TryGetValueFromToml(Console.Out, null,
               option.Name, option.ValueType, manifestValue, out libraryValue)) {
           return false;
         }

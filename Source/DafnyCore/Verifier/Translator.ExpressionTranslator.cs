@@ -235,12 +235,6 @@ namespace Microsoft.Dafny {
         return new Boogie.IdentifierExpr(tok, this.modifiesFrame, ty);
       }
 
-      public Boogie.IdentifierExpr Tick() {
-        Contract.Ensures(Contract.Result<Boogie.IdentifierExpr>() != null);
-        Contract.Ensures(Contract.Result<Boogie.IdentifierExpr>().Type != null);
-        return new Boogie.IdentifierExpr(Token.NoToken, "$Tick", predef.TickType);
-      }
-
       public Boogie.IdentifierExpr ArbitraryBoxValue() {
         Contract.Ensures(Contract.Result<Boogie.IdentifierExpr>() != null);
         return new Boogie.IdentifierExpr(Token.NoToken, "$ArbitraryBoxValue", predef.BoxType);
@@ -454,7 +448,7 @@ namespace Microsoft.Dafny {
                     if (field.IsStatic) {
                       result = new Boogie.NAryExpr(GetToken(expr), new Boogie.FunctionCall(translator.GetReadonlyField(field)), args);
                     } else {
-                      Boogie.Expr obj = TrExpr(e.Obj);
+                      Boogie.Expr obj = translator.BoxifyForTraitParent(e.tok, TrExpr(e.Obj), e.Member, e.Obj.Type);
                       args.Add(obj);
                       result = new Boogie.NAryExpr(GetToken(expr), new Boogie.FunctionCall(translator.GetReadonlyField(field)), args);
                     }
@@ -571,10 +565,9 @@ namespace Microsoft.Dafny {
               Boogie.Expr seq = TrExpr(e.Seq);
               var seqType = e.Seq.Type.NormalizeExpand();
               if (seqType is SeqType) {
-                Type elmtType = cce.NonNull((SeqType)seqType).Arg;
                 Boogie.Expr index = TrExpr(e.Index);
                 index = translator.ConvertExpression(GetToken(e.Index), index, e.Index.Type, Type.Int);
-                Boogie.Expr val = BoxIfNecessary(GetToken(updateExpr), TrExpr(e.Value), elmtType);
+                Boogie.Expr val = BoxIfNecessary(GetToken(updateExpr), TrExpr(e.Value), e.Value.Type);
                 return translator.FunctionCall(GetToken(updateExpr), BuiltinFunction.SeqUpdate, predef.BoxType, seq, index, val);
               } else if (seqType is MapType) {
                 MapType mt = (MapType)seqType;
@@ -860,6 +853,13 @@ namespace Microsoft.Dafny {
 
                 case BinaryExpr.ResolvedOpcode.EqCommon:
                   keepLits = true;
+                  if (ModeledAsBoxType(e.E0.Type)) {
+                    e1 = BoxIfNecessary(expr.tok, e1, e.E1.Type);
+                    oe1 = BoxIfNecessary(expr.tok, oe1, e.E1.Type);
+                  } else if (ModeledAsBoxType(e.E1.Type)) {
+                    e0 = BoxIfNecessary(expr.tok, e0, e.E0.Type);
+                    oe0 = BoxIfNecessary(expr.tok, oe0, e.E0.Type);
+                  }
                   var cot = e.E0.Type.AsCoDatatype;
                   if (cot != null) {
                     var e0args = e.E0.Type.NormalizeExpand().TypeArgs;
@@ -872,6 +872,13 @@ namespace Microsoft.Dafny {
                   typ = Boogie.Type.Bool;
                   bOpcode = BinaryOperator.Opcode.Eq; break;
                 case BinaryExpr.ResolvedOpcode.NeqCommon:
+                  if (ModeledAsBoxType(e.E0.Type)) {
+                    e1 = BoxIfNecessary(expr.tok, e1, e.E1.Type);
+                    oe1 = BoxIfNecessary(expr.tok, oe1, e.E1.Type);
+                  } else if (ModeledAsBoxType(e.E1.Type)) {
+                    e0 = BoxIfNecessary(expr.tok, e0, e.E0.Type);
+                    oe0 = BoxIfNecessary(expr.tok, oe0, e.E0.Type);
+                  }
                   var cotx = e.E0.Type.AsCoDatatype;
                   if (cotx != null) {
                     var e0args = e.E0.Type.NormalizeExpand().TypeArgs;
@@ -1262,10 +1269,7 @@ namespace Microsoft.Dafny {
 
                 Boogie.Expr antecedent = Boogie.Expr.True;
 
-                List<bool> freeOfAlloc = null;
-                if (options.FrugalHeapUseX) {
-                  freeOfAlloc = ComprehensionExpr.BoundedPool.HasBounds(e.Bounds, ComprehensionExpr.BoundedPool.PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc);
-                }
+                List<bool> freeOfAlloc = ComprehensionExpr.BoundedPool.HasBounds(e.Bounds, ComprehensionExpr.BoundedPool.PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc);
                 antecedent = BplAnd(antecedent, bodyEtran.TrBoundVariables(e.BoundVars, bvars, false, freeOfAlloc)); // initHeapForAllStmt
 
                 Boogie.QKeyValue kv = TrAttributes(e.Attributes, "trigger");
@@ -1286,10 +1290,8 @@ namespace Microsoft.Dafny {
             }
           case SetComprehension comprehension: {
               var e = comprehension;
-              List<bool> freeOfAlloc = null;
-              if (options.FrugalHeapUseX) {
-                freeOfAlloc = ComprehensionExpr.BoundedPool.HasBounds(e.Bounds, ComprehensionExpr.BoundedPool.PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc);
-              }
+              List<bool> freeOfAlloc = ComprehensionExpr.BoundedPool.HasBounds(e.Bounds, ComprehensionExpr.BoundedPool.PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc);
+
               // Translate "set xs | R :: T" into:
               //     lambda y: BoxType :: (exists xs :: CorrectType(xs) && R && y==Box(T))
               // or if "T" is "xs", then:
@@ -1338,10 +1340,7 @@ namespace Microsoft.Dafny {
               //          lambda w: BoxType :: G(unbox(w)),
               //          type)".
               List<Variable> bvars = new List<Variable>();
-              List<bool> freeOfAlloc = null;
-              if (options.FrugalHeapUseX) {
-                freeOfAlloc = ComprehensionExpr.BoundedPool.HasBounds(e.Bounds, ComprehensionExpr.BoundedPool.PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc);
-              }
+              List<bool> freeOfAlloc = ComprehensionExpr.BoundedPool.HasBounds(e.Bounds, ComprehensionExpr.BoundedPool.PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc);
 
               Boogie.QKeyValue kv = TrAttributes(e.Attributes, "trigger");
 
@@ -1668,7 +1667,7 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), predef.BoxType,
         if (e.Function is TwoStateFunction) {
           args.Add(OldAt(e.AtLabel).HeapExpr);
         }
-        if (!omitHeapArgument && (options.AlwaysUseHeap || e.Function.ReadsHeap)) {
+        if (!omitHeapArgument && e.Function.ReadsHeap) {
           Contract.Assert(HeapExpr != null);
           args.Add(HeapExpr);
           // If the function doesn't use the heap, but global settings say to use it,
@@ -1681,7 +1680,7 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), predef.BoxType,
         }
         argsAreLit = true;
         if (!e.Function.IsStatic) {
-          var tr_ee = TrExpr(e.Receiver);
+          var tr_ee = translator.BoxifyForTraitParent(e.tok, TrExpr(e.Receiver), e.Function, e.Receiver.Type);
           argsAreLit = argsAreLit && translator.IsLit(tr_ee);
           args.Add(tr_ee);
         }
@@ -1820,10 +1819,7 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), predef.BoxType,
             return BplAnd(typeAntecedent, TrExpr(range));
           } else {
             // exists xs :: CorrectType(xs) && R && elmt==T
-            List<bool> freeOfAlloc = null;
-            if (options.FrugalHeapUseX) {
-              freeOfAlloc = ComprehensionExpr.BoundedPool.HasBounds(compr.Bounds, ComprehensionExpr.BoundedPool.PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc);
-            }
+            List<bool> freeOfAlloc = ComprehensionExpr.BoundedPool.HasBounds(compr.Bounds, ComprehensionExpr.BoundedPool.PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc);
             var bvars = new List<Variable>();
             Boogie.Expr typeAntecedent = TrBoundVariables(compr.BoundVars, bvars, false, freeOfAlloc) ?? Boogie.Expr.True;
             var eq = Boogie.Expr.Eq(elmtBox, BoxIfNecessary(GetToken(compr), TrExpr(compr.Term), compr.Term.Type));

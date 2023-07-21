@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text.RegularExpressions;
 using DafnyTestGeneration;
 using Bpl = Microsoft.Boogie;
@@ -80,13 +81,14 @@ ensures true
         var dafnyProgram = Utils.Parse(options, programString, false);
         var reporter = dafnyProgram.Reporter;
         Assert.Equal(0, reporter.ErrorCount);
-        Assert.Equal(6, dafnyProgram.DefaultModuleDef.TopLevelDecls.Count);
-        var moduleTest = dafnyProgram.DefaultModuleDef.TopLevelDecls[0] as LiteralModuleDecl;
-        var trait1 = dafnyProgram.DefaultModuleDef.TopLevelDecls[1];
-        var trait2 = dafnyProgram.DefaultModuleDef.TopLevelDecls[2];
-        var subsetType = dafnyProgram.DefaultModuleDef.TopLevelDecls[3];
-        var class1 = dafnyProgram.DefaultModuleDef.TopLevelDecls[4] as ClassDecl;
-        var defaultClass = dafnyProgram.DefaultModuleDef.TopLevelDecls[5] as ClassDecl;
+        var topLevelDecls = dafnyProgram.DefaultModuleDef.TopLevelDecls.ToList();
+        Assert.Equal(6, topLevelDecls.Count());
+        var defaultClass = topLevelDecls.OfType<DefaultClassDecl>().First();
+        var moduleTest = topLevelDecls[1] as LiteralModuleDecl;
+        var trait1 = topLevelDecls[2];
+        var trait2 = topLevelDecls[3];
+        var subsetType = topLevelDecls[4];
+        var class1 = topLevelDecls[5] as ClassDecl;
         Assert.NotNull(moduleTest);
         Assert.NotNull(class1);
         Assert.NotNull(defaultClass);
@@ -130,10 +132,8 @@ ensures true
 
       Traverse(program);
 
-      var count = 0;
       void AreAllTokensOwned(Node node) {
         if (node.StartToken is { filename: { } }) {
-          count++;
           var t = node.StartToken;
           while (t != null && t != node.EndToken) {
             Assert.Contains(t, allTokens);
@@ -147,7 +147,6 @@ ensures true
       }
 
       AreAllTokensOwned(program);
-      Assert.Equal(9, count); // Sanity check
     }
 
     private string AdjustNewlines(string programString) {

@@ -99,6 +99,14 @@ jobs:
       with:
         path: dafny
         submodules: true # Until the libraries work again
+    - name: Install Java runtime locally (non-Windows)
+      if: runner.os != 'Windows'
+      working-directory: dafny/Source/DafnyRuntime/DafnyRuntimeJava
+      run: ./gradlew publishToMavenLocal
+    - name: Install Java runtime locally (Windows)
+      if: runner.os == 'Windows'
+      working-directory: dafny/Source/DafnyRuntime/DafnyRuntimeJava
+      run: ./gradlew.bat publishToMavenLocal
 #    - name: Clean up libraries for testing
 #      run: |
 #        rm dafny/Test/libraries/lit.site.cfg # we remove the lit configuration file in the library repo (a git submodule) to prevent override
@@ -133,10 +141,13 @@ jobs:
         cmd /c mklink D:\a\dafny\dafny\unzippedRelease\dafny\z3\bin\z3-4.12.1 D:\a\dafny\dafny\unzippedRelease\dafny\z3\bin\z3-4.12.1.exe
         dotnet test --logger trx --logger "console;verbosity=normal" --collect:"XPlat Code Coverage" dafny/Source/IntegrationTests/IntegrationTests.csproj
     - name: Generate tests (non-Windows)
+      ## This step creates lit tests from examples in documentation
+      ## These are then picked up by the integration tests below 
+      ## and both tested and included in coverage metrics
       if: runner.os != 'Windows'
       run: |
-        cd dafny/docs/HowToFAQ
-        ../check-examples -c Errors-Parser.md
+        cd dafny/docs
+        ./check-examples -c HowToFAQ/Errors-*.md
     - name: Run integration tests (non-Windows)
       if: runner.os != 'Windows'
       env:

@@ -1,7 +1,4 @@
-// RUN: %dafny /compile:0 /print:"%t.print" /env:0 /dprint:- "%s" > "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:cs "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:py "%s" >> "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment
 
 datatype Color = Red | Green | Blue
 
@@ -122,7 +119,7 @@ method P(c: Color, d: Color) {
 }
 
 lemma HeatIsEven(c: Color)
-  ensures Heat(c) % 2 == 0;
+  ensures Heat(c) % 2 == 0
 {
   match c
   case Red =>
@@ -134,7 +131,7 @@ lemma HeatIsEven(c: Color)
 }
 
 method DegenerateExamples(c: Color)
-  requires Heat(c) == 10;  // this implies c == Red
+  requires Heat(c) == 10  // this implies c == Red
 {
   match c
   case Red =>
@@ -145,7 +142,7 @@ method DegenerateExamples(c: Color)
 }
 
 method MoreDegenerateExamples(c: Color)
-  requires Heat(c) == 10;  // this implies c == Red
+  requires Heat(c) == 10  // this implies c == Red
 {
   if c == Green {
     var x: int := match c;

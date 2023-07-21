@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Immutable;
 using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
@@ -6,22 +7,22 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 namespace Microsoft.Dafny.LanguageServer.Workspace {
   /// <summary>
   /// Implementations of this interface are responsible to publish telemetry events
-  /// of a <see cref="Document"/> to the LSP client.
+  /// of a <see cref="Compilation"/> to the LSP client.
   /// </summary>
   public interface ITelemetryPublisher {
     protected enum TelemetryEventKind {
       UpdateComplete,
       UnhandledException,
       SolverPath,
-      Z3Version
+      Z3Version,
+      Time
     }
 
-    /// <summary>
-    /// Publish a telemetry event.
-    /// </summary>
-    /// <param name="kind">The kind of this telemetry event.</param>
-    /// <param name="payload">The payload of this telemetry event.</param>
-    protected void PublishTelemetry(TelemetryEventKind kind, object? payload);
+    protected void PublishTelemetry(TelemetryEventKind kind, object? payload) {
+      PublishTelemetry(kind.ToString(), ImmutableDictionary.Create<string, object>().Add("payload", payload!));
+    }
+
+    protected void PublishTelemetry(string kind, ImmutableDictionary<string, object> payload);
 
     /// <summary>
     /// Signal the completion of a document update.
@@ -37,6 +38,11 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     public void PublishSolverPath(string solverPath) {
       PublishTelemetry(TelemetryEventKind.SolverPath, solverPath);
+    }
+
+    public void PublishTime(string activity, string resource, TimeSpan span) {
+      PublishTelemetry(TelemetryEventKind.Time, ImmutableDictionary.Create<string, object>().
+        Add("activity", activity).Add("resource", resource).Add("time", span.TotalMilliseconds));
     }
 
     public void PublishZ3Version(string z3Version) {

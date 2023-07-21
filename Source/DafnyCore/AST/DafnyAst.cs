@@ -17,6 +17,7 @@ using System.Diagnostics;
 using System.Threading;
 using Microsoft.Boogie;
 using Microsoft.Dafny.Auditor;
+using Microsoft.Dafny.Plugins;
 using Action = System.Action;
 
 namespace Microsoft.Dafny {
@@ -33,39 +34,39 @@ namespace Microsoft.Dafny {
     public IEnumerable<IDeclarationOrUsage> GetResolvedDeclarations();
   }
   public class Program : TokenNode {
+    public CompilationData Compilation { get; }
+
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(FullName != null);
       Contract.Invariant(DefaultModule != null);
     }
 
-    public List<Include> Includes => DefaultModuleDef.Includes;
-
     public readonly string FullName;
-    [FilledInDuringResolution] public Dictionary<ModuleDefinition, ModuleSignature> ModuleSigs;
+
     // Resolution essentially flattens the module hierarchy, for
     // purposes of translation and compilation.
-    [FilledInDuringResolution] public List<ModuleDefinition> CompileModules;
+    [FilledInDuringResolution] public Dictionary<ModuleDefinition, ModuleSignature> ModuleSigs;
+    [FilledInDuringResolution] public IEnumerable<ModuleDefinition> CompileModules => new[] { SystemModuleManager.SystemModule }.Concat(Modules());
     // Contains the definitions to be used for compilation.
 
     public Method MainMethod; // Method to be used as main if compiled
-    public readonly LiteralModuleDecl DefaultModule;
-    public readonly DefaultModuleDefinition DefaultModuleDef;
-    public readonly BuiltIns BuiltIns;
+    public LiteralModuleDecl DefaultModule;
+    public DefaultModuleDefinition DefaultModuleDef => (DefaultModuleDefinition)DefaultModule.ModuleDef;
+    public SystemModuleManager SystemModuleManager;
     public DafnyOptions Options => Reporter.Options;
     public ErrorReporter Reporter { get; set; }
 
-    public Program(string name, [Captured] LiteralModuleDecl module, [Captured] BuiltIns builtIns, ErrorReporter reporter) {
+    public Program(string name, [Captured] LiteralModuleDecl module, [Captured] SystemModuleManager systemModuleManager, ErrorReporter reporter,
+      CompilationData compilation) {
       Contract.Requires(name != null);
       Contract.Requires(module != null);
       Contract.Requires(reporter != null);
       FullName = name;
       DefaultModule = module;
-      DefaultModuleDef = (DefaultModuleDefinition)((LiteralModuleDecl)module).ModuleDef;
-      BuiltIns = builtIns;
+      SystemModuleManager = systemModuleManager;
       this.Reporter = reporter;
-      ModuleSigs = new Dictionary<ModuleDefinition, ModuleSignature>();
-      CompileModules = new List<ModuleDefinition>();
+      Compilation = compilation;
     }
 
     //Set appropriate visibilty before presenting module
@@ -96,13 +97,14 @@ namespace Microsoft.Dafny {
     /// Get the first token that is in the same file as the DefaultModule.RootToken.FileName
     /// (skips included tokens)
     public IToken GetFirstTopLevelToken() {
-      if (DefaultModule.RootToken.Next == null) {
+      var rootToken = DefaultModuleDef.RangeToken.StartToken;
+      if (rootToken.Next == null) {
         return null;
       }
 
-      var firstToken = DefaultModule.RootToken.Next;
+      var firstToken = rootToken;
       // We skip all included files
-      while (firstToken is { Next: { } } && firstToken.Next.Filepath != DefaultModule.RootToken.Filepath) {
+      while (firstToken is { Next: { } } && firstToken.Next.Filepath != rootToken.Filepath) {
         firstToken = firstToken.Next;
       }
 
@@ -122,34 +124,6 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public class Include : TokenNode, IComparable {
-    public Uri IncluderFilename { get; }
-    public string IncludedFilename { get; }
-    public string CanonicalPath { get; }
-    public bool CompileIncludedCode { get; }
-    public bool ErrorReported;
-
-    public Include(IToken tok, Uri includer, string theFilename, bool compileIncludedCode) {
-      this.tok = tok;
-      this.IncluderFilename = includer;
-      this.IncludedFilename = theFilename;
-      this.CanonicalPath = DafnyFile.Canonicalize(theFilename).LocalPath;
-      this.ErrorReported = false;
-      CompileIncludedCode = compileIncludedCode;
-    }
-
-    public int CompareTo(object obj) {
-      if (obj is Include include) {
-        return CanonicalPath.CompareTo(include.CanonicalPath);
-      } else {
-        throw new NotImplementedException();
-      }
-    }
-
-    public override IEnumerable<Node> Children => Enumerable.Empty<Node>();
-    public override IEnumerable<Node> PreResolveChildren => Enumerable.Empty<Node>();
-  }
-
   /// <summary>
   /// An expression introducting bound variables
   /// </summary>
@@ -164,6 +138,18 @@ namespace Microsoft.Dafny {
   /// </summary>
   public interface IAttributeBearingDeclaration {
     Attributes Attributes { get; }
+  }
+
+  public static class IAttributeBearingDeclarationExtensions {
+    public static bool HasUserAttribute(this IAttributeBearingDeclaration decl, string name, out Attributes attribute) {
+      if (Attributes.Find(decl.Attributes, name) is UserSuppliedAttributes attr) {
+        attribute = attr;
+        return true;
+      }
+
+      attribute = null;
+      return false;
+    }
   }
 
   public class Attributes : TokenNode {
@@ -392,7 +378,10 @@ namespace Microsoft.Dafny {
     string Name {
       get;
     }
-    string DisplayName {  // what the user thinks he wrote
+    string DafnyName {  // what the user thinks he wrote
+      get;
+    }
+    string DisplayName { // what the user thinks he wrote but with special treatment for wilcards
       get;
     }
     string UniqueName {
@@ -431,6 +420,12 @@ namespace Microsoft.Dafny {
   [ContractClassFor(typeof(IVariable))]
   public abstract class IVariableContracts : TokenNode, IVariable {
     public string Name {
+      get {
+        Contract.Ensures(Contract.Result<string>() != null);
+        throw new NotImplementedException();  // this getter implementation is here only so that the Ensures contract can be given here
+      }
+    }
+    public string DafnyName {
       get {
         Contract.Ensures(Contract.Result<string>() != null);
         throw new NotImplementedException();  // this getter implementation is here only so that the Ensures contract can be given here
@@ -516,6 +511,7 @@ namespace Microsoft.Dafny {
         return name;
       }
     }
+    public string DafnyName => RangeToken == null || tok.line == 0 ? Name : RangeToken.PrintOriginal();
     public string DisplayName =>
       LocalVariable.DisplayNameHelper(this);
 
@@ -699,7 +695,6 @@ namespace Microsoft.Dafny {
   [DebuggerDisplay("Bound<{name}>")]
   public class BoundVar : NonglobalVariable {
     public override bool IsMutable => false;
-
     public BoundVar(IToken tok, string name, Type type)
       : base(tok, name, type, false) {
       Contract.Requires(tok != null);

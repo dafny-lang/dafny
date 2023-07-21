@@ -6,6 +6,12 @@ FooTest: FAILED
 	CheckExtern.dfy(3,12): Runtime failure of ensures clause from CheckExtern.dfy(3,12)
 BarTest: FAILED
 	CheckExtern.dfy(21,12): Runtime failure of ensures clause from CheckExtern.dfy(21,12)
+FunctionWithUnnamedResultTest: FAILED
+	CheckExtern.dfy(38,13): Runtime failure of requires clause from CheckExtern.dfy(38,13)
+GenFunctionTest: FAILED
+	CheckExtern.dfy(49,13): Runtime failure of requires clause from CheckExtern.dfy(49,13)
+GenMethodTest: FAILED
+	CheckExtern.dfy(59,13): Runtime failure of requires clause from CheckExtern.dfy(59,13)
 BazTest: PASSED
 [Program halted] AllExterns.dfy(8,0): Test failures occurred: see above.
 

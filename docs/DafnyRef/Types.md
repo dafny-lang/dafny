@@ -626,6 +626,30 @@ listed comma-separated,
 inside the parentheses or as multiple parenthesized elements:
  `T(==,0)` or `T(==)(0)`.
 
+When an actual type is substituted for a type parameter in a generic type instantiation,
+the actual type must have the declared or inferred type characteristics of the type parameter.
+These characteristics might also be inferred for the actual type. For example, a numeric-based
+subset or newtype automatically has the `==` relationship of its base type. Similarly, 
+type synonyms have the characteristics of the type they represent.
+
+An abstract type has no known characteristics. If it is intended to be defined only as types
+that have certain characteristics, then those characteristics must be declared.
+For example,
+<!-- %check-resolve Types.26.expect -->
+```dafny
+class A<T(00)> {}
+type Q
+const a: A<Q>
+```
+will give an error because it is not known whether the type `Q` is non-empty (`00`).
+Instead, one needs to write
+<!-- %check-resolve -->
+```dafny
+class A<T(00)> {}
+type Q(00)
+const a: A?<Q> := null
+```
+
 #### 5.3.1.1. Equality-supporting type parameters: `T(==)` {#sec-equality-supporting}
 
 Designating a type parameter with the `(==)` suffix indicates that
@@ -1424,8 +1448,12 @@ type Replacements<T> = map<T,T>
 type Vertex = int
 ```
 
-The new type name itself may have type characteristics declared, though these are typically
-inferred from the definition, if there is one.
+The new type name itself may have [type characteristics](#sec-type-characteristics) declared, and may need to if there is no definition.
+If there is a definition, the type characteristics are typically inferred from the definition. The syntax is like this:
+<!-- %no-check -->
+```dafny
+type Z(==)<T(0)>
+```
 
 As already described in [Section 5.5.3.5](#sec-strings), `string` is a built-in
 type synonym for `seq<char>`, as if it would have been declared as
@@ -2648,13 +2676,13 @@ Here is an example showing a definition and use of an iterator.
 <!-- %check-verify -->
 ```dafny
 iterator Iter<T(0)>(s: set<T>) yields (x: T)
-  yield ensures x in s && x !in xs[..|xs|-1];
-  ensures s == set z | z in xs;
+  yield ensures x in s && x !in xs[..|xs|-1]
+  ensures s == set z | z in xs
 {
   var r := s;
   while (r != {})
     invariant r !! set z | z in xs
-    invariant s == r + set z | z in xs;
+    invariant s == r + set z | z in xs
   {
     var y :| y in r;
     assert y !in xs;
@@ -2666,14 +2694,14 @@ iterator Iter<T(0)>(s: set<T>) yields (x: T)
 }
 
 method UseIterToCopy<T(0)>(s: set<T>) returns (t: set<T>)
-  ensures s == t;
+  ensures s == t
 {
   t := {};
   var m := new Iter(s);
   while (true)
-    invariant m.Valid() && fresh(m._new);
-    invariant t == set z | z in m.xs;
-    decreases s - t;
+    invariant m.Valid() && fresh(m._new)
+    invariant t == set z | z in m.xs
+    decreases s - t
   {
     var more := m.MoveNext();
     if (!more) { break; }
@@ -3153,7 +3181,7 @@ greatest lemma Theorem_BelowSquare(a: IStream<int>)
 
 // an incorrect property and a bogus proof attempt
 greatest lemma NotATheorem_SquareBelow(a: IStream<int>)
-  ensures Below(Mult(a, a), a); // ERROR
+  ensures Below(Mult(a, a), a) // ERROR
 {
   NotATheorem_SquareBelow(a);
 }
@@ -3556,6 +3584,18 @@ coinductive proof in using a greatest lemma with the inductive proof in using
 a lemma. Whereas the inductive proof is performing proofs for deeper
 and deeper equalities, the greatest lemma can be understood as producing the
 infinite proof on demand.
+
+#### 5.14.3.7. Abstemious and voracious functions {#sec-abstemious}
+
+Some functions on codatatypes are _abstemious_, meaning that they do not
+need to unfold a datatype instance very far (perhaps just one destructor call) 
+to prove a relevant property. Knowing this is the case can aid the proofs of
+properties about the function. The attribute `{:abstemious}` can be applied to
+a function definition to indicate this.
+
+_TODO: Say more about the effect of this attribute and when it should be applied
+(and likely, correct the paragraph above)._
+
 
 # 6. Member declarations
 
@@ -4262,9 +4302,8 @@ A function is usually transparent up to some unrolling level (up to
 transparent all the way.
 
 But the transparency of a function is affected by
-whether the function was declared with an `opaque` modifier, as explained
-in [Section 11.2.8](#sec-opaque)),
-the reveal statement ([Section 8.20](#sec-reveal-statement)),
+whether the function was declared with an [`opaque` modifier]((#sec-opaque),
+the ([reveal statement](#sec-reveal-statement)),
 and whether it was `reveal`ed in an export set.
 
 - Inside the module where the function is declared:
@@ -4537,8 +4576,8 @@ function f(x: int, y: int := 10): int
 may be called as either
 <!-- %check-resolve %use f.tmp -->
 ```dafny
-const i := f(1, 2);
-const j := f(1);
+const i := f(1, 2)
+const j := f(1)
 ```
 where `f(1)` is equivalent to `f(1, 10)` in this case.
 

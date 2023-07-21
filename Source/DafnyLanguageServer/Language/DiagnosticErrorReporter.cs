@@ -3,6 +3,7 @@ using Microsoft.Dafny.LanguageServer.Util;
 using OmniSharp.Extensions.LanguageServer.Protocol;
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -14,8 +15,8 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     private const string RelatedLocationCategory = "Related location";
     private const string RelatedLocationMessage = RelatedLocationCategory;
 
-    private readonly DocumentUri entryDocumentUri;
-    private readonly Dictionary<DocumentUri, IList<DafnyDiagnostic>> diagnostics = new();
+    private readonly Uri entryUri;
+    private readonly Dictionary<Uri, List<DafnyDiagnostic>> diagnostics = new();
     private readonly Dictionary<ErrorLevel, int> counts = new();
     private readonly Dictionary<ErrorLevel, int> countsNotVerificationOrCompiler = new();
     private readonly ReaderWriterLockSlim rwLock = new();
@@ -23,16 +24,15 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     /// <summary>
     /// Creates a new instance with the given uri of the entry document.
     /// </summary>
-    /// <param name="entryDocumentUri">The entry document's uri.</param>
+    /// <param name="entryUri">The entry document's uri.</param>
     /// <remarks>
     /// The uri of the entry document is necessary to report general compiler errors as part of this document.
     /// </remarks>
-    public DiagnosticErrorReporter(DafnyOptions options, DefaultModuleDefinition outerModule, string documentSource, DocumentUri entryDocumentUri) : base(options, outerModule) {
-      this.entryDocumentSource = documentSource;
-      this.entryDocumentUri = entryDocumentUri;
+    public DiagnosticErrorReporter(DafnyOptions options, Uri entryUri) : base(options) {
+      this.entryUri = entryUri;
     }
 
-    public IReadOnlyDictionary<DocumentUri, IList<DafnyDiagnostic>> AllDiagnostics => diagnostics;
+    public IReadOnlyDictionary<Uri, List<DafnyDiagnostic>> AllDiagnosticsCopy => diagnostics.ToImmutableDictionary();
 
     public IReadOnlyList<DafnyDiagnostic> GetDiagnostics(DocumentUri documentUri) {
       rwLock.EnterReadLock();
@@ -40,7 +40,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         // Concurrency: Return a copy of the list not to expose a reference to an object that requires synchronization.
         // LATER: Make the Diagnostic type immutable, since we're not protecting it from concurrent accesses
         return new List<DafnyDiagnostic>(
-          diagnostics.GetValueOrDefault(documentUri) ??
+          diagnostics.GetValueOrDefault(documentUri.ToUri()) ??
           Enumerable.Empty<DafnyDiagnostic>());
       }
       finally {
@@ -78,8 +78,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       );
     }
 
-    public static readonly string PostConditionFailingMessage = new EnsuresDescription().FailureDescription;
-    private readonly string entryDocumentSource;
+    public static readonly string PostConditionFailingMessage = new ProofObligationDescription.EnsuresDescription(null, null).FailureDescription;
 
     public static string FormatRelated(string related) {
       return $"Could not prove: {related}";
@@ -88,29 +87,11 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     private IEnumerable<DafnyRelatedInformation> CreateDiagnosticRelatedInformationFor(IToken token, string message) {
       var (tokenForMessage, inner) = token is NestedToken nestedToken ? (nestedToken.Outer, nestedToken.Inner) : (token, null);
       if (tokenForMessage is BoogieRangeToken range) {
-        var rangeLength = range.EndToken.pos + range.EndToken.val.Length - range.StartToken.pos;
         if (message == PostConditionFailingMessage) {
-          var postcondition = entryDocumentSource.Substring(range.StartToken.pos, rangeLength);
+          var postcondition = range.PrintOriginal();
           message = $"This postcondition might not hold: {postcondition}";
         } else if (message == "Related location") {
-          var tokenUri = tokenForMessage.GetDocumentUri();
-          if (tokenUri == entryDocumentUri) {
-            message = FormatRelated(entryDocumentSource.Substring(range.StartToken.pos, rangeLength));
-          } else {
-            var fileName = tokenForMessage.GetDocumentUri().GetFileSystemPath();
-            message = "";
-            try {
-              var content = File.ReadAllText(fileName);
-              message = FormatRelated(content.Substring(range.StartToken.pos, rangeLength));
-            } catch (IOException) {
-              message = message + "(could not open file " + fileName + ")";
-            } catch (ArgumentOutOfRangeException) {
-              message = "Related location (could not read position in file " + fileName + ")";
-            }
-            if (message == "") {
-              message = "Related location (could not read file " + fileName + ")";
-            }
-          }
+          message = FormatRelated(range.PrintOriginal());
         }
       }
 
@@ -172,7 +153,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
           countsNotVerificationOrCompiler[dafnyDiagnostic.Level] =
             countsNotVerificationOrCompiler.GetValueOrDefault(dafnyDiagnostic.Level, 0) + 1;
         }
-        diagnostics.GetOrCreate(documentUri, () => new List<DafnyDiagnostic>()).Add(dafnyDiagnostic);
+        diagnostics.GetOrCreate(documentUri.ToUri(), () => new List<DafnyDiagnostic>()).Add(dafnyDiagnostic);
       }
       finally {
         rwLock.ExitWriteLock();
@@ -181,7 +162,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
 
     private DocumentUri GetDocumentUriOrDefault(IToken token) {
       return token.Filepath == null
-        ? entryDocumentUri
+        ? DocumentUri.From(entryUri)
         : token.GetDocumentUri();
     }
   }

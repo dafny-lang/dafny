@@ -49,23 +49,14 @@ public class MatchFlattener : IRewriter {
     this.idGenerator = idGenerator;
   }
 
-  internal override void PostResolve(Program program) {
-    foreach (var compileModule in program.RawModules()) {
-      FlattenNode(compileModule);
-    }
-    foreach (var compileModule in program.CompileModules) {
-      var reporter = Reporter;
-      Reporter = new ErrorReporterSink(program.Options, program.DefaultModuleDef);
-      FlattenNode(compileModule);
-      Reporter = reporter;
-    }
+  internal override void PostResolve(ModuleDefinition module) {
+    FlattenNode(module);
   }
 
   private void FlattenNode(Node root) {
     root.Visit(node => {
       if (node != root && node is ModuleDefinition) {
-        // The resolver clones module definitions for compilation, but also the top level module which also contains the uncloned definitions,
-        // so this is to prevent recursion into the uncloned definitions. 
+        // The default module contains all the other modules, prevent visiting them since they're already visited as roots. 
         return false;
       }
 
@@ -124,7 +115,7 @@ public class MatchFlattener : IRewriter {
 
   private Statement CompileNestedMatchStmt(NestedMatchStmt nestedMatchStmt) {
     var cases = nestedMatchStmt.Cases.SelectMany(FlattenNestedMatchCaseStmt)
-      .Select(nms => nms.Clone(new Cloner(true)))
+      .Select(nms => nms.Clone(new Cloner(false, true)))
       .ToList();
     var state = new MatchCompilationState(nestedMatchStmt, cases, resolutionContext.WithGhost(nestedMatchStmt.IsGhost), nestedMatchStmt.Attributes);
 
@@ -422,7 +413,7 @@ public class MatchFlattener : IRewriter {
 
   private MatchCase CreateMatchCase(IToken tok, DatatypeCtor ctor, List<BoundVar> freshPatBV, CaseBody bodyContainer, bool fromBoundVar) {
     MatchCase newMatchCase;
-    var cloner = new Cloner(true);
+    var cloner = new Cloner(false, true);
     if (bodyContainer.Node is Statement statement) {
       var body = UnboxStmt(statement).Select(cloner.CloneStmt).ToList();
       newMatchCase = new MatchCaseStmt(tok.ToRange(), ctor, fromBoundVar, freshPatBV, body, bodyContainer.Attributes);

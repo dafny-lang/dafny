@@ -17,7 +17,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace Microsoft.Dafny {
   public record TypeConstraint(Type Super, Type Sub, TypeConstraint.ErrorMsg ErrMsg, bool KeepConstraints) {
-    public static void ReportErrors(Resolver resolver, ErrorReporter reporter) {
+    public static void ReportErrors(ModuleResolver resolver, ErrorReporter reporter) {
       Contract.Requires(reporter != null);
       foreach (var err in resolver.TypeConstraintErrorsToBeReported) {
         err.ReportAsError(reporter);
@@ -27,7 +27,7 @@ namespace Microsoft.Dafny {
     public abstract class ErrorMsg {
       public abstract IToken Tok { get; }
       bool reported;
-      public void FlagAsError(Resolver resolver) {
+      public void FlagAsError(ModuleResolver resolver) {
         if (resolver.Options.Get(CommonOptionBag.TypeInferenceDebug)) {
           resolver.Options.OutputWriter.WriteLine($"DEBUG: flagging error: {ApproximateErrorMessage()}");
         }
@@ -109,7 +109,7 @@ namespace Microsoft.Dafny {
 
       protected override string ApproximateErrorMessage() => string.Format(Msg, MsgArgs);
     }
-    public void FlagAsError(Resolver resolver) {
+    public void FlagAsError(ModuleResolver resolver) {
       ErrMsg.FlagAsError(resolver);
     }
   }

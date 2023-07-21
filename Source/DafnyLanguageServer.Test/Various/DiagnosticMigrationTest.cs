@@ -17,8 +17,7 @@ public class DiagnosticMigrationTest : ClientBasedLanguageServerTest {
 
   [Fact]
   public async Task ResolutionDiagnosticsContainPreviousVerificationResultsWhenCodeIsInsertedAfter() {
-    var documentItem = CreateTestDocument(FastToFailVerification, "untitled:Untitled-1");
-    client.OpenDocument(documentItem);
+    var documentItem = await CreateAndOpenTestDocument(FastToFailVerification, "untitled:Untitled-1");
     var verificationDiagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
     Assert.Single(verificationDiagnostics);
     ApplyChange(ref documentItem, new Range(0, 47, 0, 47), "\n\n" + NeverVerifies);
@@ -107,7 +106,7 @@ public class DiagnosticMigrationTest : ClientBasedLanguageServerTest {
     var resolutionDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
     Assert.Single(resolutionDiagnostics);
 
-    ApplyChange(ref documentItem, null, "method u() ensures true; { var x: bool := true; }");
+    ApplyChange(ref documentItem, null, "method u() ensures true { var x: bool := true; }");
     var verificationDiagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
     Assert.Empty(verificationDiagnostics);
 

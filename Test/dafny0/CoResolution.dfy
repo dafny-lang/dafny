@@ -73,7 +73,7 @@ module Mojul0 {
     }
 
     greatest predicate NoEnsuresPlease(m: nat)
-      ensures NoEnsuresPlease(m) ==> m < 100;  // error: a greatest predicate is not allowed to have an 'ensures' clause
+      ensures NoEnsuresPlease(m) ==> m < 100  // error: a greatest predicate is not allowed to have an 'ensures' clause
     {
       m < 75
     }
@@ -188,7 +188,7 @@ module CrashRegression {
     B()
   }
   ghost function B(): Stream
-    ensures A() == S();
+    ensures A() == S()
 
   ghost function S(): Stream
 }
@@ -203,7 +203,7 @@ module AmbiguousTypeParameters {
 
   // Here, the type arguments to A and S cannot be resolved
   ghost function B(): Stream
-    ensures A() == S();
+    ensures A() == S()
 
   ghost function S(): Stream
 }

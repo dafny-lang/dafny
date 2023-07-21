@@ -2,11 +2,11 @@
 // RUN: %baredafny audit --report-file "%t.md" --compare-report "%s"
 // RUN: %baredafny audit --report-file "%t.html" "%s"
 // RUN: %baredafny audit --report-file "%t-ietf.md" --report-format markdown-ietf "%s"
-// RUN: %baredafny audit --use-basename-for-filename "%s" > "%t.expect"
+// RUN: %baredafny audit --use-basename-for-filename "%s" > "%t"
 // RUN: %diff "%s.md.expect" "%t.md"
 // RUN: %diff "%s-ietf.md.expect" "%t-ietf.md"
 // RUN: %diff "%s.html.expect" "%t.html"
-// RUN: %diff "%s.expect" %t.expect"
+// RUN: %diff "%s.expect" %t"
 
 include "IgnoredAssumptions.dfy"
 
@@ -135,5 +135,9 @@ method {:axiom} AxiomWithStuffInIt(x: int) returns (r: int) {
 
 method AssertOnly() {
   assert {:only} true;
+  assert false;
+}
+
+method {:only} MethodOnly() {
   assert false;
 }

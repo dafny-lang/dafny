@@ -1,13 +1,27 @@
 // Copyright by the contributors to the Dafny Project
 // SPDX-License-Identifier: MIT
 
+using System;
 using System.Collections.Generic;
 
 namespace Microsoft.Dafny;
 
-public record DafnyPosition(int Line, int Column);
+public record DafnyPosition(int Line, int Column) : IComparable<DafnyPosition> {
+  public int CompareTo(DafnyPosition other) {
+    var lineComparison = Line.CompareTo(other.Line);
+    if (lineComparison != 0) {
+      return lineComparison;
+    }
 
-public record DafnyRange(DafnyPosition Start, DafnyPosition ExclusiveEnd);
+    return Column.CompareTo(other.Column);
+  }
+}
+
+public record DafnyRange(DafnyPosition Start, DafnyPosition ExclusiveEnd) {
+  public bool Contains(DafnyPosition position) {
+    return Start.LessThanOrEquals(position) && position.LessThanOrEquals(ExclusiveEnd);
+  }
+}
 
 /// <summary>
 /// A quick fix replaces a range with the replacing text.
@@ -20,7 +34,9 @@ public record DafnyCodeActionEdit(DafnyRange Range, string Replacement = "") {
   }
 }
 
+
 public delegate List<DafnyAction> ActionSignature(RangeToken range);
+public delegate bool TokenPredicate(IToken token);
 
 public record DafnyAction(string Title, IReadOnlyList<DafnyCodeActionEdit> Edits);
 
@@ -34,15 +50,64 @@ public static class ErrorRegistry {
   }
 #nullable disable
 
-  public static ActionSignature Insert(string newContent, string title) {
+  public static ActionSignature InsertAfter(string newContent, string title) {
     return range => InsertAction(title, range, newContent);
+  }
+
+  public static ActionSignature InsertBefore(string newContent) {
+    return range => ReplacementAction("insert '" + newContent + "'", range, newContent + range.PrintOriginal());
   }
 
   public static ActionSignature Replace(string newContent, string overrideTitle = null) {
     if (overrideTitle == null) {
-      return range => ReplacementAction(range.PrintOriginal(), range, newContent);
+      return range => ReplacementAction("replace '" + range.PrintOriginal() + "' with '" + newContent + "'", range, newContent);
     }
     return range => ReplacementAction(overrideTitle, range, newContent);
+  }
+
+
+  public static DafnyCodeActionEdit[] OneEdit(RangeToken range, string newcontent, bool includeTrailingWhitespace = false) {
+    return new[] { new DafnyCodeActionEdit(range, newcontent, includeTrailingWhitespace) };
+  }
+
+  public static DafnyAction OneAction(string title, RangeToken range, string newcontent, bool includeTrailingWhitespace = false) {
+    return new(title, new[] { new DafnyCodeActionEdit(range, newcontent, includeTrailingWhitespace) });
+  }
+
+  public static RangeToken IncludeComma(RangeToken range) {
+    if (range.EndToken.Next.val == ",") {
+      return new RangeToken(range.StartToken, range.EndToken.Next);
+    }
+    if (range.StartToken.Prev.val == ",") {
+      return new RangeToken(range.StartToken.Prev, range.EndToken);
+    }
+    return range;
+  }
+
+  public static RangeToken ExpandStart(RangeToken range, TokenPredicate pred, bool include) {
+    var t = range.StartToken;
+    IToken p = null;
+    while (!pred(t)) {
+      p = t;
+      t = t.Prev;
+      if (t == null) {
+        return range;
+      }
+    }
+    return new RangeToken(include ? t : p, range.EndToken);
+  }
+
+  public static RangeToken ExpandEnd(RangeToken range, TokenPredicate pred, bool include) {
+    var t = range.EndToken;
+    IToken p = null;
+    while (!pred(t)) {
+      p = t;
+      t = t.Prev;
+      if (t == null) {
+        return range;
+      }
+    }
+    return new RangeToken(range.StartToken, include ? t : p);
   }
 
   public static ActionSignature Replacements(IEnumerable<(string NewContent, string Title)> replacements) {
@@ -96,7 +161,7 @@ public static class ErrorRegistry {
   }
 
   private static List<DafnyAction> InsertAction(string title, RangeToken range, string newText) {
-    var edits = new[] { new DafnyCodeActionEdit(range, newText) };
+    var edits = new[] { new DafnyCodeActionEdit(range, range.PrintOriginal() + newText) };
     var action = new DafnyAction(title, edits);
     return new List<DafnyAction> { action };
   }

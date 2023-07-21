@@ -13,6 +13,7 @@ public class JavaBackend : ExecutableBackend {
   public override IReadOnlySet<string> SupportedExtensions => new HashSet<string> { ".java" };
 
   public override string TargetName => "Java";
+  public override bool IsStable => true;
   public override string TargetExtension => "java";
 
   public override string TargetBasename(string dafnyProgramName) =>
@@ -97,11 +98,11 @@ public class JavaBackend : ExecutableBackend {
       if (Options.SpillTargetCode == 0) {
         Directory.Delete(targetDirectory, true);
       } else {
-        classFiles.ForEach(f => File.Delete(f));
+        classFiles.ForEach(f => File.Delete(Path.Join(targetDirectory, f)));
       }
     }
 
-    if (Options.CompileVerbose) {
+    if (Options.Verbose) {
       // For the sake of tests, just write out the filename and not the directory path
       var fileKind = callToMain != null ? "executable" : "library";
       outputWriter.WriteLine($"Wrote {fileKind} jar {Path.GetFileName(jarPath)}");
@@ -165,7 +166,7 @@ public class JavaBackend : ExecutableBackend {
     Directory.CreateDirectory(tgtDir);
     FileInfo file = new FileInfo(externFilename);
     file.CopyTo(tgtFilename, true);
-    if (Options.CompileVerbose) {
+    if (Options.Verbose) {
       outputWriter.WriteLine($"Additional input {externFilename} copied to {tgtFilename}");
     }
     return true;

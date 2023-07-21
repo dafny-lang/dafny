@@ -8,10 +8,10 @@ splitting-triggers-recovers-expressivity.dfy(33,11): Info: Selected triggers: {Q
  Rejected triggers: {P(j)} (may loop with "P(j + 1)")
 splitting-triggers-recovers-expressivity.dfy(44,10): Info: For expression "P(i) || !Q(i)":
    Selected triggers:
-     {Q(i)}, {P(i)} in subexpression at splitting-triggers-recovers-expressivity.dfy(44,51)
+     {Q(i)}, {P(i)}
 splitting-triggers-recovers-expressivity.dfy(44,10): Info: For expression "P(i + 1)":
    Selected triggers: {Q(i)}
-   Rejected triggers: {P(i)} (may loop with "P(i + 1)") in subexpression at splitting-triggers-recovers-expressivity.dfy(44,69)
+   Rejected triggers: {P(i)} (may loop with "P(i + 1)")
 splitting-triggers-recovers-expressivity.dfy(49,11): Info: For expression "j >= 0 ==> P(j)":
    Selected triggers:
      {Q(j)}, {P(j)} in subexpression at splitting-triggers-recovers-expressivity.dfy(49,59) [Related location] splitting-triggers-recovers-expressivity.dfy(49,64)

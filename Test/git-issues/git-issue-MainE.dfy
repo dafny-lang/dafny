@@ -1,3 +1,4 @@
+// NONUNIFORM: Multiple test scenarios (could be split)
 // RUN: %dafny /compile:0 "%s" > "%t"
 // RUN: %exits-with 3 %dafny /noVerify /compile:4 /Main:A.Test "%s" >> "%t"
 // RUN: %exits-with 3 %dafny /noVerify /compile:4 /Main:B.Test "%s" >> "%t"

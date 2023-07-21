@@ -58,6 +58,8 @@ jobs:
       run: dotnet tool run dotnet-format -w -s error --check Source/Dafny.sln --exclude DafnyCore/Scanner.cs --exclude DafnyCore/Parser.cs
     - name: Create NuGet package (just to make sure it works)
       run: dotnet pack --no-build dafny/Source/Dafny.sln
+    - name: Check uniformity of integration tests that exercise backends
+      run: DAFNY_INTEGRATION_TESTS_MODE=uniformity-check dotnet test dafny/Source/IntegrationTests
 
   xunit-tests:
     needs: check-deep-tests
@@ -125,12 +127,7 @@ jobs:
           reportgenerator \
             -reports:"./**/coverage.cobertura.xml" \
             -reporttypes:Cobertura -targetdir:coverage-cobertura \
-            -classfilters:-Microsoft.Dafny.*PreType* \
-            -classfilters:-Microsoft.Dafny.ResolverPass \
-            -classfilters:-Microsoft.Dafny.*Underspecification* \
-            -classfilters:-Microsoft.Dafny.DetectUnderspecificationVisitor \
-            -classfilters:-Microsoft.Dafny.Microsoft.Dafny.UnderspecificationDetector \
-            -classfilters:-Microsoft.Dafny.ResolverPass
+            -classfilters:"-Microsoft.Dafny.*PreType*;-Microsoft.Dafny.ResolverPass;-Microsoft.Dafny.*Underspecification*;-Microsoft.Dafny.DetectUnderspecificationVisitor;-Microsoft.Dafny.Microsoft.Dafny.UnderspecificationDetector;-DAST.*;-DCOMP.*"
           # Generate HTML from combined report, leaving out XUnitExtensions
           reportgenerator \
             -reports:"coverage-cobertura/Cobertura.xml" \

@@ -1,8 +1,8 @@
 # "all" depends on 2 files, really (Parser.cs and Scanner.cs), but they
 # are both generated in one go and I don't know a better way to tell
 # nmake that.  --KRML
-GENERATED_FROM_DAFNY=GeneratedFromDafny.cs
-REGENERATED_FROM_DAFNY=GeneratedFromDafnyRegenerated.cs
+GENERATED_FROM_DAFNY=GeneratedFromDafny
+REGENERATED_FROM_DAFNY=GeneratedFromDafnyRegenerated
 
 all: Parser.cs
 
@@ -17,7 +17,7 @@ build-regenerated-from-dafny:
 	./DafnyGeneratedFromDafny.sh $(REGENERATED_FROM_DAFNY)
 
 test: build-regenerated-from-dafny
-	(diff $(GENERATED_FROM_DAFNY) $(REGENERATED_FROM_DAFNY) && rm $(REGENERATED_FROM_DAFNY)) || (rm $(REGENERATED_FROM_DAFNY) && (exit 1))
+	(diff $(GENERATED_FROM_DAFNY).cs $(REGENERATED_FROM_DAFNY).cs && diff $(GENERATED_FROM_DAFNY)Rust.cs $(REGENERATED_FROM_DAFNY)Rust.cs && rm $(REGENERATED_FROM_DAFNY).cs && rm $(REGENERATED_FROM_DAFNY)Rust.cs) || (rm $(REGENERATED_FROM_DAFNY).cs && rm $(REGENERATED_FROM_DAFNY)Rust.cs && (echo 'Consider running ./DafnyGeneratedFromDafny.sh GeneratedFromDafny') && (exit 1))
 
 check-format:
 	../../Scripts/dafny format . --check

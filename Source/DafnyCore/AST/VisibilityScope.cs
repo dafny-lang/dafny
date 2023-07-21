@@ -3,15 +3,21 @@ using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 
 namespace Microsoft.Dafny {
+  /// <summary>
+  /// A scope consists of a set of identifiers.
+  /// Two scopes overlap if the intersections of their identifiers is not empty
+  /// </summary>
   public class VisibilityScope {
-    private static uint maxScopeID = 0;
+    private static uint maxScopeId;
 
-    private SortedSet<uint> scopeTokens = new SortedSet<uint>();
+    private readonly SortedSet<uint> scopeTokens = new();
 
     // Only for debugging
-    private SortedSet<string> scopeIds = new SortedSet<string>();
+    private readonly SortedSet<string> scopeIds = new();
 
-    private bool overlaps(SortedSet<uint> set1, SortedSet<uint> set2) {
+    private static bool Overlaps(SortedSet<uint> set1, SortedSet<uint> set2) {
+      // This conditional implements a performance optimization,
+      // since there is an iteration over the second argument to Overlaps
       if (set1.Count < set2.Count) {
         return set2.Overlaps(set1);
       } else {
@@ -19,23 +25,26 @@ namespace Microsoft.Dafny {
       }
     }
 
-    private Dictionary<VisibilityScope, Tuple<int, bool>> cached = new Dictionary<VisibilityScope, Tuple<int, bool>>();
+    private Dictionary<VisibilityScope, Tuple<int, bool>> cached = new();
 
-    //By convention, the "null" scope sees all
+    // By convention, the "null" scope sees all
     public bool VisibleInScope(VisibilityScope other) {
       if (other != null) {
         if (cached.TryGetValue(other, out var result)) {
           if (result.Item1 == other.scopeTokens.Count) {
+            // If the second scope did not change, then we can use the cached result.
+            // If this scoped changed, the cache would have been cleared.
             return result.Item2;
           } else {
+            // If the scoped used to overlap, they still do, since scopes only grow.
             if (result.Item2) {
               return true;
             }
           }
         }
-        var isoverlap = overlaps(other.scopeTokens, this.scopeTokens);
-        cached[other] = new Tuple<int, bool>(other.scopeTokens.Count, isoverlap);
-        return isoverlap;
+        var overlaps = Overlaps(other.scopeTokens, scopeTokens);
+        cached[other] = new Tuple<int, bool>(other.scopeTokens.Count, overlaps);
+        return overlaps;
 
       }
       return true;
@@ -56,16 +65,15 @@ namespace Microsoft.Dafny {
     }
 
     public VisibilityScope(string name) {
-      scopeTokens.Add(maxScopeID);
+      scopeTokens.Add(maxScopeId);
       scopeIds.Add(name);
-      if (maxScopeID == uint.MaxValue) {
+      if (maxScopeId == uint.MaxValue) {
         Contract.Assert(false);
       }
-      maxScopeID++;
+      maxScopeId++;
     }
 
     public VisibilityScope() {
     }
-
   }
 }

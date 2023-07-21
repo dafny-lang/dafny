@@ -1,9 +1,8 @@
-// RUN: %dafny /compile:3 "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment
 
 function OnId(f : (bool -> bool) -> int) : int
-  reads f.reads(x => x);
-  requires f.requires(y => y);
+  reads f.reads(x => x)
+  requires f.requires(y => y)
 {
   f(z => z)
 }
@@ -16,8 +15,8 @@ method Equal() {
 }
 
 method K<A,B>(P : (A -> A) -> bool)
-  requires P.requires(x => x);
-  requires P(y => y);
+  requires P.requires(x => x)
+  requires P(y => y)
 {
   assert P(z => z);
   assert (x => y => x) == ((a : A) => (b : B) => a);

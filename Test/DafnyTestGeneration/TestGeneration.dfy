@@ -1,3 +1,5 @@
+// NONUNIFORM: Multiple build steps (although could we use `dafny test` instead?)
+
 // Generating tests:
 // RUN: cp %S/TestGeneration.dfy %t.dfy
 // RUN: %baredafny generate-tests %args Block %t.dfy > %t-tests.dfy
