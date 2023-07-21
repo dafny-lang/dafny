@@ -81,7 +81,7 @@ method Foo() ensures false { } ";
  .  |  |  |  I  I  |  |  |  I  I  |  |  | :}
     |  |  |  I  I  |  |  |  I  I  |  |  | :
  .  S  S  |  I  .  S  S [=] I  .  S  S  | :type IssueId = i : int | isIssueIdValid(i)
- .  S  |  |  I  .  S  | [=] I  .  S  |  | :  witness 101 //Next1:   witness 99 //Next2:   witness 101 ", false);
+ .  S  |  |  I  .  S  | [=] I  .  S  |  | :  witness 101 //Next1:   witness 99 //Next2:   witness 101 ", false, "EnsuresItWorksForSubsetTypes.dfy");
   }
 
   [Fact(Timeout = MaxTestExecutionTimeMs)]
