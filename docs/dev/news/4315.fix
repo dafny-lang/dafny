@@ -1,1 +1,1 @@
-Fixed #4315, allowing static reveal lemmas to reference non-static original procedures
+Refining an abstract module with a class with an opaque function no longer crashes
