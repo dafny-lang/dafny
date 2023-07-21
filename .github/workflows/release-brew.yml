@@ -2,9 +2,6 @@ name: Test Brew release on Mac
 
 on:
   workflow_dispatch:
-  # This would make more sense as a scheduled build like deep-tests.yml
-  pull_request:
-    branches: [ master ]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
