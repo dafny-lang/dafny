@@ -272,7 +272,7 @@ public class CompilationManager {
     var id = GetImplementationId(implementationTask.Implementation);
     var status = StatusFromBoogieStatus(boogieStatus);
     var implementationRange = implementationTask.Implementation.tok.GetLspRange();
-    logger.LogDebug($"Received status {boogieStatus} for {implementationTask.Implementation.Name}");
+    logger.LogDebug($"Received status {boogieStatus} for {implementationTask.Implementation.Name}, version {compilation.Counterexamples}");
     if (boogieStatus is Running) {
       verificationProgressReporter.ReportVerifyImplementationRunning(compilation, implementationTask.Implementation);
     }
@@ -284,6 +284,7 @@ public class CompilationManager {
     }
 
     if (boogieStatus is Completed completed) {
+      logger.LogWarning($"Received verification task completed for {implementationTask.Implementation.tok}, version {compilation.Counterexamples}");
       var verificationResult = completed.Result;
       foreach (var counterExample in verificationResult.Errors) {
         compilation.Counterexamples.Add(counterExample);
@@ -294,6 +295,7 @@ public class CompilationManager {
       // This loop will ensure that every vc result has been dealt with
       // before we report that the verification of the implementation is finished 
       foreach (var result in completed.Result.VCResults) {
+        logger.LogWarning($"Possibly duplicate reporting assertion batch {result.vcNum} as completed in {implementationTask.Implementation.tok}, version {compilation.Counterexamples}");
         verificationProgressReporter.ReportAssertionBatchResult(compilation,
           new AssertionBatchResult(implementationTask.Implementation, result));
       }
@@ -324,7 +326,7 @@ public class CompilationManager {
       errorReporter.ReportBoogieError(outcomeError);
     }
 
-    var diagnostics = errorReporter.GetDiagnostics(compilation.Uri);
+    var diagnostics = errorReporter.AllDiagnosticsCopy.Values.SelectMany(x => x);
     return diagnostics.OrderBy(d => d.Token.GetLspPosition()).ToList();
   }
 
