@@ -35,40 +35,12 @@ public class LanguageServerFilesystem : IFileSystem {
   public void OpenDocument(TextDocumentItem document) {
     logger.LogWarning($"Opening file {document.Uri}");
     var uri = document.Uri.ToUri();
-    if (openFiles.TryGetValue(uri, out var file)) {
-      var existingText = file.Buffer.Text;
-      string differMessage = AssertWithDiff.Equal(existingText, document.Text);
-      throw new InvalidOperationException($"Cannot open file {uri} because it is already open. {differMessage}");
+    if (openFiles.ContainsKey(uri)) {
+      throw new InvalidOperationException($"Cannot open file {uri} because it is already open");
     }
 
     openFiles[uri] = new Entry(new TextBuffer(document.Text), document.Version!.Value);
   }
-
-
-  public class AssertWithDiff {
-    public static string Equal(string expected, string actual) {
-      var diff = InlineDiffBuilder.Instance.BuildDiffModel(expected, actual);
-      if (!diff.HasDifferences) {
-        return "";
-      }
-
-      var message = new StringBuilder();
-      message.AppendLine("AssertEqualWithDiff() Failure");
-      message.AppendLine("Diff (changing existing into new):");
-      foreach (var line in diff.Lines) {
-        var prefix = line.Type switch {
-          ChangeType.Inserted => '+',
-          ChangeType.Deleted => '-',
-          _ => ' '
-        };
-        message.Append(prefix);
-        message.AppendLine(line.Text);
-      }
-
-      return message.ToString();
-    }
-  }
-
 
   public void UpdateDocument(DidChangeTextDocumentParams documentChange) {
     var uri = documentChange.TextDocument.Uri.ToUri();
