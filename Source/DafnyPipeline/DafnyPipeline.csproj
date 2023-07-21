@@ -23,16 +23,6 @@
   
   <ItemGroup>
     <ProjectReference Include="..\DafnyCore\DafnyCore.csproj" />
-    <ProjectReference Include="..\DafnyRuntime\DafnyRuntime.csproj">
-      <!-- 
-      This reference is just to ensure that DafnyRuntime is built before this package,
-      so that each runtime artifact is built and can be embedded,
-      but we don't actually want to have a dependency on DafnyRuntime.dll.
-      In the long term we should not even embed each runtime here and should
-      fetch them as published artifacts through nuget/maven/npm/etc.
-      -->
-      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
-    </ProjectReference>
   </ItemGroup>
 
   <!-- 
