@@ -37,6 +37,8 @@ namespace Microsoft.Dafny {
             anythingChanged = true;
           } else if (DecideHeadsFromBounds(false)) {
             anythingChanged = true;
+          } else if (ApplyDefaultAdvice()) {
+            anythingChanged = true;
           }
         }
       } while (anythingChanged);
@@ -47,10 +49,6 @@ namespace Microsoft.Dafny {
       PartiallySolveTypeConstraints(null);
 
       PartiallySolveTypeConstraints(null, true);
-
-      if (ApplyDefaultAdvice()) {
-        PartiallySolveTypeConstraints(null, true);
-      }
 
       PrintLegend();
       ConfirmTypeConstraints();
