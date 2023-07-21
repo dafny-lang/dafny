@@ -1,1 +1,0 @@
-After generating Python code we run the byte-code compiler to surface possible issues earlier, if it's not subsequently run.
