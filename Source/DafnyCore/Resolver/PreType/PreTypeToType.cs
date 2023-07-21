@@ -135,6 +135,8 @@ class PreTypeToTypeVisitor : ASTVisitor<IASTVisitorContext> {
           datatypeValue.InferredTypeArgs.Add(PreType2Type(preTypeArgument));
         }
       }
+    } else if (expr is ConversionExpr conversionExpr) {
+      UpdateIfOmitted(conversionExpr.ToType, conversionExpr.PreType);
     }
 
     if (expr.PreType is UnusedPreType) {
