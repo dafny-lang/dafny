@@ -82,6 +82,7 @@ public class CompilationManager {
     this.statusPublisher = statusPublisher;
     this.verificationProgressReporter = verificationProgressReporter;
     cancellationSource = new();
+    cancellationSource.Token.Register(() => started.TrySetCanceled(cancellationSource.Token));
 
     MarkVerificationFinished();
 
@@ -322,7 +323,7 @@ public class CompilationManager {
       errorReporter.ReportBoogieError(outcomeError);
     }
 
-    var diagnostics = errorReporter.GetDiagnostics(compilation.Uri);
+    var diagnostics = errorReporter.AllDiagnosticsCopy.Values.SelectMany(x => x);
     return diagnostics.OrderBy(d => d.Token.GetLspPosition()).ToList();
   }
 

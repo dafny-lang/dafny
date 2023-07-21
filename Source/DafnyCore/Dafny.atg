@@ -4673,11 +4673,11 @@ LetExprWithLHS<out Expression e, bool allowLemma, bool allowLambda, bool allowBi
     [ "ghost"                       (. isGhost = true;  x = t; .)
     ]
     "var"                           (. if (!isGhost) { x = t; } .)
-    CasePattern<out pat>            (. if (isGhost) { pat.Vars.Iter(bv => bv.IsGhost = true); }
+    CasePattern<out pat>            (. if (isGhost) { pat.Vars.ForEach(bv => bv.IsGhost = true); }
                                        letLHSs.Add(pat);
                                        lastLHS = la;
                                     .)
-    { "," CasePattern<out pat>      (. if (isGhost) { pat.Vars.Iter(bv => bv.IsGhost = true); }
+    { "," CasePattern<out pat>      (. if (isGhost) { pat.Vars.ForEach(bv => bv.IsGhost = true); }
                                        letLHSs.Add(pat);
                                     .)
     }

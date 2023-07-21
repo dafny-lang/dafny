@@ -1107,17 +1107,15 @@ public class AssignmentShrinks : ProofObligationDescriptionWithNoExpr {
   }
 }
 
-public class BoilerplateTriple : ProofObligationDescriptionWithNoExpr {
-  public override string SuccessDescription =>
-    $"error is impossible: {msg}";
-
-  public override string FailureDescription => msg;
-
+public class BoilerplateTriple : ProofObligationDescriptionCustomMessages {
   public override string ShortDescription => "boilerplate triple";
 
-  private readonly string msg;
+  public override string DefaultSuccessDescription { get; }
+  public override string DefaultFailureDescription { get; }
 
-  public BoilerplateTriple(string msg) {
-    this.msg = msg;
+  public BoilerplateTriple(string errorMessage, string successMessage, string comment)
+    : base(errorMessage, successMessage) {
+    this.DefaultSuccessDescription = comment;
+    this.DefaultFailureDescription = comment;
   }
 }

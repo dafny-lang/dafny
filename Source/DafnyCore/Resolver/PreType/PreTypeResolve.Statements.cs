@@ -132,8 +132,9 @@ namespace Microsoft.Dafny {
 
       } else if (stmt is PrintStmt) {
         var s = (PrintStmt)stmt;
-        var opts = resolutionContext;
-        s.Args.Iter(e => ResolveExpression(e, opts));
+        foreach (var e in s.Args) {
+          ResolveExpression(e, resolutionContext);
+        }
 
       } else if (stmt is RevealStmt) {
         var s = (RevealStmt)stmt;

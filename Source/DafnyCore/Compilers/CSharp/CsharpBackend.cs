@@ -20,6 +20,7 @@ public class CsharpBackend : ExecutableBackend {
   public override IReadOnlySet<string> SupportedExtensions => new HashSet<string> { ".cs", ".dll" };
 
   public override string TargetName => "C#";
+  public override bool IsStable => true;
   public override string TargetExtension => "cs";
 
   // True if the most recently visited AST has a method annotated with {:synthesize}:
