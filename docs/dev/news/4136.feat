@@ -1,3 +1,0 @@
-Reduced resolution time by up to 50%. Measurements on large codebases show a 35% average reduction in resolution time.
-
-Dafny modules translated to other languages no longer contain the suffix '_Compile' in their name, which removes the need of adding {:extern <pinnedName>} to modules to pin their name.
