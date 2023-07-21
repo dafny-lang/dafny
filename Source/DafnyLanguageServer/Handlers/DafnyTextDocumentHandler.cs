@@ -84,7 +84,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
     }
 
     public override Task<Unit> Handle(DidChangeTextDocumentParams notification, CancellationToken cancellationToken) {
-      logger.LogDebug("received change notification {DocumentUri}", notification.TextDocument.Uri);
+      logger.LogWarning("received change notification {DocumentUri}", notification.TextDocument.Uri);
       try {
         projects.UpdateDocument(notification);
       } catch (Exception e) {
