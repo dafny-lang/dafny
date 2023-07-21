@@ -111,7 +111,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
           projectDiagnostics.Add(new Diagnostic {
             Range = new Range(0, 0, 0, 1),
-            Message = $"the referenced file {uri.LocalPath} contains error(s) but belongs to another project. The first error is:\n{errors.First().Message}",
+            Message = $"the referenced file {uri.LocalPath} contains error(s) but is not owned by this project. The first error is:\n{errors.First().Message}",
             Severity = DiagnosticSeverity.Error,
             Source = MessageSource.Parser.ToString()
           });
