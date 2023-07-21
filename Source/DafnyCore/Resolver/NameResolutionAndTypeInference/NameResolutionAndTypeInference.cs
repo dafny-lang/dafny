@@ -332,7 +332,7 @@ namespace Microsoft.Dafny {
 
     // <summary>
     // Manually resolving NameSegments that are present in fuel attributes of reveal lemmas.
-    // This is because reveal lemmas are static and we want to allow a refence to non-static original procedures
+    // This is because reveal lemmas are static and we want to allow a reference to non-static original procedures
     // in static context in this setting.
     //
     // Most of the following code is copied from AnnotateRevealFunction() in OpaqueMemberRewriter.cs.
