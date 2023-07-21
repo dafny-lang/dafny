@@ -1237,7 +1237,6 @@ namespace Microsoft.Dafny {
           }
         }
       } else {
-        bool callsConstructor = false;
         if (rr.Bindings == null) {
           resolver.ResolveType(stmt.Tok, rr.EType, resolutionContext, ResolveTypeOptionEnum.InferTypeProxies, null);
           var cl = (rr.EType as UserDefinedType)?.ResolvedClass as NonNullTypeDecl;
@@ -1293,23 +1292,9 @@ namespace Microsoft.Dafny {
               if (methodSel.Member is Method) {
                 rr.InitCall = new CallStmt(stmt.RangeToken, new List<Expression>(), methodSel, rr.Bindings.ArgumentBindings, initCallTok);
                 ResolveCallStmt(rr.InitCall, resolutionContext, rr.EType);
-                if (rr.InitCall.Method is Constructor) {
-                  callsConstructor = true;
-                }
               } else {
                 ReportError(initCallTok, "object initialization must denote an initializing method or constructor ({0})", initCallName);
               }
-            }
-          }
-        }
-        if (rr.EType.IsRefType) {
-          var udt = rr.EType.NormalizeExpand() as UserDefinedType;
-          if (udt != null) {
-            var cl = (ClassLikeDecl)udt.ResolvedClass;  // cast is guaranteed by the call to rr.EType.IsRefType above, together with the "rr.EType is UserDefinedType" test
-            if (!callsConstructor && !cl.IsObjectTrait && !udt.IsArrayType &&
-                (cl is ClassDecl { HasConstructor: true } || cl.EnclosingModuleDefinition != currentClass.EnclosingModuleDefinition)) {
-              ReportError(stmt, "when allocating an object of {1}type '{0}', one of its constructor methods must be called", cl.Name,
-                cl is ClassDecl { HasConstructor: true } ? "" : "imported ");
             }
           }
         }

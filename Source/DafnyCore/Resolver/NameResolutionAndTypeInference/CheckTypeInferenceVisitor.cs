@@ -1,3 +1,10 @@
+//-----------------------------------------------------------------------------
+//
+// Copyright by the contributors to the Dafny Project
+// SPDX-License-Identifier: MIT
+//
+//-----------------------------------------------------------------------------
+
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
@@ -8,7 +15,6 @@ namespace Microsoft.Dafny;
 
 class CheckTypeInferenceVisitor : ASTVisitor<TypeInferenceCheckingContext> {
   private readonly ModuleResolver resolver;
-  private ErrorReporter reporter => resolver.reporter;
 
   public CheckTypeInferenceVisitor(ModuleResolver resolver) {
     this.resolver = resolver;
