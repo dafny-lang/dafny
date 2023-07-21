@@ -87,8 +87,11 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     private async Task PublishDocumentDiagnostics(IdeState state) {
       var currentDiagnostics = state.GetDiagnostics();
 
+      // All root uris are added because we may have to publish empty diagnostics for owned uris.
+      var sources = currentDiagnostics.Keys.Concat(state.Compilation.RootUris).Distinct();
+
       var projectDiagnostics = new List<Diagnostic>();
-      foreach (var uri in state.Compilation.RootUris) {
+      foreach (var uri in sources) {
         var current = currentDiagnostics.GetOrDefault(uri, Enumerable.Empty<Diagnostic>).ToArray();
         var uriProject = await projectManagerDatabase.GetProject(uri);
         var ownedUri = uriProject.Equals(state.Compilation.Project);

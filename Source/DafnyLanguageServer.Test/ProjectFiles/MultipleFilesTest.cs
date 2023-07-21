@@ -213,7 +213,7 @@ includes = [""src/**/*.dfy""]
 
 [options]
 warn-shadowing = true
-"; // includes must come before [options], even if there is a blank line
+".Trim(); // includes must come before [options], even if there is a blank line
     var directory = Path.GetRandomFileName();
     var projectFile = await CreateAndOpenTestDocument(projectFileSource, Path.Combine(directory, DafnyProject.FileName));
     var sourceFile = await CreateAndOpenTestDocument(source, Path.Combine(directory, "src/file.dfy"));
@@ -223,7 +223,7 @@ warn-shadowing = true
     Assert.Contains(diagnostics1, s => s.Message.Contains("Shadowed"));
 
     await Task.Delay(ProjectManagerDatabase.ProjectFileCacheExpiryTime);
-    ApplyChange(ref projectFile, new Range(1, 17, 1, 21), "false");
+    ApplyChange(ref projectFile, new Range(3, 17, 3, 21), "false");
 
     var resolutionDiagnostics2 = await diagnosticsReceiver.AwaitNextWarningOrErrorDiagnosticsAsync(CancellationToken);
     // The shadowed warning is no longer produced, and the verification error is not migrated. 

@@ -51,7 +51,7 @@ method Foo() returns (x: int) ensures x / 2 == 1; {
         }
       }
     }
-    
+
     [Fact(Timeout = MaxTestExecutionTimeMs)]
     public async Task DocumentWithParserErrorsSendsParsingFailedStatus() {
       var source = @"
