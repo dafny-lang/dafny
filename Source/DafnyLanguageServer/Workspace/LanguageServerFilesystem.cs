@@ -2,14 +2,10 @@ using System;
 using System.Collections.Concurrent;
 using System.IO;
 using System.Linq;
-using System.Text;
 using DafnyCore.Options;
-using DiffPlex.DiffBuilder;
-using DiffPlex.DiffBuilder.Model;
 using Microsoft.Extensions.FileSystemGlobbing.Abstractions;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
-using Serilog.Core;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace;
 
