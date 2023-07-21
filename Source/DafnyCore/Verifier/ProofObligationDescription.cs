@@ -10,6 +10,14 @@ public abstract class ProofObligationDescription : Boogie.ProofObligationDescrip
   // An expression that, if verified, would trigger a success for this ProofObligationDescription
   // It is only printed for the user, so it does not need to be resolved.
   public abstract Expression GetAssertedExpr(DafnyOptions options);
+
+  // Substituting replaces the token of a substituting expression by the token of the identifierExpr being susbstituted,
+  // Since the printer requires the token of IdentifierExpr to be Token.NoToken to print the custom name in Dafny mode,
+  // we just wrap the identifierExpr into a ParensExpression, as it is the case for any other expression.
+  protected static Expression ToSubstitutableExpression(BoundVar bvar) {
+    var expression = new IdentifierExpr(bvar.tok, bvar);
+    return new ParensExpression(bvar.tok, expression) { Type = bvar.Type, ResolvedExpression = expression };
+  }
 }
 
 // When there is no way to translate the asserted constraint in Dafny yet
@@ -1039,10 +1047,10 @@ public class LetSuchThatUnique : ProofObligationDescription {
   }
   public override Expression GetAssertedExpr(DafnyOptions options) {
     var bvarsExprs = bvars.Select(bvar => new IdentifierExpr(bvar.tok, bvar)).ToList();
-    var bvarprimes = bvars.Select(bvar => new BoundVar(bvar.tok, bvar.Name + "'", bvar.Type)).ToList();
-    var bvarprimesExprs = bvarprimes.Select(bvar => new IdentifierExpr(bvar.tok, bvar) as Expression).ToList();
-    var subContract = new Substituter(null, Enumerable.Zip(
-      bvars, bvarprimesExprs).ToDictionary<(BoundVar, Expression), IVariable, Expression>(
+    var bvarprimes = bvars.Select(bvar => new BoundVar(Token.NoToken, bvar.DafnyName + "'", bvar.Type)).ToList();
+    var bvarprimesExprs = bvarprimes.Select(ToSubstitutableExpression).ToList();
+    var subContract = new Substituter(null,
+      Enumerable.Zip(bvars, bvarprimesExprs).ToDictionary<(BoundVar, Expression), IVariable, Expression>(
         item => item.Item1, item => item.Item2),
       new Dictionary<TypeParameter, Type>()
     );
@@ -1099,17 +1107,15 @@ public class AssignmentShrinks : ProofObligationDescriptionWithNoExpr {
   }
 }
 
-public class BoilerplateTriple : ProofObligationDescriptionWithNoExpr {
-  public override string SuccessDescription =>
-    $"error is impossible: {msg}";
-
-  public override string FailureDescription => msg;
-
+public class BoilerplateTriple : ProofObligationDescriptionCustomMessages {
   public override string ShortDescription => "boilerplate triple";
 
-  private readonly string msg;
+  public override string DefaultSuccessDescription { get; }
+  public override string DefaultFailureDescription { get; }
 
-  public BoilerplateTriple(string msg) {
-    this.msg = msg;
+  public BoilerplateTriple(string errorMessage, string successMessage, string comment)
+    : base(errorMessage, successMessage) {
+    this.DefaultSuccessDescription = comment;
+    this.DefaultFailureDescription = comment;
   }
 }

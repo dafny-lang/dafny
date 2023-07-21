@@ -5,32 +5,6 @@ using System.Linq;
 
 namespace Microsoft.Dafny;
 
-public class CompilationData {
-  public CompilationData(DafnyOptions options, List<Include> includes, IList<Uri> rootSourceUris, ISet<Uri> alreadyVerifiedRoots, ISet<Uri> alreadyCompiledRoots) {
-    Includes = includes;
-    Options = options;
-    RootSourceUris = rootSourceUris;
-    AlreadyVerifiedRoots = alreadyVerifiedRoots;
-    AlreadyCompiledRoots = alreadyCompiledRoots;
-  }
-
-  public IList<IRewriter> Rewriters { get; set; }
-
-  public DafnyOptions Options { get; }
-  public IList<Uri> RootSourceUris { get; }
-
-  public ISet<Uri> AlreadyVerifiedRoots { get; }
-  public ISet<Uri> AlreadyCompiledRoots { get; }
-
-  public List<Include> Includes;
-  // TODO move to DocumentAfterParsing once that's used by the CLI
-  [FilledInDuringResolution]
-  public ISet<Uri> UrisToVerify;
-  // TODO move to DocumentAfterParsing once that's used by the CLI
-  [FilledInDuringResolution]
-  public ISet<Uri> UrisToCompile;
-
-}
 public static class ShouldCompileOrVerify {
 
   public static bool ShouldCompile(this ModuleDefinition module, CompilationData program) {
@@ -101,27 +75,35 @@ public static class ShouldCompileOrVerify {
   }
 
   private static ISet<Uri> GetReachableUris(CompilationData compilation, ISet<Uri> stopUris) {
-    var toVisit = new Stack<Uri>(compilation.RootSourceUris);
-
-    var visited = new HashSet<Uri>();
     var edges = compilation.Includes.GroupBy(i => i.IncluderFilename)
       .ToDictionary(g => g.Key, g => g.Select(x => x.IncludedFilename).ToList());
-    while (toVisit.Any()) {
-      var uri = toVisit.Pop();
-      if (stopUris.Contains(uri)) {
-        continue;
+
+    ISet<Uri> Visit(Stack<Uri> roots, ISet<Uri> excluded) {
+      var toVisit = roots;
+
+      var visited = new HashSet<Uri>();
+
+      while (toVisit.Any()) {
+        var uri = toVisit.Pop();
+        if (excluded.Contains(uri)) {
+          continue;
+        }
+
+        if (!visited.Add(uri)) {
+          continue;
+        }
+
+        foreach (var included in edges.GetOrDefault(uri, Enumerable.Empty<Uri>)) {
+          toVisit.Push(included);
+        }
       }
 
-      if (!visited.Add(uri)) {
-        continue;
-      }
-
-      foreach (var included in edges.GetOrDefault(uri, Enumerable.Empty<Uri>)) {
-        toVisit.Push(included);
-      }
+      return visited;
     }
 
-    return visited;
+    var excluded = Visit(new Stack<Uri>(stopUris), new HashSet<Uri>());
+
+    return Visit(new Stack<Uri>(compilation.RootSourceUris), excluded);
   }
 
 }

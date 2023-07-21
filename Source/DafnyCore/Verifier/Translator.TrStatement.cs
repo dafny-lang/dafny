@@ -1444,7 +1444,7 @@ namespace Microsoft.Dafny {
             invariants.Add(TrAssumeCmd(s.Tok, tri.Expr));
           } else {
             Contract.Assert(tri.ErrorMessage != null);  // follows from BoilerplateTriple invariant
-            invariants.Add(Assert(s.Tok, tri.Expr, new PODesc.BoilerplateTriple(tri.ErrorMessage)));
+            invariants.Add(Assert(s.Tok, tri.Expr, new PODesc.BoilerplateTriple(tri.ErrorMessage, tri.SuccessMessage, tri.Comment)));
           }
         }
         // add a free invariant which says that the heap hasn't changed outside of the modifies clause.
@@ -1781,7 +1781,11 @@ namespace Microsoft.Dafny {
             CheckNonNull(dafnyReceiver.tok, dafnyReceiver, builder, etran, null);
           }
         }
-        ins.Add(etran.TrExpr(receiver));
+        var obj = etran.TrExpr(receiver);
+        if (bReceiver == null) {
+          obj = BoxifyForTraitParent(tok, obj, method, dafnyReceiver.Type);
+        }
+        ins.Add(obj);
       } else if (receiver is StaticReceiverExpr stexpr) {
         if (stexpr.ObjectToDiscard != null) {
           TrStmt_CheckWellformed(stexpr.ObjectToDiscard, builder, locals, etran, true);

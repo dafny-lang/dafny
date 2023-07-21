@@ -60,7 +60,6 @@ namespace Microsoft.Dafny {
       Contract.Requires(files != null);
       program = null;
 
-      var defaultClassFirst = options.VerifyAllModules;
       ErrorReporter reporter = options.DiagnosticsFormat switch {
         DafnyOptions.DiagnosticsFormats.PlainText => new ConsoleErrorReporter(options),
         DafnyOptions.DiagnosticsFormats.JSON => new JsonConsoleErrorReporter(options),
@@ -86,8 +85,8 @@ namespace Microsoft.Dafny {
         return null;
       }
 
-      var r = new Resolver(program);
-      LargeStackFactory.StartNew(() => r.ResolveProgram(program, CancellationToken.None)).Wait();
+      var programResolver = new ProgramResolver(program);
+      LargeStackFactory.StartNew(() => programResolver.Resolve(CancellationToken.None)).Wait();
       MaybePrintProgram(program, program.Options.DafnyPrintResolvedFile, true);
 
       if (program.Reporter.ErrorCountUntilResolver != 0) {

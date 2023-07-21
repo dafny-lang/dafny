@@ -8,12 +8,13 @@
 // what it used to test. But it's still worth testing that it doesn't
 // lead to a crash or any other sort of parsing issue.
 method foo(n: nat) returns (ret: array<string>)
+  requires n == 2
 {
     ret := new string[n];
 
     var i := 0;
-    while i < n
-        invariant 0 <= i <= n
+    while i < n - 1
+        invariant 0 <= i < n
         invariant forall j :: 0 <= j < i ==> j % 2 == 0 ==> ret[j] == "even"
         invariant forall j :: 0 <= j < i ==> j % 2 == 1 ==> ret[j] == "odd"
     {

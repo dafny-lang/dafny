@@ -1,11 +1,10 @@
 ﻿using Microsoft.Extensions.Logging;
-using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System;
 using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 using System.Threading;
 using Microsoft.Dafny.LanguageServer.Workspace;
-using OmniSharp.Extensions.LanguageServer.Protocol.Server;
-using OmniSharp.Extensions.LanguageServer.Protocol.Window;
 
 namespace Microsoft.Dafny.LanguageServer.Language {
   /// <summary>
@@ -16,75 +15,45 @@ namespace Microsoft.Dafny.LanguageServer.Language {
   /// dafny-lang makes use of static members and assembly loading. Since thread-safety of this is not guaranteed,
   /// this parser serializes all invocations.
   /// </remarks>
-  public sealed class DafnyLangParser : IDafnyParser, IDisposable {
+  public sealed class DafnyLangParser : IDafnyParser {
     private readonly DafnyOptions options;
+    private readonly IFileSystem fileSystem;
     private readonly ITelemetryPublisher telemetryPublisher;
-    private readonly ILogger logger;
+    private readonly ILogger<DafnyLangParser> logger;
     private readonly SemaphoreSlim mutex = new(1);
     private readonly CachingParser cachingParser;
 
-    private DafnyLangParser(DafnyOptions options, ITelemetryPublisher telemetryPublisher, ILoggerFactory loggerFactory) {
+    public DafnyLangParser(DafnyOptions options, IFileSystem fileSystem, ITelemetryPublisher telemetryPublisher,
+      ILogger<DafnyLangParser> logger, ILogger<CachingParser> innerParserLogger) {
       this.options = options;
+      this.fileSystem = fileSystem;
       this.telemetryPublisher = telemetryPublisher;
-      logger = loggerFactory.CreateLogger<DafnyLangParser>();
-      cachingParser = new CachingParser(loggerFactory.CreateLogger<CachingParser>());
+      this.logger = logger;
+      cachingParser = new CachingParser(innerParserLogger, fileSystem);
     }
 
-    /// <summary>
-    /// Factory method to safely create a new instance of the parser.
-    /// </summary>
-    /// <param name="logger">A logger instance that may be used by this parser instance.</param>
-    /// <returns>A safely created dafny parser instance.</returns>
-    public static DafnyLangParser Create(DafnyOptions options, ITelemetryPublisher telemetryPublisher, ILoggerFactory loggerFactory) {
-      return new DafnyLangParser(options, telemetryPublisher, loggerFactory);
-    }
-
-    public Dafny.Program CreateUnparsed(TextDocumentItem document, ErrorReporter errorReporter, CancellationToken cancellationToken) {
-      mutex.Wait(cancellationToken);
-      try {
-        return NewDafnyProgram(document, errorReporter);
-      }
-      finally {
-        mutex.Release();
-      }
-    }
-
-    public Program Parse(DocumentTextBuffer document, ErrorReporter errorReporter, CancellationToken cancellationToken) {
+    public Program Parse(DafnyProject project, ErrorReporter reporter, CancellationToken cancellationToken) {
       mutex.Wait(cancellationToken);
 
       var beforeParsing = DateTime.Now;
       try {
-        var result = cachingParser.ParseFiles(document.Uri.ToString(),
-          new DafnyFile[]
-          {
-            new(errorReporter.Options, document.Uri.ToUri(), document.Content)
-          },
-          errorReporter, cancellationToken);
+        var rootSourceUris = project.GetRootSourceUris(fileSystem, options).Concat(options.CliRootSourceUris).ToList();
+        List<DafnyFile> dafnyFiles = new();
+        foreach (var rootSourceUri in rootSourceUris) {
+          try {
+            dafnyFiles.Add(new DafnyFile(reporter.Options, rootSourceUri, fileSystem.ReadFile(rootSourceUri)));
+          } catch (IOException) {
+            logger.LogError($"Tried to parse file {rootSourceUri} that could not be found");
+          }
+        }
+        var result = cachingParser.ParseFiles(project.ProjectName, dafnyFiles, reporter, cancellationToken);
+        cachingParser.Prune();
         return result;
       }
       finally {
-        telemetryPublisher.PublishTime("Parse", document.Uri.ToString(), DateTime.Now - beforeParsing);
-        cachingParser.Prune();
+        telemetryPublisher.PublishTime("Parse", project.Uri.ToString(), DateTime.Now - beforeParsing);
         mutex.Release();
       }
-    }
-
-    private static Dafny.Program NewDafnyProgram(TextDocumentItem document, ErrorReporter errorReporter) {
-      // Ensure that the statically kept scopes are empty when parsing a new document.
-      Type.ResetScopes();
-      var compilation = new CompilationData(errorReporter.Options, new List<Include>(), new List<Uri>(),
-        Sets.Empty<Uri>(), Sets.Empty<Uri>());
-      return new Dafny.Program(
-        document.Uri.ToString(),
-        new LiteralModuleDecl(new DefaultModuleDefinition(new List<Uri>(), false), null),
-        // BuiltIns cannot be initialized without Type.ResetScopes() before.
-        new SystemModuleManager(errorReporter.Options),
-        errorReporter, compilation
-      );
-    }
-
-    public void Dispose() {
-      mutex.Dispose();
     }
   }
 }

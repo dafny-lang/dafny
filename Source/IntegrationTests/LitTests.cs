@@ -6,9 +6,6 @@ using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using Microsoft.Dafny;
-using Microsoft.Extensions.FileSystemGlobbing;
-using Microsoft.Extensions.FileSystemGlobbing.Abstractions;
-using Microsoft.Extensions.Logging.Abstractions;
 using TestDafny;
 using Xunit;
 using Xunit.Abstractions;
@@ -195,6 +192,10 @@ namespace IntegrationTests {
             Assert.Fail($"Non-uniform test case that exercises backends: {testPath}\nConvert to using %testDafnyForEachCompiler or add a '// NONUNIFORM: <reason>' command");
           }
           break;
+        case "only-multi-backend":
+          Skip.IfNot(IsMultiBackend(LitTestCase.Read(path, Config)));
+          LitTestCase.Run(path, Config, output);
+          break;
         case null or "":
           LitTestCase.Run(path, Config, output);
           break;
@@ -223,7 +224,24 @@ namespace IntegrationTests {
               return false;
             }
 
-            if (arguments.Any(arg => arg is "/compile:3" or "/compile:4" or "run")) {
+            if (arguments.Any(arg => arg is "/compile:3" or "/compile:4" or "run" or "translate")) {
+              return true;
+            }
+          }
+        }
+      }
+
+      return false;
+    }
+
+    private static bool IsMultiBackend(LitTestCase testCase) {
+      foreach (var command in testCase.Commands) {
+        var leafCommand = GetLeafCommand(command);
+
+        if (leafCommand is ShellLitCommand or DafnyDriverLitCommand) {
+          var arguments = GetDafnyArguments(leafCommand);
+          if (arguments != null) {
+            if (arguments.Any(arg => arg is "for-each-compiler")) {
               return true;
             }
           }

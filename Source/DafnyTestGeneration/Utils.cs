@@ -4,9 +4,9 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading;
-using DafnyServer.CounterexampleGeneration;
 using Microsoft.Boogie;
 using Microsoft.Dafny;
+using Microsoft.Dafny.LanguageServer.CounterExampleGeneration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Errors = Microsoft.Dafny.Errors;
@@ -79,7 +79,7 @@ namespace DafnyTestGeneration {
     /// Parse a string read (from a certain file) to a Dafny Program
     /// </summary>
     public static Program/*?*/ Parse(DafnyOptions options, string source, bool resolve = true, Uri uri = null) {
-      uri ??= new Uri(Path.GetTempPath());
+      uri ??= new Uri(Path.Combine(Path.GetTempPath(), Path.GetRandomFileName()));
       var reporter = new BatchErrorReporter(options);
 
       var program = new ProgramParser().ParseFiles(uri.LocalPath, new DafnyFile[] { new(reporter.Options, uri, new StringReader(source)) },
@@ -91,7 +91,7 @@ namespace DafnyTestGeneration {
 
       // Substitute function methods with function-by-methods
       new AddByMethodRewriter(new ConsoleErrorReporter(options)).PreResolve(program);
-      new Resolver(program).ResolveProgram(program, CancellationToken.None);
+      new ProgramResolver(program).Resolve(CancellationToken.None);
       return program;
     }
 
@@ -179,6 +179,7 @@ namespace DafnyTestGeneration {
         func.ByMethodBody = new BlockStmt(
           new RangeToken(new Token(), new Token()),
           new List<Statement> { returnStatement });
+        func.ByMethodTok = func.Body.tok;
       }
     }
 

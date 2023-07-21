@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using Microsoft.Dafny.LanguageServer.Language.Symbols;
@@ -13,24 +14,22 @@ using System.Threading.Tasks;
 using Microsoft.Boogie;
 using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
-using Microsoft.Dafny.ProofObligationDescription;
 using EnsuresDescription = Microsoft.Dafny.ProofObligationDescription.EnsuresDescription;
-using RequiresDescription = Microsoft.Dafny.ProofObligationDescription.RequiresDescription;
 
 namespace Microsoft.Dafny.LanguageServer.Handlers {
   public class DafnyHoverHandler : HoverHandlerBase {
     // TODO add the range of the name to the hover.
     private readonly ILogger logger;
-    private readonly IDocumentDatabase documents;
+    private readonly IProjectDatabase projects;
     private DafnyOptions options;
 
     private const long RuLimitToBeOverCostly = 10000000;
     private const string OverCostlyMessage =
       " [⚠](https://dafny-lang.github.io/dafny/DafnyRef/DafnyRef#sec-verification-debugging-slow)";
 
-    public DafnyHoverHandler(ILogger<DafnyHoverHandler> logger, IDocumentDatabase documents, DafnyOptions options) {
+    public DafnyHoverHandler(ILogger<DafnyHoverHandler> logger, IProjectDatabase projects, DafnyOptions options) {
       this.logger = logger;
-      this.documents = documents;
+      this.projects = projects;
       this.options = options;
     }
 
@@ -42,12 +41,12 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
 
     public override async Task<Hover?> Handle(HoverParams request, CancellationToken cancellationToken) {
       logger.LogDebug("received hover request for {Document}", request.TextDocument);
-      var document = await documents.GetResolvedDocumentAsync(request.TextDocument);
+      var document = await projects.GetResolvedDocumentAsync(request.TextDocument);
       if (document == null) {
         logger.LogWarning("the document {Document} is not loaded", request.TextDocument);
         return null;
       }
-      var diagnosticHoverContent = GetDiagnosticsHover(document, request.Position, out var areMethodStatistics);
+      var diagnosticHoverContent = GetDiagnosticsHover(document, request.TextDocument.Uri.ToUri(), request.Position, out var areMethodStatistics);
       if (!document.SignatureAndCompletionTable.TryGetSymbolAt(request.Position, out var symbol)) {
         logger.LogDebug("no symbol was found at {Position} in {Document}", request.Position, request.TextDocument);
       }
@@ -72,9 +71,10 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
       }
     }
 
-    private string? GetDiagnosticsHover(IdeState state, Position position, out bool areMethodStatistics) {
+    private string? GetDiagnosticsHover(IdeState state, Uri uri, Position position, out bool areMethodStatistics) {
       areMethodStatistics = false;
-      foreach (var diagnostic in state.Diagnostics) {
+      var uriDiagnostics = state.GetDiagnostics().GetOrDefault(uri, Enumerable.Empty<Diagnostic>).ToList();
+      foreach (var diagnostic in uriDiagnostics) {
         if (diagnostic.Range.Contains(position)) {
           string? detail = ErrorRegistry.GetDetail(diagnostic.Code);
           if (detail is not null) {
@@ -83,10 +83,14 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
         }
       }
 
-      if (state.Diagnostics.Any(diagnostic =>
+      if (uriDiagnostics.Any(diagnostic =>
             diagnostic.Severity == DiagnosticSeverity.Error && (
             diagnostic.Source == MessageSource.Parser.ToString() ||
             diagnostic.Source == MessageSource.Resolver.ToString()))) {
+        return null;
+      }
+
+      if (state.VerificationTree == null) {
         return null;
       }
       foreach (var node in state.VerificationTree.Children.OfType<TopLevelDeclMemberVerificationTree>()) {
@@ -125,7 +129,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
           return information;
         }
         // Ok no assertion here. Maybe a method?
-        if (node.Position.Line == position.Line && node.Uri == state.Uri) {
+        if (node.Position.Line == position.Line && state.Compilation.Project.IsImplicitProject && node.Uri == state.Compilation.Project.Uri) {
           areMethodStatistics = true;
           return GetTopLevelInformation(node, orderedAssertionBatches);
         }
@@ -363,7 +367,11 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
         nodeResourceCount /= 1000;
         suffix += 1; // We don't go past 4 because no suffix beyond T should be useful
       }
-      var nodeResourceCountStr = $"{nodeResourceCount:n0}";
+      var nfi = new NumberFormatInfo() {
+        NumberDecimalDigits = 0,
+        NumberGroupSeparator = "",
+      };
+      var nodeResourceCountStr = nodeResourceCount.ToString(nfi);
       var fractionalStr = nodeResourceCountStr.Length >= SignificativeDigits || suffix == 0 ?
         "" :
         "." + $"{fractional:000}".Remove(SignificativeDigits - nodeResourceCountStr.Length);

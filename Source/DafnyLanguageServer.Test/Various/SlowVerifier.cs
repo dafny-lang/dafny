@@ -15,19 +15,20 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various;
 /// this verifier will return a task that only completes when cancelled
 /// which can be useful to test against race conditions
 class SlowVerifier : IProgramVerifier {
-  public SlowVerifier(ILogger<DafnyProgramVerifier> logger, DafnyOptions options) {
-    verifier = new DafnyProgramVerifier(logger, options);
+  public SlowVerifier(ILogger<DafnyProgramVerifier> logger) {
+    verifier = new DafnyProgramVerifier(logger);
   }
 
   private readonly DafnyProgramVerifier verifier;
 
-  public async Task<IReadOnlyList<IImplementationTask>> GetVerificationTasksAsync(DocumentAfterResolution document, CancellationToken cancellationToken) {
-    var program = document.Program;
+  public async Task<IReadOnlyList<IImplementationTask>> GetVerificationTasksAsync(ExecutionEngine engine,
+    CompilationAfterResolution compilation, CancellationToken cancellationToken) {
+    var program = compilation.Program;
     var attributes = program.Modules().SelectMany(m => {
       return m.TopLevelDecls.OfType<TopLevelDeclWithMembers>().SelectMany(d => d.Members.Select(member => member.Attributes));
     }).ToList();
 
-    var tasks = await verifier.GetVerificationTasksAsync(document, cancellationToken);
+    var tasks = await verifier.GetVerificationTasksAsync(engine, compilation, cancellationToken);
     if (attributes.Any(a => Attributes.Contains(a, "neverVerify"))) {
       tasks = tasks.Select(t => new NeverVerifiesImplementationTask(t)).ToList();
     }
@@ -57,9 +58,5 @@ class SlowVerifier : IProgramVerifier {
     public void Cancel() {
       source.OnError(new TaskCanceledException());
     }
-  }
-
-  public void Dispose() {
-    verifier?.Dispose();
   }
 }

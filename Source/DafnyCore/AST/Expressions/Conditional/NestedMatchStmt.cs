@@ -78,7 +78,7 @@ public class NestedMatchStmt : Statement, ICloneable<NestedMatchStmt>, ICanForma
   /// 2 - desugaring it into a decision tree of MatchStmt and IfStmt (for constant matching)
   /// 3 - resolving the generated (sub)statement.
   /// </summary>
-  public override void Resolve(Resolver resolver, ResolutionContext resolutionContext) {
+  public override void Resolve(ModuleResolver resolver, ResolutionContext resolutionContext) {
     resolver.ResolveExpression(Source, resolutionContext);
 
     if (Source.Type is TypeProxy) {
@@ -111,7 +111,7 @@ public class NestedMatchStmt : Statement, ICloneable<NestedMatchStmt>, ICanForma
     }
   }
 
-  public void CheckLinearNestedMatchStmt(Type dtd, ResolutionContext resolutionContext, Resolver resolver) {
+  public void CheckLinearNestedMatchStmt(Type dtd, ResolutionContext resolutionContext, ModuleResolver resolver) {
     foreach (NestedMatchCaseStmt mc in this.Cases) {
       resolver.scope.PushMarker();
       resolver.ResolveAttributes(mc, resolutionContext);

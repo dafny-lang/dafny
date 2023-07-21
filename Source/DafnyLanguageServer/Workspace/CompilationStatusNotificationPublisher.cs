@@ -1,4 +1,5 @@
 ﻿using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
+using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using OmniSharp.Extensions.LanguageServer.Protocol.Server;
 
@@ -10,10 +11,11 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       this.languageServer = languageServer;
     }
 
-    public void SendStatusNotification(TextDocumentItem textDocument, CompilationStatus status, string? message = null) {
+    public void SendStatusNotification(Compilation compilation, CompilationStatus status,
+      string? message = null) {
       languageServer.SendNotification(new CompilationStatusParams {
-        Uri = textDocument.Uri,
-        Version = textDocument.Version,
+        Uri = compilation.Uri,
+        Version = compilation.Version,
         Status = status,
         Message = message
       });

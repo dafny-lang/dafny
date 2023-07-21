@@ -17,8 +17,7 @@ public class DiagnosticMigrationTest : ClientBasedLanguageServerTest {
 
   [Fact]
   public async Task ResolutionDiagnosticsContainPreviousVerificationResultsWhenCodeIsInsertedAfter() {
-    var documentItem = CreateTestDocument(FastToFailVerification, "untitled:Untitled-1");
-    client.OpenDocument(documentItem);
+    var documentItem = await CreateAndOpenTestDocument(FastToFailVerification, "untitled:Untitled-1");
     var verificationDiagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
     Assert.Single(verificationDiagnostics);
     ApplyChange(ref documentItem, new Range(0, 47, 0, 47), "\n\n" + NeverVerifies);
