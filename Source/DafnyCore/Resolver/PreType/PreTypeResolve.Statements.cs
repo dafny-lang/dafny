@@ -1280,11 +1280,12 @@ namespace Microsoft.Dafny {
             // It is important that this throw-away receiver have its .PreType filled in, because the call to ResolveDotSuffix will recursive
             // down to resolve this "lhs"; that's a no-op if the .PreType is already filled in, whereas it could cause a "'this' not allowed in
             // static context" error if the code tried to resolve this "this" against the enclosing environment.
+            rr.PreType = Type2PreType(rr.EType);
             var lhs = new ImplicitThisExpr_ConstructorCall(initCallTok) {
               Type = rr.EType,
-              PreType = Type2PreType(rr.EType)
+              PreType = rr.PreType
             };
-            var callLhs = new ExprDotName(((UserDefinedType)rr.EType).tok, lhs, initCallName, ret == null ? null : ret.LastComponent.OptTypeArguments);
+            var callLhs = new ExprDotName(((UserDefinedType)rr.EType).tok, lhs, initCallName, ret?.LastComponent.OptTypeArguments);
             ResolveDotSuffix(callLhs, true, rr.Bindings.ArgumentBindings, resolutionContext, true);
             if (prevErrorCount == ErrorCount) {
               Contract.Assert(callLhs.ResolvedExpression is MemberSelectExpr);  // since ResolveApplySuffix succeeded and call.Lhs denotes an expression (not a module or a type)
@@ -1312,7 +1313,10 @@ namespace Microsoft.Dafny {
             }
           }
         }
-        rr.PreType = Type2PreType(rr.EType);
+        // set rr.PreType, unless it was already set above
+        if (rr.PreType == null) {
+          rr.PreType = Type2PreType(rr.EType);
+        }
       }
     }
 
