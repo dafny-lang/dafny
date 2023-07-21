@@ -1,2 +1,0 @@
-Use type antecedent in Type/Allocation axioms for const fields
-Don't generate injectivity axioms for export-provided types
