@@ -93,10 +93,14 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
   public async Task<NamedVerifiableStatus> WaitForStatus(Range nameRange, PublishedVerificationStatus statusToFind,
     CancellationToken cancellationToken) {
     while (true) {
-      var foundStatus = await verificationStatusReceiver.AwaitNextNotificationAsync(cancellationToken);
-      var namedVerifiableStatus = foundStatus.NamedVerifiables.FirstOrDefault(n => n.NameRange == nameRange);
-      if (namedVerifiableStatus?.Status == statusToFind) {
-        return namedVerifiableStatus;
+      try {
+        var foundStatus = await verificationStatusReceiver.AwaitNextNotificationAsync(cancellationToken);
+        var namedVerifiableStatus = foundStatus.NamedVerifiables.FirstOrDefault(n => n.NameRange == nameRange);
+        if (namedVerifiableStatus?.Status == statusToFind) {
+          return namedVerifiableStatus;
+        }
+      } catch (OperationCanceledException) {
+        await output.WriteLineAsync($"\nOld to new history was: {verificationStatusReceiver.History.Stringify()}");
       }
     }
   }
