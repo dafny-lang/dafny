@@ -746,7 +746,7 @@ abstract module {:options "/functionSyntax:4"} Dafny {
     }
   }
 
-  method {:tailrecursion} AppendOptimized<T>(builder: Vector<T>, e: Sequence<T>, stack: Vector<Sequence<T>>)
+  method {:tailrecursion} {:vcs_split_on_every_assert} AppendOptimized<T>(builder: Vector<T>, e: Sequence<T>, stack: Vector<Sequence<T>>)
     requires e.Valid()
     requires builder.Valid()
     requires stack.Valid()
@@ -765,24 +765,31 @@ abstract module {:options "/functionSyntax:4"} Dafny {
       // Length() if we add the invariant that no leaf nodes are empty.
       expect SizeAdditionInRange(stack.size, ONE_SIZE);
       stack.AddLast(concat.right);
+      label L1:
       AppendOptimized(builder, concat.left, stack);
+      assert builder.Value() == old@L1(builder.Value()) + concat.left.Value() + ConcatValueOnStack(old@L1(stack.Value()));
     } else if e is LazySequence<T> {
       var lazy := e as LazySequence<T>;
       var boxed := lazy.box.Get();
       AppendOptimized(builder, boxed, stack);
+      assert builder.Value() == old(builder.Value()) + boxed.Value() + ConcatValueOnStack(old(stack.Value()));
     } else if e is ArraySequence<T> {
       var a := e as ArraySequence<T>;
       builder.Append(a.values);
       if 0 < stack.size {
         var next: Sequence<T> := stack.RemoveLast();
+        label L2:
         AppendOptimized(builder, next, stack);
+        assert builder.Value() == old@L2(builder.Value()) + next.Value() + ConcatValueOnStack(old@L2(stack.Value()));
       }
     } else {
       // I'd prefer to just call Sequence.ToArray(),
       // but Dafny doesn't support tail recursion optimization of mutually-recursive functions.
       // Alternatively we could use a datatype, which would be a significant rewrite.
       expect false, "Unsupported Sequence implementation";
+      assert builder.Value() == old(builder.Value()) + e.Value() + ConcatValueOnStack(old(stack.Value()));
     }
+    assert builder.Value() == old(builder.Value()) + e.Value() + ConcatValueOnStack(old(stack.Value()));
   }
 
   ghost function ConcatValueOnStack<T>(s: seq<Sequence<T>>): seq<T>
