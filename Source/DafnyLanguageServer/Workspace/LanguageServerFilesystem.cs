@@ -41,7 +41,8 @@ public class LanguageServerFilesystem : IFileSystem {
         existingText = OnDiskFileSystem.Instance.ReadFile(uri).ReadToEnd();
       }
     } catch (IOException) {
-
+      // If we don't manage to detect whether this document already existed ond disc,
+      // that only triggers a performance penalty
     }
     openFiles[uri] = new Entry(new TextBuffer(document.Text), document.Version!.Value);
     return existingText != document.Text;
