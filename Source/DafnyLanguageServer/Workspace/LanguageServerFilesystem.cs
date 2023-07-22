@@ -29,7 +29,7 @@ public class LanguageServerFilesystem : IFileSystem {
   private readonly ConcurrentDictionary<Uri, Entry> openFiles = new();
 
   public void OpenDocument(TextDocumentItem document) {
-    logger.LogWarning($"Opening file {document.Uri}");
+    logger.LogDebug($"Opening file {document.Uri}");
     var uri = document.Uri.ToUri();
     if (openFiles.ContainsKey(uri)) {
       throw new InvalidOperationException($"Cannot open file {uri} because it is already open");
