@@ -1156,7 +1156,7 @@ namespace Microsoft.Dafny {
         r = new IdentifierExpr(expr.tok, v) {
           PreType = v.PreType
         };
-      } else if (currentClass != null && resolver.GetClassMembers(currentClass) is {} members &&
+      } else if (currentClass != null && resolver.GetClassMembers(currentClass) is { } members &&
                  members.TryGetValue(name, out member)) {
         // ----- 1. member of the enclosing class
         Expression receiver;
@@ -1473,7 +1473,7 @@ namespace Microsoft.Dafny {
         var cd = r == null ? ty.AsTopLevelTypeWithMembersBypassInternalSynonym : null;
         if (cd != null) {
           // ----- LHS is a type with members
-          if (resolver.GetClassMembers(cd) is {} members && members.TryGetValue(name, out var member)) {
+          if (resolver.GetClassMembers(cd) is { } members && members.TryGetValue(name, out var member)) {
             if (!resolver.VisibleInScope(member)) {
               ReportError(expr.tok, $"member '{name}' has not been imported in this scope and cannot be accessed here");
             }
