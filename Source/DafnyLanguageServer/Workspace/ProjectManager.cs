@@ -191,7 +191,7 @@ public class ProjectManager : IDisposable {
   public void Save(TextDocumentIdentifier documentId) {
     if (VerifyOnSave) {
       logger.LogDebug("Clearing result for workCompletedForCurrentVersion");
-      var _2 = VerifyEverythingAsync(documentId.Uri.ToUri());
+      _ = VerifyEverythingAsync(documentId.Uri.ToUri());
     }
   }
 
@@ -248,7 +248,7 @@ public class ProjectManager : IDisposable {
   // Test that when a project has multiple files, when saving/opening, only the affected Uri is verified when using OnSave.
   // Test that when a project has multiple files, everything is verified on opening one of them.
   private async Task VerifyEverythingAsync(Uri? uri) {
-    var _1 = workCompletedForCurrentVersion.WaitAsync();
+    _ = workCompletedForCurrentVersion.WaitAsync();
     try {
       var translatedDocument = await CompilationManager.TranslatedCompilation;
 
