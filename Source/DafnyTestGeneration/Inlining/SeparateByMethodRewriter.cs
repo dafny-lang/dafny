@@ -32,10 +32,10 @@ public class SeparateByMethodRewriter : IRewriter {
 
   private void SeparateByMethod(TopLevelDecl d) {
     if (d is LiteralModuleDecl moduleDecl) {
-      moduleDecl.ModuleDef.TopLevelDecls.Iter(SeparateByMethod);
+      moduleDecl.ModuleDef.TopLevelDecls.ForEach(SeparateByMethod);
     } else if (d is TopLevelDeclWithMembers withMembers) {
       methodsToAdd.Clear();
-      withMembers.Members.Where(shouldProcessPredicate).OfType<Function>().Iter(SeparateByMethod);
+      withMembers.Members.Where(shouldProcessPredicate).OfType<Function>().ForEach(SeparateByMethod);
       withMembers.Members.AddRange(methodsToAdd);
     }
   }

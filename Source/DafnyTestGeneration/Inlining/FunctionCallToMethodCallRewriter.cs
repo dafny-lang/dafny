@@ -31,10 +31,10 @@ public class FunctionCallToMethodCallRewriter : Cloner {
 
   private void Visit(TopLevelDecl d) {
     if (d is LiteralModuleDecl moduleDecl) {
-      moduleDecl.ModuleDef.TopLevelDecls.Iter(Visit);
+      moduleDecl.ModuleDef.TopLevelDecls.ForEach(Visit);
     } else if (d is TopLevelDeclWithMembers withMembers) {
-      withMembers.Members.Where(shouldProcessPredicate).OfType<Function>().Iter(Visit);
-      withMembers.Members.Where(shouldProcessPredicate).OfType<Method>().Iter(Visit);
+      withMembers.Members.Where(shouldProcessPredicate).OfType<Function>().ForEach(Visit);
+      withMembers.Members.Where(shouldProcessPredicate).OfType<Method>().ForEach(Visit);
     }
   }
 

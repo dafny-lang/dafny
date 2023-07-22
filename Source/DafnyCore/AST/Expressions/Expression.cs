@@ -800,9 +800,9 @@ public abstract class Expression : TokenNode {
     var newLHSs = LHSs.ConvertAll(cloner.CloneCasePattern);
 
     var oldVars = new List<BoundVar>();
-    LHSs.Iter(p => oldVars.AddRange(p.Vars));
+    LHSs.ForEach(p => oldVars.AddRange(p.Vars));
     var newVars = new List<BoundVar>();
-    newLHSs.Iter(p => newVars.AddRange(p.Vars));
+    newLHSs.ForEach(p => newVars.AddRange(p.Vars));
     body = VarSubstituter(oldVars.ConvertAll<NonglobalVariable>(x => (NonglobalVariable)x), newVars, body);
 
     var let = new LetExpr(tok, newLHSs, RHSs, body, exact);
