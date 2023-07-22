@@ -859,10 +859,10 @@ namespace Microsoft.Dafny {
 
   public class BottomUpVisitor {
     public void Visit(IEnumerable<Expression> exprs) {
-      exprs.Iter(Visit);
+      exprs.ForEach(Visit);
     }
     public void Visit(IEnumerable<Statement> stmts) {
-      stmts.Iter(Visit);
+      stmts.ForEach(Visit);
     }
     public void Visit(AttributedExpression expr) {
       Visit(expr.E);
@@ -871,10 +871,10 @@ namespace Microsoft.Dafny {
       Visit(expr.E);
     }
     public void Visit(IEnumerable<AttributedExpression> exprs) {
-      exprs.Iter(Visit);
+      exprs.ForEach(Visit);
     }
     public void Visit(IEnumerable<FrameExpression> exprs) {
-      exprs.Iter(Visit);
+      exprs.ForEach(Visit);
     }
     public void Visit(ICallable decl) {
       if (decl is Function f) {
@@ -927,7 +927,7 @@ namespace Microsoft.Dafny {
     public void Visit(Expression expr) {
       Contract.Requires(expr != null);
       // recursively visit all subexpressions and all substatements
-      expr.SubExpressions.Iter(Visit);
+      expr.SubExpressions.ForEach(Visit);
       if (expr is StmtExpr) {
         // a StmtExpr also has a substatement
         var e = (StmtExpr)expr;
@@ -938,8 +938,8 @@ namespace Microsoft.Dafny {
     public void Visit(Statement stmt) {
       Contract.Requires(stmt != null);
       // recursively visit all subexpressions and all substatements
-      stmt.SubExpressions.Iter(Visit);
-      stmt.SubStatements.Iter(Visit);
+      stmt.SubExpressions.ForEach(Visit);
+      stmt.SubStatements.ForEach(Visit);
       VisitOneStmt(stmt);
     }
     protected virtual void VisitOneExpr(Expression expr) {
@@ -958,13 +958,13 @@ namespace Microsoft.Dafny {
       Contract.Requires(expr != null);
       if (VisitOneExpr(expr, ref st)) {
         if (preResolve && expr is ConcreteSyntaxExpression concreteSyntaxExpression) {
-          concreteSyntaxExpression.PreResolveSubExpressions.Iter(e => Visit(e, st));
+          concreteSyntaxExpression.PreResolveSubExpressions.ForEach(e => Visit(e, st));
         } else if (preResolve && expr is QuantifierExpr quantifierExpr) {
           // pre-resolve, split expressions are not children
-          quantifierExpr.PreResolveSubExpressions.Iter(e => Visit(e, st));
+          quantifierExpr.PreResolveSubExpressions.ForEach(e => Visit(e, st));
         } else {
           // recursively visit all subexpressions and all substatements
-          expr.SubExpressions.Iter(e => Visit(e, st));
+          expr.SubExpressions.ForEach(e => Visit(e, st));
         }
         if (expr is StmtExpr) {
           // a StmtExpr also has a substatement
@@ -978,19 +978,19 @@ namespace Microsoft.Dafny {
       if (VisitOneStmt(stmt, ref st)) {
         // recursively visit all subexpressions and all substatements
         if (preResolve) {
-          stmt.PreResolveSubExpressions.Iter(e => Visit(e, st));
-          stmt.PreResolveSubStatements.Iter(s => Visit(s, st));
+          stmt.PreResolveSubExpressions.ForEach(e => Visit(e, st));
+          stmt.PreResolveSubStatements.ForEach(s => Visit(s, st));
         } else {
-          stmt.SubExpressions.Iter(e => Visit(e, st));
-          stmt.SubStatements.Iter(s => Visit(s, st));
+          stmt.SubExpressions.ForEach(e => Visit(e, st));
+          stmt.SubStatements.ForEach(s => Visit(s, st));
         }
       }
     }
     public void Visit(IEnumerable<Expression> exprs, State st) {
-      exprs.Iter(e => Visit(e, st));
+      exprs.ForEach(e => Visit(e, st));
     }
     public void Visit(IEnumerable<Statement> stmts, State st) {
-      stmts.Iter(e => Visit(e, st));
+      stmts.ForEach(e => Visit(e, st));
     }
     public void Visit(AttributedExpression expr, State st) {
       Visit(expr.E, st);
@@ -999,10 +999,10 @@ namespace Microsoft.Dafny {
       Visit(expr.E, st);
     }
     public void Visit(IEnumerable<AttributedExpression> exprs, State st) {
-      exprs.Iter(e => Visit(e, st));
+      exprs.ForEach(e => Visit(e, st));
     }
     public void Visit(IEnumerable<FrameExpression> exprs, State st) {
-      exprs.Iter(e => Visit(e, st));
+      exprs.ForEach(e => Visit(e, st));
     }
     public void Visit(ICallable decl, State st) {
       if (decl is Function) {
