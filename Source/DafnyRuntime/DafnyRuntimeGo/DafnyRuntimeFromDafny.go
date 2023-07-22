@@ -94,16 +94,20 @@ func (_static *CompanionStruct_Default___) AppendOptimized(builder *Vector, e Se
       panic("dafnyRuntime.dfy[DafnyGo](766,6): " + (SeqOfString("expectation violation")).String())
     }
     (stack).AddLast((_4_concat).Right())
-    var _in0 *Vector = builder
-    _ = _in0
-    var _in1 Sequence = (_4_concat).Left()
-    _ = _in1
-    var _in2 *Vector = stack
-    _ = _in2
-    builder = _in0
-    e = _in1
-    stack = _in2
-    goto TAIL_CALL_START
+    {
+      var _in0 *Vector = builder
+      _ = _in0
+      var _in1 Sequence = (_4_concat).Left()
+      _ = _in1
+      var _in2 *Vector = stack
+      _ = _in2
+      builder = _in0
+      e = _in1
+      stack = _in2
+      goto TAIL_CALL_START
+      goto L0_0;
+    }
+  L0_0:
   } else if (func (_is_3 Sequence) bool {
     return InstanceOf(_is_3, (*LazySequence)(nil))
   }(e)) {
@@ -140,20 +144,24 @@ func (_static *CompanionStruct_Default___) AppendOptimized(builder *Vector, e Se
       _ = _out3
       _out3 = (stack).RemoveLast()
       _8_next = Companion_Sequence_.CastTo_(_out3)
-      var _in6 *Vector = builder
-      _ = _in6
-      var _in7 Sequence = _8_next
-      _ = _in7
-      var _in8 *Vector = stack
-      _ = _in8
-      builder = _in6
-      e = _in7
-      stack = _in8
-      goto TAIL_CALL_START
+      {
+        var _in6 *Vector = builder
+        _ = _in6
+        var _in7 Sequence = _8_next
+        _ = _in7
+        var _in8 *Vector = stack
+        _ = _in8
+        builder = _in6
+        e = _in7
+        stack = _in8
+        goto TAIL_CALL_START
+        goto L1_1_0_0_0;
+      }
+    L1_1_0_0_0:
     }
   } else {
     if (!(false)) {
-      panic("dafnyRuntime.dfy[DafnyGo](784,6): " + (SeqOfString("Unsupported Sequence implementation")).String())
+      panic("dafnyRuntime.dfy[DafnyGo](789,6): " + (SeqOfString("Unsupported Sequence implementation")).String())
     }
   }
 }
