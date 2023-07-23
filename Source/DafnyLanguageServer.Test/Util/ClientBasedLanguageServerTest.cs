@@ -100,7 +100,7 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
           return namedVerifiableStatus;
         }
       } catch (OperationCanceledException) {
-        await WriteVerificationHistory();
+        WriteVerificationHistory();
       }
     }
   }
