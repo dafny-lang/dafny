@@ -754,7 +754,6 @@ namespace Microsoft.Dafny.Compilers {
         switch (e) {
           case CharLiteralExpr:
             throw new NotImplementedException();
-            break;
           case StringLiteralExpr str:
             builder.Builder.AddExpr((DAST.Expression)DAST.Expression.create_Literal(DAST.Literal.create_StringLiteral(
               Sequence<Rune>.UnicodeFromString(str.AsStringLiteral())
@@ -762,12 +761,10 @@ namespace Microsoft.Dafny.Compilers {
             break;
           case StaticReceiverExpr:
             throw new NotImplementedException();
-            break;
           default:
             switch (e.Value) {
               case null:
                 throw new NotImplementedException();
-                break;
               case bool value:
                 builder.Builder.AddExpr((DAST.Expression)DAST.Expression.create_Literal(DAST.Literal.create_BoolLiteral(value)));
                 break;
