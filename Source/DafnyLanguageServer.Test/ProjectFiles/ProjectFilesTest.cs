@@ -59,12 +59,16 @@ warn-shadowing = true";
   [Fact]
   public async Task ProjectFileOverridesOptions() {
     await SetUp(options => {
-      options.WarnShadowing = true;
-      options.FunctionSyntax = FunctionSyntaxOptions.Version3;
+      options.Set(Function.FunctionSyntaxOption, "3");
+      options.Set(CommonOptionBag.WarnShadowing, true);
     });
     var filePath = Path.Combine(Directory.GetCurrentDirectory(), "ProjectFiles/TestFiles/noWarnShadowing.dfy");
     var source = await File.ReadAllTextAsync(filePath);
     source += "\nghost function Bar(): int { 3 }";
+
+    var doc1 = await CreateAndOpenTestDocument(source, "orphaned");
+    var diagnostics1 = await GetLastDiagnostics(doc1, CancellationToken);
+    Assert.Single(diagnostics1); // Stops after parsing
     await CreateAndOpenTestDocument(source, filePath);
     await AssertNoDiagnosticsAreComing(CancellationToken);
   }
