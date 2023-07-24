@@ -26,7 +26,7 @@ method Test() {
 }";
     var documentItem = CreateTestDocument(source, TestFilePath);
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-    var document = await Projects.GetResolvedDocumentAsync(documentItem.Uri);
+    var document = await Projects.GetResolvedDocumentAsyncNormalizeUri(documentItem.Uri);
     Assert.NotNull(document);
     Assert.All(document.GetDiagnostics(), a => Assert.Empty(a.Value));
   }
