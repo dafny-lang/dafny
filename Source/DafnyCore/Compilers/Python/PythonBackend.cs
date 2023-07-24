@@ -12,6 +12,7 @@ public class PythonBackend : ExecutableBackend {
   public override IReadOnlySet<string> SupportedExtensions => new HashSet<string> { ".py" };
 
   public override string TargetName => "Python";
+  public override bool IsStable => true;
   public override string TargetExtension => "py";
   public override int TargetIndentSize => 4;
 
