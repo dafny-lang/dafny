@@ -36,13 +36,13 @@ method Foo() {
 ";
     var documentItem = CreateTestDocument(source, Path.Combine(tempDirectory, "source.dfy"));
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+    await AssertNoDiagnosticsAreComing(CancellationToken);
 
     var warnShadowingOn = @"
 [options]
 warn-shadowing = true";
 
-    var fs = await FileTestExtensions.WaitForFileToUnlock(projectFilePath, FileMode.Create, FileAccess.Write, FileShare.Read);
-    await new StreamWriter(fs).WriteAsync(warnShadowingOn);
+    await FileTestExtensions.WriteWhenUnlocked(projectFilePath, warnShadowingOn);
     await Task.Delay(ProjectManagerDatabase.ProjectFileCacheExpiryTime);
     ApplyChange(ref documentItem, new Range(0, 0, 0, 0), "//touch comment\n");
     var diagnostics = await GetLastDiagnostics(documentItem, CancellationToken);

@@ -185,8 +185,7 @@ method Produces() {}
     var producesDefinition1 = await RequestDefinition(consumer, new Position(1, 3));
     Assert.Empty(producesDefinition1);
 
-    var fs = await FileTestExtensions.WaitForFileToUnlock(projectFilePath, FileMode.Create, FileAccess.Write, FileShare.Read);
-    await new StreamWriter(fs).WriteAsync(@"includes = [""firstFile.dfy"", ""secondFile.dfy""]");
+    await FileTestExtensions.WriteWhenUnlocked(projectFilePath, @"includes = [""firstFile.dfy"", ""secondFile.dfy""]");
     await Task.Delay(ProjectManagerDatabase.ProjectFileCacheExpiryTime);
 
     var producesDefinition2 = await RequestDefinition(consumer, new Position(1, 3));
