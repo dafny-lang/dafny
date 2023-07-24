@@ -3549,7 +3549,7 @@ namespace Microsoft.Dafny {
 
       } else if (stmt is PrintStmt) {
         var s = (PrintStmt)stmt;
-        s.Args.Iter(e => ResolveExpression(e, resolutionContext));
+        s.Args.ForEach(e => ResolveExpression(e, resolutionContext));
 
       } else if (stmt is RevealStmt) {
         var s = (RevealStmt)stmt;
