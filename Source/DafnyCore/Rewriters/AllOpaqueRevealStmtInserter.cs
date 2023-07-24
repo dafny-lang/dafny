@@ -137,7 +137,11 @@ public class AllOpaqueRevealStmtInserter : IRewriter {
         addedReveals.Add(revealStmt);
 
         if (!Attributes.Contains(m.Attributes, "allOpaque")) {
-          m.Body.Body.Insert(0, revealStmt);
+          if (m is Constructor c) {
+            c.BodyInit.Insert(0, revealStmt);
+          } else {
+            m.Body.Body.Insert(0, revealStmt);
+          }
         }
       }
     }
@@ -151,7 +155,8 @@ public class AllOpaqueRevealStmtInserter : IRewriter {
           reqExpr.Type = Type.Bool;
         }
 
-        m.Req.Add(new AttributedExpression(reqExpr));
+        // m.Req.Add(new AttributedExpression(reqExpr));
+        m.Req.Insert(0, new AttributedExpression(reqExpr));
       }
     }
 
@@ -198,7 +203,7 @@ public class AllOpaqueRevealStmtInserter : IRewriter {
           reqExpr.Type = Type.Bool;
         }
 
-        f.Req.Add(new AttributedExpression(reqExpr));
+        f.Req.Insert(0, new AttributedExpression(reqExpr));
       }
     }
 
@@ -245,6 +250,7 @@ public class AllOpaqueRevealStmtInserter : IRewriter {
         if (newType is Type { AsSubsetType: not null }) {
           foreach (var subexpression in newType.AsSubsetType.Constraint.SubExpressions) {
             if (subexpression is FunctionCallExpr funcExpr) {
+              
               var func = funcExpr.Function;
               var newVertex = func.EnclosingClass.EnclosingModuleDefinition.CallGraph.FindVertex(func);
               if (newVertex is not null) {
@@ -356,6 +362,10 @@ public class AllOpaqueRevealStmtInserter : IRewriter {
     for (var i=0; i < modulePathLocalCopy.Count()-1; i++) {
       var exportSet = FindModuleExportSet(modulePathLocalCopy[i + 1], modulePathLocalCopy[i]);
 
+      // if (modulePathLocalCopy[i].IsAbstract) {
+      //   
+      // }
+      
       foreach (ModuleExportDecl modExportDecl in modulePathLocalCopy[i].TopLevelDecls.Where(decl => decl is ModuleExportDecl && decl.Name == exportSet)) {
         var isItExported = false;
         foreach (ExportSignature export in modExportDecl.Exports) {
@@ -380,8 +390,18 @@ public class AllOpaqueRevealStmtInserter : IRewriter {
 
   private string FindModuleExportSet(ModuleDefinition origMod, ModuleDefinition importedMod) {
     foreach (AliasModuleDecl aliasModDecl in origMod.TopLevelDecls.Where(decl => decl is AliasModuleDecl)) {
-      if (aliasModDecl.FullDafnyName == importedMod.FullDafnyName) {
-        return !aliasModDecl.Exports.Any() ? importedMod.Name : aliasModDecl.Exports.First().val;
+      if (aliasModDecl.TargetQId.Root.FullDafnyName == importedMod.FullDafnyName) {
+        return aliasModDecl.Exports.Any() ? aliasModDecl.Exports.First().val : importedMod.Name;
+      }
+    }
+
+    if (importedMod.IsAbstract) {
+      var importedModuleName = importedMod.FullName[..^4]; //Remove .Abs at the end
+      
+      foreach (AbstractModuleDecl abstractModuleDecl in origMod.TopLevelDecls.Where(decl => decl is AbstractModuleDecl)) {
+        if (abstractModuleDecl.FullName == importedModuleName) {
+          return abstractModuleDecl.Exports.Any() ? abstractModuleDecl.Exports.First().val : importedMod.Name;
+        }
       }
     }
 
@@ -393,8 +413,18 @@ public class AllOpaqueRevealStmtInserter : IRewriter {
     // throw new NotImplementedException();
 
     foreach (AliasModuleDecl aliasModDecl in origModule.TopLevelDecls.Where(decl => decl is AliasModuleDecl)) {
-      if (aliasModDecl.FullDafnyName == newModule.FullDafnyName) {
+      if (aliasModDecl.TargetQId.Root.FullDafnyName == newModule.FullDafnyName) {
         return new NameSegment(aliasModDecl.tok, aliasModDecl.Name, new List<Type>());
+      }
+    }
+
+    if (newModule.IsAbstract) {
+      var newModuleName = newModule.FullName[..^4]; //Remove .Abs at the end
+      
+      foreach (AbstractModuleDecl abstractModuleDecl in origModule.TopLevelDecls.Where(decl => decl is AbstractModuleDecl)) {
+        if (abstractModuleDecl.FullName == newModuleName) {
+          return new NameSegment(abstractModuleDecl.tok, abstractModuleDecl.Name, new List<Type>());
+        }
       }
     }
 
