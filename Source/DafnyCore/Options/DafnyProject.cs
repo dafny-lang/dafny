@@ -52,7 +52,7 @@ public class DafnyProject : IEquatable<DafnyProject> {
     }
   }
 
-  public IEnumerable<Uri> GetRootSourceUris(IFileSystem fileSystem, DafnyOptions options) {
+  public IEnumerable<Uri> GetRootSourceUris(IFileSystem fileSystem) {
     if (!Uri.IsFile) {
       return new[] { Uri };
     }
