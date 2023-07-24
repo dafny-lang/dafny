@@ -1077,16 +1077,6 @@ namespace Microsoft.Dafny {
         }
 
         if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
-          var u = new UnderspecificationDetector(this);
-          u.Check(declarations);
-        }
-
-        if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
-          var u = new UnderspecificationDetector(this);
-          u.Check(declarations);
-        }
-
-        if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
           var preType2TypeVisitor = new PreTypeToTypeVisitor();
           preType2TypeVisitor.VisitConstantsAndRedirectingTypes(declarations);
           preType2TypeVisitor.VisitDeclarations(declarations);
