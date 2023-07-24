@@ -11,7 +11,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
   /// Any implementation has to guarantee thread-safety of its public members.
   /// </remarks>
   public interface IDafnyParser {
-    Program Parse(DafnyProject project, ErrorReporter reporter,
+    Program Parse(Compilation compilation, ErrorReporter reporter,
       CancellationToken cancellationToken);
   }
 }

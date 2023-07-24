@@ -1,4 +1,5 @@
-﻿using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
+﻿using System.Threading.Tasks;
+using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
@@ -8,6 +9,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
   /// status of a <see cref="Compilation"/> to the LSP client.
   /// </summary>
   public interface ICompilationStatusNotificationPublisher {
-    void SendStatusNotification(Compilation compilation, CompilationStatus status, string? message = null);
+    Task SendStatusNotification(Compilation compilation, CompilationStatus status, string? message = null);
   }
 }
