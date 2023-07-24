@@ -372,7 +372,7 @@ namespace Microsoft.Dafny {
       ((NameSegment)arg).ResolvedExpression = rr;
       arg.Type = rr.Type;
     }
-    
+
     /// <summary>
     /// "IsTwoState" implies that "old" and "fresh" expressions are allowed.
     /// </summary>
