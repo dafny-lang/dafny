@@ -40,9 +40,9 @@ method Foo() {
     var warnShadowingOn = @"
 [options]
 warn-shadowing = true";
-    // Wait to prevent an IOException because the file is already in use.
-    await Task.Delay(200);
-    await File.WriteAllTextAsync(projectFilePath, warnShadowingOn);
+
+    var fs = await FileTestExtensions.WaitForFileToUnlock(projectFilePath, FileMode.Create, FileAccess.Write, FileShare.Read);
+    await new StreamWriter(fs).WriteAsync(warnShadowingOn);
     await Task.Delay(ProjectManagerDatabase.ProjectFileCacheExpiryTime);
     ApplyChange(ref documentItem, new Range(0, 0, 0, 0), "//touch comment\n");
     var diagnostics = await GetLastDiagnostics(documentItem, CancellationToken);

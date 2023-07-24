@@ -176,7 +176,8 @@ method Produces() {}
 
     var directory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
     Directory.CreateDirectory(directory);
-    await File.WriteAllTextAsync(Path.Combine(directory, DafnyProject.FileName), projectFileSource);
+    var projectFilePath = Path.Combine(directory, DafnyProject.FileName);
+    await File.WriteAllTextAsync(projectFilePath, projectFileSource);
 
     var consumer = await CreateAndOpenTestDocument(consumerSource, Path.Combine(directory, "firstFile.dfy"));
     var secondFile = await CreateAndOpenTestDocument(producer, Path.Combine(directory, "secondFile.dfy"));
@@ -184,10 +185,8 @@ method Produces() {}
     var producesDefinition1 = await RequestDefinition(consumer, new Position(1, 3));
     Assert.Empty(producesDefinition1);
 
-    // Wait for file lock to dissappear
-    await Task.Delay(200);
-    await File.WriteAllTextAsync(Path.Combine(directory, DafnyProject.FileName),
-      @"includes = [""firstFile.dfy"", ""secondFile.dfy""]");
+    var fs = await FileTestExtensions.WaitForFileToUnlock(projectFilePath, FileMode.Create, FileAccess.Write, FileShare.Read);
+    await new StreamWriter(fs).WriteAsync(@"includes = [""firstFile.dfy"", ""secondFile.dfy""]");
     await Task.Delay(ProjectManagerDatabase.ProjectFileCacheExpiryTime);
 
     var producesDefinition2 = await RequestDefinition(consumer, new Position(1, 3));
