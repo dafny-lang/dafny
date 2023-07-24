@@ -24,6 +24,10 @@ public abstract class IExecutableBackend {
   /// </summary>
   public abstract string TargetName { get; }
   /// <summary>
+  /// Is this a stable, supported backend (should it be run in integration tests).
+  /// </summary>
+  public abstract bool IsStable { get; }
+  /// <summary>
   /// Extension given to generated code files (e.g. <c>cs</c> for C#)
   /// </summary>
   public abstract string TargetExtension { get; }
