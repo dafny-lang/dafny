@@ -66,6 +66,8 @@ class PreTypeToTypeVisitor : ASTVisitor<IASTVisitorContext> {
       return new ArrowType(pt.Decl.tok, arrowTypeDecl, arguments);
     } else if (pt.Decl is ValuetypeDecl valuetypeDecl) {
       return valuetypeDecl.CreateType(arguments);
+    } else if (pt.Decl is ClassLikeDecl { IsReferenceTypeDecl: true }) {
+      return new UserDefinedType(pt.Decl.tok, pt.Decl.Name + "?", pt.Decl, arguments);
     } else {
       return new UserDefinedType(pt.Decl.tok, pt.Decl.Name, pt.Decl, arguments);
     }
