@@ -245,8 +245,8 @@ public class AllOpaqueRevealStmtInserter : IRewriter {
     }
 
     Type[] typeList = ExprListToTypeList(subexpressions.ToArray()).ToArray();
-    
-    typeList.Iter(newType => {
+
+    typeList.ForEach(newType => {
         if (newType is Type { AsSubsetType: not null }) {
           foreach (var subexpression in newType.AsSubsetType.Constraint.SubExpressions) {
             if (subexpression is FunctionCallExpr funcExpr) {
