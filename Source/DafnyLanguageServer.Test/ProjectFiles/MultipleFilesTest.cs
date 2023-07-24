@@ -176,7 +176,8 @@ method Produces() {}
 
     var directory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
     Directory.CreateDirectory(directory);
-    await File.WriteAllTextAsync(Path.Combine(directory, DafnyProject.FileName), projectFileSource);
+    var projectFilePath = Path.Combine(directory, DafnyProject.FileName);
+    await File.WriteAllTextAsync(projectFilePath, projectFileSource);
 
     var consumer = await CreateAndOpenTestDocument(consumerSource, Path.Combine(directory, "firstFile.dfy"));
     var secondFile = await CreateAndOpenTestDocument(producer, Path.Combine(directory, "secondFile.dfy"));
@@ -184,10 +185,7 @@ method Produces() {}
     var producesDefinition1 = await RequestDefinition(consumer, new Position(1, 3));
     Assert.Empty(producesDefinition1);
 
-    // Wait to prevent an IOException because the file is already in use.
-    await Task.Delay(100);
-    await File.WriteAllTextAsync(Path.Combine(directory, DafnyProject.FileName),
-      @"includes = [""firstFile.dfy"", ""secondFile.dfy""]");
+    await FileTestExtensions.WriteWhenUnlocked(projectFilePath, @"includes = [""firstFile.dfy"", ""secondFile.dfy""]");
     await Task.Delay(ProjectManagerDatabase.ProjectFileCacheExpiryTime);
 
     var producesDefinition2 = await RequestDefinition(consumer, new Position(1, 3));
@@ -215,7 +213,7 @@ includes = [""src/**/*.dfy""]
 
 [options]
 warn-shadowing = true
-"; // includes must come before [options], even if there is a blank line
+".Trim(); // includes must come before [options], even if there is a blank line
     var directory = Path.GetRandomFileName();
     var projectFile = await CreateAndOpenTestDocument(projectFileSource, Path.Combine(directory, DafnyProject.FileName));
     var sourceFile = await CreateAndOpenTestDocument(source, Path.Combine(directory, "src/file.dfy"));
@@ -225,7 +223,7 @@ warn-shadowing = true
     Assert.Contains(diagnostics1, s => s.Message.Contains("Shadowed"));
 
     await Task.Delay(ProjectManagerDatabase.ProjectFileCacheExpiryTime);
-    ApplyChange(ref projectFile, new Range(1, 17, 1, 21), "false");
+    ApplyChange(ref projectFile, new Range(3, 17, 3, 21), "false");
 
     var resolutionDiagnostics2 = await diagnosticsReceiver.AwaitNextWarningOrErrorDiagnosticsAsync(CancellationToken);
     // The shadowed warning is no longer produced, and the verification error is not migrated. 

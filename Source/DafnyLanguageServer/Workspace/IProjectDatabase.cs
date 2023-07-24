@@ -46,7 +46,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     /// </summary>
     /// <param name="documentId">The ID of the document to resolve.</param>
     /// <returns>An instance of the managed document, <c>null</c> if the specified document was not found.</returns>
-    Task<IdeState?> GetResolvedDocumentAsync(TextDocumentIdentifier documentId);
+    Task<IdeState?> GetResolvedDocumentAsyncNormalizeUri(TextDocumentIdentifier documentId);
+    internal Task<IdeState?> GetResolvedDocumentAsyncInternal(TextDocumentIdentifier documentId);
 
     /// <summary>
     /// Tries to resolve a verified document with the specified identifier.
@@ -58,5 +59,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     Task<ProjectManager?> GetProjectManager(TextDocumentIdentifier documentId);
 
     IEnumerable<ProjectManager> Managers { get; }
+    Task<DafnyProject> GetProject(Uri uri);
   }
 }
