@@ -99,12 +99,12 @@ class GhostInterestVisitor {
       if (mustBeErasable) {
         Error(ErrorId.r_print_statement_is_not_ghost, stmt, "print statement is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)");
       } else {
-        s.Args.Iter(ee => ExpressionTester.CheckIsCompilable(resolver, reporter, ee, codeContext));
+        s.Args.ForEach(ee => ExpressionTester.CheckIsCompilable(resolver, reporter, ee, codeContext));
       }
 
     } else if (stmt is RevealStmt) {
       var s = (RevealStmt)stmt;
-      s.ResolvedStatements.Iter(ss => Visit(ss, true, "a reveal statement"));
+      s.ResolvedStatements.ForEach(ss => Visit(ss, true, "a reveal statement"));
       s.IsGhost = s.ResolvedStatements.All(ss => ss.IsGhost);
 
     } else if (stmt is BreakStmt) {
@@ -146,12 +146,12 @@ class GhostInterestVisitor {
 
     } else if (stmt is UpdateStmt) {
       var s = (UpdateStmt)stmt;
-      s.ResolvedStatements.Iter(ss => Visit(ss, mustBeErasable, proofContext));
+      s.ResolvedStatements.ForEach(ss => Visit(ss, mustBeErasable, proofContext));
       s.IsGhost = s.ResolvedStatements.All(ss => ss.IsGhost);
 
     } else if (stmt is AssignOrReturnStmt) {
       var s = (AssignOrReturnStmt)stmt;
-      s.ResolvedStatements.Iter(ss => Visit(ss, mustBeErasable, proofContext));
+      s.ResolvedStatements.ForEach(ss => Visit(ss, mustBeErasable, proofContext));
       s.IsGhost = s.ResolvedStatements.All(ss => ss.IsGhost);
 
     } else if (stmt is VarDeclStmt) {
@@ -268,10 +268,10 @@ class GhostInterestVisitor {
       s.IsGhost = mustBeErasable;  // set .IsGhost before descending into substatements (since substatements may do a 'break' out of this block)
       if (s is DividedBlockStmt ds) {
         var giv = new GhostInterestVisitor(this.codeContext, this.resolver, this.reporter, true, allowAssumptionVariables);
-        ds.BodyInit.Iter(ss => giv.Visit(ss, mustBeErasable, proofContext));
-        ds.BodyProper.Iter(ss => Visit(ss, mustBeErasable, proofContext));
+        ds.BodyInit.ForEach(ss => giv.Visit(ss, mustBeErasable, proofContext));
+        ds.BodyProper.ForEach(ss => Visit(ss, mustBeErasable, proofContext));
       } else {
-        s.Body.Iter(ss => Visit(ss, mustBeErasable, proofContext));
+        s.Body.ForEach(ss => Visit(ss, mustBeErasable, proofContext));
       }
       s.IsGhost = s.IsGhost || s.Body.All(ss => ss.IsGhost);  // mark the block statement as ghost if all its substatements are ghost
 
@@ -299,7 +299,7 @@ class GhostInterestVisitor {
       if (!mustBeErasable && s.IsGhost) {
         reporter.Info(MessageSource.Resolver, s.Tok, "ghost if");
       }
-      s.Alternatives.Iter(alt => alt.Body.Iter(ss => Visit(ss, s.IsGhost, proofContext)));
+      s.Alternatives.ForEach(alt => alt.Body.ForEach(ss => Visit(ss, s.IsGhost, proofContext)));
       s.IsGhost = s.IsGhost || s.Alternatives.All(alt => alt.Body.All(ss => ss.IsGhost));
       if (!s.IsGhost) {
         // If there were features in the guards that are treated differently in ghost and non-ghost
@@ -323,7 +323,7 @@ class GhostInterestVisitor {
         Error(ErrorId.r_decreases_forbidden_on_ghost_loops, s, "'decreases *' is not allowed on ghost loops");
       }
       if (s.IsGhost && s.Mod.Expressions != null) {
-        s.Mod.Expressions.Iter(resolver.DisallowNonGhostFieldSpecifiers);
+        s.Mod.Expressions.ForEach(resolver.DisallowNonGhostFieldSpecifiers);
       }
       if (s.Body != null) {
         Visit(s.Body, s.IsGhost, proofContext);
@@ -351,9 +351,9 @@ class GhostInterestVisitor {
         Error(ErrorId.r_decreases_forbidden_on_ghost_loops, s, "'decreases *' is not allowed on ghost loops");
       }
       if (s.IsGhost && s.Mod.Expressions != null) {
-        s.Mod.Expressions.Iter(resolver.DisallowNonGhostFieldSpecifiers);
+        s.Mod.Expressions.ForEach(resolver.DisallowNonGhostFieldSpecifiers);
       }
-      s.Alternatives.Iter(alt => alt.Body.Iter(ss => Visit(ss, s.IsGhost, proofContext)));
+      s.Alternatives.ForEach(alt => alt.Body.ForEach(ss => Visit(ss, s.IsGhost, proofContext)));
       s.IsGhost = s.IsGhost || (!s.Decreases.Expressions.Exists(e => e is WildcardExpr) && s.Alternatives.All(alt => alt.Body.All(ss => ss.IsGhost)));
       if (!s.IsGhost) {
         // If there were features in the guards that are treated differently in ghost and non-ghost
@@ -381,7 +381,7 @@ class GhostInterestVisitor {
         }
       }
       if (s.IsGhost && s.Mod.Expressions != null) {
-        s.Mod.Expressions.Iter(resolver.DisallowNonGhostFieldSpecifiers);
+        s.Mod.Expressions.ForEach(resolver.DisallowNonGhostFieldSpecifiers);
       }
       if (s.Body != null) {
         Visit(s.Body, s.IsGhost, proofContext);
@@ -430,7 +430,7 @@ class GhostInterestVisitor {
 
       s.IsGhost = mustBeErasable;
       if (s.IsGhost) {
-        s.Mod.Expressions.Iter(resolver.DisallowNonGhostFieldSpecifiers);
+        s.Mod.Expressions.ForEach(resolver.DisallowNonGhostFieldSpecifiers);
       }
       if (s.Body != null) {
         Visit(s.Body, mustBeErasable, proofContext);
@@ -452,7 +452,7 @@ class GhostInterestVisitor {
       if (!mustBeErasable && nestedMatchStmt.IsGhost) {
         reporter.Info(MessageSource.Resolver, nestedMatchStmt.Tok, "ghost match");
       }
-      nestedMatchStmt.Cases.Iter(kase => kase.Body.Iter(ss => Visit(ss, nestedMatchStmt.IsGhost, proofContext)));
+      nestedMatchStmt.Cases.ForEach(kase => kase.Body.ForEach(ss => Visit(ss, nestedMatchStmt.IsGhost, proofContext)));
       nestedMatchStmt.IsGhost = nestedMatchStmt.IsGhost || nestedMatchStmt.Cases.All(kase => kase.Body.All(ss => ss.IsGhost));
       if (!nestedMatchStmt.IsGhost) {
         // If there were features in the source expression that are treated differently in ghost and non-ghost
@@ -465,7 +465,7 @@ class GhostInterestVisitor {
       if (!mustBeErasable && s.IsGhost) {
         reporter.Info(MessageSource.Resolver, s.Tok, "ghost match");
       }
-      s.Cases.Iter(kase => kase.Body.Iter(ss => Visit(ss, s.IsGhost, proofContext)));
+      s.Cases.ForEach(kase => kase.Body.ForEach(ss => Visit(ss, s.IsGhost, proofContext)));
       s.IsGhost = s.IsGhost || s.Cases.All(kase => kase.Body.All(ss => ss.IsGhost));
       if (!s.IsGhost) {
         // If there were features in the source expression that are treated differently in ghost and non-ghost
