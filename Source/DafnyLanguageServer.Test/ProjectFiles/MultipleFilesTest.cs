@@ -184,6 +184,8 @@ method Produces() {}
     var producesDefinition1 = await RequestDefinition(consumer, new Position(1, 3));
     Assert.Empty(producesDefinition1);
 
+    // Wait to prevent an IOException because the file is already in use.
+    await Task.Delay(100);
     await File.WriteAllTextAsync(Path.Combine(directory, DafnyProject.FileName),
       @"includes = [""firstFile.dfy"", ""secondFile.dfy""]");
     await Task.Delay(ProjectManagerDatabase.ProjectFileCacheExpiryTime);

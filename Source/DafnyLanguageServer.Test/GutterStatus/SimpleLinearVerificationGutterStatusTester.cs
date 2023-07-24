@@ -81,7 +81,7 @@ method Foo() ensures false { } ";
  .  |  |  |  I  I  |  |  |  I  I  |  |  | :}
     |  |  |  I  I  |  |  |  I  I  |  |  | :
  .  S  S  |  I  .  S  S [=] I  .  S  S  | :type IssueId = i : int | isIssueIdValid(i)
- .  S  |  |  I  .  S  | [=] I  .  S  |  | :  witness 101 //Next1:   witness 99 //Next2:   witness 101 ", false);
+ .  S  |  |  I  .  S  | [=] I  .  S  |  | :  witness 101 //Next1:   witness 99 //Next2:   witness 101 ", false, "EnsuresItWorksForSubsetTypes.dfy");
   }
 
   [Fact(Timeout = MaxTestExecutionTimeMs)]
@@ -106,7 +106,7 @@ method Foo() ensures false { } ";
  .  S [S][ ][I] | :method Main() {
  .  S [=][=][I] | :  ghost var x :| P(x); //Next:  ghost var x := 1;
  .  S [S][ ][I] | :}
-                | :", false);
+                | :", false, $"EnsureNoAssertShowsVerified{i}.dfy");
     }
   }
 
@@ -149,7 +149,7 @@ method Foo() ensures false { } ";
  .  S [S][ ][I][S][ ][I][S][ ]:  //Next1:\n  //Next2:\n  
  .  S [=][=][I][S][ ][I][S][ ]:  assert x == 2; }
             [-][~][=][I][S][ ]:
-                     [-][~][=]:", true);
+                     [-][~][=]:", true, "EnsuresAddingNewlinesMigratesPositions.dfy");
   }
 
   [Fact/*(Timeout = MaxTestExecutionTimeMs)*/]
