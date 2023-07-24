@@ -23,7 +23,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
       return token.line != 0 && signatureAndCompletionTable.CompilationUnit.IsPartOfEntryDocument(token);
     }
 
-    public IEnumerable<DocumentSymbol> Visit(ISymbol symbol) {
+    public IEnumerable<DocumentSymbol> Visit(ILegacySymbol symbol) {
       cancellationToken.ThrowIfCancellationRequested();
       return symbol.Accept(this);
     }

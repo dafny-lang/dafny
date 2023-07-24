@@ -4,7 +4,7 @@ using System.Linq;
 
 namespace Microsoft.Dafny;
 
-public class Field : MemberDecl, ICanFormat, IHasDocstring {
+public class Field : MemberDecl, ICanFormat, IHasDocstring, ISymbol {
   public override string WhatKind => "field";
   public readonly bool IsMutable;  // says whether or not the field can ever change values
   public readonly bool IsUserMutable;  // says whether or not code is allowed to assign to the field (IsUserMutable implies IsMutable)
@@ -93,4 +93,6 @@ public class Field : MemberDecl, ICanFormat, IHasDocstring {
 
     return GetTriviaContainingDocstringFromStartTokenOrNull();
   }
+
+  public DafnySymbolKind Kind => DafnySymbolKind.Field;
 }

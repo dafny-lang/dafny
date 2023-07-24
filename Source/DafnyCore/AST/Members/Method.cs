@@ -6,7 +6,7 @@ using Microsoft.Dafny.Auditor;
 
 namespace Microsoft.Dafny;
 
-public class Method : MemberDecl, TypeParameter.ParentType, IMethodCodeContext, ICanFormat, IHasDocstring {
+public class Method : MemberDecl, TypeParameter.ParentType, IMethodCodeContext, ICanFormat, IHasDocstring, IHasSymbolChildren {
   public override IEnumerable<Node> Children => new Node[] { Body, Decreases }.
     Where(x => x != null).Concat(Ins).Concat(Outs).Concat<Node>(TypeArgs).
     Concat(Req).Concat(Ens).Concat(Mod.Expressions);
@@ -368,5 +368,13 @@ public class Method : MemberDecl, TypeParameter.ParentType, IMethodCodeContext, 
     }
 
     return GetTriviaContainingDocstringFromStartTokenOrNull();
+  }
+
+  public DafnySymbolKind Kind => DafnySymbolKind.Method;
+  public IEnumerable<ISymbol> ChildSymbols {
+    get {
+      IEnumerable<Node> childStatements = Body?.Visit(node => node is Statement) ?? Enumerable.Empty<Node>();
+      return Outs.Concat(childStatements.OfType<VarDeclStmt>().SelectMany(v => (IEnumerable<ISymbol>)v.Locals));
+    }
   }
 }

@@ -5,7 +5,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
     public IVariable Declaration { get; }
     public INode Node => Declaration;
 
-    public VariableSymbol(ISymbol? scope, IVariable variable) : base(scope, variable.Name) {
+    public VariableSymbol(ILegacySymbol? scope, IVariable variable) : base(scope, variable.Name) {
       Declaration = variable;
     }
 

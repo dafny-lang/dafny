@@ -129,6 +129,7 @@ public class ProgramParser {
   public static void AddParseResultToProgram(DfyParseResult parseResult, Program program) {
     var defaultModule = program.DefaultModuleDef;
     var fileModule = parseResult.Module;
+    program.Files.Add(fileModule);
 
     foreach (var modify in parseResult.ModifyBuiltins) {
       modify(program.SystemModuleManager);

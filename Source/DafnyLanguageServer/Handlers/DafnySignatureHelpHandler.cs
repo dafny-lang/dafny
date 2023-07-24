@@ -69,7 +69,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
         return new Position(request.Position.Line, request.Position.Character - 1);
       }
 
-      private SignatureHelp? CreateSignatureHelp(ISymbol symbol) {
+      private SignatureHelp? CreateSignatureHelp(ILegacySymbol symbol) {
         var signatureInformation = symbol switch {
           MethodSymbol method => CreateSignatureInformation(method),
           FunctionSymbol function => CreateSignatureInformation(function),
