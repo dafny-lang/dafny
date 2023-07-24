@@ -184,6 +184,8 @@ method Produces() {}
     var producesDefinition1 = await RequestDefinition(consumer, new Position(1, 3));
     Assert.Empty(producesDefinition1);
 
+    // Wait for file lock to dissappear
+    await Task.Delay(200);
     await File.WriteAllTextAsync(Path.Combine(directory, DafnyProject.FileName),
       @"includes = [""firstFile.dfy"", ""secondFile.dfy""]");
     await Task.Delay(ProjectManagerDatabase.ProjectFileCacheExpiryTime);

@@ -41,7 +41,7 @@ method Foo() {
 [options]
 warn-shadowing = true";
     // Wait to prevent an IOException because the file is already in use.
-    await Task.Delay(100);
+    await Task.Delay(200);
     await File.WriteAllTextAsync(projectFilePath, warnShadowingOn);
     await Task.Delay(ProjectManagerDatabase.ProjectFileCacheExpiryTime);
     ApplyChange(ref documentItem, new Range(0, 0, 0, 0), "//touch comment\n");
