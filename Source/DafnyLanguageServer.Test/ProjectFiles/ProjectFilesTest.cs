@@ -58,9 +58,13 @@ warn-shadowing = true";
 
   [Fact]
   public async Task ProjectFileOverridesOptions() {
-    await SetUp(options => options.WarnShadowing = true);
+    await SetUp(options => {
+      options.WarnShadowing = true;
+      options.FunctionSyntax = FunctionSyntaxOptions.Version3;
+    });
     var filePath = Path.Combine(Directory.GetCurrentDirectory(), "ProjectFiles/TestFiles/noWarnShadowing.dfy");
     var source = await File.ReadAllTextAsync(filePath);
+    source += "\nghost function Bar(): int { 3 }";
     await CreateAndOpenTestDocument(source, filePath);
     await AssertNoDiagnosticsAreComing(CancellationToken);
   }
