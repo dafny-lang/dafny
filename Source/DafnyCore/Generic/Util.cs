@@ -21,6 +21,7 @@ namespace Microsoft.Dafny {
       return new HashSet<T>();
     }
   }
+
   public static class Util {
 
     public static bool LessThanOrEquals<T>(this T first, T second)
@@ -84,6 +85,10 @@ namespace Microsoft.Dafny {
         c = comma;
       }
       return res;
+    }
+
+    public static IEnumerable<(T, int)> Indexed<T>(this IEnumerable<T> enumerable) {
+      return enumerable.Select((value, index) => (value, index));
     }
 
     public static string PrintableNameList(List<string> names, string grammaticalConjunction) {
@@ -157,7 +162,7 @@ namespace Microsoft.Dafny {
     }
 
     public static Dictionary<A, B> Dict<A, B>(IEnumerable<A> xs, IEnumerable<B> ys) {
-      return Dict<A, B>(LinqExtender.Zip(xs, ys));
+      return Dict<A, B>(Enumerable.Zip(xs, ys).Select(x => new Tuple<A, B>(x.First, x.Second)));
     }
 
     public static Dictionary<A, B> Dict<A, B>(IEnumerable<Tuple<A, B>> xys) {
@@ -249,9 +254,9 @@ namespace Microsoft.Dafny {
       Contract.Requires(s != null);
       var sb = new StringBuilder();
       if (options.Get(CommonOptionBag.UnicodeCharacters)) {
-        UnescapedCharacters(options, s, isVerbatimString).Iter(ch => sb.Append(new Rune(ch)));
+        UnescapedCharacters(options, s, isVerbatimString).ForEach(ch => sb.Append(new Rune(ch)));
       } else {
-        UnescapedCharacters(options, s, isVerbatimString).Iter(ch => sb.Append((char)ch));
+        UnescapedCharacters(options, s, isVerbatimString).ForEach(ch => sb.Append((char)ch));
       }
       return sb.ToString();
     }

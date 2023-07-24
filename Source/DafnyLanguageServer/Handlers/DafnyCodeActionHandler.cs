@@ -49,7 +49,7 @@ public class DafnyCodeActionHandler : CodeActionHandlerBase {
   private IEnumerable<DafnyCodeActionWithId> GetFixesWithIds(IEnumerable<DafnyCodeActionProvider> fixers, CompilationAfterParsing compilation, CodeActionParams request) {
     var id = 0;
     return fixers.SelectMany(fixer => {
-      var fixerInput = new DafnyCodeActionInput(compilation);
+      var fixerInput = new DafnyCodeActionInput(compilation, request.TextDocument.Uri.ToUri());
       var quickFixes = fixer.GetDafnyCodeActions(fixerInput, request.Range);
       var fixerCodeActions = quickFixes.Select(quickFix =>
         new DafnyCodeActionWithId(quickFix, id++));
@@ -143,15 +143,17 @@ public class DafnyCodeActionHandler : CodeActionHandlerBase {
 }
 
 public class DafnyCodeActionInput : IDafnyCodeActionInput {
-  public DafnyCodeActionInput(CompilationAfterParsing compilation) {
+  private readonly Uri uri;
+
+  public DafnyCodeActionInput(CompilationAfterParsing compilation, Uri uri) {
+    this.uri = uri;
     Compilation = compilation;
   }
 
   public string Uri => Compilation.Uri.ToString();
-  public int Version => Compilation.Version;
   public Program Program => Compilation.Program;
   public CompilationAfterParsing Compilation { get; }
 
-  public IReadOnlyList<DafnyDiagnostic> Diagnostics => Compilation.AllFileDiagnostics.ToList();
-  public VerificationTree VerificationTree => Compilation.GetVerificationTree();
+  public IEnumerable<DafnyDiagnostic> Diagnostics => Compilation.GetDiagnostics(uri);
+  public VerificationTree? VerificationTree => Compilation.GetVerificationTree();
 }

@@ -44,7 +44,6 @@ namespace Microsoft.Dafny {
     public DafnyProject DafnyProject { get; set; }
     public Command CurrentCommand { get; set; }
 
-
     static DafnyOptions() {
       RegisterLegacyUi(CommonOptionBag.Target, ParseString, "Compilation options", "compileTarget", @"
 cs (default) - Compile to .NET via C#.
@@ -246,7 +245,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
       ErrorWriter = errorWriter;
       ErrorTrace = 0;
       Prune = true;
-      TypeEncodingMethod = Bpl.CoreOptions.TypeEncoding.Predicates;
+      TypeEncodingMethod = Bpl.CoreOptions.TypeEncoding.Arguments;
       NormalizeNames = true;
       EmitDebugInformation = false;
       Backend = new CsharpBackend(this);

@@ -74,33 +74,6 @@ function MultiplyByPlus(x: nat, y: nat): nat {
   }
 
   [Fact]
-  public async Task EmptyVerificationTaskListIsPublishedOnOpenAndChange() {
-    var source = "method m1() {}";
-    var documentItem = CreateTestDocument(source);
-    await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-
-    DateTime? first = null;
-    DateTime? second = null;
-    DateTime? third = null;
-    try {
-      first = DateTime.Now;
-      var status1 = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
-      Assert.Equal(0, status1.NamedVerifiables.Count);
-
-      second = DateTime.Now;
-      ApplyChange(ref documentItem, new Range(0, 0, 0, 0), "\n");
-
-      var status2 = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
-      Assert.Equal(0, status2.NamedVerifiables.Count);
-      third = DateTime.Now;
-    } catch (OperationCanceledException) {
-      Console.WriteLine($"first: {first}, second: {second}, third: {third}");
-      Console.WriteLine(verificationStatusReceiver.History.Stringify());
-      throw;
-    }
-  }
-
-  [Fact]
   public async Task NoVerificationStatusPublishedForUnparsedDocument() {
     var source = @"
 method m1() {
@@ -356,7 +329,7 @@ method Bar() { assert true; }";
 
   private async Task<FileVerificationStatus> WaitUntilAllStatusAreCompleted(TextDocumentIdentifier documentId) {
     var lastDocument = (CompilationAfterTranslation)(await Projects.GetLastDocumentAsync(documentId));
-    var symbols = lastDocument!.ImplementationIdToView.Select(id => id.Key.NamedVerificationTask).ToHashSet();
+    var symbols = lastDocument!.ImplementationIdToView.Select(id => id.Key).ToHashSet();
     FileVerificationStatus beforeChangeStatus;
     do {
       beforeChangeStatus = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);

@@ -60,8 +60,7 @@ namespace DafnyTestGeneration {
       program = new FunctionToMethodCallRewriter(this, options).VisitProgram(program);
       program = new AddImplementationsForCalls(options).VisitProgram(program);
       program = new RemoveChecks(options).VisitProgram(program);
-      var engine = ExecutionEngine.CreateWithoutSharedCache(options);
-      engine.CoalesceBlocks(program); // removes redundant basic blocks
+      BlockCoalescer.CoalesceBlocks(program);
       var annotator = new AnnotationVisitor(this, options);
       program = annotator.VisitProgram(program);
       AddAxioms(options, program);
@@ -133,7 +132,7 @@ namespace DafnyTestGeneration {
       string separator = " | ") {
       // first insert separators between the things being printed
       var toPrint = new List<object>();
-      data.Iter(obj => toPrint.AddRange(new List<object> { obj, separator }));
+      data.ForEach(obj => toPrint.AddRange(new List<object> { obj, separator }));
       if (toPrint.Count() != 0) {
         toPrint.RemoveAt(toPrint.Count() - 1);
       }
@@ -257,7 +256,7 @@ namespace DafnyTestGeneration {
       public CallGraph(DafnyInfo info, Program program) {
         this.info = info;
         procedureNames = new();
-        program.Procedures.Iter(p => procedureNames.Add(p.Name));
+        program.Procedures.ForEach(p => procedureNames.Add(p.Name));
         VisitProgram(program);
       }
 
@@ -526,11 +525,11 @@ namespace DafnyTestGeneration {
         node = new RemoveFunctionsFromShortCircuitRewriter(modifier, options).VisitProgram(node);
         currProgram = node;
         functionMap = new();
-        node.Functions.Iter(i => functionMap[i.Name] = i);
+        node.Functions.ForEach(i => functionMap[i.Name] = i);
         node.TopLevelDeclarations
           .OfType<Implementation>()
           .Where(i => modifier.ImplementationIsToBeTested(i))
-          .Iter(i => VisitImplementation(i));
+          .ForEach(i => VisitImplementation(i));
         return Utils.DeepCloneResolvedProgram(node, options);
       }
 
@@ -659,7 +658,7 @@ namespace DafnyTestGeneration {
           new List<AssignLhs> { toBeAssigned },
           new List<Expr> { funcCall });
         currAssignCmd = cmd;
-        funcCall.Args.Iter(e => VisitExpr(e));
+        funcCall.Args.ForEach(e => VisitExpr(e));
         currAssignCmd = null;
         commandsToInsert?.Add((cmd, node));
         return node;
@@ -690,13 +689,13 @@ namespace DafnyTestGeneration {
         functionMap = new();
         procedureMap = new();
         implementationMap = new();
-        node.Implementations.Iter(i => implementationMap[i.Name] = i);
-        node.Functions.Iter(i => functionMap[i.Name] = i);
-        node.Procedures.Iter(i => procedureMap[i.Name] = i);
+        node.Implementations.ForEach(i => implementationMap[i.Name] = i);
+        node.Functions.ForEach(i => functionMap[i.Name] = i);
+        node.Procedures.ForEach(i => procedureMap[i.Name] = i);
         node.TopLevelDeclarations
           .OfType<Implementation>()
           .Where(i => modifier.ImplementationIsToBeTested(i))
-          .Iter(i => VisitImplementation(i));
+          .ForEach(i => VisitImplementation(i));
         node.Resolve(options);
         return node;
       }

@@ -30,9 +30,8 @@ using Microsoft.Dafny.Plugins;
 
 namespace Microsoft.Dafny {
 
-  public class DafnyDriver {
+  public class DafnyDriver : IDisposable {
     public DafnyOptions Options { get; }
-
 
     private readonly ExecutionEngine engine;
 
@@ -138,10 +137,11 @@ namespace Microsoft.Dafny {
             return 0;
           }
 
-          var driver = new DafnyDriver(dafnyOptions);
+          using (var driver = new DafnyDriver(dafnyOptions)) {
 #pragma warning disable VSTHRD002
-          exitValue = driver.ProcessFilesAsync(dafnyFiles, otherFiles.AsReadOnly(), dafnyOptions).Result;
+            exitValue = driver.ProcessFilesAsync(dafnyFiles, otherFiles.AsReadOnly(), dafnyOptions).Result;
 #pragma warning restore VSTHRD002
+          }
           break;
         case CommandLineArgumentsResult.PREPROCESSING_ERROR:
           return (int)ExitValue.PREPROCESSING_ERROR;
@@ -223,6 +223,12 @@ namespace Microsoft.Dafny {
 
       if (options.RunLanguageServer) {
         return CommandLineArgumentsResult.OK;
+      }
+
+      if (options.DafnyProject != null) {
+        foreach (var uri in options.DafnyProject.GetRootSourceUris(OnDiskFileSystem.Instance, options)) {
+          options.CliRootSourceUris.Add(uri);
+        }
       }
 
       var nonOutOptions = options;
@@ -959,11 +965,15 @@ namespace Microsoft.Dafny {
 
     #endregion
 
+    public void Dispose() {
+      engine.Dispose();
+    }
   }
 
   class NoExecutableBackend : IExecutableBackend {
     public override IReadOnlySet<string> SupportedExtensions => new HashSet<string>();
     public override string TargetName => throw new NotSupportedException();
+    public override bool IsStable => throw new NotSupportedException();
     public override string TargetExtension => throw new NotSupportedException();
     public override string PublicIdProtect(string name) {
       throw new NotSupportedException();

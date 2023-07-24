@@ -32,6 +32,12 @@ public class JavaBenchmarkCompilationInstrumenter : GenericCompilationInstrument
         // so the better solution in the future is probably to maintain the benchmark object
         // as a separate object that Setup instantiates every time.
         wr.WriteLine("@org.openjdk.jmh.annotations.Setup(org.openjdk.jmh.annotations.Level.Iteration)");
+      } else if (Attributes.Contains(m.Attributes, "benchmarkTearDown")) {
+        if (m.Ins.Any()) {
+          Reporter.Error(MessageSource.Compiler, ResolutionErrors.ErrorId.none, m.tok,
+            $"Methods with {{:benchmarkTearDown}} can not accept parameters");
+        }
+        wr.WriteLine("@org.openjdk.jmh.annotations.TearDown(org.openjdk.jmh.annotations.Level.Iteration)");
       } else {
         wr.WriteLine("@org.openjdk.jmh.annotations.Benchmark");
       }

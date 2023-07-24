@@ -9,6 +9,12 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 
 public class DiagnosticsReceiver : TestNotificationReceiver<PublishDiagnosticsParams> {
 
+  public async Task<Diagnostic[]> AwaitNextWarningOrErrorDiagnosticsAsync(CancellationToken cancellationToken,
+    TextDocumentItem textDocumentItem = null) {
+    var result = await AwaitNextDiagnosticsAsync(cancellationToken, textDocumentItem);
+    return result.Where(d => d.Severity <= DiagnosticSeverity.Warning).ToArray();
+  }
+
   public async Task<Diagnostic[]> AwaitNextDiagnosticsAsync(CancellationToken cancellationToken,
     TextDocumentItem textDocumentItem = null) {
     var result = await AwaitNextNotificationAsync(cancellationToken);

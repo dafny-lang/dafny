@@ -91,19 +91,23 @@ func (_static *CompanionStruct_Default___) AppendOptimized(builder *Vector, e Se
     _ = _4_concat
     _4_concat = e.(*ConcatSequence)
     if (!(Companion_Default___.SizeAdditionInRange(stack.Size, Companion_Default___.ONE__SIZE()))) {
-      panic("dafnyRuntime.dfy[DafnyGo](747,6): " + (SeqOfString("expectation violation")).String())
+      panic("dafnyRuntime.dfy[DafnyGo](766,6): " + (SeqOfString("expectation violation")).String())
     }
     (stack).AddLast((_4_concat).Right())
-    var _in0 *Vector = builder
-    _ = _in0
-    var _in1 Sequence = (_4_concat).Left()
-    _ = _in1
-    var _in2 *Vector = stack
-    _ = _in2
-    builder = _in0
-    e = _in1
-    stack = _in2
-    goto TAIL_CALL_START
+    {
+      var _in0 *Vector = builder
+      _ = _in0
+      var _in1 Sequence = (_4_concat).Left()
+      _ = _in1
+      var _in2 *Vector = stack
+      _ = _in2
+      builder = _in0
+      e = _in1
+      stack = _in2
+      goto TAIL_CALL_START
+      goto L0_0;
+    }
+  L0_0:
   } else if (func (_is_3 Sequence) bool {
     return InstanceOf(_is_3, (*LazySequence)(nil))
   }(e)) {
@@ -140,20 +144,24 @@ func (_static *CompanionStruct_Default___) AppendOptimized(builder *Vector, e Se
       _ = _out3
       _out3 = (stack).RemoveLast()
       _8_next = Companion_Sequence_.CastTo_(_out3)
-      var _in6 *Vector = builder
-      _ = _in6
-      var _in7 Sequence = _8_next
-      _ = _in7
-      var _in8 *Vector = stack
-      _ = _in8
-      builder = _in6
-      e = _in7
-      stack = _in8
-      goto TAIL_CALL_START
+      {
+        var _in6 *Vector = builder
+        _ = _in6
+        var _in7 Sequence = _8_next
+        _ = _in7
+        var _in8 *Vector = stack
+        _ = _in8
+        builder = _in6
+        e = _in7
+        stack = _in8
+        goto TAIL_CALL_START
+        goto L1_1_0_0_0;
+      }
+    L1_1_0_0_0:
     }
   } else {
     if (!(false)) {
-      panic("dafnyRuntime.dfy[DafnyGo](765,6): " + (SeqOfString("Unsupported Sequence implementation")).String())
+      panic("dafnyRuntime.dfy[DafnyGo](789,6): " + (SeqOfString("Unsupported Sequence implementation")).String())
     }
   }
 }
@@ -415,7 +423,7 @@ func (_static *CompanionStruct_Sequence_) Concatenate(left Sequence, right Seque
   var ret Sequence = (Sequence)(nil)
   _ = ret
   if (!(Companion_Default___.SizeAdditionInRange((left).Cardinality(), (right).Cardinality()))) {
-    panic("dafnyRuntime.dfy[DafnyGo](575,6): " + (Companion_Sequence_.Concatenate(Companion_Sequence_.Concatenate(SeqOfString("Concatenation result cardinality would be larger than the maximum ("), Companion_Helpers_.DafnyValueToDafnyString(Companion_Default___.SIZE__T__MAX())), SeqOfString(")"))).String())
+    panic("dafnyRuntime.dfy[DafnyGo](594,6): " + (Companion_Sequence_.Concatenate(Companion_Sequence_.Concatenate(SeqOfString("Concatenation result cardinality would be larger than the maximum ("), Companion_Helpers_.DafnyValueToDafnyString(Companion_Default___.SIZE__T__MAX())), SeqOfString(")"))).String())
   }
   var _22_left_k Sequence
   _ = _22_left_k
@@ -565,7 +573,7 @@ type ArrayCell struct {
   Data_ArrayCell_
 }
 
-func (_this ArrayCell) Get() Data_ArrayCell_ {
+func (_this ArrayCell) Get_() Data_ArrayCell_ {
   return _this.Data_ArrayCell_
 }
 
@@ -589,7 +597,7 @@ func (CompanionStruct_ArrayCell_) Create_Set_(Value interface{}) ArrayCell {
 }
 
 func (_this ArrayCell) Is_Set() bool {
-  _, ok := _this.Get().(ArrayCell_Set)
+  _, ok := _this.Get_().(ArrayCell_Set)
   return ok
 }
 
@@ -603,7 +611,7 @@ func (CompanionStruct_ArrayCell_) Create_Unset_() ArrayCell {
 }
 
 func (_this ArrayCell) Is_Unset() bool {
-  _, ok := _this.Get().(ArrayCell_Unset)
+  _, ok := _this.Get_().(ArrayCell_Unset)
   return ok
 }
 
@@ -612,11 +620,11 @@ func (CompanionStruct_ArrayCell_) Default() ArrayCell {
 }
 
 func (_this ArrayCell) Dtor_value() interface{} {
-  return _this.Get().(ArrayCell_Set).Value
+  return _this.Get_().(ArrayCell_Set).Value
 }
 
 func (_this ArrayCell) String() string {
-  switch data := _this.Get().(type) {
+  switch data := _this.Get_().(type) {
     case nil: return "null"
     case ArrayCell_Set: {
       return "DafnyGo.ArrayCell.Set" + "(" + String(data.Value) + ")"
@@ -631,13 +639,13 @@ func (_this ArrayCell) String() string {
 }
 
 func (_this ArrayCell) Equals(other ArrayCell) bool {
-  switch data1 := _this.Get().(type) {
+  switch data1 := _this.Get_().(type) {
     case ArrayCell_Set: {
-      data2, ok := other.Get().(ArrayCell_Set)
+      data2, ok := other.Get_().(ArrayCell_Set)
       return ok && AreEqual(data1.Value, data2.Value)
     }
     case ArrayCell_Unset: {
-      _, ok := other.Get().(ArrayCell_Unset)
+      _, ok := other.Get_().(ArrayCell_Unset)
       return ok
     }
     default: {

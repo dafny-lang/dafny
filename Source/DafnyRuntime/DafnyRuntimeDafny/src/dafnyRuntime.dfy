@@ -468,9 +468,28 @@ abstract module {:options "/functionSyntax:4"} Dafny {
       this
     }
 
-    function {:extern} UniqueElements(): set<T>
-      requires Valid()
-      ensures UniqueElements() == set t | t in Value()
+    // The following function signature is a LIE. It says that it will return a set<X>
+    // for any given X and any f, but it does it only if T and X are the same type
+    // and f is the identity function. Stated differently, the function return the set
+    // of elements in Sequence<T>, but it can do so only if T is an equality-supporting
+    // type.
+    //
+    // Dafny does support the UniqueElements operation (for example, when a "forall"
+    // statement needs it), but will make use of it only if T is an equality-supporting
+    // type. The proper way to express that in Dafny is to declare a method outside the
+    // class:
+    //
+    //     function {:extern} UniqueElements<X(==)>(s: Sequence<X>): set<X>
+    //       requires s.Valid()
+    //       ensures UniqueElements(s) == set t | t in s.Value()
+    //
+    // However, because the Go implementation (and perhaps the implementation of other
+    // targets, too) relies on the method being an instance method, there's a mismatch.
+    // Thus, for now, the best way to proceed seems to be to include the additional type
+    // parameter X here.
+    function {:extern} UniqueElements<X(==)>(ghost f: T -> X): set<X>
+      requires Valid() /* AND X==T AND f is the identity function, see above */
+      ensures UniqueElements(f) == set t | t in Value() :: f(t)
 
     // Sequence creation methods
 
@@ -727,7 +746,7 @@ abstract module {:options "/functionSyntax:4"} Dafny {
     }
   }
 
-  method {:tailrecursion} AppendOptimized<T>(builder: Vector<T>, e: Sequence<T>, stack: Vector<Sequence<T>>)
+  method {:tailrecursion} {:vcs_split_on_every_assert} AppendOptimized<T>(builder: Vector<T>, e: Sequence<T>, stack: Vector<Sequence<T>>)
     requires e.Valid()
     requires builder.Valid()
     requires stack.Valid()
@@ -746,24 +765,31 @@ abstract module {:options "/functionSyntax:4"} Dafny {
       // Length() if we add the invariant that no leaf nodes are empty.
       expect SizeAdditionInRange(stack.size, ONE_SIZE);
       stack.AddLast(concat.right);
+      label L1:
       AppendOptimized(builder, concat.left, stack);
+      assert builder.Value() == old@L1(builder.Value()) + concat.left.Value() + ConcatValueOnStack(old@L1(stack.Value()));
     } else if e is LazySequence<T> {
       var lazy := e as LazySequence<T>;
       var boxed := lazy.box.Get();
       AppendOptimized(builder, boxed, stack);
+      assert builder.Value() == old(builder.Value()) + boxed.Value() + ConcatValueOnStack(old(stack.Value()));
     } else if e is ArraySequence<T> {
       var a := e as ArraySequence<T>;
       builder.Append(a.values);
       if 0 < stack.size {
         var next: Sequence<T> := stack.RemoveLast();
+        label L2:
         AppendOptimized(builder, next, stack);
+        assert builder.Value() == old@L2(builder.Value()) + next.Value() + ConcatValueOnStack(old@L2(stack.Value()));
       }
     } else {
       // I'd prefer to just call Sequence.ToArray(),
       // but Dafny doesn't support tail recursion optimization of mutually-recursive functions.
       // Alternatively we could use a datatype, which would be a significant rewrite.
       expect false, "Unsupported Sequence implementation";
+      assert builder.Value() == old(builder.Value()) + e.Value() + ConcatValueOnStack(old(stack.Value()));
     }
+    assert builder.Value() == old(builder.Value()) + e.Value() + ConcatValueOnStack(old(stack.Value()));
   }
 
   ghost function ConcatValueOnStack<T>(s: seq<Sequence<T>>): seq<T>
