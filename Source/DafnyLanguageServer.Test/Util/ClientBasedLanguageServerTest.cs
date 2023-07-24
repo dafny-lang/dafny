@@ -1,13 +1,12 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
+using System.Collections.Immutable;
 using System.Linq;
 using System.Reactive.Threading.Tasks;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using JetBrains.Annotations;
-using Microsoft.Boogie;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
 using Microsoft.Dafny.LanguageServer.Workspace;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
@@ -263,7 +262,9 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
   }
 
   protected async Task AssertNoResolutionErrors(TextDocumentItem documentItem) {
-    var resolutionDiagnostics = (await Projects.GetResolvedDocumentAsync(documentItem))!.GetDiagnostics()[documentItem.Uri.ToUri()].ToList();
+    var fullDiagnostics = (await Projects.GetResolvedDocumentAsync(documentItem))!.GetDiagnostics();
+    // A document without diagnostics may be absent, even if resolved successfully
+    var resolutionDiagnostics = fullDiagnostics.GetValueOrDefault(documentItem.Uri.ToUri(), ImmutableList<Diagnostic>.Empty);
     var resolutionErrors = resolutionDiagnostics.Count(d => d.Severity == DiagnosticSeverity.Error);
     if (0 != resolutionErrors) {
       await Console.Out.WriteAsync(string.Join("\n", resolutionDiagnostics.Where(d => d.Severity == DiagnosticSeverity.Error).Select(d => d.ToString())));

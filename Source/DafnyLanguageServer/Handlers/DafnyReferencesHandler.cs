@@ -28,24 +28,22 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
     }
 
     public override async Task<LocationContainer> Handle(ReferenceParams request, CancellationToken cancellationToken) {
-      var document = await projects.GetResolvedDocumentAsync(request.TextDocument);
-      if (document == null) {
+      var state = await projects.GetResolvedDocumentAsync(request.TextDocument);
+      if (state == null) {
         logger.LogWarning("location requested for unloaded document {DocumentUri}", request.TextDocument.Uri);
         return new LocationContainer();
       }
 
-      var declaration = document.SymbolTable.GetDeclaration(request.Position);
+      var requestUri = request.TextDocument.Uri.ToUri();
+      var declaration = state.SymbolTable.GetDeclaration(requestUri, request.Position);
 
       // The declaration graph is not reflexive, so the position might be on a declaration; return references to it
       if (declaration == null) {
-        return document.SymbolTable.GetUsages(request.Position).ToArray();
+        return state.SymbolTable.GetUsages(requestUri, request.Position).ToArray();
       }
 
       // If the position is not on a declaration, return references to its declaration
-      var definingDocument = declaration.Uri == document.Uri
-        ? document
-        : await projects.GetResolvedDocumentAsync(declaration.Uri);
-      return definingDocument?.SymbolTable.GetUsages(declaration.Range.Start).ToArray() ?? new LocationContainer();
+      return state.SymbolTable.GetUsages(declaration.Uri.ToUri(), declaration.Range.Start).ToArray();
     }
   }
 }
