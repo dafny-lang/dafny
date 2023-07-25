@@ -1,2 +1,0 @@
-// https://github.com/dafny-lang/dafny/issues/4161
-// CHECK: SyntaxError: Unexpected reserved word

@@ -10,14 +10,14 @@ using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace;
 
-public delegate IdeStateObserver CreateIdeStateObserver(DafnyProject project);
+public delegate IdeStateObserver CreateIdeStateObserver(Compilation compilation);
 
 public class IdeStateObserver : IObserver<IdeState> {
   private readonly ILogger logger;
   private readonly ITelemetryPublisher telemetryPublisher;
   private readonly INotificationPublisher notificationPublisher;
   private readonly ITextDocumentLoader loader;
-  private readonly DafnyProject project;
+  private readonly Compilation compilation;
 
   private readonly object lastPublishedStateLock = new();
 
@@ -27,17 +27,17 @@ public class IdeStateObserver : IObserver<IdeState> {
     ITelemetryPublisher telemetryPublisher,
     INotificationPublisher notificationPublisher,
     ITextDocumentLoader loader,
-    DafnyProject project) {
-    LastPublishedState = loader.CreateUnloaded(project);
+    Compilation compilation) {
+    LastPublishedState = loader.CreateUnloaded(compilation);
     this.logger = logger;
     this.telemetryPublisher = telemetryPublisher;
     this.notificationPublisher = notificationPublisher;
     this.loader = loader;
-    this.project = project;
+    this.compilation = compilation;
   }
 
   public void OnCompleted() {
-    var ideState = loader.CreateUnloaded(project) with { Compilation = new Compilation(LastPublishedState.Version + 1, LastPublishedState.Compilation.Project) };
+    var ideState = loader.CreateUnloaded(compilation) with { Compilation = new Compilation(LastPublishedState.Version + 1, LastPublishedState.Compilation.Project, compilation.RootUris) };
     notificationPublisher.PublishNotifications(LastPublishedState, ideState);
     telemetryPublisher.PublishUpdateComplete();
   }
@@ -56,7 +56,7 @@ public class IdeStateObserver : IObserver<IdeState> {
       Range = new Range(0, 0, 0, 1)
     };
     var documentToPublish = LastPublishedState with {
-      ResolutionDiagnostics = ImmutableDictionary<Uri, IReadOnlyList<Diagnostic>>.Empty.Add(project.Uri, new[] { internalErrorDiagnostic })
+      ResolutionDiagnostics = ImmutableDictionary<Uri, IReadOnlyList<Diagnostic>>.Empty.Add(compilation.Project.Uri, new[] { internalErrorDiagnostic })
     };
 
     OnNext(documentToPublish);

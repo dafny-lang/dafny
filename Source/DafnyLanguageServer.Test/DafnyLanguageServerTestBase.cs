@@ -89,8 +89,8 @@ lemma {:neverVerify} HasNeverVerifyAttribute(p: nat, q: nat)
     private Action<LanguageServerOptions> GetServerOptionsAction(Action<DafnyOptions> modifyOptions) {
       var dafnyOptions = DafnyOptions.Create(output);
       modifyOptions?.Invoke(dafnyOptions);
-      ApplyDefaultOptionValues(dafnyOptions);
       ServerCommand.ConfigureDafnyOptionsForServer(dafnyOptions);
+      ApplyDefaultOptionValues(dafnyOptions);
       return options => {
         options.ConfigureLogging(SetupTestLogging);
         options.WithDafnyLanguageServer(() => { });
