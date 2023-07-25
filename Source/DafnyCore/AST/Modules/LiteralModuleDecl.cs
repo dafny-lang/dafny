@@ -8,7 +8,7 @@ namespace Microsoft.Dafny;
 /// <summary>
 /// Represents module X { ... }
 /// </summary>
-public class LiteralModuleDecl : ModuleDecl, ICanFormat, IHasSymbolChildren, ISymbol {
+public class LiteralModuleDecl : ModuleDecl, ICanFormat, IHasSymbolChildren {
   public readonly ModuleDefinition ModuleDef;
 
   [FilledInDuringResolution] public ModuleSignature DefaultExport;  // the default export set of the module.
@@ -181,6 +181,5 @@ public class LiteralModuleDecl : ModuleDecl, ICanFormat, IHasSymbolChildren, ISy
     }
   }
 
-  public DafnySymbolKind Kind => DafnySymbolKind.Namespace;
   public IEnumerable<ISymbol> ChildSymbols => ModuleDef.ChildSymbols;
 }

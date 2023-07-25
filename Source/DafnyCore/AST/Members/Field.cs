@@ -94,5 +94,5 @@ public class Field : MemberDecl, ICanFormat, IHasDocstring, ISymbol {
     return GetTriviaContainingDocstringFromStartTokenOrNull();
   }
 
-  public DafnySymbolKind Kind => DafnySymbolKind.Field;
+  public virtual DafnySymbolKind Kind => DafnySymbolKind.Field;
 }

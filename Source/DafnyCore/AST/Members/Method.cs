@@ -370,7 +370,7 @@ public class Method : MemberDecl, TypeParameter.ParentType, IMethodCodeContext, 
     return GetTriviaContainingDocstringFromStartTokenOrNull();
   }
 
-  public DafnySymbolKind Kind => DafnySymbolKind.Method;
+  public virtual DafnySymbolKind Kind => DafnySymbolKind.Method;
   public IEnumerable<ISymbol> ChildSymbols {
     get {
       IEnumerable<Node> childStatements = Body?.Visit(node => node is Statement) ?? Enumerable.Empty<Node>();
