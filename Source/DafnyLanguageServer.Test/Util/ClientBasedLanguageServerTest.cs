@@ -27,7 +27,7 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
 
   protected ILanguageClient client;
   protected TestNotificationReceiver<FileVerificationStatus> verificationStatusReceiver;
-  private TestNotificationReceiver<CompilationStatusParams> compilationStatusReceiver;
+  protected TestNotificationReceiver<CompilationStatusParams> compilationStatusReceiver;
   protected DiagnosticsReceiver diagnosticsReceiver;
   protected TestNotificationReceiver<GhostDiagnosticsParams> ghostnessReceiver;
 
@@ -91,12 +91,20 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
   }
 
   public async Task<NamedVerifiableStatus> WaitForStatus(Range nameRange, PublishedVerificationStatus statusToFind,
-    CancellationToken cancellationToken) {
+    CancellationToken cancellationToken, [CanBeNull] TextDocumentIdentifier documentIdentifier = null) {
     while (true) {
-      var foundStatus = await verificationStatusReceiver.AwaitNextNotificationAsync(cancellationToken);
-      var namedVerifiableStatus = foundStatus.NamedVerifiables.FirstOrDefault(n => n.NameRange == nameRange);
-      if (namedVerifiableStatus?.Status == statusToFind) {
-        return namedVerifiableStatus;
+      try {
+        var foundStatus = await verificationStatusReceiver.AwaitNextNotificationAsync(cancellationToken);
+        var namedVerifiableStatus = foundStatus.NamedVerifiables.FirstOrDefault(n => n.NameRange == nameRange);
+        if (namedVerifiableStatus?.Status == statusToFind) {
+          if (documentIdentifier != null) {
+            Assert.Equal(documentIdentifier.Uri, foundStatus.Uri);
+          }
+
+          return namedVerifiableStatus;
+        }
+      } catch (OperationCanceledException) {
+        await output.WriteLineAsync($"\nOld to new history was: {verificationStatusReceiver.History.Stringify()}");
       }
     }
   }
@@ -110,10 +118,15 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
         break;
       }
 
-      var foundStatus = await verificationStatusReceiver.AwaitNextNotificationAsync(cancellationToken);
-      donePerUri[foundStatus.Uri.ToUri()] =
-        foundStatus.NamedVerifiables.All(n => n.Status >= PublishedVerificationStatus.Error);
-      result.Add(foundStatus);
+      try {
+        var foundStatus = await verificationStatusReceiver.AwaitNextNotificationAsync(cancellationToken);
+        donePerUri[foundStatus.Uri.ToUri()] =
+          foundStatus.NamedVerifiables.All(n => n.Status >= PublishedVerificationStatus.Error);
+        result.Add(foundStatus);
+      } catch (OperationCanceledException) {
+        await output.WriteLineAsync($"\nOld to new history was: {verificationStatusReceiver.History.Stringify()}");
+        throw;
+      }
     }
 
     return result;
@@ -263,7 +276,7 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
   }
 
   protected async Task AssertNoResolutionErrors(TextDocumentItem documentItem) {
-    var resolutionDiagnostics = (await Projects.GetResolvedDocumentAsync(documentItem))!.GetDiagnostics()[documentItem.Uri.ToUri()].ToList();
+    var resolutionDiagnostics = (await Projects.GetResolvedDocumentAsyncNormalizeUri(documentItem))!.GetDiagnostics()[documentItem.Uri.ToUri()].ToList();
     var resolutionErrors = resolutionDiagnostics.Count(d => d.Severity == DiagnosticSeverity.Error);
     if (0 != resolutionErrors) {
       await Console.Out.WriteAsync(string.Join("\n", resolutionDiagnostics.Where(d => d.Severity == DiagnosticSeverity.Error).Select(d => d.ToString())));

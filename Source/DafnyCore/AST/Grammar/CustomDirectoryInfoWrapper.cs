@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#nullable enable
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -59,7 +60,7 @@ namespace Microsoft.Extensions.FileSystemGlobbing.Abstractions {
     /// </remarks>
     /// <param name="name">The directory name</param>
     /// <returns>The directory</returns>
-    public override DirectoryInfoBase GetDirectory(string name) {
+    public override DirectoryInfoBase? GetDirectory(string name) {
       bool isParentPath = string.Equals(name, "..", StringComparison.Ordinal);
 
       if (isParentPath) {
