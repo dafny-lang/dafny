@@ -219,7 +219,7 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
       }
     }
     var verificationDocumentItem = CreateTestDocument("method Foo() { assert false; }", $"verification{fileIndex++}.dfy");
-    await client.OpenDocumentAndWaitAsync(verificationDocumentItem, CancellationToken.None);
+    await client.OpenDocumentAndWaitAsync(verificationDocumentItem, CancellationToken);
     var statusReport = await verificationStatusReceiver.AwaitNextNotificationAsync(cancellationToken);
     Assert.Equal(verificationDocumentItem.Uri, statusReport.Uri);
     client.DidCloseTextDocument(new DidCloseTextDocumentParams {
@@ -236,7 +236,7 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
       }
     }
     var verificationDocumentItem = CreateTestDocument(@"class X {does not parse", $"verification{fileIndex++}.dfy");
-    await client.OpenDocumentAndWaitAsync(verificationDocumentItem, CancellationToken.None);
+    await client.OpenDocumentAndWaitAsync(verificationDocumentItem, CancellationToken);
     var resolutionReport = await diagnosticsReceiver.AwaitNextNotificationAsync(cancellationToken);
     AssertM.Equal(verificationDocumentItem.Uri, resolutionReport.Uri,
       "Unexpected diagnostics were received whereas none were expected:\n" +
@@ -260,7 +260,7 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
       }
     }
     var verificationDocumentItem = CreateTestDocument("class X {does not parse", $"AssertNoDiagnosticsAreComing{fileIndex++}.dfy");
-    await client.OpenDocumentAndWaitAsync(verificationDocumentItem, CancellationToken.None);
+    await client.OpenDocumentAndWaitAsync(verificationDocumentItem, CancellationToken);
     var resolutionReport = await diagnosticsReceiver.AwaitNextNotificationAsync(cancellationToken);
     AssertM.Equal(verificationDocumentItem.Uri, resolutionReport.Uri,
       "1) Unexpected diagnostics were received whereas none were expected:\n" +
