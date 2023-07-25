@@ -43,7 +43,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
 
     public override async Task<CompletionList> Handle(CompletionParams request, CancellationToken cancellationToken) {
       logger.LogDebug("Completion params received");
-      var document = await projects.GetResolvedDocumentAsync(request.TextDocument);
+      var document = await projects.GetResolvedDocumentAsyncNormalizeUri(request.TextDocument);
       if (document == null) {
         logger.LogWarning("location requested for unloaded document {DocumentUri}", request.TextDocument.Uri);
         return new CompletionList();

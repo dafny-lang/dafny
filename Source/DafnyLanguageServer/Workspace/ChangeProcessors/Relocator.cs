@@ -48,7 +48,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
       var migratedRange = changeProcessor.MigrateRange(originalVerificationTree.Range, true);
       return originalVerificationTree with {
         Children = migratedChildren.ToList(),
-        Range = migratedRange,
+        Range = migratedRange!,
         StatusCurrent = CurrentStatus.Obsolete
       };
     }

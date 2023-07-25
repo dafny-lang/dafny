@@ -14,7 +14,7 @@ public class CompilationAfterParsing : Compilation {
 
   public CompilationAfterParsing(Compilation compilation,
     Program program,
-    IReadOnlyDictionary<Uri, List<DafnyDiagnostic>> diagnostics) : base(compilation.Version, compilation.Project) {
+    IReadOnlyDictionary<Uri, List<DafnyDiagnostic>> diagnostics) : base(compilation.Version, compilation.Project, compilation.RootUris) {
     ResolutionDiagnostics = diagnostics;
     Program = program;
   }

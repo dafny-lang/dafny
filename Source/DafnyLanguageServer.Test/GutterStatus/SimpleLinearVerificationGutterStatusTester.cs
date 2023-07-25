@@ -29,8 +29,7 @@ public class SimpleLinearVerificationGutterStatusTester : LinearVerificationGutt
  | :}
  | :
 [ ]:method {:rlimit 1} Test(s: seq<nat>)
-[=]:  requires |s| >= 1 && s[0] >= 0 {
-[=]:  assert fib(10) == 1; assert {:split_here} s[0] >= 0;
+[=]:  requires |s| >= 1 && s[0] >= 0 { assert fib(10) == 1; assert {:split_here} s[0] >= 0;
 [ ]:}", true, intermediates: false);
   }
 
@@ -89,7 +88,7 @@ method Foo() ensures false { } ";
  .  |  |  |  I  I  |  |  |  I  I  |  |  | :}
     |  |  |  I  I  |  |  |  I  I  |  |  | :
  .  S  S  |  I  .  S  S [=] I  .  S  S  | :type IssueId = i : int | isIssueIdValid(i)
- .  S  |  |  I  .  S  | [=] I  .  S  |  | :  witness 101 //Replace1:   witness 99 //Replace2:   witness 101 ", false);
+ .  S  |  |  I  .  S  | [=] I  .  S  |  | :  witness 101 //Replace1:   witness 99 //Replace2:   witness 101 ", false, "EnsuresItWorksForSubsetTypes.dfy");
   }
 
   [Fact(Timeout = MaxTestExecutionTimeMs)]
@@ -114,7 +113,7 @@ method Foo() ensures false { } ";
  .  S [S][ ][I] | :method Main() {
  .  S [=][=][I] | :  ghost var x :| P(x); //Replace:  ghost var x := 1;
  .  S [S][ ][I] | :}
-                | :// Comment to not trim this line", false);
+                | :// Comment to not trim this line", false, $"EnsureNoAssertShowsVerified{i}.dfy");
     }
   }
 
@@ -156,7 +155,7 @@ method Foo() ensures false { } ";
  .  S [S][ ][I][S][ ][I][S][ ]:  //Replace1:\n  //Replace2:\\n  
  .  S [=][=][I][S][ ][I][S][ ]:  assert x == 2; }
 ############[-][~][=][I][S][ ]:
-#####################[-][~][=]:", true);
+#####################[-][~][=]:", true, "EnsuresAddingNewlinesMigratesPositions.dfy");
   }
 
   [Fact/*(Timeout = MaxTestExecutionTimeMs)*/]
