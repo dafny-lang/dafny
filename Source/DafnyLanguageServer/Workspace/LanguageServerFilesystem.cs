@@ -6,7 +6,6 @@ using DafnyCore.Options;
 using Microsoft.Extensions.FileSystemGlobbing.Abstractions;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
-using Serilog.Core;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace;
 
@@ -29,13 +28,24 @@ public class LanguageServerFilesystem : IFileSystem {
 
   private readonly ConcurrentDictionary<Uri, Entry> openFiles = new();
 
-  public void OpenDocument(TextDocumentItem document) {
+  public bool OpenDocument(TextDocumentItem document) {
+    logger.LogDebug($"Opening file {document.Uri}");
     var uri = document.Uri.ToUri();
     if (openFiles.ContainsKey(uri)) {
       throw new InvalidOperationException($"Cannot open file {uri} because it is already open");
     }
 
+    string existingText = "";
+    try {
+      if (OnDiskFileSystem.Instance.Exists(uri)) {
+        existingText = OnDiskFileSystem.Instance.ReadFile(uri).ReadToEnd();
+      }
+    } catch (IOException) {
+      // If we don't manage to detect whether this document already existed ond disc,
+      // that only triggers a performance penalty
+    }
     openFiles[uri] = new Entry(new TextBuffer(document.Text), document.Version!.Value);
+    return existingText != document.Text;
   }
 
   public void UpdateDocument(DidChangeTextDocumentParams documentChange) {
