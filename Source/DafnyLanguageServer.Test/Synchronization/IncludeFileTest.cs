@@ -26,7 +26,7 @@ method Test() {
 }";
     var documentItem = CreateTestDocument(source, TestFilePath);
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-    var document = await Projects.GetResolvedDocumentAsync(documentItem.Uri);
+    var document = await Projects.GetResolvedDocumentAsyncNormalizeUri(documentItem.Uri);
     Assert.NotNull(document);
     Assert.All(document.GetDiagnostics(), a => Assert.Empty(a.Value));
   }
@@ -84,6 +84,7 @@ include ""./syntaxError.dfy""
     var diagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
     Assert.Single(diagnostics);
     Assert.Contains("the referenced file", diagnostics[0].Message);
+    Assert.Contains("The first error is:\nrbrace expected", diagnostics[0].Message);
     Assert.Contains("syntaxError.dfy", diagnostics[0].Message);
   }
 
