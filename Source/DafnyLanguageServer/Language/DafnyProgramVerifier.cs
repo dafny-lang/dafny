@@ -32,7 +32,6 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       await mutex.WaitAsync(cancellationToken);
       try {
 
-        // IDictionary<ModuleKey, IReadOnlyList<IImplementationTask>>;
         var program = compilation.Program;
         var errorReporter = (DiagnosticErrorReporter)program.Reporter;
 
