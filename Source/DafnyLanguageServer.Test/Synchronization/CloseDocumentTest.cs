@@ -46,7 +46,7 @@ function GetConstant(): int {
 }".Trim();
       var documentItem = CreateTestDocument(source);
       client.CloseDocument(documentItem);
-      Assert.Null(await Projects.GetResolvedDocumentAsync(documentItem.Uri));
+      Assert.Null(await Projects.GetResolvedDocumentAsyncNormalizeUri(documentItem.Uri));
     }
 
     public CloseDocumentTest(ITestOutputHelper output) : base(output) {

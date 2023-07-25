@@ -1,3 +1,4 @@
+using System;
 using System.IO;
 using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.Language;
@@ -19,7 +20,7 @@ public class CompilationManagerTest {
       new Mock<ICompilationStatusNotificationPublisher>().Object,
       new Mock<IVerificationProgressReporter>().Object,
       dafnyOptions,
-      null, new Compilation(0, new DafnyProject()), null);
+      null, new Compilation(0, new DafnyProject(), new Uri[] { }), null);
     compilationManager.CancelPendingUpdates();
     await Assert.ThrowsAsync<TaskCanceledException>(() => compilationManager.ResolvedCompilation);
   }
