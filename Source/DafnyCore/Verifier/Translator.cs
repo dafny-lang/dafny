@@ -1479,7 +1479,7 @@ namespace Microsoft.Dafny {
       return ReadHeap(tok, heapExpr, e, predef.Alloc(tok));
     }
 
-    public static Bpl.Expr ReadHeap(IToken tok, Expr heap, Expr r, Expr f) {
+    public static Bpl.NAryExpr ReadHeap(IToken tok, Expr heap, Expr r, Expr f) {
       Contract.Requires(tok != null);
       Contract.Requires(heap != null);
       Contract.Requires(r != null);
@@ -1491,11 +1491,9 @@ namespace Microsoft.Dafny {
       args.Add(r);
       args.Add(f);
       Bpl.Type t = (f.Type != null) ? f.Type : f.ShallowType;
-      Bpl.Expr readCall =
-        new Bpl.NAryExpr(tok,
-          new Bpl.FunctionCall(new Bpl.IdentifierExpr(tok, "read", t.AsCtor.Arguments[0])),
-          args);
-      return readCall;
+      return new Bpl.NAryExpr(tok,
+        new Bpl.FunctionCall(new Bpl.IdentifierExpr(tok, "read", t.AsCtor.Arguments[0])),
+        args);
     }
 
     public static Bpl.NAryExpr ReadHeap(IToken tok, Expr heap, Expr r) {

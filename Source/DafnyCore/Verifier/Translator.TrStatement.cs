@@ -1323,9 +1323,9 @@ namespace Microsoft.Dafny {
       xAnte = BplAnd(xAnte, prevEtran.TrExpr(range));
       var g = prevEtran.TrExpr(rhs);
       GetObjFieldDetails(lhs, prevEtran, out var obj, out var field);
+      var xHeapOF = ReadHeap(tok, etran.HeapExpr, obj, field);
 
       Type lhsType = lhs is MemberSelectExpr ? ((MemberSelectExpr)lhs).Type : null;
-      var xHeapOF = ReadHeap(tok, etran.HeapExpr, obj, field);
 
       g = CondApplyBox(rhs.tok, g, rhs.Type, lhsType);
 
