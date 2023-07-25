@@ -861,10 +861,10 @@ namespace Microsoft.Dafny.Compilers {
 
       ResolvedType resolvedType;
       if (topLevel is NewtypeDecl) {
-        resolvedType = (DAST.ResolvedType)DAST.ResolvedType.create_Primitive();
+        resolvedType = (DAST.ResolvedType)DAST.ResolvedType.create_Newtype();
       } else if (topLevel is TraitDecl) {
         // TODO(shadaj): have a separate type when we properly support traits
-        resolvedType = (DAST.ResolvedType)DAST.ResolvedType.create_Primitive();
+        resolvedType = (DAST.ResolvedType)DAST.ResolvedType.create_Newtype();
       } else if (topLevel is DatatypeDecl) {
         resolvedType = (DAST.ResolvedType)DAST.ResolvedType.create_Datatype(path);
       } else if (topLevel is ClassDecl) {
