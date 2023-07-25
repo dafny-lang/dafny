@@ -342,7 +342,7 @@ namespace Microsoft.Dafny {
       var ret = GetClassMembers(currentClass).TryGetValue(((NameSegment)arg).Name, out member);
       Contract.Assert(ret);
 
-      var f = (Function) member;
+      var f = (Function)member;
       Expression receiver;
       if (f.IsStatic) {
         receiver = new StaticReceiverExpr(f.tok, (TopLevelDeclWithMembers)f.EnclosingClass, true);
