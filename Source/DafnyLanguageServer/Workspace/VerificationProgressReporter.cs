@@ -174,12 +174,7 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
 
       var targetMethodNode = GetTargetMethodTree(compilation.VerificationTree, implementation, out var oldImplementationNode, true);
       if (targetMethodNode == null) {
-        var position = implementation.tok.GetLspPosition();
-        var availableMethodNodes = string.Join(",", compilation.VerificationTree.Children.Select(vt =>
-          $"{vt.Kind} {vt.DisplayName} at {vt.Filename}:{vt.Position.Line}"));
-        logger.LogError($"In document {compilation.Uri} and filename {compilation.VerificationTree.Filename}, " +
-                        $"no method node at {implementation.tok.filename}:{position.Line}:{position.Character}.\n" +
-                        $"Available:" + availableMethodNodes);
+        NoMethodNodeAtLogging("ReportImplementationsBeforeVerification", compilation, implementation);
         continue;
       }
       var newDisplayName = targetMethodNode.DisplayName + " #" + (targetMethodNode.Children.Count + 1) + ":" +
@@ -234,7 +229,7 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
     lock (LockProcessing) {
       var targetMethodNode = GetTargetMethodTree(compilation.VerificationTree, implementation, out var implementationNode);
       if (targetMethodNode == null) {
-        logger.LogError($"No method node at {implementation.tok.filename}:{implementation.tok.line}:{implementation.tok.col}");
+        NoMethodNodeAtLogging("ReportVerifyImplementationRunning", compilation, implementation);
       } else {
         if (!targetMethodNode.Started) {
           // The same method could be started multiple times for each implementation
@@ -264,7 +259,7 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
 
     var targetMethodNode = GetTargetMethodTree(compilation.VerificationTree, implementation, out var implementationNode);
     if (targetMethodNode == null) {
-      logger.LogError($"No method node at {implementation.tok.filename}:{implementation.tok.line}:{implementation.tok.col}");
+      NoMethodNodeAtLogging("ReportEndVerifyImplementation", compilation, implementation);
     } else if (implementationNode == null) {
       logger.LogError($"No implementation node at {implementation.tok.filename}:{implementation.tok.line}:{implementation.tok.col}");
     } else {
@@ -297,6 +292,16 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
     }
   }
 
+  private void NoMethodNodeAtLogging(string methodName, CompilationAfterTranslation compilation, Implementation implementation) {
+    var position = implementation.tok.GetLspPosition();
+    var availableMethodNodes = string.Join(",", compilation.VerificationTree!.Children.Select(vt =>
+      $"{vt.Kind} {vt.DisplayName} at {vt.Filename}:{vt.Position.Line}"));
+    logger.LogError(
+      $"For {methodName}, in document {compilation.Uri} and filename {compilation.VerificationTree.Filename}, " +
+      $"no method node at {implementation.tok.filename}:{position.Line}:{position.Character}.\n" +
+      $"Available:" + availableMethodNodes);
+  }
+
   /// <summary>
   /// Called when a split is finished to be verified
   /// </summary>
@@ -311,7 +316,7 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
       // While there is no error, just add successful nodes.
       var targetMethodNode = GetTargetMethodTree(compilation.VerificationTree, implementation, out var implementationNode);
       if (targetMethodNode == null) {
-        logger.LogError($"No method node at {implementation.tok.filename}:{implementation.tok.line}:{implementation.tok.col}");
+        NoMethodNodeAtLogging("ReportAssertionBatchResult", compilation, implementation);
       } else if (implementationNode == null) {
         logger.LogError($"No implementation node at {implementation.tok.filename}:{implementation.tok.line}:{implementation.tok.col}");
       } else {
