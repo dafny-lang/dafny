@@ -1,4 +1,5 @@
-﻿using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
+﻿using System.IO;
+using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
 using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Linq;
@@ -9,6 +10,19 @@ using Xunit.Abstractions;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
   public class DocumentSymbolTest : ClientBasedLanguageServerTest {
+
+    [Fact]
+    public async Task CanResolveSymbolsForMultiFileProjects() {
+      var temp = Path.GetTempPath();
+      await CreateAndOpenTestDocument("", Path.Combine(temp, DafnyProject.FileName));
+      var file1 = await CreateAndOpenTestDocument("method Foo() {}", Path.Combine(temp, "file1.dfy"));
+      var file2 = await CreateAndOpenTestDocument("method Bar() {}", Path.Combine(temp, "file2.dfy"));
+
+      var fooSymbol = (await RequestDocumentSymbol(file1)).Single();
+      Assert.Equal("Foo", fooSymbol.Name);
+      var barSymbol = (await RequestDocumentSymbol(file2)).Single();
+      Assert.Equal("Bar", barSymbol.Name);
+    }
 
     [Fact]
     public async Task LoadCorrectDocumentCreatesSymbols() {
