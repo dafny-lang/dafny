@@ -21,7 +21,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     private readonly ITelemetryPublisher telemetryPublisher;
     private readonly ILogger<DafnyLangParser> logger;
     private readonly SemaphoreSlim mutex = new(1);
-    private readonly ProgramParser cachingParser;
+    private readonly ProgramParser programParser;
 
     public DafnyLangParser(DafnyOptions options, IFileSystem fileSystem, ITelemetryPublisher telemetryPublisher,
       ILogger<DafnyLangParser> logger, ILogger<CachingParser> innerParserLogger) {
@@ -29,7 +29,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       this.fileSystem = fileSystem;
       this.telemetryPublisher = telemetryPublisher;
       this.logger = logger;
-      cachingParser = options.Get(ServerCommand.UseCaching)
+      programParser = options.Get(ServerCommand.UseCaching)
         ? new CachingParser(innerParserLogger, fileSystem)
         : new ProgramParser(innerParserLogger, fileSystem);
     }
@@ -49,7 +49,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
           }
         }
 
-        return cachingParser.ParseFiles(project.ProjectName, dafnyFiles, reporter, cancellationToken);
+        return programParser.ParseFiles(project.ProjectName, dafnyFiles, reporter, cancellationToken);
       }
       finally {
         telemetryPublisher.PublishTime("Parse", project.Uri.ToString(), DateTime.Now - beforeParsing);
