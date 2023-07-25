@@ -28,7 +28,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
     }
 
     public override async Task<LocationContainer> Handle(ReferenceParams request, CancellationToken cancellationToken) {
-      var state = await projects.GetResolvedDocumentAsync(request.TextDocument);
+      var state = await projects.GetResolvedDocumentAsyncInternal(request.TextDocument);
       if (state == null) {
         logger.LogWarning("location requested for unloaded document {DocumentUri}", request.TextDocument.Uri);
         return new LocationContainer();

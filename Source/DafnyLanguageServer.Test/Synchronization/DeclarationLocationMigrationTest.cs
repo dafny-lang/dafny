@@ -52,7 +52,7 @@ class B {
         new Range((3, 0), (4, 1)),
         change
       );
-      var document = await Projects.GetResolvedDocumentAsync(documentItem.Uri);
+      var document = await Projects.GetResolvedDocumentAsyncNormalizeUri(documentItem.Uri);
       Assert.NotNull(document);
       Assert.True(TryFindSymbolDeclarationByName(document, "A", out var location));
       Assert.Equal(new Range((0, 6), (0, 7)), location.Name);
@@ -79,7 +79,7 @@ class C {
         new Range((3, 0), (4, 0)),
         change
       );
-      var document = await Projects.GetResolvedDocumentAsync(documentItem.Uri);
+      var document = await Projects.GetResolvedDocumentAsyncNormalizeUri(documentItem.Uri);
       Assert.NotNull(document);
       Assert.True(TryFindSymbolDeclarationByName(document, "A", out var location));
       Assert.Equal(new Range((0, 6), (0, 7)), location.Name);
@@ -112,7 +112,7 @@ class B {
         new Range((3, 0), (4, 1)),
         change
       );
-      var document = await Projects.GetResolvedDocumentAsync(documentItem.Uri);
+      var document = await Projects.GetResolvedDocumentAsyncNormalizeUri(documentItem.Uri);
       Assert.NotNull(document);
       Assert.True(TryFindSymbolDeclarationByName(document, "C", out var location));
       Assert.Equal(new Range((10, 6), (10, 7)), location.Name);
@@ -139,7 +139,7 @@ class C {
         new Range((3, 0), (4, 0)),
         change
       );
-      var document = await Projects.GetResolvedDocumentAsync(documentItem.Uri);
+      var document = await Projects.GetResolvedDocumentAsyncNormalizeUri(documentItem.Uri);
       Assert.NotNull(document);
       Assert.True(TryFindSymbolDeclarationByName(document, "C", out var location));
       Assert.Equal(new Range((5, 6), (5, 7)), location.Name);
@@ -166,7 +166,7 @@ class A {
         new Range((3, 19), (3, 22)),
         change
       );
-      var document = await Projects.GetResolvedDocumentAsync(documentItem.Uri);
+      var document = await Projects.GetResolvedDocumentAsyncNormalizeUri(documentItem.Uri);
       Assert.NotNull(document);
       Assert.True(TryFindSymbolDeclarationByName(document, "GetX", out var location));
       Assert.Equal(new Range((3, 11), (3, 15)), location.Name);
@@ -190,7 +190,7 @@ class A {
         new Range((1, 2), (1, 13)),
         change
       );
-      var document = await Projects.GetResolvedDocumentAsync(documentItem.Uri);
+      var document = await Projects.GetResolvedDocumentAsyncNormalizeUri(documentItem.Uri);
       Assert.NotNull(document);
       Assert.True(TryFindSymbolDeclarationByName(document, "A", out var location));
       Assert.Equal(new Range((0, 6), (0, 7)), location.Name);
@@ -208,7 +208,7 @@ class A {
         new Range((0, 10), (0, 21)),
         change
       );
-      var document = await Projects.GetResolvedDocumentAsync(documentItem.Uri);
+      var document = await Projects.GetResolvedDocumentAsyncNormalizeUri(documentItem.Uri);
       Assert.NotNull(document);
       Assert.True(TryFindSymbolDeclarationByName(document, "A", out var location));
       Assert.Equal(new Range((0, 6), (0, 7)), location.Name);
@@ -232,7 +232,7 @@ class A {
         new Range((1, 2), (1, 13)),
         change
       );
-      var document = await Projects.GetResolvedDocumentAsync(documentItem.Uri);
+      var document = await Projects.GetResolvedDocumentAsyncNormalizeUri(documentItem.Uri);
       Assert.NotNull(document);
       Assert.False(TryFindSymbolDeclarationByName(document, "x", out var _));
     }
@@ -264,7 +264,7 @@ class A {
 }".TrimStart()
         }
       );
-      var document = await Projects.GetResolvedDocumentAsync(documentItem.Uri);
+      var document = await Projects.GetResolvedDocumentAsyncNormalizeUri(documentItem.Uri);
       Assert.NotNull(document);
       Assert.True(TryFindSymbolDeclarationByName(document, "B", out var bLocation));
       Assert.Equal(new Range((4, 6), (4, 7)), bLocation.Name);
@@ -280,14 +280,14 @@ class A {
       var documentItem = CreateTestDocument(source);
 
       await Client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var state = await Projects.GetResolvedDocumentAsync(documentItem.Uri);
+      var state = await Projects.GetResolvedDocumentAsyncNormalizeUri(documentItem.Uri);
       Assert.NotNull(state);
       Assert.True(TryFindSymbolDeclarationByName(state, "X", out var _));
 
       // First try a change that doesn't break resolution.
       // In this case all information is recomputed and no relocation happens.
       await ApplyChangeAndWaitCompletionAsync(ref documentItem, null, "class Y {}");
-      state = await Projects.GetResolvedDocumentAsync(documentItem);
+      state = await Projects.GetResolvedDocumentAsyncNormalizeUri(documentItem);
       Assert.NotNull(state); // No relocation, since no resolution errors, so Y can be found
       Assert.False(TryFindSymbolDeclarationByName(state, "X", out var _));
       Assert.True(TryFindSymbolDeclarationByName(state, "Y", out var _));
@@ -295,7 +295,7 @@ class A {
       // Next try a change that breaks resolution.
       // In this case symbols are relocated.  Since the change range is `null` all symbols for "test.dfy" are lost.
       await ApplyChangeAndWaitCompletionAsync(ref documentItem, null, "; class Y {}");
-      state = await Projects.GetResolvedDocumentAsync(documentItem);
+      state = await Projects.GetResolvedDocumentAsyncNormalizeUri(documentItem);
       Assert.NotNull(state);
       // Relocation happens due to the syntax error; range is null so table is cleared
       Assert.False(TryFindSymbolDeclarationByName(state, "X", out var _));
@@ -309,19 +309,19 @@ class A {
       var documentItem = CreateTestDocument(source, Path.Combine(Directory.GetCurrentDirectory(), "Lookup/TestFiles/test.dfy"));
 
       await Client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var document = await Projects.GetResolvedDocumentAsync(documentItem.Uri);
+      var document = await Projects.GetResolvedDocumentAsyncNormalizeUri(documentItem.Uri);
       Assert.NotNull(document);
       Assert.True(TryFindSymbolDeclarationByName(document, "A", out var _));
 
       // Try a change that breaks resolution.  Symbols for `foreign.dfy` are kept.
       await ApplyChangeAndWaitCompletionAsync(ref documentItem, null, "; include \"foreign.dfy\"\nclass Y {}");
-      document = await Projects.GetResolvedDocumentAsync(documentItem);
+      document = await Projects.GetResolvedDocumentAsyncNormalizeUri(documentItem);
       Assert.NotNull(document);
       Assert.True(TryFindSymbolDeclarationByName(document, "A", out var _));
 
       // Finally we drop the reference to `foreign.dfy` and confirm that `A` is not accessible any more.
       await ApplyChangeAndWaitCompletionAsync(ref documentItem, null, "class Y {}");
-      document = await Projects.GetResolvedDocumentAsync(documentItem);
+      document = await Projects.GetResolvedDocumentAsyncNormalizeUri(documentItem);
       Assert.NotNull(document);
       Assert.False(TryFindSymbolDeclarationByName(document, "A", out var _));
     }

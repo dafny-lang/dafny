@@ -32,12 +32,12 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       cachingParser = new CachingParser(innerParserLogger, fileSystem);
     }
 
-    public Program Parse(DafnyProject project, ErrorReporter reporter, CancellationToken cancellationToken) {
+    public Program Parse(Compilation compilation, ErrorReporter reporter, CancellationToken cancellationToken) {
       mutex.Wait(cancellationToken);
 
       var beforeParsing = DateTime.Now;
       try {
-        var rootSourceUris = project.GetRootSourceUris(fileSystem, options).Concat(options.CliRootSourceUris).ToList();
+        var rootSourceUris = compilation.RootUris;
         List<DafnyFile> dafnyFiles = new();
         foreach (var rootSourceUri in rootSourceUris) {
           try {
@@ -46,12 +46,12 @@ namespace Microsoft.Dafny.LanguageServer.Language {
             logger.LogError($"Tried to parse file {rootSourceUri} that could not be found");
           }
         }
-        var result = cachingParser.ParseFiles(project.ProjectName, dafnyFiles, reporter, cancellationToken);
+        var result = cachingParser.ParseFiles(compilation.Project.ProjectName, dafnyFiles, reporter, cancellationToken);
         cachingParser.Prune();
         return result;
       }
       finally {
-        telemetryPublisher.PublishTime("Parse", project.Uri.ToString(), DateTime.Now - beforeParsing);
+        telemetryPublisher.PublishTime("Parse", compilation.Project.Uri.ToString(), DateTime.Now - beforeParsing);
         mutex.Release();
       }
     }

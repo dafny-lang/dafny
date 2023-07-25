@@ -8,7 +8,7 @@ using Xunit.Abstractions;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization; 
 
-public class VerificationOrder : ClientBasedLanguageServerTest {
+public class VerificationOrderTest : ClientBasedLanguageServerTest {
 
   [Fact]
   public async Task VerificationPriorityBasedOnChangesWorksWithMultipleFiles() {
@@ -46,6 +46,6 @@ method Bar() {
     Assert.Equal(secondFile.Uri.ToUri(), history2[^1].Uri);
   }
 
-  public VerificationOrder(ITestOutputHelper output) : base(output) {
+  public VerificationOrderTest(ITestOutputHelper output) : base(output) {
   }
 }
