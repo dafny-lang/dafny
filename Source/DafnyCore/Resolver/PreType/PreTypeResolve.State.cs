@@ -679,24 +679,48 @@ namespace Microsoft.Dafny {
     // ---------------------------------------- Advice ----------------------------------------
 
     class Advice {
+      public enum Target {
+        Bool, Char, Int, Real, String, Object
+      }
+
       public readonly PreType PreType;
-      public readonly AdviceTarget What;
+      public readonly Target What;
 
-      public string WhatString => What == AdviceTarget.Object ? "object?" : What.ToString().ToLower();
+      public string WhatString => What == Target.Object ? "object?" : What.ToString().ToLower();
 
-      public Advice(PreType preType, AdviceTarget advice) {
+      public Advice(PreType preType, Target advice) {
         PreType = preType;
         What = advice;
       }
+
+      public bool Apply(PreTypeResolver preTypeResolver) {
+        if (PreType.Normalize() is PreTypeProxy proxy) {
+          preTypeResolver.DebugPrint($"    DEBUG: acting on advice, setting {proxy} := {WhatString}");
+
+          Type StringDecl() {
+            var s = preTypeResolver.resolver.moduleInfo.TopLevels["string"];
+            return new UserDefinedType(s.tok, s.Name, s, new List<Type>());
+          }
+
+          var target = What switch {
+            Target.Bool => preTypeResolver.Type2PreType(Type.Bool),
+            Target.Char => preTypeResolver.Type2PreType(Type.Char),
+            Target.Int => preTypeResolver.Type2PreType(Type.Int),
+            Target.Real => preTypeResolver.Type2PreType(Type.Real),
+            Target.String => preTypeResolver.Type2PreType(StringDecl()),
+            Target.Object => preTypeResolver.Type2PreType(preTypeResolver.resolver.builtIns.ObjectQ()),
+            _ => throw new cce.UnreachableException() // unexpected case
+          };
+          proxy.Set(target);
+          return true;
+        }
+        return false;
+      }
     }
 
-    enum AdviceTarget {
-      Bool, Char, Int, Real, String, Object
-    }
+    private readonly List<Advice> defaultAdvice = new();
 
-    private List<Advice> defaultAdvice = new();
-
-    void AddDefaultAdvice(PreType preType, AdviceTarget advice) {
+    void AddDefaultAdvice(PreType preType, Advice.Target advice) {
       Contract.Requires(preType != null);
       defaultAdvice.Add(new Advice(preType, advice));
     }
@@ -704,27 +728,7 @@ namespace Microsoft.Dafny {
     bool ApplyDefaultAdvice() {
       bool anythingChanged = false;
       foreach (var advice in defaultAdvice) {
-        var preType = advice.PreType.Normalize();
-        if (preType is PreTypeProxy proxy) {
-          DebugPrint($"    DEBUG: acting on advice, setting {proxy} := {advice.WhatString}");
-
-          Type StringDecl() {
-            var s = resolver.moduleInfo.TopLevels["string"];
-            return new UserDefinedType(s.tok, s.Name, s, new List<Type>());
-          }
-
-          var target = advice.What switch {
-            AdviceTarget.Bool => Type2PreType(Type.Bool),
-            AdviceTarget.Char => Type2PreType(Type.Char),
-            AdviceTarget.Int => Type2PreType(Type.Int),
-            AdviceTarget.Real => Type2PreType(Type.Real),
-            AdviceTarget.String => Type2PreType(StringDecl()),
-            AdviceTarget.Object => Type2PreType(resolver.builtIns.ObjectQ()),
-            _ => throw new cce.UnreachableException() // unexpected case
-          };
-          proxy.Set(target);
-          anythingChanged = true;
-        }
+        anythingChanged |= advice.Apply(this);
       }
       return anythingChanged;
     }
