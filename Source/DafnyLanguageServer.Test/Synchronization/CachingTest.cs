@@ -46,6 +46,7 @@ const tuple2 := (3,2)
     Assert.Equal(2, diagnostics3.Length);
 
   }
+
   [Fact]
   public async Task RootFileChangesTriggerParseAndResolutionCachingAndPruning() {
     var source = @"
@@ -78,22 +79,32 @@ module ModC {
 }
 ".TrimStart();
 
+
+    var temp = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+    var noCachingProject = await CreateAndOpenTestDocument(@"[options]
+use-caching = false", Path.Combine(temp, "dfyconfig.toml"));
+    var noCaching = await CreateAndOpenTestDocument(source, Path.Combine(temp, "noCaching.dfy"));
+    ApplyChange(ref noCaching, ((0, 0), (0, 0)), "// Pointless comment that triggers a reparse\n");
+    var hitCountForNoCaching = await WaitAndCountHits(noCaching);
+    Assert.Equal(0, hitCountForNoCaching.ParseHits);
+    Assert.Equal(0, hitCountForNoCaching.ResolveHits);
+
     var testFiles = Path.Combine(Directory.GetCurrentDirectory(), "Synchronization/TestFiles");
-    var documentItem = CreateTestDocument(source, Path.Combine(testFiles, "test.dfy"));
-    await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-    var hits0 = await WaitAndCountHits();
+    var hasCaching = CreateTestDocument(source, Path.Combine(testFiles, "test.dfy"));
+    await client.OpenDocumentAndWaitAsync(hasCaching, CancellationToken);
+    var hits0 = await WaitAndCountHits(hasCaching);
     Assert.Equal(0, hits0.ParseHits);
     Assert.Equal(0, hits0.ResolveHits);
 
-    async Task<(int ParseHits, int ResolveHits)> WaitAndCountHits() {
+    async Task<(int ParseHits, int ResolveHits)> WaitAndCountHits(TextDocumentItem documentItem) {
       await client.WaitForNotificationCompletionAsync(documentItem.Uri, CancellationToken);
       var parseHits = sink.Snapshot().LogEvents.Count(le => le.MessageTemplate.Text.Contains("Parse cache hit"));
       var resolveHits = sink.Snapshot().LogEvents.Count(le => le.MessageTemplate.Text.Contains("Resolution cache hit"));
       return (parseHits, resolveHits);
     }
 
-    ApplyChange(ref documentItem, ((0, 0), (0, 0)), "// Pointless comment that triggers a reparse\n");
-    var hitCount1 = await WaitAndCountHits();
+    ApplyChange(ref hasCaching, ((0, 0), (0, 0)), "// Pointless comment that triggers a reparse\n");
+    var hitCount1 = await WaitAndCountHits(hasCaching);
     Assert.Equal(2, hitCount1.ParseHits);
     var modules = new[] {
       "System",
@@ -105,14 +116,14 @@ module ModC {
     Assert.Equal(modules.Length, hitCount1.ResolveHits);
 
     // Removes the comment and the include and usage of B.dfy, which will prune the cache for B.dfy
-    ApplyChange(ref documentItem, ((2, 0), (3, 0)), "");
-    var hitCount2 = await WaitAndCountHits();
+    ApplyChange(ref hasCaching, ((2, 0), (3, 0)), "");
+    var hitCount2 = await WaitAndCountHits(hasCaching);
     Assert.Equal(hitCount1.ParseHits + 1, hitCount2.ParseHits);
     // No resolution was done because the import didn't resolve.
     Assert.Equal(hitCount1.ResolveHits, hitCount2.ResolveHits);
 
-    ApplyChange(ref documentItem, ((0, 0), (0, 0)), "  include \"./B.dfy\"\n");
-    var hitCount3 = await WaitAndCountHits();
+    ApplyChange(ref hasCaching, ((0, 0), (0, 0)), "  include \"./B.dfy\"\n");
+    var hitCount3 = await WaitAndCountHits(hasCaching);
     // No hit for B.dfy, since it was previously pruned
     Assert.Equal(hitCount2.ParseHits + 1, hitCount3.ParseHits);
     // The resolution cache was pruned after the previous change, so no cache hits here, except for the system module

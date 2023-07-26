@@ -52,7 +52,7 @@ public class DafnyProject : IEquatable<DafnyProject> {
     }
   }
 
-  public IEnumerable<Uri> GetRootSourceUris(IFileSystem fileSystem, DafnyOptions options) {
+  public IEnumerable<Uri> GetRootSourceUris(IFileSystem fileSystem) {
     if (!Uri.IsFile) {
       return new[] { Uri };
     }
@@ -135,6 +135,10 @@ public class DafnyProject : IEquatable<DafnyProject> {
     }
 
     if (!type.IsInstanceOfType(tomlValue)) {
+      if (type == typeof(string)) {
+        value = tomlValue.ToString();
+        return true;
+      }
       errorWriter.WriteLine(
         $"Error: property '{tomlPath}' is of type '{tomlValue.GetType()}' but should be of type '{type}'");
       value = null;
