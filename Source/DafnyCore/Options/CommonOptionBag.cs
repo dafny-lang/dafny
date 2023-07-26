@@ -203,8 +203,14 @@ true - Print debug information for the new type system.".TrimStart()) {
 (experimental) When turned on, inserts runtime tests at locations where (implicit) assumptions occur, such as when calling or being called by external code and when using assume statements.
 
 Functionality is still being expanded. Currently only checks contracts on every call to a function or method marked with the {:extern} attribute.".TrimStart());
+
+  public enum DefaultFunctionOpacity {
+    Transparent,
+    AutoRevealDependencies,
+    Opaque
+  }
   
-  public static readonly Option<bool> AllOpaque = new("--all-opaque", () => true,
+  public static readonly Option<DefaultFunctionOpacity> AllOpaque = new("--all-opaque", () => DefaultFunctionOpacity.AutoRevealDependencies,
     "Treat all functions as opaque and automatically reveal the functions used inside a method or function.");
 
   static CommonOptionBag() {

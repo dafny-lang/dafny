@@ -106,7 +106,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
         argumentName: "Everything|DllEmbed|NoIncludes|NoGhost",
         defaultValue: PrintModes.Everything);
       
-      RegisterLegacyUi(CommonOptionBag.AllOpaque, ParseBoolean, "Language feature selection", "allOpaque", null, true);
+      RegisterLegacyUi(CommonOptionBag.AllOpaque, ParseDefaultFunctionOpacity, "Language feature selection", "allOpaque");
 
       void ParsePrintMode(Option<PrintModes> option, Bpl.CommandLineParseState ps, DafnyOptions options) {
         if (ps.ConfirmArgumentCount(1)) {
@@ -127,6 +127,20 @@ NoGhost - disable printing of functions, ghost methods, and proof
       }
 
       RegisterLegacyUi(CommonOptionBag.AddCompileSuffix, ParseBoolean, "Compilation options", "compileSuffix");
+    }
+
+    private static void ParseDefaultFunctionOpacity(Option<CommonOptionBag.DefaultFunctionOpacity> option, Bpl.CommandLineParseState ps, DafnyOptions options) {
+      if (ps.ConfirmArgumentCount(1)) {
+        if (ps.args[ps.i].Equals("Transparent")) {
+          options.Set(option, CommonOptionBag.DefaultFunctionOpacity.Transparent);
+        } else if (ps.args[ps.i].Equals("AutoRevealDependencies")) {
+          options.Set(option, CommonOptionBag.DefaultFunctionOpacity.AutoRevealDependencies);
+        } else if (ps.args[ps.i].Equals("Opaque")) {
+          options.Set(option, CommonOptionBag.DefaultFunctionOpacity.Opaque);
+        } else {
+          InvalidArgumentError(option.Name, ps);
+        }
+      }
     }
 
     public void ApplyBinding(Option option) {
