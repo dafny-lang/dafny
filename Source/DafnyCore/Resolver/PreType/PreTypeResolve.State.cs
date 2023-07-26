@@ -12,6 +12,12 @@ using System.Diagnostics.Contracts;
 
 namespace Microsoft.Dafny {
   public partial class PreTypeResolver {
+    private List<SubtypeConstraint> unnormalizedSubtypeConstraints = new();
+    private List<EqualityConstraint> equalityConstraints = new();
+    private List<Func<bool>> guardedConstraints = new();
+    private readonly List<Advice> defaultAdvice = new();
+    private List<System.Action> confirmations = new();
+
     // ---------------------------------------- Pre-type inference state ----------------------------------------
 
     /// <summary>
@@ -58,6 +64,7 @@ namespace Microsoft.Dafny {
 
     void ClearState() {
       unnormalizedSubtypeConstraints.Clear();
+      equalityConstraints.Clear();
       guardedConstraints.Clear();
       defaultAdvice.Clear();
       confirmations.Clear();
@@ -127,8 +134,6 @@ namespace Microsoft.Dafny {
     }
 
     // ---------------------------------------- Equality constraints ----------------------------------------
-
-    private List<EqualityConstraint> equalityConstraints = new();
 
     void AddEqualityConstraint(PreType a, PreType b, IToken tok, string msgFormat) {
       equalityConstraints.Add(new EqualityConstraint(a, b, tok, msgFormat));
@@ -230,8 +235,6 @@ namespace Microsoft.Dafny {
         }
       }
     }
-
-    private List<SubtypeConstraint> unnormalizedSubtypeConstraints = new();
 
     void AddSubtypeConstraint(PreType super, PreType sub, IToken tok, string errorFormatString) {
       Contract.Requires(super != null);
@@ -536,8 +539,6 @@ namespace Microsoft.Dafny {
 
     // ---------------------------------------- Guarded constraints ----------------------------------------
 
-    private List<Func<bool>> guardedConstraints = new();
-
     void AddGuardedConstraint(Func<bool> predicate) {
       Contract.Requires(predicate != null);
       guardedConstraints.Add(predicate);
@@ -563,8 +564,6 @@ namespace Microsoft.Dafny {
 
     // ---------------------------------------- Advice ----------------------------------------
 
-    private readonly List<Advice> defaultAdvice = new();
-
     void AddDefaultAdvice(PreType preType, Advice.Target advice) {
       Contract.Requires(preType != null);
       defaultAdvice.Add(new Advice(preType, advice));
@@ -579,8 +578,6 @@ namespace Microsoft.Dafny {
     }
 
     // ---------------------------------------- Post-inference confirmations ----------------------------------------
-
-    private List<System.Action> confirmations = new();
 
     void AddConfirmation(string check, PreType preType, IToken tok, string errorFormatString) {
       Contract.Requires(check != null);
