@@ -87,9 +87,8 @@ public class ProjectManager : IDisposable {
   }
 
   private Compilation CreateInitialCompilation() {
-    var rootUris = Project.GetRootSourceUris(fileSystem, options).Concat(options.CliRootSourceUris).ToList();
-    var initialCompilation = new Compilation(version, Project, rootUris);
-    return initialCompilation;
+    var rootUris = Project.GetRootSourceUris(fileSystem).Concat(options.CliRootSourceUris).ToList();
+    return new Compilation(version, Project, rootUris);
   }
 
   private const int MaxRememberedChanges = 100;
