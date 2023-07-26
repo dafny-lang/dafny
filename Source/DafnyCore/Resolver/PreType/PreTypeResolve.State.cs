@@ -128,47 +128,6 @@ namespace Microsoft.Dafny {
 
     // ---------------------------------------- Equality constraints ----------------------------------------
 
-    private class EqualityConstraint : PreTypeStateWithErrorMessage {
-      public PreType A;
-      public PreType B;
-
-      public EqualityConstraint(PreType a, PreType b, IToken tok, string msgFormat)
-        : base(tok, msgFormat) {
-        A = a;
-        B = b;
-      }
-
-      public override string ErrorMessage() {
-        return string.Format(ErrorFormatString, A, B);
-      }
-
-      /// <summary>
-      /// Constrain "A" to be the same type as "B".
-      /// Because this method calls preTypeResolver.Occurs, it should be called only when
-      /// preTypeResolver.unnormalizedSubtypeConstraints is in a stable state. That means,
-      /// in particular, that this method cannot be called in middle of preTypeResolver.ApplySubtypeConstraints.
-      /// </summary>
-      public IEnumerable<EqualityConstraint> Apply(PreTypeResolver preTypeResolver) {
-        var a = A.Normalize();
-        var b = B.Normalize();
-        if (a == b) {
-          // we're already there
-        } else if (a is PreTypeProxy pa && !preTypeResolver.Occurs(pa, b)) {
-          pa.Set(b);
-        } else if (b is PreTypeProxy pb && !preTypeResolver.Occurs(pb, a)) {
-          pb.Set(a);
-        } else if (a is DPreType da && b is DPreType db && da.Decl == db.Decl) {
-          Contract.Assert(da.Arguments.Count == db.Arguments.Count);
-          for (var i = 0; i < da.Arguments.Count; i++) {
-            // TODO: should the error message in the following line be more specific?
-            yield return new EqualityConstraint(da.Arguments[i], db.Arguments[i], tok, ErrorFormatString);
-          }
-        } else {
-          preTypeResolver.ReportError(tok, ErrorFormatString, a, b);
-        }
-      }
-    }
-
     private List<EqualityConstraint> equalityConstraints = new();
 
     void AddEqualityConstraint(PreType a, PreType b, IToken tok, string msgFormat) {
@@ -185,53 +144,6 @@ namespace Microsoft.Dafny {
         equalityConstraints.AddRange(constraint.Apply(this));
       }
       return true;
-    }
-
-    /// <summary>
-    /// Returns "true" if "proxy" is among the free variables of "t".
-    /// "proxy" is expected to be normalized.
-    /// </summary>
-    private bool Occurs(PreTypeProxy proxy, PreType t) {
-      Contract.Requires(t != null);
-      Contract.Requires(proxy != null);
-      return Reaches(t, proxy, 1, new HashSet<PreTypeProxy>());
-    }
-
-    int _reaches_recursion;
-    private bool Reaches(PreType t, PreTypeProxy proxy, int direction, HashSet<PreTypeProxy> visited) {
-      if (_reaches_recursion == 20) {
-        Contract.Assume(false);  // possible infinite recursion
-      }
-      _reaches_recursion++;
-      var b = Reaches_aux(t, proxy, direction, visited);
-      _reaches_recursion--;
-      return b;
-    }
-    private bool Reaches_aux(PreType t, PreTypeProxy proxy, int direction, HashSet<PreTypeProxy> visited) {
-      Contract.Requires(t != null);
-      Contract.Requires(proxy != null);
-      Contract.Requires(visited != null);
-      t = t.Normalize();
-      var tproxy = t as PreTypeProxy;
-      if (tproxy == null) {
-        var dp = (DPreType)t;
-        var polarities = dp.Decl.TypeArgs.ConvertAll(tp => TypeParameter.Direction(tp.Variance));
-        Contract.Assert(polarities != null);
-        Contract.Assert(polarities.Count <= dp.Arguments.Count);
-        for (int i = 0; i < polarities.Count; i++) {
-          if (Reaches(dp.Arguments[i], proxy, direction * polarities[i], visited)) {
-            return true;
-          }
-        }
-        return false;
-      } else if (tproxy == proxy) {
-        return true;
-      } else if (visited.Contains(tproxy)) {
-        return false;
-      } else {
-        visited.Add(tproxy);
-        return DirectionalBounds(tproxy, direction).Any(su => Reaches(su, proxy, direction, visited));
-      }
     }
 
     // ---------------------------------------- Comparable constraints ----------------------------------------
@@ -611,7 +523,7 @@ namespace Microsoft.Dafny {
     }
 
 
-    IEnumerable<PreType> DirectionalBounds(PreTypeProxy tproxy, int direction) {
+    public IEnumerable<PreType> DirectionalBounds(PreTypeProxy tproxy, int direction) {
       foreach (var constraint in unnormalizedSubtypeConstraints) {
         if (0 <= direction && constraint.Super.Normalize() == tproxy) {
           yield return constraint.Sub;
