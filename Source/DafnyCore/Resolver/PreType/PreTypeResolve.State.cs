@@ -142,6 +142,32 @@ namespace Microsoft.Dafny {
       public override string ErrorMessage() {
         return string.Format(ErrorFormatString, A, B);
       }
+
+      /// <summary>
+      /// Constrain "A" to be the same type as "B".
+      /// Because this method calls preTypeResolver.Occurs, it should be called only when
+      /// preTypeResolver.unnormalizedSubtypeConstraints is in a stable state. That means,
+      /// in particular, that this method cannot be called in middle of preTypeResolver.ApplySubtypeConstraints.
+      /// </summary>
+      public IEnumerable<EqualityConstraint> Apply(PreTypeResolver preTypeResolver) {
+        var a = A.Normalize();
+        var b = B.Normalize();
+        if (a == b) {
+          // we're already there
+        } else if (a is PreTypeProxy pa && !preTypeResolver.Occurs(pa, b)) {
+          pa.Set(b);
+        } else if (b is PreTypeProxy pb && !preTypeResolver.Occurs(pb, a)) {
+          pb.Set(a);
+        } else if (a is DPreType da && b is DPreType db && da.Decl == db.Decl) {
+          Contract.Assert(da.Arguments.Count == db.Arguments.Count);
+          for (var i = 0; i < da.Arguments.Count; i++) {
+            // TODO: should the error message in the following line be more specific?
+            yield return new EqualityConstraint(da.Arguments[i], db.Arguments[i], tok, ErrorFormatString);
+          }
+        } else {
+          preTypeResolver.ReportError(tok, ErrorFormatString, a, b);
+        }
+      }
     }
 
     private List<EqualityConstraint> equalityConstraints = new();
@@ -157,34 +183,9 @@ namespace Microsoft.Dafny {
       var constraints = equalityConstraints;
       equalityConstraints = new();
       foreach (var constraint in constraints) {
-        ApplyEqualityConstraint(constraint.A, constraint.B, constraint.tok, constraint.ErrorFormatString);
+        equalityConstraints.AddRange(constraint.Apply(this));
       }
       return true;
-    }
-
-    /// <summary>
-    /// Constrain "a" to be the same type as "b".
-    /// This method can only be called when "unnormalizedSubtypeConstraints" is in a stable state. That means,
-    /// in particular, that this method cannot be called in middle of ApplySubtypeConstraints.
-    /// </summary>
-    private void ApplyEqualityConstraint(PreType a, PreType b, IToken tok, string msgFormat) {
-      a = a.Normalize();
-      b = b.Normalize();
-      if (a == b) {
-        // we're already there
-      } else if (a is PreTypeProxy pa && !Occurs(pa, b)) {
-        pa.Set(b);
-      } else if (b is PreTypeProxy pb && !Occurs(pb, a)) {
-        pb.Set(a);
-      } else if (a is DPreType da && b is DPreType db && da.Decl == db.Decl) {
-        Contract.Assert(da.Arguments.Count == db.Arguments.Count);
-        for (var i = 0; i < da.Arguments.Count; i++) {
-          // TODO: should the error message in the following line be more specific?
-          AddEqualityConstraint(da.Arguments[i], db.Arguments[i], tok, msgFormat);
-        }
-      } else {
-        ReportError(tok, msgFormat, a, b);
-      }
     }
 
     /// <summary>
