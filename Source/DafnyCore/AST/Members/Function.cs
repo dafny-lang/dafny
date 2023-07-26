@@ -38,7 +38,8 @@ public class Function : MemberDecl, TypeParameter.ParentType, ICallable, ICanFor
             options.Get(CommonOptionBag.AllOpaque) == CommonOptionBag.DefaultFunctionOpacity.AutoRevealDependencies)
            && this is not ExtremePredicate
            && this is not PrefixPredicate
-           && Name != "reads" && Name != "requires";
+           && Name != "reads" && Name != "requires"
+           && !Attributes.Contains(this.Attributes, "transparent");
     // && Name != "Valid";
     // && (EnclosingClass is null || !(Name == "Valid" && Attributes.Contains(EnclosingClass.Attributes, "autocontracts")));
   }
