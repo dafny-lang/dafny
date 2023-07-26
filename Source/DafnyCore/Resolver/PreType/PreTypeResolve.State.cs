@@ -125,7 +125,6 @@ namespace Microsoft.Dafny {
     }
 
     string Pad(string s, int minWidth) {
-      Contract.Requires(s != null);
       return s + new string(' ', Math.Max(minWidth - s.Length, 0));
     }
 
@@ -156,10 +155,6 @@ namespace Microsoft.Dafny {
     // ---------------------------------------- Comparable constraints ----------------------------------------
 
     void AddComparableConstraint(PreType a, PreType b, IToken tok, string errorFormatString) {
-      Contract.Requires(a != null);
-      Contract.Requires(b != null);
-      Contract.Requires(tok != null);
-      Contract.Requires(errorFormatString != null);
       AddGuardedConstraint(() => ApplyComparableConstraints(a, b, tok, errorFormatString));
     }
 
@@ -205,10 +200,6 @@ namespace Microsoft.Dafny {
 
       public SubtypeConstraint(PreType super, PreType sub, IToken tok, string errorFormatString)
         : base(tok, errorFormatString) {
-        Contract.Requires(super != null);
-        Contract.Requires(sub != null);
-        Contract.Requires(tok != null);
-        Contract.Requires(errorFormatString != null);
         Contract.Assert(super != null);
         Contract.Assert(sub != null);
         Super = super.Normalize();
@@ -217,10 +208,6 @@ namespace Microsoft.Dafny {
 
       public SubtypeConstraint(PreType super, PreType sub, IToken tok, Func<string> errorFormatStringProducer)
         : base(tok, errorFormatStringProducer) {
-        Contract.Requires(super != null);
-        Contract.Requires(sub != null);
-        Contract.Requires(tok != null);
-        Contract.Requires(errorFormatStringProducer != null);
         Contract.Assert(super != null);
         Contract.Assert(sub != null);
         Super = super.Normalize();
@@ -239,18 +226,10 @@ namespace Microsoft.Dafny {
     }
 
     void AddSubtypeConstraint(PreType super, PreType sub, IToken tok, string errorFormatString) {
-      Contract.Requires(super != null);
-      Contract.Requires(sub != null);
-      Contract.Requires(tok != null);
-      Contract.Requires(errorFormatString != null);
       unnormalizedSubtypeConstraints.Add(new SubtypeConstraint(super, sub, tok, errorFormatString));
     }
 
     void AddSubtypeConstraint(PreType super, PreType sub, IToken tok, Func<string> errorFormatStringProducer) {
-      Contract.Requires(super != null);
-      Contract.Requires(sub != null);
-      Contract.Requires(tok != null);
-      Contract.Requires(errorFormatStringProducer != null);
       unnormalizedSubtypeConstraints.Add(new SubtypeConstraint(super, sub, tok, errorFormatStringProducer));
     }
 
@@ -334,9 +313,6 @@ namespace Microsoft.Dafny {
     /// Otherwise, return "null".
     /// </summary>
     List<PreType> /*?*/ AdaptTypeArgumentsForParent(TopLevelDecl super, TopLevelDecl sub, List<PreType> subArguments) {
-      Contract.Requires(super != null);
-      Contract.Requires(sub != null);
-      Contract.Requires(subArguments != null);
       Contract.Requires(sub.TypeArgs.Count == subArguments.Count);
 
       if (super == sub) {
@@ -364,9 +340,6 @@ namespace Microsoft.Dafny {
     ///   - else a new proxy constrained by:  ai :> proxy
     /// </summary>
     List<PreType> CreateProxiesForTypesAccordingToVariance(IToken tok, List<TypeParameter> parameters, List<PreType> arguments, bool proxiesAreSupertypes) {
-      Contract.Requires(tok != null);
-      Contract.Requires(parameters != null);
-      Contract.Requires(arguments != null);
       Contract.Requires(parameters.Count == arguments.Count);
 
       if (parameters.All(tp => tp.Variance == TypeParameter.TPVariance.Non)) {
@@ -398,11 +371,7 @@ namespace Microsoft.Dafny {
     /// For every contra-variant parameters[i], constrain subArguments[i] :> superArguments[i].
     /// </summary>
     void ConstrainTypeArguments(List<TypeParameter> parameters, List<PreType> superArguments, List<PreType> subArguments, IToken tok) {
-      Contract.Requires(parameters != null);
-      Contract.Requires(superArguments != null);
-      Contract.Requires(subArguments != null);
       Contract.Requires(parameters.Count == superArguments.Count && superArguments.Count == subArguments.Count);
-      Contract.Requires(tok != null);
 
       for (var i = 0; i < parameters.Count; i++) {
         var tp = parameters[i];
@@ -451,8 +420,6 @@ namespace Microsoft.Dafny {
     }
 
     TopLevelDecl/*?*/ JoinHeads(TopLevelDecl a, TopLevelDecl b) {
-      Contract.Requires(a != null);
-      Contract.Requires(b != null);
       var aAncestors = new HashSet<TopLevelDecl>();
       var bAncestors = new HashSet<TopLevelDecl>();
       ComputeAncestors(a, aAncestors);
@@ -473,8 +440,6 @@ namespace Microsoft.Dafny {
     }
 
     TopLevelDecl/*?*/ MeetHeads(TopLevelDecl a, TopLevelDecl b) {
-      Contract.Requires(a != null);
-      Contract.Requires(b != null);
       var aAncestors = new HashSet<TopLevelDecl>();
       if (aAncestors.Contains(b)) {
         // that's good enough; let's pick a
@@ -542,7 +507,6 @@ namespace Microsoft.Dafny {
     // ---------------------------------------- Guarded constraints ----------------------------------------
 
     void AddGuardedConstraint(Func<bool> predicate) {
-      Contract.Requires(predicate != null);
       guardedConstraints.Add(predicate);
     }
 
@@ -567,7 +531,6 @@ namespace Microsoft.Dafny {
     // ---------------------------------------- Advice ----------------------------------------
 
     void AddDefaultAdvice(PreType preType, Advice.Target advice) {
-      Contract.Requires(preType != null);
       defaultAdvice.Add(new Advice(preType, advice));
     }
 
@@ -582,10 +545,6 @@ namespace Microsoft.Dafny {
     // ---------------------------------------- Post-inference confirmations ----------------------------------------
 
     void AddConfirmation(string check, PreType preType, IToken tok, string errorFormatString) {
-      Contract.Requires(check != null);
-      Contract.Requires(preType != null);
-      Contract.Requires(tok != null);
-      Contract.Requires(errorFormatString != null);
       confirmations.Add(() => {
         if (!ConfirmConstraint(check, preType, null)) {
           ReportError(tok, errorFormatString, preType);
@@ -594,11 +553,7 @@ namespace Microsoft.Dafny {
     }
 
     void AddConfirmation2(string check, PreType preType, Type toType, IToken tok, string errorFormatString) {
-      Contract.Requires(check != null);
-      Contract.Requires(preType != null);
       Contract.Requires(toType is NonProxyType);
-      Contract.Requires(tok != null);
-      Contract.Requires(errorFormatString != null);
       var toPreType = (DPreType)Type2PreType(toType);
       confirmations.Add(() => {
         if (!ConfirmConstraint(check, preType, toPreType)) {
