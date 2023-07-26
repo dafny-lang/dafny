@@ -234,7 +234,7 @@ namespace Microsoft.Dafny {
     /// the enclosing class, or any enclosing module.  Settings closer to the declaration
     /// override those further away.
     /// </summary>
-    public static bool ContainsBoolAtAnyLevel(MemberDecl decl, string attribName) {
+    public static bool ContainsBoolAtAnyLevel(MemberDecl decl, string attribName, bool defaultVal=false) {
       bool setting = true;
       if (Attributes.ContainsBool(decl.Attributes, attribName, ref setting)) {
         return setting;
@@ -253,7 +253,7 @@ namespace Microsoft.Dafny {
         mod = mod.EnclosingModule;
       }
 
-      return false;
+      return defaultVal;
     }
 
     /// <summary>

@@ -139,8 +139,7 @@ public class AllOpaqueRevealStmtInserter : IRewriter {
   private void AddMethodReveals(Method m, ErrorReporter reporter) {
     Contract.Requires(m != null);
     
-    bool setting = false;
-    bool autoRevealDeps = !Attributes.ContainsBool(m.Attributes, "autoRevealDependencies", ref setting) || setting;
+    bool autoRevealDeps = Attributes.ContainsBoolAtAnyLevel(m, "autoRevealDependencies", true);
 
     var currentClass = m.EnclosingClass;
     List<RevealStmt> addedReveals = new List<RevealStmt>();
@@ -184,9 +183,8 @@ public class AllOpaqueRevealStmtInserter : IRewriter {
   private void AddFunctionReveals(Function f, ErrorReporter reporter) {
     Contract.Requires(f != null);
 
-    bool setting = false;
-    bool autoRevealDeps = !Attributes.ContainsBool(f.Attributes, "autoRevealDependencies", ref setting) || setting;
-    
+    bool autoRevealDeps = Attributes.ContainsBoolAtAnyLevel(f, "autoRevealDependencies", true);
+
     var currentClass = f.EnclosingClass;
     List<RevealStmt> addedReveals = new List<RevealStmt>();
 
