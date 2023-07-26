@@ -1797,7 +1797,7 @@ namespace Microsoft.Dafny {
 
       if (EmitImplementation(iter.Attributes)) {
         QKeyValue kv = etran.TrAttributes(iter.Attributes, null);
-        AddImplementationWithVerboseName(iter.tok, proc, inParams, new List<Variable>(),
+        AddImplementationWithVerboseName(GetToken(iter), proc, inParams, new List<Variable>(),
           localVariables, stmts, kv);
       }
 
@@ -1879,7 +1879,7 @@ namespace Microsoft.Dafny {
         // emit the impl only when there are proof obligations.
         QKeyValue kv = etran.TrAttributes(iter.Attributes, null);
 
-        AddImplementationWithVerboseName(iter.tok, proc, inParams,
+        AddImplementationWithVerboseName(GetToken(iter), proc, inParams,
           new List<Variable>(), localVariables, stmts, kv);
       }
 
@@ -3429,8 +3429,16 @@ namespace Microsoft.Dafny {
       }
     }
 
-    internal IToken GetToken(Node node) {
-      return flags.ReportRanges ? node.RangeToken.ToToken() : node.Tok;
+    internal IToken GetToken(INode node) {
+      if (flags.ReportRanges) {
+        // Filter against IHasUsages to only select declarations, not usages.
+        if (node is IDeclarationOrUsage declarationOrUsage && node is not IHasUsages) {
+          return new BoogieRangeToken(node.RangeToken.StartToken, node.RangeToken.EndToken, declarationOrUsage.NameToken);
+        }
+        return node.RangeToken.ToToken();
+      } else {
+        return node.Tok;
+      }
     }
 
     void CheckDefiniteAssignment(IdentifierExpr expr, BoogieStmtListBuilder builder) {
@@ -4473,7 +4481,7 @@ namespace Microsoft.Dafny {
       if (EmitImplementation(f.Attributes)) {
         // emit the impl only when there are proof obligations.
         QKeyValue kv = etran.TrAttributes(f.Attributes, null);
-        var impl = AddImplementationWithVerboseName(f.tok, proc,
+        var impl = AddImplementationWithVerboseName(GetToken(f), proc,
           Concat(Concat(Bpl.Formal.StripWhereClauses(typeInParams), inParams_Heap), implInParams),
           implOutParams,
           locals, implBody, kv);
@@ -4625,7 +4633,7 @@ namespace Microsoft.Dafny {
         // emit the impl only when there are proof obligations.
         QKeyValue kv = etran.TrAttributes(decl.Attributes, null);
 
-        AddImplementationWithVerboseName(decl.tok, proc, implInParams, new List<Variable>(), locals, implBody, kv);
+        AddImplementationWithVerboseName(GetToken(decl), proc, implInParams, new List<Variable>(), locals, implBody, kv);
       }
 
       // TODO: Should a checksum be inserted here?
@@ -4704,7 +4712,7 @@ namespace Microsoft.Dafny {
         QKeyValue kv = etran.TrAttributes(decl.Attributes, null);
         var implBody = builder.Collect(decl.tok);
 
-        AddImplementationWithVerboseName(decl.tok, proc, implInParams,
+        AddImplementationWithVerboseName(GetToken(decl), proc, implInParams,
           new List<Variable>(), locals, implBody, kv);
       }
 
@@ -4777,7 +4785,7 @@ namespace Microsoft.Dafny {
         // emit the impl only when there are proof obligations.
         QKeyValue kv = etran.TrAttributes(ctor.Attributes, null);
         var implBody = builder.Collect(ctor.tok);
-        AddImplementationWithVerboseName(ctor.tok, proc, implInParams,
+        AddImplementationWithVerboseName(GetToken(ctor), proc, implInParams,
           new List<Variable>(), locals, implBody, kv);
       }
 

@@ -44,7 +44,6 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
 
     // the model will begin assigning characters starting from this utf value
     private const int FirstCharacterUtfValue = 65; // 'A'
-    private static readonly Regex BvTypeRegex = new("^bv[0-9]+Type$");
     private static readonly Regex UnderscoreRemovalRegex = new("__");
 
     public DafnyModel(Model model, DafnyOptions options) {

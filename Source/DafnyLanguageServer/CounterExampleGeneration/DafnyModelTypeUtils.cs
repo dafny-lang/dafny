@@ -16,6 +16,7 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
 
     private static readonly Regex ModuleSeparatorRegex = new("(?<=[^_](__)*)_m");
     private static readonly Regex UnderscoreRemovalRegex = new("__");
+    private static readonly Regex TupleRegex = new("_[Ss]ystem\\._?[Tt]uple#?");
 
     public static Type GetNonNullable(Type type) {
       if (type is not UserDefinedType userType) {
@@ -59,8 +60,13 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
       newName = newName.Split("@")[0];
       // The code below converts every "__" to "_":
       newName = UnderscoreRemovalRegex.Replace(newName, "_");
+      newName = ConvertTupleName(newName);
       return new UserDefinedType(new Token(), newName,
         type.TypeArgs.ConvertAll(t => TransformType(t, GetInDafnyFormat)));
+    }
+
+    public static string ConvertTupleName(string name) {
+      return TupleRegex.Replace(name, "_tuple#");
     }
 
     /// <summary>
