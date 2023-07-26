@@ -55,7 +55,7 @@ namespace Microsoft.Dafny {
 
       PartiallySolveTypeConstraints(null, true);
 
-      if (ApplyDefaultAdvice()) {
+      if (TryApplyDefaultAdvice()) {
         PartiallySolveTypeConstraints(null, true);
       }
 
@@ -571,7 +571,7 @@ namespace Microsoft.Dafny {
       defaultAdvice.Add(new Advice(preType, advice));
     }
 
-    bool ApplyDefaultAdvice() {
+    bool TryApplyDefaultAdvice() {
       bool anythingChanged = false;
       foreach (var advice in defaultAdvice) {
         anythingChanged |= advice.Apply(this);
