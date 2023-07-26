@@ -56,7 +56,7 @@ namespace Microsoft.Dafny.Compilers {
     protected override void EmitHeader(Program program, ConcreteSyntaxTree wr) {
       wr.WriteLine("// Dafny program {0} compiled into Go", program.Name);
 
-      ModuleName = MainModuleName = program.MainMethod != null ? "main" : Path.GetFileNameWithoutExtension(program.Name);
+      ModuleName = MainModuleName = program.MainMethod != null ? "main" : TransformToClassName(Path.GetFileNameWithoutExtension(program.Name));
 
       wr.WriteLine("package {0}", ModuleName);
       wr.WriteLine();
@@ -108,6 +108,9 @@ namespace Microsoft.Dafny.Compilers {
         }
       }
     }
+
+    public static string TransformToClassName(string baseName) =>
+      Regex.Replace(baseName, "[^_A-Za-z0-9$]", "_");
 
     public override void EmitCallToMain(Method mainMethod, string baseName, ConcreteSyntaxTree wr) {
       var companion = TypeName_Companion(UserDefinedType.FromTopLevelDeclWithAllBooleanTypeParameters(mainMethod.EnclosingClass), wr, mainMethod.tok, mainMethod);
@@ -325,7 +328,7 @@ namespace Microsoft.Dafny.Compilers {
         wDefault.WriteLine("return (*{0})(nil)", name);
       }
 
-      var cw = new ClassWriter(this, classContext, name, isExtern, null, w, instanceFieldWriter, instanceFieldInitWriter, traitInitWriter, staticFieldWriter, staticFieldInitWriter);
+      var cw = new ClassWriter(this, classContext, tok != null, name, isExtern, null, w, instanceFieldWriter, instanceFieldInitWriter, traitInitWriter, staticFieldWriter, staticFieldInitWriter);
 
       if (superClasses != null) {
         superClasses = superClasses.Where(trait => !trait.IsObject).ToList();
@@ -405,7 +408,7 @@ namespace Microsoft.Dafny.Compilers {
       wCastTo.WriteLine("return t");
 
 
-      var cw = new ClassWriter(this, trait, name, isExtern, abstractMethodWriter, concreteMethodWriter, null, null, null, staticFieldWriter, staticFieldInitWriter);
+      var cw = new ClassWriter(this, trait, false, name, isExtern, abstractMethodWriter, concreteMethodWriter, null, null, null, staticFieldWriter, staticFieldInitWriter);
       staticFieldWriter.WriteLine($"TraitID_ *{HelperModulePrefix}TraitID");
       staticFieldInitWriter.WriteLine($"TraitID_: &{HelperModulePrefix}TraitID{{}},");
       return cw;
@@ -967,7 +970,7 @@ namespace Microsoft.Dafny.Compilers {
 
       EmitParentTraits(dt.tok, name, false, dt.ParentTraits, wr);
 
-      return new ClassWriter(this, dt, name, dt.IsExtern(Options, out _, out _), null,
+      return new ClassWriter(this, dt, false, name, dt.IsExtern(Options, out _, out _), null,
         wr, wr, wr, wr, staticFieldWriter, staticFieldInitWriter);
     }
 
@@ -1094,18 +1097,20 @@ namespace Microsoft.Dafny.Compilers {
     protected class ClassWriter : IClassWriter {
       public readonly GoCompiler Compiler;
       public readonly TopLevelDecl ClassContext;
+      public readonly bool IsClass;
       public readonly string ClassName;
       public readonly bool IsExtern;
       public readonly ConcreteSyntaxTree/*?*/ AbstractMethodWriter, ConcreteMethodWriter, InstanceFieldWriter, InstanceFieldInitWriter, TraitInitWriter, StaticFieldWriter, StaticFieldInitWriter;
       public bool AnyInstanceFields { get; private set; } = false;
 
-      public ClassWriter(GoCompiler compiler, TopLevelDecl classContext, string className, bool isExtern, ConcreteSyntaxTree abstractMethodWriter, ConcreteSyntaxTree concreteMethodWriter,
+      public ClassWriter(GoCompiler compiler, TopLevelDecl classContext, bool isClass, string className, bool isExtern, ConcreteSyntaxTree abstractMethodWriter, ConcreteSyntaxTree concreteMethodWriter,
         ConcreteSyntaxTree/*?*/ instanceFieldWriter, ConcreteSyntaxTree/*?*/ instanceFieldInitWriter, ConcreteSyntaxTree/*?*/ traitInitWriter,
         ConcreteSyntaxTree staticFieldWriter, ConcreteSyntaxTree staticFieldInitWriter) {
         Contract.Requires(compiler != null);
         Contract.Requires(className != null);
         this.Compiler = compiler;
         this.ClassContext = classContext;
+        this.IsClass = isClass;
         this.ClassName = className;
         this.IsExtern = isExtern;
         this.AbstractMethodWriter = abstractMethodWriter;
@@ -1448,7 +1453,7 @@ namespace Microsoft.Dafny.Compilers {
       // Go gets weird about zero-length structs.  In particular, it likes to
       // make all pointers to a zero-length struct the same.  Irritatingly, this
       // forces us to waste space here.
-      if (!cw.AnyInstanceFields) {
+      if (cw.IsClass && !cw.AnyInstanceFields) {
         cw.InstanceFieldWriter.WriteLine("dummy byte");
       }
     }

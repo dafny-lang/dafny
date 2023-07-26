@@ -226,7 +226,7 @@ namespace Microsoft.Dafny {
       }
 
       if (options.DafnyProject != null) {
-        foreach (var uri in options.DafnyProject.GetRootSourceUris(OnDiskFileSystem.Instance, options)) {
+        foreach (var uri in options.DafnyProject.GetRootSourceUris(OnDiskFileSystem.Instance)) {
           options.CliRootSourceUris.Add(uri);
         }
       }
@@ -382,7 +382,7 @@ namespace Microsoft.Dafny {
         await foreach (var line in DafnyTestGeneration.Main.GetDeadCodeStatistics(dafnyFileNames[0], options)) {
           await options.OutputWriter.WriteLineAsync(line);
         }
-        if (DafnyTestGeneration.Main.setNonZeroExitCode) {
+        if (DafnyTestGeneration.Main.SetNonZeroExitCode) {
           exitValue = ExitValue.DAFNY_ERROR;
         }
         return exitValue;
@@ -391,7 +391,7 @@ namespace Microsoft.Dafny {
         await foreach (var line in DafnyTestGeneration.Main.GetTestClassForProgram(dafnyFileNames[0], options)) {
           await options.OutputWriter.WriteLineAsync(line);
         }
-        if (DafnyTestGeneration.Main.setNonZeroExitCode) {
+        if (DafnyTestGeneration.Main.SetNonZeroExitCode) {
           exitValue = ExitValue.DAFNY_ERROR;
         }
         return exitValue;
@@ -973,6 +973,7 @@ namespace Microsoft.Dafny {
   class NoExecutableBackend : IExecutableBackend {
     public override IReadOnlySet<string> SupportedExtensions => new HashSet<string>();
     public override string TargetName => throw new NotSupportedException();
+    public override bool IsStable => throw new NotSupportedException();
     public override string TargetExtension => throw new NotSupportedException();
     public override string PublicIdProtect(string name) {
       throw new NotSupportedException();

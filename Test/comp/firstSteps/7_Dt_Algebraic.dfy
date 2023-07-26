@@ -77,15 +77,15 @@ method TestConflictingNames() {
   print x.len, " ", x.public, " ", x.goto, "\n";
 }
 
-module Module {
+module ModuleM {
   datatype OptionInt = Some(int) | None
 }
 
 method TestModule() {
-  PrintMaybe(Module.Some(1701));
+  PrintMaybe(ModuleM.Some(1701));
 }
 
-method PrintMaybe(x : Module.OptionInt) {
+method PrintMaybe(x: ModuleM.OptionInt) {
   match x
   case Some(n) => print n, "\n";
   case None => print "None\n";

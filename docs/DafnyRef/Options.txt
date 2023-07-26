@@ -340,8 +340,6 @@ Usage: dafny [ option ... ] [ filename ... ]
   /generateTestSeqLengthLimit:<n>
       Add an axiom that sets the length of all sequences to be no greater 
       than <n>. 0 (default) indicates no limit.
-  /generateTestTargetMethod:<methodName>
-      If specified, only this method will be tested.
   /generateTestPrintBpl:<fileName>
       Print the Boogie code used during test generation.
   /generateTestNoPrune
@@ -515,6 +513,8 @@ Usage: dafny [ option ... ] [ filename ... ]
                 unroll loops, following up to n back edges (and then some)
   /soundLoopUnrolling
                 sound loop unrolling
+  /doModSetAnalysis
+                automatically infer modifies clauses
   /printModel:<n>
                 0 (default) - do not print Z3's error model
                 1 - print Z3's error model
@@ -656,8 +656,6 @@ Usage: dafny [ option ... ] [ filename ... ]
   /smokeTimeout:<n>
                 Timeout, in seconds, for a single theorem prover
                 invocation during smoke test, defaults to 10.
-  /causalImplies
-                Translate Boogie's A ==> B into prover's A ==> A && B.
   /typeEncoding:<t>
                 Encoding of types when generating VC of a polymorphic program:
                    m = monomorphic (default)
@@ -698,6 +696,13 @@ Usage: dafny [ option ... ] [ filename ... ]
                 This option is implemented by renaming variables and reordering
                 declarations in the input, and by setting solver options that have
                 similar effects.
+  /trackVerificationCoverage
+                Track and report which program elements labeled with an
+                `{:id ...}` attribute were necessary to complete verification.
+                Assumptions, assertions, requires clauses, ensures clauses,
+                assignments, and calls can be labeled for inclusion in this
+                report. This generalizes and replaces the previous
+                (undocumented) `/printNecessaryAssertions` option.
 
   ---- Verification-condition splitting --------------------------------------
 

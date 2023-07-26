@@ -1,1 +1,0 @@
-The terminology 'opaque type' is changed to 'abstract type (for uninterpreted type declarations), to avoid ambiguity with used of the 'opaque' keyword and revealing declarations

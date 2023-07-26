@@ -140,7 +140,7 @@ namespace Microsoft.Dafny {
         return false; // indicate that we've already processed expr's subexpressions
 
       } else if (expr is QuantifierExpr quantifierExpr) {
-        Attributes.SubExpressions(quantifierExpr.Attributes).Iter(VisitIndependentComponent);
+        Attributes.SubExpressions(quantifierExpr.Attributes).ForEach(VisitIndependentComponent);
         if (quantifierExpr.Range != null) {
           VisitIndependentComponent(quantifierExpr.Range);
         }
@@ -150,14 +150,14 @@ namespace Microsoft.Dafny {
         return false; // indicate that we've already processed expr's subexpressions
 
       } else if (expr is LetExpr letExpr) {
-        Attributes.SubExpressions(letExpr.Attributes).Iter(VisitIndependentComponent);
-        letExpr.RHSs.Iter(VisitIndependentComponent);
+        Attributes.SubExpressions(letExpr.Attributes).ForEach(VisitIndependentComponent);
+        letExpr.RHSs.ForEach(VisitIndependentComponent);
         VisitRhsComponent(expr.tok, letExpr.Body, "body of let-expression");
         return false; // indicate that we've already processed expr's subexpressions
 
       } else if (expr is OldExpr or FreshExpr or UnchangedExpr or DatatypeValue or DisplayExpression or MapDisplayExpr) {
         // In these expressions, all subexpressions are contained in parentheses, so there's no risk of precedence confusion
-        expr.SubExpressions.Iter(VisitIndependentComponent);
+        expr.SubExpressions.ForEach(VisitIndependentComponent);
         return false; // indicate that we've already processed expr's subexpressions
 
       } else if (expr is FunctionCallExpr functionCallExpr) {
@@ -181,7 +181,7 @@ namespace Microsoft.Dafny {
 
       } else if (expr is NestedMatchExpr nestedMatchExpr) {
         // Handle each case like the "else" of an if-then-else
-        Attributes.SubExpressions(nestedMatchExpr.Attributes).Iter(VisitIndependentComponent);
+        Attributes.SubExpressions(nestedMatchExpr.Attributes).ForEach(VisitIndependentComponent);
         VisitIndependentComponent(nestedMatchExpr.Source);
         var n = nestedMatchExpr.Cases.Count;
         for (var i = 0; i < n; i++) {

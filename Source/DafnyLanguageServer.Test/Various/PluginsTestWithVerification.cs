@@ -22,9 +22,9 @@ public class PluginsTestWithVerification : PluginsTestBase {
     // This code will run with the plugin from PluginsAdvancedTest, but that plugin won't throw an exception on the code below.
     var documentItem = CreateTestDocument("function test(): nat { -1 }");
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-    var resolutionReport = await diagnosticsReceiver.AwaitNextNotificationAsync(CancellationToken.None);
+    var resolutionReport = await diagnosticsReceiver.AwaitNextNotificationAsync(CancellationToken);
     Assert.Equal(documentItem.Uri, resolutionReport.Uri);
-    var verificationReport = await diagnosticsReceiver.AwaitNextNotificationAsync(CancellationToken.None);
+    var verificationReport = await diagnosticsReceiver.AwaitNextNotificationAsync(CancellationToken);
     Assert.Equal(documentItem.Uri, resolutionReport.Uri);
     var diagnostics = verificationReport.Diagnostics.ToArray();
     AssertM.Equal(2, diagnostics.Length, LibraryPath + " did not raise an error.");
