@@ -39,7 +39,7 @@ public class CachedLinearVerificationGutterStatusTester : LinearVerificationGutt
  .  S [O][O][o][Q][O][O]:  assert true;
  .  S [=][=][-][~][=][=]:  assert false;
  .  S [S][ ][I][S][S][ ]:  //Next: 
- .  S [S][ ][I][S][S][ ]:}", false);
+ .  S [S][ ][I][S][S][ ]:}", false, "ensureCachingDoesNotHideErrors.dfy");
   }
 
   public CachedLinearVerificationGutterStatusTester(ITestOutputHelper output) : base(output) {

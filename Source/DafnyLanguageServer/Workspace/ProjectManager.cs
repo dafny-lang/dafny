@@ -55,33 +55,40 @@ public class ProjectManager : IDisposable {
   private readonly DafnyOptions serverOptions;
   private readonly CreateCompilationManager createCompilationManager;
   private readonly ExecutionEngine boogieEngine;
+  private readonly IFileSystem fileSystem;
 
   public ProjectManager(
     DafnyOptions serverOptions,
     ILogger<ProjectManager> logger,
     IRelocator relocator,
+    IFileSystem fileSystem,
     CreateCompilationManager createCompilationManager,
     CreateIdeStateObserver createIdeStateObserver,
     ExecutionEngine boogieEngine,
     DafnyProject project) {
     Project = project;
     this.serverOptions = serverOptions;
+    this.fileSystem = fileSystem;
     this.createCompilationManager = createCompilationManager;
     this.relocator = relocator;
     this.logger = logger;
     this.boogieEngine = boogieEngine;
 
     options = DetermineProjectOptions(project, serverOptions);
-    observer = createIdeStateObserver(project);
     options.Printer = new OutputLogger(logger);
 
-    observer = createIdeStateObserver(Project);
-    var initialCompilation = new Compilation(version, Project);
+    var initialCompilation = CreateInitialCompilation();
+    observer = createIdeStateObserver(initialCompilation);
     CompilationManager = createCompilationManager(
         options, boogieEngine, initialCompilation, null
     );
 
     observerSubscription = Disposable.Empty;
+  }
+
+  private Compilation CreateInitialCompilation() {
+    var rootUris = Project.GetRootSourceUris(fileSystem).Concat(options.CliRootSourceUris).ToList();
+    return new Compilation(version, Project, rootUris);
   }
 
   private const int MaxRememberedChanges = 100;
@@ -125,11 +132,12 @@ public class ProjectManager : IDisposable {
     version++;
     logger.LogDebug("Clearing result for workCompletedForCurrentVersion");
 
+
     CompilationManager.CancelPendingUpdates();
     CompilationManager = createCompilationManager(
       options,
       boogieEngine,
-      new Compilation(version, Project),
+      CreateInitialCompilation(),
       migratedVerificationTree);
 
     observerSubscription.Dispose();
@@ -182,7 +190,7 @@ public class ProjectManager : IDisposable {
   public void Save(TextDocumentIdentifier documentId) {
     if (VerifyOnSave) {
       logger.LogDebug("Clearing result for workCompletedForCurrentVersion");
-      var _2 = VerifyEverythingAsync(documentId.Uri.ToUri());
+      _ = VerifyEverythingAsync(documentId.Uri.ToUri());
     }
   }
 
@@ -239,7 +247,7 @@ public class ProjectManager : IDisposable {
   // Test that when a project has multiple files, when saving/opening, only the affected Uri is verified when using OnSave.
   // Test that when a project has multiple files, everything is verified on opening one of them.
   private async Task VerifyEverythingAsync(Uri? uri) {
-    var _1 = workCompletedForCurrentVersion.WaitAsync();
+    _ = workCompletedForCurrentVersion.WaitAsync();
     try {
       var translatedDocument = await CompilationManager.TranslatedCompilation;
 
@@ -277,18 +285,14 @@ public class ProjectManager : IDisposable {
   }
 
   private IEnumerable<FilePosition> GetChangedVerifiablesFromRanges(CompilationAfterTranslation translated, IEnumerable<Location> changedRanges) {
-
     IntervalTree<Position, Position> GetTree(Uri uri) {
-      // Refactor: use the translated Boogie program
-      // instead of redoing part of that translation with the `DocumentVerificationTree` 
-      // https://github.com/dafny-lang/dafny/issues/4264
-      var tree = new DocumentVerificationTree(translated.Program, uri);
-      VerificationProgressReporter.UpdateTree(options, translated, tree);
       var intervalTree = new IntervalTree<Position, Position>();
-      foreach (var childTree in tree.Children) {
-        intervalTree.Add(childTree.Range.Start, childTree.Range.End, childTree.Position);
+      foreach (var task in translated.VerificationTasks) {
+        var token = (BoogieRangeToken)task.Implementation.tok;
+        if (token.Uri == uri) {
+          intervalTree.Add(token.StartToken.GetLspPosition(), token.EndToken.GetLspPosition(), token.NameToken.GetLspPosition());
+        }
       }
-
       return intervalTree;
     }
 
@@ -300,13 +304,15 @@ public class ProjectManager : IDisposable {
     });
   }
 
-  public void OpenDocument(Uri uri) {
+  public void OpenDocument(Uri uri, bool triggerCompilation) {
     Interlocked.Increment(ref openFileCount);
     var lastPublishedState = observer.LastPublishedState;
     var migratedVerificationTree = lastPublishedState.VerificationTree;
 
-    StartNewCompilation(migratedVerificationTree, lastPublishedState);
-    TriggerVerificationForFile(uri);
+    if (triggerCompilation) {
+      StartNewCompilation(migratedVerificationTree, lastPublishedState);
+      TriggerVerificationForFile(uri);
+    }
   }
 
   public void Dispose() {

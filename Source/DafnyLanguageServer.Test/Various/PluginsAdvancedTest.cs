@@ -27,7 +27,7 @@ method {:test} myMethodWrongName() {
 }
 ");
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-    var resolutionReport = await diagnosticsReceiver.AwaitNextNotificationAsync(CancellationToken.None);
+    var resolutionReport = await diagnosticsReceiver.AwaitNextNotificationAsync(CancellationToken);
     Assert.Equal(documentItem.Uri, resolutionReport.Uri);
     var diagnostics = resolutionReport.Diagnostics.ToArray();
     Assert.Single(diagnostics);
