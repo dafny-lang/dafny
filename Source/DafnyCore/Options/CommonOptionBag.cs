@@ -210,7 +210,7 @@ Functionality is still being expanded. Currently only checks contracts on every 
     Opaque
   }
   
-  public static readonly Option<DefaultFunctionOpacity> AllOpaque = new("--all-opaque", () => DefaultFunctionOpacity.AutoRevealDependencies,
+  public static readonly Option<DefaultFunctionOpacity> AllOpaque = new("--default-function-opacity", () => DefaultFunctionOpacity.AutoRevealDependencies,
     "Treat all functions as opaque and automatically reveal the functions used inside a method or function.");
 
   static CommonOptionBag() {
