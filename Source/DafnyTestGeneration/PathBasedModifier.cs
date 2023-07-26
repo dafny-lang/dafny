@@ -1,7 +1,16 @@
+// Copyright by the contributors to the Dafny Project
+// SPDX-License-Identifier: MIT
+
 #nullable disable
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Boogie;
+using Microsoft.Dafny;
+using IdentifierExpr = Microsoft.Boogie.IdentifierExpr;
+using LiteralExpr = Microsoft.Boogie.LiteralExpr;
+using Program = Microsoft.Boogie.Program;
+using Token = Microsoft.Boogie.Token;
+using Type = Microsoft.Boogie.Type;
 
 namespace DafnyTestGeneration {
 
@@ -25,10 +34,11 @@ namespace DafnyTestGeneration {
       VisitProgram(p); // populates paths
       foreach (var path in paths) {
         path.AssertPath();
-        var name = TargetImplementationVerboseName ?? path.Impl.VerboseName;
-        yield return modifications.GetProgramModification(DafnyInfo.Options, p, path.Impl,
-          new HashSet<int>(), new HashSet<string>(), name,
-          $"{name.Split(" ")[0]}(path through {string.Join(",", path.path)})");
+        var testEntryNames = Utils.DeclarationHasAttribute(path.Impl, TestGenerationOptions.TestInlineAttribute)
+          ? TestEntries
+          : new() { path.Impl.VerboseName };
+        yield return modifications.GetProgramModification(p, path.Impl, new HashSet<string>(), testEntryNames,
+          $"{path.Impl.VerboseName.Split(" ")[0]}" + path.name);
         path.NoAssertPath();
       }
     }
@@ -53,7 +63,7 @@ namespace DafnyTestGeneration {
         blockToVariable,
         node.Blocks[0],
         new HashSet<Variable>(),
-        new List<Variable>());
+        new List<Block>());
     }
 
     /// <summary>
@@ -89,20 +99,21 @@ namespace DafnyTestGeneration {
     /// <param name="currList">the blocks forming the path</param>
     private void GeneratePaths(Implementation impl,
       Dictionary<Block, Variable> blockToVariable, Block block,
-      HashSet<Variable> currSet, List<Variable> currList) {
+      HashSet<Variable> currSet, List<Block> currList) {
       if (currSet.Contains(blockToVariable[block])) {
         return;
       }
 
       // if the block contains a return command, it is the last one in the path:
       if (block.TransferCmd is ReturnCmd) {
-        paths.Add(new Path(impl, currList, block));
+        paths.Add(new Path(impl, currSet.ToList(), block,
+          $"(path through {string.Join(",", currList.ConvertAll(Utils.GetBlockId).Where(id => id != null))},{Utils.GetBlockId(block) ?? ""})"));
         return;
       }
 
       // otherwise, each goto statement presents a new path to take:
       currSet.Add(blockToVariable[block]);
-      currList.Add(blockToVariable[block]);
+      currList.Add(block);
       var gotoCmd = block.TransferCmd as GotoCmd;
       foreach (var b in gotoCmd?.labelTargets ?? new List<Block>()) {
         GeneratePaths(impl, blockToVariable, b, currSet, currList);
@@ -113,19 +124,21 @@ namespace DafnyTestGeneration {
 
     internal class Path {
 
+      internal string name;
       public readonly Implementation Impl;
       public readonly List<Variable> path; // flags for the blocks along the path
       private readonly List<Block> returnBlocks; // block(s) where the path ends
 
-      internal Path(Implementation impl, IEnumerable<Variable> path, Block returnBlocks)
-        : this(impl, path, new List<Block>() { returnBlocks }) {
+      internal Path(Implementation impl, IEnumerable<Variable> path, Block returnBlock, string name)
+        : this(impl, path, new List<Block>() { returnBlock }, name) {
       }
 
-      internal Path(Implementation impl, IEnumerable<Variable> path, List<Block> returnBlocks) {
+      internal Path(Implementation impl, IEnumerable<Variable> path, List<Block> returnBlocks, string name) {
         Impl = impl;
         this.path = new();
         this.path.AddRange(path); // deepcopy is necessary here
         this.returnBlocks = returnBlocks;
+        this.name = name;
       }
 
       internal void AssertPath() {
