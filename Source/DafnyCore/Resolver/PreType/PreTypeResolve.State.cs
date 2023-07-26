@@ -69,7 +69,7 @@ namespace Microsoft.Dafny {
       if (!resolver.Options.Get(CommonOptionBag.NewTypeInferenceDebug)) {
         return;
       }
-      Console.WriteLine("*** Type inference state ***{0}", header == null ? "" : $" {header} ");
+      resolver.Options.OutputWriter.WriteLine("*** Type inference state ***{0}", header == null ? "" : $" {header} ");
       PrintList("Subtype constraints", unnormalizedSubtypeConstraints, stc => {
         return $"{stc.Super} :> {stc.Sub}";
       });
@@ -106,13 +106,13 @@ namespace Microsoft.Dafny {
       if (!resolver.Options.Get(CommonOptionBag.NewTypeInferenceDebug)) {
         return;
       }
-      Console.WriteLine($"    {rubric}:");
+      resolver.Options.OutputWriter.WriteLine($"    {rubric}:");
       foreach (var t in list) {
         var info = $"        {formatter(t)}";
         if (t is PreTypeStateWithErrorMessage preTypeStateWithErrorMessage) {
           info = $"{Pad(info, 30)}  {TokToShortLocation(preTypeStateWithErrorMessage.tok)}: {preTypeStateWithErrorMessage.ErrorMessage()}";
         }
-        Console.WriteLine(info);
+        resolver.Options.OutputWriter.WriteLine(info);
       }
     }
 
