@@ -85,12 +85,11 @@ namespace Microsoft.Dafny {
         return false;
       } else if (tproxy == proxy) {
         return true;
-      } else if (visited.Contains(tproxy)) {
-        return false;
-      } else {
-        visited.Add(tproxy);
+      } else if (visited.Add(tproxy)) {
         return preTypeResolver.DirectionalBounds(tproxy, direction).Any(su =>
           Reaches(su, proxy, direction, visited, preTypeResolver, recursionDepth));
+      } else {
+        return false;
       }
     }
 
