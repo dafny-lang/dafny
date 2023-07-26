@@ -133,6 +133,7 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
     }
 
     internal void AddChild(string name, DafnyModelVariable child) {
+      name = Regex.Replace(name, "^_h", "#");
       if (!children.ContainsKey(name)) {
         children[name] = new();
       }
