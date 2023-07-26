@@ -61,6 +61,7 @@ namespace Microsoft.Dafny {
 
     /// <summary>
     /// Parameter "recursionDepth" is used as a safe-guarding against infinite (or excessively large) recursion.
+    /// It's not expected to happen ever, but it seems better to check at run time rather than risk hanging.
     /// </summary>
     private static bool Reaches(PreType t, PreTypeProxy proxy, int direction, HashSet<PreTypeProxy> visited,
       PreTypeResolver preTypeResolver, int recursionDepth) {
