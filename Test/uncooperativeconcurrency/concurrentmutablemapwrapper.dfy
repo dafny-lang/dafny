@@ -43,7 +43,7 @@ class ConcurrencyMutableMapWrapper<K(!new), V(!new)> {
         && wrapped.Repr <= Repr
         // Required for a separate class, since it will lock <this>
         // for every function and method.
-        // && forall o <- wrapped.Repr :: o.owner == this
+        // && forall o <- Repr :: o.owner == this
         && forall k, v | (k, v) in wrapped.value.Items :: inv(k, v)
     }
 
