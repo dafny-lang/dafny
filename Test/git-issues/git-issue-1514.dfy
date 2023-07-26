@@ -1,4 +1,3 @@
-
 // RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment
 
 include "Wrappers.dfy"

@@ -265,6 +265,7 @@ namespace Microsoft.Dafny {
         ModuleDefinition callerModule = context.CodeContext.EnclosingModule;
         ModuleDefinition calleeModule = ((IASTVisitorContext)callee).EnclosingModule;
         if (callerModule != calleeModule) {
+          // inter-module call; add edge in module's inter-module call graph
           if (context.CodeContext is ICallable caller0) {
             if (caller0 is IteratorDecl iteratorDecl) {
               // use the MoveNext() method as the caller
@@ -273,7 +274,7 @@ namespace Microsoft.Dafny {
               callerModule.InterModuleCallGraph.AddEdge(caller0, callee);
             }
           }
-          // inter-module call; don't record in call graph
+
           return;
         }
 
@@ -301,7 +302,7 @@ namespace Microsoft.Dafny {
         ModuleDefinition callerModule = callingContext.EnclosingModule;
         ModuleDefinition calleeModule = callable is SpecialFunction ? null : callable.EnclosingModule;
         if (callerModule != calleeModule) {
-          // inter-module call; don't record in call graph
+          // inter-module call; add edge in module's inter-module call graph
           if (callingContext is ICallable context && callable is Function { EnclosingClass: TraitDecl }) {
             callerModule.InterModuleCallGraph.AddEdge(context, callable);
           } else if (callingContext is ICallable caller0) {
