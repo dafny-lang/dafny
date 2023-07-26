@@ -68,12 +68,8 @@ namespace Microsoft.Dafny {
       if (recursionDepth == 20) {
         Contract.Assume(false);  // possible infinite recursion
       }
-      var b = ReachesAux(t, proxy, direction, visited, preTypeResolver, recursionDepth + 1);
-      return b;
-    }
+      recursionDepth++;
 
-    private static bool ReachesAux(PreType t, PreTypeProxy proxy, int direction, HashSet<PreTypeProxy> visited,
-      PreTypeResolver preTypeResolver, int recursionDepth) {
       t = t.Normalize();
       var tproxy = t as PreTypeProxy;
       if (tproxy == null) {
