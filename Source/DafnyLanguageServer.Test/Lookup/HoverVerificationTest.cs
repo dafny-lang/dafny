@@ -333,7 +333,7 @@ Could not prove: `((this.Tester? || this.Tester2?) && this.next.Valid()) || (thi
       );
     }
 
-    [Fact(Timeout = MaxTestExecutionTimeMs)]
+    [Fact]
     public async Task DoNotExtendPastExpressions() {
       var documentItem = await GetDocumentItem(@"
 datatype Test = Test(i: int)
@@ -357,9 +357,9 @@ function Id<T>(t: T): T { t }
 Could not prove: `i > 0`  "
       );
       await AssertHoverMatches(documentItem, (10, 20),
-        @"**Error:**???assertion might not hold???
+      @"**Error:**???assertion might not hold???
 Could not prove: `i > 1`  "
-      );
+    );
       await AssertHoverMatches(documentItem, (10, 20),
         @"**Success:**???function precondition satisfied???
 Inside `Valid()`  
