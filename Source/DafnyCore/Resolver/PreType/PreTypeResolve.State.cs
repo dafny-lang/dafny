@@ -9,7 +9,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Diagnostics.Contracts;
-using Microsoft.Boogie;
 
 namespace Microsoft.Dafny {
   public partial class PreTypeResolver {
@@ -272,33 +271,6 @@ namespace Microsoft.Dafny {
       } else {
         // not enough information to determine
         return false;
-      }
-    }
-
-    // ---------------------------------------- State with error message ----------------------------------------
-
-    abstract class PreTypeStateWithErrorMessage {
-      public readonly IToken tok;
-      // exactly one of "errorFormatString" and "errorFormatStringProducer" is non-null
-      private readonly string errorFormatString;
-      private readonly Func<string> errorFormatStringProducer;
-
-      public string ErrorFormatString => errorFormatString ?? errorFormatStringProducer();
-
-      public abstract string ErrorMessage();
-
-      public PreTypeStateWithErrorMessage(IToken tok, string errorFormatString) {
-        Contract.Requires(tok != null);
-        Contract.Requires(errorFormatString != null);
-        this.tok = tok;
-        this.errorFormatString = errorFormatString;
-      }
-
-      public PreTypeStateWithErrorMessage(IToken tok, Func<string> errorFormatStringProducer) {
-        Contract.Requires(tok != null);
-        Contract.Requires(errorFormatStringProducer != null);
-        this.tok = tok;
-        this.errorFormatStringProducer = errorFormatStringProducer;
       }
     }
 
