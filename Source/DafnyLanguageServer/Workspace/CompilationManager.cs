@@ -161,11 +161,11 @@ public class CompilationManager {
       var implementationId = GetImplementationId(task.Implementation);
       try {
         if (task.CacheStatus is Completed completed) {
-          var view = new ImplementationView(task.Implementation.tok.GetLspRange(), status,
+          var view = new ImplementationView(task.Implementation.tok.GetLspRange(true), status,
             GetDiagnosticsFromResult(loaded, completed.Result).ToList());
           initialViews.Add(implementationId, view);
         } else {
-          var view = new ImplementationView(task.Implementation.tok.GetLspRange(), status, Array.Empty<DafnyDiagnostic>());
+          var view = new ImplementationView(task.Implementation.tok.GetLspRange(true), status, Array.Empty<DafnyDiagnostic>());
           initialViews.Add(implementationId, view);
         }
       } catch (ArgumentException) {
@@ -271,7 +271,7 @@ public class CompilationManager {
   private void HandleStatusUpdate(CompilationAfterTranslation compilation, IImplementationTask implementationTask, IVerificationStatus boogieStatus) {
     var id = GetImplementationId(implementationTask.Implementation);
     var status = StatusFromBoogieStatus(boogieStatus);
-    var implementationRange = implementationTask.Implementation.tok.GetLspRange();
+    var implementationRange = implementationTask.Implementation.tok.GetLspRange(true);
     logger.LogDebug($"Received status {boogieStatus} for {implementationTask.Implementation.Name}, version {compilation.Counterexamples}");
     if (boogieStatus is Running) {
       verificationProgressReporter.ReportVerifyImplementationRunning(compilation, implementationTask.Implementation);
