@@ -226,7 +226,7 @@ namespace Microsoft.Dafny {
       }
 
       if (options.DafnyProject != null) {
-        foreach (var uri in options.DafnyProject.GetRootSourceUris(OnDiskFileSystem.Instance, options)) {
+        foreach (var uri in options.DafnyProject.GetRootSourceUris(OnDiskFileSystem.Instance)) {
           options.CliRootSourceUris.Add(uri);
         }
       }

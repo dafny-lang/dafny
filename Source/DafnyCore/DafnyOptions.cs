@@ -413,6 +413,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
       src.CopyTo(this);
       CliRootSourceUris = new List<Uri>(src.CliRootSourceUris);
       ProverOptions = new List<string>(src.ProverOptions);
+      Options = new Options(src.Options.OptionArguments.ToDictionary(kv => kv.Key, kv => kv.Value));
     }
 
     public void CopyTo(DafnyOptions dst) {
