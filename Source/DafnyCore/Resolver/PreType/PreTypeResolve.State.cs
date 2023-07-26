@@ -33,17 +33,19 @@ namespace Microsoft.Dafny {
       }
       bool anythingChanged;
       do {
+        if (makeDecisions) {
+          if (DecideHeadsFromBounds(true)) {
+            // something changed, so do another round of Apply... calls below
+          } else if (DecideHeadsFromBounds(false)) {
+            // something changed, so do another round of Apply... calls below
+          } else {
+            return;
+          }
+        }
         anythingChanged = false;
         anythingChanged |= ApplySubtypeConstraints();
         anythingChanged |= ApplyEqualityConstraints();
         anythingChanged |= ApplyGuardedConstraints();
-        if (makeDecisions) {
-          if (DecideHeadsFromBounds(true)) {
-            anythingChanged = true;
-          } else if (DecideHeadsFromBounds(false)) {
-            anythingChanged = true;
-          }
-        }
       } while (anythingChanged);
     }
 
