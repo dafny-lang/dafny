@@ -6176,7 +6176,7 @@ namespace Microsoft.Dafny {
                   FunctionCall(tok, BuiltinFunction.Box, null, o)
                 })
               ),
-              Bpl.Expr.Eq(ReadHeap(tok, h0, o, fld), ReadHeap(tok, h1, o, fld, a))));
+              Bpl.Expr.Eq(ReadHeap(tok, h0, o, fld, a), ReadHeap(tok, h1, o, fld, a))));
 
             Func<Bpl.Expr, Bpl.Expr> fn = h => FunctionCall(tok, fname, Bpl.Type.Bool, Concat(types, Cons(h, Cons<Bpl.Expr>(f, boxes))));
 
@@ -7119,8 +7119,8 @@ namespace Microsoft.Dafny {
         var fVar = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "$f", predef.FieldName(tok, alpha)));
         f = new Bpl.IdentifierExpr(tok, fVar);
         quantifiedVars = new List<Variable> { oVar, fVar };
-        heapOF = ReadHeap(tok, etran.HeapExpr, o, f);
-        preHeapOF = ReadHeap(tok, etranPre.HeapExpr, o, f);
+        heapOF = ReadHeap(tok, etran.HeapExpr, o, f, alpha);
+        preHeapOF = ReadHeap(tok, etranPre.HeapExpr, o, f, alpha);
       } else {
         // object granularity
         typeVars = new List<TypeVariable>();
@@ -7160,8 +7160,8 @@ namespace Microsoft.Dafny {
       Bpl.BoundVariable fVar = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "$f", predef.FieldName(tok, alpha)));
       Bpl.IdentifierExpr f = new Bpl.IdentifierExpr(tok, fVar);
 
-      Bpl.Expr heapOF = ReadHeap(tok, etran.HeapExpr, o, f);
-      Bpl.Expr preHeapOF = ReadHeap(tok, etranPre.HeapExpr, o, f);
+      Bpl.Expr heapOF = ReadHeap(tok, etran.HeapExpr, o, f, alpha);
+      Bpl.Expr preHeapOF = ReadHeap(tok, etranPre.HeapExpr, o, f, alpha);
       Bpl.Expr ante = Bpl.Expr.And(Bpl.Expr.Neq(o, predef.Null), etranPre.IsAlloced(tok, o));
       Bpl.Expr consequent = Bpl.Expr.Eq(heapOF, preHeapOF);
 
