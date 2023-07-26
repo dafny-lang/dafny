@@ -22,6 +22,37 @@ public class MultipleFilesTest : ClientBasedLanguageServerTest {
   }
 
   [Fact]
+  public async Task NoProjectModeWithProjectFileAndMultipleFiles() {
+    await SetUp(o => {
+      o.Set(ServerCommand.ProjectMode, false);
+    });
+    var producerSource = @"
+method Foo(x: int) { 
+  var y: char := 3.0;
+}
+".TrimStart();
+
+    var consumerSource = @"
+include ""A.dfy""
+method Bar() {
+  Foo(true); 
+}
+";
+
+    var directory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+    Directory.CreateDirectory(directory);
+    await File.WriteAllTextAsync(Path.Combine(directory, DafnyProject.FileName), "");
+    // The names A and B are important, because A must be alphabetically before B to trigger a particular cache without cloning bug 
+    await File.WriteAllTextAsync(Path.Combine(directory, "A.dfy"), producerSource);
+    await CreateAndOpenTestDocument(consumerSource, Path.Combine(directory, "B.dfy"));
+
+    var consumerDiagnostics = await diagnosticsReceiver.AwaitNextNotificationAsync(CancellationToken);
+    Assert.Equal(2, consumerDiagnostics.Diagnostics.Count());
+    Assert.Contains("bool", consumerDiagnostics.Diagnostics.First().Message);
+    await AssertNoDiagnosticsAreComing(CancellationToken);
+  }
+
+  [Fact]
   public async Task OnDiskProducerResolutionErrors() {
     var producerSource = @"
 method Foo(x: int) { 

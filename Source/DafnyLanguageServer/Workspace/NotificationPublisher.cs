@@ -123,7 +123,12 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       void PublishForUri(Uri publishUri, Diagnostic[] diagnostics) {
         var previous = publishedDiagnostics.GetOrDefault(publishUri, Enumerable.Empty<Diagnostic>);
         if (!previous.SequenceEqual(diagnostics)) {
-          publishedDiagnostics[publishUri] = diagnostics;
+          if (diagnostics.Any()) {
+            publishedDiagnostics[publishUri] = diagnostics;
+          } else {
+            // Prevent memory leaks by cleaning up previous state when it's the IDE's initial state.
+            publishedDiagnostics.Remove(publishUri);
+          }
           languageServer.TextDocument.PublishDiagnostics(new PublishDiagnosticsParams {
             Uri = publishUri,
             Version = filesystem.GetVersion(publishUri),
