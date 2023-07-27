@@ -1,4 +1,4 @@
-use std::fmt::{Display, Formatter};
+use std::{fmt::{Display, Formatter}, rc::Rc};
 
 pub struct DafnyPrintWrapper<T>(pub T);
 impl <T: DafnyPrint> Display for DafnyPrintWrapper<&T> {
@@ -40,6 +40,12 @@ impl_print_display! { f64 }
 impl DafnyPrint for () {
     fn fmt_print(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "()")
+    }
+}
+
+impl <T: DafnyPrint> DafnyPrint for Rc<T> {
+    fn fmt_print(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        self.as_ref().fmt_print(f)
     }
 }
 
