@@ -1499,6 +1499,8 @@ namespace Microsoft.Dafny {
         }
       }
 
+      // LogicFix here
+
       if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
         // Check that usage of "this" is restricted before "new;" in constructor bodies,
         // and that a class without any constructor only has fields with known initializers.
