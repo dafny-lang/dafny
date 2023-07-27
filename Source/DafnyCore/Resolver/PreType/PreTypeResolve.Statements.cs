@@ -487,7 +487,7 @@ namespace Microsoft.Dafny {
         var loopIndex = forS.LoopIndex;
         resolver.ResolveType(loopIndex.tok, loopIndex.Type, resolutionContext, ResolveTypeOptionEnum.InferTypeProxies, null);
         loopIndex.PreType = Type2PreType(loopIndex.Type);
-        AddConfirmation("InIntFamily", loopIndex.PreType, loopIndex.tok, "index variable is expected to be of an integer type (got {0})");
+        AddConfirmation(PreTypeConstraints.CommonConfirmationBag.InIntFamily, loopIndex.PreType, loopIndex.tok, "index variable is expected to be of an integer type (got {0})");
 
         ResolveExpression(forS.Start, resolutionContext);
         AddSubtypeConstraint(loopIndex.PreType, forS.Start.PreType, forS.Start.tok,
@@ -1213,7 +1213,7 @@ namespace Microsoft.Dafny {
         foreach (var dim in rr.ArrayDimensions) {
           ResolveExpression(dim, resolutionContext);
           var indexHint = dims == 1 ? "" : " for index " + i;
-          AddConfirmation("InIntFamily", dim.PreType, dim.tok,
+          AddConfirmation(PreTypeConstraints.CommonConfirmationBag.InIntFamily, dim.PreType, dim.tok,
             $"new must use an integer-based expression for the array size (got {{0}}{indexHint})");
           i++;
         }

@@ -502,7 +502,7 @@ namespace Microsoft.Dafny {
       Constraints.AddSubtypeConstraint(super, sub, tok, errorFormatString);
     }
 
-    void AddConfirmation(string check, PreType preType, IToken tok, string errorFormatString) {
+    void AddConfirmation(PreTypeConstraints.CommonConfirmationBag check, PreType preType, IToken tok, string errorFormatString) {
       Constraints.AddConfirmation(check, preType, tok, errorFormatString);
     }
 
