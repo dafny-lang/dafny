@@ -263,22 +263,6 @@ namespace Microsoft.Dafny {
       return preType;
     }
 
-    /// <summary>
-    /// AllParentTraits(decl) is like decl.ParentTraits, but also returns "object" if "decl" is a reference type.
-    /// </summary>
-    public IEnumerable<Type> AllParentTraits(TopLevelDeclWithMembers decl) {
-      foreach (var parentType in decl.ParentTraits) {
-        yield return parentType;
-      }
-      if (DPreType.IsReferenceTypeDecl(decl)) {
-        if (decl is TraitDecl trait && trait.IsObjectTrait) {
-          // don't return object itself
-        } else {
-          yield return resolver.builtIns.ObjectQ();
-        }
-      }
-    }
-
     public static bool HasTraitSupertypes(DPreType dp) {
       /*
        * When traits can be used as supertypes for non-reference types (and "object" is an implicit parent trait of every
