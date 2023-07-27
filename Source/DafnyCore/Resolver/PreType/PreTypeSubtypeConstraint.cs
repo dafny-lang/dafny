@@ -109,7 +109,7 @@ namespace Microsoft.Dafny {
     /// For every co-variant parameters[i], constrain superArguments[i] :> subArguments[i].
     /// For every contra-variant parameters[i], constrain subArguments[i] :> superArguments[i].
     /// </summary>
-    void ConstrainTypeArguments(List<TypeParameter> parameters, List<PreType> superArguments, List<PreType> subArguments, IToken tok,
+    static void ConstrainTypeArguments(List<TypeParameter> parameters, List<PreType> superArguments, List<PreType> subArguments, IToken tok,
       PreTypeConstraints constraints) {
       Contract.Requires(parameters.Count == superArguments.Count && superArguments.Count == subArguments.Count);
 
@@ -136,7 +136,7 @@ namespace Microsoft.Dafny {
     ///   - else if (pi is Co) == proxiesAreSupertypes, then a new proxy constrained by:  proxy :> ai
     ///   - else a new proxy constrained by:  ai :> proxy
     /// </summary>
-    List<PreType> CreateProxiesForTypesAccordingToVariance(IToken tok, List<TypeParameter> parameters, List<PreType> arguments,
+    static List<PreType> CreateProxiesForTypesAccordingToVariance(IToken tok, List<TypeParameter> parameters, List<PreType> arguments,
       bool proxiesAreSupertypes, PreTypeConstraints state) {
       Contract.Requires(parameters.Count == arguments.Count);
 
