@@ -10,6 +10,7 @@ using Microsoft.Dafny.Auditor;
 namespace Microsoft.Dafny;
 
 
+
 public interface INode {
   RangeToken RangeToken { get; }
   IToken Tok { get; }
