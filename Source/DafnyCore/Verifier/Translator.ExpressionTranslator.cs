@@ -439,8 +439,9 @@ namespace Microsoft.Dafny {
               return e.MemberSelectCase(
                 field => {
                   var useSurrogateLocal = translator.inBodyInitContext && Expression.AsThis(e.Obj) != null && !field.IsInstanceIndependentConstant;
+                  var fType = translator.TrType(field.Type);
                   if (useSurrogateLocal) {
-                    return new Boogie.IdentifierExpr(GetToken(expr), translator.SurrogateName(field), translator.TrType(field.Type));
+                    return new Boogie.IdentifierExpr(GetToken(expr), translator.SurrogateName(field), fType);
                   } else if (field is ConstantField) {
                     var typeMap = e.TypeArgumentSubstitutionsWithParents();
                     var args = GetTypeParams(field.EnclosingClass).ConvertAll(tp => translator.TypeToTy(typeMap[tp]));
@@ -458,7 +459,7 @@ namespace Microsoft.Dafny {
                     Boogie.Expr obj = TrExpr(e.Obj);
                     Boogie.Expr result;
                     if (field.IsMutable) {
-                      result = ReadHeap(GetToken(expr), HeapExpr, obj, new Boogie.IdentifierExpr(GetToken(expr), translator.GetField(field)));
+                      result = ReadHeap(GetToken(expr), HeapExpr, obj, new Boogie.IdentifierExpr(GetToken(expr), translator.GetField(field)), fType);
                       return translator.CondApplyUnbox(GetToken(expr), result, field.Type, expr.Type);
                     } else {
                       result = new Boogie.NAryExpr(GetToken(expr), new Boogie.FunctionCall(translator.GetReadonlyField(field)),
