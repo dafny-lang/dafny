@@ -326,7 +326,9 @@ module RegressionConstWithRhsAndConstraints1 {
 
 module RegressionConstWithRhsAndConstraints2 {
   newtype Nat = x | 0 <= x
-  const x: Nat := -1  // error: RHS does not satisfy newtype type of const
+  class Default { // Workaround for 
+    const x: Nat := -1  // error: RHS does not satisfy newtype type of const
+  }
 }
 
 module RegressionConstWithRhsAndConstraints3 {

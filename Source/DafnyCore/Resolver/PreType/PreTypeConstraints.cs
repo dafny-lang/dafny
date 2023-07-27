@@ -523,7 +523,7 @@ namespace Microsoft.Dafny {
         if (decl is TraitDecl trait && trait.IsObjectTrait) {
           // don't return object itself
         } else {
-          yield return PreTypeResolver.resolver.builtIns.ObjectQ();
+          yield return PreTypeResolver.resolver.SystemModuleManager.ObjectQ();
         }
       }
     }

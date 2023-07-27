@@ -19,48 +19,51 @@ namespace Microsoft.Dafny.LanguageServer.Language {
   /// dafny-lang makes use of static members and assembly loading. Since thread-safety of this is not guaranteed,
   /// this verifier serializes all invocations.
   /// </remarks>
-  public class DafnyProgramVerifier : IProgramVerifier, IDisposable {
-    private readonly VerificationResultCache cache = new();
-    private readonly ExecutionEngine engine;
+  public class DafnyProgramVerifier : IProgramVerifier {
+    private readonly SemaphoreSlim mutex = new(1);
 
-    public DafnyProgramVerifier(
-      ILogger<DafnyProgramVerifier> logger,
-      DafnyOptions options
-      ) {
-      // TODO This may be subject to change. See Microsoft.Boogie.Counterexample
-      //      A dash means write to the textwriter instead of a file.
-      // https://github.com/boogie-org/boogie/blob/b03dd2e4d5170757006eef94cbb07739ba50dddb/Source/VCGeneration/Couterexample.cs#L217
-      options.ModelViewFile = "-";
-
-      options.Printer = new OutputLogger(logger);
-      engine = new ExecutionEngine(options, cache);
+    public DafnyProgramVerifier(ILogger<DafnyProgramVerifier> logger) {
     }
 
-    private const int TranslatorMaxStackSize = 0x10000000; // 256MB
-
-    public async Task<IReadOnlyList<IImplementationTask>> GetVerificationTasksAsync(DocumentAfterResolution document,
+    public async Task<IReadOnlyList<IImplementationTask>> GetVerificationTasksAsync(
+      ExecutionEngine engine,
+      CompilationAfterResolution compilation,
       CancellationToken cancellationToken) {
-      var program = document.Program;
-      var errorReporter = (DiagnosticErrorReporter)program.Reporter;
+      await mutex.WaitAsync(cancellationToken);
+      try {
 
-      cancellationToken.ThrowIfCancellationRequested();
+        var program = compilation.Program;
+        var errorReporter = (DiagnosticErrorReporter)program.Reporter;
 
-      var translated = await DafnyMain.LargeStackFactory.StartNew(() => Translator.Translate(program, errorReporter, new Translator.TranslatorFlags(errorReporter.Options) {
-        InsertChecksums = true,
-        ReportRanges = true
-      }).ToList(), cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
 
-      cancellationToken.ThrowIfCancellationRequested();
+        var translated = await DafnyMain.LargeStackFactory.StartNew(() => Translator.Translate(program, errorReporter, new Translator.TranslatorFlags(errorReporter.Options) {
+          InsertChecksums = true,
+          ReportRanges = true
+        }).ToList(), cancellationToken);
 
-      return translated.SelectMany(t => {
-        var (_, boogieProgram) = t;
-        var results = engine.GetImplementationTasks(boogieProgram);
-        return results;
-      }).ToList();
+        cancellationToken.ThrowIfCancellationRequested();
+
+        if (engine.Options.PrintFile != null) {
+          var moduleCount = Translator.VerifiableModules(program).Count();
+          foreach (var (suffix, boogieProgram) in translated) {
+            var fileName = moduleCount > 1 ? DafnyMain.BoogieProgramSuffix(engine.Options.PrintFile, suffix) : engine.Options.PrintFile;
+            ExecutionEngine.PrintBplFile(engine.Options, fileName, boogieProgram, false, false, engine.Options.PrettyPrint);
+          }
+        }
+
+        return translated.SelectMany(t => {
+          var (_, boogieProgram) = t;
+          return engine.GetImplementationTasks(boogieProgram);
+        }).ToList();
+      }
+      finally {
+        mutex.Release();
+      }
     }
 
     public void Dispose() {
-      engine.Dispose();
+      mutex.Dispose();
     }
   }
 }

@@ -25,7 +25,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
     }
 
     public async Task InitializeAsync() {
-      client = await InitializeClient();
+      (client, Server) = await Initialize(_ => { }, _ => { });
     }
 
     public Task DisposeAsync() {
@@ -36,14 +36,14 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
     public async Task GhcMergeSort() {
       var documentItem = await CreateTextDocumentFromFileAsync("GHC-MergeSort.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      Assert.NotNull(await Documents.GetResolvedDocumentAsync(documentItem.Uri));
+      Assert.NotNull(await Projects.GetResolvedDocumentAsyncNormalizeUri(documentItem.Uri));
     }
 
     [Fact(Timeout = MaxTestExecutionTimeMs)]
     public async Task GenericSort() {
       var documentItem = await CreateTextDocumentFromFileAsync("GenericSort.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      Assert.NotNull(await Documents.GetResolvedDocumentAsync(documentItem.Uri));
+      Assert.NotNull(await Projects.GetResolvedDocumentAsyncNormalizeUri(documentItem.Uri));
     }
 
     [Fact(Timeout = MaxTestExecutionTimeMs)]
@@ -56,7 +56,7 @@ method NestedExpression() {
 }";
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      Assert.NotNull(await Documents.GetResolvedDocumentAsync(documentItem.Uri));
+      Assert.NotNull(await Projects.GetResolvedDocumentAsyncNormalizeUri(documentItem.Uri));
     }
 
     public StabilityTest(ITestOutputHelper output) : base(output) {

@@ -110,7 +110,7 @@ public class AssignOrReturnStmt : ConcreteUpdateStatement, ICloneable<AssignOrRe
   /// and saves the result into s.ResolvedStatements.
   /// This is also known as the "elephant operator"
   /// </summary>
-  public override void Resolve(Resolver resolver, ResolutionContext resolutionContext) {
+  public override void Resolve(ModuleResolver resolver, ResolutionContext resolutionContext) {
     base.Resolve(resolver, resolutionContext);
     // TODO Do I have any responsibilities regarding the use of resolutionContext? Is it mutable?
 
@@ -246,7 +246,7 @@ public class AssignOrReturnStmt : ConcreteUpdateStatement, ICloneable<AssignOrRe
   /// <param name="resolver"></param>
   /// <param name="enclosingMethod"></param>
   private void DesugarElephantStatement(bool expectExtract, Expression lhsExtract, Type firstType,
-    Resolver resolver, Method enclosingMethod) {
+    ModuleResolver resolver, Method enclosingMethod) {
 
     var temp = resolver.FreshTempVarName("valueOrError", enclosingMethod);
     var lhss = new List<LocalVariable>() { new LocalVariable(RangeToken, temp, new InferredTypeProxy(), false) };

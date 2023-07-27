@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
 using JetBrains.Annotations;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Microsoft.Boogie;
 
 namespace Microsoft.Dafny.ProofObligationDescription;
 
@@ -10,6 +10,14 @@ public abstract class ProofObligationDescription : Boogie.ProofObligationDescrip
   // An expression that, if verified, would trigger a success for this ProofObligationDescription
   // It is only printed for the user, so it does not need to be resolved.
   public abstract Expression GetAssertedExpr(DafnyOptions options);
+
+  // Substituting replaces the token of a substituting expression by the token of the identifierExpr being susbstituted,
+  // Since the printer requires the token of IdentifierExpr to be Token.NoToken to print the custom name in Dafny mode,
+  // we just wrap the identifierExpr into a ParensExpression, as it is the case for any other expression.
+  protected static Expression ToSubstitutableExpression(BoundVar bvar) {
+    var expression = new IdentifierExpr(bvar.tok, bvar);
+    return new ParensExpression(bvar.tok, expression) { Type = bvar.Type, ResolvedExpression = expression };
+  }
 }
 
 // When there is no way to translate the asserted constraint in Dafny yet
@@ -294,57 +302,99 @@ public class IsOlderProofObligation : ProofObligationDescriptionWithNoExpr {
 
 //// Contract constraints
 
-public class PreconditionSatisfied : ProofObligationDescriptionWithNoExpr {
-  public override string SuccessDescription =>
-    customErrMsg is null
-      ? "function precondition satisfied"
-      : $"error is impossible: {customErrMsg}";
+public abstract class ProofObligationDescriptionCustomMessages : ProofObligationDescriptionWithNoExpr {
+  protected readonly string customErrMsg;
+  private readonly string customSuccessMsg;
 
+  public override string SuccessDescription =>
+    customSuccessMsg ?? DefaultSuccessDescription;
+
+  public abstract string DefaultSuccessDescription { get; }
   public override string FailureDescription =>
-    customErrMsg ?? "function precondition might not hold";
+    customErrMsg ?? DefaultFailureDescription;
+  public abstract string DefaultFailureDescription { get; }
+  public ProofObligationDescriptionCustomMessages([CanBeNull] string customErrMsg, [CanBeNull] string customSuccessMsg) {
+    this.customErrMsg = customErrMsg;
+    this.customSuccessMsg = customSuccessMsg;
+  }
+}
+
+public class PreconditionSatisfied : ProofObligationDescriptionCustomMessages {
+  public override string DefaultSuccessDescription =>
+    "function precondition satisfied";
+
+  public override string DefaultFailureDescription =>
+    "function precondition could not be proved";
 
   public override string ShortDescription => "precondition";
 
-  private readonly string customErrMsg;
-
-  public PreconditionSatisfied([CanBeNull] string customErrMsg) {
-    this.customErrMsg = customErrMsg;
+  public PreconditionSatisfied([CanBeNull] string customErrMsg, [CanBeNull] string customSuccessMsg)
+    : base(customErrMsg, customSuccessMsg) {
   }
 }
 
-public class AssertStatement : ProofObligationDescriptionWithNoExpr {
-  public override string SuccessDescription =>
-    customErrMsg is null
-      ? "assertion always holds"
-      : $"error is impossible: {customErrMsg}";
+public class AssertStatement : ProofObligationDescriptionCustomMessages {
+  public override string DefaultSuccessDescription =>
+    "assertion always holds";
 
-  public override string FailureDescription =>
-    customErrMsg ?? "assertion might not hold";
+  public override string DefaultFailureDescription =>
+    "assertion might not hold";
 
   public override string ShortDescription => "assert statement";
 
-  private readonly string customErrMsg;
-
-  public AssertStatement([CanBeNull] string customErrMsg) {
-    this.customErrMsg = customErrMsg;
+  public AssertStatement([CanBeNull] string customErrMsg, [CanBeNull] string customSuccessMsg)
+    : base(customErrMsg, customSuccessMsg) {
   }
 }
 
-public class LoopInvariant : ProofObligationDescriptionWithNoExpr {
-  public override string SuccessDescription =>
-    customErrMsg is null
-      ? "loop invariant always holds"
-      : $"error is impossible: {customErrMsg}";
+// The Boogie version does not support custom error messages yet
+public class RequiresDescription : ProofObligationDescriptionCustomMessages {
+  public override string DefaultSuccessDescription =>
+    "the precondition always holds";
 
-  public override string FailureDescription =>
-    customErrMsg ?? "loop invariant violation";
+  public override string DefaultFailureDescription =>
+    "this is the precondition that could not be proved";
+
+  public override string ShortDescription => "requires";
+
+  public RequiresDescription([CanBeNull] string customErrMsg, [CanBeNull] string customSuccessMsg)
+    : base(customErrMsg, customSuccessMsg) {
+  }
+}
+
+// The Boogie version does not support custom error messages yet
+public class EnsuresDescription : ProofObligationDescriptionCustomMessages {
+  public override string DefaultSuccessDescription =>
+    "this postcondition holds";
+
+  public override string DefaultFailureDescription =>
+    "this is the postcondition that could not be proved";
+
+  // Same as FailureDescription but used not as a "related" error, but as an error by itself
+  public string FailureDescriptionSingle =>
+    customErrMsg ?? "this postcondition could not be proved on a return path";
+
+  public string FailureAtPathDescription =>
+    customErrMsg ?? new PostconditionDescription().FailureDescription;
+
+  public override string ShortDescription => "ensures";
+
+  public EnsuresDescription([CanBeNull] string customErrMsg, [CanBeNull] string customSuccessMsg)
+    : base(customErrMsg, customSuccessMsg) {
+  }
+}
+
+public class LoopInvariant : ProofObligationDescriptionCustomMessages {
+  public override string DefaultSuccessDescription =>
+"loop invariant always holds";
+
+  public override string DefaultFailureDescription =>
+    "loop invariant violation";
 
   public override string ShortDescription => "loop invariant";
 
-  private readonly string customErrMsg;
-
-  public LoopInvariant([CanBeNull] string customErrMsg) {
-    this.customErrMsg = customErrMsg;
+  public LoopInvariant([CanBeNull] string customErrMsg, [CanBeNull] string customSuccessMsg)
+    : base(customErrMsg, customSuccessMsg) {
   }
 }
 
@@ -353,7 +403,7 @@ public class CalculationStep : ProofObligationDescriptionWithNoExpr {
     "the calculation step between the previous line and this line always holds";
 
   public override string FailureDescription =>
-    "the calculation step between the previous line and this line might not hold";
+    "the calculation step between the previous line and this line could not be proved";
 
   public override string ShortDescription => "calc step";
 }
@@ -997,10 +1047,10 @@ public class LetSuchThatUnique : ProofObligationDescription {
   }
   public override Expression GetAssertedExpr(DafnyOptions options) {
     var bvarsExprs = bvars.Select(bvar => new IdentifierExpr(bvar.tok, bvar)).ToList();
-    var bvarprimes = bvars.Select(bvar => new BoundVar(bvar.tok, bvar.Name + "'", bvar.Type)).ToList();
-    var bvarprimesExprs = bvarprimes.Select(bvar => new IdentifierExpr(bvar.tok, bvar) as Expression).ToList();
+    var bvarprimes = bvars.Select(bvar => new BoundVar(Token.NoToken, bvar.DafnyName + "'", bvar.Type)).ToList();
+    var bvarprimesExprs = bvarprimes.Select(ToSubstitutableExpression).ToList();
     var subContract = new Substituter(null,
-      bvars.Zip(bvarprimesExprs).ToDictionary<(BoundVar, Expression), IVariable, Expression>(
+      Enumerable.Zip(bvars, bvarprimesExprs).ToDictionary<(BoundVar, Expression), IVariable, Expression>(
         item => item.Item1, item => item.Item2),
       new Dictionary<TypeParameter, Type>()
     );
@@ -1057,17 +1107,15 @@ public class AssignmentShrinks : ProofObligationDescriptionWithNoExpr {
   }
 }
 
-public class BoilerplateTriple : ProofObligationDescriptionWithNoExpr {
-  public override string SuccessDescription =>
-    $"error is impossible: {msg}";
-
-  public override string FailureDescription => msg;
-
+public class BoilerplateTriple : ProofObligationDescriptionCustomMessages {
   public override string ShortDescription => "boilerplate triple";
 
-  private readonly string msg;
+  public override string DefaultSuccessDescription { get; }
+  public override string DefaultFailureDescription { get; }
 
-  public BoilerplateTriple(string msg) {
-    this.msg = msg;
+  public BoilerplateTriple(string errorMessage, string successMessage, string comment)
+    : base(errorMessage, successMessage) {
+    this.DefaultSuccessDescription = comment;
+    this.DefaultFailureDescription = comment;
   }
 }

@@ -1,7 +1,5 @@
-// RUN: %dafny /compile:0 "%s" > "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:py "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:cs "%s" >> "%t"
-// RUN: %diff "%s.expect" "%t"
+// NONUNIFORM: https://github.com/dafny-lang/dafny/issues/4108
+// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment
 //
 // This fragment of comp/Dt.dfy serves to facilitate incremental compiler development.
 
@@ -79,15 +77,15 @@ method TestConflictingNames() {
   print x.len, " ", x.public, " ", x.goto, "\n";
 }
 
-module Module {
+module ModuleM {
   datatype OptionInt = Some(int) | None
 }
 
 method TestModule() {
-  PrintMaybe(Module.Some(1701));
+  PrintMaybe(ModuleM.Some(1701));
 }
 
-method PrintMaybe(x : Module.OptionInt) {
+method PrintMaybe(x: ModuleM.OptionInt) {
   match x
   case Some(n) => print n, "\n";
   case None => print "None\n";

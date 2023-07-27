@@ -9,6 +9,11 @@ namespace Microsoft.Dafny;
 
 public class CommonOptionBag {
 
+  public static readonly Option<bool> AddCompileSuffix =
+    new("--compile-suffix", "Add the suffix _Compile to module names without :extern") {
+      IsHidden = true
+    };
+
   public static readonly Option<bool> ManualLemmaInduction =
     new("--manual-lemma-induction", "Turn off automatic induction for lemmas.");
 
@@ -143,6 +148,13 @@ true - The char type represents any Unicode scalar value.".TrimStart()) {
     @"
 false - The type-inference engine and supported types are those of Dafny 4.0.
 true - Use an updated type-inference engine. Warning: This mode is under construction and probably won't work at this time.".TrimStart()) {
+    IsHidden = true
+  };
+
+  public static readonly Option<bool> GeneralTraits = new("--general-traits", () => false,
+    @"
+false - Every trait implicitly extends 'object', and thus is a reference type. Only traits and reference types can extend traits.
+true - A trait is a reference type only if it or one of its ancestor traits is 'object'. Any type with members can extend traits.".TrimStart()) {
     IsHidden = true
   };
 
@@ -283,6 +295,9 @@ Functionality is still being expanded. Currently only checks contracts on every 
         // target language code from referencing compiled internal code,
         // so to be conservative we flag this as not compatible in general.
         { OptimizeErasableDatatypeWrapper, DooFile.CheckOptionMatches },
+        // Similarly this shouldn't matter if external code ONLY refers to {:extern}s,
+        // but in practice it does.
+        { AddCompileSuffix, DooFile.CheckOptionMatches }
       }
     );
     DooFile.RegisterNoChecksNeeded(
@@ -303,6 +318,7 @@ Functionality is still being expanded. Currently only checks contracts on every 
       WarnShadowing,
       ManualLemmaInduction,
       TypeInferenceDebug,
+      GeneralTraits,
       TypeSystemRefresh,
       VerificationLogFormat,
       VerifyIncludedFiles,

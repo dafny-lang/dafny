@@ -35,7 +35,9 @@ public class TupleTypeDecl : IndDatatypeDecl {
   }
 
   private TupleTypeDecl(ModuleDefinition systemModule, List<TypeParameter> typeArgs, List<bool> argumentGhostness, Attributes attributes)
-    : base(RangeToken.NoToken, new Name(BuiltIns.TupleTypeName(argumentGhostness)), systemModule, typeArgs, CreateConstructors(typeArgs, argumentGhostness), new List<MemberDecl>(), attributes, false) {
+    : base(RangeToken.NoToken, new Name(SystemModuleManager.TupleTypeName(argumentGhostness)), systemModule, typeArgs,
+      CreateConstructors(typeArgs, argumentGhostness),
+      new List<Type>(), new List<MemberDecl>(), attributes, false) {
     Contract.Requires(systemModule != null);
     Contract.Requires(typeArgs != null);
     ArgumentGhostness = argumentGhostness;
@@ -77,13 +79,13 @@ public class TupleTypeDecl : IndDatatypeDecl {
       var f = new Formal(Token.NoToken, i.ToString(), new UserDefinedType(Token.NoToken, tp), true, argumentGhostness[i], null, nameForCompilation: compileName);
       formals.Add(f);
     }
-    string ctorName = BuiltIns.TupleTypeCtorName(typeArgs.Count);
+    string ctorName = SystemModuleManager.TupleTypeCtorName(typeArgs.Count);
     var ctor = new DatatypeCtor(RangeToken.NoToken, new Name(ctorName), false, formals, null);
     return new List<DatatypeCtor>() { ctor };
   }
 
   public override string SanitizedName =>
-    sanitizedName ??= $"Tuple{BuiltIns.ArgumentGhostnessToString(ArgumentGhostness)}";
+    sanitizedName ??= $"Tuple{SystemModuleManager.ArgumentGhostnessToString(ArgumentGhostness)}";
 
   public override string GetCompileName(DafnyOptions options) => NonGhostTupleTypeDecl?.GetCompileName(options) ?? $"Tuple{NonGhostDims}";
 }

@@ -1,6 +1,5 @@
 |Name|Compiled|Explicit Assumption|Extern|Issue|Mitigation|
 |----|--------|-------------------|------|-----|----------|
-| T | True | False | False | Trait method calls may not terminate (uses `{:termination false}`). | Remove if possible. |
 | MinusBv8NoBody | False | False | False | Ghost declaration has no body and has an ensures clause. | Provide a body or add `{:axiom}`. |
 | LeftShiftBV128 | False | True | False | Declaration has explicit `{:axiom}` attribute. | Provide a proof or test. |
 | MinusBv8Assume | False | False | False | Definition has `assume` statement in body. | Replace with `assert` and prove or add `{:axiom}`. |
@@ -17,4 +16,6 @@
 | LoopWithoutBody | True | False | False | Definition contains loop with no body. | Provide a body. |
 | ConcurrentMethod | True | False | False | Declaration has `{:concurrent}` attribute. | Manually review and test in a concurrent setting. |
 | AxiomWithStuffInIt | True | True | False | Declaration has explicit `{:axiom}` attribute. | Provide a proof or test. |
-| AssertOnly | True | False | False | Assertion has explicit temporary `{:only}` attribute. | Remove the `{:only}` attribute |
+| AssertOnly | True | False | False | Assertion has explicit temporary `{:only}` attribute. | Remove the `{:only}` attribute. |
+| MethodOnly | True | False | False | Member has explicit temporary `{:only}` attribute. | Remove the `{:only}` attribute. |
+| T | True | False | False | Trait method calls may not terminate (uses `{:termination false}`). | Remove if possible. |

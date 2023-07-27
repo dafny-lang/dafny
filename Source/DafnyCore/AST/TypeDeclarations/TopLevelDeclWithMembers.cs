@@ -96,6 +96,21 @@ public abstract class TopLevelDeclWithMembers : TopLevelDecl {
     MembersBeforeResolution = Members.ToImmutableList();
   }
 
+  public List<Type> RawTraitsWithArgument(List<Type> typeArgs) {
+    Contract.Requires(typeArgs != null);
+    Contract.Requires(typeArgs.Count == TypeArgs.Count);
+    // Instantiate with the actual type arguments
+    var subst = TypeParameter.SubstitutionMap(TypeArgs, typeArgs);
+    return ParentTraits.ConvertAll(traitType => {
+      var ty = (UserDefinedType)traitType.Subst(subst);
+      return (Type)UserDefinedType.CreateNullableTypeIfReferenceType(ty);
+    });
+  }
+
+  public override List<Type> ParentTypes(List<Type> typeArgs) {
+    return RawTraitsWithArgument(typeArgs);
+  }
+
   public static List<UserDefinedType> CommonTraits(TopLevelDeclWithMembers a, TopLevelDeclWithMembers b) {
     Contract.Requires(a != null);
     Contract.Requires(b != null);
@@ -132,8 +147,12 @@ public abstract class TopLevelDeclWithMembers : TopLevelDecl {
     Contract.Requires(s != null);
     foreach (var parent in ParentTraits) {
       var udt = (UserDefinedType)parent;  // in a successfully resolved program, we expect all .ParentTraits to be a UserDefinedType
-      var nntd = (NonNullTypeDecl)udt.ResolvedClass;  // we expect the trait type to be the non-null version of the trait type
-      var tr = (TraitDecl)nntd.Class;
+      TraitDecl tr;
+      if (udt.ResolvedClass is NonNullTypeDecl nntd) {
+        tr = (TraitDecl)nntd.Class;
+      } else {
+        tr = (TraitDecl)udt.ResolvedClass;
+      }
       s.Add(tr);
       tr.AddTraitAncestors(s);
     }
@@ -152,6 +171,91 @@ public abstract class TopLevelDeclWithMembers : TopLevelDecl {
 
   public override IEnumerable<Assumption> Assumptions(Declaration decl) {
     return Members.SelectMany(m => m.Assumptions(this));
+  }
+
+  public void RegisterMembers(ModuleResolver resolver, Dictionary<string, MemberDecl> members) {
+    Contract.Requires(this != null);
+    Contract.Requires(members != null);
+
+    foreach (MemberDecl m in Members) {
+      if (!members.ContainsKey(m.Name)) {
+        members.Add(m.Name, m);
+        if (m is Constructor) {
+          Contract.Assert(this is ClassLikeDecl); // the parser ensures this condition
+          if (this is TraitDecl) {
+            resolver.reporter.Error(MessageSource.Resolver, m.tok, "a trait is not allowed to declare a constructor");
+          } else {
+            ((ClassDecl)this).HasConstructor = true;
+          }
+        } else if (m is ExtremePredicate || m is ExtremeLemma) {
+          var extraName = m.NameNode.Append("#");
+          MemberDecl extraMember;
+          var cloner = new Cloner();
+          var formals = new List<Formal>();
+          Type typeOfK;
+          if ((m is ExtremePredicate && ((ExtremePredicate)m).KNat) ||
+              (m is ExtremeLemma && ((ExtremeLemma)m).KNat)) {
+            typeOfK = new UserDefinedType(m.tok, "nat", (List<Type>)null);
+          } else {
+            typeOfK = new BigOrdinalType();
+          }
+
+          var k = new ImplicitFormal(m.tok, "_k", typeOfK, true, false);
+          resolver.reporter.Info(MessageSource.Resolver, m.tok, string.Format("_k: {0}", k.Type));
+          formals.Add(k);
+          if (m is ExtremePredicate extremePredicate) {
+            formals.AddRange(extremePredicate.Formals.ConvertAll(f => cloner.CloneFormal(f, false)));
+
+            List<TypeParameter> tyvars = extremePredicate.TypeArgs.ConvertAll(cloner.CloneTypeParam);
+
+            // create prefix predicate
+            extremePredicate.PrefixPredicate = new PrefixPredicate(extremePredicate.RangeToken, extraName, extremePredicate.HasStaticKeyword,
+              tyvars, k, formals,
+              extremePredicate.Req.ConvertAll(cloner.CloneAttributedExpr),
+              extremePredicate.Reads.ConvertAll(cloner.CloneFrameExpr),
+              extremePredicate.Ens.ConvertAll(cloner.CloneAttributedExpr),
+              new Specification<Expression>(new List<Expression>() { new IdentifierExpr(extremePredicate.tok, k.Name) }, null),
+              cloner.CloneExpr(extremePredicate.Body),
+              null,
+              extremePredicate);
+            extraMember = extremePredicate.PrefixPredicate;
+          } else {
+            var extremeLemma = (ExtremeLemma)m;
+            // _k has already been added to 'formals', so append the original formals
+            formals.AddRange(extremeLemma.Ins.ConvertAll(f => cloner.CloneFormal(f, false)));
+            // prepend _k to the given decreases clause
+            var decr = new List<Expression>();
+            decr.Add(new IdentifierExpr(extremeLemma.tok, k.Name));
+            decr.AddRange(extremeLemma.Decreases.Expressions.ConvertAll(cloner.CloneExpr));
+            // Create prefix lemma.  Note that the body is not cloned, but simply shared.
+            // For a greatest lemma, the postconditions are filled in after the greatest lemma's postconditions have been resolved.
+            // For a least lemma, the preconditions are filled in after the least lemma's preconditions have been resolved.
+            var req = extremeLemma is GreatestLemma
+              ? extremeLemma.Req.ConvertAll(cloner.CloneAttributedExpr)
+              : new List<AttributedExpression>();
+            var ens = extremeLemma is GreatestLemma
+              ? new List<AttributedExpression>()
+              : extremeLemma.Ens.ConvertAll(cloner.CloneAttributedExpr);
+            extremeLemma.PrefixLemma = new PrefixLemma(extremeLemma.RangeToken, extraName, extremeLemma.HasStaticKeyword,
+              extremeLemma.TypeArgs.ConvertAll(cloner.CloneTypeParam), k, formals, extremeLemma.Outs.ConvertAll(f => cloner.CloneFormal(f, false)),
+              req, cloner.CloneSpecFrameExpr(extremeLemma.Mod), ens,
+              new Specification<Expression>(decr, null),
+              null, // Note, the body for the prefix method will be created once the call graph has been computed and the SCC for the greatest lemma is known
+              cloner.CloneAttributes(extremeLemma.Attributes), extremeLemma);
+            extraMember = extremeLemma.PrefixLemma;
+          }
+
+          extraMember.InheritVisibility(m, false);
+          members.Add(extraName.Value, extraMember);
+        } else if (m is Function f && f.ByMethodBody != null) {
+          ModuleResolver.RegisterByMethod(f, this);
+        }
+      } else if (m is Constructor && !((Constructor)m).HasName) {
+        resolver.reporter.Error(MessageSource.Resolver, m, "More than one anonymous constructor");
+      } else {
+        resolver.reporter.Error(MessageSource.Resolver, m, "Duplicate member name: {0}", m.Name);
+      }
+    }
   }
 }
 

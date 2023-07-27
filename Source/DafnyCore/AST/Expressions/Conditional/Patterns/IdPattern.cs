@@ -86,7 +86,7 @@ public class IdPattern : ExtendedPattern, IHasUsages {
     }
   }
 
-  public override void Resolve(Resolver resolver, ResolutionContext resolutionContext,
+  public override void Resolve(ModuleResolver resolver, ResolutionContext resolutionContext,
     Type sourceType, bool isGhost, bool inStatementContext,
     bool inPattern, bool inDisjunctivePattern) {
 
@@ -136,9 +136,9 @@ public class IdPattern : ExtendedPattern, IHasUsages {
 
   public IToken NameToken => Tok;
 
-  public void CheckLinearVarPattern(Type type, ResolutionContext resolutionContext, Resolver resolver) {
+  public void CheckLinearVarPattern(Type type, ResolutionContext resolutionContext, ModuleResolver resolver) {
     if (Arguments != null) {
-      if (Id == BuiltIns.TupleTypeCtorName(1)) {
+      if (Id == SystemModuleManager.TupleTypeCtorName(1)) {
         resolver.reporter.Error(MessageSource.Resolver, this.Tok, "parentheses are not allowed around a pattern");
       } else {
         resolver.reporter.Error(MessageSource.Resolver, this.Tok, "member {0} does not exist in type {1}", this.Id, type);

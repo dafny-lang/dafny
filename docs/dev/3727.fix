@@ -1,1 +1,0 @@
-Avoid infinite recursion when trying to construct a potentially self-referential object during test generation

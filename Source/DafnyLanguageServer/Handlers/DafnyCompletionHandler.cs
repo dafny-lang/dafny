@@ -15,14 +15,14 @@ using System.Threading.Tasks;
 namespace Microsoft.Dafny.LanguageServer.Handlers {
   public class DafnyCompletionHandler : CompletionHandlerBase {
     private readonly ILogger logger;
-    private readonly IDocumentDatabase documents;
+    private readonly IProjectDatabase projects;
     private readonly ISymbolGuesser symbolGuesser;
     private DafnyOptions options;
 
-    public DafnyCompletionHandler(ILogger<DafnyCompletionHandler> logger, IDocumentDatabase documents,
+    public DafnyCompletionHandler(ILogger<DafnyCompletionHandler> logger, IProjectDatabase projects,
       ISymbolGuesser symbolGuesser, DafnyOptions options) {
       this.logger = logger;
-      this.documents = documents;
+      this.projects = projects;
       this.symbolGuesser = symbolGuesser;
       this.options = options;
     }
@@ -43,12 +43,11 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
 
     public override async Task<CompletionList> Handle(CompletionParams request, CancellationToken cancellationToken) {
       logger.LogDebug("Completion params received");
-      var document = await documents.GetResolvedDocumentAsync(request.TextDocument);
+      var document = await projects.GetResolvedDocumentAsyncNormalizeUri(request.TextDocument);
       if (document == null) {
         logger.LogWarning("location requested for unloaded document {DocumentUri}", request.TextDocument.Uri);
         return new CompletionList();
       }
-      logger.LogDebug($"Completion params retrieved document state with version {document.Version}");
       return new CompletionProcessor(symbolGuesser, document, request, cancellationToken, options).Process();
     }
 
@@ -68,22 +67,21 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
       }
 
       public CompletionList Process() {
-        if (GetTriggerCharacter() == ".") {
+        if (IsDotExpression()) {
           return CreateDotCompletionList();
         }
         return new CompletionList();
       }
 
-      private string GetTriggerCharacter() {
-        // Cannot use _request.Context.TriggerCharacter at this time, since _request.Context appears to be always null.
-        var documentText = state.TextDocumentItem;
-        int index = documentText.ToIndex(request.Position) - 1;
-        return documentText.Text[index].ToString();
+      private bool IsDotExpression() {
+        var node = state.Program.FindNode(request.TextDocument.Uri.ToUri(), request.Position.ToDafnyPosition());
+        return node?.RangeToken.EndToken.val == ".";
       }
 
       private CompletionList CreateDotCompletionList() {
         IEnumerable<ISymbol> members;
-        if (symbolGuesser.TryGetTypeBefore(state, GetDotPosition(), cancellationToken, out var typeSymbol)) {
+        if (symbolGuesser.TryGetTypeBefore(state,
+              request.TextDocument.Uri.ToUri(), GetDotPosition(), cancellationToken, out var typeSymbol)) {
           if (typeSymbol is TypeWithMembersSymbolBase typeWithMembersSymbol) {
             members = typeWithMembersSymbol.Members;
           } else {

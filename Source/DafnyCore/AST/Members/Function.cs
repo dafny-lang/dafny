@@ -48,7 +48,7 @@ public class Function : MemberDecl, TypeParameter.ParentType, ICallable, ICanFor
       yield return a;
     }
 
-    if (Body is null && HasPostcondition && !EnclosingClass.EnclosingModuleDefinition.IsAbstract && !HasExternAttribute) {
+    if (Body is null && HasPostcondition && !EnclosingClass.EnclosingModuleDefinition.IsAbstract && !HasExternAttribute && !HasAxiomAttribute) {
       yield return new Assumption(this, tok, AssumptionDescription.NoBody(IsGhost));
     }
 
@@ -359,7 +359,7 @@ experimentalPredicateAlwaysGhost - Compiled functions are written `function`. Gh
   /// <summary>
   /// Assumes type parameters have already been pushed
   /// </summary>
-  public void Resolve(Resolver resolver) {
+  public void Resolve(ModuleResolver resolver) {
     Contract.Requires(this != null);
     Contract.Requires(resolver.AllTypeConstraints.Count == 0);
     Contract.Ensures(resolver.AllTypeConstraints.Count == 0);

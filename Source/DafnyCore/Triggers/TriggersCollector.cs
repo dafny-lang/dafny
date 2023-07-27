@@ -203,7 +203,7 @@ namespace Microsoft.Dafny.Triggers {
       }
 
       if (annotation == null) {
-        expr.SubExpressions.Iter(e => Annotate(e));
+        expr.SubExpressions.ForEach(e => Annotate(e));
 
         if (IsPotentialTriggerCandidate(expr)) {
           annotation = AnnotatePotentialCandidate(expr);

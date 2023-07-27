@@ -1,4 +1,5 @@
-﻿using System.Reflection;
+﻿using System.CommandLine;
+using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
 using CommandLine;
@@ -25,7 +26,8 @@ public class ForEachCompilerOptions {
 
 [Verb("features", HelpText = "Print the Markdown content documenting feature support for each compiler.")]
 public class FeaturesOptions {
-  [Value(1)] public IEnumerable<string> OtherArgs { get; set; } = Array.Empty<string>();
+  [Value(1)]
+  public IEnumerable<string> OtherArgs { get; set; } = Array.Empty<string>();
 }
 
 public class MultiBackendTest {
@@ -74,10 +76,20 @@ public class MultiBackendTest {
     // but this was never meaningful and only added maintenance burden.
     // Here we only ensure that the exit code is 0.
 
+    // We also use --(r|b)print to catch bugs with valid but unprintable programs.
+    string fileName = Path.GetFileName(options.TestFile!);
+    var testDir = Path.GetDirectoryName(options.TestFile!);
+    var tmpDPrint = Path.Join(testDir, "Output", $"{fileName}.dprint");
+    var tmpRPrint = Path.Join(testDir, "Output", $"{fileName}.rprint");
+    var tmpPrint = Path.Join(testDir, "Output", $"{fileName}.print");
+
     var dafnyArgs = new List<string>() {
       $"verify",
-      options.TestFile!
-    }.Concat(options.OtherArgs).ToArray();
+      options.TestFile!,
+      $"--print:{tmpDPrint}",
+      $"--rprint:{tmpRPrint}",
+      $"--bprint:{tmpPrint}"
+    }.Concat(options.OtherArgs.Where(OptionAppliesToVerifyCommand)).ToArray();
 
     output.WriteLine("Verifying...");
 
@@ -89,22 +101,50 @@ public class MultiBackendTest {
       output.WriteLine(error);
       return exitCode;
     }
+    var expectFileForVerifier = $"{options.TestFile}.verifier.expect";
+    if (File.Exists(expectFileForVerifier)) {
+      var expectedOutput = File.ReadAllText(expectFileForVerifier);
+      // Chop off the "Dafny program verifier finished with..." trailer
+      var trailer = new Regex("\r?\nDafny program verifier[^\r\n]*\r?\n").Match(outputString);
+      var actualOutput = outputString.Remove(trailer.Index, trailer.Length);
+      var diffMessage = AssertWithDiff.GetDiffMessage(expectedOutput, actualOutput);
+      if (diffMessage == null) {
+        return 0;
+      }
+
+      output.WriteLine(diffMessage);
+      return 1;
+    }
 
     // Then execute the program for each available compiler.
 
     string expectFile = options.TestFile + ".expect";
-    var expectedOutput = "\nDafny program verifier did not attempt verification\n" +
+    var commonExpectedOutput = "\nDafny program verifier did not attempt verification\n" +
                          File.ReadAllText(expectFile);
 
     var success = true;
     foreach (var plugin in dafnyOptions.Plugins) {
       foreach (var compiler in plugin.GetCompilers(dafnyOptions)) {
-        if (compiler.TargetId == "lib") {
+        if (!compiler.IsStable) {
           // Some tests still fail when using the lib back-end, for example due to disallowed assumptions being present in the test,
           // Such as empty constructors with ensures clauses, generated from iterators
           continue;
         }
-        var result = RunWithCompiler(options, compiler, expectedOutput);
+
+        // Check for backend-specific exceptions (because of known bugs or inconsistencies)
+        var expectedOutput = commonExpectedOutput;
+        string? checkFile = null;
+        var expectFileForBackend = $"{options.TestFile}.{compiler.TargetId}.expect";
+        if (File.Exists(expectFileForBackend)) {
+          expectedOutput = "\nDafny program verifier did not attempt verification\n" +
+                           File.ReadAllText(expectFileForBackend);
+        }
+        var checkFileForBackend = $"{options.TestFile}.{compiler.TargetId}.check";
+        if (File.Exists(checkFileForBackend)) {
+          checkFile = checkFileForBackend;
+        }
+
+        var result = RunWithCompiler(options, compiler, expectedOutput, checkFile);
         if (result != 0) {
           success = false;
         }
@@ -120,9 +160,24 @@ public class MultiBackendTest {
     }
   }
 
-  private int RunWithCompiler(ForEachCompilerOptions options, IExecutableBackend backend, string expectedOutput) {
+  // Necessary to avoid passing invalid options to the first `dafny verify` command.
+  // Ideally we could hook into the general `dafny` options parsing logic
+  // and `ICommandSpec` commands instead.
+  private static bool OptionAppliesToVerifyCommand(string option) {
+    var name = option[2..].Split(':')[0];
+
+    var compileOptions = new List<Option> {
+      CommonOptionBag.SpillTranslation,
+      CommonOptionBag.OptimizeErasableDatatypeWrapper,
+      CommonOptionBag.AddCompileSuffix
+    }.Select(o => o.Name);
+
+    return !compileOptions.Contains(name);
+  }
+
+  private int RunWithCompiler(ForEachCompilerOptions options, IExecutableBackend backend, string expectedOutput, string? checkFile) {
     output.WriteLine($"Executing on {backend.TargetName}...");
-    var dafnyArgs = new List<string>() {
+    IEnumerable<string> dafnyArgs = new List<string> {
       "run",
       "--no-verify",
       $"--target:{backend.TargetId}",
@@ -141,9 +196,26 @@ public class MultiBackendTest {
       return 1;
     }
 
-    // If we hit errors, check for known unsupported features for this compilation target
+    // If we hit errors, check for known unsupported features or bugs for this compilation target
     if (error == "" && OnlyUnsupportedFeaturesErrors(backend, outputString)) {
       return 0;
+    }
+
+    if (checkFile != null) {
+      var outputLines = new List<string>();
+      // Concatenate stdout and stderr so either can be checked against
+      outputLines.AddRange(ReadAllLines(outputString));
+      outputLines.AddRange(ReadAllLines(error));
+      var checkDirectives = OutputCheckCommand.ParseCheckFile(checkFile);
+      var (checkResult, checkOutput, checkError) = OutputCheckCommand.Execute(outputLines, checkDirectives);
+      if (checkResult != 0) {
+        output.WriteLine($"OutputCheck on {checkFile} failed:");
+        output.WriteLine(checkOutput);
+        output.WriteLine("Error:");
+        output.WriteLine(checkError);
+      }
+
+      return checkResult;
     }
 
     output.WriteLine("Execution failed, for reasons other than known unsupported features. Output:");
@@ -151,6 +223,15 @@ public class MultiBackendTest {
     output.WriteLine("Error:");
     output.WriteLine(error);
     return exitCode;
+  }
+
+  public static IList<string> ReadAllLines(string s) {
+    var result = new List<string>();
+    var reader = new StringReader(s);
+    while (reader.ReadLine() is { } line) {
+      result.Add(line);
+    }
+    return result;
   }
 
   private static (int, string, string) RunDafny(IEnumerable<string> arguments) {
@@ -177,8 +258,7 @@ public class MultiBackendTest {
 
   private static bool OnlyUnsupportedFeaturesErrors(IExecutableBackend backend, string output) {
     using StringReader sr = new StringReader(output);
-    string? line;
-    while ((line = sr.ReadLine()) != null) {
+    while (sr.ReadLine() is { } line) {
       if (!IsAllowedOutputLine(backend, line)) {
         return false;
       }

@@ -7,16 +7,14 @@ namespace Microsoft.Dafny {
   public class TestGenerationOptions {
 
     public static readonly string TestInlineAttribute = "testInline";
+    public static readonly string TestEntryAttribute = "testEntry";
     public bool WarnDeadCode = false;
     public enum Modes { None, Block, Path };
     public Modes Mode = Modes.None;
-    [CanBeNull] public string TargetMethod = null;
     public uint SeqLengthLimit = 0;
-    public bool Verbose = false;
     [CanBeNull] public string PrintBpl = null;
-    [CanBeNull] public string PrintStats = null;
     public bool DisablePrune = false;
-    public static readonly uint DefaultTimeLimit = 10;
+    public const uint DefaultTimeLimit = 10;
 
     public bool ParseOption(string name, Bpl.CommandLineParseState ps) {
       var args = ps.args;
@@ -46,20 +44,10 @@ namespace Microsoft.Dafny {
           }
           return true;
 
-        case "generateTestTargetMethod":
-          if (ps.ConfirmArgumentCount(1)) {
-            TargetMethod = args[ps.i];
-          }
-          return true;
-
         case "generateTestPrintBpl":
           if (ps.ConfirmArgumentCount(1)) {
             PrintBpl = args[ps.i];
           }
-          return true;
-
-        case "generateTestVerbose":
-          Verbose = true;
           return true;
 
         case "generateTestNoPrune":
@@ -83,12 +71,8 @@ namespace Microsoft.Dafny {
 /generateTestSeqLengthLimit:<n>
     Add an axiom that sets the length of all sequences to be no greater 
     than <n>. 0 (default) indicates no limit.
-/generateTestTargetMethod:<methodName>
-    If specified, only this method will be tested.
 /generateTestPrintBpl:<fileName>
     Print the Boogie code used during test generation.
-/generateTestVerbose
-    Print various debugging info as comments for the generated tests.
 /generateTestNoPrune
     Disable axiom pruning that Dafny uses to speed up verification.";
 

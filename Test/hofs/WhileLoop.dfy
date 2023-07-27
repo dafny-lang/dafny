@@ -1,5 +1,4 @@
-// RUN: %dafny /compile:3 /print:"%t.print" "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment
 
 class Ref<A(0)> {
   var val: A

@@ -1,4 +1,5 @@
-﻿using OmniSharp.Extensions.LanguageServer.Protocol;
+﻿using System;
+using OmniSharp.Extensions.LanguageServer.Protocol;
 using OmniSharp.Extensions.LanguageServer.Protocol.Client;
 using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
@@ -14,6 +15,14 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions {
     public static void OpenDocument(this ILanguageClient client, TextDocumentItem documentItem) {
       client.DidOpenTextDocument(new DidOpenTextDocumentParams {
         TextDocument = documentItem
+      });
+    }
+
+    public static void CloseDocument(this ILanguageClient client, TextDocumentItem documentItem) {
+      client.DidCloseTextDocument(new DidCloseTextDocumentParams {
+        TextDocument = new TextDocumentIdentifier() {
+          Uri = documentItem.Uri
+        }
       });
     }
 

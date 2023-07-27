@@ -56,7 +56,7 @@ namespace Microsoft.Dafny {
         }
         if (codeContext is IMethodCodeContext) {
           var method = (IMethodCodeContext)codeContext;
-          method.Outs.Iter(p => CheckDefiniteAssignmentReturn(stmt.Tok, p, builder));
+          method.Outs.ForEach(p => CheckDefiniteAssignmentReturn(stmt.Tok, p, builder));
         }
 
         if (codeContext is Method { FunctionFromWhichThisIsByMethodDecl: { ByMethodTok: { } } fun } method2) {
@@ -267,7 +267,7 @@ namespace Microsoft.Dafny {
         fields.RemoveAll(f => f == null);
         var localSurrogates = fields.ConvertAll(f => new Bpl.LocalVariable(f.tok, new TypedIdent(f.tok, SurrogateName(f), TrType(f.Type))));
         locals.AddRange(localSurrogates);
-        fields.Iter(f => AddDefiniteAssignmentTrackerSurrogate(f, cl, locals, codeContext is Constructor && codeContext.IsGhost));
+        fields.ForEach(f => AddDefiniteAssignmentTrackerSurrogate(f, cl, locals, codeContext is Constructor && codeContext.IsGhost));
 
         Contract.Assert(!inBodyInitContext);
         inBodyInitContext = true;
@@ -277,8 +277,8 @@ namespace Microsoft.Dafny {
 
         // The "new;" translates into an allocation of "this"
         AddComment(builder, stmt, "new;");
-        fields.Iter(f => CheckDefiniteAssignmentSurrogate(s.SeparatorTok ?? s.RangeToken.EndToken, f, true, builder));
-        fields.Iter(RemoveDefiniteAssignmentTrackerSurrogate);
+        fields.ForEach(f => CheckDefiniteAssignmentSurrogate(s.SeparatorTok ?? s.RangeToken.EndToken, f, true, builder));
+        fields.ForEach(RemoveDefiniteAssignmentTrackerSurrogate);
         var th = new ThisExpr(cl);
         var bplThis = (Bpl.IdentifierExpr)etran.TrExpr(th);
         SelectAllocateObject(tok, bplThis, th.Type, false, builder, etran);
@@ -518,7 +518,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(etran != null);
 
       var stmtBuilder = new BoogieStmtListBuilder(this, options);
-      string errorMessage = CustomErrorMessage(stmt.Attributes);
+      var (errorMessage, successMessage) = CustomErrorMessage(stmt.Attributes);
       this.fuelContext = FuelSetting.ExpandFuelContext(stmt.Attributes, stmt.Tok, this.fuelContext, this.reporter);
       var defineFuel = DefineFuelConstant(stmt.Tok, stmt.Attributes, stmtBuilder, etran);
       var b = defineFuel ? stmtBuilder : builder;
@@ -548,14 +548,14 @@ namespace Microsoft.Dafny {
         var ss = TrSplitExpr(stmt.Expr, etran, true, out var splitHappened);
         if (!splitHappened) {
           var tok = enclosingToken == null ? GetToken(stmt.Expr) : new NestedToken(enclosingToken, GetToken(stmt.Expr));
-          var desc = new PODesc.AssertStatement(errorMessage);
+          var desc = new PODesc.AssertStatement(errorMessage, successMessage);
           (proofBuilder ?? b).Add(Assert(tok, etran.TrExpr(stmt.Expr), desc, stmt.Tok,
             etran.TrAttributes(stmt.Attributes, null)));
         } else {
           foreach (var split in ss) {
             if (split.IsChecked) {
               var tok = enclosingToken == null ? split.E.tok : new NestedToken(enclosingToken, split.Tok);
-              var desc = new PODesc.AssertStatement(errorMessage);
+              var desc = new PODesc.AssertStatement(errorMessage, successMessage);
               (proofBuilder ?? b).Add(AssertNS(ToDafnyToken(tok), split.E, desc, stmt.Tok,
                 etran.TrAttributes(stmt.Attributes, null))); // attributes go on every split
             }
@@ -827,7 +827,7 @@ namespace Microsoft.Dafny {
           var ctorId = matchCase.Ctor.Name;
           if (match.Source.Type.AsDatatype is TupleTypeDecl) {
             var tuple = (TupleTypeDecl)match.Source.Type.AsDatatype;
-            ctorId = BuiltIns.TupleTypeCtorName(tuple.Dims);
+            ctorId = SystemModuleManager.TupleTypeCtorName(tuple.Dims);
           }
 
           if (constructors.ContainsKey(ctorId)) {
@@ -1405,7 +1405,7 @@ namespace Microsoft.Dafny {
       }
       BoogieStmtListBuilder invDefinednessBuilder = new BoogieStmtListBuilder(this, options);
       foreach (AttributedExpression loopInv in s.Invariants) {
-        string errorMessage = CustomErrorMessage(loopInv.Attributes);
+        var (errorMessage, successMessage) = CustomErrorMessage(loopInv.Attributes);
         TrStmt_CheckWellformed(loopInv.E, invDefinednessBuilder, locals, etran, false);
         invDefinednessBuilder.Add(TrAssumeCmd(loopInv.E.tok, etran.TrExpr(loopInv.E)));
 
@@ -1413,12 +1413,12 @@ namespace Microsoft.Dafny {
         var ss = TrSplitExpr(loopInv.E, etran, false, out var splitHappened);
         if (!splitHappened) {
           var wInv = Bpl.Expr.Imp(w, etran.TrExpr(loopInv.E));
-          invariants.Add(Assert(loopInv.E.tok, wInv, new PODesc.LoopInvariant(errorMessage)));
+          invariants.Add(Assert(loopInv.E.tok, wInv, new PODesc.LoopInvariant(errorMessage, successMessage)));
         } else {
           foreach (var split in ss) {
             var wInv = Bpl.Expr.Binary(split.E.tok, BinaryOperator.Opcode.Imp, w, split.E);
             if (split.IsChecked) {
-              invariants.Add(Assert(split.Tok, wInv, new PODesc.LoopInvariant(errorMessage)));  // TODO: it would be fine to have this use {:subsumption 0}
+              invariants.Add(Assert(split.Tok, wInv, new PODesc.LoopInvariant(errorMessage, successMessage)));  // TODO: it would be fine to have this use {:subsumption 0}
             } else {
               invariants.Add(TrAssumeCmd(split.E.tok, wInv));
             }
@@ -1444,7 +1444,7 @@ namespace Microsoft.Dafny {
             invariants.Add(TrAssumeCmd(s.Tok, tri.Expr));
           } else {
             Contract.Assert(tri.ErrorMessage != null);  // follows from BoilerplateTriple invariant
-            invariants.Add(Assert(s.Tok, tri.Expr, new PODesc.BoilerplateTriple(tri.ErrorMessage)));
+            invariants.Add(Assert(s.Tok, tri.Expr, new PODesc.BoilerplateTriple(tri.ErrorMessage, tri.SuccessMessage, tri.Comment)));
           }
         }
         // add a free invariant which says that the heap hasn't changed outside of the modifies clause.
@@ -1781,7 +1781,11 @@ namespace Microsoft.Dafny {
             CheckNonNull(dafnyReceiver.tok, dafnyReceiver, builder, etran, null);
           }
         }
-        ins.Add(etran.TrExpr(receiver));
+        var obj = etran.TrExpr(receiver);
+        if (bReceiver == null) {
+          obj = BoxifyForTraitParent(tok, obj, method, dafnyReceiver.Type);
+        }
+        ins.Add(obj);
       } else if (receiver is StaticReceiverExpr stexpr) {
         if (stexpr.ObjectToDiscard != null) {
           TrStmt_CheckWellformed(stexpr.ObjectToDiscard, builder, locals, etran, true);

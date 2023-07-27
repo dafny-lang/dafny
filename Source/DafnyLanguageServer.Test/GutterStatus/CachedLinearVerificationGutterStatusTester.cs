@@ -1,8 +1,8 @@
 ﻿using System.Threading.Tasks;
-using Xunit.Abstractions;
 using Xunit;
+using Xunit.Abstractions;
 
-namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Diagnostics;
+namespace Microsoft.Dafny.LanguageServer.IntegrationTest.GutterStatus;
 
 [CollectionDefinition("Sequential Collection", DisableParallelization = true)] // These tests are slow and close to hitting their timeout, so we don't run then in parallel with others
 public class NonParallelCollection { }
@@ -25,7 +25,7 @@ public class CachedLinearVerificationGutterStatusTester : LinearVerificationGutt
  .  S  S  |  I  $  | :method test() {
  .  S  |  |  I  $  | :  assert true;
  .  S  S  |  I  $  | :  //Next: 
- .  S  S  |  I  $  | :}");
+ .  S  S  |  I  $  | :}", true);
   }
 
   [Fact(Timeout = MaxTestExecutionTimeMs)]
@@ -39,7 +39,7 @@ public class CachedLinearVerificationGutterStatusTester : LinearVerificationGutt
  .  S [O][O][o][Q][O][O]:  assert true;
  .  S [=][=][-][~][=][=]:  assert false;
  .  S [S][ ][I][S][S][ ]:  //Next: 
- .  S [S][ ][I][S][S][ ]:}");
+ .  S [S][ ][I][S][S][ ]:}", false, "ensureCachingDoesNotHideErrors.dfy");
   }
 
   public CachedLinearVerificationGutterStatusTester(ITestOutputHelper output) : base(output) {

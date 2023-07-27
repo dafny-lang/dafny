@@ -12,6 +12,7 @@ public class PythonBackend : ExecutableBackend {
   public override IReadOnlySet<string> SupportedExtensions => new HashSet<string> { ".py" };
 
   public override string TargetName => "Python";
+  public override bool IsStable => true;
   public override string TargetExtension => "py";
   public override int TargetIndentSize => 4;
 
@@ -83,6 +84,11 @@ public class PythonBackend : ExecutableBackend {
       if (!CopyExternLibraryIntoPlace(otherFileName, targetFilename, outputWriter)) {
         return false;
       }
+    }
+    if (!runAfterCompile) {
+      var psi = PrepareProcessStartInfo("python3");
+      psi.Arguments = $"-m compileall -q {Path.GetDirectoryName(targetFilename)}";
+      return 0 == RunProcess(psi, outputWriter, outputWriter, "Error while compiling Python files.");
     }
     return true;
   }

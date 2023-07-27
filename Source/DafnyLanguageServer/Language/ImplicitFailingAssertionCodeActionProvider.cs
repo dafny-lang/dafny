@@ -95,7 +95,7 @@ class ImplicitFailingAssertionCodeActionProvider : DiagnosticDafnyCodeActionProv
       insertionNode ??= nodesTillFailure[0];
 
       var start = insertionNode.StartToken;
-      var assertStr = $"{(needsIsolation ? "(" : "")}assert {Printer.ExprToString(options, failingImplicitAssertion)};\n" +
+      var assertStr = $"{(needsIsolation ? "(" : "")}assert {Printer.ExprToString(options, failingImplicitAssertion, new PrintFlags(UseOriginalDafnyNames: true))};\n" +
                       IndentationFormatter.Whitespace(Math.Max(start.col - 1 + (needsIsolation ? 1 : 0), 0));
       suggestedEdits.Add(
         new DafnyCodeActionEdit(
@@ -114,8 +114,9 @@ class ImplicitFailingAssertionCodeActionProvider : DiagnosticDafnyCodeActionProv
     if (input.Program == null || diagnostic.Source != MessageSource.Verifier) {
       return null;
     }
+
     var failingExpressions = new List<Expression>() { };
-    input.VerificationTree.Visit(tree => {
+    input.VerificationTree?.Visit(tree => {
       if (tree is AssertionVerificationTree assertTree &&
           assertTree.Finished &&
             assertTree.Range.Intersects(selection) &&

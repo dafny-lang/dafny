@@ -4,6 +4,7 @@ using System.IO;
 using System.Security.Cryptography;
 using System.Security.Policy;
 using System.Text;
+using System.Threading;
 using Microsoft.Extensions.Logging;
 
 namespace Microsoft.Dafny.LanguageServer.Language;
@@ -11,11 +12,18 @@ namespace Microsoft.Dafny.LanguageServer.Language;
 public class CachingParser : ProgramParser {
   private readonly PruneIfNotUsedSinceLastPruneCache<byte[], DfyParseResult> parseCache = new(new HashEquality());
 
-  public CachingParser(ILogger<ProgramParser> logger) : base(logger) {
+  public CachingParser(ILogger<ProgramParser> logger, IFileSystem fileSystem) : base(logger, fileSystem) {
   }
 
   public void Prune() {
     parseCache.Prune();
+  }
+
+  public override Program ParseFiles(string programName, IReadOnlyList<DafnyFile> files, ErrorReporter errorReporter,
+    CancellationToken cancellationToken) {
+    var result = base.ParseFiles(programName, files, errorReporter, cancellationToken);
+    Prune();
+    return result;
   }
 
   protected override DfyParseResult ParseFile(DafnyOptions options, TextReader reader, Uri uri) {

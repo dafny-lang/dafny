@@ -14,7 +14,7 @@ using Bpl = Microsoft.Boogie;
 
 namespace Microsoft.Dafny {
   public class UnderspecificationDetector : ResolverPass {
-    public UnderspecificationDetector(Resolver resolver)
+    public UnderspecificationDetector(ModuleResolver resolver)
       : base(resolver) {
     }
 
@@ -38,9 +38,9 @@ namespace Microsoft.Dafny {
         if (d is IteratorDecl) {
           var iter = (IteratorDecl)d;
           var prevErrCnt = ErrorCount;
-          iter.Members.Iter(CheckMember);
+          iter.Members.ForEach(CheckMember);
           if (prevErrCnt == ErrorCount) {
-            iter.SubExpressions.Iter(e => CheckExpression(e, iter));
+            iter.SubExpressions.ForEach(e => CheckExpression(e, iter));
           }
           CheckParameterDefaultValues(iter.Ins, iter);
           if (iter.Body != null) {
@@ -72,7 +72,7 @@ namespace Microsoft.Dafny {
 
         } else if (d is DatatypeDecl) {
           var dd = (DatatypeDecl)d;
-          foreach (var member in resolver.classMembers[dd].Values) {
+          foreach (var member in resolver.GetClassMembers(dd)!.Values) {
             var dtor = member as DatatypeDestructor;
             if (dtor != null) {
               var rolemodel = dtor.CorrespondingFormals[0];
@@ -120,7 +120,7 @@ namespace Microsoft.Dafny {
             }
           }
           if (prevErrCnt == ErrorCount && member is ICodeContext) {
-            member.SubExpressions.Iter(e => CheckExpression(e, (ICodeContext)member));
+            member.SubExpressions.ForEach(e => CheckExpression(e, (ICodeContext)member));
           }
         }
       }
@@ -135,9 +135,9 @@ namespace Microsoft.Dafny {
 
       } else if (member is Method method) {
         CheckParameterDefaultValues(method.Ins, method);
-        method.Req.Iter(mfe => CheckAttributedExpression(mfe, method));
+        method.Req.ForEach(mfe => CheckAttributedExpression(mfe, method));
         CheckSpecFrameExpression(method.Mod, method);
-        method.Ens.Iter(mfe => CheckAttributedExpression(mfe, method));
+        method.Ens.ForEach(mfe => CheckAttributedExpression(mfe, method));
         CheckSpecExpression(method.Decreases, method);
         if (method.Body != null) {
           CheckStatement(method.Body, method);
@@ -147,9 +147,9 @@ namespace Microsoft.Dafny {
         var f = (Function)member;
         CheckParameterDefaultValues(f.Formals, f);
         var errorCount = ErrorCount;
-        f.Req.Iter(e => CheckExpression(e.E, f));
-        f.Ens.Iter(e => CheckExpression(e.E, f));
-        f.Reads.Iter(fe => CheckExpression(fe.E, f));
+        f.Req.ForEach(e => CheckExpression(e.E, f));
+        f.Ens.ForEach(e => CheckExpression(e.E, f));
+        f.Reads.ForEach(fe => CheckExpression(fe.E, f));
         CheckSpecExpression(f.Decreases, f);
         if (f.Body != null) {
           CheckExpression(f.Body, f);
@@ -182,17 +182,17 @@ namespace Microsoft.Dafny {
     }
 
     private void CheckSpecExpression(Specification<Expression> spec, ICodeContext codeContext) {
-      Attributes.SubExpressions(spec.Attributes).Iter(e => CheckExpression(e, codeContext));
-      spec.Expressions.Iter(e => CheckExpression(e, codeContext));
+      Attributes.SubExpressions(spec.Attributes).ForEach(e => CheckExpression(e, codeContext));
+      spec.Expressions.ForEach(e => CheckExpression(e, codeContext));
     }
 
     private void CheckSpecFrameExpression(Specification<FrameExpression> spec, ICodeContext codeContext) {
-      Attributes.SubExpressions(spec.Attributes).Iter(e => CheckExpression(e, codeContext));
-      spec.Expressions.Iter(fe => CheckExpression(fe.E, codeContext));
+      Attributes.SubExpressions(spec.Attributes).ForEach(e => CheckExpression(e, codeContext));
+      spec.Expressions.ForEach(fe => CheckExpression(fe.E, codeContext));
     }
 
     private void CheckAttributedExpression(AttributedExpression ae, ICodeContext codeContext) {
-      Attributes.SubExpressions(ae.Attributes).Iter(e => CheckExpression(e, codeContext));
+      Attributes.SubExpressions(ae.Attributes).ForEach(e => CheckExpression(e, codeContext));
       CheckExpression(ae.E, codeContext);
     }
 
@@ -225,13 +225,13 @@ namespace Microsoft.Dafny {
         }
       } else if (stmt is VarDeclPattern) {
         var s = (VarDeclPattern)stmt;
-        s.LocalVars.Iter(local => CheckPreTypeIsDetermined(local.Tok, local.PreType, "local variable"));
-        s.LocalVars.Iter(local => CheckTypeArgsContainNoOrdinal(local.Tok, local.PreType));
+        s.LocalVars.ForEach(local => CheckPreTypeIsDetermined(local.Tok, local.PreType, "local variable"));
+        s.LocalVars.ForEach(local => CheckTypeArgsContainNoOrdinal(local.Tok, local.PreType));
 
       } else if (stmt is ForallStmt) {
         var s = (ForallStmt)stmt;
-        s.BoundVars.Iter(bv => CheckPreTypeIsDetermined(bv.tok, bv.PreType, "bound variable"));
-        s.BoundVars.Iter(bv => CheckTypeArgsContainNoOrdinal(bv.tok, bv.PreType));
+        s.BoundVars.ForEach(bv => CheckPreTypeIsDetermined(bv.tok, bv.PreType, "bound variable"));
+        s.BoundVars.ForEach(bv => CheckTypeArgsContainNoOrdinal(bv.tok, bv.PreType));
 
       } else if (stmt is AssignSuchThatStmt) {
         var s = (AssignSuchThatStmt)stmt;
@@ -267,7 +267,7 @@ namespace Microsoft.Dafny {
           var n = (BigInteger)e.Value;
           var absN = n < 0 ? -n : n;
           // For bitvectors, check that the magnitude fits the width
-          if (PreTypeResolver.IsBitvectorName(familyDeclName, out var width) && Resolver.MaxBV(width) < absN) {
+          if (PreTypeResolver.IsBitvectorName(familyDeclName, out var width) && ModuleResolver.MaxBV(width) < absN) {
             cus.ReportError(e.tok, "literal ({0}) is too large for the bitvector type {1}", absN, e.PreType);
           }
           // For bitvectors and ORDINALs, check for a unary minus that, earlier, was mistaken for a negative literal
@@ -570,7 +570,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(tok != null);
       Contract.Requires(preType != null);
       if (preType.Normalize() is DPreType dp) {
-        dp.Arguments.Iter(tt => CheckContainsNoOrdinal(tok, tt, "an ORDINAL type is not allowed to be used as a type argument"));
+        dp.Arguments.ForEach(tt => CheckContainsNoOrdinal(tok, tt, "an ORDINAL type is not allowed to be used as a type argument"));
       }
     }
 
@@ -582,7 +582,7 @@ namespace Microsoft.Dafny {
         if (PreTypeResolver.AncestorName(dp) == "ORDINAL") {
           cus.ReportError(tok, errMsg);
         }
-        dp.Arguments.Iter(tt => CheckContainsNoOrdinal(tok, tt, errMsg));
+        dp.Arguments.ForEach(tt => CheckContainsNoOrdinal(tok, tt, errMsg));
       }
     }
   }

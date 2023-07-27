@@ -9,10 +9,16 @@ using Microsoft.Boogie;
 namespace Microsoft.Dafny;
 
 public class BitvectorOptimization : IRewriter {
-  public BitvectorOptimization(ErrorReporter reporter) : base(reporter) { }
+  private SystemModuleManager systemModuleManager;
+  public BitvectorOptimization(ErrorReporter reporter) : base(reporter) {
+  }
+
+  internal override void PreResolve(Program program) {
+    systemModuleManager = program.SystemModuleManager;
+  }
 
   internal override void PostResolveIntermediate(ModuleDefinition m) {
-    var visitor = new BitvectorOptimizationVisitor(Reporter.Options);
+    var visitor = new BitvectorOptimizationVisitor(Reporter.Options, systemModuleManager);
     foreach (var decl in ModuleDefinition.AllItersAndCallables(m.TopLevelDecls)) {
       visitor.Visit(decl);
     }
@@ -20,10 +26,12 @@ public class BitvectorOptimization : IRewriter {
 }
 
 public class BitvectorOptimizationVisitor : BottomUpVisitor {
-  private DafnyOptions options;
+  private readonly DafnyOptions options;
+  private readonly SystemModuleManager systemModuleManager;
 
-  public BitvectorOptimizationVisitor(DafnyOptions options) {
+  public BitvectorOptimizationVisitor(DafnyOptions options, SystemModuleManager systemModuleManager) {
     this.options = options;
+    this.systemModuleManager = systemModuleManager;
   }
 
   private bool IsShiftOp(BinaryExpr.Opcode op) {
@@ -33,6 +41,7 @@ public class BitvectorOptimizationVisitor : BottomUpVisitor {
   private Expression ShrinkBitVectorShiftAmount(Expression expr, BitvectorType originalType) {
     var width = new BigInteger(originalType.Width);
     var intermediateType = new BitvectorType(options, (int)width.GetBitLength());
+    systemModuleManager.Bitwidths.Add(intermediateType.Width);
     var newExpr = new ConversionExpr(expr.tok, expr, intermediateType, "when converting shift amount to a bit vector, the ");
     newExpr.Type = intermediateType;
     return newExpr;

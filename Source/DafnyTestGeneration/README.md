@@ -42,7 +42,7 @@ module M {
   class Value {
     var v:int;
   }
-  method compareToZero(v:Value) returns (i:int) {
+  method {:testEntry} compareToZero(v:Value) returns (i:int) {
     if (v.v == 0) {
       return 0;
     } else if (v.v > 0) {

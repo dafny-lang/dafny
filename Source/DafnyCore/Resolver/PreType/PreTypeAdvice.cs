@@ -47,7 +47,7 @@ namespace Microsoft.Dafny {
           Target.Int => preTypeResolver.Type2PreType(Type.Int),
           Target.Real => preTypeResolver.Type2PreType(Type.Real),
           Target.String => preTypeResolver.Type2PreType(StringDecl()),
-          Target.Object => preTypeResolver.Type2PreType(preTypeResolver.resolver.builtIns.ObjectQ()),
+          Target.Object => preTypeResolver.Type2PreType(preTypeResolver.resolver.SystemModuleManager.ObjectQ()),
           _ => throw new cce.UnreachableException() // unexpected case
         };
         proxy.Set(target);

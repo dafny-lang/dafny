@@ -219,7 +219,11 @@ namespace Microsoft.Dafny {
     }
 
     public override PreType Substitute(Dictionary<TypeParameter, PreType> subst) {
-      return this;
+      if (PT != null) {
+        return PT.Substitute(subst);
+      } else {
+        return this;
+      }
     }
   }
 
@@ -269,7 +273,7 @@ namespace Microsoft.Dafny {
 
     public static bool IsReferenceTypeDecl(TopLevelDecl decl) {
       Contract.Requires(decl != null);
-      return decl is ClassDecl && !(decl is ArrowTypeDecl);
+      return decl is ClassLikeDecl { IsReferenceTypeDecl: true };
     }
 
     public static bool IsArrowType(TopLevelDecl decl) {
@@ -279,7 +283,7 @@ namespace Microsoft.Dafny {
 
     public static bool IsTupleType(TopLevelDecl decl) {
       Contract.Requires(decl != null);
-      return BuiltIns.IsTupleTypeName(decl.Name);
+      return SystemModuleManager.IsTupleTypeName(decl.Name);
     }
 
     public override bool Contains(PreTypeProxy proxy, int direction, HashSet<PreTypeProxy> visited, PreTypeConstraints constraints, int recursionDepth) {

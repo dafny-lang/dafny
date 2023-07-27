@@ -1,7 +1,3 @@
-
-Dafny program verifier finished with 21 verified, 0 errors
-
-Dafny program verifier did not attempt verification
 3 false 0
 false false true
 () (0, false, false, [])
@@ -26,172 +22,27 @@ null null null
 null null
 null null null
 null null null
-DatatypeDefaultValues_Compile.EnumDatatype.MakeZero
-  DatatypeDefaultValues_Compile.IntList.Nil
+DatatypeDefaultValues.EnumDatatype.MakeZero
+  DatatypeDefaultValues.IntList.Nil
   0
-DatatypeDefaultValues_Compile.GenericTree.Leaf
-  DatatypeDefaultValues_Compile.Complicated.ComplA(0, false)
-  DatatypeDefaultValues_Compile.CellCell.MakeCellCell(0)
+DatatypeDefaultValues.GenericTree.Leaf
+  DatatypeDefaultValues.Complicated.ComplA(0, false)
+  DatatypeDefaultValues.CellCell.MakeCellCell(0)
 null
   null
-ImportedTypes_mLibrary_Compile.Color.Red(0) and ImportedTypes_mLibrary_Compile.Color.Red(0)
-ImportedTypes_mLibrary_Compile.CoColor.Yellow and ImportedTypes_mLibrary_Compile.CoColor.Yellow
-ImportedTypes_mLibrary_Compile.MoColor.MoYellow and ImportedTypes_mLibrary_Compile.MoColor.MoYellow
+Library.Color.Red(0) and Library.Color.Red(0)
+Library.CoColor.Yellow and Library.CoColor.Yellow
+Library.MoColor.MoYellow and Library.MoColor.MoYellow
 0.0 and 0.0
 13
-
-Dafny program verifier did not attempt verification
-3 false 0
-false false true
-() (0, false, false, [])
-(null, 0) (null, 0) true
-(null, null, null, 0) (null, null, null, 0) true
-true false false true
-true false false true
-17
-1 3 9 0 0 ThisOrThat.Or ThisOrThat.Or
-(1, 3, 9, 0, 0, ThisOrThat.Or, ThisOrThat.Or)
-1
-ww == null  -- yes, as expected
-true true true true
-true true true
-true true true
-null null
-null null
-null null null
-null null null
-null null null
-null null null
-null null
-null null null
-null null null
-DatatypeDefaultValues_Compile.EnumDatatype.MakeZero
-  DatatypeDefaultValues_Compile.IntList.Nil
-  0
-DatatypeDefaultValues_Compile.GenericTree.Leaf
-  DatatypeDefaultValues_Compile.Complicated.ComplA(0, false)
-  DatatypeDefaultValues_Compile.CellCell.MakeCellCell(0)
-null
-  null
-ImportedTypes_mLibrary_Compile.Color.Red(0) and ImportedTypes_mLibrary_Compile.Color.Red(0)
-ImportedTypes_mLibrary_Compile.CoColor.Yellow and ImportedTypes_mLibrary_Compile.CoColor.Yellow
-ImportedTypes_mLibrary_Compile.MoColor.MoYellow and ImportedTypes_mLibrary_Compile.MoColor.MoYellow
-0.0 and 0.0
-13
-
-Dafny program verifier did not attempt verification
-3 false 0
-false false true
-() (0, false, false, [])
-(null, 0) (null, 0) true
-(null, null, null, 0) (null, null, null, 0) true
-true false false true
-true false false true
-17
-1 3 9 0 0 ThisOrThat.Or ThisOrThat.Or
-(1, 3, 9, 0, 0, ThisOrThat.Or, ThisOrThat.Or)
-1
-ww == null  -- yes, as expected
-true true true true
-true true true
-true true true
-null null
-null null
-null null null
-null null null
-null null null
-null null null
-null null
-null null null
-null null null
-DatatypeDefaultValues_Compile.EnumDatatype.MakeZero
-  DatatypeDefaultValues_Compile.IntList.Nil
-  0
-DatatypeDefaultValues_Compile.GenericTree.Leaf
-  DatatypeDefaultValues_Compile.Complicated.ComplA(0, false)
-  DatatypeDefaultValues_Compile.CellCell.MakeCellCell(0)
-null
-  null
-ImportedTypes_mLibrary_Compile.Color.Red(0) and ImportedTypes_mLibrary_Compile.Color.Red(0)
-ImportedTypes_mLibrary_Compile.CoColor.Yellow and ImportedTypes_mLibrary_Compile.CoColor.Yellow
-ImportedTypes_mLibrary_Compile.MoColor.MoYellow and ImportedTypes_mLibrary_Compile.MoColor.MoYellow
-0.0 and 0.0
-13
-
-Dafny program verifier did not attempt verification
-3 false 0
-false false true
-() (0, false, false, [])
-(null, 0) (null, 0) true
-(null, null, null, 0) (null, null, null, 0) true
-true false false true
-true false false true
-17
-1 3 9 0 0 ThisOrThat.Or ThisOrThat.Or
-(1, 3, 9, 0, 0, ThisOrThat.Or, ThisOrThat.Or)
-1
-ww == null  -- yes, as expected
-true true true true
-true true true
-true true true
-null null
-null null
-null null null
-null null null
-null null null
-null null null
-null null
-null null null
-null null null
-DatatypeDefaultValues_Compile.EnumDatatype.MakeZero
-  DatatypeDefaultValues_Compile.IntList.Nil
-  0
-DatatypeDefaultValues_Compile.GenericTree.Leaf
-  DatatypeDefaultValues_Compile.Complicated.ComplA(0, false)
-  DatatypeDefaultValues_Compile.CellCell.MakeCellCell(0)
-null
-  null
-ImportedTypes_mLibrary_Compile.Color.Red(0) and ImportedTypes_mLibrary_Compile.Color.Red(0)
-ImportedTypes_mLibrary_Compile.CoColor.Yellow and ImportedTypes_mLibrary_Compile.CoColor.Yellow
-ImportedTypes_mLibrary_Compile.MoColor.MoYellow and ImportedTypes_mLibrary_Compile.MoColor.MoYellow
-0.0 and 0.0
-13
-
-Dafny program verifier did not attempt verification
-3 false 0
-false false true
-() (0, false, false, [])
-(null, 0) (null, 0) true
-(null, null, null, 0) (null, null, null, 0) true
-true false false true
-true false false true
-17
-1 3 9 0 0 ThisOrThat.Or ThisOrThat.Or
-(1, 3, 9, 0, 0, ThisOrThat.Or, ThisOrThat.Or)
-1
-ww == null  -- yes, as expected
-true true true true
-true true true
-true true true
-null null
-null null
-null null null
-null null null
-null null null
-null null null
-null null
-null null null
-null null null
-DatatypeDefaultValues_Compile.EnumDatatype.MakeZero
-  DatatypeDefaultValues_Compile.IntList.Nil
-  0
-DatatypeDefaultValues_Compile.GenericTree.Leaf
-  DatatypeDefaultValues_Compile.Complicated.ComplA(0, false)
-  DatatypeDefaultValues_Compile.CellCell.MakeCellCell(0)
-null
-  null
-ImportedTypes_mLibrary_Compile.Color.Red(0) and ImportedTypes_mLibrary_Compile.Color.Red(0)
-ImportedTypes_mLibrary_Compile.CoColor.Yellow and ImportedTypes_mLibrary_Compile.CoColor.Yellow
-ImportedTypes_mLibrary_Compile.MoColor.MoYellow and ImportedTypes_mLibrary_Compile.MoColor.MoYellow
-0.0 and 0.0
-13
+TypeDescriptorInDatatypeValue.Datatype.Simple('D', 0.0)
+TypeDescriptorInDatatypeValue.Datatype.Simple('D', 0.0)
+'D'
+'D'
+TypeDescriptorInDatatypeValue.Stream.End
+TypeDescriptorInDatatypeValue.Stream.End
+TypeDescriptorInDatatypeValue.ContraStream.End
+TypeDescriptorInDatatypeValue.ContraStream.End
+TypeDescriptorInDatatypeValue.CoEnum.CoEnum
+TypeDescriptorInDatatypeValue.CoEnum.CoEnum
+DatatypeValues.Stream.Next DatatypeValues.AutoStream.AutoNext

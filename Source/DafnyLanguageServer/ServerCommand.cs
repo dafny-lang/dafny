@@ -1,9 +1,7 @@
 using System.Collections.Generic;
 using System.CommandLine;
 using System.CommandLine.Invocation;
-using System.Linq;
 using DafnyCore;
-using Microsoft.Boogie;
 using Microsoft.Dafny.LanguageServer.Workspace;
 
 namespace Microsoft.Dafny.LanguageServer;
@@ -18,12 +16,19 @@ public class ServerCommand : ICommandSpec {
     DafnyOptions.RegisterLegacyBinding(VerifySnapshots, (options, u) => options.VerifySnapshots = (int)u);
 
     DooFile.RegisterNoChecksNeeded(
+      ProjectMode,
       Verification,
       GhostIndicators,
       LineVerificationStatus,
-      VerifySnapshots
+      VerifySnapshots,
+      UseCaching
     );
   }
+
+  public static readonly Option<bool> UseCaching = new("--use-caching", () => true,
+    "Use caching to speed up analysis done by the Dafny IDE after each text edit.") {
+    IsHidden = true
+  };
 
   public static readonly Option<bool> GhostIndicators = new("--notify-ghostness",
     @"
@@ -41,6 +46,11 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
 Send notifications about the verification status of each line in the program.
 ".TrimStart());
 
+  public static readonly Option<bool> ProjectMode = new("--project-mode", () => false,
+    "New mode with working with project files. Will become the default") {
+    IsHidden = true
+  };
+
   public static readonly Option<uint> VerifySnapshots = new("--cache-verification", @"
 (experimental)
 0 - do not use any verification result caching (default)
@@ -54,11 +64,14 @@ Send notifications about the verification status of each line in the program.
   };
 
   public IEnumerable<Option> Options => new Option[] {
+    ProjectMode,
     BoogieOptionBag.NoVerify,
     Verification,
     GhostIndicators,
     LineVerificationStatus,
     VerifySnapshots,
+    UseCaching,
+    DeveloperOptionBag.BoogiePrint,
     CommonOptionBag.EnforceDeterminism,
     CommonOptionBag.UseJavadocLikeDocstringRewriterOption
   }.Concat(ICommandSpec.VerificationOptions).
@@ -75,7 +88,14 @@ Send notifications about the verification status of each line in the program.
   public static void ConfigureDafnyOptionsForServer(DafnyOptions dafnyOptions) {
     dafnyOptions.RunLanguageServer = true;
     dafnyOptions.Set(DafnyConsolePrinter.ShowSnippets, true);
+
     dafnyOptions.PrintIncludesMode = DafnyOptions.IncludesModes.None;
+
+    // TODO This may be subject to change. See Microsoft.Boogie.Counterexample
+    //      A dash means write to the textwriter instead of a file.
+    // https://github.com/boogie-org/boogie/blob/b03dd2e4d5170757006eef94cbb07739ba50dddb/Source/VCGeneration/Couterexample.cs#L217
+    dafnyOptions.ModelViewFile = "-";
+
     dafnyOptions.ProverOptions.AddRange(new List<string>()
     {
       "O:model_compress=false", // Replaced by "O:model.compact=false" if z3's version is > 4.8.6

@@ -134,6 +134,19 @@ const x := 1
     }
 
     [Fact]
+    public async Task ExplicitNestedIdentifier() {
+      await TestCodeAction(@"
+datatype D = C(value: int) | N
+
+function Test(e: D, inputs: map<int, int>): bool {
+  match e
+  case N => true
+  case C(index) => (>Insert explicit failing assertion->assert index in inputs;
+                   <)inputs><[index] == index // Here
+}");
+    }
+
+    [Fact]
     public async Task ExplicitDivisionByZero() {
       await TestCodeAction(@"
 method Foo(i: int)

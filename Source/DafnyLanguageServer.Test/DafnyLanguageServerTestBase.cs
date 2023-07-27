@@ -13,17 +13,16 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using OmniSharp.Extensions.LanguageServer.Protocol.Server;
 using OmniSharp.Extensions.LanguageServer.Server;
 using System.IO;
-using System.IO.Pipelines;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
-using MediatR;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Various;
 using Microsoft.Dafny.LanguageServer.Language;
 using OmniSharp.Extensions.LanguageServer.Client;
 using Xunit.Abstractions;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest {
-  public class DafnyLanguageServerTestBase : LanguageServerTestBase {
+  public class DafnyLanguageServerTestBase : LanguageProtocolTestBase {
 
     protected readonly string SlowToVerify = @"
 lemma {:timeLimit 3} SquareRoot2NotRational(p: nat, q: nat)
@@ -51,40 +50,56 @@ lemma {:neverVerify} HasNeverVerifyAttribute(p: nat, q: nat)
     protected static int fileIndex;
     protected readonly TextWriter output;
 
-    public ILanguageServer Server { get; private set; }
+    public ILanguageServer Server { get; protected set; }
 
-    public IDocumentDatabase Documents => Server.GetRequiredService<IDocumentDatabase>();
+    public IProjectDatabase Projects => Server.GetRequiredService<IProjectDatabase>();
 
     public DafnyLanguageServerTestBase(ITestOutputHelper output) : base(new JsonRpcTestOptions(LoggerFactory.Create(
       builder => builder.AddConsole().SetMinimumLevel(LogLevel.Warning)))) {
       this.output = new WriterFromOutputHelper(output);
     }
 
-    protected virtual IServiceCollection ServerOptionsAction(LanguageServerOptions serverOptions) {
-      return serverOptions.Services.AddSingleton<IProgramVerifier>(serviceProvider => new SlowVerifier(
-        serviceProvider.GetRequiredService<ILogger<DafnyProgramVerifier>>(),
-        serviceProvider.GetRequiredService<DafnyOptions>()
-      ));
+    protected virtual void ServerOptionsAction(LanguageServerOptions serverOptions) {
     }
 
-    protected virtual async Task<ILanguageClient> InitializeClient(
-      Action<LanguageClientOptions> clientOptionsAction = null,
-      Action<DafnyOptions> modifyOptions = null) {
-      var dafnyOptions = DafnyOptions.Create(output);
-      modifyOptions?.Invoke(dafnyOptions);
+    protected Task<(ILanguageClient client, ILanguageServer server)> Initialize(Action<LanguageClientOptions> clientOptionsAction, Action<DafnyOptions> serverOptionsAction) {
+      /*
+       * I would rather use LanguageServerOptions.RegisterForDisposal, but it doesn't seem to work
+       * Alternatively one can do Disposable.Add((IDisposable)Server.Services), but we've seen many
+       * ObjectDisposedExceptions in tests that might relate to this, so let's be more specific and only dispose
+       * IProjectDatabase
+       */
+      Disposable.Add(new AnonymousDisposable(() => {
+        var database = Server.Services.GetRequiredService<IProjectDatabase>();
+        database.Dispose();
+      }));
+      return base.Initialize(clientOptionsAction, GetServerOptionsAction(serverOptionsAction));
+    }
 
-      void NewServerOptionsAction(LanguageServerOptions options) {
-        ApplyDefaultOptionValues(dafnyOptions);
+    private sealed class AnonymousDisposable : IDisposable {
+      private Action action;
 
-        ServerCommand.ConfigureDafnyOptionsForServer(dafnyOptions);
-        options.Services.AddSingleton(dafnyOptions);
-        ServerOptionsAction(options);
+      public AnonymousDisposable(Action action) {
+        this.action = action;
       }
 
-      var client = CreateClient(clientOptionsAction, NewServerOptionsAction);
-      await client.Initialize(CancellationToken).ConfigureAwait(false);
+      public void Dispose() => Interlocked.Exchange(ref action, null)?.Invoke();
+    }
 
-      return client;
+    private Action<LanguageServerOptions> GetServerOptionsAction(Action<DafnyOptions> modifyOptions) {
+      var dafnyOptions = DafnyOptions.Create(output);
+      modifyOptions?.Invoke(dafnyOptions);
+      ServerCommand.ConfigureDafnyOptionsForServer(dafnyOptions);
+      ApplyDefaultOptionValues(dafnyOptions);
+      return options => {
+        options.ConfigureLogging(SetupTestLogging);
+        options.WithDafnyLanguageServer(() => { });
+        options.Services.AddSingleton(dafnyOptions);
+        options.Services.AddSingleton<IProgramVerifier>(serviceProvider => new SlowVerifier(
+          serviceProvider.GetRequiredService<ILogger<DafnyProgramVerifier>>()
+        ));
+        ServerOptionsAction(options);
+      };
     }
 
     private static void ApplyDefaultOptionValues(DafnyOptions dafnyOptions) {
@@ -105,69 +120,17 @@ lemma {:neverVerify} HasNeverVerifyAttribute(p: nat, q: nat)
       }
     }
 
-    protected virtual ILanguageClient CreateClient(
-      Action<LanguageClientOptions> clientOptionsAction = null,
-      Action<LanguageServerOptions> serverOptionsAction = null) {
-      var client = LanguageClient.PreInit(
-        options => {
-          var (reader, writer) = SetupServer(serverOptionsAction);
-          options
-            .WithInput(reader)
-            .WithOutput(writer)
-            .WithLoggerFactory(TestOptions.ClientLoggerFactory)
-            .WithAssemblies(TestOptions.Assemblies)
-            .WithAssemblies(typeof(LanguageProtocolTestBase).Assembly, GetType().Assembly)
-            .ConfigureLogging(x => x.SetMinimumLevel(LogLevel.Trace))
-            .WithInputScheduler(options.InputScheduler)
-            .WithOutputScheduler(options.OutputScheduler)
-            .WithDefaultScheduler(options.DefaultScheduler)
-            .Services
-            .AddTransient(typeof(IPipelineBehavior<,>), typeof(SettlePipeline<,>))
-            .AddSingleton(Events as IRequestSettler);
-
-          clientOptionsAction?.Invoke(options);
-        }
-      );
-
-      Disposable.Add(client);
-
-      return client;
-    }
-
-    protected (Stream clientOutput, Stream serverInput) SetupServer(
-      Action<LanguageServerOptions> serverOptionsAction = null) {
-      var clientPipe = new Pipe(TestOptions.DefaultPipeOptions);
-      var serverPipe = new Pipe(TestOptions.DefaultPipeOptions);
-      Server = OmniSharp.Extensions.LanguageServer.Server.LanguageServer.PreInit(
-        options => {
-          options
-            .WithInput(serverPipe.Reader)
-            .WithOutput(clientPipe.Writer)
-            .ConfigureLogging(SetupTestLogging)
-            .WithDafnyLanguageServer(() => { });
-          serverOptionsAction?.Invoke(options);
-        });
-      // This is the style used in the LSP implementation itself:
-      // https://github.com/OmniSharp/csharp-language-server-protocol/blob/1b6788df2600083c28811913a221ccac7b1d72c9/test/Lsp.Tests/Testing/LanguageServerTestBaseTests.cs
-#pragma warning disable VSTHRD110 // Observe result of async calls
-      Server.Initialize(CancellationToken);
-#pragma warning restore VSTHRD110 // Observe result of async calls
-
-      Disposable.Add(Server);
-      Disposable.Add((IDisposable)Server.Services); // Testing shows that the services are not disposed automatically when the server is disposed.
-      return (clientPipe.Reader.AsStream(), serverPipe.Writer.AsStream());
-    }
-
     private static void SetupTestLogging(ILoggingBuilder builder) {
       builder
         .AddFilter("OmniSharp", LogLevel.Warning)
-        .AddFilter("Microsoft.Dafny", LogLevel.Debug)
+        .AddFilter("Microsoft.Dafny", LogLevel.Information)
         .SetMinimumLevel(LogLevel.Debug)
         .AddConsole();
     }
 
     protected static TextDocumentItem CreateTestDocument(string source, string filePath = null, int version = 1) {
       filePath ??= $"testFile{fileIndex++}.dfy";
+      filePath = Path.GetFullPath(filePath);
       return new TextDocumentItem {
         LanguageId = LanguageId,
         Text = source,
@@ -194,10 +157,6 @@ lemma {:neverVerify} HasNeverVerifyAttribute(p: nat, q: nat)
 
     public static string PrintEnumerable(IEnumerable<object> items) {
       return "[" + string.Join(", ", items.Select(o => o.ToString())) + "]";
-    }
-
-    protected override (Stream clientOutput, Stream serverInput) SetupServer() {
-      throw new NotImplementedException();
     }
   }
 }

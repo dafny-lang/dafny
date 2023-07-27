@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
@@ -10,10 +11,11 @@ using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 using OmniSharp.Extensions.JsonRpc;
 using OmniSharp.Extensions.LanguageServer.Client;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
+using Xunit;
 using Xunit.Abstractions;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
-namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Diagnostics;
+namespace Microsoft.Dafny.LanguageServer.IntegrationTest.GutterStatus;
 
 public abstract class LinearVerificationGutterStatusTester : ClientBasedLanguageServerTest {
   protected TestNotificationReceiver<VerificationStatusGutter> verificationStatusGutterReceiver;
@@ -80,6 +82,7 @@ public abstract class LinearVerificationGutterStatusTester : ClientBasedLanguage
       renderedCode += ":";
       renderedCode += codeLines[line];
     }
+    Assert.All(statusesTrace, trace => Assert.Equal(codeLines.Length, trace.Length));
 
     return renderedCode;
   }
@@ -234,7 +237,7 @@ public abstract class LinearVerificationGutterStatusTester : ClientBasedLanguage
   }
 
   // If testTrace is false, codeAndTree should not contain a trace to test.
-  public async Task VerifyTrace(string codeAndTrace, string fileName = null, bool testTrace = true, bool intermediates = true,
+  public async Task VerifyTrace(string codeAndTrace, bool explicitProject, string fileName = null, bool testTrace = true, bool intermediates = true,
     TestNotificationReceiver<VerificationStatusGutter> verificationStatusGutterReceiver = null) {
     if (verificationStatusGutterReceiver == null) {
       verificationStatusGutterReceiver = this.verificationStatusGutterReceiver;
@@ -244,13 +247,18 @@ public abstract class LinearVerificationGutterStatusTester : ClientBasedLanguage
       codeAndTrace;
     var codeAndChanges = testTrace ? ExtractCode(codeAndTrace) : codeAndTrace;
     var (code, changes) = ExtractCodeAndChanges(codeAndChanges);
-    var documentItem = CreateTestDocument(code, fileName);
+
+    var documentItem = CreateTestDocument(code, fileName, 1);
+    if (explicitProject) {
+      await CreateAndOpenTestDocument("", Path.Combine(Path.GetDirectoryName(documentItem.Uri.GetFileSystemPath())!, DafnyProject.FileName));
+    }
     client.OpenDocument(documentItem);
     var traces = new List<LineVerificationStatus[]>();
     traces.AddRange(await GetAllLineVerificationStatuses(documentItem, verificationStatusGutterReceiver, intermediates: intermediates));
     foreach (var (range, inserted) in changes) {
       ApplyChange(ref documentItem, range, inserted);
       traces.AddRange(await GetAllLineVerificationStatuses(documentItem, verificationStatusGutterReceiver, intermediates: intermediates));
+      await Projects.GetLastDocumentAsync(documentItem);
     }
 
     if (testTrace) {

@@ -1,3 +1,5 @@
+// NONUNIFORM: Multiple build steps (although could we use `dafny test` instead?)
+
 // Generating tests:
 // RUN: cp %S/TestGeneration.dfy %t.dfy
 // RUN: %baredafny generate-tests %args Block %t.dfy > %t-tests.dfy
@@ -11,7 +13,7 @@ module M {
   class Value {
     var v:int;
   }
-  method compareToZero(v:Value) returns (i:int) {
+  method {:testEntry} compareToZero(v:Value) returns (i:int) {
     if (v.v == 0) {
       return 0;
     } else if (v.v > 0) {

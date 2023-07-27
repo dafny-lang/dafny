@@ -17,6 +17,7 @@ using System.Diagnostics;
 using System.Threading;
 using Microsoft.Boogie;
 using Microsoft.Dafny.Auditor;
+using Microsoft.Dafny.Plugins;
 using Action = System.Action;
 
 namespace Microsoft.Dafny {
@@ -33,53 +34,39 @@ namespace Microsoft.Dafny {
     public IEnumerable<IDeclarationOrUsage> GetResolvedDeclarations();
   }
   public class Program : TokenNode {
+    public CompilationData Compilation { get; }
+
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(FullName != null);
       Contract.Invariant(DefaultModule != null);
     }
 
-    // TODO move to Compilation once that's used by the CLI
-    public ISet<Uri> AlreadyVerifiedRoots;
-    // TODO move to Compilation once that's used by the CLI
-    public ISet<Uri> AlreadyCompiledRoots;
-
-    public List<Include> Includes => DefaultModuleDef.Includes;
-    // TODO move to DocumentAfterParsing once that's used by the CLI
-    [FilledInDuringResolution]
-    public ISet<Uri> UrisToVerify;
-    // TODO move to DocumentAfterParsing once that's used by the CLI
-    [FilledInDuringResolution]
-    public ISet<Uri> UrisToCompile;
-
     public readonly string FullName;
-    [FilledInDuringResolution] public Dictionary<ModuleDefinition, ModuleSignature> ModuleSigs;
+
     // Resolution essentially flattens the module hierarchy, for
     // purposes of translation and compilation.
-    [FilledInDuringResolution] public List<ModuleDefinition> CompileModules;
+    [FilledInDuringResolution] public Dictionary<ModuleDefinition, ModuleSignature> ModuleSigs;
+    [FilledInDuringResolution] public IEnumerable<ModuleDefinition> CompileModules => new[] { SystemModuleManager.SystemModule }.Concat(Modules());
     // Contains the definitions to be used for compilation.
 
     public Method MainMethod; // Method to be used as main if compiled
-    public readonly LiteralModuleDecl DefaultModule;
-    public readonly DefaultModuleDefinition DefaultModuleDef;
-    public readonly BuiltIns BuiltIns;
+    public LiteralModuleDecl DefaultModule;
+    public DefaultModuleDefinition DefaultModuleDef => (DefaultModuleDefinition)DefaultModule.ModuleDef;
+    public SystemModuleManager SystemModuleManager;
     public DafnyOptions Options => Reporter.Options;
     public ErrorReporter Reporter { get; set; }
 
-    public Program(string name, [Captured] LiteralModuleDecl module, [Captured] BuiltIns builtIns, ErrorReporter reporter,
-      ISet<Uri> alreadyVerifiedRoots, ISet<Uri> alreadyCompiledRoots) {
+    public Program(string name, [Captured] LiteralModuleDecl module, [Captured] SystemModuleManager systemModuleManager, ErrorReporter reporter,
+      CompilationData compilation) {
       Contract.Requires(name != null);
       Contract.Requires(module != null);
       Contract.Requires(reporter != null);
       FullName = name;
       DefaultModule = module;
-      DefaultModuleDef = (DefaultModuleDefinition)module.ModuleDef;
-      BuiltIns = builtIns;
+      SystemModuleManager = systemModuleManager;
       this.Reporter = reporter;
-      AlreadyVerifiedRoots = alreadyVerifiedRoots;
-      AlreadyCompiledRoots = alreadyCompiledRoots;
-      ModuleSigs = new Dictionary<ModuleDefinition, ModuleSignature>();
-      CompileModules = new List<ModuleDefinition>();
+      Compilation = compilation;
     }
 
     //Set appropriate visibilty before presenting module
@@ -151,6 +138,18 @@ namespace Microsoft.Dafny {
   /// </summary>
   public interface IAttributeBearingDeclaration {
     Attributes Attributes { get; }
+  }
+
+  public static class IAttributeBearingDeclarationExtensions {
+    public static bool HasUserAttribute(this IAttributeBearingDeclaration decl, string name, out Attributes attribute) {
+      if (Attributes.Find(decl.Attributes, name) is UserSuppliedAttributes attr) {
+        attribute = attr;
+        return true;
+      }
+
+      attribute = null;
+      return false;
+    }
   }
 
   public class Attributes : TokenNode {
@@ -379,7 +378,10 @@ namespace Microsoft.Dafny {
     string Name {
       get;
     }
-    string DisplayName {  // what the user thinks he wrote
+    string DafnyName {  // what the user thinks he wrote
+      get;
+    }
+    string DisplayName { // what the user thinks he wrote but with special treatment for wilcards
       get;
     }
     string UniqueName {
@@ -418,6 +420,12 @@ namespace Microsoft.Dafny {
   [ContractClassFor(typeof(IVariable))]
   public abstract class IVariableContracts : TokenNode, IVariable {
     public string Name {
+      get {
+        Contract.Ensures(Contract.Result<string>() != null);
+        throw new NotImplementedException();  // this getter implementation is here only so that the Ensures contract can be given here
+      }
+    }
+    public string DafnyName {
       get {
         Contract.Ensures(Contract.Result<string>() != null);
         throw new NotImplementedException();  // this getter implementation is here only so that the Ensures contract can be given here
@@ -503,6 +511,7 @@ namespace Microsoft.Dafny {
         return name;
       }
     }
+    public string DafnyName => RangeToken == null || tok.line == 0 ? Name : RangeToken.PrintOriginal();
     public string DisplayName =>
       LocalVariable.DisplayNameHelper(this);
 
@@ -686,7 +695,6 @@ namespace Microsoft.Dafny {
   [DebuggerDisplay("Bound<{name}>")]
   public class BoundVar : NonglobalVariable {
     public override bool IsMutable => false;
-
     public BoundVar(IToken tok, string name, Type type)
       : base(tok, name, type, false) {
       Contract.Requires(tok != null);
@@ -851,10 +859,10 @@ namespace Microsoft.Dafny {
 
   public class BottomUpVisitor {
     public void Visit(IEnumerable<Expression> exprs) {
-      exprs.Iter(Visit);
+      exprs.ForEach(Visit);
     }
     public void Visit(IEnumerable<Statement> stmts) {
-      stmts.Iter(Visit);
+      stmts.ForEach(Visit);
     }
     public void Visit(AttributedExpression expr) {
       Visit(expr.E);
@@ -863,10 +871,10 @@ namespace Microsoft.Dafny {
       Visit(expr.E);
     }
     public void Visit(IEnumerable<AttributedExpression> exprs) {
-      exprs.Iter(Visit);
+      exprs.ForEach(Visit);
     }
     public void Visit(IEnumerable<FrameExpression> exprs) {
-      exprs.Iter(Visit);
+      exprs.ForEach(Visit);
     }
     public void Visit(ICallable decl) {
       if (decl is Function f) {
@@ -919,7 +927,7 @@ namespace Microsoft.Dafny {
     public void Visit(Expression expr) {
       Contract.Requires(expr != null);
       // recursively visit all subexpressions and all substatements
-      expr.SubExpressions.Iter(Visit);
+      expr.SubExpressions.ForEach(Visit);
       if (expr is StmtExpr) {
         // a StmtExpr also has a substatement
         var e = (StmtExpr)expr;
@@ -930,8 +938,8 @@ namespace Microsoft.Dafny {
     public void Visit(Statement stmt) {
       Contract.Requires(stmt != null);
       // recursively visit all subexpressions and all substatements
-      stmt.SubExpressions.Iter(Visit);
-      stmt.SubStatements.Iter(Visit);
+      stmt.SubExpressions.ForEach(Visit);
+      stmt.SubStatements.ForEach(Visit);
       VisitOneStmt(stmt);
     }
     protected virtual void VisitOneExpr(Expression expr) {
@@ -950,13 +958,13 @@ namespace Microsoft.Dafny {
       Contract.Requires(expr != null);
       if (VisitOneExpr(expr, ref st)) {
         if (preResolve && expr is ConcreteSyntaxExpression concreteSyntaxExpression) {
-          concreteSyntaxExpression.PreResolveSubExpressions.Iter(e => Visit(e, st));
+          concreteSyntaxExpression.PreResolveSubExpressions.ForEach(e => Visit(e, st));
         } else if (preResolve && expr is QuantifierExpr quantifierExpr) {
           // pre-resolve, split expressions are not children
-          quantifierExpr.PreResolveSubExpressions.Iter(e => Visit(e, st));
+          quantifierExpr.PreResolveSubExpressions.ForEach(e => Visit(e, st));
         } else {
           // recursively visit all subexpressions and all substatements
-          expr.SubExpressions.Iter(e => Visit(e, st));
+          expr.SubExpressions.ForEach(e => Visit(e, st));
         }
         if (expr is StmtExpr) {
           // a StmtExpr also has a substatement
@@ -970,19 +978,19 @@ namespace Microsoft.Dafny {
       if (VisitOneStmt(stmt, ref st)) {
         // recursively visit all subexpressions and all substatements
         if (preResolve) {
-          stmt.PreResolveSubExpressions.Iter(e => Visit(e, st));
-          stmt.PreResolveSubStatements.Iter(s => Visit(s, st));
+          stmt.PreResolveSubExpressions.ForEach(e => Visit(e, st));
+          stmt.PreResolveSubStatements.ForEach(s => Visit(s, st));
         } else {
-          stmt.SubExpressions.Iter(e => Visit(e, st));
-          stmt.SubStatements.Iter(s => Visit(s, st));
+          stmt.SubExpressions.ForEach(e => Visit(e, st));
+          stmt.SubStatements.ForEach(s => Visit(s, st));
         }
       }
     }
     public void Visit(IEnumerable<Expression> exprs, State st) {
-      exprs.Iter(e => Visit(e, st));
+      exprs.ForEach(e => Visit(e, st));
     }
     public void Visit(IEnumerable<Statement> stmts, State st) {
-      stmts.Iter(e => Visit(e, st));
+      stmts.ForEach(e => Visit(e, st));
     }
     public void Visit(AttributedExpression expr, State st) {
       Visit(expr.E, st);
@@ -991,10 +999,10 @@ namespace Microsoft.Dafny {
       Visit(expr.E, st);
     }
     public void Visit(IEnumerable<AttributedExpression> exprs, State st) {
-      exprs.Iter(e => Visit(e, st));
+      exprs.ForEach(e => Visit(e, st));
     }
     public void Visit(IEnumerable<FrameExpression> exprs, State st) {
-      exprs.Iter(e => Visit(e, st));
+      exprs.ForEach(e => Visit(e, st));
     }
     public void Visit(ICallable decl, State st) {
       if (decl is Function) {

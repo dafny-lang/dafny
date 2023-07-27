@@ -26,7 +26,7 @@ public class NonNullTypeDecl : SubsetTypeDecl {
   private NonNullTypeDecl(ClassLikeDecl cl, List<TypeParameter> tps, BoundVar id)
     : base(cl.RangeToken, cl.NameNode, new TypeParameter.TypeParameterCharacteristics(), tps, cl.EnclosingModuleDefinition, id,
       new BinaryExpr(cl.Tok, BinaryExpr.Opcode.Neq, new IdentifierExpr(cl.Tok, id), new LiteralExpr(cl.Tok)),
-      SubsetTypeDecl.WKind.Special, null, BuiltIns.AxiomAttribute()) {
+      SubsetTypeDecl.WKind.Special, null, SystemModuleManager.AxiomAttribute()) {
     Contract.Requires(cl != null);
     Contract.Requires(tps != null);
     Contract.Requires(id != null);
@@ -39,7 +39,7 @@ public class NonNullTypeDecl : SubsetTypeDecl {
     foreach (var rhsParentType in Class.ParentTypes(typeArgs)) {
       var rhsParentUdt = (UserDefinedType)rhsParentType; // all parent types of .Class are expected to be possibly-null class types
       Contract.Assert(rhsParentUdt.ResolvedClass is TraitDecl);
-      result.Add(UserDefinedType.CreateNonNullType(rhsParentUdt));
+      result.Add(UserDefinedType.CreateNonNullTypeIfReferenceType(rhsParentUdt));
     }
 
     return result;

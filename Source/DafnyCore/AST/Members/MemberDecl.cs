@@ -1,13 +1,15 @@
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
+using Microsoft.Dafny.Auditor;
 
 namespace Microsoft.Dafny;
 
 public abstract class MemberDecl : Declaration {
   public abstract string WhatKind { get; }
   public virtual string WhatKindMentionGhost => (IsGhost ? "ghost " : "") + WhatKind;
-  public readonly bool HasStaticKeyword;
+  protected bool hasStaticKeyword;
+  public bool HasStaticKeyword => hasStaticKeyword;
   public virtual bool IsStatic {
     get {
       return HasStaticKeyword || EnclosingClass is DefaultClassDecl;
@@ -16,7 +18,7 @@ public abstract class MemberDecl : Declaration {
 
   public virtual bool IsOpaque => false;
 
-  protected readonly bool isGhost;
+  protected bool isGhost;
   public bool IsGhost { get { return isGhost; } }
 
   public string ModifiersAsString() {
@@ -57,11 +59,17 @@ public abstract class MemberDecl : Declaration {
     return false;
   }
 
-  public MemberDecl(RangeToken rangeToken, Name name, bool hasStaticKeyword, bool isGhost, Attributes attributes, bool isRefining)
+  protected MemberDecl(Cloner cloner, MemberDecl original) : base(cloner, original) {
+    this.hasStaticKeyword = original.hasStaticKeyword;
+    this.EnclosingClass = original.EnclosingClass;
+    this.isGhost = original.isGhost;
+  }
+
+  protected MemberDecl(RangeToken rangeToken, Name name, bool hasStaticKeyword, bool isGhost, Attributes attributes, bool isRefining)
     : base(rangeToken, name, attributes, isRefining) {
     Contract.Requires(rangeToken != null);
     Contract.Requires(name != null);
-    HasStaticKeyword = hasStaticKeyword;
+    this.hasStaticKeyword = hasStaticKeyword;
     this.isGhost = isGhost;
   }
   /// <summary>
@@ -105,4 +113,13 @@ public abstract class MemberDecl : Declaration {
   }
 
   public virtual IEnumerable<Expression> SubExpressions => Enumerable.Empty<Expression>();
+
+  public override IEnumerable<Assumption> Assumptions(Declaration decl) {
+    foreach (var a in base.Assumptions(this)) {
+      yield return a;
+    }
+    if (this.HasUserAttribute("only", out _)) {
+      yield return new Assumption(decl, tok, AssumptionDescription.MemberOnly);
+    }
+  }
 }
