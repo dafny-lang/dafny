@@ -201,11 +201,13 @@ namespace Microsoft.Dafny.Compilers {
       var xType = DatatypeWrapperEraser.SimplifyType(Options, typ);
 
       if (xType is BoolType) {
-        return (DAST.Type)DAST.Type.create_Passthrough(Sequence<Rune>.UnicodeFromString("bool"));
+        return (DAST.Type)DAST.Type.create_Primitive(DAST.Primitive.create_Bool());
       } else if (xType is IntType) {
         return (DAST.Type)DAST.Type.create_Passthrough(Sequence<Rune>.UnicodeFromString("i32"));
       } else if (xType is RealType) {
         return (DAST.Type)DAST.Type.create_Passthrough(Sequence<Rune>.UnicodeFromString("f32"));
+      } else if (xType.IsStringType) {
+        return (DAST.Type)DAST.Type.create_Primitive(DAST.Primitive.create_String());
       } else if (xType is UserDefinedType udt) {
         if (udt.ResolvedClass is TypeParameter tp) {
           if (thisContext != null && thisContext.ParentFormalTypeParametersToActuals.TryGetValue(tp, out var instantiatedTypeParameter)) {
