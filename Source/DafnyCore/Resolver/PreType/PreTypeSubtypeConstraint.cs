@@ -45,7 +45,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public bool Apply(PreTypeResolver preTypeResolver) {
+    public bool Apply(PreTypeInferenceState state) {
       var super = Super.Normalize();
       var sub = Sub.Normalize();
       var ptSuper = super as DPreType;
@@ -59,13 +59,13 @@ namespace Microsoft.Dafny {
         //     Constrain g(x,y) :> b
         //     Constrain c == h(x,y)
         // else report an error
-        var arguments = GetTypeArgumentsForSuperType(ptSuper.Decl, ptSub.Decl, ptSub.Arguments, preTypeResolver);
+        var arguments = state.GetTypeArgumentsForSuperType(ptSuper.Decl, ptSub.Decl, ptSub.Arguments);
         if (arguments != null) {
           Contract.Assert(arguments.Count == ptSuper.Decl.TypeArgs.Count);
-          ConstrainTypeArguments(ptSuper.Decl.TypeArgs, ptSuper.Arguments, arguments, tok, preTypeResolver);
+          ConstrainTypeArguments(ptSuper.Decl.TypeArgs, ptSuper.Arguments, arguments, tok, state);
           return true;
         } else {
-          preTypeResolver.ReportError(tok, ErrorMessage());
+          state.PreTypeResolver.ReportError(tok, ErrorMessage());
           return true;
         }
       } else if (ptSuper != null) {
@@ -77,9 +77,9 @@ namespace Microsoft.Dafny {
         //     Constrain beta :> b
         // else do nothing for now
         if (!(ptSuper.Decl is TraitDecl)) {
-          var arguments = CreateProxiesForTypesAccordingToVariance(tok, ptSuper.Decl.TypeArgs, ptSuper.Arguments, false, preTypeResolver);
+          var arguments = CreateProxiesForTypesAccordingToVariance(tok, ptSuper.Decl.TypeArgs, ptSuper.Arguments, false, state);
           var pt = new DPreType(ptSuper.Decl, arguments);
-          preTypeResolver.AddEqualityConstraint(sub, pt, tok, ErrorFormatString);
+          state.AddEqualityConstraint(sub, pt, tok, ErrorFormatString);
           return true;
         }
       } else if (ptSub != null) {
@@ -93,9 +93,9 @@ namespace Microsoft.Dafny {
         if (PreTypeResolver.HasTraitSupertypes(ptSub)) {
           // there are parent traits
         } else {
-          var arguments = CreateProxiesForTypesAccordingToVariance(tok, ptSub.Decl.TypeArgs, ptSub.Arguments, true, preTypeResolver);
+          var arguments = CreateProxiesForTypesAccordingToVariance(tok, ptSub.Decl.TypeArgs, ptSub.Arguments, true, state);
           var pt = new DPreType(ptSub.Decl, arguments);
-          preTypeResolver.AddEqualityConstraint(super, pt, tok, ErrorFormatString);
+          state.AddEqualityConstraint(super, pt, tok, ErrorFormatString);
           return true;
         }
       } else {
@@ -110,7 +110,7 @@ namespace Microsoft.Dafny {
     /// For every contra-variant parameters[i], constrain subArguments[i] :> superArguments[i].
     /// </summary>
     void ConstrainTypeArguments(List<TypeParameter> parameters, List<PreType> superArguments, List<PreType> subArguments, IToken tok,
-      PreTypeResolver preTypeResolver) {
+      PreTypeInferenceState state) {
       Contract.Requires(parameters.Count == superArguments.Count && superArguments.Count == subArguments.Count);
 
       for (var i = 0; i < parameters.Count; i++) {
@@ -118,11 +118,11 @@ namespace Microsoft.Dafny {
         var arg0 = superArguments[i];
         var arg1 = subArguments[i];
         if (tp.Variance == TypeParameter.TPVariance.Non) {
-          preTypeResolver.AddEqualityConstraint(arg0, arg1, tok, "non-variance would require {0} == {1}");
+          state.AddEqualityConstraint(arg0, arg1, tok, "non-variance would require {0} == {1}");
         } else if (tp.Variance == TypeParameter.TPVariance.Co) {
-          preTypeResolver.AddSubtypeConstraint(arg0, arg1, tok, "covariance would require {0} :> {1}");
+          state.AddSubtypeConstraint(arg0, arg1, tok, "covariance would require {0} :> {1}");
         } else {
-          preTypeResolver.AddSubtypeConstraint(arg1, arg0, tok, "contravariance would require {0} :> {1}");
+          state.AddSubtypeConstraint(arg1, arg0, tok, "contravariance would require {0} :> {1}");
         }
       }
     }
@@ -137,7 +137,7 @@ namespace Microsoft.Dafny {
     ///   - else a new proxy constrained by:  ai :> proxy
     /// </summary>
     List<PreType> CreateProxiesForTypesAccordingToVariance(IToken tok, List<TypeParameter> parameters, List<PreType> arguments,
-      bool proxiesAreSupertypes, PreTypeResolver preTypeResolver) {
+      bool proxiesAreSupertypes, PreTypeInferenceState state) {
       Contract.Requires(parameters.Count == arguments.Count);
 
       if (parameters.All(tp => tp.Variance == TypeParameter.TPVariance.Non)) {
@@ -151,56 +151,16 @@ namespace Microsoft.Dafny {
           newArgs.Add(arguments[i]);
         } else {
           var co = tp.Variance == TypeParameter.TPVariance.Co ? "co" : "contra";
-          var proxy = preTypeResolver.CreatePreTypeProxy($"type used in {co}variance constraint");
+          var proxy = state.PreTypeResolver.CreatePreTypeProxy($"type used in {co}variance constraint");
           newArgs.Add(proxy);
           if ((tp.Variance == TypeParameter.TPVariance.Co) == proxiesAreSupertypes) {
-            preTypeResolver.AddSubtypeConstraint(proxy, arguments[i], tok, "bad"); // TODO: improve error message
+            state.AddSubtypeConstraint(proxy, arguments[i], tok, "bad"); // TODO: improve error message
           } else {
-            preTypeResolver.AddSubtypeConstraint(arguments[i], proxy, tok, "bad"); // TODO: improve error message
+            state.AddSubtypeConstraint(arguments[i], proxy, tok, "bad"); // TODO: improve error message
           }
         }
       }
       return newArgs;
-    }
-
-    /// <summary>
-    /// If "super" is an ancestor of "sub", then return a list "L" of arguments for "super" such that
-    /// "super<L>" is a supertype of "sub<subArguments>".
-    /// Otherwise, return "null".
-    /// </summary>
-    public static List<PreType> /*?*/ GetTypeArgumentsForSuperType(TopLevelDecl super, TopLevelDecl sub, List<PreType> subArguments,
-      PreTypeResolver preTypeResolver) {
-      Contract.Requires(sub.TypeArgs.Count == subArguments.Count);
-
-      if (super == sub) {
-        return subArguments;
-      } else if (sub is TopLevelDeclWithMembers md) {
-        var subst = PreType.PreTypeSubstMap(md.TypeArgs, subArguments);
-        foreach (var parentType in AllParentTraits(md, preTypeResolver)) {
-          var parentPreType = (DPreType)preTypeResolver.Type2PreType(parentType).Substitute(subst);
-          var arguments = GetTypeArgumentsForSuperType(super, parentPreType.Decl, parentPreType.Arguments, preTypeResolver);
-          if (arguments != null) {
-            return arguments;
-          }
-        }
-      }
-      return null;
-    }
-
-    /// <summary>
-    /// AllParentTraits(decl) is like decl.ParentTraits, but also returns "object" if "decl" is a reference type.
-    /// </summary>
-    public static IEnumerable<Type> AllParentTraits(TopLevelDeclWithMembers decl, PreTypeResolver preTypeResolver) {
-      foreach (var parentType in decl.ParentTraits) {
-        yield return parentType;
-      }
-      if (DPreType.IsReferenceTypeDecl(decl)) {
-        if (decl is TraitDecl trait && trait.IsObjectTrait) {
-          // don't return object itself
-        } else {
-          yield return preTypeResolver.resolver.builtIns.ObjectQ();
-        }
-      }
     }
   }
 

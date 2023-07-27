@@ -64,8 +64,9 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public partial class PreTypeResolver : ResolverPass {
+  public class PreTypeResolver : ResolverPass {
     private readonly Dictionary<string, TopLevelDecl> preTypeBuiltins = new();
+    public readonly PreTypeInferenceState State;
 
     TopLevelDecl BuiltInTypeDecl(string name) {
       Contract.Requires(name != null);
@@ -150,7 +151,7 @@ namespace Microsoft.Dafny {
 
     private int typeProxyCount = 0; // used to give each PreTypeProxy a unique ID
 
-    private readonly List<(PreTypeProxy, string)> allPreTypeProxies = new();
+    public readonly List<(PreTypeProxy, string)> allPreTypeProxies = new();
 
     public PreType CreatePreTypeProxy(string description = null) {
       var proxy = new PreTypeProxy(typeProxyCount++);
@@ -285,7 +286,8 @@ namespace Microsoft.Dafny {
     /// <summary>
     /// Add to "ancestors" every TopLevelDecl that is a reflexive, transitive parent of "d",
     /// but not exploring past any TopLevelDecl that is already in "ancestors".
-    void ComputeAncestors(TopLevelDecl decl, ISet<TopLevelDecl> ancestors) {
+    /// </summary>
+    public void ComputeAncestors(TopLevelDecl decl, ISet<TopLevelDecl> ancestors) {
       if (!ancestors.Contains(decl)) {
         ancestors.Add(decl);
         if (decl is TopLevelDeclWithMembers topLevelDeclWithMembers) {
@@ -297,20 +299,6 @@ namespace Microsoft.Dafny {
           // object is also a parent type
           ComputeAncestors(resolver.builtIns.ObjectDecl, ancestors);
         }
-      }
-    }
-
-    int Height(TopLevelDecl d) {
-      if (d is TopLevelDeclWithMembers md && md.ParentTraitHeads.Count != 0) {
-        return md.ParentTraitHeads.Max(Height) + 1;
-      } else if (d is TraitDecl { IsObjectTrait: true }) {
-        // object is at height 0
-        return 0;
-      } else if (DPreType.IsReferenceTypeDecl(d)) {
-        // any other reference type implicitly has "object" as a parent, so the height is 1
-        return 1;
-      } else {
-        return 0;
       }
     }
 
@@ -378,6 +366,7 @@ namespace Microsoft.Dafny {
     public PreTypeResolver(Resolver resolver)
       : base(resolver) {
       Contract.Requires(resolver != null);
+      State = new PreTypeInferenceState(this);
     }
 
     /// <summary>

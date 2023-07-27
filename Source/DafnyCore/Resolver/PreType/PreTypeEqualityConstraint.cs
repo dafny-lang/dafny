@@ -27,18 +27,18 @@ namespace Microsoft.Dafny {
 
     /// <summary>
     /// Constrain "A" to be the same type as "B".
-    /// Because this method make calls that eventually call preTypeResolver.DirectionalBounds, it should be
-    /// called only when preTypeResolver.unnormalizedSubtypeConstraints is in a stable state. That means,
-    /// in particular, that this method cannot be called in middle of preTypeResolver.ApplySubtypeConstraints.
+    /// Because this method makes calls that eventually call state.DirectionalBounds, it should be
+    /// called only when state.unnormalizedSubtypeConstraints is in a stable state. That means,
+    /// in particular, that this method cannot be called in middle of state.ApplySubtypeConstraints.
     /// </summary>
-    public IEnumerable<EqualityConstraint> Apply(PreTypeResolver preTypeResolver) {
+    public IEnumerable<EqualityConstraint> Apply(PreTypeInferenceState state) {
       var a = A.Normalize();
       var b = B.Normalize();
       if (a == b) {
         // we're already there
-      } else if (a is PreTypeProxy pa && !Occurs(pa, b, preTypeResolver)) {
+      } else if (a is PreTypeProxy pa && !Occurs(pa, b, state)) {
         pa.Set(b);
-      } else if (b is PreTypeProxy pb && !Occurs(pb, a, preTypeResolver)) {
+      } else if (b is PreTypeProxy pb && !Occurs(pb, a, state)) {
         pb.Set(a);
       } else if (a is DPreType da && b is DPreType db && da.Decl == db.Decl) {
         Contract.Assert(da.Arguments.Count == db.Arguments.Count);
@@ -47,7 +47,7 @@ namespace Microsoft.Dafny {
           yield return new EqualityConstraint(da.Arguments[i], db.Arguments[i], tok, ErrorFormatString);
         }
       } else {
-        preTypeResolver.ReportError(tok, ErrorFormatString, a, b);
+        state.PreTypeResolver.ReportError(tok, ErrorFormatString, a, b);
       }
     }
 
@@ -55,8 +55,8 @@ namespace Microsoft.Dafny {
     /// Returns "true" if "proxy" is among the free variables of "t".
     /// "proxy" is expected to be normalized.
     /// </summary>
-    private static bool Occurs(PreTypeProxy proxy, PreType t, PreTypeResolver preTypeResolver) {
-      return Reaches(t, proxy, 1, new HashSet<PreTypeProxy>(), preTypeResolver, 0);
+    private static bool Occurs(PreTypeProxy proxy, PreType t, PreTypeInferenceState state) {
+      return Reaches(t, proxy, 1, new HashSet<PreTypeProxy>(), state, 0);
     }
 
     /// <summary>
@@ -64,7 +64,7 @@ namespace Microsoft.Dafny {
     /// It's not expected to happen ever, but it seems better to check at run time rather than risk hanging.
     /// </summary>
     private static bool Reaches(PreType t, PreTypeProxy proxy, int direction, HashSet<PreTypeProxy> visited,
-      PreTypeResolver preTypeResolver, int recursionDepth) {
+      PreTypeInferenceState state, int recursionDepth) {
       if (recursionDepth == 20) {
         Contract.Assume(false);  // possible infinite recursion
       }
@@ -78,7 +78,7 @@ namespace Microsoft.Dafny {
         Contract.Assert(polarities != null);
         Contract.Assert(polarities.Count <= dp.Arguments.Count);
         for (int i = 0; i < polarities.Count; i++) {
-          if (Reaches(dp.Arguments[i], proxy, direction * polarities[i], visited, preTypeResolver, recursionDepth)) {
+          if (Reaches(dp.Arguments[i], proxy, direction * polarities[i], visited, state, recursionDepth)) {
             return true;
           }
         }
@@ -86,8 +86,7 @@ namespace Microsoft.Dafny {
       } else if (tproxy == proxy) {
         return true;
       } else if (visited.Add(tproxy)) {
-        return preTypeResolver.DirectionalBounds(tproxy, direction).Any(su =>
-          Reaches(su, proxy, direction, visited, preTypeResolver, recursionDepth));
+        return state.DirectionalBounds(tproxy, direction).Any(su => Reaches(su, proxy, direction, visited, state, recursionDepth));
       } else {
         return false;
       }

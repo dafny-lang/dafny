@@ -11,12 +11,20 @@ using System.Linq;
 using System.Diagnostics.Contracts;
 
 namespace Microsoft.Dafny {
-  public partial class PreTypeResolver {
+  public class PreTypeInferenceState {
+    public readonly PreTypeResolver PreTypeResolver;
+    private readonly DafnyOptions options;
+
     private List<SubtypeConstraint> unnormalizedSubtypeConstraints = new();
     private List<EqualityConstraint> equalityConstraints = new();
     private List<Func<bool>> guardedConstraints = new();
     private readonly List<Advice> defaultAdvice = new();
     private List<System.Action> confirmations = new();
+
+    public PreTypeInferenceState(PreTypeResolver preTypeResolver) {
+      this.PreTypeResolver = preTypeResolver;
+      this.options = preTypeResolver.resolver.Options;
+    }
 
     // ---------------------------------------- Pre-type inference state ----------------------------------------
 
@@ -70,14 +78,14 @@ namespace Microsoft.Dafny {
       guardedConstraints.Clear();
       defaultAdvice.Clear();
       confirmations.Clear();
-      allPreTypeProxies.Clear();
+      PreTypeResolver.allPreTypeProxies.Clear();
     }
 
     public void PrintTypeInferenceState(string/*?*/ header = null) {
-      if (!resolver.Options.Get(CommonOptionBag.NewTypeInferenceDebug)) {
+      if (!options.Get(CommonOptionBag.NewTypeInferenceDebug)) {
         return;
       }
-      resolver.Options.OutputWriter.WriteLine("*** Type inference state ***{0}", header == null ? "" : $" {header} ");
+      options.OutputWriter.WriteLine("*** Type inference state ***{0}", header == null ? "" : $" {header} ");
       PrintList("Subtype constraints", unnormalizedSubtypeConstraints, stc => {
         return $"{stc.Super} :> {stc.Sub}";
       });
@@ -100,36 +108,28 @@ namespace Microsoft.Dafny {
     }
 
     void PrintLegend() {
-      PrintList("Legend", allPreTypeProxies, pair => {
+      PrintList("Legend", PreTypeResolver.allPreTypeProxies, pair => {
         var s = Pad($"?{pair.Item1.UniqueId}", 4) + pair.Item1;
         return pair.Item2 == null ? s : $"{Pad(s, 20)}  {pair.Item2}";
       });
     }
 
-    public static string TokToShortLocation(IToken tok) {
-      return $"{System.IO.Path.GetFileName(tok.filename)}({tok.line},{tok.col - 1})";
-    }
-
     void PrintList<T>(string rubric, List<T> list, Func<T, string> formatter) {
-      if (!resolver.Options.Get(CommonOptionBag.NewTypeInferenceDebug)) {
+      if (!options.Get(CommonOptionBag.NewTypeInferenceDebug)) {
         return;
       }
-      resolver.Options.OutputWriter.WriteLine($"    {rubric}:");
+      options.OutputWriter.WriteLine($"    {rubric}:");
       foreach (var t in list) {
         var info = $"        {formatter(t)}";
         if (t is PreTypeStateWithErrorMessage preTypeStateWithErrorMessage) {
           info = $"{Pad(info, 30)}  {TokToShortLocation(preTypeStateWithErrorMessage.tok)}: {preTypeStateWithErrorMessage.ErrorMessage()}";
         }
-        resolver.Options.OutputWriter.WriteLine(info);
+        options.OutputWriter.WriteLine(info);
       }
     }
 
-    string Pad(string s, int minWidth) {
-      return s + new string(' ', Math.Max(minWidth - s.Length, 0));
-    }
-
     public void DebugPrint(string format, params object[] args) {
-      if (resolver.Options.Get(CommonOptionBag.NewTypeInferenceDebug)) {
+      if (options.Get(CommonOptionBag.NewTypeInferenceDebug)) {
         Console.WriteLine(format, args);
       }
     }
@@ -167,10 +167,10 @@ namespace Microsoft.Dafny {
       var ptA = a.Normalize() as DPreType;
       var ptB = b.Normalize() as DPreType;
       if (ptA != null && ptB != null &&
-          SubtypeConstraint.GetTypeArgumentsForSuperType(ptB.Decl, ptA.Decl, ptA.Arguments, this) == null &&
-          SubtypeConstraint.GetTypeArgumentsForSuperType(ptA.Decl, ptB.Decl, ptB.Arguments, this) == null) {
+          GetTypeArgumentsForSuperType(ptB.Decl, ptA.Decl, ptA.Arguments) == null &&
+          GetTypeArgumentsForSuperType(ptA.Decl, ptB.Decl, ptB.Arguments) == null) {
         // neither A :> B nor B :> A is possible
-        ReportError(tok, errorFormatString, a, b);
+        PreTypeResolver.ReportError(tok, errorFormatString, a, b);
         return true;
       } else if ((ptA != null && ptA.IsLeafType()) || (ptB != null && ptB.IsRootType())) {
         // use B :> A
@@ -247,7 +247,7 @@ namespace Microsoft.Dafny {
       // Record equality constraints for each proxy that was determined
       var anythingChanged = false;
       foreach (var (proxy, best) in candidateHeads) {
-        var pt = new DPreType(best, best.TypeArgs.ConvertAll(_ => CreatePreTypeProxy()));
+        var pt = new DPreType(best, best.TypeArgs.ConvertAll(_ => PreTypeResolver.CreatePreTypeProxy()));
         var constraint = constraintOrigins[proxy];
         DebugPrint($"    DEBUG: head decision {proxy} := {pt}");
         AddEqualityConstraint(proxy, pt, constraint.tok, constraint.ErrorFormatString); // TODO: the message could be made more specific now (perhaps)
@@ -259,8 +259,8 @@ namespace Microsoft.Dafny {
     TopLevelDecl/*?*/ JoinHeads(TopLevelDecl a, TopLevelDecl b) {
       var aAncestors = new HashSet<TopLevelDecl>();
       var bAncestors = new HashSet<TopLevelDecl>();
-      ComputeAncestors(a, aAncestors);
-      ComputeAncestors(b, bAncestors);
+      PreTypeResolver.ComputeAncestors(a, aAncestors);
+      PreTypeResolver.ComputeAncestors(b, bAncestors);
       var ancestors = aAncestors.Intersect(bAncestors).ToList();
       // Unless ancestors.Count == 1, there is no unique answer, and not necessary any way to determine the best
       // answer. As a heuristic, pick the element with the highest unique Height number. If there is no such
@@ -289,6 +289,20 @@ namespace Microsoft.Dafny {
       }
       // give up
       return null;
+    }
+
+    int Height(TopLevelDecl d) {
+      if (d is TopLevelDeclWithMembers md && md.ParentTraitHeads.Count != 0) {
+        return md.ParentTraitHeads.Max(Height) + 1;
+      } else if (d is TraitDecl { IsObjectTrait: true }) {
+        // object is at height 0
+        return 0;
+      } else if (DPreType.IsReferenceTypeDecl(d)) {
+        // any other reference type implicitly has "object" as a parent, so the height is 1
+        return 1;
+      } else {
+        return 0;
+      }
     }
 
     IEnumerable<DPreType> AllSubBounds(PreTypeProxy proxy, ISet<PreTypeProxy> visited) {
@@ -328,7 +342,6 @@ namespace Microsoft.Dafny {
         }
       }
     }
-
 
     public IEnumerable<PreType> DirectionalBounds(PreTypeProxy tproxy, int direction) {
       foreach (var constraint in unnormalizedSubtypeConstraints) {
@@ -374,7 +387,7 @@ namespace Microsoft.Dafny {
     bool TryApplyDefaultAdvice() {
       bool anythingChanged = false;
       foreach (var advice in defaultAdvice) {
-        anythingChanged |= advice.Apply(this);
+        anythingChanged |= advice.Apply(PreTypeResolver);
       }
       return anythingChanged;
     }
@@ -384,17 +397,17 @@ namespace Microsoft.Dafny {
     void AddConfirmation(string check, PreType preType, IToken tok, string errorFormatString) {
       confirmations.Add(() => {
         if (!ConfirmConstraint(check, preType, null)) {
-          ReportError(tok, errorFormatString, preType);
+          PreTypeResolver.ReportError(tok, errorFormatString, preType);
         }
       });
     }
 
     void AddConfirmation2(string check, PreType preType, Type toType, IToken tok, string errorFormatString) {
       Contract.Requires(toType is NonProxyType);
-      var toPreType = (DPreType)Type2PreType(toType);
+      var toPreType = (DPreType)PreTypeResolver.Type2PreType(toType);
       confirmations.Add(() => {
         if (!ConfirmConstraint(check, preType, toPreType)) {
-          ReportError(tok, errorFormatString, preType);
+          PreTypeResolver.ReportError(tok, errorFormatString, preType);
         }
       });
     }
@@ -416,7 +429,7 @@ namespace Microsoft.Dafny {
       }
 
       var pt = (DPreType)preType;
-      var ancestorPt = NewTypeAncestor(pt);
+      var ancestorPt = PreTypeResolver.NewTypeAncestor(pt);
       var ancestorDecl = ancestorPt.Decl;
       var familyDeclName = ancestorDecl.Name;
       switch (check) {
@@ -433,22 +446,22 @@ namespace Microsoft.Dafny {
         case "IsNullableRefType":
           return DPreType.IsReferenceTypeDecl(pt.Decl);
         case "IsBitvector":
-          return IsBitvectorName(familyDeclName);
+          return PreTypeResolver.IsBitvectorName(familyDeclName);
         case "IntLikeOrBitvector":
-          return familyDeclName == "int" || IsBitvectorName(familyDeclName);
+          return familyDeclName == "int" || PreTypeResolver.IsBitvectorName(familyDeclName);
         case "NumericOrBitvector":
-          return familyDeclName is "int" or "real" || IsBitvectorName(familyDeclName);
+          return familyDeclName is "int" or "real" || PreTypeResolver.IsBitvectorName(familyDeclName);
         case "NumericOrBitvectorOrCharOrORDINALOrSuchTrait":
-          if (familyDeclName is "int" or "real" or "char" or "ORDINAL" || IsBitvectorName(familyDeclName)) {
+          if (familyDeclName is "int" or "real" or "char" or "ORDINAL" || PreTypeResolver.IsBitvectorName(familyDeclName)) {
             return true;
           }
-          return IsSuperPreTypeOf(pt, auxPreType);
+          return PreTypeResolver.IsSuperPreTypeOf(pt, auxPreType);
         case "BooleanBits":
-          return familyDeclName == "bool" || IsBitvectorName(familyDeclName);
+          return familyDeclName == "bool" || PreTypeResolver.IsBitvectorName(familyDeclName);
         case "IntOrORDINAL":
           return familyDeclName == "int" || familyDeclName == "ORDINAL";
         case "IntOrBitvectorOrORDINAL":
-          return familyDeclName == "int" || IsBitvectorName(familyDeclName) || familyDeclName == "ORDINAL";
+          return familyDeclName == "int" || PreTypeResolver.IsBitvectorName(familyDeclName) || familyDeclName == "ORDINAL";
         case "Plussable":
           switch (familyDeclName) {
             case "int":
@@ -463,7 +476,7 @@ namespace Microsoft.Dafny {
             case "imap":
               return true;
             default:
-              return IsBitvectorName(familyDeclName);
+              return PreTypeResolver.IsBitvectorName(familyDeclName);
           }
         case "Mullable":
           switch (familyDeclName) {
@@ -474,7 +487,7 @@ namespace Microsoft.Dafny {
             case "multiset":
               return true;
             default:
-              return IsBitvectorName(familyDeclName);
+              return PreTypeResolver.IsBitvectorName(familyDeclName);
           }
         case "Disjointable":
           return familyDeclName == "set" || familyDeclName == "iset" || familyDeclName == "multiset";
@@ -492,7 +505,7 @@ namespace Microsoft.Dafny {
             case "seq":
               return check == "Orderable_Lt";
             default:
-              return IsBitvectorName(familyDeclName);
+              return PreTypeResolver.IsBitvectorName(familyDeclName);
           }
         case "RankOrderable":
           return ancestorDecl is IndDatatypeDecl;
@@ -522,5 +535,55 @@ namespace Microsoft.Dafny {
           throw new cce.UnreachableException();
       }
     }
+
+    // ---------------------------------------- Utility methods ----------------------------------------
+
+    /// <summary>
+    /// If "super" is an ancestor of "sub", then return a list "L" of arguments for "super" such that
+    /// "super<L>" is a supertype of "sub<subArguments>".
+    /// Otherwise, return "null".
+    /// </summary>
+    public List<PreType> /*?*/ GetTypeArgumentsForSuperType(TopLevelDecl super, TopLevelDecl sub, List<PreType> subArguments) {
+      Contract.Requires(sub.TypeArgs.Count == subArguments.Count);
+
+      if (super == sub) {
+        return subArguments;
+      } else if (sub is TopLevelDeclWithMembers md) {
+        var subst = PreType.PreTypeSubstMap(md.TypeArgs, subArguments);
+        foreach (var parentType in AllParentTraits(md)) {
+          var parentPreType = (DPreType)PreTypeResolver.Type2PreType(parentType).Substitute(subst);
+          var arguments = GetTypeArgumentsForSuperType(super, parentPreType.Decl, parentPreType.Arguments);
+          if (arguments != null) {
+            return arguments;
+          }
+        }
+      }
+      return null;
+    }
+
+    /// <summary>
+    /// AllParentTraits(decl) is like decl.ParentTraits, but also returns "object" if "decl" is a reference type.
+    /// </summary>
+    public IEnumerable<Type> AllParentTraits(TopLevelDeclWithMembers decl) {
+      foreach (var parentType in decl.ParentTraits) {
+        yield return parentType;
+      }
+      if (DPreType.IsReferenceTypeDecl(decl)) {
+        if (decl is TraitDecl trait && trait.IsObjectTrait) {
+          // don't return object itself
+        } else {
+          yield return PreTypeResolver.resolver.builtIns.ObjectQ();
+        }
+      }
+    }
+
+    public static string TokToShortLocation(IToken tok) {
+      return $"{System.IO.Path.GetFileName(tok.filename)}({tok.line},{tok.col - 1})";
+    }
+
+    string Pad(string s, int minWidth) {
+      return s + new string(' ', Math.Max(minWidth - s.Length, 0));
+    }
+
   }
 }
