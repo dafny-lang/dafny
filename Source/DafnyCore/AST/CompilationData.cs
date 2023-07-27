@@ -78,7 +78,7 @@ public class CompilationData {
     if (Options.Get(CommonOptionBag.AllOpaque) == CommonOptionBag.DefaultFunctionOpacity.AutoRevealDependencies) {
       result.Add(new AllOpaqueRevealStmtInserter(reporter));
     }
-    
+
     foreach (var plugin in Options.Plugins) {
       result.AddRange(plugin.GetRewriters(reporter));
     }

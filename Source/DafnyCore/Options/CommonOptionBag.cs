@@ -209,7 +209,7 @@ Functionality is still being expanded. Currently only checks contracts on every 
     AutoRevealDependencies,
     Opaque
   }
-  
+
   public static readonly Option<DefaultFunctionOpacity> AllOpaque = new("--default-function-opacity", () => DefaultFunctionOpacity.AutoRevealDependencies,
     "Treat all functions as opaque and automatically reveal the functions used inside a method or function.");
 

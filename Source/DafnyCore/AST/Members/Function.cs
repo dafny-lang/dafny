@@ -43,7 +43,7 @@ public class Function : MemberDecl, TypeParameter.ParentType, ICallable, ICanFor
     // && Name != "Valid";
     // && (EnclosingClass is null || !(Name == "Valid" && Attributes.Contains(EnclosingClass.Attributes, "autocontracts")));
   }
-  
+
   public override bool CanBeRevealed() {
     return true;
   }

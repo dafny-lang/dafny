@@ -105,7 +105,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
     NoIncludes disables.".TrimStart(),
         argumentName: "Everything|DllEmbed|NoIncludes|NoGhost",
         defaultValue: PrintModes.Everything);
-      
+
       RegisterLegacyUi(CommonOptionBag.AllOpaque, ParseDefaultFunctionOpacity, "Language feature selection", "defaultFunctionOpacity");
 
       void ParsePrintMode(Option<PrintModes> option, Bpl.CommandLineParseState ps, DafnyOptions options) {

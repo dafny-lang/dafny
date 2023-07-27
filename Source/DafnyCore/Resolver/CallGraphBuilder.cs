@@ -177,8 +177,9 @@ namespace Microsoft.Dafny {
           var function = functionCallExpr.Function;
           if (function is ExtremePredicate extremePredicate) {
             extremePredicate.Uses.Add(functionCallExpr);
-          } AddCallGraphEdge(context.CodeContext, function, functionCallExpr,
-            IsFunctionReturnValue(function, functionCallExpr.Receiver, functionCallExpr.Args, context));
+          }
+          AddCallGraphEdge(context.CodeContext, function, functionCallExpr,
+          IsFunctionReturnValue(function, functionCallExpr.Receiver, functionCallExpr.Args, context));
 
         } else if (expr is QuantifierExpr quantifierExpr) {
           Contract.Assert(quantifierExpr.SplitQuantifier == null); // No split quantifiers during resolution
