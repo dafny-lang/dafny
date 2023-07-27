@@ -146,42 +146,6 @@ namespace Microsoft.Dafny {
       return true;
     }
 
-    // ---------------------------------------- Comparable constraints ----------------------------------------
-
-    public void AddComparableConstraint(PreType a, PreType b, IToken tok, string errorFormatString) {
-      AddGuardedConstraint(() => ApplyComparableConstraints(a, b, tok, errorFormatString));
-    }
-
-    private bool ApplyComparableConstraints(PreType a, PreType b, IToken tok, string errorFormatString) {
-      // The meaning of a comparable constraint
-      //     A ~~ B
-      // is the disjunction
-      //     A :> B    or    B :> A
-      // To decide between these two possibilities, enough information must be available about A and/or B.
-      var ptA = a.Normalize() as DPreType;
-      var ptB = b.Normalize() as DPreType;
-      if (ptA != null && ptB != null &&
-          GetTypeArgumentsForSuperType(ptB.Decl, ptA.Decl, ptA.Arguments) == null &&
-          GetTypeArgumentsForSuperType(ptA.Decl, ptB.Decl, ptB.Arguments) == null) {
-        // neither A :> B nor B :> A is possible
-        PreTypeResolver.ReportError(tok, errorFormatString, a, b);
-        return true;
-      } else if ((ptA != null && ptA.IsLeafType()) || (ptB != null && ptB.IsRootType())) {
-        // use B :> A
-        DebugPrint($"    DEBUG: turning ~~ into {b} :> {a}");
-        AddSubtypeConstraint(b, a, tok, errorFormatString);
-        return true;
-      } else if ((ptA != null && ptA.IsRootType()) || (ptB != null && ptB.IsLeafType())) {
-        // use A :> B
-        DebugPrint($"    DEBUG: turning ~~ into {a} :> {b}");
-        AddSubtypeConstraint(a, b, tok, errorFormatString);
-        return true;
-      } else {
-        // not enough information to determine
-        return false;
-      }
-    }
-
     // ---------------------------------------- Subtype constraints ----------------------------------------
 
     public void AddSubtypeConstraint(PreType super, PreType sub, IToken tok, string errorFormatString) {
