@@ -350,7 +350,7 @@ namespace Microsoft.Dafny {
       });
     }
 
-    void AddConfirmation2(string check, PreType preType, Type toType, IToken tok, string errorFormatString) {
+    void AddConfirmation(string check, PreType preType, Type toType, IToken tok, string errorFormatString) {
       Contract.Requires(toType is NonProxyType);
       var toPreType = (DPreType)PreTypeResolver.Type2PreType(toType);
       confirmations.Add(() => {
