@@ -313,13 +313,13 @@ namespace Microsoft.Dafny {
       if (!subAncestors.Contains(super.Decl)) {
         return false;
       }
-      var s = sub.AsParentType(super.Decl, this);
-      var n = super.Decl.TypeArgs.Count;
-      Contract.Assert(super.Arguments.Count == n);
-      Contract.Assert(s.Arguments.Count == n);
-      for (var i = 0; i < n; i++) {
+      sub = sub.AsParentType(super.Decl, this);
+      var argumentCount = super.Decl.TypeArgs.Count;
+      Contract.Assert(super.Arguments.Count == argumentCount);
+      Contract.Assert(sub.Arguments.Count == argumentCount);
+      for (var i = 0; i < argumentCount; i++) {
         var superI = super.Arguments[i].Normalize() as DPreType;
-        var subI = s.Arguments[i].Normalize() as DPreType;
+        var subI = sub.Arguments[i].Normalize() as DPreType;
         if (superI == null || subI == null) {
           return false;
         }
