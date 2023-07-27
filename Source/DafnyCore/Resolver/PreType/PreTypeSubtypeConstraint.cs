@@ -59,7 +59,7 @@ namespace Microsoft.Dafny {
         //     Constrain g(x,y) :> b
         //     Constrain c == h(x,y)
         // else report an error
-        var arguments = AdaptTypeArgumentsForParent(ptSuper.Decl, ptSub.Decl, ptSub.Arguments, preTypeResolver);
+        var arguments = GetTypeArgumentsForSuperType(ptSuper.Decl, ptSub.Decl, ptSub.Arguments, preTypeResolver);
         if (arguments != null) {
           Contract.Assert(arguments.Count == ptSuper.Decl.TypeArgs.Count);
           ConstrainTypeArguments(ptSuper.Decl.TypeArgs, ptSuper.Arguments, arguments, tok, preTypeResolver);
@@ -168,8 +168,8 @@ namespace Microsoft.Dafny {
     /// "super<L>" is a supertype of "sub<subArguments>".
     /// Otherwise, return "null".
     /// </summary>
-    public static List<PreType> /*?*/
-      AdaptTypeArgumentsForParent(TopLevelDecl super, TopLevelDecl sub, List<PreType> subArguments, PreTypeResolver preTypeResolver) {
+    public static List<PreType> /*?*/ GetTypeArgumentsForSuperType(TopLevelDecl super, TopLevelDecl sub, List<PreType> subArguments,
+      PreTypeResolver preTypeResolver) {
       Contract.Requires(sub.TypeArgs.Count == subArguments.Count);
 
       if (super == sub) {
@@ -178,7 +178,7 @@ namespace Microsoft.Dafny {
         var subst = PreType.PreTypeSubstMap(md.TypeArgs, subArguments);
         foreach (var parentType in AllParentTraits(md, preTypeResolver)) {
           var parentPreType = (DPreType)preTypeResolver.Type2PreType(parentType).Substitute(subst);
-          var arguments = AdaptTypeArgumentsForParent(super, parentPreType.Decl, parentPreType.Arguments, preTypeResolver);
+          var arguments = GetTypeArgumentsForSuperType(super, parentPreType.Decl, parentPreType.Arguments, preTypeResolver);
           if (arguments != null) {
             return arguments;
           }

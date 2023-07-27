@@ -167,8 +167,8 @@ namespace Microsoft.Dafny {
       var ptA = a.Normalize() as DPreType;
       var ptB = b.Normalize() as DPreType;
       if (ptA != null && ptB != null &&
-          SubtypeConstraint.AdaptTypeArgumentsForParent(ptB.Decl, ptA.Decl, ptA.Arguments, this) == null &&
-          SubtypeConstraint.AdaptTypeArgumentsForParent(ptA.Decl, ptB.Decl, ptB.Arguments, this) == null) {
+          SubtypeConstraint.GetTypeArgumentsForSuperType(ptB.Decl, ptA.Decl, ptA.Arguments, this) == null &&
+          SubtypeConstraint.GetTypeArgumentsForSuperType(ptA.Decl, ptB.Decl, ptB.Arguments, this) == null) {
         // neither A :> B nor B :> A is possible
         ReportError(tok, errorFormatString, a, b);
         return true;
