@@ -34,9 +34,9 @@ namespace Microsoft.Dafny {
       bool anythingChanged;
       do {
         if (makeDecisions) {
-          if (DecideHeadsFromBounds(true)) {
+          if (TryResolveTypeProxiesUsingKnownBounds(true)) {
             // something changed, so do another round of Apply... calls below
-          } else if (DecideHeadsFromBounds(false)) {
+          } else if (TryResolveTypeProxiesUsingKnownBounds(false)) {
             // something changed, so do another round of Apply... calls below
           } else {
             return;
@@ -216,8 +216,14 @@ namespace Microsoft.Dafny {
       return anythingChanged;
     }
 
-    bool DecideHeadsFromBounds(bool fromSubBounds) {
-      // For each proxy, compute the join/meet of its sub/super-bound heads
+    /// <summary>
+    /// Try to resolve each proxy using its sub-bound constraints (if "fromSubBounds" is "true") or
+    /// its super-bound constraints (if "fromSubBounds" is "false"). Add an equality constraint for
+    /// any proxy whose head can be determined.
+    /// Return "true" if any such equality constraint was added.
+    /// </summary>
+    bool TryResolveTypeProxiesUsingKnownBounds(bool fromSubBounds) {
+      // First, compute the join/meet of the sub/super-bound heads of each proxy
       Dictionary<PreTypeProxy, TopLevelDecl> candidateHeads = new();
       Dictionary<PreTypeProxy, SubtypeConstraint> constraintOrigins = new();
       foreach (var constraint in unnormalizedSubtypeConstraints) {
@@ -237,6 +243,8 @@ namespace Microsoft.Dafny {
           }
         }
       }
+
+      // Record equality constraints for each proxy that was determined
       var anythingChanged = false;
       foreach (var (proxy, best) in candidateHeads) {
         var pt = new DPreType(best, best.TypeArgs.ConvertAll(_ => CreatePreTypeProxy()));
