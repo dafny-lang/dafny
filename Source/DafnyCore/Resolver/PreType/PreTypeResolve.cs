@@ -12,7 +12,7 @@ using JetBrains.Annotations;
 
 namespace Microsoft.Dafny {
   public abstract class ResolverPass {
-    protected readonly ModuleResolver resolver;
+    public readonly ModuleResolver resolver;
 
     protected ResolverPass(ModuleResolver resolver) {
       Contract.Requires(resolver != null);
@@ -64,8 +64,9 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public partial class PreTypeResolver : ResolverPass {
+  public class PreTypeResolver : ResolverPass {
     private readonly Dictionary<string, TopLevelDecl> preTypeBuiltins = new();
+    public readonly PreTypeConstraints Constraints;
 
     TopLevelDecl BuiltInTypeDecl(string name) {
       Contract.Requires(name != null);
@@ -150,7 +151,7 @@ namespace Microsoft.Dafny {
 
     private int typeProxyCount = 0; // used to give each PreTypeProxy a unique ID
 
-    private readonly List<(PreTypeProxy, string)> allPreTypeProxies = new();
+    public readonly List<(PreTypeProxy, string)> allPreTypeProxies = new();
 
     public PreType CreatePreTypeProxy(string description = null) {
       var proxy = new PreTypeProxy(typeProxyCount++);
@@ -263,22 +264,6 @@ namespace Microsoft.Dafny {
       return preType;
     }
 
-    /// <summary>
-    /// AllParentTraits(decl) is like decl.ParentTraits, but also returns "object" if "decl" is a reference type.
-    /// </summary>
-    public IEnumerable<Type> AllParentTraits(TopLevelDeclWithMembers decl) {
-      foreach (var parentType in decl.ParentTraits) {
-        yield return parentType;
-      }
-      if (DPreType.IsReferenceTypeDecl(decl)) {
-        if (decl is TraitDecl trait && trait.IsObjectTrait) {
-          // don't return object itself
-        } else {
-          yield return resolver.SystemModuleManager.ObjectQ();
-        }
-      }
-    }
-
     public static bool HasTraitSupertypes(DPreType dp) {
       /*
        * When traits can be used as supertypes for non-reference types (and "object" is an implicit parent trait of every
@@ -301,7 +286,8 @@ namespace Microsoft.Dafny {
     /// <summary>
     /// Add to "ancestors" every TopLevelDecl that is a reflexive, transitive parent of "d",
     /// but not exploring past any TopLevelDecl that is already in "ancestors".
-    void ComputeAncestors(TopLevelDecl decl, ISet<TopLevelDecl> ancestors) {
+    /// </summary>
+    public void ComputeAncestors(TopLevelDecl decl, ISet<TopLevelDecl> ancestors) {
       if (!ancestors.Contains(decl)) {
         ancestors.Add(decl);
         if (decl is TopLevelDeclWithMembers topLevelDeclWithMembers) {
@@ -314,6 +300,37 @@ namespace Microsoft.Dafny {
           ComputeAncestors(resolver.SystemModuleManager.ObjectDecl, ancestors);
         }
       }
+    }
+
+    /// <summary>
+    /// Return "true" if "super" is a super-(pre)type of "sub".
+    /// Otherwise, return "false".
+    /// Note, if either "super" or "sub" contains a type proxy, then "false" is returned.
+    /// </summary>
+    public bool IsSuperPreTypeOf(DPreType super, DPreType sub) {
+      var subAncestors = new HashSet<TopLevelDecl>();
+      ComputeAncestors(sub.Decl, subAncestors);
+      if (!subAncestors.Contains(super.Decl)) {
+        return false;
+      }
+      sub = sub.AsParentType(super.Decl, this);
+      var argumentCount = super.Decl.TypeArgs.Count;
+      Contract.Assert(super.Arguments.Count == argumentCount);
+      Contract.Assert(sub.Arguments.Count == argumentCount);
+      for (var i = 0; i < argumentCount; i++) {
+        var superI = super.Arguments[i].Normalize() as DPreType;
+        var subI = sub.Arguments[i].Normalize() as DPreType;
+        if (superI == null || subI == null) {
+          return false;
+        }
+        if (super.Decl.TypeArgs[i].Variance != TypeParameter.TPVariance.Contra && !IsSuperPreTypeOf(superI, subI)) {
+          return false;
+        }
+        if (super.Decl.TypeArgs[i].Variance != TypeParameter.TPVariance.Co && !IsSuperPreTypeOf(subI, superI)) {
+          return false;
+        }
+      }
+      return true;
     }
 
     public static bool IsBitvectorName(string name, out int width) {
@@ -349,6 +366,7 @@ namespace Microsoft.Dafny {
     public PreTypeResolver(ModuleResolver resolver)
       : base(resolver) {
       Contract.Requires(resolver != null);
+      Constraints = new PreTypeConstraints(this);
     }
 
     /// <summary>
