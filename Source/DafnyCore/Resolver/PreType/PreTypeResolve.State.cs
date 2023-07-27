@@ -154,7 +154,7 @@ namespace Microsoft.Dafny {
 
     // ---------------------------------------- Comparable constraints ----------------------------------------
 
-    void AddComparableConstraint(PreType a, PreType b, IToken tok, string errorFormatString) {
+    public void AddComparableConstraint(PreType a, PreType b, IToken tok, string errorFormatString) {
       AddGuardedConstraint(() => ApplyComparableConstraints(a, b, tok, errorFormatString));
     }
 
