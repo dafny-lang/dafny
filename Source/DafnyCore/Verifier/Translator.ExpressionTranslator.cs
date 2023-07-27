@@ -477,7 +477,7 @@ namespace Microsoft.Dafny {
                   if (fn.IsFuelAware()) {
                     args.Add(this.layerInterCluster.GetFunctionFuel(fn));
                   }
-                  if (fn.IsOpaque || fn.DoesAllOpaqueMakeOpaque(options)) {
+                  if (fn.IsOpaque || fn.IsMadeImplicitlyOpaque(options)) {
                     args.Add(translator.GetRevealConstant(fn));
                   }
                   if (fn is TwoStateFunction) {
@@ -655,7 +655,7 @@ namespace Microsoft.Dafny {
                   layerArgument = null;
                 }
 
-                if (e.Function.IsOpaque || e.Function.DoesAllOpaqueMakeOpaque(options)) {
+                if (e.Function.IsOpaque || e.Function.IsMadeImplicitlyOpaque(options)) {
                   revealArgument = translator.GetRevealConstant(e.Function);
                 } else {
                   revealArgument = null;

@@ -204,14 +204,14 @@ true - Print debug information for the new type system.".TrimStart()) {
 
 Functionality is still being expanded. Currently only checks contracts on every call to a function or method marked with the {:extern} attribute.".TrimStart());
 
-  public enum DefaultFunctionOpacity {
+  public enum DefaultFunctionOpacityOptions {
     Transparent,
     AutoRevealDependencies,
     Opaque
   }
 
-  public static readonly Option<DefaultFunctionOpacity> AllOpaque = new("--default-function-opacity", () => DefaultFunctionOpacity.AutoRevealDependencies,
-    "Treat all functions as opaque and automatically reveal the functions used inside a method or function.");
+  public static readonly Option<DefaultFunctionOpacityOptions> DefaultFunctionOpacity = new("--default-function-opacity", () => DefaultFunctionOpacityOptions.AutoRevealDependencies,
+    "Change the default opacity of functions. `Transparent` (default) means functions are transparent, can be manually made opaque and then revealed. `AutoRevealDependencies` makes all functions non explicitly labelled as opaque to be opaque but reveals them automatically in scopes not having `{:noAutoReveal}. `Opaque` means functions are always opaque so the opaque keyword is not needed, function must be revealed everywhere needed for a proof.");
 
   static CommonOptionBag() {
     QuantifierSyntax = QuantifierSyntax.FromAmong("3", "4");
@@ -338,7 +338,7 @@ Functionality is still being expanded. Currently only checks contracts on every 
       WarnMissingConstructorParenthesis,
       UseJavadocLikeDocstringRewriterOption,
       IncludeRuntimeOption,
-      AllOpaque
+      DefaultFunctionOpacity
     );
   }
 

@@ -1073,13 +1073,13 @@ namespace Microsoft.Dafny {
         layer = new Boogie.IdentifierExpr(f.tok, "$LZ", predef.LayerType); // $LZ
       }
 
-      if (f.IsOpaque || f.DoesAllOpaqueMakeOpaque(options)) {
-        Contract.Assert(overridingFunction.IsOpaque || options.Get(CommonOptionBag.AllOpaque) == CommonOptionBag.DefaultFunctionOpacity.Opaque || options.Get(CommonOptionBag.AllOpaque) == CommonOptionBag.DefaultFunctionOpacity.AutoRevealDependencies);
+      if (f.IsOpaque || f.IsMadeImplicitlyOpaque(options)) {
+        Contract.Assert(overridingFunction.IsOpaque || options.Get(CommonOptionBag.DefaultFunctionOpacity) == CommonOptionBag.DefaultFunctionOpacityOptions.Opaque || options.Get(CommonOptionBag.DefaultFunctionOpacity) == CommonOptionBag.DefaultFunctionOpacityOptions.AutoRevealDependencies);
         var revealVar = new Boogie.BoundVariable(f.tok, new Boogie.TypedIdent(f.tok, "reveal", Boogie.Type.Bool));
         forallFormals.Add(revealVar);
         reveal = new Boogie.IdentifierExpr(f.tok, revealVar);
         argsJF.Add(reveal);
-      } else if (overridingFunction.IsOpaque || overridingFunction.DoesAllOpaqueMakeOpaque(options)) {
+      } else if (overridingFunction.IsOpaque || overridingFunction.IsMadeImplicitlyOpaque(options)) {
         // We can't use a bound variable $fuel, because then one of the triggers won't be mentioning this $fuel.
         // Instead, we do the next best thing: use the literal false.
         reveal = new Boogie.LiteralExpr(f.tok, false);

@@ -75,7 +75,7 @@ public class CompilationData {
     result.Add(new LocalLinter(reporter));
     result.Add(new PrecedenceLinter(reporter, this));
 
-    if (Options.Get(CommonOptionBag.AllOpaque) == CommonOptionBag.DefaultFunctionOpacity.AutoRevealDependencies) {
+    if (Options.Get(CommonOptionBag.DefaultFunctionOpacity) == CommonOptionBag.DefaultFunctionOpacityOptions.AutoRevealDependencies) {
       result.Add(new AllOpaqueRevealStmtInserter(reporter));
     }
 
