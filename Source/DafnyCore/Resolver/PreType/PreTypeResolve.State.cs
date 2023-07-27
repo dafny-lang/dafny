@@ -128,12 +128,6 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public void DebugPrint(string format, params object[] args) {
-      if (options.Get(CommonOptionBag.NewTypeInferenceDebug)) {
-        Console.WriteLine(format, args);
-      }
-    }
-
     // ---------------------------------------- Equality constraints ----------------------------------------
 
     public void AddEqualityConstraint(PreType a, PreType b, IToken tok, string msgFormat) {
@@ -583,6 +577,12 @@ namespace Microsoft.Dafny {
 
     string Pad(string s, int minWidth) {
       return s + new string(' ', Math.Max(minWidth - s.Length, 0));
+    }
+
+    public void DebugPrint(string format, params object[] args) {
+      if (options.Get(CommonOptionBag.NewTypeInferenceDebug)) {
+        Console.WriteLine(format, args);
+      }
     }
 
   }
