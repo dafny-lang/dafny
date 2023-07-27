@@ -26,8 +26,6 @@ namespace Microsoft.Dafny {
       this.options = preTypeResolver.resolver.Options;
     }
 
-    // ---------------------------------------- Pre-type inference state ----------------------------------------
-
     /// <summary>
     /// Solves or simplifies as many type constraints as possible.
     /// If "allowDecisions" is "false", then no decisions, only determined inferences, are made; this mode is
@@ -128,8 +126,6 @@ namespace Microsoft.Dafny {
       }
     }
 
-    // ---------------------------------------- Equality constraints ----------------------------------------
-
     public void AddEqualityConstraint(PreType a, PreType b, IToken tok, string msgFormat) {
       equalityConstraints.Add(new EqualityConstraint(a, b, tok, msgFormat));
     }
@@ -145,8 +141,6 @@ namespace Microsoft.Dafny {
       }
       return true;
     }
-
-    // ---------------------------------------- Subtype constraints ----------------------------------------
 
     public void AddSubtypeConstraint(PreType super, PreType sub, IToken tok, string errorFormatString) {
       unnormalizedSubtypeConstraints.Add(new SubtypeConstraint(super, sub, tok, errorFormatString));
@@ -312,8 +306,6 @@ namespace Microsoft.Dafny {
       }
     }
 
-    // ---------------------------------------- Guarded constraints ----------------------------------------
-
     void AddGuardedConstraint(Func<bool> predicate) {
       guardedConstraints.Add(predicate);
     }
@@ -336,8 +328,6 @@ namespace Microsoft.Dafny {
       return anythingChanged;
     }
 
-    // ---------------------------------------- Advice ----------------------------------------
-
     void AddDefaultAdvice(PreType preType, Advice.Target advice) {
       defaultAdvice.Add(new Advice(preType, advice));
     }
@@ -349,8 +339,6 @@ namespace Microsoft.Dafny {
       }
       return anythingChanged;
     }
-
-    // ---------------------------------------- Post-inference confirmations ----------------------------------------
 
     void AddConfirmation(string check, PreType preType, IToken tok, string errorFormatString) {
       confirmations.Add(() => {
@@ -493,8 +481,6 @@ namespace Microsoft.Dafny {
           throw new cce.UnreachableException();
       }
     }
-
-    // ---------------------------------------- Utility methods ----------------------------------------
 
     /// <summary>
     /// If "super" is an ancestor of "sub", then return a list "L" of arguments for "super" such that
