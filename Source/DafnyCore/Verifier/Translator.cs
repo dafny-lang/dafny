@@ -1805,7 +1805,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(iter.Body != null);
       Contract.Requires(currentModule == null && codeContext == null && yieldCountVariable == null && _tmpIEs.Count == 0);
       Contract.Ensures(currentModule == null && codeContext == null && yieldCountVariable == null && _tmpIEs.Count == 0);
-
+      AlcorProofKernel.Expr assumptions = new AlcorProofKernel.Expr_True();
       currentModule = iter.EnclosingModuleDefinition;
       codeContext = iter;
 
@@ -1849,7 +1849,7 @@ namespace Microsoft.Dafny {
       YieldHavoc(iter.tok, iter, builder, etran);
 
       // translate the body of the iterator
-      var stmts = TrStmt2StmtList(builder, iter.Body, localVariables, etran);
+      var stmts = TrStmt2StmtList(builder, iter.Body, localVariables, etran, assumptions);
 
       if (EmitImplementation(iter.Attributes)) {
         // emit the impl only when there are proof obligations.
@@ -7386,7 +7386,7 @@ namespace Microsoft.Dafny {
       return req;
     }
 
-    Bpl.StmtList TrStmt2StmtList(BoogieStmtListBuilder builder, Statement block, List<Variable> locals, ExpressionTranslator etran) {
+    Bpl.StmtList TrStmt2StmtList(BoogieStmtListBuilder builder, Statement block, List<Variable> locals, ExpressionTranslator etran, AlcorProofKernel.Expr assumptions) {
       Contract.Requires(builder != null);
       Contract.Requires(block != null);
       Contract.Requires(locals != null);
@@ -7394,7 +7394,8 @@ namespace Microsoft.Dafny {
       Contract.Requires(codeContext != null && predef != null);
       Contract.Ensures(Contract.Result<Bpl.StmtList>() != null);
 
-      TrStmt(block, builder, locals, etran);
+      TrStmt(block, builder, locals, etran, ref assumptions);
+      // At the end of the list, we will return only the last assumption that was made.
       return builder.Collect(block.Tok);  // TODO: would be nice to have an end-curly location for "block"
     }
 
@@ -7495,22 +7496,26 @@ namespace Microsoft.Dafny {
       builder.Add(TrAssumeCmd(exists.tok, etran.TrExpr(exists.Term)));
     }
 
-    void TrStmtList(List<Statement> stmts, BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran) {
+    void TrStmtList(List<Statement> stmts, BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran, ref AlcorProofKernel.Expr assumptions) {
       Contract.Requires(stmts != null);
       Contract.Requires(builder != null);
       Contract.Requires(locals != null);
       Contract.Requires(etran != null);
+      var local_assumptions = assumptions;
+      
       foreach (Statement ss in stmts) {
         for (var l = ss.Labels; l != null; l = l.Next) {
           var heapAt = new Bpl.LocalVariable(ss.Tok, new Bpl.TypedIdent(ss.Tok, "$Heap_at_" + l.Data.AssignUniqueId(CurrentIdGenerator), predef.HeapType));
           locals.Add(heapAt);
           builder.Add(Bpl.Cmd.SimpleAssign(ss.Tok, new Bpl.IdentifierExpr(ss.Tok, heapAt), etran.HeapExpr));
         }
-        TrStmt(ss, builder, locals, etran);
+        TrStmt(ss, builder, locals, etran, ref assumptions);
         if (ss.Labels != null) {
           builder.AddLabelCmd("after_" + ss.Labels.Data.AssignUniqueId(CurrentIdGenerator));
         }
       }
+      // TODO: Modify assumptions with the last assumption of local assumption
+      // or return the last assumption made if it's new
     }
 
     /// <summary>

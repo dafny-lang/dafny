@@ -1251,15 +1251,16 @@ namespace Microsoft.Dafny {
 
     private void CheckWellformedStmtExpr(StmtExpr stmtExpr, WFOptions options, Expr result, Type resultType, List<Variable> locals,
       BoogieStmtListBuilder builder, ExpressionTranslator etran) {
+      AlcorProofKernel.Expr assumptions = new AlcorProofKernel.Expr_True();
       // If we're inside an "old" expression, then "etran" will know how to translate
       // expressions. However, here, we're also having to translate e.S, which is a
       // Statement. Since statement translation (in particular, translation of CallStmt's)
       // work directly on the global variable $Heap, we temporarily change its value here.
       if (etran.UsesOldHeap) {
         BuildWithHeapAs(stmtExpr.S.Tok, etran.HeapExpr, "StmtExpr#", locals, builder,
-          () => TrStmt(stmtExpr.S, builder, locals, etran));
+          () => TrStmt(stmtExpr.S, builder, locals, etran, ref assumptions));
       } else {
-        TrStmt(stmtExpr.S, builder, locals, etran);
+        TrStmt(stmtExpr.S, builder, locals, etran, ref assumptions);
       }
 
       CheckWellformedWithResult(stmtExpr.E, options, result, resultType, locals, builder, etran);

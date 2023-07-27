@@ -1,4 +1,6 @@
 // TODO: Use AutoExtern to convert Dafny's expressions into Alcor's language
+include "../AST/Formatting.dfy"
+
 module Wrappers {
   
   datatype Result<S> = Success(value: S) | Failure(msg: string)
@@ -313,11 +315,11 @@ module Alcor {
 
   ghost function {:axiom} DecreasesStep(program: ProofProgram): nat
 
-  function Debug(msg: string): int {
+  function Debug(msg: string): (result: int) {
     0
   } by method {
     print msg;
-    return 0;
+    result := 0;
   }
 
   // A call-by-value proof program should be guaranteed to terminate by construction
@@ -479,46 +481,5 @@ module Alcor {
     // Part 2: Advanced proof search (axioms with lookup in the environment)
 
     return Failure("Could not find a simple proof of " +  expr.ToString() );
-  }
-
-  // TODO: Transform this to a theorem that says a && b ==> b && a
-  // Because we can't build proofs normally
-  method {:test} TestAlcorEngine() {
-    // Proof program that build A && B ==> B && A
-    var proof := 
-      ImpIntro.apply2(
-        ProofExpr(And(Var("a"), Var("b"))),
-        ProofAbs("h0", Ind, 
-          Let("hA", Ind, AndElimLeft.apply1(ProofVar("h0")),
-          Let("hB", Ind, AndElimRight.apply1(ProofVar("h0")),
-            AndIntro.apply2(ProofVar("hB"), ProofVar("hA")))
-          )));
-    var result :- expect CheckProof(proof, EnvNil,
-      Imp(And(Var("a"), Var("b")), And(Var("b"), Var("a"))));
-  }
-
-  method {:test} DummyProofFinderTest() {
-    print "\n";
-    
-    var goal := Imp(And(And(Var("a"), Var("b")), Var("...")), Var("a"));
-    var expr :- expect DummyProofFinder(goal);
-    print "Automatically found a proof of " + goal.ToString() + "\n";
-
-    goal := Imp(And(And(Var("a"), Var("b")), Var("...")), Var("b"));
-    expr :- expect DummyProofFinder(goal);
-    print "Automatically found a proof of " + goal.ToString() + "\n";
-
-    goal := Imp(And(Var("a"), And(Var("b"), And(Var("c"), And(Var("d"), Var("..."))))), Var("d"));
-    expr :- expect DummyProofFinder(goal);
-    print "Automatically found a proof of " + goal.ToString() + "\n";
-
-    
-    goal := Imp(Var("..."), Imp(Var("b"), Var("b")));
-    expr :- expect DummyProofFinder(goal);
-    print "Automatically found a proof of " + goal.ToString() + "\n";
-
-    goal := Imp(Var("..."), Imp(And(Var("a"), Var("b")), Var("b")));
-    expr :- expect DummyProofFinder(goal);
-    print "Automatically found a proof of " + goal.ToString() + "\n";
   }
 }

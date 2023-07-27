@@ -10,7 +10,8 @@ using PODesc = Microsoft.Dafny.ProofObligationDescription;
 
 namespace Microsoft.Dafny {
   public partial class Translator {
-    private void TrStmt(Statement stmt, BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran) {
+    private void TrStmt(Statement stmt, BoogieStmtListBuilder builder, List<Variable> locals,
+      ExpressionTranslator etran, ref AlcorProofKernel.Expr assumptions) {
       Contract.Requires(stmt != null);
       Contract.Requires(builder != null);
       Contract.Requires(locals != null);
@@ -21,7 +22,7 @@ namespace Microsoft.Dafny {
       stmtContext = StmtType.NONE;
       adjustFuelForExists = true;  // fuel for exists might need to be adjusted based on whether it's in an assert or assume stmt.
       if (stmt is PredicateStmt predicateStmt) {
-        TrPredicateStmt(predicateStmt, builder, locals, etran);
+        TrPredicateStmt(predicateStmt, builder, locals, etran, ref assumptions);
 
       } else if (stmt is PrintStmt) {
         AddComment(builder, stmt, "print statement");
@@ -37,7 +38,7 @@ namespace Microsoft.Dafny {
           Contract.Assert(la.E != null);  // this should have been filled in by now
           builder.Add(new Bpl.AssumeCmd(s.Tok, la.E));
         }
-        TrStmtList(s.ResolvedStatements, builder, locals, etran);
+        TrStmtList(s.ResolvedStatements, builder, locals, etran, ref assumptions);
 
       } else if (stmt is BreakStmt) {
         var s = (BreakStmt)stmt;
@@ -52,7 +53,7 @@ namespace Microsoft.Dafny {
           builder.Add(Bpl.Cmd.SimpleAssign(s.Tok, new Bpl.IdentifierExpr(s.Tok, "$_reverifyPost", Bpl.Type.Bool), Bpl.Expr.True));
         }
         if (s.HiddenUpdate != null) {
-          TrStmt(s.HiddenUpdate, builder, locals, etran);
+          TrStmt(s.HiddenUpdate, builder, locals, etran, ref assumptions);
         }
         if (codeContext is IMethodCodeContext) {
           var method = (IMethodCodeContext)codeContext;
@@ -71,7 +72,7 @@ namespace Microsoft.Dafny {
         var iter = (IteratorDecl)codeContext;
         // if the yield statement has arguments, do them first
         if (s.HiddenUpdate != null) {
-          TrStmt(s.HiddenUpdate, builder, locals, etran);
+          TrStmt(s.HiddenUpdate, builder, locals, etran, ref assumptions);
         }
         // this.ys := this.ys + [this.y];
         var th = new ThisExpr(iter);
@@ -214,7 +215,7 @@ namespace Microsoft.Dafny {
         // an array-range update.  Handle the multi-assignment here and handle the others as for .ResolvedStatements.
         var resolved = s.ResolvedStatements;
         if (resolved.Count == 1) {
-          TrStmt(resolved[0], builder, locals, etran);
+          TrStmt(resolved[0], builder, locals, etran, ref assumptions);
         } else {
           AddComment(builder, s, "update statement");
           var assignStmts = resolved.Cast<AssignStmt>().ToList();
@@ -244,7 +245,7 @@ namespace Microsoft.Dafny {
       } else if (stmt is AssignOrReturnStmt) {
         AddComment(builder, stmt, "assign-or-return statement (:-)");
         AssignOrReturnStmt s = (AssignOrReturnStmt)stmt;
-        TrStmtList(s.ResolvedStatements, builder, locals, etran);
+        TrStmtList(s.ResolvedStatements, builder, locals, etran, ref assumptions);
 
       } else if (stmt is AssignStmt) {
         AddComment(builder, stmt, "assignment statement");
@@ -271,7 +272,7 @@ namespace Microsoft.Dafny {
 
         Contract.Assert(!inBodyInitContext);
         inBodyInitContext = true;
-        TrStmtList(s.BodyInit, builder, locals, etran);
+        TrStmtList(s.BodyInit, builder, locals, etran, ref assumptions);
         Contract.Assert(inBodyInitContext);
         inBodyInitContext = false;
 
@@ -292,13 +293,13 @@ namespace Microsoft.Dafny {
         CommitAllocatedObject(tok, bplThis, null, builder, etran);
 
         AddComment(builder, stmt, "divided block after new;");
-        TrStmtList(s.BodyProper, builder, locals, etran);
+        TrStmtList(s.BodyProper, builder, locals, etran, ref assumptions);
         RemoveDefiniteAssignmentTrackers(s.Body, prevDefiniteAssignmentTrackerCount);
 
       } else if (stmt is BlockStmt) {
         var s = (BlockStmt)stmt;
         var prevDefiniteAssignmentTrackerCount = definiteAssignmentTrackers.Count;
-        TrStmtList(s.Body, builder, locals, etran);
+        TrStmtList(s.Body, builder, locals, etran, ref assumptions);
         RemoveDefiniteAssignmentTrackers(s.Body, prevDefiniteAssignmentTrackerCount);
 
       } else if (stmt is IfStmt ifStmt) {
@@ -357,7 +358,7 @@ namespace Microsoft.Dafny {
           // do the body, but with preModifyHeapVar as the governing frame
           var updatedFrameEtran = new ExpressionTranslator(etran, modifyFrameName);
           CurrentIdGenerator.Push();
-          TrStmt(s.Body, builder, locals, updatedFrameEtran);
+          TrStmt(s.Body, builder, locals, updatedFrameEtran, ref assumptions);
           CurrentIdGenerator.Pop();
         }
         builder.AddCaptureState(stmt);
@@ -371,7 +372,7 @@ namespace Microsoft.Dafny {
           AddComment(builder, stmt, "forall statement (assign)");
           Contract.Assert(s.Ens.Count == 0);
           if (s.BoundVars.Count == 0) {
-            TrStmt(s.Body, builder, locals, etran);
+            TrStmt(s.Body, builder, locals, etran, ref assumptions);
           } else {
             var s0 = (AssignStmt)s.S0;
             var definedness = new BoogieStmtListBuilder(this, options);
@@ -388,7 +389,7 @@ namespace Microsoft.Dafny {
           Contract.Assert(s.Ens.Count == 0);
           if (s.BoundVars.Count == 0) {
             Contract.Assert(LiteralExpr.IsTrue(s.Range));  // follows from the invariant of ForallStmt
-            TrStmt(s.Body, builder, locals, etran);
+            TrStmt(s.Body, builder, locals, etran, ref assumptions);
           } else {
             var s0 = (CallStmt)s.S0;
             if (Attributes.Contains(s.Attributes, "_trustWellformed")) {
@@ -424,7 +425,7 @@ namespace Microsoft.Dafny {
         TrCalcStmt(calcStmt, builder, locals, etran);
 
       } else if (stmt is NestedMatchStmt nestedMatchStmt) {
-        TrStmt(nestedMatchStmt.Flattened, builder, locals, etran);
+        TrStmt(nestedMatchStmt.Flattened, builder, locals, etran, ref assumptions);
       } else if (stmt is MatchStmt matchStmt) {
         TrMatchStmt(matchStmt, builder, locals, etran);
       } else if (stmt is VarDeclStmt) {
@@ -477,7 +478,7 @@ namespace Microsoft.Dafny {
           }
         }
         if (s.Update != null) {
-          TrStmt(s.Update, builder, locals, etran);
+          TrStmt(s.Update, builder, locals, etran, ref assumptions);
         }
       } else if (stmt is VarDeclPattern) {
         var s = (VarDeclPattern)stmt;
@@ -511,7 +512,9 @@ namespace Microsoft.Dafny {
       }
     }
 
-    private void TrPredicateStmt(PredicateStmt stmt, BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran) {
+    
+
+    private void TrPredicateStmt(PredicateStmt stmt, BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran, ref AlcorProofKernel.Expr assumptions) {
       Contract.Requires(stmt != null);
       Contract.Requires(builder != null);
       Contract.Requires(locals != null);
@@ -532,12 +535,31 @@ namespace Microsoft.Dafny {
         }
         BoogieStmtListBuilder proofBuilder = null;
         var assertStmt = stmt as AssertStmt;
+        var provenByAlcor = false;
         if (assertStmt != null) {
+          var alcorExpression = etran.TrExprAlcor(stmt.Expr);
+          if (alcorExpression != null) {
+            // Attempt to prove it using Alcor. If so, we emit an assumption in Boogie
+            var result = Alcor.__default.DummyProofFinder(
+              new AlcorProofKernel.Expr_Imp(assumptions,
+              alcorExpression));
+            provenByAlcor = result.is_Success;
+            if (provenByAlcor) {
+              var proof = result.dtor_value.ToString()!;
+              var proofStr = proof.Select(rune => rune.ToString());
+              reporter.Info(MessageSource.Verifier, assertStmt.tok, "Proven by Alcor with proof " + proofStr);
+            } else {
+              var msg = string.Join("", result.dtor_msg.Select(rune => rune.ToString()));
+              reporter.Info(MessageSource.Verifier, assertStmt.tok, "Could not prove by Alcor because" + msg);
+            }
+            // And then we assume it.
+            assumptions = new AlcorProofKernel.Expr_And(alcorExpression, assumptions);
+          }
           if (assertStmt.Proof != null) {
             proofBuilder = new BoogieStmtListBuilder(this, options);
             AddComment(proofBuilder, stmt, "assert statement proof");
             CurrentIdGenerator.Push();
-            TrStmt(((AssertStmt)stmt).Proof, proofBuilder, locals, etran);
+            TrStmt(((AssertStmt)stmt).Proof, proofBuilder, locals, etran, ref assumptions);
             CurrentIdGenerator.Pop();
           } else if (assertStmt.Label != null) {
             proofBuilder = new BoogieStmtListBuilder(this, options);
@@ -644,7 +666,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(builder != null);
       Contract.Requires(locals != null);
       Contract.Requires(etran != null);
-
+      AlcorProofKernel.Expr assumptions = new AlcorProofKernel.Expr_True(); // TODO: Take existing assumptions
       /* Translate into:
         if (*) {
             assert wf(line0);
@@ -692,7 +714,7 @@ namespace Microsoft.Dafny {
           }
           // hint:
           AddComment(b, stmt, "Hint" + i.ToString());
-          TrStmt(stmt.Hints[i], b, locals, etran);
+          TrStmt(stmt.Hints[i], b, locals, etran, ref assumptions);
           if (i < stmt.Steps.Count - 1) {
             // non-dummy step
             // check well formedness of the goal line:
@@ -746,6 +768,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(builder != null);
       Contract.Requires(locals != null);
       Contract.Requires(etran != null);
+      AlcorProofKernel.Expr assumptions = new AlcorProofKernel.Expr_True();// TODO: Import existing assumptions
 
       FillMissingCases(stmt);
 
@@ -797,7 +820,7 @@ namespace Microsoft.Dafny {
 
         // translate the body into b
         var prevDefiniteAssignmentTrackerCount = definiteAssignmentTrackers.Count;
-        TrStmtList(mc.Body, b, locals, etran);
+        TrStmtList(mc.Body, b, locals, etran, ref assumptions);
         RemoveDefiniteAssignmentTrackers(mc.Body, prevDefiniteAssignmentTrackerCount);
 
         Bpl.Expr guard = Bpl.Expr.Eq(source, r);
@@ -854,6 +877,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(builder != null);
       Contract.Requires(locals != null);
       Contract.Requires(etran != null);
+      AlcorProofKernel.Expr assumptions = new AlcorProofKernel.Expr_True();
 
       AddComment(builder, stmt, "for-loop statement");
 
@@ -934,7 +958,7 @@ namespace Microsoft.Dafny {
           if (!stmt.GoingUp) {
             bld.Add(Bpl.Cmd.SimpleAssign(stmt.Tok, bIndex, Bpl.Expr.Sub(bIndex, Bpl.Expr.Literal(1))));
           }
-          TrStmt(stmt.Body, bld, locals, e);
+          TrStmt(stmt.Body, bld, locals, e, ref assumptions);
           InsertContinueTarget(stmt, bld);
           if (stmt.GoingUp) {
             bld.Add(Bpl.Cmd.SimpleAssign(stmt.Tok, bIndex, Bpl.Expr.Add(bIndex, Bpl.Expr.Literal(1))));
@@ -951,6 +975,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(builder != null);
       Contract.Requires(locals != null);
       Contract.Requires(etran != null);
+      AlcorProofKernel.Expr assumptions = new AlcorProofKernel.Expr_True();// TODO: Import existing assumptions
 
       AddComment(builder, stmt, "while statement");
       this.fuelContext = FuelSetting.ExpandFuelContext(stmt.Attributes, stmt.Tok, this.fuelContext, this.reporter);
@@ -959,7 +984,7 @@ namespace Microsoft.Dafny {
       if (stmt.Body != null) {
         bodyTr = delegate (BoogieStmtListBuilder bld, ExpressionTranslator e) {
           CurrentIdGenerator.Push();
-          TrStmt(stmt.Body, bld, locals, e);
+          TrStmt(stmt.Body, bld, locals, e, ref assumptions);
           InsertContinueTarget(stmt, bld);
           CurrentIdGenerator.Pop();
         };
@@ -973,7 +998,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(builder != null);
       Contract.Requires(locals != null);
       Contract.Requires(etran != null);
-
+      AlcorProofKernel.Expr assumptions = new AlcorProofKernel.Expr_True();// TODO: Import existing assumptions
       AddComment(builder, stmt, "if statement");
       Expression guard;
       if (stmt.Guard == null) {
@@ -990,7 +1015,7 @@ namespace Microsoft.Dafny {
         CurrentIdGenerator.Pop();
       }
       CurrentIdGenerator.Push();
-      Bpl.StmtList thn = TrStmt2StmtList(b, stmt.Thn, locals, etran);
+      Bpl.StmtList thn = TrStmt2StmtList(b, stmt.Thn, locals, etran, assumptions);
       CurrentIdGenerator.Pop();
       Bpl.StmtList els;
       Bpl.IfCmd elsIf = null;
@@ -1002,7 +1027,7 @@ namespace Microsoft.Dafny {
         els = b.Collect(stmt.Tok);
       } else {
         CurrentIdGenerator.Push();
-        els = TrStmt2StmtList(b, stmt.Els, locals, etran);
+        els = TrStmt2StmtList(b, stmt.Els, locals, etran, assumptions);
         CurrentIdGenerator.Pop();
         if (els.BigBlocks.Count == 1) {
           Bpl.BigBlock bb = els.BigBlocks[0];
@@ -1036,6 +1061,7 @@ namespace Microsoft.Dafny {
       //   } else {
       //     assume (forall x,y :: Range(x,y) ==> Post(x,y));
       //   }
+      AlcorProofKernel.Expr assumptions = new AlcorProofKernel.Expr_True();// TODO: Import existing assumptions
 
       if (s.BoundVars.Count != 0) {
         // Note, it would be nicer (and arguably more appropriate) to do a SetupBoundVarsAsLocals
@@ -1064,7 +1090,7 @@ namespace Microsoft.Dafny {
       PathAsideBlock(s.Tok, ensuresDefinedness, definedness);
 
       if (s.Body != null) {
-        TrStmt(s.Body, definedness, locals, etran);
+        TrStmt(s.Body, definedness, locals, etran, ref assumptions);
 
         // check that postconditions hold
         foreach (var ens in s.Ens) {
@@ -1569,7 +1595,8 @@ namespace Microsoft.Dafny {
       Contract.Requires(builder != null);
       Contract.Requires(locals != null);
       Contract.Requires(etran != null);
-
+      AlcorProofKernel.Expr assumptions = new AlcorProofKernel.Expr_True();// TODO: Import existing assumptions
+      
       if (alternatives.Count == 0) {
         if (elseCase0 != null) {
           builder.Add(elseCase0);
@@ -1613,7 +1640,7 @@ namespace Microsoft.Dafny {
           b.Add(new AssumeCmd(alternative.Guard.tok, etran.TrExpr(alternative.Guard)));
         }
         var prevDefiniteAssignmentTrackerCount = definiteAssignmentTrackers.Count;
-        TrStmtList(alternative.Body, b, locals, etran);
+        TrStmtList(alternative.Body, b, locals, etran, ref assumptions);
         RemoveDefiniteAssignmentTrackers(alternative.Body, prevDefiniteAssignmentTrackerCount);
         Bpl.StmtList thn = b.Collect(alternative.Tok);
         elsIf = new Bpl.IfCmd(alternative.Tok, null, thn, elsIf, els);
@@ -1974,6 +2001,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(exporter != null);
       Contract.Requires(locals != null);
       Contract.Requires(etran != null);
+      AlcorProofKernel.Expr assumptions = new AlcorProofKernel.Expr_True();
 
       // Translate:
       //   forall (x,y | Range(x,y)) {
@@ -2020,7 +2048,7 @@ namespace Microsoft.Dafny {
           definedness.Add(TrAssumeCmd(es.tok, es));
         }
 
-        TrStmt(s0, definedness, locals, etran);
+        TrStmt(s0, definedness, locals, etran, ref assumptions);
 
         definedness.Add(TrAssumeCmd(tok, Bpl.Expr.False));
       }

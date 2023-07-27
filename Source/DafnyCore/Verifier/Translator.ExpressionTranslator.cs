@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
 using System.Numerics;
+using JetBrains.Annotations;
 using Microsoft.Boogie;
 using static Microsoft.Dafny.Util;
 
@@ -280,6 +281,44 @@ namespace Microsoft.Dafny {
 
       public Expr MaybeLit(Expr expr) {
         return stripLits ? expr : translator.Lit(expr);
+      }
+
+      // Null means the expression is not yet translated in Alcor
+      [CanBeNull]
+      public AlcorProofKernel.Expr TrExprAlcor(Expression expr) {
+        switch (expr) {
+          case IdentifierExpr identifierExpr: {
+            IdentifierExpr e = identifierExpr;
+            
+            var rName = global::Dafny.Sequence<global::Dafny.Rune>.UnicodeFromString(e.Name);
+            var label = global::Dafny.Sequence<global::Dafny.Rune>.UnicodeFromString("");
+            var version = BigInteger.Zero;
+            return new AlcorProofKernel.Expr_Var(rName, version, label); // TODO: Add tokens
+          }
+          case BinaryExpr binaryExpr: {
+            BinaryExpr e = binaryExpr;
+            var left = TrExprAlcor(e.E0);
+            if (left == null) {
+              return null;
+            }
+            var right = TrExprAlcor(e.E1);
+            if (right == null) {
+              return null;
+            }
+            if (e.ResolvedOp is BinaryExpr.ResolvedOpcode.And) {
+              return new AlcorProofKernel.Expr_And(left, right);
+            } else if (e.ResolvedOp is BinaryExpr.ResolvedOpcode.Imp) {
+              return new AlcorProofKernel.Expr_Imp(left, right);
+            } else if (e.ResolvedOp is BinaryExpr.ResolvedOpcode.Or) {
+              return new AlcorProofKernel.Expr_Or(left, right);
+            }
+
+            return null;
+          }
+          default: {
+            return null;
+          }
+        }
       }
 
       /// <summary>

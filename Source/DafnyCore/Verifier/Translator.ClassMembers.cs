@@ -527,7 +527,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(wellformednessProc || m.Body != null);
       Contract.Requires(currentModule == null && codeContext == null && _tmpIEs.Count == 0 && isAllocContext == null);
       Contract.Ensures(currentModule == null && codeContext == null && _tmpIEs.Count == 0 && isAllocContext == null);
-
+      AlcorProofKernel.Expr assumptions = new AlcorProofKernel.Expr_True();
       currentModule = m.EnclosingClass.EnclosingModuleDefinition;
       codeContext = m;
       isAllocContext = new IsAllocContext(options, m.IsGhost);
@@ -653,8 +653,10 @@ namespace Microsoft.Dafny {
         // register output parameters with definite-assignment trackers
         Contract.Assert(definiteAssignmentTrackers.Count == 0);
         m.Outs.Iter(p => AddExistingDefiniteAssignmentTracker(p, m.IsGhost));
+        // Collect all requires in a single environment formula into Alcor
+        // While translating the body, try to find immediate proofs
         // translate the body
-        TrStmt(m.Body, builder, localVariables, etran);
+        TrStmt(m.Body, builder, localVariables, etran, ref assumptions);
         m.Outs.Iter(p => CheckDefiniteAssignmentReturn(m.Body.RangeToken.EndToken, p, builder));
         if (m is { FunctionFromWhichThisIsByMethodDecl: { ByMethodTok: { } } fun }) {
           AssumeCanCallForByMethodDecl(m, builder);
