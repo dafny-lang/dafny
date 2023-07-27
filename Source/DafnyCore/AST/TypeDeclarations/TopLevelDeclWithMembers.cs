@@ -257,8 +257,8 @@ public abstract class TopLevelDeclWithMembers : TopLevelDecl, IHasSymbolChildren
       }
     }
   }
-  public IEnumerable<ISymbol> ChildSymbols => Members.OfType<ISymbol>();
-  public DafnySymbolKind Kind => DafnySymbolKind.Class;
+  public virtual IEnumerable<ISymbol> ChildSymbols => Members.OfType<ISymbol>();
+  public virtual DafnySymbolKind Kind => DafnySymbolKind.Class;
 }
 
 public static class RevealableTypeDeclHelper {
