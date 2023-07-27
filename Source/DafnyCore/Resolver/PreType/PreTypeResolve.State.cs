@@ -259,18 +259,19 @@ namespace Microsoft.Dafny {
 
     IEnumerable<DPreType> AllSubBounds(PreTypeProxy proxy, ISet<PreTypeProxy> visited) {
       Contract.Requires(proxy.PT == null);
-      if (!visited.Contains(proxy)) {
-        visited.Add(proxy);
-        foreach (var constraint in unnormalizedSubtypeConstraints) {
-          if (constraint.Super.Normalize() == proxy) {
-            var sub = constraint.Sub.Normalize();
-            if (sub is PreTypeProxy subProxy) {
-              foreach (var pt in AllSubBounds(subProxy, visited)) {
-                yield return pt;
-              }
-            } else {
-              yield return (DPreType)sub;
+      if (visited.Contains(proxy)) {
+        yield break;
+      }
+      visited.Add(proxy);
+      foreach (var constraint in unnormalizedSubtypeConstraints) {
+        if (constraint.Super.Normalize() == proxy) {
+          var sub = constraint.Sub.Normalize();
+          if (sub is PreTypeProxy subProxy) {
+            foreach (var pt in AllSubBounds(subProxy, visited)) {
+              yield return pt;
             }
+          } else {
+            yield return (DPreType)sub;
           }
         }
       }
@@ -278,18 +279,19 @@ namespace Microsoft.Dafny {
 
     IEnumerable<DPreType> AllSuperBounds(PreTypeProxy proxy, ISet<PreTypeProxy> visited) {
       Contract.Requires(proxy.PT == null);
-      if (!visited.Contains(proxy)) {
-        visited.Add(proxy);
-        foreach (var constraint in unnormalizedSubtypeConstraints) {
-          if (constraint.Sub.Normalize() == proxy) {
-            var super = constraint.Super.Normalize();
-            if (super is PreTypeProxy superProxy) {
-              foreach (var pt in AllSuperBounds(superProxy, visited)) {
-                yield return pt;
-              }
-            } else {
-              yield return (DPreType)super;
+      if (visited.Contains(proxy)) {
+        yield break;
+      }
+      visited.Add(proxy);
+      foreach (var constraint in unnormalizedSubtypeConstraints) {
+        if (constraint.Sub.Normalize() == proxy) {
+          var super = constraint.Super.Normalize();
+          if (super is PreTypeProxy superProxy) {
+            foreach (var pt in AllSuperBounds(superProxy, visited)) {
+              yield return pt;
             }
+          } else {
+            yield return (DPreType)super;
           }
         }
       }
