@@ -11,7 +11,7 @@ using System.Linq;
 using System.Diagnostics.Contracts;
 
 namespace Microsoft.Dafny {
-  class SubtypeConstraint : PreTypeStateWithErrorMessage {
+  class SubtypeConstraint : PreTypeConstraint {
     public readonly PreType Super;
     public readonly PreType Sub;
 

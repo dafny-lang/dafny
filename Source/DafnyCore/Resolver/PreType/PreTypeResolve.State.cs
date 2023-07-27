@@ -119,8 +119,8 @@ namespace Microsoft.Dafny {
       options.OutputWriter.WriteLine($"    {rubric}:");
       foreach (var t in list) {
         var info = $"        {formatter(t)}";
-        if (t is PreTypeStateWithErrorMessage preTypeStateWithErrorMessage) {
-          info = $"{Pad(info, 30)}  {TokToShortLocation(preTypeStateWithErrorMessage.tok)}: {preTypeStateWithErrorMessage.ErrorMessage()}";
+        if (t is PreTypeConstraint preTypeConstraint) {
+          info = $"{Pad(info, 30)}  {TokToShortLocation(preTypeConstraint.tok)}: {preTypeConstraint.ErrorMessage()}";
         }
         options.OutputWriter.WriteLine(info);
       }

@@ -11,7 +11,7 @@ using System.Diagnostics.Contracts;
 
 namespace Microsoft.Dafny {
 
-  class EqualityConstraint : PreTypeStateWithErrorMessage {
+  class EqualityConstraint : PreTypeConstraint {
     public PreType A;
     public PreType B;
 
