@@ -49,6 +49,8 @@ namespace Microsoft.Dafny {
             // something changed, so do another round of Apply... calls below
           } else if (TryResolveTypeProxiesUsingKnownBounds(false)) {
             // something changed, so do another round of Apply... calls below
+          } else if (TryApplyDefaultAdvice()) {
+            // something changed, so do another round of Apply... calls below
           } else {
             return;
           }
@@ -65,10 +67,6 @@ namespace Microsoft.Dafny {
       PartiallySolveTypeConstraints(null);
 
       PartiallySolveTypeConstraints(null, true);
-
-      if (TryApplyDefaultAdvice()) {
-        PartiallySolveTypeConstraints(null, true);
-      }
 
       PrintLegend();
       ConfirmTypeConstraints();
