@@ -4,7 +4,7 @@ using System.Linq;
 
 namespace Microsoft.Dafny;
 
-public class LocalVariable : RangeNode, IVariable, IAttributeBearingDeclaration {
+public class LocalVariable : RangeNode, IVariable, IAttributeBearingDeclaration, ISymbol {
   readonly string name;
   public string DafnyName => Name;
   public Attributes Attributes;
@@ -117,4 +117,6 @@ public class LocalVariable : RangeNode, IVariable, IAttributeBearingDeclaration 
   public override IEnumerable<Node> PreResolveChildren =>
     (Attributes != null ? new List<Node> { Attributes } : Enumerable.Empty<Node>()).Concat(
       IsTypeExplicit ? new List<Node>() { OptionalType ?? type } : Enumerable.Empty<Node>());
+
+  public DafnySymbolKind Kind => DafnySymbolKind.Variable;
 }
