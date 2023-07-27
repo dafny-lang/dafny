@@ -36,9 +36,9 @@ namespace Microsoft.Dafny {
       var b = B.Normalize();
       if (a == b) {
         // we're already there
-      } else if (a is PreTypeProxy pa && !Occurs(pa, b, state)) {
+      } else if (a is PreTypeProxy pa && !Contains(b, pa, 1, new HashSet<PreTypeProxy>(), state, 0)) {
         pa.Set(b);
-      } else if (b is PreTypeProxy pb && !Occurs(pb, a, state)) {
+      } else if (b is PreTypeProxy pb && !Contains(a, pb, 1, new HashSet<PreTypeProxy>(), state, 0)) {
         pb.Set(a);
       } else if (a is DPreType da && b is DPreType db && da.Decl == db.Decl) {
         Contract.Assert(da.Arguments.Count == db.Arguments.Count);
@@ -54,16 +54,11 @@ namespace Microsoft.Dafny {
     /// <summary>
     /// Returns "true" if "proxy" is among the free variables of "t".
     /// "proxy" is expected to be normalized.
-    /// </summary>
-    private static bool Occurs(PreTypeProxy proxy, PreType t, PreTypeInferenceState state) {
-      return Reaches(t, proxy, 1, new HashSet<PreTypeProxy>(), state, 0);
-    }
-
-    /// <summary>
+    ///
     /// Parameter "recursionDepth" is used as a safe-guarding against infinite (or excessively large) recursion.
     /// It's not expected to happen ever, but it seems better to check at run time rather than risk hanging.
     /// </summary>
-    private static bool Reaches(PreType t, PreTypeProxy proxy, int direction, HashSet<PreTypeProxy> visited,
+    private static bool Contains(PreType t, PreTypeProxy proxy, int direction, HashSet<PreTypeProxy> visited,
       PreTypeInferenceState state, int recursionDepth) {
       if (recursionDepth == 20) {
         Contract.Assume(false);  // possible infinite recursion
@@ -78,7 +73,7 @@ namespace Microsoft.Dafny {
         Contract.Assert(polarities != null);
         Contract.Assert(polarities.Count <= dp.Arguments.Count);
         for (int i = 0; i < polarities.Count; i++) {
-          if (Reaches(dp.Arguments[i], proxy, direction * polarities[i], visited, state, recursionDepth)) {
+          if (Contains(dp.Arguments[i], proxy, direction * polarities[i], visited, state, recursionDepth)) {
             return true;
           }
         }
@@ -86,7 +81,7 @@ namespace Microsoft.Dafny {
       } else if (tproxy == proxy) {
         return true;
       } else if (visited.Add(tproxy)) {
-        return state.DirectionalBounds(tproxy, direction).Any(su => Reaches(su, proxy, direction, visited, state, recursionDepth));
+        return state.DirectionalBounds(tproxy, direction).Any(su => Contains(su, proxy, direction, visited, state, recursionDepth));
       } else {
         return false;
       }
