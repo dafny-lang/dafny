@@ -96,6 +96,15 @@ namespace Microsoft.Dafny {
       return null;
     }
 
+    /// <summary>
+    /// Returns "true" if "proxy" is among the free variables of "this".
+    /// "proxy" is expected to be normalized.
+    ///
+    /// Parameter "recursionDepth" is used as a safe-guarding against infinite (or excessively large) recursion.
+    /// It's not expected to ever happen, but it seems better to check at run time rather than risk hanging.
+    /// </summary>
+    public abstract bool Contains(PreTypeProxy proxy, int direction, HashSet<PreTypeProxy> visited, PreTypeInferenceState state, int recursionDepth);
+
     public static Dictionary<TypeParameter, PreType> PreTypeSubstMap(List<TypeParameter> parameters, List<PreType> arguments) {
       Contract.Requires(parameters.Count == arguments.Count);
       var subst = new Dictionary<TypeParameter, PreType>();
@@ -196,6 +205,19 @@ namespace Microsoft.Dafny {
       PT = target;
     }
 
+    public override bool Contains(PreTypeProxy proxy, int direction, HashSet<PreTypeProxy> visited, PreTypeInferenceState state, int recursionDepth) {
+      if (this == proxy) {
+        return true;
+      }
+      if (PT != null) {
+        return PT.Contains(proxy, direction, visited, state, recursionDepth);
+      }
+      if (visited.Add(this)) {
+        return state.DirectionalBounds(this, direction).Any(su => su.Contains(proxy, direction, visited, state, recursionDepth));
+      }
+      return false;
+    }
+
     public override PreType Substitute(Dictionary<TypeParameter, PreType> subst) {
       return this;
     }
@@ -258,6 +280,23 @@ namespace Microsoft.Dafny {
     public static bool IsTupleType(TopLevelDecl decl) {
       Contract.Requires(decl != null);
       return BuiltIns.IsTupleTypeName(decl.Name);
+    }
+
+    public override bool Contains(PreTypeProxy proxy, int direction, HashSet<PreTypeProxy> visited, PreTypeInferenceState state, int recursionDepth) {
+      if (recursionDepth == 20) {
+        Contract.Assume(false);  // possible infinite recursion
+      }
+      recursionDepth++;
+
+      var polarities = Decl.TypeArgs.ConvertAll(tp => TypeParameter.Direction(tp.Variance));
+      Contract.Assert(polarities != null);
+      Contract.Assert(polarities.Count <= Arguments.Count);
+      for (int i = 0; i < polarities.Count; i++) {
+        if (Arguments[i].Contains(proxy, direction * polarities[i], visited, state, recursionDepth)) {
+          return true;
+        }
+      }
+      return false;
     }
 
     public override PreType Substitute(Dictionary<TypeParameter, PreType> subst) {
@@ -326,6 +365,10 @@ namespace Microsoft.Dafny {
   /// in a legal program, is syntactically followed by ".X", which will make it an expression).
   /// </summary>
   public abstract class PreTypePlaceholder : PreType {
+    public override bool Contains(PreTypeProxy proxy, int direction, HashSet<PreTypeProxy> visited, PreTypeInferenceState state, int recursionDepth) {
+      throw new NotImplementedException();
+    }
+
     public override PreType Substitute(Dictionary<TypeParameter, PreType> subst) {
       throw new NotImplementedException();
     }

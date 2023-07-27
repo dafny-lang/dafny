@@ -36,9 +36,9 @@ namespace Microsoft.Dafny {
       var b = B.Normalize();
       if (a == b) {
         // we're already there
-      } else if (a is PreTypeProxy pa && !Contains(b, pa, 1, new HashSet<PreTypeProxy>(), state, 0)) {
+      } else if (a is PreTypeProxy pa && !b.Contains(pa, 1, new HashSet<PreTypeProxy>(), state, 0)) {
         pa.Set(b);
-      } else if (b is PreTypeProxy pb && !Contains(a, pb, 1, new HashSet<PreTypeProxy>(), state, 0)) {
+      } else if (b is PreTypeProxy pb && !a.Contains(pb, 1, new HashSet<PreTypeProxy>(), state, 0)) {
         pb.Set(a);
       } else if (a is DPreType da && b is DPreType db && da.Decl == db.Decl) {
         Contract.Assert(da.Arguments.Count == db.Arguments.Count);
@@ -48,42 +48,6 @@ namespace Microsoft.Dafny {
         }
       } else {
         state.PreTypeResolver.ReportError(tok, ErrorFormatString, a, b);
-      }
-    }
-
-    /// <summary>
-    /// Returns "true" if "proxy" is among the free variables of "t".
-    /// "proxy" is expected to be normalized.
-    ///
-    /// Parameter "recursionDepth" is used as a safe-guarding against infinite (or excessively large) recursion.
-    /// It's not expected to happen ever, but it seems better to check at run time rather than risk hanging.
-    /// </summary>
-    private static bool Contains(PreType t, PreTypeProxy proxy, int direction, HashSet<PreTypeProxy> visited,
-      PreTypeInferenceState state, int recursionDepth) {
-      if (recursionDepth == 20) {
-        Contract.Assume(false);  // possible infinite recursion
-      }
-      recursionDepth++;
-
-      t = t.Normalize();
-      var tproxy = t as PreTypeProxy;
-      if (tproxy == null) {
-        var dp = (DPreType)t;
-        var polarities = dp.Decl.TypeArgs.ConvertAll(tp => TypeParameter.Direction(tp.Variance));
-        Contract.Assert(polarities != null);
-        Contract.Assert(polarities.Count <= dp.Arguments.Count);
-        for (int i = 0; i < polarities.Count; i++) {
-          if (Contains(dp.Arguments[i], proxy, direction * polarities[i], visited, state, recursionDepth)) {
-            return true;
-          }
-        }
-        return false;
-      } else if (tproxy == proxy) {
-        return true;
-      } else if (visited.Add(tproxy)) {
-        return state.DirectionalBounds(tproxy, direction).Any(su => Contains(su, proxy, direction, visited, state, recursionDepth));
-      } else {
-        return false;
       }
     }
 
