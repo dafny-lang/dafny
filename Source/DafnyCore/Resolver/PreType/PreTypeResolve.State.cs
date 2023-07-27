@@ -417,8 +417,8 @@ namespace Microsoft.Dafny {
     }
 
     void ConfirmTypeConstraints() {
-      foreach (var c in confirmations) {
-        c();
+      foreach (var confirmation in confirmations) {
+        confirmation();
       }
     }
 
