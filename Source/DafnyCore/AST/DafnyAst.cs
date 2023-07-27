@@ -30,9 +30,6 @@ namespace Microsoft.Dafny {
     IToken NameToken { get; }
   }
 
-  public interface IHasUsages : IDeclarationOrUsage {
-    public IEnumerable<IDeclarationOrUsage> GetResolvedDeclarations();
-  }
   public class Program : TokenNode {
     public CompilationData Compilation { get; }
 
@@ -52,6 +49,7 @@ namespace Microsoft.Dafny {
 
     public Method MainMethod; // Method to be used as main if compiled
     public LiteralModuleDecl DefaultModule;
+    public IList<FileModuleDefinition> Files { get; } = new List<FileModuleDefinition>();
     public DefaultModuleDefinition DefaultModuleDef => (DefaultModuleDefinition)DefaultModule.ModuleDef;
     public SystemModuleManager SystemModuleManager;
     public DafnyOptions Options => Reporter.Options;
@@ -618,7 +616,7 @@ namespace Microsoft.Dafny {
     public override IEnumerable<Node> PreResolveChildren => IsTypeExplicit ? new List<Node>() { Type } : Enumerable.Empty<Node>();
   }
 
-  public class Formal : NonglobalVariable {
+  public class Formal : NonglobalVariable, ISymbol {
     public readonly bool InParam;  // true to in-parameter, false for out-parameter
     public override bool IsMutable {
       get {
@@ -663,6 +661,7 @@ namespace Microsoft.Dafny {
       DefaultValue != null ? new List<Node>() { DefaultValue } : Enumerable.Empty<Node>();
 
     public override IEnumerable<Node> PreResolveChildren => Children;
+    public DafnySymbolKind Kind => DafnySymbolKind.Variable;
   }
 
   /// <summary>
