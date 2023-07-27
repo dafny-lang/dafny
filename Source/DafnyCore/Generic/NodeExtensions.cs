@@ -23,7 +23,8 @@ public static class NodeExtensions {
 
     return null;
   }
-  private static INode FindNode(this INode node, DafnyPosition position) {
+
+  public static INode FindNode(this INode node, DafnyPosition position) {
     if (!node.RangeToken.ToDafnyRange().Contains(position)) {
       return null;
     }

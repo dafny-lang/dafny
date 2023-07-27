@@ -855,5 +855,18 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
 
       InheritsFromObject((TraitDecl)decl);
     }
+
   }
+
+  public IEnumerable<ISymbol> ChildSymbols => TopLevelDecls.SelectMany(decl => {
+    if (decl is DefaultClassDecl defaultClassDecl) {
+      return defaultClassDecl.Members.OfType<ISymbol>();
+    }
+
+    if (decl is ISymbol symbol) {
+      return new[] { symbol };
+    }
+
+    return Enumerable.Empty<ISymbol>();
+  });
 }

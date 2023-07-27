@@ -159,6 +159,7 @@ public class ConstantField : SpecialField, ICallable {
   public bool AllowsAllocation => true;
 
   public override IEnumerable<Node> Children => base.Children.Concat(new[] { Rhs }.Where(x => x != null));
+  public override DafnySymbolKind Kind => DafnySymbolKind.Constant;
 
   public override IEnumerable<Node> PreResolveChildren => Children;
 }
