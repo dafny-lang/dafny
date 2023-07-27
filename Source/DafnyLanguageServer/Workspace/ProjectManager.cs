@@ -285,18 +285,14 @@ public class ProjectManager : IDisposable {
   }
 
   private IEnumerable<FilePosition> GetChangedVerifiablesFromRanges(CompilationAfterTranslation translated, IEnumerable<Location> changedRanges) {
-
     IntervalTree<Position, Position> GetTree(Uri uri) {
-      // Refactor: use the translated Boogie program
-      // instead of redoing part of that translation with the `DocumentVerificationTree` 
-      // https://github.com/dafny-lang/dafny/issues/4264
-      var tree = new DocumentVerificationTree(translated.Program, uri);
-      VerificationProgressReporter.UpdateTree(options, translated, tree);
       var intervalTree = new IntervalTree<Position, Position>();
-      foreach (var childTree in tree.Children) {
-        intervalTree.Add(childTree.Range.Start, childTree.Range.End, childTree.Position);
+      foreach (var task in translated.VerificationTasks) {
+        var token = (BoogieRangeToken)task.Implementation.tok;
+        if (token.Uri == uri) {
+          intervalTree.Add(token.StartToken.GetLspPosition(), token.EndToken.GetLspPosition(), token.NameToken.GetLspPosition());
+        }
       }
-
       return intervalTree;
     }
 
