@@ -66,7 +66,7 @@ namespace Microsoft.Dafny {
 
   public class PreTypeResolver : ResolverPass {
     private readonly Dictionary<string, TopLevelDecl> preTypeBuiltins = new();
-    public readonly PreTypeInferenceState State;
+    public readonly PreTypeConstraints Constraints;
 
     TopLevelDecl BuiltInTypeDecl(string name) {
       Contract.Requires(name != null);
@@ -366,7 +366,7 @@ namespace Microsoft.Dafny {
     public PreTypeResolver(Resolver resolver)
       : base(resolver) {
       Contract.Requires(resolver != null);
-      State = new PreTypeInferenceState(this);
+      Constraints = new PreTypeConstraints(this);
     }
 
     /// <summary>

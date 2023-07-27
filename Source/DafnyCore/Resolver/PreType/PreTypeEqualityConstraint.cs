@@ -27,18 +27,18 @@ namespace Microsoft.Dafny {
 
     /// <summary>
     /// Constrain "A" to be the same type as "B".
-    /// Because this method makes calls that eventually call state.DirectionalBounds, it should be
-    /// called only when state.unnormalizedSubtypeConstraints is in a stable state. That means,
-    /// in particular, that this method cannot be called in middle of state.ApplySubtypeConstraints.
+    /// Because this method makes calls that eventually call constraints.DirectionalBounds, it should be
+    /// called only when constraints.unnormalizedSubtypeConstraints is in a stable state. That means,
+    /// in particular, that this method cannot be called in middle of constraints.ApplySubtypeConstraints.
     /// </summary>
-    public IEnumerable<EqualityConstraint> Apply(PreTypeInferenceState state) {
+    public IEnumerable<EqualityConstraint> Apply(PreTypeConstraints constraints) {
       var a = A.Normalize();
       var b = B.Normalize();
       if (a == b) {
         // we're already there
-      } else if (a is PreTypeProxy pa && !b.Contains(pa, 1, new HashSet<PreTypeProxy>(), state, 0)) {
+      } else if (a is PreTypeProxy pa && !b.Contains(pa, 1, new HashSet<PreTypeProxy>(), constraints, 0)) {
         pa.Set(b);
-      } else if (b is PreTypeProxy pb && !a.Contains(pb, 1, new HashSet<PreTypeProxy>(), state, 0)) {
+      } else if (b is PreTypeProxy pb && !a.Contains(pb, 1, new HashSet<PreTypeProxy>(), constraints, 0)) {
         pb.Set(a);
       } else if (a is DPreType da && b is DPreType db && da.Decl == db.Decl) {
         Contract.Assert(da.Arguments.Count == db.Arguments.Count);
@@ -47,7 +47,7 @@ namespace Microsoft.Dafny {
           yield return new EqualityConstraint(da.Arguments[i], db.Arguments[i], tok, ErrorFormatString);
         }
       } else {
-        state.PreTypeResolver.ReportError(tok, ErrorFormatString, a, b);
+        constraints.PreTypeResolver.ReportError(tok, ErrorFormatString, a, b);
       }
     }
 

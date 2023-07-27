@@ -103,7 +103,7 @@ namespace Microsoft.Dafny {
     /// Parameter "recursionDepth" is used as a safe-guarding against infinite (or excessively large) recursion.
     /// It's not expected to ever happen, but it seems better to check at run time rather than risk hanging.
     /// </summary>
-    public abstract bool Contains(PreTypeProxy proxy, int direction, HashSet<PreTypeProxy> visited, PreTypeInferenceState state, int recursionDepth);
+    public abstract bool Contains(PreTypeProxy proxy, int direction, HashSet<PreTypeProxy> visited, PreTypeConstraints constraints, int recursionDepth);
 
     public static Dictionary<TypeParameter, PreType> PreTypeSubstMap(List<TypeParameter> parameters, List<PreType> arguments) {
       Contract.Requires(parameters.Count == arguments.Count);
@@ -205,15 +205,15 @@ namespace Microsoft.Dafny {
       PT = target;
     }
 
-    public override bool Contains(PreTypeProxy proxy, int direction, HashSet<PreTypeProxy> visited, PreTypeInferenceState state, int recursionDepth) {
+    public override bool Contains(PreTypeProxy proxy, int direction, HashSet<PreTypeProxy> visited, PreTypeConstraints constraints, int recursionDepth) {
       if (this == proxy) {
         return true;
       }
       if (PT != null) {
-        return PT.Contains(proxy, direction, visited, state, recursionDepth);
+        return PT.Contains(proxy, direction, visited, constraints, recursionDepth);
       }
       if (visited.Add(this)) {
-        return state.DirectionalBounds(this, direction).Any(su => su.Contains(proxy, direction, visited, state, recursionDepth));
+        return constraints.DirectionalBounds(this, direction).Any(su => su.Contains(proxy, direction, visited, constraints, recursionDepth));
       }
       return false;
     }
@@ -282,7 +282,7 @@ namespace Microsoft.Dafny {
       return BuiltIns.IsTupleTypeName(decl.Name);
     }
 
-    public override bool Contains(PreTypeProxy proxy, int direction, HashSet<PreTypeProxy> visited, PreTypeInferenceState state, int recursionDepth) {
+    public override bool Contains(PreTypeProxy proxy, int direction, HashSet<PreTypeProxy> visited, PreTypeConstraints constraints, int recursionDepth) {
       if (recursionDepth == 20) {
         Contract.Assume(false);  // possible infinite recursion
       }
@@ -292,7 +292,7 @@ namespace Microsoft.Dafny {
       Contract.Assert(polarities != null);
       Contract.Assert(polarities.Count <= Arguments.Count);
       for (int i = 0; i < polarities.Count; i++) {
-        if (Arguments[i].Contains(proxy, direction * polarities[i], visited, state, recursionDepth)) {
+        if (Arguments[i].Contains(proxy, direction * polarities[i], visited, constraints, recursionDepth)) {
           return true;
         }
       }
@@ -365,7 +365,7 @@ namespace Microsoft.Dafny {
   /// in a legal program, is syntactically followed by ".X", which will make it an expression).
   /// </summary>
   public abstract class PreTypePlaceholder : PreType {
-    public override bool Contains(PreTypeProxy proxy, int direction, HashSet<PreTypeProxy> visited, PreTypeInferenceState state, int recursionDepth) {
+    public override bool Contains(PreTypeProxy proxy, int direction, HashSet<PreTypeProxy> visited, PreTypeConstraints constraints, int recursionDepth) {
       throw new NotImplementedException();
     }
 

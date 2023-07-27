@@ -11,7 +11,12 @@ using System.Linq;
 using System.Diagnostics.Contracts;
 
 namespace Microsoft.Dafny {
-  public class PreTypeInferenceState {
+  /// <summary>
+  /// This class holds the state of the pre-type inference. The state consists of a set of constraints; more precisely,
+  /// it consists of lists of constraints, advice, and conditions to be confirmed.
+  /// The class also contains methods for solving or partially solving these constraints.
+  /// </summary>
+  public class PreTypeConstraints {
     public readonly PreTypeResolver PreTypeResolver;
     private readonly DafnyOptions options;
 
@@ -21,7 +26,7 @@ namespace Microsoft.Dafny {
     private readonly List<Advice> defaultAdvice = new();
     private List<System.Action> confirmations = new();
 
-    public PreTypeInferenceState(PreTypeResolver preTypeResolver) {
+    public PreTypeConstraints(PreTypeResolver preTypeResolver) {
       this.PreTypeResolver = preTypeResolver;
       this.options = preTypeResolver.resolver.Options;
     }

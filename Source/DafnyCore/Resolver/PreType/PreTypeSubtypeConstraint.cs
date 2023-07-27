@@ -45,7 +45,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public bool Apply(PreTypeInferenceState state) {
+    public bool Apply(PreTypeConstraints constraints) {
       var super = Super.Normalize();
       var sub = Sub.Normalize();
       var ptSuper = super as DPreType;
@@ -59,13 +59,13 @@ namespace Microsoft.Dafny {
         //     Constrain g(x,y) :> b
         //     Constrain c == h(x,y)
         // else report an error
-        var arguments = state.GetTypeArgumentsForSuperType(ptSuper.Decl, ptSub.Decl, ptSub.Arguments);
+        var arguments = constraints.GetTypeArgumentsForSuperType(ptSuper.Decl, ptSub.Decl, ptSub.Arguments);
         if (arguments != null) {
           Contract.Assert(arguments.Count == ptSuper.Decl.TypeArgs.Count);
-          ConstrainTypeArguments(ptSuper.Decl.TypeArgs, ptSuper.Arguments, arguments, tok, state);
+          ConstrainTypeArguments(ptSuper.Decl.TypeArgs, ptSuper.Arguments, arguments, tok, constraints);
           return true;
         } else {
-          state.PreTypeResolver.ReportError(tok, ErrorMessage());
+          constraints.PreTypeResolver.ReportError(tok, ErrorMessage());
           return true;
         }
       } else if (ptSuper != null) {
@@ -77,9 +77,9 @@ namespace Microsoft.Dafny {
         //     Constrain beta :> b
         // else do nothing for now
         if (!(ptSuper.Decl is TraitDecl)) {
-          var arguments = CreateProxiesForTypesAccordingToVariance(tok, ptSuper.Decl.TypeArgs, ptSuper.Arguments, false, state);
+          var arguments = CreateProxiesForTypesAccordingToVariance(tok, ptSuper.Decl.TypeArgs, ptSuper.Arguments, false, constraints);
           var pt = new DPreType(ptSuper.Decl, arguments);
-          state.AddEqualityConstraint(sub, pt, tok, ErrorFormatString);
+          constraints.AddEqualityConstraint(sub, pt, tok, ErrorFormatString);
           return true;
         }
       } else if (ptSub != null) {
@@ -93,9 +93,9 @@ namespace Microsoft.Dafny {
         if (PreTypeResolver.HasTraitSupertypes(ptSub)) {
           // there are parent traits
         } else {
-          var arguments = CreateProxiesForTypesAccordingToVariance(tok, ptSub.Decl.TypeArgs, ptSub.Arguments, true, state);
+          var arguments = CreateProxiesForTypesAccordingToVariance(tok, ptSub.Decl.TypeArgs, ptSub.Arguments, true, constraints);
           var pt = new DPreType(ptSub.Decl, arguments);
-          state.AddEqualityConstraint(super, pt, tok, ErrorFormatString);
+          constraints.AddEqualityConstraint(super, pt, tok, ErrorFormatString);
           return true;
         }
       } else {
@@ -110,7 +110,7 @@ namespace Microsoft.Dafny {
     /// For every contra-variant parameters[i], constrain subArguments[i] :> superArguments[i].
     /// </summary>
     void ConstrainTypeArguments(List<TypeParameter> parameters, List<PreType> superArguments, List<PreType> subArguments, IToken tok,
-      PreTypeInferenceState state) {
+      PreTypeConstraints constraints) {
       Contract.Requires(parameters.Count == superArguments.Count && superArguments.Count == subArguments.Count);
 
       for (var i = 0; i < parameters.Count; i++) {
@@ -118,11 +118,11 @@ namespace Microsoft.Dafny {
         var arg0 = superArguments[i];
         var arg1 = subArguments[i];
         if (tp.Variance == TypeParameter.TPVariance.Non) {
-          state.AddEqualityConstraint(arg0, arg1, tok, "non-variance would require {0} == {1}");
+          constraints.AddEqualityConstraint(arg0, arg1, tok, "non-variance would require {0} == {1}");
         } else if (tp.Variance == TypeParameter.TPVariance.Co) {
-          state.AddSubtypeConstraint(arg0, arg1, tok, "covariance would require {0} :> {1}");
+          constraints.AddSubtypeConstraint(arg0, arg1, tok, "covariance would require {0} :> {1}");
         } else {
-          state.AddSubtypeConstraint(arg1, arg0, tok, "contravariance would require {0} :> {1}");
+          constraints.AddSubtypeConstraint(arg1, arg0, tok, "contravariance would require {0} :> {1}");
         }
       }
     }
@@ -137,7 +137,7 @@ namespace Microsoft.Dafny {
     ///   - else a new proxy constrained by:  ai :> proxy
     /// </summary>
     List<PreType> CreateProxiesForTypesAccordingToVariance(IToken tok, List<TypeParameter> parameters, List<PreType> arguments,
-      bool proxiesAreSupertypes, PreTypeInferenceState state) {
+      bool proxiesAreSupertypes, PreTypeConstraints state) {
       Contract.Requires(parameters.Count == arguments.Count);
 
       if (parameters.All(tp => tp.Variance == TypeParameter.TPVariance.Non)) {

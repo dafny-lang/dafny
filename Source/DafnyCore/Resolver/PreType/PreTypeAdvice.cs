@@ -34,7 +34,7 @@ namespace Microsoft.Dafny {
 
     public bool Apply(PreTypeResolver preTypeResolver) {
       if (PreType.Normalize() is PreTypeProxy proxy) {
-        preTypeResolver.State.DebugPrint($"    DEBUG: acting on advice, setting {proxy} := {WhatString}");
+        preTypeResolver.Constraints.DebugPrint($"    DEBUG: acting on advice, setting {proxy} := {WhatString}");
 
         Type StringDecl() {
           var s = preTypeResolver.resolver.moduleInfo.TopLevels["string"];
