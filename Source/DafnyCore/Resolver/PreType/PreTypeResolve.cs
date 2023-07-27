@@ -64,7 +64,7 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public class PreTypeResolver : ResolverPass {
+  public partial class PreTypeResolver : ResolverPass {
     private readonly Scope<IVariable> scope;
 
     TopLevelDeclWithMembers currentClass;
@@ -498,6 +498,52 @@ namespace Microsoft.Dafny {
     }
 #endif
 
+    void AddSubtypeConstraint(PreType super, PreType sub, IToken tok, string errorFormatString) {
+      Constraints.AddSubtypeConstraint(super, sub, tok, errorFormatString);
+    }
+
+    void AddConfirmation(string check, PreType preType, IToken tok, string errorFormatString) {
+      Constraints.AddConfirmation(check, preType, tok, errorFormatString);
+    }
+
+    void AddComparableConstraint(PreType a, PreType b, IToken tok, string errorFormatString) {
+      Contract.Requires(a != null);
+      Contract.Requires(b != null);
+      Contract.Requires(tok != null);
+      Contract.Requires(errorFormatString != null);
+      Constraints.AddGuardedConstraint(() => ApplyComparableConstraints(a, b, tok, errorFormatString));
+    }
+
+    bool ApplyComparableConstraints(PreType a, PreType b, IToken tok, string errorFormatString) {
+      // The meaning of a comparable constraint
+      //     A ~~ B
+      // is the disjunction
+      //     A :> B    or    B :> A
+      // To decide between these two possibilities, enough information must be available about A and/or B.
+      var ptA = a.Normalize() as DPreType;
+      var ptB = b.Normalize() as DPreType;
+      if (ptA != null && ptB != null &&
+          Constraints.GetTypeArgumentsForSuperType(ptB.Decl, ptA.Decl, ptA.Arguments) == null &&
+          Constraints.GetTypeArgumentsForSuperType(ptA.Decl, ptB.Decl, ptB.Arguments) == null) {
+        // neither A :> B nor B :> A is possible
+        ReportError(tok, errorFormatString, a, b);
+        return true;
+      } else if ((ptA != null && ptA.IsLeafType()) || (ptB != null && ptB.IsRootType())) {
+        // use B :> A
+        Constraints.DebugPrint($"    DEBUG: turning ~~ into {b} :> {a}");
+        Constraints.AddSubtypeConstraint(b, a, tok, errorFormatString);
+        return true;
+      } else if ((ptA != null && ptA.IsRootType()) || (ptB != null && ptB.IsLeafType())) {
+        // use A :> B
+        Constraints.DebugPrint($"    DEBUG: turning ~~ into {a} :> {b}");
+        Constraints.AddSubtypeConstraint(a, b, tok, errorFormatString);
+        return true;
+      } else {
+        // not enough information to determine
+        return false;
+      }
+    }
+
     /// <summary>
     /// For every declaration in "declarations", resolve names and determine pre-types.
     /// </summary>
@@ -793,7 +839,7 @@ namespace Microsoft.Dafny {
         if (attr.Args != null) {
           attr.Args.ForEach(arg => ResolveExpression(arg, opts));
           if (solveConstraints) {
-            SolveAllTypeConstraints($"attribute of {attributeHost.ToString()}");
+            Constraints.SolveAllTypeConstraints($"attribute of {attributeHost.ToString()}");
           }
         }
       }
@@ -810,7 +856,7 @@ namespace Microsoft.Dafny {
           ResolveExpression(dd.Constraint, new ResolutionContext(new CodeContextWrapper(dd, true), false));
           ConstrainTypeExprBool(dd.Constraint, dd.WhatKind + " constraint must be of type bool (instead got {0})");
           scope.PopMarker();
-          SolveAllTypeConstraints($"{dd.WhatKind} '{dd.Name}' constraint");
+          Constraints.SolveAllTypeConstraints($"{dd.WhatKind} '{dd.Name}' constraint");
         }
       }
 
@@ -818,7 +864,7 @@ namespace Microsoft.Dafny {
         var codeContext = new CodeContextWrapper(dd, dd.WitnessKind == SubsetTypeDecl.WKind.Ghost);
         ResolveExpression(dd.Witness, new ResolutionContext(codeContext, false));
         AddSubtypeConstraint(dd.Var.PreType, dd.Witness.PreType, dd.Witness.tok, "witness expression must have type '{0}' (got '{1}')");
-        SolveAllTypeConstraints($"{dd.WhatKind} '{dd.Name}' witness");
+        Constraints.SolveAllTypeConstraints($"{dd.WhatKind} '{dd.Name}' witness");
       }
     }
 
@@ -831,7 +877,7 @@ namespace Microsoft.Dafny {
         var opts = new ResolutionContext(cfield, false);
         ResolveExpression(cfield.Rhs, opts);
         AddSubtypeConstraint(cfield.PreType, cfield.Rhs.PreType, cfield.Tok, "RHS (of type {1}) not assignable to LHS (of type {0})");
-        SolveAllTypeConstraints($"{cfield.WhatKind} '{cfield.Name}' constraint");
+        Constraints.SolveAllTypeConstraints($"{cfield.WhatKind} '{cfield.Name}' constraint");
       }
     }
 
@@ -861,7 +907,7 @@ namespace Microsoft.Dafny {
           allowNamelessParameters = false;
         }
       }
-      SolveAllTypeConstraints($"parameter default values of {codeContext.FullSanitizedName}");
+      Constraints.SolveAllTypeConstraints($"parameter default values of {codeContext.FullSanitizedName}");
 
       foreach (var cycle in dependencies.AllCycles()) {
         var cy = Util.Comma(" -> ", cycle, v => v.Name) + " -> " + cycle[0].Name;
@@ -990,7 +1036,7 @@ namespace Microsoft.Dafny {
         ResolveExpression(e.E, new ResolutionContext(iter, true));
         ConstrainTypeExprBool(e.E, "Postcondition must be a boolean (got {0})");
       }
-      SolveAllTypeConstraints($"specification of iterator '{iter.Name}'");
+      Constraints.SolveAllTypeConstraints($"specification of iterator '{iter.Name}'");
 
       ResolveAttributes(iter, new ResolutionContext(iter, false), true);
 
@@ -1011,7 +1057,7 @@ namespace Microsoft.Dafny {
         }
         ResolveBlockStatement(iter.Body, ResolutionContext.FromCodeContext(iter));
         dominatingStatementLabels.PopMarker();
-        SolveAllTypeConstraints($"body of iterator '{iter.Name}'");
+        Constraints.SolveAllTypeConstraints($"body of iterator '{iter.Name}'");
       }
 
       currentClass = null;
@@ -1083,7 +1129,7 @@ namespace Microsoft.Dafny {
         ResolveExpression(r, new ResolutionContext(f, f is TwoStateFunction));
         // any type is fine
       }
-      SolveAllTypeConstraints($"specification of {f.WhatKind} '{f.Name}'");
+      Constraints.SolveAllTypeConstraints($"specification of {f.WhatKind} '{f.Name}'");
 
       if (f.ByMethodBody != null) {
         // The following conditions are assured by the parser and other callers of the Function constructor
@@ -1094,7 +1140,7 @@ namespace Microsoft.Dafny {
         var prevErrorCount = ErrorCount;
         ResolveExpression(f.Body, new ResolutionContext(f, f is TwoStateFunction));
         AddSubtypeConstraint(Type2PreType(f.ResultType), f.Body.PreType, f.tok, "Function body type mismatch (expected {0}, got {1})");
-        SolveAllTypeConstraints($"body of {f.WhatKind} '{f.Name}'");
+        Constraints.SolveAllTypeConstraints($"body of {f.WhatKind} '{f.Name}'");
       }
 
       scope.PopMarker();
@@ -1194,7 +1240,7 @@ namespace Microsoft.Dafny {
           ResolveExpression(e.E, new ResolutionContext(m, true));
           ConstrainTypeExprBool(e.E, "Postcondition must be a boolean (got {0})");
         }
-        SolveAllTypeConstraints($"specification of {m.WhatKind} '{m.Name}'");
+        Constraints.SolveAllTypeConstraints($"specification of {m.WhatKind} '{m.Name}'");
 
         // Resolve body
         if (m.Body != null) {
@@ -1219,7 +1265,7 @@ namespace Microsoft.Dafny {
           }
           ResolveBlockStatement(m.Body, ResolutionContext.FromCodeContext(m));
           dominatingStatementLabels.PopMarker();
-          SolveAllTypeConstraints($"body of {m.WhatKind} '{m.Name}'");
+          Constraints.SolveAllTypeConstraints($"body of {m.WhatKind} '{m.Name}'");
         }
 
         // attributes are allowed to mention both in- and out-parameters (including the implicit _k, for greatest lemmas)
@@ -1238,7 +1284,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(fe != null);
       Contract.Requires(codeContext != null);
       ResolveExpression(fe.E, new ResolutionContext(codeContext, codeContext is TwoStateLemma || use == FrameExpressionUse.Unchanged));
-      AddGuardedConstraint(() => {
+      Constraints.AddGuardedConstraint(() => {
         DPreType dp = fe.E.PreType.Normalize() as DPreType;
         if (dp == null) {
           // no information yet
@@ -1268,7 +1314,7 @@ namespace Microsoft.Dafny {
           dp = elementType as DPreType;
           if (dp == null) {
             // element type not yet known
-            AddDefaultAdvice(elementType, AdviceTarget.Object);
+            Constraints.AddDefaultAdvice(elementType, Advice.Target.Object);
             return false;
           }
         }

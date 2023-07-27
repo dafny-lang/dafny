@@ -987,7 +987,7 @@ namespace Microsoft.Dafny {
       }
       TopLevelDeclWithMembers failureSupportingType = null;
       if (firstPreType != null) {
-        PartiallySolveTypeConstraints();
+        Constraints.PartiallySolveTypeConstraints();
         failureSupportingType = (firstPreType.Normalize() as DPreType)?.Decl as TopLevelDeclWithMembers;
         if (failureSupportingType != null) {
           if (failureSupportingType.Members.Find(x => x.Name == "IsFailure") == null) {
@@ -1225,7 +1225,7 @@ namespace Microsoft.Dafny {
           resolver.SystemModuleManager.CreateArrowTypeDecl(dims);  // TODO: should this be done already in the parser?
           var indexPreTypes = Enumerable.Repeat(Type2PreType(resolver.SystemModuleManager.Nat()), dims).ToList();
           var arrowPreType = BuiltInArrowType(indexPreTypes, Type2PreType(rr.EType));
-          AddSubtypeConstraint(arrowPreType, rr.ElementInit.PreType, rr.ElementInit.tok, () => {
+          Constraints.AddSubtypeConstraint(arrowPreType, rr.ElementInit.PreType, rr.ElementInit.tok, () => {
             var hintString = !PreType.Same(arrowPreType, rr.ElementInit.PreType) ? "" :
               string.Format(" (perhaps write '{0} =>' in front of the expression you gave in order to make it an arrow type)",
               dims == 1 ? "_" : "(" + Util.Comma(dims, x => "_") + ")");

@@ -38,7 +38,7 @@ namespace Microsoft.Dafny {
     /// Returns "true" if anything changed (that is, if any of the constraints in the type-inference state
     /// caused a change some pre-type proxy).
     /// </summary>
-    void PartiallySolveTypeConstraints(string printableContext = null, bool makeDecisions = false) {
+    public void PartiallySolveTypeConstraints(string printableContext = null, bool makeDecisions = false) {
       if (printableContext != null) {
         PrintTypeInferenceState("(partial) " + printableContext);
       }
@@ -60,7 +60,7 @@ namespace Microsoft.Dafny {
       } while (anythingChanged);
     }
 
-    void SolveAllTypeConstraints(string printableContext) {
+    public void SolveAllTypeConstraints(string printableContext) {
       PrintTypeInferenceState(printableContext);
       PartiallySolveTypeConstraints(null);
 
@@ -262,7 +262,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    IEnumerable<DPreType> AllSubBounds(PreTypeProxy proxy, ISet<PreTypeProxy> visited) {
+    public IEnumerable<DPreType> AllSubBounds(PreTypeProxy proxy, ISet<PreTypeProxy> visited) {
       Contract.Requires(proxy.PT == null);
       if (visited.Contains(proxy)) {
         yield break;
@@ -282,7 +282,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    IEnumerable<DPreType> AllSuperBounds(PreTypeProxy proxy, ISet<PreTypeProxy> visited) {
+    public IEnumerable<DPreType> AllSuperBounds(PreTypeProxy proxy, ISet<PreTypeProxy> visited) {
       Contract.Requires(proxy.PT == null);
       if (visited.Contains(proxy)) {
         yield break;
@@ -313,7 +313,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    void AddGuardedConstraint(Func<bool> predicate) {
+    public void AddGuardedConstraint(Func<bool> predicate) {
       guardedConstraints.Add(predicate);
     }
 
@@ -335,7 +335,7 @@ namespace Microsoft.Dafny {
       return anythingChanged;
     }
 
-    void AddDefaultAdvice(PreType preType, Advice.Target advice) {
+    public void AddDefaultAdvice(PreType preType, Advice.Target advice) {
       defaultAdvice.Add(new Advice(preType, advice));
     }
 
@@ -347,7 +347,7 @@ namespace Microsoft.Dafny {
       return anythingChanged;
     }
 
-    void AddConfirmation(string check, PreType preType, IToken tok, string errorFormatString) {
+    public void AddConfirmation(string check, PreType preType, IToken tok, string errorFormatString) {
       confirmations.Add(() => {
         if (!ConfirmConstraint(check, preType, null)) {
           PreTypeResolver.ReportError(tok, errorFormatString, preType);
@@ -355,7 +355,7 @@ namespace Microsoft.Dafny {
       });
     }
 
-    void AddConfirmation(string check, PreType preType, Type toType, IToken tok, string errorFormatString) {
+    public void AddConfirmation(string check, PreType preType, Type toType, IToken tok, string errorFormatString) {
       Contract.Requires(toType is NonProxyType);
       var toPreType = (DPreType)PreTypeResolver.Type2PreType(toType);
       confirmations.Add(() => {
@@ -365,7 +365,7 @@ namespace Microsoft.Dafny {
       });
     }
 
-    void AddConfirmation(System.Action confirm) {
+    public void AddConfirmation(System.Action confirm) {
       confirmations.Add(confirm);
     }
 
@@ -538,7 +538,7 @@ namespace Microsoft.Dafny {
 
     public void DebugPrint(string format, params object[] args) {
       if (options.Get(CommonOptionBag.NewTypeInferenceDebug)) {
-        Console.WriteLine(format, args);
+        options.OutputWriter.WriteLine(format, args);
       }
     }
 
