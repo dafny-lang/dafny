@@ -5,9 +5,11 @@
 //
 //-----------------------------------------------------------------------------
 
+using System.Reflection;
+
 namespace Microsoft.Dafny;
 
-class HigherOrderHeapAllocationChecker: ASTVisitor<IASTVisitorContext> {
+class HigherOrderHeapAllocationChecker : ASTVisitor<IASTVisitorContext> {
   private readonly ErrorReporter reporter;
 
   public HigherOrderHeapAllocationChecker(ErrorReporter reporter) {
@@ -19,7 +21,9 @@ class HigherOrderHeapAllocationChecker: ASTVisitor<IASTVisitorContext> {
   }
 
   protected override bool VisitOneStatement(Statement stmt, IASTVisitorContext context) {
-    if (stmt is AssignStmt) {
+    if (stmt is AssignStmt assign) {
+      var rhs = assign.Rhs;
+      var lhs = assign.Lhs;
     }
     return base.VisitOneStatement(stmt, context);
   }
