@@ -28,12 +28,18 @@ class HigherOrderHeapAllocationChecker : ASTVisitor<IASTVisitorContext> {
         if (rhs is ExprRhs eRhs) {
           var exp = eRhs.Expr;
           var type = exp.Type;
-          if (type.IsArrowType) {
-            if (!type.IsArrowTypeWithoutReadEffects) {
-              reporter.Error(MessageSource.Resolver, stmt,
-                $"Illegal");
-            }
+
+          // if (type.IsArrowType) {
+          //   if (!type.IsArrowTypeWithoutReadEffects) {
+          //     reporter.Error(MessageSource.Resolver, stmt,$"Illegal");
+          //   }
+          // }
+
+          var arrow = type.AsArrowType;
+          if (mseLhs.Obj.Type.Equals(arrow.Args[0])) {
+            reporter.Error(MessageSource.Resolver, stmt, $"Illegal");
           }
+
         }
       }
     }
