@@ -11,7 +11,7 @@ public class Constructor : Method {
   }
 
   public override DafnySymbolKind Kind => DafnySymbolKind.Constructor;
-  protected override string GetQualifiedName(LList<INode> ancestors) {
+  protected override string GetQualifiedName() {
     return EnclosingClass.Name;
   }
 

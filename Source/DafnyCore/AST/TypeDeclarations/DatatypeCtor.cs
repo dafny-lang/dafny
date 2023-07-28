@@ -50,7 +50,7 @@ public class DatatypeCtor : Declaration, TypeParameter.ParentType, IHasDocstring
   }
 
   public DafnySymbolKind Kind => DafnySymbolKind.EnumMember;
-  public string GetHoverText(DafnyOptions options, LList<INode> ancestors) {
+  public string GetHoverText(DafnyOptions options) {
     var formals = string.Join(", ", Formals.Select(f => f.AsText()));
     return $"{EnclosingDatatype.Name}.{Name}({formals})";
   }

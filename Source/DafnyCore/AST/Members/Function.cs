@@ -476,9 +476,9 @@ experimentalPredicateAlwaysGhost - Compiled functions are written `function`. Gh
   }
 
   public DafnySymbolKind Kind => DafnySymbolKind.Function;
-  public string GetHoverText(DafnyOptions options, LList<INode> ancestors) {
+  public string GetHoverText(DafnyOptions options) {
     var formals = string.Join(", ", Formals.Select(f => f.AsText()));
     var resultType = ResultType.TypeName(options, null, false);
-    return $"{WhatKind} {AstExtensions.GetMemberQualification(ancestors)}{Name}({formals}): {resultType}";
+    return $"{WhatKind} {AstExtensions.GetMemberQualification(this)}{Name}({formals}): {resultType}";
   }
 }

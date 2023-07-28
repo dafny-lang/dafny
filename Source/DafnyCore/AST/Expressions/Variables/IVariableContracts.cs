@@ -81,7 +81,7 @@ public abstract class IVariableContracts : TokenNode, IVariable {
 
   public abstract IToken NameToken { get; }
   public DafnySymbolKind Kind => throw new NotImplementedException();
-  public string GetHoverText(DafnyOptions options, LList<INode> ancestors) {
+  public string GetHoverText(DafnyOptions options) {
     throw new NotImplementedException();
   }
 }

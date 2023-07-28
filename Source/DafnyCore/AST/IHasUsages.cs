@@ -13,9 +13,8 @@ public interface IHasUsages : IDeclarationOrUsage {
 
 public static class AstExtensions {
 
-  public static string GetMemberQualification(LList<INode> chain) {
-    var parent = (TopLevelDeclWithMembers)chain.Data;
-    return parent.Name == "_default" ? "" : $"{parent.Name}.";
+  public static string GetMemberQualification(MemberDecl memberDecl) {
+    return memberDecl.EnclosingClass.Name == "_default" ? "" : $"{memberDecl.EnclosingClass.Name}.";
   }
 
   /// <summary>
@@ -38,7 +37,7 @@ public static class AstExtensions {
 public interface ISymbol : IDeclarationOrUsage {
   DafnySymbolKind Kind { get; }
 
-  string GetHoverText(DafnyOptions options, LList<INode> ancestors);
+  string GetHoverText(DafnyOptions options);
 }
 
 public interface IHasSymbolChildren : ISymbol {

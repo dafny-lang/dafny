@@ -76,7 +76,7 @@ public abstract class ModuleDecl : TopLevelDecl, IHasDocstring, ISymbol {
   }
 
   public DafnySymbolKind Kind => DafnySymbolKind.Namespace;
-  public string GetHoverText(DafnyOptions options, LList<INode> ancestors) {
+  public string GetHoverText(DafnyOptions options) {
     return $"module {Name}";
   }
 }

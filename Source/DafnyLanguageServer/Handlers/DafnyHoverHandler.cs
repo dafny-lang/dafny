@@ -64,8 +64,6 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
       LList<INode>? nodePath =
         state.Program.FindNodeChain(request.TextDocument.Uri.ToUri(), request.Position.ToDafnyPosition());
       ISymbol? symbol;
-      // We need a path to the symbol so we can lookup its containers
-      LList<INode>? symbolPath = null;
 
       var usage = nodePath?.Data as IHasUsages;
       if (usage == null) {
@@ -73,26 +71,16 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
         symbol = nodePath?.Data as ISymbol;
         if (symbol != null && !symbol.NameToken.ToRange().ToLspRange().Contains(request.Position)) {
           symbol = null;
-        } else if (symbol != null) {
-          symbolPath = nodePath;
         }
       } else {
         symbol = state.SymbolTable.UsageToDeclaration.GetValueOrDefault(usage) as ISymbol;
-        if (symbol != null) {
-          if (symbol is MemberDecl memberDecl) {
-            symbolPath = new LList<INode>(symbol, new LList<INode>(memberDecl.EnclosingClass, null));
-          } else {
-            // Lookup the symbol again so we get its path.
-            symbolPath = state.Program.FindNodeChain(symbol.Tok.Uri, symbol.Tok.ToDafnyPosition());
-          }
-        }
       }
 
       if (symbol == null) {
         logger.LogDebug("no symbol was found at {Position} in {Document}", request.Position, request.TextDocument);
       }
 
-      var symbolHoverContent = symbolPath != null ? CreateSymbolMarkdown(symbolPath) : null;
+      var symbolHoverContent = symbol != null ? CreateSymbolMarkdown(symbol) : null;
       return (symbol, symbolHoverContent);
     }
 
@@ -438,10 +426,9 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
       };
     }
 
-    private string CreateSymbolMarkdown(LList<INode> symbolPath) {
-      var symbol = (ISymbol)symbolPath.Data;
+    private string CreateSymbolMarkdown(ISymbol symbol) {
       var docString = symbol is IHasDocstring nodeWithDocstring ? nodeWithDocstring.GetDocstring(options) : "";
-      return (docString + $"\n```dafny\n{symbol.GetHoverText(options, symbolPath.Next)}\n```").TrimStart();
+      return (docString + $"\n```dafny\n{symbol.GetHoverText(options)}\n```").TrimStart();
     }
   }
 }

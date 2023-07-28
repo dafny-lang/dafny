@@ -96,8 +96,8 @@ public class Field : MemberDecl, ICanFormat, IHasDocstring, ISymbol {
 
   public virtual DafnySymbolKind Kind => DafnySymbolKind.Field;
 
-  public string GetHoverText(DafnyOptions options, LList<INode> ancestors) {
+  public string GetHoverText(DafnyOptions options) {
     var prefix = IsMutable ? "var" : "const";
-    return $"{prefix} {AstExtensions.GetMemberQualification(ancestors)}{Name}: {Type}";
+    return $"{prefix} {AstExtensions.GetMemberQualification(this)}{Name}: {Type}";
   }
 }

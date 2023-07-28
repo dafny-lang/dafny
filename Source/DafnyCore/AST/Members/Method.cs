@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
-using System.Threading;
 using Microsoft.Dafny.Auditor;
 
 namespace Microsoft.Dafny;
@@ -371,8 +370,8 @@ public class Method : MemberDecl, TypeParameter.ParentType, IMethodCodeContext, 
   }
 
   public virtual DafnySymbolKind Kind => DafnySymbolKind.Method;
-  public string GetHoverText(DafnyOptions options, LList<INode> ancestors) {
-    var qualifiedName = GetQualifiedName(ancestors);
+  public string GetHoverText(DafnyOptions options) {
+    var qualifiedName = GetQualifiedName();
     var signatureWithoutReturn = $"{WhatKind} {qualifiedName}({string.Join(", ", Ins.Select(i => i.AsText()))})";
     if (Outs.Count == 0) {
       return signatureWithoutReturn;
@@ -380,8 +379,8 @@ public class Method : MemberDecl, TypeParameter.ParentType, IMethodCodeContext, 
     return $"{signatureWithoutReturn} returns ({string.Join(", ", Outs.Select(o => o.AsText()))})";
   }
 
-  protected virtual string GetQualifiedName(LList<INode> ancestors) {
-    return $"{AstExtensions.GetMemberQualification(ancestors)}{Name}";
+  protected virtual string GetQualifiedName() {
+    return $"{AstExtensions.GetMemberQualification(this)}{Name}";
   }
 
   public IEnumerable<ISymbol> ChildSymbols {
