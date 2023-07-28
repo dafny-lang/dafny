@@ -1386,9 +1386,9 @@ namespace Microsoft.Dafny {
         if (node is AssertStmt assertStmt &&
             assertStmt.HasAssertOnlyAttribute(out var assertOnlyKind)) {
           var ifAfterLastToken = m.EndToken;
-          if (rangesOnly.FindIndex(r => r.Contains(node.Start.pos)) is var x && x >= 0) {
+          if (rangesOnly.FindIndex(r => r.Contains(node.StartToken.pos)) is var x && x >= 0) {
             if (assertOnlyKind == AssertStmt.AssertOnlyKind.Before) {// Just shorten the previous range
-              rangesOnly[x] = new RangeToken(rangesOnly[x].StartToken, node.End);
+              rangesOnly[x] = new RangeToken(rangesOnly[x].StartToken, node.EndToken);
               return true;
             }
 

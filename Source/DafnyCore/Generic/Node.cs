@@ -10,8 +10,8 @@ using Microsoft.Dafny.Auditor;
 namespace Microsoft.Dafny;
 
 public interface INode {
-  public IToken Start => RangeToken.StartToken;
-  public IToken End => RangeToken.EndToken;
+  public IToken StartToken => RangeToken.StartToken;
+  public IToken EndToken => RangeToken.EndToken;
   IEnumerable<IToken> OwnedTokens { get; }
   RangeToken RangeToken { get; }
   IToken Tok { get; }
@@ -38,8 +38,7 @@ public abstract class Node : INode {
     new Regex($@"/\*\*(?<multilinecontent>{TriviaFormatterHelper.MultilineCommentContent})\*/");
 
   protected IReadOnlyList<IToken> OwnedTokensCache;
-
-
+  
   public IToken StartToken => RangeToken?.StartToken;
 
   public IToken EndToken => RangeToken?.EndToken;
@@ -64,7 +63,7 @@ public abstract class Node : INode {
   // Therefore, we have to find all the concrete children by unwrapping such nodes.
   public IEnumerable<INode> GetConcreteChildren() {
     foreach (var child in PreResolveChildren) {
-      if (child.Start != null && child.End != null && child.Start.line != 0) {
+      if (child.StartToken != null && child.EndToken != null && child.StartToken.line != 0) {
         yield return child;
       } else {
         foreach (var subNode in child.GetConcreteChildren()) {
@@ -90,18 +89,18 @@ public abstract class Node : INode {
       try {
         startToEndTokenNotOwned =
           childrenFiltered
-            .ToDictionary(child => child.Start.pos, child => child.End!);
+            .ToDictionary(child => child.StartToken.pos, child => child.EndToken!);
       } catch (ArgumentException) {
         // If we parse a resolved document, some children sometimes have the same token because they are auto-generated
         startToEndTokenNotOwned = new();
         foreach (var child in childrenFiltered) {
-          if (startToEndTokenNotOwned.ContainsKey(child.Start.pos)) {
-            var previousEnd = startToEndTokenNotOwned[child.Start.pos];
-            if (child.End.pos > previousEnd.pos) {
-              startToEndTokenNotOwned[child.Start.pos] = child.End;
+          if (startToEndTokenNotOwned.ContainsKey(child.StartToken.pos)) {
+            var previousEnd = startToEndTokenNotOwned[child.StartToken.pos];
+            if (child.EndToken.pos > previousEnd.pos) {
+              startToEndTokenNotOwned[child.StartToken.pos] = child.EndToken;
             }
           } else {
-            startToEndTokenNotOwned[child.Start.pos] = child.End;
+            startToEndTokenNotOwned[child.StartToken.pos] = child.EndToken;
           }
         }
       }
@@ -322,8 +321,8 @@ public abstract class TokenNode : Node {
               node is DefaultValueExpression) {
             // Ignore any auto-generated expressions.
           } else {
-            UpdateStartEndToken(node.Start);
-            UpdateStartEndToken(node.End);
+            UpdateStartEndToken(node.StartToken);
+            UpdateStartEndToken(node.EndToken);
           }
         }
 

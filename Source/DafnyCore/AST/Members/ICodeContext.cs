@@ -161,7 +161,6 @@ public interface RedirectingTypeDecl : ICallable {
   string Name { get; }
 
   IToken tok { get; }
-  IToken StartToken { get; }
   Attributes Attributes { get; }
   ModuleDefinition Module { get; }
   BoundVar/*?*/ Var { get; }

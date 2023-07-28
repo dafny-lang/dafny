@@ -133,9 +133,9 @@ ensures true
       Traverse(program);
 
       void AreAllTokensOwned(INode node) {
-        if (node.Start is { filename: { } }) {
-          var t = node.Start;
-          while (t != null && t != node.End) {
+        if (node.StartToken is { filename: { } }) {
+          var t = node.StartToken;
+          while (t != null && t != node.EndToken) {
             Assert.Contains(t, allTokens);
             t = t.Next;
           }
