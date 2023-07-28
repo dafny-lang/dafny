@@ -266,7 +266,15 @@ module Alcor {
 
 
   // Individuals
-  datatype Type = Ind | Bool | Arrow(Type, Type)
+  datatype Type = Ind | Bool | Arrow(left: Type, right: Type) {
+    function ToString(): string {
+      if Ind? then "Ind" else
+      if Bool? then "Bool" else
+      assert Arrow?;
+      (if left.Arrow? then "(" + left.ToString() + ")" else left.ToString())
+      + "->" + right.ToString()
+    }
+  }
    // Should be a program in simply typed lampda calculus + proof primitives
   datatype ProofProgram =
     | ProofVar(name: string) // Represents
@@ -284,6 +292,9 @@ module Alcor {
     function ToString(): string {
       match this
       case ProofVar(name) => name
+      case ProofApp(ProofAbs(varName, tpe, body), varContent) =>
+        "var " + varName + ": " + tpe.ToString() + " := " + varContent.ToString() + ";\n" +
+        body.ToString()
       case ProofAbs(name, tpe, body) => "(\\"+name+". "+body.ToString()+")"
       case ProofApp(left, right) => left.ToString() + "(" + right.ToString() + ")"
       case ProofAxiom(axiom) => axiom.ToString()
@@ -374,32 +385,42 @@ module Alcor {
     if expr.Imp? then numberOfImp(expr.right) + 1 else 0
   }
 
-  opaque function checkGoalAgainstExpr(pv: ProofValue, expr: Expr): (result: Result<Proof>)
-    ensures result.Success? ==> result.value.GetExpr() == expr
+  opaque function checkGoalAgainstExpr(pv: ProofValue, expr: Expr, pr: ProofProgram)
+    : (result: Result<(Proof, ProofProgram)>)
+    requires ExecuteProof(pr, EnvNil) == Success(pv)
+    ensures result.Success? ==>
+      && result.value.0.GetExpr() == expr
+      && pv.OneProof? && pv.proof == result.value.0
+      && Success(OneProof(result.value.0)) == ExecuteProof(result.value.1, EnvNil)
   {
     if !pv.OneProof? then Failure("DummyProofFinder did not generate a proof but " + pv.Summary()) else
       var p := pv.proof;
-      if p.GetExpr() == expr then Success(p) else
+      if p.GetExpr() == expr then Success((p, pr)) else
       Failure("DummyProofFinder was looking for a proof of " + expr.ToString() + " but returned a proof of " + p.GetExpr().ToString())
   }
 
   // No need to trust this proof finder, if it finds a proof it's a correct one!
-  method {:vcs_split_on_every_assert} DummyProofFinder(expr: Expr)
+  method DummyProofFinder(expr: Expr)
     returns (result: Result<(Proof, ProofProgram)>)
     decreases if expr.Imp? then numberOfImp(expr.right) else 0
     ensures result.Success? ==>
       && result.value.0.GetExpr() == expr
       && Success(OneProof(result.value.0)) == ExecuteProof(result.value.1, EnvNil) // TODO Execute works
   {
-    var checkGoal: (ProofValue, ProofProgram) -> Result<(Proof, ProofProgram)> := 
-      (pv: ProofValue, pr: ProofProgram) => checkGoalAgainstExpr(pv, expr).Map(r => (r, pr));
+    var checkGoal: (ProofValue, ProofProgram) --> Result<(Proof, ProofProgram)> := 
+      (pv: ProofValue, pr: ProofProgram) 
+        requires ExecuteProof(pr, EnvNil) == Success(pv)
+      => checkGoalAgainstExpr(pv, expr, pr);
     // Given an expression (A0 && (A1 && (A2 && .... True))) ==> G
     // Will try to find a proof of it.
     // * If A1 is (a && b) and G is b, we emit the proof
     // * If A1 is a and A0 is b and G is a && b, we emit the proof
     // * If A1 is (a ==> b) and A0 is a and G is b, we emit the proof.
     if !expr.Imp? {
-      return Failure("ProofFinder requires an implication");
+      result := Failure("ProofFinder requires an implication");
+      assert result.Success? ==>
+        Success(OneProof(result.value.0)) == ExecuteProof(result.value.1, EnvNil);
+      return;
     }
     var goal := expr.right;
     var env := expr.left;
@@ -410,7 +431,7 @@ module Alcor {
         // We have a proof that A && env ==> B
         // Now let's transform it in a proof of env ==> (A ==> B)
         var execEnv := EnvCons("a_x_imp_b", OneProof(proofOfConclusion.value.0), EnvNil);
-        var proofProgram := ImpIntro.apply2(
+        var proofProgramInner := ImpIntro.apply2(
             ProofExpr(env),
             ProofAbs("env", Ind,
               ImpIntro.apply2(
@@ -422,13 +443,22 @@ module Alcor {
                       ProofVar("proofOfA"),
                       ProofVar("env")))))));
         var r :- ExecuteProof(
-          proofProgram, execEnv);
-        return checkGoal(r, proofProgram);
+          proofProgramInner, execEnv);
+        var proofProgram :=
+          Let("a_x_imp_b", Bool, proofOfConclusion.value.1,
+            proofProgramInner
+          );
+        assert ExecuteProof(proofProgram, EnvNil) == Success(r); // No need to recompute!
+        result := checkGoal(r, proofProgram);
+        return;
       }
     }
     // The and separating the head of the environment to the tail
     if !env.And? {
-      return Failure("ProofFinder requires an environment to the left of ==>");
+      result := Failure("ProofFinder requires an environment to the left of ==>");
+      assert result.Success? ==>
+        Success(OneProof(result.value.0)) == ExecuteProof(result.value.1, EnvNil);
+      return;
     }
     var A0 := env.left;
     var tail := env.right;
@@ -444,7 +474,11 @@ module Alcor {
                  AndElimLeft.apply1(ProofVar("env")))
             ));
         var r :- ExecuteProof(proofProgram, EnvNil);
-        return checkGoal(r, proofProgram);
+        assert ExecuteProof(proofProgram, EnvNil) == Success(r);
+        result := checkGoal(r, proofProgram);
+        assert result.Success? ==>
+        Success(OneProof(result.value.0)) == ExecuteProof(result.value.1, EnvNil);
+        return;
       }
       if A0.right == goal {
         var proofProgram :=
@@ -453,7 +487,11 @@ module Alcor {
             ProofAbs("env", Ind, 
               AndElimRight.apply1(AndElimLeft.apply1(ProofVar("env")))));
         var r :- ExecuteProof(proofProgram, EnvNil);
-        return checkGoal(r, proofProgram);
+        assert ExecuteProof(proofProgram, EnvNil) == Success(r);
+        result := checkGoal(r, proofProgram);
+        assert result.Success? ==>
+        Success(OneProof(result.value.0)) == ExecuteProof(result.value.1, EnvNil);
+        return;
       }
     }
     // Lookup in the environment
@@ -479,11 +517,18 @@ module Alcor {
             ProofAbs("env", Ind, 
               ProofApp(ProofAxiom(AndElimLeft), proofElem)));
       var r :- ExecuteProof(proofProgram, EnvNil);
-      return checkGoal(r, proofProgram);
+      assert ExecuteProof(proofProgram, EnvNil) == Success(r);
+      result := checkGoal(r, proofProgram);
+      assert result.Success? ==>
+        Success(OneProof(result.value.0)) == ExecuteProof(result.value.1, EnvNil);
+      return;
     }
 
     // Part 2: Advanced proof search (axioms with lookup in the environment)
 
-    return Failure("Could not find a simple proof of " +  expr.ToString() );
+    result := Failure("Could not find a simple proof of " +  expr.ToString() );
+    assert result.Success? ==>
+      Success(OneProof(result.value.0)) == ExecuteProof(result.value.1, EnvNil);
+    return;
   }
 }

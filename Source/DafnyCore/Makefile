@@ -12,6 +12,14 @@ Parser.cs: Coco/Scanner.frame Coco/Parser.frame Dafny.atg
 clean:
 	rm -f Scanner.cs Scanner.cs.old Parser.cs Parser.cs.old
 
+compile-dafny-source:
+	chmod u+x DafnyGeneratedFromDafny.sh
+	./DafnyGeneratedFromDafny.sh $(GENERATED_FROM_DAFNY)
+
+compile-dafny-source-no-verify:
+	chmod u+x DafnyGeneratedFromDafny.sh
+	./DafnyGeneratedFromDafny.sh --no-verify $(GENERATED_FROM_DAFNY)
+
 build-regenerated-from-dafny:
 	chmod u+x DafnyGeneratedFromDafny.sh
 	./DafnyGeneratedFromDafny.sh $(REGENERATED_FROM_DAFNY)
