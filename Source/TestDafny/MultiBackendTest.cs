@@ -99,14 +99,6 @@ public class MultiBackendTest {
     };
     foreach (var resolutionOption in resolutionOptions) {
       var (exitCode, outputString, error) = RunDafny(options.DafnyCliPath, dafnyArgs.Concat(resolutionOption.Item1));
-      if (exitCode != 0) {
-        output.WriteLine($"Verification failed. Options: {resolutionOption}");
-        output.WriteLine("Output:");
-        output.WriteLine(outputString);
-        output.WriteLine("Error:");
-        output.WriteLine(error);
-        return exitCode;
-      }
       var expectFileForVerifier = $"{options.TestFile}{resolutionOption.Item2}.expect";
       if (File.Exists(expectFileForVerifier)) {
         var expectedOutput = File.ReadAllText(expectFileForVerifier);
@@ -114,12 +106,18 @@ public class MultiBackendTest {
         var trailer = new Regex("\r?\nDafny program verifier[^\r\n]*\r?\n").Match(outputString);
         var actualOutput = outputString.Remove(trailer.Index, trailer.Length);
         var diffMessage = AssertWithDiff.GetDiffMessage(expectedOutput, actualOutput);
-        if (diffMessage == null) {
-          return 0;
+        if (diffMessage != null) {
+          output.WriteLine(diffMessage);
+          return 1;
         }
-
-        output.WriteLine(diffMessage);
-        return 1;
+      }
+      if (exitCode != 0) {
+        output.WriteLine($"Verification failed. Options: {resolutionOption}");
+        output.WriteLine("Output:");
+        output.WriteLine(outputString);
+        output.WriteLine("Error:");
+        output.WriteLine(error);
+        return exitCode;
       }
     }
 
