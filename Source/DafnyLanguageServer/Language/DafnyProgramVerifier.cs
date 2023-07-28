@@ -65,7 +65,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
             }, cancellationToken);
 
           cancellationToken.ThrowIfCancellationRequested();
-          return engine.GetImplementationTasks(boogieProgram);
+          return await Task.Run(() => engine.GetImplementationTasks(boogieProgram), cancellationToken);
         });
 
         var tasksPerModule = await Task.WhenAll(tasks);
