@@ -1499,7 +1499,10 @@ namespace Microsoft.Dafny {
         }
       }
 
-      // LogicFix here
+      if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
+        // Check that class constructors are called when required.
+        new HigherOrderHeapAllocationChecker(reporter).VisitDeclarations(declarations);
+      }
 
       if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
         // Check that usage of "this" is restricted before "new;" in constructor bodies,
