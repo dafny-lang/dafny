@@ -38,7 +38,7 @@ public abstract class Node : INode {
     new Regex($@"/\*\*(?<multilinecontent>{TriviaFormatterHelper.MultilineCommentContent})\*/");
 
   protected IReadOnlyList<IToken> OwnedTokensCache;
-  
+
   public IToken StartToken => RangeToken?.StartToken;
 
   public IToken EndToken => RangeToken?.EndToken;
