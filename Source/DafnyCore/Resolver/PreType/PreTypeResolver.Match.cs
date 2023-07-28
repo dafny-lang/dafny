@@ -56,7 +56,7 @@ namespace Microsoft.Dafny {
     /// </summary>
     bool InsistOnKnowingPreType(IToken tok, PreType preType) {
       if (preType.Normalize() is PreTypeProxy) {
-        PartiallySolveTypeConstraints(null, true);
+        Constraints.PartiallySolveTypeConstraints(null, true);
 
         if (preType.Normalize() is PreTypeProxy) {
           ReportError(tok, "Could not resolve the type of the source of the match expression. Please provide additional typing annotations.");

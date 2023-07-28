@@ -27,7 +27,7 @@ public class ProgramResolver {
     return null;
   }
 
-  public void Resolve(CancellationToken cancellationToken) {
+  public virtual void Resolve(CancellationToken cancellationToken) {
     Type.ResetScopes();
 
     Type.EnableScopes();

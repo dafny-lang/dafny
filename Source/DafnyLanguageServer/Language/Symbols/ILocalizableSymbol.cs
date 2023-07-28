@@ -5,7 +5,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
   /// <summary>
   /// Represents a symbol that can be localized within the document.
   /// </summary>
-  public interface ILocalizableSymbol : ISymbol {
+  public interface ILocalizableSymbol : ILegacySymbol {
     // TODO get rid of this type.
 
     /// <summary>

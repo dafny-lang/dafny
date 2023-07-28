@@ -128,7 +128,7 @@ namespace Microsoft.Dafny {
             bindings.ArgumentBindings.Count, bindings.ArgumentBindings.IndexOf(b),
             whatKind + (context is Method ? " in-parameter" : " parameter"));
 
-          AddSubtypeConstraint(
+          Constraints.AddSubtypeConstraint(
             formal.PreType.Substitute(typeMap), b.Actual.PreType, callTok,
             $"incorrect argument type {what} (expected {{0}}, found {{1}})");
         } else if (formal.DefaultValue != null) {

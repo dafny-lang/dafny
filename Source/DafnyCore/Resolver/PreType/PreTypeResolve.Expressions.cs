@@ -42,7 +42,7 @@ namespace Microsoft.Dafny {
         var e = (NegationExpression)expr;
         ResolveExpression(e.E, resolutionContext);
         e.PreType = e.E.PreType;
-        AddConfirmation("NumericOrBitvector", e.E.PreType, e.E.tok, "type of unary - must be of a numeric or bitvector type (instead got {0})");
+        AddConfirmation(PreTypeConstraints.CommonConfirmationBag.NumericOrBitvector, e.E.PreType, e.E.tok, "type of unary - must be of a numeric or bitvector type (instead got {0})");
         // Note, e.ResolvedExpression will be filled in during CheckTypeInference, at which time e.PreType has been determined
 
       } else if (expr is LiteralExpr) {
@@ -54,28 +54,28 @@ namespace Microsoft.Dafny {
         } else {
           if (e.Value == null) {
             e.PreType = CreatePreTypeProxy("literal 'null'");
-            AddDefaultAdvice(e.PreType, AdviceTarget.Object);
-            AddConfirmation("IsNullableRefType", e.PreType, e.tok, "type of 'null' is a reference type, but it is used as {0}");
+            Constraints.AddDefaultAdvice(e.PreType, Advice.Target.Object);
+            AddConfirmation(PreTypeConstraints.CommonConfirmationBag.IsNullableRefType, e.PreType, e.tok, "type of 'null' is a reference type, but it is used as {0}");
           } else if (e.Value is BigInteger) {
             e.PreType = CreatePreTypeProxy($"integer literal '{e.Value}'");
-            AddDefaultAdvice(e.PreType, AdviceTarget.Int);
-            AddConfirmation("IntOrBitvectorOrORDINAL", e.PreType, e.tok, "integer literal used as if it had type {0}");
+            Constraints.AddDefaultAdvice(e.PreType, Advice.Target.Int);
+            AddConfirmation(PreTypeConstraints.CommonConfirmationBag.IntOrBitvectorOrORDINAL, e.PreType, e.tok, "integer literal used as if it had type {0}");
           } else if (e.Value is BaseTypes.BigDec) {
             e.PreType = CreatePreTypeProxy($"real literal '{e.Value}'");
-            AddDefaultAdvice(e.PreType, AdviceTarget.Real);
-            AddConfirmation("InRealFamily", e.PreType, e.tok, "type of real literal is used as {0}"); // TODO: make this error message have the same form as the one for integers above
+            Constraints.AddDefaultAdvice(e.PreType, Advice.Target.Real);
+            AddConfirmation(PreTypeConstraints.CommonConfirmationBag.InRealFamily, e.PreType, e.tok, "type of real literal is used as {0}"); // TODO: make this error message have the same form as the one for integers above
           } else if (e.Value is bool) {
             e.PreType = CreatePreTypeProxy($"boolean literal '{e.Value.ToString().ToLower()}'");
-            AddDefaultAdvice(e.PreType, AdviceTarget.Bool);
-            AddConfirmation("InBoolFamily", e.PreType, e.tok, "boolean literal used as if it had type {0}");
+            Constraints.AddDefaultAdvice(e.PreType, Advice.Target.Bool);
+            AddConfirmation(PreTypeConstraints.CommonConfirmationBag.InBoolFamily, e.PreType, e.tok, "boolean literal used as if it had type {0}");
           } else if (e is CharLiteralExpr) {
             e.PreType = CreatePreTypeProxy($"character literal '{e.Value}'");
-            AddDefaultAdvice(e.PreType, AdviceTarget.Char);
-            AddConfirmation("InCharFamily", e.PreType, e.tok, "character literal used as if it had type {0}");
+            Constraints.AddDefaultAdvice(e.PreType, Advice.Target.Char);
+            AddConfirmation(PreTypeConstraints.CommonConfirmationBag.InCharFamily, e.PreType, e.tok, "character literal used as if it had type {0}");
           } else if (e is StringLiteralExpr) {
             e.PreType = CreatePreTypeProxy($"string literal \"{e.Value}\"");
-            AddDefaultAdvice(e.PreType, AdviceTarget.String);
-            AddConfirmation("InSeqFamily", e.PreType, e.tok, "string literal used as if it had type {0}");
+            Constraints.AddDefaultAdvice(e.PreType, Advice.Target.String);
+            AddConfirmation(PreTypeConstraints.CommonConfirmationBag.InSeqFamily, e.PreType, e.tok, "string literal used as if it had type {0}");
           } else {
             Contract.Assert(false); throw new cce.UnreachableException();  // unexpected literal type
           }
@@ -270,7 +270,7 @@ namespace Microsoft.Dafny {
         ResolveExpression(e.Seq, resolutionContext);
         ResolveExpression(e.Index, resolutionContext);
         ResolveExpression(e.Value, resolutionContext);
-        AddGuardedConstraint(() => {
+        Constraints.AddGuardedConstraint(() => {
           var sourcePreType = e.Seq.PreType.Normalize() as DPreType;
           var ancestorDecl = AncestorDecl(sourcePreType.Decl);
           var familyDeclName = AncestorName(sourcePreType);
@@ -306,7 +306,7 @@ namespace Microsoft.Dafny {
         var e = (DatatypeUpdateExpr)expr;
         ResolveExpression(e.Root, resolutionContext);
         expr.PreType = CreatePreTypeProxy("datatype update");
-        AddGuardedConstraint(() => {
+        Constraints.AddGuardedConstraint(() => {
           var (_, memberName, _) = e.Updates[0];
           var (_, tentativeRootPreType) = FindMember(expr.tok, e.Root.PreType, memberName);
           if (tentativeRootPreType != null) {
@@ -319,7 +319,7 @@ namespace Microsoft.Dafny {
                 e.ResolvedCompiledExpression = compiledLet;
                 e.Members = members;
                 e.LegalSourceConstructors = legalSourceConstructors;
-                AddEqualityConstraint(expr.PreType, ghostLet.PreType, expr.tok,
+                Constraints.AddEqualityConstraint(expr.PreType, ghostLet.PreType, expr.tok,
                   "result of datatype update expression of type '{1}' is used as if it were of type '{0}'");
               }
             } else {
@@ -345,7 +345,7 @@ namespace Microsoft.Dafny {
         }
         expr.PreType = CreatePreTypeProxy("apply expression result");
 
-        AddGuardedConstraint(() => {
+        Constraints.AddGuardedConstraint(() => {
           if (e.Function.PreType.Normalize() is DPreType dp) {
             if (!DPreType.IsArrowType(dp.Decl)) {
               ReportError(e.tok, "non-function expression (of type {0}) is called with parameters", e.Function.PreType);
@@ -379,7 +379,7 @@ namespace Microsoft.Dafny {
         var intPreType = Type2PreType(resolver.SystemModuleManager.Nat());
         var arrowPreType = new DPreType(BuiltInArrowTypeDecl(1), new List<PreType>() { intPreType, elementPreType });
         var resultPreType = new DPreType(BuiltInTypeDecl("seq"), new List<PreType>() { elementPreType });
-        AddSubtypeConstraint(arrowPreType, e.Initializer.PreType, e.Initializer.tok,
+        Constraints.AddSubtypeConstraint(arrowPreType, e.Initializer.PreType, e.Initializer.tok,
           () => {
             var strFormat = "sequence-construction initializer expression expected to have type '{0}' (instead got '{1}')";
             if (PreType.Same(elementPreType, e.Initializer.PreType)) {
@@ -394,7 +394,7 @@ namespace Microsoft.Dafny {
         var e = (MultiSetFormingExpr)expr;
         ResolveExpression(e.E, resolutionContext);
         var targetElementPreType = CreatePreTypeProxy("multiset conversion element type");
-        AddGuardedConstraint(() => {
+        Constraints.AddGuardedConstraint(() => {
           if (e.E.PreType.Normalize() is DPreType dp) {
             if (dp.Decl.Name == "set" || dp.Decl.Name == "seq") {
               Contract.Assert(dp.Arguments.Count == 1);
@@ -428,7 +428,7 @@ namespace Microsoft.Dafny {
         ResolveExpression(e.E, resolutionContext);
         e.AtLabel = ResolveDominatingLabelInExpr(expr.tok, e.At, "fresh", resolutionContext);
         // the type of e.E must be either an object or a set/seq of objects
-        AddConfirmation("Freshable", e.E.PreType, e.E.tok, "the argument of a fresh expression must denote an object or a set or sequence of objects (instead got {0})");
+        AddConfirmation(PreTypeConstraints.CommonConfirmationBag.Freshable, e.E.PreType, e.E.tok, "the argument of a fresh expression must denote an object or a set or sequence of objects (instead got {0})");
         ConstrainTypeExprBool(e, "result of 'fresh' is boolean, but is used as if it had type {0}");
 
       } else if (expr is UnaryOpExpr) {
@@ -436,11 +436,11 @@ namespace Microsoft.Dafny {
         ResolveExpression(e.E, resolutionContext);
         switch (e.Op) {
           case UnaryOpExpr.Opcode.Not:
-            AddConfirmation("BooleanBits", e.E.PreType, expr.tok, "logical/bitwise negation expects a boolean or bitvector argument (instead got {0})");
+            AddConfirmation(PreTypeConstraints.CommonConfirmationBag.BooleanBits, e.E.PreType, expr.tok, "logical/bitwise negation expects a boolean or bitvector argument (instead got {0})");
             expr.PreType = e.E.PreType;
             break;
           case UnaryOpExpr.Opcode.Cardinality:
-            AddConfirmation("Sizeable", e.E.PreType, expr.tok, "size operator expects a collection argument (instead got {0})");
+            AddConfirmation(PreTypeConstraints.CommonConfirmationBag.Sizeable, e.E.PreType, expr.tok, "size operator expects a collection argument (instead got {0})");
             expr.PreType = CreatePreTypeProxy("cardinality");
             ConstrainToIntFamily(expr.PreType, expr.tok, "integer literal used as if it had type {0}");
             break;
@@ -470,19 +470,19 @@ namespace Microsoft.Dafny {
           var ancestorDecl = AncestorDecl(toPreType.Decl);
           var familyDeclName = ancestorDecl.Name;
           if (familyDeclName == "int") {
-            AddConfirmation2("NumericOrBitvectorOrCharOrORDINALOrSuchTrait", e.E.PreType, e.ToType, expr.tok,
+            Constraints.AddConfirmation(PreTypeConstraints.CommonConfirmationBag.NumericOrBitvectorOrCharOrORDINALOrSuchTrait, e.E.PreType, e.ToType, expr.tok,
               "type conversion to an int-based type is allowed only from numeric and bitvector types, char, and ORDINAL (got {0})");
           } else if (familyDeclName == "real") {
-            AddConfirmation2("NumericOrBitvectorOrCharOrORDINALOrSuchTrait", e.E.PreType, e.ToType, expr.tok,
+            Constraints.AddConfirmation(PreTypeConstraints.CommonConfirmationBag.NumericOrBitvectorOrCharOrORDINALOrSuchTrait, e.E.PreType, e.ToType, expr.tok,
               "type conversion to a real-based type is allowed only from numeric and bitvector types, char, and ORDINAL (got {0})");
           } else if (IsBitvectorName(familyDeclName)) {
-            AddConfirmation2("NumericOrBitvectorOrCharOrORDINALOrSuchTrait", e.E.PreType, e.ToType, expr.tok,
+            Constraints.AddConfirmation(PreTypeConstraints.CommonConfirmationBag.NumericOrBitvectorOrCharOrORDINALOrSuchTrait, e.E.PreType, e.ToType, expr.tok,
               "type conversion to a bitvector-based type is allowed only from numeric and bitvector types, char, and ORDINAL (got {0})");
           } else if (familyDeclName == "char") {
-            AddConfirmation2("NumericOrBitvectorOrCharOrORDINALOrSuchTrait", e.E.PreType, e.ToType, expr.tok,
+            Constraints.AddConfirmation(PreTypeConstraints.CommonConfirmationBag.NumericOrBitvectorOrCharOrORDINALOrSuchTrait, e.E.PreType, e.ToType, expr.tok,
               "type conversion to a char type is allowed only from numeric and bitvector types, char, and ORDINAL (got {0})");
           } else if (familyDeclName == "ORDINAL") {
-            AddConfirmation2("NumericOrBitvectorOrCharOrORDINALOrSuchTrait", e.E.PreType, e.ToType, expr.tok,
+            Constraints.AddConfirmation(PreTypeConstraints.CommonConfirmationBag.NumericOrBitvectorOrCharOrORDINALOrSuchTrait, e.E.PreType, e.ToType, expr.tok,
               "type conversion to an ORDINAL type is allowed only from numeric and bitvector types, char, and ORDINAL (got {0})");
           } else if (DPreType.IsReferenceTypeDecl(ancestorDecl)) {
             AddComparableConstraint(toPreType, e.E.PreType, expr.tok,
@@ -506,7 +506,7 @@ namespace Microsoft.Dafny {
         resolver.ResolveType(e.tok, e.ToType, resolutionContext, new ModuleResolver.ResolveTypeOption(ResolveTypeOptionEnum.InferTypeProxies), null);
         var toPreType = Type2PreType(e.ToType);
         AddComparableConstraint(toPreType, e.E.PreType, expr.tok, "type test for type '{0}' must be from an expression assignable to it (got '{1}')");
-        AddConfirmation(() => {
+        Constraints.AddConfirmation(() => {
           // TODO: all of these tests should be revisited (they don't seem right in the presence of newtype's)
           var fromPT = e.E.PreType.Normalize() as DPreType;
           var toPT = toPreType.Normalize() as DPreType;
@@ -533,9 +533,9 @@ namespace Microsoft.Dafny {
           case TernaryExpr.Opcode.PrefixEqOp:
           case TernaryExpr.Opcode.PrefixNeqOp:
             expr.PreType = ConstrainResultToBoolFamily(expr.tok, "ternary op", "boolean literal used as if it had type {0}");
-            AddConfirmation("IntOrORDINAL", e.E0.PreType, expr.tok, "prefix-equality limit argument must be an ORDINAL or integer expression (got {0})");
+            AddConfirmation(PreTypeConstraints.CommonConfirmationBag.IntOrORDINAL, e.E0.PreType, expr.tok, "prefix-equality limit argument must be an ORDINAL or integer expression (got {0})");
             AddComparableConstraint(e.E1.PreType, e.E2.PreType, expr.tok, "arguments must have the same type (got {0} and {1})");
-            AddConfirmation("IsCoDatatype", e.E1.PreType, expr.tok, "arguments to prefix equality must be codatatypes (instead of {0})");
+            AddConfirmation(PreTypeConstraints.CommonConfirmationBag.IsCoDatatype, e.E1.PreType, expr.tok, "arguments to prefix equality must be codatatypes (instead of {0})");
             break;
           default:
             Contract.Assert(false);  // unexpected ternary operator
@@ -605,7 +605,7 @@ namespace Microsoft.Dafny {
         var e = (LetOrFailExpr)expr;
         e.ResolvedExpression = DesugarElephantExpr(e, resolutionContext);
         e.PreType = e.ResolvedExpression.PreType;
-        AddGuardedConstraint(() => {
+        Constraints.AddGuardedConstraint(() => {
           if (e.Rhs.PreType.Normalize() is DPreType receiverPreType) {
             bool expectExtract = e.Lhs != null;
             EnsureSupportsErrorHandling(e.tok, receiverPreType, expectExtract);
@@ -765,26 +765,26 @@ namespace Microsoft.Dafny {
         case BinaryExpr.Opcode.Disjoint:
           resultPreType = ConstrainResultToBoolFamilyOperator(tok, opString);
           ConstrainToCommonSupertype(tok, opString, e0.PreType, e1.PreType, null);
-          AddConfirmation("Disjointable", e0.PreType, tok, "arguments must be of a set or multiset type (got {0})");
+          AddConfirmation(PreTypeConstraints.CommonConfirmationBag.Disjointable, e0.PreType, tok, "arguments must be of a set or multiset type (got {0})");
           break;
 
         case BinaryExpr.Opcode.Lt:
           resultPreType = ConstrainResultToBoolFamilyOperator(tok, opString);
-          AddGuardedConstraint(() => {
+          Constraints.AddGuardedConstraint(() => {
             var left = e0.PreType.Normalize() as DPreType;
             var right = e1.PreType.Normalize() as DPreType;
             if (left != null && (left.Decl is IndDatatypeDecl || left.Decl is TypeParameter)) {
-              AddConfirmation("RankOrderable", e1.PreType, tok,
+              AddConfirmation(PreTypeConstraints.CommonConfirmationBag.RankOrderable, e1.PreType, tok,
                 $"arguments to rank comparison must be datatypes (got {e0.PreType} and {{0}})");
               return true;
             } else if (right != null && right.Decl is IndDatatypeDecl) {
-              AddConfirmation("RankOrderableOrTypeParameter", e0.PreType, tok,
+              AddConfirmation(PreTypeConstraints.CommonConfirmationBag.RankOrderableOrTypeParameter, e0.PreType, tok,
                 $"arguments to rank comparison must be datatypes (got {{0}} and {e1.PreType})");
               return true;
             } else if (left != null || right != null) {
               var commonSupertype = CreatePreTypeProxy("common supertype of < operands");
               ConstrainToCommonSupertype(tok, opString, e0.PreType, e1.PreType, commonSupertype);
-              AddConfirmation("Orderable_Lt", e0.PreType, tok,
+              AddConfirmation(PreTypeConstraints.CommonConfirmationBag.OrderableLess, e0.PreType, tok,
                 "arguments to " + opString +
                 " must be of a numeric type, bitvector type, ORDINAL, char, a sequence type, or a set-like type (instead got {0})");
               return true;
@@ -796,28 +796,28 @@ namespace Microsoft.Dafny {
         case BinaryExpr.Opcode.Le:
           resultPreType = ConstrainResultToBoolFamilyOperator(tok, opString);
           ConstrainToCommonSupertype(tok, opString, e0.PreType, e1.PreType, null);
-          AddConfirmation("Orderable_Lt", e0.PreType, tok,
+          AddConfirmation(PreTypeConstraints.CommonConfirmationBag.OrderableLess, e0.PreType, tok,
             "arguments to " + opString +
             " must be of a numeric type, bitvector type, ORDINAL, char, a sequence type, or a set-like type (instead got {0})");
           break;
 
         case BinaryExpr.Opcode.Gt:
           resultPreType = ConstrainResultToBoolFamilyOperator(tok, opString);
-          AddGuardedConstraint(() => {
+          Constraints.AddGuardedConstraint(() => {
             var left = e0.PreType.Normalize() as DPreType;
             var right = e1.PreType.Normalize() as DPreType;
             if (left != null && left.Decl is IndDatatypeDecl) {
-              AddConfirmation("RankOrderableOrTypeParameter", e1.PreType, tok,
+              AddConfirmation(PreTypeConstraints.CommonConfirmationBag.RankOrderableOrTypeParameter, e1.PreType, tok,
                 $"arguments to rank comparison must be datatypes (got {e0.PreType} and {{0}})");
               return true;
             } else if (right != null && (right.Decl is IndDatatypeDecl || right.Decl is TypeParameter)) {
-              AddConfirmation("RankOrderable", e0.PreType, tok,
+              AddConfirmation(PreTypeConstraints.CommonConfirmationBag.RankOrderable, e0.PreType, tok,
                 $"arguments to rank comparison must be datatypes (got {{0}} and {e1.PreType})");
               return true;
             } else if (left != null || right != null) {
               var commonSupertype = CreatePreTypeProxy("common supertype of < operands");
               ConstrainToCommonSupertype(tok, opString, e0.PreType, e1.PreType, commonSupertype);
-              AddConfirmation("Orderable_Gt", e0.PreType, tok,
+              AddConfirmation(PreTypeConstraints.CommonConfirmationBag.OrderableGreater, e0.PreType, tok,
                 "arguments to " + opString + " must be of a numeric type, bitvector type, ORDINAL, char, or a set-like type (instead got {0})");
               return true;
             }
@@ -828,20 +828,20 @@ namespace Microsoft.Dafny {
         case BinaryExpr.Opcode.Ge:
           resultPreType = ConstrainResultToBoolFamilyOperator(tok, opString);
           ConstrainToCommonSupertype(tok, opString, e0.PreType, e1.PreType, null);
-          AddConfirmation("Orderable_Gt", e0.PreType, tok,
+          AddConfirmation(PreTypeConstraints.CommonConfirmationBag.OrderableGreater, e0.PreType, tok,
             "arguments to " + opString + " must be of a numeric type, bitvector type, ORDINAL, char, or a set-like type (instead got {0} and {1})");
           break;
 
         case BinaryExpr.Opcode.Add:
           resultPreType = CreatePreTypeProxy("result of +");
-          AddConfirmation("Plussable", resultPreType, tok,
+          AddConfirmation(PreTypeConstraints.CommonConfirmationBag.Plussable, resultPreType, tok,
             "type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like or map-like type (instead got {0})");
           ConstrainOperandTypes(tok, opString, e0, e1, resultPreType);
           break;
 
         case BinaryExpr.Opcode.Sub:
           resultPreType = CreatePreTypeProxy("result of -");
-          AddGuardedConstraint(() => {
+          Constraints.AddGuardedConstraint(() => {
             // The following cases are allowed:
             // Uniform cases:
             //   - int int
@@ -868,12 +868,12 @@ namespace Microsoft.Dafny {
             if (familyDeclNameLeft == "map" || familyDeclNameLeft == "imap") {
               Contract.Assert(left.Arguments.Count == 2);
               var st = new DPreType(BuiltInTypeDecl("set"), new List<PreType>() { left.Arguments[0] });
-              DebugPrint($"    DEBUG: guard applies: Minusable {a0} {a1}, converting to {st} :> {a1}");
+              Constraints.DebugPrint($"    DEBUG: guard applies: Minusable {a0} {a1}, converting to {st} :> {a1}");
               AddSubtypeConstraint(st, a1, tok,
                 "map subtraction expects right-hand operand to have type {0} (instead got {1})");
               return true;
             } else if (familyDeclNameLeft != null || (familyDeclNameRight != null && familyDeclNameRight != "set")) {
-              DebugPrint($"    DEBUG: guard applies: Minusable {a0} {a1}, converting to {a0} :> {a1}");
+              Constraints.DebugPrint($"    DEBUG: guard applies: Minusable {a0} {a1}, converting to {a0} :> {a1}");
               AddSubtypeConstraint(a0, a1, tok,
                 "type of right argument to - ({0}) must agree with the result type ({1})");
               return true;
@@ -885,7 +885,7 @@ namespace Microsoft.Dafny {
 
         case BinaryExpr.Opcode.Mul:
           resultPreType = CreatePreTypeProxy("result of *");
-          AddConfirmation("Mullable", resultPreType, tok,
+          AddConfirmation(PreTypeConstraints.CommonConfirmationBag.Mullable, resultPreType, tok,
             "type of * must be of a numeric type, bitvector type, or a set-like type (instead got {0})");
           ConstrainOperandTypes(tok, opString, e0, e1, resultPreType);
           break;
@@ -893,14 +893,14 @@ namespace Microsoft.Dafny {
         case BinaryExpr.Opcode.In:
         case BinaryExpr.Opcode.NotIn:
           resultPreType = ConstrainResultToBoolFamilyOperator(tok, "'" + opString + "'");
-          AddGuardedConstraint(() => {
+          Constraints.AddGuardedConstraint(() => {
             // For "Innable x s", if s is known, then:
             // if s == c<a> or s == c<a, b> where c is a collection type, then a :> x, else error.
             var a0 = e0.PreType.Normalize();
             var a1 = e1.PreType.Normalize();
             var coll = a1.UrAncestor(this).AsCollectionPreType();
             if (coll != null) {
-              DebugPrint($"    DEBUG: guard applies: Innable {a0} {a1}");
+              Constraints.DebugPrint($"    DEBUG: guard applies: Innable {a0} {a1}");
               AddSubtypeConstraint(coll.Arguments[0], a0, tok, "expecting element type to be assignable to {0} (got {1})");
               return true;
             } else if (a1 is DPreType) {
@@ -916,15 +916,15 @@ namespace Microsoft.Dafny {
 
         case BinaryExpr.Opcode.Div:
           resultPreType = CreatePreTypeProxy("result of / operation");
-          AddDefaultAdvice(resultPreType, AdviceTarget.Int);
-          AddConfirmation("NumericOrBitvector", resultPreType, tok, "arguments to " + opString + " must be numeric or bitvector types (got {0})");
+          Constraints.AddDefaultAdvice(resultPreType, Advice.Target.Int);
+          AddConfirmation(PreTypeConstraints.CommonConfirmationBag.NumericOrBitvector, resultPreType, tok, "arguments to " + opString + " must be numeric or bitvector types (got {0})");
           ConstrainOperandTypes(tok, opString, e0, e1, resultPreType);
           break;
 
         case BinaryExpr.Opcode.Mod:
           resultPreType = CreatePreTypeProxy("result of % operation");
-          AddDefaultAdvice(resultPreType, AdviceTarget.Int);
-          AddConfirmation("IntLikeOrBitvector", resultPreType, tok, "type of " + opString + " must be integer-numeric or bitvector types (got {0})");
+          Constraints.AddDefaultAdvice(resultPreType, Advice.Target.Int);
+          AddConfirmation(PreTypeConstraints.CommonConfirmationBag.IntLikeOrBitvector, resultPreType, tok, "type of " + opString + " must be integer-numeric or bitvector types (got {0})");
           ConstrainOperandTypes(tok, opString, e0, e1, resultPreType);
           break;
 
@@ -932,16 +932,16 @@ namespace Microsoft.Dafny {
         case BinaryExpr.Opcode.BitwiseOr:
         case BinaryExpr.Opcode.BitwiseXor:
           resultPreType = CreatePreTypeProxy("result of " + opString + " operation");
-          AddConfirmation("IsBitvector", resultPreType, tok, "type of " + opString + " must be of a bitvector type (instead got {0})");
+          AddConfirmation(PreTypeConstraints.CommonConfirmationBag.IsBitvector, resultPreType, tok, "type of " + opString + " must be of a bitvector type (instead got {0})");
           ConstrainOperandTypes(tok, opString, e0, e1, resultPreType);
           break;
 
         case BinaryExpr.Opcode.LeftShift:
         case BinaryExpr.Opcode.RightShift: {
             resultPreType = CreatePreTypeProxy("result of " + opString + " operation");
-            AddConfirmation("IsBitvector", resultPreType, tok, "type of " + opString + " must be of a bitvector type (instead got {0})");
+            AddConfirmation(PreTypeConstraints.CommonConfirmationBag.IsBitvector, resultPreType, tok, "type of " + opString + " must be of a bitvector type (instead got {0})");
             ConstrainOperandTypes(tok, opString, e0, null, resultPreType);
-            AddConfirmation("IntLikeOrBitvector", e1.PreType, tok,
+            AddConfirmation(PreTypeConstraints.CommonConfirmationBag.IntLikeOrBitvector, e1.PreType, tok,
               "type of right argument to " + opString + " ({0}) must be an integer-numeric or bitvector type");
             break;
           }
@@ -975,14 +975,14 @@ namespace Microsoft.Dafny {
 
     private PreType ConstrainResultToBoolFamily(IToken tok, string proxyDescription, string errorFormat) {
       var pt = CreatePreTypeProxy(proxyDescription);
-      AddDefaultAdvice(pt, AdviceTarget.Bool);
-      AddConfirmation("InBoolFamily", pt, tok, errorFormat);
+      Constraints.AddDefaultAdvice(pt, Advice.Target.Bool);
+      AddConfirmation(PreTypeConstraints.CommonConfirmationBag.InBoolFamily, pt, tok, errorFormat);
       return pt;
     }
 
     private void ConstrainToIntFamily(PreType preType, IToken tok, string errorFormat) {
-      AddDefaultAdvice(preType, AdviceTarget.Int);
-      AddConfirmation("InIntFamily", preType, tok, errorFormat);
+      Constraints.AddDefaultAdvice(preType, Advice.Target.Int);
+      AddConfirmation(PreTypeConstraints.CommonConfirmationBag.InIntFamily, preType, tok, errorFormat);
     }
 
     private void ConstrainToCommonSupertype(IToken tok, string opString, PreType a, PreType b, PreType commonSupertype) {
@@ -1020,18 +1020,18 @@ namespace Microsoft.Dafny {
       Contract.Requires(receiverPreType != null);
       Contract.Requires(memberName != null);
 
-      PartiallySolveTypeConstraints();
+      Constraints.PartiallySolveTypeConstraints();
       receiverPreType = receiverPreType.Normalize();
       DPreType dReceiver = null;
       if (receiverPreType is PreTypeProxy proxy) {
         // If there is a subtype constraint "proxy :> sub<X>", then (if the program is legal at all, then) "sub" must have the member "memberName".
-        foreach (var sub in AllSubBounds(proxy, new HashSet<PreTypeProxy>())) {
+        foreach (var sub in Constraints.AllSubBounds(proxy, new HashSet<PreTypeProxy>())) {
           dReceiver = sub;
           break;
         }
         if (dReceiver == null) {
           // If there is a subtype constraint "super<X> :> proxy" where "super" has a member "memberName", then that is the correct member.
-          foreach (var super in AllSuperBounds(proxy, new HashSet<PreTypeProxy>())) {
+          foreach (var super in Constraints.AllSuperBounds(proxy, new HashSet<PreTypeProxy>())) {
             if (super.Decl is TopLevelDeclWithMembers md && resolver.GetClassMembers(md).ContainsKey(memberName)) {
               dReceiver = super;
               break;
@@ -1074,15 +1074,15 @@ namespace Microsoft.Dafny {
     DPreType/*?*/ FindDefinedPreType(PreType preType) {
       Contract.Requires(preType != null);
 
-      PartiallySolveTypeConstraints();
+      Constraints.PartiallySolveTypeConstraints();
       preType = preType.Normalize();
       if (preType is PreTypeProxy proxy) {
         // We're looking a type with concerns for traits, so if the proxy has any sub- or super-type, then (if the
         // program is legal at all, then) that sub- or super-type must be the type we're looking for.
-        foreach (var sub in AllSubBounds(proxy, new HashSet<PreTypeProxy>())) {
+        foreach (var sub in Constraints.AllSubBounds(proxy, new HashSet<PreTypeProxy>())) {
           return sub;
         }
-        foreach (var super in AllSuperBounds(proxy, new HashSet<PreTypeProxy>())) {
+        foreach (var super in Constraints.AllSuperBounds(proxy, new HashSet<PreTypeProxy>())) {
           return super;
         }
         return null;
@@ -1156,7 +1156,7 @@ namespace Microsoft.Dafny {
         r = new IdentifierExpr(expr.tok, v) {
           PreType = v.PreType
         };
-      } else if (currentClass != null && resolver.GetClassMembers(currentClass) is {} members &&
+      } else if (currentClass != null && resolver.GetClassMembers(currentClass) is { } members &&
                  members.TryGetValue(name, out member)) {
         // ----- 1. member of the enclosing class
         Expression receiver;
@@ -1473,7 +1473,7 @@ namespace Microsoft.Dafny {
         var cd = r == null ? ty.AsTopLevelTypeWithMembersBypassInternalSynonym : null;
         if (cd != null) {
           // ----- LHS is a type with members
-          if (resolver.GetClassMembers(cd) is {} members && members.TryGetValue(name, out var member)) {
+          if (resolver.GetClassMembers(cd) is { } members && members.TryGetValue(name, out var member)) {
             if (!resolver.VisibleInScope(member)) {
               ReportError(expr.tok, $"member '{name}' has not been imported in this scope and cannot be accessed here");
             }
@@ -2046,14 +2046,14 @@ namespace Microsoft.Dafny {
 
     PreType ResolveSingleSelectionExpr(IToken tok, PreType collectionPreType, Expression index) {
       var resultPreType = CreatePreTypeProxy("seq selection");
-      AddGuardedConstraint(() => {
+      Constraints.AddGuardedConstraint(() => {
         var sourcePreType = collectionPreType.Normalize() as DPreType;
         if (sourcePreType != null) {
           var familyDeclName = AncestorName(sourcePreType);
           switch (familyDeclName) {
             case "array":
             case "seq":
-              AddConfirmation("IntLikeOrBitvector", index.PreType, index.tok, "index expression must have an integer type (got {0})");
+              AddConfirmation(PreTypeConstraints.CommonConfirmationBag.IntLikeOrBitvector, index.PreType, index.tok, "index expression must have an integer type (got {0})");
               AddSubtypeConstraint(resultPreType, sourcePreType.Arguments[0], tok, "type does not agree with element type {1} (got {0})");
               break;
             case "multiset":
@@ -2080,14 +2080,14 @@ namespace Microsoft.Dafny {
       var resultElementPreType = CreatePreTypeProxy("multi-index selection");
       var resultPreType = new DPreType(BuiltInTypeDecl("seq"), new List<PreType>() { resultElementPreType });
       if (e0 != null) {
-        AddConfirmation("IntLikeOrBitvector", e0.PreType, e0.tok,
+        AddConfirmation(PreTypeConstraints.CommonConfirmationBag.IntLikeOrBitvector, e0.PreType, e0.tok,
           "multi-element selection position expression must have an integer type (got {0})");
       }
       if (e1 != null) {
-        AddConfirmation("IntLikeOrBitvector", e1.PreType, e1.tok,
+        AddConfirmation(PreTypeConstraints.CommonConfirmationBag.IntLikeOrBitvector, e1.PreType, e1.tok,
           "multi-element selection position expression must have an integer type (got {0})");
       }
-      AddGuardedConstraint(() => {
+      Constraints.AddGuardedConstraint(() => {
         var sourcePreType = collectionPreType.Normalize() as DPreType;
         if (sourcePreType != null) {
           var familyDeclName = AncestorName(sourcePreType);

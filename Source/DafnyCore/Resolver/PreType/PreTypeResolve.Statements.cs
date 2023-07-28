@@ -487,7 +487,7 @@ namespace Microsoft.Dafny {
         var loopIndex = forS.LoopIndex;
         resolver.ResolveType(loopIndex.tok, loopIndex.Type, resolutionContext, ResolveTypeOptionEnum.InferTypeProxies, null);
         loopIndex.PreType = Type2PreType(loopIndex.Type);
-        AddConfirmation("InIntFamily", loopIndex.PreType, loopIndex.tok, "index variable is expected to be of an integer type (got {0})");
+        AddConfirmation(PreTypeConstraints.CommonConfirmationBag.InIntFamily, loopIndex.PreType, loopIndex.tok, "index variable is expected to be of an integer type (got {0})");
 
         ResolveExpression(forS.Start, resolutionContext);
         AddSubtypeConstraint(loopIndex.PreType, forS.Start.PreType, forS.Start.tok,
@@ -987,7 +987,7 @@ namespace Microsoft.Dafny {
       }
       TopLevelDeclWithMembers failureSupportingType = null;
       if (firstPreType != null) {
-        PartiallySolveTypeConstraints();
+        Constraints.PartiallySolveTypeConstraints();
         failureSupportingType = (firstPreType.Normalize() as DPreType)?.Decl as TopLevelDeclWithMembers;
         if (failureSupportingType != null) {
           if (failureSupportingType.Members.Find(x => x.Name == "IsFailure") == null) {
@@ -1213,7 +1213,7 @@ namespace Microsoft.Dafny {
         foreach (var dim in rr.ArrayDimensions) {
           ResolveExpression(dim, resolutionContext);
           var indexHint = dims == 1 ? "" : " for index " + i;
-          AddConfirmation("InIntFamily", dim.PreType, dim.tok,
+          AddConfirmation(PreTypeConstraints.CommonConfirmationBag.InIntFamily, dim.PreType, dim.tok,
             $"new must use an integer-based expression for the array size (got {{0}}{indexHint})");
           i++;
         }
@@ -1225,7 +1225,7 @@ namespace Microsoft.Dafny {
           resolver.SystemModuleManager.CreateArrowTypeDecl(dims);  // TODO: should this be done already in the parser?
           var indexPreTypes = Enumerable.Repeat(Type2PreType(resolver.SystemModuleManager.Nat()), dims).ToList();
           var arrowPreType = BuiltInArrowType(indexPreTypes, Type2PreType(rr.EType));
-          AddSubtypeConstraint(arrowPreType, rr.ElementInit.PreType, rr.ElementInit.tok, () => {
+          Constraints.AddSubtypeConstraint(arrowPreType, rr.ElementInit.PreType, rr.ElementInit.tok, () => {
             var hintString = !PreType.Same(arrowPreType, rr.ElementInit.PreType) ? "" :
               string.Format(" (perhaps write '{0} =>' in front of the expression you gave in order to make it an arrow type)",
               dims == 1 ? "_" : "(" + Util.Comma(dims, x => "_") + ")");

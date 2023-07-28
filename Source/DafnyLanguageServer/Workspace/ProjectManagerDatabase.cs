@@ -42,11 +42,10 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     public async Task OpenDocument(TextDocumentItem document) {
-      fileSystem.OpenDocument(document);
-      var projectManager = await GetProjectManager(document, true)!;
-      projectManager!.OpenDocument(document.Uri.ToUri());
+      // When we have caching of all compilation components, we might not need to do this change detection at the start
+      var changed = fileSystem.OpenDocument(document);
+      await GetProjectManager(document, true, changed);
     }
-
 
     public async Task UpdateDocument(DidChangeTextDocumentParams documentChange) {
       fileSystem.UpdateDocument(documentChange);
@@ -84,7 +83,22 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       await close;
     }
 
-    public async Task<IdeState?> GetResolvedDocumentAsync(TextDocumentIdentifier documentId) {
+    public async Task<IdeState?> GetResolvedDocumentAsyncNormalizeUri(TextDocumentIdentifier documentId) {
+      // Resolves drive letter capitalisation issues in Windows that occur when this method is called
+      // from an in-process client without serializing documentId
+      var normalizedUri = DocumentUri.From(documentId.Uri.ToString());
+      documentId = documentId with {
+        Uri = normalizedUri
+      };
+      var manager = await GetProjectManager(documentId, false);
+      if (manager != null) {
+        return await manager.GetSnapshotAfterResolutionAsync()!;
+      }
+
+      return null;
+    }
+
+    public async Task<IdeState?> GetResolvedDocumentAsyncInternal(TextDocumentIdentifier documentId) {
       var manager = await GetProjectManager(documentId, false);
       if (manager != null) {
         return await manager.GetSnapshotAfterResolutionAsync()!;
@@ -112,12 +126,12 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       return GetProjectManager(documentId, false);
     }
 
-    private async Task<ProjectManager?> GetProjectManager(TextDocumentIdentifier documentId, bool createOnDemand) {
+    private async Task<ProjectManager?> GetProjectManager(TextDocumentIdentifier documentId, bool createOnDemand, bool changedOnOpen = false) {
       if (!fileSystem.Exists(documentId.Uri.ToUri())) {
         return null;
       }
 
-      var project = await GetProject(documentId);
+      var project = await GetProject(documentId.Uri.ToUri());
 
       lock (myLock) {
         var projectManagerForFile = managersBySourceFile.GetValueOrDefault(documentId.Uri.ToUri());
@@ -133,15 +147,24 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
             }
 
             projectManagerForFile = createProjectManager(boogieEngine, project);
-            projectManagerForFile.OpenDocument(documentId.Uri.ToUri());
+            projectManagerForFile.OpenDocument(documentId.Uri.ToUri(), true);
           }
         } else {
           var managerForProject = managersByProject.GetValueOrDefault(project.Uri);
           if (managerForProject != null) {
             projectManagerForFile = managerForProject;
+            if (changedOnOpen) {
+              projectManagerForFile.UpdateDocument(new DidChangeTextDocumentParams {
+                ContentChanges = Array.Empty<TextDocumentContentChangeEvent>(),
+                TextDocument = new OptionalVersionedTextDocumentIdentifier {
+                  Uri = documentId.Uri
+                }
+              });
+            }
           } else {
             if (createOnDemand) {
               projectManagerForFile = createProjectManager(boogieEngine, project);
+              projectManagerForFile.OpenDocument(documentId.Uri.ToUri(), true);
             } else {
               return null;
             }
@@ -154,14 +177,14 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       }
     }
 
-    private async Task<DafnyProject> GetProject(TextDocumentIdentifier document) {
-      return (await FindProjectFile(document.Uri.ToUri())) ?? ImplicitProject(document);
+    public async Task<DafnyProject> GetProject(Uri uri) {
+      return (await FindProjectFile(uri)) ?? ImplicitProject(uri);
     }
 
-    public static DafnyProject ImplicitProject(TextDocumentIdentifier documentItem) {
+    public static DafnyProject ImplicitProject(Uri uri) {
       var implicitProject = new DafnyProject {
-        Includes = new[] { documentItem.Uri.GetFileSystemPath() },
-        Uri = documentItem.Uri.ToUri(),
+        Includes = new[] { uri.LocalPath },
+        Uri = uri,
         IsImplicitProject = true
       };
       return implicitProject;
@@ -181,7 +204,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         folder = Path.GetDirectoryName(folder);
       }
 
-      if (projectFile != null && !serverOptions.Get(ServerCommand.ProjectMode)) {
+      if (projectFile != null && projectFile.Uri != sourceUri && !serverOptions.Get(ServerCommand.ProjectMode)) {
         projectFile.Uri = sourceUri;
         projectFile.IsImplicitProject = true;
         projectFile.Includes = new[] { sourceUri.LocalPath };
@@ -193,7 +216,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     private async Task<DafnyProject?> OpenProjectInFolder(string folderPath) {
       var cachedResult = projectFilePerFolderCache.Get(folderPath);
       if (cachedResult != null) {
-        return cachedResult == nullRepresentative ? null : (DafnyProject?)cachedResult;
+        return cachedResult == nullRepresentative ? null : ((DafnyProject?)cachedResult)?.Clone();
       }
 
       var result = await OpenProjectInFolderUncached(folderPath);

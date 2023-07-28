@@ -30,6 +30,7 @@ public class ModuleExportDecl : ModuleDecl, ICanFormat {
     ProvideAll = original.ProvideAll;
     RevealAll = original.RevealAll;
     IsRefining = original.IsRefining;
+    IsDefault = original.IsDefault;
     ThisScope = new VisibilityScope(FullSanitizedName);
   }
 

@@ -28,11 +28,11 @@ namespace Microsoft.Dafny.LanguageServer {
   /// itself.
   /// 
   /// The current set of encoded features we support are: 
-  /// 
-  /// >< - The position in the file.  There can be at most one of these.
+  ///
+  /// >< - The position in the file.  There can be zero or more of these.
   /// 
   /// [> ... <] - A span of text in the file.  There can be many of these and they can be nested
-  /// and/or overlap the $ position.
+  /// and/or overlap the >< position(s).
   /// 
   /// {>Name: ... <} A span of text in the file annotated with an identifier.  There can be many of
   /// these, including ones with the same name.
