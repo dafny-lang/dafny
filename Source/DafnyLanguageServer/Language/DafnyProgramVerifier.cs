@@ -43,23 +43,30 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         };
 
         var verifiableModules = Translator.VerifiableModules(program).ToList();
-        var tasks = verifiableModules.Select(outerModule => DafnyMain.LargeStackFactory.StartNew(
-          () => {
-            Type.ResetScopes();
+        var tasks = verifiableModules.Select(async outerModule => {
+          var boogieProgram = await DafnyMain.LargeStackFactory.StartNew(
+            () => {
+              Type.ResetScopes();
 
-            var translator = new Translator(program.Reporter, flags);
-            var boogieProgram = translator.DoTranslation(program, outerModule);
+              var translator = new Translator(program.Reporter, flags);
+              var boogieProgram = translator.DoTranslation(program, outerModule);
 
-            if (engine.Options.PrintFile != null) {
-              var suffix = outerModule.SanitizedName;
+              if (engine.Options.PrintFile != null) {
+                var suffix = outerModule.SanitizedName;
 
-              var fileName = verifiableModules.Count > 1 ? DafnyMain.BoogieProgramSuffix(engine.Options.PrintFile, suffix) : engine.Options.PrintFile;
-              ExecutionEngine.PrintBplFile(engine.Options, fileName, boogieProgram, false, false, engine.Options.PrettyPrint);
-            }
+                var fileName = verifiableModules.Count > 1
+                  ? DafnyMain.BoogieProgramSuffix(engine.Options.PrintFile, suffix)
+                  : engine.Options.PrintFile;
+                ExecutionEngine.PrintBplFile(engine.Options, fileName, boogieProgram, false, false,
+                  engine.Options.PrettyPrint);
+              }
 
-            cancellationToken.ThrowIfCancellationRequested();
-            return engine.GetImplementationTasks(boogieProgram);
-          }, cancellationToken));
+              return boogieProgram;
+            }, cancellationToken);
+
+          cancellationToken.ThrowIfCancellationRequested();
+          return engine.GetImplementationTasks(boogieProgram);
+        });
 
         var tasksPerModule = await Task.WhenAll(tasks);
         return tasksPerModule.SelectMany(x => x).ToList();
