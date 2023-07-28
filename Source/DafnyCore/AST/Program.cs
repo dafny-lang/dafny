@@ -89,9 +89,9 @@ public class Program : TokenNode {
     return firstToken;
   }
 
-  public override IEnumerable<Node> Children => new[] { DefaultModule };
+  public override IEnumerable<INode> Children => new[] { DefaultModule };
 
-  public override IEnumerable<Node> PreResolveChildren => Children;
+  public override IEnumerable<INode> PreResolveChildren => Children;
 
   public override IEnumerable<Assumption> Assumptions(Declaration decl) {
     return Modules().SelectMany(m => m.Assumptions(decl));
