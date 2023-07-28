@@ -216,7 +216,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     private async Task<DafnyProject?> OpenProjectInFolder(string folderPath) {
       var cachedResult = projectFilePerFolderCache.Get(folderPath);
       if (cachedResult != null) {
-        return cachedResult == nullRepresentative ? null : (DafnyProject?)cachedResult;
+        return cachedResult == nullRepresentative ? null : ((DafnyProject?)cachedResult)?.Clone();
       }
 
       var result = await OpenProjectInFolderUncached(folderPath);
