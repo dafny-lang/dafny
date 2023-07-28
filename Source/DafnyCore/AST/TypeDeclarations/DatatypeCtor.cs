@@ -48,4 +48,11 @@ public class DatatypeCtor : Declaration, TypeParameter.ParentType, IHasDocstring
 
     return GetTriviaContainingDocstringFromStartTokenOrNull();
   }
+
+  public DafnySymbolKind Kind => DafnySymbolKind.EnumMember;
+
+  public string GetHoverText(DafnyOptions options) {
+    var formals = string.Join(", ", Formals.Select(f => f.AsText()));
+    return $"{EnclosingDatatype.Name}.{Name}({formals})";
+  }
 }

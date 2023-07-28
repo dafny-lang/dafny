@@ -41,10 +41,10 @@ public class Formal : NonglobalVariable {
   public override string CompileName =>
     compileName ??= SanitizeName(NameForCompilation);
 
-  public override IEnumerable<Node> Children =>
-    DefaultValue != null ? new List<Node>() { DefaultValue } : Enumerable.Empty<Node>();
+  public override IEnumerable<INode> Children =>
+    (DefaultValue != null ? new List<Node> { DefaultValue } : Enumerable.Empty<Node>()).Concat(base.Children);
 
-  public override IEnumerable<Node> PreResolveChildren => Children;
+  public override IEnumerable<INode> PreResolveChildren => Children;
 }
 
 /// <summary>

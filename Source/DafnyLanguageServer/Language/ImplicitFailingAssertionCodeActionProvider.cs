@@ -23,7 +23,7 @@ class ImplicitFailingAssertionCodeActionProvider : DiagnosticDafnyCodeActionProv
   }
 
   protected static List<INode>? FindInnermostNodeIntersecting(INode node, Range range) {
-    if (node.RangeToken.StartToken.line > 0 && !node.RangeToken.ToLspRange().Intersects(range)) {
+    if (node.StartToken.line > 0 && !node.RangeToken.ToLspRange().Intersects(range)) {
       return null;
     }
 
@@ -94,7 +94,7 @@ class ImplicitFailingAssertionCodeActionProvider : DiagnosticDafnyCodeActionProv
 
       insertionNode ??= nodesTillFailure[0];
 
-      var start = insertionNode.Start;
+      var start = insertionNode.StartToken;
       var assertStr = $"{(needsIsolation ? "(" : "")}assert {Printer.ExprToString(options, failingImplicitAssertion, new PrintFlags(UseOriginalDafnyNames: true))};\n" +
                       IndentationFormatter.Whitespace(Math.Max(start.col - 1 + (needsIsolation ? 1 : 0), 0));
       suggestedEdits.Add(
@@ -102,7 +102,7 @@ class ImplicitFailingAssertionCodeActionProvider : DiagnosticDafnyCodeActionProv
           InsertBefore(start), assertStr));
       if (needsIsolation) {
         suggestedEdits.Add(new DafnyCodeActionEdit(
-            InsertAfter(insertionNode.End), ")"));
+            InsertAfter(insertionNode.EndToken), ")"));
       }
 
       return suggestedEdits.ToArray();

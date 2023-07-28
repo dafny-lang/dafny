@@ -257,9 +257,9 @@ public abstract class TopLevelDeclWithMembers : TopLevelDecl, IHasSymbolChildren
       }
     }
   }
-  public IEnumerable<ISymbol> ChildSymbols => Members.OfType<ISymbol>();
-  public DafnySymbolKind Kind => DafnySymbolKind.Class;
-  public string GetHoverText(DafnyOptions options, LList<INode> ancestors) {
+  public virtual IEnumerable<ISymbol> ChildSymbols => Members.OfType<ISymbol>();
+  public virtual DafnySymbolKind Kind => DafnySymbolKind.Class;
+  public string GetHoverText(DafnyOptions options) {
     return $"{WhatKind} {Name}";
   }
 }

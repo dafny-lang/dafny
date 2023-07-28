@@ -142,9 +142,9 @@ public static class DafnyCodeActionHelpers {
         return false;
       }
 
-      if (n.Start.line != 0 &&
-          (n.Start.Uri.ToString() != documentUri
-           || n.Start.line > line || line > n.End.line)) {
+      if (n.StartToken.line != 0 &&
+          (n.StartToken.Uri.ToString() != documentUri
+           || n.StartToken.line > line || line > n.EndToken.line)) {
         return false; // Outside of the current scope
       }
 

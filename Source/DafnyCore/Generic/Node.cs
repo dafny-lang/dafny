@@ -10,8 +10,8 @@ using Microsoft.Dafny.Auditor;
 namespace Microsoft.Dafny;
 
 public interface INode {
-  public IToken Start => RangeToken.StartToken;
-  public IToken End => RangeToken.EndToken;
+  public IToken StartToken => RangeToken.StartToken;
+  public IToken EndToken => RangeToken.EndToken;
   IEnumerable<IToken> OwnedTokens { get; }
   RangeToken RangeToken { get; }
   IToken Tok { get; }
@@ -39,7 +39,6 @@ public abstract class Node : INode {
 
   protected IReadOnlyList<IToken> OwnedTokensCache;
 
-
   public IToken StartToken => RangeToken?.StartToken;
 
   public IToken EndToken => RangeToken?.EndToken;
@@ -64,7 +63,7 @@ public abstract class Node : INode {
   // Therefore, we have to find all the concrete children by unwrapping such nodes.
   public IEnumerable<INode> GetConcreteChildren() {
     foreach (var child in PreResolveChildren) {
-      if (child.RangeToken.StartToken != null && child.RangeToken.EndToken != null && child.RangeToken.StartToken.line != 0) {
+      if (child.StartToken != null && child.EndToken != null && child.StartToken.line != 0) {
         yield return child;
       } else {
         foreach (var subNode in child.GetConcreteChildren()) {
@@ -90,18 +89,18 @@ public abstract class Node : INode {
       try {
         startToEndTokenNotOwned =
           childrenFiltered
-            .ToDictionary(child => child.RangeToken.StartToken.pos, child => child.RangeToken.EndToken!);
+            .ToDictionary(child => child.StartToken.pos, child => child.EndToken!);
       } catch (ArgumentException) {
         // If we parse a resolved document, some children sometimes have the same token because they are auto-generated
         startToEndTokenNotOwned = new();
         foreach (var child in childrenFiltered) {
-          if (startToEndTokenNotOwned.ContainsKey(child.RangeToken.StartToken.pos)) {
-            var previousEnd = startToEndTokenNotOwned[child.RangeToken.StartToken.pos];
-            if (child.RangeToken.EndToken.pos > previousEnd.pos) {
-              startToEndTokenNotOwned[child.RangeToken.StartToken.pos] = child.RangeToken.EndToken;
+          if (startToEndTokenNotOwned.ContainsKey(child.StartToken.pos)) {
+            var previousEnd = startToEndTokenNotOwned[child.StartToken.pos];
+            if (child.EndToken.pos > previousEnd.pos) {
+              startToEndTokenNotOwned[child.StartToken.pos] = child.EndToken;
             }
           } else {
-            startToEndTokenNotOwned[child.RangeToken.StartToken.pos] = child.RangeToken.EndToken;
+            startToEndTokenNotOwned[child.StartToken.pos] = child.EndToken;
           }
         }
       }
@@ -322,8 +321,8 @@ public abstract class TokenNode : Node {
               node is DefaultValueExpression) {
             // Ignore any auto-generated expressions.
           } else {
-            UpdateStartEndToken(node.RangeToken.StartToken);
-            UpdateStartEndToken(node.RangeToken.EndToken);
+            UpdateStartEndToken(node.StartToken);
+            UpdateStartEndToken(node.EndToken);
           }
         }
 
@@ -344,14 +343,7 @@ public abstract class TokenNode : Node {
   }
 }
 
-public abstract class RangeNode : Node {
-  protected RangeNode(Cloner cloner, RangeNode original) {
-    RangeToken = cloner.Tok(original.RangeToken);
-  }
-
-  protected RangeNode(RangeToken rangeToken) {
-    RangeToken = rangeToken;
-  } // TODO merge into Node when TokenNode is gone.
+public abstract class RangeNode : Node { // TODO merge into Node when TokenNode is gone.
 
   public override IToken Tok => StartToken; // TODO rename to ReportingToken in separate PR
 
@@ -359,4 +351,12 @@ public abstract class RangeNode : Node {
 
   // TODO rename to Range in separate PR
   public override RangeToken RangeToken { get; set; } // TODO remove setter when TokenNode is gone.
+
+  protected RangeNode(Cloner cloner, RangeNode original) {
+    RangeToken = cloner.Tok(original.RangeToken);
+  }
+
+  protected RangeNode(RangeToken rangeToken) {
+    RangeToken = rangeToken;
+  }
 }
