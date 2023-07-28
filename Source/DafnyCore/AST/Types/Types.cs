@@ -13,8 +13,8 @@ public abstract class Type : TokenNode {
   public static readonly CharType Char = new CharType();
   public static readonly IntType Int = new IntType();
   public static readonly RealType Real = new RealType();
-  public override IEnumerable<Node> Children => TypeArgs;
-  public override IEnumerable<Node> PreResolveChildren => TypeArgs.OfType<Node>();
+  public override IEnumerable<INode> Children => TypeArgs;
+  public override IEnumerable<INode> PreResolveChildren => TypeArgs.OfType<Node>();
   public static Type Nat() { return new UserDefinedType(Token.NoToken, "nat", null); }  // note, this returns an unresolved type
   public static Type String() { return new UserDefinedType(Token.NoToken, "string", null); }  // note, this returns an unresolved type
   public static readonly BigOrdinalType BigOrdinal = new BigOrdinalType();
@@ -1806,7 +1806,7 @@ public abstract class NonProxyType : Type {
 }
 
 public abstract class BasicType : NonProxyType {
-  public override IEnumerable<Node> Children => Enumerable.Empty<Node>();
+  public override IEnumerable<INode> Children => Enumerable.Empty<Node>();
   public override bool ComputeMayInvolveReferences(ISet<DatatypeDecl>/*?*/ visitedDatatypes) {
     return false;
   }
@@ -2710,13 +2710,13 @@ public class UserDefinedType : NonProxyType {
   }
 
   public IToken NameToken => tok;
-  public override IEnumerable<Node> Children => base.Children.Concat(new[] { NamePath });
+  public override IEnumerable<INode> Children => base.Children.Concat(new[] { NamePath });
 
-  public override IEnumerable<Node> PreResolveChildren => new List<Node>() { NamePath };
+  public override IEnumerable<INode> PreResolveChildren => new List<Node>() { NamePath };
 }
 
 public abstract class TypeProxy : Type {
-  public override IEnumerable<Node> Children => Enumerable.Empty<Node>();
+  public override IEnumerable<INode> Children => Enumerable.Empty<Node>();
   [FilledInDuringResolution] public Type T;
   public readonly List<TypeConstraint> SupertypeConstraints = new List<TypeConstraint>();
   public readonly List<TypeConstraint> SubtypeConstraints = new List<TypeConstraint>();
@@ -2926,7 +2926,7 @@ public class InferredTypeProxy : TypeProxy {
 /// This proxy stands for any type, but it originates from an instantiated type parameter.
 /// </summary>
 public class ParamTypeProxy : TypeProxy {
-  public override IEnumerable<Node> Children => Enumerable.Empty<Node>();
+  public override IEnumerable<INode> Children => Enumerable.Empty<Node>();
   public TypeParameter orig;
   [ContractInvariantMethod]
   void ObjectInvariant() {

@@ -4,7 +4,7 @@ using System.Linq;
 
 namespace Microsoft.Dafny;
 
-public class DatatypeCtor : Declaration, TypeParameter.ParentType, IHasDocstring, ISymbol {
+public class DatatypeCtor : Declaration, TypeParameter.ParentType, IHasDocstring {
   public readonly bool IsGhost;
   public readonly List<Formal> Formals;
   [ContractInvariantMethod]
@@ -16,7 +16,7 @@ public class DatatypeCtor : Declaration, TypeParameter.ParentType, IHasDocstring
       Destructors.Count == Formals.Count);  // after resolution
   }
 
-  public override IEnumerable<Node> Children => base.Children.Concat(Formals);
+  public override IEnumerable<INode> Children => base.Children.Concat(Formals);
 
   // TODO: One could imagine having a precondition on datatype constructors
   [FilledInDuringResolution] public DatatypeDecl EnclosingDatatype;
@@ -48,6 +48,4 @@ public class DatatypeCtor : Declaration, TypeParameter.ParentType, IHasDocstring
 
     return GetTriviaContainingDocstringFromStartTokenOrNull();
   }
-
-  public DafnySymbolKind Kind => DafnySymbolKind.EnumMember;
 }

@@ -22,7 +22,7 @@ class ImplicitFailingAssertionCodeActionProvider : DiagnosticDafnyCodeActionProv
     this.options = options;
   }
 
-  protected static List<Node>? FindInnermostNodeIntersecting(Node node, Range range) {
+  protected static List<INode>? FindInnermostNodeIntersecting(INode node, Range range) {
     if (node.RangeToken.StartToken.line > 0 && !node.RangeToken.ToLspRange().Intersects(range)) {
       return null;
     }
@@ -35,7 +35,7 @@ class ImplicitFailingAssertionCodeActionProvider : DiagnosticDafnyCodeActionProv
       }
     }
 
-    return new List<Node>() { node };
+    return new List<INode> { node };
   }
 
   class ExplicitAssertionDafnyCodeAction : DafnyCodeAction {
@@ -65,7 +65,7 @@ class ImplicitFailingAssertionCodeActionProvider : DiagnosticDafnyCodeActionProv
         return suggestedEdits.ToArray();
       }
 
-      Node? insertionNode = null;
+      INode? insertionNode = null;
       for (var i = 0; i < nodesTillFailure.Count; i++) {
         var node = nodesTillFailure[i];
         var nextNode = i < nodesTillFailure.Count - 1 ? nodesTillFailure[i + 1] : null;
@@ -94,7 +94,7 @@ class ImplicitFailingAssertionCodeActionProvider : DiagnosticDafnyCodeActionProv
 
       insertionNode ??= nodesTillFailure[0];
 
-      var start = insertionNode.StartToken;
+      var start = insertionNode.Start;
       var assertStr = $"{(needsIsolation ? "(" : "")}assert {Printer.ExprToString(options, failingImplicitAssertion, new PrintFlags(UseOriginalDafnyNames: true))};\n" +
                       IndentationFormatter.Whitespace(Math.Max(start.col - 1 + (needsIsolation ? 1 : 0), 0));
       suggestedEdits.Add(
@@ -102,7 +102,7 @@ class ImplicitFailingAssertionCodeActionProvider : DiagnosticDafnyCodeActionProv
           InsertBefore(start), assertStr));
       if (needsIsolation) {
         suggestedEdits.Add(new DafnyCodeActionEdit(
-            InsertAfter(insertionNode.EndToken), ")"));
+            InsertAfter(insertionNode.End), ")"));
       }
 
       return suggestedEdits.ToArray();

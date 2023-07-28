@@ -137,14 +137,14 @@ public static class DafnyCodeActionHelpers {
     // Look in methods for BlockStmt with the IToken as opening brace
     // Return the EndTok of them.
     IToken? tokenFound = null;
-    program.Visit((Node n) => {
+    program.Visit((INode n) => {
       if (tokenFound != null) {
         return false;
       }
 
-      if (n.StartToken.line != 0 &&
-          (n.StartToken.Uri.ToString() != documentUri
-           || n.StartToken.line > line || line > n.EndToken.line)) {
+      if (n.Start.line != 0 &&
+          (n.Start.Uri.ToString() != documentUri
+           || n.Start.line > line || line > n.End.line)) {
         return false; // Outside of the current scope
       }
 

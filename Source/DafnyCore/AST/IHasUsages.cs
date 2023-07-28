@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 
 namespace Microsoft.Dafny;
@@ -10,19 +11,40 @@ public interface IHasUsages : IDeclarationOrUsage {
   public IEnumerable<IDeclarationOrUsage> GetResolvedDeclarations();
 }
 
+public static class AstExtensions {
+
+  public static string GetMemberQualification(LList<INode> chain) {
+    var parent = (TopLevelDeclWithMembers)chain.Data;
+    return parent.Name == "_default" ? "" : $"{parent.Name}.";
+  }
+
+  /// <summary>
+  /// Returns a text representation of the given variable.
+  /// </summary>
+  /// <param name="variable">The variable to get a text representation of.</param>
+  /// <returns>The text representation of the variable.</returns>
+  public static string AsText(this IVariable variable) {
+    var ghost = variable.IsGhost ? "ghost " : "";
+    string type;
+    try {
+      type = variable.Type.ToString();
+    } catch (Exception e) {
+      type = $"<Internal error: {e.Message}>";
+    }
+    return $"{ghost}{variable.Name}: {type}";
+  }
+}
+
 public interface ISymbol : IDeclarationOrUsage {
   DafnySymbolKind Kind { get; }
+
+  string GetHoverText(DafnyOptions options, LList<INode> ancestors);
 }
 
 public interface IHasSymbolChildren : ISymbol {
   IEnumerable<ISymbol> ChildSymbols { get; }
 }
 
-/// <summary>
-/// This is a copy of OmniSharp.Extensions.LanguageServer.Protocol.Models.SymbolKind
-/// In the future, we'll include that package in this project, and then this copy can be removed.
-/// For now, adding that package reference is not worth its weight.
-/// </summary>
 public enum DafnySymbolKind {
   File = 1,
   Module = 2,

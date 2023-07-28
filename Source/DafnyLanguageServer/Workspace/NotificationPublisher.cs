@@ -9,6 +9,7 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Server;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using OmniSharp.Extensions.LanguageServer.Protocol;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace {
@@ -123,41 +124,49 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       void PublishForUri(Uri publishUri, Diagnostic[] diagnostics) {
         var previous = publishedDiagnostics.GetOrDefault(publishUri, Enumerable.Empty<Diagnostic>);
         if (!previous.SequenceEqual(diagnostics)) {
-          publishedDiagnostics[publishUri] = diagnostics;
+          if (diagnostics.Any()) {
+            publishedDiagnostics[publishUri] = diagnostics;
+          } else {
+            // Prevent memory leaks by cleaning up previous state when it's the IDE's initial state.
+            publishedDiagnostics.Remove(publishUri);
+          }
           languageServer.TextDocument.PublishDiagnostics(new PublishDiagnosticsParams {
             Uri = publishUri,
-            Version = filesystem.GetVersion(publishUri),
+            Version = filesystem.GetVersion(publishUri) ?? 0,
             Diagnostics = diagnostics,
           });
         }
       }
     }
 
-    public void PublishGutterIcons(IdeState state, bool verificationStarted) {
+
+    private Dictionary<Uri, VerificationStatusGutter> previouslyPublishedIcons = new();
+    public void PublishGutterIcons(Uri uri, IdeState state, bool verificationStarted) {
       if (!options.Get(ServerCommand.LineVerificationStatus)) {
         return;
       }
 
-      if (!state.Compilation.Project.IsImplicitProject) {
-        return;
-      }
-      var root = state.Compilation.Project.Uri;
-      var errors = state.ResolutionDiagnostics.GetOrDefault(root, Enumerable.Empty<Diagnostic>).
+      var errors = state.ResolutionDiagnostics.GetOrDefault(uri, Enumerable.Empty<Diagnostic>).
         Where(x => x.Severity == DiagnosticSeverity.Error).ToList();
-      if (state.VerificationTree == null) {
-        return;
-      }
+      var tree = state.VerificationTrees[uri];
 
-      var linesCount = state.VerificationTree.Range.End.Line + 1;
+      var linesCount = tree.Range.End.Line + 1;
       var verificationStatusGutter = VerificationStatusGutter.ComputeFrom(
-        root,
-        filesystem.GetVersion(root)!.Value,
-        state.VerificationTree.Children.Select(child => child.GetCopyForNotification()).ToArray(),
+        DocumentUri.From(uri),
+        filesystem.GetVersion(uri) ?? 0,
+        tree.Children.Select(child => child.GetCopyForNotification()).ToArray(),
         errors,
         linesCount,
         verificationStarted
       );
-      languageServer.TextDocument.SendNotification(verificationStatusGutter);
+
+      lock (previouslyPublishedIcons) {
+        var previous = previouslyPublishedIcons.GetValueOrDefault(uri);
+        if (previous == null || !previous.PerLineStatus.SequenceEqual(verificationStatusGutter.PerLineStatus)) {
+          previouslyPublishedIcons[uri] = verificationStatusGutter;
+          languageServer.TextDocument.SendNotification(verificationStatusGutter);
+        }
+      }
     }
 
     private void PublishGhostDiagnostics(IdeState previousState, IdeState state) {

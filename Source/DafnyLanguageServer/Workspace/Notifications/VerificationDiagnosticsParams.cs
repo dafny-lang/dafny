@@ -387,8 +387,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
 
       return new Range(new Position(0, 0), endPosition);
       INode? FindFileNode(INode node, Uri uri) {
-        if (node.Tok.Uri == uri) {
-          return node;
+        if (node.Tok.Uri != null) {
+          return node.Tok.Uri == uri ? node : null;
         }
 
         return node.Children.Select(child => FindFileNode(child, uri)).FirstOrDefault(x => x != null);

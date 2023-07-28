@@ -16,8 +16,8 @@ public class ModuleExportDecl : ModuleDecl, ICanFormat {
   [FilledInDuringResolution] public readonly HashSet<Tuple<Declaration, bool>> ExportDecls = new HashSet<Tuple<Declaration, bool>>();
   public bool RevealAll; // only kept for initial rewriting, then discarded
   public bool ProvideAll;
-  public override IEnumerable<Node> Children => Exports;
-  public override IEnumerable<Node> PreResolveChildren => Exports;
+  public override IEnumerable<INode> Children => Exports;
+  public override IEnumerable<INode> PreResolveChildren => Exports;
 
   public readonly VisibilityScope ThisScope;
 

@@ -17,6 +17,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
     protected override async Task SetUp(Action<DafnyOptions> modifyOptions = null) {
       void ModifyOptions(DafnyOptions options) {
         options.ProverOptions.Add("SOLVER=noop");
+        options.Set(ServerCommand.ProjectMode, true);
         modifyOptions?.Invoke(options);
       }
 
@@ -277,7 +278,7 @@ class B {
 
   constructor() {
     a := new A();
-//           ^[```dafny\nclass A\n```]
+//           ^[```dafny\nconstructor A()\n```]
   }
 }");
     }
@@ -543,7 +544,8 @@ class C {
   // Unformatted comment
   static method m() {}
 
-  // This is the constructor
+  /** This is the constructor 
+  */
   constructor() {}
 
   /** Should be the number of x in C */
@@ -597,7 +599,7 @@ method test(d: D, t: T, e: Even) {
   C.m(); // TODO
  //  ^[Unformatted comment] // Does not work yet.
   var c: C := new C();
-//                ^[The class C. Should be used like this:\n```dafny\nnew C();\n```]
+//                ^[This is the constructor\n```dafny\nconstructor C()\n```]
   var xc := c.x;
 //            ^[Should be the number of x in C]
   var xx := c.X;
