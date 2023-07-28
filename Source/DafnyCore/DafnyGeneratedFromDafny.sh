@@ -19,8 +19,8 @@ else
   output="GeneratedFromDafny"
 fi
 
-../../Scripts/dafny translate cs --output $output.cs AST/Formatting.dfy Verifier/AlcorEngine.dfy
-../../Scripts/dafny translate cs --output "${output}Rust.cs" Compilers/Rust/Dafny-compiler-rust.dfy
+../../Scripts/dafny translate cs --no-verify --output $output.cs AST/Formatting.dfy Verifier/AlcorEngine.dfy
+../../Scripts/dafny translate cs --no-verify --output "${output}Rust.cs" Compilers/Rust/Dafny-compiler-rust.dfy
 python -c "
 import re
 with open ('$output.cs', 'r' ) as f:

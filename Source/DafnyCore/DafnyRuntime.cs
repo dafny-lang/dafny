@@ -5,6 +5,7 @@
 //
 //-----------------------------------------------------------------------------
 
+#define ISDAFNYRUNTIMELIB
 #if ISDAFNYRUNTIMELIB
 using System; // for Func
 using System.Numerics;

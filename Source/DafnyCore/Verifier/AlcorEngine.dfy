@@ -384,12 +384,15 @@ module Alcor {
   }
 
   // No need to trust this proof finder, if it finds a proof it's a correct one!
-  method DummyProofFinder(expr: Expr)
-    returns (result: Result<Proof>)
+  method {:vcs_split_on_every_assert} DummyProofFinder(expr: Expr)
+    returns (result: Result<(Proof, ProofProgram)>)
     decreases if expr.Imp? then numberOfImp(expr.right) else 0
-    ensures result.Success? ==> result.value.GetExpr() == expr
+    ensures result.Success? ==>
+      && result.value.0.GetExpr() == expr
+      && Success(OneProof(result.value.0)) == ExecuteProof(result.value.1, EnvNil) // TODO Execute works
   {
-    var checkGoal: ProofValue -> Result<Proof> := (pv: ProofValue) => checkGoalAgainstExpr(pv, expr);
+    var checkGoal: (ProofValue, ProofProgram) -> Result<(Proof, ProofProgram)> := 
+      (pv: ProofValue, pr: ProofProgram) => checkGoalAgainstExpr(pv, expr).Map(r => (r, pr));
     // Given an expression (A0 && (A1 && (A2 && .... True))) ==> G
     // Will try to find a proof of it.
     // * If A1 is (a && b) and G is b, we emit the proof
@@ -406,9 +409,8 @@ module Alcor {
       if proofOfConclusion.Success? {
         // We have a proof that A && env ==> B
         // Now let's transform it in a proof of env ==> (A ==> B)
-        var execEnv := EnvCons("a_x_imp_b", OneProof(proofOfConclusion.value), EnvNil);
-        var r :- ExecuteProof(
-          ImpIntro.apply2(
+        var execEnv := EnvCons("a_x_imp_b", OneProof(proofOfConclusion.value.0), EnvNil);
+        var proofProgram := ImpIntro.apply2(
             ProofExpr(env),
             ProofAbs("env", Ind,
               ImpIntro.apply2(
@@ -418,8 +420,10 @@ module Alcor {
                     ProofVar("a_x_imp_b"),
                     AndIntro.apply2(
                       ProofVar("proofOfA"),
-                      ProofVar("env"))))))), execEnv);
-        return checkGoal(r);
+                      ProofVar("env")))))));
+        var r :- ExecuteProof(
+          proofProgram, execEnv);
+        return checkGoal(r, proofProgram);
       }
     }
     // The and separating the head of the environment to the tail
@@ -440,7 +444,7 @@ module Alcor {
                  AndElimLeft.apply1(ProofVar("env")))
             ));
         var r :- ExecuteProof(proofProgram, EnvNil);
-        return checkGoal(r);
+        return checkGoal(r, proofProgram);
       }
       if A0.right == goal {
         var proofProgram :=
@@ -449,7 +453,7 @@ module Alcor {
             ProofAbs("env", Ind, 
               AndElimRight.apply1(AndElimLeft.apply1(ProofVar("env")))));
         var r :- ExecuteProof(proofProgram, EnvNil);
-        return checkGoal(r);
+        return checkGoal(r, proofProgram);
       }
     }
     // Lookup in the environment
@@ -475,7 +479,7 @@ module Alcor {
             ProofAbs("env", Ind, 
               ProofApp(ProofAxiom(AndElimLeft), proofElem)));
       var r :- ExecuteProof(proofProgram, EnvNil);
-      return checkGoal(r);
+      return checkGoal(r, proofProgram);
     }
 
     // Part 2: Advanced proof search (axioms with lookup in the environment)

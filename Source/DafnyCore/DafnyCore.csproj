@@ -46,8 +46,4 @@
     </EmbeddedResource>
   </ItemGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\DafnyRuntime\DafnyRuntime.csproj" />
-  </ItemGroup>
-
 </Project>

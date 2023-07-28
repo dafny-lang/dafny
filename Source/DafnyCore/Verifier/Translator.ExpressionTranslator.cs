@@ -286,7 +286,7 @@ namespace Microsoft.Dafny {
       // Null means the expression is not yet translated in Alcor
       [CanBeNull]
       public AlcorProofKernel.Expr TrExprAlcor(Expression expr) {
-        switch (expr) {
+        switch (expr.WasResolved() ? expr.Resolved : expr) {
           case IdentifierExpr identifierExpr: {
             IdentifierExpr e = identifierExpr;
             

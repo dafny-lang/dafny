@@ -545,12 +545,18 @@ namespace Microsoft.Dafny {
               alcorExpression));
             provenByAlcor = result.is_Success;
             if (provenByAlcor) {
-              var proof = result.dtor_value.ToString()!;
-              var proofStr = proof.Select(rune => rune.ToString());
-              reporter.Info(MessageSource.Verifier, assertStmt.tok, "Proven by Alcor with proof " + proofStr);
+              var expr = result.dtor_value.dtor__0._ToString()!;
+              var proof = result.dtor_value.dtor__1._ToString();
+              var exprStr = string.Join("", expr.Select(rune => rune.ToString()));
+              var proofStr =  string.Join("", proof.Select(rune => rune.ToString()));
+              var msg = "Alcor proved that " + exprStr + " by " + proofStr;
+              Console.Out.WriteLine(msg);
+              reporter.Info(MessageSource.Verifier, assertStmt.tok, 
+                msg);
             } else {
               var msg = string.Join("", result.dtor_msg.Select(rune => rune.ToString()));
-              reporter.Info(MessageSource.Verifier, assertStmt.tok, "Could not prove by Alcor because" + msg);
+              reporter.Info(MessageSource.Verifier, assertStmt.tok, 
+                "Could not prove by Alcor because " + msg);
             }
             // And then we assume it.
             assumptions = new AlcorProofKernel.Expr_And(alcorExpression, assumptions);
