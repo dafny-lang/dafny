@@ -13,21 +13,6 @@ public class LetExpr : Expression, IAttributeBearingDeclaration, IBoundVarsBeari
   Attributes IAttributeBearingDeclaration.Attributes => Attributes;
   [FilledInDuringResolution] public List<ComprehensionExpr.BoundedPool> Constraint_Bounds;  // null for Exact=true and for when expression is in a ghost context
   // invariant Constraint_Bounds == null || Constraint_Bounds.Count == BoundVars.Count;
-  private Expression translationDesugaring;  // filled in during translation, lazily; to be accessed only via Translation.LetDesugaring; always null when Exact==true
-  private Translator lastTranslatorUsed; // avoid clashing desugaring between translators
-
-  public void SetTranslationDesugaring(Translator trans, Expression expr) {
-    lastTranslatorUsed = trans;
-    translationDesugaring = expr;
-  }
-
-  public Expression GetTranslationDesugaring(Translator trans) {
-    if (lastTranslatorUsed == trans) {
-      return translationDesugaring;
-    } else {
-      return null;
-    }
-  }
 
   public LetExpr Clone(Cloner cloner) {
     return new LetExpr(cloner, this);

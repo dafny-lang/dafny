@@ -9260,6 +9260,7 @@ namespace Microsoft.Dafny {
 
     int projectionFunctionCount = 0;
 
+    private Dictionary<LetExpr, Expression> desugaredLets = new Dictionary<LetExpr, Expression>();
     /// <summary>
     /// Fills in, if necessary, the e.translationDesugaring field, and returns it.
     /// Also, makes sure that letSuchThatExprInfo maps e to something.
@@ -9268,84 +9269,87 @@ namespace Microsoft.Dafny {
       Contract.Requires(e != null);
       Contract.Requires(!e.Exact);
       Contract.Ensures(Contract.Result<Expression>() != null);
-      if (e.GetTranslationDesugaring(this) == null) {
-        // For let-such-that expression:
-        //   var x:X, y:Y :| P(x,y,g); F(...)
-        // where
-        //   - g has type G, and
-        //   - tt* denotes the list of type variables in the types X and Y and expression F(...),
-        // declare a function for each bound variable:
-        //   function $let$x(Ty*, G): X;
-        //   function $let$y(Ty*, G): Y;
-        //   function $let_canCall(Ty*, G): bool;
-        // and add an axiom about these functions:
-        //   axiom (forall tt*:Ty*, g:G ::
-        //            { $let$x(tt*, g) }
-        //            { $let$y(tt*, g) }
-        //            $let$_canCall(tt*, g)) ==>
-        //            P($let$x(tt*, g), $let$y(tt*, g), g));
-        // and create the desugaring:
-        //   var x:X, y:Y := $let$x(tt*, g), $let$y(tt*, g); F(...)
-        if (e is SubstLetExpr) {
-          // desugar based on the original letexpr.
-          var expr = (SubstLetExpr)e;
-          var orgExpr = expr.orgExpr;
-          Expression d = LetDesugaring(orgExpr);
-          e.SetTranslationDesugaring(this, Substitute(d, null, expr.substMap, expr.typeMap));
-          var orgInfo = letSuchThatExprInfo[orgExpr];
-          letSuchThatExprInfo.Add(expr, new LetSuchThatExprInfo(orgInfo, this, expr.substMap, expr.typeMap));
-        } else {
-          // First, determine "g" as a list of Dafny variables FVs plus possibly this, $Heap, and old($Heap),
-          // and determine "tt*" as a list of Dafny type variables
-          LetSuchThatExprInfo info;
-          {
-            var FVs = new HashSet<IVariable>();
-            bool usesHeap = false, usesOldHeap = false;
-            var FVsHeapAt = new HashSet<Label>();
-            Type usesThis = null;
-            FreeVariablesUtil.ComputeFreeVariables(options, e.RHSs[0], FVs, ref usesHeap, ref usesOldHeap, FVsHeapAt, ref usesThis, false);
-            var FTVs = new HashSet<TypeParameter>();
-            foreach (var bv in e.BoundVars) {
-              FVs.Remove(bv);
-              ComputeFreeTypeVariables(bv.Type, FTVs);
-            }
-            ComputeFreeTypeVariables(e.RHSs[0], FTVs);
-            info = new LetSuchThatExprInfo(e.tok, letSuchThatExprInfo.Count, FVs.ToList(), FTVs.ToList(), usesHeap, usesOldHeap, FVsHeapAt, usesThis, currentDeclaration);
-            letSuchThatExprInfo.Add(e, info);
-          }
+      if (desugaredLets.ContainsKey(e)) {
+        return desugaredLets.GetValueOrDefault(e);
+      }
 
+      // For let-such-that expression:
+      //   var x:X, y:Y :| P(x,y,g); F(...)
+      // where
+      //   - g has type G, and
+      //   - tt* denotes the list of type variables in the types X and Y and expression F(...),
+      // declare a function for each bound variable:
+      //   function $let$x(Ty*, G): X;
+      //   function $let$y(Ty*, G): Y;
+      //   function $let_canCall(Ty*, G): bool;
+      // and add an axiom about these functions:
+      //   axiom (forall tt*:Ty*, g:G ::
+      //            { $let$x(tt*, g) }
+      //            { $let$y(tt*, g) }
+      //            $let$_canCall(tt*, g)) ==>
+      //            P($let$x(tt*, g), $let$y(tt*, g), g));
+      // and create the desugaring:
+      //   var x:X, y:Y := $let$x(tt*, g), $let$y(tt*, g); F(...)
+      if (e is SubstLetExpr) {
+        // desugar based on the original letexpr.
+        var expr = (SubstLetExpr)e;
+        var orgExpr = expr.orgExpr;
+        Expression d = LetDesugaring(orgExpr);
+        desugaredLets[e] = Substitute(d, null, expr.substMap, expr.typeMap);
+        var orgInfo = letSuchThatExprInfo[orgExpr];
+        letSuchThatExprInfo.Add(expr, new LetSuchThatExprInfo(orgInfo, this, expr.substMap, expr.typeMap));
+      } else {
+        // First, determine "g" as a list of Dafny variables FVs plus possibly this, $Heap, and old($Heap),
+        // and determine "tt*" as a list of Dafny type variables
+        LetSuchThatExprInfo info;
+        {
+          var FVs = new HashSet<IVariable>();
+          bool usesHeap = false, usesOldHeap = false;
+          var FVsHeapAt = new HashSet<Label>();
+          Type usesThis = null;
+          FreeVariablesUtil.ComputeFreeVariables(options, e.RHSs[0], FVs, ref usesHeap, ref usesOldHeap, FVsHeapAt, ref usesThis, false);
+          var FTVs = new HashSet<TypeParameter>();
           foreach (var bv in e.BoundVars) {
-            Bpl.Variable resType = new Bpl.Formal(bv.tok, new Bpl.TypedIdent(bv.tok, Bpl.TypedIdent.NoName, TrType(bv.Type)), false);
-            Bpl.Expr ante;
-            List<Variable> formals = info.GAsVars(this, true, out ante, null);
-            var fn = new Bpl.Function(bv.tok, info.SkolemFunctionName(bv), formals, resType);
-
-            if (InsertChecksums) {
-              InsertChecksum(e.Body, fn);
-            }
-
-            sink.AddTopLevelDeclaration(fn);
+            FVs.Remove(bv);
+            ComputeFreeTypeVariables(bv.Type, FTVs);
           }
-          var canCallFunction = AddLetSuchThatCanCallFunction(e, info);
-          AddLetSuchThenCanCallAxiom(e, info, canCallFunction);
+          ComputeFreeTypeVariables(e.RHSs[0], FTVs);
+          info = new LetSuchThatExprInfo(e.tok, letSuchThatExprInfo.Count, FVs.ToList(), FTVs.ToList(), usesHeap, usesOldHeap, FVsHeapAt, usesThis, currentDeclaration);
+          letSuchThatExprInfo.Add(e, info);
+        }
 
-          // now that we've declared the functions and axioms, let's prepare the let-such-that desugaring
-          {
-            var etran = new ExpressionTranslator(this, predef, e.tok);
-            var rhss = new List<Expression>();
-            foreach (var bv in e.BoundVars) {
-              var args = info.SkolemFunctionArgs(bv, this, etran);
-              var rhs = new BoogieFunctionCall(bv.tok, info.SkolemFunctionName(bv), info.UsesHeap, info.UsesOldHeap, info.UsesHeapAt, args.Item1, args.Item2);
-              rhs.Type = bv.Type;
-              rhss.Add(rhs);
-            }
-            var expr = new LetExpr(e.tok, e.LHSs, rhss, e.Body, true);
-            expr.Type = e.Type; // resolve here
-            e.SetTranslationDesugaring(this, expr);
+        foreach (var bv in e.BoundVars) {
+          Bpl.Variable resType = new Bpl.Formal(bv.tok, new Bpl.TypedIdent(bv.tok, Bpl.TypedIdent.NoName, TrType(bv.Type)), false);
+          Bpl.Expr ante;
+          List<Variable> formals = info.GAsVars(this, true, out ante, null);
+          var fn = new Bpl.Function(bv.tok, info.SkolemFunctionName(bv), formals, resType);
+
+          if (InsertChecksums) {
+            InsertChecksum(e.Body, fn);
           }
+
+          sink.AddTopLevelDeclaration(fn);
+        }
+        var canCallFunction = AddLetSuchThatCanCallFunction(e, info);
+        AddLetSuchThenCanCallAxiom(e, info, canCallFunction);
+
+        // now that we've declared the functions and axioms, let's prepare the let-such-that desugaring
+        {
+          var etran = new ExpressionTranslator(this, predef, e.tok);
+          var rhss = new List<Expression>();
+          foreach (var bv in e.BoundVars) {
+            var args = info.SkolemFunctionArgs(bv, this, etran);
+            var rhs = new BoogieFunctionCall(bv.tok, info.SkolemFunctionName(bv), info.UsesHeap, info.UsesOldHeap, info.UsesHeapAt, args.Item1, args.Item2);
+            rhs.Type = bv.Type;
+            rhss.Add(rhs);
+          }
+          var expr = new LetExpr(e.tok, e.LHSs, rhss, e.Body, true);
+          expr.Type = e.Type; // resolve here
+          desugaredLets[e] = expr;
         }
       }
-      return e.GetTranslationDesugaring(this);
+
+      return desugaredLets.GetValueOrDefault(e);
     }
 
     private Bpl.Function AddLetSuchThatCanCallFunction(LetExpr e, LetSuchThatExprInfo info) {

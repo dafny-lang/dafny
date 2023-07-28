@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 
@@ -25,7 +26,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    private Dictionary<VisibilityScope, Tuple<int, bool>> cached = new();
+    private ConcurrentDictionary<VisibilityScope, Tuple<int, bool>> cached = new();
 
     // By convention, the "null" scope sees all
     public bool VisibleInScope(VisibilityScope other) {
