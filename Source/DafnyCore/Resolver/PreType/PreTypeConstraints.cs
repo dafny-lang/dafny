@@ -44,22 +44,22 @@ namespace Microsoft.Dafny {
       }
       bool anythingChanged;
       do {
-        if (makeDecisions) {
-          if (TryResolveTypeProxiesUsingKnownBounds(true)) {
-            // something changed, so do another round of Apply... calls below
-          } else if (TryResolveTypeProxiesUsingKnownBounds(false)) {
-            // something changed, so do another round of Apply... calls below
-          } else if (TryApplyDefaultAdvice()) {
-            // something changed, so do another round of Apply... calls below
-          } else {
-            return;
-          }
-        }
-        anythingChanged = false;
+        anythingChanged = makeDecisions && TryMakeDecisions();
         anythingChanged |= ApplySubtypeConstraints();
         anythingChanged |= ApplyEqualityConstraints();
         anythingChanged |= ApplyGuardedConstraints();
       } while (anythingChanged);
+    }
+
+    private bool TryMakeDecisions() {
+      if (TryResolveTypeProxiesUsingKnownBounds(true)) {
+        return true;
+      } else if (TryResolveTypeProxiesUsingKnownBounds(false)) {
+        return true;
+      } else if (TryApplyDefaultAdvice()) {
+        return true;
+      }
+      return false;
     }
 
     public void SolveAllTypeConstraints(string printableContext) {
