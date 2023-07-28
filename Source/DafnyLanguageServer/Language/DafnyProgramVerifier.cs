@@ -21,8 +21,10 @@ namespace Microsoft.Dafny.LanguageServer.Language {
   /// </remarks>
   public class DafnyProgramVerifier : IProgramVerifier {
     private readonly SemaphoreSlim mutex = new(1);
+    private readonly ITelemetryPublisher telemetryPublisher;
 
-    public DafnyProgramVerifier(ILogger<DafnyProgramVerifier> logger) {
+    public DafnyProgramVerifier(ILogger<DafnyProgramVerifier> logger, ITelemetryPublisher telemetryPublisher) {
+      this.telemetryPublisher = telemetryPublisher;
     }
 
     public async Task<IReadOnlyList<IImplementationTask>> GetVerificationTasksAsync(
@@ -46,6 +48,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         var tasks = verifiableModules.Select(async outerModule => {
           var boogieProgram = await DafnyMain.LargeStackFactory.StartNew(
             () => {
+              var start = DateTime.Now;
               Type.ResetScopes();
 
               var translator = new Translator(program.Reporter, flags);
@@ -61,12 +64,19 @@ namespace Microsoft.Dafny.LanguageServer.Language {
                   engine.Options.PrettyPrint);
               }
 
+              telemetryPublisher.PublishTime("TranslateToBoogie", outerModule.Name, DateTime.Now - start);
               return boogieProgram;
             }, cancellationToken);
 
           cancellationToken.ThrowIfCancellationRequested();
-          return await Task.Run(() => engine.GetImplementationTasks(boogieProgram), cancellationToken);
-        });
+          var result = await Task.Run(() => {
+            var start = DateTime.Now;
+            var implementationTasks = engine.GetImplementationTasks(boogieProgram);
+            telemetryPublisher.PublishTime("ResolveBoogie", outerModule.Name, DateTime.Now - start);
+            return implementationTasks;
+          }, cancellationToken);
+          return result;
+        }).ToList();
 
         var tasksPerModule = await Task.WhenAll(tasks);
         return tasksPerModule.SelectMany(x => x).ToList();

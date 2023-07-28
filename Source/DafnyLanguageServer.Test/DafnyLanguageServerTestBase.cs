@@ -95,9 +95,7 @@ lemma {:neverVerify} HasNeverVerifyAttribute(p: nat, q: nat)
         options.ConfigureLogging(SetupTestLogging);
         options.WithDafnyLanguageServer(() => { });
         options.Services.AddSingleton(dafnyOptions);
-        options.Services.AddSingleton<IProgramVerifier>(serviceProvider => new SlowVerifier(
-          serviceProvider.GetRequiredService<ILogger<DafnyProgramVerifier>>()
-        ));
+        options.Services.AddSingleton<IProgramVerifier, SlowVerifier>();
         ServerOptionsAction(options);
       };
     }

@@ -40,7 +40,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
             serviceProvider.GetRequiredService<ITextDocumentLoader>(),
             compilation))
         .AddSingleton<IVerificationProgressReporter, VerificationProgressReporter>()
-        .AddSingleton(CreateVerifier)
+        .AddSingleton<IProgramVerifier, DafnyProgramVerifier>()
         .AddSingleton<CreateCompilationManager>(serviceProvider => (options, engine, compilation, migratedVerificationTree) => new CompilationManager(
           serviceProvider.GetRequiredService<ILogger<CompilationManager>>(),
           serviceProvider.GetRequiredService<ITextDocumentLoader>(),
@@ -52,12 +52,6 @@ namespace Microsoft.Dafny.LanguageServer.Language {
           ))
         .AddSingleton<ISymbolTableFactory, SymbolTableFactory>()
         .AddSingleton<IGhostStateDiagnosticCollector, GhostStateDiagnosticCollector>();
-    }
-
-    private static IProgramVerifier CreateVerifier(IServiceProvider serviceProvider) {
-      return new DafnyProgramVerifier(
-        serviceProvider.GetRequiredService<ILogger<DafnyProgramVerifier>>()
-      );
     }
   }
 }
