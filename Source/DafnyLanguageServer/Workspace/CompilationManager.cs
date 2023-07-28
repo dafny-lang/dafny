@@ -172,14 +172,18 @@ public class CompilationManager {
         logger.LogCritical($"Two different implementation tasks have the same id, second name is {task.Implementation.Name}.");
       }
     }
+    
+    // Obtain additional diagnostics from the translation
+    var errorReporter = (DiagnosticErrorReporter)loaded.Program.Reporter;
 
     var translated = new CompilationAfterTranslation(
       loaded,
-      loaded.ResolutionDiagnostics, verificationTasks,
+      errorReporter.AllDiagnosticsCopy,
+      verificationTasks,
       new(),
       initialViews,
       migratedVerificationTree ?? (loaded.Project.IsImplicitProject ? new DocumentVerificationTree(loaded.Program, loaded.Project.Uri) : null)
-      );
+    );
 
     verificationProgressReporter.RecomputeVerificationTree(translated);
 
