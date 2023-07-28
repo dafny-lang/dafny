@@ -48,6 +48,6 @@ public class NonNullTypeDecl : SubsetTypeDecl, ISymbol {
   public DafnySymbolKind Kind => Class.Kind;
 
   public string GetHoverText(DafnyOptions options) {
-    return Class.GetHoverText(options); // TODO add the ? somewhere?
+    return Class.GetHoverText(options);
   }
 }
