@@ -39,13 +39,13 @@ else
   output="GeneratedFromDafny"
 fi
 
-../../Scripts/dafny translate cs --no-verify=$noVerify  --output $output.cs AST/Formatting.dfy Verifier/AlcorEngine.dfy
+../../Scripts/dafny translate cs --no-verify=$noVerify --output $output.cs GeneratedFromDafny.dfy
 ../../Scripts/dafny translate cs --no-verify=$noVerify --output "${output}Rust.cs" Compilers/Rust/Dafny-compiler-rust.dfy
 python -c "
 import re
 with open ('$output.cs', 'r' ) as f:
   content = f.read()
-  content_new = re.sub('\\[assembly[\\s\\S]*?(?=namespace Formatting)|namespace\\s+\\w+\\s*\\{\\s*\\}\\s*//.*|_\\d_', '', content, flags = re.M)
+  content_new = re.sub('\\[assembly[\\s\\S]*?(?=namespace Formatting|namespace Wrappers|namespace EnsureNoRemoval)|namespace\\s+\\w+\\s*\\{\\s*\\}\\s*//.*|_\\d_', '', content, flags = re.M)
 with open('$output.cs', 'w') as w:
   w.write(content_new)
 

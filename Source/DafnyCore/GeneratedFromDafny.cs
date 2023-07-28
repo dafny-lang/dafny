@@ -1,4 +1,4 @@
-// Dafny program the_program compiled into C#
+// Dafny program GeneratedFromDafny.dfy compiled into C#
 // To recompile, you will need the libraries
 //     System.Runtime.Numerics.dll System.Collections.Immutable.dll
 // but the 'dotnet' tool in net6.0 should pick those up automatically.
@@ -8,42 +8,6 @@
 using System;
 using System.Numerics;
 using System.Collections;
-namespace Formatting {
-
-  public partial class __default {
-    public static System.String ReindentProgramFromFirstToken(Microsoft.Dafny.IToken firstToken, Formatting.IIndentationFormatter reindent) {
-      System.String s = default(System.String);
-      Microsoft.Dafny.IToken token;
-      token = firstToken;
-      System.Text.StringBuilder sb;
-      System.Text.StringBuilder _nw0 = new System.Text.StringBuilder();
-      sb = _nw0;
-      while ((token) != (object)((Microsoft.Dafny.IToken)null)) {
-        System.String newLeadingTrivia;
-        newLeadingTrivia = (reindent).GetNewLeadingTrivia(token);
-        System.String newTrailingTrivia;
-        newTrailingTrivia = (reindent).GetNewTrailingTrivia(token);
-        (sb).Append(newLeadingTrivia);
-        (sb).Append(token.val);
-        (sb).Append(newTrailingTrivia);
-        token = token.Next;
-      }
-      System.String _out0;
-      _out0 = (sb).ToString().ToString();
-      s = _out0;
-      return s;
-    }
-  }
-
-  public interface IIndentationFormatter {
-    System.String GetNewLeadingTrivia(Microsoft.Dafny.IToken token);
-    System.String GetNewTrailingTrivia(Microsoft.Dafny.IToken token);
-  }
-  public class _Companion_IIndentationFormatter {
-  }
-} // end of namespace Formatting
-
-
 namespace Wrappers {
 
   public partial class __default {
@@ -777,49 +741,49 @@ namespace Alcor {
     public static Wrappers._IResult<Alcor._IProofValue> ExecuteProof(Alcor._IProofProgram program, Alcor._IEnvironment environment) {
       Alcor._IProofProgram _source0 = program;
       if (_source0.is_ProofVar) {
-        Dafny.ISequence<Dafny.Rune> _10___mcc_h0 = _source0.dtor_name;
-        Dafny.ISequence<Dafny.Rune> _11_name = _10___mcc_h0;
-        return (environment).Lookup(_11_name);
+        Dafny.ISequence<Dafny.Rune> __mcc_h0 = _source0.dtor_name;
+        Dafny.ISequence<Dafny.Rune> name = __mcc_h0;
+        return (environment).Lookup(name);
       } else if (_source0.is_ProofExpr) {
-        AlcorProofKernel._IExpr _12___mcc_h1 = _source0.dtor_expr;
-        AlcorProofKernel._IExpr _13_expr = _12___mcc_h1;
-        return Wrappers.Result<Alcor._IProofValue>.create_Success(Alcor.ProofValue.create_OneExpr(_13_expr));
+        AlcorProofKernel._IExpr __mcc_h1 = _source0.dtor_expr;
+        AlcorProofKernel._IExpr expr = __mcc_h1;
+        return Wrappers.Result<Alcor._IProofValue>.create_Success(Alcor.ProofValue.create_OneExpr(expr));
       } else if (_source0.is_ProofAbs) {
-        Dafny.ISequence<Dafny.Rune> _14___mcc_h2 = _source0.dtor_name;
-        Alcor._IType _15___mcc_h3 = _source0.dtor_tpe;
-        Alcor._IProofProgram _16___mcc_h4 = _source0.dtor_body;
-        Alcor._IProofProgram _17_body = _16___mcc_h4;
-        Alcor._IType _18_tpe = _15___mcc_h3;
-        Dafny.ISequence<Dafny.Rune> _19_name = _14___mcc_h2;
-        return Wrappers.Result<Alcor._IProofValue>.create_Success(Alcor.ProofValue.create_OneClosure(_19_name, _18_tpe, _17_body, environment));
+        Dafny.ISequence<Dafny.Rune> _10___mcc_h2 = _source0.dtor_name;
+        Alcor._IType _11___mcc_h3 = _source0.dtor_tpe;
+        Alcor._IProofProgram _12___mcc_h4 = _source0.dtor_body;
+        Alcor._IProofProgram _13_body = _12___mcc_h4;
+        Alcor._IType _14_tpe = _11___mcc_h3;
+        Dafny.ISequence<Dafny.Rune> _15_name = _10___mcc_h2;
+        return Wrappers.Result<Alcor._IProofValue>.create_Success(Alcor.ProofValue.create_OneClosure(_15_name, _14_tpe, _13_body, environment));
       } else if (_source0.is_ProofApp) {
-        Alcor._IProofProgram _20___mcc_h5 = _source0.dtor_left;
-        Alcor._IProofProgram _21___mcc_h6 = _source0.dtor_right;
-        Alcor._IProofProgram _22_right = _21___mcc_h6;
-        Alcor._IProofProgram _23_left = _20___mcc_h5;
-        Wrappers._IResult<Alcor._IProofValue> _24_valueOrError0 = Alcor.__default.ExecuteProof(_23_left, environment);
-        if ((_24_valueOrError0).IsFailure()) {
-          return (_24_valueOrError0).PropagateFailure<Alcor._IProofValue>();
+        Alcor._IProofProgram _16___mcc_h5 = _source0.dtor_left;
+        Alcor._IProofProgram _17___mcc_h6 = _source0.dtor_right;
+        Alcor._IProofProgram _18_right = _17___mcc_h6;
+        Alcor._IProofProgram _19_left = _16___mcc_h5;
+        Wrappers._IResult<Alcor._IProofValue> _20_valueOrError0 = Alcor.__default.ExecuteProof(_19_left, environment);
+        if ((_20_valueOrError0).IsFailure()) {
+          return (_20_valueOrError0).PropagateFailure<Alcor._IProofValue>();
         } else {
-          Alcor._IProofValue _25_result = (_24_valueOrError0).Extract();
-          if ((_25_result).is_OneClosure) {
-            Wrappers._IResult<Alcor._IProofValue> _26_valueOrError1 = Alcor.__default.ExecuteProof(_22_right, environment);
-            if ((_26_valueOrError1).IsFailure()) {
-              return (_26_valueOrError1).PropagateFailure<Alcor._IProofValue>();
+          Alcor._IProofValue _21_result = (_20_valueOrError0).Extract();
+          if ((_21_result).is_OneClosure) {
+            Wrappers._IResult<Alcor._IProofValue> _22_valueOrError1 = Alcor.__default.ExecuteProof(_18_right, environment);
+            if ((_22_valueOrError1).IsFailure()) {
+              return (_22_valueOrError1).PropagateFailure<Alcor._IProofValue>();
             } else {
-              Alcor._IProofValue _27_argument = (_26_valueOrError1).Extract();
-              return Alcor.__default.ExecuteProof((_25_result).dtor_body, Alcor.Environment.create_EnvCons((_25_result).dtor_argName, _27_argument, (_25_result).dtor_environment));
+              Alcor._IProofValue _23_argument = (_22_valueOrError1).Extract();
+              return Alcor.__default.ExecuteProof((_21_result).dtor_body, Alcor.Environment.create_EnvCons((_21_result).dtor_argName, _23_argument, (_21_result).dtor_environment));
             }
-          } else if ((_25_result).is_OneClosureAxiom) {
-            Wrappers._IResult<Alcor._IProofValue> _28_valueOrError2 = Alcor.__default.ExecuteProof(_22_right, environment);
-            if ((_28_valueOrError2).IsFailure()) {
-              return (_28_valueOrError2).PropagateFailure<Alcor._IProofValue>();
+          } else if ((_21_result).is_OneClosureAxiom) {
+            Wrappers._IResult<Alcor._IProofValue> _24_valueOrError2 = Alcor.__default.ExecuteProof(_18_right, environment);
+            if ((_24_valueOrError2).IsFailure()) {
+              return (_24_valueOrError2).PropagateFailure<Alcor._IProofValue>();
             } else {
-              Alcor._IProofValue _29_argument = (_28_valueOrError2).Extract();
-              if ((((_25_result).dtor_axiom).Arity()) == ((new BigInteger(((_25_result).dtor_args).Count)) + (BigInteger.One))) {
-                return ((_25_result).dtor_axiom).ApplyArgs(Dafny.Sequence<Alcor._IProofValue>.Concat((_25_result).dtor_args, Dafny.Sequence<Alcor._IProofValue>.FromElements(_29_argument)), environment);
+              Alcor._IProofValue _25_argument = (_24_valueOrError2).Extract();
+              if ((((_21_result).dtor_axiom).Arity()) == ((new BigInteger(((_21_result).dtor_args).Count)) + (BigInteger.One))) {
+                return ((_21_result).dtor_axiom).ApplyArgs(Dafny.Sequence<Alcor._IProofValue>.Concat((_21_result).dtor_args, Dafny.Sequence<Alcor._IProofValue>.FromElements(_25_argument)), environment);
               } else {
-                return Wrappers.Result<Alcor._IProofValue>.create_Success(Alcor.ProofValue.create_OneClosureAxiom(Dafny.Sequence<Alcor._IProofValue>.Concat((_25_result).dtor_args, Dafny.Sequence<Alcor._IProofValue>.FromElements(_29_argument)), (_25_result).dtor_axiom));
+                return Wrappers.Result<Alcor._IProofValue>.create_Success(Alcor.ProofValue.create_OneClosureAxiom(Dafny.Sequence<Alcor._IProofValue>.Concat((_21_result).dtor_args, Dafny.Sequence<Alcor._IProofValue>.FromElements(_25_argument)), (_21_result).dtor_axiom));
               }
             }
           } else {
@@ -827,25 +791,25 @@ namespace Alcor {
           }
         }
       } else {
-        Alcor._IProofAxiom _30___mcc_h7 = _source0.dtor_axiom;
-        Alcor._IProofAxiom _31_axiom = _30___mcc_h7;
-        return Wrappers.Result<Alcor._IProofValue>.create_Success(Alcor.ProofValue.create_OneClosureAxiom(Dafny.Sequence<Alcor._IProofValue>.FromElements(), _31_axiom));
+        Alcor._IProofAxiom _26___mcc_h7 = _source0.dtor_axiom;
+        Alcor._IProofAxiom _27_axiom = _26___mcc_h7;
+        return Wrappers.Result<Alcor._IProofValue>.create_Success(Alcor.ProofValue.create_OneClosureAxiom(Dafny.Sequence<Alcor._IProofValue>.FromElements(), _27_axiom));
       }
     }
     public static Wrappers._IResult<AlcorProofKernel._IExpr> CheckProof(Alcor._IProofProgram program, Alcor._IEnvironment environment, AlcorProofKernel._IExpr expected) {
-      Wrappers._IResult<Alcor._IProofValue> _32_valueOrError0 = Alcor.__default.ExecuteProof(program, environment);
-      if ((_32_valueOrError0).IsFailure()) {
-        return (_32_valueOrError0).PropagateFailure<AlcorProofKernel._IExpr>();
+      Wrappers._IResult<Alcor._IProofValue> _28_valueOrError0 = Alcor.__default.ExecuteProof(program, environment);
+      if ((_28_valueOrError0).IsFailure()) {
+        return (_28_valueOrError0).PropagateFailure<AlcorProofKernel._IExpr>();
       } else {
-        Alcor._IProofValue _33_result = (_32_valueOrError0).Extract();
-        if (((_33_result).is_OneClosure) || ((_33_result).is_OneClosureAxiom)) {
+        Alcor._IProofValue _29_result = (_28_valueOrError0).Extract();
+        if (((_29_result).is_OneClosure) || ((_29_result).is_OneClosureAxiom)) {
           return Wrappers.Result<AlcorProofKernel._IExpr>.create_Failure(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Expected a proof of "), (expected)._ToString()), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(", got a closure proof")));
-        } else if ((_33_result).is_OneExpr) {
+        } else if ((_29_result).is_OneExpr) {
           return Wrappers.Result<AlcorProofKernel._IExpr>.create_Failure(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Expected a proof of "), (expected)._ToString()), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(", got a simple expression")));
-        } else if (!object.Equals(AlcorProofKernel.Proof.GetExpr((_33_result).dtor_proof), expected)) {
-          return Wrappers.Result<AlcorProofKernel._IExpr>.create_Failure(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Expected a proof of "), (expected)._ToString()), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" but got a proof of ")), (AlcorProofKernel.Proof.GetExpr((_33_result).dtor_proof))._ToString()));
+        } else if (!object.Equals(AlcorProofKernel.Proof.GetExpr((_29_result).dtor_proof), expected)) {
+          return Wrappers.Result<AlcorProofKernel._IExpr>.create_Failure(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Expected a proof of "), (expected)._ToString()), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" but got a proof of ")), (AlcorProofKernel.Proof.GetExpr((_29_result).dtor_proof))._ToString()));
         } else {
-          return Wrappers.Result<AlcorProofKernel._IExpr>.create_Success((_33_result).dtor_proof);
+          return Wrappers.Result<AlcorProofKernel._IExpr>.create_Success((_29_result).dtor_proof);
         }
       }
     }
@@ -853,121 +817,221 @@ namespace Alcor {
       if (!((pv).is_OneProof)) {
         return Wrappers.Result<_System._ITuple2<AlcorProofKernel._IExpr, Alcor._IProofProgram>>.create_Failure(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("DummyProofFinder did not generate a proof but "), (pv).Summary()));
       } else {
-        AlcorProofKernel._IExpr _34_p = (pv).dtor_proof;
-        if (object.Equals(AlcorProofKernel.Proof.GetExpr(_34_p), expr)) {
-          return Wrappers.Result<_System._ITuple2<AlcorProofKernel._IExpr, Alcor._IProofProgram>>.create_Success(_System.Tuple2<AlcorProofKernel._IExpr, Alcor._IProofProgram>.create(_34_p, pr));
+        AlcorProofKernel._IExpr _30_p = (pv).dtor_proof;
+        if (object.Equals(AlcorProofKernel.Proof.GetExpr(_30_p), expr)) {
+          return Wrappers.Result<_System._ITuple2<AlcorProofKernel._IExpr, Alcor._IProofProgram>>.create_Success(_System.Tuple2<AlcorProofKernel._IExpr, Alcor._IProofProgram>.create(_30_p, pr));
         } else {
-          return Wrappers.Result<_System._ITuple2<AlcorProofKernel._IExpr, Alcor._IProofProgram>>.create_Failure(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("DummyProofFinder was looking for a proof of "), (expr)._ToString()), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" but returned a proof of ")), (AlcorProofKernel.Proof.GetExpr(_34_p))._ToString()));
+          return Wrappers.Result<_System._ITuple2<AlcorProofKernel._IExpr, Alcor._IProofProgram>>.create_Failure(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("DummyProofFinder was looking for a proof of "), (expr)._ToString()), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" but returned a proof of ")), (AlcorProofKernel.Proof.GetExpr(_30_p))._ToString()));
         }
       }
     }
+    public static Wrappers._IResult<_System._ITuple2<AlcorProofKernel._IExpr, Alcor._IProofProgram>> AndProofFinder(AlcorProofKernel._IExpr expr) {
+      Wrappers._IResult<_System._ITuple2<AlcorProofKernel._IExpr, Alcor._IProofProgram>> result = Wrappers.Result<_System._ITuple2<AlcorProofKernel._IExpr, Alcor._IProofProgram>>.Default();
+      if (!(((expr).dtor_left).is_And)) {
+        result = Alcor.__default.CantApplyAndProofFinder;
+        return result;
+      }
+      AlcorProofKernel._IExpr _31_goal;
+      _31_goal = (expr).dtor_right;
+      AlcorProofKernel._IExpr _32_env;
+      _32_env = (expr).dtor_left;
+      AlcorProofKernel._IExpr _33_A0;
+      _33_A0 = (_32_env).dtor_left;
+      AlcorProofKernel._IExpr _34_tail;
+      _34_tail = (_32_env).dtor_right;
+      if ((_33_A0).is_And) {
+        if (object.Equals((_33_A0).dtor_left, _31_goal)) {
+          Alcor._IProofProgram _35_proofProgram;
+          _35_proofProgram = (Alcor.ProofAxiom.create_ImpIntro()).apply2(Alcor.ProofProgram.create_ProofExpr(_32_env), Alcor.ProofProgram.create_ProofAbs(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("env"), Alcor.Type.create_Ind(), (Alcor.ProofAxiom.create_AndElimLeft()).apply1((Alcor.ProofAxiom.create_AndElimLeft()).apply1(Alcor.ProofProgram.create_ProofVar(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("env"))))));
+          Alcor._IProofValue _36_r;
+          Wrappers._IResult<Alcor._IProofValue> _37_valueOrError0 = Wrappers.Result<Alcor._IProofValue>.Default();
+          _37_valueOrError0 = Alcor.__default.ExecuteProof(_35_proofProgram, Alcor.Environment.create_EnvNil());
+          if ((_37_valueOrError0).IsFailure()) {
+            result = (_37_valueOrError0).PropagateFailure<_System._ITuple2<AlcorProofKernel._IExpr, Alcor._IProofProgram>>();
+            return result;
+          }
+          _36_r = (_37_valueOrError0).Extract();
+          result = Alcor.__default.checkGoalAgainstExpr(_36_r, expr, _35_proofProgram);
+          return result;
+        }
+        if (object.Equals((_33_A0).dtor_right, _31_goal)) {
+          Alcor._IProofProgram _38_proofProgram;
+          _38_proofProgram = (Alcor.ProofAxiom.create_ImpIntro()).apply2(Alcor.ProofProgram.create_ProofExpr(_32_env), Alcor.ProofProgram.create_ProofAbs(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("env"), Alcor.Type.create_Ind(), (Alcor.ProofAxiom.create_AndElimRight()).apply1((Alcor.ProofAxiom.create_AndElimLeft()).apply1(Alcor.ProofProgram.create_ProofVar(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("env"))))));
+          Alcor._IProofValue _39_r;
+          Wrappers._IResult<Alcor._IProofValue> _40_valueOrError1 = Wrappers.Result<Alcor._IProofValue>.Default();
+          _40_valueOrError1 = Alcor.__default.ExecuteProof(_38_proofProgram, Alcor.Environment.create_EnvNil());
+          if ((_40_valueOrError1).IsFailure()) {
+            result = (_40_valueOrError1).PropagateFailure<_System._ITuple2<AlcorProofKernel._IExpr, Alcor._IProofProgram>>();
+            return result;
+          }
+          _39_r = (_40_valueOrError1).Extract();
+          result = Alcor.__default.checkGoalAgainstExpr(_39_r, expr, _38_proofProgram);
+          return result;
+        }
+      }
+      result = Alcor.__default.CantApplyAndProofFinder;
+      return result;
+      return result;
+    }
+    public static Wrappers._IResult<_System._ITuple2<AlcorProofKernel._IExpr, Alcor._IProofProgram>> LookupProofFinder(AlcorProofKernel._IExpr expr) {
+      Wrappers._IResult<_System._ITuple2<AlcorProofKernel._IExpr, Alcor._IProofProgram>> result = Wrappers.Result<_System._ITuple2<AlcorProofKernel._IExpr, Alcor._IProofProgram>>.Default();
+      AlcorProofKernel._IExpr _41_goal;
+      _41_goal = (expr).dtor_right;
+      AlcorProofKernel._IExpr _42_env;
+      _42_env = (expr).dtor_left;
+      AlcorProofKernel._IExpr _43_envSearch;
+      _43_envSearch = _42_env;
+      BigInteger _44_i;
+      _44_i = BigInteger.Zero;
+      while (((_43_envSearch).is_And) && (!object.Equals((_43_envSearch).dtor_left, _41_goal))) {
+        _43_envSearch = (_43_envSearch).dtor_right;
+        _44_i = (_44_i) + (BigInteger.One);
+      }
+      if (((_43_envSearch).is_And) && (object.Equals((_43_envSearch).dtor_left, _41_goal))) {
+        Alcor._IProofProgram _45_proofElem;
+        _45_proofElem = Alcor.ProofProgram.create_ProofVar(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("env"));
+        while ((_44_i).Sign != 0) {
+          _45_proofElem = Alcor.ProofProgram.create_ProofApp(Alcor.ProofProgram.create_ProofAxiom(Alcor.ProofAxiom.create_AndElimRight()), _45_proofElem);
+          _44_i = (_44_i) - (BigInteger.One);
+        }
+        Alcor._IProofProgram _46_proofProgram;
+        _46_proofProgram = (Alcor.ProofAxiom.create_ImpIntro()).apply2(Alcor.ProofProgram.create_ProofExpr(_42_env), Alcor.ProofProgram.create_ProofAbs(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("env"), Alcor.Type.create_Ind(), Alcor.ProofProgram.create_ProofApp(Alcor.ProofProgram.create_ProofAxiom(Alcor.ProofAxiom.create_AndElimLeft()), _45_proofElem)));
+        Alcor._IProofValue _47_r;
+        Wrappers._IResult<Alcor._IProofValue> _48_valueOrError0 = Wrappers.Result<Alcor._IProofValue>.Default();
+        _48_valueOrError0 = Alcor.__default.ExecuteProof(_46_proofProgram, Alcor.Environment.create_EnvNil());
+        if ((_48_valueOrError0).IsFailure()) {
+          result = (_48_valueOrError0).PropagateFailure<_System._ITuple2<AlcorProofKernel._IExpr, Alcor._IProofProgram>>();
+          return result;
+        }
+        _47_r = (_48_valueOrError0).Extract();
+        result = Alcor.__default.checkGoalAgainstExpr(_47_r, expr, _46_proofProgram);
+        return result;
+      }
+      result = Wrappers.Result<_System._ITuple2<AlcorProofKernel._IExpr, Alcor._IProofProgram>>.create_Failure(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Could not apply LookupProofFinder"));
+      return result;
+      return result;
+    }
+    public static Wrappers._IResult<_System._ITuple2<AlcorProofKernel._IExpr, Alcor._IProofProgram>> ModusPonensFinder(AlcorProofKernel._IExpr expr) {
+      Wrappers._IResult<_System._ITuple2<AlcorProofKernel._IExpr, Alcor._IProofProgram>> result = Wrappers.Result<_System._ITuple2<AlcorProofKernel._IExpr, Alcor._IProofProgram>>.Default();
+      AlcorProofKernel._IExpr _49_goal;
+      _49_goal = (expr).dtor_right;
+      AlcorProofKernel._IExpr _50_env;
+      _50_env = (expr).dtor_left;
+      if (!((_50_env).is_And)) {
+        result = Alcor.__default.CantApplyModusPonensFinder;
+        return result;
+      }
+      AlcorProofKernel._IExpr _51_A0;
+      _51_A0 = (_50_env).dtor_left;
+      AlcorProofKernel._IExpr _52_tail;
+      _52_tail = (_50_env).dtor_right;
+      if (!((_52_tail).is_And)) {
+        result = Alcor.__default.CantApplyModusPonensFinder;
+        return result;
+      }
+      AlcorProofKernel._IExpr _53_A1;
+      _53_A1 = (_52_tail).dtor_left;
+      if ((((_51_A0).is_Imp) && (object.Equals((_51_A0).dtor_right, _49_goal))) && (object.Equals(_53_A1, (_51_A0).dtor_left))) {
+        Alcor._IProofProgram _54_proofProgram;
+        _54_proofProgram = (Alcor.ProofAxiom.create_ImpIntro()).apply2(Alcor.ProofProgram.create_ProofExpr(_50_env), Alcor.ProofProgram.create_ProofAbs(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("env"), Alcor.Type.create_Ind(), Alcor.__default.Let(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("AtoB"), Alcor.Type.create_Ind(), (Alcor.ProofAxiom.create_AndElimLeft()).apply1(Alcor.ProofProgram.create_ProofVar(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("env"))), Alcor.__default.Let(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("A"), Alcor.Type.create_Ind(), (Alcor.ProofAxiom.create_AndElimLeft()).apply1((Alcor.ProofAxiom.create_AndElimRight()).apply1(Alcor.ProofProgram.create_ProofVar(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("env")))), (Alcor.ProofAxiom.create_ImpElim()).apply2(Alcor.ProofProgram.create_ProofVar(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("AtoB")), Alcor.ProofProgram.create_ProofVar(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("A")))))));
+        Alcor._IProofValue _55_r;
+        Wrappers._IResult<Alcor._IProofValue> _56_valueOrError0 = Wrappers.Result<Alcor._IProofValue>.Default();
+        _56_valueOrError0 = Alcor.__default.ExecuteProof(_54_proofProgram, Alcor.Environment.create_EnvNil());
+        if ((_56_valueOrError0).IsFailure()) {
+          result = (_56_valueOrError0).PropagateFailure<_System._ITuple2<AlcorProofKernel._IExpr, Alcor._IProofProgram>>();
+          return result;
+        }
+        _55_r = (_56_valueOrError0).Extract();
+        result = Alcor.__default.checkGoalAgainstExpr(_55_r, expr, _54_proofProgram);
+        return result;
+      }
+      if ((((_53_A1).is_Imp) && (object.Equals((_53_A1).dtor_right, _49_goal))) && (object.Equals(_51_A0, (_53_A1).dtor_left))) {
+        Alcor._IProofProgram _57_proofProgram;
+        _57_proofProgram = (Alcor.ProofAxiom.create_ImpIntro()).apply2(Alcor.ProofProgram.create_ProofExpr(_50_env), Alcor.ProofProgram.create_ProofAbs(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("env"), Alcor.Type.create_Ind(), Alcor.__default.Let(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("A"), Alcor.Type.create_Ind(), (Alcor.ProofAxiom.create_AndElimLeft()).apply1(Alcor.ProofProgram.create_ProofVar(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("env"))), Alcor.__default.Let(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("AtoB"), Alcor.Type.create_Ind(), (Alcor.ProofAxiom.create_AndElimLeft()).apply1((Alcor.ProofAxiom.create_AndElimRight()).apply1(Alcor.ProofProgram.create_ProofVar(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("env")))), (Alcor.ProofAxiom.create_ImpElim()).apply2(Alcor.ProofProgram.create_ProofVar(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("AtoB")), Alcor.ProofProgram.create_ProofVar(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("A")))))));
+        Alcor._IProofValue _58_r;
+        Wrappers._IResult<Alcor._IProofValue> _59_valueOrError1 = Wrappers.Result<Alcor._IProofValue>.Default();
+        _59_valueOrError1 = Alcor.__default.ExecuteProof(_57_proofProgram, Alcor.Environment.create_EnvNil());
+        if ((_59_valueOrError1).IsFailure()) {
+          result = (_59_valueOrError1).PropagateFailure<_System._ITuple2<AlcorProofKernel._IExpr, Alcor._IProofProgram>>();
+          return result;
+        }
+        _58_r = (_59_valueOrError1).Extract();
+        result = Alcor.__default.checkGoalAgainstExpr(_58_r, expr, _57_proofProgram);
+        return result;
+      }
+      result = Alcor.__default.CantApplyModusPonensFinder;
+      return result;
+      return result;
+    }
     public static Wrappers._IResult<_System._ITuple2<AlcorProofKernel._IExpr, Alcor._IProofProgram>> DummyProofFinder(AlcorProofKernel._IExpr expr) {
       Wrappers._IResult<_System._ITuple2<AlcorProofKernel._IExpr, Alcor._IProofProgram>> result = Wrappers.Result<_System._ITuple2<AlcorProofKernel._IExpr, Alcor._IProofProgram>>.Default();
-      Func<Alcor._IProofValue, Alcor._IProofProgram, Wrappers._IResult<_System._ITuple2<AlcorProofKernel._IExpr, Alcor._IProofProgram>>> _35_checkGoal;
-      _35_checkGoal = Dafny.Helpers.Id<Func<AlcorProofKernel._IExpr, Func<Alcor._IProofValue, Alcor._IProofProgram, Wrappers._IResult<_System._ITuple2<AlcorProofKernel._IExpr, Alcor._IProofProgram>>>>>((_36_expr) => ((System.Func<Alcor._IProofValue, Alcor._IProofProgram, Wrappers._IResult<_System._ITuple2<AlcorProofKernel._IExpr, Alcor._IProofProgram>>>)((_37_pv, _38_pr) => {
-        return Alcor.__default.checkGoalAgainstExpr(_37_pv, _36_expr, _38_pr);
+      Func<Alcor._IProofValue, Alcor._IProofProgram, Wrappers._IResult<_System._ITuple2<AlcorProofKernel._IExpr, Alcor._IProofProgram>>> _60_checkGoal;
+      _60_checkGoal = Dafny.Helpers.Id<Func<AlcorProofKernel._IExpr, Func<Alcor._IProofValue, Alcor._IProofProgram, Wrappers._IResult<_System._ITuple2<AlcorProofKernel._IExpr, Alcor._IProofProgram>>>>>((_61_expr) => ((System.Func<Alcor._IProofValue, Alcor._IProofProgram, Wrappers._IResult<_System._ITuple2<AlcorProofKernel._IExpr, Alcor._IProofProgram>>>)((_62_pv, _63_pr) => {
+        return Alcor.__default.checkGoalAgainstExpr(_62_pv, _61_expr, _63_pr);
       })))(expr);
       if (!((expr).is_Imp)) {
-        result = Wrappers.Result<_System._ITuple2<AlcorProofKernel._IExpr, Alcor._IProofProgram>>.create_Failure(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("ProofFinder requires an implication"));
+        result = Wrappers.Result<_System._ITuple2<AlcorProofKernel._IExpr, Alcor._IProofProgram>>.create_Failure(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Alcor requires an implication"));
         return result;
       }
-      AlcorProofKernel._IExpr _39_goal;
-      _39_goal = (expr).dtor_right;
-      AlcorProofKernel._IExpr _40_env;
-      _40_env = (expr).dtor_left;
-      if ((_39_goal).is_Imp) {
-        Wrappers._IResult<_System._ITuple2<AlcorProofKernel._IExpr, Alcor._IProofProgram>> _41_proofOfConclusion;
-        Wrappers._IResult<_System._ITuple2<AlcorProofKernel._IExpr, Alcor._IProofProgram>> _out1;
-        _out1 = Alcor.__default.DummyProofFinder(AlcorProofKernel.Expr.create_Imp(AlcorProofKernel.Expr.create_And((_39_goal).dtor_left, _40_env), (_39_goal).dtor_right));
-        _41_proofOfConclusion = _out1;
-        if ((_41_proofOfConclusion).is_Success) {
-          Alcor._IEnvironment _42_execEnv;
-          _42_execEnv = Alcor.Environment.create_EnvCons(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("a_x_imp_b"), Alcor.ProofValue.create_OneProof(((_41_proofOfConclusion).dtor_value).dtor__0), Alcor.Environment.create_EnvNil());
-          Alcor._IProofProgram _43_proofProgramInner;
-          _43_proofProgramInner = (Alcor.ProofAxiom.create_ImpIntro()).apply2(Alcor.ProofProgram.create_ProofExpr(_40_env), Alcor.ProofProgram.create_ProofAbs(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("env"), Alcor.Type.create_Ind(), (Alcor.ProofAxiom.create_ImpIntro()).apply2(Alcor.ProofProgram.create_ProofExpr((_39_goal).dtor_left), Alcor.ProofProgram.create_ProofAbs(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("proofOfA"), Alcor.Type.create_Ind(), (Alcor.ProofAxiom.create_ImpElim()).apply2(Alcor.ProofProgram.create_ProofVar(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("a_x_imp_b")), (Alcor.ProofAxiom.create_AndIntro()).apply2(Alcor.ProofProgram.create_ProofVar(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("proofOfA")), Alcor.ProofProgram.create_ProofVar(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("env"))))))));
-          Alcor._IProofValue _44_r;
-          Wrappers._IResult<Alcor._IProofValue> _45_valueOrError0 = Wrappers.Result<Alcor._IProofValue>.Default();
-          _45_valueOrError0 = Alcor.__default.ExecuteProof(_43_proofProgramInner, _42_execEnv);
-          if ((_45_valueOrError0).IsFailure()) {
-            result = (_45_valueOrError0).PropagateFailure<_System._ITuple2<AlcorProofKernel._IExpr, Alcor._IProofProgram>>();
+      AlcorProofKernel._IExpr _64_goal;
+      _64_goal = (expr).dtor_right;
+      AlcorProofKernel._IExpr _65_env;
+      _65_env = (expr).dtor_left;
+      if ((_64_goal).is_Imp) {
+        Wrappers._IResult<_System._ITuple2<AlcorProofKernel._IExpr, Alcor._IProofProgram>> _66_proofOfConclusion;
+        Wrappers._IResult<_System._ITuple2<AlcorProofKernel._IExpr, Alcor._IProofProgram>> _out0;
+        _out0 = Alcor.__default.DummyProofFinder(AlcorProofKernel.Expr.create_Imp(AlcorProofKernel.Expr.create_And((_64_goal).dtor_left, _65_env), (_64_goal).dtor_right));
+        _66_proofOfConclusion = _out0;
+        if ((_66_proofOfConclusion).is_Success) {
+          Alcor._IEnvironment _67_execEnv;
+          _67_execEnv = Alcor.Environment.create_EnvCons(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("a_x_imp_b"), Alcor.ProofValue.create_OneProof(((_66_proofOfConclusion).dtor_value).dtor__0), Alcor.Environment.create_EnvNil());
+          Alcor._IProofProgram _68_proofProgramInner;
+          _68_proofProgramInner = (Alcor.ProofAxiom.create_ImpIntro()).apply2(Alcor.ProofProgram.create_ProofExpr(_65_env), Alcor.ProofProgram.create_ProofAbs(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("env"), Alcor.Type.create_Ind(), (Alcor.ProofAxiom.create_ImpIntro()).apply2(Alcor.ProofProgram.create_ProofExpr((_64_goal).dtor_left), Alcor.ProofProgram.create_ProofAbs(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("proofOfA"), Alcor.Type.create_Ind(), (Alcor.ProofAxiom.create_ImpElim()).apply2(Alcor.ProofProgram.create_ProofVar(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("a_x_imp_b")), (Alcor.ProofAxiom.create_AndIntro()).apply2(Alcor.ProofProgram.create_ProofVar(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("proofOfA")), Alcor.ProofProgram.create_ProofVar(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("env"))))))));
+          Alcor._IProofValue _69_r;
+          Wrappers._IResult<Alcor._IProofValue> _70_valueOrError0 = Wrappers.Result<Alcor._IProofValue>.Default();
+          _70_valueOrError0 = Alcor.__default.ExecuteProof(_68_proofProgramInner, _67_execEnv);
+          if ((_70_valueOrError0).IsFailure()) {
+            result = (_70_valueOrError0).PropagateFailure<_System._ITuple2<AlcorProofKernel._IExpr, Alcor._IProofProgram>>();
             return result;
           }
-          _44_r = (_45_valueOrError0).Extract();
-          Alcor._IProofProgram _46_proofProgram;
-          _46_proofProgram = Alcor.__default.Let(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("a_x_imp_b"), Alcor.Type.create_Bool(), ((_41_proofOfConclusion).dtor_value).dtor__1, _43_proofProgramInner);
-          result = Dafny.Helpers.Id<Func<Alcor._IProofValue, Alcor._IProofProgram, Wrappers._IResult<_System._ITuple2<AlcorProofKernel._IExpr, Alcor._IProofProgram>>>>(_35_checkGoal)(_44_r, _46_proofProgram);
+          _69_r = (_70_valueOrError0).Extract();
+          Alcor._IProofProgram _71_proofProgram;
+          _71_proofProgram = Alcor.__default.Let(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("a_x_imp_b"), Alcor.Type.create_Bool(), ((_66_proofOfConclusion).dtor_value).dtor__1, _68_proofProgramInner);
+          result = Dafny.Helpers.Id<Func<Alcor._IProofValue, Alcor._IProofProgram, Wrappers._IResult<_System._ITuple2<AlcorProofKernel._IExpr, Alcor._IProofProgram>>>>(_60_checkGoal)(_69_r, _71_proofProgram);
           return result;
         }
       }
-      if (!((_40_env).is_And)) {
-        result = Wrappers.Result<_System._ITuple2<AlcorProofKernel._IExpr, Alcor._IProofProgram>>.create_Failure(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("ProofFinder requires an environment to the left of ==>"));
+      Wrappers._IResult<_System._ITuple2<AlcorProofKernel._IExpr, Alcor._IProofProgram>> _out1;
+      _out1 = Alcor.__default.AndProofFinder(expr);
+      result = _out1;
+      if ((result).is_Success) {
         return result;
       }
-      AlcorProofKernel._IExpr _47_A0;
-      _47_A0 = (_40_env).dtor_left;
-      AlcorProofKernel._IExpr _48_tail;
-      _48_tail = (_40_env).dtor_right;
-      if ((_47_A0).is_And) {
-        if (object.Equals((_47_A0).dtor_left, _39_goal)) {
-          Alcor._IProofProgram _49_proofProgram;
-          _49_proofProgram = (Alcor.ProofAxiom.create_ImpIntro()).apply2(Alcor.ProofProgram.create_ProofExpr(_40_env), Alcor.ProofProgram.create_ProofAbs(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("env"), Alcor.Type.create_Ind(), (Alcor.ProofAxiom.create_AndElimLeft()).apply1((Alcor.ProofAxiom.create_AndElimLeft()).apply1(Alcor.ProofProgram.create_ProofVar(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("env"))))));
-          Alcor._IProofValue _50_r;
-          Wrappers._IResult<Alcor._IProofValue> _51_valueOrError1 = Wrappers.Result<Alcor._IProofValue>.Default();
-          _51_valueOrError1 = Alcor.__default.ExecuteProof(_49_proofProgram, Alcor.Environment.create_EnvNil());
-          if ((_51_valueOrError1).IsFailure()) {
-            result = (_51_valueOrError1).PropagateFailure<_System._ITuple2<AlcorProofKernel._IExpr, Alcor._IProofProgram>>();
-            return result;
-          }
-          _50_r = (_51_valueOrError1).Extract();
-          result = Dafny.Helpers.Id<Func<Alcor._IProofValue, Alcor._IProofProgram, Wrappers._IResult<_System._ITuple2<AlcorProofKernel._IExpr, Alcor._IProofProgram>>>>(_35_checkGoal)(_50_r, _49_proofProgram);
-          return result;
-        }
-        if (object.Equals((_47_A0).dtor_right, _39_goal)) {
-          Alcor._IProofProgram _52_proofProgram;
-          _52_proofProgram = (Alcor.ProofAxiom.create_ImpIntro()).apply2(Alcor.ProofProgram.create_ProofExpr(_40_env), Alcor.ProofProgram.create_ProofAbs(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("env"), Alcor.Type.create_Ind(), (Alcor.ProofAxiom.create_AndElimRight()).apply1((Alcor.ProofAxiom.create_AndElimLeft()).apply1(Alcor.ProofProgram.create_ProofVar(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("env"))))));
-          Alcor._IProofValue _53_r;
-          Wrappers._IResult<Alcor._IProofValue> _54_valueOrError2 = Wrappers.Result<Alcor._IProofValue>.Default();
-          _54_valueOrError2 = Alcor.__default.ExecuteProof(_52_proofProgram, Alcor.Environment.create_EnvNil());
-          if ((_54_valueOrError2).IsFailure()) {
-            result = (_54_valueOrError2).PropagateFailure<_System._ITuple2<AlcorProofKernel._IExpr, Alcor._IProofProgram>>();
-            return result;
-          }
-          _53_r = (_54_valueOrError2).Extract();
-          result = Dafny.Helpers.Id<Func<Alcor._IProofValue, Alcor._IProofProgram, Wrappers._IResult<_System._ITuple2<AlcorProofKernel._IExpr, Alcor._IProofProgram>>>>(_35_checkGoal)(_53_r, _52_proofProgram);
-          return result;
-        }
+      Wrappers._IResult<_System._ITuple2<AlcorProofKernel._IExpr, Alcor._IProofProgram>> _out2;
+      _out2 = Alcor.__default.ModusPonensFinder(expr);
+      result = _out2;
+      if ((result).is_Success) {
+        return result;
       }
-      AlcorProofKernel._IExpr _55_envSearch;
-      _55_envSearch = _40_env;
-      BigInteger _56_i;
-      _56_i = BigInteger.Zero;
-      while (((_55_envSearch).is_And) && (!object.Equals((_55_envSearch).dtor_left, _39_goal))) {
-        _55_envSearch = (_55_envSearch).dtor_right;
-        _56_i = (_56_i) + (BigInteger.One);
-      }
-      if (((_55_envSearch).is_And) && (object.Equals((_55_envSearch).dtor_left, _39_goal))) {
-        Alcor._IProofProgram _57_proofElem;
-        _57_proofElem = Alcor.ProofProgram.create_ProofVar(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("env"));
-        while ((_56_i).Sign != 0) {
-          _57_proofElem = Alcor.ProofProgram.create_ProofApp(Alcor.ProofProgram.create_ProofAxiom(Alcor.ProofAxiom.create_AndElimRight()), _57_proofElem);
-          _56_i = (_56_i) - (BigInteger.One);
-        }
-        Alcor._IProofProgram _58_proofProgram;
-        _58_proofProgram = (Alcor.ProofAxiom.create_ImpIntro()).apply2(Alcor.ProofProgram.create_ProofExpr(_40_env), Alcor.ProofProgram.create_ProofAbs(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("env"), Alcor.Type.create_Ind(), Alcor.ProofProgram.create_ProofApp(Alcor.ProofProgram.create_ProofAxiom(Alcor.ProofAxiom.create_AndElimLeft()), _57_proofElem)));
-        Alcor._IProofValue _59_r;
-        Wrappers._IResult<Alcor._IProofValue> _60_valueOrError3 = Wrappers.Result<Alcor._IProofValue>.Default();
-        _60_valueOrError3 = Alcor.__default.ExecuteProof(_58_proofProgram, Alcor.Environment.create_EnvNil());
-        if ((_60_valueOrError3).IsFailure()) {
-          result = (_60_valueOrError3).PropagateFailure<_System._ITuple2<AlcorProofKernel._IExpr, Alcor._IProofProgram>>();
-          return result;
-        }
-        _59_r = (_60_valueOrError3).Extract();
-        result = Dafny.Helpers.Id<Func<Alcor._IProofValue, Alcor._IProofProgram, Wrappers._IResult<_System._ITuple2<AlcorProofKernel._IExpr, Alcor._IProofProgram>>>>(_35_checkGoal)(_59_r, _58_proofProgram);
+      Wrappers._IResult<_System._ITuple2<AlcorProofKernel._IExpr, Alcor._IProofProgram>> _out3;
+      _out3 = Alcor.__default.LookupProofFinder(expr);
+      result = _out3;
+      if ((result).is_Success) {
         return result;
       }
       result = Wrappers.Result<_System._ITuple2<AlcorProofKernel._IExpr, Alcor._IProofProgram>>.create_Failure(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Could not find a simple proof of "), (expr)._ToString()));
       return result;
       return result;
+    }
+    public static Wrappers._IResult<_System._ITuple2<AlcorProofKernel._IExpr, Alcor._IProofProgram>> CantApplyAndProofFinder {
+      get {
+        return Wrappers.Result<_System._ITuple2<AlcorProofKernel._IExpr, Alcor._IProofProgram>>.create_Failure(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Can't apply AndElim proof finder"));
+      }
+    }
+    public static Wrappers._IResult<_System._ITuple2<AlcorProofKernel._IExpr, Alcor._IProofProgram>> CantApplyModusPonensFinder {
+      get {
+        return Wrappers.Result<_System._ITuple2<AlcorProofKernel._IExpr, Alcor._IProofProgram>>.create_Failure(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Can't apply ModusPonensFinder"));
+      }
     }
   }
 
@@ -1184,92 +1248,92 @@ namespace Alcor {
       }
     }
     public Wrappers._IResult<AlcorProofKernel._IExpr> ExtractProof(Dafny.ISequence<Alcor._IProofValue> args, BigInteger i) {
-      Alcor._IProofValue _61_arg = (args).Select(i);
-      if ((_61_arg).is_OneProof) {
-        return Wrappers.Result<AlcorProofKernel._IExpr>.create_Success((_61_arg).dtor_proof);
+      Alcor._IProofValue _72_arg = (args).Select(i);
+      if ((_72_arg).is_OneProof) {
+        return Wrappers.Result<AlcorProofKernel._IExpr>.create_Success((_72_arg).dtor_proof);
       } else {
-        return Wrappers.Result<AlcorProofKernel._IExpr>.create_Failure(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("At index "), Wrappers.__default.IntToString(i)), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" of ")), (this)._ToString()), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(", expected proof, but got ")), (_61_arg).Summary()));
+        return Wrappers.Result<AlcorProofKernel._IExpr>.create_Failure(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("At index "), Wrappers.__default.IntToString(i)), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" of ")), (this)._ToString()), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(", expected proof, but got ")), (_72_arg).Summary()));
       }
     }
     public Wrappers._IResult<AlcorProofKernel._IExpr> ExtractExpr(Dafny.ISequence<Alcor._IProofValue> args, BigInteger i) {
-      Alcor._IProofValue _62_arg = (args).Select(i);
-      if ((_62_arg).is_OneExpr) {
-        return Wrappers.Result<AlcorProofKernel._IExpr>.create_Success((_62_arg).dtor_expr);
+      Alcor._IProofValue _73_arg = (args).Select(i);
+      if ((_73_arg).is_OneExpr) {
+        return Wrappers.Result<AlcorProofKernel._IExpr>.create_Success((_73_arg).dtor_expr);
       } else {
-        return Wrappers.Result<AlcorProofKernel._IExpr>.create_Failure(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("At index "), Wrappers.__default.IntToString(i)), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" of ")), (this)._ToString()), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(", expected expr, but got ")), (_62_arg).Summary()));
+        return Wrappers.Result<AlcorProofKernel._IExpr>.create_Failure(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("At index "), Wrappers.__default.IntToString(i)), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" of ")), (this)._ToString()), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(", expected expr, but got ")), (_73_arg).Summary()));
       }
     }
     public Wrappers._IResult<Alcor._IProofValue> ApplyArgs(Dafny.ISequence<Alcor._IProofValue> args, Alcor._IEnvironment environment) {
       Alcor._IProofAxiom _source3 = this;
       if (_source3.is_AndIntro) {
-        Wrappers._IResult<AlcorProofKernel._IExpr> _63_valueOrError0 = (this).ExtractProof(args, BigInteger.Zero);
-        if ((_63_valueOrError0).IsFailure()) {
-          return (_63_valueOrError0).PropagateFailure<Alcor._IProofValue>();
+        Wrappers._IResult<AlcorProofKernel._IExpr> _74_valueOrError0 = (this).ExtractProof(args, BigInteger.Zero);
+        if ((_74_valueOrError0).IsFailure()) {
+          return (_74_valueOrError0).PropagateFailure<Alcor._IProofValue>();
         } else {
-          AlcorProofKernel._IExpr _64_left = (_63_valueOrError0).Extract();
-          Wrappers._IResult<AlcorProofKernel._IExpr> _65_valueOrError1 = (this).ExtractProof(args, BigInteger.One);
-          if ((_65_valueOrError1).IsFailure()) {
-            return (_65_valueOrError1).PropagateFailure<Alcor._IProofValue>();
+          AlcorProofKernel._IExpr _75_left = (_74_valueOrError0).Extract();
+          Wrappers._IResult<AlcorProofKernel._IExpr> _76_valueOrError1 = (this).ExtractProof(args, BigInteger.One);
+          if ((_76_valueOrError1).IsFailure()) {
+            return (_76_valueOrError1).PropagateFailure<Alcor._IProofValue>();
           } else {
-            AlcorProofKernel._IExpr _66_right = (_65_valueOrError1).Extract();
-            return (AlcorProofKernel.Proof.AndIntro(_64_left, _66_right)).Map<Alcor._IProofValue>(((System.Func<AlcorProofKernel._IExpr, Alcor._IProofValue>)((_67_p) => {
-              return Alcor.ProofValue.create_OneProof(_67_p);
-            })));
-          }
-        }
-      } else if (_source3.is_AndElimLeft) {
-        Wrappers._IResult<AlcorProofKernel._IExpr> _68_valueOrError2 = (this).ExtractProof(args, BigInteger.Zero);
-        if ((_68_valueOrError2).IsFailure()) {
-          return (_68_valueOrError2).PropagateFailure<Alcor._IProofValue>();
-        } else {
-          AlcorProofKernel._IExpr _69_elem = (_68_valueOrError2).Extract();
-          return (AlcorProofKernel.Proof.AndElimLeft(_69_elem)).Map<Alcor._IProofValue>(((System.Func<AlcorProofKernel._IExpr, Alcor._IProofValue>)((_70_p) => {
-            return Alcor.ProofValue.create_OneProof(_70_p);
-          })));
-        }
-      } else if (_source3.is_AndElimRight) {
-        Wrappers._IResult<AlcorProofKernel._IExpr> _71_valueOrError3 = (this).ExtractProof(args, BigInteger.Zero);
-        if ((_71_valueOrError3).IsFailure()) {
-          return (_71_valueOrError3).PropagateFailure<Alcor._IProofValue>();
-        } else {
-          AlcorProofKernel._IExpr _72_elem = (_71_valueOrError3).Extract();
-          return (AlcorProofKernel.Proof.AndElimRight(_72_elem)).Map<Alcor._IProofValue>(((System.Func<AlcorProofKernel._IExpr, Alcor._IProofValue>)((_73_p) => {
-            return Alcor.ProofValue.create_OneProof(_73_p);
-          })));
-        }
-      } else if (_source3.is_ImpElim) {
-        Wrappers._IResult<AlcorProofKernel._IExpr> _74_valueOrError6 = (this).ExtractProof(args, BigInteger.Zero);
-        if ((_74_valueOrError6).IsFailure()) {
-          return (_74_valueOrError6).PropagateFailure<Alcor._IProofValue>();
-        } else {
-          AlcorProofKernel._IExpr _75_left = (_74_valueOrError6).Extract();
-          Wrappers._IResult<AlcorProofKernel._IExpr> _76_valueOrError7 = (this).ExtractProof(args, BigInteger.One);
-          if ((_76_valueOrError7).IsFailure()) {
-            return (_76_valueOrError7).PropagateFailure<Alcor._IProofValue>();
-          } else {
-            AlcorProofKernel._IExpr _77_right = (_76_valueOrError7).Extract();
-            return (AlcorProofKernel.Proof.ImpElim(_75_left, _77_right)).Map<Alcor._IProofValue>(((System.Func<AlcorProofKernel._IExpr, Alcor._IProofValue>)((_78_p) => {
+            AlcorProofKernel._IExpr _77_right = (_76_valueOrError1).Extract();
+            return (AlcorProofKernel.Proof.AndIntro(_75_left, _77_right)).Map<Alcor._IProofValue>(((System.Func<AlcorProofKernel._IExpr, Alcor._IProofValue>)((_78_p) => {
               return Alcor.ProofValue.create_OneProof(_78_p);
             })));
           }
         }
-      } else {
-        Wrappers._IResult<AlcorProofKernel._IExpr> _79_valueOrError4 = (this).ExtractExpr(args, BigInteger.Zero);
-        if ((_79_valueOrError4).IsFailure()) {
-          return (_79_valueOrError4).PropagateFailure<Alcor._IProofValue>();
+      } else if (_source3.is_AndElimLeft) {
+        Wrappers._IResult<AlcorProofKernel._IExpr> _79_valueOrError2 = (this).ExtractProof(args, BigInteger.Zero);
+        if ((_79_valueOrError2).IsFailure()) {
+          return (_79_valueOrError2).PropagateFailure<Alcor._IProofValue>();
         } else {
-          AlcorProofKernel._IExpr _80_hypothesis = (_79_valueOrError4).Extract();
-          Alcor._IProofValue _81_reasoning = (args).Select(BigInteger.One);
-          if (!((_81_reasoning).is_OneClosure)) {
-            return Wrappers.Result<Alcor._IProofValue>.create_Failure(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Second argument of ImpIntro requires a closure, got "), (_81_reasoning).Summary()));
+          AlcorProofKernel._IExpr _80_elem = (_79_valueOrError2).Extract();
+          return (AlcorProofKernel.Proof.AndElimLeft(_80_elem)).Map<Alcor._IProofValue>(((System.Func<AlcorProofKernel._IExpr, Alcor._IProofValue>)((_81_p) => {
+            return Alcor.ProofValue.create_OneProof(_81_p);
+          })));
+        }
+      } else if (_source3.is_AndElimRight) {
+        Wrappers._IResult<AlcorProofKernel._IExpr> _82_valueOrError3 = (this).ExtractProof(args, BigInteger.Zero);
+        if ((_82_valueOrError3).IsFailure()) {
+          return (_82_valueOrError3).PropagateFailure<Alcor._IProofValue>();
+        } else {
+          AlcorProofKernel._IExpr _83_elem = (_82_valueOrError3).Extract();
+          return (AlcorProofKernel.Proof.AndElimRight(_83_elem)).Map<Alcor._IProofValue>(((System.Func<AlcorProofKernel._IExpr, Alcor._IProofValue>)((_84_p) => {
+            return Alcor.ProofValue.create_OneProof(_84_p);
+          })));
+        }
+      } else if (_source3.is_ImpElim) {
+        Wrappers._IResult<AlcorProofKernel._IExpr> _85_valueOrError6 = (this).ExtractProof(args, BigInteger.Zero);
+        if ((_85_valueOrError6).IsFailure()) {
+          return (_85_valueOrError6).PropagateFailure<Alcor._IProofValue>();
+        } else {
+          AlcorProofKernel._IExpr _86_left = (_85_valueOrError6).Extract();
+          Wrappers._IResult<AlcorProofKernel._IExpr> _87_valueOrError7 = (this).ExtractProof(args, BigInteger.One);
+          if ((_87_valueOrError7).IsFailure()) {
+            return (_87_valueOrError7).PropagateFailure<Alcor._IProofValue>();
           } else {
-            Dafny.ISequence<Dafny.Rune> _82_argName = (_81_reasoning).dtor_argName;
-            Alcor._IProofProgram _83_body = (_81_reasoning).dtor_body;
-            Func<AlcorProofKernel._IExpr, Wrappers._IResult<AlcorProofKernel._IExpr>> _84_proofBuilder = Dafny.Helpers.Id<Func<Alcor._IProofProgram, Dafny.ISequence<Dafny.Rune>, Alcor._IEnvironment, Func<AlcorProofKernel._IExpr, Wrappers._IResult<AlcorProofKernel._IExpr>>>>((_85_body, _86_argName, _87_environment) => ((System.Func<AlcorProofKernel._IExpr, Wrappers._IResult<AlcorProofKernel._IExpr>>)((_88_p) => {
-              return Dafny.Helpers.Let<Wrappers._IResult<Alcor._IProofValue>, Wrappers._IResult<AlcorProofKernel._IExpr>>(Alcor.__default.ExecuteProof(_85_body, Alcor.Environment.create_EnvCons(_86_argName, Alcor.ProofValue.create_OneProof(_88_p), _87_environment)), _pat_let0_0 => Dafny.Helpers.Let<Wrappers._IResult<Alcor._IProofValue>, Wrappers._IResult<AlcorProofKernel._IExpr>>(_pat_let0_0, _89_valueOrError5 => (((_89_valueOrError5).IsFailure()) ? ((_89_valueOrError5).PropagateFailure<AlcorProofKernel._IExpr>()) : (Dafny.Helpers.Let<Alcor._IProofValue, Wrappers._IResult<AlcorProofKernel._IExpr>>((_89_valueOrError5).Extract(), _pat_let1_0 => Dafny.Helpers.Let<Alcor._IProofValue, Wrappers._IResult<AlcorProofKernel._IExpr>>(_pat_let1_0, _90_x => (((_90_x).is_OneProof) ? (Wrappers.Result<AlcorProofKernel._IExpr>.create_Success((_90_x).dtor_proof)) : (Wrappers.Result<AlcorProofKernel._IExpr>.create_Failure(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Closure should return a proof, but got "), (_90_x).Summary()))))))))));
-            })))(_83_body, _82_argName, environment);
-            return (AlcorProofKernel.Proof.ImpIntro(_80_hypothesis, _84_proofBuilder)).Map<Alcor._IProofValue>(((System.Func<AlcorProofKernel._IExpr, Alcor._IProofValue>)((_91_p) => {
-              return Alcor.ProofValue.create_OneProof(_91_p);
+            AlcorProofKernel._IExpr _88_right = (_87_valueOrError7).Extract();
+            return (AlcorProofKernel.Proof.ImpElim(_86_left, _88_right)).Map<Alcor._IProofValue>(((System.Func<AlcorProofKernel._IExpr, Alcor._IProofValue>)((_89_p) => {
+              return Alcor.ProofValue.create_OneProof(_89_p);
+            })));
+          }
+        }
+      } else {
+        Wrappers._IResult<AlcorProofKernel._IExpr> _90_valueOrError4 = (this).ExtractExpr(args, BigInteger.Zero);
+        if ((_90_valueOrError4).IsFailure()) {
+          return (_90_valueOrError4).PropagateFailure<Alcor._IProofValue>();
+        } else {
+          AlcorProofKernel._IExpr _91_hypothesis = (_90_valueOrError4).Extract();
+          Alcor._IProofValue _92_reasoning = (args).Select(BigInteger.One);
+          if (!((_92_reasoning).is_OneClosure)) {
+            return Wrappers.Result<Alcor._IProofValue>.create_Failure(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Second argument of ImpIntro requires a closure, got "), (_92_reasoning).Summary()));
+          } else {
+            Dafny.ISequence<Dafny.Rune> _93_argName = (_92_reasoning).dtor_argName;
+            Alcor._IProofProgram _94_body = (_92_reasoning).dtor_body;
+            Func<AlcorProofKernel._IExpr, Wrappers._IResult<AlcorProofKernel._IExpr>> _95_proofBuilder = Dafny.Helpers.Id<Func<Alcor._IProofProgram, Dafny.ISequence<Dafny.Rune>, Alcor._IEnvironment, Func<AlcorProofKernel._IExpr, Wrappers._IResult<AlcorProofKernel._IExpr>>>>((_96_body, _97_argName, _98_environment) => ((System.Func<AlcorProofKernel._IExpr, Wrappers._IResult<AlcorProofKernel._IExpr>>)((_99_p) => {
+              return Dafny.Helpers.Let<Wrappers._IResult<Alcor._IProofValue>, Wrappers._IResult<AlcorProofKernel._IExpr>>(Alcor.__default.ExecuteProof(_96_body, Alcor.Environment.create_EnvCons(_97_argName, Alcor.ProofValue.create_OneProof(_99_p), _98_environment)), _pat_let0_0 => Dafny.Helpers.Let<Wrappers._IResult<Alcor._IProofValue>, Wrappers._IResult<AlcorProofKernel._IExpr>>(_pat_let0_0, _100_valueOrError5 => (((_100_valueOrError5).IsFailure()) ? ((_100_valueOrError5).PropagateFailure<AlcorProofKernel._IExpr>()) : (Dafny.Helpers.Let<Alcor._IProofValue, Wrappers._IResult<AlcorProofKernel._IExpr>>((_100_valueOrError5).Extract(), _pat_let1_0 => Dafny.Helpers.Let<Alcor._IProofValue, Wrappers._IResult<AlcorProofKernel._IExpr>>(_pat_let1_0, _101_x => (((_101_x).is_OneProof) ? (Wrappers.Result<AlcorProofKernel._IExpr>.create_Success((_101_x).dtor_proof)) : (Wrappers.Result<AlcorProofKernel._IExpr>.create_Failure(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Closure should return a proof, but got "), (_101_x).Summary()))))))))));
+            })))(_94_body, _93_argName, environment);
+            return (AlcorProofKernel.Proof.ImpIntro(_91_hypothesis, _95_proofBuilder)).Map<Alcor._IProofValue>(((System.Func<AlcorProofKernel._IExpr, Alcor._IProofValue>)((_102_p) => {
+              return Alcor.ProofValue.create_OneProof(_102_p);
             })));
           }
         }
@@ -1614,60 +1678,60 @@ namespace Alcor {
     public Dafny.ISequence<Dafny.Rune> _ToString() {
       Alcor._IProofProgram _source4 = this;
       if (_source4.is_ProofVar) {
-        Dafny.ISequence<Dafny.Rune> _92___mcc_h0 = _source4.dtor_name;
-        Dafny.ISequence<Dafny.Rune> _93_name = _92___mcc_h0;
-        return _93_name;
+        Dafny.ISequence<Dafny.Rune> _103___mcc_h0 = _source4.dtor_name;
+        Dafny.ISequence<Dafny.Rune> _104_name = _103___mcc_h0;
+        return _104_name;
       } else if (_source4.is_ProofExpr) {
-        AlcorProofKernel._IExpr _94___mcc_h1 = _source4.dtor_expr;
-        AlcorProofKernel._IExpr _95_expr = _94___mcc_h1;
-        return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("``"), (_95_expr)._ToString()), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("``"));
+        AlcorProofKernel._IExpr _105___mcc_h1 = _source4.dtor_expr;
+        AlcorProofKernel._IExpr _106_expr = _105___mcc_h1;
+        return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("``"), (_106_expr)._ToString()), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("``"));
       } else if (_source4.is_ProofAbs) {
-        Dafny.ISequence<Dafny.Rune> _96___mcc_h2 = _source4.dtor_name;
-        Alcor._IType _97___mcc_h3 = _source4.dtor_tpe;
-        Alcor._IProofProgram _98___mcc_h4 = _source4.dtor_body;
-        Alcor._IProofProgram _99_body = _98___mcc_h4;
-        Alcor._IType _100_tpe = _97___mcc_h3;
-        Dafny.ISequence<Dafny.Rune> _101_name = _96___mcc_h2;
-        return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("(\\"), _101_name), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(". ")), (_99_body)._ToString()), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(")"));
+        Dafny.ISequence<Dafny.Rune> _107___mcc_h2 = _source4.dtor_name;
+        Alcor._IType _108___mcc_h3 = _source4.dtor_tpe;
+        Alcor._IProofProgram _109___mcc_h4 = _source4.dtor_body;
+        Alcor._IProofProgram _110_body = _109___mcc_h4;
+        Alcor._IType _111_tpe = _108___mcc_h3;
+        Dafny.ISequence<Dafny.Rune> _112_name = _107___mcc_h2;
+        return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("(\\"), _112_name), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(". ")), (_110_body)._ToString()), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(")"));
       } else if (_source4.is_ProofApp) {
-        Alcor._IProofProgram _102___mcc_h5 = _source4.dtor_left;
-        Alcor._IProofProgram _103___mcc_h6 = _source4.dtor_right;
-        Alcor._IProofProgram _source5 = _102___mcc_h5;
+        Alcor._IProofProgram _113___mcc_h5 = _source4.dtor_left;
+        Alcor._IProofProgram _114___mcc_h6 = _source4.dtor_right;
+        Alcor._IProofProgram _source5 = _113___mcc_h5;
         if (_source5.is_ProofVar) {
-          Dafny.ISequence<Dafny.Rune> _104___mcc_h7 = _source5.dtor_name;
-          Alcor._IProofProgram _105_right = _103___mcc_h6;
-          Alcor._IProofProgram _106_left = _102___mcc_h5;
-          return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat((_106_left)._ToString(), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("(")), (_105_right)._ToString()), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(")"));
+          Dafny.ISequence<Dafny.Rune> _115___mcc_h7 = _source5.dtor_name;
+          Alcor._IProofProgram _116_right = _114___mcc_h6;
+          Alcor._IProofProgram _117_left = _113___mcc_h5;
+          return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat((_117_left)._ToString(), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("(")), (_116_right)._ToString()), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(")"));
         } else if (_source5.is_ProofExpr) {
-          AlcorProofKernel._IExpr _107___mcc_h9 = _source5.dtor_expr;
-          Alcor._IProofProgram _108_right = _103___mcc_h6;
-          Alcor._IProofProgram _109_left = _102___mcc_h5;
-          return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat((_109_left)._ToString(), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("(")), (_108_right)._ToString()), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(")"));
-        } else if (_source5.is_ProofAbs) {
-          Dafny.ISequence<Dafny.Rune> _110___mcc_h11 = _source5.dtor_name;
-          Alcor._IType _111___mcc_h12 = _source5.dtor_tpe;
-          Alcor._IProofProgram _112___mcc_h13 = _source5.dtor_body;
-          Alcor._IProofProgram _113_varContent = _103___mcc_h6;
-          Alcor._IProofProgram _114_body = _112___mcc_h13;
-          Alcor._IType _115_tpe = _111___mcc_h12;
-          Dafny.ISequence<Dafny.Rune> _116_varName = _110___mcc_h11;
-          return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("var "), _116_varName), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(": ")), (_115_tpe)._ToString()), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" := ")), (_113_varContent)._ToString()), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(";\n")), (_114_body)._ToString());
-        } else if (_source5.is_ProofApp) {
-          Alcor._IProofProgram _117___mcc_h17 = _source5.dtor_left;
-          Alcor._IProofProgram _118___mcc_h18 = _source5.dtor_right;
-          Alcor._IProofProgram _119_right = _103___mcc_h6;
-          Alcor._IProofProgram _120_left = _102___mcc_h5;
+          AlcorProofKernel._IExpr _118___mcc_h9 = _source5.dtor_expr;
+          Alcor._IProofProgram _119_right = _114___mcc_h6;
+          Alcor._IProofProgram _120_left = _113___mcc_h5;
           return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat((_120_left)._ToString(), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("(")), (_119_right)._ToString()), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(")"));
+        } else if (_source5.is_ProofAbs) {
+          Dafny.ISequence<Dafny.Rune> _121___mcc_h11 = _source5.dtor_name;
+          Alcor._IType _122___mcc_h12 = _source5.dtor_tpe;
+          Alcor._IProofProgram _123___mcc_h13 = _source5.dtor_body;
+          Alcor._IProofProgram _124_varContent = _114___mcc_h6;
+          Alcor._IProofProgram _125_body = _123___mcc_h13;
+          Alcor._IType _126_tpe = _122___mcc_h12;
+          Dafny.ISequence<Dafny.Rune> _127_varName = _121___mcc_h11;
+          return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("var "), _127_varName), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(": ")), (_126_tpe)._ToString()), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" := ")), (_124_varContent)._ToString()), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(";\n")), (_125_body)._ToString());
+        } else if (_source5.is_ProofApp) {
+          Alcor._IProofProgram _128___mcc_h17 = _source5.dtor_left;
+          Alcor._IProofProgram _129___mcc_h18 = _source5.dtor_right;
+          Alcor._IProofProgram _130_right = _114___mcc_h6;
+          Alcor._IProofProgram _131_left = _113___mcc_h5;
+          return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat((_131_left)._ToString(), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("(")), (_130_right)._ToString()), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(")"));
         } else {
-          Alcor._IProofAxiom _121___mcc_h21 = _source5.dtor_axiom;
-          Alcor._IProofProgram _122_right = _103___mcc_h6;
-          Alcor._IProofProgram _123_left = _102___mcc_h5;
-          return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat((_123_left)._ToString(), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("(")), (_122_right)._ToString()), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(")"));
+          Alcor._IProofAxiom _132___mcc_h21 = _source5.dtor_axiom;
+          Alcor._IProofProgram _133_right = _114___mcc_h6;
+          Alcor._IProofProgram _134_left = _113___mcc_h5;
+          return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat((_134_left)._ToString(), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("(")), (_133_right)._ToString()), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(")"));
         }
       } else {
-        Alcor._IProofAxiom _124___mcc_h23 = _source4.dtor_axiom;
-        Alcor._IProofAxiom _125_axiom = _124___mcc_h23;
-        return (_125_axiom)._ToString();
+        Alcor._IProofAxiom _135___mcc_h23 = _source4.dtor_axiom;
+        Alcor._IProofAxiom _136_axiom = _135___mcc_h23;
+        return (_136_axiom)._ToString();
       }
     }
   }
@@ -2055,4 +2119,53 @@ namespace Alcor {
     }
   }
 } // end of namespace Alcor
+namespace EnsureNoRemoval {
+
+  public partial class __default {
+    public static void DebugTest() {
+      BigInteger _137___v0;
+      _137___v0 = Alcor.__default.Debug(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("hello"));
+    }
+  }
+} // end of namespace EnsureNoRemoval
+
+namespace Microsoft.Dafny {
+
+} // end of namespace Microsoft.Dafny
+namespace Formatting {
+
+  public partial class __default {
+    public static System.String ReindentProgramFromFirstToken(Microsoft.Dafny.IToken firstToken, Formatting.IIndentationFormatter reindent) {
+      System.String s = default(System.String);
+      Microsoft.Dafny.IToken _138_token;
+      _138_token = firstToken;
+      System.Text.StringBuilder _139_sb;
+      System.Text.StringBuilder _nw0 = new System.Text.StringBuilder();
+      _139_sb = _nw0;
+      while ((_138_token) != (object)((Microsoft.Dafny.IToken)null)) {
+        System.String _140_newLeadingTrivia;
+        _140_newLeadingTrivia = (reindent).GetNewLeadingTrivia(_138_token);
+        System.String _141_newTrailingTrivia;
+        _141_newTrailingTrivia = (reindent).GetNewTrailingTrivia(_138_token);
+        (_139_sb).Append(_140_newLeadingTrivia);
+        (_139_sb).Append(_138_token.val);
+        (_139_sb).Append(_141_newTrailingTrivia);
+        _138_token = _138_token.Next;
+      }
+      System.String _out4;
+      _out4 = (_139_sb).ToString().ToString();
+      s = _out4;
+      return s;
+    }
+  }
+
+  public interface IIndentationFormatter {
+    System.String GetNewLeadingTrivia(Microsoft.Dafny.IToken token);
+    System.String GetNewTrailingTrivia(Microsoft.Dafny.IToken token);
+  }
+  public class _Companion_IIndentationFormatter {
+  }
+} // end of namespace Formatting
+
+
 

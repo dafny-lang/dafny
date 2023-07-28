@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
+using Alcor;
+using AlcorProofKernel;
 using Microsoft.Boogie;
 using Bpl = Microsoft.Boogie;
 using BplParser = Microsoft.Boogie.Parser;
@@ -512,7 +514,16 @@ namespace Microsoft.Dafny {
       }
     }
 
-    
+    private string FromDafnyString(global::Dafny.ISequence<global::Dafny.Rune> runes) {
+      return string.Join("", runes.Select(rune => rune.ToString()));
+    }
+
+    private string _IExprToString(_IExpr expr) {
+      return FromDafnyString(expr._ToString()!);
+    }
+    private string _IProofProgramToString(_IProofProgram prog) {
+      return FromDafnyString(prog._ToString());
+    }
 
     private void TrPredicateStmt(PredicateStmt stmt, BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran, ref AlcorProofKernel.Expr assumptions) {
       Contract.Requires(stmt != null);
@@ -545,18 +556,18 @@ namespace Microsoft.Dafny {
               alcorExpression));
             provenByAlcor = result.is_Success;
             if (provenByAlcor) {
-              var expr = result.dtor_value.dtor__0._ToString()!;
-              var proof = result.dtor_value.dtor__1._ToString();
-              var exprStr = string.Join("", expr.Select(rune => rune.ToString()));
-              var proofStr =  string.Join("", proof.Select(rune => rune.ToString()));
-              var msg = "Alcor proved that " + exprStr + " by " + proofStr;
-              Console.Out.WriteLine(msg);
+              var prevAssertionOnlyFilter = assertionOnlyFilter;
+              assertionOnlyFilter = (IToken tok) =>
+                tok != assertStmt.tok && 
+                (prevAssertionOnlyFilter == null || prevAssertionOnlyFilter(tok));
+              var expr = _IExprToString(result.dtor_value.dtor__0);
+              var proof = _IProofProgramToString(result.dtor_value.dtor__1);
+              var msg = "Alcor proved that " + expr + " by\n" + proof;
               reporter.Info(MessageSource.Verifier, assertStmt.tok, 
                 msg);
             } else {
-              var msg = string.Join("", result.dtor_msg.Select(rune => rune.ToString()));
-              reporter.Info(MessageSource.Verifier, assertStmt.tok, 
-                "Could not prove by Alcor because " + msg);
+              var msg = FromDafnyString(result.dtor_msg);
+              reporter.Info(MessageSource.Verifier, assertStmt.tok, msg);
             }
             // And then we assume it.
             assumptions = new AlcorProofKernel.Expr_And(alcorExpression, assumptions);
@@ -1312,7 +1323,7 @@ namespace Microsoft.Dafny {
       //TRIG (exists k#2: int :: (k#2 == LitInt(0 - 3) || k#2 == LitInt(4)) && $o == read($prevHeap, this, _module.MyClass.arr) && $f == MultiIndexField(IndexField(i#0), j#0))
       Bpl.Expr xObjField = new Bpl.ExistsExpr(s.Tok, xBvars, xBody);  // LL_TRIGGER
       Bpl.Expr body = Bpl.Expr.Or(Bpl.Expr.Eq(heapOF, oldHeapOF), xObjField);
-      var tr = new Trigger(s.Tok, true, new List<Expr>() { heapOF });
+      var tr = new Trigger(s.Tok, true, new List<Bpl.Expr>() { heapOF });
       Bpl.Expr qq = new Bpl.ForallExpr(s.Tok, new List<TypeVariable> { alpha }, new List<Variable> { oVar, fVar }, null, tr, body);
       updater.Add(TrAssumeCmd(s.Tok, qq));
 
@@ -1501,7 +1512,7 @@ namespace Microsoft.Dafny {
       if (initDecr != null) {
         var toks = new List<IToken>();
         var types = new List<Type>();
-        var decrs = new List<Expr>();
+        var decrs = new List<Bpl.Expr>();
         foreach (Expression e in theDecreases) {
           toks.Add(e.tok);
           types.Add(e.Type.NormalizeExpand());
@@ -1550,7 +1561,7 @@ namespace Microsoft.Dafny {
           // check definedness of decreases expressions
           var toks = new List<IToken>();
           var types = new List<Type>();
-          var decrs = new List<Expr>();
+          var decrs = new List<Bpl.Expr>();
           foreach (Expression e in theDecreases) {
             toks.Add(e.tok);
             types.Add(e.Type.NormalizeExpand());

@@ -1,5 +1,4 @@
 // TODO: Use AutoExtern to convert Dafny's expressions into Alcor's language
-include "../AST/Formatting.dfy"
 
 module Wrappers {
   
@@ -399,6 +398,145 @@ module Alcor {
       Failure("DummyProofFinder was looking for a proof of " + expr.ToString() + " but returned a proof of " + p.GetExpr().ToString())
   }
 
+  //////////////// Axiom finders //////////////////
+
+  const CantApplyAndProofFinder := Failure("Can't apply AndElim proof finder")
+
+  method AndProofFinder(expr: Expr)
+    returns (result: Result<(Proof, ProofProgram)>)
+    requires expr.Imp?
+    ensures result.Success? ==>
+      && result.value.0.GetExpr() == expr
+      && Success(OneProof(result.value.0)) == ExecuteProof(result.value.1, EnvNil) // TODO Execute works
+  {
+    if !expr.left.And? {
+      return CantApplyAndProofFinder;
+    }
+    var goal := expr.right;
+    var env := expr.left;
+    var A0 := env.left;
+    var tail := env.right;
+    if A0.And? {
+      if A0.left == goal {
+        // Let's build a proof
+        var proofProgram :=
+          ImpIntro.apply2(
+            ProofExpr(env),
+            ProofAbs("env", Ind, 
+              AndElimLeft.apply1(
+                 AndElimLeft.apply1(ProofVar("env")))
+            ));
+        var r :- ExecuteProof(proofProgram, EnvNil);
+        result := checkGoalAgainstExpr(r, expr, proofProgram);
+        return;
+      }
+      if A0.right == goal {
+        var proofProgram :=
+          ImpIntro.apply2(
+            ProofExpr(env),
+            ProofAbs("env", Ind, 
+              AndElimRight.apply1(AndElimLeft.apply1(ProofVar("env")))));
+        var r :- ExecuteProof(proofProgram, EnvNil);
+        assert ExecuteProof(proofProgram, EnvNil) == Success(r);
+        result := checkGoalAgainstExpr(r, expr, proofProgram);
+        assert result.Success? ==>
+        Success(OneProof(result.value.0)) == ExecuteProof(result.value.1, EnvNil);
+        return;
+      }
+    }
+    return CantApplyAndProofFinder;
+  }
+
+  method LookupProofFinder(expr: Expr)
+    returns (result: Result<(Proof, ProofProgram)>)
+    requires expr.Imp?
+    ensures result.Success? ==>
+      && result.value.0.GetExpr() == expr
+      && Success(OneProof(result.value.0)) == ExecuteProof(result.value.1, EnvNil) // TODO Execute works
+  {
+    var goal := expr.right;
+    var env := expr.left;
+    var envSearch := env;
+    var i: nat := 0;
+    while envSearch.And? && envSearch.left != goal
+      decreases envSearch
+    {
+      envSearch := envSearch.right;
+      i := i + 1;
+      
+    }
+    if envSearch.And? && envSearch.left == goal {
+      var proofElem := ProofVar("env");
+      while i != 0
+        decreases i
+      {
+        proofElem := ProofApp(ProofAxiom(AndElimRight), proofElem);
+        i := i - 1;
+      }
+      var proofProgram := ImpIntro.apply2(
+            ProofExpr(env),
+            ProofAbs("env", Ind, 
+              ProofApp(ProofAxiom(AndElimLeft), proofElem)));
+      var r :- ExecuteProof(proofProgram, EnvNil);
+      result := checkGoalAgainstExpr(r, expr, proofProgram);
+      return;
+    }
+    return Failure("Could not apply LookupProofFinder");
+  }
+
+  const CantApplyModusPonensFinder := Failure("Can't apply ModusPonensFinder")
+
+  method ModusPonensFinder(expr: Expr)
+    returns (result: Result<(Proof, ProofProgram)>)
+    requires expr.Imp?
+    ensures result.Success? ==>
+      && result.value.0.GetExpr() == expr
+      && Success(OneProof(result.value.0)) == ExecuteProof(result.value.1, EnvNil) // TODO Execute works
+  {
+    var goal := expr.right;
+    var env := expr.left;
+    if !env.And? {
+      return CantApplyModusPonensFinder;
+    }
+    var A0 := env.left;
+    var tail := env.right;
+    if !tail.And? {
+      return CantApplyModusPonensFinder;
+    }
+    var A1 := tail.left; // TODO: Do a lookup of the hypothesis
+    if A0.Imp? && A0.right == goal && A1 == A0.left {
+      // ((A ==> B) && (A && ...)) ==> B
+      // We emit a suitable proof of the above
+      var proofProgram :=
+        ImpIntro.apply2(
+          ProofExpr(env),
+          ProofAbs("env", Ind, 
+            Let("AtoB", Ind, AndElimLeft.apply1(ProofVar("env")),
+            Let("A", Ind, AndElimLeft.apply1(AndElimRight.apply1(ProofVar("env"))),
+            ImpElim.apply2(ProofVar("AtoB"), ProofVar("A"))))
+          ));
+      var r :- ExecuteProof(proofProgram, EnvNil);
+      result := checkGoalAgainstExpr(r, expr, proofProgram);
+      return;
+    }
+    if A1.Imp? && A1.right == goal && A0 == A1.left {
+      // (A && ((A ==> B) && ...)) ==> B
+      // We emit a suitable proof of the above
+      var proofProgram :=
+        ImpIntro.apply2(
+          ProofExpr(env),
+          ProofAbs("env", Ind, 
+            Let("A", Ind, AndElimLeft.apply1(ProofVar("env")),
+            Let("AtoB", Ind, AndElimLeft.apply1(AndElimRight.apply1(ProofVar("env"))),
+            ImpElim.apply2(ProofVar("AtoB"), ProofVar("A"))))
+          ));
+      var r :- ExecuteProof(proofProgram, EnvNil);
+      result := checkGoalAgainstExpr(r, expr, proofProgram);
+      return;
+    }
+    return CantApplyModusPonensFinder;
+  }
+
   // No need to trust this proof finder, if it finds a proof it's a correct one!
   method DummyProofFinder(expr: Expr)
     returns (result: Result<(Proof, ProofProgram)>)
@@ -417,7 +555,7 @@ module Alcor {
     // * If A1 is a and A0 is b and G is a && b, we emit the proof
     // * If A1 is (a ==> b) and A0 is a and G is b, we emit the proof.
     if !expr.Imp? {
-      result := Failure("ProofFinder requires an implication");
+      result := Failure("Alcor requires an implication");
       assert result.Success? ==>
         Success(OneProof(result.value.0)) == ExecuteProof(result.value.1, EnvNil);
       return;
@@ -453,82 +591,21 @@ module Alcor {
         return;
       }
     }
-    // The and separating the head of the environment to the tail
-    if !env.And? {
-      result := Failure("ProofFinder requires an environment to the left of ==>");
-      assert result.Success? ==>
-        Success(OneProof(result.value.0)) == ExecuteProof(result.value.1, EnvNil);
-      return;
-    }
-    var A0 := env.left;
-    var tail := env.right;
     // * if A0 is (a && b) and G is a, we emit the proof
-    if A0.And? {
-      if A0.left == goal {
-        // Let's build a proof
-        var proofProgram :=
-          ImpIntro.apply2(
-            ProofExpr(env),
-            ProofAbs("env", Ind, 
-              AndElimLeft.apply1(
-                 AndElimLeft.apply1(ProofVar("env")))
-            ));
-        var r :- ExecuteProof(proofProgram, EnvNil);
-        assert ExecuteProof(proofProgram, EnvNil) == Success(r);
-        result := checkGoal(r, proofProgram);
-        assert result.Success? ==>
-        Success(OneProof(result.value.0)) == ExecuteProof(result.value.1, EnvNil);
-        return;
-      }
-      if A0.right == goal {
-        var proofProgram :=
-          ImpIntro.apply2(
-            ProofExpr(env),
-            ProofAbs("env", Ind, 
-              AndElimRight.apply1(AndElimLeft.apply1(ProofVar("env")))));
-        var r :- ExecuteProof(proofProgram, EnvNil);
-        assert ExecuteProof(proofProgram, EnvNil) == Success(r);
-        result := checkGoal(r, proofProgram);
-        assert result.Success? ==>
-        Success(OneProof(result.value.0)) == ExecuteProof(result.value.1, EnvNil);
-        return;
-      }
-    }
-    // Lookup in the environment
-    var envSearch := env;
-    var i: nat := 0;
-    while envSearch.And? && envSearch.left != goal
-      decreases envSearch
-    {
-      envSearch := envSearch.right;
-      i := i + 1;
-      
-    }
-    if envSearch.And? && envSearch.left == goal {
-      var proofElem := ProofVar("env");
-      while i != 0
-        decreases i
-      {
-        proofElem := ProofApp(ProofAxiom(AndElimRight), proofElem);
-        i := i - 1;
-      }
-      var proofProgram := ImpIntro.apply2(
-            ProofExpr(env),
-            ProofAbs("env", Ind, 
-              ProofApp(ProofAxiom(AndElimLeft), proofElem)));
-      var r :- ExecuteProof(proofProgram, EnvNil);
-      assert ExecuteProof(proofProgram, EnvNil) == Success(r);
-      result := checkGoal(r, proofProgram);
-      assert result.Success? ==>
-        Success(OneProof(result.value.0)) == ExecuteProof(result.value.1, EnvNil);
+    result := AndProofFinder(expr);
+    if result.Success? {
       return;
     }
-
-    // Part 2: Advanced proof search (axioms with lookup in the environment)
+    result := ModusPonensFinder(expr);
+    if result.Success? {
+      return;
+    }
+    result := LookupProofFinder(expr);
+    if result.Success? {
+      return;
+    }
 
     result := Failure("Could not find a simple proof of " +  expr.ToString() );
-    assert result.Success? ==>
-      Success(OneProof(result.value.0)) == ExecuteProof(result.value.1, EnvNil);
     return;
   }
 }
