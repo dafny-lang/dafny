@@ -2,6 +2,10 @@ using System.Collections.Generic;
 
 namespace Microsoft.Dafny;
 
+public interface IDeclarationOrUsage : INode {
+  IToken NameToken { get; }
+}
+
 public interface IHasUsages : IDeclarationOrUsage {
   public IEnumerable<IDeclarationOrUsage> GetResolvedDeclarations();
 }
