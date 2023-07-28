@@ -1500,7 +1500,6 @@ namespace Microsoft.Dafny {
       }
 
       if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
-        // Check that class constructors are called when required.
         new HigherOrderHeapAllocationChecker(reporter).VisitDeclarations(declarations);
       }
 
