@@ -104,7 +104,8 @@ public class RustBackend : DafnyExecutableBackend {
 
     compilationResult = null;
     var args = new List<string> {
-      "build"
+      "build",
+      "--quiet"
     };
 
     if (callToMain == null) {
