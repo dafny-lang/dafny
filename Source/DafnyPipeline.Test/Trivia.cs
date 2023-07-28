@@ -120,7 +120,7 @@ ensures true
     private void TestTokens(Node program) {
       var allTokens = new HashSet<IToken>();
 
-      void Traverse(Node node) {
+      void Traverse(INode node) {
         foreach (var ownedToken in node.OwnedTokens) {
           Assert.DoesNotContain(ownedToken, allTokens);
           allTokens.Add(ownedToken);
@@ -132,10 +132,10 @@ ensures true
 
       Traverse(program);
 
-      void AreAllTokensOwned(Node node) {
-        if (node.StartToken is { filename: { } }) {
-          var t = node.StartToken;
-          while (t != null && t != node.EndToken) {
+      void AreAllTokensOwned(INode node) {
+        if (node.Start is { filename: { } }) {
+          var t = node.Start;
+          while (t != null && t != node.End) {
             Assert.Contains(t, allTokens);
             t = t.Next;
           }

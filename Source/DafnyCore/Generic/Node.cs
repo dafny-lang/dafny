@@ -10,9 +10,15 @@ using Microsoft.Dafny.Auditor;
 namespace Microsoft.Dafny;
 
 public interface INode {
+  public IToken Start => RangeToken.StartToken;
+  public IToken End => RangeToken.EndToken;
+  IEnumerable<IToken> OwnedTokens { get; }
   RangeToken RangeToken { get; }
   IToken Tok { get; }
-  IEnumerable<Node> Children { get; }
+  IEnumerable<INode> Children { get; }
+  IEnumerable<INode> PreResolveChildren { get; }
+
+  IEnumerable<INode> GetConcreteChildren();
 }
 
 public interface ICanFormat : INode {
@@ -28,6 +34,15 @@ public interface IHasDocstring : INode {
 }
 
 public abstract class Node : INode {
+  private static readonly Regex StartDocstringExtractor =
+    new Regex($@"/\*\*(?<multilinecontent>{TriviaFormatterHelper.MultilineCommentContent})\*/");
+
+  protected IReadOnlyList<IToken> OwnedTokensCache;
+
+
+  public IToken StartToken => RangeToken?.StartToken;
+
+  public IToken EndToken => RangeToken?.EndToken;
   public abstract IToken Tok { get; }
 
   /// <summary>
@@ -36,20 +51,20 @@ public abstract class Node : INode {
   /// program is lost. As an example, the pattern matching compilation may deduplicate nodes from the original AST,
   /// losing source location information, so those transformed nodes should not be returned by this property.
   /// </summary>
-  public abstract IEnumerable<Node> Children { get; }
+  public abstract IEnumerable<INode> Children { get; }
 
   /// <summary>
   /// These children should match what was parsed before the resolution phase.
   /// That way, gathering all OwnedTokens of all recursive ConcreteChildren should result in a comprehensive
   /// coverage of the original program
   /// </summary>
-  public abstract IEnumerable<Node> PreResolveChildren { get; }
+  public abstract IEnumerable<INode> PreResolveChildren { get; }
 
   // Nodes like DefaultClassDecl have children but no OwnedTokens as they are not "physical"
   // Therefore, we have to find all the concrete children by unwrapping such nodes.
-  private IEnumerable<Node> GetConcreteChildren() {
+  public IEnumerable<INode> GetConcreteChildren() {
     foreach (var child in PreResolveChildren) {
-      if (child.StartToken != null && child.EndToken != null && child.StartToken.line != 0) {
+      if (child.RangeToken.StartToken != null && child.RangeToken.EndToken != null && child.RangeToken.StartToken.line != 0) {
         yield return child;
       } else {
         foreach (var subNode in child.GetConcreteChildren()) {
@@ -59,10 +74,63 @@ public abstract class Node : INode {
     }
   }
 
+  /// <summary>
+  /// A token is owned by a node if it was used to parse this node,
+  /// but is not owned by any of this Node's children
+  /// </summary>
+  public IEnumerable<IToken> OwnedTokens {
+    get {
+      if (OwnedTokensCache != null) {
+        return OwnedTokensCache;
+      }
 
-  public IEnumerable<Node> Descendants() {
-    return Children.Concat(Children.SelectMany(n => n.Descendants()));
+      var childrenFiltered = GetConcreteChildren().ToList();
+
+      Dictionary<int, IToken> startToEndTokenNotOwned;
+      try {
+        startToEndTokenNotOwned =
+          childrenFiltered
+            .ToDictionary(child => child.RangeToken.StartToken.pos, child => child.RangeToken.EndToken!);
+      } catch (ArgumentException) {
+        // If we parse a resolved document, some children sometimes have the same token because they are auto-generated
+        startToEndTokenNotOwned = new();
+        foreach (var child in childrenFiltered) {
+          if (startToEndTokenNotOwned.ContainsKey(child.RangeToken.StartToken.pos)) {
+            var previousEnd = startToEndTokenNotOwned[child.RangeToken.StartToken.pos];
+            if (child.RangeToken.EndToken.pos > previousEnd.pos) {
+              startToEndTokenNotOwned[child.RangeToken.StartToken.pos] = child.RangeToken.EndToken;
+            }
+          } else {
+            startToEndTokenNotOwned[child.RangeToken.StartToken.pos] = child.RangeToken.EndToken;
+          }
+        }
+      }
+
+      var result = new List<IToken>();
+      if (StartToken == null) {
+        Contract.Assume(EndToken == null);
+      } else {
+        Contract.Assume(EndToken != null);
+        var tmpToken = StartToken;
+        while (tmpToken != null && tmpToken != EndToken.Next) {
+          if (startToEndTokenNotOwned.TryGetValue(tmpToken.pos, out var endNotOwnedToken)) {
+            tmpToken = endNotOwnedToken;
+          } else if (tmpToken.Uri != null) {
+            result.Add(tmpToken);
+          }
+
+          tmpToken = tmpToken.Next;
+        }
+      }
+
+
+      OwnedTokensCache = result;
+
+      return OwnedTokensCache;
+    }
   }
+
+  public abstract RangeToken RangeToken { get; set; }
 
   // <summary>
   // Returns all assumptions contained in this node or its descendants.
@@ -74,12 +142,12 @@ public abstract class Node : INode {
     return Enumerable.Empty<Assumption>();
   }
 
-  public ISet<Node> Visit(Func<Node, bool> beforeChildren = null, Action<Node> afterChildren = null) {
+  public ISet<INode> Visit(Func<INode, bool> beforeChildren = null, Action<INode> afterChildren = null) {
     beforeChildren ??= node => true;
     afterChildren ??= node => { };
 
-    var visited = new HashSet<Node>();
-    var toVisit = new LinkedList<Node>();
+    var visited = new HashSet<INode>();
+    var toVisit = new LinkedList<INode>();
     toVisit.AddFirst(this);
     while (toVisit.Any()) {
       var current = toVisit.First();
@@ -110,74 +178,6 @@ public abstract class Node : INode {
 
     return visited;
   }
-
-
-  public IToken StartToken => RangeToken?.StartToken;
-
-  public IToken EndToken => RangeToken?.EndToken;
-
-  protected IReadOnlyList<IToken> OwnedTokensCache;
-
-  private static readonly Regex StartDocstringExtractor =
-    new Regex($@"/\*\*(?<multilinecontent>{TriviaFormatterHelper.MultilineCommentContent})\*/");
-
-  /// <summary>
-  /// A token is owned by a node if it was used to parse this node,
-  /// but is not owned by any of this Node's children
-  /// </summary>
-  public IEnumerable<IToken> OwnedTokens {
-    get {
-      if (OwnedTokensCache != null) {
-        return OwnedTokensCache;
-      }
-
-      var childrenFiltered = GetConcreteChildren().ToList();
-
-      Dictionary<int, IToken> startToEndTokenNotOwned;
-      try {
-        startToEndTokenNotOwned =
-          childrenFiltered
-            .ToDictionary(child => child.StartToken.pos, child => child.EndToken!);
-      } catch (ArgumentException) {
-        // If we parse a resolved document, some children sometimes have the same token because they are auto-generated
-        startToEndTokenNotOwned = new();
-        foreach (var child in childrenFiltered) {
-          if (startToEndTokenNotOwned.ContainsKey(child.StartToken.pos)) {
-            var previousEnd = startToEndTokenNotOwned[child.StartToken.pos];
-            if (child.EndToken.pos > previousEnd.pos) {
-              startToEndTokenNotOwned[child.StartToken.pos] = child.EndToken;
-            }
-          } else {
-            startToEndTokenNotOwned[child.StartToken.pos] = child.EndToken;
-          }
-        }
-      }
-
-      var result = new List<IToken>();
-      if (StartToken == null) {
-        Contract.Assume(EndToken == null);
-      } else {
-        Contract.Assume(EndToken != null);
-        var tmpToken = StartToken;
-        while (tmpToken != null && tmpToken != EndToken.Next) {
-          if (startToEndTokenNotOwned.TryGetValue(tmpToken.pos, out var endNotOwnedToken)) {
-            tmpToken = endNotOwnedToken;
-          } else if (tmpToken.Uri != null) {
-            result.Add(tmpToken);
-          }
-
-          tmpToken = tmpToken.Next;
-        }
-      }
-
-
-      OwnedTokensCache = result;
-
-      return OwnedTokensCache;
-    }
-  }
-
-  public abstract RangeToken RangeToken { get; set; }
 
   // Docstring from start token is extracted only if using "/** ... */" syntax, and only the last one is considered
   protected string GetTriviaContainingDocstringFromStartTokenOrNull() {
@@ -278,19 +278,19 @@ public abstract class Node : INode {
 }
 
 public abstract class TokenNode : Node {
-
-  public IToken tok = Token.NoToken;
-  [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-  public override IToken Tok {
-    get => tok;
-  }
-
-  protected RangeToken rangeToken = null;
-
   // Contains tokens that did not make it in the AST but are part of the expression,
   // Enables ranges to be correct.
   // TODO: Re-add format tokens where needed until we put all the formatting to replace the tok of every expression
   internal IToken[] FormatTokens = null;
+
+  protected RangeToken rangeToken = null;
+
+  public IToken tok = Token.NoToken;
+
+  [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+  public override IToken Tok {
+    get => tok;
+  }
 
   public override RangeToken RangeToken {
     get {
@@ -313,7 +313,7 @@ public abstract class TokenNode : Node {
           }
         }
 
-        void UpdateStartEndTokRecursive(Node node) {
+        void UpdateStartEndTokRecursive(INode node) {
           if (node is null) {
             return;
           }
@@ -322,8 +322,8 @@ public abstract class TokenNode : Node {
               node is DefaultValueExpression) {
             // Ignore any auto-generated expressions.
           } else {
-            UpdateStartEndToken(node.StartToken);
-            UpdateStartEndToken(node.EndToken);
+            UpdateStartEndToken(node.RangeToken.StartToken);
+            UpdateStartEndToken(node.RangeToken.EndToken);
           }
         }
 
@@ -344,19 +344,19 @@ public abstract class TokenNode : Node {
   }
 }
 
-public abstract class RangeNode : Node { // TODO merge into Node when TokenNode is gone.
-  public override IToken Tok => StartToken; // TODO rename to ReportingToken in separate PR
-
-  public IToken tok => Tok; // TODO replace with Tok in separate PR
-
-  // TODO rename to Range in separate PR
-  public override RangeToken RangeToken { get; set; } // TODO remove setter when TokenNode is gone.
-
+public abstract class RangeNode : Node {
   protected RangeNode(Cloner cloner, RangeNode original) {
     RangeToken = cloner.Tok(original.RangeToken);
   }
 
   protected RangeNode(RangeToken rangeToken) {
     RangeToken = rangeToken;
-  }
+  } // TODO merge into Node when TokenNode is gone.
+
+  public override IToken Tok => StartToken; // TODO rename to ReportingToken in separate PR
+
+  public IToken tok => Tok; // TODO replace with Tok in separate PR
+
+  // TODO rename to Range in separate PR
+  public override RangeToken RangeToken { get; set; } // TODO remove setter when TokenNode is gone.
 }

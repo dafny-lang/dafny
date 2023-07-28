@@ -55,12 +55,11 @@ public abstract class TypeSynonymDeclBase : TopLevelDecl, RedirectingTypeDecl, I
     }
   }
 
-  public override IEnumerable<Node> Children => base.Children.Concat(
+  public override IEnumerable<INode> Children => base.Children.Concat(
     Rhs != null ? new List<Node>() { Rhs } : Enumerable.Empty<Node>());
 
   string RedirectingTypeDecl.Name { get { return Name; } }
   IToken RedirectingTypeDecl.tok { get { return tok; } }
-  IEnumerable<IToken> RedirectingTypeDecl.OwnedTokens => OwnedTokens;
   IToken RedirectingTypeDecl.StartToken => StartToken;
   Attributes RedirectingTypeDecl.Attributes { get { return Attributes; } }
   ModuleDefinition RedirectingTypeDecl.Module { get { return EnclosingModuleDefinition; } }

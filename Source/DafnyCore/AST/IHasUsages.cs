@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 
 namespace Microsoft.Dafny;
@@ -10,8 +11,34 @@ public interface IHasUsages : IDeclarationOrUsage {
   public IEnumerable<IDeclarationOrUsage> GetResolvedDeclarations();
 }
 
+public static class AstExtensions {
+
+  public static string GetMemberQualification(LList<INode> chain) {
+    var parent = (TopLevelDeclWithMembers)chain.Data;
+    return parent.Name == "_default" ? "" : $"{parent.Name}.";
+  }
+
+  /// <summary>
+  /// Returns a text representation of the given variable.
+  /// </summary>
+  /// <param name="variable">The variable to get a text representation of.</param>
+  /// <returns>The text representation of the variable.</returns>
+  public static string AsText(this IVariable variable) {
+    var ghost = variable.IsGhost ? "ghost " : "";
+    string type;
+    try {
+      type = variable.Type.ToString();
+    } catch (Exception e) {
+      type = $"<Internal error: {e.Message}>";
+    }
+    return $"{ghost}{variable.Name}: {type}";
+  }
+}
+
 public interface ISymbol : IDeclarationOrUsage {
   DafnySymbolKind Kind { get; }
+
+  string GetHoverText(DafnyOptions options, LList<INode> ancestors);
 }
 
 public interface IHasSymbolChildren : ISymbol {
