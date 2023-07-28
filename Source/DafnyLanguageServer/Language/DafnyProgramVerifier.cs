@@ -45,9 +45,12 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         };
 
         var verifiableModules = Translator.VerifiableModules(program).ToList();
+        var start2 = DateTime.Now;
         var tasks = verifiableModules.Select(async outerModule => {
+          var start0 = DateTime.Now;
           var boogieProgram = await DafnyMain.LargeStackFactory.StartNew(
             () => {
+              telemetryPublisher.PublishTime("SpinUpLargeStackFactoryTask", outerModule.Name, DateTime.Now - start0);
               var start = DateTime.Now;
               Type.ResetScopes();
 
@@ -66,7 +69,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
 
               telemetryPublisher.PublishTime("TranslateToBoogie", outerModule.Name, DateTime.Now - start);
               return boogieProgram;
-            }, cancellationToken);
+            }, cancellationToken, TaskCreationOptions.LongRunning, TaskScheduler.Current);
 
           cancellationToken.ThrowIfCancellationRequested();
           var result = await Task.Run(() => {
@@ -77,8 +80,10 @@ namespace Microsoft.Dafny.LanguageServer.Language {
           }, cancellationToken);
           return result;
         }).ToList();
-
+        telemetryPublisher.PublishTime("computeVerifyTaskList", "program", DateTime.Now - start2);
+        var start3 = DateTime.Now;
         var tasksPerModule = await Task.WhenAll(tasks);
+        telemetryPublisher.PublishTime("waitForAllVerifyTasks", "program", DateTime.Now - start3);
         return tasksPerModule.SelectMany(x => x).ToList();
       }
       finally {
