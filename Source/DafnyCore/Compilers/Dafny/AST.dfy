@@ -5,7 +5,9 @@ module {:extern "DAST"} DAST {
 
   datatype Newtype = Newtype(name: string, base: Type)
 
-  datatype Type = Path(seq<Ident>, typeArgs: seq<Type>, resolved: ResolvedType) | Tuple(seq<Type>) | Passthrough(string) | TypeArg(Ident)
+  datatype Type = Path(seq<Ident>, typeArgs: seq<Type>, resolved: ResolvedType) | Tuple(seq<Type>) | Primitive(Primitive) | Passthrough(string) | TypeArg(Ident)
+
+  datatype Primitive = String | Bool
 
   datatype ResolvedType = Datatype(path: seq<Ident>) | Newtype
 

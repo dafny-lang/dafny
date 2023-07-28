@@ -6,11 +6,11 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
     public ModuleDefinition Declaration { get; }
     public INode Node => Declaration;
 
-    public ISet<ISymbol> Declarations { get; } = new HashSet<ISymbol>();
+    public ISet<ILegacySymbol> Declarations { get; } = new HashSet<ILegacySymbol>();
 
-    public override IEnumerable<ISymbol> Children => Declarations;
+    public override IEnumerable<ILegacySymbol> Children => Declarations;
 
-    public ModuleSymbol(ISymbol? scope, ModuleDefinition moduleDefinition) : base(scope, moduleDefinition.Name) {
+    public ModuleSymbol(ILegacySymbol? scope, ModuleDefinition moduleDefinition) : base(scope, moduleDefinition.Name) {
       Declaration = moduleDefinition;
     }
 

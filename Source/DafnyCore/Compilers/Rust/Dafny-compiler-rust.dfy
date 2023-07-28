@@ -264,6 +264,12 @@ module {:extern "DCOMP"} DCOMP {
           s := s + ")";
         }
         case TypeArg(Ident(name)) => s := name;
+        case Primitive(p) => {
+          match p {
+            case String => s := "String";
+            case Bool => s := "bool";
+          }
+        }
         case Passthrough(v) => s := v;
       }
     }
@@ -530,7 +536,7 @@ module {:extern "DCOMP"} DCOMP {
         }
         case Literal(StringLiteral(l)) => {
           // TODO(shadaj): handle unicode properly
-          s := "\"" + l + "\"";
+          s := "\"" + l + "\".to_string()";
           isOwned := true;
         }
         case Ident(name) => {
