@@ -707,7 +707,12 @@ namespace Microsoft.Dafny {
       return new Bpl.IdentifierExpr(tok, var.AssignUniqueName(currentDeclaration.IdGenerator), TrType(var.Type));
     }
 
-    private Bpl.Program DoTranslation(Program p, ModuleDefinition forModule) {
+    public Bpl.Program DoTranslation(Program p, ModuleDefinition forModule) {
+      if (sink == null) {
+        // something went wrong during construction, which reads the prelude; an error has
+        // already been printed, so just return an empty program here (which is non-null)
+        return new Bpl.Program();
+      }
       program = p;
       this.forModule = forModule;
       Type.EnableScopes();
@@ -868,12 +873,6 @@ namespace Microsoft.Dafny {
 
       foreach (ModuleDefinition outerModule in VerifiableModules(p)) {
         var translator = new Translator(reporter, flags);
-
-        if (translator.sink == null || translator.sink == null) {
-          // something went wrong during construction, which reads the prelude; an error has
-          // already been printed, so just return an empty program here (which is non-null)
-          yield return new Tuple<string, Bpl.Program>(outerModule.SanitizedName, new Bpl.Program());
-        }
         yield return new Tuple<string, Bpl.Program>(outerModule.SanitizedName, translator.DoTranslation(p, outerModule));
       }
     }

@@ -37,25 +37,32 @@ namespace Microsoft.Dafny.LanguageServer.Language {
 
         cancellationToken.ThrowIfCancellationRequested();
 
-        var translated = await DafnyMain.LargeStackFactory.StartNew(() => Translator.Translate(program, errorReporter, new Translator.TranslatorFlags(errorReporter.Options) {
+        var flags = new Translator.TranslatorFlags(errorReporter.Options) {
           InsertChecksums = true,
           ReportRanges = true
-        }).ToList(), cancellationToken);
+        };
 
-        cancellationToken.ThrowIfCancellationRequested();
+        var verifiableModules = Translator.VerifiableModules(program).ToList();
+        var tasks = verifiableModules.Select(outerModule => DafnyMain.LargeStackFactory.StartNew(
+          () => {
+            Type.ResetScopes();
 
-        if (engine.Options.PrintFile != null) {
-          var moduleCount = Translator.VerifiableModules(program).Count();
-          foreach (var (suffix, boogieProgram) in translated) {
-            var fileName = moduleCount > 1 ? DafnyMain.BoogieProgramSuffix(engine.Options.PrintFile, suffix) : engine.Options.PrintFile;
-            ExecutionEngine.PrintBplFile(engine.Options, fileName, boogieProgram, false, false, engine.Options.PrettyPrint);
-          }
-        }
+            var translator = new Translator(program.Reporter, flags);
+            var boogieProgram = translator.DoTranslation(program, outerModule);
 
-        return translated.SelectMany(t => {
-          var (_, boogieProgram) = t;
-          return engine.GetImplementationTasks(boogieProgram);
-        }).ToList();
+            if (engine.Options.PrintFile != null) {
+              var suffix = outerModule.SanitizedName;
+
+              var fileName = verifiableModules.Count > 1 ? DafnyMain.BoogieProgramSuffix(engine.Options.PrintFile, suffix) : engine.Options.PrintFile;
+              ExecutionEngine.PrintBplFile(engine.Options, fileName, boogieProgram, false, false, engine.Options.PrettyPrint);
+            }
+
+            cancellationToken.ThrowIfCancellationRequested();
+            return engine.GetImplementationTasks(boogieProgram);
+          }, cancellationToken));
+
+        var tasksPerModule = await Task.WhenAll(tasks);
+        return tasksPerModule.SelectMany(x => x).ToList();
       }
       finally {
         mutex.Release();
