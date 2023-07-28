@@ -93,27 +93,34 @@ public class MultiBackendTest {
 
     output.WriteLine("Verifying...");
 
-    var (exitCode, outputString, error) = RunDafny(options.DafnyCliPath, dafnyArgs);
-    if (exitCode != 0) {
-      output.WriteLine("Verification failed. Output:");
-      output.WriteLine(outputString);
-      output.WriteLine("Error:");
-      output.WriteLine(error);
-      return exitCode;
-    }
-    var expectFileForVerifier = $"{options.TestFile}.verifier.expect";
-    if (File.Exists(expectFileForVerifier)) {
-      var expectedOutput = File.ReadAllText(expectFileForVerifier);
-      // Chop off the "Dafny program verifier finished with..." trailer
-      var trailer = new Regex("\r?\nDafny program verifier[^\r\n]*\r?\n").Match(outputString);
-      var actualOutput = outputString.Remove(trailer.Index, trailer.Length);
-      var diffMessage = AssertWithDiff.GetDiffMessage(expectedOutput, actualOutput);
-      if (diffMessage == null) {
-        return 0;
+    var resolutionOptions = new List<(string[], string)>() {
+      (new string[] { }, ".verifier"),
+      (new string[] { "--type-system-refresh" }, ".refresh")
+    };
+    foreach (var resolutionOption in resolutionOptions) {
+      var (exitCode, outputString, error) = RunDafny(options.DafnyCliPath, dafnyArgs.Concat(resolutionOption.Item1));
+      if (exitCode != 0) {
+        output.WriteLine($"Verification failed. Options: {resolutionOption}");
+        output.WriteLine("Output:");
+        output.WriteLine(outputString);
+        output.WriteLine("Error:");
+        output.WriteLine(error);
+        return exitCode;
       }
+      var expectFileForVerifier = $"{options.TestFile}{resolutionOption.Item2}.expect";
+      if (File.Exists(expectFileForVerifier)) {
+        var expectedOutput = File.ReadAllText(expectFileForVerifier);
+        // Chop off the "Dafny program verifier finished with..." trailer
+        var trailer = new Regex("\r?\nDafny program verifier[^\r\n]*\r?\n").Match(outputString);
+        var actualOutput = outputString.Remove(trailer.Index, trailer.Length);
+        var diffMessage = AssertWithDiff.GetDiffMessage(expectedOutput, actualOutput);
+        if (diffMessage == null) {
+          return 0;
+        }
 
-      output.WriteLine(diffMessage);
-      return 1;
+        output.WriteLine(diffMessage);
+        return 1;
+      }
     }
 
     // Then execute the program for each available compiler.
