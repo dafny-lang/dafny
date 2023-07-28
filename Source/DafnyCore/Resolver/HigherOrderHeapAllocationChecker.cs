@@ -24,6 +24,18 @@ class HigherOrderHeapAllocationChecker : ASTVisitor<IASTVisitorContext> {
     if (stmt is AssignStmt assign) {
       var rhs = assign.Rhs;
       var lhs = assign.Lhs;
+      if (lhs is MemberSelectExpr mseLhs) {
+        if (rhs is ExprRhs eRhs) {
+          var exp = eRhs.Expr;
+          var type = exp.Type;
+          if (type.IsArrowType) {
+            if (!type.IsArrowTypeWithoutReadEffects) {
+              reporter.Error(MessageSource.Resolver, stmt,
+                $"Illegal");
+            }
+          }
+        }
+      }
     }
     return base.VisitOneStatement(stmt, context);
   }
