@@ -30,9 +30,9 @@ class HigherOrderHeapAllocationChecker : ASTVisitor<IASTVisitorContext> {
           var type = exp.Type;
 
           if (type.IsArrowType) {
-            //   if (!type.IsArrowTypeWithoutReadEffects) {
-            //     reporter.Error(MessageSource.Resolver, stmt,$"Illegal");
-            //   }
+            if (!type.IsArrowTypeWithoutReadEffects) {
+              reporter.Error(MessageSource.Resolver, stmt, $"Illegal");
+            }
 
             var arrow = type.AsArrowType;
             if (mseLhs.Obj.Type.Equals(arrow.Args[0])) {
