@@ -1,0 +1,3 @@
+Bug49.dfy(72,14): Error: value does not satisfy the subset constraints of 'int -> int' (possible cause: it may be partial or have read effects)
+
+Dafny program verifier finished with 12 verified, 1 error

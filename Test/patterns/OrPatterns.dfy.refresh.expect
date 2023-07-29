@@ -1,0 +1,8 @@
+OrPatterns.dfy(53,24): Error: PRE-TYPE: Disjunctive patterns may not bind variables
+OrPatterns.dfy(53,32): Error: PRE-TYPE: Disjunctive patterns may not bind variables
+OrPatterns.dfy(54,16): Error: PRE-TYPE: Disjunctive patterns may not bind variables
+OrPatterns.dfy(54,32): Error: PRE-TYPE: Disjunctive patterns may not bind variables
+OrPatterns.dfy(55,16): Error: PRE-TYPE: Disjunctive patterns may not bind variables
+OrPatterns.dfy(55,24): Error: PRE-TYPE: Disjunctive patterns may not bind variables
+OrPatterns.dfy(34,7): Error: not resolving module '_module' because there were errors in resolving its nested module 'Lists'
+7 resolution/type errors detected in OrPatterns.dfy

@@ -1,0 +1,2 @@
+Uninitialized.dfy(89,20): Error: PRE-TYPE: arguments must have comparable types (got seq<?0> and seq<?6>)
+1 resolution/type errors detected in Uninitialized.dfy

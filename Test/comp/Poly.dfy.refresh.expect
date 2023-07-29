@@ -1,0 +1,3 @@
+Poly.dfy(129,38): Error: PRE-TYPE: incorrect argument type for lemma in-parameter 's' (expected set<int>, found set<int>)
+Poly.dfy(132,11): Error: PRE-TYPE: type of right argument to - (set<int>) must agree with the result type (set<?222>)
+2 resolution/type errors detected in Poly.dfy

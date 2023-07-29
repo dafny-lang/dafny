@@ -1,0 +1,3 @@
+ArrayElementInitCompile.dfy(162,11): Error: assertion might not hold
+
+Dafny program verifier finished with 17 verified, 1 error

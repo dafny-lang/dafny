@@ -1,0 +1,5 @@
+git-issue-283.dfy(54,29): Error: PRE-TYPE: LHS of assignment must denote a mutable variable
+git-issue-283.dfy(71,29): Error: PRE-TYPE: LHS of assignment must denote a mutable variable
+git-issue-283.dfy(97,21): Error: PRE-TYPE: constructor 'C2' of arity 1 is applied without any arguments
+git-issue-283.dfy(103,19): Error: PRE-TYPE: constructor 'C2' of arity 1 is applied without any arguments
+4 resolution/type errors detected in git-issue-283.dfy

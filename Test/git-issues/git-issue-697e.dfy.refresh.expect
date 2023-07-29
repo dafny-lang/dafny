@@ -1,0 +1,4 @@
+git-issue-697e.dfy(13,49): Error: value does not satisfy the subset constraints of 'EvenCell'
+git-issue-697e.dfy(14,9): Error: assertion might not hold
+
+Dafny program verifier finished with 2 verified, 2 errors

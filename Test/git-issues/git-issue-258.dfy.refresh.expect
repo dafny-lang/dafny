@@ -1,0 +1,7 @@
+git-issue-258.dfy(21,2): Error: PRE-TYPE: type parameter 'T' (inferred to be '?30') to the method 'pr' could not be determined
+git-issue-258.dfy(22,2): Error: PRE-TYPE: type parameter 'T' (inferred to be '?34') to the method 'pr' could not be determined
+git-issue-258.dfy(37,2): Error: PRE-TYPE: type parameter 'T' (inferred to be '?75') to the method 'pr' could not be determined
+git-issue-258.dfy(37,10): Error: PRE-TYPE: the type ('seq<?84>') of this expression is underspecified
+git-issue-258.dfy(39,2): Error: PRE-TYPE: type parameter 'T' (inferred to be '?87') to the method 'pr' could not be determined
+git-issue-258.dfy(39,7): Error: PRE-TYPE: the type ('seq<?100>') of this expression is underspecified
+6 resolution/type errors detected in git-issue-258.dfy

@@ -1,0 +1,4 @@
+FIFO.dfy(30,19): Error: PRE-TYPE: incorrect argument type at index 1 for method in-parameter 'q' (expected Queue, found seq<int>)
+FIFO.dfy(32,19): Error: PRE-TYPE: incorrect argument type at index 1 for method in-parameter 'q' (expected Queue, found seq<int>)
+FIFO.dfy(37,21): Error: PRE-TYPE: incorrect argument type for method in-parameter 'q' (expected Queue, found seq<int>)
+3 resolution/type errors detected in FIFO.dfy

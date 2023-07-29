@@ -1,0 +1,4 @@
+NestedArrays.dfy(53,9): Error: value of expression (of type 'array2?<array?<int>>') is not known to be an instance of type 'array2<array?<int>>' (possible cause: it may be null)
+NestedArrays.dfy(75,4): Error: value of expression (of type 'array?<MyClass?>') is not known to be an instance of type 'array<MyClass?>' (possible cause: it may be null)
+
+Dafny program verifier finished with 2 verified, 2 errors

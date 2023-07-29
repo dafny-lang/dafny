@@ -1,0 +1,5 @@
+RuntimeTypeTests0.dfy(55,25): Error: PRE-TYPE: All elements of display must have some common supertype (got Class1?, but needed type or type of previous elements is Class0?)
+RuntimeTypeTests0.dfy(65,25): Error: PRE-TYPE: All elements of display must have some common supertype (got Class1?, but needed type or type of previous elements is Class0?)
+RuntimeTypeTests0.dfy(75,38): Error: PRE-TYPE: All elements of display must have some common supertype (got Class1?, but needed type or type of previous elements is Class0?)
+RuntimeTypeTests0.dfy(85,43): Error: PRE-TYPE: All elements of display must have some common supertype (got Class1?, but needed type or type of previous elements is Class0?)
+4 resolution/type errors detected in RuntimeTypeTests0.dfy

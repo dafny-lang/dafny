@@ -1,0 +1,30 @@
+TraitCompile.dfy(319,19): Error: PRE-TYPE: RHS (of type B) not assignable to LHS (of type int)
+TraitCompile.dfy(308,8): Error: PRE-TYPE: non-variance would require B == int
+TraitCompile.dfy(313,37): Error: PRE-TYPE: integer literal used as if it had type B
+TraitCompile.dfy(315,23): Error: PRE-TYPE: type of real literal is used as A
+TraitCompile.dfy(315,29): Error: PRE-TYPE: integer literal used as if it had type B
+TraitCompile.dfy(318,26): Error: PRE-TYPE: type of real literal is used as A
+TraitCompile.dfy(318,37): Error: PRE-TYPE: integer literal used as if it had type B
+TraitCompile.dfy(324,45): Error: PRE-TYPE: integer literal used as if it had type B
+TraitCompile.dfy(325,38): Error: PRE-TYPE: integer literal used as if it had type B
+TraitCompile.dfy(326,42): Error: PRE-TYPE: integer literal used as if it had type B
+TraitCompile.dfy(167,19): Error: PRE-TYPE: incorrect return type for method out-parameter 'bb' (expected B, got real)
+TraitCompile.dfy(177,9): Error: PRE-TYPE: RHS (of type B) not assignable to LHS (of type real)
+TraitCompile.dfy(167,23): Error: PRE-TYPE: boolean literal used as if it had type A
+TraitCompile.dfy(167,29): Error: PRE-TYPE: type of real literal is used as B
+TraitCompile.dfy(177,27): Error: PRE-TYPE: boolean literal used as if it had type A
+TraitCompile.dfy(177,39): Error: PRE-TYPE: type of real literal is used as B
+TraitCompile.dfy(210,19): Error: PRE-TYPE: incorrect argument type at index 1 for method in-parameter 'a' (expected A, found Q)
+TraitCompile.dfy(210,19): Error: PRE-TYPE: incorrect argument type at index 2 for method in-parameter 'b' (expected B, found int)
+TraitCompile.dfy(210,19): Error: PRE-TYPE: incorrect return type for method out-parameter 'bb' (expected B, got int)
+TraitCompile.dfy(220,25): Error: PRE-TYPE: covariance would require A :> Q
+TraitCompile.dfy(220,25): Error: PRE-TYPE: covariance would require A :> Q
+TraitCompile.dfy(220,35): Error: PRE-TYPE: integer literal used as if it had type B
+TraitCompile.dfy(268,19): Error: PRE-TYPE: incorrect argument type at index 1 for method in-parameter 'a' (expected A, found Q)
+TraitCompile.dfy(268,19): Error: PRE-TYPE: incorrect argument type at index 2 for method in-parameter 'b' (expected B, found int)
+TraitCompile.dfy(268,19): Error: PRE-TYPE: incorrect return type for method out-parameter 'bb' (expected B, got int)
+TraitCompile.dfy(278,25): Error: PRE-TYPE: covariance would require A :> Q
+TraitCompile.dfy(278,25): Error: PRE-TYPE: covariance would require A :> Q
+TraitCompile.dfy(278,35): Error: PRE-TYPE: integer literal used as if it had type B
+TraitCompile.dfy(130,7): Error: not resolving module '_module' because there were errors in resolving its nested module 'GenericBasics'
+29 resolution/type errors detected in TraitCompile.dfy

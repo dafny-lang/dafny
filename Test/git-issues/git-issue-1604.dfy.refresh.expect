@@ -1,0 +1,2 @@
+git-issue-1604.dfy(14,29): Error: PRE-TYPE: incorrect argument type for predicate parameter 'a' (expected A?, found Tr?)
+1 resolution/type errors detected in git-issue-1604.dfy
