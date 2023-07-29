@@ -99,6 +99,7 @@ public class MultiBackendTest {
     };
     foreach (var resolutionOption in resolutionOptions) {
       var (exitCode, outputString, error) = RunDafny(options.DafnyCliPath, dafnyArgs.Concat(resolutionOption.Item1));
+      // If there is a .verifier.expect file, then we a non-0 exitCode, provided the output matches the .verifier.expect file
       var expectFileForVerifier = $"{options.TestFile}{resolutionOption.Item2}.expect";
       if (File.Exists(expectFileForVerifier)) {
         var expectedOutput = File.ReadAllText(expectFileForVerifier);
@@ -110,10 +111,8 @@ public class MultiBackendTest {
           output.WriteLine(diffMessage);
           return 1;
         }
-      }
-      if (exitCode != 0) {
-        output.WriteLine($"Verification failed. Options: {resolutionOption}");
-        output.WriteLine("Output:");
+      } else if (exitCode != 0) {
+        output.WriteLine("Verification failed. Output:");
         output.WriteLine(outputString);
         output.WriteLine("Error:");
         output.WriteLine(error);
@@ -124,8 +123,7 @@ public class MultiBackendTest {
     // Then execute the program for each available compiler.
 
     string expectFile = options.TestFile + ".expect";
-    var commonExpectedOutput = "\nDafny program verifier did not attempt verification\n" +
-                         File.ReadAllText(expectFile);
+    var commonExpectedOutput = File.ReadAllText(expectFile);
 
     var success = true;
     foreach (var plugin in dafnyOptions.Plugins) {
@@ -141,8 +139,7 @@ public class MultiBackendTest {
         string? checkFile = null;
         var expectFileForBackend = $"{options.TestFile}.{compiler.TargetId}.expect";
         if (File.Exists(expectFileForBackend)) {
-          expectedOutput = "\nDafny program verifier did not attempt verification\n" +
-                           File.ReadAllText(expectFileForBackend);
+          expectedOutput = File.ReadAllText(expectFileForBackend);
         }
         var checkFileForBackend = $"{options.TestFile}.{compiler.TargetId}.check";
         if (File.Exists(checkFileForBackend)) {
@@ -190,6 +187,10 @@ public class MultiBackendTest {
     }.Concat(options.OtherArgs);
 
     var (exitCode, outputString, error) = RunDafny(options.DafnyCliPath, dafnyArgs);
+    var compilationOutputPrior = new Regex("\r?\nDafny program verifier[^\r\n]*\r?\n").Match(outputString);
+    if (compilationOutputPrior.Success) {
+      outputString = outputString.Remove(0, compilationOutputPrior.Index + compilationOutputPrior.Length);
+    }
 
     if (exitCode == 0) {
       var diffMessage = AssertWithDiff.GetDiffMessage(expectedOutput, outputString);
@@ -275,11 +276,6 @@ public class MultiBackendTest {
   private static bool IsAllowedOutputLine(IExecutableBackend backend, string line) {
     line = line.Trim();
     if (line.Length == 0) {
-      return true;
-    }
-
-    // This is the first non-blank line we expect when we pass /noVerify
-    if (line == "Dafny program verifier did not attempt verification") {
       return true;
     }
 
