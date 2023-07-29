@@ -97,9 +97,7 @@ public abstract class TypeSynonymDeclBase : TopLevelDecl, RedirectingTypeDecl, I
     return false;
   }
 
-
-
-  protected override string GetTriviaContainingDocstring() {
+  public string GetTriviaContainingDocstring() {
     IToken openingBlock = null;
     foreach (var token in OwnedTokens) {
       if (token.val == "{") {

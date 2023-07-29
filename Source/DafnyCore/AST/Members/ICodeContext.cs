@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 
@@ -90,9 +89,6 @@ public class CallableWrapper : CodeContextWrapper, ICallable {
   }
 
   public bool AllowsAllocation => cwInner.AllowsAllocation;
-  public IEnumerable<INode> GetConcreteChildren() {
-    return cwInner.GetConcreteChildren();
-  }
 
   public IEnumerable<IToken> OwnedTokens => cwInner.OwnedTokens;
   public RangeToken RangeToken => cwInner.RangeToken;
@@ -111,10 +107,6 @@ public class DontUseICallable : ICallable {
   public IToken Tok { get { throw new cce.UnreachableException(); } }
   public IEnumerable<INode> Children => throw new cce.UnreachableException();
   public IEnumerable<INode> PreResolveChildren => throw new cce.UnreachableException();
-
-  public string GetDocstring(DafnyOptions options) {
-    throw new cce.UnreachableException();
-  }
 
   public string NameRelativeToModule { get { throw new cce.UnreachableException(); } }
   public Specification<Expression> Decreases { get { throw new cce.UnreachableException(); } }

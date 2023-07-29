@@ -86,7 +86,7 @@ public class AbstractTypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, ICa
     return true;
   }
 
-  protected override string GetTriviaContainingDocstring() {
+  public string GetTriviaContainingDocstring() {
     IToken openingBlock = null;
     foreach (var token in OwnedTokens) {
       if (token.val == "{") {

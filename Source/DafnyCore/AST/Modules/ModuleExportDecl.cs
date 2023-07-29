@@ -95,7 +95,7 @@ public class ModuleExportDecl : ModuleDecl, ICanFormat {
     return true;
   }
 
-  protected override string GetTriviaContainingDocstring() {
+  public override string GetTriviaContainingDocstring() {
     if (Tok.TrailingTrivia.Trim() != "") {
       return Tok.TrailingTrivia;
     }

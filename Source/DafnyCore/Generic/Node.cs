@@ -17,8 +17,6 @@ public interface INode {
   IToken Tok { get; }
   IEnumerable<INode> Children { get; }
   IEnumerable<INode> PreResolveChildren { get; }
-
-  IEnumerable<INode> GetConcreteChildren();
 }
 
 public interface ICanFormat : INode {
@@ -28,10 +26,6 @@ public interface ICanFormat : INode {
   bool SetIndent(int indentBefore, TokenNewIndentCollector formatter);
 }
 
-// A node that can have a docstring attached to it
-public interface IHasDocstring : INode {
-  string GetDocstring(DafnyOptions options);
-}
 
 public abstract class Node : INode {
   private static readonly Regex StartDocstringExtractor =
@@ -59,20 +53,6 @@ public abstract class Node : INode {
   /// </summary>
   public abstract IEnumerable<INode> PreResolveChildren { get; }
 
-  // Nodes like DefaultClassDecl have children but no OwnedTokens as they are not "physical"
-  // Therefore, we have to find all the concrete children by unwrapping such nodes.
-  public IEnumerable<INode> GetConcreteChildren() {
-    foreach (var child in PreResolveChildren) {
-      if (child.StartToken != null && child.EndToken != null && child.StartToken.line != 0) {
-        yield return child;
-      } else {
-        foreach (var subNode in child.GetConcreteChildren()) {
-          yield return subNode;
-        }
-      }
-    }
-  }
-
   /// <summary>
   /// A token is owned by a node if it was used to parse this node,
   /// but is not owned by any of this Node's children
@@ -83,7 +63,7 @@ public abstract class Node : INode {
         return OwnedTokensCache;
       }
 
-      var childrenFiltered = GetConcreteChildren().ToList();
+      var childrenFiltered = GetConcreteChildren(this).ToList();
 
       Dictionary<int, IToken> startToEndTokenNotOwned;
       try {
@@ -126,6 +106,22 @@ public abstract class Node : INode {
       OwnedTokensCache = result;
 
       return OwnedTokensCache;
+    }
+  }
+
+  /// <summary>
+  // Nodes like DefaultClassDecl have children but no OwnedTokens as they are not "physical"
+  // Therefore, we have to find all the concrete children by unwrapping such nodes. 
+  /// </summary>
+  private static IEnumerable<INode> GetConcreteChildren(INode node) {
+    foreach (var child in node.PreResolveChildren) {
+      if (child.StartToken != null && child.EndToken != null && child.StartToken.line != 0) {
+        yield return child;
+      } else {
+        foreach (var subNode in GetConcreteChildren(child)) {
+          yield return subNode;
+        }
+      }
     }
   }
 
@@ -191,87 +187,6 @@ public abstract class Node : INode {
         return matches[^1].Value;
       }
     }
-    return null;
-  }
-
-  // Applies plugin-defined docstring filters
-  public string GetDocstring(DafnyOptions options) {
-    var plugins = options.Plugins;
-    string trivia = GetTriviaContainingDocstring();
-    if (string.IsNullOrEmpty(trivia)) {
-      return null;
-    }
-
-    var rawDocstring = ExtractDocstring(trivia);
-    foreach (var plugin in plugins) {
-      foreach (var docstringRewriter in plugin.GetDocstringRewriters(options)) {
-        rawDocstring = docstringRewriter.RewriteDocstring(rawDocstring) ?? rawDocstring;
-      }
-    }
-
-    return rawDocstring;
-  }
-
-  private string ExtractDocstring(string trivia) {
-    var extraction = new Regex(
-      $@"(?<multiline>(?<indentation>[ \t]*)/\*(?<multilinecontent>{TriviaFormatterHelper.MultilineCommentContent})\*/)" +
-      $@"|(?<singleline>// ?(?<singlelinecontent>[^\r\n]*?)[ \t]*(?:{TriviaFormatterHelper.AnyNewline}|$))");
-    var rawDocstring = new List<string>() { };
-    var matches = extraction.Matches(trivia);
-    for (var i = 0; i < matches.Count; i++) {
-      var match = matches[i];
-      if (match.Groups["multiline"].Success) {
-        // For each line except the first,
-        // we need to remove the indentation on every line.
-        // The length of removed indentation is maximum the space before the first "/*" + 3 characters
-        // Additionally, if there is a "* " or a " *" or a "  * ", we remove it as well
-        // provided it always started with a star.
-        var indentation = match.Groups["indentation"].Value;
-        var multilineContent = match.Groups["multilinecontent"].Value;
-        var newlineRegex = new Regex(TriviaFormatterHelper.AnyNewline);
-        var contentLines = newlineRegex.Split(multilineContent);
-        var starRegex = new Regex(@"^[ \t]*\*\ ?(?<remaining>.*)$");
-        var wasNeverInterrupted = true;
-        var localDocstring = "";
-        for (var j = 0; j < contentLines.Length; j++) {
-          if (j != 0) {
-            localDocstring += "\n";
-          }
-          var contentLine = contentLines[j];
-          var lineMatch = starRegex.Match(contentLine);
-          if (lineMatch.Success && wasNeverInterrupted) {
-            localDocstring += lineMatch.Groups["remaining"].Value;
-          } else {
-            if (j == 0) {
-              localDocstring += contentLine.TrimStart();
-            } else {
-              wasNeverInterrupted = false;
-              if (contentLine.StartsWith(indentation)) {
-                var trimmedIndentation =
-                  contentLine.Substring(0, Math.Min(indentation.Length + 3, contentLine.Length)).TrimStart();
-                var remaining = (contentLine.Length >= indentation.Length + 3
-                  ? contentLine.Substring(indentation.Length + 3)
-                  : "");
-                localDocstring += trimmedIndentation + remaining;
-              } else {
-                localDocstring += contentLine.Trim();
-              }
-            }
-          }
-        }
-
-        localDocstring = localDocstring.Trim();
-        rawDocstring.Add(localDocstring);
-      } else if (match.Groups["singleline"].Success) {
-        rawDocstring.Add(match.Groups["singlelinecontent"].Value);
-      }
-    }
-
-    return string.Join("\n", rawDocstring);
-  }
-
-  // Unfiltered version that only returns the trivia containing the docstring
-  protected virtual string GetTriviaContainingDocstring() {
     return null;
   }
 }

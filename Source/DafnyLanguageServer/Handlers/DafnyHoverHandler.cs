@@ -428,7 +428,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
 
     private string CreateSymbolMarkdown(ISymbol symbol) {
       var docString = symbol is IHasDocstring nodeWithDocstring ? nodeWithDocstring.GetDocstring(options) : "";
-      return (docString + $"\n```dafny\n{symbol.GetHoverText(options)}\n```").TrimStart();
+      return (docString + $"\n```dafny\n{symbol.GetDescription(options)}\n```").TrimStart();
     }
   }
 }

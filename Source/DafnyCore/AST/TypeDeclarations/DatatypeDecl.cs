@@ -168,7 +168,7 @@ public abstract class DatatypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl
     return true;
   }
 
-  protected override string GetTriviaContainingDocstring() {
+  public string GetTriviaContainingDocstring() {
     foreach (var token in OwnedTokens) {
       if (token.val == "=" && token.TrailingTrivia.Trim() != "") {
         return token.TrailingTrivia;
