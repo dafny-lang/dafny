@@ -1,5 +1,5 @@
 [package]
-name = "dafny_runtime_rust"
+name = "dafny_runtime"
 version = "0.1.0"
 edition = "2021"
 

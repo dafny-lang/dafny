@@ -691,9 +691,9 @@ module {:extern "DCOMP"} DCOMP {
       }
     }
 
-    static method Compile(p: seq<Module>, runtime: string) returns (s: string) {
+    static method Compile(p: seq<Module>) returns (s: string) {
       s := "#![allow(warnings, unconditional_panic)]\n";
-      s := s + "mod dafny_runtime {\n" + runtime + "\n}\n";
+      s := s + "extern crate dafny_runtime;\n";
 
       var i := 0;
       while i < |p| {
