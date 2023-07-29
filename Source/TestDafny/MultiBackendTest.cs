@@ -93,11 +93,10 @@ public class MultiBackendTest {
 
     output.WriteLine("Verifying...");
 
-    var expectFileForVerifier = $"{options.TestFile}.verifier.expect";
-    var hasVerifierExpectFile = File.Exists(expectFileForVerifier);
     var (exitCode, outputString, error) = RunDafny(options.DafnyCliPath, dafnyArgs);
     // If there is a .verifier.expect file, then we a non-0 exitCode, provided the output matches the .verifier.expect file
-    if (hasVerifierExpectFile) {
+    var expectFileForVerifier = $"{options.TestFile}.verifier.expect";
+    if (File.Exists(expectFileForVerifier)) {
       var expectedOutput = File.ReadAllText(expectFileForVerifier);
       // Chop off the "Dafny program verifier finished with..." trailer
       var trailer = new Regex("\r?\nDafny program verifier[^\r\n]*\r?\n").Match(outputString);
