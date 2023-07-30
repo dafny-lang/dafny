@@ -38,6 +38,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       this.logger = logger;
       this.fileSystem = fileSystem;
       this.serverOptions = serverOptions;
+      serverOptions.VcsCores = 0;
       boogieEngine = new ExecutionEngine(serverOptions, verificationCache);
     }
 

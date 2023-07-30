@@ -33,6 +33,8 @@ public class AmbiguousTopLevelDecl : TopLevelDecl, IAmbiguousThing<TopLevelDecl>
     get { return Pool.First().WhatKind; }
   }
 
+  public override DafnySymbolKind Kind => DafnySymbolKind.Namespace;
+
   readonly ISet<TopLevelDecl> Pool = new HashSet<TopLevelDecl>();
 
   ISet<TopLevelDecl> IAmbiguousThing<TopLevelDecl>.Pool {

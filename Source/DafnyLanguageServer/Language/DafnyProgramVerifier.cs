@@ -46,6 +46,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
 
         var verifiableModules = Translator.VerifiableModules(program).ToList();
         var start2 = DateTime.Now;
+        var usageGraph = SymbolTable.CreateFrom(program).UsageGraph();
         var tasks = verifiableModules.Select(async outerModule => {
           var start0 = DateTime.Now;
           var boogieProgram = await DafnyMain.LargeStackFactory.StartNew(
@@ -54,7 +55,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
               var start = DateTime.Now;
               Type.ResetScopes();
 
-              var translator = new Translator(program.Reporter, flags);
+              var translator = new Translator(usageGraph, program.Reporter, flags);
               var boogieProgram = translator.DoTranslation(program, outerModule);
 
               if (engine.Options.PrintFile != null) {

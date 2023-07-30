@@ -4,7 +4,7 @@ using System.Linq;
 
 namespace Microsoft.Dafny;
 
-public abstract class TopLevelDecl : Declaration, TypeParameter.ParentType {
+public abstract class TopLevelDecl : Declaration, TypeParameter.ParentType, ISymbol {
   public abstract string WhatKind { get; }
   public ModuleDefinition EnclosingModuleDefinition;
   public readonly List<TypeParameter> TypeArgs;
@@ -113,4 +113,6 @@ public abstract class TopLevelDecl : Declaration, TypeParameter.ParentType {
   public virtual bool IsEssentiallyEmpty() {
     return Attributes == null || TypeArgs.Count != 0;
   }
+
+  public abstract DafnySymbolKind Kind { get; }
 }

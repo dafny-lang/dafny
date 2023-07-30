@@ -432,6 +432,22 @@ namespace Microsoft.Dafny {
       return null;
     }
 
+    public ISet<Node> Reachables(IEnumerable<Node> roots) {
+      var visited = new HashSet<Node>();
+      var todo = new Stack<Vertex>(roots.Select(FindVertex).Where(x => x != null));
+      while (todo.Any()) {
+        var current = todo.Pop();
+        if (!visited.Add(current.N)) {
+          continue;
+        }
+        
+        foreach (var child in current.Successors) {
+          todo.Push(child);
+        }
+      }
+      return visited;
+    }
+    
     /// <summary>
     /// Returns whether or not 'source' reaches 'sink' in the graph.
     /// 'source' and 'sink' need not be in the graph; if neither is, the return value

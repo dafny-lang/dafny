@@ -29,13 +29,125 @@ using static Microsoft.Dafny.GenericErrors;
 
 namespace Microsoft.Dafny {
   public partial class Translator {
-    private DafnyOptions options;
+    public enum StmtType { NONE, ASSERT, ASSUME };
+
     public const string NameSeparator = "$$";
+
+    private static readonly Dictionary<MethodTranslationKind, string> kindSanitizedPrefix =
+      new Dictionary<MethodTranslationKind, string>() {
+        {MethodTranslationKind.SpecWellformedness, "CheckWellFormed"},
+        {MethodTranslationKind.Call, "Call"},
+        {MethodTranslationKind.CoCall, "CoCall"},
+        {MethodTranslationKind.Implementation, "Impl"},
+        {MethodTranslationKind.OverrideCheck, "OverrideCheck"},
+      };
+
+    private static readonly Dictionary<MethodTranslationKind, string> kindDescription =
+      new Dictionary<MethodTranslationKind, string>() {
+        {MethodTranslationKind.SpecWellformedness, "well-formedness"},
+        {MethodTranslationKind.Call, "call"},
+        {MethodTranslationKind.CoCall, "co-call"},
+        {MethodTranslationKind.Implementation, "correctness"},
+        {MethodTranslationKind.OverrideCheck, "override check"},
+      };
+
+    static readonly List<Boolean> Bools = new List<Boolean> { false, true };
+    readonly Dictionary<TopLevelDecl, string>/*!*/ classConstants = new Dictionary<TopLevelDecl, string>();
+
+    // translation state
+    readonly Dictionary<TopLevelDecl/*!*/, Bpl.Constant/*!*/>/*!*/ classes = new Dictionary<TopLevelDecl/*!*/, Bpl.Constant/*!*/>();
+
+    public readonly FreshIdGenerator defaultIdGenerator = new FreshIdGenerator();
+    readonly Dictionary<string, Bpl.IdentifierExpr> definiteAssignmentTrackers = new Dictionary<string, Bpl.IdentifierExpr>();
+    readonly Dictionary<string, Bpl.Constant> fieldConstants = new Dictionary<string, Constant>();
+    readonly Dictionary<Field/*!*/, Bpl.Function/*!*/>/*!*/ fieldFunctions = new Dictionary<Field/*!*/, Bpl.Function/*!*/>();
+    readonly Dictionary<Field/*!*/, Bpl.Constant/*!*/>/*!*/ fields = new Dictionary<Field/*!*/, Bpl.Constant/*!*/>();
+    readonly List<FuelConstant> functionFuel = new List<FuelConstant>();
+    readonly Dictionary<Function, string> functionHandles = new Dictionary<Function, string>();
+    readonly Dictionary<Function, Bpl.Expr> functionReveals = new();
+
+    readonly PredefinedDecls predef;
+
+    // optimizing translation
+    readonly ISet<MemberDecl> referencedMembers = new HashSet<MemberDecl>();
+    readonly Dictionary<string, Bpl.Constant> tytagConstants = new Dictionary<string, Constant>();
+
+    Dictionary<string, Bpl.IdentifierExpr> _tmpIEs = new Dictionary<string, Bpl.IdentifierExpr>();
+    public bool adjustFuelForExists = true;  // fuel need to be adjusted for exists based on whether exists is in assert or assume stmt.
+    bool assertAsAssume = false; // generate assume statements instead of assert statements
+
+    public int assertionCount = 0;
+    Func<IToken, bool> assertionOnlyFilter = null; // generate assume statements instead of assert statements if not targeted by {:only}
+    ICallable codeContext = null;  // the method/iterator whose implementation is currently being translated or the function whose specification is being checked for well-formedness
+    private Declaration currentDeclaration;
+
+    ModuleDefinition currentModule = null;  // the module whose members are currently being translated
+    private VisibilityScope currentScope;
+    private Dictionary<Declaration, Bpl.Function> declarationMapping = new();
+
+    private Dictionary<LetExpr, Expression> desugaredLets = new Dictionary<LetExpr, Expression>();
     private bool filterOnlyMembers;
 
+    private TranslatorFlags flags;
+    ModuleDefinition forModule = null;  // the root module
+
+    FuelContext fuelContext = null;
+    bool inBodyInitContext = false;  // true during the translation of the .BodyInit portion of a divided constructor body
+    IsAllocContext isAllocContext = null;
+    Dictionary<LetExpr, LetSuchThatExprInfo> letSuchThatExprInfo = new Dictionary<LetExpr, LetSuchThatExprInfo>();
+    private DafnyOptions options;
+    Program program;
+
+    int projectionFunctionCount = 0;
+
+    private readonly Graph<ISymbol> usageGraph;
     ErrorReporter reporter;
+
+    private Bpl.Program sink;
+    public StmtType stmtContext = StmtType.NONE;  // the Statement that is currently being translated
+
+    // Using an empty set of old expressions is ok here; the only uses of the triggersCollector will be to check for trigger killers.
+    Triggers.TriggersCollector triggersCollector;
+    private VisibilityScope verificationScope;
+    Bpl.LocalVariable yieldCountVariable = null;  // non-null when an iterator body is being translated
+
+    [NotDelayed]
+    public Translator(Graph<ISymbol> usageGraph, ErrorReporter reporter, TranslatorFlags flags = null) {
+      this.options = reporter.Options;
+      this.flags = new TranslatorFlags(options);
+      triggersCollector = new Triggers.TriggersCollector(new Dictionary<Expression, HashSet<OldExpr>>(), options);
+      this.usageGraph = usageGraph;
+      this.reporter = reporter;
+      if (flags == null) {
+        flags = new TranslatorFlags(options) {
+          ReportRanges = options.Get(DafnyConsolePrinter.ShowSnippets)
+        };
+      }
+      this.flags = flags;
+      Bpl.Program boogieProgram = ReadPrelude();
+      if (boogieProgram != null) {
+        sink = boogieProgram;
+        predef = FindPredefinedDecls(boogieProgram);
+      }
+    }
+
     // TODO(wuestholz): Enable this once Dafny's recommended Z3 version includes changeset 0592e765744497a089c42021990740f303901e67.
     public bool UseOptimizationInZ3 { get; set; }
+    private bool InsertChecksums { get { return flags.InsertChecksums; } }
+    private string UniqueIdPrefix { get { return flags.UniqueIdPrefix; } }
+
+    public FreshIdGenerator CurrentIdGenerator {
+      get {
+        var decl = codeContext as Declaration;
+        if (decl != null) {
+          return decl.IdGenerator;
+        }
+        return defaultIdGenerator;
+      }
+    }
+
+    static IsAllocType ISALLOC { get { return IsAllocType.ISALLOC; } }
+    static IsAllocType NOALLOC { get { return IsAllocType.NOALLOC; } }
 
     void AddOtherDefinition(Bpl.Declaration declaration, Axiom axiom) {
 
@@ -52,35 +164,6 @@ namespace Microsoft.Dafny {
       }
 
       sink.AddTopLevelDeclaration(axiom);
-    }
-
-    public class TranslatorFlags {
-      public TranslatorFlags(DafnyOptions options) {
-        InsertChecksums = 0 < options.VerifySnapshots;
-      }
-
-      public bool InsertChecksums { get; init; }
-      public string UniqueIdPrefix = null;
-      public bool ReportRanges = false;
-    }
-
-    [NotDelayed]
-    public Translator(ErrorReporter reporter, TranslatorFlags flags = null) {
-      this.options = reporter.Options;
-      this.flags = new TranslatorFlags(options);
-      triggersCollector = new Triggers.TriggersCollector(new Dictionary<Expression, HashSet<OldExpr>>(), options);
-      this.reporter = reporter;
-      if (flags == null) {
-        flags = new TranslatorFlags(options) {
-          ReportRanges = options.Get(DafnyConsolePrinter.ShowSnippets)
-        };
-      }
-      this.flags = flags;
-      Bpl.Program boogieProgram = ReadPrelude();
-      if (boogieProgram != null) {
-        sink = boogieProgram;
-        predef = FindPredefinedDecls(boogieProgram);
-      }
     }
 
     public void SetReporter(ErrorReporter reporter) {
@@ -105,29 +188,11 @@ namespace Microsoft.Dafny {
 
     }
 
-    // translation state
-    readonly Dictionary<TopLevelDecl/*!*/, Bpl.Constant/*!*/>/*!*/ classes = new Dictionary<TopLevelDecl/*!*/, Bpl.Constant/*!*/>();
-    readonly Dictionary<TopLevelDecl, string>/*!*/ classConstants = new Dictionary<TopLevelDecl, string>();
-    readonly Dictionary<Function, string> functionHandles = new Dictionary<Function, string>();
-    readonly List<FuelConstant> functionFuel = new List<FuelConstant>();
-    readonly Dictionary<Function, Bpl.Expr> functionReveals = new();
-    readonly Dictionary<Field/*!*/, Bpl.Constant/*!*/>/*!*/ fields = new Dictionary<Field/*!*/, Bpl.Constant/*!*/>();
-    readonly Dictionary<Field/*!*/, Bpl.Function/*!*/>/*!*/ fieldFunctions = new Dictionary<Field/*!*/, Bpl.Function/*!*/>();
-    readonly Dictionary<string, Bpl.Constant> fieldConstants = new Dictionary<string, Constant>();
-    readonly Dictionary<string, Bpl.Constant> tytagConstants = new Dictionary<string, Constant>();
-
-    // optimizing translation
-    readonly ISet<MemberDecl> referencedMembers = new HashSet<MemberDecl>();
-
     public void AddReferencedMember(MemberDecl m) {
       if (m is Method && !InVerificationScope(m)) {
         referencedMembers.Add(m);
       }
     }
-
-    FuelContext fuelContext = null;
-    IsAllocContext isAllocContext = null;
-    Program program;
 
     [ContractInvariantMethod]
     void ObjectInvariant() {
@@ -190,242 +255,6 @@ namespace Microsoft.Dafny {
       Contract.Requires(d != null);
       Contract.Requires(d is Declaration);
       return InVerificationScope((Declaration)d);
-    }
-
-    private Bpl.Program sink;
-    private VisibilityScope currentScope;
-    private VisibilityScope verificationScope;
-    private Dictionary<Declaration, Bpl.Function> declarationMapping = new();
-
-    readonly PredefinedDecls predef;
-
-    private TranslatorFlags flags;
-    private bool InsertChecksums { get { return flags.InsertChecksums; } }
-    private string UniqueIdPrefix { get { return flags.UniqueIdPrefix; } }
-
-    internal class PredefinedDecls {
-      public readonly Bpl.Type CharType;
-      public readonly Bpl.Type RefType;
-      public readonly Bpl.Type BoxType;
-      public Bpl.Type BigOrdinalType {
-        get { return BoxType; }
-      }
-      private readonly Bpl.TypeSynonymDecl setTypeCtor;
-      private readonly Bpl.TypeSynonymDecl isetTypeCtor;
-      private readonly Bpl.TypeSynonymDecl multiSetTypeCtor;
-      private readonly Bpl.TypeCtorDecl mapTypeCtor;
-      private readonly Bpl.TypeCtorDecl imapTypeCtor;
-      public readonly Bpl.Function ArrayLength;
-      public readonly Bpl.Function RealFloor;
-      public readonly Bpl.Function ORDINAL_IsLimit;
-      public readonly Bpl.Function ORDINAL_IsSucc;
-      public readonly Bpl.Function ORDINAL_Offset;
-      public readonly Bpl.Function ORDINAL_IsNat;
-      public readonly Bpl.Function MapDomain;
-      public readonly Bpl.Function IMapDomain;
-      public readonly Bpl.Function MapValues;
-      public readonly Bpl.Function IMapValues;
-      public readonly Bpl.Function MapItems;
-      public readonly Bpl.Function IMapItems;
-      public readonly Bpl.Function ObjectTypeConstructor;
-      public readonly Bpl.Function Tuple2TypeConstructor;
-      public readonly Bpl.Function Tuple2Destructors0;
-      public readonly Bpl.Function Tuple2Destructors1;
-      public readonly Bpl.Function Tuple2Constructor;
-      private readonly Bpl.TypeCtorDecl seqTypeCtor;
-      public readonly Bpl.Type Bv0Type;
-      readonly Bpl.TypeCtorDecl fieldName;
-      public readonly Bpl.Type HeapType;
-      public readonly string HeapVarName;
-      public readonly Bpl.Type ClassNameType;
-      public readonly Bpl.Type NameFamilyType;
-      public readonly Bpl.Type DatatypeType;
-      public readonly Bpl.Type HandleType;
-      public readonly Bpl.Type LayerType;
-      public readonly Bpl.Type DtCtorId;
-      public readonly Bpl.Type Ty;
-      public readonly Bpl.Type TyTag;
-      public readonly Bpl.Type TyTagFamily;
-      public readonly Bpl.Expr Null;
-      public readonly Bpl.Constant AllocField;
-      [ContractInvariantMethod]
-      void ObjectInvariant() {
-        Contract.Invariant(CharType != null);
-        Contract.Invariant(RefType != null);
-        Contract.Invariant(BoxType != null);
-        Contract.Invariant(setTypeCtor != null);
-        Contract.Invariant(multiSetTypeCtor != null);
-        Contract.Invariant(ArrayLength != null);
-        Contract.Invariant(RealFloor != null);
-        Contract.Invariant(ORDINAL_IsLimit != null);
-        Contract.Invariant(ORDINAL_IsSucc != null);
-        Contract.Invariant(ORDINAL_Offset != null);
-        Contract.Invariant(ORDINAL_IsNat != null);
-        Contract.Invariant(MapDomain != null);
-        Contract.Invariant(IMapDomain != null);
-        Contract.Invariant(MapValues != null);
-        Contract.Invariant(IMapValues != null);
-        Contract.Invariant(MapItems != null);
-        Contract.Invariant(IMapItems != null);
-        Contract.Invariant(Tuple2Destructors0 != null);
-        Contract.Invariant(Tuple2Destructors1 != null);
-        Contract.Invariant(Tuple2Constructor != null);
-        Contract.Invariant(seqTypeCtor != null);
-        Contract.Invariant(fieldName != null);
-        Contract.Invariant(HeapVarName != null);
-        Contract.Invariant(ClassNameType != null);
-        Contract.Invariant(NameFamilyType != null);
-        Contract.Invariant(DatatypeType != null);
-        Contract.Invariant(HandleType != null);
-        Contract.Invariant(LayerType != null);
-        Contract.Invariant(DtCtorId != null);
-        Contract.Invariant(Ty != null);
-        Contract.Invariant(TyTag != null);
-        Contract.Invariant(TyTagFamily != null);
-        Contract.Invariant(Null != null);
-        Contract.Invariant(AllocField != null);
-      }
-
-      public Bpl.Type SetType(Bpl.IToken tok, bool finite, Bpl.Type ty) {
-        Contract.Requires(tok != null);
-        Contract.Requires(ty != null);
-        Contract.Ensures(Contract.Result<Bpl.Type>() != null);
-
-        return new Bpl.TypeSynonymAnnotation(Token.NoToken, finite ? setTypeCtor : isetTypeCtor, new List<Bpl.Type> { ty });
-      }
-
-      public Bpl.Type MultiSetType(Bpl.IToken tok, Bpl.Type ty) {
-        Contract.Requires(tok != null);
-        Contract.Requires(ty != null);
-        Contract.Ensures(Contract.Result<Bpl.Type>() != null);
-
-        return new Bpl.TypeSynonymAnnotation(Token.NoToken, multiSetTypeCtor, new List<Bpl.Type> { ty });
-      }
-      public Bpl.Type MapType(Bpl.IToken tok, bool finite, Bpl.Type tya, Bpl.Type tyb) {
-        Contract.Requires(tok != null);
-        Contract.Requires(tya != null && tyb != null);
-        Contract.Ensures(Contract.Result<Bpl.Type>() != null);
-
-        return new Bpl.CtorType(Token.NoToken, finite ? mapTypeCtor : imapTypeCtor, new List<Bpl.Type> { tya, tyb });
-      }
-
-      public Bpl.Type SeqType(Bpl.IToken tok, Bpl.Type ty) {
-        Contract.Requires(tok != null);
-        Contract.Requires(ty != null);
-        Contract.Ensures(Contract.Result<Bpl.Type>() != null);
-        return new Bpl.CtorType(Token.NoToken, seqTypeCtor, new List<Bpl.Type> { ty });
-      }
-
-      public Bpl.Type FieldName(Bpl.IToken tok, Bpl.Type ty) {
-        Contract.Requires(tok != null);
-        Contract.Requires(ty != null);
-        Contract.Ensures(Contract.Result<Bpl.Type>() != null);
-
-        return new Bpl.CtorType(tok, fieldName, new List<Bpl.Type> { ty });
-      }
-
-      public Bpl.IdentifierExpr Alloc(Bpl.IToken tok) {
-        Contract.Requires(tok != null);
-        Contract.Ensures(Contract.Result<Bpl.IdentifierExpr>() != null);
-
-        return new Bpl.IdentifierExpr(tok, AllocField);
-      }
-
-      public PredefinedDecls(Bpl.TypeCtorDecl charType, Bpl.TypeCtorDecl refType, Bpl.TypeCtorDecl boxType,
-                             Bpl.TypeSynonymDecl setTypeCtor, Bpl.TypeSynonymDecl isetTypeCtor, Bpl.TypeSynonymDecl multiSetTypeCtor,
-                             Bpl.TypeCtorDecl mapTypeCtor, Bpl.TypeCtorDecl imapTypeCtor,
-                             Bpl.Function arrayLength, Bpl.Function realFloor,
-                             Bpl.Function ORD_isLimit, Bpl.Function ORD_isSucc, Bpl.Function ORD_offset, Bpl.Function ORD_isNat,
-                             Bpl.Function mapDomain, Bpl.Function imapDomain,
-                             Bpl.Function mapValues, Bpl.Function imapValues, Bpl.Function mapItems, Bpl.Function imapItems,
-                             Bpl.Function objectTypeConstructor,
-                             Bpl.Function tuple2Destructors0, Bpl.Function tuple2Destructors1, Bpl.Function tuple2Constructor, Bpl.Function tuple2TypeConstructor,
-                             Bpl.TypeCtorDecl seqTypeCtor, Bpl.TypeSynonymDecl bv0TypeDecl,
-                             Bpl.TypeCtorDecl fieldNameType, Bpl.TypeCtorDecl tyType, Bpl.TypeCtorDecl tyTagType, Bpl.TypeCtorDecl tyTagFamilyType,
-                             Bpl.GlobalVariable heap, Bpl.TypeCtorDecl classNameType, Bpl.TypeCtorDecl nameFamilyType,
-                             Bpl.TypeCtorDecl datatypeType, Bpl.TypeCtorDecl handleType, Bpl.TypeCtorDecl layerType, Bpl.TypeCtorDecl dtCtorId,
-                             Bpl.Constant allocField) {
-        #region Non-null preconditions on parameters
-        Contract.Requires(charType != null);
-        Contract.Requires(refType != null);
-        Contract.Requires(boxType != null);
-        Contract.Requires(setTypeCtor != null);
-        Contract.Requires(isetTypeCtor != null);
-        Contract.Requires(multiSetTypeCtor != null);
-        Contract.Requires(mapTypeCtor != null);
-        Contract.Requires(imapTypeCtor != null);
-        Contract.Requires(arrayLength != null);
-        Contract.Requires(realFloor != null);
-        Contract.Requires(ORD_isLimit != null);
-        Contract.Requires(ORD_isSucc != null);
-        Contract.Requires(ORD_offset != null);
-        Contract.Requires(ORD_isNat != null);
-        Contract.Requires(mapDomain != null);
-        Contract.Requires(imapDomain != null);
-        Contract.Requires(mapValues != null);
-        Contract.Requires(imapValues != null);
-        Contract.Requires(mapItems != null);
-        Contract.Requires(imapItems != null);
-        Contract.Requires(tuple2Destructors0 != null);
-        Contract.Requires(tuple2Destructors1 != null);
-        Contract.Requires(tuple2Constructor != null);
-        Contract.Requires(seqTypeCtor != null);
-        Contract.Requires(bv0TypeDecl != null);
-        Contract.Requires(fieldNameType != null);
-        Contract.Requires(heap != null);
-        Contract.Requires(classNameType != null);
-        Contract.Requires(datatypeType != null);
-        Contract.Requires(layerType != null);
-        Contract.Requires(dtCtorId != null);
-        Contract.Requires(allocField != null);
-        Contract.Requires(tyType != null);
-        Contract.Requires(tyTagType != null);
-        Contract.Requires(tyTagFamilyType != null);
-        #endregion
-
-        this.CharType = new Bpl.CtorType(Token.NoToken, charType, new List<Bpl.Type>());
-        Bpl.CtorType refT = new Bpl.CtorType(Token.NoToken, refType, new List<Bpl.Type>());
-        this.RefType = refT;
-        this.BoxType = new Bpl.CtorType(Token.NoToken, boxType, new List<Bpl.Type>());
-        this.setTypeCtor = setTypeCtor;
-        this.isetTypeCtor = isetTypeCtor;
-        this.multiSetTypeCtor = multiSetTypeCtor;
-        this.mapTypeCtor = mapTypeCtor;
-        this.imapTypeCtor = imapTypeCtor;
-        this.ArrayLength = arrayLength;
-        this.RealFloor = realFloor;
-        this.ORDINAL_IsLimit = ORD_isLimit;
-        this.ORDINAL_IsSucc = ORD_isSucc;
-        this.ORDINAL_Offset = ORD_offset;
-        this.ORDINAL_IsNat = ORD_isNat;
-        this.MapDomain = mapDomain;
-        this.IMapDomain = imapDomain;
-        this.MapValues = mapValues;
-        this.IMapValues = imapValues;
-        this.MapItems = mapItems;
-        this.IMapItems = imapItems;
-        this.ObjectTypeConstructor = objectTypeConstructor;
-        this.Tuple2Destructors0 = tuple2Destructors0;
-        this.Tuple2Destructors1 = tuple2Destructors1;
-        this.Tuple2Constructor = tuple2Constructor;
-        this.Tuple2TypeConstructor = tuple2TypeConstructor;
-        this.seqTypeCtor = seqTypeCtor;
-        this.Bv0Type = new Bpl.TypeSynonymAnnotation(Token.NoToken, bv0TypeDecl, new List<Bpl.Type>());
-        this.fieldName = fieldNameType;
-        this.HeapType = heap.TypedIdent.Type;
-        this.HeapVarName = heap.Name;
-        this.Ty = new Bpl.CtorType(Token.NoToken, tyType, new List<Bpl.Type>());
-        this.TyTag = new Bpl.CtorType(Token.NoToken, tyTagType, new List<Bpl.Type>());
-        this.TyTagFamily = new Bpl.CtorType(Token.NoToken, tyTagFamilyType, new List<Bpl.Type>());
-        this.ClassNameType = new Bpl.CtorType(Token.NoToken, classNameType, new List<Bpl.Type>());
-        this.NameFamilyType = new Bpl.CtorType(Token.NoToken, nameFamilyType, new List<Bpl.Type>());
-        this.DatatypeType = new Bpl.CtorType(Token.NoToken, datatypeType, new List<Bpl.Type>());
-        this.HandleType = new Bpl.CtorType(Token.NoToken, handleType, new List<Bpl.Type>());
-        this.LayerType = new Bpl.CtorType(Token.NoToken, layerType, new List<Bpl.Type>());
-        this.DtCtorId = new Bpl.CtorType(Token.NoToken, dtCtorId, new List<Bpl.Type>());
-        this.AllocField = allocField;
-        this.Null = new Bpl.IdentifierExpr(Token.NoToken, "null", refT);
-      }
     }
 
     PredefinedDecls FindPredefinedDecls(Bpl.Program prog) {
@@ -707,7 +536,21 @@ namespace Microsoft.Dafny {
       return new Bpl.IdentifierExpr(tok, var.AssignUniqueName(currentDeclaration.IdGenerator), TrType(var.Type));
     }
 
+    private IEnumerable<ISymbol> AllSymbols(ISymbol symbol) {
+      yield return symbol;
+
+      if (symbol is IHasSymbolChildren container) {
+        foreach (var child in container.ChildSymbols) {
+          foreach (var recursive in AllSymbols(child)) {
+            yield return recursive;
+          }
+        }
+      }
+    }
+
     public Bpl.Program DoTranslation(Program p, ModuleDefinition forModule) {
+      var moduleSymbols = AllSymbols(forModule);
+      var reachables = this.usageGraph.Reachables(moduleSymbols);
       if (sink == null) {
         // something went wrong during construction, which reads the prelude; an error has
         // already been printed, so just return an empty program here (which is non-null)
@@ -788,8 +631,9 @@ namespace Microsoft.Dafny {
       mods.Remove(forModule);
       mods.Insert(0, forModule);
 
+      //var reachable = symbolTable.
       var visibleTopLevelDecls =
-        mods.SelectMany(m => m.TopLevelDecls.Where(VisibleInScope));
+        mods.SelectMany(m => m.TopLevelDecls.Where(d => reachables.Contains(d)));
 
       if (visibleTopLevelDecls.Any(
             d => d is TopLevelDeclWithMembers memberContainer &&
@@ -865,14 +709,15 @@ namespace Microsoft.Dafny {
       return p.RawModules().Where(m => ShouldVerifyModule(p, m));
     }
 
-    public static IEnumerable<Tuple<string, Bpl.Program>> Translate(Program p, ErrorReporter reporter, TranslatorFlags flags = null) {
+    public static IEnumerable<Tuple<string, Bpl.Program>> Translate(Graph<ISymbol> usageGraph, 
+      Program p, ErrorReporter reporter, TranslatorFlags flags = null) {
       Contract.Requires(p != null);
       Contract.Requires(p.ModuleSigs.Count > 0);
 
       Type.ResetScopes();
 
       foreach (ModuleDefinition outerModule in VerifiableModules(p)) {
-        var translator = new Translator(reporter, flags);
+        var translator = new Translator(usageGraph, reporter, flags);
         yield return new Tuple<string, Bpl.Program>(outerModule.SanitizedName, translator.DoTranslation(p, outerModule));
       }
     }
@@ -1538,10 +1383,12 @@ namespace Microsoft.Dafny {
       Contract.Requires(context != null);
       return f.Body != null && !IsOpaque(f) && f.IsRevealedInScope(scope);
     }
+
     static bool IsOpaque(MemberDecl f) {
       Contract.Requires(f != null);
       return Attributes.Contains(f.Attributes, "opaque") || f.IsOpaque;
     }
+
     static bool IsOpaqueRevealLemma(Method m) {
       Contract.Requires(m != null);
       return Attributes.Contains(m.Attributes, "opaque_reveal");
@@ -1797,6 +1644,7 @@ namespace Microsoft.Dafny {
         return false;
       }
     }
+
     void AddIteratorImpl(IteratorDecl iter, Bpl.Procedure proc) {
       Contract.Requires(iter != null);
       Contract.Requires(proc != null);
@@ -1889,71 +1737,6 @@ namespace Microsoft.Dafny {
     public static Bpl.QKeyValue InlineAttribute(Bpl.IToken tok, Bpl.QKeyValue/*?*/ next = null) {
       Contract.Requires(tok != null);
       return new QKeyValue(tok, "inline", new List<object>(), next);
-    }
-
-    class Specialization {
-      public readonly List<Formal/*!*/> Formals;
-      public readonly List<Expression/*!*/> ReplacementExprs;
-      public readonly List<BoundVar/*!*/> ReplacementFormals;
-      public readonly Dictionary<IVariable, Expression> SubstMap;
-      readonly Translator translator;
-      [ContractInvariantMethod]
-      void ObjectInvariant() {
-        Contract.Invariant(cce.NonNullElements(Formals));
-        Contract.Invariant(cce.NonNullElements(ReplacementExprs));
-        Contract.Invariant(Formals.Count == ReplacementExprs.Count);
-        Contract.Invariant(cce.NonNullElements(ReplacementFormals));
-        Contract.Invariant(SubstMap != null);
-      }
-
-      public Specialization(IVariable formal, MatchCase mc, Specialization prev, Translator translator) {
-        Contract.Requires(formal is Formal || formal is BoundVar);
-        Contract.Requires(mc != null);
-        Contract.Requires(prev == null || formal is BoundVar || !prev.Formals.Contains((Formal)formal));
-        Contract.Requires(translator != null);
-
-        this.translator = translator;
-
-        List<Expression> rArgs = new List<Expression>();
-        foreach (BoundVar p in mc.Arguments) {
-          IdentifierExpr ie = new IdentifierExpr(p.tok, p.AssignUniqueName(translator.currentDeclaration.IdGenerator));
-          ie.Var = p; ie.Type = ie.Var.Type;  // resolve it here
-          rArgs.Add(ie);
-        }
-        // create and resolve datatype value
-        var r = new DatatypeValue(mc.tok, mc.Ctor.EnclosingDatatype.Name, mc.Ctor.Name, rArgs);
-        r.Ctor = mc.Ctor;
-        r.Type = new UserDefinedType(mc.tok, mc.Ctor.EnclosingDatatype.Name, new List<Type>()/*this is not right, but it seems like it won't matter here*/);
-
-        Dictionary<IVariable, Expression> substMap = new Dictionary<IVariable, Expression>();
-        substMap.Add(formal, r);
-
-        // Fill in the fields
-        Formals = new List<Formal>();
-        ReplacementExprs = new List<Expression>();
-        ReplacementFormals = new List<BoundVar>();
-        SubstMap = new Dictionary<IVariable, Expression>();
-        if (prev != null) {
-          Formals.AddRange(prev.Formals);
-          foreach (var e in prev.ReplacementExprs) {
-            ReplacementExprs.Add(Translator.Substitute(e, null, substMap));
-          }
-          foreach (var rf in prev.ReplacementFormals) {
-            if (rf != formal) {
-              ReplacementFormals.Add(rf);
-            }
-          }
-          foreach (var entry in prev.SubstMap) {
-            SubstMap.Add(entry.Key, Translator.Substitute(entry.Value, null, substMap));
-          }
-        }
-        if (formal is Formal) {
-          Formals.Add((Formal)formal);
-          ReplacementExprs.Add(r);
-        }
-        ReplacementFormals.AddRange(mc.Arguments);
-        SubstMap.Add(formal, r);
-      }
     }
 
     void AddFunctionAxiom(Bpl.Function boogieFunction, Function f, Expression body) {
@@ -3201,34 +2984,6 @@ namespace Microsoft.Dafny {
       return BplAnd(lower, upper);
     }
 
-    ModuleDefinition currentModule = null;  // the module whose members are currently being translated
-    ModuleDefinition forModule = null;  // the root module
-    ICallable codeContext = null;  // the method/iterator whose implementation is currently being translated or the function whose specification is being checked for well-formedness
-    Bpl.LocalVariable yieldCountVariable = null;  // non-null when an iterator body is being translated
-    bool inBodyInitContext = false;  // true during the translation of the .BodyInit portion of a divided constructor body
-    readonly Dictionary<string, Bpl.IdentifierExpr> definiteAssignmentTrackers = new Dictionary<string, Bpl.IdentifierExpr>();
-    bool assertAsAssume = false; // generate assume statements instead of assert statements
-    Func<IToken, bool> assertionOnlyFilter = null; // generate assume statements instead of assert statements if not targeted by {:only}
-    public enum StmtType { NONE, ASSERT, ASSUME };
-    public StmtType stmtContext = StmtType.NONE;  // the Statement that is currently being translated
-    public bool adjustFuelForExists = true;  // fuel need to be adjusted for exists based on whether exists is in assert or assume stmt.
-
-    public readonly FreshIdGenerator defaultIdGenerator = new FreshIdGenerator();
-
-    public FreshIdGenerator CurrentIdGenerator {
-      get {
-        var decl = codeContext as Declaration;
-        if (decl != null) {
-          return decl.IdGenerator;
-        }
-        return defaultIdGenerator;
-      }
-    }
-
-    Dictionary<string, Bpl.IdentifierExpr> _tmpIEs = new Dictionary<string, Bpl.IdentifierExpr>();
-
-    public int assertionCount = 0;
-
     Bpl.IdentifierExpr GetTmpVar_IdExpr(Bpl.IToken tok, string name, Bpl.Type ty, List<Variable> locals)  // local variable that's shared between statements that need it
     {
       Contract.Requires(tok != null);
@@ -3292,206 +3047,6 @@ namespace Microsoft.Dafny {
         return expr;
       }
     }
-
-    #region Definite-assignment tracking
-
-    bool NeedsDefiniteAssignmentTracker(bool isGhost, Type type, bool isFIeld) {
-      Contract.Requires(type != null);
-
-      if (options.DefiniteAssignmentLevel == 0) {
-        return false;
-      } else if (options.DefiniteAssignmentLevel == 1 ||
-                 (options.DefiniteAssignmentLevel == 4 && isFIeld && !options.ForbidNondeterminism)) {
-        if (isGhost && type.IsNonempty) {
-          return false;
-        } else if (!isGhost && type.HasCompilableValue) {
-          return false;
-        }
-      }
-      return true;
-    }
-
-    Bpl.Expr/*?*/ AddDefiniteAssignmentTracker(IVariable p, List<Bpl.Variable> localVariables, bool isOutParam = false, bool forceGhostVar = false) {
-      Contract.Requires(p != null);
-      Contract.Requires(localVariables != null);
-
-      if (!NeedsDefiniteAssignmentTracker(p.IsGhost || forceGhostVar, p.Type, false)) {
-        return null;
-      }
-      Bpl.Variable tracker;
-      if (isOutParam) {
-        tracker = new Bpl.Formal(p.Tok, new Bpl.TypedIdent(p.Tok, "defass#" + p.UniqueName, Bpl.Type.Bool), false);
-      } else {
-        tracker = new Bpl.LocalVariable(p.Tok, new Bpl.TypedIdent(p.Tok, "defass#" + p.UniqueName, Bpl.Type.Bool));
-      }
-      localVariables.Add(tracker);
-      var ie = new Bpl.IdentifierExpr(p.Tok, tracker);
-      definiteAssignmentTrackers.Add(p.UniqueName, ie);
-      return ie;
-    }
-
-    void AddExistingDefiniteAssignmentTracker(IVariable p, bool forceGhostVar) {
-      Contract.Requires(p != null);
-
-      if (NeedsDefiniteAssignmentTracker(p.IsGhost || forceGhostVar, p.Type, false)) {
-        var ie = new Bpl.IdentifierExpr(p.Tok, "defass#" + p.UniqueName, Bpl.Type.Bool);
-        definiteAssignmentTrackers.Add(p.UniqueName, ie);
-      }
-    }
-
-    void AddDefiniteAssignmentTrackerSurrogate(Field field, TopLevelDeclWithMembers enclosingClass, List<Variable> localVariables, bool forceGhostVar) {
-      Contract.Requires(field != null);
-      Contract.Requires(localVariables != null);
-
-      var type = field.Type.Subst(enclosingClass.ParentFormalTypeParametersToActuals);
-      if (!NeedsDefiniteAssignmentTracker(field.IsGhost || forceGhostVar, type, true)) {
-        return;
-      }
-      var nm = SurrogateName(field);
-      var tracker = new Bpl.LocalVariable(field.tok, new Bpl.TypedIdent(field.tok, "defass#" + nm, Bpl.Type.Bool));
-      localVariables.Add(tracker);
-      var ie = new Bpl.IdentifierExpr(field.tok, tracker);
-      definiteAssignmentTrackers.Add(nm, ie);
-    }
-
-    void RemoveDefiniteAssignmentTrackers(List<Statement> ss, int prevDefAssTrackerCount) {
-      Contract.Requires(ss != null);
-      foreach (var s in ss) {
-        if (s is VarDeclStmt vdecl) {
-          if (vdecl.Update is AssignOrReturnStmt ars) {
-            foreach (var sx in ars.ResolvedStatements) {
-              if (sx is VarDeclStmt vdecl2) {
-                vdecl2.Locals.ForEach(RemoveDefiniteAssignmentTracker);
-              }
-            }
-          }
-          vdecl.Locals.ForEach(RemoveDefiniteAssignmentTracker);
-        } else if (s is AssignOrReturnStmt ars) {
-          foreach (var sx in ars.ResolvedStatements) {
-            if (sx is VarDeclStmt vdecl2) {
-              vdecl2.Locals.ForEach(RemoveDefiniteAssignmentTracker);
-            }
-          }
-        }
-      }
-      Contract.Assert(prevDefAssTrackerCount == definiteAssignmentTrackers.Count);
-    }
-
-    void RemoveDefiniteAssignmentTracker(IVariable p) {
-      Contract.Requires(p != null);
-      definiteAssignmentTrackers.Remove(p.UniqueName);
-    }
-
-    void RemoveDefiniteAssignmentTrackerSurrogate(Field field) {
-      Contract.Requires(field != null);
-      definiteAssignmentTrackers.Remove(SurrogateName(field));
-    }
-
-    void MarkDefiniteAssignmentTracker(IdentifierExpr expr, BoogieStmtListBuilder builder) {
-      Contract.Requires(expr != null);
-      Contract.Requires(builder != null);
-      MarkDefiniteAssignmentTracker(expr.tok, expr.Var.UniqueName, builder);
-    }
-
-    void MarkDefiniteAssignmentTracker(IToken tok, string name, BoogieStmtListBuilder builder) {
-      Contract.Requires(tok != null);
-      Contract.Requires(name != null);
-      Contract.Requires(builder != null);
-
-      Bpl.IdentifierExpr ie;
-      if (definiteAssignmentTrackers.TryGetValue(name, out ie)) {
-        builder.Add(Bpl.Cmd.SimpleAssign(tok, ie, Bpl.Expr.True));
-      }
-    }
-
-    internal IToken GetToken(INode node) {
-      if (flags.ReportRanges) {
-        // Filter against IHasUsages to only select declarations, not usages.
-        if (node is IDeclarationOrUsage declarationOrUsage && node is not IHasUsages) {
-          return new BoogieRangeToken(node.RangeToken.StartToken, node.RangeToken.EndToken, declarationOrUsage.NameToken);
-        }
-        return node.RangeToken.ToToken();
-      } else {
-        return node.Tok;
-      }
-    }
-
-    void CheckDefiniteAssignment(IdentifierExpr expr, BoogieStmtListBuilder builder) {
-      Contract.Requires(expr != null);
-      Contract.Requires(builder != null);
-
-      Bpl.IdentifierExpr ie;
-      if (definiteAssignmentTrackers.TryGetValue(expr.Var.UniqueName, out ie)) {
-        builder.Add(Assert(GetToken(expr), ie, new PODesc.DefiniteAssignment($"variable '{expr.Var.Name}'", "here")));
-      }
-    }
-
-    /// <summary>
-    /// Returns an expression denoting the definite-assignment tracker for "var", or "null" if there is none.
-    /// </summary>
-    Bpl.IdentifierExpr/*?*/ GetDefiniteAssignmentTracker(IVariable var) {
-      Bpl.IdentifierExpr ie;
-      if (definiteAssignmentTrackers.TryGetValue(var.UniqueName, out ie)) {
-        return ie;
-      }
-      return null;
-    }
-
-    void CheckDefiniteAssignmentSurrogate(IToken tok, Field field, bool atNew, BoogieStmtListBuilder builder) {
-      Contract.Requires(tok != null);
-      Contract.Requires(field != null);
-      Contract.Requires(builder != null);
-
-      var nm = SurrogateName(field);
-      Bpl.IdentifierExpr ie;
-      if (definiteAssignmentTrackers.TryGetValue(nm, out ie)) {
-        var desc = new PODesc.DefiniteAssignment($"field '{field.Name}'",
-          atNew ? "at this point in the constructor body" : "here");
-        builder.Add(Assert(tok, ie, desc));
-      }
-    }
-
-    void AssumeCanCallForByMethodDecl(Method method, BoogieStmtListBuilder builder) {
-      if (method?.FunctionFromWhichThisIsByMethodDecl?.ByMethodTok != null && // Otherwise nothing is checked anyway
-          method.Ens.Count == 1 &&
-          method.Ens[0].E is BinaryExpr { E1: var e1 } &&
-          e1.Resolved is FunctionCallExpr { Args: var arguments } fnCall) {
-        // fnCall == (m.Ens[0].E as BinaryExpr).E1;
-        // fn == new FunctionCallExpr(tok, f.Name, receiver, tok, tok, f.Formals.ConvertAll(Expression.CreateIdentExpr));
-        Bpl.IdentifierExpr canCallFuncID =
-          new Bpl.IdentifierExpr(method.tok, method.FullSanitizedName + "#canCall", Bpl.Type.Bool);
-        var etran = new ExpressionTranslator(this, predef, method.tok);
-        List<Bpl.Expr> args = arguments.Select(arg => etran.TrExpr(arg)).ToList();
-        var formals = MkTyParamBinders(GetTypeParams(method), out var tyargs);
-        if (method.FunctionFromWhichThisIsByMethodDecl.ReadsHeap) {
-          Contract.Assert(etran.HeapExpr != null);
-          tyargs.Add(etran.HeapExpr);
-        }
-
-        if (!method.IsStatic) {
-          var thVar = BplBoundVar("this", TrReceiverType(method.FunctionFromWhichThisIsByMethodDecl), out var th);
-          tyargs.Add(th);
-        }
-        Bpl.Expr boogieAssumeCanCall =
-          new Bpl.NAryExpr(method.tok, new FunctionCall(canCallFuncID), Concat(tyargs, args));
-        builder.Add(new AssumeCmd(method.tok, boogieAssumeCanCall));
-      } else {
-        Contract.Assert(false, "Error in shape of by-method");
-      }
-    }
-
-    void CheckDefiniteAssignmentReturn(IToken tok, Formal p, BoogieStmtListBuilder builder) {
-      Contract.Requires(tok != null);
-      Contract.Requires(p != null && !p.InParam);
-      Contract.Requires(builder != null);
-
-      Bpl.IdentifierExpr ie;
-      if (definiteAssignmentTrackers.TryGetValue(p.UniqueName, out ie)) {
-        var desc = new PODesc.DefiniteAssignment($"out-parameter '{p.Name}'", "at this return point");
-        builder.Add(Assert(tok, ie, desc));
-      }
-    }
-    #endregion  // definite-assignment tracking
 
     void InitializeFuelConstant(IToken tok, BoogieStmtListBuilder builder, ExpressionTranslator etran) {
       if (this.functionFuel.Count > 0) {
@@ -4110,6 +3665,7 @@ namespace Microsoft.Dafny {
       Contract.Ensures(Contract.Result<Bpl.Expr>() != null);
       return InRWClause(tok, o, f, rw, false, etran, receiverReplacement, substMap);
     }
+
     Bpl.Expr InRWClause(IToken tok, Bpl.Expr o, Bpl.Expr f, List<FrameExpression> rw, bool useInUnchanged,
                         ExpressionTranslator etran,
                         Expression receiverReplacement, Dictionary<IVariable, Expression> substMap) {
@@ -6805,58 +6361,10 @@ namespace Microsoft.Dafny {
       return func;
     }
 
-    /// <summary>
-    /// A method can have several translations, suitable for different purposes.
-    /// SpecWellformedness
-    ///    This procedure is suitable for the wellformedness check of the
-    ///    method's specification.
-    ///    This means the pre- and postconditions are not filled in, since the
-    ///    body of the procedure is going to check that these are well-formed in
-    ///    the first place.
-    /// InterModuleCall
-    ///    This procedure is suitable for inter-module callers.
-    ///    This means that predicate definitions inlined only for non-protected predicates.
-    /// IntraModuleCall
-    ///    This procedure is suitable for non-co-call intra-module callers.
-    ///    This means that predicates can be inlined in the usual way.
-    /// CoCall
-    ///    This procedure is suitable for (intra-module) co-calls.
-    ///    In these calls, some uses of greatest predicates may be replaced by
-    ///    proof certificates.  Note, unless the method is a greatest lemma, there
-    ///    is no reason to include a procedure for co-calls.
-    /// Implementation
-    ///    This procedure is suitable for checking the implementation of the
-    ///    method.
-    ///    If the method has no body, there is no reason to include this kind
-    ///    of procedure.
-    ///
-    /// Note that SpecWellformedness and Implementation have procedure implementations
-    /// but no callers, and vice versa for InterModuleCall, IntraModuleCall, and CoCall.
-    /// </summary>
-    enum MethodTranslationKind { SpecWellformedness, Call, CoCall, Implementation, OverrideCheck }
-
-    private static readonly Dictionary<MethodTranslationKind, string> kindSanitizedPrefix =
-      new Dictionary<MethodTranslationKind, string>() {
-        {MethodTranslationKind.SpecWellformedness, "CheckWellFormed"},
-        {MethodTranslationKind.Call, "Call"},
-        {MethodTranslationKind.CoCall, "CoCall"},
-        {MethodTranslationKind.Implementation, "Impl"},
-        {MethodTranslationKind.OverrideCheck, "OverrideCheck"},
-      };
-
     static string MethodName(ICodeContext m, MethodTranslationKind kind) {
       Contract.Requires(m != null);
       return $"{kindSanitizedPrefix[kind]}{NameSeparator}{m.FullSanitizedName}";
     }
-
-    private static readonly Dictionary<MethodTranslationKind, string> kindDescription =
-      new Dictionary<MethodTranslationKind, string>() {
-        {MethodTranslationKind.SpecWellformedness, "well-formedness"},
-        {MethodTranslationKind.Call, "call"},
-        {MethodTranslationKind.CoCall, "co-call"},
-        {MethodTranslationKind.Implementation, "correctness"},
-        {MethodTranslationKind.OverrideCheck, "override check"},
-      };
 
     static string MethodVerboseName(string fullName, MethodTranslationKind kind) {
       Contract.Requires(fullName != null);
@@ -6951,35 +6459,6 @@ namespace Microsoft.Dafny {
         if (kind == MethodTranslationKind.Implementation) {
           outParams.Add(new Bpl.Formal(tok, new Bpl.TypedIdent(tok, "$_reverifyPost", Bpl.Type.Bool), false));
         }
-      }
-    }
-
-    class BoilerplateTriple {  // a triple that is now a quintuple
-      [ContractInvariantMethod]
-      void ObjectInvariant() {
-        Contract.Invariant(tok != null);
-        Contract.Invariant(Expr != null);
-        Contract.Invariant(IsFree || ErrorMessage != null);
-      }
-
-      public readonly IToken tok;
-      public readonly bool IsFree;
-      public readonly Bpl.Expr Expr;
-      public readonly string ErrorMessage;
-      public readonly string SuccessMessage;
-      public readonly string Comment;
-
-
-      public BoilerplateTriple(IToken tok, bool isFree, Bpl.Expr expr, string errorMessage, string successMessage, string comment) {
-        Contract.Requires(tok != null);
-        Contract.Requires(expr != null);
-        Contract.Requires(isFree || errorMessage != null);
-        this.tok = tok;
-        IsFree = isFree;
-        Expr = expr;
-        ErrorMessage = errorMessage;
-        SuccessMessage = successMessage;
-        Comment = comment;
       }
     }
 
@@ -7145,6 +6624,7 @@ namespace Microsoft.Dafny {
       Bpl.Trigger tr = new Bpl.Trigger(tok, true, new List<Bpl.Expr> { heapOF });
       return new Bpl.ForallExpr(tok, new List<TypeVariable> { alpha }, new List<Variable> { oVar, fVar }, null, tr, Bpl.Expr.Imp(ante, consequent));
     }
+
     // ----- Type ---------------------------------------------------------------------------------
     // Translates a type into the representation Boogie type,
     // c.f. TypeToTy which translates a type to its Boogie expression
@@ -7307,28 +6787,6 @@ namespace Microsoft.Dafny {
       var res = t.IsTypeParameter || (t.IsTraitType && !t.IsRefType) || t.IsAbstractType || t.IsInternalTypeSynonym;
       Contract.Assert(t.IsArrowType ? !res : true);
       return res;
-    }
-
-    // ----- Statement ----------------------------------------------------------------------------
-
-    /// <summary>
-    /// A ForceCheckToken is a token wrapper whose purpose is to hide inheritance.
-    /// </summary>
-    public class ForceCheckToken : TokenWrapper {
-      public ForceCheckToken(IToken tok)
-        : base(tok) {
-        Contract.Requires(tok != null);
-      }
-      public static IToken Unwrap(IToken tok) {
-        Contract.Requires(tok != null);
-        Contract.Ensures(Contract.Result<IToken>() != null);
-        var ftok = tok as ForceCheckToken;
-        return ftok != null ? ftok.WrappedToken : tok;
-      }
-
-      public override IToken WithVal(string newVal) {
-        return new ForceCheckToken(WrappedToken.WithVal(newVal));
-      }
     }
 
     Bpl.PredicateCmd Assert(IToken tok, Bpl.Expr condition, PODesc.ProofObligationDescription description, Bpl.QKeyValue kv = null) {
@@ -7795,11 +7253,6 @@ namespace Microsoft.Dafny {
       }
     }
 
-
-
-
-    delegate Bpl.Expr ExpressionConverter(Dictionary<IVariable, Expression> substMap, ExpressionTranslator etran);
-
     // Note: not trying to reduce duplication between this and TrAssertCmdDesc because this one should ultimately be removed.
     Bpl.AssertCmd TrAssertCmd(IToken tok, Bpl.Expr expr, Bpl.QKeyValue attributes = null) {
       // TODO: move the following comment once this method disappears
@@ -7816,8 +7269,6 @@ namespace Microsoft.Dafny {
     Bpl.AssertCmd TrAssertCmdDesc(IToken tok, Bpl.Expr expr, PODesc.ProofObligationDescription description, Bpl.QKeyValue attributes = null) {
       return new Bpl.AssertCmd(tok, expr, description, attributes);
     }
-
-    delegate void BodyTranslator(BoogieStmtListBuilder builder, ExpressionTranslator etr);
 
     List<Bpl.Expr> trTypeArgs(Dictionary<TypeParameter, Type> tySubst, List<TypeParameter> tyArgs) {
       var res = new List<Bpl.Expr>();
@@ -8591,12 +8042,6 @@ namespace Microsoft.Dafny {
       }
     }
 
-    /// <summary>
-    /// Note, if "rhs" is "null", then the assignment has already been done elsewhere. However, any other bookkeeping
-    /// is still done.
-    /// </summary>
-    delegate void AssignToLhs(Bpl.Expr/*?*/ rhs, bool origRhsIsHavoc, BoogieStmtListBuilder builder, ExpressionTranslator etran);
-
     // Returns an expression, which, if false, means that the two LHS expressions are
     // not distinct; if null then the LHSs are trivially distinct
     Bpl.Expr CheckDistinctness(Expression lhsa, Expression lhsb, ExpressionTranslator etran) {
@@ -9258,9 +8703,6 @@ namespace Microsoft.Dafny {
       }
     }
 
-    int projectionFunctionCount = 0;
-
-    private Dictionary<LetExpr, Expression> desugaredLets = new Dictionary<LetExpr, Expression>();
     /// <summary>
     /// Fills in, if necessary, the e.translationDesugaring field, and returns it.
     /// Also, makes sure that letSuchThatExprInfo maps e to something.
@@ -9411,605 +8853,6 @@ namespace Microsoft.Dafny {
       Bpl.Expr ax = Bpl.Expr.Imp(canCall, BplAnd(antecedent, etranCC.TrExpr(p)));
       ax = BplForall(gg, tr, ax);
       AddOtherDefinition(canCallFunction, new Bpl.Axiom(e.tok, ax));
-    }
-
-    class LetSuchThatExprInfo {
-      public readonly IToken Tok;
-      public readonly int LetId;
-      public readonly List<IVariable> FVs;
-      public readonly List<Expression> FV_Exprs;  // these are what initially were the free variables, but they may have undergone substitution so they are here Expression's.
-      public readonly List<TypeParameter> FTVs;
-      public readonly List<Type> FTV_Types;
-      public readonly bool UsesHeap;
-      public readonly bool UsesOldHeap;
-      public readonly List<Label> UsesHeapAt;
-      public readonly Type ThisType;  // null if 'this' is not used
-      public LetSuchThatExprInfo(IToken tok, int uniqueLetId,
-      List<IVariable> freeVariables, List<TypeParameter> freeTypeVars,
-      bool usesHeap, bool usesOldHeap, ISet<Label> usesHeapAt, Type thisType, Declaration currentDeclaration) {
-        Tok = tok;
-        LetId = uniqueLetId;
-        FTVs = freeTypeVars;
-        FTV_Types = Map(freeTypeVars, tt => (Type)new UserDefinedType(tt));
-        FVs = freeVariables;
-        FV_Exprs = new List<Expression>();
-        foreach (var v in FVs) {
-          var idExpr = new IdentifierExpr(v.Tok, v.AssignUniqueName(currentDeclaration.IdGenerator));
-          idExpr.Var = v; idExpr.Type = v.Type;  // resolve here
-          FV_Exprs.Add(idExpr);
-        }
-        UsesHeap = usesHeap;
-        UsesOldHeap = usesOldHeap;
-        // we convert the set of heap-at variables to a list here, once and for all; the order itself is not material, what matters is that we always use the same order
-        UsesHeapAt = new List<Label>(usesHeapAt);
-        ThisType = thisType;
-      }
-      public LetSuchThatExprInfo(LetSuchThatExprInfo template, Translator translator,
-           Dictionary<IVariable, Expression> substMap,
-           Dictionary<TypeParameter, Type> typeMap) {
-        Contract.Requires(template != null);
-        Contract.Requires(translator != null);
-        Contract.Requires(substMap != null);
-        Tok = template.Tok;
-        LetId = template.LetId;  // reuse the ID, which ensures we get the same $let functions
-        FTVs = template.FTVs;
-        FTV_Types = template.FTV_Types.ConvertAll(t => t.Subst(typeMap));
-        FVs = template.FVs;
-        FV_Exprs = template.FV_Exprs.ConvertAll(e => Translator.Substitute(e, null, substMap, typeMap));
-        UsesHeap = template.UsesHeap;
-        UsesOldHeap = template.UsesOldHeap;
-        UsesHeapAt = template.UsesHeapAt;
-        ThisType = template.ThisType;
-      }
-      public Tuple<List<Expression>, List<Type>> SkolemFunctionArgs(BoundVar bv, Translator translator, ExpressionTranslator etran) {
-        Contract.Requires(bv != null);
-        Contract.Requires(translator != null);
-        Contract.Requires(etran != null);
-        var args = new List<Expression>();
-        if (ThisType != null) {
-          var th = new ThisExpr(bv.tok);
-          th.Type = ThisType;
-          args.Add(th);
-        }
-        args.AddRange(FV_Exprs);
-        return Tuple.Create(args, new List<Type>(FTV_Types));
-      }
-      public string SkolemFunctionName(BoundVar bv) {
-        Contract.Requires(bv != null);
-        return string.Format("$let#{0}_{1}", LetId, bv.Name);
-      }
-      public Bpl.Expr CanCallFunctionCall(Translator translator, ExpressionTranslator etran) {
-        Contract.Requires(translator != null);
-        Contract.Requires(etran != null);
-        var gExprs = new List<Bpl.Expr>();
-        gExprs.AddRange(Map(FTV_Types, tt => translator.TypeToTy(tt)));
-        if (UsesHeap) {
-          gExprs.Add(etran.HeapExpr);
-        }
-        if (UsesOldHeap) {
-          gExprs.Add(etran.Old.HeapExpr);
-        }
-        foreach (var heapAtLabel in UsesHeapAt) {
-          Bpl.Expr ve;
-          var bv = BplBoundVar("$Heap_at_" + heapAtLabel.AssignUniqueId(translator.CurrentIdGenerator), translator.predef.HeapType, out ve);
-          gExprs.Add(ve);
-        }
-        if (ThisType != null) {
-          var th = new Bpl.IdentifierExpr(Tok, etran.This);
-          gExprs.Add(th);
-        }
-        foreach (var v in FV_Exprs) {
-          gExprs.Add(etran.TrExpr(v));
-        }
-        return FunctionCall(Tok, CanCallFunctionName(), Bpl.Type.Bool, gExprs);
-      }
-      public string CanCallFunctionName() {
-        return string.Format("$let#{0}$canCall", LetId);
-      }
-      public Bpl.Expr HeapExpr(Translator translator, bool old) {
-        Contract.Requires(translator != null);
-        return new Bpl.IdentifierExpr(Tok, old ? "$heap$old" : "$heap", translator.predef.HeapType);
-      }
-      /// <summary>
-      /// "wantFormals" means the returned list will consist of all in-parameters.
-      /// "!wantFormals" means the returned list will consist of all bound variables.
-      /// Guarantees that, in the list returned, "this" is the parameter immediately following
-      /// the (0, 1, or 2) heap arguments, if there is a "this" parameter at all.
-      /// Note, "typeAntecedents" is meaningfully filled only if "etran" is not null.
-      /// </summary>
-      public List<Variable> GAsVars(Translator translator, bool wantFormals, out Bpl.Expr typeAntecedents, ExpressionTranslator etran) {
-        Contract.Requires(translator != null);
-        var vv = new List<Variable>();
-        // first, add the type variables
-        vv.AddRange(Map(FTVs, tp => NewVar(NameTypeParam(tp), translator.predef.Ty, wantFormals)));
-        typeAntecedents = Bpl.Expr.True;
-        if (UsesHeap) {
-          var nv = NewVar("$heap", translator.predef.HeapType, wantFormals);
-          vv.Add(nv);
-          if (etran != null) {
-            var isGoodHeap = translator.FunctionCall(Tok, BuiltinFunction.IsGoodHeap, null, new Bpl.IdentifierExpr(Tok, nv));
-            typeAntecedents = BplAnd(typeAntecedents, isGoodHeap);
-          }
-        }
-        if (UsesOldHeap) {
-          var nv = NewVar("$heap$old", translator.predef.HeapType, wantFormals);
-          vv.Add(nv);
-          if (etran != null) {
-            var isGoodHeap = translator.FunctionCall(Tok, BuiltinFunction.IsGoodHeap, null, new Bpl.IdentifierExpr(Tok, nv));
-            typeAntecedents = BplAnd(typeAntecedents, isGoodHeap);
-          }
-        }
-        foreach (var heapAtLabel in UsesHeapAt) {
-          var nv = NewVar("$Heap_at_" + heapAtLabel.AssignUniqueId(translator.CurrentIdGenerator), translator.predef.HeapType, wantFormals);
-          vv.Add(nv);
-          if (etran != null) {
-            // TODO: It's not clear to me that $IsGoodHeap predicates are needed for these axioms. (Same comment applies above for $heap$old.)
-            // But $HeapSucc relations among the various heap variables appears not needed for either soundness or completeness, since the
-            // let-such-that functions will always be invoked on arguments for which these properties are known.
-            var isGoodHeap = translator.FunctionCall(Tok, BuiltinFunction.IsGoodHeap, null, new Bpl.IdentifierExpr(Tok, nv));
-            typeAntecedents = BplAnd(typeAntecedents, isGoodHeap);
-          }
-        }
-        if (ThisType != null) {
-          var nv = NewVar("this", translator.TrType(ThisType), wantFormals);
-          vv.Add(nv);
-          if (etran != null) {
-            var th = new Bpl.IdentifierExpr(Tok, nv);
-            typeAntecedents = BplAnd(typeAntecedents, translator.ReceiverNotNull(th));
-            var wh = translator.GetWhereClause(Tok, th, ThisType, etran, NOALLOC);
-            if (wh != null) {
-              typeAntecedents = BplAnd(typeAntecedents, wh);
-            }
-          }
-        }
-        foreach (var v in FVs) {
-          var nv = NewVar(v.Name, translator.TrType(v.Type), wantFormals);
-          vv.Add(nv);
-          if (etran != null) {
-            var wh = translator.GetWhereClause(Tok, new Bpl.IdentifierExpr(Tok, nv), v.Type, etran, NOALLOC);
-            if (wh != null) {
-              typeAntecedents = BplAnd(typeAntecedents, wh);
-            }
-          }
-        }
-        return vv;
-      }
-      Bpl.Variable NewVar(string name, Bpl.Type type, bool wantFormal) {
-        Contract.Requires(name != null);
-        Contract.Requires(type != null);
-        if (wantFormal) {
-          return new Bpl.Formal(Tok, new Bpl.TypedIdent(Tok, name, type), true);
-        } else {
-          return new Bpl.BoundVariable(Tok, new Bpl.TypedIdent(Tok, name, type));
-        }
-      }
-    }
-    Dictionary<LetExpr, LetSuchThatExprInfo> letSuchThatExprInfo = new Dictionary<LetExpr, LetSuchThatExprInfo>();
-    private Declaration currentDeclaration;
-
-    // ----- Expression ---------------------------------------------------------------------------
-
-    /// <summary>
-    /// This class gives a way to represent a Boogie translation target as if it were still a Dafny expression.
-    /// </summary>
-    internal class BoogieWrapper : Expression {
-      public readonly Bpl.Expr Expr;
-      public BoogieWrapper(Bpl.Expr expr, Type dafnyType)
-        : base(ToDafnyToken(expr.tok)) {
-        Contract.Requires(expr != null);
-        Contract.Requires(dafnyType != null);
-        Expr = expr;
-        Type = dafnyType;  // resolve immediately
-      }
-    }
-
-    internal class BoogieFunctionCall : Expression {
-      public readonly string FunctionName;
-      public readonly bool UsesHeap;
-      public readonly bool UsesOldHeap;
-      public readonly List<Label> HeapAtLabels;
-      public readonly List<Type> TyArgs; // Note: also has a bunch of type arguments
-      public readonly List<Expression> Args;
-      public BoogieFunctionCall(IToken tok, string functionName, bool usesHeap, bool usesOldHeap, List<Label> heapAtLabels, List<Expression> args, List<Type> tyArgs)
-        : base(tok) {
-        Contract.Requires(tok != null);
-        Contract.Requires(functionName != null);
-        Contract.Requires(heapAtLabels != null);
-        Contract.Requires(args != null);
-        FunctionName = functionName;
-        UsesHeap = usesHeap;
-        UsesOldHeap = usesOldHeap;
-        HeapAtLabels = heapAtLabels;
-        Args = args;
-        TyArgs = tyArgs;
-      }
-      public override IEnumerable<Expression> SubExpressions {
-        get {
-          foreach (var v in Args) {
-            yield return v;
-          }
-        }
-      }
-    }
-
-    internal class SubstLetExpr : LetExpr {
-      public LetExpr orgExpr;
-      public Dictionary<IVariable, Expression> substMap;
-      public Dictionary<TypeParameter, Type> typeMap;
-
-      public SubstLetExpr(IToken tok, List<CasePattern<BoundVar>> lhss, List<Expression> rhss, Expression body, bool exact,
-         LetExpr orgExpr, Dictionary<IVariable, Expression> substMap, Dictionary<TypeParameter, Type> typeMap, List<ComprehensionExpr.BoundedPool>/*?*/ constraintBounds)
-        : base(tok, lhss, rhss, body, exact) {
-        this.orgExpr = orgExpr;
-        this.substMap = substMap;
-        this.typeMap = typeMap;
-        this.Constraint_Bounds = constraintBounds;
-      }
-    }
-
-    internal class FuelSettingPair {
-      public int low;
-      public int high;
-
-      public FuelSettingPair(int low = (int)FuelSetting.FuelAmount.LOW, int high = (int)FuelSetting.FuelAmount.HIGH) {
-        this.low = low;
-        this.high = high;
-      }
-    }
-
-    // C#'s version of a type alias
-    internal class FuelContext : Dictionary<Function, FuelSettingPair> { }
-    internal class CustomFuelSettings : Dictionary<Function, FuelSetting> { }
-
-    internal class FuelConstant {
-      public Function f;
-      public Bpl.Expr baseFuel;
-      public Bpl.Expr startFuel;
-      public Bpl.Expr startFuelAssert;
-
-      public FuelConstant(Function f, Bpl.Expr baseFuel, Bpl.Expr startFuel, Bpl.Expr startFuelAssert) {
-        this.f = f;
-        this.baseFuel = baseFuel;
-        this.startFuel = startFuel;
-        this.startFuelAssert = startFuelAssert;
-      }
-
-      public Bpl.Expr MoreFuel(Bpl.Program sink, PredefinedDecls predef, FreshIdGenerator idGen) {
-        string uniqueId = idGen.FreshId("MoreFuel_" + f.FullName);
-        Bpl.Constant moreFuel = new Bpl.Constant(f.tok, new Bpl.TypedIdent(f.tok, uniqueId, predef.LayerType), false);
-        sink.AddTopLevelDeclaration(moreFuel);
-        Bpl.Expr moreFuel_expr = new Bpl.IdentifierExpr(f.tok, moreFuel);
-        return moreFuel_expr;
-      }
-    }
-
-    internal class FuelSetting {
-
-      public enum FuelAmount { NONE, LOW, HIGH };
-      public static AsyncLocal<Stack<FuelContext>> SavedContexts = new();
-
-      public static FuelSettingPair FuelAttrib(Function f, out bool found) {
-        Contract.Requires(f != null);
-        Contract.Ensures(Contract.Result<FuelSettingPair>() != null);
-        FuelSettingPair setting = new FuelSettingPair();
-        found = false;
-
-        if (f.Attributes != null) {
-          List<Expression> args = Attributes.FindExpressions(f.Attributes, "fuel");
-          if (args != null) {
-            found = true;
-            if (args.Count >= 2) {
-              LiteralExpr literalLow = args[0] as LiteralExpr;
-              LiteralExpr literalHigh = args[1] as LiteralExpr;
-
-              if (literalLow != null && literalLow.Value is BigInteger && literalHigh != null && literalHigh.Value is BigInteger) {
-                setting.low = (int)((BigInteger)literalLow.Value);
-                setting.high = (int)((BigInteger)literalHigh.Value);
-              }
-            } else if (args.Count >= 1) {
-              LiteralExpr literal = args[0] as LiteralExpr;
-              if (literal != null && literal.Value is BigInteger) {
-                setting.low = (int)((BigInteger)literal.Value);
-                setting.high = setting.low + 1;
-              }
-            }
-          }
-        }
-
-        return setting;
-      }
-
-      public int amount;        // Amount of fuel above that represented by start
-      private Bpl.Expr start;   // Starting fuel argument (null indicates LZ)
-      private Translator translator;
-      private CustomFuelSettings customFuelSettings;
-
-      public FuelSetting(Translator translator, int amount, Bpl.Expr start = null, CustomFuelSettings customFuelSettings = null) {
-        this.translator = translator;
-        this.amount = amount;
-        this.start = start;
-        this.customFuelSettings = customFuelSettings;
-      }
-
-      public FuelSetting Offset(int offset) {
-        return new FuelSetting(translator, this.amount + offset, start);
-      }
-
-      public FuelSetting Decrease(int offset) {
-        Contract.Ensures(this.amount - offset >= 0);
-        return new FuelSetting(translator, this.amount - offset, start);
-      }
-
-      public FuelSetting WithLayer(Bpl.Expr layer) {
-        return new FuelSetting(translator, amount, layer);
-      }
-
-      public FuelSetting WithContext(CustomFuelSettings settings) {
-        return new FuelSetting(translator, amount, start, settings);
-      }
-
-      public Bpl.Expr LayerZero() {
-        Contract.Ensures(Contract.Result<Bpl.Expr>() != null);
-        return new Bpl.IdentifierExpr(Token.NoToken, "$LZ", translator.predef.LayerType);
-      }
-
-      public Bpl.Expr LayerN(int n) {
-        Contract.Requires(0 <= n);
-        Contract.Ensures(Contract.Result<Bpl.Expr>() != null);
-        return translator.LayerSucc(LayerZero(), n);
-      }
-
-      public Bpl.Expr LayerN(int n, Bpl.Expr baseLayer) {
-        Contract.Requires(0 <= n);
-        Contract.Ensures(Contract.Result<Bpl.Expr>() != null);
-        return translator.LayerSucc(baseLayer, n);
-      }
-
-      private Bpl.Expr ToExpr(int amount) {
-        if (start == null) {
-          return LayerN(amount);
-        } else {
-          return translator.LayerSucc(start, amount);
-        }
-      }
-
-      public Bpl.Expr ToExpr() {
-        return this.ToExpr(this.amount);
-      }
-
-      /// <summary>
-      /// Get the fuel value for this function, given the ambient environment (represented by the fuel setting)
-      /// the function itself, and the function call's context (if any)
-      /// </summary>
-      public Bpl.Expr GetFunctionFuel(Function f) {
-        Contract.Requires(f != null);
-        Bpl.Expr finalFuel;
-        if (customFuelSettings != null && customFuelSettings.ContainsKey(f)) {
-          finalFuel = customFuelSettings[f].GetFunctionFuel(f);
-        } else if (this.amount == (int)FuelAmount.NONE) {
-          finalFuel = this.ToExpr();
-        } else {
-          FuelSettingPair setting = null;
-          var found = translator.fuelContext.TryGetValue(f, out setting);
-
-          if (!found) {  // If the context doesn't define fuel for this function, check for a fuel attribute (which supplies a default value if none is found)
-            setting = FuelAttrib(f, out found);
-          }
-
-          FuelConstant fuelConstant = translator.functionFuel.Find(x => x.f == f);
-          if (this.amount == (int)FuelAmount.LOW) {
-            finalFuel = GetFunctionFuel(setting.low > 0 ? setting.low : this.amount, found, fuelConstant);
-          } else if (this.amount >= (int)FuelAmount.HIGH) {
-            finalFuel = GetFunctionFuel(setting.high > 0 ? setting.high : this.amount, found, fuelConstant);
-          } else {
-            Contract.Assert(false); // Should not reach here
-            finalFuel = null;
-          }
-        }
-        return finalFuel;
-      }
-
-      private Bpl.Expr GetFunctionFuel(int amount, bool hasFuel, FuelConstant fuelConstant) {
-        if (fuelConstant != null) {
-          /*
-          if (hasFuel) {
-            // it has fuel context
-            return LayerN(amount, fuelConstant.baseFuel);
-          } else {
-           */
-          // startfuel
-          if (amount == (int)FuelAmount.LOW) {
-            return fuelConstant.startFuel;
-          } else {
-            return fuelConstant.startFuelAssert;
-          }
-          //}
-        } else {
-          return ToExpr(amount);
-        }
-      }
-
-      /// <summary>
-      /// Finds all fuel related attributes of the form {:fuel function low [high]}
-      /// Adds the setting to the context _if_ the context does not already have a setting for that function.
-      /// In other words, it should be called in order from most to least specific context scope.
-      /// </summary>
-      public static void FindFuelAttributes(Attributes attribs, FuelContext fuelContext) {
-        Function f = null;
-        FuelSettingPair setting = null;
-
-        if (attribs != null) {
-          List<List<Expression>> results = Attributes.FindAllExpressions(attribs, "fuel");
-
-          if (results != null) {
-            foreach (List<Expression> args in results) {
-              if (args != null && args.Count >= 2) {
-                // Try to extract the function from the first argument
-                MemberSelectExpr selectExpr = args[0].Resolved as MemberSelectExpr;
-                if (selectExpr != null) {
-                  f = selectExpr.Member as Function;
-                }
-
-                // Try to extract the lower fuel setting
-                LiteralExpr literalLow = args[1] as LiteralExpr;
-                if (literalLow != null && literalLow.Value is BigInteger) {
-                  setting = new FuelSettingPair();
-                  setting.low = (int)((BigInteger)literalLow.Value);
-                }
-
-                // The user may supply an additional high argument; if not, it defaults to low + 1
-                if (f != null && args.Count >= 3) {
-                  LiteralExpr literalHigh = args[2] as LiteralExpr;
-                  if (setting != null && literalHigh != null && literalHigh.Value is BigInteger) {
-                    setting.high = (int)((BigInteger)literalHigh.Value);
-                    if (!fuelContext.ContainsKey(f)) {
-                      fuelContext.Add(f, setting);
-                    }
-                  }
-                } else if (f != null && setting != null) {
-                  setting.high = setting.low + 1;
-                  if (!fuelContext.ContainsKey(f)) {
-                    fuelContext.Add(f, setting);
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-
-      /// <summary>
-      /// Extend the given context with fuel information from the declaration itself, and enclosing modules
-      /// </summary>
-      private static void AddFuelContext(FuelContext context, TopLevelDecl decl) {
-        FindFuelAttributes(decl.Attributes, context);
-
-        var module = decl.EnclosingModuleDefinition;
-        while (module != null) {
-          FindFuelAttributes(module.Attributes, context);
-          module = module.EnclosingModule;
-        }
-      }
-
-      /// <summary>
-      /// Creates a summary of all fuel settings in scope, starting from the given class declaration
-      /// </summary>
-      public static FuelContext NewFuelContext(TopLevelDecl decl) {
-        FuelContext context = new FuelContext();
-        AddFuelContext(context, decl);
-        return context;
-      }
-
-      /// <summary>
-      /// Creates a summary of all fuel settings in scope, starting from the given member declaration
-      /// </summary>
-      public static FuelContext NewFuelContext(MemberDecl decl) {
-        FuelContext context = new FuelContext();
-
-        FindFuelAttributes(decl.Attributes, context);
-        AddFuelContext(context, decl.EnclosingClass);
-
-        return context;
-      }
-
-      /// <summary>
-      /// Extends the given fuel context with any new fuel settings found in attribs
-      /// </summary>
-      public static FuelContext ExpandFuelContext(Attributes attribs, IToken tok, FuelContext oldFuelContext, ErrorReporter reporter) {
-        Contract.Ensures(GetSavedContexts().Count == Contract.OldValue(GetSavedContexts().Count) + 1);
-        FuelContext newContext = new FuelContext();
-        FindFuelAttributes(attribs, newContext);
-        if (newContext.Count > 0) {
-          // first make sure that the fuel only increase relative to the oldContext
-          foreach (var pair in newContext) {
-            FuelSettingPair newSetting = pair.Value;
-            FuelSettingPair oldSetting;
-            var found = oldFuelContext.TryGetValue(pair.Key, out oldSetting);
-            if (!found) {    // the default is {:fuel, 1, 2}
-              oldSetting = new FuelSettingPair();
-            }
-            // make sure that the fuel can only increase within a given scope
-            if (newSetting.low < oldSetting.low || newSetting.high < oldSetting.high) {
-              reporter.Error(MessageSource.Translator, ErrorId.g_fuel_must_increase, tok, "Fuel can only increase within a given scope.");
-            }
-          }
-          // add oldContext to newContext if it doesn't exist already
-          foreach (var pair in oldFuelContext) {
-            if (!newContext.ContainsKey(pair.Key)) {    // Local setting takes precedence over old context
-              newContext.Add(pair.Key, pair.Value);
-            }
-          }
-        } else {
-          newContext = oldFuelContext;
-        }
-        GetSavedContexts().Push(oldFuelContext);
-
-        return newContext;
-      }
-
-      private static Stack<FuelContext> GetSavedContexts() {
-        var result = SavedContexts.Value;
-        if (result == null) {
-          SavedContexts.Value = result = new();
-        }
-        return result;
-      }
-
-      public static FuelContext PopFuelContext() {
-        Contract.Requires(GetSavedContexts().Count > 0);
-        return GetSavedContexts().Pop();
-      }
-
-    }
-
-    internal enum IsAllocType { ISALLOC, NOALLOC, NEVERALLOC };  // NEVERALLOC is like NOALLOC, but overrides AlwaysAlloc
-    static IsAllocType ISALLOC { get { return IsAllocType.ISALLOC; } }
-    static IsAllocType NOALLOC { get { return IsAllocType.NOALLOC; } }
-
-    internal class IsAllocContext {
-      private DafnyOptions options;
-      internal bool allVarsGhost;
-
-      internal IsAllocContext(DafnyOptions options, bool allVarsGhost) {
-        this.options = options;
-        this.allVarsGhost = allVarsGhost;
-      }
-
-      internal IsAllocType Var(bool isGhost) {
-        return ISALLOC;
-      }
-
-      internal IsAllocType Var(LocalVariable local) {
-        return Var(allVarsGhost || local.IsGhost);
-      }
-
-      internal IsAllocType Var(NonglobalVariable var) {
-        return Var(allVarsGhost || var.IsGhost);
-      }
-
-      internal IsAllocType Var(bool ghostStmt, LocalVariable var) {
-        return Var(allVarsGhost || ghostStmt || var.IsGhost);
-      }
-
-      internal IsAllocType Var(bool ghostStmt, NonglobalVariable var) {
-        return Var(allVarsGhost || ghostStmt || var.IsGhost);
-      }
-    }
-
-    public class SplitExprInfo {
-      public enum K { Free, Checked, Both }
-      public K Kind;
-      public bool IsOnlyFree { get { return Kind == K.Free; } }
-      public bool IsOnlyChecked { get { return Kind == K.Checked; } }
-      public bool IsChecked { get { return Kind != K.Free; } }
-      public readonly Expr E;
-      public IToken Tok => ToDafnyToken(E.tok);
-      public SplitExprInfo(K kind, Expr e) {
-        Contract.Requires(e != null && e.tok != null);
-        // TODO:  Contract.Requires(kind == K.Free || e.tok.IsValid);
-        Kind = kind;
-        E = e;
-      }
     }
 
     List<SplitExprInfo/*!*/>/*!*/ TrSplitExpr(Expression expr, ExpressionTranslator etran, bool apply_induction, out bool splitHappened) {
@@ -10605,43 +9448,8 @@ namespace Microsoft.Dafny {
       return Enumerable.Zip(f.Formals, fexp.Args).All(formal_concrete => CanSafelySubstitute(visitor.TriggerVariables, formal_concrete.Item1, formal_concrete.Item2));
     }
 
-    // Using an empty set of old expressions is ok here; the only uses of the triggersCollector will be to check for trigger killers.
-    Triggers.TriggersCollector triggersCollector;
-
     private bool CanSafelySubstitute(ISet<IVariable> protectedVariables, IVariable variable, Expression substitution) {
       return !(protectedVariables.Contains(variable) && triggersCollector.IsTriggerKiller(substitution));
-    }
-
-    private class VariablesCollector : BottomUpVisitor {
-      internal ISet<IVariable> variables;
-
-      internal VariablesCollector() {
-        this.variables = new HashSet<IVariable>();
-      }
-
-      protected override void VisitOneExpr(Expression expr) {
-        if (expr is IdentifierExpr) {
-          variables.Add((expr as IdentifierExpr).Var);
-        }
-      }
-    }
-
-    private class TriggersExplorer : BottomUpVisitor {
-      private readonly VariablesCollector collector;
-
-      internal ISet<IVariable> TriggerVariables => collector.variables;
-
-      internal TriggersExplorer() {
-        collector = new VariablesCollector();
-      }
-
-      protected override void VisitOneExpr(Expression expr) {
-        if (expr is QuantifierExpr quantifierExpr && quantifierExpr.SplitQuantifier == null) {
-          foreach (var trigger in quantifierExpr.Attributes.AsEnumerable().Where(a => a.Name == "trigger").SelectMany(a => a.Args)) {
-            collector.Visit(trigger);
-          }
-        }
-      }
     }
 
     private Expression GetSubstitutedBody(FunctionCallExpr fexp, Function f) {
@@ -10764,32 +9572,6 @@ namespace Microsoft.Dafny {
       return usesHeap || usesOldHeap || FVsHeapAt.Count != 0;
     }
 
-    class UsesHeapVisitor : BottomUpVisitor {
-      internal bool foundHeap = false;
-      Type usesThis = null;
-      protected override void VisitOneExpr(Expression expr) {
-        LetExpr letExpr = expr as LetExpr;
-        if (letExpr != null && !letExpr.Exact) {
-          foundHeap = true; // see comment in LetSuchThatExprInfo: "UsesHeap = true;  // note, we ignore "usesHeap" and always record it as "true", because various type antecedents need access to the heap (hopefully, this is okay in the contexts in which the let-such-that expression is used)"
-        }
-        FunctionCallExpr call = expr as FunctionCallExpr;
-        if (call != null && call.Function != null && call.Function.ReadsHeap) {
-          foundHeap = true;
-        }
-        if (expr is ApplyExpr || expr is SeqConstructionExpr) {
-          foundHeap = true;
-        }
-        ThisExpr thisExpr = expr as ThisExpr;
-        if (thisExpr != null && thisExpr.Type == null) { // this shouldn't happen, but there appears to be a bug in trait resolution (see TraitCompile.dfy); it causes ComputeFreeVariables to blow up
-          foundHeap = true;
-        } else if (thisExpr != null && usesThis != null && !thisExpr.Type.Equals(usesThis)) { // also causes ComputeFreeVariables to blow up (see TraitExample.dfy)
-          foundHeap = true;
-        } else if (thisExpr != null) {
-          usesThis = thisExpr.Type;
-        }
-      }
-    }
-
     /// <summary>
     /// Returns an expression like "expr", but where free occurrences of "v" have been replaced by "e".
     /// </summary>
@@ -10826,6 +9608,7 @@ namespace Microsoft.Dafny {
         Bpl.Expr.Eq(oldHeap, newHeap),
         FunctionCall(newHeap.tok, BuiltinFunction.HeapSucc, null, oldHeap, newHeap));
     }
+
     Bpl.Expr HeapSucc(Bpl.Expr oldHeap, Bpl.Expr newHeap, bool useGhostHeapSucc = false) {
       return FunctionCall(newHeap.tok, useGhostHeapSucc ? BuiltinFunction.HeapSuccGhost : BuiltinFunction.HeapSucc, null, oldHeap, newHeap);
     }
@@ -10880,24 +9663,6 @@ namespace Microsoft.Dafny {
         return new Bpl.ForallExpr(body.tok, args, trg, BplImp(typeAntecedent, body));
       }
     }
-    class VariableNameVisitor : Boogie.StandardVisitor {
-      public readonly HashSet<string> Names = new HashSet<string>();
-      public override Expr VisitIdentifierExpr(Bpl.IdentifierExpr node) {
-        Names.Add(node.Name);
-        return base.VisitIdentifierExpr(node);
-      }
-      public override BinderExpr VisitBinderExpr(BinderExpr node) {
-        var vis = new VariableNameVisitor();
-        vis.Visit(node.Body);
-        var dummyNames = new HashSet<string>(node.Dummies.Select(v => v.Name));
-        foreach (var nm in vis.Names) {
-          if (!dummyNames.Contains(nm)) {
-            Names.Add(nm);
-          }
-        }
-        return (BinderExpr)base.VisitBinderExpr(node);
-      }
-    }
 
     List<Bpl.Variable> MkTyParamBinders(List<TypeParameter> args) {
       return MkTyParamBinders(args, out _);
@@ -10946,11 +9711,1299 @@ namespace Microsoft.Dafny {
       }
     }
 
-    static readonly List<Boolean> Bools = new List<Boolean> { false, true };
-
     public Expr GetRevealConstant(Function f) {
       this.CreateRevealableConstant(f);
       return this.functionReveals[f];
     }
+
+    public class TranslatorFlags {
+      public bool ReportRanges = false;
+      public string UniqueIdPrefix = null;
+
+      public TranslatorFlags(DafnyOptions options) {
+        InsertChecksums = 0 < options.VerifySnapshots;
+      }
+
+      public bool InsertChecksums { get; init; }
+    }
+
+    internal class PredefinedDecls {
+      public readonly Bpl.Constant AllocField;
+      public readonly Bpl.Function ArrayLength;
+      public readonly Bpl.Type BoxType;
+      public readonly Bpl.Type Bv0Type;
+      public readonly Bpl.Type CharType;
+      public readonly Bpl.Type ClassNameType;
+      public readonly Bpl.Type DatatypeType;
+      public readonly Bpl.Type DtCtorId;
+      readonly Bpl.TypeCtorDecl fieldName;
+      public readonly Bpl.Type HandleType;
+      public readonly Bpl.Type HeapType;
+      public readonly string HeapVarName;
+      public readonly Bpl.Function IMapDomain;
+      public readonly Bpl.Function IMapItems;
+      private readonly Bpl.TypeCtorDecl imapTypeCtor;
+      public readonly Bpl.Function IMapValues;
+      private readonly Bpl.TypeSynonymDecl isetTypeCtor;
+      public readonly Bpl.Type LayerType;
+      public readonly Bpl.Function MapDomain;
+      public readonly Bpl.Function MapItems;
+      private readonly Bpl.TypeCtorDecl mapTypeCtor;
+      public readonly Bpl.Function MapValues;
+      private readonly Bpl.TypeSynonymDecl multiSetTypeCtor;
+      public readonly Bpl.Type NameFamilyType;
+      public readonly Bpl.Expr Null;
+      public readonly Bpl.Function ObjectTypeConstructor;
+      public readonly Bpl.Function ORDINAL_IsLimit;
+      public readonly Bpl.Function ORDINAL_IsNat;
+      public readonly Bpl.Function ORDINAL_IsSucc;
+      public readonly Bpl.Function ORDINAL_Offset;
+      public readonly Bpl.Function RealFloor;
+      public readonly Bpl.Type RefType;
+      private readonly Bpl.TypeCtorDecl seqTypeCtor;
+      private readonly Bpl.TypeSynonymDecl setTypeCtor;
+      public readonly Bpl.Function Tuple2Constructor;
+      public readonly Bpl.Function Tuple2Destructors0;
+      public readonly Bpl.Function Tuple2Destructors1;
+      public readonly Bpl.Function Tuple2TypeConstructor;
+      public readonly Bpl.Type Ty;
+      public readonly Bpl.Type TyTag;
+      public readonly Bpl.Type TyTagFamily;
+
+      public PredefinedDecls(Bpl.TypeCtorDecl charType, Bpl.TypeCtorDecl refType, Bpl.TypeCtorDecl boxType,
+                             Bpl.TypeSynonymDecl setTypeCtor, Bpl.TypeSynonymDecl isetTypeCtor, Bpl.TypeSynonymDecl multiSetTypeCtor,
+                             Bpl.TypeCtorDecl mapTypeCtor, Bpl.TypeCtorDecl imapTypeCtor,
+                             Bpl.Function arrayLength, Bpl.Function realFloor,
+                             Bpl.Function ORD_isLimit, Bpl.Function ORD_isSucc, Bpl.Function ORD_offset, Bpl.Function ORD_isNat,
+                             Bpl.Function mapDomain, Bpl.Function imapDomain,
+                             Bpl.Function mapValues, Bpl.Function imapValues, Bpl.Function mapItems, Bpl.Function imapItems,
+                             Bpl.Function objectTypeConstructor,
+                             Bpl.Function tuple2Destructors0, Bpl.Function tuple2Destructors1, Bpl.Function tuple2Constructor, Bpl.Function tuple2TypeConstructor,
+                             Bpl.TypeCtorDecl seqTypeCtor, Bpl.TypeSynonymDecl bv0TypeDecl,
+                             Bpl.TypeCtorDecl fieldNameType, Bpl.TypeCtorDecl tyType, Bpl.TypeCtorDecl tyTagType, Bpl.TypeCtorDecl tyTagFamilyType,
+                             Bpl.GlobalVariable heap, Bpl.TypeCtorDecl classNameType, Bpl.TypeCtorDecl nameFamilyType,
+                             Bpl.TypeCtorDecl datatypeType, Bpl.TypeCtorDecl handleType, Bpl.TypeCtorDecl layerType, Bpl.TypeCtorDecl dtCtorId,
+                             Bpl.Constant allocField) {
+        #region Non-null preconditions on parameters
+        Contract.Requires(charType != null);
+        Contract.Requires(refType != null);
+        Contract.Requires(boxType != null);
+        Contract.Requires(setTypeCtor != null);
+        Contract.Requires(isetTypeCtor != null);
+        Contract.Requires(multiSetTypeCtor != null);
+        Contract.Requires(mapTypeCtor != null);
+        Contract.Requires(imapTypeCtor != null);
+        Contract.Requires(arrayLength != null);
+        Contract.Requires(realFloor != null);
+        Contract.Requires(ORD_isLimit != null);
+        Contract.Requires(ORD_isSucc != null);
+        Contract.Requires(ORD_offset != null);
+        Contract.Requires(ORD_isNat != null);
+        Contract.Requires(mapDomain != null);
+        Contract.Requires(imapDomain != null);
+        Contract.Requires(mapValues != null);
+        Contract.Requires(imapValues != null);
+        Contract.Requires(mapItems != null);
+        Contract.Requires(imapItems != null);
+        Contract.Requires(tuple2Destructors0 != null);
+        Contract.Requires(tuple2Destructors1 != null);
+        Contract.Requires(tuple2Constructor != null);
+        Contract.Requires(seqTypeCtor != null);
+        Contract.Requires(bv0TypeDecl != null);
+        Contract.Requires(fieldNameType != null);
+        Contract.Requires(heap != null);
+        Contract.Requires(classNameType != null);
+        Contract.Requires(datatypeType != null);
+        Contract.Requires(layerType != null);
+        Contract.Requires(dtCtorId != null);
+        Contract.Requires(allocField != null);
+        Contract.Requires(tyType != null);
+        Contract.Requires(tyTagType != null);
+        Contract.Requires(tyTagFamilyType != null);
+        #endregion
+
+        this.CharType = new Bpl.CtorType(Token.NoToken, charType, new List<Bpl.Type>());
+        Bpl.CtorType refT = new Bpl.CtorType(Token.NoToken, refType, new List<Bpl.Type>());
+        this.RefType = refT;
+        this.BoxType = new Bpl.CtorType(Token.NoToken, boxType, new List<Bpl.Type>());
+        this.setTypeCtor = setTypeCtor;
+        this.isetTypeCtor = isetTypeCtor;
+        this.multiSetTypeCtor = multiSetTypeCtor;
+        this.mapTypeCtor = mapTypeCtor;
+        this.imapTypeCtor = imapTypeCtor;
+        this.ArrayLength = arrayLength;
+        this.RealFloor = realFloor;
+        this.ORDINAL_IsLimit = ORD_isLimit;
+        this.ORDINAL_IsSucc = ORD_isSucc;
+        this.ORDINAL_Offset = ORD_offset;
+        this.ORDINAL_IsNat = ORD_isNat;
+        this.MapDomain = mapDomain;
+        this.IMapDomain = imapDomain;
+        this.MapValues = mapValues;
+        this.IMapValues = imapValues;
+        this.MapItems = mapItems;
+        this.IMapItems = imapItems;
+        this.ObjectTypeConstructor = objectTypeConstructor;
+        this.Tuple2Destructors0 = tuple2Destructors0;
+        this.Tuple2Destructors1 = tuple2Destructors1;
+        this.Tuple2Constructor = tuple2Constructor;
+        this.Tuple2TypeConstructor = tuple2TypeConstructor;
+        this.seqTypeCtor = seqTypeCtor;
+        this.Bv0Type = new Bpl.TypeSynonymAnnotation(Token.NoToken, bv0TypeDecl, new List<Bpl.Type>());
+        this.fieldName = fieldNameType;
+        this.HeapType = heap.TypedIdent.Type;
+        this.HeapVarName = heap.Name;
+        this.Ty = new Bpl.CtorType(Token.NoToken, tyType, new List<Bpl.Type>());
+        this.TyTag = new Bpl.CtorType(Token.NoToken, tyTagType, new List<Bpl.Type>());
+        this.TyTagFamily = new Bpl.CtorType(Token.NoToken, tyTagFamilyType, new List<Bpl.Type>());
+        this.ClassNameType = new Bpl.CtorType(Token.NoToken, classNameType, new List<Bpl.Type>());
+        this.NameFamilyType = new Bpl.CtorType(Token.NoToken, nameFamilyType, new List<Bpl.Type>());
+        this.DatatypeType = new Bpl.CtorType(Token.NoToken, datatypeType, new List<Bpl.Type>());
+        this.HandleType = new Bpl.CtorType(Token.NoToken, handleType, new List<Bpl.Type>());
+        this.LayerType = new Bpl.CtorType(Token.NoToken, layerType, new List<Bpl.Type>());
+        this.DtCtorId = new Bpl.CtorType(Token.NoToken, dtCtorId, new List<Bpl.Type>());
+        this.AllocField = allocField;
+        this.Null = new Bpl.IdentifierExpr(Token.NoToken, "null", refT);
+      }
+
+      public Bpl.Type BigOrdinalType {
+        get { return BoxType; }
+      }
+
+      [ContractInvariantMethod]
+      void ObjectInvariant() {
+        Contract.Invariant(CharType != null);
+        Contract.Invariant(RefType != null);
+        Contract.Invariant(BoxType != null);
+        Contract.Invariant(setTypeCtor != null);
+        Contract.Invariant(multiSetTypeCtor != null);
+        Contract.Invariant(ArrayLength != null);
+        Contract.Invariant(RealFloor != null);
+        Contract.Invariant(ORDINAL_IsLimit != null);
+        Contract.Invariant(ORDINAL_IsSucc != null);
+        Contract.Invariant(ORDINAL_Offset != null);
+        Contract.Invariant(ORDINAL_IsNat != null);
+        Contract.Invariant(MapDomain != null);
+        Contract.Invariant(IMapDomain != null);
+        Contract.Invariant(MapValues != null);
+        Contract.Invariant(IMapValues != null);
+        Contract.Invariant(MapItems != null);
+        Contract.Invariant(IMapItems != null);
+        Contract.Invariant(Tuple2Destructors0 != null);
+        Contract.Invariant(Tuple2Destructors1 != null);
+        Contract.Invariant(Tuple2Constructor != null);
+        Contract.Invariant(seqTypeCtor != null);
+        Contract.Invariant(fieldName != null);
+        Contract.Invariant(HeapVarName != null);
+        Contract.Invariant(ClassNameType != null);
+        Contract.Invariant(NameFamilyType != null);
+        Contract.Invariant(DatatypeType != null);
+        Contract.Invariant(HandleType != null);
+        Contract.Invariant(LayerType != null);
+        Contract.Invariant(DtCtorId != null);
+        Contract.Invariant(Ty != null);
+        Contract.Invariant(TyTag != null);
+        Contract.Invariant(TyTagFamily != null);
+        Contract.Invariant(Null != null);
+        Contract.Invariant(AllocField != null);
+      }
+
+      public Bpl.Type SetType(Bpl.IToken tok, bool finite, Bpl.Type ty) {
+        Contract.Requires(tok != null);
+        Contract.Requires(ty != null);
+        Contract.Ensures(Contract.Result<Bpl.Type>() != null);
+
+        return new Bpl.TypeSynonymAnnotation(Token.NoToken, finite ? setTypeCtor : isetTypeCtor, new List<Bpl.Type> { ty });
+      }
+
+      public Bpl.Type MultiSetType(Bpl.IToken tok, Bpl.Type ty) {
+        Contract.Requires(tok != null);
+        Contract.Requires(ty != null);
+        Contract.Ensures(Contract.Result<Bpl.Type>() != null);
+
+        return new Bpl.TypeSynonymAnnotation(Token.NoToken, multiSetTypeCtor, new List<Bpl.Type> { ty });
+      }
+
+      public Bpl.Type MapType(Bpl.IToken tok, bool finite, Bpl.Type tya, Bpl.Type tyb) {
+        Contract.Requires(tok != null);
+        Contract.Requires(tya != null && tyb != null);
+        Contract.Ensures(Contract.Result<Bpl.Type>() != null);
+
+        return new Bpl.CtorType(Token.NoToken, finite ? mapTypeCtor : imapTypeCtor, new List<Bpl.Type> { tya, tyb });
+      }
+
+      public Bpl.Type SeqType(Bpl.IToken tok, Bpl.Type ty) {
+        Contract.Requires(tok != null);
+        Contract.Requires(ty != null);
+        Contract.Ensures(Contract.Result<Bpl.Type>() != null);
+        return new Bpl.CtorType(Token.NoToken, seqTypeCtor, new List<Bpl.Type> { ty });
+      }
+
+      public Bpl.Type FieldName(Bpl.IToken tok, Bpl.Type ty) {
+        Contract.Requires(tok != null);
+        Contract.Requires(ty != null);
+        Contract.Ensures(Contract.Result<Bpl.Type>() != null);
+
+        return new Bpl.CtorType(tok, fieldName, new List<Bpl.Type> { ty });
+      }
+
+      public Bpl.IdentifierExpr Alloc(Bpl.IToken tok) {
+        Contract.Requires(tok != null);
+        Contract.Ensures(Contract.Result<Bpl.IdentifierExpr>() != null);
+
+        return new Bpl.IdentifierExpr(tok, AllocField);
+      }
+    }
+
+    class Specialization {
+      public readonly List<Formal/*!*/> Formals;
+      public readonly List<Expression/*!*/> ReplacementExprs;
+      public readonly List<BoundVar/*!*/> ReplacementFormals;
+      public readonly Dictionary<IVariable, Expression> SubstMap;
+      readonly Translator translator;
+
+      public Specialization(IVariable formal, MatchCase mc, Specialization prev, Translator translator) {
+        Contract.Requires(formal is Formal || formal is BoundVar);
+        Contract.Requires(mc != null);
+        Contract.Requires(prev == null || formal is BoundVar || !prev.Formals.Contains((Formal)formal));
+        Contract.Requires(translator != null);
+
+        this.translator = translator;
+
+        List<Expression> rArgs = new List<Expression>();
+        foreach (BoundVar p in mc.Arguments) {
+          IdentifierExpr ie = new IdentifierExpr(p.tok, p.AssignUniqueName(translator.currentDeclaration.IdGenerator));
+          ie.Var = p; ie.Type = ie.Var.Type;  // resolve it here
+          rArgs.Add(ie);
+        }
+        // create and resolve datatype value
+        var r = new DatatypeValue(mc.tok, mc.Ctor.EnclosingDatatype.Name, mc.Ctor.Name, rArgs);
+        r.Ctor = mc.Ctor;
+        r.Type = new UserDefinedType(mc.tok, mc.Ctor.EnclosingDatatype.Name, new List<Type>()/*this is not right, but it seems like it won't matter here*/);
+
+        Dictionary<IVariable, Expression> substMap = new Dictionary<IVariable, Expression>();
+        substMap.Add(formal, r);
+
+        // Fill in the fields
+        Formals = new List<Formal>();
+        ReplacementExprs = new List<Expression>();
+        ReplacementFormals = new List<BoundVar>();
+        SubstMap = new Dictionary<IVariable, Expression>();
+        if (prev != null) {
+          Formals.AddRange(prev.Formals);
+          foreach (var e in prev.ReplacementExprs) {
+            ReplacementExprs.Add(Translator.Substitute(e, null, substMap));
+          }
+          foreach (var rf in prev.ReplacementFormals) {
+            if (rf != formal) {
+              ReplacementFormals.Add(rf);
+            }
+          }
+          foreach (var entry in prev.SubstMap) {
+            SubstMap.Add(entry.Key, Translator.Substitute(entry.Value, null, substMap));
+          }
+        }
+        if (formal is Formal) {
+          Formals.Add((Formal)formal);
+          ReplacementExprs.Add(r);
+        }
+        ReplacementFormals.AddRange(mc.Arguments);
+        SubstMap.Add(formal, r);
+      }
+
+      [ContractInvariantMethod]
+      void ObjectInvariant() {
+        Contract.Invariant(cce.NonNullElements(Formals));
+        Contract.Invariant(cce.NonNullElements(ReplacementExprs));
+        Contract.Invariant(Formals.Count == ReplacementExprs.Count);
+        Contract.Invariant(cce.NonNullElements(ReplacementFormals));
+        Contract.Invariant(SubstMap != null);
+      }
+    }
+
+    /// <summary>
+    /// A method can have several translations, suitable for different purposes.
+    /// SpecWellformedness
+    ///    This procedure is suitable for the wellformedness check of the
+    ///    method's specification.
+    ///    This means the pre- and postconditions are not filled in, since the
+    ///    body of the procedure is going to check that these are well-formed in
+    ///    the first place.
+    /// InterModuleCall
+    ///    This procedure is suitable for inter-module callers.
+    ///    This means that predicate definitions inlined only for non-protected predicates.
+    /// IntraModuleCall
+    ///    This procedure is suitable for non-co-call intra-module callers.
+    ///    This means that predicates can be inlined in the usual way.
+    /// CoCall
+    ///    This procedure is suitable for (intra-module) co-calls.
+    ///    In these calls, some uses of greatest predicates may be replaced by
+    ///    proof certificates.  Note, unless the method is a greatest lemma, there
+    ///    is no reason to include a procedure for co-calls.
+    /// Implementation
+    ///    This procedure is suitable for checking the implementation of the
+    ///    method.
+    ///    If the method has no body, there is no reason to include this kind
+    ///    of procedure.
+    ///
+    /// Note that SpecWellformedness and Implementation have procedure implementations
+    /// but no callers, and vice versa for InterModuleCall, IntraModuleCall, and CoCall.
+    /// </summary>
+    enum MethodTranslationKind { SpecWellformedness, Call, CoCall, Implementation, OverrideCheck }
+
+    class BoilerplateTriple {
+      public readonly string Comment;
+      public readonly string ErrorMessage;
+      public readonly Bpl.Expr Expr;
+      public readonly bool IsFree;
+      public readonly string SuccessMessage;
+
+      public readonly IToken tok;
+
+
+      public BoilerplateTriple(IToken tok, bool isFree, Bpl.Expr expr, string errorMessage, string successMessage, string comment) {
+        Contract.Requires(tok != null);
+        Contract.Requires(expr != null);
+        Contract.Requires(isFree || errorMessage != null);
+        this.tok = tok;
+        IsFree = isFree;
+        Expr = expr;
+        ErrorMessage = errorMessage;
+        SuccessMessage = successMessage;
+        Comment = comment;
+      } // a triple that is now a quintuple
+
+      [ContractInvariantMethod]
+      void ObjectInvariant() {
+        Contract.Invariant(tok != null);
+        Contract.Invariant(Expr != null);
+        Contract.Invariant(IsFree || ErrorMessage != null);
+      }
+    }
+
+    // ----- Statement ----------------------------------------------------------------------------
+
+    /// <summary>
+    /// A ForceCheckToken is a token wrapper whose purpose is to hide inheritance.
+    /// </summary>
+    public class ForceCheckToken : TokenWrapper {
+      public ForceCheckToken(IToken tok)
+        : base(tok) {
+        Contract.Requires(tok != null);
+      }
+
+      public static IToken Unwrap(IToken tok) {
+        Contract.Requires(tok != null);
+        Contract.Ensures(Contract.Result<IToken>() != null);
+        var ftok = tok as ForceCheckToken;
+        return ftok != null ? ftok.WrappedToken : tok;
+      }
+
+      public override IToken WithVal(string newVal) {
+        return new ForceCheckToken(WrappedToken.WithVal(newVal));
+      }
+    }
+
+
+    delegate Bpl.Expr ExpressionConverter(Dictionary<IVariable, Expression> substMap, ExpressionTranslator etran);
+
+    delegate void BodyTranslator(BoogieStmtListBuilder builder, ExpressionTranslator etr);
+
+    /// <summary>
+    /// Note, if "rhs" is "null", then the assignment has already been done elsewhere. However, any other bookkeeping
+    /// is still done.
+    /// </summary>
+    delegate void AssignToLhs(Bpl.Expr/*?*/ rhs, bool origRhsIsHavoc, BoogieStmtListBuilder builder, ExpressionTranslator etran);
+
+    class LetSuchThatExprInfo {
+      public readonly List<Type> FTV_Types;
+      public readonly List<TypeParameter> FTVs;
+      public readonly List<Expression> FV_Exprs;  // these are what initially were the free variables, but they may have undergone substitution so they are here Expression's.
+      public readonly List<IVariable> FVs;
+      public readonly int LetId;
+      public readonly Type ThisType;  // null if 'this' is not used
+      public readonly IToken Tok;
+      public readonly bool UsesHeap;
+      public readonly List<Label> UsesHeapAt;
+      public readonly bool UsesOldHeap;
+
+      public LetSuchThatExprInfo(IToken tok, int uniqueLetId,
+      List<IVariable> freeVariables, List<TypeParameter> freeTypeVars,
+      bool usesHeap, bool usesOldHeap, ISet<Label> usesHeapAt, Type thisType, Declaration currentDeclaration) {
+        Tok = tok;
+        LetId = uniqueLetId;
+        FTVs = freeTypeVars;
+        FTV_Types = Map(freeTypeVars, tt => (Type)new UserDefinedType(tt));
+        FVs = freeVariables;
+        FV_Exprs = new List<Expression>();
+        foreach (var v in FVs) {
+          var idExpr = new IdentifierExpr(v.Tok, v.AssignUniqueName(currentDeclaration.IdGenerator));
+          idExpr.Var = v; idExpr.Type = v.Type;  // resolve here
+          FV_Exprs.Add(idExpr);
+        }
+        UsesHeap = usesHeap;
+        UsesOldHeap = usesOldHeap;
+        // we convert the set of heap-at variables to a list here, once and for all; the order itself is not material, what matters is that we always use the same order
+        UsesHeapAt = new List<Label>(usesHeapAt);
+        ThisType = thisType;
+      }
+
+      public LetSuchThatExprInfo(LetSuchThatExprInfo template, Translator translator,
+           Dictionary<IVariable, Expression> substMap,
+           Dictionary<TypeParameter, Type> typeMap) {
+        Contract.Requires(template != null);
+        Contract.Requires(translator != null);
+        Contract.Requires(substMap != null);
+        Tok = template.Tok;
+        LetId = template.LetId;  // reuse the ID, which ensures we get the same $let functions
+        FTVs = template.FTVs;
+        FTV_Types = template.FTV_Types.ConvertAll(t => t.Subst(typeMap));
+        FVs = template.FVs;
+        FV_Exprs = template.FV_Exprs.ConvertAll(e => Translator.Substitute(e, null, substMap, typeMap));
+        UsesHeap = template.UsesHeap;
+        UsesOldHeap = template.UsesOldHeap;
+        UsesHeapAt = template.UsesHeapAt;
+        ThisType = template.ThisType;
+      }
+
+      public Tuple<List<Expression>, List<Type>> SkolemFunctionArgs(BoundVar bv, Translator translator, ExpressionTranslator etran) {
+        Contract.Requires(bv != null);
+        Contract.Requires(translator != null);
+        Contract.Requires(etran != null);
+        var args = new List<Expression>();
+        if (ThisType != null) {
+          var th = new ThisExpr(bv.tok);
+          th.Type = ThisType;
+          args.Add(th);
+        }
+        args.AddRange(FV_Exprs);
+        return Tuple.Create(args, new List<Type>(FTV_Types));
+      }
+
+      public string SkolemFunctionName(BoundVar bv) {
+        Contract.Requires(bv != null);
+        return string.Format("$let#{0}_{1}", LetId, bv.Name);
+      }
+
+      public Bpl.Expr CanCallFunctionCall(Translator translator, ExpressionTranslator etran) {
+        Contract.Requires(translator != null);
+        Contract.Requires(etran != null);
+        var gExprs = new List<Bpl.Expr>();
+        gExprs.AddRange(Map(FTV_Types, tt => translator.TypeToTy(tt)));
+        if (UsesHeap) {
+          gExprs.Add(etran.HeapExpr);
+        }
+        if (UsesOldHeap) {
+          gExprs.Add(etran.Old.HeapExpr);
+        }
+        foreach (var heapAtLabel in UsesHeapAt) {
+          Bpl.Expr ve;
+          var bv = BplBoundVar("$Heap_at_" + heapAtLabel.AssignUniqueId(translator.CurrentIdGenerator), translator.predef.HeapType, out ve);
+          gExprs.Add(ve);
+        }
+        if (ThisType != null) {
+          var th = new Bpl.IdentifierExpr(Tok, etran.This);
+          gExprs.Add(th);
+        }
+        foreach (var v in FV_Exprs) {
+          gExprs.Add(etran.TrExpr(v));
+        }
+        return FunctionCall(Tok, CanCallFunctionName(), Bpl.Type.Bool, gExprs);
+      }
+
+      public string CanCallFunctionName() {
+        return string.Format("$let#{0}$canCall", LetId);
+      }
+
+      public Bpl.Expr HeapExpr(Translator translator, bool old) {
+        Contract.Requires(translator != null);
+        return new Bpl.IdentifierExpr(Tok, old ? "$heap$old" : "$heap", translator.predef.HeapType);
+      }
+
+      /// <summary>
+      /// "wantFormals" means the returned list will consist of all in-parameters.
+      /// "!wantFormals" means the returned list will consist of all bound variables.
+      /// Guarantees that, in the list returned, "this" is the parameter immediately following
+      /// the (0, 1, or 2) heap arguments, if there is a "this" parameter at all.
+      /// Note, "typeAntecedents" is meaningfully filled only if "etran" is not null.
+      /// </summary>
+      public List<Variable> GAsVars(Translator translator, bool wantFormals, out Bpl.Expr typeAntecedents, ExpressionTranslator etran) {
+        Contract.Requires(translator != null);
+        var vv = new List<Variable>();
+        // first, add the type variables
+        vv.AddRange(Map(FTVs, tp => NewVar(NameTypeParam(tp), translator.predef.Ty, wantFormals)));
+        typeAntecedents = Bpl.Expr.True;
+        if (UsesHeap) {
+          var nv = NewVar("$heap", translator.predef.HeapType, wantFormals);
+          vv.Add(nv);
+          if (etran != null) {
+            var isGoodHeap = translator.FunctionCall(Tok, BuiltinFunction.IsGoodHeap, null, new Bpl.IdentifierExpr(Tok, nv));
+            typeAntecedents = BplAnd(typeAntecedents, isGoodHeap);
+          }
+        }
+        if (UsesOldHeap) {
+          var nv = NewVar("$heap$old", translator.predef.HeapType, wantFormals);
+          vv.Add(nv);
+          if (etran != null) {
+            var isGoodHeap = translator.FunctionCall(Tok, BuiltinFunction.IsGoodHeap, null, new Bpl.IdentifierExpr(Tok, nv));
+            typeAntecedents = BplAnd(typeAntecedents, isGoodHeap);
+          }
+        }
+        foreach (var heapAtLabel in UsesHeapAt) {
+          var nv = NewVar("$Heap_at_" + heapAtLabel.AssignUniqueId(translator.CurrentIdGenerator), translator.predef.HeapType, wantFormals);
+          vv.Add(nv);
+          if (etran != null) {
+            // TODO: It's not clear to me that $IsGoodHeap predicates are needed for these axioms. (Same comment applies above for $heap$old.)
+            // But $HeapSucc relations among the various heap variables appears not needed for either soundness or completeness, since the
+            // let-such-that functions will always be invoked on arguments for which these properties are known.
+            var isGoodHeap = translator.FunctionCall(Tok, BuiltinFunction.IsGoodHeap, null, new Bpl.IdentifierExpr(Tok, nv));
+            typeAntecedents = BplAnd(typeAntecedents, isGoodHeap);
+          }
+        }
+        if (ThisType != null) {
+          var nv = NewVar("this", translator.TrType(ThisType), wantFormals);
+          vv.Add(nv);
+          if (etran != null) {
+            var th = new Bpl.IdentifierExpr(Tok, nv);
+            typeAntecedents = BplAnd(typeAntecedents, translator.ReceiverNotNull(th));
+            var wh = translator.GetWhereClause(Tok, th, ThisType, etran, NOALLOC);
+            if (wh != null) {
+              typeAntecedents = BplAnd(typeAntecedents, wh);
+            }
+          }
+        }
+        foreach (var v in FVs) {
+          var nv = NewVar(v.Name, translator.TrType(v.Type), wantFormals);
+          vv.Add(nv);
+          if (etran != null) {
+            var wh = translator.GetWhereClause(Tok, new Bpl.IdentifierExpr(Tok, nv), v.Type, etran, NOALLOC);
+            if (wh != null) {
+              typeAntecedents = BplAnd(typeAntecedents, wh);
+            }
+          }
+        }
+        return vv;
+      }
+
+      Bpl.Variable NewVar(string name, Bpl.Type type, bool wantFormal) {
+        Contract.Requires(name != null);
+        Contract.Requires(type != null);
+        if (wantFormal) {
+          return new Bpl.Formal(Tok, new Bpl.TypedIdent(Tok, name, type), true);
+        } else {
+          return new Bpl.BoundVariable(Tok, new Bpl.TypedIdent(Tok, name, type));
+        }
+      }
+    }
+
+    // ----- Expression ---------------------------------------------------------------------------
+
+    /// <summary>
+    /// This class gives a way to represent a Boogie translation target as if it were still a Dafny expression.
+    /// </summary>
+    internal class BoogieWrapper : Expression {
+      public readonly Bpl.Expr Expr;
+
+      public BoogieWrapper(Bpl.Expr expr, Type dafnyType)
+        : base(ToDafnyToken(expr.tok)) {
+        Contract.Requires(expr != null);
+        Contract.Requires(dafnyType != null);
+        Expr = expr;
+        Type = dafnyType;  // resolve immediately
+      }
+    }
+
+    internal class BoogieFunctionCall : Expression {
+      public readonly List<Expression> Args;
+      public readonly string FunctionName;
+      public readonly List<Label> HeapAtLabels;
+      public readonly List<Type> TyArgs; // Note: also has a bunch of type arguments
+      public readonly bool UsesHeap;
+      public readonly bool UsesOldHeap;
+
+      public BoogieFunctionCall(IToken tok, string functionName, bool usesHeap, bool usesOldHeap, List<Label> heapAtLabels, List<Expression> args, List<Type> tyArgs)
+        : base(tok) {
+        Contract.Requires(tok != null);
+        Contract.Requires(functionName != null);
+        Contract.Requires(heapAtLabels != null);
+        Contract.Requires(args != null);
+        FunctionName = functionName;
+        UsesHeap = usesHeap;
+        UsesOldHeap = usesOldHeap;
+        HeapAtLabels = heapAtLabels;
+        Args = args;
+        TyArgs = tyArgs;
+      }
+
+      public override IEnumerable<Expression> SubExpressions {
+        get {
+          foreach (var v in Args) {
+            yield return v;
+          }
+        }
+      }
+    }
+
+    internal class SubstLetExpr : LetExpr {
+      public LetExpr orgExpr;
+      public Dictionary<IVariable, Expression> substMap;
+      public Dictionary<TypeParameter, Type> typeMap;
+
+      public SubstLetExpr(IToken tok, List<CasePattern<BoundVar>> lhss, List<Expression> rhss, Expression body, bool exact,
+         LetExpr orgExpr, Dictionary<IVariable, Expression> substMap, Dictionary<TypeParameter, Type> typeMap, List<ComprehensionExpr.BoundedPool>/*?*/ constraintBounds)
+        : base(tok, lhss, rhss, body, exact) {
+        this.orgExpr = orgExpr;
+        this.substMap = substMap;
+        this.typeMap = typeMap;
+        this.Constraint_Bounds = constraintBounds;
+      }
+    }
+
+    internal class FuelSettingPair {
+      public int high;
+      public int low;
+
+      public FuelSettingPair(int low = (int)FuelSetting.FuelAmount.LOW, int high = (int)FuelSetting.FuelAmount.HIGH) {
+        this.low = low;
+        this.high = high;
+      }
+    }
+
+    // C#'s version of a type alias
+    internal class FuelContext : Dictionary<Function, FuelSettingPair> {}
+
+    internal class CustomFuelSettings : Dictionary<Function, FuelSetting> {}
+
+    internal class FuelConstant {
+      public Bpl.Expr baseFuel;
+      public Function f;
+      public Bpl.Expr startFuel;
+      public Bpl.Expr startFuelAssert;
+
+      public FuelConstant(Function f, Bpl.Expr baseFuel, Bpl.Expr startFuel, Bpl.Expr startFuelAssert) {
+        this.f = f;
+        this.baseFuel = baseFuel;
+        this.startFuel = startFuel;
+        this.startFuelAssert = startFuelAssert;
+      }
+
+      public Bpl.Expr MoreFuel(Bpl.Program sink, PredefinedDecls predef, FreshIdGenerator idGen) {
+        string uniqueId = idGen.FreshId("MoreFuel_" + f.FullName);
+        Bpl.Constant moreFuel = new Bpl.Constant(f.tok, new Bpl.TypedIdent(f.tok, uniqueId, predef.LayerType), false);
+        sink.AddTopLevelDeclaration(moreFuel);
+        Bpl.Expr moreFuel_expr = new Bpl.IdentifierExpr(f.tok, moreFuel);
+        return moreFuel_expr;
+      }
+    }
+
+    internal class FuelSetting {
+      public enum FuelAmount { NONE, LOW, HIGH };
+
+      public static AsyncLocal<Stack<FuelContext>> SavedContexts = new();
+
+      public int amount;        // Amount of fuel above that represented by start
+      private CustomFuelSettings customFuelSettings;
+      private Bpl.Expr start;   // Starting fuel argument (null indicates LZ)
+      private Translator translator;
+
+      public FuelSetting(Translator translator, int amount, Bpl.Expr start = null, CustomFuelSettings customFuelSettings = null) {
+        this.translator = translator;
+        this.amount = amount;
+        this.start = start;
+        this.customFuelSettings = customFuelSettings;
+      }
+
+      public static FuelSettingPair FuelAttrib(Function f, out bool found) {
+        Contract.Requires(f != null);
+        Contract.Ensures(Contract.Result<FuelSettingPair>() != null);
+        FuelSettingPair setting = new FuelSettingPair();
+        found = false;
+
+        if (f.Attributes != null) {
+          List<Expression> args = Attributes.FindExpressions(f.Attributes, "fuel");
+          if (args != null) {
+            found = true;
+            if (args.Count >= 2) {
+              LiteralExpr literalLow = args[0] as LiteralExpr;
+              LiteralExpr literalHigh = args[1] as LiteralExpr;
+
+              if (literalLow != null && literalLow.Value is BigInteger && literalHigh != null && literalHigh.Value is BigInteger) {
+                setting.low = (int)((BigInteger)literalLow.Value);
+                setting.high = (int)((BigInteger)literalHigh.Value);
+              }
+            } else if (args.Count >= 1) {
+              LiteralExpr literal = args[0] as LiteralExpr;
+              if (literal != null && literal.Value is BigInteger) {
+                setting.low = (int)((BigInteger)literal.Value);
+                setting.high = setting.low + 1;
+              }
+            }
+          }
+        }
+
+        return setting;
+      }
+
+      public FuelSetting Offset(int offset) {
+        return new FuelSetting(translator, this.amount + offset, start);
+      }
+
+      public FuelSetting Decrease(int offset) {
+        Contract.Ensures(this.amount - offset >= 0);
+        return new FuelSetting(translator, this.amount - offset, start);
+      }
+
+      public FuelSetting WithLayer(Bpl.Expr layer) {
+        return new FuelSetting(translator, amount, layer);
+      }
+
+      public FuelSetting WithContext(CustomFuelSettings settings) {
+        return new FuelSetting(translator, amount, start, settings);
+      }
+
+      public Bpl.Expr LayerZero() {
+        Contract.Ensures(Contract.Result<Bpl.Expr>() != null);
+        return new Bpl.IdentifierExpr(Token.NoToken, "$LZ", translator.predef.LayerType);
+      }
+
+      public Bpl.Expr LayerN(int n) {
+        Contract.Requires(0 <= n);
+        Contract.Ensures(Contract.Result<Bpl.Expr>() != null);
+        return translator.LayerSucc(LayerZero(), n);
+      }
+
+      public Bpl.Expr LayerN(int n, Bpl.Expr baseLayer) {
+        Contract.Requires(0 <= n);
+        Contract.Ensures(Contract.Result<Bpl.Expr>() != null);
+        return translator.LayerSucc(baseLayer, n);
+      }
+
+      private Bpl.Expr ToExpr(int amount) {
+        if (start == null) {
+          return LayerN(amount);
+        } else {
+          return translator.LayerSucc(start, amount);
+        }
+      }
+
+      public Bpl.Expr ToExpr() {
+        return this.ToExpr(this.amount);
+      }
+
+      /// <summary>
+      /// Get the fuel value for this function, given the ambient environment (represented by the fuel setting)
+      /// the function itself, and the function call's context (if any)
+      /// </summary>
+      public Bpl.Expr GetFunctionFuel(Function f) {
+        Contract.Requires(f != null);
+        Bpl.Expr finalFuel;
+        if (customFuelSettings != null && customFuelSettings.ContainsKey(f)) {
+          finalFuel = customFuelSettings[f].GetFunctionFuel(f);
+        } else if (this.amount == (int)FuelAmount.NONE) {
+          finalFuel = this.ToExpr();
+        } else {
+          FuelSettingPair setting = null;
+          var found = translator.fuelContext.TryGetValue(f, out setting);
+
+          if (!found) {  // If the context doesn't define fuel for this function, check for a fuel attribute (which supplies a default value if none is found)
+            setting = FuelAttrib(f, out found);
+          }
+
+          FuelConstant fuelConstant = translator.functionFuel.Find(x => x.f == f);
+          if (this.amount == (int)FuelAmount.LOW) {
+            finalFuel = GetFunctionFuel(setting.low > 0 ? setting.low : this.amount, found, fuelConstant);
+          } else if (this.amount >= (int)FuelAmount.HIGH) {
+            finalFuel = GetFunctionFuel(setting.high > 0 ? setting.high : this.amount, found, fuelConstant);
+          } else {
+            Contract.Assert(false); // Should not reach here
+            finalFuel = null;
+          }
+        }
+        return finalFuel;
+      }
+
+      private Bpl.Expr GetFunctionFuel(int amount, bool hasFuel, FuelConstant fuelConstant) {
+        if (fuelConstant != null) {
+          /*
+          if (hasFuel) {
+            // it has fuel context
+            return LayerN(amount, fuelConstant.baseFuel);
+          } else {
+           */
+          // startfuel
+          if (amount == (int)FuelAmount.LOW) {
+            return fuelConstant.startFuel;
+          } else {
+            return fuelConstant.startFuelAssert;
+          }
+          //}
+        } else {
+          return ToExpr(amount);
+        }
+      }
+
+      /// <summary>
+      /// Finds all fuel related attributes of the form {:fuel function low [high]}
+      /// Adds the setting to the context _if_ the context does not already have a setting for that function.
+      /// In other words, it should be called in order from most to least specific context scope.
+      /// </summary>
+      public static void FindFuelAttributes(Attributes attribs, FuelContext fuelContext) {
+        Function f = null;
+        FuelSettingPair setting = null;
+
+        if (attribs != null) {
+          List<List<Expression>> results = Attributes.FindAllExpressions(attribs, "fuel");
+
+          if (results != null) {
+            foreach (List<Expression> args in results) {
+              if (args != null && args.Count >= 2) {
+                // Try to extract the function from the first argument
+                MemberSelectExpr selectExpr = args[0].Resolved as MemberSelectExpr;
+                if (selectExpr != null) {
+                  f = selectExpr.Member as Function;
+                }
+
+                // Try to extract the lower fuel setting
+                LiteralExpr literalLow = args[1] as LiteralExpr;
+                if (literalLow != null && literalLow.Value is BigInteger) {
+                  setting = new FuelSettingPair();
+                  setting.low = (int)((BigInteger)literalLow.Value);
+                }
+
+                // The user may supply an additional high argument; if not, it defaults to low + 1
+                if (f != null && args.Count >= 3) {
+                  LiteralExpr literalHigh = args[2] as LiteralExpr;
+                  if (setting != null && literalHigh != null && literalHigh.Value is BigInteger) {
+                    setting.high = (int)((BigInteger)literalHigh.Value);
+                    if (!fuelContext.ContainsKey(f)) {
+                      fuelContext.Add(f, setting);
+                    }
+                  }
+                } else if (f != null && setting != null) {
+                  setting.high = setting.low + 1;
+                  if (!fuelContext.ContainsKey(f)) {
+                    fuelContext.Add(f, setting);
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+
+      /// <summary>
+      /// Extend the given context with fuel information from the declaration itself, and enclosing modules
+      /// </summary>
+      private static void AddFuelContext(FuelContext context, TopLevelDecl decl) {
+        FindFuelAttributes(decl.Attributes, context);
+
+        var module = decl.EnclosingModuleDefinition;
+        while (module != null) {
+          FindFuelAttributes(module.Attributes, context);
+          module = module.EnclosingModule;
+        }
+      }
+
+      /// <summary>
+      /// Creates a summary of all fuel settings in scope, starting from the given class declaration
+      /// </summary>
+      public static FuelContext NewFuelContext(TopLevelDecl decl) {
+        FuelContext context = new FuelContext();
+        AddFuelContext(context, decl);
+        return context;
+      }
+
+      /// <summary>
+      /// Creates a summary of all fuel settings in scope, starting from the given member declaration
+      /// </summary>
+      public static FuelContext NewFuelContext(MemberDecl decl) {
+        FuelContext context = new FuelContext();
+
+        FindFuelAttributes(decl.Attributes, context);
+        AddFuelContext(context, decl.EnclosingClass);
+
+        return context;
+      }
+
+      /// <summary>
+      /// Extends the given fuel context with any new fuel settings found in attribs
+      /// </summary>
+      public static FuelContext ExpandFuelContext(Attributes attribs, IToken tok, FuelContext oldFuelContext, ErrorReporter reporter) {
+        Contract.Ensures(GetSavedContexts().Count == Contract.OldValue(GetSavedContexts().Count) + 1);
+        FuelContext newContext = new FuelContext();
+        FindFuelAttributes(attribs, newContext);
+        if (newContext.Count > 0) {
+          // first make sure that the fuel only increase relative to the oldContext
+          foreach (var pair in newContext) {
+            FuelSettingPair newSetting = pair.Value;
+            FuelSettingPair oldSetting;
+            var found = oldFuelContext.TryGetValue(pair.Key, out oldSetting);
+            if (!found) {    // the default is {:fuel, 1, 2}
+              oldSetting = new FuelSettingPair();
+            }
+            // make sure that the fuel can only increase within a given scope
+            if (newSetting.low < oldSetting.low || newSetting.high < oldSetting.high) {
+              reporter.Error(MessageSource.Translator, ErrorId.g_fuel_must_increase, tok, "Fuel can only increase within a given scope.");
+            }
+          }
+          // add oldContext to newContext if it doesn't exist already
+          foreach (var pair in oldFuelContext) {
+            if (!newContext.ContainsKey(pair.Key)) {    // Local setting takes precedence over old context
+              newContext.Add(pair.Key, pair.Value);
+            }
+          }
+        } else {
+          newContext = oldFuelContext;
+        }
+        GetSavedContexts().Push(oldFuelContext);
+
+        return newContext;
+      }
+
+      private static Stack<FuelContext> GetSavedContexts() {
+        var result = SavedContexts.Value;
+        if (result == null) {
+          SavedContexts.Value = result = new();
+        }
+        return result;
+      }
+
+      public static FuelContext PopFuelContext() {
+        Contract.Requires(GetSavedContexts().Count > 0);
+        return GetSavedContexts().Pop();
+      }
+    }
+
+    internal enum IsAllocType { ISALLOC, NOALLOC, NEVERALLOC }; // NEVERALLOC is like NOALLOC, but overrides AlwaysAlloc
+
+    internal class IsAllocContext {
+      internal bool allVarsGhost;
+      private DafnyOptions options;
+
+      internal IsAllocContext(DafnyOptions options, bool allVarsGhost) {
+        this.options = options;
+        this.allVarsGhost = allVarsGhost;
+      }
+
+      internal IsAllocType Var(bool isGhost) {
+        return ISALLOC;
+      }
+
+      internal IsAllocType Var(LocalVariable local) {
+        return Var(allVarsGhost || local.IsGhost);
+      }
+
+      internal IsAllocType Var(NonglobalVariable var) {
+        return Var(allVarsGhost || var.IsGhost);
+      }
+
+      internal IsAllocType Var(bool ghostStmt, LocalVariable var) {
+        return Var(allVarsGhost || ghostStmt || var.IsGhost);
+      }
+
+      internal IsAllocType Var(bool ghostStmt, NonglobalVariable var) {
+        return Var(allVarsGhost || ghostStmt || var.IsGhost);
+      }
+    }
+
+    public class SplitExprInfo {
+      public enum K { Free, Checked, Both }
+
+      public readonly Expr E;
+      public K Kind;
+
+      public SplitExprInfo(K kind, Expr e) {
+        Contract.Requires(e != null && e.tok != null);
+        // TODO:  Contract.Requires(kind == K.Free || e.tok.IsValid);
+        Kind = kind;
+        E = e;
+      }
+
+      public bool IsOnlyFree { get { return Kind == K.Free; } }
+      public bool IsOnlyChecked { get { return Kind == K.Checked; } }
+      public bool IsChecked { get { return Kind != K.Free; } }
+      public IToken Tok => ToDafnyToken(E.tok);
+    }
+
+    private class VariablesCollector : BottomUpVisitor {
+      internal ISet<IVariable> variables;
+
+      internal VariablesCollector() {
+        this.variables = new HashSet<IVariable>();
+      }
+
+      protected override void VisitOneExpr(Expression expr) {
+        if (expr is IdentifierExpr) {
+          variables.Add((expr as IdentifierExpr).Var);
+        }
+      }
+    }
+
+    private class TriggersExplorer : BottomUpVisitor {
+      private readonly VariablesCollector collector;
+
+      internal TriggersExplorer() {
+        collector = new VariablesCollector();
+      }
+
+      internal ISet<IVariable> TriggerVariables => collector.variables;
+
+      protected override void VisitOneExpr(Expression expr) {
+        if (expr is QuantifierExpr quantifierExpr && quantifierExpr.SplitQuantifier == null) {
+          foreach (var trigger in quantifierExpr.Attributes.AsEnumerable().Where(a => a.Name == "trigger").SelectMany(a => a.Args)) {
+            collector.Visit(trigger);
+          }
+        }
+      }
+    }
+
+    class UsesHeapVisitor : BottomUpVisitor {
+      internal bool foundHeap = false;
+      Type usesThis = null;
+
+      protected override void VisitOneExpr(Expression expr) {
+        LetExpr letExpr = expr as LetExpr;
+        if (letExpr != null && !letExpr.Exact) {
+          foundHeap = true; // see comment in LetSuchThatExprInfo: "UsesHeap = true;  // note, we ignore "usesHeap" and always record it as "true", because various type antecedents need access to the heap (hopefully, this is okay in the contexts in which the let-such-that expression is used)"
+        }
+        FunctionCallExpr call = expr as FunctionCallExpr;
+        if (call != null && call.Function != null && call.Function.ReadsHeap) {
+          foundHeap = true;
+        }
+        if (expr is ApplyExpr || expr is SeqConstructionExpr) {
+          foundHeap = true;
+        }
+        ThisExpr thisExpr = expr as ThisExpr;
+        if (thisExpr != null && thisExpr.Type == null) { // this shouldn't happen, but there appears to be a bug in trait resolution (see TraitCompile.dfy); it causes ComputeFreeVariables to blow up
+          foundHeap = true;
+        } else if (thisExpr != null && usesThis != null && !thisExpr.Type.Equals(usesThis)) { // also causes ComputeFreeVariables to blow up (see TraitExample.dfy)
+          foundHeap = true;
+        } else if (thisExpr != null) {
+          usesThis = thisExpr.Type;
+        }
+      }
+    }
+
+    class VariableNameVisitor : Boogie.StandardVisitor {
+      public readonly HashSet<string> Names = new HashSet<string>();
+
+      public override Expr VisitIdentifierExpr(Bpl.IdentifierExpr node) {
+        Names.Add(node.Name);
+        return base.VisitIdentifierExpr(node);
+      }
+
+      public override BinderExpr VisitBinderExpr(BinderExpr node) {
+        var vis = new VariableNameVisitor();
+        vis.Visit(node.Body);
+        var dummyNames = new HashSet<string>(node.Dummies.Select(v => v.Name));
+        foreach (var nm in vis.Names) {
+          if (!dummyNames.Contains(nm)) {
+            Names.Add(nm);
+          }
+        }
+        return (BinderExpr)base.VisitBinderExpr(node);
+      }
+    }
+
+    #region Definite-assignment tracking
+
+    bool NeedsDefiniteAssignmentTracker(bool isGhost, Type type, bool isFIeld) {
+      Contract.Requires(type != null);
+
+      if (options.DefiniteAssignmentLevel == 0) {
+        return false;
+      } else if (options.DefiniteAssignmentLevel == 1 ||
+                 (options.DefiniteAssignmentLevel == 4 && isFIeld && !options.ForbidNondeterminism)) {
+        if (isGhost && type.IsNonempty) {
+          return false;
+        } else if (!isGhost && type.HasCompilableValue) {
+          return false;
+        }
+      }
+      return true;
+    }
+
+    Bpl.Expr/*?*/ AddDefiniteAssignmentTracker(IVariable p, List<Bpl.Variable> localVariables, bool isOutParam = false, bool forceGhostVar = false) {
+      Contract.Requires(p != null);
+      Contract.Requires(localVariables != null);
+
+      if (!NeedsDefiniteAssignmentTracker(p.IsGhost || forceGhostVar, p.Type, false)) {
+        return null;
+      }
+      Bpl.Variable tracker;
+      if (isOutParam) {
+        tracker = new Bpl.Formal(p.Tok, new Bpl.TypedIdent(p.Tok, "defass#" + p.UniqueName, Bpl.Type.Bool), false);
+      } else {
+        tracker = new Bpl.LocalVariable(p.Tok, new Bpl.TypedIdent(p.Tok, "defass#" + p.UniqueName, Bpl.Type.Bool));
+      }
+      localVariables.Add(tracker);
+      var ie = new Bpl.IdentifierExpr(p.Tok, tracker);
+      definiteAssignmentTrackers.Add(p.UniqueName, ie);
+      return ie;
+    }
+
+    void AddExistingDefiniteAssignmentTracker(IVariable p, bool forceGhostVar) {
+      Contract.Requires(p != null);
+
+      if (NeedsDefiniteAssignmentTracker(p.IsGhost || forceGhostVar, p.Type, false)) {
+        var ie = new Bpl.IdentifierExpr(p.Tok, "defass#" + p.UniqueName, Bpl.Type.Bool);
+        definiteAssignmentTrackers.Add(p.UniqueName, ie);
+      }
+    }
+
+    void AddDefiniteAssignmentTrackerSurrogate(Field field, TopLevelDeclWithMembers enclosingClass, List<Variable> localVariables, bool forceGhostVar) {
+      Contract.Requires(field != null);
+      Contract.Requires(localVariables != null);
+
+      var type = field.Type.Subst(enclosingClass.ParentFormalTypeParametersToActuals);
+      if (!NeedsDefiniteAssignmentTracker(field.IsGhost || forceGhostVar, type, true)) {
+        return;
+      }
+      var nm = SurrogateName(field);
+      var tracker = new Bpl.LocalVariable(field.tok, new Bpl.TypedIdent(field.tok, "defass#" + nm, Bpl.Type.Bool));
+      localVariables.Add(tracker);
+      var ie = new Bpl.IdentifierExpr(field.tok, tracker);
+      definiteAssignmentTrackers.Add(nm, ie);
+    }
+
+    void RemoveDefiniteAssignmentTrackers(List<Statement> ss, int prevDefAssTrackerCount) {
+      Contract.Requires(ss != null);
+      foreach (var s in ss) {
+        if (s is VarDeclStmt vdecl) {
+          if (vdecl.Update is AssignOrReturnStmt ars) {
+            foreach (var sx in ars.ResolvedStatements) {
+              if (sx is VarDeclStmt vdecl2) {
+                vdecl2.Locals.ForEach(RemoveDefiniteAssignmentTracker);
+              }
+            }
+          }
+          vdecl.Locals.ForEach(RemoveDefiniteAssignmentTracker);
+        } else if (s is AssignOrReturnStmt ars) {
+          foreach (var sx in ars.ResolvedStatements) {
+            if (sx is VarDeclStmt vdecl2) {
+              vdecl2.Locals.ForEach(RemoveDefiniteAssignmentTracker);
+            }
+          }
+        }
+      }
+      Contract.Assert(prevDefAssTrackerCount == definiteAssignmentTrackers.Count);
+    }
+
+    void RemoveDefiniteAssignmentTracker(IVariable p) {
+      Contract.Requires(p != null);
+      definiteAssignmentTrackers.Remove(p.UniqueName);
+    }
+
+    void RemoveDefiniteAssignmentTrackerSurrogate(Field field) {
+      Contract.Requires(field != null);
+      definiteAssignmentTrackers.Remove(SurrogateName(field));
+    }
+
+    void MarkDefiniteAssignmentTracker(IdentifierExpr expr, BoogieStmtListBuilder builder) {
+      Contract.Requires(expr != null);
+      Contract.Requires(builder != null);
+      MarkDefiniteAssignmentTracker(expr.tok, expr.Var.UniqueName, builder);
+    }
+
+    void MarkDefiniteAssignmentTracker(IToken tok, string name, BoogieStmtListBuilder builder) {
+      Contract.Requires(tok != null);
+      Contract.Requires(name != null);
+      Contract.Requires(builder != null);
+
+      Bpl.IdentifierExpr ie;
+      if (definiteAssignmentTrackers.TryGetValue(name, out ie)) {
+        builder.Add(Bpl.Cmd.SimpleAssign(tok, ie, Bpl.Expr.True));
+      }
+    }
+
+    internal IToken GetToken(INode node) {
+      if (flags.ReportRanges) {
+        // Filter against IHasUsages to only select declarations, not usages.
+        if (node is IDeclarationOrUsage declarationOrUsage && node is not IHasUsages) {
+          return new BoogieRangeToken(node.RangeToken.StartToken, node.RangeToken.EndToken, declarationOrUsage.NameToken);
+        }
+        return node.RangeToken.ToToken();
+      } else {
+        return node.Tok;
+      }
+    }
+
+    void CheckDefiniteAssignment(IdentifierExpr expr, BoogieStmtListBuilder builder) {
+      Contract.Requires(expr != null);
+      Contract.Requires(builder != null);
+
+      Bpl.IdentifierExpr ie;
+      if (definiteAssignmentTrackers.TryGetValue(expr.Var.UniqueName, out ie)) {
+        builder.Add(Assert(GetToken(expr), ie, new PODesc.DefiniteAssignment($"variable '{expr.Var.Name}'", "here")));
+      }
+    }
+
+    /// <summary>
+    /// Returns an expression denoting the definite-assignment tracker for "var", or "null" if there is none.
+    /// </summary>
+    Bpl.IdentifierExpr/*?*/ GetDefiniteAssignmentTracker(IVariable var) {
+      Bpl.IdentifierExpr ie;
+      if (definiteAssignmentTrackers.TryGetValue(var.UniqueName, out ie)) {
+        return ie;
+      }
+      return null;
+    }
+
+    void CheckDefiniteAssignmentSurrogate(IToken tok, Field field, bool atNew, BoogieStmtListBuilder builder) {
+      Contract.Requires(tok != null);
+      Contract.Requires(field != null);
+      Contract.Requires(builder != null);
+
+      var nm = SurrogateName(field);
+      Bpl.IdentifierExpr ie;
+      if (definiteAssignmentTrackers.TryGetValue(nm, out ie)) {
+        var desc = new PODesc.DefiniteAssignment($"field '{field.Name}'",
+          atNew ? "at this point in the constructor body" : "here");
+        builder.Add(Assert(tok, ie, desc));
+      }
+    }
+
+    void AssumeCanCallForByMethodDecl(Method method, BoogieStmtListBuilder builder) {
+      if (method?.FunctionFromWhichThisIsByMethodDecl?.ByMethodTok != null && // Otherwise nothing is checked anyway
+          method.Ens.Count == 1 &&
+          method.Ens[0].E is BinaryExpr { E1: var e1 } &&
+          e1.Resolved is FunctionCallExpr { Args: var arguments } fnCall) {
+        // fnCall == (m.Ens[0].E as BinaryExpr).E1;
+        // fn == new FunctionCallExpr(tok, f.Name, receiver, tok, tok, f.Formals.ConvertAll(Expression.CreateIdentExpr));
+        Bpl.IdentifierExpr canCallFuncID =
+          new Bpl.IdentifierExpr(method.tok, method.FullSanitizedName + "#canCall", Bpl.Type.Bool);
+        var etran = new ExpressionTranslator(this, predef, method.tok);
+        List<Bpl.Expr> args = arguments.Select(arg => etran.TrExpr(arg)).ToList();
+        var formals = MkTyParamBinders(GetTypeParams(method), out var tyargs);
+        if (method.FunctionFromWhichThisIsByMethodDecl.ReadsHeap) {
+          Contract.Assert(etran.HeapExpr != null);
+          tyargs.Add(etran.HeapExpr);
+        }
+
+        if (!method.IsStatic) {
+          var thVar = BplBoundVar("this", TrReceiverType(method.FunctionFromWhichThisIsByMethodDecl), out var th);
+          tyargs.Add(th);
+        }
+        Bpl.Expr boogieAssumeCanCall =
+          new Bpl.NAryExpr(method.tok, new FunctionCall(canCallFuncID), Concat(tyargs, args));
+        builder.Add(new AssumeCmd(method.tok, boogieAssumeCanCall));
+      } else {
+        Contract.Assert(false, "Error in shape of by-method");
+      }
+    }
+
+    void CheckDefiniteAssignmentReturn(IToken tok, Formal p, BoogieStmtListBuilder builder) {
+      Contract.Requires(tok != null);
+      Contract.Requires(p != null && !p.InParam);
+      Contract.Requires(builder != null);
+
+      Bpl.IdentifierExpr ie;
+      if (definiteAssignmentTrackers.TryGetValue(p.UniqueName, out ie)) {
+        var desc = new PODesc.DefiniteAssignment($"out-parameter '{p.Name}'", "at this return point");
+        builder.Add(Assert(tok, ie, desc));
+      }
+    }
+
+    #endregion  // definite-assignment tracking
   }
 }

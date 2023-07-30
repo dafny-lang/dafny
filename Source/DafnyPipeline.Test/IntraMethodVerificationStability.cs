@@ -235,10 +235,11 @@ module SomeModule {
     IEnumerable<BoogieProgram> GetBoogie(DafnyOptions options, string dafnyProgramText) {
       var dafnyProgram = Utils.Parse(options, dafnyProgramText, false);
       BatchErrorReporter reporter = (BatchErrorReporter)dafnyProgram.Reporter;
+      var usageGraph = SymbolTable.CreateFrom(dafnyProgram).UsageGraph();
       Assert.NotNull(dafnyProgram);
       DafnyMain.Resolve(dafnyProgram);
       Assert.Equal(0, reporter.ErrorCount);
-      return Translator.Translate(dafnyProgram, reporter).Select(t => t.Item2).ToList();
+      return Translator.Translate(usageGraph, dafnyProgram, reporter).Select(t => t.Item2).ToList();
     }
   }
 }

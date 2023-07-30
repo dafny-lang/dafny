@@ -17,6 +17,7 @@ using System.Threading.Tasks;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Collections.ObjectModel;
 using System.Diagnostics.Contracts;
 using System.IO;
@@ -24,6 +25,7 @@ using System.Linq;
 using Microsoft.Boogie;
 using Bpl = Microsoft.Boogie;
 using System.Diagnostics;
+using System.Reactive;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.Dafny.LanguageServer.CounterExampleGeneration;
 using Microsoft.Dafny.Plugins;
@@ -443,11 +445,12 @@ namespace Microsoft.Dafny {
       } else if (dafnyProgram != null && !options.NoResolve && !options.NoTypecheck
           && options.DafnyVerify) {
 
-        var boogiePrograms =
-          await DafnyMain.LargeStackFactory.StartNew(() => Translate(engine.Options, dafnyProgram).ToList());
+        var boogiePrograms = await Translate(options, dafnyProgram);
 
         string baseName = cce.NonNull(Path.GetFileName(dafnyFileNames[^1]));
-        var (verified, outcome, moduleStats) = await BoogieAsync(options, baseName, boogiePrograms, programId);
+        var (verified, outcome, moduleStats) = (true, PipelineOutcome.VerificationCompleted,
+          ImmutableDictionary<string, PipelineStatistics>.Empty);
+        //await BoogieAsync(options, baseName, boogiePrograms, programId);
 
         bool compiled;
         try {
@@ -473,6 +476,33 @@ namespace Microsoft.Dafny {
         PrintCounterexample(options, options.ModelViewFile);
       }
       return exitValue;
+    }
+
+    public static async Task<(string SanitizedName, Bpl.Program boogieProgram)[]> Translate(DafnyOptions options, Program dafnyProgram)
+    {
+      var usageGraph = SymbolTable.CreateFrom(dafnyProgram).UsageGraph();
+      var verifiableModules = Translator.VerifiableModules(dafnyProgram).ToList();
+      var boogieProgramTasks = verifiableModules.Select(async verifiableModule => {
+        var translator = new Translator(usageGraph, dafnyProgram.Reporter);
+        var boogieProgram =
+          await DafnyMain.LargeStackFactory.StartNew(() =>
+          {
+            Type.ResetScopes();
+            return translator.DoTranslation(dafnyProgram, verifiableModule);
+          });
+        if (options.PrintFile != null)
+        {
+          var fileName = verifiableModules.Count > 1
+            ? DafnyMain.BoogieProgramSuffix(options.PrintFile, verifiableModule.SanitizedName)
+            : options.PrintFile;
+
+          ExecutionEngine.PrintBplFile(options, fileName, boogieProgram, false, false, options.PrettyPrint);
+        }
+
+        return (verifiableModule.SanitizedName, boogieProgram);
+      });
+      var boogiePrograms = await Task.WhenAll(boogieProgramTasks);
+      return boogiePrograms;
     }
 
     private static ExitValue DoFormatting(IReadOnlyList<DafnyFile> dafnyFiles, DafnyOptions options, string programName, TextWriter errorWriter) {
@@ -605,35 +635,10 @@ namespace Microsoft.Dafny {
       }
     }
 
-    private static string BoogieProgramSuffix(string printFile, string suffix) {
-      var baseName = Path.GetFileNameWithoutExtension(printFile);
-      var dirName = Path.GetDirectoryName(printFile);
-
-      return Path.Combine(dirName, baseName + "_" + suffix + Path.GetExtension(printFile));
-    }
-
-    public static IEnumerable<Tuple<string, Bpl.Program>> Translate(ExecutionEngineOptions options, Program dafnyProgram) {
-      var modulesCount = Translator.VerifiableModules(dafnyProgram).Count();
-
-
-      foreach (var prog in Translator.Translate(dafnyProgram, dafnyProgram.Reporter)) {
-
-        if (options.PrintFile != null) {
-
-          var fileName = modulesCount > 1 ? Dafny.DafnyMain.BoogieProgramSuffix(options.PrintFile, prog.Item1) : options.PrintFile;
-
-          ExecutionEngine.PrintBplFile(options, fileName, prog.Item2, false, false, options.PrettyPrint);
-        }
-
-        yield return prog;
-
-      }
-    }
-
     public async Task<(bool IsVerified, PipelineOutcome Outcome, IDictionary<string, PipelineStatistics> ModuleStats)>
       BoogieAsync(DafnyOptions options,
         string baseName,
-        IEnumerable<Tuple<string, Bpl.Program>> boogiePrograms, string programId) {
+        IEnumerable<(string, Bpl.Program)> boogiePrograms, string programId) {
 
       var concurrentModuleStats = new ConcurrentDictionary<string, PipelineStatistics>();
       var writerManager = new ConcurrentToSequentialWriteManager(options.OutputWriter);

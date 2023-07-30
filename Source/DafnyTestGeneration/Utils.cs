@@ -24,13 +24,14 @@ namespace DafnyTestGeneration {
     /// Call Translator with larger stack to prevent stack overflow
     /// </summary>
     public static List<Microsoft.Boogie.Program> Translate(Program program) {
+      var usageGraph = SymbolTable.CreateFrom(program).UsageGraph();
       var ret = new List<Microsoft.Boogie.Program> { };
-      var thread = new System.Threading.Thread(
+      var thread = new Thread(
         () => {
           var oldPrintInstrumented = program.Reporter.Options.PrintInstrumented;
           program.Reporter.Options.PrintInstrumented = true;
           ret = Translator
-            .Translate(program, program.Reporter)
+            .Translate(usageGraph, program, program.Reporter)
             .ToList().ConvertAll(tuple => tuple.Item2);
           program.Reporter.Options.PrintInstrumented = oldPrintInstrumented;
         },

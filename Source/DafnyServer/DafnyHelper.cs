@@ -61,7 +61,8 @@ namespace Microsoft.Dafny {
     }
 
     private bool Translate() {
-      boogiePrograms = Translator.Translate(dafnyProgram, reporter,
+      var usageGraph = SymbolTable.CreateFrom(dafnyProgram).UsageGraph();
+      boogiePrograms = Translator.Translate(usageGraph, dafnyProgram, reporter,
           new Translator.TranslatorFlags(options) { InsertChecksums = true, UniqueIdPrefix = fname }).ToList(); // FIXME how are translation errors reported?
       return true;
     }

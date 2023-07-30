@@ -88,7 +88,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
         var newSymbolTable = errorReporter.HasErrors
           ? null
-          : symbolTableFactory.CreateFrom(program, compilationAfterParsing, cancellationToken);
+          : SymbolTable.CreateFrom(program);
         if (errorReporter.HasErrors) {
           _ = statusPublisher.SendStatusNotification(compilation, CompilationStatus.ResolutionFailed);
         } else {

@@ -76,6 +76,7 @@ warn-shadowing = true";
     var doc1 = await CreateAndOpenTestDocument(source, "orphaned");
     var diagnostics1 = await GetLastDiagnostics(doc1, CancellationToken);
     Assert.Single(diagnostics1); // Stops after parsing
+    
     await CreateAndOpenTestDocument(source, filePath);
     await AssertNoDiagnosticsAreComing(CancellationToken);
   }

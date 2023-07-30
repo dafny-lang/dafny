@@ -24,7 +24,7 @@ public class ServerCommand : ICommandSpec {
       UseCaching
     );
   }
-
+  
   public static readonly Option<bool> UseCaching = new("--use-caching", () => true,
     "Use caching to speed up analysis done by the Dafny IDE after each text edit.") {
     IsHidden = true

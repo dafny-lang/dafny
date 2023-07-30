@@ -189,6 +189,8 @@ public class TypeParameter : TopLevelDecl {
     }
   }
 
+  public override DafnySymbolKind Kind => DafnySymbolKind.TypeParameter;
+
   public static TypeParameterCharacteristics GetExplicitCharacteristics(TopLevelDecl d) {
     Contract.Requires(d != null);
     TypeParameterCharacteristics characteristics = new TypeParameterCharacteristics(false);

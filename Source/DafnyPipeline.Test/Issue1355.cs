@@ -25,7 +25,8 @@ namespace DafnyPipeline.Test {
       var programString = @"trait Trait<A, B> { }";
       var dafnyProgram = Utils.Parse(options, programString, false);
       DafnyMain.Resolve(dafnyProgram);
-      foreach (var prog in Translator.Translate(dafnyProgram, dafnyProgram.Reporter)) {
+      var usageGraph = SymbolTable.CreateFrom(dafnyProgram).UsageGraph();
+      foreach (var prog in Translator.Translate(usageGraph, dafnyProgram, dafnyProgram.Reporter)) {
         var writer = new StringWriter();
         var tokenWriter = new Bpl.TokenTextWriter("virtual", writer, true, options);
         prog.Item2.Emit(tokenWriter);

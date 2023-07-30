@@ -9,7 +9,7 @@ using System;
 using System.IO;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
-using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using DafnyCore;
@@ -18,7 +18,6 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Microsoft.Dafny {
-
   public class IllegalDafnyFile : Exception {
     public bool ProcessingError { get; }
 
@@ -75,7 +74,7 @@ namespace Microsoft.Dafny {
     }
 
     private static readonly TaskScheduler largeThreadScheduler =
-      CustomStackSizePoolTaskScheduler.Create(0x10000000, Environment.ProcessorCount);
+      OneOffCustomStackSizePoolTaskScheduler.Create(0x10000000);
 
     public static readonly TaskFactory LargeStackFactory = new(CancellationToken.None,
       TaskCreationOptions.DenyChildAttach, TaskContinuationOptions.None, largeThreadScheduler);
