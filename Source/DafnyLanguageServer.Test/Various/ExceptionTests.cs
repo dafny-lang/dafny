@@ -115,12 +115,15 @@ public class ExceptionTests : ClientBasedLanguageServerTest {
       return loader.CreateUnloaded(compilation);
     }
 
-    public Task<CompilationAfterParsing> LoadAsync(DafnyOptions options, Compilation compilation,
-        CancellationToken cancellationToken) {
+    public Task<CompilationAfterParsing> ParseAsync(DafnyOptions options, Compilation compilation, CancellationToken cancellationToken) {
+      return loader.ParseAsync(options, compilation, cancellationToken);
+    }
+
+    public Task<CompilationAfterResolution> ResolveAsync(DafnyOptions options, CompilationAfterParsing compilation, CancellationToken cancellationToken) {
       if (tests.CrashOnLoad) {
         throw new IOException("crash");
       }
-      return loader.LoadAsync(options, compilation, cancellationToken);
+      return loader.ResolveAsync(options, compilation, cancellationToken);
     }
   }
 

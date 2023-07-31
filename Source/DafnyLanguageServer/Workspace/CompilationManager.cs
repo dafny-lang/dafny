@@ -55,8 +55,8 @@ public class CompilationManager {
   private readonly Subject<Compilation> compilationUpdates = new();
   public IObservable<Compilation> CompilationUpdates => compilationUpdates;
 
-  public Task<CompilationAfterParsing> ResolvedCompilation { get; }
-  public Task<CompilationAfterResolution> ResolvedCompilation2 { get; }
+  public Task<CompilationAfterParsing> ParsedCompilation { get; }
+  public Task<CompilationAfterResolution> ResolvedCompilation { get; }
 
   public CompilationManager(
     ILogger<CompilationManager> logger,
@@ -86,6 +86,7 @@ public class CompilationManager {
 
     MarkVerificationFinished();
 
+    ParsedCompilation = ParseAsync();
     ResolvedCompilation = ResolveAsync();
   }
 
@@ -93,10 +94,23 @@ public class CompilationManager {
     started.TrySetResult();
   }
 
-  private async Task<CompilationAfterParsing> ResolveAsync() {
+  private async Task<CompilationAfterParsing> ParseAsync() {
     try {
       await started.Task;
-      var documentAfterParsing = await documentLoader.LoadAsync(options, startingCompilation, cancellationSource.Token);
+      var documentAfterParsing = await documentLoader.ParseAsync(options, startingCompilation, cancellationSource.Token);
+      // compilationUpdates.OnNext(documentAfterParsing); // TODO could be nice to publish parse diagnostics before resolution ones
+      return documentAfterParsing;
+
+    } catch (Exception e) {
+      compilationUpdates.OnError(e);
+      throw;
+    }
+  }
+  
+  private async Task<CompilationAfterResolution> ResolveAsync() {
+    try {
+      var parsedCompilation = await ParsedCompilation;
+      var documentAfterParsing = await documentLoader.ResolveAsync(options, parsedCompilation, cancellationSource.Token);
 
       // TODO, let gutter icon publications also used the published CompilationView.
       var state = documentAfterParsing.InitialIdeState(startingCompilation, options);
@@ -388,7 +402,7 @@ public class CompilationManager {
     verificationCompleted.TrySetResult();
   }
 
-  public Task<CompilationAfterParsing> LastDocument => ResolvedCompilation2.ContinueWith(
+  public Task<CompilationAfterParsing> LastDocument => ResolvedCompilation.ContinueWith(
     t => {
       if (t.IsCompletedSuccessfully) {
 #pragma warning disable VSTHRD103
@@ -401,12 +415,12 @@ public class CompilationManager {
 #pragma warning restore VSTHRD103
       }
 
-      return ResolvedCompilation;
+      return ParsedCompilation;
     }, TaskScheduler.Current).Unwrap();
 
   public async Task<TextEditContainer?> GetTextEditToFormatCode(Uri uri) {
     // TODO https://github.com/dafny-lang/dafny/issues/3416
-    var parsedDocument = await ResolvedCompilation;
+    var parsedDocument = await ParsedCompilation;
     if (parsedDocument.GetDiagnostics(uri).Any(diagnostic =>
           diagnostic.Level == ErrorLevel.Error &&
           diagnostic.Source == MessageSource.Parser

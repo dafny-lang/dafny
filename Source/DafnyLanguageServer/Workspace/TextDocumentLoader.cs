@@ -65,15 +65,15 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       return CreateDocumentWithEmptySymbolTable(compilation, ImmutableDictionary<Uri, IReadOnlyList<Diagnostic>>.Empty);
     }
 
-    public async Task<CompilationAfterParsing> LoadAsync(DafnyOptions options, Compilation compilation,
-      CancellationToken cancellationToken) {
+    public async Task<CompilationAfterParsing> ParseAsync(DafnyOptions options, Compilation compilation, CancellationToken cancellationToken) {
 #pragma warning disable CS1998
       return await await DafnyMain.LargeStackFactory.StartNew(
-        async () => LoadInternal(options, compilation, cancellationToken), cancellationToken
+        async () => ParseInternal(options, compilation, cancellationToken), cancellationToken
 #pragma warning restore CS1998
-        );
+      );
     }
-    private CompilationAfterParsing LoadInternal(DafnyOptions options, Compilation compilation,
+
+    private CompilationAfterParsing ParseInternal(DafnyOptions options, Compilation compilation,
       CancellationToken cancellationToken) {
       var project = compilation.Project;
       var errorReporter = new DiagnosticErrorReporter(options, project.Uri);
@@ -85,35 +85,53 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         return compilationAfterParsing;
       }
 
-      _ = statusPublisher.SendStatusNotification(compilation, CompilationStatus.ResolutionStarted);
-      try {
-        var compilationUnit = symbolResolver.ResolveSymbols(project, program, cancellationToken);
-        var legacySymbolTable = symbolTableFactory.CreateFrom(compilationUnit, cancellationToken);
+      return compilationAfterParsing;
+    }
 
-        var newSymbolTable = errorReporter.HasErrors
-          ? null
-          : symbolTableFactory.CreateFrom(program, compilationAfterParsing, cancellationToken);
-        if (errorReporter.HasErrors) {
-          _ = statusPublisher.SendStatusNotification(compilation, CompilationStatus.ResolutionFailed);
-        } else {
-          _ = statusPublisher.SendStatusNotification(compilation, CompilationStatus.CompilationSucceeded);
-        }
-
-        var ghostDiagnostics = ghostStateDiagnosticCollector.GetGhostStateDiagnostics(legacySymbolTable, cancellationToken);
-        var symbols = program.Modules().SelectMany(SymbolExtensions.GetSymbols);
-        var verifiables = symbols.OfType<ICanVerify>();
-        return new CompilationAfterResolution(compilationAfterParsing,
-          errorReporter.AllDiagnosticsCopy,
-          newSymbolTable,
-          legacySymbolTable,
-          ghostDiagnostics,
-          verifiables.ToDictionary(v => v, v => new VerifyStatus()),
-          new ConcurrentDictionary<ModuleDefinition, Task<IReadOnlyList<IImplementationTask>>>(),
-          new()
+    public async Task<CompilationAfterResolution> ResolveAsync(DafnyOptions options, CompilationAfterParsing compilation,
+      CancellationToken cancellationToken) {
+#pragma warning disable CS1998
+      return await await DafnyMain.LargeStackFactory.StartNew(
+        async () => ResolveInternal(compilation, cancellationToken), cancellationToken
+#pragma warning restore CS1998
         );
-      } catch (OperationCanceledException) {
-        return compilationAfterParsing;
+    }
+    
+    private CompilationAfterResolution ResolveInternal(CompilationAfterParsing compilation, CancellationToken cancellationToken) {
+      
+      var program = compilation.Program;
+      var errorReporter = (DiagnosticErrorReporter)program.Reporter;
+      if (errorReporter.HasErrors) {
+        throw new TaskCanceledException();
       }
+      
+      var project = compilation.Project;
+
+      _ = statusPublisher.SendStatusNotification(compilation, CompilationStatus.ResolutionStarted);
+      var compilationUnit = symbolResolver.ResolveSymbols(project, program, cancellationToken);
+      var legacySymbolTable = symbolTableFactory.CreateFrom(compilationUnit, cancellationToken);
+
+      var newSymbolTable = errorReporter.HasErrors
+        ? null
+        : symbolTableFactory.CreateFrom(program, compilation, cancellationToken);
+      if (errorReporter.HasErrors) {
+        _ = statusPublisher.SendStatusNotification(compilation, CompilationStatus.ResolutionFailed);
+      } else {
+        _ = statusPublisher.SendStatusNotification(compilation, CompilationStatus.CompilationSucceeded);
+      }
+
+      var ghostDiagnostics = ghostStateDiagnosticCollector.GetGhostStateDiagnostics(legacySymbolTable, cancellationToken);
+      var symbols = program.Modules().SelectMany(SymbolExtensions.GetSymbols);
+      var verifiables = symbols.OfType<ICanVerify>();
+      return new CompilationAfterResolution(compilation,
+        errorReporter.AllDiagnosticsCopy,
+        newSymbolTable,
+        legacySymbolTable,
+        ghostDiagnostics,
+        verifiables.ToDictionary(v => v, v => new VerifyStatus()),
+        new ConcurrentDictionary<ModuleDefinition, Task<IReadOnlyList<IImplementationTask>>>(),
+        new()
+      );
     }
 
     private IdeState CreateDocumentWithEmptySymbolTable(Compilation compilation,

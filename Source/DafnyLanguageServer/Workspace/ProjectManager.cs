@@ -227,7 +227,7 @@ public class ProjectManager : IDisposable {
 
   public async Task<IdeState> GetSnapshotAfterResolutionAsync() {
     try {
-      var resolvedCompilation = await CompilationManager.ResolvedCompilation;
+      var resolvedCompilation = await CompilationManager.ParsedCompilation;
       logger.LogDebug($"GetSnapshotAfterResolutionAsync, resolvedDocument.Version = {resolvedCompilation.Version}, " +
                       $"observer.LastPublishedState.Version = {observer.LastPublishedState.Compilation.Version}, threadId: {Thread.CurrentThread.ManagedThreadId}");
     } catch (OperationCanceledException) {
@@ -251,7 +251,7 @@ public class ProjectManager : IDisposable {
   public async Task VerifyEverythingAsync(Uri? uri) {
     _ = workCompletedForCurrentVersion.WaitAsync();
     try {
-      var resolvedCompilation = await CompilationManager.ResolvedCompilation2;
+      var resolvedCompilation = await CompilationManager.ResolvedCompilation;
       
       var implementationTasks = resolvedCompilation.ImplementationsPerVerifiable.Keys.ToList();
       if (uri != null) {
