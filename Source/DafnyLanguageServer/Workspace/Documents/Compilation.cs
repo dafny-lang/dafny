@@ -13,7 +13,7 @@ using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 namespace Microsoft.Dafny.LanguageServer.Workspace {
 
   using VerifyStatus = Dictionary<string, (IImplementationTask Task, ImplementationView View)>;
-  
+
   /// <summary>
   /// Internal representation of a specific version of a Dafny document.
   ///

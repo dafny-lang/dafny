@@ -36,7 +36,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       if (!verifiableModules.Contains(moduleDefinition)) {
         throw new Exception();
       }
-        
+
       await mutex.WaitAsync(cancellationToken);
       try {
 
@@ -60,8 +60,8 @@ namespace Microsoft.Dafny.LanguageServer.Language {
 
         if (engine.Options.PrintFile != null) {
           var moduleCount = Translator.VerifiableModules(program).Count();
-            var fileName = moduleCount > 1 ? DafnyMain.BoogieProgramSuffix(engine.Options.PrintFile, suffix) : engine.Options.PrintFile;
-            ExecutionEngine.PrintBplFile(engine.Options, fileName, boogieProgram, false, false, engine.Options.PrettyPrint);
+          var fileName = moduleCount > 1 ? DafnyMain.BoogieProgramSuffix(engine.Options.PrintFile, suffix) : engine.Options.PrintFile;
+          ExecutionEngine.PrintBplFile(engine.Options, fileName, boogieProgram, false, false, engine.Options.PrettyPrint);
         }
 
         return engine.GetImplementationTasks(boogieProgram);

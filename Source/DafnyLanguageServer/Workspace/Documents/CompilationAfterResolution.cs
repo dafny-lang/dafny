@@ -14,7 +14,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace;
 using VerifyStatus = Dictionary<string, (IImplementationTask Task, ImplementationView View)>;
 
 public class CompilationAfterResolution : CompilationAfterParsing {
-  
+
   public CompilationAfterResolution(CompilationAfterParsing compilationAfterParsing,
     IReadOnlyDictionary<Uri, List<DafnyDiagnostic>> diagnostics,
     SymbolTable? symbolTable,
@@ -46,7 +46,7 @@ public class CompilationAfterResolution : CompilationAfterParsing {
     var verificationDiagnostics = implementationsForUri.SelectMany(view => view.Values.SelectMany(v => v.View.Diagnostics));
     return base.GetDiagnostics(uri).Concat(verificationDiagnostics);
   }
-  
+
   public override IdeState ToIdeState(IdeState previousState) {
     IEnumerable<KeyValuePair<ImplementationId, IdeImplementationView>> MergeVerifiable(ICanVerify canVerify) {
       return ImplementationsPerVerifiable[canVerify].Select(kv => {
@@ -61,15 +61,15 @@ public class CompilationAfterResolution : CompilationAfterParsing {
         return new KeyValuePair<ImplementationId, IdeImplementationView>(implementationId, value);
       });
     }
-    
+
     return base.ToIdeState(previousState) with {
       SymbolTable = SymbolTable ?? previousState.SymbolTable,
       SignatureAndCompletionTable = SignatureAndCompletionTable.Resolved ? SignatureAndCompletionTable : previousState.SignatureAndCompletionTable,
       GhostRanges = GhostDiagnostics,
-      ImplementationViews = new (ImplementationsPerVerifiable.Keys.SelectMany(MergeVerifiable))
+      ImplementationViews = new(ImplementationsPerVerifiable.Keys.SelectMany(MergeVerifiable))
     };
   }
-  
+
   static PublishedVerificationStatus Combine(PublishedVerificationStatus first, PublishedVerificationStatus second) {
     return new[] { first, second }.Min();
   }

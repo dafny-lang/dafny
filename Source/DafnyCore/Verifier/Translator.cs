@@ -711,7 +711,7 @@ namespace Microsoft.Dafny {
       if (sink == null) {
         return new Bpl.Program();
       }
-      
+
       program = p;
       this.forModule = forModule;
       Type.EnableScopes();

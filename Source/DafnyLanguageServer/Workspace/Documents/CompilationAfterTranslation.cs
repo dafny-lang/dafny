@@ -13,9 +13,9 @@ public class CompilationAfterTranslation : CompilationAfterResolution {
     )
     : base(compilationAfterResolution, diagnostics,
       compilationAfterResolution.SymbolTable, compilationAfterResolution.SignatureAndCompletionTable,
-      compilationAfterResolution.GhostDiagnostics, 
-      compilationAfterResolution.ImplementationsPerVerifiable, 
-      compilationAfterResolution.TranslatedModules, 
+      compilationAfterResolution.GhostDiagnostics,
+      compilationAfterResolution.ImplementationsPerVerifiable,
+      compilationAfterResolution.TranslatedModules,
       compilationAfterResolution.Counterexamples) {
     VerificationTree = verificationTree;
   }

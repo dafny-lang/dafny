@@ -106,7 +106,7 @@ public class CompilationManager {
       throw;
     }
   }
-  
+
   private async Task<CompilationAfterResolution> ResolveAsync() {
     try {
       var parsedCompilation = await ParsedCompilation;
@@ -132,26 +132,26 @@ public class CompilationManager {
 
   // private async Task<CompilationAfterTranslation> TranslateAsync() {
   //   throw new NotImplementedException();
-    // var parsedCompilation = await ResolvedCompilation;
-    // if (!options.Verify) {
-    //   throw new OperationCanceledException();
-    // }
-    // if (parsedCompilation is not CompilationAfterResolution resolvedCompilation) {
-    //   throw new OperationCanceledException();
-    // }
-    //
-    // try {
-    //   var translatedDocument = await PrepareVerificationTasksAsync(resolvedCompilation, cancellationSource.Token);
-    //   compilationUpdates.OnNext(translatedDocument);
-    //   foreach (var task in translatedDocument.VerificationTasks!) {
-    //     cancellationSource.Token.Register(task.Cancel);
-    //   }
-    //
-    //   return translatedDocument;
-    // } catch (Exception e) {
-    //   compilationUpdates.OnError(e);
-    //   throw;
-    // }
+  // var parsedCompilation = await ResolvedCompilation;
+  // if (!options.Verify) {
+  //   throw new OperationCanceledException();
+  // }
+  // if (parsedCompilation is not CompilationAfterResolution resolvedCompilation) {
+  //   throw new OperationCanceledException();
+  // }
+  //
+  // try {
+  //   var translatedDocument = await PrepareVerificationTasksAsync(resolvedCompilation, cancellationSource.Token);
+  //   compilationUpdates.OnNext(translatedDocument);
+  //   foreach (var task in translatedDocument.VerificationTasks!) {
+  //     cancellationSource.Token.Register(task.Cancel);
+  //   }
+  //
+  //   return translatedDocument;
+  // } catch (Exception e) {
+  //   compilationUpdates.OnError(e);
+  //   throw;
+  // }
   // }
 
   // public async Task<CompilationAfterTranslation> PrepareVerificationTasksAsync(
@@ -227,7 +227,7 @@ public class CompilationManager {
 
     Interlocked.Increment(ref runningVerificationJobs);
     MarkVerificationStarted();
-    
+
     var tasks = await compilation.TranslatedModules.GetOrAdd(containingModule, async _ => {
       var result = await verifier.GetVerificationTasksAsync(boogieEngine, compilation, containingModule, cancellationSource.Token);
       foreach (var task in result) {
@@ -267,7 +267,7 @@ public class CompilationManager {
         StatusUpdateHandlerFinally
       );
     }
-    
+
 
     void StatusUpdateHandlerFinally() {
       try {
@@ -301,7 +301,7 @@ public class CompilationManager {
     var status = StatusFromBoogieStatus(boogieStatus);
 
     var implementations = compilation.ImplementationsPerVerifiable[verifiable];
-    
+
     var implementationRange = implementationTask.Implementation.tok.GetLspRange(true);
     var implementationName = implementationTask.Implementation.Name;
     logger.LogDebug($"Received status {boogieStatus} for {implementationName}, version {compilation.Counterexamples}");
@@ -332,14 +332,14 @@ public class CompilationManager {
         //   new AssertionBatchResult(implementationTask.Implementation, result));
       }
 
-      
+
       var diagnostics = GetDiagnosticsFromResult(compilation, verificationResult).ToList();
       var view = new ImplementationView(implementationRange, status, diagnostics);
       implementations[implementationName] = (implementationTask, view);
       // verificationProgressReporter.ReportEndVerifyImplementation(compilation, implementationTask.Implementation, verificationResult);
     } else {
-      var view = implementations.TryGetValue(implementationName, out var taskAndView) 
-        ? taskAndView.View 
+      var view = implementations.TryGetValue(implementationName, out var taskAndView)
+        ? taskAndView.View
         : new ImplementationView(implementationRange, status, Array.Empty<DafnyDiagnostic>());
       implementations[implementationName] = (implementationTask, view with { Status = status });
     }

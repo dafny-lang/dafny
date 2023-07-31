@@ -236,7 +236,7 @@ public class ProjectManager : IDisposable {
 
     return observer.LastPublishedState;
   }
-  
+
   public async Task<IdeState> GetStateAfterResolutionAsync() {
     try {
       var resolvedCompilation = await CompilationManager.ResolvedCompilation;
@@ -264,7 +264,7 @@ public class ProjectManager : IDisposable {
     _ = workCompletedForCurrentVersion.WaitAsync();
     try {
       var resolvedCompilation = await CompilationManager.ResolvedCompilation;
-      
+
       var implementationTasks = resolvedCompilation.ImplementationsPerVerifiable.Keys.ToList();
       if (uri != null) {
         implementationTasks = implementationTasks.Where(d => d.Tok.Uri == uri).ToList();
@@ -305,8 +305,8 @@ public class ProjectManager : IDisposable {
       foreach (var canVerify in translated.ImplementationsPerVerifiable.Keys) {
         if (canVerify.Tok.Uri == uri) {
           intervalTree.Add(
-            canVerify.RangeToken.StartToken.GetLspPosition(), 
-            canVerify.RangeToken.EndToken.GetLspPosition(true), 
+            canVerify.RangeToken.StartToken.GetLspPosition(),
+            canVerify.RangeToken.EndToken.GetLspPosition(true),
             canVerify.NameToken.GetLspPosition());
         }
       }

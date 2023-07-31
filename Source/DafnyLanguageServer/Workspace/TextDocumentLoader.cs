@@ -18,7 +18,7 @@ using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace {
   using VerifyStatus = Dictionary<string, (IImplementationTask Task, ImplementationView View)>;
-  
+
   /// <summary>
   /// Text document loader implementation that offloads the whole load procedure on one dedicated
   /// thread with a stack size of 256MB. Since only one thread is used, document loading is implicitely synchronized.
@@ -96,15 +96,15 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 #pragma warning restore CS1998
         );
     }
-    
+
     private CompilationAfterResolution ResolveInternal(CompilationAfterParsing compilation, CancellationToken cancellationToken) {
-      
+
       var program = compilation.Program;
       var errorReporter = (DiagnosticErrorReporter)program.Reporter;
       if (errorReporter.HasErrors) {
         throw new TaskCanceledException();
       }
-      
+
       var project = compilation.Project;
 
       _ = statusPublisher.SendStatusNotification(compilation, CompilationStatus.ResolutionStarted);
