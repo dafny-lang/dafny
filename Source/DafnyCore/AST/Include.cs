@@ -24,6 +24,6 @@ public class Include : TokenNode, IComparable {
     }
   }
 
-  public override IEnumerable<Node> Children => Enumerable.Empty<Node>();
-  public override IEnumerable<Node> PreResolveChildren => Enumerable.Empty<Node>();
+  public override IEnumerable<INode> Children => Enumerable.Empty<Node>();
+  public override IEnumerable<INode> PreResolveChildren => Enumerable.Empty<Node>();
 }

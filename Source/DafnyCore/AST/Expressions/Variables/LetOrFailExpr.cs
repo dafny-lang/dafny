@@ -31,7 +31,7 @@ public class LetOrFailExpr : ConcreteSyntaxExpression, ICloneable<LetOrFailExpr>
     Body = cloner.CloneExpr(original.Body);
   }
 
-  public override IEnumerable<Node> Children =>
+  public override IEnumerable<INode> Children =>
     (Lhs != null ?
       new List<Node> { Lhs } : Enumerable.Empty<Node>()).Concat(base.Children);
 

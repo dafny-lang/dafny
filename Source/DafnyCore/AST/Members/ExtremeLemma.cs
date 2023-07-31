@@ -10,9 +10,9 @@ public abstract class ExtremeLemma : Method {
   public bool KNat => TypeOfK == ExtremePredicate.KType.Nat;
   [FilledInDuringResolution] public PrefixLemma PrefixLemma;  // (name registration)
 
-  public override IEnumerable<Node> Children => base.Children.Concat(new[] { PrefixLemma });
+  public override IEnumerable<INode> Children => base.Children.Concat(new[] { PrefixLemma });
 
-  public override IEnumerable<Node> PreResolveChildren => base.Children;
+  public override IEnumerable<INode> PreResolveChildren => base.Children;
 
   public ExtremeLemma(Cloner cloner, ExtremeLemma lemma) : base(cloner, lemma) {
     TypeOfK = lemma.TypeOfK;

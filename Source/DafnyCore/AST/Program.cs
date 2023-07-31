@@ -71,7 +71,7 @@ public class Program : TokenNode {
   /// Get the first token that is in the same file as the DefaultModule.RootToken.FileName
   /// (skips included tokens)
   public IToken GetFirstTopLevelToken() {
-    var rootToken = DefaultModuleDef.RangeToken.StartToken;
+    var rootToken = DefaultModuleDef.StartToken;
     if (rootToken.Next == null) {
       return null;
     }
@@ -89,9 +89,9 @@ public class Program : TokenNode {
     return firstToken;
   }
 
-  public override IEnumerable<Node> Children => new[] { DefaultModule };
+  public override IEnumerable<INode> Children => new[] { DefaultModule };
 
-  public override IEnumerable<Node> PreResolveChildren => Children;
+  public override IEnumerable<INode> PreResolveChildren => Children;
 
   public override IEnumerable<Assumption> Assumptions(Declaration decl) {
     return Modules().SelectMany(m => m.Assumptions(decl));

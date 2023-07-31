@@ -39,8 +39,8 @@ public class ActualBindings : TokenNode {
     arguments = args ?? ArgumentBindings.ConvertAll(binding => binding.Actual);
   }
 
-  public override IEnumerable<Node> Children => arguments == null ? ArgumentBindings : arguments;
-  public override IEnumerable<Node> PreResolveChildren => Children;
+  public override IEnumerable<INode> Children => arguments == null ? ArgumentBindings : arguments;
+  public override IEnumerable<INode> PreResolveChildren => Children;
 }
 
 public class ActualBinding : TokenNode {
@@ -48,9 +48,9 @@ public class ActualBinding : TokenNode {
   public readonly Expression Actual;
   public readonly bool IsGhost;
 
-  public override IEnumerable<Node> Children => new List<Node> { Actual }.Where(x => x != null);
+  public override IEnumerable<INode> Children => new List<Node> { Actual }.Where(x => x != null);
 
-  public override IEnumerable<Node> PreResolveChildren => Children;
+  public override IEnumerable<INode> PreResolveChildren => Children;
 
   public ActualBinding(IToken /*?*/ formalParameterName, Expression actual, bool isGhost = false) {
     Contract.Requires(actual != null);

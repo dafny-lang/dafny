@@ -30,8 +30,8 @@ public class LiteralModuleDecl : ModuleDecl, ICanFormat, IHasSymbolChildren {
     return DefaultExport;
   }
 
-  public override IEnumerable<Node> Children => new[] { ModuleDef };
-  public override IEnumerable<Node> PreResolveChildren => Children;
+  public override IEnumerable<INode> Children => new[] { ModuleDef };
+  public override IEnumerable<INode> PreResolveChildren => Children;
 
   public LiteralModuleDecl(Cloner cloner, LiteralModuleDecl original, ModuleDefinition parent)
     : base(cloner, original, parent) {

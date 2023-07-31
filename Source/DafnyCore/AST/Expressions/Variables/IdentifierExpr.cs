@@ -57,7 +57,7 @@ public class IdentifierExpr : Expression, IHasUsages, ICloneable<IdentifierExpr>
   }
 
   public IToken NameToken => tok;
-  public override IEnumerable<Node> Children { get; } = Enumerable.Empty<Node>();
+  public override IEnumerable<INode> Children { get; } = Enumerable.Empty<Node>();
 }
 
 /// <summary>

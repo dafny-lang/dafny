@@ -22,8 +22,8 @@ class ImplicitFailingAssertionCodeActionProvider : DiagnosticDafnyCodeActionProv
     this.options = options;
   }
 
-  protected static List<Node>? FindInnermostNodeIntersecting(Node node, Range range) {
-    if (node.RangeToken.StartToken.line > 0 && !node.RangeToken.ToLspRange().Intersects(range)) {
+  protected static List<INode>? FindInnermostNodeIntersecting(INode node, Range range) {
+    if (node.StartToken.line > 0 && !node.RangeToken.ToLspRange().Intersects(range)) {
       return null;
     }
 
@@ -35,7 +35,7 @@ class ImplicitFailingAssertionCodeActionProvider : DiagnosticDafnyCodeActionProv
       }
     }
 
-    return new List<Node>() { node };
+    return new List<INode> { node };
   }
 
   class ExplicitAssertionDafnyCodeAction : DafnyCodeAction {
@@ -65,7 +65,7 @@ class ImplicitFailingAssertionCodeActionProvider : DiagnosticDafnyCodeActionProv
         return suggestedEdits.ToArray();
       }
 
-      Node? insertionNode = null;
+      INode? insertionNode = null;
       for (var i = 0; i < nodesTillFailure.Count; i++) {
         var node = nodesTillFailure[i];
         var nextNode = i < nodesTillFailure.Count - 1 ? nodesTillFailure[i + 1] : null;

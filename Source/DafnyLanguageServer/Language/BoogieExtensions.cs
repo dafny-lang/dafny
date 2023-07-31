@@ -9,12 +9,12 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     /// <summary>
     /// The offset to convert a boogie line-number to an LSP line-number.
     /// </summary>
-    private const int LineOffset = -1;
+    public const int LineOffset = -1;
 
     /// <summary>
     /// The offset to convert a boogie column-number to an LSP column-number.
     /// </summary>
-    private const int ColumnOffset = -1;
+    public const int ColumnOffset = -1;
 
     public static Range ToLspRange(this DafnyRange range) {
       return new Range(

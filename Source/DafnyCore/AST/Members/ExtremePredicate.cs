@@ -16,8 +16,8 @@ public abstract class ExtremePredicate : Function {
   [FilledInDuringResolution] public readonly List<FunctionCallExpr> Uses = new List<FunctionCallExpr>();  // used by verifier
   [FilledInDuringResolution] public PrefixPredicate PrefixPredicate;  // (name registration)
 
-  public override IEnumerable<Node> Children => base.Children.Concat(new[] { PrefixPredicate });
-  public override IEnumerable<Node> PreResolveChildren => base.Children;
+  public override IEnumerable<INode> Children => base.Children.Concat(new[] { PrefixPredicate });
+  public override IEnumerable<INode> PreResolveChildren => base.Children;
 
   public ExtremePredicate(RangeToken rangeToken, Name name, bool hasStaticKeyword, bool isOpaque, KType typeOfK,
     List<TypeParameter> typeArgs, List<Formal> formals, Formal result,

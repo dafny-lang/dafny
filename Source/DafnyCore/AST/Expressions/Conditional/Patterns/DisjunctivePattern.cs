@@ -11,8 +11,8 @@ public class DisjunctivePattern : ExtendedPattern {
     this.Alternatives = alternatives;
   }
 
-  public override IEnumerable<Node> Children => Alternatives;
-  public override IEnumerable<Node> PreResolveChildren => Children;
+  public override IEnumerable<INode> Children => Alternatives;
+  public override IEnumerable<INode> PreResolveChildren => Children;
 
   public override IEnumerable<Expression> SubExpressions {
     get {

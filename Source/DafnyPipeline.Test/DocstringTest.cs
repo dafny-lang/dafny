@@ -402,7 +402,7 @@ iterator Iter2(x: int) yields (y: int)
       });
     }
 
-    protected Node? FindNode(Node? node, Func<Node, bool> nodeFinder) {
+    protected INode? FindNode(INode? node, Func<INode, bool> nodeFinder) {
       if (node == null) {
         return node;
       }
@@ -447,7 +447,7 @@ iterator Iter2(x: int) yields (y: int)
             Assert.NotNull(targetNode);
           }
 
-          var docString = targetNode.GetDocstring(options);
+          var docString = ((IHasDocstring)targetNode).GetDocstring(options);
           Assert.Equal(expectedDocstring, docString);
         }
       }

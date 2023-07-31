@@ -138,6 +138,6 @@ public class ArrowType : UserDefinedType {
     }
   }
 
-  public override IEnumerable<Node> Children => Args.Concat(new List<Node>() { Result });
-  public override IEnumerable<Node> PreResolveChildren => Args.Concat(new List<Node>() { Result });
+  public override IEnumerable<INode> Children => Args.Concat(new List<Node>() { Result });
+  public override IEnumerable<INode> PreResolveChildren => Args.Concat(new List<Node>() { Result });
 }

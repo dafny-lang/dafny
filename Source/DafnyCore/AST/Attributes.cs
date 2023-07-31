@@ -191,12 +191,12 @@ public class Attributes : TokenNode {
     }
   }
 
-  public override IEnumerable<Node> Children => Args.Concat<Node>(
+  public override IEnumerable<INode> Children => Args.Concat<Node>(
     Prev == null
       ? Enumerable.Empty<Node>()
       : new List<Node> { Prev });
 
-  public override IEnumerable<Node> PreResolveChildren => Children;
+  public override IEnumerable<INode> PreResolveChildren => Children;
 }
 
 public static class AttributesExtensions {

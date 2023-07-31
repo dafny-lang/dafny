@@ -30,7 +30,7 @@ public class SubsetTypeDecl : TypeSynonymDecl, RedirectingTypeDecl {
     WitnessKind = witnessKind;
   }
 
-  public override IEnumerable<Node> Children =>
+  public override IEnumerable<INode> Children =>
     base.Children.Concat(new[] { Constraint });
 
   BoundVar RedirectingTypeDecl.Var { get { return Var; } }

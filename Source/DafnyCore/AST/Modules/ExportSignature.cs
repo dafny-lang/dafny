@@ -49,8 +49,8 @@ public class ExportSignature : TokenNode, IHasUsages {
   }
 
   public IToken NameToken => Tok;
-  public override IEnumerable<Node> Children => Enumerable.Empty<Node>();
-  public override IEnumerable<Node> PreResolveChildren => Enumerable.Empty<Node>();
+  public override IEnumerable<INode> Children => Enumerable.Empty<Node>();
+  public override IEnumerable<INode> PreResolveChildren => Enumerable.Empty<Node>();
   public IEnumerable<IDeclarationOrUsage> GetResolvedDeclarations() {
     return new[] { Decl };
   }

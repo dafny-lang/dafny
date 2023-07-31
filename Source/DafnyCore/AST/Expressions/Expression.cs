@@ -877,6 +877,6 @@ public abstract class Expression : TokenNode {
     return le == null ? null : le.Value as string;
   }
 
-  public override IEnumerable<Node> Children => SubExpressions;
-  public override IEnumerable<Node> PreResolveChildren => Children;
+  public override IEnumerable<INode> Children => SubExpressions;
+  public override IEnumerable<INode> PreResolveChildren => Children;
 }

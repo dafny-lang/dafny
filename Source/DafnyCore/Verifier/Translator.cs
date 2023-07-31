@@ -3409,7 +3409,7 @@ namespace Microsoft.Dafny {
       if (flags.ReportRanges) {
         // Filter against IHasUsages to only select declarations, not usages.
         if (node is IDeclarationOrUsage declarationOrUsage && node is not IHasUsages) {
-          return new BoogieRangeToken(node.RangeToken.StartToken, node.RangeToken.EndToken, declarationOrUsage.NameToken);
+          return new BoogieRangeToken(node.StartToken, node.EndToken, declarationOrUsage.NameToken);
         }
         return node.RangeToken.ToToken();
       } else {

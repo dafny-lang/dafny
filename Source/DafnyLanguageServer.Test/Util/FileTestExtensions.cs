@@ -1,3 +1,4 @@
+using System;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
@@ -14,7 +15,7 @@ public class FileTestExtensions {
   }
 
   public static async Task<FileStream> WaitForFileToUnlock(string fullPath, FileMode mode, FileAccess access, FileShare share) {
-    for (int numTries = 0; numTries < 10; numTries++) {
+    for (int numTries = 0; numTries < 100; numTries++) {
       FileStream fs = null;
       try {
         fs = new FileStream(fullPath, mode, access, share);
@@ -27,6 +28,6 @@ public class FileTestExtensions {
       }
     }
 
-    return null;
+    throw new Exception("File did not unlock in time");
   }
 }

@@ -167,11 +167,11 @@ public abstract class Statement : RangeNode, IAttributeBearingDeclaration {
     }
   }
 
-  public override IEnumerable<Node> Children =>
+  public override IEnumerable<INode> Children =>
     (Attributes != null ? new List<Node> { Attributes } : Enumerable.Empty<Node>()).Concat(
       SubStatements.Concat<Node>(SubExpressions));
 
-  public override IEnumerable<Node> PreResolveChildren =>
+  public override IEnumerable<INode> PreResolveChildren =>
     (Attributes != null ? new List<Node> { Attributes } : Enumerable.Empty<Node>()).Concat(
       PreResolveSubStatements).Concat(PreResolveSubExpressions);
 }

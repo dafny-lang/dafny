@@ -18,15 +18,16 @@ public class SymbolTable {
   }
 
   private SymbolTable() {
-    Usages = ImmutableDictionary<IDeclarationOrUsage, ISet<IDeclarationOrUsage>>.Empty;
-    Declarations = ImmutableDictionary<IDeclarationOrUsage, IDeclarationOrUsage>.Empty;
+    DeclarationToUsages = ImmutableDictionary<IDeclarationOrUsage, ISet<IDeclarationOrUsage>>.Empty;
+    UsageToDeclaration = ImmutableDictionary<IDeclarationOrUsage, IDeclarationOrUsage>.Empty;
   }
 
   public SymbolTable(IReadOnlyList<(IDeclarationOrUsage usage, IDeclarationOrUsage declaration)> usages) {
+    var safeUsages1 = usages.Where(k => k.usage.NameToken.Uri != null).ToList();
     var safeUsages = usages.Where(k => k.usage.NameToken.Uri != null && k.declaration.NameToken.Uri != null).ToList();
-    Declarations = safeUsages.DistinctBy(k => k.usage).
+    UsageToDeclaration = safeUsages1.DistinctBy(k => k.usage).
       ToImmutableDictionary(k => k.usage, k => k.declaration);
-    Usages = safeUsages.GroupBy(u => u.declaration).ToImmutableDictionary(
+    DeclarationToUsages = safeUsages1.GroupBy(u => u.declaration).ToImmutableDictionary(
       g => g.Key,
       g => (ISet<IDeclarationOrUsage>)g.Select(k => k.usage).ToHashSet());
 
@@ -45,13 +46,13 @@ public class SymbolTable {
   }
 
   private readonly Dictionary<Uri, IIntervalTree<Position, IDeclarationOrUsage>> nodePositions = new();
-  private ImmutableDictionary<IDeclarationOrUsage, IDeclarationOrUsage> Declarations { get; }
-  private ImmutableDictionary<IDeclarationOrUsage, ISet<IDeclarationOrUsage>> Usages { get; }
+  public ImmutableDictionary<IDeclarationOrUsage, IDeclarationOrUsage> UsageToDeclaration { get; }
+  private ImmutableDictionary<IDeclarationOrUsage, ISet<IDeclarationOrUsage>> DeclarationToUsages { get; }
 
   public ISet<Location> GetUsages(Uri uri, Position position) {
     if (nodePositions.TryGetValue(uri, out var forFile)) {
       return forFile.Query(position).
-        SelectMany(node => Usages.GetOrDefault(node, () => (ISet<IDeclarationOrUsage>)new HashSet<IDeclarationOrUsage>())).
+        SelectMany(node => DeclarationToUsages.GetOrDefault(node, () => (ISet<IDeclarationOrUsage>)new HashSet<IDeclarationOrUsage>())).
         Select(u => new Location { Uri = u.NameToken.Filepath, Range = u.NameToken.GetLspRange() }).ToHashSet();
     }
     return Sets.Empty<Location>();
@@ -63,7 +64,7 @@ public class SymbolTable {
     }
 
     var referenceNodes = forFile.Query(position);
-    return referenceNodes.Select(node => Declarations.GetOrDefault(node, () => (IDeclarationOrUsage?)null))
+    return referenceNodes.Select(node => UsageToDeclaration.GetOrDefault(node, () => (IDeclarationOrUsage?)null))
       .Where(x => x != null).Select(
         n => new Location {
           Uri = DocumentUri.From(n!.NameToken.Uri),

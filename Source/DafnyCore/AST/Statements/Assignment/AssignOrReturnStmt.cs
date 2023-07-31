@@ -22,7 +22,7 @@ public class AssignOrReturnStmt : ConcreteUpdateStatement, ICloneable<AssignOrRe
     }
   }
 
-  public override IEnumerable<Node> Children => ResolvedStatements;
+  public override IEnumerable<INode> Children => ResolvedStatements;
   public override IEnumerable<Statement> PreResolveSubStatements => Enumerable.Empty<Statement>();
 
   [ContractInvariantMethod]
