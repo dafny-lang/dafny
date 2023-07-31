@@ -558,8 +558,8 @@ namespace Microsoft.Dafny {
             if (provenByAlcor) {
               var prevAssertionOnlyFilter = assertionOnlyFilter;
               assertionOnlyFilter = (IToken tok) =>
-                tok != assertStmt.tok && 
-                (prevAssertionOnlyFilter == null || prevAssertionOnlyFilter(tok));
+                (tok.pos < assertStmt.StartToken.pos || tok.pos >= assertStmt.EndToken.pos + assertStmt.EndToken.val.Length)
+                && (prevAssertionOnlyFilter == null || prevAssertionOnlyFilter(tok));
               var expr = _IExprToString(result.dtor_value.dtor__0);
               var proof = _IProofProgramToString(result.dtor_value.dtor__1);
               var msg = "Alcor proved that " + expr + " by\n" + proof;
