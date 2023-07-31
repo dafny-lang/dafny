@@ -16,6 +16,8 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace;
 
+using VerifyStatus = Dictionary<string, (IImplementationTask Task, ImplementationView View)>;
+
 public delegate ProjectManager CreateProjectManager(
   ExecutionEngine boogieEngine,
   DafnyProject project);
@@ -99,7 +101,7 @@ public class ProjectManager : IDisposable {
     var migratedVerificationTree = lastPublishedState.VerificationTree == null ? null
       : relocator.RelocateVerificationTree(lastPublishedState.VerificationTree, documentChange, CancellationToken.None);
     lastPublishedState = lastPublishedState with {
-      ImplementationIdToView = MigrateImplementationViews(documentChange, lastPublishedState.ImplementationIdToView),
+      ImplementationViews = MigrateImplementationViews(documentChange, lastPublishedState.ImplementationViews),
       SignatureAndCompletionTable = relocator.RelocateSymbols(lastPublishedState.SignatureAndCompletionTable, documentChange, CancellationToken.None),
       VerificationTree = migratedVerificationTree
     };
@@ -171,7 +173,7 @@ public class ProjectManager : IDisposable {
   }
 
   private Dictionary<ImplementationId, IdeImplementationView> MigrateImplementationViews(DidChangeTextDocumentParams documentChange,
-    IReadOnlyDictionary<ImplementationId, IdeImplementationView> oldVerificationDiagnostics) {
+    Dictionary<ImplementationId, IdeImplementationView> oldVerificationDiagnostics) {
     var result = new Dictionary<ImplementationId, IdeImplementationView>();
     foreach (var entry in oldVerificationDiagnostics) {
       var newRange = relocator.RelocateRange(entry.Value.Range, documentChange, CancellationToken.None);
@@ -246,36 +248,36 @@ public class ProjectManager : IDisposable {
 
   // Test that when a project has multiple files, when saving/opening, only the affected Uri is verified when using OnSave.
   // Test that when a project has multiple files, everything is verified on opening one of them.
-  private async Task VerifyEverythingAsync(Uri? uri) {
+  public async Task VerifyEverythingAsync(Uri? uri) {
     _ = workCompletedForCurrentVersion.WaitAsync();
     try {
-      var translatedDocument = await CompilationManager.TranslatedCompilation;
-
-      var implementationTasks = translatedDocument.VerificationTasks;
+      var resolvedCompilation = await CompilationManager.ResolvedCompilation2;
+      
+      var implementationTasks = resolvedCompilation.ImplementationsPerVerifiable.Keys.ToList();
       if (uri != null) {
-        implementationTasks = implementationTasks.Where(d => ((IToken)d.Implementation.tok).Uri == uri).ToList(); ;
+        implementationTasks = implementationTasks.Where(d => d.Tok.Uri == uri).ToList();
       }
 
       if (!implementationTasks.Any()) {
         // This doesn't work like normal??? 
         // What should change about CompilationManager.verificationCompleted
-        CompilationManager.FinishedNotifications(translatedDocument);
+        CompilationManager.FinishedNotifications(resolvedCompilation);
       }
 
       lock (RecentChanges) {
-        var freshlyChangedVerifiables = GetChangedVerifiablesFromRanges(translatedDocument, RecentChanges);
+        var freshlyChangedVerifiables = GetChangedVerifiablesFromRanges(resolvedCompilation, RecentChanges);
         ChangedVerifiables = freshlyChangedVerifiables.Concat(ChangedVerifiables).Distinct()
           .Take(MaxRememberedChangedVerifiables).ToList();
         RecentChanges = new List<Location>();
       }
 
       var implementationOrder = ChangedVerifiables.Select((v, i) => (v, i)).ToDictionary(k => k.v, k => k.i);
-      var orderedTasks = implementationTasks.OrderBy(t => t.Implementation.Priority).CreateOrderedEnumerable(
-        t => implementationOrder.GetOrDefault(new FilePosition(((IToken)t.Implementation.tok).Uri, t.Implementation.tok.GetLspPosition()), () => int.MaxValue),
+      var orderedVerifiables = implementationTasks.OrderBy(t => t.Priority).CreateOrderedEnumerable(
+        t => implementationOrder.GetOrDefault(new FilePosition(t.Tok.Uri, t.Tok.GetLspPosition()), () => int.MaxValue),
         null, false).ToList();
 
-      foreach (var implementationTask in orderedTasks) {
-        CompilationManager.VerifyTask(translatedDocument, implementationTask);
+      foreach (var canVerify in orderedVerifiables) {
+        _ = CompilationManager.VerifyTask(resolvedCompilation, canVerify);
       }
     }
     finally {
@@ -284,13 +286,15 @@ public class ProjectManager : IDisposable {
     }
   }
 
-  private IEnumerable<FilePosition> GetChangedVerifiablesFromRanges(CompilationAfterTranslation translated, IEnumerable<Location> changedRanges) {
+  private IEnumerable<FilePosition> GetChangedVerifiablesFromRanges(CompilationAfterResolution translated, IEnumerable<Location> changedRanges) {
     IntervalTree<Position, Position> GetTree(Uri uri) {
       var intervalTree = new IntervalTree<Position, Position>();
-      foreach (var task in translated.VerificationTasks) {
-        var token = (BoogieRangeToken)task.Implementation.tok;
-        if (token.Uri == uri) {
-          intervalTree.Add(token.StartToken.GetLspPosition(), token.EndToken.GetLspPosition(), token.NameToken.GetLspPosition());
+      foreach (var canVerify in translated.ImplementationsPerVerifiable.Keys) {
+        if (canVerify.Tok.Uri == uri) {
+          intervalTree.Add(
+            canVerify.RangeToken.StartToken.GetLspPosition(), 
+            canVerify.RangeToken.EndToken.GetLspPosition(true), 
+            canVerify.NameToken.GetLspPosition());
         }
       }
       return intervalTree;

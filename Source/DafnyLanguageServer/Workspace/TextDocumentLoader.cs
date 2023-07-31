@@ -3,6 +3,7 @@ using Microsoft.Dafny.LanguageServer.Language.Symbols;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
@@ -13,7 +14,11 @@ using Microsoft.Boogie;
 using Microsoft.Extensions.Logging;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
+
+
 namespace Microsoft.Dafny.LanguageServer.Workspace {
+  using VerifyStatus = Dictionary<string, (IImplementationTask Task, ImplementationView View)>;
+  
   /// <summary>
   /// Text document loader implementation that offloads the whole load procedure on one dedicated
   /// thread with a stack size of 256MB. Since only one thread is used, document loading is implicitely synchronized.
@@ -68,7 +73,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 #pragma warning restore CS1998
         );
     }
-
     private CompilationAfterParsing LoadInternal(DafnyOptions options, Compilation compilation,
       CancellationToken cancellationToken) {
       var project = compilation.Project;
@@ -96,12 +100,16 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         }
 
         var ghostDiagnostics = ghostStateDiagnosticCollector.GetGhostStateDiagnostics(legacySymbolTable, cancellationToken);
-
+        var symbols = program.Modules().SelectMany(SymbolExtensions.GetSymbols);
+        var verifiables = symbols.OfType<ICanVerify>();
         return new CompilationAfterResolution(compilationAfterParsing,
           errorReporter.AllDiagnosticsCopy,
           newSymbolTable,
           legacySymbolTable,
-          ghostDiagnostics
+          ghostDiagnostics,
+          verifiables.ToDictionary(v => v, v => new VerifyStatus()),
+          new ConcurrentDictionary<ModuleDefinition, Task<IReadOnlyList<IImplementationTask>>>(),
+          new()
         );
       } catch (OperationCanceledException) {
         return compilationAfterParsing;
@@ -117,7 +125,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         resolutionDiagnostics,
         SymbolTable.Empty(),
         SignatureAndCompletionTable.Empty(dafnyOptions, compilation.Project),
-        new Dictionary<ImplementationId, IdeImplementationView>(),
+        new(),
         Array.Empty<Counterexample>(),
         false,
         ImmutableDictionary<Uri, IReadOnlyList<Range>>.Empty,

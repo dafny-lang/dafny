@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Microsoft.Dafny;
 
@@ -10,12 +11,34 @@ public interface IHasUsages : IDeclarationOrUsage {
   public IEnumerable<IDeclarationOrUsage> GetResolvedDeclarations();
 }
 
+public interface ICanVerify : ISymbol {
+  int Priority { get; }
+}
+
 public interface ISymbol : IDeclarationOrUsage {
   DafnySymbolKind Kind { get; }
 }
 
 public interface IHasSymbolChildren : ISymbol {
   IEnumerable<ISymbol> ChildSymbols { get; }
+}
+
+public static class SymbolExtensions {
+  public static ISet<ISymbol> GetSymbols(ISymbol node) {
+    var todo = new Stack<ISymbol>();
+    todo.Push(node);
+    var result = new HashSet<ISymbol>();
+    while (todo.Any()) {
+      var current = todo.Pop();
+      result.Add(current);
+      if (current is IHasSymbolChildren hasChildren) {
+        foreach (var child in hasChildren.ChildSymbols) {
+          todo.Push(child);
+        }
+      }
+    }
+    return result;
+  }
 }
 
 /// <summary>

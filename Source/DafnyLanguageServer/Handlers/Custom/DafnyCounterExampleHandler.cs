@@ -24,11 +24,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers.Custom {
       try {
         var projectManager = await projects.GetProjectManager(request.TextDocument);
         if (projectManager != null) {
-          var translatedCompilation = await projectManager.CompilationManager.TranslatedCompilation;
-          var verificationTasks = translatedCompilation.VerificationTasks;
-          foreach (var task in verificationTasks) {
-            projectManager.CompilationManager.VerifyTask(translatedCompilation, task);
-          }
+          await projectManager.VerifyEverythingAsync(request.TextDocument.Uri.ToUri());
 
           var state = await projectManager.GetIdeStateAfterVerificationAsync();
           logger.LogDebug("counter-examples retrieved IDE state");

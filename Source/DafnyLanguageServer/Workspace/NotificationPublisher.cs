@@ -64,7 +64,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         return ImmutableDictionary<Uri, FileVerificationStatus>.Empty;
       }
 
-      return state.ImplementationIdToView.GroupBy(kv => kv.Key.Uri).
+      return state.ImplementationViews.GroupBy(kv => kv.Key.Uri).
         ToDictionary(kv => kv.Key, kvs =>
         new FileVerificationStatus(kvs.Key, state.Compilation.Version,
           GetNamedVerifiableStatuses(kvs.Select(kv => kv.Value))));

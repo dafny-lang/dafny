@@ -12,6 +12,8 @@ using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace {
 
+  using VerifyStatus = Dictionary<string, (IImplementationTask Task, ImplementationView View)>;
+  
   /// <summary>
   /// Internal representation of a specific version of a Dafny document.
   ///
@@ -38,7 +40,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     public IdeState InitialIdeState(Compilation compilation, DafnyOptions options) {
       return ToIdeState(new IdeState(compilation, new EmptyNode(),
         ImmutableDictionary<Uri, IReadOnlyList<Diagnostic>>.Empty,
-        SymbolTable.Empty(), SignatureAndCompletionTable.Empty(options, compilation.Project), new Dictionary<ImplementationId, IdeImplementationView>(),
+        SymbolTable.Empty(), SignatureAndCompletionTable.Empty(options, compilation.Project), new(),
         Array.Empty<Counterexample>(),
         false, ImmutableDictionary<Uri, IReadOnlyList<Range>>.Empty,
        null
