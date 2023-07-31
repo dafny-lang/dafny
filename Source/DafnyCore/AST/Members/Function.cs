@@ -8,7 +8,7 @@ using Microsoft.Dafny.Auditor;
 
 namespace Microsoft.Dafny;
 
-public class Function : MemberDecl, TypeParameter.ParentType, ICallable, ICanFormat, IHasDocstring, ISymbol {
+public class Function : MemberDecl, TypeParameter.ParentType, ICallable, ICanFormat, IHasDocstring, ISymbol, ICanVerify {
   public override string WhatKind => "function";
 
   public string GetFunctionDeclarationKeywords(DafnyOptions options) {
@@ -476,4 +476,6 @@ experimentalPredicateAlwaysGhost - Compiled functions are written `function`. Gh
   }
 
   public DafnySymbolKind Kind => DafnySymbolKind.Function;
+  public bool ShouldVerify => true; // TODO fix.
+  public ModuleDefinition ContainingModule => EnclosingClass.EnclosingModuleDefinition;
 }

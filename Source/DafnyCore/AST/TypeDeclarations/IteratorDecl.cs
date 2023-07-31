@@ -3,7 +3,7 @@ using System.Diagnostics.Contracts;
 
 namespace Microsoft.Dafny;
 
-public class IteratorDecl : ClassDecl, IMethodCodeContext, IHasDocstring {
+public class IteratorDecl : ClassDecl, IMethodCodeContext, ICanVerify {
   public override string WhatKind { get { return "iterator"; } }
   public readonly List<Formal> Ins;
   public readonly List<Formal> Outs;
@@ -495,4 +495,6 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext, IHasDocstring {
 
     return GetTriviaContainingDocstringFromStartTokenOrNull();
   }
+  public bool ShouldVerify => true; // TODO fix.
+  public ModuleDefinition ContainingModule => EnclosingModuleDefinition;
 }

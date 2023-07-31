@@ -4,7 +4,7 @@ using System.Linq;
 
 namespace Microsoft.Dafny;
 
-public abstract class DatatypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, ICallable, ICanFormat, IHasDocstring {
+public abstract class DatatypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, ICallable, ICanFormat, IHasDocstring, ICanVerify {
   public override bool CanBeRevealed() { return true; }
   public readonly List<DatatypeCtor> Ctors;
 
@@ -178,5 +178,6 @@ public abstract class DatatypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl
     return GetTriviaContainingDocstringFromStartTokenOrNull();
   }
 
-
+  public ModuleDefinition ContainingModule => EnclosingModuleDefinition;
+  public bool ShouldVerify => Ctors.Any(ctor => ctor.Formals.Any(f => f.DefaultValue != null));
 }

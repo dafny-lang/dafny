@@ -12,7 +12,8 @@ public interface IHasUsages : IDeclarationOrUsage {
 }
 
 public interface ICanVerify : ISymbol {
-  int Priority { get; }
+  ModuleDefinition ContainingModule { get; }
+  bool ShouldVerify { get; }
 }
 
 public interface ISymbol : IDeclarationOrUsage {

@@ -98,7 +98,7 @@ public class CompilationManager {
     try {
       await started.Task;
       var documentAfterParsing = await documentLoader.ParseAsync(options, startingCompilation, cancellationSource.Token);
-      // compilationUpdates.OnNext(documentAfterParsing); // TODO could be nice to publish parse diagnostics before resolution ones
+      compilationUpdates.OnNext(documentAfterParsing);
       return documentAfterParsing;
 
     } catch (Exception e) {
@@ -110,19 +110,19 @@ public class CompilationManager {
   private async Task<CompilationAfterResolution> ResolveAsync() {
     try {
       var parsedCompilation = await ParsedCompilation;
-      var documentAfterParsing = await documentLoader.ResolveAsync(options, parsedCompilation, cancellationSource.Token);
+      var resolvedDocument = await documentLoader.ResolveAsync(options, parsedCompilation, cancellationSource.Token);
 
       // TODO, let gutter icon publications also used the published CompilationView.
-      var state = documentAfterParsing.InitialIdeState(startingCompilation, options);
+      var state = resolvedDocument.InitialIdeState(startingCompilation, options);
       state = state with {
         VerificationTree = migratedVerificationTree ?? state.VerificationTree
       };
       notificationPublisher.PublishGutterIcons(state, false);
 
       logger.LogDebug($"documentUpdates.HasObservers: {compilationUpdates.HasObservers}, threadId: {Thread.CurrentThread.ManagedThreadId}");
-      compilationUpdates.OnNext(documentAfterParsing);
-      logger.LogDebug($"Passed documentAfterParsing to documentUpdates.OnNext, resolving ResolvedDocument task for version {documentAfterParsing.Version}.");
-      return documentAfterParsing;
+      compilationUpdates.OnNext(resolvedDocument);
+      logger.LogDebug($"Passed documentAfterParsing to documentUpdates.OnNext, resolving ResolvedDocument task for version {resolvedDocument.Version}.");
+      return resolvedDocument;
 
     } catch (Exception e) {
       compilationUpdates.OnError(e);
@@ -222,9 +222,12 @@ public class CompilationManager {
           d.Source != MessageSource.Verifier)) {
       throw new TaskCanceledException();
     }
-    
-    ModuleDefinition containingModule = null;
 
+    var containingModule = verifiable.ContainingModule;
+
+    Interlocked.Increment(ref runningVerificationJobs);
+    MarkVerificationStarted();
+    
     var tasks = await compilation.TranslatedModules.GetOrAdd(containingModule, async _ => {
       var result = await verifier.GetVerificationTasksAsync(boogieEngine, compilation, containingModule, cancellationSource.Token);
       foreach (var task in result) {
@@ -232,8 +235,6 @@ public class CompilationManager {
       }
       return result;
     });
-    // var verificationTasks =
-    //   await verifier.GetVerificationTasksAsync(boogieEngine, loaded, cancellationToken);
 
     foreach (var task in tasks) {
       var statusUpdates = task.TryRun();
@@ -251,8 +252,6 @@ public class CompilationManager {
         return false;
       }
 
-      Interlocked.Increment(ref runningVerificationJobs);
-      MarkVerificationStarted();
       statusUpdates.ObserveOn(verificationUpdateScheduler).Subscribe(
         update => {
           try {

@@ -271,8 +271,6 @@ public class ProjectManager : IDisposable {
       }
 
       if (!implementationTasks.Any()) {
-        // This doesn't work like normal??? 
-        // What should change about CompilationManager.verificationCompleted
         CompilationManager.FinishedNotifications(resolvedCompilation);
       }
 
@@ -283,8 +281,11 @@ public class ProjectManager : IDisposable {
         RecentChanges = new List<Location>();
       }
 
+      int GetPriority(ISymbol symbol) {
+        return 1; // TODO lookup attribute
+      }
       var implementationOrder = ChangedVerifiables.Select((v, i) => (v, i)).ToDictionary(k => k.v, k => k.i);
-      var orderedVerifiables = implementationTasks.OrderBy(t => t.Priority).CreateOrderedEnumerable(
+      var orderedVerifiables = implementationTasks.OrderBy(GetPriority).CreateOrderedEnumerable(
         t => implementationOrder.GetOrDefault(new FilePosition(t.Tok.Uri, t.Tok.GetLspPosition()), () => int.MaxValue),
         null, false).ToList();
 

@@ -4,7 +4,7 @@ using System.Linq;
 
 namespace Microsoft.Dafny;
 
-public class SubsetTypeDecl : TypeSynonymDecl, RedirectingTypeDecl {
+public class SubsetTypeDecl : TypeSynonymDecl, RedirectingTypeDecl, ICanVerify {
   public override string WhatKind { get { return "subset type"; } }
   public readonly BoundVar Var;
   public readonly Expression Constraint;
@@ -41,4 +41,7 @@ public class SubsetTypeDecl : TypeSynonymDecl, RedirectingTypeDecl {
   public override List<Type> ParentTypes(List<Type> typeArgs) {
     return new List<Type> { RhsWithArgument(typeArgs) };
   }
+  public bool ShouldVerify => true; // TODO fix.
+  public ModuleDefinition ContainingModule => EnclosingModuleDefinition;
+  public DafnySymbolKind Kind => DafnySymbolKind.Class;
 }

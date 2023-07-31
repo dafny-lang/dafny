@@ -6,7 +6,8 @@ using Microsoft.Dafny.Auditor;
 
 namespace Microsoft.Dafny;
 
-public class Method : MemberDecl, TypeParameter.ParentType, IMethodCodeContext, ICanFormat, IHasDocstring, IHasSymbolChildren {
+public class Method : MemberDecl, TypeParameter.ParentType, 
+  IMethodCodeContext, ICanFormat, IHasDocstring, IHasSymbolChildren, ICanVerify {
   public override IEnumerable<Node> Children => new Node[] { Body, Decreases }.
     Where(x => x != null).Concat(Ins).Concat(Outs).Concat<Node>(TypeArgs).
     Concat(Req).Concat(Ens).Concat(Mod.Expressions);
@@ -377,4 +378,7 @@ public class Method : MemberDecl, TypeParameter.ParentType, IMethodCodeContext, 
       return Outs.Concat(childStatements.OfType<VarDeclStmt>().SelectMany(v => (IEnumerable<ISymbol>)v.Locals));
     }
   }
+  
+  public bool ShouldVerify => true; // TODO fix.
+  public ModuleDefinition ContainingModule => EnclosingClass.EnclosingModuleDefinition;
 }
