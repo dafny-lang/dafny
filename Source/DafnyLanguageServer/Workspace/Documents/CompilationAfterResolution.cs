@@ -20,7 +20,7 @@ public class CompilationAfterResolution : CompilationAfterParsing {
     SymbolTable? symbolTable,
     SignatureAndCompletionTable signatureAndCompletionTable,
     IReadOnlyDictionary<Uri, IReadOnlyList<Range>> ghostDiagnostics,
-    Dictionary<ICanVerify, VerifyStatus> implementationsPerVerifiable,
+    Dictionary<ICanVerify, VerifyStatus?> implementationsPerVerifiable,
     ConcurrentDictionary<ModuleDefinition, Task<IReadOnlyDictionary<Position, IReadOnlyList<IImplementationTask>>>> translatedModules,
     List<Counterexample> counterexamples
     ) :
@@ -36,20 +36,21 @@ public class CompilationAfterResolution : CompilationAfterParsing {
   public SymbolTable? SymbolTable { get; }
   public SignatureAndCompletionTable SignatureAndCompletionTable { get; }
   public IReadOnlyDictionary<Uri, IReadOnlyList<Range>> GhostDiagnostics { get; }
-  public Dictionary<ICanVerify, VerifyStatus> ImplementationsPerVerifiable { get; }
+  public Dictionary<ICanVerify, VerifyStatus?> ImplementationsPerVerifiable { get; }
   public ConcurrentDictionary<ModuleDefinition, Task<IReadOnlyDictionary<Position, IReadOnlyList<IImplementationTask>>>> TranslatedModules { get; }
 
   public override IEnumerable<DafnyDiagnostic> GetDiagnostics(Uri uri) {
     var implementationsForUri = ImplementationsPerVerifiable.
       Where(kv => kv.Key.Tok.Uri == uri).
       Select(kv => kv.Value).ToList();
-    var verificationDiagnostics = implementationsForUri.SelectMany(view => view.Values.SelectMany(v => v.View.Diagnostics));
+    var verificationDiagnostics = implementationsForUri.SelectMany(view => 
+      view?.Values.SelectMany(v => v.View.Diagnostics) ?? Enumerable.Empty<DafnyDiagnostic>());
     return base.GetDiagnostics(uri).Concat(verificationDiagnostics);
   }
 
   public override IdeState ToIdeState(IdeState previousState) {
     IEnumerable<KeyValuePair<ImplementationId, IdeImplementationView>> MergeVerifiable(ICanVerify canVerify) {
-      return ImplementationsPerVerifiable[canVerify].Select(kv => {
+      return ImplementationsPerVerifiable[canVerify]?.Select(kv => {
         var implementationId = new ImplementationId(canVerify.Tok.Uri, canVerify.Tok.GetLspPosition(), kv.Key);
         var implementationView = kv.Value.View;
         IEnumerable<Diagnostic> diagnostics = implementationView.Diagnostics.Select(d => d.ToLspDiagnostic());
@@ -59,7 +60,8 @@ public class CompilationAfterResolution : CompilationAfterParsing {
 
         var value = new IdeImplementationView(implementationView.Range, implementationView.Status, diagnostics.ToList());
         return new KeyValuePair<ImplementationId, IdeImplementationView>(implementationId, value);
-      });
+      }) ?? previousState.ImplementationViews.Where(kv => 
+        kv.Key.Uri == canVerify.Tok.Uri && kv.Key.Position == canVerify.Tok.GetLspPosition());
     }
 
     return base.ToIdeState(previousState) with {

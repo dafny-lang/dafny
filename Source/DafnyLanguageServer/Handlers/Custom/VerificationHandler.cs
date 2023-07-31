@@ -53,7 +53,7 @@ public class VerificationHandler : IJsonRpcRequestHandler<VerificationParams, bo
 
     var resolvedCompilation = await projectManager.CompilationManager.ResolvedCompilation;
     if (resolvedCompilation.Program.FindNode(request.TextDocument.Uri.ToUri(), request.Position.ToDafnyPosition()) is ICanVerify verifiable) {
-      var implementations = resolvedCompilation.ImplementationsPerVerifiable[verifiable].Values;
+      var implementations = resolvedCompilation.ImplementationsPerVerifiable[verifiable]?.Values ?? Enumerable.Empty<(IImplementationTask Task, ImplementationView View)>();
       foreach (var (taskToRun, _) in implementations) {
         taskToRun.Cancel();
       }

@@ -237,7 +237,9 @@ public class CompilationManager {
         g => g.Key, 
         g => (IReadOnlyList<IImplementationTask>) g.ToList());
     });
-    var tasksForVerifiable = tasksForModule.GetValueOrDefault(verifiable.NameToken.GetLspPosition()) ?? Enumerable.Empty<IImplementationTask>();
+    var tasksForVerifiable = tasksForModule.GetValueOrDefault(verifiable.NameToken.GetLspPosition()) ?? new List<IImplementationTask>(0);
+    compilation.ImplementationsPerVerifiable[verifiable] = tasksForVerifiable.ToDictionary(t => t.Implementation.Name, 
+      t => (t, new ImplementationView(verifiable.RangeToken.ToLspRange(), PublishedVerificationStatus.Stale, Array.Empty<DafnyDiagnostic>())));
 
     foreach (var _ in tasksForVerifiable) {
       Interlocked.Increment(ref runningVerificationJobs);
@@ -308,7 +310,7 @@ public class CompilationManager {
     var id = GetImplementationId(implementationTask.Implementation);
     var status = StatusFromBoogieStatus(boogieStatus);
 
-    var implementations = compilation.ImplementationsPerVerifiable[verifiable];
+    var implementations = compilation.ImplementationsPerVerifiable[verifiable]!;
 
     var implementationRange = implementationTask.Implementation.tok.GetLspRange(true);
     var implementationName = implementationTask.Implementation.Name;
