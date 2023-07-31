@@ -471,17 +471,23 @@ namespace Microsoft.Dafny {
 
         return null;
       } else {
+        var newLHSs = CreateCasePatternSubstitutions(letExpr.LHSs, true);
         var rhs = Substitute(letExpr.RHSs[0]);
         var body = Substitute(letExpr.Body);
         var newBounds = SubstituteBoundedPoolList(letExpr.Constraint_Bounds);
-        if (rhs == letExpr.RHSs[0] && body == letExpr.Body && newBounds == letExpr.Constraint_Bounds) {
+        // undo any changes to substMap
+        foreach (var bv in letExpr.BoundVars) {
+          substMap.Remove(bv);
+        }
+
+        if (newLHSs == letExpr.LHSs && rhs == letExpr.RHSs[0] && body == letExpr.Body && newBounds == letExpr.Constraint_Bounds) {
           return null;
         }
 
         // keep copies of the substitution maps so we can reuse them at desugaring time
         var newSubstMap = new Dictionary<IVariable, Expression>(substMap);
         var newTypeMap = new Dictionary<TypeParameter, Type>(typeMap);
-        return new Translator.SubstLetExpr(letExpr.tok, letExpr.LHSs, new List<Expression> { rhs }, body, letExpr.Exact, letExpr, newSubstMap, newTypeMap, newBounds);
+        return new Translator.SubstLetExpr(letExpr.tok, newLHSs, new List<Expression> { rhs }, body, letExpr.Exact, letExpr, newSubstMap, newTypeMap, newBounds);
       }
     }
 
