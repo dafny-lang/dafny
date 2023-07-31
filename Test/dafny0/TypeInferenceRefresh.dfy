@@ -763,15 +763,6 @@ module NeverNever {
  ******** TO DO *************************************************************************
  ****************************************************************************************
 // ------------------
-// https://github.com/dafny-lang/dafny/issues/2134
-/*
-newtype A = b | P(b)
-newtype B = a: A | true
-
-predicate P(b: B)
-*/
-
-// ------------------
 // There was never a test for the error message that comes out here:
 
 datatype Color = White | Gray(int)

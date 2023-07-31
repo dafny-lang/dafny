@@ -210,7 +210,7 @@ namespace Microsoft.Dafny {
         // Make sure the newtype declaration itself has been pre-type resolved
         ResolvePreTypeSignature(newtypeDecl);
         Contract.Assert(newtypeDecl.Var == null || newtypeDecl.Var.PreType != null);
-        Contract.Assert(newtypeDecl.BaseType != null);
+        Contract.Assert(newtypeDecl.BasePreType != null);
       }
 
       if (type is TypeProxy) {
@@ -659,14 +659,13 @@ namespace Microsoft.Dafny {
     /// Assumes the type parameters in scope for "declaration" have been pushed.
     /// </summary>
     public void FillInPreTypesInSignature(Declaration declaration) {
-      void ComputePreType(Formal formal) {
-        Contract.Assume(formal.PreType == null); // precondition
-        formal.PreType = Type2PreType(formal.Type);
+      PreType CreateTemporaryPreTypeProxy() {
+        return CreatePreTypeProxy("temporary proxy until after cyclicity tests have completed");
       }
 
       void ComputePreTypeField(Field field) {
         Contract.Assume(field.PreType == null); // precondition
-        field.PreType = CreatePreTypeProxy("temporary proxy until after cyclicity tests have completed");
+        field.PreType = CreateTemporaryPreTypeProxy();
         field.PreType = Type2PreType(field.Type);
         if (field is ConstantField cfield) {
           var parent = (TopLevelDeclWithMembers)cfield.EnclosingClass;
@@ -680,27 +679,39 @@ namespace Microsoft.Dafny {
         }
       }
 
+      void ComputePreTypeFormal(Formal formal) {
+        Contract.Assume(formal.PreType == null); // precondition
+        formal.PreType = CreateTemporaryPreTypeProxy();
+        formal.PreType = Type2PreType(formal.Type);
+      }
+
       void ComputePreTypeFunction(Function function) {
-        function.Formals.ForEach(ComputePreType);
+        function.Formals.ForEach(ComputePreTypeFormal);
         if (function.Result != null) {
-          function.Result.PreType = Type2PreType(function.Result.Type);
+          ComputePreTypeFormal(function.Result);
         } else if (function.ByMethodDecl != null) {
           // The by-method out-parameter is not the same as the one given in the function declaration, since the
           // function declaration didn't give one.
-          function.ByMethodDecl.Outs.ForEach(ComputePreType);
+          function.ByMethodDecl.Outs.ForEach(ComputePreTypeFormal);
         }
+        function.ResultPreType = CreateTemporaryPreTypeProxy();
         function.ResultPreType = Type2PreType(function.ResultType);
       }
 
       void ComputePreTypeMethod(Method method) {
-        method.Ins.ForEach(ComputePreType);
-        method.Outs.ForEach(ComputePreType);
+        method.Ins.ForEach(ComputePreTypeFormal);
+        method.Outs.ForEach(ComputePreTypeFormal);
       }
 
       if (declaration is SubsetTypeDecl std) {
+        std.Var.PreType = CreateTemporaryPreTypeProxy();
         std.Var.PreType = Type2PreType(std.Var.Type);
         ResolveConstraintAndWitness(std, true);
       } else if (declaration is NewtypeDecl nd) {
+        nd.BasePreType = CreateTemporaryPreTypeProxy();
+        if (nd.Var != null) {
+          nd.Var.PreType = nd.BasePreType;
+        }
         nd.BasePreType = Type2PreType(nd.BaseType);
         if (nd.Var != null) {
           Contract.Assert(object.ReferenceEquals(nd.BaseType, nd.Var.Type));
@@ -712,10 +723,10 @@ namespace Microsoft.Dafny {
         // the iter.OutsFields are shared with the automatically generated fields of the iterator class. To avoid
         // computing their pre-types twice, we omit their pre-type computations here and instead do them in
         // the _ctor Method and for each Field of the iterator class.
-        iter.Outs.ForEach(ComputePreType);
+        iter.Outs.ForEach(ComputePreTypeFormal);
       } else if (declaration is DatatypeDecl dtd) {
         foreach (var ctor in dtd.Ctors) {
-          ctor.Formals.ForEach(ComputePreType);
+          ctor.Formals.ForEach(ComputePreTypeFormal);
           ComputePreTypeField(ctor.QueryField);
           foreach (var dtor in ctor.Destructors) {
             // The following "if" condition makes sure ComputePreTypeField is called just once (since a destructor
