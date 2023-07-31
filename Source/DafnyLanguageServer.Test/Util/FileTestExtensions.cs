@@ -1,3 +1,4 @@
+using System;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
@@ -27,6 +28,6 @@ public class FileTestExtensions {
       }
     }
 
-    return null;
+    throw new Exception("File did not unlock in time");
   }
 }
