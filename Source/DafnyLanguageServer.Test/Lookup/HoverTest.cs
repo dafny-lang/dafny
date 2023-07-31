@@ -17,6 +17,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
     protected override async Task SetUp(Action<DafnyOptions> modifyOptions = null) {
       void ModifyOptions(DafnyOptions options) {
         options.ProverOptions.Add("SOLVER=noop");
+        options.Set(ServerCommand.ProjectMode, true);
         modifyOptions?.Invoke(options);
       }
 
@@ -55,7 +56,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
     /// </summary>
     /// <param name="sourceWithHovers"></param>
     /// <param name="modifyOptions"></param>
-    private async Task AssertHover(string sourceWithHovers, [CanBeNull] Action<DafnyOptions> modifyOptions = null) {
+    private async Task AssertHover(string sourceWithHovers, bool useProjectFile, [CanBeNull] Action<DafnyOptions> modifyOptions = null) {
       await SetUp(o => {
         o.ProverOptions.Add("SOLVER=noop");
         if (modifyOptions != null) {
@@ -68,6 +69,9 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
       var source = hoverRegex.Replace(sourceWithHovers, "");
       var hovers = hoverRegex.Matches(sourceWithHovers);
       var documentItem = CreateTestDocument(source);
+      if (useProjectFile) {
+        await CreateAndOpenTestDocument("", Path.Combine(Path.GetDirectoryName(documentItem.Uri.GetFileSystemPath())!, DafnyProject.FileName));
+      }
       client.OpenDocument(documentItem);
       var lineDelta = 0;
       for (var i = 0; i < hovers.Count; i++) {
@@ -90,7 +94,7 @@ method DoIt() returns (x: int) {
 method CallDoIt() returns () {
   var x := DoIt();
 //            ^[```dafny\nmethod DoIt() returns (x: int)\n```]
-}");
+}", true);
     }
 
 
@@ -137,7 +141,7 @@ function F2(dt: DT): int {
 //                           ^[```dafny\ny: int\n```]
   }
 }
-");
+", false);
     }
 
     [Fact]
@@ -159,7 +163,7 @@ method DoIt() {
   var x := new int[0];
   var y := x.Length;
 //            ^[```dafny\nconst array.Length: int\n```]
-}");
+}", true);
     }
 
     [Fact]
@@ -183,7 +187,7 @@ method DoIt() returns (x: int) {
 method DoIt() returns (x: int) {
   return GetX();
 //          ^[null]
-}");
+}", false);
     }
 
     [Fact]
@@ -197,7 +201,7 @@ class Test {
     print x;
 //        ^[```dafny\nx: string\n```]
   }
-}");
+}", true);
     }
 
     [Fact]
@@ -211,7 +215,7 @@ class Test {
     print this.x;
 //             ^[```dafny\nvar Test.x: int\n```]
   }
-}");
+}", false);
     }
 
     [Fact]
@@ -228,7 +232,7 @@ class Test {
 //          ^[```dafny\nx: string\n```]
     }
   }
-}");
+}", true);
     }
 
     [Fact]
@@ -245,7 +249,7 @@ class Test {
     print x;
 //        ^[```dafny\nx: string\n```]
   }
-}");
+}", false);
     }
 
     [Fact]
@@ -262,7 +266,7 @@ class B {
   constructor() {
     a := new A();
   }
-}");
+}", true);
     }
 
     [Fact]
@@ -277,9 +281,9 @@ class B {
 
   constructor() {
     a := new A();
-//           ^[```dafny\nclass A\n```]
+//           ^[```dafny\nconstructor A()\n```]
   }
-}");
+}", false);
     }
 
     [Fact]
@@ -290,7 +294,7 @@ class A {
 }
 
 method DoIt(a: A) {}
-//             ^[```dafny\nclass A\n```]");
+//             ^[```dafny\nclass A\n```]", true);
     }
 
     [Fact]
@@ -298,7 +302,7 @@ method DoIt(a: A) {}
       await AssertHover(@"
 trait Base {}
 class Sub extends Base {}
-//                 ^[```dafny\ntrait Base\n```]");
+//                 ^[```dafny\ntrait Base\n```]", false);
     }
 
     [Fact]
@@ -309,7 +313,7 @@ datatype SomeType = SomeType {
     var j:=x == y;
 //         ^[```dafny\nx: int\n```]
   }
-}");
+}", true);
     }
 
     [Fact]
@@ -325,7 +329,7 @@ method Main() {
   var instance: SomeType;
   instance.AssertEqual(1, 2);
 //          ^[```dafny\nmethod SomeType.AssertEqual(x: int, y: int)\n```]
-}");
+}", false);
     }
 
     [Fact]
@@ -334,7 +338,7 @@ method Main() {
 method f(i: int) {
   var r := i;
 //         ^[```dafny\ni: int\n```]
-}");
+}", true);
     }
 
     [Fact]
@@ -343,7 +347,7 @@ method f(i: int) {
 method f(i: int) {
   var r := i;
 //    ^[```dafny\nr: int\n```]
-}");
+}", false);
     }
 
     [Fact]
@@ -353,7 +357,7 @@ method f(i: int) {
   var x:=forall j :: j + i == i + j;
 //              ^[```dafny\nj: int\n```]
 //                   ^[```dafny\nj: int\n```]
-}");
+}", true);
     }
 
     [Fact]
@@ -363,7 +367,7 @@ method f(i: int) {
   var x:=exists j :: j + i == i;
 //              ^[```dafny\nj: int\n```]
 //                   ^[```dafny\nj: int\n```]
-}");
+}", false);
     }
 
     [Fact]
@@ -374,7 +378,7 @@ method f(i: int) {
   var y := set j | j in x && j < 3;
 //             ^[```dafny\nj: int\n```]
 //                 ^[```dafny\nj: int\n```]
-}");
+}", true);
     }
 
     [Fact]
@@ -384,7 +388,7 @@ method f(i: int) {
   var m := map j : int | 0 <= j <= i :: j * j;
 //             ^[```dafny\nj: int\n```]
 //                            ^[```dafny\nj: int\n```]
-}");
+}", false);
     }
 
     [Fact]
@@ -394,7 +398,7 @@ method f(i: int) {
   var m := j => j * i;
 //         ^[```dafny\nj: int\n```]
 //              ^[```dafny\nj: int\n```]
-}");
+}", true);
     }
 
     [Fact]
@@ -404,7 +408,7 @@ ghost predicate f(i: int) {
   forall j :: j + i == i + j
 //       ^[```dafny\nj: int\n```]
 //            ^[```dafny\nj: int\n```]
-}");
+}", false);
     }
 
     [Fact]
@@ -419,7 +423,7 @@ predicate even(n: nat)
 //    ^[```dafny\nx: bool\n```]
 //         ^[```dafny\nn: nat\n```]
   return x;
-}");
+}", true);
     }
 
     [Fact]
@@ -430,7 +434,7 @@ function test(n: nat): nat {
 //    ^[```dafny\ni: int\n```]
 //         ^[```dafny\nn: nat\n```]
   if i == 4 then 3 else 2
-}");
+}", false);
     }
 
     [Fact]
@@ -443,7 +447,7 @@ method returnBiggerThan(n: nat) returns (y: int)
   ensures forall i :: i > y ==> i > n 
  {
   return n + 2;
-}");
+}", true);
     }
 
     [Fact]
@@ -455,7 +459,7 @@ function f(i: int): (r: int)
 //        ^[```dafny\nr: int\n```]
 {
   i + 2
-}");
+}", false);
     }
 
     [Fact]
@@ -468,7 +472,7 @@ function f(i: int): Pos {
    var r := f(i - 2);
 //     ^[```dafny\nr: Pos\n```]
    Pos(r.line + 2)
-}");
+}", true);
     }
 
     [Fact]
@@ -480,7 +484,7 @@ function ToRelativeIndependent(): (p: Position)
 {
    Position(12)
 }
-");
+", false);
     }
 
     [Fact]
@@ -498,7 +502,7 @@ method test(opt: int) {
     var s := 1;
 //      ^[```dafny\ns: int\n```]
 }
-");
+", true);
     }
 
     public HoverTest(ITestOutputHelper output) : base(output) {
@@ -543,7 +547,8 @@ class C {
   // Unformatted comment
   static method m() {}
 
-  // This is the constructor
+  /** This is the constructor 
+  */
   constructor() {}
 
   /** Should be the number of x in C */
@@ -597,7 +602,7 @@ method test(d: D, t: T, e: Even) {
   C.m(); // TODO
  //  ^[Unformatted comment] // Does not work yet.
   var c: C := new C();
-//                ^[The class C. Should be used like this:\n```dafny\nnew C();\n```]
+//                ^[This is the constructor\n```dafny\nconstructor C()\n```]
   var xc := c.x;
 //            ^[Should be the number of x in C]
   var xx := c.X;
@@ -612,7 +617,7 @@ method test(d: D, t: T, e: Even) {
 //^[A useful least lemma]
   twostateLemma();
 //^[A useful twostate lemma]
-}");
+}", true);
       await AssertHover(@"
 /** Rich comment
   * @param k The input
@@ -639,7 +644,7 @@ method test() {
 //         ^[Unformatted comment] // Does not work yet.
   var xf := f();
 //          ^[Rich comment\n|  |  |\n| --- | --- |\n| **Returns** | 1 no matter what |]
-}", o => o.Set(CommonOptionBag.UseJavadocLikeDocstringRewriterOption, true));
+}", true, o => o.Set(CommonOptionBag.UseJavadocLikeDocstringRewriterOption, true));
     }
   }
 }

@@ -54,7 +54,7 @@ public abstract class ModuleDecl : TopLevelDecl, IHasDocstring, ISymbol {
     return true;
   }
 
-  protected override string GetTriviaContainingDocstring() {
+  public virtual string GetTriviaContainingDocstring() {
     IToken candidate = null;
     var tokens = OwnedTokens.Any() ?
       OwnedTokens :
@@ -76,4 +76,7 @@ public abstract class ModuleDecl : TopLevelDecl, IHasDocstring, ISymbol {
   }
 
   public DafnySymbolKind Kind => DafnySymbolKind.Namespace;
+  public string GetDescription(DafnyOptions options) {
+    return $"module {Name}";
+  }
 }

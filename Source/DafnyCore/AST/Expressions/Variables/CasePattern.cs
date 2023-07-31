@@ -102,6 +102,6 @@ public class CasePattern<VT> : TokenNode
     }
   }
 
-  public override IEnumerable<Node> Children => Arguments ?? Enumerable.Empty<Node>();
-  public override IEnumerable<Node> PreResolveChildren => Children;
+  public override IEnumerable<INode> Children => Var == null ? (Arguments ?? Enumerable.Empty<Node>()) : new[] { Var };
+  public override IEnumerable<INode> PreResolveChildren => Children;
 }

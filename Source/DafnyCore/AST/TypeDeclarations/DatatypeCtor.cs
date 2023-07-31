@@ -16,7 +16,7 @@ public class DatatypeCtor : Declaration, TypeParameter.ParentType, IHasDocstring
       Destructors.Count == Formals.Count);  // after resolution
   }
 
-  public override IEnumerable<Node> Children => base.Children.Concat(Formals);
+  public override IEnumerable<INode> Children => base.Children.Concat(Formals);
 
   // TODO: One could imagine having a precondition on datatype constructors
   [FilledInDuringResolution] public DatatypeDecl EnclosingDatatype;
@@ -41,7 +41,7 @@ public class DatatypeCtor : Declaration, TypeParameter.ParentType, IHasDocstring
     }
   }
 
-  protected override string GetTriviaContainingDocstring() {
+  public string GetTriviaContainingDocstring() {
     if (EndToken.TrailingTrivia.Trim() != "") {
       return EndToken.TrailingTrivia;
     }
@@ -50,4 +50,8 @@ public class DatatypeCtor : Declaration, TypeParameter.ParentType, IHasDocstring
   }
 
   public DafnySymbolKind Kind => DafnySymbolKind.EnumMember;
+  public string GetDescription(DafnyOptions options) {
+    var formals = string.Join(", ", Formals.Select(f => f.AsText()));
+    return $"{EnclosingDatatype.Name}.{Name}({formals})";
+  }
 }
