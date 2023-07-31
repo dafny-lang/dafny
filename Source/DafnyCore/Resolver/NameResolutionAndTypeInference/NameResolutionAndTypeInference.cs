@@ -5052,7 +5052,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(enclosingTypeDefinition != null);
       Contract.Requires(!lax || enclosingTypeDefinition is ICallable);
 
-      type = type.Normalize();  // we keep constraints, since subset types have their own type-parameter variance specifications; we also keep synonys, since that gives rise to better error messages
+      type = type.Normalize();  // we keep constraints, since subset types have their own type-parameter variance specifications; we also keep synonyms, since that gives rise to better error messages
       if (type is BasicType) {
         // fine
       } else if (type is MapType) {

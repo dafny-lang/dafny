@@ -570,9 +570,7 @@ namespace Microsoft.Dafny {
           var newBv = new BoundVar(bv.tok, bv.Name, tt);
           newBoundVars.Add(newBv);
           // update substMap to reflect the new BoundVar substitutions
-          var ie = new IdentifierExpr(newBv.tok, newBv.Name);
-          ie.Var = newBv;  // resolve here
-          ie.Type = newBv.Type;  // resolve here
+          var ie = new IdentifierExpr(newBv.tok, newBv.Name) { Var = newBv, Type = newBv.Type };
           substMap.Add(bv, ie);
         }
       }
@@ -598,9 +596,7 @@ namespace Microsoft.Dafny {
           newVar.type = tt;  // resolve here
           newVars.Add(newVar);
           // update substMap to reflect the new LocalVariable substitutions
-          var ie = new IdentifierExpr(newVar.Tok, newVar.Name);
-          ie.Var = newVar;  // resolve here
-          ie.Type = newVar.Type;  // resolve here
+          var ie = new IdentifierExpr(newVar.Tok, newVar.Name) { Var = newVar, Type = newVar.Type };
           substMap.Add(v, ie);
         }
       }
@@ -635,9 +631,7 @@ namespace Microsoft.Dafny {
         if (forceSubstitutionOfBoundVars || tt != bv.Type) {
           var newBv = cloneVt(pat, tt, bv);
           // update substMap to reflect the new BoundVar substitutions
-          var ie = new IdentifierExpr(newBv.Tok, newBv.Name);
-          ie.Var = newBv;  // resolve here
-          ie.Type = newBv.Type;  // resolve here
+          var ie = new IdentifierExpr(newBv.Tok, newBv.Name) { Var = newBv, Type = newBv.Type };
           substMap.Add(bv, ie);
           var newPat = new CasePattern<VT>(pat.tok, newBv);
           newPat.AssembleExpr(null);
