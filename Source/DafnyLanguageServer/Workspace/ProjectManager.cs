@@ -225,9 +225,21 @@ public class ProjectManager : IDisposable {
     return await CompilationManager.LastDocument;
   }
 
-  public async Task<IdeState> GetSnapshotAfterResolutionAsync() {
+  public async Task<IdeState> GetSnapshotAfterParsingAsync() {
     try {
       var resolvedCompilation = await CompilationManager.ParsedCompilation;
+      logger.LogDebug($"GetSnapshotAfterResolutionAsync, resolvedDocument.Version = {resolvedCompilation.Version}, " +
+                      $"observer.LastPublishedState.Version = {observer.LastPublishedState.Compilation.Version}, threadId: {Thread.CurrentThread.ManagedThreadId}");
+    } catch (OperationCanceledException) {
+      logger.LogDebug("Caught OperationCanceledException in GetSnapshotAfterResolutionAsync");
+    }
+
+    return observer.LastPublishedState;
+  }
+  
+  public async Task<IdeState> GetStateAfterResolutionAsync() {
+    try {
+      var resolvedCompilation = await CompilationManager.ResolvedCompilation;
       logger.LogDebug($"GetSnapshotAfterResolutionAsync, resolvedDocument.Version = {resolvedCompilation.Version}, " +
                       $"observer.LastPublishedState.Version = {observer.LastPublishedState.Compilation.Version}, threadId: {Thread.CurrentThread.ManagedThreadId}");
     } catch (OperationCanceledException) {
