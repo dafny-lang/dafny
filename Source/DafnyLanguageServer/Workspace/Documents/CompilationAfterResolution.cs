@@ -21,7 +21,7 @@ public class CompilationAfterResolution : CompilationAfterParsing {
     SignatureAndCompletionTable signatureAndCompletionTable,
     IReadOnlyDictionary<Uri, IReadOnlyList<Range>> ghostDiagnostics,
     Dictionary<ICanVerify, VerifyStatus> implementationsPerVerifiable,
-    ConcurrentDictionary<ModuleDefinition, Task<IReadOnlyList<IImplementationTask>>> translatedModules,
+    ConcurrentDictionary<ModuleDefinition, Task<IReadOnlyDictionary<Position, IReadOnlyList<IImplementationTask>>>> translatedModules,
     List<Counterexample> counterexamples
     ) :
     base(compilationAfterParsing, compilationAfterParsing.Program, diagnostics) {
@@ -37,7 +37,7 @@ public class CompilationAfterResolution : CompilationAfterParsing {
   public SignatureAndCompletionTable SignatureAndCompletionTable { get; }
   public IReadOnlyDictionary<Uri, IReadOnlyList<Range>> GhostDiagnostics { get; }
   public Dictionary<ICanVerify, VerifyStatus> ImplementationsPerVerifiable { get; }
-  public ConcurrentDictionary<ModuleDefinition, Task<IReadOnlyList<IImplementationTask>>> TranslatedModules { get; }
+  public ConcurrentDictionary<ModuleDefinition, Task<IReadOnlyDictionary<Position, IReadOnlyList<IImplementationTask>>>> TranslatedModules { get; }
 
   public override IEnumerable<DafnyDiagnostic> GetDiagnostics(Uri uri) {
     var implementationsForUri = ImplementationsPerVerifiable.

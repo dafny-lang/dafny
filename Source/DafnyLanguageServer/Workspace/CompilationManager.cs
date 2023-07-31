@@ -228,15 +228,23 @@ public class CompilationManager {
     Interlocked.Increment(ref runningVerificationJobs);
     MarkVerificationStarted();
 
-    var tasks = await compilation.TranslatedModules.GetOrAdd(containingModule, async _ => {
+    var tasksForModule = await compilation.TranslatedModules.GetOrAdd(containingModule, async _ => {
       var result = await verifier.GetVerificationTasksAsync(boogieEngine, compilation, containingModule, cancellationSource.Token);
       foreach (var task in result) {
         cancellationSource.Token.Register(task.Cancel);
       }
-      return result;
+      return result.GroupBy(t => t.Implementation.tok.GetLspPosition()).ToDictionary(
+        g => g.Key, 
+        g => (IReadOnlyList<IImplementationTask>) g.ToList());
     });
+    var tasksForVerifiable = tasksForModule.GetValueOrDefault(verifiable.NameToken.GetLspPosition()) ?? Enumerable.Empty<IImplementationTask>();
 
-    foreach (var task in tasks) {
+    foreach (var _ in tasksForVerifiable) {
+      Interlocked.Increment(ref runningVerificationJobs);
+    }
+    StatusUpdateHandlerFinally();
+
+    foreach (var task in tasksForVerifiable) {
       var statusUpdates = task.TryRun();
       if (statusUpdates == null) {
         if (task.CacheStatus is Completed completedCache) {
@@ -249,6 +257,7 @@ public class CompilationManager {
           //   completedCache.Result);
         }
 
+        StatusUpdateHandlerFinally();
         return false;
       }
 
@@ -267,7 +276,6 @@ public class CompilationManager {
         StatusUpdateHandlerFinally
       );
     }
-
 
     void StatusUpdateHandlerFinally() {
       try {
