@@ -1101,7 +1101,9 @@ namespace Microsoft.Dafny {
       }
 
       // Substitute for DefaultValueExpression's
-      FillInDefaultValueExpressions();
+      if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
+        FillInDefaultValueExpressions();
+      }
 
       // ---------------------------------- Pass 1 ----------------------------------
       // This pass does the following:
@@ -4121,64 +4123,17 @@ namespace Microsoft.Dafny {
       }
     }
 
-    private List<DefaultValueExpression> allDefaultValueExpressions = new();
+    internal readonly List<DefaultValueExpression> allDefaultValueExpressions = new();
 
     /// <summary>
     /// This method is called at the tail end of Pass1 of the Resolver.
     /// </summary>
     void FillInDefaultValueExpressions() {
-      var visited = new Dictionary<DefaultValueExpression, WorkProgress>();
+      var visited = new Dictionary<DefaultValueExpression, DefaultValueExpression.WorkProgress>();
       foreach (var e in allDefaultValueExpressions) {
-        FillInDefaultValueExpression(e, visited);
+        e.FillIn(this, visited);
       }
       allDefaultValueExpressions.Clear();
-    }
-
-    enum WorkProgress { BeingVisited, Done }
-
-    void FillInDefaultValueExpression(DefaultValueExpression expr, Dictionary<DefaultValueExpression, WorkProgress> visited) {
-      Contract.Requires(expr != null);
-      Contract.Requires(visited != null);
-      Contract.Ensures(expr.ResolvedExpression != null);
-
-      if (visited.TryGetValue(expr, out var p)) {
-        if (p == WorkProgress.Done) {
-          Contract.Assert(expr.ResolvedExpression != null);
-        } else {
-          // there is a cycle
-          reporter.Error(MessageSource.Resolver, expr, "default-valued expressions are cyclicly dependent; this is not allowed, since it would cause infinite expansion");
-          // nevertheless, to avoid any issues in the resolver, fill in the .ResolvedExpression field with something
-          expr.ResolvedExpression = Expression.CreateBoolLiteral(expr.tok, false);
-        }
-        return;
-      }
-      Contract.Assert(expr.ResolvedExpression == null);
-
-      visited.Add(expr, WorkProgress.BeingVisited);
-      var s = new DefaultValueSubstituter(this, visited, expr.Receiver, expr.SubstMap, expr.TypeMap);
-      expr.ResolvedExpression = s.Substitute(expr.Formal.DefaultValue);
-      visited[expr] = WorkProgress.Done;
-    }
-
-    class DefaultValueSubstituter : Substituter {
-      private readonly ModuleResolver resolver;
-      private readonly Dictionary<DefaultValueExpression, WorkProgress> visited;
-      public DefaultValueSubstituter(ModuleResolver resolver, Dictionary<DefaultValueExpression, WorkProgress> visited,
-        Expression /*?*/ receiverReplacement, Dictionary<IVariable, Expression> substMap, Dictionary<TypeParameter, Type> typeMap)
-        : base(receiverReplacement, substMap, typeMap) {
-        Contract.Requires(resolver != null);
-        Contract.Requires(visited != null);
-        this.resolver = resolver;
-        this.visited = visited;
-      }
-
-      public override Expression Substitute(Expression expr) {
-        if (expr is DefaultValueExpression dve) {
-          resolver.FillInDefaultValueExpression(dve, visited);
-          Contract.Assert(dve.ResolvedExpression != null); // postcondition of FillInDefaultValueExpression
-        }
-        return base.Substitute(expr);
-      }
     }
 
     public Dictionary<TypeParameter, Type> BuildTypeArgumentSubstitute(Dictionary<TypeParameter, Type> typeArgumentSubstitutions,

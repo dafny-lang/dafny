@@ -259,6 +259,11 @@ namespace Microsoft.Dafny {
     }
 
     protected override void VisitOneExpr(Expression expr) {
+      if (expr is DefaultValueExpression) {
+        // skip this during underspecification detection, since it has yet to be filled in
+        return;
+      }
+
       var familyDeclName = PreTypeResolver.AncestorName(expr.PreType);
 
       if (expr is LiteralExpr) {

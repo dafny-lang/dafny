@@ -148,7 +148,7 @@ class PreTypeToTypeVisitor : ASTVisitor<IASTVisitorContext> {
     }
     base.PostVisitOneExpression(expr, context);
 
-    if (expr is ConcreteSyntaxExpression { ResolvedExpression: { } resolvedExpression }) {
+    if (expr is (not DefaultValueExpression) and ConcreteSyntaxExpression { ResolvedExpression: { } resolvedExpression }) {
       VisitExpression(resolvedExpression, context);
     }
   }
