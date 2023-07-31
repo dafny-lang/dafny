@@ -6,7 +6,7 @@ using Microsoft.Dafny.Auditor;
 
 namespace Microsoft.Dafny;
 
-public abstract class TopLevelDeclWithMembers : TopLevelDecl {
+public abstract class TopLevelDeclWithMembers : TopLevelDecl, IHasSymbolChildren {
   public readonly List<MemberDecl> Members;
 
   // TODO remove this and instead clone the AST after parsing.
@@ -257,6 +257,8 @@ public abstract class TopLevelDeclWithMembers : TopLevelDecl {
       }
     }
   }
+  public virtual IEnumerable<ISymbol> ChildSymbols => Members.OfType<ISymbol>();
+  public virtual DafnySymbolKind Kind => DafnySymbolKind.Class;
 }
 
 public static class RevealableTypeDeclHelper {

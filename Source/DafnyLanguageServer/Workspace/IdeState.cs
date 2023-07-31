@@ -13,7 +13,8 @@ using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 namespace Microsoft.Dafny.LanguageServer.Workspace;
 
 
-public record IdeImplementationView(Range Range, PublishedVerificationStatus Status, IReadOnlyList<Diagnostic> Diagnostics);
+public record IdeImplementationView(Range Range, PublishedVerificationStatus Status,
+  IReadOnlyList<Diagnostic> Diagnostics);
 
 /// <summary>
 /// Contains information from the latest document, and from older documents if some information is missing,

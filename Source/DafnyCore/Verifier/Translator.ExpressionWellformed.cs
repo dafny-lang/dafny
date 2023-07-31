@@ -593,7 +593,7 @@ namespace Microsoft.Dafny {
               }
               // Cannot use the datatype's formals, so we substitute the inferred type args:
               var su = new Dictionary<TypeParameter, Type>();
-              foreach (var p in LinqExtender.Zip(dtv.Ctor.EnclosingDatatype.TypeArgs, dtv.InferredTypeArgs)) {
+              foreach (var p in Enumerable.Zip(dtv.Ctor.EnclosingDatatype.TypeArgs, dtv.InferredTypeArgs)) {
                 su[p.Item1] = p.Item2;
               }
               Type ty = formal.Type.Subst(su);

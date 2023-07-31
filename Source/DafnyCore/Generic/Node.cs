@@ -9,7 +9,6 @@ using Microsoft.Dafny.Auditor;
 
 namespace Microsoft.Dafny;
 
-
 public interface INode {
   RangeToken RangeToken { get; }
   IToken Tok { get; }
@@ -328,7 +327,7 @@ public abstract class TokenNode : Node {
           }
         }
 
-        PreResolveChildren.Iter(UpdateStartEndTokRecursive);
+        PreResolveChildren.ForEach(UpdateStartEndTokRecursive);
 
         if (FormatTokens != null) {
           foreach (var token in FormatTokens) {

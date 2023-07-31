@@ -22,11 +22,13 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
   /// There can be different verification threads that update the state of this object.
   /// </summary>
   public class Compilation {
+    public IReadOnlyList<Uri> RootUris { get; }
     public int Version { get; }
     public DafnyProject Project { get; }
     public DocumentUri Uri => Project.Uri;
 
-    public Compilation(int version, DafnyProject project) {
+    public Compilation(int version, DafnyProject project, IReadOnlyList<Uri> rootUris) {
+      this.RootUris = rootUris;
       Version = version;
       Project = project;
     }
@@ -54,7 +56,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
   }
 
-  public record ImplementationView(Range Range, PublishedVerificationStatus Status, IReadOnlyList<DafnyDiagnostic> Diagnostics);
+  public record ImplementationView(Range Range, PublishedVerificationStatus Status,
+    IReadOnlyList<DafnyDiagnostic> Diagnostics);
 
   public record BufferLine(int LineNumber, int StartIndex, int EndIndex);
 }

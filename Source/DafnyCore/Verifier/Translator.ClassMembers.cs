@@ -652,16 +652,16 @@ namespace Microsoft.Dafny {
         builder.Add(Boogie.Cmd.SimpleAssign(m.tok, new Boogie.IdentifierExpr(m.tok, "$_reverifyPost", Boogie.Type.Bool), Boogie.Expr.False));
         // register output parameters with definite-assignment trackers
         Contract.Assert(definiteAssignmentTrackers.Count == 0);
-        m.Outs.Iter(p => AddExistingDefiniteAssignmentTracker(p, m.IsGhost));
+        m.Outs.ForEach(p => AddExistingDefiniteAssignmentTracker(p, m.IsGhost));
         // translate the body
         TrStmt(m.Body, builder, localVariables, etran);
-        m.Outs.Iter(p => CheckDefiniteAssignmentReturn(m.Body.RangeToken.EndToken, p, builder));
+        m.Outs.ForEach(p => CheckDefiniteAssignmentReturn(m.Body.RangeToken.EndToken, p, builder));
         if (m is { FunctionFromWhichThisIsByMethodDecl: { ByMethodTok: { } } fun }) {
           AssumeCanCallForByMethodDecl(m, builder);
         }
         stmts = builder.Collect(m.Body.RangeToken.StartToken); // TODO should this be EndToken?  the parameter name suggests it should be the closing curly
         // tear down definite-assignment trackers
-        m.Outs.Iter(RemoveDefiniteAssignmentTracker);
+        m.Outs.ForEach(RemoveDefiniteAssignmentTracker);
 
         Contract.Assert(definiteAssignmentTrackers.Count == 0);
       } else {
@@ -728,7 +728,7 @@ namespace Microsoft.Dafny {
       if (EmitImplementation(m.Attributes)) {
         // emit impl only when there are proof obligations.
         QKeyValue kv = etran.TrAttributes(m.Attributes, null);
-        Boogie.Implementation impl = AddImplementationWithVerboseName(m.tok, proc,
+        Boogie.Implementation impl = AddImplementationWithVerboseName(GetToken(m), proc,
            inParams, outParams, localVariables, stmts, kv);
 
         if (InsertChecksums) {
@@ -813,7 +813,7 @@ namespace Microsoft.Dafny {
         // emit the impl only when there are proof obligations.
         QKeyValue kv = etran.TrAttributes(m.Attributes, null);
 
-        Boogie.Implementation impl = AddImplementationWithVerboseName(m.tok, proc, inParams, outParams, localVariables, stmts, kv);
+        Boogie.Implementation impl = AddImplementationWithVerboseName(GetToken(m), proc, inParams, outParams, localVariables, stmts, kv);
 
         if (InsertChecksums) {
           InsertChecksum(m, impl);
@@ -969,7 +969,7 @@ namespace Microsoft.Dafny {
         // emit the impl only when there are proof obligations.
         QKeyValue kv = etran.TrAttributes(f.Attributes, null);
 
-        AddImplementationWithVerboseName(f.tok, proc,
+        AddImplementationWithVerboseName(GetToken(f), proc,
             Util.Concat(Util.Concat(typeInParams, inParams_Heap), implInParams),
             implOutParams, localVariables, stmts, kv);
       }

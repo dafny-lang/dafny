@@ -4,17 +4,17 @@ using System.CommandLine;
 using System.CommandLine.Invocation;
 using System.Linq;
 using DafnyCore;
+// Copyright by the contributors to the Dafny Project
+// SPDX-License-Identifier: MIT
 
+#nullable disable
 namespace Microsoft.Dafny;
 
 public class GenerateTestsCommand : ICommandSpec {
   public IEnumerable<Option> Options =>
     new Option[] {
-      // IMPORTANT: Before adding new options, make sure they are
-      // appropriately copied over in the CopyForProcedure method below
       LoopUnroll,
       SequenceLengthLimit,
-      Target,
       BoogieOptionBag.SolverLog,
       BoogieOptionBag.SolverOption,
       BoogieOptionBag.SolverOptionHelp,
@@ -37,11 +37,11 @@ public class GenerateTestsCommand : ICommandSpec {
   /// of test generation) is identical to the <param name="options"></param>
   /// parameter in everything except the value of the ProcsToCheck field that
   /// determines the procedures to be verified and should be set to the value of
-  /// the <param name="procedureToVerify"></param> parameter.
+  /// the <param name="proceduresToVerify"></param> parameter.
   /// </summary>
-  internal static DafnyOptions CopyForProcedure(DafnyOptions options, string procedureToVerify) {
+  internal static DafnyOptions CopyForProcedure(DafnyOptions options, HashSet<string> proceduresToVerify) {
     var copy = new DafnyOptions(options);
-    copy.ProcsToCheck = new List<string>() { procedureToVerify };
+    copy.ProcsToCheck = proceduresToVerify.ToList();
     return copy;
   }
 
@@ -76,14 +76,10 @@ path - Prints path-coverage tests for the given program.");
     };
   }
 
-  public static readonly Option<string> Target = new("--target-method",
-    "If specified, only this method will be tested.") {
-    ArgumentHelpName = "name"
-  };
   public static readonly Option<uint> SequenceLengthLimit = new("--length-limit",
     "Add an axiom that sets the length of all sequences to be no greater than <n>. 0 (default) indicates no limit.") {
   };
-  public static readonly Option<int> LoopUnroll = new("--loop-unroll",
+  public static readonly Option<int> LoopUnroll = new("--loop-unroll", () => -1,
     "Higher values can improve accuracy of the analysis at the cost of taking longer to run.") {
   };
   public static readonly Option<string> PrintBpl = new("--print-bpl",
@@ -100,9 +96,6 @@ path - Prints path-coverage tests for the given program.");
     DafnyOptions.RegisterLegacyBinding(SequenceLengthLimit, (options, value) => {
       options.TestGenOptions.SeqLengthLimit = value;
     });
-    DafnyOptions.RegisterLegacyBinding(Target, (options, value) => {
-      options.TestGenOptions.TargetMethod = value;
-    });
     DafnyOptions.RegisterLegacyBinding(PrintBpl, (options, value) => {
       options.TestGenOptions.PrintBpl = value;
     });
@@ -113,7 +106,6 @@ path - Prints path-coverage tests for the given program.");
     DooFile.RegisterNoChecksNeeded(
       LoopUnroll,
       SequenceLengthLimit,
-      Target,
       PrintBpl,
       DisablePrune
     );

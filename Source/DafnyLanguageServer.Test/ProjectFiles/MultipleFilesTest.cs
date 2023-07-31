@@ -22,6 +22,37 @@ public class MultipleFilesTest : ClientBasedLanguageServerTest {
   }
 
   [Fact]
+  public async Task NoProjectModeWithProjectFileAndMultipleFiles() {
+    await SetUp(o => {
+      o.Set(ServerCommand.ProjectMode, false);
+    });
+    var producerSource = @"
+method Foo(x: int) { 
+  var y: char := 3.0;
+}
+".TrimStart();
+
+    var consumerSource = @"
+include ""A.dfy""
+method Bar() {
+  Foo(true); 
+}
+";
+
+    var directory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+    Directory.CreateDirectory(directory);
+    await File.WriteAllTextAsync(Path.Combine(directory, DafnyProject.FileName), "");
+    // The names A and B are important, because A must be alphabetically before B to trigger a particular cache without cloning bug 
+    await File.WriteAllTextAsync(Path.Combine(directory, "A.dfy"), producerSource);
+    await CreateAndOpenTestDocument(consumerSource, Path.Combine(directory, "B.dfy"));
+
+    var consumerDiagnostics = await diagnosticsReceiver.AwaitNextNotificationAsync(CancellationToken);
+    Assert.Equal(2, consumerDiagnostics.Diagnostics.Count());
+    Assert.Contains(consumerDiagnostics.Diagnostics, diagnostic => diagnostic.Message.Contains("bool"));
+    await AssertNoDiagnosticsAreComing(CancellationToken);
+  }
+
+  [Fact]
   public async Task OnDiskProducerResolutionErrors() {
     var producerSource = @"
 method Foo(x: int) { 
@@ -176,7 +207,8 @@ method Produces() {}
 
     var directory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
     Directory.CreateDirectory(directory);
-    await File.WriteAllTextAsync(Path.Combine(directory, DafnyProject.FileName), projectFileSource);
+    var projectFilePath = Path.Combine(directory, DafnyProject.FileName);
+    await File.WriteAllTextAsync(projectFilePath, projectFileSource);
 
     var consumer = await CreateAndOpenTestDocument(consumerSource, Path.Combine(directory, "firstFile.dfy"));
     var secondFile = await CreateAndOpenTestDocument(producer, Path.Combine(directory, "secondFile.dfy"));
@@ -184,8 +216,7 @@ method Produces() {}
     var producesDefinition1 = await RequestDefinition(consumer, new Position(1, 3));
     Assert.Empty(producesDefinition1);
 
-    await File.WriteAllTextAsync(Path.Combine(directory, DafnyProject.FileName),
-      @"includes = [""firstFile.dfy"", ""secondFile.dfy""]");
+    await FileTestExtensions.WriteWhenUnlocked(projectFilePath, @"includes = [""firstFile.dfy"", ""secondFile.dfy""]");
     await Task.Delay(ProjectManagerDatabase.ProjectFileCacheExpiryTime);
 
     var producesDefinition2 = await RequestDefinition(consumer, new Position(1, 3));
@@ -213,7 +244,7 @@ includes = [""src/**/*.dfy""]
 
 [options]
 warn-shadowing = true
-"; // includes must come before [options], even if there is a blank line
+".Trim(); // includes must come before [options], even if there is a blank line
     var directory = Path.GetRandomFileName();
     var projectFile = await CreateAndOpenTestDocument(projectFileSource, Path.Combine(directory, DafnyProject.FileName));
     var sourceFile = await CreateAndOpenTestDocument(source, Path.Combine(directory, "src/file.dfy"));
@@ -223,7 +254,7 @@ warn-shadowing = true
     Assert.Contains(diagnostics1, s => s.Message.Contains("Shadowed"));
 
     await Task.Delay(ProjectManagerDatabase.ProjectFileCacheExpiryTime);
-    ApplyChange(ref projectFile, new Range(1, 17, 1, 21), "false");
+    ApplyChange(ref projectFile, new Range(3, 17, 3, 21), "false");
 
     var resolutionDiagnostics2 = await diagnosticsReceiver.AwaitNextWarningOrErrorDiagnosticsAsync(CancellationToken);
     // The shadowed warning is no longer produced, and the verification error is not migrated. 

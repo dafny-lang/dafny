@@ -29,8 +29,8 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
     public List<ScopeSymbol> Modifies { get; } = new();
     public List<ScopeSymbol> Decreases { get; } = new();
 
-    public override IEnumerable<ISymbol> Children =>
-      Block.AsEnumerable<ISymbol>()
+    public override IEnumerable<ILegacySymbol> Children =>
+      Block.AsEnumerable<ILegacySymbol>()
         .Concat(Parameters)
         .Concat(Returns)
         .Concat(Ensures)
@@ -38,7 +38,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         .Concat(Modifies)
         .Concat(Decreases);
 
-    public MethodSymbol(ISymbol? scope, Method method) : base(scope, method) {
+    public MethodSymbol(ILegacySymbol? scope, Method method) : base(scope, method) {
       Declaration = method;
     }
 
