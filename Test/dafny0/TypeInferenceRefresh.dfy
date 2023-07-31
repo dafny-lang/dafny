@@ -104,7 +104,7 @@ module A {
 
   method M1(dp: SubsetType, tt: T) {
     var dp0 := [dp][0];
-//SOON:    var dp': SubsetType := dp0.(t := tt); // error: does not satisfy SubsetType
+    var dp': SubsetType := dp0.(t := tt); // error: does not satisfy SubsetType
   }
 }
 
@@ -142,7 +142,7 @@ function Qf(x: int, a: array<int>): bool
   var v := true;
   var w := m[3] == true;
   var ww := u == v;
-true//SOON:  forall i :: 0 <= i < x ==> m[i] == true // error: domain
+  forall i :: 0 <= i < x ==> m[i] == true // error: index might be outside domain
 }
 
 trait AsTr { }
@@ -213,8 +213,8 @@ method TooBigDiv(a: int8) {
   var l := 3 + if u then 2 else 1;
   
   if
-  case true =>
-//SOON:    var x := a / (0-1);  // error: result may not be an int8 (if a is -128)
+  case true => var x := a / (0-1);  // error: result may not be an int8 (if a is -128)
+  case a != -128 => var x := a / (0-1);
   case true =>
     var minusOne := -1;
     var y := a % minusOne;  // fine

@@ -3962,3 +3962,13 @@ module ClassConstructorTests {
     method Gwen() { }
   }
 }
+
+module DefaultValues {
+  method Test() {
+    var r := 3 + MyFunction(7);
+  }
+
+  function MyFunction(n: int, acc: int := n * false): int { // note, badly type default-value expression
+    20
+  }
+}

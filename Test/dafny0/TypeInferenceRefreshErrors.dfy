@@ -45,14 +45,14 @@ module Underspecification0 {
 module Underspecification1 {
   class E<T> { }
 
-  /* SOON
   method M(obj: object) {
     var ee := obj as E; // error: type parameter of E is underspecified
     assert (obj as E) == (obj as E); // error: type parameter of E is underspecified
     assert (obj as E) == (obj as E<set>); // error: type parameter of set is underspecified
     assert (obj as E) == (obj as E<set<int>>);
   }
-  */
+
+
 }
 
 module Underspecification2 {

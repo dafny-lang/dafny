@@ -6,6 +6,9 @@ TypeInferenceRefreshErrors.dfy(22,10): Error: PRE-TYPE: a reads-clause expressio
 TypeInferenceRefreshErrors.dfy(33,12): Error: PRE-TYPE: type cast to reference type 'C?' must be from an expression assignable to it (got 'D?')
 TypeInferenceRefreshErrors.dfy(34,12): Error: PRE-TYPE: type cast to reference type 'D?' must be from an expression assignable to it (got 'C?')
 TypeInferenceRefreshErrors.dfy(41,13): Error: PRE-TYPE: logical/bitwise negation expects a boolean or bitvector argument (instead got ?0)
+TypeInferenceRefreshErrors.dfy(49,8): Error: PRE-TYPE: the type ('E?<?0>') of this variable is underspecified
+TypeInferenceRefreshErrors.dfy(50,16): Error: PRE-TYPE: the type ('E?<?2>') of this cast target is underspecified
+TypeInferenceRefreshErrors.dfy(51,16): Error: PRE-TYPE: the type ('E?<set<?7>>') of this cast target is underspecified
 TypeInferenceRefreshErrors.dfy(64,8): Error: PRE-TYPE: the type ('map<?8, ?9>') of this local variable is underspecified
 TypeInferenceRefreshErrors.dfy(65,8): Error: PRE-TYPE: the type ('map<?10, ?11>') of this local variable is underspecified
 TypeInferenceRefreshErrors.dfy(66,8): Error: PRE-TYPE: the type ('map<?18, ?19>') of this local variable is underspecified
@@ -14,4 +17,4 @@ TypeInferenceRefreshErrors.dfy(76,8): Error: PRE-TYPE: the type ('Synonym<int, ?
 TypeInferenceRefreshErrors.dfy(85,8): Error: the type of this local variable is underspecified
 TypeInferenceRefreshErrors.dfy(97,8): Error: PRE-TYPE: the type ('Synonym<int, ?3>') of this variable is underspecified
 TypeInferenceRefreshErrors.dfy(100,8): Error: PRE-TYPE: the type ('Synonym<int, ?6>') of this variable is underspecified
-16 resolution/type errors detected in TypeInferenceRefreshErrors.dfy
+19 resolution/type errors detected in TypeInferenceRefreshErrors.dfy
