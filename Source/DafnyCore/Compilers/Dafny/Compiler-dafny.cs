@@ -61,7 +61,6 @@ namespace Microsoft.Dafny.Compilers {
       Feature.Iterators,
       Feature.CollectionsOfTraits,
       Feature.AllUnderscoreExternalModuleNames,
-      Feature.Codatatypes,
       Feature.Multisets,
       Feature.RuntimeTypeDescriptors,
       Feature.MultiDimensionalArrays,
@@ -182,7 +181,13 @@ namespace Microsoft.Dafny.Compilers {
           ctors.Add((DAST.DatatypeCtor)DAST.DatatypeCtor.create_DatatypeCtor(Sequence<Rune>.UnicodeFromString(ctor.GetCompileName(Options)), Sequence<DAST.Formal>.FromArray(args.ToArray()), ctor.Formals.Count > 0));
         }
 
-        return new ClassWriter(this, builder.Datatype(dt.GetCompileName(Options), Sequence<Rune>.UnicodeFromString(dt.EnclosingModuleDefinition.GetCompileName(Options)), typeParams, ctors));
+        return new ClassWriter(this, builder.Datatype(
+          dt.GetCompileName(Options),
+          Sequence<Rune>.UnicodeFromString(dt.EnclosingModuleDefinition.GetCompileName(Options)),
+          typeParams,
+          ctors,
+          dt is CoDatatypeDecl
+        ));
       } else {
         throw new InvalidOperationException("Cannot declare datatype outside of a module: " + currentBuilder);
       }
@@ -956,6 +961,7 @@ namespace Microsoft.Dafny.Compilers {
           builder.Builder.AddExpr((DAST.Expression)DAST.Expression.create_DatatypeValue(
             dtPath,
             Sequence<Rune>.UnicodeFromString(dtv.Ctor.GetCompileName(Options)),
+            dtv.Ctor.EnclosingDatatype is CoDatatypeDecl,
             Sequence<_System._ITuple2<ISequence<Rune>, DAST.Expression>>.FromArray(namedContents.ToArray())
           ));
         }
