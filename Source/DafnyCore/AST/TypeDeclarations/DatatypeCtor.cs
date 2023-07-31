@@ -4,7 +4,7 @@ using System.Linq;
 
 namespace Microsoft.Dafny;
 
-public class DatatypeCtor : Declaration, TypeParameter.ParentType, IHasDocstring {
+public class DatatypeCtor : Declaration, TypeParameter.ParentType, IHasDocstring, ISymbol {
   public readonly bool IsGhost;
   public readonly List<Formal> Formals;
   [ContractInvariantMethod]
@@ -48,4 +48,6 @@ public class DatatypeCtor : Declaration, TypeParameter.ParentType, IHasDocstring
 
     return GetTriviaContainingDocstringFromStartTokenOrNull();
   }
+
+  public DafnySymbolKind Kind => DafnySymbolKind.EnumMember;
 }

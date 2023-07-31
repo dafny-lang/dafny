@@ -125,8 +125,8 @@ namespace Microsoft.Dafny.Compilers {
   interface DatatypeContainer {
     void AddDatatype(Datatype item);
 
-    public DatatypeBuilder Datatype(string name, ISequence<Rune> enclosingModule, List<DAST.DatatypeCtor> ctors) {
-      return new DatatypeBuilder(this, name, enclosingModule, ctors);
+    public DatatypeBuilder Datatype(string name, ISequence<Rune> enclosingModule, List<DAST.Type> typeParams, List<DAST.DatatypeCtor> ctors, bool isCo) {
+      return new DatatypeBuilder(this, name, enclosingModule, typeParams, ctors, isCo);
     }
   }
 
@@ -134,14 +134,18 @@ namespace Microsoft.Dafny.Compilers {
     readonly DatatypeContainer parent;
     readonly string name;
     readonly ISequence<Rune> enclosingModule;
+    readonly List<DAST.Type> typeParams;
     readonly List<DAST.DatatypeCtor> ctors;
+    readonly bool isCo;
     readonly List<ClassItem> body = new();
 
-    public DatatypeBuilder(DatatypeContainer parent, string name, ISequence<Rune> enclosingModule, List<DAST.DatatypeCtor> ctors) {
+    public DatatypeBuilder(DatatypeContainer parent, string name, ISequence<Rune> enclosingModule, List<DAST.Type> typeParams, List<DAST.DatatypeCtor> ctors, bool isCo) {
       this.parent = parent;
       this.name = name;
+      this.typeParams = typeParams;
       this.enclosingModule = enclosingModule;
       this.ctors = ctors;
+      this.isCo = isCo;
     }
 
     public void AddMethod(DAST.Method item) {
@@ -156,8 +160,10 @@ namespace Microsoft.Dafny.Compilers {
       parent.AddDatatype((Datatype)Datatype.create(
         Sequence<Rune>.UnicodeFromString(this.name),
         this.enclosingModule,
+        Sequence<DAST.Type>.FromArray(typeParams.ToArray()),
         Sequence<DAST.DatatypeCtor>.FromArray(ctors.ToArray()),
-        Sequence<ClassItem>.FromArray(body.ToArray())
+        Sequence<ClassItem>.FromArray(body.ToArray()),
+        this.isCo
       ));
       return parent;
     }
