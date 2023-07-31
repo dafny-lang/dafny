@@ -20,6 +20,29 @@ class HigherOrderHeapAllocationChecker : ASTVisitor<IASTVisitorContext> {
     return astVisitorContext;
   }
 
+  private bool Occurs(Type Obj, Type rhs) {
+    Type type = rhs.NormalizeExpandKeepConstraints();
+    if (type is BasicType) {
+      return false;
+    } else if (type is MapType) {
+      var t = (MapType)type;
+      return Occurs(Obj, t.Domain) || Occurs(Obj, t.Range);
+    } else if (type is CollectionType) {
+      var t = (CollectionType)type;
+      return Occurs(Obj, t.Arg);
+    } else {
+      var t = (UserDefinedType)type;
+      if (Obj.Equals(t)) {
+        return true;
+      }
+      var b = false;
+      for (int i = 0; i < t.TypeArgs.Count; i++) {
+        b = b || Occurs(Obj, t.TypeArgs[i]);
+      }
+      return b;
+    }
+  }
+
   protected override bool VisitOneStatement(Statement stmt, IASTVisitorContext context) {
     if (stmt is AssignStmt assign) {
       var rhs = assign.Rhs;
@@ -31,12 +54,15 @@ class HigherOrderHeapAllocationChecker : ASTVisitor<IASTVisitorContext> {
 
           if (type.IsArrowType) {
             if (!type.IsArrowTypeWithoutReadEffects) {
-              reporter.Error(MessageSource.Resolver, stmt, $"Illegal");
+              reporter.Error(MessageSource.Resolver, stmt, $"Illegal 1");
             }
 
             var arrow = type.AsArrowType;
-            if (mseLhs.Obj.Type.Equals(arrow.Args[0])) {
-              reporter.Error(MessageSource.Resolver, stmt, $"Illegal");
+            for (int i = 0; i < arrow.Arity; i++) {
+              var occurs = Occurs(mseLhs.Obj.Type.NormalizeExpandKeepConstraints(), arrow.Args[i]);
+              if (occurs) { // mseLhs.Obj.Type.Equals(arrow.Args[0])
+                reporter.Error(MessageSource.Resolver, stmt, $"Illegal 2");
+              }
             }
 
           }
