@@ -25,7 +25,6 @@ public class CompilationAfterTranslation : CompilationAfterResolution {
 
   public override IdeState ToIdeState(IdeState previousState) {
     return base.ToIdeState(previousState) with {
-      ImplementationsWereUpdated = true,
       VerificationTrees = VerificationTrees,
     };
   }

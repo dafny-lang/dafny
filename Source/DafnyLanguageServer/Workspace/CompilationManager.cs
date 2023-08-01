@@ -242,7 +242,7 @@ public class CompilationManager {
 
     if (compilation.ImplementationsPerVerifiable[verifiable] == null) {
       compilation.ImplementationsPerVerifiable[verifiable] = tasksForVerifiable.ToDictionary(t => t.Implementation.Name, 
-        t => (t, new ImplementationView(verifiable.RangeToken.ToLspRange(), PublishedVerificationStatus.Stale, Array.Empty<DafnyDiagnostic>())));
+        t => (t, new ImplementationView(verifiable.NameToken.GetLspRange(), PublishedVerificationStatus.Stale, Array.Empty<DafnyDiagnostic>())));
       compilationUpdates.OnNext(compilation);
     }
 

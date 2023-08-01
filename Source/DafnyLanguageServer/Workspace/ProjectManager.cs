@@ -182,10 +182,9 @@ public class ProjectManager : IDisposable {
       if (newRange != null) {
         result.Add(entry.Key with {
           Position = relocator.RelocatePosition(entry.Key.Position, documentChange, CancellationToken.None)
-        }, entry.Value with {
-          Range = newRange,
-          Diagnostics = relocator.RelocateDiagnostics(entry.Value.Diagnostics, documentChange, CancellationToken.None)
-        });
+        }, new IdeImplementationView(Range: newRange, 
+          Status: PublishedVerificationStatus.Stale, 
+          Diagnostics: relocator.RelocateDiagnostics(entry.Value.Diagnostics, documentChange, CancellationToken.None)));
       }
     }
     return result;
