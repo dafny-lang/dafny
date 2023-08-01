@@ -35,10 +35,12 @@ class HigherOrderHeapAllocationChecker : ASTVisitor<IASTVisitorContext> {
       if (Obj.Equals(t)) {
         return true;
       }
+
       var b = false;
       for (int i = 0; i < t.TypeArgs.Count; i++) {
         b = b || Occurs(Obj, t.TypeArgs[i]);
       }
+
       return b;
     }
   }
@@ -60,70 +62,57 @@ class HigherOrderHeapAllocationChecker : ASTVisitor<IASTVisitorContext> {
           return true;
         }
       }
+
       var b = false;
       for (int i = 0; i < t.TypeArgs.Count; i++) {
         b = b || OccursSquig(t.TypeArgs[i]);
       }
+
       return b;
     }
   }
 
   protected override bool VisitOneStatement(Statement stmt, IASTVisitorContext context) {
     if (stmt is AssignStmt assign) {
-      var rhs = assign.Rhs;
+
       var lhs = assign.Lhs;
+      Type lhsType;
       if (lhs is MemberSelectExpr mseLhs) {
-        if (rhs is ExprRhs eRhs) {
-          var exp = eRhs.Expr;
-          var type = exp.Type;
-
-          if (OccursSquig(type)) {
-            reporter.Error(MessageSource.Resolver, stmt, $"Illegal 1");
-          }
-
-          if (type.IsArrowType) {
-            //if (!type.IsArrowTypeWithoutReadEffects) {
-            //  reporter.Error(MessageSource.Resolver, stmt, $"Illegal 1");
-            //}
-
-            var arrow = type.AsArrowType;
-            for (int i = 0; i < arrow.Arity; i++) {
-              var occurs = Occurs(mseLhs.Obj.Type.NormalizeExpandKeepConstraints(), arrow.Args[i]);
-              if (occurs) { // mseLhs.Obj.Type.Equals(arrow.Args[0])
-                reporter.Error(MessageSource.Resolver, stmt, $"Illegal 2");
-              }
-            }
-
-          }
-
-        }
+        lhsType = mseLhs.Obj.Type.NormalizeExpandKeepConstraints();
       } else if (lhs is SeqSelectExpr sseLhs) {
-        if (rhs is ExprRhs eRhs) {
-          var exp = eRhs.Expr;
-          var type = exp.Type;
+        lhsType = sseLhs.Type.NormalizeExpandKeepConstraints();
+      } else {
+        return base.VisitOneStatement(stmt, context);
+      }
 
-          if (OccursSquig(type)) {
-            reporter.Error(MessageSource.Resolver, stmt, $"Illegal 1");
-          }
+      var rhs = assign.Rhs;
+      if (rhs is ExprRhs eRhs) {
+        var exp = eRhs.Expr;
+        var type = exp.Type;
 
-          if (type.IsArrowType) {
-            //if (!type.IsArrowTypeWithoutReadEffects) {
-            //  reporter.Error(MessageSource.Resolver, stmt, $"Illegal 1");
-            //}
+        if (OccursSquig(type)) {
+          reporter.Error(MessageSource.Resolver, stmt,
+            $"To prevent the creation of non-terminating functions, storing functions with read effects into memory is disallowed");
+        }
 
-            var arrow = type.AsArrowType;
-            for (int i = 0; i < arrow.Arity; i++) {
-              var occurs = Occurs(sseLhs.Type.NormalizeExpandKeepConstraints(), arrow.Args[i]);
-              if (occurs) { // mseLhs.Obj.Type.Equals(arrow.Args[0])
-                reporter.Error(MessageSource.Resolver, stmt, $"Illegal 2");
-              }
+        if (type.IsArrowType) {
+          //if (!type.IsArrowTypeWithoutReadEffects) {
+          //  reporter.Error(MessageSource.Resolver, stmt, $"Illegal 1");
+          //}
+
+          var arrow = type.AsArrowType;
+          for (int i = 0; i < arrow.Arity; i++) {
+            var occurs = Occurs(lhsType, arrow.Args[i]);
+            if (occurs) {
+              // mseLhs.Obj.Type.Equals(arrow.Args[0])
+              reporter.Error(MessageSource.Resolver, stmt,
+                $"To prevent the creation of non-terminating functions, storing functions into an object's fields that reads the object is disallowed");
             }
-
           }
-
         }
       }
     }
+
     return base.VisitOneStatement(stmt, context);
   }
 }
