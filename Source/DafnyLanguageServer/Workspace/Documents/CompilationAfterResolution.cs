@@ -73,8 +73,8 @@ public class CompilationAfterResolution : CompilationAfterParsing {
       GhostRanges = GhostDiagnostics,
       ImplementationsWereUpdated = true,
       Counterexamples = new List<Counterexample>(Counterexamples),
-      ImplementationViews = new(ImplementationsPerVerifiable.Keys.ToDictionary(k => k.NameToken.GetLocation(), 
-        k => new Dictionary<string, IdeImplementationView>(MergeVerifiable(k))))
+      ImplementationViews = ImplementationsPerVerifiable.Keys.GroupBy(l => l.NameToken.GetLocation()).ToDictionary(k => k.Key,
+        k => new Dictionary<string, IdeImplementationView>(k.SelectMany(MergeVerifiable)))
     };
   }
 

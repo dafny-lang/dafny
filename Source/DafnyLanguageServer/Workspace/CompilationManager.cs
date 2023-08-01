@@ -199,14 +199,12 @@ public class CompilationManager {
   //   return translated;
   // }
 
-  private static string GetImplementationName(Implementation implementation)
-  {
+  private static string GetImplementationName(Implementation implementation) {
     var prefix = implementation.Name.Split(Translator.NameSeparator)[0];
 
     // Refining declarations get the token of what they're refining, so to distinguish them we need to
     // add the refining module name to the prefix.
-    if (implementation.tok is RefinementToken refinementToken)
-    {
+    if (implementation.tok is RefinementToken refinementToken) {
       prefix += "." + refinementToken.InheritingModule.Name;
     }
 

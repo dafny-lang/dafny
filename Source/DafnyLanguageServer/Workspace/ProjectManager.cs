@@ -182,7 +182,7 @@ public class ProjectManager : IDisposable {
       if (newOuterRange == null) {
         continue;
       }
-      
+
       var newValue = new Dictionary<string, IdeImplementationView>();
       foreach (var innerEntry in entry.Value) {
         var newInnerRange = relocator.RelocateRange(innerEntry.Value.Range, documentChange, CancellationToken.None);
@@ -193,7 +193,7 @@ public class ProjectManager : IDisposable {
         }
       }
       result.Add(new Location() {
-        Uri = entry.Key.Uri, 
+        Uri = entry.Key.Uri,
         Range = newOuterRange
       }, newValue);
     }
@@ -276,12 +276,12 @@ public class ProjectManager : IDisposable {
     try {
       var resolvedCompilation = await CompilationManager.ResolvedCompilation;
 
-      var veriables = resolvedCompilation.ImplementationsPerVerifiable.Keys.ToList();
+      var verifiables = resolvedCompilation.ImplementationsPerVerifiable.Keys.ToList();
       if (uri != null) {
-        veriables = veriables.Where(d => d.Tok.Uri == uri).ToList();
+        verifiables = verifiables.Where(d => d.Tok.Uri == uri).ToList();
       }
 
-      if (!veriables.Any()) {
+      if (!verifiables.Any()) {
         CompilationManager.FinishedNotifications(resolvedCompilation);
       }
 
@@ -296,7 +296,7 @@ public class ProjectManager : IDisposable {
         return symbol.Tok.pos; // TODO lookup attribute as well
       }
       var implementationOrder = ChangedVerifiables.Select((v, i) => (v, i)).ToDictionary(k => k.v, k => k.i);
-      var orderedVerifiables = veriables.OrderBy(GetPriority).CreateOrderedEnumerable(
+      var orderedVerifiables = verifiables.OrderBy(GetPriority).CreateOrderedEnumerable(
         t => implementationOrder.GetOrDefault(new FilePosition(t.Tok.Uri, t.Tok.GetLspPosition()), () => int.MaxValue),
         null, false).ToList();
 

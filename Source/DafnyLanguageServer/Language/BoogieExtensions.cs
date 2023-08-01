@@ -73,16 +73,18 @@ namespace Microsoft.Dafny.LanguageServer.Language {
 
     public static Location GetLocation(this IToken token) {
       return new Location {
-        Uri = DocumentUri.From(token.Uri), 
-        Range = token.GetLspRange(true)};
+        Uri = DocumentUri.From(token.Uri),
+        Range = token.GetLspRange(true)
+      };
     }
-    
+
     public static Location GetLocation(this RangeToken token) {
       return new Location() {
-        Uri = DocumentUri.From(token.Uri), 
-        Range = token.GetLspRange()};
+        Uri = DocumentUri.From(token.Uri),
+        Range = token.GetLspRange()
+      };
     }
-    
+
     public static FilePosition GetFilePosition(this IToken token, bool end = false) {
       return new FilePosition(token.Uri, GetLspPosition(token, end));
     }
