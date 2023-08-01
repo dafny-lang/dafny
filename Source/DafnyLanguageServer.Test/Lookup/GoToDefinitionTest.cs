@@ -126,10 +126,10 @@ type seq31<[>T<]> = x: seq<><T> | 0 <= |x| <= 32 as int
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
 
       var fibonacciSpecOnItself = (await RequestDefinition(documentItem, positions[0]));
-      Assert.False(fibonacciSpecOnItself.Any());
+      Assert.Single(fibonacciSpecOnItself);
 
       var nOnItself = (await RequestDefinition(documentItem, positions[1]));
-      Assert.False(nOnItself.Any());
+      Assert.Single(nOnItself);
 
       var fibonacciCall = (await RequestDefinition(documentItem, positions[2])).Single();
       Assert.Equal(ranges[0], fibonacciCall.Location!.Range);
@@ -209,7 +209,7 @@ module Consumer {
       Assert.Equal(ranges[1], usizeReference.Location.Range);
 
       var lengthDefinition = (await RequestDefinition(documentItem, positions[1]));
-      Assert.False(lengthDefinition.Any());
+      Assert.Single(lengthDefinition);
 
       var providerImport = (await RequestDefinition(documentItem, positions[0])).Single();
       Assert.Equal(ranges[0], providerImport.Location!.Range);
