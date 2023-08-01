@@ -104,6 +104,7 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
         }
       } catch (OperationCanceledException) {
         await output.WriteLineAsync($"\nOld to new history was: {verificationStatusReceiver.History.Stringify()}");
+        throw;
       }
     }
   }

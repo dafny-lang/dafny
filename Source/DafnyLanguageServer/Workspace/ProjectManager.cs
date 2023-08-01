@@ -266,12 +266,12 @@ public class ProjectManager : IDisposable {
     try {
       var resolvedCompilation = await CompilationManager.ResolvedCompilation;
 
-      var implementationTasks = resolvedCompilation.ImplementationsPerVerifiable.Keys.ToList();
+      var veriables = resolvedCompilation.ImplementationsPerVerifiable.Keys.ToList();
       if (uri != null) {
-        implementationTasks = implementationTasks.Where(d => d.Tok.Uri == uri).ToList();
+        veriables = veriables.Where(d => d.Tok.Uri == uri).ToList();
       }
 
-      if (!implementationTasks.Any()) {
+      if (!veriables.Any()) {
         CompilationManager.FinishedNotifications(resolvedCompilation);
       }
 
@@ -283,15 +283,15 @@ public class ProjectManager : IDisposable {
       }
 
       int GetPriority(ISymbol symbol) {
-        return 1; // TODO lookup attribute
+        return symbol.Tok.pos; // TODO lookup attribute as well
       }
       var implementationOrder = ChangedVerifiables.Select((v, i) => (v, i)).ToDictionary(k => k.v, k => k.i);
-      var orderedVerifiables = implementationTasks.OrderBy(GetPriority).CreateOrderedEnumerable(
+      var orderedVerifiables = veriables.OrderBy(GetPriority).CreateOrderedEnumerable(
         t => implementationOrder.GetOrDefault(new FilePosition(t.Tok.Uri, t.Tok.GetLspPosition()), () => int.MaxValue),
         null, false).ToList();
 
       foreach (var canVerify in orderedVerifiables) {
-        _ = CompilationManager.VerifyTask(resolvedCompilation, canVerify);
+        await CompilationManager.VerifyTask(resolvedCompilation, canVerify);
       }
     }
     finally {
