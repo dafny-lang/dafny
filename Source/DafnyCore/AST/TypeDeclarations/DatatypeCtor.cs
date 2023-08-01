@@ -4,7 +4,7 @@ using System.Linq;
 
 namespace Microsoft.Dafny;
 
-public class DatatypeCtor : Declaration, TypeParameter.ParentType, IHasDocstring {
+public class DatatypeCtor : Declaration, TypeParameter.ParentType, IHasDocstring, ISymbol {
   public readonly bool IsGhost;
   public readonly List<Formal> Formals;
   [ContractInvariantMethod]
