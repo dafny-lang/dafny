@@ -62,13 +62,14 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
          To prevent publishing file verification status unless the current document has been translated,
          the field ImplementationsWereUpdated was added.
          */
-        // return ImmutableDictionary<Uri, FileVerificationStatus>.Empty;
+        return ImmutableDictionary<Uri, FileVerificationStatus>.Empty;
       }
 
       return state.ImplementationViews.GroupBy(kv => kv.Key.Uri).
         ToDictionary(kv => kv.Key.ToUri(), kvs =>
         new FileVerificationStatus(kvs.Key, state.Compilation.Version,
-          kvs.SelectMany(kv => GetNamedVerifiableStatuses(kv.Key, kv.Value.Values)).ToList()));
+          kvs.SelectMany(kv => GetNamedVerifiableStatuses(kv.Key, kv.Value.Values)).
+            OrderBy(s => s.NameRange.Start).ToList()));
     }
 
     private static List<NamedVerifiableStatus> GetNamedVerifiableStatuses(Location canVerify, ICollection<IdeImplementationView> implementationViews) {
