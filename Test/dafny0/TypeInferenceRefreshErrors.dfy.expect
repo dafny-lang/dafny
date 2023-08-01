@@ -21,4 +21,8 @@ TypeInferenceRefreshErrors.dfy(109,13): Error: PRE-TYPE: datatype constructor do
 TypeInferenceRefreshErrors.dfy(110,13): Error: PRE-TYPE: datatype constructor does not take any type parameters ('Blue'); did you perhaps mean to write 'ParametricColor<int>.Blue'?
 TypeInferenceRefreshErrors.dfy(111,13): Error: PRE-TYPE: datatype constructor does not take any type parameters ('Gray')
 TypeInferenceRefreshErrors.dfy(112,13): Error: PRE-TYPE: datatype constructor does not take any type parameters ('Red'); did you perhaps mean to write 'ParametricColor<int>.Red'?
-23 resolution/type errors detected in TypeInferenceRefreshErrors.dfy
+TypeInferenceRefreshErrors.dfy(122,9): Error: PRE-TYPE: type '(int, int)' does not contain a datatype constructor 'R'
+TypeInferenceRefreshErrors.dfy(124,12): Error: PRE-TYPE: unresolved identifier: x
+TypeInferenceRefreshErrors.dfy(124,16): Error: PRE-TYPE: unresolved identifier: y
+TypeInferenceRefreshErrors.dfy(124,14): Error: PRE-TYPE: type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like or map-like type (instead got ?7)
+27 resolution/type errors detected in TypeInferenceRefreshErrors.dfy

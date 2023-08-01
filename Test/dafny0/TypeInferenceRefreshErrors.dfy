@@ -113,18 +113,18 @@ module DatatypeConstructorTypeArguments {
   }
 }
 
-/*
- * The following example causes Dafny 4.0 to crash (after reporting the expected error).
+module RegressionTest {
+  datatype R = R(int, int)
 
-datatype R = R(int, int)
-
-method M() {
-  var pair: (int, int) := (20, 30);
-  match pair
-  case R(x, y) => // bogus: should not be allowed to match a pair against an R constructor
-    print x + y, "\n";
+  method M() {
+    var pair: (int, int) := (20, 30);
+    match pair
+    case R(x, y) => // error: tuple type does not have a constructor R
+      // the following line causes a crash in the old type system, after reporting an error about the previous line
+      print x + y;
+  }
 }
- */
+
 
 /* An additional match test
 
