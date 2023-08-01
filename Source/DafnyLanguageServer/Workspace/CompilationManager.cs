@@ -172,7 +172,7 @@ public class CompilationManager {
         logger.LogCritical($"Two different implementation tasks have the same id, second name is {task.Implementation.Name}.");
       }
     }
-    
+
     // Obtain additional diagnostics from the translation
     var errorReporter = (DiagnosticErrorReporter)loaded.Program.Reporter;
 
