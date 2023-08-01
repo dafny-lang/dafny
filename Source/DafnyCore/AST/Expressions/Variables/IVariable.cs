@@ -35,6 +35,9 @@ public interface IVariable : IDeclarationOrUsage {
   Type Type {
     get;
   }
+  Type UnnormalizedType {
+    get;
+  }
   Type OptionalType {
     get;
   }

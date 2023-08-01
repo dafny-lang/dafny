@@ -92,6 +92,12 @@ public abstract class NonglobalVariable : TokenNode, IVariable {
       return type.Normalize();
     }
   }
+  public Type UnnormalizedType {
+    get {
+      Contract.Ensures(Contract.Result<Type>() != null);
+      return type;
+    }
+  }
   Type IVariable.OptionalType {
     get { return Type; }  // same as Type for NonglobalVariable
   }

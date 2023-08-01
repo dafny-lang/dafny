@@ -52,6 +52,12 @@ public abstract class IVariableContracts : TokenNode, IVariable {
       throw new NotImplementedException();  // this getter implementation is here only so that the Ensures contract can be given here
     }
   }
+  public Type UnnormalizedType {
+    get {
+      Contract.Ensures(Contract.Result<Type>() != null);
+      throw new NotImplementedException();  // this getter implementation is here only so that the Ensures contract can be given here
+    }
+  }
   public Type OptionalType {
     get {
       Contract.Ensures(Contract.Result<Type>() != null);
