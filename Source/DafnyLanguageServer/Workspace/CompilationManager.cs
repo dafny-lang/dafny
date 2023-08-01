@@ -228,30 +228,27 @@ public class CompilationManager {
 
     Interlocked.Increment(ref runningVerificationJobs);
     MarkVerificationStarted();
-
-    var tasksForModule = await compilation.TranslatedModules.GetOrAdd(containingModule, async _ => {
-      var result = await verifier.GetVerificationTasksAsync(boogieEngine, compilation, containingModule, cancellationSource.Token);
-      foreach (var task in result) {
-        cancellationSource.Token.Register(task.Cancel);
-      }
-      return result.GroupBy(t => t.Implementation.tok.GetLspPosition()).ToDictionary(
-        g => g.Key,
-        g => (IReadOnlyList<IImplementationTask>)g.ToList());
-    });
-    var tasksForVerifiable = tasksForModule.GetValueOrDefault(verifiable.NameToken.GetLspPosition()) ?? new List<IImplementationTask>(0);
-
     if (compilation.ImplementationsPerVerifiable[verifiable] == null) {
+      
+      var tasksForModule = await compilation.TranslatedModules.GetOrAdd(containingModule, async _ => {
+        var result = await verifier.GetVerificationTasksAsync(boogieEngine, compilation, containingModule, cancellationSource.Token);
+        foreach (var task in result) {
+          cancellationSource.Token.Register(task.Cancel);
+        }
+        return result.GroupBy(t => t.Implementation.tok.GetLspPosition()).ToDictionary(
+          g => g.Key,
+          g => (IReadOnlyList<IImplementationTask>)g.ToList());
+      });
+      var tasksForVerifiable = tasksForModule.GetValueOrDefault(verifiable.NameToken.GetLspPosition()) ?? new List<IImplementationTask>(0);
+      
       compilation.ImplementationsPerVerifiable[verifiable] = tasksForVerifiable.ToDictionary(t => t.Implementation.Name,
         t => (t, new ImplementationView(verifiable.NameToken.GetLspRange(), PublishedVerificationStatus.Stale, Array.Empty<DafnyDiagnostic>())));
       compilationUpdates.OnNext(compilation);
     }
 
-    foreach (var _ in tasksForVerifiable) {
-      Interlocked.Increment(ref runningVerificationJobs);
-    }
-    StatusUpdateHandlerFinally();
+    var tasks = compilation.ImplementationsPerVerifiable[verifiable]!.Values.Select(t => t.Task).ToList();
 
-    foreach (var task in tasksForVerifiable) {
+    foreach (var task in tasks) {
       var statusUpdates = task.TryRun();
       if (statusUpdates == null) {
         if (task.CacheStatus is Completed completedCache) {
@@ -267,6 +264,8 @@ public class CompilationManager {
         StatusUpdateHandlerFinally();
         return false;
       }
+      
+      Interlocked.Increment(ref runningVerificationJobs);
 
       statusUpdates.ObserveOn(verificationUpdateScheduler).Subscribe(
         update => {
@@ -296,6 +295,7 @@ public class CompilationManager {
       }
     }
 
+    StatusUpdateHandlerFinally();
     return true;
   }
 
