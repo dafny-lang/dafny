@@ -125,8 +125,6 @@ module RegressionTest {
   }
 }
 
-
-/*
 module TooLargeCaseLiteral {
   method Test(bv: bv7) {
     match bv {
@@ -224,4 +222,3 @@ module RedundanCaseLiterals {
     }
   }
 }
- */

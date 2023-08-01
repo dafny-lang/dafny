@@ -25,4 +25,20 @@ TypeInferenceRefreshErrors.dfy(122,9): Error: PRE-TYPE: type '(int, int)' does n
 TypeInferenceRefreshErrors.dfy(124,12): Error: PRE-TYPE: unresolved identifier: x
 TypeInferenceRefreshErrors.dfy(124,16): Error: PRE-TYPE: unresolved identifier: y
 TypeInferenceRefreshErrors.dfy(124,14): Error: PRE-TYPE: type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like or map-like type (instead got ?7)
-27 resolution/type errors detected in TypeInferenceRefreshErrors.dfy
+TypeInferenceRefreshErrors.dfy(131,11): Error: PRE-TYPE: literal (84848484848484848) is too large for the bitvector type bv7
+TypeInferenceRefreshErrors.dfy(140,11): Error: PRE-TYPE: type of real literal is used as bv7
+TypeInferenceRefreshErrors.dfy(143,11): Error: PRE-TYPE: integer literal used as if it had type real
+TypeInferenceRefreshErrors.dfy(144,11): Error: PRE-TYPE: integer literal used as if it had type real
+TypeInferenceRefreshErrors.dfy(145,11): Error: PRE-TYPE: integer literal used as if it had type real
+TypeInferenceRefreshErrors.dfy(148,11): Error: PRE-TYPE: integer literal used as if it had type real
+TypeInferenceRefreshErrors.dfy(149,11): Error: PRE-TYPE: integer literal used as if it had type real
+TypeInferenceRefreshErrors.dfy(150,11): Error: PRE-TYPE: integer literal used as if it had type real
+TypeInferenceRefreshErrors.dfy(151,11): Error: PRE-TYPE: boolean literal used as if it had type real
+TypeInferenceRefreshErrors.dfy(175,11): Error: PRE-TYPE: unary minus (-3, type bv7) not allowed in case pattern
+TypeInferenceRefreshErrors.dfy(176,11): Error: PRE-TYPE: unary minus (-0, type bv7) not allowed in case pattern
+TypeInferenceRefreshErrors.dfy(182,11): Error: PRE-TYPE: unary minus (-3, type ORDINAL) not allowed in case pattern
+TypeInferenceRefreshErrors.dfy(183,11): Error: PRE-TYPE: unary minus (-0, type ORDINAL) not allowed in case pattern
+TypeInferenceRefreshErrors.dfy(205,6): Warning: this branch is redundant
+TypeInferenceRefreshErrors.dfy(212,6): Warning: this branch is redundant
+TypeInferenceRefreshErrors.dfy(220,6): Warning: this branch is redundant
+40 resolution/type errors detected in TypeInferenceRefreshErrors.dfy
