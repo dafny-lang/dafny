@@ -41,4 +41,5 @@ TypeInferenceRefreshErrors.dfy(183,11): Error: PRE-TYPE: unary minus (-0, type O
 TypeInferenceRefreshErrors.dfy(205,6): Warning: this branch is redundant
 TypeInferenceRefreshErrors.dfy(212,6): Warning: this branch is redundant
 TypeInferenceRefreshErrors.dfy(220,6): Warning: this branch is redundant
-40 resolution/type errors detected in TypeInferenceRefreshErrors.dfy
+TypeInferenceRefreshErrors.dfy(255,9): Error: PRE-TYPE: pattern (of type int) cannot be used with source type Color
+41 resolution/type errors detected in TypeInferenceRefreshErrors.dfy

@@ -222,3 +222,36 @@ module RedundanCaseLiterals {
     }
   }
 }
+
+module NewMatchBehavior {
+  /* Here are tests for a match where a case is given by a const.
+   - For the first test, it used to be (that is, before the type system refresh) that this would spill out an unused
+     local variable with that name (FIVE).
+   - The second test checks what happens if the const case label is also given an explicit type.
+     Previously, this would interpret "FIVE" as a const, and it would check that the type was correct.
+     Now, the explicit type causes it to be interpreted as a bound variable.
+   - The third test used to breeze through Dafny without any complaints, even though the type "int" makes no sense here.
+     Now, a pattern with an explicit type is always interpreted as a bound variable.
+   */
+
+  const FIVE: int := 5
+
+  method Five(x: int) {
+    match x {
+      case FIVE => assert x == 5;
+      case _ =>
+    }
+    match x {
+      case FIVE: int =>
+        assert x == 5; // error: x may be anything, since FIVE is a bound variable
+      case _ =>
+    }
+  }
+
+  datatype Color = Blue | Green
+
+  method Colors(c: Color) {
+    match c
+    case Blue: int => // error: because of the ": int", Blue is interpreted as a bound variable, and its type doesn't match that of "c"
+  }
+}
