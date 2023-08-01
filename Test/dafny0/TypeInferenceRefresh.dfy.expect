@@ -1,4 +1,5 @@
 TypeInferenceRefresh.dfy(445,11): Warning: the modify statement with a block statement is deprecated
+TypeInferenceRefresh.dfy(807,4): Warning: this branch is redundant
 TypeInferenceRefresh.dfy(102,31): Error: value does not satisfy the subset constraints of 'SubsetType'
 TypeInferenceRefresh.dfy(107,31): Error: value does not satisfy the subset constraints of 'SubsetType'
 TypeInferenceRefresh.dfy(630,40): Error: value does not satisfy the subset constraints of 'nat'
@@ -15,4 +16,4 @@ TypeInferenceRefresh.dfy(710,10): Error: function precondition could not be prov
 TypeInferenceRefresh.dfy(145,30): Error: element might not be in domain
 TypeInferenceRefresh.dfy(216,26): Error: result of operation might violate newtype constraint for 'int8'
 
-Dafny program verifier finished with 61 verified, 15 errors
+Dafny program verifier finished with 63 verified, 15 errors

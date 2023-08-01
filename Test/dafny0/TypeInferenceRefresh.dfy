@@ -776,6 +776,38 @@ module GhostTupleTests {
   }
 }
 
+module MatchLiteralConsts {
+  datatype Cell<T> = Cell(value: T)
+
+  const X := 1
+
+  method q() {
+    var c; // type inferred to be int
+    match c
+    case X => // the literal 1
+      assert c == 1;
+    case Xyz => // a bound variable
+  }
+
+  datatype YT = Y
+  const Y := 2
+
+  method r() {
+    var c: Cell; // type inferred to be Cell<int>
+    match c
+    case Cell(Y) => // the literal 2
+      assert c == Cell(2);
+    case Cell(_) =>
+  }
+
+  method s() {
+    var c: Cell; // type inferred to be Cell<real>
+    match c
+    case Cell(Y: real) => // bound variable
+    case Cell(_) => // warning: redundant
+  }
+}
+
 /****************************************************************************************
  ******** TO DO *************************************************************************
  ****************************************************************************************
@@ -1021,37 +1053,4 @@ method TupleTests(a: (int, ghost real), b: (), c: (ghost bool)) {
   }
 }
 
- */
-
-/*
-datatype Cell<T> = Cell(value: T)
-
-const X := 1
-
-method q() {
-  var c;
-  match c {
-    case X => // the literal 1
-    case Xyz => // a bound variable
-  }
-}
-
-datatype YT = Y
-const Y := 2
-
-method r() {
-  var c: Cell;
-  match c {
-    case Cell(Y) => // the literal 2
-    case Cell(_) =>
-  }
-}
-
-method s() {
-  var c: Cell;
-  match c {
-    case Cell(Y: real) => // bound variable
-    case Cell(_) => // redundant
-  }
-}
  */
