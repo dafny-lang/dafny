@@ -1,196 +1,191 @@
-class {:separated} ConcurrentHashMap {
 
+include "separatedclass.dfy"
+include "concurrentlinkedlist.dfy"
 
+module ConcurrentHashMap {
 
+  import opened ConcurrentDoublyLinkedList
+  import opened SeparatedClasses
 
+  datatype Option<T> = Some(value: T) | None
 
+  type KeyValuePair<K, V> = (K, V)
 
-}
+  class ConcurrentHashMap<K(==), V> extends OwnedObject {
 
-function Hash<T>(t: T): nat
+    ghost const inv: KeyValuePair<K, V> -> bool
 
-class {:separated} ConcurrentDoublyLinkedList<T(0)> {
+    var table: HashTable<K, V>
 
-  ghost const inv: T -> bool
-
-  var head: Ref<LinkedListNode<T>>
-  var tail: Ref<LinkedListNode<T>>
-
-  ghost var Items: seq<LinkedListNode<T>>
-
-  constructor(ghost inv: T -> bool) {
-    this.inv := inv;
-    head := Null;
-    tail := Null;
-    Items := [];
-  }
-
-  ghost predicate Invariant()
-    reads this, Items
-  {
-    // head and tail properties
-    && (0 == |Items| <==> head.Null? && tail.Null?)
-    && (0 < |Items| <==>
-        && head.Ptr?
-        && tail.Ptr?
-        && head.deref == Items[0]
-        && tail.deref == Items[|Items| - 1])
-    && (head.Ptr? <==> tail.Ptr?)
-    && (head.Ptr? ==> head.deref.prev.Null?)
-    && (tail.Ptr? ==> tail.deref.next.Null?)
-        // Every Cell in the DoublyLinkedList MUST be unique.
-        // Otherwise there would be loops in prev and next.
-        // For a Cell at 4, next MUST point to 5 or Null?.
-        // So if a Cell exists as 4 and 7
-        // then it's next would need to point to _both_ 5 and 8.
-    && (forall v <- Items :: multiset(Items)[v] == 1)
-        // Proving order is easier by being more specific
-        // and breaking up prev and next.
-        // Order means Cell 4 point to 3 and 5
-        // in prev and next respectively.
-    && (forall i: nat | 0 <= i < |Items| ::
-          && Prev?(i, Items[i], Items)
-          && Next?(i, Items[i], Items)
-        )
-    // New for the concurrent version
-    && forall v <- Items :: inv(v.value)
-  }
-
-  ghost predicate Prev?(i:nat, c: LinkedListNode<T>, Items' : seq<LinkedListNode<T>>)
-    reads Items'
-    requires 0 <= i < |Items'|
-    requires Items'[i] == c
-  {
-    if i == 0 then
-      Items'[0].prev.Null?
-    else
-      && Items'[i].prev.Ptr?
-      && Items'[i].prev.deref == Items'[i - 1]
-  }
-
-  ghost predicate Next?(i:nat, c: LinkedListNode<T>, Items' : seq<LinkedListNode<T>>)
-    reads Items'
-    requires 0 <= i < |Items'|
-    requires Items'[i] == c
-  {
-    if i < |Items'| -1 then
-      && Items'[i].next.Ptr?
-      && Items'[i].next.deref == Items'[i + 1]
-    else
-      assert i == |Items'| - 1;
-      && Items'[i].next.Null?
-  }
-
-  method PushFront(t: T)
-    requires Invariant()
-    requires inv(t)
-    modifies this, Items
-    ensures Invariant()
-  {
-    var newNode := new LinkedListNode<T>(t);
-    Items := [newNode] + Items;
-    var cRef := Ptr(newNode);
-    if head.Ptr? {
-      head.deref.prev := cRef;
-      newNode.next := head;
-      head := cRef;
-    } else {
-      head := cRef;
-      tail := head;
+    ghost predicate Valid() 
+      reads this, table
+    {
+      && table.Owner != this
+      && (IgnoreFraming(table); table.Valid())
+      && inv == table.inv
     }
-  }
-}
 
-datatype Ref<T> =
-  | Ptr(deref: T)
-  | Null
-
-class LinkedListNode<T> {
-  var value: T
-  var next: Ref<LinkedListNode<T>>
-  var prev: Ref<LinkedListNode<T>>
-
-  constructor(value: T) 
-    ensures this.value == value
-    ensures next == Null
-    ensures prev == Null
-  {
-    this.value := value;
-    next := Null;
-    prev := Null;
-  }
-}
-
-class {:separated} ConcurrentArray<T> {
-
-  ghost const inv: T -> bool
-
-  // TODO: This may need to be more like an Action<(), T> to
-  // create the value if T is a reference type.
-  // But it might be better to just use T? with null in that case instead.
-  const default: T
-  var storage: array<T>
-
-  ghost var {:separatedHeap} Repr: set<object>
-
-  ghost predicate Valid() 
-    reads this, Repr
-  {
-    && this in Repr
-    && storage in Repr
-    && inv(default)
-    && forall t <- storage[..] :: inv(t)
-  }
-
-  constructor(default: T, ghost inv: T -> bool) 
-    requires inv(default)
-  {
-    this.default := default;
-    this.storage := new T[10](i => default);
-  }
-
-  function Select(i: nat): (r: T)
-    requires Valid()
-    reads this, Repr
-    ensures inv(r)
-  {
-    if i < storage.Length then
-      storage[i]
-    else
-      default
-  }
-
-  method Update(i: nat, newValue: T) 
-    requires Valid()
-    modifies Repr
-  {
-    if storage.Length <= i {
-      Resize(i + 1);
+    constructor(ghost inv: KeyValuePair<K, V> -> bool)
+      ensures this.inv == inv
+      ensures forall bucket <- table.storage.a[..] :: bucket == null
+      ensures Valid()
+    {
+      this.inv := inv;
+      table := new HashTable(inv);
     }
-    assert i < storage.Length;
-    storage[i] := newValue;
+
+    method Get(k: K) returns (v: Option<V>)
+      requires Valid()
+    {
+      // IgnoreFraming(table);
+      var bucket := table.GetBucket(k);
+      var node := bucket.FindBy((pair: (K, V)) => pair.0 == k);
+      v := if node == null then None else Some(node.value.1);
+    }
+
+    // TODO: How to express that multiple Puts should not interfere with each other?
+    // i.e. that simultaneous puts of two different keys should never cause one of the keys to not be added.
+    // This is different from a simultaneous Put and Remove of the same key.
+    method {:vcs_split_on_every_assert} Put(k: K, v: V)
+      requires Valid()
+      requires inv((k, v))
+      // TODO: Shouldn't be necessary
+      modifies table.Repr
+      modifies set bucket, o | bucket in table.storage.a[..] && bucket != null && o in bucket.Items :: o
+    {
+      // TODO: Define a maximum table size, and prove that if we have obstruction
+      // then the table size must have grown, and therefore our loop
+      // decreases MAX_TABLE_SIZE - table.storage.a.Length.
+      // This is less dangerous than only retrying a certain number
+      // of times around the loop.
+      // Ideally we would have a way of proving that
+      // if CheckBucket() failed, the table MUST have increases in size.
+      while (true) 
+        invariant Valid()
+      {
+        var bucket := table.GetBucket(k);
+        assert table.Valid();
+        
+        bucket.Push((k, v));
+
+        // Necessary in case a resizing happened while we were busy pushing into the bucket
+        var success := table.CheckBucket(k, bucket);
+        if success {
+          return;
+        }
+      }
+    }
+
+    // TODO: will be similar to Put above, including needing to check
+    // the bucket hasn't been replaced by a resize
+    method Remove(k: K) returns (wasPresent: bool)
+
   }
 
-  method Resize(newCapacity: int)
-    requires Valid()
-    // TODO: accidentally got away with not writing Repr here,
-    // but Valid() ==> this in Repr, so that should be legal still?
-    modifies this
-    ensures Valid()
-    ensures fresh(Repr - old(Repr))
-    ensures old(storage.Length) <= storage.Length
-    ensures newCapacity <= storage.Length
-  {
-    if newCapacity <= storage.Length {
-      return;
+  function Hash<T>(t: T): nat
+
+  class {:separated} HashTable<K, V> extends OwnedObject {
+
+    ghost const inv: ((K, V)) -> bool
+
+    var storage: OwnedArray<ConcurrentDoublyLinkedList?<(K, V)>>
+
+    ghost var Value: map<K, V>
+    ghost var {:separatedHeap} Repr: set<OwnedObject>
+
+    ghost predicate Valid() 
+      reads this, Repr
+    {
+      && this in Repr
+      && Owner == this
+      && storage in Repr
+      && 0 < storage.a.Length
+      && forall r <- Repr :: r.Owner == this
+      // TODO: Express the hashcode invariant as well?
+      && forall t <- storage.a[..] | t != null :: t.Invariant() && t.inv == inv
+      // TODO: Not actually expressable with separated classes :(
+      && MapValue(storage.a[..]) == Value
     }
-    var newStorage := new T[newCapacity](i => default);
-    // Ideally this could be compiled to an optimized array copy
-    // (e.g. System.arraycopy in Java)
-    forall i | 0 <= i < storage.Length {
-      newStorage[i] := storage[i];
+
+    ghost function MapValue(buckets: seq<ConcurrentDoublyLinkedList?<(K, V)>>): map<K, V> 
+      reads buckets
+      reads set bucket <- buckets, o <- (if bucket == null then [] else bucket.Items) :: o
+    {
+      if |buckets| == 0 || buckets[0] == null then
+        map[]
+      else
+        BucketMapValue(buckets[0].Items) + MapValue(buckets[1..])
     }
-    storage := newStorage;
-    Repr := {this, storage};
+
+    ghost function BucketMapValue(items: seq<LinkedListNode<(K, V)>>): map<K, V> 
+      reads items
+    {
+      if |items| == 0 then
+        map[]
+      else
+        var pair := items[0].value;
+        map[pair.0 := pair.1] + BucketMapValue(items[1..])
+    }
+
+    constructor(ghost inv: KeyValuePair<K, V> -> bool) 
+      ensures Valid()
+      ensures this.inv == inv
+      ensures forall bucket <- storage.a[..] :: bucket == null
+    {
+      Owner := this;
+
+      var a := new ConcurrentDoublyLinkedList?<(K, V)>[8](i => null);
+      storage := new OwnedArray(a);
+      
+      this.inv := inv;
+      Value := map[];
+      Repr := {this, storage};
+    }
+
+    method GetBucket(key: K) returns (bucket: ConcurrentDoublyLinkedList<(K, V)>)
+      requires Valid()
+      modifies this, storage.a
+      ensures Valid()
+      ensures bucket in storage.a[..]
+      ensures bucket.Invariant() && bucket.inv == inv
+    {
+      var hashcode := Hash(key);
+      var bucketIndex := hashcode % storage.a.Length;
+      // TODO: This part limits concurrent reads a fair bit
+      // since then we need a modify lock at runtime.
+      if storage.a[bucketIndex] == null {
+        storage.a[bucketIndex] := new ConcurrentDoublyLinkedList(inv);
+      }
+      return storage.a[bucketIndex];
+    }
+
+    method CheckBucket(key: K, bucket: ConcurrentDoublyLinkedList<(K, V)>) returns (same: bool) 
+      requires Valid()
+    {
+      var hashcode := Hash(key);
+      var bucketIndex := hashcode % storage.a.Length;
+      return storage.a[bucketIndex] == bucket;
+    }
+
+    method Resize()
+      requires Valid()
+      // TODO: accidentally got away with not writing Repr here,
+      // but Valid() ==> this in Repr, so that should be legal still?
+      modifies this
+      ensures Valid()
+      ensures fresh(Repr - old(Repr))
+      ensures old(storage.a.Length) <= storage.a.Length
+      ensures storage.a.Length == old(storage.a.Length) * 2
+      // TODO: Should ensure that the set of nodes is still the same!
+    {
+      var newLength := storage.a.Length * 2;
+      var newStorage := new ConcurrentDoublyLinkedList?<(K, V)>[newLength](i => null);
+      
+      // TODO: Actually split each bucket into the two new buckets
+      // See ConcurrentDoublyLinkedList.SplitBy
+
+      storage := new OwnedArray(newStorage);
+      Repr := {this, storage};
+    }
   }
 }
