@@ -137,9 +137,10 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     private IdeState CreateDocumentWithEmptySymbolTable(Compilation compilation,
       IReadOnlyDictionary<Uri, IReadOnlyList<Diagnostic>> resolutionDiagnostics) {
       var dafnyOptions = DafnyOptions.Default;
+      var program = new EmptyNode();
       return new IdeState(
         compilation,
-        new EmptyNode(),
+        program,
         resolutionDiagnostics,
         SymbolTable.Empty(),
         SignatureAndCompletionTable.Empty(dafnyOptions, compilation.Project),
@@ -147,7 +148,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         Array.Empty<Counterexample>(),
         false,
         ImmutableDictionary<Uri, IReadOnlyList<Range>>.Empty,
-      null
+      ImmutableDictionary<Uri, VerificationTree>.Empty
       );
     }
   }

@@ -20,7 +20,7 @@ public delegate CompilationManager CreateCompilationManager(
   DafnyOptions options,
   ExecutionEngine boogieEngine,
   Compilation compilation,
-  VerificationTree? migratedVerificationTree);
+  IReadOnlyDictionary<Uri, VerificationTree> migratedVerificationTrees);
 
 /// <summary>
 /// The compilation of a single document version.
@@ -41,7 +41,7 @@ public class CompilationManager {
   private readonly IVerificationProgressReporter verificationProgressReporter;
 
   // TODO CompilationManager shouldn't be aware of migration
-  private readonly VerificationTree? migratedVerificationTree;
+  private readonly IReadOnlyDictionary<Uri, VerificationTree> migratedVerificationTrees;
 
   private TaskCompletionSource started = new();
   private readonly IScheduler verificationUpdateScheduler = new EventLoopScheduler();
@@ -68,12 +68,12 @@ public class CompilationManager {
     DafnyOptions options,
     ExecutionEngine boogieEngine,
     Compilation compilation,
-    VerificationTree? migratedVerificationTree
+    IReadOnlyDictionary<Uri, VerificationTree> migratedVerificationTrees
     ) {
     this.options = options;
     startingCompilation = compilation;
     this.boogieEngine = boogieEngine;
-    this.migratedVerificationTree = migratedVerificationTree;
+    this.migratedVerificationTrees = migratedVerificationTrees;
 
     this.documentLoader = documentLoader;
     this.logger = logger;
@@ -110,19 +110,20 @@ public class CompilationManager {
   private async Task<CompilationAfterResolution> ResolveAsync() {
     try {
       var parsedCompilation = await ParsedCompilation;
-      var resolvedDocument = await documentLoader.ResolveAsync(options, parsedCompilation, cancellationSource.Token);
+      var resolvedCompilation = await documentLoader.ResolveAsync(options, parsedCompilation, cancellationSource.Token);
 
       // TODO, let gutter icon publications also used the published CompilationView.
-      var state = resolvedDocument.InitialIdeState(startingCompilation, options);
+      var state = resolvedCompilation.InitialIdeState(startingCompilation, options);
       state = state with {
-        VerificationTree = migratedVerificationTree ?? state.VerificationTree
+        VerificationTrees = resolvedCompilation.RootUris.ToDictionary(uri => uri,
+          uri => migratedVerificationTrees.GetValueOrDefault(uri) ?? new DocumentVerificationTree(resolvedCompilation.Program, uri))
       };
-      notificationPublisher.PublishGutterIcons(state, false);
+      // notificationPublisher.PublishGutterIcons(state, false);
 
       logger.LogDebug($"documentUpdates.HasObservers: {compilationUpdates.HasObservers}, threadId: {Thread.CurrentThread.ManagedThreadId}");
-      compilationUpdates.OnNext(resolvedDocument);
-      logger.LogDebug($"Passed documentAfterParsing to documentUpdates.OnNext, resolving ResolvedDocument task for version {resolvedDocument.Version}.");
-      return resolvedDocument;
+      compilationUpdates.OnNext(resolvedCompilation);
+      logger.LogDebug($"Passed documentAfterParsing to documentUpdates.OnNext, resolving ResolvedDocument task for version {resolvedCompilation.Version}.");
+      return resolvedCompilation;
 
     } catch (Exception e) {
       compilationUpdates.OnError(e);
@@ -190,9 +191,9 @@ public class CompilationManager {
   //   
   //   verificationProgressReporter.RecomputeVerificationTree(translated);
   //   
-  //   if (ReportGutterStatus) {
-  //     verificationProgressReporter.ReportRealtimeDiagnostics(translated, false);
-  //   }
+  // foreach (var uri in translated.RootUris) {
+  //   verificationProgressReporter.ReportRealtimeDiagnostics(translated, uri, true);
+  // }
   //   verificationProgressReporter.ReportImplementationsBeforeVerification(translated,
   //     verificationTasks.Select(t => t.Implementation).ToArray());
   //   return translated;
@@ -302,7 +303,9 @@ public class CompilationManager {
         SetAllUnvisitedMethodsAsVerified(compilation);
       }
 
-      // verificationProgressReporter.ReportRealtimeDiagnostics(compilation, true);
+      foreach (var uri in compilation.RootUris) {
+        // verificationProgressReporter.ReportRealtimeDiagnostics(compilation, uri, true);
+      }
     }
   }
 

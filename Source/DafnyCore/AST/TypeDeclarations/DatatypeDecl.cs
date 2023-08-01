@@ -80,9 +80,6 @@ public abstract class DatatypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl
     return base.IsEssentiallyEmpty();
   }
 
-  public override IEnumerable<ISymbol> ChildSymbols => base.ChildSymbols.Concat(Ctors);
-  public override DafnySymbolKind Kind => DafnySymbolKind.Enum;
-
   public bool SetIndent(int indent, TokenNewIndentCollector formatter) {
     var indent2 = indent + formatter.SpaceTab;
     var verticalBarIndent = indent2;

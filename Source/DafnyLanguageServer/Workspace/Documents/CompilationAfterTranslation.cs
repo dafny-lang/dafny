@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using Microsoft.Boogie;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace;
@@ -9,7 +8,7 @@ public class CompilationAfterTranslation : CompilationAfterResolution {
   public CompilationAfterTranslation(
     CompilationAfterResolution compilationAfterResolution,
     IReadOnlyDictionary<Uri, List<DafnyDiagnostic>> diagnostics,
-    VerificationTree? verificationTree
+    Dictionary<Uri, VerificationTree> verificationTrees
     )
     : base(compilationAfterResolution, diagnostics,
       compilationAfterResolution.SymbolTable, compilationAfterResolution.SignatureAndCompletionTable,
@@ -17,18 +16,17 @@ public class CompilationAfterTranslation : CompilationAfterResolution {
       compilationAfterResolution.ImplementationsPerVerifiable,
       compilationAfterResolution.TranslatedModules,
       compilationAfterResolution.Counterexamples) {
-    VerificationTree = verificationTree;
+      VerificationTrees = verificationTrees;
   }
 
-  public override VerificationTree? GetVerificationTree() {
-    return VerificationTree;
+  public override VerificationTree GetVerificationTree(Uri uri) {
+    return VerificationTrees[uri];
   }
 
   public override IdeState ToIdeState(IdeState previousState) {
     return base.ToIdeState(previousState) with {
       ImplementationsWereUpdated = true,
-      VerificationTree = GetVerificationTree(),
-      Counterexamples = new List<Counterexample>(Counterexamples)
+      VerificationTrees = VerificationTrees,
     };
   }
   /// <summary>
@@ -36,5 +34,5 @@ public class CompilationAfterTranslation : CompilationAfterResolution {
   /// Can be migrated from a previous document
   /// The position and the range are never sent to the client.
   /// </summary>
-  public VerificationTree? VerificationTree { get; set; }
+  public Dictionary<Uri, VerificationTree> VerificationTrees { get; set; }
 }

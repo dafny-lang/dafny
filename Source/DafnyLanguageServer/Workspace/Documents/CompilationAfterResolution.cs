@@ -68,6 +68,7 @@ public class CompilationAfterResolution : CompilationAfterParsing {
       SymbolTable = SymbolTable ?? previousState.SymbolTable,
       SignatureAndCompletionTable = SignatureAndCompletionTable.Resolved ? SignatureAndCompletionTable : previousState.SignatureAndCompletionTable,
       GhostRanges = GhostDiagnostics,
+      Counterexamples = new List<Counterexample>(Counterexamples),
       ImplementationViews = new(ImplementationsPerVerifiable.Keys.SelectMany(MergeVerifiable))
     };
   }
