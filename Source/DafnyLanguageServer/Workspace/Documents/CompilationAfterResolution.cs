@@ -53,7 +53,7 @@ public class CompilationAfterResolution : CompilationAfterParsing {
 
   public override IdeState ToIdeState(IdeState previousState) {
     IEnumerable<KeyValuePair<string, IdeImplementationView>> MergeVerifiable(ICanVerify canVerify) {
-      var location = canVerify.RangeToken.GetLocation();
+      var location = canVerify.NameToken.GetLocation();
       var previousForCanVerify = previousState.ImplementationViews.GetValueOrDefault(location) ?? new Dictionary<string, IdeImplementationView>();
       return ImplementationsPerVerifiable[canVerify]?.Select(kv => {
         var implementationView = kv.Value;
@@ -62,7 +62,7 @@ public class CompilationAfterResolution : CompilationAfterParsing {
           diagnostics = previousForCanVerify.GetValueOrDefault(kv.Key)?.Diagnostics ?? diagnostics;
         }
 
-        var value = new IdeImplementationView(implementationView.Task.Implementation.tok.GetLspRange(), implementationView.Status, diagnostics.ToList());
+        var value = new IdeImplementationView(implementationView.Task.Implementation.tok.GetLspRange(true), implementationView.Status, diagnostics.ToList());
         return new KeyValuePair<string, IdeImplementationView>(kv.Key, value);
       }) ?? previousForCanVerify;
     }
@@ -73,7 +73,7 @@ public class CompilationAfterResolution : CompilationAfterParsing {
       GhostRanges = GhostDiagnostics,
       ImplementationsWereUpdated = true,
       Counterexamples = new List<Counterexample>(Counterexamples),
-      ImplementationViews = new(ImplementationsPerVerifiable.Keys.ToDictionary(k => k.RangeToken.GetLocation(), 
+      ImplementationViews = new(ImplementationsPerVerifiable.Keys.ToDictionary(k => k.NameToken.GetLocation(), 
         k => new Dictionary<string, IdeImplementationView>(MergeVerifiable(k))))
     };
   }

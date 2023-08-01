@@ -62,7 +62,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
          To prevent publishing file verification status unless the current document has been translated,
          the field ImplementationsWereUpdated was added.
          */
-        return ImmutableDictionary<Uri, FileVerificationStatus>.Empty;
+        // return ImmutableDictionary<Uri, FileVerificationStatus>.Empty;
       }
 
       return state.ImplementationViews.GroupBy(kv => kv.Key.Uri).

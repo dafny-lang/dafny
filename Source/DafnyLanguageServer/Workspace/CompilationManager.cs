@@ -252,7 +252,7 @@ public class CompilationManager {
         compilation.ImplementationsPerVerifiable[verifiable] = tasksForVerifiable.ToDictionary(
           t => GetImplementationName(t.Implementation),
           t => new ImplementationView(t, PublishedVerificationStatus.Stale, Array.Empty<DafnyDiagnostic>()));
-        compilationUpdates.OnNext(compilation);
+        // compilationUpdates.OnNext(compilation);
       } catch (Exception e) {
         compilationUpdates.OnError(e);
       }
@@ -330,7 +330,7 @@ public class CompilationManager {
 
     var implementations = compilation.ImplementationsPerVerifiable[verifiable]!;
 
-    var implementationName = implementationTask.Implementation.Name;
+    var implementationName = GetImplementationName(implementationTask.Implementation);
     logger.LogDebug($"Received status {boogieStatus} for {implementationName}, version {compilation.Counterexamples}");
     if (boogieStatus is Running) {
       // verificationProgressReporter.ReportVerifyImplementationRunning(compilation, implementationTask.Implementation);

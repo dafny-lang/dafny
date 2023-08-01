@@ -71,7 +71,13 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       return new Position(position.Line, position.Column);
     }
 
-    public static Location GetLocation(this RangeToken token, bool end = false) {
+    public static Location GetLocation(this IToken token) {
+      return new Location {
+        Uri = DocumentUri.From(token.Uri), 
+        Range = token.GetLspRange(true)};
+    }
+    
+    public static Location GetLocation(this RangeToken token) {
       return new Location() {
         Uri = DocumentUri.From(token.Uri), 
         Range = token.GetLspRange()};
