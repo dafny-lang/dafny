@@ -18,18 +18,20 @@ public class SymbolTable {
   }
 
   private SymbolTable() {
-    Usages = ImmutableDictionary<IDeclarationOrUsage, ISet<IDeclarationOrUsage>>.Empty;
-    Declarations = ImmutableDictionary<IDeclarationOrUsage, IDeclarationOrUsage>.Empty;
+    DeclarationToUsages = ImmutableDictionary<IDeclarationOrUsage, ISet<IDeclarationOrUsage>>.Empty;
+    UsageToDeclaration = ImmutableDictionary<IDeclarationOrUsage, IDeclarationOrUsage>.Empty;
   }
 
   public SymbolTable(IReadOnlyList<(IDeclarationOrUsage usage, IDeclarationOrUsage declaration)> usages) {
+    var safeUsages1 = usages.Where(k => k.usage.NameToken.Uri != null).ToImmutableList();
     var safeUsages = usages.Where(k => k.usage.NameToken.Uri != null && k.declaration.NameToken.Uri != null).ToImmutableList();
-    var usageDeclarations = safeUsages.DistinctBy(k => k.usage)
-      .Select(k => KeyValuePair.Create(k.usage, k.declaration));
-    var selfDeclarations = safeUsages.Select(k => k.declaration).Distinct().Select(k => KeyValuePair.Create(k, k));
-    Declarations = usageDeclarations.Concat(selfDeclarations).ToImmutableDictionary();
 
-    Usages = safeUsages.GroupBy(u => u.declaration).ToImmutableDictionary(
+    var usageDeclarations = safeUsages1.DistinctBy(k => k.usage)
+      .Select(k => KeyValuePair.Create(k.usage, k.declaration));
+    var selfDeclarations = safeUsages1.Select(k => k.declaration).Distinct().Select(k => KeyValuePair.Create(k, k));
+    UsageToDeclaration = usageDeclarations.Concat(selfDeclarations).ToImmutableDictionary();
+
+    DeclarationToUsages = safeUsages1.GroupBy(u => u.declaration).ToImmutableDictionary(
       g => g.Key,
       g => (ISet<IDeclarationOrUsage>)g.Select(k => k.usage).ToHashSet());
 
@@ -52,17 +54,17 @@ public class SymbolTable {
   /// <summary>
   /// Maps each symbol declaration to itself, and each symbol usage to the symbol's declaration.
   /// </summary>
-  private ImmutableDictionary<IDeclarationOrUsage, IDeclarationOrUsage> Declarations { get; }
+  public ImmutableDictionary<IDeclarationOrUsage, IDeclarationOrUsage> UsageToDeclaration { get; }
 
   /// <summary>
   /// Maps each symbol declaration to usages of the symbol, not including the declaration itself.
   /// </summary>
-  private ImmutableDictionary<IDeclarationOrUsage, ISet<IDeclarationOrUsage>> Usages { get; }
+  private ImmutableDictionary<IDeclarationOrUsage, ISet<IDeclarationOrUsage>> DeclarationToUsages { get; }
 
   public ISet<Location> GetUsages(Uri uri, Position position) {
     if (nodePositions.TryGetValue(uri, out var forFile)) {
       return forFile.Query(position).
-        SelectMany(node => Usages.GetOrDefault(node, () => (ISet<IDeclarationOrUsage>)new HashSet<IDeclarationOrUsage>())).
+        SelectMany(node => DeclarationToUsages.GetOrDefault(node, () => (ISet<IDeclarationOrUsage>)new HashSet<IDeclarationOrUsage>())).
         Select(u => new Location { Uri = u.NameToken.Filepath, Range = u.NameToken.GetLspRange() }).ToHashSet();
     }
     return Sets.Empty<Location>();
@@ -74,7 +76,7 @@ public class SymbolTable {
     }
 
     var referenceNodes = forFile.Query(position);
-    return referenceNodes.Select(node => Declarations.GetOrDefault(node, () => (IDeclarationOrUsage?)null))
+    return referenceNodes.Select(node => UsageToDeclaration.GetOrDefault(node, () => (IDeclarationOrUsage?)null))
       .Where(x => x != null).Select(
         n => new Location {
           Uri = DocumentUri.From(n!.NameToken.Uri),

@@ -24,6 +24,6 @@ public class Specification<T> : TokenNode, IAttributeBearingDeclaration
     return Attributes != null;
   }
 
-  public override IEnumerable<Node> Children => Expressions;
-  public override IEnumerable<Node> PreResolveChildren => Children;
+  public override IEnumerable<INode> Children => Expressions;
+  public override IEnumerable<INode> PreResolveChildren => Children;
 }
