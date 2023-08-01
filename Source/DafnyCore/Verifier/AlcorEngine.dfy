@@ -437,10 +437,36 @@ module Alcor {
             ProofAbs("env", Ind, 
               AndElimRight.apply1(AndElimLeft.apply1(ProofVar("env")))));
         var r :- ExecuteProof(proofProgram, EnvNil);
-        assert ExecuteProof(proofProgram, EnvNil) == Success(r);
         result := checkGoalAgainstExpr(r, expr, proofProgram);
-        assert result.Success? ==>
-        Success(OneProof(result.value.0)) == ExecuteProof(result.value.1, EnvNil);
+        return;
+      }
+    }
+    if tail.And? {
+      var A1 := tail.left;
+      if goal == And(A0, A1) {
+        var proofProgram :=
+          ImpIntro.apply2(
+            ProofExpr(env),
+            ProofAbs("env", Ind,
+              AndIntro.apply2(AndElimLeft.apply1(ProofVar("env")),
+                              AndElimLeft.apply1(AndElimRight.apply1(ProofVar("env"))))
+            )
+          );
+        var r :- ExecuteProof(proofProgram, EnvNil);
+        result := checkGoalAgainstExpr(r, expr, proofProgram);
+        return;
+      }
+      if goal == And(A1, A0) {
+        var proofProgram :=
+          ImpIntro.apply2(
+            ProofExpr(env),
+            ProofAbs("env", Ind,
+              AndIntro.apply2(AndElimLeft.apply1(AndElimRight.apply1(ProofVar("env"))),
+                              AndElimLeft.apply1(ProofVar("env")))
+            )
+          );
+        var r :- ExecuteProof(proofProgram, EnvNil);
+        result := checkGoalAgainstExpr(r, expr, proofProgram);
         return;
       }
     }

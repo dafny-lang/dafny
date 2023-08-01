@@ -34,5 +34,13 @@ module AlcorEngineTest {
     goal := Imp(And(Var("a"), And(Imp(Var("a"), Var("b")), True)), Var("b"));
     expr :- expect DummyProofFinder(goal);
     print "Automatically found a proof of " + goal.ToString() + "\n";
+
+    goal := Imp(And(Var("a"), And(Var("b"), Var("..."))), And(Var("a"), Var("b")));
+    expr :- expect DummyProofFinder(goal);
+    print "Automatically found a proof of " + goal.ToString() + "\n";
+
+    goal := Imp(And(Var("b"), And(Var("a"), Var("..."))), And(Var("a"), Var("b")));
+    expr :- expect DummyProofFinder(goal);
+    print "Automatically found a proof of " + goal.ToString() + "\n";
   }
 }
