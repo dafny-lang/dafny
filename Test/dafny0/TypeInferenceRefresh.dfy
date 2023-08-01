@@ -868,7 +868,21 @@ module OrderingAmongBaseTypes {
     var x: nat31 := 0 as int32;
   }
 }
-    
+
+module OrderingIssues {
+  // The following used to not work:
+  module OrderingIssue_PreviouslyBroken {
+    newtype N = x: MM | 0 <= x < 80
+    newtype MM = x | 0 <= x < 100
+  }
+
+  // whereas the following did work:
+  module OrderingIssue_Fine {
+    newtype MM = x | 0 <= x < 100
+    newtype N = x: MM | 0 <= x < 80
+  }
+}
+
 
 /****************************************************************************************
  ******** TO DO *************************************************************************
@@ -996,18 +1010,6 @@ predicate method downup_search'(n: int, d: nat)
   else
     downup_search'(n, d + 1)
   */
-}
-
-// ------------------
-// The following used to not work:
-module OrderingIssue_PreviouslyBroken {
-  newtype N = x: MM | 0 <= x < 100
-  newtype MM = x | 0 <= x < 100
-}
-// whereas the following did work.
-module OrderingIssue_Fine {
-  newtype MM = x | 0 <= x < 100
-  newtype N = x: MM | 0 <= x < 100
 }
 
 // ------------------------
