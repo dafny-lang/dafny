@@ -230,6 +230,7 @@ public class CompilationManager {
     MarkVerificationStarted();
     if (compilation.ImplementationsPerVerifiable[verifiable] == null) {
       
+      var _ = statusPublisher.SendStatusNotification(compilation, CompilationStatus.PreparingVerification);
       var tasksForModule = await compilation.TranslatedModules.GetOrAdd(containingModule, async _ => {
         var result = await verifier.GetVerificationTasksAsync(boogieEngine, compilation, containingModule, cancellationSource.Token);
         foreach (var task in result) {
