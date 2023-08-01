@@ -23,9 +23,12 @@ public class SymbolTable {
   }
 
   public SymbolTable(IReadOnlyList<(IDeclarationOrUsage usage, IDeclarationOrUsage declaration)> usages) {
-    var safeUsages = usages.Where(k => k.usage.NameToken.Uri != null && k.declaration.NameToken.Uri != null).ToList();
-    Declarations = safeUsages.DistinctBy(k => k.usage).
-      ToImmutableDictionary(k => k.usage, k => k.declaration);
+    var safeUsages = usages.Where(k => k.usage.NameToken.Uri != null && k.declaration.NameToken.Uri != null).ToImmutableList();
+    var usageDeclarations = safeUsages.DistinctBy(k => k.usage)
+      .Select(k => KeyValuePair.Create(k.usage, k.declaration));
+    var selfDeclarations = safeUsages.Select(k => k.declaration).Distinct().Select(k => KeyValuePair.Create(k, k));
+    Declarations = usageDeclarations.Concat(selfDeclarations).ToImmutableDictionary();
+
     Usages = safeUsages.GroupBy(u => u.declaration).ToImmutableDictionary(
       g => g.Key,
       g => (ISet<IDeclarationOrUsage>)g.Select(k => k.usage).ToHashSet());
@@ -45,7 +48,15 @@ public class SymbolTable {
   }
 
   private readonly Dictionary<Uri, IIntervalTree<Position, IDeclarationOrUsage>> nodePositions = new();
+
+  /// <summary>
+  /// Maps each symbol declaration to itself, and each symbol usage to the symbol's declaration.
+  /// </summary>
   private ImmutableDictionary<IDeclarationOrUsage, IDeclarationOrUsage> Declarations { get; }
+
+  /// <summary>
+  /// Maps each symbol declaration to usages of the symbol, not including the declaration itself.
+  /// </summary>
   private ImmutableDictionary<IDeclarationOrUsage, ISet<IDeclarationOrUsage>> Usages { get; }
 
   public ISet<Location> GetUsages(Uri uri, Position position) {
