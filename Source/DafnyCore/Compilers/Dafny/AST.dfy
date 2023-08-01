@@ -41,7 +41,9 @@ module {:extern "DAST"} DAST {
     Ident(string) |
     Companion(seq<Ident>) |
     Tuple(seq<Expression>) |
+    New(path: seq<Ident>, args: seq<Expression>) |
     DatatypeValue(path: seq<Ident>, variant: string, isCo: bool, contents: seq<(string, Expression)>) |
+    This() |
     BinOp(op: string, left: Expression, right: Expression) |
     Select(expr: Expression, field: string, onDatatype: bool) |
     TupleSelect(expr: Expression, index: nat) |

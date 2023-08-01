@@ -201,6 +201,12 @@ namespace Microsoft.Dafny.Compilers {
       this.outVars = outVars;
     }
 
+    public List<object> ForkList() {
+      var ret = new List<object>();
+      body.Add(ret);
+      return ret;
+    }
+
     public void AddStatement(DAST.Statement item) {
       body.Add(item);
     }
@@ -211,15 +217,7 @@ namespace Microsoft.Dafny.Compilers {
 
     public DAST.Method Build() {
       List<DAST.Statement> builtStatements = new();
-      foreach (var maybeBuilt in body) {
-        if (maybeBuilt is DAST.Statement built) {
-          builtStatements.Add(built);
-        } else if (maybeBuilt is BuildableStatement buildable) {
-          builtStatements.Add(buildable.Build());
-        } else {
-          throw new InvalidOperationException("Unknown buildable type");
-        }
-      }
+      StatementContainer.RecursivelyBuild(body, builtStatements);
 
       return (DAST.Method)DAST.Method.create(
         isStatic,
@@ -237,6 +235,26 @@ namespace Microsoft.Dafny.Compilers {
     void AddStatement(DAST.Statement item);
 
     void AddBuildable(BuildableStatement item);
+
+    List<object> ForkList();
+
+    public StatementContainer Fork() {
+      return new ForkedStatementContainer(ForkList());
+    }
+
+    protected static void RecursivelyBuild(List<object> body, List<DAST.Statement> builtStatements) {
+      foreach (var maybeBuilt in body) {
+        if (maybeBuilt is DAST.Statement built) {
+          builtStatements.Add(built);
+        } else if (maybeBuilt is BuildableStatement buildable) {
+          builtStatements.Add(buildable.Build());
+        } else if (maybeBuilt is List<object> rec) {
+          RecursivelyBuild(rec, builtStatements);
+        } else {
+          throw new InvalidOperationException("Unknown buildable type");
+        }
+      }
+    }
 
     public void Print(DAST.Expression expr) {
       AddStatement((DAST.Statement)DAST.Statement.create_Print(expr));
@@ -261,7 +279,9 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     public CallStmtBuilder Call(object returnTo) {
-      return new CallStmtBuilder(this, returnTo);
+      var ret = new CallStmtBuilder(this, returnTo);
+      AddBuildable(ret);
+      return ret;
     }
 
     public ReturnBuilder Return() {
@@ -271,6 +291,26 @@ namespace Microsoft.Dafny.Compilers {
 
   interface BuildableStatement {
     DAST.Statement Build();
+  }
+
+  class ForkedStatementContainer : StatementContainer {
+    readonly List<object> list;
+
+    public ForkedStatementContainer(List<object> list) {
+      this.list = list;
+    }
+
+    public void AddStatement(DAST.Statement item) {
+      list.Add(item);
+    }
+
+    public void AddBuildable(BuildableStatement item) {
+      list.Add(item);
+    }
+
+    public List<object> ForkList() {
+      return new List<object>();
+    }
   }
 
   class AssignBuilder : ExprContainer, BuildableStatement {
@@ -346,6 +386,12 @@ namespace Microsoft.Dafny.Compilers {
       ifBody.Add(item);
     }
 
+    public List<object> ForkList() {
+      var ret = new List<object>();
+      this.ifBody.Add(ret);
+      return ret;
+    }
+
     public void AddElseStatement(DAST.Statement item) {
       elseBody.Add(item);
     }
@@ -354,32 +400,22 @@ namespace Microsoft.Dafny.Compilers {
       elseBody.Add(item);
     }
 
+    public List<object> ElseForkList() {
+      var ret = new List<object>();
+      this.elseBody.Add(ret);
+      return ret;
+    }
+
     public ElseBuilder Else() {
       return new ElseBuilder(this);
     }
 
     public DAST.Statement Build() {
       List<DAST.Statement> builtIfStatements = new();
-      foreach (var maybeBuilt in ifBody) {
-        if (maybeBuilt is DAST.Statement built) {
-          builtIfStatements.Add(built);
-        } else if (maybeBuilt is BuildableStatement buildable) {
-          builtIfStatements.Add(buildable.Build());
-        } else {
-          throw new InvalidOperationException("Unknown buildable type");
-        }
-      }
+      StatementContainer.RecursivelyBuild(ifBody, builtIfStatements);
 
       List<DAST.Statement> builtElseStatements = new();
-      foreach (var maybeBuilt in elseBody) {
-        if (maybeBuilt is DAST.Statement built) {
-          builtElseStatements.Add(built);
-        } else if (maybeBuilt is BuildableStatement buildable) {
-          builtElseStatements.Add(buildable.Build());
-        } else {
-          throw new InvalidOperationException("Unknown buildable type");
-        }
-      }
+      StatementContainer.RecursivelyBuild(elseBody, builtElseStatements);
 
       return (DAST.Statement)DAST.Statement.create_If(
         condition,
@@ -396,6 +432,10 @@ namespace Microsoft.Dafny.Compilers {
       this.parent = parent;
     }
 
+    public List<object> ForkList() {
+      return parent.ElseForkList();
+    }
+
     public void AddStatement(DAST.Statement item) {
       parent.AddElseStatement(item);
     }
@@ -405,7 +445,7 @@ namespace Microsoft.Dafny.Compilers {
     }
   }
 
-  class CallStmtBuilder : ExprContainer {
+  class CallStmtBuilder : ExprContainer, BuildableStatement {
     public readonly StatementContainer parent;
     public readonly object returnTo;
 
@@ -452,14 +492,14 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    public void Finish() {
-      parent.AddStatement((DAST.Statement)DAST.Statement.create_Call(
+    public DAST.Statement Build() {
+      return (DAST.Statement)DAST.Statement.create_Call(
         on,
         Sequence<Rune>.UnicodeFromString(name),
         Sequence<DAST.Type>.FromArray(typeArgs.ToArray()),
         Sequence<DAST.Expression>.FromArray(args.ToArray()),
         outs == null ? DAST.Optional<ISequence<ISequence<Rune>>>.create_None() : DAST.Optional<ISequence<ISequence<Rune>>>.create_Some(Sequence<ISequence<Rune>>.FromArray(outs.ToArray()))
-      ));
+      );
     }
   }
 
