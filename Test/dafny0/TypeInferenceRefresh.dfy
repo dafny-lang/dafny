@@ -883,6 +883,58 @@ module OrderingIssues {
   }
 }
 
+module TypeInferenceImprovements {
+  type seq32<X> = s: seq<X> | |s| < 0x8000_0000
+  function SeqSize<X>(s: seq32<X>): nat32 {
+    |s|
+  }
+  type nat32 = x: int | 0 <= x < 0x8000_0000
+
+  type Context
+  type Principal
+  datatype Option<X> = None | Some(val: X)
+
+  function PrincipalFromContext(c: Context): Option<Principal>
+
+  function PrincipalsFromContexts(ctxs: seq32<Context>): (res: Option<seq32<Principal>>)
+    ensures res.Some? ==> |ctxs| == |res.val|
+    ensures res.Some? ==> forall i :: 0 <= i < |ctxs| ==> PrincipalFromContext(ctxs[i]).Some?
+    ensures res.Some? ==> forall i:: 0 <= i < |ctxs| ==> res.val[i] == PrincipalFromContext(ctxs[i]).val
+    ensures res.None? ==> exists i :: 0 <= i < |ctxs| && PrincipalFromContext(ctxs[i]).None?
+  {
+    // The Some([]) in the following line used to require an explicit type for the [],
+    // which could have to be given by a let expression.
+    if |ctxs| == 0 then Some([]) else match PrincipalFromContext(ctxs[0]) {
+      case None => None
+      case Some(principal) =>
+        match PrincipalsFromContexts(ctxs[1..]) {
+          case None => None
+          case Some(principals) =>
+            // The following line
+            Some([principal] + principals)
+            // used to require an explicit type, as in:
+            //    var principals1: seq32<Principal>/ := [principal] + principals;
+            //    Some(principals1)
+        }
+    }
+  } by method {
+    var principals: seq32<Principal> := [];
+    for i := 0 to SeqSize(ctxs)
+      invariant SeqSize(principals) == i
+      invariant forall j :: 0 <= j < i ==> PrincipalFromContext(ctxs[j]).Some?
+      invariant forall j :: 0 <= j < i ==> principals[j] == PrincipalFromContext(ctxs[j]).val
+    {
+      var principal := PrincipalFromContext(ctxs[i]);
+      if principal.None? {
+        return None;
+      }
+      principals := principals + [principal.val];
+    }
+    assert principals == PrincipalsFromContexts(ctxs).val;
+    return Some(principals);
+  }
+}
+    
 
 /****************************************************************************************
  ******** TO DO *************************************************************************
@@ -921,58 +973,6 @@ datatype Tree =
 // Dafny rejects the call to MaxF, claiming that forall t | t in ts :: default <= f(t) might not hold.  But default is 0 and f(t)
 // has type nat, so it should hold — and in fact just uncommenting the definition of fn above solves the issue… even if fn isn’t used.
  
-
-// ------------------
-// Can the following example (from S) be improved to not need the explicit seq32<Principal> type annotations?
-
-type seq32<X> = s: seq<X> | |s| < 0x8000_0000
-function method seqSize<X>(s: seq32<X>): nat32 {
-  |s|
-}
-type nat32 = x: int | 0 <= x < 0x8000_0000
-
-type Context
-type Principal
-datatype Option<X> = None | Some(val: X)
-
-class Sean {
-  function method principalFromContext(c: Context): Option<Principal>
-
-  function principalsFromContexts(ctxs: seq32<Context>): (res: Option<seq32<Principal>>)
-    ensures res.Some? ==> |ctxs| == |res.val|
-    ensures res.Some? ==> forall i :: 0 <= i < |ctxs| ==> principalFromContext(ctxs[i]).Some?;
-    ensures res.Some? ==> forall i:: 0 <= i < |ctxs| ==> res.val[i] == principalFromContext(ctxs[i]).val
-    ensures res.None? ==> exists i :: 0 <= i < |ctxs| && principalFromContext(ctxs[i]).None?
-  {
-    var empty: seq32<Principal> := [];
-    if |ctxs| == 0 then Some(empty) else match principalFromContext(ctxs[0]) {
-      case None => None
-      case Some(principal) =>
-        match principalsFromContexts(ctxs[1..]) {
-          case None => None
-          case Some(principals) =>
-            // TODO: Remove when dafny supports type ascription
-            var principals1: seq32<Principal> := [principal] + principals;
-            Some(principals1)
-        }
-    }
-  } by method {
-    var principals: seq32<Principal> := [];
-    for i := 0 to seqSize(ctxs)
-      invariant seqSize(principals) == i
-      invariant forall j :: 0 <= j < i ==> principalFromContext(ctxs[j]).Some?
-      invariant forall j :: 0 <= j < i ==> principals[j] == principalFromContext(ctxs[j]).val
-    {
-      var principal := principalFromContext(ctxs[i]);
-      if principal.None? {
-        return None;
-      }
-      principals := principals + [principal.val];
-    }
-    assert principals == principalsFromContexts(ctxs).val;
-    return Some(principals);
-  }
-}
 
 // ------------------
 // From Clement:
