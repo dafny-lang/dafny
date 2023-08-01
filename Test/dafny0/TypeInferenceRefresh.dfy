@@ -758,22 +758,9 @@ module NeverNever {
   }
 }
 
-
 /****************************************************************************************
  ******** TO DO *************************************************************************
  ****************************************************************************************
-// ------------------
-// There was never a test for the error message that comes out here:
-
-datatype Color = White | Gray(int)
-datatype ParametricColor<X, Y> = Blue | Red(X) | Green(Y)
-
-method DatatypeValues() {
-  var w := White<int>; // error (no hint, since the datatype doesn't take any type parameters)
-  var b := Blue<int>; // error: with hint (since the datatype takes _some_ number of type parameters)
-  var g := Gray<int>(2);
-  var r := Red<int>(3);
-}
 
 // ------------------
 // Clement suggested the following problem to try through the new type inference.

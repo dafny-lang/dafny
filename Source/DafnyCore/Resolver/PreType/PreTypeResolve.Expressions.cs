@@ -1608,6 +1608,8 @@ namespace Microsoft.Dafny {
       Contract.Requires(resolutionContext != null);
       Contract.Ensures(Contract.Result<ModuleResolver.MethodCallInformation>() == null || allowMethodCall);
 
+      Contract.Assert(e.MethodCallInfo == null); // this will be set below if the ApplySuffix is a method call
+
       Expression r = null;  // upon success, the expression to which the ApplySuffix resolves
       var errorCount = ErrorCount;
       if (e.Lhs is NameSegment) {
@@ -1698,7 +1700,8 @@ namespace Microsoft.Dafny {
                 }
               }
               if (allowMethodCall) {
-                return new ModuleResolver.MethodCallInformation(e.RangeToken, mse, e.Bindings.ArgumentBindings);
+                e.MethodCallInfo = new ModuleResolver.MethodCallInformation(e.RangeToken, mse, e.Bindings.ArgumentBindings);
+                return e.MethodCallInfo;
               } else {
                 ReportError(e.tok, "{0} call is not allowed to be used in an expression resolutionContext ({1})", mse.Member.WhatKind, mse.Member.Name);
               }

@@ -17,4 +17,8 @@ TypeInferenceRefreshErrors.dfy(76,8): Error: PRE-TYPE: the type ('Synonym<int, ?
 TypeInferenceRefreshErrors.dfy(85,8): Error: the type of this local variable is underspecified
 TypeInferenceRefreshErrors.dfy(97,8): Error: PRE-TYPE: the type ('Synonym<int, ?3>') of this variable is underspecified
 TypeInferenceRefreshErrors.dfy(100,8): Error: PRE-TYPE: the type ('Synonym<int, ?6>') of this variable is underspecified
-19 resolution/type errors detected in TypeInferenceRefreshErrors.dfy
+TypeInferenceRefreshErrors.dfy(109,13): Error: PRE-TYPE: datatype constructor does not take any type parameters ('White')
+TypeInferenceRefreshErrors.dfy(110,13): Error: PRE-TYPE: datatype constructor does not take any type parameters ('Blue'); did you perhaps mean to write 'ParametricColor<int>.Blue'?
+TypeInferenceRefreshErrors.dfy(111,13): Error: PRE-TYPE: datatype constructor does not take any type parameters ('Gray')
+TypeInferenceRefreshErrors.dfy(112,13): Error: PRE-TYPE: datatype constructor does not take any type parameters ('Red'); did you perhaps mean to write 'ParametricColor<int>.Red'?
+23 resolution/type errors detected in TypeInferenceRefreshErrors.dfy
