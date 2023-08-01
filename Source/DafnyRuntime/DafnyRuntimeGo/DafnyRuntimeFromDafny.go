@@ -309,7 +309,8 @@ func (_static *CompanionStruct_Sequence_) Create(cardinality uint32, initFn func
 func (_static *CompanionStruct_Sequence_) EqualUpTo(left Sequence, right Sequence, index uint32) bool {
   var ret bool = false
   _ = ret
-  var _hi0 = index
+  var _hi0 uint32 = index
+  _ = _hi0
   for _14_i := uint32(0); _14_i < _hi0; _14_i++ {
     var _15_leftElement interface{}
     _ = _15_leftElement
@@ -374,7 +375,8 @@ func (_static *CompanionStruct_Sequence_) IsProperPrefixOf(left Sequence, right 
 func (_static *CompanionStruct_Sequence_) Contains(s Sequence, t interface{}) bool {
   var _hresult bool = false
   _ = _hresult
-  var _hi1 = (s).Cardinality()
+  var _hi1 uint32 = (s).Cardinality()
+  _ = _hi1
   for _17_i := Companion_Default___.ZERO__SIZE(); _17_i < _hi1; _17_i++ {
     var _18_element interface{}
     _ = _18_element
