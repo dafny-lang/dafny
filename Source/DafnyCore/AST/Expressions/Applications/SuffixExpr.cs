@@ -49,8 +49,8 @@ public abstract class SuffixExpr : ConcreteSyntaxExpression {
     Lhs = lhs;
   }
 
-  public override IEnumerable<Node> Children => ResolvedExpression == null ? new[] { Lhs } : base.Children;
-  public override IEnumerable<Node> PreResolveChildren => PreResolveSubExpressions;
+  public override IEnumerable<INode> Children => ResolvedExpression == null ? new[] { Lhs } : base.Children;
+  public override IEnumerable<INode> PreResolveChildren => PreResolveSubExpressions;
 
   public override IEnumerable<Expression> SubExpressions {
     get {

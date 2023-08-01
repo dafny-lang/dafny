@@ -126,9 +126,9 @@ public abstract class TopLevelDeclWithMembers : TopLevelDecl, IHasSymbolChildren
     return types;
   }
 
-  public override IEnumerable<Node> Children => ParentTraits.Concat<Node>(Members);
+  public override IEnumerable<INode> Children => ParentTraits.Concat<Node>(Members);
 
-  public override IEnumerable<Node> PreResolveChildren => ParentTraits.Concat<Node>(MembersBeforeResolution);
+  public override IEnumerable<INode> PreResolveChildren => ParentTraits.Concat<Node>(MembersBeforeResolution);
 
   /// <summary>
   /// Returns the set of transitive parent traits (not including "this" itself).
@@ -259,6 +259,9 @@ public abstract class TopLevelDeclWithMembers : TopLevelDecl, IHasSymbolChildren
   }
   public virtual IEnumerable<ISymbol> ChildSymbols => Members.OfType<ISymbol>();
   public virtual DafnySymbolKind Kind => DafnySymbolKind.Class;
+  public string GetDescription(DafnyOptions options) {
+    return $"{WhatKind} {Name}";
+  }
 }
 
 public static class RevealableTypeDeclHelper {

@@ -122,6 +122,10 @@ public abstract class NonglobalVariable : TokenNode, IVariable {
   }
 
   public IToken NameToken => tok;
-  public override IEnumerable<Node> Children => IsTypeExplicit ? new List<Node>() { Type } : Enumerable.Empty<Node>();
-  public override IEnumerable<Node> PreResolveChildren => IsTypeExplicit ? new List<Node>() { Type } : Enumerable.Empty<Node>();
+  public override IEnumerable<INode> Children => IsTypeExplicit ? new List<Node> { Type } : Enumerable.Empty<Node>();
+  public override IEnumerable<INode> PreResolveChildren => IsTypeExplicit ? new List<Node>() { Type } : Enumerable.Empty<Node>();
+  public DafnySymbolKind Kind => DafnySymbolKind.Variable;
+  public string GetDescription(DafnyOptions options) {
+    return this.AsText();
+  }
 }

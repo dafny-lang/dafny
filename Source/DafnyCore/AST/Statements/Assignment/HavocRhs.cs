@@ -14,6 +14,6 @@ public class HavocRhs : AssignmentRhs, ICloneable<HavocRhs> {
   }
 
   public override bool CanAffectPreviouslyKnownExpressions { get { return false; } }
-  public override IEnumerable<Node> Children => Enumerable.Empty<Node>();
-  public override IEnumerable<Node> PreResolveChildren => Enumerable.Empty<Node>();
+  public override IEnumerable<INode> Children => Enumerable.Empty<Node>();
+  public override IEnumerable<INode> PreResolveChildren => Enumerable.Empty<Node>();
 }
