@@ -1077,9 +1077,10 @@ namespace Microsoft.Dafny {
         }
 
         if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
-          var preType2TypeVisitor = new PreTypeToTypeVisitor();
+          var preType2TypeVisitor = new PreTypeToTypeVisitor(SystemModuleManager);
           preType2TypeVisitor.VisitConstantsAndRedirectingTypes(declarations);
           preType2TypeVisitor.VisitDeclarations(declarations);
+          preType2TypeVisitor.Solve(Options.Get(CommonOptionBag.NewTypeInferenceDebug));
         }
 
       } else {

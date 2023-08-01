@@ -8,6 +8,7 @@
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
+using JetBrains.Annotations;
 
 namespace Microsoft.Dafny;
 
@@ -23,14 +24,105 @@ class PreTypeToTypeVisitor : ASTVisitor<IASTVisitorContext> {
     return astVisitorContext;
   }
 
-  public PreTypeToTypeVisitor() {
+  private readonly SystemModuleManager systemModuleManager;
+
+  public PreTypeToTypeVisitor(SystemModuleManager systemModuleManager) {
+    this.systemModuleManager = systemModuleManager;
+  }
+
+  private readonly List<(UpdatableTypeProxy, Type, string)> constraints = new();
+
+  private void AddConstraint(UpdatableTypeProxy proxy, Type type, string description) {
+    constraints.Add((proxy, type, description));
+  }
+
+  public void DebugPrint() {
+    systemModuleManager.Options.OutputWriter.WriteLine("--------------------------- subset-type determination constraints:");
+    foreach (var constraint in constraints) {
+      var (proxy, type, description) = constraint;
+      var bound = PreTypeConstraints.Pad($"%{proxy.UniqueId} :> {type}", 27);
+      var value = PreTypeConstraints.Pad(proxy.currentValue == null ? "" : proxy.currentValue.ToString(), 20);
+      systemModuleManager.Options.OutputWriter.WriteLine($"    {bound}  {value}    {description}");
+    }
+    systemModuleManager.Options.OutputWriter.WriteLine("------------------- (end of subset-type determination constraints)");
+  }
+
+  public void Solve(bool debugPrint) {
+    bool anythingChanged;
+    do {
+      anythingChanged = false;
+      foreach (var constraint in constraints) {
+        var (proxy, type, _) = constraint;
+        if (proxy.currentValue == null) {
+          proxy.currentValue = type;
+          anythingChanged = true;
+        } else {
+          var join = Type.Join(proxy.currentValue, type, systemModuleManager);
+          if (!Type.Equal_Improved(proxy.currentValue, join)) {
+            proxy.currentValue = join;
+            anythingChanged = true;
+          }
+        }
+      }
+    } while (anythingChanged);
+
+    if (debugPrint) {
+      DebugPrint();
+    }
+
+    foreach (var constraint in constraints) {
+      var proxy = constraint.Item1;
+      if (proxy.currentValue != null) {
+        proxy.T = proxy.currentValue;
+      }
+    }
+  }
+
+  public Type PreType2UpdatableType(PreType preType, Type lowerBound, string description) {
+    var ty = PreType2TypeCore(preType, true);
+    var proxy = new UpdatableTypeProxy(ty);
+    AddConstraint(proxy, lowerBound, description);
+    return proxy;
   }
 
   public static Type PreType2Type(PreType preType) {
-    return PreType2Type(preType, true);
+    return PreType2TypeCore(preType, true);
   }
 
-  public static Type PreType2Type(PreType preType, bool usePrintablePreType) {
+  public class UpdatableTypeProxy : TypeProxy {
+    private static int count = 0;
+    public readonly int UniqueId = count++;
+    [CanBeNull] internal Type currentValue = null; // null stands for the unsatisfiable constraint (i.e., bottom)
+    public UpdatableTypeProxy(Type ty) : base() {
+      T = ty;
+    }
+
+    public override string TypeName(DafnyOptions options, ModuleDefinition context, bool parseAble) {
+      var baseName = base.TypeName(options, context, parseAble);
+      if (options.Get(CommonOptionBag.NewTypeInferenceDebug)) {
+        return $"/*%{UniqueId}*/{baseName}";
+      } else {
+        return baseName;
+      }
+    }
+
+    /// <summary>
+    /// Normalize, but don't skip over any UpdatableTypeProxy
+    /// </summary>
+    public static Type NormalizeSansImprovementTypeProxy(Type ty) {
+      while (ty is not UpdatableTypeProxy) {
+        if (ty is TypeProxy { T: { } proxyFor }) {
+          ty = proxyFor;
+        } else {
+          break;
+        }
+      }
+      return ty;
+    }
+
+  }
+
+  private static Type PreType2TypeCore(PreType preType, bool usePrintablePreType) {
     var pt = (DPreType)preType.Normalize(); // all pre-types should have been filled in and resolved to a non-proxy
     if (usePrintablePreType && pt.PrintablePreType != null) {
       pt = pt.PrintablePreType;
@@ -61,7 +153,7 @@ class PreTypeToTypeVisitor : ASTVisitor<IASTVisitorContext> {
       default:
         break;
     }
-    var arguments = pt.Arguments.ConvertAll(PreType2Type);
+    var arguments = pt.Arguments.ConvertAll(ptArgument => PreType2Type(ptArgument));
     if (pt.Decl is ArrowTypeDecl arrowTypeDecl) {
       return new ArrowType(pt.Decl.tok, arrowTypeDecl, arguments);
     } else if (pt.Decl is ValuetypeDecl valuetypeDecl) {
@@ -90,8 +182,11 @@ class PreTypeToTypeVisitor : ASTVisitor<IASTVisitorContext> {
     }
   }
 
-  private void UpdateIfOmitted(Type type, PreType preType) {
-    var preTypeConverted = PreType2Type(preType, false);
+  private void UpdateIfOmitted(Type type, PreType preType, bool candidateForFutureSubsetImprovements = false) {
+    var preTypeConverted = PreType2TypeCore(preType, false);
+    if (candidateForFutureSubsetImprovements) {
+      preTypeConverted = new UpdatableTypeProxy(preTypeConverted);
+    }
     UpdateIfOmitted(type, preTypeConverted);
   }
 
@@ -104,15 +199,18 @@ class PreTypeToTypeVisitor : ASTVisitor<IASTVisitorContext> {
       var preTypeConvertedExpanded = preTypeConverted.NormalizeExpand();
       Contract.Assert((type as UserDefinedType)?.ResolvedClass == (preTypeConvertedExpanded as UserDefinedType)?.ResolvedClass);
       Contract.Assert(type.TypeArgs.Count == preTypeConvertedExpanded.TypeArgs.Count);
+      if (preTypeConvertedExpanded.TypeArgs.Count != preTypeConverted.TypeArgs.Count) {
+        Contract.Assert(true);
+      }
       for (var i = 0; i < type.TypeArgs.Count; i++) {
-        UpdateIfOmitted(type.TypeArgs[i], preTypeConverted.TypeArgs[i]);
+        UpdateIfOmitted(type.TypeArgs[i], preTypeConvertedExpanded.TypeArgs[i]);
       }
     }
   }
 
-  private void UpdateTypeOfVariables(IEnumerable<IVariable> variables) {
+  private void UpdateTypeOfVariables(IEnumerable<IVariable> variables, bool candidateForFutureSubsetImprovements = false) {
     foreach (var v in variables) {
-      UpdateIfOmitted(v.Type, v.PreType);
+      UpdateIfOmitted(v.Type, v.PreType, candidateForFutureSubsetImprovements);
     }
   }
 
@@ -126,7 +224,7 @@ class PreTypeToTypeVisitor : ASTVisitor<IASTVisitorContext> {
     } else if (expr is ComprehensionExpr comprehensionExpr) {
       UpdateTypeOfVariables(comprehensionExpr.BoundVars);
     } else if (expr is LetExpr letExpr) {
-      UpdateTypeOfVariables(letExpr.BoundVars);
+      UpdateTypeOfVariables(letExpr.BoundVars, true);
       foreach (var lhs in letExpr.LHSs) {
         VisitPattern(lhs, context);
       }
@@ -143,6 +241,8 @@ class PreTypeToTypeVisitor : ASTVisitor<IASTVisitorContext> {
 
     if (expr.PreType is UnusedPreType) {
       expr.Type = new InferredTypeProxy();
+    } else if (expr is IdentifierExpr identifierExpr) {
+      expr.UnnormalizedType = PreType2UpdatableType(expr.PreType, identifierExpr.Var.UnnormalizedType, identifierExpr.Name);
     } else {
       expr.Type = PreType2Type(expr.PreType);
     }
@@ -164,23 +264,47 @@ class PreTypeToTypeVisitor : ASTVisitor<IASTVisitorContext> {
     }
   }
 
-  protected override void PostVisitOneStatement(Statement stmt, IASTVisitorContext context) {
+  protected override bool VisitOneStatement(Statement stmt, IASTVisitorContext context) {
     if (stmt is VarDeclStmt varDeclStmt) {
-      UpdateTypeOfVariables(varDeclStmt.Locals);
+      UpdateTypeOfVariables(varDeclStmt.Locals, true);
     } else if (stmt is VarDeclPattern varDeclPattern) {
-      UpdateTypeOfVariables(varDeclPattern.LocalVars);
+      UpdateTypeOfVariables(varDeclPattern.LocalVars, true);
+    } else if (stmt is ForallStmt forallStmt) {
+      UpdateTypeOfVariables(forallStmt.BoundVars);
+    }
+
+    return base.VisitOneStatement(stmt, context);
+  }
+
+  protected override void PostVisitOneStatement(Statement stmt, IASTVisitorContext context) {
+    if (stmt is VarDeclPattern varDeclPattern) {
       VisitPattern(varDeclPattern.LHS, context);
-    } else if (stmt is AssignStmt { Rhs: TypeRhs tRhs }) {
-      tRhs.Type = PreType2Type(tRhs.PreType);
-      if (tRhs.ArrayDimensions != null) {
-        // In this case, we expect tRhs.PreType to be an array type
-        var arrayPreType = (DPreType)tRhs.PreType.Normalize();
-        Contract.Assert(arrayPreType.Decl is ArrayClassDecl);
-        Contract.Assert(arrayPreType.Arguments.Count == 1);
-        UpdateIfOmitted(tRhs.EType, arrayPreType.Arguments[0]);
-      } else {
-        UpdateIfOmitted(tRhs.EType, tRhs.PreType);
+    } else if (stmt is AssignStmt assignStmt) {
+      Type rhsType = null;
+      string rhsDescription = "";
+      if (assignStmt is { Rhs: ExprRhs exprRhs }) {
+        rhsType = exprRhs.Expr.Resolved.UnnormalizedType;
+      } else if (assignStmt is { Rhs: TypeRhs tRhs }) {
+        tRhs.Type = PreType2Type(tRhs.PreType);
+        if (tRhs.ArrayDimensions != null) {
+          // In this case, we expect tRhs.PreType to be an array type
+          var arrayPreType = (DPreType)tRhs.PreType.Normalize();
+          Contract.Assert(arrayPreType.Decl is ArrayClassDecl);
+          Contract.Assert(arrayPreType.Arguments.Count == 1);
+          UpdateIfOmitted(tRhs.EType, arrayPreType.Arguments[0]);
+        } else {
+          UpdateIfOmitted(tRhs.EType, tRhs.PreType);
+        }
+        rhsType = tRhs.EType;
+        rhsDescription = " new";
       }
+
+      if (assignStmt.Lhs is IdentifierExpr lhsIdentifierExpr) {
+        if (UpdatableTypeProxy.NormalizeSansImprovementTypeProxy(lhsIdentifierExpr.Var.UnnormalizedType) is UpdatableTypeProxy updatableTypeProxy) {
+          AddConstraint(updatableTypeProxy, rhsType, $"{lhsIdentifierExpr.Var.Name} :={rhsDescription}");
+        }
+      }
+
     } else if (stmt is AssignSuchThatStmt assignSuchThatStmt) {
       foreach (var lhs in assignSuchThatStmt.Lhss) {
         VisitExpression(lhs, context);
@@ -200,8 +324,6 @@ class PreTypeToTypeVisitor : ASTVisitor<IASTVisitorContext> {
       PostVisitOneExpression(calcStmt.Result, context);
     } else if (stmt is ForLoopStmt forLoopStmt) {
       UpdateIfOmitted(forLoopStmt.LoopIndex.Type, forLoopStmt.LoopIndex.PreType);
-    } else if (stmt is ForallStmt forallStmt) {
-      UpdateTypeOfVariables(forallStmt.BoundVars);
     }
 
     base.PostVisitOneStatement(stmt, context);

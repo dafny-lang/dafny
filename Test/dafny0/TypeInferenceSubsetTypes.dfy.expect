@@ -1,0 +1,3 @@
+TypeInferenceSubsetTypes.dfy(60,9): Error: value of expression (of type 'Cell?') is not known to be an instance of type 'Cell', because it might be null
+
+Dafny program verifier finished with 4 verified, 1 error

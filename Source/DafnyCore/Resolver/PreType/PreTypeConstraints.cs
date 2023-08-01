@@ -556,7 +556,7 @@ namespace Microsoft.Dafny {
       return $"{System.IO.Path.GetFileName(tok.filename)}({tok.line},{tok.col - 1})";
     }
 
-    string Pad(string s, int minWidth) {
+    public static string Pad(string s, int minWidth) {
       return s + new string(' ', Math.Max(minWidth - s.Length, 0));
     }
 
