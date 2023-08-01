@@ -1,4 +1,5 @@
-﻿using OmniSharp.Extensions.LanguageServer.Protocol.Models;
+﻿using Microsoft.Dafny.LanguageServer.Workspace;
+using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.Language {
@@ -68,6 +69,11 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     public static Position GetLspPosition(this DafnyPosition position) {
       return new Position(position.Line, position.Column);
     }
+
+    public static FilePosition GetFilePosition(this IToken token, bool end = false) {
+      return new FilePosition(token.Uri, GetLspPosition(token, end));
+    }
+
 
     /// <summary>
     /// Gets the LSP position of the specified token (i.e., the position of the first character of the token).

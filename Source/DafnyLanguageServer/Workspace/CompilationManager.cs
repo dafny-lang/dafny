@@ -229,22 +229,32 @@ public class CompilationManager {
     Interlocked.Increment(ref runningVerificationJobs);
     MarkVerificationStarted();
     if (compilation.ImplementationsPerVerifiable[verifiable] == null) {
-      
+
       var _ = statusPublisher.SendStatusNotification(compilation, CompilationStatus.PreparingVerification);
-      var tasksForModule = await compilation.TranslatedModules.GetOrAdd(containingModule, async _ => {
-        var result = await verifier.GetVerificationTasksAsync(boogieEngine, compilation, containingModule, cancellationSource.Token);
-        foreach (var task in result) {
-          cancellationSource.Token.Register(task.Cancel);
-        }
-        return result.GroupBy(t => t.Implementation.tok.GetLspPosition()).ToDictionary(
-          g => g.Key,
-          g => (IReadOnlyList<IImplementationTask>)g.ToList());
-      });
-      var tasksForVerifiable = tasksForModule.GetValueOrDefault(verifiable.NameToken.GetLspPosition()) ?? new List<IImplementationTask>(0);
-      
-      compilation.ImplementationsPerVerifiable[verifiable] = tasksForVerifiable.ToDictionary(t => t.Implementation.Name,
-        t => (t, new ImplementationView(verifiable.NameToken.GetLspRange(), PublishedVerificationStatus.Stale, Array.Empty<DafnyDiagnostic>())));
-      compilationUpdates.OnNext(compilation);
+      try {
+        var tasksForModule = await compilation.TranslatedModules.GetOrAdd(containingModule, async _ => {
+          var result = await verifier.GetVerificationTasksAsync(boogieEngine, compilation, containingModule,
+            cancellationSource.Token);
+          foreach (var task in result) {
+            cancellationSource.Token.Register(task.Cancel);
+          }
+
+          return result.GroupBy(t => ((IToken)t.Implementation.tok).GetFilePosition()).ToDictionary(
+            g => g.Key,
+            g => (IReadOnlyList<IImplementationTask>)g.ToList());
+        });
+        var tasksForVerifiable = tasksForModule.GetValueOrDefault(verifiable.NameToken.GetFilePosition()) ??
+                                 new List<IImplementationTask>(0);
+
+        compilation.ImplementationsPerVerifiable[verifiable] = tasksForVerifiable.ToDictionary(
+          t => t.Implementation.Name,
+          t => (t,
+            new ImplementationView(verifiable.NameToken.GetLspRange(), PublishedVerificationStatus.Stale,
+              Array.Empty<DafnyDiagnostic>())));
+        compilationUpdates.OnNext(compilation);
+      } catch (Exception e) {
+        compilationUpdates.OnError(e);
+      }
     }
 
     var tasks = compilation.ImplementationsPerVerifiable[verifiable]!.Values.Select(t => t.Task).ToList();
@@ -265,7 +275,7 @@ public class CompilationManager {
         StatusUpdateHandlerFinally();
         return false;
       }
-      
+
       Interlocked.Increment(ref runningVerificationJobs);
 
       statusUpdates.ObserveOn(verificationUpdateScheduler).Subscribe(

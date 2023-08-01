@@ -25,7 +25,7 @@ method Foo() returns (x: int) ensures x / 2 == 1; {
       options.Set(ServerCommand.Verification, VerifyOnMode.Never);
       options.Set(ServerCommand.ProjectMode, true);
     });
-    var directory = Path.GetRandomFileName();
+    var directory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
     await CreateAndOpenTestDocument("", Path.Combine(directory, DafnyProject.FileName));
     var documentItem1 = await CreateAndOpenTestDocument(source, Path.Combine(directory, "RunWithMultipleDocuments1.dfy"));
     var documentItem2 = await CreateAndOpenTestDocument(source.Replace("Foo", "Bar"), Path.Combine(directory, "RunWithMultipleDocuments2.dfy"));
@@ -314,8 +314,6 @@ method Bar() { assert false; }";
     });
     var documentItem = CreateTestDocument(source);
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-    var stale = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
-    Assert.Equal(PublishedVerificationStatus.Stale, stale.NamedVerifiables[0].Status);
 
     // Send a change to enable getting a new status notification.
     ApplyChange(ref documentItem, new Range(new Position(1, 0), new Position(1, 0)), "\n");
@@ -323,6 +321,7 @@ method Bar() { assert false; }";
     await client.SaveDocumentAndWaitAsync(documentItem, CancellationToken);
 
     var stale2 = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
+    Assert.Equal(PublishedVerificationStatus.Stale, stale2.NamedVerifiables[0].Status);
     var running = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
     Assert.Equal(PublishedVerificationStatus.Running, running.NamedVerifiables[0].Status);
 
