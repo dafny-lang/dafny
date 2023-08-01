@@ -174,18 +174,28 @@ public class ProjectManager : IDisposable {
     return result;
   }
 
-  private Dictionary<ImplementationId, IdeImplementationView> MigrateImplementationViews(DidChangeTextDocumentParams documentChange,
-    Dictionary<ImplementationId, IdeImplementationView> oldVerificationDiagnostics) {
-    var result = new Dictionary<ImplementationId, IdeImplementationView>();
+  private Dictionary<Location, Dictionary<string, IdeImplementationView>> MigrateImplementationViews(DidChangeTextDocumentParams documentChange,
+    Dictionary<Location, Dictionary<string, IdeImplementationView>> oldVerificationDiagnostics) {
+    var result = new Dictionary<Location, Dictionary<string, IdeImplementationView>>();
     foreach (var entry in oldVerificationDiagnostics) {
-      var newRange = relocator.RelocateRange(entry.Value.Range, documentChange, CancellationToken.None);
-      if (newRange != null) {
-        result.Add(entry.Key with {
-          Position = relocator.RelocatePosition(entry.Key.Position, documentChange, CancellationToken.None)
-        }, new IdeImplementationView(Range: newRange,
-          Status: PublishedVerificationStatus.Stale,
-          Diagnostics: relocator.RelocateDiagnostics(entry.Value.Diagnostics, documentChange, CancellationToken.None)));
+      var newOuterRange = relocator.RelocateRange(entry.Key.Range, documentChange, CancellationToken.None);
+      if (newOuterRange == null) {
+        continue;
       }
+      
+      var newValue = new Dictionary<string, IdeImplementationView>();
+      foreach (var innerEntry in entry.Value) {
+        var newInnerRange = relocator.RelocateRange(innerEntry.Value.Range, documentChange, CancellationToken.None);
+        if (newInnerRange != null) {
+          newValue.Add(innerEntry.Key, new IdeImplementationView(Range: newInnerRange,
+            Status: PublishedVerificationStatus.Stale,
+            Diagnostics: relocator.RelocateDiagnostics(innerEntry.Value.Diagnostics, documentChange, CancellationToken.None)));
+        }
+      }
+      result.Add(new Location() {
+        Uri = entry.Key.Uri, 
+        Range = newOuterRange
+      }, newValue);
     }
     return result;
   }

@@ -66,12 +66,16 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       }
 
       return state.ImplementationViews.GroupBy(kv => kv.Key.Uri).
-        ToDictionary(kv => kv.Key, kvs =>
+        ToDictionary(kv => kv.Key.ToUri(), kvs =>
         new FileVerificationStatus(kvs.Key, state.Compilation.Version,
-          GetNamedVerifiableStatuses(kvs.Select(kv => kv.Value))));
+          kvs.SelectMany(kv => GetNamedVerifiableStatuses(kv.Key, kv.Value.Values)).ToList()));
     }
 
-    private static List<NamedVerifiableStatus> GetNamedVerifiableStatuses(IEnumerable<IdeImplementationView> implementationViews) {
+    private static List<NamedVerifiableStatus> GetNamedVerifiableStatuses(Location canVerify, ICollection<IdeImplementationView> implementationViews) {
+      if (!implementationViews.Any()) {
+        return new List<NamedVerifiableStatus>()
+          { new(canVerify.Range, PublishedVerificationStatus.Stale) };
+      }
       var namedVerifiableGroups = implementationViews.GroupBy(task => task.Range);
       return namedVerifiableGroups.Select(taskGroup => {
         var status = taskGroup.Select(kv => kv.Status).Aggregate(Combine);

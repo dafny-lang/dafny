@@ -52,19 +52,19 @@ public class CompilationAfterResolution : CompilationAfterParsing {
   }
 
   public override IdeState ToIdeState(IdeState previousState) {
-    IEnumerable<KeyValuePair<ImplementationId, IdeImplementationView>> MergeVerifiable(ICanVerify canVerify) {
+    IEnumerable<KeyValuePair<string, IdeImplementationView>> MergeVerifiable(ICanVerify canVerify) {
+      var location = canVerify.RangeToken.GetLocation();
+      var previousForCanVerify = previousState.ImplementationViews.GetValueOrDefault(location) ?? new Dictionary<string, IdeImplementationView>();
       return ImplementationsPerVerifiable[canVerify]?.Select(kv => {
-        var implementationId = new ImplementationId(canVerify.Tok.Uri, canVerify.Tok.GetLspPosition(), kv.Key);
         var implementationView = kv.Value;
         IEnumerable<Diagnostic> diagnostics = implementationView.Diagnostics.Select(d => d.ToLspDiagnostic());
         if (implementationView.Status < PublishedVerificationStatus.Error) {
-          diagnostics = previousState.ImplementationViews.GetValueOrDefault(implementationId)?.Diagnostics ?? diagnostics;
+          diagnostics = previousForCanVerify.GetValueOrDefault(kv.Key)?.Diagnostics ?? diagnostics;
         }
 
         var value = new IdeImplementationView(implementationView.Task.Implementation.tok.GetLspRange(), implementationView.Status, diagnostics.ToList());
-        return new KeyValuePair<ImplementationId, IdeImplementationView>(implementationId, value);
-      }) ?? previousState.ImplementationViews.Where(kv =>
-        kv.Key.Uri == canVerify.Tok.Uri && kv.Key.Position == canVerify.Tok.GetLspPosition());
+        return new KeyValuePair<string, IdeImplementationView>(kv.Key, value);
+      }) ?? previousForCanVerify;
     }
 
     return base.ToIdeState(previousState) with {
@@ -73,7 +73,8 @@ public class CompilationAfterResolution : CompilationAfterParsing {
       GhostRanges = GhostDiagnostics,
       ImplementationsWereUpdated = true,
       Counterexamples = new List<Counterexample>(Counterexamples),
-      ImplementationViews = new(ImplementationsPerVerifiable.Keys.SelectMany(MergeVerifiable))
+      ImplementationViews = new(ImplementationsPerVerifiable.Keys.ToDictionary(k => k.RangeToken.GetLocation(), 
+        k => new Dictionary<string, IdeImplementationView>(MergeVerifiable(k))))
     };
   }
 

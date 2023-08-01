@@ -26,7 +26,7 @@ public record IdeState(
   IReadOnlyDictionary<Uri, IReadOnlyList<Diagnostic>> ResolutionDiagnostics,
   SymbolTable SymbolTable,
   SignatureAndCompletionTable SignatureAndCompletionTable,
-  Dictionary<ImplementationId, IdeImplementationView> ImplementationViews, // TODO group by Uri?
+  Dictionary<Location, Dictionary<string, IdeImplementationView>> ImplementationViews, // TODO group by Uri?
   IReadOnlyList<Counterexample> Counterexamples,
   bool ImplementationsWereUpdated,
   IReadOnlyDictionary<Uri, IReadOnlyList<Range>> GhostRanges,
@@ -38,7 +38,7 @@ public record IdeState(
   public ImmutableDictionary<Uri, IReadOnlyList<Diagnostic>> GetDiagnostics() {
     var resolutionDiagnostics = ResolutionDiagnostics.ToImmutableDictionary();
     var verificationDiagnostics = ImplementationViews.GroupBy(kv => kv.Key.Uri).Select(kv =>
-      new KeyValuePair<Uri, IReadOnlyList<Diagnostic>>(kv.Key, kv.SelectMany(x => x.Value.Diagnostics).ToList()));
+      new KeyValuePair<Uri, IReadOnlyList<Diagnostic>>(kv.Key.ToUri(), kv.SelectMany(x => x.Value.Values.SelectMany(v => v.Diagnostics)).ToList()));
     return resolutionDiagnostics.Merge(verificationDiagnostics, Lists.Concat);
   }
 }

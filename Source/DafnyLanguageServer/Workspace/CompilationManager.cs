@@ -199,15 +199,18 @@ public class CompilationManager {
   //   return translated;
   // }
 
-  private static ImplementationId GetImplementationId(Implementation implementation) {
+  private static string GetImplementationName(Implementation implementation)
+  {
     var prefix = implementation.Name.Split(Translator.NameSeparator)[0];
 
     // Refining declarations get the token of what they're refining, so to distinguish them we need to
     // add the refining module name to the prefix.
-    if (implementation.tok is RefinementToken refinementToken) {
+    if (implementation.tok is RefinementToken refinementToken)
+    {
       prefix += "." + refinementToken.InheritingModule.Name;
     }
-    return new ImplementationId(((IToken)implementation.tok).Uri, implementation.tok.GetLspPosition(), prefix);
+
+    return prefix;
   }
 
   private void SetAllUnvisitedMethodsAsVerified(CompilationAfterResolution compilation) {
@@ -247,7 +250,7 @@ public class CompilationManager {
                                  new List<IImplementationTask>(0);
 
         compilation.ImplementationsPerVerifiable[verifiable] = tasksForVerifiable.ToDictionary(
-          t => t.Implementation.Name,
+          t => GetImplementationName(t.Implementation),
           t => new ImplementationView(t, PublishedVerificationStatus.Stale, Array.Empty<DafnyDiagnostic>()));
         compilationUpdates.OnNext(compilation);
       } catch (Exception e) {
