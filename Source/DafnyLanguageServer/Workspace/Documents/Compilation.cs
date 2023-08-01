@@ -59,7 +59,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
   }
 
-  public record ImplementationView(Range Range, PublishedVerificationStatus Status,
+  public record ImplementationView(IImplementationTask Task, PublishedVerificationStatus Status,
     IReadOnlyList<DafnyDiagnostic> Diagnostics);
 
   public record BufferLine(int LineNumber, int StartIndex, int EndIndex);

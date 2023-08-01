@@ -11,7 +11,7 @@ using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace;
 
-using VerifyStatus = Dictionary<string, (IImplementationTask Task, ImplementationView View)>;
+using VerifyStatus = Dictionary<string, ImplementationView>;
 
 public class CompilationAfterResolution : CompilationAfterParsing {
 
@@ -47,7 +47,7 @@ public class CompilationAfterResolution : CompilationAfterParsing {
       Where(kv => kv.Key.Tok.Uri == uri).
       Select(kv => kv.Value).ToList();
     var verificationDiagnostics = implementationsForUri.SelectMany(view =>
-      view?.Values.SelectMany(v => v.View.Diagnostics) ?? Enumerable.Empty<DafnyDiagnostic>());
+      view?.Values.SelectMany(v => v.Diagnostics) ?? Enumerable.Empty<DafnyDiagnostic>());
     return base.GetDiagnostics(uri).Concat(verificationDiagnostics);
   }
 
@@ -55,13 +55,13 @@ public class CompilationAfterResolution : CompilationAfterParsing {
     IEnumerable<KeyValuePair<ImplementationId, IdeImplementationView>> MergeVerifiable(ICanVerify canVerify) {
       return ImplementationsPerVerifiable[canVerify]?.Select(kv => {
         var implementationId = new ImplementationId(canVerify.Tok.Uri, canVerify.Tok.GetLspPosition(), kv.Key);
-        var implementationView = kv.Value.View;
+        var implementationView = kv.Value;
         IEnumerable<Diagnostic> diagnostics = implementationView.Diagnostics.Select(d => d.ToLspDiagnostic());
         if (implementationView.Status < PublishedVerificationStatus.Error) {
           diagnostics = previousState.ImplementationViews.GetValueOrDefault(implementationId)?.Diagnostics ?? diagnostics;
         }
 
-        var value = new IdeImplementationView(implementationView.Range, implementationView.Status, diagnostics.ToList());
+        var value = new IdeImplementationView(implementationView.Task.Implementation.tok.GetLspRange(), implementationView.Status, diagnostics.ToList());
         return new KeyValuePair<ImplementationId, IdeImplementationView>(implementationId, value);
       }) ?? previousState.ImplementationViews.Where(kv =>
         kv.Key.Uri == canVerify.Tok.Uri && kv.Key.Position == canVerify.Tok.GetLspPosition());

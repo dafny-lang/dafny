@@ -1,14 +1,9 @@
-using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using MediatR;
-using Microsoft.Boogie;
-using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Util;
 using Microsoft.Dafny.LanguageServer.Workspace;
-using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.JsonRpc;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
@@ -53,9 +48,9 @@ public class VerificationHandler : IJsonRpcRequestHandler<VerificationParams, bo
 
     var resolvedCompilation = await projectManager.CompilationManager.ResolvedCompilation;
     if (resolvedCompilation.Program.FindNode(request.TextDocument.Uri.ToUri(), request.Position.ToDafnyPosition()) is ICanVerify verifiable) {
-      var implementations = resolvedCompilation.ImplementationsPerVerifiable[verifiable]?.Values ?? Enumerable.Empty<(IImplementationTask Task, ImplementationView View)>();
-      foreach (var (taskToRun, _) in implementations) {
-        taskToRun.Cancel();
+      var implementations = resolvedCompilation.ImplementationsPerVerifiable[verifiable]?.Values ?? Enumerable.Empty<ImplementationView>();
+      foreach (var view in implementations) {
+        view.Task.Cancel();
       }
     }
 

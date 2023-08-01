@@ -248,9 +248,7 @@ public class CompilationManager {
 
         compilation.ImplementationsPerVerifiable[verifiable] = tasksForVerifiable.ToDictionary(
           t => t.Implementation.Name,
-          t => (t,
-            new ImplementationView(verifiable.NameToken.GetLspRange(), PublishedVerificationStatus.Stale,
-              Array.Empty<DafnyDiagnostic>())));
+          t => new ImplementationView(t, PublishedVerificationStatus.Stale, Array.Empty<DafnyDiagnostic>()));
         compilationUpdates.OnNext(compilation);
       } catch (Exception e) {
         compilationUpdates.OnError(e);
@@ -329,7 +327,6 @@ public class CompilationManager {
 
     var implementations = compilation.ImplementationsPerVerifiable[verifiable]!;
 
-    var implementationRange = implementationTask.Implementation.tok.GetLspRange(true);
     var implementationName = implementationTask.Implementation.Name;
     logger.LogDebug($"Received status {boogieStatus} for {implementationName}, version {compilation.Counterexamples}");
     if (boogieStatus is Running) {
@@ -361,14 +358,14 @@ public class CompilationManager {
 
 
       var diagnostics = GetDiagnosticsFromResult(compilation, verificationResult).ToList();
-      var view = new ImplementationView(implementationRange, status, diagnostics);
-      implementations[implementationName] = (implementationTask, view);
+      var view = new ImplementationView(implementationTask, status, diagnostics);
+      implementations[implementationName] = view;
       // verificationProgressReporter.ReportEndVerifyImplementation(compilation, implementationTask.Implementation, verificationResult);
     } else {
       var view = implementations.TryGetValue(implementationName, out var taskAndView)
-        ? taskAndView.View
-        : new ImplementationView(implementationRange, status, Array.Empty<DafnyDiagnostic>());
-      implementations[implementationName] = (implementationTask, view with { Status = status });
+        ? taskAndView
+        : new ImplementationView(implementationTask, status, Array.Empty<DafnyDiagnostic>());
+      implementations[implementationName] = view with { Status = status };
     }
 
     compilationUpdates.OnNext(compilation);

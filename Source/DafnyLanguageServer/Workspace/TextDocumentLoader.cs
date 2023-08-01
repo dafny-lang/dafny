@@ -3,11 +3,9 @@ using Microsoft.Dafny.LanguageServer.Language.Symbols;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
-using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Boogie;
@@ -17,7 +15,7 @@ using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 
 namespace Microsoft.Dafny.LanguageServer.Workspace {
-  using VerifyStatus = Dictionary<string, (IImplementationTask Task, ImplementationView View)>;
+  using VerifyStatus = Dictionary<string, ImplementationView>;
 
   /// <summary>
   /// Text document loader implementation that offloads the whole load procedure on one dedicated
