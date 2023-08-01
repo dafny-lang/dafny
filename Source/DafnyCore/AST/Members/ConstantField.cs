@@ -46,10 +46,10 @@ public class ConstantField : SpecialField, ICallable, ICanVerify {
   }
   public bool AllowsAllocation => true;
 
-  public override IEnumerable<Node> Children => base.Children.Concat(new[] { Rhs }.Where(x => x != null));
+  public override IEnumerable<INode> Children => base.Children.Concat(new[] { Rhs }.Where(x => x != null));
   public override DafnySymbolKind Kind => DafnySymbolKind.Constant;
 
-  public override IEnumerable<Node> PreResolveChildren => Children;
+  public override IEnumerable<INode> PreResolveChildren => Children;
   public ModuleDefinition ContainingModule => EnclosingModule;
   public bool ShouldVerify => true; // TODO fix.
 }

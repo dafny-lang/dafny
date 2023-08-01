@@ -338,7 +338,7 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
   }
 
   public IToken NameToken => tok;
-  public override IEnumerable<Node> Children => (Attributes != null ?
+  public override IEnumerable<INode> Children => (Attributes != null ?
       new List<Node> { Attributes } :
       Enumerable.Empty<Node>()).Concat<Node>(TopLevelDecls).
     Concat(RefinementQId == null ? Enumerable.Empty<Node>() : new Node[] { RefinementQId });
@@ -346,7 +346,7 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
   private IEnumerable<Node> preResolveTopLevelDecls;
   private IEnumerable<Node> preResolvePrefixNamedModules;
 
-  public override IEnumerable<Node> PreResolveChildren {
+  public override IEnumerable<INode> PreResolveChildren {
     get {
       var attributes = Attributes != null ? new List<Node> { Attributes } : Enumerable.Empty<Node>();
       return attributes.Concat(preResolveTopLevelDecls ?? TopLevelDecls).Concat(
@@ -867,4 +867,7 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
   });
 
   public DafnySymbolKind Kind => DafnySymbolKind.Namespace;
+  public string GetDescription(DafnyOptions options) {
+    return $"module {Name}";
+  }
 }
