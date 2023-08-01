@@ -758,6 +758,24 @@ module NeverNever {
   }
 }
 
+module GhostTupleTests {
+  method GhostTupleTest0(ghostSingleton: (ghost bv7))
+    requires ghostSingleton == (ghost 12)
+  {
+    match ghostSingleton
+    case (y) =>
+      assert y == 12;
+  }
+
+  method GhostTupleTest1(ghostSingleton: (ghost bv7))
+    requires ghostSingleton == (ghost 12)
+  {
+    match ghostSingleton
+    case y =>
+      assert y == (ghost 12);
+  }
+}
+
 /****************************************************************************************
  ******** TO DO *************************************************************************
  ****************************************************************************************

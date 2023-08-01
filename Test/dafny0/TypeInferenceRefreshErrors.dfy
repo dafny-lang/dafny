@@ -126,16 +126,6 @@ module RegressionTest {
 }
 
 
-/* An additional match test
-
-method TupleTests(d: bv7) {
-  match d {
-    case (y) => // error: parentheses not allowed around pattern
-  }
-}
-
- */
-
 /*
 module TooLargeCaseLiteral {
   method Test(bv: bv7) {
