@@ -37,7 +37,7 @@ public static class AstExtensions {
 public interface ISymbol : IDeclarationOrUsage {
   DafnySymbolKind Kind { get; }
 
-  string GetHoverText(DafnyOptions options);
+  string GetDescription(DafnyOptions options);
 }
 
 public interface IHasSymbolChildren : ISymbol {

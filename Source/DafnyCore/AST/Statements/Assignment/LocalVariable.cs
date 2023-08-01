@@ -119,7 +119,7 @@ public class LocalVariable : RangeNode, IVariable, IAttributeBearingDeclaration 
       IsTypeExplicit ? new List<Node>() { OptionalType ?? type } : Enumerable.Empty<Node>());
 
   public DafnySymbolKind Kind => DafnySymbolKind.Variable;
-  public string GetHoverText(DafnyOptions options) {
+  public string GetDescription(DafnyOptions options) {
     return this.AsText();
   }
 }

@@ -86,7 +86,7 @@ public class Field : MemberDecl, ICanFormat, IHasDocstring, ISymbol {
     return true;
   }
 
-  protected override string GetTriviaContainingDocstring() {
+  public string GetTriviaContainingDocstring() {
     if (EndToken.TrailingTrivia.Trim() != "") {
       return EndToken.TrailingTrivia;
     }
@@ -96,7 +96,7 @@ public class Field : MemberDecl, ICanFormat, IHasDocstring, ISymbol {
 
   public virtual DafnySymbolKind Kind => DafnySymbolKind.Field;
 
-  public string GetHoverText(DafnyOptions options) {
+  public string GetDescription(DafnyOptions options) {
     var prefix = IsMutable ? "var" : "const";
     return $"{prefix} {AstExtensions.GetMemberQualification(this)}{Name}: {Type}";
   }

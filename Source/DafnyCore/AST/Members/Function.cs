@@ -460,7 +460,7 @@ experimentalPredicateAlwaysGhost - Compiled functions are written `function`. Gh
     resolver.DominatingStatementLabels.PopMarker();
   }
 
-  protected override string GetTriviaContainingDocstring() {
+  public string GetTriviaContainingDocstring() {
 
     var endTokenDefinition =
       OwnedTokens.LastOrDefault(token => token.val == ")" || token.pos == ResultType.EndToken.pos)
@@ -476,7 +476,7 @@ experimentalPredicateAlwaysGhost - Compiled functions are written `function`. Gh
   }
 
   public DafnySymbolKind Kind => DafnySymbolKind.Function;
-  public string GetHoverText(DafnyOptions options) {
+  public string GetDescription(DafnyOptions options) {
     var formals = string.Join(", ", Formals.Select(f => f.AsText()));
     var resultType = ResultType.TypeName(options, null, false);
     return $"{WhatKind} {AstExtensions.GetMemberQualification(this)}{Name}({formals}): {resultType}";

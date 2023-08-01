@@ -354,7 +354,7 @@ public class Method : MemberDecl, TypeParameter.ParentType, IMethodCodeContext, 
     }
   }
 
-  protected override string GetTriviaContainingDocstring() {
+  public string GetTriviaContainingDocstring() {
     IToken lastClosingParenthesis = null;
     foreach (var token in OwnedTokens) {
       if (token.val == ")") {
@@ -370,7 +370,7 @@ public class Method : MemberDecl, TypeParameter.ParentType, IMethodCodeContext, 
   }
 
   public virtual DafnySymbolKind Kind => DafnySymbolKind.Method;
-  public string GetHoverText(DafnyOptions options) {
+  public string GetDescription(DafnyOptions options) {
     var qualifiedName = GetQualifiedName();
     var signatureWithoutReturn = $"{WhatKind} {qualifiedName}({string.Join(", ", Ins.Select(i => i.AsText()))})";
     if (Outs.Count == 0) {

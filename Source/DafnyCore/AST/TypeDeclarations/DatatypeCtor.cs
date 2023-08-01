@@ -41,7 +41,7 @@ public class DatatypeCtor : Declaration, TypeParameter.ParentType, IHasDocstring
     }
   }
 
-  protected override string GetTriviaContainingDocstring() {
+  public string GetTriviaContainingDocstring() {
     if (EndToken.TrailingTrivia.Trim() != "") {
       return EndToken.TrailingTrivia;
     }
@@ -50,8 +50,7 @@ public class DatatypeCtor : Declaration, TypeParameter.ParentType, IHasDocstring
   }
 
   public DafnySymbolKind Kind => DafnySymbolKind.EnumMember;
-
-  public string GetHoverText(DafnyOptions options) {
+  public string GetDescription(DafnyOptions options) {
     var formals = string.Join(", ", Formals.Select(f => f.AsText()));
     return $"{EnclosingDatatype.Name}.{Name}({formals})";
   }
