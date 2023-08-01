@@ -39,6 +39,6 @@ public class ExprRhs : AssignmentRhs, ICloneable<ExprRhs> {
     }
   }
 
-  public override IEnumerable<Node> Children => new[] { Expr };
-  public override IEnumerable<Node> PreResolveChildren => PreResolveSubExpressions;
+  public override IEnumerable<INode> Children => new[] { Expr };
+  public override IEnumerable<INode> PreResolveChildren => PreResolveSubExpressions;
 }

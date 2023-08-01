@@ -9,7 +9,7 @@ public class AssignSuchThatStmt : ConcreteUpdateStatement, ICloneable<AssignSuch
   public readonly Expression Expr;
   public readonly AttributedToken AssumeToken;
 
-  public override IEnumerable<Node> PreResolveChildren =>
+  public override IEnumerable<INode> PreResolveChildren =>
     Lhss.Concat<Node>(new List<Node>() { Expr });
 
   public override IToken Tok {
@@ -35,7 +35,7 @@ public class AssignSuchThatStmt : ConcreteUpdateStatement, ICloneable<AssignSuch
     }
   }
 
-  public override IEnumerable<Node> Children => Lhss.Concat<Node>(new[] { Expr });
+  public override IEnumerable<INode> Children => Lhss.Concat<Node>(new[] { Expr });
 
   public AssignSuchThatStmt Clone(Cloner cloner) {
     return new AssignSuchThatStmt(cloner, this);

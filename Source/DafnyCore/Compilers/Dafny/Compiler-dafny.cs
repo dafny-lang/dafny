@@ -18,7 +18,11 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     public override ConcreteSyntaxTree Fork(int relativeIndent = 0) {
-      return new BuilderSyntaxTree<T>(Builder);
+      if (Builder is StatementContainer statementContainer) {
+        return new BuilderSyntaxTree<StatementContainer>(statementContainer.Fork());
+      } else {
+        throw new InvalidOperationException("Cannot fork builder of type " + Builder.GetType());
+      }
     }
 
     public override ConcreteSyntaxTree ForkInParens() {
@@ -99,15 +103,6 @@ namespace Microsoft.Dafny.Compilers {
     private const string DafnyDefaultModule = "module_";
 
     protected override string AssignmentSymbol { get => null; }
-
-    public override void EndStmt(ConcreteSyntaxTree wr) {
-      if (currentBuilder is CallStmtBuilder callBuilder) {
-        callBuilder.Finish();
-        currentBuilder = callBuilder.returnTo;
-      } else {
-        throw new InvalidOperationException("Unxpected current builder when ending statement: " + currentBuilder);
-      }
-    }
 
     protected override void EmitHeader(Program program, ConcreteSyntaxTree wr) {
     }
@@ -266,7 +261,7 @@ namespace Microsoft.Dafny.Compilers {
 
         List<DAST.Formal> params_ = new();
         foreach (var param in m.Ins) {
-          if (param is not ImplicitFormal) {
+          if (param is not ImplicitFormal && !param.IsGhost) {
             params_.Add((DAST.Formal)DAST.Formal.create_Formal(Sequence<Rune>.UnicodeFromString(compiler.IdProtect(param.CompileName)), compiler.GenType(param.Type)));
           }
         }
@@ -299,7 +294,9 @@ namespace Microsoft.Dafny.Compilers {
 
         List<DAST.Formal> params_ = new();
         foreach (var param in formals) {
-          params_.Add((DAST.Formal)DAST.Formal.create_Formal(Sequence<Rune>.UnicodeFromString(compiler.IdProtect(param.CompileName)), compiler.GenType(param.Type)));
+          if (!param.IsGhost) {
+            params_.Add((DAST.Formal)DAST.Formal.create_Formal(Sequence<Rune>.UnicodeFromString(compiler.IdProtect(param.CompileName)), compiler.GenType(param.Type)));
+          }
         }
 
         var builder = this.builder.Method(isStatic, name, astTypeArgs, params_, new() {
@@ -331,7 +328,10 @@ namespace Microsoft.Dafny.Compilers {
           }
         }
 
-        // TODO(shadaj): do something with rhsExpr
+        if (rhsExpr != null) {
+          // TODO(shadaj): do something with rhsExpr
+          throw new NotImplementedException();
+        }
 
         builder.AddField((DAST.Formal)DAST.Formal.create_Formal(
           Sequence<Rune>.UnicodeFromString(name),
@@ -422,32 +422,37 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override string TypeName_Companion(Type type, ConcreteSyntaxTree wr, IToken tok, MemberDecl member) {
-      type = UserDefinedType.UpcastToMemberEnclosingType(type, member);
-
       ExprContainer actualBuilder;
       if (wr is BuilderSyntaxTree<ExprContainer> st) {
         actualBuilder = st.Builder;
-      } else if (currentBuilder is CallStmtBuilder builder) {
-        actualBuilder = builder;
       } else {
         throw new InvalidOperationException();
       }
 
-      if (type.NormalizeExpandKeepConstraints() is UserDefinedType udt && udt.ResolvedClass is DatatypeDecl dt &&
-          DatatypeWrapperEraser.IsErasableDatatypeWrapper(Options, dt, out _)) {
-        actualBuilder.AddExpr((DAST.Expression)DAST.Expression.create_Companion(PathFromTopLevel(udt.ResolvedClass)));
-        return "";
+      EmitTypeName_Companion(type, new BuilderSyntaxTree<ExprContainer>(actualBuilder), wr, tok, member);
+      return "";
+    }
+
+    protected override void EmitTypeName_Companion(Type type, ConcreteSyntaxTree wr, ConcreteSyntaxTree surrounding, IToken tok, MemberDecl member) {
+      if (wr is BuilderSyntaxTree<ExprContainer> container) {
+        type = UserDefinedType.UpcastToMemberEnclosingType(type, member);
+
+        if (type.NormalizeExpandKeepConstraints() is UserDefinedType udt && udt.ResolvedClass is DatatypeDecl dt &&
+            DatatypeWrapperEraser.IsErasableDatatypeWrapper(Options, dt, out _)) {
+          container.Builder.AddExpr((DAST.Expression)DAST.Expression.create_Companion(PathFromTopLevel(udt.ResolvedClass)));
+        } else {
+          container.Builder.AddExpr((DAST.Expression)DAST.Expression.create_Companion(PathFromTopLevel(type.AsTopLevelTypeWithMembers)));
+        }
       } else {
-        actualBuilder.AddExpr((DAST.Expression)DAST.Expression.create_Companion(PathFromTopLevel(type.AsTopLevelTypeWithMembers)));
-        return "";
+        throw new InvalidOperationException();
       }
     }
 
     protected override void EmitNameAndActualTypeArgs(string protectedName, List<Type> typeArgs, IToken tok, ConcreteSyntaxTree wr) {
       if (wr is BuilderSyntaxTree<ExprContainer> st && st.Builder is CallExprBuilder callExpr) {
         callExpr.SetName(protectedName);
-      } else if (currentBuilder is CallStmtBuilder call) {
-        call.SetName(protectedName);
+      } else if (wr is BuilderSyntaxTree<ExprContainer> st2 && st2.Builder is CallStmtBuilder callStmt) {
+        callStmt.SetName(protectedName);
       } else {
         throw new InvalidOperationException();
       }
@@ -519,19 +524,17 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void EmitCallReturnOuts(List<string> outTmps, ConcreteSyntaxTree wr) {
-      if (currentBuilder is CallStmtBuilder call) {
+      if (wr is BuilderSyntaxTree<ExprContainer> builder && builder.Builder is CallStmtBuilder call) {
         call.SetOuts(outTmps.Select(i => Sequence<Rune>.UnicodeFromString(i)).ToList());
       } else {
         throw new InvalidOperationException();
       }
     }
 
-    protected override void TrCallStmt(CallStmt s, string receiverReplacement, ConcreteSyntaxTree wr) {
+    protected override void TrCallStmt(CallStmt s, string receiverReplacement, ConcreteSyntaxTree wr, ConcreteSyntaxTree wrStmts, ConcreteSyntaxTree wrStmtsAfterCall) {
       if (wr is BuilderSyntaxTree<StatementContainer> stmtContainer) {
-        currentBuilder = stmtContainer.Builder.Call(currentBuilder);
-        base.TrCallStmt(s, receiverReplacement, wr);
-        // finished by EndStmt, because the call needs to be finished
-        // before followup assignments should be emitted
+        var callBuilder = stmtContainer.Builder.Call(currentBuilder);
+        base.TrCallStmt(s, receiverReplacement, new BuilderSyntaxTree<ExprContainer>(callBuilder), wrStmts, wrStmtsAfterCall);
       } else {
         throw new InvalidOperationException("Cannot call statement in this context: " + currentBuilder);
       }
@@ -551,7 +554,7 @@ namespace Microsoft.Dafny.Compilers {
     protected override void EmitActualTypeArgs(List<Type> typeArgs, IToken tok, ConcreteSyntaxTree wr) {
       if (wr is BuilderSyntaxTree<ExprContainer> st && st.Builder is CallExprBuilder callExpr) {
         callExpr.SetTypeArgs(typeArgs.Select(GenType).ToList());
-      } else if (currentBuilder is CallStmtBuilder callStmt) {
+      } else if (wr is BuilderSyntaxTree<ExprContainer> st2 && st2.Builder is CallStmtBuilder callStmt) {
         callStmt.SetTypeArgs(typeArgs.Select(GenType).ToList());
       } else {
         throw new InvalidOperationException("Cannot emit actual type args in this context: " + currentBuilder);
@@ -606,8 +609,8 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    protected override ILvalue VariableLvalue(IVariable var) {
-      return new BuilderLvalue(this, IdName(var));
+    protected override ILvalue IdentLvalue(string var) {
+      return new BuilderLvalue(this, var);
     }
 
     protected override ILvalue SeqSelectLvalue(SeqSelectExpr ll, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
@@ -616,7 +619,7 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void EmitPrintStmt(ConcreteSyntaxTree wr, Expression arg) {
       if (wr is BuilderSyntaxTree<StatementContainer> stmtContainer) {
-        ExprBuffer buffer = new(currentBuilder);
+        ExprBuffer buffer = new(null);
         EmitExpr(arg, false, new BuilderSyntaxTree<ExprContainer>(buffer), wr);
         stmtContainer.Builder.Print(buffer.Finish());
       } else {
@@ -743,7 +746,28 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void EmitNew(Type type, IToken tok, CallStmt initCall, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
-      throw new NotImplementedException();
+      if (wr is BuilderSyntaxTree<ExprContainer> builder) {
+        var ctor = (Constructor)initCall?.Method;
+        var arguments = Enumerable.Empty<DAST.Expression>();
+        if (ctor != null && ctor.IsExtern(Options, out _, out _)) {
+          // the arguments of any external constructor are placed here
+          arguments = ctor.Ins.Select((f, i) => (f, i))
+            .Where(tp => !tp.f.IsGhost)
+            .Select(tp => {
+              var buf = new ExprBuffer(null);
+              var localWriter = new BuilderSyntaxTree<ExprContainer>(buf);
+              EmitExpr(initCall.Args[tp.i], false, localWriter, wStmts);
+              return buf.Finish();
+            });
+        }
+
+        builder.Builder.AddExpr((DAST.Expression)DAST.Expression.create_New(
+          PathFromTopLevel(type.AsTopLevelTypeWithMembers),
+          Sequence<DAST.Expression>.FromArray(arguments.ToArray())
+        ));
+      } else {
+        throw new InvalidOperationException();
+      }
     }
 
     protected override void EmitNewArray(Type elementType, IToken tok, List<string> dimensions,
@@ -757,7 +781,7 @@ namespace Microsoft.Dafny.Compilers {
           Sequence<Rune>.UnicodeFromString(ident)
         ));
       } else {
-        throw new InvalidOperationException();
+        throw new InvalidOperationException("Expected ExprContainer, got " + wr.GetType());
       }
     }
 
@@ -899,10 +923,7 @@ namespace Microsoft.Dafny.Compilers {
 
     public override void EmitExpr(Expression expr, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       var actualWr = wr;
-      if (currentBuilder is CallStmtBuilder call && wr is not BuilderSyntaxTree<ExprContainer>) {
-        // the writers are not currently wired properly for TrCallStmt
-        actualWr = new BuilderSyntaxTree<ExprContainer>(call);
-      } else if (currentBuilder is ExprBuffer buf && wr is not BuilderSyntaxTree<ExprContainer>) {
+      if (currentBuilder is ExprBuffer buf && wr is not BuilderSyntaxTree<ExprContainer>) {
         // the writers are not currently wired properly for DatatypeValue
         actualWr = new BuilderSyntaxTree<ExprContainer>(buf);
       }
@@ -923,7 +944,11 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void EmitThis(ConcreteSyntaxTree wr, bool callToInheritedMember) {
-      throw new NotImplementedException();
+      if (wr is BuilderSyntaxTree<ExprContainer> builder) {
+        builder.Builder.AddExpr((DAST.Expression)DAST.Expression.create_This());
+      } else {
+        throw new InvalidOperationException();
+      }
     }
 
     protected override void EmitDatatypeValue(DatatypeValue dtv, string typeDescriptorArguments, string arguments, ConcreteSyntaxTree wr) {

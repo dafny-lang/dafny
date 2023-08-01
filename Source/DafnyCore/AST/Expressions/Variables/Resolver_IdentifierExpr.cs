@@ -24,7 +24,7 @@ class Resolver_IdentifierExpr : Expression, IHasUsages, ICloneable<Resolver_Iden
     TypeArgs = original.TypeArgs;
   }
 
-  public override IEnumerable<Node> Children => TypeArgs.SelectMany(ta => ta.Nodes);
+  public override IEnumerable<INode> Children => TypeArgs.SelectMany(ta => ta.Nodes);
 
   public abstract class ResolverType : Type {
     public override bool ComputeMayInvolveReferences(ISet<DatatypeDecl>/*?*/ visitedDatatypes) {

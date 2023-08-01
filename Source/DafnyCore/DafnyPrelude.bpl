@@ -1207,13 +1207,13 @@ axiom (forall<U, V> m: Map U V ::
   m == Map#Empty() || (exists k, v: Box :: Map#Items(m)[$Box(#_System._tuple#2._#Make2(k, v))]));
 
 axiom (forall<U, V> m: Map U V ::
-  { Set#Card(Map#Domain(m)) }
+  { Set#Card(Map#Domain(m)) } { Map#Card(m) }
   Set#Card(Map#Domain(m)) == Map#Card(m));
 axiom (forall<U, V> m: Map U V ::
-  { Set#Card(Map#Values(m)) }
+  { Set#Card(Map#Values(m)) } { Map#Card(m) }
   Set#Card(Map#Values(m)) <= Map#Card(m));
 axiom (forall<U, V> m: Map U V ::
-  { Set#Card(Map#Items(m)) }
+  { Set#Card(Map#Items(m)) } { Map#Card(m) }
   Set#Card(Map#Items(m)) == Map#Card(m));
 
 // The set of Values of a Map can be obtained by the function Map#Values, which is
