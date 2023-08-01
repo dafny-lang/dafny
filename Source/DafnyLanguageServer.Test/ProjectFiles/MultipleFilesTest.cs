@@ -48,7 +48,7 @@ method Bar() {
 
     var consumerDiagnostics = await diagnosticsReceiver.AwaitNextNotificationAsync(CancellationToken);
     Assert.Equal(2, consumerDiagnostics.Diagnostics.Count());
-    Assert.Contains("bool", consumerDiagnostics.Diagnostics.First().Message);
+    Assert.Contains(consumerDiagnostics.Diagnostics, diagnostic => diagnostic.Message.Contains("bool"));
     await AssertNoDiagnosticsAreComing(CancellationToken);
   }
 

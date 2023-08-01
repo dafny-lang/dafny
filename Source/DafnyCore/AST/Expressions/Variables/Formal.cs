@@ -4,9 +4,19 @@ using System.Linq;
 
 namespace Microsoft.Dafny;
 
+<<<<<<< HEAD
 public class Formal : NonglobalVariable {
   public readonly bool InParam;  // true to in-parameter, false for out-parameter
   public override bool IsMutable => !InParam;
+=======
+public class Formal : NonglobalVariable, ISymbol {
+  public readonly bool InParam;  // true to in-parameter, false for out-parameter
+  public override bool IsMutable {
+    get {
+      return !InParam;
+    }
+  }
+>>>>>>> 25bf20898242f~1
   public readonly bool IsOld;
   public readonly Expression DefaultValue;
   public readonly bool IsNameOnly;
@@ -45,6 +55,7 @@ public class Formal : NonglobalVariable {
     (DefaultValue != null ? new List<Node> { DefaultValue } : Enumerable.Empty<Node>()).Concat(base.Children);
 
   public override IEnumerable<INode> PreResolveChildren => Children;
+  public DafnySymbolKind Kind => DafnySymbolKind.Variable;
 }
 
 /// <summary>
