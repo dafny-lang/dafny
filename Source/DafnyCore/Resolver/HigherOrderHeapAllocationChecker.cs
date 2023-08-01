@@ -5,6 +5,7 @@
 //
 //-----------------------------------------------------------------------------
 
+using System;
 using System.Reflection;
 
 namespace Microsoft.Dafny;
@@ -18,6 +19,31 @@ class HigherOrderHeapAllocationChecker : ASTVisitor<IASTVisitorContext> {
 
   public override IASTVisitorContext GetContext(IASTVisitorContext astVisitorContext, bool inFunctionPostcondition) {
     return astVisitorContext;
+  }
+
+  private bool CrawlAndCheck(Func<Type, Boolean> check, Type rhs) {
+    Type type = rhs.NormalizeExpandKeepConstraints();
+    if (type is BasicType) {
+      return false;
+    } else if (type is MapType) {
+      var t = (MapType)type;
+      return CrawlAndCheck(check, t.Domain) || CrawlAndCheck(check, t.Range);
+    } else if (type is CollectionType) {
+      var t = (CollectionType)type;
+      return CrawlAndCheck(check, t.Arg);
+    } else {
+      var t = (UserDefinedType)type;
+      if (check(t)) {
+        return true;
+      }
+
+      var b = false;
+      for (int i = 0; i < t.TypeArgs.Count; i++) {
+        b = b || CrawlAndCheck(check, t.TypeArgs[i]);
+      }
+
+      return b;
+    }
   }
 
   private bool Occurs(Type Obj, Type rhs) {
@@ -90,21 +116,19 @@ class HigherOrderHeapAllocationChecker : ASTVisitor<IASTVisitorContext> {
         var exp = eRhs.Expr;
         var type = exp.Type;
 
-        if (OccursSquig(type)) {
+        //if (OccursSquig(type)) {
+        if (CrawlAndCheck(t => !t.IsArrowTypeWithoutReadEffects, type)) {
           reporter.Error(MessageSource.Resolver, stmt,
             $"To prevent the creation of non-terminating functions, storing functions with read effects into memory is disallowed");
         }
 
         if (type.IsArrowType) {
-          //if (!type.IsArrowTypeWithoutReadEffects) {
-          //  reporter.Error(MessageSource.Resolver, stmt, $"Illegal 1");
-          //}
 
           var arrow = type.AsArrowType;
           for (int i = 0; i < arrow.Arity; i++) {
+            //var occurs = Occurs(lhsType, arrow.Args[i]);
             var occurs = Occurs(lhsType, arrow.Args[i]);
-            if (occurs) {
-              // mseLhs.Obj.Type.Equals(arrow.Args[0])
+            if (CrawlAndCheck(t => lhsType.Equals(t), arrow.Args[i])) {
               reporter.Error(MessageSource.Resolver, stmt,
                 $"To prevent the creation of non-terminating functions, storing functions into an object's fields that reads the object is disallowed");
             }
