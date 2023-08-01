@@ -23,6 +23,7 @@ public class GenerateTestsCommand : ICommandSpec {
       BoogieOptionBag.SolverResourceLimit,
       BoogieOptionBag.VerificationTimeLimit,
       PrintBpl,
+      PrintCoverage,
       DisablePrune
     }.Concat(ICommandSpec.ConsoleOutputOptions).
       Concat(ICommandSpec.ResolverOptions);
@@ -86,6 +87,10 @@ path - Prints path-coverage tests for the given program.");
     "Print the Boogie code used during test generation.") {
     ArgumentHelpName = "filename"
   };
+  public static readonly Option<string> PrintCoverage = new("--print-coverage",
+    "Emit expected test coverage report to a given directory.") {
+    ArgumentHelpName = "directory"
+  };
   public static readonly Option<bool> DisablePrune = new("--no-prune",
     "Disable axiom pruning that Dafny uses to speed up verification.") {
   };
@@ -99,6 +104,9 @@ path - Prints path-coverage tests for the given program.");
     DafnyOptions.RegisterLegacyBinding(PrintBpl, (options, value) => {
       options.TestGenOptions.PrintBpl = value;
     });
+    DafnyOptions.RegisterLegacyBinding(PrintCoverage, (options, value) => {
+      options.TestGenOptions.PrintCoverage = value;
+    });
     DafnyOptions.RegisterLegacyBinding(DisablePrune, (options, value) => {
       options.TestGenOptions.DisablePrune = value;
     });
@@ -107,6 +115,7 @@ path - Prints path-coverage tests for the given program.");
       LoopUnroll,
       SequenceLengthLimit,
       PrintBpl,
+      PrintCoverage,
       DisablePrune
     );
   }

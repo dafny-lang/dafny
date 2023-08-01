@@ -493,7 +493,7 @@ module M {
       var options = GetDafnyOptions(optionSettings, output);
       var program = Utils.Parse(options, source, false);
       options.TestGenOptions.WarnDeadCode = true;
-      var stats = await Main.GetDeadCodeStatistics(program).ToListAsync();
+      var stats = await Main.GetDeadCodeStatistics(program, new Modifications(options)).ToListAsync();
       Assert.Contains(stats, s => s.Contains("(6,14) is potentially unreachable."));
       Assert.Equal(2, stats.Count); // second is line with stats
     }
@@ -513,7 +513,7 @@ method {:testEntry} m(a:int) returns (b:int)
       var options = GetDafnyOptions(optionSettings, output);
       var program = Utils.Parse(options, source, false);
       options.TestGenOptions.WarnDeadCode = true;
-      var stats = await Main.GetDeadCodeStatistics(program).ToListAsync();
+      var stats = await Main.GetDeadCodeStatistics(program, new Modifications(options)).ToListAsync();
       Assert.Single(stats); // the only line with stats
     }
 
