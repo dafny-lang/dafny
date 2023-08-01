@@ -1,3 +1,6 @@
+using System;
+using System.Linq;
+
 namespace DafnyCore.CoverageReporter;
 
 public enum CoverageLabel {
@@ -9,7 +12,7 @@ public enum CoverageLabel {
 public static class CoverageLabelExtension {
 
   /// <summary>
-  /// Return coverage label for a program location that is covered by several overlapping coverage spans
+  /// Combine coverage labels. E.g. FullyCovered + NotCovered = PartiallyCovered
   /// </summary>
   public static CoverageLabel Combine(CoverageLabel one, CoverageLabel two) {
     if (one == CoverageLabel.PartiallyCovered || two == CoverageLabel.PartiallyCovered || one != two) {
@@ -18,20 +21,36 @@ public static class CoverageLabelExtension {
     return one;
   }
 
-  public static string OpenHtmlTag(CoverageLabel label) {
-    switch (label) {
-      case CoverageLabel.FullyCovered:
-        return "<span class=\"fc\">";
-      case CoverageLabel.NotCovered:
-        return "<span class=\"nc\">";
-      case CoverageLabel.PartiallyCovered:
-        return "<span class=\"pc\">";
-    }
-    return "";
+  public static string ToString(CoverageLabel label) {
+    return label switch {
+      CoverageLabel.FullyCovered => "fully covered",
+      CoverageLabel.NotCovered => "not covered",
+      CoverageLabel.PartiallyCovered => "partially covered",
+      _ => ""
+    };
   }
 
-  public static string CloseHtmlTag(CoverageLabel label) {
-    return "</span>";
+  /// <summary>
+  /// Return HTML class used to highlight lines in different colors depending on the coverage.
+  /// Look at assets/.resources/coverage.css for the styles corresponding to these classes
+  /// </summary>
+  public static string ToHtmlClass(CoverageLabel label) {
+    return label switch {
+      CoverageLabel.FullyCovered => "fc",
+      CoverageLabel.NotCovered => "nc",
+      CoverageLabel.PartiallyCovered => "pc",
+      _ => ""
+    };
+  }
+
+  /// <summary> Inverse of ToHtmlClass </summary>
+  public static CoverageLabel FromHtmlClass(string htmlClass) {
+    foreach (var label in Enum.GetValues(typeof(CoverageLabel)).Cast<CoverageLabel>()) {
+      if (ToHtmlClass(label) == htmlClass) {
+        return label;
+      }
+    }
+    return CoverageLabel.NotCovered; // this is a fallback in case the HTML has invalid classes
   }
 
 }

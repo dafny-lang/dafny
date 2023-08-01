@@ -24,6 +24,7 @@ using System.Linq;
 using Microsoft.Boogie;
 using Bpl = Microsoft.Boogie;
 using System.Diagnostics;
+using DafnyCore.CoverageReporter;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.Dafny.LanguageServer.CounterExampleGeneration;
 using Microsoft.Dafny.Plugins;
@@ -130,6 +131,11 @@ namespace Microsoft.Dafny {
       switch (cliArgumentsResult) {
         case CommandLineArgumentsResult.OK:
 
+          if (dafnyOptions.CoverageReportOutDir != null) {
+            new CoverageReporter(new ConsoleErrorReporter(dafnyOptions)).Merge(dafnyOptions);
+            return 0;
+          }
+
           if (dafnyOptions.RunLanguageServer) {
 #pragma warning disable VSTHRD002
             LanguageServer.Server.Start(dafnyOptions).Wait();
@@ -222,6 +228,10 @@ namespace Microsoft.Dafny {
       }
 
       if (options.RunLanguageServer) {
+        return CommandLineArgumentsResult.OK;
+      }
+
+      if (options.CoverageReportOutDir != null) {
         return CommandLineArgumentsResult.OK;
       }
 

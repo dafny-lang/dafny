@@ -143,7 +143,7 @@ namespace DafnyTestGeneration {
         }
       }
       new CoverageReporter(program.Reporter)
-        .GenerateCoverageReportFiles(new() { coverageReport }, options.TestGenOptions.PrintCoverage);
+        .GenerateCoverageReportFiles(coverageReport, options.TestGenOptions.PrintCoverage);
     }
 
     /// <summary>

@@ -1,5 +1,7 @@
+using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
+using System.IO;
 using System.Linq;
 using Microsoft.Dafny;
 
@@ -28,6 +30,38 @@ public class CoverageReport {
     FindAllFiles(program.DefaultModuleDef, fileNames);
     foreach (var fileName in fileNames) {
       labeledFiles[fileName] = new();
+    }
+  }
+
+  /// <summary>
+  /// Parse a report previously serialized to disk in the <param name="reportDir"></param> directory
+  /// </summary>
+  public CoverageReport(string reportDir, string name, string units) {
+    Name = name;
+    Units = units;
+    labeledFiles = new();
+    foreach (string fileName in Directory.EnumerateFiles(reportDir, "*.html", SearchOption.AllDirectories)) {
+      var source = new StreamReader(fileName).ReadToEnd();
+      var uriMatch = CoverageReporter.UriRegexInversed.Match(source);
+      if (!uriMatch.Success) {
+        continue;
+      }
+      var uri = new Uri(uriMatch.Groups[1].Value);
+      labeledFiles[uri.LocalPath] = new();
+      foreach (var span in CoverageSpan.SpanRegexInverse.Matches(source).Where(match => match.Success)) {
+        if (int.TryParse(span.Groups[2].Value, out var startLine) &&
+            int.TryParse(span.Groups[3].Value, out var startCol) &&
+            int.TryParse(span.Groups[4].Value, out var endLine) &&
+            int.TryParse(span.Groups[5].Value, out var endCol)) {
+          var startToken = new Token(startLine, startCol);
+          startToken.Uri = uri;
+          var endToken = new Token(endLine, endCol);
+          startToken.Uri = uri;
+          var rangeToken = new RangeToken(startToken, endToken);
+          rangeToken.Uri = uri;
+          LabelCode(rangeToken, CoverageLabelExtension.FromHtmlClass(span.Groups[1].Value));
+        }
+      }
     }
   }
 

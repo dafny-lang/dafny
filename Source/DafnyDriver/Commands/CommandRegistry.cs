@@ -13,6 +13,7 @@ using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
 using DafnyCore;
+using DafnyCore.CoverageReporter;
 using JetBrains.Annotations;
 using Microsoft.Boogie;
 using Microsoft.Dafny.LanguageServer;
@@ -47,6 +48,7 @@ public static class CommandRegistry {
     AddCommand(new GenerateTestsCommand());
     AddCommand(new DeadCodeCommand());
     AddCommand(new AuditCommand());
+    AddCommand(new CoverageReportCommand());
 
     // Check that the .doo file format is aware of all options,
     // and therefore which have to be saved to safely support separate verification/compilation.
