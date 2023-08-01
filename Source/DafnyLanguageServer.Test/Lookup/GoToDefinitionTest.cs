@@ -1,9 +1,6 @@
 ﻿using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
 using OmniSharp.Extensions.LanguageServer.Protocol;
-using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
-using OmniSharp.Extensions.LanguageServer.Protocol.Progress;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
@@ -78,6 +75,11 @@ datatype Result<T, E> = Ok(value: T) | Err({>1:error<}: E) {
       await AssertPositionsLineUpWithRanges(source);
     }
 
+    /// <summary>
+    /// Given <paramref name="source"/> with N positions, for each K from 0 to N exclusive,
+    /// assert that a RequestDefinition at position K
+    /// returns either the Kth range, or the range with key K (as a string).
+    /// </summary>
     private async Task AssertPositionsLineUpWithRanges(string source) {
       MarkupTestFile.GetPositionsAndNamedRanges(source, out var cleanSource,
         out var positions, out var ranges);

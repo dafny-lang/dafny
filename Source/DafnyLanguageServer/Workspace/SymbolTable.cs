@@ -26,10 +26,9 @@ public class SymbolTable {
     var safeUsages1 = usages.Where(k => k.usage.NameToken.Uri != null).ToImmutableList();
     var safeUsages = usages.Where(k => k.usage.NameToken.Uri != null && k.declaration.NameToken.Uri != null).ToImmutableList();
 
-    var usageDeclarations = safeUsages1.DistinctBy(k => k.usage)
-      .Select(k => KeyValuePair.Create(k.usage, k.declaration));
-    var selfDeclarations = safeUsages1.Select(k => k.declaration).Distinct().Select(k => KeyValuePair.Create(k, k));
-    UsageToDeclaration = usageDeclarations.Concat(selfDeclarations).ToImmutableDictionary();
+    var usageDeclarations = safeUsages1.Select(k => KeyValuePair.Create(k.usage, k.declaration));
+    var selfDeclarations = safeUsages1.Select(k => KeyValuePair.Create(k.declaration, k.declaration));
+    UsageToDeclaration = usageDeclarations.Concat(selfDeclarations).DistinctBy(pair => pair.Key).ToImmutableDictionary();
 
     DeclarationToUsages = safeUsages1.GroupBy(u => u.declaration).ToImmutableDictionary(
       g => g.Key,
