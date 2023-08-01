@@ -130,7 +130,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         legacySymbolTable,
         ghostDiagnostics,
         verifiables.ToDictionary(v => v, v => (VerifyStatus?)null),
-        new (),
+        new(),
         new()
       );
     }

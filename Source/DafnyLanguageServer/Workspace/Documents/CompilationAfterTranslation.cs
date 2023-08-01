@@ -16,7 +16,7 @@ public class CompilationAfterTranslation : CompilationAfterResolution {
       compilationAfterResolution.ImplementationsPerVerifiable,
       compilationAfterResolution.TranslatedModules,
       compilationAfterResolution.Counterexamples) {
-      VerificationTrees = verificationTrees;
+    VerificationTrees = verificationTrees;
   }
 
   public override VerificationTree GetVerificationTree(Uri uri) {

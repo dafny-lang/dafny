@@ -235,13 +235,13 @@ public class CompilationManager {
         cancellationSource.Token.Register(task.Cancel);
       }
       return result.GroupBy(t => t.Implementation.tok.GetLspPosition()).ToDictionary(
-        g => g.Key, 
-        g => (IReadOnlyList<IImplementationTask>) g.ToList());
+        g => g.Key,
+        g => (IReadOnlyList<IImplementationTask>)g.ToList());
     });
     var tasksForVerifiable = tasksForModule.GetValueOrDefault(verifiable.NameToken.GetLspPosition()) ?? new List<IImplementationTask>(0);
 
     if (compilation.ImplementationsPerVerifiable[verifiable] == null) {
-      compilation.ImplementationsPerVerifiable[verifiable] = tasksForVerifiable.ToDictionary(t => t.Implementation.Name, 
+      compilation.ImplementationsPerVerifiable[verifiable] = tasksForVerifiable.ToDictionary(t => t.Implementation.Name,
         t => (t, new ImplementationView(verifiable.NameToken.GetLspRange(), PublishedVerificationStatus.Stale, Array.Empty<DafnyDiagnostic>())));
       compilationUpdates.OnNext(compilation);
     }

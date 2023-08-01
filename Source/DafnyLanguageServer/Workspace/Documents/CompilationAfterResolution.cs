@@ -43,7 +43,7 @@ public class CompilationAfterResolution : CompilationAfterParsing {
     var implementationsForUri = ImplementationsPerVerifiable.
       Where(kv => kv.Key.Tok.Uri == uri).
       Select(kv => kv.Value).ToList();
-    var verificationDiagnostics = implementationsForUri.SelectMany(view => 
+    var verificationDiagnostics = implementationsForUri.SelectMany(view =>
       view?.Values.SelectMany(v => v.View.Diagnostics) ?? Enumerable.Empty<DafnyDiagnostic>());
     return base.GetDiagnostics(uri).Concat(verificationDiagnostics);
   }
@@ -60,7 +60,7 @@ public class CompilationAfterResolution : CompilationAfterParsing {
 
         var value = new IdeImplementationView(implementationView.Range, implementationView.Status, diagnostics.ToList());
         return new KeyValuePair<ImplementationId, IdeImplementationView>(implementationId, value);
-      }) ?? previousState.ImplementationViews.Where(kv => 
+      }) ?? previousState.ImplementationViews.Where(kv =>
         kv.Key.Uri == canVerify.Tok.Uri && kv.Key.Position == canVerify.Tok.GetLspPosition());
     }
 
