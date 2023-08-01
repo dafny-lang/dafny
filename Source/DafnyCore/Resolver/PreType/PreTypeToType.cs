@@ -309,10 +309,24 @@ class PreTypeToTypeVisitor : ASTVisitor<IASTVisitorContext> {
       foreach (var lhs in assignSuchThatStmt.Lhss) {
         VisitExpression(lhs, context);
       }
+
+    } else if (stmt is CallStmt callStmt) {
+      var typeSubst = callStmt.MethodSelect.TypeArgumentSubstitutionsWithParents();
+      Contract.Assert(callStmt.Lhs.Count == callStmt.Method.Outs.Count);
+      for (var i = 0; i < callStmt.Lhs.Count; i++) {
+        if (callStmt.Lhs[i] is IdentifierExpr lhsIdentifierExpr) {
+          if (UpdatableTypeProxy.NormalizeSansImprovementTypeProxy(lhsIdentifierExpr.Var.UnnormalizedType) is UpdatableTypeProxy updatableTypeProxy) {
+            var formal = callStmt.Method.Outs[i];
+            AddConstraint(updatableTypeProxy, formal.Type.Subst(typeSubst), $"{lhsIdentifierExpr.Var.Name} := call {callStmt.Method.Name}");
+          }
+        }
+      }
+
     } else if (stmt is ProduceStmt produceStmt) {
       if (produceStmt.HiddenUpdate != null) {
         VisitStatement(produceStmt.HiddenUpdate, context);
       }
+      
     } else if (stmt is CalcStmt calcStmt) {
       // The expression in each line has been visited, but pairs of those lines are then put together to
       // form steps. These steps (are always boolean, and) need to be visited, too. Their subexpressions

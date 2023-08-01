@@ -14,6 +14,7 @@ method Main() {
   var c := new Cell();
   FromParameter(c);
   WithNull();
+  FromMethodCall();
 }
 
 method FromNew() {
@@ -61,4 +62,19 @@ method WithNull() {
     c := cc;
   }
   print s, "\n";
+}
+
+method FromMethodCall() {
+  var s := 0;
+  var c := GetCell();
+  for i := 0 to 3
+  {
+    s := s + c.data;
+    c := GetCell();
+  }
+  print s, "\n";
+}
+
+method GetCell() returns (c: Cell) {
+  c := new Cell();
 }
