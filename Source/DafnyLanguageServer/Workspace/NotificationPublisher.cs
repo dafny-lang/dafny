@@ -7,6 +7,7 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using OmniSharp.Extensions.LanguageServer.Protocol.Server;
 using System.Linq;
+using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
@@ -15,12 +16,15 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     private readonly ILogger<NotificationPublisher> logger;
     private readonly LanguageServerFilesystem filesystem;
     private readonly ILanguageServerFacade languageServer;
+    private readonly IProjectDatabase projectManagerDatabase;
     private readonly DafnyOptions options;
 
     public NotificationPublisher(ILogger<NotificationPublisher> logger, ILanguageServerFacade languageServer,
+      IProjectDatabase projectManagerDatabase,
       DafnyOptions options, LanguageServerFilesystem filesystem) {
       this.logger = logger;
       this.languageServer = languageServer;
+      this.projectManagerDatabase = projectManagerDatabase;
       this.options = options;
       this.filesystem = filesystem;
     }
@@ -31,7 +35,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       }
 
       PublishVerificationStatus(previousState, state);
-      PublishDocumentDiagnostics(previousState, state);
+      var _ = PublishDocumentDiagnostics(state);
       PublishGhostDiagnostics(previousState, state);
     }
 
@@ -78,60 +82,59 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       return new[] { first, second }.Min();
     }
 
-    private void PublishDocumentDiagnostics(IdeState previousState, IdeState state) {
-      var previousStateDiagnostics = previousState.GetDiagnostics();
+    private Dictionary<Uri, IList<Diagnostic>> publishedDiagnostics = new();
+
+    private async Task PublishDocumentDiagnostics(IdeState state) {
       var currentDiagnostics = state.GetDiagnostics();
-      if (state.Compilation.Project.IsImplicitProject) {
-        PublishImplicitProjectDiagnostics(state, currentDiagnostics, previousStateDiagnostics);
-      } else {
-        var uris = previousStateDiagnostics.Keys.Concat(currentDiagnostics.Keys).Distinct();
 
-        foreach (var uri in uris) {
-          IEnumerable<Diagnostic> current = currentDiagnostics.GetOrDefault(uri, Enumerable.Empty<Diagnostic>);
-          IEnumerable<Diagnostic> previous = previousStateDiagnostics.GetOrDefault(uri, Enumerable.Empty<Diagnostic>);
-          if (previous.SequenceEqual(current)) {
-            continue;
+      // All root uris are added because we may have to publish empty diagnostics for owned uris.
+      var sources = currentDiagnostics.Keys.Concat(state.Compilation.RootUris).Distinct();
+
+      var projectDiagnostics = new List<Diagnostic>();
+      foreach (var uri in sources) {
+        var current = currentDiagnostics.GetOrDefault(uri, Enumerable.Empty<Diagnostic>).ToArray();
+        var uriProject = await projectManagerDatabase.GetProject(uri);
+        var ownedUri = uriProject.Equals(state.Compilation.Project);
+        if (ownedUri) {
+          if (uri == state.Compilation.Project.Uri) {
+            // Delay publication of project diagnostics,
+            // since it also serves as a bucket for diagnostics from unowned files
+            projectDiagnostics.AddRange(current);
+          } else {
+            PublishForUri(uri, currentDiagnostics.GetOrDefault(uri, Enumerable.Empty<Diagnostic>).ToArray());
           }
-
-          languageServer.TextDocument.PublishDiagnostics(new PublishDiagnosticsParams {
-            Uri = uri,
-            Version = filesystem.GetVersion(uri),
-            Diagnostics = current.ToList(),
-          });
-        }
-      }
-    }
-
-    private void PublishImplicitProjectDiagnostics(IdeState state, ImmutableDictionary<Uri, IReadOnlyList<Diagnostic>> currentDiagnostics,
-      ImmutableDictionary<Uri, IReadOnlyList<Diagnostic>> previousStateDiagnostics) {
-      var diagnostics = new List<Diagnostic>();
-      foreach (var (key, value) in currentDiagnostics) {
-        if (key == state.Compilation.Project.Uri) {
-          diagnostics.AddRange(value);
         } else {
-          var errors = value.Where(d => d.Severity == DiagnosticSeverity.Error).ToList();
+          var errors = current.Where(d => d.Severity == DiagnosticSeverity.Error).ToList();
           if (!errors.Any()) {
             continue;
           }
 
-          diagnostics.Add(new Diagnostic {
+          projectDiagnostics.Add(new Diagnostic {
             Range = new Range(0, 0, 0, 1),
-            Message = $"the referenced file {key.LocalPath} contains error(s). The first one is: {errors.First().Message}",
+            Message = $"the referenced file {uri.LocalPath} contains error(s) but is not owned by this project. The first error is:\n{errors.First().Message}",
             Severity = DiagnosticSeverity.Error,
             Source = MessageSource.Parser.ToString()
           });
         }
       }
 
-      IEnumerable<Diagnostic> previous =
-        previousStateDiagnostics.GetOrDefault(state.Compilation.Project.Uri,
-          Enumerable.Empty<Diagnostic>);
-      if (!previous.SequenceEqual(diagnostics)) {
-        languageServer.TextDocument.PublishDiagnostics(new PublishDiagnosticsParams {
-          Uri = state.Compilation.Project.Uri,
-          Version = filesystem.GetVersion(state.Compilation.Project.Uri),
-          Diagnostics = diagnostics,
-        });
+      PublishForUri(state.Compilation.Project.Uri, projectDiagnostics.ToArray());
+
+      void PublishForUri(Uri publishUri, Diagnostic[] diagnostics) {
+        var previous = publishedDiagnostics.GetOrDefault(publishUri, Enumerable.Empty<Diagnostic>);
+        if (!previous.SequenceEqual(diagnostics)) {
+          if (diagnostics.Any()) {
+            publishedDiagnostics[publishUri] = diagnostics;
+          } else {
+            // Prevent memory leaks by cleaning up previous state when it's the IDE's initial state.
+            publishedDiagnostics.Remove(publishUri);
+          }
+          languageServer.TextDocument.PublishDiagnostics(new PublishDiagnosticsParams {
+            Uri = publishUri,
+            Version = filesystem.GetVersion(publishUri),
+            Diagnostics = diagnostics,
+          });
+        }
       }
     }
 

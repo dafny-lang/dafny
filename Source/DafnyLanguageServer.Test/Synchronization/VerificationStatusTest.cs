@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
@@ -13,6 +14,30 @@ using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization;
 
 public class VerificationStatusTest : ClientBasedLanguageServerTest {
+
+  [Fact]
+  public async Task RunWithMultipleSimilarDocuments() {
+    var source = @"
+method Foo() returns (x: int) ensures x / 2 == 1; {
+  return 2;
+}".TrimStart();
+    await SetUp(options => {
+      options.Set(ServerCommand.Verification, VerifyOnMode.Never);
+      options.Set(ServerCommand.ProjectMode, true);
+    });
+    var directory = Path.GetRandomFileName();
+    await CreateAndOpenTestDocument("", Path.Combine(directory, DafnyProject.FileName));
+    var documentItem1 = await CreateAndOpenTestDocument(source, Path.Combine(directory, "RunWithMultipleDocuments1.dfy"));
+    var documentItem2 = await CreateAndOpenTestDocument(source.Replace("Foo", "Bar"), Path.Combine(directory, "RunWithMultipleDocuments2.dfy"));
+
+    var fooRange = new Range(0, 7, 0, 10);
+    await client.RunSymbolVerification(documentItem1, fooRange.Start, CancellationToken);
+
+    await WaitForStatus(fooRange, PublishedVerificationStatus.Correct, CancellationToken, documentItem1);
+
+    await client.RunSymbolVerification(documentItem2, fooRange.Start, CancellationToken);
+    await WaitForStatus(fooRange, PublishedVerificationStatus.Correct, CancellationToken, documentItem2);
+  }
 
   [Fact]
   public async Task ManuallyRunMethodWithTwoUnderlyingTasks() {

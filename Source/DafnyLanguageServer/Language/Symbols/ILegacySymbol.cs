@@ -4,7 +4,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
   /// <summary>
   /// Represents a resolved symbol.
   /// </summary>
-  public interface ISymbol {
+  public interface ILegacySymbol {
     /// <summary>
     /// Gets the name of the symbol. The string is empty if the symbol does not have any name.
     /// </summary>
@@ -13,12 +13,12 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
     /// <summary>
     /// Gets all children of the current symbol.
     /// </summary>
-    IEnumerable<ISymbol> Children { get; }
+    IEnumerable<ILegacySymbol> Children { get; }
 
     /// <summary>
     /// Gets the symbol representing the enclosing scope, <c>null</c> if no other symbol.
     /// </summary>
-    ISymbol? Scope { get; }
+    ILegacySymbol? Scope { get; }
 
     /// <summary>
     /// Applies double dispatching using the specified visitor instance.

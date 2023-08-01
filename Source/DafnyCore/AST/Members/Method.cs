@@ -1,16 +1,15 @@
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
-using System.Threading;
 using Microsoft.Dafny.Auditor;
 
 namespace Microsoft.Dafny;
 
-public class Method : MemberDecl, TypeParameter.ParentType, IMethodCodeContext, ICanFormat, IHasDocstring {
-  public override IEnumerable<Node> Children => new Node[] { Body, Decreases }.
+public class Method : MemberDecl, TypeParameter.ParentType, IMethodCodeContext, ICanFormat, IHasDocstring, IHasSymbolChildren {
+  public override IEnumerable<INode> Children => new Node[] { Body, Decreases }.
     Where(x => x != null).Concat(Ins).Concat(Outs).Concat<Node>(TypeArgs).
     Concat(Req).Concat(Ens).Concat(Mod.Expressions);
-  public override IEnumerable<Node> PreResolveChildren => Children;
+  public override IEnumerable<INode> PreResolveChildren => Children;
 
   public override string WhatKind => "method";
   public bool SignatureIsOmitted { get { return SignatureEllipsis != null; } }
@@ -64,8 +63,8 @@ public class Method : MemberDecl, TypeParameter.ParentType, IMethodCodeContext, 
       yield return new Assumption(this, tok, AssumptionDescription.MayNotTerminate);
     }
 
-    foreach (var c in Descendants()) {
-      foreach (var a in c.Assumptions(this)) {
+    foreach (var c in this.Descendants()) {
+      foreach (var a in (c as Node)?.Assumptions(this) ?? Enumerable.Empty<Assumption>()) {
         yield return a;
       }
     }
@@ -355,7 +354,7 @@ public class Method : MemberDecl, TypeParameter.ParentType, IMethodCodeContext, 
     }
   }
 
-  protected override string GetTriviaContainingDocstring() {
+  public string GetTriviaContainingDocstring() {
     IToken lastClosingParenthesis = null;
     foreach (var token in OwnedTokens) {
       if (token.val == ")") {
@@ -368,5 +367,26 @@ public class Method : MemberDecl, TypeParameter.ParentType, IMethodCodeContext, 
     }
 
     return GetTriviaContainingDocstringFromStartTokenOrNull();
+  }
+
+  public virtual DafnySymbolKind Kind => DafnySymbolKind.Method;
+  public string GetDescription(DafnyOptions options) {
+    var qualifiedName = GetQualifiedName();
+    var signatureWithoutReturn = $"{WhatKind} {qualifiedName}({string.Join(", ", Ins.Select(i => i.AsText()))})";
+    if (Outs.Count == 0) {
+      return signatureWithoutReturn;
+    }
+    return $"{signatureWithoutReturn} returns ({string.Join(", ", Outs.Select(o => o.AsText()))})";
+  }
+
+  protected virtual string GetQualifiedName() {
+    return $"{AstExtensions.GetMemberQualification(this)}{Name}";
+  }
+
+  public IEnumerable<ISymbol> ChildSymbols {
+    get {
+      IEnumerable<INode> childStatements = Body?.Visit(node => node is Statement) ?? Enumerable.Empty<INode>();
+      return Outs.Concat(childStatements.OfType<VarDeclStmt>().SelectMany(v => (IEnumerable<ISymbol>)v.Locals));
+    }
   }
 }

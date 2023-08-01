@@ -821,12 +821,12 @@ namespace Microsoft.Dafny {
 
       if (InsertChecksums) {
         foreach (var impl in sink.Implementations) {
-          if (impl.FindStringAttribute("checksum") == null) {
+          if (impl.FindAttribute("checksum") == null) {
             impl.AddAttribute("checksum", "stable");
           }
         }
         foreach (var func in sink.Functions) {
-          if (func.FindStringAttribute("checksum") == null) {
+          if (func.FindAttribute("checksum") == null) {
             func.AddAttribute("checksum", "stable");
           }
         }
@@ -1773,7 +1773,7 @@ namespace Microsoft.Dafny {
 
       if (EmitImplementation(iter.Attributes)) {
         QKeyValue kv = etran.TrAttributes(iter.Attributes, null);
-        AddImplementationWithVerboseName(iter.tok, proc, inParams, new List<Variable>(),
+        AddImplementationWithVerboseName(GetToken(iter), proc, inParams, new List<Variable>(),
           localVariables, stmts, kv);
       }
 
@@ -1855,7 +1855,7 @@ namespace Microsoft.Dafny {
         // emit the impl only when there are proof obligations.
         QKeyValue kv = etran.TrAttributes(iter.Attributes, null);
 
-        AddImplementationWithVerboseName(iter.tok, proc, inParams,
+        AddImplementationWithVerboseName(GetToken(iter), proc, inParams,
           new List<Variable>(), localVariables, stmts, kv);
       }
 
@@ -3362,15 +3362,15 @@ namespace Microsoft.Dafny {
           if (vdecl.Update is AssignOrReturnStmt ars) {
             foreach (var sx in ars.ResolvedStatements) {
               if (sx is VarDeclStmt vdecl2) {
-                vdecl2.Locals.Iter(RemoveDefiniteAssignmentTracker);
+                vdecl2.Locals.ForEach(RemoveDefiniteAssignmentTracker);
               }
             }
           }
-          vdecl.Locals.Iter(RemoveDefiniteAssignmentTracker);
+          vdecl.Locals.ForEach(RemoveDefiniteAssignmentTracker);
         } else if (s is AssignOrReturnStmt ars) {
           foreach (var sx in ars.ResolvedStatements) {
             if (sx is VarDeclStmt vdecl2) {
-              vdecl2.Locals.Iter(RemoveDefiniteAssignmentTracker);
+              vdecl2.Locals.ForEach(RemoveDefiniteAssignmentTracker);
             }
           }
         }
@@ -3405,8 +3405,16 @@ namespace Microsoft.Dafny {
       }
     }
 
-    internal IToken GetToken(Node node) {
-      return flags.ReportRanges ? node.RangeToken.ToToken() : node.Tok;
+    internal IToken GetToken(INode node) {
+      if (flags.ReportRanges) {
+        // Filter against IHasUsages to only select declarations, not usages.
+        if (node is IDeclarationOrUsage declarationOrUsage && node is not IHasUsages) {
+          return new BoogieRangeToken(node.StartToken, node.EndToken, declarationOrUsage.NameToken);
+        }
+        return node.RangeToken.ToToken();
+      } else {
+        return node.Tok;
+      }
     }
 
     void CheckDefiniteAssignment(IdentifierExpr expr, BoogieStmtListBuilder builder) {
@@ -4449,7 +4457,7 @@ namespace Microsoft.Dafny {
       if (EmitImplementation(f.Attributes)) {
         // emit the impl only when there are proof obligations.
         QKeyValue kv = etran.TrAttributes(f.Attributes, null);
-        var impl = AddImplementationWithVerboseName(f.tok, proc,
+        var impl = AddImplementationWithVerboseName(GetToken(f), proc,
           Concat(Concat(Bpl.Formal.StripWhereClauses(typeInParams), inParams_Heap), implInParams),
           implOutParams,
           locals, implBody, kv);
@@ -4601,7 +4609,7 @@ namespace Microsoft.Dafny {
         // emit the impl only when there are proof obligations.
         QKeyValue kv = etran.TrAttributes(decl.Attributes, null);
 
-        AddImplementationWithVerboseName(decl.tok, proc, implInParams, new List<Variable>(), locals, implBody, kv);
+        AddImplementationWithVerboseName(GetToken(decl), proc, implInParams, new List<Variable>(), locals, implBody, kv);
       }
 
       // TODO: Should a checksum be inserted here?
@@ -4680,7 +4688,7 @@ namespace Microsoft.Dafny {
         QKeyValue kv = etran.TrAttributes(decl.Attributes, null);
         var implBody = builder.Collect(decl.tok);
 
-        AddImplementationWithVerboseName(decl.tok, proc, implInParams,
+        AddImplementationWithVerboseName(GetToken(decl), proc, implInParams,
           new List<Variable>(), locals, implBody, kv);
       }
 
@@ -4753,7 +4761,7 @@ namespace Microsoft.Dafny {
         // emit the impl only when there are proof obligations.
         QKeyValue kv = etran.TrAttributes(ctor.Attributes, null);
         var implBody = builder.Collect(ctor.tok);
-        AddImplementationWithVerboseName(ctor.tok, proc, implInParams,
+        AddImplementationWithVerboseName(GetToken(ctor), proc, implInParams,
           new List<Variable>(), locals, implBody, kv);
       }
 
@@ -6938,7 +6946,7 @@ namespace Microsoft.Dafny {
           outParams.Add(new Bpl.Formal(p.tok, new Bpl.TypedIdent(p.tok, p.AssignUniqueName(currentDeclaration.IdGenerator), varType, wh), false));
         }
         // tear down definite-assignment trackers
-        m.Outs.Iter(RemoveDefiniteAssignmentTracker);
+        m.Outs.ForEach(RemoveDefiniteAssignmentTracker);
         Contract.Assert(definiteAssignmentTrackers.Count == 0);
 
         if (kind == MethodTranslationKind.Implementation) {
@@ -10596,7 +10604,7 @@ namespace Microsoft.Dafny {
         }
         visitor.Visit(body);
       }
-      return LinqExtender.Zip(f.Formals, fexp.Args).All(formal_concrete => CanSafelySubstitute(visitor.TriggerVariables, formal_concrete.Item1, formal_concrete.Item2));
+      return Enumerable.Zip(f.Formals, fexp.Args).All(formal_concrete => CanSafelySubstitute(visitor.TriggerVariables, formal_concrete.Item1, formal_concrete.Item2));
     }
 
     // Using an empty set of old expressions is ok here; the only uses of the triggersCollector will be to check for trigger killers.
@@ -10722,8 +10730,8 @@ namespace Microsoft.Dafny {
     // No expression introduces a type variable
     static void ComputeFreeTypeVariables(Expression expr, ISet<TypeParameter> fvs) {
       ComputeFreeTypeVariables(expr.Type, fvs);
-      expr.ComponentTypes.Iter(ty => ComputeFreeTypeVariables((Type)ty, fvs));
-      expr.SubExpressions.Iter(ee => ComputeFreeTypeVariables(ee, fvs));
+      expr.ComponentTypes.ForEach(ty => ComputeFreeTypeVariables((Type)ty, fvs));
+      expr.SubExpressions.ForEach(ee => ComputeFreeTypeVariables(ee, fvs));
     }
 
     static void ComputeFreeTypeVariables(Type ty, ISet<TypeParameter> fvs) {
@@ -10733,7 +10741,7 @@ namespace Microsoft.Dafny {
         Contract.Assert(ty.TypeArgs.Count == 0);
         fvs.Add(tp);
       } else {
-        ty.NormalizeExpandKeepConstraints().TypeArgs.Iter(tt => ComputeFreeTypeVariables(tt, fvs));
+        ty.NormalizeExpandKeepConstraints().TypeArgs.ForEach(tt => ComputeFreeTypeVariables(tt, fvs));
       }
     }
 
@@ -10742,7 +10750,7 @@ namespace Microsoft.Dafny {
       if (ty.IsTypeParameter) {
         fvs.Add(ty.AsTypeParameter);
       }
-      ty.NormalizeExpandKeepConstraints().TypeArgs.Iter(tt => ComputeFreeTypeVariables_All(tt, fvs));
+      ty.NormalizeExpandKeepConstraints().TypeArgs.ForEach(tt => ComputeFreeTypeVariables_All(tt, fvs));
     }
 
     public bool UsesHeap(Expression expr) {
@@ -10852,7 +10860,7 @@ namespace Microsoft.Dafny {
         return body;
       }
       for (var tt = trg; tt != null; tt = tt.Next) {
-        tt.Tr.Iter(ee => vis.Visit(ee));
+        tt.Tr.ForEach(ee => vis.Visit(ee));
       }
 
       var args = new List<Bpl.Variable>();

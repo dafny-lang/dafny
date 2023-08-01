@@ -243,7 +243,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
       ErrorWriter = errorWriter;
       ErrorTrace = 0;
       Prune = true;
-      TypeEncodingMethod = Bpl.CoreOptions.TypeEncoding.Predicates;
+      TypeEncodingMethod = Bpl.CoreOptions.TypeEncoding.Arguments;
       NormalizeNames = true;
       EmitDebugInformation = false;
       Backend = new CsharpBackend(this);
@@ -413,6 +413,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
       src.CopyTo(this);
       CliRootSourceUris = new List<Uri>(src.CliRootSourceUris);
       ProverOptions = new List<string>(src.ProverOptions);
+      Options = new Options(src.Options.OptionArguments.ToDictionary(kv => kv.Key, kv => kv.Value));
     }
 
     public void CopyTo(DafnyOptions dst) {

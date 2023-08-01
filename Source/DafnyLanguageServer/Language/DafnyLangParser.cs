@@ -21,7 +21,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     private readonly ITelemetryPublisher telemetryPublisher;
     private readonly ILogger<DafnyLangParser> logger;
     private readonly SemaphoreSlim mutex = new(1);
-    private readonly CachingParser cachingParser;
+    private readonly ProgramParser programParser;
 
     public DafnyLangParser(DafnyOptions options, IFileSystem fileSystem, ITelemetryPublisher telemetryPublisher,
       ILogger<DafnyLangParser> logger, ILogger<CachingParser> innerParserLogger) {
@@ -29,15 +29,17 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       this.fileSystem = fileSystem;
       this.telemetryPublisher = telemetryPublisher;
       this.logger = logger;
-      cachingParser = new CachingParser(innerParserLogger, fileSystem);
+      programParser = options.Get(ServerCommand.UseCaching)
+        ? new CachingParser(innerParserLogger, fileSystem)
+        : new ProgramParser(innerParserLogger, fileSystem);
     }
 
-    public Program Parse(DafnyProject project, ErrorReporter reporter, CancellationToken cancellationToken) {
+    public Program Parse(Compilation compilation, ErrorReporter reporter, CancellationToken cancellationToken) {
       mutex.Wait(cancellationToken);
 
       var beforeParsing = DateTime.Now;
       try {
-        var rootSourceUris = project.GetRootSourceUris(fileSystem, options).Concat(options.CliRootSourceUris).ToList();
+        var rootSourceUris = compilation.RootUris;
         List<DafnyFile> dafnyFiles = new();
         foreach (var rootSourceUri in rootSourceUris) {
           try {
@@ -46,12 +48,10 @@ namespace Microsoft.Dafny.LanguageServer.Language {
             logger.LogError($"Tried to parse file {rootSourceUri} that could not be found");
           }
         }
-        var result = cachingParser.ParseFiles(project.ProjectName, dafnyFiles, reporter, cancellationToken);
-        cachingParser.Prune();
-        return result;
+        return programParser.ParseFiles(compilation.Project.ProjectName, dafnyFiles, reporter, cancellationToken);
       }
       finally {
-        telemetryPublisher.PublishTime("Parse", project.Uri.ToString(), DateTime.Now - beforeParsing);
+        telemetryPublisher.PublishTime("Parse", compilation.Project.Uri.ToString(), DateTime.Now - beforeParsing);
         mutex.Release();
       }
     }

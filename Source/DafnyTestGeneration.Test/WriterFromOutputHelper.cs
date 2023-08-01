@@ -1,3 +1,7 @@
+// Copyright by the contributors to the Dafny Project
+// SPDX-License-Identifier: MIT
+
+#nullable disable
 using System.IO;
 using System.Text;
 using Xunit.Abstractions;

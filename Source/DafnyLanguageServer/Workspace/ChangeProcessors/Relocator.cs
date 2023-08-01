@@ -295,13 +295,13 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
         return symbolFrom.CompareTo(changeRange.End) >= 0;
       }
 
-      private IDictionary<ISymbol, SymbolLocation> ApplyDeclarationsChange(
+      private IDictionary<ILegacySymbol, SymbolLocation> ApplyDeclarationsChange(
         SignatureAndCompletionTable originalSymbolTable,
-        IDictionary<ISymbol, SymbolLocation> previousDeclarations,
+        IDictionary<ILegacySymbol, SymbolLocation> previousDeclarations,
         TextDocumentContentChangeEvent changeRange,
         Position? afterChangeEndOffset
       ) {
-        var migratedDeclarations = new Dictionary<ISymbol, SymbolLocation>();
+        var migratedDeclarations = new Dictionary<ILegacySymbol, SymbolLocation>();
         foreach (var (symbol, location) in previousDeclarations) {
           cancellationToken.ThrowIfCancellationRequested();
           if (location.Uri != changeParams.TextDocument.Uri.ToUri()) {

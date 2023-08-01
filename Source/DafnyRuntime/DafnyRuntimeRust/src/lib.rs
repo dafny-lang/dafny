@@ -1,4 +1,25 @@
-use std::fmt::{Display, Formatter};
+use std::{fmt::{Display, Formatter}, rc::Rc, ops::Deref};
+pub use once_cell::unsync::Lazy;
+
+pub struct LazyFieldWrapper<A>(pub Lazy<A, Box<dyn 'static + FnOnce() -> A>>);
+
+impl <A: PartialEq> PartialEq for LazyFieldWrapper<A> {
+    fn eq(&self, other: &Self) -> bool {
+        self.0.deref() == other.0.deref()
+    }
+}
+
+impl <A: Default + 'static> Default for LazyFieldWrapper<A> {
+    fn default() -> Self {
+        Self(Lazy::new(Box::new(A::default)))
+    }
+}
+
+impl <A: DafnyPrint> DafnyPrint for LazyFieldWrapper<A> {
+    fn fmt_print(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        self.0.deref().fmt_print(f)
+    }
+}
 
 pub struct DafnyPrintWrapper<T>(pub T);
 impl <T: DafnyPrint> Display for DafnyPrintWrapper<&T> {
@@ -40,6 +61,12 @@ impl_print_display! { f64 }
 impl DafnyPrint for () {
     fn fmt_print(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "()")
+    }
+}
+
+impl <T: DafnyPrint> DafnyPrint for Rc<T> {
+    fn fmt_print(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        self.as_ref().fmt_print(f)
     }
 }
 
