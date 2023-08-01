@@ -64,10 +64,10 @@
       <LogicalName>DafnyRuntime.py</LogicalName>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </EmbeddedResource>
-    <EmbeddedResource Include="..\DafnyRuntime\DafnyRuntimeRust\src\lib.rs">
-      <LogicalName>DafnyRuntimeRust.rs</LogicalName>
+    <EmbeddedResource Include="..\DafnyRuntime\DafnyRuntimeRust\**" LinkBase="DafnyRuntimeRust">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </EmbeddedResource>
+    <EmbeddedResource Remove="..\DafnyRuntime\DafnyRuntimeRust\target\**"/>
   </ItemGroup>
 
 </Project>

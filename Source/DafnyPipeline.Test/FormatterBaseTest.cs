@@ -84,7 +84,7 @@ namespace DafnyPipeline.Test {
 
         // Formatting should work even if we clone the program after parsing
         Cloner clone = new();
-        dafnyProgram.Visit((Node n) => {
+        dafnyProgram.Visit((INode n) => {
           if (n is TopLevelDeclWithMembers nWithMembers) {
             var newMembers = new List<MemberDecl>();
             foreach (var member in nWithMembers.MembersBeforeResolution) {
@@ -162,7 +162,7 @@ namespace DafnyPipeline.Test {
     }
 
     private static void ReportNotOwnedToken(string programNotIndented, IToken notOwnedToken,
-      Dictionary<int, List<Node>> posToOwnerNode) {
+      Dictionary<int, List<INode>> posToOwnerNode) {
       var nextOwnedToken = notOwnedToken.Next;
       while (nextOwnedToken != null && !posToOwnerNode.ContainsKey(nextOwnedToken.pos)) {
         nextOwnedToken = nextOwnedToken.Next;
@@ -192,9 +192,9 @@ namespace DafnyPipeline.Test {
     }
 
     private static HashSet<int> CollectTokensWithoutOwner(Program dafnyProgram, IToken firstToken,
-      out Dictionary<int, List<Node>> posToOwnerNode) {
+      out Dictionary<int, List<INode>> posToOwnerNode) {
       HashSet<int> tokensWithoutOwner = new HashSet<int>();
-      var posToOwnerNodeInner = new Dictionary<int, List<Node>>();
+      var posToOwnerNodeInner = new Dictionary<int, List<INode>>();
 
       var t = firstToken;
       while (t != null) {
@@ -205,15 +205,15 @@ namespace DafnyPipeline.Test {
         t = t.Next;
       }
 
-      void ProcessOwnedTokens(Node node) {
+      void ProcessOwnedTokens(INode node) {
         var ownedTokens = node.OwnedTokens;
         foreach (var token in ownedTokens) {
           tokensWithoutOwner.Remove(token.pos);
-          posToOwnerNodeInner.GetOrCreate(token.pos, () => new List<Node>()).Add(node);
+          posToOwnerNodeInner.GetOrCreate(token.pos, () => new List<INode>()).Add(node);
         }
       }
 
-      void ProcessNode(Node node) {
+      void ProcessNode(INode node) {
         if (node == null) {
           return;
         }
