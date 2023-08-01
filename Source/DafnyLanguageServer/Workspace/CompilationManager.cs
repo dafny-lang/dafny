@@ -307,7 +307,6 @@ public class CompilationManager {
   }
 
   private void HandleStatusUpdate(CompilationAfterResolution compilation, ICanVerify verifiable, IImplementationTask implementationTask, IVerificationStatus boogieStatus) {
-    var id = GetImplementationId(implementationTask.Implementation);
     var status = StatusFromBoogieStatus(boogieStatus);
 
     var implementations = compilation.ImplementationsPerVerifiable[verifiable]!;
