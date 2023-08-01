@@ -117,7 +117,7 @@ class HigherOrderHeapAllocationChecker : ASTVisitor<IASTVisitorContext> {
         var type = exp.Type;
 
         //if (OccursSquig(type)) {
-        if (CrawlAndCheck(t => !t.IsArrowTypeWithoutReadEffects, type)) {
+        if (CrawlAndCheck(t => t.IsArrowType && !t.IsArrowTypeWithoutReadEffects, type)) {
           reporter.Error(MessageSource.Resolver, stmt,
             $"To prevent the creation of non-terminating functions, storing functions with read effects into memory is disallowed");
         }
@@ -127,7 +127,6 @@ class HigherOrderHeapAllocationChecker : ASTVisitor<IASTVisitorContext> {
           var arrow = type.AsArrowType;
           for (int i = 0; i < arrow.Arity; i++) {
             //var occurs = Occurs(lhsType, arrow.Args[i]);
-            var occurs = Occurs(lhsType, arrow.Args[i]);
             if (CrawlAndCheck(t => lhsType.Equals(t), arrow.Args[i])) {
               reporter.Error(MessageSource.Resolver, stmt,
                 $"To prevent the creation of non-terminating functions, storing functions into an object's fields that reads the object is disallowed");
