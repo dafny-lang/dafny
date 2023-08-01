@@ -1008,10 +1008,6 @@ method Workaround() {
 }
 
 // ------------------------
-// Also, see examples in https://github.com/dafny-lang/dafny/issues/1731
-
-
-// ------------------------
 // From https://github.com/dafny-lang/dafny/issues/1292:
 
 datatype List <T> = None | Cons (hd: T, tl: List<T>)
