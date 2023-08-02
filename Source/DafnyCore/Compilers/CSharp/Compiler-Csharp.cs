@@ -2937,8 +2937,8 @@ namespace Microsoft.Dafny.Compilers {
           TrParenExpr("~", expr, wr, inLetExprBody, wStmts);
           break;
         case ResolvedUnaryOp.Cardinality:
-          TrParenExpr("new BigInteger(", expr, wr, inLetExprBody, wStmts);
-          wr.Write(".Count)");
+          TrParenExpr(expr, wr, inLetExprBody, wStmts);
+          wr.Write(".ElementCount");
           break;
         default:
           Contract.Assert(false); throw new cce.UnreachableException();  // unexpected unary expression
