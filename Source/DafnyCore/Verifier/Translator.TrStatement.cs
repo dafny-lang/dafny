@@ -87,7 +87,7 @@ namespace Microsoft.Dafny {
           rhs.ResolvedOp = BinaryExpr.ResolvedOpcode.Concat;
           rhs.Type = ys.Type;  // resolve here
           var cmd = Bpl.Cmd.SimpleAssign(s.Tok, etran.HeapCastToIdentifierExpr,
-            ExpressionTranslator.UpdateHeap(s.Tok, etran.HeapExpr, etran.TrExpr(th), new Bpl.IdentifierExpr(s.Tok, GetField(ys)), etran.TrExpr(rhs)));
+            UpdateHeap(s.Tok, etran.HeapExpr, etran.TrExpr(th), new Bpl.IdentifierExpr(s.Tok, GetField(ys)), etran.TrExpr(rhs)));
           builder.Add(cmd);
         }
         // yieldCount := yieldCount + 1;  assume yieldCount == |ys|;
@@ -1268,8 +1268,8 @@ namespace Microsoft.Dafny {
       Bpl.IdentifierExpr o = new Bpl.IdentifierExpr(s.Tok, oVar);
       Bpl.BoundVariable fVar = new Bpl.BoundVariable(s.Tok, new Bpl.TypedIdent(s.Tok, "$f", predef.FieldName(s.Tok, alpha)));
       Bpl.IdentifierExpr f = new Bpl.IdentifierExpr(s.Tok, fVar);
-      Bpl.Expr heapOF = ExpressionTranslator.ReadHeap(s.Tok, etran.HeapExpr, o, f);
-      Bpl.Expr oldHeapOF = ExpressionTranslator.ReadHeap(s.Tok, prevHeap, o, f);
+      Bpl.Expr heapOF = ReadHeap(s.Tok, etran.HeapExpr, o, f, alpha);
+      Bpl.Expr oldHeapOF = ReadHeap(s.Tok, prevHeap, o, f, alpha);
       List<bool> freeOfAlloc = ComprehensionExpr.BoundedPool.HasBounds(s.Bounds, ComprehensionExpr.BoundedPool.PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc);
       List<Variable> xBvars = new List<Variable>();
       var xBody = etran.TrBoundVariables(s.BoundVars, xBvars, false, freeOfAlloc);
@@ -1323,9 +1323,10 @@ namespace Microsoft.Dafny {
       xAnte = BplAnd(xAnte, prevEtran.TrExpr(range));
       var g = prevEtran.TrExpr(rhs);
       GetObjFieldDetails(lhs, prevEtran, out var obj, out var field);
-      var xHeapOF = ExpressionTranslator.ReadHeap(tok, etran.HeapExpr, obj, field);
+      var xHeapOF = ReadHeap(tok, etran.HeapExpr, obj, field);
 
       Type lhsType = lhs is MemberSelectExpr ? ((MemberSelectExpr)lhs).Type : null;
+
       g = CondApplyBox(rhs.tok, g, rhs.Type, lhsType);
 
       Bpl.Trigger tr = null;
@@ -2121,7 +2122,7 @@ namespace Microsoft.Dafny {
         new List<Bpl.IdentifierExpr>() { updatedSetIE });
       builder.Add(cmd);
       // $Heap[this, _new] := $iter_newUpdate;
-      cmd = Bpl.Cmd.SimpleAssign(iter.tok, currentHeap, ExpressionTranslator.UpdateHeap(iter.tok, currentHeap, th, nwField, updatedSetIE));
+      cmd = Bpl.Cmd.SimpleAssign(iter.tok, currentHeap, UpdateHeap(iter.tok, currentHeap, th, nwField, updatedSetIE));
       builder.Add(cmd);
       // assume $IsGoodHeap($Heap)
       builder.Add(AssumeGoodHeap(tok, etran));

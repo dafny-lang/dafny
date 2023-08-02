@@ -25,7 +25,7 @@ public abstract class ProduceStmt : Statement {
     HiddenUpdate = null;
   }
 
-  public override IEnumerable<Node> Children =>
+  public override IEnumerable<INode> Children =>
     HiddenUpdate == null ? base.Children : new Node[] { HiddenUpdate }.Concat(base.Children);
 
   public override IEnumerable<Expression> NonSpecificationSubExpressions {
