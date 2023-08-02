@@ -26,23 +26,34 @@ refman-release: exe
 
 z3-mac:
 	mkdir -p ${DIR}Binaries/z3/bin
-	wget https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2023-02-17/z3-4.12.1-macos-11-bin.zip
-	unzip z3-4.12.1-macos-11-bin.zip
-	rm z3-4.12.1-macos-11-bin.zip
-	wget https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2023-02-17/z3-4.8.5-macos-11-bin.zip
-	unzip z3-4.8.5-macos-11-bin.zip
-	rm z3-4.8.5-macos-11-bin.zip
+	wget https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2023-08-02/z3-4.12.1-x64-macos-11-bin.zip
+	unzip z3-4.12.1-x64-macos-11-bin.zip
+	rm z3-4.12.1-x64-macos-11-bin.zip
+	wget https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2023-08-02/z3-4.8.5-x64-macos-11-bin.zip
+	unzip z3-4.8.5-x64-macos-11-bin.zip
+	rm z3-4.8.5-x64-macos-11-bin.zip
+	mv z3-* ${DIR}/Binaries/z3/bin/
+	chmod +x ${DIR}/Binaries/z3/bin/z3-*
+
+z3-mac-arm:
+	mkdir -p ${DIR}Binaries/z3/bin
+	wget https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2023-08-02/z3-4.12.1-arm64-macos-11-bin.zip
+	unzip z3-4.12.1-arm64-macos-11-bin.zip
+	rm z3-4.12.1-arm64-macos-11-bin.zip
+	wget https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2023-08-02/z3-4.8.5-arm64-macos-11-bin.zip
+	unzip z3-4.8.5-arm64-macos-11-bin.zip
+	rm z3-4.8.5-arm64-macos-11-bin.zip
 	mv z3-* ${DIR}/Binaries/z3/bin/
 	chmod +x ${DIR}/Binaries/z3/bin/z3-*
 
 z3-ubuntu:
 	mkdir -p ${DIR}Binaries/z3/bin
-	wget https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2023-02-17/z3-4.12.1-ubuntu-20.04-bin.zip
-	unzip z3-4.12.1-ubuntu-20.04-bin.zip
-	rm z3-4.12.1-ubuntu-20.04-bin.zip
-	wget https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2023-02-17/z3-4.8.5-ubuntu-20.04-bin.zip
-	unzip z3-4.8.5-ubuntu-20.04-bin.zip
-	rm z3-4.8.5-ubuntu-20.04-bin.zip
+	wget https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2023-08-02/z3-4.12.1-x64-ubuntu-20.04-bin.zip
+	unzip z3-4.12.1-x64-ubuntu-20.04-bin.zip
+	rm z3-4.12.1-x64-ubuntu-20.04-bin.zip
+	wget https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2023-08-02/z3-4.8.5-x64-ubuntu-20.04-bin.zip
+	unzip z3-4.8.5-x64-ubuntu-20.04-bin.zip
+	rm z3-4.8.5-x64-ubuntu-20.04-bin.zip
 	mv z3-* ${DIR}/Binaries/z3/bin/
 	chmod +x ${DIR}/Binaries/z3/bin/z3-*
 
