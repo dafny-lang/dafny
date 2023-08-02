@@ -36,8 +36,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       }
 
       PublishVerificationStatus(previousState, state);
-      var _ = PublishDocumentDiagnostics(state);
-      PublishGhostDiagnostics(previousState, state);
+      var _ = PublishDiagnostics(state);
+      PublishGhostness(previousState, state);
     }
 
     private void PublishVerificationStatus(IdeState previousState, IdeState state) {
@@ -80,7 +80,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     private Dictionary<Uri, IList<Diagnostic>> publishedDiagnostics = new();
 
-    private async Task PublishDocumentDiagnostics(IdeState state) {
+    private async Task PublishDiagnostics(IdeState state) {
       var currentDiagnostics = state.GetDiagnostics();
 
       // All root uris are added because we may have to publish empty diagnostics for owned uris.
@@ -164,7 +164,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       }
     }
 
-    private void PublishGhostDiagnostics(IdeState previousState, IdeState state) {
+    private void PublishGhostness(IdeState previousState, IdeState state) {
 
       var newParams = state.GhostRanges;
       var previousParams = previousState.GhostRanges;
