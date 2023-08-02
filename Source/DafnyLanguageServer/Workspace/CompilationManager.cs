@@ -99,6 +99,10 @@ public class CompilationManager {
       await started.Task;
       var documentAfterParsing = await documentLoader.ParseAsync(options, startingCompilation, cancellationSource.Token);
       var state = documentAfterParsing.InitialIdeState(startingCompilation, options);
+      state = state with {
+        VerificationTrees = documentAfterParsing.RootUris.ToDictionary(uri => uri,
+          uri => migratedVerificationTrees.GetValueOrDefault(uri) ?? new DocumentVerificationTree(documentAfterParsing.Program, uri))
+      };
       foreach (var root in documentAfterParsing.RootUris) {
         notificationPublisher.PublishGutterIcons(root, state, false);
       }
@@ -115,18 +119,17 @@ public class CompilationManager {
     try {
       var parsedCompilation = await ParsedCompilation;
       var resolvedCompilation = await documentLoader.ResolveAsync(options, parsedCompilation, migratedVerificationTrees, cancellationSource.Token);
-
       
       // TODO, let gutter icon publications also used the published CompilationView.
+      verificationProgressReporter.RecomputeVerificationTrees(resolvedCompilation);
       var state = resolvedCompilation.InitialIdeState(startingCompilation, options);
-      // state = state with {
-      //   VerificationTrees = resolvedCompilation.RootUris.ToDictionary(uri => uri,
-      //     uri => migratedVerificationTrees.GetValueOrDefault(uri) ?? new DocumentVerificationTree(resolvedCompilation.Program, uri))
-      // };
+      state = state with {
+        VerificationTrees = resolvedCompilation.RootUris.ToDictionary(uri => uri,
+          uri => migratedVerificationTrees.GetValueOrDefault(uri) ?? new DocumentVerificationTree(resolvedCompilation.Program, uri))
+      };
       foreach (var root in resolvedCompilation.RootUris) {
         notificationPublisher.PublishGutterIcons(root, state, false);
       }
-      verificationProgressReporter.RecomputeVerificationTrees(resolvedCompilation);
 
       logger.LogDebug($"documentUpdates.HasObservers: {compilationUpdates.HasObservers}, threadId: {Thread.CurrentThread.ManagedThreadId}");
       compilationUpdates.OnNext(resolvedCompilation);
@@ -230,9 +233,9 @@ public class CompilationManager {
     MarkVerificationStarted();
 
     IReadOnlyDictionary<FilePosition, IReadOnlyList<IImplementationTask>> tasksForModule;
-    var _ = statusPublisher.SendStatusNotification(compilation, CompilationStatus.PreparingVerification);
     try {
-      tasksForModule = await compilation.TranslatedModules.GetOrAdd(containingModule, async _ => {
+      tasksForModule = await compilation.TranslatedModules.GetOrAdd(containingModule, async m => {
+        _ = statusPublisher.SendStatusNotification(compilation, CompilationStatus.PreparingVerification);
         var result = await verifier.GetVerificationTasksAsync(boogieEngine, compilation, containingModule,
           cancellationSource.Token);
         foreach (var task in result) {
@@ -255,15 +258,15 @@ public class CompilationManager {
 
       verificationProgressReporter.ReportImplementationsBeforeVerification(compilation,
         verifiable, tasksForVerifiable.Select(t => t.Implementation).ToArray());
-      
-      foreach (var uri in compilation.RootUris) {
+
+      foreach (var uri in compilation.RootUris) { // TODO scope to one uri ?
         verificationProgressReporter.ReportRealtimeDiagnostics(compilation, uri, true);
       }
       // compilationUpdates.OnNext(compilation);
       return tasksForVerifiable.ToDictionary(
         t => GetImplementationName(t.Implementation),
         t => new ImplementationView(t, PublishedVerificationStatus.Stale, Array.Empty<DafnyDiagnostic>()));
-    })!;
+    });
 
     var tasks = implementations.Values.Select(t => t.Task).ToList();
 

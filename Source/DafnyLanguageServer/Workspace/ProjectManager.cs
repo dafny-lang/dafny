@@ -36,6 +36,8 @@ public class ProjectManager : IDisposable {
   private readonly IdeStateObserver observer;
   public CompilationManager CompilationManager { get; private set; }
   private IDisposable observerSubscription;
+  private readonly INotificationPublisher notificationPublisher;
+  private readonly IVerificationProgressReporter verificationProgressReporter;
   private readonly ILogger<ProjectManager> logger;
 
   /// <summary>
@@ -65,11 +67,15 @@ public class ProjectManager : IDisposable {
     ILogger<ProjectManager> logger,
     IRelocator relocator,
     IFileSystem fileSystem,
+    INotificationPublisher notificationPublisher, 
+    IVerificationProgressReporter verificationProgressReporter,
     CreateCompilationManager createCompilationManager,
     CreateIdeStateObserver createIdeStateObserver,
     ExecutionEngine boogieEngine,
     DafnyProject project) {
     Project = project;
+    this.verificationProgressReporter = verificationProgressReporter;
+    this.notificationPublisher = notificationPublisher;
     this.serverOptions = serverOptions;
     this.fileSystem = fileSystem;
     this.createCompilationManager = createCompilationManager;
@@ -301,8 +307,10 @@ public class ProjectManager : IDisposable {
         null, false).ToList();
 
       foreach (var canVerify in orderedVerifiables) {
+        // Wait for each task to try and run, so the order is respected.
         await CompilationManager.VerifyTask(resolvedCompilation, canVerify);
       }
+
     }
     finally {
       logger.LogDebug("Setting result for workCompletedForCurrentVersion");
