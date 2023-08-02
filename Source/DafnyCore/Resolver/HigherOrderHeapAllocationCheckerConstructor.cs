@@ -10,10 +10,10 @@ using System.Reflection;
 
 namespace Microsoft.Dafny;
 
-class HigherOrderHeapAllocationChecker : ASTVisitor<IASTVisitorContext> {
+class HigherOrderHeapAllocationCheckerConstructor : ASTVisitor<IASTVisitorContext> {
   private readonly ErrorReporter reporter;
 
-  public HigherOrderHeapAllocationChecker(ErrorReporter reporter) {
+  public HigherOrderHeapAllocationCheckerConstructor(ErrorReporter reporter) {
     this.reporter = reporter;
   }
 
@@ -21,27 +21,25 @@ class HigherOrderHeapAllocationChecker : ASTVisitor<IASTVisitorContext> {
     return astVisitorContext;
   }
 
-  private bool ContainsRead(Type rhs) {
+  private bool Occurs(Type Obj, Type rhs) {
     Type type = rhs.NormalizeExpandKeepConstraints();
     if (type is BasicType) {
       return false;
     } else if (type is MapType) {
       var t = (MapType)type;
-      return ContainsRead(t.Domain) || ContainsRead(t.Range);
+      return Occurs(Obj, t.Domain) || Occurs(Obj, t.Range);
     } else if (type is CollectionType) {
       var t = (CollectionType)type;
-      return ContainsRead(t.Arg);
+      return Occurs(Obj, t.Arg);
     } else {
       var t = (UserDefinedType)type;
-      if (t.IsArrowType) {
-        if (!t.IsArrowTypeWithoutReadEffects) {
-          return true;
-        }
+      if (Obj.Equals(t)) {
+        return true;
       }
 
       var b = false;
       for (int i = 0; i < t.TypeArgs.Count; i++) {
-        b = b || ContainsRead(t.TypeArgs[i]);
+        b = b || Occurs(Obj, t.TypeArgs[i]);
       }
 
       return b;
@@ -52,16 +50,25 @@ class HigherOrderHeapAllocationChecker : ASTVisitor<IASTVisitorContext> {
     if (stmt is AssignStmt assign) {
 
       var lhs = assign.Lhs;
-      var rhs = assign.Rhs;
-      if (lhs is MemberSelectExpr || lhs is SeqSelectExpr) {
+      Type lhsType;
+      if (lhs is MemberSelectExpr mseLhs) {
 
+        lhsType = mseLhs.Obj.Type.NormalizeExpandKeepConstraints();
+
+        var rhs = assign.Rhs;
         if (rhs is ExprRhs eRhs) {
           var exp = eRhs.Expr;
           var type = exp.Type;
 
-          if (ContainsRead(type)) {
-            reporter.Error(MessageSource.Resolver, stmt,
-              $"To prevent the creation of non-terminating functions, storing functions with read effects into memory is disallowed");
+          if (type.IsArrowType) {
+
+            var arrow = type.AsArrowType;
+            for (int i = 0; i < arrow.Arity; i++) {
+              if (Occurs(lhsType, arrow.Args[i])) {
+                reporter.Error(MessageSource.Resolver, stmt,
+                  $"To prevent the creation of non-terminating functions, storing functions into an object's fields that reads the object is disallowed");
+              }
+            }
           }
         }
       }
