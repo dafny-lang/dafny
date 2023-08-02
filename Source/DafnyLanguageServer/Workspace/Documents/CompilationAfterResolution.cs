@@ -7,7 +7,6 @@ using Microsoft.Boogie;
 using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Language.Symbols;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
-using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace;
@@ -21,7 +20,7 @@ public class CompilationAfterResolution : CompilationAfterParsing {
     SymbolTable? symbolTable,
     SignatureAndCompletionTable signatureAndCompletionTable,
     IReadOnlyDictionary<Uri, IReadOnlyList<Range>> ghostDiagnostics,
-    Dictionary<ICanVerify, VerifyStatus?> implementationsPerVerifiable,
+    IReadOnlyList<ICanVerify> verifiables,
     ConcurrentDictionary<ModuleDefinition, Task<IReadOnlyDictionary<FilePosition, IReadOnlyList<IImplementationTask>>>> translatedModules,
     List<Counterexample> counterexamples,
     Dictionary<Uri, VerificationTree> verificationTrees
@@ -30,7 +29,7 @@ public class CompilationAfterResolution : CompilationAfterParsing {
     SymbolTable = symbolTable;
     SignatureAndCompletionTable = signatureAndCompletionTable;
     GhostDiagnostics = ghostDiagnostics;
-    ImplementationsPerVerifiable = implementationsPerVerifiable;
+    Verifiables = verifiables;
     TranslatedModules = translatedModules;
     Counterexamples = counterexamples;
     VerificationTrees = verificationTrees;
@@ -40,7 +39,8 @@ public class CompilationAfterResolution : CompilationAfterParsing {
   public SymbolTable? SymbolTable { get; }
   public SignatureAndCompletionTable SignatureAndCompletionTable { get; }
   public IReadOnlyDictionary<Uri, IReadOnlyList<Range>> GhostDiagnostics { get; }
-  public Dictionary<ICanVerify, VerifyStatus?> ImplementationsPerVerifiable { get; }
+  public IReadOnlyList<ICanVerify> Verifiables { get; }
+  public ConcurrentDictionary<ICanVerify, VerifyStatus> ImplementationsPerVerifiable { get; } = new();
   /// <summary>
   /// FilePosition is required because the default module lives in multiple files
   /// </summary>
@@ -51,7 +51,7 @@ public class CompilationAfterResolution : CompilationAfterParsing {
       Where(kv => kv.Key.Tok.Uri == uri).
       Select(kv => kv.Value).ToList();
     var verificationDiagnostics = implementationsForUri.SelectMany(view =>
-      view?.Values.SelectMany(v => v.Diagnostics) ?? Enumerable.Empty<DafnyDiagnostic>());
+      view.Values.SelectMany(v => v.Diagnostics) ?? Enumerable.Empty<DafnyDiagnostic>());
     return base.GetDiagnostics(uri).Concat(verificationDiagnostics);
   }
 
@@ -59,16 +59,22 @@ public class CompilationAfterResolution : CompilationAfterParsing {
     IEnumerable<KeyValuePair<string, IdeImplementationView>> MergeVerifiable(ICanVerify canVerify) {
       var location = canVerify.NameToken.GetLocation();
       var previousForCanVerify = previousState.ImplementationViews.GetValueOrDefault(location) ?? new Dictionary<string, IdeImplementationView>();
-      return ImplementationsPerVerifiable[canVerify]?.Select(kv => {
+      if (!ImplementationsPerVerifiable.TryGetValue(canVerify, out var implementationsPerName)) {
+        return previousForCanVerify;
+      }
+
+      return implementationsPerName.Select(kv => {
         var implementationView = kv.Value;
         var diagnostics = implementationView.Diagnostics.Select(d => d.ToLspDiagnostic());
         if (implementationView.Status < PublishedVerificationStatus.Error) {
           diagnostics = previousForCanVerify.GetValueOrDefault(kv.Key)?.Diagnostics ?? diagnostics;
         }
 
-        var value = new IdeImplementationView(implementationView.Task.Implementation.tok.GetLspRange(true), implementationView.Status, diagnostics.ToList());
+        var value = new IdeImplementationView(implementationView.Task.Implementation.tok.GetLspRange(true),
+          implementationView.Status, diagnostics.ToList());
         return new KeyValuePair<string, IdeImplementationView>(kv.Key, value);
-      }) ?? previousForCanVerify;
+      });
+
     }
 
     return base.ToIdeState(previousState) with {
@@ -78,7 +84,7 @@ public class CompilationAfterResolution : CompilationAfterParsing {
       ImplementationsWereUpdated = true,
       Counterexamples = new List<Counterexample>(Counterexamples),
       VerificationTrees = VerificationTrees,
-      ImplementationViews = ImplementationsPerVerifiable.Keys.GroupBy(l => l.NameToken.GetLocation()).ToDictionary(k => k.Key,
+      ImplementationViews = Verifiables.GroupBy(l => l.NameToken.GetLocation()).ToDictionary(k => k.Key,
         k => new Dictionary<string, IdeImplementationView>(k.SelectMany(MergeVerifiable)))
     };
   }

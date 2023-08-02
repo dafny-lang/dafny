@@ -276,14 +276,14 @@ public class ProjectManager : IDisposable {
     try {
       var resolvedCompilation = await CompilationManager.ResolvedCompilation;
 
-      var verifiables = resolvedCompilation.ImplementationsPerVerifiable.Keys.ToList();
+      var verifiables = resolvedCompilation.Verifiables.ToList();
       if (uri != null) {
         verifiables = verifiables.Where(d => d.Tok.Uri == uri).ToList();
       }
 
-      if (!verifiables.Any()) {
-        CompilationManager.FinishedNotifications(resolvedCompilation);
-      }
+      // if (!verifiables.Any()) {
+      //   CompilationManager.FinishedNotifications(resolvedCompilation);
+      // }
 
       lock (RecentChanges) {
         var freshlyChangedVerifiables = GetChangedVerifiablesFromRanges(resolvedCompilation, RecentChanges);
@@ -313,7 +313,7 @@ public class ProjectManager : IDisposable {
   private IEnumerable<FilePosition> GetChangedVerifiablesFromRanges(CompilationAfterResolution translated, IEnumerable<Location> changedRanges) {
     IntervalTree<Position, Position> GetTree(Uri uri) {
       var intervalTree = new IntervalTree<Position, Position>();
-      foreach (var canVerify in translated.ImplementationsPerVerifiable.Keys) {
+      foreach (var canVerify in translated.Verifiables) {
         if (canVerify.Tok.Uri == uri) {
           intervalTree.Add(
             canVerify.RangeToken.StartToken.GetLspPosition(),

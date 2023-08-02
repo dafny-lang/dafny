@@ -14,6 +14,6 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     void ReportVerifyImplementationRunning(CompilationAfterResolution compilation, Implementation implToken);
     void ReportAssertionBatchResult(CompilationAfterResolution compilation, AssertionBatchResult batchResult);
     void ReportEndVerifyImplementation(CompilationAfterResolution compilation, Implementation implToken, VerificationResult verificationResult);
-    void SetAllUnvisitedMethodsAsVerified(CompilationAfterResolution compilation);
+    bool SetAllUnvisitedMethodsAsVerified(CompilationAfterResolution compilation, ICanVerify canVerify);
   }
 }

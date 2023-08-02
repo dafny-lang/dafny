@@ -164,9 +164,9 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
     var tree = compilation.VerificationTrees[uri];
     // We migrate existing implementations to the new provided ones if they exist.
     // (same child number, same file and same position)
-    // foreach (var methodTree in tree.Children) {
-    //   methodTree.ResetNewChildren();
-    // }
+    var canVerifyNode = tree.Children.OfType<TopLevelDeclMemberVerificationTree>()
+      .First(t => t.Position == canVerify.Tok.GetLspPosition());
+    canVerifyNode.ResetNewChildren();
 
     foreach (var implementation in implementations) {
 
@@ -192,9 +192,6 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
 
       targetMethodNode?.AddNewChild(newImplementationNode);
     }
-
-    var canVerifyNode = tree.Children.OfType<TopLevelDeclMemberVerificationTree>()
-      .First(t => t.Position == canVerify.Tok.GetLspPosition());
     
     canVerifyNode.SaveNewChildren();
     if (!canVerifyNode.Children.Any()) {
@@ -400,12 +397,10 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
     }
   }
 
-  public void SetAllUnvisitedMethodsAsVerified(CompilationAfterResolution compilation) {
-    foreach (var tree in compilation.VerificationTrees.Values) {
-      foreach (var childTree in tree.Children) {
-        childTree.SetVerifiedIfPending();
-      }
-    }
+  public bool SetAllUnvisitedMethodsAsVerified(CompilationAfterResolution compilation, ICanVerify canVerify) {
+    var tree = compilation.VerificationTrees[canVerify.Tok.Uri];
+    var verifyTree = tree.Children.First(f => f.Position == canVerify.Tok.GetLspPosition());
+    return verifyTree.SetVerifiedIfPending();
   }
 
 

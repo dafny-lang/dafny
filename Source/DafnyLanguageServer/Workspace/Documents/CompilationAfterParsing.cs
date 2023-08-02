@@ -34,7 +34,7 @@ public class CompilationAfterParsing : Compilation {
       ResolutionDiagnostics = ResolutionDiagnostics.ToDictionary(
         kv => kv.Key,
         kv => (IReadOnlyList<Diagnostic>)kv.Value.Select(d => d.ToLspDiagnostic()).ToList()),
-      VerificationTrees = baseResult.VerificationTrees
+      VerificationTrees = RootUris.ToDictionary(uri => uri, uri => (VerificationTree)new DocumentVerificationTree(Program, uri))
     };
   }
 
