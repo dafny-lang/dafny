@@ -94,7 +94,8 @@ public class MultiBackendTest {
     output.WriteLine("Verifying...");
 
     var (exitCode, outputString, error) = RunDafny(options.DafnyCliPath, dafnyArgs);
-    // If there is a .verifier.expect file, then we a non-0 exitCode, provided the output matches the .verifier.expect file
+    // If there is a .verifier.expect file, then we expect the output to match the .verifier.expect file contents.
+    // In either case, we expect verification to return a 0 exit code.
     var expectFileForVerifier = $"{options.TestFile}.verifier.expect";
     if (File.Exists(expectFileForVerifier)) {
       var expectedOutput = File.ReadAllText(expectFileForVerifier);
@@ -106,7 +107,8 @@ public class MultiBackendTest {
         output.WriteLine(diffMessage);
         return 1;
       }
-    } else if (exitCode != 0) {
+    }
+    if (exitCode != 0) {
       output.WriteLine("Verification failed. Output:");
       output.WriteLine(outputString);
       output.WriteLine("Error:");
