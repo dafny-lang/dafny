@@ -39,7 +39,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     public IdeState InitialIdeState(Compilation initialCompilation, DafnyOptions options) {
       var program = new EmptyNode();
-      return ToIdeState(new IdeState(initialCompilation, program,
+      return ToIdeState(new IdeState(initialCompilation.Version, initialCompilation, program,
         ImmutableDictionary<Uri, IReadOnlyList<Diagnostic>>.Empty,
         SymbolTable.Empty(), SignatureAndCompletionTable.Empty(options, initialCompilation.Project), new(),
         Array.Empty<Counterexample>(),

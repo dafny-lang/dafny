@@ -21,6 +21,7 @@ public record IdeImplementationView(Range Range, PublishedVerificationStatus Sta
 /// to provide the IDE with as much information as possible.
 /// </summary>
 public record IdeState(
+  int Version,
   Compilation Compilation,
   Node Program,
   IReadOnlyDictionary<Uri, IReadOnlyList<Diagnostic>> ResolutionDiagnostics,
@@ -31,8 +32,6 @@ public record IdeState(
   IReadOnlyDictionary<Uri, IReadOnlyList<Range>> GhostRanges,
   IReadOnlyDictionary<Uri, VerificationTree> VerificationTrees
 ) {
-
-  public int Version => Compilation.Version;
 
   public ImmutableDictionary<Uri, IReadOnlyList<Diagnostic>> GetDiagnostics() {
     var resolutionDiagnostics = ResolutionDiagnostics.ToImmutableDictionary();

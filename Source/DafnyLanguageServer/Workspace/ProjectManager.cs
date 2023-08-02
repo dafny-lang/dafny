@@ -104,7 +104,7 @@ public class ProjectManager : IDisposable {
   private const int MaxRememberedChangedVerifiables = 5;
 
   public void UpdateDocument(DidChangeTextDocumentParams documentChange) {
-    observer.Migrate(documentChange);
+    observer.Migrate(documentChange, version + 1);
     var lastPublishedState = observer.LastPublishedState;
     var migratedVerificationTrees = lastPublishedState.VerificationTrees;
 
@@ -135,7 +135,6 @@ public class ProjectManager : IDisposable {
     IdeState lastPublishedState) {
     version++;
     logger.LogDebug("Clearing result for workCompletedForCurrentVersion");
-
 
     CompilationManager.CancelPendingUpdates();
     CompilationManager = createCompilationManager(

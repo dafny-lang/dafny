@@ -154,6 +154,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       var dafnyOptions = DafnyOptions.Default;
       var program = new EmptyNode();
       return new IdeState(
+        compilation.Version,
         compilation,
         program,
         resolutionDiagnostics,

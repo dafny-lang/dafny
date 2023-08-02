@@ -91,7 +91,7 @@ public class CompilationAfterResolution : CompilationAfterParsing {
 
     }
 
-    return base.ToIdeState(previousState) with {
+    var result = base.ToIdeState(previousState) with {
       SymbolTable = SymbolTable ?? previousState.SymbolTable,
       SignatureAndCompletionTable = SignatureAndCompletionTable.Resolved ? SignatureAndCompletionTable : previousState.SignatureAndCompletionTable,
       GhostRanges = GhostDiagnostics,
@@ -100,6 +100,7 @@ public class CompilationAfterResolution : CompilationAfterParsing {
       ImplementationViews = Verifiables.GroupBy(l => l.NameToken.GetLocation()).ToDictionary(k => k.Key,
         k => new Dictionary<string, IdeImplementationView>(k.SelectMany(MergeVerifiable)))
     };
+    return result;
   }
 
   static PublishedVerificationStatus Combine(PublishedVerificationStatus first, PublishedVerificationStatus second) {

@@ -81,12 +81,13 @@ public class IdeStateObserver : IObserver<IdeState> {
     }
   }
 
-  public void Migrate(DidChangeTextDocumentParams documentChange) {
+  public void Migrate(DidChangeTextDocumentParams documentChange, int version) {
 
     var migratedVerificationTrees = LastPublishedState.VerificationTrees.ToDictionary(
       kv => kv.Key, kv =>
         relocator.RelocateVerificationTree(kv.Value, documentChange, CancellationToken.None));
     LastPublishedState = LastPublishedState with {
+      Version = version,
       ImplementationViews = MigrateImplementationViews(documentChange, LastPublishedState.ImplementationViews),
       SignatureAndCompletionTable = relocator.RelocateSymbols(LastPublishedState.SignatureAndCompletionTable,
         documentChange, CancellationToken.None),
