@@ -5,23 +5,31 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 
 public class DocumentEdits {
-  public static List<string> ApplyEdits(TextDocumentEdit textDocumentEdit, string output) {
+  public static string ApplyEdits(TextDocumentEdit textDocumentEdit, string output) {
     var inversedEdits = textDocumentEdit.Edits.ToList()
       .OrderByDescending(x => x.Range.Start.Line)
       .ThenByDescending(x => x.Range.Start.Character);
     var modifiedOutput = ToLines(output);
     foreach (var textEdit in inversedEdits) {
-      modifiedOutput = ApplySingleEdit(modifiedOutput, textEdit.Range, textEdit.NewText);
+      modifiedOutput = ApplyEditLinewise(modifiedOutput, textEdit.Range, textEdit.NewText);
     }
 
-    return modifiedOutput;
+    return string.Join("\n", modifiedOutput);
   }
 
   public static List<string> ToLines(string output) {
     return output.ReplaceLineEndings("\n").Split("\n").ToList();
   }
 
-  public static List<string> ApplySingleEdit(List<string> modifiedOutput, Range range, string newText) {
+  public static string FromLines(List<string> lines) {
+    return string.Join("\n", lines).ReplaceLineEndings("\n");
+  }
+
+  public static string ApplyEdit(List<string> modifiedOutput, Range range, string newText) {
+    return FromLines(ApplyEditLinewise(modifiedOutput, range, newText));
+  }
+
+  public static List<string> ApplyEditLinewise(List<string> modifiedOutput, Range range, string newText) {
     var lineStart = modifiedOutput[range.Start.Line];
     var lineEnd = modifiedOutput[range.End.Line];
     modifiedOutput[range.Start.Line] =
