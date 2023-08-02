@@ -253,7 +253,7 @@ public class CompilationManager {
           verificationProgressReporter.ReportRealtimeDiagnostics(compilation, uri, true);
         }
         verificationProgressReporter.ReportImplementationsBeforeVerification(compilation,
-          tasksForVerifiable.Select(t => t.Implementation).ToArray());
+          verifiable, tasksForVerifiable.Select(t => t.Implementation).ToArray());
         
         // compilationUpdates.OnNext(compilation);
       } catch (Exception e) {

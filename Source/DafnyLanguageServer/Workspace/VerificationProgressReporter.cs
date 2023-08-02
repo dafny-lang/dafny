@@ -159,57 +159,53 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
   /// to its original method tree.
   /// Also set the implementation priority depending on the last edited methods 
   /// </summary>
-  public virtual void ReportImplementationsBeforeVerification(CompilationAfterResolution compilation, Implementation[] implementations) {
-    var implementationsPerUri = implementations.
-      GroupBy(i => ((IToken)i.tok).Uri).
-      ToDictionary(g => g.Key, g => g);
+  public virtual void ReportImplementationsBeforeVerification(CompilationAfterResolution compilation, ICanVerify canVerify, Implementation[] implementations) {
+    var uri = canVerify.Tok.Uri;
+    var tree = compilation.VerificationTrees[uri];
+    // We migrate existing implementations to the new provided ones if they exist.
+    // (same child number, same file and same position)
+    // foreach (var methodTree in tree.Children) {
+    //   methodTree.ResetNewChildren();
+    // }
 
-    foreach (var tree in compilation.VerificationTrees.Values) {
-      // We migrate existing implementations to the new provided ones if they exist.
-      // (same child number, same file and same position)
-      foreach (var methodTree in tree.Children) {
-        methodTree.ResetNewChildren();
+    foreach (var implementation in implementations) {
+
+      var targetMethodNode = GetTargetMethodTree(tree, implementation, out var oldImplementationNode, true);
+      if (targetMethodNode == null) {
+        NoMethodNodeAtLogging(tree, "ReportImplementationsBeforeVerification", compilation, implementation);
+        continue;
       }
 
-      foreach (var implementation in implementationsPerUri.GetValueOrDefault(tree.Uri) ?? Enumerable.Empty<Implementation>()) {
-
-        var targetMethodNode = GetTargetMethodTree(tree, implementation,
-          out var oldImplementationNode, true);
-        if (targetMethodNode == null) {
-          NoMethodNodeAtLogging(tree, "ReportImplementationsBeforeVerification", compilation, implementation);
-          continue;
-        }
-
-        var newDisplayName = targetMethodNode.DisplayName + " #" + (targetMethodNode.Children.Count + 1) + ":" +
-                             implementation.Name;
-        var newImplementationNode = new ImplementationVerificationTree(
-          newDisplayName,
-          implementation.Name,
-          targetMethodNode.Filename,
-          targetMethodNode.Uri,
-          targetMethodNode.Range,
-          targetMethodNode.Position
-        ).WithImplementation(implementation);
-        if (oldImplementationNode != null) {
-          newImplementationNode.Children = oldImplementationNode.Children;
-        }
-
-        targetMethodNode?.AddNewChild(newImplementationNode);
+      var newDisplayName = targetMethodNode.DisplayName + " #" + (targetMethodNode.Children.Count + 1) + ":" +
+                           implementation.Name;
+      var newImplementationNode = new ImplementationVerificationTree(
+        newDisplayName,
+        implementation.Name,
+        targetMethodNode.Filename,
+        targetMethodNode.Uri,
+        targetMethodNode.Range,
+        targetMethodNode.Position
+      ).WithImplementation(implementation);
+      if (oldImplementationNode != null) {
+        newImplementationNode.Children = oldImplementationNode.Children;
       }
 
-      foreach (var methodNode in tree.Children.OfType<TopLevelDeclMemberVerificationTree>()) {
-        methodNode.SaveNewChildren();
-        if (!methodNode.Children.Any()) {
-          methodNode.Start();
-          methodNode.Stop();
-          methodNode.StatusCurrent = CurrentStatus.Current;
-          methodNode.StatusVerification = GutterVerificationStatus.Verified;
-        }
-
-        methodNode.PropagateChildrenErrorsUp();
-        methodNode.RecomputeAssertionBatchNodeDiagnostics();
-      }
+      targetMethodNode?.AddNewChild(newImplementationNode);
     }
+
+    var canVerifyNode = tree.Children.OfType<TopLevelDeclMemberVerificationTree>()
+      .First(t => t.Position == canVerify.Tok.GetLspPosition());
+    
+    canVerifyNode.SaveNewChildren();
+    if (!canVerifyNode.Children.Any()) {
+      canVerifyNode.Start();
+      canVerifyNode.Stop();
+      canVerifyNode.StatusCurrent = CurrentStatus.Current;
+      canVerifyNode.StatusVerification = GutterVerificationStatus.Verified;
+    }
+
+    canVerifyNode.PropagateChildrenErrorsUp();
+    canVerifyNode.RecomputeAssertionBatchNodeDiagnostics();
   }
 
   /// <summary>

@@ -10,7 +10,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     void RecomputeVerificationTrees(CompilationAfterResolution compilation);
     void ReportRealtimeDiagnostics(CompilationAfterResolution compilation, Uri uri, bool verificationStarted);
 
-    void ReportImplementationsBeforeVerification(CompilationAfterResolution compilation, Implementation[] implementations);
+    void ReportImplementationsBeforeVerification(CompilationAfterResolution compilation, ICanVerify canVerify, Implementation[] implementations);
     void ReportVerifyImplementationRunning(CompilationAfterResolution compilation, Implementation implToken);
     void ReportAssertionBatchResult(CompilationAfterResolution compilation, AssertionBatchResult batchResult);
     void ReportEndVerifyImplementation(CompilationAfterResolution compilation, Implementation implToken, VerificationResult verificationResult);
