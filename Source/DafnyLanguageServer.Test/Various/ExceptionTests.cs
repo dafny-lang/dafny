@@ -8,6 +8,7 @@ using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Workspace;
+using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Server;
@@ -119,11 +120,12 @@ public class ExceptionTests : ClientBasedLanguageServerTest {
       return loader.ParseAsync(options, compilation, cancellationToken);
     }
 
-    public Task<CompilationAfterResolution> ResolveAsync(DafnyOptions options, CompilationAfterParsing compilation, CancellationToken cancellationToken) {
+    public Task<CompilationAfterResolution> ResolveAsync(DafnyOptions options, CompilationAfterParsing compilation,
+      IReadOnlyDictionary<Uri, VerificationTree> migratedVerificationTrees, CancellationToken cancellationToken) {
       if (tests.CrashOnLoad) {
         throw new IOException("crash");
       }
-      return loader.ResolveAsync(options, compilation, cancellationToken);
+      return loader.ResolveAsync(options, compilation, migratedVerificationTrees, cancellationToken);
     }
   }
 

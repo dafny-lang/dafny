@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Microsoft.Boogie;
 using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Language.Symbols;
+using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
@@ -22,7 +23,8 @@ public class CompilationAfterResolution : CompilationAfterParsing {
     IReadOnlyDictionary<Uri, IReadOnlyList<Range>> ghostDiagnostics,
     Dictionary<ICanVerify, VerifyStatus?> implementationsPerVerifiable,
     ConcurrentDictionary<ModuleDefinition, Task<IReadOnlyDictionary<FilePosition, IReadOnlyList<IImplementationTask>>>> translatedModules,
-    List<Counterexample> counterexamples
+    List<Counterexample> counterexamples,
+    Dictionary<Uri, VerificationTree> verificationTrees
     ) :
     base(compilationAfterParsing, compilationAfterParsing.Program, diagnostics) {
     SymbolTable = symbolTable;
@@ -31,8 +33,10 @@ public class CompilationAfterResolution : CompilationAfterParsing {
     ImplementationsPerVerifiable = implementationsPerVerifiable;
     TranslatedModules = translatedModules;
     Counterexamples = counterexamples;
+    VerificationTrees = verificationTrees;
   }
   public List<Counterexample> Counterexamples { get; set; }
+  public Dictionary<Uri, VerificationTree> VerificationTrees { get; }
   public SymbolTable? SymbolTable { get; }
   public SignatureAndCompletionTable SignatureAndCompletionTable { get; }
   public IReadOnlyDictionary<Uri, IReadOnlyList<Range>> GhostDiagnostics { get; }
@@ -57,7 +61,7 @@ public class CompilationAfterResolution : CompilationAfterParsing {
       var previousForCanVerify = previousState.ImplementationViews.GetValueOrDefault(location) ?? new Dictionary<string, IdeImplementationView>();
       return ImplementationsPerVerifiable[canVerify]?.Select(kv => {
         var implementationView = kv.Value;
-        IEnumerable<Diagnostic> diagnostics = implementationView.Diagnostics.Select(d => d.ToLspDiagnostic());
+        var diagnostics = implementationView.Diagnostics.Select(d => d.ToLspDiagnostic());
         if (implementationView.Status < PublishedVerificationStatus.Error) {
           diagnostics = previousForCanVerify.GetValueOrDefault(kv.Key)?.Diagnostics ?? diagnostics;
         }
@@ -73,6 +77,7 @@ public class CompilationAfterResolution : CompilationAfterParsing {
       GhostRanges = GhostDiagnostics,
       ImplementationsWereUpdated = true,
       Counterexamples = new List<Counterexample>(Counterexamples),
+      VerificationTrees = VerificationTrees,
       ImplementationViews = ImplementationsPerVerifiable.Keys.GroupBy(l => l.NameToken.GetLocation()).ToDictionary(k => k.Key,
         k => new Dictionary<string, IdeImplementationView>(k.SelectMany(MergeVerifiable)))
     };

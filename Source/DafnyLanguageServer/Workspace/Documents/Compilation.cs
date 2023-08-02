@@ -37,14 +37,14 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     public virtual IEnumerable<DafnyDiagnostic> GetDiagnostics(Uri uri) => Enumerable.Empty<DafnyDiagnostic>();
 
-    public IdeState InitialIdeState(Compilation compilation, DafnyOptions options) {
+    public IdeState InitialIdeState(Compilation initialCompilation, DafnyOptions options) {
       var program = new EmptyNode();
-      return ToIdeState(new IdeState(compilation, program,
+      return ToIdeState(new IdeState(initialCompilation, program,
         ImmutableDictionary<Uri, IReadOnlyList<Diagnostic>>.Empty,
-        SymbolTable.Empty(), SignatureAndCompletionTable.Empty(options, compilation.Project), new(),
+        SymbolTable.Empty(), SignatureAndCompletionTable.Empty(options, initialCompilation.Project), new(),
         Array.Empty<Counterexample>(),
         false, ImmutableDictionary<Uri, IReadOnlyList<Range>>.Empty,
-        compilation.RootUris.ToDictionary(uri => uri, uri => (VerificationTree)new DocumentVerificationTree(program, uri))
+        initialCompilation.RootUris.ToDictionary(uri => uri, uri => (VerificationTree)new DocumentVerificationTree(program, uri))
       ));
     }
 

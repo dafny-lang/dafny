@@ -4,6 +4,7 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Boogie;
+using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace {
   /// <summary>
@@ -23,6 +24,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     Task<CompilationAfterParsing> ParseAsync(DafnyOptions options, Compilation compilation, CancellationToken cancellationToken);
 
     Task<CompilationAfterResolution> ResolveAsync(DafnyOptions options, CompilationAfterParsing compilation,
+      IReadOnlyDictionary<Uri, VerificationTree> migratedVerificationTrees,
       CancellationToken cancellationToken);
   }
 }

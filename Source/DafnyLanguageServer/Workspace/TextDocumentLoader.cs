@@ -86,16 +86,19 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       return compilationAfterParsing;
     }
 
-    public async Task<CompilationAfterResolution> ResolveAsync(DafnyOptions options, CompilationAfterParsing compilation,
+    public async Task<CompilationAfterResolution> ResolveAsync(DafnyOptions options,
+      CompilationAfterParsing compilation,
+      IReadOnlyDictionary<Uri, VerificationTree> migratedVerificationTrees,
       CancellationToken cancellationToken) {
 #pragma warning disable CS1998
       return await await DafnyMain.LargeStackFactory.StartNew(
-        async () => ResolveInternal(compilation, cancellationToken), cancellationToken
+        async () => ResolveInternal(compilation, migratedVerificationTrees, cancellationToken), cancellationToken
 #pragma warning restore CS1998
         );
     }
 
-    private CompilationAfterResolution ResolveInternal(CompilationAfterParsing compilation, CancellationToken cancellationToken) {
+    private CompilationAfterResolution ResolveInternal(CompilationAfterParsing compilation,
+      IReadOnlyDictionary<Uri, VerificationTree> migratedVerificationTrees, CancellationToken cancellationToken) {
 
       var program = compilation.Program;
       var errorReporter = (DiagnosticErrorReporter)program.Reporter;
@@ -137,7 +140,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         ghostDiagnostics,
         verifiables.ToDictionary(v => v, v => (VerifyStatus?)null),
         new(),
-        new()
+        new(),
+        compilation.RootUris.ToDictionary(uri => uri,
+          uri => migratedVerificationTrees.GetValueOrDefault(uri) ?? new DocumentVerificationTree(compilation.Program, uri))
       );
     }
 

@@ -509,7 +509,7 @@ lemma {:rlimit 12000} SquareRoot2NotRational(p: nat, q: nat)
       var documentItem = CreateTestDocument(source, Path.Combine(directory, filename));
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var document = await Projects.GetLastDocumentAsync(documentItem);
-      Assert.True(document is CompilationAfterTranslation);
+      Assert.True(document is CompilationAfterResolution);
       return documentItem;
     }
 

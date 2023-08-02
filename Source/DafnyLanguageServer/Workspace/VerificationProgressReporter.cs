@@ -28,7 +28,7 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
   /// Fills up the document with empty verification diagnostics, one for each top-level declarations
   /// Possibly migrates previous diagnostics
   /// </summary>
-  public void RecomputeVerificationTrees(CompilationAfterTranslation compilation) {
+  public void RecomputeVerificationTrees(CompilationAfterResolution compilation) {
     foreach (var tree in compilation.VerificationTrees.Values) {
       UpdateTree(options, compilation, tree);
     }
@@ -159,7 +159,7 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
   /// to its original method tree.
   /// Also set the implementation priority depending on the last edited methods 
   /// </summary>
-  public virtual void ReportImplementationsBeforeVerification(CompilationAfterTranslation compilation, Implementation[] implementations) {
+  public virtual void ReportImplementationsBeforeVerification(CompilationAfterResolution compilation, Implementation[] implementations) {
     var implementationsPerUri = implementations.
       GroupBy(i => ((IToken)i.tok).Uri).
       ToDictionary(g => g.Key, g => g);
@@ -215,7 +215,7 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
   /// <summary>
   /// Triggers sending of the current verification diagnostics to the client
   /// </summary>
-  public void ReportRealtimeDiagnostics(CompilationAfterTranslation compilation, Uri uri, bool verificationStarted) {
+  public void ReportRealtimeDiagnostics(CompilationAfterResolution compilation, Uri uri, bool verificationStarted) {
     lock (LockProcessing) {
       notificationPublisher.PublishGutterIcons(uri, compilation.InitialIdeState(compilation, options), verificationStarted);
     }
@@ -224,7 +224,7 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
   /// <summary>
   /// Called when the verifier starts verifying an implementation
   /// </summary>
-  public void ReportVerifyImplementationRunning(CompilationAfterTranslation compilation, Implementation implementation) {
+  public void ReportVerifyImplementationRunning(CompilationAfterResolution compilation, Implementation implementation) {
     var uri = ((IToken)implementation.tok).Uri;
     var tree = compilation.VerificationTrees[uri];
 
@@ -253,7 +253,7 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
   /// <summary>
   /// Called when the verifier finished to visit an implementation
   /// </summary>
-  public void ReportEndVerifyImplementation(CompilationAfterTranslation compilation, Implementation implementation, VerificationResult verificationResult) {
+  public void ReportEndVerifyImplementation(CompilationAfterResolution compilation, Implementation implementation, VerificationResult verificationResult) {
 
     var uri = ((IToken)implementation.tok).Uri;
     var tree = compilation.VerificationTrees[uri];
@@ -293,7 +293,7 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
     }
   }
 
-  private void NoMethodNodeAtLogging(VerificationTree tree, string methodName, CompilationAfterTranslation compilation, Implementation implementation) {
+  private void NoMethodNodeAtLogging(VerificationTree tree, string methodName, CompilationAfterResolution compilation, Implementation implementation) {
     var position = implementation.tok.GetLspPosition();
     var availableMethodNodes = string.Join(",", tree!.Children.Select(vt =>
       $"{vt.Kind} {vt.DisplayName} at {vt.Filename}:{vt.Position.Line}"));
@@ -306,7 +306,7 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
   /// <summary>
   /// Called when a split is finished to be verified
   /// </summary>
-  public void ReportAssertionBatchResult(CompilationAfterTranslation compilation, AssertionBatchResult batchResult) {
+  public void ReportAssertionBatchResult(CompilationAfterResolution compilation, AssertionBatchResult batchResult) {
     var uri = ((IToken)batchResult.Implementation.tok).Uri;
     var tree = compilation.VerificationTrees[uri];
 
@@ -404,7 +404,7 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
     }
   }
 
-  public void SetAllUnvisitedMethodsAsVerified(CompilationAfterTranslation compilation) {
+  public void SetAllUnvisitedMethodsAsVerified(CompilationAfterResolution compilation) {
     foreach (var tree in compilation.VerificationTrees.Values) {
       foreach (var childTree in tree.Children) {
         childTree.SetVerifiedIfPending();
