@@ -35,6 +35,9 @@ class HigherOrderHeapAllocationCheckerConstructor : ASTVisitor<IASTVisitorContex
   // an arrow. 
   // This check could be relaxed but we keep it simple until
   // we encounter a good use case for the more general check.
+  // Recall that a cycle can only be created using a function,
+  // which is why the test is different than a traditional
+  // cardinality test.
   private bool Occurs(Type Obj, Type rhs, bool left) {
     Type type = rhs.NormalizeExpandKeepConstraints();
     if (type is BasicType) {
