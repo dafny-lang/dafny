@@ -42,7 +42,7 @@ public class CompilationAfterParsing : Compilation {
     };
   }
 
-  public virtual VerificationTree GetVerificationTree(Uri uri) {
-    return new DocumentVerificationTree(Program, uri);
+  public VerificationTree GetVerificationTree(Uri uri) {
+    return VerificationTrees[uri];
   }
 }
