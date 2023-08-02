@@ -86,4 +86,8 @@ public abstract class IVariableContracts : TokenNode, IVariable {
   }
 
   public abstract IToken NameToken { get; }
+  public DafnySymbolKind Kind => throw new NotImplementedException();
+  public string GetDescription(DafnyOptions options) {
+    throw new NotImplementedException();
+  }
 }

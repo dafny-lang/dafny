@@ -10,7 +10,7 @@ public class DatatypeValue : Expression, IHasUsages, ICloneable<DatatypeValue>, 
   public readonly ActualBindings Bindings;
   public List<Expression> Arguments => Bindings.Arguments;
 
-  public override IEnumerable<Node> Children => new Node[] { Bindings };
+  public override IEnumerable<INode> Children => new Node[] { Bindings };
 
   [FilledInDuringResolution] public DatatypeCtor Ctor;
   [FilledInDuringResolution] public List<Type> InferredTypeArgs = new List<Type>();

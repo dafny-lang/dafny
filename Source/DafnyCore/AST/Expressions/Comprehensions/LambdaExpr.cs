@@ -3,7 +3,7 @@ using System.Diagnostics.Contracts;
 
 namespace Microsoft.Dafny;
 
-public class LambdaExpr : ComprehensionExpr, ICloneable<LambdaExpr>, ICanFormat {
+public class LambdaExpr : ComprehensionExpr, ICloneable<LambdaExpr> {
   public override string WhatKind => "lambda";
 
   public Expression Body => Term;
