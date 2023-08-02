@@ -128,7 +128,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       var ghostDiagnostics = ghostStateDiagnosticCollector.GetGhostStateDiagnostics(legacySymbolTable, cancellationToken);
 
       List<ICanVerify> verifiables;
-      if (errorReporter.HasErrors) {
+      if (errorReporter.HasErrorsUntilResolver) {
         verifiables = new();
       } else {
         var symbols = SymbolExtensions.GetSymbols(program.DefaultModule);

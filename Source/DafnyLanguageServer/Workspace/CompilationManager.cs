@@ -251,6 +251,7 @@ public class CompilationManager {
           g => (IReadOnlyList<IImplementationTask>)g.ToList());
       });
     } catch (Exception e) {
+      verificationCompleted.TrySetException(e);
       compilationUpdates.OnError(e);
       throw;
     }

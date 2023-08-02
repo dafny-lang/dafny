@@ -147,11 +147,14 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
     await client.WaitForNotificationCompletionAsync(documentItem.Uri, cancellationToken);
     var compilation = (await Projects.GetLastDocumentAsync(documentItem))!;
     Assert.NotNull(compilation);
-    var expectedDiagnostics = compilation.GetDiagnostics(documentItem.Uri.ToUri()).Select(d => d.ToLspDiagnostic()).ToList();
+    var expectedDiagnostics = compilation.GetDiagnostics(documentItem.Uri.ToUri()).
+      Select(d => d.ToLspDiagnostic()).
+      OrderBy(d => d.Range.Start).ToList();
     PublishDiagnosticsParams result;
     while (true) {
       result = await diagnosticsReceiver.AwaitNextNotificationAsync(cancellationToken);
-      if (result.Uri == documentItem.Uri && result.Diagnostics.SequenceEqual(expectedDiagnostics)) {
+      if (result.Uri == documentItem.Uri && result.Diagnostics.OrderBy(d => d.Range.Start).
+            SequenceEqual(expectedDiagnostics)) {
         break;
       }
     }

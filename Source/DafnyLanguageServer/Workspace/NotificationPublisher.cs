@@ -44,15 +44,15 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       var currentPerFile = GetFileVerificationStatus(state);
       var previousPerFile = GetFileVerificationStatus(previousState);
 
-      if (!state.ImplementationsWereUpdated) {
-        /*
-         Because previousState is not migrated (we should change that), 
-         we can send repeated notification where the only difference is in migration.
-         
-         This boolean prevents sending such a repeated notification for verification status.
-         */
-        return;
-      }
+      // if (!state.ImplementationsWereUpdated) {
+      //   /*
+      //    Because previousState is not migrated (we should change that), 
+      //    we can send repeated notification where the only difference is in migration.
+      //    
+      //    This boolean prevents sending such a repeated notification for verification status.
+      //    */
+      //   return;
+      // }
 
       foreach (var (uri, current) in currentPerFile) {
         if (previousPerFile.TryGetValue(uri, out var previous)) {
@@ -65,7 +65,20 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     private static IDictionary<Uri, FileVerificationStatus> GetFileVerificationStatus(IdeState state) {
-
+      
+      // Commenting this out and the alternative in causes GitIssue3062CrashOfLanguageServer to fail
+      // But using this makes WhenUsingOnSaveMethodStaysStaleUntilSave fail 
+      if (!state.ImplementationsWereUpdated) { 
+        /*
+         DocumentAfterResolution.Snapshot() gets migrated ImplementationViews.
+         It has to get migrated Diagnostics inside ImplementationViews, otherwise we get incorrect diagnostics.
+         However, migrating the ImplementationId's may mean we lose verifiable symbols, which we don't want at this point. TODO: why not?
+         To prevent publishing file verification status unless the current document has been translated,
+         the field ImplementationsWereUpdated was added.
+         */
+        return ImmutableDictionary<Uri, FileVerificationStatus>.Empty;
+      }
+      
       return state.ImplementationViews.GroupBy(kv => kv.Key.Uri).
         ToDictionary(kv => kv.Key.ToUri(), kvs =>
         new FileVerificationStatus(kvs.Key, state.Compilation.Version,
