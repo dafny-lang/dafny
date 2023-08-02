@@ -126,10 +126,12 @@ public class CompilationManager {
       //   VerificationTrees = resolvedCompilation.RootUris.ToDictionary(uri => uri,
       //     uri => migratedVerificationTrees.GetValueOrDefault(uri) ?? new DocumentVerificationTree(resolvedCompilation.Program, uri))
       // };
-      // TODO it's weird to have this here instead of up. If we move it up we get more intermediate icons.
-      verificationProgressReporter.RecomputeVerificationTrees(resolvedCompilation);
-      foreach (var root in resolvedCompilation.RootUris) {
-        notificationPublisher.PublishGutterIcons(root, state, true);
+      if (!resolvedCompilation.Program.Reporter.HasErrors) {
+        // TODO it's weird to have this here instead of up. If we move it up we get more intermediate icons.
+        verificationProgressReporter.RecomputeVerificationTrees(resolvedCompilation);
+        foreach (var root in resolvedCompilation.RootUris) {
+          notificationPublisher.PublishGutterIcons(root, state, true);
+        }
       }
 
       logger.LogDebug($"documentUpdates.HasObservers: {compilationUpdates.HasObservers}, threadId: {Thread.CurrentThread.ManagedThreadId}");

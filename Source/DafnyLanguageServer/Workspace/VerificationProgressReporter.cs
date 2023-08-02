@@ -165,7 +165,11 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
     // We migrate existing implementations to the new provided ones if they exist.
     // (same child number, same file and same position)
     var canVerifyNode = tree.Children.OfType<TopLevelDeclMemberVerificationTree>()
-      .First(t => t.Position == canVerify.Tok.GetLspPosition());
+      .FirstOrDefault(t => t.Position == canVerify.Tok.GetLspPosition());
+    if (canVerifyNode == null) {
+      return;
+    }
+    
     canVerifyNode.ResetNewChildren();
 
     foreach (var implementation in implementations) {
