@@ -3,7 +3,7 @@ using System.Diagnostics.Contracts;
 namespace Microsoft.Dafny;
 
 [ContractClass(typeof(IVariableContracts))]
-public interface IVariable : IDeclarationOrUsage {
+public interface IVariable : ISymbol {
   string Name {
     get;
   }

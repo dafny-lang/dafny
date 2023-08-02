@@ -15,7 +15,7 @@ module {:extern "DAST"} DAST {
 
   datatype Class = Class(name: string, body: seq<ClassItem>)
 
-  datatype Datatype = Datatype(name: string, enclosingModule: Ident, typeParams: seq<Type>, ctors: seq<DatatypeCtor>, body: seq<ClassItem>)
+  datatype Datatype = Datatype(name: string, enclosingModule: Ident, typeParams: seq<Type>, ctors: seq<DatatypeCtor>, body: seq<ClassItem>, isCo: bool)
 
   datatype DatatypeCtor = DatatypeCtor(name: string, args: seq<Formal>, hasAnyArgs: bool /* includes ghost */)
 
@@ -41,7 +41,9 @@ module {:extern "DAST"} DAST {
     Ident(string) |
     Companion(seq<Ident>) |
     Tuple(seq<Expression>) |
-    DatatypeValue(path: seq<Ident>, variant: string, contents: seq<(string, Expression)>) |
+    New(path: seq<Ident>, args: seq<Expression>) |
+    DatatypeValue(path: seq<Ident>, variant: string, isCo: bool, contents: seq<(string, Expression)>) |
+    This() |
     BinOp(op: string, left: Expression, right: Expression) |
     Select(expr: Expression, field: string, onDatatype: bool) |
     TupleSelect(expr: Expression, index: nat) |

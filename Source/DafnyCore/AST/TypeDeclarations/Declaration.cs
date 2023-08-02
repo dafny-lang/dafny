@@ -157,6 +157,6 @@ public abstract class Declaration : RangeNode, IAttributeBearingDeclaration, IDe
   }
 
   internal FreshIdGenerator IdGenerator = new();
-  public override IEnumerable<Node> Children => (Attributes != null ? new List<Node> { Attributes } : Enumerable.Empty<Node>());
-  public override IEnumerable<Node> PreResolveChildren => Children;
+  public override IEnumerable<INode> Children => (Attributes != null ? new List<Node> { Attributes } : Enumerable.Empty<Node>());
+  public override IEnumerable<INode> PreResolveChildren => Children;
 }

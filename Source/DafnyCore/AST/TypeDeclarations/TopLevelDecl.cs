@@ -104,7 +104,7 @@ public abstract class TopLevelDecl : Declaration, TypeParameter.ParentType {
   }
 
   public bool AllowsAllocation => true;
-  public override IEnumerable<Node> Children => Enumerable.Empty<Node>();
+  public override IEnumerable<INode> Children => Enumerable.Empty<Node>();
 
   /// <summary>
   /// A top-level declaration is considered "essentially empty" if there is no way it could generate any resolution error

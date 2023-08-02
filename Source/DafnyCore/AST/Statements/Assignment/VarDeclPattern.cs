@@ -34,7 +34,7 @@ public class VarDeclPattern : Statement, ICloneable<VarDeclPattern>, ICanFormat 
     }
   }
 
-  public override IEnumerable<Node> Children =>
+  public override IEnumerable<INode> Children =>
     new List<Node> { LHS }.Concat(base.Children);
 
   public IEnumerable<LocalVariable> LocalVars {
