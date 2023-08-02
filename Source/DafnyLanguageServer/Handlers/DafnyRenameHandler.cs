@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -47,10 +48,12 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
         return null;
       }
 
-      var declaration = state.SymbolTable.GetDeclaration(requestUri, request.Position);
-      if (declaration == null) {
+      var node = state.SymbolTable.GetNode(requestUri, request.Position);
+      if (node == null || node.NameToken.val == request.NewName) {
         return null;
       }
+
+      var declaration = SymbolTable.NodeToLocation(node);
       var usages = state.SymbolTable.GetUsages(declaration.Uri.ToUri(), declaration.Range.Start);
       var changes = usages
         .Append(declaration)

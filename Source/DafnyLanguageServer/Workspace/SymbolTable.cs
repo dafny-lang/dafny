@@ -70,16 +70,23 @@ public class SymbolTable {
   }
 
   public Location? GetDeclaration(Uri uri, Position position) {
+    var node = GetNode(uri, position);
+    return node == null ? null : NodeToLocation(node);
+  }
+
+  internal static Location NodeToLocation(IDeclarationOrUsage node) {
+    return new Location {
+      Uri = DocumentUri.From(node.NameToken.Uri),
+      Range = node.NameToken.GetLspRange()
+    };
+  }
+
+  public IDeclarationOrUsage? GetNode(Uri uri, Position position) {
     if (!nodePositions.TryGetValue(uri, out var forFile)) {
       return null;
     }
-
-    var referenceNodes = forFile.Query(position);
-    return referenceNodes.Select(node => UsageToDeclaration.GetOrDefault(node, () => (IDeclarationOrUsage?)null))
-      .Where(x => x != null).Select(
-        n => new Location {
-          Uri = DocumentUri.From(n!.NameToken.Uri),
-          Range = n.NameToken.GetLspRange()
-        }).FirstOrDefault();
+    return forFile.Query(position)
+      .Select(node => UsageToDeclaration.GetOrDefault(node, () => (IDeclarationOrUsage?)null))
+      .FirstOrDefault(x => x != null);
   }
 }
