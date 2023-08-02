@@ -43,7 +43,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         ImmutableDictionary<Uri, IReadOnlyList<Diagnostic>>.Empty,
         SymbolTable.Empty(), SignatureAndCompletionTable.Empty(options, initialCompilation.Project), new(),
         Array.Empty<Counterexample>(),
-        false, ImmutableDictionary<Uri, IReadOnlyList<Range>>.Empty,
+        ImmutableDictionary<Uri, IReadOnlyList<Range>>.Empty,
         initialCompilation.RootUris.ToDictionary(uri => uri, uri => (VerificationTree)new DocumentVerificationTree(program, uri))
       ));
     }
@@ -53,8 +53,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     /// </summary>
     public virtual IdeState ToIdeState(IdeState previousState) {
       return previousState with {
-        Compilation = this,
-        ImplementationsWereUpdated = false,
+        Compilation = this
       };
     }
   }

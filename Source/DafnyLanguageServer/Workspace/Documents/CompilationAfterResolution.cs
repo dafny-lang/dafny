@@ -7,6 +7,7 @@ using Microsoft.Boogie;
 using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Language.Symbols;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
+using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace;
@@ -52,19 +53,33 @@ public class CompilationAfterResolution : CompilationAfterParsing {
     return base.GetDiagnostics(uri).Concat(verificationDiagnostics);
   }
 
+  public const string OutdatedPrefix = "Outdated: ";
+  private IEnumerable<Diagnostic> MarkDiagnosticsAsOutdated(IEnumerable<Diagnostic> diagnostics) {
+    return diagnostics.Select(diagnostic => diagnostic with {
+      Message = diagnostic.Message.StartsWith(OutdatedPrefix)
+        ? diagnostic.Message
+        : OutdatedPrefix + diagnostic.Message
+    });
+  }
+
   public override IdeState ToIdeState(IdeState previousState) {
     IEnumerable<KeyValuePair<string, IdeImplementationView>> MergeVerifiable(ICanVerify canVerify) {
       var location = canVerify.NameToken.GetLocation();
       var previousForCanVerify = previousState.ImplementationViews.GetValueOrDefault(location) ?? new Dictionary<string, IdeImplementationView>();
       if (!ImplementationsPerVerifiable.TryGetValue(canVerify, out var implementationsPerName)) {
-        return previousForCanVerify;
+        return previousForCanVerify.ToDictionary(kv => kv.Key, kv => kv.Value with {
+          Status = PublishedVerificationStatus.Stale
+        });
       }
 
       return implementationsPerName.Select(kv => {
         var implementationView = kv.Value;
         var diagnostics = implementationView.Diagnostics.Select(d => d.ToLspDiagnostic());
         if (implementationView.Status < PublishedVerificationStatus.Error) {
-          diagnostics = previousForCanVerify.GetValueOrDefault(kv.Key)?.Diagnostics ?? diagnostics;
+          var previousDiagnostics = previousForCanVerify.GetValueOrDefault(kv.Key)?.Diagnostics;
+          if (previousDiagnostics != null) {
+            diagnostics = MarkDiagnosticsAsOutdated(previousDiagnostics);
+          }
         }
 
         var value = new IdeImplementationView(implementationView.Task.Implementation.tok.GetLspRange(true),
@@ -78,7 +93,6 @@ public class CompilationAfterResolution : CompilationAfterParsing {
       SymbolTable = SymbolTable ?? previousState.SymbolTable,
       SignatureAndCompletionTable = SignatureAndCompletionTable.Resolved ? SignatureAndCompletionTable : previousState.SignatureAndCompletionTable,
       GhostRanges = GhostDiagnostics,
-      ImplementationsWereUpdated = true,
       Counterexamples = new List<Counterexample>(Counterexamples),
       VerificationTrees = VerificationTrees,
       ImplementationViews = Verifiables.GroupBy(l => l.NameToken.GetLocation()).ToDictionary(k => k.Key,

@@ -104,15 +104,9 @@ public class ProjectManager : IDisposable {
   private const int MaxRememberedChangedVerifiables = 5;
 
   public void UpdateDocument(DidChangeTextDocumentParams documentChange) {
+    observer.Migrate(documentChange);
     var lastPublishedState = observer.LastPublishedState;
-    var migratedVerificationTrees = lastPublishedState.VerificationTrees.ToDictionary(
-      kv => kv.Key, kv =>
-      relocator.RelocateVerificationTree(kv.Value, documentChange, CancellationToken.None));
-    lastPublishedState = lastPublishedState with {
-      ImplementationViews = MigrateImplementationViews(documentChange, lastPublishedState.ImplementationViews),
-      SignatureAndCompletionTable = relocator.RelocateSymbols(lastPublishedState.SignatureAndCompletionTable, documentChange, CancellationToken.None),
-      VerificationTrees = migratedVerificationTrees
-    };
+    var migratedVerificationTrees = lastPublishedState.VerificationTrees;
 
     lock (RecentChanges) {
       var newChanges = documentChange.ContentChanges.Where(c => c.Range != null).
@@ -177,32 +171,6 @@ public class ProjectManager : IDisposable {
       }
     }
 
-    return result;
-  }
-
-  private Dictionary<Location, Dictionary<string, IdeImplementationView>> MigrateImplementationViews(DidChangeTextDocumentParams documentChange,
-    Dictionary<Location, Dictionary<string, IdeImplementationView>> oldVerificationDiagnostics) {
-    var result = new Dictionary<Location, Dictionary<string, IdeImplementationView>>();
-    foreach (var entry in oldVerificationDiagnostics) {
-      var newOuterRange = relocator.RelocateRange(entry.Key.Range, documentChange, CancellationToken.None);
-      if (newOuterRange == null) {
-        continue;
-      }
-
-      var newValue = new Dictionary<string, IdeImplementationView>();
-      foreach (var innerEntry in entry.Value) {
-        var newInnerRange = relocator.RelocateRange(innerEntry.Value.Range, documentChange, CancellationToken.None);
-        if (newInnerRange != null) {
-          newValue.Add(innerEntry.Key, new IdeImplementationView(Range: newInnerRange,
-            Status: PublishedVerificationStatus.Stale,
-            Diagnostics: relocator.RelocateDiagnostics(innerEntry.Value.Diagnostics, documentChange, CancellationToken.None)));
-        }
-      }
-      result.Add(new Location() {
-        Uri = entry.Key.Uri,
-        Range = newOuterRange
-      }, newValue);
-    }
     return result;
   }
 

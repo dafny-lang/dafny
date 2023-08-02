@@ -161,7 +161,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         SignatureAndCompletionTable.Empty(dafnyOptions, compilation.Project),
         new(),
         Array.Empty<Counterexample>(),
-        false,
         ImmutableDictionary<Uri, IReadOnlyList<Range>>.Empty,
       ImmutableDictionary<Uri, VerificationTree>.Empty
       );

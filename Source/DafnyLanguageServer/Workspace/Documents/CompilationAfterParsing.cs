@@ -34,7 +34,6 @@ public class CompilationAfterParsing : Compilation {
     var baseResult = base.ToIdeState(previousState);
     return baseResult with {
       Program = Program,
-      ImplementationsWereUpdated = false,
       ResolutionDiagnostics = ResolutionDiagnostics.ToDictionary(
         kv => kv.Key,
         kv => (IReadOnlyList<Diagnostic>)kv.Value.Select(d => d.ToLspDiagnostic()).ToList()),

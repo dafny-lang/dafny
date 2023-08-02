@@ -28,7 +28,6 @@ public record IdeState(
   SignatureAndCompletionTable SignatureAndCompletionTable,
   Dictionary<Location, Dictionary<string, IdeImplementationView>> ImplementationViews, // TODO group by Uri?
   IReadOnlyList<Counterexample> Counterexamples,
-  bool ImplementationsWereUpdated,
   IReadOnlyDictionary<Uri, IReadOnlyList<Range>> GhostRanges,
   IReadOnlyDictionary<Uri, VerificationTree> VerificationTrees
 ) {

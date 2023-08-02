@@ -2,6 +2,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
+using Microsoft.Dafny.LanguageServer.Workspace;
 using Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors;
 using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
@@ -22,7 +23,7 @@ public class DiagnosticMigrationTest : ClientBasedLanguageServerTest {
     Assert.Single(verificationDiagnostics);
     ApplyChange(ref documentItem, new Range(0, 47, 0, 47), "\n\n" + NeverVerifies);
     var resolutionDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
-    Assert.Equal(Relocator.OutdatedPrefix + verificationDiagnostics[0].Message, resolutionDiagnostics[0].Message);
+    Assert.Equal(CompilationAfterResolution.OutdatedPrefix + verificationDiagnostics[0].Message, resolutionDiagnostics[0].Message);
   }
 
   [Fact]
@@ -93,7 +94,7 @@ public class DiagnosticMigrationTest : ClientBasedLanguageServerTest {
 
     var resolutionDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
     Assert.Equal(verificationDiagnostics.Length, resolutionDiagnostics.Length);
-    Assert.Equal(Relocator.OutdatedPrefix + verificationDiagnostics[0].Message, resolutionDiagnostics[0].Message);
+    Assert.Equal(CompilationAfterResolution.OutdatedPrefix + verificationDiagnostics[0].Message, resolutionDiagnostics[0].Message);
     Assert.Equal(verificationDiagnostics[0].RelatedInformation, resolutionDiagnostics[0].RelatedInformation);
     Assert.Equal(new Range(4, 7, 4, 13), resolutionDiagnostics[0].Range);
   }
@@ -129,7 +130,7 @@ public class DiagnosticMigrationTest : ClientBasedLanguageServerTest {
 
     ApplyChange(ref documentItem, new Range(0, 7, 0, 7), "{:neverVerify}");
     var resolutionDiagnostics1 = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
-    Assert.Equal(Relocator.OutdatedPrefix + verificationDiagnostics[0].Message, resolutionDiagnostics1[0].Message);
+    Assert.Equal(CompilationAfterResolution.OutdatedPrefix + verificationDiagnostics[0].Message, resolutionDiagnostics1[0].Message);
     ApplyChange(ref documentItem, new Range(3, 9, 3, 10), "2");
 
     // Check that no other resolution diagnostics came in by fixing verification and getting new verification diagnostics.
@@ -153,7 +154,7 @@ public class DiagnosticMigrationTest : ClientBasedLanguageServerTest {
     ApplyChange(ref documentItem, new Range(3, 9, 3, 10), "3");
 
     var resolutionDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
-    Assert.Equal(Relocator.OutdatedPrefix + verificationDiagnostics[0].Message, resolutionDiagnostics[0].Message);
+    Assert.Equal(CompilationAfterResolution.OutdatedPrefix + verificationDiagnostics[0].Message, resolutionDiagnostics[0].Message);
     var verificationDiagnostics2 = await GetLastDiagnostics(documentItem, CancellationToken);
     Assert.Equal(verificationDiagnostics[0].Message, verificationDiagnostics2[0].Message);
     await AssertNoDiagnosticsAreComing(CancellationToken);

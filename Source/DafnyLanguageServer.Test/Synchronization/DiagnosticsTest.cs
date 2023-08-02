@@ -1025,8 +1025,8 @@ method test2() {
 
     private static void AssertDiagnosticListsAreEqualBesidesMigration(Diagnostic[] expected, Diagnostic[] actual) {
       AssertM.Equal(expected.Length, actual.Length, $"expected: {expected.Stringify()}, but was: {actual.Stringify()}");
-      foreach (var t in Enumerable.Zip(expected, actual)) {
-        AssertM.Equal(Relocator.OutdatedPrefix + t.First.Message, t.Second.Message, t.Second.ToString());
+      foreach (var t in expected.Zip(actual)) {
+        AssertM.Equal(CompilationAfterResolution.OutdatedPrefix + t.First.Message, t.Second.Message, t.Second.ToString());
       }
     }
 
