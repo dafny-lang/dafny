@@ -65,10 +65,10 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     private static IDictionary<Uri, FileVerificationStatus> GetFileVerificationStatus(IdeState state) {
-      
+
       // Commenting this out and the alternative in causes GitIssue3062CrashOfLanguageServer to fail
       // But using this makes WhenUsingOnSaveMethodStaysStaleUntilSave fail 
-      if (!state.ImplementationsWereUpdated) { 
+      if (!state.ImplementationsWereUpdated) {
         /*
          DocumentAfterResolution.Snapshot() gets migrated ImplementationViews.
          It has to get migrated Diagnostics inside ImplementationViews, otherwise we get incorrect diagnostics.
@@ -78,7 +78,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
          */
         return ImmutableDictionary<Uri, FileVerificationStatus>.Empty;
       }
-      
+
       return state.ImplementationViews.GroupBy(kv => kv.Key.Uri).
         ToDictionary(kv => kv.Key.ToUri(), kvs =>
         new FileVerificationStatus(kvs.Key, state.Compilation.Version,

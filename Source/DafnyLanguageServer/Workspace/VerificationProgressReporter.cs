@@ -169,7 +169,7 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
     if (canVerifyNode == null) {
       return;
     }
-    
+
     canVerifyNode.ResetNewChildren();
 
     foreach (var implementation in implementations) {
@@ -212,7 +212,7 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
   /// <summary>
   /// Triggers sending of the current verification diagnostics to the client
   /// </summary>
-  public void ReportRealtimeDiagnostics(CompilationAfterResolution compilation, Uri uri, bool verificationStarted) {
+  public void ReportRealtimeDiagnostics(CompilationAfterParsing compilation, Uri uri, bool verificationStarted) {
     lock (LockProcessing) {
       notificationPublisher.PublishGutterIcons(uri, compilation.InitialIdeState(compilation, options), verificationStarted);
     }

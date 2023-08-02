@@ -312,6 +312,11 @@ public class ProjectManager : IDisposable {
       foreach (var canVerify in orderedVerifiables) {
         // Wait for each task to try and run, so the order is respected.
         await CompilationManager.VerifyTask(resolvedCompilation, canVerify);
+        // Needed to get gutter icon tests to pass reliably. Remove when we no longer have gutter icons on the server side.
+        // The problem is that without this, the queueing of one task in Boogie interleaves with translating the next one.
+        // Both of these actions can publish gutter icons, and they share a data store (the VerificationTree), so doing both updates before 
+        // publishing can lead to less publications. 
+        await Task.Delay(10);
       }
 
     }

@@ -51,23 +51,23 @@ method Foo() ensures false { } ";
   public async Task EnsureVerificationGutterStatusIsWorking() {
     await SetUp(o => o.Set(CommonOptionBag.RelaxDefiniteAssignment, true));
     await VerifyTrace(@"
- .  |  |  |  |  |  I  I  |  |  |  | :predicate Ok() {
- .  |  |  |  |  |  I  I  |  |  |  | :  true
- .  |  |  |  |  |  I  I  |  |  |  | :}
-    |  |  |  |  |  I  I  |  |  |  | :
- .  .  .  S [S][ ][I][I][I][I][S] | :method Test(x: bool) returns (i: int)
- .  .  .  S [=][=][-][-][-][-][~] | :   ensures i == 2
- .  .  .  S [S][ ][I][I][I][I][S] | :{
- .  .  .  S [S][ ][I][I][I][I][S] | :  if x {
- .  .  .  S [S][ ][I][I][I][I][S] | :    i := 2;
- .  .  .  S [=][=][-][-][-][-][~] | :  } else {
- .  .  .  S [S][ ]/!\[I][I][I][S] | :    i := 1; //Next1:   i := /; //Next2:    i := 2;
- .  .  .  S [S][ ][I][I][I][I][S] | :  }
- .  .  .  S [S][ ][I][I][I][I][S] | :}
-       |  |  |  |  I  I  I  |  |  | :    
- .  .  |  |  |  |  I  I  I  |  |  | :predicate OkBis() {
- .  .  |  |  |  |  I  I  I  |  |  | :  false
- .  .  |  |  |  |  I  I  I  |  |  | :}", true);
+ .  |  |  |  |  |  I  I  |  |  | :predicate Ok() {
+ .  |  |  |  |  |  I  I  |  |  | :  true
+ .  |  |  |  |  |  I  I  |  |  | :}
+    |  |  |  |  |  I  I  |  |  | :
+ .  .  .  S [S][ ][I][I][S][S] | :method Test(x: bool) returns (i: int)
+ .  .  .  S [=][=][-][-][~][~] | :   ensures i == 2
+ .  .  .  S [S][ ][I][I][S][S] | :{
+ .  .  .  S [S][ ][I][I][S][S] | :  if x {
+ .  .  .  S [S][ ][I][I][S][S] | :    i := 2;
+ .  .  .  S [=][=][-][-][~][~] | :  } else {
+ .  .  .  S [S][ ]/!\[I][S][S] | :    i := 1; //Next1:   i := /; //Next2:    i := 2;
+ .  .  .  S [S][ ][I][I][S][S] | :  }
+ .  .  .  S [S][ ][I][I][S][S] | :}
+       |  |  |  |  I  I  I  |  | :    
+ .  .  |  |  |  |  I  I  I  |  | :predicate OkBis() {
+ .  .  |  |  |  |  I  I  I  |  | :  false
+ .  .  |  |  |  |  I  I  I  |  | :}", true);
   }
   [Fact]
   public async Task EnsuresItWorksForSubsetTypes() {
@@ -100,12 +100,12 @@ method Foo() ensures false { } ";
   public async Task EnsureNoAssertShowsVerified() {
     for (var i = 0; i < 10; i++) {
       await VerifyTrace(@"
- .  |  |  |  |  I  |  | :predicate P(x: int)
-    |  |  |  |  I  |  | :
- .  .  S [S][ ][I][I] | :method Main() {
- .  .  S [=][=][I][I] | :  ghost var x :| P(x); //Next:  ghost var x := 1;
- .  .  S [S][ ][I][I] | :}
-                      | :", false, $"EnsureNoAssertShowsVerified{i}.dfy");
+ .  |  |  |  |  I  I  | :predicate P(x: int)
+    |  |  |  |  I  I  | :
+ .  .  S [S][ ][I] |  | :method Main() {
+ .  .  S [=][=][I] |  | :  ghost var x :| P(x); //Next:  ghost var x := 1;
+ .  .  S [S][ ][I] |  | :}
+                   |  | :", false, $"EnsureNoAssertShowsVerified{i}.dfy");
     }
   }
 

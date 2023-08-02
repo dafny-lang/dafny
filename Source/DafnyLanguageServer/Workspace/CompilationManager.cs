@@ -104,7 +104,8 @@ public class CompilationManager {
       //     uri => migratedVerificationTrees.GetValueOrDefault(uri) ?? new DocumentVerificationTree(documentAfterParsing.Program, uri))
       // };
       foreach (var root in documentAfterParsing.RootUris) {
-        notificationPublisher.PublishGutterIcons(root, state, false);
+        verificationProgressReporter.ReportRealtimeDiagnostics(documentAfterParsing, root, false);
+        //notificationPublisher.PublishGutterIcons(root, state, false);
       }
       compilationUpdates.OnNext(documentAfterParsing);
       return documentAfterParsing;
@@ -130,7 +131,8 @@ public class CompilationManager {
         // TODO it's weird to have this here instead of up. If we move it up we get more intermediate icons.
         verificationProgressReporter.RecomputeVerificationTrees(resolvedCompilation);
         foreach (var root in resolvedCompilation.RootUris) {
-          notificationPublisher.PublishGutterIcons(root, state, true);
+          verificationProgressReporter.ReportRealtimeDiagnostics(resolvedCompilation, root, true);
+          //notificationPublisher.PublishGutterIcons(root, state, true);
         }
       }
 
