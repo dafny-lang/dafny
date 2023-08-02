@@ -97,12 +97,12 @@ public class CompilationManager {
   private async Task<CompilationAfterParsing> ParseAsync() {
     try {
       await started.Task;
-      var documentAfterParsing = await documentLoader.ParseAsync(options, startingCompilation, cancellationSource.Token);
+      var documentAfterParsing = await documentLoader.ParseAsync(options, startingCompilation, migratedVerificationTrees, cancellationSource.Token);
       var state = documentAfterParsing.InitialIdeState(startingCompilation, options);
-      state = state with {
-        VerificationTrees = documentAfterParsing.RootUris.ToDictionary(uri => uri,
-          uri => migratedVerificationTrees.GetValueOrDefault(uri) ?? new DocumentVerificationTree(documentAfterParsing.Program, uri))
-      };
+      // state = state with {
+      //   VerificationTrees = documentAfterParsing.RootUris.ToDictionary(uri => uri,
+      //     uri => migratedVerificationTrees.GetValueOrDefault(uri) ?? new DocumentVerificationTree(documentAfterParsing.Program, uri))
+      // };
       foreach (var root in documentAfterParsing.RootUris) {
         notificationPublisher.PublishGutterIcons(root, state, false);
       }
@@ -121,15 +121,16 @@ public class CompilationManager {
       var resolvedCompilation = await documentLoader.ResolveAsync(options, parsedCompilation, migratedVerificationTrees, cancellationSource.Token);
       
       // TODO, let gutter icon publications also used the published CompilationView.
-      verificationProgressReporter.RecomputeVerificationTrees(resolvedCompilation);
       var state = resolvedCompilation.InitialIdeState(startingCompilation, options);
-      state = state with {
-        VerificationTrees = resolvedCompilation.RootUris.ToDictionary(uri => uri,
-          uri => migratedVerificationTrees.GetValueOrDefault(uri) ?? new DocumentVerificationTree(resolvedCompilation.Program, uri))
-      };
+      // state = state with {
+      //   VerificationTrees = resolvedCompilation.RootUris.ToDictionary(uri => uri,
+      //     uri => migratedVerificationTrees.GetValueOrDefault(uri) ?? new DocumentVerificationTree(resolvedCompilation.Program, uri))
+      // };
       foreach (var root in resolvedCompilation.RootUris) {
         notificationPublisher.PublishGutterIcons(root, state, false);
       }
+      // TODO it's weird to have this here instead of up. If we move it up we get more intermediate icons.
+      verificationProgressReporter.RecomputeVerificationTrees(resolvedCompilation);
 
       logger.LogDebug($"documentUpdates.HasObservers: {compilationUpdates.HasObservers}, threadId: {Thread.CurrentThread.ManagedThreadId}");
       compilationUpdates.OnNext(resolvedCompilation);

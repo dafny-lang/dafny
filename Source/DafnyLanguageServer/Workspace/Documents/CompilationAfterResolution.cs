@@ -22,20 +22,17 @@ public class CompilationAfterResolution : CompilationAfterParsing {
     IReadOnlyDictionary<Uri, IReadOnlyList<Range>> ghostDiagnostics,
     IReadOnlyList<ICanVerify> verifiables,
     ConcurrentDictionary<ModuleDefinition, Task<IReadOnlyDictionary<FilePosition, IReadOnlyList<IImplementationTask>>>> translatedModules,
-    List<Counterexample> counterexamples,
-    Dictionary<Uri, VerificationTree> verificationTrees
+    List<Counterexample> counterexamples
     ) :
-    base(compilationAfterParsing, compilationAfterParsing.Program, diagnostics) {
+    base(compilationAfterParsing, compilationAfterParsing.Program, diagnostics, compilationAfterParsing.VerificationTrees) {
     SymbolTable = symbolTable;
     SignatureAndCompletionTable = signatureAndCompletionTable;
     GhostDiagnostics = ghostDiagnostics;
     Verifiables = verifiables;
     TranslatedModules = translatedModules;
     Counterexamples = counterexamples;
-    VerificationTrees = verificationTrees;
   }
   public List<Counterexample> Counterexamples { get; set; }
-  public Dictionary<Uri, VerificationTree> VerificationTrees { get; }
   public SymbolTable? SymbolTable { get; }
   public SignatureAndCompletionTable SignatureAndCompletionTable { get; }
   public IReadOnlyDictionary<Uri, IReadOnlyList<Range>> GhostDiagnostics { get; }

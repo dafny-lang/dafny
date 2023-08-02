@@ -11,11 +11,16 @@ namespace Microsoft.Dafny.LanguageServer.Workspace;
 
 public class CompilationAfterParsing : Compilation {
   public IReadOnlyDictionary<Uri, List<DafnyDiagnostic>> ResolutionDiagnostics { get; }
+  public Dictionary<Uri, VerificationTree> VerificationTrees { get; }
 
   public CompilationAfterParsing(Compilation compilation,
     Program program,
-    IReadOnlyDictionary<Uri, List<DafnyDiagnostic>> diagnostics) : base(compilation.Version, compilation.Project, compilation.RootUris) {
+    IReadOnlyDictionary<Uri, List<DafnyDiagnostic>> diagnostics,
+    Dictionary<Uri, VerificationTree> verificationTrees) 
+    : base(compilation.Version, compilation.Project, compilation.RootUris) 
+  {
     ResolutionDiagnostics = diagnostics;
+    VerificationTrees = verificationTrees;
     Program = program;
   }
 
@@ -34,7 +39,7 @@ public class CompilationAfterParsing : Compilation {
       ResolutionDiagnostics = ResolutionDiagnostics.ToDictionary(
         kv => kv.Key,
         kv => (IReadOnlyList<Diagnostic>)kv.Value.Select(d => d.ToLspDiagnostic()).ToList()),
-      VerificationTrees = RootUris.ToDictionary(uri => uri, uri => (VerificationTree)new DocumentVerificationTree(Program, uri))
+      VerificationTrees = VerificationTrees
     };
   }
 

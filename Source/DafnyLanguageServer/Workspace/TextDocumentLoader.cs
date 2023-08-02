@@ -63,21 +63,25 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       return CreateDocumentWithEmptySymbolTable(compilation, ImmutableDictionary<Uri, IReadOnlyList<Diagnostic>>.Empty);
     }
 
-    public async Task<CompilationAfterParsing> ParseAsync(DafnyOptions options, Compilation compilation, CancellationToken cancellationToken) {
+    public async Task<CompilationAfterParsing> ParseAsync(DafnyOptions options, Compilation compilation,
+      IReadOnlyDictionary<Uri, VerificationTree> migratedVerificationTrees, CancellationToken cancellationToken) {
 #pragma warning disable CS1998
       return await await DafnyMain.LargeStackFactory.StartNew(
-        async () => ParseInternal(options, compilation, cancellationToken), cancellationToken
+        async () => ParseInternal(options, compilation, migratedVerificationTrees, cancellationToken), cancellationToken
 #pragma warning restore CS1998
       );
     }
 
     private CompilationAfterParsing ParseInternal(DafnyOptions options, Compilation compilation,
+      IReadOnlyDictionary<Uri, VerificationTree> migratedVerificationTrees,
       CancellationToken cancellationToken) {
       var project = compilation.Project;
       var errorReporter = new DiagnosticErrorReporter(options, project.Uri);
       _ = statusPublisher.SendStatusNotification(compilation, CompilationStatus.Parsing);
       var program = parser.Parse(compilation, errorReporter, cancellationToken);
-      var compilationAfterParsing = new CompilationAfterParsing(compilation, program, errorReporter.AllDiagnosticsCopy);
+      var compilationAfterParsing = new CompilationAfterParsing(compilation, program, errorReporter.AllDiagnosticsCopy,
+        compilation.RootUris.ToDictionary(uri => uri,
+          uri => migratedVerificationTrees.GetValueOrDefault(uri) ?? new DocumentVerificationTree(program, uri)));
       if (errorReporter.HasErrors) {
         _ = statusPublisher.SendStatusNotification(compilation, CompilationStatus.ParsingFailed);
         return compilationAfterParsing;
@@ -140,9 +144,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         ghostDiagnostics,
         verifiables,
         new(),
-        new(),
-        compilation.RootUris.ToDictionary(uri => uri,
-          uri => migratedVerificationTrees.GetValueOrDefault(uri) ?? new DocumentVerificationTree(compilation.Program, uri))
+        new()
       );
     }
 

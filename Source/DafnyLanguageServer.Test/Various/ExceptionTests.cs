@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
@@ -116,8 +117,9 @@ public class ExceptionTests : ClientBasedLanguageServerTest {
       return loader.CreateUnloaded(compilation);
     }
 
-    public Task<CompilationAfterParsing> ParseAsync(DafnyOptions options, Compilation compilation, CancellationToken cancellationToken) {
-      return loader.ParseAsync(options, compilation, cancellationToken);
+    public Task<CompilationAfterParsing> ParseAsync(DafnyOptions options, Compilation compilation,
+      IReadOnlyDictionary<Uri, VerificationTree> migratedVerificationTrees, CancellationToken cancellationToken) {
+      return loader.ParseAsync(options, compilation, ImmutableDictionary<Uri, VerificationTree>.Empty, cancellationToken);
     }
 
     public Task<CompilationAfterResolution> ResolveAsync(DafnyOptions options, CompilationAfterParsing compilation,
