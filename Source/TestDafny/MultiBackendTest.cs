@@ -94,20 +94,22 @@ public class MultiBackendTest {
     output.WriteLine("Verifying...");
 
     var (exitCode, outputString, error) = RunDafny(options.DafnyCliPath, dafnyArgs);
-    // If there is a .verifier.expect file, then we expect the output to match the .verifier.expect file contents.
-    // In either case, we expect verification to return a 0 exit code.
+    // If there is a .verifier.expect file, then we expect the output to match the .verifier.expect file contents. Otherwise, we
+    // expect the output to be empty.
+    var expectedOutput = "";
     var expectFileForVerifier = $"{options.TestFile}.verifier.expect";
     if (File.Exists(expectFileForVerifier)) {
-      var expectedOutput = File.ReadAllText(expectFileForVerifier);
-      // Chop off the "Dafny program verifier finished with..." trailer
-      var trailer = new Regex("\r?\nDafny program verifier[^\r\n]*\r?\n").Match(outputString);
-      var actualOutput = outputString.Remove(trailer.Index, trailer.Length);
-      var diffMessage = AssertWithDiff.GetDiffMessage(expectedOutput, actualOutput);
-      if (diffMessage != null) {
-        output.WriteLine(diffMessage);
-        return 1;
-      }
+      expectedOutput = File.ReadAllText(expectFileForVerifier);
     }
+    // Chop off the "Dafny program verifier finished with..." trailer
+    var trailer = new Regex("\r?\nDafny program verifier[^\r\n]*\r?\n").Match(outputString);
+    var actualOutput = outputString.Remove(trailer.Index, trailer.Length);
+    var diffMessage = AssertWithDiff.GetDiffMessage(expectedOutput, actualOutput);
+    if (diffMessage != null) {
+      output.WriteLine(diffMessage);
+      return 1;
+    }
+    // We expect verification to return exit code 0.
     if (exitCode != 0) {
       output.WriteLine("Verification failed. Output:");
       output.WriteLine(outputString);
@@ -131,7 +133,7 @@ public class MultiBackendTest {
         }
 
         // Check for backend-specific exceptions (because of known bugs or inconsistencies)
-        var expectedOutput = commonExpectedOutput;
+        expectedOutput = commonExpectedOutput;
         string? checkFile = null;
         var expectFileForBackend = $"{options.TestFile}.{compiler.TargetId}.expect";
         if (File.Exists(expectFileForBackend)) {
