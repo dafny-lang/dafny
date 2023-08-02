@@ -375,7 +375,6 @@ namespace Microsoft.Dafny.Compilers {
       wr.Write(protectedName);
       EmitActualTypeArgs(typeArgs, tok, wr);
     }
-    protected abstract string GenerateLhsDecl(string target, Type/*?*/ type, ConcreteSyntaxTree wr, IToken tok);
 
     protected virtual ConcreteSyntaxTree EmitAssignment(ILvalue wLhs, Type lhsType /*?*/, Type rhsType /*?*/,
       ConcreteSyntaxTree wr, IToken tok) {
@@ -420,10 +419,7 @@ namespace Microsoft.Dafny.Compilers {
     protected virtual string EmitAssignmentLhs(Expression e, ConcreteSyntaxTree wr) {
       var wStmts = wr.Fork();
       var target = ProtectedFreshId("_lhs");
-      wr.Write(GenerateLhsDecl(target, e.Type, wr, e.tok));
-      wr.Write(AssignmentSymbol);
-      EmitExpr(e, false, wr, wStmts);
-      EndStmt(wr);
+      EmitExpr(e, false, DeclareLocalVar(target, e.Type, e.tok, wr), wStmts);
       return target;
     }
 
@@ -3321,8 +3317,7 @@ namespace Microsoft.Dafny.Compilers {
           // introduce a variable to hold the value of the end-expression
           endVarName = ProtectedFreshId(s.GoingUp ? "_hi" : "_lo");
           wStmts = wr.Fork();
-          wr.Write(GenerateLhsDecl(endVarName, s.End.Type, wr, s.End.tok));
-          EmitAssignmentRhs(s.End, false, wr, wStmts);
+          EmitExpr(s.End, false, DeclareLocalVar(endVarName, s.End.Type, s.End.tok, wr), wStmts);
         }
         var startExprWriter = EmitForStmt(s.Tok, s.LoopIndex, s.GoingUp, endVarName, s.Body.Body, s.Labels, wr);
         EmitExpr(s.Start, false, startExprWriter, wStmts);

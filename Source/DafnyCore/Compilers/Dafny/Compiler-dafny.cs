@@ -561,10 +561,6 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    protected override string GenerateLhsDecl(string target, Type type, ConcreteSyntaxTree wr, IToken tok) {
-      throw new NotImplementedException();
-    }
-
     private class BuilderLvalue : ILvalue {
       readonly DafnyCompiler compiler;
       readonly string name;

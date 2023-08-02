@@ -858,10 +858,6 @@ namespace Microsoft.Dafny.Compilers {
       // emit nothing
     }
 
-    protected override string GenerateLhsDecl(string target, Type type, ConcreteSyntaxTree wr, IToken tok) {
-      return $"{target}: {TypeName(type, wr, tok)}";
-    }
-
     protected override void EmitPrintStmt(ConcreteSyntaxTree wr, Expression arg) {
       var wStmts = wr.Fork();
       wr.Write($"{DafnyRuntimeModule}.print(");

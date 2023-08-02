@@ -1910,10 +1910,6 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    protected override string GenerateLhsDecl(string target, Type/*?*/ type, ConcreteSyntaxTree wr, IToken tok) {
-      return (type != null ? TypeName(type, wr, tok) : "var") + " " + target;
-    }
-
     // ----- Statements -------------------------------------------------------------
 
     protected override void EmitPrintStmt(ConcreteSyntaxTree wr, Expression arg) {

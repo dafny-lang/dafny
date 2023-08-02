@@ -1107,10 +1107,6 @@ namespace Microsoft.Dafny.Compilers {
       // emit nothing
     }
 
-    protected override string GenerateLhsDecl(string target, Type/*?*/ type, ConcreteSyntaxTree wr, IToken tok) {
-      return "let " + target;
-    }
-
     // ----- Statements -------------------------------------------------------------
 
     protected override void EmitPrintStmt(ConcreteSyntaxTree wr, Expression arg) {
