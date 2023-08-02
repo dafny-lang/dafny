@@ -28,7 +28,7 @@ public class IdeStateObserver : IObserver<IdeState> {
   public IdeStateObserver(ILogger logger,
     ITelemetryPublisher telemetryPublisher,
     INotificationPublisher notificationPublisher,
-    ITextDocumentLoader loader, 
+    ITextDocumentLoader loader,
     IRelocator relocator,
     Compilation compilation) {
     LastPublishedState = loader.CreateUnloaded(compilation);
@@ -96,28 +96,28 @@ public class IdeStateObserver : IObserver<IdeState> {
 
   private Dictionary<Location, Dictionary<string, IdeImplementationView>> MigrateImplementationViews(DidChangeTextDocumentParams documentChange,
       Dictionary<Location, Dictionary<string, IdeImplementationView>> oldVerificationDiagnostics) {
-      var result = new Dictionary<Location, Dictionary<string, IdeImplementationView>>();
-      foreach (var entry in oldVerificationDiagnostics) {
-        var newOuterRange = relocator.RelocateRange(entry.Key.Range, documentChange, CancellationToken.None);
-        if (newOuterRange == null) {
-          continue;
-        }
-
-        var newValue = new Dictionary<string, IdeImplementationView>();
-        foreach (var innerEntry in entry.Value) {
-          var newInnerRange = relocator.RelocateRange(innerEntry.Value.Range, documentChange, CancellationToken.None);
-          if (newInnerRange != null) {
-            newValue.Add(innerEntry.Key, innerEntry.Value with { 
-              Range = newInnerRange,
-              Diagnostics = relocator.RelocateDiagnostics(innerEntry.Value.Diagnostics, documentChange, CancellationToken.None)
-            });
-          }
-        }
-        result.Add(new Location() {
-          Uri = entry.Key.Uri,
-          Range = newOuterRange
-        }, newValue);
+    var result = new Dictionary<Location, Dictionary<string, IdeImplementationView>>();
+    foreach (var entry in oldVerificationDiagnostics) {
+      var newOuterRange = relocator.RelocateRange(entry.Key.Range, documentChange, CancellationToken.None);
+      if (newOuterRange == null) {
+        continue;
       }
-      return result;
+
+      var newValue = new Dictionary<string, IdeImplementationView>();
+      foreach (var innerEntry in entry.Value) {
+        var newInnerRange = relocator.RelocateRange(innerEntry.Value.Range, documentChange, CancellationToken.None);
+        if (newInnerRange != null) {
+          newValue.Add(innerEntry.Key, innerEntry.Value with {
+            Range = newInnerRange,
+            Diagnostics = relocator.RelocateDiagnostics(innerEntry.Value.Diagnostics, documentChange, CancellationToken.None)
+          });
+        }
+      }
+      result.Add(new Location() {
+        Uri = entry.Key.Uri,
+        Range = newOuterRange
+      }, newValue);
     }
+    return result;
+  }
 }
