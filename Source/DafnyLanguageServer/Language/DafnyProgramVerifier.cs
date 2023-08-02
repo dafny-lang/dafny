@@ -36,6 +36,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         var errorReporter = (DiagnosticErrorReporter)program.Reporter;
 
         cancellationToken.ThrowIfCancellationRequested();
+
         var translated = await DafnyMain.LargeStackFactory.StartNew(() => Translator.Translate(program, errorReporter, new Translator.TranslatorFlags(errorReporter.Options) {
           InsertChecksums = 0 < engine.Options.VerifySnapshots,
           ReportRanges = true
