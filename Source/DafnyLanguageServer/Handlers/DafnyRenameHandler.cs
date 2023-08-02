@@ -38,7 +38,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
       // so a partial rename may result in breaking the codebase
       if ((await projects.GetProject(requestUri)).IsImplicitProject) {
         // TODO: determine why project file isn't found
-        // throw new Exception("Renaming support requires defining a Dafny project file (dfyconfig.toml)");
+        throw new Exception("Renaming support requires --project-mode and a Dafny project file (dfyconfig.toml)");
       }
 
       var state = await projects.GetResolvedDocumentAsyncInternal(request.TextDocument);
