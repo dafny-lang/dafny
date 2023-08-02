@@ -285,7 +285,10 @@ class PreTypeToTypeVisitor : ASTVisitor<IASTVisitorContext> {
       if (assignStmt is { Rhs: ExprRhs exprRhs }) {
         rhsType = exprRhs.Expr.Resolved.UnnormalizedType;
       } else if (assignStmt is { Rhs: TypeRhs tRhs }) {
-        tRhs.Type = PreType2Type(tRhs.PreType);
+        // convert the type of the RHS, which we expect to be a reference type, and then create the non-null version of it
+        var udtConvertedFromPretype = (UserDefinedType)PreType2Type(tRhs.PreType);
+        Contract.Assert(udtConvertedFromPretype.IsRefType);
+        tRhs.Type = UserDefinedType.CreateNonNullType(udtConvertedFromPretype);
         if (tRhs.ArrayDimensions != null) {
           // In this case, we expect tRhs.PreType to be an array type
           var arrayPreType = (DPreType)tRhs.PreType.Normalize();
@@ -293,9 +296,9 @@ class PreTypeToTypeVisitor : ASTVisitor<IASTVisitorContext> {
           Contract.Assert(arrayPreType.Arguments.Count == 1);
           UpdateIfOmitted(tRhs.EType, arrayPreType.Arguments[0]);
         } else {
-          UpdateIfOmitted(tRhs.EType, tRhs.PreType);
+          UpdateIfOmitted(tRhs.EType, tRhs.Type);
         }
-        rhsType = tRhs.EType;
+        rhsType = tRhs.Type;
         rhsDescription = " new";
       }
 
@@ -326,7 +329,7 @@ class PreTypeToTypeVisitor : ASTVisitor<IASTVisitorContext> {
       if (produceStmt.HiddenUpdate != null) {
         VisitStatement(produceStmt.HiddenUpdate, context);
       }
-      
+
     } else if (stmt is CalcStmt calcStmt) {
       // The expression in each line has been visited, but pairs of those lines are then put together to
       // form steps. These steps (are always boolean, and) need to be visited, too. Their subexpressions
