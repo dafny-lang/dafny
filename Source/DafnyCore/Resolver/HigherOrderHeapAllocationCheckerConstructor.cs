@@ -5,11 +5,20 @@
 //
 //-----------------------------------------------------------------------------
 
-using System;
-using System.Reflection;
-
 namespace Microsoft.Dafny;
 
+// This checker prevents the definition of non-terminating functions
+// by storing functions in memory (aka Landin's knots) during the 
+// creation of an object. This could also be prevented by doing 
+// a cardinality check on the type of class (similar to what is done
+// for algebraic datatypes) but at a fundamental level, the issue is
+// the creation of a Landin's knot, and it is easier and safer to catch
+// this way because of type parameters and traits.
+// Thanks to frame information, we need not reject all assignments of
+// functions to memory, but only the ones that are know to have a 
+// read frame.
+// To understand this checker, it is recommended to first look at
+// HigherOrderHeapAllocationChecker.
 class HigherOrderHeapAllocationCheckerConstructor : ASTVisitor<IASTVisitorContext> {
   private readonly ErrorReporter reporter;
 
@@ -21,25 +30,38 @@ class HigherOrderHeapAllocationCheckerConstructor : ASTVisitor<IASTVisitorContex
     return astVisitorContext;
   }
 
-  private bool Occurs(Type Obj, Type rhs) {
+  // Occurs is a pure function that visits a type (rhs) to test
+  // for the presence of an heap-allocated type (Obj) left of
+  // an arrow. 
+  // This check could be relaxed but we keep it simple until
+  // we encounter a good use case for the more general check.
+  private bool Occurs(Type Obj, Type rhs, bool left) {
     Type type = rhs.NormalizeExpandKeepConstraints();
     if (type is BasicType) {
       return false;
     } else if (type is MapType) {
       var t = (MapType)type;
-      return Occurs(Obj, t.Domain) || Occurs(Obj, t.Range);
+      return Occurs(Obj, t.Domain, left) || Occurs(Obj, t.Range, left);
+    } else if (type is SetType) {
+      var t = (SetType)type;
+      return Occurs(Obj, t.Arg, left);
     } else if (type is CollectionType) {
       var t = (CollectionType)type;
-      return Occurs(Obj, t.Arg);
+      return Occurs(Obj, t.Arg, left);
     } else {
       var t = (UserDefinedType)type;
-      if (Obj.Equals(t)) {
+      if (left && Obj.Equals(t)) {
         return true;
       }
-
       var b = false;
+      if (t.IsArrowType) {
+        var arrow = type.AsArrowType;
+        for (int i = 0; i < arrow.Arity; i++) {
+          b = b || Occurs(Obj, arrow.TypeArgs[i], true);
+        }
+      }
       for (int i = 0; i < t.TypeArgs.Count; i++) {
-        b = b || Occurs(Obj, t.TypeArgs[i]);
+        b = b || Occurs(Obj, t.TypeArgs[i], left);
       }
 
       return b;
@@ -47,10 +69,18 @@ class HigherOrderHeapAllocationCheckerConstructor : ASTVisitor<IASTVisitorContex
   }
 
   protected override bool VisitOneStatement(Statement stmt, IASTVisitorContext context) {
+
+    // Assigments to constant fields in constructors boil down to an assignment.
     if (stmt is AssignStmt assign) {
 
       var lhs = assign.Lhs;
       Type lhsType;
+
+      // We need to make sure that if a function is written to a field
+      // it does not refer to the type of the object being assigned to.
+      // Note that the function may not be of type . ~> . because
+      // functions of type . ~> . can be assigned to constant fields
+      // of type . -> . during the object's construction.
       if (lhs is MemberSelectExpr mseLhs) {
 
         lhsType = mseLhs.Obj.Type.NormalizeExpandKeepConstraints();
@@ -60,15 +90,9 @@ class HigherOrderHeapAllocationCheckerConstructor : ASTVisitor<IASTVisitorContex
           var exp = eRhs.Expr;
           var type = exp.Type;
 
-          if (type.IsArrowType) {
-
-            var arrow = type.AsArrowType;
-            for (int i = 0; i < arrow.Arity; i++) {
-              if (Occurs(lhsType, arrow.Args[i])) {
-                reporter.Error(MessageSource.Resolver, stmt,
-                  $"To prevent the creation of non-terminating functions, storing functions into an object's fields that reads the object is disallowed");
-              }
-            }
+          if (Occurs(lhsType, type, false)) {
+            reporter.Error(MessageSource.Resolver, stmt,
+              "To prevent the creation of non-terminating functions, storing functions into an object's fields that reads the object is disallowed");
           }
         }
       }

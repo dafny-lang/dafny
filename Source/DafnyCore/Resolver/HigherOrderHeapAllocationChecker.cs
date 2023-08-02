@@ -5,11 +5,13 @@
 //
 //-----------------------------------------------------------------------------
 
-using System;
-using System.Reflection;
-
 namespace Microsoft.Dafny;
 
+// This checker prevents the definition of non-terminating functions
+// by storing functions in memory (aka Landin's knots)
+// Thanks to frame information, we need not reject all assignments of
+// functions to memory, but only the ones that are know to have a 
+// read frame.
 class HigherOrderHeapAllocationChecker : ASTVisitor<IASTVisitorContext> {
   private readonly ErrorReporter reporter;
 
@@ -21,6 +23,8 @@ class HigherOrderHeapAllocationChecker : ASTVisitor<IASTVisitorContext> {
     return astVisitorContext;
   }
 
+  // ContainsRead is a pure function that visits a type to test
+  // for the presence of a memory-reading arrow type ( ~> ).
   private bool ContainsRead(Type rhs) {
     Type type = rhs.NormalizeExpandKeepConstraints();
     if (type is BasicType) {
@@ -48,17 +52,34 @@ class HigherOrderHeapAllocationChecker : ASTVisitor<IASTVisitorContext> {
     }
   }
 
+  // VisitOneStatement checks that we do not store in memory a function of
+  // type . ~> .
   protected override bool VisitOneStatement(Statement stmt, IASTVisitorContext context) {
+
+    // Since all updates and variable declarations are eventually broken down into
+    // assignments, we need only consider an AssignStmt.
     if (stmt is AssignStmt assign) {
 
       var lhs = assign.Lhs;
       var rhs = assign.Rhs;
+
+      // Memory can be updated either by writing to a sequence-like collection
+      // or by writing to an object's field.
       if (lhs is MemberSelectExpr || lhs is SeqSelectExpr) {
 
+        // The only case of interest is when the right hand side of the assignment 
+        // is an expression. The case where it is a type expression (new) is handled
+        // by a different check.
         if (rhs is ExprRhs eRhs) {
           var exp = eRhs.Expr;
           var type = exp.Type;
 
+          // If the assignment contains a function with read effects, it must be rejected.
+          // It would not be enough to check that the RHS is of type . ~> . because
+          // one can hide such a function deep into another type.
+          // It is plausible that using write frame information, we could relax this check
+          // by ensuring that the read frame of the function and the write frame of the context
+          // are disjoint, but this would require an inter-procedural analysis.
           if (ContainsRead(type)) {
             reporter.Error(MessageSource.Resolver, stmt,
               $"To prevent the creation of non-terminating functions, storing functions with read effects into memory is disallowed");
