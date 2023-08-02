@@ -19,7 +19,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.GutterStatus;
 /// This class tests whether editing a file results in
 /// methods priorities for verification being set automatically.
 /// </summary>
-public class ReorderingVerificationGutterStatusTester : LinearVerificationGutterStatusTester {
+public class VerificationOrderTest2 : ClientBasedLanguageServerTest {
   private const int MaxTestExecutionTimeMs = 10000;
 
   [Fact/*, Timeout(MaxTestExecutionTimeMs * 10)*/]
@@ -123,7 +123,7 @@ method m5() { assert false; } //Remove4:
     });
     var symbols = ExtractSymbols(symbolsString);
 
-    var (code, changes) = ExtractCodeAndChanges(codeAndChanges.TrimStart());
+    var (code, changes) = LinearVerificationGutterStatusTester.ExtractCodeAndChanges(codeAndChanges.TrimStart());
     var documentItem = CreateTestDocument(code);
     client.OpenDocument(documentItem);
 
@@ -233,6 +233,6 @@ method m5() { assert false; } //Remove4:
     } while (!started || foundStatus.NamedVerifiables.Any(v => v.Status < PublishedVerificationStatus.Error));
   }
 
-  public ReorderingVerificationGutterStatusTester(ITestOutputHelper output) : base(output) {
+  public VerificationOrderTest2(ITestOutputHelper output) : base(output) {
   }
 }

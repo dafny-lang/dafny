@@ -72,7 +72,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit {
           It.IsAny<ErrorReporter>(),
           It.IsAny<CancellationToken>())).Callback(() => source.Cancel())
         .Throws<TaskCanceledException>();
-      var task = textDocumentLoader.ParseAsync(DafnyOptions.Default, GetCompilation(), ImmutableDictionary<Uri, VerificationTree>.Empty,  source.Token);
+      var task = textDocumentLoader.ParseAsync(DafnyOptions.Default, GetCompilation(), ImmutableDictionary<Uri, VerificationTree>.Empty, source.Token);
       try {
         await task;
         Assert.Fail("document load was not cancelled");

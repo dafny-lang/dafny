@@ -119,7 +119,7 @@ public class CompilationManager {
     try {
       var parsedCompilation = await ParsedCompilation;
       var resolvedCompilation = await documentLoader.ResolveAsync(options, parsedCompilation, migratedVerificationTrees, cancellationSource.Token);
-      
+
       // TODO, let gutter icon publications also used the published CompilationView.
       var state = resolvedCompilation.InitialIdeState(startingCompilation, options);
       // state = state with {
@@ -254,7 +254,7 @@ public class CompilationManager {
     }
 
     var implementations = compilation.ImplementationsPerVerifiable.GetOrAdd(verifiable, _ => {
-      var tasksForVerifiable = 
+      var tasksForVerifiable =
         tasksForModule.GetValueOrDefault(verifiable.NameToken.GetFilePosition()) ?? new List<IImplementationTask>(0);
 
       verificationProgressReporter.ReportImplementationsBeforeVerification(compilation,

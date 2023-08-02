@@ -67,7 +67,7 @@ public class ProjectManager : IDisposable {
     ILogger<ProjectManager> logger,
     IRelocator relocator,
     IFileSystem fileSystem,
-    INotificationPublisher notificationPublisher, 
+    INotificationPublisher notificationPublisher,
     IVerificationProgressReporter verificationProgressReporter,
     CreateCompilationManager createCompilationManager,
     CreateIdeStateObserver createIdeStateObserver,
@@ -298,13 +298,16 @@ public class ProjectManager : IDisposable {
         RecentChanges = new List<Location>();
       }
 
-      int GetPriority(ISymbol symbol) {
+      int GetPriorityAttribute(ISymbol symbol) {
+        return 0; // TODO lookup attribute
+      }
+      int TopToBottomPriority(ISymbol symbol) {
         return symbol.Tok.pos; // TODO lookup attribute as well
       }
       var implementationOrder = ChangedVerifiables.Select((v, i) => (v, i)).ToDictionary(k => k.v, k => k.i);
-      var orderedVerifiables = verifiables.OrderBy(GetPriority).CreateOrderedEnumerable(
-        t => implementationOrder.GetOrDefault(new FilePosition(t.Tok.Uri, t.Tok.GetLspPosition()), () => int.MaxValue),
-        null, false).ToList();
+      var orderedVerifiables = verifiables.OrderBy(GetPriorityAttribute).CreateOrderedEnumerable(
+        t => implementationOrder.GetOrDefault(t.Tok.GetFilePosition(), () => int.MaxValue),
+        null, false).CreateOrderedEnumerable(TopToBottomPriority, null, false).ToList();
 
       foreach (var canVerify in orderedVerifiables) {
         // Wait for each task to try and run, so the order is respected.

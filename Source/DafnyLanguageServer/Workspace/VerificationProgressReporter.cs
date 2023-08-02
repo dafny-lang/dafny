@@ -192,7 +192,7 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
 
       targetMethodNode?.AddNewChild(newImplementationNode);
     }
-    
+
     canVerifyNode.SaveNewChildren();
     if (!canVerifyNode.Children.Any()) {
       canVerifyNode.Start();

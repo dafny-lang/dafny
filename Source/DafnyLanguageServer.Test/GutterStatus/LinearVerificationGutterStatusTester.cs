@@ -181,7 +181,7 @@ public abstract class LinearVerificationGutterStatusTester : ClientBasedLanguage
   /// </summary>
   /// <param name="code">The original code with the //Next: comments or //NextN:</param>
   /// <returns></returns>
-  public (string code, List<(Range changeRange, string changeValue)> changes) ExtractCodeAndChanges(string code) {
+  public static (string code, List<(Range changeRange, string changeValue)> changes) ExtractCodeAndChanges(string code) {
     var lineMatcher = new Regex(@"\r?\n");
     var matcher = new Regex(@"(?<previousNewline>^|\r?\n)(?<toRemove>.*?//(?<newtOrRemove>Next|Remove)(?<id>\d*):(?<newline>\\n)?)");
     var originalCode = code;
