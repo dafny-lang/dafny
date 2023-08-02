@@ -122,7 +122,6 @@ public class CompilationManager {
       var resolvedCompilation = await documentLoader.ResolveAsync(options, parsedCompilation, migratedVerificationTrees, cancellationSource.Token);
 
       // TODO, let gutter icon publications also used the published CompilationView.
-      var state = resolvedCompilation.InitialIdeState(startingCompilation, options);
       // state = state with {
       //   VerificationTrees = resolvedCompilation.RootUris.ToDictionary(uri => uri,
       //     uri => migratedVerificationTrees.GetValueOrDefault(uri) ?? new DocumentVerificationTree(resolvedCompilation.Program, uri))

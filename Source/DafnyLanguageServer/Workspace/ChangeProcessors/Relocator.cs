@@ -135,8 +135,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
         var newRelatedInformation = diagnostic.RelatedInformation?.SelectMany(related =>
           MigrateRelatedInformation(change, related)).ToList();
         yield return diagnostic with {
-          Message = diagnostic.Message,
-          Severity = diagnostic.Severity == DiagnosticSeverity.Error ? DiagnosticSeverity.Warning : diagnostic.Severity,
           Range = newRange,
           RelatedInformation = newRelatedInformation
         };

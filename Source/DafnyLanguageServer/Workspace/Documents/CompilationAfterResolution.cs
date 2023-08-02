@@ -56,6 +56,7 @@ public class CompilationAfterResolution : CompilationAfterParsing {
   public const string OutdatedPrefix = "Outdated: ";
   private IEnumerable<Diagnostic> MarkDiagnosticsAsOutdated(IEnumerable<Diagnostic> diagnostics) {
     return diagnostics.Select(diagnostic => diagnostic with {
+      Severity = diagnostic.Severity == DiagnosticSeverity.Error ? DiagnosticSeverity.Warning : diagnostic.Severity,
       Message = diagnostic.Message.StartsWith(OutdatedPrefix)
         ? diagnostic.Message
         : OutdatedPrefix + diagnostic.Message
@@ -68,7 +69,8 @@ public class CompilationAfterResolution : CompilationAfterParsing {
       var previousForCanVerify = previousState.ImplementationViews.GetValueOrDefault(location) ?? new Dictionary<string, IdeImplementationView>();
       if (!ImplementationsPerVerifiable.TryGetValue(canVerify, out var implementationsPerName)) {
         return previousForCanVerify.ToDictionary(kv => kv.Key, kv => kv.Value with {
-          Status = PublishedVerificationStatus.Stale
+          Status = PublishedVerificationStatus.Stale,
+          Diagnostics = MarkDiagnosticsAsOutdated(kv.Value.Diagnostics).ToList()
         });
       }
 
