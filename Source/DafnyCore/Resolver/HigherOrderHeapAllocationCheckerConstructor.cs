@@ -7,18 +7,20 @@
 
 namespace Microsoft.Dafny;
 
-// This checker prevents the definition of non-terminating functions
-// by storing functions in memory (aka Landin's knots) during the 
-// creation of an object. This could also be prevented by doing 
-// a cardinality check on the type of class (similar to what is done
-// for algebraic datatypes) but at a fundamental level, the issue is
-// the creation of a Landin's knot, and it is easier and safer to catch
-// this way because of type parameters and traits.
-// Thanks to frame information, we need not reject all assignments of
-// functions to memory, but only the ones that are know to have a 
-// read frame.
-// To understand this checker, it is recommended to first look at
-// HigherOrderHeapAllocationChecker.
+/// <summary>
+/// This checker prevents the definition of non-terminating functions
+/// by storing functions in memory (aka Landin's knots) during the 
+/// creation of an object. This could also be prevented by doing 
+/// a cardinality check on the type of class (similar to what is done
+/// for algebraic datatypes) but at a fundamental level, the issue is
+/// the creation of a Landin's knot, and it is easier and safer to catch
+/// this way because of type parameters and traits.
+/// Thanks to frame information, we need not reject all assignments of
+/// functions to memory, but only the ones that are know to have a 
+/// read frame.
+/// To understand this checker, it is recommended to first look at
+/// HigherOrderHeapAllocationChecker.
+/// </summary>
 class HigherOrderHeapAllocationCheckerConstructor : ASTVisitor<IASTVisitorContext> {
   private readonly ErrorReporter reporter;
 
@@ -30,44 +32,40 @@ class HigherOrderHeapAllocationCheckerConstructor : ASTVisitor<IASTVisitorContex
     return astVisitorContext;
   }
 
-  // Occurs is a pure function that visits a type (rhs) to test
-  // for the presence of an heap-allocated type (Obj) left of
-  // an arrow. 
-  // This check could be relaxed but we keep it simple until
-  // we encounter a good use case for the more general check.
-  // Recall that a cycle can only be created using a function,
-  // which is why the test is different than a traditional
-  // cardinality test.
-  private bool Occurs(Type Obj, Type rhs, bool left) {
+  /// <summary>
+  /// Occurs is a pure function that visits a type (rhs) to test
+  /// for the presence of an heap-allocated type (Obj) left of
+  /// an arrow. 
+  /// This check could be relaxed but we keep it simple until
+  /// we encounter a good use case for the more general check.
+  /// Recall that a cycle can only be created using a function,
+  /// which is why the test is different than a traditional
+  /// cardinality test.
+  /// </summary>
+  private bool Occurs(Type obj, Type rhs, bool left) {
     Type type = rhs.NormalizeExpandKeepConstraints();
     if (type is BasicType) {
       return false;
     } else if (type is MapType) {
       var t = (MapType)type;
-      return Occurs(Obj, t.Domain, left) || Occurs(Obj, t.Range, left);
+      return Occurs(obj, t.Domain, left) || Occurs(obj, t.Range, left);
     } else if (type is SetType) {
       var t = (SetType)type;
-      return Occurs(Obj, t.Arg, left);
+      return Occurs(obj, t.Arg, left);
     } else if (type is CollectionType) {
       var t = (CollectionType)type;
-      return Occurs(Obj, t.Arg, left);
+      return Occurs(obj, t.Arg, left);
     } else {
       var t = (UserDefinedType)type;
-      if (left && Obj.Equals(t)) {
+      if (left && Type.Equal_Improved(obj, t)) {
         return true;
       }
       var b = false;
       if (t.IsArrowType) {
         var arrow = type.AsArrowType;
-        for (int i = 0; i < arrow.Arity; i++) {
-          b = b || Occurs(Obj, arrow.TypeArgs[i], true);
-        }
+        b = b || arrow.TypeArgs.Exists(typeArg => Occurs(obj, typeArg, true));
       }
-      for (int i = 0; i < t.TypeArgs.Count; i++) {
-        b = b || Occurs(Obj, t.TypeArgs[i], left);
-      }
-
-      return b;
+      return b || t.TypeArgs.Exists(typeArg => Occurs(obj, typeArg, left));
     }
   }
 

@@ -17,5 +17,6 @@ method Main()
 {
   var r := new Ref;
   r.hogp := F;
+  // error: r.hogp calls itself without decreasing
   var f := r.hogp(r);
 }

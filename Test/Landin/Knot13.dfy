@@ -15,5 +15,6 @@ method Main()
 {
   var r := new Ref2();
   r.r := new Ref1;
+  // error: r.r.hogp calls itself without decreasing
   r.r.hogp := () reads r, r.r, r.r.hogp.reads() => if r.r.hogp.requires() then 1 + r.r.hogp() else 0;
 }

@@ -15,6 +15,7 @@ class Y {
 method Main()
   ensures false
 {
+  // error: x.f.c calls itself without decreasing
   var knot := new Y(Pack((x: Y) => 1 + x.f.c(x)));
   var a := knot.f.c(knot);
 }
