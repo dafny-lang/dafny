@@ -589,9 +589,9 @@ function {:inline} _System.real.Floor(x: real): int { Int(x) }
 // ---------------------------------------------------------------
 // -- The heap ---------------------------------------------------
 // ---------------------------------------------------------------
-type Heap = [ref]<alpha>[Field alpha]alpha;
-function {:inline} read<alpha>(H:Heap, r:ref, f:Field alpha): alpha { H[r][f] }
-function {:inline} update<alpha>(H:Heap, r:ref, f:Field alpha, v:alpha): Heap { H[r := H[r][f := v]] }
+type Heap = [ref]<alpha>[Field alpha]Box;
+function {:inline} read<alpha>(H: Heap, r: ref, f: Field alpha) : alpha { $Unbox(H[r][f]) }
+function {:inline} update<alpha>(H:Heap, r:ref, f:Field alpha, v:alpha): Heap { H[r := H[r][f := $Box(v)]] }
 
 function $IsGoodHeap(Heap): bool;
 function $IsHeapAnchor(Heap): bool;
@@ -649,7 +649,7 @@ procedure $IterHavoc1(this: ref, modi: Set Box, nw: Set Box);
 procedure $IterCollectNewObjects(prevHeap: Heap, newHeap: Heap, this: ref, NW: Field (Set Box))
                         returns (s: Set Box);
   ensures (forall bx: Box :: { s[bx] } s[bx] <==>
-              read(newHeap, this, NW)[bx] ||
+              (read(newHeap, this, NW) : Set Box)[bx] ||
               ($Unbox(bx) != null && !read(prevHeap, $Unbox(bx):ref, alloc) && read(newHeap, $Unbox(bx):ref, alloc)));
 
 // ---------------------------------------------------------------
@@ -1207,13 +1207,13 @@ axiom (forall<U, V> m: Map U V ::
   m == Map#Empty() || (exists k, v: Box :: Map#Items(m)[$Box(#_System._tuple#2._#Make2(k, v))]));
 
 axiom (forall<U, V> m: Map U V ::
-  { Set#Card(Map#Domain(m)) }
+  { Set#Card(Map#Domain(m)) } { Map#Card(m) }
   Set#Card(Map#Domain(m)) == Map#Card(m));
 axiom (forall<U, V> m: Map U V ::
-  { Set#Card(Map#Values(m)) }
+  { Set#Card(Map#Values(m)) } { Map#Card(m) }
   Set#Card(Map#Values(m)) <= Map#Card(m));
 axiom (forall<U, V> m: Map U V ::
-  { Set#Card(Map#Items(m)) }
+  { Set#Card(Map#Items(m)) } { Map#Card(m) }
   Set#Card(Map#Items(m)) == Map#Card(m));
 
 // The set of Values of a Map can be obtained by the function Map#Values, which is

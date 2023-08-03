@@ -16,7 +16,7 @@ public class Field : MemberDecl, ICanFormat, IHasDocstring, ISymbol {
     Contract.Invariant(!IsUserMutable || IsMutable);  // IsUserMutable ==> IsMutable
   }
 
-  public override IEnumerable<Node> Children => Type.Nodes;
+  public override IEnumerable<INode> Children => Type.Nodes;
 
   public Field(RangeToken rangeToken, Name name, bool isGhost, Type type, Attributes attributes)
     : this(rangeToken, name, false, isGhost, true, true, type, attributes) {
@@ -86,7 +86,7 @@ public class Field : MemberDecl, ICanFormat, IHasDocstring, ISymbol {
     return true;
   }
 
-  protected override string GetTriviaContainingDocstring() {
+  public string GetTriviaContainingDocstring() {
     if (EndToken.TrailingTrivia.Trim() != "") {
       return EndToken.TrailingTrivia;
     }
@@ -95,4 +95,9 @@ public class Field : MemberDecl, ICanFormat, IHasDocstring, ISymbol {
   }
 
   public virtual DafnySymbolKind Kind => DafnySymbolKind.Field;
+
+  public string GetDescription(DafnyOptions options) {
+    var prefix = IsMutable ? "var" : "const";
+    return $"{prefix} {AstExtensions.GetMemberQualification(this)}{Name}: {Type}";
+  }
 }

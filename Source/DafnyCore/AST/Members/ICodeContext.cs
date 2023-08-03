@@ -76,7 +76,8 @@ public class CallableWrapper : CodeContextWrapper, ICallable {
 
   protected ICallable cwInner => (ICallable)inner;
   public IToken Tok => cwInner.Tok;
-  public IEnumerable<Node> Children => cwInner.Children;
+  public IEnumerable<INode> Children => cwInner.Children;
+  public IEnumerable<INode> PreResolveChildren => cwInner.PreResolveChildren;
 
   public string WhatKind => cwInner.WhatKind;
   public string NameRelativeToModule => cwInner.NameRelativeToModule;
@@ -88,6 +89,8 @@ public class CallableWrapper : CodeContextWrapper, ICallable {
   }
 
   public bool AllowsAllocation => cwInner.AllowsAllocation;
+
+  public IEnumerable<IToken> OwnedTokens => cwInner.OwnedTokens;
   public RangeToken RangeToken => cwInner.RangeToken;
 }
 
@@ -102,11 +105,8 @@ public class DontUseICallable : ICallable {
   public string FullSanitizedName { get { throw new cce.UnreachableException(); } }
   public bool AllowsNontermination { get { throw new cce.UnreachableException(); } }
   public IToken Tok { get { throw new cce.UnreachableException(); } }
-  public IEnumerable<Node> Children => throw new cce.UnreachableException();
-
-  public string GetDocstring(DafnyOptions options) {
-    throw new cce.UnreachableException();
-  }
+  public IEnumerable<INode> Children => throw new cce.UnreachableException();
+  public IEnumerable<INode> PreResolveChildren => throw new cce.UnreachableException();
 
   public string NameRelativeToModule { get { throw new cce.UnreachableException(); } }
   public Specification<Expression> Decreases { get { throw new cce.UnreachableException(); } }
@@ -115,6 +115,11 @@ public class DontUseICallable : ICallable {
     set { throw new cce.UnreachableException(); }
   }
   public bool AllowsAllocation => throw new cce.UnreachableException();
+  public IEnumerable<INode> GetConcreteChildren() {
+    throw new cce.UnreachableException();
+  }
+
+  public IEnumerable<IToken> OwnedTokens => throw new cce.UnreachableException();
   public RangeToken RangeToken => throw new cce.UnreachableException();
 }
 
@@ -148,8 +153,6 @@ public interface RedirectingTypeDecl : ICallable {
   string Name { get; }
 
   IToken tok { get; }
-  IEnumerable<IToken> OwnedTokens { get; }
-  IToken StartToken { get; }
   Attributes Attributes { get; }
   ModuleDefinition Module { get; }
   BoundVar/*?*/ Var { get; }
