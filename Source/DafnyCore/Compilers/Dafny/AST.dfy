@@ -7,7 +7,7 @@ module {:extern "DAST"} DAST {
 
   datatype Type = Path(seq<Ident>, typeArgs: seq<Type>, resolved: ResolvedType) | Tuple(seq<Type>) | Primitive(Primitive) | Passthrough(string) | TypeArg(Ident)
 
-  datatype Primitive = String | Bool
+  datatype Primitive = String | Bool | Char
 
   datatype ResolvedType = Datatype(path: seq<Ident>) | Newtype
 
@@ -31,6 +31,7 @@ module {:extern "DAST"} DAST {
     DeclareVar(name: string, typ: Type, maybeValue: Optional<Expression>) |
     Assign(name: string, value: Expression) |
     If(cond: Expression, thn: seq<Statement>, els: seq<Statement>) |
+    While(cond: Expression, body: seq<Statement>) |
     Call(on: Expression, name: string, typeArgs: seq<Type>, args: seq<Expression>, outs: Optional<seq<Ident>>) |
     Return(expr: Expression) |
     EarlyReturn() |
@@ -44,6 +45,7 @@ module {:extern "DAST"} DAST {
     New(path: seq<Ident>, args: seq<Expression>) |
     DatatypeValue(path: seq<Ident>, variant: string, isCo: bool, contents: seq<(string, Expression)>) |
     This() |
+    Ite(cond: Expression, thn: Expression, els: Expression) |
     BinOp(op: string, left: Expression, right: Expression) |
     Select(expr: Expression, field: string, onDatatype: bool) |
     TupleSelect(expr: Expression, index: nat) |
