@@ -208,6 +208,8 @@ namespace Microsoft.Dafny.Compilers {
         return (DAST.Type)DAST.Type.create_Passthrough(Sequence<Rune>.UnicodeFromString("f32"));
       } else if (xType.IsStringType) {
         return (DAST.Type)DAST.Type.create_Primitive(DAST.Primitive.create_String());
+      } else if (xType.IsCharType) {
+        return (DAST.Type)DAST.Type.create_Primitive(DAST.Primitive.create_Char());
       } else if (xType is UserDefinedType udt) {
         if (udt.ResolvedClass is TypeParameter tp) {
           if (thisContext != null && thisContext.ParentFormalTypeParametersToActuals.TryGetValue(tp, out var instantiatedTypeParameter)) {
@@ -239,7 +241,9 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void GetNativeInfo(NativeType.Selection sel, out string name, out string literalSuffix, out bool needsCastAfterArithmetic) {
-      throw new NotImplementedException();
+      name = null;
+      literalSuffix = null;
+      needsCastAfterArithmetic = false;
     }
 
     private class ClassWriter : IClassWriter {
@@ -703,7 +707,13 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override ConcreteSyntaxTree CreateWhileLoop(out ConcreteSyntaxTree guardWriter, ConcreteSyntaxTree wr) {
-      throw new NotImplementedException();
+      if (wr is BuilderSyntaxTree<StatementContainer> statementContainer) {
+        var whileBuilder = statementContainer.Builder.While();
+        guardWriter = new BuilderSyntaxTree<ExprContainer>(whileBuilder);
+        return new BuilderSyntaxTree<StatementContainer>(whileBuilder);
+      } else {
+        throw new InvalidOperationException();
+      }
     }
 
     protected override ConcreteSyntaxTree CreateForLoop(string indexVar, string bound, ConcreteSyntaxTree wr, string start = null) {
@@ -1130,7 +1140,7 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void EmitUnaryExpr(ResolvedUnaryOp op, Expression expr, bool inLetExprBody,
         ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
-      throw new NotImplementedException();
+      throw new NotImplementedException("Unary expression: " + op);
     }
 
     protected override void CompileBinOp(BinaryExpr.ResolvedOpcode op,
@@ -1213,7 +1223,17 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void EmitITE(Expression guard, Expression thn, Expression els, Type resultType, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       if (wr is BuilderSyntaxTree<ExprContainer> builder) {
-        throw new NotImplementedException();
+        var guardBuffer = new ExprBuffer(null);
+        var thnBuffer = new ExprBuffer(null);
+        var elsBuffer = new ExprBuffer(null);
+        EmitExpr(guard, false, new BuilderSyntaxTree<ExprContainer>(guardBuffer), wStmts);
+        EmitExpr(thn, false, new BuilderSyntaxTree<ExprContainer>(thnBuffer), wStmts);
+        EmitExpr(els, false, new BuilderSyntaxTree<ExprContainer>(elsBuffer), wStmts);
+        builder.Builder.AddExpr((DAST.Expression)DAST.Expression.create_Ite(
+          guardBuffer.Finish(),
+          thnBuffer.Finish(),
+          elsBuffer.Finish()
+        ));
       } else {
         throw new InvalidOperationException();
       }

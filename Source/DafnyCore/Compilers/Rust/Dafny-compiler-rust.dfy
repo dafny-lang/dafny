@@ -286,6 +286,7 @@ module {:extern "DCOMP"} DCOMP {
           match p {
             case String => s := "String";
             case Bool => s := "bool";
+            case Char => s := "char";
           }
         }
         case Passthrough(v) => s := v;
@@ -457,6 +458,11 @@ module {:extern "DCOMP"} DCOMP {
           var thnString := GenStmts(thn, params, earlyReturn);
           var elsString := GenStmts(els, params, earlyReturn);
           generated := "if " + condString + " {\n" + thnString + "\n} else {\n" + elsString + "\n}";
+        }
+        case While(cond, body) => {
+          var condString, _, _ := GenExpr(cond, params, true);
+          var bodyString := GenStmts(body, params, earlyReturn);
+          generated := "while " + condString + " {\n" + bodyString + "\n}";
         }
         case Call(on, name, typeArgs, args, maybeOutVars) => {
           var typeArgString := "";
@@ -678,9 +684,24 @@ module {:extern "DCOMP"} DCOMP {
           isOwned := true;
         }
         case This() => {
-          s := "self";
-          isOwned := false;
-          readIdents := {};
+          if mustOwn {
+            s := "self.clone()";
+            isOwned := true;
+          } else {
+            s := "self";
+            isOwned := false;
+          }
+
+          readIdents := {"self"};
+        }
+        case Ite(cond, t, f) => {
+          var condString, _, recIdentsCond := GenExpr(cond, params, true);
+          var _, tHasToBeOwned, _ := GenExpr(t, params, mustOwn); // check if t has to be owned even if not requested
+          var fString, fOwned, recIdentsF := GenExpr(f, params, tHasToBeOwned);
+          var tString, _, recIdentsT := GenExpr(t, params, fOwned); // there's a chance that f forced ownership
+          s := "(if " + condString + " {\n" + tString + "\n} else {\n" + fString + "\n})";
+          isOwned := fOwned;
+          readIdents := recIdentsCond + recIdentsT + recIdentsF;
         }
         case BinOp(op, l, r) => {
           var left, _, recIdentsL := GenExpr(l, params, true);
