@@ -200,16 +200,16 @@ method Foo() ensures false { } ";
  .  |  |  |  |  | :method test() {
  .  |  |  |  |  | :}
     |  |  |  |  | :
- .  .  .  S [S][ ]:function {:extern} test4(a: nat, b: nat): nat
- .  .  .  S [S][ ]:  ensures true
- .  .  .  S [=][=]:  ensures test2(a - b)
- .  .  .  S [S][ ]:  ensures true
- .  .  .  S [O][O]:  ensures test2(a - b)
- .  .  .  S [S][ ]:  ensures true
-       |  |  |  | :
- .  .  |  |  |  | :predicate test2(x: nat) {
- .  .  |  |  |  | :  true
- .  .  |  |  |  | :}", true);
+ .  .  S  S [S][ ]:function {:extern} test4(a: nat, b: nat): nat
+ .  .  S  S [S][ ]:  ensures true
+ .  .  S  S [=][=]:  ensures test2(a - b)
+ .  .  S  S [S][ ]:  ensures true
+ .  .  S  S [O][O]:  ensures test2(a - b)
+ .  .  S  S [S][ ]:  ensures true
+          |  |  | :
+ .  .  .  |  |  | :predicate test2(x: nat) {
+ .  .  .  |  |  | :  true
+ .  .  .  |  |  | :}", true);
   }
 
   public SimpleLinearVerificationGutterStatusTester(ITestOutputHelper output) : base(output) {
