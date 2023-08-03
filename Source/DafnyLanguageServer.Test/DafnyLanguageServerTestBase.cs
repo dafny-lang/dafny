@@ -122,6 +122,8 @@ lemma {:neverVerify} HasNeverVerifyAttribute(p: nat, q: nat)
 
     private static void SetupTestLogging(ILoggingBuilder builder) {
       builder
+        .AddFilter("OmniSharp.Extensions.JsonRpc", LogLevel.None)
+        .AddFilter("System.Buffers", LogLevel.None)
         .AddFilter("OmniSharp", LogLevel.Warning)
         .AddFilter("Microsoft.Dafny", LogLevel.Information)
         .SetMinimumLevel(LogLevel.Debug)
