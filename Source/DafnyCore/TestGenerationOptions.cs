@@ -78,5 +78,5 @@ namespace Microsoft.Dafny {
 /generateTestNoPrune
     Disable axiom pruning that Dafny uses to speed up verification.";
 
-}
+  }
 }
