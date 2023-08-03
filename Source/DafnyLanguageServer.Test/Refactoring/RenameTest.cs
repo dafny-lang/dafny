@@ -15,9 +15,14 @@ using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Refactoring {
   public class RenameTest : ClientBasedLanguageServerTest {
     [Fact]
-    public void ImplicitProjectFails() {
-      // TODO
-      Assert.True(false);
+    public async Task ImplicitProjectFails() {
+      var source = @"
+const i := 0
+".TrimStart();
+
+      await SetUp(null);
+      var documentItem = await CreateAndOpenTestDocument(source);
+      await Assert.ThrowsAnyAsync<Exception>(() => RequestRename(documentItem, new Position(0, 6), "j"));
     }
 
     [Fact]
