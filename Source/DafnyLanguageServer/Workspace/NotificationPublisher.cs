@@ -118,19 +118,100 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
       void PublishForUri(Uri publishUri, Diagnostic[] diagnostics) {
         var previous = publishedDiagnostics.GetOrDefault(publishUri, Enumerable.Empty<Diagnostic>);
-        if (!previous.SequenceEqual(diagnostics)) {
+        if (!previous.SequenceEqual(diagnostics, new DiagnosticComparer())) {
           if (diagnostics.Any()) {
             publishedDiagnostics[publishUri] = diagnostics;
           } else {
             // Prevent memory leaks by cleaning up previous state when it's the IDE's initial state.
             publishedDiagnostics.Remove(publishUri);
           }
+
           languageServer.TextDocument.PublishDiagnostics(new PublishDiagnosticsParams {
             Uri = publishUri,
             Version = filesystem.GetVersion(publishUri) ?? 0,
             Diagnostics = diagnostics,
           });
+        } else {
+          Console.Write("");
         }
+      }
+    }
+
+    class RelatedInformationComparer : IEqualityComparer<DiagnosticRelatedInformation> {
+      public bool Equals(DiagnosticRelatedInformation x, DiagnosticRelatedInformation y)
+      {
+        if (ReferenceEquals(x, y)) {
+          return true;
+        }
+
+        if (ReferenceEquals(x, null)) {
+          return false;
+        }
+
+        if (ReferenceEquals(y, null)) {
+          return false;
+        }
+
+        if (x.GetType() != y.GetType()) {
+          return false;
+        }
+
+        return x.Location.Equals(y.Location) && x.Message == y.Message;
+      }
+
+      public int GetHashCode(DiagnosticRelatedInformation obj)
+      {
+        return HashCode.Combine(obj.Location, obj.Message);
+      }
+    }
+
+    class DiagnosticComparer : IEqualityComparer<Diagnostic> {
+      private readonly RelatedInformationComparer relatedInformationComparer = new();
+      public bool Equals(Diagnostic x, Diagnostic y)
+      {
+        if (ReferenceEquals(x, y)) {
+          return true;
+        }
+
+        if (ReferenceEquals(x, null)) {
+          return false;
+        }
+
+        if (ReferenceEquals(y, null)) {
+          return false;
+        }
+
+        if (x.GetType() != y.GetType()) {
+          return false;
+        }
+
+        if (ReferenceEquals(x.RelatedInformation, null) != ReferenceEquals(y.RelatedInformation, null)) {
+          return false;
+        }
+
+        return x.Range.Equals(y.Range) && x.Severity == y.Severity && Nullable.Equals(x.Code, y.Code) && 
+               Equals(x.CodeDescription, y.CodeDescription) && 
+               x.Source == y.Source && x.Message == y.Message && 
+               Equals(x.Tags, y.Tags) && 
+               (ReferenceEquals(x.RelatedInformation, null) || x.RelatedInformation!.SequenceEqual(y.RelatedInformation!, relatedInformationComparer)) &&
+               Equals(x.Data, y.Data);
+      }
+
+      public int GetHashCode(Diagnostic obj)
+      {
+        var hashCode = new HashCode();
+        hashCode.Add(obj.Range);
+        hashCode.Add(obj.Severity);
+        hashCode.Add(obj.Code);
+        hashCode.Add(obj.CodeDescription);
+        hashCode.Add(obj.Source);
+        hashCode.Add(obj.Message);
+        hashCode.Add(obj.Tags);
+        foreach (var info in obj.RelatedInformation ?? Enumerable.Empty<DiagnosticRelatedInformation>()) {
+          hashCode.Add(relatedInformationComparer.GetHashCode(info));
+        }
+        hashCode.Add(obj.Data);
+        return hashCode.ToHashCode();
       }
     }
 

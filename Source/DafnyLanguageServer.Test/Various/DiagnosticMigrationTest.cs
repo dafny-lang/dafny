@@ -92,6 +92,11 @@ public class DiagnosticMigrationTest : ClientBasedLanguageServerTest {
       }
     });
 
+    // NotificationPublisher.publishedDiagnostics is currently not migrated,
+    // that's why the equality check fails and these parse diagnostics are sent.
+    // Instead, there should be a single IDE state for the entire server, which is updated by a Compilation
+    // https://github.com/dafny-lang/dafny/issues/4377
+    var parseDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
     var resolutionDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
     Assert.Equal(verificationDiagnostics.Length, resolutionDiagnostics.Length);
     Assert.Equal(CompilationAfterResolution.OutdatedPrefix + verificationDiagnostics[0].Message, resolutionDiagnostics[0].Message);

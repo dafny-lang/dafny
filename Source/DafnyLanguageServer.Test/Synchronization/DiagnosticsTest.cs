@@ -948,6 +948,8 @@ method test2() {
 
       ApplyChange(ref documentItem, new Range((1, 9), (1, 14)), "true"); ;
 
+      // Next line should not be needed after resolving https://github.com/dafny-lang/dafny/issues/4377
+      var parseDiagnostics2 = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
       var resolutionDiagnostics2 = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
       AssertDiagnosticListsAreEqualBesidesMigration(secondVerificationDiagnostics, resolutionDiagnostics2);
       var firstVerificationDiagnostics2 = await GetLastDiagnostics(documentItem, CancellationToken);
@@ -955,6 +957,8 @@ method test2() {
 
       ApplyChange(ref documentItem, new Range((4, 9), (4, 14)), "true");
 
+      // Next line should not be needed after resolving https://github.com/dafny-lang/dafny/issues/4377
+      var parseDiagnostics3 = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
       var resolutionDiagnostics3 = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
       AssertDiagnosticListsAreEqualBesidesMigration(firstVerificationDiagnostics2, resolutionDiagnostics3);
       var secondVerificationDiagnostics3 = await GetLastDiagnostics(documentItem, CancellationToken);
@@ -980,7 +984,9 @@ method test() {
       // Second verification diagnostics get cancelled.
       ApplyChange(ref documentItem, new Range((1, 9), (1, 14)), "true");
 
-      // Contains migrated verification error.
+      // Next line should not be needed after resolving https://github.com/dafny-lang/dafny/issues/4377
+      var parseDiagnostics2 = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
+      // https://github.com/dafny-lang/dafny/issues/4377
       var resolutionDiagnostics2 = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
       AssertDiagnosticListsAreEqualBesidesMigration(firstVerificationDiagnostics, resolutionDiagnostics2);
       var firstVerificationDiagnostics2 = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
