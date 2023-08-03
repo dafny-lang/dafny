@@ -23,7 +23,6 @@ public class ConstantField : SpecialField, ICallable, ICanVerify {
     return true;
   }
 
-  //
   public new bool IsGhost { get { return this.isGhost; } }
   public List<TypeParameter> TypeArgs { get { return new List<TypeParameter>(); } }
   public List<Formal> Ins { get { return new List<Formal>(); } }

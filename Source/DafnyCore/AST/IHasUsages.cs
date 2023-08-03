@@ -12,9 +12,16 @@ public interface IHasUsages : IDeclarationOrUsage {
   public IEnumerable<IDeclarationOrUsage> GetResolvedDeclarations();
 }
 
-
+/// <summary>
+/// A symbol that potential has something to verify
+/// </summary>
 public interface ICanVerify : ISymbol {
   ModuleDefinition ContainingModule { get; }
+  
+  /// <summary>
+  /// Return true if this symbol has something to verify.
+  /// If true is incorrectly returned, the IDE will allow the user to verify this but it'll pass immediately.
+  /// </summary>
   bool ShouldVerify { get; }
 }
 
@@ -52,7 +59,8 @@ public interface IHasSymbolChildren : ISymbol {
 }
 
 public static class SymbolExtensions {
-  public static ISet<ISymbol> GetSymbols(ISymbol node) {
+  
+  public static ISet<ISymbol> GetSymbolDescendants(ISymbol node) {
     var todo = new Stack<ISymbol>();
     todo.Push(node);
     var result = new HashSet<ISymbol>();

@@ -254,10 +254,6 @@ public class ProjectManager : IDisposable {
         verifiables = verifiables.Where(d => d.Tok.Uri == uri).ToList();
       }
 
-      // if (!verifiables.Any()) {
-      //   CompilationManager.FinishedNotifications(resolvedCompilation);
-      // }
-
       lock (RecentChanges) {
         var freshlyChangedVerifiables = GetChangedVerifiablesFromRanges(resolvedCompilation, RecentChanges);
         ChangedVerifiables = freshlyChangedVerifiables.Concat(ChangedVerifiables).Distinct()
@@ -269,7 +265,7 @@ public class ProjectManager : IDisposable {
         return 0; // TODO lookup attribute
       }
       int TopToBottomPriority(ISymbol symbol) {
-        return symbol.Tok.pos; // TODO lookup attribute as well
+        return symbol.Tok.pos;
       }
       var implementationOrder = ChangedVerifiables.Select((v, i) => (v, i)).ToDictionary(k => k.v, k => k.i);
       var orderedVerifiables = verifiables.OrderBy(GetPriorityAttribute).CreateOrderedEnumerable(

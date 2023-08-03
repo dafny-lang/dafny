@@ -1,7 +1,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
@@ -55,23 +54,21 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     private static IDictionary<Uri, FileVerificationStatus> GetFileVerificationStatus(IdeState state) {
-      return state.ImplementationViews.GroupBy(kv => kv.Key.Uri).
+      return state.VerificationResults.GroupBy(kv => kv.Key.Uri).
         ToDictionary(kv => kv.Key.ToUri(), kvs =>
         new FileVerificationStatus(kvs.Key, state.Compilation.Version,
-          kvs.SelectMany(kv => GetNamedVerifiableStatuses(kv.Key, kv.Value.Values)).
+          kvs.Select(kv => GetNamedVerifiableStatuses(kv.Key, kv.Value)).
             OrderBy(s => s.NameRange.Start).ToList()));
     }
 
-    private static List<NamedVerifiableStatus> GetNamedVerifiableStatuses(Location canVerify, ICollection<IdeImplementationView> implementationViews) {
-      if (!implementationViews.Any()) {
-        return new List<NamedVerifiableStatus>()
-          { new(canVerify.Range, PublishedVerificationStatus.Stale) };
-      }
-      var namedVerifiableGroups = implementationViews.GroupBy(task => task.Range);
-      return namedVerifiableGroups.Select(taskGroup => {
-        var status = taskGroup.Select(kv => kv.Status).Aggregate(Combine);
-        return new NamedVerifiableStatus(taskGroup.Key, status);
-      }).OrderBy(v => v.NameRange.Start).ToList();
+    private static NamedVerifiableStatus GetNamedVerifiableStatuses(Location canVerify, IdeVerificationResult result) {
+      var status = result.WasTranslated
+        ? result.Implementations.Any()
+          ? result.Implementations.Values.Select(v => v.Status).Aggregate(Combine)
+          : PublishedVerificationStatus.Correct
+        : PublishedVerificationStatus.Stale;
+
+      return new(canVerify.Range, status);
     }
 
     static PublishedVerificationStatus Combine(PublishedVerificationStatus first, PublishedVerificationStatus second) {
@@ -134,80 +131,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         } else {
           Console.Write("");
         }
-      }
-    }
-
-    class RelatedInformationComparer : IEqualityComparer<DiagnosticRelatedInformation> {
-      public bool Equals(DiagnosticRelatedInformation x, DiagnosticRelatedInformation y) {
-        if (ReferenceEquals(x, y)) {
-          return true;
-        }
-
-        if (ReferenceEquals(x, null)) {
-          return false;
-        }
-
-        if (ReferenceEquals(y, null)) {
-          return false;
-        }
-
-        if (x.GetType() != y.GetType()) {
-          return false;
-        }
-
-        return x.Location.Equals(y.Location) && x.Message == y.Message;
-      }
-
-      public int GetHashCode(DiagnosticRelatedInformation obj) {
-        return HashCode.Combine(obj.Location, obj.Message);
-      }
-    }
-
-    class DiagnosticComparer : IEqualityComparer<Diagnostic> {
-      private readonly RelatedInformationComparer relatedInformationComparer = new();
-      public bool Equals(Diagnostic x, Diagnostic y) {
-        if (ReferenceEquals(x, y)) {
-          return true;
-        }
-
-        if (ReferenceEquals(x, null)) {
-          return false;
-        }
-
-        if (ReferenceEquals(y, null)) {
-          return false;
-        }
-
-        if (x.GetType() != y.GetType()) {
-          return false;
-        }
-
-        if (ReferenceEquals(x.RelatedInformation, null) != ReferenceEquals(y.RelatedInformation, null)) {
-          return false;
-        }
-
-        return x.Range.Equals(y.Range) && x.Severity == y.Severity && Nullable.Equals(x.Code, y.Code) &&
-               Equals(x.CodeDescription, y.CodeDescription) &&
-               x.Source == y.Source && x.Message == y.Message &&
-               Equals(x.Tags, y.Tags) &&
-               (ReferenceEquals(x.RelatedInformation, null) || x.RelatedInformation!.SequenceEqual(y.RelatedInformation!, relatedInformationComparer)) &&
-               Equals(x.Data, y.Data);
-      }
-
-      public int GetHashCode(Diagnostic obj) {
-        var hashCode = new HashCode();
-        hashCode.Add(obj.Range);
-        hashCode.Add(obj.Severity);
-        hashCode.Add(obj.Code);
-        hashCode.Add(obj.CodeDescription);
-        hashCode.Add(obj.Source);
-        hashCode.Add(obj.Message);
-        hashCode.Add(obj.Tags);
-        foreach (var info in obj.RelatedInformation ?? Enumerable.Empty<DiagnosticRelatedInformation>()) {
-          hashCode.Add(relatedInformationComparer.GetHashCode(info));
-        }
-        hashCode.Add(obj.Data);
-        return hashCode.ToHashCode();
       }
     }
 

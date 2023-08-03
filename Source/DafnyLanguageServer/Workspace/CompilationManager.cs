@@ -99,13 +99,8 @@ public class CompilationManager {
       await started.Task;
       var documentAfterParsing = await documentLoader.ParseAsync(options, startingCompilation, migratedVerificationTrees, cancellationSource.Token);
       var state = documentAfterParsing.InitialIdeState(startingCompilation, options);
-      // state = state with {
-      //   VerificationTrees = documentAfterParsing.RootUris.ToDictionary(uri => uri,
-      //     uri => migratedVerificationTrees.GetValueOrDefault(uri) ?? new DocumentVerificationTree(documentAfterParsing.Program, uri))
-      // };
       foreach (var root in documentAfterParsing.RootUris) {
         verificationProgressReporter.ReportRealtimeDiagnostics(documentAfterParsing, root, false);
-        //notificationPublisher.PublishGutterIcons(root, state, false);
       }
       compilationUpdates.OnNext(documentAfterParsing);
       return documentAfterParsing;
@@ -121,17 +116,10 @@ public class CompilationManager {
       var parsedCompilation = await ParsedCompilation;
       var resolvedCompilation = await documentLoader.ResolveAsync(options, parsedCompilation, migratedVerificationTrees, cancellationSource.Token);
 
-      // TODO, let gutter icon publications also used the published CompilationView.
-      // state = state with {
-      //   VerificationTrees = resolvedCompilation.RootUris.ToDictionary(uri => uri,
-      //     uri => migratedVerificationTrees.GetValueOrDefault(uri) ?? new DocumentVerificationTree(resolvedCompilation.Program, uri))
-      // };
       if (!resolvedCompilation.Program.Reporter.HasErrors) {
-        // TODO it's weird to have this here instead of up. If we move it up we get more intermediate icons.
         verificationProgressReporter.RecomputeVerificationTrees(resolvedCompilation);
         foreach (var root in resolvedCompilation.RootUris) {
           verificationProgressReporter.ReportRealtimeDiagnostics(resolvedCompilation, root, true);
-          //notificationPublisher.PublishGutterIcons(root, state, true);
         }
       }
 
@@ -145,70 +133,7 @@ public class CompilationManager {
       throw;
     }
   }
-
-  // private async Task<CompilationAfterTranslation> TranslateAsync() {
-  //   throw new NotImplementedException();
-  // var parsedCompilation = await ResolvedCompilation;
-  // if (!options.Verify) {
-  //   throw new OperationCanceledException();
-  // }
-  // if (parsedCompilation is not CompilationAfterResolution resolvedCompilation) {
-  //   throw new OperationCanceledException();
-  // }
-  //
-  // try {
-  //   var translatedDocument = await PrepareVerificationTasksAsync(resolvedCompilation, cancellationSource.Token);
-  //   compilationUpdates.OnNext(translatedDocument);
-  //   foreach (var task in translatedDocument.VerificationTasks!) {
-  //     cancellationSource.Token.Register(task.Cancel);
-  //   }
-  //
-  //   return translatedDocument;
-  // } catch (Exception e) {
-  //   compilationUpdates.OnError(e);
-  //   throw;
-  // }
-  // }
-
-  // public async Task<CompilationAfterTranslation> PrepareVerificationTasksAsync(
-  //   CompilationAfterResolution loaded,
-  //   CancellationToken cancellationToken) {
-  //
-  //   var _ = statusPublisher.SendStatusNotification(loaded, CompilationStatus.PreparingVerification);
-  //
-  //   var verificationTasks =
-  //     await verifier.GetVerificationTasksAsync(boogieEngine, loaded, cancellationToken);
-  //   
-  //   var initialViews = new Dictionary<ImplementationId, ImplementationView>();
-  //   foreach (var task in verificationTasks) {
-  //     var status = StatusFromBoogieStatus(task.CacheStatus);
-  //     var implementationId = GetImplementationId(task.Implementation);
-  //     try {
-  //       if (task.CacheStatus is Completed completed) {
-  //         var view = new ImplementationView(task.Implementation.tok.GetLspRange(true), status,
-  //           GetDiagnosticsFromResult(loaded, completed.Result).ToList());
-  //         initialViews.Add(implementationId, view);
-  //       } else {
-  //         var view = new ImplementationView(task.Implementation.tok.GetLspRange(true), status, Array.Empty<DafnyDiagnostic>());
-  //         initialViews.Add(implementationId, view);
-  //       }
-  //     } catch (ArgumentException) {
-  //       logger.LogCritical($"Two different implementation tasks have the same id, second name is {task.Implementation.Name}.");
-  //     }
-  //   }
-  //
-  //   var translated = new CompilationAfterTranslation(
-  //     loaded,
-  //     loaded.ResolutionDiagnostics,
-  //     new(),
-  //     migratedVerificationTree ?? (loaded.Project.IsImplicitProject ? new DocumentVerificationTree(loaded.Program, loaded.Project.Uri) : null)
-  //     );
-  //   
-  //   verificationProgressReporter.RecomputeVerificationTree(translated);
-  //   
-  //   return translated;
-  // }
-
+  
   private static string GetImplementationName(Implementation implementation) {
     var prefix = implementation.Name.Split(Translator.NameSeparator)[0];
 
@@ -246,7 +171,6 @@ public class CompilationManager {
           cancellationSource.Token.Register(task.Cancel);
         }
 
-        // compilationUpdates.OnNext(compilation);
         return result.GroupBy(t => ((IToken)t.Implementation.tok).GetFilePosition()).ToDictionary(
           g => g.Key,
           g => (IReadOnlyList<IImplementationTask>)g.ToList());
@@ -267,7 +191,6 @@ public class CompilationManager {
       foreach (var uri in compilation.RootUris) { // TODO scope to one uri ?
         verificationProgressReporter.ReportRealtimeDiagnostics(compilation, uri, true);
       }
-      // compilationUpdates.OnNext(compilation);
       return tasksForVerifiable.ToDictionary(
         t => GetImplementationName(t.Implementation),
         t => new ImplementationView(t, PublishedVerificationStatus.Stale, Array.Empty<DafnyDiagnostic>()));
@@ -322,10 +245,9 @@ public class CompilationManager {
       }
     }
 
-    // StatusUpdateHandlerFinally();
     var remainingJobs = Interlocked.Decrement(ref runningVerificationJobs);
     if (remainingJobs == 0) {
-      logger.LogDebug($"Calling FinishedNotifications because there are no remaining verification jobs for version {compilation.Version}.");
+      logger.LogDebug($"Calling MarkVerificationFinished because there are no remaining verification jobs for version {compilation.Version}.");
       MarkVerificationFinished();
     }
     return true;
@@ -334,15 +256,12 @@ public class CompilationManager {
   public void FinishedNotifications(CompilationAfterResolution compilation, ICanVerify canVerify) {
     MarkVerificationFinished();
     if (ReportGutterStatus) {
-      // All unvisited trees need to set them as "verified"
-      var wasPending = false;
       if (!cancellationSource.IsCancellationRequested) {
-        wasPending = verificationProgressReporter.SetAllUnvisitedMethodsAsVerified(compilation, canVerify);
+        // All unvisited trees need to set them as "verified"
+        verificationProgressReporter.SetAllUnvisitedMethodsAsVerified(compilation, canVerify);
       }
 
       verificationProgressReporter.ReportRealtimeDiagnostics(compilation, canVerify.Tok.Uri, true);
-      if (!wasPending) {
-      }
     }
   }
 

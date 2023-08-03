@@ -16,6 +16,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace;
 public record IdeImplementationView(Range Range, PublishedVerificationStatus Status,
   IReadOnlyList<Diagnostic> Diagnostics);
 
+public record IdeVerificationResult(bool WasTranslated, Dictionary<string, IdeImplementationView> Implementations);
+
 /// <summary>
 /// Contains information from the latest document, and from older documents if some information is missing,
 /// to provide the IDE with as much information as possible.
@@ -27,7 +29,7 @@ public record IdeState(
   IReadOnlyDictionary<Uri, IReadOnlyList<Diagnostic>> ResolutionDiagnostics,
   SymbolTable SymbolTable,
   SignatureAndCompletionTable SignatureAndCompletionTable,
-  Dictionary<Location, Dictionary<string, IdeImplementationView>> ImplementationViews, // TODO group by Uri?
+  Dictionary<Location, IdeVerificationResult> VerificationResults,
   IReadOnlyList<Counterexample> Counterexamples,
   IReadOnlyDictionary<Uri, IReadOnlyList<Range>> GhostRanges,
   IReadOnlyDictionary<Uri, VerificationTree> VerificationTrees
@@ -35,8 +37,8 @@ public record IdeState(
 
   public ImmutableDictionary<Uri, IReadOnlyList<Diagnostic>> GetDiagnostics() {
     var resolutionDiagnostics = ResolutionDiagnostics.ToImmutableDictionary();
-    var verificationDiagnostics = ImplementationViews.GroupBy(kv => kv.Key.Uri).Select(kv =>
-      new KeyValuePair<Uri, IReadOnlyList<Diagnostic>>(kv.Key.ToUri(), kv.SelectMany(x => x.Value.Values.SelectMany(v => v.Diagnostics)).ToList()));
+    var verificationDiagnostics = VerificationResults.GroupBy(kv => kv.Key.Uri).Select(kv =>
+      new KeyValuePair<Uri, IReadOnlyList<Diagnostic>>(kv.Key.ToUri(), kv.SelectMany(x => x.Value.Implementations.Values.SelectMany(v => v.Diagnostics)).ToList()));
     return resolutionDiagnostics.Merge(verificationDiagnostics, Lists.Concat);
   }
 }

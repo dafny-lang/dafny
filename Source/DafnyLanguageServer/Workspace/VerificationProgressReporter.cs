@@ -401,10 +401,10 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
     }
   }
 
-  public bool SetAllUnvisitedMethodsAsVerified(CompilationAfterResolution compilation, ICanVerify canVerify) {
+  public void SetAllUnvisitedMethodsAsVerified(CompilationAfterResolution compilation, ICanVerify canVerify) {
     var tree = compilation.VerificationTrees[canVerify.Tok.Uri];
     var verifyTree = tree.Children.First(f => f.Position == canVerify.Tok.GetLspPosition());
-    return verifyTree.SetVerifiedIfPending();
+    verifyTree.SetVerifiedIfPending();
   }
 
 

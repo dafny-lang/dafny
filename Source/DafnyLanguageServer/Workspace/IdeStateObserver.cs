@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using System.Threading;
+using Microsoft.Boogie;
 using Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
@@ -89,16 +90,16 @@ public class IdeStateObserver : IObserver<IdeState> {
         relocator.RelocateVerificationTree(kv.Value, documentChange, CancellationToken.None));
     LastPublishedState = LastPublishedState with {
       Version = version,
-      ImplementationViews = MigrateImplementationViews(documentChange, LastPublishedState.ImplementationViews),
+      VerificationResults = MigrateImplementationViews(documentChange, LastPublishedState.VerificationResults),
       SignatureAndCompletionTable = relocator.RelocateSymbols(LastPublishedState.SignatureAndCompletionTable,
         documentChange, CancellationToken.None),
       VerificationTrees = migratedVerificationTrees
     };
   }
 
-  private Dictionary<Location, Dictionary<string, IdeImplementationView>> MigrateImplementationViews(DidChangeTextDocumentParams documentChange,
-      Dictionary<Location, Dictionary<string, IdeImplementationView>> oldVerificationDiagnostics) {
-    var result = new Dictionary<Location, Dictionary<string, IdeImplementationView>>();
+  private Dictionary<Location, IdeVerificationResult> MigrateImplementationViews(DidChangeTextDocumentParams documentChange,
+      Dictionary<Location, IdeVerificationResult> oldVerificationDiagnostics) {
+    var result = new Dictionary<Location, IdeVerificationResult>();
     foreach (var entry in oldVerificationDiagnostics) {
       var newOuterRange = relocator.RelocateRange(entry.Key.Range, documentChange, CancellationToken.None);
       if (newOuterRange == null) {
@@ -106,7 +107,7 @@ public class IdeStateObserver : IObserver<IdeState> {
       }
 
       var newValue = new Dictionary<string, IdeImplementationView>();
-      foreach (var innerEntry in entry.Value) {
+      foreach (var innerEntry in entry.Value.Implementations) {
         var newInnerRange = relocator.RelocateRange(innerEntry.Value.Range, documentChange, CancellationToken.None);
         if (newInnerRange != null) {
           newValue.Add(innerEntry.Key, innerEntry.Value with {
@@ -118,7 +119,7 @@ public class IdeStateObserver : IObserver<IdeState> {
       result.Add(new Location() {
         Uri = entry.Key.Uri,
         Range = newOuterRange
-      }, newValue);
+      }, entry.Value with { Implementations = newValue });
     }
     return result;
   }

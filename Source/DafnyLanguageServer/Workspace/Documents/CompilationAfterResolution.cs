@@ -63,31 +63,42 @@ public class CompilationAfterResolution : CompilationAfterParsing {
     });
   }
 
+  IdeVerificationResult MergeResults(IEnumerable<IdeVerificationResult> results) {
+    return results.Aggregate((a, b) => new IdeVerificationResult(
+      a.WasTranslated || b.WasTranslated,
+      a.Implementations.Concat(b.Implementations).ToDictionary(
+        kv => kv.Key, 
+        kv => kv.Value)));
+  }
+  
   public override IdeState ToIdeState(IdeState previousState) {
-    IEnumerable<KeyValuePair<string, IdeImplementationView>> MergeVerifiable(ICanVerify canVerify) {
+    
+    IdeVerificationResult MergeVerifiable(ICanVerify canVerify) {
       var location = canVerify.NameToken.GetLocation();
-      var previousForCanVerify = previousState.ImplementationViews.GetValueOrDefault(location) ?? new Dictionary<string, IdeImplementationView>();
+      var previousForCanVerify = previousState.VerificationResults.GetValueOrDefault(location) ?? new (false, new());
       if (!ImplementationsPerVerifiable.TryGetValue(canVerify, out var implementationsPerName)) {
-        return previousForCanVerify.ToDictionary(kv => kv.Key, kv => kv.Value with {
-          Status = PublishedVerificationStatus.Stale,
-          Diagnostics = MarkDiagnosticsAsOutdated(kv.Value.Diagnostics).ToList()
-        });
+        return previousForCanVerify with {
+          Implementations = previousForCanVerify.Implementations.ToDictionary(kv => kv.Key, kv => kv.Value with {
+            Status = PublishedVerificationStatus.Stale,
+            Diagnostics = MarkDiagnosticsAsOutdated(kv.Value.Diagnostics).ToList()
+          })
+        };
       }
 
-      return implementationsPerName.Select(kv => {
+      var implementations = implementationsPerName.ToDictionary(kv => kv.Key, kv => {
         var implementationView = kv.Value;
         var diagnostics = implementationView.Diagnostics.Select(d => d.ToLspDiagnostic());
         if (implementationView.Status < PublishedVerificationStatus.Error) {
-          var previousDiagnostics = previousForCanVerify.GetValueOrDefault(kv.Key)?.Diagnostics;
+          var previousDiagnostics = previousForCanVerify.Implementations.GetValueOrDefault(kv.Key)?.Diagnostics;
           if (previousDiagnostics != null) {
             diagnostics = MarkDiagnosticsAsOutdated(previousDiagnostics);
           }
         }
 
-        var value = new IdeImplementationView(implementationView.Task.Implementation.tok.GetLspRange(true),
+        return new IdeImplementationView(implementationView.Task.Implementation.tok.GetLspRange(true),
           implementationView.Status, diagnostics.ToList());
-        return new KeyValuePair<string, IdeImplementationView>(kv.Key, value);
       });
+      return new IdeVerificationResult(true, implementations);
 
     }
 
@@ -97,8 +108,8 @@ public class CompilationAfterResolution : CompilationAfterParsing {
       GhostRanges = GhostDiagnostics,
       Counterexamples = new List<Counterexample>(Counterexamples),
       VerificationTrees = VerificationTrees,
-      ImplementationViews = Verifiables.GroupBy(l => l.NameToken.GetLocation()).ToDictionary(k => k.Key,
-        k => new Dictionary<string, IdeImplementationView>(k.SelectMany(MergeVerifiable)))
+      VerificationResults = Verifiables.GroupBy(l => l.NameToken.GetLocation()).ToDictionary(k => k.Key,
+        k => MergeResults(k.Select(MergeVerifiable)))
     };
     return result;
   }
