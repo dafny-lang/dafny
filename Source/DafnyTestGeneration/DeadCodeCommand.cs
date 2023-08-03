@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.CommandLine;
 using System.CommandLine.Invocation;
 using System.Linq;
+using Microsoft.Boogie;
 
 namespace Microsoft.Dafny;
 
@@ -37,8 +38,10 @@ public class DeadCodeCommand : ICommandSpec {
     dafnyOptions.Compile = true;
     dafnyOptions.RunAfterCompile = false;
     dafnyOptions.ForceCompile = false;
+    dafnyOptions.DeprecationNoise = 0;
     dafnyOptions.ForbidNondeterminism = true;
     dafnyOptions.DefiniteAssignmentLevel = 2;
+    dafnyOptions.TypeEncodingMethod = CoreOptions.TypeEncoding.Predicates;
 
     dafnyOptions.TestGenOptions.Mode = TestGenerationOptions.Modes.Block;
     dafnyOptions.TestGenOptions.WarnDeadCode = true;

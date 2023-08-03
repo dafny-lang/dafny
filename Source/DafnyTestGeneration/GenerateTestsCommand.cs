@@ -4,6 +4,8 @@ using System.CommandLine;
 using System.CommandLine.Invocation;
 using System.Linq;
 using DafnyCore;
+using Microsoft.Boogie;
+
 // Copyright by the contributors to the Dafny Project
 // SPDX-License-Identifier: MIT
 
@@ -29,7 +31,8 @@ public class GenerateTestsCommand : ICommandSpec {
 
   private enum Mode {
     Path,
-    Block
+    Block,
+    Branch
   }
 
   /// <summary>
@@ -47,6 +50,7 @@ public class GenerateTestsCommand : ICommandSpec {
 
   private readonly Argument<Mode> modeArgument = new("mode", @"
 block - Prints block-coverage tests for the given program.
+branch - Prints branch-coverage tests for the given program.
 path - Prints path-coverage tests for the given program.");
 
   public Command Create() {
@@ -66,11 +70,13 @@ path - Prints path-coverage tests for the given program.");
     dafnyOptions.DeprecationNoise = 0;
     dafnyOptions.ForbidNondeterminism = true;
     dafnyOptions.DefiniteAssignmentLevel = 2;
+    dafnyOptions.TypeEncodingMethod = CoreOptions.TypeEncoding.Predicates;
     dafnyOptions.Set(DafnyConsolePrinter.ShowSnippets, false);
 
     var mode = context.ParseResult.GetValueForArgument(modeArgument);
     dafnyOptions.TestGenOptions.Mode = mode switch {
       Mode.Path => TestGenerationOptions.Modes.Path,
+      Mode.Branch => TestGenerationOptions.Modes.Branch,
       Mode.Block => TestGenerationOptions.Modes.Block,
       _ => throw new ArgumentOutOfRangeException()
     };
