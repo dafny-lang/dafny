@@ -278,6 +278,12 @@ namespace Microsoft.Dafny.Compilers {
       return ret;
     }
 
+    public WhileBuilder While() {
+      var ret = new WhileBuilder(this);
+      AddBuildable(ret);
+      return ret;
+    }
+
     public CallStmtBuilder Call(object returnTo) {
       var ret = new CallStmtBuilder(this, returnTo);
       AddBuildable(ret);
@@ -442,6 +448,49 @@ namespace Microsoft.Dafny.Compilers {
 
     public void AddBuildable(BuildableStatement item) {
       parent.AddElseBuildable(item);
+    }
+  }
+
+  class WhileBuilder : ExprContainer, StatementContainer, BuildableStatement {
+    public readonly StatementContainer parent;
+
+    DAST.Expression condition = null;
+    readonly List<object> body = new();
+
+    public WhileBuilder(StatementContainer parent) {
+      this.parent = parent;
+    }
+
+    public void AddExpr(DAST.Expression value) {
+      if (condition != null) {
+        throw new InvalidOperationException();
+      } else {
+        condition = value;
+      }
+    }
+
+    public void AddStatement(DAST.Statement item) {
+      body.Add(item);
+    }
+
+    public void AddBuildable(BuildableStatement item) {
+      body.Add(item);
+    }
+
+    public List<object> ForkList() {
+      var ret = new List<object>();
+      this.body.Add(ret);
+      return ret;
+    }
+
+    public DAST.Statement Build() {
+      List<DAST.Statement> builtStatements = new();
+      StatementContainer.RecursivelyBuild(body, builtStatements);
+
+      return (DAST.Statement)DAST.Statement.create_While(
+        condition,
+        Sequence<DAST.Statement>.FromArray(builtStatements.ToArray())
+      );
     }
   }
 
