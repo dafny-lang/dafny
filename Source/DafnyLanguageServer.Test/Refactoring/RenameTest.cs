@@ -1,3 +1,5 @@
+using System;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
@@ -30,7 +32,9 @@ method M() {
 }
 ".TrimStart();
 
-      await AssertRangesRenamed(source, "foobar");
+      await SetUp(o => { });
+      var tempDir = await SetUpProjectFile();
+      await AssertRangesRenamed(source, tempDir, "foobar");
     }
 
     [Fact]
@@ -40,7 +44,9 @@ method [>foobar<]()
 method U() { [>><foobar<](); }
 ".TrimStart();
 
-      await AssertRangesRenamed(source, "M");
+      await SetUp(o => { });
+      var tempDir = await SetUpProjectFile();
+      await AssertRangesRenamed(source, tempDir, "M");
     }
 
     [Fact]
@@ -52,7 +58,9 @@ module C { import [>><A<] }
 module D { import [>A<] }
 ".TrimStart();
 
-      await AssertRangesRenamed(source, "AAA");
+      await SetUp(o => { });
+      var tempDir = await SetUpProjectFile();
+      await AssertRangesRenamed(source, tempDir, "AAA");
     }
 
     [Fact]
@@ -68,15 +76,33 @@ module D { import [>A<] }
     }
 
     /// <summary>
+    /// Create an empty project file in a new temporary directory, and return the temporary directory's path.
+    /// </summary>
+    protected async Task<string> SetUpProjectFile() {
+      var tempDir = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+      Directory.CreateDirectory(tempDir);
+      var projectFilePath = Path.Combine(tempDir, DafnyProject.FileName);
+      await File.WriteAllTextAsync(projectFilePath, "");
+      return tempDir;
+    }
+
+    protected override Task SetUp(Action<DafnyOptions> modifyOptions) {
+      return base.SetUp(o => {
+        o.Set(ServerCommand.ProjectMode, true);
+        modifyOptions?.Invoke(o);
+      });
+    }
+
+    /// <summary>
     /// Assert that after requesting a rename to <paramref name="newName"/> at the markup position,
     /// all markup ranges are renamed.
     /// </summary>
-    private async Task AssertRangesRenamed(string source, string newName) {
+    private async Task AssertRangesRenamed(string source, string tempDir, string newName) {
       MarkupTestFile.GetPositionAndRanges(source, out var cleanSource,
         out var position, out var ranges);
       Assert.NotEmpty(ranges);
 
-      var documentItem = await CreateAndOpenTestDocument(cleanSource);
+      var documentItem = await CreateAndOpenTestDocument(cleanSource, Path.Combine(tempDir, "tmp.dfy"));
       var workspaceEdit = await RequestRename(documentItem, position, newName);
       Assert.NotNull(workspaceEdit.Changes);
       Assert.Contains(documentItem.Uri, workspaceEdit.Changes);

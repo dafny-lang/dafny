@@ -38,7 +38,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
       // Reject rename requests in implicit projects, because we might not find all references within the codebase,
       // so a partial rename may result in breaking the codebase
       if ((await projects.GetProject(requestUri)).IsImplicitProject) {
-        // throw new Exception("Renaming support requires --project-mode and a Dafny project file (dfyconfig.toml)");
+        throw new Exception("Renaming support requires --project-mode and a Dafny project file (dfyconfig.toml)");
       }
 
       var state = await projects.GetResolvedDocumentAsyncInternal(request.TextDocument);
