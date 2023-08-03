@@ -735,11 +735,12 @@ module {:extern "DCOMP"} DCOMP {
         }
         case TupleSelect(on, idx) => {
           var onString, _, recIdents := GenExpr(on, params, false);
-          s := onString + "." + natToString(idx);
+          s := "(" + onString + ")." + natToString(idx);
           if mustOwn {
-            s := s + ".clone()";
+            s := "(" + s + ")" + ".clone()";
             isOwned := true;
           } else {
+            s := "&" + s;
             isOwned := false;
           }
           readIdents := recIdents;
