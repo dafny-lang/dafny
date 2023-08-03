@@ -138,8 +138,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     class RelatedInformationComparer : IEqualityComparer<DiagnosticRelatedInformation> {
-      public bool Equals(DiagnosticRelatedInformation x, DiagnosticRelatedInformation y)
-      {
+      public bool Equals(DiagnosticRelatedInformation x, DiagnosticRelatedInformation y) {
         if (ReferenceEquals(x, y)) {
           return true;
         }
@@ -159,16 +158,14 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         return x.Location.Equals(y.Location) && x.Message == y.Message;
       }
 
-      public int GetHashCode(DiagnosticRelatedInformation obj)
-      {
+      public int GetHashCode(DiagnosticRelatedInformation obj) {
         return HashCode.Combine(obj.Location, obj.Message);
       }
     }
 
     class DiagnosticComparer : IEqualityComparer<Diagnostic> {
       private readonly RelatedInformationComparer relatedInformationComparer = new();
-      public bool Equals(Diagnostic x, Diagnostic y)
-      {
+      public bool Equals(Diagnostic x, Diagnostic y) {
         if (ReferenceEquals(x, y)) {
           return true;
         }
@@ -189,16 +186,15 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           return false;
         }
 
-        return x.Range.Equals(y.Range) && x.Severity == y.Severity && Nullable.Equals(x.Code, y.Code) && 
-               Equals(x.CodeDescription, y.CodeDescription) && 
-               x.Source == y.Source && x.Message == y.Message && 
-               Equals(x.Tags, y.Tags) && 
+        return x.Range.Equals(y.Range) && x.Severity == y.Severity && Nullable.Equals(x.Code, y.Code) &&
+               Equals(x.CodeDescription, y.CodeDescription) &&
+               x.Source == y.Source && x.Message == y.Message &&
+               Equals(x.Tags, y.Tags) &&
                (ReferenceEquals(x.RelatedInformation, null) || x.RelatedInformation!.SequenceEqual(y.RelatedInformation!, relatedInformationComparer)) &&
                Equals(x.Data, y.Data);
       }
 
-      public int GetHashCode(Diagnostic obj)
-      {
+      public int GetHashCode(Diagnostic obj) {
         var hashCode = new HashCode();
         hashCode.Add(obj.Range);
         hashCode.Add(obj.Severity);
