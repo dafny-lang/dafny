@@ -375,7 +375,6 @@ namespace Microsoft.Dafny.Compilers {
       wr.Write(protectedName);
       EmitActualTypeArgs(typeArgs, tok, wr);
     }
-    protected abstract string GenerateLhsDecl(string target, Type/*?*/ type, ConcreteSyntaxTree wr, IToken tok);
 
     protected virtual ConcreteSyntaxTree EmitAssignment(ILvalue wLhs, Type lhsType /*?*/, Type rhsType /*?*/,
       ConcreteSyntaxTree wr, IToken tok) {
@@ -420,10 +419,7 @@ namespace Microsoft.Dafny.Compilers {
     protected virtual string EmitAssignmentLhs(Expression e, ConcreteSyntaxTree wr) {
       var wStmts = wr.Fork();
       var target = ProtectedFreshId("_lhs");
-      wr.Write(GenerateLhsDecl(target, e.Type, wr, e.tok));
-      wr.Write(AssignmentSymbol);
-      EmitExpr(e, false, wr, wStmts);
-      EndStmt(wr);
+      EmitExpr(e, false, DeclareLocalVar(target, e.Type, e.tok, wr), wStmts);
       return target;
     }
 
@@ -2631,11 +2627,11 @@ namespace Microsoft.Dafny.Compilers {
       TrCasePatternOpt(pat, rhs, null, rhs.Type, rhs.tok, wr, inLetExprBody);
     }
 
-    void TrCasePatternOpt<VT>(CasePattern<VT> pat, Expression rhs, string rhs_string, Type rhsType, IToken rhsTok, ConcreteSyntaxTree wr, bool inLetExprBody)
+    void TrCasePatternOpt<VT>(CasePattern<VT> pat, Expression rhs, Action<ConcreteSyntaxTree> emitRhs, Type rhsType, IToken rhsTok, ConcreteSyntaxTree wr, bool inLetExprBody)
       where VT : class, IVariable {
       Contract.Requires(pat != null);
-      Contract.Requires(pat.Var != null || rhs != null || rhs_string != null);
-      Contract.Requires(rhs != null || rhs_string != null);
+      Contract.Requires(pat.Var != null || rhs != null || emitRhs != null);
+      Contract.Requires(rhs != null || emitRhs != null);
       Contract.Requires(rhsType != null && rhsTok != null);
 
       if (pat.Var != null) {
@@ -2651,7 +2647,7 @@ namespace Microsoft.Dafny.Compilers {
             w = EmitCoercionIfNecessary(from: rhs.Type, to: bv.Type, tok: rhsTok, wr: w);
             EmitExpr(rhs, inLetExprBody, w, wStmts);
           } else {
-            w.Write(rhs_string);
+            emitRhs(w);
           }
         }
       } else if (pat.Arguments != null) {
@@ -2670,7 +2666,8 @@ namespace Microsoft.Dafny.Compilers {
         if (rhs != null) {
           DeclareLocalVar(tmp_name, rhs.Type, rhs.tok, rhs, inLetExprBody, wr);
         } else {
-          DeclareLocalVar(tmp_name, rhsType, rhsTok, false, rhs_string, wr);
+          var w = DeclareLocalVar(tmp_name, rhsType, rhsTok, wr);
+          emitRhs(w);
         }
 
         var dtv = (DatatypeValue)pat.Expr;
@@ -2683,10 +2680,8 @@ namespace Microsoft.Dafny.Compilers {
             // nothing to compile, but do a sanity check
             Contract.Assert(Contract.ForAll(arg.Vars, bv => bv.IsGhost));
           } else {
-            var sw = new ConcreteSyntaxTree(wr.RelativeIndentLevel);
-            EmitDestructor(tmp_name, formal, k, ctor, dtv.InferredTypeArgs, arg.Expr.Type, sw);
             Type targetType = formal.Type.Subst(substMap);
-            TrCasePatternOpt(arg, null, sw.ToString(), targetType, pat.Expr.tok, wr, inLetExprBody);
+            TrCasePatternOpt(arg, null, sw => EmitDestructor(tmp_name, formal, k, ctor, dtv.InferredTypeArgs, arg.Expr.Type, sw), targetType, pat.Expr.tok, wr, inLetExprBody);
             k++;
           }
         }
@@ -3321,8 +3316,7 @@ namespace Microsoft.Dafny.Compilers {
           // introduce a variable to hold the value of the end-expression
           endVarName = ProtectedFreshId(s.GoingUp ? "_hi" : "_lo");
           wStmts = wr.Fork();
-          wr.Write(GenerateLhsDecl(endVarName, s.End.Type, wr, s.End.tok));
-          EmitAssignmentRhs(s.End, false, wr, wStmts);
+          EmitExpr(s.End, false, DeclareLocalVar(endVarName, s.End.Type, s.End.tok, wr), wStmts);
         }
         var startExprWriter = EmitForStmt(s.Tok, s.LoopIndex, s.GoingUp, endVarName, s.Body.Body, s.Labels, wr);
         EmitExpr(s.Start, false, startExprWriter, wStmts);
@@ -4780,7 +4774,11 @@ namespace Microsoft.Dafny.Compilers {
         // Need to avoid if (true) because some languages (Go, someday Java)
         // pretend that an if (true) isn't a certainty, leading to a complaint
         // about a missing return statement
-        w = EmitBlock(wr);
+        if (caseCount > 1) {
+          w = EmitBlock(wr);
+        } else {
+          w = wr;
+        }
       } else {
         w = EmitIf(out var guardWriter, !lastCase, wr);
         EmitConstructorCheck(source, ctor, guardWriter);
