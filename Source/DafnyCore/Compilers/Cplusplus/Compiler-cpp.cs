@@ -1233,10 +1233,6 @@ namespace Microsoft.Dafny.Compilers {
       wr.Write(ActualTypeArgs(typeArgs));
     }
 
-    protected override string GenerateLhsDecl(string target, Type/*?*/ type, ConcreteSyntaxTree wr, IToken tok) {
-      return "auto " + target;
-    }
-
     protected void EmitNullText(Type type, ConcreteSyntaxTree wr) {
       var xType = type.NormalizeExpand();
       if (xType.IsArrayType) {
