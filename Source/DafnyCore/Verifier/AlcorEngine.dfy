@@ -38,8 +38,19 @@ module AlcorProofKernel {
   export provides Proof, Proof.GetExpr
          provides Proof.AndIntro, Proof.AndElimLeft, Proof.AndElimRight
          provides Proof.ImpElim, Proof.ImpIntro
+         provides Proof.ForallIntro, Proof.ForallElim
          provides Wrappers, Expr.ToString
          reveals Expr, Expr.Not
+         reveals Identifier
+
+  datatype Identifier = Identifier(name: string, version: nat := 0, lbl: string := "")
+  {
+    function ToString(): string {
+      name
+      + (if lbl != "" then "@" + lbl else "")
+      + (if version == 0 then "" else "@" + IntToString(version))
+    }
+  }
 
   // TODO: Intermediate language for Dafny, including references, sets, etc.
   datatype Expr =
@@ -49,13 +60,80 @@ module AlcorProofKernel {
     | Imp(left: Expr, right: Expr)
     | Eq(left: Expr, right: Expr) // Same as Iff but for everything
     | Or(left: Expr, right: Expr)
-    | Var(name: string, version: nat := 0, lbl: string := "")
-    | Abs(name: string, body: Expr)
+    | Var(id: Identifier)
+    | Abs(id: Identifier, body: Expr)
     | App(left: Expr, right: Expr)
     | Forall(body: Expr) // Typically an Abs, but can be a name
   {
     static function Not(expr: Expr): Expr {
       Imp(expr, False)
+    }
+    function FreeVars(): set<Identifier> {
+      if True? || False? then {} else
+      if And? || Imp? || Eq? || Or? || App? then
+        left.FreeVars() + right.FreeVars()
+      else if Var? then
+        {id}
+      else if Abs? then
+        body.FreeVars() - {id}
+      else if Forall? then
+        body.FreeVars()
+      else assert false; match () {}
+    }
+    ghost function MaxVersion(vars: set<Identifier>): (version: nat)
+      ensures forall id <- vars :: id.version <= version
+    {
+      if |vars| == 0 then 0
+      else
+        var id :| id in vars;
+        var m := MaxVersion(vars - {id});
+        if m > id.version then m else id.version
+    }
+    opaque function NewNotInFreeVars(id: Identifier, freeVars: set<Identifier>): (r: Identifier)
+      ensures r !in freeVars && r.name == id.name && r.lbl == id.lbl
+      decreases if id in freeVars then MaxVersion(freeVars) + 1 - id.version else 0
+    {
+      if id in freeVars then
+        NewNotInFreeVars(Identifier(id.name, id.version + 1, id.lbl), freeVars)
+      else
+        id
+    }
+    ghost function size(): nat {
+      match this
+      case True | False => 1
+      case And(left, right) => left.size() + right.size() + 1
+      case Imp(left, right) => left.size() + right.size() + 1
+      case Eq(left, right) => left.size() + right.size() + 1
+      case Or(left, right) => left.size() + right.size() + 1
+      case App(left, right) => left.size() + right.size() + 1
+      case Var(i) =>  1
+      case Abs(i, body) => body.size() + 1
+      case Forall(body) => body.size() + 1 
+    }
+    // Ensures free variables in expr are not captured while binding.
+    function Bind(id: Identifier, expr: Expr, freeVars: set<Identifier> := expr.FreeVars()): (r: Expr)
+      requires freeVars == expr.FreeVars()
+      ensures expr.Var? ==> r.size() == this.size()
+      decreases size(), if Abs? && this.id in freeVars then 1 else 0
+    {
+      match this
+      case True | False => this
+      case And(left, right) => And(left.Bind(id, expr), right.Bind(id, expr))
+      case Imp(left, right) => Imp(left.Bind(id, expr), right.Bind(id, expr))
+      case Eq(left, right) => Eq(left.Bind(id, expr), right.Bind(id, expr))
+      case Or(left, right) => Or(left.Bind(id, expr), right.Bind(id, expr))
+      case Var(i) => 
+        if i == id then expr else this
+      case Abs(i, body) =>
+        if i == id then this else
+        if i in freeVars then // Need to rename n to avoid capture.
+          var i' := NewNotInFreeVars(i, freeVars);
+          var newAbs := Abs(i', body.Bind(i, Var(i')));
+          newAbs.Bind(id, expr, freeVars)
+        else
+          Abs(i, body.Bind(id, expr, freeVars))
+      case App(left, right) => App(left.Bind(id, expr), right.Bind(id, expr))
+      case Forall(body) => Forall(body.Bind(id, expr))
     }
 
     function Operator(): string
@@ -68,9 +146,7 @@ module AlcorProofKernel {
       if False? then "false" else
       if True? then "true" else
       if Var? then
-      name
-      + (if lbl != "" then "@" + lbl else "")
-      + (if version == 0 then "" else "@" + IntToString(version))
+        id.ToString()
       else ""
     }
     function ToStringWrap(outerPriority: nat): string
@@ -101,7 +177,7 @@ module AlcorProofKernel {
       else if And? || Or? || /*Iff? ||*/ Eq? || Imp? then
         left.ToStringWrap(p) + " "+Operator()+" " + right.ToStringWrap(p)
       else if Abs? then
-        "\\" + name + "." + body.ToStringWrap(p + 1)
+        "\\" + id.ToString() + "." + body.ToStringWrap(p + 1)
       else if App? then
         left.ToStringWrap(p) + " " + right.ToStringWrap(p)
       else if Forall? then
@@ -153,6 +229,19 @@ module AlcorProofKernel {
       var result :- pHypothesis(p);
       Success(Proof(Imp(hypothesis, result.expr)))
     }
+
+    static function ForallElim(theorem: Proof, instance: Expr): Result<Proof> {
+      if !theorem.expr.Forall? then
+        Failure("To apply ForallElim, you need to pass a proven forall expression as the first parameter, but got a proof " + theorem.expr.ToString())
+      else if !theorem.expr.body.Abs? then
+        Failure("To apply ForallElim, the forall must be over a lambda, but got " + theorem.expr.body.ToString())
+      else
+        Success(Proof(theorem.expr.body.body.Bind(theorem.expr.body.id, instance)))
+    }
+
+    static function ForallIntro(theorem: Proof, id: Identifier): Result<Proof> {
+      Success(Proof(Forall(Abs(id, theorem.expr))))
+    }
   }
 }
 
@@ -160,7 +249,55 @@ module AlcorProofKernel {
 module Alcor {
   import opened Wrappers
   import opened AlcorProofKernel
+
+   //  a proof program is a program in SLTC + axioms + inline expressions
+  datatype ProofProgram =
+    | ProofVar(name: string) // Represents
+    | ProofExpr(expr: Expr)
+    | ProofAbs(name: string, tpe: Type, body: ProofProgram)
+    | ProofApp(left: ProofProgram, right: ProofProgram)
+    | ProofAxiom(axiom: ProofAxiom)
+  {
+    function apply1(A: ProofProgram): ProofProgram {
+      ProofApp(this, A)
+    }
+    function apply2(A: ProofProgram, B: ProofProgram): ProofProgram {
+      ProofApp(ProofApp(this, A), B)
+    }
+    function ToString(): string {
+      match this
+      case ProofVar(name) => name
+      case ProofApp(ProofAbs(varName, tpe, body), varContent) =>
+        "var " + varName + ": " + tpe.ToString() + " := " + varContent.ToString() + ";\n" +
+        body.ToString()
+      case ProofAbs(name, tpe, body) => "(\\"+name+". "+body.ToString()+")"
+      case ProofApp(left, right) => left.ToString() + "(" + right.ToString() + ")"
+      case ProofAxiom(axiom) => axiom.ToString()
+      case ProofExpr(expr) => "``" + expr.ToString() + "``"
+    }
+  }
   
+  function Let(name: string, tpe: Type, expression: ProofProgram, body: ProofProgram): ProofProgram {
+    ProofApp(ProofAbs(name, tpe, body), expression)
+  }
+
+  // Programs above can evaluate to any proof values
+
+  datatype ProofValue =
+    | OneProof(proof: Proof)
+    | OneExpr(expr: Expr)
+    | OneClosure(argName: string, tpe: Type, body: ProofProgram, environment: Environment)
+    | OneClosureAxiom(args: seq<ProofValue>, axiom: ProofAxiom)
+  {
+    function Summary(): string {
+      if OneProof? then "proof"
+      else if OneClosure? then "proof closure" // TODO of typo
+      else if OneExpr? then "expr"
+      else "incomplete axiom instantiation"
+    }
+  }
+
+  // An environment makes it possible to interpret a proof program with free variables
 
   datatype Environment =
     | EnvNil
@@ -175,13 +312,16 @@ module Alcor {
     }
   }
 
-  // We carefully add proof axioms here
+  // Proof axiom values
+
   datatype ProofAxiom =
     | AndIntro
     | AndElimLeft
     | AndElimRight
     | ImpElim
     | ImpIntro
+    | ForallElim
+    | ForallIntro
   {
     function apply1(A: ProofProgram): ProofProgram {
       ProofProgram.ProofAxiom(this).apply1(A)
@@ -196,6 +336,8 @@ module Alcor {
       case AndElimRight => "AndElimRight"
       case ImpElim => "ImpElim"
       case ImpIntro => "ImpIntro"
+      case ForallIntro => "ForallIntro"
+      case ForallElim => "ForallElim"
     }
     function Arity(): nat {
       match this {
@@ -204,6 +346,8 @@ module Alcor {
         case AndElimRight => 1
         case ImpIntro => 2
         case ImpElim => 2
+        case ForallIntro => 2
+        case ForallElim => 2
       }
     }
     function ExtractProof(args: seq<ProofValue>, i: nat): Result<Proof>
@@ -259,12 +403,23 @@ module Alcor {
           var left :- ExtractProof(args, 0);
           var right :- ExtractProof(args, 1);
           Proof.ImpElim(left, right).Map(p => OneProof(p))
+        case ForallIntro =>
+          var v :- ExtractExpr(args, 0);
+          if !v.Var? then 
+            Failure("ForallIntro needs a var as first argument, but got " + v.ToString())
+          else
+          var body :- ExtractProof(args, 1);
+          Proof.ForallIntro(body, v.id).Map(p => OneProof(p))
+        case ForallElim =>
+          var axiom :- ExtractProof(args, 0);
+          var instance :- ExtractExpr(args, 1);
+          Proof.ForallElim(axiom, instance).Map(p => OneProof(p))
       }
     }
   }
 
 
-  // Individuals
+  // TODO: Type system
   datatype Type = Ind | Bool | Arrow(left: Type, right: Type) {
     function ToString(): string {
       if Ind? then "Ind" else
@@ -274,55 +429,8 @@ module Alcor {
       + "->" + right.ToString()
     }
   }
-   // Should be a program in simply typed lampda calculus + proof primitives
-  datatype ProofProgram =
-    | ProofVar(name: string) // Represents
-    | ProofExpr(expr: Expr)
-    | ProofAbs(name: string, tpe: Type, body: ProofProgram)
-    | ProofApp(left: ProofProgram, right: ProofProgram)
-    | ProofAxiom(axiom: ProofAxiom)
-  {
-    function apply1(A: ProofProgram): ProofProgram {
-      ProofApp(this, A)
-    }
-    function apply2(A: ProofProgram, B: ProofProgram): ProofProgram {
-      ProofApp(ProofApp(this, A), B)
-    }
-    function ToString(): string {
-      match this
-      case ProofVar(name) => name
-      case ProofApp(ProofAbs(varName, tpe, body), varContent) =>
-        "var " + varName + ": " + tpe.ToString() + " := " + varContent.ToString() + ";\n" +
-        body.ToString()
-      case ProofAbs(name, tpe, body) => "(\\"+name+". "+body.ToString()+")"
-      case ProofApp(left, right) => left.ToString() + "(" + right.ToString() + ")"
-      case ProofAxiom(axiom) => axiom.ToString()
-      case ProofExpr(expr) => "``" + expr.ToString() + "``"
-    }
-  }
-  
-  function Let(name: string, tpe: Type, expression: ProofProgram, body: ProofProgram): ProofProgram {
-    ProofApp(ProofAbs(name, tpe, body), expression)
-  }
-  
-  datatype ProofValue =
-    | OneProof(proof: Proof)
-    | OneExpr(expr: Expr)
-    | OneClosure(argName: string, tpe: Type, body: ProofProgram, environment: Environment)
-    | OneClosureAxiom(args: seq<ProofValue>, axiom: ProofAxiom)
-  {
-    function Summary(): string {
-      if OneProof? then "proof"
-      else if OneClosure? then "proof closure" // TODO of typo
-      else if OneExpr? then "expr"
-      else "incomplete axiom instantiation"
-    }
-  }
 
-
-
-  //predicate SimplyTyped(program: ProofProgram)
-
+  // TODO: Replace decreases step by a fuel or prove termination
   ghost function {:axiom} DecreasesStep(program: ProofProgram): nat
 
   function Debug(msg: string): (result: int) {
@@ -367,7 +475,7 @@ module Alcor {
     }
   }
 
-  // Should be the main API
+  // Should be the main API if a user writes a proof explicitly
   function CheckProof(program: ProofProgram, environment: Environment, expected: Expr): Result<Proof> {
     var result :- ExecuteProof(program, environment);
     if result.OneClosure? || result.OneClosureAxiom? then
