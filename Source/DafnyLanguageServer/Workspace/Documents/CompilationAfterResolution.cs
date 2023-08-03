@@ -67,15 +67,15 @@ public class CompilationAfterResolution : CompilationAfterParsing {
     return results.Aggregate((a, b) => new IdeVerificationResult(
       a.WasTranslated || b.WasTranslated,
       a.Implementations.Concat(b.Implementations).ToDictionary(
-        kv => kv.Key, 
+        kv => kv.Key,
         kv => kv.Value)));
   }
-  
+
   public override IdeState ToIdeState(IdeState previousState) {
-    
+
     IdeVerificationResult MergeVerifiable(ICanVerify canVerify) {
       var location = canVerify.NameToken.GetLocation();
-      var previousForCanVerify = previousState.VerificationResults.GetValueOrDefault(location) ?? new (false, new());
+      var previousForCanVerify = previousState.VerificationResults.GetValueOrDefault(location) ?? new(false, new());
       if (!ImplementationsPerVerifiable.TryGetValue(canVerify, out var implementationsPerName)) {
         return previousForCanVerify with {
           Implementations = previousForCanVerify.Implementations.ToDictionary(kv => kv.Key, kv => kv.Value with {

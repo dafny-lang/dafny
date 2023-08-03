@@ -133,7 +133,7 @@ public class CompilationManager {
       throw;
     }
   }
-  
+
   private static string GetImplementationName(Implementation implementation) {
     var prefix = implementation.Name.Split(Translator.NameSeparator)[0];
 
