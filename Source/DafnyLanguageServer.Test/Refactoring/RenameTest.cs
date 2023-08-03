@@ -1,12 +1,16 @@
 using System;
+using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using JetBrains.Annotations;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using Xunit;
 using Xunit.Abstractions;
+using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Refactoring {
   public class RenameTest : ClientBasedLanguageServerTest {
@@ -32,7 +36,7 @@ method M() {
 }
 ".TrimStart();
 
-      await SetUp(o => { });
+      await SetUp(null);
       var tempDir = await SetUpProjectFile();
       await AssertRangesRenamed(source, tempDir, "foobar");
     }
@@ -44,7 +48,7 @@ method [>foobar<]()
 method U() { [>><foobar<](); }
 ".TrimStart();
 
-      await SetUp(o => { });
+      await SetUp(null);
       var tempDir = await SetUpProjectFile();
       await AssertRangesRenamed(source, tempDir, "M");
     }
@@ -58,21 +62,42 @@ module C { import [>><A<] }
 module D { import [>A<] }
 ".TrimStart();
 
-      await SetUp(o => { });
+      await SetUp(null);
       var tempDir = await SetUpProjectFile();
       await AssertRangesRenamed(source, tempDir, "AAA");
     }
 
     [Fact]
-    public void RenameDeclarationAcrossFiles() {
-      // TODO
-      Assert.True(false);
+    public async Task RenameDeclarationAcrossFiles() {
+      var sourceA = @"
+module A {
+  class [>><C<] {}
+}
+".TrimStart();
+      var sourceB = @"
+module B {
+  import A
+  method M(c: A.[>C<]) {}
+}
+".TrimStart();
+
+      await SetUp(null);
+      var tempDir = await SetUpProjectFile();
+      await AssertRangesRenamed(new[] { sourceA, sourceB }, tempDir, "CCC");
     }
 
     [Fact]
-    public void RenameUsageAcrossFiles() {
-      // TODO
-      Assert.True(false);
+    public async Task RenameUsageAcrossFiles() {
+      var sourceA = @"
+abstract module [>A<] {}
+".TrimStart();
+      var sourceB = @"
+abstract module B { import [>><A<] }
+".TrimStart();
+
+      await SetUp(null);
+      var tempDir = await SetUpProjectFile();
+      await AssertRangesRenamed(new[] { sourceA, sourceB }, tempDir, "AAA");
     }
 
     /// <summary>
@@ -94,35 +119,46 @@ module D { import [>A<] }
     }
 
     /// <summary>
-    /// Assert that after requesting a rename to <paramref name="newName"/> at the markup position,
+    /// Assert that after requesting a rename to <paramref name="newName"/>
+    /// at the markup position in <paramref name="source"/>
+    /// (there must be exactly one markup position),
     /// all markup ranges are renamed.
     /// </summary>
     private async Task AssertRangesRenamed(string source, string tempDir, string newName) {
-      MarkupTestFile.GetPositionAndRanges(source, out var cleanSource,
-        out var position, out var ranges);
-      Assert.NotEmpty(ranges);
-
-      var documentItem = await CreateAndOpenTestDocument(cleanSource, Path.Combine(tempDir, "tmp.dfy"));
-      var workspaceEdit = await RequestRename(documentItem, position, newName);
-      Assert.NotNull(workspaceEdit.Changes);
-      Assert.Contains(documentItem.Uri, workspaceEdit.Changes);
-      var editedText = DocumentEdits.ApplyEdits(workspaceEdit.Changes[documentItem.Uri], documentItem.Text);
-
-      var expectedChanges = ranges.Select(range => new TextEdit {
-        Range = range,
-        NewText = newName,
-      });
-      var expectedText = DocumentEdits.ApplyEdits(expectedChanges, documentItem.Text);
-
-      Assert.Equal(expectedText, editedText);
+      await AssertRangesRenamed(new[] { source }, tempDir, newName);
     }
 
-    private async Task<WorkspaceEdit> RequestRename(string source, string newName) {
-      MarkupTestFile.GetPositionAndRanges(source, out var cleanSource,
-        out var position, out var ranges);
+    private record DocPosRange(TextDocumentItem Document, [CanBeNull] Position Position, ImmutableArray<Range> Ranges);
 
-      var documentItem = await CreateAndOpenTestDocument(cleanSource);
-      return await RequestRename(documentItem, position, newName);
+    /// <summary>
+    /// Assert that after requesting a rename to <paramref name="newName"/>
+    /// at the markup position in <paramref name="sources"/>
+    /// (there must be exactly one markup position among all sources),
+    /// all markup ranges are renamed.
+    /// </summary>
+    private async Task AssertRangesRenamed(IEnumerable<string> sources, string tempDir, string newName) {
+      var items = sources.Select(async (source, sourceIndex) => {
+        MarkupTestFile.GetPositionsAndRanges(source, out var cleanSource,
+          out var positions, out var ranges);
+        var documentItem = await CreateAndOpenTestDocument(cleanSource, Path.Combine(tempDir, $"tmp{sourceIndex}.dfy"));
+        Assert.InRange(positions.Count, 0, 1);
+        return new DocPosRange(documentItem, positions.FirstOrDefault((Position)null), ranges);
+      }).Select(task => task.Result).ToImmutableList();
+
+      var itemWithPos = items.Single(item => item.Position != null);
+      var workspaceEdit = await RequestRename(itemWithPos.Document, itemWithPos.Position, newName);
+      Assert.NotNull(workspaceEdit.Changes);
+
+      foreach (var (document, _, ranges) in items) {
+        Assert.Contains(document.Uri, workspaceEdit.Changes);
+        var editedText = DocumentEdits.ApplyEdits(workspaceEdit.Changes[document.Uri], document.Text);
+        var expectedChanges = ranges.Select(range => new TextEdit {
+          Range = range,
+          NewText = newName,
+        });
+        var expectedText = DocumentEdits.ApplyEdits(expectedChanges, document.Text);
+        Assert.Equal(expectedText, editedText);
+      }
     }
 
     private async Task<WorkspaceEdit> RequestRename(
