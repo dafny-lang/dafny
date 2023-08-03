@@ -69,6 +69,9 @@ module ConcurrentHashMap {
         bucket.Push((k, v));
 
         // Necessary in case a resizing happened while we were busy pushing into the bucket
+        // TODO: find a way for the verifier to force me to do this.
+        // Can we use a twostate invariant to at least enforce that the table only grows?
+        // Perhaps that IF the table grew, all buckets are new objects?
         var success := table.CheckBucket(k, bucket);
         if success {
           return;

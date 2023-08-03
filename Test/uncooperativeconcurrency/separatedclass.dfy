@@ -1,10 +1,11 @@
 module SeparatedClasses {
+
   trait {:termination false} OwnedObject {
     // Faking the built-in .Owner field.
     ghost var Owner: OwnedObject?
 
     ghost method SetOwner(o: OwnedObject, owner: OwnedObject?)
-      requires CanAccess(o)
+      requires ThisCanAccess(o)
       modifies o`Owner
       ensures o.Owner == owner
     {
@@ -12,25 +13,26 @@ module SeparatedClasses {
     }
 
     ghost static method StaticSetOwner(ref: OwnedObject, owner: OwnedObject?) 
-      requires StaticCanAccess(ref)
+      requires CanAccess(null, ref)
       modifies ref`Owner
       ensures ref.Owner == owner
     {
       ref.Owner := owner;
     }
 
-    ghost predicate CanAccess(ref: OwnedObject) 
+    ghost predicate ThisCanAccess(ref: OwnedObject) 
       reads this, ref
     {
-      || ref == this
-      || (ref != this && ref.Owner == this)
-      || (ref != this && ref.Owner == this.Owner && ref.Owner != ref)
+      ref.Owner == this.Owner
     }
 
-    ghost static predicate StaticCanAccess(ref: OwnedObject) 
-      reads ref
+    ghost static predicate CanAccess(context: OwnedObject?, ref: OwnedObject) 
+      reads context, ref
     {
-      ref.Owner == null
+      if context == null then
+        ref.Owner == null
+      else
+        context.ThisCanAccess(ref)
     }
 
     // Hack to approximate how framing will work for separated classes:
@@ -52,6 +54,28 @@ module SeparatedClasses {
       ensures this.a == a
     {
       this.a := a;
+    }
+  }
+
+  class Field<T> {
+    ghost const Parent: OwnedObject;
+    var value: T
+
+    constructor(parent: OwnedObject, value: T) {
+      this.value := value;
+      Parent := parent;
+    }
+
+    method Read(context: OwnedObject?) returns (t: T)
+      requires OwnedObject.CanAccess(context, Parent)
+    {
+      return value;
+    }
+
+    method Write(context: OwnedObject?, newValue: T)
+      requires OwnedObject.CanAccess(context, Parent)
+    {
+      this.value := newValue;
     }
   }
 }
