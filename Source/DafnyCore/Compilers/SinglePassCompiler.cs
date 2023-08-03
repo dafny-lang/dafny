@@ -2627,11 +2627,11 @@ namespace Microsoft.Dafny.Compilers {
       TrCasePatternOpt(pat, rhs, null, rhs.Type, rhs.tok, wr, inLetExprBody);
     }
 
-    void TrCasePatternOpt<VT>(CasePattern<VT> pat, Expression rhs, string rhs_string, Type rhsType, IToken rhsTok, ConcreteSyntaxTree wr, bool inLetExprBody)
+    void TrCasePatternOpt<VT>(CasePattern<VT> pat, Expression rhs, Action<ConcreteSyntaxTree> emitRhs, Type rhsType, IToken rhsTok, ConcreteSyntaxTree wr, bool inLetExprBody)
       where VT : class, IVariable {
       Contract.Requires(pat != null);
-      Contract.Requires(pat.Var != null || rhs != null || rhs_string != null);
-      Contract.Requires(rhs != null || rhs_string != null);
+      Contract.Requires(pat.Var != null || rhs != null || emitRhs != null);
+      Contract.Requires(rhs != null || emitRhs != null);
       Contract.Requires(rhsType != null && rhsTok != null);
 
       if (pat.Var != null) {
@@ -2647,7 +2647,7 @@ namespace Microsoft.Dafny.Compilers {
             w = EmitCoercionIfNecessary(from: rhs.Type, to: bv.Type, tok: rhsTok, wr: w);
             EmitExpr(rhs, inLetExprBody, w, wStmts);
           } else {
-            w.Write(rhs_string);
+            emitRhs(w);
           }
         }
       } else if (pat.Arguments != null) {
@@ -2666,7 +2666,8 @@ namespace Microsoft.Dafny.Compilers {
         if (rhs != null) {
           DeclareLocalVar(tmp_name, rhs.Type, rhs.tok, rhs, inLetExprBody, wr);
         } else {
-          DeclareLocalVar(tmp_name, rhsType, rhsTok, false, rhs_string, wr);
+          var w = DeclareLocalVar(tmp_name, rhsType, rhsTok, wr);
+          emitRhs(w);
         }
 
         var dtv = (DatatypeValue)pat.Expr;
@@ -2679,10 +2680,8 @@ namespace Microsoft.Dafny.Compilers {
             // nothing to compile, but do a sanity check
             Contract.Assert(Contract.ForAll(arg.Vars, bv => bv.IsGhost));
           } else {
-            var sw = new ConcreteSyntaxTree(wr.RelativeIndentLevel);
-            EmitDestructor(tmp_name, formal, k, ctor, dtv.InferredTypeArgs, arg.Expr.Type, sw);
             Type targetType = formal.Type.Subst(substMap);
-            TrCasePatternOpt(arg, null, sw.ToString(), targetType, pat.Expr.tok, wr, inLetExprBody);
+            TrCasePatternOpt(arg, null, sw => EmitDestructor(tmp_name, formal, k, ctor, dtv.InferredTypeArgs, arg.Expr.Type, sw), targetType, pat.Expr.tok, wr, inLetExprBody);
             k++;
           }
         }
@@ -4775,7 +4774,11 @@ namespace Microsoft.Dafny.Compilers {
         // Need to avoid if (true) because some languages (Go, someday Java)
         // pretend that an if (true) isn't a certainty, leading to a complaint
         // about a missing return statement
-        w = EmitBlock(wr);
+        if (caseCount > 1) {
+          w = EmitBlock(wr);
+        } else {
+          w = wr;
+        }
       } else {
         w = EmitIf(out var guardWriter, !lastCase, wr);
         EmitConstructorCheck(source, ctor, guardWriter);
