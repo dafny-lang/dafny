@@ -41,7 +41,8 @@ public class IdeStateObserver : IObserver<IdeState> {
   }
 
   public void OnCompleted() {
-    var ideState = loader.CreateUnloaded(compilation) with { Compilation = new Compilation(LastPublishedState.Version + 1, LastPublishedState.Compilation.Project, compilation.RootUris) };
+    var initialCompilation = new Compilation(LastPublishedState.Version + 1, LastPublishedState.Compilation.Project, compilation.RootUris);
+    var ideState = loader.CreateUnloaded(initialCompilation);
     notificationPublisher.PublishNotifications(LastPublishedState, ideState);
     telemetryPublisher.PublishUpdateComplete();
   }
