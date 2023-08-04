@@ -279,6 +279,8 @@ class PreTypeToTypeVisitor : ASTVisitor<IASTVisitorContext> {
       expr.Type = new InferredTypeProxy();
     } else if (expr is IdentifierExpr identifierExpr) {
       expr.UnnormalizedType = PreType2UpdatableType(expr.PreType, identifierExpr.Var.UnnormalizedType, identifierExpr.Name, identifierExpr.tok);
+    } else if (expr is ConcreteSyntaxExpression { ResolvedExpression: { } resolvedExpression }) {
+      expr.UnnormalizedType = resolvedExpression.UnnormalizedType;
     } else {
       expr.Type = PreType2Type(expr.PreType);
     }
