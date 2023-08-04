@@ -325,7 +325,7 @@ Usage: dafny [ option ... ] [ filename ... ]
       as /proverOpt:O:model_compress=false (for z3 version < 4.8.7) or
       /proverOpt:O:model.compact=false (for z3 version >= 4.8.7), and
       /proverOpt:O:model.completion=true.
-
+  
   ---- Compilation options ---------------------------------------------------
   
   /compileSuffix:<value>
