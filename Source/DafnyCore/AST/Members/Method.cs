@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
+using System.Threading;
 using Microsoft.Dafny.Auditor;
 
 namespace Microsoft.Dafny;
@@ -99,6 +100,22 @@ public class Method : MemberDecl, TypeParameter.ParentType, IMethodCodeContext, 
     Contract.Invariant(Mod != null);
     Contract.Invariant(cce.NonNullElements(Ens));
     Contract.Invariant(Decreases != null);
+  }
+
+  public Method(Cloner cloner, Method original) : base(cloner, original) {
+    this.TypeArgs = cloner.CloneResolvedFields ? original.TypeArgs : original.TypeArgs.ConvertAll(cloner.CloneTypeParam);
+    this.Ins = original.Ins.ConvertAll(p => cloner.CloneFormal(p, false));
+    if (original.Outs != null) {
+      this.Outs = original.Outs.ConvertAll(p => cloner.CloneFormal(p, false));
+    }
+
+    this.Req = original.Req.ConvertAll(cloner.CloneAttributedExpr);
+    this.Mod = cloner.CloneSpecFrameExpr(original.Mod);
+    this.Decreases = cloner.CloneSpecExpr(original.Decreases);
+    this.Ens = original.Ens.ConvertAll(cloner.CloneAttributedExpr);
+    this.Body = cloner.CloneMethodBody(original);
+    this.SignatureEllipsis = original.SignatureEllipsis;
+    this.IsByMethod = original.IsByMethod;
   }
 
   public Method(RangeToken rangeToken, Name name,
