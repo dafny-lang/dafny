@@ -374,6 +374,7 @@ namespace Dafny {
     bool IsEmpty { get; }
     int Count { get; }
     long LongCount { get; }
+    BigInteger ElementCount { get; }
     IEnumerable<T> Elements { get; }
     IEnumerable<T> UniqueElements { get; }
     bool Contains<G>(G t);
@@ -652,18 +653,21 @@ namespace Dafny {
     public bool IsEmpty { get { return occurrencesOfNull == 0 && dict.IsEmpty; } }
 
     public int Count {
-      get { return (int)ElementCount(); }
+      get { return (int)ElementCount; }
     }
     public long LongCount {
-      get { return (long)ElementCount(); }
+      get { return (long)ElementCount; }
     }
-    private BigInteger ElementCount() {
-      // This is inefficient
-      var c = occurrencesOfNull;
-      foreach (var item in dict) {
-        c += item.Value;
+
+    public BigInteger ElementCount {
+      get {
+        // This is inefficient
+        var c = occurrencesOfNull;
+        foreach (var item in dict) {
+          c += item.Value;
+        }
+        return c;
       }
-      return c;
     }
 
     public IEnumerable<T> Elements {
