@@ -93,7 +93,7 @@ namespace Microsoft.Dafny.Compilers {
       // This is a non-main module; it only imports things declared before it, so we don't need these writers
       EmitImports(wr, out _, out _);
       wr.WriteLine();
-      wr.WriteLine("type {0} struct{{}}", DummyTypeName);ransl
+      wr.WriteLine("type {0} struct{{}}", DummyTypeName);
       wr.WriteLine();
     }
 

@@ -3852,7 +3852,7 @@ namespace Microsoft.Dafny {
     }
 
     void GenerateIteratorImplPrelude(IteratorDecl iter, List<Variable> inParams, List<Variable> outParams,
-                                     BoogieStmtListBuilder builder, List<Variable> localVariables) {
+                                     BoogieStmtListBuilder builder, List<Variable> localVariables, ExpressionTranslator etran) {
       Contract.Requires(iter != null);
       Contract.Requires(inParams != null);
       Contract.Requires(outParams != null);
@@ -3865,7 +3865,7 @@ namespace Microsoft.Dafny {
       var th = new ThisExpr(iter);
       iteratorFrame.Add(new FrameExpression(iter.tok, th, null));
       iteratorFrame.AddRange(iter.Modifies.Expressions);
-      DefineFrame(iter.tok, iteratorFrame, builder, localVariables, null);
+      DefineFrame(iter.tok, etran.ModifiesFrame(iter.tok), iteratorFrame, builder, localVariables, null);
       builder.AddCaptureState(iter.tok, false, "initial state");
     }
 
@@ -4334,7 +4334,7 @@ namespace Microsoft.Dafny {
       }
       builder.AddCaptureState(f.tok, false, "initial state");
 
-      DefineFrame(f.tok, f.Reads, builder, locals, null);
+      DefineFrame(f.tok, etran.ReadsFrame(f.tok), f.Reads, builder, locals, null);
       InitializeFuelConstant(f.tok, builder, etran);
 
       // Check well-formedness of any default-value expressions (before assuming preconditions).
@@ -4701,7 +4701,7 @@ namespace Microsoft.Dafny {
       builder.AddCaptureState(decl.tok, false, "initial state");
       isAllocContext = new IsAllocContext(options, true);
 
-      DefineFrame(decl.tok, new List<FrameExpression>(), builder, locals, null);
+      DefineFrame(decl.tok, etran.ReadsFrame(decl.tok), new List<FrameExpression>(), builder, locals, null);
 
       // check well-formedness of the RHS expression
       CheckWellformed(decl.Rhs, new WFOptions(null, true), locals, builder, etran);
@@ -4772,7 +4772,7 @@ namespace Microsoft.Dafny {
       builder.AddCaptureState(ctor.tok, false, "initial state");
       isAllocContext = new IsAllocContext(options, true);
 
-      DefineFrame(ctor.tok, new List<FrameExpression>(), builder, locals, null);
+      DefineFrame(ctor.tok, etran.ReadsFrame(ctor.tok), new List<FrameExpression>(), builder, locals, null);
 
       // check well-formedness of each default-value expression
       foreach (var formal in ctor.Formals.Where(formal => formal.DefaultValue != null)) {
@@ -8818,7 +8818,7 @@ namespace Microsoft.Dafny {
           prevObj[i] = obj;
           prevIndex[i] = fieldName;
           // check that the enclosing modifies clause allows this object to be written:  assert $_Frame[obj,index]);
-          builder.Add(Assert(tok, Bpl.Expr.SelectTok(tok, etran.TheFrame(tok), obj, fieldName), new PODesc.Modifiable("an array element")));
+          builder.Add(Assert(tok, Bpl.Expr.SelectTok(tok, etran.ModifiesFrame(tok), obj, fieldName), new PODesc.Modifiable("an array element")));
 
           bLhss.Add(null);
           lhsBuilders.Add(delegate (Bpl.Expr rhs, bool origRhsIsHavoc, BoogieStmtListBuilder bldr, ExpressionTranslator et) {

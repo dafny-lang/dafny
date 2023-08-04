@@ -578,7 +578,7 @@ namespace Microsoft.Dafny {
                 objset);
               var reads = new FrameExpression(e.tok, wrap, null);
               CheckFrameSubset(applyExpr.tok, new List<FrameExpression> { reads }, null, null,
-                etran, wfOptions.AssertSink(this, builder), new PODesc.FrameSubset("invoke function", false), wfOptions.AssertKv);
+                etran, etran.ReadsFrame(applyExpr.tok), wfOptions.AssertSink(this, builder), new PODesc.FrameSubset("invoke function", false), wfOptions.AssertKv);
             }
 
             break;

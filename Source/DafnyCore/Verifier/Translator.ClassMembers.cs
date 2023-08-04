@@ -540,7 +540,7 @@ namespace Microsoft.Dafny {
       var etran = new ExpressionTranslator(this, predef, m.tok);
       InitializeFuelConstant(m.tok, builder, etran);
       var localVariables = new List<Variable>();
-      GenerateImplPrelude(m, wellformednessProc, inParams, outParams, builder, localVariables);
+      GenerateImplPrelude(m, wellformednessProc, inParams, outParams, builder, localVariables, etran);
 
       if (UseOptimizationInZ3) {
         // We ask Z3 to minimize all parameters of type 'nat'.
