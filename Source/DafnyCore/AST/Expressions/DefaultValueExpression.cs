@@ -58,3 +58,27 @@ public class DefaultValueExpression : ConcreteSyntaxExpression, ICloneable<Defau
     return new DefaultValueExpression(cloner, this);
   }
 }
+
+/// TODO: This class is a bit sketchy. It should probably be used to replace DefaultValueExpression in some way.
+/// </summary>
+public class DefaultValueExpressionPreType : ConcreteSyntaxExpression {
+  public readonly Formal Formal;
+  public readonly Expression Receiver;
+  public readonly Dictionary<IVariable, Expression> SubstMap;
+  public readonly Dictionary<TypeParameter, PreType> PreTypeMap;
+
+  public DefaultValueExpressionPreType(IToken tok, Formal formal,
+    Expression/*?*/ receiver, Dictionary<IVariable, Expression> substMap, Dictionary<TypeParameter, PreType> preTypeMap)
+    : base(tok) {
+    Contract.Requires(tok != null);
+    Contract.Requires(formal != null);
+    Contract.Requires(formal.DefaultValue != null);
+    Contract.Requires(substMap != null);
+    Contract.Requires(preTypeMap != null);
+    Formal = formal;
+    Receiver = receiver;
+    SubstMap = substMap;
+    PreTypeMap = preTypeMap;
+    PreType = formal.PreType.Substitute(preTypeMap);
+  }
+}

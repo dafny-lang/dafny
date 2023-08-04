@@ -7,7 +7,7 @@ Refinement.dfy(203,9): Warning: the ... refinement feature in statements is depr
 Refinement.dfy(204,13): Warning: the ... refinement feature in statements is deprecated
 Refinement.dfy(209,13): Warning: the ... refinement feature in statements is deprecated
 Refinement.dfy(252,11): Warning: the ... refinement feature in statements is deprecated
-Refinement.dfy(254,4): Warning: the modify statement with a block statement is deprecated
+Refinement.dfy(252,15): Warning: the modify statement with a block statement is deprecated
 Refinement.dfy(255,7): Warning: the ... refinement feature in statements is deprecated
 Refinement.dfy(259,7): Warning: the ... refinement feature in statements is deprecated
 Refinement.dfy(260,10): Warning: the ... refinement feature in statements is deprecated

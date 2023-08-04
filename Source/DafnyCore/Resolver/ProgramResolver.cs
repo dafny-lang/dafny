@@ -81,6 +81,10 @@ public class ProgramResolver {
     }
   }
 
+  public void AddSystemClass(TopLevelDeclWithMembers topLevelDeclWithMembers, Dictionary<string, MemberDecl> memberDictionary) {
+    classMembers[topLevelDeclWithMembers] = memberDictionary;
+  }
+
   private void ProcessDeclarationResolutionResult(Dictionary<ModuleDecl, Action<ModuleDecl>> moduleDeclarationPointers, ModuleDecl decl,
     ModuleResolutionResult moduleResolutionResult) {
     moduleDeclarationPointers[decl](moduleResolutionResult.ResolvedDeclaration);
@@ -136,6 +140,12 @@ public class ProgramResolver {
 
     systemModuleResolver.RevealAllInScope(SystemModuleManager.SystemModule.TopLevelDecls, SystemModuleManager.systemNameInfo.VisibilityScope);
     SystemModuleManager.ResolveValueTypeDecls(this);
+
+    if (Options.Get(CommonOptionBag.TypeSystemRefresh)) {
+      PreTypeResolver.ResolveDeclarations(
+        SystemModuleManager.SystemModule.TopLevelDecls.Where(d => d is not ClassDecl).ToList(),
+        systemModuleResolver, true);
+    }
 
     // The SystemModule is constructed with all its members already being resolved. Except for
     // the non-null type corresponding to class types.  They are resolved here:

@@ -603,7 +603,7 @@ module StarsGoodClient_All {
 
 module StarsGoodClient_AllAndMore {
   import S = StarsGood`ProvideAllAndThenSomeMore
-  method M(b: S.B, c: S.C) {
+  method M(b: S.B, c: S.C, d: S.D) {
     var f0 := b.F();
     var g0 := b.G();
     var u0 := c.u;
@@ -614,21 +614,26 @@ module StarsGoodClient_AllAndMore {
     r0 := S.E.PI;
     r0 := S.F.PI;
 
-    var d: S.D;
-
-    d := new S.D;  // error: no constructors of D are known, but that doesn't mean there aren't any
-    var u1 := d.u;
-
-    var e := new S.E;  // error: it is not known if E has any constructors or not, so this is not allowed
-
     var f: S.F;
     if * {
-      f.M();  // error: to use d, it must first be initialized
+      f.M();  // error: to use f, it must first be initialized
       f := new S.F.FromInt(5);  // error: FromInt has not been exported, and it also isn't known that F is a class type
     } else {
       f := S.F.Make();
       f.M();
       var u1 := f.u;  // error: u has not been exported
     }
+  }
+}
+
+module StarsGoodClient_AllAndMore' {
+  import S = StarsGood`ProvideAllAndThenSomeMore
+  method M() {
+    var d: S.D;
+
+    d := new S.D;  // error: no constructors of D are known, but that doesn't mean there aren't any
+    var u1 := d.u;
+
+    var e := new S.E;  // error: it is not known if E has any constructors or not, so this is not allowed
   }
 }

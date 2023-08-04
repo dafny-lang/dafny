@@ -1,4 +1,4 @@
-ForbidNondeterminismCompile.dfy(52,2): Warning: the modify statement with a block statement is deprecated
+ForbidNondeterminismCompile.dfy(51,11): Warning: the modify statement with a block statement is deprecated
 
 Dafny program verifier finished with 6 verified, 0 errors
 ForbidNondeterminismCompile.dfy(17,7): Error: nondeterministic assignment forbidden by the --enforce-determinism option
