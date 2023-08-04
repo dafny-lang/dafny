@@ -69,7 +69,6 @@ namespace Microsoft.Dafny.Compilers {
       Feature.RuntimeTypeDescriptors,
       Feature.MultiDimensionalArrays,
       Feature.MapComprehensions,
-      Feature.Traits,
       Feature.LetSuchThatExpressions,
       Feature.NonNativeNewtypes,
       Feature.MethodSynthesis,
@@ -143,7 +142,7 @@ namespace Microsoft.Dafny.Compilers {
     protected override IClassWriter CreateClass(string moduleName, string name, bool isExtern, string fullPrintName,
       List<TypeParameter> typeParameters, TopLevelDecl cls, List<Type> superClasses, IToken tok, ConcreteSyntaxTree wr) {
       if (currentBuilder is ClassContainer builder) {
-        return new ClassWriter(this, builder.Class(name));
+        return new ClassWriter(this, builder.Class(name, superClasses.Select(t => GenType(t)).ToList()));
       } else {
         throw new InvalidOperationException();
       }
@@ -151,7 +150,16 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override IClassWriter CreateTrait(string name, bool isExtern, List<TypeParameter> typeParameters,
       TraitDecl trait, List<Type> superClasses, IToken tok, ConcreteSyntaxTree wr) {
-      throw new UnsupportedFeatureException(Token.NoToken, Feature.Traits);
+      if (currentBuilder is TraitContainer builder) {
+        List<DAST.Type> typeParams = new();
+        foreach (var tp in trait.TypeArgs) {
+          typeParams.Add((DAST.Type)DAST.Type.create_TypeArg(Sequence<Rune>.UnicodeFromString(IdProtect(tp.GetCompileName(Options)))));
+        }
+
+        return new ClassWriter(this, builder.Trait(name, typeParams));
+      } else {
+        throw new InvalidOperationException();
+      }
     }
 
     protected override ConcreteSyntaxTree CreateIterator(IteratorDecl iter, ConcreteSyntaxTree wr) {
@@ -279,9 +287,22 @@ namespace Microsoft.Dafny.Compilers {
           }
         }
 
-        var builder = this.builder.Method(m.IsStatic, m.GetCompileName(compiler.Options), astTypeArgs, params_, outTypes, outVars);
+        var overridingTrait = m.OverriddenMethod?.EnclosingClass;
+        var builder = this.builder.Method(
+          m.IsStatic, createBody,
+          overridingTrait != null ? compiler.PathFromTopLevel(overridingTrait) : null,
+          m.GetCompileName(compiler.Options),
+          astTypeArgs, params_,
+          outTypes, outVars
+        );
         methods.Add(builder);
-        return new BuilderSyntaxTree<StatementContainer>(builder);
+
+        if (createBody) {
+          return new BuilderSyntaxTree<StatementContainer>(builder);
+        } else {
+          // TODO(shadaj): actually create a trait
+          return null;
+        }
       }
 
       public ConcreteSyntaxTree SynthesizeMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody, bool forBodyInheritance, bool lookasideBody) {
@@ -303,11 +324,24 @@ namespace Microsoft.Dafny.Compilers {
           }
         }
 
-        var builder = this.builder.Method(isStatic, name, astTypeArgs, params_, new() {
-          compiler.GenType(resultType)
-        }, null);
+        var overridingTrait = member.OverriddenMember?.EnclosingClass;
+
+        var builder = this.builder.Method(
+          isStatic, createBody,
+          overridingTrait != null ? compiler.PathFromTopLevel(overridingTrait) : null,
+          name,
+          astTypeArgs, params_,
+          new() {
+            compiler.GenType(resultType)
+          }, null
+        );
         methods.Add(builder);
-        return new BuilderSyntaxTree<StatementContainer>(builder);
+
+        if (createBody) {
+          return new BuilderSyntaxTree<StatementContainer>(builder);
+        } else {
+          return null;
+        }
       }
 
       public ConcreteSyntaxTree CreateGetter(string name, TopLevelDecl enclosingDecl, Type resultType, IToken tok,
@@ -542,6 +576,19 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
+    protected override void EmitCallToInheritedMethod(Method method, [CanBeNull] TopLevelDeclWithMembers heir, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts, ConcreteSyntaxTree wStmtsAfterCall) {
+      if (wr is BuilderSyntaxTree<StatementContainer> stmtContainer) {
+        var callBuilder = stmtContainer.Builder.Call();
+        base.EmitCallToInheritedMethod(method, heir, new BuilderSyntaxTree<ExprContainer>(callBuilder), wStmts, wStmtsAfterCall);
+      } else {
+        throw new InvalidOperationException("Cannot call statement in this context: " + currentBuilder);
+      }
+    }
+
+    protected override void EmitMultiReturnTuple(List<Formal> outs, List<Type> outTypes, List<string> outTmps, IToken methodToken, ConcreteSyntaxTree wr) {
+      // nothing to do, we auto-emit a return for the method
+    }
+
     protected override void CompileFunctionCallExpr(FunctionCallExpr e, ConcreteSyntaxTree wr, bool inLetExprBody,
         ConcreteSyntaxTree wStmts, FCE_Arg_Translator tr) {
       if (wr is BuilderSyntaxTree<ExprContainer> builder) {
@@ -653,7 +700,11 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void EmitHalt(IToken tok, Expression messageExpr, ConcreteSyntaxTree wr) {
-      throw new NotImplementedException();
+      if (wr is BuilderSyntaxTree<StatementContainer> container) {
+        container.Builder.AddStatement((DAST.Statement)DAST.Statement.create_Halt());
+      } else {
+        throw new InvalidOperationException();
+      }
     }
 
     private readonly Stack<ElseBuilder> elseBuilderStack = new();
@@ -885,8 +936,7 @@ namespace Microsoft.Dafny.Compilers {
       if (topLevel is NewtypeDecl) {
         resolvedType = (DAST.ResolvedType)DAST.ResolvedType.create_Newtype();
       } else if (topLevel is TraitDecl) {
-        // TODO(shadaj): have a separate type when we properly support traits
-        resolvedType = (DAST.ResolvedType)DAST.ResolvedType.create_Newtype();
+        resolvedType = (DAST.ResolvedType)DAST.ResolvedType.create_Trait(path);
       } else if (topLevel is DatatypeDecl) {
         resolvedType = (DAST.ResolvedType)DAST.ResolvedType.create_Datatype(path);
       } else if (topLevel is ClassDecl) {
@@ -1148,7 +1198,36 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void EmitUnaryExpr(ResolvedUnaryOp op, Expression expr, bool inLetExprBody,
         ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
-      throw new NotImplementedException("Unary expression: " + op);
+      if (wr is BuilderSyntaxTree<ExprContainer> container) {
+        var buf = new ExprBuffer(null);
+        EmitExpr(expr, inLetExprBody, new BuilderSyntaxTree<ExprContainer>(buf), null);
+
+        switch (op) {
+          case ResolvedUnaryOp.BoolNot: {
+              container.Builder.AddExpr((DAST.Expression)DAST.Expression.create_UnOp(
+                UnaryOp.create_Not(),
+                buf.Finish()
+              ));
+              break;
+            }
+          case ResolvedUnaryOp.BitwiseNot: {
+              container.Builder.AddExpr((DAST.Expression)DAST.Expression.create_UnOp(
+                UnaryOp.create_BitwiseNot(),
+                buf.Finish()
+              ));
+              break;
+            }
+          case ResolvedUnaryOp.Cardinality: {
+              container.Builder.AddExpr((DAST.Expression)DAST.Expression.create_UnOp(
+                UnaryOp.create_Cardinality(),
+                buf.Finish()
+              ));
+              break;
+            }
+        }
+      } else {
+        throw new InvalidOperationException();
+      }
     }
 
     protected override void CompileBinOp(BinaryExpr.ResolvedOpcode op,
