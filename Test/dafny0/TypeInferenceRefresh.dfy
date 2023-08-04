@@ -702,10 +702,10 @@ module Frames {
     reads ms`x
     reads A0
     reads A1
-//    reads A2 // TODO
-//    reads A3 // TODO
-//    reads A0`x // TODO
-//    reads A1`x // TODO
+    reads A2
+    reads A3
+    reads A0`x
+    reads A1`x
     reads A2`x
     reads A3`x
 
