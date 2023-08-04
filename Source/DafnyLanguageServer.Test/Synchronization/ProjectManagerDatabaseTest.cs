@@ -70,8 +70,7 @@ public class ProjectManagerDatabaseTest : ClientBasedLanguageServerTest {
     var project = CreateTestDocument("", Path.Combine(directory, DafnyProject.FileName));
     client.OpenDocument(project);
     for (int i = 0; i < documentsToLoadConcurrently; i++) {
-      var documentItem = CreateTestDocument(source, Path.Combine(directory, $"pmdtest3_{i}.dfy"));
-      client.OpenDocument(documentItem);
+      var documentItem = await CreateAndOpenTestDocument(source, Path.Combine(directory, $"pmdtest3_{i}.dfy"));
       loadingDocuments.Add(documentItem);
     }
 

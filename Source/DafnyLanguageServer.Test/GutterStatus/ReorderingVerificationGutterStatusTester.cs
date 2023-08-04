@@ -26,10 +26,10 @@ public class ReorderingVerificationGutterStatusTester : LinearVerificationGutter
   public async Task EnsuresPriorityDependsOnEditing() {
     await TestPriorities(@"
 method m1() {
-  assert false;//Next2:  assert true;
+  assert false;//Replace2:  assert true;
 }
 method m2() {
-  assert false;//Next1:  assert true;
+  assert false;//Replace1:  assert true;
 }
 ",
       "m1 m2\n" +
@@ -42,19 +42,19 @@ method m2() {
   public async Task EnsuresPriorityDependsOnEditingWhileEditingSameMethod() {
     await TestPriorities(@"
 method m1() {
-  assert false;//Next7:  assert  true;//Next8:  assert false;
+  assert false;//Replace7:  assert  true;//Replace8:  assert false;
 }
 method m2() {
-  assert false;//Next5:  assert  true;
+  assert false;//Replace5:  assert  true;
 }
 method m3() {
-  assert false;//Next2:  assert  true;//Next9:  assert false;
+  assert false;//Replace2:  assert  true;//Replace9:  assert false;
 }
 method m4() {
-  assert false;//Next3:  assert  true;//Next4:  assert false;
+  assert false;//Replace3:  assert  true;//Replace4:  assert false;
 }
 method m5() {
-  assert false;//Next1:  assert  true;//Next6:  assert false;//Next10:  assert  true;
+  assert false;//Replace1:  assert  true;//Replace6:  assert false;//Replace10:  assert  true;
 }
 ", "m1 m2 m3 m4 m5\n" +
       "m5 m1 m2 m3 m4\n" +
@@ -76,10 +76,10 @@ method m5() {
 method m1() { assert false; }
 method m2() { assert false; }
 method m3() {
-  assert false;//Next1:  assert  true;
+  assert false;//Replace1:  assert  true;
 } 
 method m4() {
-  assert false;//Next2:  assert  true;
+  assert false;//Replace2:  assert  true;
 }
 method m5() { assert false; } //Remove3:
 ",
@@ -94,13 +94,13 @@ method m5() { assert false; } //Remove3:
     await TestPriorities(@"
 method m1() { assert false; }
 method m2() {
-  assert false;//Next3:  typo//Next5:  assert true;
+  assert false;//Replace3:  typo//Replace5:  assert true;
 }
 method m3() {
-  assert false;//Next1:  assert  true;
+  assert false;//Replace1:  assert  true;
 } 
 method m4() {
-  assert false;//Next2:  assert  true;
+  assert false;//Replace2:  assert  true;
 }
 method m5() { assert false; } //Remove4:
 ",
@@ -123,7 +123,7 @@ method m5() { assert false; } //Remove4:
     });
     var symbols = ExtractSymbols(symbolsString);
 
-    var (code, changes) = ExtractCodeAndChanges(codeAndChanges.TrimStart());
+    var (code, codes, changesList) = ExtractCodeAndChanges(codeAndChanges.TrimStart());
     var documentItem = CreateTestDocument(code);
     client.OpenDocument(documentItem);
 
@@ -147,9 +147,9 @@ method m5() { assert false; } //Remove4:
     }
 
     await CompareWithExpectation(symbols.First());
-    foreach (var (change, expectedSymbols) in changes.Zip(symbols.Skip(1))) {
+    foreach (var (changes, expectedSymbols) in changesList.Zip(symbols.Skip(1))) {
       index++;
-      ApplyChange(ref documentItem, change.changeRange, change.changeValue);
+      ApplyChanges(ref documentItem, changes);
       if (expectedSymbols != null) {
         var migrated = expectedSymbols.Count == 0;
         if (migrated) {
