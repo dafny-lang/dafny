@@ -33,6 +33,14 @@ const i := 0
     }
 
     [Fact]
+    public async Task RenameNonSymbolFails() {
+      var tempDir = await SetUpProjectFile();
+      var documentItem = await CreateAndOpenTestDocument("module Foo {}", Path.Combine(tempDir, "tmp.dfy"));
+      var workspaceEdit = await RequestRename(documentItem, new Position(0, 6), "space");
+      Assert.Null(workspaceEdit);
+    }
+
+    [Fact]
     public async Task RenameDeclarationRenamesUsages() {
       var source = @"
 const [>><i<] := 0
