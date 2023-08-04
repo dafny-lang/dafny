@@ -12,7 +12,7 @@ method SetBox(b: Box, i: int)
   b.x := i;
 }
 
-function method GetBoxFn(b: Box): int
+function GetBoxFn(b: Box): int
   reads b
 {
   b.x
