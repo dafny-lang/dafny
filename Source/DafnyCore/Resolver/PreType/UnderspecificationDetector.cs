@@ -136,6 +136,7 @@ namespace Microsoft.Dafny {
       } else if (member is Method method) {
         CheckParameterDefaultValues(method.Ins, method);
         method.Req.ForEach(mfe => CheckAttributedExpression(mfe, method));
+        method.Reads.ForEach(mfe => CheckExpression(mfe.E, method));
         CheckSpecFrameExpression(method.Mod, method);
         method.Ens.ForEach(mfe => CheckAttributedExpression(mfe, method));
         CheckSpecExpression(method.Decreases, method);

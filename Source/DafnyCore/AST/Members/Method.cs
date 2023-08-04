@@ -217,6 +217,10 @@ public class Method : MemberDecl, TypeParameter.ParentType, IMethodCodeContext, 
       formatter.SetAttributedExpressionIndentation(req, indentBefore + formatter.SpaceTab);
     }
 
+    foreach (var mod in Reads) {
+      formatter.SetFrameExpressionIndentation(mod, indentBefore + formatter.SpaceTab);
+    }
+    
     foreach (var mod in Mod.Expressions) {
       formatter.SetFrameExpressionIndentation(mod, indentBefore + formatter.SpaceTab);
     }
@@ -274,6 +278,15 @@ public class Method : MemberDecl, TypeParameter.ParentType, IMethodCodeContext, 
         resolver.ConstrainTypeExprBool(e.E, "Precondition must be a boolean (got {0})");
       }
 
+      foreach (FrameExpression fe in Reads) {
+        resolver.ResolveFrameExpressionTopLevel(fe, FrameExpressionUse.Reads, this);
+        if (IsLemmaLike) {
+          resolver.reporter.Error(MessageSource.Resolver, fe.tok, "{0}s are not allowed to have reads clauses", WhatKind);
+        } else if (IsGhost) {
+          resolver.DisallowNonGhostFieldSpecifiers(fe);
+        }
+      }
+      
       resolver.ResolveAttributes(Mod, new ResolutionContext(this, false));
       foreach (FrameExpression fe in Mod.Expressions) {
         resolver.ResolveFrameExpressionTopLevel(fe, FrameExpressionUse.Modifies, this);
