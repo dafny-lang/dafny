@@ -2,5 +2,3 @@ TypeParams.dfy(29,6): Error: value does not satisfy the subset constraints of 'S
 TypeParams.dfy(55,6): Error: value does not satisfy the subset constraints of 'real --> bool' (possible cause: it may have read effects)
 TypeParams.dfy(57,6): Error: value does not satisfy the subset constraints of '() --> int' (possible cause: it may have read effects)
 TypeParams.dfy(58,6): Error: value does not satisfy the subset constraints of '(Color, set<bv12>) --> bv20' (possible cause: it may have read effects)
-
-Dafny program verifier finished with 16 verified, 4 errors

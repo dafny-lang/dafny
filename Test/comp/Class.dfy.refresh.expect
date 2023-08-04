@@ -1,3 +1,1 @@
 Class.dfy(211,8): Error: all array indices must be in the domain of the initialization function
-
-Dafny program verifier finished with 15 verified, 1 error
