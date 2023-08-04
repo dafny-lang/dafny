@@ -1,3 +1,5 @@
+// RUN: %testDafnyForEachCompiler "%s"
+
 method Main() {
   var a := new ()[1];
   var m: map<array<()>, ()> := map[a := ()];
