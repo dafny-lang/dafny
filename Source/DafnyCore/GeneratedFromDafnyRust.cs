@@ -3093,11 +3093,9 @@ namespace DCOMP {
       } else {
         Dafny.ISequence<Dafny.Rune> _72___mcc_h6 = _source1.dtor_TypeArg_a0;
         Dafny.ISequence<Dafny.Rune> _source4 = _72___mcc_h6;
-        {
-          Dafny.ISequence<Dafny.Rune> _73___mcc_h7 = _source4;
-          Dafny.ISequence<Dafny.Rune> _74_name = _73___mcc_h7;
-          s = _74_name;
-        }
+        Dafny.ISequence<Dafny.Rune> _73___mcc_h7 = _source4;
+        Dafny.ISequence<Dafny.Rune> _74_name = _73___mcc_h7;
+        s = _74_name;
       }
       return s;
     }
@@ -3972,11 +3970,12 @@ namespace DCOMP {
           _302_onString = _out89;
           _303___v29 = _out90;
           _304_recIdents = _out91;
-          s = Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(_302_onString, Dafny.Sequence<Dafny.Rune>.UnicodeFromString(".")), DCOMP.__default.natToString(_300_idx));
+          s = Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("("), _302_onString), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(").")), DCOMP.__default.natToString(_300_idx));
           if (mustOwn) {
-            s = Dafny.Sequence<Dafny.Rune>.Concat(s, Dafny.Sequence<Dafny.Rune>.UnicodeFromString(".clone()"));
+            s = Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("("), s), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(")")), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(".clone()"));
             isOwned = true;
           } else {
+            s = Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("&"), s);
             isOwned = false;
           }
           readIdents = _304_recIdents;
