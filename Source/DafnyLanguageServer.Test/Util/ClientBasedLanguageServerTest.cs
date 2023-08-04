@@ -10,6 +10,7 @@ using JetBrains.Annotations;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
 using Microsoft.Dafny.LanguageServer.Workspace;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
+using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.JsonRpc;
 using OmniSharp.Extensions.LanguageServer.Client;
 using OmniSharp.Extensions.LanguageServer.Protocol.Client;
@@ -105,6 +106,13 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
       } catch (OperationCanceledException) {
         await output.WriteLineAsync($"\nOld to new history was: {verificationStatusReceiver.History.Stringify()}");
       }
+    }
+  }
+
+  private void WriteVerificationHistory() {
+    output.WriteLine($"\nOld to new history was:");
+    foreach (var history in verificationStatusReceiver.History) {
+      output.WriteLine(history.Stringify());
     }
   }
 
@@ -341,6 +349,6 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
     return client.WaitForNotificationCompletionAsync(documentItem.Uri, CancellationToken);
   }
 
-  public ClientBasedLanguageServerTest(ITestOutputHelper output) : base(output) {
+  public ClientBasedLanguageServerTest(ITestOutputHelper output, LogLevel dafnyLogLevel = LogLevel.Information) : base(output, dafnyLogLevel) {
   }
 }
