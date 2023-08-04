@@ -4011,9 +4011,12 @@ namespace Microsoft.Dafny.Compilers {
         if (toType.IsNumericBased(Type.NumericPersuasion.Real)) {
           // (int or bv or char) -> real
           Contract.Assert(AsNativeType(toType) == null);
+          var fromNative = AsNativeType(fromType);
           wr.Write($"new {DafnyBigRationalClass}(");
-          if (AsNativeType(fromType) != null) {
-            wr.Write("java.math.BigInteger.valueOf");
+          if (fromNative != null) {
+            wr.Write(fromNative.LowerBound >= 0
+              ? $"{DafnyHelpersClass}.unsignedToBigInteger"
+              : "java.math.BigInteger.valueOf");
             TrParenExpr(arg, wr, inLetExprBody, wStmts);
             wr.Write(", java.math.BigInteger.ONE)");
           } else if (fromType.IsCharType) {
@@ -4053,19 +4056,10 @@ namespace Microsoft.Dafny.Compilers {
             }
           } else if (fromNative != null && toNative == null) {
             // native (int or bv) -> big-integer (int or bv)
-            if (fromNative.Sel == NativeType.Selection.ULong) {
-              // Can't just use .longValue() because that may return a negative
-              wr.Write($"{DafnyHelpersClass}.unsignedLongToBigInteger");
-              TrParenExpr(arg, wr, inLetExprBody, wStmts);
-            } else {
-              wr.Write("java.math.BigInteger.valueOf(");
-              if (fromNative.LowerBound >= 0) {
-                TrParenExpr($"{GetBoxedNativeTypeName(fromNative)}.toUnsignedLong", arg, wr, inLetExprBody, wStmts);
-              } else {
-                TrParenExpr(arg, wr, inLetExprBody, wStmts);
-              }
-              wr.Write(")");
-            }
+            wr.Write(fromNative.LowerBound >= 0
+              ? $"{DafnyHelpersClass}.unsignedToBigInteger"
+              : "java.math.BigInteger.valueOf");
+            TrParenExpr(arg, wr, inLetExprBody, wStmts);
           } else if (fromNative != null && NativeTypeSize(toNative) == NativeTypeSize(fromNative)) {
             // native (int or bv) -> native (int or bv)
             // Cast between signed and unsigned, which have the same Java type
