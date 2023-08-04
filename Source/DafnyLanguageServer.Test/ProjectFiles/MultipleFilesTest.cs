@@ -115,6 +115,8 @@ method Bar() {
     } catch (Exception) {
       await output.WriteLineAsync($"diagnostics1: {diagnostics1.Stringify()}");
       await output.WriteLineAsync($"diagnostics2: {diagnostics2.Stringify()}");
+      var diagnostics3 = await diagnosticsReceiver.AwaitNextNotificationAsync(CancellationToken);
+      await output.WriteLineAsync($"diagnostics3: {diagnostics3.Stringify()}");
       throw;
     }
   }
