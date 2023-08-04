@@ -1,5 +1,4 @@
-// RUN: %dafny /compile:3 "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment
 
 method Main() {
   TestY();
@@ -10,7 +9,7 @@ datatype List<A> = Nil | Cons(head: A, tail: List<A>)
 
 datatype Tree<A> = Branch(val: A, trees: List<Tree<A>>)
 
-function ListData(xs: List): set
+ghost function ListData(xs: List): set
   ensures forall x :: x in ListData(xs) ==> x < xs
 {
   match xs
@@ -18,7 +17,7 @@ function ListData(xs: List): set
   case Cons(x,xs) => {x} + ListData(xs)
 }
 
-function TreeData(t0: Tree): set
+ghost function TreeData(t0: Tree): set
   ensures forall t :: t in TreeData(t0) ==> t < t0
 {
   var Branch(x, ts) := t0;
@@ -27,11 +26,11 @@ function TreeData(t0: Tree): set
 
 // ---------- Partial functions ----------
 
-predicate PreY<A,B>(f: A --> B, s: set<A>) {
+ghost predicate PreY<A,B>(f: A --> B, s: set<A>) {
   forall x :: x in s ==> f.requires(x)
 }
 
-function method MapY<A,B>(xs: List<A>, f: A --> B): List<B>
+function MapY<A,B>(xs: List<A>, f: A --> B): List<B>
   requires PreY(f, ListData(xs))
   decreases xs
 {
@@ -40,7 +39,7 @@ function method MapY<A,B>(xs: List<A>, f: A --> B): List<B>
   case Cons(x, xs) => Cons(f(x), MapY(xs, f))
 }
 
-function method TreeMapY<A,B>(t0: Tree<A>, f: A --> B): Tree<B>
+function TreeMapY<A,B>(t0: Tree<A>, f: A --> B): Tree<B>
   requires PreY(f, TreeData(t0))
   decreases t0
 {
@@ -57,13 +56,13 @@ method TestY() {
 
 // ---------- Read-effect functions ----------
 
-predicate PreZ<A,B>(f: A ~> B, s: set<A>)
+ghost predicate PreZ<A,B>(f: A ~> B, s: set<A>)
   reads set x, y | x in s && y in f.reads(x) :: y
 {
   forall x :: x in s ==> f.requires(x)
 }
 
-function method MapZ<A,B>(xs: List<A>, f: A ~> B): List<B>
+function MapZ<A,B>(xs: List<A>, f: A ~> B): List<B>
   requires PreZ(f, ListData(xs))
   reads PreZ.reads(f, ListData(xs))
   decreases xs
@@ -73,7 +72,7 @@ function method MapZ<A,B>(xs: List<A>, f: A ~> B): List<B>
   case Cons(x, xs) => Cons(f(x), MapZ(xs, f))
 }
 
-function method TreeMapZ<A,B>(t0: Tree<A>, f: A ~> B): Tree<B>
+function TreeMapZ<A,B>(t0: Tree<A>, f: A ~> B): Tree<B>
   requires PreZ(f, TreeData(t0))
   reads PreZ.reads(f, TreeData(t0))
   decreases t0

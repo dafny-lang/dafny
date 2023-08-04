@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using Microsoft.Dafny.LanguageServer.Language;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
@@ -26,6 +27,17 @@ public abstract class DafnyCodeActionProvider {
   /// <param name="selection">The current selection</param>
   /// <returns>Potential quickfixes</returns>
   public abstract IEnumerable<DafnyCodeAction> GetDafnyCodeActions(IDafnyCodeActionInput input, Range selection);
+
+  // When building DafnyCodeActionEdit (what DafnyCodeAction return),
+  // use this to create ranges suitable for insertion
+  protected static RangeToken InsertBefore(IToken tok) {
+    return new RangeToken(tok, null);
+  }
+  protected static RangeToken InsertAfter(IToken tok) {
+    return new RangeToken(new Token(tok.line, tok.col + tok.val.Length) {
+      pos = tok.pos + tok.val.Length,
+    }, null);
+  }
 }
 
 /// <summary>
@@ -40,8 +52,10 @@ public abstract class DiagnosticDafnyCodeActionProvider : DafnyCodeActionProvide
     var diagnostics = input.Diagnostics;
     var result = new List<DafnyCodeAction>();
     foreach (var diagnostic in diagnostics) {
-      if (diagnostic.Range.Start.Line <= selection.Start.Line &&
-          selection.Start.Line <= diagnostic.Range.End.Line) {
+      var range = diagnostic.Token.GetLspRange();
+      var linesOverlap = range.Start.Line <= selection.Start.Line
+                         && selection.Start.Line <= range.End.Line;
+      if (linesOverlap) {
         var moreDafnyCodeActions = GetDafnyCodeActions(input, diagnostic, selection);
         if (moreDafnyCodeActions != null) {
           result.AddRange(moreDafnyCodeActions);
@@ -56,7 +70,8 @@ public abstract class DiagnosticDafnyCodeActionProvider : DafnyCodeActionProvide
   /// Returns all code actions that can be applied to solve the given diagnostic
   /// </summary>
   /// <param name="input">The state of the document, containing the code and possibly the resolved program</param>
-  /// <param name="diagnostic">The diagnostic for which to provide a fix</param>
+  /// <param name="dafnyDiagnostic"></param>
   /// <param name="selection">Where the user's caret is</param>
-  protected abstract IEnumerable<DafnyCodeAction>? GetDafnyCodeActions(IDafnyCodeActionInput input, Diagnostic diagnostic, Range selection);
+  protected abstract IEnumerable<DafnyCodeAction>? GetDafnyCodeActions(IDafnyCodeActionInput input,
+    DafnyDiagnostic diagnostic, Range selection);
 }

@@ -1,20 +1,20 @@
-// RUN: %dafny_0 /compile:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %exits-with 2 %dafny /compile:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module A {
   class C {
     constructor () { }
-    var f: int;
+    var f: int
   }
   datatype D = E(int) | F(int)
-  function f(n:nat): nat
+  ghost function f(n:nat): nat
 }
 module B {
   class C {
-    var f: int;
+    var f: int
   }
   datatype D = E(int) | F(int)
-  function f(n:nat): nat
+  ghost function f(n:nat): nat
 }
 module Test {
   import opened A // nice shorthand for import opened A = A; (see below)

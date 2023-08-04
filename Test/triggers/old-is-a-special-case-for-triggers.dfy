@@ -6,9 +6,9 @@
 // old(f(f(x))) does not loop with f(x) (doesn't it?)
 
 class C { }
-function f(c: C): C
-function g(c: C): C
-function h(c: C, i: int): C
+ghost function f(c: C): C
+ghost function g(c: C): C
+ghost function h(c: C, i: int): C
 
 method M(sc: set<C>)
   // Ensure that old(c) does not get picked as a trigger
@@ -31,7 +31,7 @@ method M(sc: set<C>)
 {
 }
 
-function ff(c: C): C reads c
+ghost function ff(c: C): C reads c
 
 method MM(sc: set<C>)
   // Ensure that old(c) does not get picked as a trigger

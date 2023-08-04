@@ -14,7 +14,7 @@
     /// <param name="token">The token associated with the unknown node.</param>
     public abstract void VisitUnknown(object node, IToken token);
 
-    public virtual void Visit(Dafny.Program program) {
+    public virtual void Visit(Program program) {
       foreach (var module in program.Modules()) {
         Visit(module);
       }
@@ -28,15 +28,21 @@
 
     public virtual void Visit(TopLevelDecl topLevelDeclaration) {
       switch (topLevelDeclaration) {
-        case ClassDecl classDeclaration:
+        case ClassLikeDecl classDeclaration:
           Visit(classDeclaration);
+          break;
+        case DefaultClassDecl defaultClassDecl:
+          Visit(defaultClassDecl);
           break;
         case DatatypeDecl dataTypeDeclaration:
           Visit(dataTypeDeclaration);
           break;
+        case AliasModuleDecl aliasModuleDeclaration:
+          Visit(aliasModuleDeclaration);
+          break;
         case ModuleDecl moduleDeclaration:
         case ValuetypeDecl valueTypeDeclaration:
-        case OpaqueTypeDecl opaqueTypeDeclaration:
+        case AbstractTypeDecl opaqueTypeDeclaration:
         case NewtypeDecl newTypeDeclaration:
         case TypeSynonymDecl typeSynonymDeclaration:
         default:
@@ -45,7 +51,7 @@
       }
     }
 
-    public virtual void Visit(ClassDecl classDeclaration) {
+    public virtual void Visit(TopLevelDeclWithMembers classDeclaration) {
       foreach (var member in classDeclaration.Members) {
         Visit(member);
       }
@@ -345,11 +351,11 @@
 
     public virtual void Visit(ReturnStmt returnStatement) {
       VisitNullableAttributes(returnStatement.Attributes);
-      if (returnStatement.rhss != null) {
+      if (returnStatement.Rhss != null) {
         // In integration test run on ubuntu showed that this might be null.
         // https://github.com/DafnyVSCode/language-server-csharp/runs/1390714082?check_suite_focus=true#step:9:907
         // At the time of this writing, there is no contract in dafny-lang enforcing non-null - so this should be true.
-        foreach (var rhs in returnStatement.rhss) {
+        foreach (var rhs in returnStatement.Rhss) {
           Visit(rhs);
         }
       }
@@ -388,6 +394,7 @@
 
     public virtual void Visit(ForallStmt forAllStatement) {
       VisitNullableAttributes(forAllStatement.Attributes);
+      forAllStatement.BoundVars.ForEach(Visit);
       VisitNullableStatement(forAllStatement.Body);
     }
 

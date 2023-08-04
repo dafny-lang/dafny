@@ -8,7 +8,7 @@
 
 datatype List<T> = Nil | Cons(T, List)
 
-function length(list: List): nat  // for termination proof
+ghost function length(list: List): nat  // for termination proof
 {
   match list
   case Nil => 0
@@ -16,14 +16,14 @@ function length(list: List): nat  // for termination proof
 }
 
 // In(x, list) returns the number of occurrences of x in list
-function In(x: int, list: List<int>): nat
+ghost function In(x: int, list: List<int>): nat
 {
   match list
   case Nil => 0
   case Cons(y, tl) => (if x == y then 1 else 0) + In(x, tl)
 }
 
-predicate SortedRange(m: int, n: int, list: List<int>)
+ghost predicate SortedRange(m: int, n: int, list: List<int>)
   decreases list  // for termination proof
 {
   match list
@@ -31,7 +31,7 @@ predicate SortedRange(m: int, n: int, list: List<int>)
   case Cons(hd, tl) => m <= hd <= n && SortedRange(hd, n, tl)
 }
 
-function append(n0: int, n1: int, n2: int, n3: int, i: List<int>, j: List<int>): List<int>
+ghost function append(n0: int, n1: int, n2: int, n3: int, i: List<int>, j: List<int>): List<int>
   requires n0 <= n1 <= n2 <= n3
   requires SortedRange(n0, n1, i) && SortedRange(n2, n3, j)
   ensures SortedRange(n0, n3, append(n0, n1, n2, n3, i, j))
@@ -43,7 +43,7 @@ function append(n0: int, n1: int, n2: int, n3: int, i: List<int>, j: List<int>):
   case Cons(hd, tl) => Cons(hd, append(hd, n1, n2, n3, tl, j))
 }
 
-function partition(x: int, l: List<int>): (List<int>, List<int>)
+ghost function partition(x: int, l: List<int>): (List<int>, List<int>)
   ensures var (lo, hi) := partition(x, l);
     (forall y :: In(y, lo) == if y <= x then In(y, l) else 0) &&
     (forall y :: In(y, hi) == if x < y then In(y, l) else 0) &&
@@ -59,7 +59,7 @@ function partition(x: int, l: List<int>): (List<int>, List<int>)
       (lo, Cons(hd, hi))
 }
 
-function sort(min: int, max: int, i: List<int>): List<int>
+ghost function sort(min: int, max: int, i: List<int>): List<int>
   requires min <= max
   requires forall x :: In(x, i) != 0 ==> min <= x <= max
   ensures SortedRange(min, max, sort(min, max, i))

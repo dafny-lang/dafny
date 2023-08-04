@@ -1,25 +1,13 @@
 Should succeed
-
-Dafny program verifier finished with 1 verified, 0 errors
 Should fail
-b.dfy(1,24): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-
-Dafny program verifier finished with 0 verified, 1 error
-Compiling on C#
-
-Dafny program verifier finished with 0 verified, 0 errors
-(42, 131)
-Compiling to Javascript
-
-Dafny program verifier finished with 0 verified, 0 errors
-(42, 131)
-Compiling to Java
-
-Dafny program verifier finished with 0 verified, 0 errors
-(42, 131)
-Compiling to Go
-
-Dafny program verifier finished with 0 verified, 0 errors
-(42, 131)
+Running with C#
+Running with Javascript
+Running with Java
+Running with Go
+Running with Python
+Building with C#
+Building with Javascript
+Building with Java
+Building with Go
+Building with Python
+Quicktest script succeeded

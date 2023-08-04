@@ -1,9 +1,8 @@
-// RUN: %dafny /compile:3 /spillTargetCode:2 /compileTarget:cpp "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment --spill-translation --unicode-char:false
 
 newtype uint64 = i:int | 0 <= i < 0x10000000000000000
 
-function method bit(i: uint64) : bv64
+function bit(i: uint64) : bv64
   requires i < 64
   {
     1 as bv64 << i
@@ -37,5 +36,5 @@ method Main() {
   BasicOps(72, 15);
   Casts(42);
   var b := bit(10);
-  print b;
+  print b, "\n";
 }

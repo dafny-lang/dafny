@@ -8,8 +8,6 @@ using Microsoft.Boogie;
 using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Workspace;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
-using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various;
 
@@ -17,27 +15,26 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various;
 /// this verifier will return a task that only completes when cancelled
 /// which can be useful to test against race conditions
 class SlowVerifier : IProgramVerifier {
-  public SlowVerifier(ILogger<DafnyProgramVerifier> logger, IOptions<VerifierOptions> options) {
-    verifier = new DafnyProgramVerifier(logger, options);
+  public SlowVerifier(ILogger<DafnyProgramVerifier> logger) {
+    verifier = new DafnyProgramVerifier(logger);
   }
 
   private readonly DafnyProgramVerifier verifier;
 
-  public async Task<IReadOnlyList<IImplementationTask>> GetVerificationTasksAsync(DocumentAfterResolution document, CancellationToken cancellationToken) {
-    var program = document.Program;
+  public async Task<IReadOnlyList<IImplementationTask>> GetVerificationTasksAsync(ExecutionEngine engine,
+    CompilationAfterResolution compilation, CancellationToken cancellationToken) {
+    var program = compilation.Program;
     var attributes = program.Modules().SelectMany(m => {
       return m.TopLevelDecls.OfType<TopLevelDeclWithMembers>().SelectMany(d => d.Members.Select(member => member.Attributes));
     }).ToList();
 
-    var tasks = await verifier.GetVerificationTasksAsync(document, cancellationToken);
+    var tasks = await verifier.GetVerificationTasksAsync(engine, compilation, cancellationToken);
     if (attributes.Any(a => Attributes.Contains(a, "neverVerify"))) {
       tasks = tasks.Select(t => new NeverVerifiesImplementationTask(t)).ToList();
     }
 
     return tasks;
   }
-
-  public IObservable<AssertionBatchResult> BatchCompletions => verifier.BatchCompletions;
 
   class NeverVerifiesImplementationTask : IImplementationTask {
     private readonly IImplementationTask original;

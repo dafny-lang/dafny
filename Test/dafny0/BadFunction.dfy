@@ -1,10 +1,10 @@
-// RUN: %dafny_0 /compile:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %exits-with 4 %dafny /compile:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // The following function gives rise to an inconsistent axiom, except
 // for its CanUseFunctionDefs antecedent, which saves the day.
-function F(x: int): int
-  decreases x;
+ghost function F(x: int): int
+  decreases x
 {
   F(x) + 1  // error: does not decrease termination metric
 }

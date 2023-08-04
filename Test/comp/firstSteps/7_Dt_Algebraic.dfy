@@ -1,7 +1,5 @@
-// RUN: %dafny /compile:0 "%s" > "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:py "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:cs "%s" >> "%t"
-// RUN: %diff "%s.expect" "%t"
+// NONUNIFORM: https://github.com/dafny-lang/dafny/issues/4108
+// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment
 //
 // This fragment of comp/Dt.dfy serves to facilitate incremental compiler development.
 
@@ -34,20 +32,20 @@ method Main() {
   TestModule();
 }
 
-function method Up(m: nat, n: nat): List
+function Up(m: nat, n: nat): List
   requires m <= n
   decreases n - m
 {
   if m == n then Nil else Cons(m, Up(m+1, n))
 }
 
-function method Sum(xs: List): int {
+function Sum(xs: List): int {
   match xs  // top-level match expression
   case Nil => 0
   case Cons(x, tail) => x + Sum(tail)
 }
 
-function method SumAgain(xs: List): int {
+function SumAgain(xs: List): int {
   var r := match xs  // let expression; non-top-level match expression
     case Nil => 0
     case Cons(x, tail) => x + SumAgain(tail);
@@ -63,7 +61,7 @@ method PrintSum(xs: List, prefix: string) {
 }
 
 datatype Berry = Smultron | Jordgubb | Hjortron | Hallon
-predicate method IsRed(b: Berry) {
+predicate IsRed(b: Berry) {
   b != Berry.Hjortron
 }
 
@@ -79,15 +77,15 @@ method TestConflictingNames() {
   print x.len, " ", x.public, " ", x.goto, "\n";
 }
 
-module Module {
+module ModuleM {
   datatype OptionInt = Some(int) | None
 }
 
 method TestModule() {
-  PrintMaybe(Module.Some(1701));
+  PrintMaybe(ModuleM.Some(1701));
 }
 
-method PrintMaybe(x : Module.OptionInt) {
+method PrintMaybe(x: ModuleM.OptionInt) {
   match x
   case Some(n) => print n, "\n";
   case None => print "None\n";

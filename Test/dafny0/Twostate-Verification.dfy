@@ -1,4 +1,4 @@
-// RUN: %dafny_0 /compile:3 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %exits-with 4 %dafny /compile:3 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 method Main() {
@@ -16,7 +16,7 @@ class A {
   var f: int
   var g: A?
 
-  function GimmieF(): int
+  ghost function GimmieF(): int
     reads this
   {
     f
@@ -79,7 +79,7 @@ class Node {
   var x: int
   var next: Node?
   ghost var Repr: set<Node>
-  predicate Valid()
+  ghost predicate Valid()
     reads this, Repr
     ensures Valid() ==> this in Repr
   {
@@ -100,7 +100,7 @@ class Node {
     Repr := {this} + nxt.Repr;
   }
 
-  function method Sum(): int
+  function Sum(): int
     requires Valid()
     reads Repr
   {
@@ -201,7 +201,7 @@ class {:autocontracts} NodeAuto {
     Repr := {this} + nxt.Repr;
   }
 
-  function method Sum(): int
+  function Sum(): int
   {
     if next == null then x else x + next.Sum()
   }

@@ -10,7 +10,7 @@ module Datatype {
 
   datatype List<T> = Nil | Cons(t: T, Box<List<T>>)
 
-  function Length<T>(l: List<T>): int {
+  ghost function Length<T>(l: List<T>): int {
     match l {
       case Nil => 0
       case Cons(t, q) => 1 + Length(q.t)
@@ -24,7 +24,7 @@ module Seq {
 
   datatype List<T> = Nil | Cons(t: T, Box<List<T>>)
 
-  function Length<T>(l: List<T>): int {
+  ghost function Length<T>(l: List<T>): int {
     match l {
       case Nil => 0
       case Cons(t, q) =>
@@ -41,7 +41,7 @@ module Set {
 
   datatype List<T(==)> = Nil | Cons(t: T, Box<List<T>>)
 
-  function Length<T>(l: List<T>): int {
+  ghost function Length<T>(l: List<T>): int {
     match l {
       case Nil => 0
       case Cons(t, q) =>
@@ -57,7 +57,7 @@ module Multiset {
 
   datatype List<T(==)> = Nil | Cons(t: T, Box<List<T>>)
 
-  function Length<T>(l: List<T>): int {
+  ghost function Length<T>(l: List<T>): int {
     match l {
       case Nil => 0
       case Cons(t, q) =>
@@ -73,7 +73,7 @@ module Map {
 
   datatype List<T(==)> = Nil | Cons(t: T, Box<List<T>>)
 
-  function Length<T>(l: List<T>): int {
+  ghost function Length<T>(l: List<T>): int {
     match l {
       case Nil => 0
       case Cons(t, q) =>

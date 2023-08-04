@@ -21,7 +21,7 @@ namespace Microsoft.Dafny.Triggers {
     }
 
     public override string ToString() {
-      return Printer.ExprToString(Expr);
+      return Printer.ExprToString(DafnyOptions.DefaultImmutableOptions, Expr);
       // NOTE: Using OriginalExpr here could cause some confusion:
       // for example, {a !in b} is a binary expression, yielding
       // trigger {a in b}. Saying the trigger is a !in b would be
@@ -45,11 +45,6 @@ namespace Microsoft.Dafny.Triggers {
     internal static bool Eq(TriggerTerm t1, TriggerTerm t2) {
       return ExprExtensions.ExpressionEq(t1.Expr, t2.Expr);
     }
-
-    internal bool IsTranslatedToFunctionCall() {
-      return (TriggersCollector.TranslateToFunctionCall(this.Expr)) ? true : false;
-    }
-
   }
 
   class TriggerCandidate {
@@ -74,11 +69,11 @@ namespace Microsoft.Dafny.Triggers {
       return "{" + Repr + "}" + (String.IsNullOrWhiteSpace(Annotation) ? "" : " (" + Annotation + ")");
     }
 
-    internal IEnumerable<TriggerMatch> LoopingSubterms(ComprehensionExpr quantifier) {
+    internal IEnumerable<TriggerMatch> LoopingSubterms(ComprehensionExpr quantifier, DafnyOptions options) {
       Contract.Requires(!(quantifier is QuantifierExpr) || ((QuantifierExpr)quantifier).SplitQuantifier == null); // Don't call this on a quantifier with a Split clause: it's not a real quantifier
       var matchingSubterms = this.MatchingSubterms(quantifier);
       var boundVars = new HashSet<BoundVar>(quantifier.BoundVars);
-      return matchingSubterms.Where(tm => tm.CouldCauseLoops(Terms, boundVars));
+      return matchingSubterms.Where(tm => tm.CouldCauseLoops(Terms, boundVars, options));
     }
 
     internal List<TriggerMatch> MatchingSubterms(ComprehensionExpr quantifier) {
@@ -163,9 +158,11 @@ namespace Microsoft.Dafny.Triggers {
   }
 
   internal class TriggersCollector {
+    private DafnyOptions options;
     TriggerAnnotationsCache cache;
 
-    internal TriggersCollector(Dictionary<Expression, HashSet<OldExpr>> exprsInOldContext) {
+    internal TriggersCollector(Dictionary<Expression, HashSet<OldExpr>> exprsInOldContext, DafnyOptions options) {
+      this.options = options;
       this.cache = new TriggerAnnotationsCache(exprsInOldContext);
     }
 
@@ -191,8 +188,7 @@ namespace Microsoft.Dafny.Triggers {
     }
 
     private TriggerAnnotation Annotate(Expression expr) {
-      TriggerAnnotation cached;
-      if (cache.annotations.TryGetValue(expr, out cached)) {
+      if (cache.annotations.TryGetValue(expr, out var cached)) {
         return cached;
       }
 
@@ -207,7 +203,7 @@ namespace Microsoft.Dafny.Triggers {
       }
 
       if (annotation == null) {
-        expr.SubExpressions.Iter(e => Annotate(e));
+        expr.SubExpressions.ForEach(e => Annotate(e));
 
         if (IsPotentialTriggerCandidate(expr)) {
           annotation = AnnotatePotentialCandidate(expr);
@@ -221,6 +217,8 @@ namespace Microsoft.Dafny.Triggers {
           annotation = AnnotateApplySuffix((ApplySuffix)expr);
         } else if (expr is MatchExpr) {
           annotation = AnnotateMatchExpr((MatchExpr)expr);
+        } else if (expr is NestedMatchExpr nestedMatchExpr) {
+          annotation = AnnotateNestedMatchExpr(nestedMatchExpr);
         } else if (expr is ComprehensionExpr) {
           annotation = AnnotateComprehensionExpr((ComprehensionExpr)expr);
         } else if (expr is ConcreteSyntaxExpression ||
@@ -235,17 +233,17 @@ namespace Microsoft.Dafny.Triggers {
         }
       }
 
-      TriggerUtils.DebugTriggers("{0} ({1})\n{2}", Printer.ExprToString(expr), expr.GetType(), annotation);
+      TriggerUtils.DebugTriggers(options, "{0} ({1})\n{2}", Printer.ExprToString(options, expr), expr.GetType(), annotation);
       cache.annotations[expr] = annotation;
       return annotation;
     }
 
-    public static bool IsPotentialTriggerCandidate(Expression expr) {
+    public bool IsPotentialTriggerCandidate(Expression expr) {
       if (expr is FunctionCallExpr ||
           expr is SeqSelectExpr ||
           expr is MultiSelectExpr ||
           expr is MemberSelectExpr ||
-          expr is OldExpr ||
+          (expr is OldExpr { Useless: false }) ||
           expr is ApplyExpr ||
           expr is DisplayExpression ||
           expr is MapDisplayExpr ||
@@ -277,7 +275,7 @@ namespace Microsoft.Dafny.Triggers {
 
     // math operations can be turned into a Boogie-level function as in the
     // case with /noNLarith.
-    public static bool TranslateToFunctionCall(Expression expr) {
+    public bool TranslateToFunctionCall(Expression expr) {
       if (!(expr is BinaryExpr)) {
         return false;
       }
@@ -290,7 +288,7 @@ namespace Microsoft.Dafny.Triggers {
         case BinaryExpr.ResolvedOpcode.Gt:
         case BinaryExpr.ResolvedOpcode.Add:
         case BinaryExpr.ResolvedOpcode.Sub:
-          if (!isReal && !e.E0.Type.IsBitVectorType && !e.E0.Type.IsBigOrdinalType && DafnyOptions.O.DisableNLarith) {
+          if (!isReal && !e.E0.Type.IsBitVectorType && !e.E0.Type.IsBigOrdinalType && options.DisableNLarith) {
             return true;
           }
           break;
@@ -298,7 +296,7 @@ namespace Microsoft.Dafny.Triggers {
         case BinaryExpr.ResolvedOpcode.Div:
         case BinaryExpr.ResolvedOpcode.Mod:
           if (!isReal && !e.E0.Type.IsBitVectorType && !e.E0.Type.IsBigOrdinalType) {
-            if (DafnyOptions.O.DisableNLarith || (DafnyOptions.O.ArithMode != 0 && DafnyOptions.O.ArithMode != 3)) {
+            if (options.DisableNLarith || (options.ArithMode != 0 && options.ArithMode != 3)) {
               return true;
             }
           }
@@ -360,8 +358,7 @@ namespace Microsoft.Dafny.Triggers {
 
     private TriggerAnnotation AnnotatePotentialCandidate(Expression expr) {
       bool expr_is_killer = false;
-      HashSet<OldExpr> oldExprSet;
-      if (cache.exprsInOldContext.TryGetValue(expr, out oldExprSet)) {
+      if (cache.exprsInOldContext.TryGetValue(expr, out var oldExprSet)) {
         // oldExpr has been set to the value found
       } else {
         oldExprSet = null;
@@ -424,6 +421,16 @@ namespace Microsoft.Dafny.Triggers {
     private TriggerAnnotation AnnotateComprehensionExpr(ComprehensionExpr expr) {
       var terms = CollectExportedCandidates(expr);
       return new TriggerAnnotation(true, CollectVariables(expr), terms, OnlyPrivateCandidates(terms, expr.BoundVars));
+    }
+
+    private TriggerAnnotation AnnotateNestedMatchExpr(NestedMatchExpr expr) {
+      var candidateTerms = CollectExportedCandidates(expr);
+      // collects that argument boundvar of matchcaseexpr
+      var variables = expr.Cases.SelectMany(e => e.Pat.DescendantsAndSelf).
+        OfType<IdPattern>().Select(id => id.BoundVar).Where(b => b != null).ToList();
+      // remove terms that mentions argument boundvar of matchcaseexpr
+      var terms = candidateTerms.Where(term => variables.Any(x => !term.Variables.Contains(x))).ToList();
+      return new TriggerAnnotation(true, CollectVariables(expr), terms);
     }
 
     private TriggerAnnotation AnnotateMatchExpr(MatchExpr expr) {

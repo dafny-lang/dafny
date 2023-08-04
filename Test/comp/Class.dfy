@@ -1,10 +1,4 @@
-// RUN: %dafny /compile:0 "%s" > "%t"
-// RUN: %dafny /noVerify /compile:4 /spillTargetCode:2 /compileTarget:cs "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /spillTargetCode:2 /compileTarget:js "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /spillTargetCode:2 /compileTarget:go "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /spillTargetCode:2 /compileTarget:java "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /spillTargetCode:2 /compileTarget:py "%s" >> "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment --spill-translation
 
 class MyClass {
   var a: int
@@ -17,8 +11,8 @@ class MyClass {
     b := 200 + x;
   }
 
-  function method F(): int { 8 }
-  static function method G(): int { 9 }
+  function F(): int { 8 }
+  static function G(): int { 9 }
   method M() returns (r: int) { r := 69; }
   static method N() returns (r: int) { r := 70; }
 }
@@ -30,8 +24,8 @@ trait MyTrait {
   static const d: int
   static const e := 18
 
-  function method F(): int { 8 }
-  static function method G(): int { 9 }
+  function F(): int { 8 }
+  static function G(): int { 9 }
   method M() returns (r: int) { r := 69; }
   static method N() returns (r: int) { r := 70; }
 }
@@ -162,7 +156,7 @@ module DependentStaticConsts {
 }
 
 newtype NewtypeWithMethods = x | 0 <= x < 42 {
-  function method double() : int {
+  function double() : int {
     this as int * 2
   }
 
@@ -197,7 +191,7 @@ class ConstructorLessGhostable {
   var data: int
 }
 
-function GInit(index: nat): int {
+ghost function GInit(index: nat): int {
   index - 7
 }
 

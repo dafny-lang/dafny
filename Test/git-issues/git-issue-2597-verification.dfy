@@ -1,4 +1,4 @@
-// RUN: %dafny_0 /compile:0 "%s" > "%t"
+// RUN: %exits-with 4 %dafny /compile:0 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 class C {
@@ -61,7 +61,7 @@ class C {
     assert false; // error: this statement is reachable
   }
 
-  function {:opaque} OpaqueData(x: int): int
+  ghost function {:opaque} OpaqueData(x: int): int
     reads this
   {
     x + data

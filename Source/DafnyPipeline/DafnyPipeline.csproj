@@ -23,37 +23,51 @@
   
   <ItemGroup>
     <ProjectReference Include="..\DafnyCore\DafnyCore.csproj" />
-    <ProjectReference Include="..\DafnyRuntime\DafnyRuntime.csproj">
-      <!-- 
-      This reference is just to ensure that DafnyRuntime is built before this package,
-      so that each runtime artifact is built and can be embedded,
-      but we don't actually want to have a dependency on DafnyRuntime.dll.
-      In the long term we should not even embed each runtime here and should
-      fetch them as published artifacts through nuget/maven/npm/etc.
-      -->
-      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
-    </ProjectReference>
   </ItemGroup>
 
+  <!-- 
+  Note that the CopyToOutputDirectory elements are important to ensure the runtime files
+  appear in the zip file distribution created by package.py.
+  If we manage to fully transition to a cleaner distribution as a `dotnet tool` instead,
+  we may be able to get away with only embedding these files inside this assembly.
+  -->
   <ItemGroup>
+    <EmbeddedResource Include="..\DafnyRuntime\DafnyRuntimeJava\src\main\**\*.java">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </EmbeddedResource>
     <EmbeddedResource Include="..\DafnyRuntime\DafnyRuntime.cs">
       <LogicalName>DafnyRuntime.cs</LogicalName>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </EmbeddedResource>
-    <EmbeddedResource Include="..\DafnyRuntime\DafnyRuntime.go">
+    <EmbeddedResource Include="..\DafnyRuntime\DafnyRuntimeGo\DafnyRuntime.go">
       <LogicalName>DafnyRuntime.go</LogicalName>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\DafnyRuntime\DafnyRuntimeGo\DafnyRuntimeFromDafny.go">
+      <LogicalName>DafnyRuntimeFromDafny.go</LogicalName>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </EmbeddedResource>
     <EmbeddedResource Include="..\DafnyRuntime\DafnyRuntime.h">
       <LogicalName>DafnyRuntime.h</LogicalName>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </EmbeddedResource>
-    <EmbeddedResource Include="..\DafnyRuntime\DafnyRuntimeJava\build\libs\DafnyRuntime.jar">
+    <EmbeddedResource Include="..\DafnyRuntime\DafnyRuntimeJava\build\libs\DafnyRuntime-4.2.0.jar">
       <LogicalName>DafnyRuntime.jar</LogicalName>
+      <Link>DafnyRuntime.jar</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </EmbeddedResource>
     <EmbeddedResource Include="..\DafnyRuntime\DafnyRuntime.js">
       <LogicalName>DafnyRuntime.js</LogicalName>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </EmbeddedResource>
     <EmbeddedResource Include="..\DafnyRuntime\DafnyRuntime.py">
       <LogicalName>DafnyRuntime.py</LogicalName>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </EmbeddedResource>
+    <EmbeddedResource Include="..\DafnyRuntime\DafnyRuntimeRust\**" LinkBase="DafnyRuntimeRust">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Remove="..\DafnyRuntime\DafnyRuntimeRust\target\**"/>
   </ItemGroup>
 
 </Project>

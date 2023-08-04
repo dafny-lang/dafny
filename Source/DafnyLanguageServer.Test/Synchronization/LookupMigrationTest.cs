@@ -1,16 +1,16 @@
 ﻿using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Threading.Tasks;
+using Xunit;
+using Xunit.Abstractions;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
-  [TestClass]
   public class LookupMigrationTest : SynchronizationTestBase {
-    // The assertion Assert.IsFalse(document.SymbolTable.Resolved) is used to ensure that
+    // The assertion Assert.False(document.SymbolTable.Resolved) is used to ensure that
     // we're working on a migrated symbol table. If that's not the case, the test case has
     // to be adapted.
 
-    [TestMethod]
+    [Fact]
     public async Task MigrationLeavesLinesOfSymbolsBeforeUnchangedWhenChangingInTheMiddle() {
       var source = @"
 class Test {
@@ -47,17 +47,17 @@ class Test {
       var documentItem = CreateTestDocument(source);
       await Client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       await ApplyChangeAndWaitCompletionAsync(
-        documentItem,
+        ref documentItem,
         new Range((10, 0), (14, 0)),
         change
       );
-      var document = await Documents.GetResolvedDocumentAsync(documentItem.Uri);
-      Assert.IsNotNull(document);
-      Assert.IsTrue(document.SignatureAndCompletionTable.TryGetSymbolAt((7, 10), out var symbol));
-      Assert.AreEqual("x", symbol.Name);
+      var document = await Projects.GetResolvedDocumentAsyncNormalizeUri(documentItem.Uri);
+      Assert.NotNull(document);
+      Assert.True(document.SignatureAndCompletionTable.TryGetSymbolAt((7, 10), out var symbol));
+      Assert.Equal("x", symbol.Name);
     }
 
-    [TestMethod]
+    [Fact]
     public async Task MigrationLeavesLinesOfSymbolsBeforeUnchangedWhenRemovingInTheMiddle() {
       var source = @"
 class Test {
@@ -86,17 +86,17 @@ class Test {
       var documentItem = CreateTestDocument(source);
       await Client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       await ApplyChangeAndWaitCompletionAsync(
-        documentItem,
+        ref documentItem,
         new Range((12, 0), (14, 0)),
         change
       );
-      var document = await Documents.GetResolvedDocumentAsync(documentItem.Uri);
-      Assert.IsNotNull(document);
-      Assert.IsTrue(document.SignatureAndCompletionTable.TryGetSymbolAt((7, 10), out var symbol));
-      Assert.AreEqual("x", symbol.Name);
+      var document = await Projects.GetResolvedDocumentAsyncNormalizeUri(documentItem.Uri);
+      Assert.NotNull(document);
+      Assert.True(document.SignatureAndCompletionTable.TryGetSymbolAt((7, 10), out var symbol));
+      Assert.Equal("x", symbol.Name);
     }
 
-    [TestMethod]
+    [Fact]
     public async Task MigrationMovesLinesOfSymbolsAfterWhenChangingInTheMiddle() {
       var source = @"
 class Test {
@@ -133,17 +133,17 @@ class Test {
       var documentItem = CreateTestDocument(source);
       await Client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       await ApplyChangeAndWaitCompletionAsync(
-        documentItem,
+        ref documentItem,
         new Range((10, 0), (14, 0)),
         change
       );
-      var document = await Documents.GetResolvedDocumentAsync(documentItem.Uri);
-      Assert.IsNotNull(document);
-      Assert.IsTrue(document.SignatureAndCompletionTable.TryGetSymbolAt((22, 10), out var symbol));
-      Assert.AreEqual("y", symbol.Name);
+      var document = await Projects.GetResolvedDocumentAsyncNormalizeUri(documentItem.Uri);
+      Assert.NotNull(document);
+      Assert.True(document.SignatureAndCompletionTable.TryGetSymbolAt((22, 10), out var symbol));
+      Assert.Equal("y", symbol.Name);
     }
 
-    [TestMethod]
+    [Fact]
     public async Task MigrationMovesLinesOfSymbolsAfterWhenRemovingInTheMiddle() {
       var source = @"
 class Test {
@@ -172,17 +172,17 @@ class Test {
       var documentItem = CreateTestDocument(source);
       await Client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       await ApplyChangeAndWaitCompletionAsync(
-        documentItem,
+        ref documentItem,
         new Range((12, 0), (14, 0)),
         change
       );
-      var document = await Documents.GetResolvedDocumentAsync(documentItem.Uri);
-      Assert.IsNotNull(document);
-      Assert.IsTrue(document.SignatureAndCompletionTable.TryGetSymbolAt((16, 10), out var symbol));
-      Assert.AreEqual("y", symbol.Name);
+      var document = await Projects.GetResolvedDocumentAsyncNormalizeUri(documentItem.Uri);
+      Assert.NotNull(document);
+      Assert.True(document.SignatureAndCompletionTable.TryGetSymbolAt((16, 10), out var symbol));
+      Assert.Equal("y", symbol.Name);
     }
 
-    [TestMethod]
+    [Fact]
     public async Task MigrationLeavesCharacterOfSymbolsBeforeUnchangedWhenChangingInTheMiddleOfLine() {
       var source = @"
 class Test {
@@ -199,17 +199,17 @@ class Test {
       var documentItem = CreateTestDocument(source);
       await Client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       await ApplyChangeAndWaitCompletionAsync(
-        documentItem,
+        ref documentItem,
         new Range((6, 10), (6, 10)),
         change
       );
-      var document = await Documents.GetResolvedDocumentAsync(documentItem.Uri);
-      Assert.IsNotNull(document);
-      Assert.IsTrue(document.SignatureAndCompletionTable.TryGetSymbolAt((6, 10), out var symbol));
-      Assert.AreEqual("x", symbol.Name);
+      var document = await Projects.GetResolvedDocumentAsyncNormalizeUri(documentItem.Uri);
+      Assert.NotNull(document);
+      Assert.True(document.SignatureAndCompletionTable.TryGetSymbolAt((6, 10), out var symbol));
+      Assert.Equal("x", symbol.Name);
     }
 
-    [TestMethod]
+    [Fact]
     public async Task MigrationMovesCharacterOfSymbolsAfterWhenChangingInTheMiddleOfLine() {
       var source = @"
 class Test {
@@ -226,17 +226,17 @@ class Test {
       var documentItem = CreateTestDocument(source);
       await Client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       await ApplyChangeAndWaitCompletionAsync(
-        documentItem,
+        ref documentItem,
         new Range((6, 4), (6, 9)),
         change
       );
-      var document = await Documents.GetResolvedDocumentAsync(documentItem.Uri);
-      Assert.IsNotNull(document);
-      Assert.IsTrue(document.SignatureAndCompletionTable.TryGetSymbolAt((6, 9), out var symbol));
-      Assert.AreEqual("x", symbol.Name);
+      var document = await Projects.GetResolvedDocumentAsyncNormalizeUri(documentItem.Uri);
+      Assert.NotNull(document);
+      Assert.True(document.SignatureAndCompletionTable.TryGetSymbolAt((6, 9), out var symbol));
+      Assert.Equal("x", symbol.Name);
     }
 
-    [TestMethod]
+    [Fact]
     public async Task MigrationRemovesSymbolLocationsWithinTheChangedRange() {
       var source = @"
 class Test {
@@ -252,22 +252,22 @@ class Test {
       var change = "y + ";
       var documentItem = CreateTestDocument(source);
       await Client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var originalDocument = await Documents.GetResolvedDocumentAsync(documentItem.Uri);
-      Assert.IsNotNull(originalDocument);
+      var originalDocument = await Projects.GetResolvedDocumentAsyncNormalizeUri(documentItem.Uri);
+      Assert.NotNull(originalDocument);
       var lookupCountBefore = originalDocument.SignatureAndCompletionTable.LookupTree.Count;
 
       await ApplyChangeAndWaitCompletionAsync(
-        documentItem,
+        ref documentItem,
         new Range((6, 9), (6, 10)),
         change
       );
-      var document = await Documents.GetResolvedDocumentAsync(documentItem.Uri);
-      Assert.IsNotNull(document);
-      Assert.IsFalse(document.SignatureAndCompletionTable.TryGetSymbolAt((6, 9), out var _));
-      Assert.AreEqual(lookupCountBefore - 1, document.SignatureAndCompletionTable.LookupTree.Count);
+      var document = await Projects.GetResolvedDocumentAsyncNormalizeUri(documentItem.Uri);
+      Assert.NotNull(document);
+      Assert.False(document.SignatureAndCompletionTable.TryGetSymbolAt((6, 9), out var _));
+      Assert.Equal(lookupCountBefore - 1, document.SignatureAndCompletionTable.LookupTree.Count);
     }
 
-    [TestMethod]
+    [Fact]
     public async Task MigrationMovesSymbolLocationsWhenApplyingMultipleChangesAtOnce() {
       var source = @"
 class Test {
@@ -299,10 +299,13 @@ class Test {
   "
         }
       );
-      var document = await Documents.GetResolvedDocumentAsync(documentItem.Uri);
-      Assert.IsNotNull(document);
-      Assert.IsTrue(document.SignatureAndCompletionTable.TryGetSymbolAt((12, 7), out var symbol));
-      Assert.AreEqual("x", symbol.Name);
+      var document = await Projects.GetResolvedDocumentAsyncNormalizeUri(documentItem.Uri);
+      Assert.NotNull(document);
+      Assert.True(document.SignatureAndCompletionTable.TryGetSymbolAt((12, 7), out var symbol));
+      Assert.Equal("x", symbol.Name);
+    }
+
+    public LookupMigrationTest(ITestOutputHelper output) : base(output) {
     }
   }
 }

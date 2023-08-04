@@ -1,9 +1,9 @@
-// RUN: %dafny_0 "%s" > "%t"
+// RUN: %exits-with 4 %dafny "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 
 class C {
-  static function method Static() : bool
+  static ghost function Static() : bool
   {
     true
   }
@@ -22,13 +22,13 @@ class T {
   var h : int ~> int
 }
 
-function B(t : T) : int ~> int
+ghost function B(t : T) : int ~> int
   reads t
 {
   t.h
 }
 
-function J(t : T) : int
+ghost function J(t : T) : int
   reads t
   reads t.h.reads(0)
 {
@@ -47,7 +47,7 @@ method U(t : T)
 
 class MyClass {
   var data: int
-	function method F(): int
+	function F(): int
 	  reads this
 	{
 	  data

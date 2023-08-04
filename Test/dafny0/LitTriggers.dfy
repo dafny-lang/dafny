@@ -1,9 +1,9 @@
-// RUN: %dafny_0 /compile:0 /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %exits-with 4 %dafny /compile:0 /deprecation:0 /dprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // Imported from bug 76. LitInt would be triggered on, causing matching failures.
 
-predicate P(x:int, y:int)
+ghost predicate P(x:int, y:int)
 
 lemma L1(x:int, y:int)
     requires y == 2;
@@ -38,7 +38,7 @@ lemma L4(x:int, y:int)
 
 datatype Tree = Empty | Node(left: Tree, right: Tree)
 {
-  function Elements(): set<int>
+  ghost function Elements(): set<int>
     decreases this
   {
     match this
@@ -47,8 +47,8 @@ datatype Tree = Empty | Node(left: Tree, right: Tree)
   }
 }
 
-function Sum(t: Tree): int
-predicate IsEven(x: int)
+ghost function Sum(t: Tree): int
+ghost predicate IsEven(x: int)
 
 lemma TimesOut(t: Tree)
   requires forall u :: u in t.Elements() ==> IsEven(u)

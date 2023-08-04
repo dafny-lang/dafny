@@ -3,16 +3,16 @@
 // Does not test anything Exceptions-related, but is included by other tests
 
 trait VoidOutcome {
-    predicate method IsFailure()
-    function method PropagateFailure(): VoidOutcome requires IsFailure()
+    predicate IsFailure()
+    function PropagateFailure(): VoidOutcome requires IsFailure()
 }
 
 class VoidSuccess extends VoidOutcome {
     constructor() {}
-    predicate method IsFailure() {
+    predicate IsFailure() {
         false
     }
-    function method PropagateFailure(): VoidOutcome requires IsFailure() {
+    function PropagateFailure(): VoidOutcome requires IsFailure() {
         this
     }
 }
@@ -22,10 +22,10 @@ class VoidFailure extends VoidOutcome {
     constructor(error: string) {
         this.error := error;
     }
-    predicate method IsFailure() {
+    predicate IsFailure() {
         true
     }
-    function method PropagateFailure(): VoidOutcome requires IsFailure() {
+    function PropagateFailure(): VoidOutcome requires IsFailure() {
         this
     }
 }

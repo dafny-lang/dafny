@@ -2,9 +2,10 @@ AutoExtern ?= dotnet run --project ../../../AutoExtern/AutoExtern.csproj --
 Dafny ?= dotnet run --project ../../../Dafny/Dafny.csproj --
 
 LibraryProjectFile := ../Library/Library.csproj
-LibrarySourceFile1 := ../Library/Library1.cs
-LibrarySourceFile2 := ../Library/Library2.cs
-LibraryRootNamespace := Library
+AutoExternSources := ../Library/GroceryLists.cs ../Library/LinkedLists.cs
+ManuallyTranslatedSources :=  ../Library/ExactArithmetic.cs
+LibraryRootNamespace := App.Library
+LibraryRewrites := --rewrite App.ExactArithmetic.:ExactArithmetic.
 
 LibraryTemplateFile := LibraryModel.dfy.template
 LibraryModelFile := LibraryModel.dfy
@@ -17,15 +18,15 @@ ExpectFile := $(AppDafnyFile).expect
 
 default: dotnet-run
 
-$(LibraryModelFile): $(LibraryProjectFile) $(LibrarySourceFile1) $(LibrarySourceFile2) $(LibraryTemplateFile)
+$(LibraryModelFile): $(LibraryProjectFile) $(AutoExternSources) $(ManuallyTranslatedSources)  $(LibraryTemplateFile)
 	$(AutoExtern) \
 		$(LibraryProjectFile) \
 		$(LibraryRootNamespace) \
 		$(LibraryTemplateFile) \
 		$(CSharpModelFile) \
 		$(LibraryModelFile) \
-		$(LibrarySourceFile1) \
-		$(LibrarySourceFile2)
+		$(LibraryRewrites) \
+		$(AutoExternSources)
 
 $(AppDafnyCSharpFile): $(AppDafnyFile)
 	$(Dafny) -compile:0 -noVerify -spillTargetCode:3 "$<"

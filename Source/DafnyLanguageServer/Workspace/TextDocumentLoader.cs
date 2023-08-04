@@ -4,11 +4,14 @@ using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Boogie;
 using Microsoft.Extensions.Logging;
+using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace {
   /// <summary>
@@ -20,32 +23,26 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
   /// The increased stack size is necessary to solve the issue https://github.com/dafny-lang/dafny/issues/1447.
   /// </remarks>
   public class TextDocumentLoader : ITextDocumentLoader {
-    private const int ResolverMaxStackSize = 0x10000000; // 256MB
-    private static readonly ThreadTaskScheduler ResolverScheduler = new(ResolverMaxStackSize);
-
+    private readonly ILogger<ITextDocumentLoader> documentLoader;
     private readonly IDafnyParser parser;
     private readonly ISymbolResolver symbolResolver;
     private readonly ISymbolTableFactory symbolTableFactory;
     private readonly IGhostStateDiagnosticCollector ghostStateDiagnosticCollector;
     protected readonly ICompilationStatusNotificationPublisher statusPublisher;
-    protected readonly ILoggerFactory loggerFactory;
-    protected readonly INotificationPublisher NotificationPublisher;
 
     protected TextDocumentLoader(
-      ILoggerFactory loggerFactory,
+      ILogger<ITextDocumentLoader> documentLoader,
       IDafnyParser parser,
       ISymbolResolver symbolResolver,
       ISymbolTableFactory symbolTableFactory,
       IGhostStateDiagnosticCollector ghostStateDiagnosticCollector,
-      ICompilationStatusNotificationPublisher statusPublisher,
-      INotificationPublisher notificationPublisher) {
+      ICompilationStatusNotificationPublisher statusPublisher) {
+      this.documentLoader = documentLoader;
       this.parser = parser;
       this.symbolResolver = symbolResolver;
       this.symbolTableFactory = symbolTableFactory;
       this.ghostStateDiagnosticCollector = ghostStateDiagnosticCollector;
       this.statusPublisher = statusPublisher;
-      this.loggerFactory = loggerFactory;
-      NotificationPublisher = notificationPublisher;
     }
 
     public static TextDocumentLoader Create(
@@ -54,89 +51,81 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       ISymbolTableFactory symbolTableFactory,
       IGhostStateDiagnosticCollector ghostStateDiagnosticCollector,
       ICompilationStatusNotificationPublisher statusPublisher,
-      ILoggerFactory loggerFactory,
-      INotificationPublisher notificationPublisher
+      ILogger<ITextDocumentLoader> logger
       ) {
-      return new TextDocumentLoader(loggerFactory, parser, symbolResolver, symbolTableFactory, ghostStateDiagnosticCollector, statusPublisher, notificationPublisher);
+      return new TextDocumentLoader(logger, parser, symbolResolver, symbolTableFactory, ghostStateDiagnosticCollector, statusPublisher);
     }
 
-    public IdeState CreateUnloaded(DocumentTextBuffer textDocument, CancellationToken cancellationToken) {
-      return CreateDocumentWithEmptySymbolTable(textDocument,
-        new[] { new Diagnostic {
-          // This diagnostic never gets sent to the client,
-          // instead it forces the first computed diagnostics for a document to always be sent.
-          // The message here describes the implicit client state before the first diagnostics have been sent.
-          Message = "Resolution diagnostics have not been computed yet."
-        }}
-      );
+    public IdeState CreateUnloaded(Compilation compilation) {
+      return CreateDocumentWithEmptySymbolTable(compilation, ImmutableDictionary<Uri, IReadOnlyList<Diagnostic>>.Empty);
     }
 
-    public async Task<DocumentAfterParsing> LoadAsync(DocumentTextBuffer textDocument,
+    public async Task<CompilationAfterParsing> LoadAsync(DafnyOptions options, Compilation compilation,
       CancellationToken cancellationToken) {
 #pragma warning disable CS1998
-      return await await Task.Factory.StartNew(
-        async () => LoadInternal(textDocument, cancellationToken), cancellationToken,
+      return await await DafnyMain.LargeStackFactory.StartNew(
+        async () => LoadInternal(options, compilation, cancellationToken), cancellationToken
 #pragma warning restore CS1998
-        TaskCreationOptions.None, ResolverScheduler);
+        );
     }
 
-    private DocumentAfterParsing LoadInternal(DocumentTextBuffer textDocument,
+    private CompilationAfterParsing LoadInternal(DafnyOptions options, Compilation compilation,
       CancellationToken cancellationToken) {
-      var errorReporter = new DiagnosticErrorReporter(textDocument.Text, textDocument.Uri);
-      statusPublisher.SendStatusNotification(textDocument, CompilationStatus.ResolutionStarted);
-      var program = parser.Parse(textDocument, errorReporter, cancellationToken);
-      IncludePluginLoadErrors(errorReporter, program);
-      var documentAfterParsing = new DocumentAfterParsing(textDocument, program, errorReporter.GetDiagnostics(textDocument.Uri));
+      var project = compilation.Project;
+      var errorReporter = new DiagnosticErrorReporter(options, project.Uri);
+      _ = statusPublisher.SendStatusNotification(compilation, CompilationStatus.Parsing);
+      var program = parser.Parse(compilation, errorReporter, cancellationToken);
+      var compilationAfterParsing = new CompilationAfterParsing(compilation, program, errorReporter.AllDiagnosticsCopy);
       if (errorReporter.HasErrors) {
-        statusPublisher.SendStatusNotification(textDocument, CompilationStatus.ParsingFailed);
-        return documentAfterParsing;
+        _ = statusPublisher.SendStatusNotification(compilation, CompilationStatus.ParsingFailed);
+        return compilationAfterParsing;
       }
 
-      var compilationUnit = symbolResolver.ResolveSymbols(textDocument, program, out _, cancellationToken);
-      var symbolTable = symbolTableFactory.CreateFrom(program, compilationUnit, cancellationToken);
+      _ = statusPublisher.SendStatusNotification(compilation, CompilationStatus.ResolutionStarted);
+      try {
+        var compilationUnit = symbolResolver.ResolveSymbols(project, program, cancellationToken);
+        var legacySymbolTable = symbolTableFactory.CreateFrom(compilationUnit, cancellationToken);
 
-      var newSymbolTable = errorReporter.HasErrors ? null : symbolTableFactory.CreateFrom(program, documentAfterParsing, cancellationToken);
-      if (errorReporter.HasErrors) {
-        statusPublisher.SendStatusNotification(textDocument, CompilationStatus.ResolutionFailed);
-      } else {
-        statusPublisher.SendStatusNotification(textDocument, CompilationStatus.CompilationSucceeded);
+        var newSymbolTable = errorReporter.HasErrors
+          ? null
+          : symbolTableFactory.CreateFrom(program, compilationAfterParsing, cancellationToken);
+        if (errorReporter.HasErrors) {
+          _ = statusPublisher.SendStatusNotification(compilation, CompilationStatus.ResolutionFailed);
+        } else {
+          _ = statusPublisher.SendStatusNotification(compilation, CompilationStatus.CompilationSucceeded);
+        }
+
+        var ghostDiagnostics = ghostStateDiagnosticCollector.GetGhostStateDiagnostics(legacySymbolTable, cancellationToken);
+
+        return new CompilationAfterResolution(compilationAfterParsing,
+          errorReporter.AllDiagnosticsCopy,
+          newSymbolTable,
+          legacySymbolTable,
+          ghostDiagnostics
+        );
+      } catch (OperationCanceledException) {
+        return compilationAfterParsing;
       }
-
-      var ghostDiagnostics = ghostStateDiagnosticCollector.GetGhostStateDiagnostics(symbolTable, cancellationToken).ToArray();
-
-      return new DocumentAfterResolution(textDocument,
-        program,
-        errorReporter.GetDiagnostics(textDocument.Uri),
-        newSymbolTable,
-        symbolTable,
-        ghostDiagnostics
-      );
     }
 
-    private static void IncludePluginLoadErrors(DiagnosticErrorReporter errorReporter, Dafny.Program program) {
-      foreach (var error in DafnyLanguageServer.PluginLoadErrors) {
-        errorReporter.Error(MessageSource.Compiler, program.GetFirstTopLevelToken(), error);
-      }
-    }
-
-    private IdeState CreateDocumentWithEmptySymbolTable(
-      DocumentTextBuffer textDocument,
-      IReadOnlyList<Diagnostic> diagnostics
-    ) {
+    private IdeState CreateDocumentWithEmptySymbolTable(Compilation compilation,
+      IReadOnlyDictionary<Uri, IReadOnlyList<Diagnostic>> resolutionDiagnostics) {
+      var dafnyOptions = DafnyOptions.Default;
       return new IdeState(
-        textDocument,
-        diagnostics,
+        compilation,
+        new EmptyNode(),
+        resolutionDiagnostics,
         SymbolTable.Empty(),
-        SignatureAndCompletionTable.Empty(textDocument),
-        new Dictionary<ImplementationId, ImplementationView>(),
+        SignatureAndCompletionTable.Empty(dafnyOptions, compilation.Project),
+        new Dictionary<ImplementationId, IdeImplementationView>(),
         Array.Empty<Counterexample>(),
         false,
-        Array.Empty<Diagnostic>(),
-        new DocumentVerificationTree(textDocument)
+        ImmutableDictionary<Uri, IReadOnlyList<Range>>.Empty,
+      null
       );
     }
   }
 }
 
 
-public record ImplementationId(Position NamedVerificationTask, string Name);
+public record ImplementationId(Uri Uri, Position Position, string Name);

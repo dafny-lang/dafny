@@ -1,4 +1,4 @@
-// RUN: %dafny_0 /compile:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %exits-with 4 %dafny /compile:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // It would be great if Dafny would use a/b as a possible witness when trying to
@@ -20,12 +20,12 @@ method N(a: int, b: int)
   assert P(a, b, s);
 }
 
-predicate P(a: int, b: int, s: int)
+ghost predicate P(a: int, b: int, s: int)
 {
   b != 0 ==> s == a / b
 }
 
-predicate Q(s: int)
+ghost predicate Q(s: int)
 {
   true
 }

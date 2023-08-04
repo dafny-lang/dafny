@@ -10,14 +10,236 @@ using System.Diagnostics.Contracts;
 using Microsoft.Boogie;
 
 namespace Microsoft.Dafny {
-  public partial class Resolver {
+  public partial class ModuleResolver {
+    private class BoundsDiscoveryVisitor : ASTVisitor<BoundsDiscoveryVisitor.BoundsDiscoveryContext> {
+      private readonly ModuleResolver resolver;
+
+      public class BoundsDiscoveryContext : IASTVisitorContext {
+        private readonly IASTVisitorContext astVisitorContext;
+        readonly bool inLambdaExpression;
+
+        public bool AllowedToDependOnAllocationState =>
+          !(astVisitorContext is Function or ConstantField or RedirectingTypeDecl || inLambdaExpression);
+
+        public string Kind {
+          get {
+            // assumes context denotes a lambda expression, redirecting type, or member declaration
+            if (inLambdaExpression) {
+              return "lambda expression";
+            }
+            string kind;
+            if (astVisitorContext is RedirectingTypeDecl redirectingTypeDecl) {
+              kind = redirectingTypeDecl.WhatKind;
+            } else {
+              var memberDecl = (MemberDecl)astVisitorContext;
+              kind = memberDecl.WhatKind;
+            }
+            return $"{kind} definition";
+          }
+        }
+
+        public BoundsDiscoveryContext(IASTVisitorContext astVisitorContext) {
+          this.astVisitorContext = astVisitorContext;
+          this.inLambdaExpression = false;
+        }
+
+        /// <summary>
+        /// This constructor is used to say that, within parentContext, the context is inside a lambda
+        /// expression.
+        /// </summary>
+        public BoundsDiscoveryContext(BoundsDiscoveryContext parentContext, LambdaExpr lambdaExpr) {
+          this.astVisitorContext = parentContext.astVisitorContext;
+          this.inLambdaExpression = true;
+        }
+
+        ModuleDefinition IASTVisitorContext.EnclosingModule => astVisitorContext.EnclosingModule;
+      }
+
+      private ErrorReporter Reporter => resolver.Reporter;
+
+      public BoundsDiscoveryVisitor(ModuleResolver resolver) {
+        this.resolver = resolver;
+      }
+
+      public override BoundsDiscoveryContext GetContext(IASTVisitorContext astVisitorContext, bool inFunctionPostcondition) {
+        return new BoundsDiscoveryContext(astVisitorContext);
+      }
+
+      protected override bool VisitOneStatement(Statement stmt, BoundsDiscoveryContext context) {
+        if (stmt is ForallStmt forallStmt) {
+          forallStmt.Bounds = DiscoverBestBounds_MultipleVars(forallStmt.BoundVars, forallStmt.Range, true);
+          if (forallStmt.Body == null) {
+            Reporter.Warning(MessageSource.Resolver, ErrorRegistry.NoneId, forallStmt.Tok, "note, this forall statement has no body");
+          }
+        } else if (stmt is AssignSuchThatStmt assignSuchThatStmt) {
+          if (assignSuchThatStmt.AssumeToken == null) {
+            var varLhss = new List<IVariable>();
+            foreach (var lhs in assignSuchThatStmt.Lhss) {
+              var ide = (IdentifierExpr)lhs.Resolved;  // successful resolution implies all LHS's are IdentifierExpr's
+              varLhss.Add(ide.Var);
+            }
+            assignSuchThatStmt.Bounds = DiscoverBestBounds_MultipleVars(varLhss, assignSuchThatStmt.Expr, true);
+          }
+        } else if (stmt is OneBodyLoopStmt oneBodyLoopStmt) {
+          oneBodyLoopStmt.ComputeBodySurrogate(Reporter);
+        }
+
+        return base.VisitOneStatement(stmt, context);
+      }
+
+      public override void VisitTopLevelFrameExpression(FrameExpression frameExpression, BoundsDiscoveryContext context) {
+        DesugarFunctionsInFrameClause(frameExpression);
+        base.VisitTopLevelFrameExpression(frameExpression, context);
+      }
+
+      void DesugarFunctionsInFrameClause(FrameExpression frameExpression) {
+        frameExpression.DesugaredExpression = FrameArrowToObjectSet(frameExpression.E);
+      }
+
+      /// <summary>
+      /// The motivation for this method is to convert a reads-clause frame expression "f.reads" into a set.
+      /// More generally, if the given expression "e" has type "X ~> collection<Y>", for some list of type X,
+      /// some reference type Y, and "collection" being "set", "iset", "seq", or "multiset", then this method
+      /// returns an expression of type "set<Y>" denoting
+      ///
+      ///     UNION x: X :: e(x)                      // e.g., UNION x: X :: f.reads(x)
+      ///
+      /// For example, if "e" is an expression "f.reads" of type "X ~> set<object>", then the expression
+      /// returned is the union of "f.reads(x)" over all inputs "x" to "f".
+      ///
+      /// If the type of "e" is not of the form "X ~> collection<Y>" as stated above, then this method simply
+      /// returns the given "e".
+      ///
+      /// Dafny does not have a UNION comprehension, so the expression returned has the form
+      ///
+      ///     { obj: Y | exists x: X :: obj in e(x) }
+      ///
+      /// which in Dafny notation is written
+      ///
+      ///     set x: X, obj: Y | obj in e(x) :: obj
+      ///
+      /// Note, since Y is a reference type and there is, at any one time, only a finite number of references,
+      /// the result type is finite.
+      ///
+      /// Note: A pending improvement would be to limit the range of the set comprehension to the values for x
+      /// that satisfy e's precondition.
+      /// </summary>
+      public static Expression FrameArrowToObjectSet(Expression e) {
+        Contract.Requires(e != null);
+        var arrowType = e.Type.AsArrowType;
+        if (arrowType == null) {
+          return e;
+        }
+        var collectionType = arrowType.Result.AsCollectionType;
+        if (collectionType == null || collectionType.NormalizeExpand() is MapType) {
+          return e;
+        }
+        var elementType = collectionType.Arg; // "elementType" is called "Y" in the description of this method, above
+        if (!elementType.IsRefType) {
+          return e;
+        }
+
+        var boundVarDecls = new List<BoundVar>();
+        var boundVarUses = new List<Expression>();
+        var i = 0;
+        foreach (var functionArgumentType in arrowType.Args) {
+          var bv = new BoundVar(e.tok, $"_x{i}", functionArgumentType);
+          boundVarDecls.Add(bv);
+          boundVarUses.Add(new IdentifierExpr(e.tok, bv.Name) { Type = bv.Type, Var = bv });
+          i++;
+        }
+        var objVar = new BoundVar(e.tok, "_obj", elementType.NormalizeExpand());
+        var objUse = new IdentifierExpr(e.tok, objVar.Name) { Type = objVar.Type, Var = objVar };
+        boundVarDecls.Add(objVar);
+
+        var collection = new ApplyExpr(e.tok, e, boundVarUses, e.tok) {
+          Type = collectionType
+        };
+        var resolvedOpcode = collectionType.ResolvedOpcodeForIn;
+
+        var inCollection = new BinaryExpr(e.tok, BinaryExpr.Opcode.In, objUse, collection) {
+          ResolvedOp = resolvedOpcode,
+          Type = Type.Bool
+        };
+
+        var attributes = new Attributes("_reads", new List<Expression>(), null);
+        return new SetComprehension(e.tok, e.RangeToken, true, boundVarDecls, inCollection, objUse, attributes) {
+          Type = new SetType(true, elementType)
+        };
+      }
+
+      protected override void VisitExpression(Expression expr, BoundsDiscoveryContext context) {
+        if (expr is LambdaExpr lambdaExpr) {
+          lambdaExpr.Reads.ForEach(DesugarFunctionsInFrameClause);
+
+          // Make the context more specific when visiting inside a lambda expression
+          context = new BoundsDiscoveryContext(context, lambdaExpr);
+        }
+        base.VisitExpression(expr, context);
+      }
+
+      protected override bool VisitOneExpression(Expression expr, BoundsDiscoveryContext context) {
+        if (expr is ComprehensionExpr and not LambdaExpr) {
+          var e = (ComprehensionExpr)expr;
+          // apply bounds discovery to quantifiers, finite sets, and finite maps
+          Expression whereToLookForBounds = null;
+          var polarity = true;
+          if (e is QuantifierExpr quantifierExpr) {
+            whereToLookForBounds = quantifierExpr.LogicalBody();
+            polarity = quantifierExpr is ExistsExpr;
+          } else if (e is SetComprehension setComprehension) {
+            whereToLookForBounds = setComprehension.Range;
+          } else if (e is MapComprehension) {
+            whereToLookForBounds = e.Range;
+          } else {
+            Contract.Assert(false);  // otherwise, unexpected ComprehensionExpr
+          }
+          if (whereToLookForBounds != null) {
+            e.Bounds = DiscoverBestBounds_MultipleVars_AllowReordering(e.BoundVars, whereToLookForBounds, polarity);
+            if (!context.AllowedToDependOnAllocationState) {
+              foreach (var bv in ComprehensionExpr.BoundedPool.MissingBounds(e.BoundVars, e.Bounds,
+                         ComprehensionExpr.BoundedPool.PoolVirtues.IndependentOfAlloc)) {
+                var how = Attributes.Contains(e.Attributes, "_reads") ? "(implicitly by using a function in a reads clause) " : "";
+                var message =
+                  $"a {e.WhatKind} involved in a {context.Kind} {how}is not allowed to depend on the set of allocated references," +
+                  $" but values of '{bv.Name}' (of type '{bv.Type}') may contain references";
+                if (bv.Type.IsTypeParameter || bv.Type.IsAbstractType) {
+                  message += $" (perhaps declare its type as '{bv.Type}(!new)')";
+                }
+                message += " (see documentation for 'older' parameters)";
+                Reporter.Error(MessageSource.Resolver, e, message);
+              }
+            }
+
+            if ((e as SetComprehension)?.Finite == true || (e as MapComprehension)?.Finite == true) {
+              // the comprehension had better produce a finite set
+              if (e.Type.HasFinitePossibleValues) {
+                // This means the set is finite, regardless of if the Range is bounded.  So, we don't give any error here.
+                // However, if this expression is used in a non-ghost context (which is not yet known at this stage of
+                // resolution), the resolver will generate an error about that later.
+              } else {
+                // we cannot be sure that the set/map really is finite
+                foreach (var bv in ComprehensionExpr.BoundedPool.MissingBounds(e.BoundVars, e.Bounds, ComprehensionExpr.BoundedPool.PoolVirtues.Finite)) {
+                  Reporter.Error(MessageSource.Resolver, e,
+                    "the result of a {0} must be finite, but Dafny's heuristics can't figure out how to produce a bounded set of values for '{1}'",
+                    e.WhatKind, bv.Name);
+                }
+              }
+            }
+          }
+
+        }
+
+        return base.VisitOneExpression(expr, context);
+      }
+    }
+
     /// <summary>
-    /// For a list of variables "bvars", returns a list of best bounds, subject to the constraint "requiredVirtues", for each respective variable.
-    /// If no bound matching "requiredVirtues" is found for a variable "v", then the bound for "v" in the returned list is set to "null".
+    /// For a list of variables "bvars", returns a list of best bounds for each respective variable.
+    /// If no bound is found for a variable "v", then the bound for "v" in the returned list is set to "null".
     /// </summary>
     public static List<ComprehensionExpr.BoundedPool> DiscoverBestBounds_MultipleVars<VT>(List<VT> bvars, Expression expr,
-      bool polarity,
-      ComprehensionExpr.BoundedPool.PoolVirtues requiredVirtues) where VT : IVariable {
+      bool polarity) where VT : IVariable {
       Contract.Requires(bvars != null);
       Contract.Requires(expr != null);
       Contract.Ensures(Contract.Result<List<ComprehensionExpr.BoundedPool>>() != null);
@@ -25,17 +247,16 @@ namespace Microsoft.Dafny {
         var c = GetImpliedTypeConstraint(bv, bv.Type);
         expr = polarity ? Expression.CreateAnd(c, expr) : Expression.CreateImplies(c, expr);
       }
-      var bests = DiscoverAllBounds_Aux_MultipleVars(bvars, expr, polarity, requiredVirtues);
+      var bests = DiscoverAllBounds_Aux_MultipleVars(bvars, expr, polarity);
       return bests;
     }
 
     public static List<ComprehensionExpr.BoundedPool> DiscoverBestBounds_MultipleVars_AllowReordering<VT>(List<VT> bvars, Expression expr,
-      bool polarity,
-      ComprehensionExpr.BoundedPool.PoolVirtues requiredVirtues) where VT : IVariable {
+      bool polarity) where VT : IVariable {
       Contract.Requires(bvars != null);
       Contract.Requires(expr != null);
       Contract.Ensures(Contract.Result<List<ComprehensionExpr.BoundedPool>>() != null);
-      var bounds = DiscoverBestBounds_MultipleVars(bvars, expr, polarity, requiredVirtues);
+      var bounds = DiscoverBestBounds_MultipleVars(bvars, expr, polarity);
       if (bvars.Count > 1) {
         // It may be helpful to try all permutations (or, better yet, to use an algorithm that keeps track of the dependencies
         // and discovers good bounds more efficiently). However, all permutations would be expensive. Therefore, we try just one
@@ -44,7 +265,7 @@ namespace Microsoft.Dafny {
         // than two bound variables.
         var bvarsMissyElliott = new List<VT>(bvars);  // make a copy
         bvarsMissyElliott.Reverse();  // and then flip it and reverse it, Ti esrever dna ti pilf nwod gnaht ym tup I
-        var boundsMissyElliott = DiscoverBestBounds_MultipleVars(bvarsMissyElliott, expr, polarity, requiredVirtues);
+        var boundsMissyElliott = DiscoverBestBounds_MultipleVars(bvarsMissyElliott, expr, polarity);
         // Figure out which one seems best
         var meBetter = 0;
         for (int i = 0; i < bvars.Count; i++) {
@@ -71,7 +292,7 @@ namespace Microsoft.Dafny {
     }
 
     private static List<ComprehensionExpr.BoundedPool> DiscoverAllBounds_Aux_MultipleVars<VT>(List<VT> bvars, Expression expr,
-      bool polarity, ComprehensionExpr.BoundedPool.PoolVirtues requiredVirtues) where VT : IVariable {
+      bool polarity) where VT : IVariable {
       Contract.Requires(bvars != null);
       Contract.Requires(expr != null);
       Contract.Ensures(Contract.Result<List<ComprehensionExpr.BoundedPool>>() != null);
@@ -84,7 +305,7 @@ namespace Microsoft.Dafny {
       // filled in for higher-indexed variables.
       for (var j = bvars.Count; 0 <= --j;) {
         var bounds = DiscoverAllBounds_Aux_SingleVar(bvars, j, expr, polarity, knownBounds);
-        knownBounds[j] = ComprehensionExpr.BoundedPool.GetBest(bounds, requiredVirtues);
+        knownBounds[j] = ComprehensionExpr.BoundedPool.GetBest(bounds);
 #if DEBUG_PRINT
         if (knownBounds[j] is ComprehensionExpr.IntBoundedPool) {
           var ib = (ComprehensionExpr.IntBoundedPool)knownBounds[j];
@@ -260,7 +481,7 @@ namespace Microsoft.Dafny {
 
       var formals = fce.Function.Formals;
       Contract.Assert(formals.Count == fce.Args.Count);
-      if (LinqExtender.Zip(formals, fce.Args).Any(t => t.Item1.IsOlder && t.Item2.Resolved is IdentifierExpr ide && ide.Var == (IVariable)boundVariable)) {
+      if (Enumerable.Zip(formals, fce.Args).Any(t => t.Item1.IsOlder && t.Item2.Resolved is IdentifierExpr ide && ide.Var == (IVariable)boundVariable)) {
         bounds.Add(new ComprehensionExpr.OlderBoundedPool());
         return;
       }

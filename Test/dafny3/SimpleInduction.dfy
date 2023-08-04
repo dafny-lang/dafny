@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:0 /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %dafny /compile:0 /deprecation:0 /dprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 /*
@@ -9,7 +9,7 @@
   proof.
   */
 
-function Fib(n: nat): nat
+ghost function Fib(n: nat): nat
   decreases n;
 { if n < 2 then n else Fib(n-2) + Fib(n-1) }
 
@@ -58,7 +58,7 @@ lemma FibLemma_All()
 
 datatype List<T> = Nil | Cons(head: T, tail: List<T>)
 
-function Append<T>(xs: List<T>, ys: List<T>): List<T>
+ghost function Append<T>(xs: List<T>, ys: List<T>): List<T>
   decreases xs;
 {
   match xs

@@ -1,11 +1,10 @@
-// RUN: %dafny /compile:3 "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment
 
 module A {
   export
     reveals F, G
 
-  function G(): int { 5 }
+  ghost function G(): int { 5 }
 
   function F(): int {
     G()
@@ -18,7 +17,7 @@ module B {
   export
     provides F
 
-  function G(): int { 5 }
+  ghost function G(): int { 5 }
 
   function F(): int {
     G()

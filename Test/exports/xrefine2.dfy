@@ -1,5 +1,4 @@
-// RUN: %dafny /compile:3 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment
 
 
 module ProtocolImpl {
@@ -8,7 +7,7 @@ module ProtocolImpl {
 
     type ProtoT = bool
 
-    predicate Init(p:ProtoT) { p }
+    ghost predicate Init(p:ProtoT) { p }
 
     method orange(i:nat) returns (j:nat)
     {
@@ -24,7 +23,7 @@ module HostImpl {
 
     type HostT = int
 
-    function method foo(h:HostT) : P.ProtoT
+    function foo(h:HostT) : P.ProtoT
     {
         h != 0
     }
@@ -46,7 +45,7 @@ module MainImpl {
     import PI = ProtocolImpl
 
     method Test(h1:HISpec.HostT, h2:HISpec.HostT)
-        requires HISpec.foo(h1) == HISpec.foo(h2);
+        requires HISpec.foo(h1) == HISpec.foo(h2)
         requires PISpec.Init(HISpec.foo(h1))
     {
         var a := HI.foo(h1);

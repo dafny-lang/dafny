@@ -1,5 +1,4 @@
-// RUN: %dafny /compile:3  "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment
 
 const one:int := 1
 const two:int := one * 2
@@ -52,7 +51,7 @@ class C {
   static const x: int := y+1
   static const y: int := 5
   var z: int
-  static function method G(c: C): int
+  static function G(c: C): int
     ensures G(c) == 16
   {
     x + y + c.y
@@ -60,7 +59,7 @@ class C {
 
   const a: int := b+2
   const b: int := 50
-  function method H(c: C): int
+  function H(c: C): int
     ensures H(c) == 50 + 52 + 50 + 6 + 5 + 5 + 5 == 173
   {
     a + b + c.b + x + y + c.y + C.y
@@ -201,7 +200,7 @@ module InitializationDependencies {
     const m: int := 21
 
     const n: int := F(b)
-    function method F(nn: int): int {
+    function F(nn: int): int {
       2 * nn + C.b
     }
   }

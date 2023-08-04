@@ -1,11 +1,11 @@
-// RUN: %dafny_0 /compile:0 /print:"%t.print" /env:0 /rprint:- "%s" > "%t"
+// RUN: %exits-with 4 %dafny /compile:0 /print:"%t.print" /env:0 /rprint:- "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 newtype EvenInt = x | x % 2 == 0
 newtype SmallReal = r | -4.0 <= r < 300.0
 
 // Use of the following predicate will prevent Boogie's cleverness of discarding assignments to dead variables
-predicate UseTheVars(x: int, n: nat, r: real, even: EvenInt, small: SmallReal, b67: bv67, w: bv32, seven: bv7, noll: bv0) { true }
+ghost predicate UseTheVars(x: int, n: nat, r: real, even: EvenInt, small: SmallReal, b67: bv67, w: bv32, seven: bv7, noll: bv0) { true }
 
 method M0() returns (x: int, n: nat, r: real, even: EvenInt, small: SmallReal, b67: bv67, w: bv32, seven: bv7, noll: bv0)
   ensures UseTheVars(x, n, r, even, small, b67, w, seven, noll)

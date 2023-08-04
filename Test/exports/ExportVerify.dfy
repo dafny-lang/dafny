@@ -1,4 +1,4 @@
-// RUN: %dafny_0 /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %exits-with 4 %dafny /dprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module Lib {
@@ -16,7 +16,7 @@ module Lib {
 
   const Ten := 10
 
-  function method Two(): int
+  function Two(): int
     ensures Two() < 10
   { 2 }
 
@@ -73,5 +73,24 @@ module Client_Revealing {
     Lib.Method();
     Lib.D.P();
     assert false;  // error
+  }
+}
+
+module BadCastRegression {
+  module Library {
+    export
+      provides *
+
+    // declaring D as a trait once caused Dafny to crash with a bad cast
+    trait D {
+      const n: int
+    }
+  }
+
+  module Client {
+    import Library
+
+    method M() {
+    }
   }
 }

@@ -54,41 +54,45 @@ public class Parser {
   public Parser(Scanner scanner, Errors errors) {
     this.scanner = scanner;
     this.errors = errors;
-    Token tok = new Token();
-    tok.val = "";
-    this.la = tok;
-    this.t = new Token(); // just to satisfy its non-null constraint
+    this.la = scanner.FirstToken;
+    this.t = scanner.FirstToken; // just to satisfy its non-null constraint
   }
 
   void SynErr (int n) {
-    if (errDist >= minErrDist) errors.SynErr(la.filename, la.line, la.col, n);
+    if (errDist >= minErrDist) {
+      errors.SynErr(la.Uri, la.line, la.col, n);
+    }
     errDist = 0;
   }
-
-  public void SemErr (string msg) {
-    Contract.Requires(msg != null);
-    if (errDist >= minErrDist) errors.SemErr(t, msg);
-    errDist = 0;
-  }
-
-  public void SemErr(IToken tok, string msg) {
+  
+  public void SemErr(Enum errorId, IToken tok, string msg) {
     Contract.Requires(tok != null);
     Contract.Requires(msg != null);
-    errors.SemErr(tok, msg);
+    errors.SemErr(errorId, tok, msg);
   }
 
-  void Get () {
-    for (;;) {
-      t = theVerifyThisFile ? la : new IncludeToken(theInclude, la);
+  void Get() {
+    for (; ; ) {
+      var tmp = la;
       la = scanner.Scan();
-      if (la.kind <= maxT) { ++errDist; break; }
+      tmp.Next = la;
+      la.Prev = tmp;
+      t = tmp;
+      if (la.kind <= maxT) { 
+        ++errDist; 
+        break;
+      }
 -->pragmas
       la = t;
     }
   }
 
   void Expect (int n) {
-    if (la.kind==n) Get(); else { SynErr(n); }
+    if (la.kind==n) {
+      Get(); 
+    } else { 
+      SynErr(n); 
+    }
   }
 
   bool StartOf (int s) {
@@ -99,7 +103,9 @@ public class Parser {
     if (la.kind == n) Get();
     else {
       SynErr(n);
-      while (!StartOf(follow)) Get();
+      while (!StartOf(follow)) {
+        Get();
+      }
     }
   }
 
@@ -122,8 +128,7 @@ public class Parser {
 -->productions
 
   public void Parse() {
-    la = new Token();
-    la.val = "";
+    la = scanner.FirstToken;
     Get();
 -->parseRoot
   }
@@ -135,7 +140,7 @@ public class Parser {
 
 
 public class Errors {
-  readonly ErrorReporter Reporting;
+  public readonly ErrorReporter Reporting;
   public int ErrorCount;
 
   public Errors(ErrorReporter Reporting) {
@@ -143,14 +148,14 @@ public class Errors {
     this.Reporting = Reporting;
   }
 
-  public void SynErr(string filename, int line, int col, int n) {
-    SynErr(filename, line, col, GetSyntaxErrorString(n));
+  public void SynErr(Uri uri, int line, int col, int n) {
+    SynErr(uri, line, col, GetSyntaxErrorString(n));
   }
 
-  public void SynErr(string filename, int line, int col, string msg) {
+  public void SynErr(Uri uri, int line, int col, string msg) {
     Contract.Requires(msg != null);
     ErrorCount++;
-    Reporting.Error(MessageSource.Parser, filename, line, col, msg);
+    Reporting.Error(MessageSource.Parser, ErrorId.p_generic_syntax_error, uri, line, col, msg);
   }
 
   string GetSyntaxErrorString(int n) {
@@ -162,36 +167,38 @@ public class Errors {
     return s;
   }
 
-  public void SemErr(IToken tok, string msg) {  // semantic errors
+  public void SemErr(string errorId, IToken tok, string msg) {  // semantic errors
     Contract.Requires(tok != null);
     Contract.Requires(msg != null);
     ErrorCount++;
-    Reporting.Error(MessageSource.Parser, tok, msg);
+    Reporting.Error(MessageSource.Parser, errorId, tok, msg);
   }
-
-  public void SemErr(string filename, int line, int col, string msg) {
+  
+  public void SemErr(Enum errorId, IToken tok, string msg) {  // semantic errors
+    Contract.Requires(tok != null);
     Contract.Requires(msg != null);
     ErrorCount++;
-    Reporting.Error(MessageSource.Parser, filename, line, col, msg);
+    Reporting.Error(MessageSource.Parser, errorId, tok, msg);
   }
 
-  public void Deprecated(IToken tok, string msg) {
-    Contract.Requires(tok != null);
+  public void SemErr(ErrorId errorId, Uri uri, int line, int col, string msg) {
     Contract.Requires(msg != null);
-    Reporting.Deprecated(MessageSource.Parser, tok, msg);
+    ErrorCount++;
+    Reporting.Error(MessageSource.Parser, errorId, uri, line, col, msg);
   }
 
-  public void DeprecatedStyle(IToken tok, string msg) {
+  public void Deprecated(Enum errorId, IToken tok, string msg) {
     Contract.Requires(tok != null);
     Contract.Requires(msg != null);
-    Reporting.DeprecatedStyle(MessageSource.Parser, tok, msg);
+    Reporting.Deprecated(MessageSource.Parser, errorId, tok, msg);
   }
 
-  public void Warning(IToken tok, string msg) {
+  public void Warning(ErrorId errorId, IToken tok, string msg) {
     Contract.Requires(tok != null);
     Contract.Requires(msg != null);
-    Reporting.Warning(MessageSource.Parser, tok, msg);
+    Reporting.Warning(MessageSource.Parser, errorId, tok, msg);
   }
+
 } // Errors
 
 

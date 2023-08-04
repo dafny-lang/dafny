@@ -20,58 +20,50 @@ namespace Microsoft.Dafny.LanguageServer.Language {
   /// this verifier serializes all invocations.
   /// </remarks>
   public class DafnyProgramVerifier : IProgramVerifier {
-    private readonly VerificationResultCache cache = new();
-    private readonly ExecutionEngine engine;
+    private readonly SemaphoreSlim mutex = new(1);
 
-    public DafnyProgramVerifier(
-      ILogger<DafnyProgramVerifier> logger,
-      IOptions<VerifierOptions> options
-      ) {
-      var engineOptions = DafnyOptions.O;
-      engineOptions.VcsCores = GetConfiguredCoreCount(options.Value);
-      engineOptions.TimeLimit = options.Value.TimeLimit;
-      engineOptions.VerifySnapshots = (int)options.Value.VerifySnapshots;
-      // TODO This may be subject to change. See Microsoft.Boogie.Counterexample
-      //      A dash means write to the textwriter instead of a file.
-      // https://github.com/boogie-org/boogie/blob/b03dd2e4d5170757006eef94cbb07739ba50dddb/Source/VCGeneration/Couterexample.cs#L217
-      engineOptions.ModelViewFile = "-";
-      BatchObserver = new AssertionBatchCompletedObserver(logger, options.Value.GutterStatus);
-
-      engineOptions.Printer = BatchObserver;
-      engine = new ExecutionEngine(engineOptions, cache);
+    public DafnyProgramVerifier(ILogger<DafnyProgramVerifier> logger) {
     }
 
-    private static int GetConfiguredCoreCount(VerifierOptions options) {
-      return options.VcsCores == 0
-        ? Math.Max(1, Environment.ProcessorCount / 2)
-        : Convert.ToInt32(options.VcsCores);
-    }
-
-    private const int TranslatorMaxStackSize = 0x10000000; // 256MB
-    static readonly ThreadTaskScheduler TranslatorScheduler = new(TranslatorMaxStackSize);
-    public AssertionBatchCompletedObserver BatchObserver { get; }
-
-    public async Task<IReadOnlyList<IImplementationTask>> GetVerificationTasksAsync(DocumentAfterResolution document,
+    public async Task<IReadOnlyList<IImplementationTask>> GetVerificationTasksAsync(
+      ExecutionEngine engine,
+      CompilationAfterResolution compilation,
       CancellationToken cancellationToken) {
-      var program = document.Program;
-      var errorReporter = (DiagnosticErrorReporter)program.Reporter;
+      await mutex.WaitAsync(cancellationToken);
+      try {
 
-      cancellationToken.ThrowIfCancellationRequested();
+        var program = compilation.Program;
+        var errorReporter = (DiagnosticErrorReporter)program.Reporter;
 
-      var translated = await Task.Factory.StartNew(() => Translator.Translate(program, errorReporter, new Translator.TranslatorFlags {
-        InsertChecksums = true,
-        ReportRanges = true
-      }).ToList(), cancellationToken, TaskCreationOptions.None, TranslatorScheduler);
+        cancellationToken.ThrowIfCancellationRequested();
 
-      cancellationToken.ThrowIfCancellationRequested();
+        var translated = await DafnyMain.LargeStackFactory.StartNew(() => Translator.Translate(program, errorReporter, new Translator.TranslatorFlags(errorReporter.Options) {
+          InsertChecksums = true,
+          ReportRanges = true
+        }).ToList(), cancellationToken);
 
-      return translated.SelectMany(t => {
-        var (_, boogieProgram) = t;
-        var results = engine.GetImplementationTasks(boogieProgram);
-        return results;
-      }).ToList();
+        cancellationToken.ThrowIfCancellationRequested();
+
+        if (engine.Options.PrintFile != null) {
+          var moduleCount = Translator.VerifiableModules(program).Count();
+          foreach (var (suffix, boogieProgram) in translated) {
+            var fileName = moduleCount > 1 ? DafnyMain.BoogieProgramSuffix(engine.Options.PrintFile, suffix) : engine.Options.PrintFile;
+            ExecutionEngine.PrintBplFile(engine.Options, fileName, boogieProgram, false, false, engine.Options.PrettyPrint);
+          }
+        }
+
+        return translated.SelectMany(t => {
+          var (_, boogieProgram) = t;
+          return engine.GetImplementationTasks(boogieProgram);
+        }).ToList();
+      }
+      finally {
+        mutex.Release();
+      }
     }
 
-    public IObservable<AssertionBatchResult> BatchCompletions => BatchObserver.CompletedBatches;
+    public void Dispose() {
+      mutex.Dispose();
+    }
   }
 }

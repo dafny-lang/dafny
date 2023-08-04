@@ -1,10 +1,5 @@
-// RUN: %dafny /compile:0 "%s" > "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:cs "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:js "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:go "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:java "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:py "%s" >> "%t"
-// RUN: %diff "%s.expect" "%t"
+// NONUNIFORM: https://github.com/dafny-lang/dafny/issues/4174
+// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment --unicode-char:false
 
 method Main() {
   Literals();
@@ -19,6 +14,8 @@ method Main() {
   ZeroComparisonTests();
   TestConversions();
   ComparisonRegressions();
+  CastRegressions();
+  EuclideanDivisionRegressions.Test();
 }
 
 method Print(description: string, x: int) {
@@ -59,10 +56,10 @@ method Literals() {
   Print("C# uint.MaxValue", 0xFFFF_FFFF);  // uint.MaxValue
   Print("2^32", 0x1_0000_0000);  // uint.MaxValue + 1
 
-  Print("JavaScript Number.MAX_SAFE_INTEGER", 0x1F_FFFF_FFFF_FFFF_FFFF);  // 2^53 -  1
-  Print("2^53", 0x20_0000_0000_0000_0000);  // 2^53
-  Print("JavaScript Number.MAX_SAFE_INTEGER", - 0x1F_FFFF_FFFF_FFFF_FFFF);  // - (2^53 -  1)
-  Print("", - 0x20_0000_0000_0000_0000);  // - 2^53
+  Print("JavaScript Number.MAX_SAFE_INTEGER", 0x1F_FFFF_FFFF_FFFF);  // 2^53 -  1
+  Print("2^53", 0x20_0000_0000_0000);  // 2^53
+  Print("JavaScript Number.MIN_SAFE_INTEGER", - 0x1F_FFFF_FFFF_FFFF);  // - (2^53 -  1)
+  Print("", - 0x20_0000_0000_0000);  // - 2^53
 
   Print("C# long.MaxValue", 0x7FFF_ffff_FFFF_ffff);  // long.MaxValue
   Print("2^63", 0x8000_0000_0000_0000);  // long.MaxValue + 1
@@ -214,10 +211,10 @@ method DivModNative() {
   TestDivModInt64(-108, 9, " ");                     // (-12, 0)
   TestDivModInt64(-108, -9, "\n");                   // (12, 0)
 }
-function method Sign(n: int): int {
+function Sign(n: int): int {
   if n < 0 then -1 else if n == 0 then 0 else 1
 }
-function method Abs(n: int): nat {
+function Abs(n: int): nat {
   if n < 0 then -n else n
 }
 method EuclideanDefinitions(i: int, j: int, suffix: string)
@@ -466,7 +463,7 @@ method ZeroComparisonTests() {
   ZCNativeTypeTests(23);
 }
 
-function method YN(b : bool) : string {
+function YN(b : bool) : string {
   if b then "Y" else "N"
 }
 
@@ -554,5 +551,111 @@ method ComparisonRegressions() {
     // The following was once compiled incorrectly for JavaScript
     print xx < yy, " ", yy < xx, " ", xx <= yy, " ", yy <= xx, "\n"; // false true false true
     print xx > yy, " ", yy > xx, " ", xx >= yy, " ", yy >= xx, "\n"; // true false true false
+  }
+}
+
+method CastRegressions() {
+  var i: int := 20;
+  var bt: uint8 := (i + 3) as uint8;
+  var bu := (3 + i) as uint8;
+  var b: bool;
+  var bv: uint8 := if b then 89 else 88;
+  var u: uint32 := if b then 890 else 880;
+  print i, " ", bt, " ", bu, " ", bv, " ", u, "\n";
+}
+
+module EuclideanDivisionRegressions {
+  newtype MyReal = real
+  newtype MyRealWithConstraint = r: real | 0.0 <= r
+  newtype MyInt = int
+  newtype MyIntWithConstraint = i: int | -200 <= i
+
+  newtype byte = x: int | 0 <= x < 256
+  newtype sbyte = x: int | -128 <= x < 128
+
+  newtype uint32 = x: int | 0 <= x < 0x1_0000_0000
+  newtype int32 = x: int | -0x8000_0000 <= x < 0x8000_0000
+
+  method Test() {
+    TestDiv();
+    TestWraparound();
+    TestMod();
+  }
+
+  method TestDiv() {
+    // Make sure Euclidean division is used, but not for reals or bitvectors
+
+    var r0: real := 621.0 / 10.0;
+    var r1: MyReal := 622.0 / 10.0;
+    var r2: MyRealWithConstraint := 623.0 / 10.0;
+    print r0, " ", r1, " ", r2, "\n"; // 62.1 62.2 62.3
+
+    var i0: int := 7 / -2;
+    var i1: MyInt := 7 / -2;
+    var i2: MyIntWithConstraint := 7 / -2;
+    print i0, " ", i1, " ", i2, "\n"; // -3 -3 -3
+
+    var b0: byte := 248 / 3;
+    var b1: byte := 100 / 253;
+    var b2: sbyte := -8 / 3;
+    var b3: sbyte := 100 / -3;
+    print b0, " ", b1, " ", b2, " ", b3, "\n"; // 82 0 -3 -33
+
+    // bitvectors give rise to unsigned arithmetic
+    var v0: bv8 := 248 / 3;
+    var v1: bv8 := 100 / 253;
+    var v2: bv8 := -8 / 3;
+    var v3: bv8 := 100 / -3;
+    print v0, " ", v1, " ", v2, " ", v3, "\n"; // 82 0 82 0
+
+    var j0: uint32 := 0x7fff_fff9 / 3;
+    var j1: uint32 := 100 / 0x7fff_fffd;
+    var j2: int32 := -7 / 3;
+    var j3: int32 := 100 / -3;
+    print j0, " ", j1, " ", j2, " ", j3, "\n"; // 715827880 0 -3 -33
+
+    // bitvectors give rise to unsigned arithmetic
+    var w0: bv32 := 0xffff_fff8 / 3;
+    var w1: bv32 := 100 / 0xffff_fffd;
+    var w2: bv32 := -8 / 3;
+    var w3: bv32 := 100 / -3;
+    print w0, " ", w1, " ", w2, " ", w3, "\n"; // 1431655762 0 1431655762 0
+
+    // these bitvectors use BigInteger
+    var h0: bv68 := 0xf_ffff_ffff_ffff_fff8 / 3;
+    var h1: bv68 := 100 / 0xf_ffff_ffff_ffff_fffd;
+    var h2: bv68 := -8 / 3;
+    var h3: bv68 := 100 / -3;
+    print h0, " ", h1, " ", h2, " ", h3, "\n"; // 98382635059784275282 0 98382635059784275282 0
+  }
+
+  method TestWraparound() {
+    var s0: bv3 := 6 + 3;
+    var s1: bv3 := -1;
+    var s2: bv3 := 4 + 5 - 2;
+    var s3: bv7 := 126 + 3;
+    var s4: bv7 := -1;
+    var s5: bv7 := 64 + 65 - 2;
+    print s0, " ", s1, " ", s2, " ", s3, " ", s4, " ", s5, "\n"; // 1 7 7 1 127 127
+  }
+
+  method TestMod() {
+    var m0: int := 100 % -3;
+    var m1: int := -100 % 3;
+    var m2: int := -100 % -2;
+    var m3: int := 100 % 3;
+    print m0, " ", m1, " ", m2, " ", m3, "\n"; // 1 2 0 1
+
+    var n0: MyIntWithConstraint := 100 % -3;
+    var n1: MyIntWithConstraint := -100 % 3;
+    var n2: MyIntWithConstraint := -100 % -2;
+    var n3: MyIntWithConstraint := 100 % 3;
+    print n0, " ", n1, " ", n2, " ", n3, "\n"; // 1 2 0 1
+
+    var p0: int32 := 100 % -3;
+    var p1: int32 := -100 % 3;
+    var p2: int32 := -100 % -2;
+    var p3: int32 := 100 % 3;
+    print p0, " ", p1, " ", p2, " ", p3, "\n"; // 1 2 0 1
   }
 }

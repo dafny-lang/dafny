@@ -5,7 +5,7 @@ using System.Collections.Immutable;
 using System.Linq;
 using System.Text;
 
-namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Util; 
+namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 
 public static class StringifyUtil {
 

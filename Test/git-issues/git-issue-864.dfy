@@ -1,23 +1,23 @@
-// RUN: %dafny_0 /compile:0 "%s" > "%t"
+// RUN: %exits-with 2 %dafny /compile:0 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module M1 {
   trait {:termination false} T0 {
-    var b:bool
+    const b: bool
   }
   trait T1 extends T0 {
   }
 }
 
 module M2 refines M1 {
-  trait T1 {            // error: name T1 already used
-    predicate p() {b}
+  trait T1 {            // error: name T1 already used (since without the "...", this looks like a new trait)
+    ghost predicate p() { b } // error: unresolved identifier: b
   }
 }
 
 module M3 refines M1 {
   trait T1 ... {
-    predicate p() {b}   // OK - the refined trait extends T0
+    ghost predicate p() { b }   // OK - the refined trait extends T0
   }
 }
 

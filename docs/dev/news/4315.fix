@@ -1,0 +1,1 @@
+Refining an abstract module with a class with an opaque function no longer crashes

@@ -1,4 +1,4 @@
-// RUN: %dafny_0 "%s" > "%t"
+// RUN: %exits-with 2 %dafny "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module SiblingImport {
@@ -78,8 +78,8 @@ module DirectUse {
     method Print() { print "hello\n"; }
     lemma Lemma()
     datatype Record = Record(x: int)
-    function method F(): int
-    function G(): int
+    function F(): int
+    ghost function G(): int
     const c: int
     ghost const d: int
   }

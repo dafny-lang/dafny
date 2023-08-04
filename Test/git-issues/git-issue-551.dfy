@@ -1,24 +1,24 @@
-// RUN: %dafny_0 /compile:0 "%s" > "%t"
+// RUN: %exits-with 2 %dafny /compile:0 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 datatype VoidOutcome =
 | VoidSuccess
 | VoidFailure(error: string)
 {
-    predicate method IsFailure() {
+    predicate IsFailure() {
         this.VoidFailure?
     }
-    function method PropagateFailure(): VoidOutcome requires IsFailure() {
+    function PropagateFailure(): VoidOutcome requires IsFailure() {
         this
     }
 }
 
-function method Require(b: bool): (r: VoidOutcome) ensures r.VoidSuccess? ==> b
+function Require(b: bool): (r: VoidOutcome) ensures r.VoidSuccess? ==> b
 {
   if b then VoidSuccess else VoidFailure("failed")
 }
 
-predicate MyPredicate() {
+ghost predicate MyPredicate() {
   true
 }
 

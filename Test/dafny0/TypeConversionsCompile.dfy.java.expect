@@ -1,0 +1,38 @@
+3 4 5.0 5 6 -1.0 147573952589676412927 4294967295 127 0
+got 3, expected 3
+got 0, expected 0
+got 5, expected 5
+got 10, expected 10
+got 3.0, expected 3.0
+got 6.0, expected 6.0
+got 2, expected 2
+got 0, expected 0
+got 0.0, expected 0.0
+got -1.0, expected 4294967295.0
+got 127.0, expected 127.0
+got 0, expected 0
+got 0, expected 0
+got 127, expected 127
+got 127, expected 127
+got 5, expected 5
+got 5, expected 5
+got 4294967295, expected 4294967295
+got 5, expected 5
+got 0, expected 0
+got 5, expected 5
+got 5, expected 5
+got 5, expected 5
+got 5, expected 5
+got 0, expected 0
+got 0, expected 0
+got 127, expected 127
+got 127, expected 127
+got 5.0, expected 5.0
+got 14, expected 14
+120 -1 4 8589934592 6345789 -9223372036854775808
+4 4 4 4
+68 68 68 68
+Something about ORDINAL: 143 143 143 147 43
+ORDINAL and bitvectors: 20 20
+false 143 true
+true 0 true

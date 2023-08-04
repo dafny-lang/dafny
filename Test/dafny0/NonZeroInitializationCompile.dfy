@@ -1,9 +1,4 @@
-// RUN: %dafny /compile:0 "%s" > "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:cs "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:java "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:js "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:go "%s" >> "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment
 
 type MyInt = x | 6 <= x witness 6
 newtype MyNewInt = x | 6 <= x witness 12
@@ -116,7 +111,7 @@ module AdvancedZeroInitialization {
     print "z: Yt<Even> :: ", z, " versus ", z', "\n";
   }
   // print '\0' in a way that git doesn't freak out about
-  function method PrCh(ch: char): string {
+  function PrCh(ch: char): string {
     if ch == '\0' then "'\\0'"
     else if ch == 'D' then "'D'"
     else "'(other char)'"

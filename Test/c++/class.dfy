@@ -1,5 +1,4 @@
-// RUN: %dafny /compile:3 /spillTargetCode:2 /compileTarget:cpp "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment --spill-translation --unicode-char:false
 
 newtype uint32 = i:int | 0 <= i < 0x100000000
 
@@ -23,8 +22,8 @@ class MyClass {
     ar := new uint32[5];
   }
 
-  function method F(): uint32 { 8 }
-  static function method G(): uint32 { 9 }
+  function F(): uint32 { 8 }
+  static function G(): uint32 { 9 }
   method M() returns (r: uint32) { r := 69; }
   static method N() returns (r: uint32) { return 70; }
 
@@ -127,8 +126,8 @@ method TestMyClass()
 
 
 class AClass {
-  var x:uint32;
-  var y:uint32;
+  var x:uint32
+  var y:uint32
 
   constructor()
   {

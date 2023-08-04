@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:0 /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %dafny /compile:0 /deprecation:0 /dprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // This Dafny program was inspired by Claude Marche's Why3ML program that solves
@@ -37,7 +37,7 @@
 
 datatype Tree = Null | Node(Tree, int, Tree)
 
-function Contains(t: Tree, v: int): bool
+ghost function Contains(t: Tree, v: int): bool
 {
   match t
   case Null => false

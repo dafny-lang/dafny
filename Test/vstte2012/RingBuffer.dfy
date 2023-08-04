@@ -14,7 +14,7 @@ class RingBuffer<T(0)>
   var len: nat
 
   // Valid encodes the consistency of RingBuffer objects (think, invariant)
-  predicate Valid()
+  ghost predicate Valid()
     reads this, Repr
     ensures Valid() ==> this in Repr
   {

@@ -1,4 +1,4 @@
-// RUN: %dafny_0 /compile:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %exits-with 2 %dafny /compile:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 abstract module M0 {
@@ -30,7 +30,7 @@ abstract module M0 {
 }
 module M1 refines M0 {
   type A = int
-  type B  // error: cannot change a type synonym into an opaque type
+  type B  // error: cannot change a type synonym into an abstract type
   datatype C = MakeC(ghost x: int, y: int)  // error: this type does not support equality
   type D = C  // error: this type does not support equality
   codatatype E = More(bool, E)  // error: this type does not support equality
@@ -117,7 +117,7 @@ module DatatypeTestLocalY {
 
 module ClassLibrary {
   class Classic<A> {
-    static function method F(): A
+    static ghost function F(): A
   }
 }
 

@@ -1,10 +1,10 @@
-// RUN: %dafny_0 /compile:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %exits-with 4 %dafny /compile:0 /deprecation:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module A {
   import B = Babble
   class X {
-    function Fx(z: B.Z?): int
+    ghost function Fx(z: B.Z?): int
       requires z != null;
       decreases 5, 4, 3;
     { z.G() }  // fine; this goes to a different module
@@ -14,7 +14,7 @@ module A {
 
 class C {
   method M() { }
-  function F(): int { 818 }
+  ghost function F(): int { 818 }
 }
 
 method MyMethod() { }
@@ -24,13 +24,13 @@ method MyMethod() { }
 module Babble {
   class Z {
     method K() { }
-    function G(): int
+    ghost function G(): int
       decreases 10, 8, 6;
     { 25 }
   }
 }
 
-function MyFunction(): int { 5 }
+ghost function MyFunction(): int { 5 }
 
 class D { }
 
@@ -69,7 +69,7 @@ module A_Visibility {
     provides C, C.P
 
   class C {
-    static predicate P(x: int)
+    static ghost predicate P(x: int)
       ensures P(x) ==> -10 <= x;
     {
       0 <= x
@@ -125,7 +125,7 @@ module Q_M {
 abstract module Regression {
   module A
   {
-    predicate p<c,d>(m: map<c,d>)
+    ghost predicate p<c,d>(m: map<c,d>)
 
     lemma m<a,b>(m: map<a,b>)
       ensures exists m :: p(var m : map<a,b> := m; m)
@@ -154,7 +154,7 @@ module ModuleContainTraitAndClass {
   const g0 := 16
   const g1: int
 
-  trait Trait {
+  trait Trait extends object {
     static const s0 := 17
     static const s1: int
     const t0 := 18

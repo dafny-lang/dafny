@@ -1,5 +1,7 @@
 
 using System;
+using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using System.Threading;
 using Microsoft.Extensions.Logging;
@@ -8,10 +10,14 @@ using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace;
 
-class IdeStateObserver : IObserver<IdeState> {
+public delegate IdeStateObserver CreateIdeStateObserver(Compilation compilation);
+
+public class IdeStateObserver : IObserver<IdeState> {
   private readonly ILogger logger;
   private readonly ITelemetryPublisher telemetryPublisher;
   private readonly INotificationPublisher notificationPublisher;
+  private readonly ITextDocumentLoader loader;
+  private readonly Compilation compilation;
 
   private readonly object lastPublishedStateLock = new();
 
@@ -21,20 +27,24 @@ class IdeStateObserver : IObserver<IdeState> {
     ITelemetryPublisher telemetryPublisher,
     INotificationPublisher notificationPublisher,
     ITextDocumentLoader loader,
-    DocumentTextBuffer document) {
-    LastPublishedState = loader.CreateUnloaded(document, CancellationToken.None);
+    Compilation compilation) {
+    LastPublishedState = loader.CreateUnloaded(compilation);
     this.logger = logger;
     this.telemetryPublisher = telemetryPublisher;
     this.notificationPublisher = notificationPublisher;
+    this.loader = loader;
+    this.compilation = compilation;
   }
 
   public void OnCompleted() {
+    var ideState = loader.CreateUnloaded(compilation) with { Compilation = new Compilation(LastPublishedState.Version + 1, LastPublishedState.Compilation.Project, compilation.RootUris) };
+    notificationPublisher.PublishNotifications(LastPublishedState, ideState);
     telemetryPublisher.PublishUpdateComplete();
   }
 
   public void OnError(Exception exception) {
     if (exception is OperationCanceledException) {
-      logger.LogInformation("document processing cancelled.");
+      logger.LogDebug("document processing cancelled.");
       return;
     }
 
@@ -46,7 +56,7 @@ class IdeStateObserver : IObserver<IdeState> {
       Range = new Range(0, 0, 0, 1)
     };
     var documentToPublish = LastPublishedState with {
-      ResolutionDiagnostics = new[] { internalErrorDiagnostic }
+      ResolutionDiagnostics = ImmutableDictionary<Uri, IReadOnlyList<Diagnostic>>.Empty.Add(compilation.Project.Uri, new[] { internalErrorDiagnostic })
     };
 
     OnNext(documentToPublish);
@@ -56,13 +66,12 @@ class IdeStateObserver : IObserver<IdeState> {
   }
 
   public void OnNext(IdeState snapshot) {
-    logger.LogDebug($"IdeStateObserver.OnNext entered, threadId: {Thread.CurrentThread.ManagedThreadId}");
+    logger.LogTrace($"IdeStateObserver.OnNext entered, threadId: {Thread.CurrentThread.ManagedThreadId}");
     lock (lastPublishedStateLock) {
       if (snapshot.Version < LastPublishedState.Version) {
         return;
       }
 
-      logger.LogDebug($"Publishing notification for {snapshot.Uri} version {snapshot.Version}.");
       notificationPublisher.PublishNotifications(LastPublishedState, snapshot);
       LastPublishedState = snapshot;
     }

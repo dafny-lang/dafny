@@ -1,10 +1,10 @@
-// RUN: %testDafnyForEachCompiler "%s" > "%t" || true
+// RUN: ! %testDafnyForEachCompiler "%s" > "%t"
 // RUN: %diff "%s.testdafny.expect" "%t"
 
-// A %testdafny test case expected to fail, since at the time of
-// writing this every runtime prints function values differently. :)
+// A %testdafny test case expected to fail, since the given
+// output is different than any actual output
 
 method Main() {
-  var fn := (x: int) => x;
-  print fn, "\n";
+  var i := 0;
+  print i, "\n";
 }

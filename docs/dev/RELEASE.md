@@ -2,80 +2,90 @@
 
 ## Making a new Github release
 
-0. Check that there are no open issues with the `release-blocker` label:
-   https://github.com/dafny-lang/dafny/issues?q=is%3Aopen+is%3Aissue+label%3Arelease-blocker
+1. Ensure that you are in a repository that:
+   * is clean and up-to-date with no uncommitted changes,
+   * was cloned with SSH so that you can push to it, and
+   * has the intended branch checked out (usually `master`,
+     but may be another mainline branch such as `main-3.x`).
 
-1. In an up-to-date repository, with the `master` branch checked out and
-   up-to-date (e.g., after `git pull upstream`), checkout a new branch
-   from `master` (e.g., `git checkout -b branchname master`) change to
-   the root directory of the repository (i.e., `dafny`, which contains
-   `Source`, `Binaries`, etc.)
-
-2. Select a version number (descriptor) `$VER` (e.g., "3.0.0" or
-   "3.0.0-alpha") and select an internal version number (e.g.,
-   "3.0.0.30203"). The major.minor.patch numbers may already have been
+1. Select a version number `$VER` (e.g., "3.0.0" or "3.0.0-alpha"). 
+   The `major`.`minor`.`patch` numbers may already have been
    incremented since the last release, so they do not necessarily need
-   to be updated, but you may want to increment them further,
-   use judgement. The last section is in "ymmdd" format, where "y" is
-   the number of years since 2018 and "mmdd" the month and day portions
-   of the release date (e.g., a release on January 12th, 2022 would be
-   x.y.z.40112). Edit the internal version number in 
-  `Source/Directory.Build.Props`.
+   to be updated. However, you may want to increment them further
+   depending the types of changes that are in the release.
+1. Run `Scripts/prepare_release.py $VER prepare --source-branch <this branch>`
+   (`--source-branch` is optional and defaults to 'master')
+   from the root of the repository. The script will check that the repository is in a good
+   state, create and check out a new release branch, update
+   `Source/Directory.Build.props` and `RELEASE_NOTES.md`, prepare a release commit,
+   and push it.
 
-   Put the public version number in place of the "Upcoming" header in
-   `RELEASE_NOTES.md`, and add a new "Upcoming" header above it.
+1. Kick off the deep test suite by navigating to
+   <https://github.com/dafny-lang/dafny/actions/workflows/deep-tests.yml>,
+   clicking the "Run workflow" dropdown, selecting the newly created branch, and
+   clicking the "Run workflow" button. The automation for releasing below will
+   check for a run of this workflow on the exact commit to release.  (TODO:
+   Run this automatically as part of the prepare-release script.)
 
-   Push and cut a PR, get it approved, and squash and merge those
-   changes to the `master` branch.
+1. Once the the tests complete, run `Scripts/prepare_release.py $VER
+   release` from the root of the repository. The script will tag the
+   current commit and push it. (TODO: Merge with the two steps above.) A
+   GitHub action will automatically run in reaction to the tag being
+   pushed, which will build the artifacts and reference manual and then
+   create a draft GitHub release. You can find and watch the progress of
+   this workflow at <https://github.com/dafny-lang/dafny/actions>.
 
-3. Kick off the deep test suite by navigating to
-   https://github.com/dafny-lang/dafny/actions/workflows/deep-tests.yml,
-   clicking the "Run workflow" dropdown, ensuring `master` is selected,
-   and clicking the "Run workflow" button. The automation for releasing
-   below will check for a run of this workflow on the exact commit
-   to release.
+1. Once the action completes, you should find the draft release at
+   <https://github.com/dafny-lang/dafny/releases>. Edit the release body to add in
+   the release notes from `RELEASE_NOTES.md`.  If this is not a pre-release,
+   check the box to create a new discussion based on the release.
 
-4. Create a fresh clone of the repo locally, making sure the latest commit
-   is the squashed commit you just merged and tested, and push the tag for this release.
+1. Push the "Publish" button. This will trigger yet another workflow
+   that will download the published artifacts and run a smoke test
+   on multiple platforms. Again you can watch for this workflow at
+   <https://github.com/dafny-lang/dafny/actions>.
 
-   ```
-   git clone git@github.com:dafny-lang/dafny.git dafny-for-tagging
-   cd dafny-for-tagging
-   git tag v<$VER>
-   git push origin v<$VER>
-   ```
+1. Create a pull request to merge the newly created branch into the source branch (the
+   script will give you a link to do so).  Get it approved and merged.
 
-5. A GitHub action will automatically run in reaction to the tag being pushed,
-   which will build the artifacts, upload them to NuGet, build the reference manual,
-   and then create a draft GitHub release.
-   You can find and watch the progress of this workflow at
-   https://github.com/dafny-lang/dafny/actions.
+1. Clone <https://github.com/dafny-lang/ide-vscode> and run `publish_process.js`
+   to create a new release of the VSCode plugin.
 
-6. Once the action completes, you should find the draft release at
-   https://github.com/dafny-lang/dafny/releases. Edit the release body
-   to add in the release notes from `RELEASE_NOTES.md`.
-   Also check the box to create a new discussion based on
-   the release, if this is not a pre-release.
+1. Make a documentation snapshot
+   1. Run the (bash) command `dafny/docs/make-snapshot -b <branch> x.y.z`
+      where `x.y.z` is the new version number
+      and <branch> is the branch used (defaults to 'master')
+   1. The script creates new PRs in dafny-lang/dafny
+      and dafny-lang/dafny-lang.github.io.
+      Approve and merge these PRs.
 
-7. Push the "Publish" button. This will trigger yet another workflow
-   that will download the published artifacts (from both GitHub and NuGet)
-   and run a smoke test on multiple platforms. 
-   Again you can watch for this workflow at
-   https://github.com/dafny-lang/dafny/actions.
+1. Add the new version to the list of versions to be checked in the library repo,
+   namely the list in the file libraries/.github/workflows/tests.yml.
 
-8. If preparing a pre-release, stop here, as
-   the following steps declare the release as the latest version, which
-   is not the intention.
-
-9. If something goes wrong, delete the tag and release in GitHub, fix the
-   problem and try again.
-
-10. Update the Homebrew formula for Dafny (see below).
+1. Update the Homebrew formula for Dafny (see below).
     Note that it is fine to leave this for the next day,
     and other members of the community may update the formula
     in the meantime anyway.
 
-11. Announce the new release to the world.
+1. Once the Homebrew formula is merged, test that it works correctly by
+   going to <https://github.com/dafny-lang/dafny/actions> and manually
+   running the "Test Brew release on Mac" workflow. It doesn't matter
+   what branch you run it on because it won't actually check out the
+   code. It will just install Dafny from Homebrew and run it on some
+   examples.
+
+If something goes wrong with the `prepare` step:
+
+- Remove the release commit (`git reset --hard HEAD~1`)
+- Commit fixes
+- Re-run the `prepare` step; the script will recognize the `release-` branch and will not recreate it.
+
+If something goes wrong with the `release` step:
+- Delete the local tag: `git tag -d vA.B.C`
+- Delete the remote tag: `git push --delete origin vA.B.C`
+- Return to the `prepare` step.
+
+1. Announce the new release to the world.
 
 ## Updating Dafny on Homebrew
 
@@ -107,11 +117,11 @@ with git commands and concepts is helpful.
 
    These instructions currently involve the following command:
 
-   ```
+```
   brew bump-formula-pr \
     --url <source .tar.gz for the release> \
     --sha256 <sha256 of the source .tar.gz for the release>
-   ```
+```
 
 3. Expect comments from the reviewers. If changes are needed, do 4-6
    again. Eventually the reviewers will accept and merge the PR.
@@ -123,23 +133,3 @@ with git commands and concepts is helpful.
    and then execute `dafny /version` see if it has the correct version
    number. Even better is to try this step on a different machine than
    the one on which the `dafny.rb` file was edited
-
-## Updating and releasing a new version of VSCode plugin
-
-1. Build ide-vscode locally from https://github.com/dafny-lang/ide-vscode .
-
-2. Prepare the repository:
-
-       git checkout master
-       git pull origin
-       git checkout -b <some new branch name>
-
-3. Add the new Dafny version number to the `dafny.preferredVersion` list in the `package.json` file.
-
-4. Update the value of the constant `LatestVersion` in the file `src/constants.ts` to the new version number.
-
-5. Before releasing a new version of the VSCode plugin, make sure to add to the release notes in `CHANGELOG.md`
-
-6. Follow the release process detailed in the plugin's repository:
-
-   <https://github.com/dafny-lang/ide-vscode/blob/master/CONTRIBUTING.md>

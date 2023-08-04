@@ -1,4 +1,4 @@
-// RUN: %dafny_0 /rprint:"%t.rprint" "%s" > "%t"
+// RUN: %exits-with 2 %dafny /rprint:"%t.rprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // Once upon a time, several of these would crash the resolver after it had reported
@@ -6,7 +6,7 @@
 
 class MyClass<O> { }
 
-function F<Y>(x: int, Y: Y): int { x }
+ghost function F<Y>(x: int, Y: Y): int { x }
 
 
 type Subset0<A> = x: int | var s: seq<A> := []; |s| == 0

@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %baredafny verify %args --relax-definite-assignment --boogie=/print:%t.bprint --print="%t.print" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 method test0(x: int)

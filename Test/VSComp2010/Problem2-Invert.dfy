@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:0 /autoTriggers:0 "%s" > "%t"
+// RUN: %dafny /compile:0 /deprecation:0 /autoTriggers:0 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // VSComp 2010, problem 2, compute the inverse 'B' of a permutation 'A' and prove that 'B' is
@@ -49,7 +49,7 @@ method M(N: int, A: array<int>, B: array<int>)
   assert forall j,k :: 0 <= j < k < N ==> B[j] != B[k];
 }
 
-function inImage(i: int): bool { true }  // this function is used to trigger the surjective quantification
+ghost function inImage(i: int): bool { true }  // this function is used to trigger the surjective quantification
 
 method Main()
 {

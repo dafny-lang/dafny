@@ -9,6 +9,7 @@ using System.Linq;
 using System.Text;
 using Microsoft.Boogie;
 using System.Diagnostics.Contracts;
+using static Microsoft.Dafny.ErrorRegistry;
 
 namespace Microsoft.Dafny.Triggers {
   class QuantifierWithTriggers {
@@ -75,7 +76,8 @@ namespace Microsoft.Dafny.Triggers {
       foreach (var q in quantifiers) {
         var candidates = triggersCollector.CollectTriggers(q.quantifier).Deduplicate(TriggerTerm.Eq);
         // filter out the candidates that was "second-class"
-        var filtered = TriggerUtils.Filter(candidates, tr => tr, (tr, _) => !tr.IsTranslatedToFunctionCall(), (tr, _) => { }).ToList();
+        var filtered = TriggerUtils.Filter(candidates, tr => tr,
+          (tr, _) => !triggersCollector.TranslateToFunctionCall(tr.Expr), (tr, _) => { }).ToList();
         // if there are only "second-class" candidates, add them back.
         if (filtered.Count == 0) {
           filtered = candidates;
@@ -86,7 +88,8 @@ namespace Microsoft.Dafny.Triggers {
 
       foreach (var q in quantifiers) {
         q.CandidateTerms = distinctPool; // The list of candidate terms is immutable
-        q.Candidates = TriggerUtils.AllNonEmptySubsets(distinctPool, SubsetGenerationPredicate, q.quantifier.BoundVars).Select(set => set.ToTriggerCandidate()).ToList();
+        q.Candidates = TriggerUtils.AllNonEmptySubsets(distinctPool, SubsetGenerationPredicate, q.quantifier.BoundVars)
+          .Select(set => set.ToTriggerCandidate()).ToList();
       }
     }
 
@@ -143,12 +146,14 @@ namespace Microsoft.Dafny.Triggers {
 
         var safe = TriggerUtils.Filter(
           q.Candidates,
-          candidate => candidate.LoopingSubterms(q.quantifier).ToList(),
+          candidate => candidate.LoopingSubterms(q.quantifier, reporter.Options).ToList(),
           (candidate, loopingSubterms) => !loopingSubterms.Any(),
           (candidate, loopingSubterms) => {
             looping.Add(candidate);
             loopingMatches = loopingSubterms.ToList();
-            candidate.Annotation = "may loop with " + loopingSubterms.MapConcat(t => "\"" + Printer.ExprToString(t.OriginalExpr) + "\"", ", ");
+            candidate.Annotation = "may loop with " +
+                                   String.Join(", ",
+                                     loopingSubterms.Select(t => "\"" + Printer.ExprToString(reporter.Options, t.OriginalExpr) + "\""));
           }).ToList();
 
         q.CouldSuppressLoops = safe.Count > 0;
@@ -173,7 +178,7 @@ namespace Microsoft.Dafny.Triggers {
         bool rewritten = false;
         foreach (var q in quantifiers) {
           if (TriggerUtils.NeedsAutoTriggers(q.quantifier) && TriggerUtils.WantsMatchingLoopRewrite(q.quantifier)) {
-            var matchingLoopRewriter = new MatchingLoopRewriter();
+            var matchingLoopRewriter = new MatchingLoopRewriter(reporter.Options);
             var qq = matchingLoopRewriter.RewriteMatchingLoops(q);
             splits.Add(qq);
             l.Add(new QuantifierWithTriggers(qq));
@@ -248,12 +253,14 @@ namespace Microsoft.Dafny.Triggers {
           QuantifierWithTriggers q = group.quantifier;
           if (q.quantifier is ForallExpr) {
             ForallExpr quantifier = (ForallExpr)q.quantifier;
-            Expression expr = QuantifiersToExpression(quantifier.tok, BinaryExpr.ResolvedOpcode.And, group.expressions);
-            q.quantifier = new ForallExpr(quantifier.tok, quantifier.BodyEndTok, quantifier.BoundVars, quantifier.Range, expr, TriggerUtils.CopyAttributes(quantifier.Attributes)) { Type = quantifier.Type, Bounds = quantifier.Bounds };
+            IToken tok = quantifier.tok is NestedToken nestedToken ? nestedToken.Outer : quantifier.tok;
+            Expression expr = QuantifiersToExpression(tok, BinaryExpr.ResolvedOpcode.And, group.expressions);
+            q.quantifier = new ForallExpr(tok, quantifier.RangeToken, quantifier.BoundVars, quantifier.Range, expr, TriggerUtils.CopyAttributes(quantifier.Attributes)) { Type = quantifier.Type, Bounds = quantifier.Bounds };
           } else if (q.quantifier is ExistsExpr) {
             ExistsExpr quantifier = (ExistsExpr)q.quantifier;
-            Expression expr = QuantifiersToExpression(quantifier.tok, BinaryExpr.ResolvedOpcode.Or, group.expressions);
-            q.quantifier = new ExistsExpr(quantifier.tok, quantifier.BodyEndTok, quantifier.BoundVars, quantifier.Range, expr, TriggerUtils.CopyAttributes(quantifier.Attributes)) { Type = quantifier.Type, Bounds = quantifier.Bounds };
+            IToken tok = quantifier.tok is NestedToken nestedToken ? nestedToken.Outer : quantifier.tok;
+            Expression expr = QuantifiersToExpression(tok, BinaryExpr.ResolvedOpcode.Or, group.expressions);
+            q.quantifier = new ExistsExpr(tok, quantifier.RangeToken, quantifier.BoundVars, quantifier.Range, expr, TriggerUtils.CopyAttributes(quantifier.Attributes)) { Type = quantifier.Type, Bounds = quantifier.Bounds };
           }
           list.Add(q);
           splits.Add(q.quantifier);
@@ -280,13 +287,13 @@ namespace Microsoft.Dafny.Triggers {
       return expr;
     }
 
-    private void CommitOne(QuantifierWithTriggers q, bool addHeader) {
+    private void CommitOne(DafnyOptions options, QuantifierWithTriggers q, bool addHeader) {
       var errorLevel = ErrorLevel.Info;
       var msg = new StringBuilder();
       var indent = addHeader ? "  " : "";
       bool suppressWarnings = Attributes.Contains(q.quantifier.Attributes, "nowarn");
       var reportingToken = q.quantifier.tok;
-      // If there is only one sub-expression, we discard the nested token information.
+      // If there is only one subexpression, we discard the nested token information.
       if (reportingToken is NestedToken nestedToken && !addHeader) {
         reportingToken = nestedToken.Outer;
       }
@@ -300,10 +307,10 @@ namespace Microsoft.Dafny.Triggers {
 
       if (!TriggerUtils.NeedsAutoTriggers(q.quantifier)) { // NOTE: split and autotriggers attributes are passed down to Boogie
         var extraMsg = TriggerUtils.WantsAutoTriggers(q.quantifier) ? "" : " Note that {:autotriggers false} can cause instabilities. Consider using {:nowarn}, {:matchingloop} (not great either), or a manual trigger instead.";
-        msg.AppendFormat("Not generating triggers for \"{0}\".{1}", Printer.ExprToString(q.quantifier.Term), extraMsg).AppendLine();
+        msg.AppendFormat("Not generating triggers for \"{0}\".{1}", Printer.ExprToString(options, q.quantifier.Term), extraMsg).AppendLine();
       } else {
         if (addHeader) {
-          msg.AppendFormat("For expression \"{0}\":", Printer.ExprToString(q.quantifier.Term)).AppendLine();
+          msg.AppendFormat("For expression \"{0}\":", Printer.ExprToString(options, q.quantifier.Term)).AppendLine();
         }
 
         foreach (var candidate in q.Candidates) {
@@ -314,7 +321,7 @@ namespace Microsoft.Dafny.Triggers {
         AddTriggersToMessage("Rejected triggers:", q.RejectedCandidates, msg, indent, true);
 
 #if QUANTIFIER_WARNINGS
-        var WARN_TAG = DafnyOptions.O.UnicodeOutput ? "⚠ " : @"/!\ ";
+        var WARN_TAG = options.UnicodeOutput ? "⚠ " : @"/!\ ";
         var WARN_TAG_OVERRIDE = suppressWarnings ? "(Suppressed warning) " : WARN_TAG;
         var WARN_LEVEL = suppressWarnings ? ErrorLevel.Info : ErrorLevel.Warning;
         var WARN = indent + WARN_TAG_OVERRIDE;
@@ -338,9 +345,9 @@ namespace Microsoft.Dafny.Triggers {
 #endif
       }
 
-      if (msg.Length > 0) {
+      if (msg.Length > 0 && !Attributes.Contains(q.quantifier.Attributes, "auto_generated")) {
         var msgStr = msg.ToString().TrimEnd("\r\n ".ToCharArray());
-        reporter.Message(MessageSource.Rewriter, errorLevel, reportingToken, msgStr);
+        reporter.Message(MessageSource.Rewriter, errorLevel, null, reportingToken, msgStr);
       }
     }
 
@@ -357,9 +364,9 @@ namespace Microsoft.Dafny.Triggers {
       }
     }
 
-    internal void CommitTriggers() {
+    internal void CommitTriggers(DafnyOptions options) {
       foreach (var q in quantifiers) {
-        CommitOne(q, quantifiers.Count > 1);
+        CommitOne(options, q, quantifiers.Count > 1);
       }
     }
   }

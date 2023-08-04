@@ -1,10 +1,5 @@
-// RUN: %dafny /compile:0 "%s" > "%t"
-// RUN: %dafny /noVerify /compile:4 /spillTargetCode:2 /compileTarget:cs "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /spillTargetCode:2 /compileTarget:js "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /spillTargetCode:2 /compileTarget:go "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /spillTargetCode:2 /compileTarget:java "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /spillTargetCode:2 /compileTarget:py "%s" >> "%t"
-// RUN: %diff "%s.expect" "%t"
+// NONUNIFORM: https://github.com/dafny-lang/dafny/issues/4108
+// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment --spill-translation --unicode-char:false
 
 method Main() {
   Sets();
@@ -65,7 +60,7 @@ module CharOrder refines Order {
 module CharSetSetOrder refines Order {
   type T = set<char>
 
-  function method Pow2(i: nat) : nat {
+  function Pow2(i: nat) : nat {
     if i == 0 then 1 else 2 * Pow2(i-1)
   }
 
@@ -155,7 +150,7 @@ method SubSets() {
   print "\n";
 }
 
-predicate method P(r: set<char>) { true }
+predicate P(r: set<char>) { true }
 
 // -------------------------------------------------------------------------------------------
 

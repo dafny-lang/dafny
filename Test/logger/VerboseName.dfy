@@ -1,11 +1,11 @@
-// RUN: %dafny_0 /compile:0 /trace "%s" > "%t"
+// RUN: %dafny /compile:0 /trace "%s" > "%t"
 // RUN: %OutputCheck --file-to-check "%t" "%s"
 // CHECK-L:Verifying AM1.T2Client.Calc (override check) ...
-// CHECK-L:Verifying smallPrime (well-formedness) ...
 // CHECK-L:Verifying posIdMeth (correctness) ...
+// CHECK-L:Verifying smallPrime (well-formedness) ...
 newtype smallPrime = x: int | x in {2, 3, 5, 7} witness 2
 
-function method posId(x: smallPrime): smallPrime {
+function posId(x: smallPrime): smallPrime {
   x
 }
 

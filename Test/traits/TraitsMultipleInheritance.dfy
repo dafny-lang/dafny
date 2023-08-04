@@ -1,12 +1,11 @@
-// RUN: %dafny /compile:3 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment
 
 trait J1{
-  var x: int;
+  var x: int
 }
 
 trait J2{
-  var y: int;
+  var y: int
 }
 
 class C extends J1, J2{

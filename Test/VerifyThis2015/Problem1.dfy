@@ -1,5 +1,4 @@
-// RUN: %dafny /compile:3 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment
 
 // Rustan Leino
 // 12 April 2015
@@ -9,14 +8,14 @@
 // The property IsRelaxedPrefix is defined in terms of an auxiliary function.  The
 // auxiliary function allows a given number (here, 1) of elements to be dropped from
 // the pattern.
-predicate IsRelaxedPrefix<T>(pat: seq<T>, a: seq<T>)
+ghost predicate IsRelaxedPrefix<T>(pat: seq<T>, a: seq<T>)
 {
   IsRelaxedPrefixAux(pat, a, 1)
 }
 
 // This predicate returns whether or not "pat", dropping up to "slack" elements, is
 // a prefix of "a".
-predicate IsRelaxedPrefixAux<T>(pat: seq<T>, a: seq<T>, slack: nat)
+ghost predicate IsRelaxedPrefixAux<T>(pat: seq<T>, a: seq<T>, slack: nat)
 {
   // if "pat" is the empty sequence, the property holds trivially, regardless of the slack
   if pat == [] then true
@@ -73,7 +72,7 @@ method Main()
 
 // Here is an alternative definition of IsRelaxedPrefix.  Perhaps this definition more obviously
 // follows the English description of "relaxed prefix" given in the problem statement.
-predicate IRP_Alt<T>(pat: seq<T>, a: seq<T>)
+ghost predicate IRP_Alt<T>(pat: seq<T>, a: seq<T>)
 {
   // "pat" is a relaxed prefix of "a"
   // if "pat" is an actual prefix of "a"
@@ -157,7 +156,7 @@ lemma Prefix<T>(pat: seq<T>, a: seq<T>)
   ensures IsRelaxedPrefixAux(pat, a, 0)
 {
 }
-lemma Same2<T>(pat: seq<T>, a: seq<T>)
+lemma {:vcs_split_on_every_assert} Same2<T>(pat: seq<T>, a: seq<T>)
   requires IsRelaxedPrefixAux(pat, a, 1)
   ensures IRP_Alt(pat, a)
 {

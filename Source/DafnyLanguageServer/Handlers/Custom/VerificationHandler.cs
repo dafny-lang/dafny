@@ -22,45 +22,47 @@ public record VerificationParams : TextDocumentPositionParams, IRequest<bool>;
 public record CancelVerificationParams : TextDocumentPositionParams, IRequest<bool>;
 
 public class VerificationHandler : IJsonRpcRequestHandler<VerificationParams, bool>, IJsonRpcRequestHandler<CancelVerificationParams, bool> {
-  private readonly IDocumentDatabase documents;
+  private readonly IProjectDatabase projects;
 
   public VerificationHandler(
-    IDocumentDatabase documents) {
-    this.documents = documents;
+    IProjectDatabase projects) {
+    this.projects = projects;
   }
 
   public async Task<bool> Handle(VerificationParams request, CancellationToken cancellationToken) {
-    var documentManager = documents.GetDocumentManager(request.TextDocument);
-    if (documentManager == null) {
+    var projectManager = await projects.GetProjectManager(request.TextDocument);
+    if (projectManager == null) {
       return false;
     }
 
-    var translatedDocument = await documentManager.Compilation.TranslatedDocument;
-    var requestPosition = request.Position;
+    var translatedCompilation = await projectManager.CompilationManager.TranslatedCompilation;
     var someTasksAreRunning = false;
-    var tasksAtPosition = GetTasksAtPosition(translatedDocument, requestPosition);
+    var tasksAtPosition = GetTasksAtPosition(translatedCompilation, request);
     foreach (var taskToRun in tasksAtPosition) {
-      someTasksAreRunning |= documentManager.Compilation.VerifyTask(translatedDocument, taskToRun);
+      someTasksAreRunning |= projectManager.CompilationManager.VerifyTask(translatedCompilation, taskToRun);
     }
     return someTasksAreRunning;
   }
 
-  private static IEnumerable<IImplementationTask> GetTasksAtPosition(DocumentAfterTranslation document, Position requestPosition) {
-    return document.VerificationTasks.Where(t => {
+  private static IEnumerable<IImplementationTask> GetTasksAtPosition(CompilationAfterTranslation compilation, TextDocumentPositionParams request) {
+    var uri = request.TextDocument.Uri.ToUri();
+    return compilation.VerificationTasks.Where(t => {
+      if (((IToken)t.Implementation.tok).Uri != uri) {
+        return false;
+      }
       var lspPosition = t.Implementation.tok.GetLspPosition();
-      return lspPosition.Equals(requestPosition);
+      return lspPosition.Equals(request.Position);
     });
   }
 
   public async Task<bool> Handle(CancelVerificationParams request, CancellationToken cancellationToken) {
-    var documentManager = documents.GetDocumentManager(request.TextDocument);
-    if (documentManager == null) {
+    var projectManager = await projects.GetProjectManager(request.TextDocument);
+    if (projectManager == null) {
       return false;
     }
 
-    var translatedDocument = await documentManager.Compilation.TranslatedDocument;
-    var requestPosition = request.Position;
-    foreach (var taskToRun in GetTasksAtPosition(translatedDocument, requestPosition)) {
+    var translatedDocument = await projectManager.CompilationManager.TranslatedCompilation;
+    foreach (var taskToRun in GetTasksAtPosition(translatedDocument, request)) {
       taskToRun.Cancel();
     }
 

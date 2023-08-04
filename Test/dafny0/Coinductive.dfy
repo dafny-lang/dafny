@@ -1,4 +1,4 @@
-// RUN: %dafny_0 /compile:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %exits-with 2 %dafny /compile:0 /deprecation:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // --------------------------------------------------
@@ -71,12 +71,12 @@ module CoPredicateResolutionErrors {
 
   codatatype Stream<T> = StreamCons(head: T, tail: Stream)
 
-  function Upward(n: int): Stream<int>
+  ghost function Upward(n: int): Stream<int>
   {
     StreamCons(n, Upward(n + 1))
   }
 
-  function Doubles(n: int): Stream<int>
+  ghost function Doubles(n: int): Stream<int>
   {
     StreamCons(2*n, Doubles(n + 1))
   }

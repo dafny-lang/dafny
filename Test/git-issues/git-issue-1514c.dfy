@@ -1,7 +1,6 @@
-// RUN: %dafny /compile:3 /rprint:"%t.rprint" "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment
 
-include "../libraries/src/Wrappers.dfy"
+include "Wrappers.dfy"
 import opened Wrappers
 
 method id<T>(r: T) returns (r2: T)  {
@@ -17,7 +16,7 @@ method test(s: string) returns (r: Option<string>) {
 method Main() {
   var x := test("ok");
   if x.Some? {
-    print x.value;
+    print x.value, "\n";
   } else {
     print "None?!";
   }

@@ -1,10 +1,5 @@
-// RUN: %dafny /compile:0 "%s" > "%t"
-// RUN: %dafny /noVerify /compile:4 /spillTargetCode:2 /compileTarget:cs "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /spillTargetCode:2 /compileTarget:js "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /spillTargetCode:2 /compileTarget:go "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /spillTargetCode:2 /compileTarget:java "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /spillTargetCode:2 /compileTarget:py "%s" >> "%t"
-// RUN: %diff "%s.expect" "%t"
+// NONUNIFORM: https://github.com/dafny-lang/dafny/issues/4108
+// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment --spill-translation
 
 datatype List = Nil | Cons(head: int, tail: List)
 
@@ -37,23 +32,28 @@ method Main() {
   TestConflictingNames();
   TestModule();
 
+  var _, _ := UpdateRegression(6);
+
   TestGhostDestructors();
+
+  TestNumericDestructorNames();
+  TypeDescriptorsInCovariantPositions.Test();
 }
 
-function method Up(m: nat, n: nat): List
+function Up(m: nat, n: nat): List
   requires m <= n
   decreases n - m
 {
   if m == n then Nil else Cons(m, Up(m+1, n))
 }
 
-function method Sum(xs: List): int {
+function Sum(xs: List): int {
   match xs  // top-level match expression
   case Nil => 0
   case Cons(x, tail) => x + Sum(tail)
 }
 
-function method SumAgain(xs: List): int {
+function SumAgain(xs: List): int {
   var r := match xs  // let expression; non-top-level match expression
     case Nil => 0
     case Cons(x, tail) => x + SumAgain(tail);
@@ -82,7 +82,7 @@ method CoDt() {
 
 codatatype Stream = Next(shead: int, stail: Stream)
 
-function method CoUp(n: int, b: bool): Stream
+function CoUp(n: int, b: bool): Stream
 {
   if b then
     CoUp(n, false)  // recursive, not co-recursive, call
@@ -90,18 +90,18 @@ function method CoUp(n: int, b: bool): Stream
     Next(n, CoUp(n+1, true))  // CoUp is co-recursive call
 }
 
-function method ToList(s: Stream, n: nat): List
+function ToList(s: Stream, n: nat): List
 {
   if n == 0 then Nil else Cons(s.shead, ToList(s.stail, n-1))
 }
 
 datatype Berry = Smultron | Jordgubb | Hjortron | Hallon
-predicate method IsRed(b: Berry) {
+predicate IsRed(b: Berry) {
   b != Berry.Hjortron
 }
 
 codatatype CoBerry = Smultron | Jordgubb | Hjortron | Hallon  // no reason for this to be a co-datatype, but, hey, why not
-predicate method IsCoRed(b: CoBerry) {
+predicate IsCoRed(b: CoBerry) {
   b == CoBerry.Hjortron
 }
 
@@ -116,7 +116,7 @@ method AllBerry() {
 
 codatatype NatPlus = Succ(NatPlus) | Zero
 
-function method Inf(): NatPlus {
+function Inf(): NatPlus {
   Succ(Inf())
 }
 
@@ -127,18 +127,42 @@ method TestConflictingNames() {
   print x.len, " ", x.public, " ", x.goto, "\n";
 }
 
-module Module {
+module ModuleX {
   datatype OptionInt = Some(int) | None
 }
 
 method TestModule() {
-  PrintMaybe(Module.Some(1701));
+  PrintMaybe(ModuleX.Some(1701));
 }
 
-method PrintMaybe(x : Module.OptionInt) {
+method PrintMaybe(x : ModuleX.OptionInt) {
   match x
   case Some(n) => print n, "\n";
   case None => print "None\n";
+}
+
+datatype Record = Record(ghost x: int, y: int, ghost z: bool, w: bool)
+
+method UpdateRegression(six: int) returns (eight: int, ten: int) {
+  eight, ten := 8, 10;
+
+  var r := Record(10, 20, true, true);
+  r := r.(z := false);
+  var twentytwo := 22;
+  // In the following, the local variable "twentytwo", in-parameter "six", and
+  // match-bound variable "yy" were once not adequately protected (in Java).
+  match r {
+    case Record(_, yy, _, _) =>
+      r := r.(y := twentytwo + ten + six + yy);
+  }
+  print r, "\n"; // Record.Record(58, true)
+
+  var f;
+  match r {
+    case Record(_, yy, _, _) =>
+      f := x => x + twentytwo + 3 + ten + six + yy;
+  }
+  print f(100), "\n"; // 199
 }
 
 datatype R = R(x: int, ghost g: int)
@@ -152,4 +176,35 @@ method TestGhostDestructors() {
 
   assert e == R(13, 23);
   expect e.x == 13;
+}
+
+datatype NumericDestructorNames = NumericDestructorNames(0: int, 0_3: int, 012: int)
+
+method TestNumericDestructorNames() {
+  // once, these were compiled incorrectly for Java
+  var j := NumericDestructorNames(800, 801, 802);
+  match j {
+    case NumericDestructorNames(a, b, c) =>
+      print a, " ", b, " ", c, "\n"; // 800 801 802
+  }
+  print j.0, " ", j.0_3, " ", j.012, "\n"; // 800 801 802
+}
+
+module TypeDescriptorsInCovariantPositions {
+  // This module contains two regression tests. One is that the compiler to C# once didn't consider
+  // that type descriptors are in-parameters whose type may mention co-variant type parameters. The
+  // other is that the compiler to Go once used the name "Get()" as the name of one of its internal
+  // methods, which then could conflict with a user-defined method with that name.
+  datatype Unit<+X(0)> = Unit
+  {
+    method Get(x: X) returns (r: X) { }
+    method Het() returns (r: X) { }
+  }
+
+  method Test() {
+    var u: Unit<real>;
+    var r0 := u.Get(3.2);
+    var r1 := u.Het();
+    print u, " ", r0, " ", r1, "\n";
+  }
 }

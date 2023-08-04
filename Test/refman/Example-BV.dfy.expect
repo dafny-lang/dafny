@@ -1,2 +1,0 @@
-Example-BV.dfy(3,16): Error: literal (5) is too large for the bitvector type bv2
-1 resolution/type errors detected in Example-BV.dfy

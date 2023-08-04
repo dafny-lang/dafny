@@ -4,6 +4,7 @@ entire module must be supplied.
 """
 
 import sys, _dafny
+import Wrappers
 
 assert "Library" == __name__
 Library = sys.modules[__name__]
@@ -31,7 +32,7 @@ class OtherClass:
 class AllDafny:
     @staticmethod
     def M():
-        _dafny.print(_dafny.Seq("AllDafny.M\n"))
+        _dafny.print(_dafny.string_of(_dafny.Seq("AllDafny.M\n")))
 
 class Mixed:
     def ctor__(self):
@@ -39,19 +40,19 @@ class Mixed:
 
     @staticmethod
     def M():
-        _dafny.print(_dafny.Seq("Extern static method says: "))
+        _dafny.print(_dafny.string_of(_dafny.Seq("Extern static method says: ")))
         Library.Mixed.P()
 
     @staticmethod
     def P():
-        _dafny.print(_dafny.Seq("Mixed.P\n"))
+        _dafny.print(_dafny.string_of(_dafny.Seq("Mixed.P\n")))
 
     def IM(self):
-        _dafny.print(_dafny.Seq("Extern instance method says: "))
+        _dafny.print(_dafny.string_of(_dafny.Seq("Extern instance method says: ")))
         (self).IP()
 
     def IP(self):
-        _dafny.print(_dafny.Seq("Mixed.IP\n"))
+        _dafny.print(_dafny.string_of(_dafny.Seq("Mixed.IP\n")))
 
     @staticmethod
     def F():
@@ -70,4 +71,23 @@ class Mixed:
 class AllExtern:
     @staticmethod
     def P():
-        _dafny.print(_dafny.Seq("AllExtern.P\n"))
+        print("AllExtern.P")
+
+    @staticmethod
+    def MaybeInt():
+        return Wrappers.Option_Some(42)
+
+    @staticmethod
+    def IntPair():
+        return Wrappers.Pair_Pair(3, 7)
+
+class SingletonOptimization:
+    @staticmethod
+    def SingletonTuple(x):
+        return x + 1
+    @staticmethod
+    def NoWrapper(x):
+        return x + 1
+    @staticmethod
+    def GhostWrapper(x):
+        return x + 1

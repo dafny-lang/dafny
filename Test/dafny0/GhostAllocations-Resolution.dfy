@@ -1,4 +1,4 @@
-// RUN: %dafny_0 "%s" > "%t"
+// RUN: %exits-with 2 %dafny "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // ------- A constructor-less class can be allocated as either ghost or non-ghost
@@ -154,7 +154,7 @@ module Arrays {
     r := d;
   }
 
-  function Double(i: int): int { 2 * i }
+  ghost function Double(i: int): int { 2 * i }
 }
 
 // ------- ghost constructors
@@ -457,7 +457,7 @@ module GhostMethodVersusLemma {
     var c := new Cell;
   }
 
-  predicate IsBig(x: int) {
+  ghost predicate IsBig(x: int) {
     100 <= x
   }
 

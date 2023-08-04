@@ -4,6 +4,7 @@ using Microsoft.Dafny.LanguageServer.Util;
 using Microsoft.Extensions.Options;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using System.Threading;
 using Microsoft.Extensions.Logging;
@@ -21,36 +22,40 @@ namespace Microsoft.Dafny.LanguageServer.Language {
   public class GhostStateDiagnosticCollector : IGhostStateDiagnosticCollector {
     private const string GhostStatementMessage = "Ghost statement";
 
-    private readonly GhostOptions options;
+    private readonly DafnyOptions options;
     private readonly ILogger<GhostStateDiagnosticCollector> logger;
-    public GhostStateDiagnosticCollector(IOptions<GhostOptions> options, ILogger<GhostStateDiagnosticCollector> logger) {
+    public GhostStateDiagnosticCollector(DafnyOptions options, ILogger<GhostStateDiagnosticCollector> logger) {
+      this.options = options;
       this.logger = logger;
-      this.options = options.Value;
     }
 
-    public IEnumerable<Diagnostic> GetGhostStateDiagnostics(SignatureAndCompletionTable signatureAndCompletionTable, CancellationToken cancellationToken) {
-      if (!options.MarkStatements) {
-        return Enumerable.Empty<Diagnostic>();
+    public IReadOnlyDictionary<Uri, IReadOnlyList<Range>> GetGhostStateDiagnostics(
+      SignatureAndCompletionTable signatureAndCompletionTable, CancellationToken cancellationToken) {
+      if (!options.Get(ServerCommand.GhostIndicators)) {
+        return ImmutableDictionary<Uri, IReadOnlyList<Range>>.Empty;
       }
 
+      if (signatureAndCompletionTable.CompilationUnit.Program.Reporter.HasErrors) {
+        return ImmutableDictionary<Uri, IReadOnlyList<Range>>.Empty; // TODO improve?
+      }
       try {
-        var visitor = new GhostStateSyntaxTreeVisitor(signatureAndCompletionTable.CompilationUnit.Program, cancellationToken);
+        var visitor = new GhostStateSyntaxTreeVisitor(cancellationToken);
         visitor.Visit(signatureAndCompletionTable.CompilationUnit.Program);
-        return visitor.GhostDiagnostics;
+        return visitor.GhostDiagnostics.ToDictionary(
+          kv => kv.Key,
+          kv => (IReadOnlyList<Range>)kv.Value);
       } catch (Exception e) {
         logger.LogDebug(e, "encountered an exception while getting ghost state diagnostics of {Name}", signatureAndCompletionTable.CompilationUnit.Name);
-        return new Diagnostic[] { };
+        return ImmutableDictionary<Uri, IReadOnlyList<Range>>.Empty;
       }
     }
 
     private class GhostStateSyntaxTreeVisitor : SyntaxTreeVisitor {
-      private readonly Dafny.Program program;
       private readonly CancellationToken cancellationToken;
 
-      public List<Diagnostic> GhostDiagnostics { get; } = new();
+      public Dictionary<Uri, List<Range>> GhostDiagnostics { get; } = new();
 
-      public GhostStateSyntaxTreeVisitor(Dafny.Program program, CancellationToken cancellationToken) {
-        this.program = program;
+      public GhostStateSyntaxTreeVisitor(CancellationToken cancellationToken) {
         this.cancellationToken = cancellationToken;
       }
 
@@ -59,26 +64,21 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       public override void Visit(Statement statement) {
         cancellationToken.ThrowIfCancellationRequested();
         if (IsGhostStatementToMark(statement)) {
-          GhostDiagnostics.Add(CreateGhostDiagnostic(GetRange(statement)));
+          var list = GhostDiagnostics.GetOrCreate(statement.Tok.Uri, () => new List<Range>());
+          list.Add(GetRange(statement));
         } else {
           base.Visit(statement);
         }
       }
 
       private bool IsGhostStatementToMark(Statement statement) {
-        return statement.IsGhost
-          && IsPartOfEntryDocumentAndNoMetadata(statement.Tok);
-      }
-
-
-      private bool IsPartOfEntryDocumentAndNoMetadata(IToken token) {
-        return token.line > 0 && program.IsPartOfEntryDocument(token);
+        return statement.IsGhost && statement.Tok.line > 0;
       }
 
       private static Range GetRange(Statement statement) {
         return statement switch {
           UpdateStmt updateStatement => GetRange(updateStatement),
-          _ => CreateRange(statement.Tok, statement.EndTok)
+          _ => CreateRange(statement.RangeToken.StartToken, statement.RangeToken.EndToken)
         };
       }
 
@@ -93,7 +93,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         } else {
           startToken = updateStatement.Tok;
         }
-        return CreateRange(startToken, updateStatement.EndTok);
+        return CreateRange(startToken, updateStatement.RangeToken.EndToken);
       }
 
       private static IToken GetStartTokenFromResolvedStatement(Statement resolvedStatement) {

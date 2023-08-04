@@ -3,8 +3,8 @@
 
 // This file checks that suppressing warnings works properly
 
-predicate f(x: int)
-predicate g(x: int)
+ghost predicate f(x: int)
+ghost predicate g(x: int)
 
 method M() {
   assert forall n :: n >= 0 || n < 0;

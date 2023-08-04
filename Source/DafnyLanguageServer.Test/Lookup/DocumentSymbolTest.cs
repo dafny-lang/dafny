@@ -1,20 +1,30 @@
-﻿using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-using OmniSharp.Extensions.LanguageServer.Protocol.Client;
+﻿using System.IO;
+using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
 using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
-using OmniSharp.Extensions.LanguageServer.Protocol.Progress;
-using System.Collections.Generic;
 using System.Linq;
-using System.Reactive.Linq;
 using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
+using Xunit;
+using Xunit.Abstractions;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
-  [TestClass]
   public class DocumentSymbolTest : ClientBasedLanguageServerTest {
 
-    [TestMethod]
+    [Fact]
+    public async Task CanResolveSymbolsForMultiFileProjects() {
+      var temp = Path.GetTempPath();
+      await CreateAndOpenTestDocument("", Path.Combine(temp, DafnyProject.FileName));
+      var file1 = await CreateAndOpenTestDocument("method Foo() {}", Path.Combine(temp, "file1.dfy"));
+      var file2 = await CreateAndOpenTestDocument("method Bar() {}", Path.Combine(temp, "file2.dfy"));
+
+      var fooSymbol = (await RequestDocumentSymbol(file1)).Single();
+      Assert.Equal("Foo", fooSymbol.Name);
+      var barSymbol = (await RequestDocumentSymbol(file2)).Single();
+      Assert.Equal("Bar", barSymbol.Name);
+    }
+
+    [Fact]
     public async Task LoadCorrectDocumentCreatesSymbols() {
       var source = @"
 class Y {
@@ -32,121 +42,74 @@ class Y {
 
       var classSymbol = (await RequestDocumentSymbol(documentItem)).Single();
       var classChildren = classSymbol.Children.ToArray();
-      Assert.AreEqual("Y", classSymbol.Name);
-      Assert.AreEqual(new Range((0, 6), (9, 0)), classSymbol.Range);
-      Assert.AreEqual(SymbolKind.Class, classSymbol.Kind);
-      Assert.AreEqual(3, classChildren.Length);
+      Assert.Equal("Y", classSymbol.Name);
+      Assert.Equal(new Range((0, 6), (0, 7)), classSymbol.SelectionRange);
+      Assert.Equal(new Range((0, 0), (9, 1)), classSymbol.Range);
+      Assert.Equal(SymbolKind.Class, classSymbol.Kind);
+      Assert.Equal(3, classChildren.Length);
 
       var fieldSymbol = classChildren[0];
-      Assert.AreEqual("z", fieldSymbol.Name);
-      Assert.AreEqual(new Range((1, 6), (1, 7)), fieldSymbol.Range);
-      Assert.AreEqual(SymbolKind.Field, fieldSymbol.Kind);
-      Assert.AreEqual(0, fieldSymbol.Children.Count());
+      Assert.Equal("z", fieldSymbol.Name);
+      Assert.Equal(new Range((1, 6), (1, 7)), fieldSymbol.SelectionRange);
+      Assert.Equal(SymbolKind.Field, fieldSymbol.Kind);
+      Assert.Empty(fieldSymbol.Children);
 
       var methodDoItSymbol = classChildren[1];
       var methodDoItChildren = methodDoItSymbol.Children.ToArray();
-      Assert.AreEqual("DoIt", methodDoItSymbol.Name);
-      Assert.AreEqual(new Range((3, 9), (4, 2)), methodDoItSymbol.Range);
-      Assert.AreEqual(SymbolKind.Method, methodDoItSymbol.Kind);
-      Assert.AreEqual(1, methodDoItChildren.Length);
+      Assert.Equal("DoIt", methodDoItSymbol.Name);
+      Assert.Equal(new Range((3, 9), (3, 13)), methodDoItSymbol.SelectionRange);
+      Assert.Equal(new Range((3, 2), (4, 3)), methodDoItSymbol.Range);
+      Assert.Equal(SymbolKind.Method, methodDoItSymbol.Kind);
+      Assert.Single(methodDoItChildren);
 
       var outParameterSymbol = methodDoItChildren[0];
-      Assert.AreEqual("x", outParameterSymbol.Name);
-      Assert.AreEqual(new Range((3, 25), (3, 26)), outParameterSymbol.Range);
-      Assert.AreEqual(SymbolKind.Variable, outParameterSymbol.Kind);
-      Assert.AreEqual(0, outParameterSymbol.Children.Count());
+      Assert.Equal("x", outParameterSymbol.Name);
+      Assert.Equal(new Range((3, 25), (3, 26)), outParameterSymbol.SelectionRange);
+      Assert.Equal(SymbolKind.Variable, outParameterSymbol.Kind);
+      Assert.Empty(outParameterSymbol.Children);
 
       var methodCallItSymbol = classChildren[2];
       var methodCallItChildren = methodCallItSymbol.Children.ToArray();
-      Assert.AreEqual("CallIt", methodCallItSymbol.Name);
-      Assert.AreEqual(new Range((6, 9), (8, 2)), methodCallItSymbol.Range);
-      Assert.AreEqual(SymbolKind.Method, methodCallItSymbol.Kind);
-      Assert.AreEqual(1, methodCallItChildren.Length);
+      Assert.Equal("CallIt", methodCallItSymbol.Name);
+      Assert.Equal(new Range((6, 9), (6, 15)), methodCallItSymbol.SelectionRange);
+      Assert.Equal(new Range((6, 2), (8, 3)), methodCallItSymbol.Range);
+      Assert.Equal(SymbolKind.Method, methodCallItSymbol.Kind);
+      Assert.Single(methodCallItChildren);
 
       var localVariableSymbol = methodCallItChildren[0];
-      Assert.AreEqual("x", localVariableSymbol.Name);
-      Assert.AreEqual(new Range((7, 8), (7, 9)), localVariableSymbol.Range);
-      Assert.AreEqual(SymbolKind.Variable, localVariableSymbol.Kind);
-      Assert.AreEqual(0, localVariableSymbol.Children.Count());
+      Assert.Equal("x", localVariableSymbol.Name);
+      Assert.Equal(new Range((7, 8), (7, 9)), localVariableSymbol.SelectionRange);
+      Assert.Equal(SymbolKind.Variable, localVariableSymbol.Kind);
+      Assert.Empty(localVariableSymbol.Children);
     }
 
-    [TestMethod]
-    public async Task LoadCorrectDocumentAndChangeToInvalidCreatesPartialSymbols() {
-      var source = @"
-class Y {
-  var z: nat;
-
-  method DoIt() returns (x: int) {
-  }
-
-  method CallIt() returns () {
-    var x := DoIt();
-  }
-}".TrimStart();
-      var documentItem = CreateTestDocument(source);
-      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      client.DidChangeTextDocument(new DidChangeTextDocumentParams {
-        TextDocument = new OptionalVersionedTextDocumentIdentifier {
-          Uri = documentItem.Uri,
-          Version = documentItem.Version + 1
-        },
-        ContentChanges = new[] {
-          new TextDocumentContentChangeEvent {
-            Range = new Range((3, 11), (4, 3)),
-            Text = ""
-          }
-        }
-      });
-
-      var classSymbol = (await RequestDocumentSymbol(documentItem)).Single();
-      var classChildren = classSymbol.Children.ToArray();
-      Assert.AreEqual("Y", classSymbol.Name);
-      Assert.AreEqual(new Range((0, 6), (8, 0)), classSymbol.Range);
-      Assert.AreEqual(SymbolKind.Class, classSymbol.Kind);
-      Assert.AreEqual(2, classChildren.Length);
-
-      var fieldSymbol = classChildren[0];
-      Assert.AreEqual("z", fieldSymbol.Name);
-      Assert.AreEqual(new Range((1, 6), (1, 7)), fieldSymbol.Range);
-      Assert.AreEqual(SymbolKind.Field, fieldSymbol.Kind);
-      Assert.AreEqual(0, fieldSymbol.Children.Count());
-
-      var methodCallItSymbol = classChildren[1];
-      var methodCallItChildren = methodCallItSymbol.Children.ToArray();
-      Assert.AreEqual("CallIt", methodCallItSymbol.Name);
-      Assert.AreEqual(new Range((5, 9), (7, 2)), methodCallItSymbol.Range);
-      Assert.AreEqual(SymbolKind.Method, methodCallItSymbol.Kind);
-      Assert.AreEqual(1, methodCallItChildren.Length);
-
-      var localVariableSymbol = methodCallItChildren[0];
-      Assert.AreEqual("x", localVariableSymbol.Name);
-      Assert.AreEqual(new Range((6, 8), (6, 9)), localVariableSymbol.Range);
-      Assert.AreEqual(SymbolKind.Variable, localVariableSymbol.Kind);
-      Assert.AreEqual(0, localVariableSymbol.Children.Count());
-    }
-
-    [TestMethod]
+    [Fact]
     public async Task CanResolveSymbolsForMethodsWithoutBody() {
       var source = "method DoIt()";
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
 
       var methodSymbol = (await RequestDocumentSymbol(documentItem)).Single();
-      Assert.AreEqual("DoIt", methodSymbol.Name);
-      Assert.AreEqual(new Range((0, 7), (0, 11)), methodSymbol.Range);
-      Assert.AreEqual(SymbolKind.Method, methodSymbol.Kind);
+      Assert.Equal("DoIt", methodSymbol.Name);
+      Assert.Equal(new Range((0, 7), (0, 11)), methodSymbol.SelectionRange);
+      Assert.Equal(new Range((0, 0), (0, 13)), methodSymbol.Range);
+      Assert.Equal(SymbolKind.Method, methodSymbol.Kind);
     }
 
-    [TestMethod]
+    [Fact]
     public async Task CanResolveSymbolsForFunctionWithoutBody() {
       var source = "function ConstOne(): int";
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
 
       var methodSymbol = (await RequestDocumentSymbol(documentItem)).Single();
-      Assert.AreEqual("ConstOne", methodSymbol.Name);
-      Assert.AreEqual(new Range((0, 9), (0, 17)), methodSymbol.Range);
-      Assert.AreEqual(SymbolKind.Function, methodSymbol.Kind);
+      Assert.Equal("ConstOne", methodSymbol.Name);
+      Assert.Equal(new Range((0, 0), (0, 24)), methodSymbol.Range);
+      Assert.Equal(new Range((0, 9), (0, 17)), methodSymbol.SelectionRange);
+      Assert.Equal(SymbolKind.Function, methodSymbol.Kind);
+    }
+
+    public DocumentSymbolTest(ITestOutputHelper output) : base(output) {
     }
   }
 }

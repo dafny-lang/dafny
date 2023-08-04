@@ -1,11 +1,11 @@
-// RUN: %dafny_0 /compile:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %exits-with 4 %dafny /compile:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 lemma M(n: nat) //returns (y: nat)
 {
   var y := F(n, 0);
 }
-function F(n: nat, p: int): nat
+ghost function F(n: nat, p: int): nat
 {
   calc {
     100;
@@ -16,14 +16,14 @@ function F(n: nat, p: int): nat
 }
 
 lemma MM(n: nat) returns (y: nat)
-  decreases n, 0;
+  decreases n, 0
 {
   if n != 0 {
     y := FF(n-1);
   }
 }
-function FF(n: nat): nat
-  decreases n, 1;
+ghost function FF(n: nat): nat
+  decreases n, 1
 {
   calc {
     100;
@@ -62,28 +62,28 @@ lemma Q(n: nat)
 
 // ---------------------
 
-function Fact(n: nat): nat
+ghost function Fact(n: nat): nat
 {
   if n == 0 then 1 else n * Fact(n-1)
 }
 
 lemma L(n: nat)
-  ensures 1 <= Fact(n);
+  ensures 1 <= Fact(n)
 {
 }
 
-function F_Fails(n: nat): int
+ghost function F_Fails(n: nat): int
 {
   50 / Fact(n)  // error: possible division by zero
 }
 
-function F_Succeeds(n: nat): int
+ghost function F_Succeeds(n: nat): int
 {
   L(n);
   50 / Fact(n)
 }
 
-function F_PreconditionViolation(n: int): int
+ghost function F_PreconditionViolation(n: int): int
 {
   L(n);  // error: argument might be negative
   50 / Fact(n)
@@ -102,7 +102,7 @@ lemma MyLemma(x: int) {
   }
 }
 
-function Parsing_Regression_test0(): int
+ghost function Parsing_Regression_test0(): int
 {
   var x := 12;
   assert x < 20;
@@ -118,7 +118,7 @@ function Parsing_Regression_test0(): int
 
 datatype Dtz = Cons0(int) | Cons1(bool)
 
-function Parsing_Regression_test1(dtz: Dtz): int
+ghost function Parsing_Regression_test1(dtz: Dtz): int
 {
   match dtz
   case Cons0(s) =>
@@ -145,7 +145,7 @@ function Parsing_Regression_test1(dtz: Dtz): int
     19
 }
 
-function Parsing_Regression_test2(): int
+ghost function Parsing_Regression_test2(): int
 {
   // parentheses should be allowed anywhere
   var x := 12;

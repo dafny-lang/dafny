@@ -1,4 +1,4 @@
-// RUN: %dafny_0 /print:"%t.print" "%s" > "%t"
+// RUN: %exits-with 4 %dafny /print:"%t.print" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 
@@ -37,14 +37,14 @@ method J(xs : List<int>) returns (z : int) {
     }
 }
 
-function Adder() : (int, int) -> int
-  ensures forall x, y :: Adder().requires(x, y);
-  ensures forall x, y :: (Adder())(x, y) == x + y;
+ghost function Adder() : (int, int) -> int
+  ensures forall x, y :: Adder().requires(x, y)
+  ensures forall x, y :: (Adder())(x, y) == x + y
 {
   (x, y) => x + y
 }
 
-function MkId<A>() : A -> A
+ghost function MkId<A>() : A -> A
 {
   x => x
 }

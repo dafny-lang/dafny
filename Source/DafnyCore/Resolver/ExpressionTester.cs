@@ -1,0 +1,617 @@
+using System.Collections.Generic;
+using System.Diagnostics.Contracts;
+using System.Linq;
+using JetBrains.Annotations;
+using static Microsoft.Dafny.ResolutionErrors;
+
+namespace Microsoft.Dafny;
+
+public class ExpressionTester {
+  private DafnyOptions options;
+  private bool ReportErrors => reporter != null;
+  [CanBeNull] private readonly ErrorReporter reporter; // if null, no errors will be reported
+
+  /// <summary>
+  /// If "resolver" is non-null, CheckIsCompilable will update some fields in the resolver. In particular,
+  ///   - .InCompiledContext in DatatypeUpdateExpr will be updated
+  ///   - for a FunctionCallExpr that calls a function-by-method in a compiled context, a call-graph edge will be
+  ///     added from the caller to the by-method.
+  ///   - .Constraint_Bounds of LetExpr will be updated
+  /// </summary>
+  [CanBeNull] private readonly ModuleResolver resolver; // if non-null, CheckIsCompilable will update some fields in the resolver
+
+  private ExpressionTester([CanBeNull] ModuleResolver resolver, [CanBeNull] ErrorReporter reporter, DafnyOptions options) {
+    this.resolver = resolver;
+    this.reporter = reporter;
+    this.options = options;
+  }
+
+  // Static call to CheckIsCompilable
+  public static bool CheckIsCompilable(DafnyOptions options, [CanBeNull] ModuleResolver resolver, Expression expr, ICodeContext codeContext) {
+    return new ExpressionTester(resolver, resolver?.Reporter, options).CheckIsCompilable(expr, codeContext, true);
+  }
+
+  public static bool CheckIsCompilable(ModuleResolver resolver, ErrorReporter reporter, Expression expr, ICodeContext codeContext) {
+    return new ExpressionTester(resolver, reporter, reporter.Options).CheckIsCompilable(expr, codeContext, true);
+  }
+
+  public void ReportError(ErrorId errorId, Expression e, string msg, params object[] args) {
+    reporter?.Error(MessageSource.Resolver, errorId, e, msg, args);
+  }
+
+  public void ReportError(ErrorId errorId, IToken t, string msg, params object[] args) {
+    reporter?.Error(MessageSource.Resolver, errorId, t, msg, args);
+  }
+
+  /// <summary>
+  /// Checks that "expr" is compilable and reports an error if it is not.
+  /// Also, updates bookkeeping information for the verifier to record the fact that "expr" is to be compiled.
+  /// For example, this bookkeeping information keeps track of if the constraint of a let-such-that expression
+  /// must determine the value uniquely.
+  /// Requires "expr" to have been successfully resolved.
+  ///
+  /// An expression is considered to be "insideBranchesOnly" if the enclosing context consists only of "if"
+  /// conditions that decide whether or not to return the value of this expression. For example, if the
+  /// expression
+  ///     if E then F else 2 + G
+  /// is considered "insideBranchesOnly", then so if "F", but not "E" or "G".
+  /// </summary>
+  private bool CheckIsCompilable(Expression expr, ICodeContext codeContext, bool insideBranchesOnly = false) {
+    Contract.Requires(expr != null);
+    Contract.Requires(expr.WasResolved());  // this check approximates the requirement that "expr" be resolved
+    Contract.Requires(codeContext != null || reporter == null);
+
+    var isCompilable = true;
+    // The subexpressions of "if" and "match" essentially consist of a "condition" and some "branches".
+    // The branches inherit the "insideBranchesOnly" value, but the condition does not. To code this without
+    // copying what the .SubExpression getter does for "if" and "match", the local variable
+    // "subexpressionsAreInsideBranchesOnlyExcept". If it is non-null, "expr" is of the condition/branches variety
+    // "subexpressionsAreInsideBranchesOnlyExcept" is its condition.
+    Expression subexpressionsAreInsideBranchesOnlyExcept = null;
+
+    if (expr is IdentifierExpr expression) {
+      if (expression.Var != null && expression.Var.IsGhost) {
+        ReportError(ErrorId.r_ghost_var_only_in_specifications, expression,
+          $"ghost variables such as {expression.Name} are allowed only in specification contexts. {expression.Name} was inferred to be ghost based on its declaration or initialization.");
+        return false;
+      }
+
+    } else if (expr is MemberSelectExpr selectExpr) {
+      if (reporter != null) {
+        selectExpr.InCompiledContext = true;
+      }
+      if (selectExpr.Member != null && selectExpr.Member.IsGhost) {
+        var what = selectExpr.Member.WhatKindMentionGhost;
+        ReportError(ErrorId.r_only_in_specification, selectExpr, $"a {what} is allowed only in specification contexts");
+        return false;
+      } else if (selectExpr.Member is Function function && function.Formals.Any(formal => formal.IsGhost)) {
+        var what = selectExpr.Member.WhatKindMentionGhost;
+        ReportError(ErrorId.r_ghost_parameters_only_in_specification, selectExpr, $"a {what} with ghost parameters can be used as a value only in specification contexts");
+        return false;
+      } else if (selectExpr.Member is DatatypeDestructor dtor && dtor.EnclosingCtors.All(ctor => ctor.IsGhost)) {
+        var what = selectExpr.Member.WhatKind;
+        ReportError(ErrorId.r_used_only_in_specification, selectExpr, $"{what} '{selectExpr.MemberName}' can be used only in specification contexts");
+        return false;
+      }
+
+    } else if (expr is DatatypeUpdateExpr updateExpr) {
+      if (resolver != null) {
+        updateExpr.InCompiledContext = true;
+      }
+      isCompilable = CheckIsCompilable(updateExpr.Root, codeContext);
+      Contract.Assert(updateExpr.Members.Count == updateExpr.Updates.Count);
+      for (var i = 0; i < updateExpr.Updates.Count; i++) {
+        var member = (DatatypeDestructor)updateExpr.Members[i];
+        if (!member.IsGhost) {
+          isCompilable = CheckIsCompilable(updateExpr.Updates[i].Item3, codeContext) && isCompilable;
+        }
+      }
+      if (updateExpr.LegalSourceConstructors.All(ctor => ctor.IsGhost)) {
+        var dtors = Util.PrintableNameList(updateExpr.Members.ConvertAll(dtor => dtor.Name), "and");
+        var ctorNames = DatatypeDestructor.PrintableCtorNameList(updateExpr.LegalSourceConstructors, "or");
+        ReportError(ErrorId.r_ghost_destructor_update_not_compilable, updateExpr,
+          $"in a compiled context, update of {dtors} cannot be applied to a datatype value of a ghost variant (ghost constructor {ctorNames})");
+        isCompilable = false;
+      }
+      // switch to the desugared expression for compiled contexts, but don't step into it
+      updateExpr.ResolvedExpression = updateExpr.ResolvedCompiledExpression;
+      return isCompilable;
+
+    } else if (expr is FunctionCallExpr callExpr) {
+      if (callExpr.Function != null) {
+        if (callExpr.Function.IsGhost) {
+          if (ReportErrors == false) {
+            return false;
+          }
+
+          string msg;
+          ErrorId eid;
+          if (callExpr.Function is TwoStateFunction || callExpr.Function is ExtremePredicate || callExpr.Function is PrefixPredicate) {
+            msg = $"a call to a {callExpr.Function.WhatKind} is allowed only in specification contexts";
+            eid = ErrorId.r_ghost_call_only_in_specification;
+          } else {
+            var what = callExpr.Function.WhatKind;
+            string compiledDeclHint;
+            if (options.FunctionSyntax == FunctionSyntaxOptions.Version4) {
+              compiledDeclHint = "without the 'ghost' keyword";
+              eid = ErrorId.r_ghost_call_only_in_specification_function_4;
+            } else {
+              compiledDeclHint = $"with '{what} method'";
+              eid = ErrorId.r_ghost_call_only_in_specification_function_3;
+            }
+            msg = $"a call to a ghost {what} is allowed only in specification contexts (consider declaring the {what} {compiledDeclHint})";
+          }
+          ReportError(eid, callExpr, msg);
+          return false;
+        }
+        if (callExpr.Function.ByMethodBody != null) {
+          Contract.Assert(callExpr.Function.ByMethodDecl != null); // we expect .ByMethodDecl to have been filled in by now
+          // this call will really go to the method part of the function-by-method, so add that edge to the call graph
+          if (resolver != null) {
+            CallGraphBuilder.AddCallGraphEdge(codeContext, callExpr.Function.ByMethodDecl, callExpr, reporter);
+          }
+          callExpr.IsByMethodCall = true;
+        }
+        // function is okay, so check all NON-ghost arguments
+        isCompilable = CheckIsCompilable(callExpr.Receiver, codeContext);
+        for (var i = 0; i < callExpr.Function.Formals.Count; i++) {
+          if (!callExpr.Function.Formals[i].IsGhost && i < callExpr.Args.Count) {
+            isCompilable = CheckIsCompilable(callExpr.Args[i], codeContext) && isCompilable;
+          }
+        }
+      }
+
+      return isCompilable;
+
+    } else if (expr is DatatypeValue value) {
+      if (value.Ctor.IsGhost) {
+        ReportError(ErrorId.r_ghost_constructors_only_in_ghost_context, expr, "ghost constructor is allowed only in specification contexts");
+        isCompilable = false;
+      }
+      // check all NON-ghost arguments
+      // note that if resolution is successful, then |e.Arguments| == |e.Ctor.Formals|
+      for (int i = 0; i < value.Arguments.Count; i++) {
+        if (!value.Ctor.Formals[i].IsGhost) {
+          isCompilable = CheckIsCompilable(value.Arguments[i], codeContext) && isCompilable;
+        }
+      }
+      return isCompilable;
+
+    } else if (expr is OldExpr) {
+      ReportError(ErrorId.r_old_expressions_only_in_ghost_context, expr, "old expressions are allowed only in specification and ghost contexts");
+      return false;
+
+    } else if (expr is TypeTestExpr tte) {
+      if (!IsTypeTestCompilable(tte)) {
+        ReportError(ErrorId.r_type_test_not_runtime_checkable, tte, $"an expression of type '{tte.E.Type}' is not run-time checkable to be a '{tte.ToType}'");
+        return false;
+      }
+
+    } else if (expr is FreshExpr) {
+      ReportError(ErrorId.r_fresh_expressions_only_in_ghost_context, expr, "fresh expressions are allowed only in specification and ghost contexts");
+      return false;
+
+    } else if (expr is UnchangedExpr) {
+      ReportError(ErrorId.r_unchanged_expressions_only_in_ghost_context, expr, "unchanged expressions are allowed only in specification and ghost contexts");
+      return false;
+
+    } else if (expr is StmtExpr stmtExpr) {
+      // ignore the statement
+      return CheckIsCompilable(stmtExpr.E, codeContext, insideBranchesOnly);
+
+    } else if (expr is BinaryExpr binaryExpr) {
+      if (reporter != null) {
+        binaryExpr.InCompiledContext = true;
+      }
+      switch (binaryExpr.ResolvedOp_PossiblyStillUndetermined) {
+        case BinaryExpr.ResolvedOpcode.RankGt:
+        case BinaryExpr.ResolvedOpcode.RankLt:
+          ReportError(ErrorId.r_rank_expressions_only_in_ghost_context, binaryExpr, "rank comparisons are allowed only in specification and ghost contexts");
+          return false;
+      }
+    } else if (expr is TernaryExpr ternaryExpr) {
+      switch (ternaryExpr.Op) {
+        case TernaryExpr.Opcode.PrefixEqOp:
+        case TernaryExpr.Opcode.PrefixNeqOp:
+          ReportError(ErrorId.r_prefix_equalities_only_in_ghost_context, ternaryExpr, "prefix equalities are allowed only in specification and ghost contexts");
+          return false;
+      }
+    } else if (expr is LetExpr letExpr) {
+      if (letExpr.Exact) {
+        Contract.Assert(letExpr.LHSs.Count == letExpr.RHSs.Count);
+        var i = 0;
+        foreach (var ee in letExpr.RHSs) {
+          var lhs = letExpr.LHSs[i];
+          // Make LHS vars ghost if the RHS is a ghost
+          if (UsesSpecFeatures(ee)) {
+            foreach (var bv in lhs.Vars) {
+              if (!bv.IsGhost) {
+                bv.MakeGhost();
+                isCompilable = false;
+              }
+            }
+          }
+
+          if (!lhs.Vars.All(bv => bv.IsGhost)) {
+            isCompilable = CheckIsCompilable(ee, codeContext) && isCompilable;
+          }
+          i++;
+        }
+        isCompilable = CheckIsCompilable(letExpr.Body, codeContext, insideBranchesOnly) && isCompilable;
+      } else {
+        Contract.Assert(letExpr.RHSs.Count == 1);
+        var lhsVarsAreAllGhost = letExpr.BoundVars.All(bv => bv.IsGhost);
+        if (!lhsVarsAreAllGhost) {
+          isCompilable = CheckIsCompilable(letExpr.RHSs[0], codeContext) && isCompilable;
+        }
+        isCompilable = CheckIsCompilable(letExpr.Body, codeContext, insideBranchesOnly) && isCompilable;
+
+        // fill in bounds for this to-be-compiled let-such-that expression
+        Contract.Assert(letExpr.RHSs.Count == 1);  // if we got this far, the resolver will have checked this condition successfully
+        var constraint = letExpr.RHSs[0];
+        if (resolver != null) {
+          letExpr.Constraint_Bounds = ModuleResolver.DiscoverBestBounds_MultipleVars(letExpr.BoundVars.ToList<IVariable>(), constraint, true);
+        }
+      }
+      return isCompilable;
+    } else if (expr is LambdaExpr lambdaExpr) {
+      return CheckIsCompilable(lambdaExpr.Body, codeContext);
+    } else if (expr is ComprehensionExpr comprehensionExpr) {
+      var uncompilableBoundVars = comprehensionExpr.UncompilableBoundVars();
+      if (uncompilableBoundVars.Count != 0) {
+        string what;
+        if (comprehensionExpr is SetComprehension comprehension) {
+          what = comprehension.Finite ? "set comprehensions" : "iset comprehensions";
+        } else if (comprehensionExpr is MapComprehension mapComprehension) {
+          what = mapComprehension.Finite ? "map comprehensions" : "imap comprehensions";
+        } else {
+          Contract.Assume(comprehensionExpr is QuantifierExpr);  // otherwise, unexpected ComprehensionExpr (since LambdaExpr is handled separately above)
+          Contract.Assert(((QuantifierExpr)comprehensionExpr).SplitQuantifier == null); // No split quantifiers during resolution
+          what = "quantifiers";
+        }
+        foreach (var bv in uncompilableBoundVars) {
+          ReportError(ErrorId.r_unknown_bounds, comprehensionExpr,
+            $"{what} in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce or compile a bounded set of values for '{bv.Name}'");
+          isCompilable = false;
+        }
+      }
+      // don't recurse down any attributes
+      if (comprehensionExpr.Range != null) {
+        isCompilable = CheckIsCompilable(comprehensionExpr.Range, codeContext) && isCompilable;
+      }
+      isCompilable = CheckIsCompilable(comprehensionExpr.Term, codeContext) && isCompilable;
+      return isCompilable;
+
+    } else if (expr is ChainingExpression chainingExpression) {
+      // We don't care about the different operators; we only want the operands, so let's get them directly from
+      // the chaining expression
+      return chainingExpression.Operands.TrueForAll(ee => CheckIsCompilable(ee, codeContext));
+
+    } else if (expr is ITEExpr iteExpr) {
+      // An if-then-else expression is compilable if its guard, then branch, and else branch all are.
+      // But there's another situation when it's compilable, namely when the enclosing context is a
+      // compiled function, say F(x, ghost y) where parameters x are compiled and parameters y are ghost,
+      // and one of the branches of the if-then-else expression ends with a recursive call F(s, t)
+      // where the actual parameters s are exactly the formal parameters x. In that case, the way to
+      // compile the if-then-else expression is to ignore the test expression and the branch that
+      // ends as just described, and instead just compile the other branch.
+      if (codeContext is Function function && insideBranchesOnly) {
+        bool onlyGhostParametersChange(Expression ee) {
+          if (ee is FunctionCallExpr functionCallExpr && functionCallExpr.Function == function) {
+            if (!function.IsStatic && functionCallExpr.Receiver.Resolved is not ThisExpr) {
+              return false;
+            }
+            Contract.Assert(function.Formals.Count == functionCallExpr.Args.Count);
+            for (var i = 0; i < function.Formals.Count; i++) {
+              var formal = function.Formals[i];
+              if (!formal.IsGhost && !IdentifierExpr.Is(functionCallExpr.Args[i], formal)) {
+                return false;
+              }
+            }
+            return true;
+          }
+          return false;
+        }
+
+        if (iteExpr.Thn.TerminalExpressions.All(onlyGhostParametersChange)) {
+          // mark "else" branch as the one to compile
+          iteExpr.HowToCompile = ITEExpr.ITECompilation.CompileJustElseBranch;
+          return CheckIsCompilable(iteExpr.Els, codeContext, insideBranchesOnly);
+        } else if (iteExpr.Els.TerminalExpressions.All(onlyGhostParametersChange)) {
+          // mark "then" branch as the one to compile
+          iteExpr.HowToCompile = ITEExpr.ITECompilation.CompileJustThenBranch;
+          return CheckIsCompilable(iteExpr.Thn, codeContext, insideBranchesOnly);
+        }
+      }
+      subexpressionsAreInsideBranchesOnlyExcept = iteExpr.Test;
+
+    } else if (expr is MatchExpr matchExpr) {
+      var mc = FirstCaseThatDependsOnGhostCtor(matchExpr.Cases);
+      if (mc != null) {
+        ReportError(ErrorId.r_match_not_compilable, mc.tok, "match expression is not compilable, because it depends on a ghost constructor");
+        isCompilable = false;
+      }
+      // other conditions are checked below
+      subexpressionsAreInsideBranchesOnlyExcept = matchExpr.Source;
+
+    } else if (expr is ConcreteSyntaxExpression concreteSyntaxExpression) {
+      return CheckIsCompilable(concreteSyntaxExpression.ResolvedExpression, codeContext, insideBranchesOnly);
+    }
+
+    foreach (var ee in expr.SubExpressions) {
+      var eeIsOnlyInsideBranches = insideBranchesOnly && subexpressionsAreInsideBranchesOnlyExcept != null && subexpressionsAreInsideBranchesOnlyExcept != ee;
+      isCompilable = CheckIsCompilable(ee, codeContext, eeIsOnlyInsideBranches) && isCompilable;
+    }
+
+    return isCompilable;
+  }
+
+  public static bool IsTypeTestCompilable(TypeTestExpr tte) {
+    Contract.Requires(tte != null);
+    var fromType = tte.E.Type;
+    if (fromType.IsSubtypeOf(tte.ToType, false, true)) {
+      // this is a no-op, so it can trivially be compiled
+      return true;
+    }
+
+    // TODO: It would be nice to allow some subset types in test tests in compiled code. But for now, such cases
+    // are allowed only in ghost contexts.
+    var udtTo = (UserDefinedType)tte.ToType.NormalizeExpandKeepConstraints();
+    if (udtTo.ResolvedClass is SubsetTypeDecl && !(udtTo.ResolvedClass is NonNullTypeDecl)) {
+      return false;
+    }
+
+    // The operation can be performed at run time if the mapping of .ToType's type parameters are injective in fromType's type parameters.
+    // For illustration, suppose the "is"-operation is testing whether or not the given expression of type A<X> has type B<Y>, where
+    // X and Y are some type expressions. At run time, we can check if the expression has type B<...>, but we can't on all target platforms
+    // be certain about the "...". So, if both B<Y> and B<Y'> are possible subtypes of A<X>, we can't perform the type test at run time.
+    // In other words, we CAN perform the type test at run time if the type parameters of A uniquely determine the type parameters of B.
+    // Let T be a list of type parameters (in particular, we will use the formal TypeParameter's declared in type B). Then, represent
+    // B<T> in parent type A, and let's say the result is A<U> for some type expression U. If U contains all type parameters from T,
+    // then the mapping from B<T> to A<U> is unique, which means the mapping frmo B<Y> to A<X> is unique, which means we can check if an
+    // A<X> value is a B<Y> value by checking if the value is of type B<...>.
+    var B = ((UserDefinedType)tte.ToType.NormalizeExpandKeepConstraints()).ResolvedClass; // important to keep constraints here, so no type parameters are lost
+    var B_T = UserDefinedType.FromTopLevelDecl(tte.tok, B);
+    var tps = new HashSet<TypeParameter>(); // There are going to be the type parameters of fromType (that is, T in the discussion above)
+    if (fromType.TypeArgs.Count != 0) {
+      // we need this "if" statement, because if "fromType" is "object" or "object?", then it isn't a UserDefinedType
+      var A = (UserDefinedType)fromType.NormalizeExpand(); // important to NOT keep constraints here, since they won't be evident at run time
+      var A_U = B_T.AsParentType(A.ResolvedClass);
+      // the type test can be performed at run time if all the type parameters of "B_T" are free type parameters of "A_U".
+      A_U.AddFreeTypeParameters(tps);
+    }
+    foreach (var tp in B.TypeArgs) {
+      if (!tps.Contains(tp)) {
+        // type test cannot be performed at run time, so this is a ghost operation
+        // TODO: If "tp" is a type parameter for which there is a run-time type descriptor, then we would still be able to perform
+        // the type test at run time.
+        return false;
+      }
+    }
+    // type test can be performed at run time
+    return true;
+  }
+
+  /// <summary>
+  /// Returns whether or not 'expr' has any subexpression that uses some feature (like a ghost or quantifier)
+  /// that is allowed only in specification contexts.
+  /// Requires 'expr' to be a successfully resolved expression.
+  ///
+  /// Note, some expressions have different proof obligations in ghost and compiled contexts. For example,
+  /// a let-such-that expression in a compiled context is required to have a uniquely determined result.
+  /// For such an expression, "UsesSpecFeatures" returns "false", since the feature can be used in either ghost
+  /// or compiled contexts. Whenever "UsesSpecFeatures" returns "false", the caller has a choice about making
+  /// the expression ghost or making it compiled. If the caller chooses to make the expression compiled, the
+  /// caller must then call "CheckIsCompilable" to commit this choice, because "CheckIsCompilable" fills in
+  /// various bookkeeping information that the verifier will need.
+  /// </summary>
+  public static bool UsesSpecFeatures(Expression expr) {
+    Contract.Requires(expr != null);
+    Contract.Requires(expr.WasResolved());  // this check approximates the requirement that "expr" be resolved
+
+    if (expr is LiteralExpr) {
+      return false;
+    } else if (expr is ThisExpr) {
+      return false;
+    } else if (expr is IdentifierExpr) {
+      IdentifierExpr e = (IdentifierExpr)expr;
+      return cce.NonNull(e.Var).IsGhost;
+    } else if (expr is DatatypeValue) {
+      var e = (DatatypeValue)expr;
+      if (e.Ctor.IsGhost) {
+        return true;
+      }
+
+      // check all NON-ghost arguments
+      // note that if resolution is successful, then |e.Arguments| == |e.Ctor.Formals|
+      for (int i = 0; i < e.Arguments.Count; i++) {
+        if (!e.Ctor.Formals[i].IsGhost && UsesSpecFeatures(e.Arguments[i])) {
+          return true;
+        }
+      }
+      return false;
+    } else if (expr is DisplayExpression) {
+      DisplayExpression e = (DisplayExpression)expr;
+      return e.Elements.Exists(ee => UsesSpecFeatures(ee));
+    } else if (expr is MapDisplayExpr) {
+      MapDisplayExpr e = (MapDisplayExpr)expr;
+      return e.Elements.Exists(p => UsesSpecFeatures(p.A) || UsesSpecFeatures(p.B));
+    } else if (expr is MemberSelectExpr) {
+      var e = (MemberSelectExpr)expr;
+      if (UsesSpecFeatures(e.Obj)) {
+        return true;
+      } else if (e.Member != null && e.Member.IsGhost) {
+        return true;
+      } else if (e.Member is Function function && function.Formals.Any(formal => formal.IsGhost)) {
+        return true;
+      } else if (e.Member is DatatypeDestructor dtor) {
+        return dtor.EnclosingCtors.All(ctor => ctor.IsGhost);
+      } else {
+        return false;
+      }
+    } else if (expr is DatatypeUpdateExpr updateExpr) {
+      if (UsesSpecFeatures(updateExpr.Root)) {
+        return true;
+      }
+      Contract.Assert(updateExpr.Members.Count == updateExpr.Updates.Count);
+      for (var i = 0; i < updateExpr.Updates.Count; i++) {
+        var member = (DatatypeDestructor)updateExpr.Members[i];
+        // note, updating a ghost field does not make the expression ghost (cf. ghost let expressions)
+        if (!member.IsGhost && UsesSpecFeatures(updateExpr.Updates[i].Item3)) {
+          return true;
+        }
+      }
+      return updateExpr.LegalSourceConstructors.All(ctor => ctor.IsGhost);
+
+    } else if (expr is SeqSelectExpr) {
+      SeqSelectExpr e = (SeqSelectExpr)expr;
+      return UsesSpecFeatures(e.Seq) ||
+             (e.E0 != null && UsesSpecFeatures(e.E0)) ||
+             (e.E1 != null && UsesSpecFeatures(e.E1));
+    } else if (expr is MultiSelectExpr) {
+      MultiSelectExpr e = (MultiSelectExpr)expr;
+      return UsesSpecFeatures(e.Array) || e.Indices.Exists(ee => UsesSpecFeatures(ee));
+    } else if (expr is SeqUpdateExpr) {
+      SeqUpdateExpr e = (SeqUpdateExpr)expr;
+      return UsesSpecFeatures(e.Seq) ||
+             UsesSpecFeatures(e.Index) ||
+             UsesSpecFeatures(e.Value);
+    } else if (expr is FunctionCallExpr) {
+      var e = (FunctionCallExpr)expr;
+      if (e.Function.IsGhost) {
+        return true;
+      }
+      // check all NON-ghost arguments
+      if (UsesSpecFeatures(e.Receiver)) {
+        return true;
+      }
+      for (int i = 0; i < e.Function.Formals.Count; i++) {
+        if (!e.Function.Formals[i].IsGhost && UsesSpecFeatures(e.Args[i])) {
+          return true;
+        }
+      }
+      return false;
+    } else if (expr is ApplyExpr) {
+      ApplyExpr e = (ApplyExpr)expr;
+      return UsesSpecFeatures(e.Function) || e.Args.Exists(UsesSpecFeatures);
+    } else if (expr is OldExpr || expr is UnchangedExpr) {
+      return true;
+    } else if (expr is UnaryExpr) {
+      var e = (UnaryExpr)expr;
+      if (e is UnaryOpExpr { Op: UnaryOpExpr.Opcode.Fresh or UnaryOpExpr.Opcode.Allocated }) {
+        return true;
+      }
+      if (expr is TypeTestExpr tte && !IsTypeTestCompilable(tte)) {
+        return true;
+      }
+      return UsesSpecFeatures(e.E);
+    } else if (expr is BinaryExpr) {
+      BinaryExpr e = (BinaryExpr)expr;
+      switch (e.ResolvedOp_PossiblyStillUndetermined) {
+        case BinaryExpr.ResolvedOpcode.RankGt:
+        case BinaryExpr.ResolvedOpcode.RankLt:
+          return true;
+        default:
+          return UsesSpecFeatures(e.E0) || UsesSpecFeatures(e.E1);
+      }
+    } else if (expr is TernaryExpr) {
+      var e = (TernaryExpr)expr;
+      switch (e.Op) {
+        case TernaryExpr.Opcode.PrefixEqOp:
+        case TernaryExpr.Opcode.PrefixNeqOp:
+          return true;
+        default:
+          break;
+      }
+      return UsesSpecFeatures(e.E0) || UsesSpecFeatures(e.E1) || UsesSpecFeatures(e.E2);
+    } else if (expr is LetExpr) {
+      var e = (LetExpr)expr;
+      if (e.Exact) {
+        MakeGhostAsNeeded(e.LHSs);
+        return UsesSpecFeatures(e.Body);
+      } else {
+        Contract.Assert(e.RHSs.Count == 1);
+        if (UsesSpecFeatures(e.RHSs[0])) {
+          foreach (var bv in e.BoundVars) {
+            bv.MakeGhost();
+          }
+        }
+        return UsesSpecFeatures(e.Body);
+      }
+    } else if (expr is QuantifierExpr) {
+      var e = (QuantifierExpr)expr;
+      if (e.SplitQuantifier != null) {
+        return UsesSpecFeatures(e.SplitQuantifierExpression);
+      }
+      return e.UncompilableBoundVars().Count != 0 || UsesSpecFeatures(e.LogicalBody());
+    } else if (expr is SetComprehension) {
+      var e = (SetComprehension)expr;
+      return !e.Finite || e.UncompilableBoundVars().Count != 0 || (e.Range != null && UsesSpecFeatures(e.Range)) || (e.Term != null && UsesSpecFeatures(e.Term));
+    } else if (expr is MapComprehension) {
+      var e = (MapComprehension)expr;
+      return !e.Finite || e.UncompilableBoundVars().Count != 0 || UsesSpecFeatures(e.Range) || (e.TermLeft != null && UsesSpecFeatures(e.TermLeft)) || UsesSpecFeatures(e.Term);
+    } else if (expr is LambdaExpr) {
+      var e = (LambdaExpr)expr;
+      return UsesSpecFeatures(e.Term);
+    } else if (expr is WildcardExpr) {
+      return false;
+    } else if (expr is StmtExpr) {
+      var e = (StmtExpr)expr;
+      return UsesSpecFeatures(e.E);
+    } else if (expr is ITEExpr) {
+      ITEExpr e = (ITEExpr)expr;
+      return UsesSpecFeatures(e.Test) || UsesSpecFeatures(e.Thn) || UsesSpecFeatures(e.Els);
+    } else if (expr is NestedMatchExpr nestedMatchExpr) {
+      return nestedMatchExpr.Cases.SelectMany(caze => caze.Pat.DescendantsAndSelf.OfType<IdPattern>().Where(id => id.Ctor != null)).Any(id => id.Ctor.IsGhost)
+             || expr.SubExpressions.Any(child => UsesSpecFeatures(child));
+    } else if (expr is MatchExpr) {
+      MatchExpr me = (MatchExpr)expr;
+      if (UsesSpecFeatures(me.Source) || FirstCaseThatDependsOnGhostCtor(me.Cases) != null) {
+        return true;
+      }
+      return me.Cases.Exists(mc => UsesSpecFeatures(mc.Body));
+    } else if (expr is ConcreteSyntaxExpression) {
+      var e = (ConcreteSyntaxExpression)expr;
+      return e.ResolvedExpression != null && UsesSpecFeatures(e.ResolvedExpression);
+    } else if (expr is SeqConstructionExpr) {
+      var e = (SeqConstructionExpr)expr;
+      return UsesSpecFeatures(e.N) || UsesSpecFeatures(e.Initializer);
+    } else if (expr is MultiSetFormingExpr) {
+      var e = (MultiSetFormingExpr)expr;
+      return UsesSpecFeatures(e.E);
+    } else {
+      Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression
+    }
+  }
+  static void MakeGhostAsNeeded(List<CasePattern<BoundVar>> lhss) {
+    foreach (CasePattern<BoundVar> lhs in lhss) {
+      MakeGhostAsNeeded(lhs);
+    }
+  }
+
+  static void MakeGhostAsNeeded(CasePattern<BoundVar> lhs) {
+    if (lhs.Ctor != null && lhs.Arguments != null) {
+      for (int i = 0; i < lhs.Arguments.Count && i < lhs.Ctor.Destructors.Count; i++) {
+        MakeGhostAsNeeded(lhs.Arguments[i], lhs.Ctor.Destructors[i]);
+      }
+    }
+  }
+
+  static void MakeGhostAsNeeded(CasePattern<BoundVar> arg, DatatypeDestructor d) {
+    if (arg.Expr is IdentifierExpr ie && ie.Var is BoundVar bv) {
+      if (d.IsGhost) {
+        bv.MakeGhost();
+      }
+    }
+    if (arg.Ctor != null) {
+      MakeGhostAsNeeded(arg);
+    }
+  }
+
+  /// <summary>
+  /// Return the first ghost constructor listed in a case, or null, if there is none.
+  /// </summary>
+  public static MC FirstCaseThatDependsOnGhostCtor<MC>(List<MC> cases) where MC : MatchCase {
+    return cases.FirstOrDefault(kees => kees.Ctor.IsGhost, null);
+  }
+}

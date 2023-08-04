@@ -1,23 +1,23 @@
-// RUN: %dafny_0 /compile:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %exits-with 4 %dafny /compile:0 /deprecation:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // ----- Stream
 
 codatatype Stream = Nil | Cons(head: int, tail: Stream)
 
-function append(M: Stream, N: Stream): Stream
+ghost function append(M: Stream, N: Stream): Stream
 {
   match M
   case Nil => N
   case Cons(t, M') => Cons(t, append(M', N))
 }
 
-function zeros(): Stream
+ghost function zeros(): Stream
 {
   Cons(0, zeros())
 }
 
-function ones(): Stream
+ghost function ones(): Stream
 {
   Cons(1, ones())
 }
@@ -91,7 +91,7 @@ greatest lemma {:induction false} Theorem1()
 
 codatatype IList = ICons(head: int, tail: IList)
 
-function UpIList(n: int): IList
+ghost function UpIList(n: int): IList
 {
   ICons(n, UpIList(n+1))
 }
@@ -116,14 +116,14 @@ greatest lemma {:induction false} Theorem2_NotAProof(n: int)
 
 codatatype TList<T> = TCons(head: T, tail: TList)
 
-function Next<T>(t: T): T
+ghost function Next<T>(t: T): T
 
-function FF<T>(h: T): TList<T>
+ghost function FF<T>(h: T): TList<T>
 {
   TCons(h, FF(Next(h)))
 }
 
-function GG<T>(h: T): TList<T>
+ghost function GG<T>(h: T): TList<T>
 {
   TCons(h, GG(Next(h)))
 }

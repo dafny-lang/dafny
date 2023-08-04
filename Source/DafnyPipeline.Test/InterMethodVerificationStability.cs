@@ -8,12 +8,15 @@ using DiffPlex.DiffBuilder;
 using DiffPlex.DiffBuilder.Model;
 using Microsoft.VisualStudio.TestPlatform.PlatformAbstractions;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace DafnyPipeline.Test {
   // Main.Resolve has static shared state (TypeConstraint.ErrorsToBeReported for example)
   // so we can't execute tests that use it in parallel.
   [Collection("Singleton Test Collection - Resolution")]
   public class InterMethodVerificationStability {
+    private readonly ITestOutputHelper output;
+
     [Fact]
     public void CreatingBoogieVariableNameCollisionsHasExpectedDiff() {
       var beforeChange = @"
@@ -183,8 +186,12 @@ method M(heap: object)
 
     private static readonly string dafnyDirectory;
 
+    public InterMethodVerificationStability(ITestOutputHelper output) {
+      this.output = output;
+    }
+
     private static string DafnyProjectFile => Path.Combine(dafnyDirectory, "Source", "Dafny", "Dafny.csproj");
-    private static string DefaultDafnyArgs => $"run --no-build --project {DafnyProjectFile} -- -useBaseNameForFileName -countVerificationErrors:0 -compileVerbose:0 /errorTrace:0";
+    private static string DefaultDafnyArgs => $"run --no-build --project {DafnyProjectFile} -- -useBaseNameForFileName -compileVerbose:0 /errorTrace:0";
 
     string GetBoogie(string dafnyProgram, string optionalFileName = null) {
       string fileName = optionalFileName ?? Path.GetTempFileName() + ".dfy";
@@ -201,13 +208,12 @@ method M(heap: object)
       dafnyProcess.WaitForExit();
 
       if (dafnyProcess.ExitCode != 0) {
-        Console.Out.WriteLine("Arguments:", processStartInfo.Arguments);
-        Console.Out.WriteLine("Result:");
-        Console.Out.WriteLine(result);
-        Console.Out.WriteLine(dafnyProcess.StandardError.ReadToEnd());
-        Console.Out.Flush();
+        output.WriteLine("Arguments:", processStartInfo.Arguments);
+        output.WriteLine("Result:");
+        output.WriteLine(result);
+        output.WriteLine(dafnyProcess.StandardError.ReadToEnd());
       }
-      Assert.Equal(0, dafnyProcess.ExitCode);
+      Assert.Equal(4, dafnyProcess.ExitCode);
       return result;
     }
   }

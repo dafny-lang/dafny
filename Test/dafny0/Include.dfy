@@ -1,4 +1,5 @@
-// RUN: %dafny_0 /compile:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %exits-with 4 %baredafny verify %args "%s" > "%t"
+// RUN: %exits-with 4 %baredafny verify %args --verify-included-files "%s" >> "%t"
 // RUN: %diff "%s.expect" "%t"
 
 include "Includee.dfy"
@@ -16,7 +17,7 @@ method test_include(z:int)
 // and some refinement stuff, to make sure it works with includes
 module Concrete refines Abstract
 {
-  function method inc...  // error: postcondition violation
+  function inc...  // error: postcondition violation
   {
     x - 1
   }

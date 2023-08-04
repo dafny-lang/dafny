@@ -1,4 +1,4 @@
-// RUN: %dafny_0 /compile:0  "%s" > "%t"
+// RUN: %exits-with 2 %dafny /compile:0  "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // Here is the example reported in issue #125 to cause a crash in Dafny.
@@ -35,24 +35,24 @@ abstract module AbstractModuleC refines AbstractModuleB
 
 module LibA {
   class G {
-    static function f(x:int) : bool {
+    static ghost function f(x:int) : bool {
       x >= 10
     }
   }
 
-  function g() : bool {
+  ghost function g() : bool {
      true
   }
 }
 
 module LibB {
   class G {
-    static function f(x:int) : bool {
+    static ghost function f(x:int) : bool {
       x < 10
     }
   }
 
-  function g() : bool {
+  ghost function g() : bool {
      false
   }
 }
@@ -74,9 +74,9 @@ module S refines R {
 
 module V {
   import opened LibA
-  function g(): int { 4 }
+  ghost function g(): int { 4 }
 }
 
 module W refines V {
-  function g(): int { 5 }  // refinement error: cannot provide a new body for the inherited g()
+  ghost function g(): int { 5 }  // refinement error: cannot provide a new body for the inherited g()
 }

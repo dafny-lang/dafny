@@ -1,28 +1,28 @@
-// RUN: %dafny_0 /compile:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %exits-with 2 %dafny /compile:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module m1
 {
   trait I1
   {
-    function M1(x:int,y:int) :int
+    ghost function M1(x:int,y:int) :int
     {
       x*y
     }
   }
 
 
-  trait I2       //all is fine in this trait
+  trait I2 extends object       //all is fine in this trait
   {
     var x: int
 
-    function method Twice(): int
+    function Twice(): int
       reads this
     {
       x + x
     }
 
-    function method F(z: int): int
+    function F(z: int): int
       reads this
 
 
@@ -69,7 +69,7 @@ module m1
 
   class I0Child extends I2  //errors, body-less methods/functions in the parent have not implemented here
   {
-    function method F(z: int): int
+    function F(z: int): int
       reads this
     {
        z
@@ -95,7 +95,7 @@ module m1
 }
 
 module MoreTests {
-  trait I0
+  trait I0 extends object
   {
     var x: int
     constructor I0(x0: int) // error: constructor is not allowed in a trait
@@ -106,7 +106,7 @@ module MoreTests {
 
   trait I1
   {
-    function M1(x:int,y:int) :int
+    ghost function M1(x:int,y:int) :int
     {
       x*y
     }
@@ -117,17 +117,17 @@ module MoreTests {
     var i1 := new I1;   //error: new is not allowed in a trait
   }
 
-  trait I2       //all is fine in this trait
+  trait I2 extends object       //all is fine in this trait
   {
     var x: int
 
-    function method Twice(): int
+    function Twice(): int
       reads this
     {
       x + x
     }
 
-    function method F(z: int): int
+    function F(z: int): int
       reads this
 
 

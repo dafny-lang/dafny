@@ -1,4 +1,4 @@
-// RUN: %dafny_0 /errorLimit:15 "%s" > "%t"
+// RUN: %exits-with 4 %dafny /errorLimit:0 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 /*
@@ -9,7 +9,7 @@
 
 datatype List<T> = Nil | Cons(head: T, tail: List)
 
-function F(xs: List<int>): int {
+ghost function F(xs: List<int>): int {
   match xs
   case Cons(x, Cons(y, rest)) => 5
   case Nil => 8
@@ -48,9 +48,9 @@ method TreeTest(t:Tree) {
 
 datatype Dt = Make(d: int)
 
-function method GetNat(dt: Dt): nat {
+function GetNat(dt: Dt): nat {
   match dt
-  case Make(y: nat) => y
+  case Make(y) => y
 }
 
 // postcondition might not hold on this return path (in least lemma)
@@ -93,7 +93,7 @@ least lemma BadMonotonic1(c: cmd, s: state, t: state)
 // postcondition might not hold on this return path (in method)
 
 method PostTest(xs: List<int>) returns (r: int)
-  ensures r == 0;
+  ensures r == 0
 {
   match xs {
     case Cons(y, Cons(z, zs)) => return z;

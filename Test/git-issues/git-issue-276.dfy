@@ -1,4 +1,4 @@
-// RUN: %dafny_0 /compile:0 /printTooltips "%s" > "%t"
+// RUN: %exits-with 4 %dafny /compile:0 /printTooltips "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module Main {
@@ -32,7 +32,9 @@ module Main {
     var x3 := 300 as b3; // expect error
   }
 
-  const c0: b1 := 4
-  newtype cx = x:int | 0 <= x < c0 as int
+  class Default {
+    static const c0: b1 := 4
+  }
+  newtype cx = x:int | 0 <= x < Default.c0 as int
 }
 

@@ -2,7 +2,7 @@
 // RUN: %diff "%s.expect" "%t"
 
 module Foo {
-    function Fun(): () {
+    ghost function Fun(): () {
         calc { 0; }
         ()
     }

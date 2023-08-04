@@ -1,4 +1,4 @@
-// RUN: %dafny_0 /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %exits-with 2 %dafny /dprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module MyModule {
@@ -15,7 +15,7 @@ module MyModule {
     provides Alt  // error: cannot be exported ("Alt")
 
   type Y
-  function F(): Y
+  ghost function F(): Y
   datatype Datatype = Ctor(z: int)
   lemma Undeniable()
     ensures true
