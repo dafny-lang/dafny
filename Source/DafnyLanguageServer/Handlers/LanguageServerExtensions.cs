@@ -1,4 +1,5 @@
 ﻿using Microsoft.Dafny.LanguageServer.Handlers.Custom;
+using OmniSharp.Extensions.JsonRpc;
 using OmniSharp.Extensions.LanguageServer.Server;
 
 namespace Microsoft.Dafny.LanguageServer.Handlers {
@@ -14,13 +15,16 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
     public static LanguageServerOptions WithDafnyHandlers(this LanguageServerOptions options) {
       return options
         .WithHandler<DafnyTextDocumentHandler>()
-        // TODO Disabled since its functionallity cannot be observed in VS Code (yet).
-        //.WithHandler<DafnyDocumentSymbolHandler>()
+        .WithHandler<DafnyDocumentSymbolHandler>()
         .WithHandler<DafnyHoverHandler>()
         .WithHandler<DafnyDefinitionHandler>()
+        .WithHandler<DafnyReferencesHandler>()
         .WithHandler<DafnyCompletionHandler>()
         .WithHandler<DafnySignatureHelpHandler>()
-        .WithHandler<DafnyCounterExampleHandler>();
+        .WithHandler<DafnyCounterExampleHandler>()
+        .WithHandler<DafnyCodeActionHandler>()
+        .WithHandler<DafnyFormattingHandler>()
+        .WithHandler<VerificationHandler>();
     }
   }
 }

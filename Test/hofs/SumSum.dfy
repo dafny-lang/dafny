@@ -5,7 +5,7 @@
 // Many of these currently require far more effort than one would like.
 // KRML, 2 May 2016
 
-function Sum(n: nat, f: int -> int): int
+ghost function Sum(n: nat, f: int -> int): int
 {
   if n == 0 then 0 else f(n-1) + Sum(n-1, f)
 }
@@ -66,7 +66,7 @@ lemma BetaReduction0(n: nat, g: (int,int) -> int, i: int)
 }
 
 lemma BetaReduction1(n': nat, g: (int,int) -> int, i: int)
-  ensures g(i,n') + Sum(n', y => g(i,y)) == (x => g(x,n') + Sum(n', y => g(x,y)))(i);
+  ensures g(i,n') + Sum(n', y => g(i,y)) == (x => g(x,n') + Sum(n', y => g(x,y)))(i)
 {
 }
 

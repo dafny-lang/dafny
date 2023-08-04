@@ -8,7 +8,8 @@ while [ -h "$SOURCE" ]; do
     SOURCE="$(readlink "$SOURCE")"
     [[ $SOURCE != /* ]] && SOURCE="$DIR/$SOURCE"
 done
-DAFNY_ROOT="$( cd -P "$( dirname $( dirname "$SOURCE" ))" && pwd )"
+DIR=$(dirname "$SOURCE")
+DAFNY_ROOT=$( cd -P "$DIR" && pwd )/..
 
 MY_OS=$(uname -s)
 if [ "${MY_OS:0:5}" == "MINGW" ] || [ "${MY_OS:0:6}" == "CYGWIN" ]; then

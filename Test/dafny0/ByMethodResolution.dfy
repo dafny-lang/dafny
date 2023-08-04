@@ -1,4 +1,4 @@
-// RUN: %dafny "%s" > "%t"
+// RUN: %exits-with 2 %dafny "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module Resolution {
@@ -29,13 +29,21 @@ module Resolution {
 module Export {
   module A {
     export
-      provides F, G, H
+      provides F, FP, F2, G, H
 
-    function F(): int {
+    ghost function F(): int {
       5
     }
 
-    function method G(): int {
+    ghost predicate FP() {
+      true
+    }
+
+    twostate function F2(): int {
+      5
+    }
+
+    function G(): int {
       5
     }
 
@@ -48,11 +56,13 @@ module Export {
 
   module B {
     import A
-    method M() returns (ghost x: int, y: int) {
+    method M() returns (ghost x: int, y: int, b: bool) {
       x := A.F();
       x := A.G();
       x := A.H();
       y := A.F(); // error: F is ghost
+      b := A.FP(); // error: FP is ghost
+      y := A.F2(); // error: F2 is ghost
       y := A.G();
       y := A.H();
     }
@@ -60,7 +70,7 @@ module Export {
 }
 
 module ByMethodGhostInterests {
-  function Zero(): int { 0 }
+  ghost function Zero(): int { 0 }
 
   function F(x: nat): int {
     x + Zero()
@@ -116,7 +126,7 @@ module BadExtremeRecursion {
   least predicate R0() {
     H0'() == 5
   }
-  function H0'(): int {
+  ghost function H0'(): int {
     if H0() < 100 then 5 else 3 // in a ghost context, this calls the function part of H0
   }
   function H0(): int {
@@ -131,7 +141,7 @@ module BadExtremeRecursion {
   least predicate R1() {
     H1'() == 5 // error: R1 is in same recursive cluster as H1
   }
-  function method H1'(): int {
+  function H1'(): int {
     if H1() < 100 then 5 else 3 // in a compiled context, this calls the method part of H1
   }
   function H1(): int {
@@ -146,7 +156,7 @@ module BadExtremeRecursion {
   least predicate R2() {
     H2'() == 5 // error: R2 is in same recursive cluster as H2
   }
-  function method H2'(): int {
+  function H2'(): int {
     if H2() < 100 then 5 else 3 // in a compiled context, this calls the method part of H2
   }
   function H2(): int {

@@ -1,0 +1,2 @@
+git-issue-1545.dfy(8,11): Error: a non-trivial type test is allowed only for reference types (tried to test if 'int' is a 'nat')
+1 resolution/type errors detected in git-issue-1545.dfy

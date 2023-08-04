@@ -3,15 +3,15 @@
 namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
   public class FieldSymbol : MemberSymbol, ILocalizableSymbol {
     public Field Declaration { get; }
-    public object Node => Declaration;
+    public INode Node => Declaration;
 
-    public FieldSymbol(ISymbol? scope, Field field) : base(scope, field) {
+    public FieldSymbol(ILegacySymbol? scope, Field field) : base(scope, field) {
       Declaration = field;
     }
 
-    public string GetDetailText(CancellationToken cancellationToken) {
+    public string GetDetailText(DafnyOptions options, CancellationToken cancellationToken) {
       var prefix = Declaration.IsMutable ? "var" : "const";
-      return $"{prefix} {ClassPrefix}{Declaration.Name}: {Declaration.Type}";
+      return $"{prefix} {TypePrefix}{Declaration.Name}: {Declaration.Type}";
     }
 
     public override TResult Accept<TResult>(ISymbolVisitor<TResult> visitor) {

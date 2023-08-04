@@ -4,13 +4,15 @@
   /// </summary>
   /// <typeparam name="TResult">The return value of the visit methods.</typeparam>
   public interface ISymbolVisitor<TResult> {
-    TResult Visit(ISymbol symbol);
+    TResult Visit(ILegacySymbol symbol);
 
     TResult Visit(CompilationUnit compilationUnit);
 
     TResult Visit(ModuleSymbol moduleSymbol);
 
     TResult Visit(ClassSymbol classSymbol);
+
+    TResult Visit(DataTypeSymbol dataTypeSymbol);
 
     TResult Visit(ValueTypeSymbol valueTypeSymbol);
 

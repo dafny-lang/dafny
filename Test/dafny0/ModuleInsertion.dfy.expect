@@ -1,16 +1,23 @@
 // ModuleInsertion.dfy
 
+method Main()
+{
+  Outer.Test();
+  XY.Test();
+  U.V.Test();
+  print MyModule.Q.W.E.R.T.Y.h, "\n";
+}
 
 module Outer {
-
-  module C {
-
-    import D = D
-    const c := 2 + D.d
-  }
   method Test()
   {
     print A.a, " ", B.b, " ", C.c, " ", D.d, "\n";
+  }
+
+  module C {
+    const c := 2 + D.d
+
+    import D
   }
 }
 
@@ -30,20 +37,13 @@ module MyModule {
     const h := 2
   }
 }
-method Main()
-{
-  Outer.Test();
-  XY.Test();
-  U.V.Test();
-  print MyModule.Q.W.E.R.T.Y.h, "\n";
-}
 
 module Outer.A {
-
-  import B = B
-
-  import C = C
   const a := B.b + C.c
+
+  import B
+
+  import C
 }
 
 module Outer.B {
@@ -54,14 +54,34 @@ module Outer.D {
   const d := 3
 }
 
+module Outer.E {
+
+  export
+    provides F
+
+
+  module F {
+
+    export G
+
+  }
+}
+
+module Outer.H {
+
+  import E
+
+  import F = E.F`G
+}
+
 module XY.X {
+  const m := 20
 
   module M {
-
-    import Y = Y
     const n := Y.m - 5
+
+    import Y
   }
-  const m := 20
 }
 
 module XY.Y {
@@ -89,12 +109,16 @@ module U.V.W {
 /*
 module _System {
   /* CALL GRAPH for module _System:
-   * SCC at height 2:
-   *   RotateRight
    * SCC at height 1:
    *   RotateLeft
+   * SCC at height 1:
+   *   RotateRight
+   * SCC at height 0:
+   *   array
    * SCC at height 0:
    *   nat
+   * SCC at height 0:
+   *   object
    */
   type string(==,0) = seq<char>
 
@@ -113,11 +137,11 @@ module _System {
   type {:axiom} array(==)<arg> = c: array?<arg> | c != null /*special witness*/
   */
 
-  class {:compile false} /*_#Func1*/ -T0 ~> +R {
-    function requires(x0: T0): bool
+  type {:compile false} /*_#Func1*/ -T0 ~> +R {
+    ghost function requires(x0: T0): bool
       reads reads(x0)
 
-    function reads(x0: T0): set<object?>
+    ghost function reads(x0: T0): set<object?>
       reads reads(x0)
   }
 
@@ -129,11 +153,11 @@ module _System {
     | forall x0: T0 :: f.requires(x0)
     /*special witness*/
 
-  class {:compile false} /*_#Func0*/ () ~> +R {
-    function requires(): bool
+  type {:compile false} /*_#Func0*/ () ~> +R {
+    ghost function requires(): bool
       reads reads()
 
-    function reads(): set<object?>
+    ghost function reads(): set<object?>
       reads reads()
   }
 
@@ -163,73 +187,70 @@ module _System {
   }
 
   type _bv {
-    function method RotateLeft(w: nat): selftype
+    function RotateLeft(w: nat): selftype
 
-    function method RotateRight(w: nat): selftype
+    function RotateRight(w: nat): selftype
   }
 
-  type map<T, U> {
+  type map<+T, +U> {
     var Keys: set<T>  // immutable
     var Values: set<U>  // immutable
     var Items: set<(T, U)>  // immutable
   }
 
-  type imap<T, U> {
+  type imap<*T, +U> {
     var Keys: iset<T>  // immutable
     var Values: iset<U>  // immutable
     var Items: iset<(T, U)>  // immutable
   }
 
-  datatype /*_tuple#0*/ () = _#Make0
+  datatype {:compile false} /*_tuple#0*/ () = _#Make0
 }
 // bitvector types in use:
 */
 
 /* CALL GRAPH for module _module:
- * SCC at height 1:
- *   Main
  * SCC at height 0:
- *   string
+ *   Main
  */
+method Main()
+{
+  Outer.Test();
+  XY.Test();
+  U.V.Test();
+  print MyModule.Q.W.E.R.T.Y.h, "\n";
+}
 
 module Outer {
   /* CALL GRAPH for module Outer:
-   * SCC at height 1:
-   *   Test
    * SCC at height 0:
-   *   string
+   *   Test
    */
-
-  module C {
-    /* CALL GRAPH for module C:
-     * SCC at height 1:
-     *   c
-     * SCC at height 0:
-     *   d
-     */
-
-    import D = D
-    const c: int := 2 + D.d
-  }
   method Test()
   {
     print A.a, " ", B.b, " ", C.c, " ", D.d, "\n";
   }
 
+  module C {
+    /* CALL GRAPH for module C:
+     * SCC at height 0:
+     *   c
+     */
+    const c: int := 2 + D.d
+
+    import D
+  }
+
   module A {
     /* CALL GRAPH for module A:
-     * SCC at height 2:
-     *   a
-     * SCC at height 1:
-     *   c
      * SCC at height 0:
-     *   b
+     *   a
      */
-
-    import B = B
-
-    import C = C
     const a: int := B.b + C.c
+
+    import B
+
+    import C
   }
 
   module B {
@@ -247,14 +268,48 @@ module Outer {
      */
     const d: int := 3
   }
+
+  module E {
+    /* CALL GRAPH for module E:
+     */
+
+    export
+      provides F
+      /*----- exported view:
+
+        module F {
+          /* CALL GRAPH for module F:
+           */
+
+          export G
+
+        }
+      -----*/
+
+
+    module F {
+      /* CALL GRAPH for module F:
+       */
+
+      export G
+
+    }
+  }
+
+  module H {
+    /* CALL GRAPH for module H:
+     */
+
+    import E
+
+    import F = E.F`G
+  }
 }
 
 module XY {
   /* CALL GRAPH for module XY:
-   * SCC at height 1:
-   *   Test
    * SCC at height 0:
-   *   string
+   *   Test
    */
   method Test()
   {
@@ -266,19 +321,17 @@ module XY {
      * SCC at height 0:
      *   m
      */
+    const m: int := 20
 
     module M {
       /* CALL GRAPH for module M:
-       * SCC at height 1:
-       *   n
        * SCC at height 0:
-       *   m
+       *   n
        */
-
-      import Y = Y
       const n: int := Y.m - 5
+
+      import Y
     }
-    const m: int := 20
   }
 
   module Y {
@@ -327,13 +380,6 @@ module MyModule {
     }
   }
 }
-method Main()
-{
-  Outer.Test();
-  XY.Test();
-  U.V.Test();
-  print MyModule.Q.W.E.R.T.Y.h, "\n";
-}
 
 module U {
   /* CALL GRAPH for module U:
@@ -341,16 +387,10 @@ module U {
 
   module V {
     /* CALL GRAPH for module V:
-     * SCC at height 4:
-     *   Test
-     * SCC at height 3:
-     *   string
-     * SCC at height 2:
-     *   x2
      * SCC at height 1:
-     *   x0
+     *   Test
      * SCC at height 0:
-     *   x1
+     *   x2
      */
     const x2: int := 14 + W.x1 + W.X.x0
 
@@ -361,10 +401,8 @@ module U {
 
     module W {
       /* CALL GRAPH for module W:
-       * SCC at height 1:
-       *   x1
        * SCC at height 0:
-       *   x0
+       *   x1
        */
       const x1: int := 12 * X.x0
 

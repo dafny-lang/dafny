@@ -1,0 +1,2 @@
+text.dfy(14,4): Error: RHS (of type (int, int) -> int) not assignable to LHS (of type int -> int)
+1 resolution/type errors detected in text.dfy

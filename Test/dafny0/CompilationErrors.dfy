@@ -1,7 +1,7 @@
-// RUN: %dafny "%s" > "%t"
+// RUN: %exits-with 3 %dafny "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
-type MyType  // compile error: opaque type
+type MyType  // compile error: abstract type
 iterator Iter()  // compile error: body-less iterator
 ghost method M()  // compile error: body-less ghost method
 method P()  // compile error: body-less method
@@ -10,36 +10,55 @@ class TestClass {
   {
     if g == 0 {
       assume true;  // compile error: assume
+      assume {:axiom} true;
     }
   }
-  ghost var g: int;
+  ghost var g: int
 }
 
-function F(): int  // compile error: body-less ghost function
-function method H(): int  // compile error: body-less function method
+ghost function F(): int  // compile error: body-less ghost function
+function H(): int  // compile error: body-less function method
 
 lemma Lemma() {
   assume false;  // compile error: assume
+  assume {:axiom} true;
 }
 ghost method GMethod() {
   assume false;  // compile error: assume
+  assume {:axiom} true;
 }
 
-function MyFunction(): int
+ghost function MyFunction(): int
 {
   assume false;  // compile error: assume
+  assume {:axiom} true;
   6
 }
 
-function MyCalcFunction(): int
+ghost function MyCalcFunction(): int
 {
   calc <= {
     2;
     6;
-    { assume true; }  // compile error: assume
+    { assume true; // compile error: assume
+      assume {:axiom} true; }
     10;
   }
   12
+}
+
+datatype Result = Failure {
+  predicate IsFailure() { true }
+  function Extract() : () requires false { () }
+}
+method MyResultMethod() returns (r: Result) {
+  var x :- assume Failure(); // compile error: assume
+  var y :- assume {:axiom} Failure();
+}
+
+method MyAssignSuchThat() {
+  var x: int :| assume false; // compile error: assume
+  var y: int :| assume {:axiom} true;
 }
 
 // -------------------------- body-less loops

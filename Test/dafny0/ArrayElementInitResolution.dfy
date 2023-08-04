@@ -1,4 +1,4 @@
-// RUN: %dafny /print:"%t.print" /rprint:"%t.dprint" "%s" > "%t"
+// RUN: %exits-with 2 %dafny /print:"%t.print" /rprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module AM {
@@ -59,9 +59,9 @@ module AM {
 }
 
 module BM {
-  function GhostF(x: int): char { 'D' }
-  method M(n: nat) {
-    var a := new char[n](GhostF);  // error: use of ghost function not allowed here
+  ghost function GhostF(x: int): char { 'D' }
+  method M(n: nat) returns (a: array<char>) {
+    a := new char[n](GhostF);  // error: use of ghost function not allowed here
     if 5 < n {
       assert a[5] == 'D';
     }
@@ -82,8 +82,8 @@ module CM {
 
 module DM {
   method Ghost(ghost g: int)
-  {
-    var a := new int[4] [100, 75, g, 25];  // error: "g" is ghost
+  { var a;
+    a := new int[4] [100, 75, g, 25];  // error: "g" is ghost
   }
 }
 

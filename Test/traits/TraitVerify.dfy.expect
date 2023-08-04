@@ -1,5 +1,5 @@
 TraitVerify.dfy(21,7): Error: value of expression (of type 'C?<int>') is not known to be an instance of type 'Tr<int>'
 TraitVerify.dfy(25,7): Error: value of expression (of type 'A?') is not known to be an instance of type 'Tr<int>'
-TraitVerify.dfy(30,7): Error: value of expression (of type 'A?') is not known to be an instance of type 'A', because it may be null
+TraitVerify.dfy(30,7): Error: value of expression (of type 'A?') is not known to be an instance of type 'A', because it might be null
 
 Dafny program verifier finished with 4 verified, 3 errors

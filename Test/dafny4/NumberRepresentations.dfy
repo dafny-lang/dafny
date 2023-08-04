@@ -6,7 +6,7 @@
 // For a given base, function eval gives the number that is represented.  Note
 // that eval can be defined without regard to the sign or magnitude of the digits.
 
-function eval(digits: seq<int>, base: int): int
+ghost function eval(digits: seq<int>, base: int): int
   requires 2 <= base
   decreases digits  // see comment in test_eval()
 {
@@ -38,7 +38,7 @@ lemma test_eval()
 // consider digits that are drawn from a consecutive range of "base" integers
 // including 0.  That is, each digit lies in the half-open interval [lowDigit..lowDigit+base].
 
-predicate IsSkewNumber(digits: seq<int>, lowDigit: int, base: int)
+ghost predicate IsSkewNumber(digits: seq<int>, lowDigit: int, base: int)
 {
   2 <= base &&  // there must be at least two distinct digits in the number representation
   lowDigit <= 0 < lowDigit + base &&  // digits must include 0
@@ -117,7 +117,7 @@ lemma Complete(n: int, lowDigit: int, base: int) returns (digits: seq<int>)
   }
 }
 
-ghost method inc(a: seq<int>, lowDigit: int, base: int) returns (b: seq<int>)
+lemma inc(a: seq<int>, lowDigit: int, base: int) returns (b: seq<int>)
   requires IsSkewNumber(a, lowDigit, base)
   requires eval(a, base) == 0 ==> 1 < lowDigit + base
   ensures IsSkewNumber(b, lowDigit, base) && eval(b, base) == eval(a, base) + 1
@@ -157,7 +157,7 @@ ghost method inc(a: seq<int>, lowDigit: int, base: int) returns (b: seq<int>)
   }
 }
 
-ghost method dec(a: seq<int>, lowDigit: int, base: int) returns (b: seq<int>)
+lemma dec(a: seq<int>, lowDigit: int, base: int) returns (b: seq<int>)
   requires IsSkewNumber(a, lowDigit, base)
   requires eval(a, base) == 0 ==> lowDigit < 0
   ensures IsSkewNumber(b, lowDigit, base) && eval(b, base) == eval(a, base) - 1
@@ -177,7 +177,7 @@ ghost method dec(a: seq<int>, lowDigit: int, base: int) returns (b: seq<int>)
 
 // The trim function removes any leading zeros.
 
-function trim(digits: seq<int>): seq<int>
+ghost function trim(digits: seq<int>): seq<int>
 {
   if |digits| != 0 && digits[|digits| - 1] == 0 then trim(digits[..|digits|-1]) else digits
 }

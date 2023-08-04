@@ -1,4 +1,4 @@
 git-issue-151b.dfy(24,17): Error: The name m ambiguously refers to a static member in one of the modules A, B (try qualifying the member name with the module name)
 git-issue-151b.dfy(24,18): Error: expected method call, found expression
-git-issue-151b.dfy(26,24): Error: The name f ambiguously refers to a static member in one of the modules A, B (try qualifying the member name with the module name)
+git-issue-151b.dfy(26,30): Error: The name f ambiguously refers to a static member in one of the modules A, B (try qualifying the member name with the module name)
 3 resolution/type errors detected in git-issue-151b.dfy

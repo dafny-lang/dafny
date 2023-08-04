@@ -1,86 +1,131 @@
-﻿using System;
-using IntervalTree;
-using Microsoft.Dafny.LanguageServer.Language;
+﻿using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Language.Symbols;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
+using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
+using System.Linq;
+using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Boogie;
+using Microsoft.Extensions.Logging;
+using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace {
+  /// <summary>
+  /// Text document loader implementation that offloads the whole load procedure on one dedicated
+  /// thread with a stack size of 256MB. Since only one thread is used, document loading is implicitely synchronized.
+  /// The verification runs on the calling thread.
+  /// </summary>
+  /// <remarks>
+  /// The increased stack size is necessary to solve the issue https://github.com/dafny-lang/dafny/issues/1447.
+  /// </remarks>
   public class TextDocumentLoader : ITextDocumentLoader {
-    private readonly IDafnyParser _parser;
-    private readonly ISymbolResolver _symbolResolver;
-    private readonly IProgramVerifier _verifier;
-    private readonly ISymbolTableFactory _symbolTableFactory;
-    private readonly ICompilationStatusNotificationPublisher _notificationPublisher;
+    private readonly ILogger<ITextDocumentLoader> documentLoader;
+    private readonly IDafnyParser parser;
+    private readonly ISymbolResolver symbolResolver;
+    private readonly ISymbolTableFactory symbolTableFactory;
+    private readonly IGhostStateDiagnosticCollector ghostStateDiagnosticCollector;
+    protected readonly ICompilationStatusNotificationPublisher statusPublisher;
 
-    public TextDocumentLoader(
+    protected TextDocumentLoader(
+      ILogger<ITextDocumentLoader> documentLoader,
       IDafnyParser parser,
       ISymbolResolver symbolResolver,
-      IProgramVerifier verifier,
       ISymbolTableFactory symbolTableFactory,
-      ICompilationStatusNotificationPublisher notificationPublisher
-    ) {
-      _parser = parser;
-      _symbolResolver = symbolResolver;
-      _verifier = verifier;
-      _symbolTableFactory = symbolTableFactory;
-      _notificationPublisher = notificationPublisher;
+      IGhostStateDiagnosticCollector ghostStateDiagnosticCollector,
+      ICompilationStatusNotificationPublisher statusPublisher) {
+      this.documentLoader = documentLoader;
+      this.parser = parser;
+      this.symbolResolver = symbolResolver;
+      this.symbolTableFactory = symbolTableFactory;
+      this.ghostStateDiagnosticCollector = ghostStateDiagnosticCollector;
+      this.statusPublisher = statusPublisher;
     }
 
-    public async Task<DafnyDocument> LoadAsync(TextDocumentItem textDocument, bool verify, CancellationToken cancellationToken) {
-      var errorReporter = new DiagnosticErrorReporter(textDocument.Uri);
-      var program = await _parser.ParseAsync(textDocument, errorReporter, cancellationToken);
+    public static TextDocumentLoader Create(
+      IDafnyParser parser,
+      ISymbolResolver symbolResolver,
+      ISymbolTableFactory symbolTableFactory,
+      IGhostStateDiagnosticCollector ghostStateDiagnosticCollector,
+      ICompilationStatusNotificationPublisher statusPublisher,
+      ILogger<ITextDocumentLoader> logger
+      ) {
+      return new TextDocumentLoader(logger, parser, symbolResolver, symbolTableFactory, ghostStateDiagnosticCollector, statusPublisher);
+    }
+
+    public IdeState CreateUnloaded(Compilation compilation) {
+      return CreateDocumentWithEmptySymbolTable(compilation, ImmutableDictionary<Uri, IReadOnlyList<Diagnostic>>.Empty);
+    }
+
+    public async Task<CompilationAfterParsing> LoadAsync(DafnyOptions options, Compilation compilation,
+      CancellationToken cancellationToken) {
+#pragma warning disable CS1998
+      return await await DafnyMain.LargeStackFactory.StartNew(
+        async () => LoadInternal(options, compilation, cancellationToken), cancellationToken
+#pragma warning restore CS1998
+        );
+    }
+
+    private CompilationAfterParsing LoadInternal(DafnyOptions options, Compilation compilation,
+      CancellationToken cancellationToken) {
+      var project = compilation.Project;
+      var errorReporter = new DiagnosticErrorReporter(options, project.Uri);
+      _ = statusPublisher.SendStatusNotification(compilation, CompilationStatus.Parsing);
+      var program = parser.Parse(compilation, errorReporter, cancellationToken);
+      var compilationAfterParsing = new CompilationAfterParsing(compilation, program, errorReporter.AllDiagnosticsCopy);
       if (errorReporter.HasErrors) {
-        _notificationPublisher.SendStatusNotification(textDocument, CompilationStatus.ParsingFailed);
-        return CreateDocumentWithParserErrors(textDocument, errorReporter, program);
+        _ = statusPublisher.SendStatusNotification(compilation, CompilationStatus.ParsingFailed);
+        return compilationAfterParsing;
       }
-      var compilationUnit = await _symbolResolver.ResolveSymbolsAsync(textDocument, program, cancellationToken);
-      var symbolTable = _symbolTableFactory.CreateFrom(program, compilationUnit, cancellationToken);
-      string? serializedCounterExamples;
-      if (errorReporter.HasErrors) {
-        _notificationPublisher.SendStatusNotification(textDocument, CompilationStatus.ResolutionFailed);
-        serializedCounterExamples = null;
-      } else {
-        _notificationPublisher.SendStatusNotification(textDocument, CompilationStatus.CompilationSucceeded);
-        serializedCounterExamples = await VerifyIfEnabledAsync(textDocument, program, verify, cancellationToken);
+
+      _ = statusPublisher.SendStatusNotification(compilation, CompilationStatus.ResolutionStarted);
+      try {
+        var compilationUnit = symbolResolver.ResolveSymbols(project, program, cancellationToken);
+        var legacySymbolTable = symbolTableFactory.CreateFrom(compilationUnit, cancellationToken);
+
+        var newSymbolTable = errorReporter.HasErrors
+          ? null
+          : symbolTableFactory.CreateFrom(program, compilationAfterParsing, cancellationToken);
+        if (errorReporter.HasErrors) {
+          _ = statusPublisher.SendStatusNotification(compilation, CompilationStatus.ResolutionFailed);
+        } else {
+          _ = statusPublisher.SendStatusNotification(compilation, CompilationStatus.CompilationSucceeded);
+        }
+
+        var ghostDiagnostics = ghostStateDiagnosticCollector.GetGhostStateDiagnostics(legacySymbolTable, cancellationToken);
+
+        return new CompilationAfterResolution(compilationAfterParsing,
+          errorReporter.AllDiagnosticsCopy,
+          newSymbolTable,
+          legacySymbolTable,
+          ghostDiagnostics
+        );
+      } catch (OperationCanceledException) {
+        return compilationAfterParsing;
       }
-      return new DafnyDocument(textDocument, errorReporter, program, symbolTable, serializedCounterExamples);
     }
 
-    private static DafnyDocument CreateDocumentWithParserErrors(TextDocumentItem textDocument, DiagnosticErrorReporter errorReporter, Dafny.Program program) {
-      return new DafnyDocument(
-        textDocument,
-        errorReporter,
-        program,
-        CreateEmptySymbolTable(program),
-        serializedCounterExamples: null
+    private IdeState CreateDocumentWithEmptySymbolTable(Compilation compilation,
+      IReadOnlyDictionary<Uri, IReadOnlyList<Diagnostic>> resolutionDiagnostics) {
+      var dafnyOptions = DafnyOptions.Default;
+      return new IdeState(
+        compilation,
+        new EmptyNode(),
+        resolutionDiagnostics,
+        SymbolTable.Empty(),
+        SignatureAndCompletionTable.Empty(dafnyOptions, compilation.Project),
+        new Dictionary<ImplementationId, IdeImplementationView>(),
+        Array.Empty<Counterexample>(),
+        false,
+        ImmutableDictionary<Uri, IReadOnlyList<Range>>.Empty,
+      null
       );
-    }
-
-    private static SymbolTable CreateEmptySymbolTable(Dafny.Program program) {
-      return new SymbolTable(
-        new CompilationUnit(program),
-        new Dictionary<object, ILocalizableSymbol>(),
-        new Dictionary<ISymbol, SymbolLocation>(),
-        new IntervalTree<Position, ILocalizableSymbol>(),
-        symbolsResolved: false
-      );
-    }
-
-    private async Task<string?> VerifyIfEnabledAsync(TextDocumentItem textDocument, Dafny.Program program, bool verify, CancellationToken cancellationToken) {
-      if (!verify) {
-        return null;
-      }
-      _notificationPublisher.SendStatusNotification(textDocument, CompilationStatus.VerificationStarted);
-      var verificationResult = await _verifier.VerifyAsync(program, cancellationToken);
-      var compilationStatusAfterVerification = verificationResult.Verified
-        ? CompilationStatus.VerificationSucceeded
-        : CompilationStatus.VerificationFailed;
-      _notificationPublisher.SendStatusNotification(textDocument, compilationStatusAfterVerification);
-      return verificationResult.SerializedCounterExamples;
     }
   }
 }
+
+
+public record ImplementationId(Uri Uri, Position Position, string Name);

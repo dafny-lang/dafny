@@ -1,22 +1,26 @@
 ﻿using System.Collections.Generic;
 using System.Threading;
+using Microsoft.Boogie;
 
 namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
   public class ScopeSymbol : Symbol, ILocalizableSymbol {
-    public BlockStmt Declaration { get; }
-    public object Node => Declaration;
-    public List<ISymbol> Symbols { get; } = new List<ISymbol>();
-    public override IEnumerable<ISymbol> Children => Symbols;
+    public INode Node { get; }
+    public readonly IToken BodyStartToken;
+    public readonly IToken BodyEndToken;
+    public List<ILegacySymbol> Symbols { get; } = new();
+    public override IEnumerable<ILegacySymbol> Children => Symbols;
 
-    public ScopeSymbol(ISymbol? scope, BlockStmt declaration) : base(scope, string.Empty) {
-      Declaration = declaration;
+    public ScopeSymbol(ILegacySymbol? scope, INode region) : base(scope, string.Empty) {
+      Node = region;
+      BodyStartToken = region.RangeToken.StartToken;
+      BodyEndToken = region.RangeToken.EndToken;
     }
 
     public override TResult Accept<TResult>(ISymbolVisitor<TResult> visitor) {
       return visitor.Visit(this);
     }
 
-    public string GetDetailText(CancellationToken cancellationToken) {
+    public string GetDetailText(DafnyOptions options, CancellationToken cancellationToken) {
       return "";
     }
   }

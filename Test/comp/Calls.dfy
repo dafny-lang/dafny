@@ -1,11 +1,6 @@
-// RUN: %dafny /compile:0 "%s" > "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:cs "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:java "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:js "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:go "%s" >> "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment
 
-function method F(x: int, y: bool): int {
+function F(x: int, y: bool): int {
   x + if y then 2 else 3
 }
 
@@ -78,18 +73,18 @@ module FunctionValues {
   class Class {
     const x: int
     constructor (x: int) { this.x := x; }
-    function method F(): int { x }
-    static function method G(): int { 3 }
+    function F(): int { x }
+    static function G(): int { 3 }
   }
 
   datatype Color = Red | Green | Blue {
-    function method F(): int { if this == Red then 5 else 2 }
-    static function method G(): int { 3 }
+    function F(): int { if this == Red then 5 else 2 }
+    static function G(): int { 3 }
   }
 
   newtype NT = x | 0 <= x < 15 {
-    function method F(): int { this as int }
-    static function method G(): int { 3 }
+    function F(): int { this as int }
+    static function G(): int { 3 }
   }
 }
 
@@ -118,6 +113,9 @@ module VariableCapture {
       r := [];
       return;
     }
+    // Most target languages have no immediate match for the expressions in the following
+    // lines so the compilation strategies will be informed by the constraints imposed by
+    // the target language.
     var x :| x in S;
     g := x;  // In C#, "g" will be a formal out-parameter
     // C# does not allow formal out-parameters to be captured in a lambda, so "g" is saved
@@ -139,6 +137,9 @@ module VariableCapture {
       r := [];
       return;
     }
+    // Most target languages have no immediate match for the expressions in the following
+    // lines so the compilation strategies will be informed by the constraints imposed by
+    // the target language.
     var x :| x in M.Keys;
     g := x;  // In C#, "g" will be a formal out-parameter
     // C# does not allow formal out-parameters to be captured in a lambda, so "g" is saved

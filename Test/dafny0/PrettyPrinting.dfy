@@ -1,4 +1,4 @@
-// RUN: %dafny /dprint:- /env:0 /noVerify "%s" > "%t"
+// RUN: %exits-with 2 %dafny /dprint:- /env:0 /noVerify "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module A {
@@ -115,5 +115,54 @@ module ByMethod {
       j := j - 1;
     }
     return -j;
+  }
+}
+
+module GhostConstructors {
+  class C {
+    constructor X()
+    ghost constructor Y()
+  }
+}
+
+module BreakContinue {
+  method M() {
+    label Outer:
+    for i := 0 to 100 {
+    label Inner:
+      for j := 0 to 100 {
+        label X: {
+          label Innerer:
+          for k := 0 to 100 {
+            if
+            case true => break;
+            case true => continue;
+            case true => break break;
+            case true => break continue;
+            case true => break break break;
+            case true => break break continue;
+            case true => break Innerer;
+            case true => break Inner;
+            case true => break Outer;
+            case true => break X;
+            case true => continue Innerer;
+            case true => continue Inner;
+            case true => continue Outer;
+          }
+        }
+      }
+    }
+  }
+}
+
+module New {
+  method M() {
+    var three := 3;
+    var a;
+    a := new int[3] [20, 50, 70];
+    a := new [3] [20, 50, 70];
+    a := new [three] [20, 50, 70];
+    a := new int[] [20, 50, 70];
+    a := new [] [20, 50, 70];
   }
 }

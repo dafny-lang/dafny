@@ -1,15 +1,10 @@
-// RUN: %dafny /compile:0 "%s" > "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:cs "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:js "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:go "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:java "%s" >> "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachCompiler "%s"
 
-function TwinPrimes(): (int, int) {
+ghost function TwinPrimes(): (int, int) {
   (41, 43)
 }
 
-function method TwinPrimesM(): (int, int) {
+function TwinPrimesM(): (int, int) {
   (41, 43)
 }
 

@@ -1,5 +1,4 @@
-// RUN: %dafny /compile:3 "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment
 
 // Smallest missing number.
 // An imperative solution to the programming problem in Richard Bird's
@@ -21,7 +20,7 @@ method Main() {
   print s, "\n";  // 0
 }
 
-predicate Has<T>(a: array<T>, x: T)
+ghost predicate Has<T>(a: array<T>, x: T)
   reads a
 {
   exists i :: 0 <= i < a.Length && a[i] == x

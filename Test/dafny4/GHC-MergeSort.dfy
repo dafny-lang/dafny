@@ -13,7 +13,7 @@
 
 datatype List<T> = Nil | Cons(head: T, tail: List)
 
-function length(xs: List): nat
+ghost function length(xs: List): nat
 {
   match xs
   case Nil => 0
@@ -21,28 +21,28 @@ function length(xs: List): nat
 }
 
 // returns xs-backwards followed-by acc
-function method reverse(xs: List, acc: List): List
+function reverse(xs: List, acc: List): List
 {
   match xs
   case Nil => acc
   case Cons(a, ys) => reverse(ys, Cons(a, acc))
 }
 
-function multiset_of<T>(xs: List<T>): multiset<T>
+ghost function multiset_of<T>(xs: List<T>): multiset<T>
 {
   match xs
   case Nil => multiset{}
   case Cons(a, ys) => multiset{a} + multiset_of(ys)
 }
 
-function MultisetUnion<T>(xs: List<List<T>>): multiset<T>
+ghost function MultisetUnion<T>(xs: List<List<T>>): multiset<T>
 {
   match xs
   case Nil => multiset{}
   case Cons(a, ys) => multiset_of(a) + MultisetUnion(ys)
 }
 
-function append(xs: List, ys: List): List
+ghost function append(xs: List, ys: List): List
 {
   match xs
   case Nil => ys
@@ -50,16 +50,16 @@ function append(xs: List, ys: List): List
 }
 
 lemma append_associative(xs: List, ys: List, zs: List)
-  ensures append(xs, append(ys, zs)) == append(append(xs, ys), zs);
+  ensures append(xs, append(ys, zs)) == append(append(xs, ys), zs)
 {
 }
 
 lemma append_Nil(xs: List)
-  ensures append(xs, Nil) == xs;
+  ensures append(xs, Nil) == xs
 {
 }
 
-function flatten(x: List<List>): List
+ghost function flatten(x: List<List>): List
 {
   match x
   case Nil => Nil
@@ -70,21 +70,21 @@ function flatten(x: List<List>): List
 
 // Everything is parametric in G and key
 type G
-function method key(g: G): int
+function key(g: G): int
 
-predicate method Below(a: G, b: G)
+predicate Below(a: G, b: G)
 {
   key(a) <= key(b)
 }
 
-function method sort(xs: List<G>): List<G>
+function sort(xs: List<G>): List<G>
 {
   mergeAll(sequences(xs))
 }
 
-function method sequences(xs: List<G>): List<List<G>>
-  ensures sequences(xs) != Nil;
-  decreases xs, 0;
+function sequences(xs: List<G>): List<List<G>>
+  ensures sequences(xs) != Nil
+  decreases xs, 0
 {
   match xs
   case Nil => Cons(xs, Nil)
@@ -94,9 +94,9 @@ function method sequences(xs: List<G>): List<List<G>>
     case Cons(b, zs) => if !Below(a, b) then descending(b, Cons(a, Nil), zs) else ascending(b, Cons(a, Nil), zs)
 }
 
-function method descending(a: G, xs: List<G>, ys: List<G>): List<List<G>>
-  ensures descending(a, xs, ys) != Nil;
-  decreases ys;
+function descending(a: G, xs: List<G>, ys: List<G>): List<List<G>>
+  ensures descending(a, xs, ys) != Nil
+  decreases ys
 {
   if ys.Cons? && !Below(a, ys.head) then
     descending(ys.head, Cons(a, xs), ys.tail)
@@ -104,9 +104,9 @@ function method descending(a: G, xs: List<G>, ys: List<G>): List<List<G>>
     Cons(Cons(a, xs), sequences(ys))
 }
 
-function method ascending(a: G, xs: List<G>, ys: List<G>): List<List<G>>
-  ensures ascending(a, xs, ys) != Nil;
-  decreases ys;
+function ascending(a: G, xs: List<G>, ys: List<G>): List<List<G>>
+  ensures ascending(a, xs, ys) != Nil
+  decreases ys
 {
   if ys.Cons? && Below(a, ys.head) then
     ascending(ys.head, Cons(a, xs), ys.tail)
@@ -114,9 +114,9 @@ function method ascending(a: G, xs: List<G>, ys: List<G>): List<List<G>>
     Cons(reverse(Cons(a, xs), Nil), sequences(ys))
 }
 
-function method mergeAll(x: List<List<G>>): List<G>
-  requires x != Nil;
-  decreases length(x);
+function mergeAll(x: List<List<G>>): List<G>
+  requires x != Nil
+  decreases length(x)
 {
   if x.tail == Nil then
     x.head
@@ -124,10 +124,10 @@ function method mergeAll(x: List<List<G>>): List<G>
     mergeAll(mergePairs(x))
 }
 
-function method mergePairs(x: List<List<G>>): List<List<G>>
-  ensures length(mergePairs(x)) <= length(x);
-  ensures x.Cons? && x.tail.Cons? ==> length(mergePairs(x)) < length(x);
-  ensures x != Nil ==> mergePairs(x) != Nil;
+function mergePairs(x: List<List<G>>): List<List<G>>
+  ensures length(mergePairs(x)) <= length(x)
+  ensures x.Cons? && x.tail.Cons? ==> length(mergePairs(x)) < length(x)
+  ensures x != Nil ==> mergePairs(x) != Nil
 {
   if x.Cons? && x.tail.Cons? then
     Cons(merge(x.head, x.tail.head), mergePairs(x.tail.tail))
@@ -135,7 +135,7 @@ function method mergePairs(x: List<List<G>>): List<List<G>>
     x
 }
 
-function method merge(xs: List<G>, ys: List<G>): List<G>
+function merge(xs: List<G>, ys: List<G>): List<G>
 {
   match xs
   case Nil => ys
@@ -148,7 +148,7 @@ function method merge(xs: List<G>, ys: List<G>): List<G>
 
 // the specification
 
-predicate sorted(xs: List<G>)
+ghost predicate sorted(xs: List<G>)
 {
   match xs
   case Nil => true
@@ -157,20 +157,20 @@ predicate sorted(xs: List<G>)
     sorted(ys)
 }
 
-function filter(g: G, xs: List<G>): List<G>
+ghost function filter(g: G, xs: List<G>): List<G>
 {
   match xs
   case Nil => Nil
   case Cons(b, ys) => if key(g) == key(b) then Cons(b, filter(g, ys)) else filter(g, ys)
 }
 
-predicate stable(xs: List<G>, ys: List<G>)
+ghost predicate stable(xs: List<G>, ys: List<G>)
 {
   forall g :: filter(g, xs) == filter(g, ys)  // I dropped the unnecessary antecedent "g in multiset_of(xs)" from the paper
 }
 
 lemma Correctness(xs: List<G>)
-  ensures sorted(sort(xs)) && multiset_of(sort(xs)) == multiset_of(xs) && stable(sort(xs), xs);
+  ensures sorted(sort(xs)) && multiset_of(sort(xs)) == multiset_of(xs) && stable(sort(xs), xs)
 {
   calc {
     multiset_of(sort(xs));
@@ -189,8 +189,8 @@ lemma Correctness(xs: List<G>)
 // permutation lemmas
 
 lemma perm_sequences(xs: List<G>)
-  ensures MultisetUnion(sequences(xs)) == multiset_of(xs);
-  decreases xs, 0;
+  ensures MultisetUnion(sequences(xs)) == multiset_of(xs)
+  decreases xs, 0
 {
   match xs {
     case Nil =>
@@ -205,8 +205,8 @@ lemma perm_sequences(xs: List<G>)
 }
 
 lemma perm_descending(a: G, xs: List<G>, ys: List<G>)
-  ensures MultisetUnion(descending(a, xs, ys)) == multiset{a} + multiset_of(xs) + multiset_of(ys);
-  decreases ys;
+  ensures MultisetUnion(descending(a, xs, ys)) == multiset{a} + multiset_of(xs) + multiset_of(ys)
+  decreases ys
 {
   if ys.Cons? && !Below(a, ys.head) {
     calc {
@@ -229,8 +229,8 @@ lemma perm_descending(a: G, xs: List<G>, ys: List<G>)
 }
 
 lemma perm_ascending(a: G, xs: List<G>, ys: List<G>)
-  ensures MultisetUnion(ascending(a, xs, ys)) == multiset{a} + multiset_of(xs) + multiset_of(ys);
-  decreases ys;
+  ensures MultisetUnion(ascending(a, xs, ys)) == multiset{a} + multiset_of(xs) + multiset_of(ys)
+  decreases ys
 {
   if ys.Cons? && Below(a, ys.head) {
     calc {
@@ -255,14 +255,14 @@ lemma perm_ascending(a: G, xs: List<G>, ys: List<G>)
 }
 
 lemma perm_reverse(xs: List, acc: List)
-  ensures multiset_of(reverse(xs, acc)) == multiset_of(xs) + multiset_of(acc);
+  ensures multiset_of(reverse(xs, acc)) == multiset_of(xs) + multiset_of(acc)
 {
 }
 
 lemma perm_mergeAll(x: List<List<G>>)
-  requires x != Nil;
-  ensures multiset_of(mergeAll(x)) == MultisetUnion(x);
-  decreases length(x);
+  requires x != Nil
+  ensures multiset_of(mergeAll(x)) == MultisetUnion(x)
+  decreases length(x)
 {
   if x == Nil {
   } else if x.tail == Nil {
@@ -279,7 +279,7 @@ lemma perm_mergeAll(x: List<List<G>>)
 }
 
 lemma perm_mergePairs(x: List<List<G>>)
-  ensures MultisetUnion(mergePairs(x)) == MultisetUnion(x);
+  ensures MultisetUnion(mergePairs(x)) == MultisetUnion(x)
 {
   if x.Cons? && x.tail.Cons? {
     calc {
@@ -299,20 +299,20 @@ lemma perm_mergePairs(x: List<List<G>>)
 }
 
 lemma perm_merge(xs: List<G>, ys: List<G>)
-  ensures multiset_of(merge(xs, ys)) == multiset_of(xs) + multiset_of(ys);
+  ensures multiset_of(merge(xs, ys)) == multiset_of(xs) + multiset_of(ys)
 {
 }
 
 // sorted-ness lemmas
 
 lemma sorted_sort(xs: List<G>)
-  ensures sorted(sort(xs));
+  ensures sorted(sort(xs))
 {
   sorted_sequences(xs);
   sorted_mergeAll(sequences(xs));
 }
 
-predicate AllSorted(x: List<List<G>>)
+ghost predicate AllSorted(x: List<List<G>>)
 {
   match x
   case Nil => true
@@ -320,8 +320,8 @@ predicate AllSorted(x: List<List<G>>)
 }
 
 lemma sorted_sequences(xs: List<G>)
-  ensures AllSorted(sequences(xs));
-  decreases xs, 0;
+  ensures AllSorted(sequences(xs))
+  decreases xs, 0
 {
   match xs {
     case Nil =>
@@ -339,9 +339,9 @@ lemma sorted_sequences(xs: List<G>)
 }
 
 lemma sorted_descending(a: G, xs: List<G>, ys: List<G>)
-  requires (forall y :: y in multiset_of(xs) ==> Below(a, y)) && sorted(xs);
-  ensures AllSorted(descending(a, xs, ys));
-  decreases ys;
+  requires (forall y :: y in multiset_of(xs) ==> Below(a, y)) && sorted(xs)
+  ensures AllSorted(descending(a, xs, ys))
+  decreases ys
 {
   if ys.Cons? && !Below(a, ys.head) {
     sorted_descending(ys.head, Cons(a, xs), ys.tail);
@@ -357,9 +357,9 @@ lemma sorted_descending(a: G, xs: List<G>, ys: List<G>)
 }
 
 lemma sorted_ascending(a: G, xs: List<G>, ys: List<G>)
-  requires (forall y :: y in multiset_of(xs) ==> Below(y, a)) && sorted(reverse(xs, Nil));
-  ensures AllSorted(ascending(a, xs, ys));
-  decreases ys;
+  requires (forall y :: y in multiset_of(xs) ==> Below(y, a)) && sorted(reverse(xs, Nil))
+  ensures AllSorted(ascending(a, xs, ys))
+  decreases ys
 {
   sorted_insertInMiddle(xs, a, Nil);
   if ys.Cons? && Below(a, ys.head) {
@@ -376,17 +376,21 @@ lemma sorted_ascending(a: G, xs: List<G>, ys: List<G>)
 }
 
 lemma sorted_reverse(xs: List<G>, ys: List<G>)
-  requires sorted(reverse(xs, ys));
-  ensures sorted(ys);
-  ensures forall a,b :: a in multiset_of(xs) && b in multiset_of(ys) ==> Below(a, b);
+  requires sorted(reverse(xs, ys))
+  ensures sorted(ys)
+  ensures forall a,b :: a in multiset_of(xs) && b in multiset_of(ys) ==> Below(a, b)
 {
+  match xs
+  case Nil =>
+  case Cons(x, rest) =>
+    sorted_reverse(rest, Cons(x, ys));
 }
 
 lemma sorted_insertInMiddle(xs: List<G>, a: G, ys: List<G>)
-  requires sorted(reverse(xs, ys));
-  requires forall y :: y in multiset_of(xs) ==> Below(y, a);
-  requires forall y :: y in multiset_of(ys) ==> Below(a, y);
-  ensures sorted(reverse(xs, Cons(a, ys)));
+  requires sorted(reverse(xs, ys))
+  requires forall y :: y in multiset_of(xs) ==> Below(y, a)
+  requires forall y :: y in multiset_of(ys) ==> Below(a, y)
+  ensures sorted(reverse(xs, Cons(a, ys)))
 {
   match xs {
     case Nil =>
@@ -405,9 +409,9 @@ lemma sorted_insertInMiddle(xs: List<G>, a: G, ys: List<G>)
 }
 
 lemma sorted_replaceSuffix(xs: List<G>, ys: List<G>, zs: List<G>)
-  requires sorted(reverse(xs, ys)) && sorted(zs);
-  requires forall a,b :: a in multiset_of(xs) && b in multiset_of(zs) ==> Below(a, b);
-  ensures sorted(reverse(xs, zs));
+  requires sorted(reverse(xs, ys)) && sorted(zs)
+  requires forall a,b :: a in multiset_of(xs) && b in multiset_of(zs) ==> Below(a, b)
+  ensures sorted(reverse(xs, zs))
 {
   match xs {
     case Nil =>
@@ -419,9 +423,9 @@ lemma sorted_replaceSuffix(xs: List<G>, ys: List<G>, zs: List<G>)
 }
 
 lemma sorted_mergeAll(x: List<List<G>>)
-  requires x != Nil && AllSorted(x);
-  ensures sorted(mergeAll(x));
-  decreases length(x);
+  requires x != Nil && AllSorted(x)
+  ensures sorted(mergeAll(x))
+  decreases length(x)
 {
   if x.tail != Nil {
     sorted_mergePairs(x);
@@ -429,8 +433,8 @@ lemma sorted_mergeAll(x: List<List<G>>)
 }
 
 lemma sorted_mergePairs(x: List<List<G>>)
-  requires AllSorted(x);
-  ensures AllSorted(mergePairs(x));
+  requires AllSorted(x)
+  ensures AllSorted(mergePairs(x))
 {
   if x.Cons? && x.tail.Cons? {
     sorted_merge(x.head, x.tail.head);
@@ -438,15 +442,15 @@ lemma sorted_mergePairs(x: List<List<G>>)
 }
 
 lemma sorted_merge(xs: List<G>, ys: List<G>)
-  requires sorted(xs) && sorted(ys);
-  ensures sorted(merge(xs, ys));
+  requires sorted(xs) && sorted(ys)
+  ensures sorted(merge(xs, ys))
 {
 }
 
 // -- stability lemmas
 
 lemma stable_sort(g: G, xs: List<G>)
-  ensures filter(g, sort(xs)) == filter(g, xs);
+  ensures filter(g, sort(xs)) == filter(g, xs)
 {
   calc {
     filter(g, sort(xs));
@@ -460,8 +464,8 @@ lemma stable_sort(g: G, xs: List<G>)
 }
 
 lemma stable_sequences(g: G, xs: List<G>)
-  ensures filter(g, flatten(sequences(xs))) == filter(g, xs);
-  decreases xs, 0;
+  ensures filter(g, flatten(sequences(xs))) == filter(g, xs)
+  decreases xs, 0
 {
   match xs {
     case Nil =>
@@ -501,9 +505,9 @@ lemma stable_sequences(g: G, xs: List<G>)
 }
 
 lemma stable_descending(g: G, a: G, xs: List<G>, ys: List<G>)
-  requires sorted(Cons(a, xs));
-  ensures filter(g, flatten(descending(a, xs, ys))) == filter(g, append(Cons(a, xs), ys));
-  decreases ys;
+  requires sorted(Cons(a, xs))
+  ensures filter(g, flatten(descending(a, xs, ys))) == filter(g, append(Cons(a, xs), ys))
+  decreases ys
 {
   if ys.Cons? && !Below(a, ys.head) {
     calc {
@@ -532,8 +536,8 @@ lemma stable_descending(g: G, a: G, xs: List<G>, ys: List<G>)
 }
 
 lemma stable_ascending(g: G, a: G, xs: List<G>, ys: List<G>)
-  ensures filter(g, flatten(ascending(a, xs, ys))) == filter(g, append(reverse(Cons(a, xs), Nil), ys));
-  decreases ys;
+  ensures filter(g, flatten(ascending(a, xs, ys))) == filter(g, append(reverse(Cons(a, xs), Nil), ys))
+  decreases ys
 {
   if ys.Cons? && Below(a, ys.head) {
     calc {
@@ -562,9 +566,9 @@ lemma stable_ascending(g: G, a: G, xs: List<G>, ys: List<G>)
 }
 
 lemma stable_mergeAll(g: G, x: List<List<G>>)
-  requires x != Nil && AllSorted(x);
-  ensures filter(g, mergeAll(x)) == filter(g, flatten(x));
-  decreases length(x);
+  requires x != Nil && AllSorted(x)
+  ensures filter(g, mergeAll(x)) == filter(g, flatten(x))
+  decreases length(x)
 {
   if x.tail == Nil {
     calc {
@@ -587,8 +591,8 @@ lemma stable_mergeAll(g: G, x: List<List<G>>)
 }
 
 lemma stable_mergePairs(g: G, x: List<List<G>>)
-  requires AllSorted(x);
-  ensures filter(g, flatten(mergePairs(x))) == filter(g, flatten(x));
+  requires AllSorted(x)
+  ensures filter(g, flatten(mergePairs(x))) == filter(g, flatten(x))
 {
   if x.Cons? && x.tail.Cons? {
     calc {
@@ -618,8 +622,8 @@ lemma stable_mergePairs(g: G, x: List<List<G>>)
 }
 
 lemma stable_merge(g: G, xs: List<G>, ys: List<G>)
-  requires sorted(xs);
-  ensures filter(g, merge(xs, ys)) == filter(g, append(xs, ys));
+  requires sorted(xs)
+  ensures filter(g, merge(xs, ys)) == filter(g, append(xs, ys))
 {
   match xs {
     case Nil =>
@@ -646,25 +650,25 @@ lemma stable_merge(g: G, xs: List<G>, ys: List<G>)
 }
 
 lemma filter_append(g: G, xs: List<G>, ys: List<G>)
-  ensures filter(g, append(xs, ys)) == append(filter(g, xs), filter(g, ys));
+  ensures filter(g, append(xs, ys)) == append(filter(g, xs), filter(g, ys))
 {
 }
 
 lemma filter_append_notBelow(g: G, b: G, xs: List<G>, ys: List<G>)
-  requires sorted(xs);
-  requires xs.Cons? ==> !Below(xs.head, b);
-  ensures filter(g, Cons(b, append(xs, ys))) == filter(g, append(xs, Cons(b, ys)));
+  requires sorted(xs)
+  requires xs.Cons? ==> !Below(xs.head, b)
+  ensures filter(g, Cons(b, append(xs, ys))) == filter(g, append(xs, Cons(b, ys)))
 {
 }
 
 lemma filter_Cons_notBelow(g: G, b: G, a: G, ys: List<G>)
-  requires !Below(a, b);
-  ensures filter(g, Cons(b, Cons(a, ys))) == filter(g, Cons(a, Cons(b, ys)));
+  requires !Below(a, b)
+  ensures filter(g, Cons(b, Cons(a, ys))) == filter(g, Cons(a, Cons(b, ys)))
 {
 }
 
 lemma filter_append_reverse(g: G, b: G, xs: List<G>, ys: List<G>)
-  ensures filter(g, append(reverse(xs, Cons(b, Nil)), ys)) == filter(g, append(reverse(xs, Nil), Cons(b, ys)));
+  ensures filter(g, append(reverse(xs, Cons(b, Nil)), ys)) == filter(g, append(reverse(xs, Nil), Cons(b, ys)))
 {
   match xs {
     case Nil =>
@@ -688,7 +692,7 @@ lemma filter_append_reverse(g: G, b: G, xs: List<G>, ys: List<G>)
 }
 
 lemma append_reverse(xs: List, ys: List)
-  ensures reverse(xs, ys) == append(reverse(xs, Nil), ys);
+  ensures reverse(xs, ys) == append(reverse(xs, Nil), ys)
 {
   match xs {
     case Nil =>

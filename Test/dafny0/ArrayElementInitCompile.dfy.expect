@@ -1,5 +1,3 @@
-
-Dafny program verifier finished with 16 verified, 0 errors
 67 67 67 67 67 67 67 67 
 0 1 2 3 
 1 2 3 4 
@@ -9,6 +7,8 @@ Dafny program verifier finished with 16 verified, 0 errors
 O . O . O . O . O . O . 
 12 12 12 12 12 12 12 12 12 12 12 12 
 D E
+y z
+4 3
 7
 100 75 98 25 
 

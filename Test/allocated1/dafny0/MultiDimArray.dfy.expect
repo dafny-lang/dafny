@@ -1,4 +1,0 @@
-MultiDimArray.dfy(53,20): Error: assertion violation
-MultiDimArray.dfy(79,24): Error: assertion violation
-
-Dafny program verifier finished with 5 verified, 2 errors

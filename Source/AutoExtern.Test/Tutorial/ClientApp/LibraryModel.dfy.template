@@ -1,0 +1,18 @@
+/// # C#/Dafny interop: Dafny model template (filled by AutoExtern from ../Library/Library.cs)
+
+include "CSharpModel.dfy"
+
+module {:extern "App"} {:compile false} App {}
+
+module {:compile false} {:extern "ExactArithmetic"} App.ExactArithmetic {
+  import opened System
+  type {:compile false} {:extern} Decimal {
+    function ToStr(): (s: System.String)
+  }
+}
+
+module {:compile false} {:extern "Library"} App.Library {
+  import opened System
+  import ExactArithmetic
+// {{{AutoExtern}}}
+}

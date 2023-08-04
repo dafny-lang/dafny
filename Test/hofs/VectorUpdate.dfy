@@ -1,5 +1,4 @@
-// RUN: %dafny /compile:3 "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment
 
 // this is a rather verbose version of the VectorUpdate method
 method VectorUpdate<A>(N: int, a : array<A>, f : (int,A) ~> A)
@@ -51,7 +50,7 @@ method VectorUpdate''<A>(a : array<A>, f : (int,A) ~> A)
   }
 }
 
-method Main()
+method {:timeLimitMultiplier 3} Main()
 {
   var v := new int[10];
   // Hey, works as an initialiser:

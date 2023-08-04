@@ -1,5 +1,5 @@
-// RUN: %dafny /compile:3 /rprint:"%t.rprint" "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// UNSUPPORTED: windows, macosx
+// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment
 
 // Rustan Leino, 22 Sep 2015.
 // This file considers two definitions of Leq on naturals+infinity.  One
@@ -8,12 +8,12 @@
 // Nat represents natural numbers extended with infinity
 codatatype Nat = Z | S(pred: Nat)
 
-function Num(n: nat): Nat
+ghost function Num(n: nat): Nat
 {
   if n == 0 then Z else S(Num(n-1))
 }
 
-predicate IsFinite(a: Nat)
+ghost predicate IsFinite(a: Nat)
 {
   exists m:nat :: a == Num(m)
 }

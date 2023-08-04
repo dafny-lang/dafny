@@ -1,5 +1,4 @@
-// RUN: %dafny /rprint:"%t.rprint" /compile:3 "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment
 
 module ListLibrary {
   datatype List<B> = Nil | Cons(head: B, tail: List<B>)
@@ -10,7 +9,7 @@ module Q {
 
   datatype Queue<T> = FQ(front: LL.List<T>, rear: LL.List<T>)
 
-  function method MyCons<W>(w: W, ws: LL.List<W>): LL.List<W>
+  function MyCons<W>(w: W, ws: LL.List<W>): LL.List<W>
   {
     LL.Cons(w, ws)
   }

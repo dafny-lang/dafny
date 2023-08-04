@@ -1,10 +1,18 @@
+---
+layout: default
+---
 <link rel="stylesheet" href="../assets/main.css">
+<link rel="icon" href="../images/dafny-favicon.png" type="image/png">
+<link rel="icon" href="../images/dafny-favicon.svg" type="image/svg+xml">
+
 <script src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML" type="text/javascript"></script>
 
 <font size="+4"><p style="text-align: center;">Dafny Reference Manual</p></font> <!-- PDFOMIT -->
-<p style="text-align: center;">K. Rustan M. Leino, Richard L. Ford, David R. Cok</p> <!-- PDFOMIT -->
+<p style="text-align: center;">The dafny-lang community</p> <!-- PDFOMIT -->
 <p style="text-align: center;"><script> document.write(new Date(document.lastModified)); </script></p> <!-- PDFOMIT -->
-
+<p style="text-align: center;">
+{% include_relative version.txt %} <!-- PDFOMIT -->
+</p>
 <!--PDF NEWPAGE-->
 
 **Abstract:**
@@ -13,7 +21,6 @@ language and how to use the Dafny verification system.
 Parts of this manual are more tutorial in nature in order to help the
 user understand how to do proofs with Dafny.
 
-[(Link to current document as pdf)](https://github.com/dafny-lang/dafny/blob/master/docs/DafnyRef/out/DafnyRef.pdf)\
 [(Link to current document as html)](https://dafny-lang.github.io/dafny/DafnyRef/DafnyRef)
 
 - numbered toc
@@ -31,10 +38,10 @@ user understand how to do proofs with Dafny.
 {% include_relative Modules.md %}
 
 <!--PDF NEWPAGE-->
-{% include_relative Specifications.md %}
+{% include_relative Types.md %}
 
 <!--PDF NEWPAGE-->
-{% include_relative Types.md %}
+{% include_relative Specifications.md %}
 
 <!--PDF NEWPAGE-->
 {% include_relative Statements.md %}
@@ -54,8 +61,20 @@ user understand how to do proofs with Dafny.
 <!--PDF NEWPAGE-->
 {% include_relative UserGuide.md %}
 
+<!--PDF NEWPAGE-->
+{% include_relative VSCodeIDE.md %}
 
+<!--PDF NEWPAGE-->
+{% include_relative Plugins.md %}
+
+<!--PDF NEWPAGE-->
+{% include_relative CommandLineOptions.md %}
+
+<!--PDF NEWPAGE-->
+{% include_relative GrammarDetails.md %}
 
 {% include_relative SyntaxTests.md %}
 
-# 26. References
+<!--PDF NEWPAGE-->
+
+# 19. References

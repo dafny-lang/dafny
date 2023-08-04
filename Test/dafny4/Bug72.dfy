@@ -3,7 +3,7 @@
 
 datatype Ballot = Ballot(seqno:int)
 
-predicate BalLt(ba:Ballot, bb:Ballot)
+ghost predicate BalLt(ba:Ballot, bb:Ballot)
 {
        ba.seqno < bb.seqno
 }

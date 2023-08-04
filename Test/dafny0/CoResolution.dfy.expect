@@ -2,7 +2,7 @@ CoResolution.dfy(18,11): Error: member 'Undeclared#' does not exist in class 'Te
 CoResolution.dfy(19,6): Error: unresolved identifier: Undeclared#
 CoResolution.dfy(22,9): Error: unresolved identifier: _k
 CoResolution.dfy(41,8): Error: == can only be applied to expressions of types that support equality (got Stream<_T0>)
-CoResolution.dfy(52,8): Error: Assignment to non-ghost variable is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)
+CoResolution.dfy(52,8): Error: assignment to non-ghost variable is not allowed in this context, because the statement is in a ghost context; e.g., it may be guarded by a specification-only expression
 CoResolution.dfy(76,33): Error: a greatest predicate is not allowed to declare any ensures clause
 CoResolution.dfy(86,27): Error: a recursive call from a greatest predicate can go only to other greatest predicates
 CoResolution.dfy(90,27): Error: a recursive call from a greatest predicate can go only to other greatest predicates

@@ -1,11 +1,10 @@
-// RUN: %dafny /compile:3 "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment
 
 datatype List<A> = Nil | Cons(A,List<A>)
 
 datatype Expr = Add(List<Expr>) | Mul(List<Expr>) | Lit(int)
 
-function method Eval(e : Expr): int
+function Eval(e : Expr): int
 {
   match e
     case Add(es) => Fold(es, 0, (e,v) requires e < es => Eval(e) + v)
@@ -13,7 +12,7 @@ function method Eval(e : Expr): int
     case Lit(i)  => i
 }
 
-function method Fold<A,B(!new)>(xs : List<A>, unit : B, f : (A,B) --> B): B  // (is this (!new) really necessary?)
+function Fold<A,B(!new)>(xs : List<A>, unit : B, f : (A,B) --> B): B  // (is this (!new) really necessary?)
   requires forall x, y :: x < xs ==> f.requires(x,y)
 {
   match xs

@@ -1,0 +1,4 @@
+set x := 3;
+print(x);
+set y := x + 0;
+print(y - 1);

@@ -1,5 +1,13 @@
+// Copyright by the contributors to the Dafny Project
+// SPDX-License-Identifier: MIT
+
+#nullable disable
 using System.Collections.Generic;
 using Microsoft.Boogie;
+using Microsoft.Dafny;
+using LiteralExpr = Microsoft.Boogie.LiteralExpr;
+using Program = Microsoft.Boogie.Program;
+using Token = Microsoft.Boogie.Token;
 
 namespace DafnyTestGeneration {
 
@@ -8,62 +16,66 @@ namespace DafnyTestGeneration {
   /// that fail when a particular basic block is visited
   /// </summary>
   public class BlockBasedModifier : ProgramModifier {
+    private readonly Modifications modifications;
+    private Implementation/*?*/ implementation; // the implementation currently traversed
+    private Program/*?*/ program; // the original program
 
-    private string? implName; // name of the implementation currently traversed
-    private Program? program; // the original program
-    private List<ProgramModification> modifications = new();
+    public BlockBasedModifier(Modifications modifications) {
+      this.modifications = modifications;
+    }
 
     protected override IEnumerable<ProgramModification> GetModifications(Program p) {
-      modifications = new List<ProgramModification>();
-      VisitProgram(p);
-      return modifications;
+      return VisitProgram(p);
     }
+    private ProgramModification/*?*/ VisitBlock(Block node) {
 
-    public override Block VisitBlock(Block node) {
-      if (program == null || implName == null) {
-        return node;
+      if (program == null || implementation == null) {
+        return null;
       }
-      base.VisitBlock(node);
-      if (node.cmds.Count == 0) { // ignore blocks with zero commands
-        return node;
+
+      var state = Utils.GetBlockId(node);
+      if (state == null) {
+        return null;
       }
-      node.cmds.Add(GetCmd("assert false;"));
-      var record = new BlockBasedModification(program,
-        ProcedureName ?? implName,
-        node.UniqueId, ExtractCapturedStates(node));
-      modifications.Add(record);
+
+      var testEntryNames = Utils.DeclarationHasAttribute(implementation, TestGenerationOptions.TestInlineAttribute)
+        ? TestEntries
+        : new() { implementation.VerboseName };
+      node.cmds.Add(new AssertCmd(new Token(), new LiteralExpr(new Token(), false)));
+      var record = modifications.GetProgramModification(program, implementation,
+        new HashSet<string>() { state },
+          testEntryNames, $"{implementation.VerboseName.Split(" ")[0]} ({state})");
+
       node.cmds.RemoveAt(node.cmds.Count - 1);
-      return node;
-    }
-
-    public override Implementation VisitImplementation(Implementation node) {
-      implName = node.Name;
-      if (ProcedureIsToBeTested(node.Name)) {
-        VisitBlockList(node.Blocks);
+      if (record.IsCovered(modifications)) {
+        return null;
       }
-      return node;
+      return record;
     }
 
-    public override Program VisitProgram(Program node) {
+    private IEnumerable<ProgramModification> VisitImplementation(
+      Implementation node) {
+      implementation = node;
+      if (!ImplementationIsToBeTested(node) ||
+          !DafnyInfo.IsAccessible(node.VerboseName.Split(" ")[0])) {
+        yield break;
+      }
+      for (int i = node.Blocks.Count - 1; i >= 0; i--) {
+        var modification = VisitBlock(node.Blocks[i]);
+        if (modification != null) {
+          yield return modification;
+        }
+      }
+
+    }
+
+    private IEnumerable<ProgramModification> VisitProgram(Program node) {
       program = node;
-      return base.VisitProgram(node);
-    }
-
-    /// <summary>
-    /// Return the list of all states covered by the block.
-    /// A state is represented by the string recorded via :captureState
-    /// </summary>
-    private static ISet<string> ExtractCapturedStates(Block node) {
-      HashSet<string> result = new();
-      foreach (var cmd in node.cmds) {
-        if (!(cmd is AssumeCmd assumeCmd)) {
-          continue;
-        }
-        if (assumeCmd.Attributes?.Key == "captureState") {
-          result.Add(assumeCmd.Attributes?.Params?[0]?.ToString() ?? "");
+      foreach (var implementation in node.Implementations) {
+        foreach (var modification in VisitImplementation(implementation)) {
+          yield return modification;
         }
       }
-      return result;
     }
   }
 }

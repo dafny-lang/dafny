@@ -1,48 +1,55 @@
+using System.Linq;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using OmniSharp.Extensions.LanguageServer.Protocol.Client;
 using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Threading.Tasks;
+using Xunit;
+using Xunit.Abstractions;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
-  [TestClass]
-  public class CloseDocumentTest : DafnyLanguageServerTestBase {
-    private ILanguageClient _client;
+  public class CloseDocumentTest : DafnyLanguageServerTestBase, IAsyncLifetime {
+    private ILanguageClient client;
 
-    [TestInitialize]
-    public async Task SetUp() {
-      _client = await InitializeClient();
+    public async Task InitializeAsync() {
+      (client, Server) = await Initialize(_ => { }, _ => { });
     }
 
-    private Task CloseDocumentAndWaitAsync(TextDocumentItem documentItem) {
-      _client.DidCloseTextDocument(new DidCloseTextDocumentParams {
-        TextDocument = documentItem
-      });
-      return _client.WaitForNotificationCompletionAsync(documentItem.Uri, CancellationToken);
+    public Task DisposeAsync() {
+      return Task.CompletedTask;
     }
 
-    [TestMethod]
+    [Fact]
     public async Task DocumentIsUnloadedWhenClosed() {
       var source = @"
 function GetConstant(): int {
   1
 }".Trim();
       var documentItem = CreateTestDocument(source);
-      await _client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      await CloseDocumentAndWaitAsync(documentItem);
-      Assert.IsFalse(Documents.TryGetDocument(documentItem.Uri, out var _));
+      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+      client.CloseDocument(documentItem);
+      for (int attempt = 0; attempt < 50; attempt++) {
+        if (!Projects.Managers.Any()) {
+          return;
+        }
+
+        await Task.Delay(100);
+      }
+      Assert.Fail("all attempts failed");
     }
 
-    [TestMethod]
+    [Fact]
     public async Task DocumentStaysUnloadedWhenClosed() {
       var source = @"
 function GetConstant(): int {
   1
 }".Trim();
       var documentItem = CreateTestDocument(source);
-      await CloseDocumentAndWaitAsync(documentItem);
-      Assert.IsFalse(Documents.TryGetDocument(documentItem.Uri, out var _));
+      client.CloseDocument(documentItem);
+      Assert.Null(await Projects.GetResolvedDocumentAsyncNormalizeUri(documentItem.Uri));
+    }
+
+    public CloseDocumentTest(ITestOutputHelper output) : base(output) {
     }
   }
 }

@@ -2,7 +2,7 @@
 // RUN: %diff "%s.expect" "%t"
 
 class C {
-  ghost var x:int;
+  ghost var x:int
   method f(ghost y:int) {}
   method test0() { f(x);}  // passes
   constructor(ghost y:int) {x:=y;}

@@ -1,0 +1,53 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net6.0</TargetFramework>
+        <GenerateEmbeddedFilesManifest>true</GenerateEmbeddedFilesManifest>
+        <IsPackable>false</IsPackable>
+        <Nullable>enable</Nullable>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.11.0" />
+        <PackageReference Include="xunit" Version="2.4.2" />
+        <PackageReference Include="xunit.runner.visualstudio" Version="2.4.3">
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+            <PrivateAssets>all</PrivateAssets>
+        </PackageReference>
+        <PackageReference Include="coverlet.collector" Version="3.2.0">
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+            <PrivateAssets>all</PrivateAssets>
+        </PackageReference>
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\DafnyBenchmarkingPlugin\DafnyBenchmarkingPlugin.csproj" />
+        <ProjectReference Include="..\Dafny\Dafny.csproj" />
+        <ProjectReference Include="..\DafnyServer\DafnyServer.csproj" />
+        <ProjectReference Include="..\TestDafny\TestDafny.csproj" />
+        <ProjectReference Include="..\XUnitExtensions\XUnitExtensions.csproj" />
+        <!-- 
+        Necessary just so that DafnyRuntime.dll (as opposed to DafnyRuntime.cs)
+        is present in the output directory, so we can reference it by relative path
+        from test *.csproj files like those Test/comp/separate-compilation
+        (which can't use Lit substitutions like %binaryDir).
+        -->
+        <ProjectReference Include="..\DafnyRuntime\DafnyRuntime.csproj" />
+    </ItemGroup>
+    
+    <ItemGroup>
+        <Content Include="..\..\Binaries\z3\**\*.*" LinkBase="z3">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Content>
+        <Content Include="..\..\Test\**\*.*" Exclude="..\..\Test\**\.#*" LinkBase="TestFiles\LitTests\LitTest">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Content>
+        <Content Include="..\..\docs\DafnyRef\examples\**\*.*" LinkBase="TestFiles\LitTests\LitTest\refman\examples">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Content>
+        <Content Include="..\..\node_modules\**\*.*" LinkBase="TestFiles\LitTests\LitTest\node_modules">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Content>
+    </ItemGroup>
+    
+</Project>

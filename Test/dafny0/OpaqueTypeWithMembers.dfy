@@ -1,10 +1,10 @@
-// RUN: %dafny /compile:0 /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %exits-with 4 %dafny /compile:0 /dprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 type Opaque {
   const y: int
   const z := 25
-  function F(): int { z }
+  ghost function F(): int { z }
   method G(a: int) returns (b: int) { b := a + this.y; }
 
   lemma LemmaF25(n: nat)
@@ -23,7 +23,7 @@ type Opaque {
     ensures old(a[3] + y) == y
   {
     u := old(y + a[3]);
-    var f := old(F());
+    var f := old(F()); // warning: old has no effect (since F has no reads clause)
     var u' := y + a[3];
     var f' := F();
   }
@@ -42,7 +42,7 @@ type Opaque {
 type StaticOpaque {
   static const y: int
   static const z := 25
-  static function F(): int { z }
+  static ghost function F(): int { z }
   static method G(a: int) returns (b: int) { b := a + y; }
 
   static lemma LemmaF25(n: nat)
@@ -61,7 +61,7 @@ type StaticOpaque {
     ensures old(a[3] + y) == y
   {
     u := old(y + a[3]);
-    var f := old(F());
+    var f := old(F()); // warning: old has no effect (since F has no reads clause)
     var u' := y + a[3];
     var f' := F();
   }
@@ -80,7 +80,7 @@ type StaticOpaque {
 type OpaqueErrors {
   const y: int
   const z := 25
-  function F(): int { 100 / z + 100 / y }  // error: division by zero
+  ghost function F(): int { 100 / z + 100 / y }  // error: division by zero
   method G(a: int) returns (b: int) { b := a + 100 / this.y; }  // error: division by zero
 
   twostate function H(a: array<int>): int {
@@ -91,7 +91,7 @@ type OpaqueErrors {
     ensures old(a[3] + y) == y
   {
     u := old(y + a[2]);  // error: index out of bounds
-    var f := old(F());
+    var f := old(F()); // warning: old has no effect (since F has no reads clause)
     var u' := y + a[2];
     var f' := F();
   }
@@ -110,13 +110,13 @@ type OpaqueErrors {
 
 type FailureCompatible(0) {
   const c: int
-  predicate method IsFailure() { c < 10 }
-  function method PropagateFailure(): int
+  predicate IsFailure() { c < 10 }
+  function PropagateFailure(): int
     requires IsFailure()
   {
     100 / (c - 10)
   }
-  function method Extract(): real
+  function Extract(): real
     requires !IsFailure()
   {
     100.0 / c as real

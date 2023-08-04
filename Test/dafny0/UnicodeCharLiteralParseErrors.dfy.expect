@@ -1,0 +1,5 @@
+UnicodeCharLiteralParseErrors.dfy(6,35): Error: \U{X..X} escape sequence must have at most six hex digits
+UnicodeCharLiteralParseErrors.dfy(7,38): Error: \U{X..X} escape sequence must be less than 0x110000
+UnicodeCharLiteralParseErrors.dfy(8,37): Error: \U{X..X} escape sequence must not be a surrogate
+UnicodeCharLiteralParseErrors.dfy(16,32): Error: invalid NameSegment
+4 parse errors detected in UnicodeCharLiteralParseErrors.dfy

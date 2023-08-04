@@ -9,7 +9,7 @@ class {:autocontracts} ExtensibleArray<T> {
   var length: int
   var M: int  // shorthand for:  if more == null then 0 else 256 * |more.Contents|
 
-  predicate Valid()
+  ghost predicate Valid()
   {
     // shape of data structure
     ((elements == null && more == null && Contents == []) ||

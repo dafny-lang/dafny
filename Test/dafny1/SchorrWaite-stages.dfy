@@ -5,7 +5,6 @@
 // Rustan Leino
 // Original version:  7 November 2008
 // Version with proof divided into stages:  June 2012.
-// Copyright (c) 2008-2012 Microsoft.
 
 abstract module M0 {
   // In this module, we declare the Node class, the definition of Reachability, and the specification
@@ -19,13 +18,13 @@ abstract module M0 {
 
   datatype Path = Empty | Extend(Path, Node)
 
-  predicate Reachable(source: Node, sink: Node, S: set<Node>)
+  ghost predicate Reachable(source: Node, sink: Node, S: set<Node>)
     reads S
   {
     exists via :: ReachableVia(source, via, sink, S)
   }
 
-  predicate ReachableVia(source: Node, p: Path, sink: Node, S: set<Node>)
+  ghost predicate ReachableVia(source: Node, older p: Path, sink: Node, S: set<Node>)
     reads S
     decreases p
   {

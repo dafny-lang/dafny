@@ -1,5 +1,4 @@
-// RUN: %dafny /compile:3 "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment
 
 method Main() {
   var r0, r1;
@@ -31,7 +30,7 @@ codatatype NameclashCo = CoCtor(x: int)
 {
   const c: int := 94
   const d: int := 99
-  function method Computer(): real { 0.8 }
+  function Computer(): real { 0.8 }
   method Get() returns (u: int) { return 79; }
   method ToString() returns (o: real) { return 14.3; }
   method GetHashCode() returns (o: real) { return 14.4; }

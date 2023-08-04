@@ -1,49 +1,49 @@
 TraitResolution2.dfy(70,22): Error: the type of in-parameter 'x' is different from the type of the corresponding in-parameter in trait method ('int' instead of '(Y, B)')
-TraitResolution2.dfy(94,11): Error: new can be applied only to class types (got A?)
-TraitResolution2.dfy(95,11): Error: new can be applied only to class types (got ASynonym)
-TraitResolution2.dfy(98,11): Error: new can be applied only to class types (got B?)
+TraitResolution2.dfy(94,14): Error: new can be applied only to class types (got A?)
+TraitResolution2.dfy(95,14): Error: new can be applied only to class types (got ASynonym)
+TraitResolution2.dfy(98,14): Error: new can be applied only to class types (got B?)
 TraitResolution2.dfy(98,11): Error: when allocating an object of type 'B', one of its constructor methods must be called
-TraitResolution2.dfy(101,11): Error: new can be applied only to class types (got C?<A>)
-TraitResolution2.dfy(103,11): Error: new can be applied only to class types (got C?<A?>)
-TraitResolution2.dfy(106,11): Error: new can be applied only to class types (got D?<A>)
+TraitResolution2.dfy(101,14): Error: new can be applied only to class types (got C?<A>)
+TraitResolution2.dfy(103,14): Error: new can be applied only to class types (got C?<A?>)
+TraitResolution2.dfy(106,14): Error: new can be applied only to class types (got D?<A>)
 TraitResolution2.dfy(106,11): Error: when allocating an object of type 'D', one of its constructor methods must be called
-TraitResolution2.dfy(108,11): Error: new can be applied only to class types (got D?<A?>)
+TraitResolution2.dfy(108,14): Error: new can be applied only to class types (got D?<A?>)
 TraitResolution2.dfy(108,11): Error: when allocating an object of type 'D', one of its constructor methods must be called
-TraitResolution2.dfy(110,11): Error: new can be applied only to class types (got D<A>)
+TraitResolution2.dfy(110,14): Error: new can be applied only to class types (got D<A>)
 TraitResolution2.dfy(110,11): Error: when allocating an object of type 'D', one of its constructor methods must be called
-TraitResolution2.dfy(112,11): Error: new can be applied only to class types (got D<A?>)
+TraitResolution2.dfy(112,14): Error: new can be applied only to class types (got D<A?>)
 TraitResolution2.dfy(112,11): Error: when allocating an object of type 'D', one of its constructor methods must be called
-TraitResolution2.dfy(113,11): Error: new can be applied only to class types (got DSynonym<A?>)
+TraitResolution2.dfy(113,14): Error: new can be applied only to class types (got DSynonym<A?>)
 TraitResolution2.dfy(113,11): Error: when allocating an object of type 'D', one of its constructor methods must be called
-TraitResolution2.dfy(114,11): Error: new can be applied only to class types (got DSynonym<A?>)
+TraitResolution2.dfy(114,14): Error: new can be applied only to class types (got DSynonym<A?>)
 TraitResolution2.dfy(114,11): Error: when allocating an object of type 'D', one of its constructor methods must be called
-TraitResolution2.dfy(117,11): Error: new can be applied only to class types (got object?)
-TraitResolution2.dfy(118,11): Error: new can be applied only to class types (got ObjectSynonym)
-TraitResolution2.dfy(119,11): Error: new can be applied only to class types (got ObjectWithConstraint)
-TraitResolution2.dfy(122,13): Error: new can be applied only to class types (got array?<int>)
-TraitResolution2.dfy(124,11): Error: new can be applied only to class types (got int)
-TraitResolution2.dfy(126,11): Error: new can be applied only to class types (got Tr<int>)
-TraitResolution2.dfy(127,11): Error: new can be applied only to class types (got Tr?<int>)
-TraitResolution2.dfy(128,11): Error: new can be applied only to class types (got Tr<int>)
-TraitResolution2.dfy(129,11): Error: new can be applied only to class types (got Tr<int>)
+TraitResolution2.dfy(117,14): Error: new can be applied only to class types (got object?)
+TraitResolution2.dfy(118,14): Error: new can be applied only to class types (got ObjectSynonym)
+TraitResolution2.dfy(119,14): Error: new can be applied only to class types (got ObjectWithConstraint)
+TraitResolution2.dfy(122,16): Error: new can be applied only to class types (got array?<int>)
+TraitResolution2.dfy(124,14): Error: new can be applied only to class types (got int)
+TraitResolution2.dfy(126,14): Error: new can be applied only to class types (got Tr<int>)
+TraitResolution2.dfy(127,14): Error: new can be applied only to class types (got Tr?<int>)
+TraitResolution2.dfy(128,14): Error: new can be applied only to class types (got Tr<int>)
+TraitResolution2.dfy(129,14): Error: new can be applied only to class types (got Tr<int>)
 TraitResolution2.dfy(181,8): Error: field 'civ' is inherited from trait 'Tr' and is not allowed to be re-declared
 TraitResolution2.dfy(182,14): Error: field 'giv' is inherited from trait 'Tr' and is not allowed to be re-declared
 TraitResolution2.dfy(183,10): Error: const field 'cic' is inherited from trait 'Tr' and is not allowed to be re-declared
 TraitResolution2.dfy(184,16): Error: const field 'gic' is inherited from trait 'Tr' and is not allowed to be re-declared
 TraitResolution2.dfy(185,17): Error: static const field 'csc' is inherited from trait 'Tr' and is not allowed to be re-declared
 TraitResolution2.dfy(186,23): Error: static const field 'gsc' is inherited from trait 'Tr' and is not allowed to be re-declared
-TraitResolution2.dfy(192,20): Error: fully defined function 'cif2' is inherited from trait 'Tr' and is not allowed to be re-declared
-TraitResolution2.dfy(193,13): Error: fully defined function 'gif2' is inherited from trait 'Tr' and is not allowed to be re-declared
-TraitResolution2.dfy(194,20): Error: fully defined function 'cif3' is inherited from trait 'Tr' and is not allowed to be re-declared
-TraitResolution2.dfy(195,13): Error: fully defined function 'gif3' is inherited from trait 'Tr' and is not allowed to be re-declared
-TraitResolution2.dfy(197,27): Error: static function 'csf0' is inherited from trait 'Tr' and is not allowed to be re-declared
-TraitResolution2.dfy(198,20): Error: static function 'gsf0' is inherited from trait 'Tr' and is not allowed to be re-declared
-TraitResolution2.dfy(199,27): Error: static function 'csf1' is inherited from trait 'Tr' and is not allowed to be re-declared
-TraitResolution2.dfy(200,20): Error: static function 'gsf1' is inherited from trait 'Tr' and is not allowed to be re-declared
-TraitResolution2.dfy(201,27): Error: static function 'csf2' is inherited from trait 'Tr' and is not allowed to be re-declared
-TraitResolution2.dfy(202,20): Error: static function 'gsf2' is inherited from trait 'Tr' and is not allowed to be re-declared
-TraitResolution2.dfy(203,27): Error: static function 'csf3' is inherited from trait 'Tr' and is not allowed to be re-declared
-TraitResolution2.dfy(204,20): Error: static function 'gsf3' is inherited from trait 'Tr' and is not allowed to be re-declared
+TraitResolution2.dfy(192,13): Error: fully defined function 'cif2' is inherited from trait 'Tr' and is not allowed to be re-declared
+TraitResolution2.dfy(193,19): Error: fully defined function 'gif2' is inherited from trait 'Tr' and is not allowed to be re-declared
+TraitResolution2.dfy(194,13): Error: fully defined function 'cif3' is inherited from trait 'Tr' and is not allowed to be re-declared
+TraitResolution2.dfy(195,19): Error: fully defined function 'gif3' is inherited from trait 'Tr' and is not allowed to be re-declared
+TraitResolution2.dfy(197,26): Error: static function 'csf0' is inherited from trait 'Tr' and is not allowed to be re-declared
+TraitResolution2.dfy(198,26): Error: static function 'gsf0' is inherited from trait 'Tr' and is not allowed to be re-declared
+TraitResolution2.dfy(199,26): Error: static function 'csf1' is inherited from trait 'Tr' and is not allowed to be re-declared
+TraitResolution2.dfy(200,26): Error: static function 'gsf1' is inherited from trait 'Tr' and is not allowed to be re-declared
+TraitResolution2.dfy(201,26): Error: static function 'csf2' is inherited from trait 'Tr' and is not allowed to be re-declared
+TraitResolution2.dfy(202,26): Error: static function 'gsf2' is inherited from trait 'Tr' and is not allowed to be re-declared
+TraitResolution2.dfy(203,26): Error: static function 'csf3' is inherited from trait 'Tr' and is not allowed to be re-declared
+TraitResolution2.dfy(204,26): Error: static function 'gsf3' is inherited from trait 'Tr' and is not allowed to be re-declared
 TraitResolution2.dfy(210,11): Error: fully defined method 'cim2' is inherited from trait 'Tr' and is not allowed to be re-declared
 TraitResolution2.dfy(211,17): Error: fully defined method 'gim2' is inherited from trait 'Tr' and is not allowed to be re-declared
 TraitResolution2.dfy(212,11): Error: fully defined method 'cim3' is inherited from trait 'Tr' and is not allowed to be re-declared
@@ -56,8 +56,8 @@ TraitResolution2.dfy(219,18): Error: static method 'csm2' is inherited from trai
 TraitResolution2.dfy(220,24): Error: static method 'gsm2' is inherited from trait 'Tr' and is not allowed to be re-declared
 TraitResolution2.dfy(221,18): Error: static method 'csm3' is inherited from trait 'Tr' and is not allowed to be re-declared
 TraitResolution2.dfy(222,24): Error: static method 'gsm3' is inherited from trait 'Tr' and is not allowed to be re-declared
-TraitResolution2.dfy(245,13): Error: overridden function 'F' in 'SwitchGhostStatus' has different ghost/compiled status than in trait 'AAA'
-TraitResolution2.dfy(246,20): Error: overridden function 'G' in 'SwitchGhostStatus' has different ghost/compiled status than in trait 'AAA'
+TraitResolution2.dfy(245,19): Error: overridden function 'F' in 'SwitchGhostStatus' has different ghost/compiled status than in trait 'AAA'
+TraitResolution2.dfy(246,13): Error: overridden function 'G' in 'SwitchGhostStatus' has different ghost/compiled status than in trait 'AAA'
 TraitResolution2.dfy(249,17): Error: overridden method 'M' in 'SwitchGhostStatus' has different ghost/compiled status than in trait 'AAA'
 TraitResolution2.dfy(250,11): Error: overridden method 'N' in 'SwitchGhostStatus' has different ghost/compiled status than in trait 'AAA'
 TraitResolution2.dfy(266,10): Error: method 'N' in 'AAA' can only be overridden by a method (got lemma)
@@ -70,8 +70,8 @@ TraitResolution2.dfy(303,20): Error: greatest predicate 'Q' in 'AAA' can only be
 TraitResolution2.dfy(304,19): Error: least lemma 'R' in 'AAA' can only be overridden by a least lemma (got greatest lemma)
 TraitResolution2.dfy(305,16): Error: greatest lemma 'S' in 'AAA' can only be overridden by a greatest lemma (got least lemma)
 TraitResolution2.dfy(315,16): Error: lemma 'L' in 'AAA' can only be overridden by a lemma (got least lemma)
-TraitResolution2.dfy(318,14): Error: least predicate 'P' in 'AAA' can only be overridden by a least predicate (got predicate)
-TraitResolution2.dfy(319,14): Error: greatest predicate 'Q' in 'AAA' can only be overridden by a greatest predicate (got predicate)
+TraitResolution2.dfy(318,20): Error: least predicate 'P' in 'AAA' can only be overridden by a least predicate (got predicate)
+TraitResolution2.dfy(319,20): Error: greatest predicate 'Q' in 'AAA' can only be overridden by a greatest predicate (got predicate)
 TraitResolution2.dfy(320,10): Error: least lemma 'R' in 'AAA' can only be overridden by a least lemma (got lemma)
 TraitResolution2.dfy(321,10): Error: greatest lemma 'S' in 'AAA' can only be overridden by a greatest lemma (got lemma)
 TraitResolution2.dfy(357,20): Error: the type of special parameter '_k' of least predicate 'Q' (ORDINAL) must be the same as in the overridden least predicate (nat)

@@ -1,7 +1,7 @@
 // RUN: %dafny /compile:0 /dprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
-function Count<T>(s: set<T>): int
+ghost function Count<T>(s: set<T>): int
 {
   if s == {} then 0 else
     var x :| x in s;  // let x be such that "x in s"

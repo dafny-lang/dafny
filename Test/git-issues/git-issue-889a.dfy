@@ -1,4 +1,4 @@
-// RUN: %dafny "%s" > "%t"
+// RUN: %exits-with 4 %dafny "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // This file includes verification tests

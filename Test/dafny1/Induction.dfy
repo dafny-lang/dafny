@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:0 /induction:3 /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %exits-with 4 %dafny /compile:0 /deprecation:0 /induction:3 /dprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 class IntegerInduction {
@@ -8,13 +8,13 @@ class IntegerInduction {
   // In terms of Dafny functions, the theorem to be proved is:
   //   SumOfCubes(n) == Gauss(n) * Gauss(n)
 
-  function SumOfCubes(n: int): int
+  ghost function SumOfCubes(n: int): int
     requires 0 <= n;
   {
     if n == 0 then 0 else SumOfCubes(n-1) + n*n*n
   }
 
-  function Gauss(n: int): int
+  ghost function Gauss(n: int): int
     requires 0 <= n;
   {
     if n == 0 then 0 else Gauss(n-1) + n
@@ -108,7 +108,7 @@ class IntegerInduction {
     }
   }
 
-  function GaussWithPost(n: int): int
+  ghost function GaussWithPost(n: int): int
     requires 0 <= n;
     ensures 2 * GaussWithPost(n) == n*(n+1);
   {
@@ -136,7 +136,7 @@ class IntegerInduction {
     }
   }
 
-  // The body of this function method gives a single quantifier, which leads to an efficient
+  // The body of this function gives a single quantifier, which leads to an efficient
   // way to check sortedness at run time.  However, an alternative, and ostensibly more general,
   // way to express sortedness is given in the function's postcondition.  The alternative
   // formulation may be easier to understand for a human and may also be more readily applicable
@@ -148,7 +148,7 @@ class IntegerInduction {
   // Proving the "<==" case is simple; it's the "==>" case that requires induction.
   // The example uses an attribute that requests induction on just "j".  However, the proof also
   // goes through by applying induction on both bound variables.
-  function method IsSorted(s: seq<int>): bool //WISH remove autotriggers false
+  function IsSorted(s: seq<int>): bool //WISH remove autotriggers false
     ensures IsSorted(s) ==> (forall i,j {:induction j} {:autotriggers false} :: 0 <= i < j < |s| ==> s[i] <= s[j]);
     ensures (forall i,j :: 0 <= i && i < j && j < |s| ==> s[i] <= s[j]) ==> IsSorted(s);
   {
@@ -159,7 +159,7 @@ class IntegerInduction {
 datatype Tree<T> = Leaf(T) | Branch(Tree<T>, Tree<T>)
 
 class DatatypeInduction<T> {
-  function LeafCount<T>(tree: Tree<T>): int
+  ghost function LeafCount<T>(tree: Tree<T>): int
   {
     match tree
     case Leaf(t) => 1
@@ -174,7 +174,7 @@ class DatatypeInduction<T> {
 
   // see also Test/dafny0/DTypes.dfy for more variations of this example
 
-  function OccurrenceCount<T>(tree: Tree<T>, x: T): int
+  ghost function OccurrenceCount<T>(tree: Tree<T>, x: T): int
   {
     match tree
     case Leaf(t) => if x == t then 1 else 0
@@ -194,7 +194,7 @@ class DatatypeInduction<T> {
 
 datatype D = Nothing | Something(D)
 
-function FooD(n: nat, d: D): int
+ghost function FooD(n: nat, d: D): int
   ensures 10 <= FooD(n, d);
 {
   match d
@@ -202,4 +202,52 @@ function FooD(n: nat, d: D): int
     if n == 0 then 10 else FooD(n-1, D.Something(d))
   case Something(next) =>
     if n < 100 then n + 12 else FooD(n-13, next)
+}
+
+// ----------------------- Regression: remember to substitute "this" -----------------
+
+class Node {
+  ghost var Repr: set<object>
+  var left: Node?
+  var uu: nat
+
+  ghost predicate Valid()
+    reads this, Repr
+    ensures Valid() ==> this in Repr
+  {
+    this in Repr &&
+    (left != null ==>
+      left in Repr && left.Repr <= Repr &&
+      this !in left.Repr &&
+      left.Valid()) &&
+    ((left == null && uu == 0) || (left != null && uu != 0))
+  }
+
+  constructor ()
+    ensures Valid() && fresh(Repr)
+  {
+    left := null;
+    uu := 0;
+    Repr := {this};
+  }
+
+  lemma InstanceAboutUU()
+    requires Valid()
+    ensures uu == 0 // regression: once upon a time, this used to go through
+    decreases Repr
+  {
+    if left == null {
+    } else { // error: postcondition violation
+    }
+  }
+}
+
+lemma StaticAboutUU(th: Node)
+  requires th.Valid()
+  ensures th.uu == 0
+  decreases th.Repr
+{
+  if th.left == null {
+  } else { // error: postcondition violation
+  }
 }

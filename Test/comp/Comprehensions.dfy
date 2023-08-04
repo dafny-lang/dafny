@@ -1,14 +1,12 @@
-// RUN: %dafny /compile:3 /spillTargetCode:2 /compileTarget:cs "%s" > "%t"
-// RUN: %dafny /compile:3 /spillTargetCode:2 /compileTarget:js "%s" >> "%t"
-// RUN: %dafny /compile:3 /spillTargetCode:2 /compileTarget:go "%s" >> "%t"
-// RUN: %dafny /compile:3 /spillTargetCode:2 /compileTarget:java "%s" >> "%t"
-// RUN: %diff "%s.expect" "%t"
+// NONUNIFORM: https://github.com/dafny-lang/dafny/issues/4108
+// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment --spill-translation --unicode-char:false
 
 method Main() {
   AssignSuchThat();
   LetSuchThat();
   Quantifier();
   MapComprehension();
+  TestCollectionEmptiness();
   OutParamsUnderLambdas();  // white-box testing
   AltControlFlow();
   Sequences();
@@ -20,11 +18,12 @@ method Main() {
   TestImplicitTypeTests.Test();
   ObjectTests.Test();
   NewtypeRangeRegression.Test();
+  EnumerationRegression.Test();
 }
 
-predicate method Thirteen(x: int) { x == 13 }
-predicate method Even(y: int) { y % 2 == 1 }
-function method FourMore(x: int): int { x + 4 }
+predicate Thirteen(x: int) { x == 13 }
+predicate Even(y: int) { y % 2 == 1 }
+function FourMore(x: int): int { x + 4 }
 
 method AssignSuchThat() {
   var x, y;
@@ -64,6 +63,39 @@ method MapComprehension() {
   m := map x | 12 <= x < 15 :: FourMore(x) := x;
   print m, "\n";
 }
+
+method TestCollectionEmptiness() {
+  var a, b, c, d;
+  a, b, c, d := {2, 4}, multiset{4, 4, 1}, [0, 9, 0], map[13 := 26];
+  PrintCollectionEmptiness(a, b, c, d);
+  a, b, c, d := {}, multiset{}, [], map[];
+  PrintCollectionEmptiness(a, b, c, d);
+}
+
+method PrintCollectionEmptiness<X(==)>(a: set<X>, b: multiset<X>, c: seq<X>, d: map<X, int>) {
+  var r0, r1;
+  // set
+  r0 := forall x :: !(x in a);
+  r1 := forall x :: x !in a;
+  expect r0 == r1;
+  print r0, " ";
+  // multiset
+  r0 := forall x :: !(x in b);
+  r1 := forall x :: x !in b;
+  expect r0 == r1;
+  print r0, " ";
+  // seq
+  r0 := forall x :: !(x in c);
+  r1 := forall x :: x !in c;
+  expect r0 == r1;
+  print r0, " ";
+  // map
+  r0 := forall x :: !(x in d);
+  r1 := forall x :: x !in d;
+  expect r0 == r1;
+  print r0, "\n";
+}
+
 
 method OutParamsUnderLambdas() {
   var x, b := XP();
@@ -235,7 +267,7 @@ method SetComprehension() {
 method SetComprehension0() {
   var w, x, y, z := new ClassA, new ClassA, new ClassB, new ClassB;
   var s := {w, x, y, z};
-  // The following set comprehension picks att elements in s:
+  // The following set comprehension picks all elements in s:
   var all := set o: object | o in s;
   // The next set comprehension picks out 2 of the elements in s:
   var aa := set o: ClassA | o in s;
@@ -254,7 +286,7 @@ method SetComprehension0() {
 method SetComprehension1() {
   var w, x, y, z := new ClassA, new ClassA, new ClassB, new ClassB;
   var s := {w, x, y, z, null};
-  // The following set comprehension picks att elements in s:
+  // The following set comprehension picks all elements in s:
   var all := set o: object | o in s;
   // The next set comprehension picks out 2 of the elements in s:
   var aa := set o: ClassA | o in s;
@@ -273,7 +305,7 @@ method SetComprehension1() {
 method SetComprehension2() {
   var w, x, y, z := new ClassA, new ClassA, new ClassB, new ClassB;
   var s := {w, x, y, z, null};
-  // The following set comprehension picks att elements in s:
+  // The following set comprehension picks all elements in s:
   var all := set o: object? | o in s;
   // The next set comprehension picks out 2 of the elements in s:
   var aa := set o: ClassA? | o in s;
@@ -290,11 +322,11 @@ method SetComprehension2() {
 
 datatype Color = Red | Green | Blue
 
-predicate method True<G>(g: G) { true }
+predicate True<G>(g: G) { true }
 
 method SetComprehension3() {
   var s: set<bool> := {false, true};
-  // The following set comprehension picks att elements in s:
+  // The following set comprehension picks all elements in s:
   var all := set o: bool | o in s;
   var aa := set o: bool | o in s && !o;
   var bb := set o: bool | o in s && o;
@@ -480,7 +512,7 @@ module ObjectTests {
     print GenEqual(o', p'), " ", GenEqual(p', p'), "\n"; // true true
   }
 
-  predicate method GenEqual<X(==)>(x: X, y: X) {
+  predicate GenEqual<X(==)>(x: X, y: X) {
     x == y
   }
 
@@ -496,5 +528,67 @@ module NewtypeRangeRegression {
   method Test() {
     var k: MyInt :| k != 2; // this once caused an infinite loop in the target Java code
     print k, "\n";
+  }
+}
+
+module {:options "--function-syntax:4"} EnumerationRegression {
+  method Test() {
+    // The Java compiler once converted each candidate Long number to a 32-bit int, which meant
+    // that none of them fell into the range mentioned by the set. Thus, it erroneously computed
+    // the empty set. (issue #3204)
+    var s := set l: Long | 0x20_0000_0002 <= l < 0x20_0000_0008 && l.True() && l != 0x20_0000_0006;
+    var s' := ToSeq(s, (x, y) => x < y);
+    print s', "\n";
+
+    var t := set l: AlsoLong | l.True() && l != 0x20_0000_0006;
+    var c := set l | l in s :: Digit(l as int);
+    var u := set l: AlsoLong | l.True() && l != 0x20_0000_0006 :: Digit(l as int);
+    var t' := ToSeq(t, (x, y) => x < y);
+    var c' := ToSeq(c, (x, y) => x < y);
+    var u' := ToSeq(u, (x, y) => x < y);
+    print t', "\n";
+    print c', "\n";
+    print u', "\n";
+  }
+
+  // Another previous problem with the Java compiler was that it generated names that confused
+  // the following "Long" with the built-in "java.lang.Long".
+  newtype Long = x | 0x1F_FFFF_FFF0 <= x < 0x20_0000_0100 witness 0x1F_FFFF_FFF0 {
+    predicate True() { true }
+  }
+
+  newtype AlsoLong = x | 0x20_0000_0002 <= x < 0x20_0000_0008 witness 0x20_0000_0002 {
+    predicate True() { true }
+  }
+
+  function Digit(x: int): char
+    requires 0x20_0000_0000 <= x < 0x20_0000_000a
+  {
+    'a' + (x - 0x20_0000_0000) as char
+  }
+
+  method ToSeq<X>(s: set<X>, below: (X, X) -> bool) returns (r: seq<X>) {
+    r := [];
+    var ss := s;
+    while ss != {} {
+      var x :| x in ss;
+      ss, r := ss - {x}, r + [x];
+    }
+    // sort r
+    ghost var n := |r|;
+    for i := 0 to |r|
+      invariant |r| == n
+    {
+      var y := r[i];
+      for j := i downto 0
+        invariant |r| == n
+      {
+        if below(r[j], r[j + 1]) {
+          break;
+        }
+        // swap elements j and j+1
+        r := r[j := r[j + 1]][j + 1 := r[j]];
+      }
+    }
   }
 }

@@ -1,7 +1,9 @@
-﻿using Microsoft.Dafny.LanguageServer.Language;
+﻿using System;
+using System.Collections.Generic;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Boogie;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace {
   /// <summary>
@@ -10,15 +12,15 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
   /// </summary>
   public interface ITextDocumentLoader {
     /// <summary>
-    /// Loads the specified document item of the language server and applies the necessary steps
-    /// to generate a dafny document instance.
+    /// Creates a dafny document from the given text document without loading it.
     /// </summary>
-    /// <param name="textDocument">The text document to load.</param>
-    /// <param name="verify"><c>True</c> if the loaded document should be verified.</param>
-    /// <param name="cancellationToken">A token to cancel the update operation before its completion.</param>
-    /// <returns>The loaded dafny document.</returns>
+    /// <param name="compilation"></param>
+    /// <returns>The unloaded dafny document.</returns>
     /// <exception cref="System.OperationCanceledException">Thrown when the cancellation was requested before completion.</exception>
     /// <exception cref="System.ObjectDisposedException">Thrown if the cancellation token was disposed before the completion.</exception>
-    Task<DafnyDocument> LoadAsync(TextDocumentItem textDocument, bool verify, CancellationToken cancellationToken);
+    IdeState CreateUnloaded(Compilation compilation);
+
+    Task<CompilationAfterParsing> LoadAsync(DafnyOptions options, Compilation compilation,
+      CancellationToken cancellationToken);
   }
 }

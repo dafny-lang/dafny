@@ -1,11 +1,7 @@
-// RUN: %dafny /compile:0 "%s" > "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:cs "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:java "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:js "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:go "%s" >> "%t"
-// RUN: %diff "%s.expect" "%t"
+// NONUNIFORM: https://github.com/dafny-lang/dafny/issues/4108
+// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment
 
-predicate method P(s: set)
+predicate P(s: set)
   requires s != {}
 {
   // In the following line, the let-such-that is compiled by TrExprOpt
@@ -13,7 +9,7 @@ predicate method P(s: set)
   e == e
 }
 
-function method F(s: set): int
+function F(s: set): int
   requires s != {}
 {
   var p :=

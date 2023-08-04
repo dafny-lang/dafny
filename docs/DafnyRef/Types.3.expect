@@ -1,0 +1,2 @@
+text.dfy(4,18): Error: arguments must have comparable types (got bv5 and bv6)
+1 resolution/type errors detected in text.dfy

@@ -4,8 +4,8 @@
 abstract module Monad {
   type M<A>
 
-  function method Return<A>(x: A): M<A>
-  function method Bind<A,B>(m: M<A>, f:A -> M<B>): M<B>
+  function Return<A>(x: A): M<A>
+  function Bind<A,B>(m: M<A>, f:A -> M<B>): M<B>
 
   // return x >>= f = f x
   lemma LeftIdentity<A,B>(x : A, f : A -> M<B>)
@@ -25,10 +25,10 @@ module State refines Monad {
 //   type S // doesn't work because S is used left of an arrow
   datatype M<A> = State(runState: int -> (A, int))
 
-  function method Return<A>(x: A): M<A>
+  function Return<A>(x: A): M<A>
   { State(s => (x, s)) }
 
-  function method Bind<A,B>(m: M<A>, f:A -> M<B>): M<B>
+  function Bind<A,B>(m: M<A>, f:A -> M<B>): M<B>
   {
     match m case State(h) =>
       State(s =>

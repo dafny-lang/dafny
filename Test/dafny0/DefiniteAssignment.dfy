@@ -1,7 +1,7 @@
-// RUN: %dafny /compile:0 /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %exits-with 4 %dafny /compile:0 /dprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
-class MyClass<G> {
+class MyClass<G(00)> {
   const x: G
   var y: G
   ghost var oxA: G  // error (TODO: "ghosts never need to be assigned" applies if G were marked as nonempty)
@@ -25,6 +25,11 @@ class MyClass<G> {
   {
     y := g;
   }  // error: x was never assigned, neither was oxA or oxB
+  constructor C4(g: G)
+  {
+    this.y := *;
+    x := y;
+  }
 }
 
 method M0<G>(x: int, a: G, b: G) returns (y: G)
@@ -64,7 +69,7 @@ method M1<G>(x: int, a: G, b: G) returns (y: G, z: G)
 
 class C { var u: int }
 
-function method F(): C
+function F(): C
 
 type NonNullC = c: C? | c != null witness F()
 
@@ -77,15 +82,15 @@ method Main()
                     // previous assertion says, y were null
 }
 
-method DontForgetHavoc<G>(a: G, h: int) returns (k: G) {
+method DontForgetHavoc<G(00)>(a: G, h: int) returns (k: G) {
   var x:G, y:G, z:G := a, *, a;
   if h < 10 {
     k := x;  // fine
   } else if h < 20 {
-    k := y;  // error: y has not yet been assigned
+    k := y;
   } else {
     z := *;
-    return z;  // this is fine, since z was assigned before the havoc
+    return z;  // this is fine, since z was explicitly assigned by the havoc
   }
 }
 
@@ -127,7 +132,7 @@ ghost method GM<G>() returns (g: G)
   a := b;  // error: since b has not been assigned
 }  // error: g was never assigned
 
-method MM<G>(ghost x: int, g: G) returns (vv: G, ww: G)
+method MM<G(00)>(ghost x: int, g: G) returns (vv: G, ww: G)
 {
   ghost var a: G, b: G;
   a := b;  // error: b has not been assigned
@@ -140,7 +145,7 @@ method MM<G>(ghost x: int, g: G) returns (vv: G, ww: G)
   vv := v;  // fine
   var w: G := *;
   w := *;
-  ww := w;  // error: w is used before it is really assigned
+  ww := w;
 }
 
 // ----- iterators ----------------------------
@@ -221,7 +226,7 @@ method Loop<G>(a: G, b: G, n: nat, k: int) returns (g: G)
 
 // ----- multiple returns, LHS patterns, and underscores -----
 
-function method Two<T>(t: T): (T, T)
+function Two<T>(t: T): (T, T)
 {
   (t, t)
 }
@@ -345,14 +350,14 @@ module AssignSuchThatReference {
 module LetSuchThat {
   type C
 
-  function Bad(): int
+  ghost function Bad(): int
   {
     // regression: in the the following line, the verifier once used the fact that all types were nonempty
     var c: C :| true;  // error: cannot prove existence of such a "c"
     5
   }
 
-  function Good(y: C): int
+  ghost function Good(y: C): int
   {
     var c: C :| true;  // fine, since parameter "y" serves as a witness
     5
@@ -412,4 +417,43 @@ module Regression {
   // error in method N.
   method N() returns (e: E<Class>) {
   }
+}
+
+module AdditionalTests {
+  type GGG(00)
+
+  method DefiniteAssignmentLocal0() returns (r: GGG) {
+    var g: GGG;
+    r := g; // error: g is subject to definite-assignment rules and cannot be used unless first initialized
+  }
+
+  method DefiniteAssignmentLocal1(a: bool, ghost b: bool) returns (ghost r: GGG, r': GGG) {
+    var g: GGG;
+    if a {
+      r := g; // error: g is subject to definite-assignment rules and cannot be used unless first initialized (despite being assigned to a ghost)
+      r' := g; // this is an error, but it is masked by the error on the previous line
+    } else {
+      if b {
+        var h: GGG;
+        h := g; // error: g is subject to definite-assignment rules and cannot be used unless first initialized (despite being assigned to a ghost)
+      }
+    }
+  } // error: r' may not have been assigned
+
+  ghost method DefiniteAssignmentLocal2() returns (r: GGG) {
+    var g: GGG; // no initialization needed, since we're in a ghost context
+    r := g;
+  }
+
+  method DefiniteAssignmentOut0() returns (r: GGG) {
+  } // error: g is subject to definite-assignment rules and cannot be used unless first initialized
+
+  method DefiniteAssignmentOut1() returns (ghost r: GGG) {
+  } // no initialization needed, since the out-parameter is ghost
+
+  ghost method DefiniteAssignmentOut2() returns (r: GGG) {
+  } // no initialization needed, since we're in a ghost context
+
+  lemma DefiniteAssignmentOut3() returns (r: GGG) {
+  } // no initialization needed, since we're in a ghost context
 }

@@ -3,7 +3,7 @@
 
 // Here is a function "f" and three axioms (that is, unproved lemmas) about "f":
 
-function f(x: int, y: int): int
+ghost function f(x: int, y: int): int
 
 lemma Associativity(x: int, y: int, z: int)
   ensures f(x, f(y, z)) == f(f(x, y), z)

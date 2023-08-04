@@ -1,12 +1,12 @@
 // UNSUPPORTED: windows
-// RUN: %dafny /compile:0 /print:"%t.print" /dprint:"%t.dprint" /autoTriggers:0 "%s" > "%t"
+// RUN: %exits-with 4 %dafny /compile:0 /print:"%t.print" /dprint:"%t.dprint" /autoTriggers:0 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 class C {
   var data: int
   var n: nat
   var st: set<object>
 
-  ghost method CLemma(k: int)
+  lemma CLemma(k: int)
     requires k != -23
     ensures data < k  // magic, isn't it (or bogus, some would say)
 }
@@ -61,11 +61,11 @@ lemma Lemma(c: C?, x: int, y: int)
 lemma PowerLemma(x: int, y: int)
   ensures Pred(x, y)
 
-function F(x: int): int
-function G(x: int): nat
-function H(x: int, y: int): int
-function Sum(x: int): int
-function Pred(x: int, y: int): bool
+ghost function F(x: int): int
+ghost function G(x: int): nat
+ghost function H(x: int, y: int): int
+ghost function Sum(x: int): int
+ghost function Pred(x: int, y: int): bool
 
 // ---------------------------------------------------------------------
 
@@ -203,10 +203,10 @@ method OmittedRange() {
 
 class TwoState_C { ghost var data: int }
 
-// It is not possible to achieve this postcondition in a ghost method, because ghost
-// contexts are not allowed to allocate state.  Callers of this ghost method will know
+// It is not possible to achieve this postcondition in a lemma, because lemma
+// contexts are not allowed to allocate state.  Callers of this lemma will know
 // that the postcondition is tantamount to 'false'.
-ghost method TwoState0(y: int)
+lemma TwoState0(y: int)
   ensures exists o: TwoState_C {:nowarn} :: allocated(o) && fresh(o)
 
 method TwoState_Main0() {
@@ -269,7 +269,7 @@ class EmptyForallStatement {
     }
   }
 
-  function EmptyPar_P(x: int): bool
+  ghost function EmptyPar_P(x: int): bool
   lemma EmptyPar_Lemma(x: int)
     ensures EmptyPar_P(x)
 
@@ -301,7 +301,7 @@ class EmptyForallStatement {
 
 datatype Nat = Zero | Succ(tail: Nat)
 
-predicate ThProperty(step: nat, t: Nat, r: nat)
+ghost predicate ThProperty(step: nat, t: Nat, r: nat)
 {
   match t
   case Zero => true
@@ -326,7 +326,7 @@ method BogosityClient()
   Bogus(c);
 }
 
-predicate False(x: int) { false }
+ghost predicate False(x: int) { false }
 
 method Bogus(c: C)
   requires c.data == 3

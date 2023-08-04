@@ -1,3 +1,4 @@
+// NONUNIFORM: Tests printing much more than compilation
 // RUN: %dafny /env:0 /dprint:- /dafnyVerify:0 "%s" > "%t"
 // RUN: %dafny /env:0 /rprint:- /compile:3 "%s" >> "%t"
 // RUN: %diff "%s.expect" "%t"
@@ -33,6 +34,20 @@ module Outer.B {
 
 module Outer.D {
   const d := 3
+}
+
+module Outer.E {
+  export
+    provides F
+
+  module F {
+    export G
+  }
+}
+
+module Outer.H {
+  import E
+  import E.F`G
 }
 
 // ----- Oreo
@@ -78,6 +93,6 @@ module MyModule {
   module Q.W.E.R.T {
   }
   module Q.W.E.R.T.Y {
-    const h := 2;
+    const h := 2
   }
 }

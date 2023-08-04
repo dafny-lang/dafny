@@ -3,6 +3,7 @@ package Library
 import (
   "dafny"
   "fmt"
+  Wrappers "Wrappers"
 )
 
 type CompanionStruct_LibClass_ struct{}
@@ -85,4 +86,22 @@ type AllExtern struct{}
 var Companion_AllExtern_ = AllExtern{}
 func (AllExtern) P() {
   fmt.Print("AllExtern.P\n")
+}
+func (AllExtern) MaybeInt() Wrappers.Option {
+  return Wrappers.Companion_Option_.Create_Some_(42)
+}
+func (AllExtern) IntPair() Wrappers.Pair {
+  return Wrappers.Companion_Pair_.Create_Pair_(3, 7)
+}
+
+type SingletonOptimization struct{}
+var Companion_SingletonOptimization_ = SingletonOptimization{}
+func (SingletonOptimization) SingletonTuple(a int32) int32 {
+  return a + 1
+}
+func (SingletonOptimization) NoWrapper(a int32) int32 {
+  return a + 1
+}
+func (SingletonOptimization) GhostWrapper(a int32) int32 {
+  return a + 1
 }
