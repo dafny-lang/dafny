@@ -178,7 +178,7 @@ public class TypeRhs : AssignmentRhs, ICloneable<TypeRhs> {
 
   public IToken Start => Tok;
 
-  public override IEnumerable<Node> Children {
+  public override IEnumerable<INode> Children {
     get {
       if (ArrayDimensions == null) {
         if (InitCall != null) {
@@ -191,7 +191,7 @@ public class TypeRhs : AssignmentRhs, ICloneable<TypeRhs> {
       return EType.Nodes.Concat(SubExpressions).Concat<Node>(SubStatements);
     }
   }
-  public override IEnumerable<Node> PreResolveChildren =>
+  public override IEnumerable<INode> PreResolveChildren =>
     new[] { EType, Type, Path }.OfType<Node>()
       .Concat<Node>(ArrayDimensions ?? Enumerable.Empty<Node>())
       .Concat<Node>(ElementInit != null ? new[] { ElementInit } : Enumerable.Empty<Node>())
