@@ -303,6 +303,16 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
     /// This method tries to extract the base type (so seq<char> instead of string)
     /// </summary>
     private Type GetDafnyType(Model.Uninterpreted element) {
+      var finalResult = UnknownType;
+      foreach (var typeElement in GetIsResults(element)) {
+        var reconstructedType = ReconstructType(typeElement);
+        if (reconstructedType is not UserDefinedType userDefinedType) {
+          return reconstructedType;
+        }
+        if (finalResult.Name.EndsWith("?") || finalResult == UnknownType) {
+          finalResult = userDefinedType;
+        }
+      }
       var seqOperation = fSeqAppend.AppWithResult(element);
       seqOperation ??= fSeqDrop.AppWithResult(element);
       seqOperation ??= fSeqTake.AppWithResult(element);
@@ -350,16 +360,6 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
       }
       if (fCharToInt.OptEval(element) != null) {
         return Type.Char;
-      }
-      var finalResult = UnknownType;
-      foreach (var typeElement in GetIsResults(element)) {
-        var reconstructedType = ReconstructType(typeElement);
-        if (reconstructedType is not UserDefinedType userDefinedType) {
-          return reconstructedType;
-        }
-        if (finalResult.Name.EndsWith("?") || finalResult == UnknownType) {
-          finalResult = userDefinedType;
-        }
       }
       if (finalResult != UnknownType) {
         return finalResult;
