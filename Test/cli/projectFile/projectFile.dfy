@@ -7,6 +7,9 @@
 // Test option override behavior
 // RUN: %baredafny resolve --show-snippets:false --use-basename-for-filename "%S/dfyconfig.toml" --warn-shadowing=false >> "%t"
 
+// Test option with default override behavior
+// RUN: ! %baredafny resolve --show-snippets:false --use-basename-for-filename "%S/dfyconfig.toml" --function-syntax=3 >> "%t"
+
 // Multiple project files are not allowed
 // RUN: ! %baredafny resolve --show-snippets:false --use-basename-for-filename "%S/dfyconfig.toml" "%S/broken/dfyconfig.toml"
 
