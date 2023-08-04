@@ -110,11 +110,16 @@ public class LocalVariable : RangeNode, IVariable, IAttributeBearingDeclaration 
 
   public IToken NameToken => RangeToken.StartToken;
   public bool IsTypeExplicit = false;
-  public override IEnumerable<Node> Children =>
+  public override IEnumerable<INode> Children =>
     (Attributes != null ? new List<Node> { Attributes } : Enumerable.Empty<Node>()).Concat(
       IsTypeExplicit ? new List<Node>() { type } : Enumerable.Empty<Node>());
 
-  public override IEnumerable<Node> PreResolveChildren =>
+  public override IEnumerable<INode> PreResolveChildren =>
     (Attributes != null ? new List<Node> { Attributes } : Enumerable.Empty<Node>()).Concat(
       IsTypeExplicit ? new List<Node>() { OptionalType ?? type } : Enumerable.Empty<Node>());
+
+  public DafnySymbolKind Kind => DafnySymbolKind.Variable;
+  public string GetDescription(DafnyOptions options) {
+    return this.AsText();
+  }
 }

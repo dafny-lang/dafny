@@ -58,6 +58,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override ConcreteSyntaxTree CreateModule(string moduleName, bool isDefault, bool isExtern, string/*?*/ libraryName, ConcreteSyntaxTree wr) {
+      moduleName = IdProtect(moduleName);
       if (!isExtern || libraryName != null) {
         wr.Write("let {0} = ", moduleName);
       }
@@ -1104,10 +1105,6 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void EmitActualTypeArgs(List<Type> typeArgs, IToken tok, ConcreteSyntaxTree wr) {
       // emit nothing
-    }
-
-    protected override string GenerateLhsDecl(string target, Type/*?*/ type, ConcreteSyntaxTree wr, IToken tok) {
-      return "let " + target;
     }
 
     // ----- Statements -------------------------------------------------------------

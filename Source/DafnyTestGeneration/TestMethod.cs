@@ -1,3 +1,6 @@
+// Copyright by the contributors to the Dafny Project
+// SPDX-License-Identifier: MIT
+
 #nullable disable
 using System;
 using System.Collections.Generic;
@@ -209,7 +212,6 @@ namespace DafnyTestGeneration {
 
     private string GetFunctionOfType(ArrowType type) {
       type = (ArrowType)DafnyModelTypeUtils.ReplaceTypeVariables(type, defaultType);
-      getDefaultValueParams = new();
       var lambda =
         $"({string.Join(",", type.TypeArgs.SkipLast(1).Select((t, i) => "a" + i + ":" + t))})" + // parameter types
         "=>" + // return type
@@ -258,12 +260,6 @@ namespace DafnyTestGeneration {
         return ExtractVariable(duplicateVariable.Original, asType);
       }
 
-      if (variable.Type.ToString().Contains("_System.Tuple") ||
-          (asType?.ToString() ?? "").Contains("_System.Tuple")) {
-        errorMessages.Add("// Failed - temporary disable tuple support");
-        return "";
-      }
-
       List<string> elements = new();
       var variableType = DafnyModelTypeUtils.GetInDafnyFormat(
         DafnyModelTypeUtils.ReplaceTypeVariables(variable.Type, defaultType));
@@ -286,7 +282,10 @@ namespace DafnyTestGeneration {
           var asBasicSeqType = GetBasicType(asType, type => type is SeqType) as SeqType;
           var seqVar = variable as SeqVariable;
           if (seqVar?.GetLength() == -1) {
-            return AddValue(asType ?? variableType, seqType.Arg is CharType ? "\"\"" : "[]");
+            if (seqType.Arg is CharType) {
+              return "\"\"";
+            }
+            return AddValue(asType ?? variableType, "[]");
           }
           for (var i = 0; i < seqVar?.GetLength(); i++) {
             var element = seqVar?[i];
@@ -315,10 +314,10 @@ namespace DafnyTestGeneration {
             return string.Join("+", chunkStrs);
           }
 
-
-          return AddValue(asType ?? variableType, seqType.Arg is CharType
-            ? $"\"{string.Join("", elements.SelectMany(c => c[1..^1]))}\""
-            : $"[{string.Join(", ", elements)}]");
+          if (seqType.Arg is CharType || asBasicSeqType?.TypeArgs?.FirstOrDefault((Type/*?*/)null) is CharType) {
+            return $"\"{string.Join("", elements.SelectMany(c => c[1..^1]))}\"";
+          }
+          return AddValue(asType ?? variableType, $"[{string.Join(", ", elements)}]");
         case SetType:
           var asBasicSetType = GetBasicType(asType, type => type is SetType) as SetType;
           if (!variable.Children.ContainsKey("true")) {
@@ -338,9 +337,8 @@ namespace DafnyTestGeneration {
             mappingStrings.Add($"{ExtractVariable(mapping.Key, asTypeTypeArgs?[0])} := {ExtractVariable(mapping.Value, asTypeTypeArgs?[1])}");
           }
           return AddValue(asType ?? variableType, $"map[{string.Join(", ", mappingStrings)}]");
-        case UserDefinedType tupleType when tupleType.Name.StartsWith("_System.Tuple") || tupleType.Name.StartsWith("_System._tuple"):
-          errorMessages.Add("// Failed - tuples are not fully supported");
-          return AddValue(DafnyModel.UnknownType, "(" +
+        case UserDefinedType tupleType when tupleType.Name.StartsWith("_tuple#"):
+          return AddValue(asType ?? variableType, "(" +
             string.Join(",", variable.Children.Values
               .Select(v => ExtractVariable(v.First(), null))) + ")");
         case ArrowType arrowType:
@@ -386,15 +384,20 @@ namespace DafnyTestGeneration {
               errorMessages.Add($"// Failed: Cannot find destructor " +
                                 $"{ctor.Destructors[i].Name} of constructor " +
                                 $"{variable.CanonicalName()} for datatype " +
-                                $"{basicType}");
+                                $"{basicType}. Available destructors are: " +
+                                string.Join(",", variable.Children.Keys.ToList()));
               return basicType.ToString();
             }
 
             var destructorType = Utils.CopyWithReplacements(
               Utils.UseFullName(ctor.Destructors[i].Type),
               ctor.EnclosingDatatype.TypeArgs.ConvertAll(arg => arg.Name), basicType.TypeArgs);
-            fields.Add(ctor.Destructors[i].Name + ":=" +
-                       ExtractVariable(variable.Children[fieldName].First(), destructorType));
+            if (ctor.Destructors[i].Name.StartsWith("#")) {
+              fields.Add(ExtractVariable(variable.Children[fieldName].First(), destructorType));
+            } else {
+              fields.Add(ctor.Destructors[i].Name + ":=" +
+                         ExtractVariable(variable.Children[fieldName].First(), destructorType));
+            }
           }
 
           var value = basicType.ToString();
@@ -426,6 +429,7 @@ namespace DafnyTestGeneration {
       if ((asBasicType != null) && (asBasicType is not UserDefinedType)) {
         return GetDefaultValue(asType, asType);
       }
+      string varId;
       var dafnyType = DafnyModelTypeUtils.GetNonNullable(asBasicType ?? type) as UserDefinedType;
       if (!DafnyInfo.IsClassType(dafnyType)) {
         errorMessages.Add($"// Failed to identify type class-type {dafnyType} in the AST");
@@ -445,7 +449,6 @@ namespace DafnyTestGeneration {
         }
         return tmp;
       }
-      string varId;
       if (DafnyInfo.IsExtern(dafnyType)) {
         var ctor = DafnyInfo.GetConstructor(dafnyType);
         if (ctor == null) {
@@ -491,7 +494,7 @@ namespace DafnyTestGeneration {
       }
       if (variable != null && variable.Children.ContainsKey(field.name) &&
           variable.Children[field.name].Count == 1) {
-        return ExtractVariable(variable.Children[field.name].First(), null);
+        return ExtractVariable(variable.Children[field.name].First(), field.type);
       }
 
       var previouslyCreated = ValueCreation.FirstOrDefault(obj =>
@@ -526,11 +529,6 @@ namespace DafnyTestGeneration {
         errorMessages.Add("// Failed - cannot determine type");
         return "";
       }
-      if (type.ToString().Contains("_System.Tuple") ||
-          (asType?.ToString() ?? "").Contains("_System.Tuple")) {
-        errorMessages.Add("// Failed - temporary disable tuple support");
-        return "";
-      }
       type = GetBasicType(type, type => DafnyInfo.GetSupersetType(type) == null);
       type = DafnyModelTypeUtils.ReplaceTypeVariables(type, defaultType);
       if ((asType != null) && (DafnyInfo.GetWitnessForType(asType) != null)) {
@@ -548,13 +546,12 @@ namespace DafnyTestGeneration {
         case BitvectorType bitvectorType:
           return GetPrimitiveAsType($"(0 as bv{bitvectorType.Width})", asType);
         case SeqType seqType:
-          return AddValue(asType ?? type, seqType.Arg is CharType ? "\"\"" : "[]");
+          return seqType.Arg is CharType ? "\"\"" : AddValue(asType ?? type, "[]");
         case SetType:
           return AddValue(asType ?? type, "{}");
         case MapType mapType:
           return AddValue(asType ?? type, mapType.Finite ? "map[]" : "imap[]");
-        case UserDefinedType tupleType when tupleType.Name.StartsWith("_System.Tuple") || tupleType.Name.StartsWith("_System._tuple"):
-          errorMessages.Add("// Failed - temporary disable tuple support");
+        case UserDefinedType tupleType when tupleType.Name.StartsWith("_tuple#"):
           var destructors = new List<string>();
           foreach (var arg in tupleType.TypeArgs) {
             destructors.Add(GetDefaultValue(arg));
@@ -579,7 +576,7 @@ namespace DafnyTestGeneration {
             value = datatypeType + "." + ctor.Name;
           } else {
             var assignments = ctor.Destructors.Select(destructor =>
-              destructor.Name + ":=" + GetDefaultValue(
+              (destructor.Name.StartsWith("#") ? "" : destructor.Name + ":=") + GetDefaultValue(
                 Utils.CopyWithReplacements(Utils.UseFullName(destructor.Type),
                     ctor.EnclosingDatatype.TypeArgs.ConvertAll(arg => arg.Name), datatypeType.TypeArgs),
                 Utils.CopyWithReplacements(Utils.UseFullName(destructor.Type),
@@ -630,17 +627,11 @@ namespace DafnyTestGeneration {
       List<string> lines = new();
 
       foreach (var line in ValueCreation) {
-        if (line.type is UserDefinedType userDefinedType && (userDefinedType.Name.StartsWith("_System.Tuple") || userDefinedType.Name.StartsWith("_System._tuple"))) {
-          lines.Add($"var {line.id}: " +
-                    $"({string.Join(",", line.type.TypeArgs.ConvertAll(typ => typ.ToString()))}) " +
-                    $":= {line.value};");
-        } else {
-          lines.Add($"var {line.id} : {line.type} := {line.value};");
-          var subsetTypeCondition = DafnyInfo.GetTypeCondition(line.type, line.id);
-          if (subsetTypeCondition != null) {
-            lines.Add("expect " + Printer.ExprToString(DafnyInfo.Options, subsetTypeCondition) +
-                      ", \"Test does not meet type constraints and should be removed\";");
-          }
+        lines.Add($"var {line.id} : {line.type} := {line.value};");
+        var subsetTypeCondition = DafnyInfo.GetTypeCondition(line.type, line.id);
+        if (subsetTypeCondition != null) {
+          lines.Add("expect " + Printer.ExprToString(DafnyInfo.Options, subsetTypeCondition) +
+                    ", \"If this check fails at runtime, the test does not meet the type constraints\";");
         }
       }
 
@@ -684,7 +675,7 @@ namespace DafnyTestGeneration {
         MethodName,
         receiver).Select(e =>
         "expect " + Printer.ExprToString(DafnyInfo.Options, e) +
-        ", \"Test does not meet preconditions and should be removed\";"));
+        ", \"If this check fails at runtime, the test does not meet the preconditions\";"));
       if (!DafnyInfo.IsStatic(MethodName)) {
         ArgValues.Insert(0, receiver);
       }

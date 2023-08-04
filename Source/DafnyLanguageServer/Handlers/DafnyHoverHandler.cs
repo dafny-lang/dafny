@@ -13,6 +13,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Boogie;
 using Microsoft.Dafny.LanguageServer.Language;
+using Microsoft.Dafny.LanguageServer.Util;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 using EnsuresDescription = Microsoft.Dafny.ProofObligationDescription.EnsuresDescription;
 
@@ -41,26 +42,46 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
 
     public override async Task<Hover?> Handle(HoverParams request, CancellationToken cancellationToken) {
       logger.LogDebug("received hover request for {Document}", request.TextDocument);
-      var document = await projects.GetResolvedDocumentAsync(request.TextDocument);
-      if (document == null) {
+      var state = await projects.GetResolvedDocumentAsyncInternal(request.TextDocument);
+      if (state == null) {
         logger.LogWarning("the document {Document} is not loaded", request.TextDocument);
         return null;
       }
-      var diagnosticHoverContent = GetDiagnosticsHover(document, request.TextDocument.Uri.ToUri(), request.Position, out var areMethodStatistics);
-      if (!document.SignatureAndCompletionTable.TryGetSymbolAt(request.Position, out var symbol)) {
-        logger.LogDebug("no symbol was found at {Position} in {Document}", request.Position, request.TextDocument);
-      }
-
-      var symbolHoverContent = symbol != null ? CreateSymbolMarkdown(symbol, cancellationToken) : null;
+      var diagnosticHoverContent = GetDiagnosticsHover(state, request.TextDocument.Uri.ToUri(), request.Position, out var areMethodStatistics);
+      var (symbol, symbolHoverContent) = GetStaticHoverContent(request, state);
       if (diagnosticHoverContent == null && symbolHoverContent == null) {
         return null;
       }
 
       // If diagnostics are method diagnostics, we prioritize displaying the symbol information.
       // This makes testing easier and less surprise for the user.
-      var hoverContent = areMethodStatistics && symbolHoverContent != null ? "" : (diagnosticHoverContent ?? "");
+      var hoverContent = areMethodStatistics && symbolHoverContent != null && symbol is not MemberDecl ? "" : (diagnosticHoverContent ?? "");
       hoverContent = symbolHoverContent != null ? hoverContent + (hoverContent != "" ? "  \n" : "") + symbolHoverContent : hoverContent;
       return CreateMarkdownHover(hoverContent);
+    }
+
+    private (ISymbol? symbol, string? symbolHoverContent) GetStaticHoverContent(HoverParams request, IdeState state) {
+      LList<INode>? nodePath =
+        state.Program.FindNodeChain(request.TextDocument.Uri.ToUri(), request.Position.ToDafnyPosition());
+      ISymbol? symbol;
+
+      var usage = nodePath?.Data as IHasUsages;
+      if (usage == null) {
+        // If we hover over a usage, display the information of the declaration
+        symbol = nodePath?.Data as ISymbol;
+        if (symbol != null && !symbol.NameToken.ToRange().ToLspRange().Contains(request.Position)) {
+          symbol = null;
+        }
+      } else {
+        symbol = state.SymbolTable.UsageToDeclaration.GetValueOrDefault(usage) as ISymbol;
+      }
+
+      if (symbol == null) {
+        logger.LogDebug("no symbol was found at {Position} in {Document}", request.Position, request.TextDocument);
+      }
+
+      var symbolHoverContent = symbol != null ? CreateSymbolMarkdown(symbol) : null;
+      return (symbol, symbolHoverContent);
     }
 
     class AssertionBatchIndexComparer : IComparer<AssertionBatchIndex> {
@@ -83,10 +104,15 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
         }
       }
 
+      return GetVerificationHoverContent(state, uri, position, ref areMethodStatistics, uriDiagnostics);
+    }
+
+    private string? GetVerificationHoverContent(IdeState state, Uri uri, Position position, ref bool areMethodStatistics,
+      List<Diagnostic> uriDiagnostics) {
       if (uriDiagnostics.Any(diagnostic =>
             diagnostic.Severity == DiagnosticSeverity.Error && (
-            diagnostic.Source == MessageSource.Parser.ToString() ||
-            diagnostic.Source == MessageSource.Resolver.ToString()))) {
+              diagnostic.Source == MessageSource.Parser.ToString() ||
+              diagnostic.Source == MessageSource.Resolver.ToString()))) {
         return null;
       }
 
@@ -400,9 +426,9 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
       };
     }
 
-    private string CreateSymbolMarkdown(ILocalizableSymbol symbol, CancellationToken cancellationToken) {
-      var docString = symbol.Node is IHasDocstring nodeWithDocstring ? nodeWithDocstring.GetDocstring(options) : "";
-      return (docString + $"\n```dafny\n{symbol.GetDetailText(options, cancellationToken)}\n```").TrimStart();
+    private string CreateSymbolMarkdown(ISymbol symbol) {
+      var docString = symbol is IHasDocstring nodeWithDocstring ? nodeWithDocstring.GetDocstring(options) : "";
+      return (docString + $"\n```dafny\n{symbol.GetDescription(options)}\n```").TrimStart();
     }
   }
 }

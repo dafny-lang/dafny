@@ -332,8 +332,14 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    public static string TransformToClassName(string baseName) =>
-      Regex.Replace(baseName, "[^_A-Za-z0-9$]", "_");
+    public static string TransformToClassName(string baseName) {
+      baseName = PublicIdProtectAux(baseName);
+      var sanitizedName = Regex.Replace(baseName, "[^_A-Za-z0-9$]", "_");
+      if (!Regex.IsMatch(sanitizedName, "^[_A-Za-z]")) {
+        sanitizedName = "_" + sanitizedName;
+      }
+      return sanitizedName;
+    }
 
     public override void EmitCallToMain(Method mainMethod, string baseName, ConcreteSyntaxTree wr) {
       var className = TransformToClassName(baseName);
@@ -2296,10 +2302,14 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override string IdProtect(string name) {
-      return PublicIdProtect(name);
+      return PublicIdProtectAux(name);
     }
 
     public override string PublicIdProtect(string name) {
+      return PublicIdProtectAux(name);
+    }
+
+    private static string PublicIdProtectAux(string name) {
       name = name.Replace("_module", "_System");
       if (name == "" || name.First() == '_') {
         return name; // no need to further protect this name
@@ -2404,10 +2414,6 @@ namespace Microsoft.Dafny.Compilers {
     protected override void EmitNameAndActualTypeArgs(string protectedName, List<Type> typeArgs, IToken tok, ConcreteSyntaxTree wr) {
       EmitActualTypeArgs(typeArgs, tok, wr);
       wr.Write(protectedName);
-    }
-
-    protected override string GenerateLhsDecl(string target, Type type, ConcreteSyntaxTree wr, IToken tok) {
-      return TypeName(type, wr, tok) + " " + target;
     }
 
     protected override void EmitNew(Type type, IToken tok, CallStmt initCall, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {

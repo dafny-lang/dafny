@@ -9,12 +9,12 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     /// <summary>
     /// The offset to convert a boogie line-number to an LSP line-number.
     /// </summary>
-    private const int LineOffset = -1;
+    public const int LineOffset = -1;
 
     /// <summary>
     /// The offset to convert a boogie column-number to an LSP column-number.
     /// </summary>
-    private const int ColumnOffset = -1;
+    public const int ColumnOffset = -1;
 
     public static Range ToLspRange(this DafnyRange range) {
       return new Range(
@@ -38,13 +38,31 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     /// <param name="startToken">The token to get the range of.</param>
     /// <param name="endToken">An optional other token to get the end of the range of.</param>
     /// <returns>The LSP range of the token.</returns>
-    public static Range GetLspRange(this Boogie.IToken startToken, Boogie.IToken? endToken = null) {
-      endToken ??= startToken;
-      endToken = endToken is BoogieRangeToken rangeToken ? rangeToken.EndToken : endToken;
+    public static Range GetLspRange(this IToken startToken, IToken endToken) {
+      return GetLspRangeGeneric(startToken, endToken);
+    }
+
+    private static Range GetLspRangeGeneric(this Boogie.IToken startToken, Boogie.IToken endToken) {
       return new Range(
         GetLspPosition(startToken),
         ToLspPosition(endToken.line, endToken.col + endToken.val.Length)
       );
+    }
+
+    /// <summary>
+    /// Gets the LSP range of the specified token.
+    /// </summary>
+    /// <param name="startToken">The token to get the range of.</param>
+    /// <param name="endToken">An optional other token to get the end of the range of.</param>
+    /// <returns>The LSP range of the token.</returns>
+    public static Range GetLspRange(this Boogie.IToken startToken, bool nameRange = false) {
+      if (startToken is BoogieRangeToken boogieRangeToken) {
+        return nameRange
+          ? (boogieRangeToken.NameToken ?? boogieRangeToken.StartToken).GetLspRange()
+          : GetLspRangeGeneric(boogieRangeToken.StartToken, boogieRangeToken.EndToken);
+      }
+      var endToken = startToken;
+      return GetLspRangeGeneric(startToken, endToken);
     }
 
     public static Position GetLspPosition(this DafnyPosition position) {

@@ -8,7 +8,7 @@ namespace Microsoft.Dafny;
 /// <summary>
 /// Represents a submodule declaration at module level scope
 /// </summary>
-public abstract class ModuleDecl : TopLevelDecl, IHasDocstring {
+public abstract class ModuleDecl : TopLevelDecl, IHasDocstring, ISymbol {
   /// <summary>
   /// Only equivalent between modules if one is a clone of the other.
   /// This property is used to determine if two module declarations have the same contents when doing resolution caching
@@ -54,7 +54,7 @@ public abstract class ModuleDecl : TopLevelDecl, IHasDocstring {
     return true;
   }
 
-  protected override string GetTriviaContainingDocstring() {
+  public virtual string GetTriviaContainingDocstring() {
     IToken candidate = null;
     var tokens = OwnedTokens.Any() ?
       OwnedTokens :
@@ -73,5 +73,10 @@ public abstract class ModuleDecl : TopLevelDecl, IHasDocstring {
     }
 
     return GetTriviaContainingDocstringFromStartTokenOrNull();
+  }
+
+  public DafnySymbolKind Kind => DafnySymbolKind.Namespace;
+  public string GetDescription(DafnyOptions options) {
+    return $"module {Name}";
   }
 }

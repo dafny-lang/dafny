@@ -125,8 +125,8 @@ namespace Microsoft.Dafny.Compilers {
   interface DatatypeContainer {
     void AddDatatype(Datatype item);
 
-    public DatatypeBuilder Datatype(string name, ISequence<Rune> enclosingModule, List<DAST.DatatypeCtor> ctors) {
-      return new DatatypeBuilder(this, name, enclosingModule, ctors);
+    public DatatypeBuilder Datatype(string name, ISequence<Rune> enclosingModule, List<DAST.Type> typeParams, List<DAST.DatatypeCtor> ctors, bool isCo) {
+      return new DatatypeBuilder(this, name, enclosingModule, typeParams, ctors, isCo);
     }
   }
 
@@ -134,14 +134,18 @@ namespace Microsoft.Dafny.Compilers {
     readonly DatatypeContainer parent;
     readonly string name;
     readonly ISequence<Rune> enclosingModule;
+    readonly List<DAST.Type> typeParams;
     readonly List<DAST.DatatypeCtor> ctors;
+    readonly bool isCo;
     readonly List<ClassItem> body = new();
 
-    public DatatypeBuilder(DatatypeContainer parent, string name, ISequence<Rune> enclosingModule, List<DAST.DatatypeCtor> ctors) {
+    public DatatypeBuilder(DatatypeContainer parent, string name, ISequence<Rune> enclosingModule, List<DAST.Type> typeParams, List<DAST.DatatypeCtor> ctors, bool isCo) {
       this.parent = parent;
       this.name = name;
+      this.typeParams = typeParams;
       this.enclosingModule = enclosingModule;
       this.ctors = ctors;
+      this.isCo = isCo;
     }
 
     public void AddMethod(DAST.Method item) {
@@ -156,8 +160,10 @@ namespace Microsoft.Dafny.Compilers {
       parent.AddDatatype((Datatype)Datatype.create(
         Sequence<Rune>.UnicodeFromString(this.name),
         this.enclosingModule,
+        Sequence<DAST.Type>.FromArray(typeParams.ToArray()),
         Sequence<DAST.DatatypeCtor>.FromArray(ctors.ToArray()),
-        Sequence<ClassItem>.FromArray(body.ToArray())
+        Sequence<ClassItem>.FromArray(body.ToArray()),
+        this.isCo
       ));
       return parent;
     }
@@ -195,6 +201,12 @@ namespace Microsoft.Dafny.Compilers {
       this.outVars = outVars;
     }
 
+    public List<object> ForkList() {
+      var ret = new List<object>();
+      body.Add(ret);
+      return ret;
+    }
+
     public void AddStatement(DAST.Statement item) {
       body.Add(item);
     }
@@ -205,15 +217,7 @@ namespace Microsoft.Dafny.Compilers {
 
     public DAST.Method Build() {
       List<DAST.Statement> builtStatements = new();
-      foreach (var maybeBuilt in body) {
-        if (maybeBuilt is DAST.Statement built) {
-          builtStatements.Add(built);
-        } else if (maybeBuilt is BuildableStatement buildable) {
-          builtStatements.Add(buildable.Build());
-        } else {
-          throw new InvalidOperationException("Unknown buildable type");
-        }
-      }
+      StatementContainer.RecursivelyBuild(body, builtStatements);
 
       return (DAST.Method)DAST.Method.create(
         isStatic,
@@ -232,34 +236,64 @@ namespace Microsoft.Dafny.Compilers {
 
     void AddBuildable(BuildableStatement item);
 
+    List<object> ForkList();
+
+    public StatementContainer Fork() {
+      return new ForkedStatementContainer(ForkList());
+    }
+
+    protected static void RecursivelyBuild(List<object> body, List<DAST.Statement> builtStatements) {
+      foreach (var maybeBuilt in body) {
+        if (maybeBuilt is DAST.Statement built) {
+          builtStatements.Add(built);
+        } else if (maybeBuilt is BuildableStatement buildable) {
+          builtStatements.Add(buildable.Build());
+        } else if (maybeBuilt is List<object> rec) {
+          RecursivelyBuild(rec, builtStatements);
+        } else {
+          throw new InvalidOperationException("Unknown buildable type");
+        }
+      }
+    }
+
     public void Print(DAST.Expression expr) {
       AddStatement((DAST.Statement)DAST.Statement.create_Print(expr));
     }
 
     public AssignBuilder Assign() {
-      var ret = new AssignBuilder(this, false, null);
+      var ret = new AssignBuilder(false, null);
       AddBuildable(ret);
       return ret;
     }
 
     public AssignBuilder DeclareAndAssign(DAST.Type type) {
-      var ret = new AssignBuilder(this, true, type);
+      var ret = new AssignBuilder(true, type);
       AddBuildable(ret);
       return ret;
     }
 
     public IfElseBuilder IfElse() {
-      var ret = new IfElseBuilder(this);
+      var ret = new IfElseBuilder();
       AddBuildable(ret);
       return ret;
     }
 
-    public CallStmtBuilder Call(object returnTo) {
-      return new CallStmtBuilder(this, returnTo);
+    public WhileBuilder While() {
+      var ret = new WhileBuilder();
+      AddBuildable(ret);
+      return ret;
+    }
+
+    public CallStmtBuilder Call() {
+      var ret = new CallStmtBuilder();
+      AddBuildable(ret);
+      return ret;
     }
 
     public ReturnBuilder Return() {
-      return new ReturnBuilder(this);
+      var ret = new ReturnBuilder();
+      AddBuildable(ret);
+      return ret;
     }
   }
 
@@ -267,15 +301,33 @@ namespace Microsoft.Dafny.Compilers {
     DAST.Statement Build();
   }
 
+  class ForkedStatementContainer : StatementContainer {
+    readonly List<object> list;
+
+    public ForkedStatementContainer(List<object> list) {
+      this.list = list;
+    }
+
+    public void AddStatement(DAST.Statement item) {
+      list.Add(item);
+    }
+
+    public void AddBuildable(BuildableStatement item) {
+      list.Add(item);
+    }
+
+    public List<object> ForkList() {
+      return new List<object>();
+    }
+  }
+
   class AssignBuilder : ExprContainer, BuildableStatement {
-    public readonly StatementContainer parent;
     readonly bool isDeclare;
     readonly DAST.Type type;
     string name = null;
-    public DAST.Expression value;
+    public object value;
 
-    public AssignBuilder(StatementContainer parent, bool isDeclare, DAST.Type type) {
-      this.parent = parent;
+    public AssignBuilder(bool isDeclare, DAST.Type type) {
       this.isDeclare = isDeclare;
       this.type = type;
     }
@@ -296,35 +348,51 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
+    public void AddBuildable(BuildableExpr value) {
+      if (this.value != null) {
+        throw new InvalidOperationException();
+      } else {
+        this.value = value;
+      }
+    }
+
     public DAST.Statement Build() {
       if (isDeclare) {
         if (this.value == null) {
           return (DAST.Statement)DAST.Statement.create_DeclareVar(Sequence<Rune>.UnicodeFromString(name), type, DAST.Optional<DAST._IExpression>.create_None());
         } else {
-          return (DAST.Statement)DAST.Statement.create_DeclareVar(Sequence<Rune>.UnicodeFromString(name), type, DAST.Optional<DAST._IExpression>.create_Some(this.value));
+          var builtValue = new List<DAST.Expression>();
+          ExprContainer.RecursivelyBuild(new List<object> { value }, builtValue);
+          return (DAST.Statement)DAST.Statement.create_DeclareVar(Sequence<Rune>.UnicodeFromString(name), type, DAST.Optional<DAST._IExpression>.create_Some(builtValue[0]));
         }
       } else {
         if (this.value == null) {
           throw new InvalidOperationException("Cannot assign null value to variable: " + name);
         } else {
-          return (DAST.Statement)DAST.Statement.create_Assign(Sequence<Rune>.UnicodeFromString(name), value);
+          var builtValue = new List<DAST.Expression>();
+          ExprContainer.RecursivelyBuild(new List<object> { value }, builtValue);
+          return (DAST.Statement)DAST.Statement.create_Assign(Sequence<Rune>.UnicodeFromString(name), builtValue[0]);
         }
       }
     }
   }
 
   class IfElseBuilder : ExprContainer, StatementContainer, BuildableStatement {
-    public readonly StatementContainer parent;
-
-    DAST.Expression condition = null;
+    object condition = null;
     readonly List<object> ifBody = new();
     readonly List<object> elseBody = new();
 
-    public IfElseBuilder(StatementContainer parent) {
-      this.parent = parent;
-    }
+    public IfElseBuilder() { }
 
     public void AddExpr(DAST.Expression value) {
+      if (condition != null) {
+        throw new InvalidOperationException();
+      } else {
+        condition = value;
+      }
+    }
+
+    public void AddBuildable(BuildableExpr value) {
       if (condition != null) {
         throw new InvalidOperationException();
       } else {
@@ -340,6 +408,12 @@ namespace Microsoft.Dafny.Compilers {
       ifBody.Add(item);
     }
 
+    public List<object> ForkList() {
+      var ret = new List<object>();
+      this.ifBody.Add(ret);
+      return ret;
+    }
+
     public void AddElseStatement(DAST.Statement item) {
       elseBody.Add(item);
     }
@@ -348,35 +422,28 @@ namespace Microsoft.Dafny.Compilers {
       elseBody.Add(item);
     }
 
+    public List<object> ElseForkList() {
+      var ret = new List<object>();
+      this.elseBody.Add(ret);
+      return ret;
+    }
+
     public ElseBuilder Else() {
       return new ElseBuilder(this);
     }
 
     public DAST.Statement Build() {
+      List<DAST.Expression> builtCondition = new();
+      ExprContainer.RecursivelyBuild(new List<object> { condition }, builtCondition);
+
       List<DAST.Statement> builtIfStatements = new();
-      foreach (var maybeBuilt in ifBody) {
-        if (maybeBuilt is DAST.Statement built) {
-          builtIfStatements.Add(built);
-        } else if (maybeBuilt is BuildableStatement buildable) {
-          builtIfStatements.Add(buildable.Build());
-        } else {
-          throw new InvalidOperationException("Unknown buildable type");
-        }
-      }
+      StatementContainer.RecursivelyBuild(ifBody, builtIfStatements);
 
       List<DAST.Statement> builtElseStatements = new();
-      foreach (var maybeBuilt in elseBody) {
-        if (maybeBuilt is DAST.Statement built) {
-          builtElseStatements.Add(built);
-        } else if (maybeBuilt is BuildableStatement buildable) {
-          builtElseStatements.Add(buildable.Build());
-        } else {
-          throw new InvalidOperationException("Unknown buildable type");
-        }
-      }
+      StatementContainer.RecursivelyBuild(elseBody, builtElseStatements);
 
       return (DAST.Statement)DAST.Statement.create_If(
-        condition,
+        builtCondition[0],
         Sequence<DAST.Statement>.FromArray(builtIfStatements.ToArray()),
         Sequence<DAST.Statement>.FromArray(builtElseStatements.ToArray())
       );
@@ -390,6 +457,10 @@ namespace Microsoft.Dafny.Compilers {
       this.parent = parent;
     }
 
+    public List<object> ForkList() {
+      return parent.ElseForkList();
+    }
+
     public void AddStatement(DAST.Statement item) {
       parent.AddElseStatement(item);
     }
@@ -399,20 +470,64 @@ namespace Microsoft.Dafny.Compilers {
     }
   }
 
-  class CallStmtBuilder : ExprContainer {
-    public readonly StatementContainer parent;
-    public readonly object returnTo;
+  class WhileBuilder : ExprContainer, StatementContainer, BuildableStatement {
+    object condition = null;
+    readonly List<object> body = new();
 
-    DAST.Expression on = null;
+    public WhileBuilder() { }
+
+    public void AddExpr(DAST.Expression value) {
+      if (condition != null) {
+        throw new InvalidOperationException();
+      } else {
+        condition = value;
+      }
+    }
+
+    public void AddBuildable(BuildableExpr value) {
+      if (condition != null) {
+        throw new InvalidOperationException();
+      } else {
+        condition = value;
+      }
+    }
+
+    public void AddStatement(DAST.Statement item) {
+      body.Add(item);
+    }
+
+    public void AddBuildable(BuildableStatement item) {
+      body.Add(item);
+    }
+
+    public List<object> ForkList() {
+      var ret = new List<object>();
+      this.body.Add(ret);
+      return ret;
+    }
+
+    public DAST.Statement Build() {
+      List<DAST.Expression> builtCondition = new();
+      ExprContainer.RecursivelyBuild(new List<object> { condition }, builtCondition);
+
+      List<DAST.Statement> builtStatements = new();
+      StatementContainer.RecursivelyBuild(body, builtStatements);
+
+      return (DAST.Statement)DAST.Statement.create_While(
+        builtCondition[0],
+        Sequence<DAST.Statement>.FromArray(builtStatements.ToArray())
+      );
+    }
+  }
+
+  class CallStmtBuilder : ExprContainer, BuildableStatement {
+    object on = null;
     string name = null;
     List<DAST.Type> typeArgs = null;
-    readonly List<DAST.Expression> args = new();
+    readonly List<object> args = new();
     List<ISequence<Rune>> outs = null;
 
-    public CallStmtBuilder(StatementContainer parent, object returnTo) {
-      this.parent = parent;
-      this.returnTo = returnTo;
-    }
+    public CallStmtBuilder() { }
 
     public void SetName(string name) {
       if (this.name != null) {
@@ -438,6 +553,14 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
+    public void AddBuildable(BuildableExpr value) {
+      if (on == null) {
+        on = value;
+      } else {
+        args.Add(value);
+      }
+    }
+
     public void SetOuts(List<ISequence<Rune>> outs) {
       if (this.outs != null) {
         throw new InvalidOperationException();
@@ -446,38 +569,54 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    public void Finish() {
-      parent.AddStatement((DAST.Statement)DAST.Statement.create_Call(
-        on,
+    public DAST.Statement Build() {
+      List<DAST.Expression> builtOn = new();
+      ExprContainer.RecursivelyBuild(new List<object> { on }, builtOn);
+
+      List<DAST.Expression> builtArgs = new();
+      ExprContainer.RecursivelyBuild(args, builtArgs);
+
+      return (DAST.Statement)DAST.Statement.create_Call(
+        builtOn[0],
         Sequence<Rune>.UnicodeFromString(name),
         Sequence<DAST.Type>.FromArray(typeArgs.ToArray()),
-        Sequence<DAST.Expression>.FromArray(args.ToArray()),
+        Sequence<DAST.Expression>.FromArray(builtArgs.ToArray()),
         outs == null ? DAST.Optional<ISequence<ISequence<Rune>>>.create_None() : DAST.Optional<ISequence<ISequence<Rune>>>.create_Some(Sequence<ISequence<Rune>>.FromArray(outs.ToArray()))
-      ));
+      );
     }
   }
 
-  class ReturnBuilder : ExprContainer {
-    readonly StatementContainer parent;
+  class ReturnBuilder : ExprContainer, BuildableStatement {
+    object value = null;
 
-    DAST.Expression value = null;
-
-    public ReturnBuilder(StatementContainer parent) {
-      this.parent = parent;
-    }
+    public ReturnBuilder() { }
 
     public void AddExpr(DAST.Expression value) {
       if (this.value != null) {
         throw new InvalidOperationException();
       } else {
         this.value = value;
-        parent.AddStatement((DAST.Statement)DAST.Statement.create_Return(value));
       }
+    }
+
+    public void AddBuildable(BuildableExpr value) {
+      if (this.value != null) {
+        throw new InvalidOperationException();
+      } else {
+        this.value = value;
+      }
+    }
+
+    public DAST.Statement Build() {
+      var builtValue = new List<DAST.Expression>();
+      ExprContainer.RecursivelyBuild(new List<object> { value }, builtValue);
+
+      return (DAST.Statement)DAST.Statement.create_Return(builtValue[0]);
     }
   }
 
   class ExprBuffer : ExprContainer {
-    Stack<DAST.Expression> exprs = new();
+    Stack<object> exprs = new();
     public readonly object parent;
 
     public ExprBuffer(object returnTo) {
@@ -488,15 +627,23 @@ namespace Microsoft.Dafny.Compilers {
       exprs.Push(item);
     }
 
+    public void AddBuildable(BuildableExpr item) {
+      exprs.Push(item);
+    }
+
     public List<DAST.Expression> PopN(int n) {
       if (exprs.Count < n) {
         throw new InvalidOperationException();
       } else {
-        var result = new List<DAST.Expression>();
+        var result = new List<object>();
         for (int i = 0; i < n; i++) {
           result.Insert(0, exprs.Pop());
         }
-        return result;
+
+        var builtResult = new List<DAST.Expression>();
+        ExprContainer.RecursivelyBuild(result, builtResult);
+
+        return builtResult;
       }
     }
 
@@ -508,7 +655,7 @@ namespace Microsoft.Dafny.Compilers {
       if (exprs.Count != 1) {
         throw new InvalidOperationException("Expected exactly one expression in buffer, got " + exprs.Comma(e => e.ToString()));
       } else {
-        return exprs.Pop();
+        return PopN(1)[0];
       }
     }
   }
@@ -516,63 +663,72 @@ namespace Microsoft.Dafny.Compilers {
   interface ExprContainer {
     void AddExpr(DAST.Expression item);
 
-    BinOpBuilder BinOp(string op, DafnyCompiler compiler, object returnTo) {
-      return new BinOpBuilder(compiler, this, op, returnTo);
+    void AddBuildable(BuildableExpr item);
+
+    BinOpBuilder BinOp(string op) {
+      var ret = new BinOpBuilder(op);
+      AddBuildable(ret);
+      return ret;
     }
 
     CallExprBuilder Call() {
-      return new CallExprBuilder(this);
+      var ret = new CallExprBuilder();
+      AddBuildable(ret);
+      return ret;
+    }
+
+    protected static void RecursivelyBuild(List<object> body, List<DAST.Expression> builtExprs) {
+      foreach (var maybeBuilt in body) {
+        if (maybeBuilt is DAST.Expression built) {
+          builtExprs.Add(built);
+        } else if (maybeBuilt is BuildableExpr buildable) {
+          builtExprs.Add(buildable.Build());
+        } else {
+          throw new InvalidOperationException("Unknown buildable type: " + maybeBuilt.GetType());
+        }
+      }
     }
   }
 
-  class BinOpBuilder : ExprContainer {
-    readonly DafnyCompiler compiler;
-    readonly ExprContainer parent;
-    readonly string op;
-    readonly object returnTo;
-    DAST.Expression left = null;
-    DAST.Expression right = null;
+  interface BuildableExpr {
+    DAST.Expression Build();
+  }
 
-    public BinOpBuilder(DafnyCompiler compiler, ExprContainer parent, string op, object returnTo) {
-      this.compiler = compiler;
-      this.parent = parent;
+  class BinOpBuilder : ExprContainer, BuildableExpr {
+    readonly string op;
+    readonly List<object> operands = new();
+
+    public BinOpBuilder(string op) {
       this.op = op;
-      this.returnTo = returnTo;
     }
 
     public void AddExpr(DAST.Expression item) {
-      if (left == null) {
-        left = item;
-      } else if (right == null) {
-        right = item;
-        if (compiler.currentBuilder == this) {
-          compiler.currentBuilder = this.returnTo;
-          this.Finish();
-        } else {
-          throw new InvalidOperationException();
-        }
-      } else {
-        throw new InvalidOperationException();
-      }
+      operands.Add(item);
     }
 
-    public void Finish() {
-      parent.AddExpr((DAST.Expression)DAST.Expression.create_BinOp(Sequence<Rune>.UnicodeFromString(op), left, right));
+    public void AddBuildable(BuildableExpr item) {
+      operands.Add(item);
+    }
+
+    public DAST.Expression Build() {
+      if (operands.Count != 2) {
+        throw new InvalidOperationException("Expected exactly two operands, got " + operands.Comma(o => o.ToString()));
+      }
+
+      var builtOperands = new List<DAST.Expression>();
+      ExprContainer.RecursivelyBuild(operands, builtOperands);
+      return (DAST.Expression)DAST.Expression.create_BinOp(Sequence<Rune>.UnicodeFromString(op), builtOperands[0], builtOperands[1]);
     }
   }
 
-  class CallExprBuilder : ExprContainer {
-    public readonly ExprContainer parent;
-
-    DAST.Expression on = null;
+  class CallExprBuilder : ExprContainer, BuildableExpr {
+    object on = null;
     string name = null;
     List<DAST.Type> typeArgs = null;
-    readonly List<DAST.Expression> args = new();
+    readonly List<object> args = new();
     List<ISequence<Rune>> outs = null;
 
-    public CallExprBuilder(ExprContainer parent) {
-      this.parent = parent;
-    }
+    public CallExprBuilder() { }
 
     public void SetName(string name) {
       if (this.name != null) {
@@ -598,6 +754,14 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
+    public void AddBuildable(BuildableExpr value) {
+      if (on == null) {
+        on = value;
+      } else {
+        args.Add(value);
+      }
+    }
+
     public void SetOuts(List<ISequence<Rune>> outs) {
       if (this.outs != null) {
         throw new InvalidOperationException();
@@ -606,15 +770,19 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    public object Finish() {
-      parent.AddExpr((DAST.Expression)DAST.Expression.create_Call(
-        on,
+    public DAST.Expression Build() {
+      var builtOn = new List<DAST.Expression>();
+      ExprContainer.RecursivelyBuild(new List<object> { on }, builtOn);
+
+      var builtArgs = new List<DAST.Expression>();
+      ExprContainer.RecursivelyBuild(args, builtArgs);
+
+      return (DAST.Expression)DAST.Expression.create_Call(
+        builtOn[0],
         Sequence<Rune>.UnicodeFromString(name),
         Sequence<DAST.Type>.FromArray(typeArgs.ToArray()),
-        Sequence<DAST.Expression>.FromArray(args.ToArray())
-      ));
-
-      return parent;
+        Sequence<DAST.Expression>.FromArray(builtArgs.ToArray())
+      );
     }
   }
 

@@ -423,7 +423,8 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       Assert.Single(counterExamples);
       Assert.Equal(1, counterExamples[0].Variables.Count);
       Assert.True(counterExamples[0].Variables.ContainsKey("b:_module.B"));
-      Assert.Equal("A(_h0 := 5)", counterExamples[0].Variables["b:_module.B"]);
+      // Unnamed destructors are implicitly assigned names starting with "#" during resolution:
+      Assert.Equal("A(#0 := 5)", counterExamples[0].Variables["b:_module.B"]);
     }
 
     [Theory]

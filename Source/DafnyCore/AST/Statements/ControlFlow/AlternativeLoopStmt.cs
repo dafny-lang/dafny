@@ -68,7 +68,7 @@ public class AlternativeLoopStmt : LoopStmt, ICloneable<AlternativeLoopStmt>, IC
     }
   }
 
-  public override IEnumerable<Node> Children => SpecificationSubExpressions.Concat<Node>(Alternatives);
+  public override IEnumerable<INode> Children => SpecificationSubExpressions.Concat<Node>(Alternatives);
   public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
     return formatter.SetIndentCases(indentBefore, OwnedTokens.Concat(Alternatives.SelectMany(alternative => alternative.OwnedTokens)), () => {
       foreach (var ens in Invariants) {

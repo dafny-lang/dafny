@@ -56,7 +56,7 @@ namespace Microsoft.Dafny.Compilers {
     protected override void EmitHeader(Program program, ConcreteSyntaxTree wr) {
       wr.WriteLine("// Dafny program {0} compiled into Go", program.Name);
 
-      ModuleName = MainModuleName = program.MainMethod != null ? "main" : Path.GetFileNameWithoutExtension(program.Name);
+      ModuleName = MainModuleName = program.MainMethod != null ? "main" : TransformToClassName(Path.GetFileNameWithoutExtension(program.Name));
 
       wr.WriteLine("package {0}", ModuleName);
       wr.WriteLine();
@@ -108,6 +108,9 @@ namespace Microsoft.Dafny.Compilers {
         }
       }
     }
+
+    public static string TransformToClassName(string baseName) =>
+      Regex.Replace(baseName, "[^_A-Za-z0-9$]", "_");
 
     public override void EmitCallToMain(Method mainMethod, string baseName, ConcreteSyntaxTree wr) {
       var companion = TypeName_Companion(UserDefinedType.FromTopLevelDeclWithAllBooleanTypeParameters(mainMethod.EnclosingClass), wr, mainMethod.tok, mainMethod);
@@ -1837,10 +1840,6 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void EmitActualTypeArgs(List<Type> typeArgs, IToken tok, ConcreteSyntaxTree wr) {
       // emit nothing; this is only for actual parametric polymorphism, not RTDs
-    }
-
-    protected override string GenerateLhsDecl(string target, Type/*?*/ type, ConcreteSyntaxTree wr, IToken tok) {
-      return "var " + target;
     }
 
     // ----- Statements -------------------------------------------------------------

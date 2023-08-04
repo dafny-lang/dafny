@@ -55,9 +55,10 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
     private void RunDafnyResolver(DafnyProject project, Program program, CancellationToken cancellationToken) {
       var beforeResolution = DateTime.Now;
       try {
-        var resolver = new CachingResolver(program, innerLogger, resolutionCache);
+        var resolver = program.Options.Get(ServerCommand.UseCaching)
+          ? new CachingResolver(program, innerLogger, resolutionCache)
+          : new ProgramResolver(program);
         resolver.Resolve(cancellationToken);
-        resolutionCache.Prune();
         int resolverErrors = resolver.Reporter.ErrorCountUntilResolver;
         if (resolverErrors > 0) {
           logger.LogDebug("encountered {ErrorCount} errors while resolving {DocumentUri}", resolverErrors,

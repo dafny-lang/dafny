@@ -6,7 +6,7 @@ using Microsoft.Dafny.Auditor;
 
 namespace Microsoft.Dafny;
 
-public abstract class TopLevelDeclWithMembers : TopLevelDecl {
+public abstract class TopLevelDeclWithMembers : TopLevelDecl, IHasSymbolChildren {
   public readonly List<MemberDecl> Members;
 
   // TODO remove this and instead clone the AST after parsing.
@@ -126,9 +126,9 @@ public abstract class TopLevelDeclWithMembers : TopLevelDecl {
     return types;
   }
 
-  public override IEnumerable<Node> Children => ParentTraits.Concat<Node>(Members);
+  public override IEnumerable<INode> Children => ParentTraits.Concat<Node>(Members);
 
-  public override IEnumerable<Node> PreResolveChildren => ParentTraits.Concat<Node>(MembersBeforeResolution);
+  public override IEnumerable<INode> PreResolveChildren => ParentTraits.Concat<Node>(MembersBeforeResolution);
 
   /// <summary>
   /// Returns the set of transitive parent traits (not including "this" itself).
@@ -256,6 +256,11 @@ public abstract class TopLevelDeclWithMembers : TopLevelDecl {
         resolver.reporter.Error(MessageSource.Resolver, m, "Duplicate member name: {0}", m.Name);
       }
     }
+  }
+  public virtual IEnumerable<ISymbol> ChildSymbols => Members.OfType<ISymbol>();
+  public virtual DafnySymbolKind Kind => DafnySymbolKind.Class;
+  public string GetDescription(DafnyOptions options) {
+    return $"{WhatKind} {Name}";
   }
 }
 
