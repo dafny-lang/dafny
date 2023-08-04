@@ -434,8 +434,9 @@ class PreTypeToTypeVisitor : ASTVisitor<IASTVisitorContext> {
   }
 
   /// <summary>
-  /// Does a best-effort to compute the join of "a" and "b", where the base types of "a" and "b" are
-  /// the same. If there is no join (for example, if type parameters in a non-variant position are
+  /// Does a best-effort to compute the join of "a" and "b", where the base types of "a" and "b" (or
+  /// some parent type thereof) are the same.
+  /// If there is no join (for example, if type parameters in a non-variant position are
   /// incompatible), then use base types as such type arguments.
   /// </summary>
   public Type Join(Type a, Type b) {
@@ -540,197 +541,23 @@ class PreTypeToTypeVisitor : ASTVisitor<IASTVisitorContext> {
   }
 
   /// <summary>
-  /// Does a best-effort to compute the meet of "a" and "b", returning "null" if not successful.
-  ///
-  /// Since some type parameters may still be proxies, it could be that the returned type is not
-  /// really a meet, so the caller should set up additional constraints that the result is
-  /// assignable to both a and b.
+  /// Does a best-effort to compute the meet of "a" and "b", where the base types of "a" and "b" (or
+  /// some parent type thereof) are the same.
+  /// If there is no meet (for example, if type parameters in a non-variant position are
+  /// incompatible), then use a bottom type for the common base types of "a" and "b".
   /// </summary>
   public Type Meet(Type a, Type b) {
     Contract.Requires(a != null);
     Contract.Requires(b != null);
 
-    a = a.NormalizeExpandKeepConstraints();
-    b = b.NormalizeExpandKeepConstraints();
-
-    var joinNeedsNonNullConstraint = false;
-    Type j;
-    if (a is UserDefinedType { ResolvedClass: NonNullTypeDecl aClass }) {
-      joinNeedsNonNullConstraint = true;
-      j = MeetX(aClass.RhsWithArgument(a.TypeArgs), b);
-    } else if (b is UserDefinedType { ResolvedClass: NonNullTypeDecl bClass }) {
-      joinNeedsNonNullConstraint = true;
-      j = MeetX(a, bClass.RhsWithArgument(b.TypeArgs));
+    // a crude implementation for now
+    if (Type.IsSupertype(a, b)) {
+      return b;
+    } else if (Type.IsSupertype(b, a)) {
+      return a;
     } else {
-      j = MeetX(a, b);
-    }
-    if (j != null && joinNeedsNonNullConstraint && !j.IsNonNullRefType) {
-      // try to make j into a non-null type; if that's not possible, then there is no meet
-      var udt = j as UserDefinedType;
-      if (udt != null && udt.ResolvedClass is ClassLikeDecl { IsReferenceTypeDecl: true }) {
-        // add the non-null constraint back in
-        j = UserDefinedType.CreateNonNullType(udt);
-      } else {
-        // the original a and b have no meet
-        j = null;
-      }
-    }
-    if (systemModuleManager.Options.Get(CommonOptionBag.TypeInferenceDebug)) {
-      systemModuleManager.Options.OutputWriter.WriteLine("DEBUG: Meet( {0}, {1} ) = {2}", a, b, j);
-    }
-    return j;
-  }
-  public Type MeetX(Type a, Type b) {
-    Contract.Requires(a != null);
-    Contract.Requires(b != null);
-
-    a = a.NormalizeExpandKeepConstraints();
-    b = b.NormalizeExpandKeepConstraints();
-    if (a is IntVarietiesSupertype) {
-      return b is IntVarietiesSupertype || b.IsNumericBased(Type.NumericPersuasion.Int) || b.IsBigOrdinalType || b.IsBitVectorType ? b : null;
-    } else if (b is IntVarietiesSupertype) {
-      return a.IsNumericBased(Type.NumericPersuasion.Int) || a.IsBigOrdinalType || a.IsBitVectorType ? a : null;
-    } else if (a is RealVarietiesSupertype) {
-      return b is RealVarietiesSupertype || b.IsNumericBased(Type.NumericPersuasion.Real) ? b : null;
-    } else if (b is RealVarietiesSupertype) {
-      return a.IsNumericBased(Type.NumericPersuasion.Real) ? a : null;
-    }
-
-    var towerA = Type.GetTowerOfSubsetTypes(a);
-    var towerB = Type.GetTowerOfSubsetTypes(b);
-    if (towerB.Count < towerA.Count) {
-      // make A be the shorter tower
-      var tmp0 = a; a = b; b = tmp0;
-      var tmp1 = towerA; towerA = towerB; towerB = tmp1;
-    }
-    var n = towerA.Count;
-    Contract.Assert(1 <= n);  // guaranteed by GetTowerOfSubsetTypes
-    if (towerA.Count < towerB.Count) {
-      // B is strictly taller. The meet exists only if towerA[n-1] is a supertype of towerB[n-1], and
-      // then the meet is "b".
-      return Type.IsSupertype(towerA[n - 1], towerB[n - 1]) ? b : null;
-    }
-    Contract.Assert(towerA.Count == towerB.Count);
-    a = towerA[n - 1];
-    b = towerB[n - 1];
-    if (2 <= n) {
-      var udtA = (UserDefinedType)a;
-      var udtB = (UserDefinedType)b;
-      if (udtA.ResolvedClass == udtB.ResolvedClass) {
-        // We have two subset types with equal heads
-        if (a.Equals(b, true)) {  // optimization for a special case, which applies for example when there are no arguments or when the types happen to be the same
-          return a;
-        }
-        Contract.Assert(a.TypeArgs.Count == b.TypeArgs.Count);
-        var typeArgs = Joins(TypeParameter.Variances(udtA.ResolvedClass.TypeArgs, true), a.TypeArgs, b.TypeArgs);
-        if (typeArgs == null) {
-          return null;
-        }
-        return new UserDefinedType(udtA.tok, udtA.Name, udtA.ResolvedClass, typeArgs);
-      } else {
-        // The two subset types do not have the same head, so there is no meet
-        return null;
-      }
-    }
-    Contract.Assert(towerA.Count == 1 && towerB.Count == 1);
-
-    if (a.IsBoolType || a.IsCharType || a.IsNumericBased() || a.IsBitVectorType || a.IsBigOrdinalType || a.IsTypeParameter || a.IsInternalTypeSynonym || a is TypeProxy) {
-      return a.Equals(b, true) ? a : null;
-    } else if (a is SetType) {
-      var aa = (SetType)a;
-      var bb = b as SetType;
-      if (bb == null || aa.Finite != bb.Finite) {
-        return null;
-      }
-      // sets are co-variant in their argument type
-      var typeArg = Meet(a.TypeArgs[0], b.TypeArgs[0]);
-      return typeArg == null ? null : new SetType(aa.Finite, typeArg);
-    } else if (a is MultiSetType) {
-      var aa = (MultiSetType)a;
-      var bb = b as MultiSetType;
-      if (bb == null) {
-        return null;
-      }
-      // multisets are co-variant in their argument type
-      var typeArg = Meet(a.TypeArgs[0], b.TypeArgs[0]);
-      return typeArg == null ? null : new MultiSetType(typeArg);
-    } else if (a is SeqType) {
-      var aa = (SeqType)a;
-      var bb = b as SeqType;
-      if (bb == null) {
-        return null;
-      }
-      // sequences are co-variant in their argument type
-      var typeArg = Meet(a.TypeArgs[0], b.TypeArgs[0]);
-      return typeArg == null ? null : new SeqType(typeArg);
-    } else if (a is MapType) {
-      var aa = (MapType)a;
-      var bb = b as MapType;
-      if (bb == null || aa.Finite != bb.Finite) {
-        return null;
-      }
-      // maps are co-variant in both argument types
-      var typeArgDomain = Meet(a.TypeArgs[0], b.TypeArgs[0]);
-      var typeArgRange = Meet(a.TypeArgs[1], b.TypeArgs[1]);
-      return typeArgDomain == null || typeArgRange == null ? null : new MapType(aa.Finite, typeArgDomain, typeArgRange);
-    } else if (a.IsDatatype) {
-      var aa = a.AsDatatype;
-      if (aa != b.AsDatatype) {
-        return null;
-      }
-      if (a.Equals(b, true)) {  // optimization for a special case, which applies for example when there are no arguments or when the types happen to be the same
-        return a;
-      }
-      Contract.Assert(a.TypeArgs.Count == b.TypeArgs.Count);
-      var typeArgs = Joins(TypeParameter.Variances(aa.TypeArgs, true), a.TypeArgs, b.TypeArgs);
-      if (typeArgs == null) {
-        return null;
-      }
-      var udt = (UserDefinedType)a;
-      return new UserDefinedType(udt.tok, udt.Name, aa, typeArgs);
-    } else if (a.AsArrowType != null) {
-      var aa = a.AsArrowType;
-      var bb = b.AsArrowType;
-      Contract.Assert(aa != null && bb != null && aa.Arity == bb.Arity);
-      int arity = aa.Arity;
-      Contract.Assert(a.TypeArgs.Count == arity + 1);
-      Contract.Assert(b.TypeArgs.Count == arity + 1);
-      Contract.Assert(aa.ResolvedClass == bb.ResolvedClass);
-      var typeArgs = Joins(aa.Variances(true), a.TypeArgs, b.TypeArgs);
-      return new ArrowType(aa.tok, (ArrowTypeDecl)aa.ResolvedClass, typeArgs);
-    } else if (b.IsObjectQ) {
-      return a.IsRefType ? a : null;
-    } else if (a.IsObjectQ) {
-      return b.IsRefType ? b : null;
-    } else {
-      // "a" is a class, trait, or abstract type
-      var aa = ((UserDefinedType)a).ResolvedClass;
-      Contract.Assert(aa != null);
-      if (!(b is UserDefinedType)) {
-        return null;
-      }
-      var bb = ((UserDefinedType)b).ResolvedClass;
-      if (a.Equals(b, true)) {  // optimization for a special case, which applies for example when there are no arguments or when the types happen to be the same
-        return a;
-      } else if (aa == bb) {
-        Contract.Assert(a.TypeArgs.Count == b.TypeArgs.Count);
-        var typeArgs = Joins(TypeParameter.Variances(aa.TypeArgs, true), a.TypeArgs, b.TypeArgs);
-        if (typeArgs == null) {
-          return null;
-        }
-        var udt = (UserDefinedType)a;
-        return new UserDefinedType(udt.tok, udt.Name, aa, typeArgs);
-      } else if (aa is ClassLikeDecl && bb is ClassLikeDecl) {
-        if (a.IsSubtypeOf(b, false, false)) {
-          return a;
-        } else if (b.IsSubtypeOf(a, false, false)) {
-          return b;
-        } else {
-          return null;
-        }
-      } else {
-        return null;
-      }
+      // TODO: the following may not be correct in the face of traits
+      return new BottomTypePlaceholder(a.NormalizeExpand());
     }
   }
 
