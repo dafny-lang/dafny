@@ -1500,6 +1500,14 @@ namespace Microsoft.Dafny {
       }
 
       if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
+        new HigherOrderHeapAllocationChecker(reporter).VisitDeclarations(declarations);
+      }
+
+      if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
+        new HigherOrderHeapAllocationCheckerConstructor(reporter).VisitDeclarations(declarations);
+      }
+
+      if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
         // Check that usage of "this" is restricted before "new;" in constructor bodies,
         // and that a class without any constructor only has fields with known initializers.
         // Also check that static fields (which are necessarily const) have initializers.
