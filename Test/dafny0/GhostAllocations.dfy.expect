@@ -1,5 +1,5 @@
-GhostAllocations.dfy(91,2): Warning: the modify statement with a block statement is deprecated
-GhostAllocations.dfy(103,2): Warning: the modify statement with a block statement is deprecated
+GhostAllocations.dfy(88,11): Warning: the modify statement with a block statement is deprecated
+GhostAllocations.dfy(99,13): Warning: the modify statement with a block statement is deprecated
 GhostAllocations.dfy(28,11): Error: assertion might not hold
 GhostAllocations.dfy(31,11): Error: assertion might not hold
 GhostAllocations.dfy(63,9): Error: assertion might not hold
