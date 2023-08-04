@@ -323,17 +323,17 @@ namespace Microsoft.Dafny {
     /// Add to "ancestors" every TopLevelDecl that is a reflexive, transitive parent of "d",
     /// but not exploring past any TopLevelDecl that is already in "ancestors".
     /// </summary>
-    public void ComputeAncestors(TopLevelDecl decl, ISet<TopLevelDecl> ancestors) {
+    public static void ComputeAncestors(TopLevelDecl decl, ISet<TopLevelDecl> ancestors, SystemModuleManager systemModuleManager) {
       if (!ancestors.Contains(decl)) {
         ancestors.Add(decl);
         if (decl is TopLevelDeclWithMembers topLevelDeclWithMembers) {
-          topLevelDeclWithMembers.ParentTraitHeads.ForEach(parent => ComputeAncestors(parent, ancestors));
+          topLevelDeclWithMembers.ParentTraitHeads.ForEach(parent => ComputeAncestors(parent, ancestors, systemModuleManager));
         }
         if (decl is TraitDecl { IsObjectTrait: true }) {
           // we're done
         } else if (DPreType.IsReferenceTypeDecl(decl)) {
           // object is also a parent type
-          ComputeAncestors(resolver.SystemModuleManager.ObjectDecl, ancestors);
+          ComputeAncestors(systemModuleManager.ObjectDecl, ancestors, systemModuleManager);
         }
       }
     }
@@ -345,7 +345,7 @@ namespace Microsoft.Dafny {
     /// </summary>
     public bool IsSuperPreTypeOf(DPreType super, DPreType sub) {
       var subAncestors = new HashSet<TopLevelDecl>();
-      ComputeAncestors(sub.Decl, subAncestors);
+      ComputeAncestors(sub.Decl, subAncestors, resolver.SystemModuleManager);
       if (!subAncestors.Contains(super.Decl)) {
         return false;
       }

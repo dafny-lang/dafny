@@ -189,7 +189,9 @@ namespace Microsoft.Dafny {
             candidateHeads.Add(proxy, bound.Decl);
             constraintOrigins.Add(proxy, constraint);
           } else {
-            var combined = fromSubBounds ? JoinHeads(previousBest, bound.Decl) : MeetHeads(previousBest, bound.Decl);
+            var combined = fromSubBounds
+              ? JoinHeads(previousBest, bound.Decl, PreTypeResolver.resolver.SystemModuleManager)
+              : MeetHeads(previousBest, bound.Decl);
             if (combined == null) {
               // the two joins/meets were in conflict with each other; ignore the new one
             } else {
@@ -211,11 +213,11 @@ namespace Microsoft.Dafny {
       return anythingChanged;
     }
 
-    TopLevelDecl/*?*/ JoinHeads(TopLevelDecl a, TopLevelDecl b) {
+    public static TopLevelDecl/*?*/ JoinHeads(TopLevelDecl a, TopLevelDecl b, SystemModuleManager systemModuleManager) {
       var aAncestors = new HashSet<TopLevelDecl>();
       var bAncestors = new HashSet<TopLevelDecl>();
-      PreTypeResolver.ComputeAncestors(a, aAncestors);
-      PreTypeResolver.ComputeAncestors(b, bAncestors);
+      PreTypeResolver.ComputeAncestors(a, aAncestors, systemModuleManager);
+      PreTypeResolver.ComputeAncestors(b, bAncestors, systemModuleManager);
       var ancestors = aAncestors.Intersect(bAncestors).ToList();
       // Unless ancestors.Count == 1, there is no unique answer, and not necessary any way to determine the best
       // answer. As a heuristic, pick the element with the highest unique Height number. If there is no such
@@ -246,7 +248,7 @@ namespace Microsoft.Dafny {
       return null;
     }
 
-    int Height(TopLevelDecl d) {
+    public static int Height(TopLevelDecl d) {
       if (d is TopLevelDeclWithMembers md && md.ParentTraitHeads.Count != 0) {
         return md.ParentTraitHeads.Max(Height) + 1;
       } else if (d is TraitDecl { IsObjectTrait: true }) {
@@ -544,7 +546,7 @@ namespace Microsoft.Dafny {
         yield return parentType;
       }
       if (DPreType.IsReferenceTypeDecl(decl)) {
-        if (decl is TraitDecl trait && trait.IsObjectTrait) {
+        if (decl is TraitDecl { IsObjectTrait: true }) {
           // don't return object itself
         } else {
           yield return PreTypeResolver.resolver.SystemModuleManager.ObjectQ();
