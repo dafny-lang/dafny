@@ -169,7 +169,7 @@ public class CompilationManager {
           initialViews.Add(implementationId, view);
         }
       } catch (ArgumentException) {
-        logger.LogCritical($"Two different implementation tasks have the same id, second name is {task.Implementation.Name}.");
+        logger.LogError($"Two different implementation tasks have the same id, second name is {task.Implementation.Name}.");
       }
     }
 
@@ -231,11 +231,13 @@ public class CompilationManager {
         try {
           HandleStatusUpdate(compilation, implementationTask, update);
         } catch (Exception e) {
-          logger.LogCritical(e, "Caught exception in statusUpdates OnNext.");
+          logger.LogError(e, "Caught exception in statusUpdates OnNext.");
         }
       },
       e => {
-        logger.LogError(e, "Caught error in statusUpdates observable.");
+        if (e is not OperationCanceledException) {
+          logger.LogError(e, $"Caught error in statusUpdates observable.");
+        }
         StatusUpdateHandlerFinally();
       },
       StatusUpdateHandlerFinally
