@@ -513,7 +513,7 @@ class PreTypeToTypeVisitor : ASTVisitor<IASTVisitorContext> {
     var joinedTypeArgs = Joins(TypeParameter.Variances(commonSupertypeDecl.TypeArgs), a.TypeArgs, b.TypeArgs);
     var udt = (UserDefinedType)a;
     var result = new UserDefinedType(udt.tok, udt.Name, commonSupertypeDecl, joinedTypeArgs);
-    return abNonNullTypes ? UserDefinedType.CreateNonNullType(result) : result;
+    return abNonNullTypes && result.IsRefType ? UserDefinedType.CreateNonNullType(result) : result;
   }
 
   /// <summary>
