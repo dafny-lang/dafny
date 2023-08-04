@@ -20,7 +20,6 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Refactoring {
 const i := 0
 ".TrimStart();
 
-      await SetUp(null);
       var documentItem = await CreateAndOpenTestDocument(source);
       await Assert.ThrowsAnyAsync<Exception>(() => RequestRename(documentItem, new Position(0, 6), "j"));
     }
@@ -49,7 +48,6 @@ method M() {
 }
 ".TrimStart();
 
-      await SetUp(null);
       var tempDir = await SetUpProjectFile();
       await AssertRangesRenamed(source, tempDir, "foobar");
     }
@@ -61,7 +59,6 @@ method [>foobar<]()
 method U() { [>><foobar<](); }
 ".TrimStart();
 
-      await SetUp(null);
       var tempDir = await SetUpProjectFile();
       await AssertRangesRenamed(source, tempDir, "M");
     }
@@ -75,7 +72,6 @@ module C { import [>><A<] }
 module D { import [>A<] }
 ".TrimStart();
 
-      await SetUp(null);
       var tempDir = await SetUpProjectFile();
       await AssertRangesRenamed(source, tempDir, "AAA");
     }
@@ -94,7 +90,6 @@ module B {
 }
 ".TrimStart();
 
-      await SetUp(null);
       var tempDir = await SetUpProjectFile();
       await AssertRangesRenamed(new[] { sourceA, sourceB }, tempDir, "CCC");
     }
@@ -108,7 +103,6 @@ abstract module [>A<] {}
 abstract module B { import [>><A<] }
 ".TrimStart();
 
-      await SetUp(null);
       var tempDir = await SetUpProjectFile();
       await AssertRangesRenamed(new[] { sourceA, sourceB }, tempDir, "AAA");
     }
