@@ -4011,9 +4011,12 @@ namespace Microsoft.Dafny.Compilers {
         if (toType.IsNumericBased(Type.NumericPersuasion.Real)) {
           // (int or bv or char) -> real
           Contract.Assert(AsNativeType(toType) == null);
+          var fromNative = AsNativeType(fromType);
           wr.Write($"new {DafnyBigRationalClass}(");
-          if (AsNativeType(fromType) != null) {
-            wr.Write($"{DafnyHelpersClass}.unsignedToBigInteger");
+          if (fromNative != null) {
+            wr.Write(fromNative.LowerBound >= 0
+              ? $"{DafnyHelpersClass}.unsignedToBigInteger"
+              : "java.math.BigInteger.valueOf");
             TrParenExpr(arg, wr, inLetExprBody, wStmts);
             wr.Write(", java.math.BigInteger.ONE)");
           } else if (fromType.IsCharType) {
