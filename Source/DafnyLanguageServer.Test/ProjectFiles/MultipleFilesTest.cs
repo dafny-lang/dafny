@@ -111,7 +111,6 @@ method Bar() {
       Assert.Contains("assertion might not hold", diagnostics1.Diagnostics.First().Message);
       Assert.Single(diagnostics2.Diagnostics);
       Assert.Contains("assertion might not hold", diagnostics2.Diagnostics.First().Message);
-      throw new Exception("a");
     } catch (Exception) {
       await output.WriteLineAsync($"diagnostics1: {diagnostics1.Stringify()}");
       await output.WriteLineAsync($"diagnostics2: {diagnostics2.Stringify()}");

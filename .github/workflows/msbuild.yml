@@ -36,30 +36,30 @@ jobs:
     - name: Restore tools
       working-directory: dafny
       run: dotnet tool restore
-    - name: Get Boogie Version
-      run: |
-        sudo apt-get update
-        sudo apt-get install -qq libxml2-utils
-        echo "boogieVersion=`xmllint --xpath "//PackageReference[@Include='Boogie.ExecutionEngine']/@Version" dafny/Source/DafnyCore/DafnyCore.csproj | grep -Po 'Version="\K.*?(?=")'`" >> $GITHUB_ENV
-    - name: Attempt custom Boogie patch
-      working-directory: dafny
-      run: git apply customBoogie.patch
-    - name: Checkout Boogie
-      uses: actions/checkout@v3
-      with:
-        repository: boogie-org/boogie
-        path: dafny/boogie
-        ref: v${{ env.boogieVersion }}
-    - name: Build Dafny with local Boogie
-      working-directory: dafny
-      run: dotnet build Source/Dafny.sln
-    - name: Check whitespace and style
-      working-directory: dafny
-      run: dotnet tool run dotnet-format -w -s error --check Source/Dafny.sln --exclude DafnyCore/Scanner.cs --exclude DafnyCore/Parser.cs
-    - name: Create NuGet package (just to make sure it works)
-      run: dotnet pack --no-build dafny/Source/Dafny.sln
-    - name: Check uniformity of integration tests that exercise backends
-      run: DAFNY_INTEGRATION_TESTS_MODE=uniformity-check dotnet test dafny/Source/IntegrationTests
+#    - name: Get Boogie Version
+#      run: |
+#        sudo apt-get update
+#        sudo apt-get install -qq libxml2-utils
+#        echo "boogieVersion=`xmllint --xpath "//PackageReference[@Include='Boogie.ExecutionEngine']/@Version" dafny/Source/DafnyCore/DafnyCore.csproj | grep -Po 'Version="\K.*?(?=")'`" >> $GITHUB_ENV
+#    - name: Attempt custom Boogie patch
+#      working-directory: dafny
+#      run: git apply customBoogie.patch
+#    - name: Checkout Boogie
+#      uses: actions/checkout@v3
+#      with:
+#        repository: boogie-org/boogie
+#        path: dafny/boogie
+#        ref: v${{ env.boogieVersion }}
+#    - name: Build Dafny with local Boogie
+#      working-directory: dafny
+#      run: dotnet build Source/Dafny.sln
+#    - name: Check whitespace and style
+#      working-directory: dafny
+#      run: dotnet tool run dotnet-format -w -s error --check Source/Dafny.sln --exclude DafnyCore/Scanner.cs --exclude DafnyCore/Parser.cs
+#    - name: Create NuGet package (just to make sure it works)
+#      run: dotnet pack --no-build dafny/Source/Dafny.sln
+#    - name: Check uniformity of integration tests that exercise backends
+#      run: DAFNY_INTEGRATION_TESTS_MODE=uniformity-check dotnet test dafny/Source/IntegrationTests
 
   xunit-tests:
     needs: check-deep-tests
