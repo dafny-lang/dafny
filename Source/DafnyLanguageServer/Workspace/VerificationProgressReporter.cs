@@ -297,9 +297,9 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
     var availableMethodNodes = string.Join(",", compilation.VerificationTree!.Children.Select(vt =>
       $"{vt.Kind} {vt.DisplayName} at {vt.Filename}:{vt.Position.Line}"));
     logger.LogError(
-      $"For {methodName}, in document {compilation.Uri} and filename {compilation.VerificationTree.Filename}, " +
+      $"No method found in {methodName}, in document {compilation.Uri} and filename {compilation.VerificationTree.Filename}, " +
       $"no method node at {implementation.tok.filename}:{position.Line}:{position.Character}.\n" +
-      $"Available:" + availableMethodNodes);
+      $"Available nodes: " + availableMethodNodes);
   }
 
   /// <summary>
