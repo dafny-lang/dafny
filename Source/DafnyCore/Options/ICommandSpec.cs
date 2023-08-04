@@ -42,6 +42,7 @@ public interface ICommandSpec {
     BoogieOptionBag.SolverLog,
     CommonOptionBag.JsonDiagnostics,
     BoogieOptionBag.VerificationErrorLimit,
+    CommonOptionBag.RegionChecks
   }.ToList();
 
   public static IReadOnlyList<Option> TranslationOptions = new Option[] {
@@ -50,7 +51,7 @@ public interface ICommandSpec {
     CommonOptionBag.OptimizeErasableDatatypeWrapper,
     CommonOptionBag.TestAssumptions,
     DeveloperOptionBag.Bootstrapping,
-    CommonOptionBag.AddCompileSuffix,
+    CommonOptionBag.AddCompileSuffix
   }.Concat(VerificationOptions).ToList();
 
   public static IReadOnlyList<Option> ExecutionOptions = new Option[] {

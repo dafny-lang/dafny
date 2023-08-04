@@ -339,6 +339,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
     public int DeprecationNoise = 1;
     public bool VerifyAllModules = false;
     public bool SeparateModuleOutput = false;
+    public bool RegionChecks = false;
 
     public enum IncludesModes {
       None,

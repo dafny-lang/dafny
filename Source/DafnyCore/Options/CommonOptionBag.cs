@@ -193,6 +193,14 @@ true - Print debug information for the new type system.".TrimStart()) {
   public static readonly Option<bool> UseJavadocLikeDocstringRewriterOption = new("--javadoclike-docstring-plugin",
     "Rewrite docstrings using a simple Javadoc-to-markdown converter"
   );
+  public static readonly Option<bool> RegionChecks = new("--region-checks", () => false,
+    "All references, including arrays, have now a `.Region` field.\n"+
+    "Any instance method call ref.method() with a modifies clause or field assignment ref.field := ... will require the check that.\n"+
+    "  ref.Region == this.Region || fresh(ref)\n"+
+    "Moreover, in any static method call, ref.method with a modifies clause or field assignment ref.field := ... will require the check that:\n"+
+    "  ref.Region == null"
+    ) {
+  };
 
   public enum TestAssumptionsMode {
     None,
@@ -283,6 +291,10 @@ Functionality is still being expanded. Currently only checks contracts on every 
           options.DefiniteAssignmentLevel = value ? 1 : 4;
         }
       });
+    DafnyOptions.RegisterLegacyBinding(RegionChecks,
+      (options, value) => {
+        options.RegionChecks = value;
+      });
 
     DooFile.RegisterLibraryChecks(
       new Dictionary<Option, DooFile.OptionCheck>() {
@@ -328,7 +340,8 @@ Functionality is still being expanded. Currently only checks contracts on every 
       UseBaseFileName,
       WarnMissingConstructorParenthesis,
       UseJavadocLikeDocstringRewriterOption,
-      IncludeRuntimeOption
+      IncludeRuntimeOption,
+      RegionChecks
     );
   }
 
