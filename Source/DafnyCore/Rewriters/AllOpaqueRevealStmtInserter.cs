@@ -7,7 +7,7 @@ namespace Microsoft.Dafny;
 
 /// <summary>
 /// When Dafny is called with `--default-function-opacity autoRevealDependencies`, this rewriter computes
-/// all transitive functional dependencies for each callable, and inserts reveal stmts for each such dependency
+/// all transitive functional dependencies for each callable, and inserts (in-memory, on the AST) reveal stmts for each such dependency
 /// at the top of the callable body, and also in a precondition.
 ///
 /// For example:
@@ -54,7 +54,7 @@ public class AllOpaqueRevealStmtInserter : IRewriter {
                 var func = funcExpr.Function;
                 var modulePath = new List<ModuleDefinition> { func.EnclosingClass.EnclosingModuleDefinition };
                 
-                if (isRevealedAlongPath(func, moduleDefinition, modulePath)) {
+                if (moduleDefinition.AccessibleMembers.ContainsKey(func)) {
                   if (!func.IsOpaque && func.IsMadeImplicitlyOpaque(Options)) {
                     var expr = cf.Rhs;
 
@@ -91,9 +91,9 @@ public class AllOpaqueRevealStmtInserter : IRewriter {
           if (expression is FunctionCallExpr funcExpr) {
             var func = funcExpr.Function;
 
-            if (isRevealedAlongPath(func, moduleDefinition, new List<ModuleDefinition> { func.EnclosingClass.EnclosingModuleDefinition })) {
+            if (moduleDefinition.AccessibleMembers.ContainsKey(func)) {
               if (!func.IsOpaque && func.IsMadeImplicitlyOpaque(Options)) {
-                var revealStmt0 = BuildRevealStmt(new FunctionReveal(func, new List<NameSegment>()), expr.Witness.Tok, moduleDefinition);
+                var revealStmt0 = BuildRevealStmt(func, expr.Witness.Tok, moduleDefinition);
 
                 if (revealStmt0 is not null) {
                   var newExpr = new StmtExpr(expr.Witness.Tok, revealStmt0, expr.Witness) {
@@ -131,14 +131,14 @@ public class AllOpaqueRevealStmtInserter : IRewriter {
     public readonly Graph<ICallable>.Vertex Vertex;
     public readonly bool Local;
 
-    public List<NameSegment> NamePath;
-    public List<ModuleDefinition> ModulePath;
+    // public List<NameSegment> NamePath;
+    // public List<ModuleDefinition> ModulePath;
 
-    public GraphTraversalVertex(Graph<ICallable>.Vertex vertex, bool local, List<NameSegment> namePath, List<ModuleDefinition> modulePath) {
+    public GraphTraversalVertex(Graph<ICallable>.Vertex vertex, bool local) { //, List<NameSegment> namePath, List<ModuleDefinition> modulePath) {
       Vertex = vertex;
       Local = local;
-      NamePath = namePath;
-      ModulePath = modulePath;
+      // NamePath = namePath;
+      // ModulePath = modulePath;
     }
 
     public override bool Equals(object obj) {
@@ -154,7 +154,7 @@ public class AllOpaqueRevealStmtInserter : IRewriter {
   private void AddMethodReveals(Method m, ErrorReporter reporter) {
     Contract.Requires(m != null);
 
-    bool autoRevealDeps = Attributes.ContainsBoolAtAnyLevel(m, "autoRevealDependencies", true);
+    var autoRevealDeps = Attributes.ContainsBoolAtAnyLevel(m, "autoRevealDependencies", true);
 
     var currentClass = m.EnclosingClass;
     List<RevealStmt> addedReveals = new List<RevealStmt>();
@@ -164,25 +164,27 @@ public class AllOpaqueRevealStmtInserter : IRewriter {
 
       if (revealStmt is not null) {
         addedReveals.Add(revealStmt);
-        if (autoRevealDeps) {
-          if (m is Constructor c) {
-            c.BodyInit.Insert(0, revealStmt);
-          } else {
-            m.Body.Body.Insert(0, revealStmt);
-          }
-        }
       }
     }
 
     if (autoRevealDeps) {
-      if (m.Req.Any() || m.Ens.Any()) {
-        Expression reqExpr = new LiteralExpr(m.Tok, true);
-        reqExpr.Type = Type.Bool;
-        foreach (var revealStmt0 in addedReveals) {
-          reqExpr = new StmtExpr(reqExpr.tok, revealStmt0, reqExpr);
-          reqExpr.Type = Type.Bool;
+      Expression reqExpr = new LiteralExpr(m.Tok, true) {
+        Type = Type.Bool
+      };
+      
+      foreach (var revealStmt in addedReveals) {
+        if (m is Constructor c) {
+          c.BodyInit.Insert(0, revealStmt);
+        } else {
+          m.Body.Body.Insert(0, revealStmt);
         }
+        
+        reqExpr = new StmtExpr(reqExpr.tok, revealStmt, reqExpr) {
+          Type = Type.Bool
+        };
+      }
 
+      if (m.Req.Any() || m.Ens.Any()) {
         m.Req.Insert(0, new AttributedExpression(reqExpr));
       }
     }
@@ -201,34 +203,36 @@ public class AllOpaqueRevealStmtInserter : IRewriter {
     List<RevealStmt> addedReveals = new List<RevealStmt>();
 
     foreach (var func in GetEnumerator(f, currentClass, f.SubExpressions)) {
-      if (func.function == f) {
+      if (func == f) {
         continue;
       }
 
-      var origExpr = f.Body;
       var revealStmt = BuildRevealStmt(func, f.Tok, f.EnclosingClass.EnclosingModuleDefinition);
 
       if (revealStmt is not null) {
         addedReveals.Add(revealStmt);
-
-        if (autoRevealDeps) {
-          var newExpr = new StmtExpr(f.Tok, revealStmt, origExpr) {
-            Type = origExpr.Type
-          };
-          f.Body = newExpr;
-        }
       }
     }
 
     if (autoRevealDeps) {
-      if (f.Req.Any() || f.Ens.Any()) {
-        Expression reqExpr = new LiteralExpr(f.Tok, true);
-        reqExpr.Type = Type.Bool;
-        foreach (var revealStmt0 in addedReveals) {
-          reqExpr = new StmtExpr(reqExpr.tok, revealStmt0, reqExpr);
-          reqExpr.Type = Type.Bool;
-        }
+      Expression reqExpr = new LiteralExpr(f.Tok, true);
+      reqExpr.Type = Type.Bool;
 
+      var bodyExpr = f.Body;
+      
+      foreach (var revealStmt in addedReveals) {
+        bodyExpr = new StmtExpr(f.Tok, revealStmt, bodyExpr) {
+          Type = bodyExpr.Type
+        };
+
+        reqExpr = new StmtExpr(reqExpr.tok, revealStmt, reqExpr) {
+          Type = Type.Bool
+        };
+      }
+
+      f.Body = bodyExpr;
+      
+      if (f.Req.Any() || f.Ens.Any()) {
         f.Req.Insert(0, new AttributedExpression(reqExpr));
       }
     }
@@ -243,7 +247,7 @@ public class AllOpaqueRevealStmtInserter : IRewriter {
     return string.Join(" ", revealStmtList);
   }
 
-  private IEnumerable<FunctionReveal> GetEnumerator(ICallable m, TopLevelDecl currentClass, IEnumerable<Expression> subexpressions, ModuleDefinition rootModule = null) {
+  private IEnumerable<Function> GetEnumerator(ICallable m, TopLevelDecl currentClass, IEnumerable<Expression> subexpressions, ModuleDefinition rootModule = null) {
     var origVertex = currentClass.EnclosingModuleDefinition.CallGraph.FindVertex(m);
     var interModuleVertex = currentClass.EnclosingModuleDefinition.InterModuleCallGraph.FindVertex(m);
 
@@ -267,7 +271,7 @@ public class AllOpaqueRevealStmtInserter : IRewriter {
     // Here this function may be called with a callable that is in a different module than the original one. To capture this last part of scoping, this additional argument is used.
 
     foreach (var callable in origVertex.Successors) {
-      queue.Enqueue(new GraphTraversalVertex(callable, true, defaultNameSegmentPath.ToList(), defaultModulePath.ToList()));
+      queue.Enqueue(new GraphTraversalVertex(callable, true));
     }
 
     var typeList = ExprListToTypeList(subexpressions.ToList()).ToList();
@@ -281,10 +285,13 @@ public class AllOpaqueRevealStmtInserter : IRewriter {
         foreach (var subexpression in newType.AsSubsetType.Constraint.SubExpressions) {
           if (subexpression is FunctionCallExpr funcExpr) {
             var func = funcExpr.Function;
-            var newVertex = func.EnclosingClass.EnclosingModuleDefinition.CallGraph.FindVertex(func);
-            if (newVertex is not null) {
-              queue.Enqueue(new GraphTraversalVertex(newVertex, false, defaultNameSegmentPath.ToList(), defaultModulePath.ToList()));
-              //TODO implement proper name lookup above
+
+            if (defaultRootModule.AccessibleMembers.ContainsKey(func)) {
+              var newVertex = func.EnclosingClass.EnclosingModuleDefinition.CallGraph.FindVertex(func);
+              
+              if (newVertex is not null) {
+                queue.Enqueue(new GraphTraversalVertex(newVertex, false));
+              }
             }
           }
         }
@@ -297,7 +304,7 @@ public class AllOpaqueRevealStmtInserter : IRewriter {
         var newModulePath = defaultModulePath.ToList();
         newModulePath.Add(callable.N.EnclosingModule);
 
-        if (isRevealedAlongPath(callable.N, defaultRootModule, newModulePath)) {
+        if (defaultRootModule.AccessibleMembers.ContainsKey(ICallableToDeclaration(callable.N))) {
           var importName = computeImportName(defaultRootModule, callable.N.EnclosingModule);
 
           var newNameSegmentPath = defaultNameSegmentPath.ToList();
@@ -306,7 +313,7 @@ public class AllOpaqueRevealStmtInserter : IRewriter {
             newNameSegmentPath.Add(importName);
           }
 
-          queue.Enqueue(new GraphTraversalVertex(callable, false, newNameSegmentPath, newModulePath.ToList()));
+          queue.Enqueue(new GraphTraversalVertex(callable, false));
         }
       }
     }
@@ -333,9 +340,9 @@ public class AllOpaqueRevealStmtInserter : IRewriter {
         interModuleGraphVertex = graphVertex.N.EnclosingModule.InterModuleCallGraph.FindVertex(graphVertex.N);
 
         foreach (var vertex0 in graphVertex.Successors) {
-          if (isRevealedAlongPath(vertex0.N, defaultRootModule, vertex.ModulePath)) {
+          if (defaultRootModule.AccessibleMembers.ContainsKey(ICallableToDeclaration(vertex0.N))) {
             var newGraphTraversalVertex =
-              new GraphTraversalVertex(vertex0, true, vertex.NamePath, vertex.ModulePath);
+              new GraphTraversalVertex(vertex0, true);
 
             if (!visited.Contains(newGraphTraversalVertex)) {
               queue.Enqueue(newGraphTraversalVertex);
@@ -346,18 +353,18 @@ public class AllOpaqueRevealStmtInserter : IRewriter {
 
         if (interModuleGraphVertex is not null) {
           foreach (var vertex0 in interModuleGraphVertex.Successors) {
-            var newNamePath = vertex.NamePath.ToList();
-            var importName = computeImportName(graphVertex.N.EnclosingModule, vertex0.N.EnclosingModule);
+            // var newNamePath = vertex.NamePath.ToList();
+            // var importName = computeImportName(graphVertex.N.EnclosingModule, vertex0.N.EnclosingModule);
+            //
+            // if (importName is not null) {
+            //   newNamePath.Add(importName);
+            // }
+            //
+            // var newModulePath = vertex.ModulePath.ToList();
+            // newModulePath.Add(vertex0.N.EnclosingModule);
 
-            if (importName is not null) {
-              newNamePath.Add(importName);
-            }
-
-            var newModulePath = vertex.ModulePath.ToList();
-            newModulePath.Add(vertex0.N.EnclosingModule);
-
-            if (isRevealedAlongPath(vertex0.N, defaultRootModule, newModulePath)) {
-              queue.Enqueue(new GraphTraversalVertex(vertex0, false, newNamePath, newModulePath));
+            if (defaultRootModule.AccessibleMembers.ContainsKey(ICallableToDeclaration(vertex0.N))) {
+              queue.Enqueue(new GraphTraversalVertex(vertex0, false));
             }
 
           }
@@ -366,72 +373,72 @@ public class AllOpaqueRevealStmtInserter : IRewriter {
         var callable = graphVertex.N;
 
         if (callable is Function { IsOpaque: false } func && func.IsMadeImplicitlyOpaque(Options)) {
-          yield return new FunctionReveal(func, vertex.NamePath.ToList());
+          yield return func;
         }
       }
     }
   }
 
-  private bool isRevealedAlongPath(ICallable callable, ModuleDefinition origModule, List<ModuleDefinition> modulePath) {
+  // private bool isRevealedAlongPath(ICallable callable, ModuleDefinition origModule, List<ModuleDefinition> modulePath) {
+  //
+  //   var accum = true;
+  //
+  //   var modulePathLocalCopy = modulePath.ToList();
+  //   modulePathLocalCopy.Reverse();
+  //
+  //   string nameAccum = callable.NameRelativeToModule;
+  //
+  //   if (!modulePathLocalCopy.Any()) {
+  //     return true;
+  //   }
+  //
+  //   modulePathLocalCopy.Add(origModule);
+  //
+  //   for (var i = 0; i < modulePathLocalCopy.Count() - 1; i++) {
+  //     var exportSet = FindModuleExportSet(modulePathLocalCopy[i + 1], modulePathLocalCopy[i]);
+  //
+  //     foreach (ModuleExportDecl modExportDecl in modulePathLocalCopy[i].TopLevelDecls.Where(decl => decl is ModuleExportDecl && decl.Name == exportSet)) {
+  //       var isItExported = false;
+  //       foreach (ExportSignature export in modExportDecl.Exports) {
+  //         if (export.Decl.Name == nameAccum && !export.Opaque) {
+  //           isItExported = true;
+  //         }
+  //       }
+  //
+  //       if (!isItExported) {
+  //         accum = false;
+  //       }
+  //       var importName = computeImportName(modulePathLocalCopy[i + 1], modulePathLocalCopy[i]);
+  //
+  //       if (importName is not null) {
+  //         nameAccum = importName.Name + "." + nameAccum;
+  //       }
+  //     }
+  //   }
+  //
+  //   return accum;
+  // }
 
-    var accum = true;
-
-    var modulePathLocalCopy = modulePath.ToList();
-    modulePathLocalCopy.Reverse();
-
-    string nameAccum = callable.NameRelativeToModule;
-
-    if (!modulePathLocalCopy.Any()) {
-      return true;
-    }
-
-    modulePathLocalCopy.Add(origModule);
-
-    for (var i = 0; i < modulePathLocalCopy.Count() - 1; i++) {
-      var exportSet = FindModuleExportSet(modulePathLocalCopy[i + 1], modulePathLocalCopy[i]);
-
-      foreach (ModuleExportDecl modExportDecl in modulePathLocalCopy[i].TopLevelDecls.Where(decl => decl is ModuleExportDecl && decl.Name == exportSet)) {
-        var isItExported = false;
-        foreach (ExportSignature export in modExportDecl.Exports) {
-          if (export.Decl.Name == nameAccum && !export.Opaque) {
-            isItExported = true;
-          }
-        }
-
-        if (!isItExported) {
-          accum = false;
-        }
-        var importName = computeImportName(modulePathLocalCopy[i + 1], modulePathLocalCopy[i]);
-
-        if (importName is not null) {
-          nameAccum = importName.Name + "." + nameAccum;
-        }
-      }
-    }
-
-    return accum;
-  }
-
-  private string FindModuleExportSet(ModuleDefinition origMod, ModuleDefinition importedMod) {
-    foreach (AliasModuleDecl aliasModDecl in origMod.TopLevelDecls.Where(decl => decl is AliasModuleDecl)) {
-      if (aliasModDecl.TargetQId.Root.FullDafnyName == importedMod.FullDafnyName) {
-        return aliasModDecl.Exports.Any() ? aliasModDecl.Exports.First().val : importedMod.Name;
-      }
-    }
-
-    if (importedMod.IsAbstract) {
-      Contract.Assert(importedMod.FullName[^4..] == ".Abs");
-      var importedModuleName = importedMod.FullName[..^4]; //Remove .Abs at the end
-
-      foreach (AbstractModuleDecl abstractModuleDecl in origMod.TopLevelDecls.Where(decl => decl is AbstractModuleDecl)) {
-        if (abstractModuleDecl.FullName == importedModuleName) {
-          return abstractModuleDecl.Exports.Any() ? abstractModuleDecl.Exports.First().val : importedMod.Name;
-        }
-      }
-    }
-
-    return importedMod.Name;
-  }
+  // private string FindModuleExportSet(ModuleDefinition origMod, ModuleDefinition importedMod) {
+  //   foreach (AliasModuleDecl aliasModDecl in origMod.TopLevelDecls.Where(decl => decl is AliasModuleDecl)) {
+  //     if (aliasModDecl.TargetQId.Root.FullDafnyName == importedMod.FullDafnyName) {
+  //       return aliasModDecl.Exports.Any() ? aliasModDecl.Exports.First().val : importedMod.Name;
+  //     }
+  //   }
+  //
+  //   if (importedMod.IsAbstract) {
+  //     Contract.Assert(importedMod.FullName[^4..] == ".Abs");
+  //     var importedModuleName = importedMod.FullName[..^4]; //Remove .Abs at the end
+  //
+  //     foreach (AbstractModuleDecl abstractModuleDecl in origMod.TopLevelDecls.Where(decl => decl is AbstractModuleDecl)) {
+  //       if (abstractModuleDecl.FullName == importedModuleName) {
+  //         return abstractModuleDecl.Exports.Any() ? abstractModuleDecl.Exports.First().val : importedMod.Name;
+  //       }
+  //     }
+  //   }
+  //
+  //   return importedMod.Name;
+  // }
 
   private NameSegment computeImportName(ModuleDefinition origModule, ModuleDefinition newModule) {
     foreach (AliasModuleDecl aliasModDecl in origModule.TopLevelDecls.Where(decl => decl is AliasModuleDecl)) {
@@ -455,15 +462,15 @@ public class AllOpaqueRevealStmtInserter : IRewriter {
     return null;
   }
 
-  struct FunctionReveal {
-    public Function function;
-    public List<NameSegment> namePath;
-
-    public FunctionReveal(Function func, List<NameSegment> namePath) {
-      this.function = func;
-      this.namePath = namePath;
-    }
-  }
+  // struct FunctionReveal {
+  //   public Function function;
+  //   public List<NameSegment> namePath;
+  //
+  //   public FunctionReveal(Function func, List<NameSegment> namePath) {
+  //     this.function = func;
+  //     this.namePath = namePath;
+  //   }
+  // }
 
 
   private static IEnumerable<Type> ExprListToTypeList(IEnumerable<Expression> exprList) {
@@ -477,27 +484,29 @@ public class AllOpaqueRevealStmtInserter : IRewriter {
     var subExprTypeListConcat = subExprTypeList.SelectMany(x => x);
 
     return typeList.Concat(subExprTypeListConcat);
-  }
+  } 
 
-  private static RevealStmt BuildRevealStmt(FunctionReveal func, IToken tok, ModuleDefinition currentModule) {
-    if (func.function.EnclosingClass.Name != "_default") {
+  private static RevealStmt BuildRevealStmt(Function func, IToken tok, ModuleDefinition currentModule) {
+    if (func.EnclosingClass.Name != "_default") {
       List<Type> args = new List<Type>();
-      for (int i = 0; i < func.function.EnclosingClass.TypeArgs.Count(); i++) {
+      for (int i = 0; i < func.EnclosingClass.TypeArgs.Count(); i++) {
         args.Add(new IntType());
       }
 
-      func.namePath.Add(new NameSegment(tok, func.function.EnclosingClass.Name, args));
+      // func.namePath.Add(new NameSegment(tok, func.EnclosingClass.Name, args));
     }
 
-    func.namePath.Add(new NameSegment(tok, func.function.Name, new List<Type>()));
+    // func.namePath.Add(new NameSegment(tok, func.function.Name, new List<Type>()));
 
-    Expression nameSeed = func.namePath[0];
-    var resolveExpr = func.namePath.Skip(1)
-      .Aggregate(nameSeed, (acc, name) => new ExprDotName(tok, acc, name.Name, name.OptTypeArguments));
+    // Expression nameSeed = func.namePath[0];
+    // var resolveExpr = func.namePath.Skip(1)
+    // .Aggregate(nameSeed, (acc, name) => new ExprDotName(tok, acc, name.Name, name.OptTypeArguments));
 
-    var callableClass = ((TopLevelDeclWithMembers)func.function.EnclosingClass);
+    var resolveExpr = constructExpressionFromPath(func, currentModule.AccessibleMembers[func][0]);
+    
+    var callableClass = ((TopLevelDeclWithMembers)func.EnclosingClass);
 
-    var callableName = "reveal_" + func.function.Name;
+    var callableName = "reveal_" + func.Name;
     var member = callableClass.Members.Find(decl => decl.Name == callableName);
 
     var receiver = new StaticReceiverExpr(tok, new UserDefinedType(tok, callableName, callableClass, callableClass.TypeArgs.ConvertAll(obj => (Type)Type.Int)), callableClass, true);
@@ -507,14 +516,14 @@ public class AllOpaqueRevealStmtInserter : IRewriter {
     }
 
     callableName = ((ICallable)member).NameRelativeToModule;
-    var rr = new MemberSelectExpr(func.function.Tok, receiver, callableName);
+    var rr = new MemberSelectExpr(func.Tok, receiver, callableName);
     rr.Type = new InferredTypeProxy();
     rr.Member = member;
     rr.TypeApplication_JustMember = new List<Type>();
     rr.TypeApplication_AtEnclosingClass = new List<Type>();
 
-    var call = new CallStmt(func.function.RangeToken, new List<Expression>(), rr, new List<ActualBinding>(),
-      func.function.Tok);
+    var call = new CallStmt(func.RangeToken, new List<Expression>(), rr, new List<ActualBinding>(),
+      func.Tok);
     call.IsGhost = true;
     call.Bindings.AcceptArgumentExpressionsAsExactParameterList(new List<Expression>());
 
@@ -527,14 +536,42 @@ public class AllOpaqueRevealStmtInserter : IRewriter {
         new List<ActualBinding>(), tok)
     };
 
-    var revealStmt = new RevealStmt(func.function.RangeToken, expressionList);
+    var revealStmt = new RevealStmt(func.RangeToken, expressionList);
     revealStmt.ResolvedStatements.Add(call);
     revealStmt.IsGhost = true;
 
     return revealStmt;
   }
-  
-  private static RevealStmt BuildRevealStmt(Function func, IToken tok, ModuleDefinition currentModule) {
-    return BuildRevealStmt(new FunctionReveal(func, new List<NameSegment>()), tok, currentModule);
+
+  private static Expression constructExpressionFromPath(Function func, ModuleDefinition.AccessibleMember accessibleMember) {
+    
+    var topLevelDeclsList = accessibleMember.AccessPath;
+    var nameList = topLevelDeclsList.Select(decl => new NameSegment(func.tok, decl.Name, new List<Type>())).ToList();
+    // TODO: Add class type args.
+    
+    nameList.Add(new NameSegment(func.tok, func.Name, new List<Type>()));
+
+    Expression nameSeed = nameList[0];
+    var resolveExpr = nameList.Skip(1)
+    .Aggregate(nameSeed, (acc, name) => new ExprDotName(func.tok, acc, name.Name, name.OptTypeArguments));
+
+    return resolveExpr;
+  }
+
+  static Declaration ICallableToDeclaration(ICallable iCallable) {
+    if (iCallable is Function f) {
+      return f;
+    } 
+    
+    if (iCallable is Method m) {
+      return m;
+    }
+
+    if (iCallable is TypeSynonymDecl t) {
+      return t;
+    }
+    
+    Contract.Assert(false);
+    return null;
   }
 }

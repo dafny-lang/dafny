@@ -79,6 +79,31 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
   [FilledInDuringResolution]
   public int Height;  // height in the topological sorting of modules;
 
+  public class AccessibleMember {
+    public Declaration Member;
+    public List<TopLevelDecl> AccessPath;
+    public bool IsRevealed;
+
+    public AccessibleMember(Declaration member, List<TopLevelDecl> accessPath, bool isRevealed = true) {
+      Member = member;
+      AccessPath = accessPath;
+      IsRevealed = isRevealed;
+    }
+    
+    public AccessibleMember(Declaration member, bool isRevealed = true) {
+      Member = member;
+      AccessPath = new List<TopLevelDecl>();
+      IsRevealed = isRevealed;
+    }
+
+    public AccessibleMember Clone() {
+      return new AccessibleMember(Member, AccessPath.ToList(), IsRevealed);
+    }
+  }
+
+  [FilledInDuringResolution] 
+  public Dictionary<Declaration, List<AccessibleMember>> AccessibleMembers = new(); 
+  
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(cce.NonNullElements(TopLevelDecls));
@@ -434,7 +459,79 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
 
     Type.PopScope(resolver.moduleInfo.VisibilityScope);
     resolver.moduleInfo = oldModuleInfo;
+    
+    foreach (var d in TopLevelDecls) {
+      if (d is AliasModuleDecl || d is AbstractModuleDecl) {
+        ModuleSignature importSig;
+        if (d is AliasModuleDecl) {
+          var alias = (AliasModuleDecl)d;
+          importSig = alias.TargetQId.Root != null ? alias.TargetQId.Root.Signature : alias.Signature;
+        } else {
+          importSig = ((AbstractModuleDecl)d).OriginalSignature;
+        }
+
+        var origMod = importSig.ModuleDef;
+
+        foreach (var kvp in origMod.AccessibleMembers) {
+          var newVal = kvp.Value.Select(member => member.Clone()).ToList();
+
+          foreach (var accessibleMember in newVal) {
+            //TODO: Check for export sets etc
+            
+            accessibleMember.AccessPath.Insert(0, d);
+          }
+          
+          AddAccessibleMember(kvp.Key, newVal);
+        }
+        
+        var newAccessibleMember = new AccessibleMember(d);
+        var newAccessibleMemberList = new List<AccessibleMember> { newAccessibleMember };
+        AddAccessibleMember(d, newAccessibleMemberList);
+        
+      } else if (d is LiteralModuleDecl) {
+        var nested = (LiteralModuleDecl)d;
+
+        foreach (var kvp in nested.ModuleDef.AccessibleMembers) {
+          var newVal = kvp.Value.Select(member => member.Clone()).ToList();
+
+          foreach (var accessibleMember in newVal) {
+            accessibleMember.AccessPath.Insert(0, d);
+          }
+          
+          AddAccessibleMember(kvp.Key, newVal);
+        }
+        
+        var newAccessibleMember = new AccessibleMember(d);
+        var newAccessibleMemberList = new List<AccessibleMember> { newAccessibleMember };
+        AddAccessibleMember(d, newAccessibleMemberList);
+        
+      } else if (d is DefaultClassDecl || d is ClassLikeDecl) {
+        var memberList = (d is DefaultClassDecl) ? ((DefaultClassDecl)d).Members : ((ClassLikeDecl)d).Members;
+        
+        foreach (var mem in memberList) {
+          var newAccessibleMember = new AccessibleMember(mem);
+          var newAccessibleMemberList = new List<AccessibleMember> { newAccessibleMember };
+          AddAccessibleMember(mem, newAccessibleMemberList);
+        }
+      }
+    }
+    
     return true;
+  }
+
+  private void AddAccessibleMember(Declaration accessibleDecl, List<AccessibleMember> newVal) {
+    newVal = newVal.ToList();
+    
+    if (AccessibleMembers.ContainsKey(accessibleDecl)) {
+      List<AccessibleMember> oldVal = null;
+      AccessibleMembers.TryGetValue(accessibleDecl, out oldVal);
+
+      if (oldVal is not null) {
+        newVal = newVal.Concat(oldVal).ToList();
+      }
+    }
+    
+    AccessibleMembers[accessibleDecl] = newVal;
   }
 
   public void ProcessPrefixNamedModules() {
