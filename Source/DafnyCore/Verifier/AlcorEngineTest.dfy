@@ -2,6 +2,7 @@ include "AlcorEngine.dfy"
 module AlcorEngineTest {
   import opened AlcorProofKernel
   import opened Alcor
+  import opened AlcorTacticProofChecker
 
   method {:test} DummyProofFinderTest() {
     print "\n";
@@ -73,8 +74,33 @@ module AlcorEngineTest {
                   Let("aToB", Ind, AndElimLeft.apply1(ProofVar("env")),
                   Let("b", Ind, ImpElim.apply2(ProofVar("aToB"), ProofVar("a")),
                   AndIntro.apply2(ProofVar("b"), ProofVar("a")))))))));
-    var result :- expect CheckProof(proofProgram, EnvNil, goal);
+    var result :- expect CheckProof(proofProgram, ProofEnvNil, goal);
+  }
 
+  
+  method {:test} TacticProofCheckerTest() {
+    print "\n";
+    var ia := Identifier("a");
+    var ib := Identifier("b");
+    var a := Var(ia);
+    var b := Var(ib);
+    
+    var goal := Forall(Abs(ia,
+                Forall(Abs(ib, Imp(And(Imp(a, b), a), And(b, a))))));
+
+    var thinking := new TacticMode(goal, EnvNil);
+    expect thinking.proofState.ToString() == "\n|- forall a :: (forall b :: (a ==> b) && a ==> b && a)";
+    var feedback :- expect thinking.Intro();
+    expect feedback == "\n|- forall b :: (a ==> b) && a ==> b && a";
+    feedback :- expect thinking.Intro();
+    expect feedback == "\n|- (a ==> b) && a ==> b && a";
+    feedback :- expect thinking.Intro("h");
+    expect feedback == "h: (a ==> b) && a\n|- b && a";
+    feedback :- expect thinking.Rename(Identifier("h"), Identifier("hA"));
+    print feedback;
+    expect feedback == "hA: (a ==> b) && a\n|- b && a";
+    //feedback :- expect thinking.Cases(); // TODO later
+    // thinking.ImpElim(hAB, hA)
   }
 }
 

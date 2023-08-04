@@ -31,7 +31,11 @@ module Wrappers {
     }
 }
 
-module AlcorProofKernel {
+abstract module AlcorKernelInterface {
+  type Proof(!new,==)
+}
+
+module AlcorProofKernel refines AlcorKernelInterface {
   import opened Wrappers
 // We provide ways for external users to create exprs and a proof.
   // Alcor can run the proof to see if it obtains an expe
@@ -39,7 +43,9 @@ module AlcorProofKernel {
          provides Proof.AndIntro, Proof.AndElimLeft, Proof.AndElimRight
          provides Proof.ImpElim, Proof.ImpIntro
          provides Proof.ForallIntro, Proof.ForallElim
-         provides Wrappers, Expr.ToString
+         provides Wrappers, Expr.ToString, NewNotInFreeVars, MaxVersion
+         provides Identifier.ToString
+         provides Expr.Bind, Expr.FreeVars, Expr.size
          reveals Expr, Expr.Not
          reveals Identifier
 
@@ -50,6 +56,25 @@ module AlcorProofKernel {
       + (if lbl != "" then "@" + lbl else "")
       + (if version == 0 then "" else "@" + IntToString(version))
     }
+  }
+  
+  ghost function MaxVersion(vars: set<Identifier>): (version: nat)
+    ensures forall id <- vars :: id.version <= version
+  {
+    if |vars| == 0 then 0
+    else
+      var id :| id in vars;
+      var m := MaxVersion(vars - {id});
+      if m > id.version then m else id.version
+  }
+  opaque function NewNotInFreeVars(id: Identifier, freeVars: set<Identifier>): (r: Identifier)
+    ensures r !in freeVars && r.name == id.name && r.lbl == id.lbl
+    decreases if id in freeVars then MaxVersion(freeVars) + 1 - id.version else 0
+  {
+    if id in freeVars then
+      NewNotInFreeVars(Identifier(id.name, id.version + 1, id.lbl), freeVars)
+    else
+      id
   }
 
   // TODO: Intermediate language for Dafny, including references, sets, etc.
@@ -79,24 +104,6 @@ module AlcorProofKernel {
       else if Forall? then
         body.FreeVars()
       else assert false; match () {}
-    }
-    ghost function MaxVersion(vars: set<Identifier>): (version: nat)
-      ensures forall id <- vars :: id.version <= version
-    {
-      if |vars| == 0 then 0
-      else
-        var id :| id in vars;
-        var m := MaxVersion(vars - {id});
-        if m > id.version then m else id.version
-    }
-    opaque function NewNotInFreeVars(id: Identifier, freeVars: set<Identifier>): (r: Identifier)
-      ensures r !in freeVars && r.name == id.name && r.lbl == id.lbl
-      decreases if id in freeVars then MaxVersion(freeVars) + 1 - id.version else 0
-    {
-      if id in freeVars then
-        NewNotInFreeVars(Identifier(id.name, id.version + 1, id.lbl), freeVars)
-      else
-        id
     }
     ghost function size(): nat {
       match this
@@ -181,7 +188,10 @@ module AlcorProofKernel {
       else if App? then
         left.ToStringWrap(p) + " " + right.ToStringWrap(p)
       else if Forall? then
-        "forall " + body.ToStringWrap(p + 1)
+        if body.Abs? then
+          "forall " + body.id.ToString() + " :: " + body.body.ToStringWrap(p + 1)
+        else
+          "forall " + body.ToStringWrap(p + 1)
       else
       Operator()
     }
@@ -224,7 +234,8 @@ module AlcorProofKernel {
         Success(Proof(aToB.expr.right))
     }
     // The fact that hypothesis is a pure function prevents anything to store the temporary proof object this function provides
-    static function ImpIntro(hypothesis: Expr, pHypothesis: Proof -> Result<Proof>): Result<Proof> {
+    static function ImpIntro(hypothesis: Expr, pHypothesis: Proof -> Result<Proof>): (r: Result<Proof>)
+    {
       var p := Proof(hypothesis);
       var result :- pHypothesis(p);
       Success(Proof(Imp(hypothesis, result.expr)))
@@ -245,7 +256,7 @@ module AlcorProofKernel {
   }
 }
 
-
+// Rename in AlcorProceduralProofChecker
 module Alcor {
   import opened Wrappers
   import opened AlcorProofKernel
@@ -286,7 +297,7 @@ module Alcor {
   datatype ProofValue =
     | OneProof(proof: Proof)
     | OneExpr(expr: Expr)
-    | OneClosure(argName: string, tpe: Type, body: ProofProgram, environment: Environment)
+    | OneClosure(argName: string, tpe: Type, body: ProofProgram, environment: ProofEnv)
     | OneClosureAxiom(args: seq<ProofValue>, axiom: ProofAxiom)
   {
     function Summary(): string {
@@ -299,12 +310,12 @@ module Alcor {
 
   // An environment makes it possible to interpret a proof program with free variables
 
-  datatype Environment =
-    | EnvNil
-    | EnvCons(name: string, value: ProofValue, tail: Environment)
+  datatype ProofEnv =
+    | ProofEnvNil
+    | ProofEnvCons(name: string, value: ProofValue, tail: ProofEnv)
   {
     function Lookup(searchName: string): Result<ProofValue> {
-      if EnvNil? then Failure("Did not find "+searchName+" in the proof environment")
+      if ProofEnvNil? then Failure("Did not find "+searchName+" in the proof environment")
       else if name == searchName then
         Success(value)
       else
@@ -368,7 +379,7 @@ module Alcor {
       else
         Failure("At index " + IntToString(i) + " of " + ToString() + ", expected expr, but got " + arg.Summary())
     }
-    function {:fuel 30, 30} ApplyArgs(ghost program: ProofProgram, args: seq<ProofValue>, environment: Environment): Result<ProofValue>
+    function {:fuel 30, 30} ApplyArgs(ghost program: ProofProgram, args: seq<ProofValue>, environment: ProofEnv): Result<ProofValue>
       requires |args| == Arity()
       decreases DecreasesStep(program), 0
     {
@@ -395,7 +406,7 @@ module Alcor {
             assert reasoning.OneClosure?;
             var proofBuilder: Proof -> Result<Proof> := (p: Proof) =>
               assume {:axiom} DecreasesStep(body) < DecreasesStep(program);
-              var x :- ExecuteProof(body, EnvCons(argName, OneProof(p), environment));
+              var x :- ExecuteProof(body, ProofEnvCons(argName, OneProof(p), environment));
               if x.OneProof? then Success(x.proof)
               else Failure("Closure should return a proof, but got " + x.Summary());
             Proof.ImpIntro(hypothesis, proofBuilder).Map(p => OneProof(p))
@@ -441,7 +452,7 @@ module Alcor {
   }
 
   // A call-by-value proof program should be guaranteed to terminate by construction
-  function {:fuel 30, 30} ExecuteProof(program: ProofProgram, environment: Environment): Result<ProofValue>
+  opaque function ExecuteProof(program: ProofProgram, environment: ProofEnv): Result<ProofValue>
     //requires SimplyTyped(program)
     decreases DecreasesStep(program), 1
   {
@@ -462,7 +473,7 @@ module Alcor {
           assume {:axiom} DecreasesStep(right) < DecreasesStep(program);
           var argument :- ExecuteProof(right, environment);
           assume {:axiom} DecreasesStep(result.body) < DecreasesStep(program);
-          ExecuteProof(result.body, EnvCons(result.argName, argument, result.environment))
+          ExecuteProof(result.body, ProofEnvCons(result.argName, argument, result.environment))
         else if result.OneClosureAxiom? then
           assume {:axiom} DecreasesStep(right) < DecreasesStep(program);
           var argument :- ExecuteProof(right, environment);
@@ -476,7 +487,7 @@ module Alcor {
   }
 
   // Should be the main API if a user writes a proof explicitly
-  function CheckProof(program: ProofProgram, environment: Environment, expected: Expr): Result<Proof> {
+  function CheckProof(program: ProofProgram, environment: ProofEnv, expected: Expr): Result<Proof> {
     var result :- ExecuteProof(program, environment);
     if result.OneClosure? || result.OneClosureAxiom? then
       Failure("Expected a proof of " + expected.ToString() + ", got a closure proof")
@@ -494,11 +505,11 @@ module Alcor {
 
   opaque function checkGoalAgainstExpr(pv: ProofValue, expr: Expr, pr: ProofProgram)
     : (result: Result<(Proof, ProofProgram)>)
-    requires ExecuteProof(pr, EnvNil) == Success(pv)
+    requires ExecuteProof(pr, ProofEnvNil) == Success(pv)
     ensures result.Success? ==>
       && result.value.0.GetExpr() == expr
       && pv.OneProof? && pv.proof == result.value.0
-      && Success(OneProof(result.value.0)) == ExecuteProof(result.value.1, EnvNil)
+      && Success(OneProof(result.value.0)) == ExecuteProof(result.value.1, ProofEnvNil)
   {
     if !pv.OneProof? then Failure("DummyProofFinder did not generate a proof but " + pv.Summary()) else
       var p := pv.proof;
@@ -515,7 +526,7 @@ module Alcor {
     requires expr.Imp?
     ensures result.Success? ==>
       && result.value.0.GetExpr() == expr
-      && Success(OneProof(result.value.0)) == ExecuteProof(result.value.1, EnvNil) // TODO Execute works
+      && Success(OneProof(result.value.0)) == ExecuteProof(result.value.1, ProofEnvNil) // TODO Execute works
   {
     if !expr.left.And? {
       return CantApplyAndProofFinder;
@@ -534,7 +545,7 @@ module Alcor {
               AndElimLeft.apply1(
                  AndElimLeft.apply1(ProofVar("env")))
             ));
-        var r :- ExecuteProof(proofProgram, EnvNil);
+        var r :- ExecuteProof(proofProgram, ProofEnvNil);
         result := checkGoalAgainstExpr(r, expr, proofProgram);
         return;
       }
@@ -544,7 +555,7 @@ module Alcor {
             ProofExpr(env),
             ProofAbs("env", Ind, 
               AndElimRight.apply1(AndElimLeft.apply1(ProofVar("env")))));
-        var r :- ExecuteProof(proofProgram, EnvNil);
+        var r :- ExecuteProof(proofProgram, ProofEnvNil);
         result := checkGoalAgainstExpr(r, expr, proofProgram);
         return;
       }
@@ -560,7 +571,7 @@ module Alcor {
                               AndElimLeft.apply1(AndElimRight.apply1(ProofVar("env"))))
             )
           );
-        var r :- ExecuteProof(proofProgram, EnvNil);
+        var r :- ExecuteProof(proofProgram, ProofEnvNil);
         result := checkGoalAgainstExpr(r, expr, proofProgram);
         return;
       }
@@ -573,7 +584,7 @@ module Alcor {
                               AndElimLeft.apply1(ProofVar("env")))
             )
           );
-        var r :- ExecuteProof(proofProgram, EnvNil);
+        var r :- ExecuteProof(proofProgram, ProofEnvNil);
         result := checkGoalAgainstExpr(r, expr, proofProgram);
         return;
       }
@@ -586,7 +597,7 @@ module Alcor {
     requires expr.Imp?
     ensures result.Success? ==>
       && result.value.0.GetExpr() == expr
-      && Success(OneProof(result.value.0)) == ExecuteProof(result.value.1, EnvNil) // TODO Execute works
+      && Success(OneProof(result.value.0)) == ExecuteProof(result.value.1, ProofEnvNil) // TODO Execute works
   {
     var goal := expr.right;
     var env := expr.left;
@@ -611,7 +622,7 @@ module Alcor {
             ProofExpr(env),
             ProofAbs("env", Ind, 
               ProofApp(ProofAxiom(AndElimLeft), proofElem)));
-      var r :- ExecuteProof(proofProgram, EnvNil);
+      var r :- ExecuteProof(proofProgram, ProofEnvNil);
       result := checkGoalAgainstExpr(r, expr, proofProgram);
       return;
     }
@@ -625,7 +636,7 @@ module Alcor {
     requires expr.Imp?
     ensures result.Success? ==>
       && result.value.0.GetExpr() == expr
-      && Success(OneProof(result.value.0)) == ExecuteProof(result.value.1, EnvNil) // TODO Execute works
+      && Success(OneProof(result.value.0)) == ExecuteProof(result.value.1, ProofEnvNil) // TODO Execute works
   {
     var goal := expr.right;
     var env := expr.left;
@@ -649,7 +660,7 @@ module Alcor {
             Let("A", Ind, AndElimLeft.apply1(AndElimRight.apply1(ProofVar("env"))),
             ImpElim.apply2(ProofVar("AtoB"), ProofVar("A"))))
           ));
-      var r :- ExecuteProof(proofProgram, EnvNil);
+      var r :- ExecuteProof(proofProgram, ProofEnvNil);
       result := checkGoalAgainstExpr(r, expr, proofProgram);
       return;
     }
@@ -664,7 +675,7 @@ module Alcor {
             Let("AtoB", Ind, AndElimLeft.apply1(AndElimRight.apply1(ProofVar("env"))),
             ImpElim.apply2(ProofVar("AtoB"), ProofVar("A"))))
           ));
-      var r :- ExecuteProof(proofProgram, EnvNil);
+      var r :- ExecuteProof(proofProgram, ProofEnvNil);
       result := checkGoalAgainstExpr(r, expr, proofProgram);
       return;
     }
@@ -677,11 +688,11 @@ module Alcor {
     decreases if expr.Imp? then numberOfImp(expr.right) else 0
     ensures result.Success? ==>
       && result.value.0.GetExpr() == expr
-      && Success(OneProof(result.value.0)) == ExecuteProof(result.value.1, EnvNil) // TODO Execute works
+      && Success(OneProof(result.value.0)) == ExecuteProof(result.value.1, ProofEnvNil) // TODO Execute works
   {
     var checkGoal: (ProofValue, ProofProgram) --> Result<(Proof, ProofProgram)> := 
       (pv: ProofValue, pr: ProofProgram) 
-        requires ExecuteProof(pr, EnvNil) == Success(pv)
+        requires ExecuteProof(pr, ProofEnvNil) == Success(pv)
       => checkGoalAgainstExpr(pv, expr, pr);
     // Given an expression (A0 && (A1 && (A2 && .... True))) ==> G
     // Will try to find a proof of it.
@@ -691,7 +702,7 @@ module Alcor {
     if !expr.Imp? {
       result := Failure("Alcor requires an implication");
       assert result.Success? ==>
-        Success(OneProof(result.value.0)) == ExecuteProof(result.value.1, EnvNil);
+        Success(OneProof(result.value.0)) == ExecuteProof(result.value.1, ProofEnvNil);
       return;
     }
     var goal := expr.right;
@@ -702,7 +713,7 @@ module Alcor {
       if proofOfConclusion.Success? {
         // We have a proof that A && env ==> B
         // Now let's transform it in a proof of env ==> (A ==> B)
-        var execEnv := EnvCons("a_x_imp_b", OneProof(proofOfConclusion.value.0), EnvNil);
+        var execEnv := ProofEnvCons("a_x_imp_b", OneProof(proofOfConclusion.value.0), ProofEnvNil);
         var proofProgramInner := ImpIntro.apply2(
             ProofExpr(env),
             ProofAbs("env", Ind,
@@ -720,7 +731,9 @@ module Alcor {
           Let("a_x_imp_b", Bool, proofOfConclusion.value.1,
             proofProgramInner
           );
-        assert ExecuteProof(proofProgram, EnvNil) == Success(r); // No need to recompute!
+        assert ExecuteProof(proofProgram, ProofEnvNil) == Success(r) by {
+          reveal ExecuteProof();
+        } // No need to recompute!
         result := checkGoal(r, proofProgram);
         return;
       }
@@ -743,3 +756,457 @@ module Alcor {
     return;
   }
 }
+
+module AlcorTacticProofChecker {
+  import opened AlcorProofKernel
+  import opened Alcor
+  import opened Wrappers
+
+  datatype Env = EnvNil | EnvCons(id: Identifier, prop: Expr, tail: Env) {
+    function {:fuel 4, 4} ToExpr(): Expr {
+      if EnvNil? then True else
+      And(prop, tail.ToExpr())
+    }
+    predicate IsEmpty() { EnvNil? }
+
+    ghost function Length(): nat { if EnvNil? then 0 else 1 + tail.Length() }
+    function ElemAt(index: nat): (result: (Identifier, Expr))
+      requires index < Length()
+      ensures Drop(index).EnvCons?
+      ensures result == (Drop(index).id, Drop(index).prop)
+    {
+      if index == 0 then (id, prop) else tail.ElemAt(index - 1)
+    }
+
+    function IndexOf(name: Identifier): (index: int)
+      ensures if index >= 0 then
+                && index < Length()
+                && ElemAt(index).0 == name else index == -1
+    {
+      if this.EnvNil? then -1 else
+      if this.id == name then 0 else
+      var tailIndex := tail.IndexOf(name);
+      if tailIndex == -1 then -1 else 1 + tailIndex
+    }
+
+    function Drop(i: nat): (result: Env)
+      requires i <= Length()
+      ensures result.Length() == Length() - i
+    {
+      if i == 0 then this else tail.Drop(i-1)
+    }
+    lemma DropDrop(i: nat, j: nat)
+      requires i + j <= Length()
+      ensures Drop(i).Drop(j) == Drop(i+j)
+      {
+      }
+
+    function ReplaceTailAt(i: nat, newTail: Env --> Env): Env
+      requires i <= Length()
+      requires newTail.requires(Drop(i))
+    {
+      if i == 0 then newTail(this) else
+      EnvCons(id, prop, tail.ReplaceTailAt(i-1, newTail))
+    }
+
+    function ToString(): string
+    {
+      if this.EnvNil? then "" else
+      var x := id.ToString() + ": " + prop.ToString();
+      if !tail.EnvNil? then
+        x + "\n" + tail.ToString()
+      else
+        x
+    }
+
+    function FreeVars(): set<Identifier>
+    {
+      if EnvNil? then {} else
+        var tailFreeVars := tail.FreeVars();
+        {id} + tailFreeVars
+    }
+
+    function Rename(oldName: Identifier, newName: Identifier): Env {
+      if EnvNil? then this
+      else if id == oldName then EnvCons(newName, prop, tail)
+      else EnvCons(id, prop, tail.Rename(oldName, newName))
+    }
+  }
+
+  datatype Sequent =
+    Sequent(env: Env, goal: Expr)
+  {
+    // Converts this sequent into a proposition
+    function {:fuel 4, 4} ToExpr(envIndex: nat := 0): Expr
+      {
+      Imp(env.ToExpr(), goal)
+      }
+    function ToString(): string {
+      env.ToString() + "\n|- " + goal.ToString()
+    }
+  }
+
+  datatype SequentList = SequentNil | SequentCons(head: Sequent, tail: SequentList) {
+    ghost function Length(): nat { if SequentNil? then 0 else 1 + tail.Length() }
+    predicate IsEmpty() { SequentNil? }
+
+    function {:fuel 4, 4} ElemAt(index: nat): Sequent
+      requires index < Length()
+    {
+      if index == 0 then head else tail.ElemAt(index - 1)
+    }
+    function {:fuel 4, 4} ToExpr(): Expr {
+      if SequentNil? then True else
+      And(head.ToExpr(), tail.ToExpr())
+    }
+    function ToString(): string
+    {
+      if SequentNil? then ""
+      else
+        head.ToString() + (if tail.SequentNil? then "" else "\n\n")
+        + tail.ToString()
+    }
+  }
+
+  datatype ProofState = Sequents(sequents: SequentList) | Error(message: string)
+  {
+    function {:fuel 4, 4} ToExpr(): Expr
+    {
+      if Error? then False else sequents.ToExpr()
+    }
+    function ToString(): string
+    {
+      if Error? then message else sequents.ToString()
+    }
+    function ToError(msg: string): ProofState {
+      Error("\n" + ToString() + "\n/!\\" + msg)
+    }
+  }
+
+  predicate IsProof(p: Proof) { true }
+
+  lemma ExecuteHelperAxiom(axiom: ProofAxiom)
+    ensures ExecuteProof(ProofAxiom(axiom), ProofEnvNil) == Success(OneClosureAxiom([], axiom))
+  {
+    reveal ExecuteProof();
+  }
+  lemma ExecuteHelperExpr(expr: Expr)
+    ensures ExecuteProof(ProofExpr(expr), ProofEnvNil) == Success(OneExpr(expr))
+  {
+    reveal ExecuteProof();
+  }
+
+  lemma ExecuteHelperClosure(name: string, tpe: Type, body: ProofProgram, penv: ProofEnv)
+    ensures ExecuteProof(ProofAbs(name, tpe, body), penv) == Success(OneClosure(name, tpe, body, penv))
+  {
+    reveal ExecuteProof();
+  }
+
+  lemma ExecuteHelperAxiomApp1(app1: ProofProgram, app2: ProofProgram, app2v: ProofValue, penv: ProofEnv, args: seq<ProofValue>, axiom: ProofAxiom)
+    requires ExecuteProof(app1, penv) == Success(OneClosureAxiom(args, axiom))
+    requires ExecuteProof(app2, penv) == Success(app2v)
+    requires |args| + 1 < axiom.Arity()
+    ensures ExecuteProof(ProofApp(app1, app2), penv) == Success(OneClosureAxiom(args + [app2v], axiom))
+  {
+    reveal ExecuteProof();
+  }
+  
+/*    ensures
+      axiom == ImpIntro ==>
+      ExecuteProof(ProofApp(app1, app2), penv) ==
+        Success(OneProof(), axiom))
+  {
+    reveal ExecuteProof();
+  }*/
+
+  class TacticMode {
+    const env: Env
+    const goal: Expr
+    var proofState: ProofState
+    var proofBuilder: ProofProgram // Builds a proof that proofState.ToExpr() ==> Imp(env.ToExpr(), goal)
+    ghost const allProofs: iset<Proof> // TODO: How to ensure allProofs can be avoided?
+
+    constructor (goal: Expr, env: Env)
+      ensures Invariant()
+    {
+      this.env := env;
+      this.goal := goal;
+      this.proofState := Sequents(SequentCons(Sequent(env, goal), SequentNil));
+      var overallGoal := And(Imp(env.ToExpr(), goal), True);
+      this.proofBuilder :=
+        ImpIntro.apply2(ProofExpr(overallGoal),
+          ProofAbs("goal", Ind, ProofVar("goal")));
+      new;
+      assert proofState.ToExpr() == And(Imp(env.ToExpr(), goal), True);
+      CheckProof();
+    }
+    // Call this method to fail internal errors early
+    method CheckProof()
+      modifies this
+      ensures Invariant()
+    {
+      var overallGoal := And(Imp(env.ToExpr(), goal), True);
+      var p := ExecuteProof(proofBuilder, ProofEnvNil);
+      if p.Failure? {
+        proofState := Error("[Internal error] " + p.msg);
+      } else if !p.value.OneProof? {
+        proofState := Error("[Internal error] Expected a proof, got a " + p.value.Summary());
+      } else if p.value.proof.GetExpr() != Imp(proofState.ToExpr(), overallGoal) {
+        proofState := Error("[Internal error] Expected a proof of the goal, got a proof of " + p.value.proof.GetExpr().ToString());
+      } else {
+        assert p.value.OneProof? && p.value.proof.GetExpr() ==
+          Imp(proofState.ToExpr(), overallGoal);
+      }
+    }
+    ghost predicate Invariant()
+      reads this
+    {
+      proofState.Sequents? ==>
+        && var p := ExecuteProof(proofBuilder, ProofEnvNil);
+        && p.Success? && p.value.OneProof? && p.value.proof.GetExpr() ==
+          Imp(proofState.ToExpr(), And(Imp(env.ToExpr(), goal), True))
+    }
+
+    method Finish() returns (result: Result<(Proof, ProofProgram)>)
+      ensures result.Success? ==> result.value.0.GetExpr() == Imp(env.ToExpr(), goal)
+    {
+      return Failure("TODO");
+    }
+
+    // Works for implications and foralls
+    method Intro(name: string := "h") returns (feedback: Result<string>)
+      requires Invariant()
+      modifies this
+      ensures Invariant()
+    {
+      if proofState.Error? {
+        return Failure(proofState.message);
+      }
+      var sequents := proofState.sequents;
+      if sequents.SequentNil? {
+        return Failure("Nothing to introduce, proof state is empty. Consider removing this");
+      }
+      var sequent := sequents.head;
+      var id := Identifier(name);
+      if sequent.goal.Forall? && sequent.goal.body.Abs? {
+        // We make sure we create a new identifier, automatic or provided
+        var freeVariables := sequent.env.FreeVars();
+        var freeVar := NewNotInFreeVars(sequent.goal.body.id, freeVariables);
+        proofState := Sequents(
+          sequents.(head :=
+            sequent.(goal :=
+              sequent.goal.body.body.Bind(sequent.goal.body.id, Var(freeVar))
+            )
+          )
+        );
+      } else if sequent.goal.Imp? {
+        // Here we simply put the left in the environment;
+        proofState := Sequents(
+          sequents.(head := 
+            Sequent(env := EnvCons(id, sequent.goal.left, sequent.env),
+                    goal := sequent.goal.right)
+          )
+        );
+      } else {
+        proofState := Error("Could not apply intro rule");
+      }
+      if proofState.Error? {
+        feedback := Failure(proofState.message);
+      } else {
+        feedback := Success(proofState.ToString());
+      }
+      CheckProof();
+    }
+
+    // TODO: Putting a default value for suggestedName like Identifier("") crashes Dafny
+    method Rename(previousName: Identifier, suggestedName: Identifier) returns (feedback: Result<string>)
+      modifies this
+    {
+      var oldName := previousName;
+      var newName := suggestedName;
+      if proofState.Error? {
+        return Failure(proofState.message);
+      }
+      var sequents := proofState.sequents;
+      if sequents.SequentNil? {
+        return Failure("Nothing to rename, proof state is empty. Consider removing this");
+      }
+      var sequent := sequents.head;
+      var env := sequent.env;
+      if env.EnvNil? {
+        return Failure("Nothing to rename, proof state has no environment. Consider removing this");
+      }
+      if newName == Identifier("") { // Last thing to rename
+        newName := oldName;
+        oldName := env.id;
+      }
+      if oldName !in env.FreeVars() {
+        return Failure("No variable in the environment is named " + oldName.ToString());
+      }
+      var newEnv := env.Rename(oldName, newName);
+      proofState := proofState.(
+        sequents := sequents.(
+          head := Sequent(newEnv, sequent.goal)
+        )
+      );
+      return Success(proofState.ToString());
+    }
+
+    /*method Cases(name: string := "") returns (feedback: Result<string>)
+    {
+      if name == "" { // Try to split the goal
+
+      } else {
+        // Try to split the environment
+      }
+    }*/
+
+    /*method Intro(name: string) modifies this
+      ensures HasProofFor(proofState) ==> HasProofFor(old(proofState))
+    {
+      ghost var oldProofState := proofState;
+      if proofState.Error? {
+        return;
+      }
+      if proofState.sequents.IsEmpty() {
+        proofState := proofState.ToError("Please remove Intro() because there is nothing left to prove. You're all set!");
+        return;
+      }
+      var ps := proofState.sequents.head;
+      var result := Need(ps.goal.Imp?, () => "Intro() requires an ==>, got " + ps.goal.Operator());
+      if !ps.goal.Imp? {
+        proofState := proofState.ToError("Intro() requires an ==>, got " + ps.goal.Operator());
+      } else {
+        var newSequents := SequentCons(Sequent(EnvCons(name, ps.goal.left, ps.env), ps.goal.right), proofState.sequents.tail);
+        proofState := Sequents(newSequents);
+        if HasProofFor(proofState) {
+          var propOld := oldProofState.ToExpr();
+          var propNew := proofState.ToExpr();
+          var proof: Proof :| proof.prop == propNew;
+          /*assert propNew ==
+            And(
+              Imp(
+                And(
+                  propOld.left.right.left, //propNew.left.left.left  // The hypothesis of the goal is here
+                  propOld.left.left        //propNew.left.left.right // The previous environment is here
+                ),
+                propOld.left.right.right   //propNew.left.left.right, // The conclusion of the goal is here
+              ),
+              propOld.right                //propNew.left.right // The other sequents are here.
+            );
+          assert propOld ==
+            And(
+              Imp(
+                propNew.left.left.right,  // The previous environment
+                Imp(propNew.left.left.left, propNew.left.right) // The previous goal is an implication
+              ),
+              propNew.right
+            );*/
+          var pRight := AndRight(proof).value; // The proof of other sequents
+          var pLeftNew := AndLeft(proof).value; // The proof of the new sequent
+          var pLeft: Proof := ImpIntro_(propNew.left.left.right,
+      (proofPrevEnv: Proof) requires proofPrevEnv.prop == propNew.left.left.right =>
+        ImpIntro_(propNew.left.left.left,
+      (proofHypothesisGoal: Proof) requires proofHypothesisGoal.prop == propNew.left.left.left =>
+        var proofOfAnd := AndIntro(proofHypothesisGoal, proofPrevEnv);
+        ImpElim_(pLeftNew, proofOfAnd)
+        ));
+          var finalProof := AndIntro(pLeft, pRight);
+          assert HasProofFor(oldProofState);
+        }
+      }
+    }
+    method Cases(name: string) modifies this {
+      if proofState.Error? {
+        return;
+      }
+      if proofState.sequents.IsEmpty() {
+        proofState := proofState.ToError("Cannot Cases() because nothing else to prove");
+        return;
+      }
+      var ps := proofState.sequents.head;
+      var i := ps.env.IndexOf(name);
+      if i < 0 {
+        proofState := proofState.ToError("Could not find " + name + " in proof state");
+        return;
+      }
+      var binding := ps.env.ElemAt(i);
+      if binding.1.And? {
+        var psEnv' := ps.env.ReplaceTailAt(i, (previous: Env) requires previous == ps.env.Drop(i) =>
+        EnvCons(name + ".left", binding.1.left,
+                EnvCons(name + ".right", binding.1.right, previous.tail)));
+        proofState := Sequents(SequentCons(Sequent(psEnv', ps.goal),proofState.sequents.tail));
+      } else if binding.1.Or? {
+        // We split the goal into
+        var ps1 := ps.env.ReplaceTailAt(i, (previous: Env) requires previous == ps.env.Drop(i) =>
+        EnvCons(name + ".left", binding.1.left, previous.tail));
+        var ps2 := ps.env.ReplaceTailAt(i, (previous: Env) requires previous == ps.env.Drop(i) =>
+        EnvCons(name + ".right", binding.1.right, previous.tail));
+        proofState := Sequents(
+          SequentCons(Sequent(ps1, ps.goal),
+                      SequentCons(Sequent(ps2, ps.goal),
+                                  proofState.sequents.tail
+                      )));
+      } else {
+        proofState := proofState.ToError("Cannot split " + name + " because it's not && or || but " + binding.1.Operator());
+        return;
+      }
+    }
+    method Contradiction() modifies this {
+      // O(n²) method to find contradictions if the goal is to prove false.
+      if proofState.Error? {
+        return;
+      }
+      if proofState.sequents.IsEmpty() {
+        proofState := proofState.ToError("Cannot Contradiction() because nothing else to prove");
+        return;
+      }
+      var ps := proofState.sequents.head;
+      if ps.goal != False {
+        proofState := proofState.ToError("Cannot Contradiction() because goal is not false");
+        return;
+      }
+      var psEnvLength := ps.env.Length();
+      if psEnvLength < 2 {
+        proofState := proofState.ToError("Did not find any contradictions - Environment too small");
+        return;
+      }
+      var i: nat := 0;
+      var j: nat := 0;
+      var envI := ps.env;
+      ghost var proofStateInit := proofState;
+      for i := 0 to psEnvLength - 1
+        invariant envI == ps.env.Drop(i)
+        invariant proofStateInit == proofState
+      {
+        var envJ := envI.tail;
+        assert envI.tail == envI.Drop(1) == ps.env.Drop(i).Drop(1);
+        ps.env.DropDrop(i, 1);
+        for j := i + 1 to psEnvLength
+          invariant envJ == ps.env.Drop(j)
+          invariant proofStateInit == proofState
+        {
+          if envI.prop == Expr.Not(envJ.prop)
+             || Expr.Not(envI.prop) == envJ.prop {
+            proofState := Sequents(proofState.sequents.tail);
+            return;
+          }
+          envJ := envJ.tail;
+          ps.env.DropDrop(j, 1);
+        }
+        envI := envI.tail;
+      }
+      proofState := proofState.ToError("Did not find any contradictions");
+      return;
+    }*/
+  }
+}
+
+
+
+
+
+
+
+
+
