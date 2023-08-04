@@ -19,7 +19,7 @@ public abstract class TypeUnaryExpr : UnaryExpr {
     ToType = toType;
   }
 
-  public override IEnumerable<Node> Children => base.Children.Concat(ToType.Nodes);
+  public override IEnumerable<INode> Children => base.Children.Concat(ToType.Nodes);
 
   public override IEnumerable<Type> ComponentTypes {
     get {

@@ -137,7 +137,7 @@ public static class DafnyCodeActionHelpers {
     // Look in methods for BlockStmt with the IToken as opening brace
     // Return the EndTok of them.
     IToken? tokenFound = null;
-    program.Visit((Node n) => {
+    program.Visit((INode n) => {
       if (tokenFound != null) {
         return false;
       }

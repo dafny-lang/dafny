@@ -9,11 +9,7 @@ namespace Microsoft.Dafny.Compilers {
   class RustCompiler : DafnyWrittenCompiler {
 
     public override ISequence<Rune> Compile(Sequence<DAST.Module> program) {
-      var assembly = System.Reflection.Assembly.Load("DafnyPipeline");
-      var stream = assembly.GetManifestResourceStream("DafnyRuntimeRust.rs");
-      var contents = new StreamReader(stream).ReadToEnd();
-
-      return COMP.Compile(program, Sequence<Rune>.UnicodeFromString(contents));
+      return COMP.Compile(program);
     }
 
     public override ISequence<Rune> EmitCallToMain(string fullName) {

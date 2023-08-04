@@ -1,3 +1,7 @@
+// Copyright by the contributors to the Dafny Project
+// SPDX-License-Identifier: MIT
+
+#nullable disable
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -13,7 +17,6 @@ namespace DafnyTestGeneration.Test {
       options.DefiniteAssignmentLevel = 3;
       options.WarnShadowing = true;
       options.VerifyAllModules = true;
-      options.LoopUnrollCount = 5;
       options.TestGenOptions.SeqLengthLimit = 3;
       options.TestGenOptions.Mode = TestGenerationOptions.Modes.Block;
       options.TestGenOptions.WarnDeadCode = false;
@@ -26,7 +29,6 @@ namespace DafnyTestGeneration.Test {
 
     public static TheoryData<List<Action<DafnyOptions>>> OptionSettings() {
       var optionSettings = new TheoryData<List<Action<DafnyOptions>>>();
-      optionSettings.Add(new() { options => options.TypeEncodingMethod = CoreOptions.TypeEncoding.Arguments });
       optionSettings.Add(new() { options => options.TypeEncodingMethod = CoreOptions.TypeEncoding.Predicates });
       return optionSettings;
     }

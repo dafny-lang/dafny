@@ -49,8 +49,8 @@ public class FrameExpression : TokenNode, IHasUsages {
   }
 
   public IToken NameToken => tok;
-  public override IEnumerable<Node> Children => new[] { E };
-  public override IEnumerable<Node> PreResolveChildren => Children;
+  public override IEnumerable<INode> Children => new[] { E };
+  public override IEnumerable<INode> PreResolveChildren => Children;
   public IEnumerable<IDeclarationOrUsage> GetResolvedDeclarations() {
     return new[] { Field }.Where(x => x != null);
   }

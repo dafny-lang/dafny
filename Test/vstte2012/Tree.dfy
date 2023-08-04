@@ -40,7 +40,7 @@ ghost function toList(d: int, t: Tree): seq<int>
 // property; converting the resulting tree back into a
 // sequence yields exactly that portion of the input
 // sequence that has been consumed.
-function build_rec(d: int, s: seq<int>): Result
+function {:vcs_split_on_every_assert} build_rec(d: int, s: seq<int>): Result
   ensures build_rec(d, s).Res? ==>
             |build_rec(d, s).sOut| < |s| &&
             build_rec(d, s).sOut == s[|s|-|build_rec(d, s).sOut|..]

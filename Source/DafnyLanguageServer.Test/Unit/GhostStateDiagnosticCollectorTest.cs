@@ -66,10 +66,12 @@ public class GhostStateDiagnosticCollectorTest {
     var compilation = new CompilationData(reporter, new List<Include>(), new List<Uri>(), Sets.Empty<Uri>(),
       Sets.Empty<Uri>());
     var program = new Dafny.Program("dummy", dummyModuleDecl, null, reporter, compilation);
+    var source = new CancellationTokenSource();
+    source.CancelAfter(TimeSpan.FromSeconds(50));
     var ghostDiagnostics = ghostStateDiagnosticCollector.GetGhostStateDiagnostics(
       new SignatureAndCompletionTable(null!, new CompilationUnit(rootUri, program),
         null!, null!, new IntervalTree<Position, ILocalizableSymbol>(), true)
-      , CancellationToken.None);
+      , source.Token);
     Assert.Empty(ghostDiagnostics);
   }
 }

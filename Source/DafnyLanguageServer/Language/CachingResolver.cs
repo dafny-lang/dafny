@@ -1,6 +1,8 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Security.Cryptography;
+using System.Threading;
+using Microsoft.Boogie;
 using Microsoft.Extensions.Logging;
 
 namespace Microsoft.Dafny.LanguageServer.Language;
@@ -25,6 +27,11 @@ public class CachingResolver : ProgramResolver {
     : base(program) {
     this.logger = logger;
     this.cache = cache;
+  }
+
+  public override void Resolve(CancellationToken cancellationToken) {
+    base.Resolve(cancellationToken);
+    cache.Prune();
   }
 
   protected override Dictionary<TopLevelDeclWithMembers, Dictionary<string, MemberDecl>> ResolveSystemModule(Program program) {

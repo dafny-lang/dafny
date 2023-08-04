@@ -30,7 +30,7 @@ public class ProgramParser {
     this.fileSystem = fileSystem;
   }
 
-  public Program ParseFiles(string programName, IReadOnlyList<DafnyFile> files,
+  public virtual Program ParseFiles(string programName, IReadOnlyList<DafnyFile> files,
     ErrorReporter errorReporter,
     CancellationToken cancellationToken) {
     var options = errorReporter.Options;
@@ -105,7 +105,6 @@ public class ProgramParser {
     }
 
     ShowWarningsForIncludeCycles(program);
-
 
     return program;
   }

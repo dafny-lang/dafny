@@ -8,7 +8,7 @@ using Microsoft.Dafny.Auditor;
 
 namespace Microsoft.Dafny;
 
-public class Function : MemberDecl, TypeParameter.ParentType, ICallable, ICanFormat, IHasDocstring {
+public class Function : MemberDecl, TypeParameter.ParentType, ICallable, ICanFormat, IHasDocstring, ISymbol {
   public override string WhatKind => "function";
 
   public string GetFunctionDeclarationKeywords(DafnyOptions options) {
@@ -67,8 +67,8 @@ public class Function : MemberDecl, TypeParameter.ParentType, ICallable, ICanFor
       yield return new Assumption(this, tok, AssumptionDescription.ExternWithPrecondition);
     }
 
-    foreach (var c in Descendants()) {
-      foreach (var a in c.Assumptions(this)) {
+    foreach (var c in this.Descendants()) {
+      foreach (var a in (c as Node)?.Assumptions(this) ?? Enumerable.Empty<Assumption>()) {
         yield return a;
       }
     }
@@ -127,16 +127,16 @@ public class Function : MemberDecl, TypeParameter.ParentType, ICallable, ICanFor
     AccumulateRight_Concat,
   }
 
-  public override IEnumerable<Node> Children => new[] { ByMethodDecl }.Where(x => x != null).
+  public override IEnumerable<INode> Children => new[] { ByMethodDecl }.Where(x => x != null).
     Concat<Node>(TypeArgs).
     Concat<Node>(Reads).
     Concat<Node>(Req).
     Concat(Ens.Select(e => e.E)).
     Concat(Decreases.Expressions).
-    Concat(Formals).Concat(ResultType != null ? new List<Node>() { ResultType } : new List<Node>()).
+    Concat(Formals).Concat(Result != null ? new List<Node>() { Result } : new List<Node>()).
     Concat(Body == null ? Enumerable.Empty<Node>() : new[] { Body });
 
-  public override IEnumerable<Node> PreResolveChildren =>
+  public override IEnumerable<INode> PreResolveChildren =>
     TypeArgs.
     Concat<Node>(Reads).
     Concat<Node>(Req).
@@ -460,7 +460,7 @@ experimentalPredicateAlwaysGhost - Compiled functions are written `function`. Gh
     resolver.DominatingStatementLabels.PopMarker();
   }
 
-  protected override string GetTriviaContainingDocstring() {
+  public string GetTriviaContainingDocstring() {
 
     var endTokenDefinition =
       OwnedTokens.LastOrDefault(token => token.val == ")" || token.pos == ResultType.EndToken.pos)
@@ -473,5 +473,12 @@ experimentalPredicateAlwaysGhost - Compiled functions are written `function`. Gh
       return StartToken.LeadingTrivia;
     }
     return null;
+  }
+
+  public DafnySymbolKind Kind => DafnySymbolKind.Function;
+  public string GetDescription(DafnyOptions options) {
+    var formals = string.Join(", ", Formals.Select(f => f.AsText()));
+    var resultType = ResultType.TypeName(options, null, false);
+    return $"{WhatKind} {AstExtensions.GetMemberQualification(this)}{Name}({formals}): {resultType}";
   }
 }

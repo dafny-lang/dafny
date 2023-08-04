@@ -9,7 +9,7 @@ namespace Microsoft.Dafny;
 
 public record PrefixNameModule(IReadOnlyList<IToken> Parts, LiteralModuleDecl Module);
 
-public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearingDeclaration, ICloneable<ModuleDefinition> {
+public class ModuleDefinition : RangeNode, IAttributeBearingDeclaration, ICloneable<ModuleDefinition>, IDeclarationOrUsage {
 
   public IToken BodyStartTok = Token.NoToken;
   public IToken TokenWithTrailingDocString = Token.NoToken;
@@ -338,7 +338,7 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
   }
 
   public IToken NameToken => tok;
-  public override IEnumerable<Node> Children => (Attributes != null ?
+  public override IEnumerable<INode> Children => (Attributes != null ?
       new List<Node> { Attributes } :
       Enumerable.Empty<Node>()).Concat<Node>(TopLevelDecls).
     Concat(RefinementQId == null ? Enumerable.Empty<Node>() : new Node[] { RefinementQId });
@@ -346,7 +346,7 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
   private IEnumerable<Node> preResolveTopLevelDecls;
   private IEnumerable<Node> preResolvePrefixNamedModules;
 
-  public override IEnumerable<Node> PreResolveChildren {
+  public override IEnumerable<INode> PreResolveChildren {
     get {
       var attributes = Attributes != null ? new List<Node> { Attributes } : Enumerable.Empty<Node>();
       return attributes.Concat(preResolveTopLevelDecls ?? TopLevelDecls).Concat(
@@ -851,5 +851,23 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
 
       InheritsFromObject((TraitDecl)decl);
     }
+
+  }
+
+  public IEnumerable<ISymbol> ChildSymbols => TopLevelDecls.SelectMany(decl => {
+    if (decl is DefaultClassDecl defaultClassDecl) {
+      return defaultClassDecl.Members.OfType<ISymbol>();
+    }
+
+    if (decl is ISymbol symbol) {
+      return new[] { symbol };
+    }
+
+    return Enumerable.Empty<ISymbol>();
+  });
+
+  public DafnySymbolKind Kind => DafnySymbolKind.Namespace;
+  public string GetHoverText(DafnyOptions options, LList<INode> ancestors) {
+    return $"module {Name}";
   }
 }

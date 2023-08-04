@@ -171,7 +171,7 @@ public static class CommandRegistry {
         object value;
         if (option.Arity.MaximumNumberOfValues <= 1) {
           // If multiple values aren't allowed, CLI options take precedence over project file options
-          value = result == null && hasProjectFileValue
+          value = (result == null || Equals(result.Token, null)) && hasProjectFileValue
             ? projectFileValue
             : GetValueForOption(context.ParseResult, option);
         } else {

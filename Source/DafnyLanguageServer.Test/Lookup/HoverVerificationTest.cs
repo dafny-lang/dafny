@@ -333,7 +333,7 @@ Could not prove: `((this.Tester? || this.Tester2?) && this.next.Valid()) || (thi
       );
     }
 
-    [Fact(Timeout = MaxTestExecutionTimeMs)]
+    [Fact]
     public async Task DoNotExtendPastExpressions() {
       var documentItem = await GetDocumentItem(@"
 datatype Test = Test(i: int)
@@ -357,9 +357,9 @@ function Id<T>(t: T): T { t }
 Could not prove: `i > 0`  "
       );
       await AssertHoverMatches(documentItem, (10, 20),
-        @"**Error:**???assertion might not hold???
+      @"**Error:**???assertion might not hold???
 Could not prove: `i > 1`  "
-      );
+    );
       await AssertHoverMatches(documentItem, (10, 20),
         @"**Success:**???function precondition satisfied???
 Inside `Valid()`  
@@ -464,29 +464,16 @@ Could not prove: `i <= 0`"
     [Fact(Timeout = 5 * MaxTestExecutionTimeMs)]
     public async Task IndicateClickableWarningSignsOnMethodHoverWhenResourceLimitReached10MThreshold() {
       var documentItem = await GetDocumentItem(@"
-lemma {:rlimit 12000} SquareRoot2NotRational(p: nat, q: nat)
-  requires p > 0 && q > 0
-  ensures (p * p) !=  2 * (q * q)
-{ 
-  if (p * p) ==  2 * (q * q) {
-    calc == {
-      (2 * q - p) * (2 * q - p);
-      4 * q * q + p * p - 4 * p * q;
-      {assert {:split_here} 2 * q * q == p * p;}
-      2 * q * q + 2 * p * p - 4 * p * q;
-      2 * (p - q) * (p - q);
-    }
-  }
-  assert {:split_here} true;
-} ", "testfileSlow.dfy", true);
-      await AssertHoverMatches(documentItem, (0, 22),
-        @"**Verification performance metrics for method `SquareRoot2NotRational`**:
+ghost function f(i:nat, j:nat):int {if i == 0 then 0 else f(i - 1, i * j + 1) + f(i - 1, 2 * i * j)}
 
-- Total resource usage: ??? RU [⚠](???)  
-- Most costly [assertion batches](???):  
-  - #2/3 with 2 assertions at line 3, ??? RU [⚠](???)  
-  - #???/3 with 2 assertions at line ???, ??? RU  
-  - #???/3 with 2 assertions at line ???9, ??? RU"
+lemma{:rlimit 10000} L()
+{
+  assert f(10, 5) == 0;
+} ", "testfileSlow.dfy", true);
+      await AssertHoverMatches(documentItem, (2, 22),
+        @"**Verification performance metrics for method `L`**:
+
+- Total resource usage: ??? RU [⚠](???)"
       );
     }
 

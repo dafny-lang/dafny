@@ -10,11 +10,11 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
       this.declarations = declarations;
     }
 
-    public bool TryGetTypeSymbol(Expression expression, [NotNullWhen(true)] out ISymbol? typeSymbol) {
+    public bool TryGetTypeSymbol(Expression expression, [NotNullWhen(true)] out ILegacySymbol? typeSymbol) {
       return TryGetTypeSymbol(expression.Type, out typeSymbol);
     }
 
-    public bool TryGetTypeSymbol(Type type, [NotNullWhen(true)] out ISymbol? typeSymbol) {
+    public bool TryGetTypeSymbol(Type type, [NotNullWhen(true)] out ILegacySymbol? typeSymbol) {
       typeSymbol = type switch {
         UserDefinedType userDefinedType => GetTypeSymbol(userDefinedType),
         _ => null
@@ -22,7 +22,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
       return typeSymbol != null;
     }
 
-    private ISymbol? GetTypeSymbol(UserDefinedType userDefinedType) {
+    private ILegacySymbol? GetTypeSymbol(UserDefinedType userDefinedType) {
       return userDefinedType.ResolvedClass switch {
         NonNullTypeDecl nonNullTypeDeclaration => GetSymbolByDeclaration(nonNullTypeDeclaration.Class),
         IndDatatypeDecl dataTypeDeclaration => GetSymbolByDeclaration(dataTypeDeclaration),
@@ -30,7 +30,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
       };
     }
 
-    private ISymbol? GetSymbolByDeclaration(AstElement node) {
+    private ILegacySymbol? GetSymbolByDeclaration(AstElement node) {
       if (declarations.TryGetValue(node, out var symbol)) {
         return symbol;
       }
