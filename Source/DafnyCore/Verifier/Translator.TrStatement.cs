@@ -352,7 +352,7 @@ namespace Microsoft.Dafny {
           // assume nothing outside the frame was changed
           var etranPreLoop = new ExpressionTranslator(this, predef, preModifyHeap);
           var updatedFrameEtran = new ExpressionTranslator(etran, etran.readsFrame, modifyFrameName);
-          builder.Add(TrAssumeCmd(s.Tok, FrameConditionUsingDefinedFrame(s.Tok, etranPreLoop, etran, updatedFrameEtran)));
+          builder.Add(TrAssumeCmd(s.Tok, FrameConditionUsingDefinedFrame(s.Tok, etranPreLoop, etran, updatedFrameEtran, updatedFrameEtran.ModifiesFrame(s.Tok))));
         } else {
           // do the body, but with preModifyHeapVar as the governing frame
           var updatedFrameEtran = new ExpressionTranslator(etran, etran.readsFrame, modifyFrameName);
@@ -1449,7 +1449,7 @@ namespace Microsoft.Dafny {
           }
         }
         // add a free invariant which says that the heap hasn't changed outside of the modifies clause.
-        invariants.Add(TrAssumeCmd(s.Tok, FrameConditionUsingDefinedFrame(s.Tok, etranPreLoop, etran, updatedFrameEtran)));
+        invariants.Add(TrAssumeCmd(s.Tok, FrameConditionUsingDefinedFrame(s.Tok, etranPreLoop, etran, updatedFrameEtran, updatedFrameEtran.ReadsFrame(s.Tok))));
         // for iterators, add "fresh(_new)" as an invariant
         if (codeContext is IteratorDecl iter) {
           var th = new ThisExpr(iter);

@@ -797,6 +797,7 @@ namespace Microsoft.Dafny {
       AddOverrideTerminationChk(m, m.OverriddenMethod, builder, etran, substMap, typeMap);
 
       //adding assert W <= Frame’
+      // TODO: Have to check the reads frame now too
       AddMethodOverrideSubsetChk(m, builder, etran, localVariables, substMap, typeMap);
 
       if (!(m is TwoStateLemma)) {
@@ -1352,7 +1353,7 @@ namespace Microsoft.Dafny {
 
       IToken tok = m.tok;
       // Declare a local variable $_Frame: <alpha>[ref, Field alpha]bool
-      Boogie.IdentifierExpr traitFrame = etran.TheFrame(m.OverriddenMethod.tok);  // this is a throw-away expression, used only to extract the type and name of the $_Frame variable
+      Boogie.IdentifierExpr traitFrame = etran.ModifiesFrame(m.OverriddenMethod.tok);  // this is a throw-away expression, used only to extract the type and name of the $_Frame variable
       traitFrame.Name = m.EnclosingClass.Name + "_" + traitFrame.Name;
       Contract.Assert(traitFrame.Type != null);  // follows from the postcondition of TheFrame
       Boogie.LocalVariable frame = new Boogie.LocalVariable(tok, new Boogie.TypedIdent(tok, null ?? traitFrame.Name, traitFrame.Type));

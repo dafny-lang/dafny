@@ -456,7 +456,7 @@ namespace Microsoft.Dafny {
             }
             if (wfOptions.DoReadsChecks) {
               Bpl.Expr fieldName = etran.GetArrayIndexFieldName(e.tok, e.Indices);
-              wfOptions.AssertSink(this, builder)(selectExpr.tok, Bpl.Expr.SelectTok(selectExpr.tok, etran.TheFrame(selectExpr.tok), array, fieldName),
+              wfOptions.AssertSink(this, builder)(selectExpr.tok, Bpl.Expr.SelectTok(selectExpr.tok, etran.ReadsFrame(selectExpr.tok), array, fieldName),
                 new PODesc.FrameSubset("read array element", false), wfOptions.AssertKv);
             }
 
@@ -845,7 +845,7 @@ namespace Microsoft.Dafny {
               if (wfOptions.DoReadsChecks) {
                 CheckFrameSubset(fe.E.tok,
                   new List<FrameExpression>() { fe },
-                  null, new Dictionary<IVariable, Expression>(), etran, wfOptions.AssertSink(this, builder),
+                  null, new Dictionary<IVariable, Expression>(), etran, etran.ReadsFrame(fe.E.tok), wfOptions.AssertSink(this, builder),
                   new PODesc.FrameSubset($"read state of 'unchanged' {description}", false), wfOptions.AssertKv);
               }
             }
@@ -1055,8 +1055,8 @@ namespace Microsoft.Dafny {
                   // Set up a new frame
                   var frameName = CurrentIdGenerator.FreshId("$_Frame#l");
                   reads = lam.Reads.ConvertAll(s.SubstFrameExpr);
-                  DefineFrame(e.tok, etran.ReadsFrame(f.tok), reads, newBuilder, locals, frameName, comprehensionEtran);
-                  comprehensionEtran = new ExpressionTranslator(comprehensionEtran, frameName);
+                  DefineFrame(e.tok, etran.ReadsFrame(e.tok), reads, newBuilder, locals, frameName, comprehensionEtran);
+                  comprehensionEtran = new ExpressionTranslator(comprehensionEtran, frameName, etran.modifiesFrame);
 
                   // Check frame WF and that it read covers itself
                   newOptions = new WFOptions(wfOptions.SelfCallsAllowance, true /* check reads clauses */, true /* delay reads checks */);

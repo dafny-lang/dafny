@@ -633,7 +633,7 @@ namespace Microsoft.Dafny {
       var tps = previousMethod.TypeArgs.ConvertAll(refinementCloner.CloneTypeParam);
       var ins = previousMethod.Ins.ConvertAll(p => refinementCloner.CloneFormal(p, false));
       var req = previousMethod.Req.ConvertAll(refinementCloner.CloneAttributedExpr);
-      var reads = refinementCloner.CloneSpecFrameExpr(previousMethod.Reads);
+      var reads = previousMethod.Reads.ConvertAll(refinementCloner.CloneFrameExpr);
       var mod = refinementCloner.CloneSpecFrameExpr(previousMethod.Mod);
 
       var ens = refinementCloner.WithRefinementTokenWrapping(
