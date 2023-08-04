@@ -21,6 +21,7 @@ public class Method : MemberDecl, TypeParameter.ParentType, IMethodCodeContext, 
   public readonly List<Formal> Ins;
   public readonly List<Formal> Outs;
   public readonly List<AttributedExpression> Req;
+  public readonly List<FrameExpression> Reads;
   public readonly Specification<FrameExpression> Mod;
   public readonly List<AttributedExpression> Ens;
   public readonly Specification<Expression> Decreases;
@@ -121,7 +122,9 @@ public class Method : MemberDecl, TypeParameter.ParentType, IMethodCodeContext, 
     bool hasStaticKeyword, bool isGhost,
     [Captured] List<TypeParameter> typeArgs,
     [Captured] List<Formal> ins, [Captured] List<Formal> outs,
-    [Captured] List<AttributedExpression> req, [Captured] Specification<FrameExpression> mod,
+    [Captured] List<AttributedExpression> req,
+    [Captured] List<FrameExpression> reads,
+    [Captured] Specification<FrameExpression> mod,
     [Captured] List<AttributedExpression> ens,
     [Captured] Specification<Expression> decreases,
     [Captured] BlockStmt body,
@@ -133,12 +136,14 @@ public class Method : MemberDecl, TypeParameter.ParentType, IMethodCodeContext, 
     Contract.Requires(cce.NonNullElements(ins));
     Contract.Requires(cce.NonNullElements(outs));
     Contract.Requires(cce.NonNullElements(req));
+    Contract.Requires(reads != null);
     Contract.Requires(mod != null);
     Contract.Requires(cce.NonNullElements(ens));
     Contract.Requires(decreases != null);
     this.TypeArgs = typeArgs;
     this.Ins = ins;
     this.Outs = outs;
+    this.Reads = reads;
     this.Req = req;
     this.Mod = mod;
     this.Ens = ens;

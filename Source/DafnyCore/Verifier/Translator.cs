@@ -9096,7 +9096,7 @@ namespace Microsoft.Dafny {
           var qe = new Bpl.ForallExpr(t, bvs, Bpl.Expr.Imp(ante, e));
           options.AssertSink(this, builder)(t, qe, d, qk);
         };
-        CheckFrameSubset(tok, new List<FrameExpression> { reads }, null, null,
+        CheckFrameSubset(tok, etrans.ReadsFrame(tok), new List<FrameExpression> { reads }, null, null,
           etran, maker,
           new PODesc.FrameSubset("invoke the function passed as an argument to the sequence constructor", false),
           options.AssertKv);

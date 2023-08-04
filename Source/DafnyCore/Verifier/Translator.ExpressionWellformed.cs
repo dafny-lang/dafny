@@ -355,7 +355,7 @@ namespace Microsoft.Dafny {
               }
             }
             if (wfOptions.DoReadsChecks && e.Member is Field && ((Field)e.Member).IsMutable) {
-              wfOptions.AssertSink(this, builder)(selectExpr.tok, Bpl.Expr.SelectTok(selectExpr.tok, etran.TheFrame(selectExpr.tok), etran.TrExpr(e.Obj), GetField(e)),
+              wfOptions.AssertSink(this, builder)(selectExpr.tok, Bpl.Expr.SelectTok(selectExpr.tok, etran.ReadsFrame(selectExpr.tok), etran.TrExpr(e.Obj), GetField(e)),
                 new PODesc.FrameSubset("read field", false), wfOptions.AssertKv);
             }
 
@@ -410,7 +410,7 @@ namespace Microsoft.Dafny {
                 var i = etran.TrExpr(e.E0);
                 i = ConvertExpression(selectExpr.tok, i, e.E0.Type, Type.Int);
                 Bpl.Expr fieldName = FunctionCall(selectExpr.tok, BuiltinFunction.IndexField, null, i);
-                wfOptions.AssertSink(this, builder)(selectExpr.tok, Bpl.Expr.SelectTok(selectExpr.tok, etran.TheFrame(selectExpr.tok), seq, fieldName),
+                wfOptions.AssertSink(this, builder)(selectExpr.tok, Bpl.Expr.SelectTok(selectExpr.tok, etran.ReadsFrame(selectExpr.tok), seq, fieldName),
                   new PODesc.FrameSubset("read array element", false), wfOptions.AssertKv);
               } else {
                 Bpl.Expr lowerBound = e.E0 == null ? Bpl.Expr.Literal(0) : etran.TrExpr(e.E0);
@@ -421,7 +421,7 @@ namespace Microsoft.Dafny {
                 Bpl.IdentifierExpr i = new Bpl.IdentifierExpr(e.tok, iVar);
                 var range = BplAnd(Bpl.Expr.Le(lowerBound, i), Bpl.Expr.Lt(i, upperBound));
                 var fieldName = FunctionCall(e.tok, BuiltinFunction.IndexField, null, i);
-                var allowedToRead = Bpl.Expr.SelectTok(e.tok, etran.TheFrame(e.tok), seq, fieldName);
+                var allowedToRead = Bpl.Expr.SelectTok(e.tok, etran.ReadsFrame(e.tok), seq, fieldName);
                 var trigger = BplTrigger(allowedToRead); // Note, the assertion we're about to produce only seems useful in the check-only mode (that is, with subsumption 0), but if it were to be assumed, we'll use this entire RHS as the trigger
                 var qq = new Bpl.ForallExpr(e.tok, new List<Variable> { iVar }, trigger, BplImp(range, allowedToRead));
                 wfOptions.AssertSink(this, builder)(selectExpr.tok, qq,
@@ -721,7 +721,7 @@ namespace Microsoft.Dafny {
                 var s = new Substituter(null, new Dictionary<IVariable, Expression>(), e.GetTypeArgumentSubstitutions());
                 CheckFrameSubset(callExpr.tok,
                   e.Function.Reads.ConvertAll(s.SubstFrameExpr),
-                  e.Receiver, substMap, etran, wfOptions.AssertSink(this, builder), new PODesc.FrameSubset("invoke function", false), wfOptions.AssertKv);
+                  e.Receiver, substMap, etran, etran.ReadsFrame(callExpr.tok), wfOptions.AssertSink(this, builder), new PODesc.FrameSubset("invoke function", false), wfOptions.AssertKv);
               }
 
               Bpl.Expr allowance = null;
