@@ -248,17 +248,41 @@ namespace Microsoft.Dafny {
       return null;
     }
 
-    public static int Height(TopLevelDecl d) {
-      if (d is TopLevelDeclWithMembers md && md.ParentTraitHeads.Count != 0) {
-        return md.ParentTraitHeads.Max(Height) + 1;
-      } else if (d is TraitDecl { IsObjectTrait: true }) {
+    /// <summary>
+    /// Return the trait height of "decl". The height is the smallest natural number that satisfies:
+    ///   - The built-in trait "object" is strictly lower than anything else
+    ///   - A declaration is strictly taller than any of its (explicit or implicit) parents
+    ///
+    /// The purpose of the "height" is to sort parent traits during type inference. For this purpose,
+    /// it seems less surprising to have (the possibly implicit) "object" have a lower height than
+    /// anything else. Here's an example:
+    ///     trait Trait { } // note, this trait is not a reference type
+    ///     class A extends Trait { }
+    ///     class B extends Trait { }
+    ///     method M(a: A, b: B) {
+    ///       var z;
+    ///       z := a;
+    ///       z := b;
+    ///     }
+    /// What type do you expect z to have? Looking at the program text suggests z's type to be Trait,
+    /// since Trait is a common parent of both A and B. But "object" is also a common parent of A and
+    /// B, since A and B are classes. It seems more surprising to report "z has no best type" than
+    /// to make "object" a "last resort" during type inference.
+    /// </summary>
+    public static int Height(TopLevelDecl decl) {
+      if (decl is TraitDecl { IsObjectTrait: true }) {
         // object is at height 0
         return 0;
-      } else if (DPreType.IsReferenceTypeDecl(d)) {
-        // any other reference type implicitly has "object" as a parent, so the height is 1
-        return 1;
+      } if (decl is TopLevelDeclWithMembers { ParentTraitHeads: { Count: > 0 } } topLevelDeclWithMembers) {
+        // Note, if "decl" is a reference type, then its parents include "object", whether or not "object" is explicitly
+        // included in "ParentTraitHeads". Since the "Max" in the following line will return a number 0 or
+        // higher, the "Max" would be the same whether or not "object" is in the "ParentTraitHeads" list.
+        return topLevelDeclWithMembers.ParentTraitHeads.Max(Height) + 1;
       } else {
-        return 0;
+        // Other other declarations have height 1.
+        // Note, an ostensibly parent-less reference type still has the implicit "object" as a parent trait, but
+        // that still makes its height 1.
+        return 1;
       }
     }
 
