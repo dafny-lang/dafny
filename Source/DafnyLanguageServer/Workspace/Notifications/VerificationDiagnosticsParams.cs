@@ -368,14 +368,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     INode Program,
     Uri Uri)
     : VerificationTree("Document", Uri.ToString(), Uri.ToString(), Uri.ToString(), Uri, ComputeRange(Program, Uri), new Position(0, 0)) {
-
     private static Range ComputeRange(INode program, Uri uri) {
-      var fileNode = FindFileNode(program, uri);
-      if (fileNode == null) {
-        return new Range(0, 0, 0, 0);
-      }
+      var end = ((Program)program).Files.FirstOrDefault(f => f.RangeToken.Uri == uri)?.EndToken ?? Token.NoToken;
 
-      var end = fileNode!.RangeToken.EndToken;
       while (end.Next != null) {
         end = end.Next;
       }
@@ -386,13 +381,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
         endPosition.Character + endTriviaLines[^1].Length);
 
       return new Range(new Position(0, 0), endPosition);
-      INode? FindFileNode(INode node, Uri uri) {
-        if (node.Tok.Uri == uri) {
-          return node;
-        }
-
-        return node.Children.Select(child => FindFileNode(child, uri)).FirstOrDefault(x => x != null);
-      }
     }
   }
 
