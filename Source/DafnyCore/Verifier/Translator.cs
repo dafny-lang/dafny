@@ -5340,7 +5340,7 @@ namespace Microsoft.Dafny {
       }
       var options = new WFOptions(kv);
       if (lValueContext) {
-        options = new WFOptions(true, options);
+        options = options.WithLValueContext(true);
       }
       CheckWellformed(expr, options, locals, builder, etran);
       builder.Add(TrAssumeCmd(expr.tok, CanCallAssumption(expr, etran)));

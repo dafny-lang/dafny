@@ -54,37 +54,37 @@ namespace Microsoft.Dafny {
           Asserts = new List<Bpl.Cmd>();
         }
       }
+      
+      private WFOptions(Function selfCallsAllowance, bool doReadsChecks, bool doOnlyCoarseGrainedTerminationChecks,
+        List<Bpl.Variable> locals, List<Bpl.Cmd> asserts, bool lValueContext, Bpl.QKeyValue assertKv) 
+      {
+        SelfCallsAllowance = selfCallsAllowance;
+        DoReadsChecks = doReadsChecks;
+        DoOnlyCoarseGrainedTerminationChecks = doOnlyCoarseGrainedTerminationChecks;
+        Locals = locals;
+        Asserts = asserts;
+        LValueContext = lValueContext;
+        AssertKv = assertKv;
+      }
 
       public WFOptions(Bpl.QKeyValue kv) {
         AssertKv = kv;
       }
 
       /// <summary>
-      /// This constructor clones the given "options", but turns off reads checks.  (I wish C# allowed
-      /// me to name the constructor something to indicate this semantics in its name.  Sigh.)
+      /// Clones the given "options", but turns reads checks on or off.
       /// </summary>
-      public WFOptions(WFOptions options) {
-        Contract.Requires(options != null);
-        SelfCallsAllowance = options.SelfCallsAllowance;
-        DoReadsChecks = false;  // so just leave .Locals and .Asserts as null
-        DoOnlyCoarseGrainedTerminationChecks = options.DoOnlyCoarseGrainedTerminationChecks;
-        LValueContext = options.LValueContext;
-        AssertKv = options.AssertKv;
+      public WFOptions WithReadsChecks(bool doReadsChecks) {
+        return new WFOptions(SelfCallsAllowance, doReadsChecks, DoOnlyCoarseGrainedTerminationChecks,
+          Locals, Asserts, LValueContext, AssertKv);
       }
 
       /// <summary>
-      /// This constructor clones the given "options", but sets "LValueContext" to "lValueContext".
-      /// (I wish C# allowed me to name the constructor something to indicate this semantics in its name.  Sigh.)
+      /// Clones the given "options", but sets "LValueContext" to "lValueContext".
       /// </summary>
-      public WFOptions(bool lValueContext, WFOptions options) {
-        Contract.Requires(options != null);
-        SelfCallsAllowance = options.SelfCallsAllowance;
-        DoReadsChecks = options.DoReadsChecks;
-        DoOnlyCoarseGrainedTerminationChecks = options.DoOnlyCoarseGrainedTerminationChecks;
-        Locals = options.Locals;
-        Asserts = options.Asserts;
-        LValueContext = lValueContext;
-        AssertKv = options.AssertKv;
+      public WFOptions WithLValueContext(bool lValueContext) {
+        return new WFOptions(SelfCallsAllowance, false, DoOnlyCoarseGrainedTerminationChecks,
+          Locals, Asserts, lValueContext, AssertKv);
       }
 
       public Action<IToken, Bpl.Expr, PODesc.ProofObligationDescription, Bpl.QKeyValue> AssertSink(Translator tran, BoogieStmtListBuilder builder) {
@@ -258,7 +258,7 @@ namespace Microsoft.Dafny {
       var origOptions = wfOptions;
       if (wfOptions.LValueContext) {
         // Turn off LValueContext for any recursive call
-        wfOptions = new WFOptions(false, wfOptions);
+        wfOptions = wfOptions.WithLValueContext(false);
       }
 
       switch (expr) {
@@ -817,7 +817,7 @@ namespace Microsoft.Dafny {
             // Anything read inside the 'old' expressions depends only on the old heap, which isn't included in the
             // frame axiom.  In other words, 'old' expressions have no dependencies on the current heap.  Therefore,
             // we turn off any reads checks for "e.E".
-            CheckWellformed(e.E, new WFOptions(wfOptions), locals, builder, etran.OldAt(e.AtLabel));
+            CheckWellformed(e.E, wfOptions.WithReadsChecks(false), locals, builder, etran.OldAt(e.AtLabel));
             break;
           }
         case UnchangedExpr unchangedExpr: {
