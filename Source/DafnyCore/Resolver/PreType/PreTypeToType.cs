@@ -306,10 +306,6 @@ class PreTypeToTypeVisitor : ASTVisitor<IASTVisitorContext> {
       expr.Type = PreType2Type(expr.PreType);
     }
     base.PostVisitOneExpression(expr, context);
-
-    if (expr is (not DefaultValueExpression) and ConcreteSyntaxExpression { ResolvedExpression: { } resolvedExpression }) {
-      VisitExpression(resolvedExpression, context);
-    }
   }
 
   private void VisitPattern<VT>(CasePattern<VT> casePattern, IASTVisitorContext context) where VT : class, IVariable {
@@ -403,12 +399,6 @@ class PreTypeToTypeVisitor : ASTVisitor<IASTVisitorContext> {
     }
 
     base.PostVisitOneStatement(stmt, context);
-
-    if (stmt is UpdateStmt updateStmt) {
-      foreach (var ss in updateStmt.ResolvedStatements) {
-        VisitStatement(ss, context);
-      }
-    }
   }
 
   protected override void VisitExtendedPattern(ExtendedPattern pattern, IASTVisitorContext context) {

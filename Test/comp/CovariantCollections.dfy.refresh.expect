@@ -2,9 +2,8 @@ CovariantCollections.dfy(237,37): Error: PRE-TYPE: incorrect argument type for l
 CovariantCollections.dfy(238,48): Error: PRE-TYPE: type of the receiver is not fully determined at this program point
 CovariantCollections.dfy(238,59): Error: PRE-TYPE: type of the receiver is not fully determined at this program point
 CovariantCollections.dfy(239,6): Error: PRE-TYPE: type of the receiver is not fully determined at this program point
-CovariantCollections.dfy(239,6): Error: PRE-TYPE: type of the receiver is not fully determined at this program point
 CovariantCollections.dfy(239,11): Error: PRE-TYPE: expected method call, found expression
-CovariantCollections.dfy(242,16): Error: PRE-TYPE: type of right argument to - (set<?512>) must agree with the result type (set<?538>)
+CovariantCollections.dfy(242,16): Error: PRE-TYPE: type of right argument to - (set<?512>) must agree with the result type (set<?536>)
 CovariantCollections.dfy(238,54): Error: PRE-TYPE: arguments to <= must be of a numeric type, bitvector type, ORDINAL, char, a sequence type, or a set-like type (instead got ?523)
 CovariantCollections.dfy(272,10): Error: PRE-TYPE: incorrect argument type at index 1 for method in-parameter 'S' (expected set<Number?>, found set<Number?>)
 CovariantCollections.dfy(329,13): Error: PRE-TYPE: covariance would require Integer? :> Number?
@@ -18,14 +17,13 @@ CovariantCollections.dfy(331,22): Error: PRE-TYPE: covariance would require Inte
 CovariantCollections.dfy(331,25): Error: PRE-TYPE: covariance would require Integer? :> Number?
 CovariantCollections.dfy(331,25): Error: PRE-TYPE: covariance would require Integer? :> Number?
 CovariantCollections.dfy(339,16): Error: PRE-TYPE: covariance would require Integer? :> Number?
-CovariantCollections.dfy(339,16): Error: PRE-TYPE: covariance would require Integer? :> Number?
+CovariantCollections.dfy(339,4): Error: PRE-TYPE: covariance would require Integer? :> Number?
 CovariantCollections.dfy(342,21): Error: PRE-TYPE: covariance would require Integer? :> Number?
 CovariantCollections.dfy(342,21): Error: PRE-TYPE: covariance would require Integer? :> Number?
 CovariantCollections.dfy(342,21): Error: PRE-TYPE: covariance would require Integer? :> Number?
 CovariantCollections.dfy(343,11): Error: PRE-TYPE: covariance would require Integer? :> Number?
 CovariantCollections.dfy(344,34): Error: PRE-TYPE: covariance would require Integer? :> Number?
 CovariantCollections.dfy(344,5): Error: PRE-TYPE: covariance would require Integer? :> Number?
-CovariantCollections.dfy(348,19): Error: PRE-TYPE: covariance would require Integer? :> Number?
 CovariantCollections.dfy(348,19): Error: PRE-TYPE: covariance would require Integer? :> Number?
 CovariantCollections.dfy(350,19): Error: PRE-TYPE: covariance would require Integer? :> Number?
 CovariantCollections.dfy(352,24): Error: PRE-TYPE: covariance would require Integer? :> Number?
@@ -35,4 +33,4 @@ CovariantCollections.dfy(417,11): Error: PRE-TYPE: covariance would require Inte
 CovariantCollections.dfy(419,7): Error: PRE-TYPE: covariance would require Integer? :> Number?
 CovariantCollections.dfy(437,29): Error: PRE-TYPE: covariance would require Integer? :> Number?
 CovariantCollections.dfy(442,37): Error: PRE-TYPE: covariance would require Integer? :> Number?
-37 resolution/type errors detected in CovariantCollections.dfy
+35 resolution/type errors detected in CovariantCollections.dfy
