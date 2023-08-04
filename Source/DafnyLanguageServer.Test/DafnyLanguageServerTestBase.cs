@@ -54,8 +54,13 @@ lemma {:neverVerify} HasNeverVerifyAttribute(p: nat, q: nat)
 
     public IProjectDatabase Projects => Server.GetRequiredService<IProjectDatabase>();
 
-    public DafnyLanguageServerTestBase(ITestOutputHelper output) : base(new JsonRpcTestOptions(LoggerFactory.Create(
-      builder => builder.AddConsole().SetMinimumLevel(LogLevel.Warning)))) {
+    protected DafnyLanguageServerTestBase(ITestOutputHelper output) : base(new JsonRpcTestOptions(LoggerFactory.Create(
+      builder => {
+        builder.AddFilter("OmniSharp.Extensions.JsonRpc", LogLevel.None);
+        builder.AddFilter("OmniSharp", LogLevel.Warning);
+        builder.AddFilter("Microsoft.Dafny", LogLevel.Information);
+        builder.AddConsole();
+      }))) {
       this.output = new WriterFromOutputHelper(output);
     }
 
@@ -92,7 +97,6 @@ lemma {:neverVerify} HasNeverVerifyAttribute(p: nat, q: nat)
       ServerCommand.ConfigureDafnyOptionsForServer(dafnyOptions);
       ApplyDefaultOptionValues(dafnyOptions);
       return options => {
-        options.ConfigureLogging(SetupTestLogging);
         options.WithDafnyLanguageServer(() => { });
         options.Services.AddSingleton(dafnyOptions);
         options.Services.AddSingleton<IProgramVerifier>(serviceProvider => new SlowVerifier(
@@ -118,14 +122,6 @@ lemma {:neverVerify} HasNeverVerifyAttribute(p: nat, q: nat)
 
         dafnyOptions.ApplyBinding(option);
       }
-    }
-
-    private static void SetupTestLogging(ILoggingBuilder builder) {
-      builder
-        .AddFilter("OmniSharp", LogLevel.Warning)
-        .AddFilter("Microsoft.Dafny", LogLevel.Information)
-        .SetMinimumLevel(LogLevel.Debug)
-        .AddConsole();
     }
 
     protected static TextDocumentItem CreateTestDocument(string source, string filePath = null, int version = 1) {

@@ -44,7 +44,7 @@ public class IdeStateObserver : IObserver<IdeState> {
 
   public void OnError(Exception exception) {
     if (exception is OperationCanceledException) {
-      logger.LogInformation("document processing cancelled.");
+      logger.LogDebug("document processing cancelled.");
       return;
     }
 
