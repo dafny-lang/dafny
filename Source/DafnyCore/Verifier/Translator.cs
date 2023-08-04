@@ -5338,7 +5338,7 @@ namespace Microsoft.Dafny {
         args.Add(Bpl.Expr.Literal(0));
         kv = new Bpl.QKeyValue(expr.tok, "subsumption", args, null);
       }
-      var options = new WFOptions(kv);
+      var options = new WFOptions(kv).WithReadsChecks(true);
       if (lValueContext) {
         options = options.WithLValueContext(true);
       }

@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:0 "%s" > "%t"
+// RUN: %exits-with 4 %dafny /compile:0 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 class Box {
@@ -38,7 +38,7 @@ method GetBoxIncorrectReads(b: Box) returns (i: int)
 
 method GetBoxDefaultReads(b: Box) returns (i: int)
 {
-  i := b.x;
+  i := b.x; // Bug: getting an error here too, likely because we're not correctly defaulting to reads *
 }
 
 method ReadingAndWritingFreshStateAllowed()
