@@ -144,7 +144,6 @@ namespace DafnyTestGeneration {
 
     private class Path {
 
-      internal string name;
       public readonly Implementation Impl;
       private readonly List<Variable> path; // flags for the blocks along the path
       private readonly List<Block> returnBlocks; // block(s) where the path ends
