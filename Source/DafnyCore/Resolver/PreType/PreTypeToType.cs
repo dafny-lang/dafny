@@ -435,13 +435,11 @@ class PreTypeToTypeVisitor : ASTVisitor<IASTVisitorContext> {
 
     var towerA = Type.GetTowerOfSubsetTypes(a);
     var towerB = Type.GetTowerOfSubsetTypes(b);
-    // We expect the base types of these towers to be the same, since the module has successfully gone through pre-resolution and the
+    // We almost expect the base types of these towers to be the same, since the module has successfully gone through pre-resolution and the
     // pre-resolution underspecification checks. However, there are considerations.
     //   - One is that the two given types may contain unused type parameters in type synonyms or subset types, and pre-resolution does not
-    //     fill those in or detect their absence. But the base of the towers will still be the same, because the .Equals method expand through
-    //     those types.
-    //   - The other is traits. TODO
-    Contract.Assert(towerA[0].Equals(towerB[0])); // TODO: this is true until we start considering traits as well (see comment above)
+    //     fill those in or detect their absence.
+    //   - The other is traits.
     for (var n = System.Math.Min(towerA.Count, towerB.Count); 1 <= --n;) {
       a = towerA[n];
       b = towerB[n];
@@ -497,53 +495,25 @@ class PreTypeToTypeVisitor : ASTVisitor<IASTVisitorContext> {
       Contract.Assert(aa.ResolvedClass == bb.ResolvedClass);
       var typeArgs = Joins(aa.Variances(), a.TypeArgs, b.TypeArgs);
       return new ArrowType(aa.tok, (ArrowTypeDecl)aa.ResolvedClass, typeArgs);
-
-    } else if (b.IsObjectQ) {
-      var udtB = (UserDefinedType)b;
-      return !a.IsRefType ? null : abNonNullTypes ? UserDefinedType.CreateNonNullType(udtB) : udtB;
-    } else if (a.IsObjectQ) {
-      var udtA = (UserDefinedType)a;
-      return !b.IsRefType ? null : abNonNullTypes ? UserDefinedType.CreateNonNullType(udtA) : udtA;
-
-    } else if (a.Equals(b, true)) {
-      // this is an optimization for a special case, which applies for example when there are no arguments or when the types happen to be the same
-      return a;
-
-    } else {
-      var aa = ((UserDefinedType)a).ResolvedClass;
-      var bb = ((UserDefinedType)b).ResolvedClass;
-
-      if (aa == bb) {
-        Contract.Assert(a.TypeArgs.Count == b.TypeArgs.Count);
-        var typeArgs = Joins(TypeParameter.Variances(aa.TypeArgs), a.TypeArgs, b.TypeArgs);
-        var udt = (UserDefinedType)a;
-        var result = new UserDefinedType(udt.tok, udt.Name, aa, typeArgs);
-        return abNonNullTypes ? UserDefinedType.CreateNonNullType(result) : result;
-      } else {
-        Contract.Assert(false); // TODO: this assertion holds until traits are considered
-
-        var A = (TopLevelDeclWithMembers)aa;
-        var B = (TopLevelDeclWithMembers)bb;
-        if (A.HeadDerivesFrom(B)) {
-          var udtB = (UserDefinedType)b;
-          return abNonNullTypes ? UserDefinedType.CreateNonNullType(udtB) : udtB;
-        } else if (B.HeadDerivesFrom(A)) {
-          var udtA = (UserDefinedType)a;
-          return abNonNullTypes ? UserDefinedType.CreateNonNullType(udtA) : udtA;
-        }
-        // A and B are classes or traits. They always have object as a common supertype, but they may also both be extending some other
-        // trait.  If such a trait is unique, pick it. (Unfortunately, this makes the join operation not associative.)
-        var commonTraits = TopLevelDeclWithMembers.CommonTraits(A, B);
-        if (commonTraits.Count == 1) {
-          var typeMap = TypeParameter.SubstitutionMap(A.TypeArgs, a.TypeArgs);
-          var r = (UserDefinedType)commonTraits[0].Subst(typeMap);
-          return abNonNullTypes ? UserDefinedType.CreateNonNullType(r) : r;
-        } else {
-          // the unfortunate part is when commonTraits.Count > 1 here :(
-          return abNonNullTypes ? UserDefinedType.CreateNonNullType(systemModuleManager.ObjectQ()) : systemModuleManager.ObjectQ();
-        }
-      }
     }
+
+    // Convert a and b to their common supertype
+    var aDecl = (TopLevelDeclWithMembers)((UserDefinedType)a).ResolvedClass;
+    var bDecl = (TopLevelDeclWithMembers)((UserDefinedType)b).ResolvedClass;
+    var commonSupertypeDecl = PreTypeConstraints.JoinHeads(aDecl, bDecl, systemModuleManager);
+    Contract.Assert(commonSupertypeDecl != null);
+    var aTypeSubstMap = TypeParameter.SubstitutionMap(aDecl.TypeArgs, a.TypeArgs);
+    aDecl.AddParentTypeParameterSubstitutions(aTypeSubstMap);
+    var bTypeSubstMap = TypeParameter.SubstitutionMap(bDecl.TypeArgs, b.TypeArgs);
+    bDecl.AddParentTypeParameterSubstitutions(bTypeSubstMap);
+
+    a = UserDefinedType.FromTopLevelDecl(commonSupertypeDecl.tok, commonSupertypeDecl).Subst(aTypeSubstMap);
+    b = UserDefinedType.FromTopLevelDecl(commonSupertypeDecl.tok, commonSupertypeDecl).Subst(bTypeSubstMap);
+
+    var joinedTypeArgs = Joins(TypeParameter.Variances(commonSupertypeDecl.TypeArgs), a.TypeArgs, b.TypeArgs);
+    var udt = (UserDefinedType)a;
+    var result = new UserDefinedType(udt.tok, udt.Name, commonSupertypeDecl, joinedTypeArgs);
+    return abNonNullTypes ? UserDefinedType.CreateNonNullType(result) : result;
   }
 
   /// <summary>
@@ -779,4 +749,5 @@ class PreTypeToTypeVisitor : ASTVisitor<IASTVisitorContext> {
     }
     return extrema;
   }
+
 }
