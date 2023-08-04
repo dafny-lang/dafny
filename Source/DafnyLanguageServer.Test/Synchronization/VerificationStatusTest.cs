@@ -40,6 +40,17 @@ method Foo() returns (x: int) ensures x / 2 == 1; {
   }
 
   [Fact]
+  public async Task AssertlessMethodBecomesCorrect() {
+    var source = @"
+method Foo() {
+}";
+    var documentItem = CreateTestDocument(source);
+    await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+    var fooSymbol = (await RequestDocumentSymbol(documentItem)).Single();
+    await WaitForStatus(fooSymbol.SelectionRange, PublishedVerificationStatus.Correct, CancellationToken);
+  }
+  
+  [Fact]
   public async Task ManuallyRunMethodWithTwoUnderlyingTasks() {
     var source = @"
 method Foo() returns (x: int) ensures x / 2 == 1; {
