@@ -1910,10 +1910,6 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    protected override string GenerateLhsDecl(string target, Type/*?*/ type, ConcreteSyntaxTree wr, IToken tok) {
-      return (type != null ? TypeName(type, wr, tok) : "var") + " " + target;
-    }
-
     // ----- Statements -------------------------------------------------------------
 
     protected override void EmitPrintStmt(ConcreteSyntaxTree wr, Expression arg) {
@@ -2937,8 +2933,13 @@ namespace Microsoft.Dafny.Compilers {
           TrParenExpr("~", expr, wr, inLetExprBody, wStmts);
           break;
         case ResolvedUnaryOp.Cardinality:
-          TrParenExpr("new BigInteger(", expr, wr, inLetExprBody, wStmts);
-          wr.Write(".Count)");
+          if (expr.Type.AsCollectionType is MultiSetType) {
+            TrParenExpr(expr, wr, inLetExprBody, wStmts);
+            wr.Write(".ElementCount");
+          } else {
+            TrParenExpr("new BigInteger(", expr, wr, inLetExprBody, wStmts);
+            wr.Write(".Count)");
+          }
           break;
         default:
           Contract.Assert(false); throw new cce.UnreachableException();  // unexpected unary expression

@@ -3,6 +3,8 @@ input.dfy(6,8): Warning: Shadowed local-variable name: x
 Dafny program verifier did not attempt verification
 
 Dafny program verifier did not attempt verification
+input.dfy(10,0): Error: a function cannot be declared 'ghost' (it is 'ghost' by default when using --function-syntax:3)
+1 parse errors detected in input.dfy
 Warning: only Dafny project files named dfyconfig.toml are recognised by the Dafny IDE.
 Warning: option 'does-not-exist' that was specified in the project file, is not a valid Dafny option.
 
