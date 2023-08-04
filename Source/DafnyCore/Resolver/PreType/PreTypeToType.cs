@@ -76,10 +76,16 @@ class PreTypeToTypeVisitor : ASTVisitor<IASTVisitorContext> {
     }
   }
 
-  public Type PreType2UpdatableType(PreType preType, Type lowerBound, string description, IToken tok) {
+  public UpdatableTypeProxy PreType2UpdatableType(PreType preType, Type lowerBound, string description, IToken tok) {
     var ty = PreType2TypeCore(preType, true);
     var proxy = new UpdatableTypeProxy(ty);
     AddConstraint(proxy, lowerBound, $"{description}", tok);
+    return proxy;
+  }
+
+  public UpdatableTypeProxy PreType2UpdatableType(PreType preType) {
+    var ty = PreType2TypeCore(preType, true);
+    var proxy = new UpdatableTypeProxy(ty);
     return proxy;
   }
 
@@ -279,6 +285,21 @@ class PreTypeToTypeVisitor : ASTVisitor<IASTVisitorContext> {
       expr.Type = new InferredTypeProxy();
     } else if (expr is IdentifierExpr identifierExpr) {
       expr.UnnormalizedType = PreType2UpdatableType(expr.PreType, identifierExpr.Var.UnnormalizedType, identifierExpr.Name, identifierExpr.tok);
+    } else if (expr is MemberSelectExpr memberSelectExpr) {
+      var typeMap = memberSelectExpr.TypeArgumentSubstitutionsWithParents();
+      Type memberType;
+      if (memberSelectExpr.Member is Field field) {
+        memberType = field.Type.Subst(typeMap);
+      } else {
+        var function = (Function)memberSelectExpr.Member;
+        memberType = ModuleResolver.SelectAppropriateArrowTypeForFunction(function, typeMap, systemModuleManager);
+      }
+      expr.UnnormalizedType = PreType2UpdatableType(expr.PreType, memberType, $".{memberSelectExpr.MemberName}", memberSelectExpr.tok);
+    } else if (expr is ITEExpr iteExpr) {
+      var proxy = PreType2UpdatableType(expr.PreType);
+      expr.UnnormalizedType = proxy;
+      AddConstraint(proxy, iteExpr.Thn.UnnormalizedType, "if-then", iteExpr.tok);
+      AddConstraint(proxy, iteExpr.Els.UnnormalizedType, "if-else", iteExpr.tok);
     } else if (expr is ConcreteSyntaxExpression { ResolvedExpression: { } resolvedExpression }) {
       expr.UnnormalizedType = resolvedExpression.UnnormalizedType;
     } else {
