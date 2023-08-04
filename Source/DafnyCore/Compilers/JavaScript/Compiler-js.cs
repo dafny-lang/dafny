@@ -900,11 +900,7 @@ namespace Microsoft.Dafny.Compilers {
       } else if (xType.IsObjectQ) {
         return "object";
       } else if (xType.IsArrayType) {
-        ArrayClassDecl at = xType.AsArrayType;
-        Contract.Assert(at != null);  // follows from type.IsArrayType
-        Type elType = UserDefinedType.ArrayElementType(xType);
-        TypeName_SplitArrayName(elType, wr, tok, out var typeNameSansBrackets, out var brackets);
-        return typeNameSansBrackets + TypeNameArrayBrackets(at.Dims) + brackets;
+        return "Array";
       } else if (xType is UserDefinedType udt) {
         var s = FullTypeName(udt, member);
         return TypeName_UDT(s, udt, wr, udt.tok);
