@@ -43,6 +43,6 @@ public class CachedLinearVerificationGutterStatusTester : LinearVerificationGutt
  .  S [S][ ][I][S][S][ ]:}", false, "ensureCachingDoesNotHideErrors.dfy");
   }
 
-  public CachedLinearVerificationGutterStatusTester(ITestOutputHelper output) : base(output, LogLevel.Information) {
+  public CachedLinearVerificationGutterStatusTester(ITestOutputHelper output) : base(output, LogLevel.Debug) {
   }
 }
