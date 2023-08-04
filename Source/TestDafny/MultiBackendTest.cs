@@ -99,19 +99,25 @@ public class MultiBackendTest {
     };
     foreach (var resolutionOption in resolutionOptions) {
       var (exitCode, outputString, error) = RunDafny(options.DafnyCliPath, dafnyArgs.Concat(resolutionOption.Item1));
-      // If there is a .verifier.expect file, then we a non-0 exitCode, provided the output matches the .verifier.expect file
+
+      // If there is a .verifier.expect file, then we expect the output to match the .verifier.expect file contents. Otherwise, we
+      // expect the output to be empty.
+      var expectedOutput = "";
       var expectFileForVerifier = $"{options.TestFile}{resolutionOption.Item2}.expect";
       if (File.Exists(expectFileForVerifier)) {
-        var expectedOutput = File.ReadAllText(expectFileForVerifier);
-        // Chop off the "Dafny program verifier finished with..." trailer
-        var trailer = new Regex("\r?\nDafny program verifier[^\r\n]*\r?\n").Match(outputString);
-        var actualOutput = outputString.Remove(trailer.Index, trailer.Length);
-        var diffMessage = AssertWithDiff.GetDiffMessage(expectedOutput, actualOutput);
-        if (diffMessage != null) {
-          output.WriteLine(diffMessage);
-          return 1;
-        }
-      } else if (exitCode != 0) {
+        expectedOutput = File.ReadAllText(expectFileForVerifier);
+      }
+      // Chop off the "Dafny program verifier finished with..." trailer
+      var trailer = new Regex("\r?\nDafny program verifier[^\r\n]*\r?\n").Match(outputString);
+      var actualOutput = outputString.Remove(trailer.Index, trailer.Length);
+      var diffMessage = AssertWithDiff.GetDiffMessage(expectedOutput, actualOutput);
+      if (diffMessage != null) {
+        output.WriteLine(diffMessage);
+        return 1;
+      }
+
+      // We expect verification to return exit code 0.
+      if (exitCode != 0) {
         output.WriteLine("Verification failed. Output:");
         output.WriteLine(outputString);
         output.WriteLine("Error:");
