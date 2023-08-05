@@ -22,6 +22,9 @@ public class ForEachCompilerOptions {
 
   [Value(1, MetaName = "Dafny CLI arguments", HelpText = "Any arguments following '--' will be passed to the dafny CLI unaltered.")]
   public IEnumerable<string> OtherArgs { get; set; } = Array.Empty<string>();
+
+  [Option("refresh-exit-code", HelpText = "If present, also run with --type-system-refresh and expect the given exit code.")]
+  public int? RefreshExitCode { get; set; } = null;
 }
 
 [Verb("features", HelpText = "Print the Markdown content documenting feature support for each compiler.")]
@@ -65,6 +68,12 @@ public class MultiBackendTest {
     return success ? dafnyOptions : null;
   }
 
+  record ResolutionSetting(
+    string[] AdditionalOptions,
+    string[] ExpectFileNamings,
+    int ExpectedExitCode
+  );
+
   private int ForEachCompiler(ForEachCompilerOptions options) {
     var parseResult = CommandRegistry.Create(TextWriter.Null, TextWriter.Null, TextReader.Null,
       new string[] { "verify", options.TestFile! }.Concat(options.OtherArgs).ToArray());
@@ -93,19 +102,26 @@ public class MultiBackendTest {
 
     output.WriteLine("Verifying...");
 
-    var resolutionOptions = new List<(string[], string)>() {
-      (new string[] { }, ".verifier"),
-      (new string[] { "--type-system-refresh" }, ".refresh")
+    var resolutionOptions = new List<ResolutionSetting>() {
+      new ResolutionSetting(new string[] { }, new string[] { ".verifier" }, 0)
     };
+    if (options.RefreshExitCode != null) {
+      resolutionOptions.Add(
+        new ResolutionSetting(new string[] { "--type-system-refresh" }, new string[] { ".refresh", ".verifier" }, (int)options.RefreshExitCode)
+      );
+    }
     foreach (var resolutionOption in resolutionOptions) {
-      var (exitCode, outputString, error) = RunDafny(options.DafnyCliPath, dafnyArgs.Concat(resolutionOption.Item1));
+      var (exitCode, outputString, error) = RunDafny(options.DafnyCliPath, dafnyArgs.Concat(resolutionOption.AdditionalOptions));
 
-      // If there is a .verifier.expect file, then we expect the output to match the .verifier.expect file contents. Otherwise, we
-      // expect the output to be empty.
+      // If there is a .X.expect file, where X is the strings supplied in ExpectFileNamings in order, then we expect the output to match the
+      // .X.expect file contents. Otherwise, we expect the output to be empty.
       var expectedOutput = "";
-      var expectFileForVerifier = $"{options.TestFile}{resolutionOption.Item2}.expect";
-      if (File.Exists(expectFileForVerifier)) {
-        expectedOutput = File.ReadAllText(expectFileForVerifier);
+      foreach (var expectFileNaming in resolutionOption.ExpectFileNamings) {
+        var expectFileForVerifier = $"{options.TestFile}{expectFileNaming}.expect";
+        if (File.Exists(expectFileForVerifier)) {
+          expectedOutput = File.ReadAllText(expectFileForVerifier);
+          break;
+        }
       }
       // Chop off the "Dafny program verifier finished with..." trailer
       var trailer = new Regex("\r?\nDafny program verifier[^\r\n]*\r?\n").Match(outputString);
@@ -117,12 +133,12 @@ public class MultiBackendTest {
       }
 
       // We expect verification to return exit code 0.
-      if (exitCode != 0) {
-        output.WriteLine("Verification failed. Output:");
+      if (exitCode != resolutionOption.ExpectedExitCode) {
+        output.WriteLine($"Verification failed with exit code {exitCode} (expected {resolutionOption.ExpectedExitCode}). Output:");
         output.WriteLine(outputString);
         output.WriteLine("Error:");
         output.WriteLine(error);
-        return exitCode;
+        return exitCode != 0 ? exitCode : 1;
       }
     }
 

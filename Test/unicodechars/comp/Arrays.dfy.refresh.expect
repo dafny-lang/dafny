@@ -1,4 +1,0 @@
-Arrays.dfy(495,37): Error: PRE-TYPE: array selection requires integer- or bitvector-based numeric indices (got bv9 for index 1)
-Arrays.dfy(499,29): Error: PRE-TYPE: array selection requires integer- or bitvector-based numeric indices (got bv9 for index 0)
-Arrays.dfy(457,7): Error: not resolving module '_module' because there were errors in resolving its nested module 'NativeArrays'
-3 resolution/type errors detected in Arrays.dfy

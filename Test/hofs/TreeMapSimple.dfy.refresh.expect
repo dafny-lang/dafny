@@ -1,3 +1,0 @@
-TreeMapSimple.dfy(47,24): Error: value does not satisfy the subset constraints of 'Tree<A> --> Tree<B>' (possible cause: it may have read effects)
-
-Dafny program verifier finished with 10 verified, 1 error

@@ -1,9 +1,0 @@
-DowncastClone.dfy(25,4): Error: PRE-TYPE: covariance would require Y? :> X?
-DowncastClone.dfy(33,4): Error: PRE-TYPE: covariance would require Y? :> X?
-DowncastClone.dfy(37,10): Error: PRE-TYPE: type of the receiver is not fully determined at this program point
-DowncastClone.dfy(38,4): Error: PRE-TYPE: type of the receiver is not fully determined at this program point
-DowncastClone.dfy(39,10): Error: PRE-TYPE: type of the receiver is not fully determined at this program point
-DowncastClone.dfy(47,4): Error: PRE-TYPE: contravariance would require Y? :> X?
-DowncastClone.dfy(56,4): Error: PRE-TYPE: contravariance would require Y? :> X?
-DowncastClone.dfy(64,4): Error: PRE-TYPE: covariance would require Y? :> X?
-8 resolution/type errors detected in DowncastClone.dfy

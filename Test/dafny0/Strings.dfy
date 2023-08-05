@@ -1,4 +1,4 @@
-// RUN: %testDafnyForEachCompiler "%s" -- --unicode-char=false
+// RUN: %testDafnyForEachCompiler "%s" --refresh-exit-code=0 -- --unicode-char=false
 
 method Char(a: char, s: string, i: int) returns (b: char)
 {

@@ -1,5 +1,0 @@
-UnionFind.dfy(56,13): Error: PRE-TYPE: arguments to <= must have a common supertype (got set<?57> and set<?58>)
-UnionFind.dfy[M2](56,13): Error: PRE-TYPE: arguments to <= must have a common supertype (got set<?185> and set<?186>)
-UnionFind.dfy[M2][M3](56,13): Error: PRE-TYPE: arguments to <= must have a common supertype (got set<?561> and set<?562>)
-UnionFind.dfy(41,16): Error: not resolving module '_module' because there were errors in resolving its nested module 'M1'
-4 resolution/type errors detected in UnionFind.dfy

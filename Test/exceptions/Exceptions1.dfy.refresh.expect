@@ -1,3 +1,0 @@
-Exceptions1.dfy(68,19): Error: PRE-TYPE: The type of the first expression to the right of ':-' could not be determined to be a failure type (got '?65')
-Exceptions1.dfy(75,14): Error: PRE-TYPE: The type of the first expression to the right of ':-' could not be determined to be a failure type (got '?74')
-2 resolution/type errors detected in Exceptions1.dfy

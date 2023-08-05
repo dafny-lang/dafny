@@ -1,2 +1,0 @@
-git-issue-2581.dfy(4,9): Error: PRE-TYPE: type parameter 'T' (inferred to be '?0') in the function call to 'IsEmpty' could not be determined
-1 resolution/type errors detected in git-issue-2581.dfy

@@ -1,6 +1,0 @@
-AsIs-Compile.dfy(26,5): Error: PRE-TYPE: RHS (of type object?) not assignable to LHS (of type A?<W>)
-AsIs-Compile.dfy(29,5): Error: PRE-TYPE: RHS (of type object?) not assignable to LHS (of type B?<int, W>)
-AsIs-Compile.dfy(32,5): Error: PRE-TYPE: RHS (of type object?) not assignable to LHS (of type C?<W>)
-AsIs-Compile.dfy(35,5): Error: PRE-TYPE: RHS (of type object?) not assignable to LHS (of type K?<W>)
-AsIs-Compile.dfy(38,5): Error: PRE-TYPE: RHS (of type object?) not assignable to LHS (of type L?<W>)
-5 resolution/type errors detected in AsIs-Compile.dfy

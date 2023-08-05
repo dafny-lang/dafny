@@ -1,2 +1,0 @@
-git-issue-1514b.dfy(17,10): Error: PRE-TYPE: The type of the first expression to the right of ':-' could not be determined to be a failure type (got 'D')
-1 resolution/type errors detected in git-issue-1514b.dfy
