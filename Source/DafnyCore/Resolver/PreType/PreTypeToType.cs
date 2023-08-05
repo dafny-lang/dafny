@@ -195,7 +195,7 @@ class PreTypeToTypeVisitor : ASTVisitor<IASTVisitorContext> {
       default:
         break;
     }
-    var arguments = pt.Arguments.ConvertAll(ptArgument => PreType2Type(ptArgument));
+    var arguments = pt.Arguments.ConvertAll(PreType2Type);
     if (pt.Decl is ArrowTypeDecl arrowTypeDecl) {
       return new ArrowType(pt.Decl.tok, arrowTypeDecl, arguments);
     } else if (pt.Decl is ValuetypeDecl valuetypeDecl) {
@@ -241,11 +241,8 @@ class PreTypeToTypeVisitor : ASTVisitor<IASTVisitorContext> {
       var preTypeConvertedExpanded = preTypeConverted.NormalizeExpand();
       Contract.Assert((type as UserDefinedType)?.ResolvedClass == (preTypeConvertedExpanded as UserDefinedType)?.ResolvedClass);
       Contract.Assert(type.TypeArgs.Count == preTypeConvertedExpanded.TypeArgs.Count);
-      if (preTypeConvertedExpanded.TypeArgs.Count != preTypeConverted.TypeArgs.Count) {
-        Contract.Assert(true);
-      }
       for (var i = 0; i < type.TypeArgs.Count; i++) {
-        UpdateIfOmitted(type.TypeArgs[i], preTypeConvertedExpanded.TypeArgs[i]);
+        UpdateIfOmitted(type.TypeArgs[i], preTypeConverted.TypeArgs[i]);
       }
     }
   }
@@ -396,6 +393,8 @@ class PreTypeToTypeVisitor : ASTVisitor<IASTVisitorContext> {
       PostVisitOneExpression(calcStmt.Result, context);
     } else if (stmt is ForLoopStmt forLoopStmt) {
       UpdateIfOmitted(forLoopStmt.LoopIndex.Type, forLoopStmt.LoopIndex.PreType);
+    } else if (stmt is ForallStmt forallStmt) {
+      UpdateTypeOfVariables(forallStmt.BoundVars);
     }
 
     base.PostVisitOneStatement(stmt, context);
