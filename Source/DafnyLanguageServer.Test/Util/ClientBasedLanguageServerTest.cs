@@ -104,16 +104,14 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
           return namedVerifiableStatus;
         }
       } catch (OperationCanceledException) {
-        await output.WriteLineAsync($"\nOld to new history was: {verificationStatusReceiver.History.Stringify()}");
+        WriteVerificationHistory();
       }
     }
   }
 
-  private void WriteVerificationHistory() {
+  protected void WriteVerificationHistory() {
     output.WriteLine($"\nOld to new history was:");
-    foreach (var history in verificationStatusReceiver.History) {
-      output.WriteLine(history.Stringify());
-    }
+    verificationStatusReceiver.History.Stringify(output);
   }
 
   public async Task<IList<FileVerificationStatus>> WaitUntilCompletedForUris(int uriCount, CancellationToken cancellationToken) {
@@ -131,7 +129,7 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
           foundStatus.NamedVerifiables.All(n => n.Status >= PublishedVerificationStatus.Error);
         result.Add(foundStatus);
       } catch (OperationCanceledException) {
-        await output.WriteLineAsync($"\nOld to new history was: {verificationStatusReceiver.History.Stringify()}");
+        WriteVerificationHistory();
         throw;
       }
     }
