@@ -2,36 +2,36 @@ Verifying...
 Executing on C#...
 AssertEqualWithDiff() Failure
 Diff (changing expected into actual):
--Different than any output
-+0
+-good bye
++hello
  
 
 Executing on JavaScript...
 AssertEqualWithDiff() Failure
 Diff (changing expected into actual):
--Different than any output
-+0
+-good bye
++hello
  
 
 Executing on Go...
 AssertEqualWithDiff() Failure
 Diff (changing expected into actual):
--Different than any output
-+0
+-good bye
++hello
  
 
 Executing on Java...
 AssertEqualWithDiff() Failure
 Diff (changing expected into actual):
--Different than any output
-+0
+-good bye
++hello
  
 
 Executing on Python...
 AssertEqualWithDiff() Failure
 Diff (changing expected into actual):
--Different than any output
-+0
+-good bye
++hello
  
 
 Executing on C++...
