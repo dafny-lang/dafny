@@ -274,19 +274,19 @@ public class CompilationManager {
     var id = GetImplementationId(implementationTask.Implementation);
     var status = StatusFromBoogieStatus(boogieStatus);
     var implementationRange = implementationTask.Implementation.tok.GetLspRange(true);
-    logger.LogDebug($"Received status {boogieStatus} for {implementationTask.Implementation.Name}, version {compilation.Version}");
+    var tokenString = implementationTask.Implementation.tok.TokenToString(options);
+    logger.LogDebug($"Received status {boogieStatus} for {tokenString}, version {compilation.Version}");
     if (boogieStatus is Running) {
       verificationProgressReporter.ReportVerifyImplementationRunning(compilation, implementationTask.Implementation);
     }
 
     if (boogieStatus is BatchCompleted batchCompleted) {
-      logger.LogDebug($"Received batch completed for {implementationTask.Implementation.tok}");
       verificationProgressReporter.ReportAssertionBatchResult(compilation,
         new AssertionBatchResult(implementationTask.Implementation, batchCompleted.VcResult));
     }
 
     if (boogieStatus is Completed completed) {
-      logger.LogDebug($"Received verification task completed for {implementationTask.Implementation.tok}, version {compilation.Counterexamples}");
+      logger.LogDebug($"Received verification task completed for {tokenString}, version {compilation.Version}");
       var verificationResult = completed.Result;
       foreach (var counterExample in verificationResult.Errors) {
         compilation.Counterexamples.Add(counterExample);
@@ -297,7 +297,7 @@ public class CompilationManager {
       // This loop will ensure that every vc result has been dealt with
       // before we report that the verification of the implementation is finished 
       foreach (var result in completed.Result.VCResults) {
-        logger.LogDebug($"Possibly duplicate reporting assertion batch {result.vcNum} as completed in {implementationTask.Implementation.tok}, version {compilation.Counterexamples}");
+        logger.LogDebug($"Possibly duplicate reporting assertion batch {result.vcNum} as completed in {tokenString}, version {compilation.Version}");
         verificationProgressReporter.ReportAssertionBatchResult(compilation,
           new AssertionBatchResult(implementationTask.Implementation, result));
       }
