@@ -107,7 +107,7 @@ public class CompilationAfterResolution : CompilationAfterParsing {
       SignatureAndCompletionTable = SignatureAndCompletionTable.Resolved ? SignatureAndCompletionTable : previousState.SignatureAndCompletionTable,
       GhostRanges = GhostDiagnostics,
       Counterexamples = new List<Counterexample>(Counterexamples),
-      VerificationTrees = VerificationTrees,
+      VerificationTrees = VerificationTrees.ToDictionary(kv => kv.Key, kv => kv.Value.GetCopyForNotification()),
       VerificationResults = Verifiables.GroupBy(l => l.NameToken.GetLocation()).ToDictionary(k => k.Key,
         k => MergeResults(k.Select(MergeVerifiable)))
     };

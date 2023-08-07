@@ -1,0 +1,3 @@
+Knot6.dfy(13,10): Error: To prevent the creation of non-terminating functions, storing functions with read effects into memory is disallowed
+Knot6.dfy(21,10): Error: To prevent the creation of non-terminating functions, storing functions with read effects into memory is disallowed
+2 resolution/type errors detected in Knot6.dfy

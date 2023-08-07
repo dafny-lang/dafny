@@ -49,7 +49,7 @@ method Foo() {
     var fooSymbol = (await RequestDocumentSymbol(documentItem)).Single();
     await WaitForStatus(fooSymbol.SelectionRange, PublishedVerificationStatus.Correct, CancellationToken);
   }
-  
+
   [Fact]
   public async Task ManuallyRunMethodWithTwoUnderlyingTasks() {
     var source = @"
