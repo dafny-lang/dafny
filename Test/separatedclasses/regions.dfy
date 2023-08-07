@@ -3,11 +3,11 @@
 
 module RegionTests {
   // A node that, when attached to another, cannot be modified except by that other node
-
   class Node {
     ghost var Repr: set<object>
     var value: int
     var next: Node?
+
     ghost predicate Invariant()
       reads this, Repr
     {
@@ -130,6 +130,8 @@ module RegionTests {
     method SetWrong(index: int, newValue: int) returns (previousValue: int)
       requires 0 <= index < elements.Length
       // requires elements.Region == this // If forgotten, error
+      modifies elements
+      ensures elements[index] == newValue
     {
       previousValue := elements[index]; // OK, it's only a read
       elements[index] := newValue;  // Error: Cannot prove that elements.Region == this || elements.Region == this.Region || (fresh(elements) && elements.Region == null)
@@ -137,6 +139,7 @@ module RegionTests {
     method Set(index: int, newValue: int) returns (previousValue: int)
       requires 0 <= index < elements.Length
       requires elements.Region == this
+      modifies elements
       ensures elements[index] == newValue
     {
       previousValue := elements[index]; // OK
