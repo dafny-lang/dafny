@@ -41,9 +41,8 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
 
   private static Regex errorTests = new Regex(@"\*\*Error:\*\*|\*\*Success:\*\*");
 
-  protected ClientBasedLanguageServerTest(ITestOutputHelper output, LogLevel dafnyLogLevel = LogLevel.Information) 
-    : base(output, dafnyLogLevel) 
-  {
+  protected ClientBasedLanguageServerTest(ITestOutputHelper output, LogLevel dafnyLogLevel = LogLevel.Information)
+    : base(output, dafnyLogLevel) {
   }
 
   protected async Task<TextDocumentItem> CreateAndOpenTestDocument(string source, string filePath = null,

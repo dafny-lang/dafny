@@ -22,10 +22,9 @@ public class MultipleFilesTest2 : ClientBasedLanguageServerTest {
     });
   }
 
-  protected MultipleFilesTest2(ITestOutputHelper output) : base(output, LogLevel.Trace)
-  {
+  protected MultipleFilesTest2(ITestOutputHelper output) : base(output, LogLevel.Trace) {
   }
-  
+
   [Fact]
   public async Task OnDiskProducerVerificationErrors() {
     var producerSource = @"
