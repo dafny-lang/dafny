@@ -70,6 +70,7 @@ public class SystemModuleManager {
   public readonly SubsetTypeDecl NatDecl;
   public UserDefinedType Nat() { return new UserDefinedType(Token.NoToken, "nat", NatDecl, new List<Type>()); }
   public readonly TraitDecl ObjectDecl;
+  public Field RegionField => ObjectDecl.Members.OfType<Field>().First(f => f.Name == "Region");
   public UserDefinedType ObjectQ() {
     Contract.Assume(ObjectDecl != null);
     return new UserDefinedType(Token.NoToken, "object?", null) {

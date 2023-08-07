@@ -848,6 +848,12 @@ public abstract class Expression : TokenNode {
     };
   }
 
+  public static Expression CreateNull(Program program, IToken token = null) {
+    return new LiteralExpr(token ?? Token.NoToken) {
+      Type = program.SystemModuleManager.ObjectQ()
+    };
+  }
+
   public static Expression VarSubstituter(List<NonglobalVariable> oldVars, List<BoundVar> newVars, Expression e, Dictionary<TypeParameter, Type> typeMap = null) {
     Contract.Requires(oldVars != null && newVars != null);
     Contract.Requires(oldVars.Count == newVars.Count);

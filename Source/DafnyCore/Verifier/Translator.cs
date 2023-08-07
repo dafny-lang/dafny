@@ -8766,6 +8766,19 @@ namespace Microsoft.Dafny {
 
           var useSurrogateLocal = inBodyInitContext && Expression.AsThis(fse.Obj) != null;
 
+          if(options.RegionChecks) {
+            // Need to prove that
+            // obj.Region == context.Region || obj.Region == context || obj.Region == null && fresh(obj)
+            var regionCheck = Expression.CreateAnd(
+              Expression.CreateEq(
+                Expression.CreateFieldSelect(Token.NoToken, fse.Obj, program.SystemModuleManager.RegionField),
+                  Expression.CreateNull(program), Type.Bool),
+                new FreshExpr(Token.NoToken, fse.Obj) {
+                  Type = Type.Bool
+                });// TODO: Add the two other cases when non static
+            builder.Add(Assert(tok, etran.TrExpr(regionCheck),
+              new PODesc.RegionMustMatchInInstanceContext(regionCheck, true, true)));
+          }
           var obj = SaveInTemp(etran.TrExpr(fse.Obj), rhsCanAffectPreviouslyKnownExpressions,
             "$obj" + i, predef.RefType, builder, locals);
           prevObj[i] = obj;
