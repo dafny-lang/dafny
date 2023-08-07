@@ -169,7 +169,7 @@ public class CompilationManager {
           initialViews.Add(implementationId, view);
         }
       } catch (ArgumentException) {
-        logger.LogCritical($"Two different implementation tasks have the same id, second name is {task.Implementation.Name}.");
+        logger.LogError($"Two different implementation tasks have the same id, second name is {task.Implementation.Name}.");
       }
     }
 
@@ -231,11 +231,13 @@ public class CompilationManager {
         try {
           HandleStatusUpdate(compilation, implementationTask, update);
         } catch (Exception e) {
-          logger.LogCritical(e, "Caught exception in statusUpdates OnNext.");
+          logger.LogError(e, "Caught exception in statusUpdates OnNext.");
         }
       },
       e => {
-        logger.LogError(e, "Caught error in statusUpdates observable.");
+        if (e is not OperationCanceledException) {
+          logger.LogError(e, $"Caught error in statusUpdates observable.");
+        }
         StatusUpdateHandlerFinally();
       },
       StatusUpdateHandlerFinally
@@ -272,7 +274,7 @@ public class CompilationManager {
     var id = GetImplementationId(implementationTask.Implementation);
     var status = StatusFromBoogieStatus(boogieStatus);
     var implementationRange = implementationTask.Implementation.tok.GetLspRange(true);
-    logger.LogDebug($"Received status {boogieStatus} for {implementationTask.Implementation.Name}, version {compilation.Counterexamples}");
+    logger.LogDebug($"Received status {boogieStatus} for {implementationTask.Implementation.Name}, version {compilation.Version}");
     if (boogieStatus is Running) {
       verificationProgressReporter.ReportVerifyImplementationRunning(compilation, implementationTask.Implementation);
     }
@@ -295,7 +297,7 @@ public class CompilationManager {
       // This loop will ensure that every vc result has been dealt with
       // before we report that the verification of the implementation is finished 
       foreach (var result in completed.Result.VCResults) {
-        logger.LogDebug($"Possibly duplicate reporting assertion batch {result.vcNum} as completed in {implementationTask.Implementation.tok}, version {compilation.Counterexamples}");
+        logger.LogWarning($"Possibly duplicate reporting assertion batch {result.vcNum} as completed in {implementationTask.Implementation.tok}, version {compilation.Counterexamples}");
         verificationProgressReporter.ReportAssertionBatchResult(compilation,
           new AssertionBatchResult(implementationTask.Implementation, result));
       }

@@ -321,6 +321,10 @@ public class BoogieRangeToken : TokenWrapper {
   public string PrintOriginal() {
     return new RangeToken(StartToken, EndToken).PrintOriginal();
   }
+
+  public override string ToString() {
+    return this.TokenToString(DafnyOptions.Default);
+  }
 }
 
 public class NestedToken : TokenWrapper {

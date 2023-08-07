@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 using Microsoft.Dafny.LanguageServer.Workspace;
+using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using Serilog.Core;
 using Xunit;
@@ -105,10 +106,18 @@ method Bar() {
 
     var diagnostics1 = await diagnosticsReceiver.AwaitNextNotificationAsync(CancellationToken);
     var diagnostics2 = await diagnosticsReceiver.AwaitNextNotificationAsync(CancellationToken);
-    Assert.Single(diagnostics1.Diagnostics);
-    Assert.Contains("assertion might not hold", diagnostics1.Diagnostics.First().Message);
-    Assert.Single(diagnostics2.Diagnostics);
-    Assert.Contains("assertion might not hold", diagnostics2.Diagnostics.First().Message);
+    try {
+      Assert.Single(diagnostics1.Diagnostics);
+      Assert.Contains("assertion might not hold", diagnostics1.Diagnostics.First().Message);
+      Assert.Single(diagnostics2.Diagnostics);
+      Assert.Contains("assertion might not hold", diagnostics2.Diagnostics.First().Message);
+    } catch (Exception) {
+      await output.WriteLineAsync($"diagnostics1: {diagnostics1.Stringify()}");
+      await output.WriteLineAsync($"diagnostics2: {diagnostics2.Stringify()}");
+      var diagnostics3 = await diagnosticsReceiver.AwaitNextNotificationAsync(CancellationToken);
+      await output.WriteLineAsync($"diagnostics3: {diagnostics3.Stringify()}");
+      throw;
+    }
   }
 
   [Fact]
@@ -330,6 +339,6 @@ method Bar() {
     Assert.Contains("Unable to open", consumer3Diagnostics[0].Message);
   }
 
-  public MultipleFilesTest(ITestOutputHelper output) : base(output) {
+  public MultipleFilesTest(ITestOutputHelper output) : base(output, LogLevel.Debug) {
   }
 }

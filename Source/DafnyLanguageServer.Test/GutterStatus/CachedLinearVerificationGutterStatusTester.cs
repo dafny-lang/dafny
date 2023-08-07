@@ -1,4 +1,5 @@
 ﻿using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -42,6 +43,6 @@ public class CachedLinearVerificationGutterStatusTester : LinearVerificationGutt
  .  S [S][ ][I][S][S][ ]:}", false, "ensureCachingDoesNotHideErrors.dfy");
   }
 
-  public CachedLinearVerificationGutterStatusTester(ITestOutputHelper output) : base(output) {
+  public CachedLinearVerificationGutterStatusTester(ITestOutputHelper output) : base(output, LogLevel.Debug) {
   }
 }
