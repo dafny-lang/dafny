@@ -29,7 +29,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     public static VerificationStatusGutter ComputeFrom(
         DocumentUri uri,
         int version,
-        VerificationTree[] verificationTrees,
+        ICollection<VerificationTree> verificationTrees,
         Container<Diagnostic> resolutionErrors,
         int linesCount,
         bool verificationStarted) {
@@ -39,13 +39,13 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
 
     public static LineVerificationStatus[] RenderPerLineDiagnostics(
       DocumentUri uri,
-      VerificationTree[] verificationTrees,
+      ICollection<VerificationTree> verificationTrees,
       int numberOfLines,
       bool verificationStarted,
       Container<Diagnostic> parseAndResolutionErrors) {
       var result = new LineVerificationStatus[numberOfLines];
 
-      if (verificationTrees.Length == 0 && !parseAndResolutionErrors.Any() && verificationStarted) {
+      if (verificationTrees.Count == 0 && !parseAndResolutionErrors.Any() && verificationStarted) {
         for (var line = 0; line < numberOfLines; line++) {
           result[line] = LineVerificationStatus.Verified;
         }
