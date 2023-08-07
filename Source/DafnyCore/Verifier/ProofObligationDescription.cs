@@ -1119,3 +1119,34 @@ public class BoilerplateTriple : ProofObligationDescriptionCustomMessages {
     this.DefaultFailureDescription = comment;
   }
 }
+
+public class RegionMustMatchInInstanceContext : ProofObligationDescription {
+  private readonly bool isAssignment; // false for method call with modifies clauses 
+  private readonly bool isstaticContext;
+
+  private string what => isAssignment ? "being assigned" : "of the method call";
+
+  private string expected =>
+    isstaticContext ? "the context (null)" : "the context, or the context's `.Region`, or null and the object fresh";
+  public override string SuccessDescription =>
+    $"the `.Region` of the object {what} is {expected}";
+
+  public override string FailureDescription =>
+    $"the `.Region` of the object {what} must be {expected}";
+
+  public override string ShortDescription =>
+    "region-" + 
+    (isAssignment ? "field-assignment" : "method-call") + (isstaticContext ? "-static" : "");
+
+  private readonly Expression regionTest;
+
+  public RegionMustMatchInInstanceContext(Expression regionTest, bool isAssignment, bool isstaticContext) {
+    this.regionTest = regionTest;
+    this.isAssignment = isAssignment;
+    this.isstaticContext = isstaticContext;
+  }
+
+  public override Expression GetAssertedExpr(DafnyOptions options) {
+    return regionTest;
+  }
+}
