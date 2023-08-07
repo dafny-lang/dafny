@@ -34,12 +34,15 @@ public class Function : MemberDecl, TypeParameter.ParentType, ICallable, ICanFor
   public override bool IsOpaque { get; }
 
   public bool IsMadeImplicitlyOpaque(DafnyOptions options) {
-    return (options.Get(CommonOptionBag.DefaultFunctionOpacity) == CommonOptionBag.DefaultFunctionOpacityOptions.Opaque ||
-            options.Get(CommonOptionBag.DefaultFunctionOpacity) == CommonOptionBag.DefaultFunctionOpacityOptions.AutoRevealDependencies)
-           && this is not ExtremePredicate
-           && this is not PrefixPredicate
-           && Name != "reads" && Name != "requires"
-           && !Attributes.Contains(this.Attributes, "transparent");
+    return
+       !IsOpaque &&
+       !Attributes.Contains(Attributes, "opaque") &&
+       (options.Get(CommonOptionBag.DefaultFunctionOpacity) == CommonOptionBag.DefaultFunctionOpacityOptions.Opaque ||
+        options.Get(CommonOptionBag.DefaultFunctionOpacity) == CommonOptionBag.DefaultFunctionOpacityOptions.AutoRevealDependencies)
+       && this is not ExtremePredicate
+       && this is not PrefixPredicate
+       && Name != "reads" && Name != "requires"
+       && !Attributes.Contains(this.Attributes, "transparent");
     // && Name != "Valid";
     // && (EnclosingClass is null || !(Name == "Valid" && Attributes.Contains(EnclosingClass.Attributes, "autocontracts")));
   }

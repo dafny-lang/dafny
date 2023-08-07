@@ -106,7 +106,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
         argumentName: "Everything|DllEmbed|NoIncludes|NoGhost",
         defaultValue: PrintModes.Everything);
 
-      RegisterLegacyUi(CommonOptionBag.DefaultFunctionOpacity, ParseDefaultFunctionOpacity, "Language feature selection", "defaultFunctionOpacity");
+      RegisterLegacyUi(CommonOptionBag.DefaultFunctionOpacity, ParseDefaultFunctionOpacity, "Language feature selection", "defaultFunctionOpacity", null, CommonOptionBag.DefaultFunctionOpacityOptions.AutoRevealDependencies);
 
       void ParsePrintMode(Option<PrintModes> option, Bpl.CommandLineParseState ps, DafnyOptions options) {
         if (ps.ConfirmArgumentCount(1)) {

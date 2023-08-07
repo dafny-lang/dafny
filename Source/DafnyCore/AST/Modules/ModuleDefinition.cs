@@ -89,7 +89,7 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
       AccessPath = accessPath;
       IsRevealed = isRevealed;
     }
-    
+
     public AccessibleMember(Declaration member, bool isRevealed = true) {
       Member = member;
       AccessPath = new List<TopLevelDecl>();
@@ -101,9 +101,9 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
     }
   }
 
-  [FilledInDuringResolution] 
-  public Dictionary<Declaration, List<AccessibleMember>> AccessibleMembers = new(); 
-  
+  [FilledInDuringResolution]
+  public Dictionary<Declaration, List<AccessibleMember>> AccessibleMembers = new();
+
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(cce.NonNullElements(TopLevelDecls));
@@ -459,7 +459,9 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
 
     Type.PopScope(resolver.moduleInfo.VisibilityScope);
     resolver.moduleInfo = oldModuleInfo;
-    
+
+
+    // Build the AccessibleMembers dictionary
     foreach (var d in TopLevelDecls) {
       if (d is AliasModuleDecl || d is AbstractModuleDecl) {
         ModuleSignature importSig;
@@ -472,22 +474,28 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
 
         var origMod = importSig.ModuleDef;
 
-        foreach (var kvp in origMod.AccessibleMembers) {
-          var newVal = kvp.Value.Select(member => member.Clone()).ToList();
 
-          foreach (var accessibleMember in newVal) {
-            //TODO: Check for export sets etc
-            
-            accessibleMember.AccessPath.Insert(0, d);
+        var exports = d is AliasModuleDecl ? ((AliasModuleDecl)d).Exports : ((AbstractModuleDecl)d).Exports;
+        var isDefaultExportSet = !exports.Any();
+
+        foreach (var kvp in origMod.AccessibleMembers) {
+          var isDeclRevealed = true;
+          if (isDefaultExportSet || isDeclExported(origMod, exports.First().val, kvp.Key, out isDeclRevealed)) {
+            var newVal = kvp.Value.Select(member => member.Clone()).ToList();
+
+            foreach (var accessibleMember in newVal) {
+              accessibleMember.AccessPath.Insert(0, d);
+              accessibleMember.IsRevealed = isDeclRevealed;
+            }
+
+            AddAccessibleMember(kvp.Key, newVal);
           }
-          
-          AddAccessibleMember(kvp.Key, newVal);
         }
-        
+
         var newAccessibleMember = new AccessibleMember(d);
         var newAccessibleMemberList = new List<AccessibleMember> { newAccessibleMember };
         AddAccessibleMember(d, newAccessibleMemberList);
-        
+
       } else if (d is LiteralModuleDecl) {
         var nested = (LiteralModuleDecl)d;
 
@@ -497,31 +505,50 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
           foreach (var accessibleMember in newVal) {
             accessibleMember.AccessPath.Insert(0, d);
           }
-          
+
           AddAccessibleMember(kvp.Key, newVal);
         }
-        
+
         var newAccessibleMember = new AccessibleMember(d);
         var newAccessibleMemberList = new List<AccessibleMember> { newAccessibleMember };
         AddAccessibleMember(d, newAccessibleMemberList);
-        
-      } else if (d is DefaultClassDecl || d is ClassLikeDecl) {
-        var memberList = (d is DefaultClassDecl) ? ((DefaultClassDecl)d).Members : ((ClassLikeDecl)d).Members;
-        
+
+      } else if (d is TopLevelDeclWithMembers tld) {
+        var memberList = tld.Members;
+
         foreach (var mem in memberList) {
-          var newAccessibleMember = new AccessibleMember(mem);
+          var accessPath = new List<TopLevelDecl> { d };
+          var newAccessibleMember = new AccessibleMember(mem, accessPath);
           var newAccessibleMemberList = new List<AccessibleMember> { newAccessibleMember };
           AddAccessibleMember(mem, newAccessibleMemberList);
         }
       }
     }
-    
+
     return true;
+  }
+
+  private bool isDeclExported(ModuleDefinition moduleDefinition, string exportSetName, Declaration decl, out bool isItRevealed) {
+    isItRevealed = true;
+
+    foreach (ModuleExportDecl moduleExportDecl in moduleDefinition.TopLevelDecls.Where(decl =>
+               decl is ModuleExportDecl && decl.Name == exportSetName)) {
+      foreach (ExportSignature export in moduleExportDecl.Exports) {
+        if (export.Decl == decl) {
+          isItRevealed = !export.Opaque;
+          return true;
+        }
+      }
+
+      return false;
+    }
+
+    return false;
   }
 
   private void AddAccessibleMember(Declaration accessibleDecl, List<AccessibleMember> newVal) {
     newVal = newVal.ToList();
-    
+
     if (AccessibleMembers.ContainsKey(accessibleDecl)) {
       List<AccessibleMember> oldVal = null;
       AccessibleMembers.TryGetValue(accessibleDecl, out oldVal);
@@ -530,7 +557,7 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
         newVal = newVal.Concat(oldVal).ToList();
       }
     }
-    
+
     AccessibleMembers[accessibleDecl] = newVal;
   }
 
