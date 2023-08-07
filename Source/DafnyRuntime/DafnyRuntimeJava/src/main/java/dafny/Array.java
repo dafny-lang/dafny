@@ -77,6 +77,25 @@ public final class Array<T> implements Cloneable {
         return newArray;
     }
 
+    @Override
+    public final boolean equals(Object obj) {
+        if (this == obj) {
+            return true;
+        }
+        if (!(obj instanceof Array<?>)) {
+            return false;
+        }
+        @SuppressWarnings("unchecked")
+        Array<T> other = (Array<T>) obj;
+        if (length() != other.length()) {
+            return false;
+        }
+        for(int i = 0; i < length(); i++){
+            if (get(i) != other.get(i)) return false;
+        }
+        return true;
+    }
+
     public boolean deepEquals(Array<T> other) {
         return eltType.arrayDeepEquals(this.array, other.array);
     }
