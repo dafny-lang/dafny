@@ -1,4 +1,6 @@
-﻿namespace Microsoft.Dafny.LanguageServer.Workspace {
+﻿using System;
+
+namespace Microsoft.Dafny.LanguageServer.Workspace {
   /// <summary>
   /// Implementations of this interface are responsible to publish the diagnostics
   /// of a <see cref="Compilation"/> to the LSP client.
@@ -13,6 +15,6 @@
     /// <summary>
     /// Publishes the more precise real-time verification diagnostics to the connected LSP client
     /// </summary>
-    void PublishGutterIcons(IdeState state, bool verificationStarted);
+    void PublishGutterIcons(Uri uri, IdeState state, bool verificationStarted);
   }
 }

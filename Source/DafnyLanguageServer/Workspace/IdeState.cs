@@ -30,7 +30,7 @@ public record IdeState(
   IReadOnlyList<Counterexample> Counterexamples,
   bool ImplementationsWereUpdated,
   IReadOnlyDictionary<Uri, IReadOnlyList<Range>> GhostRanges,
-  VerificationTree? VerificationTree
+  IReadOnlyDictionary<Uri, VerificationTree> VerificationTrees
 ) {
 
   public int Version => Compilation.Version;

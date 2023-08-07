@@ -28,7 +28,7 @@ public class CachedLinearVerificationGutterStatusTester : LinearVerificationGutt
  .  S  S  |  I  $  | :}", true);
   }
 
-  [Fact(Timeout = MaxTestExecutionTimeMs)]
+  [Fact]
   public async Task EnsureCachingDoesNotHideErrors() {
     await SetUp(options => {
       options.Set(BoogieOptionBag.Cores, 1U);

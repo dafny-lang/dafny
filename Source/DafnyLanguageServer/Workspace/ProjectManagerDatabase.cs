@@ -1,6 +1,5 @@
 ﻿using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Runtime.Caching;
@@ -184,8 +183,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     public static DafnyProject ImplicitProject(Uri uri) {
       var implicitProject = new DafnyProject {
         Includes = new[] { uri.LocalPath },
-        Uri = uri,
-        IsImplicitProject = true
+        Uri = uri
       };
       return implicitProject;
     }
@@ -207,7 +205,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       if (projectFile != null && projectFile.Uri != sourceUri && !serverOptions.Get(ServerCommand.ProjectMode)) {
         logger.LogWarning("Project file at {} will be ignored because project mode is disabled", projectFile.Uri);
         projectFile.Uri = sourceUri;
-        projectFile.IsImplicitProject = true;
         projectFile.Includes = new[] { sourceUri.LocalPath };
       }
 

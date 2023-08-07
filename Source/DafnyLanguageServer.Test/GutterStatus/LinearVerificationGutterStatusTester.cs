@@ -25,6 +25,7 @@ public abstract class LinearVerificationGutterStatusTester : ClientBasedLanguage
 
     void ModifyOptions(DafnyOptions options) {
       options.Set(ServerCommand.LineVerificationStatus, true);
+      options.Set(ServerCommand.ProjectMode, true);
       modifyOptions?.Invoke(options);
     }
     await base.SetUp(ModifyOptions);
@@ -302,7 +303,7 @@ public abstract class LinearVerificationGutterStatusTester : ClientBasedLanguage
     foreach (var changes in changesList) {
       ApplyChanges(ref documentItem, changes);
       traces.AddRange(await GetAllLineVerificationStatuses(documentItem, verificationStatusGutterReceiver, intermediates: intermediates));
-      await Projects.GetLastDocumentAsync(documentItem);
+      await Projects.GetLastDocumentAsync(documentItem).WaitAsync(CancellationToken);
     }
 
     if (testTrace) {

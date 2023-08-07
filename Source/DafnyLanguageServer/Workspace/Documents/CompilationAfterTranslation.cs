@@ -1,14 +1,8 @@
 using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.Linq;
 using Microsoft.Boogie;
-using Microsoft.Dafny.LanguageServer.Language;
-using Microsoft.Dafny.LanguageServer.Language.Symbols;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
-using OmniSharp.Extensions.LanguageServer.Protocol;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace;
@@ -20,19 +14,19 @@ public class CompilationAfterTranslation : CompilationAfterResolution {
     IReadOnlyList<IImplementationTask> verificationTasks,
     List<Counterexample> counterexamples,
     Dictionary<ImplementationId, ImplementationView> implementationIdToView,
-    VerificationTree? verificationTree
+    Dictionary<Uri, VerificationTree> verificationTrees
     )
     : base(compilationAfterResolution, diagnostics,
       compilationAfterResolution.SymbolTable, compilationAfterResolution.SignatureAndCompletionTable,
       compilationAfterResolution.GhostDiagnostics) {
-    VerificationTree = verificationTree;
+    VerificationTrees = verificationTrees;
     VerificationTasks = verificationTasks;
     Counterexamples = counterexamples;
     ImplementationIdToView = implementationIdToView;
   }
 
-  public override VerificationTree? GetVerificationTree() {
-    return VerificationTree;
+  public override VerificationTree GetVerificationTree(Uri uri) {
+    return VerificationTrees[uri];
   }
 
   public override IEnumerable<DafnyDiagnostic> GetDiagnostics(Uri uri) {
@@ -52,7 +46,7 @@ public class CompilationAfterTranslation : CompilationAfterResolution {
     });
     return base.ToIdeState(previousState) with {
       ImplementationsWereUpdated = true,
-      VerificationTree = GetVerificationTree()?.GetCopyForNotification(),
+      VerificationTrees = VerificationTrees.ToDictionary(kv => kv.Key, kv => kv.Value.GetCopyForNotification()),
       Counterexamples = new List<Counterexample>(Counterexamples),
       ImplementationIdToView = new Dictionary<ImplementationId, IdeImplementationView>(implementationViewsWithMigratedDiagnostics)
     };
@@ -64,7 +58,7 @@ public class CompilationAfterTranslation : CompilationAfterResolution {
   /// Can be migrated from a previous document
   /// The position and the range are never sent to the client.
   /// </summary>
-  public VerificationTree? VerificationTree { get; set; }
+  public Dictionary<Uri, VerificationTree> VerificationTrees { get; set; }
   public List<Counterexample> Counterexamples { get; set; }
   public Dictionary<ImplementationId, ImplementationView> ImplementationIdToView { get; set; }
 }

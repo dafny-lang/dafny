@@ -128,7 +128,7 @@ lemma {:neverVerify} HasNeverVerifyAttribute(p: nat, q: nat)
       if (filePath == null) {
         filePath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName(), $"testFile{fileIndex++}.dfy");
       }
-      if (Path.GetDirectoryName(filePath) == null) {
+      if (string.IsNullOrEmpty(Path.GetDirectoryName(filePath))) {
         filePath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName(), filePath);
       }
       filePath = Path.GetFullPath(filePath);

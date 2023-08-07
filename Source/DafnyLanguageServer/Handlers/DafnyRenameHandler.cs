@@ -37,7 +37,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
       var requestUri = request.TextDocument.Uri.ToUri();
       // Reject rename requests in implicit projects, because we might not find all references within the codebase,
       // so a partial rename may result in breaking the codebase
-      if ((await projects.GetProject(requestUri)).IsImplicitProject) {
+      if (!(await projects.GetProject(requestUri)).UsesProjectFile) {
         throw new Exception("Renaming support requires --project-mode and a Dafny project file (dfyconfig.toml)");
       }
 
