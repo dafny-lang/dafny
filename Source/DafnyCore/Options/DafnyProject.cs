@@ -24,6 +24,7 @@ public class DafnyProject : IEquatable<DafnyProject> {
   public string[] Includes { get; set; }
   public string[] Excludes { get; set; }
   public Dictionary<string, object> Options { get; set; }
+  public bool UsesProjectFile => Path.GetFileName(Uri.LocalPath) == FileName;
 
   public static async Task<DafnyProject> Open(IFileSystem fileSystem, Uri uri, TextWriter outputWriter, TextWriter errorWriter) {
     if (Path.GetFileName(uri.LocalPath) != FileName) {
