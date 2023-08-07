@@ -22,7 +22,7 @@ public class MultipleFilesTest2 : ClientBasedLanguageServerTest {
     });
   }
 
-  protected MultipleFilesTest2(ITestOutputHelper output) : base(output, LogLevel.Trace) {
+  public MultipleFilesTest2(ITestOutputHelper output) : base(output, LogLevel.Trace) {
   }
 
   [Fact]
