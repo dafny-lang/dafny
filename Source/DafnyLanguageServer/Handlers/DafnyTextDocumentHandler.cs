@@ -83,14 +83,14 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
       return Unit.Value;
     }
 
-    public override Task<Unit> Handle(DidChangeTextDocumentParams notification, CancellationToken cancellationToken) {
+    public override async Task<Unit> Handle(DidChangeTextDocumentParams notification, CancellationToken cancellationToken) {
       logger.LogDebug("received change notification {DocumentUri}", notification.TextDocument.Uri);
       try {
-        projects.UpdateDocument(notification);
+        await projects.UpdateDocument(notification);
       } catch (Exception e) {
         telemetryPublisher.PublishUnhandledException(e);
       }
-      return Unit.Task;
+      return Unit.Value;
     }
 
     public override Task<Unit> Handle(DidSaveTextDocumentParams notification, CancellationToken cancellationToken) {
