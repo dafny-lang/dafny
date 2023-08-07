@@ -7,7 +7,7 @@
 // - Statements are not nested and either
 //     - Skip(n) where n is a number of statements
 //     - assert object.field == value;
-//     - assign dereference field to local variable
+//     - assign dereference field to local variaHeapUpdateble
 //     - assign value to local variable
 //     - assign local variable to deference field
 //     - conditional branching with object.field == value
@@ -35,6 +35,13 @@ module Random {
 import opened Random
 
 type Heap = seq<StructVal>
+
+function HeapUpdate(heap: Heap, reference: nat, field: Field, v: Value): Heap
+  requires reference < |heap|
+{
+  heap[reference := heap[reference].assign(field, v)]
+}
+
 datatype Field = ValueField | RegionField | ReferenceField
 {
   predicate IsGhost() { !RegionField? }
@@ -162,6 +169,14 @@ datatype LocalState = LocalState(statement: Statement, a: Value, b: Value, c: Va
     && a.InHeap(heap) && b.InHeap(heap) && c.InHeap(heap)
     && statement.getType(typeMap, codeState) == Some(returnType)
   }
+  lemma VerifiedDoesNotChangeOnHeapUpdate(codeState: CodeState, heap: Heap, reference: nat, field: Field, value: Value)
+    requires reference < |heap|
+    requires Verified(codeState, heap)
+    ensures Verified(codeState, HeapUpdate(heap, reference, field, value))
+  {
+
+  }
+
   function next(newStatement: Statement): LocalState {
     this.(statement := newStatement)
   }
@@ -192,6 +207,14 @@ datatype MethodStack = StackNil | StackCons(head: LocalState, tail: MethodStack)
     if StackNil? then true
     else head.Verified(codeState, heap) && tail.Verified(codeState, heap)
   }
+  
+  lemma VerifiedDoesNotChangeOnHeapUpdate(codeState: CodeState, heap: Heap, reference: nat, field: Field, value: Value)
+    requires reference < |heap|
+    requires Verified(codeState, heap)
+    ensures Verified(codeState, HeapUpdate(heap, reference, field, value))
+  {
+
+  }
 
   function Evaluate(codeState: CodeState, heap: Heap): ThreadResult {
     if StackNil? then ThreadResult(heap, this) else
@@ -205,7 +228,7 @@ datatype MethodStack = StackNil | StackCons(head: LocalState, tail: MethodStack)
         var ref := localState.get(target);
         if !ref.LocalValueRef? || ref.reference >= |heap| then ThreadUnsound else
         var v := localState.get(localVar);
-        var newHeap := heap[ref.reference := heap[ref.reference].assign(field,v)];
+        var newHeap := HeapUpdate(heap, ref.reference, field, v);
         ThreadResult(newHeap, this.newHead(localState.next(statement.next)))
       case _ => ThreadResult(heap, this) // TODO
 /*
@@ -219,8 +242,11 @@ datatype MethodStack = StackNil | StackCons(head: LocalState, tail: MethodStack)
 
   lemma EvaluateOnVerifiedNeverUnsound(codeState: CodeState, heap: Heap)
     requires codeState.Verified()
-    requires Verified(codeState, heap)
+    requires this.Verified(codeState, heap)
     ensures this.Evaluate(codeState, heap) != ThreadUnsound
+    ensures 
+      var ThreadResult(newHeap, newMethodStack) := this.Evaluate(codeState, heap);
+      newMethodStack.Verified(codeState, newHeap)
   {
     if StackNil? {
       return;
@@ -233,6 +259,13 @@ datatype MethodStack = StackNil | StackCons(head: LocalState, tail: MethodStack)
       case AssignRef(target, field, localVar, next) =>
         var ref := localState.get(target);
         assert ref.LocalValueRef? && ref.reference < |heap|;
+        var v := localState.get(localVar);
+        var newHeap := heap[ref.reference := heap[ref.reference].assign(field, v)];
+        var newMethodStack := this.newHead(localState.next(statement.next));
+        assert newMethodStack.tail.Verified(codeState, heap);
+        newMethodStack.tail.VerifiedDoesNotChangeOnHeapUpdate(codeState, heap, ref.reference, field, v);
+        assert newMethodStack.tail.Verified(codeState, newHeap);
+        assert newMethodStack.Verified(codeState, newHeap);
         return;
       case _ =>
         return;
@@ -248,6 +281,11 @@ type StructVal(==,!new) {
 datatype ProgramState = Unsound |
   ProgramState(codeState: CodeState, heap: Heap, thread1: MethodStack, thread2: MethodStack)
 {
+  ghost predicate Verified() {
+    && !Unsound? && codeState.Verified()
+    && thread1.Verified(codeState, heap)
+    && thread2.Verified(codeState, heap)
+   }
   function Evaluate(rng: RNG): (ProgramState, RNG)
   {
     if Unsound? then (Unsound, rng) else
@@ -264,10 +302,9 @@ datatype ProgramState = Unsound |
 }
 
 lemma EvaluateOnVerifiedNeverUnsound(state: ProgramState, rng: RNG)
-  requires !state.Unsound? && state.codeState.Verified()
-  requires state.thread1.Verified(state.codeState, state.heap)
-  requires state.thread2.Verified(state.codeState, state.heap)
+  requires state.Verified()
   ensures state.Evaluate(rng).0 != Unsound
+  ensures state.Evaluate(rng).0.Verified()
 {
   var (choice, rng1) := randomBool(rng);
   if choice {
