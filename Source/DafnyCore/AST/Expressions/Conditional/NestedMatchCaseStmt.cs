@@ -29,8 +29,8 @@ public class NestedMatchCaseStmt : NestedMatchCase, IAttributeBearingDeclaration
   public NestedMatchCaseStmt Clone(Cloner cloner) {
     return new NestedMatchCaseStmt(cloner, this);
   }
-  public override IEnumerable<Node> Children => new[] { Pat }.Concat<Node>(Body).Concat(Attributes?.Args ?? Enumerable.Empty<Node>());
-  public override IEnumerable<Node> PreResolveChildren => Children;
+  public override IEnumerable<INode> Children => new[] { Pat }.Concat<Node>(Body).Concat(Attributes?.Args ?? Enumerable.Empty<Node>());
+  public override IEnumerable<INode> PreResolveChildren => Children;
 
   public void Resolve(
     ModuleResolver resolver,

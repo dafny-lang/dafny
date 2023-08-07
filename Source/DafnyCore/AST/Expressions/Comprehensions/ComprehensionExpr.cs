@@ -441,8 +441,11 @@ public abstract class ComprehensionExpr : Expression, IAttributeBearingDeclarati
       Bounds = original.Bounds?.Select(b => b?.Clone(cloner)).ToList();
     }
   }
-  public override IEnumerable<Node> Children => (Attributes != null ? new List<Node> { Attributes } : Enumerable.Empty<Node>()).Concat(SubExpressions);
-  public override IEnumerable<Node> PreResolveChildren =>
+  public override IEnumerable<INode> Children =>
+    (Attributes != null ? new List<Node> { Attributes } : Enumerable.Empty<Node>()).
+    Concat(BoundVars).Concat(SubExpressions);
+
+  public override IEnumerable<INode> PreResolveChildren =>
     (Attributes != null ? new List<Node> { Attributes } : Enumerable.Empty<Node>())
     .Concat<Node>(Range != null && Range.tok.line > 0 ? new List<Node>() { Range } : new List<Node>())
     .Concat(Term != null && Term.tok.line > 0 ? new List<Node> { Term } : new List<Node>());

@@ -78,7 +78,7 @@ public class LanguageServerFilesystem : IFileSystem {
   public void CloseDocument(TextDocumentIdentifier document) {
     var uri = document.Uri.ToUri();
 
-    logger.LogInformation($"Closing document {document.Uri}");
+    logger.LogDebug($"Closing document {document.Uri}");
     if (!openFiles.TryRemove(uri, out _)) {
       logger.LogError($"Could not close file {uri} because it was not open.");
     }

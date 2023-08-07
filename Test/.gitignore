@@ -29,7 +29,7 @@
 **/*-py
 
 # Rust output
-**/*.rs
+**/*-rust
 
 node_modules/
 package-lock.json
