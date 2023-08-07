@@ -311,7 +311,7 @@ public abstract class LinearVerificationGutterStatusTester : ClientBasedLanguage
       var ignoreQuestionMarks = AcceptQuestionMarks(traceObtained, codeAndTrace);
       var expected = "\n" + codeAndTrace + "\n";
       var actual = "\n" + ignoreQuestionMarks + "\n";
-      AssertWithDiff.Equal(expected, actual);
+      AssertWithDiff.Equal(expected, actual, fileName);
     }
   }
 

@@ -286,7 +286,6 @@ public class CompilationManager {
     }
 
     if (boogieStatus is Completed completed) {
-      logger.LogDebug($"Received verification task completed for {tokenString}, version {compilation.Version}");
       var verificationResult = completed.Result;
       foreach (var counterExample in verificationResult.Errors) {
         compilation.Counterexamples.Add(counterExample);
