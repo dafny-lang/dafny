@@ -1,4 +1,5 @@
-﻿using System.Threading.Tasks;
+using System.Threading.Tasks;
+using System;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace {
   /// <summary>
@@ -15,6 +16,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     /// <summary>
     /// Publishes the more precise real-time verification diagnostics to the connected LSP client
     /// </summary>
-    void PublishGutterIcons(IdeState state, bool verificationStarted);
+    void PublishGutterIcons(Uri uri, IdeState state, bool verificationStarted);
   }
 }

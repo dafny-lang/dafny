@@ -33,11 +33,11 @@ public class CompilationAfterParsing : Compilation {
       ResolutionDiagnostics = ResolutionDiagnostics.ToDictionary(
         kv => kv.Key,
         kv => (IReadOnlyList<Diagnostic>)kv.Value.Select(d => d.ToLspDiagnostic()).ToList()),
-      VerificationTree = baseResult.VerificationTree ?? GetVerificationTree()?.GetCopyForNotification()
+      VerificationTrees = baseResult.VerificationTrees
     };
   }
 
-  public virtual VerificationTree? GetVerificationTree() {
-    return Project.IsImplicitProject ? new DocumentVerificationTree(Program, Project.Uri) : null;
+  public virtual VerificationTree GetVerificationTree(Uri uri) {
+    return new DocumentVerificationTree(Program, uri);
   }
 }

@@ -38,7 +38,9 @@ public class IdeStateObserver : IObserver<IdeState> {
 
   public void OnCompleted() {
     var ideState = loader.CreateUnloaded(compilation) with { Compilation = new Compilation(LastPublishedState.Version + 1, LastPublishedState.Compilation.Project, compilation.RootUris) };
-    notificationPublisher.PublishNotifications(LastPublishedState, ideState);
+#pragma warning disable VSTHRD002
+    notificationPublisher.PublishNotifications(LastPublishedState, ideState).Wait();
+#pragma warning restore VSTHRD002
     telemetryPublisher.PublishUpdateComplete();
   }
 

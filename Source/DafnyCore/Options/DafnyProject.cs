@@ -19,13 +19,12 @@ public class DafnyProject : IEquatable<DafnyProject> {
 
   public string ProjectName => Uri.ToString();
 
-  public bool IsImplicitProject { get; set; }
-
   [IgnoreDataMember]
   public Uri Uri { get; set; }
   public string[] Includes { get; set; }
   public string[] Excludes { get; set; }
   public Dictionary<string, object> Options { get; set; }
+  public bool UsesProjectFile => Path.GetFileName(Uri.LocalPath) == FileName;
 
   public static async Task<DafnyProject> Open(IFileSystem fileSystem, Uri uri, TextWriter outputWriter, TextWriter errorWriter) {
     if (Path.GetFileName(uri.LocalPath) != FileName) {
@@ -173,7 +172,7 @@ public class DafnyProject : IEquatable<DafnyProject> {
     var orderedOptions = Options?.OrderBy(kv => kv.Key) ?? Enumerable.Empty<KeyValuePair<string, object>>();
     var otherOrderedOptions = other.Options?.OrderBy(kv => kv.Key) ?? Enumerable.Empty<KeyValuePair<string, object>>();
 
-    return Equals(IsImplicitProject, other.IsImplicitProject) && Equals(Uri, other.Uri) &&
+    return Equals(Uri, other.Uri) &&
            NullableSetEqual(Includes?.ToHashSet(), other.Includes) &&
            NullableSetEqual(Excludes?.ToHashSet(), other.Excludes) &&
            orderedOptions.SequenceEqual(otherOrderedOptions, new LambdaEqualityComparer<KeyValuePair<string, object>>(
@@ -255,6 +254,6 @@ public class DafnyProject : IEquatable<DafnyProject> {
   }
 
   public override int GetHashCode() {
-    return HashCode.Combine(IsImplicitProject, Uri, Includes, Excludes, Options);
+    return HashCode.Combine(Uri, Includes, Excludes, Options);
   }
 }
