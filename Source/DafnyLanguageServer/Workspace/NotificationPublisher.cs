@@ -157,7 +157,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       var verificationStatusGutter = VerificationStatusGutter.ComputeFrom(
         root,
         filesystem.GetVersion(root)!.Value,
-        state.VerificationTree.Children.Select(child => child.GetCopyForNotification()).ToArray(),
+        state.VerificationTree.Children,
         errors,
         linesCount,
         verificationStarted

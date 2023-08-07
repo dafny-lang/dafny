@@ -52,7 +52,7 @@ public class CompilationAfterTranslation : CompilationAfterResolution {
     });
     return base.ToIdeState(previousState) with {
       ImplementationsWereUpdated = true,
-      VerificationTree = GetVerificationTree(),
+      VerificationTree = GetVerificationTree()?.GetCopyForNotification(),
       Counterexamples = new List<Counterexample>(Counterexamples),
       ImplementationIdToView = new Dictionary<ImplementationId, IdeImplementationView>(implementationViewsWithMigratedDiagnostics)
     };

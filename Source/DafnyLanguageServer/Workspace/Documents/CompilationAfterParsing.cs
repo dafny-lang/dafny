@@ -33,7 +33,7 @@ public class CompilationAfterParsing : Compilation {
       ResolutionDiagnostics = ResolutionDiagnostics.ToDictionary(
         kv => kv.Key,
         kv => (IReadOnlyList<Diagnostic>)kv.Value.Select(d => d.ToLspDiagnostic()).ToList()),
-      VerificationTree = baseResult.VerificationTree ?? GetVerificationTree()
+      VerificationTree = baseResult.VerificationTree ?? GetVerificationTree()?.GetCopyForNotification()
     };
   }
 
