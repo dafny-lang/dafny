@@ -20,7 +20,7 @@ public delegate CompilationManager CreateCompilationManager(
   DafnyOptions options,
   ExecutionEngine boogieEngine,
   Compilation compilation,
-  VerificationTree? migratedVerificationTree);
+  IReadOnlyDictionary<Uri, VerificationTree> migratedVerificationTrees);
 
 /// <summary>
 /// The compilation of a single document version.
@@ -41,7 +41,7 @@ public class CompilationManager {
   private readonly IVerificationProgressReporter verificationProgressReporter;
 
   // TODO CompilationManager shouldn't be aware of migration
-  private readonly VerificationTree? migratedVerificationTree;
+  private readonly IReadOnlyDictionary<Uri, VerificationTree> migratedVerificationTrees;
 
   private TaskCompletionSource started = new();
   private readonly IScheduler verificationUpdateScheduler = new EventLoopScheduler();
@@ -68,12 +68,12 @@ public class CompilationManager {
     DafnyOptions options,
     ExecutionEngine boogieEngine,
     Compilation compilation,
-    VerificationTree? migratedVerificationTree
+    IReadOnlyDictionary<Uri, VerificationTree> migratedVerificationTrees
     ) {
     this.options = options;
     startingCompilation = compilation;
     this.boogieEngine = boogieEngine;
-    this.migratedVerificationTree = migratedVerificationTree;
+    this.migratedVerificationTrees = migratedVerificationTrees;
 
     this.documentLoader = documentLoader;
     this.logger = logger;
@@ -102,9 +102,12 @@ public class CompilationManager {
       // TODO, let gutter icon publications also used the published CompilationView.
       var state = documentAfterParsing.InitialIdeState(startingCompilation, options);
       state = state with {
-        VerificationTree = migratedVerificationTree ?? state.VerificationTree
+        VerificationTrees = documentAfterParsing.RootUris.ToDictionary(uri => uri,
+          uri => migratedVerificationTrees.GetValueOrDefault(uri) ?? new DocumentVerificationTree(documentAfterParsing.Program, uri))
       };
-      notificationPublisher.PublishGutterIcons(state, false);
+      foreach (var root in documentAfterParsing.RootUris) {
+        notificationPublisher.PublishGutterIcons(root, state, false);
+      }
 
       logger.LogDebug($"documentUpdates.HasObservers: {compilationUpdates.HasObservers}, threadId: {Thread.CurrentThread.ManagedThreadId}");
       compilationUpdates.OnNext(documentAfterParsing);
@@ -178,13 +181,16 @@ public class CompilationManager {
       loaded.ResolutionDiagnostics, verificationTasks,
       new(),
       initialViews,
-      migratedVerificationTree ?? (loaded.Project.IsImplicitProject ? new DocumentVerificationTree(loaded.Program, loaded.Project.Uri) : null)
+      loaded.RootUris.ToDictionary(uri => uri,
+        uri => migratedVerificationTrees.GetValueOrDefault(uri) ?? new DocumentVerificationTree(loaded.Program, uri))
       );
 
-    verificationProgressReporter.RecomputeVerificationTree(translated);
+    verificationProgressReporter.RecomputeVerificationTrees(translated);
 
     if (ReportGutterStatus) {
-      verificationProgressReporter.ReportRealtimeDiagnostics(translated, false);
+      foreach (var uri in translated.RootUris) {
+        verificationProgressReporter.ReportRealtimeDiagnostics(translated, uri, true);
+      }
     }
     verificationProgressReporter.ReportImplementationsBeforeVerification(translated,
       verificationTasks.Select(t => t.Implementation).ToArray());
@@ -264,7 +270,9 @@ public class CompilationManager {
         SetAllUnvisitedMethodsAsVerified(compilation);
       }
 
-      verificationProgressReporter.ReportRealtimeDiagnostics(compilation, true);
+      foreach (var uri in compilation.RootUris) {
+        verificationProgressReporter.ReportRealtimeDiagnostics(compilation, uri, true);
+      }
     }
   }
 

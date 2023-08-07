@@ -155,5 +155,5 @@ public class DafnyCodeActionInput : IDafnyCodeActionInput {
   public CompilationAfterParsing Compilation { get; }
 
   public IEnumerable<DafnyDiagnostic> Diagnostics => Compilation.GetDiagnostics(uri);
-  public VerificationTree? VerificationTree => Compilation.GetVerificationTree();
+  public VerificationTree? VerificationTree => Compilation.GetVerificationTree(uri);
 }
