@@ -339,6 +339,7 @@ public abstract class LinearVerificationGutterStatusTester : ClientBasedLanguage
     return toReplaceRegex.Replace(traceObtained, "?");
   }
 
-  protected LinearVerificationGutterStatusTester(ITestOutputHelper output, LogLevel dafnyLogLevel = LogLevel.Information) : base(output, dafnyLogLevel) {
+  protected LinearVerificationGutterStatusTester(ITestOutputHelper output) :
+    base(output, LogLevel.Debug) {
   }
 }
