@@ -164,6 +164,11 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
       return;
     }
 
+    if (logger.IsEnabled(LogLevel.Debug)) {
+      logger.LogDebug($"ReportImplementationsBeforeVerification for ${compilation.Project.Uri}, version {compilation.Version}, implementations: " +
+                      $"{string.Join(", ", implementations.Select(i => i.Name))}");
+    }
+
     // We migrate existing implementations to the new provided ones if they exist.
     // (same child number, same file and same position)
     foreach (var methodTree in compilation.VerificationTree.Children) {
