@@ -2,21 +2,14 @@ TraitResolution2.dfy(70,22): Error: the type of in-parameter 'x' is different fr
 TraitResolution2.dfy(94,14): Error: new can be applied only to class types (got A?)
 TraitResolution2.dfy(95,14): Error: new can be applied only to class types (got ASynonym)
 TraitResolution2.dfy(98,14): Error: new can be applied only to class types (got B?)
-TraitResolution2.dfy(98,11): Error: when allocating an object of type 'B', one of its constructor methods must be called
 TraitResolution2.dfy(101,14): Error: new can be applied only to class types (got C?<A>)
 TraitResolution2.dfy(103,14): Error: new can be applied only to class types (got C?<A?>)
 TraitResolution2.dfy(106,14): Error: new can be applied only to class types (got D?<A>)
-TraitResolution2.dfy(106,11): Error: when allocating an object of type 'D', one of its constructor methods must be called
 TraitResolution2.dfy(108,14): Error: new can be applied only to class types (got D?<A?>)
-TraitResolution2.dfy(108,11): Error: when allocating an object of type 'D', one of its constructor methods must be called
 TraitResolution2.dfy(110,14): Error: new can be applied only to class types (got D<A>)
-TraitResolution2.dfy(110,11): Error: when allocating an object of type 'D', one of its constructor methods must be called
 TraitResolution2.dfy(112,14): Error: new can be applied only to class types (got D<A?>)
-TraitResolution2.dfy(112,11): Error: when allocating an object of type 'D', one of its constructor methods must be called
 TraitResolution2.dfy(113,14): Error: new can be applied only to class types (got DSynonym<A?>)
-TraitResolution2.dfy(113,11): Error: when allocating an object of type 'D', one of its constructor methods must be called
 TraitResolution2.dfy(114,14): Error: new can be applied only to class types (got DSynonym<A?>)
-TraitResolution2.dfy(114,11): Error: when allocating an object of type 'D', one of its constructor methods must be called
 TraitResolution2.dfy(117,14): Error: new can be applied only to class types (got object?)
 TraitResolution2.dfy(118,14): Error: new can be applied only to class types (got ObjectSynonym)
 TraitResolution2.dfy(119,14): Error: new can be applied only to class types (got ObjectWithConstraint)
@@ -82,4 +75,4 @@ TraitResolution2.dfy(369,16): Error: the type of special parameter '_k' of least
 TraitResolution2.dfy(371,16): Error: the type of special parameter '_k' of least lemma 'M' (nat) must be the same as in the overridden least lemma (ORDINAL)
 TraitResolution2.dfy(375,20): Error: the type of special parameter '_k' of least predicate 'Q' (ORDINAL) must be the same as in the overridden least predicate (nat)
 TraitResolution2.dfy(379,16): Error: the type of special parameter '_k' of least lemma 'L' (ORDINAL) must be the same as in the overridden least lemma (nat)
-84 resolution/type errors detected in TraitResolution2.dfy
+77 resolution/type errors detected in TraitResolution2.dfy
