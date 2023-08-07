@@ -100,4 +100,4 @@ For example, `Formatting.dfy`
 
 ### What is the release process?
 
-You can file the release process in [docs/dev/RELEASE.md](https://github.com/dafny-lang/dafny/blob/master/docs/dev/RELEASE.md)
+You can find a description of the release process in [docs/dev/RELEASE.md](https://github.com/dafny-lang/dafny/blob/master/docs/dev/RELEASE.md)
