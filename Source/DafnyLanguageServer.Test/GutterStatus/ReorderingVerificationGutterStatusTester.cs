@@ -203,7 +203,7 @@ method m5() { assert false; } //Remove4:
         if (foundStatus != null) {
           await output.WriteLineAsync("Found status before timeout: " + string.Join(", ", foundStatus.NamedVerifiables));
         }
-        
+
         WriteVerificationHistory();
         throw;
       }

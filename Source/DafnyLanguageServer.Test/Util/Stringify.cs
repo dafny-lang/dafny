@@ -11,7 +11,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 public static class StringifyUtil {
 
   public static void Stringify(this object root, TextWriter writer, bool showNullChildren = false) {
-    
+
     void Helper(ImmutableHashSet<object> visited, object? value, int indentation) {
       if (value == null) {
         writer.Write("null");
@@ -78,7 +78,7 @@ public static class StringifyUtil {
 
     Helper(ImmutableHashSet.Create<object>(), root, 0);
   }
-  
+
   public static string Stringify(this object root, bool showNullChildren = false) {
     var stringWriter = new StringWriter();
     Stringify(root, stringWriter, showNullChildren);
