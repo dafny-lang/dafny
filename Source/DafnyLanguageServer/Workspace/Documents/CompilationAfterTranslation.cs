@@ -46,7 +46,7 @@ public class CompilationAfterTranslation : CompilationAfterResolution {
     });
     return base.ToIdeState(previousState) with {
       ImplementationsWereUpdated = true,
-      VerificationTrees = VerificationTrees,
+      VerificationTrees = VerificationTrees.ToDictionary(kv => kv.Key, kv => kv.Value.GetCopyForNotification()),
       Counterexamples = new List<Counterexample>(Counterexamples),
       ImplementationIdToView = new Dictionary<ImplementationId, IdeImplementationView>(implementationViewsWithMigratedDiagnostics)
     };
