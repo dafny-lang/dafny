@@ -122,8 +122,18 @@ module J {
     }
     method P() {
       var c: X.C;
+      c := new X.C.Init();  // error: Init is not visible
+    }
+  }
+  module Client' {
+    import X
+    method M(c: X.C, c0: X.C?, d: X.D, d0: X.D?) {  // all of these types are known
+      if c0 == null || d0 == null {  // fine to compare c0 and d0 with null
+      }
+    }
+    method P() {
+      var c: X.C;
       c := new X.C;  // error: must call a constructor
-      c := new X.C.Init();  // error: alas, no constructor is visible
       var d := new X.D;  // error: even though D has no constructor, the absence of imported constructor does not let us conclude there aren't any
     }
   }

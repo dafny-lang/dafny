@@ -2,21 +2,14 @@ TraitResolution1.dfy(65,22): Error: the type of in-parameter 'x' is different fr
 TraitResolution1.dfy(89,14): Error: new can be applied only to class types (got A?)
 TraitResolution1.dfy(90,14): Error: new can be applied only to class types (got ASynonym)
 TraitResolution1.dfy(93,14): Error: new can be applied only to class types (got B?)
-TraitResolution1.dfy(93,11): Error: when allocating an object of type 'B', one of its constructor methods must be called
 TraitResolution1.dfy(96,14): Error: new can be applied only to class types (got C?<A>)
 TraitResolution1.dfy(98,14): Error: new can be applied only to class types (got C?<A?>)
 TraitResolution1.dfy(101,14): Error: new can be applied only to class types (got D?<A>)
-TraitResolution1.dfy(101,11): Error: when allocating an object of type 'D', one of its constructor methods must be called
 TraitResolution1.dfy(103,14): Error: new can be applied only to class types (got D?<A?>)
-TraitResolution1.dfy(103,11): Error: when allocating an object of type 'D', one of its constructor methods must be called
 TraitResolution1.dfy(105,14): Error: new can be applied only to class types (got D<A>)
-TraitResolution1.dfy(105,11): Error: when allocating an object of type 'D', one of its constructor methods must be called
 TraitResolution1.dfy(107,14): Error: new can be applied only to class types (got D<A?>)
-TraitResolution1.dfy(107,11): Error: when allocating an object of type 'D', one of its constructor methods must be called
 TraitResolution1.dfy(108,14): Error: new can be applied only to class types (got DSynonym<A?>)
-TraitResolution1.dfy(108,11): Error: when allocating an object of type 'D', one of its constructor methods must be called
 TraitResolution1.dfy(109,14): Error: new can be applied only to class types (got DSynonym<A?>)
-TraitResolution1.dfy(109,11): Error: when allocating an object of type 'D', one of its constructor methods must be called
 TraitResolution1.dfy(112,14): Error: new can be applied only to class types (got object?)
 TraitResolution1.dfy(113,14): Error: new can be applied only to class types (got ObjectSynonym)
 TraitResolution1.dfy(114,14): Error: new can be applied only to class types (got ObjectWithConstraint)
@@ -122,4 +115,4 @@ TraitResolution1.dfy(562,13): Error: type parameter 'R' is not allowed to change
 TraitResolution1.dfy(562,20): Error: type parameter 'S' is not allowed to change the requirement of supporting auto-initialization
 TraitResolution1.dfy(563,21): Error: type parameter 'R' is not allowed to change the requirement of being nonempty
 TraitResolution1.dfy(563,28): Error: type parameter 'S' is not allowed to change the requirement of supporting auto-initialization
-124 resolution/type errors detected in TraitResolution1.dfy
+117 resolution/type errors detected in TraitResolution1.dfy
