@@ -1,4 +1,3 @@
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.Workspace;
@@ -36,14 +35,9 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
 
       var requestUri = request.TextDocument.Uri.ToUri();
       var declaration = state.SymbolTable.GetDeclaration(requestUri, request.Position);
-
-      // The declaration graph is not reflexive, so the position might be on a declaration; return references to it
-      if (declaration == null) {
-        return state.SymbolTable.GetUsages(requestUri, request.Position).ToArray();
-      }
-
-      // If the position is not on a declaration, return references to its declaration
-      return state.SymbolTable.GetUsages(declaration.Uri.ToUri(), declaration.Range.Start).ToArray();
+      return declaration == null
+        ? new LocationContainer()
+        : LocationContainer.From(state.SymbolTable.GetUsages(declaration.Uri.ToUri(), declaration.Range.Start));
     }
   }
 }

@@ -205,6 +205,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       }
 
       if (projectFile != null && projectFile.Uri != sourceUri && !serverOptions.Get(ServerCommand.ProjectMode)) {
+        logger.LogWarning("Project file at {} will be ignored because project mode is disabled", projectFile.Uri);
         projectFile.Uri = sourceUri;
         projectFile.IsImplicitProject = true;
         projectFile.Includes = new[] { sourceUri.LocalPath };
