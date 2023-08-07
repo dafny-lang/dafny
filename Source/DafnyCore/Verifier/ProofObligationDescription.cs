@@ -1127,12 +1127,12 @@ public class RegionMustMatchInInstanceContext : ProofObligationDescription {
   private string what => isAssignment ? "being assigned" : "of the method call";
 
   private string expected =>
-    isstaticContext ? "the context (null)" : "the context, or the context's `.Region`, or null and the object fresh";
+    isstaticContext ? "null (current context)" : "the context, or the context's `.Region`, or null and the object fresh";
   public override string SuccessDescription =>
     $"the `.Region` of the object {what} is {expected}";
 
   public override string FailureDescription =>
-    $"the `.Region` of the object {what} must be {expected}";
+    $"the `.Region` of the object {what} could not be proved to be {expected}";
 
   public override string ShortDescription =>
     "region-" + 

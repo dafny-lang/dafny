@@ -26,8 +26,8 @@ module RegionTests {
     method Obtain() returns (v: int) {
       v := value;
     }
-    method Increase() modifies this`value {
-      value := value + 1;
+    method SetValue(newValue: int) modifies this`value ensures value == newValue{
+      value := newValue;
     }
 
     constructor Wrong(value: int, next: Node?)
@@ -88,6 +88,24 @@ module RegionTests {
     {
       next.value := newValue; // OK
     }
+    method ChangeNextValueWrong2(newValue: int)
+      requires next != null && next != this
+      //requires next.Region == this // Forgotten
+      modifies next
+      ensures next.next == old(next.next) && next.Region == old(next.Region)
+      ensures next.value == newValue
+    {
+      next.SetValue(newValue); // Error: Could not prove next.Region == this
+    }
+    method ChangeNextValue2(newValue: int)
+      requires next != null && next != this
+      requires next.Region == this // Guaranteed by the invariant
+      modifies next
+      ensures next.next == old(next.next) && next.Region == old(next.Region)
+      ensures next.value == newValue
+    {
+      next.SetValue(newValue); // OK
+    }
   }
 
   method Test() {
@@ -102,7 +120,7 @@ module RegionTests {
     if * {
       c.value := 3;          // Error: Cannot prove that c.Region == null
     } else {
-      c.Increase();          // Error, cannot prove that c.Region == null
+      c.SetValue(3);          // Error, cannot prove that c.Region == null
     }
   }
 

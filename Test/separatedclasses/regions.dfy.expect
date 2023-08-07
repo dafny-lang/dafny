@@ -1,0 +1,10 @@
+regions.dfy(50,20): Error: the `.Region` of the object being assigned could not be proved to be the context, or the context's `.Region`, or null and the object fresh
+regions.dfy(80,17): Error: the `.Region` of the object being assigned could not be proved to be the context, or the context's `.Region`, or null and the object fresh
+regions.dfy(98,10): Error: the `.Region` of the object of the method call could not be proved to be the context, or the context's `.Region`, or null and the object fresh
+regions.dfy(121,14): Error: the `.Region` of the object being assigned could not be proved to be null (current context)
+regions.dfy(123,7): Error: the `.Region` of the object of the method call could not be proved to be null (current context)
+regions.dfy(155,22): Error: the `.Region` of the object being assigned could not be proved to be the context, or the context's `.Region`, or null and the object fresh
+regions.dfy(172,20): Error: the `.Region` of the object being assigned could not be proved to be null (current context)
+
+
+Dafny program verifier finished with 19 verified, 3 errors
