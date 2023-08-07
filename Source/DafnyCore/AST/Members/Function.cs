@@ -43,8 +43,6 @@ public class Function : MemberDecl, TypeParameter.ParentType, ICallable, ICanFor
        && this is not PrefixPredicate
        && Name != "reads" && Name != "requires"
        && !Attributes.Contains(this.Attributes, "transparent");
-    // && Name != "Valid";
-    // && (EnclosingClass is null || !(Name == "Valid" && Attributes.Contains(EnclosingClass.Attributes, "autocontracts")));
   }
 
   public override bool CanBeRevealed() {
