@@ -25,7 +25,7 @@ namespace Microsoft.Dafny.Compilers {
     }
   }
 
-  class ModuleBuilder : ClassContainer, NewtypeContainer, DatatypeContainer {
+  class ModuleBuilder : ClassContainer, TraitContainer, NewtypeContainer, DatatypeContainer {
     readonly ModuleContainer parent;
     readonly string name;
     readonly List<ModuleItem> body = new();
@@ -41,6 +41,10 @@ namespace Microsoft.Dafny.Compilers {
 
     public void AddClass(Class item) {
       body.Add((ModuleItem)ModuleItem.create_Class(item));
+    }
+
+    public void AddTrait(Trait item) {
+      body.Add((ModuleItem)ModuleItem.create_Trait(item));
     }
 
     public void AddNewtype(Newtype item) {
@@ -60,19 +64,21 @@ namespace Microsoft.Dafny.Compilers {
   interface ClassContainer {
     void AddClass(Class item);
 
-    public ClassBuilder Class(string name) {
-      return new ClassBuilder(this, name);
+    public ClassBuilder Class(string name, List<DAST.Type> superClasses) {
+      return new ClassBuilder(this, name, superClasses);
     }
   }
 
   class ClassBuilder : ClassLike {
     readonly ClassContainer parent;
     readonly string name;
+    readonly List<DAST.Type> superClasses;
     readonly List<ClassItem> body = new();
 
-    public ClassBuilder(ClassContainer parent, string name) {
+    public ClassBuilder(ClassContainer parent, string name, List<DAST.Type> superClasses) {
       this.parent = parent;
       this.name = name;
+      this.superClasses = superClasses;
     }
 
     public void AddMethod(DAST.Method item) {
@@ -84,7 +90,57 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     public object Finish() {
-      parent.AddClass((Class)Class.create(Sequence<Rune>.UnicodeFromString(this.name), Sequence<ClassItem>.FromArray(body.ToArray())));
+      parent.AddClass((Class)Class.create(
+        Sequence<Rune>.UnicodeFromString(this.name),
+        Sequence<DAST.Type>.FromArray(this.superClasses.ToArray()),
+        Sequence<ClassItem>.FromArray(body.ToArray())
+      ));
+      return parent;
+    }
+  }
+
+  interface TraitContainer {
+    void AddTrait(Trait item);
+
+    public TraitBuilder Trait(string name, List<DAST.Type> typeParams) {
+      return new TraitBuilder(this, name, typeParams);
+    }
+  }
+
+  class TraitBuilder : ClassLike {
+    readonly TraitContainer parent;
+    readonly string name;
+    readonly List<DAST.Type> typeParams;
+    readonly List<ClassItem> body = new();
+
+    public TraitBuilder(TraitContainer parent, string name, List<DAST.Type> typeParams) {
+      this.parent = parent;
+      this.name = name;
+      this.typeParams = typeParams;
+    }
+
+    public void AddMethod(DAST.Method item) {
+      // remove existing method with the same name, because we're going to define an implementation
+      for (int i = 0; i < body.Count; i++) {
+        if (body[i].is_Method && body[i].dtor_Method_a0.dtor_name.Equals(item.dtor_name)) {
+          body.RemoveAt(i);
+          break;
+        }
+      }
+
+      body.Add((ClassItem)ClassItem.create_Method(item));
+    }
+
+    public void AddField(DAST.Formal item) {
+      throw new NotImplementedException();
+    }
+
+    public object Finish() {
+      parent.AddTrait((Trait)Trait.create(
+        Sequence<Rune>.UnicodeFromString(this.name),
+        Sequence<DAST.Type>.FromArray(typeParams.ToArray()),
+        Sequence<ClassItem>.FromArray(body.ToArray()))
+      );
       return parent;
     }
   }
@@ -174,8 +230,15 @@ namespace Microsoft.Dafny.Compilers {
 
     void AddField(DAST.Formal item);
 
-    public MethodBuilder Method(bool isStatic, string name, List<DAST.Type> typeArgs, List<DAST.Formal> params_, List<DAST.Type> outTypes, List<ISequence<Rune>> outVars) {
-      return new MethodBuilder(this, isStatic, name, typeArgs, params_, outTypes, outVars);
+    public MethodBuilder Method(
+      bool isStatic, bool hasBody,
+      ISequence<ISequence<Rune>> overridingPath,
+      string name,
+      List<DAST.Type> typeArgs,
+      List<DAST.Formal> params_,
+      List<DAST.Type> outTypes, List<ISequence<Rune>> outVars
+    ) {
+      return new MethodBuilder(this, isStatic, hasBody, overridingPath, name, typeArgs, params_, outTypes, outVars);
     }
 
     public object Finish();
@@ -185,15 +248,27 @@ namespace Microsoft.Dafny.Compilers {
     readonly ClassLike parent;
     readonly string name;
     readonly bool isStatic;
+    readonly bool hasBody;
+    readonly ISequence<ISequence<Rune>> overridingPath;
     readonly List<DAST.Type> typeArgs;
     readonly List<DAST.Formal> params_;
     readonly List<DAST.Type> outTypes;
     readonly List<ISequence<Rune>> outVars;
     readonly List<object> body = new();
 
-    public MethodBuilder(ClassLike parent, bool isStatic, string name, List<DAST.Type> typeArgs, List<DAST.Formal> params_, List<DAST.Type> outTypes, List<ISequence<Rune>> outVars) {
+    public MethodBuilder(
+      ClassLike parent,
+      bool isStatic, bool hasBody,
+      ISequence<ISequence<Rune>> overridingPath,
+      string name,
+      List<DAST.Type> typeArgs,
+      List<DAST.Formal> params_,
+      List<DAST.Type> outTypes, List<ISequence<Rune>> outVars
+    ) {
       this.parent = parent;
       this.isStatic = isStatic;
+      this.hasBody = hasBody;
+      this.overridingPath = overridingPath;
       this.name = name;
       this.typeArgs = typeArgs;
       this.params_ = params_;
@@ -221,6 +296,8 @@ namespace Microsoft.Dafny.Compilers {
 
       return (DAST.Method)DAST.Method.create(
         isStatic,
+        hasBody,
+        overridingPath != null ? Optional<ISequence<ISequence<Rune>>>.create_Some(overridingPath) : Optional<ISequence<ISequence<Rune>>>.create_None(),
         Sequence<Rune>.UnicodeFromString(this.name),
         Sequence<DAST.Type>.FromArray(typeArgs.ToArray()),
         Sequence<DAST.Formal>.FromArray(params_.ToArray()),

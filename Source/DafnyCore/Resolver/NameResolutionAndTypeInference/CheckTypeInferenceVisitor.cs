@@ -1,3 +1,10 @@
+//-----------------------------------------------------------------------------
+//
+// Copyright by the contributors to the Dafny Project
+// SPDX-License-Identifier: MIT
+//
+//-----------------------------------------------------------------------------
+
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
@@ -8,7 +15,6 @@ namespace Microsoft.Dafny;
 
 class CheckTypeInferenceVisitor : ASTVisitor<TypeInferenceCheckingContext> {
   private readonly ModuleResolver resolver;
-  private ErrorReporter reporter => resolver.reporter;
 
   public CheckTypeInferenceVisitor(ModuleResolver resolver) {
     this.resolver = resolver;
@@ -375,7 +381,7 @@ class CheckTypeInferenceVisitor : ASTVisitor<TypeInferenceCheckingContext> {
     Contract.Requires(tok != null);
     Contract.Requires(t != null);
     Contract.Requires(what != null);
-    t = t.NormalizeExpandKeepConstraints();
+    t = t.Normalize(); // note, this keeps type synonyms, by design
 
     if (t is TypeProxy) {
       var proxy = (TypeProxy)t;

@@ -1,4 +1,4 @@
-git-issue-1252.dfy(41,2): Warning: the modify statement with a block statement is deprecated
+git-issue-1252.dfy(37,16): Warning: the modify statement with a block statement is deprecated
 git-issue-1252.dfy(30,11): Error: target object might be null
 git-issue-1252.dfy(37,11): Error: target object might be null
 git-issue-1252.dfy(45,13): Error: target object might be null
