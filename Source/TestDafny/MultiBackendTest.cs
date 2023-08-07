@@ -5,7 +5,6 @@ using System.Text.RegularExpressions;
 using CommandLine;
 using Microsoft.Dafny;
 using Microsoft.Dafny.Plugins;
-using Microsoft.Extensions.Logging.Abstractions;
 using XUnitExtensions;
 using XUnitExtensions.Lit;
 
@@ -153,7 +152,7 @@ public class MultiBackendTest {
 
     if (success) {
       output.WriteLine(
-        $"All executions were successful and matched the expected output (or reported errors for known unsupported features)!");
+        "All executions were successful and matched the expected output (or reported errors for known unsupported features)!");
       return 0;
     } else {
       return -1;
