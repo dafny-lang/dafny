@@ -118,9 +118,9 @@ module RegionTests {
     var y := c.GetValue();   // OK, it's only a function read
     var z := c.Obtain();     // OK, it's only a method without modifies clause
     if * {
-      c.value := 3;          // Error: Cannot prove that c.Region == null
+      c.value := 3;          // Error: Cannot prove that c.Region == null && fresh(c)
     } else {
-      c.SetValue(3);          // Error, cannot prove that c.Region == null
+      c.SetValue(3);          // Error, cannot prove that c.Region == null && fresh(c)
     }
   }
 
@@ -152,7 +152,23 @@ module RegionTests {
       ensures elements[index] == newValue
     {
       previousValue := elements[index]; // OK, it's only a read
-      elements[index] := newValue;  // Error: Cannot prove that elements.Region == this || elements.Region == this.Region || (fresh(elements) && elements.Region == null)
+      if * {
+        elements[index] := newValue;  // Error: Cannot prove that elements.Region == this || elements.Region == this.Region || (fresh(elements) && elements.Region == null)
+      } else {
+        elements.Region := null;  // This is making the object inaccessible!
+        SetStatic(elements, index, newValue, this);
+        assert elements.Region == this;
+      }
+    }
+    static method SetStatic(elements: array<int>, index: int, newValue: int, previousOwner: ArrayWrapper)
+      requires 0 <= index < elements.Length
+      requires elements.Region == null
+      modifies elements
+      ensures elements[index] == newValue
+      ensures elements.Region == previousOwner
+    {
+      elements[index] := newValue; // OK
+      elements.Region := previousOwner; // Error: Cannot prove that Region is null and elements is fresh
     }
     method Set(index: int, newValue: int) returns (previousValue: int)
       requires 0 <= index < elements.Length
