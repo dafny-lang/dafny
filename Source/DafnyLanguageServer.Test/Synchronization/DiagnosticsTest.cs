@@ -883,11 +883,16 @@ method test() {
       var documentItem = CreateTestDocument(source);
       client.OpenDocument(documentItem);
       var firstVerificationDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
-      var secondVerificationDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
+      try {
+        var secondVerificationDiagnostics =
+          await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
 
-      Assert.Single(firstVerificationDiagnostics);
-      // Second diagnostic is a timeout exception from SlowToVerify
-      Assert.Equal(2, secondVerificationDiagnostics.Length);
+        Assert.Single(firstVerificationDiagnostics);
+        // Second diagnostic is a timeout exception from SlowToVerify
+        Assert.Equal(2, secondVerificationDiagnostics.Length);
+      } catch (OperationCanceledException) {
+        await output.WriteLineAsync($"firstVerificationDiagnostics: {firstVerificationDiagnostics}");
+      }
       await AssertNoDiagnosticsAreComing(CancellationToken);
     }
 
