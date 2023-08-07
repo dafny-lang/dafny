@@ -72,7 +72,16 @@ public class SystemModuleManager {
   public readonly TraitDecl ObjectDecl;
   public UserDefinedType ObjectQ() {
     Contract.Assume(ObjectDecl != null);
-    return new UserDefinedType(Token.NoToken, "object?", null) { ResolvedClass = ObjectDecl };
+    return new UserDefinedType(Token.NoToken, "object?", null) {
+      ResolvedClass = ObjectDecl
+    };
+  }
+
+  public UserDefinedType Object() {
+    Contract.Assume(ObjectDecl != null);
+    return new UserDefinedType(Token.NoToken, "object", null) {
+      ResolvedClass = ObjectDecl.NonNullTypeDecl
+    };
   }
 
   public SystemModuleManager(DafnyOptions options) {
@@ -94,6 +103,16 @@ public class SystemModuleManager {
     // create trait 'object'
     ObjectDecl = new TraitDecl(RangeToken.NoToken, new Name("object"), SystemModule, new List<TypeParameter>(), new List<MemberDecl>(), DontCompile(), false, null);
     SystemModule.SourceDecls.Add(ObjectDecl);
+
+    if (options.RegionChecks) {
+      var region = new SpecialField(RangeToken.NoToken, "Region", SpecialField.ID.Floor, null, true, true, true,
+        ObjectQ()
+        , null);
+      region.EnclosingClass = ObjectDecl;
+      region.AddVisibilityScope(SystemModule.VisibilityScope, false);
+      ObjectDecl.Members.Add(region);
+    }
+
     // add one-dimensional arrays, since they may arise during type checking
     // Arrays of other dimensions may be added during parsing as the parser detects the need for these
     UserDefinedType tmp = ArrayType(1, Type.Int, true);

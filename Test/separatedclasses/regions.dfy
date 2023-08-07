@@ -125,6 +125,7 @@ module RegionTests {
       ensures elements.Length == 4
     {
       elements := new int[4];
+      new;
       elements.Region := this;
     }
     method SetWrong(index: int, newValue: int) returns (previousValue: int)
@@ -150,7 +151,7 @@ module RegionTests {
     if * {
       c.elements[0] := 3;         // Error: Cannot prove that c.elements.Region == null
     } else {
-      c.Set(0, 3);                // OK
+      var previousValue := c.Set(0, 3);                // OK
       assert c.elements[0] == 3;  // OK
     }
   }

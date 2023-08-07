@@ -2917,7 +2917,7 @@ namespace Microsoft.Dafny {
     /// parent trait is instantiated with the same type parameters
     /// The method assumes that all types along .ParentTraits have been successfully resolved and .ParentTraitHeads been filled in.
     /// </summary>
-    void RegisterInheritedMembers(TopLevelDeclWithMembers cl) {
+    public void RegisterInheritedMembers(TopLevelDeclWithMembers cl) {
       Contract.Requires(cl != null);
 
       if (cl.ParentTypeInformation != null) {

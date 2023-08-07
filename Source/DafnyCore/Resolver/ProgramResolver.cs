@@ -157,6 +157,15 @@ public class ProgramResolver {
       systemModuleResolver.ResolveTypeParameters(d.TypeArgs, true, d);
       systemModuleResolver.ResolveType(d.tok, d.Rhs, d, ResolveTypeOptionEnum.AllowPrefix, d.TypeArgs);
       systemModuleResolver.allTypeParameters.PopMarker();
+
+      if (Options.RegionChecks) {
+        if (cl.Name.StartsWith("array")) {
+          ((ClassLikeDecl) cl).ParentTraits.Add(SystemModuleManager.Object());
+          ((ClassLikeDecl) cl).ParentTraitHeads.Add(SystemModuleManager.ObjectDecl);
+        }
+
+        systemModuleResolver.RegisterInheritedMembers((ClassLikeDecl) cl);
+      }
     }
 
     systemModuleResolver.ResolveTopLevelDecls_Core(

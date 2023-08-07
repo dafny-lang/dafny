@@ -20,6 +20,7 @@ public class SpecialField : Field {
     Reads,
     Modifies,
     New,
+    Region
   }
   public readonly ID SpecialId;
   public readonly object IdParam;
