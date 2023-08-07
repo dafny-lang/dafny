@@ -1258,11 +1258,7 @@ ClassDecl<DeclModifierData dmodClass, ModuleDefinition/*!*/ module, out TopLevel
   (. c = new ClassDecl(new RangeToken(dmodClass.FirstToken, t), name, module, typeArgs, members, attrs, isRefining, parentTraits);
      c.BodyStartTok = bodyStart;
      c.TokenWithTrailingDocString = tokenWithTrailingDocString;
-     SystemModuleModifiers.Add(b => {
-       if(b.Options.RegionChecks) {
-         parentTraits.Add(b.Object()); // TODO: If traits don't extend object, should not add this.
-       }
-     });
+     parentTraits.Add(new UserDefinedType(Token.NoToken, "object", null));
   .)
   .
 
@@ -1309,11 +1305,8 @@ TraitDecl<DeclModifierData dmodIn, ModuleDefinition/*!*/ module, out TraitDecl/*
   (. trait = new TraitDecl(new RangeToken(dmodIn.FirstToken, t), name, module, typeArgs, members, attrs, isRefining, parentTraits);
      trait.BodyStartTok = bodyStart;
      trait.TokenWithTrailingDocString = tokenWithTrailingDocString;
-     SystemModuleModifiers.Add(b => {
-       if(b.Options.RegionChecks) {
-         parentTraits.Add(b.Object()); // TODO: If traits don't extend object, should not add this.
-       }
-     });
+     
+     parentTraits.Add(new UserDefinedType(Token.NoToken, "object", null));
     .)
   .
 

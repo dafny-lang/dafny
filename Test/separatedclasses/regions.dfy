@@ -5,7 +5,6 @@ module RegionTests {
   // A node that, when attached to another, cannot be modified except by that other node
 
   class Node {
-    //ghost var Region: object? // TODO: Remove once option set
     ghost var Repr: set<object>
     var value: int
     var next: Node?
