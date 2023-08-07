@@ -72,7 +72,11 @@ public class IdeStateObserver : IObserver<IdeState> {
         return;
       }
 
-      notificationPublisher.PublishNotifications(LastPublishedState, snapshot);
+      // To prevent older updates from being sent after newer ones, we can only run one PublishNotifications at a time.
+      // So we wait for it here to finish, and the lock in this method prevents more than one from running at a time.
+#pragma warning disable VSTHRD002
+      notificationPublisher.PublishNotifications(LastPublishedState, snapshot).Wait();
+#pragma warning restore VSTHRD002
       LastPublishedState = snapshot;
     }
   }

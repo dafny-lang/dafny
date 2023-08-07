@@ -30,14 +30,14 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       this.filesystem = filesystem;
     }
 
-    public void PublishNotifications(IdeState previousState, IdeState state) {
+    public async Task PublishNotifications(IdeState previousState, IdeState state) {
       if (state.Version < previousState.Version) {
         return;
       }
 
       PublishVerificationStatus(previousState, state);
-      var _ = PublishDocumentDiagnostics(state);
       PublishGhostDiagnostics(previousState, state);
+      await PublishDocumentDiagnostics(state);
     }
 
     private void PublishVerificationStatus(IdeState previousState, IdeState state) {
