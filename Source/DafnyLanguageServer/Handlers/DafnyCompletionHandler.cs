@@ -59,7 +59,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
       private readonly CompletionParams request;
       private readonly CancellationToken cancellationToken;
 
-      public CompletionProcessor(ISymbolGuesser symbolGuesser, ILogger<DafnyCompletionHandler> logger, IdeState state, 
+      public CompletionProcessor(ISymbolGuesser symbolGuesser, ILogger<DafnyCompletionHandler> logger, IdeState state,
         CompletionParams request, CancellationToken cancellationToken, DafnyOptions options) {
         this.symbolGuesser = symbolGuesser;
         this.state = state;

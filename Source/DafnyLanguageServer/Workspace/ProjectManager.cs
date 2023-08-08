@@ -48,7 +48,8 @@ public class ProjectManager : IDisposable {
 
   private int openFileCount;
 
-  private bool VerifyOnOpenChange => options.Get(ServerCommand.Verification) == VerifyOnMode.Change;
+  private VerifyOnMode AutomaticVerificationMode => options.Get(ServerCommand.Verification);
+
   private bool VerifyOnSave => options.Get(ServerCommand.Verification) == VerifyOnMode.Save;
   public List<FilePosition> ChangedVerifiables { get; set; } = new();
   public List<Location> RecentChanges { get; set; } = new();
@@ -150,8 +151,8 @@ public class ProjectManager : IDisposable {
   }
 
   public void TriggerVerificationForFile(Uri triggeringFile) {
-    if (VerifyOnOpenChange) {
-      var _ = VerifyEverythingAsync(triggeringFile);
+    if (AutomaticVerificationMode is VerifyOnMode.ChangeFile or VerifyOnMode.ChangeProject) {
+      var _ = VerifyEverythingAsync(AutomaticVerificationMode == VerifyOnMode.ChangeFile ? triggeringFile : null);
     } else {
       logger.LogDebug("Setting result for workCompletedForCurrentVersion");
     }
@@ -271,6 +272,7 @@ public class ProjectManager : IDisposable {
       foreach (var canVerify in orderedVerifiables) {
         // Wait for each task to try and run, so the order is respected.
         await CompilationManager.VerifyTask(resolvedCompilation, canVerify);
+        // This delay allows the task to be queued after it is translated. It's difficult to explicitly wait for the queuing event.
         // Needed to get gutter icon tests to pass reliably. Remove when we no longer have gutter icons on the server side.
         // The problem is that without this, the queueing of one task in Boogie interleaves with translating the next one.
         // Both of these actions can publish gutter icons, and they share a data store (the VerificationTree), so doing both updates before 
