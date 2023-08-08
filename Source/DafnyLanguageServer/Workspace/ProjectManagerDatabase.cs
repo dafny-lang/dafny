@@ -118,6 +118,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         return await manager.GetLastDocumentAsync();
       }
 
+      logger.LogDebug($"GetLastDocumentAsync returned null for {documentId.Uri}");
       return null;
     }
 
