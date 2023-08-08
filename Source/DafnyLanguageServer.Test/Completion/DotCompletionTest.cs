@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
+using Microsoft.Extensions.Logging;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -219,7 +220,7 @@ class X {
       Assert.Equal("GetConstant", completionList[0].Label);
     }
 
-    public DotCompletionTest(ITestOutputHelper output) : base(output) {
+    public DotCompletionTest(ITestOutputHelper output) : base(output, LogLevel.Trace) {
     }
   }
 }
