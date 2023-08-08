@@ -8767,31 +8767,10 @@ namespace Microsoft.Dafny {
           var useSurrogateLocal = inBodyInitContext && Expression.AsThis(fse.Obj) != null;
 
           if(options.RegionChecks) {
-            if (etran.translator.currentDeclaration is Method method) { // It should always be
-
-              // Need to prove that
-              // obj.Region == context.Region || obj.Region == context || obj.Region == null && fresh(obj)
-              var region = program.SystemModuleManager.RegionField;
-              var regionCheck = Expression.CreateAnd(
-                Expression.CreateEq(
-                  Expression.CreateFieldSelect(Token.NoToken, fse.Obj, region),
-                  Expression.CreateNull(program), Type.Bool),
-                Expression.CreateFresh(fse.Obj)); // TODO: Add the two other cases when non staticbuilder.Add(Assert(fse.Obj.tok, etran.TrExpr(regionCheck),
-              if (!method.IsStatic) {
-                var thisExpr = new ThisExpr(method);
-                regionCheck = Expression.CreateOr(
-                  Expression.CreateOr(
-                    Expression.CreateEq(
-                      Expression.CreateFieldSelect(Token.NoToken, fse.Obj, region),
-                      Expression.CreateFieldSelect(Token.NoToken, thisExpr, region), thisExpr.Type),
-                    Expression.CreateEq(
-                      Expression.CreateFieldSelect(Token.NoToken, fse.Obj, region),
-                      thisExpr, thisExpr.Type)
-                  ),
-                  regionCheck);
-              }
+            var regionCheck = etran.RegionCheck(fse.Obj, out var isStatic);
+            if (regionCheck != null) {
               builder.Add(Assert(fse.Obj.tok, etran.TrExpr(regionCheck),
-                new PODesc.RegionMustMatchInInstanceContext(regionCheck, true, method.IsStatic)));
+                new PODesc.RegionMustMatchInInstanceContext(regionCheck, true, isStatic)));
             }
           }
           var obj = SaveInTemp(etran.TrExpr(fse.Obj), rhsCanAffectPreviouslyKnownExpressions,

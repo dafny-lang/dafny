@@ -1938,6 +1938,38 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), predef.BoxType,
         // Add $Is and $IsAlloc
         return translator.GetWhereClause(tok, e, type, this, ISALLOC);
       }
+
+      public Expression RegionCheck(Expression obj, out bool isStatic) {
+        if (translator.currentDeclaration is not Method method) {
+          isStatic = true; // Does not matter
+          return null;
+        }
+
+        // Need to prove that
+        // obj.Region == context.Region || obj.Region == context || obj.Region == null && fresh(obj)
+        var region = translator.program.SystemModuleManager.RegionField;
+        var regionCheck = Expression.CreateAnd(
+          Expression.CreateEq(
+            Expression.CreateFieldSelect(Token.NoToken, obj, region),
+            Expression.CreateNull(translator.program), Type.Bool),
+          Expression.CreateFresh(obj));
+        isStatic = method.IsStatic;
+        if (!isStatic) {
+          var thisExpr = new ThisExpr(method);
+          regionCheck = Expression.CreateOr(
+            Expression.CreateOr(
+              Expression.CreateEq(
+                Expression.CreateFieldSelect(Token.NoToken, obj, region),
+                Expression.CreateFieldSelect(Token.NoToken, thisExpr, region), thisExpr.Type),
+              Expression.CreateEq(
+                Expression.CreateFieldSelect(Token.NoToken, obj, region),
+                thisExpr, thisExpr.Type)
+            ),
+            regionCheck);
+        }
+
+        return regionCheck;
+      }
     }
   }
 }
