@@ -848,9 +848,21 @@ public abstract class Expression : TokenNode {
     };
   }
 
+  /// <summary>
+  /// Creates a resolved null literal
+  /// </summary>
   public static Expression CreateNull(Program program, IToken token = null) {
     return new LiteralExpr(token ?? Token.NoToken) {
       Type = program.SystemModuleManager.ObjectQ()
+    };
+  }
+  
+  /// <summary>
+  /// Creates a resolved fresh() expression
+  /// </summary>
+  public static FreshExpr CreateFresh(Expression reference, IToken token = null) {
+    return new FreshExpr(token ?? Token.NoToken, reference) {
+      Type = Type.Bool
     };
   }
 
