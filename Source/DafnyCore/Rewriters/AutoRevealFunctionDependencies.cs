@@ -52,7 +52,6 @@ public class AllOpaqueRevealStmtInserter : IRewriter {
             foreach (var expression in subExpressions) {
               if (expression is FunctionCallExpr funcExpr) {
                 var func = funcExpr.Function;
-                var modulePath = new List<ModuleDefinition> { func.EnclosingClass.EnclosingModuleDefinition };
 
                 if (isRevealable(moduleDefinition.AccessibleMembers, func)) {
                   if (func.IsMadeImplicitlyOpaque(Options)) {
@@ -122,10 +121,8 @@ public class AllOpaqueRevealStmtInserter : IRewriter {
   }
 
   /// <summary>
-  /// Wrapper class created for traversing call graphs of modules. It stores the actual call graph vertex,
-  /// a boolean flag `local` indicating whether the callable is in the same module as its predecessor in the traversal,
-  /// and a sequence of NameSegments and ModuleDefinitions which captures the path from the original callable's EnclosingModule
-  /// to this callable.
+  /// Wrapper class created for traversing call graphs of modules. It stores the actual call graph vertex and
+  /// a boolean flag `local` indicating whether the callable is in the same module as its predecessor in the traversal.
   /// </summary>
   private class GraphTraversalVertex {
     public readonly Graph<ICallable>.Vertex Vertex;
@@ -253,13 +250,10 @@ public class AllOpaqueRevealStmtInserter : IRewriter {
     var visited = new HashSet<GraphTraversalVertex>();
     var queue = new Queue<GraphTraversalVertex>();
 
-    var defaultModulePath =
-      rootModule is null || rootModule == currentClass.EnclosingModuleDefinition ? new List<ModuleDefinition>() : new List<ModuleDefinition> { currentClass.EnclosingModuleDefinition };
-
     var defaultRootModule = rootModule is null ? currentClass.EnclosingModuleDefinition : rootModule;
 
     // The rootModule parameter is used in the case when GetEnumerator is called, not on a function from a class, but on subset type expressions.
-    // Here this function may be called with a callable that is in a different module than the original one. To capture this last part of scoping, this additional argument is used.
+    // Here this function may be called with a callable that is in a different module than the original one.
 
     foreach (var callable in origVertex.Successors) {
       queue.Enqueue(new GraphTraversalVertex(callable, true));
@@ -375,7 +369,7 @@ public class AllOpaqueRevealStmtInserter : IRewriter {
     try {
       accessibleMember = rootModule.AccessibleMembers[func][0];
     } catch (KeyNotFoundException) {
-      // TODO: Error handling
+      Contract.Assert(false);
     }
     var resolveExpr = constructExpressionFromPath(func, accessibleMember);
 
