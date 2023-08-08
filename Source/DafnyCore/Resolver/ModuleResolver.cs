@@ -1491,14 +1491,11 @@ namespace Microsoft.Dafny {
       }
 
       if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
-<<<<<<< HEAD
-=======
         // Check that class constructors are called when required.
         new ObjectConstructorChecker(reporter).VisitDeclarations(declarations);
       }
 
       if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
->>>>>>> ea54998f0dca4ed091629cc2043bdbd726aab949
         new HigherOrderHeapAllocationChecker(reporter).VisitDeclarations(declarations);
       }
 
