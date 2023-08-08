@@ -265,7 +265,6 @@ public class CompilationManager {
   }
 
   public void FinishedNotifications(CompilationAfterTranslation compilation) {
-    MarkVerificationFinished();
     if (ReportGutterStatus) {
       // All unvisited trees need to set them as "verified"
       if (!cancellationSource.IsCancellationRequested) {
@@ -276,6 +275,7 @@ public class CompilationManager {
         verificationProgressReporter.ReportRealtimeDiagnostics(compilation, uri, true);
       }
     }
+    MarkVerificationFinished();
   }
 
   private void HandleStatusUpdate(CompilationAfterTranslation compilation, IImplementationTask implementationTask, IVerificationStatus boogieStatus) {

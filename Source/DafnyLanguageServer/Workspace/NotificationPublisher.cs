@@ -131,7 +131,11 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
             // Prevent memory leaks by cleaning up previous state when it's the IDE's initial state.
             publishedDiagnostics.Remove(publishUri);
           }
-          logger.LogTrace($"Sending diagnostics with stacktrace:\n{Environment.StackTrace}");
+
+          if (logger.IsEnabled(LogLevel.Trace)) {
+            logger.LogTrace($"Sending diagnostics with stacktrace:\n{Environment.StackTrace}");
+          }
+
           languageServer.TextDocument.PublishDiagnostics(new PublishDiagnosticsParams {
             Uri = publishUri,
             Version = filesystem.GetVersion(publishUri) ?? 0,
