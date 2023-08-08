@@ -80,7 +80,7 @@ method Foo() ensures false { } ";
   [Fact]
   public async Task EnsuresItWorksForSubsetTypes() {
     await VerifyTrace(@"
-    |  |  |  |  |  I  I  I  |  |  |  |  I  I  I  |  |  |  | :
+    |  |  |  |  |  I  I  I  |  |  |  |  I  I  I  |  |  |  | :// The maximum Id
  .  |  |  |  |  |  I  I  I  |  |  |  |  I  I  I  |  |  |  | :ghost const maxId := 200;
     |  |  |  |  |  I  I  I  |  |  |  |  I  I  I  |  |  |  | :
  .  .  |  |  |  |  I  I  I  I  |  |  |  I  I  I  I  |  |  | :ghost predicate isIssueIdValid(issueId: int) {
