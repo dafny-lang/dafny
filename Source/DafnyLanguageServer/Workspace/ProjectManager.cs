@@ -246,7 +246,7 @@ public class ProjectManager : IDisposable {
   /// This property and related code will be removed once we replace server gutter icons with client side computed gutter icons
   /// </summary>
   public static bool GutterIconTesting = false;
-  
+
   public async Task VerifyEverythingAsync(Uri? uri) {
     _ = workCompletedForCurrentVersion.WaitAsync();
     try {
@@ -274,7 +274,7 @@ public class ProjectManager : IDisposable {
       var orderedVerifiables = verifiables.OrderBy(GetPriorityAttribute).CreateOrderedEnumerable(
         t => implementationOrder.GetOrDefault(t.Tok.GetFilePosition(), () => int.MaxValue),
         null, false).CreateOrderedEnumerable(TopToBottomPriority, null, false).ToList();
-      logger.LogDebug($"Ordered verifiables: {string.Join(", ", orderedVerifiables.Select(v => v.NameToken.val))}" );
+      logger.LogDebug($"Ordered verifiables: {string.Join(", ", orderedVerifiables.Select(v => v.NameToken.val))}");
 
       if (GutterIconTesting) {
         foreach (var canVerify in orderedVerifiables) {

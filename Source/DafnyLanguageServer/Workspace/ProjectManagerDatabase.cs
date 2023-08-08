@@ -12,7 +12,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
   /// <summary>
   /// Contains a collection of ProjectManagers
   /// </summary>
-  public class ProjectManagerDatabase : IProjectDatabase, IDisposable {
+  public class ProjectManagerDatabase : IProjectDatabase {
     private object myLock = new();
     public const int ProjectFileCacheExpiryTime = 100;
 
@@ -113,6 +113,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         return await manager.GetLastDocumentAsync();
       }
 
+      logger.LogDebug($"GetLastDocumentAsync returned null for {documentId.Uri}");
       return null;
     }
 

@@ -277,9 +277,6 @@ public class CompilationManager {
       verificationProgressReporter.ReportRealtimeDiagnostics(compilation, canVerify.Tok.Uri, true);
     }
 
-    if (compilation.Version != startingCompilation.Version) {
-      logger.LogCritical("compilation.Version != startingCompilation.Version");
-    }
     MarkVerificationFinished();
   }
 

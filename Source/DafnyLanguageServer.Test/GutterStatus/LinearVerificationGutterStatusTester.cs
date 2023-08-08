@@ -4,23 +4,20 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
-using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 using Microsoft.Dafny.LanguageServer.Workspace;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
-using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.JsonRpc;
 using OmniSharp.Extensions.LanguageServer.Client;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
-using Xunit;
 using Xunit.Abstractions;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.GutterStatus;
 
-public abstract class LinearVerificationGutterStatusTester : ClientBasedLanguageServerTest, IDisposable {
+public abstract class LinearVerificationGutterStatusTester : ClientBasedLanguageServerTest {
   protected TestNotificationReceiver<VerificationStatusGutter> verificationStatusGutterReceiver;
 
   protected override async Task SetUp(Action<DafnyOptions> modifyOptions) {
@@ -32,11 +29,6 @@ public abstract class LinearVerificationGutterStatusTester : ClientBasedLanguage
       modifyOptions?.Invoke(options);
     }
     await base.SetUp(ModifyOptions);
-  }
-
-  public void Dispose() {
-    ProjectManager.GutterIconTesting = false;
-    base.Dispose();
   }
 
   protected override void InitialiseClientHandler(LanguageClientOptions options) {
@@ -328,8 +320,8 @@ public abstract class LinearVerificationGutterStatusTester : ClientBasedLanguage
     return toReplaceRegex.Replace(traceObtained, "?");
   }
 
-  protected LinearVerificationGutterStatusTester(ITestOutputHelper output) :
-    base(output, LogLevel.Trace) {
+  protected LinearVerificationGutterStatusTester(ITestOutputHelper output) : base(output) {
     ProjectManager.GutterIconTesting = true;
+    Disposable.Add(System.Reactive.Disposables.Disposable.Create(() => ProjectManager.GutterIconTesting = false));
   }
 }
