@@ -26,9 +26,18 @@ module RegionTests {
     method Obtain() returns (v: int) {
       v := value;
     }
-    method SetValue(newValue: int) modifies this`value ensures value == newValue{
+    method SetValue(newValue: int)
+      modifies this`value
+      ensures value == newValue
+    {
       value := newValue;
     }
+    method GiveTo(newOwner: object) modifies this
+      ensures old(value) == value && old(next) == next
+      ensures Region == newOwner  
+    {
+      Region := newOwner;
+    } 
 
     constructor Wrong(value: int, next: Node?)
       modifies next
@@ -141,7 +150,7 @@ module RegionTests {
       ensures fresh(elements)
       ensures elements.Length == 4
     {
-      elements := new int[4];
+      this.elements := new int[4];
       new;
       elements.Region := this;
     }

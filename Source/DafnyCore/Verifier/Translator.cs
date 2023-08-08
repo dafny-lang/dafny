@@ -8776,7 +8776,7 @@ namespace Microsoft.Dafny {
                 new FreshExpr(Token.NoToken, fse.Obj) {
                   Type = Type.Bool
                 });// TODO: Add the two other cases when non static
-            builder.Add(Assert(tok, etran.TrExpr(regionCheck),
+            builder.Add(Assert(fse.Obj.tok, etran.TrExpr(regionCheck),
               new PODesc.RegionMustMatchInInstanceContext(regionCheck, true, true)));
           }
           var obj = SaveInTemp(etran.TrExpr(fse.Obj), rhsCanAffectPreviouslyKnownExpressions,
