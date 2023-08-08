@@ -137,7 +137,7 @@ namespace DafnyTestGeneration {
                  cmd.Attributes.Params != null &&
                  cmd.Attributes.Params.Count() == 1)
         ?.Attributes.Params[0].ToString();
-      string uniqueId = options.TestGenOptions.Mode == TestGenerationOptions.Modes.Branch ? "#" + block.UniqueId : "";
+      string uniqueId = options.TestGenOptions.Mode != TestGenerationOptions.Modes.Block ? "#" + block.UniqueId : "";
       return state == null ? null : Regex.Replace(state, @"\s+", "") + uniqueId;
     }
 

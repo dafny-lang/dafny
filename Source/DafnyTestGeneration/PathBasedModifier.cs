@@ -26,7 +26,7 @@ namespace DafnyTestGeneration {
     private const string BlockVarNamePrefix = "block";
     // Dafny will try to generate tests for paths through the program of increasingly greater length,
     // PathLengthStep determines the increments by which Dafny should increase maximum path length in-between attempts
-    private const int PathLengthStep = 20;
+    private const int PathLengthStep = 5;
 
     public PathBasedModifier(Modifications modifications) {
       this.modifications = modifications;
@@ -43,26 +43,30 @@ namespace DafnyTestGeneration {
         bool newPathsFound = true;
         // Consider paths of increasing length, pruning out infeasible sub-paths in the process:
         while (newPathsFound) {
+          List<Path> pathsToConsider = new(); // paths without nown unfeasible subpaths
+          var totalPaths = 0;
+          foreach (var path in GeneratePaths(implementation, pathLength - PathLengthStep, pathLength)) {
+            totalPaths++;
+            var pathId = path.ToString(DafnyInfo.Options);
+            if (pathLength <= PathLengthStep || !modifications.Values.Any(modification =>
+                  pathId.StartsWith(modification.uniqueId) &&
+                  modification.CounterexampleStatus == ProgramModification.Status.Failure)) {
+              pathsToConsider.Add(path);
+            }
+          }
+          newPathsFound = pathsToConsider.Count() != 0;
           if (DafnyInfo.Options.Verbose) {
             Console.Out.WriteLine(
               $"// Now considering paths of length {pathLength - PathLengthStep} to {pathLength} for {implementation.VerboseName}");
+            Console.Out.WriteLine($"// Maximum number of feasible paths of this length is  {pathsToConsider.Count} out of {totalPaths} total");
           }
-          newPathsFound = false;
-          foreach (var path in GeneratePaths(implementation, pathLength - PathLengthStep, pathLength)) {
-            if (pathLength > PathLengthStep) {
-              var subpath = modifications.GetProgramModification(
-                $"{path.Impl.VerboseName.Split(" ")[0]} {path.FirstNBlocksAsString(pathLength - PathLengthStep, DafnyInfo.Options)}");
-              if (subpath == null || subpath.CounterexampleStatus != ProgramModification.Status.Success) {
-                continue; // if a subpath is infeasible there is no reason to try out this one
-              }
-            }
-            newPathsFound = true;
+          foreach (var path in pathsToConsider) {
             path.AssertPath();
             var testEntryNames = Utils.DeclarationHasAttribute(path.Impl, TestGenerationOptions.TestInlineAttribute)
               ? TestEntries
               : new() { path.Impl.VerboseName };
             yield return modifications.GetProgramModification(p, path.Impl, new HashSet<string>(), testEntryNames,
-              $"{path.Impl.VerboseName.Split(" ")[0]} {path.FirstNBlocksAsString(-1, DafnyInfo.Options)}");
+              path.ToString(DafnyInfo.Options));
             path.NoAssertPath();
           }
           pathLength += PathLengthStep;
@@ -157,11 +161,9 @@ namespace DafnyTestGeneration {
         this.pathBlocks = pathBlocks;
       }
 
-      public string FirstNBlocksAsString(int n, DafnyOptions options) {
-        if (n == -1) {
-          return $"path through {string.Join(",", pathBlocks.ConvertAll(block => Utils.GetBlockId(block, options)).Where(id => id != null))}";
-        }
-        return $"path through {string.Join(",", pathBlocks.ConvertAll(block => Utils.GetBlockId(block, options)).Take(n).Where(id => id != null))}";
+      public string ToString(DafnyOptions options) {
+        return $"{Impl.VerboseName.Split(" ")[0]} path through " +
+               $"{string.Join(",", pathBlocks.ConvertAll(block => Utils.GetBlockId(block, options) ?? block.UniqueId.ToString()))}";
       }
 
       /// <summary>

@@ -72,7 +72,7 @@ namespace DafnyTestGeneration {
     internal Status CounterexampleStatus;
     public readonly Implementation Implementation; // implementation under test
 
-    private readonly string uniqueId;
+    internal readonly string uniqueId;
     public readonly HashSet<string> CapturedStates;
 
     private readonly HashSet<string> testEntryNames;
