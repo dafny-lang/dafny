@@ -476,11 +476,11 @@ public class ModuleDefinition : RangeNode, IAttributeBearingDeclaration, IClonea
 
 
         var exports = d is AliasModuleDecl ? ((AliasModuleDecl)d).Exports : ((AbstractModuleDecl)d).Exports;
-        var isDefaultExportSet = !exports.Any();
+        var exportSet = exports.Any() ? exports.First().val : origMod.Name;
 
         foreach (var kvp in origMod.AccessibleMembers) {
           var isDeclRevealed = true;
-          if (isDefaultExportSet || isDeclExported(origMod, exports.First().val, kvp.Key, out isDeclRevealed)) {
+          if (isDeclExported(origMod, exportSet, kvp.Key, out isDeclRevealed)) {
             var newVal = kvp.Value.Select(member => member.Clone()).ToList();
 
             foreach (var accessibleMember in newVal) {
@@ -531,19 +531,20 @@ public class ModuleDefinition : RangeNode, IAttributeBearingDeclaration, IClonea
   private bool isDeclExported(ModuleDefinition moduleDefinition, string exportSetName, Declaration decl, out bool isItRevealed) {
     isItRevealed = true;
 
-    foreach (ModuleExportDecl moduleExportDecl in moduleDefinition.TopLevelDecls.Where(decl =>
-               decl is ModuleExportDecl && decl.Name == exportSetName)) {
-      foreach (ExportSignature export in moduleExportDecl.Exports) {
-        if (export.Decl == decl) {
-          isItRevealed = !export.Opaque;
-          return true;
-        }
-      }
+    var moduleExports = moduleDefinition.TopLevelDecls.Where(decl => decl is ModuleExportDecl && decl.Name == exportSetName);
 
+    if (!moduleExports.Any()) {
+      return true;
+    }
+    
+    var exportSignatures = ((ModuleExportDecl)moduleExports.First()).Exports.Where(export => export.Decl == decl);
+
+    if (!exportSignatures.Any()) {
       return false;
     }
-
-    return false;
+    
+    isItRevealed = !exportSignatures.First().Opaque;
+    return true;
   }
 
   private void AddAccessibleMember(Declaration accessibleDecl, List<AccessibleMember> newVal) {

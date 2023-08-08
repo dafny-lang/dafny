@@ -26,8 +26,8 @@ namespace Microsoft.Dafny;
 ///
 /// assuming that g() and h() don't have the `{:transparent}` attribute.
 /// </summary>
-public class AllOpaqueRevealStmtInserter : IRewriter {
-  public AllOpaqueRevealStmtInserter(ErrorReporter reporter) : base(reporter) { }
+public class AutoRevealFunctionDependencies : IRewriter {
+  public AutoRevealFunctionDependencies(ErrorReporter reporter) : base(reporter) { }
 
   internal override void PostResolveIntermediate(ModuleDefinition moduleDefinition) {
     Contract.Requires(moduleDefinition != null);
