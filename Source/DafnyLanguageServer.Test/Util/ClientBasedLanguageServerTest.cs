@@ -10,6 +10,7 @@ using JetBrains.Annotations;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
 using Microsoft.Dafny.LanguageServer.Workspace;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
+using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.JsonRpc;
 using OmniSharp.Extensions.LanguageServer.Client;
 using OmniSharp.Extensions.LanguageServer.Protocol.Client;
@@ -40,6 +41,9 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
 
   private static Regex errorTests = new Regex(@"\*\*Error:\*\*|\*\*Success:\*\*");
 
+  protected ClientBasedLanguageServerTest(ITestOutputHelper output, LogLevel dafnyLogLevel = LogLevel.Information)
+    : base(output, dafnyLogLevel) {
+  }
 
   protected async Task<TextDocumentItem> CreateAndOpenTestDocument(string source, string filePath = null,
     int version = 1) {
@@ -103,9 +107,14 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
           return namedVerifiableStatus;
         }
       } catch (OperationCanceledException) {
-        await output.WriteLineAsync($"\nOld to new history was: {verificationStatusReceiver.History.Stringify()}");
+        WriteVerificationHistory();
       }
     }
+  }
+
+  protected void WriteVerificationHistory() {
+    output.WriteLine($"\nOld to new history was:");
+    verificationStatusReceiver.History.Stringify(output);
   }
 
   public async Task<IList<FileVerificationStatus>> WaitUntilCompletedForUris(int uriCount, CancellationToken cancellationToken) {
@@ -123,7 +132,7 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
           foundStatus.NamedVerifiables.All(n => n.Status >= PublishedVerificationStatus.Error);
         result.Add(foundStatus);
       } catch (OperationCanceledException) {
-        await output.WriteLineAsync($"\nOld to new history was: {verificationStatusReceiver.History.Stringify()}");
+        WriteVerificationHistory();
         throw;
       }
     }
@@ -339,8 +348,5 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
       ContentChanges = changes
     });
     return client.WaitForNotificationCompletionAsync(documentItem.Uri, CancellationToken);
-  }
-
-  public ClientBasedLanguageServerTest(ITestOutputHelper output) : base(output) {
   }
 }
