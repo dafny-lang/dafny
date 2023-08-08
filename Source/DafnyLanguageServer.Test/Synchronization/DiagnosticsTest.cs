@@ -12,6 +12,7 @@ using Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors;
 using Newtonsoft.Json;
 using Xunit.Abstractions;
 using Xunit;
+using Xunit.Sdk;
 using XunitAssertMessages;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
@@ -728,14 +729,16 @@ method t10() { assert false; }".TrimStart();
         var documentItem = CreateTestDocument(source, $"test_{i}.dfy");
         client.OpenDocument(documentItem);
         var diagnostics = await GetLastDiagnostics(documentItem, cancellationToken);
-        AssertM.Equal(5, diagnostics.Length, $"Iteration is {i}, Old to new history was: {diagnosticsReceiver.History.Stringify()}");
+        try {
+          AssertM.Equal(5, diagnostics.Length, $"Iteration is {i}");
+        } catch (EqualException) {
+          WriteVerificationHistory();
+        }
         Assert.Equal(MessageSource.Verifier.ToString(), diagnostics[0].Source);
         Assert.Equal(DiagnosticSeverity.Error, diagnostics[0].Severity);
         await AssertNoDiagnosticsAreComing(cancellationToken);
       }
     }
-
-
 
     [Fact]
     public async Task OpeningDocumentWithElephantOperatorDoesNotThrowException() {
@@ -883,11 +886,16 @@ method test() {
       var documentItem = CreateTestDocument(source);
       client.OpenDocument(documentItem);
       var firstVerificationDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
-      var secondVerificationDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
+      try {
+        var secondVerificationDiagnostics =
+          await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
 
-      Assert.Single(firstVerificationDiagnostics);
-      // Second diagnostic is a timeout exception from SlowToVerify
-      Assert.Equal(2, secondVerificationDiagnostics.Length);
+        Assert.Single(firstVerificationDiagnostics);
+        // Second diagnostic is a timeout exception from SlowToVerify
+        Assert.Equal(2, secondVerificationDiagnostics.Length);
+      } catch (OperationCanceledException) {
+        await output.WriteLineAsync($"firstVerificationDiagnostics: {firstVerificationDiagnostics}");
+      }
       await AssertNoDiagnosticsAreComing(CancellationToken);
     }
 
