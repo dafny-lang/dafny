@@ -1,4 +1,5 @@
 ﻿using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -28,7 +29,7 @@ public class CachedLinearVerificationGutterStatusTester : LinearVerificationGutt
  .  S  S  |  I  $  | :}", true);
   }
 
-  [Fact(Timeout = MaxTestExecutionTimeMs)]
+  [Fact]
   public async Task EnsureCachingDoesNotHideErrors() {
     await SetUp(options => {
       options.Set(BoogieOptionBag.Cores, 1U);

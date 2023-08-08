@@ -5,6 +5,7 @@
 //
 //-----------------------------------------------------------------------------
 
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Diagnostics.Contracts;
@@ -1329,7 +1330,8 @@ namespace Microsoft.Dafny {
             FrameExpressionUse.Modifies =>
               $"a modifies-clause {expressionMustDenoteObject} or {collection} {instead}",
             FrameExpressionUse.Unchanged =>
-              $"an unchanged {expressionMustDenoteObject} or {collection} {instead}"
+              $"an unchanged {expressionMustDenoteObject} or {collection} {instead}",
+            _ => throw new ArgumentOutOfRangeException(nameof(use), use, null)
           };
           ReportError(fe.E.tok, errorMsgFormat, fe.E.PreType);
         }
