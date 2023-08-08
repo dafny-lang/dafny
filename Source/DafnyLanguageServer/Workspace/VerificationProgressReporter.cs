@@ -164,6 +164,10 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
       GroupBy(i => ((IToken)i.tok).Uri).
       ToDictionary(g => g.Key, g => g);
 
+    if (logger.IsEnabled(LogLevel.Debug)) {
+      logger.LogDebug($"ReportImplementationsBeforeVerification for ${compilation.Project.Uri}, version {compilation.Version}, implementations: " +
+                      $"{string.Join(", ", implementations.Select(i => i.Name))}");
+    }
     foreach (var tree in compilation.VerificationTrees.Values) {
       // We migrate existing implementations to the new provided ones if they exist.
       // (same child number, same file and same position)

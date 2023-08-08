@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.IO;
 using System.Linq;
 using System.Text;
 
@@ -9,44 +10,42 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 
 public static class StringifyUtil {
 
-  public static string Stringify(this object root, bool showNullChildren = false) {
-
-    var builder = new StringBuilder();
+  public static void Stringify(this object root, TextWriter writer, bool showNullChildren = false) {
 
     void Helper(ImmutableHashSet<object> visited, object? value, int indentation) {
       if (value == null) {
-        builder.Append("null");
+        writer.Write("null");
         return;
       }
 
       if (value is IEnumerable<object> enumerable) {
         var sep = "";
-        builder.Append("[ ");
+        writer.Write("[ ");
         var newIndentation = indentation + 2;
         foreach (var child in enumerable) {
-          builder.AppendLine(sep);
-          builder.Append(new String(' ', newIndentation));
+          writer.WriteLine(sep);
+          writer.Write(new String(' ', newIndentation));
           Helper(visited, child, newIndentation);
           sep = ", ";
         }
 
         if (sep != "") {
-          builder.AppendLine();
-          builder.Append(new String(' ', indentation));
+          writer.WriteLine();
+          writer.Write(new String(' ', indentation));
         }
-        builder.Append("]");
+        writer.Write("]");
 
         return;
       }
 
       if (value is string) {
-        builder.Append($"\"{value}\"");
+        writer.Write($"\"{value}\"");
         return;
       }
 
       var type = value.GetType();
       if (type.Namespace?.StartsWith("System") == true) {
-        builder.Append(value);
+        writer.Write(value);
         return;
       }
 
@@ -54,31 +53,35 @@ public static class StringifyUtil {
       if (properties.Any(p => p.PropertyType.IsAssignableTo(typeof(IEnumerable<object>)))) {
 
         if (visited.Contains(value)) {
-          builder.Append("<visited>");
+          writer.Write("<visited>");
           return;
         }
         var newVisited = visited.Add(value);
 
-        builder.Append(type.Name + " { ");
+        writer.Write(type.Name + " { ");
         var objectSep = "";
         foreach (var property in properties) {
           var child = property.GetValue(value);
           if (!showNullChildren && child == null) {
             continue;
           }
-          builder.Append(objectSep);
-          builder.Append(property.Name + ": ");
+          writer.Write(objectSep);
+          writer.Write(property.Name + ": ");
           Helper(newVisited, child, indentation);
           objectSep = ", ";
         }
-        builder.Append(" }");
+        writer.Write(" }");
       } else {
-        builder.Append(value);
+        writer.Write(value);
       }
     }
 
     Helper(ImmutableHashSet.Create<object>(), root, 0);
+  }
 
-    return builder.ToString()!;
+  public static string Stringify(this object root, bool showNullChildren = false) {
+    var stringWriter = new StringWriter();
+    Stringify(root, stringWriter, showNullChildren);
+    return stringWriter.ToString();
   }
 }
