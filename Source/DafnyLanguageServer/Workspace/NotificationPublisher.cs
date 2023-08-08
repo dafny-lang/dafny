@@ -132,9 +132,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
             publishedDiagnostics.Remove(publishUri);
           }
 
-          if (logger.IsEnabled(LogLevel.Trace)) {
-            logger.LogTrace($"Sending diagnostics with stacktrace:\n{Environment.StackTrace}");
-          }
+          // if (logger.IsEnabled(LogLevel.Trace)) {
+          //   logger.LogTrace($"Sending diagnostics with stacktrace:\n{Environment.StackTrace}");
+          // }
 
           languageServer.TextDocument.PublishDiagnostics(new PublishDiagnosticsParams {
             Uri = publishUri,

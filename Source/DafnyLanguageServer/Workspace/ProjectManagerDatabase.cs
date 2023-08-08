@@ -115,7 +115,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       };
       var manager = await GetProjectManager(documentId, false);
       if (manager != null) {
-        return await manager.GetLastDocumentAsync()!;
+        return await manager.GetLastDocumentAsync();
       }
 
       return null;
