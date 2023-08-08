@@ -35,7 +35,7 @@ class ImplicitFailingAssertionCodeActionProvider : DiagnosticDafnyCodeActionProv
       }
     }
 
-    return new List<INode> { node };
+    return node.StartToken.line > 0 ? new List<INode> { node } : null;
   }
 
   class ExplicitAssertionDafnyCodeAction : DafnyCodeAction {
