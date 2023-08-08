@@ -12,7 +12,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
   /// <summary>
   /// Contains a collection of ProjectManagers
   /// </summary>
-  public class ProjectManagerDatabase : IProjectDatabase, IDisposable {
+  public class ProjectManagerDatabase : IProjectDatabase {
     private object myLock = new();
     public const int ProjectFileCacheExpiryTime = 100;
 
@@ -204,7 +204,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       }
 
       if (projectFile != null && projectFile.Uri != sourceUri && !serverOptions.Get(ServerCommand.ProjectMode)) {
-        logger.LogWarning("Project file at {} will be ignored because project mode is disabled", projectFile.Uri);
+        logger.LogDebug("Project file at {} will be ignored because project mode is disabled", projectFile.Uri);
         projectFile.Uri = sourceUri;
         projectFile.Includes = new[] { sourceUri.LocalPath };
       }
