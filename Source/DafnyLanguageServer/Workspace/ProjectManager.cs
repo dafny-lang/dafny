@@ -241,6 +241,12 @@ public class ProjectManager : IDisposable {
     return observer.LastPublishedState;
   }
 
+
+  /// <summary>
+  /// This property and related code will be removed once we replace server gutter icons with client side computed gutter icons
+  /// </summary>
+  public static bool GutterIconTesting = false;
+  
   public async Task VerifyEverythingAsync(Uri? uri) {
     _ = workCompletedForCurrentVersion.WaitAsync();
     try {
@@ -268,18 +274,20 @@ public class ProjectManager : IDisposable {
       var orderedVerifiables = verifiables.OrderBy(GetPriorityAttribute).CreateOrderedEnumerable(
         t => implementationOrder.GetOrDefault(t.Tok.GetFilePosition(), () => int.MaxValue),
         null, false).CreateOrderedEnumerable(TopToBottomPriority, null, false).ToList();
+      logger.LogDebug($"Ordered verifiables: {string.Join(", ", orderedVerifiables.Select(v => v.NameToken.val))}" );
+
+      if (GutterIconTesting) {
+        foreach (var canVerify in orderedVerifiables) {
+          await CompilationManager.VerifyTask(resolvedCompilation, canVerify, false);
+        }
+
+        logger.LogDebug($"Finished translation in VerifyEverything for {Project.Uri}");
+      }
 
       foreach (var canVerify in orderedVerifiables) {
         // Wait for each task to try and run, so the order is respected.
         await CompilationManager.VerifyTask(resolvedCompilation, canVerify);
-        // This delay allows the task to be queued after it is translated. It's difficult to explicitly wait for the queuing event.
-        // Needed to get gutter icon tests to pass reliably. Remove when we no longer have gutter icons on the server side.
-        // The problem is that without this, the queueing of one task in Boogie interleaves with translating the next one.
-        // Both of these actions can publish gutter icons, and they share a data store (the VerificationTree), so doing both updates before 
-        // publishing can lead to less publications. 
-        await Task.Delay(10);
       }
-
     }
     finally {
       logger.LogDebug("Setting result for workCompletedForCurrentVersion");

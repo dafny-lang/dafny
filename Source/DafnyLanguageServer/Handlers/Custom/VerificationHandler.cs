@@ -24,7 +24,7 @@ public class VerificationHandler : IJsonRpcRequestHandler<VerificationParams, bo
     IProjectDatabase projects) {
     this.projects = projects;
   }
-
+  
   public async Task<bool> Handle(VerificationParams request, CancellationToken cancellationToken) {
     var projectManager = await projects.GetProjectManager(request.TextDocument);
     if (projectManager == null) {

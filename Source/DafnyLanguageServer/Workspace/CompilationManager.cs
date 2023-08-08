@@ -147,7 +147,7 @@ public class CompilationManager {
   }
 
   private int runningVerificationJobs = 0;
-  public async Task<bool> VerifyTask(CompilationAfterResolution compilation, ICanVerify verifiable) {
+  public async Task<bool> VerifyTask(CompilationAfterResolution compilation, ICanVerify verifiable, bool actuallyVerifyTasks = true) {
 
     if (compilation.ResolutionDiagnostics.Values.SelectMany(x => x).Any(d =>
           d.Level == ErrorLevel.Error &&
@@ -181,6 +181,7 @@ public class CompilationManager {
       throw;
     }
 
+    var updated = false;
     var implementations = compilation.ImplementationsPerVerifiable.GetOrAdd(verifiable, _ => {
       var tasksForVerifiable =
         tasksForModule.GetValueOrDefault(verifiable.NameToken.GetFilePosition()) ?? new List<IImplementationTask>(0);
@@ -192,60 +193,69 @@ public class CompilationManager {
         verificationProgressReporter.ReportRealtimeDiagnostics(compilation, uri, true);
       }
 
+      updated = true;
       return tasksForVerifiable.ToDictionary(
         t => GetImplementationName(t.Implementation),
         t => new ImplementationView(t, PublishedVerificationStatus.Stale, Array.Empty<DafnyDiagnostic>()));
     });
-    compilationUpdates.OnNext(compilation);
-
-    var tasks = implementations.Values.Select(t => t.Task).ToList();
-
-    foreach (var task in tasks) {
-      var statusUpdates = task.TryRun();
-      if (statusUpdates == null) {
-        if (task.CacheStatus is Completed completedCache) {
-          foreach (var result in completedCache.Result.VCResults) {
-            verificationProgressReporter.ReportVerifyImplementationRunning(compilation, task.Implementation);
-            verificationProgressReporter.ReportAssertionBatchResult(compilation,
-              new AssertionBatchResult(task.Implementation, result));
-          }
-          verificationProgressReporter.ReportEndVerifyImplementation(compilation, task.Implementation,
-            completedCache.Result);
-        }
-
-        StatusUpdateHandlerFinally();
-        return false;
-      }
-
-      Interlocked.Increment(ref runningVerificationJobs);
-
-      statusUpdates.ObserveOn(verificationUpdateScheduler).Subscribe(
-        update => {
-          try {
-            HandleStatusUpdate(compilation, verifiable, task, update);
-          } catch (Exception e) {
-            logger.LogError(e, "Caught exception in statusUpdates OnNext.");
-          }
-        },
-        e => {
-          if (e is not OperationCanceledException) {
-            logger.LogError(e, $"Caught error in statusUpdates observable.");
-          }
-          StatusUpdateHandlerFinally();
-        },
-        StatusUpdateHandlerFinally
-      );
+    if (updated) {
+      compilationUpdates.OnNext(compilation);
     }
 
-    void StatusUpdateHandlerFinally() {
-      try {
-        var remainingJobs = Interlocked.Decrement(ref runningVerificationJobs);
-        if (remainingJobs == 0) {
-          logger.LogDebug($"Calling FinishedNotifications because there are no remaining verification jobs for {compilation.Uri} version {compilation.Version}.");
-          FinishedNotifications(compilation, verifiable);
+    if (actuallyVerifyTasks) {
+
+      var tasks = implementations.Values.Select(t => t.Task).ToList();
+
+      foreach (var task in tasks) {
+        var statusUpdates = task.TryRun();
+        if (statusUpdates == null) {
+          if (task.CacheStatus is Completed completedCache) {
+            foreach (var result in completedCache.Result.VCResults) {
+              verificationProgressReporter.ReportVerifyImplementationRunning(compilation, task.Implementation);
+              verificationProgressReporter.ReportAssertionBatchResult(compilation,
+                new AssertionBatchResult(task.Implementation, result));
+            }
+
+            verificationProgressReporter.ReportEndVerifyImplementation(compilation, task.Implementation,
+              completedCache.Result);
+          }
+
+          StatusUpdateHandlerFinally();
+          return false;
         }
-      } catch (Exception e) {
-        logger.LogCritical(e, "Caught exception while handling finally code of statusUpdates handler.");
+
+        Interlocked.Increment(ref runningVerificationJobs);
+
+        statusUpdates.ObserveOn(verificationUpdateScheduler).Subscribe(
+          update => {
+            try {
+              HandleStatusUpdate(compilation, verifiable, task, update);
+            } catch (Exception e) {
+              logger.LogError(e, "Caught exception in statusUpdates OnNext.");
+            }
+          },
+          e => {
+            if (e is not OperationCanceledException) {
+              logger.LogError(e, $"Caught error in statusUpdates observable.");
+            }
+
+            StatusUpdateHandlerFinally();
+          },
+          StatusUpdateHandlerFinally
+        );
+      }
+
+      void StatusUpdateHandlerFinally() {
+        try {
+          var remainingJobs = Interlocked.Decrement(ref runningVerificationJobs);
+          if (remainingJobs == 0) {
+            logger.LogDebug(
+              $"Calling FinishedNotifications because there are no remaining verification jobs for {compilation.Uri} version {compilation.Version}.");
+            FinishedNotifications(compilation, verifiable);
+          }
+        } catch (Exception e) {
+          logger.LogCritical(e, "Caught exception while handling finally code of statusUpdates handler.");
+        }
       }
     }
 

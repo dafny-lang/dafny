@@ -60,36 +60,36 @@ method Foo() ensures false { } ";
   public async Task EnsureVerificationGutterStatusIsWorking() {
     await SetUp(o => o.Set(CommonOptionBag.RelaxDefiniteAssignment, true));
     await VerifyTrace(@"
- .  |  |  |  |  |  I  I  I  |  |  | :predicate Ok() {
- .  |  |  |  |  |  I  I  I  |  |  | :  true
- .  |  |  |  |  |  I  I  I  |  |  | :}
-    |  |  |  |  |  I  I  I  |  |  | :
- .  .  S  S [S][ ][I][I][S][S] |  | :method Test(x: bool) returns (i: int)
- .  .  S  S [=][=][-][-][~][~] |  | :   ensures i == 2
- .  .  S  S [S][ ][I][I][S][S] |  | :{
- .  .  S  S [S][ ][I][I][S][S] |  | :  if x {
- .  .  S  S [S][ ][I][I][S][S] |  | :    i := 2;
- .  .  S  S [=][=][-][-][~][~] |  | :  } else {
- .  .  S  S [S][ ]/!\[I][S][S] |  | :    i := 1; //Replace1:   i := /; //Replace2:    i := 2;
- .  .  S  S [S][ ][I][I][S][S] |  | :  }
- .  .  S  S [S][ ][I][I][S][S] |  | :}
-          |  |  |  I  I  I  I  |  | :    
- .  .  .  |  |  |  I  I  I  I  I  | :predicate OkBis() {
- .  .  .  |  |  |  I  I  I  I  I  | :  false
- .  .  .  |  |  |  I  I  I  I  I  | :}", true);
+ .  |  |  |  |  |  I  I  |  |  |  | :predicate Ok() {
+ .  |  |  |  |  |  I  I  |  |  |  | :  true
+ .  |  |  |  |  |  I  I  |  |  |  | :}
+    |  |  |  |  |  I  I  |  |  |  | :
+ .  .  .  S [S][ ][I][I][I][I][S] | :method Test(x: bool) returns (i: int)
+ .  .  .  S [=][=][-][-][-][-][~] | :   ensures i == 2
+ .  .  .  S [S][ ][I][I][I][I][S] | :{
+ .  .  .  S [S][ ][I][I][I][I][S] | :  if x {
+ .  .  .  S [S][ ][I][I][I][I][S] | :    i := 2;
+ .  .  .  S [=][=][-][-][-][-][~] | :  } else {
+ .  .  .  S [S][ ]/!\[I][I][I][S] | :    i := 1; //Replace1:   i := /; //Replace2:    i := 2;
+ .  .  .  S [S][ ][I][I][I][I][S] | :  }
+ .  .  .  S [S][ ][I][I][I][I][S] | :}
+       |  |  |  |  I  I  I  |  |  | :    
+ .  .  |  |  |  |  I  I  I  |  |  | :predicate OkBis() {
+ .  .  |  |  |  |  I  I  I  |  |  | :  false
+ .  .  |  |  |  |  I  I  I  |  |  | :}", true);
   }
   [Fact]
   public async Task EnsuresItWorksForSubsetTypes() {
     await VerifyTrace(@"
-    |  |  |  |  |  I  I  I  |  |  |  |  I  I  I  |  |  |  | :// The maximum Id
- .  |  |  |  |  |  I  I  I  |  |  |  |  I  I  I  |  |  |  | :ghost const maxId := 200;
-    |  |  |  |  |  I  I  I  |  |  |  |  I  I  I  |  |  |  | :
- .  .  |  |  |  |  I  I  I  I  |  |  |  I  I  I  I  |  |  | :ghost predicate isIssueIdValid(issueId: int) {
- .  .  |  |  |  |  I  I  I  I  |  |  |  I  I  I  I  |  |  | :  101 <= issueId < maxId
- .  .  |  |  |  |  I  I  I  I  |  |  |  I  I  I  I  |  |  | :}
-       |  |  |  |  I  I  I  I  |  |  |  I  I  I  I  |  |  | :
- .  .  .  S  S  |  I  .  S  S  S  S [=] I  .  S  S  S  S  | :type IssueId = i : int | isIssueIdValid(i)
- .  .  .  S  |  |  I  .  S  S  S  | [=] I  .  S  S  S  |  | :  witness 101 //Replace1:   witness 99 //Replace2:   witness 101 ", false, "EnsuresItWorksForSubsetTypes.dfy");
+    |  |  |  |  |  I  I  |  |  |  |  |  I  I  |  |  |  |  | :// The maximum Id
+ .  |  |  |  |  |  I  I  |  |  |  |  |  I  I  |  |  |  |  | :ghost const maxId := 200;
+    |  |  |  |  |  I  I  |  |  |  |  |  I  I  |  |  |  |  | :
+ .  .  |  |  |  |  I  I  I  |  |  |  |  I  I  I  |  |  |  | :ghost predicate isIssueIdValid(issueId: int) {
+ .  .  |  |  |  |  I  I  I  |  |  |  |  I  I  I  |  |  |  | :  101 <= issueId < maxId
+ .  .  |  |  |  |  I  I  I  |  |  |  |  I  I  I  |  |  |  | :}
+       |  |  |  |  I  I  I  |  |  |  |  I  I  I  |  |  |  | :
+ .  .  .  S  S  |  I  .  .  .  S  S [=] I  .  .  .  S  S  | :type IssueId = i : int | isIssueIdValid(i)
+ .  .  .  S  |  |  I  .  .  .  S  | [=] I  .  .  .  S  |  | :  witness 101 //Replace1:   witness 99 //Replace2:   witness 101 ", false, "EnsuresItWorksForSubsetTypes.dfy");
   }
 
   [Fact(Timeout = MaxTestExecutionTimeMs)]
@@ -189,16 +189,16 @@ method Foo() ensures false { } ";
  .  |  |  |  |  | :method test() {
  .  |  |  |  |  | :}
     |  |  |  |  | :
- .  .  S  S [S][ ]:method {:extern} test3(a: nat, b: nat)
- .  .  S  S [S][ ]:  ensures true
- .  .  S  S [=][=]:  ensures test2(a - b)
- .  .  S  S [S][ ]:  ensures true
- .  .  S  S [O][O]:  ensures test2(a - b)
- .  .  S  S [S][ ]:  ensures true
-          |  |  | :
- .  .  .  |  |  | :predicate test2(x: nat) {
- .  .  .  |  |  | :  true
- .  .  .  |  |  | :}", false);
+ .  .  .  S [S][ ]:method {:extern} test3(a: nat, b: nat)
+ .  .  .  S [S][ ]:  ensures true
+ .  .  .  S [=][=]:  ensures test2(a - b)
+ .  .  .  S [S][ ]:  ensures true
+ .  .  .  S [O][O]:  ensures test2(a - b)
+ .  .  .  S [S][ ]:  ensures true
+       |  |  |  | :
+ .  .  |  |  |  | :predicate test2(x: nat) {
+ .  .  |  |  |  | :  true
+ .  .  |  |  |  | :}", false);
   }
 
 
@@ -208,16 +208,16 @@ method Foo() ensures false { } ";
  .  |  |  |  |  | :method test() {
  .  |  |  |  |  | :}
     |  |  |  |  | :
- .  .  S  S [S][ ]:function {:extern} test4(a: nat, b: nat): nat
- .  .  S  S [S][ ]:  ensures true
- .  .  S  S [=][=]:  ensures test2(a - b)
- .  .  S  S [S][ ]:  ensures true
- .  .  S  S [O][O]:  ensures test2(a - b)
- .  .  S  S [S][ ]:  ensures true
-          |  |  | :
- .  .  .  |  |  | :predicate test2(x: nat) {
- .  .  .  |  |  | :  true
- .  .  .  |  |  | :}", true);
+ .  .  .  S [S][ ]:function {:extern} test4(a: nat, b: nat): nat
+ .  .  .  S [S][ ]:  ensures true
+ .  .  .  S [=][=]:  ensures test2(a - b)
+ .  .  .  S [S][ ]:  ensures true
+ .  .  .  S [O][O]:  ensures test2(a - b)
+ .  .  .  S [S][ ]:  ensures true
+       |  |  |  | :
+ .  .  |  |  |  | :predicate test2(x: nat) {
+ .  .  |  |  |  | :  true
+ .  .  |  |  |  | :}", true);
   }
 
   public SimpleLinearVerificationGutterStatusTester(ITestOutputHelper output) : base(output) {

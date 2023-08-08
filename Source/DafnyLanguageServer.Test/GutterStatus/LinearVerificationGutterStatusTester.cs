@@ -20,7 +20,7 @@ using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.GutterStatus;
 
-public abstract class LinearVerificationGutterStatusTester : ClientBasedLanguageServerTest {
+public abstract class LinearVerificationGutterStatusTester : ClientBasedLanguageServerTest, IDisposable {
   protected TestNotificationReceiver<VerificationStatusGutter> verificationStatusGutterReceiver;
 
   protected override async Task SetUp(Action<DafnyOptions> modifyOptions) {
@@ -32,6 +32,11 @@ public abstract class LinearVerificationGutterStatusTester : ClientBasedLanguage
       modifyOptions?.Invoke(options);
     }
     await base.SetUp(ModifyOptions);
+  }
+
+  public void Dispose() {
+    ProjectManager.GutterIconTesting = false;
+    base.Dispose();
   }
 
   protected override void InitialiseClientHandler(LanguageClientOptions options) {
@@ -285,10 +290,9 @@ public abstract class LinearVerificationGutterStatusTester : ClientBasedLanguage
     var traces = new List<LineVerificationStatus[]>();
     traces.AddRange(await GetAllLineVerificationStatuses(documentItem, verificationStatusGutterReceiver, intermediates: intermediates));
     foreach (var changes in changesList) {
+      await Projects.GetLastDocumentAsync(documentItem).WaitAsync(CancellationToken);
       ApplyChanges(ref documentItem, changes);
-      var lastDocumentAsync = Projects.GetLastDocumentAsync(documentItem);
       traces.AddRange(await GetAllLineVerificationStatuses(documentItem, verificationStatusGutterReceiver, intermediates: intermediates));
-      await lastDocumentAsync.WaitAsync(CancellationToken);
     }
 
     if (testTrace) {
@@ -326,5 +330,6 @@ public abstract class LinearVerificationGutterStatusTester : ClientBasedLanguage
 
   protected LinearVerificationGutterStatusTester(ITestOutputHelper output) :
     base(output, LogLevel.Trace) {
+    ProjectManager.GutterIconTesting = true;
   }
 }
