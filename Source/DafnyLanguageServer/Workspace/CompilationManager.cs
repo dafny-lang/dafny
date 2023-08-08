@@ -176,9 +176,13 @@ public class CompilationManager {
       }
     }
 
+    // Obtain additional diagnostics from the translation
+    var errorReporter = (DiagnosticErrorReporter)loaded.Program.Reporter;
+
     var translated = new CompilationAfterTranslation(
       loaded,
-      loaded.ResolutionDiagnostics, verificationTasks,
+      errorReporter.AllDiagnosticsCopy,
+      verificationTasks,
       new(),
       initialViews,
       loaded.RootUris.ToDictionary(uri => uri,
