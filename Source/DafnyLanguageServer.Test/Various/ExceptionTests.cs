@@ -96,7 +96,7 @@ public class ExceptionTests : ClientBasedLanguageServerTest {
       CompilationAfterResolution compilation, CancellationToken cancellationToken) {
 
       if (tests.CrashOnPrepareVerification) {
-        throw new Exception("crash");
+        throw new Exception("testing crash");
       }
       return verifier.GetVerificationTasksAsync(engine, compilation, cancellationToken);
     }
@@ -118,7 +118,7 @@ public class ExceptionTests : ClientBasedLanguageServerTest {
     public Task<CompilationAfterParsing> LoadAsync(DafnyOptions options, Compilation compilation,
         CancellationToken cancellationToken) {
       if (tests.CrashOnLoad) {
-        throw new IOException("crash");
+        throw new IOException("testing crash");
       }
       return loader.LoadAsync(options, compilation, cancellationToken);
     }

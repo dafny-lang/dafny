@@ -20,7 +20,7 @@ public class CompilationManagerTest {
       new Mock<ICompilationStatusNotificationPublisher>().Object,
       new Mock<IVerificationProgressReporter>().Object,
       dafnyOptions,
-      null, new Compilation(0, new DafnyProject(), new Uri[] { }), null);
+      null, new Compilation(0, new DafnyProject() { Uri = new Uri(Directory.GetCurrentDirectory()) }, new Uri[] { }), null);
     compilationManager.CancelPendingUpdates();
     await Assert.ThrowsAsync<TaskCanceledException>(() => compilationManager.ResolvedCompilation);
   }

@@ -1,5 +1,6 @@
 ﻿using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
+using Microsoft.Extensions.Logging;
 using Xunit;
 using Xunit.Abstractions;
 
