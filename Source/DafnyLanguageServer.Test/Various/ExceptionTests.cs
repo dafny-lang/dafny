@@ -98,7 +98,7 @@ public class ExceptionTests : ClientBasedLanguageServerTest {
       CompilationAfterResolution compilation, ModuleDefinition moduleDefinition, CancellationToken cancellationToken) {
 
       if (tests.CrashOnPrepareVerification) {
-        throw new Exception("crash");
+        throw new Exception("testing crash");
       }
       return verifier.GetVerificationTasksAsync(engine, compilation, moduleDefinition, cancellationToken);
     }
@@ -125,7 +125,7 @@ public class ExceptionTests : ClientBasedLanguageServerTest {
     public Task<CompilationAfterResolution> ResolveAsync(DafnyOptions options, CompilationAfterParsing compilation,
       IReadOnlyDictionary<Uri, VerificationTree> migratedVerificationTrees, CancellationToken cancellationToken) {
       if (tests.CrashOnLoad) {
-        throw new IOException("crash");
+        throw new IOException("testing crash");
       }
       return loader.ResolveAsync(options, compilation, migratedVerificationTrees, cancellationToken);
     }

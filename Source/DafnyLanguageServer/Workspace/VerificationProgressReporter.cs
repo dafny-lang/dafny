@@ -162,6 +162,12 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
   public virtual void ReportImplementationsBeforeVerification(CompilationAfterResolution compilation, ICanVerify canVerify, Implementation[] implementations) {
     var uri = canVerify.Tok.Uri;
     var tree = compilation.VerificationTrees[uri];
+
+    if (logger.IsEnabled(LogLevel.Debug)) {
+      logger.LogDebug($"ReportImplementationsBeforeVerification for ${compilation.Project.Uri}, version {compilation.Version}, implementations: " +
+                      $"{string.Join(", ", implementations.Select(i => i.Name))}");
+    }
+
     // We migrate existing implementations to the new provided ones if they exist.
     // (same child number, same file and same position)
     var canVerifyNode = tree.Children.OfType<TopLevelDeclMemberVerificationTree>()
@@ -169,6 +175,7 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
     if (canVerifyNode == null) {
       return;
     }
+
 
     canVerifyNode.ResetNewChildren();
 

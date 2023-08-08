@@ -29,14 +29,14 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       this.filesystem = filesystem;
     }
 
-    public void PublishNotifications(IdeState previousState, IdeState state) {
+    public async Task PublishNotifications(IdeState previousState, IdeState state) {
       if (state.Version < previousState.Version) {
         return;
       }
 
       PublishVerificationStatus(previousState, state);
-      var _ = PublishDiagnostics(state);
       PublishGhostness(previousState, state);
+      await PublishDiagnostics(state);
     }
 
     private void PublishVerificationStatus(IdeState previousState, IdeState state) {
@@ -75,7 +75,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       return new[] { first, second }.Min();
     }
 
-    private Dictionary<Uri, IList<Diagnostic>> publishedDiagnostics = new();
+    private readonly Dictionary<Uri, IList<Diagnostic>> publishedDiagnostics = new();
 
     private async Task PublishDiagnostics(IdeState state) {
       var currentDiagnostics = state.GetDiagnostics();
@@ -123,6 +123,10 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
             publishedDiagnostics.Remove(publishUri);
           }
 
+          if (logger.IsEnabled(LogLevel.Trace)) {
+            logger.LogTrace($"Sending diagnostics with stacktrace:\n{Environment.StackTrace}");
+          }
+
           languageServer.TextDocument.PublishDiagnostics(new PublishDiagnosticsParams {
             Uri = publishUri,
             Version = filesystem.GetVersion(publishUri) ?? 0,
@@ -146,14 +150,22 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       var tree = state.VerificationTrees[uri];
 
       var linesCount = tree.Range.End.Line + 1;
+      var version = filesystem.GetVersion(uri) ?? 0;
       var verificationStatusGutter = VerificationStatusGutter.ComputeFrom(
         DocumentUri.From(uri),
-        filesystem.GetVersion(uri) ?? 0,
+        version,
         tree.Children,
         errors,
         linesCount,
         verificationStarted
       );
+      if (logger.IsEnabled(LogLevel.Trace)) {
+        var icons = string.Join(' ', verificationStatusGutter.PerLineStatus.Select(s => LineVerificationStatusToString[s]));
+        logger.LogDebug($"Sending gutter icons for compilation {state.Compilation.Project.Uri}, version {state.Version}, " +
+                        $"icons: {icons}\n" +
+                        $"stacktrace:\n{Environment.StackTrace}");
+      };
+
 
       lock (previouslyPublishedIcons) {
         var previous = previouslyPublishedIcons.GetValueOrDefault(uri);
@@ -163,6 +175,25 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         }
       }
     }
+
+    public static Dictionary<LineVerificationStatus, string> LineVerificationStatusToString = new() {
+      { LineVerificationStatus.Nothing, "   " },
+      { LineVerificationStatus.Scheduled, " . " },
+      { LineVerificationStatus.Verifying, " S " },
+      { LineVerificationStatus.VerifiedObsolete, " I " },
+      { LineVerificationStatus.VerifiedVerifying, " $ " },
+      { LineVerificationStatus.Verified, " | " },
+      { LineVerificationStatus.ErrorContextObsolete, "[I]" },
+      { LineVerificationStatus.ErrorContextVerifying, "[S]" },
+      { LineVerificationStatus.ErrorContext, "[ ]" },
+      { LineVerificationStatus.AssertionFailedObsolete, "[-]" },
+      { LineVerificationStatus.AssertionFailedVerifying, "[~]" },
+      { LineVerificationStatus.AssertionFailed, "[=]" },
+      { LineVerificationStatus.AssertionVerifiedInErrorContextObsolete, "[o]" },
+      { LineVerificationStatus.AssertionVerifiedInErrorContextVerifying, "[Q]" },
+      { LineVerificationStatus.AssertionVerifiedInErrorContext, "[O]" },
+      { LineVerificationStatus.ResolutionError, @"/!\" }
+    };
 
     private void PublishGhostness(IdeState previousState, IdeState state) {
 

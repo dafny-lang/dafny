@@ -6,7 +6,6 @@ using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 using Microsoft.Dafny.LanguageServer.Workspace;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
-using Serilog.Core;
 using Xunit;
 using Xunit.Abstractions;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
@@ -19,6 +18,45 @@ public class MultipleFilesTest : ClientBasedLanguageServerTest {
       o.Set(ServerCommand.ProjectMode, true);
       modifyOptions?.Invoke(o);
     });
+  }
+
+
+  [Fact]
+  public async Task OnDiskProducerVerificationErrors() {
+    var producerSource = @"
+method Foo(x: int) 
+{
+  assert false; 
+}
+".TrimStart();
+
+    var consumerSource = @"
+method Bar() {
+  Foo(3); 
+  assert false; 
+}
+";
+
+    var directory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+    Directory.CreateDirectory(directory);
+    await File.WriteAllTextAsync(Path.Combine(directory, "OnDiskProducerVerificationErrors_producer.dfy"), producerSource);
+    await File.WriteAllTextAsync(Path.Combine(directory, DafnyProject.FileName), "");
+    await CreateAndOpenTestDocument(consumerSource, Path.Combine(directory, "OnDiskProducerVerificationErrors_consumer1.dfy"));
+
+    var diagnostics1 = await diagnosticsReceiver.AwaitNextNotificationAsync(CancellationToken);
+    var diagnostics2 = await diagnosticsReceiver.AwaitNextNotificationAsync(CancellationToken);
+    try {
+      Assert.Single(diagnostics1.Diagnostics);
+      Assert.Contains("assertion might not hold", diagnostics1.Diagnostics.First().Message);
+      Assert.Single(diagnostics2.Diagnostics);
+      Assert.Contains("assertion might not hold", diagnostics2.Diagnostics.First().Message);
+    } catch (Exception) {
+      await output.WriteLineAsync($"diagnostics1: {diagnostics1.Stringify()}");
+      await output.WriteLineAsync($"diagnostics2: {diagnostics2.Stringify()}");
+      var diagnostics3 = await diagnosticsReceiver.AwaitNextNotificationAsync(CancellationToken);
+      await output.WriteLineAsync($"diagnostics3: {diagnostics3.Stringify()}");
+      throw;
+    }
   }
 
   [Fact]
@@ -79,36 +117,6 @@ method Bar() {
     Assert.Single(diagnostics2.Diagnostics);
     Assert.Contains(diagnostics, d => d.Diagnostics.First().Message.Contains("char"));
     Assert.Contains(diagnostics, d => d.Diagnostics.First().Message.Contains("int"));
-  }
-
-  [Fact]
-  public async Task OnDiskProducerVerificationErrors() {
-    var producerSource = @"
-method Foo(x: int) 
-{
-  assert false; 
-}
-".TrimStart();
-
-    var consumerSource = @"
-method Bar() {
-  Foo(3); 
-  assert false; 
-}
-";
-
-    var directory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
-    Directory.CreateDirectory(directory);
-    await File.WriteAllTextAsync(Path.Combine(directory, "OnDiskProducerVerificationErrors_producer.dfy"), producerSource);
-    await File.WriteAllTextAsync(Path.Combine(directory, DafnyProject.FileName), "");
-    await CreateAndOpenTestDocument(consumerSource, Path.Combine(directory, "OnDiskProducerVerificationErrors_consumer1.dfy"));
-
-    var diagnostics1 = await diagnosticsReceiver.AwaitNextNotificationAsync(CancellationToken);
-    var diagnostics2 = await diagnosticsReceiver.AwaitNextNotificationAsync(CancellationToken);
-    Assert.Single(diagnostics1.Diagnostics);
-    Assert.Contains("assertion might not hold", diagnostics1.Diagnostics.First().Message);
-    Assert.Single(diagnostics2.Diagnostics);
-    Assert.Contains("assertion might not hold", diagnostics2.Diagnostics.First().Message);
   }
 
   [Fact]

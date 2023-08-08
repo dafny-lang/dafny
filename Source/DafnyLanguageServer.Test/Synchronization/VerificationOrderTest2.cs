@@ -136,9 +136,9 @@ method m5() { assert false; } //Remove4:
         var orderAfterChange = await GetFlattenedPositionOrder(semaphoreSlim, source.Token);
         var orderAfterChangeSymbols = GetSymbols(code, orderAfterChange).ToList();
         Assert.True(expectedSymbols.SequenceEqual(orderAfterChangeSymbols),
-          $"Expected {string.Join(", ", expectedSymbols)} but got {string.Join(", ", orderAfterChangeSymbols)}." +
-          $"\nOld to new history was: {verificationStatusReceiver.History.Stringify()}");
+          $"Expected {string.Join(", ", expectedSymbols)} but got {string.Join(", ", orderAfterChangeSymbols)}");
       } catch (OperationCanceledException) {
+        WriteVerificationHistory();
         await output.WriteLineAsync($"Operation cancelled for index {index} when expecting: {string.Join(", ", expectedSymbols)}");
         throw;
       }
@@ -199,11 +199,12 @@ method m5() { assert false; } //Remove4:
         count++;
 
       } catch (OperationCanceledException) {
-        Console.WriteLine("count: " + count);
+        await output.WriteLineAsync("count: " + count);
         if (foundStatus != null) {
-          Console.WriteLine("Found status before timeout: " + string.Join(", ", foundStatus.NamedVerifiables));
+          await output.WriteLineAsync("Found status before timeout: " + string.Join(", ", foundStatus.NamedVerifiables));
         }
-        Console.WriteLine($"\nOld to new history was: {verificationStatusReceiver.History.Stringify()}");
+
+        WriteVerificationHistory();
         throw;
       }
 

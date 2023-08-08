@@ -191,6 +191,7 @@ public class CompilationManager {
       foreach (var uri in compilation.RootUris) { // TODO scope to one uri ?
         verificationProgressReporter.ReportRealtimeDiagnostics(compilation, uri, true);
       }
+
       return tasksForVerifiable.ToDictionary(
         t => GetImplementationName(t.Implementation),
         t => new ImplementationView(t, PublishedVerificationStatus.Stale, Array.Empty<DafnyDiagnostic>()));
@@ -222,11 +223,13 @@ public class CompilationManager {
           try {
             HandleStatusUpdate(compilation, verifiable, task, update);
           } catch (Exception e) {
-            logger.LogCritical(e, "Caught exception in statusUpdates OnNext.");
+            logger.LogError(e, "Caught exception in statusUpdates OnNext.");
           }
         },
         e => {
-          logger.LogError(e, "Caught error in statusUpdates observable.");
+          if (e is not OperationCanceledException) {
+            logger.LogError(e, $"Caught error in statusUpdates observable.");
+          }
           StatusUpdateHandlerFinally();
         },
         StatusUpdateHandlerFinally
@@ -237,7 +240,7 @@ public class CompilationManager {
       try {
         var remainingJobs = Interlocked.Decrement(ref runningVerificationJobs);
         if (remainingJobs == 0) {
-          logger.LogDebug($"Calling FinishedNotifications because there are no remaining verification jobs for version {compilation.Version}.");
+          logger.LogDebug($"Calling FinishedNotifications because there are no remaining verification jobs for {compilation.Uri} version {compilation.Version}.");
           FinishedNotifications(compilation, verifiable);
         }
       } catch (Exception e) {
@@ -254,7 +257,6 @@ public class CompilationManager {
   }
 
   public void FinishedNotifications(CompilationAfterResolution compilation, ICanVerify canVerify) {
-    MarkVerificationFinished();
     if (ReportGutterStatus) {
       if (!cancellationSource.IsCancellationRequested) {
         // All unvisited trees need to set them as "verified"
@@ -263,27 +265,31 @@ public class CompilationManager {
 
       verificationProgressReporter.ReportRealtimeDiagnostics(compilation, canVerify.Tok.Uri, true);
     }
+
+    if (compilation.Version != startingCompilation.Version) {
+      logger.LogCritical("compilation.Version != startingCompilation.Version");
+    }
+    MarkVerificationFinished();
   }
 
   private void HandleStatusUpdate(CompilationAfterResolution compilation, ICanVerify verifiable, IImplementationTask implementationTask, IVerificationStatus boogieStatus) {
     var status = StatusFromBoogieStatus(boogieStatus);
 
+    var tokenString = implementationTask.Implementation.tok.TokenToString(options);
     var implementations = compilation.ImplementationsPerVerifiable[verifiable];
 
     var implementationName = GetImplementationName(implementationTask.Implementation);
-    logger.LogDebug($"Received status {boogieStatus} for {implementationName}, version {compilation.Counterexamples}");
+    logger.LogDebug($"Received status {boogieStatus} for {tokenString}, version {compilation.Version}");
     if (boogieStatus is Running) {
       verificationProgressReporter.ReportVerifyImplementationRunning(compilation, implementationTask.Implementation);
     }
 
     if (boogieStatus is BatchCompleted batchCompleted) {
-      logger.LogDebug($"Received batch completed for {implementationTask.Implementation.tok}");
       verificationProgressReporter.ReportAssertionBatchResult(compilation,
         new AssertionBatchResult(implementationTask.Implementation, batchCompleted.VcResult));
     }
 
     if (boogieStatus is Completed completed) {
-      logger.LogDebug($"Received verification task completed for {implementationTask.Implementation.tok}, version {compilation.Counterexamples}");
       var verificationResult = completed.Result;
       foreach (var counterExample in verificationResult.Errors) {
         compilation.Counterexamples.Add(counterExample);
@@ -294,7 +300,7 @@ public class CompilationManager {
       // This loop will ensure that every vc result has been dealt with
       // before we report that the verification of the implementation is finished 
       foreach (var result in completed.Result.VCResults) {
-        logger.LogDebug($"Possibly duplicate reporting assertion batch {result.vcNum} as completed in {implementationTask.Implementation.tok}, version {compilation.Counterexamples}");
+        logger.LogDebug($"Possibly duplicate reporting assertion batch {result.vcNum} as completed in {tokenString}, version {compilation.Version}");
         verificationProgressReporter.ReportAssertionBatchResult(compilation,
           new AssertionBatchResult(implementationTask.Implementation, result));
       }
@@ -357,14 +363,14 @@ public class CompilationManager {
   }
 
   public void MarkVerificationStarted() {
-    logger.LogTrace("MarkVerificationStarted called");
+    logger.LogDebug($"MarkVerificationStarted called for {startingCompilation.Uri} version {startingCompilation.Version}");
     if (verificationCompleted.Task.IsCompleted) {
       verificationCompleted = new TaskCompletionSource();
     }
   }
 
   public void MarkVerificationFinished() {
-    logger.LogTrace("MarkVerificationFinished called");
+    logger.LogDebug($"MarkVerificationFinished called for {startingCompilation.Uri} version {startingCompilation.Version}");
     verificationCompleted.TrySetResult();
   }
 
@@ -372,10 +378,10 @@ public class CompilationManager {
     t => {
       if (t.IsCompletedSuccessfully) {
 #pragma warning disable VSTHRD103
-        logger.LogDebug($"LastDocument will return document version {t.Result.Version}");
+        logger.LogDebug($"LastDocument {startingCompilation.Uri} will return document version {t.Result.Version}");
         return verificationCompleted.Task.ContinueWith(
           verificationCompletedTask => {
-            logger.LogDebug($"verificationCompleted finished with status {verificationCompletedTask.Status}");
+            logger.LogDebug($"LastDocument returning translated compilation {startingCompilation.Uri} with status {verificationCompletedTask.Status}");
             return Task.FromResult<CompilationAfterParsing>(t.Result);
           }, TaskScheduler.Current).Unwrap();
 #pragma warning restore VSTHRD103
