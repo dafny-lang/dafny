@@ -1940,7 +1940,8 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), predef.BoxType,
       }
 
       public Expression RegionCheck(Expression obj, out bool isStatic) {
-        if (translator.currentDeclaration is not Method method) {
+        if (translator.currentDeclaration is not Method method
+            || obj is ImplicitThisExpr || obj is StaticReceiverExpr) {
           isStatic = true; // Does not matter
           return null;
         }

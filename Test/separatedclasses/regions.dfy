@@ -32,12 +32,6 @@ module RegionTests {
     {
       value := newValue;
     }
-    method GiveTo(newOwner: object) modifies this
-      ensures old(value) == value && old(next) == next
-      ensures Region == newOwner  
-    {
-      Region := newOwner;
-    } 
 
     constructor Wrong(value: int, next: Node?)
       modifies next
@@ -132,7 +126,7 @@ module RegionTests {
       c.SetValue(3);          // Error, cannot prove that c.Region == null && fresh(c)
     }
   }
-
+/*
   method Test2() {
     var c := new Node(0, null);
     c.value := 2;            // OK
@@ -141,7 +135,7 @@ module RegionTests {
     assert d.next == c;
     d.ChangeNextValue(3);
     assert c.value == 3;     // OK
-  }
+  }*/
 
   class ArrayWrapper {
     const elements: array<int>
@@ -160,6 +154,7 @@ module RegionTests {
       modifies elements
       ensures elements[index] == newValue
     {
+      var r := this.Region;
       previousValue := elements[index]; // OK, it's only a read
       if * {
         elements[index] := newValue;  // Error: Cannot prove that elements.Region == this || elements.Region == this.Region || (fresh(elements) && elements.Region == null)

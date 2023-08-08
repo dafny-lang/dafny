@@ -1734,6 +1734,13 @@ namespace Microsoft.Dafny {
       Contract.Requires(tyArgs != null);
       Contract.Requires(tyArgs.Count <= tySubst.Count);  // more precisely, the members of tyArgs are required to be keys of tySubst, but this is a cheap sanity test
 
+      if (options.RegionChecks && !method.SurelyWontModifyAnything()) {
+        var regionCheck = etran.RegionCheck(dafnyReceiver, out var isStatic);
+        if (regionCheck != null) {
+          builder.Add(Assert(dafnyReceiver.tok, etran.TrExpr(regionCheck),
+            new PODesc.RegionMustMatchInInstanceContext(regionCheck, false, isStatic)));
+        }
+      }
       // Figure out if the call is recursive or not, which will be used below to determine the need for a
       // termination check and the need to include an implicit _k-1 argument.
       bool isRecursiveCall = false;

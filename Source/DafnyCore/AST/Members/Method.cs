@@ -389,4 +389,13 @@ public class Method : MemberDecl, TypeParameter.ParentType, IMethodCodeContext, 
       return Outs.Concat(childStatements.OfType<VarDeclStmt>().SelectMany(v => (IEnumerable<ISymbol>)v.Locals));
     }
   }
+
+  public bool SurelyWontModifyAnything() {
+    return Mod.Expressions.TrueForAll(expr => 
+       (expr.E is SetDisplayExpr setDisplayExpr && !setDisplayExpr.Elements.Any())
+    || (expr.E is SeqDisplayExpr seqDisplayExpr && !seqDisplayExpr.Elements.Any())
+    || (expr.E is MultiSetDisplayExpr msetDisplayExpr && !msetDisplayExpr.Elements.Any())
+    || (expr.E is MapDisplayExpr mapDisplayExpr && !mapDisplayExpr.Elements.Any())
+    );
+  }
 }
