@@ -220,10 +220,8 @@ public class ProjectManager : IDisposable {
   }
 
   public async Task<CompilationAfterParsing> GetLastDocumentAsync() {
-    logger.LogTrace($"GetLastDocumentAsync called for {Project.Uri} version {version}");
     await workCompletedForCurrentVersion.WaitAsync();
     workCompletedForCurrentVersion.Release();
-    logger.LogTrace($"Waiting for CompilationManager.LastDocument for {Project.Uri} version {version}");
     return await CompilationManager.LastDocument;
   }
 

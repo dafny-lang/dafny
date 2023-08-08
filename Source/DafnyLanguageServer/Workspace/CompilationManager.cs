@@ -276,9 +276,6 @@ public class CompilationManager {
       }
     }
 
-    if (compilation.Version != startingCompilation.Version) {
-      logger.LogCritical("compilation.Version != startingCompilation.Version");
-    }
     MarkVerificationFinished();
   }
 
