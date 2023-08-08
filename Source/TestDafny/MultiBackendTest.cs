@@ -94,6 +94,22 @@ public class MultiBackendTest {
     output.WriteLine("Verifying...");
 
     var (exitCode, outputString, error) = RunDafny(options.DafnyCliPath, dafnyArgs);
+    // If there is a .verifier.expect file, then we expect the output to match the .verifier.expect file contents. Otherwise, we
+    // expect the output to be empty.
+    var expectedOutput = "";
+    var expectFileForVerifier = $"{options.TestFile}.verifier.expect";
+    if (File.Exists(expectFileForVerifier)) {
+      expectedOutput = File.ReadAllText(expectFileForVerifier);
+    }
+    // Chop off the "Dafny program verifier finished with..." trailer
+    var trailer = new Regex("\r?\nDafny program verifier[^\r\n]*\r?\n").Match(outputString);
+    var actualOutput = outputString.Remove(trailer.Index, trailer.Length);
+    var diffMessage = AssertWithDiff.GetDiffMessage(expectedOutput, actualOutput);
+    if (diffMessage != null) {
+      output.WriteLine(diffMessage);
+      return 1;
+    }
+    // We expect verification to return exit code 0.
     if (exitCode != 0) {
       output.WriteLine("Verification failed. Output:");
       output.WriteLine(outputString);
@@ -101,26 +117,11 @@ public class MultiBackendTest {
       output.WriteLine(error);
       return exitCode;
     }
-    var expectFileForVerifier = $"{options.TestFile}.verifier.expect";
-    if (File.Exists(expectFileForVerifier)) {
-      var expectedOutput = File.ReadAllText(expectFileForVerifier);
-      // Chop off the "Dafny program verifier finished with..." trailer
-      var trailer = new Regex("\r?\nDafny program verifier[^\r\n]*\r?\n").Match(outputString);
-      var actualOutput = outputString.Remove(trailer.Index, trailer.Length);
-      var diffMessage = AssertWithDiff.GetDiffMessage(expectedOutput, actualOutput);
-      if (diffMessage == null) {
-        return 0;
-      }
-
-      output.WriteLine(diffMessage);
-      return 1;
-    }
 
     // Then execute the program for each available compiler.
 
     string expectFile = options.TestFile + ".expect";
-    var commonExpectedOutput = "\nDafny program verifier did not attempt verification\n" +
-                         File.ReadAllText(expectFile);
+    var commonExpectedOutput = File.ReadAllText(expectFile);
 
     var success = true;
     foreach (var plugin in dafnyOptions.Plugins) {
@@ -132,12 +133,11 @@ public class MultiBackendTest {
         }
 
         // Check for backend-specific exceptions (because of known bugs or inconsistencies)
-        var expectedOutput = commonExpectedOutput;
+        expectedOutput = commonExpectedOutput;
         string? checkFile = null;
         var expectFileForBackend = $"{options.TestFile}.{compiler.TargetId}.expect";
         if (File.Exists(expectFileForBackend)) {
-          expectedOutput = "\nDafny program verifier did not attempt verification\n" +
-                           File.ReadAllText(expectFileForBackend);
+          expectedOutput = File.ReadAllText(expectFileForBackend);
         }
         var checkFileForBackend = $"{options.TestFile}.{compiler.TargetId}.check";
         if (File.Exists(checkFileForBackend)) {
@@ -185,6 +185,10 @@ public class MultiBackendTest {
     }.Concat(options.OtherArgs);
 
     var (exitCode, outputString, error) = RunDafny(options.DafnyCliPath, dafnyArgs);
+    var compilationOutputPrior = new Regex("\r?\nDafny program verifier[^\r\n]*\r?\n").Match(outputString);
+    if (compilationOutputPrior.Success) {
+      outputString = outputString.Remove(0, compilationOutputPrior.Index + compilationOutputPrior.Length);
+    }
 
     if (exitCode == 0) {
       var diffMessage = AssertWithDiff.GetDiffMessage(expectedOutput, outputString);
@@ -270,11 +274,6 @@ public class MultiBackendTest {
   private static bool IsAllowedOutputLine(IExecutableBackend backend, string line) {
     line = line.Trim();
     if (line.Length == 0) {
-      return true;
-    }
-
-    // This is the first non-blank line we expect when we pass /noVerify
-    if (line == "Dafny program verifier did not attempt verification") {
       return true;
     }
 
