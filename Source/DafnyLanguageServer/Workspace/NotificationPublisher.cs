@@ -161,9 +161,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       logger.LogDebug($"Sending gutter icons for compilation {state.Compilation.Project.Uri}, version {state.Version}, stacktrace:\n{Environment.StackTrace}");
 
       var verificationStatusGutter = VerificationStatusGutter.ComputeFrom(
-                                       DocumentUri.From(uri),
+        DocumentUri.From(uri),
         version,
-                                       tree.Children,
+        tree.Children,
         errors,
         linesCount,
         verificationStarted

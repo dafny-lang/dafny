@@ -5,16 +5,14 @@ using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 using Microsoft.Dafny.LanguageServer.Workspace;
-using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
-using Serilog.Core;
 using Xunit;
 using Xunit.Abstractions;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.ProjectFiles;
 
-public class MultipleFilesTest2 : ClientBasedLanguageServerTest {
+public class MultipleFilesTest : ClientBasedLanguageServerTest {
   protected override Task SetUp(Action<DafnyOptions> modifyOptions) {
     return base.SetUp(o => {
       o.Set(ServerCommand.ProjectMode, true);
@@ -22,8 +20,6 @@ public class MultipleFilesTest2 : ClientBasedLanguageServerTest {
     });
   }
 
-  public MultipleFilesTest2(ITestOutputHelper output) : base(output, LogLevel.Trace) {
-  }
 
   [Fact]
   public async Task OnDiskProducerVerificationErrors() {
@@ -61,15 +57,6 @@ method Bar() {
       await output.WriteLineAsync($"diagnostics3: {diagnostics3.Stringify()}");
       throw;
     }
-  }
-}
-
-public class MultipleFilesTest : ClientBasedLanguageServerTest {
-  protected override Task SetUp(Action<DafnyOptions> modifyOptions) {
-    return base.SetUp(o => {
-      o.Set(ServerCommand.ProjectMode, true);
-      modifyOptions?.Invoke(o);
-    });
   }
 
   [Fact]

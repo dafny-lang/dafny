@@ -341,6 +341,6 @@ public abstract class LinearVerificationGutterStatusTester : ClientBasedLanguage
   }
 
   protected LinearVerificationGutterStatusTester(ITestOutputHelper output) :
-    base(output, LogLevel.Debug) {
+    base(output, LogLevel.Trace) {
   }
 }

@@ -365,14 +365,14 @@ public class CompilationManager {
   }
 
   public void MarkVerificationStarted() {
-    logger.LogTrace("MarkVerificationStarted called");
+    logger.LogDebug($"MarkVerificationStarted called for {startingCompilation.Uri} version {startingCompilation.Version}");
     if (verificationCompleted.Task.IsCompleted) {
       verificationCompleted = new TaskCompletionSource();
     }
   }
 
   public void MarkVerificationFinished() {
-    logger.LogTrace("MarkVerificationFinished called");
+    logger.LogDebug($"MarkVerificationFinished called for {startingCompilation.Uri} version {startingCompilation.Version}");
     verificationCompleted.TrySetResult();
   }
 
