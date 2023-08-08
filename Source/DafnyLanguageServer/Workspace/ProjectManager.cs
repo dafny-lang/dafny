@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
 using System.Reactive.Disposables;
@@ -80,7 +81,7 @@ public class ProjectManager : IDisposable {
     var initialCompilation = CreateInitialCompilation();
     observer = createIdeStateObserver(initialCompilation);
     CompilationManager = createCompilationManager(
-        options, boogieEngine, initialCompilation, null
+        options, boogieEngine, initialCompilation, ImmutableDictionary<Uri, VerificationTree>.Empty
     );
 
     observerSubscription = Disposable.Empty;
@@ -96,12 +97,13 @@ public class ProjectManager : IDisposable {
 
   public void UpdateDocument(DidChangeTextDocumentParams documentChange) {
     var lastPublishedState = observer.LastPublishedState;
-    var migratedVerificationTree = lastPublishedState.VerificationTree == null ? null
-      : relocator.RelocateVerificationTree(lastPublishedState.VerificationTree, documentChange, CancellationToken.None);
+    var migratedVerificationTrees = lastPublishedState.VerificationTrees.ToDictionary(
+      kv => kv.Key, kv =>
+      relocator.RelocateVerificationTree(kv.Value, documentChange, CancellationToken.None));
     lastPublishedState = lastPublishedState with {
       ImplementationIdToView = MigrateImplementationViews(documentChange, lastPublishedState.ImplementationIdToView),
       SignatureAndCompletionTable = relocator.RelocateSymbols(lastPublishedState.SignatureAndCompletionTable, documentChange, CancellationToken.None),
-      VerificationTree = migratedVerificationTree
+      VerificationTrees = migratedVerificationTrees
     };
 
     lock (RecentChanges) {
@@ -123,11 +125,11 @@ public class ProjectManager : IDisposable {
       RecentChanges = newChanges.Concat(migratedChanges).Take(MaxRememberedChanges).ToList()!;
     }
 
-    StartNewCompilation(migratedVerificationTree, lastPublishedState);
+    StartNewCompilation(migratedVerificationTrees, lastPublishedState);
     TriggerVerificationForFile(documentChange.TextDocument.Uri.ToUri());
   }
 
-  private void StartNewCompilation(VerificationTree? migratedVerificationTree,
+  private void StartNewCompilation(IReadOnlyDictionary<Uri, VerificationTree> migratedVerificationTrees,
     IdeState lastPublishedState) {
     version++;
     logger.LogDebug("Clearing result for workCompletedForCurrentVersion");
@@ -138,7 +140,7 @@ public class ProjectManager : IDisposable {
       options,
       boogieEngine,
       CreateInitialCompilation(),
-      migratedVerificationTree);
+      migratedVerificationTrees);
 
     observerSubscription.Dispose();
     var migratedUpdates = CompilationManager.CompilationUpdates.Select(document =>
@@ -307,10 +309,10 @@ public class ProjectManager : IDisposable {
   public void OpenDocument(Uri uri, bool triggerCompilation) {
     Interlocked.Increment(ref openFileCount);
     var lastPublishedState = observer.LastPublishedState;
-    var migratedVerificationTree = lastPublishedState.VerificationTree;
+    var migratedVerificationTrees = lastPublishedState.VerificationTrees;
 
     if (triggerCompilation) {
-      StartNewCompilation(migratedVerificationTree, lastPublishedState);
+      StartNewCompilation(migratedVerificationTrees, lastPublishedState);
       TriggerVerificationForFile(uri);
     }
   }

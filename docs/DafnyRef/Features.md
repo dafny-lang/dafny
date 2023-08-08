@@ -7,12 +7,12 @@
 | [Iterators](#sec-iterator-types) |  X  |  X  |  X  |  |  X  |  |  X  |  |
 | [Collections with trait element types](#sec-collection-types) |  X  |  X  |  X  |  X  |  X  |  |  X  |  |
 | [External module names with only underscores](#sec-extern-decls) |  X  |  X  |  |  X  |  X  |  X  |  X  |  |
-| [Co-inductive datatypes](#sec-coinductive-datatypes) |  X  |  X  |  X  |  X  |  X  |  |  X  |  |
+| [Co-inductive datatypes](#sec-coinductive-datatypes) |  X  |  X  |  X  |  X  |  X  |  |  X  |  X  |
 | [Multisets](#sec-multisets) |  X  |  X  |  X  |  X  |  X  |  |  X  |  |
 | [Runtime type descriptors](#) |  X  |  X  |  X  |  X  |  X  |  |  X  |  |
 | [Multi-dimensional arrays](#sec-multi-dimensional-arrays) |  X  |  X  |  X  |  X  |  X  |  |  X  |  |
 | [Map comprehensions](#sec-map-comprehension-expression) |  X  |  X  |  X  |  X  |  X  |  |  X  |  |
-| [Traits](#sec-trait-types) |  X  |  X  |  X  |  X  |  X  |  |  X  |  |
+| [Traits](#sec-trait-types) |  X  |  X  |  X  |  X  |  X  |  |  X  |  X  |
 | [Let-such-that expressions](#sec-let-expression) |  X  |  X  |  X  |  X  |  X  |  |  X  |  |
 | [Non-native numeric newtypes](#sec-newtypes) |  X  |  X  |  X  |  X  |  X  |  |  X  |  |
 | [Method synthesis](#sec-synthesize-attr) |  X  |  |  |  |  |  |  X  |  |

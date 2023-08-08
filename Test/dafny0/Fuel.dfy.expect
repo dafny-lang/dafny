@@ -46,13 +46,13 @@ Fuel.dfy(329,21): Related location
 Fuel.dfy(313,41): Related location
 Fuel.dfy(336,45): Error: function precondition could not be proved
 Fuel.dfy(329,21): Related location
+Fuel.dfy(312,43): Related location
+Fuel.dfy(336,45): Error: function precondition could not be proved
+Fuel.dfy(329,21): Related location
 Fuel.dfy(314,72): Related location
 Fuel.dfy(336,45): Error: function precondition could not be proved
 Fuel.dfy(329,21): Related location
 Fuel.dfy(314,93): Related location
-Fuel.dfy(336,45): Error: function precondition could not be proved
-Fuel.dfy(329,21): Related location
-Fuel.dfy(312,43): Related location
 Fuel.dfy(336,45): Error: function precondition could not be proved
 Fuel.dfy(329,21): Related location
 Fuel.dfy(312,58): Related location

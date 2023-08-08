@@ -480,8 +480,7 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext, IHasDocstring {
     }
   }
 
-
-  protected override string GetTriviaContainingDocstring() {
+  public override string GetTriviaContainingDocstring() {
     IToken lastClosingParenthesis = null;
     foreach (var token in OwnedTokens) {
       if (token.val == ")") {
