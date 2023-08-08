@@ -1121,28 +1121,39 @@ public class BoilerplateTriple : ProofObligationDescriptionCustomMessages {
 }
 
 public class RegionMustMatchInInstanceContext : ProofObligationDescription {
-  private readonly bool isAssignment; // false for method call with modifies clauses 
+  public enum Kind {
+    FieldAssignment,
+    ArrayAssignment,
+    MethodCall
+  }
+  private readonly Kind kind; 
   private readonly bool isstaticContext;
 
-  private string what => isAssignment ? "being assigned" : "of the method call";
+  private string what => kind switch {
+    Kind.FieldAssignment => "object being modified",
+    Kind.ArrayAssignment => "array being modified",
+    _ => "object of the method call"};
 
   private string expected =>
     isstaticContext ? "null and the object fresh" : "the context, or the context's `.Region`, or null and the object fresh";
   public override string SuccessDescription =>
-    $"the `.Region` of the object {what} is {expected}";
+    $"the `.Region` of the {what} is {expected}";
 
   public override string FailureDescription =>
-    $"the `.Region` of the object {what} could not be proved to be {expected}";
+    $"the `.Region` of the {what} could not be proved to be {expected}";
 
   public override string ShortDescription =>
     "region-" + 
-    (isAssignment ? "field-assignment" : "method-call") + (isstaticContext ? "-static" : "");
+    (kind switch {
+      Kind.ArrayAssignment => "array-index-assignment",
+      Kind.FieldAssignment => "field-assignment",
+      _ => "method-call"}) + (isstaticContext ? "-static" : "");
 
   private readonly Expression regionTest;
 
-  public RegionMustMatchInInstanceContext(Expression regionTest, bool isAssignment, bool isstaticContext) {
+  public RegionMustMatchInInstanceContext(Expression regionTest, Kind assignmentType, bool isstaticContext) {
     this.regionTest = regionTest;
-    this.isAssignment = isAssignment;
+    this.kind = assignmentType;
     this.isstaticContext = isstaticContext;
   }
 

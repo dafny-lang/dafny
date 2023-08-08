@@ -143,10 +143,12 @@ module RegionTests {
       ensures elements.Region == this
       ensures fresh(elements)
       ensures elements.Length == 4
+      ensures this.Region == null
     {
       this.elements := new int[4];
+      this.Region := null; // Makes it possible to modify by caller
       new;
-      elements.Region := this;
+      elements.Region := this;  // OK because fresh arrays have a Region set to null
     }
     method SetWrong(index: int, newValue: int) returns (previousValue: int)
       requires 0 <= index < elements.Length
@@ -159,7 +161,7 @@ module RegionTests {
       if * {
         elements[index] := newValue;  // Error: Cannot prove that elements.Region == this || elements.Region == this.Region || (fresh(elements) && elements.Region == null)
       } else {
-        elements.Region := null;  // This is making the object inaccessible!
+        elements.Region := null;  // Error: elements is not fresh
         SetStatic(elements, index, newValue, this);
         assert elements.Region == this;
       }
@@ -171,8 +173,8 @@ module RegionTests {
       ensures elements[index] == newValue
       ensures elements.Region == previousOwner
     {
-      elements[index] := newValue; // OK
-      elements.Region := previousOwner; // Error: Cannot prove that Region is null and elements is fresh
+      elements[index] := newValue;      // OK
+      elements.Region := previousOwner; // OK because fresh(elements) while elements was allocated
     }
     method Set(index: int, newValue: int) returns (previousValue: int)
       requires 0 <= index < elements.Length
@@ -183,6 +185,21 @@ module RegionTests {
       previousValue := elements[index]; // OK
       elements[index] := newValue;      // OK
     }
+    method SetOk(index: int, newValue: int) returns (previousValue: int)
+      requires 0 <= index < elements.Length
+      requires elements.Region == this
+      modifies elements
+      ensures elements[index] == newValue
+    {
+      previousValue := elements[index]; // OK
+      if * {
+        elements[index] := newValue;  // Ok
+      } else {
+        elements.Region := null;  // OK
+        SetStatic(elements, index, newValue, this);
+        assert elements.Region == this;
+      }
+    }
   }
 
   method Test3() {
@@ -191,6 +208,7 @@ module RegionTests {
     if * {
       c.elements[0] := 3;         // Error: Cannot prove that c.elements.Region == null
     } else {
+      assert c.Region == null && fresh(c);
       var previousValue := c.Set(0, 3);                // OK
       assert c.elements[0] == 3;  // OK
     }

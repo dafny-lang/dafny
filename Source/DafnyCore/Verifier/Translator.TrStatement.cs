@@ -1737,8 +1737,9 @@ namespace Microsoft.Dafny {
       if (options.RegionChecks && !method.SurelyWontModifyAnything()) {
         var regionCheck = etran.RegionCheck(dafnyReceiver, out var isStatic);
         if (regionCheck != null) {
-          builder.Add(Assert(dafnyReceiver.tok, etran.TrExpr(regionCheck),
-            new PODesc.RegionMustMatchInInstanceContext(regionCheck, false, isStatic)));
+          builder.Add(Assert(GetToken(dafnyReceiver), etran.TrExpr(regionCheck),
+            new PODesc.RegionMustMatchInInstanceContext(regionCheck, 
+              PODesc.RegionMustMatchInInstanceContext.Kind.MethodCall, isStatic)));
         }
       }
       // Figure out if the call is recursive or not, which will be used below to determine the need for a

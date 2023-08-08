@@ -8769,8 +8769,9 @@ namespace Microsoft.Dafny {
           if(options.RegionChecks) {
             var regionCheck = etran.RegionCheck(fse.Obj, out var isStatic);
             if (regionCheck != null) {
-              builder.Add(Assert(fse.Obj.tok, etran.TrExpr(regionCheck),
-                new PODesc.RegionMustMatchInInstanceContext(regionCheck, true, isStatic)));
+              builder.Add(Assert(GetToken(fse.Obj), etran.TrExpr(regionCheck),
+                new PODesc.RegionMustMatchInInstanceContext(regionCheck,
+                  PODesc.RegionMustMatchInInstanceContext.Kind.FieldAssignment, isStatic)));
             }
           }
           var obj = SaveInTemp(etran.TrExpr(fse.Obj), rhsCanAffectPreviouslyKnownExpressions,
@@ -8815,6 +8816,14 @@ namespace Microsoft.Dafny {
           Contract.Assert(sel.SelectOne);  // array-range assignments are not allowed
           Contract.Assert(sel.Seq.Type != null && sel.Seq.Type.IsArrayType);
           Contract.Assert(sel.E0 != null);
+          if(options.RegionChecks) {
+            var regionCheck = etran.RegionCheck(sel.Seq, out var isStatic);
+            if (regionCheck != null) {
+              builder.Add(Assert(GetToken(sel.Seq), etran.TrExpr(regionCheck),
+                new PODesc.RegionMustMatchInInstanceContext(regionCheck,
+                  PODesc.RegionMustMatchInInstanceContext.Kind.ArrayAssignment, isStatic)));
+            }
+          }
           var obj = SaveInTemp(etran.TrExpr(sel.Seq), rhsCanAffectPreviouslyKnownExpressions,
             "$obj" + i, predef.RefType, builder, locals);
           var idx = etran.TrExpr(sel.E0);
@@ -8992,8 +9001,18 @@ namespace Microsoft.Dafny {
         }
 
         Bpl.IdentifierExpr nw = GetNewVar_IdExpr(tok, locals);
+        
         if (!callsConstructor) {
           SelectAllocateObject(tok, nw, tRhs.Type, true, builder, etran);
+          
+          if (options.RegionChecks && tRhs.ArrayDimensions != null && tRhs.ArrayDimensions.Any()) {
+            builder.Add(new AssumeCmd(tRhs.tok, etran.TrExpr(
+              Expression.CreateEq(
+                etran.RegionSelect(new BoogieWrapper(nw, lhsType)),
+                Expression.CreateNull(program),
+                Type.Bool
+              ))));
+          }
           if (tRhs.ArrayDimensions != null) {
             int i = 0;
             foreach (Expression dim in tRhs.ArrayDimensions) {
