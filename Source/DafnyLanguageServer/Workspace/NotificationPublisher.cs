@@ -158,8 +158,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
       var linesCount = tree.Range.End.Line + 1;
       var version = filesystem.GetVersion(uri) ?? 0;
-      logger.LogDebug($"Sending gutter icons for compilation {state.Compilation.Project.Uri}, version {state.Version}, stacktrace:\n{Environment.StackTrace}");
-
       var verificationStatusGutter = VerificationStatusGutter.ComputeFrom(
         DocumentUri.From(uri),
         version,
@@ -168,6 +166,13 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         linesCount,
         verificationStarted
       );
+      if (logger.IsEnabled(LogLevel.Trace)) {
+        var icons = string.Join(' ', verificationStatusGutter.PerLineStatus.Select(s => LineVerificationStatusToString[s]));
+        logger.LogDebug($"Sending gutter icons for compilation {state.Compilation.Project.Uri}, version {state.Version}, " +
+                        $"icons: {icons}\n" +
+                        $"stacktrace:\n{Environment.StackTrace}");
+      };
+
 
       lock (previouslyPublishedIcons) {
         var previous = previouslyPublishedIcons.GetValueOrDefault(uri);
@@ -177,6 +182,26 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         }
       }
     }
+
+
+    public static Dictionary<LineVerificationStatus, string> LineVerificationStatusToString = new() {
+      { LineVerificationStatus.Nothing, "   " },
+      { LineVerificationStatus.Scheduled, " . " },
+      { LineVerificationStatus.Verifying, " S " },
+      { LineVerificationStatus.VerifiedObsolete, " I " },
+      { LineVerificationStatus.VerifiedVerifying, " $ " },
+      { LineVerificationStatus.Verified, " | " },
+      { LineVerificationStatus.ErrorContextObsolete, "[I]" },
+      { LineVerificationStatus.ErrorContextVerifying, "[S]" },
+      { LineVerificationStatus.ErrorContext, "[ ]" },
+      { LineVerificationStatus.AssertionFailedObsolete, "[-]" },
+      { LineVerificationStatus.AssertionFailedVerifying, "[~]" },
+      { LineVerificationStatus.AssertionFailed, "[=]" },
+      { LineVerificationStatus.AssertionVerifiedInErrorContextObsolete, "[o]" },
+      { LineVerificationStatus.AssertionVerifiedInErrorContextVerifying, "[Q]" },
+      { LineVerificationStatus.AssertionVerifiedInErrorContext, "[O]" },
+      { LineVerificationStatus.ResolutionError, @"/!\" }
+    };
 
     private void PublishGhostDiagnostics(IdeState previousState, IdeState state) {
 

@@ -4,9 +4,11 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
+using Microsoft.Dafny.LanguageServer.Workspace;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.JsonRpc;
@@ -38,25 +40,6 @@ public abstract class LinearVerificationGutterStatusTester : ClientBasedLanguage
       .AddHandler(DafnyRequestNames.VerificationStatusGutter,
         NotificationHandler.For<VerificationStatusGutter>(verificationStatusGutterReceiver.NotificationReceived));
   }
-
-  public static Dictionary<LineVerificationStatus, string> LineVerificationStatusToString = new() {
-    { LineVerificationStatus.Nothing, "   " },
-    { LineVerificationStatus.Scheduled, " . " },
-    { LineVerificationStatus.Verifying, " S " },
-    { LineVerificationStatus.VerifiedObsolete, " I " },
-    { LineVerificationStatus.VerifiedVerifying, " $ " },
-    { LineVerificationStatus.Verified, " | " },
-    { LineVerificationStatus.ErrorContextObsolete, "[I]" },
-    { LineVerificationStatus.ErrorContextVerifying, "[S]" },
-    { LineVerificationStatus.ErrorContext, "[ ]" },
-    { LineVerificationStatus.AssertionFailedObsolete, "[-]" },
-    { LineVerificationStatus.AssertionFailedVerifying, "[~]" },
-    { LineVerificationStatus.AssertionFailed, "[=]" },
-    { LineVerificationStatus.AssertionVerifiedInErrorContextObsolete, "[o]" },
-    { LineVerificationStatus.AssertionVerifiedInErrorContextVerifying, "[Q]" },
-    { LineVerificationStatus.AssertionVerifiedInErrorContext, "[O]" },
-    { LineVerificationStatus.ResolutionError, @"/!\" }
-  };
 
   private static bool IsNotIndicatingProgress(LineVerificationStatus status) {
     return status != LineVerificationStatus.Scheduled &&
@@ -94,7 +77,7 @@ public abstract class LinearVerificationGutterStatusTester : ClientBasedLanguage
         if (line >= statusTrace.Length) {
           renderedCode += "###";
         } else {
-          renderedCode += LineVerificationStatusToString[statusTrace[line]];
+          renderedCode += NotificationPublisher.LineVerificationStatusToString[statusTrace[line]];
         }
       }
 

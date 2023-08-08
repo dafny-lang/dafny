@@ -253,7 +253,7 @@ public class CompilationManager {
       try {
         var remainingJobs = Interlocked.Decrement(ref runningVerificationJobs);
         if (remainingJobs == 0) {
-          logger.LogDebug($"Calling FinishedNotifications because there are no remaining verification jobs for version {compilation.Version}.");
+          logger.LogDebug($"Calling FinishedNotifications because there are no remaining verification jobs for {compilation.Uri} version {compilation.Version}.");
           FinishedNotifications(compilation);
         }
       } catch (Exception e) {
@@ -274,6 +274,10 @@ public class CompilationManager {
       foreach (var uri in compilation.RootUris) {
         verificationProgressReporter.ReportRealtimeDiagnostics(compilation, uri, true);
       }
+    }
+
+    if (compilation.Version != startingCompilation.Version) {
+      logger.LogCritical("compilation.Version != startingCompilation.Version");
     }
     MarkVerificationFinished();
   }
@@ -380,10 +384,10 @@ public class CompilationManager {
     t => {
       if (t.IsCompletedSuccessfully) {
 #pragma warning disable VSTHRD103
-        logger.LogDebug($"LastDocument will return document version {t.Result.Version}");
+        logger.LogDebug($"LastDocument {startingCompilation.Uri} will return document version {t.Result.Version}");
         return verificationCompleted.Task.ContinueWith(
           verificationCompletedTask => {
-            logger.LogDebug($"verificationCompleted finished with status {verificationCompletedTask.Status}");
+            logger.LogDebug($"LastDocument returning translated compilation {startingCompilation.Uri} with status {verificationCompletedTask.Status}");
             return Task.FromResult<CompilationAfterParsing>(t.Result);
           }, TaskScheduler.Current).Unwrap();
 #pragma warning restore VSTHRD103
