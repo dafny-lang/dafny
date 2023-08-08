@@ -153,7 +153,7 @@ public class ProjectManager : IDisposable {
 
   public void TriggerVerificationForFile(Uri triggeringFile) {
     if (VerifyOnOpenChange) {
-      var _ = VerifyEverythingAsync(null);
+      var _ = VerifyEverythingAsync(triggeringFile);
     } else {
       logger.LogDebug("Setting result for workCompletedForCurrentVersion");
     }
@@ -242,8 +242,6 @@ public class ProjectManager : IDisposable {
     return observer.LastPublishedState;
   }
 
-  // Test that when a project has multiple files, when saving/opening, only the affected Uri is verified when using OnSave.
-  // Test that when a project has multiple files, everything is verified on opening one of them.
   public async Task VerifyEverythingAsync(Uri? uri) {
     _ = workCompletedForCurrentVersion.WaitAsync();
     try {

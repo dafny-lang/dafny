@@ -150,10 +150,10 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       var tree = state.VerificationTrees[uri];
 
       var linesCount = tree.Range.End.Line + 1;
-      var version = filesystem.GetVersion(uri) ?? 0;
+      var fileVersion = filesystem.GetVersion(uri) ?? 0;
       var verificationStatusGutter = VerificationStatusGutter.ComputeFrom(
         DocumentUri.From(uri),
-        version,
+        fileVersion,
         tree.Children,
         errors,
         linesCount,
@@ -161,7 +161,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       );
       if (logger.IsEnabled(LogLevel.Trace)) {
         var icons = string.Join(' ', verificationStatusGutter.PerLineStatus.Select(s => LineVerificationStatusToString[s]));
-        logger.LogDebug($"Sending gutter icons for compilation {state.Compilation.Project.Uri}, version {state.Version}, " +
+        logger.LogDebug($"Sending gutter icons for compilation {state.Compilation.Project.Uri}, comp version {state.Version}, file version {fileVersion}" +
                         $"icons: {icons}\n" +
                         $"stacktrace:\n{Environment.StackTrace}");
       };

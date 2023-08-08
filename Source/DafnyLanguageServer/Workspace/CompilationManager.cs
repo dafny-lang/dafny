@@ -196,6 +196,7 @@ public class CompilationManager {
         t => GetImplementationName(t.Implementation),
         t => new ImplementationView(t, PublishedVerificationStatus.Stale, Array.Empty<DafnyDiagnostic>()));
     });
+    compilationUpdates.OnNext(compilation);
 
     var tasks = implementations.Values.Select(t => t.Task).ToList();
 
@@ -250,7 +251,7 @@ public class CompilationManager {
 
     var remainingJobs = Interlocked.Decrement(ref runningVerificationJobs);
     if (remainingJobs == 0) {
-      logger.LogDebug($"Calling MarkVerificationFinished because there are no remaining verification jobs for version {compilation.Version}.");
+      logger.LogDebug($"Calling MarkVerificationFinished because there are no remaining verification jobs for {compilation.Uri}, version {compilation.Version}.");
       MarkVerificationFinished();
     }
     return true;
