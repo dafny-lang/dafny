@@ -31,4 +31,16 @@ public class NodeTests {
     var shouldBeChild = grandParent.FindNode(uri, new DafnyPosition(0, 1));
     Assert.Equal(child, shouldBeChild);
   }
+
+  [Fact]
+  public void SkipTokenlessLeaf() {
+    var uri = new Uri(Directory.GetCurrentDirectory());
+    var child1 = new ConcreteNode(RangeToken.NoToken);
+    var child2 = new ConcreteNode(CreateRange(uri, 0, 1, 0, 2));
+
+    var parent = new ConcreteNode(CreateRange(uri, 0, 0, 0, 3), new[] { child1, child2 });
+
+    var shouldBeChild = parent.FindNode(uri, new DafnyPosition(0, 1));
+    Assert.Equal(child2, shouldBeChild);
+  }
 }

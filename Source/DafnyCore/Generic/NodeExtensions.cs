@@ -142,6 +142,9 @@ public static class NodeExtensions {
       }
     }
 
+    if (node.Tok == Token.NoToken) {
+      return null;
+    }
     return new LList<INode>(node, parent);
   }
 }
