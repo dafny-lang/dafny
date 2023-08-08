@@ -6,13 +6,10 @@ using System.Threading.Tasks;
 using Microsoft.Boogie;
 using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Language.Symbols;
-using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace;
-
-using VerifyStatus = Dictionary<string, ImplementationView>;
 
 public class CompilationAfterResolution : CompilationAfterParsing {
 
@@ -38,7 +35,7 @@ public class CompilationAfterResolution : CompilationAfterParsing {
   public SignatureAndCompletionTable SignatureAndCompletionTable { get; }
   public IReadOnlyDictionary<Uri, IReadOnlyList<Range>> GhostDiagnostics { get; }
   public IReadOnlyList<ICanVerify> Verifiables { get; }
-  public ConcurrentDictionary<ICanVerify, VerifyStatus> ImplementationsPerVerifiable { get; } = new();
+  public ConcurrentDictionary<ICanVerify, Dictionary<string, ImplementationView>> ImplementationsPerVerifiable { get; } = new();
   /// <summary>
   /// FilePosition is required because the default module lives in multiple files
   /// </summary>

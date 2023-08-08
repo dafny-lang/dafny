@@ -12,7 +12,7 @@ using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.ProjectFiles;
 
-public class MultipleFilesTest : ClientBasedLanguageServerTest {
+public class MultipleFilesProjectTest : ClientBasedLanguageServerTest {
   protected override Task SetUp(Action<DafnyOptions> modifyOptions) {
     return base.SetUp(o => {
       o.Set(ServerCommand.ProjectMode, true);
@@ -338,6 +338,6 @@ method Bar() {
     Assert.Contains("Unable to open", consumer3Diagnostics[0].Message);
   }
 
-  public MultipleFilesTest(ITestOutputHelper output) : base(output) {
+  public MultipleFilesProjectTest(ITestOutputHelper output) : base(output) {
   }
 }

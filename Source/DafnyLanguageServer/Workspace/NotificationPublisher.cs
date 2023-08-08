@@ -132,8 +132,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
             Version = filesystem.GetVersion(publishUri) ?? 0,
             Diagnostics = diagnostics,
           });
-        } else {
-          Console.Write("");
         }
       }
     }

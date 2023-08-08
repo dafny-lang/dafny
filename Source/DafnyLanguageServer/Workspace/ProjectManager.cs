@@ -17,8 +17,6 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace;
 
-using VerifyStatus = Dictionary<string, (IImplementationTask Task, ImplementationView View)>;
-
 public delegate ProjectManager CreateProjectManager(
   ExecutionEngine boogieEngine,
   DafnyProject project);

@@ -12,10 +12,7 @@ using Microsoft.Boogie;
 using Microsoft.Extensions.Logging;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
-
-
 namespace Microsoft.Dafny.LanguageServer.Workspace {
-  using VerifyStatus = Dictionary<string, ImplementationView>;
 
   /// <summary>
   /// Text document loader implementation that offloads the whole load procedure on one dedicated
