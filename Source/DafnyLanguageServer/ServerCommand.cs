@@ -37,7 +37,7 @@ Send notifications that indicate which lines are ghost.".TrimStart());
 
   public static readonly Option<VerifyOnMode> Verification = new("--verify-on", () => VerifyOnMode.ChangeFile, @"
 (experimental)
-Determine when to automatically verify the program. Choose from: Never, OnChange or OnSave.".TrimStart()) {
+Determine when to automatically verify the program. Choose from: Never, OnChangeFile, OnChangeProject or OnSave.".TrimStart()) {
     ArgumentHelpName = "event"
   };
 
