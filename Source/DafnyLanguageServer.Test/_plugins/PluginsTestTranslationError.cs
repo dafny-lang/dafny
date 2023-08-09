@@ -14,8 +14,8 @@ namespace PluginsTestTranslationError {
     public TranslationErrorRewriter(ErrorReporter reporter) : base(reporter) {
     }
 
-    public override void PreTranslate(Program program) {
-      Reporter.Error(MessageSource.Translator, program.GetFirstTopLevelToken(),
+    public override void PreTranslate(ModuleDefinition module) {
+      Reporter.Error(MessageSource.Translator, module.Tok,
         "Translation error that should appear in the code");
     }
   }

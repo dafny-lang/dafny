@@ -168,6 +168,7 @@ public class CompilationManager {
         var result = await verifier.GetVerificationTasksAsync(boogieEngine, compilation, containingModule,
           cancellationSource.Token);
         compilation.ResolutionDiagnostics = ((DiagnosticErrorReporter)compilation.Program.Reporter).AllDiagnosticsCopy;
+        compilationUpdates.OnNext(compilation);
         foreach (var task in result) {
           cancellationSource.Token.Register(task.Cancel);
         }
