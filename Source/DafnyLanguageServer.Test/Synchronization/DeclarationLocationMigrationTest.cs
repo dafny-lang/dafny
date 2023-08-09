@@ -347,7 +347,8 @@ class A {
 
     public DeclarationLocationMigrationTest(ITestOutputHelper output) : this(output, LogLevel.Information) {
     }
-    public DeclarationLocationMigrationTest(ITestOutputHelper output, LogLevel logLevel) : base(output, logLevel) {
+
+    protected DeclarationLocationMigrationTest(ITestOutputHelper output, LogLevel logLevel) : base(output, logLevel) {
     }
   }
 }

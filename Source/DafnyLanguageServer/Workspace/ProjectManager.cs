@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
+using System.Numerics;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Threading;
@@ -265,13 +266,19 @@ public class ProjectManager : IDisposable {
       }
 
       int GetPriorityAttribute(ISymbol symbol) {
-        return 0; // TODO lookup attribute
+        if (symbol is IAttributeBearingDeclaration hasAttributes &&
+            hasAttributes.HasUserAttribute("priority", out var attribute) &&
+            attribute.Args.Count >= 1 && attribute.Args[0] is LiteralExpr { Value: BigInteger priority }) {
+          return (int)priority;
+        }
+        return 0;
       }
+
       int TopToBottomPriority(ISymbol symbol) {
         return symbol.Tok.pos;
       }
       var implementationOrder = ChangedVerifiables.Select((v, i) => (v, i)).ToDictionary(k => k.v, k => k.i);
-      var orderedVerifiables = verifiables.OrderBy(GetPriorityAttribute).CreateOrderedEnumerable(
+      var orderedVerifiables = verifiables.OrderByDescending(GetPriorityAttribute).CreateOrderedEnumerable(
         t => implementationOrder.GetOrDefault(t.Tok.GetFilePosition(), () => int.MaxValue),
         null, false).CreateOrderedEnumerable(TopToBottomPriority, null, false).ToList();
       logger.LogDebug($"Ordered verifiables: {string.Join(", ", orderedVerifiables.Select(v => v.NameToken.val))}");
