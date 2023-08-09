@@ -5871,9 +5871,8 @@ namespace Microsoft.Dafny {
           Bpl.Expr rhs;
           if (f.EnclosingClass is ArrowTypeDecl) {
             if (f.Name == "requires") {
-              rhs = Bpl.Expr.True;
               AddOtherDefinition(GetOrCreateFunction(f), (new Axiom(f.tok,
-                BplForall(Concat(vars, bvars), BplTrigger(lhs), Bpl.Expr.Eq(lhs, rhs)))));
+                BplForall(Concat(vars, bvars), BplTrigger(lhs), Bpl.Expr.Eq(lhs, Bpl.Expr.True)))));
             } else {
               rhs = Bpl.Expr.True;
               var args_h = f.ReadsHeap ? Snoc(SnocPrevH(argsRequires), h) : argsRequires;
@@ -5907,9 +5906,9 @@ namespace Microsoft.Dafny {
 
           if (f.EnclosingClass is ArrowTypeDecl) {
             var args_h = f.ReadsHeap ? Snoc(SnocPrevH(argsRequires), h) : argsRequires;
-            var pre = FunctionCall(f.tok, Requires(arity), Bpl.Type.Bool, Concat(SnocSelf(args_h), lhs_args));
+            var precondition = FunctionCall(f.tok, Requires(arity), Bpl.Type.Bool, Concat(SnocSelf(args_h), lhs_args));
             sink.AddTopLevelDeclaration(new Axiom(f.tok,
-              BplForall(Cons(bxVar, Concat(vars, bvars)), BplTrigger(lhs), Bpl.Expr.Imp(pre, Bpl.Expr.Eq(lhs, rhs)))));
+              BplForall(Cons(bxVar, Concat(vars, bvars)), BplTrigger(lhs), Bpl.Expr.Imp(precondition, Bpl.Expr.Eq(lhs, rhs)))));
           } else {
             sink.AddTopLevelDeclaration(new Axiom(f.tok,
               BplForall(Cons(bxVar, Concat(vars, bvars)), BplTrigger(lhs), Bpl.Expr.Eq(lhs, rhs))));

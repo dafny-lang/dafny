@@ -4965,9 +4965,6 @@ Suffix<ref Expression e>
       (. e = new ExprDotName(id, e, id.val, typeArgs) {
            RangeToken = new RangeToken(startToken, id)
          };
-         if (id.val == "reads" or "requires") {
-           e = new ParensExpression(id, e);
-           }
          if (openParen != null) {
            e = new ApplySuffix(openParen, atLabel, e, args, t) {
              RangeToken = new RangeToken(startToken, t)

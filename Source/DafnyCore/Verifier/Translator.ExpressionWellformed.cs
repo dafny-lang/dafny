@@ -717,29 +717,6 @@ namespace Microsoft.Dafny {
                 }
               }
 
-              // if (e.Name == "reads") {
-              //   // check precond
-              //   Func<Expression, Bpl.Expr> TrArg = arg => {
-              //     Bpl.Expr inner = etran.TrExpr(arg);
-              //     if (ModeledAsBoxType(arg.Type)) {
-              //       return inner;
-              //     } else {
-              //       return FunctionCall(arg.tok, BuiltinFunction.Box, null, inner);
-              //     }
-              //   };
-              //
-              //   var typeargs = Map(e.Function.Formals, arg => arg.Type);
-              //   
-              //   var argsss = Concat(
-              //     Map(typeargs, TypeToTy),
-              //     Cons(etran.HeapExpr,
-              //       Cons(etran.TrExpr(e),
-              //         e.Args.ConvertAll(arg => TrArg(arg)))));
-              //   
-              //   var precond = FunctionCall(e.tok, Requires(e.Args.Count), Bpl.Type.Bool,argsss);
-              //   builder.Add(Assert(GetToken(expr), precond, new PODesc.PreconditionSatisfied(null, null)));
-              // }
-
               if (wfOptions.DoReadsChecks) {
                 // check that the callee reads only what the caller is already allowed to read
                 var s = new Substituter(null, new Dictionary<IVariable, Expression>(), e.GetTypeArgumentSubstitutions());
