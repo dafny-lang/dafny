@@ -43,7 +43,7 @@ namespace DafnyTestGeneration {
         bool newPathsFound = true;
         // Consider paths of increasing length, pruning out infeasible sub-paths in the process:
         while (newPathsFound) {
-          List<Path> pathsToConsider = new(); // paths without nown unfeasible subpaths
+          List<Path> pathsToConsider = new(); // paths without known unfeasible subpaths
           var totalPaths = 0;
           foreach (var path in GeneratePaths(implementation, pathLength - PathLengthStep, pathLength)) {
             totalPaths++;
