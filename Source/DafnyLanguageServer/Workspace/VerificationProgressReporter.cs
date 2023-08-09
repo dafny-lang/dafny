@@ -301,7 +301,7 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
     var position = implementation.tok.GetLspPosition();
     var availableMethodNodes = string.Join(",", tree!.Children.Select(vt =>
       $"{vt.Kind} {vt.DisplayName} at {vt.Filename}:{vt.Position.Line}"));
-    logger.LogError(
+    logger.LogDebug(
       $"No method found in {methodName}, in document {compilation.Uri} and filename {tree.Filename}, " +
       $"no method node at {implementation.tok.filename}:{position.Line}:{position.Character}.\n" +
       $"Available nodes: " + availableMethodNodes);
