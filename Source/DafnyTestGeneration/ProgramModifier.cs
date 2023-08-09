@@ -57,7 +57,7 @@ namespace DafnyTestGeneration {
       }
       program.RemoveTopLevelDeclarations(declaration => declaration is Implementation or Procedure && Utils.DeclarationHasAttribute(declaration, "inline"));
       program = new RemoveChecks(options).VisitProgram(program);
-      if (options.TestGenOptions.Mode is TestGenerationOptions.Modes.Branch) {
+      if (options.TestGenOptions.Mode is TestGenerationOptions.Modes.CallGraph) {
         program = new AnnotationVisitor(options).VisitProgram(program);
       }
       TestEntries = program.Implementations
