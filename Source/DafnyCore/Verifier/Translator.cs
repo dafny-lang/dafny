@@ -5878,7 +5878,7 @@ namespace Microsoft.Dafny {
               var args_h = f.ReadsHeap ? Snoc(SnocPrevH(argsRequires), h) : argsRequires;
               var pre = FunctionCall(f.tok, Requires(arity), Bpl.Type.Bool, Concat(SnocSelf(args_h), lhs_args));
               AddOtherDefinition(GetOrCreateFunction(f), (new Axiom(f.tok,
-                BplForall(Concat(vars, bvars), BplTrigger(lhs), Bpl.Expr.Imp(pre, Bpl.Expr.Eq(lhs, rhs)))))); // , "WOOHOOHOO"
+                BplForall(Concat(vars, bvars), BplTrigger(lhs), Bpl.Expr.Imp(pre, Bpl.Expr.Eq(lhs, rhs))))));
             }
           } else {
             var args_h = f.ReadsHeap ? Snoc(SnocPrevH(argsRequires), h) : argsRequires;
