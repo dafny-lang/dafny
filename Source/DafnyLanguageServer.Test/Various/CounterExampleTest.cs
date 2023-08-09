@@ -1534,6 +1534,30 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       Assert.True(counterExamples[0].Variables.ContainsKey("this:M.C<M.C$T>"));
     }
 
+    /// <summary>
+    /// This test case would previously lead to stack overflow because of infinite recursion in GetDafnyType
+    /// </summary>
+    [Theory]
+    [MemberData(nameof(OptionSettings))]
+    public async Task GetDafnyTypeInfiniteRecursion(List<Action<DafnyOptions>> optionSettings) {
+      await SetUpOptions(optionSettings);
+      var source = @"
+      class Seq {
+        var s:seq<int>
+        method test(i0:nat, val0:int, i1:nat, val1:int) 
+          modifies this {
+          assume 0 <= i0 < i1 < |s|;
+          s := s[i0 := val0];
+          s := s[i1 := val1];
+          assert s[0] != 0;
+        }
+      }
+      ".TrimStart();
+      var documentItem = CreateTestDocument(source);
+      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+      (await RequestCounterExamples(documentItem.Uri)).ToList(); ;
+    }
+
     public CounterExampleTest(ITestOutputHelper output) : base(output) {
     }
   }
