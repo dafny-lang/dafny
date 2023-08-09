@@ -95,7 +95,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     public async Task<IdeState?> GetResolvedDocumentAsyncInternal(TextDocumentIdentifier documentId) {
       var manager = await GetProjectManager(documentId, false);
       if (manager != null) {
-        return await manager.GetStateAfterResolutionAsync()!;
+        return await manager.GetStateAfterResolutionAsync();
       }
 
       return null;
