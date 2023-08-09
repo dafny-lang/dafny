@@ -6,3 +6,7 @@ method Foo() {
     var x := 4;
   }
 }
+
+ghost function Bar(): int {
+  3
+} 

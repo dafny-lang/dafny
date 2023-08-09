@@ -25,7 +25,7 @@ public class PluginsTestWithVerification : PluginsTestBase {
     var resolutionReport = await diagnosticsReceiver.AwaitNextNotificationAsync(CancellationToken);
     Assert.Equal(documentItem.Uri, resolutionReport.Uri);
     var verificationReport = await diagnosticsReceiver.AwaitNextNotificationAsync(CancellationToken);
-    Assert.Equal(documentItem.Uri, resolutionReport.Uri);
+    Assert.Equal(documentItem.Uri, verificationReport.Uri);
     var diagnostics = verificationReport.Diagnostics.ToArray();
     AssertM.Equal(2, diagnostics.Length, LibraryPath + " did not raise an error.");
     Assert.Equal("Plugin Error that does not prevent verification", diagnostics[0].Message);

@@ -28,7 +28,7 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
       fNull, fSetUnion, fSetIntersection, fSetDifference, fSetUnionOne,
       fSetEmpty, fSeqEmpty, fSeqBuild, fSeqAppend, fSeqDrop, fSeqTake,
       fSeqUpdate, fSeqCreate, fU2Real, fU2Bool, fU2Int,
-      fMapDomain, fMapElements, fMapBuild, fIs, fIsBox;
+      fMapDomain, fMapElements, fMapBuild, fIs, fIsBox, fUnbox;
     private readonly Dictionary<Model.Element, Model.FuncTuple> datatypeValues = new();
 
     // maps a numeric type (int, real, bv4, etc.) to the set of integer
@@ -85,6 +85,7 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
       fU2Int = new ModelFuncWrapper(this, "U_2_int", 1, 0);
       fTag = new ModelFuncWrapper(this, "Tag", 1, 0);
       fBv = new ModelFuncWrapper(this, "TBitvector", 1, 0);
+      fUnbox = new ModelFuncWrapper(this, "$Unbox", 2, 0);
       InitDataTypes();
       RegisterReservedChars();
       RegisterReservedInts();
@@ -302,6 +303,16 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
     /// This method tries to extract the base type (so seq<char> instead of string)
     /// </summary>
     private Type GetDafnyType(Model.Uninterpreted element) {
+      var finalResult = UnknownType;
+      foreach (var typeElement in GetIsResults(element)) {
+        var reconstructedType = ReconstructType(typeElement);
+        if (reconstructedType is not UserDefinedType userDefinedType) {
+          return reconstructedType;
+        }
+        if (finalResult.Name.EndsWith("?") || finalResult == UnknownType) {
+          finalResult = userDefinedType;
+        }
+      }
       var seqOperation = fSeqAppend.AppWithResult(element);
       seqOperation ??= fSeqDrop.AppWithResult(element);
       seqOperation ??= fSeqTake.AppWithResult(element);
@@ -349,16 +360,6 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
       }
       if (fCharToInt.OptEval(element) != null) {
         return Type.Char;
-      }
-      var finalResult = UnknownType;
-      foreach (var typeElement in GetIsResults(element)) {
-        var reconstructedType = ReconstructType(typeElement);
-        if (reconstructedType is not UserDefinedType userDefinedType) {
-          return reconstructedType;
-        }
-        if (finalResult.Name.EndsWith("?") || finalResult == UnknownType) {
-          finalResult = userDefinedType;
-        }
       }
       if (finalResult != UnknownType) {
         return finalResult;
@@ -840,7 +841,11 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
         return null;
       }
       var unboxed = fBox.AppWithResult(elt);
-      return unboxed != null ? unboxed.Args[0] : elt;
+      if (unboxed != null) {
+        return Unbox(unboxed.Args[0]);
+      }
+      unboxed = fUnbox.AppWithArg(1, elt);
+      return unboxed != null ? Unbox(unboxed.Result) : elt;
     }
   }
 }
