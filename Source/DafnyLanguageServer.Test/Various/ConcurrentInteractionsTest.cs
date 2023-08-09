@@ -21,10 +21,12 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
   [Collection("Sequential Collection")]
   public class ConcurrentInteractionsTest2 : ClientBasedLanguageServerTest {
 
+    private const int MaxTestExecutionTimeMs = 240_000;
+    
     public ConcurrentInteractionsTest2(ITestOutputHelper output) : base(output, LogLevel.Trace) {
     }
 
-    [Fact]
+    [Fact(Timeout = MaxTestExecutionTimeMs)]
     public async Task ChangeDocumentCancelsPreviousOpenAndChangeVerification() {
       var source = NeverVerifies.Substring(0, NeverVerifies.Length - 2);
       var documentItem = CreateTestDocument(source);
