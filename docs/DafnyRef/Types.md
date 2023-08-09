@@ -4301,8 +4301,9 @@ A function is usually transparent up to some unrolling level (up to
 1, or maybe 2 or 3). If its arguments are all literals it is
 transparent all the way.
 
-But the transparency of a function is affected by
-whether the function was declared with an [`opaque` modifier]((#sec-opaque),
+The default transparency of a function can be set with the `--default-function-opacity` commandline flag. 
+The transparency of a function is also affected by
+whether the function was declared with an [`opaque` modifier](#sec-opaque) or [`transparent` modifier](#sec-transparency),
 the ([reveal statement](#sec-reveal-statement)),
 and whether it was `reveal`ed in an export set.
 

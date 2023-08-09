@@ -536,13 +536,13 @@ public class ModuleDefinition : RangeNode, IAttributeBearingDeclaration, IClonea
     if (!moduleExports.Any()) {
       return true;
     }
-    
+
     var exportSignatures = ((ModuleExportDecl)moduleExports.First()).Exports.Where(export => export.Decl == decl);
 
     if (!exportSignatures.Any()) {
       return false;
     }
-    
+
     isItRevealed = !exportSignatures.First().Opaque;
     return true;
   }
