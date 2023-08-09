@@ -5,6 +5,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using JetBrains.Annotations;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
+using Microsoft.Extensions.Logging;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -25,7 +26,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
 
     [Fact]
     public async Task SignatureHelpForUnloadedDocumentReturnsNull() {
-      var documentItem = CreateTestDocument("");
+      var documentItem = CreateTestDocument("", "SignatureHelpForUnloadedDocumentReturnsNull.dfy");
       var signatureHelp = await RequestSignatureHelpAsync(documentItem, (7, 11));
       Assert.Null(signatureHelp);
     }
@@ -42,7 +43,7 @@ method Multiply(x: int, y: int) returns (p: int)
 method Main() {
   //
 }".TrimStart();
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "SignatureHelpOnOpeningParenthesesReturnsSignatureForExistingMethod.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       ApplyChange(
         ref documentItem,
@@ -69,7 +70,7 @@ function Multiply(x: int, y: int): int
 method Main() {
   //
 }".TrimStart();
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "SignatureHelpOnOpeningParenthesesReturnsSignatureForExistingFunction.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       ApplyChange(
         ref documentItem,
@@ -78,6 +79,7 @@ method Main() {
       );
 
       var signatureHelp = await RequestSignatureHelpAsync(documentItem, (6, 11));
+      Assert.NotNull(signatureHelp);
       var signatures = signatureHelp.Signatures.ToArray();
       Assert.Single(signatures);
       var markup = signatures[0].Documentation.MarkupContent;
@@ -91,7 +93,7 @@ method Main() {
 method Main() {
   //
 }".TrimStart();
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "SignatureHelpOnOpeningParenthesesReturnsNullIfNoSuchMethodOrFunctionExists.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       ApplyChange(
         ref documentItem,
@@ -130,7 +132,7 @@ module Mod {
     }
   }
 }".TrimStart();
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "SignatureHelpOnOpeningParenthesesReturnsSignatureOfClosestFunction.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       ApplyChange(
         ref documentItem,
@@ -194,7 +196,7 @@ class B {
       Assert.Equal("```dafny\nfunction A.Multiply(n: int, m: int): int\n```", markup.Value);
     }
 
-    public SignatureHelpTest(ITestOutputHelper output) : base(output) {
+    public SignatureHelpTest(ITestOutputHelper output) : base(output, LogLevel.Debug) {
     }
   }
 }
