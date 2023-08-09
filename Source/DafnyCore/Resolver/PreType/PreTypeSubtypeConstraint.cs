@@ -46,8 +46,8 @@ namespace Microsoft.Dafny {
     }
 
     public bool Apply(PreTypeConstraints constraints) {
-      var super = Super.Normalize();
-      var sub = Sub.Normalize();
+      var super = Super.NormalizeWrtScope();
+      var sub = Sub.NormalizeWrtScope();
       var ptSuper = super as DPreType;
       var ptSub = sub as DPreType;
       // In the following explanations, D is assumed to be a type with three

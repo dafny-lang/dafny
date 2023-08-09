@@ -177,7 +177,8 @@ namespace Microsoft.Dafny {
       Contract.Requires(type != null);
 
       type = type.Normalize(); // keep type synonyms
-      if (type.AsTypeSynonym is { } typeSynonymDecl and not SubsetTypeDecl && option != Type2PreTypeOption.GoodForInference) {
+      if (type.AsTypeSynonym is { } typeSynonymDecl and not SubsetTypeDecl && option != Type2PreTypeOption.GoodForInference &&
+          typeSynonymDecl.IsRevealedInScope(Type.GetScope())) {
         // Compute a pre-type for the non-instantiated ("raw") RHS type (that is, for the RHS of the type-synonym declaration with the
         // formal type parameters of the type-synonym declaration).
         var rawRhsType = UserDefinedType.FromTopLevelDecl(typeSynonymDecl.tok, typeSynonymDecl);
@@ -1297,7 +1298,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(codeContext != null);
       ResolveExpression(fe.E, new ResolutionContext(codeContext, codeContext is TwoStateLemma || use == FrameExpressionUse.Unchanged));
       Constraints.AddGuardedConstraint(() => {
-        DPreType dp = fe.E.PreType.Normalize() as DPreType;
+        DPreType dp = fe.E.PreType.NormalizeWrtScope() as DPreType;
         if (dp == null) {
           // no information yet
           return false;

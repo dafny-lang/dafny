@@ -42,6 +42,10 @@ namespace Microsoft.Dafny {
       if (printableContext != null) {
         PrintTypeInferenceState("(partial) " + printableContext);
       }
+
+      // Note, the various constraints that have been recorded may contain pre-types that refer to symbols that
+      // are not in scope. Therefore, it is important that, at the onset processing any of these constraints,
+      // each pre-type is normalized with respect to scope.
       bool anythingChanged;
       do {
         anythingChanged = makeDecisions && TryMakeDecisions();
