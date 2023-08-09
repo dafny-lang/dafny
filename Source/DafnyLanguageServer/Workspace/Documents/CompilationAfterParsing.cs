@@ -10,7 +10,7 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 namespace Microsoft.Dafny.LanguageServer.Workspace;
 
 public class CompilationAfterParsing : Compilation {
-  public IReadOnlyDictionary<Uri, List<DafnyDiagnostic>> ResolutionDiagnostics { get; }
+  public IReadOnlyDictionary<Uri, List<DafnyDiagnostic>> ResolutionDiagnostics { get; set; }
   public Dictionary<Uri, VerificationTree> VerificationTrees { get; }
 
   public CompilationAfterParsing(Compilation compilation,

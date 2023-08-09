@@ -167,6 +167,7 @@ public class CompilationManager {
         _ = statusPublisher.SendStatusNotification(compilation, CompilationStatus.PreparingVerification);
         var result = await verifier.GetVerificationTasksAsync(boogieEngine, compilation, containingModule,
           cancellationSource.Token);
+        compilation.ResolutionDiagnostics = ((DiagnosticErrorReporter)compilation.Program.Reporter).AllDiagnosticsCopy;
         foreach (var task in result) {
           cancellationSource.Token.Register(task.Cancel);
         }
