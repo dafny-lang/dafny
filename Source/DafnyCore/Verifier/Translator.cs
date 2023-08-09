@@ -866,12 +866,6 @@ namespace Microsoft.Dafny {
 
       Type.ResetScopes();
 
-      foreach (var plugin in p.Options.Plugins) {
-        foreach (var rewriter in plugin.GetRewriters(p.Reporter)) {
-          rewriter.PreTranslate(p);
-        }
-      }
-
       foreach (ModuleDefinition outerModule in VerifiableModules(p)) {
         var translator = new Translator(reporter, flags);
 
