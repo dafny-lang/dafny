@@ -1108,13 +1108,64 @@ module AlcorTacticProofChecker {
       return Success(proofState.ToString());
     }
 
-    method Cases(name: string := "") returns (feedback: Result<string>)
+    method Cases() returns (feedback: Result<string>)
+      modifies this
     {
-      if name == "" { // Try to split the goal.
-
-      } else {
-        // Try to split the environment
+      if proofState.Error? {
+        return Failure(proofState.message);
       }
+      var sequents := proofState.sequents;
+      if sequents.SequentNil? {
+        return Failure("Nothing to perform a case split on");
+      }
+      var sequent := sequents.head;
+      if(!sequent.goal.And?) {
+        return Failure("Cannot perform a case split on something other than &&");
+      }
+      var env := sequent.env;
+      var newSequents := SequentCons(
+        Sequent(env, sequent.goal.left),
+        SequentCons(
+        Sequent(env, Imp(sequent.goal.left, sequent.goal.right)),
+        sequents.tail));
+      proofState := Sequents(newSequents);
+      return Success(proofState.ToString());
+    }
+
+    method CasesEnv(name: string, left: string, right: string) returns (feedback: Result<string>)
+      modifies this
+    {
+      if proofState.Error? {
+        return Failure(proofState.message);
+      }
+
+      var sequents := proofState.sequents;
+      if sequents.SequentNil? {
+        return Failure("Nothing to perform a case split on");
+      }
+      var sequent := sequents.head;
+      var env := sequent.env;
+      var i := env.IndexOf(Identifier(name));
+      if i < 0 {
+        return Failure("Entry " + name + " not found in the environment");
+      }
+      var (envIdentifier, envElem) := env.ElemAt(i);
+      if !envElem.And? {
+        return Failure("Entry " + name + " is not splittable");
+      }
+      var left := Identifier(left);
+      var right := Identifier(right);
+      var newEnv := env.ReplaceTailAt(i, (previousEnv: Env) requires previousEnv == env.Drop(i) => 
+        assert previousEnv.prop.And?;
+        EnvCons(left, previousEnv.prop.left, 
+        EnvCons(right, previousEnv.prop.right,
+        previousEnv.tail))
+      );
+      var newSequents := SequentCons(
+        Sequent(newEnv, sequent.goal),
+        sequents.tail);
+      proofState := Sequents(newSequents);
+      return Success(proofState.ToString());
     }
 
     /*method Intro(name: string) modifies this
