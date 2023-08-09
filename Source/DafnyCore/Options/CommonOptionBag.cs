@@ -210,7 +210,7 @@ Functionality is still being expanded. Currently only checks contracts on every 
     Opaque
   }
 
-  public static readonly Option<DefaultFunctionOpacityOptions> DefaultFunctionOpacity = new("--default-function-opacity", () => DefaultFunctionOpacityOptions.AutoRevealDependencies,
+  public static readonly Option<DefaultFunctionOpacityOptions> DefaultFunctionOpacity = new("--default-function-opacity", () => DefaultFunctionOpacityOptions.Transparent,
     @"
 Change the default opacity of functions. 
 `Transparent` (default) means functions are transparent, can be manually made opaque and then revealed. 
