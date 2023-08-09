@@ -102,7 +102,7 @@ namespace DafnyTestGeneration {
     }
 
     private static void PrintCoverageReport(Program program, Modifications cache, DafnyOptions options) {
-      if (options.TestGenOptions.PrintCoverage == null) {
+      if (options.TestGenOptions.CoverageReport == null) {
         return;
       }
       var coverageReport = new CoverageReport(program, name: "Expected Test Coverage", units: "Locations");
@@ -143,7 +143,7 @@ namespace DafnyTestGeneration {
         }
       }
       new CoverageReporter(program.Reporter)
-        .GenerateCoverageReportFiles(coverageReport, options.TestGenOptions.PrintCoverage);
+        .GenerateCoverageReportFiles(coverageReport, options.TestGenOptions.CoverageReport);
     }
 
     /// <summary>
