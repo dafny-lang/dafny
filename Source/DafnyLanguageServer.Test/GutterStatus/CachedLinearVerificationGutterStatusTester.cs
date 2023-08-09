@@ -3,7 +3,7 @@ using Microsoft.Extensions.Logging;
 using Xunit;
 using Xunit.Abstractions;
 
-[assembly: CollectionBehavior(MaxParallelThreads = 2)]
+[assembly: CollectionBehavior(DisableTestParallelization = true)]
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.GutterStatus;
 
