@@ -340,17 +340,29 @@ class PreTypeToTypeVisitor : ASTVisitor<IASTVisitorContext> {
         // convert the type of the RHS, which we expect to be a reference type, and then create the non-null version of it
         var udtConvertedFromPretype = (UserDefinedType)PreType2Type(tRhs.PreType);
         Contract.Assert(udtConvertedFromPretype.IsRefType);
-        tRhs.Type = UserDefinedType.CreateNonNullType(udtConvertedFromPretype);
+        UserDefinedType rhsMaybeNullType;
         if (tRhs.ArrayDimensions != null) {
-          // In this case, we expect tRhs.PreType to be an array type
+          // In this case, we expect tRhs.PreType (and udtConvertedFromPretype) to be an array type
           var arrayPreType = (DPreType)tRhs.PreType.Normalize();
           Contract.Assert(arrayPreType.Decl is ArrayClassDecl);
           Contract.Assert(arrayPreType.Arguments.Count == 1);
-          UpdateIfOmitted(tRhs.EType, arrayPreType.Arguments[0]);
+          Contract.Assert(udtConvertedFromPretype.ResolvedClass is ArrayClassDecl);
+          Contract.Assert(udtConvertedFromPretype.TypeArgs.Count == 1);
+
+          // The user-supplied tRhs.EType may have some components that are more exact than what's in udtConvertedFromPretype, since
+          // tRhs.EType may contain user-supplied subset types. But tRhs.EType may also be missing some type arguments altogether, because
+          // they may have been omitted in the source text. The following has the effect of filling in any such missing components with
+          // whatever was inferred during pre-type inference.
+          UpdateIfOmitted(tRhs.EType, udtConvertedFromPretype.TypeArgs[0]);
+          var arrayTypeDecl = systemModuleManager.arrayTypeDecls[tRhs.ArrayDimensions.Count];
+          rhsMaybeNullType = new UserDefinedType(stmt.tok, arrayTypeDecl.Name, arrayTypeDecl, new List<Type>() { tRhs.EType });
         } else {
-          UpdateIfOmitted(tRhs.EType, tRhs.Type);
+          // Fill in any missing type arguments in the user-supplied tRhs.EType.
+          UpdateIfOmitted(tRhs.EType, udtConvertedFromPretype);
+          rhsMaybeNullType = (UserDefinedType)tRhs.EType;
         }
-        rhsType = tRhs.Type;
+        rhsType = UserDefinedType.CreateNonNullType(rhsMaybeNullType);
+        tRhs.Type = rhsType;
         rhsDescription = " new";
       }
 
