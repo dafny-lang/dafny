@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Boogie;
@@ -63,16 +64,18 @@ public class CompilationAfterResolution : CompilationAfterParsing {
   IdeVerificationResult MergeResults(IEnumerable<IdeVerificationResult> results) {
     return results.Aggregate((a, b) => new IdeVerificationResult(
       a.WasTranslated || b.WasTranslated,
-      a.Implementations.Concat(b.Implementations).ToDictionary(
-        kv => kv.Key,
-        kv => kv.Value)));
+      a.Implementations.ToImmutableDictionary().Merge(b.Implementations,
+        (a, b) => new IdeImplementationView(
+          a.Range,
+          Combine(a.Status, b.Status),
+          a.Diagnostics.Concat(b.Diagnostics).ToList()))));
   }
 
   public override IdeState ToIdeState(IdeState previousState) {
 
     IdeVerificationResult MergeVerifiable(ICanVerify canVerify) {
       var location = canVerify.NameToken.GetLocation();
-      var previousForCanVerify = previousState.VerificationResults.GetValueOrDefault(location) ?? new(false, new());
+      var previousForCanVerify = previousState.VerificationResults.GetValueOrDefault(location) ?? new(false, ImmutableDictionary<string, IdeImplementationView>.Empty);
       if (!ImplementationsPerVerifiable.TryGetValue(canVerify, out var implementationsPerName)) {
         return previousForCanVerify with {
           Implementations = previousForCanVerify.Implementations.ToDictionary(kv => kv.Key, kv => kv.Value with {
