@@ -546,8 +546,8 @@ another function. For example, function `Sum` adds up the values of
 ```dafny
 function Sum(f: int ~> real, lo: int, hi: int): real
   requires lo <= hi
-  requires forall i :: lo <= i < hi ==> f.requires(i)
-  reads forall i :: lo <= i < hi ==> f.reads(i)
+  requires forall i :: f.requires(i)
+  reads f.reads
   decreases hi - lo
 {
   if lo == hi then 0.0 else

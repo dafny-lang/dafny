@@ -10,6 +10,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 using System.Diagnostics.Contracts;
+using System.Security.Cryptography;
 using Bpl = Microsoft.Boogie;
 using Microsoft.Boogie;
 using static Microsoft.Dafny.Util;
@@ -1115,9 +1116,9 @@ namespace Microsoft.Dafny {
       }
     }
 
-    private void CheckWellFormedApplyExprWithResult(ApplyExpr expr, WFOptions wfOptions, Bpl.Expr result, Type resultType,
+    private void CheckWellFormedApplyExprWithResult(ApplyExpr aexpr, WFOptions wfOptions, Bpl.Expr result, Type resultType,
       List<Bpl.Variable> locals, BoogieStmtListBuilder builder, ExpressionTranslator etran) {
-      Contract.Requires(expr != null);
+      Contract.Requires(aexpr != null);
       Contract.Requires(wfOptions != null);
       Contract.Requires((result == null) == (resultType == null));
       Contract.Requires(locals != null);
@@ -1125,33 +1126,34 @@ namespace Microsoft.Dafny {
       Contract.Requires(etran != null);
       Contract.Requires(predef != null);
       {
-        var e = expr;
-        int arity = e.Args.Count;
-        var tt = e.Function.Type.AsArrowType;
+        Expression fun = aexpr.Function;
+        List<Expression> fargs = aexpr.Args;
+        int arity = fargs.Count;
+        var tt = fun.Type.AsArrowType;
         Contract.Assert(tt != null);
         Contract.Assert(tt.Arity == arity);
 
         // check WF of receiver and arguments
-        CheckWellformed(e.Function, wfOptions, locals, builder, etran);
-        foreach (Expression arg in e.Args) {
+        CheckWellformed(fun, wfOptions, locals, builder, etran);
+        foreach (Expression arg in fargs) {
           CheckWellformed(arg, wfOptions, locals, builder, etran);
         }
 
         // check subranges of arguments
         for (int i = 0; i < arity; ++i) {
-          CheckSubrange(e.Args[i].tok, etran.TrExpr(e.Args[i]), e.Args[i].Type, tt.Args[i], builder);
+          CheckSubrange(fargs[i].tok, etran.TrExpr(fargs[i]), fargs[i].Type, tt.Args[i], builder);
         }
 
         // check parameter availability
         if (etran.UsesOldHeap) {
-          Bpl.Expr wh = GetWhereClause(e.Function.tok, etran.TrExpr(e.Function), e.Function.Type, etran, ISALLOC, true);
+          Bpl.Expr wh = GetWhereClause(fun.tok, etran.TrExpr(fun), fun.Type, etran, ISALLOC, true);
           if (wh != null) {
             var desc = new PODesc.IsAllocated("function", "in the state in which the function is invoked");
-            builder.Add(Assert(GetToken(e.Function), wh, desc));
+            builder.Add(Assert(GetToken(fun), wh, desc));
           }
 
-          for (int i = 0; i < e.Args.Count; i++) {
-            Expression ee = e.Args[i];
+          for (int i = 0; i < fargs.Count; i++) {
+            Expression ee = fargs[i];
             wh = GetWhereClause(ee.tok, etran.TrExpr(ee), ee.Type, etran, ISALLOC, true);
             if (wh != null) {
               var desc = new PODesc.IsAllocated("argument", "in the state in which the function is invoked");
@@ -1173,12 +1175,12 @@ namespace Microsoft.Dafny {
         var args = Concat(
           Map(tt.TypeArgs, TypeToTy),
           Cons(etran.HeapExpr,
-            Cons(etran.TrExpr(e.Function),
-              e.Args.ConvertAll(arg => TrArg(arg)))));
+            Cons(etran.TrExpr(fun),
+              fargs.ConvertAll(arg => TrArg(arg)))));
 
         // Because type inference often gravitates towards inferring non-constrained types, we'll
         // do some digging on our own to see if we can discover a more precise type.
-        var fnCore = e.Function;
+        var fnCore = fun;
         while (true) {
           var prevCore = fnCore;
           fnCore = Expression.StripParens(fnCore.Resolved);
@@ -1202,18 +1204,18 @@ namespace Microsoft.Dafny {
 
         if (!fnCoreType.IsArrowTypeWithoutPreconditions) {
           // check precond
-          var precond = FunctionCall(e.tok, Requires(arity), Bpl.Type.Bool, args);
-          builder.Add(Assert(GetToken(expr), precond, new PODesc.PreconditionSatisfied(null, null)));
+          var precond = FunctionCall(aexpr.tok, Requires(arity), Bpl.Type.Bool, args);
+          builder.Add(Assert(GetToken(aexpr), precond, new PODesc.PreconditionSatisfied(null, null)));
         }
 
         if (wfOptions.DoReadsChecks && !fnCoreType.IsArrowTypeWithoutReadEffects) {
           // check read effects
           Type objset = new SetType(true, program.SystemModuleManager.ObjectQ());
           Expression wrap = new BoogieWrapper(
-            FunctionCall(e.tok, Reads(arity), TrType(objset), args),
+            FunctionCall(aexpr.tok, Reads(arity), TrType(objset), args),
             objset);
-          var reads = new FrameExpression(e.tok, wrap, null);
-          CheckFrameSubset(expr.tok, new List<FrameExpression> { reads }, null, null,
+          var reads = new FrameExpression(aexpr.tok, wrap, null);
+          CheckFrameSubset(aexpr.tok, new List<FrameExpression> { reads }, null, null,
             etran, wfOptions.AssertSink(this, builder), new PODesc.FrameSubset("invoke function", false),
             wfOptions.AssertKv);
         }
