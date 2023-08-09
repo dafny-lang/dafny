@@ -77,8 +77,7 @@ public final class Array<T> implements Cloneable {
         return newArray;
     }
 
-    @Override
-    public final boolean equals(Object obj) {
+    public final boolean shallowEquals(Object obj) {
         if (this == obj) {
             return true;
         }
@@ -91,7 +90,7 @@ public final class Array<T> implements Cloneable {
             return false;
         }
         for(int i = 0; i < length(); i++){
-            if (get(i) != other.get(i)) return false;
+            if (!get(i).equals(other.get(i))) return false;
         }
         return true;
     }

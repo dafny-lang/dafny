@@ -1,15 +1,19 @@
 // RUN: %testDafnyForEachCompiler "%s"
 
+method Test<X(==)>(a: X, b: X) {
+    print a == b, "\n";
+}
+
 method Main()
 {
   var a := new bool[1];
   var ars := [a];
   a := new bool[1];
   var ars' := [a];
-  print ars == ars', "\n";
+  Test(ars, ars');
   ars[0][0] := true;
-  print ars == ars', "\n";
+  Test(ars, ars');
   ars'[0][0] := true;
-  print ars == ars', "\n";
-  print [ars[0]] == [ars[0]], "\n";
+  Test(ars, ars');
+  Test([ars[0]], [ars[0]]);
 }
