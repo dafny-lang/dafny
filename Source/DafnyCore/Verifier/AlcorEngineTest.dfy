@@ -91,23 +91,36 @@ module AlcorEngineTest {
     var thinking := new TacticMode(goal, EnvNil);
     expect thinking.proofState.ToString() == "\n|- forall a :: (forall b :: (a ==> b) && a ==> b && a)";
     var feedback :- expect thinking.Intro();
-    print feedback, "\n\n";
+    print feedback, "\n--------------\n";
     expect feedback == "\n|- forall b :: (a ==> b) && a ==> b && a";
     feedback :- expect thinking.Intro();
-    print feedback, "\n\n";
+    print feedback, "\n--------------\n";
     expect feedback == "\n|- (a ==> b) && a ==> b && a";
     feedback :- expect thinking.Intro("h");
-    print feedback, "\n\n";
+    print feedback, "\n--------------\n";
     expect feedback == "h: (a ==> b) && a\n|- b && a";
     feedback :- expect thinking.Rename(Identifier("h"), Identifier("hA"));
-    print feedback, "\n\n";
+    print feedback, "\n--------------\n";
     expect feedback == "hA: (a ==> b) && a\n|- b && a";
     feedback :- expect thinking.Cases();
-    print feedback, "\n\n";
+    print feedback, "\n--------------\n";
     expect feedback == "hA: (a ==> b) && a\n|- b\n\nhA: (a ==> b) && a\n|- b ==> a";
     feedback :- expect thinking.CasesEnv("hA", "hAB", "hA");
-    print feedback, "\n\n";
+    print feedback, "\n--------------\n";
     expect feedback == "hAB: a ==> b\nhA: a\n|- b\n\nhA: (a ==> b) && a\n|- b ==> a";
+    feedback :- expect thinking.ImpElim("hAB", "hA");
+    print feedback, "\n--------------\n";
+    expect feedback == "hA: (a ==> b) && a\n|- b ==> a";
+    feedback :- expect thinking.CasesEnv("hA", "hAB", "hA");
+    print feedback, "\n--------------\n";
+    expect feedback == "hAB: a ==> b\nhA: a\n|- b ==> a";
+    feedback :- expect thinking.Intro("hB");
+    print feedback, "\n--------------\n";
+    expect feedback == "hB: b\nhAB: a ==> b\nhA: a\n|- a";
+    feedback :- expect thinking.UseHypothesis("hA");
+    print feedback, "\n--------------\n";
+    expect feedback == "";
+    
     // thinking.ImpElim(hAB, hA)
     print "\n";
   }

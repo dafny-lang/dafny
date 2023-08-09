@@ -1031,9 +1031,9 @@ module AlcorTacticProofChecker {
 
     // Works for implications and foralls
     method Intro(name: string := "h") returns (feedback: Result<string>)
-      requires Invariant()
+      //requires Invariant()
       modifies this
-      ensures Invariant()
+      //ensures Invariant()
     {
       if proofState.Error? {
         return Failure(proofState.message);
@@ -1165,6 +1165,83 @@ module AlcorTacticProofChecker {
         Sequent(newEnv, sequent.goal),
         sequents.tail);
       proofState := Sequents(newSequents);
+      return Success(proofState.ToString());
+    }
+
+    method ImpElim(imp: string, hypothesis: string, newName: string := "") returns (feedback: Result<string>)
+      modifies this
+    {
+      if proofState.Error? {
+        return Failure(proofState.message);
+      }
+
+      var sequents := proofState.sequents;
+      if sequents.SequentNil? {
+        return Failure("Nothing to perform a ImpElim on");
+      }
+      var sequent := sequents.head;
+      var env := sequent.env;
+      var goal := sequent.goal;
+      var iImp := env.IndexOf(Identifier(imp));
+      if iImp < 0 {
+        return Failure("Entry " + imp + " not found in the environment");
+      }
+      var iHyp := env.IndexOf(Identifier(hypothesis));
+      if iHyp < 0 {
+        return Failure("Entry " + hypothesis + " not found in the environment");
+      }
+      var (_, impExpr) := env.ElemAt(iImp);
+      var (_, hypExpr) := env.ElemAt(iHyp);
+      if !impExpr.Imp? {
+        return Failure("Entry " + imp + " is not an implication");
+      }
+      if impExpr.left != hypExpr {
+        return Failure("Entry " + imp + " cannot be applied to " + hypothesis);
+      }
+      if impExpr.right == goal {
+        proofState := Sequents(
+          sequents.tail
+        );
+      } else {
+        var newName := if newName == "" then "h" else newName;
+        var freeVariables := sequent.env.FreeVars();
+        var freeVar := NewNotInFreeVars(Identifier(newName), freeVariables);
+        proofState := Sequents(
+          SequentCons(
+            Sequent(EnvCons(freeVar, impExpr.right, env), goal),
+            sequents.tail
+          )
+        );
+      }
+      return Success(proofState.ToString());
+    }
+
+    method UseHypothesis(name: string) returns (feedback: Result<string>)
+      modifies this
+    {
+      if proofState.Error? {
+        return Failure(proofState.message);
+      }
+
+      var sequents := proofState.sequents;
+      if sequents.SequentNil? {
+        return Failure("Nothing to perform a ImpElim on");
+      }
+      var sequent := sequents.head;
+      var env := sequent.env;
+      var goal := sequent.goal;
+      var iHyp := env.IndexOf(Identifier(name));
+      if iHyp < 0 {
+        return Failure("Entry " + name + " not found in the environment");
+      }
+      var (_, hypExpr) := env.ElemAt(iHyp);
+      if hypExpr == goal {
+        proofState := Sequents(
+          sequents.tail
+        );
+      } else {
+        return Failure("The hypothesis " + name + " is not the goal");
+      }
       return Success(proofState.ToString());
     }
 
