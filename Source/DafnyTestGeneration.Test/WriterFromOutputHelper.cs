@@ -16,6 +16,13 @@ public class WriterFromOutputHelper : TextWriter {
     this.output = output;
   }
 
+  public override void Write(string value) {
+    if (value != null)
+    {
+      output.WriteLine(value);
+    }
+  }
+
   public override void Write(char value) {
     if (!failed) {
       failed = true;
