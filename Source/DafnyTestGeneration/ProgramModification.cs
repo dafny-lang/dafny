@@ -122,7 +122,7 @@ namespace DafnyTestGeneration {
       options.ErrorTrace = 1;
       options.EnhancedErrorMessages = 1;
       options.ModelViewFile = "-";
-      options.Prune = !options.TestGenOptions.DisablePrune;
+      options.Prune = options.TestGenOptions.ForcePrune;
     }
 
     /// <summary>
