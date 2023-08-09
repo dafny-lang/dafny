@@ -91,16 +91,22 @@ module AlcorEngineTest {
     var thinking := new TacticMode(goal, EnvNil);
     expect thinking.proofState.ToString() == "\n|- forall a :: (forall b :: (a ==> b) && a ==> b && a)";
     var feedback :- expect thinking.Intro();
+    print feedback, "\n";
     expect feedback == "\n|- forall b :: (a ==> b) && a ==> b && a";
     feedback :- expect thinking.Intro();
+    print feedback, "\n";
     expect feedback == "\n|- (a ==> b) && a ==> b && a";
     feedback :- expect thinking.Intro("h");
+    print feedback, "\n";
     expect feedback == "h: (a ==> b) && a\n|- b && a";
     feedback :- expect thinking.Rename(Identifier("h"), Identifier("hA"));
-    print feedback;
+    print feedback, "\n";
     expect feedback == "hA: (a ==> b) && a\n|- b && a";
-    //feedback :- expect thinking.Cases(); // TODO later
+    feedback :- expect thinking.Cases();
+    print feedback, "\n";
+    expect feedback == "hA: (a ==> b) && a\n|- b\nhA: (a ==> b) && a\n|- b ==> a\n";
     // thinking.ImpElim(hAB, hA)
+    print "\n";
   }
 }
 

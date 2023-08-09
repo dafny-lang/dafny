@@ -1005,7 +1005,10 @@ module AlcorTacticProofChecker {
       } else if !p.value.OneProof? {
         proofState := Error("[Internal error] Expected a proof, got a " + p.value.Summary());
       } else if p.value.proof.GetExpr() != Imp(proofState.ToExpr(), overallGoal) {
-        proofState := Error("[Internal error] Expected a proof of the goal, got a proof of " + p.value.proof.GetExpr().ToString());
+        proofState := Error("[Internal error] Expected a proof that the proof state implies the overall goal\n" +
+          Imp(proofState.ToExpr(), overallGoal).ToString() + "\n" +
+          ", got a proof of\n" +
+          p.value.proof.GetExpr().ToString());
       } else {
         assert p.value.OneProof? && p.value.proof.GetExpr() ==
                                     Imp(proofState.ToExpr(), overallGoal);
@@ -1068,7 +1071,7 @@ module AlcorTacticProofChecker {
       } else {
         feedback := Success(proofState.ToString());
       }
-      CheckProof();
+      //CheckProof();
     }
 
     // TODO: Putting a default value for suggestedName like Identifier("") crashes Dafny
@@ -1105,14 +1108,14 @@ module AlcorTacticProofChecker {
       return Success(proofState.ToString());
     }
 
-    /*method Cases(name: string := "") returns (feedback: Result<string>)
+    method Cases(name: string := "") returns (feedback: Result<string>)
     {
-      if name == "" { // Try to split the goal
+      if name == "" { // Try to split the goal.
 
       } else {
         // Try to split the environment
       }
-    }*/
+    }
 
     /*method Intro(name: string) modifies this
       ensures HasProofFor(proofState) ==> HasProofFor(old(proofState))
