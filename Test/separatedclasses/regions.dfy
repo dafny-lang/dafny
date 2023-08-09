@@ -1,4 +1,4 @@
-// RUN: %baredafny verify %args --region-checks:true "%s" > "%t"
+// RUN: %exits-with 4 %baredafny verify %args --region-checks:true "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module RegionTests {
@@ -50,7 +50,7 @@ module RegionTests {
       Repr := if next == null then {this} else {this} + next.Repr;
       new;
       if next != null {
-        next.Region := this;  // Error: could not prove that next.Region == this || next.Region == this.Region || (next.Region == null && fresh(next));
+        next.Region := this;  // Error: could not prove that next.Region == this || next.Region == this.Region || next.Region == null;
       }
     }
 
@@ -80,7 +80,7 @@ module RegionTests {
       ensures next.next == old(next.next) && next.Region == old(next.Region)
       ensures next.value == newValue
     {
-      next.value := newValue; // Error: could not prove next.Region == this.Region || next.Region == this || (next.Region == null && fresh(next))
+      next.value := newValue; // Error: could not prove next.Region == this.Region || next.Region == this || next.Region == null
     }
     method ChangeNextValue(newValue: int)
       requires next != null && next != this
@@ -121,12 +121,12 @@ module RegionTests {
     var y := c.GetValue();   // OK, it's only a function read
     var z := c.Obtain();     // OK, it's only a method without modifies clause
     if * {
-      c.value := 3;          // Error: Cannot prove that c.Region == null && fresh(c)
+      c.value := 3;          // Error: Cannot prove that c.Region == null
     } else {
-      c.SetValue(3);          // Error, cannot prove that c.Region == null && fresh(c)
+      c.SetValue(3);          // Error, cannot prove that c.Region == null
     }
   }
-/*
+
   method Test2() {
     var c := new Node(0, null);
     c.value := 2;            // OK
@@ -135,13 +135,12 @@ module RegionTests {
     assert d.next == c;
     d.ChangeNextValue(3);
     assert c.value == 3;     // OK
-  }*/
+  }
 
   class ArrayWrapper {
     const elements: array<int>
     constructor()
       ensures elements.Region == this
-      ensures fresh(elements)
       ensures elements.Length == 4
       ensures this.Region == null
     {
@@ -159,9 +158,9 @@ module RegionTests {
       var r := this.Region;
       previousValue := elements[index]; // OK, it's only a read
       if * {
-        elements[index] := newValue;  // Error: Cannot prove that elements.Region == this || elements.Region == this.Region || (fresh(elements) && elements.Region == null)
+        elements[index] := newValue;  // Error: Cannot prove that elements.Region == this || elements.Region == this.Region || elements.Region == null
       } else {
-        elements.Region := null;  // Error: elements is not fresh
+        elements.Region := null;  // Error: elements's region is unknown
         SetStatic(elements, index, newValue, this);
         assert elements.Region == this;
       }
@@ -174,7 +173,7 @@ module RegionTests {
       ensures elements.Region == previousOwner
     {
       elements[index] := newValue;      // OK
-      elements.Region := previousOwner; // OK because fresh(elements) while elements was allocated
+      elements.Region := previousOwner; // OK because elements.Region == null and we are in a static context
     }
     method Set(index: int, newValue: int) returns (previousValue: int)
       requires 0 <= index < elements.Length
@@ -208,7 +207,6 @@ module RegionTests {
     if * {
       c.elements[0] := 3;         // Error: Cannot prove that c.elements.Region == null
     } else {
-      assert c.Region == null && fresh(c);
       var previousValue := c.Set(0, 3);                // OK
       assert c.elements[0] == 3;  // OK
     }

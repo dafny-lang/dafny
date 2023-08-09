@@ -1,11 +1,10 @@
-regions.dfy(50,20): Error: the `.Region` of the object being assigned could not be proved to be the context, or the context's `.Region`, or null and the object fresh
-regions.dfy(80,17): Error: the `.Region` of the object being assigned could not be proved to be the context, or the context's `.Region`, or null and the object fresh
-regions.dfy(98,10): Error: the `.Region` of the object of the method call could not be proved to be the context, or the context's `.Region`, or null and the object fresh
-regions.dfy(121,14): Error: the `.Region` of the object being assigned could not be proved to be null and the object fresh
-regions.dfy(123,7): Error: the `.Region` of the object of the method call could not be proved to null and the object fresh
-regions.dfy(155,22): Error: the `.Region` of the object being assigned could not be proved to be the context, or the context's `.Region`, or null and the object fresh
-regions.dfy(171,22): Error: the `.Region` of the object being assigned could not be proved to be null and the object fresh
-regions.dfy(188,20): Error: the `.Region` of the object being assigned could not be proved to be null and the object fresh
+regions.dfy(124,6): Error: the `.Region` of the object being modified could not be proved to be `null` (the current context)
+regions.dfy(126,6): Error: the `.Region` of the object of the method call could not be proved to be `null` (the current context)
+regions.dfy(208,8): Error: the `.Region` of the array being modified could not be proved to be `null` (the current context)
+regions.dfy(53,8): Error: the `.Region` of the object being modified could not be proved to be `this`, `this.Region`, or  `null`
+regions.dfy(83,6): Error: the `.Region` of the object being modified could not be proved to be `this`, `this.Region`, or  `null`
+regions.dfy(101,6): Error: the `.Region` of the object of the method call could not be proved to be `this`, `this.Region`, or  `null`
+regions.dfy(161,8): Error: the `.Region` of the array being modified could not be proved to be `this`, `this.Region`, or  `null`
+regions.dfy(163,8): Error: the `.Region` of the object being modified could not be proved to be `this`, `this.Region`, or  `null`
 
-
-Dafny program verifier finished with 19 verified, 3 errors
+Dafny program verifier finished with 24 verified, 8 errors

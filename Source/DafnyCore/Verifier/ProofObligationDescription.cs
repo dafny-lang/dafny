@@ -1135,7 +1135,7 @@ public class RegionMustMatchInInstanceContext : ProofObligationDescription {
     _ => "object of the method call"};
 
   private string expected =>
-    isstaticContext ? "null and the object fresh" : "the context, or the context's `.Region`, or null and the object fresh";
+    isstaticContext ? "`null` (the current context)" : "`this`, `this.Region`, or  `null`";
   public override string SuccessDescription =>
     $"the `.Region` of the {what} is {expected}";
 
