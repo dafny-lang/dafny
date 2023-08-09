@@ -5,6 +5,8 @@ using Xunit.Abstractions;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.GutterStatus;
 
+[assembly: CollectionBehavior(MaxParallelThreads = 2)]
+
 [CollectionDefinition("Sequential Collection", DisableParallelization = true)] // These tests are slow and close to hitting their timeout, so we don't run then in parallel with others
 public class NonParallelCollection { }
 
