@@ -50,7 +50,7 @@ public class GenerateTestsCommand : ICommandSpec {
 
   private readonly Argument<Mode> modeArgument = new("mode", @"
 Block - Prints block-coverage tests for the given program.
-Branch - Prints call-graph-coverage tests for the given program.
+CallGraph - Prints call-graph-coverage tests for the given program.
 Path - Prints path-coverage tests for the given program.");
 
   public Command Create() {
