@@ -1175,7 +1175,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       await SetUpOptions(optionSettings);
       var source = @"
       method test(value:int) {
-        var m := map[3 := -1];
+        var m := map[3 := -1];git 
         var b := m[3] == -1;
         m := m[3 := value];
         assert b && m[3] <= 0;

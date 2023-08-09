@@ -1,4 +1,5 @@
-﻿using Microsoft.Boogie;
+﻿using System;
+using Microsoft.Boogie;
 using Microsoft.Dafny.LanguageServer.Workspace;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
@@ -27,14 +28,14 @@ namespace Microsoft.Dafny.LanguageServer.Handlers.Custom {
           await projectManager.VerifyEverythingAsync(request.TextDocument.Uri.ToUri());
 
           var state = await projectManager.GetIdeStateAfterVerificationAsync();
-          logger.LogDebug("counter-examples retrieved IDE state");
+          logger.LogDebug("counter-example handler retrieved IDE state");
           return new CounterExampleLoader(options, logger, state, request.CounterExampleDepth, cancellationToken).GetCounterExamples();
         }
 
         logger.LogWarning("counter-examples requested for unloaded document {DocumentUri}",
           request.TextDocument.Uri);
         return new CounterExampleList();
-      } catch (TaskCanceledException) {
+      } catch (OperationCanceledException) {
         logger.LogWarning("counter-examples requested for unverified document {DocumentUri}",
           request.TextDocument.Uri);
         return new CounterExampleList();

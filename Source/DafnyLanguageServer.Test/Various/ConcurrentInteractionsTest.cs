@@ -10,12 +10,46 @@ using System.Reflection.Metadata;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.JsonRpc.Server;
 using Xunit;
 using Xunit.Abstractions;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
+
+  [Collection("Sequential Collection")]
+  public class ConcurrentInteractionsTest2 : ClientBasedLanguageServerTest {
+
+    public ConcurrentInteractionsTest2(ITestOutputHelper output) : base(output, LogLevel.Trace) {
+    }
+
+    [Fact]
+    public async Task ChangeDocumentCancelsPreviousOpenAndChangeVerification() {
+      var source = NeverVerifies.Substring(0, NeverVerifies.Length - 2);
+      var documentItem = CreateTestDocument(source);
+      await client.OpenDocumentAndWaitAsync(documentItem, CancellationTokenWithHighTimeout);
+      // The original document contains a syntactic error.
+      var initialLoadDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationTokenWithHighTimeout, documentItem);
+      await AssertNoDiagnosticsAreComing(CancellationTokenWithHighTimeout);
+      Assert.Single(initialLoadDiagnostics);
+
+      ApplyChange(ref documentItem, new Range((2, 1), (2, 1)), "\n}");
+
+      // Wait for parse diagnostics now, so they don't get cancelled.
+      // After this we still have never completing verification diagnostics in the queue.
+      var parseErrorFixedDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationTokenWithHighTimeout, documentItem);
+      Assert.Empty(parseErrorFixedDiagnostics);
+
+      // Cancel the slow verification and start a fast verification
+      ApplyChange(ref documentItem, new Range((0, 0), (3, 1)), "function GetConstant(): int ensures false { 1 }");
+
+      var verificationDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationTokenWithHighTimeout, documentItem);
+      Assert.Single(verificationDiagnostics);
+
+      await AssertNoDiagnosticsAreComing(CancellationTokenWithHighTimeout);
+    }
+  }
 
   [Collection("Sequential Collection")]
   public class ConcurrentInteractionsTest : ClientBasedLanguageServerTest {
@@ -110,32 +144,6 @@ method Multiply(x: bv10, y: bv10) returns (product: bv10)
       Assert.Equal(documentItem.Version + 11, diagnostics.Version);
       Assert.Single(diagnostics.Diagnostics);
       Assert.Equal("assertion might not hold", diagnostics.Diagnostics.First().Message);
-    }
-
-    [Fact]
-    public async Task ChangeDocumentCancelsPreviousOpenAndChangeVerification() {
-      var source = NeverVerifies.Substring(0, NeverVerifies.Length - 2);
-      var documentItem = CreateTestDocument(source);
-      await client.OpenDocumentAndWaitAsync(documentItem, CancellationTokenWithHighTimeout);
-      // The original document contains a syntactic error.
-      var initialLoadDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationTokenWithHighTimeout, documentItem);
-      await AssertNoDiagnosticsAreComing(CancellationTokenWithHighTimeout);
-      Assert.Single(initialLoadDiagnostics);
-
-      ApplyChange(ref documentItem, new Range((2, 1), (2, 1)), "\n}");
-
-      // Wait for parse diagnostics now, so they don't get cancelled.
-      // After this we still have never completing verification diagnostics in the queue.
-      var parseErrorFixedDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationTokenWithHighTimeout, documentItem);
-      Assert.Empty(parseErrorFixedDiagnostics);
-
-      // Cancel the slow verification and start a fast verification
-      ApplyChange(ref documentItem, new Range((0, 0), (3, 1)), "function GetConstant(): int ensures false { 1 }");
-
-      var verificationDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationTokenWithHighTimeout, documentItem);
-      Assert.Single(verificationDiagnostics);
-
-      await AssertNoDiagnosticsAreComing(CancellationTokenWithHighTimeout);
     }
 
     /// <summary>
