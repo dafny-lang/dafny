@@ -3,6 +3,7 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Linq;
 using System.Threading.Tasks;
+using JetBrains.Annotations;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 using Xunit;
 using Xunit.Abstractions;
@@ -10,6 +11,7 @@ using Xunit.Abstractions;
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
   public class SignatureHelpTest : ClientBasedLanguageServerTest {
 
+    [ItemCanBeNull]
     private Task<SignatureHelp> RequestSignatureHelpAsync(TextDocumentItem documentItem, Position position) {
       // TODO at this time we do not set the context since it appears that's also the case when used within VSCode.
       return client.RequestSignatureHelp(
@@ -175,7 +177,7 @@ class B {
     //
   }
 }".TrimStart();
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "SignatureHelpOnOpeningParenthesesReturnsSignatureOfClassMemberOfDesignator.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       ApplyChange(
         ref documentItem,
@@ -184,6 +186,7 @@ class B {
       );
 
       var signatureHelp = await RequestSignatureHelpAsync(documentItem, (25, 15));
+      Assert.NotNull(signatureHelp);
       var signatures = signatureHelp.Signatures.ToArray();
       Assert.Single(signatures);
       var markup = signatures[0].Documentation.MarkupContent;

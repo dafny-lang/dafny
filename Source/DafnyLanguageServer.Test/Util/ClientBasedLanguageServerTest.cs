@@ -18,6 +18,7 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using Xunit.Abstractions;
 using Xunit;
+using Xunit.Sdk;
 using XunitAssertMessages;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
@@ -254,7 +255,11 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
     var verificationDocumentItem = CreateTestDocument("method Foo() { assert false; }", $"verification{fileIndex++}.dfy");
     await client.OpenDocumentAndWaitAsync(verificationDocumentItem, CancellationToken);
     var statusReport = await verificationStatusReceiver.AwaitNextNotificationAsync(cancellationToken);
-    Assert.Equal(verificationDocumentItem.Uri, statusReport.Uri);
+    try {
+      Assert.Equal(verificationDocumentItem.Uri, statusReport.Uri);
+    } catch (AssertActualExpectedException) {
+      await output.WriteLineAsync($"StatusReport: {statusReport.Stringify()}");
+    }
     client.DidCloseTextDocument(new DidCloseTextDocumentParams {
       TextDocument = verificationDocumentItem
     });
