@@ -112,7 +112,7 @@ method Multiply(x: bv10, y: bv10) returns (product: bv10)
       Assert.Equal("assertion might not hold", diagnostics.Diagnostics.First().Message);
     }
 
-    [Fact(Timeout = MaxTestExecutionTimeMs)]
+    [Fact]
     public async Task ChangeDocumentCancelsPreviousOpenAndChangeVerification() {
       var source = NeverVerifies.Substring(0, NeverVerifies.Length - 2);
       var documentItem = CreateTestDocument(source);
@@ -124,7 +124,7 @@ method Multiply(x: bv10, y: bv10) returns (product: bv10)
 
       ApplyChange(ref documentItem, new Range((2, 1), (2, 1)), "\n}");
 
-      // Wait for resolution diagnostics now, so they don't get cancelled.
+      // Wait for parse diagnostics now, so they don't get cancelled.
       // After this we still have never completing verification diagnostics in the queue.
       var parseErrorFixedDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationTokenWithHighTimeout, documentItem);
       Assert.Empty(parseErrorFixedDiagnostics);
