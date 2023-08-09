@@ -1324,6 +1324,8 @@ namespace Microsoft.Dafny {
         }
       }
 
+      ResolveDeclarationSignature(datatypeDecl);
+
       var rr = new DatatypeValue(expr.tok, datatypeDecl.Name, name, args ?? new List<ActualBinding>());
       var ok = ResolveDatatypeValue(resolutionContext, rr, datatypeDecl, null, complain);
       if (!ok) {

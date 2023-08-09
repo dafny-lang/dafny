@@ -119,7 +119,6 @@ namespace Microsoft.Dafny {
       var formalIndex = 0;
       var substMap = new Dictionary<IVariable, Expression>();
       foreach (var formal in formals) {
-        formal.PreType = Type2PreType(formal.Type);
         var b = namesToActuals[formal.Name];
         if (b != null) {
           actuals.Add(b.Actual);

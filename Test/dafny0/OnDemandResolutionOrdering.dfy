@@ -159,3 +159,45 @@ module VariationOnOrdering1 {
     }
   }
 }
+
+module Ordering0 {
+  class C {
+    // The use of Dt.Make in the next line causes the pre-type of Dt.Make to be computed. This test
+    // makes sure that the pre-type of Dt.Make is not called again while visiting the declaration of Dt.
+    const Y := Make(10)
+  }
+
+  datatype Dt = Make(i: int)
+}
+
+module Ordering1 {
+  // The use of Func in the next line causes the pre-types of the signature of Func to be computed. This test
+  // makes sure that the pre-types of Func are not called again while visiting the declaration of Func.
+  const Y := Func(10)
+
+  function Func(i: int): real
+}
+
+module Ordering2 {
+  class C {
+    // The use of Dt.Make in the next line causes the pre-type of Dt.Make to be computed. This test
+    // makes sure that the pre-type of Dt.Make is not called again while visiting the declaration of Dt.
+    const Y := D.Func(10)
+  }
+
+  class D {
+    static function Func(i: int): real
+  }
+}
+
+module Ordering3 {
+  class C {
+    // The use of D.Lemma in the next line causes the pre-types of the signature of Lemma to be computed. This test
+    // makes sure that the pre-types of Lemma are not called again while visiting the declaration of Lemma.
+    const Y := (D.Lemma(10); 27)
+  }
+
+  class D {
+    static lemma Lemma(i: int)
+  }
+}
