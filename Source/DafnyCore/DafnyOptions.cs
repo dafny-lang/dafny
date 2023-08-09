@@ -792,8 +792,8 @@ NoGhost - disable printing of functions, ghost methods, and proof
           return true;
       }
 
-      // Unless this is an option for test generation, defer to superclass
-      return TestGenOptions.ParseOption(name, ps) || base.ParseOption(name, ps);
+      // Defer to superclass
+      return base.ParseOption(name, ps);
     }
 
     private static string[] ParseInnerArguments(string argumentsString) {
@@ -1462,8 +1462,6 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
     /proverOpt:O:model.compact=false (for z3 version >= 4.8.7), and
     /proverOpt:O:model.completion=true.
 
----- Test generation options -----------------------------------------------
-{TestGenOptions.Help}
 ---- Compilation options ---------------------------------------------------
 
 /compile:<n>
