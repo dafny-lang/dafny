@@ -195,10 +195,6 @@ public class AutoRevealFunctionDependencies : IRewriter {
     List<RevealStmt> addedReveals = new List<RevealStmt>();
 
     foreach (var func in GetEnumerator(f, currentClass, f.SubExpressions)) {
-      if (func == f) {
-        continue;
-      }
-
       var revealStmt = BuildRevealStmt(func, f.Tok, f.EnclosingClass.EnclosingModuleDefinition);
 
       if (revealStmt is not null) {
@@ -415,7 +411,7 @@ public class AutoRevealFunctionDependencies : IRewriter {
   private static Expression constructExpressionFromPath(Function func, ModuleDefinition.AccessibleMember accessibleMember) {
 
     var topLevelDeclsList = accessibleMember.AccessPath;
-    var nameList = topLevelDeclsList.Select(decl => new NameSegment(func.tok, decl.Name, new List<Type>())).ToList();
+    var nameList = topLevelDeclsList.Where(decl => decl.Name != "_default").Select(decl => new NameSegment(func.tok, decl.Name, new List<Type>())).ToList();
     // TODO: Add class type args.
 
     nameList.Add(new NameSegment(func.tok, func.Name, new List<Type>()));
