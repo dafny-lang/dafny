@@ -1,5 +1,5 @@
-// RUN: %exits-with 4 %dafny /deprecation:0 /compile:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachResolver "%s" --expect-exit-code=4 -- --warn-deprecation=false --relax-definite-assignment
+
 
 // -------- This is an example of what was once logically (although not trigger-ly) unsound ---
 
