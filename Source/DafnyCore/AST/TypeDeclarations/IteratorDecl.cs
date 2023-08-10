@@ -496,6 +496,6 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext, ICanVerify {
 
     return GetTriviaContainingDocstringFromStartTokenOrNull();
   }
-  public bool ShouldVerify => true; // TODO fix.
+  public bool ShouldVerify => true; // This could be made more accurate
   public ModuleDefinition ContainingModule => EnclosingModuleDefinition;
 }

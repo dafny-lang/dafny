@@ -391,6 +391,6 @@ public class Method : MemberDecl, TypeParameter.ParentType,
     }
   }
 
-  public bool ShouldVerify => true; // TODO fix.
+  public bool ShouldVerify => true; // This could be made more accurate
   public ModuleDefinition ContainingModule => EnclosingClass.EnclosingModuleDefinition;
 }

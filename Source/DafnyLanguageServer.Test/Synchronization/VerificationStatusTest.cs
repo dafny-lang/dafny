@@ -458,7 +458,7 @@ iterator ThatIterator(x: int) yields (y: int, z: int)
     Assert.Equal(9, status.NamedVerifiables.Count);
     var index = 0;
     Assert.Equal(new Range(1, 17, 1, 23), status.NamedVerifiables[index++].NameRange);
-    // TODO this entry doesn't actually have anything to verify, but it's hard to determine
+    // This entry doesn't actually have anything to verify, but that's hard to determine so its shown here.
     Assert.Equal(new Range(4, 9, 4, 30), status.NamedVerifiables[index++].NameRange);
     Assert.Equal(new Range(7, 11, 7, 34), status.NamedVerifiables[index++].NameRange);
     Assert.Equal(new Range(12, 8, 12, 17), status.NamedVerifiables[index++].NameRange);

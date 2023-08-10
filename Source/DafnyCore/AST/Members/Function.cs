@@ -476,7 +476,7 @@ experimentalPredicateAlwaysGhost - Compiled functions are written `function`. Gh
   }
 
   public DafnySymbolKind Kind => DafnySymbolKind.Function;
-  public bool ShouldVerify => true; // TODO fix.
+  public bool ShouldVerify => true; // This could be made more accurate
   public ModuleDefinition ContainingModule => EnclosingClass.EnclosingModuleDefinition;
   public string GetDescription(DafnyOptions options) {
     var formals = string.Join(", ", Formals.Select(f => f.AsText()));

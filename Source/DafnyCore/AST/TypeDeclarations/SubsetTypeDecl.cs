@@ -41,7 +41,7 @@ public class SubsetTypeDecl : TypeSynonymDecl, RedirectingTypeDecl, ICanVerify {
   public override List<Type> ParentTypes(List<Type> typeArgs) {
     return new List<Type> { RhsWithArgument(typeArgs) };
   }
-  public bool ShouldVerify => true; // TODO fix.
+  public bool ShouldVerify => true; // This could be made more accurate
   public ModuleDefinition ContainingModule => EnclosingModuleDefinition;
   public virtual DafnySymbolKind Kind => DafnySymbolKind.Class;
   public virtual string GetDescription(DafnyOptions options) {

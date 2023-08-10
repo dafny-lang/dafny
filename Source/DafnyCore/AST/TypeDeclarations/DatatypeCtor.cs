@@ -56,5 +56,5 @@ public class DatatypeCtor : Declaration, TypeParameter.ParentType, IHasDocstring
   }
 
   public ModuleDefinition ContainingModule => EnclosingDatatype.EnclosingModuleDefinition;
-  public bool ShouldVerify => Formals.Any(f => f.DefaultValue != null); // TODO fix
+  public bool ShouldVerify => Formals.Any(f => f.DefaultValue != null);
 }

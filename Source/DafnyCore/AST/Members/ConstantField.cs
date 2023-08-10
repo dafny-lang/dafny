@@ -50,5 +50,5 @@ public class ConstantField : SpecialField, ICallable, ICanVerify {
 
   public override IEnumerable<INode> PreResolveChildren => Children;
   public ModuleDefinition ContainingModule => EnclosingModule;
-  public bool ShouldVerify => true; // TODO fix.
+  public bool ShouldVerify => Rhs != null; // This could be made more accurate by checking whether the Rhs needs to be verified.
 }
