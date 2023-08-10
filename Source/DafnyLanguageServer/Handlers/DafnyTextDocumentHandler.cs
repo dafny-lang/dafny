@@ -67,6 +67,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
         telemetryPublisher.PublishUnhandledException(e);
       }
 
+      logger.LogDebug($"Finished opening document {notification.TextDocument.Uri}");
       return Unit.Value;
     }
 

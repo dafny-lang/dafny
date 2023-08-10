@@ -8,6 +8,7 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -72,6 +73,14 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
       public CompletionList Process() {
         if (IsDotExpression()) {
           return CreateDotCompletionList();
+        }
+
+        if (logger.IsEnabled(LogLevel.Trace)) {
+          var program = (Program)state.Program;
+          var writer = new StringWriter();
+          var printer = new Printer(writer, DafnyOptions.Default);
+          printer.PrintProgram(program, true);
+          logger.LogTrace($"Program:\n{program}");
         }
         logger.LogDebug($"Completion not on a dot expression for {request.TextDocument.Uri}, version {state.Version}");
         return new CompletionList();
