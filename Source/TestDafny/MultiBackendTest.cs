@@ -231,9 +231,9 @@ public class MultiBackendTest {
 
     var resolutionOptions = new List<ResolutionSetting>() {
       new ResolutionSetting(new string[] { }, new string[] { ".expect" },
-        options.ExpectExitCode != null ? (int)options.ExpectExitCode : 0),
+        (int)(options.ExpectExitCode ?? 0)),
       new ResolutionSetting(new string[] { "--type-system-refresh" }, new string[] { ".refresh.expect", ".expect" },
-        options.RefreshExitCode != null ? (int)options.RefreshExitCode : options.ExpectExitCode != null ? (int)options.ExpectExitCode : 0)
+        (int)(options.RefreshExitCode ?? options.ExpectExitCode ?? 0))
     };
 
     foreach (var resolutionOption in resolutionOptions) {
