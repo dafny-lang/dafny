@@ -69,13 +69,13 @@ method Main()
 // ----- totality constraint by predicate Total -------------------------------------
 
 ghost predicate Total<A(!new), B>(f: A ~> B)  // (is this (!new) really necessary?)
-  reads f.reads
+  requires forall a: A :: f.requires(a) reads f.reads
 {
   forall a :: f.reads(a) == {} && f.requires(a)
 }
 
 type TotalArrow<!A(!new), B(00)> = f: EffectlessArrow<A, B>
-  | Total(f)
+  | (forall a: A :: f.requires(a)) && Total(f)
   ghost witness TotalWitness<A, B>
 
 ghost function TotalWitness<A, B(00)>(a: A): B
@@ -112,7 +112,7 @@ ghost function DirectTotalClientTwice(f: DirectTotalArrow<int,int>, x: int): int
 // ----- using two predicates, and showing which conjunct of constraint is violated ------
 
 ghost predicate EmptyReads<A(!new), B>(f: A ~> B)  // (is this (!new) really necessary?)
-  reads f.reads
+  requires forall a: A :: f.requires(a) reads f.reads
 {
   forall a :: f.reads(a) == {}
 }
