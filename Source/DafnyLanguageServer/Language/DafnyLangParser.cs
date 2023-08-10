@@ -44,6 +44,9 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         foreach (var rootSourceUri in rootSourceUris) {
           try {
             dafnyFiles.Add(new DafnyFile(reporter.Options, rootSourceUri, fileSystem.ReadFile(rootSourceUri)));
+            if (logger.IsEnabled(LogLevel.Trace)) {
+              logger.LogTrace($"Parsing file with uri {rootSourceUri} and content\n{fileSystem.ReadFile(rootSourceUri).ReadToEnd()}");
+            }
           } catch (IOException) {
             logger.LogError($"Tried to parse file {rootSourceUri} that could not be found");
           }

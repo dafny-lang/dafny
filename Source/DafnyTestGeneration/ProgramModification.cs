@@ -31,12 +31,19 @@ namespace DafnyTestGeneration {
       return idToModification[uniqueId];
     }
 
+    public ProgramModification GetProgramModification(string uniqueId) {
+      if (!idToModification.ContainsKey(uniqueId)) {
+        return null;
+      }
+      return idToModification[uniqueId];
+    }
+
     public IEnumerable<ProgramModification> Values => idToModification.Values;
 
     public int NumberOfBlocksCovered(Implementation implementation, bool onlyIfTestsExists = false) {
       return NumberOfBlocksCovered(implementation.Blocks
-        .Where(block => Utils.GetBlockId(block) != null)
-        .Select(Utils.GetBlockId).ToHashSet(), onlyIfTestsExists);
+        .Where(block => Utils.GetBlockId(block, options) != null)
+        .Select(block => Utils.GetBlockId(block, options)).ToHashSet(), onlyIfTestsExists);
     }
 
     public int NumberOfBlocksCovered(HashSet<string> blockIds, bool onlyIfTestsExists = false) {
@@ -65,7 +72,7 @@ namespace DafnyTestGeneration {
     internal Status CounterexampleStatus;
     public readonly Implementation Implementation; // implementation under test
 
-    private readonly string uniqueId;
+    internal readonly string uniqueId;
     public readonly HashSet<string> CapturedStates;
 
     private readonly HashSet<string> testEntryNames;
@@ -115,7 +122,7 @@ namespace DafnyTestGeneration {
       options.ErrorTrace = 1;
       options.EnhancedErrorMessages = 1;
       options.ModelViewFile = "-";
-      options.Prune = !options.TestGenOptions.DisablePrune;
+      options.Prune = options.TestGenOptions.ForcePrune;
     }
 
     /// <summary>
@@ -135,12 +142,6 @@ namespace DafnyTestGeneration {
         var guid = Guid.NewGuid().ToString();
         program.Resolve(options);
         program.Typecheck(options);
-        engine.EliminateDeadVariables(program);
-        engine.CollectModSets(program);
-        engine.Inline(program);
-        program.RemoveTopLevelDeclarations(declaration =>
-          declaration is Microsoft.Boogie.Implementation or Procedure &&
-          Utils.DeclarationHasAttribute(declaration, "inline"));
         var result = await Task.WhenAny(engine.InferAndVerify(writer, program,
             new PipelineStatistics(), null,
             _ => { }, guid),
