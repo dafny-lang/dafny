@@ -198,9 +198,7 @@ public class CompilationManager {
       verificationProgressReporter.ReportImplementationsBeforeVerification(compilation,
         verifiable, tasksForVerifiable.Select(t => t.Implementation).ToArray());
 
-      foreach (var uri in compilation.RootUris) { // TODO scope to one uri ?
-        verificationProgressReporter.ReportRealtimeDiagnostics(compilation, uri, true);
-      }
+      verificationProgressReporter.ReportRealtimeDiagnostics(compilation, verifiable.Tok.Uri, true);
 
       updated = true;
       return tasksForVerifiable.ToDictionary(
