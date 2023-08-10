@@ -148,8 +148,8 @@ namespace Microsoft.Dafny.Compilers {
   interface NewtypeContainer {
     void AddNewtype(Newtype item);
 
-    public NewtypeBuilder Newtype(string name, DAST.Type baseType) {
-      return new NewtypeBuilder(this, name, baseType);
+    public NewtypeBuilder Newtype(string name, DAST.Type baseType, DAST.Expression witness) {
+      return new NewtypeBuilder(this, name, baseType, witness);
     }
   }
 
@@ -157,11 +157,13 @@ namespace Microsoft.Dafny.Compilers {
     readonly NewtypeContainer parent;
     readonly string name;
     readonly DAST.Type baseType;
+    readonly DAST.Expression witness;
 
-    public NewtypeBuilder(NewtypeContainer parent, string name, DAST.Type baseType) {
+    public NewtypeBuilder(NewtypeContainer parent, string name, DAST.Type baseType, DAST.Expression witness) {
       this.parent = parent;
       this.name = name;
       this.baseType = baseType;
+      this.witness = witness;
     }
 
     public void AddMethod(DAST.Method item) {
@@ -173,7 +175,11 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     public object Finish() {
-      parent.AddNewtype((Newtype)Newtype.create(Sequence<Rune>.UnicodeFromString(this.name), this.baseType));
+      parent.AddNewtype((Newtype)Newtype.create(
+        Sequence<Rune>.UnicodeFromString(this.name),
+        this.baseType,
+        this.witness == null ? Optional<DAST._IExpression>.create_None() : Optional<DAST._IExpression>.create_Some(this.witness)
+      ));
       return parent;
     }
   }

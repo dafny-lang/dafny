@@ -94,7 +94,42 @@ module {:extern "DCOMP"} DCOMP {
 
     static method GenNewtype(c: Newtype) returns (s: string) {
       var underlyingType := GenType(c.base, false);
-      s := "pub type r#" + c.name + " =" + underlyingType +  ";\n";
+      s := "#[derive(Clone, PartialEq)]\npub struct r#" + c.name + "(pub " + underlyingType +  ");\n";
+      s := s + "impl ::std::default::Default for r#" + c.name + " {\n";
+      s := s + "fn default() -> Self {\n";
+
+      match c.witnessExpr {
+        case Some(e) => {
+          var eStr, _, _ := GenExpr(e, [], true);
+          s := s + "r#" + c.name + "(" + eStr + ")\n";
+        }
+        case None => {
+          s := s + "r#" + c.name + "(::std::default::Default::default())\n";
+        }
+      }
+
+      s := s + "}\n";
+      s := s + "}\n";
+      s := s + "impl ::dafny_runtime::DafnyPrint for r#" + c.name + " {\n";
+      s := s + "fn fmt_print(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {\n";
+      s := s + "::dafny_runtime::DafnyPrint::fmt_print(&self.0, f)\n";
+      s := s + "}\n";
+      s := s + "}";
+
+      // inherit common traits
+      var ops := [("std::ops::Add", "add"), ("std::ops::Sub", "sub"), ("std::ops::Mul", "mul"), ("std::ops::Div", "div")];
+      var i := 0;
+      while i < |ops| {
+        var (traitName, methodName) := ops[i];
+        s := s + "impl " + traitName + "<r#" + c.name + "> for r#" + c.name;
+        s := s + " where " + underlyingType + ": " + traitName + "<" + underlyingType + ", Output = " + underlyingType + "> {\n";
+        s := s + "type Output = r#" + c.name + ";\n";
+        s := s + "fn " + methodName + "(self, other: r#" + c.name + ") -> r#" + c.name + " {\n";
+        s := s + "r#" + c.name + "(" + traitName + "::" + methodName + "(self.0, other.0))\n";
+        s := s + "}\n";
+        s := s + "}\n";
+        i := i + 1;
+      }
     }
 
     static method GenDatatype(c: Datatype) returns (s: string) {
@@ -776,6 +811,13 @@ module {:extern "DCOMP"} DCOMP {
           }
           s := s + " })";
           isOwned := true;
+        }
+        case NewtypeValue(tpe, expr) => {
+          var typeString := GenType(tpe, false);
+          var recursiveGen, _, recIdents := GenExpr(expr, params, true);
+          s := typeString + "(" + recursiveGen + ")";
+          isOwned := true;
+          readIdents := recIdents;
         }
         case This() => {
           if mustOwn {
