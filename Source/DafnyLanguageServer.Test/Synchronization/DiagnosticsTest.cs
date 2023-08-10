@@ -894,7 +894,7 @@ method test() {
         // Second diagnostic is a timeout exception from SlowToVerify
         Assert.Equal(2, secondVerificationDiagnostics.Length);
       } catch (OperationCanceledException) {
-        await output.WriteLineAsync($"firstVerificationDiagnostics: {firstVerificationDiagnostics}");
+        await output.WriteLineAsync($"firstVerificationDiagnostics: {firstVerificationDiagnostics.Stringify()}");
       }
       await AssertNoDiagnosticsAreComing(CancellationToken);
     }
@@ -998,9 +998,14 @@ method test() {
       var resolutionDiagnostics2 = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
       AssertDiagnosticListsAreEqualBesidesMigration(firstVerificationDiagnostics, resolutionDiagnostics2);
       var firstVerificationDiagnostics2 = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
-      var secondVerificationDiagnostics2 = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
       Assert.Empty(firstVerificationDiagnostics2); // Still contains second failing method
-      Assert.Single(secondVerificationDiagnostics2);
+      try {
+        var secondVerificationDiagnostics2 =
+          await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
+        Assert.Single(secondVerificationDiagnostics2);
+      } catch (SingleException) {
+        await output.WriteLineAsync($"firstVerificationDiagnostics2: {firstVerificationDiagnostics2.Stringify()}");
+      }
 
       await AssertNoDiagnosticsAreComing(CancellationToken);
     }

@@ -60,7 +60,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
     }
 
     public override async Task<Unit> Handle(DidOpenTextDocumentParams notification, CancellationToken cancellationToken) {
-      logger.LogTrace("received open notification {DocumentUri}", notification.TextDocument.Uri);
+      logger.LogDebug("received open notification {DocumentUri}", notification.TextDocument.Uri);
       try {
         await projects.OpenDocument(new DocumentTextBuffer(notification.TextDocument));
       } catch (Exception e) {
@@ -74,7 +74,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
     /// Can be called in parallel
     /// </summary>
     public override async Task<Unit> Handle(DidCloseTextDocumentParams notification, CancellationToken cancellationToken) {
-      logger.LogTrace("received close notification {DocumentUri}", notification.TextDocument.Uri);
+      logger.LogDebug("received close notification {DocumentUri}", notification.TextDocument.Uri);
       try {
         await projects.CloseDocumentAsync(notification.TextDocument);
       } catch (Exception e) {
@@ -94,7 +94,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
     }
 
     public override Task<Unit> Handle(DidSaveTextDocumentParams notification, CancellationToken cancellationToken) {
-      logger.LogTrace("received save notification {DocumentUri}", notification.TextDocument.Uri);
+      logger.LogDebug("received save notification {DocumentUri}", notification.TextDocument.Uri);
       try {
         projects.SaveDocument(notification.TextDocument);
       } catch (Exception e) {

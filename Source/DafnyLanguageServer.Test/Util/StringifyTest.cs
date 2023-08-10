@@ -9,7 +9,7 @@ public class StringifyTest {
   record Inner(int Age, string Name);
 
   record Outer(Inner[] InnersArray, IDictionary<string, Inner> MoreInners);
-  
+
   [Fact]
   public void StringifyThing() {
     var outer = new Outer(new[] { new Inner(3, "Jan"), new Inner(4, "Jaap") },

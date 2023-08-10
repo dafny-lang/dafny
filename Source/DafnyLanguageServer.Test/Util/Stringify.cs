@@ -23,11 +23,11 @@ public static class StringifyUtil {
         writer.Write($"\"{value}\"");
         return;
       }
-      
+
+      var newIndentation = indentation + 2;
       if (value is IEnumerable enumerable) {
         var sep = "";
         writer.Write("[");
-        var newIndentation = indentation + 2;
         foreach (var child in enumerable) {
           writer.WriteLine(sep);
           writer.Write(new String(' ', newIndentation));
@@ -51,34 +51,32 @@ public static class StringifyUtil {
         return;
       }
 
-      var properties = type.GetProperties();
-      if (true) { //properties.Any(p => p.PropertyType.IsAssignableTo(typeof(IEnumerable<object>)))) {
 
-        if (visited.Contains(value)) {
-          writer.Write("<visited>");
-          return;
-        }
-        var newVisited = visited.Add(value);
-
-        writer.Write((isKeyValuePair ? "" : (type.Name + " ")) + "{");
-        var objectSep = "";
-        var newIndentation = indentation + 2;
-        foreach (var property in properties) {
-          var child = property.GetValue(value);
-          if (!showNullChildren && child == null) {
-            continue;
-          }
-          writer.WriteLine(objectSep);
-          writer.Write(new String(' ', newIndentation));
-          writer.Write(property.Name + " = ");
-          Helper(newVisited, child, newIndentation);
-          objectSep = ",";
-        }
-        writer.WriteLine();
-        writer.Write(new String(' ', indentation) + "}");
-      } else {
-        writer.Write(value);
+      if (visited.Contains(value)) {
+        writer.Write("<visited>");
+        return;
       }
+
+      var newVisited = visited.Add(value);
+
+      writer.Write((isKeyValuePair ? "" : (type.Name + " ")) + "{");
+      var objectSep = "";
+      var properties = type.GetProperties();
+      foreach (var property in properties) {
+        var child = property.GetValue(value);
+        if (!showNullChildren && child == null) {
+          continue;
+        }
+
+        writer.WriteLine(objectSep);
+        writer.Write(new String(' ', newIndentation));
+        writer.Write(property.Name + " = ");
+        Helper(newVisited, child, newIndentation);
+        objectSep = ",";
+      }
+
+      writer.WriteLine();
+      writer.Write(new String(' ', indentation) + "}");
     }
 
     Helper(ImmutableHashSet.Create<object>(), root, 0);

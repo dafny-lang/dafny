@@ -73,7 +73,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
         if (IsDotExpression()) {
           return CreateDotCompletionList();
         }
-        logger.LogDebug($"Completion not on a dot expression for {request.TextDocument.Uri}");
+        logger.LogDebug($"Completion not on a dot expression for {request.TextDocument.Uri}, version {state.Version}");
         return new CompletionList();
       }
 

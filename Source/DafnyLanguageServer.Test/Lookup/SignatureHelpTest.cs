@@ -13,21 +13,27 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
   public class SignatureHelpTest : ClientBasedLanguageServerTest {
 
     [ItemCanBeNull]
-    private Task<SignatureHelp> RequestSignatureHelpAsync(TextDocumentItem documentItem, Position position) {
+    private async Task<SignatureHelp> RequestSignatureHelpAsync(TextDocumentItem documentItem, Position position, bool allowNull = false) {
       // TODO at this time we do not set the context since it appears that's also the case when used within VSCode.
-      return client.RequestSignatureHelp(
+      var result = await client.RequestSignatureHelp(
         new SignatureHelpParams {
           TextDocument = documentItem.Uri,
           Position = position
         },
         CancellationToken
       );
+      if (result == null && !allowNull) {
+        var diagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
+        await output.WriteLineAsync($"diagnostics: {diagnostics.Stringify()}");
+        Assert.NotNull(result);
+      }
+      return result;
     }
 
     [Fact]
     public async Task SignatureHelpForUnloadedDocumentReturnsNull() {
       var documentItem = CreateTestDocument("", "SignatureHelpForUnloadedDocumentReturnsNull.dfy");
-      var signatureHelp = await RequestSignatureHelpAsync(documentItem, (7, 11));
+      var signatureHelp = await RequestSignatureHelpAsync(documentItem, (7, 11), true);
       Assert.Null(signatureHelp);
     }
 
@@ -101,7 +107,7 @@ method Main() {
           "Multiply("
       );
 
-      var signatureHelp = await RequestSignatureHelpAsync(documentItem, (1, 11));
+      var signatureHelp = await RequestSignatureHelpAsync(documentItem, (1, 11), true);
       Assert.Null(signatureHelp);
     }
 
@@ -196,7 +202,7 @@ class B {
       Assert.Equal("```dafny\nfunction A.Multiply(n: int, m: int): int\n```", markup.Value);
     }
 
-    public SignatureHelpTest(ITestOutputHelper output) : base(output, LogLevel.Debug) {
+    public SignatureHelpTest(ITestOutputHelper output) : base(output, LogLevel.Trace) {
     }
   }
 }

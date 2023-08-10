@@ -212,10 +212,8 @@ public class ProjectManager : IDisposable {
   public async Task<IdeState> GetSnapshotAfterParsingAsync() {
     try {
       var resolvedCompilation = await CompilationManager.ParsedCompilation;
-      logger.LogDebug($"GetSnapshotAfterResolutionAsync, resolvedDocument.Version = {resolvedCompilation.Version}, " +
-                      $"observer.LastPublishedState.Version = {observer.LastPublishedState.Compilation.Version}, threadId: {Thread.CurrentThread.ManagedThreadId}");
     } catch (OperationCanceledException) {
-      logger.LogDebug("Caught OperationCanceledException in GetSnapshotAfterResolutionAsync");
+      logger.LogDebug($"GetSnapshotAfterResolutionAsync caught OperationCanceledException for parsed compilation {Project.Uri}");
     }
 
     return observer.LastPublishedState;
@@ -223,11 +221,10 @@ public class ProjectManager : IDisposable {
 
   public async Task<IdeState> GetStateAfterResolutionAsync() {
     try {
-      var resolvedCompilation = await CompilationManager.ResolvedCompilation;
-      logger.LogDebug($"GetSnapshotAfterResolutionAsync, resolvedDocument.Version = {resolvedCompilation.Version}, " +
-                      $"observer.LastPublishedState.Version = {observer.LastPublishedState.Compilation.Version}, threadId: {Thread.CurrentThread.ManagedThreadId}");
+      await CompilationManager.ResolvedCompilation;
     } catch (OperationCanceledException) {
-      logger.LogDebug("Caught OperationCanceledException in GetSnapshotAfterResolutionAsync");
+      logger.LogDebug($"GetSnapshotAfterResolutionAsync caught OperationCanceledException for resolved compilation {Project.Uri}");
+      return await GetSnapshotAfterParsingAsync();
     }
 
     return observer.LastPublishedState;
