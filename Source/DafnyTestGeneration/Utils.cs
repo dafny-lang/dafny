@@ -130,14 +130,15 @@ namespace DafnyTestGeneration {
     /// <summary>
     /// Extract string mapping this basic block to a location in Dafny code.
     /// </summary>
-    public static string GetBlockId(Block block) {
+    public static string GetBlockId(Block block, DafnyOptions options) {
       var state = block.cmds.OfType<AssumeCmd>().FirstOrDefault(
           cmd => cmd.Attributes != null &&
                  cmd.Attributes.Key == "captureState" &&
                  cmd.Attributes.Params != null &&
                  cmd.Attributes.Params.Count() == 1)
         ?.Attributes.Params[0].ToString();
-      return state == null ? null : Regex.Replace(state, @"\s+", "");
+      string uniqueId = options.TestGenOptions.Mode != TestGenerationOptions.Modes.Block ? "#" + block.UniqueId : "";
+      return state == null ? null : Regex.Replace(state, @"\s+", "") + uniqueId;
     }
 
     public static IList<object> GetAttributeValue(Implementation implementation, string attribute) {

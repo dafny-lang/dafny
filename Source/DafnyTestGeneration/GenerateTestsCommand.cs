@@ -32,7 +32,8 @@ public class GenerateTestsCommand : ICommandSpec {
 
   private enum Mode {
     Path,
-    Block
+    Block,
+    CallGraph
   }
 
   /// <summary>
@@ -49,8 +50,9 @@ public class GenerateTestsCommand : ICommandSpec {
   }
 
   private readonly Argument<Mode> modeArgument = new("mode", @"
-block - Prints block-coverage tests for the given program.
-path - Prints path-coverage tests for the given program.");
+Block - Prints block-coverage tests for the given program.
+CallGraph - Prints call-graph-coverage tests for the given program.
+Path - Prints path-coverage tests for the given program.");
 
   public Command Create() {
     var result = new Command("generate-tests", "(Experimental) Generate Dafny tests that ensure block or path coverage of a particular Dafny program.");
@@ -63,6 +65,7 @@ path - Prints path-coverage tests for the given program.");
     var mode = context.ParseResult.GetValueForArgument(modeArgument) switch {
       Mode.Path => TestGenerationOptions.Modes.Path,
       Mode.Block => TestGenerationOptions.Modes.Block,
+      Mode.CallGraph => TestGenerationOptions.Modes.CallGraph,
       _ => throw new ArgumentOutOfRangeException()
     };
     PostProcess(dafnyOptions, options, context, mode);
