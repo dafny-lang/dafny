@@ -55,7 +55,6 @@ public class ProjectManager : IDisposable {
   public List<FilePosition> ChangedVerifiables { get; set; } = new();
   public List<Location> RecentChanges { get; set; } = new();
 
-  private readonly SemaphoreSlim workCompletedForCurrentVersion = new(1);
   private readonly DafnyOptions options;
   private readonly DafnyOptions serverOptions;
   private readonly CreateCompilationManager createCompilationManager;
@@ -204,8 +203,6 @@ public class ProjectManager : IDisposable {
   }
 
   public async Task<CompilationAfterParsing> GetLastDocumentAsync() {
-    await workCompletedForCurrentVersion.WaitAsync();
-    workCompletedForCurrentVersion.Release();
     logger.LogDebug($"GetLastDocumentAsync passed ProjectManager check for {Project.Uri}");
     return await CompilationManager.LastDocument;
   }
@@ -251,9 +248,9 @@ public class ProjectManager : IDisposable {
   public static bool GutterIconTesting = false;
 
   public async Task VerifyEverythingAsync(Uri? uri) {
-    _ = workCompletedForCurrentVersion.WaitAsync();
+    var compilationManager = CompilationManager;
     try {
-      var compilationManager = CompilationManager;
+      compilationManager.IncrementJobs();
       var resolvedCompilation = await compilationManager.ResolvedCompilation;
 
       var verifiables = resolvedCompilation.Verifiables.ToList();
@@ -302,7 +299,7 @@ public class ProjectManager : IDisposable {
     }
     finally {
       logger.LogDebug("Setting result for workCompletedForCurrentVersion");
-      workCompletedForCurrentVersion.Release();
+      compilationManager.DecrementJobs();
     }
   }
 

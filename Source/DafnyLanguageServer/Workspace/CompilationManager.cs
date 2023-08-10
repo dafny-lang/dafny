@@ -166,9 +166,7 @@ public class CompilationManager {
 
     var containingModule = verifiable.ContainingModule;
 
-    var verifyTaskIncrementedJobs = Interlocked.Increment(ref runningVerificationJobs);
-    logger.LogDebug($"Incremented jobs for verifyTask, remaining jobs {verifyTaskIncrementedJobs}, {compilation.Uri} version {compilation.Version}");
-    MarkVerificationStarted();
+    IncrementJobs();
 
     IReadOnlyDictionary<FilePosition, IReadOnlyList<IImplementationTask>> tasksForModule;
     try {
@@ -272,13 +270,23 @@ public class CompilationManager {
       }
     }
 
+    DecrementJobs();
+    return true;
+  }
+
+  public void IncrementJobs() {
+    MarkVerificationStarted();
+    var verifyTaskIncrementedJobs = Interlocked.Increment(ref runningVerificationJobs);
+    logger.LogDebug($"Incremented jobs for verifyTask, remaining jobs {verifyTaskIncrementedJobs}, {startingCompilation.Uri} version {startingCompilation.Version}");
+  }
+
+  public void DecrementJobs() {
     var remainingJobs = Interlocked.Decrement(ref runningVerificationJobs);
-    logger.LogDebug($"Decremented jobs for verifyTask, remaining jobs {remainingJobs}, {compilation.Uri} version {compilation.Version}");
+    logger.LogDebug($"Decremented jobs, remaining jobs {remainingJobs}, {startingCompilation.Uri} version {startingCompilation.Version}");
     if (remainingJobs == 0) {
-      logger.LogDebug($"Calling MarkVerificationFinished because there are no remaining verification jobs for {compilation.Uri}, version {compilation.Version}.");
+      logger.LogDebug($"Calling MarkVerificationFinished because there are no remaining verification jobs for {startingCompilation.Uri}, version {startingCompilation.Version}.");
       MarkVerificationFinished();
     }
-    return true;
   }
 
   private void FinishedNotifications(CompilationAfterResolution compilation, ICanVerify canVerify) {
@@ -384,14 +392,14 @@ public class CompilationManager {
     cancellationSource.Cancel();
   }
 
-  public void MarkVerificationStarted() {
+  private void MarkVerificationStarted() {
     logger.LogDebug($"MarkVerificationStarted called for {startingCompilation.Uri} version {startingCompilation.Version}");
     if (verificationCompleted.Task.IsCompleted) {
       verificationCompleted = new TaskCompletionSource();
     }
   }
 
-  public void MarkVerificationFinished() {
+  private void MarkVerificationFinished() {
     logger.LogDebug($"MarkVerificationFinished called for {startingCompilation.Uri} version {startingCompilation.Version}");
     verificationCompleted.TrySetResult();
   }
