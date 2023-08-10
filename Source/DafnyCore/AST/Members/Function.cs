@@ -127,7 +127,7 @@ public class Function : MemberDecl, TypeParameter.ParentType, ICallable, ICanFor
     AccumulateRight_Concat,
   }
 
-  public override IEnumerable<INode> Children => new[] { ByMethodDecl }.Where(x => x != null).
+  public override IEnumerable<INode> Children => new[] { ByMethodBody }.Where(x => x != null).
     Concat<Node>(TypeArgs).
     Concat<Node>(Reads).
     Concat<Node>(Req).
