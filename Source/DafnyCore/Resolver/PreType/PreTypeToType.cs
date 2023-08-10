@@ -340,7 +340,6 @@ class PreTypeToTypeVisitor : ASTVisitor<IASTVisitorContext> {
         // convert the type of the RHS, which we expect to be a reference type, and then create the non-null version of it
         var udtConvertedFromPretype = (UserDefinedType)PreType2Type(tRhs.PreType);
         Contract.Assert(udtConvertedFromPretype.IsRefType);
-        UserDefinedType rhsMaybeNullType;
         if (tRhs.ArrayDimensions != null) {
           // In this case, we expect tRhs.PreType (and udtConvertedFromPretype) to be an array type
           var arrayPreType = (DPreType)tRhs.PreType.Normalize();
@@ -355,13 +354,13 @@ class PreTypeToTypeVisitor : ASTVisitor<IASTVisitorContext> {
           // whatever was inferred during pre-type inference.
           UpdateIfOmitted(tRhs.EType, udtConvertedFromPretype.TypeArgs[0]);
           var arrayTypeDecl = systemModuleManager.arrayTypeDecls[tRhs.ArrayDimensions.Count];
-          rhsMaybeNullType = new UserDefinedType(stmt.tok, arrayTypeDecl.Name, arrayTypeDecl, new List<Type>() { tRhs.EType });
+          var rhsMaybeNullType = new UserDefinedType(stmt.tok, arrayTypeDecl.Name, arrayTypeDecl, new List<Type>() { tRhs.EType });
+          rhsType = UserDefinedType.CreateNonNullType(rhsMaybeNullType);
         } else {
           // Fill in any missing type arguments in the user-supplied tRhs.EType.
           UpdateIfOmitted(tRhs.EType, udtConvertedFromPretype);
-          rhsMaybeNullType = (UserDefinedType)tRhs.EType;
+          rhsType = (UserDefinedType)tRhs.EType;
         }
-        rhsType = UserDefinedType.CreateNonNullType(rhsMaybeNullType);
         tRhs.Type = rhsType;
         rhsDescription = " new";
       }

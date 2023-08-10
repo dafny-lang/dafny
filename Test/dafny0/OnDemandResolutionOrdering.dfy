@@ -36,15 +36,13 @@ class CC {
 method Q0() returns (b: array<ParamSub<real>>, be: ParamSub<real>)
 {
   if * {
-    // The following gives a verification error, because the inferred RHS type is the pre-type array<seq<real>>.
-    // (Once type improvement for subset types is implemented, this error will go away.)
     b := new ParamSub<real>[20];
   } else {
-    // The following gives a verification error, because the inferred RHS type is the pre-type array<seq<real>>.
-    // (Once type improvement for subset types is implemented, this error will go away.)
     b := new ParamSub[20];
   }
   var a := be;
+  // The following gives a verification error, because the inferred type of "d" is array<seq<real>>,
+  // which take subset types into consideration. (Once type improvement for subset types is implemented, this error will go away.)
   var d: array := b;
   var c: ParamSub := b[0];
 
@@ -133,8 +131,6 @@ module VariationOnOrdering0 {
     // In this module, Q0 follows ParamSub and GetEmpty
     method Q0() returns (b: array<ParamSub<real>>)
     {
-      // The following gives a verification error, because the inferred RHS type is the pre-type array<seq<real>>.
-      // (Once type improvement for subset types is implemented, this error will go away.)
       b := new ParamSub<real>[20];
     }
   }
@@ -145,8 +141,6 @@ module VariationOnOrdering1 {
     // In this module, Q0 precedes ParamSub and GetEmpty
     method Q0() returns (b: array<ParamSub<real>>)
     {
-      // The following gives a verification error, because the inferred RHS type is the pre-type array<seq<real>>.
-      // (Once type improvement for subset types is implemented, this error will go away.)
       b := new ParamSub<real>[20];
     }
   }
