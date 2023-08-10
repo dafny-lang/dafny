@@ -85,23 +85,24 @@ public class IdeStateObserver : IObserver<IdeState> {
       notificationPublisher.PublishNotifications(LastPublishedState, snapshot).Wait();
 #pragma warning restore VSTHRD002
       LastPublishedState = snapshot;
-      logger.LogDebug($"Updated LastPublishedState to version {snapshot.Version}");
+      logger.LogDebug($"Updated LastPublishedState to version {snapshot.Version}, uri {compilation.Uri}");
     }
   }
 
   public void Migrate(DidChangeTextDocumentParams documentChange, int version) {
-
-    var migratedVerificationTrees = LastPublishedState.VerificationTrees.ToDictionary(
-      kv => kv.Key, kv =>
-        relocator.RelocateVerificationTree(kv.Value, documentChange, CancellationToken.None));
-    LastPublishedState = LastPublishedState with {
-      Version = version,
-      VerificationResults = MigrateImplementationViews(documentChange, LastPublishedState.VerificationResults),
-      SignatureAndCompletionTable = relocator.RelocateSymbols(LastPublishedState.SignatureAndCompletionTable,
-        documentChange, CancellationToken.None),
-      VerificationTrees = migratedVerificationTrees
-    };
-    logger.LogDebug($"Migrated LastPublishedState to version {version}");
+    lock (lastPublishedStateLock) {
+      var migratedVerificationTrees = LastPublishedState.VerificationTrees.ToDictionary(
+        kv => kv.Key, kv =>
+          relocator.RelocateVerificationTree(kv.Value, documentChange, CancellationToken.None));
+      LastPublishedState = LastPublishedState with {
+        Version = version,
+        VerificationResults = MigrateImplementationViews(documentChange, LastPublishedState.VerificationResults),
+        SignatureAndCompletionTable = relocator.RelocateSymbols(LastPublishedState.SignatureAndCompletionTable,
+          documentChange, CancellationToken.None),
+        VerificationTrees = migratedVerificationTrees
+      };
+      logger.LogDebug($"Migrated LastPublishedState to version {version}, uri {compilation.Uri}");
+    }
   }
 
   private Dictionary<Location, IdeVerificationResult> MigrateImplementationViews(DidChangeTextDocumentParams documentChange,

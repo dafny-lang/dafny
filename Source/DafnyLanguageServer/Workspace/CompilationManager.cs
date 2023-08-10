@@ -146,9 +146,10 @@ public class CompilationManager {
   }
 
   private int runningVerificationJobs;
-  
+
   // TODO consider changing ICanVerify to a FilePosition
   public async Task<bool> VerifyTask(ICanVerify verifiable, bool actuallyVerifyTasks = true) {
+    cancellationSource.Token.ThrowIfCancellationRequested();
     var compilation = await ResolvedCompilation;
 
     if (compilation.ResolutionDiagnostics.Values.SelectMany(x => x).Any(d =>
@@ -275,7 +276,7 @@ public class CompilationManager {
     return true;
   }
 
-  public void FinishedNotifications(CompilationAfterResolution compilation, ICanVerify canVerify) {
+  private void FinishedNotifications(CompilationAfterResolution compilation, ICanVerify canVerify) {
     if (ReportGutterStatus) {
       if (!cancellationSource.IsCancellationRequested) {
         // All unvisited trees need to set them as "verified"
