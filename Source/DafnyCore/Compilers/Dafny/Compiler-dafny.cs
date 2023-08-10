@@ -198,7 +198,14 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override IClassWriter DeclareNewtype(NewtypeDecl nt, ConcreteSyntaxTree wr) {
       if (currentBuilder is NewtypeContainer builder) {
-        return new ClassWriter(this, builder.Newtype(nt.GetCompileName(Options), GenType(nt.BaseType)));
+        DAST.Expression witness = null;
+        if (nt.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
+          var buf = new ExprBuffer(null);
+          EmitExpr(nt.Witness, false, new BuilderSyntaxTree<ExprContainer>(buf), null);
+          witness = buf.Finish();
+        }
+
+        return new ClassWriter(this, builder.Newtype(nt.GetCompileName(Options), GenType(nt.BaseType), witness));
       } else {
         throw new InvalidOperationException();
       }
@@ -449,7 +456,29 @@ namespace Microsoft.Dafny.Compilers {
       if (bufferedInitializationValue != null) {
         throw new InvalidOperationException();
       } else {
-        bufferedInitializationValue = (DAST.Expression)DAST.Expression.create_InitializationValue(GenType(type));
+        type = type.NormalizeExpandKeepConstraints();
+        if (type.AsNewtype != null && type.AsNewtype.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
+          var buf = new ExprBuffer(null);
+          EmitExpr(type.AsNewtype.Witness, false, new BuilderSyntaxTree<ExprContainer>(buf), null);
+          bufferedInitializationValue = buf.Finish();
+        } else if (type.AsSubsetType != null && type.AsSubsetType.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
+          var buf = new ExprBuffer(null);
+          EmitExpr(type.AsSubsetType.Witness, false, new BuilderSyntaxTree<ExprContainer>(buf), null);
+          bufferedInitializationValue = buf.Finish();
+        } else if (type.AsDatatype != null && type.AsDatatype.Ctors.Count == 1 && type.AsDatatype.Ctors[0].EnclosingDatatype is TupleTypeDecl tupleDecl) {
+          var elems = new List<DAST.Expression>();
+          for (var i = 0; i < tupleDecl.Ctors[0].Formals.Count; i++) {
+            if (!tupleDecl.Ctors[0].Formals[i].IsGhost) {
+              TypeInitializationValue(type.TypeArgs[i], wr, tok, usePlaceboValue, constructTypeParameterDefaultsFromTypeDescriptors);
+              elems.Add(bufferedInitializationValue);
+              bufferedInitializationValue = null;
+            }
+          }
+
+          bufferedInitializationValue = (DAST.Expression)DAST.Expression.create_Tuple(Sequence<DAST.Expression>.FromArray(elems.ToArray()));
+        } else {
+          bufferedInitializationValue = (DAST.Expression)DAST.Expression.create_InitializationValue(GenType(type));
+        }
         return ""; // used by DeclareLocal(Out)Var
       }
     }
@@ -829,13 +858,14 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void EmitLiteralExpr(ConcreteSyntaxTree wr, LiteralExpr e) {
       if (wr is BuilderSyntaxTree<ExprContainer> builder) {
+        DAST.Expression baseExpr;
         switch (e) {
           case CharLiteralExpr:
             throw new NotImplementedException();
           case StringLiteralExpr str:
-            builder.Builder.AddExpr((DAST.Expression)DAST.Expression.create_Literal(DAST.Literal.create_StringLiteral(
+            baseExpr = (DAST.Expression)DAST.Expression.create_Literal(DAST.Literal.create_StringLiteral(
               Sequence<Rune>.UnicodeFromString(str.AsStringLiteral())
-            )));
+            ));
             break;
           case StaticReceiverExpr:
             throw new NotImplementedException();
@@ -844,15 +874,15 @@ namespace Microsoft.Dafny.Compilers {
               case null:
                 throw new NotImplementedException();
               case bool value:
-                builder.Builder.AddExpr((DAST.Expression)DAST.Expression.create_Literal(DAST.Literal.create_BoolLiteral(value)));
+                baseExpr = (DAST.Expression)DAST.Expression.create_Literal(DAST.Literal.create_BoolLiteral(value));
                 break;
               case BigInteger integer:
-                builder.Builder.AddExpr((DAST.Expression)DAST.Expression.create_Literal(DAST.Literal.create_IntLiteral(integer)));
+                baseExpr = (DAST.Expression)DAST.Expression.create_Literal(DAST.Literal.create_IntLiteral(integer));
                 break;
               case BigDec n:
-                builder.Builder.AddExpr((DAST.Expression)DAST.Expression.create_Literal(DAST.Literal.create_DecLiteral(
+                baseExpr = (DAST.Expression)DAST.Expression.create_Literal(DAST.Literal.create_DecLiteral(
                   Sequence<Rune>.UnicodeFromString(n.ToString())
-                )));
+                ));
                 break;
               default:
                 // TODO: This may not be exhaustive
@@ -860,6 +890,15 @@ namespace Microsoft.Dafny.Compilers {
             }
             break;
         }
+
+        if (e.Type.AsNewtype != null) {
+          baseExpr = (DAST.Expression)DAST.Expression.create_NewtypeValue(
+            GenType(e.Type),
+            baseExpr
+          );
+        }
+
+        builder.Builder.AddExpr(baseExpr);
       } else {
         throw new InvalidOperationException("Cannot emit literal expression outside of expression context: " + wr.GetType());
       }

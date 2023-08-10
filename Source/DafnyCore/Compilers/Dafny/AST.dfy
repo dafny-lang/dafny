@@ -3,7 +3,7 @@ module {:extern "DAST"} DAST {
 
   datatype ModuleItem = Module(Module) | Class(Class) | Trait(Trait) | Newtype(Newtype) | Datatype(Datatype)
 
-  datatype Newtype = Newtype(name: string, base: Type)
+  datatype Newtype = Newtype(name: string, base: Type, witnessExpr: Optional<Expression>)
 
   datatype Type = Path(seq<Ident>, typeArgs: seq<Type>, resolved: ResolvedType) | Tuple(seq<Type>) | Primitive(Primitive) | Passthrough(string) | TypeArg(Ident)
 
@@ -47,6 +47,7 @@ module {:extern "DAST"} DAST {
     Tuple(seq<Expression>) |
     New(path: seq<Ident>, args: seq<Expression>) |
     DatatypeValue(path: seq<Ident>, variant: string, isCo: bool, contents: seq<(string, Expression)>) |
+    NewtypeValue(tpe: Type, value: Expression) |
     This() |
     Ite(cond: Expression, thn: Expression, els: Expression) |
     UnOp(unOp: UnaryOp, expr: Expression) |
