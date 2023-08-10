@@ -85,6 +85,7 @@ public class IdeStateObserver : IObserver<IdeState> {
       notificationPublisher.PublishNotifications(LastPublishedState, snapshot).Wait();
 #pragma warning restore VSTHRD002
       LastPublishedState = snapshot;
+      logger.LogDebug($"Updated LastPublishedState to version {snapshot.Version}");
     }
   }
 
@@ -100,6 +101,7 @@ public class IdeStateObserver : IObserver<IdeState> {
         documentChange, CancellationToken.None),
       VerificationTrees = migratedVerificationTrees
     };
+    logger.LogDebug($"Migrated LastPublishedState to version {version}");
   }
 
   private Dictionary<Location, IdeVerificationResult> MigrateImplementationViews(DidChangeTextDocumentParams documentChange,

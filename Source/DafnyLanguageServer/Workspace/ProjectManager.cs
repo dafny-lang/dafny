@@ -212,24 +212,26 @@ public class ProjectManager : IDisposable {
 
   public async Task<IdeState> GetSnapshotAfterParsingAsync() {
     try {
-      await CompilationManager.ParsedCompilation;
+      var parsedCompilation = await CompilationManager.ParsedCompilation;
+      logger.LogDebug($"GetSnapshotAfterParsingAsync returns compilation version {parsedCompilation.Version}");
     } catch (OperationCanceledException) {
       logger.LogDebug($"GetSnapshotAfterResolutionAsync caught OperationCanceledException for parsed compilation {Project.Uri}");
     }
 
-    logger.LogDebug($"GetSnapshotAfterParsingAsync returns version {observer.LastPublishedState.Version}");
+    logger.LogDebug($"GetSnapshotAfterParsingAsync returns state version {observer.LastPublishedState.Version}");
     return observer.LastPublishedState;
   }
 
   public async Task<IdeState> GetStateAfterResolutionAsync() {
     try {
-      await CompilationManager.ResolvedCompilation;
+      var resolvedCompilation = await CompilationManager.ResolvedCompilation;
+      logger.LogDebug($"GetStateAfterResolutionAsync returns compilation version {resolvedCompilation.Version}");
     } catch (OperationCanceledException) {
       logger.LogDebug($"GetSnapshotAfterResolutionAsync caught OperationCanceledException for resolved compilation {Project.Uri}");
       return await GetSnapshotAfterParsingAsync();
     }
 
-    logger.LogDebug($"GetStateAfterResolutionAsync returns version {observer.LastPublishedState.Version}");
+    logger.LogDebug($"GetStateAfterResolutionAsync returns state version {observer.LastPublishedState.Version}");
     return observer.LastPublishedState;
   }
 

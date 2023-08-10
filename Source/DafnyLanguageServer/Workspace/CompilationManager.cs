@@ -97,12 +97,13 @@ public class CompilationManager {
   private async Task<CompilationAfterParsing> ParseAsync() {
     try {
       await started.Task;
-      var documentAfterParsing = await documentLoader.ParseAsync(options, startingCompilation, migratedVerificationTrees, cancellationSource.Token);
-      foreach (var root in documentAfterParsing.RootUris) {
-        verificationProgressReporter.ReportRealtimeDiagnostics(documentAfterParsing, root, false);
+      var parsedCompilation = await documentLoader.ParseAsync(options, startingCompilation, migratedVerificationTrees, cancellationSource.Token);
+      foreach (var root in parsedCompilation.RootUris) {
+        verificationProgressReporter.ReportRealtimeDiagnostics(parsedCompilation, root, false);
       }
-      compilationUpdates.OnNext(documentAfterParsing);
-      return documentAfterParsing;
+      compilationUpdates.OnNext(parsedCompilation);
+      logger.LogDebug($"Passed parsedCompilation to documentUpdates.OnNext, resolving ParsedCompilation task for version {parsedCompilation.Version}.");
+      return parsedCompilation;
 
     } catch (Exception e) {
       compilationUpdates.OnError(e);
@@ -122,9 +123,8 @@ public class CompilationManager {
         }
       }
 
-      logger.LogDebug($"documentUpdates.HasObservers: {compilationUpdates.HasObservers}, threadId: {Thread.CurrentThread.ManagedThreadId}");
       compilationUpdates.OnNext(resolvedCompilation);
-      logger.LogDebug($"Passed documentAfterParsing to documentUpdates.OnNext, resolving ResolvedDocument task for version {resolvedCompilation.Version}.");
+      logger.LogDebug($"Passed resolvedCompilation to documentUpdates.OnNext, resolving ResolvedCompilation task for version {resolvedCompilation.Version}.");
       return resolvedCompilation;
 
     } catch (Exception e) {
