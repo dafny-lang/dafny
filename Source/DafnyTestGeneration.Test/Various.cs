@@ -223,21 +223,12 @@ module Paths {
   method {:testEntry} eightPaths (i:int)
     returns (divBy2:bool, divBy3:bool, divBy5:bool)
   {
-    if (i % 2 == 0) {
-      divBy2 := true;
-    } else {
-      divBy2 := false;
-    }
-    if (i % 3 == 0) {
-      divBy3 := true;
-    } else {
-      divBy3 := false;
-    }
-    if (i % 5 == 0) {
-      divBy5 := true;
-    } else {
-      divBy5 := false;
-    }
+    divBy2 := ifThenElse(i % 2 == 0, true, false);
+    divBy3 := ifThenElse(i % 3 == 0, true, false);
+    divBy5 := ifThenElse(i % 5 == 0, true, false);
+  }
+  predicate {:testInline 1} ifThenElse(condition:bool, thenBranch:bool, elseBranch:bool) {
+    if condition then thenBranch else elseBranch
   }
 }
 ".TrimStart();
@@ -267,30 +258,25 @@ module Paths {
 
     [Theory]
     [MemberData(nameof(OptionSettings))]
-    public async Task BlockBasedTests(List<Action<DafnyOptions>> optionSettings) {
+    public async Task BranchBasedTests(List<Action<DafnyOptions>> optionSettings) {
       var source = @"
 module Paths {
-  method {:testEntry} eightPaths (i:int) returns (divBy2:bool, divBy3:bool, divBy5:bool) {
-    if (i % 2 == 0) {
-      divBy2 := true;
-    } else {
-      divBy2 := false;
-    }
-    if (i % 3 == 0) {
-      divBy3 := true;
-    } else {
-      divBy3 := false;
-    }
-    if (i % 5 == 0) {
-      divBy5 := true;
-    } else {
-      divBy5 := false;
-    }
+  method {:testEntry} eightPaths (i:int)
+    returns (divBy2:bool, divBy3:bool, divBy5:bool)
+  {
+    divBy2 := ifThenElse(i % 2 == 0, true, false);
+    divBy3 := ifThenElse(i % 3 == 0, true, false);
+    divBy5 := ifThenElse(i % 5 == 0, true, false);
+  }
+  predicate {:testInline 1} ifThenElse(condition:bool, thenBranch:bool, elseBranch:bool) {
+    if condition then thenBranch else elseBranch
   }
 }
 ".TrimStart();
       var options = GetDafnyOptions(optionSettings, output);
       var program = Utils.Parse(options, source, false);
+      options.TestGenOptions.Mode =
+        TestGenerationOptions.Modes.CallGraph;
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
       Assert.True(methods.Count is >= 2 and <= 6);
       Assert.True(methods.All(m => m.MethodName == "Paths.eightPaths"));
@@ -307,6 +293,39 @@ module Paths {
       Assert.True(values.Exists(i => i % 3 != 0));
       Assert.True(values.Exists(i => i % 5 == 0));
       Assert.True(values.Exists(i => i % 5 != 0));
+    }
+
+    [Theory]
+    [MemberData(nameof(OptionSettings))]
+    public async Task BlockBasedTests(List<Action<DafnyOptions>> optionSettings) {
+      var source = @"
+module Paths {
+  method {:testEntry} eightPaths (i:int)
+    returns (divBy2:bool, divBy3:bool, divBy5:bool)
+  {
+    divBy2 := ifThenElse(i % 2 == 0, true, false);
+    divBy3 := ifThenElse(i % 3 == 0, true, false);
+    divBy5 := ifThenElse(i % 5 == 0, true, false);
+  }
+  predicate {:testInline 1} ifThenElse(condition:bool, thenBranch:bool, elseBranch:bool) {
+    if condition then thenBranch else elseBranch
+  }
+}
+".TrimStart();
+      var options = GetDafnyOptions(optionSettings, output);
+      var program = Utils.Parse(options, source, false);
+      var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
+      Assert.True(methods.Count is >= 1 and <= 2);
+      Assert.True(methods.All(m => m.MethodName == "Paths.eightPaths"));
+      Assert.True(methods.All(m => m.DafnyInfo.IsStatic("Paths.eightPaths")));
+      Assert.True(methods.All(m => m.ArgValues.Count == 1));
+      Assert.True(methods.All(m => m.ValueCreation.Count == 0));
+      var values = methods.Select(m =>
+          int.TryParse(m.ArgValues[0], out var result) ? (int?)result : null)
+        .ToList();
+      Assert.True(values.All(i => i != null));
+      Assert.True(values.Exists(i => i % 2 == 0 || i % 3 == 0 || i % 5 == 0));
+      Assert.True(values.Exists(i => i % 2 != 0 || i % 3 != 0 || i % 5 != 0));
     }
 
     [Theory]
@@ -493,9 +512,9 @@ module M {
       var options = GetDafnyOptions(optionSettings, output);
       var program = Utils.Parse(options, source, false);
       options.TestGenOptions.WarnDeadCode = true;
-      var stats = await Main.GetDeadCodeStatistics(program).ToListAsync();
+      var stats = await Main.GetDeadCodeStatistics(program, new Modifications(options)).ToListAsync();
       Assert.Contains(stats, s => s.Contains("(6,14) is potentially unreachable."));
-      Assert.Equal(2, stats.Count); // second is line with stats
+      Assert.Equal(1, stats.Count(line => line.Contains("unreachable"))); // second is line with stats
     }
 
     [Theory]
@@ -513,7 +532,7 @@ method {:testEntry} m(a:int) returns (b:int)
       var options = GetDafnyOptions(optionSettings, output);
       var program = Utils.Parse(options, source, false);
       options.TestGenOptions.WarnDeadCode = true;
-      var stats = await Main.GetDeadCodeStatistics(program).ToListAsync();
+      var stats = await Main.GetDeadCodeStatistics(program, new Modifications(options)).ToListAsync();
       Assert.Single(stats); // the only line with stats
     }
 
