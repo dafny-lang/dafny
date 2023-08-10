@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using System.IO;
 using System.Linq;
 using System.Threading;
 
@@ -44,7 +45,15 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         }
         var memberAccesses = GetMemberAccessChainEndingAt(uri, position);
         if (memberAccesses.Count == 0) {
-          logger.LogDebug("could not resolve the member access chain in front of of {Position}", requestPosition);
+          logger.LogDebug("could not resolve the member access chain in front of {Position}", requestPosition);
+
+          if (logger.IsEnabled(LogLevel.Trace)) {
+            var program = (Program)state.Program;
+            var writer = new StringWriter();
+            var printer = new Printer(writer, DafnyOptions.Default);
+            printer.PrintProgram(program, true);
+            logger.LogTrace($"Program:\n{program}");
+          }
           return (null, null);
         }
         return GetSymbolAndTypeOfLastMember(position, memberAccesses);
