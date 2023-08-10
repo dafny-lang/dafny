@@ -93,20 +93,22 @@ module SeparatedClasses {
       return GetReceivedSent();
     }
 
-    method Send()
+    method {:vcs_split_on_every_assert} {:rlimit 1000} Send()
       requires Valid()
       modifies this, sent
       ensures Valid()
     {
       this.sent.Increase(this);
+      var oldWaiting := waiting;
       ExternalCall(this); // Error: Could not prove the invariant while going out of the current region
-      assert Valid(); // Can still be proven because external call
+      assert oldWaiting == waiting; // Error: Can't prove this because the heap has changed.
+      assert Valid();     // Can still be proven because external calls restore the invariant
       waiting := waiting + 1;
     }
     static method ExternalCall(a: AtomicSendReceiveCounts)
-      modifies a
+      //modifies a
     {
-      var a := a.GetSent();
+      var a := a.GetSent(); // Ok, because it's a separated class
     }
     method Receive() returns (result: bool)
       requires Valid()
@@ -143,7 +145,7 @@ module SeparatedClasses {
     method Join() returns (result: T )
   }
   // TODO: Remove returns once spawn is implemented
-  method RunSend(a: AtomicSendReceiveCounts, count: nat) returns (k: Promise<()>)
+  method {:vcs_split_on_every_assert} RunSend(a: AtomicSendReceiveCounts, count: nat) returns (k: Promise<()>)
     // reads {}
     modifies {}
   {

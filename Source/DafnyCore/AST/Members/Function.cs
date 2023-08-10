@@ -363,6 +363,47 @@ experimentalPredicateAlwaysGhost - Compiled functions are written `function`. Gh
     Contract.Requires(this != null);
     Contract.Requires(resolver.AllTypeConstraints.Count == 0);
     Contract.Ensures(resolver.AllTypeConstraints.Count == 0);
+    var invariantAttribute = Attributes.Find(Attributes, "invariant");
+    if (invariantAttribute != null) {
+      var invariantRangeStart = 
+        invariantAttribute is UserSuppliedAttributes usa ?
+          usa.OpenBrace :
+          invariantAttribute.OwnedTokens.FirstOrDefault();
+      var invariantRangeEnd =
+        invariantAttribute is UserSuppliedAttributes usa2 ?
+          usa2.CloseBrace :
+        invariantAttribute.OwnedTokens.LastOrDefault();
+      var invariantRange = new RangeToken(invariantRangeStart, invariantRangeEnd);
+      if (this is not Predicate predicate) {
+        resolver.reporter.Error(MessageSource.Resolver,
+          ResolutionErrors.ErrorId.r_invariants_only_on_predicates,
+          invariantRange,
+          "invariants can only be on predicates, not functions."
+        );
+      } else {
+        if (EnclosingClass is ClassLikeDecl classLikeDecl) {
+          if (classLikeDecl.Invariant != null) {
+            invariantRangeStart =
+              new NestedToken(invariantRangeStart,
+                classLikeDecl.Invariant.tok, "Already declared {:invariant} here");
+            invariantRange = new RangeToken(invariantRangeStart, invariantRangeEnd);
+            resolver.reporter.Error(MessageSource.Resolver,
+              ResolutionErrors.ErrorId.r_only_one_invariant,
+              invariantRange,
+              "Only one invariant predicate can be declared per class. Please merge the two invariants."
+            );
+          } else {
+            classLikeDecl.Invariant = predicate;
+          }
+        } else {
+          resolver.reporter.Error(MessageSource.Resolver,
+            ResolutionErrors.ErrorId.r_invariants_only_on_predicates_inside_classes,
+            invariantRange,
+            "invariants can only be on predicates inside a class, not in a static context"
+          );
+        }
+      }
+    }
 
     // make note of the warnShadowing attribute
     bool warnShadowingOption = resolver.Options.WarnShadowing;  // save the original warnShadowing value

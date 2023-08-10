@@ -82,7 +82,10 @@ public class ResolutionErrors {
     r_assert_only_before_after,
     r_failure_methods_deprecated,
     r_member_only_assumes_other,
-    r_member_only_has_no_before_after
+    r_member_only_has_no_before_after,
+    r_only_one_invariant,
+    r_invariants_only_on_predicates,
+    r_invariants_only_on_predicates_inside_classes
   }
 
   static ResolutionErrors() {
@@ -104,5 +107,20 @@ This warning is a reminder about it.", Remove(true, "Finish focusing and remove 
         @"
 The `{:only}` attribute on members does not accept optional argument like ""after"" or ""before"" like the `{:only}` attribute on assertions can.",
         Remove(true, "Remove this unused argument"));
+    Add(ErrorId.r_only_one_invariant,
+      @"
+A class cannot have two invariants. Either remove the second invariant attribute,
+or create one predicate that calles the two predicates and only mark that predicate with `{:invariant}`",
+      Remove(true, "Remove this {:invariant} attribute"));
+    Add(ErrorId.r_invariants_only_on_predicates,
+      @"
+Only a predicate can be annotated with the attribute {:invariant}, because they need to return a truth value.
+Functions can't to be annotated with {:invariant}, even if they return a boolean.",
+      Remove(true, "Remove this {:invariant} attribute"));
+    Add(ErrorId.r_invariants_only_on_predicates_inside_classes,
+      @"
+Invariant predicates make sense only in the context of a class.
+Please move your predicate inside a class for it to be useful.",
+      Remove(true, "Remove this {:invariant} attribute"));
   }
 }

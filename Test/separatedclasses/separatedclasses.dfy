@@ -139,13 +139,13 @@ module SeparatedClasses {
     method Join() returns (result: T )
   }
   // TODO: Remove returns once spawn is implemented
-  method RunSend(a: AtomicSendReceiveCounts, count: nat) returns (k: Promise<()>)
+  method {:vcs_split_on_every_assert} RunSend(a: AtomicSendReceiveCounts, count: nat) returns (k: Promise<()>)
     // reads {}
     modifies {}
   {
     var i := count;
-    var initialSent := a.GetSent(); // OK, no need to prove the reads clause
-    a.DontEnsureValidButOnlyReads(); // OK
+    var initialSent := a.GetSent();  // OK, no need to prove the reads clause
+    a.DontEnsureValidButOnlyReads(); // OK, the invariant is assumed
     while i > 0 invariant i >= 0 {
       a.Send(); // No need to prove Valid() there and no modifies either
       i := i - 1;
