@@ -291,7 +291,7 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
     if (waitFirst) {
       foreach (var entry in Projects.Managers) {
         try {
-          await entry.GetLastDocumentAsync();
+          await entry.GetLastDocumentAsync().WaitAsync(cancellationToken);
         } catch (TaskCanceledException) {
 
         }

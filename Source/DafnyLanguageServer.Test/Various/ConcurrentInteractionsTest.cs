@@ -30,13 +30,13 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
     public async Task ChangeDocumentCancelsPreviousOpenAndChangeVerification() {
       var source = NeverVerifies.Substring(0, NeverVerifies.Length - 2);
       var documentItem = CreateTestDocument(source, "ChangeDocumentCancelsPreviousOpenAndChangeVerification.dfy");
-      await output.WriteLineAsync("ChangeDocumentCancelsPreviousOpenAndChangeVerification1");
+      await output.WriteLineAsync("ChangeDocumentCancelsPreviousOpenAndChangeVerification1: " + DateTime.Now);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationTokenWithHighTimeout);
       // The original document contains a syntactic error.
       var initialLoadDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationTokenWithHighTimeout, documentItem);
-      await output.WriteLineAsync("ChangeDocumentCancelsPreviousOpenAndChangeVerification2");
+      await output.WriteLineAsync("ChangeDocumentCancelsPreviousOpenAndChangeVerification2: " + DateTime.Now);
       await AssertNoDiagnosticsAreComing(CancellationTokenWithHighTimeout);
-      await output.WriteLineAsync("ChangeDocumentCancelsPreviousOpenAndChangeVerification3");
+      await output.WriteLineAsync("ChangeDocumentCancelsPreviousOpenAndChangeVerification3: " + DateTime.Now);
       Assert.Single(initialLoadDiagnostics);
 
       ApplyChange(ref documentItem, new Range((2, 1), (2, 1)), "\n}");
@@ -44,18 +44,18 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       // Wait for parse diagnostics now, so they don't get cancelled.
       // After this we still have never completing verification diagnostics in the queue.
       var parseErrorFixedDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationTokenWithHighTimeout, documentItem);
-      await output.WriteLineAsync("ChangeDocumentCancelsPreviousOpenAndChangeVerification4");
+      await output.WriteLineAsync("ChangeDocumentCancelsPreviousOpenAndChangeVerification4: " + DateTime.Now);
       Assert.Empty(parseErrorFixedDiagnostics);
 
       // Cancel the slow verification and start a fast verification
       ApplyChange(ref documentItem, new Range((0, 0), (3, 1)), "function GetConstant(): int ensures false { 1 }");
 
       var verificationDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationTokenWithHighTimeout, documentItem);
-      await output.WriteLineAsync("ChangeDocumentCancelsPreviousOpenAndChangeVerification5");
+      await output.WriteLineAsync("ChangeDocumentCancelsPreviousOpenAndChangeVerification5: " + DateTime.Now);
       Assert.Single(verificationDiagnostics);
 
       await AssertNoDiagnosticsAreComing(CancellationTokenWithHighTimeout);
-      await output.WriteLineAsync("ChangeDocumentCancelsPreviousOpenAndChangeVerification6");
+      await output.WriteLineAsync("ChangeDocumentCancelsPreviousOpenAndChangeVerification6: " + DateTime.Now);
     }
   }
 

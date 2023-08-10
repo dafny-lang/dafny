@@ -206,16 +206,18 @@ public class ProjectManager : IDisposable {
   public async Task<CompilationAfterParsing> GetLastDocumentAsync() {
     await workCompletedForCurrentVersion.WaitAsync();
     workCompletedForCurrentVersion.Release();
+    logger.LogDebug($"GetLastDocumentAsync passed ProjectManager check for {Project.Uri}");
     return await CompilationManager.LastDocument;
   }
 
   public async Task<IdeState> GetSnapshotAfterParsingAsync() {
     try {
-      var resolvedCompilation = await CompilationManager.ParsedCompilation;
+      await CompilationManager.ParsedCompilation;
     } catch (OperationCanceledException) {
       logger.LogDebug($"GetSnapshotAfterResolutionAsync caught OperationCanceledException for parsed compilation {Project.Uri}");
     }
 
+    logger.LogDebug($"GetSnapshotAfterParsingAsync returns version {observer.LastPublishedState.Version}");
     return observer.LastPublishedState;
   }
 
@@ -227,6 +229,7 @@ public class ProjectManager : IDisposable {
       return await GetSnapshotAfterParsingAsync();
     }
 
+    logger.LogDebug($"GetStateAfterResolutionAsync returns version {observer.LastPublishedState.Version}");
     return observer.LastPublishedState;
   }
 

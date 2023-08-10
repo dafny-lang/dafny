@@ -98,7 +98,6 @@ public class CompilationManager {
     try {
       await started.Task;
       var documentAfterParsing = await documentLoader.ParseAsync(options, startingCompilation, migratedVerificationTrees, cancellationSource.Token);
-      var state = documentAfterParsing.InitialIdeState(startingCompilation, options);
       foreach (var root in documentAfterParsing.RootUris) {
         verificationProgressReporter.ReportRealtimeDiagnostics(documentAfterParsing, root, false);
       }
@@ -384,21 +383,26 @@ public class CompilationManager {
     verificationCompleted.TrySetResult();
   }
 
-  public Task<CompilationAfterParsing> LastDocument => ResolvedCompilation.ContinueWith(
-    t => {
-      if (t.IsCompletedSuccessfully) {
+  public Task<CompilationAfterParsing> LastDocument {
+    get {
+      logger.LogDebug($"LastDocument {startingCompilation.Uri} will return document version {startingCompilation.Version}");
+      return ResolvedCompilation.ContinueWith(
+        t => {
+          if (t.IsCompletedSuccessfully) {
 #pragma warning disable VSTHRD103
-        logger.LogDebug($"LastDocument {startingCompilation.Uri} will return document version {t.Result.Version}");
-        return verificationCompleted.Task.ContinueWith(
-          verificationCompletedTask => {
-            logger.LogDebug($"LastDocument returning translated compilation {startingCompilation.Uri} with status {verificationCompletedTask.Status}");
-            return Task.FromResult<CompilationAfterParsing>(t.Result);
-          }, TaskScheduler.Current).Unwrap();
+            return verificationCompleted.Task.ContinueWith(
+              verificationCompletedTask => {
+                logger.LogDebug(
+                  $"LastDocument returning translated compilation {startingCompilation.Uri} with status {verificationCompletedTask.Status}");
+                return Task.FromResult<CompilationAfterParsing>(t.Result);
+              }, TaskScheduler.Current).Unwrap();
 #pragma warning restore VSTHRD103
-      }
+          }
 
-      return ParsedCompilation;
-    }, TaskScheduler.Current).Unwrap();
+          return ParsedCompilation;
+        }, TaskScheduler.Current).Unwrap();
+    }
+  }
 
   public async Task<TextEditContainer?> GetTextEditToFormatCode(Uri uri) {
     // TODO https://github.com/dafny-lang/dafny/issues/3416
