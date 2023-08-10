@@ -16,9 +16,9 @@ namespace Microsoft.Dafny.LanguageServer.Handlers.Custom {
     private readonly IProjectDatabase projects;
     private readonly ITelemetryPublisher telemetryPublisher;
 
-    public DafnyCounterExampleHandler(DafnyOptions options, 
-      ILogger<DafnyCounterExampleHandler> logger, 
-      IProjectDatabase projects, 
+    public DafnyCounterExampleHandler(DafnyOptions options,
+      ILogger<DafnyCounterExampleHandler> logger,
+      IProjectDatabase projects,
       ITelemetryPublisher telemetryPublisher) {
       this.logger = logger;
       this.projects = projects;
