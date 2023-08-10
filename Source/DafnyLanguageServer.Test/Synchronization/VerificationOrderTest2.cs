@@ -8,6 +8,7 @@ using Microsoft.Boogie.SMTLib;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 using Microsoft.Dafny.LanguageServer.Workspace;
+using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using Xunit;
 using Xunit.Abstractions;
@@ -35,7 +36,7 @@ method m2() {
       "m1 m2\n" +
       "m2 m1\n" +
       "m1 m2"
-    );
+    , "EnsuresPriorityDependsOnEditing.dfy");
   }
 
   [Fact]
@@ -67,7 +68,7 @@ method m5() {
       "m1 m5 m2 m4 m3\n" +
       "m3 m1 m5 m2 m4\n" +
       "m5 m3 m1 m2 m4"
-    );
+    , "EnsuresPriorityDependsOnEditingWhileEditingSameMethod.dfy");
   }
 
   [Fact]
@@ -86,7 +87,7 @@ method m5() { assert false; } //Remove3:
       "m1 m2 m3 m4 m5\n" +
       "m3 m1 m2 m4 m5\n" +
       "m4 m3 m1 m2 m5\n" +
-      "m4 m3 m1 m2");
+      "m4 m3 m1 m2", "EnsuresPriorityWorksEvenIfRemovingMethods.dfy");
   }
 
   [Fact]
@@ -110,11 +111,11 @@ method m5() { assert false; } //Remove4:
     "null\n" +
     "null\n" +
     "m2 m4 m3 m1"
-  );
+  , "EnsuresPriorityWorksEvenIfRemovingMethodsWhileTypo.dfy");
   }
 
   // Requires changes to not change the position of symbols for now, as we are not applying the changes to the local code for now.
-  private async Task TestPriorities(string codeAndChanges, string symbolsString) {
+  private async Task TestPriorities(string codeAndChanges, string symbolsString, string filePath = null) {
     var semaphoreSlim = new SemaphoreSlim(0);
     await SetUp(options => {
       options.CreateSolver = (_, _) =>
@@ -124,7 +125,7 @@ method m5() { assert false; } //Remove4:
     var symbols = ExtractSymbols(symbolsString);
 
     var (code, codes, changesList) = LinearVerificationGutterStatusTester.ExtractCodeAndChanges(codeAndChanges.TrimStart());
-    var documentItem = CreateTestDocument(code);
+    var documentItem = CreateTestDocument(code, filePath);
     client.OpenDocument(documentItem);
 
     var source = new CancellationTokenSource();
@@ -223,7 +224,8 @@ method m5() { assert false; } //Remove4:
 
       var newlyReported = newlyDone.Concat(newlyRunning).ToList();
       if (newlyReported.Count > 1) {
-        throw new Exception("semaphore throttling should only allow one newly running per notification.");
+        throw new Exception("semaphore throttling should only allow one newly running per notification." +
+                            "newlyReported:\n" + newlyReported.Stringify());
       }
 
       if (newlyReported.Count > 0) {
@@ -234,6 +236,6 @@ method m5() { assert false; } //Remove4:
     } while (!started || foundStatus.NamedVerifiables.Any(v => v.Status < PublishedVerificationStatus.Error));
   }
 
-  public VerificationOrderTest2(ITestOutputHelper output) : base(output) {
+  public VerificationOrderTest2(ITestOutputHelper output) : base(output, LogLevel.Trace) {
   }
 }
