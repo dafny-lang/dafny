@@ -77,8 +77,8 @@ public final class Array<T> implements Cloneable {
         return newArray;
     }
 
-    public boolean deepEquals(Array<T> other) {
-        return eltType.arrayDeepEquals(this.array, other.array);
+    public boolean shallowEquals(Array<T> other) {
+        return eltType.arrayShallowEquals(this.array, other.array);
     }
 
     public static <T> Array<T> wrap(TypeDescriptor<T> eltType, Object array) {
