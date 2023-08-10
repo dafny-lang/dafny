@@ -1734,12 +1734,40 @@ namespace Microsoft.Dafny {
       Contract.Requires(tyArgs != null);
       Contract.Requires(tyArgs.Count <= tySubst.Count);  // more precisely, the members of tyArgs are required to be keys of tySubst, but this is a cheap sanity test
 
-      if (options.RegionChecks && !method.SurelyWontModifyAnything()) {
-        var regionCheck = etran.RegionCheck(dafnyReceiver, out var isStatic);
-        if (regionCheck != null) {
-          builder.Add(Assert(GetToken(dafnyReceiver), etran.TrExpr(regionCheck),
-            new PODesc.RegionMustMatchInInstanceContext(regionCheck, 
-              PODesc.RegionMustMatchInInstanceContext.Kind.MethodCall, isStatic)));
+      if (options.RegionChecks) {
+        if (etran.HasInvariant(dafnyReceiver, out var enclosingClass, out var invariant)) {
+          // No region check necessary, and we can even ensure the invariant if there is a region change.
+          if (currentDeclaration is Method methodDecl) {
+            var assumedInvariant = Expression.CreateResolvedCall(
+                GetToken(dafnyReceiver),
+                dafnyReceiver, invariant, 
+                new List<Expression>(),  
+                new List<Type>(), 
+                program.SystemModuleManager);
+            if (methodDecl.IsStatic) { // Context is null
+              builder.Add(new CommentCmd("ProcessCallStmt - Assume invariant in static context"));
+              builder.Add(new AssumeCmd(GetToken(dafnyReceiver), etran.TrExpr(assumedInvariant)));
+            } else {
+              var thisExpr = new ThisExpr(methodDecl);
+              builder.Add(new CommentCmd("ProcessCallStmt - ASssume invariant in dynamic context if region change"));
+              builder.Add(new AssumeCmd(
+                GetToken(dafnyReceiver),
+                etran.TrExpr(
+                Expression.CreateImplies(
+                  Expression.CreateNot(Token.NoToken,
+                    Expression.CreateEq(etran.RegionSelect(dafnyReceiver),
+                      etran.RegionSelect(thisExpr), dafnyReceiver.Type)),
+                  assumedInvariant))));
+            }
+          }
+          
+        } else if (!method.SurelyWontModifyAnything()) {
+          var regionCheck = etran.RegionCheck(dafnyReceiver, out var isStatic);
+          if (regionCheck != null) {
+            builder.Add(Assert(GetToken(dafnyReceiver), etran.TrExpr(regionCheck),
+              new PODesc.RegionMustMatchInInstanceContext(regionCheck,
+                PODesc.RegionMustMatchInInstanceContext.Kind.MethodCall, isStatic)));
+          }
         }
       }
       // Figure out if the call is recursive or not, which will be used below to determine the need for a

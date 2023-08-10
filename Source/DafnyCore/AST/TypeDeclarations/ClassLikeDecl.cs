@@ -27,6 +27,9 @@ public abstract class ClassLikeDecl : TopLevelDeclWithMembers, RevealableTypeDec
   [FilledInDuringResolution]
   public Predicate Invariant { get; set; }
 
+  public bool HasInvariant => Invariant != null;
+  public List<FrameExpression> InvariantReads => Invariant.Reads;
+
   public ClassLikeDecl(RangeToken rangeToken, Name name, ModuleDefinition module,
     List<TypeParameter> typeArgs, [Captured] List<MemberDecl> members, Attributes attributes, bool isRefining, List<Type>/*?*/ traits)
     : base(rangeToken, name, module, typeArgs, members, attributes, isRefining, traits) {

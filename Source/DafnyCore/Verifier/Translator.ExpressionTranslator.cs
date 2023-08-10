@@ -4,6 +4,7 @@ using System.Diagnostics.Contracts;
 using System.Linq;
 using System.Numerics;
 using Microsoft.Boogie;
+using Microsoft.Dafny.Compilers;
 using static Microsoft.Dafny.Util;
 
 namespace Microsoft.Dafny {
@@ -1946,6 +1947,31 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), predef.BoxType,
         var region = translator.program.SystemModuleManager.RegionField;
         return Expression.CreateFieldSelect(Token.NoToken, obj, region);
       }
+
+      public bool HasInvariant(Expression obj, out ClassLikeDecl enclosingClass, out Predicate invariant) {
+        if (obj.Type is UserDefinedType {ResolvedClass: ClassLikeDecl {Invariant: { } i} classLikeDecl}) {
+          // Invariant have special region check rules.
+          invariant = i;
+          enclosingClass = classLikeDecl;
+          return true;
+        }
+
+        if (obj.Type is UserDefinedType {
+              ResolvedClass: NonNullTypeDecl {
+                Class: ClassLikeDecl {
+                  Invariant: { } i2
+                } classLikeDecl2
+              }
+            }) {
+          // Invariant have special region check rules.
+          invariant = i2;
+          enclosingClass = classLikeDecl2;
+          return true;
+        }
+        invariant = null;
+        enclosingClass = null;
+        return false;
+      }
       
       /// <summary>
       /// Returns the resolved expression
@@ -1960,7 +1986,7 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), predef.BoxType,
           isStatic = true; // Does not matter
           return null;
         }
-
+        
         // Need to prove that
         // obj.Region == context.Region || obj.Region == context || obj.Region == null && fresh(obj)
         var regionCheck = //Expression.CreateAnd(

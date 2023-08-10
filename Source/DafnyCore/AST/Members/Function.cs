@@ -393,6 +393,12 @@ experimentalPredicateAlwaysGhost - Compiled functions are written `function`. Gh
               "Only one invariant predicate can be declared per class. Please merge the two invariants."
             );
           } else {
+            if (!resolver.reporter.Options.RegionChecks) {
+              resolver.reporter.Warning(MessageSource.Resolver,
+                "r_needs_region_checks", invariantRange,
+                "Invariants don't work unless launching Dafny with --region-checks:true"
+                );
+            }
             classLikeDecl.Invariant = predicate;
           }
         } else {
