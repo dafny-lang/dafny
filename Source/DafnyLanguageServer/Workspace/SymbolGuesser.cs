@@ -52,7 +52,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
             var writer = new StringWriter();
             var printer = new Printer(writer, DafnyOptions.Default);
             printer.PrintProgram(program, true);
-            logger.LogTrace($"Program:\n{program}");
+            logger.LogTrace($"Program:\n{writer}");
           }
           return (null, null);
         }

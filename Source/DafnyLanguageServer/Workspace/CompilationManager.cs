@@ -157,7 +157,8 @@ public class CompilationManager {
 
     var containingModule = verifiable.ContainingModule;
 
-    Interlocked.Increment(ref runningVerificationJobs);
+    var verifyTaskIncrementedJobs = Interlocked.Increment(ref runningVerificationJobs);
+    logger.LogDebug($"Incremented jobs for verifyTask, remaining jobs {verifyTaskIncrementedJobs}, {compilation.Uri} version {compilation.Version}");
     MarkVerificationStarted();
 
     IReadOnlyDictionary<FilePosition, IReadOnlyList<IImplementationTask>> tasksForModule;
@@ -225,7 +226,8 @@ public class CompilationManager {
           return false;
         }
 
-        Interlocked.Increment(ref runningVerificationJobs);
+        var incrementedJobs = Interlocked.Increment(ref runningVerificationJobs);
+        logger.LogDebug($"Incremented jobs for task, remaining jobs {incrementedJobs}, {compilation.Uri} version {compilation.Version}");
 
         statusUpdates.ObserveOn(verificationUpdateScheduler).Subscribe(
           update => {
@@ -249,9 +251,10 @@ public class CompilationManager {
       void StatusUpdateHandlerFinally() {
         try {
           var remainingJobs = Interlocked.Decrement(ref runningVerificationJobs);
+          logger.LogDebug(
+            $"StatusUpdateHandlerFinally called, remaining jobs {remainingJobs}, {compilation.Uri} version {compilation.Version}, " +
+            $"startingCompilation.version {startingCompilation.Version}.");
           if (remainingJobs == 0) {
-            logger.LogDebug(
-              $"Calling FinishedNotifications because there are no remaining verification jobs for {compilation.Uri} version {compilation.Version}.");
             FinishedNotifications(compilation, verifiable);
           }
         } catch (Exception e) {
@@ -261,6 +264,7 @@ public class CompilationManager {
     }
 
     var remainingJobs = Interlocked.Decrement(ref runningVerificationJobs);
+    logger.LogDebug($"Decremented jobs for verifyTask, remaining jobs {remainingJobs}, {compilation.Uri} version {compilation.Version}");
     if (remainingJobs == 0) {
       logger.LogDebug($"Calling MarkVerificationFinished because there are no remaining verification jobs for {compilation.Uri}, version {compilation.Version}.");
       MarkVerificationFinished();

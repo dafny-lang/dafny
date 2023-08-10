@@ -80,7 +80,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
           var writer = new StringWriter();
           var printer = new Printer(writer, DafnyOptions.Default);
           printer.PrintProgram(program, true);
-          logger.LogTrace($"Program:\n{program}");
+          logger.LogTrace($"Program:\n{writer}");
         }
         logger.LogDebug($"Completion not on a dot expression for {request.TextDocument.Uri}, version {state.Version}");
         return new CompletionList();
