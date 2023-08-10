@@ -224,8 +224,8 @@ method m5() { assert false; } //Remove4:
 
       var newlyReported = newlyDone.Concat(newlyRunning).ToList();
       if (newlyReported.Count > 1) {
-        throw new Exception("semaphore throttling should only allow one newly running per notification." +
-                            "newlyReported:\n" + newlyReported.Stringify());
+        WriteVerificationHistory();
+        throw new Exception("semaphore throttling should only allow one newly running per notification.");
       }
 
       if (newlyReported.Count > 0) {
