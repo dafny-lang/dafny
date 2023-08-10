@@ -8,6 +8,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Boogie;
 using Microsoft.Dafny.LanguageServer.Language;
+using Microsoft.Dafny.LanguageServer.Util;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
@@ -147,10 +148,13 @@ public class CompilationManager {
 
   private int runningVerificationJobs;
 
-  // TODO consider changing ICanVerify to a FilePosition
-  public async Task<bool> VerifyTask(ICanVerify verifiable, bool actuallyVerifyTasks = true) {
+  public async Task<bool> VerifyTask(FilePosition verifiableLocation, bool actuallyVerifyTasks = true) {
     cancellationSource.Token.ThrowIfCancellationRequested();
     var compilation = await ResolvedCompilation;
+    var node = compilation.Program.FindNode(verifiableLocation.Uri, verifiableLocation.Position.ToDafnyPosition());
+    if (node is not ICanVerify verifiable) {
+      return false;
+    }
 
     if (compilation.ResolutionDiagnostics.Values.SelectMany(x => x).Any(d =>
           d.Level == ErrorLevel.Error &&

@@ -31,13 +31,7 @@ public class VerificationHandler : IJsonRpcRequestHandler<VerificationParams, bo
       return false;
     }
 
-    var compilationManager = projectManager.CompilationManager;
-    var resolvedCompilation = await compilationManager.ResolvedCompilation;
-    if (resolvedCompilation.Program.FindNode(request.TextDocument.Uri.ToUri(), request.Position.ToDafnyPosition()) is ICanVerify verifiable) {
-      return await compilationManager.VerifyTask(verifiable);
-    }
-
-    return false;
+    return await projectManager.CompilationManager.VerifyTask(new FilePosition(request.TextDocument.Uri.ToUri(), request.Position));
   }
 
   public async Task<bool> Handle(CancelVerificationParams request, CancellationToken cancellationToken) {

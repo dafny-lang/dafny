@@ -286,15 +286,16 @@ public class ProjectManager : IDisposable {
         null, false).CreateOrderedEnumerable(TopToBottomPriority, null, false).ToList();
       logger.LogDebug($"Ordered verifiables: {string.Join(", ", orderedVerifiables.Select(v => v.NameToken.val))}");
 
+      var orderedVerifiableLocations = orderedVerifiables.Select(v => v.NameToken.GetFilePosition()).ToList();
       if (GutterIconTesting) {
-        foreach (var canVerify in orderedVerifiables) {
+        foreach (var canVerify in orderedVerifiableLocations) {
           await compilationManager.VerifyTask(canVerify, false);
         }
 
         logger.LogDebug($"Finished translation in VerifyEverything for {Project.Uri}");
       }
 
-      foreach (var canVerify in orderedVerifiables) {
+      foreach (var canVerify in orderedVerifiableLocations) {
         // Wait for each task to try and run, so the order is respected.
         await compilationManager.VerifyTask(canVerify);
       }
