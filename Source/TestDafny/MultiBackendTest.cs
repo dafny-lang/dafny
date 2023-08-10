@@ -88,6 +88,7 @@ public class MultiBackendTest {
   }
 
   record ResolutionSetting(
+    string ReadableName,
     string[] AdditionalOptions,
     string[] ExpectFileSuffixes,
     int ExpectedExitCode
@@ -119,22 +120,26 @@ public class MultiBackendTest {
       $"--bprint:{tmpPrint}"
     }.Concat(options.OtherArgs.Where(OptionAppliesToVerifyCommand)).ToArray();
 
-    output.WriteLine("Verifying...");
-
     var resolutionOptions = new List<ResolutionSetting>() {
-      new ResolutionSetting(new string[] { },
+      new ResolutionSetting(
+        "legacy",
+        new string[] { },
         new string[] { ".verifier.expect" },
         0)
     };
     if (options.RefreshExitCode != null) {
       resolutionOptions.Add(
-        new ResolutionSetting(new string[] { "--type-system-refresh" },
+        new ResolutionSetting(
+          "refresh",
+          new string[] { "--type-system-refresh" },
           new string[] { ".refresh.expect", ".verifier.expect" },
           (int)options.RefreshExitCode)
       );
     }
     foreach (var resolutionOption in resolutionOptions) {
       var (exitCode, outputString, error) = RunDafny(options.DafnyCliPath, dafnyArgs.Concat(resolutionOption.AdditionalOptions));
+
+      output.WriteLine($"Using {resolutionOption.ReadableName} resolver and verifying...");
 
       // If there is a file with extension "suffix", where the alternatives for "suffix" are supplied in order in
       // ExpectFileSuffixes, then we expect the output to match the contents of that file. Otherwise, we expect the output to be empty.
@@ -227,17 +232,17 @@ public class MultiBackendTest {
       $"--bprint:{tmpPrint}"
     }.Concat(options.OtherArgs.Where(OptionAppliesToVerifyCommand)).ToArray();
 
-    output.WriteLine("Verifying...");
-
     var resolutionOptions = new List<ResolutionSetting>() {
-      new ResolutionSetting(new string[] { }, new string[] { ".expect" },
-        (int)(options.ExpectExitCode ?? 0)),
-      new ResolutionSetting(new string[] { "--type-system-refresh" }, new string[] { ".refresh.expect", ".expect" },
-        (int)(options.RefreshExitCode ?? options.ExpectExitCode ?? 0))
+      new ResolutionSetting("legacy", new string[] { }, new string[] { ".expect" },
+        options.ExpectExitCode ?? 0),
+      new ResolutionSetting("refresh", new string[] { "--type-system-refresh" }, new string[] { ".refresh.expect", ".expect" },
+        options.RefreshExitCode ?? options.ExpectExitCode ?? 0)
     };
 
     foreach (var resolutionOption in resolutionOptions) {
       var (exitCode, actualOutput, error) = RunDafny(options.DafnyCliPath, dafnyArgs.Concat(resolutionOption.AdditionalOptions));
+
+      output.WriteLine($"Using {resolutionOption.ReadableName} resolver and verifying...");
 
       // The expected output is indicated by a file with extension "suffix", where the alternatives for "suffix" are supplied in order in
       // ExpectFileSuffixes.
