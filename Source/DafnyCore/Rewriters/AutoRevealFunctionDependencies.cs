@@ -53,7 +53,7 @@ public class AutoRevealFunctionDependencies : IRewriter {
               if (expression is FunctionCallExpr funcExpr) {
                 var func = funcExpr.Function;
 
-                if (isRevealable(moduleDefinition.AccessibleMembers, func)) {
+                if (IsRevealable(moduleDefinition.AccessibleMembers, func)) {
                   if (func.IsMadeImplicitlyOpaque(Options)) {
                     var expr = cf.Rhs;
 
@@ -90,7 +90,7 @@ public class AutoRevealFunctionDependencies : IRewriter {
           if (expression is FunctionCallExpr funcExpr) {
             var func = funcExpr.Function;
 
-            if (isRevealable(moduleDefinition.AccessibleMembers, func)) {
+            if (IsRevealable(moduleDefinition.AccessibleMembers, func)) {
               if (func.IsMadeImplicitlyOpaque(Options)) {
                 var revealStmt0 = BuildRevealStmt(func, expr.Witness.Tok, moduleDefinition);
 
@@ -267,7 +267,7 @@ public class AutoRevealFunctionDependencies : IRewriter {
           if (subexpression is FunctionCallExpr funcExpr) {
             var func = funcExpr.Function;
 
-            if (isRevealable(defaultRootModule.AccessibleMembers, func)) {
+            if (IsRevealable(defaultRootModule.AccessibleMembers, func)) {
               var newVertex = func.EnclosingClass.EnclosingModuleDefinition.CallGraph.FindVertex(func);
 
               if (newVertex is not null) {
@@ -282,7 +282,7 @@ public class AutoRevealFunctionDependencies : IRewriter {
     if (interModuleVertex is not null) {
       foreach (var callable in interModuleVertex.Successors) {
 
-        if (isRevealable(defaultRootModule.AccessibleMembers, (Declaration)callable.N)) {
+        if (IsRevealable(defaultRootModule.AccessibleMembers, (Declaration)callable.N)) {
 
           queue.Enqueue(new GraphTraversalVertex(callable, false));
         }
@@ -311,7 +311,7 @@ public class AutoRevealFunctionDependencies : IRewriter {
         interModuleGraphVertex = graphVertex.N.EnclosingModule.InterModuleCallGraph.FindVertex(graphVertex.N);
 
         foreach (var vertex0 in graphVertex.Successors) {
-          if (isRevealable(defaultRootModule.AccessibleMembers, (Declaration)vertex0.N)) {
+          if (IsRevealable(defaultRootModule.AccessibleMembers, (Declaration)vertex0.N)) {
             var newGraphTraversalVertex =
               new GraphTraversalVertex(vertex0, true);
 
@@ -323,7 +323,7 @@ public class AutoRevealFunctionDependencies : IRewriter {
 
         if (interModuleGraphVertex is not null) {
           foreach (var vertex0 in interModuleGraphVertex.Successors) {
-            if (isRevealable(defaultRootModule.AccessibleMembers, (Declaration)vertex0.N)) {
+            if (IsRevealable(defaultRootModule.AccessibleMembers, (Declaration)vertex0.N)) {
               queue.Enqueue(new GraphTraversalVertex(vertex0, false));
             }
           }
@@ -352,18 +352,15 @@ public class AutoRevealFunctionDependencies : IRewriter {
   }
 
   private static RevealStmt BuildRevealStmt(Function func, IToken tok, ModuleDefinition rootModule) {
-    if (func.EnclosingClass.Name != "_default") {
-      List<Type> args = new List<Type>();
-      for (int i = 0; i < func.EnclosingClass.TypeArgs.Count(); i++) {
-        args.Add(new IntType());
-      }
-
+    List<Type> args = new List<Type>();
+    foreach (var _ in func.EnclosingClass.TypeArgs) {
+      args.Add(new IntType());
     }
 
     ModuleDefinition.AccessibleMember accessibleMember = null;
 
     try {
-      accessibleMember = rootModule.AccessibleMembers[func][0];
+      accessibleMember = rootModule.AccessibleMembers[func].First(member => member.IsRevealed);
     } catch (KeyNotFoundException) {
       Contract.Assert(false);
     }
@@ -374,7 +371,9 @@ public class AutoRevealFunctionDependencies : IRewriter {
     var callableName = "reveal_" + func.Name;
     var member = callableClass.Members.Find(decl => decl.Name == callableName);
 
+    Type.PushScope(callableClass.EnclosingModuleDefinition.VisibilityScope);
     var receiver = new StaticReceiverExpr(tok, new UserDefinedType(tok, callableName, callableClass, callableClass.TypeArgs.ConvertAll(obj => (Type)Type.Int)), callableClass, true);
+    Type.PopScope(callableClass.EnclosingModuleDefinition.VisibilityScope);
 
     if (member is null) {
       return null;
@@ -385,7 +384,7 @@ public class AutoRevealFunctionDependencies : IRewriter {
     rr.Type = new InferredTypeProxy();
     rr.Member = member;
     rr.TypeApplication_JustMember = new List<Type>();
-    rr.TypeApplication_AtEnclosingClass = new List<Type>();
+    rr.TypeApplication_AtEnclosingClass = args;
 
     var call = new CallStmt(func.RangeToken, new List<Expression>(), rr, new List<ActualBinding>(),
       func.Tok);
@@ -411,8 +410,7 @@ public class AutoRevealFunctionDependencies : IRewriter {
   private static Expression constructExpressionFromPath(Function func, ModuleDefinition.AccessibleMember accessibleMember) {
 
     var topLevelDeclsList = accessibleMember.AccessPath;
-    var nameList = topLevelDeclsList.Where(decl => decl.Name != "_default").Select(decl => new NameSegment(func.tok, decl.Name, new List<Type>())).ToList();
-    // TODO: Add class type args.
+    var nameList = topLevelDeclsList.Where(decl => decl.Name != "_default").Select(decl => TopLevelDeclToNameSegment(decl, func.tok)).ToList();
 
     nameList.Add(new NameSegment(func.tok, func.Name, new List<Type>()));
 
@@ -423,10 +421,20 @@ public class AutoRevealFunctionDependencies : IRewriter {
     return resolveExpr;
   }
 
-  private static bool isRevealable(Dictionary<Declaration, List<ModuleDefinition.AccessibleMember>> accessibleMembers,
+  private static NameSegment TopLevelDeclToNameSegment(TopLevelDecl decl, IToken tok) {
+    var typeArgs = new List<Type>();
+
+    foreach (var arg in decl.TypeArgs) {
+      typeArgs.Add(new IntType());
+    }
+
+    return new NameSegment(tok, decl.Name, typeArgs);
+  }
+
+  private static bool IsRevealable(Dictionary<Declaration, List<ModuleDefinition.AccessibleMember>> accessibleMembers,
     Declaration decl) {
-    if (accessibleMembers.ContainsKey(decl)) {
-      return accessibleMembers[decl][0].IsRevealed;
+    if (accessibleMembers.TryGetValue(decl, out var memberList)) {
+      return memberList.Exists(member => member.IsRevealed);
     }
 
     return false;

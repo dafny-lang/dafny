@@ -465,27 +465,30 @@ public class ModuleDefinition : RangeNode, IAttributeBearingDeclaration, IClonea
     foreach (var d in TopLevelDecls) {
       if (d is AliasModuleDecl || d is AbstractModuleDecl) {
         ModuleSignature importSig;
-        if (d is AliasModuleDecl) {
-          var alias = (AliasModuleDecl)d;
-          importSig = alias.TargetQId.Root != null ? alias.TargetQId.Root.Signature : alias.Signature;
+        if (d is AliasModuleDecl alias) {
+          if (alias.TargetQId.Decl is not null) {
+            importSig = alias.TargetQId.Decl.Signature;
+          } else if (alias.TargetQId.Root is not null) {
+            importSig = alias.TargetQId.Root.Signature;
+          } else {
+            importSig = alias.Signature;
+          }
         } else {
           importSig = ((AbstractModuleDecl)d).OriginalSignature;
         }
 
         var origMod = importSig.ModuleDef;
 
-
         var exports = d is AliasModuleDecl ? ((AliasModuleDecl)d).Exports : ((AbstractModuleDecl)d).Exports;
-        var exportSet = exports.Any() ? exports.First().val : origMod.Name;
+        var exportSet = exports.Any() ? exports.First().val : null;
 
         foreach (var kvp in origMod.AccessibleMembers) {
-          var isDeclRevealed = true;
-          if (isDeclExported(origMod, exportSet, kvp.Key, out isDeclRevealed)) {
+          if (isDeclExported(origMod, exportSet, kvp.Key, out var isDeclRevealed)) {
             var newVal = kvp.Value.Select(member => member.Clone()).ToList();
 
             foreach (var accessibleMember in newVal) {
               accessibleMember.AccessPath.Insert(0, d);
-              accessibleMember.IsRevealed = isDeclRevealed;
+              accessibleMember.IsRevealed = accessibleMember.IsRevealed && isDeclRevealed;
             }
 
             AddAccessibleMember(kvp.Key, newVal);
@@ -500,13 +503,16 @@ public class ModuleDefinition : RangeNode, IAttributeBearingDeclaration, IClonea
         var nested = (LiteralModuleDecl)d;
 
         foreach (var kvp in nested.ModuleDef.AccessibleMembers) {
-          var newVal = kvp.Value.Select(member => member.Clone()).ToList();
+          if (isDeclExported(nested.ModuleDef, null, kvp.Key, out var isDeclRevealed)) {
+            var newVal = kvp.Value.Select(member => member.Clone()).ToList();
 
-          foreach (var accessibleMember in newVal) {
-            accessibleMember.AccessPath.Insert(0, d);
+            foreach (var accessibleMember in newVal) {
+              accessibleMember.AccessPath.Insert(0, d);
+              accessibleMember.IsRevealed = accessibleMember.IsRevealed && isDeclRevealed;
+            }
+
+            AddAccessibleMember(kvp.Key, newVal);
           }
-
-          AddAccessibleMember(kvp.Key, newVal);
         }
 
         var newAccessibleMember = new AccessibleMember(d);
@@ -530,6 +536,8 @@ public class ModuleDefinition : RangeNode, IAttributeBearingDeclaration, IClonea
 
   private bool isDeclExported(ModuleDefinition moduleDefinition, string exportSetName, Declaration decl, out bool isItRevealed) {
     isItRevealed = true;
+
+    exportSetName ??= moduleDefinition.Name;
 
     var moduleExports = moduleDefinition.TopLevelDecls.Where(decl => decl is ModuleExportDecl && decl.Name == exportSetName);
 
