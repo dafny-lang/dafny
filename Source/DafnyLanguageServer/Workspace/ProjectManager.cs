@@ -253,7 +253,8 @@ public class ProjectManager : IDisposable {
   public async Task VerifyEverythingAsync(Uri? uri) {
     _ = workCompletedForCurrentVersion.WaitAsync();
     try {
-      var resolvedCompilation = await CompilationManager.ResolvedCompilation;
+      var compilationManager = CompilationManager;
+      var resolvedCompilation = await compilationManager.ResolvedCompilation;
 
       var verifiables = resolvedCompilation.Verifiables.ToList();
       if (uri != null) {
@@ -287,7 +288,7 @@ public class ProjectManager : IDisposable {
 
       if (GutterIconTesting) {
         foreach (var canVerify in orderedVerifiables) {
-          await CompilationManager.VerifyTask(resolvedCompilation, canVerify, false);
+          await compilationManager.VerifyTask(canVerify, false);
         }
 
         logger.LogDebug($"Finished translation in VerifyEverything for {Project.Uri}");
@@ -295,7 +296,7 @@ public class ProjectManager : IDisposable {
 
       foreach (var canVerify in orderedVerifiables) {
         // Wait for each task to try and run, so the order is respected.
-        await CompilationManager.VerifyTask(resolvedCompilation, canVerify);
+        await compilationManager.VerifyTask(canVerify);
       }
     }
     finally {

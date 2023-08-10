@@ -145,8 +145,11 @@ public class CompilationManager {
     return prefix;
   }
 
-  private int runningVerificationJobs = 0;
-  public async Task<bool> VerifyTask(CompilationAfterResolution compilation, ICanVerify verifiable, bool actuallyVerifyTasks = true) {
+  private int runningVerificationJobs;
+  
+  // TODO consider changing ICanVerify to a FilePosition
+  public async Task<bool> VerifyTask(ICanVerify verifiable, bool actuallyVerifyTasks = true) {
+    var compilation = await ResolvedCompilation;
 
     if (compilation.ResolutionDiagnostics.Values.SelectMany(x => x).Any(d =>
           d.Level == ErrorLevel.Error &&
