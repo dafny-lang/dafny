@@ -11,13 +11,18 @@ using Microsoft.Dafny.LanguageServer.CounterExampleGeneration;
 
 namespace Microsoft.Dafny.LanguageServer.Handlers.Custom {
   public class DafnyCounterExampleHandler : ICounterExampleHandler {
-    private DafnyOptions options;
+    private readonly DafnyOptions options;
     private readonly ILogger logger;
     private readonly IProjectDatabase projects;
+    private readonly ITelemetryPublisher telemetryPublisher;
 
-    public DafnyCounterExampleHandler(DafnyOptions options, ILogger<DafnyCounterExampleHandler> logger, IProjectDatabase projects) {
+    public DafnyCounterExampleHandler(DafnyOptions options, 
+      ILogger<DafnyCounterExampleHandler> logger, 
+      IProjectDatabase projects, 
+      ITelemetryPublisher telemetryPublisher) {
       this.logger = logger;
       this.projects = projects;
+      this.telemetryPublisher = telemetryPublisher;
       this.options = options;
     }
 
@@ -38,6 +43,9 @@ namespace Microsoft.Dafny.LanguageServer.Handlers.Custom {
       } catch (OperationCanceledException) {
         logger.LogWarning("counter-examples requested for unverified document {DocumentUri}",
           request.TextDocument.Uri);
+        return new CounterExampleList();
+      } catch (Exception e) {
+        telemetryPublisher.PublishUnhandledException(e);
         return new CounterExampleList();
       }
     }
