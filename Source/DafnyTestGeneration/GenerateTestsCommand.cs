@@ -94,7 +94,7 @@ Path - Prints path-coverage tests for the given program.");
     "Print the Boogie code used during test generation.") {
     ArgumentHelpName = "filename"
   };
-  public static readonly Option<string> CoverageReport = new("--print-coverage",
+  public static readonly Option<string> CoverageReport = new("--coverage-report",
     "Emit expected test coverage report to a given directory.") {
     ArgumentHelpName = "directory"
   };

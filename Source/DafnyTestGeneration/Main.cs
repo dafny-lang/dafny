@@ -116,7 +116,7 @@ namespace DafnyTestGeneration {
       if (options.TestGenOptions.CoverageReport == null) {
         return;
       }
-      var coverageReport = new CoverageReport(program, name: "Expected Test Coverage", units: "Locations");
+      var coverageReport = new CoverageReport(program, name: "Expected Test Coverage", units: "Locations", suffix: "_tests_expected");
       var lineRegex = new Regex("^(.*)\\(([0-9]+),[0-9]+\\)");
       HashSet<string> coveredStates = new(); // set of program states that are expected to be covered by tests
       foreach (var modification in cache.Values) {

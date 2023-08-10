@@ -13,6 +13,9 @@ namespace DafnyCore.CoverageReporter;
 
 public class CoverageReportCommand : ICommandSpec {
 
+  public static List<string> CoverageReportsToMerge = new();
+  public static string CoverageReportOutDir = null;
+
   static CoverageReportCommand() {
     ReportsArgument = new("reports", r => {
       return r.Tokens.Where(t => !string.IsNullOrEmpty(t.Value)).Select(t => new FileInfo(t.Value)).ToList();
@@ -36,8 +39,8 @@ public class CoverageReportCommand : ICommandSpec {
 
   public void PostProcess(DafnyOptions dafnyOptions, Microsoft.Dafny.Options options, InvocationContext context) {
     var outDir = context.ParseResult.GetValueForArgument(OutDirArgument);
-    dafnyOptions.CoverageReportOutDir = outDir;
-    dafnyOptions.CoverageReportsToMerge = context.ParseResult.GetValueForArgument(ReportsArgument)
+    CoverageReportOutDir = outDir;
+    CoverageReportsToMerge = context.ParseResult.GetValueForArgument(ReportsArgument)
       .Select(fileInfo => fileInfo.FullName).ToList();
   }
 }

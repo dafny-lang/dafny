@@ -22,6 +22,7 @@ public class CoverageReporter {
   private static readonly Regex TableHeaderRegex = new(@"\{\{TABLE_HEADER\}\}");
   private static readonly Regex TableFooterRegex = new(@"\{\{TABLE_FOOTER\}\}");
   private static readonly Regex TableBodyRegex = new(@"\{\{TABLE_BODY\}\}");
+  private static readonly Regex IndexFileNameRegex = new(@"index(.*)\.html");
   private const string CoverageReportTemplatePath = "coverage_report_template.html";
   private const string CoverageReportIndexTemplatePath = "coverage_report_index_template.html";
   private const string CoverageReportSupportingFilesPath = ".resources";
@@ -32,22 +33,30 @@ public class CoverageReporter {
     this.reporter = reporter;
   }
 
-  public void Merge(DafnyOptions options) {
+  public void Merge(List<string> coverageReportsToMerge, string coverageReportOutDir) {
     // assume only one report in directory for now
     List<CoverageReport> reports = new();
-    foreach (var reportDir in options.CoverageReportsToMerge) {
-      var indexFileName = Path.Combine(reportDir, "index.html");
-      if (!File.Exists(indexFileName)) {
+    foreach (var reportDir in coverageReportsToMerge) {
+      if (!Directory.Exists(reportDir)) {
         reporter.Warning(MessageSource.Documentation, ErrorRegistry.NoneId, Token.NoToken,
-          $"Could not locate the index file for coverage report at {reportDir}");
+          $"Could not locate the directory {reportDir} with a coverage report");
         continue;
       }
-      var index = new StreamReader(indexFileName).ReadToEnd();
-      var name = TitleRegexInverse.Match(index)?.Groups?[1]?.Value ?? "";
-      var units = UnitsRegexInverse.Match(index)?.Groups?[1]?.Value ?? "";
-      reports.Add(new CoverageReport(reportDir, name, units));
+      foreach (var pathToIndexFile in Directory.EnumerateFiles(reportDir, "*.html", SearchOption.TopDirectoryOnly)) {
+        var indexFileName = Path.GetFileName(pathToIndexFile);
+        var indexFileMatch = IndexFileNameRegex.Match(indexFileName);
+        if (!indexFileMatch.Success) {
+          reporter.Warning(MessageSource.Documentation, ErrorRegistry.NoneId, Token.NoToken,
+            $"Directory {reportDir} contains file {indexFileName} which is not part of a coverage report");
+        }
+        var suffix = indexFileMatch.Groups[1].Value;
+        var index = new StreamReader(pathToIndexFile).ReadToEnd();
+        var name = TitleRegexInverse.Match(index)?.Groups?[1]?.Value ?? "";
+        var units = UnitsRegexInverse.Match(index)?.Groups?[1]?.Value ?? "";
+        reports.Add(new CoverageReport(reportDir, $"{name} ({Path.GetFileName(reportDir)})", units, suffix));
+      }
     }
-    GenerateCoverageReportFiles(reports, options.CoverageReportOutDir);
+    GenerateCoverageReportFiles(reports, coverageReportOutDir);
   }
 
   /// <summary> Serialize a single coverage report to disk </summary>
@@ -60,7 +69,7 @@ public class CoverageReporter {
   /// will have links to each other to make comparison easier
   /// </summary>
   private void GenerateCoverageReportFiles(List<CoverageReport> reports, string reportsDirectory) {
-    var sessionName = DateTime.Now.ToString("yyyy-dd-M--HH-mm-ss-fff");
+    var sessionName = DateTime.Now.ToString("yyyy-dd-M--HH-mm-ss");
     var sessionDirectory = Path.Combine(reportsDirectory, sessionName);
     Directory.CreateDirectory(sessionDirectory);
     HashSet<string> allFiles = new();
@@ -83,7 +92,7 @@ public class CoverageReporter {
         var linksToOtherReports = GetHtmlLinksToOtherReports(reports[i], Path.GetFileName(fileName), reports);
         var reportForFile = HtmlReportForFile(reports[i], fileName, pathToRoot, linksToOtherReports);
         sourceFileToCoverageReport[fileName] = Path.Combine(directoryForFile, Path.GetFileName(fileName));
-        File.WriteAllText(Path.Combine(directoryForFile, Path.GetFileName(fileName)) + $"{reports[i].UniqueId}html", reportForFile);
+        File.WriteAllText(Path.Combine(directoryForFile, Path.GetFileName(fileName)) + $"{reports[i].UniqueSuffix}.html", reportForFile);
       }
     }
 
@@ -121,7 +130,7 @@ public class CoverageReporter {
     foreach (var sourceFile in sourceFileToCoverageReportFile.Keys) {
       var relativePath = Path.GetRelativePath(baseDirectory, sourceFileToCoverageReportFile[sourceFile]);
       body.Add(new() {
-        $"<a href = \"{relativePath}{report.UniqueId}html\"" +
+        $"<a href = \"{relativePath}{report.UniqueSuffix}.html\"" +
         $"class = \"el_package\">{relativePath}</a>"
       });
       body.Last().AddRange(coverageLabels.Select(label =>
@@ -138,7 +147,7 @@ public class CoverageReporter {
     templateText = FileNameRegex.Replace(templateText, report.Name);
     templateText = TableHeaderRegex.Replace(templateText, MakeIndexFileTableRow(header));
     templateText = TableFooterRegex.Replace(templateText, MakeIndexFileTableRow(footer));
-    File.WriteAllText(Path.Combine(baseDirectory, $"index{report.UniqueId}html"),
+    File.WriteAllText(Path.Combine(baseDirectory, $"index{report.UniqueSuffix}.html"),
       TableBodyRegex.Replace(templateText, string.Join("\n", body.Select(MakeIndexFileTableRow))));
   }
 
@@ -152,7 +161,7 @@ public class CoverageReporter {
       if (report == thisReport) {
         continue;
       }
-      result.Append($"<a href=\"{sourceFileName}{report.UniqueId}html\" class=\"el_report\">{report.Name}</a>");
+      result.Append($"<a href=\"{sourceFileName}{report.UniqueSuffix}.html\" class=\"el_report\">{report.Name}</a>");
     }
     return result.ToString();
   }
@@ -211,8 +220,8 @@ public class CoverageReporter {
     var templateText = new StreamReader(templateStream).ReadToEnd();
     templateText = PathToRootRegex.Replace(templateText, baseDirectory);
     templateText = LinksToOtherReportsRegex.Replace(templateText, linksToOtherReports);
-    templateText = IndexLinkRegex.Replace(templateText, $"index{report.UniqueId}html");
-    templateText = FileNameRegex.Replace(templateText, $"{Path.GetFileName(pathToSourceFile)} ({report.Name})");
+    templateText = IndexLinkRegex.Replace(templateText, $"index{report.UniqueSuffix}.html");
+    templateText = FileNameRegex.Replace(templateText, $"{Path.GetFileName(pathToSourceFile)}, {report.Name}");
     templateText = UriRegex.Replace(templateText, pathToSourceFile);
     return LabeledCodeRegex.Replace(templateText, labeledCode);
   }

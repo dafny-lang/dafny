@@ -1,8 +1,10 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using Microsoft.Dafny;
 
 namespace DafnyCore.CoverageReporter; 
@@ -15,16 +17,22 @@ public class CoverageReport {
   private readonly Dictionary<string, List<CoverageSpan>> labelsByFile;
   public readonly string Name; // the name to assign to this coverage report
   public readonly string Units; // the units of coverage (plural). This will be written in the coverage report table.
-  private readonly int uniqueId = nextUniqueId++;
-  public string UniqueId => "." + (uniqueId == 0 ? "" : (uniqueId + ".")); // to add as postfix to files
+  private readonly string suffix; // user-provided suffix to add to filenames that are part of this report
+  private readonly int uniqueId = Interlocked.Increment(ref nextUniqueId);
+  public string UniqueSuffix => suffix + (uniqueId == 1 ? "" : ("_" + uniqueId));
+
 
   /// <summary>
   /// Generate a new empty coverage report for a given program.
-  /// Scan the program for the list of files it consists of an pre-populate the labelsByFile dictionary accordingly.
+  /// Scan the <param name="program"></param> for the list of files it consists of and pre-populate the labelsByFile
+  /// dictionary accordingly. <param name="name"></param> is the title of the coverage report displayed in HTML files,
+  /// <param name="units"></param> are the units of coverage this report uses (to be displayed in the index HTML file),
+  /// <param name="suffix"></param> is the suffix to add to files that are part of this coverage report. 
   /// </summary>
-  public CoverageReport(Program program, string name, string units) {
+  public CoverageReport(Program program, string name, string units, string suffix) {
     Name = name;
     Units = units;
+    this.suffix = suffix;
     labelsByFile = new();
     HashSet<string> fileNames = new();
     FindAllFiles(program.DefaultModuleDef, fileNames);
@@ -34,13 +42,17 @@ public class CoverageReport {
   }
 
   /// <summary>
-  /// Parse a report previously serialized to disk in the <param name="reportDir"></param> directory
+  /// Parse a report previously serialized to disk in the <param name="reportDir"></param> directory.
+  /// <param name="name"></param> is the title of the coverage report displayed in HTML files,
+  /// <param name="units"></param> are the units of coverage this report uses (to be displayed in the index HTML file),
+  /// <param name="suffix"></param> is the suffix to add to files that are part of this coverage report. 
   /// </summary>
-  public CoverageReport(string reportDir, string name, string units) {
+  public CoverageReport(string reportDir, string name, string units, string suffix) {
     Name = name;
     Units = units;
+    this.suffix = suffix;
     labelsByFile = new();
-    foreach (string fileName in Directory.EnumerateFiles(reportDir, "*.html", SearchOption.AllDirectories)) {
+    foreach (string fileName in Directory.EnumerateFiles(reportDir, $"*{suffix}.html", SearchOption.AllDirectories)) {
       var source = new StreamReader(fileName).ReadToEnd();
       var uriMatch = CoverageReporter.UriRegexInversed.Match(source);
       if (!uriMatch.Success) {
