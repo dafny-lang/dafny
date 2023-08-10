@@ -150,6 +150,7 @@ public class CompilationManager {
 
   public async Task<bool> VerifyTask(FilePosition verifiableLocation, bool actuallyVerifyTasks = true) {
     cancellationSource.Token.ThrowIfCancellationRequested();
+
     var compilation = await ResolvedCompilation;
     var node = compilation.Program.FindNode(verifiableLocation.Uri, verifiableLocation.Position.ToDafnyPosition());
     if (node is not ICanVerify verifiable) {

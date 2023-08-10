@@ -37,7 +37,7 @@ namespace Microsoft.Dafny.Plugins {
     /// after the individual PostResolve on every module
     /// You can also report warnings and errors using reporter.Error
     /// </summary>
-    public virtual void PreTranslate(ModuleDefinition module) {
+    public virtual void PreVerify(ModuleDefinition module) {
     }
   }
 }

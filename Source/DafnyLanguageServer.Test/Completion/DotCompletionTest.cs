@@ -220,7 +220,7 @@ class X {
       Assert.Equal("GetConstant", completionList[0].Label);
     }
 
-    public DotCompletionTest(ITestOutputHelper output) : base(output, LogLevel.Trace) {
+    public DotCompletionTest(ITestOutputHelper output) : base(output) {
     }
   }
 }

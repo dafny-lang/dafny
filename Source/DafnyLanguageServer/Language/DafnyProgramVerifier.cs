@@ -34,7 +34,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
 
       var verifiableModules = Translator.VerifiableModules(compilation.Program);
       if (!verifiableModules.Contains(moduleDefinition)) {
-        throw new Exception();
+        throw new Exception("tried to get verification tasks for a module that is not verified");
       }
 
       await mutex.WaitAsync(cancellationToken);
@@ -43,7 +43,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         var program = compilation.Program;
         var errorReporter = (DiagnosticErrorReporter)program.Reporter;
 
-        cancellationToken.ThrowIfCancellationRequested(); // TODO remove ?
+        cancellationToken.ThrowIfCancellationRequested();
 
         var boogieProgram = await DafnyMain.LargeStackFactory.StartNew(() => {
           Type.ResetScopes();

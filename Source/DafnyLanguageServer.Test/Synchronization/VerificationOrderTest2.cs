@@ -236,6 +236,6 @@ method m5() { assert false; } //Remove4:
     } while (!started || foundStatus.NamedVerifiables.Any(v => v.Status < PublishedVerificationStatus.Error));
   }
 
-  public VerificationOrderTest2(ITestOutputHelper output) : base(output, LogLevel.Trace) {
+  public VerificationOrderTest2(ITestOutputHelper output) : base(output) {
   }
 }

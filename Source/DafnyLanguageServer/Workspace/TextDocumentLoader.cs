@@ -13,7 +13,6 @@ using Microsoft.Extensions.Logging;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace {
-
   /// <summary>
   /// Text document loader implementation that offloads the whole load procedure on one dedicated
   /// thread with a stack size of 256MB. Since only one thread is used, document loading is implicitely synchronized.

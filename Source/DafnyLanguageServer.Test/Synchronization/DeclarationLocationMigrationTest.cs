@@ -13,54 +13,6 @@ using Xunit.Sdk;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
 
-  public class DeclarationLocationMigrationTest2 : DeclarationLocationMigrationTest {
-
-    [Fact]
-    public async Task MigrationMovesLinesOfSymbolsAfterWhenChangingInTheMiddle() {
-      var source = @"
-class A {
-}
-
-class B {
-}
-
-class C {
-}".TrimStart();
-
-      var change = @"
-class B {
-  var x: int;
-
-  function GetX()
-}";
-      var documentItem = CreateTestDocument(source);
-      await Client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-
-      await ApplyChangeAndWaitCompletionAsync(
-        ref documentItem,
-        new Range((3, 0), (4, 1)),
-        change
-      );
-      var state = await Projects.GetResolvedDocumentAsyncNormalizeUri(documentItem.Uri);
-      Assert.NotNull(state);
-      try {
-        Assert.True(TryFindSymbolDeclarationByName(state, "C", out var location));
-        Assert.Equal(new Range((10, 6), (10, 7)), location.Name);
-        Assert.Equal(new Range((10, 0), (11, 0)), location.Declaration);
-      } catch (AssertActualExpectedException) {
-        await output.WriteLineAsync($"state version is {state.Version}, diagnostics: {state.GetDiagnostics().Values.Stringify()}");
-        var programString = new StringWriter();
-        var printer = new Printer(programString, DafnyOptions.Default);
-        printer.PrintProgram((Program)state.Program, true);
-        await output.WriteLineAsync($"program:\n{programString}");
-      }
-    }
-
-
-    public DeclarationLocationMigrationTest2(ITestOutputHelper output) : base(output, LogLevel.Debug) {
-    }
-  }
-
   public class DeclarationLocationMigrationTest : SynchronizationTestBase {
     // The assertion Assert.False(document.SymbolTable.Resolved) is used to ensure that
     // we're working on a migrated symbol table. If that's not the case, the test case has
@@ -136,6 +88,48 @@ class C {
       Assert.True(TryFindSymbolDeclarationByName(document, "A", out var location));
       Assert.Equal(new Range((0, 6), (0, 7)), location.Name);
       Assert.Equal(new Range((0, 0), (1, 0)), location.Declaration);
+    }
+
+
+    [Fact]
+    public async Task MigrationMovesLinesOfSymbolsAfterWhenChangingInTheMiddle() {
+      var source = @"
+class A {
+}
+
+class B {
+}
+
+class C {
+}".TrimStart();
+
+      var change = @"
+class B {
+  var x: int;
+
+  function GetX()
+}";
+      var documentItem = CreateTestDocument(source);
+      await Client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+
+      await ApplyChangeAndWaitCompletionAsync(
+        ref documentItem,
+        new Range((3, 0), (4, 1)),
+        change
+      );
+      var state = await Projects.GetResolvedDocumentAsyncNormalizeUri(documentItem.Uri);
+      Assert.NotNull(state);
+      try {
+        Assert.True(TryFindSymbolDeclarationByName(state, "C", out var location));
+        Assert.Equal(new Range((10, 6), (10, 7)), location.Name);
+        Assert.Equal(new Range((10, 0), (11, 0)), location.Declaration);
+      } catch (AssertActualExpectedException) {
+        await output.WriteLineAsync($"state version is {state.Version}, diagnostics: {state.GetDiagnostics().Values.Stringify()}");
+        var programString = new StringWriter();
+        var printer = new Printer(programString, DafnyOptions.Default);
+        printer.PrintProgram((Program)state.Program, true);
+        await output.WriteLineAsync($"program:\n{programString}");
+      }
     }
 
     [Fact]

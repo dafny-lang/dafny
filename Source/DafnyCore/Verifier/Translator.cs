@@ -714,7 +714,7 @@ namespace Microsoft.Dafny {
 
       foreach (var plugin in p.Options.Plugins) {
         foreach (var rewriter in plugin.GetRewriters(p.Reporter)) {
-          rewriter.PreTranslate(forModule);
+          rewriter.PreVerify(forModule);
         }
       }
 
