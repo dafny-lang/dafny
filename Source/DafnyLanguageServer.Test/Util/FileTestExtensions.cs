@@ -15,7 +15,7 @@ public class FileTestExtensions {
   }
 
   public static async Task<FileStream> WaitForFileToUnlock(string fullPath, FileMode mode, FileAccess access, FileShare share) {
-    for (int numTries = 0; numTries < 200; numTries++) {
+    for (int numTries = 0; numTries < 100; numTries++) {
       FileStream fs = null;
       try {
         fs = new FileStream(fullPath, mode, access, share);
