@@ -37,7 +37,7 @@ module ReadsRequiresReads {
   }
 
   ghost function MyReadsOk'<A,B>(f : A ~> B, a : A, o : object) : bool
-    reads f.reads(a)
+    requires f.requires(a) reads f.reads(a)
   {
     o in f.reads(a)
   }
@@ -48,7 +48,7 @@ module ReadsRequiresReads {
   }
 
   ghost function MyRequiresOk<A,B>(f : A ~> B, a : A) : bool
-    reads f.reads(a)
+    requires f.requires(a) reads f.reads(a)
   {
     f.requires(a)
   }
