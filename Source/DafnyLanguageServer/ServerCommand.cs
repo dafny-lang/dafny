@@ -35,9 +35,9 @@ public class ServerCommand : ICommandSpec {
 (experimental, API will change)
 Send notifications that indicate which lines are ghost.".TrimStart());
 
-  public static readonly Option<VerifyOnMode> Verification = new("--verify-on", () => VerifyOnMode.ChangeFile, @"
+  public static readonly Option<VerifyOnMode> Verification = new("--verify-on", () => VerifyOnMode.Change, @"
 (experimental)
-Determine when to automatically verify the program. Choose from: Never, OnChangeFile, OnChangeProject or OnSave.".TrimStart()) {
+Determine when to automatically verify the program. Choose from: Never, OnChange (verify everything in a file when changing the file), OnChangeProject or OnSave.".TrimStart()) {
     ArgumentHelpName = "event"
   };
 
