@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Reactive.Concurrency;
 using System.Reactive.Linq;
@@ -312,16 +313,27 @@ public class CompilationManager {
       verificationProgressReporter.ReportVerifyImplementationRunning(compilation, implementationTask.Implementation);
     }
 
+    DafnyDiagnostic[] newDiagnostics;
     if (boogieStatus is BatchCompleted batchCompleted) {
       verificationProgressReporter.ReportAssertionBatchResult(compilation,
         new AssertionBatchResult(implementationTask.Implementation, batchCompleted.VcResult));
+
+      foreach (var counterExample in batchCompleted.VcResult.counterExamples) {
+        compilation.Counterexamples.Add(counterExample);
+      }
+
+      newDiagnostics = GetDiagnosticsFromResult(compilation, implementationTask, batchCompleted.VcResult).ToArray();
+    } else {
+      newDiagnostics = Array.Empty<DafnyDiagnostic>();
     }
+
+    var view = implementations.TryGetValue(implementationName, out var taskAndView)
+      ? taskAndView
+      : new ImplementationView(implementationTask, status, Array.Empty<DafnyDiagnostic>());
+    implementations[implementationName] = view with { Status = status, Diagnostics = view.Diagnostics.Concat(newDiagnostics).ToArray() };
 
     if (boogieStatus is Completed completed) {
       var verificationResult = completed.Result;
-      foreach (var counterExample in verificationResult.Errors) {
-        compilation.Counterexamples.Add(counterExample);
-      }
       // Sometimes, the boogie status is set as Completed
       // but the assertion batches were not reported yet.
       // because they are on a different thread.
@@ -332,37 +344,48 @@ public class CompilationManager {
         verificationProgressReporter.ReportAssertionBatchResult(compilation,
           new AssertionBatchResult(implementationTask.Implementation, result));
       }
-
-
-      var diagnostics = GetDiagnosticsFromResult(compilation, verificationResult).ToList();
-      var view = new ImplementationView(implementationTask, status, diagnostics);
-      implementations[implementationName] = view;
       verificationProgressReporter.ReportEndVerifyImplementation(compilation, implementationTask.Implementation, verificationResult);
-    } else {
-      var view = implementations.TryGetValue(implementationName, out var taskAndView)
-        ? taskAndView
-        : new ImplementationView(implementationTask, status, Array.Empty<DafnyDiagnostic>());
-      implementations[implementationName] = view with { Status = status };
     }
-
     compilationUpdates.OnNext(compilation);
   }
 
   private bool ReportGutterStatus => options.Get(ServerCommand.LineVerificationStatus);
 
-  private List<DafnyDiagnostic> GetDiagnosticsFromResult(CompilationAfterResolution compilation, VerificationResult result) {
+  private List<DafnyDiagnostic> GetDiagnosticsFromResult(CompilationAfterResolution compilation, IImplementationTask task, VCResult result) {
     var errorReporter = new DiagnosticErrorReporter(options, compilation.Uri.ToUri());
-    foreach (var counterExample in result.Errors) {
-      errorReporter.ReportBoogieError(counterExample.CreateErrorInformation(result.Outcome, options.ForceBplErrors));
+    var outcome = GetOutcome(result.outcome);
+    foreach (var counterExample in result.counterExamples) {
+      errorReporter.ReportBoogieError(counterExample.CreateErrorInformation(outcome, options.ForceBplErrors));
     }
 
-    var outcomeError = result.GetOutcomeError(options);
-    if (outcomeError != null) {
-      errorReporter.ReportBoogieError(outcomeError);
-    }
+    var implementation = task.Implementation;
+    boogieEngine.ReportOutcome(null, outcome, outcomeError => errorReporter.ReportBoogieError(outcomeError),
+      implementation.VerboseName, implementation.tok, null, TextWriter.Null,
+      implementation.GetTimeLimit(options), result.counterExamples);
 
     var diagnostics = errorReporter.AllDiagnosticsCopy.Values.SelectMany(x => x);
     return diagnostics.OrderBy(d => d.Token.GetLspPosition()).ToList();
+  }
+
+  private ConditionGeneration.Outcome GetOutcome(ProverInterface.Outcome outcome) {
+    switch (outcome) {
+      case ProverInterface.Outcome.Valid:
+        return ConditionGeneration.Outcome.Correct;
+      case ProverInterface.Outcome.Invalid:
+        return ConditionGeneration.Outcome.Errors;
+      case ProverInterface.Outcome.TimeOut:
+        return ConditionGeneration.Outcome.TimedOut;
+      case ProverInterface.Outcome.OutOfMemory:
+        return ConditionGeneration.Outcome.OutOfMemory;
+      case ProverInterface.Outcome.OutOfResource:
+        return ConditionGeneration.Outcome.OutOfResource;
+      case ProverInterface.Outcome.Undetermined:
+        return ConditionGeneration.Outcome.Inconclusive;
+      case ProverInterface.Outcome.Bounded:
+        return ConditionGeneration.Outcome.ReachedBound;
+      default:
+        throw new ArgumentOutOfRangeException(nameof(outcome), outcome, null);
+    }
   }
 
   private static PublishedVerificationStatus StatusFromBoogieStatus(IVerificationStatus verificationStatus) {
@@ -372,13 +395,10 @@ public class CompilationManager {
       case Queued:
         return PublishedVerificationStatus.Queued;
       case Running:
+      case BatchCompleted:
         return PublishedVerificationStatus.Running;
       case Completed completed:
         return completed.Result.Outcome == ConditionGeneration.Outcome.Correct
-          ? PublishedVerificationStatus.Correct
-          : PublishedVerificationStatus.Error;
-      case BatchCompleted batchCompleted:
-        return batchCompleted.VcResult.outcome == ProverInterface.Outcome.Valid
           ? PublishedVerificationStatus.Correct
           : PublishedVerificationStatus.Error;
       default:
