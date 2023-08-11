@@ -5869,17 +5869,14 @@ namespace Microsoft.Dafny {
           var fhandle = FunctionCall(f.tok, name, predef.HandleType, SnocSelf(SnocPrevH(args)));
           var lhs = FunctionCall(f.tok, Requires(arity), Bpl.Type.Bool, Concat(tyargs, Cons(h, Cons(fhandle, lhs_args))));
           Bpl.Expr rhs;
-          if (f.EnclosingClass is ArrowTypeDecl) {
-            if (f.Name == "requires") {
-              AddOtherDefinition(GetOrCreateFunction(f), (new Axiom(f.tok,
+          if (f.EnclosingClass is ArrowTypeDecl && f.Name == "requires") {
+            AddOtherDefinition(GetOrCreateFunction(f), (new Axiom(f.tok,
                 BplForall(Concat(vars, bvars), BplTrigger(lhs), Bpl.Expr.Eq(lhs, Bpl.Expr.True)))));
-            } else {
-              rhs = Bpl.Expr.True;
-              var args_h = f.ReadsHeap ? Snoc(SnocPrevH(argsRequires), h) : argsRequires;
-              var pre = FunctionCall(f.tok, Requires(arity), Bpl.Type.Bool, Concat(SnocSelf(args_h), lhs_args));
-              AddOtherDefinition(GetOrCreateFunction(f), (new Axiom(f.tok,
-                BplForall(Concat(vars, bvars), BplTrigger(lhs), Bpl.Expr.Imp(pre, Bpl.Expr.Eq(lhs, rhs))))));
-            }
+          } else if (f.EnclosingClass is ArrowTypeDecl && f.Name == "reads") {
+            var args_h = f.ReadsHeap ? Snoc(SnocPrevH(argsRequires), h) : argsRequires;
+            var pre = FunctionCall(f.tok, Requires(arity), Bpl.Type.Bool, Concat(SnocSelf(args_h), lhs_args));
+            AddOtherDefinition(GetOrCreateFunction(f), (new Axiom(f.tok,
+              BplForall(Concat(vars, bvars), BplTrigger(lhs), Bpl.Expr.Imp(pre, Bpl.Expr.Eq(lhs, Bpl.Expr.True)))));
           } else {
             var args_h = f.ReadsHeap ? Snoc(SnocPrevH(argsRequires), h) : argsRequires;
             rhs = FunctionCall(f.tok, RequiresName(f), Bpl.Type.Bool, Concat(SnocSelf(args_h), rhs_args));

@@ -612,7 +612,7 @@ namespace Microsoft.Dafny {
               }
               // check that the preconditions for the call hold
 
-              if (e.Function.Name == "reads") { // || e.Function.Name == "requires"
+              if (e.Function.Name == "reads") {
                 // check that the preconditions for the call hold
                 var arguments = etran.FunctionInvocationArguments(e, null, null);
                 var precondition = FunctionCall(e.tok, Requires(e.Args.Count), Bpl.Type.Bool, arguments);
