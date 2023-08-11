@@ -97,3 +97,7 @@ For example, `Formatting.dfy`
 - Defines `CsStringEmpty` as an alias for `System.String.Empty`
 - Defines `Microsoft.Dafny.HelperString.FinishesByNewline` by also using externs. That helper is defined in `IndentationFormatter.cs`
 - Defines a trait `IIndentationFormatter` that Dafny can extend and provide to `ReindentProgramFromFirstToken`
+
+### What is the release process?
+
+You can find a description of the release process in [docs/dev/RELEASE.md](https://github.com/dafny-lang/dafny/blob/master/docs/dev/RELEASE.md).
