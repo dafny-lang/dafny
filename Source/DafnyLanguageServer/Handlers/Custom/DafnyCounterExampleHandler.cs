@@ -1,4 +1,5 @@
-﻿using Microsoft.Boogie;
+﻿using System;
+using Microsoft.Boogie;
 using Microsoft.Dafny.LanguageServer.Workspace;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
@@ -10,13 +11,18 @@ using Microsoft.Dafny.LanguageServer.CounterExampleGeneration;
 
 namespace Microsoft.Dafny.LanguageServer.Handlers.Custom {
   public class DafnyCounterExampleHandler : ICounterExampleHandler {
-    private DafnyOptions options;
+    private readonly DafnyOptions options;
     private readonly ILogger logger;
     private readonly IProjectDatabase projects;
+    private readonly ITelemetryPublisher telemetryPublisher;
 
-    public DafnyCounterExampleHandler(DafnyOptions options, ILogger<DafnyCounterExampleHandler> logger, IProjectDatabase projects) {
+    public DafnyCounterExampleHandler(DafnyOptions options,
+      ILogger<DafnyCounterExampleHandler> logger,
+      IProjectDatabase projects,
+      ITelemetryPublisher telemetryPublisher) {
       this.logger = logger;
       this.projects = projects;
+      this.telemetryPublisher = telemetryPublisher;
       this.options = options;
     }
 
@@ -24,23 +30,22 @@ namespace Microsoft.Dafny.LanguageServer.Handlers.Custom {
       try {
         var projectManager = await projects.GetProjectManager(request.TextDocument);
         if (projectManager != null) {
-          var translatedCompilation = await projectManager.CompilationManager.TranslatedCompilation;
-          var verificationTasks = translatedCompilation.VerificationTasks;
-          foreach (var task in verificationTasks) {
-            projectManager.CompilationManager.VerifyTask(translatedCompilation, task);
-          }
+          await projectManager.VerifyEverythingAsync(request.TextDocument.Uri.ToUri());
 
           var state = await projectManager.GetIdeStateAfterVerificationAsync();
-          logger.LogDebug("counter-examples retrieved IDE state");
+          logger.LogDebug("counter-example handler retrieved IDE state");
           return new CounterExampleLoader(options, logger, state, request.CounterExampleDepth, cancellationToken).GetCounterExamples();
         }
 
         logger.LogWarning("counter-examples requested for unloaded document {DocumentUri}",
           request.TextDocument.Uri);
         return new CounterExampleList();
-      } catch (TaskCanceledException) {
+      } catch (OperationCanceledException) {
         logger.LogWarning("counter-examples requested for unverified document {DocumentUri}",
           request.TextDocument.Uri);
+        return new CounterExampleList();
+      } catch (Exception e) {
+        telemetryPublisher.PublishUnhandledException(e);
         return new CounterExampleList();
       }
     }

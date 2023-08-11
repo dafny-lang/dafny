@@ -4,7 +4,7 @@ using System.Linq;
 
 namespace Microsoft.Dafny;
 
-public class DatatypeCtor : Declaration, TypeParameter.ParentType, IHasDocstring, ISymbol {
+public class DatatypeCtor : Declaration, TypeParameter.ParentType, IHasDocstring, ICanVerify {
   public readonly bool IsGhost;
   public readonly List<Formal> Formals;
   [ContractInvariantMethod]
@@ -54,4 +54,7 @@ public class DatatypeCtor : Declaration, TypeParameter.ParentType, IHasDocstring
     var formals = string.Join(", ", Formals.Select(f => f.AsText()));
     return $"{EnclosingDatatype.Name}.{Name}({formals})";
   }
+
+  public ModuleDefinition ContainingModule => EnclosingDatatype.EnclosingModuleDefinition;
+  public bool ShouldVerify => Formals.Any(f => f.DefaultValue != null);
 }

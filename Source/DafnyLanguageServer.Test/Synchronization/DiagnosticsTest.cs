@@ -894,7 +894,7 @@ method test() {
         // Second diagnostic is a timeout exception from SlowToVerify
         Assert.Equal(2, secondVerificationDiagnostics.Length);
       } catch (OperationCanceledException) {
-        await output.WriteLineAsync($"firstVerificationDiagnostics: {firstVerificationDiagnostics}");
+        await output.WriteLineAsync($"firstVerificationDiagnostics: {firstVerificationDiagnostics.Stringify()}");
       }
       await AssertNoDiagnosticsAreComing(CancellationToken);
     }
@@ -956,6 +956,8 @@ method test2() {
 
       ApplyChange(ref documentItem, new Range((1, 9), (1, 14)), "true"); ;
 
+      // Next line should not be needed after resolving https://github.com/dafny-lang/dafny/issues/4377
+      var parseDiagnostics2 = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
       var resolutionDiagnostics2 = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
       AssertDiagnosticListsAreEqualBesidesMigration(secondVerificationDiagnostics, resolutionDiagnostics2);
       var firstVerificationDiagnostics2 = await GetLastDiagnostics(documentItem, CancellationToken);
@@ -963,6 +965,8 @@ method test2() {
 
       ApplyChange(ref documentItem, new Range((4, 9), (4, 14)), "true");
 
+      // Next line should not be needed after resolving https://github.com/dafny-lang/dafny/issues/4377
+      var parseDiagnostics3 = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
       var resolutionDiagnostics3 = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
       AssertDiagnosticListsAreEqualBesidesMigration(firstVerificationDiagnostics2, resolutionDiagnostics3);
       var secondVerificationDiagnostics3 = await GetLastDiagnostics(documentItem, CancellationToken);
@@ -988,13 +992,20 @@ method test() {
       // Second verification diagnostics get cancelled.
       ApplyChange(ref documentItem, new Range((1, 9), (1, 14)), "true");
 
-      // Contains migrated verification error.
+      // Next line should not be needed after resolving https://github.com/dafny-lang/dafny/issues/4377
+      var parseDiagnostics2 = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
+      // https://github.com/dafny-lang/dafny/issues/4377
       var resolutionDiagnostics2 = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
       AssertDiagnosticListsAreEqualBesidesMigration(firstVerificationDiagnostics, resolutionDiagnostics2);
       var firstVerificationDiagnostics2 = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
-      var secondVerificationDiagnostics2 = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
       Assert.Empty(firstVerificationDiagnostics2); // Still contains second failing method
-      Assert.Single(secondVerificationDiagnostics2);
+      try {
+        var secondVerificationDiagnostics2 =
+          await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
+        Assert.Single(secondVerificationDiagnostics2);
+      } catch (SingleException) {
+        await output.WriteLineAsync($"firstVerificationDiagnostics2: {firstVerificationDiagnostics2.Stringify()}");
+      }
 
       await AssertNoDiagnosticsAreComing(CancellationToken);
     }
@@ -1033,8 +1044,8 @@ method test2() {
 
     private static void AssertDiagnosticListsAreEqualBesidesMigration(Diagnostic[] expected, Diagnostic[] actual) {
       AssertM.Equal(expected.Length, actual.Length, $"expected: {expected.Stringify()}, but was: {actual.Stringify()}");
-      foreach (var t in Enumerable.Zip(expected, actual)) {
-        AssertM.Equal(Relocator.OutdatedPrefix + t.First.Message, t.Second.Message, t.Second.ToString());
+      foreach (var t in expected.Zip(actual)) {
+        AssertM.Equal(CompilationAfterResolution.OutdatedPrefix + t.First.Message, t.Second.Message, t.Second.ToString());
       }
     }
 

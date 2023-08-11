@@ -12,7 +12,7 @@ using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.ProjectFiles;
 
-public class MultipleFilesTest : ClientBasedLanguageServerTest {
+public class MultipleFilesProjectTest : ClientBasedLanguageServerTest {
   protected override Task SetUp(Action<DafnyOptions> modifyOptions) {
     return base.SetUp(o => {
       o.Set(ServerCommand.ProjectMode, true);
@@ -81,7 +81,38 @@ method Bar() {
   }
 
   [Fact]
-  public async Task OnDiskProducerVerificationErrors() {
+  public async Task OnDiskProducerVerificationErrorsChangeFile() {
+
+    var producerSource = @"
+method Foo(x: int) 
+{
+  assert false; 
+}
+".TrimStart();
+
+    var consumerSource = @"
+method Bar() {
+  Foo(3); 
+  assert false; 
+}
+";
+
+    var directory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+    Directory.CreateDirectory(directory);
+    await File.WriteAllTextAsync(Path.Combine(directory, "OnDiskProducerVerificationErrors_producer.dfy"), producerSource);
+    await File.WriteAllTextAsync(Path.Combine(directory, DafnyProject.FileName), "");
+    await CreateAndOpenTestDocument(consumerSource, Path.Combine(directory, "OnDiskProducerVerificationErrors_consumer1.dfy"));
+
+    var diagnostics1 = await diagnosticsReceiver.AwaitNextNotificationAsync(CancellationToken);
+    Assert.Single(diagnostics1.Diagnostics);
+    Assert.Contains("assertion might not hold", diagnostics1.Diagnostics.First().Message);
+    await AssertNoDiagnosticsAreComing(CancellationToken);
+  }
+
+  [Fact]
+  public async Task OnDiskProducerVerificationErrorsChangeProject() {
+    await SetUp(options => options.Set(ServerCommand.Verification, VerifyOnMode.ChangeProject));
+
     var producerSource = @"
 method Foo(x: int) 
 {
@@ -337,6 +368,6 @@ method Bar() {
     Assert.Contains("Unable to open", consumer3Diagnostics[0].Message);
   }
 
-  public MultipleFilesTest(ITestOutputHelper output) : base(output) {
+  public MultipleFilesProjectTest(ITestOutputHelper output) : base(output) {
   }
 }

@@ -18,6 +18,7 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using Xunit.Abstractions;
 using Xunit;
+using Xunit.Sdk;
 using XunitAssertMessages;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
@@ -108,6 +109,7 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
         }
       } catch (OperationCanceledException) {
         WriteVerificationHistory();
+        throw;
       }
     }
   }
@@ -155,11 +157,14 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
     await client.WaitForNotificationCompletionAsync(documentItem.Uri, cancellationToken);
     var compilation = (await Projects.GetLastDocumentAsync(documentItem))!;
     Assert.NotNull(compilation);
-    var expectedDiagnostics = compilation.GetDiagnostics(documentItem.Uri.ToUri()).Select(d => d.ToLspDiagnostic()).ToList();
+    var expectedDiagnostics = compilation.GetDiagnostics(documentItem.Uri.ToUri()).
+      Select(d => d.ToLspDiagnostic()).
+      OrderBy(d => d.Range.Start).ToList();
     PublishDiagnosticsParams result;
     while (true) {
       result = await diagnosticsReceiver.AwaitNextNotificationAsync(cancellationToken);
-      if (result.Uri == documentItem.Uri && result.Diagnostics.SequenceEqual(expectedDiagnostics)) {
+      if (result.Uri == documentItem.Uri && result.Diagnostics.OrderBy(d => d.Range.Start).
+            SequenceEqual(expectedDiagnostics)) {
         break;
       }
     }
@@ -250,7 +255,11 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
     var verificationDocumentItem = CreateTestDocument("method Foo() { assert false; }", $"verification{fileIndex++}.dfy");
     await client.OpenDocumentAndWaitAsync(verificationDocumentItem, CancellationToken);
     var statusReport = await verificationStatusReceiver.AwaitNextNotificationAsync(cancellationToken);
-    Assert.Equal(verificationDocumentItem.Uri, statusReport.Uri);
+    try {
+      Assert.Equal(verificationDocumentItem.Uri, statusReport.Uri);
+    } catch (AssertActualExpectedException) {
+      await output.WriteLineAsync($"StatusReport: {statusReport.Stringify()}");
+    }
     client.DidCloseTextDocument(new DidCloseTextDocumentParams {
       TextDocument = verificationDocumentItem
     });
@@ -282,7 +291,7 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
     if (waitFirst) {
       foreach (var entry in Projects.Managers) {
         try {
-          await entry.GetLastDocumentAsync();
+          await entry.GetLastDocumentAsync().WaitAsync(cancellationToken);
         } catch (TaskCanceledException) {
 
         }

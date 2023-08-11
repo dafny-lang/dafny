@@ -33,13 +33,11 @@ namespace Microsoft.Dafny.Plugins {
     }
 
     /// <summary>
-    /// Override this method to obtain the resolved program before the translation pipeline occurs
+    /// Override this method to obtain the resolved module before the translation pipeline occurs
     /// after the individual PostResolve on every module
     /// You can also report warnings and errors using reporter.Error
     /// </summary>
-    /// <param name="program">The program before it is translated</param>
-    public virtual void PreTranslate(Program program) {
-      Contract.Requires(program != null);
+    public virtual void PreVerify(ModuleDefinition module) {
     }
   }
 }

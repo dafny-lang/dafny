@@ -4,17 +4,14 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
-using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 using Microsoft.Dafny.LanguageServer.Workspace;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
-using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.JsonRpc;
 using OmniSharp.Extensions.LanguageServer.Client;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
-using Xunit;
 using Xunit.Abstractions;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
@@ -181,7 +178,7 @@ public abstract class LinearVerificationGutterStatusTester : ClientBasedLanguage
   /// </summary>
   /// <param name="code">The original code with the //Replace: comments or //ReplaceN:</param>
   /// <returns></returns>
-  public (string code, List<string> codes, List<List<Change>> changes) ExtractCodeAndChanges(string code) {
+  public static (string code, List<string> codes, List<List<Change>> changes) ExtractCodeAndChanges(string code) {
     var lineMatcher = new Regex(@"\r?\n");
     var newLineOrDoubleBackslashMatcher = new Regex(@"\\\\|\\n");
     var matcher = new Regex(@"(?<previousNewline>^|\r?\n)(?<toRemove>.*?(?<commentStart>//)(?<keyword>Replace|Remove|Insert)(?<id>\d*):)(?<toInsert>.*)");
@@ -323,7 +320,8 @@ public abstract class LinearVerificationGutterStatusTester : ClientBasedLanguage
     return toReplaceRegex.Replace(traceObtained, "?");
   }
 
-  protected LinearVerificationGutterStatusTester(ITestOutputHelper output) :
-    base(output) {
+  protected LinearVerificationGutterStatusTester(ITestOutputHelper output) : base(output) {
+    ProjectManager.GutterIconTesting = true;
+    Disposable.Add(System.Reactive.Disposables.Disposable.Create(() => ProjectManager.GutterIconTesting = false));
   }
 }

@@ -3,6 +3,7 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Client;
 using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -57,7 +58,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
       return Client.WaitForNotificationCompletionAsync(documentItem.Uri, CancellationToken);
     }
 
-    public SynchronizationTestBase(ITestOutputHelper output) : base(output) {
+    public SynchronizationTestBase(ITestOutputHelper output, LogLevel logLevel = LogLevel.Information) : base(output, logLevel) {
     }
   }
 }

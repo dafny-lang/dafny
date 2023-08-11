@@ -259,7 +259,7 @@ public abstract class TopLevelDeclWithMembers : TopLevelDecl, IHasSymbolChildren
   }
   public virtual IEnumerable<ISymbol> ChildSymbols => Members.OfType<ISymbol>();
   public virtual DafnySymbolKind Kind => DafnySymbolKind.Class;
-  public string GetDescription(DafnyOptions options) {
+  public virtual string GetDescription(DafnyOptions options) {
     return $"{WhatKind} {Name}";
   }
 }

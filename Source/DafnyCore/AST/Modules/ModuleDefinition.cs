@@ -9,7 +9,7 @@ namespace Microsoft.Dafny;
 
 public record PrefixNameModule(IReadOnlyList<IToken> Parts, LiteralModuleDecl Module);
 
-public class ModuleDefinition : RangeNode, IAttributeBearingDeclaration, ICloneable<ModuleDefinition>, IDeclarationOrUsage {
+public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearingDeclaration, ICloneable<ModuleDefinition>, IHasSymbolChildren {
 
   public IToken BodyStartTok = Token.NoToken;
   public IToken TokenWithTrailingDocString = Token.NoToken;
@@ -867,7 +867,7 @@ public class ModuleDefinition : RangeNode, IAttributeBearingDeclaration, IClonea
   });
 
   public DafnySymbolKind Kind => DafnySymbolKind.Namespace;
-  public string GetHoverText(DafnyOptions options, LList<INode> ancestors) {
+  public string GetDescription(DafnyOptions options) {
     return $"module {Name}";
   }
 }

@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using System.IO;
 using System.Linq;
 using System.Threading;
 
@@ -40,12 +41,19 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       public (ILegacySymbol? Designator, ILegacySymbol? Type) GetSymbolAndItsTypeBefore(Uri uri, Position requestPosition) {
         var position = GetLinePositionBefore(requestPosition);
         if (position == null) {
-          logger.LogTrace("the request position {Position} is at the beginning of the line, no chance to find a symbol there", requestPosition);
           return (null, null);
         }
         var memberAccesses = GetMemberAccessChainEndingAt(uri, position);
         if (memberAccesses.Count == 0) {
-          logger.LogDebug("could not resolve the member access chain in front of of {Position}", requestPosition);
+          logger.LogDebug("could not resolve the member access chain in front of {Position}", requestPosition);
+
+          if (logger.IsEnabled(LogLevel.Trace)) {
+            var program = (Program)state.Program;
+            var writer = new StringWriter();
+            var printer = new Printer(writer, DafnyOptions.Default);
+            printer.PrintProgram(program, true);
+            logger.LogTrace($"Program:\n{writer}");
+          }
           return (null, null);
         }
         return GetSymbolAndTypeOfLastMember(position, memberAccesses);

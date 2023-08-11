@@ -8,7 +8,7 @@ using Xunit.Abstractions;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest; 
 
-public class MultipleFiles : ClientBasedLanguageServerTest {
+public class MultipleFilesNoProjectTest : ClientBasedLanguageServerTest {
   [Fact]
   public async Task OpenUpdateCloseIncludedFile() {
     var producerSource = @"
@@ -51,6 +51,6 @@ method Bar() {
     Assert.Contains("Unable to open", consumer3Diagnostics[0].Message);
   }
 
-  public MultipleFiles(ITestOutputHelper output) : base(output) {
+  public MultipleFilesNoProjectTest(ITestOutputHelper output) : base(output) {
   }
 }

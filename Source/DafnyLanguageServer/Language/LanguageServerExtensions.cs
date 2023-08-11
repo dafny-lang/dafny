@@ -8,6 +8,7 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.Workspace;
+using Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors;
 
 namespace Microsoft.Dafny.LanguageServer.Language {
   /// <summary>
@@ -38,6 +39,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
             serviceProvider.GetRequiredService<ITelemetryPublisher>(),
             serviceProvider.GetRequiredService<INotificationPublisher>(),
             serviceProvider.GetRequiredService<ITextDocumentLoader>(),
+            serviceProvider.GetRequiredService<IRelocator>(),
             compilation))
         .AddSingleton<IVerificationProgressReporter, VerificationProgressReporter>()
         .AddSingleton(CreateVerifier)

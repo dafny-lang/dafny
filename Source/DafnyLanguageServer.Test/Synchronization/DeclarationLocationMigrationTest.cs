@@ -5,10 +5,14 @@ using Microsoft.Dafny.LanguageServer.Workspace;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
+using Microsoft.Extensions.Logging;
 using Xunit;
 using Xunit.Abstractions;
+using Xunit.Sdk;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
+
   public class DeclarationLocationMigrationTest : SynchronizationTestBase {
     // The assertion Assert.False(document.SymbolTable.Resolved) is used to ensure that
     // we're working on a migrated symbol table. If that's not the case, the test case has
@@ -18,7 +22,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
     // TODO The "BodyEndToken" used by the CreateDeclarationDictionary.CreateDeclarationDictionary()
     //      does not incorporate the closing braces.
 
-    private bool TryFindSymbolDeclarationByName(IdeState state, string symbolName, out SymbolLocation location) {
+    protected bool TryFindSymbolDeclarationByName(IdeState state, string symbolName, out SymbolLocation location) {
       location = state.SignatureAndCompletionTable.Locations
         .WithCancellation(CancellationToken)
         .Where(entry => entry.Key.Name == symbolName)
@@ -86,6 +90,7 @@ class C {
       Assert.Equal(new Range((0, 0), (1, 0)), location.Declaration);
     }
 
+
     [Fact]
     public async Task MigrationMovesLinesOfSymbolsAfterWhenChangingInTheMiddle() {
       var source = @"
@@ -112,11 +117,19 @@ class B {
         new Range((3, 0), (4, 1)),
         change
       );
-      var document = await Projects.GetResolvedDocumentAsyncNormalizeUri(documentItem.Uri);
-      Assert.NotNull(document);
-      Assert.True(TryFindSymbolDeclarationByName(document, "C", out var location));
-      Assert.Equal(new Range((10, 6), (10, 7)), location.Name);
-      Assert.Equal(new Range((10, 0), (11, 0)), location.Declaration);
+      var state = await Projects.GetResolvedDocumentAsyncNormalizeUri(documentItem.Uri);
+      Assert.NotNull(state);
+      try {
+        Assert.True(TryFindSymbolDeclarationByName(state, "C", out var location));
+        Assert.Equal(new Range((10, 6), (10, 7)), location.Name);
+        Assert.Equal(new Range((10, 0), (11, 0)), location.Declaration);
+      } catch (AssertActualExpectedException) {
+        await output.WriteLineAsync($"state version is {state.Version}, diagnostics: {state.GetDiagnostics().Values.Stringify()}");
+        var programString = new StringWriter();
+        var printer = new Printer(programString, DafnyOptions.Default);
+        printer.PrintProgram((Program)state.Program, true);
+        await output.WriteLineAsync($"program:\n{programString}");
+      }
     }
 
     [Fact]
@@ -326,7 +339,10 @@ class A {
       Assert.False(TryFindSymbolDeclarationByName(document, "A", out var _));
     }
 
-    public DeclarationLocationMigrationTest(ITestOutputHelper output) : base(output) {
+    public DeclarationLocationMigrationTest(ITestOutputHelper output) : this(output, LogLevel.Information) {
+    }
+
+    protected DeclarationLocationMigrationTest(ITestOutputHelper output, LogLevel logLevel) : base(output, logLevel) {
     }
   }
 }

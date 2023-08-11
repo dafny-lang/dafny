@@ -1,8 +1,11 @@
-﻿using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
+﻿using System.IO;
+using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Threading.Tasks;
+using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 using Xunit;
 using Xunit.Abstractions;
+using Xunit.Sdk;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
   public class LookupMigrationTest : SynchronizationTestBase {
@@ -137,10 +140,19 @@ class Test {
         new Range((10, 0), (14, 0)),
         change
       );
-      var document = await Projects.GetResolvedDocumentAsyncNormalizeUri(documentItem.Uri);
-      Assert.NotNull(document);
-      Assert.True(document.SignatureAndCompletionTable.TryGetSymbolAt((22, 10), out var symbol));
-      Assert.Equal("y", symbol.Name);
+      var state = await Projects.GetResolvedDocumentAsyncNormalizeUri(documentItem.Uri);
+      Assert.NotNull(state);
+
+      try {
+        Assert.True(state.SignatureAndCompletionTable.TryGetSymbolAt((22, 10), out var symbol));
+        Assert.Equal("y", symbol.Name);
+      } catch (AssertActualExpectedException) {
+        await output.WriteLineAsync($"state version is {state.Version}, diagnostics: {state.GetDiagnostics().Values.Stringify()}");
+        var programString = new StringWriter();
+        var printer = new Printer(programString, DafnyOptions.Default);
+        printer.PrintProgram((Program)state.Program, true);
+        await output.WriteLineAsync($"program:\n{programString}");
+      }
     }
 
     [Fact]

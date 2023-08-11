@@ -1,4 +1,3 @@
-using System;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 using Microsoft.Dafny.LanguageServer.Workspace;
@@ -6,9 +5,7 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection.Metadata;
 using System.Text;
-using System.Threading;
 using System.Threading.Tasks;
 using OmniSharp.Extensions.JsonRpc.Server;
 using Xunit;
@@ -112,10 +109,10 @@ method Multiply(x: bv10, y: bv10) returns (product: bv10)
       Assert.Equal("assertion might not hold", diagnostics.Diagnostics.First().Message);
     }
 
-    [Fact(Timeout = MaxTestExecutionTimeMs)]
+    [Fact]
     public async Task ChangeDocumentCancelsPreviousOpenAndChangeVerification() {
       var source = NeverVerifies.Substring(0, NeverVerifies.Length - 2);
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "ChangeDocumentCancelsPreviousOpenAndChangeVerification.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationTokenWithHighTimeout);
       // The original document contains a syntactic error.
       var initialLoadDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationTokenWithHighTimeout, documentItem);
@@ -124,7 +121,7 @@ method Multiply(x: bv10, y: bv10) returns (product: bv10)
 
       ApplyChange(ref documentItem, new Range((2, 1), (2, 1)), "\n}");
 
-      // Wait for resolution diagnostics now, so they don't get cancelled.
+      // Wait for parse diagnostics now, so they don't get cancelled.
       // After this we still have never completing verification diagnostics in the queue.
       var parseErrorFixedDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationTokenWithHighTimeout, documentItem);
       Assert.Empty(parseErrorFixedDiagnostics);
