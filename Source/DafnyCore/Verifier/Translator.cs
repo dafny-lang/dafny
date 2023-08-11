@@ -707,7 +707,17 @@ namespace Microsoft.Dafny {
       return new Bpl.IdentifierExpr(tok, var.AssignUniqueName(currentDeclaration.IdGenerator), TrType(var.Type));
     }
 
-    private Bpl.Program DoTranslation(Program p, ModuleDefinition forModule) {
+    public Bpl.Program DoTranslation(Program p, ModuleDefinition forModule) {
+      if (sink == null) {
+        return new Bpl.Program();
+      }
+
+      foreach (var plugin in p.Options.Plugins) {
+        foreach (var rewriter in plugin.GetRewriters(p.Reporter)) {
+          rewriter.PreVerify(forModule);
+        }
+      }
+
       program = p;
       this.forModule = forModule;
       Type.EnableScopes();

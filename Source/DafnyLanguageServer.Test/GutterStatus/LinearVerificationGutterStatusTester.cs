@@ -7,11 +7,11 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
+using Microsoft.Dafny.LanguageServer.Workspace;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 using OmniSharp.Extensions.JsonRpc;
 using OmniSharp.Extensions.LanguageServer.Client;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
-using Xunit;
 using Xunit.Abstractions;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
@@ -37,25 +37,6 @@ public abstract class LinearVerificationGutterStatusTester : ClientBasedLanguage
       .AddHandler(DafnyRequestNames.VerificationStatusGutter,
         NotificationHandler.For<VerificationStatusGutter>(verificationStatusGutterReceiver.NotificationReceived));
   }
-
-  public static Dictionary<LineVerificationStatus, string> LineVerificationStatusToString = new() {
-    { LineVerificationStatus.Nothing, "   " },
-    { LineVerificationStatus.Scheduled, " . " },
-    { LineVerificationStatus.Verifying, " S " },
-    { LineVerificationStatus.VerifiedObsolete, " I " },
-    { LineVerificationStatus.VerifiedVerifying, " $ " },
-    { LineVerificationStatus.Verified, " | " },
-    { LineVerificationStatus.ErrorContextObsolete, "[I]" },
-    { LineVerificationStatus.ErrorContextVerifying, "[S]" },
-    { LineVerificationStatus.ErrorContext, "[ ]" },
-    { LineVerificationStatus.AssertionFailedObsolete, "[-]" },
-    { LineVerificationStatus.AssertionFailedVerifying, "[~]" },
-    { LineVerificationStatus.AssertionFailed, "[=]" },
-    { LineVerificationStatus.AssertionVerifiedInErrorContextObsolete, "[o]" },
-    { LineVerificationStatus.AssertionVerifiedInErrorContextVerifying, "[Q]" },
-    { LineVerificationStatus.AssertionVerifiedInErrorContext, "[O]" },
-    { LineVerificationStatus.ResolutionError, @"/!\" }
-  };
 
   private static bool IsNotIndicatingProgress(LineVerificationStatus status) {
     return status != LineVerificationStatus.Scheduled &&
@@ -93,7 +74,7 @@ public abstract class LinearVerificationGutterStatusTester : ClientBasedLanguage
         if (line >= statusTrace.Length) {
           renderedCode += "###";
         } else {
-          renderedCode += LineVerificationStatusToString[statusTrace[line]];
+          renderedCode += NotificationPublisher.LineVerificationStatusToString[statusTrace[line]];
         }
       }
 
@@ -197,7 +178,7 @@ public abstract class LinearVerificationGutterStatusTester : ClientBasedLanguage
   /// </summary>
   /// <param name="code">The original code with the //Replace: comments or //ReplaceN:</param>
   /// <returns></returns>
-  public (string code, List<string> codes, List<List<Change>> changes) ExtractCodeAndChanges(string code) {
+  public static (string code, List<string> codes, List<List<Change>> changes) ExtractCodeAndChanges(string code) {
     var lineMatcher = new Regex(@"\r?\n");
     var newLineOrDoubleBackslashMatcher = new Regex(@"\\\\|\\n");
     var matcher = new Regex(@"(?<previousNewline>^|\r?\n)(?<toRemove>.*?(?<commentStart>//)(?<keyword>Replace|Remove|Insert)(?<id>\d*):)(?<toInsert>.*)");
@@ -301,9 +282,9 @@ public abstract class LinearVerificationGutterStatusTester : ClientBasedLanguage
     var traces = new List<LineVerificationStatus[]>();
     traces.AddRange(await GetAllLineVerificationStatuses(documentItem, verificationStatusGutterReceiver, intermediates: intermediates));
     foreach (var changes in changesList) {
+      await Projects.GetLastDocumentAsync(documentItem).WaitAsync(CancellationToken);
       ApplyChanges(ref documentItem, changes);
       traces.AddRange(await GetAllLineVerificationStatuses(documentItem, verificationStatusGutterReceiver, intermediates: intermediates));
-      await Projects.GetLastDocumentAsync(documentItem).WaitAsync(CancellationToken);
     }
 
     if (testTrace) {
@@ -311,7 +292,7 @@ public abstract class LinearVerificationGutterStatusTester : ClientBasedLanguage
       var ignoreQuestionMarks = AcceptQuestionMarks(traceObtained, codeAndTrace);
       var expected = "\n" + codeAndTrace + "\n";
       var actual = "\n" + ignoreQuestionMarks + "\n";
-      AssertWithDiff.Equal(expected, actual);
+      AssertWithDiff.Equal(expected, actual, fileName);
     }
   }
 
@@ -340,5 +321,7 @@ public abstract class LinearVerificationGutterStatusTester : ClientBasedLanguage
   }
 
   protected LinearVerificationGutterStatusTester(ITestOutputHelper output) : base(output) {
+    ProjectManager.GutterIconTesting = true;
+    Disposable.Add(System.Reactive.Disposables.Disposable.Create(() => ProjectManager.GutterIconTesting = false));
   }
 }

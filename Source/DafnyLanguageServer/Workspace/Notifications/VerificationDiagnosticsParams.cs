@@ -355,9 +355,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     }
 
     public virtual VerificationTree GetCopyForNotification() {
-      if (Finished) {
-        return this;// Won't be modified anymore, no need to duplicate
-      }
       return this with {
         Children = Children.Select(child => child.GetCopyForNotification()).ToList()
       };
@@ -368,12 +365,12 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     INode Program,
     Uri Uri)
     : VerificationTree("Document", Uri.ToString(), Uri.ToString(), Uri.ToString(), Uri, ComputeRange(Program, Uri), new Position(0, 0)) {
+
     private static Range ComputeRange(INode node, Uri uri) {
       if (node is not Program program) {
         return new Range(0, 0, 0, 0);
       }
-      var end = ((Program)program).Files.FirstOrDefault(f => f.RangeToken.Uri == uri)?.EndToken ?? Token.NoToken;
-
+      var end = program.Files.FirstOrDefault(f => f.RangeToken.Uri == uri)?.EndToken ?? Token.NoToken;
       while (end.Next != null) {
         end = end.Next;
       }
@@ -403,9 +400,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
       new Dictionary<AssertionBatchIndex, AssertionBatchVerificationTree>().ToImmutableDictionary();
 
     public override VerificationTree GetCopyForNotification() {
-      if (Finished) {
-        return this;// Won't be modified anymore, no need to duplicate
-      }
       return this with {
         Children = Children.Select(child => child.GetCopyForNotification()).ToList(),
         AssertionBatches = AssertionBatches
@@ -479,9 +473,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
       return this;
     }
     public override VerificationTree GetCopyForNotification() {
-      if (Finished) {
-        return this;// Won't be modified anymore, no need to duplicate
-      }
       return this with {
         Children = Children.Select(child => child.GetCopyForNotification()).ToList()
       };
@@ -514,9 +505,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
       new Dictionary<int, AssertionBatchMetrics>();
 
     public override VerificationTree GetCopyForNotification() {
-      if (Finished) {
-        return this;// Won't be modified anymore, no need to duplicate
-      }
       return this with {
         Children = Children.Select(child => child.GetCopyForNotification()).ToList(),
         AssertionBatchMetrics = new Dictionary<int, AssertionBatchMetrics>(AssertionBatchMetrics).ToImmutableDictionary()

@@ -12,7 +12,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
   /// <summary>
   /// Contains a collection of ProjectManagers
   /// </summary>
-  public class ProjectManagerDatabase : IProjectDatabase, IDisposable {
+  public class ProjectManagerDatabase : IProjectDatabase {
     private object myLock = new();
     public const int ProjectFileCacheExpiryTime = 100;
 
@@ -82,25 +82,20 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       await close;
     }
 
-    public async Task<IdeState?> GetResolvedDocumentAsyncNormalizeUri(TextDocumentIdentifier documentId) {
+    public Task<IdeState?> GetResolvedDocumentAsyncNormalizeUri(TextDocumentIdentifier documentId) {
       // Resolves drive letter capitalisation issues in Windows that occur when this method is called
       // from an in-process client without serializing documentId
       var normalizedUri = DocumentUri.From(documentId.Uri.ToString());
       documentId = documentId with {
         Uri = normalizedUri
       };
-      var manager = await GetProjectManager(documentId, false);
-      if (manager != null) {
-        return await manager.GetSnapshotAfterResolutionAsync()!;
-      }
-
-      return null;
+      return GetResolvedDocumentAsyncInternal(documentId);
     }
 
     public async Task<IdeState?> GetResolvedDocumentAsyncInternal(TextDocumentIdentifier documentId) {
       var manager = await GetProjectManager(documentId, false);
       if (manager != null) {
-        return await manager.GetSnapshotAfterResolutionAsync()!;
+        return await manager.GetStateAfterResolutionAsync();
       }
 
       return null;
@@ -115,9 +110,10 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       };
       var manager = await GetProjectManager(documentId, false);
       if (manager != null) {
-        return await manager.GetLastDocumentAsync()!;
+        return await manager.GetLastDocumentAsync();
       }
 
+      logger.LogDebug($"GetLastDocumentAsync returned null for {documentId.Uri}");
       return null;
     }
 
@@ -203,7 +199,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       }
 
       if (projectFile != null && projectFile.Uri != sourceUri && !serverOptions.Get(ServerCommand.ProjectMode)) {
-        logger.LogWarning("Project file at {} will be ignored because project mode is disabled", projectFile.Uri);
+        logger.LogDebug("Project file at {} will be ignored because project mode is disabled", projectFile.Uri);
         projectFile.Uri = sourceUri;
         projectFile.Includes = new[] { sourceUri.LocalPath };
       }

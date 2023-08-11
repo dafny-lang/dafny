@@ -595,7 +595,7 @@ final class ArrayDafnySequence<T> extends NonLazyDafnySequence<T> {
     @Override
     protected boolean equalsNonLazy(NonLazyDafnySequence<T> other) {
         if (other instanceof ArrayDafnySequence<?>) {
-            return seq.deepEquals(((ArrayDafnySequence<T>) other).seq);
+            return seq.shallowEquals(((ArrayDafnySequence<T>) other).seq);
         } else {
             return super.equalsNonLazy(other);
         }

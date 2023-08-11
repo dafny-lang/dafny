@@ -2,12 +2,14 @@ using System.IO;
 using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
+using Microsoft.Dafny.LanguageServer.Workspace;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using Xunit;
 using Xunit.Abstractions;
 
-namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization; 
+namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization;
 
+[Collection("Sequential Collection")]
 public class VerificationOrderTest : ClientBasedLanguageServerTest {
 
   [Fact]
@@ -15,6 +17,7 @@ public class VerificationOrderTest : ClientBasedLanguageServerTest {
     await SetUp(options => {
       options.Set(BoogieOptionBag.Cores, 1U);
       options.Set(ServerCommand.ProjectMode, true);
+      options.Set(ServerCommand.Verification, VerifyOnMode.ChangeProject);
     });
 
     var sourceA = @"
