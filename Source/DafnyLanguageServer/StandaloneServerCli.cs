@@ -41,7 +41,7 @@ namespace Microsoft.Dafny.LanguageServer {
       configuration.Bind(DocumentOptions.Section, documentOptions);
       var mode = documentOptions.Verify switch {
         AutoVerification.Never => VerifyOnMode.Never,
-        AutoVerification.OnChange => VerifyOnMode.ChangeFile,
+        AutoVerification.OnChange => VerifyOnMode.Change,
         AutoVerification.OnSave => VerifyOnMode.Save,
         _ => throw new ArgumentOutOfRangeException()
       };
