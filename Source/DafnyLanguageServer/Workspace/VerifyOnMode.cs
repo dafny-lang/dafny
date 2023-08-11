@@ -4,7 +4,8 @@
   /// </summary>
   public enum VerifyOnMode {
     Never,
-    Change,
+    ChangeFile,
+    ChangeProject,
     Save
   }
 

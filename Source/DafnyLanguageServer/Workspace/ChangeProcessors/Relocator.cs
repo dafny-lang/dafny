@@ -12,7 +12,6 @@ using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
   public class Relocator : IRelocator {
-    public const string OutdatedPrefix = "Outdated: ";
 
     private readonly ILogger logger;
     private readonly ILogger<SignatureAndCompletionTable> loggerSymbolTable;
@@ -139,8 +138,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
         var newRelatedInformation = diagnostic.RelatedInformation?.SelectMany(related =>
           MigrateRelatedInformation(change, related)).ToList();
         yield return diagnostic with {
-          Message = diagnostic.Message.StartsWith(OutdatedPrefix) ? diagnostic.Message : OutdatedPrefix + diagnostic.Message,
-          Severity = diagnostic.Severity == DiagnosticSeverity.Error ? DiagnosticSeverity.Warning : diagnostic.Severity,
           Range = newRange,
           RelatedInformation = newRelatedInformation
         };

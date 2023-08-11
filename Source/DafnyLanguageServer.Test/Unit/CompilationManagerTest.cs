@@ -22,6 +22,6 @@ public class CompilationManagerTest {
       dafnyOptions,
       null, new Compilation(0, new DafnyProject() { Uri = new Uri(Directory.GetCurrentDirectory()) }, new Uri[] { }), null);
     compilationManager.CancelPendingUpdates();
-    await Assert.ThrowsAsync<TaskCanceledException>(() => compilationManager.ResolvedCompilation);
+    await Assert.ThrowsAsync<TaskCanceledException>(() => compilationManager.ParsedCompilation);
   }
 }

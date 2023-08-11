@@ -42,7 +42,6 @@ namespace Microsoft.Dafny.LanguageServer {
     private static Task InitializeAsync(ILanguageServer server, InitializeParams request, CancellationToken cancelRequestToken,
         Action killLanguageServer) {
       var logger = server.GetRequiredService<ILogger<Server>>();
-      logger.LogTrace("initializing service");
 
       KillLanguageServerIfParentDies(logger, request, killLanguageServer);
 
