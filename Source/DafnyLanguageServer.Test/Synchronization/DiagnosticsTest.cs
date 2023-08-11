@@ -21,7 +21,29 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
     private readonly string testFilesDirectory = Path.Combine(Directory.GetCurrentDirectory(), "Synchronization/TestFiles");
 
     [Fact]
-    public async Task DiagnosticsAndVerificationStatusWhenUsingBatches() {
+    public async Task NoFlickeringWhenMixingCorrectAndErrorBatches() {
+      var source = @"
+method {:vcs_split_on_every_assert} Foo(x: int) {
+  if (x == 0) {
+    assert true;
+  } else if (x == 1) {
+    assert true;
+  } else {
+    assert false;
+  }
+}";
+      var document = await CreateAndOpenTestDocument(source);
+      var status1 = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
+      Assert.Equal(PublishedVerificationStatus.Stale, status1.NamedVerifiables[0].Status);
+      var status2 = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
+      Assert.Equal(PublishedVerificationStatus.Running, status2.NamedVerifiables[0].Status);
+      var status3 = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
+      Assert.Equal(PublishedVerificationStatus.Error, status3.NamedVerifiables[0].Status);
+      await AssertNoVerificationStatusIsComing(document, CancellationToken);
+    }
+
+    [Fact]
+    public async Task IncrementalBatchDiagnostics() {
       var source = @"
 method {:vcs_split_on_every_assert} Foo(x: int) {
   if (x == 0) {
@@ -30,18 +52,11 @@ method {:vcs_split_on_every_assert} Foo(x: int) {
     assert false;
   }
 }";
-      var document = await CreateAndOpenTestDocument(source);
+      await CreateAndOpenTestDocument(source);
       var diagnostics1 = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
       Assert.Single(diagnostics1);
       var diagnostics2 = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
       Assert.Equal(2, diagnostics2.Length);
-      var status1 = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
-      Assert.Equal(PublishedVerificationStatus.Stale, status1.NamedVerifiables[0].Status);
-      var status2 = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
-      Assert.Equal(PublishedVerificationStatus.Running, status2.NamedVerifiables[0].Status);
-      var status3 = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
-      Assert.Equal(PublishedVerificationStatus.Error, status3.NamedVerifiables[0].Status);
-      await AssertNoVerificationStatusIsComing(document, CancellationToken);
     }
 
     [Fact]
