@@ -867,7 +867,7 @@ module AlcorTacticProofChecker {
       if this.EnvNil? then "" else
       var x := id.ToString() + ": " + prop.ToString();
       if !tail.EnvNil? then
-        x + "\n" + tail.ToString()
+        tail.ToString() + "\n" + x
       else
         x
     }
@@ -977,7 +977,6 @@ module AlcorTacticProofChecker {
     const goal: Expr
     var proofState: ProofState
     var proofBuilder: ProofProgram // Builds a proof that proofState.ToExpr() ==> Imp(env.ToExpr(), goal)
-    ghost const allProofs: iset<Proof> // TODO: How to ensure allProofs can be avoided?
 
     constructor (goal: Expr, env: Env)
       ensures Invariant()
@@ -1029,11 +1028,18 @@ module AlcorTacticProofChecker {
       return Failure("TODO");
     }
 
+    ghost predicate HasProof() reads this`proofState {
+      && proofState.Sequents?
+      && exists p: Proof <- AllProofs :: p.GetExpr() == proofState.ToExpr()
+    }
+
     // Works for implications and foralls
-    method Intro(name: string := "h") returns (feedback: Result<string>)
+    method {:only} Intro(name: string := "h") returns (feedback: Result<string>)
       //requires Invariant()
       modifies this
+      //ensures proofState.ToExpr()
       //ensures Invariant()
+      ensures HasProof() ==> old(HasProof())
     {
       if proofState.Error? {
         return Failure(proofState.message);
@@ -1055,6 +1061,7 @@ module AlcorTacticProofChecker {
           )
           )
         );
+        assert HasProof() ==> old(HasProof());
       } else if sequent.goal.Imp? {
         // Here we simply put the left in the environment;
         proofState := Sequents(
@@ -1063,6 +1070,23 @@ module AlcorTacticProofChecker {
                   goal := sequent.goal.right)
           )
         );
+        assert {:only} HasProof() ==> old(HasProof()) by {
+          ghost var ps := proofState;
+          if HasProof() {
+            var p :| p in AllProofs && p.GetExpr() == ps.ToExpr();
+            var others := ps.sequents.tail.ToExpr();
+            var B := ps.sequents.head.goal;
+            var A := ps.sequents.head.env.ToExpr().left;
+            var Env := ps.sequents.head.env.ToExpr().right;
+            assert ps.ToExpr() == And(Imp(And(A, Env), B), others);
+            assert old(proofState).ToExpr() == And(Imp(Env, Imp(A, B)), others);
+            // Before: (Env ==> (A ==> B)) && Others
+            // Now: (A && Env ==> B) && Others
+            var p2 : Proof;
+            assert p2 in AllProofs && p2.GetExpr() == old(proofState.ToExpr());
+            assert old(HasProof());
+          }
+        }
       } else {
         proofState := Error("Could not apply intro rule");
       }
@@ -1157,8 +1181,8 @@ module AlcorTacticProofChecker {
       var right := Identifier(right);
       var newEnv := env.ReplaceTailAt(i, (previousEnv: Env) requires previousEnv == env.Drop(i) => 
         assert previousEnv.prop.And?;
-        EnvCons(left, previousEnv.prop.left, 
         EnvCons(right, previousEnv.prop.right,
+        EnvCons(left, previousEnv.prop.left, 
         previousEnv.tail))
       );
       var newSequents := SequentCons(

@@ -116,7 +116,7 @@ module AlcorEngineTest {
     expect feedback == "hAB: a ==> b\nhA: a\n|- b ==> a";
     feedback :- expect thinking.Intro("hB");
     print feedback, "\n--------------\n";
-    expect feedback == "hB: b\nhAB: a ==> b\nhA: a\n|- a";
+    expect feedback == "hAB: a ==> b\nhA: a\nhB: b\n|- a";
     feedback :- expect thinking.UseHypothesis("hA");
     print feedback, "\n--------------\n";
     expect feedback == "";
