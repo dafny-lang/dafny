@@ -496,7 +496,7 @@ lemma{:rlimit 10000} L()
       var documentItem = CreateTestDocument(source, Path.Combine(directory, filename));
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var document = await Projects.GetLastDocumentAsync(documentItem);
-      Assert.True(document is CompilationAfterTranslation);
+      Assert.True(document is CompilationAfterResolution);
       return documentItem;
     }
 
