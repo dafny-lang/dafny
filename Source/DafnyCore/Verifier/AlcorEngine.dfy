@@ -42,13 +42,14 @@ module AlcorProofKernel refines AlcorKernelInterface {
   export provides Proof, Proof.GetExpr
     provides Proof.AndIntro, Proof.AndElimLeft, Proof.AndElimRight
     provides Proof.ImpElim, Proof.ImpIntro
-    provides Proof.ForallIntro, Proof.ForallElim
+    provides Proof.ForallIntro, Proof.ForallElim, Proof.ForallRename
     provides Wrappers, Expr.ToString, NewNotInFreeVars, MaxVersion
     provides Identifier.ToString
     provides Expr.Bind, Expr.FreeVars, Expr.size
-    provides AllProofs, IsInAllProofs // TODO: No longer necessary when possible to export that Proof is not a reference type
+    provides AllProofs // TODO: No longer necessary when possible to export that Proof is not a reference type
     reveals Expr, Expr.Not
     reveals Identifier
+    reveals Proof.ImpIntroVerify
 
   datatype Identifier = Identifier(name: string, version: nat := 0, lbl: string := "")
   {
@@ -197,9 +198,8 @@ module AlcorProofKernel refines AlcorKernelInterface {
         Operator()
     }
   }
-  ghost const {:axiom} AllProofs: iset<Proof>
-  lemma {:axiom} IsInAllProofs(p: Proof)
-    ensures p in AllProofs
+  // From the outside world, without the definition they can't use it to build proofs
+  ghost const AllProofs: iset<Proof> := iset p: Proof | true
 
   datatype Proof = Proof(expr: Expr)
   {
@@ -213,22 +213,35 @@ module AlcorProofKernel refines AlcorKernelInterface {
 
     // Everything below must be carefully checked
     // Logic axioms
-    static function AndIntro(left: Proof, right: Proof): Result<Proof> {
+    static function AndIntro(left: Proof, right: Proof): (r: Result<Proof>)
+      ensures r.Success? && r.value.GetExpr() == And(left.GetExpr(), right.GetExpr())
+      ensures r.value in AllProofs
+    {
       Success(Proof(And(left.expr, right.expr)))
     }
-    static function AndElimLeft(elem: Proof): Result<Proof> {
+    static function AndElimLeft(elem: Proof): (r: Result<Proof>)
+      ensures elem.GetExpr().And? ==>
+                r.Success? && r.value in AllProofs && r.value.GetExpr() == elem.GetExpr().left
+    {
       if !elem.expr.And? then
         Failure("To apply AndElimLeft, expected And(), got " + elem.expr.ToString())
       else
         Success(Proof(elem.expr.left))
     }
-    static function AndElimRight(elem: Proof): Result<Proof> {
+    static function AndElimRight(elem: Proof): (r: Result<Proof>)
+      ensures elem.GetExpr().And? ==>
+                r.Success? && r.value in AllProofs && r.value.GetExpr() == elem.GetExpr().right
+    {
       if !elem.expr.And? then
         Failure("To apply AndElimRight, expected And(), got " + elem.expr.ToString())
       else
         Success(Proof(elem.expr.right))
     }
-    static function ImpElim(aToB: Proof, a: Proof): Result<Proof> {
+    static function ImpElim(aToB: Proof, a: Proof): (r: Result<Proof>)
+      ensures aToB.GetExpr().Imp?
+              && aToB.GetExpr().left == a.GetExpr()
+              ==> r.Success? && r.value in AllProofs && r.value.GetExpr() == aToB.GetExpr().right
+    {
       if !aToB.expr.Imp? then
         Failure("To apply ImpElim, the first argument must be ==>, got " +aToB.expr.ToString())
       else if aToB.expr.left != a.expr then
@@ -237,21 +250,35 @@ module AlcorProofKernel refines AlcorKernelInterface {
         assert aToB.expr.Imp? && aToB.expr.left == a.expr;
         Success(Proof(aToB.expr.right))
     }
+
+    static ghost predicate ImpIntroVerify(hypothesis: Expr, conclusion: Expr, pHypothesis: Proof -> Result<Proof>) {
+      forall p: Proof <- AllProofs | p.GetExpr() == hypothesis
+        :: pHypothesis(p).Success? && pHypothesis(p).value.GetExpr() == conclusion
+    }
+
     // The fact that hypothesis is a pure function prevents anything to store the temporary proof object this function provides
     // But one problem with our current approach is that we can't reason about what ImpIntro provides as a result.
-    static function ImpIntro(hypothesis: Expr, pHypothesis: Proof -> Result<Proof>): (r: Result<Proof>)
-      ensures
-        forall p: Proof <- AllProofs |
-               p.GetExpr() == hypothesis && pHypothesis(p).Success? ::
-          r.Success? && r.value.GetExpr() == Imp(hypothesis, pHypothesis(p).value.GetExpr())
+    static function ImpIntro(hypothesis: Expr, conclusion: Expr, pHypothesis: Proof -> Result<Proof>): (r: Result<Proof>)
+      /*      ensures
+              forall p: Proof <- AllProofs |
+                     p.GetExpr() == hypothesis && pHypothesis(p).Success? ::
+                r.Success? && r.value.GetExpr() == Imp(hypothesis, pHypothesis(p).value.GetExpr())*/
+      ensures ImpIntroVerify(hypothesis, conclusion, pHypothesis) ==>
+                r.Success?
+                && r.value in AllProofs && r.value.GetExpr() == Imp(hypothesis, conclusion)
     {
       var p := Proof(hypothesis);
-      IsInAllProofs(p);
       var result :- pHypothesis(p);
       Success(Proof(Imp(hypothesis, result.expr)))
     }
 
-    static function ForallElim(theorem: Proof, instance: Expr): Result<Proof> {
+    static function ForallElim(theorem: Proof, instance: Expr): (r: Result<Proof>)
+      ensures && theorem.GetExpr().Forall?
+              && theorem.GetExpr().body.Abs?
+              ==>
+                r.Success? && r.value in AllProofs && r.value.GetExpr()
+                                                      == theorem.GetExpr().body.body.Bind(theorem.GetExpr().body.id, instance)
+    {
       if !theorem.expr.Forall? then
         Failure("To apply ForallElim, you need to pass a proven forall expression as the first parameter, but got a proof " + theorem.expr.ToString())
       else if !theorem.expr.body.Abs? then
@@ -260,8 +287,21 @@ module AlcorProofKernel refines AlcorKernelInterface {
         Success(Proof(theorem.expr.body.body.Bind(theorem.expr.body.id, instance)))
     }
 
-    static function ForallIntro(theorem: Proof, id: Identifier): Result<Proof> {
+    static function ForallIntro(theorem: Proof, id: Identifier): (r: Result<Proof>)
+      ensures r.Success? && r.value in AllProofs && r.value.GetExpr() == Forall(Abs(id, theorem.GetExpr()))
+    {
       Success(Proof(Forall(Abs(id, theorem.expr))))
+    }
+
+    // TODO: Check this axiom
+    static function ForallRename(theorem: Proof, freeVar: Identifier, Body: Expr, Id: Identifier): (r: Result<Proof>)
+      ensures theorem.GetExpr() == Forall(Abs(freeVar, Body.Bind(Id, Var(freeVar))))
+      ==> r.Success? && r.value in AllProofs && r.value.GetExpr() == Forall(Abs(Id, Body))
+    {
+      if theorem.expr == Forall(Abs(freeVar, Body.Bind(Id, Var(freeVar)))) then
+        Success(Proof(Forall(Abs(Id, Body))))
+      else
+        Failure("ForallRename is not consistent")
     }
   }
 }
@@ -419,7 +459,7 @@ module Alcor {
                                                           var x :- ExecuteProof(body, ProofEnvCons(argName, OneProof(p), environment));
                                                           if x.OneProof? then Success(x.proof)
                                                           else Failure("Closure should return a proof, but got " + x.Summary());
-            Proof.ImpIntro(hypothesis, proofBuilder).Map(p => OneProof(p))
+            Proof.ImpIntro(hypothesis, True, proofBuilder).Map(p => OneProof(p))
         case ImpElim =>
           var left :- ExtractProof(args, 0);
           var right :- ExtractProof(args, 1);
@@ -528,7 +568,7 @@ module Alcor {
   }
 
   //////////////// Given a proofprogram that A ==> B and B ==> C, builds a proof program that A ==> C
-  method Combine(a: Expr, aToB: ProofProgram, bToC: ProofProgram)
+  /*method Combine(a: Expr, aToB: ProofProgram, bToC: ProofProgram)
     returns (aToC: ProofProgram)
     requires
       var pAB := ExecuteProof(aToB, ProofEnvNil);
@@ -554,20 +594,22 @@ module Alcor {
     assert pAB.value.OneProof? && pBC.value.OneProof?;
     aToC :=
       Let("aToB", Ind, aToB,
-      Let("bToC", Ind, bToC,
-        ImpIntro.apply2(ProofExpr(a),
-          ProofAbs("a", Ind,
-            Let("B", Ind, ImpElim.apply2(ProofVar("aToB"), ProofVar("a")),
-              Let("C", Ind, ImpElim.apply2(ProofVar("bToC"), ProofVar("B")),
-              ProofVar("C")
-            )
-          )
-        )
-      )
-      ));
+          Let("bToC", Ind, bToC,
+              ImpIntro.apply2(
+                ProofExpr(a),
+                ProofAbs(
+                  "a", Ind,
+                  Let("B", Ind, ImpElim.apply2(ProofVar("aToB"), ProofVar("a")),
+                      Let("C", Ind, ImpElim.apply2(ProofVar("bToC"), ProofVar("B")),
+                          ProofVar("C")
+                      )
+                  )
+                )
+              )
+          ));
     // TODO: Prove the postcondition
     assert false;
-  }
+  }*/
 
 
   //////////////// Axiom finders //////////////////
@@ -1005,9 +1047,9 @@ module AlcorTacticProofChecker {
         proofState := Error("[Internal error] Expected a proof, got a " + p.value.Summary());
       } else if p.value.proof.GetExpr() != Imp(proofState.ToExpr(), overallGoal) {
         proofState := Error("[Internal error] Expected a proof that the proof state implies the overall goal\n" +
-          Imp(proofState.ToExpr(), overallGoal).ToString() + "\n" +
-          ", got a proof of\n" +
-          p.value.proof.GetExpr().ToString());
+                            Imp(proofState.ToExpr(), overallGoal).ToString() + "\n" +
+                            ", got a proof of\n" +
+                            p.value.proof.GetExpr().ToString());
       } else {
         assert p.value.OneProof? && p.value.proof.GetExpr() ==
                                     Imp(proofState.ToExpr(), overallGoal);
@@ -1033,12 +1075,36 @@ module AlcorTacticProofChecker {
       && exists p: Proof <- AllProofs :: p.GetExpr() == proofState.ToExpr()
     }
 
+    ghost function IntroHelper(a: Proof, env: Proof, a_and_env__imp__b: Proof): (r: Result<Proof>)
+    {
+      var a_and_env := Proof.AndIntro(a, env).value;
+      Proof.ImpElim(a_and_env__imp__b, a_and_env)
+    }
+
+    ghost function IntroHelper2(env__imp__body_bind_id_freeVar: Proof, env: Proof, Env: Expr, freeVar: Identifier, Body: Expr, Id: Identifier): (r: Result<Proof>)
+      ensures env.GetExpr() == Env 
+        && env__imp__body_bind_id_freeVar.GetExpr() == Imp(Env, Body.Bind(Id, Var(freeVar)))
+        ==> r.Success? && r.value in AllProofs && r.value.GetExpr() == Forall(Abs(Id, Body))
+    {
+      var body_bind_id_freeVar :- Proof.ImpElim(env__imp__body_bind_id_freeVar, env);
+      var f :- Proof.ForallIntro(body_bind_id_freeVar, freeVar);
+      var f' :- Proof.ForallRename(f, freeVar, Body, Id);
+      Success(f')
+    }
+    
+    ghost function IntroHelper3(env: Proof, a_and_env__imp__b: Proof, A: Expr, B: Expr): (r: Result<Proof>)
+    {
+      var aToB := (a: Proof) =>
+                    IntroHelper(a, env, a_and_env__imp__b);
+      Proof.ImpIntro(A, B, aToB)
+    }
     // Works for implications and foralls
-    method {:only} Intro(name: string := "h") returns (feedback: Result<string>)
-      //requires Invariant()
+    // Note: If the new prog state has a proof, so does the previous state!
+    // Later, we can create a proof program rather than just a zero-knowledge proof
+    // but at the same time we might want to extract the proof program direclty
+    // from the sequence of steps rather than trying to assemble multiple steps
+    method Intro(name: string := "h") returns (feedback: Result<string>)
       modifies this
-      //ensures proofState.ToExpr()
-      //ensures Invariant()
       ensures HasProof() ==> old(HasProof())
     {
       if proofState.Error? {
@@ -1061,7 +1127,30 @@ module AlcorTacticProofChecker {
           )
           )
         );
-        assert HasProof() ==> old(HasProof());
+        assert {:split_here} HasProof() ==> old(HasProof()) by {
+          ghost var ps := proofState;
+          var others := ps.sequents.tail.ToExpr();
+          var B := ps.sequents.head.goal;
+          var oldSequent := old(proofState).sequents.head;
+          var Env := oldSequent.env.ToExpr();
+          var Body := oldSequent.goal.body.body;
+          var Id := oldSequent.goal.body.id;
+          //assert ps.ToExpr() == And(Imp(And(A, Env), B), others);
+          assert old(proofState).ToExpr() == And(Imp(Env, Forall(Abs(Id, Body))), others);
+          assert ps.ToExpr() == And(Imp(Env, Body.Bind(Id, Var(freeVar))), others);
+          if(HasProof()) {
+            var p :| p in AllProofs && p.GetExpr() == ps.ToExpr();
+            var othersProof :- assert Proof.AndElimRight(p);
+            var env__imp__body_bind_id_freeVar :- assert Proof.AndElimLeft(p);
+            var env_to_forall :=
+              (env: Proof) =>
+                IntroHelper2(env__imp__body_bind_id_freeVar, env, Env, freeVar, Body, Id);
+            assert Proof.ImpIntroVerify(Env, Forall(Abs(Id, Body)), env_to_forall);
+            var sequentProof :- assert Proof.ImpIntro(Env, Forall(Abs(Id, Body)), env_to_forall);
+            var final :- assert Proof.AndIntro(sequentProof, othersProof);
+            assert old(HasProof());
+          }
+        }
       } else if sequent.goal.Imp? {
         // Here we simply put the left in the environment;
         proofState := Sequents(
@@ -1070,20 +1159,23 @@ module AlcorTacticProofChecker {
                   goal := sequent.goal.right)
           )
         );
-        assert {:only} HasProof() ==> old(HasProof()) by {
+        assert {:split_here} HasProof() ==> old(HasProof()) by {
           ghost var ps := proofState;
+          var others := ps.sequents.tail.ToExpr();
+          var B := ps.sequents.head.goal;
+          var A := ps.sequents.head.env.ToExpr().left;
+          var Env := ps.sequents.head.env.ToExpr().right;
+          assert ps.ToExpr() == And(Imp(And(A, Env), B), others);
+          assert old(proofState).ToExpr() == And(Imp(Env, Imp(A, B)), others);
           if HasProof() {
             var p :| p in AllProofs && p.GetExpr() == ps.ToExpr();
-            var others := ps.sequents.tail.ToExpr();
-            var B := ps.sequents.head.goal;
-            var A := ps.sequents.head.env.ToExpr().left;
-            var Env := ps.sequents.head.env.ToExpr().right;
-            assert ps.ToExpr() == And(Imp(And(A, Env), B), others);
-            assert old(proofState).ToExpr() == And(Imp(Env, Imp(A, B)), others);
-            // Before: (Env ==> (A ==> B)) && Others
-            // Now: (A && Env ==> B) && Others
-            var p2 : Proof;
-            assert p2 in AllProofs && p2.GetExpr() == old(proofState.ToExpr());
+            var a_and_env__imp__b :- assert Proof.AndElimLeft(p);
+            var othersProof :- assert Proof.AndElimRight(p);
+            var env_to_a_imp_b := (env: Proof) =>
+                IntroHelper3(env, a_and_env__imp__b, A, B);
+            assert Proof.ImpIntroVerify(Env, Imp(A, B), env_to_a_imp_b);
+            var env__imp__a_imp_b :- assert Proof.ImpIntro(Env, Imp(A, B), env_to_a_imp_b);
+            var final :- assert Proof.AndIntro(env__imp__a_imp_b, othersProof);
             assert old(HasProof());
           }
         }
@@ -1150,8 +1242,8 @@ module AlcorTacticProofChecker {
       var newSequents := SequentCons(
         Sequent(env, sequent.goal.left),
         SequentCons(
-        Sequent(env, Imp(sequent.goal.left, sequent.goal.right)),
-        sequents.tail));
+          Sequent(env, Imp(sequent.goal.left, sequent.goal.right)),
+          sequents.tail));
       proofState := Sequents(newSequents);
       return Success(proofState.ToString());
     }
@@ -1179,11 +1271,11 @@ module AlcorTacticProofChecker {
       }
       var left := Identifier(left);
       var right := Identifier(right);
-      var newEnv := env.ReplaceTailAt(i, (previousEnv: Env) requires previousEnv == env.Drop(i) => 
-        assert previousEnv.prop.And?;
-        EnvCons(right, previousEnv.prop.right,
-        EnvCons(left, previousEnv.prop.left, 
-        previousEnv.tail))
+      var newEnv := env.ReplaceTailAt(i, (previousEnv: Env) requires previousEnv == env.Drop(i) =>
+                                        assert previousEnv.prop.And?;
+                                        EnvCons(right, previousEnv.prop.right,
+                                                EnvCons(left, previousEnv.prop.left,
+                                                        previousEnv.tail))
       );
       var newSequents := SequentCons(
         Sequent(newEnv, sequent.goal),
