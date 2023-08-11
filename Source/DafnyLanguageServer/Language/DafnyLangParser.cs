@@ -51,6 +51,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
             logger.LogError($"Tried to parse file {rootSourceUri} that could not be found");
           }
         }
+
         return programParser.ParseFiles(compilation.Project.ProjectName, dafnyFiles, reporter, cancellationToken);
       }
       finally {

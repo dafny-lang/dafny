@@ -15,7 +15,7 @@ class PluginRewriter : IRewriter {
     internalRewriter.PostResolve(program);
   }
 
-  internal override void PreTranslate(Program program) {
-    internalRewriter.PreTranslate(program);
+  internal override void PreVerify(ModuleDefinition module) {
+    internalRewriter.PreVerify(module);
   }
 }
