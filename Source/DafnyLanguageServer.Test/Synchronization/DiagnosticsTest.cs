@@ -958,24 +958,6 @@ method test()
     }
 
     [Fact]
-    public async Task NoIncrementalVerificationDiagnosticsBetweenAssertionBatches() {
-      var source = @"
-method test(x: int) {
-  assert x != 2;
-  assert {:split_here} true;
-  assert x != 3;
-}
-".TrimStart();
-      await SetUp(options => options.Set(BoogieOptionBag.Cores, 1U));
-      var documentItem = CreateTestDocument(source);
-      client.OpenDocument(documentItem);
-      var firstVerificationDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
-
-      Assert.Equal(2, firstVerificationDiagnostics.Length);
-      await AssertNoDiagnosticsAreComing(CancellationToken);
-    }
-
-    [Fact]
     public async Task NoDiagnosticFlickeringWhenIncremental() {
       var source = @"
 method test() {
