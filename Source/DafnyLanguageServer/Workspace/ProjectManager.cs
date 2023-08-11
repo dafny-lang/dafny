@@ -151,8 +151,8 @@ public class ProjectManager : IDisposable {
   }
 
   public void TriggerVerificationForFile(Uri triggeringFile) {
-    if (AutomaticVerificationMode is VerifyOnMode.ChangeFile or VerifyOnMode.ChangeProject) {
-      var _ = VerifyEverythingAsync(AutomaticVerificationMode == VerifyOnMode.ChangeFile ? triggeringFile : null);
+    if (AutomaticVerificationMode is VerifyOnMode.Change or VerifyOnMode.ChangeProject) {
+      var _ = VerifyEverythingAsync(AutomaticVerificationMode == VerifyOnMode.Change ? triggeringFile : null);
     } else {
       logger.LogDebug("Setting result for workCompletedForCurrentVersion");
     }
