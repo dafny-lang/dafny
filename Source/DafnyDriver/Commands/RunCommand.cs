@@ -30,7 +30,6 @@ class RunCommand : ICommandSpec {
   public IEnumerable<Option> Options =>
     new Option[] {
       Inputs,
-      CommonOptionBag.Output
     }.Concat(ICommandSpec.ExecutionOptions).
       Concat(ICommandSpec.ConsoleOutputOptions).
       Concat(ICommandSpec.ResolverOptions);
