@@ -54,8 +54,14 @@ lemma {:neverVerify} HasNeverVerifyAttribute(p: nat, q: nat)
 
     public IProjectDatabase Projects => Server.GetRequiredService<IProjectDatabase>();
 
-    public DafnyLanguageServerTestBase(ITestOutputHelper output) : base(new JsonRpcTestOptions(LoggerFactory.Create(
-      builder => builder.AddConsole().SetMinimumLevel(LogLevel.Warning)))) {
+    protected DafnyLanguageServerTestBase(ITestOutputHelper output, LogLevel dafnyLogLevel = LogLevel.Information)
+      : base(new JsonRpcTestOptions(LoggerFactory.Create(
+      builder => {
+        builder.AddFilter("OmniSharp.Extensions.JsonRpc", LogLevel.None);
+        builder.AddFilter("OmniSharp", LogLevel.Warning);
+        builder.AddFilter("Microsoft.Dafny", dafnyLogLevel);
+        builder.AddConsole();
+      }))) {
       this.output = new WriterFromOutputHelper(output);
     }
 
@@ -92,7 +98,6 @@ lemma {:neverVerify} HasNeverVerifyAttribute(p: nat, q: nat)
       ServerCommand.ConfigureDafnyOptionsForServer(dafnyOptions);
       ApplyDefaultOptionValues(dafnyOptions);
       return options => {
-        options.ConfigureLogging(SetupTestLogging);
         options.WithDafnyLanguageServer(() => { });
         options.Services.AddSingleton(dafnyOptions);
         options.Services.AddSingleton<IProgramVerifier>(serviceProvider => new SlowVerifier(
@@ -120,16 +125,14 @@ lemma {:neverVerify} HasNeverVerifyAttribute(p: nat, q: nat)
       }
     }
 
-    private static void SetupTestLogging(ILoggingBuilder builder) {
-      builder
-        .AddFilter("OmniSharp", LogLevel.Warning)
-        .AddFilter("Microsoft.Dafny", LogLevel.Information)
-        .SetMinimumLevel(LogLevel.Debug)
-        .AddConsole();
-    }
-
     protected static TextDocumentItem CreateTestDocument(string source, string filePath = null, int version = 1) {
-      filePath ??= $"testFile{fileIndex++}.dfy";
+      if (filePath == null) {
+        var index = Interlocked.Increment(ref fileIndex);
+        filePath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName(), $"testFile{index}.dfy");
+      }
+      if (string.IsNullOrEmpty(Path.GetDirectoryName(filePath))) {
+        filePath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName(), filePath);
+      }
       filePath = Path.GetFullPath(filePath);
       return new TextDocumentItem {
         LanguageId = LanguageId,

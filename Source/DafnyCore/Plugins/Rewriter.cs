@@ -31,5 +31,13 @@ namespace Microsoft.Dafny.Plugins {
     public virtual void PostResolve(Program program) {
       Contract.Requires(program != null);
     }
+
+    /// <summary>
+    /// Override this method to obtain the resolved module before the translation pipeline occurs
+    /// after the individual PostResolve on every module
+    /// You can also report warnings and errors using reporter.Error
+    /// </summary>
+    public virtual void PreVerify(ModuleDefinition module) {
+    }
   }
 }

@@ -6,12 +6,12 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
   public class Relocator : IRelocator {
-    public const string OutdatedPrefix = "Outdated: ";
 
     private readonly ILogger logger;
     private readonly ILogger<SignatureAndCompletionTable> loggerSymbolTable;
@@ -44,8 +44,10 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
       DidChangeTextDocumentParams changes, CancellationToken cancellationToken) {
       var changeProcessor = new ChangeProcessor(logger, loggerSymbolTable, changes, cancellationToken);
       var migratedChildren = changeProcessor.MigrateVerificationTrees(originalVerificationTree.Children);
+      var migratedRange = changeProcessor.MigrateRange(originalVerificationTree.Range, true);
       return originalVerificationTree with {
         Children = migratedChildren.ToList(),
+        Range = migratedRange!,
         StatusCurrent = CurrentStatus.Obsolete
       };
     }
@@ -87,9 +89,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
         });
       }
 
-      public Range? MigrateRange(Range range) {
+      public Range? MigrateRange(Range range, bool isFullRange = false) {
         return changeParams.ContentChanges.Aggregate<TextDocumentContentChangeEvent, Range?>(range,
-          (intermediateRange, change) => intermediateRange == null ? null : MigrateRange(intermediateRange, change));
+          (intermediateRange, change) => intermediateRange == null ? null : MigrateRange(intermediateRange, change, isFullRange));
       }
 
       public IReadOnlyList<Diagnostic> MigrateDiagnostics(IReadOnlyList<Diagnostic> originalDiagnostics) {
@@ -136,8 +138,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
         var newRelatedInformation = diagnostic.RelatedInformation?.SelectMany(related =>
           MigrateRelatedInformation(change, related)).ToList();
         yield return diagnostic with {
-          Message = diagnostic.Message.StartsWith(OutdatedPrefix) ? diagnostic.Message : OutdatedPrefix + diagnostic.Message,
-          Severity = diagnostic.Severity == DiagnosticSeverity.Error ? DiagnosticSeverity.Warning : diagnostic.Severity,
           Range = newRange,
           RelatedInformation = newRelatedInformation
         };
@@ -226,9 +226,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
       /// <param name="text">The text to get the LSP end of.</param>
       /// <param name="cancellationToken">A token to cancel the resolution before its completion.</param>
       /// <returns>The LSP position at the end of the text.</returns>
-      /// <exception cref="ArgumentException">Thrown if the specified position does not belong to the given text.</exception>
-      /// <exception cref="OperationCanceledException">Thrown when the cancellation was requested before completion.</exception>
-      /// <exception cref="ObjectDisposedException">Thrown if the cancellation token was disposed before the completion.</exception>
+      /// <exception cref="System.ArgumentException">Thrown if the specified position does not belong to the given text.</exception>
+      /// <exception cref="System.OperationCanceledException">Thrown when the cancellation was requested before completion.</exception>
+      /// <exception cref="System.ObjectDisposedException">Thrown if the cancellation token was disposed before the completion.</exception>
       private static Position GetEofPosition(string text, CancellationToken cancellationToken = default) {
         int line = 0;
         int character = 0;
@@ -257,9 +257,18 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
         };
       }
 
-      public Range? MigrateRange(Range rangeToMigrate, TextDocumentContentChangeEvent change) {
-        if (!rangeToMigrate.Contains(change.Range!) && rangeToMigrate.Intersects(change.Range!)) {
+      public Range? MigrateRange(Range rangeToMigrate, TextDocumentContentChangeEvent change, bool isFullRange = false) {
+        if (change.Range == null || (!rangeToMigrate.Contains(change.Range!) && rangeToMigrate.Intersects(change.Range!))) {
           // Do not migrate ranges that partially overlap with the change
+          if (change.Range == null && isFullRange) {
+            var newLineRegex = new Regex("\n(?<LastColumn>.*)");
+            var matches = newLineRegex.Matches(change.Text);
+            var line = matches.Count;
+            var col = matches.Count == 0 ? change.Text.Length : matches[^1].Groups["LastColumn"].Value.Length;
+
+            var endPosition = (line, col);
+            return new Range((0, 0), endPosition);
+          }
           return null;
         }
 
@@ -295,13 +304,13 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
         return symbolFrom.CompareTo(changeRange.End) >= 0;
       }
 
-      private IDictionary<ISymbol, SymbolLocation> ApplyDeclarationsChange(
+      private IDictionary<ILegacySymbol, SymbolLocation> ApplyDeclarationsChange(
         SignatureAndCompletionTable originalSymbolTable,
-        IDictionary<ISymbol, SymbolLocation> previousDeclarations,
+        IDictionary<ILegacySymbol, SymbolLocation> previousDeclarations,
         TextDocumentContentChangeEvent changeRange,
         Position? afterChangeEndOffset
       ) {
-        var migratedDeclarations = new Dictionary<ISymbol, SymbolLocation>();
+        var migratedDeclarations = new Dictionary<ILegacySymbol, SymbolLocation>();
         foreach (var (symbol, location) in previousDeclarations) {
           cancellationToken.ThrowIfCancellationRequested();
           if (location.Uri != changeParams.TextDocument.Uri.ToUri()) {

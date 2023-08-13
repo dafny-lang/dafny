@@ -637,7 +637,7 @@ function partitionOfJustHeapRegions(os : set<Object>) : (partition : map<Region,
 }
 
 
-method {:timeLimit 15}  {:vcs_split_on_every_assert} fNullify(o : Object, f : string)
+method {:rlimit 30000} {:vcs_split_on_every_assert} fNullify(o : Object, f : string)
     requires o  in objects
     requires f  in o.fieldModes
     requires f  in o.fields

@@ -1,9 +1,7 @@
-Verifying...
+Using legacy resolver and verifying...
 Executing on C#...
 AssertEqualWithDiff() Failure
 Diff (changing expected into actual):
- 
- Dafny program verifier did not attempt verification
 -Different than any output
 +0
  
@@ -11,8 +9,6 @@ Diff (changing expected into actual):
 Executing on JavaScript...
 AssertEqualWithDiff() Failure
 Diff (changing expected into actual):
- 
- Dafny program verifier did not attempt verification
 -Different than any output
 +0
  
@@ -20,8 +16,6 @@ Diff (changing expected into actual):
 Executing on Go...
 AssertEqualWithDiff() Failure
 Diff (changing expected into actual):
- 
- Dafny program verifier did not attempt verification
 -Different than any output
 +0
  
@@ -29,8 +23,6 @@ Diff (changing expected into actual):
 Executing on Java...
 AssertEqualWithDiff() Failure
 Diff (changing expected into actual):
- 
- Dafny program verifier did not attempt verification
 -Different than any output
 +0
  
@@ -38,8 +30,6 @@ Diff (changing expected into actual):
 Executing on Python...
 AssertEqualWithDiff() Failure
 Diff (changing expected into actual):
- 
- Dafny program verifier did not attempt verification
 -Different than any output
 +0
  

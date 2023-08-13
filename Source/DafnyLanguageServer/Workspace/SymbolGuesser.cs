@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using System.IO;
 using System.Linq;
 using System.Threading;
 
@@ -16,12 +17,12 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       this.logger = logger;
     }
 
-    public bool TryGetSymbolBefore(IdeState state, Uri uri, Position position, CancellationToken cancellationToken, [NotNullWhen(true)] out ISymbol? symbol) {
+    public bool TryGetSymbolBefore(IdeState state, Uri uri, Position position, CancellationToken cancellationToken, [NotNullWhen(true)] out ILegacySymbol? symbol) {
       (symbol, _) = new Guesser(logger, state, cancellationToken).GetSymbolAndItsTypeBefore(uri, position);
       return symbol != null;
     }
 
-    public bool TryGetTypeBefore(IdeState state, Uri uri, Position position, CancellationToken cancellationToken, [NotNullWhen(true)] out ISymbol? typeSymbol) {
+    public bool TryGetTypeBefore(IdeState state, Uri uri, Position position, CancellationToken cancellationToken, [NotNullWhen(true)] out ILegacySymbol? typeSymbol) {
       (_, typeSymbol) = new Guesser(logger, state, cancellationToken).GetSymbolAndItsTypeBefore(uri, position);
       return typeSymbol != null;
     }
@@ -37,15 +38,22 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         this.cancellationToken = cancellationToken;
       }
 
-      public (ISymbol? Designator, ISymbol? Type) GetSymbolAndItsTypeBefore(Uri uri, Position requestPosition) {
+      public (ILegacySymbol? Designator, ILegacySymbol? Type) GetSymbolAndItsTypeBefore(Uri uri, Position requestPosition) {
         var position = GetLinePositionBefore(requestPosition);
         if (position == null) {
-          logger.LogTrace("the request position {Position} is at the beginning of the line, no chance to find a symbol there", requestPosition);
           return (null, null);
         }
         var memberAccesses = GetMemberAccessChainEndingAt(uri, position);
         if (memberAccesses.Count == 0) {
-          logger.LogDebug("could not resolve the member access chain in front of of {Position}", requestPosition);
+          logger.LogDebug("could not resolve the member access chain in front of {Position}", requestPosition);
+
+          if (logger.IsEnabled(LogLevel.Trace)) {
+            var program = (Program)state.Program;
+            var writer = new StringWriter();
+            var printer = new Printer(writer, DafnyOptions.Default);
+            printer.PrintProgram(program, true);
+            logger.LogTrace($"Program:\n{writer}");
+          }
           return (null, null);
         }
         return GetSymbolAndTypeOfLastMember(position, memberAccesses);
@@ -59,10 +67,10 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         return new Position(position.Line, position.Character - 1);
       }
 
-      private (ISymbol? Designator, ISymbol? Type) GetSymbolAndTypeOfLastMember(Position position, IReadOnlyList<string> memberAccessChain) {
+      private (ILegacySymbol? Designator, ILegacySymbol? Type) GetSymbolAndTypeOfLastMember(Position position, IReadOnlyList<string> memberAccessChain) {
         var enclosingSymbol = state.SignatureAndCompletionTable.GetEnclosingSymbol(position, cancellationToken);
-        ISymbol? currentDesignator = null;
-        ISymbol? currentDesignatorType = null;
+        ILegacySymbol? currentDesignator = null;
+        ILegacySymbol? currentDesignatorType = null;
         for (int currentMemberAccess = 0; currentMemberAccess < memberAccessChain.Count; currentMemberAccess++) {
           cancellationToken.ThrowIfCancellationRequested();
           var currentDesignatorName = memberAccessChain[currentMemberAccess];
@@ -85,7 +93,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         return (currentDesignator, currentDesignatorType);
       }
 
-      private ISymbol? GetAccessedSymbolOfEnclosingScopes(ISymbol scope, string name) {
+      private ILegacySymbol? GetAccessedSymbolOfEnclosingScopes(ILegacySymbol scope, string name) {
         cancellationToken.ThrowIfCancellationRequested();
         var symbol = FindSymbolWithName(scope, name);
         if (symbol == null && scope.Scope != null) {
@@ -94,7 +102,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         return symbol;
       }
 
-      private TypeWithMembersSymbolBase? GetEnclosingType(ISymbol scope) {
+      private TypeWithMembersSymbolBase? GetEnclosingType(ILegacySymbol scope) {
         cancellationToken.ThrowIfCancellationRequested();
         if (scope is TypeWithMembersSymbolBase typeSymbol) {
           return typeSymbol;
@@ -102,7 +110,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         return scope.Scope == null ? null : GetEnclosingType(scope.Scope);
       }
 
-      private ISymbol? FindSymbolWithName(ISymbol containingSymbol, string name) {
+      private ILegacySymbol? FindSymbolWithName(ILegacySymbol containingSymbol, string name) {
         // TODO The current implementation misses the visibility scope of shadowed variables.
         //      To be more precise, variables of nested blocks that shadow outer variables work
         //      Correct. However, if the shadowing variable of the nested scope was declared

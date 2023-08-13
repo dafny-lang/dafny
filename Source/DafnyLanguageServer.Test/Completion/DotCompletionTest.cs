@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
+using Microsoft.Extensions.Logging;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -33,7 +34,7 @@ class A {
     this.x
   }
 }".TrimStart();
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "CompleteOnThisReturnsClassMembers.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       ApplyChange(ref documentItem, new Range(4, 10, 4, 10), " + this.");
 
@@ -55,7 +56,7 @@ class A {
     this.x
   }
 }".TrimStart();
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "CompleteOnNothingReturnsEmptyList.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       ApplyChange(ref documentItem, new Range((4, 4), (4, 10)), ".");
 
@@ -73,7 +74,7 @@ class A {
     this.x
   }
 }".TrimStart();
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "CompleteOnNothingAtLineStartReturnsEmptyList.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       ApplyChange(ref documentItem, new Range((4, 0), (4, 10)), ".");
 
@@ -91,7 +92,7 @@ class A {
     this.x
   }
 }".TrimStart();
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "CompleteOnTypeWithoutMembersReturnsEmptyList.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       ApplyChange(ref documentItem, new Range((4, 10), (4, 10)), ".");
 
@@ -105,7 +106,7 @@ class A {
 method DoIt() {
   var x := new int[10];
 }".TrimStart();
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "CompleteOnLocalArrayReturnsLength.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       ApplyChange(ref documentItem, new Range((1, 23), (1, 23)), @"
   var y := x.");
@@ -132,7 +133,7 @@ class B {
 
   constructor() { }
 }".TrimStart();
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "CompleteOnShadowedVariableReturnsCompletionOfClosestSymbol.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       ApplyChange(ref documentItem, new Range((4, 21), (4, 21)), @"
     var y := x.");
@@ -159,7 +160,7 @@ class B {
 
   constructor() { }
 }".TrimStart();
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "CompleteOnShadowedVariableReturnsCompletionOfClassIfPrefixedWithThis.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       ApplyChange(ref documentItem, new Range((4, 21), (4, 21)), @"
     var y := this.x.");
@@ -208,7 +209,7 @@ class X {
 
   constructor() { }
 }".TrimStart();
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "CompleteOnMemberAccessChainRespectsCompleteChain.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
 
       ApplyChange(ref documentItem, new Range((8, 0), (8, 0)), "    var l := b.c.x.");

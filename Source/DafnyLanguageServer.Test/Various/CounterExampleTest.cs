@@ -31,22 +31,20 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       );
     }
 
-    public static TheoryData<List<Action<DafnyOptions>>> OptionSettings() {
-      var optionSettings = new TheoryData<List<Action<DafnyOptions>>>();
-      optionSettings.Add(new() { options => options.TypeEncodingMethod = CoreOptions.TypeEncoding.Predicates });
-      optionSettings.Add(new() { options => options.TypeEncodingMethod = CoreOptions.TypeEncoding.Arguments });
+    public static TheoryData<Action<DafnyOptions>> OptionSettings() {
+      var optionSettings = new TheoryData<Action<DafnyOptions>>();
+      optionSettings.Add(options => options.TypeEncodingMethod = CoreOptions.TypeEncoding.Predicates);
+      optionSettings.Add(options => options.TypeEncodingMethod = CoreOptions.TypeEncoding.Arguments);
       return optionSettings;
     }
 
-    private async Task SetUpOptions(List<Action<DafnyOptions>> optionSettings) {
-      foreach (var optionSetting in optionSettings) {
-        await SetUp(options => optionSetting(options));
-      }
+    private async Task SetUpOptions(Action<DafnyOptions> optionSettings) {
+      await SetUp(optionSettings);
     }
 
     [Theory]
     [MemberData(nameof(OptionSettings))]
-    public async Task CounterexamplesStillWorksIfNothingHasBeenVerified(List<Action<DafnyOptions>> optionSettings) {
+    public async Task CounterexamplesStillWorksIfNothingHasBeenVerified(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
       await SetUp(options => options.Set(ServerCommand.Verification, VerifyOnMode.Never));
       var source = @"
@@ -67,7 +65,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     [Theory]
     [MemberData(nameof(OptionSettings))]
-    public async Task FileWithBodyLessMethodReturnsSingleCounterExampleForPostconditions(List<Action<DafnyOptions>> optionSettings) {
+    public async Task FileWithBodyLessMethodReturnsSingleCounterExampleForPostconditions(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
       method Abs(x: int) returns (y: int)
@@ -87,7 +85,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     [Theory]
     [MemberData(nameof(OptionSettings))]
-    public async Task FileWithMethodWithErrorsReturnsCounterExampleForPostconditionsAndEveryUpdateLine(List<Action<DafnyOptions>> optionSettings) {
+    public async Task FileWithMethodWithErrorsReturnsCounterExampleForPostconditionsAndEveryUpdateLine(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
       method Abs(x: int) returns (y: int)
@@ -112,7 +110,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     [Theory]
     [MemberData(nameof(OptionSettings))]
-    public async Task FileWithMethodWithoutErrorsReturnsEmptyCounterExampleList(List<Action<DafnyOptions>> optionSettings) {
+    public async Task FileWithMethodWithoutErrorsReturnsEmptyCounterExampleList(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
       method Abs(x: int) returns (y: int)
@@ -133,7 +131,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     [Theory]
     [MemberData(nameof(OptionSettings))]
-    public async Task GetCounterExampleWithMultipleMethodsWithErrorsReturnsCounterExamplesForEveryMethod(List<Action<DafnyOptions>> optionSettings) {
+    public async Task GetCounterExampleWithMultipleMethodsWithErrorsReturnsCounterExamplesForEveryMethod(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
       method Abs(x: int) returns (y: int)
@@ -165,7 +163,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     [Theory]
     [MemberData(nameof(OptionSettings))]
-    public async Task WholeNumberAsReal(List<Action<DafnyOptions>> optionSettings) {
+    public async Task WholeNumberAsReal(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
       method a(r:real) {
@@ -184,7 +182,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     [Theory]
     [MemberData(nameof(OptionSettings))]
-    public async Task FractionAsAReal(List<Action<DafnyOptions>> optionSettings) {
+    public async Task FractionAsAReal(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
       method a(r:real) {
@@ -203,7 +201,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     [Theory]
     [MemberData(nameof(OptionSettings))]
-    public async Task WholeNumberFieldAsReal(List<Action<DafnyOptions>> optionSettings) {
+    public async Task WholeNumberFieldAsReal(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
       class Value {
@@ -225,7 +223,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     [Theory]
     [MemberData(nameof(OptionSettings))]
-    public async Task ConstantFields(List<Action<DafnyOptions>> optionSettings) {
+    public async Task ConstantFields(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
       class Value {
@@ -247,7 +245,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     [Theory]
     [MemberData(nameof(OptionSettings))]
-    public async Task FractionFieldAsReal(List<Action<DafnyOptions>> optionSettings) {
+    public async Task FractionFieldAsReal(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
       class Value {
@@ -269,7 +267,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     [Theory]
     [MemberData(nameof(OptionSettings))]
-    public async Task SelfReferringObject(List<Action<DafnyOptions>> optionSettings) {
+    public async Task SelfReferringObject(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
       class Node {
@@ -291,7 +289,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     [Theory]
     [MemberData(nameof(OptionSettings))]
-    public async Task ObjectWithANonNullField(List<Action<DafnyOptions>> optionSettings) {
+    public async Task ObjectWithANonNullField(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
       class Node {
@@ -313,7 +311,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     [Theory]
     [MemberData(nameof(OptionSettings))]
-    public async Task ObjectWithANullField(List<Action<DafnyOptions>> optionSettings) {
+    public async Task ObjectWithANullField(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
       class Node {
@@ -335,7 +333,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     [Theory]
     [MemberData(nameof(OptionSettings))]
-    public async Task ObjectWithAFieldOfBasicType(List<Action<DafnyOptions>> optionSettings) {
+    public async Task ObjectWithAFieldOfBasicType(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
       class BankAccountUnsafe {
@@ -369,7 +367,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     [Theory]
     [MemberData(nameof(OptionSettings))]
-    public async Task SpecificCharacter(List<Action<DafnyOptions>> optionSettings) {
+    public async Task SpecificCharacter(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
       method a(c:char) {
@@ -388,7 +386,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     [Theory]
     [MemberData(nameof(OptionSettings))]
-    public async Task ArbitraryCharacter(List<Action<DafnyOptions>> optionSettings) {
+    public async Task ArbitraryCharacter(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
       method a(c:char) {
@@ -408,7 +406,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     [Theory]
     [MemberData(nameof(OptionSettings))]
-    public async Task DatatypeWithUnnamedDestructor(List<Action<DafnyOptions>> optionSettings) {
+    public async Task DatatypeWithUnnamedDestructor(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
       datatype B = A(int)
@@ -429,7 +427,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     [Theory]
     [MemberData(nameof(OptionSettings))]
-    public async Task DatatypeWithDestructorThanIsADataValue(List<Action<DafnyOptions>> optionSettings) {
+    public async Task DatatypeWithDestructorThanIsADataValue(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
       datatype A = B(x:real)
@@ -449,7 +447,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     [Theory]
     [MemberData(nameof(OptionSettings))]
-    public async Task DatatypeWithDifferentDestructorsForDifferentConstructors(List<Action<DafnyOptions>> optionSettings) {
+    public async Task DatatypeWithDifferentDestructorsForDifferentConstructors(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
       datatype Hand = Left(x:int, y:int) | Right(a:int, b:int)
@@ -472,7 +470,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     [Theory]
     [MemberData(nameof(OptionSettings))]
-    public async Task DatatypeObjectWithTwoDestructorsWhoseValuesAreEqual(List<Action<DafnyOptions>> optionSettings) {
+    public async Task DatatypeObjectWithTwoDestructorsWhoseValuesAreEqual(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
       datatype Hand = Left(a:int, b:int)
@@ -492,7 +490,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     [Theory]
     [MemberData(nameof(OptionSettings))]
-    public async Task DatatypeWithDestructorsWhoseNamesShadowBuiltInDestructors(List<Action<DafnyOptions>> optionSettings) {
+    public async Task DatatypeWithDestructorsWhoseNamesShadowBuiltInDestructors(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
       datatype A = B_(C_q:bool, B_q:bool, D_q:bool) | C(B_q:bool, C_q:bool, D_q:bool)
@@ -513,7 +511,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     [Theory]
     [MemberData(nameof(OptionSettings))]
-    public async Task DatatypeWithTypeParameters(List<Action<DafnyOptions>> optionSettings) {
+    public async Task DatatypeWithTypeParameters(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
       datatype A<T> = One(b:T) | Two(i:int)
@@ -533,7 +531,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     [Theory]
     [MemberData(nameof(OptionSettings))]
-    public async Task ArbitraryBool(List<Action<DafnyOptions>> optionSettings) {
+    public async Task ArbitraryBool(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
       datatype List<T> = Nil | Cons(head: T, tail: List<T>)
@@ -555,7 +553,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     [Theory]
     [MemberData(nameof(OptionSettings))]
-    public async Task ArbitraryInt(List<Action<DafnyOptions>> optionSettings) {
+    public async Task ArbitraryInt(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
       datatype List<T> = Nil | Cons(head: T, tail: List<T>)
@@ -577,7 +575,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     [Theory]
     [MemberData(nameof(OptionSettings))]
-    public async Task ArbitraryReal(List<Action<DafnyOptions>> optionSettings) {
+    public async Task ArbitraryReal(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
       datatype List<T> = Nil | Cons(head: T, tail: List<T>)
@@ -599,7 +597,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     [Theory]
     [MemberData(nameof(OptionSettings))]
-    public async Task ArraySimpleTest(List<Action<DafnyOptions>> optionSettings) {
+    public async Task ArraySimpleTest(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
       method a(arr:array<int>) requires arr.Length == 2 {
@@ -618,7 +616,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     [Theory]
     [MemberData(nameof(OptionSettings))]
-    public async Task SequenceSimpleTest(List<Action<DafnyOptions>> optionSettings) {
+    public async Task SequenceSimpleTest(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
       method a(s:seq<int>) requires |s| == 1 {
@@ -637,7 +635,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     [Theory]
     [MemberData(nameof(OptionSettings))]
-    public async Task SequenceOfBitVectors(List<Action<DafnyOptions>> optionSettings) {
+    public async Task SequenceOfBitVectors(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
       method a(s:seq<bv5>) requires |s| == 2 {
@@ -656,7 +654,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     [Theory]
     [MemberData(nameof(OptionSettings))]
-    public async Task SpecificBitVector(List<Action<DafnyOptions>> optionSettings) {
+    public async Task SpecificBitVector(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
       method a(bv:bv7) {
@@ -675,7 +673,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     [Theory]
     [MemberData(nameof(OptionSettings))]
-    public async Task ArbitraryBitVector(List<Action<DafnyOptions>> optionSettings) {
+    public async Task ArbitraryBitVector(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
       method a(b:bv2) {
@@ -694,7 +692,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     [Theory]
     [MemberData(nameof(OptionSettings))]
-    public async Task BitWiseAnd(List<Action<DafnyOptions>> optionSettings) {
+    public async Task BitWiseAnd(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
       method m(a:bv1, b:bv1) {
@@ -715,7 +713,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     [Theory]
     [MemberData(nameof(OptionSettings))]
-    public async Task BitVectorField(List<Action<DafnyOptions>> optionSettings) {
+    public async Task BitVectorField(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
       class Value {
@@ -737,7 +735,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     [Theory]
     [MemberData(nameof(OptionSettings))]
-    public async Task SeqSetAndArrayAsTypeParameters(List<Action<DafnyOptions>> optionSettings) {
+    public async Task SeqSetAndArrayAsTypeParameters(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
       method a(s:set<seq<set<array<int>>>>) requires |s| <= 1{
@@ -755,7 +753,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     [Theory]
     [MemberData(nameof(OptionSettings))]
-    public async Task MultiDimensionalArray(List<Action<DafnyOptions>> optionSettings) {
+    public async Task MultiDimensionalArray(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
       method m(a:array3<int>) requires a.Length0 == 4 requires a.Length1 == 5 requires a.Length2 == 6 {
@@ -774,7 +772,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     [Theory]
     [MemberData(nameof(OptionSettings))]
-    public async Task ArrayEqualityByReference(List<Action<DafnyOptions>> optionSettings) {
+    public async Task ArrayEqualityByReference(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
       method test(x:array<int>, y:array<int>)   {
@@ -794,7 +792,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     [Theory]
     [MemberData(nameof(OptionSettings))]
-    public async Task SetBasicOperations(List<Action<DafnyOptions>> optionSettings) {
+    public async Task SetBasicOperations(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
       method a(s1:set<char>, s2:set<char>) {
@@ -834,7 +832,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     [Theory]
     [MemberData(nameof(OptionSettings))]
-    public async Task SetSingleElement(List<Action<DafnyOptions>> optionSettings) {
+    public async Task SetSingleElement(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
       method test() {
@@ -853,7 +851,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     [Theory]
     [MemberData(nameof(OptionSettings))]
-    public async Task StringBuilding(List<Action<DafnyOptions>> optionSettings) {
+    public async Task StringBuilding(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = "" +
       "method a(s:string) {" +
@@ -871,7 +869,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     [Theory]
     [MemberData(nameof(OptionSettings))]
-    public async Task SequenceEdit(List<Action<DafnyOptions>> optionSettings) {
+    public async Task SequenceEdit(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = "" +
       "method a(c:char, s1:string) requires s1 == \"abc\"{" +
@@ -893,7 +891,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     [Theory]
     [MemberData(nameof(OptionSettings))]
-    public async Task SequenceSingleElement(List<Action<DafnyOptions>> optionSettings) {
+    public async Task SequenceSingleElement(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
       method test() {
@@ -912,7 +910,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     [Theory]
     [MemberData(nameof(OptionSettings))]
-    public async Task SequenceConcat(List<Action<DafnyOptions>> optionSettings) {
+    public async Task SequenceConcat(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
       method a(s1:string, s2:string) requires |s1| == 1 && |s2| == 1 {
@@ -935,7 +933,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     [Theory]
     [MemberData(nameof(OptionSettings))]
-    public async Task SequenceGenerate(List<Action<DafnyOptions>> optionSettings) {
+    public async Task SequenceGenerate(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
       method a(multiplier:int) {
@@ -955,7 +953,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     [Theory]
     [MemberData(nameof(OptionSettings))]
-    public async Task SequenceSub(List<Action<DafnyOptions>> optionSettings) {
+    public async Task SequenceSub(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
       method a(s:seq<char>) requires |s| == 5 {
@@ -976,7 +974,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     [Theory]
     [MemberData(nameof(OptionSettings))]
-    public async Task SequenceDrop(List<Action<DafnyOptions>> optionSettings) {
+    public async Task SequenceDrop(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
       method a(s:seq<char>) requires |s| == 5 {
@@ -997,7 +995,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     [Theory]
     [MemberData(nameof(OptionSettings))]
-    public async Task SequenceTake(List<Action<DafnyOptions>> optionSettings) {
+    public async Task SequenceTake(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
       method a(s:seq<char>) requires |s| == 5 {
@@ -1018,7 +1016,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     [Theory]
     [MemberData(nameof(OptionSettings))]
-    public async Task VariableNameShadowing(List<Action<DafnyOptions>> optionSettings) {
+    public async Task VariableNameShadowing(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
       method test(m:set<int>) {
@@ -1034,7 +1032,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     [Theory]
     [MemberData(nameof(OptionSettings))]
-    public async Task MapsCreation(List<Action<DafnyOptions>> optionSettings) {
+    public async Task MapsCreation(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
       method test() {
@@ -1053,7 +1051,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     [Theory]
     [MemberData(nameof(OptionSettings))]
-    public async Task MapsEmpty(List<Action<DafnyOptions>> optionSettings) {
+    public async Task MapsEmpty(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
       method test() {
@@ -1072,7 +1070,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     [Theory]
     [MemberData(nameof(OptionSettings))]
-    public async Task TraitType(List<Action<DafnyOptions>> optionSettings) {
+    public async Task TraitType(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
       module M {
@@ -1094,7 +1092,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     [Theory]
     [MemberData(nameof(OptionSettings))]
-    public async Task ArrowType(List<Action<DafnyOptions>> optionSettings) {
+    public async Task ArrowType(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
       module M {
@@ -1113,7 +1111,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     [Theory]
     [MemberData(nameof(OptionSettings))]
-    public async Task MapAsTypeArgument(List<Action<DafnyOptions>> optionSettings) {
+    public async Task MapAsTypeArgument(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
       method test() {
@@ -1131,7 +1129,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     [Theory]
     [MemberData(nameof(OptionSettings))]
-    public async Task DatatypeTypeAsTypeArgument(List<Action<DafnyOptions>> optionSettings) {
+    public async Task DatatypeTypeAsTypeArgument(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
       module M {
@@ -1153,7 +1151,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     [Theory]
     [MemberData(nameof(OptionSettings))]
-    public async Task SetsEmpty(List<Action<DafnyOptions>> optionSettings) {
+    public async Task SetsEmpty(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
       method test() {
@@ -1173,7 +1171,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     [Theory]
     [MemberData(nameof(OptionSettings))]
-    public async Task MapsUpdate(List<Action<DafnyOptions>> optionSettings) {
+    public async Task MapsUpdate(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
       method test(value:int) {
@@ -1201,7 +1199,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     [Theory]
     [MemberData(nameof(OptionSettings))]
-    public async Task MapsUpdateStoredInANewVariable(List<Action<DafnyOptions>> optionSettings) {
+    public async Task MapsUpdateStoredInANewVariable(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
       method T_map1(m:map<int,int>, key:int, val:int)
@@ -1228,7 +1226,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     [Theory]
     [MemberData(nameof(OptionSettings))]
-    public async Task MapsBuildRecursive(List<Action<DafnyOptions>> optionSettings) {
+    public async Task MapsBuildRecursive(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
       method T_map2()
@@ -1251,7 +1249,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     [Theory]
     [MemberData(nameof(OptionSettings))]
-    public async Task MapsValuesUpdate(List<Action<DafnyOptions>> optionSettings) {
+    public async Task MapsValuesUpdate(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
       // This corner case previously triggered infinite loops
       var source = @"
@@ -1280,7 +1278,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     [Theory]
     [MemberData(nameof(OptionSettings))]
-    public async Task MapsKeys(List<Action<DafnyOptions>> optionSettings) {
+    public async Task MapsKeys(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
       method test(m:map<int,char>) {
@@ -1301,7 +1299,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     [Theory]
     [MemberData(nameof(OptionSettings))]
-    public async Task MapsValues(List<Action<DafnyOptions>> optionSettings) {
+    public async Task MapsValues(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
       method test(m:map<int,char>) {
@@ -1322,7 +1320,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     [Theory]
     [MemberData(nameof(OptionSettings))]
-    public async Task MapsOfBitVectors(List<Action<DafnyOptions>> optionSettings) {
+    public async Task MapsOfBitVectors(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
       // This test case triggers a situation in which the model does not
       // specify concrete values for bit vectors and the counterexample extraction
@@ -1343,7 +1341,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     [Theory]
     [MemberData(nameof(OptionSettings))]
-    public async Task ModuleRenaming(List<Action<DafnyOptions>> optionSettings) {
+    public async Task ModuleRenaming(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
       module Mo_dule_ {
@@ -1368,7 +1366,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     [Theory]
     [MemberData(nameof(OptionSettings))]
-    public async Task UnboundedIntegers(List<Action<DafnyOptions>> optionSettings) {
+    public async Task UnboundedIntegers(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
       ghost const NAT64_MAX := 0x7fff_ffff_ffff_ffff
@@ -1392,7 +1390,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     [Theory]
     [MemberData(nameof(OptionSettings))]
-    public async Task DatatypeWithPredicate(List<Action<DafnyOptions>> optionSettings) {
+    public async Task DatatypeWithPredicate(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
       module M {
@@ -1418,7 +1416,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
     /** Makes sure the counterexample lists the base type of a variable */
     [Theory]
     [MemberData(nameof(OptionSettings))]
-    public async Task SubsetType(List<Action<DafnyOptions>> optionSettings) {
+    public async Task SubsetType(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = "" +
       "type String = s:string | |s| > 0 witness \"a\"" +
@@ -1440,7 +1438,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
     /// </summary>
     [Theory]
     [MemberData(nameof(OptionSettings))]
-    public async Task EqualFields(List<Action<DafnyOptions>> optionSettings) {
+    public async Task EqualFields(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
       module M {
@@ -1471,7 +1469,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
     /// </summary>
     [Theory]
     [MemberData(nameof(OptionSettings))]
-    public async Task NonIntegerSeqIndices(List<Action<DafnyOptions>> optionSettings) {
+    public async Task NonIntegerSeqIndices(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
       string fp = Path.Combine(Directory.GetCurrentDirectory(), "Various", "TestFiles", "3048.dfy");
       var source = await File.ReadAllTextAsync(fp, CancellationToken);
@@ -1515,7 +1513,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     [Theory]
     [MemberData(nameof(OptionSettings))]
-    public async Task TypePolymorphism(List<Action<DafnyOptions>> optionSettings) {
+    public async Task TypePolymorphism(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
       module M { 
@@ -1532,6 +1530,30 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       Assert.True(counterExamples[0].Variables.ContainsKey("a:M.C.Equal$T"));
       Assert.True(counterExamples[0].Variables.ContainsKey("b:M.C.Equal$T"));
       Assert.True(counterExamples[0].Variables.ContainsKey("this:M.C<M.C$T>"));
+    }
+
+    /// <summary>
+    /// This test case would previously lead to stack overflow because of infinite recursion in GetDafnyType
+    /// </summary>
+    [Theory]
+    [MemberData(nameof(OptionSettings))]
+    public async Task GetDafnyTypeInfiniteRecursion(Action<DafnyOptions> optionSettings) {
+      await SetUpOptions(optionSettings);
+      var source = @"
+      class Seq {
+        var s:seq<int>
+        method test(i0:nat, val0:int, i1:nat, val1:int) 
+          modifies this {
+          assume 0 <= i0 < i1 < |s|;
+          s := s[i0 := val0];
+          s := s[i1 := val1];
+          assert s[0] != 0;
+        }
+      }
+      ".TrimStart();
+      var documentItem = CreateTestDocument(source);
+      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+      (await RequestCounterExamples(documentItem.Uri)).ToList(); ;
     }
 
     public CounterExampleTest(ITestOutputHelper output) : base(output) {

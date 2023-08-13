@@ -8,7 +8,7 @@ namespace Microsoft.Dafny;
 /// <summary>
 /// Represents module X { ... }
 /// </summary>
-public class LiteralModuleDecl : ModuleDecl, ICanFormat {
+public class LiteralModuleDecl : ModuleDecl, ICanFormat, IHasSymbolChildren {
   public readonly ModuleDefinition ModuleDef;
 
   [FilledInDuringResolution] public ModuleSignature DefaultExport;  // the default export set of the module.
@@ -30,8 +30,8 @@ public class LiteralModuleDecl : ModuleDecl, ICanFormat {
     return DefaultExport;
   }
 
-  public override IEnumerable<Node> Children => new[] { ModuleDef };
-  public override IEnumerable<Node> PreResolveChildren => Children;
+  public override IEnumerable<INode> Children => new[] { ModuleDef };
+  public override IEnumerable<INode> PreResolveChildren => Children;
 
   public LiteralModuleDecl(Cloner cloner, LiteralModuleDecl original, ModuleDefinition parent)
     : base(cloner, original, parent) {
@@ -180,4 +180,6 @@ public class LiteralModuleDecl : ModuleDecl, ICanFormat {
       resolver.Reporter.Error(MessageSource.Resolver, tok, "Duplicate module name: {0}", Name);
     }
   }
+
+  public IEnumerable<ISymbol> ChildSymbols => ModuleDef.ChildSymbols;
 }

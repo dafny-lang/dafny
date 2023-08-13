@@ -1,4 +1,6 @@
-﻿using OmniSharp.Extensions.LanguageServer.Protocol.Models;
+﻿using Microsoft.Dafny.LanguageServer.Workspace;
+using OmniSharp.Extensions.LanguageServer.Protocol;
+using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.Language {
@@ -9,12 +11,12 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     /// <summary>
     /// The offset to convert a boogie line-number to an LSP line-number.
     /// </summary>
-    private const int LineOffset = -1;
+    public const int LineOffset = -1;
 
     /// <summary>
     /// The offset to convert a boogie column-number to an LSP column-number.
     /// </summary>
-    private const int ColumnOffset = -1;
+    public const int ColumnOffset = -1;
 
     public static Range ToLspRange(this DafnyRange range) {
       return new Range(
@@ -67,6 +69,24 @@ namespace Microsoft.Dafny.LanguageServer.Language {
 
     public static Position GetLspPosition(this DafnyPosition position) {
       return new Position(position.Line, position.Column);
+    }
+
+    public static Location GetLocation(this IToken token) {
+      return new Location {
+        Uri = DocumentUri.From(token.Uri),
+        Range = token.GetLspRange(true)
+      };
+    }
+
+    public static Location GetLocation(this RangeToken token) {
+      return new Location() {
+        Uri = DocumentUri.From(token.Uri),
+        Range = token.GetLspRange()
+      };
+    }
+
+    public static FilePosition GetFilePosition(this IToken token, bool end = false) {
+      return new FilePosition(token.Uri, GetLspPosition(token, end));
     }
 
     /// <summary>

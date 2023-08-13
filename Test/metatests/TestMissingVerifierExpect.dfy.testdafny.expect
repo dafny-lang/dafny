@@ -1,0 +1,6 @@
+Using legacy resolver and verifying...
+AssertEqualWithDiff() Failure
+Diff (changing expected into actual):
++TestMissingVerifierExpect.dfy(6,5): Warning: /!\ No terms found to trigger on.
++
+
