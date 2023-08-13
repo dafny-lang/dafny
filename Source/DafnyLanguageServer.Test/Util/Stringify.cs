@@ -1,7 +1,9 @@
 #nullable enable
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.IO;
 using System.Linq;
 using System.Text;
 
@@ -9,76 +11,80 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 
 public static class StringifyUtil {
 
-  public static string Stringify(this object root, bool showNullChildren = false) {
-
-    var builder = new StringBuilder();
+  public static void Stringify(this object root, TextWriter writer, bool showNullChildren = false) {
 
     void Helper(ImmutableHashSet<object> visited, object? value, int indentation) {
       if (value == null) {
-        builder.Append("null");
+        writer.Write("null");
         return;
       }
 
-      if (value is IEnumerable<object> enumerable) {
+      if (value is string) {
+        writer.Write($"\"{value}\"");
+        return;
+      }
+
+      var newIndentation = indentation + 2;
+      if (value is IEnumerable enumerable) {
         var sep = "";
-        builder.Append("[ ");
-        var newIndentation = indentation + 2;
+        writer.Write("[");
         foreach (var child in enumerable) {
-          builder.AppendLine(sep);
-          builder.Append(new String(' ', newIndentation));
+          writer.WriteLine(sep);
+          writer.Write(new String(' ', newIndentation));
           Helper(visited, child, newIndentation);
           sep = ", ";
         }
 
         if (sep != "") {
-          builder.AppendLine();
-          builder.Append(new String(' ', indentation));
+          writer.WriteLine();
+          writer.Write(new String(' ', indentation));
         }
-        builder.Append("]");
+        writer.Write("]");
 
-        return;
-      }
-
-      if (value is string) {
-        builder.Append($"\"{value}\"");
         return;
       }
 
       var type = value.GetType();
-      if (type.Namespace?.StartsWith("System") == true) {
-        builder.Append(value);
+      var isKeyValuePair = type.Name == "KeyValuePair`2";
+      if (type.Namespace?.StartsWith("System") == true && !isKeyValuePair) {
+        writer.Write(value);
         return;
       }
 
-      var properties = type.GetProperties();
-      if (properties.Any(p => p.PropertyType.IsAssignableTo(typeof(IEnumerable<object>)))) {
 
-        if (visited.Contains(value)) {
-          builder.Append("<visited>");
-          return;
-        }
-        var newVisited = visited.Add(value);
-
-        builder.Append(type.Name + " { ");
-        var objectSep = "";
-        foreach (var property in properties) {
-          var child = property.GetValue(value);
-          if (!showNullChildren && child == null) {
-            continue;
-          }
-          builder.Append(objectSep);
-          builder.Append(property.Name + ": ");
-          Helper(newVisited, child, indentation);
-          objectSep = ", ";
-        }
-        builder.Append(" }");
-      } else {
-        builder.Append(value);
+      if (visited.Contains(value)) {
+        writer.Write("<visited>");
+        return;
       }
+
+      var newVisited = visited.Add(value);
+
+      writer.Write((isKeyValuePair ? "" : (type.Name + " ")) + "{");
+      var objectSep = "";
+      var properties = type.GetProperties();
+      foreach (var property in properties) {
+        var child = property.GetValue(value);
+        if (!showNullChildren && child == null) {
+          continue;
+        }
+
+        writer.WriteLine(objectSep);
+        writer.Write(new String(' ', newIndentation));
+        writer.Write(property.Name + " = ");
+        Helper(newVisited, child, newIndentation);
+        objectSep = ",";
+      }
+
+      writer.WriteLine();
+      writer.Write(new String(' ', indentation) + "}");
     }
 
     Helper(ImmutableHashSet.Create<object>(), root, 0);
+  }
 
-    return builder.ToString()!;
+  public static string Stringify(this object root, bool showNullChildren = false) {
+    var stringWriter = new StringWriter();
+    Stringify(root, stringWriter, showNullChildren);
+    return stringWriter.ToString();
   }
 }

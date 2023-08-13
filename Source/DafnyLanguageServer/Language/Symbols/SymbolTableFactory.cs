@@ -77,16 +77,16 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
       private readonly ILogger logger;
       private readonly IDictionary<AstElement, ILocalizableSymbol> declarations;
       private readonly DafnyLangTypeResolver typeResolver;
-      private readonly IDictionary<AstElement, ISymbol> designators = new Dictionary<AstElement, ISymbol>();
+      private readonly IDictionary<AstElement, ILegacySymbol> designators = new Dictionary<AstElement, ILegacySymbol>();
       private readonly CancellationToken cancellationToken;
       private readonly CompilationUnit compilationUnit;
 
-      private ISymbol currentScope;
+      private ILegacySymbol currentScope;
 
       public IIntervalTree<Position, ILocalizableSymbol> SymbolLookup { get; } = new IntervalTree<Position, ILocalizableSymbol>();
 
       public DesignatorVisitor(
-          ILogger logger, CompilationUnit compilationUnit, IDictionary<AstElement, ILocalizableSymbol> declarations, ISymbol rootScope, CancellationToken cancellationToken) {
+          ILogger logger, CompilationUnit compilationUnit, IDictionary<AstElement, ILocalizableSymbol> declarations, ILegacySymbol rootScope, CancellationToken cancellationToken) {
         this.logger = logger;
         this.compilationUnit = compilationUnit;
         this.declarations = declarations;
@@ -223,7 +223,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         base.Visit(localVariable);
       }
 
-      private void RegisterTypeDesignator(ISymbol scope, Type type) {
+      private void RegisterTypeDesignator(ILegacySymbol scope, Type type) {
         // TODO We currently rely on the resolver to locate "NamePath" (i.e. the type designator).
         //      The "typeRhs" only points to the "new" keyword with its token.
         //      Find an alternative to get the type designator without requiring the resolver.
@@ -232,7 +232,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         }
       }
 
-      private void RegisterDesignator(ISymbol scope, AstElement node, Boogie.IToken token, string identifier) {
+      private void RegisterDesignator(ILegacySymbol scope, AstElement node, Boogie.IToken token, string identifier) {
         var symbol = GetSymbolDeclarationByName(scope, identifier);
         if (symbol != null) {
           // Many resolutions for automatically generated nodes (e.g. Decreases, Update when initializating a variable
@@ -265,7 +265,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         currentScope = oldScope;
       }
 
-      private ILocalizableSymbol? GetSymbolDeclarationByName(ISymbol scope, string name) {
+      private ILocalizableSymbol? GetSymbolDeclarationByName(ILegacySymbol scope, string name) {
         var currentScope = scope;
         while (currentScope != null) {
           foreach (var child in currentScope.Children.OfType<ILocalizableSymbol>()) {
@@ -283,13 +283,13 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
     private class SymbolDeclarationLocationVisitor : ISymbolVisitor<Unit> {
       private readonly CancellationToken cancellationToken;
 
-      public IDictionary<ISymbol, SymbolLocation> Locations { get; } = new Dictionary<ISymbol, SymbolLocation>();
+      public IDictionary<ILegacySymbol, SymbolLocation> Locations { get; } = new Dictionary<ILegacySymbol, SymbolLocation>();
 
       public SymbolDeclarationLocationVisitor(CancellationToken cancellationToken) {
         this.cancellationToken = cancellationToken;
       }
 
-      public Unit Visit(ISymbol symbol) {
+      public Unit Visit(ILegacySymbol symbol) {
         symbol.Accept(this);
         return Unit.Value;
       }
@@ -411,13 +411,13 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         return Unit.Value;
       }
 
-      private void VisitChildren(ISymbol symbol) {
+      private void VisitChildren(ILegacySymbol symbol) {
         foreach (var child in symbol.Children) {
           child.Accept(this);
         }
       }
 
-      private void RegisterLocation(ISymbol symbol, IToken token, Range name, Range declaration) {
+      private void RegisterLocation(ILegacySymbol symbol, IToken token, Range name, Range declaration) {
         if (token.Filepath != null) {
           // The filename is null if we have a default or System based symbol. This is also reflected by the ranges being usually -1.
           Locations.Add(symbol, new SymbolLocation(token.GetDocumentUri(), name, declaration));

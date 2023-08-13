@@ -7,7 +7,7 @@
 
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
-using Microsoft.Boogie;
+using System.Linq;
 
 namespace Microsoft.Dafny;
 
@@ -27,8 +27,12 @@ class PreTypeToTypeVisitor : ASTVisitor<IASTVisitorContext> {
   }
 
   public static Type PreType2Type(PreType preType) {
+    return PreType2Type(preType, true);
+  }
+
+  public static Type PreType2Type(PreType preType, bool usePrintablePreType) {
     var pt = (DPreType)preType.Normalize(); // all pre-types should have been filled in and resolved to a non-proxy
-    if (pt.PrintablePreType != null) {
+    if (usePrintablePreType && pt.PrintablePreType != null) {
       pt = pt.PrintablePreType;
     }
     switch (pt.Decl.Name) {
@@ -58,27 +62,51 @@ class PreTypeToTypeVisitor : ASTVisitor<IASTVisitorContext> {
         break;
     }
     var arguments = pt.Arguments.ConvertAll(PreType2Type);
-    if (pt.Decl is ValuetypeDecl valuetypeDecl) {
-      return valuetypeDecl.CreateType(arguments);
-    } else if (pt.Decl is ArrowTypeDecl arrowTypeDecl) {
+    if (pt.Decl is ArrowTypeDecl arrowTypeDecl) {
       return new ArrowType(pt.Decl.tok, arrowTypeDecl, arguments);
+    } else if (pt.Decl is ValuetypeDecl valuetypeDecl) {
+      return valuetypeDecl.CreateType(arguments);
+    } else if (pt.Decl is ClassLikeDecl { IsReferenceTypeDecl: true }) {
+      return new UserDefinedType(pt.Decl.tok, pt.Decl.Name + "?", pt.Decl, arguments);
     } else {
       return new UserDefinedType(pt.Decl.tok, pt.Decl.Name, pt.Decl, arguments);
     }
   }
 
-  protected override void VisitOneDeclaration(TopLevelDecl decl) {
-    if (decl is NewtypeDecl newtypeDecl) {
-      UpdateIfOmitted(newtypeDecl.BaseType, newtypeDecl.BasePreType);
-    } else if (decl is SubsetTypeDecl subsetTypeDecl) {
-      UpdateIfOmitted(subsetTypeDecl.Var.Type, subsetTypeDecl.Var.PreType);
+  public void VisitConstantsAndRedirectingTypes(List<TopLevelDecl> declarations) {
+    foreach (var decl in declarations) {
+      if (decl is NewtypeDecl newtypeDecl) {
+        UpdateIfOmitted(newtypeDecl.BaseType, newtypeDecl.BasePreType);
+      } else if (decl is SubsetTypeDecl subsetTypeDecl) {
+        UpdateIfOmitted(subsetTypeDecl.Var.Type, subsetTypeDecl.Var.PreType);
+      }
+      if (decl is TopLevelDeclWithMembers topLevelDeclWithMembers) {
+        foreach (var member in topLevelDeclWithMembers.Members.Where(member => member is ConstantField)) {
+          var constField = (ConstantField)member;
+          // The type of the const might have been omitted in the program text and then inferred
+          UpdateIfOmitted(constField.Type, constField.PreType);
+        }
+      }
     }
-    base.VisitOneDeclaration(decl);
   }
 
   private void UpdateIfOmitted(Type type, PreType preType) {
+    var preTypeConverted = PreType2Type(preType, false);
+    UpdateIfOmitted(type, preTypeConverted);
+  }
+
+  private void UpdateIfOmitted(Type type, Type preTypeConverted) {
     if (type is TypeProxy { T: null } typeProxy) {
-      typeProxy.T = PreType2Type(preType);
+      typeProxy.T = preTypeConverted;
+    } else {
+      type = type.NormalizeExpand();
+      // TODO: "type" should also be moved up to the parent type that corresponds to "preType.Decl"
+      var preTypeConvertedExpanded = preTypeConverted.NormalizeExpand();
+      Contract.Assert((type as UserDefinedType)?.ResolvedClass == (preTypeConvertedExpanded as UserDefinedType)?.ResolvedClass);
+      Contract.Assert(type.TypeArgs.Count == preTypeConvertedExpanded.TypeArgs.Count);
+      for (var i = 0; i < type.TypeArgs.Count; i++) {
+        UpdateIfOmitted(type.TypeArgs[i], preTypeConverted.TypeArgs[i]);
+      }
     }
   }
 
@@ -86,12 +114,6 @@ class PreTypeToTypeVisitor : ASTVisitor<IASTVisitorContext> {
     foreach (var v in variables) {
       UpdateIfOmitted(v.Type, v.PreType);
     }
-  }
-
-  public override void VisitField(Field field) {
-    // The type of the const might have been omitted in the program text and then inferred
-    UpdateIfOmitted(field.Type, field.PreType);
-    base.VisitField(field);
   }
 
   protected override void PostVisitOneExpression(Expression expr, IASTVisitorContext context) {
@@ -115,6 +137,8 @@ class PreTypeToTypeVisitor : ASTVisitor<IASTVisitorContext> {
           datatypeValue.InferredTypeArgs.Add(PreType2Type(preTypeArgument));
         }
       }
+    } else if (expr is ConversionExpr conversionExpr) {
+      UpdateIfOmitted(conversionExpr.ToType, conversionExpr.PreType);
     }
 
     if (expr.PreType is UnusedPreType) {
@@ -148,6 +172,15 @@ class PreTypeToTypeVisitor : ASTVisitor<IASTVisitorContext> {
       VisitPattern(varDeclPattern.LHS, context);
     } else if (stmt is AssignStmt { Rhs: TypeRhs tRhs }) {
       tRhs.Type = PreType2Type(tRhs.PreType);
+      if (tRhs.ArrayDimensions != null) {
+        // In this case, we expect tRhs.PreType to be an array type
+        var arrayPreType = (DPreType)tRhs.PreType.Normalize();
+        Contract.Assert(arrayPreType.Decl is ArrayClassDecl);
+        Contract.Assert(arrayPreType.Arguments.Count == 1);
+        UpdateIfOmitted(tRhs.EType, arrayPreType.Arguments[0]);
+      } else {
+        UpdateIfOmitted(tRhs.EType, tRhs.PreType);
+      }
     } else if (stmt is AssignSuchThatStmt assignSuchThatStmt) {
       foreach (var lhs in assignSuchThatStmt.Lhss) {
         VisitExpression(lhs, context);
@@ -165,6 +198,8 @@ class PreTypeToTypeVisitor : ASTVisitor<IASTVisitorContext> {
         PostVisitOneExpression(step, context);
       }
       PostVisitOneExpression(calcStmt.Result, context);
+    } else if (stmt is ForLoopStmt forLoopStmt) {
+      UpdateIfOmitted(forLoopStmt.LoopIndex.Type, forLoopStmt.LoopIndex.PreType);
     } else if (stmt is ForallStmt forallStmt) {
       UpdateTypeOfVariables(forallStmt.BoundVars);
     }
@@ -176,5 +211,27 @@ class PreTypeToTypeVisitor : ASTVisitor<IASTVisitorContext> {
         VisitStatement(ss, context);
       }
     }
+  }
+
+  protected override void VisitExtendedPattern(ExtendedPattern pattern, IASTVisitorContext context) {
+    switch (pattern) {
+      case DisjunctivePattern disjunctivePattern:
+        break;
+      case LitPattern litPattern:
+        PostVisitOneExpression(litPattern.OptimisticallyDesugaredLit, context);
+        break;
+      case IdPattern idPattern:
+        if (idPattern.BoundVar != null) {
+          UpdateIfOmitted(idPattern.BoundVar.Type, idPattern.BoundVar.PreType);
+        }
+        if (idPattern.ResolvedLit != null) {
+          PostVisitOneExpression(idPattern.ResolvedLit, context);
+        }
+        break;
+      default:
+        Contract.Assert(false); // unexpected case
+        break;
+    }
+    base.VisitExtendedPattern(pattern, context);
   }
 }

@@ -16,7 +16,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
 
     public ISet<ModuleSymbol> Modules { get; } = new HashSet<ModuleSymbol>();
 
-    public override IEnumerable<ISymbol> Children => Modules;
+    public override IEnumerable<ILegacySymbol> Children => Modules;
 
     public CompilationUnit(Uri entryDocument, Dafny.Program program) : base(null, program.Name) {
       EntryDocument = entryDocument;

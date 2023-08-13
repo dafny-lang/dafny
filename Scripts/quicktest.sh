@@ -67,9 +67,9 @@ $DAFNY build -t:py c.dfy | diff - $tmp || exit 1
 python c-py/c.py | diff - $tmpx || exit 1
 echo Building with Rust
 $DAFNY build -t:rs c.dfy | diff - $tmp || exit 1
-./c.exe | diff - $tmpx || exit 1
+./c-rust/target/debug/c | diff - $tmpx || exit 1
 
 echo Quicktest script succeeded
 
-rm -rf a.dfy b.dfy c.dfy c-go c-java c-py c.jar c c.dll c.exe c.js c.rs c.runtimeconfig.json
+rm -rf a.dfy b.dfy c.dfy c-go c-java c-py c.jar c c.dll c.exe c.js c-rust c.runtimeconfig.json
 rm $tmp $tmpx

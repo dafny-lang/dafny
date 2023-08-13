@@ -18,15 +18,19 @@ public class SymbolTable {
   }
 
   private SymbolTable() {
-    Usages = ImmutableDictionary<IDeclarationOrUsage, ISet<IDeclarationOrUsage>>.Empty;
-    Declarations = ImmutableDictionary<IDeclarationOrUsage, IDeclarationOrUsage>.Empty;
+    DeclarationToUsages = ImmutableDictionary<IDeclarationOrUsage, ISet<IDeclarationOrUsage>>.Empty;
+    UsageToDeclaration = ImmutableDictionary<IDeclarationOrUsage, IDeclarationOrUsage>.Empty;
   }
 
   public SymbolTable(IReadOnlyList<(IDeclarationOrUsage usage, IDeclarationOrUsage declaration)> usages) {
-    var safeUsages = usages.Where(k => k.usage.NameToken.Uri != null && k.declaration.NameToken.Uri != null).ToList();
-    Declarations = safeUsages.DistinctBy(k => k.usage).
-      ToImmutableDictionary(k => k.usage, k => k.declaration);
-    Usages = safeUsages.GroupBy(u => u.declaration).ToImmutableDictionary(
+    var safeUsages1 = usages.Where(k => k.usage.NameToken.Uri != null).ToImmutableList();
+    var safeUsages = usages.Where(k => k.usage.NameToken.Uri != null && k.declaration.NameToken.Uri != null).ToImmutableList();
+
+    var usageDeclarations = safeUsages1.Select(k => KeyValuePair.Create(k.usage, k.declaration));
+    var selfDeclarations = safeUsages1.Select(k => KeyValuePair.Create(k.declaration, k.declaration));
+    UsageToDeclaration = usageDeclarations.Concat(selfDeclarations).DistinctBy(pair => pair.Key).ToImmutableDictionary();
+
+    DeclarationToUsages = safeUsages1.GroupBy(u => u.declaration).ToImmutableDictionary(
       g => g.Key,
       g => (ISet<IDeclarationOrUsage>)g.Select(k => k.usage).ToHashSet());
 
@@ -45,29 +49,44 @@ public class SymbolTable {
   }
 
   private readonly Dictionary<Uri, IIntervalTree<Position, IDeclarationOrUsage>> nodePositions = new();
-  private ImmutableDictionary<IDeclarationOrUsage, IDeclarationOrUsage> Declarations { get; }
-  private ImmutableDictionary<IDeclarationOrUsage, ISet<IDeclarationOrUsage>> Usages { get; }
+
+  /// <summary>
+  /// Maps each symbol declaration to itself, and each symbol usage to the symbol's declaration.
+  /// </summary>
+  public ImmutableDictionary<IDeclarationOrUsage, IDeclarationOrUsage> UsageToDeclaration { get; }
+
+  /// <summary>
+  /// Maps each symbol declaration to usages of the symbol, not including the declaration itself.
+  /// </summary>
+  private ImmutableDictionary<IDeclarationOrUsage, ISet<IDeclarationOrUsage>> DeclarationToUsages { get; }
 
   public ISet<Location> GetUsages(Uri uri, Position position) {
     if (nodePositions.TryGetValue(uri, out var forFile)) {
       return forFile.Query(position).
-        SelectMany(node => Usages.GetOrDefault(node, () => (ISet<IDeclarationOrUsage>)new HashSet<IDeclarationOrUsage>())).
+        SelectMany(node => DeclarationToUsages.GetOrDefault(node, () => (ISet<IDeclarationOrUsage>)new HashSet<IDeclarationOrUsage>())).
         Select(u => new Location { Uri = u.NameToken.Filepath, Range = u.NameToken.GetLspRange() }).ToHashSet();
     }
     return Sets.Empty<Location>();
   }
 
   public Location? GetDeclaration(Uri uri, Position position) {
+    var node = GetNode(uri, position);
+    return node == null ? null : NodeToLocation(node);
+  }
+
+  internal static Location NodeToLocation(IDeclarationOrUsage node) {
+    return new Location {
+      Uri = DocumentUri.From(node.NameToken.Uri),
+      Range = node.NameToken.GetLspRange()
+    };
+  }
+
+  public IDeclarationOrUsage? GetNode(Uri uri, Position position) {
     if (!nodePositions.TryGetValue(uri, out var forFile)) {
       return null;
     }
-
-    var referenceNodes = forFile.Query(position);
-    return referenceNodes.Select(node => Declarations.GetOrDefault(node, () => (IDeclarationOrUsage?)null))
-      .Where(x => x != null).Select(
-        n => new Location {
-          Uri = DocumentUri.From(n!.NameToken.Uri),
-          Range = n.NameToken.GetLspRange()
-        }).FirstOrDefault();
+    return forFile.Query(position)
+      .Select(node => UsageToDeclaration.GetOrDefault(node, () => (IDeclarationOrUsage?)null))
+      .FirstOrDefault(x => x != null);
   }
 }

@@ -31,6 +31,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           provider.GetRequiredService<ILogger<ProjectManager>>(),
           provider.GetRequiredService<IRelocator>(),
           provider.GetRequiredService<IFileSystem>(),
+          provider.GetRequiredService<INotificationPublisher>(),
+          provider.GetRequiredService<IVerificationProgressReporter>(),
           provider.GetRequiredService<CreateCompilationManager>(),
           provider.GetRequiredService<CreateIdeStateObserver>(),
           boogieEngine,

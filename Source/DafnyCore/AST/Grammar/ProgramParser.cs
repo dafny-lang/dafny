@@ -81,7 +81,11 @@ public class ProgramParser {
           pos = 0,
           val = string.Empty
         };
-        errorReporter.Error(MessageSource.Parser, internalErrorDummyToken, "[internal error] Parser exception: " + e.Message);
+        errorReporter.Error(MessageSource.Parser, internalErrorDummyToken,
+          "[internal error] Parser exception: " + e.Message);
+      }
+      finally {
+        dafnyFile.Content.Close();
       }
     }
 
@@ -125,9 +129,10 @@ public class ProgramParser {
     }
   }
 
-  public static void AddParseResultToProgram(DfyParseResult parseResult, Program program) {
+  private static void AddParseResultToProgram(DfyParseResult parseResult, Program program) {
     var defaultModule = program.DefaultModuleDef;
     var fileModule = parseResult.Module;
+    program.Files.Add(fileModule);
 
     foreach (var modify in parseResult.ModifyBuiltins) {
       modify(program.SystemModuleManager);
@@ -212,6 +217,9 @@ public class ProgramParser {
         }
       } catch (Exception) {
         // ignored
+      }
+      finally {
+        top.Content.Close();
       }
     }
 

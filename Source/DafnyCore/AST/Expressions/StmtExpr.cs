@@ -22,7 +22,7 @@ public class StmtExpr : Expression, ICanFormat, ICloneable<StmtExpr> {
     S = cloner.CloneStmt(original.S);
   }
 
-  public override IEnumerable<Node> Children => new Node[] { S, E };
+  public override IEnumerable<INode> Children => new Node[] { S, E };
 
   public StmtExpr(IToken tok, Statement stmt, Expression expr)
     : base(tok) {

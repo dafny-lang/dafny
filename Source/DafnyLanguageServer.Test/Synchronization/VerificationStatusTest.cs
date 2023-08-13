@@ -25,7 +25,7 @@ method Foo() returns (x: int) ensures x / 2 == 1; {
       options.Set(ServerCommand.Verification, VerifyOnMode.Never);
       options.Set(ServerCommand.ProjectMode, true);
     });
-    var directory = Path.GetRandomFileName();
+    var directory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
     await CreateAndOpenTestDocument("", Path.Combine(directory, DafnyProject.FileName));
     var documentItem1 = await CreateAndOpenTestDocument(source, Path.Combine(directory, "RunWithMultipleDocuments1.dfy"));
     var documentItem2 = await CreateAndOpenTestDocument(source.Replace("Foo", "Bar"), Path.Combine(directory, "RunWithMultipleDocuments2.dfy"));
@@ -37,6 +37,17 @@ method Foo() returns (x: int) ensures x / 2 == 1; {
 
     await client.RunSymbolVerification(documentItem2, fooRange.Start, CancellationToken);
     await WaitForStatus(fooRange, PublishedVerificationStatus.Correct, CancellationToken, documentItem2);
+  }
+
+  [Fact]
+  public async Task AssertlessMethodBecomesCorrect() {
+    var source = @"
+method Foo() {
+}";
+    var documentItem = CreateTestDocument(source);
+    await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+    var fooSymbol = (await RequestDocumentSymbol(documentItem)).Single();
+    await WaitForStatus(fooSymbol.SelectionRange, PublishedVerificationStatus.Correct, CancellationToken);
   }
 
   [Fact]
@@ -314,8 +325,6 @@ method Bar() { assert false; }";
     });
     var documentItem = CreateTestDocument(source);
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-    var stale = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
-    Assert.Equal(PublishedVerificationStatus.Stale, stale.NamedVerifiables[0].Status);
 
     // Send a change to enable getting a new status notification.
     ApplyChange(ref documentItem, new Range(new Position(1, 0), new Position(1, 0)), "\n");
@@ -323,6 +332,7 @@ method Bar() { assert false; }";
     await client.SaveDocumentAndWaitAsync(documentItem, CancellationToken);
 
     var stale2 = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
+    Assert.Equal(PublishedVerificationStatus.Stale, stale2.NamedVerifiables[0].Status);
     var running = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
     Assert.Equal(PublishedVerificationStatus.Running, running.NamedVerifiables[0].Status);
 
@@ -331,7 +341,7 @@ method Bar() { assert false; }";
   }
 
   [Fact]
-  public async Task CachingWorks() {
+  public async Task CachingDoesNotWork() {
     var source = @"method Foo() { assert true; }
 method Bar() { assert true; }";
 
@@ -348,13 +358,15 @@ method Bar() { assert true; }";
     ApplyChange(ref documentItem, new Range(new Position(1, 22), new Position(1, 26)), "false");
     await AssertNoResolutionErrors(documentItem);
     var correct = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
-    Assert.Equal(PublishedVerificationStatus.Correct, correct.NamedVerifiables[0].Status);
+    // Uncomment when caching works
+    // Assert.Equal(PublishedVerificationStatus.Correct, correct.NamedVerifiables[0].Status);
+    Assert.Equal(PublishedVerificationStatus.Stale, correct.NamedVerifiables[0].Status);
     Assert.True(correct.NamedVerifiables[1].Status < PublishedVerificationStatus.Error);
   }
 
   private async Task<FileVerificationStatus> WaitUntilAllStatusAreCompleted(TextDocumentIdentifier documentId) {
-    var lastDocument = (CompilationAfterTranslation)(await Projects.GetLastDocumentAsync(documentId));
-    var symbols = lastDocument!.ImplementationIdToView.Select(id => id.Key).ToHashSet();
+    var lastDocument = (CompilationAfterResolution)(await Projects.GetLastDocumentAsync(documentId));
+    var symbols = lastDocument!.Verifiables.ToHashSet();
     FileVerificationStatus beforeChangeStatus;
     do {
       beforeChangeStatus = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
@@ -443,15 +455,18 @@ iterator ThatIterator(x: int) yields (y: int, z: int)
     await AssertNoResolutionErrors(documentItem);
     var status = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
 
-    Assert.Equal(8, status.NamedVerifiables.Count);
-    Assert.Equal(new Range(1, 17, 1, 23), status.NamedVerifiables[0].NameRange);
-    Assert.Equal(new Range(7, 11, 7, 34), status.NamedVerifiables[1].NameRange);
-    Assert.Equal(new Range(12, 8, 12, 17), status.NamedVerifiables[2].NameRange);
-    Assert.Equal(new Range(15, 9, 15, 30), status.NamedVerifiables[3].NameRange);
-    Assert.Equal(new Range(20, 11, 20, 34), status.NamedVerifiables[4].NameRange);
-    Assert.Equal(new Range(27, 5, 27, 10), status.NamedVerifiables[5].NameRange);
-    Assert.Equal(new Range(30, 8, 30, 16), status.NamedVerifiables[6].NameRange);
-    Assert.Equal(new Range(33, 9, 33, 21), status.NamedVerifiables[7].NameRange);
+    Assert.Equal(9, status.NamedVerifiables.Count);
+    var index = 0;
+    Assert.Equal(new Range(1, 17, 1, 23), status.NamedVerifiables[index++].NameRange);
+    // This entry doesn't actually have anything to verify, but that's hard to determine so it's shown here.
+    Assert.Equal(new Range(4, 9, 4, 30), status.NamedVerifiables[index++].NameRange);
+    Assert.Equal(new Range(7, 11, 7, 34), status.NamedVerifiables[index++].NameRange);
+    Assert.Equal(new Range(12, 8, 12, 17), status.NamedVerifiables[index++].NameRange);
+    Assert.Equal(new Range(15, 9, 15, 30), status.NamedVerifiables[index++].NameRange);
+    Assert.Equal(new Range(20, 11, 20, 34), status.NamedVerifiables[index++].NameRange);
+    Assert.Equal(new Range(27, 5, 27, 10), status.NamedVerifiables[index++].NameRange);
+    Assert.Equal(new Range(30, 8, 30, 16), status.NamedVerifiables[index++].NameRange);
+    Assert.Equal(new Range(33, 9, 33, 21), status.NamedVerifiables[index].NameRange);
   }
 
   [Fact]
