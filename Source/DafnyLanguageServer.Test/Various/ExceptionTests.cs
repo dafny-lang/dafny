@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
@@ -8,6 +9,7 @@ using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Workspace;
+using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Server;
@@ -93,12 +95,12 @@ public class ExceptionTests : ClientBasedLanguageServerTest {
     }
 
     public Task<IReadOnlyList<IImplementationTask>> GetVerificationTasksAsync(ExecutionEngine engine,
-      CompilationAfterResolution compilation, CancellationToken cancellationToken) {
+      CompilationAfterResolution compilation, ModuleDefinition moduleDefinition, CancellationToken cancellationToken) {
 
       if (tests.CrashOnPrepareVerification) {
-        throw new Exception("crash");
+        throw new Exception("testing crash");
       }
-      return verifier.GetVerificationTasksAsync(engine, compilation, cancellationToken);
+      return verifier.GetVerificationTasksAsync(engine, compilation, moduleDefinition, cancellationToken);
     }
   }
 
@@ -115,12 +117,17 @@ public class ExceptionTests : ClientBasedLanguageServerTest {
       return loader.CreateUnloaded(compilation);
     }
 
-    public Task<CompilationAfterParsing> LoadAsync(DafnyOptions options, Compilation compilation,
-        CancellationToken cancellationToken) {
+    public Task<CompilationAfterParsing> ParseAsync(DafnyOptions options, Compilation compilation,
+      IReadOnlyDictionary<Uri, VerificationTree> migratedVerificationTrees, CancellationToken cancellationToken) {
+      return loader.ParseAsync(options, compilation, ImmutableDictionary<Uri, VerificationTree>.Empty, cancellationToken);
+    }
+
+    public Task<CompilationAfterResolution> ResolveAsync(DafnyOptions options, CompilationAfterParsing compilation,
+      IReadOnlyDictionary<Uri, VerificationTree> migratedVerificationTrees, CancellationToken cancellationToken) {
       if (tests.CrashOnLoad) {
-        throw new IOException("crash");
+        throw new IOException("testing crash");
       }
-      return loader.LoadAsync(options, compilation, cancellationToken);
+      return loader.ResolveAsync(options, compilation, migratedVerificationTrees, cancellationToken);
     }
   }
 

@@ -1,5 +1,6 @@
 ﻿using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
+using Microsoft.Extensions.Logging;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -59,65 +60,65 @@ method Foo() ensures false { } ";
   public async Task EnsureVerificationGutterStatusIsWorking() {
     await SetUp(o => o.Set(CommonOptionBag.RelaxDefiniteAssignment, true));
     await VerifyTrace(@"
- .  |  |  |  I  I  |  | :predicate Ok() {
- .  |  |  |  I  I  |  | :  true
- .  |  |  |  I  I  |  | :}
-    |  |  |  I  I  |  | :
- .  S [S][ ][I][I][S] | :method Test(x: bool) returns (i: int)
- .  S [=][=][-][-][~] | :   ensures i == 2
- .  S [S][ ][I][I][S] | :{
- .  S [S][ ][I][I][S] | :  if x {
- .  S [S][ ][I][I][S] | :    i := 2;
- .  S [=][=][-][-][~] | :  } else {
- .  S [S][ ]/!\[I][S] | :    i := 1; //Replace1:   i := /; //Replace2:    i := 2;
- .  S [S][ ][I][I][S] | :  }
- .  S [S][ ][I][I][S] | :}
-    |  |  |  I  I  |  | :    
- .  |  |  |  I  I  |  | :predicate OkBis() {
- .  |  |  |  I  I  |  | :  false
- .  |  |  |  I  I  |  | :}", true);
+ .  |  |  |  |  |  I  I  |  |  |  | :predicate Ok() {
+ .  |  |  |  |  |  I  I  |  |  |  | :  true
+ .  |  |  |  |  |  I  I  |  |  |  | :}
+    |  |  |  |  |  I  I  |  |  |  | :
+ .  .  .  S [S][ ][I][I][I][I][S] | :method Test(x: bool) returns (i: int)
+ .  .  .  S [=][=][-][-][-][-][~] | :   ensures i == 2
+ .  .  .  S [S][ ][I][I][I][I][S] | :{
+ .  .  .  S [S][ ][I][I][I][I][S] | :  if x {
+ .  .  .  S [S][ ][I][I][I][I][S] | :    i := 2;
+ .  .  .  S [=][=][-][-][-][-][~] | :  } else {
+ .  .  .  S [S][ ]/!\[I][I][I][S] | :    i := 1; //Replace1:   i := /; //Replace2:    i := 2;
+ .  .  .  S [S][ ][I][I][I][I][S] | :  }
+ .  .  .  S [S][ ][I][I][I][I][S] | :}
+       |  |  |  |  I  I  I  |  |  | :    
+ .  .  |  |  |  |  I  I  I  |  |  | :predicate OkBis() {
+ .  .  |  |  |  |  I  I  I  |  |  | :  false
+ .  .  |  |  |  |  I  I  I  |  |  | :}", true);
   }
-  [Fact(Timeout = MaxTestExecutionTimeMs)]
+  [Fact]
   public async Task EnsuresItWorksForSubsetTypes() {
     await VerifyTrace(@"
-    |  |  |  I  I  |  |  |  I  I  |  |  | :// The maximum Id
- .  |  |  |  I  I  |  |  |  I  I  |  |  | :ghost const maxId := 200;
-    |  |  |  I  I  |  |  |  I  I  |  |  | :
- .  |  |  |  I  I  |  |  |  I  I  |  |  | :ghost predicate isIssueIdValid(issueId: int) {
- .  |  |  |  I  I  |  |  |  I  I  |  |  | :  101 <= issueId < maxId
- .  |  |  |  I  I  |  |  |  I  I  |  |  | :}
-    |  |  |  I  I  |  |  |  I  I  |  |  | :
- .  S  S  |  I  .  S  S [=] I  .  S  S  | :type IssueId = i : int | isIssueIdValid(i)
- .  S  |  |  I  .  S  | [=] I  .  S  |  | :  witness 101 //Replace1:   witness 99 //Replace2:   witness 101 ", false, "EnsuresItWorksForSubsetTypes.dfy");
+    |  |  |  |  |  I  I  |  |  |  |  |  I  I  |  |  |  |  | :// The maximum Id
+ .  |  |  |  |  |  I  I  |  |  |  |  |  I  I  |  |  |  |  | :ghost const maxId := 200;
+    |  |  |  |  |  I  I  |  |  |  |  |  I  I  |  |  |  |  | :
+ .  .  |  |  |  |  I  I  I  |  |  |  |  I  I  I  |  |  |  | :ghost predicate isIssueIdValid(issueId: int) {
+ .  .  |  |  |  |  I  I  I  |  |  |  |  I  I  I  |  |  |  | :  101 <= issueId < maxId
+ .  .  |  |  |  |  I  I  I  |  |  |  |  I  I  I  |  |  |  | :}
+       |  |  |  |  I  I  I  |  |  |  |  I  I  I  |  |  |  | :
+ .  .  .  S  S  |  I  .  .  .  S  S [=] I  .  .  .  S  S  | :type IssueId = i : int | isIssueIdValid(i)
+ .  .  .  S  |  |  I  .  .  .  S  | [=] I  .  .  .  S  |  | :  witness 101 //Replace1:   witness 99 //Replace2:   witness 101 ", false, "EnsuresItWorksForSubsetTypes.dfy");
   }
 
   [Fact(Timeout = MaxTestExecutionTimeMs)]
   public async Task EnsureItWorksForPostconditionsRelatedOutside() {
     await VerifyTrace(@"
- .  |  |  | :predicate F(i: int) {
- .  |  |  | :  false // Should not be highlighted in gutter.
- .  |  |  | :}
-    |  |  | :
- .  S [S][ ]:method H()
- .  S [=][=]:  ensures F(1)
- .  S [=][=]:{
- .  S [S][ ]:}", true);
+ .  |  |  |  | :predicate F(i: int) {
+ .  |  |  |  | :  false // Should not be highlighted in gutter.
+ .  |  |  |  | :}
+    |  |  |  | :
+ .  .  S [S][ ]:method H()
+ .  .  S [=][=]:  ensures F(1)
+ .  .  S [=][=]:{
+ .  .  S [S][ ]:}", true);
   }
 
   [Fact(Timeout = MaxTestExecutionTimeMs * 10)]
   public async Task EnsureNoAssertShowsVerified() {
     for (var i = 0; i < 10; i++) {
       await VerifyTrace(@"
- .  |  |  |  I  | :predicate P(x: int)
-    |  |  |  I  | :
- .  S [S][ ][I] | :method Main() {
- .  S [=][=][I] | :  ghost var x :| P(x); //Replace:  ghost var x := 1;
- .  S [S][ ][I] | :}
-                | :// Comment to not trim this line", false, $"EnsureNoAssertShowsVerified{i}.dfy");
+ .  |  |  |  |  I  I  | :predicate P(x: int)
+    |  |  |  |  I  I  | :
+ .  .  S [S][ ][I] |  | :method Main() {
+ .  .  S [=][=][I] |  | :  ghost var x :| P(x); //Replace:  ghost var x := 1;
+ .  .  S [S][ ][I] |  | :}
+                   |  | :// Comment to not trim this line", false, $"EnsureNoAssertShowsVerified{i}.dfy");
     }
   }
 
-  [Fact(Timeout = MaxTestExecutionTimeMs)]
+  [Fact]
   public async Task EnsureEmptyDocumentIsVerified() {
     await VerifyTrace(@"
  | :class A {
@@ -142,10 +143,10 @@ method Foo() ensures false { } ";
   [Fact/*(Timeout = MaxTestExecutionTimeMs)*/]
   public async Task TopLevelConstantsHaveToBeVerifiedAlso() {
     await VerifyTrace(@"
-    |  |  | :// The following should trigger only one error
- .  |  |  | :ghost const a := [1, 2];
-    |  |  | :
- .  S [~][=]:ghost const b := a[-1];", false);
+    |  |  |  | :// The following should trigger only one error
+ .  |  |  |  | :ghost const a := [1, 2];
+    |  |  |  | :
+ .  .  S [~][=]:ghost const b := a[-1];", false);
   }
 
   [Fact/*(Timeout = MaxTestExecutionTimeMs)*/]
@@ -185,38 +186,38 @@ method Foo() ensures false { } ";
   [Fact]
   public async Task EnsureBodylessMethodsAreCovered() {
     await VerifyTrace(@"
- .  |  |  | :method test() {
- .  |  |  | :}
-    |  |  | :
- .  S [S][ ]:method {:extern} test3(a: nat, b: nat)
- .  S [S][ ]:  ensures true
- .  S [=][=]:  ensures test2(a - b)
- .  S [S][ ]:  ensures true
- .  S [O][O]:  ensures test2(a - b)
- .  S [S][ ]:  ensures true
-    |  |  | :
- .  |  |  | :predicate test2(x: nat) {
- .  |  |  | :  true
- .  |  |  | :}", false);
+ .  |  |  |  |  | :method test() {
+ .  |  |  |  |  | :}
+    |  |  |  |  | :
+ .  .  .  S [S][ ]:method {:extern} test3(a: nat, b: nat)
+ .  .  .  S [S][ ]:  ensures true
+ .  .  .  S [=][=]:  ensures test2(a - b)
+ .  .  .  S [S][ ]:  ensures true
+ .  .  .  S [O][O]:  ensures test2(a - b)
+ .  .  .  S [S][ ]:  ensures true
+       |  |  |  | :
+ .  .  |  |  |  | :predicate test2(x: nat) {
+ .  .  |  |  |  | :  true
+ .  .  |  |  |  | :}", false);
   }
 
 
   [Fact]
   public async Task EnsureBodylessFunctionsAreCovered() {
     await VerifyTrace(@"
- .  |  |  | :method test() {
- .  |  |  | :}
-    |  |  | :
- .  S [S][ ]:function {:extern} test4(a: nat, b: nat): nat
- .  S [S][ ]:  ensures true
- .  S [=][=]:  ensures test2(a - b)
- .  S [S][ ]:  ensures true
- .  S [O][O]:  ensures test2(a - b)
- .  S [S][ ]:  ensures true
-    |  |  | :
- .  |  |  | :predicate test2(x: nat) {
- .  |  |  | :  true
- .  |  |  | :}", true);
+ .  |  |  |  |  | :method test() {
+ .  |  |  |  |  | :}
+    |  |  |  |  | :
+ .  .  .  S [S][ ]:function {:extern} test4(a: nat, b: nat): nat
+ .  .  .  S [S][ ]:  ensures true
+ .  .  .  S [=][=]:  ensures test2(a - b)
+ .  .  .  S [S][ ]:  ensures true
+ .  .  .  S [O][O]:  ensures test2(a - b)
+ .  .  .  S [S][ ]:  ensures true
+       |  |  |  | :
+ .  .  |  |  |  | :predicate test2(x: nat) {
+ .  .  |  |  |  | :  true
+ .  .  |  |  |  | :}", true);
   }
 
   public SimpleLinearVerificationGutterStatusTester(ITestOutputHelper output) : base(output) {

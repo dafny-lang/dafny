@@ -8,6 +8,7 @@ using Microsoft.Boogie.SMTLib;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 using Microsoft.Dafny.LanguageServer.Workspace;
+using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using Xunit;
 using Xunit.Abstractions;
@@ -19,7 +20,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.GutterStatus;
 /// This class tests whether editing a file results in
 /// methods priorities for verification being set automatically.
 /// </summary>
-public class ReorderingVerificationGutterStatusTester : LinearVerificationGutterStatusTester {
+public class VerificationOrderTest2 : ClientBasedLanguageServerTest {
   private const int MaxTestExecutionTimeMs = 10000;
 
   [Fact/*, Timeout(MaxTestExecutionTimeMs * 10)*/]
@@ -35,7 +36,7 @@ method m2() {
       "m1 m2\n" +
       "m2 m1\n" +
       "m1 m2"
-    );
+    , "EnsuresPriorityDependsOnEditing.dfy");
   }
 
   [Fact]
@@ -67,7 +68,7 @@ method m5() {
       "m1 m5 m2 m4 m3\n" +
       "m3 m1 m5 m2 m4\n" +
       "m5 m3 m1 m2 m4"
-    );
+    , "EnsuresPriorityDependsOnEditingWhileEditingSameMethod.dfy");
   }
 
   [Fact]
@@ -86,7 +87,7 @@ method m5() { assert false; } //Remove3:
       "m1 m2 m3 m4 m5\n" +
       "m3 m1 m2 m4 m5\n" +
       "m4 m3 m1 m2 m5\n" +
-      "m4 m3 m1 m2");
+      "m4 m3 m1 m2", "EnsuresPriorityWorksEvenIfRemovingMethods.dfy");
   }
 
   [Fact]
@@ -110,11 +111,11 @@ method m5() { assert false; } //Remove4:
     "null\n" +
     "null\n" +
     "m2 m4 m3 m1"
-  );
+  , "EnsuresPriorityWorksEvenIfRemovingMethodsWhileTypo.dfy");
   }
 
   // Requires changes to not change the position of symbols for now, as we are not applying the changes to the local code for now.
-  private async Task TestPriorities(string codeAndChanges, string symbolsString) {
+  private async Task TestPriorities(string codeAndChanges, string symbolsString, string filePath = null) {
     var semaphoreSlim = new SemaphoreSlim(0);
     await SetUp(options => {
       options.CreateSolver = (_, _) =>
@@ -123,8 +124,8 @@ method m5() { assert false; } //Remove4:
     });
     var symbols = ExtractSymbols(symbolsString);
 
-    var (code, codes, changesList) = ExtractCodeAndChanges(codeAndChanges.TrimStart());
-    var documentItem = CreateTestDocument(code);
+    var (code, codes, changesList) = LinearVerificationGutterStatusTester.ExtractCodeAndChanges(codeAndChanges.TrimStart());
+    var documentItem = CreateTestDocument(code, filePath);
     client.OpenDocument(documentItem);
 
     var source = new CancellationTokenSource();
@@ -136,9 +137,9 @@ method m5() { assert false; } //Remove4:
         var orderAfterChange = await GetFlattenedPositionOrder(semaphoreSlim, source.Token);
         var orderAfterChangeSymbols = GetSymbols(code, orderAfterChange).ToList();
         Assert.True(expectedSymbols.SequenceEqual(orderAfterChangeSymbols),
-          $"Expected {string.Join(", ", expectedSymbols)} but got {string.Join(", ", orderAfterChangeSymbols)}." +
-          $"\nOld to new history was: {verificationStatusReceiver.History.Stringify()}");
+          $"Expected {string.Join(", ", expectedSymbols)} but got {string.Join(", ", orderAfterChangeSymbols)}");
       } catch (OperationCanceledException) {
+        WriteVerificationHistory();
         await output.WriteLineAsync($"Operation cancelled for index {index} when expecting: {string.Join(", ", expectedSymbols)}");
         throw;
       }
@@ -199,11 +200,12 @@ method m5() { assert false; } //Remove4:
         count++;
 
       } catch (OperationCanceledException) {
-        Console.WriteLine("count: " + count);
+        await output.WriteLineAsync("count: " + count);
         if (foundStatus != null) {
-          Console.WriteLine("Found status before timeout: " + string.Join(", ", foundStatus.NamedVerifiables));
+          await output.WriteLineAsync("Found status before timeout: " + string.Join(", ", foundStatus.NamedVerifiables));
         }
-        Console.WriteLine($"\nOld to new history was: {verificationStatusReceiver.History.Stringify()}");
+
+        WriteVerificationHistory();
         throw;
       }
 
@@ -222,6 +224,7 @@ method m5() { assert false; } //Remove4:
 
       var newlyReported = newlyDone.Concat(newlyRunning).ToList();
       if (newlyReported.Count > 1) {
+        WriteVerificationHistory();
         throw new Exception("semaphore throttling should only allow one newly running per notification.");
       }
 
@@ -233,6 +236,6 @@ method m5() { assert false; } //Remove4:
     } while (!started || foundStatus.NamedVerifiables.Any(v => v.Status < PublishedVerificationStatus.Error));
   }
 
-  public ReorderingVerificationGutterStatusTester(ITestOutputHelper output) : base(output) {
+  public VerificationOrderTest2(ITestOutputHelper output) : base(output) {
   }
 }

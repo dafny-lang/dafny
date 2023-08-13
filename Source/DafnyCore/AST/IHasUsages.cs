@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Microsoft.Dafny;
 
@@ -9,6 +10,19 @@ public interface IDeclarationOrUsage : INode {
 
 public interface IHasUsages : IDeclarationOrUsage {
   public IEnumerable<IDeclarationOrUsage> GetResolvedDeclarations();
+}
+
+/// <summary>
+/// A symbol that potential has something to verify
+/// </summary>
+public interface ICanVerify : ISymbol {
+  ModuleDefinition ContainingModule { get; }
+
+  /// <summary>
+  /// Return true if this symbol has something to verify.
+  /// If true is incorrectly returned, the IDE will allow the user to verify this but it'll pass immediately.
+  /// </summary>
+  bool ShouldVerify { get; }
 }
 
 public static class AstExtensions {
@@ -42,6 +56,25 @@ public interface ISymbol : IDeclarationOrUsage {
 
 public interface IHasSymbolChildren : ISymbol {
   IEnumerable<ISymbol> ChildSymbols { get; }
+}
+
+public static class SymbolExtensions {
+
+  public static ISet<ISymbol> GetSymbolDescendants(ISymbol node) {
+    var todo = new Stack<ISymbol>();
+    todo.Push(node);
+    var result = new HashSet<ISymbol>();
+    while (todo.Any()) {
+      var current = todo.Pop();
+      result.Add(current);
+      if (current is IHasSymbolChildren hasChildren) {
+        foreach (var child in hasChildren.ChildSymbols) {
+          todo.Push(child);
+        }
+      }
+    }
+    return result;
+  }
 }
 
 /// <summary>

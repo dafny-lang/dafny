@@ -1,4 +1,6 @@
-﻿using OmniSharp.Extensions.LanguageServer.Protocol.Models;
+﻿using Microsoft.Dafny.LanguageServer.Workspace;
+using OmniSharp.Extensions.LanguageServer.Protocol;
+using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.Language {
@@ -67,6 +69,24 @@ namespace Microsoft.Dafny.LanguageServer.Language {
 
     public static Position GetLspPosition(this DafnyPosition position) {
       return new Position(position.Line, position.Column);
+    }
+
+    public static Location GetLocation(this IToken token) {
+      return new Location {
+        Uri = DocumentUri.From(token.Uri),
+        Range = token.GetLspRange(true)
+      };
+    }
+
+    public static Location GetLocation(this RangeToken token) {
+      return new Location() {
+        Uri = DocumentUri.From(token.Uri),
+        Range = token.GetLspRange()
+      };
+    }
+
+    public static FilePosition GetFilePosition(this IToken token, bool end = false) {
+      return new FilePosition(token.Uri, GetLspPosition(token, end));
     }
 
     /// <summary>

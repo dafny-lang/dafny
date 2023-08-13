@@ -36,7 +36,7 @@ function GetConstant(): int {
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var document = await Projects.GetResolvedDocumentAsyncNormalizeUri(documentItem.Uri);
       Assert.NotNull(document);
-      Assert.Empty(document.GetDiagnostics());
+      Assert.True(document.GetDiagnostics().Values.All(x => !x.Any()));
     }
 
     [Fact]
