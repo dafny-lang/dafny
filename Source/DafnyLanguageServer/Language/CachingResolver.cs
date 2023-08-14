@@ -1,8 +1,12 @@
+using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Threading;
+using MediatR;
 using Microsoft.Boogie;
+using Microsoft.Dafny.LanguageServer.Workspace;
 using Microsoft.Extensions.Logging;
 
 namespace Microsoft.Dafny.LanguageServer.Language;
@@ -20,18 +24,24 @@ public class CachingResolver : ProgramResolver {
   private readonly ILogger<CachingResolver> logger;
   private readonly Dictionary<ModuleDecl, byte[]> hashes = new();
   private readonly ResolutionCache cache;
+  private readonly ITelemetryPublisher telemetryPublisher;
 
-  public CachingResolver(Program program,
+  public CachingResolver(
+    Program program,
     ILogger<CachingResolver> logger,
+    ITelemetryPublisher telemetryPublisher,
     ResolutionCache cache)
     : base(program) {
     this.logger = logger;
     this.cache = cache;
+    this.telemetryPublisher = telemetryPublisher;
   }
 
   public override void Resolve(CancellationToken cancellationToken) {
-    base.Resolve(cancellationToken);
-    cache.Prune();
+    cache.Modules.ProfileAndPruneCache(() => {
+      base.Resolve(cancellationToken);
+      return Unit.Value;
+    }, telemetryPublisher, Program.FullName, "resolution");
   }
 
   protected override Dictionary<TopLevelDeclWithMembers, Dictionary<string, MemberDecl>> ResolveSystemModule(Program program) {
