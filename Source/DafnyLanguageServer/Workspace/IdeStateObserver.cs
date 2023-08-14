@@ -19,7 +19,6 @@ public class IdeStateObserver : IObserver<IdeState> {
   private readonly ITelemetryPublisher telemetryPublisher;
   private readonly INotificationPublisher notificationPublisher;
   private readonly ITextDocumentLoader loader;
-  private readonly IRelocator relocator;
   private readonly Compilation compilation;
 
   private readonly object lastPublishedStateLock = new();
@@ -30,7 +29,6 @@ public class IdeStateObserver : IObserver<IdeState> {
     ITelemetryPublisher telemetryPublisher,
     INotificationPublisher notificationPublisher,
     ITextDocumentLoader loader,
-    IRelocator relocator,
     Compilation compilation) {
     LastPublishedState = loader.CreateUnloaded(compilation);
     this.logger = logger;
@@ -38,7 +36,6 @@ public class IdeStateObserver : IObserver<IdeState> {
     this.notificationPublisher = notificationPublisher;
     this.loader = loader;
     this.compilation = compilation;
-    this.relocator = relocator;
   }
 
   public void OnCompleted() {
@@ -89,38 +86,37 @@ public class IdeStateObserver : IObserver<IdeState> {
     }
   }
 
-  public void Migrate(DidChangeTextDocumentParams documentChange, int version) {
+  public void Migrate(Migrator migrator, int version) {
     lock (lastPublishedStateLock) {
       var migratedVerificationTrees = LastPublishedState.VerificationTrees.ToDictionary(
         kv => kv.Key, kv =>
-          relocator.RelocateVerificationTree(kv.Value, documentChange, CancellationToken.None));
+          migrator.RelocateVerificationTree(kv.Value));
       LastPublishedState = LastPublishedState with {
         Version = version,
-        VerificationResults = MigrateImplementationViews(documentChange, LastPublishedState.VerificationResults),
-        SignatureAndCompletionTable = relocator.RelocateSymbols(LastPublishedState.SignatureAndCompletionTable,
-          documentChange, CancellationToken.None),
+        VerificationResults = MigrateImplementationViews(migrator, LastPublishedState.VerificationResults),
+        SignatureAndCompletionTable = migrator.MigrateSymbolTable(LastPublishedState.SignatureAndCompletionTable),
         VerificationTrees = migratedVerificationTrees
       };
       logger.LogDebug($"Migrated LastPublishedState to version {version}, uri {compilation.Uri}");
     }
   }
 
-  private Dictionary<Location, IdeVerificationResult> MigrateImplementationViews(DidChangeTextDocumentParams documentChange,
+  private Dictionary<Location, IdeVerificationResult> MigrateImplementationViews(Migrator migrator,
       Dictionary<Location, IdeVerificationResult> oldVerificationDiagnostics) {
     var result = new Dictionary<Location, IdeVerificationResult>();
     foreach (var entry in oldVerificationDiagnostics) {
-      var newOuterRange = relocator.RelocateRange(entry.Key.Range, documentChange, CancellationToken.None);
+      var newOuterRange = migrator.MigrateRange(entry.Key.Range);
       if (newOuterRange == null) {
         continue;
       }
 
       var newValue = new Dictionary<string, IdeImplementationView>();
       foreach (var innerEntry in entry.Value.Implementations) {
-        var newInnerRange = relocator.RelocateRange(innerEntry.Value.Range, documentChange, CancellationToken.None);
+        var newInnerRange = migrator.MigrateRange(innerEntry.Value.Range);
         if (newInnerRange != null) {
           newValue.Add(innerEntry.Key, innerEntry.Value with {
             Range = newInnerRange,
-            Diagnostics = relocator.RelocateDiagnostics(innerEntry.Value.Diagnostics, documentChange, CancellationToken.None)
+            Diagnostics = migrator.MigrateDiagnostics(innerEntry.Value.Diagnostics)
           });
         }
       }
