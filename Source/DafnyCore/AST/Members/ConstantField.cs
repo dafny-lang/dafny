@@ -6,7 +6,7 @@ namespace Microsoft.Dafny;
 
 public class ConstantField : SpecialField, ICallable, ICanVerify {
   public override string WhatKind => "const field";
-  public readonly Expression Rhs;
+  public Expression Rhs;
 
   public override bool IsOpaque { get; }
 
