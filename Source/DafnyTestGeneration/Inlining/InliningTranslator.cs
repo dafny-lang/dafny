@@ -33,7 +33,7 @@ public static class InliningTranslator {
     // Change by-method function calls to method calls
     new FunctionCallToMethodCallRewriter(ShouldProcessForInlining).PostResolve(dafnyProgram);
     // Separate by-method methods into standalone methods so that translator adds Call$$ procedures for them
-    new SeparateByMethodRewriter(new ConsoleErrorReporter(options), ShouldProcessForInlining).PostResolve(dafnyProgram);
+    new SeparateByMethodRewriter(new ConsoleErrorReporter(options)).PostResolve(dafnyProgram);
     // Translate Dafny to Boogie. 
     var boogiePrograms = Utils.Translate(dafnyProgram);
     if (dafnyProgram.Reporter.HasErrors) {
