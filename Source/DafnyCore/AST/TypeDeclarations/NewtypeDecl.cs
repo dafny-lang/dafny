@@ -5,7 +5,7 @@ using System.Numerics;
 
 namespace Microsoft.Dafny;
 
-public class NewtypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, RedirectingTypeDecl, IHasDocstring {
+public class NewtypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, RedirectingTypeDecl, IHasDocstring, ICanVerify {
   public override string WhatKind { get { return "newtype"; } }
   public override bool CanBeRevealed() { return true; }
   public PreType BasePreType;
@@ -110,6 +110,9 @@ public class NewtypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, Redirect
 
     return GetTriviaContainingDocstringFromStartTokenOrNull();
   }
+
+  public ModuleDefinition ContainingModule => EnclosingModuleDefinition;
+  public bool ShouldVerify => true; // This could be made more accurate
 }
 
 public class NativeType {

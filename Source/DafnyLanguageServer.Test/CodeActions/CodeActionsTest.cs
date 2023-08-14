@@ -284,8 +284,7 @@ function Foo(i: int): int
 
       MarkupTestFile.GetPositionsAndAnnotatedRanges(source.TrimStart(), out var output, out var positions,
         out var ranges);
-      var documentItem = CreateTestDocument(output);
-      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+      var documentItem = await CreateAndOpenTestDocument(output);
       var diagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
       Assert.Equal(ranges.Count, diagnostics.Length);
 

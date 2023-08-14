@@ -28,25 +28,26 @@ public class DafnyProject : IEquatable<DafnyProject> {
 
   public static async Task<DafnyProject> Open(IFileSystem fileSystem, Uri uri, TextWriter outputWriter, TextWriter errorWriter) {
     if (Path.GetFileName(uri.LocalPath) != FileName) {
-      outputWriter.WriteLine($"Warning: only Dafny project files named {FileName} are recognised by the Dafny IDE.");
+      await outputWriter.WriteLineAsync($"Warning: only Dafny project files named {FileName} are recognised by the Dafny IDE.");
     }
     try {
-      var text = await fileSystem.ReadFile(uri).ReadToEndAsync();
+      using var textReader = fileSystem.ReadFile(uri);
+      var text = await textReader.ReadToEndAsync();
       var model = Toml.ToModel<DafnyProject>(text, null, new TomlModelOptions());
       model.Uri = uri;
       return model;
 
     } catch (IOException e) {
-      errorWriter.WriteLine(e.Message);
+      await errorWriter.WriteLineAsync(e.Message);
       return null;
     } catch (TomlException tomlException) {
-      errorWriter.WriteLine($"The Dafny project file {uri.LocalPath} contains the following errors:");
+      await errorWriter.WriteLineAsync($"The Dafny project file {uri.LocalPath} contains the following errors:");
       var regex = new Regex(
         @$"\((\d+),(\d+)\) : error : The property `(\w+)` was not found on object type {typeof(DafnyProject).FullName}");
       var newMessage = regex.Replace(tomlException.Message,
         match =>
           $"({match.Groups[1].Value},{match.Groups[2].Value}): the property {match.Groups[3].Value} does not exist.");
-      errorWriter.WriteLine(newMessage);
+      await errorWriter.WriteLineAsync(newMessage);
       return null;
     }
   }
