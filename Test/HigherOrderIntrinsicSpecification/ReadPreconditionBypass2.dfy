@@ -22,7 +22,7 @@ method Main()
 
   var inner1 := new Ref();
   outer.inner := inner1;
-  var reads1 := hof(outer);
+  var reads1 := hof(outer); // Error: function precondition could not be proved
   assert reads1 == {inner1};
 
   var inner2 := new Ref();

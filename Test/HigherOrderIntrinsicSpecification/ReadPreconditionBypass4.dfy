@@ -24,10 +24,10 @@ method Main()
   var inner1 := new Ref();
   outer.inner := inner1;
   var reads1 := myh.reads(outer);
-  assert reads1 == {inner1};
+  assert reads1 == {inner1}; // Error: assertion might not hold
 
   var inner2 := new Ref();
   outer.inner := inner2;
   var reads2 := myh.reads(outer);
-  assert reads2 == {inner2};
+  assert reads2 == {inner2}; // Error: assertion might not hold
 }
