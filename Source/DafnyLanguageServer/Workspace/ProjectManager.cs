@@ -29,7 +29,7 @@ public record FilePosition(Uri Uri, Position Position);
 /// Handles migration of previously published document state
 /// </summary>
 public class ProjectManager : IDisposable {
-  private readonly IRelocator relocator;
+  private readonly CreateMigrator createMigrator;
   public DafnyProject Project { get; }
 
   private readonly IdeStateObserver observer;
@@ -64,7 +64,7 @@ public class ProjectManager : IDisposable {
   public ProjectManager(
     DafnyOptions serverOptions,
     ILogger<ProjectManager> logger,
-    IRelocator relocator,
+    CreateMigrator createMigrator,
     IFileSystem fileSystem,
     INotificationPublisher notificationPublisher,
     IVerificationProgressReporter verificationProgressReporter,
@@ -78,7 +78,7 @@ public class ProjectManager : IDisposable {
     this.serverOptions = serverOptions;
     this.fileSystem = fileSystem;
     this.createCompilationManager = createCompilationManager;
-    this.relocator = relocator;
+    this.createMigrator = createMigrator;
     this.logger = logger;
     this.boogieEngine = boogieEngine;
 
@@ -103,7 +103,8 @@ public class ProjectManager : IDisposable {
   private const int MaxRememberedChangedVerifiables = 5;
 
   public void UpdateDocument(DidChangeTextDocumentParams documentChange) {
-    observer.Migrate(documentChange, version + 1);
+    var changeProcessor = createMigrator(documentChange, CancellationToken.None);
+    observer.Migrate(changeProcessor, version + 1);
     var lastPublishedState = observer.LastPublishedState;
     var migratedVerificationTrees = lastPublishedState.VerificationTrees;
 
@@ -114,7 +115,7 @@ public class ProjectManager : IDisposable {
           Uri = documentChange.TextDocument.Uri
         });
       var migratedChanges = RecentChanges.Select(location => {
-        var newRange = relocator.RelocateRange(location.Range, documentChange, CancellationToken.None);
+        var newRange = changeProcessor.MigrateRange(location.Range);
         if (newRange == null) {
           return null;
         }
