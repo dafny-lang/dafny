@@ -562,6 +562,20 @@ read. More precise would be to specify that `Sum` reads only what `f`
 reads on the values from `lo` to `hi`, but the larger set denoted by
 `reads f.reads` is easier to write down and is often good enough.)
 
+Without such `reads` function, one could also write the more precise
+and more verbose:
+<!-- %check-verify -->
+function Sum(f: int ~> real, lo: int, hi: int): real
+  requires lo <= hi
+  requires forall i :: lo <= i < hi ==> f.requires(i)
+  reads set i, o | lo <= i < hi && o in f.reads(i) :: o
+  decreases hi - lo
+{
+  if lo == hi then 0.0 else
+    f(lo) + Sum(f, lo + 1, hi)
+}
+```
+
 Note, only `reads` clauses, not `modifies` clauses, are allowed to
 include functions as just described.
 

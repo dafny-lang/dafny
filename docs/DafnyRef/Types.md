@@ -1684,13 +1684,14 @@ and the subset type `(TT) --> U` is called the _partial arrow type_.
 think of the little gap between the two hyphens in `-->` as showing a broken
 arrow.)
 
-The built-in partial arrow type is defined as follows (here shown
+Intuitively, the built-in partial arrow type is defined as follows (here shown
 for arrows with arity 1):
 <!-- %no-check -->
 ```dafny
 type A --> B = f: A ~> B | forall a :: f.reads(a) == {}
 ```
-(except that what is shown here left of the `=` is not legal Dafny syntax).
+(except that what is shown here left of the `=` is not legal Dafny syntax
+and that the restriction could not be verified as is).
 That is, the partial arrow type is defined as those functions `f`
 whose reads frame is empty for all inputs.
 More precisely, taking variance into account, the partial arrow type
