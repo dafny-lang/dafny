@@ -1,0 +1,1 @@
+Making default export set opaque no longer crashing the resolver on inductive datatypes

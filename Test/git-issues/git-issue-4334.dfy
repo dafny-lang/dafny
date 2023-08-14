@@ -11,14 +11,14 @@ module Crash {
  
   datatype Func =
     | ReUnion
-    | ReLoop {
-
-      predicate wellFormedFunction(args: seq<Sort>) {
-        match this {
-          case ReUnion => (forall arg | arg in args :: arg.Re?)
-          case _ => false
-        }
+    | ReLoop
+  {
+    predicate wellFormedFunction(args: seq<Sort>) {
+      match this {
+        case ReUnion => (forall arg | arg in args :: arg.Re?)
+        case _ => false
       }
-
     }
+
+  }
 }
