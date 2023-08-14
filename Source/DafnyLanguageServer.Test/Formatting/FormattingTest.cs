@@ -149,17 +149,17 @@ module A {
     var documentItem = CreateTestDocument(source);
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
     var verificationDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
-    DocumentAfterParsing document = await Documents.GetLastDocumentAsync(documentItem);
+    CompilationAfterParsing compilation = await Documents.GetLastDocumentAsync(documentItem);
     var edits = await RequestFormattingAsync(documentItem);
     edits.Reverse();
     var finalText = source;
-    Assert.NotNull(document);
-    var codeActionInput = new DafnyCodeActionInput(document);
+    Assert.NotNull(compilation);
+    var codeActionInput = new DafnyCodeActionInput(compilation);
 
     foreach (var edit in edits) {
       finalText = codeActionInput.Extract(new Range((0, 0), edit.Range.Start)) +
                   edit.NewText +
-                  codeActionInput.Extract(new Range(edit.Range.End, document.TextDocumentItem.Range.End));
+                  codeActionInput.Extract(new Range(edit.Range.End, compilation.TextDocumentItem.Range.End));
     }
     Assert.Equal(target, finalText);
   }

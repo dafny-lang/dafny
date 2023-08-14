@@ -71,7 +71,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       );
     }
 
-    public async Task<DocumentAfterParsing> LoadAsync(DafnyOptions options, DocumentTextBuffer textDocument,
+    public async Task<CompilationAfterParsing> LoadAsync(DafnyOptions options, DocumentTextBuffer textDocument,
       CancellationToken cancellationToken) {
 #pragma warning disable CS1998
       return await await DafnyMain.LargeStackFactory.StartNew(
@@ -80,13 +80,13 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         );
     }
 
-    private DocumentAfterParsing LoadInternal(DafnyOptions options, DocumentTextBuffer textDocument,
+    private CompilationAfterParsing LoadInternal(DafnyOptions options, DocumentTextBuffer textDocument,
       CancellationToken cancellationToken) {
       var outerModule = new DefaultModuleDefinition(new List<Uri>() { textDocument.Uri.ToUri() });
       var errorReporter = new DiagnosticErrorReporter(options, outerModule, textDocument.Text, textDocument.Uri);
       statusPublisher.SendStatusNotification(textDocument, CompilationStatus.Parsing);
       var program = parser.Parse(textDocument, errorReporter, cancellationToken);
-      var documentAfterParsing = new DocumentAfterParsing(textDocument, program, errorReporter.GetDiagnostics(textDocument.Uri));
+      var documentAfterParsing = new CompilationAfterParsing(textDocument, program, errorReporter.GetDiagnostics(textDocument.Uri));
       if (errorReporter.HasErrors) {
         statusPublisher.SendStatusNotification(textDocument, CompilationStatus.ParsingFailed);
         return documentAfterParsing;
@@ -105,7 +105,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
       var ghostDiagnostics = ghostStateDiagnosticCollector.GetGhostStateDiagnostics(symbolTable, cancellationToken).ToArray();
 
-      return new DocumentAfterResolution(textDocument,
+      return new CompilationAfterResolution(textDocument,
         program,
         errorReporter.GetDiagnostics(textDocument.Uri),
         newSymbolTable,

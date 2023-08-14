@@ -7,8 +7,8 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace;
 
-public class DocumentAfterResolution : DocumentAfterParsing {
-  public DocumentAfterResolution(DocumentTextBuffer textDocumentItem,
+public class CompilationAfterResolution : CompilationAfterParsing {
+  public CompilationAfterResolution(DocumentTextBuffer textDocumentItem,
     Dafny.Program program,
     IReadOnlyList<DafnyDiagnostic> parseAndResolutionDiagnostics,
     SymbolTable? symbolTable,

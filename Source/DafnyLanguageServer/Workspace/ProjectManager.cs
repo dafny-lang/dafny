@@ -30,7 +30,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace;
 /// Handles operation on a single document.
 /// Handles migration of previously published document state
 /// </summary>
-public class DocumentManager {
+public class ProjectManager {
 
   private const int MaxRememberedChanges = 100;
   private const int MaxRememberedChangedVerifiables = 5;
@@ -41,10 +41,10 @@ public class DocumentManager {
   private readonly IServiceProvider services;
   private readonly IdeStateObserver observer;
 
-  private TaskCompletionSource<Compilation> latestCompilationSource = new();
-  public Task<Compilation> Compilation => latestCompilationSource.Task;
+  private TaskCompletionSource<CompilationManager> latestCompilationSource = new();
+  public Task<CompilationManager> Compilation => latestCompilationSource.Task;
   private IDisposable observerSubscription;
-  private readonly ILogger<DocumentManager> logger;
+  private readonly ILogger<ProjectManager> logger;
   public List<Position> ChangedVerifiables { get; set; } = new();
   public List<Range> ChangedRanges { get; set; } = new();
 
@@ -52,16 +52,16 @@ public class DocumentManager {
   private readonly DafnyOptions options;
   private readonly IScheduler updateScheduler = new EventLoopScheduler();
 
-  private readonly ConcurrentQueue<(DidChangeTextDocumentParams, TaskCompletionSource<Compilation>)> changeRequests = new();
+  private readonly ConcurrentQueue<(DidChangeTextDocumentParams, TaskCompletionSource<CompilationManager>)> changeRequests = new();
   private CancellationTokenSource cancellationTokenSource;
   private DocumentTextBuffer document;
 
-  public DocumentManager(
+  public ProjectManager(
     IServiceProvider services,
     DocumentTextBuffer document) {
     this.services = services;
     this.options = services.GetRequiredService<DafnyOptions>();
-    this.logger = services.GetRequiredService<ILogger<DocumentManager>>();
+    this.logger = services.GetRequiredService<ILogger<ProjectManager>>();
     this.relocator = services.GetRequiredService<IRelocator>();
     this.textChangeProcessor = services.GetRequiredService<ITextChangeProcessor>();
 
@@ -94,7 +94,7 @@ public class DocumentManager {
   /// </summary>
   void MergeAndProcessDocumentChanges() {
     var items = new List<DidChangeTextDocumentParams>(changeRequests.Count);
-    TaskCompletionSource<Compilation> compilationSource = null!;
+    TaskCompletionSource<CompilationManager> compilationSource = null!;
     while (!changeRequests.IsEmpty) {
       if (changeRequests.TryDequeue(out var change)) {
         items.Add(change.Item1);
@@ -135,7 +135,7 @@ public class DocumentManager {
     changeReceived.OnNext(Unit.Value);
   }
 
-  private void ProcessDocumentChange(TaskCompletionSource<Compilation> compilationSource, DidChangeTextDocumentParams documentChange) {
+  private void ProcessDocumentChange(TaskCompletionSource<CompilationManager> compilationSource, DidChangeTextDocumentParams documentChange) {
     // According to the LSP specification, document versions should increase monotonically but may be non-consecutive.
     // See: https://github.com/microsoft/language-server-protocol/blob/gh-pages/_specifications/specification-3-16.md?plain=1#L1195
     var oldVer = document.Version;
@@ -175,12 +175,12 @@ public class DocumentManager {
     CreateAndStartCompilation(compilationSource, observer.LastPublishedState, VerifyOnChange);
   }
 
-  private void CreateAndStartCompilation(TaskCompletionSource<Compilation> compilationSource,
+  private void CreateAndStartCompilation(TaskCompletionSource<CompilationManager> compilationSource,
     IdeState lastIdeState,
     bool verifyEverything) {
 
     var _1 = workCompletedForCurrentVersion.WaitAsync();
-    var compilation = new Compilation(
+    var compilation = new CompilationManager(
       services,
       GetDocumentOptions(document.Uri),
       document,
@@ -283,7 +283,7 @@ public class DocumentManager {
     }
   }
 
-  public async Task<DocumentAfterParsing> GetLastDocumentAsync() {
+  public async Task<CompilationAfterParsing> GetLastDocumentAsync() {
     await workCompletedForCurrentVersion.WaitAsync();
     workCompletedForCurrentVersion.Release();
     var compilation = await Compilation;
@@ -345,7 +345,7 @@ public class DocumentManager {
     }
   }
 
-  private IEnumerable<Position> GetChangedVerifiablesFromRanges(DocumentAfterResolution loaded, IEnumerable<Range> changedRanges) {
+  private IEnumerable<Position> GetChangedVerifiablesFromRanges(CompilationAfterResolution loaded, IEnumerable<Range> changedRanges) {
     var tree = new DocumentVerificationTree(loaded.TextDocumentItem);
     VerificationProgressReporter.UpdateTree(options, loaded, tree);
     var intervalTree = new IntervalTree<Position, Position>();

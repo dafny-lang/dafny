@@ -46,10 +46,10 @@ public class DafnyCodeActionHandler : CodeActionHandlerBase {
   /// <summary>
   /// Returns the fixes along with a unique identifier
   /// </summary>
-  private IEnumerable<DafnyCodeActionWithId> GetFixesWithIds(IEnumerable<DafnyCodeActionProvider> fixers, DocumentAfterParsing document, CodeActionParams request) {
+  private IEnumerable<DafnyCodeActionWithId> GetFixesWithIds(IEnumerable<DafnyCodeActionProvider> fixers, CompilationAfterParsing compilation, CodeActionParams request) {
     var id = 0;
     return fixers.SelectMany(fixer => {
-      var fixerInput = new DafnyCodeActionInput(document);
+      var fixerInput = new DafnyCodeActionInput(compilation);
       var quickFixes = fixer.GetDafnyCodeActions(fixerInput, request.Range);
       var fixerCodeActions = quickFixes.Select(quickFix =>
         new DafnyCodeActionWithId(quickFix, id++));
@@ -143,21 +143,21 @@ public class DafnyCodeActionHandler : CodeActionHandlerBase {
 }
 
 public class DafnyCodeActionInput : IDafnyCodeActionInput {
-  public DafnyCodeActionInput(DocumentAfterParsing document) {
-    Document = document;
+  public DafnyCodeActionInput(CompilationAfterParsing compilation) {
+    Compilation = compilation;
   }
 
-  public string Uri => Document.Uri.ToString();
-  public int Version => Document.Version;
-  public string Code => Document.TextDocumentItem.Text;
-  public Dafny.Program Program => Document.Program;
-  public DocumentAfterParsing Document { get; }
+  public string Uri => Compilation.Uri.ToString();
+  public int Version => Compilation.Version;
+  public string Code => Compilation.TextDocumentItem.Text;
+  public Dafny.Program Program => Compilation.Program;
+  public CompilationAfterParsing Compilation { get; }
 
-  public IReadOnlyList<DafnyDiagnostic> Diagnostics => Document.Diagnostics.ToList();
-  public VerificationTree VerificationTree => Document.GetInitialDocumentVerificationTree();
+  public IReadOnlyList<DafnyDiagnostic> Diagnostics => Compilation.Diagnostics.ToList();
+  public VerificationTree VerificationTree => Compilation.GetInitialDocumentVerificationTree();
 
   public string Extract(Range range) {
-    var buffer = Document.TextDocumentItem;
+    var buffer = Compilation.TextDocumentItem;
     try {
       return buffer.Extract(range);
     } catch (ArgumentException) {

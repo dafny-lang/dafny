@@ -11,18 +11,18 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
   /// <summary>
   /// Contains a collection of DocumentManagers
   /// </summary>
-  public class DocumentManagerDatabase : IDocumentDatabase {
+  public class ProjectManagerDatabase : IDocumentDatabase {
 
     private readonly IServiceProvider services;
 
-    private readonly Dictionary<DocumentUri, DocumentManager> documents = new();
+    private readonly Dictionary<DocumentUri, ProjectManager> documents = new();
 
-    public DocumentManagerDatabase(IServiceProvider services) {
+    public ProjectManagerDatabase(IServiceProvider services) {
       this.services = services;
     }
 
     public void OpenDocument(DocumentTextBuffer document) {
-      documents.Add(document.Uri, new DocumentManager(services, document));
+      documents.Add(document.Uri, new ProjectManager(services, document));
     }
 
     public void UpdateDocument(DidChangeTextDocumentParams documentChange) {
@@ -57,18 +57,18 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       return Task.FromResult<IdeState?>(null);
     }
 
-    public Task<DocumentAfterParsing?> GetLastDocumentAsync(TextDocumentIdentifier documentId) {
+    public Task<CompilationAfterParsing?> GetLastDocumentAsync(TextDocumentIdentifier documentId) {
       if (documents.TryGetValue(documentId.Uri, out var databaseEntry)) {
         return databaseEntry.GetLastDocumentAsync()!;
       }
-      return Task.FromResult<DocumentAfterParsing?>(null);
+      return Task.FromResult<CompilationAfterParsing?>(null);
     }
 
-    public DocumentManager? GetDocumentManager(TextDocumentIdentifier documentId) {
+    public ProjectManager? GetDocumentManager(TextDocumentIdentifier documentId) {
       return documents.GetValueOrDefault(documentId.Uri);
     }
 
-    public IEnumerable<DocumentManager> Documents => documents.Values;
+    public IEnumerable<ProjectManager> Documents => documents.Values;
 
   }
 }

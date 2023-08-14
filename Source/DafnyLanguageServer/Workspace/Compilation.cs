@@ -1,390 +1,82 @@
-using System;
+﻿using System;
+using OmniSharp.Extensions.LanguageServer.Protocol;
+using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reactive;
-using System.Reactive.Concurrency;
-using System.Reactive.Linq;
-using System.Reactive.Subjects;
-using System.Reactive.Threading.Tasks;
-using System.Threading;
-using System.Threading.Tasks;
 using Microsoft.Boogie;
-using Microsoft.Dafny.LanguageServer.Language;
+using Microsoft.Dafny.LanguageServer.Language.Symbols;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
-using OmniSharp.Extensions.LanguageServer.Protocol.Models;
-using VC;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
-namespace Microsoft.Dafny.LanguageServer.Workspace;
+namespace Microsoft.Dafny.LanguageServer.Workspace {
 
-/// <summary>
-/// The compilation of a single document version.
-/// The document will be parsed, resolved, translated to Boogie and verified.
-///
-/// Compilation may be configured to pause after translation,
-/// requiring a call to CompilationManager.Verify for the document to be verified.
-///
-/// Compilation is agnostic to document updates, it does not handle the migration of old document state.
-/// </summary>
-public class Compilation {
+  /// <summary>
+  /// Internal representation of a specific version of a Dafny document.
+  ///
+  /// Only one instance should exist of a specific version.
+  /// Asynchronous compilation tasks use this instance to synchronise on.
+  ///
+  /// When verification starts, no new instances of Compilation will be created for this version.
+  /// There can be different verification threads that update the state of this object.
+  /// </summary>
+  public class Compilation {
+    public DocumentTextBuffer TextDocumentItem { get; }
+    public DocumentUri Uri => TextDocumentItem.Uri;
+    public int Version => TextDocumentItem.Version!.Value;
 
-  private readonly ILogger logger;
-  private readonly ITextDocumentLoader documentLoader;
-  private readonly ICompilationStatusNotificationPublisher statusPublisher;
-  private readonly INotificationPublisher notificationPublisher;
-  private readonly IProgramVerifier verifier;
+    public Compilation(DocumentTextBuffer textDocumentItem) {
+      TextDocumentItem = textDocumentItem;
+    }
 
-  public DocumentTextBuffer TextBuffer { get; }
-  private readonly IServiceProvider services;
+    public virtual IEnumerable<DafnyDiagnostic> Diagnostics => Enumerable.Empty<DafnyDiagnostic>();
 
-  // TODO CompilationManager shouldn't be aware of migration
-  private readonly VerificationTree? migratedVerificationTree;
-  private readonly CancellationToken cancellationToken;
+    public IdeState InitialIdeState(DafnyOptions options) {
+      return ToIdeState(new IdeState(TextDocumentItem, Array.Empty<Diagnostic>(),
+        SymbolTable.Empty(), SignatureAndCompletionTable.Empty(options, TextDocumentItem), new Dictionary<ImplementationId, IdeImplementationView>(),
+        Array.Empty<Counterexample>(),
+        false, Array.Empty<Diagnostic>(),
+        GetInitialDocumentVerificationTree()));
+    }
 
-  private TaskCompletionSource started = new();
-  private readonly IScheduler verificationUpdateScheduler = new EventLoopScheduler();
-  private readonly Subject<Document> documentUpdates = new();
-  public IObservable<Document> DocumentUpdates => documentUpdates;
+    public virtual VerificationTree GetInitialDocumentVerificationTree() {
+      return new DocumentVerificationTree(TextDocumentItem);
+    }
 
-  public Task<DocumentAfterParsing> ResolvedDocument { get; }
-  public Task<DocumentAfterTranslation> TranslatedDocument { get; }
-
-  public Compilation(IServiceProvider services,
-    DafnyOptions options,
-    DocumentTextBuffer textBuffer,
-    VerificationTree? migratedVerificationTree,
-    CancellationToken cancellationToken) {
-    this.options = options;
-    documentLoader = services.GetRequiredService<ITextDocumentLoader>();
-    logger = services.GetRequiredService<ILogger<Compilation>>();
-    notificationPublisher = services.GetRequiredService<INotificationPublisher>();
-    verifier = services.GetRequiredService<IProgramVerifier>();
-    statusPublisher = services.GetRequiredService<ICompilationStatusNotificationPublisher>();
-
-    TextBuffer = textBuffer;
-    this.services = services;
-    this.migratedVerificationTree = migratedVerificationTree;
-    this.cancellationToken = cancellationToken;
-
-    MarkVerificationFinished();
-
-    ResolvedDocument = ResolveAsync();
-    TranslatedDocument = TranslateAsync();
-  }
-
-  public void Start() {
-    started.TrySetResult();
-  }
-
-  private async Task<DocumentAfterParsing> ResolveAsync() {
-    try {
-      await started.Task;
-      var documentAfterParsing = await documentLoader.LoadAsync(options, TextBuffer, cancellationToken);
-
-      // TODO, let gutter icon publications also used the published CompilationView.
-      var state = documentAfterParsing.InitialIdeState(options);
-      state = state with {
-        VerificationTree = migratedVerificationTree ?? state.VerificationTree
+    /// <summary>
+    /// Collects information to present to the IDE
+    /// </summary>
+    public virtual IdeState ToIdeState(IdeState previousState) {
+      return previousState with {
+        TextDocumentItem = TextDocumentItem,
+        ImplementationsWereUpdated = false,
       };
-      notificationPublisher.PublishGutterIcons(state, false);
-
-      logger.LogDebug($"documentUpdates.HasObservers: {documentUpdates.HasObservers}, threadId: {Thread.CurrentThread.ManagedThreadId}");
-      documentUpdates.OnNext(documentAfterParsing);
-      logger.LogDebug($"Passed documentAfterParsing to documentUpdates.OnNext, resolving ResolvedDocument task for version {documentAfterParsing.Version}.");
-      return documentAfterParsing;
-
-    } catch (Exception e) {
-      documentUpdates.OnError(e);
-      throw;
     }
   }
 
-  private async Task<DocumentAfterTranslation> TranslateAsync() {
-    var parsedCompilation = await ResolvedDocument;
-    if (!options.Verify) {
-      throw new OperationCanceledException();
-    }
-    if (parsedCompilation is not DocumentAfterResolution resolvedCompilation) {
-      throw new OperationCanceledException();
-    }
+  public class CompilationAfterParsing : Compilation {
+    private readonly IReadOnlyList<DafnyDiagnostic> parseDiagnostics;
 
-    try {
-      var translatedDocument = await PrepareVerificationTasksAsync(resolvedCompilation, cancellationToken);
-      documentUpdates.OnNext(translatedDocument);
-      foreach (var task in translatedDocument.VerificationTasks!) {
-        cancellationToken.Register(task.Cancel);
-      }
-
-      return translatedDocument;
-    } catch (Exception e) {
-      documentUpdates.OnError(e);
-      throw;
-    }
-  }
-
-  public async Task<DocumentAfterTranslation> PrepareVerificationTasksAsync(
-    DocumentAfterResolution loaded,
-    CancellationToken cancellationToken) {
-    if (loaded.ParseAndResolutionDiagnostics.Any(d =>
-          d.Level == ErrorLevel.Error &&
-          d.Source != MessageSource.Compiler &&
-          d.Source != MessageSource.Verifier)) {
-      throw new TaskCanceledException();
+    public CompilationAfterParsing(DocumentTextBuffer textDocumentItem,
+      Dafny.Program program,
+      IReadOnlyList<DafnyDiagnostic> parseDiagnostics) : base(textDocumentItem) {
+      this.parseDiagnostics = parseDiagnostics;
+      Program = program;
     }
 
-    statusPublisher.SendStatusNotification(loaded.TextDocumentItem, CompilationStatus.PreparingVerification);
+    public override IEnumerable<DafnyDiagnostic> Diagnostics => parseDiagnostics;
 
-    var verificationTasks =
-      await verifier.GetVerificationTasksAsync(loaded, cancellationToken);
+    public Dafny.Program Program { get; }
 
-    var initialViews = new Dictionary<ImplementationId, ImplementationView>();
-    foreach (var task in verificationTasks) {
-      var status = StatusFromBoogieStatus(task.CacheStatus);
-      var implementationId = GetImplementationId(task.Implementation);
-      try {
-        if (task.CacheStatus is Completed completed) {
-          var view = new ImplementationView(task.Implementation.tok.GetLspRange(), status,
-            GetDiagnosticsFromResult(loaded, completed.Result).ToList());
-          initialViews.Add(implementationId, view);
-        } else {
-          var view = new ImplementationView(task.Implementation.tok.GetLspRange(), status, Array.Empty<DafnyDiagnostic>());
-          initialViews.Add(implementationId, view);
-        }
-      } catch (ArgumentException) {
-        logger.LogCritical($"Two different implementation tasks have the same id, second name is {task.Implementation.Name}.");
-      }
-    }
-
-    var translated = new DocumentAfterTranslation(services,
-      loaded.TextDocumentItem, loaded.Program,
-      loaded.ParseAndResolutionDiagnostics, loaded.SymbolTable, loaded.SignatureAndCompletionTable, loaded.GhostDiagnostics, verificationTasks,
-      new(),
-      initialViews,
-      migratedVerificationTree ?? new DocumentVerificationTree(loaded.TextDocumentItem));
-
-    translated.GutterProgressReporter.RecomputeVerificationTree();
-
-    if (ReportGutterStatus) {
-      translated.GutterProgressReporter.ReportRealtimeDiagnostics(false, translated);
-    }
-    translated.GutterProgressReporter.ReportImplementationsBeforeVerification(
-      verificationTasks.Select(t => t.Implementation).ToArray());
-    return translated;
-  }
-
-  private static ImplementationId GetImplementationId(Implementation implementation) {
-    var prefix = implementation.Name.Split(Translator.NameSeparator)[0];
-
-    // Refining declarations get the token of what they're refining, so to distinguish them we need to
-    // add the refining module name to the prefix.
-    if (implementation.tok is RefinementToken refinementToken) {
-      prefix += "." + refinementToken.InheritingModule.Name;
-    }
-    return new ImplementationId(implementation.tok.GetLspPosition(), prefix);
-  }
-
-  private void SetAllUnvisitedMethodsAsVerified(DocumentAfterTranslation document) {
-    foreach (var tree in document.VerificationTree.Children) {
-      tree.SetVerifiedIfPending();
+    public override IdeState ToIdeState(IdeState previousState) {
+      return previousState with {
+        TextDocumentItem = TextDocumentItem,
+        ResolutionDiagnostics = Diagnostics.Select(d => d.ToLspDiagnostic()),
+        ImplementationsWereUpdated = false,
+      };
     }
   }
 
-  private int runningVerificationJobs = 0;
-  public bool VerifyTask(DocumentAfterTranslation document, IImplementationTask implementationTask) {
+  public record ImplementationView(Range Range, PublishedVerificationStatus Status, IReadOnlyList<DafnyDiagnostic> Diagnostics);
 
-    var statusUpdates = implementationTask.TryRun();
-    if (statusUpdates == null) {
-      if (implementationTask.CacheStatus is Completed completedCache) {
-        foreach (var result in completedCache.Result.VCResults) {
-          document.GutterProgressReporter.ReportVerifyImplementationRunning(implementationTask.Implementation);
-          document.GutterProgressReporter.ReportAssertionBatchResult(
-            new AssertionBatchResult(implementationTask.Implementation, result));
-        }
-        document.GutterProgressReporter.ReportEndVerifyImplementation(implementationTask.Implementation,
-          completedCache.Result);
-      }
-
-      return false;
-    }
-
-    Interlocked.Increment(ref runningVerificationJobs);
-    MarkVerificationStarted();
-    statusUpdates.ObserveOn(verificationUpdateScheduler).Subscribe(
-      update => {
-        try {
-          HandleStatusUpdate(document, implementationTask, update);
-        } catch (Exception e) {
-          logger.LogCritical(e, "Caught exception in statusUpdates OnNext.");
-        }
-      },
-      e => {
-        logger.LogError(e, "Caught error in statusUpdates observable.");
-        StatusUpdateHandlerFinally();
-      },
-      StatusUpdateHandlerFinally
-    );
-
-    void StatusUpdateHandlerFinally() {
-      try {
-        var remainingJobs = Interlocked.Decrement(ref runningVerificationJobs);
-        if (remainingJobs == 0) {
-          logger.LogDebug($"Calling FinishedNotifications because there are no remaining verification jobs for version {document.Version}.");
-          FinishedNotifications(document);
-        }
-      } catch (Exception e) {
-        logger.LogCritical(e, "Caught exception while handling finally code of statusUpdates handler.");
-      }
-    }
-
-    return true;
-  }
-
-  public void FinishedNotifications(DocumentAfterTranslation document) {
-    MarkVerificationFinished();
-    if (ReportGutterStatus) {
-      // All unvisited trees need to set them as "verified"
-      if (!cancellationToken.IsCancellationRequested) {
-        SetAllUnvisitedMethodsAsVerified(document);
-      }
-
-      document.GutterProgressReporter.ReportRealtimeDiagnostics(true, document);
-    }
-  }
-
-  private void HandleStatusUpdate(DocumentAfterTranslation document, IImplementationTask implementationTask, IVerificationStatus boogieStatus) {
-    var id = GetImplementationId(implementationTask.Implementation);
-    var status = StatusFromBoogieStatus(boogieStatus);
-    var implementationRange = implementationTask.Implementation.tok.GetLspRange();
-    logger.LogDebug($"Received status {boogieStatus} for {implementationTask.Implementation.Name}");
-    if (boogieStatus is Running) {
-      document.GutterProgressReporter.ReportVerifyImplementationRunning(implementationTask.Implementation);
-    }
-
-    if (boogieStatus is BatchCompleted batchCompleted) {
-      document.GutterProgressReporter.ReportAssertionBatchResult(
-        new AssertionBatchResult(implementationTask.Implementation, batchCompleted.VcResult));
-    }
-
-    if (boogieStatus is Completed completed) {
-      var verificationResult = completed.Result;
-      foreach (var counterExample in verificationResult.Errors) {
-        document.Counterexamples.Add(counterExample);
-      }
-      // Sometimes, the boogie status is set as Completed
-      // but the assertion batches were not reported yet.
-      // because they are on a different thread.
-      // This loop will ensure that every vc result has been dealt with
-      // before we report that the verification of the implementation is finished 
-      foreach (var result in completed.Result.VCResults) {
-        document.GutterProgressReporter.ReportAssertionBatchResult(
-          new AssertionBatchResult(implementationTask.Implementation, result));
-      }
-
-      var diagnostics = GetDiagnosticsFromResult(document, verificationResult).ToList();
-      var view = new ImplementationView(implementationRange, status, diagnostics);
-      document.ImplementationIdToView[id] = view;
-      document.GutterProgressReporter.ReportEndVerifyImplementation(implementationTask.Implementation, verificationResult);
-    } else {
-      var existingView = document.ImplementationIdToView.GetValueOrDefault(id) ??
-                         new ImplementationView(implementationRange, status, Array.Empty<DafnyDiagnostic>());
-      document.ImplementationIdToView[id] = existingView with { Status = status };
-    }
-
-    documentUpdates.OnNext(document);
-  }
-
-  private bool ReportGutterStatus => options.Get(ServerCommand.LineVerificationStatus);
-
-  private List<DafnyDiagnostic> GetDiagnosticsFromResult(DocumentAfterResolution document, VerificationResult result) {
-    var errorReporter = new DiagnosticErrorReporter(options, document.Program.DefaultModuleDef, document.TextDocumentItem.Text, document.Uri);
-    foreach (var counterExample in result.Errors) {
-      errorReporter.ReportBoogieError(counterExample.CreateErrorInformation(result.Outcome, options.ForceBplErrors));
-    }
-
-    var outcomeError = result.GetOutcomeError(options);
-    if (outcomeError != null) {
-      errorReporter.ReportBoogieError(outcomeError);
-    }
-
-    var diagnostics = errorReporter.GetDiagnostics(document.Uri);
-    return diagnostics.OrderBy(d => d.Token.GetLspPosition()).ToList();
-  }
-
-  private static PublishedVerificationStatus StatusFromBoogieStatus(IVerificationStatus verificationStatus) {
-    switch (verificationStatus) {
-      case Stale:
-        return PublishedVerificationStatus.Stale;
-      case Queued:
-        return PublishedVerificationStatus.Queued;
-      case Running:
-        return PublishedVerificationStatus.Running;
-      case Completed completed:
-        return completed.Result.Outcome == ConditionGeneration.Outcome.Correct
-          ? PublishedVerificationStatus.Correct
-          : PublishedVerificationStatus.Error;
-      case BatchCompleted batchCompleted:
-        return batchCompleted.VcResult.outcome == ProverInterface.Outcome.Valid
-          ? PublishedVerificationStatus.Correct
-          : PublishedVerificationStatus.Error;
-      default:
-        throw new ArgumentOutOfRangeException();
-    }
-  }
-
-  private TaskCompletionSource verificationCompleted = new();
-  private readonly DafnyOptions options;
-
-  public void MarkVerificationStarted() {
-    logger.LogTrace("MarkVerificationStarted called");
-    if (verificationCompleted.Task.IsCompleted) {
-      verificationCompleted = new TaskCompletionSource();
-    }
-  }
-
-  public void MarkVerificationFinished() {
-    logger.LogTrace("MarkVerificationFinished called");
-    verificationCompleted.TrySetResult();
-  }
-
-  public Task<DocumentAfterParsing> LastDocument => TranslatedDocument.ContinueWith(
-    t => {
-      if (t.IsCompletedSuccessfully) {
-#pragma warning disable VSTHRD103
-        logger.LogDebug($"LastDocument will return document version {t.Result.Version}");
-        return verificationCompleted.Task.ContinueWith(
-          verificationCompletedTask => {
-            logger.LogDebug($"verificationCompleted finished with status {verificationCompletedTask.Status}");
-            return Task.FromResult<DocumentAfterParsing>(t.Result);
-          }, TaskScheduler.Current).Unwrap();
-#pragma warning restore VSTHRD103
-      }
-
-      return ResolvedDocument;
-    }, TaskScheduler.Current).Unwrap();
-
-  public async Task<TextEditContainer?> GetTextEditToFormatCode() {
-    // TODO https://github.com/dafny-lang/dafny/issues/3416
-    var parsedDocument = await ResolvedDocument;
-    if (parsedDocument.Diagnostics.Any(diagnostic =>
-          diagnostic.Level == ErrorLevel.Error &&
-          diagnostic.Source == MessageSource.Parser
-        )) {
-      return null;
-    }
-
-    var firstToken = parsedDocument.Program.GetFirstTopLevelToken();
-    if (firstToken == null) {
-      return null;
-    }
-    var result = Formatting.__default.ReindentProgramFromFirstToken(firstToken,
-      IndentationFormatter.ForProgram(parsedDocument.Program));
-
-    // TODO: https://github.com/dafny-lang/dafny/issues/3415
-    return new TextEditContainer(new TextEdit[] {
-      new() {NewText = result, Range = parsedDocument.TextDocumentItem.Range}
-    });
-
-  }
+  public record BufferLine(int LineNumber, int StartIndex, int EndIndex);
 }
