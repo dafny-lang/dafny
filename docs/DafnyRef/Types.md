@@ -2896,21 +2896,48 @@ body.  For a function `f: T ~> U`, the value that the function yields
 for an input `t` of type `T` is denoted `f(t)` and has type `U`.
 
 Note that `f.reads` and `f.requires` are themselves functions.
-Suppose `f` has type `T ~> U` and `t` has type `T`.  Then, `f.reads`
-is a function of type `T ~> set<object?>` whose `reads` and `requires`
-properties are:
+Without loss of generality, suppose `f` is defined as:
+<!-- %no-check -->
+```dafny 
+function f<T,U>(x: T): U
+  reads R(x)
+  requires P(x)
+{
+  body(x)
+}
+```
+where `P`, `R`, and `body` are declared as:
+<!-- %no-check -->
+```dafny 
+predicate P<T>(x: T)
+function R<T>(x: T): set<object>
+function body<T,U>(x: T): U
+```
+Then, `f.reads` is a function of type `T ~> set<object?>` 
+whose `reads` and `requires` properties are given by the definition:
 <!-- %no-check -->
 ```dafny
-f.reads.reads(t) == f.reads(t)
-f.reads.requires(t) == true
+function f.reads<T>(x: T): set<object>
+  reads R(x)
+  requires P(x)
+{
+  R(x)
+}
 ```
 `f.requires` is a function of type `T ~> bool` whose `reads` and
-`requires` properties are:
+`requires` properties are given by the definition:
 <!-- %no-check -->
 ```dafny
-f.requires.reads(t) == f.reads(t)
-f.requires.requires(t) == true
+predicate f_requires<T>(x: T)
+  requires true
+  reads if P(x) then R(x) else *
+{
+  P(x)
+}
 ```
+where `*` is a notation to indicate that any memory location can
+be read, but is not valid Dafny syntax.
+
 In these examples, if `f` instead had type `T --> U` or `T -> U`,
 then the type of `f.reads` is `T -> set<object?>` and the type
 of `f.requires` is `T -> bool`.
