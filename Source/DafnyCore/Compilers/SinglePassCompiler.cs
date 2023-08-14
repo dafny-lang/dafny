@@ -702,7 +702,7 @@ namespace Microsoft.Dafny.Compilers {
     /// <summary>
     /// Same as the EmitNewArray overload above, except that "dimensions" is "List<Expression>" instead of "List<string>".
     /// </summary>
-    protected void EmitNewArray(Type elementType, IToken tok, List<Expression> dimensions,
+    protected virtual void EmitNewArray(Type elementType, IToken tok, List<Expression> dimensions,
       bool mustInitialize, [CanBeNull] string exampleElement, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
 
       var dimStrings = dimensions.ConvertAll(expr => {
@@ -3974,6 +3974,19 @@ namespace Microsoft.Dafny.Compilers {
       return new ArrayLvalueImpl(this, arr, new List<string>() { index }, ll.Type);
     }
 
+    protected virtual ILvalue MultiSelectLvalue(MultiSelectExpr ll, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
+      string arr = StabilizeExpr(ll.Array, "_arr", wr, wStmts);
+      var indices = new List<string>();
+      int i = 0;
+      foreach (var idx in ll.Indices) {
+        var index = StabilizeExpr(idx, "_index" + i + "_", wr, wStmts);
+        index = ArrayIndexToNativeInt(index, idx.Type);
+        indices.Add(index);
+        i++;
+      }
+      return new ArrayLvalueImpl(this, arr, indices, ll.Type);
+    }
+
     protected ILvalue StringLvalue(string str) {
       return new SimpleLvalueImpl(this, wr => wr.Write(str));
     }
@@ -4122,16 +4135,7 @@ namespace Microsoft.Dafny.Compilers {
         return SeqSelectLvalue(ll, wr, wStmts);
       } else {
         var ll = (MultiSelectExpr)lhs;
-        string arr = StabilizeExpr(ll.Array, "_arr", wr, wStmts);
-        var indices = new List<string>();
-        int i = 0;
-        foreach (var idx in ll.Indices) {
-          var index = StabilizeExpr(idx, "_index" + i + "_", wr, wStmts);
-          index = ArrayIndexToNativeInt(index, idx.Type);
-          indices.Add(index);
-          i++;
-        }
-        return new ArrayLvalueImpl(this, arr, indices, ll.Type);
+        return MultiSelectLvalue(ll, wr, wStmts);
       }
     }
 
@@ -4225,7 +4229,7 @@ namespace Microsoft.Dafny.Compilers {
       } else if (typeRhs.ArrayDimensions != null) {
         var nw = ProtectedFreshId("_nw");
         TrRhsArray(typeRhs, nw, wr, wStmts);
-        wr.Write(nw);
+        EmitIdentifier(nw, wr);
 
       } else {
         // Allocate and initialize a new object
