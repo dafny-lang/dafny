@@ -1863,7 +1863,7 @@ TPCharOption<ref TypeParameter.TypeParameterCharacteristics characteristics>
 MethodDecl<DeclModifierData dmod, bool allowConstructor, out Method/*!*/ m>
 = (. Contract.Ensures(Contract.ValueAtReturn(out m) !=null);
      bool hasName = false;
-     Name name = null; // Please compiler  
+     Name name = new Name("<noNameGiven>");  
      IToken keywordToken;
      Attributes attrs = null;
      List<TypeParameter/*!*/>/*!*/ typeArgs = new List<TypeParameter/*!*/>();
