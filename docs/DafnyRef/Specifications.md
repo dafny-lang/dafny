@@ -565,6 +565,7 @@ reads on the values from `lo` to `hi`, but the larger set denoted by
 Without such `reads` function, one could also write the more precise
 and more verbose:
 <!-- %check-verify -->
+```dafny
 function Sum(f: int ~> real, lo: int, hi: int): real
   requires lo <= hi
   requires forall i :: lo <= i < hi ==> f.requires(i)
