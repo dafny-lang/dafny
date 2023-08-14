@@ -39,7 +39,6 @@ namespace Microsoft.Dafny.LanguageServer.Language {
             serviceProvider.GetRequiredService<ITelemetryPublisher>(),
             serviceProvider.GetRequiredService<INotificationPublisher>(),
             serviceProvider.GetRequiredService<ITextDocumentLoader>(),
-            serviceProvider.GetRequiredService<IRelocator>(),
             compilation))
         .AddSingleton<IVerificationProgressReporter, VerificationProgressReporter>()
         .AddSingleton(CreateVerifier)
