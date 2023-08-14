@@ -844,3 +844,58 @@ add:
    requires Valid()
    reads Repr
 ```
+
+## 7.8. Well-formedness of specifications {#sec-well-formedness}
+
+Dafny verifies that the requires and ensures clauses make sense by themselves, independently of the body.
+Hence, by declaring the following method:
+
+```dafny
+method Test(a: array<int>) returns (j: int)
+  requires a.Length >= 1
+  ensures a.Length % 2 == 0 ==> j >= 10 / a.Length
+{
+  j := 20;
+  var divisor := a.Length;
+  if divisor % 2 == 0 {
+    j := j / divisor;
+  }
+}
+```
+
+Dafny will split the verification in two [assertion batches](#sec-assertion-batches)
+that will roughly look like the following lemmas:
+
+```dafny
+lemma Test_WellFormed(a: array<int>)
+{
+  assert a != null;       // for the `requires a.Length >= 1``
+  assert a != null;       // Again for the `a.Length % 2``
+  if a.Length % 2 == 0 {
+    assert a != null;     // Again for the final `a.Length``
+    assert a.Length != 0; // Because of the 10 / a.Length
+  }
+}
+
+lemma Test_Correctness(a: array<int>)
+{ // Here we assume the well-formedness of the condition
+  assume a != null;       // for the `requires a.Length >= 1``
+  assume a != null;       // Again for the `a.Length % 2``
+  if a.Length % 2 == 0 {
+    assume a != null;     // Again for the final `a.Length``
+    assume a.Length != 0; // Because of the 10 / a.Length
+  }
+
+  // Now the body is translated
+
+  assert a != null; // For `var divisor := a.Length;`
+  var divisor := a.Length;
+  if * {
+    assume divisor % 2 == 0;
+    assert divisor != 0;
+  }
+  assume divisor % 2 == 0 ==> divisor != 0;
+}
+```
+
+If, when hovering over a method name, you see two assertion batches, it's usually because of that decomposition.
