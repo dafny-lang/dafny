@@ -14,7 +14,7 @@
 // RUN: %S/CompileAndThenRun.exe >> "%t"
 
 // RUN: %dafny /unicodeChar:0 /compileVerbose:1 /compileTarget:py "%s" >> "%t"
-// RUN: python3 %S/CompileAndThenRun-py/CompileAndThenRun.py >> "%t"
+// RUN: python3 %S/CompileAndThenRun-py >> "%t"
 
 // RUN: %diff "%s.expect" "%t"
 
