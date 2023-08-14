@@ -5873,8 +5873,13 @@ namespace Microsoft.Dafny {
         }
 
         {
+          // As a first approximation, the following axiom is of the form:
           // Requires(Ty.., F#Handle( Ty1, ..., TyN, Layer, reveal, self), Heap, arg1, ..., argN)
           //   = F#Requires(Ty1, .., TyN, Layer, Heap, self, [Unbox] arg1, .., [Unbox] argN)
+          // However, .reads ands .requires functions require special attention.
+          // To understand the rationale for these axioms, refer to the section on arrow types of the reference manual
+          // The requires clause of the .requires function is simply true.
+          // The requires clause of the .reads function checks that the precondtion of the receiving function holds.
 
           var fhandle = FunctionCall(f.tok, name, predef.HandleType, SnocSelf(SnocPrevH(args)));
           var lhs = FunctionCall(f.tok, Requires(arity), Bpl.Type.Bool, Concat(tyargs, Cons(h, Cons(fhandle, lhs_args))));
@@ -5898,8 +5903,13 @@ namespace Microsoft.Dafny {
         }
 
         {
+          // As a first approximation, the following axiom is of the form:
           // Reads(Ty.., F#Handle( Ty1, ..., TyN, Layer, self), Heap, arg1, ..., argN)
           //   =  $Frame_F(args...)
+          // However, .reads ands .requires functions require special attention.
+          // To understand the rationale for these axioms, refer to the section on arrow types of the reference manual
+          // In both cases, the precondition of the receiving function must be checked before its reads clause can
+          // be referred to.
 
           var fhandle = FunctionCall(f.tok, name, predef.HandleType, SnocSelf(SnocPrevH(args)));
           Bpl.Expr lhs_inner = FunctionCall(f.tok, Reads(arity), TrType(new SetType(true, program.SystemModuleManager.ObjectQ())), Concat(tyargs, Cons(h, Cons(fhandle, lhs_args))));

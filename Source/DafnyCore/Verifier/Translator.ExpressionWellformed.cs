@@ -611,7 +611,8 @@ namespace Microsoft.Dafny {
                 }
               }
               // check that the preconditions for the call hold
-
+              // The check for .reads function must be translated explicitly: their declaration lacks
+              // an explicit precondition, which is added as an axiom in Translator.cs
               if (e.Function.Name == "reads") {
                 // check that the preconditions for the call hold
                 var arguments = etran.FunctionInvocationArguments(e, null, null);
