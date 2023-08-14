@@ -11,7 +11,7 @@ public class Lemma : Method {
     [Captured] List<TypeParameter> typeArgs,
     [Captured] List<Formal> ins, [Captured] List<Formal> outs,
     [Captured] List<AttributedExpression> req,
-    List<FrameExpression> reads,
+    [Captured] List<FrameExpression> reads,
     [Captured] Specification<FrameExpression> mod,
     [Captured] List<AttributedExpression> ens,
     [Captured] Specification<Expression> decreases,

@@ -110,6 +110,7 @@ public class Method : MemberDecl, TypeParameter.ParentType, IMethodCodeContext, 
     }
 
     this.Req = original.Req.ConvertAll(cloner.CloneAttributedExpr);
+    this.Reads = original.Reads.ConvertAll(cloner.CloneFrameExpr);
     this.Mod = cloner.CloneSpecFrameExpr(original.Mod);
     this.Decreases = cloner.CloneSpecExpr(original.Decreases);
     this.Ens = original.Ens.ConvertAll(cloner.CloneAttributedExpr);
