@@ -1,11 +1,10 @@
-// RUN: cp %S/TestGenerationNoInlining.dfy %t.dfy
 
 // Generating and Running Block-Based Tests:
-// RUN: %baredafny generate-tests %args Block %t.dfy > %t-tests.dfy
+// RUN: %baredafny generate-tests %args Block %S/TestGenerationNoInliningEnumerativeDefinitions.dfy > %t-tests.dfy
 // RUN: %baredafny test %args --unicode-char:false --target:cs "%t-tests.dfy" >> "%t"
 
 // Generating and Running Path-Based Tests:
-// RUN: %baredafny generate-tests %args Path %t.dfy > %t-tests.dfy
+// RUN: %baredafny generate-tests %args Path %S/TestGenerationNoInliningEnumerativeDefinitions.dfy > %t-tests.dfy
 // RUN: %baredafny test %args --unicode-char:false --target:cs "%t-tests.dfy" >> "%t"
 
 // RUN: %OutputCheck --file-to-check "%t" "%s"

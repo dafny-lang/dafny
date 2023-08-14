@@ -1,7 +1,5 @@
-// RUN: cp %S/TestGenerationWithInlining.dfy %t.dfy
-
 // Generating and Running Path-Based Tests:
-// RUN: %baredafny generate-tests %args Path %t.dfy > %t-tests.dfy
+// RUN: %baredafny generate-tests %args Path %S/TestGenerationWithInliningQuantifiedDefinitions.dfy > %t-tests.dfy
 // RUN: %baredafny test %args --unicode-char:false --target:cs "%t-tests.dfy" >> "%t"
 
 // RUN: %OutputCheck --file-to-check "%t" "%s"
