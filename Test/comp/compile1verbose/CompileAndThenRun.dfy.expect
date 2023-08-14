@@ -61,7 +61,7 @@ Additional target code written to DafnyRuntime.h
 hello, Dafny
 
 Dafny program verifier finished with 0 verified, 0 errors
-Wrote textual form of target program to CompileAndThenRun-py/CompileAndThenRun.py
+Wrote textual form of target program to CompileAndThenRun-py/__main__.py
 Additional target code written to CompileAndThenRun-py/_dafny.py
 Additional target code written to CompileAndThenRun-py/System_.py
 Additional target code written to CompileAndThenRun-py/module_.py

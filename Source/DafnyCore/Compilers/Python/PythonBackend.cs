@@ -19,6 +19,8 @@ public class PythonBackend : ExecutableBackend {
   public override string TargetBaseDir(string dafnyProgramName) =>
     $"{Path.GetFileNameWithoutExtension(dafnyProgramName)}-py";
 
+  public override string TargetBasename(string dafnyProgramName) => "__main__";
+
   public override bool SupportsInMemoryCompilation => false;
   public override bool TextualTargetIsExecutable => true;
 

@@ -27,7 +27,7 @@
 // RUN: %baredafny translate py --output=%S/consumer/usesTimesTwo --library=%S/Inputs/producer/timesTwo.dfy %s
 
 // TODO: Won't work on windows
-// RUN: env PYTHONPATH=%S/Inputs/producer/timesTwo-py python3 %S/consumer/usesTimesTwo-py/usesTimesTwo.py >> "%t"
+// RUN: env PYTHONPATH=%S/Inputs/producer/timesTwo-py python3 %S/consumer/usesTimesTwo-py >> "%t"
 
 // Go
 

@@ -21,4 +21,4 @@ Wrote textual form of partial target program to git-issue-1151-more.cpp
 
 Dafny program verifier did not attempt verification
 git-issue-1151-more.dfy(13,5): Error: Abstract type ('_module.Opaque') cannot be compiled; perhaps make it a type synonym or use :extern.
-Wrote textual form of partial target program to git-issue-1151-more-py/git-issue-1151-more.py
+Wrote textual form of partial target program to git-issue-1151-more-py/__main__.py

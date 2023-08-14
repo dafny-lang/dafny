@@ -1,3 +1,0 @@
-// https://github.com/dafny-lang/dafny/issues/4162
-// CHECK-L: assert "FIFO" == __name__
-// CHECK-L: AssertionError
