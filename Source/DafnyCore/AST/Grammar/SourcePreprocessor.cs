@@ -162,7 +162,6 @@ public static class SourcePreprocessor {
   }
 
   public static string ReadLineAndDetermineNewline(TextReader reader, out string newline) {
-
     StringBuilder sb = new StringBuilder();
     newline = null;
     while (true) {

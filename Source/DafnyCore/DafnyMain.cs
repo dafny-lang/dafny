@@ -12,7 +12,6 @@ using System.Diagnostics.Contracts;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using DafnyCore;
 using Microsoft.Boogie;
 
 namespace Microsoft.Dafny {
