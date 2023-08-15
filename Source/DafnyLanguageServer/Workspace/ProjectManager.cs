@@ -103,7 +103,9 @@ public class ProjectManager : IDisposable {
   private const int MaxRememberedChangedVerifiables = 5;
 
   public void UpdateDocument(DidChangeTextDocumentParams documentChange) {
-    // Duplicated while we still need to compute migratedVerificationTrees before calling StartNewCompilation
+    logger.LogDebug($"Update document received at {DateTime.Now:hh:mm:ss.fff}");
+    // Duplicated while we still need to compute migratedVerificationTrees before calling StartNewCompilation,
+    // which also does the cancellation.
     CompilationManager.CancelPendingUpdates();
     
     var changeProcessor = createMigrator(documentChange, CancellationToken.None);
@@ -297,6 +299,7 @@ public class ProjectManager : IDisposable {
       }
 
       foreach (var canVerify in orderedVerifiableLocations) {
+        
         // Wait for each task to try and run, so the order is respected.
         await compilationManager.VerifyTask(canVerify);
       }
