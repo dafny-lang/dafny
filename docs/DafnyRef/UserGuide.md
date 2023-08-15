@@ -1155,7 +1155,7 @@ it is first useful to understand how `dafny` verifies functions and methods.
 For every method (or function, constructor, etc.), `dafny` extracts _assertions_.
 Assertions can either be *implicit* or *explicit*.
 Implicit assertions, also called *well-formedness assertions*, ensure expressions make sense.
-Explicit assertions, also called *correctness assertions*, are provided by the user, and can either help prove implicit assertions, or prove other desired higher-level properties.
+Explicit assertions, also called *correctness assertions*, are provided by the user, and can help prove other implicit and explicit assertions.
 
 Here is a non-exhaustive list of such extracted assertions:
 

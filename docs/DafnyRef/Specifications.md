@@ -847,9 +847,10 @@ add:
 
 ## 7.8. Well-formedness of specifications {#sec-well-formedness}
 
-Dafny ensures that the [`requires` clauses](#sec-requires-clause) and [`ensures` clauses](#sec-ensures-clauses) are [well-formed](#sec-assertion-batches) independent of the body they belong to. Examples of conditions this rules out are null pointers, out-of-bounds array access, and division by zero.
+Dafny ensures that the [`requires` clauses](#sec-requires-clause) and [`ensures` clauses](#sec-ensures-clauses) are [well-formed](#sec-assertion-batches) independent of the body they belong to. Examples of conditions this rules out are null pointer dereferencing, out-of-bounds array access, and division by zero.
 Hence, when declaring the following method:
 
+<!-- %check-verify -->
 ```dafny
 method Test(a: array<int>) returns (j: int)
   requires a.Length >= 1
@@ -866,6 +867,7 @@ method Test(a: array<int>) returns (j: int)
 Dafny will split the verification in two [assertion batches](#sec-assertion-batches)
 that will roughly look like the following lemmas:
 
+<!-- %check-verify -->
 ```dafny
 lemma Test_WellFormed(a: array<int>)
 {
@@ -878,7 +880,7 @@ lemma Test_WellFormed(a: array<int>)
   }
 }
 
-lemma Test_Correctness(a: array<int>)
+method Test_Correctness(a: array<int>)
 { // Here we assume the well-formedness of the condition
   assume a != null;       // for the `requires a.Length >= 1`
   assume a != null;       // Again for the `a.Length % 2`
@@ -888,7 +890,7 @@ lemma Test_Correctness(a: array<int>)
   }
 
   // Now the body is translated
-  j := 20;
+  var j := 20;
   assert a != null;          // For `var divisor := a.Length;`
   var divisor := a.Length;
   if * {
