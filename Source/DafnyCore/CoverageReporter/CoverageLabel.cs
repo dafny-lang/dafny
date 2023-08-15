@@ -1,7 +1,7 @@
 using System;
 using System.Linq;
 
-namespace DafnyCore.CoverageReporter;
+namespace Microsoft.Dafny;
 
 public enum CoverageLabel {
   FullyCovered,

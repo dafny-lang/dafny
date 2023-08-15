@@ -3,7 +3,7 @@ using System.Diagnostics.Contracts;
 using System.Text.RegularExpressions;
 using Microsoft.Dafny;
 
-namespace DafnyCore.CoverageReporter; 
+namespace Microsoft.Dafny; 
 
 public class CoverageSpan : IComparable<CoverageSpan> {
 

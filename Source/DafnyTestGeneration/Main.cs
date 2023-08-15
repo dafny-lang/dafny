@@ -7,7 +7,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
-using DafnyCore.CoverageReporter;
 using Microsoft.Dafny;
 using Program = Microsoft.Dafny.Program;
 

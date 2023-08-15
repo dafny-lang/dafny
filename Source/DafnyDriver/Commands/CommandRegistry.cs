@@ -13,7 +13,6 @@ using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
 using DafnyCore;
-using DafnyCore.CoverageReporter;
 using JetBrains.Annotations;
 using Microsoft.Boogie;
 using Microsoft.Dafny.LanguageServer;

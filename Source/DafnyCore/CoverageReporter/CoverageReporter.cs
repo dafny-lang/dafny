@@ -6,7 +6,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using Microsoft.Dafny;
 
-namespace DafnyCore.CoverageReporter; 
+namespace Microsoft.Dafny; 
 
 public class CoverageReporter {
 

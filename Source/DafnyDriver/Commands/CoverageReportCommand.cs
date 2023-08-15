@@ -7,9 +7,8 @@ using System.CommandLine;
 using System.CommandLine.Invocation;
 using System.IO;
 using System.Linq;
-using Microsoft.Dafny;
 
-namespace DafnyCore.CoverageReporter; 
+namespace Microsoft.Dafny; 
 
 public class CoverageReportCommand : ICommandSpec {
 

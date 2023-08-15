@@ -7,7 +7,7 @@ using System.Linq;
 using System.Threading;
 using Microsoft.Dafny;
 
-namespace DafnyCore.CoverageReporter; 
+namespace Microsoft.Dafny; 
 
 public class CoverageReport {
 
