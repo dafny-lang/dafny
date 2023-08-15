@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Dafny;
 using DAST;
+using Microsoft.Dafny.Compilers;
 
 namespace Microsoft.Dafny.Compilers {
 
@@ -760,6 +761,12 @@ namespace Microsoft.Dafny.Compilers {
       return ret;
     }
 
+    LambdaExprBuilder Lambda(List<DAST.Formal> formals) {
+      var ret = new LambdaExprBuilder(formals);
+      AddBuildable(ret);
+      return ret;
+    }
+
     protected static void RecursivelyBuild(List<object> body, List<DAST.Expression> builtExprs) {
       foreach (var maybeBuilt in body) {
         if (maybeBuilt is DAST.Expression built) {
@@ -869,4 +876,37 @@ namespace Microsoft.Dafny.Compilers {
     }
   }
 
+}
+
+class LambdaExprBuilder : StatementContainer, BuildableExpr {
+  readonly List<DAST.Formal> formals;
+  readonly List<object> body = new();
+
+  public LambdaExprBuilder(List<DAST.Formal> formals) {
+    this.formals = formals;
+  }
+
+  public void AddStatement(DAST.Statement item) {
+    body.Add(item);
+  }
+
+  public void AddBuildable(BuildableStatement item) {
+    body.Add(item);
+  }
+
+  public List<object> ForkList() {
+    var ret = new List<object>();
+    body.Add(ret);
+    return ret;
+  }
+
+  public DAST.Expression Build() {
+    var builtBody = new List<DAST.Statement>();
+    StatementContainer.RecursivelyBuild(body, builtBody);
+
+    return (DAST.Expression)DAST.Expression.create_Lambda(
+      Sequence<DAST.Formal>.FromArray(formals.ToArray()),
+      Sequence<DAST.Statement>.FromArray(builtBody.ToArray())
+    );
+  }
 }
