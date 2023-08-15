@@ -869,8 +869,9 @@ that will roughly look like the following lemmas:
 
 <!-- %check-verify -->
 ```dafny
-lemma Test_WellFormed(a: array<int>)
+lemma Test_WellFormed(a: array?<int>)
 {
+  assume a != null;       // From the definition of a
   assert a != null;       // for the `requires a.Length >= 1`
   assume a.Length >= 1;   // After well-formedness, we assume the requires
   assert a != null;       // Again for the `a.Length % 2`
@@ -880,7 +881,7 @@ lemma Test_WellFormed(a: array<int>)
   }
 }
 
-method Test_Correctness(a: array<int>)
+method Test_Correctness(a: array?<int>)
 { // Here we assume the well-formedness of the condition
   assume a != null;       // for the `requires a.Length >= 1`
   assume a != null;       // Again for the `a.Length % 2`
