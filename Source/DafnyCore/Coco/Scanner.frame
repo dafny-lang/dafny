@@ -139,6 +139,9 @@ public class Buffer {
   public string/*!*/ GetString (int beg, int end) {
     Contract.Ensures(Contract.Result<string>() != null);
     int len = 0;
+    if(bufLen < end && end != beg) {
+      end = bufLen - 1;
+    }
     char[] buf = new char[end - beg];
     if(end != beg) {
       int oldPos = Pos;
@@ -442,6 +445,10 @@ public class Scanner {
 -->literals
   }
 
+  private Token lastCommentToken = null;
+  private List<IToken> leadingComments = new List<IToken>();
+  private List<IToken> trailingComments = new List<IToken>();
+
   Token/*!*/ NextToken() {
     Contract.Ensures(Contract.Result<Token>() != null);
     if(!parsingTrivia) {
@@ -458,6 +465,18 @@ public class Scanner {
         lastWasCr = (ch == '\r');
       }
     }
+    if(lastCommentToken != null) {
+      var includeLast = col != 0; // Block comment.
+      // This odd +1 is needed because Coco/R doesn't consume the last character of the comment,
+      // except if it's the last character of the file
+      lastCommentToken.val = buffer.GetString(lastCommentToken.pos, pos + (includeLast ? 1 : 0));
+      if(triviaTrailing) {
+        trailingComments.Add(lastCommentToken);
+      } else {
+        leadingComments.Add(lastCommentToken);
+      }
+      lastCommentToken = null;
+    }
     while (ch == ' ' ||
 -->scan1
     ) {
@@ -473,7 +492,12 @@ public class Scanner {
         posTrailingEndLeadingStart = pos;
       }
     }
+    lastCommentToken = new Token();
+    lastCommentToken.pos = pos; lastCommentToken.col = col; lastCommentToken.line = line;
+    lastCommentToken.Uri = this.Uri;
+    lastCommentToken.kind = Parser._commentToken;
 -->scan2
+    lastCommentToken = null;
     parsingTrivia = false;
     if(t == null) { // There is no trailing trivia before the first token
       posTrailingEndLeadingStart = 0;
@@ -484,6 +508,8 @@ public class Scanner {
       }
       // Extract the trivia from the buffers
       t.TrailingTrivia = buffer.GetString(posTrailingStart, posTrailingEndLeadingStart);
+      t.TrailingComments = trailingComments;
+      trailingComments = new List<IToken>();
     }
     
     int recKind = noSym;
@@ -495,6 +521,8 @@ public class Scanner {
       t.Prev = prevT;
     }
     t.LeadingTrivia = buffer.GetString(posTrailingEndLeadingStart, pos);
+    t.LeadingComments = leadingComments;
+    leadingComments = new List<IToken>();
     
     t.pos = pos; t.col = col; t.line = line;
     t.Uri = this.Uri;

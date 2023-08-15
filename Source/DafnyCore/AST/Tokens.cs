@@ -44,6 +44,8 @@ public interface IToken : Microsoft.Boogie.IToken {
   /// </summary>
   string TrailingTrivia { get; set; }
   string LeadingTrivia { get; set; }
+  List<IToken> TrailingComments { get; set; }
+  List<IToken> LeadingComments { get; set; }
   IToken Next { get; set; } // The next token
   IToken Prev { get; set; } // The previous token
 
@@ -94,6 +96,8 @@ public class Token : IToken {
   public string LeadingTrivia { get; set; } = "";
 
   public string TrailingTrivia { get; set; } = "";
+  public List<IToken> TrailingComments { get; set; } = new();
+  public List<IToken> LeadingComments { get; set; } = new();
 
   public IToken Next { get; set; } // The next token
 
@@ -181,6 +185,14 @@ public abstract class TokenWrapper : IToken {
   }
   public virtual IToken Prev {
     get { return WrappedToken.Prev; }
+    set { throw new NotSupportedException(); }
+  }
+  public virtual List<IToken> TrailingComments {
+    get { return WrappedToken.TrailingComments; }
+    set { throw new NotSupportedException(); }
+  }
+  public virtual List<IToken> LeadingComments {
+    get { return WrappedToken.LeadingComments; }
     set { throw new NotSupportedException(); }
   }
 }

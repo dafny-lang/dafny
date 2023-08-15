@@ -193,6 +193,217 @@ public Parser(DafnyOptions options, Scanner/*!*/ scanner, Errors/*!*/ errors)
   theOptions = new DafnyOptions(options);
 }
 
+public enum TokenClass {
+  Other = 0,
+  Ident,
+  Digits,
+  Constant,
+  Special,
+  Comprehension,
+  Type,
+  Macro,
+  Builtin,
+  String,
+  Punctuation,
+  Assertion,
+  Block,
+  ControlFlow,
+  Keyword,
+  Declaration,
+  Modifier,
+  Directive,
+  Specification,
+  Label,
+  Operator,
+  Comment
+}
+
+
+private static Dictionary<int, TokenClass> tokenClasses = new Dictionary<int, TokenClass> {
+  {_EOF, TokenClass.Other},
+  {_ident, TokenClass.Ident},
+  {_digits, TokenClass.Digits},
+  {_hexdigits, TokenClass.Digits},
+  {_decimaldigits, TokenClass.Digits},
+  {_true, TokenClass.Constant},
+  {_false, TokenClass.Constant},
+  {_null, TokenClass.Constant},
+  {_this, TokenClass.Special},
+  {_arrayToken, TokenClass.Comprehension},
+  {_bvToken, TokenClass.Comprehension},
+  {_set, TokenClass.Comprehension},
+  {_iset, TokenClass.Comprehension},
+  {_multiset, TokenClass.Comprehension},
+  {_seq, TokenClass.Comprehension},
+  {_map, TokenClass.Comprehension},
+  {_imap, TokenClass.Comprehension},
+  {_uForall, TokenClass.Comprehension}, /* ? */
+  {_uExists, TokenClass.Comprehension}, /* ? */
+  {_forall, TokenClass.Comprehension},
+  {_exists, TokenClass.Comprehension},
+  {_bool, TokenClass.Type},
+  {_char, TokenClass.Type},
+  {_int, TokenClass.Type},
+  {_nat, TokenClass.Type},
+  {_real, TokenClass.Type},
+  {_ORDINAL, TokenClass.Type},
+  {_object, TokenClass.Type},
+  {_string, TokenClass.Type},
+  {_as, TokenClass.Builtin},
+  {_is, TokenClass.Builtin},
+  {_in, TokenClass.Builtin},
+  {_notIn, TokenClass.Builtin},
+  {_object_q, TokenClass.Builtin},
+  {_new, TokenClass.Macro},
+  {_fresh, TokenClass.Macro},
+  {_old, TokenClass.Macro},
+  {_allocated, TokenClass.Macro},
+  {_unchanged, TokenClass.Macro},
+  {_charToken, TokenClass.String}, /* ' */
+  {_stringToken, TokenClass.String}, /* " */
+  {_colon, TokenClass.Punctuation}, /* : */
+  {_comma, TokenClass.Punctuation}, /* , */
+  {_verticalbar, TokenClass.Punctuation}, /* | */
+  {_doublecolon, TokenClass.Punctuation}, /* :: */
+  {_gets, TokenClass.Punctuation}, /* := */
+  {_boredSmiley, TokenClass.Punctuation}, /* :| */
+  {_bullet, TokenClass.Punctuation}, /* \u2022 */
+  {_dot, TokenClass.Punctuation}, /* . */
+  {_backtick, TokenClass.Punctuation}, /* ` */
+  {_semicolon, TokenClass.Punctuation}, /* ; */
+  {_darrow, TokenClass.Punctuation}, /* => */
+  {_lbracecolon, TokenClass.Punctuation}, /* {: */
+  {_lbrace, TokenClass.Punctuation}, /* { */
+  {_rbrace, TokenClass.Punctuation}, /* } */
+  {_lbracket, TokenClass.Punctuation}, /* [ */
+  {_rbracket, TokenClass.Punctuation}, /* ] */
+  {_openparen, TokenClass.Punctuation}, /* ( */
+  {_closeparen, TokenClass.Punctuation}, /* ) */
+  {_openAngleBracket, TokenClass.Punctuation}, /* < */
+  {_closeAngleBracket, TokenClass.Punctuation}, /* > */
+  {_ellipsis, TokenClass.Punctuation}, /* ... */
+  {_dash, TokenClass.Punctuation}, /* - */
+  {_blankFaceSmiley, TokenClass.Punctuation}, /* :- */
+  {_assume, TokenClass.Assertion},
+  {_assert, TokenClass.Assertion},
+  {_by, TokenClass.Assertion},
+  {_expect, TokenClass.Assertion},
+  {_reveal, TokenClass.Assertion},
+  {_calc, TokenClass.Block},
+  {_case, TokenClass.Block},
+  {_if, TokenClass.Block},
+  {_then, TokenClass.Block},
+  {_else, TokenClass.Block},
+  {_for, TokenClass.Block},
+  {_match, TokenClass.Block},
+  {_while, TokenClass.Block},
+  {_modify, TokenClass.Block},
+  {_break, TokenClass.ControlFlow},
+  {_continue, TokenClass.ControlFlow},
+  {_return, TokenClass.ControlFlow},
+  {_yield, TokenClass.ControlFlow},
+  {_print, TokenClass.Keyword},
+  {_function, TokenClass.Declaration},
+  {_predicate, TokenClass.Declaration},
+  {_copredicate, TokenClass.Declaration},
+  {_lemma, TokenClass.Declaration},
+  {_class, TokenClass.Declaration},
+  {_trait, TokenClass.Declaration},
+  {_datatype, TokenClass.Declaration},
+  {_codatatype, TokenClass.Declaration},
+  {_var, TokenClass.Declaration},
+  {_const, TokenClass.Declaration},
+  {_newtype, TokenClass.Declaration},
+  {_type, TokenClass.Declaration},
+  {_iterator, TokenClass.Declaration},
+  {_method, TokenClass.Declaration},
+  {_colemma, TokenClass.Declaration},
+  {_constructor, TokenClass.Declaration},
+  {_module, TokenClass.Declaration},
+  {_least, TokenClass.Modifier},
+  {_greatest, TokenClass.Modifier},
+  {_inductive, TokenClass.Modifier},
+  {_twostate, TokenClass.Modifier},
+  {_static, TokenClass.Modifier},
+  {_ghost, TokenClass.Modifier},
+  {_opaque, TokenClass.Modifier},
+  {_abstract, TokenClass.Modifier},
+  {_protected, TokenClass.Modifier},
+  {_nameonly, TokenClass.Modifier},
+  {_older, TokenClass.Modifier},
+  {_import, TokenClass.Directive},
+  {_export, TokenClass.Directive},
+  {_include, TokenClass.Directive},
+  {_opened, TokenClass.Directive},
+  {_modifies, TokenClass.Specification},
+  {_reads, TokenClass.Specification},
+  {_decreases, TokenClass.Specification},
+  {_invariant, TokenClass.Specification},
+  {_requires, TokenClass.Specification},
+  {_ensures, TokenClass.Specification},
+  {_returns, TokenClass.Specification},
+  {_yields, TokenClass.Specification},
+  {_extends, TokenClass.Specification},
+  {_provides, TokenClass.Specification},
+  {_reveals, TokenClass.Specification},
+  {_refines, TokenClass.Specification},
+  {_witness, TokenClass.Specification},
+  {_label, TokenClass.Label},
+
+  {_singleeq, TokenClass.Operator}, /* = */
+  {_eq, TokenClass.Operator}, /* == */
+  {_neq, TokenClass.Operator}, /* != */
+  {_neqAlt, TokenClass.Operator}, /* ? */
+  {_star, TokenClass.Operator}, /* * */
+  {_at, TokenClass.Operator}, /* @ */
+  {_sarrow, TokenClass.Operator}, /* -> */
+  {_qarrow, TokenClass.Operator}, /* ~> */
+  {_larrow, TokenClass.Operator}, /* --> */
+  {_excl, TokenClass.Operator}, /* ! */
+  {_doublePeriod, TokenClass.Operator}, /* .. */
+  {_forwardSlash, TokenClass.Operator}, /* / */
+  {_amp, TokenClass.Operator}, /* & */
+  {_doubleAmp, TokenClass.Operator}, /* && */
+  {_sharp, TokenClass.Operator}, /* # */
+  {_percent, TokenClass.Operator}, /* % */
+  {_hat, TokenClass.Operator}, /* ^ */
+  {_plus, TokenClass.Operator}, /* + */
+  {_le, TokenClass.Operator}, /* <= */
+  {_ge, TokenClass.Operator}, /* >= */
+  {_doublepipe, TokenClass.Operator}, /* || */
+  {_uNot, TokenClass.Operator}, /* � */
+  {_uLogAnd, TokenClass.Operator}, /* ? */
+  {_uLogOr, TokenClass.Operator}, /* n */
+  {_uLe, TokenClass.Operator}, /* = */
+  {_uGe, TokenClass.Operator}, /* = */
+  {_longDoubleLeftArrow, TokenClass.Operator}, /* <== */
+  {_longDoubleRightArrow, TokenClass.Operator}, /* ==> */
+  {_longDoubleLeftRightArrow, TokenClass.Operator}, /* <==> */
+  {_uLongDoubleLeftArrow, TokenClass.Operator}, /* ? */
+  {_uLongDoubleRightArrow, TokenClass.Operator}, /* ? */
+  {_uLongDoubleLeftRightArrow, TokenClass.Operator}, /* ? */
+  {maxT, TokenClass.Other},
+  {_commentToken, TokenClass.Comment}
+};
+
+private static TokenClass ClassifyToken(int kind) {
+  if(tokenClasses.TryGetValue(kind, out TokenClass tokenClass)) {
+    return tokenClass;
+  }
+  throw new ArgumentException($"Unclassified token: {kind}");
+}
+
+private static TokenClass[] tokenClassificationMap;
+public static TokenClass[] TokenClassificationMap {
+  get {
+    if(tokenClassificationMap == null) {
+      // [0..maxT) covers all tokens; _commentToken is maxT + 1
+      tokenClassificationMap = Enumerable.Range(0, _commentToken + 1).Select(kind => ClassifyToken(kind)).ToArray();
+    }
+    return tokenClassificationMap;
+  }
+}
+
 bool IsIdentifier(int kind) {
   return kind == _ident || kind == _least || kind == _greatest || kind == _older || kind == _opaque;
 }
@@ -231,7 +442,7 @@ bool IsQuantifierVariableDecl(QuantifiedVar previousVar) {
 bool IsFromArrow() {
   scanner.ResetPeek();
   IToken x = scanner.Peek();
-  return la.kind == _openAngleBracket && x.kind == _minus
+  return la.kind == _openAngleBracket && x.kind == _dash
     && la.line == x.line && la.col == x.col - 1; 
 }
 
@@ -758,6 +969,7 @@ CHARACTERS
   tab       = '\t'.
   space = ' '.
   nondigit = letter + special.
+  nonlf = ANY - lf.
   idchar = nondigit + digit.
   nonidchar = ANY - idchar.
   /* exclude the characters in 'array' and 'bv' and '\'' */
@@ -850,6 +1062,7 @@ TOKENS
   doublecolon = "::".
   gets = ":=".
   boredSmiley = ":|".
+  bullet = '\u2022'. // �
   dot = '.'.
   backtick = "`".
   semicolon = ';'.
@@ -858,6 +1071,7 @@ TOKENS
   assert = "assert".
   calc = "calc".
   case = "case".
+  if = "if".
   then = "then".
   else = "else".
   as = "as".
@@ -914,6 +1128,7 @@ TOKENS
   singleeq = "=".
   eq = "==".
   neq = "!=".
+  neqAlt = '\u2260'. // ?
   star = '*'.
   at = '@'.
   notIn = "!in" CONTEXT (nonidchar).
@@ -923,7 +1138,67 @@ TOKENS
   sarrow = "->".
   qarrow = "~>".
   larrow = "-->".
-  minus = "-".
+  dash = "-".
+  blankFaceSmiley = ":-".
+  excl = "!".
+  doublePeriod = "..".
+  forwardSlash = "/".
+  amp = "&".
+  doubleAmp = "&&".
+  sharp = "#".
+  percent = "%".
+  hat = "^".
+  plus = "+".
+  le = "<=".
+  ge = ">=".
+  doublepipe = "||".
+  uNot = "\u00ac". // �
+  uLogAnd = "\u2227". // ?
+  uLogOr = "\u2228". // ?
+  uLe = "\u2264". // =
+  uGe = "\u2265". // =
+  longDoubleLeftArrow = "<==".
+  longDoubleRightArrow = "==>".
+  longDoubleLeftRightArrow = "<==>".
+  uLongDoubleLeftArrow = "\u21d0". // ?
+  uLongDoubleRightArrow = "\u21d2". // ?
+  uLongDoubleLeftRightArrow = "\u21d4". // ?
+  uForall = "\u2200". // ?
+  uExists = "\u2203". // ?
+  forall = "forall".
+  exists = "exists".
+  abstract = "abstract".
+  protected = "protected".
+  refines = "refines".
+  break = "break".
+  continue = "continue".
+  return = "return".
+  yield = "yield".
+  for = "for".
+  match = "match".
+  while = "while".
+  modify = "modify".
+  module = "module".
+  print = "print".
+  fresh = "fresh".
+  old = "old".
+  allocated = "allocated".
+  unchanged = "unchanged".
+  include = "include".
+  opened = "opened".
+  true = "true".
+  false = "false".
+  this = "this".
+  null = "null".
+  returns = "returns".
+  yields = "yields".
+  label = "label".
+
+PRAGMAS
+  // This rule will not fire (COMMENTS take priority), but it allocates a token
+  // number (>= maxT) that we use to treat comments as pragmas.
+  commentToken = "//" {nonlf} lf. (. Contract.Assert(_commentToken == maxT + 1); .)
+
 COMMENTS FROM "/*" TO "*/" NESTED
 COMMENTS FROM "//" TO lf
 IGNORE cr + lf + tab
