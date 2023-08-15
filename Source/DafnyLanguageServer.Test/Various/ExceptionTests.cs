@@ -27,8 +27,9 @@ public class ExceptionTests : ClientBasedLanguageServerTest {
 
   protected override void ServerOptionsAction(LanguageServerOptions serverOptions) {
     serverOptions.Services
+      .AddSingleton<TextDocumentLoader>()
       .AddSingleton<ITextDocumentLoader>(serviceProvider => new CrashingLoader(this,
-        LanguageServerExtensions.CreateTextDocumentLoader(serviceProvider)))
+        serviceProvider.GetRequiredService<TextDocumentLoader>()))
       .AddSingleton<IProgramVerifier>(serviceProvider => new CrashingVerifier(this,
         new DafnyProgramVerifier(serviceProvider.GetRequiredService<ILogger<DafnyProgramVerifier>>())
     ));

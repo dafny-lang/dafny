@@ -25,25 +25,23 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     private readonly IDafnyParser parser;
     private readonly IGhostStateDiagnosticCollector ghostStateDiagnosticCollector;
     protected readonly ICompilationStatusNotificationPublisher statusPublisher;
+    private readonly ILogger<CachingResolver> innerLogger;
+    private readonly SemaphoreSlim resolverMutex = new(1);
+    private readonly ITelemetryPublisher telemetryPublisher;
 
-    protected TextDocumentLoader(
+    public TextDocumentLoader(
       ILogger<ITextDocumentLoader> logger,
       IDafnyParser parser,
       IGhostStateDiagnosticCollector ghostStateDiagnosticCollector,
-      ICompilationStatusNotificationPublisher statusPublisher) {
+      ICompilationStatusNotificationPublisher statusPublisher,
+      ILogger<CachingResolver> innerLogger,
+      ITelemetryPublisher telemetryPublisher) {
       this.logger = logger;
       this.parser = parser;
       this.ghostStateDiagnosticCollector = ghostStateDiagnosticCollector;
       this.statusPublisher = statusPublisher;
-    }
-
-    public static TextDocumentLoader Create(
-      IDafnyParser parser,
-      IGhostStateDiagnosticCollector ghostStateDiagnosticCollector,
-      ICompilationStatusNotificationPublisher statusPublisher,
-      ILogger<ITextDocumentLoader> logger
-      ) {
-      return new TextDocumentLoader(logger, parser, ghostStateDiagnosticCollector, statusPublisher);
+      this.innerLogger = innerLogger;
+      this.telemetryPublisher = telemetryPublisher;
     }
 
     public IdeState CreateUnloaded(Compilation compilation) {
@@ -97,18 +95,12 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         throw new TaskCanceledException();
       }
 
-      var project = compilation.Project;
-
       _ = statusPublisher.SendStatusNotification(compilation, CompilationStatus.ResolutionStarted);
-
+      ResolveSymbols(compilation.Project, program, cancellationToken);
       var newSymbolTable = errorReporter.HasErrors
         ? null
         : SymbolTable.CreateFrom(program, compilation, cancellationToken);
-      if (errorReporter.HasErrors) {
-        _ = statusPublisher.SendStatusNotification(compilation, CompilationStatus.ResolutionFailed);
-      } else {
-        _ = statusPublisher.SendStatusNotification(compilation, CompilationStatus.CompilationSucceeded);
-      }
+      _ = statusPublisher.SendStatusNotification(compilation, errorReporter.HasErrors ? CompilationStatus.ResolutionFailed : CompilationStatus.CompilationSucceeded);
 
       var ghostDiagnostics = ghostStateDiagnosticCollector.GetGhostStateDiagnostics(program, cancellationToken);
 
@@ -131,6 +123,39 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         new(),
         new()
       );
+    }
+
+    private readonly ResolutionCache resolutionCache = new();
+
+    public void ResolveSymbols(DafnyProject project, Program program, CancellationToken cancellationToken) {
+      // TODO The resolution requires mutual exclusion since it sets static variables of classes like Microsoft.Dafny.Type.
+      //      Although, the variables are marked "ThreadStatic" - thus it might not be necessary. But there might be
+      //      other classes as well.
+      resolverMutex.Wait(cancellationToken);
+      try {
+        RunDafnyResolver(project, program, cancellationToken);
+      }
+      finally {
+        resolverMutex.Release();
+      }
+    }
+
+    private void RunDafnyResolver(DafnyProject project, Program program, CancellationToken cancellationToken) {
+      var beforeResolution = DateTime.Now;
+      try {
+        var resolver = program.Options.Get(ServerCommand.UseCaching)
+          ? new CachingResolver(program, innerLogger, telemetryPublisher, resolutionCache)
+          : new ProgramResolver(program);
+        resolver.Resolve(cancellationToken);
+        int resolverErrors = resolver.Reporter.ErrorCountUntilResolver;
+        if (resolverErrors > 0) {
+          logger.LogDebug("encountered {ErrorCount} errors while resolving {DocumentUri}", resolverErrors,
+          project.Uri);
+        }
+      }
+      finally {
+        telemetryPublisher.PublishTime("Resolution", project.Uri.ToString(), DateTime.Now - beforeResolution);
+      }
     }
 
     private IdeState CreateDocumentWithEmptySymbolTable(Compilation compilation,

@@ -43,22 +43,13 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
             serviceProvider.GetRequiredService<ILogger<DafnyLangParser>>(),
             serviceProvider.GetRequiredService<ILogger<CachingParser>>());
         })
-        .AddSingleton<ITextDocumentLoader>(CreateTextDocumentLoader)
+        .AddSingleton<ITextDocumentLoader, TextDocumentLoader>()
         .AddSingleton<INotificationPublisher, NotificationPublisher>()
         .AddSingleton<CreateMigrator>(provider => (changes, cancellationToken) => new Migrator(
           provider.GetRequiredService<ILogger<Migrator>>(),
           changes, cancellationToken))
         .AddSingleton<ICompilationStatusNotificationPublisher, CompilationStatusNotificationPublisher>()
         .AddSingleton<ITelemetryPublisher, TelemetryPublisher>();
-    }
-
-    public static TextDocumentLoader CreateTextDocumentLoader(IServiceProvider services) {
-      return TextDocumentLoader.Create(
-        services.GetRequiredService<IDafnyParser>(),
-        services.GetRequiredService<IGhostStateDiagnosticCollector>(),
-        services.GetRequiredService<ICompilationStatusNotificationPublisher>(),
-        services.GetRequiredService<ILogger<ITextDocumentLoader>>()
-      );
     }
   }
 }

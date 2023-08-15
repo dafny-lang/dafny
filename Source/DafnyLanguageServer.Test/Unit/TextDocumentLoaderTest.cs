@@ -32,12 +32,16 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit {
       notificationPublisher = new();
       fileSystem = new();
       logger = new Mock<ILogger<ITextDocumentLoader>>();
+      var innerLogger = new Mock<ILogger<CachingResolver>>();
+      var telemetryPublisher = new Mock<ITelemetryPublisher>();
       diagnosticPublisher = new Mock<INotificationPublisher>();
-      textDocumentLoader = TextDocumentLoader.Create(
+      textDocumentLoader = new TextDocumentLoader(
+        logger.Object,
         parser.Object,
         ghostStateDiagnosticCollector.Object,
         notificationPublisher.Object,
-        logger.Object
+        innerLogger.Object,
+        telemetryPublisher.Object
       );
     }
 
