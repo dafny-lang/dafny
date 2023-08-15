@@ -2990,7 +2990,13 @@ NoGhost - disable printing of functions, ghost methods, and proof
       Contract.Requires(boundVars != null);
       string sep = "";
       foreach (BoundVar bv in boundVars) {
-        wr.Write("{0}{1}", sep, bv.DisplayName);
+        wr.Write("{0}", sep);
+        if (printFlags.UseOriginalDafnyNames) {
+          wr.Write(bv.DafnyName);
+        } else {
+          wr.Write(bv.DisplayName);
+        }
+
         PrintType(": ", bv.Type);
         sep = ", ";
       }
