@@ -1078,9 +1078,13 @@ namespace Microsoft.Dafny {
 
         if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
           var preType2TypeVisitor = new PreTypeToTypeVisitor(SystemModuleManager);
-          preType2TypeVisitor.VisitConstantsAndRedirectingTypes(declarations);
           preType2TypeVisitor.VisitDeclarations(declarations);
-          preType2TypeVisitor.Solve(Options.Get(CommonOptionBag.NewTypeInferenceDebug));
+        }
+
+        if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
+          var typeAdjustor = new TypeAdjustorVisitor(SystemModuleManager);
+          typeAdjustor.VisitDeclarations(declarations);
+          typeAdjustor.Solve(Options.Get(CommonOptionBag.NewTypeInferenceDebug));
         }
 
       } else {
