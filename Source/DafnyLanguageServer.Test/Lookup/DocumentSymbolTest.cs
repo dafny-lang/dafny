@@ -13,7 +13,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
 
     [Fact]
     public async Task CanResolveSymbolsForMultiFileProjects() {
-      var temp = Path.GetTempPath();
+      var temp = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
       await CreateAndOpenTestDocument("", Path.Combine(temp, DafnyProject.FileName));
       var file1 = await CreateAndOpenTestDocument("method Foo() {}", Path.Combine(temp, "file1.dfy"));
       var file2 = await CreateAndOpenTestDocument("method Bar() {}", Path.Combine(temp, "file2.dfy"));
