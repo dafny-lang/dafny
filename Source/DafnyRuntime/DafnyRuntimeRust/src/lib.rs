@@ -21,6 +21,19 @@ impl <A: DafnyPrint> DafnyPrint for LazyFieldWrapper<A> {
     }
 }
 
+pub struct FunctionWrapper<A: ?Sized>(pub A);
+impl <A> DafnyPrint for FunctionWrapper<A> {
+    fn fmt_print(&self, f: &mut Formatter<'_>, _in_seq: bool) -> std::fmt::Result {
+        write!(f, "<function>")
+    }
+}
+
+impl <A: Clone> Clone for FunctionWrapper<A> {
+    fn clone(&self) -> Self {
+        Self(self.0.clone())
+    }
+}
+
 pub struct DafnyPrintWrapper<T>(pub T);
 impl <T: DafnyPrint> Display for DafnyPrintWrapper<&T> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
