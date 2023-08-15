@@ -1147,25 +1147,30 @@ method innerLoop()
 
 In the next section, when everything can be proven in a timely manner, we explain another strategy to decrease proof time by parallelizing it if needed, and making the verifier focus on certain parts.
 
-### 13.6.3. Assertion batches {#sec-assertion-batches}
+### 13.6.3. Assertion batches, well-formedness, correctness {#sec-assertion-batches}
 
 To understand how to control verification,
 it is first useful to understand how `dafny` verifies functions and methods.
 
-For every method (or function, constructor, etc.), `dafny` extracts _assertions_. Here is a non-exhaustive list of such extracted assertions:
+For every method (or function, constructor, etc.), `dafny` extracts _assertions_.
+Assertions can either be *implicit* or *explicit*.
+Implicit assertions, also called *well-formedness assertions*, ensure expressions make sense.
+Explicit assertions, also called *correctness assertions*, are provided by the user, and can either help prove implicit assertions, or prove other desired higher-level properties.
 
-**Integer assertions:**
+Here is a non-exhaustive list of such extracted assertions:
+
+**Implicit integer assertions:**
 
 * Every [division](#sec-numeric-types) yields an _assertion_ that the divisor is never zero.
 * Every [bounded number operation](#sec-numeric-types) yields an _assertion_ that the result will be within the same bounds (no overflow, no underflows).
 * Every [conversion](#sec-as-is-expression) yields an _assertion_ that conversion is compatible.
 * Every [bitvector shift](#sec-bit-vector-types) yields an _assertion_ that the shift amount is never negative, and that the shift amount is within the width of the value.
 
-**Object assertions:**
+**Implicit object assertions:**
 
 * Every [object property access](#sec-class-types) yields an _assertion_ that the object is not null.
 * Every assignment `o.f := E;` yields an _assertion_ that `o` is among the set of objects of the `modifies` clause of the enclosing [loop](#sec-loop-framing) or [method](#sec-modifies-clause).
-* Every read `o.f` yields an _assertion_ that `o` is among the set of objects of the [`reads`](#sec-reads-clause) clause of the enclosing function or predicate; or the [`modifies`](#sec-modifies-clause) clause of the enclosing method.
+* Every read `o.f` yields an _assertion_ that `o` is among the set of objects of the [`reads`](#sec-reads-clause) clause of the enclosing function or predicate.
 * Every [array access](#sec-array-type) `a[x]` yields the assertion that `0 <= x < a.Length`.
 * Every [sequence access](#sec-sequences) `a[x]` yields an _assertion_, that `0 <= x < |a|`, because sequences are never null.
 * Every [datatype update expression](#sec-datatype-update-suffix) and [datatype destruction](#sec-algebraic-datatype) yields an _assertion_ that the object has the given property.
@@ -1178,13 +1183,13 @@ For every method (or function, constructor, etc.), `dafny` extracts _assertions_
 * Every [Assign-such-that operator](#sec-update-and-call-statement) `x :| P(x)` yields an _assertion_ that `exists x :: P(x)`.
 * Every recursive function yields an _assertion_ that [it terminates](#sec-loop-termination).
 * Every [match expression](#sec-match-expression) or [alternative if statement](#sec-if-statement) yields an _assertion_ that all cases are covered.
+* Every call to a function or method with a [`requires`](#sec-requires-clause) clause yields _one assertion per requires clause_[^precision-requires-clause]
+  (special cases such as sequence indexing come with a special `requires` clause that the index is within bounds).
 
-**Explicit assertions:**
+**Explicit or correctness assertions:**
 
 * Any explicit [`assert`](#sec-assert-statement) statement is _an assertion_[^precision-requires-clause].
 * A consecutive pair of lines in a [`calc`](#sec-calc-statement) statement forms _an assertion_ that the expressions are related according to the common operator.
-* Every call to a function or method with a [`requires`](#sec-requires-clause) clause yields _one assertion per requires clause_[^precision-requires-clause]
-  (special cases such as sequence indexing come with a special `requires` clause that the index is within bounds).
 * Every [`ensures`](#sec-ensures-clause) clause yields an _assertion_ at the end of the method and on every return, and on [`forall`](#sec-forall-statement) statements.
 * Every [`invariant`](#sec-invariant-clause) clause yields an _assertion_ that it holds before the loop and an _assertion_ that it holds at the end of the loop.
 * Every [`decreases`](#sec-decreases-clause) clause yields an _assertion_ at either a call site or at the end of a while loop.

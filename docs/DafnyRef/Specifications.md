@@ -847,8 +847,8 @@ add:
 
 ## 7.8. Well-formedness of specifications {#sec-well-formedness}
 
-Dafny verifies that the requires and ensures clauses make sense by themselves, independently of the body.
-Hence, by declaring the following method:
+Dafny ensures that the [`requires` clauses](#sec-requires-clause) and [`ensures` clauses](#sec-ensures-clauses) are [well-formed](#sec-assertion-batches) independent of the body they belong to. Examples of conditions this rules out are null pointers, out-of-bounds array access, and division by zero.
+Hence, when declaring the following method:
 
 ```dafny
 method Test(a: array<int>) returns (j: int)
@@ -869,33 +869,36 @@ that will roughly look like the following lemmas:
 ```dafny
 lemma Test_WellFormed(a: array<int>)
 {
-  assert a != null;       // for the `requires a.Length >= 1``
-  assert a != null;       // Again for the `a.Length % 2``
+  assert a != null;       // for the `requires a.Length >= 1`
+  assume a.Length >= 1;   // After well-formedness, we assume the requires
+  assert a != null;       // Again for the `a.Length % 2`
   if a.Length % 2 == 0 {
-    assert a != null;     // Again for the final `a.Length``
+    assert a != null;     // Again for the final `a.Length`
     assert a.Length != 0; // Because of the 10 / a.Length
   }
 }
 
 lemma Test_Correctness(a: array<int>)
 { // Here we assume the well-formedness of the condition
-  assume a != null;       // for the `requires a.Length >= 1``
-  assume a != null;       // Again for the `a.Length % 2``
+  assume a != null;       // for the `requires a.Length >= 1`
+  assume a != null;       // Again for the `a.Length % 2`
   if a.Length % 2 == 0 {
-    assume a != null;     // Again for the final `a.Length``
+    assume a != null;     // Again for the final `a.Length`
     assume a.Length != 0; // Because of the 10 / a.Length
   }
 
   // Now the body is translated
-
-  assert a != null; // For `var divisor := a.Length;`
+  j := 20;
+  assert a != null;          // For `var divisor := a.Length;`
   var divisor := a.Length;
   if * {
     assume divisor % 2 == 0;
     assert divisor != 0;
+    j := j / divisor;
   }
   assume divisor % 2 == 0 ==> divisor != 0;
+  assert a.Length % 2 == 0 ==> j >= 10 / a.Length;
 }
 ```
 
-If, when hovering over a method name, you see two assertion batches, it's usually because of that decomposition.
+For this reason the IDE typically reports at least two assertion batches when hovering a method.
