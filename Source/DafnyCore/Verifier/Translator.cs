@@ -3865,6 +3865,7 @@ namespace Microsoft.Dafny {
       var th = new ThisExpr(iter);
       iteratorFrame.Add(new FrameExpression(iter.tok, th, null));
       iteratorFrame.AddRange(iter.Modifies.Expressions);
+      DefineFrame(iter.tok, etran.ReadsFrame(iter.tok), iter.Reads.Expressions, builder, localVariables, null);
       DefineFrame(iter.tok, etran.ModifiesFrame(iter.tok), iteratorFrame, builder, localVariables, null);
       builder.AddCaptureState(iter.tok, false, "initial state");
     }

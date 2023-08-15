@@ -282,13 +282,13 @@ public class Method : MemberDecl, TypeParameter.ParentType, IMethodCodeContext, 
 
       // TODO: May not be the right place to do this, and may want something like InferredDecreases
       if (!Reads.Any()) {
+        // TODO: This is the right default for backwards-compatiblity,
+        // but we may want to infer a sensible default like decreases clauses instead.
         Reads.Add(new FrameExpression(tok, new WildcardExpr(tok), null));
       }
       foreach (FrameExpression fe in Reads) {
         resolver.ResolveFrameExpressionTopLevel(fe, FrameExpressionUse.Reads, this);
-        if (IsLemmaLike) {
-          resolver.reporter.Error(MessageSource.Resolver, fe.tok, "{0}s are not allowed to have reads clauses", WhatKind);
-        } else if (IsGhost) {
+        if (IsGhost) {
           resolver.DisallowNonGhostFieldSpecifiers(fe);
         }
       }
