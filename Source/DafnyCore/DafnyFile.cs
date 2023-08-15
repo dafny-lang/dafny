@@ -14,10 +14,10 @@ public class DafnyFile {
   public string BaseName { get; private set; }
   public bool IsPreverified { get; set; }
   public bool IsPrecompiled { get; set; }
-  public TextReader Content { get; set; }
+  public Func<TextReader> GetContent { get; set; }
   public Uri Uri { get; }
 
-  public DafnyFile(DafnyOptions options, Uri uri, TextReader contentOverride = null) {
+  public DafnyFile(DafnyOptions options, Uri uri, Func<TextReader> getContentOverride = null) {
     Uri = uri;
     var filePath = uri.LocalPath;
 
@@ -27,7 +27,7 @@ public class DafnyFile {
       BaseName = Path.GetFileName(uri.LocalPath);
     }
     if (uri.Scheme == "stdin") {
-      contentOverride = options.Input;
+      getContentOverride = () => options.Input;
       BaseName = "<stdin>";
     }
 
@@ -35,14 +35,14 @@ public class DafnyFile {
     // supported in .Net APIs, because it is very difficult in general
     // So we will just use the absolute path, lowercased for all file systems.
     // cf. IncludeComparer.CompareTo
-    CanonicalPath = contentOverride == null ? Canonicalize(filePath).LocalPath : "<stdin>";
+    CanonicalPath = getContentOverride == null ? Canonicalize(filePath).LocalPath : "<stdin>";
     FilePath = CanonicalPath;
 
     var filePathForErrors = options.UseBaseNameForFileName ? Path.GetFileName(filePath) : filePath;
-    if (contentOverride != null) {
+    if (getContentOverride != null) {
       IsPreverified = false;
       IsPrecompiled = false;
-      Content = contentOverride;
+      GetContent = getContentOverride;
     } else if (extension == ".dfy" || extension == ".dfyi") {
       IsPreverified = false;
       IsPrecompiled = false;
@@ -57,7 +57,7 @@ public class DafnyFile {
         options.Printer.ErrorWriteLine(options.OutputWriter, $"*** Error: file {filePathForErrors} not found");
         throw new IllegalDafnyFile(true);
       } else {
-        Content = new StreamReader(filePath);
+        GetContent = () => new StreamReader(filePath);
       }
     } else if (extension == ".doo") {
       IsPreverified = true;
@@ -78,7 +78,7 @@ public class DafnyFile {
       // more efficiently inside a .doo file, at which point
       // the DooFile class should encapsulate the serialization logic better
       // and expose a Program instead of the program text.
-      Content = new StringReader(dooFile.ProgramText);
+      GetContent = () => new StringReader(dooFile.ProgramText);
     } else if (extension == ".dll") {
       IsPreverified = true;
       // Technically only for C#, this is for backwards compatability
@@ -86,7 +86,7 @@ public class DafnyFile {
 
       var sourceText = GetDafnySourceAttributeText(filePath);
       if (sourceText == null) { throw new IllegalDafnyFile(); }
-      Content = new StringReader(sourceText);
+      GetContent = () => new StringReader(sourceText);
     } else {
       throw new IllegalDafnyFile();
     }
