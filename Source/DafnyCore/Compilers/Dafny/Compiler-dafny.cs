@@ -218,7 +218,7 @@ namespace Microsoft.Dafny.Compilers {
       if (xType is BoolType) {
         return (DAST.Type)DAST.Type.create_Primitive(DAST.Primitive.create_Bool());
       } else if (xType is IntType) {
-        return (DAST.Type)DAST.Type.create_Passthrough(Sequence<Rune>.UnicodeFromString("i32"));
+        return (DAST.Type)DAST.Type.create_Passthrough(Sequence<Rune>.UnicodeFromString("i64"));
       } else if (xType is RealType) {
         return (DAST.Type)DAST.Type.create_Passthrough(Sequence<Rune>.UnicodeFromString("f32"));
       } else if (xType.IsStringType) {
@@ -1064,6 +1064,9 @@ namespace Microsoft.Dafny.Compilers {
         var origBuilder = currentBuilder;
         base.EmitExpr(expr, inLetExprBody, actualWr, wStmts);
         currentBuilder = origBuilder;
+      } else if (expr is IdentifierExpr) {
+        // we don't need to create a copy of the identifier, that's language specific
+        base.EmitExpr(expr, false, actualWr, wStmts);
       } else {
         base.EmitExpr(expr, inLetExprBody, actualWr, wStmts);
       }
@@ -1257,22 +1260,25 @@ namespace Microsoft.Dafny.Compilers {
       throw new NotImplementedException();
     }
 
-    protected override void EmitDestructor(string source, Formal dtor, int formalNonGhostIndex, DatatypeCtor ctor,
+    protected override void EmitDestructor(Action<ConcreteSyntaxTree> source, Formal dtor, int formalNonGhostIndex, DatatypeCtor ctor,
         List<Type> typeArgs, Type bvType, ConcreteSyntaxTree wr) {
       if (wr is BuilderSyntaxTree<ExprContainer> builder) {
         if (DatatypeWrapperEraser.IsErasableDatatypeWrapper(Options, ctor.EnclosingDatatype, out var coreDtor)) {
           Contract.Assert(coreDtor.CorrespondingFormals.Count == 1);
           Contract.Assert(dtor == coreDtor.CorrespondingFormals[0]); // any other destructor is a ghost
-          EmitIdentifier(source, wr);
+          source(wr);
         } else {
+          var buf = new ExprBuffer(null);
+          source(new BuilderSyntaxTree<ExprContainer>(buf));
+          var sourceAST = buf.Finish();
           if (ctor.EnclosingDatatype is TupleTypeDecl) {
             builder.Builder.AddExpr((DAST.Expression)DAST.Expression.create_TupleSelect(
-              (DAST.Expression)DAST.Expression.create_Ident(Sequence<Rune>.UnicodeFromString(source)),
+              sourceAST,
               int.Parse(dtor.NameForCompilation)
             ));
           } else {
             builder.Builder.AddExpr((DAST.Expression)DAST.Expression.create_Select(
-              (DAST.Expression)DAST.Expression.create_Ident(Sequence<Rune>.UnicodeFromString(source)),
+              sourceAST,
               Sequence<Rune>.UnicodeFromString(dtor.CompileName),
               true
             ));
@@ -1301,7 +1307,13 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void CreateIIFE(string bvName, Type bvType, IToken bvTok, Type bodyType, IToken bodyTok,
       ConcreteSyntaxTree wr, ref ConcreteSyntaxTree wStmts, out ConcreteSyntaxTree wrRhs, out ConcreteSyntaxTree wrBody) {
-      throw new NotImplementedException();
+      if (wr is BuilderSyntaxTree<ExprContainer> builder) {
+        var iife = builder.Builder.IIFE(bvName, GenType(bvType));
+        wrRhs = new BuilderSyntaxTree<ExprContainer>(iife.RhsBuilder());
+        wrBody = new BuilderSyntaxTree<ExprContainer>(iife);
+      } else {
+        throw new InvalidOperationException("Invalid context for IIFE: " + wr.GetType());
+      }
     }
 
     protected override ConcreteSyntaxTree CreateIIFE0(Type resultType, IToken resultTok, ConcreteSyntaxTree wr,

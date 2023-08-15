@@ -68,8 +68,9 @@ module {:extern "DAST"} DAST {
     Select(expr: Expression, field: string, onDatatype: bool) |
     SelectFn(expr: Expression, field: string, onDatatype: bool, isStatic: bool, arity: nat) |
     TupleSelect(expr: Expression, index: nat) |
-    Call(on: Expression, name: string, typeArgs: seq<Type>, args: seq<Expression>) |
+    Call(on: Expression, name: Ident, typeArgs: seq<Type>, args: seq<Expression>) |
     Lambda(params: seq<Formal>, body: seq<Statement>) |
+    IIFE(name: Ident, typ: Type, value: Expression, iifeBody: Expression) |
     Apply(expr: Expression, args: seq<Expression>) |
     TypeTest(on: Expression, dType: seq<Ident>, variant: string) |
     InitializationValue(typ: Type)

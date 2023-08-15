@@ -111,13 +111,13 @@ module {:extern "DCOMP"} DCOMP {
       s := s + "}\n";
       s := s + "}\n";
       s := s + "impl ::dafny_runtime::DafnyPrint for r#" + c.name + " {\n";
-      s := s + "fn fmt_print(&self, f: &mut ::std::fmt::Formatter, in_seq: bool) -> ::std::fmt::Result {\n";
-      s := s + "::dafny_runtime::DafnyPrint::fmt_print(&self.0, f, in_seq)\n";
+      s := s + "fn fmt_print(&self, __fmt_print_formatter: &mut ::std::fmt::Formatter, in_seq: bool) -> ::std::fmt::Result {\n";
+      s := s + "::dafny_runtime::DafnyPrint::fmt_print(&self.0, __fmt_print_formatter, in_seq)\n";
       s := s + "}\n";
       s := s + "}";
 
       // inherit common traits
-      var ops := [("std::ops::Add", "add"), ("std::ops::Sub", "sub"), ("std::ops::Mul", "mul"), ("std::ops::Div", "div")];
+      var ops := [("::std::ops::Add", "add"), ("::std::ops::Sub", "sub"), ("::std::ops::Mul", "mul"), ("::std::ops::Div", "div")];
       var i := 0;
       while i < |ops| {
         var (traitName, methodName) := ops[i];
@@ -130,6 +130,13 @@ module {:extern "DCOMP"} DCOMP {
         s := s + "}\n";
         i := i + 1;
       }
+
+      s := s + "impl ::std::cmp::PartialOrd<r#" + c.name + "> for r#" + c.name;
+      s := s + " where " + underlyingType + ": ::std::cmp::PartialOrd<" + underlyingType + "> {\n";
+      s := s + "fn partial_cmp(&self, other: &r#" + c.name + ") -> ::std::option::Option<::std::cmp::Ordering> {\n";
+      s := s + "self.0.partial_cmp(&other.0)\n";
+      s := s + "}\n";
+      s := s + "}\n";
     }
 
     static method GenDatatype(c: Datatype) returns (s: string) {
@@ -245,14 +252,14 @@ module {:extern "DCOMP"} DCOMP {
 
       var enumBody := "#[derive(PartialEq)]\npub enum r#" + c.name + typeParams + " {\n" + ctors +  "\n}" + "\n" + "impl " + constrainedTypeParams + " r#" + c.name + typeParams + " {\n" + implBody + "\n}";
 
-      var printImpl := "impl " + constrainedTypeParams + " ::dafny_runtime::DafnyPrint for r#" + c.name + typeParams + " {\n" + "fn fmt_print(&self, f: &mut ::std::fmt::Formatter, _in_seq: bool) -> std::fmt::Result {\n" + "match self {\n";
+      var printImpl := "impl " + constrainedTypeParams + " ::dafny_runtime::DafnyPrint for r#" + c.name + typeParams + " {\n" + "fn fmt_print(&self, __fmt_print_formatter: &mut ::std::fmt::Formatter, _in_seq: bool) -> std::fmt::Result {\n" + "match self {\n";
       i := 0;
       while i < |c.ctors| {
         var ctor := c.ctors[i];
         var ctorMatch := "r#" + ctor.name + " { ";
 
         var modulePrefix := if c.enclosingModule.id == "_module" then "" else c.enclosingModule.id + ".";
-        var printRhs := "write!(f, \"" + modulePrefix + c.name + "." + ctor.name + (if ctor.hasAnyArgs then "(\")?;" else "\")?;");
+        var printRhs := "write!(__fmt_print_formatter, \"" + modulePrefix + c.name + "." + ctor.name + (if ctor.hasAnyArgs then "(\")?;" else "\")?;");
 
         var j := 0;
         while j < |ctor.args| {
@@ -260,9 +267,9 @@ module {:extern "DCOMP"} DCOMP {
           ctorMatch := ctorMatch + formal.name + ", ";
 
           if (j > 0) {
-            printRhs := printRhs + "\nwrite!(f, \", \")?;";
+            printRhs := printRhs + "\nwrite!(__fmt_print_formatter, \", \")?;";
           }
-          printRhs := printRhs + "\n::dafny_runtime::DafnyPrint::fmt_print(" + formal.name + ", f, false)?;";
+          printRhs := printRhs + "\n::dafny_runtime::DafnyPrint::fmt_print(" + formal.name + ", __fmt_print_formatter, false)?;";
 
           j := j + 1;
         }
@@ -270,7 +277,7 @@ module {:extern "DCOMP"} DCOMP {
         ctorMatch := ctorMatch + "}";
 
         if (ctor.hasAnyArgs) {
-          printRhs := printRhs + "\nwrite!(f, \")\")?;";
+          printRhs := printRhs + "\nwrite!(__fmt_print_formatter, \")\")?;";
         }
 
         printRhs := printRhs + "\nOk(())";
@@ -1113,7 +1120,7 @@ module {:extern "DCOMP"} DCOMP {
             }
           }
 
-          s := enclosingString + "r#" + name + typeArgString + "(" + argString + ")";
+          s := enclosingString + "r#" + name.id + typeArgString + "(" + argString + ")";
           isOwned := true;
         }
         case Lambda(params, body) => {
@@ -1153,6 +1160,16 @@ module {:extern "DCOMP"} DCOMP {
 
           s := "::dafny_runtime::FunctionWrapper({\n" + allReadCloned + "Box::new(move |" + paramsString + "| {\n" + recursiveGen + "\n})})";
           isOwned := true;
+        }
+        case IIFE(name, tpe, value, iifeBody) => {
+          var valueGen, valueOwned, recIdents := GenExpr(value, params, false);
+          readIdents := recIdents;
+          var valueTypeGen := GenType(tpe, false, true);
+          var bodyGen, bodyOwned, bodyIdents := GenExpr(iifeBody, params + if valueOwned then [] else [name.id], mustOwn);
+          readIdents := readIdents + bodyIdents;
+
+          s := "{\nlet r#" + name.id + ": " + (if valueOwned then "" else "&") + valueTypeGen + " = " + valueGen + ";\n" + bodyGen + "\n}";
+          isOwned := bodyOwned;
         }
         case Apply(func, args) => {
           var funcString, _, recIdents := GenExpr(func, params, false);
