@@ -166,6 +166,11 @@ public static class CommandRegistry {
         }
       }
 
+      foreach (var argument in command.Arguments) {
+        var result = context.ParseResult.FindResultFor(argument);
+        options.Arguments[argument] = result;
+      }
+      
       foreach (var option in command.Options) {
         var result = context.ParseResult.FindResultFor(option);
         object projectFileValue = null;

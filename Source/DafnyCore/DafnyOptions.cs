@@ -32,7 +32,7 @@ namespace Microsoft.Dafny {
     Version4,
   }
 
-  public record Options(IDictionary<Option, object> OptionArguments);
+  public record Options(IDictionary<Option, object> OptionArguments, IDictionary<Argument, object> Arguments);
 
   public class DafnyOptions : Bpl.CommandLineOptions {
     public TextWriter ErrorWriter { get; }
@@ -133,6 +133,11 @@ NoGhost - disable printing of functions, ghost methods, and proof
       }
     }
 
+    public T Get<T>(Argument<T> argument) {
+      return (T)Options.Arguments.GetOrCreate(argument, () => default(T));
+    }
+
+    
     public T Get<T>(Option<T> option) {
       return (T)Options.OptionArguments.GetOrCreate(option, () => default(T));
     }
