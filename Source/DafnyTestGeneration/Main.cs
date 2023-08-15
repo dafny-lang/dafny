@@ -63,7 +63,7 @@ namespace DafnyTestGeneration {
                    "loops. False positives are always possible.";
     }
 
-    public static async IAsyncEnumerable<string> GetDeadCodeStatistics(string sourceFile, DafnyOptions options) {
+    public static async IAsyncEnumerable<string> GetDeadCodeStatistics(string sourceFile, DafnyOptions options, CoverageReport report) {
       options.PrintMode = PrintModes.Everything;
       var source = await new StreamReader(sourceFile).ReadToEndAsync();
       var program = Utils.Parse(options, source, false, new Uri(sourceFile));
@@ -79,8 +79,7 @@ namespace DafnyTestGeneration {
       await foreach (var line in GetDeadCodeStatistics(program, cache)) {
         yield return line;
       }
-
-      PrintCoverageReport(program, cache, options);
+      PopulateCoverageReport(report, program, cache);
     }
 
     private static IEnumerable<ProgramModification> GetModifications(Modifications cache, Program program, out DafnyInfo dafnyInfo) {
@@ -111,11 +110,8 @@ namespace DafnyTestGeneration {
       return programModifier.GetModifications(boogieProgram, dafnyInfo);
     }
 
-    private static void PrintCoverageReport(Program program, Modifications cache, DafnyOptions options) {
-      if (options.TestGenOptions.CoverageReport == null) {
-        return;
-      }
-      var coverageReport = new CoverageReport(program, name: "Expected Test Coverage", units: "Locations", suffix: "_tests_expected");
+    private static void PopulateCoverageReport(CoverageReport coverageReport, Program program, Modifications cache) {
+      coverageReport.RegisterFiles(program);
       var lineRegex = new Regex("^(.*)\\(([0-9]+),[0-9]+\\)");
       HashSet<string> coveredStates = new(); // set of program states that are expected to be covered by tests
       foreach (var modification in cache.Values) {
@@ -152,8 +148,6 @@ namespace DafnyTestGeneration {
               : CoverageLabel.NotCovered);
         }
       }
-      new CoverageReporter(program.Reporter)
-        .GenerateCoverageReportFiles(coverageReport, options.TestGenOptions.CoverageReport);
     }
 
     /// <summary>
@@ -186,7 +180,7 @@ namespace DafnyTestGeneration {
     /// <summary>
     /// Return a Dafny class (list of lines) with tests for the given Dafny file
     /// </summary>
-    public static async IAsyncEnumerable<string> GetTestClassForProgram(string sourceFile, DafnyOptions options) {
+    public static async IAsyncEnumerable<string> GetTestClassForProgram(string sourceFile, DafnyOptions options, CoverageReport report) {
       options.PrintMode = PrintModes.Everything;
       TestMethod.ClearTypesToSynthesize();
       var source = await new StreamReader(sourceFile).ReadToEndAsync();
@@ -229,7 +223,7 @@ namespace DafnyTestGeneration {
       yield return TestMethod.EmitSynthesizeMethods(dafnyInfo);
       yield return "}";
 
-      PrintCoverageReport(program, cache, options);
+      PopulateCoverageReport(report, program, cache);
 
       if (methodsGenerated == 0) {
         options.Printer.ErrorWriteLine(options.ErrorWriter,

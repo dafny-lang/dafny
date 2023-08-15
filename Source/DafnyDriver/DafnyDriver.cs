@@ -132,7 +132,7 @@ namespace Microsoft.Dafny {
         case CommandLineArgumentsResult.OK:
 
           if (dafnyOptions.Get(CoverageReportCommand.OutDirArgument) != null) {
-            new CoverageReporter(new ConsoleErrorReporter(dafnyOptions))
+            new CoverageReporter(dafnyOptions)
               .Merge(dafnyOptions.Get(CoverageReportCommand.ReportsArgument).ConvertAll(fileInfo => fileInfo.FullName), dafnyOptions.Get(CoverageReportCommand.OutDirArgument));
             return 0;
           }
@@ -389,18 +389,19 @@ namespace Microsoft.Dafny {
       var dafnyFileNames = DafnyFile.FileNames(dafnyFiles);
 
       ExitValue exitValue = ExitValue.SUCCESS;
-      if (options.TestGenOptions.WarnDeadCode) {
-        await foreach (var line in DafnyTestGeneration.Main.GetDeadCodeStatistics(dafnyFileNames[0], options)) {
-          await options.OutputWriter.WriteLineAsync(line);
-        }
-        if (DafnyTestGeneration.Main.SetNonZeroExitCode) {
-          exitValue = ExitValue.DAFNY_ERROR;
-        }
-        return exitValue;
-      }
       if (options.TestGenOptions.Mode != TestGenerationOptions.Modes.None) {
-        await foreach (var line in DafnyTestGeneration.Main.GetTestClassForProgram(dafnyFileNames[0], options)) {
-          await options.OutputWriter.WriteLineAsync(line);
+        var coverageReport = new CoverageReport(name: "Expected Test Coverage", units: "Locations", suffix: "_tests_expected", program: null);
+        if (options.TestGenOptions.WarnDeadCode) {
+          await foreach (var line in DafnyTestGeneration.Main.GetDeadCodeStatistics(dafnyFileNames[0], options, coverageReport)) {
+            await options.OutputWriter.WriteLineAsync(line);
+          }
+        } else {
+          await foreach (var line in DafnyTestGeneration.Main.GetTestClassForProgram(dafnyFileNames[0], options, coverageReport)) {
+            await options.OutputWriter.WriteLineAsync(line);
+          }
+        }
+        if (options.TestGenOptions.CoverageReport != null) {
+          new CoverageReporter(options).SerializeCoverageReports(coverageReport, options.TestGenOptions.CoverageReport);
         }
         if (DafnyTestGeneration.Main.SetNonZeroExitCode) {
           exitValue = ExitValue.DAFNY_ERROR;
