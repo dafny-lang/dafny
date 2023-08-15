@@ -3,8 +3,6 @@ using System.Collections.Immutable;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading;
-using IntervalTree;
-using Microsoft.Dafny.LanguageServer.Language.Symbols;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
@@ -107,26 +105,6 @@ public class Migrator {
         Range = migratedRange
       }
     };
-  }
-
-  private IIntervalTree<Position, ILocalizableSymbol> ApplyLookupTreeChange(
-    IIntervalTree<Position, ILocalizableSymbol> previousLookupTree,
-    TextDocumentContentChangeEvent change
-  ) {
-    var migratedLookupTree = new IntervalTree<Position, ILocalizableSymbol>();
-    foreach (var entry in previousLookupTree) {
-      cancellationToken.ThrowIfCancellationRequested();
-      if (IsPositionBeforeChange(change.Range!, entry.To)) {
-        migratedLookupTree.Add(entry.From, entry.To, entry.Value);
-      } else if (IsPositionAfterChange(change.Range!, entry.From)) {
-        var beforeChangeEndOffset = change.Range!.End;
-        var afterChangeEndOffset = GetPositionAtEndOfAppliedChange(change);
-        var from = GetPositionWithOffset(entry.From, beforeChangeEndOffset, afterChangeEndOffset!);
-        var to = GetPositionWithOffset(entry.To, beforeChangeEndOffset, afterChangeEndOffset!);
-        migratedLookupTree.Add(from, to, entry.Value);
-      }
-    }
-    return migratedLookupTree;
   }
 
   private Position? GetPositionAtEndOfAppliedChange(TextDocumentContentChangeEvent change) {

@@ -1,6 +1,4 @@
 ﻿using System;
-using Microsoft.Dafny.LanguageServer.Language.Symbols;
-using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Collections.Generic;
 using System.Threading;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;

@@ -1,14 +1,8 @@
-﻿using Microsoft.Dafny.LanguageServer.Language.Symbols;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 using OmniSharp.Extensions.LanguageServer.Server;
 using System;
-using System.Threading;
-using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.Workspace;
-using Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors;
 
 namespace Microsoft.Dafny.LanguageServer.Language {
   /// <summary>
