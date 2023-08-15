@@ -14,7 +14,7 @@
 // RUN: %S/CompileRunQuietly.exe >> "%t"
 
 // RUN: %dafny /unicodeChar:0 /compileTarget:py "%s" >> "%t"
-// RUN: python3 %S/CompileRunQuietly-py/CompileRunQuietly.py >> "%t"
+// RUN: python3 %S/CompileRunQuietly-py >> "%t"
 
  // RUN: %diff "%s.expect" "%t"
 

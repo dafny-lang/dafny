@@ -111,8 +111,8 @@ module {:extern "DCOMP"} DCOMP {
       s := s + "}\n";
       s := s + "}\n";
       s := s + "impl ::dafny_runtime::DafnyPrint for r#" + c.name + " {\n";
-      s := s + "fn fmt_print(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {\n";
-      s := s + "::dafny_runtime::DafnyPrint::fmt_print(&self.0, f)\n";
+      s := s + "fn fmt_print(&self, f: &mut ::std::fmt::Formatter, in_seq: bool) -> ::std::fmt::Result {\n";
+      s := s + "::dafny_runtime::DafnyPrint::fmt_print(&self.0, f, in_seq)\n";
       s := s + "}\n";
       s := s + "}";
 
@@ -245,7 +245,7 @@ module {:extern "DCOMP"} DCOMP {
 
       var enumBody := "#[derive(PartialEq)]\npub enum r#" + c.name + typeParams + " {\n" + ctors +  "\n}" + "\n" + "impl " + constrainedTypeParams + " r#" + c.name + typeParams + " {\n" + implBody + "\n}";
 
-      var printImpl := "impl " + constrainedTypeParams + " ::dafny_runtime::DafnyPrint for r#" + c.name + typeParams + " {\n" + "fn fmt_print(&self, f: &mut ::std::fmt::Formatter) -> std::fmt::Result {\n" + "match self {\n";
+      var printImpl := "impl " + constrainedTypeParams + " ::dafny_runtime::DafnyPrint for r#" + c.name + typeParams + " {\n" + "fn fmt_print(&self, f: &mut ::std::fmt::Formatter, _in_seq: bool) -> std::fmt::Result {\n" + "match self {\n";
       i := 0;
       while i < |c.ctors| {
         var ctor := c.ctors[i];
@@ -262,7 +262,7 @@ module {:extern "DCOMP"} DCOMP {
           if (j > 0) {
             printRhs := printRhs + "\nwrite!(f, \", \")?;";
           }
-          printRhs := printRhs + "\n::dafny_runtime::DafnyPrint::fmt_print(" + formal.name + ", f)?;";
+          printRhs := printRhs + "\n::dafny_runtime::DafnyPrint::fmt_print(" + formal.name + ", f, false)?;";
 
           j := j + 1;
         }
@@ -372,10 +372,31 @@ module {:extern "DCOMP"} DCOMP {
 
           s := s + ")";
         }
+        case Array(element) => {
+          var elemStr := GenType(element, inBinding);
+          s := "::std::vec::Vec<" + elemStr + ">";
+        }
+        case Seq(element) => {
+          var elemStr := GenType(element, inBinding);
+          s := "::std::vec::Vec<" + elemStr + ">";
+        }
+        case Set(element) => {
+          var elemStr := GenType(element, inBinding);
+          s := "::std::collections::HashSet<" + elemStr + ">";
+        }
+        case Multiset(element) => {
+          var elemStr := GenType(element, inBinding);
+          s := "::std::collections::HashMap<" + elemStr + ", u64>";
+        }
+        case Map(key, value) => {
+          var keyStr := GenType(key, inBinding);
+          var valueStr := GenType(value, inBinding);
+          s := "::std::collections::HashMap<" + keyStr + ", " + valueStr + ">";
+        }
         case TypeArg(Ident(name)) => s := name;
         case Primitive(p) => {
           match p {
-            case String => s := "String";
+            case String => s := "Vec<char>";
             case Bool => s := "bool";
             case Char => s := "char";
           }
@@ -706,7 +727,17 @@ module {:extern "DCOMP"} DCOMP {
         }
         case Literal(StringLiteral(l)) => {
           // TODO(shadaj): handle unicode properly
-          s := "\"" + l + "\".to_string()";
+          s := "\"" + l + "\".chars().collect::<Vec<char>>()";
+          isOwned := true;
+          readIdents := {};
+        }
+        case Literal(CharLiteral(c)) => {
+          s := "::std::primitive::char::from_u32(" + natToString(c as nat) + ").unwrap()";
+          isOwned := true;
+          readIdents := {};
+        }
+        case Literal(Null) => {
+          s := "None";
           isOwned := true;
           readIdents := {};
         }
@@ -779,6 +810,20 @@ module {:extern "DCOMP"} DCOMP {
           s := s + "))";
           isOwned := true;
         }
+        case NewArray(dims) => {
+          var i := |dims| - 1;
+          s := "::std::default::Default::default()";
+          readIdents := {};
+          while i >= 0 {
+            var recursiveGen, _, recIdents := GenExpr(dims[i], params, true);
+            s := "vec![" + s + "; (" + recursiveGen + ") as usize]";
+            readIdents := readIdents + recIdents;
+
+            i := i - 1;
+          }
+
+          isOwned := true;
+        }
         case DatatypeValue(path, variant, isCo, values) => {
           var path := GenPath(path);
           s := "::std::rc::Rc::new(" + path + "::r#" + variant;
@@ -818,6 +863,54 @@ module {:extern "DCOMP"} DCOMP {
           s := typeString + "(" + recursiveGen + ")";
           isOwned := true;
           readIdents := recIdents;
+        }
+        case SeqValue(exprs) => {
+          var generatedValues := [];
+          readIdents := {};
+          var i := 0;
+          while i < |exprs| {
+            var recursiveGen, _, recIdents := GenExpr(exprs[i], params, true);
+            generatedValues := generatedValues + [recursiveGen];
+            readIdents := readIdents + recIdents;
+            i := i + 1;
+          }
+
+          s := "vec![";
+          i := 0;
+          while i < |generatedValues| {
+            if i > 0 {
+              s := s + ", ";
+            }
+            s := s + generatedValues[i];
+            i := i + 1;
+          }
+          s := s + "]";
+
+          isOwned := true;
+        }
+        case SetValue(exprs) => {
+          var generatedValues := [];
+          readIdents := {};
+          var i := 0;
+          while i < |exprs| {
+            var recursiveGen, _, recIdents := GenExpr(exprs[i], params, true);
+            generatedValues := generatedValues + [recursiveGen];
+            readIdents := readIdents + recIdents;
+            i := i + 1;
+          }
+
+          s := "vec![";
+          i := 0;
+          while i < |generatedValues| {
+            if i > 0 {
+              s := s + ", ";
+            }
+            s := s + generatedValues[i];
+            i := i + 1;
+          }
+          s := s + "].into_iter().collect::<std::collections::HashSet<_>>()";
+
+          isOwned := true;
         }
         case This() => {
           if mustOwn {

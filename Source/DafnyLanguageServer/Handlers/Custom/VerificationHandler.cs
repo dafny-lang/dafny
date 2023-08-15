@@ -1,13 +1,9 @@
-using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using MediatR;
-using Microsoft.Boogie;
-using Microsoft.Dafny.LanguageServer.Language;
+using Microsoft.Dafny.LanguageServer.Util;
 using Microsoft.Dafny.LanguageServer.Workspace;
-using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.JsonRpc;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
@@ -35,24 +31,7 @@ public class VerificationHandler : IJsonRpcRequestHandler<VerificationParams, bo
       return false;
     }
 
-    var translatedCompilation = await projectManager.CompilationManager.TranslatedCompilation;
-    var someTasksAreRunning = false;
-    var tasksAtPosition = GetTasksAtPosition(translatedCompilation, request);
-    foreach (var taskToRun in tasksAtPosition) {
-      someTasksAreRunning |= projectManager.CompilationManager.VerifyTask(translatedCompilation, taskToRun);
-    }
-    return someTasksAreRunning;
-  }
-
-  private static IEnumerable<IImplementationTask> GetTasksAtPosition(CompilationAfterTranslation compilation, TextDocumentPositionParams request) {
-    var uri = request.TextDocument.Uri.ToUri();
-    return compilation.VerificationTasks.Where(t => {
-      if (((IToken)t.Implementation.tok).Uri != uri) {
-        return false;
-      }
-      var lspPosition = t.Implementation.tok.GetLspPosition();
-      return lspPosition.Equals(request.Position);
-    });
+    return await projectManager.CompilationManager.VerifyTask(new FilePosition(request.TextDocument.Uri.ToUri(), request.Position));
   }
 
   public async Task<bool> Handle(CancelVerificationParams request, CancellationToken cancellationToken) {
@@ -61,10 +40,16 @@ public class VerificationHandler : IJsonRpcRequestHandler<VerificationParams, bo
       return false;
     }
 
-    var translatedDocument = await projectManager.CompilationManager.TranslatedCompilation;
-    foreach (var taskToRun in GetTasksAtPosition(translatedDocument, request)) {
-      taskToRun.Cancel();
+
+    var resolvedCompilation = await projectManager.CompilationManager.ResolvedCompilation;
+    if (resolvedCompilation.Program.FindNode(request.TextDocument.Uri.ToUri(), request.Position.ToDafnyPosition()) is ICanVerify verifiable) {
+      var implementations = resolvedCompilation.ImplementationsPerVerifiable.TryGetValue(verifiable, out var implementationsPerName)
+        ? implementationsPerName.Values : Enumerable.Empty<ImplementationView>();
+      foreach (var view in implementations) {
+        view.Task.Cancel();
+      }
     }
+
 
     return true;
   }

@@ -8,7 +8,7 @@ using Microsoft.Dafny.Auditor;
 
 namespace Microsoft.Dafny;
 
-public class Function : MemberDecl, TypeParameter.ParentType, ICallable, ICanFormat, IHasDocstring, ISymbol {
+public class Function : MemberDecl, TypeParameter.ParentType, ICallable, ICanFormat, IHasDocstring, ISymbol, ICanVerify {
   public override string WhatKind => "function";
 
   public string GetFunctionDeclarationKeywords(DafnyOptions options) {
@@ -127,7 +127,7 @@ public class Function : MemberDecl, TypeParameter.ParentType, ICallable, ICanFor
     AccumulateRight_Concat,
   }
 
-  public override IEnumerable<INode> Children => new[] { ByMethodDecl }.Where(x => x != null).
+  public override IEnumerable<INode> Children => new[] { ByMethodBody }.Where(x => x != null).
     Concat<Node>(TypeArgs).
     Concat<Node>(Reads).
     Concat<Node>(Req).
@@ -476,6 +476,8 @@ experimentalPredicateAlwaysGhost - Compiled functions are written `function`. Gh
   }
 
   public DafnySymbolKind Kind => DafnySymbolKind.Function;
+  public bool ShouldVerify => true; // This could be made more accurate
+  public ModuleDefinition ContainingModule => EnclosingClass.EnclosingModuleDefinition;
   public string GetDescription(DafnyOptions options) {
     var formals = string.Join(", ", Formals.Select(f => f.AsText()));
     var resultType = ResultType.TypeName(options, null, false);

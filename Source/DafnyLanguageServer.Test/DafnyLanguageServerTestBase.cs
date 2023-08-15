@@ -127,7 +127,8 @@ lemma {:neverVerify} HasNeverVerifyAttribute(p: nat, q: nat)
 
     protected static TextDocumentItem CreateTestDocument(string source, string filePath = null, int version = 1) {
       if (filePath == null) {
-        filePath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName(), $"testFile{fileIndex++}.dfy");
+        var index = Interlocked.Increment(ref fileIndex);
+        filePath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName(), $"testFile{index}.dfy");
       }
       if (string.IsNullOrEmpty(Path.GetDirectoryName(filePath))) {
         filePath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName(), filePath);

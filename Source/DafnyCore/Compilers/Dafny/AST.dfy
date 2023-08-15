@@ -5,7 +5,16 @@ module {:extern "DAST"} DAST {
 
   datatype Newtype = Newtype(name: string, base: Type, witnessExpr: Optional<Expression>)
 
-  datatype Type = Path(seq<Ident>, typeArgs: seq<Type>, resolved: ResolvedType) | Tuple(seq<Type>) | Primitive(Primitive) | Passthrough(string) | TypeArg(Ident)
+  datatype Type =
+    Path(seq<Ident>, typeArgs: seq<Type>, resolved: ResolvedType) |
+    Tuple(seq<Type>) |
+    Array(element: Type) |
+    Seq(element: Type) |
+    Set(element: Type) |
+    Multiset(element: Type) |
+    Map(key: Type, value: Type) |
+    Primitive(Primitive) | Passthrough(string) |
+    TypeArg(Ident)
 
   datatype Primitive = String | Bool | Char
 
@@ -46,8 +55,11 @@ module {:extern "DAST"} DAST {
     Companion(seq<Ident>) |
     Tuple(seq<Expression>) |
     New(path: seq<Ident>, args: seq<Expression>) |
+    NewArray(dims: seq<Expression>) |
     DatatypeValue(path: seq<Ident>, variant: string, isCo: bool, contents: seq<(string, Expression)>) |
     NewtypeValue(tpe: Type, value: Expression) |
+    SeqValue(elements: seq<Expression>) |
+    SetValue(elements: seq<Expression>) |
     This() |
     Ite(cond: Expression, thn: Expression, els: Expression) |
     UnOp(unOp: UnaryOp, expr: Expression) |
@@ -60,5 +72,5 @@ module {:extern "DAST"} DAST {
 
   datatype UnaryOp = Not | BitwiseNot | Cardinality
 
-  datatype Literal = BoolLiteral(bool) | IntLiteral(int) | DecLiteral(string) | StringLiteral(string)
+  datatype Literal = BoolLiteral(bool) | IntLiteral(int) | DecLiteral(string) | StringLiteral(string) | CharLiteral(char) | Null
 }

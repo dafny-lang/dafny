@@ -112,8 +112,8 @@ namespace Microsoft.Dafny {
       Contract.Requires(program != null);
     }
 
-    internal virtual void PreTranslate(Program program) {
-      Contract.Requires(program != null);
+    internal virtual void PreVerify(ModuleDefinition module) {
+      Contract.Requires(module != null);
     }
 
     public virtual void PostVerification(Program program) {

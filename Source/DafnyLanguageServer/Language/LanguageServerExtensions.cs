@@ -8,6 +8,7 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.Workspace;
+using Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors;
 
 namespace Microsoft.Dafny.LanguageServer.Language {
   /// <summary>
