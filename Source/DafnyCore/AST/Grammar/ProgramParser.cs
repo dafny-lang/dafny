@@ -49,6 +49,7 @@ public class ProgramParser {
     );
 
     foreach (var dafnyFile in files) {
+      cancellationToken.ThrowIfCancellationRequested();
       if (options.Trace) {
         options.OutputWriter.WriteLine("Parsing " + dafnyFile.FilePath);
       }
@@ -60,7 +61,7 @@ public class ProgramParser {
       try {
         var parseResult = ParseFile(
           options,
-          dafnyFile.Content,
+          dafnyFile.GetContent,
           dafnyFile.Uri
         );
         if (parseResult.ErrorReporter.ErrorCount != 0) {
@@ -83,9 +84,6 @@ public class ProgramParser {
         };
         errorReporter.Error(MessageSource.Parser, internalErrorDummyToken,
           "[internal error] Parser exception: " + e.Message);
-      }
-      finally {
-        dafnyFile.Content.Close();
       }
     }
 
@@ -204,7 +202,7 @@ public class ProgramParser {
       try {
         var parseIncludeResult = ParseFile(
           errorReporter.Options,
-          top.Content,
+          top.GetContent,
           top.Uri
         );
         result.Add(parseIncludeResult);
@@ -218,9 +216,6 @@ public class ProgramParser {
       } catch (Exception) {
         // ignored
       }
-      finally {
-        top.Content.Close();
-      }
     }
 
     return result;
@@ -229,7 +224,7 @@ public class ProgramParser {
   private DafnyFile IncludeToDafnyFile(SystemModuleManager systemModuleManager, ErrorReporter errorReporter, Include include) {
     try {
       return new DafnyFile(systemModuleManager.Options, include.IncludedFilename,
-        fileSystem.ReadFile(include.IncludedFilename));
+        () => fileSystem.ReadFile(include.IncludedFilename));
     } catch (IOException e) {
       errorReporter.Error(MessageSource.Parser, include.tok,
         $"Unable to open the include {include.IncludedFilename} because {e.Message}.");
@@ -247,8 +242,9 @@ public class ProgramParser {
   /// Returns the number of parsing errors encountered.
   /// Note: first initialize the Scanner.
   ///</summary>
-  protected virtual DfyParseResult ParseFile(DafnyOptions options, TextReader reader, Uri uri) /* throws System.IO.IOException */ {
+  protected virtual DfyParseResult ParseFile(DafnyOptions options, Func<TextReader> getReader, Uri uri) /* throws System.IO.IOException */ {
     Contract.Requires(uri != null);
+    using var reader = getReader();
     var text = SourcePreprocessor.ProcessDirectives(reader, new List<string>());
     try {
       return ParseFile(options, text, uri);
@@ -305,7 +301,7 @@ public class ProgramParser {
   }
 
   public Program Parse(string source, Uri uri, ErrorReporter reporter) {
-    var files = new[] { new DafnyFile(reporter.Options, uri, new StringReader(source)) };
+    var files = new[] { new DafnyFile(reporter.Options, uri, () => new StringReader(source)) };
     return ParseFiles(uri.ToString(), files, reporter, CancellationToken.None);
   }
 }
