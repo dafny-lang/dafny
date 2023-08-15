@@ -21,6 +21,7 @@ public class Method : MemberDecl, TypeParameter.ParentType, IMethodCodeContext, 
   public readonly List<Formal> Ins;
   public readonly List<Formal> Outs;
   public readonly List<AttributedExpression> Req;
+  // TODO: make a Specification<FrameExpression> as well? Function.Reads isn't...
   public readonly List<FrameExpression> Reads;
   public readonly Specification<FrameExpression> Mod;
   public readonly List<AttributedExpression> Ens;
@@ -279,6 +280,10 @@ public class Method : MemberDecl, TypeParameter.ParentType, IMethodCodeContext, 
         resolver.ConstrainTypeExprBool(e.E, "Precondition must be a boolean (got {0})");
       }
 
+      // TODO: May not be the right place to do this, and may want something like InferredDecreases
+      if (!Reads.Any()) {
+        Reads.Add(new FrameExpression(tok, new WildcardExpr(tok), null));
+      }
       foreach (FrameExpression fe in Reads) {
         resolver.ResolveFrameExpressionTopLevel(fe, FrameExpressionUse.Reads, this);
         if (IsLemmaLike) {
