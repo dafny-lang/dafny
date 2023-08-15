@@ -13,9 +13,6 @@ namespace DafnyCore.CoverageReporter;
 
 public class CoverageReportCommand : ICommandSpec {
 
-  public static List<string> CoverageReportsToMerge = new();
-  public static string CoverageReportOutDir = null;
-
   static CoverageReportCommand() {
     ReportsArgument = new("reports", r => {
       return r.Tokens.Where(t => !string.IsNullOrEmpty(t.Value)).Select(t => new FileInfo(t.Value)).ToList();
@@ -23,8 +20,8 @@ public class CoverageReportCommand : ICommandSpec {
   }
 
   // FilesArgument is intended for Dafny files, so CoverageReportCommand adds its own argument instead
-  private static Argument<List<FileInfo>> ReportsArgument { get; }
-  private static readonly Argument<string> OutDirArgument = new("outDir",
+  public static Argument<List<FileInfo>> ReportsArgument { get; }
+  public static readonly Argument<string> OutDirArgument = new("outDir",
     @"directory in which to save the combined coverage report");
 
   public IEnumerable<Option> Options => new List<Option>();
@@ -37,10 +34,5 @@ public class CoverageReportCommand : ICommandSpec {
     return result;
   }
 
-  public void PostProcess(DafnyOptions dafnyOptions, Microsoft.Dafny.Options options, InvocationContext context) {
-    var outDir = context.ParseResult.GetValueForArgument(OutDirArgument);
-    CoverageReportOutDir = outDir;
-    CoverageReportsToMerge = context.ParseResult.GetValueForArgument(ReportsArgument)
-      .Select(fileInfo => fileInfo.FullName).ToList();
-  }
+  public void PostProcess(DafnyOptions dafnyOptions, Microsoft.Dafny.Options options, InvocationContext context) { }
 }

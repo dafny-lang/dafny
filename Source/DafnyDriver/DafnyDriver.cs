@@ -131,9 +131,9 @@ namespace Microsoft.Dafny {
       switch (cliArgumentsResult) {
         case CommandLineArgumentsResult.OK:
 
-          if (CoverageReportCommand.CoverageReportOutDir != null) {
+          if (dafnyOptions.Get(CoverageReportCommand.OutDirArgument) != null) {
             new CoverageReporter(new ConsoleErrorReporter(dafnyOptions))
-              .Merge(CoverageReportCommand.CoverageReportsToMerge, CoverageReportCommand.CoverageReportOutDir);
+              .Merge(dafnyOptions.Get(CoverageReportCommand.ReportsArgument).ConvertAll(fileInfo => fileInfo.FullName), dafnyOptions.Get(CoverageReportCommand.OutDirArgument));
             return 0;
           }
 
@@ -232,7 +232,7 @@ namespace Microsoft.Dafny {
         return CommandLineArgumentsResult.OK;
       }
 
-      if (CoverageReportCommand.CoverageReportOutDir != null) {
+      if (options.Get(CoverageReportCommand.OutDirArgument) != null) {
         return CommandLineArgumentsResult.OK;
       }
 

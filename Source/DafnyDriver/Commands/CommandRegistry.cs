@@ -92,7 +92,7 @@ public static class CommandRegistry {
     var wasInvoked = false;
     var dafnyOptions = new DafnyOptions(inputReader, outputWriter, errorWriter);
     var optionValues = new Dictionary<Option, object>();
-    var options = new Options(optionValues);
+    var options = new Options(optionValues, new Dictionary<Argument, object>());
     dafnyOptions.ShowEnv = ExecutionEngineOptions.ShowEnvironment.Never;
     dafnyOptions.Environment = "Command-line arguments: " + string.Join(" ", arguments);
     dafnyOptions.Options = options;
@@ -167,10 +167,12 @@ public static class CommandRegistry {
       }
 
       foreach (var argument in command.Arguments) {
-        var result = context.ParseResult.FindResultFor(argument);
-        options.Arguments[argument] = result;
+        var result = context.ParseResult.FindResultFor(argument)?.GetValueOrDefault();
+        if (result != null) {
+          options.Arguments[argument] = result;
+        }
       }
-      
+
       foreach (var option in command.Options) {
         var result = context.ParseResult.FindResultFor(option);
         object projectFileValue = null;
