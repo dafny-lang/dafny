@@ -7,7 +7,7 @@
 # Inside a Dafny folder
 # - Copy this script from the scripts/folder to outside of the folder
 # - Place file_name.dfy and run:
-# bisect-dafny-detect-fix.sh vgood.old.revision vbad.new.revision file_name.dfy
+# bisect-dafny-detect-fix.sh vbad.old.revision vgood.new.revision file_name.dfy
 
 if [ $# -ne 3 ]; then
   echo "Usage:"
