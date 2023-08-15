@@ -99,6 +99,14 @@ jobs:
       with:
         path: dafny
         submodules: true # Until the libraries work again
+    - name: Install Java runtime locally (non-Windows)
+      if: runner.os != 'Windows'
+      working-directory: dafny/Source/DafnyRuntime/DafnyRuntimeJava
+      run: ./gradlew publishToMavenLocal
+    - name: Install Java runtime locally (Windows)
+      if: runner.os == 'Windows'
+      working-directory: dafny/Source/DafnyRuntime/DafnyRuntimeJava
+      run: ./gradlew.bat publishToMavenLocal
 #    - name: Clean up libraries for testing
 #      run: |
 #        rm dafny/Test/libraries/lit.site.cfg # we remove the lit configuration file in the library repo (a git submodule) to prevent override
@@ -118,7 +126,7 @@ jobs:
       run: |
         sudo apt-get install -qq libarchive-tools
         mkdir -p dafny/Binaries/z3/bin
-        wget -qO- https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2023-02-17/z3-4.12.1-ubuntu-20.04-bin.zip | bsdtar -xf -
+        wget -qO- https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2023-08-02/z3-4.12.1-x64-ubuntu-20.04-bin.zip | bsdtar -xf -
         mv z3-4.12.1 dafny/Binaries/z3/bin/
         chmod +x dafny/Binaries/z3/bin/z3-4.12.1
         mkdir -p unzippedRelease/dafny/z3/bin

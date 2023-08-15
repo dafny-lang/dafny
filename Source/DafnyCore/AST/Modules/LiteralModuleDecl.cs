@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
@@ -7,7 +8,7 @@ namespace Microsoft.Dafny;
 /// <summary>
 /// Represents module X { ... }
 /// </summary>
-public class LiteralModuleDecl : ModuleDecl, ICanFormat {
+public class LiteralModuleDecl : ModuleDecl, ICanFormat, IHasSymbolChildren {
   public readonly ModuleDefinition ModuleDef;
 
   [FilledInDuringResolution] public ModuleSignature DefaultExport;  // the default export set of the module.
@@ -29,11 +30,20 @@ public class LiteralModuleDecl : ModuleDecl, ICanFormat {
     return DefaultExport;
   }
 
-  public override IEnumerable<Node> Children => new[] { ModuleDef };
-  public override IEnumerable<Node> PreResolveChildren => Children;
+  public override IEnumerable<INode> Children => new[] { ModuleDef };
+  public override IEnumerable<INode> PreResolveChildren => Children;
 
-  public LiteralModuleDecl(ModuleDefinition module, ModuleDefinition parent)
-    : base(module.RangeToken, module.NameNode, parent, false, false) {
+  public LiteralModuleDecl(Cloner cloner, LiteralModuleDecl original, ModuleDefinition parent)
+    : base(cloner, original, parent) {
+    var newModuleDefinition = cloner.CloneLiteralModuleDefinition ? cloner.CloneModuleDefinition(original.ModuleDef, parent) : original.ModuleDef;
+    ModuleDef = newModuleDefinition;
+    DefaultExport = original.DefaultExport;
+    BodyStartTok = ModuleDef.BodyStartTok;
+    TokenWithTrailingDocString = ModuleDef.TokenWithTrailingDocString;
+  }
+
+  public LiteralModuleDecl(ModuleDefinition module, ModuleDefinition parent, Guid cloneId)
+    : base(module.RangeToken, module.NameNode, parent, false, false, cloneId) {
     ModuleDef = module;
     BodyStartTok = module.BodyStartTok;
     TokenWithTrailingDocString = module.TokenWithTrailingDocString;
@@ -74,13 +84,13 @@ public class LiteralModuleDecl : ModuleDecl, ICanFormat {
     }
 
     foreach (var decl2 in ModuleDef.PrefixNamedModules) {
-      formatter.SetDeclIndentation(decl2.Item2, innerIndent);
+      formatter.SetDeclIndentation(decl2.Module, innerIndent);
     }
 
     return true;
   }
 
-  public void ResolveLiteralModuleDeclaration(Resolver resolver, Program prog, int beforeModuleResolutionErrorCount) {
+  public ModuleSignature Resolve(ModuleResolver resolver, CompilationData compilation) {
     // The declaration is a literal module, so it has members and such that we need
     // to resolve. First we do refinement transformation. Then we construct the signature
     // of the module. This is the public, externally visible signature. Then we add in
@@ -93,37 +103,35 @@ public class LiteralModuleDecl : ModuleDecl, ICanFormat {
 
     var errorCount = resolver.reporter.ErrorCount;
     if (module.RefinementQId != null) {
-      ModuleDecl md = resolver.ResolveModuleQualifiedId(module.RefinementQId.Root, module.RefinementQId, resolver.reporter);
-      module.RefinementQId.Set(md); // If module is not found, md is null and an error message has been emitted
+      var md = module.RefinementQId.ResolveTarget(resolver.reporter);
+      module.RefinementQId.SetTarget(md); // If module is not found, md is null and an error message has been emitted
     }
 
-    foreach (var rewriter in prog.Rewriters) {
+    foreach (var rewriter in compilation.Rewriters) {
       rewriter.PreResolve(module);
     }
 
-    Signature = resolver.RegisterTopLevelDecls(module, true);
-    Signature.Refines = resolver.refinementTransformer.RefinedSig;
+    Signature = module.RegisterTopLevelDecls(resolver, true);
+    Signature.Refines = module.RefinementQId?.Sig;
 
     var sig = Signature;
     // set up environment
     var preResolveErrorCount = resolver.reporter.ErrorCount;
 
     resolver.ResolveModuleExport(this, sig);
-    var good = module.ResolveModuleDefinition(sig, resolver);
+    var good = module.Resolve(sig, resolver);
 
     if (good && resolver.reporter.ErrorCount == preResolveErrorCount) {
       // Check that the module export gives a self-contained view of the module.
-      resolver.CheckModuleExportConsistency(prog, module);
+      resolver.CheckModuleExportConsistency(compilation, module);
     }
 
     var tempVis = new VisibilityScope();
     tempVis.Augment(sig.VisibilityScope);
-    tempVis.Augment(resolver.systemNameInfo.VisibilityScope);
+    tempVis.Augment(resolver.ProgramResolver.SystemModuleManager.systemNameInfo.VisibilityScope);
     Type.PushScope(tempVis);
 
-    prog.ModuleSigs[module] = sig;
-
-    foreach (var rewriter in prog.Rewriters) {
+    foreach (var rewriter in compilation.Rewriters) {
       if (!good || resolver.reporter.ErrorCount != preResolveErrorCount) {
         break;
       }
@@ -137,28 +145,41 @@ public class LiteralModuleDecl : ModuleDecl, ICanFormat {
 
     Type.PopScope(tempVis);
 
-    /* It's strange to stop here when _any_ module has had resolution errors.
-     * Either stop here when _this_ module has had errors,
-     * or completely stop module resolution after one of them has errors
-     */
-    if (resolver.reporter.ErrorCount != beforeModuleResolutionErrorCount) {
-      return;
+    if (!good || resolver.reporter.ErrorCount > 0) {
+      return sig;
     }
 
     Type.PushScope(tempVis);
-    resolver.ComputeIsRecursiveBit(prog, module);
+    resolver.ComputeIsRecursiveBit(compilation, module);
     resolver.FillInDecreasesClauses(module);
     foreach (var iter in module.TopLevelDecls.OfType<IteratorDecl>()) {
       resolver.reporter.Info(MessageSource.Resolver, iter.tok, Printer.IteratorClassToString(resolver.Reporter.Options, iter));
     }
 
-    foreach (var rewriter in prog.Rewriters) {
+    foreach (var rewriter in compilation.Rewriters) {
       rewriter.PostDecreasesResolve(module);
     }
 
     resolver.FillInAdditionalInformation(module);
     FuelAdjustment.CheckForFuelAdjustments(resolver.reporter, module);
 
+    foreach (var rewriter in compilation.Rewriters) {
+      rewriter.PostResolve(module);
+    }
+
     Type.PopScope(tempVis);
+    return sig;
   }
+
+  public void BindModuleNames(ProgramResolver resolver, ModuleBindings parentBindings) {
+    Contract.Requires(this != null);
+    Contract.Requires(parentBindings != null);
+
+    var bindings = ModuleDef.BindModuleNames(resolver, parentBindings);
+    if (!parentBindings.BindName(Name, this, bindings)) {
+      resolver.Reporter.Error(MessageSource.Resolver, tok, "Duplicate module name: {0}", Name);
+    }
+  }
+
+  public IEnumerable<ISymbol> ChildSymbols => ModuleDef.ChildSymbols;
 }

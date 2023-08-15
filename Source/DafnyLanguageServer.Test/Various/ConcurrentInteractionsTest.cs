@@ -1,4 +1,3 @@
-using System;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 using Microsoft.Dafny.LanguageServer.Workspace;
@@ -6,17 +5,38 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading;
+using System.Text;
 using System.Threading.Tasks;
+using OmniSharp.Extensions.JsonRpc.Server;
 using Xunit;
 using Xunit.Abstractions;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
+
+  [Collection("Sequential Collection")]
   public class ConcurrentInteractionsTest : ClientBasedLanguageServerTest {
     // Implementation note: These tests assume that no diagnostics are published
     // when a document (re-load) was canceled.
     private const int MaxTestExecutionTimeMs = 240_000;
+
+    [Fact]
+    public async Task UpdateDuringARequestWillCancelTheRequest() {
+      var programThatResolvesSlowlyEnough = RepeatStrBuilder(@"method Foo() {}", 1000);
+      var documentItem = CreateTestDocument(programThatResolvesSlowlyEnough);
+      client.OpenDocument(documentItem);
+      var hoverTask = client.RequestHover(new HoverParams { Position = (0, 0), TextDocument = documentItem }, CancellationToken);
+      ApplyChange(ref documentItem, new Range(0, 0, 0, 0), "//comment\n");
+#pragma warning disable VSTHRD003
+      await Assert.ThrowsAsync<ContentModifiedException>(() => hoverTask);
+#pragma warning restore VSTHRD003
+    }
+
+    private static string RepeatStrBuilder(string text, uint n) {
+      return new StringBuilder(text.Length * (int)n)
+        .Insert(0, text, (int)n)
+        .ToString();
+    }
 
     [Fact(Timeout = MaxTestExecutionTimeMs)]
     public async Task VerificationErrorDetectedAfterCanceledSave() {
@@ -83,17 +103,16 @@ method Multiply(x: bv10, y: bv10) returns (product: bv10)
       // Save and wait for the final result
       await client.SaveDocumentAndWaitAsync(documentItem, CancellationTokenWithHighTimeout);
 
-      var document = await Documents.GetLastDocumentAsync(documentItem.Uri);
-      Assert.NotNull(document);
-      Assert.Equal(documentItem.Version + 11, document.Version);
-      Assert.Single(document.AllFileDiagnostics);
-      Assert.Equal("assertion might not hold", document.AllFileDiagnostics.First().Message);
+      var diagnostics = await GetLastDiagnosticsParams(documentItem, CancellationToken);
+      Assert.Equal(documentItem.Version + 11, diagnostics.Version);
+      Assert.Single(diagnostics.Diagnostics);
+      Assert.Equal("assertion might not hold", diagnostics.Diagnostics.First().Message);
     }
 
-    [Fact(Timeout = MaxTestExecutionTimeMs)]
+    [Fact]
     public async Task ChangeDocumentCancelsPreviousOpenAndChangeVerification() {
       var source = NeverVerifies.Substring(0, NeverVerifies.Length - 2);
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "ChangeDocumentCancelsPreviousOpenAndChangeVerification.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationTokenWithHighTimeout);
       // The original document contains a syntactic error.
       var initialLoadDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationTokenWithHighTimeout, documentItem);
@@ -102,7 +121,7 @@ method Multiply(x: bv10, y: bv10) returns (product: bv10)
 
       ApplyChange(ref documentItem, new Range((2, 1), (2, 1)), "\n}");
 
-      // Wait for resolution diagnostics now, so they don't get cancelled.
+      // Wait for parse diagnostics now, so they don't get cancelled.
       // After this we still have never completing verification diagnostics in the queue.
       var parseErrorFixedDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationTokenWithHighTimeout, documentItem);
       Assert.Empty(parseErrorFixedDiagnostics);
@@ -143,7 +162,7 @@ method Multiply(x: bv10, y: bv10) returns (product: bv10)
       await AssertNoDiagnosticsAreComing(CancellationToken);
     }
 
-    [Fact(Timeout = MaxTestExecutionTimeMs)]
+    [Fact]
     public async Task CanLoadMultipleDocumentsConcurrently() {
       // The current implementation of DafnyLangParser, DafnyLangSymbolResolver, and DafnyProgramVerifier are only mutual
       // exclusive to themselves. This "stress test" ensures that loading multiple documents at once is possible.
@@ -165,17 +184,17 @@ method Multiply(x: int, y: int) returns (product: int)
 }".TrimStart();
       var loadingDocuments = new List<TextDocumentItem>();
       for (int i = 0; i < documentsToLoadConcurrently; i++) {
-        var documentItem = CreateTestDocument(source, $"test_{i}.dfy");
+        var documentItem = CreateTestDocument(source, $"current_test_{i}.dfy");
         client.OpenDocument(documentItem);
         loadingDocuments.Add(documentItem);
       }
       for (int i = 0; i < documentsToLoadConcurrently; i++) {
-        var report = await GetLastDiagnostics(loadingDocuments[i], CancellationTokenWithHighTimeout);
-        Assert.Empty(report);
+        await client.WaitForNotificationCompletionAsync(loadingDocuments[i].Uri, CancellationTokenWithHighTimeout);
+        await Projects.GetLastDocumentAsync(loadingDocuments[i]).WaitAsync(CancellationTokenWithHighTimeout);
       }
 
       foreach (var loadingDocument in loadingDocuments) {
-        await Documents.CloseDocumentAsync(loadingDocument);
+        client.CloseDocument(loadingDocument);
       }
       await AssertNoDiagnosticsAreComing(CancellationTokenWithHighTimeout);
     }

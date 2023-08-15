@@ -10,9 +10,13 @@ public abstract class ExtremeLemma : Method {
   public bool KNat => TypeOfK == ExtremePredicate.KType.Nat;
   [FilledInDuringResolution] public PrefixLemma PrefixLemma;  // (name registration)
 
-  public override IEnumerable<Node> Children => base.Children.Concat(new[] { PrefixLemma });
+  public override IEnumerable<INode> Children => base.Children.Concat(new[] { PrefixLemma });
 
-  public override IEnumerable<Node> PreResolveChildren => base.Children;
+  public override IEnumerable<INode> PreResolveChildren => base.Children;
+
+  public ExtremeLemma(Cloner cloner, ExtremeLemma lemma) : base(cloner, lemma) {
+    TypeOfK = lemma.TypeOfK;
+  }
 
   public ExtremeLemma(RangeToken rangeToken, Name name,
     bool hasStaticKeyword, ExtremePredicate.KType typeOfK,
@@ -62,6 +66,9 @@ public class LeastLemma : ExtremeLemma {
     Contract.Requires(cce.NonNullElements(ens));
     Contract.Requires(decreases != null);
   }
+
+  public LeastLemma(Cloner cloner, LeastLemma leastLemma) : base(cloner, leastLemma) {
+  }
 }
 
 public class GreatestLemma : ExtremeLemma {
@@ -86,5 +93,8 @@ public class GreatestLemma : ExtremeLemma {
     Contract.Requires(mod != null);
     Contract.Requires(cce.NonNullElements(ens));
     Contract.Requires(decreases != null);
+  }
+
+  public GreatestLemma(Cloner cloner, GreatestLemma greatestLemma) : base(cloner, greatestLemma) {
   }
 }

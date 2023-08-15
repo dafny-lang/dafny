@@ -1,4 +1,4 @@
-﻿using DafnyServer.CounterexampleGeneration;
+﻿using System;
 using Microsoft.Boogie;
 using Microsoft.Dafny.LanguageServer.Workspace;
 using Microsoft.Extensions.Logging;
@@ -11,37 +11,41 @@ using Microsoft.Dafny.LanguageServer.CounterExampleGeneration;
 
 namespace Microsoft.Dafny.LanguageServer.Handlers.Custom {
   public class DafnyCounterExampleHandler : ICounterExampleHandler {
-    private DafnyOptions options;
+    private readonly DafnyOptions options;
     private readonly ILogger logger;
-    private readonly IDocumentDatabase documents;
+    private readonly IProjectDatabase projects;
+    private readonly ITelemetryPublisher telemetryPublisher;
 
-    public DafnyCounterExampleHandler(DafnyOptions options, ILogger<DafnyCounterExampleHandler> logger, IDocumentDatabase documents) {
+    public DafnyCounterExampleHandler(DafnyOptions options,
+      ILogger<DafnyCounterExampleHandler> logger,
+      IProjectDatabase projects,
+      ITelemetryPublisher telemetryPublisher) {
       this.logger = logger;
-      this.documents = documents;
+      this.projects = projects;
+      this.telemetryPublisher = telemetryPublisher;
       this.options = options;
     }
 
     public async Task<CounterExampleList> Handle(CounterExampleParams request, CancellationToken cancellationToken) {
       try {
-        var documentManager = documents.GetDocumentManager(request.TextDocument);
-        if (documentManager != null) {
-          var translatedDocument = await documentManager.Compilation.TranslatedDocument;
-          var verificationTasks = translatedDocument.VerificationTasks;
-          foreach (var task in verificationTasks) {
-            documentManager.Compilation.VerifyTask(translatedDocument, task);
-          }
+        var projectManager = await projects.GetProjectManager(request.TextDocument);
+        if (projectManager != null) {
+          await projectManager.VerifyEverythingAsync(request.TextDocument.Uri.ToUri());
 
-          var state = await documentManager.GetIdeStateAfterVerificationAsync();
-          logger.LogDebug("counter-examples retrieved IDE state");
+          var state = await projectManager.GetIdeStateAfterVerificationAsync();
+          logger.LogDebug("counter-example handler retrieved IDE state");
           return new CounterExampleLoader(options, logger, state, request.CounterExampleDepth, cancellationToken).GetCounterExamples();
         }
 
         logger.LogWarning("counter-examples requested for unloaded document {DocumentUri}",
           request.TextDocument.Uri);
         return new CounterExampleList();
-      } catch (TaskCanceledException) {
+      } catch (OperationCanceledException) {
         logger.LogWarning("counter-examples requested for unverified document {DocumentUri}",
           request.TextDocument.Uri);
+        return new CounterExampleList();
+      } catch (Exception e) {
+        telemetryPublisher.PublishUnhandledException(e);
         return new CounterExampleList();
       }
     }
@@ -63,7 +67,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers.Custom {
 
       public CounterExampleList GetCounterExamples() {
         if (!ideState.Counterexamples.Any()) {
-          logger.LogDebug("got no counter-examples for document {DocumentUri}", ideState.Uri);
+          logger.LogDebug($"got no counter-examples for compilation {ideState.Compilation}");
           return new CounterExampleList();
         }
 

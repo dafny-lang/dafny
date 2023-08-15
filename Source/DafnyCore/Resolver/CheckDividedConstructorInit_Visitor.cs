@@ -11,7 +11,7 @@ class CheckDividedConstructorInit_Visitor : ResolverTopDownVisitor<int> {
   }
   public void CheckInit(List<Statement> initStmts) {
     Contract.Requires(initStmts != null);
-    initStmts.Iter(CheckInit);
+    initStmts.ForEach(CheckInit);
   }
   /// <summary>
   /// This method almost does what Visit(Statement) does, except that it handles assignments to
@@ -31,25 +31,25 @@ class CheckDividedConstructorInit_Visitor : ResolverTopDownVisitor<int> {
       //   Visit(s.Lhs);                                         (++)
       //   s.Rhs.SubExpressions.Iter(Visit);                     (+++)
       // Here, we may do less; in particular, we may omit (++).
-      Attributes.SubExpressions(s.Attributes).Iter(VisitExpr);  // (+)
+      Attributes.SubExpressions(s.Attributes).ForEach(VisitExpr);  // (+)
       var mse = s.Lhs as MemberSelectExpr;
       if (mse != null && Expression.AsThis(mse.Obj) != null) {
         if (s.Rhs is ExprRhs) {
           // This is a special case we allow.  Omit s.Lhs in the recursive visits.  That is, we omit (++).
           // Furthermore, because the assignment goes to a field of "this" and won't be available until after
           // the "new;", we can allow certain specific (and useful) uses of "this" in the RHS.
-          s.Rhs.SubExpressions.Iter(LiberalRHSVisit);  // (+++)
+          s.Rhs.SubExpressions.ForEach(LiberalRHSVisit);  // (+++)
         } else {
-          s.Rhs.SubExpressions.Iter(VisitExpr);  // (+++)
+          s.Rhs.SubExpressions.ForEach(VisitExpr);  // (+++)
         }
       } else {
         VisitExpr(s.Lhs);  // (++)
-        s.Rhs.SubExpressions.Iter(VisitExpr);  // (+++)
+        s.Rhs.SubExpressions.ForEach(VisitExpr);  // (+++)
       }
     } else {
-      stmt.SubExpressions.Iter(VisitExpr);  // (*)
+      stmt.SubExpressions.ForEach(VisitExpr);  // (*)
     }
-    stmt.SubStatements.Iter(CheckInit);  // (**)
+    stmt.SubStatements.ForEach(CheckInit);  // (**)
     int dummy = 0;
     VisitOneStmt(stmt, ref dummy);  // (***)
   }
@@ -99,7 +99,7 @@ class CheckDividedConstructorInit_Visitor : ResolverTopDownVisitor<int> {
       VisitExpr(expr);
       return;
     }
-    expr.SubExpressions.Iter(LiberalRHSVisit);
+    expr.SubExpressions.ForEach(LiberalRHSVisit);
   }
   static bool IsThisDotField(MemberSelectExpr expr) {
     Contract.Requires(expr != null);

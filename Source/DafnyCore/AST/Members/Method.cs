@@ -5,11 +5,12 @@ using Microsoft.Dafny.Auditor;
 
 namespace Microsoft.Dafny;
 
-public class Method : MemberDecl, TypeParameter.ParentType, IMethodCodeContext, ICanFormat, IHasDocstring {
-  public override IEnumerable<Node> Children => new Node[] { Body, Decreases }.
-    Where(x => x != null).Concat(Ins).Concat(Outs).Concat<Node>(TypeArgs).
+public class Method : MemberDecl, TypeParameter.ParentType,
+  IMethodCodeContext, ICanFormat, IHasDocstring, IHasSymbolChildren, ICanVerify {
+  public override IEnumerable<INode> Children => new Node[] { Body, Decreases }.Where(x => x != null).
+    Concat(Ins).Concat(Outs).Concat<Node>(TypeArgs).
     Concat(Req).Concat(Ens).Concat(Mod.Expressions);
-  public override IEnumerable<Node> PreResolveChildren => Children;
+  public override IEnumerable<INode> PreResolveChildren => Children;
 
   public override string WhatKind => "method";
   public bool SignatureIsOmitted { get { return SignatureEllipsis != null; } }
@@ -63,8 +64,8 @@ public class Method : MemberDecl, TypeParameter.ParentType, IMethodCodeContext, 
       yield return new Assumption(this, tok, AssumptionDescription.MayNotTerminate);
     }
 
-    foreach (var c in Descendants()) {
-      foreach (var a in c.Assumptions(this)) {
+    foreach (var c in this.Descendants()) {
+      foreach (var a in (c as Node)?.Assumptions(this) ?? Enumerable.Empty<Assumption>()) {
         yield return a;
       }
     }
@@ -99,6 +100,22 @@ public class Method : MemberDecl, TypeParameter.ParentType, IMethodCodeContext, 
     Contract.Invariant(Mod != null);
     Contract.Invariant(cce.NonNullElements(Ens));
     Contract.Invariant(Decreases != null);
+  }
+
+  public Method(Cloner cloner, Method original) : base(cloner, original) {
+    this.TypeArgs = cloner.CloneResolvedFields ? original.TypeArgs : original.TypeArgs.ConvertAll(cloner.CloneTypeParam);
+    this.Ins = original.Ins.ConvertAll(p => cloner.CloneFormal(p, false));
+    if (original.Outs != null) {
+      this.Outs = original.Outs.ConvertAll(p => cloner.CloneFormal(p, false));
+    }
+
+    this.Req = original.Req.ConvertAll(cloner.CloneAttributedExpr);
+    this.Mod = cloner.CloneSpecFrameExpr(original.Mod);
+    this.Decreases = cloner.CloneSpecExpr(original.Decreases);
+    this.Ens = original.Ens.ConvertAll(cloner.CloneAttributedExpr);
+    this.Body = cloner.CloneMethodBody(original);
+    this.SignatureEllipsis = original.SignatureEllipsis;
+    this.IsByMethod = original.IsByMethod;
   }
 
   public Method(RangeToken rangeToken, Name name,
@@ -219,7 +236,7 @@ public class Method : MemberDecl, TypeParameter.ParentType, IMethodCodeContext, 
   /// <summary>
   /// Assumes type parameters have already been pushed
   /// </summary>
-  public void Resolve(Resolver resolver) {
+  public void Resolve(ModuleResolver resolver) {
     Contract.Requires(this != null);
     Contract.Requires(resolver.AllTypeConstraints.Count == 0);
     Contract.Ensures(resolver.AllTypeConstraints.Count == 0);
@@ -338,7 +355,7 @@ public class Method : MemberDecl, TypeParameter.ParentType, IMethodCodeContext, 
     }
   }
 
-  protected override string GetTriviaContainingDocstring() {
+  public string GetTriviaContainingDocstring() {
     IToken lastClosingParenthesis = null;
     foreach (var token in OwnedTokens) {
       if (token.val == ")") {
@@ -352,4 +369,28 @@ public class Method : MemberDecl, TypeParameter.ParentType, IMethodCodeContext, 
 
     return GetTriviaContainingDocstringFromStartTokenOrNull();
   }
+
+  public virtual DafnySymbolKind Kind => DafnySymbolKind.Method;
+  public string GetDescription(DafnyOptions options) {
+    var qualifiedName = GetQualifiedName();
+    var signatureWithoutReturn = $"{WhatKind} {qualifiedName}({string.Join(", ", Ins.Select(i => i.AsText()))})";
+    if (Outs.Count == 0) {
+      return signatureWithoutReturn;
+    }
+    return $"{signatureWithoutReturn} returns ({string.Join(", ", Outs.Select(o => o.AsText()))})";
+  }
+
+  protected virtual string GetQualifiedName() {
+    return $"{AstExtensions.GetMemberQualification(this)}{Name}";
+  }
+
+  public IEnumerable<ISymbol> ChildSymbols {
+    get {
+      IEnumerable<INode> childStatements = Body?.Visit(node => node is Statement) ?? Enumerable.Empty<INode>();
+      return Outs.Concat(childStatements.OfType<VarDeclStmt>().SelectMany(v => (IEnumerable<ISymbol>)v.Locals));
+    }
+  }
+
+  public bool ShouldVerify => true; // This could be made more accurate
+  public ModuleDefinition ContainingModule => EnclosingClass.EnclosingModuleDefinition;
 }

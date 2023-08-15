@@ -5,7 +5,7 @@ using System.Numerics;
 
 namespace Microsoft.Dafny;
 
-public class NewtypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, RedirectingTypeDecl, IHasDocstring {
+public class NewtypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, RedirectingTypeDecl, IHasDocstring, ICanVerify {
   public override string WhatKind { get { return "newtype"; } }
   public override bool CanBeRevealed() { return true; }
   public PreType BasePreType;
@@ -15,8 +15,9 @@ public class NewtypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, Redirect
   public SubsetTypeDecl.WKind WitnessKind { get; set; } = SubsetTypeDecl.WKind.CompiledZero;
   public Expression/*?*/ Witness { get; set; } // non-null iff WitnessKind is Compiled or Ghost
   [FilledInDuringResolution] public NativeType NativeType; // non-null for fixed-size representations (otherwise, use BigIntegers for integers)
-  public NewtypeDecl(RangeToken rangeToken, Name name, ModuleDefinition module, Type baseType, List<MemberDecl> members, Attributes attributes, bool isRefining)
-    : base(rangeToken, name, module, new List<TypeParameter>(), members, attributes, isRefining) {
+  public NewtypeDecl(RangeToken rangeToken, Name name, ModuleDefinition module, Type baseType, List<Type> parentTraits,
+    List<MemberDecl> members, Attributes attributes, bool isRefining)
+    : base(rangeToken, name, module, new List<TypeParameter>(), members, attributes, isRefining, parentTraits) {
     Contract.Requires(rangeToken != null);
     Contract.Requires(name != null);
     Contract.Requires(module != null);
@@ -24,8 +25,9 @@ public class NewtypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, Redirect
     Contract.Requires(members != null);
     BaseType = baseType;
   }
-  public NewtypeDecl(RangeToken rangeToken, Name name, ModuleDefinition module, BoundVar bv, Expression constraint, SubsetTypeDecl.WKind witnessKind, Expression witness, List<MemberDecl> members, Attributes attributes, bool isRefining)
-    : base(rangeToken, name, module, new List<TypeParameter>(), members, attributes, isRefining) {
+  public NewtypeDecl(RangeToken rangeToken, Name name, ModuleDefinition module, BoundVar bv, Expression constraint,
+    SubsetTypeDecl.WKind witnessKind, Expression witness, List<Type> parentTraits, List<MemberDecl> members, Attributes attributes, bool isRefining)
+    : base(rangeToken, name, module, new List<TypeParameter>(), members, attributes, isRefining, parentTraits) {
     Contract.Requires(rangeToken != null);
     Contract.Requires(name != null);
     Contract.Requires(module != null);
@@ -55,8 +57,6 @@ public class NewtypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, Redirect
 
   string RedirectingTypeDecl.Name { get { return Name; } }
   IToken RedirectingTypeDecl.tok { get { return tok; } }
-  IEnumerable<IToken> RedirectingTypeDecl.OwnedTokens => OwnedTokens;
-  IToken RedirectingTypeDecl.StartToken => StartToken;
   Attributes RedirectingTypeDecl.Attributes { get { return Attributes; } }
   ModuleDefinition RedirectingTypeDecl.Module { get { return EnclosingModuleDefinition; } }
   BoundVar RedirectingTypeDecl.Var { get { return Var; } }
@@ -93,7 +93,7 @@ public class NewtypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, Redirect
     return false;
   }
 
-  protected override string GetTriviaContainingDocstring() {
+  public string GetTriviaContainingDocstring() {
     IToken candidate = null;
     foreach (var token in OwnedTokens) {
       if (token.val == "{") {
@@ -110,6 +110,9 @@ public class NewtypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, Redirect
 
     return GetTriviaContainingDocstringFromStartTokenOrNull();
   }
+
+  public ModuleDefinition ContainingModule => EnclosingModuleDefinition;
+  public bool ShouldVerify => true; // This could be made more accurate
 }
 
 public class NativeType {

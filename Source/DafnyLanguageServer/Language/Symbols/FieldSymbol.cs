@@ -5,7 +5,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
     public Field Declaration { get; }
     public INode Node => Declaration;
 
-    public FieldSymbol(ISymbol? scope, Field field) : base(scope, field) {
+    public FieldSymbol(ILegacySymbol? scope, Field field) : base(scope, field) {
       Declaration = field;
     }
 

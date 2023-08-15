@@ -1,3 +1,10 @@
+//-----------------------------------------------------------------------------
+//
+// Copyright by the contributors to the Dafny Project
+// SPDX-License-Identifier: MIT
+//
+//-----------------------------------------------------------------------------
+
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
@@ -7,10 +14,9 @@ using Microsoft.Boogie;
 namespace Microsoft.Dafny;
 
 class CheckTypeInferenceVisitor : ASTVisitor<TypeInferenceCheckingContext> {
-  private readonly Resolver resolver;
-  private ErrorReporter reporter => resolver.reporter;
+  private readonly ModuleResolver resolver;
 
-  public CheckTypeInferenceVisitor(Resolver resolver) {
+  public CheckTypeInferenceVisitor(ModuleResolver resolver) {
     this.resolver = resolver;
   }
 
@@ -34,7 +40,7 @@ class CheckTypeInferenceVisitor : ASTVisitor<TypeInferenceCheckingContext> {
       }
 
     } else if (decl is DatatypeDecl datatypeDecl) {
-      foreach (var member in resolver.classMembers[datatypeDecl].Values) {
+      foreach (var member in resolver.GetClassMembers(datatypeDecl).Values) {
         if (member is DatatypeDestructor dtor) {
           var rolemodel = dtor.CorrespondingFormals[0];
           for (var i = 1; i < dtor.CorrespondingFormals.Count; i++) {
@@ -66,10 +72,10 @@ class CheckTypeInferenceVisitor : ASTVisitor<TypeInferenceCheckingContext> {
       // The resolution of the calc statement builds up .Steps and .Result, which are of the form E0 OP E1, where
       // E0 and E1 are expressions from .Lines.  These additional expressions still need to have their .ResolvedOp
       // fields filled in, so we visit them, rather than just the parsed .Lines.
-      Attributes.SubExpressions(calcStmt.Attributes).Iter(e => VisitExpression(e, context));
-      calcStmt.Steps.Iter(e => VisitExpression(e, context));
+      Attributes.SubExpressions(calcStmt.Attributes).ForEach(e => VisitExpression(e, context));
+      calcStmt.Steps.ForEach(e => VisitExpression(e, context));
       VisitExpression(calcStmt.Result, context);
-      calcStmt.Hints.Iter(hint => VisitStatement(hint, context));
+      calcStmt.Hints.ForEach(hint => VisitStatement(hint, context));
       return false; // we're done with all subcomponents of the CalcStmt
     }
 
@@ -85,13 +91,13 @@ class CheckTypeInferenceVisitor : ASTVisitor<TypeInferenceCheckingContext> {
       }
     } else if (stmt is VarDeclPattern) {
       var s = (VarDeclPattern)stmt;
-      s.LocalVars.Iter(local => CheckTypeIsDetermined(local.Tok, local.Type, "local variable"));
-      s.LocalVars.Iter(local => CheckTypeArgsContainNoOrdinal(local.Tok, local.Type, context));
+      s.LocalVars.ForEach(local => CheckTypeIsDetermined(local.Tok, local.Type, "local variable"));
+      s.LocalVars.ForEach(local => CheckTypeArgsContainNoOrdinal(local.Tok, local.Type, context));
 
     } else if (stmt is ForallStmt) {
       var s = (ForallStmt)stmt;
-      s.BoundVars.Iter(bv => CheckTypeIsDetermined(bv.tok, bv.Type, "bound variable"));
-      s.BoundVars.Iter(bv => CheckTypeArgsContainNoOrdinal(bv.tok, bv.Type, context));
+      s.BoundVars.ForEach(bv => CheckTypeIsDetermined(bv.tok, bv.Type, "bound variable"));
+      s.BoundVars.ForEach(bv => CheckTypeArgsContainNoOrdinal(bv.tok, bv.Type, context));
 
     } else if (stmt is AssignSuchThatStmt) {
       var s = (AssignSuchThatStmt)stmt;
@@ -110,7 +116,7 @@ class CheckTypeInferenceVisitor : ASTVisitor<TypeInferenceCheckingContext> {
         var n = (BigInteger)e.Value;
         var absN = n < 0 ? -n : n;
         // For bitvectors, check that the magnitude fits the width
-        if (e.Type.IsBitVectorType && Resolver.MaxBV(e.Type.AsBitVectorType.Width) < absN) {
+        if (e.Type.IsBitVectorType && ModuleResolver.MaxBV(e.Type.AsBitVectorType.Width) < absN) {
           resolver.ReportError(ResolutionErrors.ErrorId.r_literal_too_large_for_bitvector, e.tok, "literal ({0}) is too large for the bitvector type {1}", absN, e.Type);
         }
         // For bitvectors and ORDINALs, check for a unary minus that, earlier, was mistaken for a negative literal
@@ -205,7 +211,7 @@ class CheckTypeInferenceVisitor : ASTVisitor<TypeInferenceCheckingContext> {
       var e = (ConversionExpr)expr;
       if (e.ToType.IsRefType) {
         var fromType = e.E.Type;
-        Contract.Assert(fromType.IsRefType);
+        Contract.Assert(resolver.Options.Get(CommonOptionBag.GeneralTraits) || fromType.IsRefType);
         if (fromType.IsSubtypeOf(e.ToType, false, true) || e.ToType.IsSubtypeOf(fromType, false, true)) {
           // looks good
         } else {
@@ -222,6 +228,8 @@ class CheckTypeInferenceVisitor : ASTVisitor<TypeInferenceCheckingContext> {
       } else if (!e.ToType.IsSubtypeOf(fromType, false, true)) {
         resolver.ReportError(ResolutionErrors.ErrorId.r_never_succeeding_type_test, e.tok,
           "a type test to '{0}' must be from a compatible type (got '{1}')", e.ToType, fromType);
+      } else if (resolver.Options.Get(CommonOptionBag.GeneralTraits) && (fromType.IsTraitType || fromType.Equals(e.ToType))) {
+        // it's fine
       } else if (!e.ToType.IsRefType) {
         resolver.ReportError(ResolutionErrors.ErrorId.r_unsupported_type_test, e.tok,
           "a non-trivial type test is allowed only for reference types (tried to test if '{1}' is a '{0}')", e.ToType, fromType);
@@ -235,7 +243,7 @@ class CheckTypeInferenceVisitor : ASTVisitor<TypeInferenceCheckingContext> {
         }
       } else if (expr is BinaryExpr) {
         var e = (BinaryExpr)expr;
-        e.ResolvedOp = Resolver.ResolveOp(e.Op, e.E0.Type, e.E1.Type);
+        e.ResolvedOp = ModuleResolver.ResolveOp(e.Op, e.E0.Type, e.E1.Type);
         // Check for useless comparisons with "null"
         Expression other = null;  // if "null" if one of the operands, then "other" is the other
         if (e.E0 is LiteralExpr && ((LiteralExpr)e.E0).Value == null) {
@@ -373,7 +381,7 @@ class CheckTypeInferenceVisitor : ASTVisitor<TypeInferenceCheckingContext> {
     Contract.Requires(tok != null);
     Contract.Requires(t != null);
     Contract.Requires(what != null);
-    t = t.NormalizeExpandKeepConstraints();
+    t = t.Normalize(); // note, this keeps type synonyms, by design
 
     if (t is TypeProxy) {
       var proxy = (TypeProxy)t;
@@ -396,7 +404,7 @@ class CheckTypeInferenceVisitor : ASTVisitor<TypeInferenceCheckingContext> {
       // need to do them here again for the prefix predicates/lemmas.
     } else {
       t = t.NormalizeExpand();
-      t.TypeArgs.Iter(rg => CheckContainsNoOrdinal(ResolutionErrors.ErrorId.r_no_ORDINAL_as_type_parameter, tok, rg, "an ORDINAL type is not allowed to be used as a type argument"));
+      t.TypeArgs.ForEach(rg => CheckContainsNoOrdinal(ResolutionErrors.ErrorId.r_no_ORDINAL_as_type_parameter, tok, rg, "an ORDINAL type is not allowed to be used as a type argument"));
     }
   }
 
@@ -408,6 +416,6 @@ class CheckTypeInferenceVisitor : ASTVisitor<TypeInferenceCheckingContext> {
     if (t.IsBigOrdinalType) {
       resolver.ReportError(errorId, tok, errMsg);
     }
-    t.TypeArgs.Iter(rg => CheckContainsNoOrdinal(errorId, tok, rg, errMsg));
+    t.TypeArgs.ForEach(rg => CheckContainsNoOrdinal(errorId, tok, rg, errMsg));
   }
 }

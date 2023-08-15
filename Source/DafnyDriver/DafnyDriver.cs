@@ -11,7 +11,6 @@
 //---------------------------------------------------------------------------------------------
 
 using System.Collections.Concurrent;
-using DafnyServer.CounterexampleGeneration;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
@@ -26,13 +25,13 @@ using Microsoft.Boogie;
 using Bpl = Microsoft.Boogie;
 using System.Diagnostics;
 using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.Dafny.LanguageServer.CounterExampleGeneration;
 using Microsoft.Dafny.Plugins;
 
 namespace Microsoft.Dafny {
 
-  public class DafnyDriver {
+  public class DafnyDriver : IDisposable {
     public DafnyOptions Options { get; }
-
 
     private readonly ExecutionEngine engine;
 
@@ -83,7 +82,10 @@ namespace Microsoft.Dafny {
       "/compileVerbose:0",
       
       // Set a default time limit, to catch cases where verification time runs off the rails
-      "/timeLimit:300"
+      "/timeLimit:300",
+
+      // test results do not include source code snippets
+      "/showSnippets:0"
     };
 
     public static readonly string[] NewDefaultArgumentsForTesting = new[] {
@@ -94,7 +96,10 @@ namespace Microsoft.Dafny {
       "--use-basename-for-filename",
 
       // Set a default time limit, to catch cases where verification time runs off the rails
-      "--verification-time-limit=300"
+      "--verification-time-limit=300",
+
+      // test results do not include source code snippets
+      "--show-snippets:false"
     };
 
     public static int Main(string[] args) {
@@ -132,10 +137,11 @@ namespace Microsoft.Dafny {
             return 0;
           }
 
-          var driver = new DafnyDriver(dafnyOptions);
+          using (var driver = new DafnyDriver(dafnyOptions)) {
 #pragma warning disable VSTHRD002
-          exitValue = driver.ProcessFilesAsync(dafnyFiles, otherFiles.AsReadOnly(), dafnyOptions).Result;
+            exitValue = driver.ProcessFilesAsync(dafnyFiles, otherFiles.AsReadOnly(), dafnyOptions).Result;
 #pragma warning restore VSTHRD002
+          }
           break;
         case CommandLineArgumentsResult.PREPROCESSING_ERROR:
           return (int)ExitValue.PREPROCESSING_ERROR;
@@ -217,6 +223,12 @@ namespace Microsoft.Dafny {
 
       if (options.RunLanguageServer) {
         return CommandLineArgumentsResult.OK;
+      }
+
+      if (options.DafnyProject != null) {
+        foreach (var uri in options.DafnyProject.GetRootSourceUris(OnDiskFileSystem.Instance)) {
+          options.CliRootSourceUris.Add(uri);
+        }
       }
 
       var nonOutOptions = options;
@@ -370,7 +382,7 @@ namespace Microsoft.Dafny {
         await foreach (var line in DafnyTestGeneration.Main.GetDeadCodeStatistics(dafnyFileNames[0], options)) {
           await options.OutputWriter.WriteLineAsync(line);
         }
-        if (DafnyTestGeneration.Main.setNonZeroExitCode) {
+        if (DafnyTestGeneration.Main.SetNonZeroExitCode) {
           exitValue = ExitValue.DAFNY_ERROR;
         }
         return exitValue;
@@ -379,7 +391,7 @@ namespace Microsoft.Dafny {
         await foreach (var line in DafnyTestGeneration.Main.GetTestClassForProgram(dafnyFileNames[0], options)) {
           await options.OutputWriter.WriteLineAsync(line);
         }
-        if (DafnyTestGeneration.Main.setNonZeroExitCode) {
+        if (DafnyTestGeneration.Main.SetNonZeroExitCode) {
           exitValue = ExitValue.DAFNY_ERROR;
         }
         return exitValue;
@@ -601,16 +613,16 @@ namespace Microsoft.Dafny {
     }
 
     public static IEnumerable<Tuple<string, Bpl.Program>> Translate(ExecutionEngineOptions options, Program dafnyProgram) {
-      var nmodules = Translator.VerifiableModules(dafnyProgram).Count();
+      var modulesCount = Translator.VerifiableModules(dafnyProgram).Count();
 
 
       foreach (var prog in Translator.Translate(dafnyProgram, dafnyProgram.Reporter)) {
 
         if (options.PrintFile != null) {
 
-          var nm = nmodules > 1 ? Dafny.DafnyMain.BoogieProgramSuffix(options.PrintFile, prog.Item1) : options.PrintFile;
+          var fileName = modulesCount > 1 ? Dafny.DafnyMain.BoogieProgramSuffix(options.PrintFile, prog.Item1) : options.PrintFile;
 
-          ExecutionEngine.PrintBplFile(options, nm, prog.Item2, false, false, options.PrettyPrint);
+          ExecutionEngine.PrintBplFile(options, fileName, prog.Item2, false, false, options.PrettyPrint);
         }
 
         yield return prog;
@@ -852,10 +864,10 @@ namespace Microsoft.Dafny {
     /// Generate a C# program from the Dafny program and, if "invokeCompiler" is "true", invoke
     /// the C# compiler to compile it.
     /// </summary>
-    public static async Task<bool> CompileDafnyProgram(Dafny.Program dafnyProgram, string dafnyProgramName,
+    public static async Task<bool> CompileDafnyProgram(Program dafnyProgram, string dafnyProgramName,
                                            ReadOnlyCollection<string> otherFileNames, bool invokeCompiler) {
 
-      foreach (var rewriter in dafnyProgram.Rewriters) {
+      foreach (var rewriter in dafnyProgram.Compilation.Rewriters) {
         rewriter.PostVerification(dafnyProgram);
       }
 
@@ -869,6 +881,12 @@ namespace Microsoft.Dafny {
       var oldErrorCount = dafnyProgram.Reporter.Count(ErrorLevel.Error);
       var options = dafnyProgram.Options;
       options.Backend.OnPreCompile(dafnyProgram.Reporter, otherFileNames);
+
+      // Now that an internal compiler is instantiated, apply any plugin instrumentation.
+      foreach (var compilerInstrumenter in options.Plugins.SelectMany(p => p.GetCompilerInstrumenters(dafnyProgram.Reporter))) {
+        options.Backend.InstrumentCompiler(compilerInstrumenter, dafnyProgram);
+      }
+
       var compiler = options.Backend;
 
       var hasMain = Compilers.SinglePassCompiler.HasMain(dafnyProgram, out var mainMethod);
@@ -947,11 +965,15 @@ namespace Microsoft.Dafny {
 
     #endregion
 
+    public void Dispose() {
+      engine.Dispose();
+    }
   }
 
   class NoExecutableBackend : IExecutableBackend {
     public override IReadOnlySet<string> SupportedExtensions => new HashSet<string>();
     public override string TargetName => throw new NotSupportedException();
+    public override bool IsStable => throw new NotSupportedException();
     public override string TargetExtension => throw new NotSupportedException();
     public override string PublicIdProtect(string name) {
       throw new NotSupportedException();
@@ -977,6 +999,10 @@ namespace Microsoft.Dafny {
       string pathsFilename,
       ReadOnlyCollection<string> otherFileNames, object compilationResult, TextWriter outputWriter,
       TextWriter errorWriter) {
+      throw new NotSupportedException();
+    }
+
+    public override void InstrumentCompiler(CompilerInstrumenter instrumenter, Program dafnyProgram) {
       throw new NotSupportedException();
     }
   }

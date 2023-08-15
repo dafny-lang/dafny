@@ -83,12 +83,12 @@ ensures true
         Assert.Equal(0, reporter.ErrorCount);
         var topLevelDecls = dafnyProgram.DefaultModuleDef.TopLevelDecls.ToList();
         Assert.Equal(6, topLevelDecls.Count());
-        var moduleTest = topLevelDecls[0] as LiteralModuleDecl;
-        var trait1 = topLevelDecls[1];
-        var trait2 = topLevelDecls[2];
-        var subsetType = topLevelDecls[3];
-        var class1 = topLevelDecls[4] as ClassDecl;
-        var defaultClass = topLevelDecls[5] as DefaultClassDecl;
+        var defaultClass = topLevelDecls.OfType<DefaultClassDecl>().First();
+        var moduleTest = topLevelDecls[1] as LiteralModuleDecl;
+        var trait1 = topLevelDecls[2];
+        var trait2 = topLevelDecls[3];
+        var subsetType = topLevelDecls[4];
+        var class1 = topLevelDecls[5] as ClassDecl;
         Assert.NotNull(moduleTest);
         Assert.NotNull(class1);
         Assert.NotNull(defaultClass);
@@ -120,7 +120,7 @@ ensures true
     private void TestTokens(Node program) {
       var allTokens = new HashSet<IToken>();
 
-      void Traverse(Node node) {
+      void Traverse(INode node) {
         foreach (var ownedToken in node.OwnedTokens) {
           Assert.DoesNotContain(ownedToken, allTokens);
           allTokens.Add(ownedToken);
@@ -132,7 +132,7 @@ ensures true
 
       Traverse(program);
 
-      void AreAllTokensOwned(Node node) {
+      void AreAllTokensOwned(INode node) {
         if (node.StartToken is { filename: { } }) {
           var t = node.StartToken;
           while (t != null && t != node.EndToken) {

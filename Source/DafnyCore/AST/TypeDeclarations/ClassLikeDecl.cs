@@ -1,14 +1,24 @@
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
+using System.Linq;
 
 namespace Microsoft.Dafny;
 
-public abstract class ClassLikeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, ICanFormat {
+public abstract class ClassLikeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, ICanFormat, IHasDocstring {
   public NonNullTypeDecl NonNullTypeDecl; // returns non-null value iff IsReferenceTypeDecl
+
+  public override bool CanBeRevealed() { return true; }
 
   public bool IsObjectTrait {
     get => Name == "object";
   }
+
+  /// <summary>
+  /// The IsReferenceTypeDecl getter must not be called before this information is available.
+  /// For most types, this information is known immediately, but for a TraitDecl, the information is not known until
+  /// SetUpAsReferenceType has been called. The SetUpAsReferenceType method is called very early during resolution,
+  /// namely during name registration of the enclosing module.
+  /// </summary>
   public abstract bool IsReferenceTypeDecl { get; }
 
   public TopLevelDecl AsTopLevelDecl => this;
@@ -63,19 +73,7 @@ public abstract class ClassLikeDecl : TopLevelDeclWithMembers, RevealableTypeDec
     return true;
   }
 
-  public List<Type> PossiblyNullTraitsWithArgument(List<Type> typeArgs) {
-    Contract.Requires(typeArgs != null);
-    Contract.Requires(typeArgs.Count == TypeArgs.Count);
-    // Instantiate with the actual type arguments
-    var subst = TypeParameter.SubstitutionMap(TypeArgs, typeArgs);
-    return ParentTraits.ConvertAll(traitType => (Type)UserDefinedType.CreateNullableType((UserDefinedType)traitType.Subst(subst)));
-  }
-
-  public override List<Type> ParentTypes(List<Type> typeArgs) {
-    return PossiblyNullTraitsWithArgument(typeArgs);
-  }
-
-  protected override string GetTriviaContainingDocstring() {
+  public virtual string GetTriviaContainingDocstring() {
     IToken candidate = null;
     foreach (var token in OwnedTokens) {
       if (token.val == "{") {

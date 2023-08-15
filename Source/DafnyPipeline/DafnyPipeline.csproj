@@ -23,16 +23,6 @@
   
   <ItemGroup>
     <ProjectReference Include="..\DafnyCore\DafnyCore.csproj" />
-    <ProjectReference Include="..\DafnyRuntime\DafnyRuntime.csproj">
-      <!-- 
-      This reference is just to ensure that DafnyRuntime is built before this package,
-      so that each runtime artifact is built and can be embedded,
-      but we don't actually want to have a dependency on DafnyRuntime.dll.
-      In the long term we should not even embed each runtime here and should
-      fetch them as published artifacts through nuget/maven/npm/etc.
-      -->
-      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
-    </ProjectReference>
   </ItemGroup>
 
   <!-- 
@@ -61,8 +51,9 @@
       <LogicalName>DafnyRuntime.h</LogicalName>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </EmbeddedResource>
-    <EmbeddedResource Include="..\DafnyRuntime\DafnyRuntimeJava\build\libs\DafnyRuntime.jar">
+    <EmbeddedResource Include="..\DafnyRuntime\DafnyRuntimeJava\build\libs\DafnyRuntime-4.2.0.jar">
       <LogicalName>DafnyRuntime.jar</LogicalName>
+      <Link>DafnyRuntime.jar</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </EmbeddedResource>
     <EmbeddedResource Include="..\DafnyRuntime\DafnyRuntime.js">
@@ -73,6 +64,10 @@
       <LogicalName>DafnyRuntime.py</LogicalName>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </EmbeddedResource>
+    <EmbeddedResource Include="..\DafnyRuntime\DafnyRuntimeRust\**" LinkBase="DafnyRuntimeRust">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Remove="..\DafnyRuntime\DafnyRuntimeRust\target\**"/>
   </ItemGroup>
 
 </Project>

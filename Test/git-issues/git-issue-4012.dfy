@@ -1,8 +1,7 @@
-// RUN: %dafny /compile:4 /compileTarget:py "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachCompiler "%s"
 
 method Main() {
-    var x: multiset<int> := multiset{};
-    x := x[1 := 18446744073709551616];
-    print |x|, "\n";
+  var m: multiset<()> := multiset{};
+  m := m[() := 18446744073709551616];
+  print |m|, "\n";
 }

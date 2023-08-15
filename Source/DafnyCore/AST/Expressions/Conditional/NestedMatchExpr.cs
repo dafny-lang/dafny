@@ -50,9 +50,9 @@ public class NestedMatchExpr : Expression, ICloneable<NestedMatchExpr>, ICanForm
     }
   }
 
-  public override IEnumerable<Node> Children => new[] { Source }.Concat<Node>(Cases);
+  public override IEnumerable<INode> Children => new[] { Source }.Concat<Node>(Cases);
 
-  public void Resolve(Resolver resolver, ResolutionContext resolutionContext) {
+  public void Resolve(ModuleResolver resolver, ResolutionContext resolutionContext) {
 
     resolver.ResolveExpression(Source, resolutionContext);
 

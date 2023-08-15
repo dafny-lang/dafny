@@ -13,6 +13,11 @@ public abstract class TopLevelDecl : Declaration, TypeParameter.ParentType {
     Contract.Invariant(cce.NonNullElements(TypeArgs));
   }
 
+  protected TopLevelDecl(Cloner cloner, TopLevelDecl original, ModuleDefinition parent) : base(cloner, original) {
+    TypeArgs = original.TypeArgs.ConvertAll(cloner.CloneTypeParam);
+    EnclosingModuleDefinition = parent;
+  }
+
   protected TopLevelDecl(RangeToken rangeToken, Name name, ModuleDefinition enclosingModule, List<TypeParameter> typeArgs, Attributes attributes, bool isRefining)
     : base(rangeToken, name, attributes, isRefining) {
     Contract.Requires(rangeToken != null);
@@ -99,7 +104,7 @@ public abstract class TopLevelDecl : Declaration, TypeParameter.ParentType {
   }
 
   public bool AllowsAllocation => true;
-  public override IEnumerable<Node> Children => Enumerable.Empty<Node>();
+  public override IEnumerable<INode> Children => Enumerable.Empty<Node>();
 
   /// <summary>
   /// A top-level declaration is considered "essentially empty" if there is no way it could generate any resolution error

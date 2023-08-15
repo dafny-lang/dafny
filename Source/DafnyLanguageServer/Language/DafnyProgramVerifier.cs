@@ -19,48 +19,60 @@ namespace Microsoft.Dafny.LanguageServer.Language {
   /// dafny-lang makes use of static members and assembly loading. Since thread-safety of this is not guaranteed,
   /// this verifier serializes all invocations.
   /// </remarks>
-  public class DafnyProgramVerifier : IProgramVerifier, IDisposable {
-    private readonly VerificationResultCache cache = new();
-    private readonly ExecutionEngine engine;
+  public class DafnyProgramVerifier : IProgramVerifier {
+    private readonly ILogger<DafnyProgramVerifier> logger;
+    private readonly SemaphoreSlim mutex = new(1);
 
-    public DafnyProgramVerifier(
-      ILogger<DafnyProgramVerifier> logger,
-      DafnyOptions options
-      ) {
-      // TODO This may be subject to change. See Microsoft.Boogie.Counterexample
-      //      A dash means write to the textwriter instead of a file.
-      // https://github.com/boogie-org/boogie/blob/b03dd2e4d5170757006eef94cbb07739ba50dddb/Source/VCGeneration/Couterexample.cs#L217
-      options.ModelViewFile = "-";
-
-      options.Printer = new OutputLogger(logger);
-      engine = new ExecutionEngine(options, cache);
+    public DafnyProgramVerifier(ILogger<DafnyProgramVerifier> logger) {
+      this.logger = logger;
     }
 
-    private const int TranslatorMaxStackSize = 0x10000000; // 256MB
-
-    public async Task<IReadOnlyList<IImplementationTask>> GetVerificationTasksAsync(DocumentAfterResolution document,
+    public async Task<IReadOnlyList<IImplementationTask>> GetVerificationTasksAsync(ExecutionEngine engine,
+      CompilationAfterResolution compilation,
+      ModuleDefinition moduleDefinition,
       CancellationToken cancellationToken) {
-      var program = document.Program;
-      var errorReporter = (DiagnosticErrorReporter)program.Reporter;
 
-      cancellationToken.ThrowIfCancellationRequested();
+      var verifiableModules = Translator.VerifiableModules(compilation.Program);
+      if (!verifiableModules.Contains(moduleDefinition)) {
+        throw new Exception("tried to get verification tasks for a module that is not verified");
+      }
 
-      var translated = await DafnyMain.LargeStackFactory.StartNew(() => Translator.Translate(program, errorReporter, new Translator.TranslatorFlags(errorReporter.Options) {
-        InsertChecksums = true,
-        ReportRanges = true
-      }).ToList(), cancellationToken);
+      await mutex.WaitAsync(cancellationToken);
+      try {
 
-      cancellationToken.ThrowIfCancellationRequested();
+        var program = compilation.Program;
+        var errorReporter = (DiagnosticErrorReporter)program.Reporter;
 
-      return translated.SelectMany(t => {
-        var (_, boogieProgram) = t;
-        var results = engine.GetImplementationTasks(boogieProgram);
-        return results;
-      }).ToList();
+        cancellationToken.ThrowIfCancellationRequested();
+
+        var boogieProgram = await DafnyMain.LargeStackFactory.StartNew(() => {
+          Type.ResetScopes();
+          var translatorFlags = new Translator.TranslatorFlags(errorReporter.Options) {
+            InsertChecksums = 0 < engine.Options.VerifySnapshots,
+            ReportRanges = true
+          };
+          var translator = new Translator(errorReporter, translatorFlags);
+          return translator.DoTranslation(compilation.Program, moduleDefinition);
+        }, cancellationToken);
+        var suffix = moduleDefinition.SanitizedName;
+
+        cancellationToken.ThrowIfCancellationRequested();
+
+        if (engine.Options.PrintFile != null) {
+          var moduleCount = Translator.VerifiableModules(program).Count();
+          var fileName = moduleCount > 1 ? DafnyMain.BoogieProgramSuffix(engine.Options.PrintFile, suffix) : engine.Options.PrintFile;
+          ExecutionEngine.PrintBplFile(engine.Options, fileName, boogieProgram, false, false, engine.Options.PrettyPrint);
+        }
+
+        return engine.GetImplementationTasks(boogieProgram);
+      }
+      finally {
+        mutex.Release();
+      }
     }
 
     public void Dispose() {
-      engine.Dispose();
+      mutex.Dispose();
     }
   }
 }

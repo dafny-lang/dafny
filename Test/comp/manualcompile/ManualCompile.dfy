@@ -1,3 +1,5 @@
+// NONUNIFORM: Highly target language specific
+
 // RUN: %baredafny translate cs %args --verbose --include-runtime "%s" > "%t"
 // RUN: dotnet build %S/ManualCompile.csproj
 // RUN: dotnet %S/bin/Debug/net6.0/ManualCompile.dll >> "%t"
@@ -17,7 +19,7 @@
 // RUN: %S/ManualCompile.exe >> "%t"
 
 // RUN: %dafny /compileVerbose:1 /compile:0 /spillTargetCode:2 /compileTarget:py "%s" >> "%t"
-// RUN: python3 %S/ManualCompile-py/ManualCompile.py >> "%t"
+// RUN: python3 %S/ManualCompile-py >> "%t"
 
 // RUN: %diff "%s.expect" "%t"
 

@@ -31,7 +31,7 @@ public abstract class ConcreteSyntaxExpression : Expression {
   public ConcreteSyntaxExpression(IToken tok)
     : base(tok) {
   }
-  public override IEnumerable<Node> Children => ResolvedExpression == null ? Array.Empty<Node>() : new[] { ResolvedExpression };
+  public override IEnumerable<INode> Children => ResolvedExpression == null ? Array.Empty<Node>() : new[] { ResolvedExpression };
   public override IEnumerable<Expression> SubExpressions {
     get {
       if (ResolvedExpression != null) {
@@ -49,7 +49,7 @@ public abstract class ConcreteSyntaxExpression : Expression {
   }
 
   public virtual IEnumerable<Expression> PreResolveSubExpressions => Enumerable.Empty<Expression>();
-  public override IEnumerable<Node> PreResolveChildren => PreResolveSubExpressions;
+  public override IEnumerable<INode> PreResolveChildren => PreResolveSubExpressions;
 
   public override IEnumerable<Type> ComponentTypes => ResolvedExpression.ComponentTypes;
 }

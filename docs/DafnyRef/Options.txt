@@ -99,6 +99,10 @@ Usage: dafny [ option ... ] [ filename ... ]
   
   ---- Language feature selection --------------------------------------------
   
+  /generalTraits:<value>
+      0 (default) - Every trait implicitly extends 'object', and thus is a reference type. Only traits and classes can extend traits.
+      1 - A trait is a reference type iff it or one of its ancestor traits is 'object'. Any type with members can extend traits.
+
   /ntitrace:<value>
       0 (default) - Don't print debug information for the new type system.
       1 - Print debug information for the new type system.
@@ -322,28 +326,11 @@ Usage: dafny [ option ... ] [ filename ... ]
       /proverOpt:O:model.compact=false (for z3 version >= 4.8.7), and
       /proverOpt:O:model.completion=true.
   
-  ---- Test generation options -----------------------------------------------
-  
-  /warnDeadCode
-      Use counterexample generation to warn about potential dead code.
-  /generateTestMode:<None|Block|Path>
-      None (default) - Has no effect.
-      Block - Prints block-coverage tests for the given program.
-      Path - Prints path-coverage tests for the given program.
-      Using /definiteAssignment:3, /generateTestNoPrune, 
-      /generateTestSeqLengthLimit, and /loopUnroll is highly recommended
-      when generating tests.
-  /generateTestSeqLengthLimit:<n>
-      Add an axiom that sets the length of all sequences to be no greater 
-      than <n>. 0 (default) indicates no limit.
-  /generateTestTargetMethod:<methodName>
-      If specified, only this method will be tested.
-  /generateTestPrintBpl:<fileName>
-      Print the Boogie code used during test generation.
-  /generateTestNoPrune
-      Disable axiom pruning that Dafny uses to speed up verification.
   ---- Compilation options ---------------------------------------------------
   
+  /compileSuffix:<value>
+      Add the suffix _Compile to module names without :extern
+
   /compileTarget:<language>
       cs (default) - Compile to .NET via C#.
       go - Compile to Go.
@@ -508,6 +495,8 @@ Usage: dafny [ option ... ] [ filename ... ]
                 unroll loops, following up to n back edges (and then some)
   /soundLoopUnrolling
                 sound loop unrolling
+  /doModSetAnalysis
+                automatically infer modifies clauses
   /printModel:<n>
                 0 (default) - do not print Z3's error model
                 1 - print Z3's error model
@@ -649,8 +638,6 @@ Usage: dafny [ option ... ] [ filename ... ]
   /smokeTimeout:<n>
                 Timeout, in seconds, for a single theorem prover
                 invocation during smoke test, defaults to 10.
-  /causalImplies
-                Translate Boogie's A ==> B into prover's A ==> A && B.
   /typeEncoding:<t>
                 Encoding of types when generating VC of a polymorphic program:
                    m = monomorphic (default)
@@ -691,6 +678,13 @@ Usage: dafny [ option ... ] [ filename ... ]
                 This option is implemented by renaming variables and reordering
                 declarations in the input, and by setting solver options that have
                 similar effects.
+  /trackVerificationCoverage
+                Track and report which program elements labeled with an
+                `{:id ...}` attribute were necessary to complete verification.
+                Assumptions, assertions, requires clauses, ensures clauses,
+                assignments, and calls can be labeled for inclusion in this
+                report. This generalizes and replaces the previous
+                (undocumented) `/printNecessaryAssertions` option.
 
   ---- Verification-condition splitting --------------------------------------
 

@@ -1,10 +1,4 @@
-// RUN: %dafny /compile:0 "%s" > "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:cs "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:java "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:js "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:go "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:py "%s" >> "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment
 
 // This file tests the compilation of some default values. It also includes some
 // regression tests for equality, printing, and tuples.
@@ -69,6 +63,8 @@ method Main() {
   DatatypeDefaultValues.Test();
   ImportedTypes.Test();
   GhostWitness.Test();
+  TypeDescriptorInDatatypeValue.Test();
+  DatatypeValues.Test();
 }
 
 datatype ThisOrThat<A,B> = This(A) | Or | That(B)
@@ -326,5 +322,67 @@ module GhostWitness {
     g := f;
     var x := g(4) + f(5);
     print x, "\n";
+  }
+}
+
+module TypeDescriptorInDatatypeValue {
+  // auto-init type parameters: A, C
+  // used type parameters: C, D
+  datatype Datatype<A(0), B, C(0), D> = Simple(C, D) | More(Datatype<A, B, C, D>)
+
+  datatype Wrapper<A(0), B, C(0), D> = Wrapper(C)
+
+  codatatype Stream<A(0), B, C(0), D> = End(C, D) | Next(tail: Stream<A, B, C, D>)
+
+  // with contravariant type parameter, needs customer receiver
+  codatatype ContraStream<A(0), -B, C(0), D> = End(C, D) | Next(tail: ContraStream<A, B, C, D>)
+
+  codatatype CoEnum = CoEnum(int)
+
+  method Test() {
+    var abcd: Datatype<bool, int, char, real> := *;
+    print abcd, "\n";
+    PrintOne<Datatype<bool, int, char, real>>();
+
+    var wrapper: Wrapper<bool, int, char, real> := *;
+    print wrapper, "\n";
+    PrintOne<Wrapper<bool, int, char, real>>();
+
+    var s: Stream<bool, int, char, real> := *;
+    print s, "\n";
+    PrintOne<Stream<bool, int, char, real>>();
+
+    var cs: ContraStream<bool, int, char, real> := *;
+    print cs, "\n";
+    PrintOne<ContraStream<bool, int, char, real>>();
+
+    var coenum: CoEnum := *;
+    print coenum, "\n";
+    PrintOne<CoEnum>();
+  }
+
+  method PrintOne<X(0)>() {
+    var x: X := *;
+    print x, "\n";
+  }
+}
+
+module DatatypeValues {
+  codatatype Stream<G> = Next(head: G, tail: Stream<G>)
+
+  method Test() {
+    var s := CoCalls(3);
+    var a := AutoCoCalls(4);
+    print s, " ", a, "\n"; // Next AutoNext
+  }
+
+  function CoCalls<G>(g: G): Stream<G> {
+    Next(g, CoCalls(g))
+  }
+
+  codatatype AutoStream<G(0)> = AutoNext(head: G, tail: AutoStream<G>)
+
+  function AutoCoCalls<G(0)>(g: G): AutoStream<G> {
+    AutoNext(g, AutoCoCalls(g))
   }
 }

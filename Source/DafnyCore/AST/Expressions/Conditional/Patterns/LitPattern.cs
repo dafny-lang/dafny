@@ -65,8 +65,8 @@ public class LitPattern : ExtendedPattern {
     return Printer.ExprToString(DafnyOptions.DefaultImmutableOptions, OrigLit);
   }
 
-  public override IEnumerable<Node> Children => new[] { OrigLit };
-  public override IEnumerable<Node> PreResolveChildren => Children;
+  public override IEnumerable<INode> Children => new[] { OrigLit };
+  public override IEnumerable<INode> PreResolveChildren => Children;
 
   public override IEnumerable<Expression> SubExpressions {
     get {
@@ -74,7 +74,7 @@ public class LitPattern : ExtendedPattern {
     }
   }
 
-  public override void Resolve(Resolver resolver,
+  public override void Resolve(ModuleResolver resolver,
     ResolutionContext resolutionContext,
     Type sourceType, bool isGhost, bool inStatementContext,
     bool inPattern, bool inDisjunctivePattern) {

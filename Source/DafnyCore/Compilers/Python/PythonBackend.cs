@@ -12,11 +12,14 @@ public class PythonBackend : ExecutableBackend {
   public override IReadOnlySet<string> SupportedExtensions => new HashSet<string> { ".py" };
 
   public override string TargetName => "Python";
+  public override bool IsStable => true;
   public override string TargetExtension => "py";
   public override int TargetIndentSize => 4;
 
   public override string TargetBaseDir(string dafnyProgramName) =>
     $"{Path.GetFileNameWithoutExtension(dafnyProgramName)}-py";
+
+  public override string TargetBasename(string dafnyProgramName) => "__main__";
 
   public override bool SupportsInMemoryCompilation => false;
   public override bool TextualTargetIsExecutable => true;

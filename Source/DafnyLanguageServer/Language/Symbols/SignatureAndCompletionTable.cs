@@ -28,7 +28,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
     /// <summary>
     /// Gets the dictionary allowing to resolve the location of a specified symbol. Do not modify this instance.
     /// </summary>
-    public IDictionary<ISymbol, SymbolLocation> Locations { get; }
+    public IDictionary<ILegacySymbol, SymbolLocation> Locations { get; }
 
     /// <summary>
     /// Gets the interval tree backing this symbol table. Do not modify this instance.
@@ -42,29 +42,37 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
 
     private readonly DafnyLangTypeResolver typeResolver;
 
-    public static SignatureAndCompletionTable Empty(DafnyOptions options, DocumentTextBuffer textDocument) {
-      var outerModule = new DefaultModuleDefinition(new List<Uri>() { textDocument.Uri.ToUri() }, false);
-      var errorReporter = new DiagnosticErrorReporter(options, textDocument.Text, textDocument.Uri);
+    public static SignatureAndCompletionTable Empty(DafnyOptions options, DafnyProject project) {
+      var emptyProgram = GetEmptyProgram(options, project.Uri);
       return new SignatureAndCompletionTable(
         NullLogger<SignatureAndCompletionTable>.Instance,
-        new CompilationUnit(textDocument.Uri.ToUri(), new Dafny.Program(
-          textDocument.Uri.ToString(),
-          new LiteralModuleDecl(outerModule, null),
-          // BuiltIns cannot be initialized without Type.ResetScopes() before.
-          new BuiltIns(options), // TODO creating a BuiltIns is a heavy operation
-          errorReporter, Sets.Empty<Uri>(), Sets.Empty<Uri>()
-        )),
+        new CompilationUnit(project.Uri, emptyProgram),
         new Dictionary<object, ILocalizableSymbol>(),
-        new Dictionary<ISymbol, SymbolLocation>(),
+        new Dictionary<ILegacySymbol, SymbolLocation>(),
         new IntervalTree<Position, ILocalizableSymbol>(),
         symbolsResolved: false);
+    }
+
+    public static Program GetEmptyProgram(DafnyOptions options, Uri uri) {
+      var outerModule = new DefaultModuleDefinition(new List<Uri>() { uri });
+      var errorReporter = new DiagnosticErrorReporter(options, uri);
+      var compilation = new CompilationData(errorReporter, new List<Include>(), new List<Uri>(), Sets.Empty<Uri>(),
+        Sets.Empty<Uri>());
+      var emptyProgram = new Program(
+                           uri.ToString(),
+        new LiteralModuleDecl(outerModule, null, Guid.NewGuid()),
+        // BuiltIns cannot be initialized without Type.ResetScopes() before.
+        new SystemModuleManager(options), // TODO creating a BuiltIns is a heavy operation
+        errorReporter, compilation
+      );
+      return emptyProgram;
     }
 
     public SignatureAndCompletionTable(
         ILogger<SignatureAndCompletionTable> iLogger,
         CompilationUnit compilationUnit,
         IDictionary<AstElement, ILocalizableSymbol> declarations,
-        IDictionary<ISymbol, SymbolLocation> locations,
+        IDictionary<ILegacySymbol, SymbolLocation> locations,
         IIntervalTree<Position, ILocalizableSymbol> lookupTree,
         bool symbolsResolved
     ) {
@@ -108,7 +116,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
     /// <param name="symbol">The symbol to get the location of.</param>
     /// <param name="location">The current location of the specified symbol, or <c>null</c> if no location of the given symbol is known.</param>
     /// <returns><c>true</c> if a location was found, otherwise <c>false</c>.</returns>
-    public bool TryGetLocationOf(ISymbol symbol, [NotNullWhen(true)] out SymbolLocation? location) {
+    public bool TryGetLocationOf(ILegacySymbol symbol, [NotNullWhen(true)] out SymbolLocation? location) {
       return Locations.TryGetValue(symbol, out location);
     }
 
@@ -120,9 +128,9 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
     /// <returns>The innermost symbol at the specified position.</returns>
     /// <exception cref="System.OperationCanceledException">Thrown when the cancellation was requested before completion.</exception>
     /// <exception cref="System.ObjectDisposedException">Thrown if the cancellation token was disposed before the completion.</exception>
-    public ISymbol GetEnclosingSymbol(Position position, CancellationToken cancellationToken) {
+    public ILegacySymbol GetEnclosingSymbol(Position position, CancellationToken cancellationToken) {
       // TODO use a suitable data-structure to resolve the locations efficiently.
-      ISymbol innerMostSymbol = CompilationUnit;
+      ILegacySymbol innerMostSymbol = CompilationUnit;
       var innerMostRange = new Range(new Position(0, 0), new Position(int.MaxValue, int.MaxValue));
       foreach (var (symbol, location) in Locations) {
         cancellationToken.ThrowIfCancellationRequested();
@@ -151,7 +159,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
     /// <param name="symbol">The symbol to get the type of.</param>
     /// <param name="type">The type of the symbol, or <c>null</c> if the type could not be resolved. If <paramref name="symbol"/> is already a type, it is returned.</param>
     /// <returns><c>true</c> if the type was successfully resolved, otherwise <c>false</c>.</returns>
-    public bool TryGetTypeOf(ISymbol symbol, [NotNullWhen(true)] out ISymbol? type) {
+    public bool TryGetTypeOf(ILegacySymbol symbol, [NotNullWhen(true)] out ILegacySymbol? type) {
       if (symbol is TypeWithMembersSymbolBase) {
         // TODO other type symbols should be supported in the future.
         type = symbol;

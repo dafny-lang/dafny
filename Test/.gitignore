@@ -28,6 +28,9 @@
 # Python output
 **/*-py
 
+# Rust output
+**/*-rust
+
 node_modules/
 package-lock.json
 packages

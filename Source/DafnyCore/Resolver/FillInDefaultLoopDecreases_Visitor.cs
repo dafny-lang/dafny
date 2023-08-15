@@ -5,7 +5,7 @@ namespace Microsoft.Dafny;
 
 class FillInDefaultLoopDecreases_Visitor : ResolverBottomUpVisitor {
   readonly ICallable EnclosingMethod;
-  public FillInDefaultLoopDecreases_Visitor(Resolver resolver, ICallable enclosingMethod)
+  public FillInDefaultLoopDecreases_Visitor(ModuleResolver resolver, ICallable enclosingMethod)
     : base(resolver) {
     Contract.Requires(resolver != null);
     Contract.Requires(enclosingMethod != null);
@@ -21,7 +21,7 @@ class FillInDefaultLoopDecreases_Visitor : ResolverBottomUpVisitor {
     }
   }
 
-  private static void FillInDefaultLoopDecreases(Resolver resolver, LoopStmt loopStmt, Expression guard, List<Expression> theDecreases, ICallable enclosingMethod) {
+  private static void FillInDefaultLoopDecreases(ModuleResolver resolver, LoopStmt loopStmt, Expression guard, List<Expression> theDecreases, ICallable enclosingMethod) {
     Contract.Requires(loopStmt != null);
     Contract.Requires(theDecreases != null);
 
@@ -61,25 +61,25 @@ class FillInDefaultLoopDecreases_Visitor : ResolverBottomUpVisitor {
             case BinaryExpr.ResolvedOpcode.Subset:
               if (bin.E0.Type.AsSetType.Finite) {
                 // for A < B and A <= B, use the decreases |B - A|
-                guess = Expression.CreateCardinality(Expression.CreateSetDifference(bin.E1, bin.E0), resolver.builtIns);
+                guess = Expression.CreateCardinality(Expression.CreateSetDifference(bin.E1, bin.E0), resolver.SystemModuleManager);
               }
               break;
             case BinaryExpr.ResolvedOpcode.Superset:
             case BinaryExpr.ResolvedOpcode.ProperSuperset:
               if (bin.E0.Type.AsSetType.Finite) {
                 // for A >= B and A > B, use the decreases |A - B|
-                guess = Expression.CreateCardinality(Expression.CreateSetDifference(bin.E0, bin.E1), resolver.builtIns);
+                guess = Expression.CreateCardinality(Expression.CreateSetDifference(bin.E0, bin.E1), resolver.SystemModuleManager);
               }
               break;
             case BinaryExpr.ResolvedOpcode.ProperMultiSubset:
             case BinaryExpr.ResolvedOpcode.MultiSubset:
               // for A < B and A <= B, use the decreases |B - A|
-              guess = Expression.CreateCardinality(Expression.CreateMultisetDifference(bin.E1, bin.E0), resolver.builtIns);
+              guess = Expression.CreateCardinality(Expression.CreateMultisetDifference(bin.E1, bin.E0), resolver.SystemModuleManager);
               break;
             case BinaryExpr.ResolvedOpcode.MultiSuperset:
             case BinaryExpr.ResolvedOpcode.ProperMultiSuperset:
               // for A >= B and A > B, use the decreases |A - B|
-              guess = Expression.CreateCardinality(Expression.CreateMultisetDifference(bin.E0, bin.E1), resolver.builtIns);
+              guess = Expression.CreateCardinality(Expression.CreateMultisetDifference(bin.E0, bin.E1), resolver.SystemModuleManager);
               break;
             case BinaryExpr.ResolvedOpcode.Prefix:
             case BinaryExpr.ResolvedOpcode.ProperPrefix:
@@ -112,8 +112,8 @@ class FillInDefaultLoopDecreases_Visitor : ResolverBottomUpVisitor {
                 } else if (LiteralExpr.IsEmptySet(bin.E1)) {
                   guess = bin.E0;
                 } else {
-                  var x = Expression.CreateCardinality(Expression.CreateSetDifference(bin.E0, bin.E1), resolver.builtIns);
-                  var y = Expression.CreateCardinality(Expression.CreateSetDifference(bin.E1, bin.E0), resolver.builtIns);
+                  var x = Expression.CreateCardinality(Expression.CreateSetDifference(bin.E0, bin.E1), resolver.SystemModuleManager);
+                  var y = Expression.CreateCardinality(Expression.CreateSetDifference(bin.E1, bin.E0), resolver.SystemModuleManager);
                   guess = Expression.CreateAdd(x, y);
                 }
               }
@@ -125,8 +125,8 @@ class FillInDefaultLoopDecreases_Visitor : ResolverBottomUpVisitor {
               } else if (LiteralExpr.IsEmptyMultiset(bin.E1)) {
                 guess = bin.E0;
               } else {
-                var x = Expression.CreateCardinality(Expression.CreateMultisetDifference(bin.E0, bin.E1), resolver.builtIns);
-                var y = Expression.CreateCardinality(Expression.CreateMultisetDifference(bin.E1, bin.E0), resolver.builtIns);
+                var x = Expression.CreateCardinality(Expression.CreateMultisetDifference(bin.E0, bin.E1), resolver.SystemModuleManager);
+                var y = Expression.CreateCardinality(Expression.CreateMultisetDifference(bin.E1, bin.E0), resolver.SystemModuleManager);
                 guess = Expression.CreateAdd(x, y);
               }
               break;

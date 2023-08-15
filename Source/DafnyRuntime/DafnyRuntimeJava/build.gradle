@@ -1,6 +1,8 @@
 plugins {
     id 'java-library'
     id 'maven-publish'
+    id 'signing'
+    id 'io.github.gradle-nexus.publish-plugin' version '1.1.0'
 }
 
 repositories {
@@ -14,8 +16,14 @@ dependencies {
     testImplementation 'org.junit.jupiter:junit-jupiter-engine:5.5.2'
 }
 
-group = 'dafny.lang'
+group = 'org.dafny'
+version = '4.2.0'
 sourceCompatibility = '1.8'
+
+java {
+    withJavadocJar()
+    withSourcesJar()
+}
 
 tasks.withType(JavaCompile) {
     options.encoding = 'UTF-8'
@@ -28,5 +36,61 @@ test {
 
 clean {
     delete '../../../Binaries/DafnyRuntime.jar'
+}
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            artifactId = 'DafnyRuntime'
+            from components.java
+            versionMapping {
+                usage('java-api') {
+                    fromResolutionOf('runtimeClasspath')
+                }
+                usage('java-runtime') {
+                    fromResolutionResult()
+                }
+            }
+            pom {
+                name = 'DafnyRuntime'
+                description = 'Runtime for Dafny programs compiled to Java'
+                url = 'https://github.com/dafny-lang/dafny'
+                licenses {
+                    license {
+                        name = 'MIT License'
+                        url = 'https://spdx.org/licenses/MIT.html'
+                    }
+                }
+                developers {
+                    developer {
+                        name = 'The Dafny core team'
+                        email = 'core-team@dafny.org'
+                    }
+                }
+                scm {
+                    connection = 'scm:git:https://github.com/dafny-lang/dafny.git'
+                    developerConnection = 'scm:git:git@github.com:dafny-lang/dafny.git'
+                    url = 'https://github.com/dafny-lang/dafny'
+                }
+            }
+        }
+    }
+}
+
+signing {
+    // Signing is required if building a release version and if we're going to publish it.
+    // Otherwise, signing will only occur if signatory credentials are configured.
+    required { gradle.taskGraph.hasTask('publish') }
+
+    sign publishing.publications.mavenJava
+}
+
+nexusPublishing {
+    repositories {
+        sonatype {
+            nexusUrl.set(uri("https://s01.oss.sonatype.org/service/local/"))
+            snapshotRepositoryUrl.set(uri("https://s01.oss.sonatype.org/content/repositories/snapshots/"))
+        }
+    }
 }
 

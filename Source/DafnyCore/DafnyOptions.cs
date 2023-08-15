@@ -41,9 +41,8 @@ namespace Microsoft.Dafny {
 
     public IList<Uri> CliRootSourceUris = new List<Uri>();
 
-    public ProjectFile ProjectFile { get; set; }
+    public DafnyProject DafnyProject { get; set; }
     public Command CurrentCommand { get; set; }
-
 
     static DafnyOptions() {
       RegisterLegacyUi(CommonOptionBag.Target, ParseString, "Compilation options", "compileTarget", @"
@@ -75,6 +74,9 @@ features like traits or co-inductive types.".TrimStart(), "cs");
       RegisterLegacyUi(CommonOptionBag.TypeSystemRefresh, ParseBoolean, "Language feature selection", "typeSystemRefresh", @"
 0 (default) - The type-inference engine and supported types are those of Dafny 4.0.
 1 - Use an updated type-inference engine. Warning: This mode is under construction and probably won't work at this time.".TrimStart(), defaultValue: false);
+      RegisterLegacyUi(CommonOptionBag.GeneralTraits, ParseBoolean, "Language feature selection", "generalTraits", @"
+0 (default) - Every trait implicitly extends 'object', and thus is a reference type. Only traits and classes can extend traits.
+1 - A trait is a reference type iff it or one of its ancestor traits is 'object'. Any type with members can extend traits.".TrimStart(), false);
       RegisterLegacyUi(CommonOptionBag.TypeInferenceDebug, ParseBoolean, "Language feature selection", "titrace", @"
 0 (default) - Don't print type-inference debug information.
 1 - Print type-inference debug information.".TrimStart(), defaultValue: false);
@@ -121,6 +123,8 @@ NoGhost - disable printing of functions, ghost methods, and proof
           }
         }
       }
+
+      RegisterLegacyUi(CommonOptionBag.AddCompileSuffix, ParseBoolean, "Compilation options", "compileSuffix");
     }
 
     public void ApplyBinding(Option option) {
@@ -239,7 +243,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
       ErrorWriter = errorWriter;
       ErrorTrace = 0;
       Prune = true;
-      TypeEncodingMethod = Bpl.CoreOptions.TypeEncoding.Predicates;
+      TypeEncodingMethod = Bpl.CoreOptions.TypeEncoding.Arguments;
       NormalizeNames = true;
       EmitDebugInformation = false;
       Backend = new CsharpBackend(this);
@@ -407,6 +411,9 @@ NoGhost - disable printing of functions, ghost methods, and proof
     /// </summary>
     public DafnyOptions(DafnyOptions src) : this(src.Input, src.OutputWriter, src.ErrorWriter) {
       src.CopyTo(this);
+      CliRootSourceUris = new List<Uri>(src.CliRootSourceUris);
+      ProverOptions = new List<string>(src.ProverOptions);
+      Options = new Options(src.Options.OptionArguments.ToDictionary(kv => kv.Key, kv => kv.Value));
     }
 
     public void CopyTo(DafnyOptions dst) {
@@ -785,8 +792,8 @@ NoGhost - disable printing of functions, ghost methods, and proof
           return true;
       }
 
-      // Unless this is an option for test generation, defer to superclass
-      return TestGenOptions.ParseOption(name, ps) || base.ParseOption(name, ps);
+      // Defer to superclass
+      return base.ParseOption(name, ps);
     }
 
     private static string[] ParseInnerArguments(string argumentsString) {
@@ -1455,8 +1462,6 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
     /proverOpt:O:model.compact=false (for z3 version >= 4.8.7), and
     /proverOpt:O:model.completion=true.
 
----- Test generation options -----------------------------------------------
-{TestGenOptions.Help}
 ---- Compilation options ---------------------------------------------------
 
 /compile:<n>

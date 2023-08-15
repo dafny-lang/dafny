@@ -107,7 +107,7 @@ public class Auditor : IRewriter {
 
   private static Regex TableRegex = new Regex(@"\{\{TABLE\}\}\r?\n");
 
-  private string GenerateHTMLReport(AuditReport report) {
+  private string GenerateHtmlReport(AuditReport report) {
     var table = report.RenderHTMLTable();
     var assembly = System.Reflection.Assembly.GetCallingAssembly();
     var templateStream = assembly.GetManifestResourceStream("audit_template.html");
@@ -130,7 +130,7 @@ public class Auditor : IRewriter {
       }
     } else {
       var text = reportFormat switch {
-        ReportFormat.HTML => GenerateHTMLReport(report),
+        ReportFormat.HTML => GenerateHtmlReport(report),
         ReportFormat.MarkdownTable => report.RenderMarkdownTable(),
         ReportFormat.MarkdownIETF => report.RenderMarkdownIETF(),
         ReportFormat.Text => report.RenderText(),

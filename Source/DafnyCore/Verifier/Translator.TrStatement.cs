@@ -56,7 +56,7 @@ namespace Microsoft.Dafny {
         }
         if (codeContext is IMethodCodeContext) {
           var method = (IMethodCodeContext)codeContext;
-          method.Outs.Iter(p => CheckDefiniteAssignmentReturn(stmt.Tok, p, builder));
+          method.Outs.ForEach(p => CheckDefiniteAssignmentReturn(stmt.Tok, p, builder));
         }
 
         if (codeContext is Method { FunctionFromWhichThisIsByMethodDecl: { ByMethodTok: { } } fun } method2) {
@@ -87,7 +87,7 @@ namespace Microsoft.Dafny {
           rhs.ResolvedOp = BinaryExpr.ResolvedOpcode.Concat;
           rhs.Type = ys.Type;  // resolve here
           var cmd = Bpl.Cmd.SimpleAssign(s.Tok, etran.HeapCastToIdentifierExpr,
-            ExpressionTranslator.UpdateHeap(s.Tok, etran.HeapExpr, etran.TrExpr(th), new Bpl.IdentifierExpr(s.Tok, GetField(ys)), etran.TrExpr(rhs)));
+            UpdateHeap(s.Tok, etran.HeapExpr, etran.TrExpr(th), new Bpl.IdentifierExpr(s.Tok, GetField(ys)), etran.TrExpr(rhs)));
           builder.Add(cmd);
         }
         // yieldCount := yieldCount + 1;  assume yieldCount == |ys|;
@@ -267,7 +267,7 @@ namespace Microsoft.Dafny {
         fields.RemoveAll(f => f == null);
         var localSurrogates = fields.ConvertAll(f => new Bpl.LocalVariable(f.tok, new TypedIdent(f.tok, SurrogateName(f), TrType(f.Type))));
         locals.AddRange(localSurrogates);
-        fields.Iter(f => AddDefiniteAssignmentTrackerSurrogate(f, cl, locals, codeContext is Constructor && codeContext.IsGhost));
+        fields.ForEach(f => AddDefiniteAssignmentTrackerSurrogate(f, cl, locals, codeContext is Constructor && codeContext.IsGhost));
 
         Contract.Assert(!inBodyInitContext);
         inBodyInitContext = true;
@@ -277,8 +277,8 @@ namespace Microsoft.Dafny {
 
         // The "new;" translates into an allocation of "this"
         AddComment(builder, stmt, "new;");
-        fields.Iter(f => CheckDefiniteAssignmentSurrogate(s.SeparatorTok ?? s.RangeToken.EndToken, f, true, builder));
-        fields.Iter(RemoveDefiniteAssignmentTrackerSurrogate);
+        fields.ForEach(f => CheckDefiniteAssignmentSurrogate(s.SeparatorTok ?? s.RangeToken.EndToken, f, true, builder));
+        fields.ForEach(RemoveDefiniteAssignmentTrackerSurrogate);
         var th = new ThisExpr(cl);
         var bplThis = (Bpl.IdentifierExpr)etran.TrExpr(th);
         SelectAllocateObject(tok, bplThis, th.Type, false, builder, etran);
@@ -518,7 +518,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(etran != null);
 
       var stmtBuilder = new BoogieStmtListBuilder(this, options);
-      string errorMessage = CustomErrorMessage(stmt.Attributes);
+      var (errorMessage, successMessage) = CustomErrorMessage(stmt.Attributes);
       this.fuelContext = FuelSetting.ExpandFuelContext(stmt.Attributes, stmt.Tok, this.fuelContext, this.reporter);
       var defineFuel = DefineFuelConstant(stmt.Tok, stmt.Attributes, stmtBuilder, etran);
       var b = defineFuel ? stmtBuilder : builder;
@@ -548,14 +548,14 @@ namespace Microsoft.Dafny {
         var ss = TrSplitExpr(stmt.Expr, etran, true, out var splitHappened);
         if (!splitHappened) {
           var tok = enclosingToken == null ? GetToken(stmt.Expr) : new NestedToken(enclosingToken, GetToken(stmt.Expr));
-          var desc = new PODesc.AssertStatement(errorMessage);
+          var desc = new PODesc.AssertStatement(errorMessage, successMessage);
           (proofBuilder ?? b).Add(Assert(tok, etran.TrExpr(stmt.Expr), desc, stmt.Tok,
             etran.TrAttributes(stmt.Attributes, null)));
         } else {
           foreach (var split in ss) {
             if (split.IsChecked) {
               var tok = enclosingToken == null ? split.E.tok : new NestedToken(enclosingToken, split.Tok);
-              var desc = new PODesc.AssertStatement(errorMessage);
+              var desc = new PODesc.AssertStatement(errorMessage, successMessage);
               (proofBuilder ?? b).Add(AssertNS(ToDafnyToken(tok), split.E, desc, stmt.Tok,
                 etran.TrAttributes(stmt.Attributes, null))); // attributes go on every split
             }
@@ -827,7 +827,7 @@ namespace Microsoft.Dafny {
           var ctorId = matchCase.Ctor.Name;
           if (match.Source.Type.AsDatatype is TupleTypeDecl) {
             var tuple = (TupleTypeDecl)match.Source.Type.AsDatatype;
-            ctorId = BuiltIns.TupleTypeCtorName(tuple.Dims);
+            ctorId = SystemModuleManager.TupleTypeCtorName(tuple.Dims);
           }
 
           if (constructors.ContainsKey(ctorId)) {
@@ -1268,8 +1268,8 @@ namespace Microsoft.Dafny {
       Bpl.IdentifierExpr o = new Bpl.IdentifierExpr(s.Tok, oVar);
       Bpl.BoundVariable fVar = new Bpl.BoundVariable(s.Tok, new Bpl.TypedIdent(s.Tok, "$f", predef.FieldName(s.Tok, alpha)));
       Bpl.IdentifierExpr f = new Bpl.IdentifierExpr(s.Tok, fVar);
-      Bpl.Expr heapOF = ExpressionTranslator.ReadHeap(s.Tok, etran.HeapExpr, o, f);
-      Bpl.Expr oldHeapOF = ExpressionTranslator.ReadHeap(s.Tok, prevHeap, o, f);
+      Bpl.Expr heapOF = ReadHeap(s.Tok, etran.HeapExpr, o, f, alpha);
+      Bpl.Expr oldHeapOF = ReadHeap(s.Tok, prevHeap, o, f, alpha);
       List<bool> freeOfAlloc = ComprehensionExpr.BoundedPool.HasBounds(s.Bounds, ComprehensionExpr.BoundedPool.PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc);
       List<Variable> xBvars = new List<Variable>();
       var xBody = etran.TrBoundVariables(s.BoundVars, xBvars, false, freeOfAlloc);
@@ -1323,9 +1323,10 @@ namespace Microsoft.Dafny {
       xAnte = BplAnd(xAnte, prevEtran.TrExpr(range));
       var g = prevEtran.TrExpr(rhs);
       GetObjFieldDetails(lhs, prevEtran, out var obj, out var field);
-      var xHeapOF = ExpressionTranslator.ReadHeap(tok, etran.HeapExpr, obj, field);
+      var xHeapOF = ReadHeap(tok, etran.HeapExpr, obj, field);
 
       Type lhsType = lhs is MemberSelectExpr ? ((MemberSelectExpr)lhs).Type : null;
+
       g = CondApplyBox(rhs.tok, g, rhs.Type, lhsType);
 
       Bpl.Trigger tr = null;
@@ -1405,7 +1406,7 @@ namespace Microsoft.Dafny {
       }
       BoogieStmtListBuilder invDefinednessBuilder = new BoogieStmtListBuilder(this, options);
       foreach (AttributedExpression loopInv in s.Invariants) {
-        string errorMessage = CustomErrorMessage(loopInv.Attributes);
+        var (errorMessage, successMessage) = CustomErrorMessage(loopInv.Attributes);
         TrStmt_CheckWellformed(loopInv.E, invDefinednessBuilder, locals, etran, false);
         invDefinednessBuilder.Add(TrAssumeCmd(loopInv.E.tok, etran.TrExpr(loopInv.E)));
 
@@ -1413,12 +1414,12 @@ namespace Microsoft.Dafny {
         var ss = TrSplitExpr(loopInv.E, etran, false, out var splitHappened);
         if (!splitHappened) {
           var wInv = Bpl.Expr.Imp(w, etran.TrExpr(loopInv.E));
-          invariants.Add(Assert(loopInv.E.tok, wInv, new PODesc.LoopInvariant(errorMessage)));
+          invariants.Add(Assert(loopInv.E.tok, wInv, new PODesc.LoopInvariant(errorMessage, successMessage)));
         } else {
           foreach (var split in ss) {
             var wInv = Bpl.Expr.Binary(split.E.tok, BinaryOperator.Opcode.Imp, w, split.E);
             if (split.IsChecked) {
-              invariants.Add(Assert(split.Tok, wInv, new PODesc.LoopInvariant(errorMessage)));  // TODO: it would be fine to have this use {:subsumption 0}
+              invariants.Add(Assert(split.Tok, wInv, new PODesc.LoopInvariant(errorMessage, successMessage)));  // TODO: it would be fine to have this use {:subsumption 0}
             } else {
               invariants.Add(TrAssumeCmd(split.E.tok, wInv));
             }
@@ -1444,7 +1445,7 @@ namespace Microsoft.Dafny {
             invariants.Add(TrAssumeCmd(s.Tok, tri.Expr));
           } else {
             Contract.Assert(tri.ErrorMessage != null);  // follows from BoilerplateTriple invariant
-            invariants.Add(Assert(s.Tok, tri.Expr, new PODesc.BoilerplateTriple(tri.ErrorMessage)));
+            invariants.Add(Assert(s.Tok, tri.Expr, new PODesc.BoilerplateTriple(tri.ErrorMessage, tri.SuccessMessage, tri.Comment)));
           }
         }
         // add a free invariant which says that the heap hasn't changed outside of the modifies clause.
@@ -1781,7 +1782,11 @@ namespace Microsoft.Dafny {
             CheckNonNull(dafnyReceiver.tok, dafnyReceiver, builder, etran, null);
           }
         }
-        ins.Add(etran.TrExpr(receiver));
+        var obj = etran.TrExpr(receiver);
+        if (bReceiver == null) {
+          obj = BoxifyForTraitParent(tok, obj, method, dafnyReceiver.Type);
+        }
+        ins.Add(obj);
       } else if (receiver is StaticReceiverExpr stexpr) {
         if (stexpr.ObjectToDiscard != null) {
           TrStmt_CheckWellformed(stexpr.ObjectToDiscard, builder, locals, etran, true);
@@ -2117,7 +2122,7 @@ namespace Microsoft.Dafny {
         new List<Bpl.IdentifierExpr>() { updatedSetIE });
       builder.Add(cmd);
       // $Heap[this, _new] := $iter_newUpdate;
-      cmd = Bpl.Cmd.SimpleAssign(iter.tok, currentHeap, ExpressionTranslator.UpdateHeap(iter.tok, currentHeap, th, nwField, updatedSetIE));
+      cmd = Bpl.Cmd.SimpleAssign(iter.tok, currentHeap, UpdateHeap(iter.tok, currentHeap, th, nwField, updatedSetIE));
       builder.Add(cmd);
       // assume $IsGoodHeap($Heap)
       builder.Add(AssumeGoodHeap(tok, etran));

@@ -1,5 +1,5 @@
-// RUN: %baredafny verify %args --warn-shadowing "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachResolver "%s" -- --warn-shadowing
+
 
 // This file tests the behavior where the Resolver reports some warnings
 // but no errors.  In the case of errors, resolution does not continue

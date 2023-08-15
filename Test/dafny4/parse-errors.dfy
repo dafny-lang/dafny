@@ -1,4 +1,4 @@
-// RUN: ! %baredafny resolve --use-basename-for-filename "%s" > "%t"
+// RUN: ! %baredafny resolve --show-snippets:false --use-basename-for-filename "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 datatype D = B | CCC | E { predicate IsFailure() { E? } function PropagateFailure(): D { E } }

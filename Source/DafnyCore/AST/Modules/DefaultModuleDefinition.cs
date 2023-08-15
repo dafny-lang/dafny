@@ -12,14 +12,14 @@ public class DefaultModuleDefinition : ModuleDefinition, ICloneable<DefaultModul
     RootSourceUris = original.RootSourceUris;
   }
 
-  public DefaultModuleDefinition(IList<Uri> rootSourceUris, bool defaultClassFirst)
+  public DefaultModuleDefinition(IList<Uri> rootSourceUris)
     : base(RangeToken.NoToken, new Name("_module"), new List<IToken>(), false, false,
-      null, null, null, true, defaultClassFirst) {
+      null, null, null, true) {
     RootSourceUris = rootSourceUris;
   }
 
   public override bool IsDefaultModule => true;
-  public override IEnumerable<Node> PreResolveChildren => Includes.Concat(base.PreResolveChildren);
+  public override IEnumerable<INode> PreResolveChildren => Includes.Concat(base.PreResolveChildren);
   public new DefaultModuleDefinition Clone(Cloner cloner) {
     return new DefaultModuleDefinition(cloner, this);
   }

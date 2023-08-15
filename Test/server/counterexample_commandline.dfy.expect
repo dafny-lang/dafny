@@ -5,21 +5,21 @@ Dafny program verifier finished with 1 verified, 1 error
 Counterexample for first failing assertion: 
 counterexample_commandline.dfy(21,8): initial state:
 	s : seq<char> = ['A']
-	this : Patterns.Simple? = (p := @2)
+	this : Patterns.Simple = (p := @2)
 	@2 : seq<char> = ['?']
 counterexample_commandline.dfy(22,22):
 	s : seq<char> = ['A']
-	this : Patterns.Simple? = (p := @2)
+	this : Patterns.Simple = (p := @2)
 	i : int = 0
 	@2 : seq<char> = ['?']
 counterexample_commandline.dfy(23,12): after some loop iterations:
 	s : seq<char> = ['A']
-	this : Patterns.Simple? = (p := @2)
+	this : Patterns.Simple = (p := @2)
 	i : int = 0
 	@2 : seq<char> = ['?']
 counterexample_commandline.dfy(30,32):
 	s : seq<char> = ['A']
-	this : Patterns.Simple? = (p := @2)
+	this : Patterns.Simple = (p := @2)
 	i : int = 0
 	b : bool = false
 	@2 : seq<char> = ['?']

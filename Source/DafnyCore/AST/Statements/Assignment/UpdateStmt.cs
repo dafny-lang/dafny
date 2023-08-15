@@ -24,8 +24,8 @@ public class UpdateStmt : ConcreteUpdateStatement, ICloneable<UpdateStmt>, ICanR
   [FilledInDuringResolution] public List<Statement> ResolvedStatements;
   public override IEnumerable<Statement> SubStatements => Children.OfType<Statement>();
 
-  public override IEnumerable<Node> Children => ResolvedStatements ?? Lhss.Concat<Node>(Rhss);
-  public override IEnumerable<Node> PreResolveChildren => Lhss.Concat<Node>(Rhss);
+  public override IEnumerable<INode> Children => ResolvedStatements ?? Lhss.Concat<Node>(Rhss);
+  public override IEnumerable<INode> PreResolveChildren => Lhss.Concat<Node>(Rhss);
 
   public override IEnumerable<Statement> PreResolveSubStatements => Enumerable.Empty<Statement>();
 
@@ -81,7 +81,7 @@ public class UpdateStmt : ConcreteUpdateStatement, ICloneable<UpdateStmt>, ICanR
   /// errorCountBeforeCheckingLhs is passed in so that this method can determined if any resolution errors were found during
   /// LHS or RHS checking, because only if no errors were found is update.ResolvedStmt changed.
   /// </summary>
-  public override void Resolve(Resolver resolver, ResolutionContext resolutionContext) {
+  public override void Resolve(ModuleResolver resolver, ResolutionContext resolutionContext) {
     Contract.Requires(this != null);
     Contract.Requires(resolutionContext != null);
 
@@ -90,7 +90,7 @@ public class UpdateStmt : ConcreteUpdateStatement, ICloneable<UpdateStmt>, ICanR
     base.Resolve(resolver, resolutionContext);
 
     IToken firstEffectfulRhs = null;
-    Resolver.MethodCallInformation methodCallInfo = null;
+    ModuleResolver.MethodCallInformation methodCallInfo = null;
     ResolvedStatements = new();
     foreach (var rhs in Rhss) {
       bool isEffectful;

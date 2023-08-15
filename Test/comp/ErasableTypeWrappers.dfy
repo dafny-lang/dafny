@@ -1,10 +1,4 @@
-// RUN: %dafny /compile:0 /unicodeChar:0 "%s" > "%t"
-// RUN: %dafny /noVerify /compile:4 /unicodeChar:0 /spillTargetCode:2 /compileTarget:cs "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /unicodeChar:0 /spillTargetCode:2 /compileTarget:js "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /unicodeChar:0 /spillTargetCode:2 /compileTarget:go "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /unicodeChar:0 /spillTargetCode:2 /compileTarget:java "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /unicodeChar:0 /spillTargetCode:2 /compileTarget:py "%s" >> "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment --spill-translation --unicode-char:false
 
 datatype SingletonRecord = SingletonRecord(u: int)
 datatype GhostOrNot = ghost Ghost(a: int, b: int) | Compiled(x: int)
@@ -23,6 +17,7 @@ method Main() {
   TestTypeParameters(GenericCompiled("<gen>"), GenericCompiled(3.14), GenericCompiled(2.7));
   TestMembers();
   OptimizationChecks.Test();
+  PrintRegressionTests.Test();
 }
 
 method TestTargetTypesAndConstructors() {
@@ -393,4 +388,27 @@ module OptimizationChecks {
   datatype HA = HA(HB)
   datatype HB = HB0(HD<HA>) | ghost HB1
   datatype HD<X> = HD(X, HA)
+}
+
+// --------------------------------------------------------------------------------
+
+module PrintRegressionTests {
+  datatype Wrapper<C(0)> = Wrapper(C)
+
+  newtype Native = x | 2 <= x < 11 witness 5
+
+  method Test() {
+    var charWrapper: Wrapper<char> := *;
+    print charWrapper, " "; // 'D' (or just D with /unicodeChar:0)
+    PrintOne<Wrapper<char>>(); // 'D' (or just D with /unicodeChar:0)
+
+    var nativeWrapper: Wrapper<Native> := *;
+    print nativeWrapper, " "; // 5
+    PrintOne<Wrapper<Native>>(); // 5
+  }
+
+  method PrintOne<X(0)>() {
+    var x: X := *;
+    print x, "\n";
+  }
 }

@@ -248,15 +248,14 @@ module N refines M { datatype D = ... Y | Z }
 There are limitations on refining a datatype, namely that the set of constructors cannot be changed.
 It is only allowed to add members to the body of the datatype.
 
-## **Error: mutable fields are not allowed in value types** {#p_no_mutable_fields_in_value_types}
+## **Error: datatype extending traits is a beta feature; use /generalTraits:1 to engage** {#p_general_traits_beta}
 
 ```dafny
-datatype D = A | B  { var c: D }
+trait Trait { }
+datatype D extends Trait = A | B
 ```
 
-The `var` declaration declares a mutable field, which is only permitted within
-classes, traits and iterators. 
-`const` declarations can be members of value-types, such as datatypes.
+Use of traits as non-reference types is a beta feature. To engage, use /generalTraits:1.
 
 ## **Warning: module-level const declarations are always non-instance, so the 'static' keyword is not allowed here {#p_module_level_const_always_static}
 

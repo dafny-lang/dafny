@@ -29,7 +29,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     public static VerificationStatusGutter ComputeFrom(
         DocumentUri uri,
         int version,
-        VerificationTree[] verificationTrees,
+        ICollection<VerificationTree> verificationTrees,
         Container<Diagnostic> resolutionErrors,
         int linesCount,
         bool verificationStarted) {
@@ -39,13 +39,13 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
 
     public static LineVerificationStatus[] RenderPerLineDiagnostics(
       DocumentUri uri,
-      VerificationTree[] verificationTrees,
+      ICollection<VerificationTree> verificationTrees,
       int numberOfLines,
       bool verificationStarted,
       Container<Diagnostic> parseAndResolutionErrors) {
       var result = new LineVerificationStatus[numberOfLines];
 
-      if (verificationTrees.Length == 0 && !parseAndResolutionErrors.Any() && verificationStarted) {
+      if (verificationTrees.Count == 0 && !parseAndResolutionErrors.Any() && verificationStarted) {
         for (var line = 0; line < numberOfLines; line++) {
           result[line] = LineVerificationStatus.Verified;
         }
@@ -172,7 +172,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
      // The position of the symbol name attached to this node, or Range.Start if it's anonymous
      Position Position
   ) {
-    public string PrefixedDisplayName => Kind + " " + DisplayName;
+    public string PrefixedDisplayName => Kind + " `" + DisplayName + "`";
 
     // Overriden by checking children if there are some
     public GutterVerificationStatus StatusVerification { get; set; } = GutterVerificationStatus.Nothing;
@@ -355,9 +355,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     }
 
     public virtual VerificationTree GetCopyForNotification() {
-      if (Finished) {
-        return this;// Won't be modified anymore, no need to duplicate
-      }
       return this with {
         Children = Children.Select(child => child.GetCopyForNotification()).ToList()
       };
@@ -365,14 +362,25 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
   }
 
   public record DocumentVerificationTree(
-    DocumentTextBuffer TextDocumentItem
-  ) : VerificationTree("Document", TextDocumentItem.Uri.ToString(), TextDocumentItem.Uri.ToString(), TextDocumentItem.Uri.ToString(),
-    TextDocumentItem.Uri.ToUri(),
-    LinesToRange(TextDocumentItem.NumberOfLines), new Position(0, 0)) {
+    INode Program,
+    Uri Uri)
+    : VerificationTree("Document", Uri.ToString(), Uri.ToString(), Uri.ToString(), Uri, ComputeRange(Program, Uri), new Position(0, 0)) {
 
-    public static Range LinesToRange(int lines) {
-      return new Range(new Position(0, 0),
-        new Position(lines, 0));
+    private static Range ComputeRange(INode node, Uri uri) {
+      if (node is not Program program) {
+        return new Range(0, 0, 0, 0);
+      }
+      var end = program.Files.FirstOrDefault(f => f.RangeToken.Uri == uri)?.EndToken ?? Token.NoToken;
+      while (end.Next != null) {
+        end = end.Next;
+      }
+
+      var endPosition = end.GetLspPosition();
+      var endTriviaLines = end.TrailingTrivia.Split("\n");
+      endPosition = new Position(endPosition.Line + endTriviaLines.Length - 1,
+        endPosition.Character + endTriviaLines[^1].Length);
+
+      return new Range(new Position(0, 0), endPosition);
     }
   }
 
@@ -392,9 +400,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
       new Dictionary<AssertionBatchIndex, AssertionBatchVerificationTree>().ToImmutableDictionary();
 
     public override VerificationTree GetCopyForNotification() {
-      if (Finished) {
-        return this;// Won't be modified anymore, no need to duplicate
-      }
       return this with {
         Children = Children.Select(child => child.GetCopyForNotification()).ToList(),
         AssertionBatches = AssertionBatches
@@ -468,9 +473,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
       return this;
     }
     public override VerificationTree GetCopyForNotification() {
-      if (Finished) {
-        return this;// Won't be modified anymore, no need to duplicate
-      }
       return this with {
         Children = Children.Select(child => child.GetCopyForNotification()).ToList()
       };
@@ -503,9 +505,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
       new Dictionary<int, AssertionBatchMetrics>();
 
     public override VerificationTree GetCopyForNotification() {
-      if (Finished) {
-        return this;// Won't be modified anymore, no need to duplicate
-      }
       return this with {
         Children = Children.Select(child => child.GetCopyForNotification()).ToList(),
         AssertionBatchMetrics = new Dictionary<int, AssertionBatchMetrics>(AssertionBatchMetrics).ToImmutableDictionary()

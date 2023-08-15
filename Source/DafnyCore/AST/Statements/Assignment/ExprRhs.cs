@@ -3,11 +3,18 @@ using System.Diagnostics.Contracts;
 
 namespace Microsoft.Dafny;
 
-public class ExprRhs : AssignmentRhs {
+public class ExprRhs : AssignmentRhs, ICloneable<ExprRhs> {
   public readonly Expression Expr;
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(Expr != null);
+  }
+  public ExprRhs Clone(Cloner cloner) {
+    return new ExprRhs(cloner, this);
+  }
+
+  public ExprRhs(Cloner cloner, ExprRhs original) : base(cloner, original) {
+    Expr = cloner.CloneExpr(original.Expr);
   }
 
   public ExprRhs(Expression expr, Attributes attrs = null)
@@ -32,6 +39,6 @@ public class ExprRhs : AssignmentRhs {
     }
   }
 
-  public override IEnumerable<Node> Children => new[] { Expr };
-  public override IEnumerable<Node> PreResolveChildren => PreResolveSubExpressions;
+  public override IEnumerable<INode> Children => new[] { Expr };
+  public override IEnumerable<INode> PreResolveChildren => PreResolveSubExpressions;
 }

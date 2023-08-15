@@ -6,7 +6,6 @@ using System.Linq;
 namespace Microsoft.Dafny;
 
 public abstract class TypeSynonymDeclBase : TopLevelDecl, RedirectingTypeDecl, IHasDocstring {
-  public override string WhatKind { get { return "type synonym"; } }
   public TypeParameter.TypeParameterCharacteristics Characteristics;  // the resolver may change the .EqualitySupport component of this value from Unspecified to InferredRequired (for some signatures that may immediately imply that equality support is required)
   public bool SupportsEquality {
     get { return Characteristics.EqualitySupport != TypeParameter.EqualitySupportValue.Unspecified; }
@@ -56,13 +55,11 @@ public abstract class TypeSynonymDeclBase : TopLevelDecl, RedirectingTypeDecl, I
     }
   }
 
-  public override IEnumerable<Node> Children => base.Children.Concat(
+  public override IEnumerable<INode> Children => base.Children.Concat(
     Rhs != null ? new List<Node>() { Rhs } : Enumerable.Empty<Node>());
 
   string RedirectingTypeDecl.Name { get { return Name; } }
   IToken RedirectingTypeDecl.tok { get { return tok; } }
-  IEnumerable<IToken> RedirectingTypeDecl.OwnedTokens => OwnedTokens;
-  IToken RedirectingTypeDecl.StartToken => StartToken;
   Attributes RedirectingTypeDecl.Attributes { get { return Attributes; } }
   ModuleDefinition RedirectingTypeDecl.Module { get { return EnclosingModuleDefinition; } }
   BoundVar RedirectingTypeDecl.Var { get { return null; } }
@@ -100,9 +97,7 @@ public abstract class TypeSynonymDeclBase : TopLevelDecl, RedirectingTypeDecl, I
     return false;
   }
 
-
-
-  protected override string GetTriviaContainingDocstring() {
+  public string GetTriviaContainingDocstring() {
     IToken openingBlock = null;
     foreach (var token in OwnedTokens) {
       if (token.val == "{") {

@@ -52,9 +52,9 @@ public class AttributedExpression : TokenNode, IAttributeBearingDeclaration {
     this.Attributes = new UserSuppliedAttributes(tok, openBrace, closeBrace, args, this.Attributes);
   }
 
-  public override IEnumerable<Node> Children =>
+  public override IEnumerable<INode> Children =>
     (Attributes != null ? new List<Node>() { Attributes } : Enumerable.Empty<Node>()).Concat(
       new List<Node>() { E });
 
-  public override IEnumerable<Node> PreResolveChildren => Children;
+  public override IEnumerable<INode> PreResolveChildren => Children;
 }

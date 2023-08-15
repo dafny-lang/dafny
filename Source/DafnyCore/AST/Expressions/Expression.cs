@@ -320,13 +320,13 @@ public abstract class Expression : TokenNode {
   /// <summary>
   /// Create a resolved expression of the form "|e|"
   /// </summary>
-  public static Expression CreateCardinality(Expression e, BuiltIns builtIns) {
+  public static Expression CreateCardinality(Expression e, SystemModuleManager systemModuleManager) {
     Contract.Requires(e != null);
     Contract.Requires(e.Type != null);
     Contract.Requires(e.Type.AsSetType != null || e.Type.AsMultiSetType != null || e.Type.AsSeqType != null);
     Contract.Ensures(Contract.Result<Expression>() != null);
     var s = new UnaryOpExpr(e.tok, UnaryOpExpr.Opcode.Cardinality, e) {
-      Type = builtIns.Nat()
+      Type = systemModuleManager.Nat()
     };
     return s;
   }
@@ -706,7 +706,7 @@ public abstract class Expression : TokenNode {
   /// Expects "receiver" and each of the "arguments" to be a resolved expression.
   /// </summary>
   public static Expression CreateResolvedCall(IToken tok, Expression receiver, Function function, List<Expression> arguments,
-    List<Type> typeArguments, BuiltIns builtIns) {
+    List<Type> typeArguments, SystemModuleManager systemModuleManager) {
     Contract.Requires(function.Formals.Count == arguments.Count);
     Contract.Requires(function.TypeArgs.Count == typeArguments.Count);
 
@@ -717,19 +717,19 @@ public abstract class Expression : TokenNode {
       TypeApplication_JustFunction = typeArguments
     };
 
-    return WrapResolvedCall(call, builtIns);
+    return WrapResolvedCall(call, systemModuleManager);
   }
 
   /// <summary>
   /// Wrap the resolved call in the usual unresolved structure, in case the expression is cloned and re-resolved.
   /// </summary>
-  public static Expression WrapResolvedCall(FunctionCallExpr call, BuiltIns builtIns) {
+  public static Expression WrapResolvedCall(FunctionCallExpr call, SystemModuleManager systemModuleManager) {
     // Wrap the resolved call in the usual unresolved structure, in case the expression is cloned and re-resolved.
     var receiverType = (UserDefinedType)call.Receiver.Type.NormalizeExpand();
     var subst = TypeParameter.SubstitutionMap(receiverType.ResolvedClass.TypeArgs, receiverType.TypeArgs);
-    subst = Resolver.AddParentTypeParameterSubstitutions(subst, receiverType);
+    subst = ModuleResolver.AddParentTypeParameterSubstitutions(subst, receiverType);
     var exprDotName = new ExprDotName(call.tok, call.Receiver, call.Function.Name, call.TypeApplication_JustFunction) {
-      Type = Resolver.SelectAppropriateArrowTypeForFunction(call.Function, subst, builtIns)
+      Type = ModuleResolver.SelectAppropriateArrowTypeForFunction(call.Function, subst, systemModuleManager)
     };
 
     subst = TypeParameter.SubstitutionMap(call.Function.TypeArgs, call.TypeApplication_JustFunction);
@@ -800,9 +800,9 @@ public abstract class Expression : TokenNode {
     var newLHSs = LHSs.ConvertAll(cloner.CloneCasePattern);
 
     var oldVars = new List<BoundVar>();
-    LHSs.Iter(p => oldVars.AddRange(p.Vars));
+    LHSs.ForEach(p => oldVars.AddRange(p.Vars));
     var newVars = new List<BoundVar>();
-    newLHSs.Iter(p => newVars.AddRange(p.Vars));
+    newLHSs.ForEach(p => newVars.AddRange(p.Vars));
     body = VarSubstituter(oldVars.ConvertAll<NonglobalVariable>(x => (NonglobalVariable)x), newVars, body);
 
     var let = new LetExpr(tok, newLHSs, RHSs, body, exact);
@@ -877,6 +877,6 @@ public abstract class Expression : TokenNode {
     return le == null ? null : le.Value as string;
   }
 
-  public override IEnumerable<Node> Children => SubExpressions;
-  public override IEnumerable<Node> PreResolveChildren => Children;
+  public override IEnumerable<INode> Children => SubExpressions;
+  public override IEnumerable<INode> PreResolveChildren => Children;
 }

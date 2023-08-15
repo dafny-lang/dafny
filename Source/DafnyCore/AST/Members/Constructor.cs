@@ -9,6 +9,12 @@ public class Constructor : Method {
   void ObjectInvariant() {
     Contract.Invariant(Body == null || Body is DividedBlockStmt);
   }
+
+  public override DafnySymbolKind Kind => DafnySymbolKind.Constructor;
+  protected override string GetQualifiedName() {
+    return EnclosingClass.Name;
+  }
+
   public List<Statement> BodyInit {  // first part of Body's statements
     get {
       if (Body == null) {
@@ -45,6 +51,9 @@ public class Constructor : Method {
     Contract.Requires(mod != null);
     Contract.Requires(cce.NonNullElements(ens));
     Contract.Requires(decreases != null);
+  }
+
+  public Constructor(Cloner cloner, Constructor original) : base(cloner, original) {
   }
 
   public bool HasName {

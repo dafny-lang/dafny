@@ -285,7 +285,7 @@ public class RangeToken : TokenWrapper {
   }
 
   public BoogieRangeToken ToToken() {
-    return new BoogieRangeToken(StartToken, EndToken);
+    return new BoogieRangeToken(StartToken, EndToken, null);
   }
 
   public bool Contains(int position) {
@@ -300,15 +300,18 @@ public class RangeToken : TokenWrapper {
 
 public class BoogieRangeToken : TokenWrapper {
   // The wrapped token is the startTok
-  public IToken StartToken => WrappedToken;
+  public IToken StartToken { get; }
   public IToken EndToken { get; }
+  public IToken NameToken { get; }
 
   // Used for range reporting
-  public override string val => new string(' ', Math.Max(EndToken.pos + EndToken.val.Length - pos, 1));
+  public override string val => new(' ', Math.Max(EndToken.pos + EndToken.val.Length - pos, 1));
 
-  public BoogieRangeToken(IToken startTok, IToken endTok) : base(
-    startTok) {
-    this.EndToken = endTok;
+  public BoogieRangeToken(IToken startTok, IToken endTok, IToken nameToken) : base(
+    nameToken ?? startTok) {
+    StartToken = startTok;
+    EndToken = endTok;
+    NameToken = nameToken;
   }
 
   public override IToken WithVal(string newVal) {

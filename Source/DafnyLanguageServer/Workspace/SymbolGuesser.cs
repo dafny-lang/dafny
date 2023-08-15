@@ -1,9 +1,11 @@
-﻿using Microsoft.Dafny.LanguageServer.Language.Symbols;
+﻿using System;
+using Microsoft.Dafny.LanguageServer.Language.Symbols;
 using Microsoft.Dafny.LanguageServer.Util;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using System.IO;
 using System.Linq;
 using System.Threading;
 
@@ -15,13 +17,13 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       this.logger = logger;
     }
 
-    public bool TryGetSymbolBefore(IdeState state, Position position, CancellationToken cancellationToken, [NotNullWhen(true)] out ISymbol? symbol) {
-      (symbol, _) = new Guesser(logger, state, cancellationToken).GetSymbolAndItsTypeBefore(position);
+    public bool TryGetSymbolBefore(IdeState state, Uri uri, Position position, CancellationToken cancellationToken, [NotNullWhen(true)] out ILegacySymbol? symbol) {
+      (symbol, _) = new Guesser(logger, state, cancellationToken).GetSymbolAndItsTypeBefore(uri, position);
       return symbol != null;
     }
 
-    public bool TryGetTypeBefore(IdeState state, Position position, CancellationToken cancellationToken, [NotNullWhen(true)] out ISymbol? typeSymbol) {
-      (_, typeSymbol) = new Guesser(logger, state, cancellationToken).GetSymbolAndItsTypeBefore(position);
+    public bool TryGetTypeBefore(IdeState state, Uri uri, Position position, CancellationToken cancellationToken, [NotNullWhen(true)] out ILegacySymbol? typeSymbol) {
+      (_, typeSymbol) = new Guesser(logger, state, cancellationToken).GetSymbolAndItsTypeBefore(uri, position);
       return typeSymbol != null;
     }
 
@@ -36,15 +38,22 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         this.cancellationToken = cancellationToken;
       }
 
-      public (ISymbol? Designator, ISymbol? Type) GetSymbolAndItsTypeBefore(Position requestPosition) {
+      public (ILegacySymbol? Designator, ILegacySymbol? Type) GetSymbolAndItsTypeBefore(Uri uri, Position requestPosition) {
         var position = GetLinePositionBefore(requestPosition);
         if (position == null) {
-          logger.LogTrace("the request position {Position} is at the beginning of the line, no chance to find a symbol there", requestPosition);
           return (null, null);
         }
-        var memberAccesses = GetMemberAccessChainEndingAt(position);
-        if (memberAccesses.Length == 0) {
-          logger.LogDebug("could not resolve the member access chain in front of of {Position}", requestPosition);
+        var memberAccesses = GetMemberAccessChainEndingAt(uri, position);
+        if (memberAccesses.Count == 0) {
+          logger.LogDebug("could not resolve the member access chain in front of {Position}", requestPosition);
+
+          if (logger.IsEnabled(LogLevel.Trace)) {
+            var program = (Program)state.Program;
+            var writer = new StringWriter();
+            var printer = new Printer(writer, DafnyOptions.Default);
+            printer.PrintProgram(program, true);
+            logger.LogTrace($"Program:\n{writer}");
+          }
           return (null, null);
         }
         return GetSymbolAndTypeOfLastMember(position, memberAccesses);
@@ -58,11 +67,11 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         return new Position(position.Line, position.Character - 1);
       }
 
-      private (ISymbol? Designator, ISymbol? Type) GetSymbolAndTypeOfLastMember(Position position, string[] memberAccessChain) {
+      private (ILegacySymbol? Designator, ILegacySymbol? Type) GetSymbolAndTypeOfLastMember(Position position, IReadOnlyList<string> memberAccessChain) {
         var enclosingSymbol = state.SignatureAndCompletionTable.GetEnclosingSymbol(position, cancellationToken);
-        ISymbol? currentDesignator = null;
-        ISymbol? currentDesignatorType = null;
-        for (int currentMemberAccess = 0; currentMemberAccess < memberAccessChain.Length; currentMemberAccess++) {
+        ILegacySymbol? currentDesignator = null;
+        ILegacySymbol? currentDesignatorType = null;
+        for (int currentMemberAccess = 0; currentMemberAccess < memberAccessChain.Count; currentMemberAccess++) {
           cancellationToken.ThrowIfCancellationRequested();
           var currentDesignatorName = memberAccessChain[currentMemberAccess];
           if (currentMemberAccess == 0) {
@@ -84,7 +93,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         return (currentDesignator, currentDesignatorType);
       }
 
-      private ISymbol? GetAccessedSymbolOfEnclosingScopes(ISymbol scope, string name) {
+      private ILegacySymbol? GetAccessedSymbolOfEnclosingScopes(ILegacySymbol scope, string name) {
         cancellationToken.ThrowIfCancellationRequested();
         var symbol = FindSymbolWithName(scope, name);
         if (symbol == null && scope.Scope != null) {
@@ -93,7 +102,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         return symbol;
       }
 
-      private TypeWithMembersSymbolBase? GetEnclosingType(ISymbol scope) {
+      private TypeWithMembersSymbolBase? GetEnclosingType(ILegacySymbol scope) {
         cancellationToken.ThrowIfCancellationRequested();
         if (scope is TypeWithMembersSymbolBase typeSymbol) {
           return typeSymbol;
@@ -101,7 +110,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         return scope.Scope == null ? null : GetEnclosingType(scope.Scope);
       }
 
-      private ISymbol? FindSymbolWithName(ISymbol containingSymbol, string name) {
+      private ILegacySymbol? FindSymbolWithName(ILegacySymbol containingSymbol, string name) {
         // TODO The current implementation misses the visibility scope of shadowed variables.
         //      To be more precise, variables of nested blocks that shadow outer variables work
         //      Correct. However, if the shadowing variable of the nested scope was declared
@@ -120,81 +129,24 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           .FirstOrDefault(child => child.Name == name);
       }
 
-      private string[] GetMemberAccessChainEndingAt(Position position) {
-        var absolutePosition = state.TextDocumentItem.ToIndex(position);
-        return new MemberAccessChainResolver(state.TextDocumentItem.Text, absolutePosition, cancellationToken).ResolveFromBehind().Reverse().ToArray();
-      }
-    }
-
-    // TODO This is a simple PoC for code suggestion that only works in a regular manner (tokenization).
-    //      It should be refined in a context-free parser to generate a mini AST or something suitable that can better represent the actual syntax.
-    //      In general, a speculative parser and semantic checker would be suitable to transition an existing semantic model.
-    // TODO Instead of "parsing" when a completion was requested, it should be done when transitioning from one semantic model to another speculative one.
-    //      This should simplify the completion implementation and unify other actions depending on the (speculative) semantic model.
-    // TODO A small refinement might be to ensure that the first character is a nondigit character. However, this is probably not necessary
-    //      for this use-case.
-    private class MemberAccessChainResolver {
-      private readonly string text;
-      private readonly CancellationToken cancellationToken;
-
-      private int position;
-
-      private bool IsWhitespace => char.IsWhiteSpace(text[position]);
-      private bool IsAtNewStatement => text[position] == ';' || text[position] == '}' || text[position] == '{';
-      private bool IsMemberAccessOperator => text[position] == '.';
-
-      private bool IsIdentifierCharacter {
-        get {
-          char character = text[position];
-          return char.IsLetterOrDigit(character)
-            || character == '_'
-            || character == '\''
-            || character == '?';
+      private IReadOnlyList<string> GetMemberAccessChainEndingAt(Uri uri, Position position) {
+        var node = state.Program.FindNode(uri, position.ToDafnyPosition());
+        var result = new List<string>();
+        while (node is ExprDotName exprDotName) {
+          node = exprDotName.Lhs;
+          result.Add(exprDotName.SuffixName);
         }
-      }
 
-      public MemberAccessChainResolver(string text, int endPosition, CancellationToken cancellationToken) {
-        this.text = text;
-        position = endPosition;
-        this.cancellationToken = cancellationToken;
-      }
-
-      public IEnumerable<string> ResolveFromBehind() {
-        while (position >= 0) {
-          cancellationToken.ThrowIfCancellationRequested();
-          SkipWhitespaces();
-          if (IsAtNewStatement) {
-            yield break;
-          }
-          // TODO method/function invocations and indexers are not supported yet. Maybe just skip to their designator?
-          if (IsIdentifierCharacter) {
-            yield return ReadIdentifier();
-          } else {
-            yield break;
-          }
-          SkipWhitespaces();
-          if (IsMemberAccessOperator) {
-            position--;
-          } else {
-            yield break;
-          }
+        if (node is NameSegment nameSegment) {
+          result.Add(nameSegment.Name);
         }
-      }
 
-      private void SkipWhitespaces() {
-        while (position >= 0 && IsWhitespace) {
-          cancellationToken.ThrowIfCancellationRequested();
-          position--;
+        if (node is ThisExpr) {
+          result.Add("this");
         }
-      }
 
-      private string ReadIdentifier() {
-        int identifierEnd = position + 1;
-        while (position >= 0 && IsIdentifierCharacter) {
-          cancellationToken.ThrowIfCancellationRequested();
-          position--;
-        }
-        return text[(position + 1)..identifierEnd];
+        result.Reverse();
+        return result;
       }
     }
   }

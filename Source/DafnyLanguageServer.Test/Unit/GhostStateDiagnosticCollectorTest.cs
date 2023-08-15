@@ -49,7 +49,7 @@ public class GhostStateDiagnosticCollectorTest {
 
   class DummyModuleDecl : LiteralModuleDecl {
     public DummyModuleDecl(IList<Uri> rootUris) : base(
-      new DefaultModuleDefinition(rootUris, false), null) {
+      new DefaultModuleDefinition(rootUris), null, Guid.NewGuid()) {
     }
     public override object Dereference() {
       return this;
@@ -61,13 +61,17 @@ public class GhostStateDiagnosticCollectorTest {
     // Builtins is null to trigger an error.
     var options = DafnyOptions.DefaultImmutableOptions;
     var rootUri = new Uri(Directory.GetCurrentDirectory());
-    var dummyModuleDecl = new DummyModuleDecl(new List<Uri>() { rootUri });
+    var dummyModuleDecl = new DummyModuleDecl(new List<Uri> { rootUri });
     var reporter = new CollectingErrorReporter(options);
-    var program = new Dafny.Program("dummy", dummyModuleDecl, null, reporter, Sets.Empty<Uri>(), Sets.Empty<Uri>());
+    var compilation = new CompilationData(reporter, new List<Include>(), new List<Uri>(), Sets.Empty<Uri>(),
+      Sets.Empty<Uri>());
+    var program = new Dafny.Program("dummy", dummyModuleDecl, null, reporter, compilation);
+    var source = new CancellationTokenSource();
+    source.CancelAfter(TimeSpan.FromSeconds(50));
     var ghostDiagnostics = ghostStateDiagnosticCollector.GetGhostStateDiagnostics(
       new SignatureAndCompletionTable(null!, new CompilationUnit(rootUri, program),
         null!, null!, new IntervalTree<Position, ILocalizableSymbol>(), true)
-      , CancellationToken.None);
+      , source.Token);
     Assert.Empty(ghostDiagnostics);
   }
 }
