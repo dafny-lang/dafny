@@ -920,8 +920,9 @@ axiom (forall<T> s: Set T :: { MultiSet#Card(MultiSet#FromSet(s)) }
   MultiSet#Card(MultiSet#FromSet(s)) == Set#Card(s));
 
 // conversion to a multiset, from a sequence.
-function MultiSet#FromSeq<T>(Seq T): MultiSet T;
-axiom (forall<T> :: MultiSet#FromSeq(Seq#Empty(): Seq T) == MultiSet#Empty(): MultiSet T);
+function MultiSet#FromSeq<T>(Seq T): MultiSet T uses {
+  axiom (forall<T> :: MultiSet#FromSeq(Seq#Empty(): Seq T) == MultiSet#Empty(): MultiSet T);
+}
 
 // conversion produces a good map.
 axiom (forall<T> s: Seq T :: { MultiSet#FromSeq(s) } $IsGoodMultiSet(MultiSet#FromSeq(s)) );
