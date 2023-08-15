@@ -30,7 +30,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       this.telemetryPublisher = telemetryPublisher;
       this.logger = logger;
       programParser = options.Get(ServerCommand.UseCaching)
-        ? new CachingParser(innerParserLogger, fileSystem)
+        ? new CachingParser(innerParserLogger, fileSystem, telemetryPublisher)
         : new ProgramParser(innerParserLogger, fileSystem);
     }
 

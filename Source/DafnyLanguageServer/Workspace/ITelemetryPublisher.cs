@@ -19,10 +19,10 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     protected void PublishTelemetry(TelemetryEventKind kind, object? payload) {
-      PublishTelemetry(kind.ToString(), ImmutableDictionary.Create<string, object>().Add("payload", payload!));
+      PublishTelemetry(ImmutableDictionary.Create<string, object>().Add("kind", kind).Add("payload", payload!));
     }
 
-    protected void PublishTelemetry(string kind, ImmutableDictionary<string, object> payload);
+    public void PublishTelemetry(ImmutableDictionary<string, object> data);
 
     /// <summary>
     /// Signal the completion of a document update.
@@ -38,6 +38,11 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     public void PublishSolverPath(string solverPath) {
       PublishTelemetry(TelemetryEventKind.SolverPath, solverPath);
+    }
+
+    public void PublishCount(string activity, string resource, TimeSpan span) {
+      PublishTelemetry(TelemetryEventKind.Time, ImmutableDictionary.Create<string, object>().
+        Add("activity", activity).Add("resource", resource).Add("time", span.TotalMilliseconds));
     }
 
     public void PublishTime(string activity, string resource, TimeSpan span) {
