@@ -103,11 +103,16 @@ public class ProjectManager : IDisposable {
   private const int MaxRememberedChangedVerifiables = 5;
 
   public void UpdateDocument(DidChangeTextDocumentParams documentChange) {
+    // Duplicated while we still need to compute migratedVerificationTrees before calling StartNewCompilation
+    CompilationManager.CancelPendingUpdates();
+    
     var changeProcessor = createMigrator(documentChange, CancellationToken.None);
     observer.Migrate(changeProcessor, version + 1);
     var lastPublishedState = observer.LastPublishedState;
     var migratedVerificationTrees = lastPublishedState.VerificationTrees;
-
+    
+    StartNewCompilation(migratedVerificationTrees, lastPublishedState);
+    
     lock (RecentChanges) {
       var newChanges = documentChange.ContentChanges.Where(c => c.Range != null).
         Select(contentChange => new Location {
@@ -126,8 +131,6 @@ public class ProjectManager : IDisposable {
       }).Where(r => r != null);
       RecentChanges = newChanges.Concat(migratedChanges).Take(MaxRememberedChanges).ToList()!;
     }
-
-    StartNewCompilation(migratedVerificationTrees, lastPublishedState);
     TriggerVerificationForFile(documentChange.TextDocument.Uri.ToUri());
   }
 
