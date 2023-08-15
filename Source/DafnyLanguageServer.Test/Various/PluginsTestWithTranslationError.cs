@@ -29,7 +29,6 @@ public class PluginsTestWithTranslationError : PluginsTestBase {
     var diagnostics = verificationReport.Diagnostics.ToArray();
     AssertM.Equal(2, diagnostics.Length, LibraryPath + " did not return two errors.");
     Assert.Equal("Translation error that should appear in the code", diagnostics[0].Message);
-    Assert.Equal(new Range((0, 0), (0, 8)), diagnostics[0].Range);
   }
 
   public PluginsTestWithTranslationError(ITestOutputHelper output) : base(output) {

@@ -29,8 +29,10 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         .AddSingleton<CreateProjectManager>(provider => (boogieEngine, documentIdentifier) => new ProjectManager(
           provider.GetRequiredService<DafnyOptions>(),
           provider.GetRequiredService<ILogger<ProjectManager>>(),
-          provider.GetRequiredService<IRelocator>(),
+          provider.GetRequiredService<CreateMigrator>(),
           provider.GetRequiredService<IFileSystem>(),
+          provider.GetRequiredService<INotificationPublisher>(),
+          provider.GetRequiredService<IVerificationProgressReporter>(),
           provider.GetRequiredService<CreateCompilationManager>(),
           provider.GetRequiredService<CreateIdeStateObserver>(),
           boogieEngine,
@@ -46,7 +48,10 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         })
         .AddSingleton<ITextDocumentLoader>(CreateTextDocumentLoader)
         .AddSingleton<INotificationPublisher, NotificationPublisher>()
-        .AddSingleton<IRelocator, Relocator>()
+        .AddSingleton<CreateMigrator>(provider => (changes, cancellationToken) => new Migrator(
+          provider.GetRequiredService<ILogger<Migrator>>(),
+          provider.GetRequiredService<ILogger<SignatureAndCompletionTable>>(),
+          changes, cancellationToken))
         .AddSingleton<ISymbolGuesser, SymbolGuesser>()
         .AddSingleton<ICompilationStatusNotificationPublisher, CompilationStatusNotificationPublisher>()
         .AddSingleton<ITelemetryPublisher, TelemetryPublisher>();

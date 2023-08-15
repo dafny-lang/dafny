@@ -16,26 +16,45 @@ impl <A: Default + 'static> Default for LazyFieldWrapper<A> {
 }
 
 impl <A: DafnyPrint> DafnyPrint for LazyFieldWrapper<A> {
-    fn fmt_print(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        self.0.deref().fmt_print(f)
+    fn fmt_print(&self, f: &mut Formatter<'_>, in_seq: bool) -> std::fmt::Result {
+        self.0.deref().fmt_print(f, in_seq)
+    }
+}
+
+pub struct FunctionWrapper<A: ?Sized>(pub A);
+impl <A> DafnyPrint for FunctionWrapper<A> {
+    fn fmt_print(&self, f: &mut Formatter<'_>, _in_seq: bool) -> std::fmt::Result {
+        write!(f, "<function>")
+    }
+}
+
+impl <A: Clone> Clone for FunctionWrapper<A> {
+    fn clone(&self) -> Self {
+        Self(self.0.clone())
     }
 }
 
 pub struct DafnyPrintWrapper<T>(pub T);
 impl <T: DafnyPrint> Display for DafnyPrintWrapper<&T> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        self.0.fmt_print(f)
+        self.0.fmt_print(f, false)
     }
 }
 
 pub trait DafnyPrint {
-    fn fmt_print(&self, f: &mut Formatter<'_>) -> std::fmt::Result;
+    fn fmt_print(&self, f: &mut Formatter<'_>, in_seq: bool) -> std::fmt::Result;
+
+    // Vec<char> gets special treatment so we carry that information here
+    #[inline]
+    fn is_char() -> bool {
+        false
+    }
 }
 
 macro_rules! impl_print_display {
     ($name:ty) => {
         impl DafnyPrint for $name {
-            fn fmt_print(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+            fn fmt_print(&self, f: &mut Formatter<'_>, _in_seq: bool) -> std::fmt::Result {
                 self.fmt(f)
             }
         }
@@ -59,14 +78,56 @@ impl_print_display! { f32 }
 impl_print_display! { f64 }
 
 impl DafnyPrint for () {
-    fn fmt_print(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+    fn fmt_print(&self, f: &mut Formatter<'_>, _in_seq: bool) -> std::fmt::Result {
         write!(f, "()")
     }
 }
 
+impl DafnyPrint for char {
+    #[inline]
+    fn fmt_print(&self, f: &mut Formatter<'_>, in_seq: bool) -> std::fmt::Result {
+        if in_seq {
+            write!(f, "{}", self)
+        } else {
+            write!(f, "'{}'", self)
+        }
+    }
+
+    #[inline]
+    fn is_char() -> bool {
+        true
+    }
+}
+
 impl <T: DafnyPrint> DafnyPrint for Rc<T> {
-    fn fmt_print(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        self.as_ref().fmt_print(f)
+    fn fmt_print(&self, f: &mut Formatter<'_>, in_seq: bool) -> std::fmt::Result {
+        self.as_ref().fmt_print(f, in_seq)
+    }
+}
+
+impl <T: DafnyPrint> DafnyPrint for Vec<T> {
+    fn fmt_print(&self, f: &mut Formatter<'_>, _in_seq: bool) -> std::fmt::Result {
+        if !T::is_char() {
+            write!(f, "[")?;
+        }
+
+        for (i, item) in self.iter().enumerate() {
+            if !T::is_char() {
+                if i > 0 {
+                    write!(f, ", ")?;
+                }
+
+                item.fmt_print(f, false)?;
+            } else {
+                item.fmt_print(f, true)?;
+            }
+        }
+
+        if !T::is_char() {
+            write!(f, "]")
+        } else {
+            Ok(())
+        }
     }
 }
 
@@ -77,7 +138,7 @@ macro_rules! impl_tuple_print {
             $($items: DafnyPrint,)*
         {
             #[allow(unused_assignments)]
-            fn fmt_print(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+            fn fmt_print(&self, f: &mut Formatter<'_>, _in_seq: bool) -> std::fmt::Result {
                 #[allow(non_snake_case)]
                 let ($($items,)*) = self;
 
@@ -90,7 +151,7 @@ macro_rules! impl_tuple_print {
                         write!(f, ", ")?;
                     }
 
-                    $items.fmt_print(f)?;
+                    $items.fmt_print(f, false)?;
 
                     i += 1;
                 )*
