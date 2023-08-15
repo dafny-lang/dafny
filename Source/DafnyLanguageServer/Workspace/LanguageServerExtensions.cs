@@ -50,9 +50,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         .AddSingleton<INotificationPublisher, NotificationPublisher>()
         .AddSingleton<CreateMigrator>(provider => (changes, cancellationToken) => new Migrator(
           provider.GetRequiredService<ILogger<Migrator>>(),
-          provider.GetRequiredService<ILogger<SignatureAndCompletionTable>>(),
           changes, cancellationToken))
-        .AddSingleton<ISymbolGuesser, SymbolGuesser>()
         .AddSingleton<ICompilationStatusNotificationPublisher, CompilationStatusNotificationPublisher>()
         .AddSingleton<ITelemetryPublisher, TelemetryPublisher>();
     }
@@ -60,8 +58,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     public static TextDocumentLoader CreateTextDocumentLoader(IServiceProvider services) {
       return TextDocumentLoader.Create(
         services.GetRequiredService<IDafnyParser>(),
-        services.GetRequiredService<ISymbolResolver>(),
-        services.GetRequiredService<ISymbolTableFactory>(),
         services.GetRequiredService<IGhostStateDiagnosticCollector>(),
         services.GetRequiredService<ICompilationStatusNotificationPublisher>(),
         services.GetRequiredService<ILogger<ITextDocumentLoader>>()

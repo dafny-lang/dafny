@@ -22,37 +22,29 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
   /// The increased stack size is necessary to solve the issue https://github.com/dafny-lang/dafny/issues/1447.
   /// </remarks>
   public class TextDocumentLoader : ITextDocumentLoader {
-    private readonly ILogger<ITextDocumentLoader> documentLoader;
+    private readonly ILogger<ITextDocumentLoader> logger;
     private readonly IDafnyParser parser;
-    private readonly ISymbolResolver symbolResolver;
-    private readonly ISymbolTableFactory symbolTableFactory;
     private readonly IGhostStateDiagnosticCollector ghostStateDiagnosticCollector;
     protected readonly ICompilationStatusNotificationPublisher statusPublisher;
 
     protected TextDocumentLoader(
-      ILogger<ITextDocumentLoader> documentLoader,
+      ILogger<ITextDocumentLoader> logger,
       IDafnyParser parser,
-      ISymbolResolver symbolResolver,
-      ISymbolTableFactory symbolTableFactory,
       IGhostStateDiagnosticCollector ghostStateDiagnosticCollector,
       ICompilationStatusNotificationPublisher statusPublisher) {
-      this.documentLoader = documentLoader;
+      this.logger = logger;
       this.parser = parser;
-      this.symbolResolver = symbolResolver;
-      this.symbolTableFactory = symbolTableFactory;
       this.ghostStateDiagnosticCollector = ghostStateDiagnosticCollector;
       this.statusPublisher = statusPublisher;
     }
 
     public static TextDocumentLoader Create(
       IDafnyParser parser,
-      ISymbolResolver symbolResolver,
-      ISymbolTableFactory symbolTableFactory,
       IGhostStateDiagnosticCollector ghostStateDiagnosticCollector,
       ICompilationStatusNotificationPublisher statusPublisher,
       ILogger<ITextDocumentLoader> logger
       ) {
-      return new TextDocumentLoader(logger, parser, symbolResolver, symbolTableFactory, ghostStateDiagnosticCollector, statusPublisher);
+      return new TextDocumentLoader(logger, parser, ghostStateDiagnosticCollector, statusPublisher);
     }
 
     public IdeState CreateUnloaded(Compilation compilation) {
@@ -109,19 +101,17 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       var project = compilation.Project;
 
       _ = statusPublisher.SendStatusNotification(compilation, CompilationStatus.ResolutionStarted);
-      var compilationUnit = symbolResolver.ResolveSymbols(project, program, cancellationToken);
-      var legacySymbolTable = symbolTableFactory.CreateFrom(compilationUnit, cancellationToken);
 
       var newSymbolTable = errorReporter.HasErrors
         ? null
-        : symbolTableFactory.CreateFrom(program, compilation, cancellationToken);
+        : SymbolTable.CreateFrom(program, compilation, cancellationToken);
       if (errorReporter.HasErrors) {
         _ = statusPublisher.SendStatusNotification(compilation, CompilationStatus.ResolutionFailed);
       } else {
         _ = statusPublisher.SendStatusNotification(compilation, CompilationStatus.CompilationSucceeded);
       }
 
-      var ghostDiagnostics = ghostStateDiagnosticCollector.GetGhostStateDiagnostics(legacySymbolTable, cancellationToken);
+      var ghostDiagnostics = ghostStateDiagnosticCollector.GetGhostStateDiagnostics(program, cancellationToken);
 
       List<ICanVerify> verifiables;
       if (errorReporter.HasErrorsUntilResolver) {
@@ -137,7 +127,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       return new CompilationAfterResolution(compilation,
         errorReporter.AllDiagnosticsCopy,
         newSymbolTable,
-        legacySymbolTable,
         ghostDiagnostics,
         verifiables,
         new(),
@@ -147,7 +136,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     private IdeState CreateDocumentWithEmptySymbolTable(Compilation compilation,
       IReadOnlyDictionary<Uri, IReadOnlyList<Diagnostic>> resolutionDiagnostics) {
-      var dafnyOptions = DafnyOptions.Default;
       var program = new EmptyNode();
       return new IdeState(
         compilation.Version,
@@ -155,7 +143,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         program,
         resolutionDiagnostics,
         SymbolTable.Empty(),
-        SignatureAndCompletionTable.Empty(dafnyOptions, compilation.Project),
         new(),
         Array.Empty<Counterexample>(),
         ImmutableDictionary<Uri, IReadOnlyList<Range>>.Empty,

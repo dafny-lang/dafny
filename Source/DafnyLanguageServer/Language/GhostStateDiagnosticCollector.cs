@@ -30,22 +30,22 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     }
 
     public IReadOnlyDictionary<Uri, IReadOnlyList<Range>> GetGhostStateDiagnostics(
-      SignatureAndCompletionTable signatureAndCompletionTable, CancellationToken cancellationToken) {
+      Program program, CancellationToken cancellationToken) {
       if (!options.Get(ServerCommand.GhostIndicators)) {
         return ImmutableDictionary<Uri, IReadOnlyList<Range>>.Empty;
       }
 
-      if (signatureAndCompletionTable.CompilationUnit.Program.Reporter.HasErrors) {
+      if (program.Reporter.HasErrors) {
         return ImmutableDictionary<Uri, IReadOnlyList<Range>>.Empty; // TODO improve?
       }
       try {
         var visitor = new GhostStateSyntaxTreeVisitor(cancellationToken);
-        visitor.Visit(signatureAndCompletionTable.CompilationUnit.Program);
+        visitor.Visit(program);
         return visitor.GhostDiagnostics.ToDictionary(
           kv => kv.Key,
           kv => (IReadOnlyList<Range>)kv.Value);
       } catch (Exception e) {
-        logger.LogDebug(e, "encountered an exception while getting ghost state diagnostics of {Name}", signatureAndCompletionTable.CompilationUnit.Name);
+        logger.LogDebug(e, "encountered an exception while getting ghost state diagnostics of {Name}", program.Name);
         return ImmutableDictionary<Uri, IReadOnlyList<Range>>.Empty;
       }
     }

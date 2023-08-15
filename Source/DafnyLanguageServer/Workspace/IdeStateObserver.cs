@@ -94,7 +94,6 @@ public class IdeStateObserver : IObserver<IdeState> {
       LastPublishedState = LastPublishedState with {
         Version = version,
         VerificationResults = MigrateImplementationViews(migrator, LastPublishedState.VerificationResults),
-        SignatureAndCompletionTable = migrator.MigrateSymbolTable(LastPublishedState.SignatureAndCompletionTable),
         VerificationTrees = migratedVerificationTrees
       };
       logger.LogDebug($"Migrated LastPublishedState to version {version}, uri {compilation.Uri}");

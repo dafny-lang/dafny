@@ -18,20 +18,17 @@ public class Migrator {
   private readonly ILogger<Migrator> logger;
   private readonly DidChangeTextDocumentParams changeParams;
   private readonly CancellationToken cancellationToken;
-  private readonly ILogger<SignatureAndCompletionTable> loggerSymbolTable;
 
   private readonly Dictionary<TextDocumentContentChangeEvent, Position> getPositionAtEndOfAppliedChangeCache = new();
 
   public Migrator(
     ILogger<Migrator> logger,
-    ILogger<SignatureAndCompletionTable> loggerSymbolTable,
     DidChangeTextDocumentParams changeParams,
     CancellationToken cancellationToken
   ) {
     this.logger = logger;
     this.changeParams = changeParams;
     this.cancellationToken = cancellationToken;
-    this.loggerSymbolTable = loggerSymbolTable;
   }
 
   public Position MigratePosition(Position position) {
@@ -110,30 +107,6 @@ public class Migrator {
         Range = migratedRange
       }
     };
-  }
-
-  public SignatureAndCompletionTable MigrateSymbolTable(SignatureAndCompletionTable originalSymbolTable) {
-    var migratedLookupTree = originalSymbolTable.LookupTree;
-    var migratedDeclarations = originalSymbolTable.Locations;
-    foreach (var change in changeParams.ContentChanges) {
-      cancellationToken.ThrowIfCancellationRequested();
-      if (change.Range == null) {
-        migratedLookupTree = new IntervalTree<Position, ILocalizableSymbol>();
-      } else {
-        migratedLookupTree = ApplyLookupTreeChange(migratedLookupTree, change);
-      }
-      migratedDeclarations = ApplyDeclarationsChange(originalSymbolTable, migratedDeclarations, change, GetPositionAtEndOfAppliedChange(change));
-    }
-    logger.LogTrace("migrated the lookup tree, lookup before={SymbolsBefore}, after={SymbolsAfter}",
-      originalSymbolTable.LookupTree.Count, migratedLookupTree.Count);
-    return new SignatureAndCompletionTable(
-      loggerSymbolTable,
-      originalSymbolTable.CompilationUnit,
-      originalSymbolTable.Declarations,
-      migratedDeclarations,
-      migratedLookupTree,
-      false
-    );
   }
 
   private IIntervalTree<Position, ILocalizableSymbol> ApplyLookupTreeChange(
@@ -256,63 +229,6 @@ public class Migrator {
 
   private static bool IsPositionAfterChange(Range changeRange, Position symbolFrom) {
     return symbolFrom.CompareTo(changeRange.End) >= 0;
-  }
-
-  private IDictionary<ILegacySymbol, SymbolLocation> ApplyDeclarationsChange(
-    SignatureAndCompletionTable originalSymbolTable,
-    IDictionary<ILegacySymbol, SymbolLocation> previousDeclarations,
-    TextDocumentContentChangeEvent changeRange,
-    Position? afterChangeEndOffset
-  ) {
-    var migratedDeclarations = new Dictionary<ILegacySymbol, SymbolLocation>();
-    foreach (var (symbol, location) in previousDeclarations) {
-      cancellationToken.ThrowIfCancellationRequested();
-      if (location.Uri != changeParams.TextDocument.Uri.ToUri()) {
-        migratedDeclarations.Add(symbol, location);
-        continue;
-      }
-      if (changeRange.Range == null || afterChangeEndOffset == null) {
-        continue;
-      }
-      var newLocation = ComputeNewSymbolLocation(location, changeRange.Range, afterChangeEndOffset);
-      if (newLocation != null) {
-        migratedDeclarations.Add(symbol, newLocation);
-      }
-    }
-    return migratedDeclarations;
-  }
-
-  private static SymbolLocation? ComputeNewSymbolLocation(SymbolLocation oldLocation, Range changeRange, Position afterChangeEndOffset) {
-    var identifier = ComputeNewRange(oldLocation.Name, changeRange, afterChangeEndOffset);
-    if (identifier == null) {
-      return null;
-    }
-    var declaration = ComputeNewRange(oldLocation.Declaration, changeRange, afterChangeEndOffset);
-    if (declaration == null) {
-      return null;
-    }
-    return new SymbolLocation(oldLocation.Uri, identifier, declaration);
-  }
-
-  private static Range? ComputeNewRange(Range oldRange, Range changeRange, Position afterChangeEndOffset) {
-    if (IsPositionBeforeChange(changeRange, oldRange.End)) {
-      // The range is strictly before the change.
-      return oldRange;
-    }
-    var beforeChangeEndOffset = changeRange.End;
-    if (IsPositionAfterChange(changeRange, oldRange.Start)) {
-      // The range is strictly after the change.
-      var from = GetPositionWithOffset(oldRange.Start, beforeChangeEndOffset, afterChangeEndOffset);
-      var to = GetPositionWithOffset(oldRange.End, beforeChangeEndOffset, afterChangeEndOffset);
-      return new Range(from, to);
-    }
-    if (IsPositionBeforeChange(changeRange, oldRange.Start) && IsPositionAfterChange(changeRange, oldRange.End)) {
-      // The change is inbetween the range.
-      var to = GetPositionWithOffset(oldRange.End, beforeChangeEndOffset, afterChangeEndOffset);
-      return new Range(oldRange.Start, to);
-    }
-    // The change overlaps with the start and/or the end of the range. We cannot compute a reliable change.
-    return null;
   }
 
   public VerificationTree RelocateVerificationTree(VerificationTree originalVerificationTree) {

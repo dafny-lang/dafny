@@ -33,7 +33,6 @@ namespace Microsoft.Dafny.LanguageServer.Language {
           serviceProvider.GetRequiredService<ITelemetryPublisher>(),
           serviceProvider.GetRequiredService<ILogger<DafnyLangParser>>(),
           serviceProvider.GetRequiredService<ILogger<CachingParser>>()))
-        .AddSingleton<ISymbolResolver, DafnyLangSymbolResolver>()
         .AddSingleton<CreateIdeStateObserver>(serviceProvider => compilation =>
           new IdeStateObserver(serviceProvider.GetRequiredService<ILogger<IdeStateObserver>>(),
             serviceProvider.GetRequiredService<ITelemetryPublisher>(),
@@ -51,7 +50,6 @@ namespace Microsoft.Dafny.LanguageServer.Language {
           serviceProvider.GetRequiredService<IVerificationProgressReporter>(),
           options, engine, compilation, migratedVerificationTree
           ))
-        .AddSingleton<ISymbolTableFactory, SymbolTableFactory>()
         .AddSingleton<IGhostStateDiagnosticCollector, GhostStateDiagnosticCollector>();
     }
 

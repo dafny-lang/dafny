@@ -95,17 +95,6 @@ namespace Microsoft.Dafny {
       return isVerified;
     }
 
-    public void Symbols() {
-      ServerUtils.ApplyArgs(args, options);
-      if (Parse() && Resolve()) {
-        var symbolTable = new LegacySymbolTable(dafnyProgram);
-        var symbols = symbolTable.CalculateSymbols();
-        Console.WriteLine("SYMBOLS_START " + ConvertToJson(symbols) + " SYMBOLS_END");
-      } else {
-        Console.WriteLine("SYMBOLS_START [] SYMBOLS_END");
-      }
-    }
-
     public void CounterExample() {
       var listArgs = args.ToList();
       listArgs.Add("/mv:" + counterExampleProvider.ModelBvd);

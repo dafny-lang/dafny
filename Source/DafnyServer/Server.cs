@@ -182,10 +182,6 @@ namespace Microsoft.Dafny {
           ServerUtils.checkArgs(command, 0);
           var vt = ReadVerificationTask(inputIsPlaintext);
           vt.DotGraph(options, engine);
-        } else if (verb == "symbols") {
-          ServerUtils.checkArgs(command, 0);
-          var vt = ReadVerificationTask(inputIsPlaintext);
-          vt.Symbols(options, engine);
         } else if (verb == "version") {
           ServerUtils.checkArgs(command, 0);
           var _ = ReadVerificationTask(inputIsPlaintext);

@@ -69,9 +69,7 @@ public class GhostStateDiagnosticCollectorTest {
     var source = new CancellationTokenSource();
     source.CancelAfter(TimeSpan.FromSeconds(50));
     var ghostDiagnostics = ghostStateDiagnosticCollector.GetGhostStateDiagnostics(
-      new SignatureAndCompletionTable(null!, new CompilationUnit(rootUri, program),
-        null!, null!, new IntervalTree<Position, ILocalizableSymbol>(), true)
-      , source.Token);
+      program, source.Token);
     Assert.Empty(ghostDiagnostics);
   }
 }
