@@ -4264,7 +4264,7 @@ transparent all the way.
 
 The default transparency of a function can be set with the `--default-function-opacity` commandline flag. 
 The transparency of a function is also affected by
-whether the function was declared with an [`opaque` modifier](#sec-opaque) or [`transparent` modifier](#sec-transparency),
+whether the function was declared with an [`opaque` modifier](#sec-opaque) or [`transparent` attribute](#sec-transparency),
 the ([reveal statement](#sec-reveal-statement)),
 and whether it was `reveal`ed in an export set.
 
