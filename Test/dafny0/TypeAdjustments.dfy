@@ -39,3 +39,52 @@ method M1() {
   assert obj != null;
   assert 0 <= y; // error: y is an int
 }
+
+method M2(ms: multiset<real>, m0: map<bool, nat>, m1: imap<real, nat>)
+  requires true in m0.Keys
+  requires 5.90 in m1.Keys
+{
+  var z;
+  var nrr := new nat[100];
+  z := nrr[0];
+  var matrix := new nat[100, 100];
+  z := matrix[2, 3];
+  z := ms[3.19];
+  z := m0[true];
+  z := m1[5.90];
+
+  z := *;
+  assert 0 <= z;
+}
+
+method M3(s: seq<nat>, arr: array<nat>)
+  requires 10 <= |s| && 10 <= arr.Length
+{
+  // variables a, b, c, x, y, z, w have type seq<nat>
+  var a;
+  a := s[..10];
+  var b;
+  b := s[0..];
+  var c;
+  c := s[0..10];
+
+  var x;
+  x := arr[..10];
+  var y;
+  y := arr[0..];
+  var z;
+  z := arr[0..10];
+  var w;
+  w := arr[..];
+
+  var k;
+  k := a[0];
+  k := b[0];
+  k := c[0];
+  k := x[0];
+  k := y[0];
+  k := z[0];
+  k := w[0];
+  k := *;
+  assert 0 <= k;
+}

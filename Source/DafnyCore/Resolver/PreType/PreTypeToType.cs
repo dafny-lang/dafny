@@ -88,6 +88,8 @@ class PreTypeToTypeVisitor : ASTVisitor<IASTVisitorContext> {
       expr.Type = new InferredTypeProxy();
     } else if (expr is ConcreteSyntaxExpression { ResolvedExpression: { } resolvedExpression }) {
       expr.UnnormalizedType = resolvedExpression.UnnormalizedType;
+    } else if (expr is SeqSelectExpr { Seq: { Type: { AsMultiSetType: { } } } }) {
+      expr.UnnormalizedType = systemModuleManager.Nat();
     } else {
       expr.UnnormalizedType = TypeAdjustments.PreType2AdjustableType(expr.PreType, TypeParameter.TPVariance.Co);
     }

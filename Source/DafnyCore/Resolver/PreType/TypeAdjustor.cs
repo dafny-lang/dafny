@@ -39,10 +39,25 @@ public class TypeAdjustorVisitor : ASTVisitor<IASTVisitorContext> {
 
   protected override void PostVisitOneExpression(Expression expr, IASTVisitorContext context) {
     if (expr is IdentifierExpr identifierExpr) {
-      flows.Add(new FlowFromType(identifierExpr.UnnormalizedType, identifierExpr.Var.UnnormalizedType, identifierExpr.tok));
-    }
+      flows.Add(new FlowFromType(expr, identifierExpr.Var.UnnormalizedType));
+
+    } else if (expr is SeqSelectExpr selectExpr) {
+      var seqType = selectExpr.Seq.UnnormalizedType;
+      if (!selectExpr.SelectOne) {
+        flows.Add(new FlowFromComputedType(expr, seqType, sourceType => new SeqType(sourceType.NormalizeExpand().TypeArgs[0])));
+      } else if (seqType.AsSeqType != null || seqType.IsArrayType) {
+        flows.Add(new FlowFromTypeArgument(expr, seqType, 0));
+      } else if (seqType.IsMapType || seqType.IsIMapType) {
+        flows.Add(new FlowFromTypeArgument(expr, seqType, 1));
+      } else {
+        Contract.Assert(seqType.AsMultiSetType != null);
+        // type is fixed, so no flow to set up
+      }
+
+    } else if (expr is MultiSelectExpr multiSelectExpr) {
+      flows.Add(new FlowFromTypeArgument(expr, multiSelectExpr.Array.UnnormalizedType, 0));
 #if SOON
-     else if (expr is MemberSelectExpr memberSelectExpr) {
+    } else if (expr is MemberSelectExpr memberSelectExpr) {
       var typeMap = memberSelectExpr.TypeArgumentSubstitutionsWithParents();
       Type memberType;
       if (memberSelectExpr.Member is Field field) {
@@ -52,7 +67,8 @@ public class TypeAdjustorVisitor : ASTVisitor<IASTVisitorContext> {
         memberType = ModuleResolver.SelectAppropriateArrowTypeForFunction(function, typeMap, systemModuleManager);
       }
       expr.UnnormalizedType = PreType2UpdatableType(expr.PreType, memberType, $".{memberSelectExpr.MemberName}", memberSelectExpr.tok);
-    } else if (expr is ITEExpr iteExpr) {
+    }
+    else if (expr is ITEExpr iteExpr) {
       var proxy = PreType2UpdatableType(expr.PreType);
       expr.UnnormalizedType = proxy;
       AddConstraint(proxy, iteExpr.Thn, "if-then", iteExpr.tok);
@@ -61,8 +77,8 @@ public class TypeAdjustorVisitor : ASTVisitor<IASTVisitorContext> {
       expr.UnnormalizedType = resolvedExpression.UnnormalizedType;
     } else {
       expr.Type = PreType2Type(expr.PreType);
-    }
 #endif
+    }
     base.PostVisitOneExpression(expr, context);
   }
 
@@ -373,9 +389,20 @@ public class TypeAdjustorVisitor : ASTVisitor<IASTVisitorContext> {
       this.source = source;
     }
 
+    public FlowFromType(Expression sink, Type source)
+      : base(sink.tok, "") {
+      this.sink = sink.UnnormalizedType;
+      this.source = source;
+    }
+
+    protected virtual Type GetSourceType() {
+      return source;
+    }
+
     public override bool Update(FlowContext context) {
-      if (sink is AdjustableType adjustableType && !EqualTypes(adjustableType.T, source)) {
-        adjustableType.T = source;
+      var sourceType = GetSourceType();
+      if (sink is AdjustableType adjustableType && !EqualTypes(adjustableType.T, sourceType)) {
+        adjustableType.T = sourceType;
         return true;
       }
       // TODO: perhaps it's still possible to update the type arguments
@@ -391,9 +418,39 @@ public class TypeAdjustorVisitor : ASTVisitor<IASTVisitorContext> {
     }
   }
 
+  class FlowFromTypeArgument : FlowFromType {
+    private readonly int argumentIndex;
+
+    public FlowFromTypeArgument(Expression sink, Type source, int argumentIndex)
+      : base(sink, source) {
+      Contract.Requires(0 <= argumentIndex);
+      this.argumentIndex = argumentIndex;
+    }
+
+    protected override Type GetSourceType() {
+      var sourceType = base.GetSourceType().NormalizeExpand();
+      Contract.Assert(argumentIndex < sourceType.TypeArgs.Count);
+      return sourceType.TypeArgs[argumentIndex];
+    }
+  }
+
+  class FlowFromComputedType : FlowFromType {
+    private readonly System.Func<Type, Type> getType;
+
+    public FlowFromComputedType(Expression sink, Type source, System.Func<Type, Type> getType)
+      : base(sink, source) {
+      this.getType = getType;
+    }
+
+    protected override Type GetSourceType() {
+      var sourceType = base.GetSourceType().NormalizeExpand();
+      return getType(sourceType);
+    }
+  }
+
   class FlowIntoVariable : Flow {
-    private readonly AdjustableType sink;
-    private readonly Expression source;
+    protected readonly AdjustableType sink;
+    protected readonly Expression source;
 
     protected Type Lhs {
       get => sink.T;
