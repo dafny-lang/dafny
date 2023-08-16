@@ -13,6 +13,7 @@ module {:extern "DAST"} DAST {
     Set(element: Type) |
     Multiset(element: Type) |
     Map(key: Type, value: Type) |
+    Arrow(args: seq<Type>, result: Type) |
     Primitive(Primitive) | Passthrough(string) |
     TypeArg(Ident)
 
@@ -65,8 +66,12 @@ module {:extern "DAST"} DAST {
     UnOp(unOp: UnaryOp, expr: Expression) |
     BinOp(op: string, left: Expression, right: Expression) |
     Select(expr: Expression, field: string, onDatatype: bool) |
+    SelectFn(expr: Expression, field: string, onDatatype: bool, isStatic: bool, arity: nat) |
     TupleSelect(expr: Expression, index: nat) |
-    Call(on: Expression, name: string, typeArgs: seq<Type>, args: seq<Expression>) |
+    Call(on: Expression, name: Ident, typeArgs: seq<Type>, args: seq<Expression>) |
+    Lambda(params: seq<Formal>, body: seq<Statement>) |
+    IIFE(name: Ident, typ: Type, value: Expression, iifeBody: Expression) |
+    Apply(expr: Expression, args: seq<Expression>) |
     TypeTest(on: Expression, dType: seq<Ident>, variant: string) |
     InitializationValue(typ: Type)
 
