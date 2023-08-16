@@ -1,5 +1,4 @@
-using System;
-using System.Linq;
+#nullable disable
 
 namespace Microsoft.Dafny;
 
