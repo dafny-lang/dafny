@@ -490,7 +490,7 @@ where `Y` is `X` times either the default verification time limit
 for a function or method, or times the value specified by the
 Boogie `-timeLimit` command-line option.
 
-### 11.2.20.19 `{:transparent}` {#sec-transparency}
+### 11.2.20 `{:transparent}` {#sec-transparency}
 
 By default, the body of a function is transparent to its users. This can be overridden using the `--default-function-opacity` command line flag. If default function opacity is set to `opaque` or `autoRevealDependencies`, then this attribute can be used on functions to make certain functions transparent.
 
