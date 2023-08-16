@@ -1,13 +1,14 @@
+using System;
 using System.IO;
 using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 using Microsoft.Extensions.Logging;
-using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using Xunit;
 using Xunit.Abstractions;
+using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
-namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Performance; 
+namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Performance;
 
 public class LargeFiles : ClientBasedLanguageServerTest {
 
@@ -48,7 +49,7 @@ public class LargeFiles : ClientBasedLanguageServerTest {
     var filePath = await CreateLargeFile(directory);
     var source = @$"include ""{filePath}""";
     var documentItem = await CreateAndOpenTestDocument(source, Path.Combine(Directory.GetCurrentDirectory(), "Performance/TestFiles/test.dfy"));
-    for (int i = 0; i < 300; i++) {
+    for (int i = 0; i < 1000; i++) {
       ApplyChange(ref documentItem, new Range(0, 0, 0, 0), "// added this comment\n");
     }
 
