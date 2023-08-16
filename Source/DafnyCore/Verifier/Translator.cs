@@ -6687,7 +6687,7 @@ namespace Microsoft.Dafny {
           return predef.ArrayLength;
         } else if (f.EnclosingClass is ValuetypeDecl { Name: "real" } && f.Name == "Floor") {
           return predef.RealFloor;
-        } else if (f is SpecialField && !(f is DatatypeDestructor || f.EnclosingClass is IndDatatypeDecl or ClassLikeDecl)) {
+        } else if (f is SpecialField && !(f is DatatypeDestructor || (f.EnclosingClass is TopLevelDeclWithMembers && f.EnclosingClass is not ValuetypeDecl))) {
           if (f.Name is "Keys" or "Values" or "Items") {
             var fType = f.Type.NormalizeExpand();
             Contract.Assert(fType is SetType);

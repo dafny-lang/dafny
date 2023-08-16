@@ -4,7 +4,23 @@
 datatype T = T(
     f:map<nat,nat>
 ) {
-    const Keys := f.Keys // no problem if another name is used for the constant
+    const Keys := f.Keys // Used to be an error
+}
+
+codatatype codatatypeT = CT(
+    f:map<nat,nat>
+) {
+    const Keys := f.Keys // Used to be an error
+}
+
+type opaqueT {
+  const f: map<nat, nat>
+  const Keys := f.Keys
+}
+
+newtype newT = x: int | true {
+  const f: map<nat, nat> := map[]
+  const Keys := f.Keys
 }
 
 class C {
