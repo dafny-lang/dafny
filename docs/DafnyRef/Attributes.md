@@ -218,7 +218,7 @@ function g(y:int, b:bool) : bool
 }
 ```
 
-### 11.2.3.3 `{:autoRevealDependencies false}` {#sec-autorevealdependencies}
+### 11.2.3 `{:autoRevealDependencies false}` {#sec-autorevealdependencies}
 When setting `--default-function-opacity` to `autoRevealDependencies`, the `{:autoRevealDependencies false}` attribute can be set on methods and functions to disable the revealing of dependencies inside the body of this method or function. This gives users manual control of which functions to reveal inside this body. 
 
 ### 11.2.4. `{:axiom}` {#sec-axiom}
