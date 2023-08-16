@@ -38,20 +38,26 @@ namespace Microsoft.Dafny {
     public bool UseOptimizationInZ3 { get; set; }
 
     void AddOtherDefinition(Bpl.Declaration declaration, Axiom axiom) {
+      sink.AddTopLevelDeclaration(axiom);
+
+      // Axioms that have triggers and bound variables do not need to be inside
+      // uses clauses. Putting such axioms inside uses clauses weakens pruning
+      // when the trigger contains more than one function or constant symbol combined.
+      if (axiom.Expr is Microsoft.Boogie.QuantifierExpr qe && qe.Dummies.Any() && qe.Triggers.Tr.Any()) {
+        return;
+      }
 
       switch (declaration) {
         case null:
           break;
         case Boogie.Function boogieFunction:
-          boogieFunction.AddOtherDefinitionAxiom(axiom);
+          boogieFunction.OtherDefinitionAxioms.Add(axiom);
           break;
         case Boogie.Constant boogieConstant:
           boogieConstant.DefinitionAxioms.Add(axiom);
           break;
         default: throw new ArgumentException("Declaration must be a function or constant");
       }
-
-      sink.AddTopLevelDeclaration(axiom);
     }
 
     public class TranslatorFlags {
