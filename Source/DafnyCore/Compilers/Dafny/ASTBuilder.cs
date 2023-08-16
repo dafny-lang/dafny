@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Dafny;
 using DAST;
+using Microsoft.Dafny.Compilers;
 
 namespace Microsoft.Dafny.Compilers {
 
@@ -760,6 +761,18 @@ namespace Microsoft.Dafny.Compilers {
       return ret;
     }
 
+    LambdaExprBuilder Lambda(List<DAST.Formal> formals) {
+      var ret = new LambdaExprBuilder(formals);
+      AddBuildable(ret);
+      return ret;
+    }
+
+    IIFEExprBuilder IIFE(string name, DAST.Type tpe) {
+      var ret = new IIFEExprBuilder(name, tpe);
+      AddBuildable(ret);
+      return ret;
+    }
+
     protected static void RecursivelyBuild(List<object> body, List<DAST.Expression> builtExprs) {
       foreach (var maybeBuilt in body) {
         if (maybeBuilt is DAST.Expression built) {
@@ -869,4 +882,109 @@ namespace Microsoft.Dafny.Compilers {
     }
   }
 
+}
+
+class LambdaExprBuilder : StatementContainer, BuildableExpr {
+  readonly List<DAST.Formal> formals;
+  readonly List<object> body = new();
+
+  public LambdaExprBuilder(List<DAST.Formal> formals) {
+    this.formals = formals;
+  }
+
+  public void AddStatement(DAST.Statement item) {
+    body.Add(item);
+  }
+
+  public void AddBuildable(BuildableStatement item) {
+    body.Add(item);
+  }
+
+  public List<object> ForkList() {
+    var ret = new List<object>();
+    body.Add(ret);
+    return ret;
+  }
+
+  public DAST.Expression Build() {
+    var builtBody = new List<DAST.Statement>();
+    StatementContainer.RecursivelyBuild(body, builtBody);
+
+    return (DAST.Expression)DAST.Expression.create_Lambda(
+      Sequence<DAST.Formal>.FromArray(formals.ToArray()),
+      Sequence<DAST.Statement>.FromArray(builtBody.ToArray())
+    );
+  }
+}
+
+class IIFEExprBuilder : ExprContainer, BuildableExpr {
+  readonly string name;
+  readonly DAST.Type tpe;
+
+  object body = null;
+  public object value = null;
+
+  public IIFEExprBuilder(string name, DAST.Type tpe) {
+    this.name = name;
+    this.tpe = tpe;
+  }
+
+  public IIFEExprRhs RhsBuilder() {
+    return new IIFEExprRhs(this);
+  }
+
+  public void AddExpr(DAST.Expression item) {
+    if (body != null) {
+      throw new InvalidOperationException();
+    } else {
+      body = item;
+    }
+  }
+
+  public void AddBuildable(BuildableExpr item) {
+    if (body != null) {
+      throw new InvalidOperationException();
+    } else {
+      body = item;
+    }
+  }
+
+  public DAST.Expression Build() {
+    var builtBody = new List<DAST.Expression>();
+    ExprContainer.RecursivelyBuild(new List<object> { body }, builtBody);
+
+    var builtValue = new List<DAST.Expression>();
+    ExprContainer.RecursivelyBuild(new List<object> { value }, builtValue);
+
+    return (DAST.Expression)DAST.Expression.create_IIFE(
+      Sequence<Rune>.UnicodeFromString(name),
+      tpe,
+      builtValue[0],
+      builtBody[0]
+    );
+  }
+}
+
+class IIFEExprRhs : ExprContainer {
+  readonly IIFEExprBuilder parent;
+
+  public IIFEExprRhs(IIFEExprBuilder parent) {
+    this.parent = parent;
+  }
+
+  public void AddExpr(DAST.Expression item) {
+    if (parent.value != null) {
+      throw new InvalidOperationException();
+    } else {
+      parent.value = item;
+    }
+  }
+
+  public void AddBuildable(BuildableExpr item) {
+    if (parent.value != null) {
+      throw new InvalidOperationException();
+    } else {
+      parent.value = item;
+    }
+  }
 }
