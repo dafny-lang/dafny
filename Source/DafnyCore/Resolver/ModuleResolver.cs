@@ -1084,7 +1084,7 @@ namespace Microsoft.Dafny {
         if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
           var typeAdjustor = new TypeAdjustorVisitor(SystemModuleManager);
           typeAdjustor.VisitDeclarations(declarations);
-          typeAdjustor.Solve(Options.Get(CommonOptionBag.NewTypeInferenceDebug));
+          typeAdjustor.Solve(reporter, Options.Get(CommonOptionBag.NewTypeInferenceDebug));
         }
 
       } else {
