@@ -1,5 +1,4 @@
 ﻿using Microsoft.Dafny.LanguageServer.Language;
-using Microsoft.Dafny.LanguageServer.Language.Symbols;
 using Microsoft.Dafny.LanguageServer.Workspace;
 using Moq;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
@@ -20,8 +19,6 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit {
 
     private Mock<IFileSystem> fileSystem;
     private Mock<IDafnyParser> parser;
-    private Mock<ISymbolResolver> symbolResolver;
-    private Mock<ISymbolTableFactory> symbolTableFactory;
     private Mock<IGhostStateDiagnosticCollector> ghostStateDiagnosticCollector;
     private Mock<ICompilationStatusNotificationPublisher> notificationPublisher;
     private TextDocumentLoader textDocumentLoader;
@@ -31,20 +28,20 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit {
     public TextDocumentLoaderTest(ITestOutputHelper output) {
       this.output = new WriterFromOutputHelper(output);
       parser = new();
-      symbolResolver = new();
-      symbolTableFactory = new();
       ghostStateDiagnosticCollector = new();
       notificationPublisher = new();
       fileSystem = new();
       logger = new Mock<ILogger<ITextDocumentLoader>>();
+      var innerLogger = new Mock<ILogger<CachingResolver>>();
+      var telemetryPublisher = new Mock<ITelemetryPublisher>();
       diagnosticPublisher = new Mock<INotificationPublisher>();
-      textDocumentLoader = TextDocumentLoader.Create(
+      textDocumentLoader = new TextDocumentLoader(
+        logger.Object,
         parser.Object,
-        symbolResolver.Object,
-        symbolTableFactory.Object,
         ghostStateDiagnosticCollector.Object,
         notificationPublisher.Object,
-        logger.Object
+        innerLogger.Object,
+        telemetryPublisher.Object
       );
     }
 

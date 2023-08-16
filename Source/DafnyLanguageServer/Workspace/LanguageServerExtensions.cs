@@ -1,12 +1,9 @@
 ﻿using Microsoft.Dafny.LanguageServer.Language;
-using Microsoft.Dafny.LanguageServer.Language.Symbols;
 using Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Server;
 using System;
-using Microsoft.Extensions.Options;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace {
   /// <summary>
@@ -46,26 +43,13 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
             serviceProvider.GetRequiredService<ILogger<DafnyLangParser>>(),
             serviceProvider.GetRequiredService<ILogger<CachingParser>>());
         })
-        .AddSingleton<ITextDocumentLoader>(CreateTextDocumentLoader)
+        .AddSingleton<ITextDocumentLoader, TextDocumentLoader>()
         .AddSingleton<INotificationPublisher, NotificationPublisher>()
         .AddSingleton<CreateMigrator>(provider => (changes, cancellationToken) => new Migrator(
           provider.GetRequiredService<ILogger<Migrator>>(),
-          provider.GetRequiredService<ILogger<SignatureAndCompletionTable>>(),
           changes, cancellationToken))
-        .AddSingleton<ISymbolGuesser, SymbolGuesser>()
         .AddSingleton<ICompilationStatusNotificationPublisher, CompilationStatusNotificationPublisher>()
         .AddSingleton<ITelemetryPublisher, TelemetryPublisher>();
-    }
-
-    public static TextDocumentLoader CreateTextDocumentLoader(IServiceProvider services) {
-      return TextDocumentLoader.Create(
-        services.GetRequiredService<IDafnyParser>(),
-        services.GetRequiredService<ISymbolResolver>(),
-        services.GetRequiredService<ISymbolTableFactory>(),
-        services.GetRequiredService<IGhostStateDiagnosticCollector>(),
-        services.GetRequiredService<ICompilationStatusNotificationPublisher>(),
-        services.GetRequiredService<ILogger<ITextDocumentLoader>>()
-      );
     }
   }
 }

@@ -59,10 +59,6 @@ namespace Microsoft.Dafny {
       new DafnyHelper(options, engine, args, filename, ProgramSource).Verify();
     }
 
-    internal void Symbols(DafnyOptions options, ExecutionEngine engine) {
-      new DafnyHelper(options, engine, args, filename, ProgramSource).Symbols();
-    }
-
     public void CounterExample(DafnyOptions options, ExecutionEngine engine) {
       new DafnyHelper(options, engine, args, filename, ProgramSource).CounterExample();
     }

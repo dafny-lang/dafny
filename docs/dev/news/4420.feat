@@ -1,0 +1,3 @@
+Improve responsiveness of the language server for large projects
+Remove support for the experimental code completion feature
+Remove support for the experimental call signature assistance

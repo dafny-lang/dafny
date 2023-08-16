@@ -3,10 +3,8 @@ using OmniSharp.Extensions.LanguageServer.Protocol;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.Dynamic;
 using System.Linq;
 using Microsoft.Boogie;
-using Microsoft.Dafny.LanguageServer.Language.Symbols;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
@@ -40,7 +38,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       var program = new EmptyNode();
       return ToIdeState(new IdeState(initialCompilation.Version, initialCompilation, program,
         ImmutableDictionary<Uri, IReadOnlyList<Diagnostic>>.Empty,
-        SymbolTable.Empty(), SignatureAndCompletionTable.Empty(options, initialCompilation.Project), new(),
+        SymbolTable.Empty(), new(),
         Array.Empty<Counterexample>(),
         ImmutableDictionary<Uri, IReadOnlyList<Range>>.Empty,
         initialCompilation.RootUris.ToDictionary(uri => uri, uri => (VerificationTree)new DocumentVerificationTree(program, uri))
