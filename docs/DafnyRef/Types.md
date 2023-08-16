@@ -2712,45 +2712,6 @@ method UseIterToCopy<T(0)>(s: set<T>) returns (t: set<T>)
 
 The design of iterators is [under discussion and may change](https://github.com/dafny-lang/dafny/issues/2440).
 
-<!--
-Make this a heading if it is uncommented
- 16. Async-task types
-
-Another experimental feature in Dafny that is likely to undergo some
-evolution is _asynchronous methods_.  When an asynchronous method is
-called, it does not return values for the out-parameters, but instead
-returns an instance of an _async-task type_.  An asynchronous method
-declared in a class `C` with the following signature:
-<!-- %no-check -->
-```dafny
-async method AM<T>(\(_in-params_\)) returns (\(_out-params_\))
-```
-also gives rise to an async-task type `AM<T>` (outside the enclosing
-class, the name of the type needs the qualification `C.AM<T>`).  The
-async-task type is a reference type and can be understood as a class
-with various members, a simplified version of which is described next.
-
-Each in-parameter `x` of type `X` of the asynchronous method gives
-rise to a immutable ghost field of the async-task type:
-<!-- %no-check -->
-```dafny
-ghost var x: X;
-```
-Each out-parameter `y` of type `Y` gives rise to a field
-<!-- %no-check -->
-```dafny
-var y: Y;
-```
-These fields are changed automatically by the time the asynchronous
-method is successfully awaited, but are not assignable by user code.
-
-The async-task type also gets a number of special fields that are used
-to keep track of dependencies, outstanding tasks, newly allocated
-objects, etc.  These fields will be described in more detail as the
-design of asynchronous methods evolves.
-
--->
-
 <!--PDF NEWPAGE-->
 ## 5.12. Arrow types ([grammar](#g-arrow-type)) {#sec-arrow-types}
 
