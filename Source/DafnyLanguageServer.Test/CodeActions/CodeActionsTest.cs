@@ -28,6 +28,32 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.CodeActions {
     }
 
     [Fact]
+    public async Task GitIssue4401CorrectInsertionPlace() {
+      await TestCodeAction(@"
+predicate P(i: int)
+
+method Test() {(>Insert explicit failing assertion->
+  assert exists x: int :: P(x);<)
+  var x :><| P(x);
+}");
+    }
+
+    [Fact]
+    public async Task GitIssue4401CorrectInsertionPlaceModule() {
+      await TestCodeAction(@"
+module Test {
+  class TheTest {
+    predicate P(i: int)
+
+    method Test() {(>Insert explicit failing assertion->
+      assert exists x: int :: P(x);<)
+      var x :><| P(x);
+    }
+  }
+}");
+    }
+
+    [Fact]
     public async Task CodeActionSuggestsRemovingUnderscore() {
       await TestCodeAction(@"
 method Foo()
