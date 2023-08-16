@@ -51,6 +51,25 @@ method Foo() {
   }
 
   [Fact]
+  public async Task ManuallyRunMethodInPrefixModule() {
+    var source = @"
+module A.B.C {
+  method Foo() returns (x: int) ensures x == 2 {
+    return 2;
+  }
+}".TrimStart();
+    await SetUp(options => {
+      options.Set(ServerCommand.Verification, VerifyOnMode.Never);
+    });
+    var documentItem = CreateTestDocument(source);
+    await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+    await AssertNoDiagnosticsAreComing(CancellationToken);
+    var runSuccess = await client.RunSymbolVerification(documentItem, new Position(1, 9), CancellationToken);
+    Assert.True(runSuccess);
+    await WaitForStatus(new Range(1, 9, 1, 12), PublishedVerificationStatus.Correct, CancellationToken);
+  }
+
+  [Fact]
   public async Task ManuallyRunMethodWithTwoUnderlyingTasks() {
     var source = @"
 method Foo() returns (x: int) ensures x / 2 == 1; {

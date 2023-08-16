@@ -130,7 +130,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       }
 
       private IReadOnlyList<string> GetMemberAccessChainEndingAt(Uri uri, Position position) {
-        var node = state.Program.FindNode(uri, position.ToDafnyPosition());
+        var node = state.Program.FindNode<Expression>(uri, position.ToDafnyPosition());
         var result = new List<string>();
         while (node is ExprDotName exprDotName) {
           node = exprDotName.Lhs;
