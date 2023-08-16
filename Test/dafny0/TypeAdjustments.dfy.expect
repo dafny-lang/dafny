@@ -1,5 +1,6 @@
 TypeAdjustments.dfy(23,13): Error: assertion might not hold
 TypeAdjustments.dfy(25,17): Error: assertion might not hold
 TypeAdjustments.dfy(27,13): Error: assertion might not hold
+TypeAdjustments.dfy(40,11): Error: assertion might not hold
 
-Dafny program verifier finished with 1 verified, 3 errors
+Dafny program verifier finished with 1 verified, 4 errors

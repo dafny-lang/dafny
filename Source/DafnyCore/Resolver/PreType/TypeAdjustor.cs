@@ -77,44 +77,13 @@ public class TypeAdjustorVisitor : ASTVisitor<IASTVisitorContext> {
   protected override void PostVisitOneStatement(Statement stmt, IASTVisitorContext context) {
     if (stmt is VarDeclPattern varDeclPattern) {
       VisitPattern(varDeclPattern.LHS, context);
-    } else if (stmt is AssignStmt {Lhs: IdentifierExpr lhsIdentifierExpr} assignStmt) {
-      Type rhsType = null;
-      string rhsDescription = "";
-      if (assignStmt is { Rhs: ExprRhs exprRhs }) {
-        if (AdjustableType.NormalizeSansAdjustableType(lhsIdentifierExpr.Var.UnnormalizedType) is AdjustableType) {
-          flows.Add(new FlowIntoVariable(lhsIdentifierExpr.Var, exprRhs.Expr, assignStmt.tok));
+    } else if (stmt is AssignStmt { Lhs: IdentifierExpr lhsIdentifierExpr } assignStmt) {
+      if (AdjustableType.NormalizeSansAdjustableType(lhsIdentifierExpr.Var.UnnormalizedType) is AdjustableType) {
+        if (assignStmt is { Rhs: ExprRhs exprRhs }) {
+          flows.Add(new FlowIntoVariable(lhsIdentifierExpr.Var, exprRhs.Expr, assignStmt.tok, ":="));
+        } else if (assignStmt is { Rhs: TypeRhs tRhs }) {
+          flows.Add(new FlowFromType(lhsIdentifierExpr.Var.UnnormalizedType, tRhs.Type, assignStmt.tok, ":= new"));
         }
-#if SOON
-      } else if (assignStmt is { Rhs: TypeRhs tRhs }) {
-        // convert the type of the RHS, which we expect to be a reference type, and then create the non-null version of it
-        var udtConvertedFromPretype = (UserDefinedType)PreType2Type(tRhs.PreType);
-        Contract.Assert(udtConvertedFromPretype.IsRefType);
-        if (tRhs.ArrayDimensions != null) {
-          // In this case, we expect tRhs.PreType (and udtConvertedFromPretype) to be an array type
-          var arrayPreType = (DPreType)tRhs.PreType.Normalize();
-          Contract.Assert(arrayPreType.Decl is ArrayClassDecl);
-          Contract.Assert(arrayPreType.Arguments.Count == 1);
-          Contract.Assert(udtConvertedFromPretype.ResolvedClass is ArrayClassDecl);
-          Contract.Assert(udtConvertedFromPretype.TypeArgs.Count == 1);
-
-          // The user-supplied tRhs.EType may have some components that are more exact than what's in udtConvertedFromPretype, since
-          // tRhs.EType may contain user-supplied subset types. But tRhs.EType may also be missing some type arguments altogether, because
-          // they may have been omitted in the source text. The following has the effect of filling in any such missing components with
-          // whatever was inferred during pre-type inference.
-          var arrayTypeDecl = SystemModuleManager.arrayTypeDecls[tRhs.ArrayDimensions.Count];
-          var rhsMaybeNullType = new UserDefinedType(stmt.tok, arrayTypeDecl.Name, arrayTypeDecl, new List<Type>() { tRhs.EType });
-          rhsType = UserDefinedType.CreateNonNullType(rhsMaybeNullType);
-        } else {
-          // Fill in any missing type arguments in the user-supplied tRhs.EType.
-          rhsType = (UserDefinedType)tRhs.EType;
-        }
-        tRhs.Type = rhsType;
-        rhsDescription = " new";
-
-        if (UpdatableTypeProxy.NormalizeSansImprovementTypeProxy(lhsIdentifierExpr.Var.UnnormalizedType) is UpdatableTypeProxy updatableTypeProxy) {
-          AddConstraintFixed(updatableTypeProxy, rhsType, $"{lhsIdentifierExpr.Var.Name} :={rhsDescription}", assignStmt.tok);
-        }
-#endif
       }
 
     } else if (stmt is AssignSuchThatStmt assignSuchThatStmt) {
@@ -199,8 +168,8 @@ public class TypeAdjustorVisitor : ASTVisitor<IASTVisitorContext> {
   }
 
   abstract class Flow {
-    private readonly string description;
     private readonly IToken tok;
+    private readonly string description;
 
     protected string TokDescription() {
       return $"({tok.line},{tok.col}) {description}";
@@ -211,9 +180,9 @@ public class TypeAdjustorVisitor : ASTVisitor<IASTVisitorContext> {
     /// </summary>
     public abstract bool Update(FlowContext context);
 
-    protected Flow(string description, IToken tok) {
-      this.description = description;
+    protected Flow(IToken tok, string description) {
       this.tok = tok;
+      this.description = description;
     }
 
     public abstract void DebugPrint(TextWriter output);
@@ -398,8 +367,8 @@ public class TypeAdjustorVisitor : ASTVisitor<IASTVisitorContext> {
     private readonly Type sink;
     private readonly Type source;
 
-    public FlowFromType(Type sink, Type source, IToken tok)
-      : base("", tok) {
+    public FlowFromType(Type sink, Type source, IToken tok, string description = "")
+      : base(tok, description) {
       this.sink = AdjustableType.NormalizeSansAdjustableType(sink);
       this.source = source;
     }
@@ -431,8 +400,8 @@ public class TypeAdjustorVisitor : ASTVisitor<IASTVisitorContext> {
       set => sink.T = value;
     }
 
-    public FlowIntoVariable(IVariable variable, Expression source, IToken tok)
-      : base(":=", tok) {
+    public FlowIntoVariable(IVariable variable, Expression source, IToken tok, string description = ":=")
+      : base(tok, description) {
       Contract.Requires(AdjustableType.NormalizeSansAdjustableType(variable.UnnormalizedType) is AdjustableType);
       this.sink = (AdjustableType)AdjustableType.NormalizeSansAdjustableType(variable.UnnormalizedType);
       this.source = source;

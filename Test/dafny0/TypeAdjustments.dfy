@@ -27,3 +27,15 @@ method M0(n: nat, e: Even) {
     assert 0 <= z; // error: z is an int
   }
 }
+
+method M1() {
+  var arr;
+  arr := new [100];
+  var y;
+  y := arr[0] + 15;
+
+  arr, y := *, *;
+  var obj: object? := arr;
+  assert obj != null;
+  assert 0 <= y; // error: y is an int
+}
