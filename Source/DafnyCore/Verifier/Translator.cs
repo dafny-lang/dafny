@@ -56,7 +56,7 @@ namespace Microsoft.Dafny {
         case null:
           break;
         case Boogie.Function boogieFunction:
-          boogieFunction.OtherDefinitionAxioms.Add(axiom);
+          boogieFunction.AddOtherDefinitionAxiom(axiom);
           break;
         case Boogie.Constant boogieConstant:
           boogieConstant.DefinitionAxioms.Add(axiom);
