@@ -568,7 +568,6 @@ const unique allocName: NameFamily;
 function _System.array.Length(a: ref): int;
 axiom (forall o: ref :: {_System.array.Length(o)} 0 <= _System.array.Length(o));
 
-
 // ---------------------------------------------------------------
 // -- Reals ------------------------------------------------------
 // ---------------------------------------------------------------
@@ -924,7 +923,6 @@ axiom (forall<T> s: Set T :: { MultiSet#Card(MultiSet#FromSet(s)) }
 function MultiSet#FromSeq<T>(Seq T): MultiSet T uses {
   axiom (forall<T> :: MultiSet#FromSeq(Seq#Empty(): Seq T) == MultiSet#Empty(): MultiSet T);
 }
-
 // conversion produces a good map.
 axiom (forall<T> s: Seq T :: { MultiSet#FromSeq(s) } $IsGoodMultiSet(MultiSet#FromSeq(s)) );
 // cardinality axiom
