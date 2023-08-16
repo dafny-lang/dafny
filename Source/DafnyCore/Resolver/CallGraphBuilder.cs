@@ -304,6 +304,9 @@ namespace Microsoft.Dafny {
         ModuleDefinition calleeModule = callable is SpecialFunction ? null : callable.EnclosingModule;
         if (callerModule != calleeModule) {
           // inter-module call; add edge in module's inter-module call graph
+          if (callingContext is ICallable context && callable is Function { EnclosingClass: TraitDecl }) {
+            callerModule.CallGraph.AddEdge(context, callable);
+          }
           if (callingContext is ICallable caller0) {
             callerModule.InterModuleCallGraph.AddEdge(caller0, callable);
             if (caller0 is Function f) {
