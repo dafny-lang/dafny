@@ -141,7 +141,7 @@ public class Migrator {
       originalSymbolTable.CompilationUnit,
       originalSymbolTable.Declarations,
       originalSymbolTable.Locations.SetItem(uri, migratedDeclarations!),
-      originalSymbolTable.LookupTree.SetItem(uri, migratedLookupTree),
+      originalSymbolTable.LookupTree.SetItem(uri, migratedLookupTree!),
       false
     );
   }

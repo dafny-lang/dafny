@@ -10,7 +10,7 @@ using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Performance;
 
-public class LargeFiles : ClientBasedLanguageServerTest {
+public class LargeFilesTest : ClientBasedLanguageServerTest {
 
   [Fact]
   public async Task SlowEditsUsingLargeFilesAndIncludes() {
@@ -58,6 +58,6 @@ public class LargeFiles : ClientBasedLanguageServerTest {
     Directory.Delete(directory, true);
   }
 
-  public LargeFiles(ITestOutputHelper output) : base(output, LogLevel.Debug) {
+  public LargeFilesTest(ITestOutputHelper output) : base(output, LogLevel.Debug) {
   }
 }
