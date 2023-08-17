@@ -1055,9 +1055,9 @@ namespace Microsoft.Dafny {
                   // Set up a new frame
                   var frameName = CurrentIdGenerator.FreshId("$_Frame#l");
                   reads = lam.Reads.ConvertAll(s.SubstFrameExpr);
-                  DefineFrame(e.tok, etran.ReadsFrame(e.tok), reads, newBuilder, locals, frameName, comprehensionEtran);
                   comprehensionEtran = comprehensionEtran.WithReadsFrame(frameName);
-
+                  DefineFrame(e.tok, comprehensionEtran.ReadsFrame(e.tok), reads, newBuilder, locals, frameName, comprehensionEtran);
+                  
                   // Check frame WF and that it read covers itself
                   newOptions = new WFOptions(wfOptions.SelfCallsAllowance, true /* check reads clauses */, true /* delay reads checks */);
                   CheckFrameWellFormed(newOptions, reads, locals, newBuilder, comprehensionEtran);
