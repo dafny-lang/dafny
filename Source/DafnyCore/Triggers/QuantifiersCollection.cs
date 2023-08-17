@@ -323,7 +323,8 @@ namespace Microsoft.Dafny.Triggers {
 #if QUANTIFIER_WARNINGS
         var WARN_TAG = options.UnicodeOutput ? "⚠ " : @"/!\ ";
         var WARN_TAG_OVERRIDE = suppressWarnings ? "(Suppressed warning) " : WARN_TAG;
-        var WARN_LEVEL = suppressWarnings ? ErrorLevel.Info : ErrorLevel.Warning;
+        var WARN_LEVEL = suppressWarnings ? ErrorLevel.Info :
+            options.WarningsAsErrors ? ErrorLevel.Error: ErrorLevel.Warning;
         var WARN = indent + WARN_TAG_OVERRIDE;
         if (!q.CandidateTerms.Any()) {
           errorLevel = WARN_LEVEL;
@@ -338,7 +339,7 @@ namespace Microsoft.Dafny.Triggers {
           msg.Append(WARN).AppendLine("Suppressing loops would leave this expression without triggers.");
           FirstLetterCapitalOnNestedToken();
         } else if (suppressWarnings) {
-          errorLevel = ErrorLevel.Warning;
+          errorLevel = options.WarningsAsErrors ? ErrorLevel.Error : ErrorLevel.Warning;
           msg.Append(indent).Append(WARN_TAG).AppendLine("There is no warning here to suppress.");
           FirstLetterCapitalOnNestedToken();
         }
