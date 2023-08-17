@@ -72,3 +72,12 @@ method MemoizedSquare(x: int, cache: ExternalMutableMap<int, int>) returns (xSqu
   }
 }
 
+function Foo(b: Box): int {
+  b.x
+} by method {
+  var x := b.x; // Should be error
+  return 42;
+}
+
+// TODO:
+// * iterators (would like to align semantics)
