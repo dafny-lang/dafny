@@ -390,7 +390,7 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
           importSig = ((AbstractModuleDecl)d).OriginalSignature;
         }
 
-        if (importSig.ModuleDef is not { SuccessfullyResolved: true }) {
+        if (importSig is not { ModuleDef: { SuccessfullyResolved: true } }) {
           return false;
         }
       } else if (d is LiteralModuleDecl) {
