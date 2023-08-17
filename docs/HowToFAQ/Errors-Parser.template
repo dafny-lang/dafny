@@ -1,0 +1,1202 @@
+<!-- %check-resolve %default %useHeadings %check-ids -->
+
+<!-- The file Errors-Parser.template is used along with Parser-Errors.cs to produce Errors-Parser.md.
+     Errors-Parser.template holds the structure of the markdown file and the examples of each error message.
+     Parser-Errors.cs holds the text of error explanations, so they are just in the source code rather than duplicated also in markdown.
+     The content of Errors-Parser.template and Parser-Errors.cs are tied together by the errorids.
+     Thus Errors-Parser.md is a generated file that should not be edited itself.
+     The program make-error-catalog does the file generation.
+-->
+
+<!-- ./DafnyCore/Dafny.atg -->
+
+## **Error: Duplicate declaration modifier: abstract** {#p_duplicate_modifier}
+
+```dafny
+abstract abstract module M {}
+```
+
+<!-- INSERT-TEXT -->
+
+## **Error: a _decl_ cannot be declared 'abstract'** {#p_abstract_not_allowed}
+ 
+```dafny
+abstract const c := 4
+```
+
+<!-- INSERT-TEXT -->
+
+## **Error: a function-by-method has a ghost function body and a non-ghost method body; a function-by-method declaration does not use the 'ghost' keyword.** {#p_no_ghost_for_by_method}
+
+```dafny
+ghost function f(): int
+{
+  42
+} by method {
+  return 42;
+}
+```
+
+<!-- INSERT-TEXT -->
+
+## **Error: _decl_ cannot be declared 'ghost' (it is 'ghost' by default when using --function-syntax:3)** {#p_ghost_forbidden_default_3}
+
+```dafny
+module {:options "--function-syntax:3"} M {
+  ghost function f(): int { 42 }
+}
+```
+
+<!-- INSERT-TEXT -->
+
+## **Error: _decl_ cannot be declared 'ghost' (it is 'ghost' by default)** {#p_ghost_forbidden_default}
+
+```dafny
+module {:options "--function-syntax:4"} M {
+  ghost least predicate p()
+}
+```
+
+<!-- INSERT-TEXT -->
+
+## **Error: a _decl_ cannot be declared 'ghost'** {#p_ghost_forbidden}
+
+```dafny
+ghost module M {}
+```
+
+<!-- INSERT-TEXT -->
+
+## **Error: a _decl_ cannot be declared 'static'** {#p_no_static}
+
+```dafny
+static module M {}
+```
+
+<!-- INSERT-TEXT -->
+
+## **Error: a _decl_ cannot be declared 'opaque'** {#p_no_opaque}
+
+```dafny
+opaque module M {}
+```
+
+<!-- INSERT-TEXT -->
+
+## **Warning: attribute _attribute_ is deprecated {#p_deprecated_attribute}
+
+<!-- INSERT-TEXT -->
+
+## **Error: argument to :options attribute must be a literal string** {#p_literal_string_required}
+
+```dafny
+module N { const opt := "--function-syntax:4" }
+import opened N
+module {:options opt} M{}
+```
+
+<!-- INSERT-TEXT -->
+
+## **Error: cannot declare identifier beginning with underscore** {#p_no_leading_underscore}
+
+```dafny
+function m(): (_: int) {0}
+```
+
+<!-- INSERT-TEXT -->
+
+## **Error: sorry, bitvectors that wide (_number_) are not supported** {#p_bitvector_too_large}
+
+```dafny
+const b: bv2147483648
+```
+
+<!-- INSERT-TEXT -->
+
+## **Error: sorry, arrays of that many dimensions (_number_) are not supported** {#p_array_dimension_too_large}
+
+```dafny
+const a: array2147483648<int>
+```
+
+<!-- INSERT-TEXT -->
+
+## **Error: There is no point to an export declaration at the top level** {#p_superfluous_export}
+
+```dafny
+export M
+method M() {}
+```
+
+<!-- INSERT-TEXT -->
+
+## **Error: expected either a '{' or a 'refines' keyword here, found _token_** {#p_bad_module_decl}
+
+<!-- %check-resolve %first -->
+```dafny
+module M {}
+module N refine M {}
+```
+
+<!-- INSERT-TEXT -->
+
+## **Warning: the _name_ token is the identifier for the export set, not an adjective for an extreme predicate** {#p_misplaced_least_or_greatest}
+
+<!-- %check-resolve-warn -->
+```dafny
+module M {
+  export
+  least predicate p()
+}
+```
+
+<!-- INSERT-TEXT -->
+
+## **Error: no comma is allowed between provides and reveals and extends clauses in an export declaration** {#p_extraneous_comma_in_export}
+
+```dafny
+module M {
+  export A reveals b, a, reveals b
+  export B reveals b, a, provides b
+  export C provides b, a, reveals b
+  export D provides b, a, provides b
+  const a: int
+  const b: int
+}
+```
+
+<!-- INSERT-TEXT -->
+
+## **Error: fields are not allowed to be declared at the module level; instead, wrap the field in a 'class' declaration** {#p_top_level_field}
+
+```dafny
+module M {
+  var c: int
+}
+```
+
+<!-- INSERT-TEXT -->
+
+## **Warning: module-level functions are always non-instance, so the 'static' keyword is not allowed here** {#p_module_level_function_always_static}
+
+<!-- %check-resolve-warn -->
+```dafny
+static predicate p() { true }
+```
+
+<!-- INSERT-TEXT -->
+
+## **Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here** {#p_module_level_method_always_static}
+
+<!-- %check-resolve-warn -->
+```dafny
+static method m() {}
+```
+
+<!-- INSERT-TEXT -->
+
+## **Error: in refining a datatype, the '...' replaces the '=' token and everything up to a left brace starting the declaration of the body; only members of the body may be changed in a datatype refinement** {#p_bad_datatype_refinement}
+
+```dafny
+abstract module M { datatype D = A | B }
+module N refines M { datatype D = ... Y | Z }
+```
+
+<!-- INSERT-TEXT -->
+
+## **Error: datatype extending traits is a beta feature; use /generalTraits:1 to engage** {#p_general_traits_beta}
+
+```dafny
+trait Trait { }
+datatype D extends Trait = A | B
+```
+
+<!-- INSERT-TEXT -->
+
+## **Warning: module-level const declarations are always non-instance, so the 'static' keyword is not allowed here {#p_module_level_const_always_static}
+
+<!-- %check-resolve-warn -->
+```dafny
+static const i := 9
+```
+
+<!-- INSERT-TEXT -->
+
+## **Error: expected an identifier after 'const' and any attributes** {#p_const_decl_missing_identifier}
+
+```dafny
+const c := 5
+const
+const d := 5
+```
+
+<!-- INSERT-TEXT -->
+
+## **Error: a const field should be initialized using ':=', not '='** {#p_bad_const_initialize_op}
+
+```dafny
+const c: int = 5
+```
+
+<!-- INSERT-TEXT -->
+
+## **Error: a const declaration must have a type or a RHS value** {#p_const_is_missing_type_or_init}
+
+```dafny
+const i
+```
+
+<!-- INSERT-TEXT -->
+
+## **Error: in refining a newtype, the '...' replaces the '=' token and everything up to the left brace starting the declaration of the newtype body (if any); a newtype refinement may not change the base type of the newtype** {#p_misplaced_ellipsis_in_newtype}
+
+```dafny
+abstract module M { newtype T = int }
+module N refines M { newtype T = ... int }
+```
+
+<!-- INSERT-TEXT -->
+
+## **Error: formal cannot be declared 'ghost' in this context** {#p_output_of_function_not_ghost}
+
+```dafny
+twostate function p(i: int): (ghost r: int) { true }
+```
+
+<!-- INSERT-TEXT -->
+
+## **Error: formal cannot be declared 'new' in this context** {#p_no_new_on_output_formals}
+
+```dafny
+method m(i: int) returns (new r: int) { r := 0; }
+```
+
+<!-- INSERT-TEXT -->
+
+## **Error: formal cannot be declared 'nameonly' in this context** {#p_no_nameonly_on_output_formals}
+
+```dafny
+method m(i: int) returns (nameonly r: int) { r := 0; }
+```
+
+<!-- INSERT-TEXT -->
+
+## **Error: formal cannot be declared 'older' in this context** {#p_no_older_on_output_formals}
+
+```dafny
+method m(i: int) returns (older r: int) { r := 0; }
+```
+
+<!-- INSERT-TEXT -->
+
+## **Error: a mutable field must be declared with a type** {#p_var_decl_must_have_type}
+
+```dafny
+class A {
+  var f
+  const g := 5
+}
+```
+
+<!-- INSERT-TEXT -->
+
+## **Error: a mutable field may not have an initializer** {#p_no_init_for_var_field}
+
+```dafny
+class A {
+  var x: int := 6
+  var y: int, x: int := 6, z: int
+}
+```
+
+<!-- INSERT-TEXT -->
+
+## **Error: invalid formal-parameter name in datatype constructor** {#p_datatype_formal_is_not_id}
+
+```dafny
+datatype D = Nil | D(int: uint8) 
+```
+
+<!-- INSERT-TEXT -->
+
+## **Error: use of the 'nameonly' modifier must be accompanied with a parameter name** {#p_nameonly_must_have_parameter_name}
+
+```dafny
+datatype D = D (i: int, nameonly int) {}
+```
+
+<!-- INSERT-TEXT -->
+
+## **Error: iterators don't have a 'returns' clause; did you mean 'yields'?** {#p_should_be_yields_instead_of_returns}
+
+```dafny
+iterator Count(n: nat) returns (x: nat) {
+  var i := 0;
+  while i < n {
+    x := i;
+    yield;
+    i := i + 1;
+  }
+}
+```
+
+<!-- INSERT-TEXT -->
+
+## **Error: type-parameter variance is not allowed to be specified in this context** {#p_type_parameter_variance_forbidden}
+
+```dafny
+type List<T>
+method m<+T>(i: int, list: List<T>) {}
+method m<T,-U>(i: int, list: List<T>) {}
+```
+
+<!-- INSERT-TEXT -->
+
+<!-- There are two instances of this error, one for the first item in a type parameter list, and one for subsequent items -->
+
+## **Error: unexpected type characteristic: '000' should be one of == or 0 or 00 or !new** {#p_unexpected_type_characteristic}
+
+```dafny
+type T(000)
+```
+
+<!-- INSERT-TEXT -->
+
+## **Error: extra comma or missing type characteristic: should be one of == or 0 or 00 or !new** {#p_missing_type_characteristic}
+
+<!-- %no-check - TODO - fix to better error recovery after 4.0 -->
+```dafny
+type T(0,,0)
+```
+
+<!-- INSERT-TEXT -->
+
+## **Error: illegal type characteristic: '_token_' should be one of == or 0 or 00 or !new** {#p_illegal_type_characteristic}
+
+```dafny
+type T(X)
+```
+
+<!-- INSERT-TEXT -->
+
+## **Warning: the old keyword 'colemma' has been renamed to the keyword phrase 'greatest lemma'** {#p_deprecated_colemma}
+
+<!-- %check-resolve-warn -->
+```dafny
+colemma m() ensures true {}
+```
+
+<!-- INSERT-TEXT -->
+
+## **Warning: the old keyword phrase 'inductive lemma' has been renamed to 'least lemma'** {#p_deprecated_inductive_lemma}
+
+<!-- %check-resolve-warn -->
+```dafny
+inductive lemma m() ensures true {}
+```
+
+<!-- INSERT-TEXT -->
+
+## **Error: constructors are allowed only in classes** {#p_constructor_not_in_class}
+
+```dafny
+module M {
+  constructor M() {}
+}
+```
+
+<!-- INSERT-TEXT -->
+
+## **Error: a method must be given a name (expecting identifier)** {#p_method_missing_name}
+
+```dafny
+method {:extern "M"} (i: int) {}
+```
+
+<!-- INSERT-TEXT -->
+
+## **Error: type of _k_ can only be specified for least and greatest lemmas** {#p_extraneous_k}
+
+```dafny
+lemma b[nat](i: int) { }
+```
+
+<!-- INSERT-TEXT -->
+
+## **Error: constructors cannot have out-parameters** {#p_constructors_have_no_out_parameters}
+
+```dafny
+class C {
+  constructor (i: int) returns (j: int) {}
+}
+```
+
+<!-- INSERT-TEXT -->
+
+## **Error: A 'reads' clause that contains '*' is not allowed to contain any other expressions** {#p_reads_star_must_be_alone}
+
+```dafny
+const a: object
+function f(): int
+  reads a, *
+{
+  0
+}
+```
+
+<!-- INSERT-TEXT -->
+
+## **Error: out-parameters cannot have default-value expressions** {#p_no_defaults_for_out_parameters}
+
+```dafny
+method m(i: int) returns (j: int := 0) { return 42; }
+```
+
+<!-- INSERT-TEXT -->
+
+## **Error: set type expects only one type argument** {#p_set_only_one_type_parameter}
+
+```dafny
+const c: set<int,bool>
+```
+
+<!-- INSERT-TEXT -->
+
+## **Error: iset type expects only one type argument** {#p_iset_only_one_type_parameter}
+
+```dafny
+const c: iset<int,bool>
+```
+
+<!-- INSERT-TEXT -->
+
+## **Error: multiset type expects only one type argument** {#p_multiset_only_one_type_parameter}
+
+```dafny
+const c: multiset<int,bool>
+```
+
+<!-- INSERT-TEXT -->
+
+## **Error: seq type expects only one type argument** {#p_seq_only_one_type_parameter}
+
+```dafny
+const c: seq<int,bool>
+```
+
+<!-- INSERT-TEXT -->
+
+## **Error: map type expects two type arguments** {#p_map_needs_two_type_parameters}
+
+```dafny
+const m: map<int,bool,string>
+```
+
+<!-- INSERT-TEXT -->
+
+## **Error: imap type expects two type arguments** {#p_imap_needs_two_type_parameters}
+
+```dafny
+const m: imap<int,bool,string>
+```
+
+<!-- INSERT-TEXT -->
+
+## **Error: arrow-type arguments may not be declared as 'ghost'** {#p_no_ghost_arrow_type_arguments}
+
+```dafny
+const f: (ghost int, bool) -> int
+```
+
+<!-- INSERT-TEXT -->
+
+## **Error: empty type parameter lists are not permitted** {#p_no_empty_type_parameter_list}
+
+<!-- Not reachable -->
+
+<!-- INSERT-TEXT -->
+
+## **Error: a formal [ ] declaration is only allowed for least and greatest predicates** {#p_formal_ktype_only_in_least_and_greatest_predicates}
+
+```dafny
+predicate p[nat]() { true }
+```
+
+<!-- INSERT-TEXT -->
+
+## **Warning: the old keyword phrase 'inductive predicate' has been renamed to 'least predicate' {#p_deprecated_inductive_predicate}
+
+<!-- %check-resolve-warn -->
+```dafny
+inductive predicate p()
+```
+
+<!-- INSERT-TEXT -->
+
+## **Warning: the old keyword 'copredicate' has been renamed to the keyword phrase 'greatest predicate' {#p_deprecated_copredicate}
+
+<!-- %check-resolve-warn -->
+```dafny
+copredicate p()
+```
+
+<!-- INSERT-TEXT -->
+
+## **Error: a 'by method' implementation is not allowed on a twostate _what_** {#p_no_by_method_in_twostate}
+
+```dafny
+class Cell { var data: int  constructor(i: int) { data := i; } }
+twostate predicate Increasing(c: Cell)
+  reads c
+{
+  old(c.data) <= c.data
+} by method {
+  return old(c.data) <= c.data;
+}
+```
+
+<!-- INSERT-TEXT -->
+
+## **Error: a 'by method' implementation is not allowed on an extreme predicate** {#p_no_by_method_in_extreme_predicate}
+
+```dafny
+least predicate g() { 42 } by method { return 42; }
+```
+
+<!-- INSERT-TEXT -->
+
+## **Error: to use a 'by method' implementation with a _what_, declare _id_ using _what_, not '_what_ method'** {#p_no_by_method_for_ghost_function}
+
+```dafny
+function method m(): int {
+  42
+} by method {
+  return 42;
+}
+```
+
+<!-- INSERT-TEXT -->
+
+## **Error: a _adjective_ _what_ is supported only as ghost, not as a compiled _what_** {#p_twostate_and_extreme_are_always_ghost}
+
+```dafny
+twostate function method m(): int {
+  42
+}
+```
+
+<!-- INSERT-TEXT -->
+
+## **Error: a _what_ is always ghost and is declared with '_what_'** {#p_old_ghost_syntax}
+
+```dafny
+module {:options "--function-syntax:experimentalPredicateAlwaysGhost"} M {
+  predicate method p() { true }
+}
+```
+
+<!-- INSERT-TEXT -->
+
+## **Error: the phrase '_what_ method' is not allowed when using --function-syntax:4; to declare a compiled predicate, use just 'predicate'** {#p_deprecating_predicate_method}
+
+```dafny
+module {:options "--function-syntax:4"} M {
+  predicate method f() { true }
+}
+```
+
+<!-- INSERT-TEXT -->
+
+## **Error: the phrase '_what_ method' is not allowed when using --function-syntax:4; to declare a compiled function, use just 'function'** {#p_deprecating_function_method}
+
+```dafny
+module {:options "--function-syntax:4"} M {
+  function method f(): int { 42 }
+}
+```
+
+<!-- INSERT-TEXT -->
+
+## **Error: there is no such thing as a 'ghost predicate method'** {#p_no_ghost_predicate_method}
+
+```dafny
+module {:options "--function-syntax:experimentalDefaultGhost"} M {
+  ghost predicate method f() { true }
+}
+```
+
+<!-- INSERT-TEXT -->
+
+## **Error: there is no such thing as a 'ghost function method'** {#p_no_ghost_function_method}
+
+```dafny
+module {:options "--function-syntax:experimentalDefaultGhost"} M {
+  ghost function method f(): int { 42 }
+}
+```
+
+<!-- INSERT-TEXT -->
+
+## **Error: a _what_ must be declared as either 'ghost _what_' or '_what_ method' when using --function-syntax:migration3to4** {#p_migration_syntax}
+
+```dafny
+module {:options "--function-syntax:migration3to4"} M {
+  function f(): int { 42 }
+}
+```
+
+<!-- INSERT-TEXT -->
+
+## **Error: formal cannot be declared 'ghost' in this context** {#p_no_ghost_formal}
+
+```dafny
+ghost predicate p(ghost i: int) { true }
+```
+
+<!-- INSERT-TEXT -->
+
+## **Error: 'decreases' clauses are meaningless for least and greatest predicates, so they are not allowed** {#p_no_decreases_for_extreme_predicates}
+
+```dafny
+least predicate m(i: int)
+  decreases i
+{
+  true
+}
+```
+
+<!-- INSERT-TEXT -->
+
+## **Error: _name_ return type should be bool, got _type_** {#p_predicate_return_type_must_be_bool}
+
+```dafny
+predicate b(): (r: boolean) { 4 }
+```
+
+<!-- INSERT-TEXT -->
+
+## **Error: _name_s do not have an explicitly declared return type; it is always bool. Unless you want to name the result: ': (result: bool)'** {#p_no_return_type_for_predicate}
+
+<!-- %no-check TODO - this example crashes -->
+```dafny
+predicate p(): bool { true } 
+```
+
+<!-- INSERT-TEXT -->
+
+## **Error: A '*' expression is not allowed here** {#p_no_wild_expression}
+
+```dafny
+function m(i: int): int
+  decreases *
+{
+  42
+}
+```
+
+<!-- INSERT-TEXT -->
+
+## **Error: A '*' frame expression is not permitted here** {#p_no_wild_frame_expression}
+
+```dafny
+iterator Gen(start: int) yields (x: int)
+  reads *
+{
+  var i := 0;
+  while i < 10 invariant |xs| == i {
+    x := start + i;
+    yield;
+    i := i + 1;
+  }
+}
+```
+
+<!-- INSERT-TEXT -->
+
+## **Warning: _kind_ refinement is deprecated** {#p_deprecated_statement_refinement}
+
+<!-- TODO -->
+
+<!-- INSERT-TEXT -->
+
+## **Error: invalid statement beginning here (is a 'label' keyword missing? or a 'const' or 'var' keyword?)** {#p_invalid_colon}
+
+```dafny
+method m(n: nat) {
+  x: while (0 < n) { break x; }
+}
+```
+
+<!-- INSERT-TEXT -->
+
+## **Error: An initializing element display is allowed only for 1-dimensional arrays** {#p_initializing_display_only_for_1D_arrays}
+
+```dafny
+method m() {
+  var a := new int[2,2] [1,2,3,4];
+}
+```
+
+<!-- INSERT-TEXT -->
+
+## **Error: a local variable should be initialized using ':=', ':-', or ':|', not '='** {#p_no_equal_for_initializing}
+
+```dafny
+method m() {
+  var x = 5;
+}
+```
+
+<!-- INSERT-TEXT -->
+
+## **Error: LHS of assign-such-that expression must be variables, not general patterns** {#p_no_patterns_and_such_that}
+
+```dafny
+datatype D = D(x: int, y: int)
+method m() {
+  var D(x,y) :| x + y == 5;
+}
+```
+
+<!-- INSERT-TEXT -->
+
+## **Error: 'modifies' clauses are not allowed on refining loops** {#p_no_modifies_on_refining_loops}
+
+<!-- TODO _ example -->
+
+<!-- INSERT-TEXT -->
+
+## **Error: Expected 'to' or 'downto'** {#p_to_or_downto}
+
+```dafny
+method m(n: nat) {
+  for i := n DownTo 0 {}
+}
+```
+
+<!-- INSERT-TEXT -->
+
+## **Error: A 'decreases' clause that contains '*' is not allowed to contain any other expressions** {#p_no_decreases_expressions_with_star}
+
+```dafny
+method f(n: int) returns (r: int)
+  decreases *, n
+{
+  r := if n == 0 then n else -1-f(n-1);
+}
+```
+
+<!-- INSERT-TEXT -->
+
+## **Error: expected either 'by' or a semicolon following the assert expression** {#p_assert_needs_by_or_semicolon}
+
+```dafny
+method m() {
+  assert true
+}
+```
+
+<!-- INSERT-TEXT -->
+
+## **Warning: a forall statement with no bound variables is deprecated; use an 'assert by' statement instead** {#p_deprecated_forall_with_no_bound_variables}
+
+<!-- INSERT-TEXT -->
+
+## **Error: a forall statement with an ensures clause must have a body** {#p_forall_with_ensures_must_have_body}
+
+<!-- TODO: This example does not yet work in the new CLI because there is no way to turn on /noCheating in the new CLI -->
+
+<!-- %check-legacy %options -compile:0 -noCheating:1 -->
+```dafny
+module M {
+  predicate f(i: int) { true }
+  method  m(a: seq<int>) {
+    forall i | 0 <= i < 10
+       ensures f(i)
+  }
+}
+```
+
+<!-- INSERT-TEXT -->
+
+## **Warning: the modify statement with a block statement is deprecated** {#p_deprecated_modify_statement_with_block}
+
+<!-- INSERT-TEXT -->
+
+## **Error: the main operator of a calculation must be transitive** {#p_calc_operator_must_be_transitive}
+
+```dafny
+lemma abs(a: int, b: int, c: int)
+  ensures a + b + c == c + b + a
+{
+  calc != {
+    a + b + c;
+    a + c + b;
+    c + a + b;
+  }
+}
+```
+
+<!-- INSERT-TEXT -->
+
+## **Error: this operator cannot continue this calculation** {#p_invalid_calc_op_combination}
+
+```dafny
+lemma abs(a: int, b: int, c: int)
+  ensures a + b + c == c + b + a
+{
+  calc {
+    a + b + c;
+    !=
+    a + c + b;
+    !=
+    c + a + b;
+  }
+}
+```
+
+<!-- INSERT-TEXT -->
+
+## **Error: a calculation cannot end with an operator** {#p_calc_dangling_operator}
+
+```dafny
+lemma abs(a: int, b: int, c: int)
+  ensures a + b + c == c + b + a
+{
+  calc {
+    a + b + c;
+    ==
+  }
+}
+```
+
+<!-- INSERT-TEXT -->
+
+## **Error: Calls with side-effects such as constructors are not allowed in expressions.** {#p_no_side_effects_in_expressions}
+
+```dafny
+class A { function f(): int { 0 } }
+const c := (new A).f()
+```
+
+<!-- INSERT-TEXT -->
+
+## **Error: Ambiguous use of ==> and <==. Use parentheses to disambiguate.** {#p_ambiguous_implies}
+
+```dafny
+const b := true <== false ==> true
+```
+
+<!-- INSERT-TEXT -->
+
+## **Error: Ambiguous use of ==> and <==. Use parentheses to disambiguate.** {#p_ambiguous_implies_2}
+
+```dafny
+const b := true ==> false <== true
+```
+
+<!-- INSERT-TEXT -->
+
+<!-- There are two instances of this error, one in which the first operator is ==> and one in which it is <== -->
+
+## **Error: Ambiguous use of && and ||. Use parentheses to disambiguate.** {#p_ambiguous_and_or}
+
+```dafny
+const b := true && false || true
+```
+
+<!-- INSERT-TEXT -->
+
+## **Error: chaining not allowed from the previous operator** {#p_invalid_equal_chaining}
+
+```dafny
+const c := 1 in {1} == true
+```
+
+<!-- INSERT-TEXT -->
+
+## **Error: a chain cannot have more than one != operator** {#p_invalid_notequal_chaining}
+
+```dafny
+const c := 1 != 2 != 3
+```
+
+<!-- INSERT-TEXT -->
+
+## **Error: this operator cannot continue this chain** {#p_invalid_operator_in_chain}
+
+```dafny
+const c := {} !! {} != {}
+```
+
+<!-- INSERT-TEXT -->
+
+## **Error: this operator chain cannot continue with an ascending operator** {#p_invalid_descending_chaining}
+
+```dafny
+const c := 2 > 3 < 4
+```
+
+<!-- INSERT-TEXT -->
+
+## **Error: this operator chain cannot continue with a descending operator** {#p_invalid_ascending_chaining}
+
+```dafny
+const c := 2 < 3 > 4
+```
+
+<!-- INSERT-TEXT -->
+
+## **Error: can only chain disjoint (!!) with itself** {#p_invalid_disjoint_chaining}
+
+```dafny
+const c := 2 < 3 !! 4
+```
+
+<!-- INSERT-TEXT -->
+
+## **Error: this operator cannot be part of a chain** {#p_operator_does_not_chain}
+
+```dafny
+const c := 2 < 3 in 4
+```
+
+<!-- INSERT-TEXT -->
+
+## **Error: invalid relational operator** {#p_bang_not_a_relational_op}
+
+```dafny
+const s : set<int>
+const r := s ! s
+```
+
+<!-- INSERT-TEXT -->
+
+## **Error: invalid relational operator (perhaps you intended \"!!\" with no intervening whitespace?)** {#p_invalid_relational_op}
+
+```dafny
+const s : set<int>
+const r := s ! ! s
+```
+
+<!-- INSERT-TEXT -->
+
+## **Error: Ambiguous use of &, |, ^. Use parentheses to disambiguate.** {#p_ambiguous_bitop}
+
+```dafny
+const i: int := 5 | 6 & 7
+```
+
+<!-- INSERT-TEXT -->
+
+## **Error: too many characters in character literal** {#p_invalid_char_literal}
+
+<!-- %check-resolve --unicode-char:false -->
+```dafny
+const c := '🚀'
+```
+
+<!-- INSERT-TEXT -->
+
+## **Error: binding not allowed in parenthesized expression** {#p_no_parenthesized_binding}
+
+```dafny
+method m() {
+  var c := ( 4 := 5 );
+}
+```
+
+<!-- INSERT-TEXT -->
+
+## **Error: A forming expression must be a multiset** {#p_must_be_multiset}
+
+<!-- INSERT-TEXT -->
+
+## **Error: seq type expects only one type argument** {#p_seq_display_has_one_type_argument}
+
+```dafny
+const c := seq<int,int>(5, i=>i)
+```
+
+<!-- INSERT-TEXT -->
+
+## **Error: a map comprehension with more than one bound variable must have a term expression of the form 'Expr := Expr'** {#p_map_comprehension_must_have_term_expression}
+
+```dafny
+const s := map x, y  | 0 <= x < y < 10 :: x*y
+```
+
+<!-- INSERT-TEXT -->
+
+## **Error: LHS of let-such-that expression must be variables, not general patterns** {#p_no_patterns_in_let_such_that}
+
+```dafny
+datatype Data = D(i: int, j: int)
+const c: int := var Data(d,dd) :| d == 10 && dd == 11; d
+```
+
+<!-- INSERT-TEXT -->
+
+## **Error: a variable in a let expression should be initialized using ':=', ':-', or ':|', not '='** {#p_no_equal_in_let_initialization}
+
+```dafny
+method m() {
+  var x := var y = 5; y*y;
+}
+```
+
+<!-- INSERT-TEXT -->
+
+## **Error: ':-' can have at most one left-hand side** {#p_elephant_has_one_lhs}
+
+```dafny
+datatype Outcome<T> = 
+  | Success(value: T) 
+  | Failure(error: string) 
+{ predicate IsFailure() { this.Failure? } 
+  function PropagateFailure<U>(): Outcome<U> 
+    requires IsFailure() 
+  { Outcome<U>.Failure(this.error) // this is Outcome<U>.Failure(...) 
+  }
+ 
+  function Extract(): T requires !IsFailure() { this.value } 
+}
+
+function m(): Outcome<int> { Outcome<int>.Success(0) }
+function test(): Outcome<int> {
+  var rr, rrr :- m(); Outcome.Success(1) 
+}
+```
+
+<!-- INSERT-TEXT -->
+
+## **Error: ':-' must have exactly one right-hand side** {#p_elephant_has_one_rhs}
+
+```dafny
+datatype Outcome<T> = 
+  | Success(value: T) 
+  | Failure(error: string) 
+{ predicate IsFailure() { this.Failure? } 
+  function PropagateFailure<U>(): Outcome<U> 
+    requires IsFailure() 
+  { Outcome<U>.Failure(this.error) // this is Outcome<U>.Failure(...) 
+  }
+ 
+  function Extract(): T requires !IsFailure() { this.value } 
+}
+
+function m(): Outcome<int> { Outcome<int>.Success(0) }
+function test(): Outcome<int> {
+  var rr :- m(), 44; Outcome.Success(1) 
+}
+```
+
+<!-- INSERT-TEXT -->
+
+## **Error: a set comprehension with more than one bound variable must have a term expression** {#p_set_comprehension_needs_term_expression}
+
+```dafny
+const s := set x, y | 0 <= x < y < 10 
+```
+
+<!-- INSERT-TEXT -->
+
+## **Warning: opaque is deprecated as an identifier. It will soon become a reserved word. Use a different name.** {#p_deprecated_opaque_as_identifier}
+
+<!-- %check-resolve-warn -->
+```dafny
+const opaque: int
+```
+
+<!-- INSERT-TEXT -->
+
+## **Error: invalid name after a '.'** {#p_invalid_name_after_dot}
+
+<!-- INSERT-TEXT -->
+
+## **Error: cannot declare identifier beginning with underscore** {#p_no_leading_underscore_2}
+
+```dafny
+const _myconst := 5
+```
+
+<!-- INSERT-TEXT -->
+
+## **Warning: deprecated style: a semi-colon is not needed here {#p_deprecated_semicolon}
+
+<!-- %check-legacy %exit 0 %options /compile:0 /deprecation:2 -->
+```dafny
+const c := 5;
+```
+
+<!-- INSERT-TEXT -->
+
+## **Error: incorrectly formatted number** {#p_bad_number_format}
+
+<!-- not reachable -->
+
+<!-- INSERT-TEXT -->
+
+## **Error: incorrectly formatted number** {#p_bad_hex_number_format}
+
+<!-- not reachable -->
+
+<!-- INSERT-TEXT -->
+
+## **Error: incorrectly formatted number** {#p_bad_decimal_number_format}
+
+<!-- not reachable -->
+
+<!-- INSERT-TEXT -->
+
+<!-- FILE ./DafnyCore/CoCo/Parser.frame -->
+
+## **Error: invalid _entity_** {#p_generic_syntax_error}
+
+<!-- TODO -->
+
+<!-- INSERT-TEXT -->
+
+<!-- FILE ./DafnyCore/CoCo/Scanner.frame -->
+
+## **Error: Malformed _template_ pragma: #_source_** {#sc_malformed_pragma}
+
+<!-- %no-check -->
+```dafny
+const s := @"
+#line S
+"
+```
+
+This pragma syntax is no longer supported. If this message is seen, please report it to the Dafny development team.
+The Dafny scanner once supported pragmas of the form `#line <lineno> <filename>`, with the filename optional.
+This message indicates that the pragma was not readable, most likely because the line number was not a
+parsable numeral.
+
+## **Error: Unrecognized pragma: #_source_** {#sc_unknown_pragma}
+
+<!-- %no-check -->
+```dafny
+const s := @"
+# I love hashes
+"
+```
+
+This pragma syntax is no longer supported. If this message is seen, please report it to the Dafny development team.
+The Dafny scanner saw a pragma -- the first character of the line is a # character. But it is not one that the
+scanner recognizes. The only pragma ever recognized was `#line`.
+
+<!-- ./DafnyCore/AST/Grammar/ProgramParser.cs -->
+
+## **Warning: File contains no code** {#p_file_has_no_code}
+
+<!-- %check-resolve-warn -->
+```dafny
+// const c := 42
+```
+
+<!-- INSERT-TEXT -->
+
+## **Error: [internal error] Parser exception: _message_** {#p_internal_exception}
+
+<!-- INSERT-TEXT -->

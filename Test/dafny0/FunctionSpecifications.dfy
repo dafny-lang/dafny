@@ -2,8 +2,8 @@
 // RUN: %diff "%s.expect" "%t"
 
 ghost function Fib(n: int): int
-  requires 0 <= n;
-  ensures 0 <= Fib(n);
+  requires 0 <= n
+  ensures 0 <= Fib(n)
 {
   if n < 2 then n else
   Fib(n-2) + Fib(n-1)
@@ -12,7 +12,7 @@ ghost function Fib(n: int): int
 datatype List = Nil | Cons(int, List)
 
 ghost function Sum(a: List): int
-  ensures 0 <= Sum(a);
+  ensures 0 <= Sum(a)
 {
   match a
   case Nil => 0
@@ -20,15 +20,15 @@ ghost function Sum(a: List): int
 }
 
 ghost function FibWithoutPost(n: int): int
-  requires 0 <= n;
+  requires 0 <= n
 {
   if n < 2 then n else
   FibWithoutPost(n-2) + FibWithoutPost(n-1)
 }
 
 ghost function SumBad(a: List): int
-  ensures 0 <= Sum(a);  // this is still okay, because this is calling the good Sum
-  ensures 0 <= SumBad(a);  // error: cannot prove postcondition
+  ensures 0 <= Sum(a)  // this is still okay, because this is calling the good Sum
+  ensures 0 <= SumBad(a)  // error: cannot prove postcondition
 {
   match a
   case Nil => 0
@@ -36,21 +36,29 @@ ghost function SumBad(a: List): int
 }
 
 ghost function FibWithExtraPost(n: int): int
-  ensures 2 <= n ==> 0 <= FibWithExtraPost(n-1); // This is fine, because the definition of the function is discovered via canCall
-  ensures 1 <= n ==> 0 <= FibWithExtraPost(n-1); // Error: In the current implementation of Dafny, one needs to actually call the
+  ensures 2 <= n ==> 0 <= FibWithExtraPost(n-1) // This is fine, because the definition of the function is discovered via canCall
+  ensures 1 <= n ==> 0 <= FibWithExtraPost(n-1) // Error: In the current implementation of Dafny, one needs to actually call the
                                                  // function in order to benefit from canCall.  This may be improved in the future.
-  ensures 0 <= FibWithExtraPost(n);
+  ensures 0 <= FibWithExtraPost(n)
 {
   if n < 0 then 0 else
   if n < 2 then n else
   FibWithExtraPost(n-2) + FibWithExtraPost(n-1)
 }
 
+ghost function GoodPost(n: int): int
+  requires 0 <= n
+  ensures 1 <= n ==> GoodPost(n-1) == GoodPost(n-1)
+  ensures GoodPost(2*n - n) == GoodPost(2*(n+5) - 10 - n)  // these are legal ways to denote the result value of the function
+{
+  assert 2*n - n == 2*(n+5) - 10 - n;
+  if n < 2 then n else
+  GoodPost(n-2) + GoodPost(n-1)
+}
+
 ghost function DivergentPost(n: int): int
-  requires 0 <= n;
-  ensures 1 <= n ==> DivergentPost(n-1) == DivergentPost(n-1);
-  ensures DivergentPost(2*n - n) == DivergentPost(2*(n+5) - 10 - n);  // these are legal ways to denote the result value of the function
-  ensures DivergentPost(n+1) == DivergentPost(n+1);  // error: call may not terminate
+  requires 0 <= n
+  ensures DivergentPost(n+1) == DivergentPost(n+1)  // error: call may not terminate
 {
   assert 2*n - n == 2*(n+5) - 10 - n;
   if n < 2 then n else
@@ -58,7 +66,7 @@ ghost function DivergentPost(n: int): int
 }
 
 ghost function HoldsAtLeastForZero(x: int): bool
-  ensures x == 0 ==> HoldsAtLeastForZero(x);
+  ensures x == 0 ==> HoldsAtLeastForZero(x)
 {
   x < -2  // error: this does not hold for 0
 }
@@ -67,7 +75,7 @@ ghost function HoldsAtLeastForZero(x: int): bool
 // ----- the subrange test (which they didn't always do).
 
 ghost function IncA(x: nat): nat
-  ensures x < IncA(x);
+  ensures x < IncA(x)
 {
   if x == 17 then
     18
@@ -87,7 +95,7 @@ ghost function IncB(i: nat): nat
 }
 
 ghost function IncC(i: nat): int
-  ensures IncC(i)>=0;
+  ensures IncC(i)>=0
 {
   var n :| n>i; n
 }
@@ -99,9 +107,9 @@ ghost function IncC(i: nat): int
 
 // Test basic function hiding
 ghost function {:opaque} secret(x:int, y:int) : int
-  requires 0 <= x < 5;
-  requires 0 <= y < 5;
-  ensures secret(x, y) < 10;
+  requires 0 <= x < 5
+  requires 0 <= y < 5
+  ensures secret(x, y) < 10
 { x + y }
 
 method test_secret()
@@ -115,7 +123,7 @@ method test_secret()
 // Check that opaque doesn't break recursion unrolling
 // Also checks that opaque functions that do terminate are verified as such
 ghost function {:opaque} recursive_f(x:int) : int
-  requires x >= 0;
+  requires x >= 0
 {
   if x == 0 then 0
   else 1 + recursive_f(x - 1)
@@ -134,22 +142,22 @@ method test_recursive_f()
 
 // Check that opaque doesn't interfere with ensures checking
 ghost function {:opaque} bad_ensures(x:int, y:int):int
-  requires x >= 0 && y >= 0;
-  ensures bad_ensures(x, y) > 0;
+  requires x >= 0 && y >= 0
+  ensures bad_ensures(x, y) > 0
 {
   x + y
 }
 
 // Check that opaque doesn't interfere with termination checking
 ghost function {:opaque} f(i:int):int
-  decreases i;
+  decreases i
 {
   f(i) + 1
 }
 
 // Try a sneakier (nested) version of the test above
 ghost function {:opaque} g(i:int):int
-  decreases i;
+  decreases i
 {
   h(i) + 1
 }

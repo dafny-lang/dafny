@@ -11,14 +11,14 @@ import java.util.Collection;
 import java.util.function.Function;
 
 public abstract class TypeDescriptor<T> {
-    final Class<T> boxedClass;
+    final Class<?> boxedClass;
     final Class<?> unboxedClass;
 
-    TypeDescriptor(Class<T> javaClass) {
+    TypeDescriptor(Class<?> javaClass) {
         this(javaClass, javaClass);
     }
 
-    TypeDescriptor(Class<T> boxedClass, Class<?> unboxedClass) {
+    TypeDescriptor(Class<?> boxedClass, Class<?> unboxedClass) {
         this.boxedClass = boxedClass;
         this.unboxedClass = unboxedClass;
     }
@@ -66,7 +66,7 @@ public abstract class TypeDescriptor<T> {
         System.arraycopy(src, srcPos, dest, destPos, length);
     }
 
-    public abstract boolean arrayDeepEquals(Object array1, Object array2);
+    public abstract boolean arrayShallowEquals(Object array1, Object array2);
 
     // TODO: Benchmark this to see if it's slow (better to copy and paste for
     // each class so that setArrayElement is inlined?)
@@ -94,8 +94,13 @@ public abstract class TypeDescriptor<T> {
     }
 
     public static <T> TypeDescriptor<T> referenceWithInitializer(
-            Class<T> javaClass, Initializer<T> initializer) {
+            Class<?> javaClass, Initializer<T> initializer) {
         return new ReferenceType<T>(javaClass, initializer);
+    }
+
+    public static <T> TypeDescriptor<T> referenceWithInitializerAndTypeDescriptor(
+            TypeDescriptor<T> typeDescriptor, Initializer<T> initializer) {
+        return new ReferenceType<T>(typeDescriptor.boxedClass, initializer);
     }
 
     public static TypeDescriptor<Byte> byteWithDefault(byte d) {
@@ -195,7 +200,7 @@ public abstract class TypeDescriptor<T> {
         private final Initializer<T> initializer;
         private TypeDescriptor<?> arrayType;
 
-        public ReferenceType(Class<T> javaClass, Initializer<T> initializer) {
+        public ReferenceType(Class<?> javaClass, Initializer<T> initializer) {
             super(javaClass);
 
             assert !javaClass.isPrimitive();
@@ -253,12 +258,12 @@ public abstract class TypeDescriptor<T> {
         }
 
         @Override
-        public boolean arrayDeepEquals(Object array1, Object array2) {
+        public boolean arrayShallowEquals(Object array1, Object array2) {
             @SuppressWarnings("unchecked")
             T[] castArray1 = (T[]) array1;
             @SuppressWarnings("unchecked")
             T[] castArray2 = (T[]) array2;
-            return Arrays.deepEquals(castArray1, castArray2);
+            return Arrays.equals(castArray1, castArray2);
         }
     }
 
@@ -306,7 +311,7 @@ public abstract class TypeDescriptor<T> {
         }
 
         @Override
-        public boolean arrayDeepEquals(Object array1, Object array2) {
+        public boolean arrayShallowEquals(Object array1, Object array2) {
             byte[] castArray1 = (byte[]) array1, castArray2 = (byte[]) array2;
             return Arrays.equals(castArray1, castArray2);
         }
@@ -356,7 +361,7 @@ public abstract class TypeDescriptor<T> {
         }
 
         @Override
-        public boolean arrayDeepEquals(Object array1, Object array2) {
+        public boolean arrayShallowEquals(Object array1, Object array2) {
             short[] castArray1 = (short[]) array1, castArray2 = (short[]) array2;
             return Arrays.equals(castArray1, castArray2);
         }
@@ -406,7 +411,7 @@ public abstract class TypeDescriptor<T> {
         }
 
         @Override
-        public boolean arrayDeepEquals(Object array1, Object array2) {
+        public boolean arrayShallowEquals(Object array1, Object array2) {
             int[] castArray1 = (int[]) array1, castArray2 = (int[]) array2;
             return Arrays.equals(castArray1, castArray2);
         }
@@ -456,7 +461,7 @@ public abstract class TypeDescriptor<T> {
         }
 
         @Override
-        public boolean arrayDeepEquals(Object array1, Object array2) {
+        public boolean arrayShallowEquals(Object array1, Object array2) {
             long[] castArray1 = (long[]) array1, castArray2 = (long[]) array2;
             return Arrays.equals(castArray1, castArray2);
         }
@@ -506,7 +511,7 @@ public abstract class TypeDescriptor<T> {
         }
 
         @Override
-        public boolean arrayDeepEquals(Object array1, Object array2) {
+        public boolean arrayShallowEquals(Object array1, Object array2) {
             boolean[] castArray1 = (boolean[]) array1, castArray2 = (boolean[]) array2;
             return Arrays.equals(castArray1, castArray2);
         }
@@ -556,7 +561,7 @@ public abstract class TypeDescriptor<T> {
         }
 
         @Override
-        public boolean arrayDeepEquals(Object array1, Object array2) {
+        public boolean arrayShallowEquals(Object array1, Object array2) {
             char[] castArray1 = (char[]) array1, castArray2 = (char[]) array2;
             return Arrays.equals(castArray1, castArray2);
         }
@@ -606,7 +611,7 @@ public abstract class TypeDescriptor<T> {
         }
 
         @Override
-        public boolean arrayDeepEquals(Object array1, Object array2) {
+        public boolean arrayShallowEquals(Object array1, Object array2) {
             int[] castArray1 = (int[]) array1, castArray2 = (int[]) array2;
             return Arrays.equals(castArray1, castArray2);
         }

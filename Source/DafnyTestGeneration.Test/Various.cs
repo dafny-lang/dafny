@@ -1,36 +1,50 @@
+// Copyright by the contributors to the Dafny Project
+// SPDX-License-Identifier: MIT
+
+#nullable disable
+using System;
+using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Microsoft.Dafny;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace DafnyTestGeneration.Test {
 
-  public class Various {
+  public class Various : Setup {
+    private readonly TextWriter output;
 
+    public Various(ITestOutputHelper output) {
+      this.output = new WriterFromOutputHelper(output);
+    }
 
-    [Fact]
-    public async Task NoInlining() {
+    [Theory]
+    [MemberData(nameof(OptionSettings))]
+    public async Task NoInlining(List<Action<DafnyOptions>> optionSettings) {
       var source = @"
 module M {
   class Inlining {
-    method b (i:int) returns (r:int) {
+    method {:testEntry} b (i:int) returns (r:int) {
       if (i == 0) {
           return 7;
       } else {
           return 81;
       }
     }
-    method a (i:int) returns (r:int) {
+    method {:testEntry} a (i:int) returns (r:int) {
       r := b(i);
     }
   }
 }
 ".TrimStart();
-      var program = Utils.Parse(Setup.GetDafnyOptions(), source);
+      var options = GetDafnyOptions(optionSettings, output);
+      var program = Utils.Parse(options, source, false);
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
-      Assert.Equal(3, methods.Count);
-      Assert.Equal(2, methods.Count(m => m.MethodName == "M.Inlining.b"));
+      Assert.True(3 <= methods.Count);
+      Assert.True(2 <= methods.Count(m => m.MethodName == "M.Inlining.b"));
       Assert.Equal(1, methods.Count(m => m.MethodName == "M.Inlining.a"));
       Assert.True(methods.All(m => !m.DafnyInfo.IsStatic("M.Inlining.b")));
       Assert.True(methods.All(m => !m.DafnyInfo.IsStatic("M.Inlining.a")));
@@ -42,30 +56,29 @@ module M {
         Regex.IsMatch(m.ArgValues[1], "-?[0-9]+")));
     }
 
-    [Fact]
-    public async Task Inlining() {
+    [Theory]
+    [MemberData(nameof(OptionSettings))]
+    public async Task Inlining(List<Action<DafnyOptions>> optionSettings) {
       var source = @"
 module M {
   class Inlining {
-    method b (i:int) returns (r:int) {
+    method {:testInline 1} b (i:int) returns (r:int) {
       if (i == 0) {
           return 7;
       } else {
           return 81;
       }
     }
-    method a (i:int) returns (r:int) {
+    method {:testEntry} a (i:int) returns (r:int) {
       r := b(i);
     }
   }
 }
 ".TrimStart();
-      var options = Setup.GetDafnyOptions();
-      var program = Utils.Parse(options, source);
-      options.TestGenOptions.TargetMethod = "M.Inlining.a";
-      options.TestGenOptions.TestInlineDepth = 2;
+      var options = GetDafnyOptions(optionSettings, output);
+      var program = Utils.Parse(options, source, false);
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
-      Assert.Equal(2, methods.Count);
+      Assert.True(methods.Count >= 2);
       Assert.True(methods.All(m => m.MethodName == "M.Inlining.a"));
       Assert.True(methods.All(m => !m.DafnyInfo.IsStatic("M.Inlining.a")));
       Assert.True(methods.All(m => m.ArgValues.Count == 2));
@@ -75,37 +88,156 @@ module M {
         Regex.IsMatch(m.ArgValues[1], "-?[1-9][0-9]*")));
     }
 
-    [Fact]
-    public async Task PathBasedTests() {
+    [Theory]
+    [MemberData(nameof(OptionSettings))]
+    public async Task NestedInlining(List<Action<DafnyOptions>> optionSettings) {
       var source = @"
-module Paths {
-  method eightPaths (i:int)
-    returns (divBy2:bool, divBy3:bool, divBy5:bool)
-  {
-    if (i % 2 == 0) {
-      divBy2 := true;
-    } else {
-      divBy2 := false;
+module M {
+  class Inlining {
+    function {:testInline 1} min (a:int, b:int):int {
+      if a < b then a else b
     }
-    if (i % 3 == 0) {
-      divBy3 := true;
-    } else {
-      divBy3 := false;
+    function {:testInline 1} max (a:int, b:int):int {
+      min(b, a)
     }
-    if (i % 5 == 0) {
-      divBy5 := true;
-    } else {
-      divBy5 := false;
+    method {:testEntry} test (a:int, b:int) returns (r:int) {
+      r := max(a, b);
     }
   }
 }
 ".TrimStart();
-      var options = Setup.GetDafnyOptions();
-      var program = Utils.Parse(options, source);
+      var options = GetDafnyOptions(optionSettings, output);
+      var program = Utils.Parse(options, source, false);
+      var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
+      Assert.True(methods.Count >= 2);
+    }
+
+    [Theory]
+    [MemberData(nameof(OptionSettings))]
+    public async Task SelectiveInlining(List<Action<DafnyOptions>> optionSettings) {
+      var source = @"
+module M {
+  class Inlining {
+    function {:testInline 1} min (a:int, b:int):int {
+      if a < b then a else b
+    }
+    function max (a:int, b:int):int {
+      if a > b then a else b
+    }
+    method {:testEntry} test(a:int, b:int) returns (r:int) {
+      r := max(a, b);
+    }
+  }
+}
+".TrimStart();
+      var options = GetDafnyOptions(optionSettings, output);
+      var program = Utils.Parse(options, source, false);
+      var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
+      Assert.Single(methods);
+    }
+
+    [Theory]
+    [MemberData(nameof(OptionSettings))]
+    public async Task FunctionCallInAMethodTranslation(List<Action<DafnyOptions>> optionSettings) {
+      var source = @"
+module M {
+  class Inlining {
+    function {:testInline 1} max (a:int, b:int):int {
+      if a > b then a else b
+    }
+    method {:testEntry} test(a:int, b:int) returns (r:int) {
+      r := max(a, b);
+    }
+  }
+}
+".TrimStart();
+      var options = GetDafnyOptions(optionSettings, output);
+      var program = Utils.Parse(options, source, false);
+      var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
+      Assert.True(2 <= methods.Count);
+    }
+
+    [Theory]
+    [MemberData(nameof(OptionSettings))]
+    public async Task InliningRecursion(List<Action<DafnyOptions>> optionSettings) {
+      var source = @"
+module M {
+  class Inlining {
+    function {:testInline 2} mod3 (n:int):int 
+      requires n >= 0
+      decreases n
+    {
+      if n == 0 then 0 else
+      if n == 1 then 1 else
+      if n == 2 then 2 else
+      mod3(n-3)
+    }
+    method {:testEntry} test(n:int) returns (r:int) 
+      requires n >= 3
+    {
+      r := mod3(n);
+    }
+  }
+}
+".TrimStart();
+      var options = GetDafnyOptions(optionSettings, output);
+      var program = Utils.Parse(options, source, false);
+      var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
+      Assert.True(methods.Count >= 3);
+    }
+
+    [Theory]
+    [MemberData(nameof(OptionSettings))]
+    public async Task InliningNoRecursion(List<Action<DafnyOptions>> optionSettings) {
+      var source = @"
+module M {
+  class Inlining {
+    function {:testInline 1} mod3 (n:int):int 
+      requires n >= 0
+      decreases n
+    {
+      if n == 0 then 0 else
+      if n == 1 then 1 else
+      if n == 2 then 2 else
+      mod3(n-3)
+    }
+    method {:testEntry} test(n:int) returns (r:int) 
+      requires n >= 3
+    {
+      r := mod3(n);
+    }
+  }
+}
+".TrimStart();
+      var options = GetDafnyOptions(optionSettings, output);
+      var program = Utils.Parse(options, source, false);
+      var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
+      Assert.True(methods.Count < 3);
+    }
+
+    [Theory]
+    [MemberData(nameof(OptionSettings))]
+    public async Task PathBasedTests(List<Action<DafnyOptions>> optionSettings) {
+      var source = @"
+module Paths {
+  method {:testEntry} eightPaths (i:int)
+    returns (divBy2:bool, divBy3:bool, divBy5:bool)
+  {
+    divBy2 := ifThenElse(i % 2 == 0, true, false);
+    divBy3 := ifThenElse(i % 3 == 0, true, false);
+    divBy5 := ifThenElse(i % 5 == 0, true, false);
+  }
+  predicate {:testInline 1} ifThenElse(condition:bool, thenBranch:bool, elseBranch:bool) {
+    if condition then thenBranch else elseBranch
+  }
+}
+".TrimStart();
+      var options = GetDafnyOptions(optionSettings, output);
+      var program = Utils.Parse(options, source, false);
       options.TestGenOptions.Mode =
         TestGenerationOptions.Modes.Path;
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
-      Assert.Equal(8, methods.Count);
+      Assert.True(8 <= methods.Count);
       Assert.True(methods.All(m => m.MethodName == "Paths.eightPaths"));
       Assert.True(methods.All(m => m.DafnyInfo.IsStatic("Paths.eightPaths")));
       Assert.True(methods.All(m => m.ArgValues.Count == 1));
@@ -124,30 +256,27 @@ module Paths {
       Assert.True(values.Exists(i => i % 2 != 0 && i % 3 != 0 && i % 5 != 0));
     }
 
-    [Fact]
-    public async Task BlockBasedTests() {
+    [Theory]
+    [MemberData(nameof(OptionSettings))]
+    public async Task BranchBasedTests(List<Action<DafnyOptions>> optionSettings) {
       var source = @"
 module Paths {
-  method eightPaths (i:int) returns (divBy2:bool, divBy3:bool, divBy5:bool) {
-    if (i % 2 == 0) {
-      divBy2 := true;
-    } else {
-      divBy2 := false;
-    }
-    if (i % 3 == 0) {
-      divBy3 := true;
-    } else {
-      divBy3 := false;
-    }
-    if (i % 5 == 0) {
-      divBy5 := true;
-    } else {
-      divBy5 := false;
-    }
+  method {:testEntry} eightPaths (i:int)
+    returns (divBy2:bool, divBy3:bool, divBy5:bool)
+  {
+    divBy2 := ifThenElse(i % 2 == 0, true, false);
+    divBy3 := ifThenElse(i % 3 == 0, true, false);
+    divBy5 := ifThenElse(i % 5 == 0, true, false);
+  }
+  predicate {:testInline 1} ifThenElse(condition:bool, thenBranch:bool, elseBranch:bool) {
+    if condition then thenBranch else elseBranch
   }
 }
 ".TrimStart();
-      var program = Utils.Parse(Setup.GetDafnyOptions(), source);
+      var options = GetDafnyOptions(optionSettings, output);
+      var program = Utils.Parse(options, source, false);
+      options.TestGenOptions.Mode =
+        TestGenerationOptions.Modes.CallGraph;
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
       Assert.True(methods.Count is >= 2 and <= 6);
       Assert.True(methods.All(m => m.MethodName == "Paths.eightPaths"));
@@ -166,74 +295,145 @@ module Paths {
       Assert.True(values.Exists(i => i % 5 != 0));
     }
 
-    [Fact]
-    public async Task RecursivelyExtractObjectFields() {
+    [Theory]
+    [MemberData(nameof(OptionSettings))]
+    public async Task BlockBasedTests(List<Action<DafnyOptions>> optionSettings) {
+      var source = @"
+module Paths {
+  method {:testEntry} eightPaths (i:int)
+    returns (divBy2:bool, divBy3:bool, divBy5:bool)
+  {
+    divBy2 := ifThenElse(i % 2 == 0, true, false);
+    divBy3 := ifThenElse(i % 3 == 0, true, false);
+    divBy5 := ifThenElse(i % 5 == 0, true, false);
+  }
+  predicate {:testInline 1} ifThenElse(condition:bool, thenBranch:bool, elseBranch:bool) {
+    if condition then thenBranch else elseBranch
+  }
+}
+".TrimStart();
+      var options = GetDafnyOptions(optionSettings, output);
+      var program = Utils.Parse(options, source, false);
+      var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
+      Assert.True(methods.Count is >= 1 and <= 2);
+      Assert.True(methods.All(m => m.MethodName == "Paths.eightPaths"));
+      Assert.True(methods.All(m => m.DafnyInfo.IsStatic("Paths.eightPaths")));
+      Assert.True(methods.All(m => m.ArgValues.Count == 1));
+      Assert.True(methods.All(m => m.ValueCreation.Count == 0));
+      var values = methods.Select(m =>
+          int.TryParse(m.ArgValues[0], out var result) ? (int?)result : null)
+        .ToList();
+      Assert.True(values.All(i => i != null));
+      Assert.True(values.Exists(i => i % 2 == 0 || i % 3 == 0 || i % 5 == 0));
+      Assert.True(values.Exists(i => i % 2 != 0 || i % 3 != 0 || i % 5 != 0));
+    }
+
+    [Theory]
+    [MemberData(nameof(OptionSettings))]
+    public async Task RecursivelyExtractObjectFields(List<Action<DafnyOptions>> optionSettings) {
       var source = @"
 module Objects {
   class Node {
       var next: Node?;
-      constructor (next2:Node) {
-          next := next2;
+      constructor (next:Node?) {
+          this.next := next;
       }
   }
   class List {
-    static method IsACircleOfLessThanThree(node: Node) returns (b: bool) {
-        var curr:Node? := node.next;
-        var counter:int := 1;
-        while ((counter < 3) && (curr != null) && (curr != node))
-            invariant counter <= 3
-            decreases 3 - counter {
-            curr := curr.next;
-            counter := counter + 1;
+    static method {:testEntry} IsACircleOfTwoOrLessNodes(node: Node) returns (b: bool) {
+        if node.next == null { 
+          return false;
+        } else if node.next == node { 
+          return true;
+        } else if node.next.next == null || node.next.next == node.next {
+          return false;
+        } else if node.next.next == node { 
+          return true;
         }
-        return curr == node;
+        return false;
     }
   }
 }
 ".TrimStart();
-      var options = Setup.GetDafnyOptions();
-      var program = Utils.Parse(options, source);
-      options.TestGenOptions.TargetMethod =
-        "Objects.List.IsACircleOfLessThanThree";
+      var options = GetDafnyOptions(optionSettings, output);
+      var program = Utils.Parse(options, source, false);
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
-      Assert.True(methods.Count >= 2);
+      Assert.True(methods.Count >= 5);
       Assert.True(methods.All(m =>
-        m.MethodName == "Objects.List.IsACircleOfLessThanThree"));
+        m.MethodName == "Objects.List.IsACircleOfTwoOrLessNodes"));
       Assert.True(methods.All(m =>
-        m.DafnyInfo.IsStatic("Objects.List.IsACircleOfLessThanThree")));
+        m.DafnyInfo.IsStatic("Objects.List.IsACircleOfTwoOrLessNodes")));
       Assert.True(methods.All(m => m.ArgValues.Count == 1));
-      // This test is too specific. A test input may be valid and still not satisfy it.
-      /*
+      // First return statement:
       Assert.True(methods.Exists(m =>
-        (m.Assignments.Count == 1 && m.Assignments[0] == ("v0", "next", "v0") &&
-        m.ValueCreation.Count == 1) ||
-        (m.Assignments.Count == 2 && m.Assignments[1] == ("v0", "next", "v1") &&
-        m.Assignments[0] == ("v1", "next", "v0") &&
-        m.ValueCreation.Count == 2)));
-        */
+        (m.Assignments.Count == 1 && m.ValueCreation.Count == 1 &&
+         m.Assignments.Last() == ("node0", "next", "null"))));
+      // Second return statement:
+      Assert.True(methods.Exists(m =>
+        (m.Assignments.Count == 1 && m.ValueCreation.Count == 1 &&
+         m.Assignments.Last() == ("node0", "next", "node0"))));
+      // Third return statement:
+      Assert.True(methods.Exists(m =>
+        (m.Assignments.Count == 2 && m.ValueCreation.Count == 2 &&
+         m.Assignments.Last() == ("node0", "next", "node1") &&
+         (m.Assignments[^2] == ("node1", "next", "null") ||
+          m.Assignments[^2] == ("node1", "next", "node1")))));
+      // Fourth return statements:
+      Assert.True(methods.Exists(m =>
+        (m.Assignments.Count == 2 && m.ValueCreation.Count == 2 &&
+         m.Assignments.Last() == ("node0", "next", "node1") &&
+         m.Assignments[^2] == ("node1", "next", "node0"))));
+      // Final return statements:
       Assert.True(methods.Exists(m =>
         (m.Assignments.Count > 2 && m.ValueCreation.Count > 2 &&
-        m.Assignments.Last() == ("v0", "next", "v1") &&
-        m.Assignments[^2] == ("v1", "next", "v2")) ||
-        (m.Assignments.Count == 2 && m.ValueCreation.Count == 2 &&
-        m.Assignments[1] == ("v0", "next", "v1") &&
-        m.Assignments[0] == ("v1", "next", "v1"))));
-      Assert.True(methods.Exists(m =>
-        (m.Assignments.Count == 1 &&
-        m.Assignments[0] == ("v0", "next", "null") &&
-        m.ValueCreation.Count == 1) ||
-        (m.Assignments.Count == 2 && m.Assignments[1] == ("v0", "next", "v1") &&
-        m.Assignments[0] == ("v1", "next", "null") &&
-        m.ValueCreation.Count == 2)));
+         m.Assignments.Last() == ("node0", "next", "node1") &&
+         m.Assignments[^2] == ("node1", "next", "node2"))));
     }
 
-    [Fact]
-    public async Task RecursivelyExtractDatatypeFields() {
+    /// <summary>
+    /// This test addresses the situation in which there is a class-type object
+    /// that does not matter for the construction of a counterexample.
+    /// Furthermore, this class-type object is self-referential,
+    /// with a field of the same type. Test generation must not enter infinite
+    /// loop and must figure out that it needs to set the field of the object
+    /// to itself.
+    /// </summary>
+    [Theory]
+    [MemberData(nameof(OptionSettings))]
+    public async Task TestByDefaultConstructionOfSelfReferentialValue(List<Action<DafnyOptions>> optionSettings) {
+      var source = @"
+module M {
+
+    class LoopingList {
+
+        var next:LoopingList;
+        var value:int;
+
+        constructor() {
+            value := 0;
+            next := this;
+        }
+
+        method {:testEntry} getValue() returns (value:int) {
+            return this.value;
+        }
+    }
+}
+".TrimStart();
+      var options = GetDafnyOptions(optionSettings, output);
+      var program = Utils.Parse(options, source, false);
+      var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
+      Assert.Single(methods);
+    }
+
+    [Theory]
+    [MemberData(nameof(OptionSettings))]
+    public async Task RecursivelyExtractDatatypeFields(List<Action<DafnyOptions>> optionSettings) {
       var source = @"
 module DataTypes {
   datatype Node = Cons(next:Node) | Nil
   class List {
-    static method Depth(node: Node) returns (i:int) {
+    static method {:testEntry} Depth(node: Node) returns (i:int) {
       if (node.Nil?) {
         return 0;
       } else if (node.next.Nil?) {
@@ -245,12 +445,10 @@ module DataTypes {
   }
 }
 ".TrimStart();
-      var options = Setup.GetDafnyOptions();
-      var program = Utils.Parse(options, source);
-      options.TestGenOptions.TargetMethod =
-        "DataTypes.List.Depth";
+      var options = GetDafnyOptions(optionSettings, output);
+      var program = Utils.Parse(options, source, false);
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
-      Assert.Equal(3, methods.Count);
+      Assert.True(3 <= methods.Count);
       Assert.True(methods.All(m =>
         m.MethodName == "DataTypes.List.Depth"));
       Assert.True(methods.All(m =>
@@ -268,8 +466,9 @@ module DataTypes {
         m.ValueCreation[2].value == $"DataTypes.Node.Cons(next:={m.ValueCreation[1].id})"));
     }
 
-    [Fact]
-    public async Task NonNullableObjects() {
+    [Theory]
+    [MemberData(nameof(OptionSettings))]
+    public async Task NonNullableObjects(List<Action<DafnyOptions>> optionSettings) {
       var source = @"
 module Module {
   class Value<T> {
@@ -278,15 +477,13 @@ module Module {
       this.v := v;
     }
   }
-  method ignoreNonNullableObject(v:Value<char>, b:bool) {
-    assert b;
+  method {:testEntry} ignoreNonNullableObject(v:Value<char>, b:bool) returns (b2:bool) {
+    return b;
   }
 }
 ".TrimStart();
-      var options = Setup.GetDafnyOptions();
-      var program = Utils.Parse(options, source);
-      options.TestGenOptions.TargetMethod =
-        "Module.ignoreNonNullableObject";
+      var options = GetDafnyOptions(optionSettings, output);
+      var program = Utils.Parse(options, source, false);
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
       Assert.Single(methods);
       var m = methods[0];
@@ -297,11 +494,12 @@ module Module {
       Assert.Equal("Module.Value<char>", m.ValueCreation[0].type.ToString());
     }
 
-    [Fact]
-    public async Task DeadCode() {
+    [Theory]
+    [MemberData(nameof(OptionSettings))]
+    public async Task DeadCode(List<Action<DafnyOptions>> optionSettings) {
       var source = @"
 module M {
-  method m(a:int) returns (b:int)
+  method {:testEntry} m(a:int) returns (b:int)
     requires a > 0
   {
     if (a == 0) {
@@ -311,18 +509,19 @@ module M {
   }
 }
 ".TrimStart();
-      var options = Setup.GetDafnyOptions();
-      var program = Utils.Parse(options, source);
+      var options = GetDafnyOptions(optionSettings, output);
+      var program = Utils.Parse(options, source, false);
       options.TestGenOptions.WarnDeadCode = true;
-      var stats = await Main.GetDeadCodeStatistics(program).ToListAsync();
-      Assert.Contains("Code at (6,14) is potentially unreachable.", stats);
-      Assert.Equal(2, stats.Count); // second is line with stats
+      var stats = await Main.GetDeadCodeStatistics(program, new Modifications(options)).ToListAsync();
+      Assert.Contains(stats, s => s.Contains("(6,14) is potentially unreachable."));
+      Assert.Equal(1, stats.Count(line => line.Contains("unreachable"))); // second is line with stats
     }
 
-    [Fact]
-    public async Task NoDeadCode() {
+    [Theory]
+    [MemberData(nameof(OptionSettings))]
+    public async Task NoDeadCode(List<Action<DafnyOptions>> optionSettings) {
       var source = @"
-method m(a:int) returns (b:int)
+method {:testEntry} m(a:int) returns (b:int)
 {
   if (a == 0) {
     return 0;
@@ -330,18 +529,19 @@ method m(a:int) returns (b:int)
   return 1;
 }
 ".TrimStart();
-      var options = Setup.GetDafnyOptions();
-      var program = Utils.Parse(options, source);
+      var options = GetDafnyOptions(optionSettings, output);
+      var program = Utils.Parse(options, source, false);
       options.TestGenOptions.WarnDeadCode = true;
-      var stats = await Main.GetDeadCodeStatistics(program).ToListAsync();
+      var stats = await Main.GetDeadCodeStatistics(program, new Modifications(options)).ToListAsync();
       Assert.Single(stats); // the only line with stats
     }
 
-    [Fact]
-    public async Task TypePolymorphism() {
+    [Theory]
+    [MemberData(nameof(OptionSettings))]
+    public async Task TypePolymorphism(List<Action<DafnyOptions>> optionSettings) {
       var source = @"
 module Test {
-  method IsEvenLength<K>(s: seq<K>) returns (isEven: bool)
+  method {:testEntry} IsEvenLength<K>(s: seq<K>) returns (isEven: bool)
   {
     if (|s| % 2 == 0) {
       return true;
@@ -351,12 +551,11 @@ module Test {
   }
 }
 ".TrimStart();
-      var options = Setup.GetDafnyOptions();
-      var program = Utils.Parse(options, source);
-      options.TestGenOptions.TargetMethod = "Test.IsEvenLength";
+      var options = GetDafnyOptions(optionSettings, output);
+      var program = Utils.Parse(options, source, false);
       options.TestGenOptions.SeqLengthLimit = 1;
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
-      Assert.Equal(2, methods.Count);
+      Assert.True(2 <= methods.Count);
       Assert.True(methods.All(m => m.MethodName == "Test.IsEvenLength"));
       Assert.True(methods.All(m => m.DafnyInfo.IsStatic("Test.IsEvenLength")));
       Assert.True(methods.All(m => m.ArgValues.Count == 1));
@@ -367,22 +566,21 @@ module Test {
         Regex.IsMatch(m.ValueCreation[0].value, "\\[[0-9]+\\]")));
     }
 
-    [Fact]
-    public async Task FunctionMethod() {
+    [Theory]
+    [MemberData(nameof(OptionSettings))]
+    public async Task InlineGhostCode(List<Action<DafnyOptions>> optionSettings) {
       var source = @"
 module Math {
-  function Max(a:int, b:int):int {
-    if (a > b) then a else b
+  lemma {:testInline 1} Max(a:int, b:int) returns (i:int) {
+    return if (a > b) then a else b;
   }
-  function Min(a:int, b:int):int {
-    -Max(-a, -b)
+  lemma {:testEntry} Min(a:int, b:int) returns (i:int)  {
+    return -Max(-a, -b);
   }
 }
 ".TrimStart();
-      var options = Setup.GetDafnyOptions();
-      var program = Utils.Parse(options, source);
-      options.TestGenOptions.TestInlineDepth = 2;
-      options.TestGenOptions.TargetMethod = "Math.Min";
+      var options = GetDafnyOptions(optionSettings, output);
+      var program = Utils.Parse(options, source, false);
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
       Assert.True(2 <= methods.Count);
       Assert.True(methods.All(m => m.MethodName == "Math.Min"));
@@ -391,29 +589,28 @@ module Math {
       Assert.True(methods.All(m => m.ValueCreation.Count == 0));
       Assert.True(methods.All(m => m.NOfTypeArgs == 0));
       Assert.True(methods.Exists(m => int.Parse(m.ArgValues[0]) < int.Parse(m.ArgValues[1])));
-      Assert.True(methods.Exists(m => int.Parse(m.ArgValues[1]) <= int.Parse(m.ArgValues[0])));
+      Assert.True(methods.Exists(m => int.Parse(m.ArgValues[1]) >= int.Parse(m.ArgValues[0])));
     }
 
-    [Fact]
-    public async Task FunctionMethodShortCircuit() {
+    [Theory]
+    [MemberData(nameof(OptionSettings))]
+    public async Task FunctionMethodShortCircuit(List<Action<DafnyOptions>> optionSettings) {
       var source = @"
 module ShortCircuit {
-  function Or(a:bool):bool {
+  function {:testEntry} Or(a:bool):bool {
     a || OnlyFalse(a)
   }
-  function OnlyFalse(a:bool):bool
+  function {:testInline 1} OnlyFalse(a:bool):bool
     requires !a
   {
     false
   }
 }
 ".TrimStart();
-      var options = Setup.GetDafnyOptions();
-      var program = Utils.Parse(options, source);
-      options.TestGenOptions.TestInlineDepth = 1;
-      options.TestGenOptions.TargetMethod = "ShortCircuit.Or";
+      var options = GetDafnyOptions(optionSettings, output);
+      var program = Utils.Parse(options, source, false);
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
-      Assert.Equal(2, methods.Count);
+      Assert.True(2 <= methods.Count);
       Assert.True(methods.All(m => m.MethodName == "ShortCircuit.Or"));
       Assert.True(methods.All(m => m.DafnyInfo.IsStatic("ShortCircuit.Or")));
       Assert.True(methods.All(m => m.ArgValues.Count == 1));
@@ -426,21 +623,22 @@ module ShortCircuit {
     /// <summary>
     /// If this fails, consider amending ProgramModifier.MergeBoogiePrograms
     /// </summary>
-    [Fact]
-    public async Task MultipleModules() {
+    [Theory]
+    [MemberData(nameof(OptionSettings))]
+    public async Task MultipleModules(List<Action<DafnyOptions>> optionSettings) {
       var source = @"
 module A {
-  function m(i:int):int requires i == 0 { i }
+  function {:testEntry} m(i:int):int requires i == 0 { i }
 }
 module B {
-  function m(c:char):char requires c == '0' { c }
+  function {:testEntry} m(c:char):char requires c == '0' { c }
 }
 module C {
-  function m(r:real):real requires r == 0.0 { r }
+  function {:testEntry} m(r:real):real requires r == 0.0 { r }
 }
 ".TrimStart();
-      var options = Setup.GetDafnyOptions();
-      var program = Utils.Parse(options, source);
+      var options = GetDafnyOptions(optionSettings, output);
+      var program = Utils.Parse(options, source, false);
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
       Assert.Equal(3, methods.Count);
       Assert.True(methods.Exists(m => m.MethodName == "A.m" &&
@@ -463,13 +661,14 @@ module C {
                                         m.ArgValues[0] == "0.0"));
     }
 
-    [Fact]
-    public async Task Oracles() {
+    [Theory]
+    [MemberData(nameof(OptionSettings))]
+    public async Task Oracles(List<Action<DafnyOptions>> optionSettings) {
       var source = @"
 module M {
   class Instance {  
     var i:int;
-    method setI(i:int) 
+    method {:testEntry} setI(i:int) 
       requires i == 10
       ensures this.i == i 
       modifies this
@@ -479,7 +678,8 @@ module M {
   }  
 }
 ".TrimStart();
-      var program = Utils.Parse(Setup.GetDafnyOptions(), source);
+      var options = GetDafnyOptions(optionSettings, output);
+      var program = Utils.Parse(options, source, false);
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
       Assert.Single(methods);
       Assert.True(methods.All(m =>
@@ -487,7 +687,30 @@ module M {
       Assert.True(methods.All(m =>
         !m.DafnyInfo.IsStatic("M.Instance.setI")));
       Assert.True(methods.All(m => m.ArgValues.Count == 2));
-      Assert.True(methods.All(m => m.ToString().Contains("expect v0.i == 10")));
+      Assert.True(methods.All(m => m.ToString().Contains("expect instance0.i == 10")));
+    }
+
+    /// <summary>
+    /// This test may fail if function to method translation implemented by AddByMethodRewriter
+    /// does not use the cloner to copy the body of the function
+    /// </summary>
+    [Theory]
+    [MemberData(nameof(OptionSettings))]
+    public async Task FunctionToMethodTranslation(List<Action<DafnyOptions>> optionSettings) {
+      var source = @"
+module M {
+
+  function {:testEntry} test(b: bool): bool {
+      assert true by {
+        calc { true; }
+      }
+      true
+  }
+}
+".TrimStart();
+      var options = GetDafnyOptions(optionSettings, output);
+      var program = Utils.Parse(options, source, false);
+      await Main.GetTestMethodsForProgram(program).ToListAsync();
     }
 
   }

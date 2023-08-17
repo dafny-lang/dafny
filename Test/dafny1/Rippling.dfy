@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:0 /induction:3 /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %dafny /compile:0 /deprecation:0 /induction:3 /dprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // Datatypes
@@ -594,7 +594,7 @@ lemma P2_alt(n: Nat, xs: List, ys: List)
 
 // ---------
 
-lemma Lemma_RevConcat(xs: List, ys: List)
+lemma {:vcs_split_on_every_assert} Lemma_RevConcat(xs: List, ys: List)
   ensures reverse(concat(xs, ys)) == concat(reverse(ys), reverse(xs));
 {
   match (xs) {

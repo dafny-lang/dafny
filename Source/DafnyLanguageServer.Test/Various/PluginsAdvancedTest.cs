@@ -2,6 +2,7 @@
 using System.Threading.Tasks;
 using System.Threading;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
+using Xunit.Abstractions;
 using Xunit;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
@@ -26,7 +27,7 @@ method {:test} myMethodWrongName() {
 }
 ");
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-    var resolutionReport = await diagnosticsReceiver.AwaitNextNotificationAsync(CancellationToken.None);
+    var resolutionReport = await diagnosticsReceiver.AwaitNextNotificationAsync(CancellationToken);
     Assert.Equal(documentItem.Uri, resolutionReport.Uri);
     var diagnostics = resolutionReport.Diagnostics.ToArray();
     Assert.Single(diagnostics);
@@ -37,5 +38,8 @@ method {:test} myMethodWrongName() {
     Assert.Equal("You might want to just rename this method", related.Current.Message);
     Assert.Equal(new Range((3, 15), (3, 32)), related.Current.Location.Range);
     related.Dispose();
+  }
+
+  public PluginsAdvancedTest(ITestOutputHelper output) : base(output) {
   }
 }

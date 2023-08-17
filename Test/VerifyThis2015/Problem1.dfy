@@ -1,5 +1,4 @@
-// RUN: %dafny /compile:3 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment
 
 // Rustan Leino
 // 12 April 2015
@@ -157,7 +156,7 @@ lemma Prefix<T>(pat: seq<T>, a: seq<T>)
   ensures IsRelaxedPrefixAux(pat, a, 0)
 {
 }
-lemma Same2<T>(pat: seq<T>, a: seq<T>)
+lemma {:vcs_split_on_every_assert} Same2<T>(pat: seq<T>, a: seq<T>)
   requires IsRelaxedPrefixAux(pat, a, 1)
   ensures IRP_Alt(pat, a)
 {

@@ -5,6 +5,7 @@ using Microsoft.Dafny.LanguageServer.Util;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Threading;
+using Microsoft.Dafny.LanguageServer.Workspace;
 
 namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
   /// <summary>
@@ -16,43 +17,57 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
   /// </remarks>
   public class DafnyLangSymbolResolver : ISymbolResolver {
     private readonly ILogger logger;
+    private readonly ILogger<CachingResolver> innerLogger;
     private readonly SemaphoreSlim resolverMutex = new(1);
+    private readonly ITelemetryPublisher telemetryPublisher;
 
-    public DafnyLangSymbolResolver(ILogger<DafnyLangSymbolResolver> logger) {
+    public DafnyLangSymbolResolver(ILogger<DafnyLangSymbolResolver> logger, ILogger<CachingResolver> innerLogger, ITelemetryPublisher telemetryPublisher) {
       this.logger = logger;
+      this.innerLogger = innerLogger;
+      this.telemetryPublisher = telemetryPublisher;
     }
 
-    public CompilationUnit ResolveSymbols(TextDocumentItem textDocument, Dafny.Program program, out bool canDoVerification, CancellationToken cancellationToken) {
+    private readonly ResolutionCache resolutionCache = new();
+    public CompilationUnit ResolveSymbols(DafnyProject project, Program program, CancellationToken cancellationToken) {
       // TODO The resolution requires mutual exclusion since it sets static variables of classes like Microsoft.Dafny.Type.
       //      Although, the variables are marked "ThreadStatic" - thus it might not be necessary. But there might be
       //      other classes as well.
       resolverMutex.Wait(cancellationToken);
       try {
-        if (!RunDafnyResolver(textDocument, program)) {
-          // We cannot proceed without a successful resolution. Due to the contracts in dafny-lang, we cannot
-          // access a property without potential contract violations. For example, a variable may have an
-          // unresolved type represented by null. However, the contract prohibits the use of the type property
-          // because it must not be null.
-          canDoVerification = false;
-          return new CompilationUnit(program);
+        RunDafnyResolver(project, program, cancellationToken);
+        // We cannot proceed without a successful resolution. Due to the contracts in dafny-lang, we cannot
+        // access a property without potential contract violations. For example, a variable may have an
+        // unresolved type represented by null. However, the contract prohibits the use of the type property
+        // because it must not be null.
+        if (program.Reporter.HasErrorsUntilResolver) {
+          return new CompilationUnit(project.Uri, program);
         }
       }
       finally {
         resolverMutex.Release();
       }
-      canDoVerification = true;
-      return new SymbolDeclarationResolver(logger, cancellationToken).ProcessProgram(program);
+      var beforeLegacyServerResolution = DateTime.Now;
+      var compilationUnit = new SymbolDeclarationResolver(logger, cancellationToken).ProcessProgram(project.Uri, program);
+      telemetryPublisher.PublishTime("LegacyServerResolution", project.Uri.ToString(), DateTime.Now - beforeLegacyServerResolution);
+      return compilationUnit;
     }
 
-    private bool RunDafnyResolver(TextDocumentItem document, Dafny.Program program) {
-      var resolver = new Resolver(program);
-      resolver.ResolveProgram(program);
-      int resolverErrors = resolver.Reporter.ErrorCountUntilResolver;
-      if (resolverErrors > 0) {
-        logger.LogDebug("encountered {ErrorCount} errors while resolving {DocumentUri}", resolverErrors, document.Uri);
-        return false;
+    private void RunDafnyResolver(DafnyProject project, Program program, CancellationToken cancellationToken) {
+      var beforeResolution = DateTime.Now;
+      try {
+        var resolver = program.Options.Get(ServerCommand.UseCaching)
+          ? new CachingResolver(program, innerLogger, telemetryPublisher, resolutionCache)
+          : new ProgramResolver(program);
+        resolver.Resolve(cancellationToken);
+        int resolverErrors = resolver.Reporter.ErrorCountUntilResolver;
+        if (resolverErrors > 0) {
+          logger.LogDebug("encountered {ErrorCount} errors while resolving {DocumentUri}", resolverErrors,
+          project.Uri);
+        }
       }
-      return true;
+      finally {
+        telemetryPublisher.PublishTime("Resolution", project.Uri.ToString(), DateTime.Now - beforeResolution);
+      }
     }
 
     private class SymbolDeclarationResolver {
@@ -64,15 +79,15 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         this.cancellationToken = cancellationToken;
       }
 
-      public CompilationUnit ProcessProgram(Dafny.Program program) {
-        var compilationUnit = new CompilationUnit(program);
+      public CompilationUnit ProcessProgram(Uri entryDocument, Dafny.Program program) {
+        var compilationUnit = new CompilationUnit(entryDocument, program);
         // program.CompileModules would probably more suitable here, since we want the symbols of the System module as well.
         // However, it appears that the AST of program.CompileModules does not hold the correct location of the nodes - at least of the declarations.
-        foreach (var module in program.Modules()) {
+        foreach (var module in compilationUnit.Program.Modules()) {
           cancellationToken.ThrowIfCancellationRequested();
           compilationUnit.Modules.Add(ProcessModule(compilationUnit, module));
         }
-        compilationUnit.Modules.Add(ProcessModule(compilationUnit, program.BuiltIns.SystemModule));
+        compilationUnit.Modules.Add(ProcessModule(compilationUnit, compilationUnit.Program.SystemModuleManager.SystemModule));
         return compilationUnit;
       }
 
@@ -90,8 +105,10 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
 
       private Symbol? ProcessTopLevelDeclaration(ModuleSymbol moduleSymbol, TopLevelDecl topLevelDeclaration) {
         switch (topLevelDeclaration) {
-          case ClassDecl classDeclaration:
+          case ClassLikeDecl classDeclaration:
             return ProcessClass(moduleSymbol, classDeclaration);
+          case DefaultClassDecl defaultClassDecl:
+            return ProcessClass(moduleSymbol, defaultClassDecl);
           case LiteralModuleDecl literalModuleDeclaration:
             return ProcessModule(moduleSymbol, literalModuleDeclaration.ModuleDef);
           case ValuetypeDecl valueTypeDeclaration:
@@ -99,12 +116,12 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
           case DatatypeDecl dataTypeDeclaration:
             return ProcessDataType(moduleSymbol, dataTypeDeclaration);
           default:
-            logger.LogDebug("encountered unknown top level declaration {Name} of type {Type}", topLevelDeclaration.Name, topLevelDeclaration.GetType());
+            logger.LogTrace("encountered unknown top level declaration {Name} of type {Type}", topLevelDeclaration.Name, topLevelDeclaration.GetType());
             return null;
         }
       }
 
-      private ClassSymbol ProcessClass(Symbol scope, ClassDecl classDeclaration) {
+      private ClassSymbol ProcessClass(Symbol scope, TopLevelDeclWithMembers classDeclaration) {
         var classSymbol = new ClassSymbol(scope, classDeclaration);
         ProcessAndAddAllMembers(classSymbol, classDeclaration);
         return classSymbol;
@@ -276,7 +293,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
       }
 
       public override void VisitUnknown(object node, IToken token) {
-        logger.LogDebug("encountered unknown syntax node of type {NodeType} in {Filename}@({Line},{Column})",
+        logger.LogTrace("encountered unknown syntax node of type {NodeType} in {Filename}@({Line},{Column})",
           node.GetType(), token.GetDocumentFileName(), token.line, token.col);
       }
 

@@ -134,7 +134,7 @@ class LinkedList<T(0)> {
   method Concat(end: LinkedList<T>) returns (r: LinkedList<T>)
     requires Valid() && end.Valid()
     ensures r.Valid() && r.List == List + end.List
-    decreases Repr;
+    decreases Repr
   {
     if (length == 0) {
       r := end;

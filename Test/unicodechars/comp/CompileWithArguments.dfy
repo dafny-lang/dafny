@@ -1,3 +1,4 @@
+// NONUNIFORM: Multiple testing scenarios, highly backend sensitive, testing CLI
 // Note that C++ is not supported yet
 
 // RUN: %dafny /compile:0 "%s" > "%t"
@@ -19,9 +20,9 @@
 // RUN: java -jar "%s.jar" Java 1 >> "%t"
 // RUN: java -jar "%s.jar" Java aloha >> "%t"
 // RUN: %baredafny build %args --unicode-char --no-verify --target:py "%s" >> "%t"
-// RUN: python3 %S/CompileWithArguments-py/CompileWithArguments.py Python 2 >> "%t"
-// RUN: python3 %S/CompileWithArguments-py/CompileWithArguments.py Python 1 >> "%t"
-// RUN: python3 %S/CompileWithArguments-py/CompileWithArguments.py Python aloha >> "%t"
+// RUN: python3 %S/CompileWithArguments-py Python 2 >> "%t"
+// RUN: python3 %S/CompileWithArguments-py Python 1 >> "%t"
+// RUN: python3 %S/CompileWithArguments-py Python aloha >> "%t"
 // RUN: %baredafny build %args --unicode-char --no-verify --target:go "%s" >> "%t"
 // RUN: env GO111MODULE=auto GOPATH=%S/CompileWithArguments-go go run %S/CompileWithArguments-go/src/CompileWithArguments.go Go 2 >> "%t"
 // RUN: env GO111MODULE=auto GOPATH=%S/CompileWithArguments-go go run %S/CompileWithArguments-go/src/CompileWithArguments.go Go 1 >> "%t"

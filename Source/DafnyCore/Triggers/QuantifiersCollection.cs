@@ -151,7 +151,9 @@ namespace Microsoft.Dafny.Triggers {
           (candidate, loopingSubterms) => {
             looping.Add(candidate);
             loopingMatches = loopingSubterms.ToList();
-            candidate.Annotation = "may loop with " + loopingSubterms.MapConcat(t => "\"" + Printer.ExprToString(reporter.Options, t.OriginalExpr) + "\"", ", ");
+            candidate.Annotation = "may loop with " +
+                                   String.Join(", ",
+                                     loopingSubterms.Select(t => "\"" + Printer.ExprToString(reporter.Options, t.OriginalExpr) + "\""));
           }).ToList();
 
         q.CouldSuppressLoops = safe.Count > 0;
@@ -251,12 +253,14 @@ namespace Microsoft.Dafny.Triggers {
           QuantifierWithTriggers q = group.quantifier;
           if (q.quantifier is ForallExpr) {
             ForallExpr quantifier = (ForallExpr)q.quantifier;
-            Expression expr = QuantifiersToExpression(quantifier.tok, BinaryExpr.ResolvedOpcode.And, group.expressions);
-            q.quantifier = new ForallExpr(quantifier.tok, quantifier.RangeToken, quantifier.BoundVars, quantifier.Range, expr, TriggerUtils.CopyAttributes(quantifier.Attributes)) { Type = quantifier.Type, Bounds = quantifier.Bounds };
+            IToken tok = quantifier.tok is NestedToken nestedToken ? nestedToken.Outer : quantifier.tok;
+            Expression expr = QuantifiersToExpression(tok, BinaryExpr.ResolvedOpcode.And, group.expressions);
+            q.quantifier = new ForallExpr(tok, quantifier.RangeToken, quantifier.BoundVars, quantifier.Range, expr, TriggerUtils.CopyAttributes(quantifier.Attributes)) { Type = quantifier.Type, Bounds = quantifier.Bounds };
           } else if (q.quantifier is ExistsExpr) {
             ExistsExpr quantifier = (ExistsExpr)q.quantifier;
-            Expression expr = QuantifiersToExpression(quantifier.tok, BinaryExpr.ResolvedOpcode.Or, group.expressions);
-            q.quantifier = new ExistsExpr(quantifier.tok, quantifier.RangeToken, quantifier.BoundVars, quantifier.Range, expr, TriggerUtils.CopyAttributes(quantifier.Attributes)) { Type = quantifier.Type, Bounds = quantifier.Bounds };
+            IToken tok = quantifier.tok is NestedToken nestedToken ? nestedToken.Outer : quantifier.tok;
+            Expression expr = QuantifiersToExpression(tok, BinaryExpr.ResolvedOpcode.Or, group.expressions);
+            q.quantifier = new ExistsExpr(tok, quantifier.RangeToken, quantifier.BoundVars, quantifier.Range, expr, TriggerUtils.CopyAttributes(quantifier.Attributes)) { Type = quantifier.Type, Bounds = quantifier.Bounds };
           }
           list.Add(q);
           splits.Add(q.quantifier);

@@ -12,6 +12,7 @@
 
 .gradle/
 .idea/
+.vs/
 
 Binaries/*.dll
 Binaries/*.mdb
@@ -66,3 +67,6 @@ Source/.vs
 node_modules/
 package.json
 package-lock.json
+docs/dev/*.fix
+docs/dev/*.feat
+docs/dev/*.break

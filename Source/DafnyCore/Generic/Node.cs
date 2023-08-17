@@ -3,15 +3,20 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.Contracts;
 using System.Linq;
+using System.Text.RegularExpressions;
 using Microsoft.Boogie;
 using Microsoft.Dafny.Auditor;
 
 namespace Microsoft.Dafny;
 
 public interface INode {
+  public IToken StartToken => RangeToken.StartToken;
+  public IToken EndToken => RangeToken.EndToken;
+  IEnumerable<IToken> OwnedTokens { get; }
   RangeToken RangeToken { get; }
-
   IToken Tok { get; }
+  IEnumerable<INode> Children { get; }
+  IEnumerable<INode> PreResolveChildren { get; }
 }
 
 public interface ICanFormat : INode {
@@ -21,8 +26,16 @@ public interface ICanFormat : INode {
   bool SetIndent(int indentBefore, TokenNewIndentCollector formatter);
 }
 
-public abstract class Node : INode {
 
+public abstract class Node : INode {
+  private static readonly Regex StartDocstringExtractor =
+    new Regex($@"/\*\*(?<multilinecontent>{TriviaFormatterHelper.MultilineCommentContent})\*/");
+
+  protected IReadOnlyList<IToken> OwnedTokensCache;
+
+  public IToken StartToken => RangeToken?.StartToken;
+
+  public IToken EndToken => RangeToken?.EndToken;
   public abstract IToken Tok { get; }
 
   /// <summary>
@@ -31,44 +44,105 @@ public abstract class Node : INode {
   /// program is lost. As an example, the pattern matching compilation may deduplicate nodes from the original AST,
   /// losing source location information, so those transformed nodes should not be returned by this property.
   /// </summary>
-  public abstract IEnumerable<Node> Children { get; }
+  public abstract IEnumerable<INode> Children { get; }
 
   /// <summary>
   /// These children should match what was parsed before the resolution phase.
   /// That way, gathering all OwnedTokens of all recursive ConcreteChildren should result in a comprehensive
   /// coverage of the original program
   /// </summary>
-  public abstract IEnumerable<Node> PreResolveChildren { get; }
+  public abstract IEnumerable<INode> PreResolveChildren { get; }
 
+  /// <summary>
+  /// A token is owned by a node if it was used to parse this node,
+  /// but is not owned by any of this Node's children
+  /// </summary>
+  public IEnumerable<IToken> OwnedTokens {
+    get {
+      if (OwnedTokensCache != null) {
+        return OwnedTokensCache;
+      }
+
+      var childrenFiltered = GetConcreteChildren(this).ToList();
+
+      Dictionary<int, IToken> startToEndTokenNotOwned;
+      try {
+        startToEndTokenNotOwned =
+          childrenFiltered
+            .ToDictionary(child => child.StartToken.pos, child => child.EndToken!);
+      } catch (ArgumentException) {
+        // If we parse a resolved document, some children sometimes have the same token because they are auto-generated
+        startToEndTokenNotOwned = new();
+        foreach (var child in childrenFiltered) {
+          if (startToEndTokenNotOwned.ContainsKey(child.StartToken.pos)) {
+            var previousEnd = startToEndTokenNotOwned[child.StartToken.pos];
+            if (child.EndToken.pos > previousEnd.pos) {
+              startToEndTokenNotOwned[child.StartToken.pos] = child.EndToken;
+            }
+          } else {
+            startToEndTokenNotOwned[child.StartToken.pos] = child.EndToken;
+          }
+        }
+      }
+
+      var result = new List<IToken>();
+      if (StartToken == null) {
+        Contract.Assume(EndToken == null);
+      } else {
+        Contract.Assume(EndToken != null);
+        var tmpToken = StartToken;
+        while (tmpToken != null && tmpToken != EndToken.Next) {
+          if (startToEndTokenNotOwned.TryGetValue(tmpToken.pos, out var endNotOwnedToken)) {
+            tmpToken = endNotOwnedToken;
+          } else if (tmpToken.Uri != null) {
+            result.Add(tmpToken);
+          }
+
+          tmpToken = tmpToken.Next;
+        }
+      }
+
+
+      OwnedTokensCache = result;
+
+      return OwnedTokensCache;
+    }
+  }
+
+  /// <summary>
   // Nodes like DefaultClassDecl have children but no OwnedTokens as they are not "physical"
-  // Therefore, we have to find all the concrete children by unwrapping such nodes.
-  private IEnumerable<Node> GetConcreteChildren() {
-    foreach (var child in PreResolveChildren) {
+  // Therefore, we have to find all the concrete children by unwrapping such nodes. 
+  /// </summary>
+  private static IEnumerable<INode> GetConcreteChildren(INode node) {
+    foreach (var child in node.PreResolveChildren) {
       if (child.StartToken != null && child.EndToken != null && child.StartToken.line != 0) {
         yield return child;
       } else {
-        foreach (var subNode in child.GetConcreteChildren()) {
+        foreach (var subNode in GetConcreteChildren(child)) {
           yield return subNode;
         }
       }
     }
   }
 
+  public abstract RangeToken RangeToken { get; set; }
 
-  public IEnumerable<Node> Descendants() {
-    return Children.Concat(Children.SelectMany(n => n.Descendants()));
+  // <summary>
+  // Returns all assumptions contained in this node or its descendants.
+  // For each one, the decl field will be set to the closest containing declaration.
+  // Likewise, the decl parameter to this method must be the closest declaration
+  // containing this node, or null if it is not contained in any.
+  // </summary>
+  public virtual IEnumerable<Assumption> Assumptions(Declaration decl) {
+    return Enumerable.Empty<Assumption>();
   }
 
-  public virtual IEnumerable<AssumptionDescription> Assumptions() {
-    return Enumerable.Empty<AssumptionDescription>();
-  }
-
-  public ISet<Node> Visit(Func<Node, bool> beforeChildren = null, Action<Node> afterChildren = null) {
+  public ISet<INode> Visit(Func<INode, bool> beforeChildren = null, Action<INode> afterChildren = null) {
     beforeChildren ??= node => true;
     afterChildren ??= node => { };
 
-    var visited = new HashSet<Node>();
-    var toVisit = new LinkedList<Node>();
+    var visited = new HashSet<INode>();
+    var toVisit = new LinkedList<INode>();
     toVisit.AddFirst(this);
     while (toVisit.Any()) {
       var current = toVisit.First();
@@ -100,86 +174,37 @@ public abstract class Node : INode {
     return visited;
   }
 
-
-  public IToken StartToken => RangeToken?.StartToken;
-
-  public IToken EndToken => RangeToken?.EndToken;
-
-  protected IReadOnlyList<IToken> OwnedTokensCache;
-
-  /// <summary>
-  /// A token is owned by a node if it was used to parse this node,
-  /// but is not owned by any of this Node's children
-  /// </summary>
-  public IEnumerable<IToken> OwnedTokens {
-    get {
-      if (OwnedTokensCache != null) {
-        return OwnedTokensCache;
-      }
-
-      var childrenFiltered = GetConcreteChildren().ToList();
-
-      Dictionary<int, IToken> startToEndTokenNotOwned;
-      try {
-        startToEndTokenNotOwned =
-          childrenFiltered
-            .ToDictionary(child => child.StartToken.pos, child => child.EndToken!);
-      } catch (ArgumentException) {
-        // If we parse a resolved document, some children sometimes have the same token because they are auto-generated
-        startToEndTokenNotOwned = new();
-        foreach (var child in childrenFiltered) {
-          if (startToEndTokenNotOwned.ContainsKey(child.StartToken.pos)) {
-            var previousEnd = startToEndTokenNotOwned[child.StartToken.pos];
-            if (child.EndToken.pos > previousEnd.pos) {
-              startToEndTokenNotOwned[child.StartToken.pos] = child.EndToken;
-            }
-          } else {
-            startToEndTokenNotOwned[child.StartToken.pos] = child.EndToken;
-          }
-        }
-      }
-
-      var result = new List<IToken>();
-      if (StartToken == null) {
-        Contract.Assume(EndToken == null);
-      } else {
-        Contract.Assume(EndToken != null);
-        var tmpToken = StartToken;
-        while (tmpToken != null && tmpToken != EndToken.Next) {
-          if (startToEndTokenNotOwned.TryGetValue(tmpToken.pos, out var endNotOwnedToken)) {
-            tmpToken = endNotOwnedToken;
-          } else if (tmpToken.filename != null) {
-            result.Add(tmpToken);
-          }
-
-          tmpToken = tmpToken.Next;
-        }
-      }
-
-
-      OwnedTokensCache = result;
-
-      return OwnedTokensCache;
+  // Docstring from start token is extracted only if using "/** ... */" syntax, and only the last one is considered
+  protected string GetTriviaContainingDocstringFromStartTokenOrNull() {
+    var matches = StartDocstringExtractor.Matches(StartToken.LeadingTrivia);
+    if (matches.Count > 0) {
+      return matches[^1].Value;
     }
-  }
 
-  public abstract RangeToken RangeToken { get; set; }
+    if (StartToken.Prev.val is "|" or "{") {
+      matches = StartDocstringExtractor.Matches(StartToken.Prev.TrailingTrivia);
+      if (matches.Count > 0) {
+        return matches[^1].Value;
+      }
+    }
+    return null;
+  }
 }
 
 public abstract class TokenNode : Node {
-
-  public IToken tok = Token.NoToken;
-  [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-  public override IToken Tok {
-    get => tok;
-  }
-
-  protected RangeToken rangeToken = null;
-
   // Contains tokens that did not make it in the AST but are part of the expression,
   // Enables ranges to be correct.
   // TODO: Re-add format tokens where needed until we put all the formatting to replace the tok of every expression
   internal IToken[] FormatTokens = null;
+
+  protected RangeToken rangeToken = null;
+
+  public IToken tok = Token.NoToken;
+
+  [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+  public override IToken Tok {
+    get => tok;
+  }
 
   public override RangeToken RangeToken {
     get {
@@ -189,7 +214,7 @@ public abstract class TokenNode : Node {
         var endTok = tok;
 
         void UpdateStartEndToken(IToken token1) {
-          if (token1.Filename != tok.Filename) {
+          if (token1.Filepath != tok.Filepath) {
             return;
           }
 
@@ -202,12 +227,12 @@ public abstract class TokenNode : Node {
           }
         }
 
-        void UpdateStartEndTokRecursive(Node node) {
+        void UpdateStartEndTokRecursive(INode node) {
           if (node is null) {
             return;
           }
 
-          if (node.RangeToken.Filename != tok.Filename || node is Expression { IsImplicit: true } ||
+          if (node.RangeToken.Filepath != tok.Filepath || node is Expression { IsImplicit: true } ||
               node is DefaultValueExpression) {
             // Ignore any auto-generated expressions.
           } else {
@@ -216,7 +241,7 @@ public abstract class TokenNode : Node {
           }
         }
 
-        Children.Iter(UpdateStartEndTokRecursive);
+        PreResolveChildren.ForEach(UpdateStartEndTokRecursive);
 
         if (FormatTokens != null) {
           foreach (var token in FormatTokens) {
@@ -234,6 +259,7 @@ public abstract class TokenNode : Node {
 }
 
 public abstract class RangeNode : Node { // TODO merge into Node when TokenNode is gone.
+
   public override IToken Tok => StartToken; // TODO rename to ReportingToken in separate PR
 
   public IToken tok => Tok; // TODO replace with Tok in separate PR

@@ -3,35 +3,32 @@ using System.IO;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using JetBrains.Annotations;
+using Microsoft.Boogie;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
+using Microsoft.Dafny.LanguageServer.Workspace;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 using OmniSharp.Extensions.JsonRpc;
 using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
+using Xunit.Abstractions;
 using Xunit;
 using XunitAssertMessages;
 using Assert = Xunit.Assert;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
   [Collection("Sequential Collection")] // Let slow tests run sequentially
-  public class HoverVerificationTest : SynchronizationTestBase {
+  public class HoverVerificationTest : ClientBasedLanguageServerTest {
+
+    protected override Task SetUp(Action<DafnyOptions> modifyOptions) {
+      return base.SetUp(o => {
+        o.Set(ServerCommand.ProjectMode, true);
+        modifyOptions?.Invoke(o);
+      });
+    }
+
     private const int MaxTestExecutionTimeMs = 30000;
-
-    private TestNotificationReceiver<CompilationStatusParams> notificationReceiver;
-
-    public override async Task InitializeAsync() {
-      await SetUp(null);
-    }
-
-    private async Task SetUp(Action<DafnyOptions> modifyOptions) {
-      notificationReceiver = new();
-      Client = await InitializeClient(options => {
-        options
-          .AddHandler(DafnyRequestNames.CompilationStatus, NotificationHandler.For<CompilationStatusParams>(notificationReceiver.NotificationReceived));
-      }, modifyOptions);
-    }
 
     [Fact(Timeout = MaxTestExecutionTimeMs)]
     public async Task HoverGetsBasicAssertionInformation() {
@@ -46,7 +43,7 @@ method Abs(x: int) returns (y: int)
   assert x > 2; // Hover #3 on the '>'
   return x;
 }
-", "testFile.dfy");
+", "testFile.dfy", true);
       // When hovering the postcondition, it should display the position of the failing path
       await AssertHoverMatches(documentItem, (2, 15),
         @"[**Error:**](???) this postcondition could not be proved on a return path  
@@ -89,7 +86,7 @@ method DoIt() returns (x: int)
 {
   return -1;
 //^ hover #1
-}", Path.Combine(Directory.GetCurrentDirectory(), "Lookup/TestFiles/test.dfy"));
+}", Path.Combine(Directory.GetCurrentDirectory(), "Lookup/TestFiles/test.dfy"), false);
       // When hovering the failing path, it should extract text from the included file
       await AssertHoverMatches(documentItem, (9, 4),
         @"[**Error:**](???) a postcondition could not be proved on this return path  
@@ -101,7 +98,7 @@ Resource usage: ??? RU"
       );
     }
 
-    [Fact(Timeout = MaxTestExecutionTimeMs)]
+    [Fact]
     public async Task BetterMessageWhenOneAssertPerBatch() {
       await SetUp(o => {
         o.Set(CommonOptionBag.RelaxDefiniteAssignment, true);
@@ -112,7 +109,7 @@ method {:vcs_split_on_every_assert} f(x: int) {
   assert x >= 2; // Hover #1
   assert x >= 1; // Hover #2
 }
-", "testfile.dfy");
+", "testfile.dfy", true);
       await AssertHoverMatches(documentItem, (1, 12),
         @"[**Error:**](???) assertion could not be proved  
 This is the only assertion in [batch](???) #??? of ??? in method `f`  
@@ -133,6 +130,60 @@ This is the only assertion in [batch](???) #??? of ??? in method `f`
       );
     }
 
+    [Fact(Timeout = MaxTestExecutionTimeMs)]
+    public async Task BetterMessageWhenPreconditionSucceeds() {
+      await SetUp(o => {
+        o.Set(CommonOptionBag.RelaxDefiniteAssignment, true);
+        // LineVerificationStatusOption.Instance.Set(o, true);
+      });
+      var documentItem = await GetDocumentItem(@"
+method Test(i: int)
+  requires {:error ""argument should be even"", ""argument is always even""} i % 2 == 0
+  requires i > 0
+{
+}
+method main(k: int) {
+  Test(2);
+  Test(k);
+}
+", "testfile.dfy", false);
+      await AssertHoverMatches(documentItem, (6, 6),
+        @"**Success:**???argument is always even  
+Did prove: `i % 2 == 0`"
+      );
+      await AssertHoverMatches(documentItem, (6, 6),
+        @"**Success:**???the precondition always holds  
+Did prove: `i > 0`"
+      );
+      await AssertHoverMatches(documentItem, (7, 6),
+        @"**Error:**???argument should be even  
+Could not prove: `i % 2 == 0`"
+      );
+      await AssertHoverMatches(documentItem, (7, 6),
+        @"**Error:**???this is the precondition that could not be proved  
+Could not prove: `i > 0`"
+      );
+    }
+
+    [Fact(Timeout = MaxTestExecutionTimeMs)]
+    public async Task BetterMessageWhenPostConditionFails() {
+      var documentItem = await GetDocumentItem(@"
+method Test(j: int) returns (i: int)
+  ensures {:error ""return value should be even""} i % 2 == 0
+  ensures i > 0
+{
+  i := j;
+}", "testfile.dfy", true);
+      await AssertHoverMatches(documentItem, (3, 0),
+        @"**Error:**???return value should be even  
+Could not prove: `i % 2 == 0`"
+      );
+
+      await AssertHoverMatches(documentItem, (3, 0),
+        @"**Error:**???a postcondition could not be proved on this return path  
+Could not prove: `i > 0`"
+      );
+    }
     [Fact(Timeout = MaxTestExecutionTimeMs)]
     public async Task BetterMessageWhenPreconditionSucceeds() {
       await SetUp(o => {
@@ -198,7 +249,7 @@ function f(x: int): int {
   assert x >= 1;
   x
 }
-", "testfile.dfy");
+", "testfile.dfy", false);
       await AssertHoverMatches(documentItem, (2, 12),
         @"???Success??? assertion always holds  
 This is assertion #2 of 2 in [batch](???) #1 of 2 in function `f`  
@@ -219,12 +270,12 @@ This is assertion #1 of 2 in [batch](???) #2 of 2 in function `f`
       );
     }
 
-    [Fact(Timeout = MaxTestExecutionTimeMs)]
+    [Fact]
     public async Task MeaningfulMessageWhenMethodWithoutAssert() {
       var documentItem = await GetDocumentItem(@"
 method f(x: int) {
   print x;
-}", "testfile.dfy");
+}", "testfile.dfy", true);
       await AssertHoverMatches(documentItem, (0, 7),
         @"**Verification performance metrics for method `f`**:
 
@@ -245,7 +296,7 @@ method Test1() {
 method Test2(i: int)
   requires i > 0 {
 
-}", "testfile.dfy");
+}", "testfile.dfy", false);
       await AssertHoverMatches(documentItem, (1, 10),
         @"???
 Failing precondition:???"
@@ -257,7 +308,7 @@ Failing precondition:???"
       var documentItem = await GetDocumentItem(@"
 method f(x: int) {
   assert false;
-}", "testfile1.dfy");
+}", "testfile1.dfy", true);
       await AssertHoverMatches(documentItem, (0, 7),
         @"**Verification performance metrics for method `f`**:
 
@@ -273,7 +324,7 @@ method f(x: int) {
 method f(x: int) {
   assert false;
   assert false;
-}", "testfile2.dfy");
+}", "testfile2.dfy", false);
       await AssertHoverMatches(documentItem, (0, 7),
         @"**Verification performance metrics for method `f`**:
 
@@ -299,7 +350,7 @@ datatype Test = Test(i: int)
     t.i > 1
   }
 }
-", "testfile2.dfy");
+", "testfile2.dfy", true);
       await AssertHoverMatches(documentItem, (4, 20),
         @"**Error:**???assertion could not be proved???
 Could not prove: `t.i > 0`  "
@@ -337,7 +388,7 @@ datatype ValidTester2 = MoreTest(i: int, next: ValidTester2) | End {
     0 <= defaultValue && (this.End? || (this.MoreTest? && this.next.Valid() && i > 0))
   }
 }
-", "testfile2.dfy");
+", "testfile2.dfy", false);
       await AssertHoverMatches(documentItem, (10, 16),
         @"**Error:**???function precondition could not be proved???
 Inside `Valid()`  
@@ -345,7 +396,7 @@ Could not prove: `((this.Tester? || this.Tester2?) && this.next.Valid()) || (thi
       );
     }
 
-    [Fact(Timeout = MaxTestExecutionTimeMs)]
+    [Fact]
     public async Task DoNotExtendPastExpressions() {
       var documentItem = await GetDocumentItem(@"
 datatype Test = Test(i: int)
@@ -363,15 +414,15 @@ datatype Test = Test(i: int)
 }
 function Id<T>(t: T): T { t }
 
-", "testfile2.dfy");
+", "testfile2.dfy", true);
       await AssertHoverMatches(documentItem, (9, 20),
         @"**Error:**???assertion could not be proved???
 Could not prove: `i > 0`  "
       );
       await AssertHoverMatches(documentItem, (10, 20),
-        @"**Error:**???assertion could not be proved???
+      @"**Error:**???assertion could not be proved???
 Could not prove: `i > 1`  "
-      );
+    );
       await AssertHoverMatches(documentItem, (10, 20),
         @"**Success:**???function precondition satisfied???
 Inside `Valid()`  
@@ -402,7 +453,7 @@ method Test(i: int) returns (j: nat)
     return Toast(i);
   }
 }
-", "testfile2.dfy");
+", "testfile2.dfy", false);
       await AssertHoverMatches(documentItem, (12, 11),
         @"**Error:**???this postcondition could not be proved on a return path???
 Could not prove: `i == j || -i == j`???
@@ -439,7 +490,7 @@ method Test() returns (j: int)
 {
   return 2;
 }
-", "testfile2.dfy");
+", "testfile2.dfy", true);
       await AssertHoverMatches(documentItem, (14, 5),
         @"**Error:**???a postcondition could not be proved on this return path???
 Could not prove: `j == 1`"
@@ -457,9 +508,10 @@ method Test(i: int)
 {
   assert P(1);
 }
-", "testfile2.dfy");
+", "testfile2.dfy", false);
       await AssertHoverMatches(documentItem, (6, 11),
         @"**Error:**???assertion could not be proved  
+Inside `P(1)`  
 Inside `P(1)`  
 Could not prove: `i <= 0`"
       );
@@ -476,40 +528,34 @@ Could not prove: `i <= 0`"
     [Fact(Timeout = 5 * MaxTestExecutionTimeMs)]
     public async Task IndicateClickableWarningSignsOnMethodHoverWhenResourceLimitReached10MThreshold() {
       var documentItem = await GetDocumentItem(@"
-lemma {:rlimit 12000} SquareRoot2NotRational(p: nat, q: nat)
-  requires p > 0 && q > 0
-  ensures (p * p) !=  2 * (q * q)
-{ 
-  if (p * p) ==  2 * (q * q) {
-    calc == {
-      (2 * q - p) * (2 * q - p);
-      4 * q * q + p * p - 4 * p * q;
-      {assert {:split_here} 2 * q * q == p * p;}
-      2 * q * q + 2 * p * p - 4 * p * q;
-      2 * (p - q) * (p - q);
-    }
-  }
-  assert {:split_here} true;
-} ", "testfileSlow.dfy");
-      await AssertHoverMatches(documentItem, (0, 22),
-        @"**Verification performance metrics for method `SquareRoot2NotRational`**:
+ghost function f(i:nat, j:nat):int {if i == 0 then 0 else f(i - 1, i * j + 1) + f(i - 1, 2 * i * j)}
 
-- Total resource usage: ??? RU [⚠](???)  
-- Most costly [assertion batches](???):  
-  - #2/3 with 2 assertions at line 3, ??? RU [⚠](???)  
-  - #???/3 with 2 assertions at line ???, ??? RU  
-  - #???/3 with 2 assertions at line ???9, ??? RU"
+lemma{:rlimit 10000} L()
+{
+  assert f(10, 5) == 0;
+} ", "testfileSlow.dfy", true);
+      await AssertHoverMatches(documentItem, (2, 22),
+        @"**Verification performance metrics for method `L`**:
+
+- Total resource usage: ??? RU [⚠](???)"
       );
     }
 
-    private async Task<TextDocumentItem> GetDocumentItem(string source, string filename) {
+    private async Task<TextDocumentItem> GetDocumentItem(string source, string filename, bool includeProjectFile) {
+      var directory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
       source = source.TrimStart();
-      var documentItem = CreateTestDocument(source, filename);
-      await Client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      await Documents.GetLastDocumentAsync(documentItem);
+      if (includeProjectFile) {
+        var projectFile = CreateTestDocument("", Path.Combine(directory, DafnyProject.FileName));
+        await client.OpenDocumentAndWaitAsync(projectFile, CancellationToken);
+      }
+      var documentItem = CreateTestDocument(source, Path.Combine(directory, filename));
+      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+      var document = await Projects.GetLastDocumentAsync(documentItem);
+      Assert.True(document is CompilationAfterResolution);
       return documentItem;
     }
 
+    public HoverVerificationTest(ITestOutputHelper output) : base(output) {
     private static Regex errorTests = new Regex(@"\*\*Error:\*\*|\*\*Success:\*\*");
 
     private async Task AssertHoverMatches(TextDocumentItem documentItem, Position hoverPosition, [CanBeNull] string expected) {

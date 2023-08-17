@@ -2,9 +2,6 @@ name: Test Brew release on Mac
 
 on:
   workflow_dispatch:
-  # This would make more sense as a scheduled build like deep-tests.yml
-  pull_request:
-    branches: [ master ]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -19,43 +16,35 @@ jobs:
     - name: Install dafny
       run: |
         brew install dafny
-    - name: Make test program
-      run: |
-        echo "method Main() { assert true; print 42, ['\n']; }" > a.dfy
-        echo "method m() { assert false; }" > b.dfy
-        echo "42" > expect.txt
     - name: Versions
       run: |
-        dafny -version
         which dafny
-        # -version is not supported in old dafny,
-        # but this gives the version with an error
+        dafny -version
         dotnet --list-sdks
         go version
         node --version
         java -version
-    - name: Check
-      run: dafny /compile:0 a.dfy
-    - name: Check bad
-      run: dafny /compile:0 b.dfy || echo EXPECTED FAILURE
-    ## Check that a simple program compiles and runs on each supported platform
-    - name: Check C# compile
-      run: |
-        dafny /compileVerbose:0 /compile:3 /compileTarget:cs /spillTargetCode:3 a.dfy
-    - name: Check Go compile
-      run: |
-        dafny /compile:3 /spillTargetCode:3 /compileTarget:go a.dfy
-        env GO111MODULE=auto GOPATH=$PWD/a-go go run a-go/src/a.go > actual.txt
-        diff expect.txt actual.txt
-    - name: Check Javascript compile
+        python --version
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    ## To be consistent, the download should be tested with the quicktest.sh corresponding to
+    ## that release. But earlier releases relied on inline tests. So for up through 4.0,
+    ## we downliad quicktest.sh from the repo -- which will eventually fail if the quicktest
+    ## evolves beyond the capabilities of old versions.
+    ## But post-4.0, the script is part of the release and internally checks its results.
+    - name: Perform smoke tests on each platform
       run: |
         npm install bignumber.js
-        dafny /compile:3 /spillTargetCode:3 /compileTarget:js a.dfy
-        node a.js dafny/DafnyRuntime.js > actual.txt
-        diff expect.txt actual.txt
-    - name: Check Java compile
-      run: |
-        (ls dafny/DafnyRuntime.jar || echo NO DafnyRuntime.jar )
-        #dafny /compile:3 /spillTargetCode:3 /compileTarget:java a.dfy
-        #java -cp a:dafny/DafnyRuntime.jar a > actual.txt
-        #diff expect.txt actual.txt
+        ver=`dafny -version`
+        ver=${ver[1]}
+        if [[ "$ver" < "4.0.0.99999" ]] ; then \
+          echo "4.0 or prior" ;\
+          wget https://github.com/dafny-lang/dafny/raw/master/Scripts/quicktest.sh; \
+        else \
+          echo "Post 4.0" ;\
+          cp /usr/local/Cellar/dafny/*/libexec/quicktest.sh . ;\
+        fi
+        chmod +x quicktest.sh
+        ./quicktest.sh `which dafny`

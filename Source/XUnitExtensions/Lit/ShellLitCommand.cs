@@ -9,20 +9,21 @@ using Xunit.Abstractions;
 namespace XUnitExtensions.Lit {
   public class ShellLitCommand : ILitCommand {
     private string shellCommand;
-    private string[] arguments;
+    public string[] Arguments { get; }
     private string[] passthroughEnvironmentVariables;
 
     public ShellLitCommand(string shellCommand, IEnumerable<string> arguments, IEnumerable<string> passthroughEnvironmentVariables) {
       this.shellCommand = shellCommand;
-      this.arguments = arguments.ToArray();
+      this.Arguments = arguments.ToArray();
       this.passthroughEnvironmentVariables = passthroughEnvironmentVariables.ToArray();
     }
 
-    public (int, string, string) Execute(ITestOutputHelper? outputHelper, TextReader? inputReader, TextWriter? outputWriter, TextWriter? errorWriter) {
+    public (int, string, string) Execute(TextReader inputReader,
+      TextWriter outputWriter, TextWriter errorWriter) {
       using var process = new Process();
 
       process.StartInfo.FileName = shellCommand;
-      foreach (var argument in arguments) {
+      foreach (var argument in Arguments) {
         process.StartInfo.ArgumentList.Add(argument);
       }
 
@@ -125,7 +126,7 @@ namespace XUnitExtensions.Lit {
       var builder = new StringBuilder();
       builder.Append(shellCommand);
       builder.Append(' ');
-      builder.AppendJoin(" ", arguments);
+      builder.AppendJoin(" ", Arguments);
       return builder.ToString();
     }
   }

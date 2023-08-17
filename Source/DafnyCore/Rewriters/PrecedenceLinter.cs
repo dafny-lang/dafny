@@ -11,24 +11,23 @@ using System;
 using System.Diagnostics.Contracts;
 using JetBrains.Annotations;
 using Microsoft.Boogie;
-using static Microsoft.Dafny.ErrorRegistry;
+using static Microsoft.Dafny.RewriterErrors;
 
 namespace Microsoft.Dafny {
 
   public class PrecedenceLinter : IRewriter {
-    internal override void PostResolve(Program program) {
-      base.PostResolve(program);
-      foreach (var moduleDefinition in program.Modules()) {
-        foreach (var topLevelDecl in moduleDefinition.TopLevelDecls.OfType<TopLevelDeclWithMembers>()) {
-          foreach (var callable in topLevelDecl.Members.OfType<ICallable>()) {
-            var visitor = new PrecedenceLinterVisitor(this.Reporter);
-            visitor.Visit(callable, null);
-          }
+    private CompilationData compilation;
+    internal override void PostResolve(ModuleDefinition moduleDefinition) {
+      foreach (var topLevelDecl in moduleDefinition.TopLevelDecls.OfType<TopLevelDeclWithMembers>()) {
+        foreach (var callable in topLevelDecl.Members.OfType<ICallable>()) {
+          var visitor = new PrecedenceLinterVisitor(compilation, Reporter);
+          visitor.Visit(callable, null);
         }
       }
     }
 
-    public PrecedenceLinter(ErrorReporter reporter) : base(reporter) {
+    public PrecedenceLinter(ErrorReporter reporter, CompilationData compilation) : base(reporter) {
+      this.compilation = compilation;
     }
   }
 
@@ -69,10 +68,11 @@ namespace Microsoft.Dafny {
   /// an ordinary in-parameter to VisitOneExpr, since the method would only need to return a bool.
   /// </summary>
   class PrecedenceLinterVisitor : TopDownVisitor<LeftMargin> {
-
+    private readonly CompilationData compilation;
     private readonly ErrorReporter reporter;
 
-    public PrecedenceLinterVisitor(ErrorReporter reporter) {
+    public PrecedenceLinterVisitor(CompilationData compilation, ErrorReporter reporter) {
+      this.compilation = compilation;
       this.reporter = reporter;
     }
 
@@ -140,7 +140,7 @@ namespace Microsoft.Dafny {
         return false; // indicate that we've already processed expr's subexpressions
 
       } else if (expr is QuantifierExpr quantifierExpr) {
-        Attributes.SubExpressions(quantifierExpr.Attributes).Iter(VisitIndependentComponent);
+        Attributes.SubExpressions(quantifierExpr.Attributes).ForEach(VisitIndependentComponent);
         if (quantifierExpr.Range != null) {
           VisitIndependentComponent(quantifierExpr.Range);
         }
@@ -150,14 +150,14 @@ namespace Microsoft.Dafny {
         return false; // indicate that we've already processed expr's subexpressions
 
       } else if (expr is LetExpr letExpr) {
-        Attributes.SubExpressions(letExpr.Attributes).Iter(VisitIndependentComponent);
-        letExpr.RHSs.Iter(VisitIndependentComponent);
+        Attributes.SubExpressions(letExpr.Attributes).ForEach(VisitIndependentComponent);
+        letExpr.RHSs.ForEach(VisitIndependentComponent);
         VisitRhsComponent(expr.tok, letExpr.Body, "body of let-expression");
         return false; // indicate that we've already processed expr's subexpressions
 
       } else if (expr is OldExpr or FreshExpr or UnchangedExpr or DatatypeValue or DisplayExpression or MapDisplayExpr) {
         // In these expressions, all subexpressions are contained in parentheses, so there's no risk of precedence confusion
-        expr.SubExpressions.Iter(VisitIndependentComponent);
+        expr.SubExpressions.ForEach(VisitIndependentComponent);
         return false; // indicate that we've already processed expr's subexpressions
 
       } else if (expr is FunctionCallExpr functionCallExpr) {
@@ -181,7 +181,7 @@ namespace Microsoft.Dafny {
 
       } else if (expr is NestedMatchExpr nestedMatchExpr) {
         // Handle each case like the "else" of an if-then-else
-        Attributes.SubExpressions(nestedMatchExpr.Attributes).Iter(VisitIndependentComponent);
+        Attributes.SubExpressions(nestedMatchExpr.Attributes).ForEach(VisitIndependentComponent);
         VisitIndependentComponent(nestedMatchExpr.Source);
         var n = nestedMatchExpr.Cases.Count;
         for (var i = 0; i < n; i++) {
@@ -226,7 +226,7 @@ namespace Microsoft.Dafny {
         var st = new LeftMargin(leftMargin);
         Visit(expr, st);
         if (st.Column < leftMargin) {
-          this.reporter.Warning(MessageSource.Rewriter, ErrorRegistry.NoneId, errorToken,
+          reporter.Warning(MessageSource.Rewriter, ErrorId.rw_unusual_indentation_start, errorToken,
             $"unusual indentation in {what} (which starts at {LineCol(expr.StartToken)}); do you perhaps need parentheses?");
         }
       }
@@ -242,13 +242,13 @@ namespace Microsoft.Dafny {
     }
 
     void VisitRhsComponent(IToken errorToken, Expression expr, int rightMargin, string what) {
-      if (expr is ParensExpression || errorToken is IncludeToken) {
+      if (expr is ParensExpression || errorToken.FromIncludeDirective(compilation)) {
         VisitIndependentComponent(expr);
       } else {
         var st = new LeftMargin(rightMargin);
         Visit(expr, st);
         if (st.Column < rightMargin) {
-          this.reporter.Warning(MessageSource.Rewriter, ErrorRegistry.NoneId, errorToken,
+          reporter.Warning(MessageSource.Rewriter, ErrorId.rw_unusual_indentation_end, errorToken,
             $"unusual indentation in {what} (which ends at {LineCol(expr.RangeToken.EndToken)}); do you perhaps need parentheses?");
         }
       }

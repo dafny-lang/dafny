@@ -1,27 +1,22 @@
+using System.Linq;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
 using OmniSharp.Extensions.LanguageServer.Protocol.Client;
 using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Threading.Tasks;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
   public class CloseDocumentTest : DafnyLanguageServerTestBase, IAsyncLifetime {
     private ILanguageClient client;
 
     public async Task InitializeAsync() {
-      client = await InitializeClient();
+      (client, Server) = await Initialize(_ => { }, _ => { });
     }
 
     public Task DisposeAsync() {
       return Task.CompletedTask;
-    }
-
-    private Task CloseDocumentAndWaitAsync(TextDocumentItem documentItem) {
-      client.DidCloseTextDocument(new DidCloseTextDocumentParams {
-        TextDocument = documentItem
-      });
-      return client.WaitForNotificationCompletionAsync(documentItem.Uri, CancellationToken);
     }
 
     [Fact]
@@ -32,8 +27,15 @@ function GetConstant(): int {
 }".Trim();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      await CloseDocumentAndWaitAsync(documentItem);
-      Assert.Null(await Documents.GetResolvedDocumentAsync(documentItem.Uri));
+      client.CloseDocument(documentItem);
+      for (int attempt = 0; attempt < 50; attempt++) {
+        if (!Projects.Managers.Any()) {
+          return;
+        }
+
+        await Task.Delay(100);
+      }
+      Assert.Fail("all attempts failed");
     }
 
     [Fact]
@@ -43,8 +45,11 @@ function GetConstant(): int {
   1
 }".Trim();
       var documentItem = CreateTestDocument(source);
-      await CloseDocumentAndWaitAsync(documentItem);
-      Assert.Null(await Documents.GetResolvedDocumentAsync(documentItem.Uri));
+      client.CloseDocument(documentItem);
+      Assert.Null(await Projects.GetResolvedDocumentAsyncNormalizeUri(documentItem.Uri));
+    }
+
+    public CloseDocumentTest(ITestOutputHelper output) : base(output) {
     }
   }
 }

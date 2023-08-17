@@ -81,8 +81,6 @@ module Mx {
         var x: int := h1.t;  // error: h1 would have to be a GenericIteratorResult<int>
       }
 
-      var h2 := new GenericIteratorResult;  // error: constructor is not mentioned
-
       var h3 := new GenericIterator(30);  // see two lines down
       if h3.t == h3.u {
         assert !h3.t;  // error: type mismatch (here or two lines ago)
@@ -99,7 +97,9 @@ module Mx {
 
   iterator GenericIteratorResult<T(0)>() yields (t: T)
   {
-    while (*) { yield; }
+    while * {
+      yield;
+    }
   }
 
   class AnotherClient {
@@ -121,8 +121,8 @@ module DecreasesFields {
   }
 
   iterator Dieter0(c: Cell)
-    requires c != null;
-    decreases c.data, c.data, c != null;
+    requires c != null
+    decreases c.data, c.data, c != null
   {
     assert _decreases0 == _decreases1;
     assert _decreases2;
@@ -132,7 +132,7 @@ module DecreasesFields {
   }
 
   iterator Dieter1(c: Cell)
-    requires c != null;
+    requires c != null
   {
     assert _decreases0 == c;
     assert _decreases1;  // error: there is no _decreases1
@@ -338,5 +338,31 @@ module YieldParameterInitialization {
   }
 
   iterator F() yields (ghost y: CompileAutoInit) {
+  }
+}
+
+// ---------- more constructor tests -------------------------------
+
+module MxConstructors {
+  method GenericTester()
+  {
+    var a: GenericIteratorResult<real> := new GenericIteratorResult; // error: constructor is not mentioned
+    var b: GenericIteratorResult<real> := new GenericIteratorResult();
+    var c: GenericIterator<int> := new GenericIterator; // error: constructor is not mentioned
+    var d: GenericIterator<int> := new GenericIterator(30);
+  }
+
+  iterator GenericIterator<T(0)>(t: T) yields (u: T)
+  {
+    while true {
+      yield t;
+    }
+  }
+
+  iterator GenericIteratorResult<T(0)>() yields (t: T)
+  {
+    while * {
+      yield;
+    }
   }
 }

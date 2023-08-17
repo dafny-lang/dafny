@@ -6,7 +6,9 @@ datatype FailureCompatible = Make {
   function Extract(): (r: real) { 0.0 }
 }
 
-method M() returns (r: FailureCompatible) { }
+method M() returns (r: FailureCompatible) {
+  r := *;
+}
 
 method N() returns (x: int) {
   var s: real :- M();

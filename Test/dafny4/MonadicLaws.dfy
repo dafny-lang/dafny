@@ -20,7 +20,7 @@ lemma AppendNil(xs: List)
 }
 
 lemma AppendAssoc(xs: List, ys: List, zs: List)
-  ensures append(append(xs, ys), zs) == append(xs, append(ys, zs));
+  ensures append(append(xs, ys), zs) == append(xs, append(ys, zs))
 {
 }
 

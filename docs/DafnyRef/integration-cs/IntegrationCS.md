@@ -140,7 +140,7 @@ The above program is run with `dafny run --target:cs Demo2.dfy --input Demo2x.cs
 If the C# method has input arguments or an output value, then the Dafny declaration must use
 corresponding types in Dafny:
 Here, `T'` for a type parameter `T` indicates the C# type corresponding to a Dafny type `T`.
-```
+
 |-------------------------------|-----------------------------|
 |  Dafny type                   |   C# type                   |
 |-------------------------------|-----------------------------|

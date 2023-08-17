@@ -15,16 +15,14 @@ public interface ICommandSpec {
   static ICommandSpec() {
     FilesArgument = new("file", r => {
       return r.Tokens.Where(t => !string.IsNullOrEmpty(t.Value)).Select(t => new FileInfo(t.Value)).ToList();
-    }, true, "input files");
+    }, true, "Dafny input files and/or a Dafny project file");
   }
 
   public static Argument<List<FileInfo>> FilesArgument { get; }
 
   public static IEnumerable<Option> FormatOptions => new Option[] {
     CommonOptionBag.Check,
-    CommonOptionBag.Verbose,
     CommonOptionBag.FormatPrint,
-    DeveloperOptionBag.UseBaseFileName
   }.Concat(ParserOptions);
 
   public static IReadOnlyList<Option> VerificationOptions = new Option[] {
@@ -32,15 +30,18 @@ public interface ICommandSpec {
     BoogieOptionBag.VerificationTimeLimit,
     CommonOptionBag.VerifyIncludedFiles,
     CommonOptionBag.ManualLemmaInduction,
-    CommonOptionBag.SolverPath,
+    BoogieOptionBag.SolverPath,
     CommonOptionBag.DisableNonLinearArithmetic,
-    CommonOptionBag.IsolateAssertions,
+    BoogieOptionBag.IsolateAssertions,
     BoogieOptionBag.BoogieArguments,
     CommonOptionBag.VerificationLogFormat,
-    CommonOptionBag.SolverResourceLimit,
-    CommonOptionBag.SolverPlugin,
-    CommonOptionBag.SolverLog,
-    CommonOptionBag.JsonDiagnostics
+    BoogieOptionBag.SolverResourceLimit,
+    BoogieOptionBag.SolverOption,
+    BoogieOptionBag.SolverOptionHelp,
+    BoogieOptionBag.SolverPlugin,
+    BoogieOptionBag.SolverLog,
+    CommonOptionBag.JsonDiagnostics,
+    BoogieOptionBag.VerificationErrorLimit,
   }.ToList();
 
   public static IReadOnlyList<Option> TranslationOptions = new Option[] {
@@ -48,17 +49,17 @@ public interface ICommandSpec {
     CommonOptionBag.EnforceDeterminism,
     CommonOptionBag.OptimizeErasableDatatypeWrapper,
     CommonOptionBag.TestAssumptions,
-    DeveloperOptionBag.Bootstrapping
+    DeveloperOptionBag.Bootstrapping,
+    CommonOptionBag.AddCompileSuffix,
   }.Concat(VerificationOptions).ToList();
 
   public static IReadOnlyList<Option> ExecutionOptions = new Option[] {
     CommonOptionBag.Target,
-    DeveloperOptionBag.SpillTranslation
+    CommonOptionBag.SpillTranslation
   }.Concat(TranslationOptions).ToList();
 
   public static IReadOnlyList<Option> ConsoleOutputOptions = new List<Option>(new Option[] {
     DafnyConsolePrinter.ShowSnippets,
-    DeveloperOptionBag.UseBaseFileName,
     DeveloperOptionBag.Print,
     DeveloperOptionBag.ResolvedPrint,
     DeveloperOptionBag.BoogiePrint,
@@ -68,15 +69,20 @@ public interface ICommandSpec {
 
   public static IReadOnlyList<Option> ParserOptions = new List<Option>(new Option[] {
     CommonOptionBag.StdIn,
+    CommonOptionBag.Verbose,
     BoogieOptionBag.Cores,
     CommonOptionBag.Libraries,
+    CommonOptionBag.WarnDeprecation,
     CommonOptionBag.Plugin,
     CommonOptionBag.Prelude,
     Function.FunctionSyntaxOption,
     CommonOptionBag.QuantifierSyntax,
     CommonOptionBag.UnicodeCharacters,
+    CommonOptionBag.UseBaseFileName,
+    CommonOptionBag.GeneralTraits,
     CommonOptionBag.TypeSystemRefresh,
-    CommonOptionBag.ErrorLimit,
+    CommonOptionBag.TypeInferenceDebug,
+    CommonOptionBag.NewTypeInferenceDebug,
   });
 
   public static IReadOnlyList<Option> ResolverOptions = new List<Option>(new Option[] {

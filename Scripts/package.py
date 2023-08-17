@@ -20,7 +20,7 @@ import ntpath
 # Configuration
 
 Z3_VERSIONS = [ "4.8.5", "4.12.1" ]
-Z3_URL_BASE = "https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2023-02-17"
+Z3_URL_BASE = "https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2023-08-02"
 
 ## How many times we allow ourselves to try to download Z3
 Z3_MAX_DOWNLOAD_ATTEMPTS = 5
@@ -70,15 +70,27 @@ def flush(*args, **kwargs):
 class Release:
 
     def __init__(self, os, platform, version, out):
-        self.z3_zips = [ "z3-{}-{}-bin.zip".format(z3_version, os) for z3_version in Z3_VERSIONS ]
         self.platform, self.os = platform, os
         self.os_name = self.os.split("-")[0]
+        self.z3_zips = self.get_z3_zips()
         self.dafny_name = "dafny-{}-{}-{}.zip".format(version, self.platform, self.os)
         if out != None:
             self.dafny_name = out
         self.target = "{}-{}".format(gitHubToDotNetOSMapping[self.os_name], self.platform)
         self.dafny_zip = path.join(DESTINATION_DIRECTORY, self.dafny_name)
         self.buildDirectory = path.join(BINARIES_DIRECTORY, self.target, "publish")
+
+    def get_z3_zips(self):
+        z3_zips = [ "z3-{}-{}-{}-bin.zip".format(z3_version, self.platform, self.os) for z3_version in Z3_VERSIONS ]
+
+        # There are no arm macOS builds for Z3 4.8.*
+        # x64 one will work just fine though
+        if self.platform == "arm64" and "macos" in self.os:
+            for i in range(len(Z3_VERSIONS)):
+                if "4.8." in z3_zips[i]:
+                    z3_zips[i] = z3_zips[i].replace("arm64", "x64")
+
+        return z3_zips
 
     def url(self, z3_zip):
         return "{}/{}".format(Z3_URL_BASE, z3_zip)
@@ -129,7 +141,7 @@ class Release:
                 "-o", self.buildDirectory,
                 "-r", self.target,
                 "--self-contained",
-                "-c", "Release", 
+                "-c", "Release",
                 *(["-f", framework] if framework else [])]
             projectFile = path.join(SOURCE_DIRECTORY, project, project + ".csproj")
             exitStatus = subprocess.call(["dotnet", "publish", projectFile, *publish_args], env=env)
@@ -236,28 +248,20 @@ def pack(args, releases):
 def check_version_cs(args):
     # Checking Directory.Build.props
     with open(path.join(SOURCE_DIRECTORY, "Directory.Build.props")) as fp:
-        match = re.search(r'\<VersionPrefix\>([0-9]+.[0-9]+.[0-9]+).([0-9]+)', fp.read())
+        match = re.search(r'\<VersionPrefix\>([0-9]+.[0-9]+.[0-9]+)', fp.read())
         if match:
-            (v1, v2) = match.groups()
+            source_version = match.groups()[0]
         else:
             flush("The AssemblyVersion attribute in Directory.Build.props could not be found.")
             return False
-    now = time.localtime()
-    year = now[0]
-    month = now[1]
-    day = now[2]
-    v3 = str(year-2018) + str(month).zfill(2) + str(day).zfill(2)
-    if v2 != v3:
-        flush("The date in Directory.Build.props does not agree with today's date: " + v3 + " vs. " + v2)
     if "-" in args.version:
         hy = args.version[:args.version.index('-')]
     else:
         hy = args.version
-    if hy != v1:
-        flush("The version number in Directory.Build.props does not agree with the given version: " + hy + " vs. " + v1)
-    if (v2 != v3 or hy != v1):
+    if hy != source_version:
+        flush("The version number in Directory.Build.props does not agree with the given version: " + source_version + " vs. " + hy)
         return False
-    flush("Creating release files for release \"" + args.version + "\" and internal version information: " + v1 + "." + v2)
+    flush("Creating release files for release \"" + args.version + "\" and internal version information: " + source_version)
     return True
 
 def parse_arguments():

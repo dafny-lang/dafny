@@ -1,19 +1,19 @@
 #nullable enable
 using System;
-using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
-using System.Diagnostics.Contracts;
+using System.Collections.Immutable;
 using System.IO;
 using System.Text.RegularExpressions;
-using JetBrains.Annotations;
+using DafnyTestGeneration;
 using Bpl = Microsoft.Boogie;
 using BplParser = Microsoft.Boogie.Parser;
 using Microsoft.Dafny;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace DafnyPipeline.Test {
-
   // Simple test cases (FormatterWorksFor with only one argument)
   // consist of removing all the indentation from the program,
   // adding it through the formatter, and checking if we obtain the initial result
@@ -23,6 +23,12 @@ namespace DafnyPipeline.Test {
   // Every test is performed with all three newline styles
   // Every formatted program is formatted again to verify that it stays the same.
   public class FormatterBaseTest {
+    private readonly TextWriter output;
+
+    public FormatterBaseTest(ITestOutputHelper output) {
+      this.output = new WriterFromOutputHelper(output);
+    }
+
     enum Newlines {
       LF,
       CR,
@@ -37,8 +43,8 @@ namespace DafnyPipeline.Test {
 
     protected void FormatterWorksFor(string testCase, string? expectedProgramString = null, bool expectNoToken = false,
       bool reduceBlockiness = true) {
-      var options = DafnyOptions.Create();
-      BatchErrorReporter reporter = new BatchErrorReporter(options);
+      var options = DafnyOptions.Create(output);
+      options.DisallowIncludes = true;
       var newlineTypes = Enum.GetValues(typeof(Newlines));
       foreach (Newlines newLinesType in newlineTypes) {
         currentNewlines = newLinesType;
@@ -50,13 +56,14 @@ namespace DafnyPipeline.Test {
           ? AdjustNewlines(expectedProgramString)
           : removeTrailingNewlineRegex.Replace(programString, "");
 
-        ModuleDecl module = new LiteralModuleDecl(new DefaultModuleDefinition(), null);
+        var uri = new Uri("virtual:virtual");
+        var reporter = new BatchErrorReporter(options);
         Microsoft.Dafny.Type.ResetScopes();
-        BuiltIns builtIns = new BuiltIns(options);
-        Parser.Parse(programNotIndented, "virtual", "virtual", module, builtIns, reporter);
-        var dafnyProgram = new Program("programName", module, builtIns, reporter);
+
+        var dafnyProgram = new ProgramParser().Parse(programNotIndented, uri, reporter);
+
         if (reporter.ErrorCount > 0) {
-          var error = reporter.AllMessages[ErrorLevel.Error][0];
+          var error = reporter.AllMessagesByLevel[ErrorLevel.Error][0];
           Assert.False(true, $"{error.Message}: line {error.Token.line} col {error.Token.col}");
         }
 
@@ -70,15 +77,57 @@ namespace DafnyPipeline.Test {
             IndentationFormatter.ForProgram(dafnyProgram, reduceBlockiness))
           : programString;
         EnsureEveryTokenIsOwned(programNotIndented, dafnyProgram);
-        Assert.Equal(expectedProgram, reprinted);
+        if (expectedProgram != reprinted) {
+          Console.Out.WriteLine("Formatting after parsing generates an error:");
+          Assert.Equal(expectedProgram, reprinted);
+        }
+
+        // Formatting should work even if we clone the program after parsing
+        Cloner clone = new();
+        dafnyProgram.Visit((INode n) => {
+          if (n is TopLevelDeclWithMembers nWithMembers) {
+            var newMembers = new List<MemberDecl>();
+            foreach (var member in nWithMembers.MembersBeforeResolution) {
+              newMembers.Add(clone.CloneMember(member, false));
+            }
+
+            nWithMembers.MembersBeforeResolution = newMembers.ToImmutableList();
+            return false;
+          }
+
+          return true;
+        });
+        var reprintedCloned = firstToken != null && firstToken.line > 0
+          ? Formatting.__default.ReindentProgramFromFirstToken(firstToken,
+            IndentationFormatter.ForProgram(dafnyProgram, reduceBlockiness))
+          : programString;
+        EnsureEveryTokenIsOwned(programNotIndented, dafnyProgram);
+        if (expectedProgram != reprintedCloned) {
+          Console.Out.WriteLine("Formatting after parsing + cloning generates an error:");
+          Assert.Equal(expectedProgram, reprinted);
+        }
+
+
+        // Formatting should work after resolution as well.
+        DafnyMain.Resolve(dafnyProgram);
+        reprinted = firstToken != null && firstToken.line > 0
+          ? Formatting.__default.ReindentProgramFromFirstToken(firstToken,
+            IndentationFormatter.ForProgram(dafnyProgram, reduceBlockiness))
+          : programString;
+        if (expectedProgram != reprinted) {
+          options.ErrorWriter.WriteLine("Formatting after resolution generates an error:");
+          Assert.Equal(expectedProgram, reprinted);
+        }
+
+        var initErrorCount = reporter.ErrorCount;
 
         // Verify that the formatting is stable.
-        module = new LiteralModuleDecl(new DefaultModuleDefinition(), null);
         Microsoft.Dafny.Type.ResetScopes();
-        builtIns = new BuiltIns(options);
-        Parser.Parse(reprinted, "virtual", "virtual", module, builtIns, reporter);
-        dafnyProgram = new Program("programName", module, builtIns, reporter);
-        Assert.Equal(0, reporter.ErrorCount);
+        var newReporter = new BatchErrorReporter(options);
+        dafnyProgram = new ProgramParser().Parse(reprinted, uri, newReporter);
+        ;
+
+        Assert.Equal(initErrorCount, reporter.ErrorCount + newReporter.ErrorCount);
         firstToken = dafnyProgram.GetFirstTopLevelToken();
         var reprinted2 = firstToken != null && firstToken.line > 0
           ? Formatting.__default.ReindentProgramFromFirstToken(firstToken,
@@ -87,6 +136,7 @@ namespace DafnyPipeline.Test {
         if (reprinted != reprinted2) {
           Console.Write("Double formatting is not stable:\n");
         }
+
         Assert.Equal(reprinted, reprinted2);
       }
     }
@@ -111,7 +161,8 @@ namespace DafnyPipeline.Test {
       ReportNotOwnedToken(programNotIndented, notOwnedToken, posToOwnerNode);
     }
 
-    private static void ReportNotOwnedToken(string programNotIndented, IToken notOwnedToken, Dictionary<int, List<Node>> posToOwnerNode) {
+    private static void ReportNotOwnedToken(string programNotIndented, IToken notOwnedToken,
+      Dictionary<int, List<INode>> posToOwnerNode) {
       var nextOwnedToken = notOwnedToken.Next;
       while (nextOwnedToken != null && !posToOwnerNode.ContainsKey(nextOwnedToken.pos)) {
         nextOwnedToken = nextOwnedToken.Next;
@@ -140,9 +191,10 @@ namespace DafnyPipeline.Test {
       return notOwnedToken;
     }
 
-    private static HashSet<int> CollectTokensWithoutOwner(Program dafnyProgram, IToken firstToken, out Dictionary<int, List<Node>> posToOwnerNode) {
+    private static HashSet<int> CollectTokensWithoutOwner(Program dafnyProgram, IToken firstToken,
+      out Dictionary<int, List<INode>> posToOwnerNode) {
       HashSet<int> tokensWithoutOwner = new HashSet<int>();
-      var posToOwnerNodeInner = new Dictionary<int, List<Node>>();
+      var posToOwnerNodeInner = new Dictionary<int, List<INode>>();
 
       var t = firstToken;
       while (t != null) {
@@ -153,15 +205,15 @@ namespace DafnyPipeline.Test {
         t = t.Next;
       }
 
-      void ProcessOwnedTokens(Node node) {
+      void ProcessOwnedTokens(INode node) {
         var ownedTokens = node.OwnedTokens;
         foreach (var token in ownedTokens) {
           tokensWithoutOwner.Remove(token.pos);
-          posToOwnerNodeInner.GetOrCreate(token.pos, () => new List<Node>()).Add(node);
+          posToOwnerNodeInner.GetOrCreate(token.pos, () => new List<INode>()).Add(node);
         }
       }
 
-      void ProcessNode(Node node) {
+      void ProcessNode(INode node) {
         if (node == null) {
           return;
         }

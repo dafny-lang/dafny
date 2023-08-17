@@ -1,4 +1,4 @@
-// RUN: %exits-with 4 %dafny /compile:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %exits-with 4 %dafny /compile:0 /deprecation:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module A {
@@ -154,7 +154,7 @@ module ModuleContainTraitAndClass {
   const g0 := 16
   const g1: int
 
-  trait Trait {
+  trait Trait extends object {
     static const s0 := 17
     static const s1: int
     const t0 := 18

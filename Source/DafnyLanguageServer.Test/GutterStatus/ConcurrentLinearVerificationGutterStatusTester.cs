@@ -5,8 +5,9 @@ using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 using OmniSharp.Extensions.JsonRpc;
 using Xunit;
+using Xunit.Abstractions;
 
-namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Diagnostics;
+namespace Microsoft.Dafny.LanguageServer.IntegrationTest.GutterStatus;
 
 [Collection("Sequential Collection")] // Because this class contains tests that can easily time out
 public class ConcurrentLinearVerificationGutterStatusTester : LinearVerificationGutterStatusTester {
@@ -26,7 +27,7 @@ public class ConcurrentLinearVerificationGutterStatusTester : LinearVerification
       verificationStatusGutterReceivers[i] = new();
     }
     verificationStatusGutterReceiver = new();
-    client = await InitializeClient(options =>
+    (client, Server) = await Initialize(options =>
       options
         .AddHandler(DafnyRequestNames.VerificationStatusGutter,
           NotificationHandler.For<VerificationStatusGutter>(NotifyAllVerificationGutterStatusReceivers))
@@ -43,14 +44,14 @@ public class ConcurrentLinearVerificationGutterStatusTester : LinearVerification
     // That way, it can rebuild the trace for every file independently.
     for (var i = 0; i < MaxSimultaneousVerificationTasks; i++) {
       result.Add(VerifyTrace(@"
- .  |  |  |  I  |  | :predicate F(i: int) {
- .  |  |  |  I  |  | :  false // Should not be highlighted in gutter.
- .  |  |  |  I  |  | :}
-    |  |  |  I  |  | :
- .  S [S][ ][I][S][ ]:method H()
- .  S [=][=][-][~][O]:  ensures F(1)
- .  S [=][=][-][~][=]:{//Next: { assert false;
- .  S [S][ ][I][S][ ]:}", $"testfile{i}.dfy", true, verificationStatusGutterReceivers[i]));
+ .  |  |  |  |  I  |  |  | :predicate F(i: int) {
+ .  |  |  |  |  I  |  |  | :  false // Should not be highlighted in gutter.
+ .  |  |  |  |  I  |  |  | :}
+    |  |  |  |  I  |  |  | :
+ .  .  S [S][ ][I][I][S][ ]:method H()
+ .  .  S [=][=][-][-][~][O]:  ensures F(1)
+ .  .  S [=][=][-][-][~][=]:{//Replace: { assert false;
+ .  .  S [S][ ][I][I][S][ ]:}", false, $"EnsuresManyDocumentsCanBeVerifiedAtOnce{i}.dfy", true, true, verificationStatusGutterReceivers[i]));
     }
 
     for (var i = 0; i < MaxSimultaneousVerificationTasks; i++) {
@@ -58,4 +59,6 @@ public class ConcurrentLinearVerificationGutterStatusTester : LinearVerification
     }
   }
 
+  public ConcurrentLinearVerificationGutterStatusTester(ITestOutputHelper output) : base(output) {
+  }
 }

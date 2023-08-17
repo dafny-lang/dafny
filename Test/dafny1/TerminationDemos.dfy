@@ -95,8 +95,8 @@ class List {
   }
 
   method Prepend(x: int, tail: List?) returns (list: List)
-    requires tail == null || tail.IsAcyclic();
-    ensures list.IsAcyclic();
+    requires tail == null || tail.IsAcyclic()
+    ensures list.IsAcyclic()
   {
     list := new List;
     list.data := x;

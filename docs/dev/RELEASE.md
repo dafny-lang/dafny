@@ -59,10 +59,20 @@
       and dafny-lang/dafny-lang.github.io.
       Approve and merge these PRs.
 
+1. Add the new version to the list of versions to be checked in the library repo,
+   namely the list in the file libraries/.github/workflows/tests.yml.
+
 1. Update the Homebrew formula for Dafny (see below).
     Note that it is fine to leave this for the next day,
     and other members of the community may update the formula
     in the meantime anyway.
+
+1. Once the Homebrew formula is merged, test that it works correctly by
+   going to <https://github.com/dafny-lang/dafny/actions> and manually
+   running the "Test Brew release on Mac" workflow. It doesn't matter
+   what branch you run it on because it won't actually check out the
+   code. It will just install Dafny from Homebrew and run it on some
+   examples.
 
 If something goes wrong with the `prepare` step:
 

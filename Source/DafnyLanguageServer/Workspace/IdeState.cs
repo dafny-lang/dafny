@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using Microsoft.Boogie;
 using Microsoft.Dafny.LanguageServer.Language;
@@ -12,29 +13,34 @@ using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 namespace Microsoft.Dafny.LanguageServer.Workspace;
 
 
-public record IdeImplementationView(Range Range, PublishedVerificationStatus Status, IReadOnlyList<Diagnostic> Diagnostics);
+public record IdeImplementationView(Range Range, PublishedVerificationStatus Status,
+  IReadOnlyList<Diagnostic> Diagnostics);
+
+public record IdeVerificationResult(bool WasTranslated, IReadOnlyDictionary<string, IdeImplementationView> Implementations);
 
 /// <summary>
 /// Contains information from the latest document, and from older documents if some information is missing,
 /// to provide the IDE with as much information as possible.
 /// </summary>
 public record IdeState(
-  DocumentTextBuffer TextDocumentItem,
-  IEnumerable<Diagnostic> ResolutionDiagnostics,
+  int Version,
+  Compilation Compilation,
+  Node Program,
+  IReadOnlyDictionary<Uri, IReadOnlyList<Diagnostic>> ResolutionDiagnostics,
   SymbolTable SymbolTable,
   SignatureAndCompletionTable SignatureAndCompletionTable,
-  IReadOnlyDictionary<ImplementationId, IdeImplementationView> ImplementationIdToView,
+  Dictionary<Location, IdeVerificationResult> VerificationResults,
   IReadOnlyList<Counterexample> Counterexamples,
-  bool ImplementationsWereUpdated,
-  IEnumerable<Diagnostic> GhostDiagnostics,
-  VerificationTree VerificationTree
+  IReadOnlyDictionary<Uri, IReadOnlyList<Range>> GhostRanges,
+  IReadOnlyDictionary<Uri, VerificationTree> VerificationTrees
 ) {
 
-  public DocumentUri Uri => TextDocumentItem.Uri;
-  public int? Version => TextDocumentItem.Version;
-
-  public IEnumerable<Diagnostic> Diagnostics =>
-    ResolutionDiagnostics.Concat(ImplementationIdToView.Values.SelectMany(v => v.Diagnostics));
+  public ImmutableDictionary<Uri, IReadOnlyList<Diagnostic>> GetDiagnostics() {
+    var resolutionDiagnostics = ResolutionDiagnostics.ToImmutableDictionary();
+    var verificationDiagnostics = VerificationResults.GroupBy(kv => kv.Key.Uri).Select(kv =>
+      new KeyValuePair<Uri, IReadOnlyList<Diagnostic>>(kv.Key.ToUri(), kv.SelectMany(x => x.Value.Implementations.Values.SelectMany(v => v.Diagnostics)).ToList()));
+    return resolutionDiagnostics.Merge(verificationDiagnostics, Lists.Concat);
+  }
 }
 
 public static class Util {
@@ -57,7 +63,7 @@ public static class Util {
   }
 
   private static Location CreateLocation(IToken token) {
-    var uri = DocumentUri.Parse(token.filename);
+    var uri = DocumentUri.Parse(token.Uri.AbsoluteUri);
     return new Location {
       Range = token.GetLspRange(),
       // During parsing, we store absolute paths to make reconstructing the Uri easier

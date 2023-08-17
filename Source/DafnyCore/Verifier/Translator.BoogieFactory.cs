@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
+using System.IO;
 using Bpl = Microsoft.Boogie;
 using static Microsoft.Dafny.Util;
 
@@ -661,7 +662,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(1 <= totalDims);
       Contract.Requires(0 <= dim && dim < totalDims);
 
-      string name = "_System." + BuiltIns.ArrayClassName(totalDims) + ".Length";
+      string name = "_System." + SystemModuleManager.ArrayClassName(totalDims) + ".Length";
       if (totalDims != 1) {
         name += dim;
       }
@@ -883,10 +884,11 @@ namespace Microsoft.Dafny {
       } else if (exprTok == Boogie.Token.NoToken) {
         return Token.NoToken;
       } else {
+        // These boogie Tokens can be created by TokenTextWriter
         // This is defensive programming but we aren't expecting to hit this case
         return new Token {
           col = exprTok.col,
-          Filename = exprTok.filename,
+          Uri = new Uri("untitled:" + exprTok.filename),
           kind = exprTok.kind,
           LeadingTrivia = "",
           line = exprTok.line,

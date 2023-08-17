@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
   public class SaveDocumentTest : ClientBasedLanguageServerTest {
@@ -16,7 +17,7 @@ function GetConstant(): int {
 }".Trim();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      await GetLastDiagnostics(documentItem, CancellationToken);
+      await AssertNoDiagnosticsAreComing(CancellationToken);
       await client.SaveDocumentAndWaitAsync(documentItem, CancellationToken);
       await AssertNoDiagnosticsAreComing(CancellationToken);
     }
@@ -30,7 +31,7 @@ function GetConstant(): int {
       await SetUp(options => options.Set(ServerCommand.Verification, VerifyOnMode.Never));
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      await GetLastDiagnostics(documentItem, CancellationToken);
+      await AssertNoDiagnosticsAreComing(CancellationToken);
       await client.SaveDocumentAndWaitAsync(documentItem, CancellationToken);
       await AssertNoDiagnosticsAreComing(CancellationToken);
     }
@@ -72,7 +73,7 @@ function GetConstant(): int {
       await SetUp(options => options.Set(ServerCommand.Verification, VerifyOnMode.Save));
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      await GetLastDiagnostics(documentItem, CancellationToken);
+      await AssertNoDiagnosticsAreComing(CancellationToken);
       await client.SaveDocumentAndWaitAsync(documentItem, CancellationToken);
       await AssertNoDiagnosticsAreComing(CancellationToken);
     }
@@ -86,12 +87,15 @@ method DoIt() {
       await SetUp(options => options.Set(ServerCommand.Verification, VerifyOnMode.Save));
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      await GetLastDiagnostics(documentItem, CancellationToken);
+      await AssertNoDiagnosticsAreComing(CancellationToken);
       await client.SaveDocumentAndWaitAsync(documentItem, CancellationToken);
       var afterSaveDiagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
       Assert.Single(afterSaveDiagnostics);
       var message = afterSaveDiagnostics.First();
       Assert.Equal(MessageSource.Verifier.ToString(), message.Source);
+    }
+
+    public SaveDocumentTest(ITestOutputHelper output) : base(output) {
     }
   }
 }

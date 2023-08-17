@@ -8,7 +8,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
     /// Gets the method node representing the declaration of this symbol.
     /// </summary>
     public Method Declaration { get; }
-    public object Node => Declaration;
+    public INode Node => Declaration;
 
     /// <summary>
     /// Gets the method parameters.
@@ -29,8 +29,8 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
     public List<ScopeSymbol> Modifies { get; } = new();
     public List<ScopeSymbol> Decreases { get; } = new();
 
-    public override IEnumerable<ISymbol> Children =>
-      Block.AsEnumerable<ISymbol>()
+    public override IEnumerable<ILegacySymbol> Children =>
+      Block.AsEnumerable<ILegacySymbol>()
         .Concat(Parameters)
         .Concat(Returns)
         .Concat(Ensures)
@@ -38,7 +38,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         .Concat(Modifies)
         .Concat(Decreases);
 
-    public MethodSymbol(ISymbol? scope, Method method) : base(scope, method) {
+    public MethodSymbol(ILegacySymbol? scope, Method method) : base(scope, method) {
       Declaration = method;
     }
 

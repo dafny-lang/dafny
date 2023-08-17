@@ -1,16 +1,28 @@
+// Copyright by the contributors to the Dafny Project
+// SPDX-License-Identifier: MIT
+
+#nullable disable
 using System.Collections.Generic;
 using System.CommandLine;
 using System.CommandLine.Invocation;
 using System.Linq;
+using Microsoft.Boogie;
 
-namespace Microsoft.Dafny; 
+namespace Microsoft.Dafny;
 
 public class DeadCodeCommand : ICommandSpec {
   public IEnumerable<Option> Options =>
     new Option[] {
       GenerateTestsCommand.LoopUnroll,
       GenerateTestsCommand.SequenceLengthLimit,
-      BoogieOptionBag.VerificationTimeLimit,
+      GenerateTestsCommand.ForcePrune,
+      GenerateTestsCommand.PrintBpl,
+      BoogieOptionBag.SolverLog,
+      BoogieOptionBag.SolverOption,
+      BoogieOptionBag.SolverOptionHelp,
+      BoogieOptionBag.SolverPath,
+      BoogieOptionBag.SolverResourceLimit,
+      BoogieOptionBag.VerificationTimeLimit
     }.Concat(ICommandSpec.ConsoleOutputOptions).
       Concat(ICommandSpec.ResolverOptions);
 
@@ -21,14 +33,7 @@ public class DeadCodeCommand : ICommandSpec {
   }
 
   public void PostProcess(DafnyOptions dafnyOptions, Options options, InvocationContext context) {
-    dafnyOptions.Compile = true;
-    dafnyOptions.RunAfterCompile = false;
-    dafnyOptions.ForceCompile = false;
-    dafnyOptions.CompileVerbose = false;
-    dafnyOptions.ForbidNondeterminism = true;
-    dafnyOptions.DefiniteAssignmentLevel = 2;
-
-    dafnyOptions.TestGenOptions.Mode = TestGenerationOptions.Modes.Block;
+    GenerateTestsCommand.PostProcess(dafnyOptions, options, context, TestGenerationOptions.Modes.Block);
     dafnyOptions.TestGenOptions.WarnDeadCode = true;
   }
 }

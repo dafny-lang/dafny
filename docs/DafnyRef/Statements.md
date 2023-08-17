@@ -204,7 +204,7 @@ It assigns an arbitrary but type-correct value to the corresponding left-hand-si
 It can be mixed with other assignments of computed values.
 <!-- %no-check -->
 ```dafny
-a := *'
+a := *;
 a, b, c := 4, *, 5;
 ```
 
@@ -636,7 +636,7 @@ If there is a mix of failure-compatible types, then the program will need to use
 explicit handling of failure values.
 
 
-### 8.6.9. Failure returns and exceptions
+### 8.6.9. Failure returns and exceptions {#sec-failure-return-and-exceptions}
 
 The `:-` mechanism is like the exceptions used in other programming languages, with some similarities and differences.
 
@@ -922,7 +922,8 @@ the same as for match expressions and is described in
 
 The selector need not be enclosed in parentheses; the sequence of cases may but need not be enclosed in braces.
 The cases need not be disjoint.
-The cases must be exhaustive, but you can use a wild variable (`_`) or an as yet unused simple identifier to indicate "match anything".
+The cases must be exhaustive, but you can use a wild variable (`_`) or a simple identifier to indicate "match anything".
+Please refer to the [section about case patterns](#sec-case-pattern) to learn more about shadowing, constants, etc.
 
 The code below shows an example of a match statement.
 
@@ -957,8 +958,8 @@ Examples:
 method m() {
   var i := 10;
   while 0 < i
-    invariant 0 <= i <= 10;
-    decreases i;
+    invariant 0 <= i <= 10
+    decreases i
   {
     i := i-1;
   }
@@ -1027,7 +1028,7 @@ Edsger W. Dijkstra. For example:
 method m(n: int){
   var r := n;
   while
-    decreases if 0 <= r then r else -r;
+    decreases if 0 <= r then r else -r
   {
     case r < 0 =>
       r := r + 1;
@@ -2178,15 +2179,15 @@ into the new buffer.
 ```dafny
 class SimpleQueue<Data(0)>
 {
-  ghost var Contents: seq<Data>;
+  ghost var Contents: seq<Data>
   var a: array<Data>  // Buffer holding contents of queue.
   var m: int          // Index head of queue.
   var n: int          // Index just past end of queue
    
   method Enqueue(d: Data)
-    requires a.Length > 0;
-    requires 0 <= m <= n <= a.Length;
-    modifies this, this.a;
+    requires a.Length > 0
+    requires 0 <= m <= n <= a.Length
+    modifies this, this.a
     ensures Contents == old(Contents) + [d]
   {
     if n == a.Length {

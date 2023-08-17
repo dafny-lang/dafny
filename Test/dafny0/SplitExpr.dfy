@@ -16,7 +16,7 @@ class UnboundedStack<T> {
   }
 
   ghost predicate IsEmpty()
-    reads {this};
+    reads {this}
   { content == [] }
 
   method Pop() returns (result: T)

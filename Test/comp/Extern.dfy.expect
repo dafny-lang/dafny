@@ -10,8 +10,8 @@ Extern static method says: Mixed.P
 Extern instance method says: Mixed.IP
 2002
 AllExtern.P
-Wrappers_Compile.Option.Some(42)
-Wrappers_Compile.Pair.Pair(3, 7)
+Wrappers.Option.Some(42)
+Wrappers.Pair.Pair(3, 7)
 3 3 3
 
 Dafny program verifier did not attempt verification
@@ -23,8 +23,8 @@ Extern static method says: Mixed.P
 Extern instance method says: Mixed.IP
 2002
 AllExtern.P
-Wrappers_Compile.Option.Some(42)
-Wrappers_Compile.Pair.Pair(3, 7)
+Wrappers.Option.Some(42)
+Wrappers.Pair.Pair(3, 7)
 3 3 3
 
 Dafny program verifier did not attempt verification
@@ -36,8 +36,8 @@ Extern static method says: Mixed.P
 Extern instance method says: Mixed.IP
 2002
 AllExtern.P
-Wrappers_Compile.Option.Some(42)
-Wrappers_Compile.Pair.Pair(3, 7)
+Wrappers.Option.Some(42)
+Wrappers.Pair.Pair(3, 7)
 3 3 3
 
 Dafny program verifier did not attempt verification
@@ -49,8 +49,8 @@ Extern static method says: Mixed.P
 Extern instance method says: Mixed.IP
 2002
 AllExtern.P
-Wrappers_Compile.Option.Some(42)
-Wrappers_Compile.Pair.Pair(3, 7)
+Wrappers.Option.Some(42)
+Wrappers.Pair.Pair(3, 7)
 3 3 3
 
 Dafny program verifier did not attempt verification
@@ -62,6 +62,6 @@ Extern static method says: Mixed.P
 Extern instance method says: Mixed.IP
 2002
 AllExtern.P
-Wrappers_Compile.Option.Some(42)
-Wrappers_Compile.Pair.Pair(3, 7)
+Wrappers.Option.Some(42)
+Wrappers.Pair.Pair(3, 7)
 3 3 3

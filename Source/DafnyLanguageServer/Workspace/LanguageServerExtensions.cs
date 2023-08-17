@@ -25,16 +25,33 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     private static IServiceCollection WithDafnyWorkspace(this IServiceCollection services) {
       return services
-        .AddSingleton<IDocumentDatabase>(serviceProvider => new DocumentManagerDatabase(serviceProvider))
+        .AddSingleton<IProjectDatabase, ProjectManagerDatabase>()
+        .AddSingleton<CreateProjectManager>(provider => (boogieEngine, documentIdentifier) => new ProjectManager(
+          provider.GetRequiredService<DafnyOptions>(),
+          provider.GetRequiredService<ILogger<ProjectManager>>(),
+          provider.GetRequiredService<CreateMigrator>(),
+          provider.GetRequiredService<IFileSystem>(),
+          provider.GetRequiredService<INotificationPublisher>(),
+          provider.GetRequiredService<IVerificationProgressReporter>(),
+          provider.GetRequiredService<CreateCompilationManager>(),
+          provider.GetRequiredService<CreateIdeStateObserver>(),
+          boogieEngine,
+          documentIdentifier))
+        .AddSingleton<IFileSystem, LanguageServerFilesystem>()
         .AddSingleton<IDafnyParser>(serviceProvider => {
           var options = serviceProvider.GetRequiredService<DafnyOptions>();
-          return DafnyLangParser.Create(options,
-            serviceProvider.GetRequiredService<ILogger<DafnyLangParser>>());
+          return new DafnyLangParser(options,
+            serviceProvider.GetRequiredService<IFileSystem>(),
+            serviceProvider.GetRequiredService<ITelemetryPublisher>(),
+            serviceProvider.GetRequiredService<ILogger<DafnyLangParser>>(),
+            serviceProvider.GetRequiredService<ILogger<CachingParser>>());
         })
         .AddSingleton<ITextDocumentLoader>(CreateTextDocumentLoader)
         .AddSingleton<INotificationPublisher, NotificationPublisher>()
-        .AddSingleton<ITextChangeProcessor, TextChangeProcessor>()
-        .AddSingleton<IRelocator, Relocator>()
+        .AddSingleton<CreateMigrator>(provider => (changes, cancellationToken) => new Migrator(
+          provider.GetRequiredService<ILogger<Migrator>>(),
+          provider.GetRequiredService<ILogger<SignatureAndCompletionTable>>(),
+          changes, cancellationToken))
         .AddSingleton<ISymbolGuesser, SymbolGuesser>()
         .AddSingleton<ICompilationStatusNotificationPublisher, CompilationStatusNotificationPublisher>()
         .AddSingleton<ITelemetryPublisher, TelemetryPublisher>();
@@ -42,14 +59,12 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     public static TextDocumentLoader CreateTextDocumentLoader(IServiceProvider services) {
       return TextDocumentLoader.Create(
-        services.GetRequiredService<DafnyOptions>(),
         services.GetRequiredService<IDafnyParser>(),
         services.GetRequiredService<ISymbolResolver>(),
         services.GetRequiredService<ISymbolTableFactory>(),
         services.GetRequiredService<IGhostStateDiagnosticCollector>(),
         services.GetRequiredService<ICompilationStatusNotificationPublisher>(),
-        services.GetRequiredService<ILoggerFactory>(),
-        services.GetRequiredService<INotificationPublisher>()
+        services.GetRequiredService<ILogger<ITextDocumentLoader>>()
       );
     }
   }

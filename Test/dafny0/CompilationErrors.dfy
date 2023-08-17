@@ -1,7 +1,7 @@
 // RUN: %exits-with 3 %dafny "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
-type MyType  // compile error: opaque type
+type MyType  // compile error: abstract type
 iterator Iter()  // compile error: body-less iterator
 ghost method M()  // compile error: body-less ghost method
 method P()  // compile error: body-less method
@@ -13,7 +13,7 @@ class TestClass {
       assume {:axiom} true;
     }
   }
-  ghost var g: int;
+  ghost var g: int
 }
 
 ghost function F(): int  // compile error: body-less ghost function

@@ -1,4 +1,5 @@
-// RUN: %dafny /compile:0 /proverOpt:O:smt.qi.eager_threshold=30 "%s" > "%t"
+// UNSUPPORTED: windows,posix
+// RUN: %dafny /compile:0 /proverOpt:O:smt.qi.eager_threshold=30 /typeEncoding:p "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // This program models the ownership of a Rust-like MutexGuard.
@@ -615,7 +616,7 @@ method Acquire(universe: Universe, running: Thread, mutex: Mutex)
   label beforeLoop:
   while (wasLocked)
     modifies universe, universe.content
-    invariant universe.globalInv() && universe.baseLegalTransitionsSequence@beforeLoop();
+    invariant universe.globalInv() && universe.baseLegalTransitionsSequence@beforeLoop()
     invariant !wasLocked ==> !mutex.locked
     decreases * // Nothing guarantees that we'll obtain the lock
   {
@@ -656,48 +657,37 @@ method {:vcs_split_on_every_assert} SetData(universe: Universe, running: Thread,
   ensures universe.globalInv() && universe.baseLegalTransitionsSequence()
 {
   universe.Interference(running);
-  assert {:split_here} true;
 
   // A method call is not a single atomic step.
   var guard := Acquire(universe, running, mutex);
-  assert {:split_here} true;
 
   universe.Interference(running);
-  assert {:split_here} true;
 
   label lci_l14:
   var a := guard.mutex.data.value;
   universe.lci@lci_l14(running);
-  assert {:split_here} true;
 
   universe.Interference(running);
-  assert {:split_here} true;
 
   label lci_l15:
   var b := guard.mutex.data.value;
   universe.lci@lci_l15(running);
-  assert {:split_here} true;
 
   universe.Interference(running);
-  assert {:split_here} true;
 
   label lci_l16:
   assert a == b;
   universe.lci@lci_l16(running);
-  assert {:split_here} true;
 
   universe.Interference(running);
-  assert {:split_here} true;
 
   label lci_l17:
   guard.mutex.data.value := 42;
   guard.mutex.data.nonvolatileVersion := BumpVersion(guard.mutex.data.nonvolatileVersion);
   guard.nonvolatileVersion := BumpVersion(guard.nonvolatileVersion);
   universe.lci@lci_l17(running);
-  assert {:split_here} true;
 
   universe.Interference(running);
-  assert {:split_here} true;
 
   // TODO: deallocate guard
 }

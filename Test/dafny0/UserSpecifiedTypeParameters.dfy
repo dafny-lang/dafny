@@ -3,7 +3,7 @@
 
 module M0 {
   class MyClass<T(==),U(==)> {
-    var s: map<T,set<U>>;
+    var s: map<T,set<U>>
     static ghost function F<W>(w: W, w': W, t: T, u: U): int
     {
       if w == w' then 5 else 7

@@ -7,6 +7,7 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 using Xunit;
+using Xunit.Abstractions;
 using XunitAssertMessages;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.CodeActions {
@@ -24,6 +25,32 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.CodeActions {
 
     private async Task<CodeAction> RequestResolveCodeAction(CodeAction codeAction) {
       return await client.ResolveCodeAction(codeAction, CancellationToken);
+    }
+
+    [Fact]
+    public async Task GitIssue4401CorrectInsertionPlace() {
+      await TestCodeAction(@"
+predicate P(i: int)
+
+method Test() {(>Insert explicit failing assertion->
+  assert exists x: int :: P(x);<)
+  var x :><| P(x);
+}");
+    }
+
+    [Fact]
+    public async Task GitIssue4401CorrectInsertionPlaceModule() {
+      await TestCodeAction(@"
+module Test {
+  class TheTest {
+    predicate P(i: int)
+
+    method Test() {(>Insert explicit failing assertion->
+      assert exists x: int :: P(x);<)
+      var x :><| P(x);
+    }
+  }
+}");
     }
 
     [Fact]
@@ -62,7 +89,7 @@ method f(b: bool) returns (i: int)
     [Fact]
     public async Task CodeActionSuggestsInliningPostConditionWithExtraIndentation() {
       await TestCodeAction(@"
-const x := 1;
+const x := 1
   method f() returns (i: int)
     ensures i > 10 ><{
   (>Assert postcondition at return location where it fails->  assert i > 10;
@@ -73,7 +100,7 @@ const x := 1;
     public async Task CodeActionSuggestsInliningPostConditionWithExtraTabIndentation() {
       var t = "\t";
       await TestCodeAction($@"
-const x := 1;
+const x := 1
   method f() returns (i: int)
 {t}{t}{t}{t}{t}{t}ensures i > 10 ><{{
 {t}{t}{t}(>Assert postcondition at return location where it fails->{t}assert i > 10;
@@ -83,7 +110,7 @@ const x := 1;
     [Fact]
     public async Task CodeActionSuggestsInliningPostConditionWithExtraIndentation2() {
       await TestCodeAction(@"
-const x := 1;
+const x := 1
   method f() returns (i: int)
     ensures i > 10
 ><{
@@ -94,7 +121,7 @@ const x := 1;
     [Fact]
     public async Task CodeActionSuggestsInliningPostConditionWithExtraIndentation2bis() {
       await TestCodeAction(@"
-const x := 1;
+const x := 1
   method f() returns (i: int)
     ensures i > 10
 ><{
@@ -107,7 +134,7 @@ const x := 1;
     [Fact]
     public async Task CodeActionSuggestsInliningPostConditionWithExtraIndentation2C() {
       await TestCodeAction(@"
-const x := 1;
+const x := 1
   method f() returns (i: int)
     ensures i > 10
   ><{(>Assert postcondition at return location where it fails-> assert i > 10;
@@ -117,7 +144,7 @@ const x := 1;
     [Fact]
     public async Task CodeActionSuggestsInliningPostConditionWithExtraIndentation3() {
       await TestCodeAction(@"
-const x := 1;
+const x := 1
   method f() returns (i: int)
     ensures i > 10
   ><{
@@ -132,6 +159,150 @@ const x := 1;
 }");
     }
 
+    [Fact]
+    public async Task ExplicitNestedIdentifier() {
+      await TestCodeAction(@"
+datatype D = C(value: int) | N
+
+function Test(e: D, inputs: map<int, int>): bool {
+  match e
+  case N => true
+  case C(index) => (>Insert explicit failing assertion->assert index in inputs;
+                   <)inputs><[index] == index // Here
+}");
+    }
+
+    [Fact]
+    public async Task ExplicitDivisionByZero() {
+      await TestCodeAction(@"
+method Foo(i: int)
+{
+  (>Insert explicit failing assertion->assert i + 1 != 0;
+  <)var x := 2>< / (i + 1); 
+}");
+    }
+
+    [Fact]
+    public async Task ExplicitDivisionImp() {
+      await TestCodeAction(@"
+method Foo(b: bool, i: int, j: int)
+{
+  var x := b ==> (>Insert explicit failing assertion->assert i + 1 != 0;
+                 <)2 ></ (i + 1) == j;
+}");
+    }
+
+    [Fact]
+    public async Task ExplicitDivisionImp2() {
+      await TestCodeAction(@"
+method Foo(b: bool, i: int, j: int)
+{
+  (>Insert explicit failing assertion->assert i + 1 != 0;
+  <)var x := 2 ></ (i + 1) == j ==> b;
+}");
+    }
+
+    [Fact]
+    public async Task ExplicitDivisionAnd() {
+      await TestCodeAction(@"
+method Foo(b: bool, i: int, j: int)
+{
+  var x := b && (>Insert explicit failing assertion->assert i + 1 != 0;
+                <)2 ></ (i + 1) == j;
+}");
+    }
+
+    [Fact]
+    public async Task ExplicitDivisionAnd2() {
+      await TestCodeAction(@"
+method Foo(b: bool, i: int, j: int)
+{
+  (>Insert explicit failing assertion->assert i + 1 != 0;
+  <)var x := 2 ></ (i + 1) == j && b;
+}");
+    }
+
+
+    [Fact]
+    public async Task ExplicitDivisionOr() {
+      await TestCodeAction(@"
+method Foo(b: bool, i: int, j: int)
+{
+  var x := b || (>Insert explicit failing assertion->assert i + 1 != 0;
+                <)2 ></ (i + 1) == j;
+}");
+    }
+
+    [Fact]
+    public async Task ExplicitDivisionOr2() {
+      await TestCodeAction(@"
+method Foo(b: bool, i: int, j: int)
+{
+  (>Insert explicit failing assertion->assert i + 1 != 0;
+  <)var x := 2 ></ (i + 1) == j || b;
+}");
+    }
+
+
+
+    [Fact]
+    public async Task ExplicitDivisionAddParentheses() {
+      await TestCodeAction(@"
+method Foo(b: bool, i: int, j: int)
+{
+  (>Insert explicit failing assertion->assert (match b case true => i + 1 case false => i - 1) != 0;
+  <)var x := 2 ></ match b case true => i + 1 case false => i - 1;
+}");
+    }
+
+    [Fact]
+    public async Task ExplicitDivisionExp() {
+      await TestCodeAction(@"
+method Foo(b: bool, i: int, j: int)
+{
+  (>Insert explicit failing assertion->assert i + 1 != 0;
+  <)var x := b <== 2 ></ (i + 1) == j;
+}");
+    }
+
+    [Fact]
+    public async Task ExplicitDivisionExp2() {
+      await TestCodeAction(@"
+method Foo(b: bool, i: int, j: int)
+{
+  var x := (>Insert explicit failing assertion->(assert i + 1 != 0;
+            2 / (i + 1) == j):::2 ></ (i + 1) == j<) <== b;
+}");
+    }
+
+    [Fact]
+    public async Task ExplicitDivisionByZeroFunction() {
+      await TestCodeAction(@"
+function Foo(i: int): int
+{
+  if i < 0 then
+    (>Insert explicit failing assertion->assert i + 1 != 0;
+    <)2>< / (i + 1)
+  else
+    2
+}");
+    }
+
+
+
+    [Fact]
+    public async Task ExplicitDivisionByZeroFunctionLetExpr() {
+      await TestCodeAction(@"
+function Foo(i: int): int
+{
+  match i {
+    case _ =>
+      (>Insert explicit failing assertion->assert i + 1 != 0;
+      <)2>< / (i + 1)
+  }
+}");
+    }
+
     private static readonly Regex NewlineRegex = new Regex("\r?\n");
 
     private async Task TestCodeAction(string source) {
@@ -139,8 +310,7 @@ const x := 1;
 
       MarkupTestFile.GetPositionsAndAnnotatedRanges(source.TrimStart(), out var output, out var positions,
         out var ranges);
-      var documentItem = CreateTestDocument(output);
-      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+      var documentItem = await CreateAndOpenTestDocument(output);
       var diagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
       Assert.Equal(ranges.Count, diagnostics.Length);
 
@@ -165,11 +335,10 @@ const x := 1;
               codeAction = await RequestResolveCodeAction(codeAction);
               var textDocumentEdit = codeAction.Edit?.DocumentChanges?.Single().TextDocumentEdit;
               Assert.NotNull(textDocumentEdit);
-              var edit = textDocumentEdit.Edits.Single();
-              Assert.Equal(
-                NewlineRegex.Replace(expectedNewText, "\n"),
-                NewlineRegex.Replace(edit.NewText, "\n"));
-              Assert.Equal(expectedRange, edit.Range);
+              var modifiedOutput = DocumentEdits.ApplyEdits(textDocumentEdit, output);
+              var expectedOutput =
+                DocumentEdits.ApplyEdit(DocumentEdits.ToLines(output), expectedRange, expectedNewText);
+              Assert.Equal(expectedOutput, modifiedOutput);
             }
           }
         }
@@ -177,6 +346,9 @@ const x := 1;
         Assert.True(found,
           $"Did not find the code action '{expectedTitle}'. Available were:{string.Join(",", otherTitles)}");
       }
+    }
+
+    public CodeActionTest(ITestOutputHelper output) : base(output) {
     }
   }
 }

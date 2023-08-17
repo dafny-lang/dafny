@@ -4,6 +4,7 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Linq;
 using System.Threading.Tasks;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
   public class SymbolMigrationTest : SynchronizationTestBase {
@@ -22,11 +23,11 @@ function GetConstant2(): int {
       var documentItem = CreateTestDocument(source);
       await Client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       await ApplyChangeAndWaitCompletionAsync(
-        documentItem,
+        ref documentItem,
         new Range((0, 0), (0, 0)),
         change
       );
-      var document = await Documents.GetResolvedDocumentAsync(documentItem.Uri);
+      var document = await Projects.GetResolvedDocumentAsyncNormalizeUri(documentItem.Uri);
       Assert.NotNull(document);
       Assert.True(document.SignatureAndCompletionTable.Resolved);
       Assert.Equal(2, document.SignatureAndCompletionTable.Locations.Keys.OfType<FunctionSymbol>().Count());
@@ -47,11 +48,11 @@ function GetConstant2(): int {
       var documentItem = CreateTestDocument(source);
       await Client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       await ApplyChangeAndWaitCompletionAsync(
-        documentItem,
+        ref documentItem,
         new Range((0, 0), (0, 0)),
         change
       );
-      var document = await Documents.GetResolvedDocumentAsync(documentItem.Uri);
+      var document = await Projects.GetResolvedDocumentAsyncNormalizeUri(documentItem.Uri);
       Assert.NotNull(document);
     }
 
@@ -67,11 +68,11 @@ function GetConstant(): int {
       var documentItem = CreateTestDocument(source);
       await Client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       await ApplyChangeAndWaitCompletionAsync(
-        documentItem,
+        ref documentItem,
         new Range((4, 0), (4, 0)),
         change
       );
-      var document = await Documents.GetResolvedDocumentAsync(documentItem.Uri);
+      var document = await Projects.GetResolvedDocumentAsyncNormalizeUri(documentItem.Uri);
       Assert.NotNull(document);
     }
 
@@ -90,14 +91,17 @@ method GetIt(x: int) returns (y: int) {
       var documentItem = CreateTestDocument(source);
       await Client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       await ApplyChangeAndWaitCompletionAsync(
-        documentItem,
+        ref documentItem,
         new Range((1, 0), (1, 11)),
         change
       );
-      var document = await Documents.GetResolvedDocumentAsync(documentItem.Uri);
+      var document = await Projects.GetResolvedDocumentAsyncNormalizeUri(documentItem.Uri);
       Assert.NotNull(document);
       Assert.True(document.SignatureAndCompletionTable.Resolved);
       Assert.Single(document.SignatureAndCompletionTable.Locations.Keys.OfType<MethodSymbol>());
+    }
+
+    public SymbolMigrationTest(ITestOutputHelper output) : base(output) {
     }
   }
 }

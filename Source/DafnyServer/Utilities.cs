@@ -5,6 +5,7 @@ using System;
 using System.IO;
 using System.Text;
 using System.Collections.Generic;
+using System.Linq;
 using System.Runtime.Serialization;
 using System.Runtime.Serialization.Json;
 using Microsoft.Boogie;
@@ -29,7 +30,7 @@ namespace Microsoft.Dafny {
       if (aggregate == null) {
         EOM(header, subHeader + ex.Message);
       } else {
-        EOM(header, subHeader + aggregate.InnerExceptions.MapConcat(exn => exn.Message, ", "));
+        EOM(header, subHeader + String.Join(", ", aggregate.InnerExceptions.Select(e => e.Message)));
       }
     }
   }

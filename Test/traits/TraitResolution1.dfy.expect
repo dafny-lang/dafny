@@ -2,21 +2,14 @@ TraitResolution1.dfy(65,22): Error: the type of in-parameter 'x' is different fr
 TraitResolution1.dfy(89,14): Error: new can be applied only to class types (got A?)
 TraitResolution1.dfy(90,14): Error: new can be applied only to class types (got ASynonym)
 TraitResolution1.dfy(93,14): Error: new can be applied only to class types (got B?)
-TraitResolution1.dfy(93,11): Error: when allocating an object of type 'B', one of its constructor methods must be called
 TraitResolution1.dfy(96,14): Error: new can be applied only to class types (got C?<A>)
 TraitResolution1.dfy(98,14): Error: new can be applied only to class types (got C?<A?>)
 TraitResolution1.dfy(101,14): Error: new can be applied only to class types (got D?<A>)
-TraitResolution1.dfy(101,11): Error: when allocating an object of type 'D', one of its constructor methods must be called
 TraitResolution1.dfy(103,14): Error: new can be applied only to class types (got D?<A?>)
-TraitResolution1.dfy(103,11): Error: when allocating an object of type 'D', one of its constructor methods must be called
 TraitResolution1.dfy(105,14): Error: new can be applied only to class types (got D<A>)
-TraitResolution1.dfy(105,11): Error: when allocating an object of type 'D', one of its constructor methods must be called
 TraitResolution1.dfy(107,14): Error: new can be applied only to class types (got D<A?>)
-TraitResolution1.dfy(107,11): Error: when allocating an object of type 'D', one of its constructor methods must be called
 TraitResolution1.dfy(108,14): Error: new can be applied only to class types (got DSynonym<A?>)
-TraitResolution1.dfy(108,11): Error: when allocating an object of type 'D', one of its constructor methods must be called
 TraitResolution1.dfy(109,14): Error: new can be applied only to class types (got DSynonym<A?>)
-TraitResolution1.dfy(109,11): Error: when allocating an object of type 'D', one of its constructor methods must be called
 TraitResolution1.dfy(112,14): Error: new can be applied only to class types (got object?)
 TraitResolution1.dfy(113,14): Error: new can be applied only to class types (got ObjectSynonym)
 TraitResolution1.dfy(114,14): Error: new can be applied only to class types (got ObjectWithConstraint)
@@ -94,6 +87,9 @@ TraitResolution1.dfy(426,20): Error: the type of special parameter '_k' of least
 TraitResolution1.dfy(430,16): Error: the type of special parameter '_k' of least lemma 'L' (ORDINAL) must be the same as in the overridden least lemma (nat)
 TraitResolution1.dfy(476,8): Error: class 'AAA' with fields without known initializers, like 'w' of type '(Y, Y)', must declare a constructor
 TraitResolution1.dfy(481,8): Error: class 'BBB' with fields without known initializers, like 'w' of type 'Forever', must declare a constructor
+TraitResolution1.dfy(504,18): Error: type parameter (Y) passed to type ClassRequiresZero must support auto-initialization (got Forever)
+TraitResolution1.dfy(504,18): Error: type parameter (Y) passed to type ClassRequiresZero must support auto-initialization (got Forever)
+TraitResolution1.dfy(507,44): Error: type parameter (Y) passed to type ClassRequiresZero must support auto-initialization (got Forever)
 TraitResolution1.dfy(513,24): Error: type parameter (X) passed to type RequiresZero must support auto-initialization (got Forever)
 TraitResolution1.dfy(518,27): Error: type parameter (X) passed to type RequiresZero must support auto-initialization (got Y) (perhaps try declaring type parameter 'Y' on line 518 as 'Y(0)', which says it can only be instantiated with a type that supports auto-initialization)
 TraitResolution1.dfy(523,27): Error: type parameter (X) passed to type RequiresZero must support auto-initialization (got (Y, Y))
@@ -101,9 +97,6 @@ TraitResolution1.dfy(530,8): Error: set argument type must support equality (got
 TraitResolution1.dfy(536,28): Error: set argument type must support equality (got Forever)
 TraitResolution1.dfy(537,41): Error: type parameter (X) passed to type RequiresZero must support auto-initialization (got Forever)
 TraitResolution1.dfy(538,41): Error: type parameter (X) passed to type RequiresZero must support auto-initialization (got Forever)
-TraitResolution1.dfy(504,18): Error: type parameter (Y) passed to type ClassRequiresZero must support auto-initialization (got Forever)
-TraitResolution1.dfy(504,18): Error: type parameter (Y) passed to type ClassRequiresZero must support auto-initialization (got Forever)
-TraitResolution1.dfy(507,44): Error: type parameter (Y) passed to type ClassRequiresZero must support auto-initialization (got Forever)
 TraitResolution1.dfy(543,18): Error: a trait can only extend traits (found 'object?')
 TraitResolution1.dfy(545,18): Error: a class can only extend traits (found 'object?')
 TraitResolution1.dfy(554,16): Error: type parameter 'S' is not allowed to change the requirement of supporting auto-initialization
@@ -122,4 +115,4 @@ TraitResolution1.dfy(562,13): Error: type parameter 'R' is not allowed to change
 TraitResolution1.dfy(562,20): Error: type parameter 'S' is not allowed to change the requirement of supporting auto-initialization
 TraitResolution1.dfy(563,21): Error: type parameter 'R' is not allowed to change the requirement of being nonempty
 TraitResolution1.dfy(563,28): Error: type parameter 'S' is not allowed to change the requirement of supporting auto-initialization
-124 resolution/type errors detected in TraitResolution1.dfy
+117 resolution/type errors detected in TraitResolution1.dfy

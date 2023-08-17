@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.CommandLine;
 using System.Linq;
 using System.Text.RegularExpressions;
+using DafnyCore;
 
 namespace Microsoft.Dafny.Auditor;
 
@@ -64,6 +65,12 @@ public class Auditor : IRewriter {
                                  "md", "markdown", "md-table", "markdown-table",
                                  "md-ietf", "markdown-ietf",
                                  "txt");
+
+    DooFile.RegisterNoChecksNeeded(
+      ReportFileOption,
+      ReportFormatOption,
+      CompareReportOption
+    );
   }
 
   /// <summary>
@@ -100,7 +107,7 @@ public class Auditor : IRewriter {
 
   private static Regex TableRegex = new Regex(@"\{\{TABLE\}\}\r?\n");
 
-  private string GenerateHTMLReport(AuditReport report) {
+  private string GenerateHtmlReport(AuditReport report) {
     var table = report.RenderHTMLTable();
     var assembly = System.Reflection.Assembly.GetCallingAssembly();
     var templateStream = assembly.GetManifestResourceStream("audit_template.html");
@@ -116,21 +123,21 @@ public class Auditor : IRewriter {
     var report = AuditReport.BuildReport(program);
 
     if (reportFileName is null && reportFormat is null) {
-      foreach (var assumption in report.AllAssumptions()) {
-        foreach (var warning in assumption.Warnings()) {
-          Reporter.Warning(MessageSource.Verifier, ErrorRegistry.NoneId, assumption.decl.tok, warning);
+      foreach (var (_, assumptions) in report.AllAssumptions()) {
+        foreach (var assumption in assumptions) {
+          Reporter.Warning(MessageSource.Verifier, ErrorRegistry.NoneId, assumption.tok, assumption.Warning());
         }
       }
     } else {
       var text = reportFormat switch {
-        ReportFormat.HTML => GenerateHTMLReport(report),
+        ReportFormat.HTML => GenerateHtmlReport(report),
         ReportFormat.MarkdownTable => report.RenderMarkdownTable(),
         ReportFormat.MarkdownIETF => report.RenderMarkdownIETF(),
         ReportFormat.Text => report.RenderText(),
         _ => $"Internal error: unknown format {reportFormat}"
       };
       if (reportFileName is null) {
-        Console.Write(text);
+        Options.OutputWriter.Write(text);
       } else {
         if (compareReport) {
           try {
@@ -148,5 +155,8 @@ public class Auditor : IRewriter {
         }
       }
     }
+
+    var findingCount = report.AllAssumptions().SelectMany(d => d.Value).Count();
+    Options.OutputWriter.WriteLine($"Dafny auditor completed with {findingCount} findings");
   }
 }

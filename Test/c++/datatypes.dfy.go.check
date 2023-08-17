@@ -1,0 +1,2 @@
+// https://github.com/dafny-lang/dafny/issues/4114
+// CHECK: Err \(variable of type bool\) is not a type

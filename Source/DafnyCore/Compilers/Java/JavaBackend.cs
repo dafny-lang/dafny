@@ -12,7 +12,8 @@ public class JavaBackend : ExecutableBackend {
 
   public override IReadOnlySet<string> SupportedExtensions => new HashSet<string> { ".java" };
 
-  public override string TargetLanguage => "Java";
+  public override string TargetName => "Java";
+  public override bool IsStable => true;
   public override string TargetExtension => "java";
 
   public override string TargetBasename(string dafnyProgramName) =>
@@ -74,7 +75,7 @@ public class JavaBackend : ExecutableBackend {
     var compileProcess = PrepareProcessStartInfo("javac", new List<string> { "-encoding", "UTF8" }.Concat(files));
     compileProcess.WorkingDirectory = Path.GetFullPath(Path.GetDirectoryName(targetFilename));
     compileProcess.EnvironmentVariables["CLASSPATH"] = GetClassPath(targetFilename);
-    if (0 != RunProcess(compileProcess, outputWriter, "Error while compiling Java files.")) {
+    if (0 != RunProcess(compileProcess, outputWriter, outputWriter, "Error while compiling Java files.")) {
       return false;
     }
 
@@ -97,11 +98,11 @@ public class JavaBackend : ExecutableBackend {
       if (Options.SpillTargetCode == 0) {
         Directory.Delete(targetDirectory, true);
       } else {
-        classFiles.ForEach(f => File.Delete(f));
+        classFiles.ForEach(f => File.Delete(Path.Join(targetDirectory, f)));
       }
     }
 
-    if (Options.CompileVerbose) {
+    if (Options.Verbose) {
       // For the sake of tests, just write out the filename and not the directory path
       var fileKind = callToMain != null ? "executable" : "library";
       outputWriter.WriteLine($"Wrote {fileKind} jar {Path.GetFileName(jarPath)}");
@@ -112,24 +113,26 @@ public class JavaBackend : ExecutableBackend {
 
 
   public bool CreateJar(string/*?*/ entryPointName, string jarPath, string rootDirectory, List<string> files, TextWriter outputWriter) {
-    System.IO.Directory.CreateDirectory(Path.GetDirectoryName(jarPath));
+    Directory.CreateDirectory(Path.GetDirectoryName(jarPath));
     var args = entryPointName == null ? // If null, then no entry point is added
         new List<string> { "cf", jarPath }
         : new List<string> { "cfe", jarPath, entryPointName };
     var jarCreationProcess = PrepareProcessStartInfo("jar", args.Concat(files));
     jarCreationProcess.WorkingDirectory = rootDirectory;
-    return 0 == RunProcess(jarCreationProcess, outputWriter, "Error while creating jar file: " + jarPath);
+    return 0 == RunProcess(jarCreationProcess, outputWriter, outputWriter, "Error while creating jar file: " + jarPath);
   }
 
-  public override bool RunTargetProgram(string dafnyProgramName, string targetProgramText, string callToMain, string /*?*/ targetFilename,
-   ReadOnlyCollection<string> otherFileNames, object compilationResult, TextWriter outputWriter) {
+  public override bool RunTargetProgram(string dafnyProgramName, string targetProgramText, string callToMain,
+    string targetFilename, /*?*/
+    ReadOnlyCollection<string> otherFileNames, object compilationResult, TextWriter outputWriter,
+    TextWriter errorWriter) {
     string jarPath = Path.ChangeExtension(dafnyProgramName, ".jar"); // Must match that in CompileTargetProgram
     var psi = PrepareProcessStartInfo("java",
       new List<string> { "-Dfile.encoding=UTF-8", "-jar", jarPath }
         .Concat(Options.MainArgs));
     // Run the target program in the user's working directory and with the user's classpath
     psi.EnvironmentVariables["CLASSPATH"] = GetClassPath(null);
-    return 0 == RunProcess(psi, outputWriter);
+    return 0 == RunProcess(psi, outputWriter, errorWriter);
   }
 
   private string GetClassPath(string targetFilename) {
@@ -163,7 +166,7 @@ public class JavaBackend : ExecutableBackend {
     Directory.CreateDirectory(tgtDir);
     FileInfo file = new FileInfo(externFilename);
     file.CopyTo(tgtFilename, true);
-    if (Options.CompileVerbose) {
+    if (Options.Verbose) {
       outputWriter.WriteLine($"Additional input {externFilename} copied to {tgtFilename}");
     }
     return true;

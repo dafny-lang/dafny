@@ -1,10 +1,3 @@
-TypeTests.dfy(9,14): Error: incorrect argument type at index 0 for function parameter 'c' (expected C, found D)
-TypeTests.dfy(9,14): Error: incorrect argument type at index 1 for function parameter 'd' (expected D, found C)
-TypeTests.dfy(10,14): Error: incorrect argument type at index 0 for function parameter 'c' (expected C, found int)
-TypeTests.dfy(10,14): Error: incorrect argument type at index 1 for function parameter 'd' (expected D, found int)
-TypeTests.dfy(16,16): Error: incorrect argument type for method in-parameter 'x' (expected int, found bool)
-TypeTests.dfy(16,16): Error: incorrect return type at index 1 for method out-parameter 'c' (expected C, got int)
-TypeTests.dfy(17,12): Error: incorrect return type at index 1 for method out-parameter 'c' (expected C, got int)
 TypeTests.dfy(45,6): Error: Duplicate local-variable name: z
 TypeTests.dfy(47,6): Error: Duplicate local-variable name: x
 TypeTests.dfy(50,8): Error: Duplicate local-variable name: x
@@ -22,6 +15,13 @@ TypeTests.dfy(92,3): Error: cannot assign to a range of array elements (try the 
 TypeTests.dfy(94,3): Error: cannot assign to a range of array elements (try the 'forall' statement)
 TypeTests.dfy(95,3): Error: cannot assign to a range of array elements (try the 'forall' statement)
 TypeTests.dfy(96,3): Error: cannot assign to a range of array elements (try the 'forall' statement)
+TypeTests.dfy(9,14): Error: incorrect argument type at index 0 for function parameter 'c' (expected C, found D)
+TypeTests.dfy(9,14): Error: incorrect argument type at index 1 for function parameter 'd' (expected D, found C)
+TypeTests.dfy(10,14): Error: incorrect argument type at index 0 for function parameter 'c' (expected C, found int)
+TypeTests.dfy(10,14): Error: incorrect argument type at index 1 for function parameter 'd' (expected D, found int)
+TypeTests.dfy(16,16): Error: incorrect argument type for method in-parameter 'x' (expected int, found bool)
+TypeTests.dfy(16,16): Error: incorrect return type at index 1 for method out-parameter 'c' (expected C, got int)
+TypeTests.dfy(17,12): Error: incorrect return type at index 1 for method out-parameter 'c' (expected C, got int)
 TypeTests.dfy(23,9): Error: because of cyclic dependencies among constructor argument types, no instances of datatype 'NeverendingList' can be constructed
 TypeTests.dfy(169,7): Error: non-ghost variable cannot be assigned a value that depends on a ghost
 TypeTests.dfy(179,6): Error: cannot assign to non-ghost variable in a ghost context

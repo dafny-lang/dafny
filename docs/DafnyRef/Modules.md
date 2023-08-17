@@ -425,12 +425,12 @@ not be further exported. For example,
 <!-- %check-verify -->
 ```dafny
 module A {
-  const a := 10;
-  const z := 10;
+  const a := 10
+  const z := 10
 }
 module B {
   import opened Z = A // includes a, declares Z
-  const b := Z.a; // OK
+  const b := Z.a // OK
 }
 module C {
   import opened B // includes b, Z, but not a
@@ -494,8 +494,8 @@ For example, in the following code the constant `a` is exported as provided.
 ```dafny
 module A {
   export provides a
-  const a := 10;
-  const b := 20;
+  const a := 10
+  const b := 20
 }
 
 module B {
@@ -517,8 +517,8 @@ its value is known and the assertion can be proved.
 ```dafny
 module A {
   export reveals a
-  const a := 10;
-  const b := 20;
+  const a := 10
+  const b := 20
 }
 
 module B {
@@ -628,11 +628,11 @@ by importers to have two implicit heap parameters), and an exported
 importers can use both `P` and its prefix predicate `P#`).
 
 If `C` is a `class`, `trait`, or `iterator`, then `provides C` exports
-the non-null reference type `C` as an opaque type. This does not reveal
+the non-null reference type `C` as an abstract type. This does not reveal
 that `C` is a reference type, nor does it export the nullable type `C?`.
 
 In most cases, exporting a `class`, `trait`, `datatype`, `codatatype`, or
-opaque type does not automatically export its members. Instead, any member
+abstract type does not automatically export its members. Instead, any member
 to be exported must be listed explicitly. For example, consider the type
 declaration
 
@@ -742,9 +742,9 @@ included in the declaration. So for example in
 <!-- %check-resolve -->
 ```dafny
 module M {
-  const a := 10;
-  const b := 10;
-  const c := 10;
+  const a := 10
+  const b := 10
+  const c := 10
   export A reveals a
   export B reveals b
   export C extends A, B
@@ -768,7 +768,7 @@ these declarations:
 
 <!-- %check-verify -->
 ```dafny
-module Interface {
+abstract module Interface {
   function addSome(n: nat): nat
     ensures addSome(n) > n
 }
@@ -799,9 +799,9 @@ module Implementation {
 We can then substitute `Implementation` for `A` in a new module, by
 declaring a refinement of `Mod` which defines  `A` to be `Implementation`.
 
-<!-- %check-verify -->
+<!-- %check-build -->
 ```dafny
-module Interface {
+abstract module Interface {
   function addSome(n: nat): nat
     ensures addSome(n) > n
 }

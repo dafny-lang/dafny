@@ -1,5 +1,4 @@
-// RUN: %dafny /compile:4 "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment
 
 /// Check that the compiler accepts `:- assume {:axiom} …`.
 

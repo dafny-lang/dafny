@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Boogie;
 using Microsoft.Dafny.LanguageServer.Language;
@@ -11,16 +12,13 @@ using VerificationResult = Microsoft.Boogie.VerificationResult;
 namespace Microsoft.Dafny.LanguageServer.Workspace;
 
 public class VerificationProgressReporter : IVerificationProgressReporter {
-  private DafnyOptions options;
-  private readonly DocumentAfterTranslation document;
+  private readonly DafnyOptions options;
   private readonly ILogger<VerificationProgressReporter> logger;
   private readonly INotificationPublisher notificationPublisher;
 
   public VerificationProgressReporter(ILogger<VerificationProgressReporter> logger,
-    DocumentAfterTranslation document,
     INotificationPublisher notificationPublisher,
     DafnyOptions options) {
-    this.document = document;
     this.logger = logger;
     this.notificationPublisher = notificationPublisher;
     this.options = options;
@@ -30,11 +28,13 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
   /// Fills up the document with empty verification diagnostics, one for each top-level declarations
   /// Possibly migrates previous diagnostics
   /// </summary>
-  public void RecomputeVerificationTree() {
-    UpdateTree(options, document, document.VerificationTree);
+  public void RecomputeVerificationTrees(CompilationAfterResolution compilation) {
+    foreach (var tree in compilation.VerificationTrees.Values) {
+      UpdateTree(options, compilation, tree);
+    }
   }
 
-  public static void UpdateTree(DafnyOptions options, DocumentAfterParsing parsedDocument, VerificationTree rootVerificationTree) {
+  public static void UpdateTree(DafnyOptions options, CompilationAfterParsing parsedCompilation, VerificationTree rootVerificationTree) {
     var previousTrees = rootVerificationTree.Children;
 
     List<VerificationTree> result = new List<VerificationTree>();
@@ -60,8 +60,7 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
       }
     }
 
-    var documentFilePath = parsedDocument.Uri.ToString();
-    foreach (var module in parsedDocument.Program.Modules()) {
+    foreach (var module in parsedCompilation.Program.Modules()) {
       foreach (var topLevelDecl in module.TopLevelDecls) {
         if (topLevelDecl is DatatypeDecl datatypeDecl) {
           foreach (DatatypeCtor ctor in datatypeDecl.Ctors) {
@@ -74,7 +73,8 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
                 "datatype",
                 ctor.Name,
                 ctor.GetCompileName(options),
-                ctor.tok.Filename,
+                ctor.tok.Filepath,
+                ctor.Tok.Uri,
                 verificationTreeRange,
                 ctor.tok.GetLspPosition());
               AddAndPossiblyMigrateVerificationTree(verificationTree);
@@ -84,7 +84,7 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
 
         if (topLevelDecl is TopLevelDeclWithMembers topLevelDeclWithMembers) {
           foreach (var member in topLevelDeclWithMembers.Members) {
-            var memberWasNotIncluded = member.tok.Filename != documentFilePath;
+            var memberWasNotIncluded = member.tok.Uri != rootVerificationTree.Uri;
             if (memberWasNotIncluded) {
               continue;
             }
@@ -100,7 +100,8 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
                 "constant",
                 member.Name,
                 member.GetCompileName(options),
-                member.tok.Filename,
+                member.tok.Filepath,
+                member.Tok.Uri,
                 verificationTreeRange,
                 member.tok.GetLspPosition());
               AddAndPossiblyMigrateVerificationTree(verificationTree);
@@ -110,7 +111,8 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
                 (member is Method ? "method" : "function"),
                 member.Name,
                 member.GetCompileName(options),
-                member.tok.Filename,
+                member.tok.Filepath,
+                member.Tok.Uri,
                 verificationTreeRange,
                 member.tok.GetLspPosition());
               AddAndPossiblyMigrateVerificationTree(verificationTree);
@@ -120,7 +122,8 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
                   "by method part of function",
                   member.Name,
                   member.GetCompileName(options) + "_by_method",
-                  member.tok.Filename,
+                  member.tok.Filepath,
+                  member.Tok.Uri,
                   verificationTreeRangeByMethod,
                   function.ByMethodTok.GetLspPosition());
                 AddAndPossiblyMigrateVerificationTree(verificationTreeByMethod);
@@ -130,7 +133,7 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
         }
 
         if (topLevelDecl is SubsetTypeDecl subsetTypeDecl) {
-          if (subsetTypeDecl.tok.Filename != documentFilePath) {
+          if (subsetTypeDecl.tok.Uri != rootVerificationTree.Uri) {
             continue;
           }
 
@@ -139,7 +142,8 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
             $"subset type",
             subsetTypeDecl.Name,
             subsetTypeDecl.GetCompileName(options),
-            subsetTypeDecl.tok.Filename,
+            subsetTypeDecl.tok.Filepath,
+            subsetTypeDecl.Tok.Uri,
             verificationTreeRange,
             subsetTypeDecl.tok.GetLspPosition());
           AddAndPossiblyMigrateVerificationTree(verificationTree);
@@ -155,74 +159,83 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
   /// to its original method tree.
   /// Also set the implementation priority depending on the last edited methods 
   /// </summary>
-  /// <param name="implementations">The implementations to be verified</param>
-  public virtual void ReportImplementationsBeforeVerification(Implementation[] implementations) {
+  public virtual void ReportImplementationsBeforeVerification(CompilationAfterResolution compilation, ICanVerify canVerify, Implementation[] implementations) {
+    var uri = canVerify.Tok.Uri;
+    var tree = compilation.VerificationTrees[uri];
+
+    if (logger.IsEnabled(LogLevel.Debug)) {
+      logger.LogDebug($"ReportImplementationsBeforeVerification for ${compilation.Project.Uri}, version {compilation.Version}, implementations: " +
+                      $"{string.Join(", ", implementations.Select(i => i.Name))}");
+    }
+
     // We migrate existing implementations to the new provided ones if they exist.
     // (same child number, same file and same position)
-    foreach (var methodTree in document.VerificationTree.Children) {
-      methodTree.ResetNewChildren();
+    var canVerifyNode = tree.Children.OfType<TopLevelDeclMemberVerificationTree>()
+      .FirstOrDefault(t => t.Position == canVerify.Tok.GetLspPosition());
+    if (canVerifyNode == null) {
+      return;
     }
+
+
+    canVerifyNode.ResetNewChildren();
 
     foreach (var implementation in implementations) {
 
-      var targetMethodNode = GetTargetMethodTree(implementation, out var oldImplementationNode, true);
+      var targetMethodNode = GetTargetMethodTree(tree, implementation, out var oldImplementationNode, true);
       if (targetMethodNode == null) {
-        var position = implementation.tok.GetLspPosition();
-        var availableMethodNodes = string.Join(",", document.VerificationTree.Children.Select(vt =>
-          $"{vt.Kind} {vt.DisplayName} at {vt.Filename}:{vt.Position.Line}"));
-        logger.LogError($"In document {document.Uri} and filename {document.VerificationTree.Filename}, no method node at {implementation.tok.filename}:{position.Line}:{position.Character}.\nAvailable:" + availableMethodNodes);
+        NoMethodNodeAtLogging(tree, "ReportImplementationsBeforeVerification", compilation, implementation);
         continue;
       }
+
       var newDisplayName = targetMethodNode.DisplayName + " #" + (targetMethodNode.Children.Count + 1) + ":" +
                            implementation.Name;
       var newImplementationNode = new ImplementationVerificationTree(
         newDisplayName,
         implementation.Name,
         targetMethodNode.Filename,
+        targetMethodNode.Uri,
         targetMethodNode.Range,
         targetMethodNode.Position
       ).WithImplementation(implementation);
       if (oldImplementationNode != null) {
         newImplementationNode.Children = oldImplementationNode.Children;
       }
+
       targetMethodNode?.AddNewChild(newImplementationNode);
     }
 
-    foreach (var methodNode in document.VerificationTree.Children.OfType<TopLevelDeclMemberVerificationTree>()) {
-      methodNode.SaveNewChildren();
-      if (!methodNode.Children.Any()) {
-        methodNode.Start();
-        methodNode.Stop();
-        methodNode.StatusCurrent = CurrentStatus.Current;
-        methodNode.StatusVerification = GutterVerificationStatus.Verified;
-      }
-      methodNode.PropagateChildrenErrorsUp();
-      methodNode.RecomputeAssertionBatchNodeDiagnostics();
+    canVerifyNode.SaveNewChildren();
+    if (!canVerifyNode.Children.Any()) {
+      canVerifyNode.Start();
+      canVerifyNode.Stop();
+      canVerifyNode.StatusCurrent = CurrentStatus.Current;
+      canVerifyNode.StatusVerification = GutterVerificationStatus.Verified;
     }
+
+    canVerifyNode.PropagateChildrenErrorsUp();
+    canVerifyNode.RecomputeAssertionBatchNodeDiagnostics();
   }
 
   /// <summary>
   /// Triggers sending of the current verification diagnostics to the client
   /// </summary>
-  /// <param name="verificationStarted">Whether verification already started at this point</param>
-  /// <param name="document">The document to send. Can be a previous document</param>
-  public void ReportRealtimeDiagnostics(bool verificationStarted, DocumentAfterResolution? document = null) {
+  public void ReportRealtimeDiagnostics(CompilationAfterParsing compilation, Uri uri, bool verificationStarted) {
     lock (LockProcessing) {
-      document ??= this.document;
-      notificationPublisher.PublishGutterIcons(this.document.InitialIdeState(options), verificationStarted);
+      notificationPublisher.PublishGutterIcons(uri, compilation.InitialIdeState(compilation, options), verificationStarted);
     }
   }
 
   /// <summary>
   /// Called when the verifier starts verifying an implementation
   /// </summary>
-  /// <param name="implementation">The implementation which is going to be verified next</param>
-  public void ReportVerifyImplementationRunning(Implementation implementation) {
+  public void ReportVerifyImplementationRunning(CompilationAfterResolution compilation, Implementation implementation) {
+    var uri = ((IToken)implementation.tok).Uri;
+    var tree = compilation.VerificationTrees[uri];
 
     lock (LockProcessing) {
-      var targetMethodNode = GetTargetMethodTree(implementation, out var implementationNode);
+      var targetMethodNode = GetTargetMethodTree(tree, implementation, out var implementationNode);
       if (targetMethodNode == null) {
-        logger.LogError($"No method node at {implementation.tok.filename}:{implementation.tok.line}:{implementation.tok.col}");
+        NoMethodNodeAtLogging(tree, "ReportVerifyImplementationRunning", compilation, implementation);
       } else {
         if (!targetMethodNode.Started) {
           // The same method could be started multiple times for each implementation
@@ -236,7 +249,7 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
         }
 
         targetMethodNode.PropagateChildrenErrorsUp();
-        ReportRealtimeDiagnostics(true);
+        ReportRealtimeDiagnostics(compilation, uri, true);
       }
     }
   }
@@ -244,12 +257,14 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
   /// <summary>
   /// Called when the verifier finished to visit an implementation
   /// </summary>
-  /// <param name="implementation">The implementation it visited</param>
-  /// <param name="verificationResult">The result of the verification</param>
-  public void ReportEndVerifyImplementation(Implementation implementation, VerificationResult verificationResult) {
-    var targetMethodNode = GetTargetMethodTree(implementation, out var implementationNode);
+  public void ReportEndVerifyImplementation(CompilationAfterResolution compilation, Implementation implementation, VerificationResult verificationResult) {
+
+    var uri = ((IToken)implementation.tok).Uri;
+    var tree = compilation.VerificationTrees[uri];
+
+    var targetMethodNode = GetTargetMethodTree(tree, implementation, out var implementationNode);
     if (targetMethodNode == null) {
-      logger.LogError($"No method node at {implementation.tok.filename}:{implementation.tok.line}:{implementation.tok.col}");
+      NoMethodNodeAtLogging(tree, "ReportEndVerifyImplementation", compilation, implementation);
     } else if (implementationNode == null) {
       logger.LogError($"No implementation node at {implementation.tok.filename}:{implementation.tok.line}:{implementation.tok.col}");
     } else {
@@ -277,22 +292,35 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
 
         targetMethodNode.PropagateChildrenErrorsUp();
         targetMethodNode.RecomputeAssertionBatchNodeDiagnostics();
-        ReportRealtimeDiagnostics(true);
+        ReportRealtimeDiagnostics(compilation, uri, true);
       }
     }
+  }
+
+  private void NoMethodNodeAtLogging(VerificationTree tree, string methodName, CompilationAfterResolution compilation, Implementation implementation) {
+    var position = implementation.tok.GetLspPosition();
+    var availableMethodNodes = string.Join(",", tree!.Children.Select(vt =>
+      $"{vt.Kind} {vt.DisplayName} at {vt.Filename}:{vt.Position.Line}"));
+    logger.LogDebug(
+      $"No method found in {methodName}, in document {compilation.Uri} and filename {tree.Filename}, " +
+      $"no method node at {implementation.tok.filename}:{position.Line}:{position.Character}.\n" +
+      $"Available nodes: " + availableMethodNodes);
   }
 
   /// <summary>
   /// Called when a split is finished to be verified
   /// </summary>
-  public void ReportAssertionBatchResult(AssertionBatchResult batchResult) {
+  public void ReportAssertionBatchResult(CompilationAfterResolution compilation, AssertionBatchResult batchResult) {
+    var uri = ((IToken)batchResult.Implementation.tok).Uri;
+    var tree = compilation.VerificationTrees[uri];
+
     lock (LockProcessing) {
       var implementation = batchResult.Implementation;
       var result = batchResult.Result;
       // While there is no error, just add successful nodes.
-      var targetMethodNode = GetTargetMethodTree(implementation, out var implementationNode);
+      var targetMethodNode = GetTargetMethodTree(tree, implementation, out var implementationNode);
       if (targetMethodNode == null) {
-        logger.LogError($"No method node at {implementation.tok.filename}:{implementation.tok.line}:{implementation.tok.col}");
+        NoMethodNodeAtLogging(tree, "ReportAssertionBatchResult", compilation, implementation);
       } else if (implementationNode == null) {
         logger.LogError($"No implementation node at {implementation.tok.filename}:{implementation.tok.line}:{implementation.tok.col}");
       } else {
@@ -313,7 +341,7 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
         void AddChildOutcome(Counterexample? counterexample, AssertCmd assertCmd, IToken token,
           GutterVerificationStatus status, IToken? secondaryToken, string? assertDisplay = "",
           string assertIdentifier = "") {
-          if (token.Filename != implementationNode.Filename) {
+          if (token.Filepath != implementationNode.Filename) {
             return;
           }
 
@@ -328,7 +356,8 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
           var nodeDiagnostic = new AssertionVerificationTree(
             $"{targetMethodNode.DisplayName}{assertDisplay} #{childrenCount}",
             $"{targetMethodNode.Identifier}_{childrenCount}{assertIdentifier}",
-            token.Filename,
+            token.Filepath,
+            token.Uri,
             secondaryOutcomePosition,
             outcomeRange
           ) {
@@ -374,9 +403,15 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
         }
         targetMethodNode.PropagateChildrenErrorsUp();
         targetMethodNode.RecomputeAssertionBatchNodeDiagnostics();
-        ReportRealtimeDiagnostics(true);
+        ReportRealtimeDiagnostics(compilation, uri, true);
       }
     }
+  }
+
+  public void SetAllUnvisitedMethodsAsVerified(CompilationAfterResolution compilation, ICanVerify canVerify) {
+    var tree = compilation.VerificationTrees[canVerify.Tok.Uri];
+    var verifyTree = tree.Children.First(f => f.Position == canVerify.Tok.GetLspPosition());
+    verifyTree.SetVerifiedIfPending();
   }
 
 
@@ -387,9 +422,11 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
   /// <param name="implementationTree">Returns the tree of the implementation child of the returned top-level verification tree</param>
   /// <param name="nameBased">Whether it should try to locate the implementation using the name rather than the position. Used to relocate previous diagnostics.</param>
   /// <returns>The top-level verification tree</returns>
-  private TopLevelDeclMemberVerificationTree? GetTargetMethodTree(Implementation implementation, out ImplementationVerificationTree? implementationTree, bool nameBased = false) {
-    var targetMethodNode = document.VerificationTree.Children.OfType<TopLevelDeclMemberVerificationTree>().FirstOrDefault(
-      node => node?.Position == implementation.tok.GetLspPosition() && node?.Filename == implementation.tok.filename
+  private TopLevelDeclMemberVerificationTree? GetTargetMethodTree(VerificationTree tree,
+    Implementation implementation, out ImplementationVerificationTree? implementationTree, bool nameBased = false) {
+    var targetMethodNode = tree.Children.OfType<TopLevelDeclMemberVerificationTree>().FirstOrDefault(
+      node => node?.Position == implementation.tok.GetLspPosition() &&
+              node?.Uri == ((IToken)implementation.tok).Uri
       , null);
     if (nameBased) {
       implementationTree = targetMethodNode?.Children.OfType<ImplementationVerificationTree>().FirstOrDefault(

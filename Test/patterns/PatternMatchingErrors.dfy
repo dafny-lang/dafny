@@ -93,7 +93,7 @@ least lemma BadMonotonic1(c: cmd, s: state, t: state)
 // could not prove postcondition on this return path (in method)
 
 method PostTest(xs: List<int>) returns (r: int)
-  ensures r == 0;
+  ensures r == 0
 {
   match xs {
     case Cons(y, Cons(z, zs)) => return z;
