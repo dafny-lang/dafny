@@ -1534,7 +1534,7 @@ namespace Microsoft.Dafny {
         }
         if (m is Constructor && kind == MethodTranslationKind.Call) {
           var fresh = Boogie.Expr.Not(etran.Old.IsAlloced(m.tok, new Boogie.IdentifierExpr(m.tok, "this", TrReceiverType(m))));
-          AddEnsures(ens, Ensures(m.tok, false || this.assertionOnlyFilter != null, fresh, null, null, null, "constructor allocates the object"));
+          AddEnsures(ens, Ensures(m.tok, false || this.assertionOnlyFilter != null, fresh, null,  null, "constructor allocates the object"));
         }
         foreach (BoilerplateTriple tri in GetTwoStateBoilerplate(m.tok, m.Mod.Expressions, m.IsGhost, m.AllowsAllocation, ordinaryEtran.Old, ordinaryEtran, ordinaryEtran.Old)) {
           AddEnsures(ens, Ensures(tri.tok, tri.IsFree || this.assertionOnlyFilter != null, tri.Expr, tri.ErrorMessage, tri.SuccessMessage, tri.Comment));

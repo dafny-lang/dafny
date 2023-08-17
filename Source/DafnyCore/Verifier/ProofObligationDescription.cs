@@ -342,8 +342,8 @@ public class AssertStatement : ProofObligationDescriptionCustomMessages {
 
   public override string ShortDescription => "assert statement";
 
-  public AssertStatement([CanBeNull] string customErrMsg) {
-    this.customErrMsg = customErrMsg;
+  public AssertStatement([CanBeNull] string customErrMsg, [CanBeNull] string customSuccessMsg)
+    : base(customErrMsg, customSuccessMsg) {
   }
 }
 
