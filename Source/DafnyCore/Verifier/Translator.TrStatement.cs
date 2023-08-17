@@ -351,11 +351,11 @@ namespace Microsoft.Dafny {
           builder.Add(TrAssumeCmd(s.Tok, HeapSucc(preModifyHeap, etran.HeapExpr, s.IsGhost)));
           // assume nothing outside the frame was changed
           var etranPreLoop = new ExpressionTranslator(this, predef, preModifyHeap);
-          var updatedFrameEtran = new ExpressionTranslator(etran, etran.readsFrame, modifyFrameName);
+          var updatedFrameEtran = etran.WithModifiesFrame(modifyFrameName);
           builder.Add(TrAssumeCmd(s.Tok, FrameConditionUsingDefinedFrame(s.Tok, etranPreLoop, etran, updatedFrameEtran, updatedFrameEtran.ModifiesFrame(s.Tok))));
         } else {
           // do the body, but with preModifyHeapVar as the governing frame
-          var updatedFrameEtran = new ExpressionTranslator(etran, etran.readsFrame, modifyFrameName);
+          var updatedFrameEtran = etran.WithModifiesFrame(modifyFrameName);
           CurrentIdGenerator.Push();
           TrStmt(s.Body, builder, locals, updatedFrameEtran);
           CurrentIdGenerator.Pop();
@@ -1366,7 +1366,7 @@ namespace Microsoft.Dafny {
       ExpressionTranslator updatedFrameEtran;
       string loopFrameName = "$Frame$" + suffix;
       if (s.Mod.Expressions != null) {
-        updatedFrameEtran = new ExpressionTranslator(etran, etran.readsFrame, loopFrameName);
+        updatedFrameEtran = etran.WithModifiesFrame(loopFrameName);
       } else {
         updatedFrameEtran = etran;
       }

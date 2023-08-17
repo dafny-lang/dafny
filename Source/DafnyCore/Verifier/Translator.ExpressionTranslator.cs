@@ -128,13 +128,14 @@ namespace Microsoft.Dafny {
         Contract.Requires(etran != null);
       }
 
-      // TODO: refactor this into WithReadsFrame() and WithModifiesFrame() methods
-      public ExpressionTranslator(ExpressionTranslator etran, string readsFrame, string modifiesFrame)
-        : this(etran.translator, etran.predef, etran.HeapExpr, etran.This, etran.applyLimited_CurrentFunction, etran.layerInterCluster, etran.layerIntraCluster, readsFrame, modifiesFrame, etran.stripLits) {
-        Contract.Requires(etran != null);
-        Contract.Requires(modifiesFrame != null);
+      public ExpressionTranslator WithReadsFrame(string newReadsFrame) {
+        return new ExpressionTranslator(translator, predef, HeapExpr, This, applyLimited_CurrentFunction, layerInterCluster, layerIntraCluster, newReadsFrame, modifiesFrame, stripLits);
       }
-
+      
+      public ExpressionTranslator WithModifiesFrame(string newModifiesFrame) {
+        return new ExpressionTranslator(translator, predef, HeapExpr, This, applyLimited_CurrentFunction, layerInterCluster, layerIntraCluster, readsFrame, newModifiesFrame, stripLits);
+      }
+      
       internal IToken GetToken(Expression expression) {
         return translator.GetToken(expression);
       }

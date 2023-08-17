@@ -1694,7 +1694,7 @@ namespace Microsoft.Dafny {
       var etran = new ExpressionTranslator(this, predef, iter.tok);
       // Don't do reads checks since iterator reads clauses mean something else.
       // TODO: expand explanation
-      etran = new ExpressionTranslator(etran, null, etran.modifiesFrame);
+      etran = etran.WithReadsFrame(null);
       var localVariables = new List<Variable>();
       GenerateIteratorImplPrelude(iter, inParams, new List<Variable>(), builder, localVariables, etran);
 
@@ -1844,7 +1844,7 @@ namespace Microsoft.Dafny {
       var etran = new ExpressionTranslator(this, predef, iter.tok);
       // Don't do reads checks since iterator reads clauses mean something else.
       // TODO: expand explanation
-      etran = new ExpressionTranslator(etran, null, etran.modifiesFrame);
+      etran = etran.WithReadsFrame(null);
       var localVariables = new List<Variable>();
       GenerateIteratorImplPrelude(iter, inParams, new List<Variable>(), builder, localVariables, etran);
 
@@ -3846,7 +3846,9 @@ namespace Microsoft.Dafny {
       }
 
       // set up the information used to verify the method's reads and modifies clauses
-      DefineFrame(m.tok, etran.ReadsFrame(m.tok), m.Reads, builder, localVariables, null);
+      if (etran.readsFrame != null) {
+        DefineFrame(m.tok, etran.ReadsFrame(m.tok), m.Reads, builder, localVariables, null);
+      }
       DefineFrame(m.tok, etran.ModifiesFrame(m.tok), m.Mod.Expressions, builder, localVariables, null);
       if (wellformednessProc) {
         builder.AddCaptureState(m.tok, false, "initial state");

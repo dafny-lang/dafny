@@ -541,8 +541,8 @@ namespace Microsoft.Dafny {
       // Don't do any reads checks if the reads clause is *,
       // since all the checks will be vacuously true
       // and we don't need to cause additional verification cost for existing code.
-      if (m.Reads.Count == 1 && m.Reads.Exists(e => e is WildcardExpr)) {
-        etran = new ExpressionTranslator(etran, null, etran.modifiesFrame);
+      if (m.Reads.Count == 1 && m.Reads.Exists(e => e.E is WildcardExpr)) {
+        etran = etran.WithReadsFrame(null);
       }
       InitializeFuelConstant(m.tok, builder, etran);
       var localVariables = new List<Variable>();
