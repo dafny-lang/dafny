@@ -1,2 +1,2 @@
-
-Dafny program verifier finished with TODO verified, TODO errors
+git-issue-4298.dfy(12,13): Error: no default export set declared in module: A
+1 resolution/type errors detected in git-issue-4298.dfy
