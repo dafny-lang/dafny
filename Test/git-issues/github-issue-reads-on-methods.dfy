@@ -72,12 +72,15 @@ method MemoizedSquare(x: int, cache: ExternalMutableMap<int, int>) returns (xSqu
   }
 }
 
-function Foo(b: Box): int {
-  b.x
+function Always42(b: Box): int {
+  42
 } by method {
-  var x := b.x; // Should be error
+  var result := 42;
+  result := result + b.x; // Error: insufficient reads clause to read field
+  result := result - b.x;
   return 42;
 }
 
 // TODO:
-// * iterators (would like to align semantics)
+// * stress test well-formedness of reads clauses (e.g. when depending on method preconditions)
+// * Double check refinement

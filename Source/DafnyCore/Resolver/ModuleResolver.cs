@@ -792,9 +792,19 @@ namespace Microsoft.Dafny {
         new ActualBindings(f.Formals.ConvertAll(Expression.CreateIdentExpr)).ArgumentBindings,
         tok);
       var post = new AttributedExpression(new BinaryExpr(tok, BinaryExpr.Opcode.Eq, r, fn));
+      // If f.Reads is empty, replace it with an explicit `reads {}` so that we don't replace that
+      // with the default `reads *` for methods later.
+      // TODO: We could also have a flag similar to InferredDecreases to distinguish between
+      // "not given" and "explicitly empty"
+      var reads = f.Reads;
+      if (!reads.Any()) {
+        reads = new List<FrameExpression>();
+        var emptySet = new SetDisplayExpr(tok, true, new List<Expression>());
+        reads.Add(new FrameExpression(tok, emptySet, null));
+      }
       var method = new Method(f.RangeToken, f.NameNode, f.HasStaticKeyword, false, f.TypeArgs,
         f.Formals, new List<Formal>() { resultVar },
-        f.Req, new List<FrameExpression>(), new Specification<FrameExpression>(new List<FrameExpression>(), null), new List<AttributedExpression>() { post }, f.Decreases,
+        f.Req, reads, new Specification<FrameExpression>(new List<FrameExpression>(), null), new List<AttributedExpression>() { post }, f.Decreases,
         f.ByMethodBody, f.Attributes, null, true);
       Contract.Assert(f.ByMethodDecl == null);
       method.InheritVisibility(f);

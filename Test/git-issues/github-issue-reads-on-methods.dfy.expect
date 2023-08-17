@@ -1,3 +1,4 @@
 github-issue-reads-on-methods.dfy(36,9): Error: insufficient reads clause to read field
+github-issue-reads-on-methods.dfy(79,23): Error: insufficient reads clause to read field
 
-Dafny program verifier finished with 8 verified, 1 error
+Dafny program verifier finished with 8 verified, 2 errors
