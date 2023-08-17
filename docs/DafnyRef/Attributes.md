@@ -218,7 +218,7 @@ function g(y:int, b:bool) : bool
 ```
 
 ### 11.2.3. `{:autoRevealDependencies k}` {#sec-autorevealdependencies}
-When setting `--default-function-opacity` to `autoRevealDependencies`, the `{:autoRevealDependencies k}` attribute can be set on methods and functions to make sure that only function dependencies of depth `k` or less are revealed automatically. In particular, `{:autoRevealDependencies 0}` makes sure that no dependencies are inserted automatically.
+When setting `--default-function-opacity` to `autoRevealDependencies`, the `{:autoRevealDependencies k}` attribute can be set on methods and functions to make sure that only function dependencies of depth `k` in the call-graph or less are revealed automatically. In particular, `{:autoRevealDependencies 0}` makes sure that no dependencies are inserted automatically.
 
 ### 11.2.4. `{:axiom}` {#sec-axiom}
 The `{:axiom}` attribute may be placed on a function or method.
