@@ -149,12 +149,12 @@ public class CompilationManager {
 
   private int runningVerificationJobs;
 
-  public async Task<bool> VerifyTask(FilePosition verifiableLocation, bool actuallyVerifyTasks = true) {
+  public async Task<bool> VerifySymbol(FilePosition verifiableLocation, bool actuallyVerifyTasks = true) {
     cancellationSource.Token.ThrowIfCancellationRequested();
 
     var compilation = await ResolvedCompilation;
-    var node = compilation.Program.FindNode(verifiableLocation.Uri, verifiableLocation.Position.ToDafnyPosition());
-    if (node is not ICanVerify verifiable) {
+    var verifiable = compilation.Program.FindNode<ICanVerify>(verifiableLocation.Uri, verifiableLocation.Position.ToDafnyPosition());
+    if (verifiable == null) {
       return false;
     }
 
