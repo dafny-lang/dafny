@@ -4,7 +4,6 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Threading;
-using Microsoft.Dafny.LanguageServer.Workspace;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using AstElement = System.Object;
@@ -14,8 +13,8 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
   /// <summary>
   /// Represents the symbol table
   /// </summary>
-  public class SignatureAndCompletionTable {
-    private readonly ILogger<SignatureAndCompletionTable> logger;
+  public class LegacySignatureAndCompletionTable {
+    private readonly ILogger<LegacySignatureAndCompletionTable> logger;
 
     // TODO Guard the properties from changes
     public CompilationUnit CompilationUnit { get; }
@@ -42,10 +41,10 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
 
     private readonly DafnyLangTypeResolver typeResolver;
 
-    public static SignatureAndCompletionTable Empty(DafnyOptions options, DafnyProject project) {
+    public static LegacySignatureAndCompletionTable Empty(DafnyOptions options, DafnyProject project) {
       var emptyProgram = GetEmptyProgram(options, project.Uri);
-      return new SignatureAndCompletionTable(
-        NullLogger<SignatureAndCompletionTable>.Instance,
+      return new LegacySignatureAndCompletionTable(
+        NullLogger<LegacySignatureAndCompletionTable>.Instance,
         new CompilationUnit(project.Uri, emptyProgram),
         new Dictionary<object, ILocalizableSymbol>(),
         new Dictionary<ILegacySymbol, SymbolLocation>(),
@@ -68,8 +67,8 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
       return emptyProgram;
     }
 
-    public SignatureAndCompletionTable(
-        ILogger<SignatureAndCompletionTable> iLogger,
+    public LegacySignatureAndCompletionTable(
+        ILogger<LegacySignatureAndCompletionTable> iLogger,
         CompilationUnit compilationUnit,
         IDictionary<AstElement, ILocalizableSymbol> declarations,
         IDictionary<ILegacySymbol, SymbolLocation> locations,

@@ -18,13 +18,13 @@ public class Migrator {
   private readonly ILogger<Migrator> logger;
   private readonly DidChangeTextDocumentParams changeParams;
   private readonly CancellationToken cancellationToken;
-  private readonly ILogger<SignatureAndCompletionTable> loggerSymbolTable;
+  private readonly ILogger<LegacySignatureAndCompletionTable> loggerSymbolTable;
 
   private readonly Dictionary<TextDocumentContentChangeEvent, Position> getPositionAtEndOfAppliedChangeCache = new();
 
   public Migrator(
     ILogger<Migrator> logger,
-    ILogger<SignatureAndCompletionTable> loggerSymbolTable,
+    ILogger<LegacySignatureAndCompletionTable> loggerSymbolTable,
     DidChangeTextDocumentParams changeParams,
     CancellationToken cancellationToken
   ) {
@@ -112,7 +112,7 @@ public class Migrator {
     };
   }
 
-  public SignatureAndCompletionTable MigrateSymbolTable(SignatureAndCompletionTable originalSymbolTable) {
+  public LegacySignatureAndCompletionTable MigrateSymbolTable(LegacySignatureAndCompletionTable originalSymbolTable) {
     var migratedLookupTree = originalSymbolTable.LookupTree;
     var migratedDeclarations = originalSymbolTable.Locations;
     foreach (var change in changeParams.ContentChanges) {
@@ -126,7 +126,7 @@ public class Migrator {
     }
     logger.LogTrace("migrated the lookup tree, lookup before={SymbolsBefore}, after={SymbolsAfter}",
       originalSymbolTable.LookupTree.Count, migratedLookupTree.Count);
-    return new SignatureAndCompletionTable(
+    return new LegacySignatureAndCompletionTable(
       loggerSymbolTable,
       originalSymbolTable.CompilationUnit,
       originalSymbolTable.Declarations,
@@ -259,7 +259,7 @@ public class Migrator {
   }
 
   private IDictionary<ILegacySymbol, SymbolLocation> ApplyDeclarationsChange(
-    SignatureAndCompletionTable originalSymbolTable,
+    LegacySignatureAndCompletionTable originalSymbolTable,
     IDictionary<ILegacySymbol, SymbolLocation> previousDeclarations,
     TextDocumentContentChangeEvent changeRange,
     Position? afterChangeEndOffset

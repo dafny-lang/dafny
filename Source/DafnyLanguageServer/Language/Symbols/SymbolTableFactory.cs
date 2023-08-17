@@ -15,15 +15,15 @@ using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
   public class SymbolTableFactory : ISymbolTableFactory {
     private readonly ILogger logger;
-    private readonly ILogger<SignatureAndCompletionTable> loggerSymbolTable;
+    private readonly ILogger<LegacySignatureAndCompletionTable> loggerSymbolTable;
 
-    public SymbolTableFactory(ILogger<SymbolTableFactory> logger, ILogger<SignatureAndCompletionTable> loggerSymbolTable) {
+    public SymbolTableFactory(ILogger<SymbolTableFactory> logger, ILogger<LegacySignatureAndCompletionTable> loggerSymbolTable) {
       this.logger = logger;
       this.loggerSymbolTable = loggerSymbolTable;
     }
 
 
-    public SignatureAndCompletionTable CreateFrom(CompilationUnit compilationUnit, CancellationToken cancellationToken) {
+    public LegacySignatureAndCompletionTable CreateFrom(CompilationUnit compilationUnit, CancellationToken cancellationToken) {
       var program = compilationUnit.Program;
       var declarations = CreateDeclarationDictionary(compilationUnit, cancellationToken);
       var designatorVisitor = new DesignatorVisitor(logger, compilationUnit, declarations, compilationUnit, cancellationToken);
@@ -40,7 +40,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         //      prohibiting it to be null).
         logger.LogDebug("cannot create symbol table from a program with errors");
       }
-      return new SignatureAndCompletionTable(
+      return new LegacySignatureAndCompletionTable(
         loggerSymbolTable,
         compilationUnit,
         declarations,
