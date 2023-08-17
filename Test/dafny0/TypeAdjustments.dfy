@@ -107,3 +107,54 @@ method M4(i: int, n: nat, b: bool) {
       assert 0 <= z; // error: z is int
   }
 }
+
+datatype List = Nil | Cons(head: nat, tail: List)
+
+type NatA = x: nat | 10 <= x < 20 witness *
+type NatB = x: nat | 20 <= x < 30 witness *
+type NatC = x: nat | 30 <= x < 40 witness *
+
+method M5(list: List, a: NatA, b: NatB, c: NatC) {
+  var x; // nat
+  match list {
+    case Nil =>
+      x := a;
+    case Cons(_, Nil) =>
+      x := b;
+    case _ =>
+      x := c;
+  }
+
+  x := *;
+  if {
+    case true =>
+      assert 0 <= x;
+    case true =>
+      assert 10 <= x; // error: x is nat
+    case true =>
+      assert 20 <= x; // error: x is nat
+    case true =>
+      assert 30 <= x; // error: x is nat
+  }
+}
+
+method M6(list: List, a: NatA, b: NatB, c: NatC) {
+  var x; // nat
+  x :=
+    match list
+    case Nil => a
+    case Cons(_, Nil) => b
+    case _ => c;
+
+  x := *;
+  if {
+    case true =>
+      assert 0 <= x;
+    case true =>
+      assert 10 <= x; // error: x is nat
+    case true =>
+      assert 20 <= x; // error: x is nat
+    case true =>
+      assert 30 <= x; // error: x is nat
+  }
+}

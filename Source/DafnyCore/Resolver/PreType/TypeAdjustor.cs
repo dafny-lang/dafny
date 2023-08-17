@@ -59,6 +59,10 @@ public class TypeAdjustorVisitor : ASTVisitor<IASTVisitorContext> {
       flows.Add(new FlowBetweenExpressions(expr, iteExpr.Thn, "if-then"));
       flows.Add(new FlowBetweenExpressions(expr, iteExpr.Els, "if-else"));
 
+    } else if (expr is NestedMatchExpr matchExpr) {
+      foreach (var kase in matchExpr.Cases) {
+        flows.Add(new FlowBetweenExpressions(expr, kase.Body, "case"));
+      }
 #if SOON
     } else if (expr is MemberSelectExpr memberSelectExpr) {
       var typeMap = memberSelectExpr.TypeArgumentSubstitutionsWithParents();
