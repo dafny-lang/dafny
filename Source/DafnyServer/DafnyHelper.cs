@@ -98,7 +98,7 @@ namespace Microsoft.Dafny {
     public void Symbols() {
       ServerUtils.ApplyArgs(args, options);
       if (Parse() && Resolve()) {
-        var symbolTable = new LegacySymbolTable(dafnyProgram);
+        var symbolTable = new SuperLegacySymbolTable(dafnyProgram);
         var symbols = symbolTable.CalculateSymbols();
         Console.WriteLine("SYMBOLS_START " + ConvertToJson(symbols) + " SYMBOLS_END");
       } else {

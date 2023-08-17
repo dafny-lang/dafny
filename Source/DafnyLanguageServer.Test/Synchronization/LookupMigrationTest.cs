@@ -1,4 +1,5 @@
 ﻿using System.IO;
+using System.Linq;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Threading.Tasks;
@@ -276,7 +277,7 @@ class Test {
       var document = await Projects.GetResolvedDocumentAsyncNormalizeUri(documentItem.Uri);
       Assert.NotNull(document);
       Assert.False(document.SignatureAndCompletionTable.TryGetSymbolAt((6, 9), out var _));
-      Assert.Equal(lookupCountBefore - 1, document.SignatureAndCompletionTable.LookupTree.Count);
+      Assert.Equal(lookupCountBefore - 1, document.SignatureAndCompletionTable.LookupTree.First().Value.Count);
     }
 
     [Fact]
