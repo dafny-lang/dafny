@@ -249,6 +249,29 @@ class FlowIntoVariable : Flow {
   }
 }
 
+class FlowIntoVariableFromComputedType : Flow {
+  protected readonly AdjustableType sink;
+  private readonly System.Func<Type> getType;
+
+  public FlowIntoVariableFromComputedType(IVariable variable, System.Func<Type> getType, IToken tok, string description = ":=")
+    : base(tok, description) {
+    Contract.Requires(AdjustableType.NormalizeSansAdjustableType(variable.UnnormalizedType) is AdjustableType);
+    this.sink = (AdjustableType)AdjustableType.NormalizeSansAdjustableType(variable.UnnormalizedType);
+    this.getType = getType;
+  }
+
+  public override bool Update(FlowContext context) {
+    return UpdateAdjustableType(sink, getType(), context);
+  }
+
+  public override void DebugPrint(TextWriter output) {
+    var sourceType = getType();
+    var bound = PreTypeConstraints.Pad($"%{sink.UniqueId} :> {AdjustableType.ToStringAsAdjustableType(sourceType)}", 27);
+    var value = PreTypeConstraints.Pad(AdjustableType.ToStringAsBottom(sink), 20);
+    output.WriteLine($"    {bound}  {value}    {TokDescription()}");
+  }
+}
+
 abstract class FlowIntoExpr : Flow {
   private readonly Type sink;
 
@@ -321,8 +344,8 @@ class FlowFromTypeArgument : FlowIntoExpr {
 class FlowFromComputedType : FlowIntoExpr {
   private readonly System.Func<Type> getType;
 
-  public FlowFromComputedType(Expression sink, System.Func<Type> getType)
-    : base(sink, sink.tok) {
+  public FlowFromComputedType(Expression sink, System.Func<Type> getType, string description = "")
+    : base(sink, sink.tok, description) {
     this.getType = getType;
   }
 

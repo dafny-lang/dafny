@@ -5,8 +5,10 @@
 //
 //-----------------------------------------------------------------------------
 
+using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
+using System.Linq;
 
 namespace Microsoft.Dafny;
 
@@ -63,20 +65,29 @@ public class TypeAdjustorVisitor : ASTVisitor<IASTVisitorContext> {
       foreach (var kase in matchExpr.Cases) {
         flows.Add(new FlowBetweenExpressions(expr, kase.Body, "case"));
       }
-#if SOON
+
     } else if (expr is MemberSelectExpr memberSelectExpr) {
-      var typeMap = memberSelectExpr.TypeArgumentSubstitutionsWithParents();
-      Type memberType;
       if (memberSelectExpr.Member is Field field) {
-        memberType = field.Type.Subst(typeMap);
-      } else {
-        var function = (Function)memberSelectExpr.Member;
-        memberType = ModuleResolver.SelectAppropriateArrowTypeForFunction(function, typeMap, systemModuleManager);
+        flows.Add(new FlowFromComputedType(expr, () => {
+          var typeMap = memberSelectExpr.TypeArgumentSubstitutionsWithParents();
+          return field.Type.Subst(typeMap);
+        }, $".{memberSelectExpr.MemberName}"));
+      } else if (memberSelectExpr.Member is Function function) {
+        flows.Add(new FlowFromComputedType(expr, () => {
+          var typeMap = memberSelectExpr.TypeArgumentSubstitutionsWithParents();
+          return ModuleResolver.SelectAppropriateArrowTypeForFunction(function, typeMap, systemModuleManager);
+        }, $".{memberSelectExpr.MemberName}"));
       }
-      expr.UnnormalizedType = PreType2UpdatableType(expr.PreType, memberType, $".{memberSelectExpr.MemberName}", memberSelectExpr.tok);
-    } else {
-      expr.Type = PreType2Type(expr.PreType);
-#endif
+
+    } else if (expr is FunctionCallExpr functionCallExpr) {
+      flows.Add(new FlowFromComputedType(expr, () => {
+        var typeMap = functionCallExpr.TypeArgumentSubstitutionsWithParents();
+        return functionCallExpr.Function.ResultType.Subst(typeMap);
+      }, $"{functionCallExpr.Name}(...)"));
+
+    } else if (expr is ApplyExpr applyExpr) {
+      flows.Add(new FlowFromTypeArgument(expr, applyExpr.Function.UnnormalizedType, applyExpr.Args.Count));
+
     }
     base.PostVisitOneExpression(expr, context);
   }
@@ -107,18 +118,18 @@ public class TypeAdjustorVisitor : ASTVisitor<IASTVisitorContext> {
       }
 
     } else if (stmt is CallStmt callStmt) {
-      var typeSubst = callStmt.MethodSelect.TypeArgumentSubstitutionsWithParents();
       Contract.Assert(callStmt.Lhs.Count == callStmt.Method.Outs.Count);
-#if SOON
       for (var i = 0; i < callStmt.Lhs.Count; i++) {
-        if (callStmt.Lhs[i] is IdentifierExpr lhsIdentifierExpr) {
-          if (AdjustableType.NormalizeSansAdjustableType(lhsIdentifierExpr.Var.UnnormalizedType) is AdjustableType updatableTypeProxy) {
+        if (callStmt.Lhs[i] is IdentifierExpr actualIdentifierExpr) {
+          if (AdjustableType.NormalizeSansAdjustableType(actualIdentifierExpr.Var.UnnormalizedType) is AdjustableType updatableTypeProxy) {
             var formal = callStmt.Method.Outs[i];
-            AddConstraint(updatableTypeProxy, formal.Type.Subst(typeSubst), $"{lhsIdentifierExpr.Var.Name} := call {callStmt.Method.Name}", callStmt.tok);
+            flows.Add(new FlowIntoVariableFromComputedType(actualIdentifierExpr.Var, () => {
+              var typeMap = callStmt.MethodSelect.TypeArgumentSubstitutionsWithParents();
+              return formal.Type.Subst(typeMap);
+            }, callStmt.tok, $"{actualIdentifierExpr.Var.Name} := {callStmt.Method.Name}(...)"));
           }
         }
       }
-#endif
 
     } else if (stmt is ProduceStmt produceStmt) {
       if (produceStmt.HiddenUpdate != null) {

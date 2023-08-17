@@ -158,3 +158,74 @@ method M6(list: List, a: NatA, b: NatB, c: NatC) {
       assert 30 <= x; // error: x is nat
   }
 }
+
+class Cell {
+  var data: nat
+  function F(): nat {
+    2
+  }
+  method M() returns (x: nat, y: int) {
+  }
+}
+
+class CellX<X> {
+  constructor (u: X) {
+    data := u;
+  }
+  const data: X
+  function F(): X {
+    data
+  }
+  method M() returns (x: X, y: int) {
+    x, y := data, 12;
+  }
+}
+
+method M7(n: nat) {
+  var cell := new Cell;
+
+  var x;
+  x := cell.data;
+  var y;
+  y := cell.F();
+  var z;
+  var w;
+  z, w := cell.M();
+  var ff := cell.F;
+  ff := *;
+  var u;
+  u := ff();
+
+  x, y, z, w, u := *, *, *, *, *;
+  assert 0 <= x;
+  assert 0 <= y;
+  assert 0 <= z;
+  assert 0 <= w; // error: w is int
+  assert ff.requires();
+  assert 0 <= u;
+}
+
+method M8(n: nat) {
+  var cell;
+  cell := new CellX<nat>(n);
+
+  var x;
+  x := cell.data;
+  var y;
+  y := cell.F();
+  var z;
+  var w;
+  z, w := cell.M();
+  var ff := cell.F;
+  ff := *;
+  var u;
+  u := ff();
+
+  x, y, z, w, u := *, *, *, *, *;
+  assert 0 <= x;
+  assert 0 <= y;
+  assert 0 <= z;
+  assert 0 <= w; // error: w is int
+  assert ff.requires();
+  assert 0 <= u;
+}
