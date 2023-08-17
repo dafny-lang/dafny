@@ -88,3 +88,22 @@ method M3(s: seq<nat>, arr: array<nat>)
   k := *;
   assert 0 <= k;
 }
+
+method M4(i: int, n: nat, b: bool) {
+  var x; // nat
+  x := if b then n else n;
+  var y; // int
+  y := if b then i else n;
+  var z; // int
+  z := if b then n else i;
+
+  x, y, z := *, *, *;
+  if {
+    case true =>
+      assert 0 <= x;
+    case true =>
+      assert 0 <= y; // error: y is int
+    case true =>
+      assert 0 <= z; // error: z is int
+  }
+}

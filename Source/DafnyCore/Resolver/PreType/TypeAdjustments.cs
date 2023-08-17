@@ -5,7 +5,6 @@
 //
 //-----------------------------------------------------------------------------
 
-using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 
 namespace Microsoft.Dafny;
@@ -52,6 +51,9 @@ public class AdjustableType : TypeProxy {
   }
 
   public static string ToStringAsBottom(Type type) {
+    if (type is BottomTypePlaceholder) {
+      return "\\bot";
+    }
     type = NormalizeSansAdjustableType(type);
     if (type is AdjustableType { IsBottomType: true}) {
       return "\\bot";
