@@ -1,5 +1,11 @@
-// RUN: %testDafnyForEachCompiler "%s"module C {}
+// RUN: %testDafnyForEachCompiler "%s"
+
+module C {
+  method Test() {
+    print "done\n";
+  }
+}
 
 method Main(){
-    print "done\n";
+  C.Test();
 }
