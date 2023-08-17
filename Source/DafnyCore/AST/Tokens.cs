@@ -7,7 +7,7 @@ using System.Text;
 
 namespace Microsoft.Dafny;
 
-public interface IToken : Microsoft.Boogie.IToken {
+public interface IToken : Microsoft.Boogie.IToken, IComparable<IToken> {
   public RangeToken To(IToken end) => new RangeToken(this, end);
 
   /*
@@ -121,6 +121,13 @@ public class Token : IToken {
   public override string ToString() {
     return $"'{val}': {Path.GetFileName(Filepath)}@{pos} - @{line}:{col}";
   }
+
+  public int CompareTo(IToken other) {
+    if (line != other.line) {
+      return line.CompareTo(other.line);
+    }
+    return col.CompareTo(other.col);
+  }
 }
 
 public abstract class TokenWrapper : IToken {
@@ -182,6 +189,10 @@ public abstract class TokenWrapper : IToken {
   public virtual IToken Prev {
     get { return WrappedToken.Prev; }
     set { throw new NotSupportedException(); }
+  }
+
+  public int CompareTo(IToken other) {
+    return WrappedToken.CompareTo(other);
   }
 }
 
