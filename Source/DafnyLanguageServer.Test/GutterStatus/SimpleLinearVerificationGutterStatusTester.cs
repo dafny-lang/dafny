@@ -17,15 +17,15 @@ public class SimpleLinearVerificationGutterStatusTester : LinearVerificationGutt
   [Fact]
   public async Task GitIssue4432GutterIconsOnly() {
     await VerifyTrace(@"
-method NotVerified() { // Should not be highlighted in green
-  assert 1 == 0;
-}
-method {:only} Verified() { // Verified
-  assert true;
-}
-method NotVerified2() { // Should not be highlighted in green
-  assert 1 == 0;
-}", intermediates: false);
+ ? :method NotVerified() { // Should not be highlighted in green
+ ? :  assert 1 == 0;
+ ? :}
+ | :method {:only} Verified() { // Verified
+ | :  assert true;
+ | :}
+ ? :method NotVerified2() { // Should not be highlighted in green
+ ? :  assert 1 == 0;
+ ? :}", false, intermediates: false);
   }
  
   [Fact]

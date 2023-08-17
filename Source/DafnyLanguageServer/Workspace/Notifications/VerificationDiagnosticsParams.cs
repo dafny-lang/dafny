@@ -53,9 +53,16 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
         return result;
       }
 
+      var oneMemberHasOnly = 
+        verificationTrees.Any(tree => tree is TopLevelDeclMemberVerificationTree {MarkedAsOnly: true});
+
       // Render verification tree content into lines.
       foreach (var verificationTree in verificationTrees) {
         if (verificationTree.Uri == uri) {
+          if (oneMemberHasOnly && verificationTree is TopLevelDeclMemberVerificationTree {MarkedAsOnly: false}) {
+            verificationTree.StatusCurrent = CurrentStatus.Current;
+            verificationTree.StatusVerification = GutterVerificationStatus.Skipped;
+          }
           verificationTree.RenderInto(result);
         }
       }
@@ -96,6 +103,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
   public enum GutterVerificationStatus {
     Nothing = 0,
     Verified = 200,
+    Skipped = 250,
     Inconclusive = 270,
     Error = 400
   }
@@ -118,6 +126,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     VerifiedVerifying = 202,
     // Also applicable for empty spaces if they are not surrounded by errors.
     Verified = 200,
+    Skipped = 250,
     // For trees containing children with errors (e.g. functions, methods, fields, subset types)
     ErrorContextObsolete = 301,
     ErrorContextVerifying = 302,
@@ -278,6 +287,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
       bool isFinalError, bool contextHasErrors, bool contextIsPending,
       CurrentStatus currentStatus, GutterVerificationStatus verificationStatus) {
       LineVerificationStatus simpleStatus = verificationStatus switch {
+        GutterVerificationStatus.Skipped => LineVerificationStatus.Skipped, // Always current
         GutterVerificationStatus.Nothing => LineVerificationStatus.Nothing,
         // let's be careful to no display "Verified" for a range if the context does not have errors and is pending
         // because there might be other errors on the same range.
@@ -393,7 +403,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     Uri Uri,
     // The range of this node.
     Range Range,
-    Position Position
+    Position Position,
+    bool MarkedAsOnly
   ) : VerificationTree(Kind, DisplayName, Identifier, Filename, Uri, Range, Position) {
     // Recomputed from the children which are ImplementationVerificationTree
     public ImmutableDictionary<AssertionBatchIndex, AssertionBatchVerificationTree> AssertionBatches { get; private set; } =

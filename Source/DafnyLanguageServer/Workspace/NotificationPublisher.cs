@@ -186,7 +186,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       { LineVerificationStatus.AssertionVerifiedInErrorContextObsolete, "[o]" },
       { LineVerificationStatus.AssertionVerifiedInErrorContextVerifying, "[Q]" },
       { LineVerificationStatus.AssertionVerifiedInErrorContext, "[O]" },
-      { LineVerificationStatus.ResolutionError, @"/!\" }
+      { LineVerificationStatus.ResolutionError, @"/!\" },
+      { LineVerificationStatus.Skipped, @" ? " }
     };
 
     private void PublishGhostness(IdeState previousState, IdeState state) {
