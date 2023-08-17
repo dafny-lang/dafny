@@ -287,7 +287,7 @@ public class ProjectManager : IDisposable {
       var orderedVerifiableLocations = orderedVerifiables.Select(v => v.NameToken.GetFilePosition()).ToList();
       if (GutterIconTesting) {
         foreach (var canVerify in orderedVerifiableLocations) {
-          await compilationManager.VerifyTask(canVerify, false);
+          await compilationManager.VerifySymbol(canVerify, false);
         }
 
         logger.LogDebug($"Finished translation in VerifyEverything for {Project.Uri}");
@@ -295,7 +295,7 @@ public class ProjectManager : IDisposable {
 
       foreach (var canVerify in orderedVerifiableLocations) {
         // Wait for each task to try and run, so the order is respected.
-        await compilationManager.VerifyTask(canVerify);
+        await compilationManager.VerifySymbol(canVerify);
       }
     }
     finally {
