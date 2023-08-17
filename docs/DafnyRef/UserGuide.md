@@ -1153,20 +1153,19 @@ To understand how to control verification,
 it is first useful to understand how `dafny` verifies functions and methods.
 
 For every method (or function, constructor, etc.), `dafny` extracts _assertions_.
-Assertions can either be *implicit* or *explicit*.
-Implicit assertions, also called *well-formedness assertions*, ensure expressions make sense.
-Explicit assertions, also called *correctness assertions*, are provided by the user, and can help prove other implicit and explicit assertions.
-
+Assertions extracted from expressions are called *well-formedness assertions*.
+Assertions extracted from statements and clauses are called *correctness assertions*.
+Other than that, these are all assertions Dafny needs to verify that the code is correct,
+but that also your specification makes sense.
 Here is a non-exhaustive list of such extracted assertions:
 
-**Implicit integer assertions:**
-
+**Well-formedness integer assertions:**
 * Every [division](#sec-numeric-types) yields an _assertion_ that the divisor is never zero.
 * Every [bounded number operation](#sec-numeric-types) yields an _assertion_ that the result will be within the same bounds (no overflow, no underflows).
 * Every [conversion](#sec-as-is-expression) yields an _assertion_ that conversion is compatible.
 * Every [bitvector shift](#sec-bit-vector-types) yields an _assertion_ that the shift amount is never negative, and that the shift amount is within the width of the value.
 
-**Implicit object assertions:**
+**Object assertions:**
 
 * Every [object property access](#sec-class-types) yields an _assertion_ that the object is not null.
 * Every assignment `o.f := E;` yields an _assertion_ that `o` is among the set of objects of the `modifies` clause of the enclosing [loop](#sec-loop-framing) or [method](#sec-modifies-clause).
@@ -1176,7 +1175,7 @@ Here is a non-exhaustive list of such extracted assertions:
 * Every [datatype update expression](#sec-datatype-update-suffix) and [datatype destruction](#sec-algebraic-datatype) yields an _assertion_ that the object has the given property.
 * Every method overriding a [`trait`](#sec-trait-types) yields an _assertion_ that any postcondition it provides implies the postcondition of its parent trait, and an _assertion_ that any precondition it provides is implied by the precondition of its parent trait.
 
-**Other implicit assertions:**
+**Other assertions:**
 
 * Every value whose type is assigned to a [subset type](#sec-subset-types) yields an _assertion_ that it satisfies the subset type constraint.
 * Every non-empty [subset type](#sec-subset-types) yields an _assertion_ that its witness satisfies the constraint.
@@ -1186,7 +1185,7 @@ Here is a non-exhaustive list of such extracted assertions:
 * Every call to a function or method with a [`requires`](#sec-requires-clause) clause yields _one assertion per requires clause_[^precision-requires-clause]
   (special cases such as sequence indexing come with a special `requires` clause that the index is within bounds).
 
-**Explicit or correctness assertions:**
+**Specification assertions:**
 
 * Any explicit [`assert`](#sec-assert-statement) statement is _an assertion_[^precision-requires-clause].
 * A consecutive pair of lines in a [`calc`](#sec-calc-statement) statement forms _an assertion_ that the expressions are related according to the common operator.

@@ -847,7 +847,12 @@ add:
 
 ## 7.8. Well-formedness of specifications {#sec-well-formedness}
 
-Dafny ensures that the [`requires` clauses](#sec-requires-clause) and [`ensures` clauses](#sec-ensures-clauses) are [well-formed](#sec-assertion-batches) independent of the body they belong to. Examples of conditions this rules out are null pointer dereferencing, out-of-bounds array access, and division by zero.
+Dafny ensures that the [`requires` clauses](#sec-requires-clause)
+and [`ensures` clauses](#sec-ensures-clauses), which are expressions,
+are [well-formed](#sec-assertion-batches) independent of the body
+they belong to.
+Examples of conditions this rules out are null pointer dereferencing,
+out-of-bounds array access, and division by zero.
 Hence, when declaring the following method:
 
 <!-- %check-verify -->
@@ -904,4 +909,5 @@ method Test_Correctness(a: array?<int>)
 }
 ```
 
-For this reason the IDE typically reports at least two assertion batches when hovering a method.
+For this reason the IDE typically reports at least two [assertion batches](#sec-assertion-batches)
+when hovering a method.
