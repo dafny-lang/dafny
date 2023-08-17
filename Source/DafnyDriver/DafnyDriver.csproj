@@ -45,4 +45,16 @@
     <ProjectReference Include="..\DafnyTestGeneration\DafnyTestGeneration.csproj" />
     <ProjectReference Include="..\DafnyServer\DafnyServer.csproj" />
   </ItemGroup>
+  
+  <ItemGroup>
+    <EmbeddedResource Include="assets\coverage_report_template.html">
+      <LogicalName>coverage_report_template.html</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="assets\coverage_report_index_template.html">
+      <LogicalName>coverage_report_index_template.html</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="assets\.resources\*">
+    </EmbeddedResource>
+  </ItemGroup>  
+  
 </Project>

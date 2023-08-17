@@ -15,6 +15,7 @@ public class DeadCodeCommand : ICommandSpec {
     new Option[] {
       GenerateTestsCommand.LoopUnroll,
       GenerateTestsCommand.SequenceLengthLimit,
+      GenerateTestsCommand.CoverageReport,
       GenerateTestsCommand.ForcePrune,
       GenerateTestsCommand.PrintBpl,
       BoogieOptionBag.SolverLog,

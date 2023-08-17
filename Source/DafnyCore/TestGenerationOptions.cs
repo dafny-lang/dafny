@@ -14,5 +14,6 @@ namespace Microsoft.Dafny {
     [CanBeNull] public string PrintBpl = null;
     public bool ForcePrune = false;
     public const uint DefaultTimeLimit = 10;
+    public string CoverageReport = null;
   }
 }
