@@ -538,6 +538,12 @@ namespace Microsoft.Dafny {
       BoogieStmtListBuilder builder = new BoogieStmtListBuilder(this, options);
       builder.Add(new CommentCmd("AddMethodImpl: " + m + ", " + proc));
       var etran = new ExpressionTranslator(this, predef, m.tok);
+      // Don't do any reads checks if the reads clause is *,
+      // since all the checks will be vacuously true
+      // and we don't need to cause additional verification cost for existing code.
+      if (m.Reads.Count == 1 && m.Reads.Exists(e => e is WildcardExpr)) {
+        etran = new ExpressionTranslator(etran, null, etran.modifiesFrame);
+      }
       InitializeFuelConstant(m.tok, builder, etran);
       var localVariables = new List<Variable>();
       GenerateImplPrelude(m, wellformednessProc, inParams, outParams, builder, localVariables, etran);

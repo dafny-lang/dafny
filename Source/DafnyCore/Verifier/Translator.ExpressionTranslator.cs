@@ -128,6 +128,7 @@ namespace Microsoft.Dafny {
         Contract.Requires(etran != null);
       }
 
+      // TODO: refactor this into WithReadsFrame() and WithModifiesFrame() methods
       public ExpressionTranslator(ExpressionTranslator etran, string readsFrame, string modifiesFrame)
         : this(etran.translator, etran.predef, etran.HeapExpr, etran.This, etran.applyLimited_CurrentFunction, etran.layerInterCluster, etran.layerIntraCluster, readsFrame, modifiesFrame, etran.stripLits) {
         Contract.Requires(etran != null);
