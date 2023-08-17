@@ -10633,7 +10633,7 @@ namespace Microsoft.Dafny {
         }
         visitor.Visit(body);
       }
-      return 
+      return
         !triggersCollector.IsTriggerKiller(fexp.Receiver) &&
         Enumerable.Zip(f.Formals, fexp.Args).All(formal_concrete => CanSafelySubstitute(visitor.TriggerVariables, formal_concrete.Item1, formal_concrete.Item2));
     }
