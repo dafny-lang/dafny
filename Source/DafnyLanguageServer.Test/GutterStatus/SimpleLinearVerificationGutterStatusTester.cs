@@ -15,6 +15,20 @@ public class SimpleLinearVerificationGutterStatusTester : LinearVerificationGutt
   // Add '//Replace<n>:' to edit a line multiple times
 
   [Fact]
+  public async Task GitIssue4432GutterIconsOnly() {
+    await VerifyTrace(@"
+method NotVerified() { // Should not be highlighted in green
+  assert 1 == 0;
+}
+method {:only} Verified() { // Verified
+  assert true;
+}
+method NotVerified2() { // Should not be highlighted in green
+  assert 1 == 0;
+}", intermediates: false);
+  }
+ 
+  [Fact]
   public async Task GitIssue4287GutterHighlightingBroken() {
     await VerifyTrace(@"
  |  | [ ]://Insert1:method Test() {//Insert2:\\n  assert false;\n}
