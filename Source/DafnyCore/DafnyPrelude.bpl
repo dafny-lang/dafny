@@ -7,8 +7,9 @@
 // Copyright by the contributors to the Dafny Project
 // SPDX-License-Identifier: MIT
 
-const $$Language$Dafny: bool;  // To be recognizable to the ModelViewer as
-axiom $$Language$Dafny;        // coming from a Dafny program.
+const $$Language$Dafny: bool uses {  // To be recognizable to the ModelViewer as
+  axiom $$Language$Dafny;            // coming from a Dafny program.
+}
 
 // ---------------------------------------------------------------
 // -- Types ------------------------------------------------------
@@ -227,7 +228,7 @@ axiom(forall v : real :: { $Is(v,TReal) } $Is(v,TReal));
 axiom(forall v : bool :: { $Is(v,TBool) } $Is(v,TBool));
 axiom(forall v : char :: { $Is(v,TChar) } $Is(v,TChar));
 axiom(forall v : ORDINAL :: { $Is(v,TORDINAL) } $Is(v,TORDINAL));
-    
+
 // Since every bitvector type is a separate type in Boogie, the $Is/$IsAlloc axioms
 // for bitvectors are generated programatically. Except, TBitvector(0) is given here.
 axiom (forall v: Bv0 :: { $Is(v, TBitvector(0)) } $Is(v, TBitvector(0)));
@@ -251,7 +252,7 @@ axiom (forall v: Seq Box, t0: Ty :: { $Is(v, TSeq(t0)) }
   (forall i : int :: { Seq#Index(v, i) }
     0 <= i && i < Seq#Length(v) ==>
     $IsBox(Seq#Index(v, i), t0)));
-        
+
 axiom (forall v: Map Box Box, t0: Ty, t1: Ty ::
   { $Is(v, TMap(t0, t1)) }
   $Is(v, TMap(t0, t1))
@@ -283,11 +284,11 @@ axiom (forall v: IMap Box Box, t0: Ty, t1: Ty ::
     $Is(IMap#Items(v), TISet(Tclass._System.Tuple2(t0, t1))));
 
 function $IsAlloc<T>(T,Ty,Heap): bool;
-    axiom(forall h : Heap, v : int  :: { $IsAlloc(v,TInt,h) }  $IsAlloc(v,TInt,h));
-    axiom(forall h : Heap, v : real :: { $IsAlloc(v,TReal,h) } $IsAlloc(v,TReal,h));
-    axiom(forall h : Heap, v : bool :: { $IsAlloc(v,TBool,h) } $IsAlloc(v,TBool,h));
-    axiom(forall h : Heap, v : char :: { $IsAlloc(v,TChar,h) } $IsAlloc(v,TChar,h));
-    axiom(forall h : Heap, v : ORDINAL :: { $IsAlloc(v,TORDINAL,h) } $IsAlloc(v,TORDINAL,h));
+axiom(forall h : Heap, v : int  :: { $IsAlloc(v,TInt,h) }  $IsAlloc(v,TInt,h));
+axiom(forall h : Heap, v : real :: { $IsAlloc(v,TReal,h) } $IsAlloc(v,TReal,h));
+axiom(forall h : Heap, v : bool :: { $IsAlloc(v,TBool,h) } $IsAlloc(v,TBool,h));
+axiom(forall h : Heap, v : char :: { $IsAlloc(v,TChar,h) } $IsAlloc(v,TChar,h));
+axiom(forall h : Heap, v : ORDINAL :: { $IsAlloc(v,TORDINAL,h) } $IsAlloc(v,TORDINAL,h));
     
 axiom (forall v: Bv0, h: Heap :: { $IsAlloc(v, TBitvector(0), h) } $IsAlloc(v, TBitvector(0), h));
  
