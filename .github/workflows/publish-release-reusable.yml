@@ -104,7 +104,9 @@ jobs:
         brew untap Homebrew/core
         brew update-reset && brew update
         brew install pandoc
-        brew install --cask mactex
+        brew cat mactex > mactex.rb
+        sed -i '' 's|https://mirror.ctan.org/systems/mac/mactex/mactex-basictex-20230314.pkg|https://mirror.math.princeton.edu/pub/CTAN/systems/mac/mactex/mactex-basictex-20230314.pkg|g' mactex.rb
+        brew install --cask ./mactex.rb
         eval "$(/usr/libexec/path_helper)"
         sudo tlmgr update --self
         sudo tlmgr install framed tcolorbox environ trimspaces unicode-math
