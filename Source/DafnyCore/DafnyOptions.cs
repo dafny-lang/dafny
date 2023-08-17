@@ -32,7 +32,7 @@ namespace Microsoft.Dafny {
     Version4,
   }
 
-  public record Options(IDictionary<Option, object> OptionArguments);
+  public record Options(IDictionary<Option, object> OptionArguments, IDictionary<Argument, object> Arguments);
 
   public class DafnyOptions : Bpl.CommandLineOptions {
     public TextWriter ErrorWriter { get; }
@@ -132,6 +132,11 @@ NoGhost - disable printing of functions, ghost methods, and proof
         legacyBindings[option](this, Get(option));
       }
     }
+
+    public T Get<T>(Argument<T> argument) {
+      return (T)Options.Arguments.GetOrCreate(argument, () => default(T));
+    }
+
 
     public T Get<T>(Option<T> option) {
       return (T)Options.OptionArguments.GetOrCreate(option, () => default(T));
@@ -258,7 +263,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
       }
     }
 
-    public Options Options { get; set; } = new(new Dictionary<Option, object>());
+    public Options Options { get; set; } = new(new Dictionary<Option, object>(), new Dictionary<Argument, object>());
 
     public override string Version {
       get { return ToolName + VersionSuffix; }
@@ -413,7 +418,9 @@ NoGhost - disable printing of functions, ghost methods, and proof
       src.CopyTo(this);
       CliRootSourceUris = new List<Uri>(src.CliRootSourceUris);
       ProverOptions = new List<string>(src.ProverOptions);
-      Options = new Options(src.Options.OptionArguments.ToDictionary(kv => kv.Key, kv => kv.Value));
+      Options = new Options(
+        src.Options.OptionArguments.ToDictionary(kv => kv.Key, kv => kv.Value),
+        src.Options.Arguments.ToDictionary(kv => kv.Key, kv => kv.Value));
     }
 
     public void CopyTo(DafnyOptions dst) {
