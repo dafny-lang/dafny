@@ -113,25 +113,35 @@ public class Migrator {
   }
 
   public LegacySignatureAndCompletionTable MigrateSymbolTable(LegacySignatureAndCompletionTable originalSymbolTable) {
-    var migratedLookupTree = originalSymbolTable.LookupTree;
-    var migratedDeclarations = originalSymbolTable.Locations;
+    var uri = changeParams.TextDocument.Uri.ToUri();
+    var migratedLookupTree = originalSymbolTable.LookupTree.GetValueOrDefault(uri);
+    var migratedDeclarations = originalSymbolTable.Locations.GetValueOrDefault(uri);
     foreach (var change in changeParams.ContentChanges) {
       cancellationToken.ThrowIfCancellationRequested();
       if (change.Range == null) {
         migratedLookupTree = new IntervalTree<Position, ILocalizableSymbol>();
       } else {
-        migratedLookupTree = ApplyLookupTreeChange(migratedLookupTree, change);
+        if (migratedLookupTree != null) {
+          migratedLookupTree = ApplyLookupTreeChange(migratedLookupTree, change);
+        }
       }
-      migratedDeclarations = ApplyDeclarationsChange(originalSymbolTable, migratedDeclarations, change, GetPositionAtEndOfAppliedChange(change));
+
+      if (migratedDeclarations != null) {
+        migratedDeclarations = ApplyDeclarationsChange(originalSymbolTable, migratedDeclarations, change, GetPositionAtEndOfAppliedChange(change));
+      }
     }
-    logger.LogTrace("migrated the lookup tree, lookup before={SymbolsBefore}, after={SymbolsAfter}",
-      originalSymbolTable.LookupTree.Count, migratedLookupTree.Count);
+    if (migratedLookupTree != null) {
+      logger.LogTrace("migrated the lookup tree, lookup before={SymbolsBefore}, after={SymbolsAfter}",
+        originalSymbolTable.LookupTree.Count, migratedLookupTree.Count);
+      // TODO IntervalTree goes out of sync after any change and "fixes" its state upon the first query. Replace it with another implementation that can be queried without potential side-effects.
+      migratedLookupTree.Query(new Position(0, 0));
+    }
     return new LegacySignatureAndCompletionTable(
       loggerSymbolTable,
       originalSymbolTable.CompilationUnit,
       originalSymbolTable.Declarations,
-      migratedDeclarations,
-      migratedLookupTree,
+      originalSymbolTable.Locations.SetItem(uri, migratedDeclarations!),
+      originalSymbolTable.LookupTree.SetItem(uri, migratedLookupTree),
       false
     );
   }
