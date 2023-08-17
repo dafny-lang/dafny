@@ -23,7 +23,6 @@ method Foo() returns (x: int) ensures x / 2 == 1; {
 }".TrimStart();
     await SetUp(options => {
       options.Set(ServerCommand.Verification, VerifyOnMode.Never);
-      options.Set(ServerCommand.ProjectMode, true);
     });
     var directory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
     await CreateAndOpenTestDocument("", Path.Combine(directory, DafnyProject.FileName));
