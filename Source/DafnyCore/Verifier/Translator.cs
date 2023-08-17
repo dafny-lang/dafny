@@ -1692,6 +1692,9 @@ namespace Microsoft.Dafny {
 
       var builder = new BoogieStmtListBuilder(this, options);
       var etran = new ExpressionTranslator(this, predef, iter.tok);
+      // Don't do reads checks since iterator reads clauses mean something else.
+      // TODO: expand explanation
+      etran = new ExpressionTranslator(etran, null, etran.modifiesFrame);
       var localVariables = new List<Variable>();
       GenerateIteratorImplPrelude(iter, inParams, new List<Variable>(), builder, localVariables, etran);
 
@@ -1839,6 +1842,9 @@ namespace Microsoft.Dafny {
 
       var builder = new BoogieStmtListBuilder(this, options);
       var etran = new ExpressionTranslator(this, predef, iter.tok);
+      // Don't do reads checks since iterator reads clauses mean something else.
+      // TODO: expand explanation
+      etran = new ExpressionTranslator(etran, null, etran.modifiesFrame);
       var localVariables = new List<Variable>();
       GenerateIteratorImplPrelude(iter, inParams, new List<Variable>(), builder, localVariables, etran);
 
@@ -3865,7 +3871,11 @@ namespace Microsoft.Dafny {
       var th = new ThisExpr(iter);
       iteratorFrame.Add(new FrameExpression(iter.tok, th, null));
       iteratorFrame.AddRange(iter.Modifies.Expressions);
-      DefineFrame(iter.tok, etran.ReadsFrame(iter.tok), iter.Reads.Expressions, builder, localVariables, null);
+      // Note we explicitly do NOT use iter.Reads, because reads clauses on iterators
+      // mean something different from reads clauses on functions or methods:
+      // the memory locations that are not havoced by a yield statement.
+      // Look for the references to the YieldHavoc, IterHavoc0 and IterHavoc1 DafnyPrelude.bpl functions for details.
+      // TODO: assert etran.readsFrame == null (since there's no way to specify THIS kind of reads frame on iterators)
       DefineFrame(iter.tok, etran.ModifiesFrame(iter.tok), iteratorFrame, builder, localVariables, null);
       builder.AddCaptureState(iter.tok, false, "initial state");
     }
@@ -5339,7 +5349,12 @@ namespace Microsoft.Dafny {
         args.Add(Bpl.Expr.Literal(0));
         kv = new Bpl.QKeyValue(expr.tok, "subsumption", args, null);
       }
-      var options = new WFOptions(kv).WithReadsChecks(true);
+      var options = new WFOptions(kv);
+      // Only do reads checks if the reads clause is not *
+      // This is important to avoid any extra verification cost for backwards compatibility.
+      if (etran.readsFrame != null) {
+        options = options.WithReadsChecks(true);
+      }
       if (lValueContext) {
         options = options.WithLValueContext(true);
       }

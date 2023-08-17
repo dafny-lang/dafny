@@ -35,6 +35,7 @@ namespace Microsoft.Dafny {
       public readonly Translator translator;
       public readonly string This;
       public readonly string readsFrame; // the name of the context's frame variable for reading state.
+                                         // May be null to indicate the context's reads frame is * and doesn't require any reads checks.
       public readonly string modifiesFrame; // the name of the context's frame variable for writing state.
       readonly Function applyLimited_CurrentFunction;
       public readonly FuelSetting layerInterCluster;
@@ -128,7 +129,7 @@ namespace Microsoft.Dafny {
       }
 
       public ExpressionTranslator(ExpressionTranslator etran, string readsFrame, string modifiesFrame)
-        : this(etran.translator, etran.predef, etran.HeapExpr, etran.This, etran.applyLimited_CurrentFunction, etran.layerInterCluster, etran.layerIntraCluster, etran.readsFrame, modifiesFrame, etran.stripLits) {
+        : this(etran.translator, etran.predef, etran.HeapExpr, etran.This, etran.applyLimited_CurrentFunction, etran.layerInterCluster, etran.layerIntraCluster, readsFrame, modifiesFrame, etran.stripLits) {
         Contract.Requires(etran != null);
         Contract.Requires(modifiesFrame != null);
       }
@@ -235,6 +236,9 @@ namespace Microsoft.Dafny {
         Contract.Ensures(Contract.Result<Boogie.IdentifierExpr>() != null);
         Contract.Ensures(Contract.Result<Boogie.IdentifierExpr>().Type != null);
 
+        if (readsFrame == null) {
+          throw new ArgumentException();
+        }
         return Frame(tok, readsFrame);
       }
 

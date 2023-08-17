@@ -1449,7 +1449,7 @@ namespace Microsoft.Dafny {
           }
         }
         // add a free invariant which says that the heap hasn't changed outside of the modifies clause.
-        invariants.Add(TrAssumeCmd(s.Tok, FrameConditionUsingDefinedFrame(s.Tok, etranPreLoop, etran, updatedFrameEtran, updatedFrameEtran.ReadsFrame(s.Tok))));
+        invariants.Add(TrAssumeCmd(s.Tok, FrameConditionUsingDefinedFrame(s.Tok, etranPreLoop, etran, updatedFrameEtran, updatedFrameEtran.ModifiesFrame(s.Tok))));
         // for iterators, add "fresh(_new)" as an invariant
         if (codeContext is IteratorDecl iter) {
           var th = new ThisExpr(iter);
