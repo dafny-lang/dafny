@@ -313,8 +313,8 @@ class FlowFromType : FlowIntoExpr {
     this.source = source;
   }
 
-  public FlowFromType(Expression sink, Type source)
-    : base(sink, sink.tok) {
+  public FlowFromType(Expression sink, Type source, string description = "")
+    : base(sink, sink.tok, description) {
     this.source = source;
   }
 

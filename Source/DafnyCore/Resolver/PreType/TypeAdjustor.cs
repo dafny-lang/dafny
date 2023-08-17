@@ -39,7 +39,7 @@ public class TypeAdjustorVisitor : ASTVisitor<IASTVisitorContext> {
 
   protected override void PostVisitOneExpression(Expression expr, IASTVisitorContext context) {
     if (expr is IdentifierExpr identifierExpr) {
-      flows.Add(new FlowFromType(expr, identifierExpr.Var.UnnormalizedType));
+      flows.Add(new FlowFromType(expr, identifierExpr.Var.UnnormalizedType, identifierExpr.Name));
 
     } else if (expr is SeqSelectExpr selectExpr) {
       var seqType = selectExpr.Seq.UnnormalizedType;
