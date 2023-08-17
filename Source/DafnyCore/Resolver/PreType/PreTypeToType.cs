@@ -147,6 +147,12 @@ class PreTypeToTypeVisitor : ASTVisitor<IASTVisitorContext> {
         // Fill in any missing type arguments in the user-supplied tRhs.EType.
         TypeAdjustments.Combine(tRhs.EType, tRhs.PreType, false);
         rhsType = (UserDefinedType)tRhs.EType;
+        if (tRhs.InitCall != null) {
+          // We want the type of tRhs.InitCall.MethodSelect.Obj to be the same as what the "new" gives, but the previous
+          // visitation of this MemberSelectExpr would have set it to the type obtained from the pre-type. Since the MemberSelectExpr
+          // won't be visited again during type adjustment, we set it here once and for all.
+          tRhs.InitCall.MethodSelect.Obj.UnnormalizedType = rhsType;
+        }
       }
       tRhs.Type = rhsType;
 
