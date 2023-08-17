@@ -114,34 +114,43 @@ public class Migrator {
 
   public LegacySignatureAndCompletionTable MigrateSymbolTable(LegacySignatureAndCompletionTable originalSymbolTable) {
     var uri = changeParams.TextDocument.Uri.ToUri();
-    var migratedLookupTree = originalSymbolTable.LookupTree.GetValueOrDefault(uri);
-    var migratedDeclarations = originalSymbolTable.Locations.GetValueOrDefault(uri);
+    var migratedLookupTreeForUri = originalSymbolTable.LookupTreePerUri.GetValueOrDefault(uri);
+    var migratedLocationsForUri = originalSymbolTable.LocationsPerUri.GetValueOrDefault(uri);
     foreach (var change in changeParams.ContentChanges) {
       cancellationToken.ThrowIfCancellationRequested();
       if (change.Range == null) {
-        migratedLookupTree = new IntervalTree<Position, ILocalizableSymbol>();
+        migratedLookupTreeForUri = new IntervalTree<Position, ILocalizableSymbol>();
       } else {
-        if (migratedLookupTree != null) {
-          migratedLookupTree = ApplyLookupTreeChange(migratedLookupTree, change);
+        if (migratedLookupTreeForUri != null) {
+          migratedLookupTreeForUri = ApplyLookupTreeChange(migratedLookupTreeForUri, change);
         }
       }
 
-      if (migratedDeclarations != null) {
-        migratedDeclarations = ApplyDeclarationsChange(originalSymbolTable, migratedDeclarations, change, GetPositionAtEndOfAppliedChange(change));
+      if (migratedLocationsForUri != null) {
+        migratedLocationsForUri = ApplyDeclarationsChange(originalSymbolTable, migratedLocationsForUri, change, GetPositionAtEndOfAppliedChange(change));
       }
     }
-    if (migratedLookupTree != null) {
+    if (migratedLookupTreeForUri != null) {
       logger.LogTrace("migrated the lookup tree, lookup before={SymbolsBefore}, after={SymbolsAfter}",
-        originalSymbolTable.LookupTree.Count, migratedLookupTree.Count);
+        originalSymbolTable.LookupTreePerUri.Count, migratedLookupTreeForUri.Count);
       // TODO IntervalTree goes out of sync after any change and "fixes" its state upon the first query. Replace it with another implementation that can be queried without potential side-effects.
-      migratedLookupTree.Query(new Position(0, 0));
+      migratedLookupTreeForUri.Query(new Position(0, 0));
+    }
+
+    var migratedLocations = originalSymbolTable.LocationsPerUri;
+    if (migratedLocationsForUri != null) {
+      migratedLocations = migratedLocations.SetItem(uri, migratedLocationsForUri);
+    }
+    var migratedLookupTrees = originalSymbolTable.LookupTreePerUri;
+    if (migratedLookupTreeForUri != null) {
+      migratedLookupTrees = migratedLookupTrees.SetItem(uri, migratedLookupTreeForUri);
     }
     return new LegacySignatureAndCompletionTable(
       loggerSymbolTable,
       originalSymbolTable.CompilationUnit,
       originalSymbolTable.Declarations,
-      originalSymbolTable.Locations.SetItem(uri, migratedDeclarations!),
-      originalSymbolTable.LookupTree.SetItem(uri, migratedLookupTree!),
+      migratedLocations,
+      migratedLookupTrees,
       false
     );
   }

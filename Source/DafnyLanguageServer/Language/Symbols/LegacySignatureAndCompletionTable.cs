@@ -29,12 +29,12 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
     /// <summary>
     /// Gets the dictionary allowing to resolve the location of a specified symbol. Do not modify this instance.
     /// </summary>
-    public ImmutableDictionary<Uri, IDictionary<ILegacySymbol, SymbolLocation>> Locations { get; }
+    public ImmutableDictionary<Uri, IDictionary<ILegacySymbol, SymbolLocation>> LocationsPerUri { get; }
 
     /// <summary>
     /// Gets the interval tree backing this symbol table. Do not modify this instance.
     /// </summary>
-    public ImmutableDictionary<Uri, IIntervalTree<Position, ILocalizableSymbol>> LookupTree { get; }
+    public ImmutableDictionary<Uri, IIntervalTree<Position, ILocalizableSymbol>> LookupTreePerUri { get; }
 
     /// <summary>
     /// <c>true</c> if the symbol table results from a successful resolution by the dafny resolver.
@@ -73,14 +73,14 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         ILogger<LegacySignatureAndCompletionTable> iLogger,
         CompilationUnit compilationUnit,
         IDictionary<AstElement, ILocalizableSymbol> declarations,
-        ImmutableDictionary<Uri, IDictionary<ILegacySymbol, SymbolLocation>> locations,
-        ImmutableDictionary<Uri, IIntervalTree<Position, ILocalizableSymbol>> lookupTree,
+        ImmutableDictionary<Uri, IDictionary<ILegacySymbol, SymbolLocation>> locationsPerUri,
+        ImmutableDictionary<Uri, IIntervalTree<Position, ILocalizableSymbol>> lookupTreePerUri,
         bool symbolsResolved
     ) {
       CompilationUnit = compilationUnit;
       Declarations = declarations;
-      Locations = locations;
-      LookupTree = lookupTree;
+      LocationsPerUri = locationsPerUri;
+      LookupTreePerUri = lookupTreePerUri;
       Resolved = symbolsResolved;
       typeResolver = new DafnyLangTypeResolver(declarations);
       logger = iLogger;
@@ -91,7 +91,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
     /// Only used for testing.
     /// </summary>
     public bool TryGetSymbolAt(Position position, [NotNullWhen(true)] out ILocalizableSymbol? symbol) {
-      var intervalTree = LookupTree.First().Value;
+      var intervalTree = LookupTreePerUri.First().Value;
 
       var symbolsAtPosition = intervalTree.Query(position);
       symbol = null;
@@ -120,7 +120,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
       // TODO use a suitable data-structure to resolve the locations efficiently.
       ILegacySymbol innerMostSymbol = CompilationUnit;
       var innerMostRange = new Range(new Position(0, 0), new Position(int.MaxValue, int.MaxValue));
-      foreach (var (symbol, location) in Locations.GetValueOrDefault(uri) ?? ImmutableDictionary<ILegacySymbol, SymbolLocation>.Empty) {
+      foreach (var (symbol, location) in LocationsPerUri.GetValueOrDefault(uri) ?? ImmutableDictionary<ILegacySymbol, SymbolLocation>.Empty) {
         cancellationToken.ThrowIfCancellationRequested();
         var range = location.Declaration;
         if (IsEnclosedBy(innerMostRange, range) && IsInside(range, position)) {
