@@ -457,7 +457,7 @@ namespace Microsoft.Dafny.Compilers {
             string target = EmitAssignmentLhs(memberSelectExpr.Obj, wr);
             var typeArgs = TypeArgumentInstantiation.ListFromMember(memberSelectExpr.Member,
               null, memberSelectExpr.TypeApplication_JustMember);
-            ILvalue newLhs = EmitMemberSelect(w => w.Write(target), memberSelectExpr.Obj.Type, memberSelectExpr.Member, typeArgs,
+            ILvalue newLhs = EmitMemberSelect(w => EmitIdentifier(target, w), memberSelectExpr.Obj.Type, memberSelectExpr.Member, typeArgs,
               memberSelectExpr.TypeArgumentSubstitutionsWithParents(), memberSelectExpr.Type, internalAccess: enclosingMethod is Constructor);
             lhssn.Add(newLhs);
 
@@ -710,7 +710,7 @@ namespace Microsoft.Dafny.Compilers {
     /// <summary>
     /// Same as the EmitNewArray overload above, except that "dimensions" is "List<Expression>" instead of "List<string>".
     /// </summary>
-    protected void EmitNewArray(Type elementType, IToken tok, List<Expression> dimensions,
+    protected virtual void EmitNewArray(Type elementType, IToken tok, List<Expression> dimensions,
       bool mustInitialize, [CanBeNull] string exampleElement, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
 
       var dimStrings = dimensions.ConvertAll(expr => {
@@ -1226,7 +1226,7 @@ namespace Microsoft.Dafny.Compilers {
     /// However, EmitDestructor may also need to perform a cast on "source".
     /// Furthermore, EmitDestructor also needs to work for anonymous destructors.
     /// </summary>
-    protected abstract void EmitDestructor(string source, Formal dtor, int formalNonGhostIndex, DatatypeCtor ctor, List<Type> typeArgs, Type bvType, ConcreteSyntaxTree wr);
+    protected abstract void EmitDestructor(Action<ConcreteSyntaxTree> source, Formal dtor, int formalNonGhostIndex, DatatypeCtor ctor, List<Type> typeArgs, Type bvType, ConcreteSyntaxTree wr);
     protected virtual bool TargetLambdasRestrictedToExpressions => false;
     protected abstract ConcreteSyntaxTree CreateLambda(List<Type> inTypes, IToken tok, List<string> inNames,
       Type resultType, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts, bool untyped = false);
@@ -2743,7 +2743,7 @@ namespace Microsoft.Dafny.Compilers {
             Contract.Assert(Contract.ForAll(arg.Vars, bv => bv.IsGhost));
           } else {
             Type targetType = formal.Type.Subst(substMap);
-            TrCasePatternOpt(arg, null, sw => EmitDestructor(tmp_name, formal, k, ctor, dtv.InferredTypeArgs, arg.Expr.Type, sw), targetType, pat.Expr.tok, wr, inLetExprBody);
+            TrCasePatternOpt(arg, null, sw => EmitDestructor(wr => EmitIdentifier(tmp_name, wr), formal, k, ctor, dtv.InferredTypeArgs, arg.Expr.Type, sw), targetType, pat.Expr.tok, wr, inLetExprBody);
             k++;
           }
         }
@@ -4026,6 +4026,19 @@ namespace Microsoft.Dafny.Compilers {
       return new ArrayLvalueImpl(this, arr, new List<string>() { index }, ll.Type);
     }
 
+    protected virtual ILvalue MultiSelectLvalue(MultiSelectExpr ll, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
+      string arr = StabilizeExpr(ll.Array, "_arr", wr, wStmts);
+      var indices = new List<string>();
+      int i = 0;
+      foreach (var idx in ll.Indices) {
+        var index = StabilizeExpr(idx, "_index" + i + "_", wr, wStmts);
+        index = ArrayIndexToNativeInt(index, idx.Type);
+        indices.Add(index);
+        i++;
+      }
+      return new ArrayLvalueImpl(this, arr, indices, ll.Type);
+    }
+
     protected ILvalue StringLvalue(string str) {
       return new SimpleLvalueImpl(this, wr => wr.Write(str));
     }
@@ -4174,16 +4187,7 @@ namespace Microsoft.Dafny.Compilers {
         return SeqSelectLvalue(ll, wr, wStmts);
       } else {
         var ll = (MultiSelectExpr)lhs;
-        string arr = StabilizeExpr(ll.Array, "_arr", wr, wStmts);
-        var indices = new List<string>();
-        int i = 0;
-        foreach (var idx in ll.Indices) {
-          var index = StabilizeExpr(idx, "_index" + i + "_", wr, wStmts);
-          index = ArrayIndexToNativeInt(index, idx.Type);
-          indices.Add(index);
-          i++;
-        }
-        return new ArrayLvalueImpl(this, arr, indices, ll.Type);
+        return MultiSelectLvalue(ll, wr, wStmts);
       }
     }
 
@@ -4277,7 +4281,7 @@ namespace Microsoft.Dafny.Compilers {
       } else if (typeRhs.ArrayDimensions != null) {
         var nw = ProtectedFreshId("_nw");
         TrRhsArray(typeRhs, nw, wr, wStmts);
-        wr.Write(nw);
+        EmitIdentifier(nw, wr);
 
       } else {
         // Allocate and initialize a new object
@@ -4853,7 +4857,7 @@ namespace Microsoft.Dafny.Compilers {
           BoundVar bv = arguments[m];
           // FormalType f0 = ((Dt_Ctor0)source._D).a0;
           var sw = DeclareLocalVar(IdName(bv), bv.Type, bv.Tok, w);
-          EmitDestructor(source, arg, k, ctor, SelectNonGhost(sourceType.ResolvedClass, sourceType.TypeArgs), bv.Type, sw);
+          EmitDestructor(wr => EmitIdentifier(source, wr), arg, k, ctor, SelectNonGhost(sourceType.ResolvedClass, sourceType.TypeArgs), bv.Type, sw);
           k++;
         }
       }
@@ -5240,7 +5244,7 @@ namespace Microsoft.Dafny.Compilers {
             if (Contract.Exists(lhs.Vars, bv => !bv.IsGhost)) {
               var rhsName = $"_pat_let{GetUniqueAstNumber(e)}_{i}";
               w = CreateIIFE_ExprBody(rhsName, e.RHSs[i].Type, e.RHSs[i].tok, e.RHSs[i], inLetExprBody, e.Body.Type, e.Body.tok, w, ref wStmts);
-              w = TrCasePattern(lhs, rhsName, e.RHSs[i].Type, e.Body.Type, w, ref wStmts);
+              w = TrCasePattern(lhs, wr => EmitIdentifier(rhsName, wr), e.RHSs[i].Type, e.Body.Type, w, ref wStmts);
             }
           }
           EmitExpr(e.Body, true, w, wStmts);
@@ -5686,10 +5690,10 @@ namespace Microsoft.Dafny.Compilers {
       return null;
     }
 
-    ConcreteSyntaxTree TrCasePattern(CasePattern<BoundVar> pat, string rhsString, Type rhsType, Type bodyType,
+    ConcreteSyntaxTree TrCasePattern(CasePattern<BoundVar> pat, Action<ConcreteSyntaxTree> rhs, Type rhsType, Type bodyType,
       ConcreteSyntaxTree wr, ref ConcreteSyntaxTree wStmts) {
       Contract.Requires(pat != null);
-      Contract.Requires(rhsString != null);
+      Contract.Requires(rhs != null);
       Contract.Requires(rhsType != null);
       Contract.Requires(bodyType != null);
       Contract.Requires(wr != null);
@@ -5699,7 +5703,7 @@ namespace Microsoft.Dafny.Compilers {
         if (!bv.IsGhost) {
           CreateIIFE(IdProtect(bv.CompileName), bv.Type, bv.Tok, bodyType, pat.tok, wr, ref wStmts, out var wrRhs, out var wrBody);
           wrRhs = EmitDowncastIfNecessary(rhsType, bv.Type, bv.tok, wrRhs);
-          wrRhs.Write(rhsString);
+          rhs(wrRhs);
           return wrBody;
         }
       } else if (pat.Arguments != null) {
@@ -5716,9 +5720,7 @@ namespace Microsoft.Dafny.Compilers {
             // nothing to compile, but do a sanity check
             Contract.Assert(!Contract.Exists(arg.Vars, bv => !bv.IsGhost));
           } else {
-            var sw = new ConcreteSyntaxTree(wr.RelativeIndentLevel);
-            EmitDestructor(rhsString, formal, k, ctor, ((DatatypeValue)pat.Expr).InferredTypeArgs, arg.Expr.Type, sw);
-            wr = TrCasePattern(arg, sw.ToString(), formal.Type.Subst(typeSubst), bodyType, wr, ref wStmts);
+            wr = TrCasePattern(arg, sw => EmitDestructor(rhs, formal, k, ctor, ((DatatypeValue)pat.Expr).InferredTypeArgs, arg.Expr.Type, sw), formal.Type.Subst(typeSubst), bodyType, wr, ref wStmts);
             k++;
           }
         }
