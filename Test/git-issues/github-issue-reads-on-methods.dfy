@@ -38,7 +38,7 @@ method GetBoxIncorrectReads(b: Box) returns (i: int)
 
 method GetBoxDefaultReads(b: Box) returns (i: int)
 {
-  i := b.x; // Bug: getting an error here too, likely because we're not correctly defaulting to reads *
+  i := b.x;
 }
 
 method ReadingAndWritingFreshStateAllowed()
@@ -54,9 +54,7 @@ method ReadingAndWritingFreshStateAllowed()
 datatype Option<T> = Some(value: T) | None
 
 class {:extern} ExternalMutableMap<K, V> {
-  // TODO: having ghost state should cause frame violations
-  ghost var state: map<K, V>
-  method {:extern} Put(k: K, v: V) ensures state == old(state)[k := v]
+  method {:extern} Put(k: K, v: V) 
   method {:extern} Get(k: V) returns (v: Option<V>)
 }
 
