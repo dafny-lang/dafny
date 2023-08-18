@@ -47,7 +47,7 @@ public record IdeState(
       VerificationTrees = migratedVerificationTrees
     };
   }
-  
+
   private Dictionary<Location, IdeVerificationResult> MigrateImplementationViews(Migrator migrator,
     Dictionary<Location, IdeVerificationResult> oldVerificationDiagnostics) {
     var result = new Dictionary<Location, IdeVerificationResult>();

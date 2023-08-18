@@ -64,71 +64,51 @@ public class LargeFilesTest : ClientBasedLanguageServerTest {
   }
 
   [Fact]
-  public async Task ManyFastEditsUsingLargeFiles() {
-
-    async Task Measurement(CancellationToken token) {
-      int ticks = 0;
-      var waitTime = 100;
-      var start = DateTime.Now;
-      while (!token.IsCancellationRequested) {
-        await Task.Run(() => {
-          Thread.Sleep(waitTime);
-        });
-        ticks++;
-      }
-
-      var end = DateTime.Now;
-      var span = end - start;
-      var totalSleepTime = ticks * waitTime;
-      var totalSchedulingTime = span.TotalMilliseconds - totalSleepTime;
-      var averageTimeToSchedule = totalSchedulingTime / ticks;
-      await output.WriteLineAsync($"Average time to schedule: {averageTimeToSchedule:0.##}ms");
-    }
-
-    var cancelSource = new CancellationTokenSource();
-
+  public async Task QuickEditsInLargeFile() {
     string GetLineContent(int index) => $"method Foo{index}() {{ assume false; }}";
     var contentBuilder = new StringBuilder();
     for (int lineNumber = 0; lineNumber < 1000; lineNumber++) {
       contentBuilder.AppendLine(GetLineContent(lineNumber));
     }
-    var measurementTask = Measurement(cancelSource.Token);
-    var start = DateTime.Now;
-    var documentItem = await CreateAndOpenTestDocument(contentBuilder.ToString(), "ManyFastEditsUsingLargeFiles.dfy");
+    var source = contentBuilder.ToString();
+
+    var cancelSource = new CancellationTokenSource();
+    var measurementTask = AssertThreadPoolIsAvailable(cancelSource.Token);
+    var beforeOpen = DateTime.Now;
+    var documentItem = await CreateAndOpenTestDocument(source, "ManyFastEditsUsingLargeFiles.dfy");
     var afterOpen = DateTime.Now;
-    await output.WriteLineAsync($"open took {(afterOpen - start).Milliseconds}ms");
+    var openMilliseconds = (afterOpen - beforeOpen).Milliseconds;
     for (int i = 0; i < 100; i++) {
       ApplyChange(ref documentItem, new Range(0, 0, 0, 0), "// added this comment\n");
     }
 
     await client.WaitForNotificationCompletionAsync(documentItem.Uri, CancellationToken);
     var afterChange = DateTime.Now;
-    await output.WriteLineAsync($"changes took {(afterChange - afterOpen).Milliseconds}ms");
+    var changeMilliseconds = (afterChange - afterOpen).Milliseconds;
     await AssertNoDiagnosticsAreComing(CancellationToken);
     cancelSource.Cancel();
     await measurementTask;
+    Assert.True(changeMilliseconds < openMilliseconds * 3);
   }
 
-  [Fact]
-  public async Task ThrottleTest() {
-    var subject = new ReplaySubject<int>();
-    subject.Do(s => {
-      output.WriteLine("b " + s.ToString());
-    }).Subscribe(Observer.Create<int>(x => { }));
-    subject.Throttle(TimeSpan.FromMilliseconds(100)).Do(s => {
-      output.WriteLine("a " + s.ToString());
-    }).Subscribe(Observer.Create<int>(x => { }, e => { }));
-    subject.OnNext(2);
-    subject.OnNext(3);
-    subject.OnError(new Exception());
-    await Task.Delay(200);
-    subject.OnCompleted();
-    output.WriteLine("fooo");
-  }
+  private async Task AssertThreadPoolIsAvailable(CancellationToken durationToken, TimeSpan? maximumThreadPoolSchedulingTime = null) {
+    int ticks = 0;
+    var waitTime = 100;
+    var start = DateTime.Now;
+    while (!durationToken.IsCancellationRequested) {
+      await Task.Run(() => {
+        Thread.Sleep(waitTime);
+      });
+      ticks++;
+    }
 
-  [Fact]
-  public async Task AssertNoDiagnosticsAreComingTest() {
-    await AssertNoDiagnosticsAreComing(CancellationToken);
+    var end = DateTime.Now;
+    var span = end - start;
+    var totalSleepTime = ticks * waitTime;
+    var totalSchedulingTime = span.TotalMilliseconds - totalSleepTime;
+    var averageTimeToSchedule = totalSchedulingTime / ticks;
+    var maximumMilliseconds = maximumThreadPoolSchedulingTime?.Milliseconds ?? 10;
+    Assert.True(averageTimeToSchedule < maximumMilliseconds);
   }
 
   public LargeFilesTest(ITestOutputHelper output) : base(output) {
