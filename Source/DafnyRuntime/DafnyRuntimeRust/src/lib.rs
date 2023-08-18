@@ -34,11 +34,222 @@ impl <A: Clone> Clone for FunctionWrapper<A> {
     }
 }
 
+impl <A> DafnyErasable for FunctionWrapper<A> {
+    type Erased = FunctionWrapper<A>;
+
+    fn erase(&self) -> &Self::Erased {
+        self
+    }
+
+    fn erase_owned(self) -> Self::Erased {
+        self
+    }
+}
+
+impl <A> DafnyUnerasable<FunctionWrapper<A>> for FunctionWrapper<A> {
+    fn unerase(v: &FunctionWrapper<A>) -> &Self {
+        v
+    }
+
+    fn unerase_owned(v: FunctionWrapper<A>) -> Self {
+        v
+    }
+}
+
 pub struct DafnyPrintWrapper<T>(pub T);
 impl <T: DafnyPrint> Display for DafnyPrintWrapper<&T> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         self.0.fmt_print(f, false)
     }
+}
+
+pub trait DafnyErasable: DafnyUnerasable<Self::Erased> {
+    type Erased;
+
+    fn erase(&self) -> &Self::Erased;
+    fn erase_owned(self) -> Self::Erased;
+}
+
+pub trait DafnyUnerasable<T: ?Sized> {
+    fn unerase(v: &T) -> &Self;
+    fn unerase_owned(v: T) -> Self;
+}
+
+impl <T> DafnyErasable for Rc<T> {
+    type Erased = Rc<T>;
+
+    #[inline]
+    fn erase(&self) -> &Self::Erased {
+        self
+    }
+
+    #[inline]
+    fn erase_owned(self) -> Self::Erased {
+        self
+    }
+}
+
+impl <T> DafnyUnerasable<Rc<T>> for Rc<T> {
+    #[inline]
+    fn unerase(v: &Rc<T>) -> &Self {
+        v
+    }
+
+    #[inline]
+    fn unerase_owned(v: Rc<T>) -> Self {
+        v
+    }
+}
+
+impl <T> DafnyErasable for Vec<T> {
+    type Erased = Vec<T>;
+
+    #[inline]
+    fn erase(&self) -> &Self::Erased {
+        self
+    }
+
+    #[inline]
+    fn erase_owned(self) -> Self::Erased {
+        self
+    }
+}
+
+impl <T> DafnyUnerasable<Vec<T>> for Vec<T> {
+    #[inline]
+    fn unerase(v: &Vec<T>) -> &Self {
+        v
+    }
+
+    #[inline]
+    fn unerase_owned(v: Vec<T>) -> Self {
+        v
+    }
+}
+
+impl <T> DafnyErasable for Box<T> {
+    type Erased = Box<T>;
+
+    #[inline]
+    fn erase(&self) -> &Self::Erased {
+        self
+    }
+
+    #[inline]
+    fn erase_owned(self) -> Self::Erased {
+        self
+    }
+}
+
+impl <T> DafnyUnerasable<Box<T>> for Box<T> {
+    #[inline]
+    fn unerase(v: &Box<T>) -> &Self {
+        v
+    }
+
+    #[inline]
+    fn unerase_owned(v: Box<T>) -> Self {
+        v
+    }
+}
+
+macro_rules! impl_already_erased {
+    ($name:ty) => {
+        impl DafnyErasable for $name {
+            type Erased = $name;
+
+            #[inline]
+            fn erase(&self) -> &Self::Erased {
+                self
+            }
+
+            #[inline]
+            fn erase_owned(self) -> Self::Erased {
+                self
+            }
+        }
+
+        impl DafnyUnerasable<$name> for $name {
+            #[inline]
+            fn unerase(v: &$name) -> &Self {
+                v
+            }
+        
+            #[inline]
+            fn unerase_owned(v: $name) -> Self {
+                v
+            }
+        }
+    };
+}
+
+impl_already_erased! { String }
+impl_already_erased! { char }
+impl_already_erased! { bool }
+impl_already_erased! { u8 }
+impl_already_erased! { u16 }
+impl_already_erased! { u32 }
+impl_already_erased! { u64 }
+impl_already_erased! { u128 }
+impl_already_erased! { i8 }
+impl_already_erased! { i16 }
+impl_already_erased! { i32 }
+impl_already_erased! { i64 }
+impl_already_erased! { i128 }
+impl_already_erased! { f32 }
+impl_already_erased! { f64 }
+impl_already_erased! { () }
+
+macro_rules! impl_tuple_erased {
+    ($($items:ident)*) => {
+        impl <$($items,)*> DafnyErasable for ($($items,)*)
+        where
+            $($items: DafnyErasable,)*
+        {
+            type Erased = ($($items::Erased,)*);
+
+            #[inline]
+            fn erase(&self) -> &Self::Erased {
+                unsafe { &*(self as *const Self as *const Self::Erased) }
+            }
+
+            #[inline]
+            fn erase_owned(self) -> Self::Erased {
+                unsafe { std::mem::transmute_copy(&self) }
+            }
+        }
+
+        paste::item! {
+            impl <$([<T $items>],)* $($items: DafnyUnerasable<[<T $items>]>,)*> DafnyUnerasable<($([<T $items>],)*)> for ($($items,)*)
+            {
+                #[inline]
+                fn unerase(v: &($([<T $items>],)*)) -> &Self {
+                    unsafe { &*(v as *const ($([<T $items>],)*) as *const Self) }
+                }
+
+                #[inline]
+                fn unerase_owned(v: ($([<T $items>],)*)) -> Self {
+                    unsafe { std::mem::transmute_copy(&v) }
+                }
+            }
+        }
+    };
+}
+
+macro_rules! impl_tuple_erased_loop {
+    () => {};
+    ($first:ident $($rest:ident)*) => {
+        impl_tuple_erased_loop! { $($rest)* }
+        impl_tuple_erased! { $first $($rest)* }
+    };
+}
+
+// 32 elements ought to be enough for everyone
+impl_tuple_erased_loop! {
+    A0 A1 A2 A3 A4 A5 A6 A7 A8 A9 A10
+    A11 A12 A13 A14 A15 A16 A17 A18 A19 A20
+    A21 A22 A23 A24 A25 A26 A27 A28 A29 A30
+    A31
 }
 
 pub trait DafnyPrint {
@@ -74,8 +285,18 @@ impl_print_display! { i16 }
 impl_print_display! { i32 }
 impl_print_display! { i64 }
 impl_print_display! { i128 }
-impl_print_display! { f32 }
-impl_print_display! { f64 }
+
+impl DafnyPrint for f32 {
+    fn fmt_print(&self, f: &mut Formatter<'_>, _in_seq: bool) -> std::fmt::Result {
+        write!(f, "{:.1}", self)
+    }
+}
+
+impl DafnyPrint for f64 {
+    fn fmt_print(&self, f: &mut Formatter<'_>, _in_seq: bool) -> std::fmt::Result {
+        write!(f, "{:.1}", self)
+    }
+}
 
 impl DafnyPrint for () {
     fn fmt_print(&self, f: &mut Formatter<'_>, _in_seq: bool) -> std::fmt::Result {
