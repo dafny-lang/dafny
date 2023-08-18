@@ -335,7 +335,7 @@ class A {
       await ApplyChangeAndWaitCompletionAsync(ref documentItem, null, "; include \"foreign.dfy\"\nclass Y {}");
       document = await Projects.GetResolvedDocumentAsyncNormalizeUri(documentItem);
       Assert.NotNull(document);
-      Assert.True(TryFindSymbolDeclarationByName(document, "A", out var _, uri));
+      Assert.True(TryFindSymbolDeclarationByName(document, "A", out var _, new Uri(includePath)));
 
       // Finally we drop the reference to `foreign.dfy` and confirm that `A` is not accessible any more.
       await ApplyChangeAndWaitCompletionAsync(ref documentItem, null, "class Y {}");
