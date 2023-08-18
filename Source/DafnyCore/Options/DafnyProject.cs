@@ -54,27 +54,16 @@ public class DafnyProject : IEquatable<DafnyProject> {
     }
   }
 
-  private static readonly MemoryCache RootSourceUrisCache = new("rootSourceUris");
   public IEnumerable<Uri> GetRootSourceUris(IFileSystem fileSystem) {
     if (!Uri.IsFile) {
       return new[] { Uri };
     }
-
-    var uriString = Uri.ToString();
-    var cachedResult = RootSourceUrisCache.Get(uriString);
-    if (cachedResult != null) {
-      return (IEnumerable<Uri>)cachedResult;
-    }
-
     var matcher = GetMatcher();
 
     var diskRoot = Path.GetPathRoot(Uri.LocalPath);
     var result = matcher.Execute(fileSystem.GetDirectoryInfoBase(diskRoot));
     var files = result.Files.Select(f => Path.Combine(diskRoot, f.Path));
     var rootSourceUris = files.Select(file => new Uri(Path.GetFullPath(file))).ToList();
-    RootSourceUrisCache.Set(new CacheItem(uriString, rootSourceUris), new CacheItemPolicy {
-      AbsoluteExpiration = new DateTimeOffset(DateTime.Now.Add(TimeSpan.FromMilliseconds(100)))
-    });
     return rootSourceUris;
   }
 
