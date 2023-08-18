@@ -61,7 +61,7 @@ public class ProjectManager : IDisposable {
   private readonly CreateCompilationManager createCompilationManager;
   private readonly ExecutionEngine boogieEngine;
   private readonly IFileSystem fileSystem;
-  private IdeState lastComputedIdeState;
+  private Func<IdeState> getLastComputedIdeState;
 
   public ProjectManager(
     DafnyOptions serverOptions,
@@ -87,9 +87,10 @@ public class ProjectManager : IDisposable {
     options = DetermineProjectOptions(project, serverOptions);
     options.Printer = new OutputLogger(logger);
     var initialCompilation = CreateInitialCompilation();
-    lastComputedIdeState = initialCompilation.InitialIdeState(initialCompilation, options);
+    var initialIdeState = initialCompilation.InitialIdeState(initialCompilation, options);
+    getLastComputedIdeState = () => initialIdeState;
 
-    observer = createIdeStateObserver(lastComputedIdeState);
+    observer = createIdeStateObserver(initialIdeState);
     CompilationManager = createCompilationManager(
         options, boogieEngine, initialCompilation, ImmutableDictionary<Uri, VerificationTree>.Empty
     );
@@ -110,15 +111,15 @@ public class ProjectManager : IDisposable {
     // which also does the cancellation.
     CompilationManager.CancelPendingUpdates();
     observerSubscription.Dispose();
-    
+
     var migrator = createMigrator(documentChange, CancellationToken.None);
     // observer.Migrate(migrator, version + 1);
-    lastComputedIdeState = lastComputedIdeState.Migrate(migrator, version + 1);
-    var lastPublishedState = lastComputedIdeState;
-    var migratedVerificationTrees = lastPublishedState.VerificationTrees;
-    
-    StartNewCompilation(migratedVerificationTrees, lastPublishedState);
-    
+    var migratedLastIdeState = getLastComputedIdeState().Migrate(migrator, version + 1);
+    getLastComputedIdeState = () => migratedLastIdeState;
+    var migratedVerificationTrees = migratedLastIdeState.VerificationTrees;
+
+    StartNewCompilation(migratedVerificationTrees, migratedLastIdeState);
+
     // lock (RecentChanges) {
     //   var newChanges = documentChange.ContentChanges.Where(c => c.Range != null).
     //     Select(contentChange => new Location {
@@ -158,8 +159,8 @@ public class ProjectManager : IDisposable {
 
     observerSubscription.Dispose();
     var migratedUpdates = CompilationManager.CompilationUpdates.Select(document =>
-      document.ToIdeState(lastPublishedState)).Do(s => lastComputedIdeState = s);
-    observerSubscription = migratedUpdates.Throttle(TimeSpan.FromMilliseconds(100)).Subscribe(observer);
+      getLastComputedIdeState = Delegates.Memoize(() => document.ToIdeState(lastPublishedState)));
+    observerSubscription = migratedUpdates.Throttle(TimeSpan.FromMilliseconds(100)).Select(x => x()).Subscribe(observer);
 
     CompilationManager.Start();
   }
@@ -229,8 +230,8 @@ public class ProjectManager : IDisposable {
       logger.LogDebug($"GetSnapshotAfterResolutionAsync caught OperationCanceledException for parsed compilation {Project.Uri}");
     }
 
-    logger.LogDebug($"GetSnapshotAfterParsingAsync returns state version {lastComputedIdeState.Version}");
-    return lastComputedIdeState;
+    logger.LogDebug($"GetSnapshotAfterParsingAsync returns state version {getLastComputedIdeState().Version}");
+    return getLastComputedIdeState();
   }
 
   public async Task<IdeState> GetStateAfterResolutionAsync() {
@@ -242,8 +243,8 @@ public class ProjectManager : IDisposable {
       return await GetSnapshotAfterParsingAsync();
     }
 
-    logger.LogDebug($"GetStateAfterResolutionAsync returns state version {lastComputedIdeState.Version}");
-    return lastComputedIdeState;
+    logger.LogDebug($"GetStateAfterResolutionAsync returns state version {getLastComputedIdeState().Version}");
+    return getLastComputedIdeState();
   }
 
   public async Task<IdeState> GetIdeStateAfterVerificationAsync() {
@@ -252,7 +253,7 @@ public class ProjectManager : IDisposable {
     } catch (OperationCanceledException) {
     }
 
-    return lastComputedIdeState;
+    return getLastComputedIdeState();
   }
 
 
@@ -317,7 +318,7 @@ public class ProjectManager : IDisposable {
     }
   }
 
-  private IEnumerable<FilePosition>  GetChangedVerifiablesFromRanges(CompilationAfterResolution translated, IEnumerable<Location> changedRanges) {
+  private IEnumerable<FilePosition> GetChangedVerifiablesFromRanges(CompilationAfterResolution translated, IEnumerable<Location> changedRanges) {
     IntervalTree<Position, Position> GetTree(Uri uri) {
       var intervalTree = new IntervalTree<Position, Position>();
       foreach (var canVerify in translated.Verifiables) {
@@ -341,10 +342,10 @@ public class ProjectManager : IDisposable {
 
   public void OpenDocument(Uri uri, bool triggerCompilation) {
     Interlocked.Increment(ref openFileCount);
-    var migratedVerificationTrees = lastComputedIdeState.VerificationTrees;
+    var migratedVerificationTrees = getLastComputedIdeState().VerificationTrees;
 
     if (triggerCompilation) {
-      StartNewCompilation(migratedVerificationTrees, lastComputedIdeState);
+      StartNewCompilation(migratedVerificationTrees, getLastComputedIdeState());
       TriggerVerificationForFile(uri);
     }
   }

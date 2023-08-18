@@ -35,13 +35,11 @@ public class LargeFilesTest : ClientBasedLanguageServerTest {
     Directory.Delete(directory, true);
   }
 
-  private static async Task<string> CreateLargeFile(string directory)
-  {
+  private static async Task<string> CreateLargeFile(string directory) {
     var filePath = Path.Combine(directory, "large.dfy");
     var file = new StreamWriter(filePath);
     string GetLineContent(int index) => $"method Foo{index}() {{ assume false; }}";
-    for (int lineNumber = 0; lineNumber < 10000; lineNumber++)
-    {
+    for (int lineNumber = 0; lineNumber < 10000; lineNumber++) {
       await file.WriteLineAsync(GetLineContent(lineNumber));
     }
 
@@ -64,7 +62,7 @@ public class LargeFilesTest : ClientBasedLanguageServerTest {
     await AssertNoDiagnosticsAreComing(CancellationToken);
     Directory.Delete(directory, true);
   }
-  
+
   [Fact]
   public async Task ManyFastEditsUsingLargeFiles() {
 
@@ -95,12 +93,17 @@ public class LargeFilesTest : ClientBasedLanguageServerTest {
       contentBuilder.AppendLine(GetLineContent(lineNumber));
     }
     var measurementTask = Measurement(cancelSource.Token);
+    var start = DateTime.Now;
     var documentItem = await CreateAndOpenTestDocument(contentBuilder.ToString(), "ManyFastEditsUsingLargeFiles.dfy");
+    var afterOpen = DateTime.Now;
+    await output.WriteLineAsync($"open took {(afterOpen - start).Milliseconds}ms");
     for (int i = 0; i < 100; i++) {
       ApplyChange(ref documentItem, new Range(0, 0, 0, 0), "// added this comment\n");
     }
-    
+
     await client.WaitForNotificationCompletionAsync(documentItem.Uri, CancellationToken);
+    var afterChange = DateTime.Now;
+    await output.WriteLineAsync($"changes took {(afterChange - afterOpen).Milliseconds}ms");
     await AssertNoDiagnosticsAreComing(CancellationToken);
     cancelSource.Cancel();
     await measurementTask;
@@ -122,7 +125,7 @@ public class LargeFilesTest : ClientBasedLanguageServerTest {
     subject.OnCompleted();
     output.WriteLine("fooo");
   }
-  
+
   [Fact]
   public async Task AssertNoDiagnosticsAreComingTest() {
     await AssertNoDiagnosticsAreComing(CancellationToken);

@@ -54,7 +54,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         logger.LogInformation($"UpdateDocument called since {(now - lastUpdateDocumentCall.Value).Milliseconds}");
       }
       lastUpdateDocumentCall = now;
-      
+
       fileSystem.UpdateDocument(documentChange);
       var documentUri = documentChange.TextDocument.Uri;
       var manager = await GetProjectManager(documentUri, false);

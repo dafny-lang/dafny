@@ -74,7 +74,7 @@ public record IdeState(
     }
     return result;
   }
-  
+
   public ImmutableDictionary<Uri, IReadOnlyList<Diagnostic>> GetDiagnostics() {
     var resolutionDiagnostics = ResolutionDiagnostics.ToImmutableDictionary();
     var verificationDiagnostics = VerificationResults.GroupBy(kv => kv.Key.Uri).Select(kv =>

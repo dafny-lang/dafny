@@ -22,8 +22,25 @@ namespace Microsoft.Dafny {
     }
   }
 
+  public static class Delegates {
+    public static Func<T> Memoize<T>(Func<T> func) {
+      var set = false;
+      T value = default(T);
+      return () => {
+        if (set) {
+          return value;
+        }
+
+        value = func();
+        set = true;
+        return value;
+      };
+    }
+  }
+  
   public static class Util {
 
+    
     public static bool LessThanOrEquals<T>(this T first, T second)
       where T : IComparable<T> {
       return first.CompareTo(second) != 1;

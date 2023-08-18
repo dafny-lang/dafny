@@ -59,7 +59,7 @@ public class DafnyProject : IEquatable<DafnyProject> {
     if (!Uri.IsFile) {
       return new[] { Uri };
     }
-    
+
     var uriString = Uri.ToString();
     var cachedResult = RootSourceUrisCache.Get(uriString);
     if (cachedResult != null) {

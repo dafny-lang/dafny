@@ -34,7 +34,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       if (state.Version < previousState.Version) {
         return;
       }
-      
+
       logger.LogInformation($"Publishing notification for {state.Compilation.Project.Uri}");
 
       PublishVerificationStatus(previousState, state);
@@ -142,7 +142,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     private readonly Dictionary<Uri, VerificationStatusGutter> previouslyPublishedIcons = new();
     public void PublishGutterIcons(Uri uri, IdeState state, bool verificationStarted) {
-      
+
       if (!options.Get(ServerCommand.LineVerificationStatus)) {
         return;
       }
