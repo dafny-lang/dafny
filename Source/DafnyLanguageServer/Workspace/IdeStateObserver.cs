@@ -69,7 +69,6 @@ public class IdeStateObserver : ObserverBase<IdeState> {
   protected override void OnNextCore(IdeState snapshot) {
     lock (lastPublishedStateLock) {
       if (snapshot.Version < LastPublishedState.Version) {
-        logger.LogInformation($"Got outdated state for {snapshot.Compilation.Uri}");
         return;
       }
 
@@ -79,7 +78,7 @@ public class IdeStateObserver : ObserverBase<IdeState> {
       notificationPublisher.PublishNotifications(LastPublishedState, snapshot).Wait();
 #pragma warning restore VSTHRD002
       LastPublishedState = snapshot;
-      logger.LogInformation($"Updated LastPublishedState to version {snapshot.Version}, uri {initialState.Compilation.Uri.ToUri()}");
+      logger.LogDebug($"Updated LastPublishedState to version {snapshot.Version}, uri {initialState.Compilation.Uri.ToUri()}");
     }
   }
 

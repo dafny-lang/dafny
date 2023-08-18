@@ -46,15 +46,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       await GetProjectManager(document, true, changed);
     }
 
-    private DateTime? lastUpdateDocumentCall;
     public async Task UpdateDocument(DidChangeTextDocumentParams documentChange) {
-      logger.LogInformation($"Update document called at {DateTime.Now:hh:mm:ss.fff}");
-      var now = DateTime.Now;
-      if (lastUpdateDocumentCall != null) {
-        logger.LogInformation($"UpdateDocument called since {(now - lastUpdateDocumentCall.Value).Milliseconds}");
-      }
-      lastUpdateDocumentCall = now;
-
       fileSystem.UpdateDocument(documentChange);
       var documentUri = documentChange.TextDocument.Uri;
       var manager = await GetProjectManager(documentUri, false);

@@ -35,14 +35,11 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         return;
       }
 
-      logger.LogInformation($"Publishing notification for {state.Compilation.Project.Uri}");
-
       PublishVerificationStatus(previousState, state);
       PublishGhostness(previousState, state);
       await PublishDiagnostics(state);
     }
 
-    private int count = 0;
     private void PublishVerificationStatus(IdeState previousState, IdeState state) {
       var currentPerFile = GetFileVerificationStatus(state);
       var previousPerFile = GetFileVerificationStatus(previousState);
@@ -53,7 +50,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
             continue;
           }
         }
-        logger.LogInformation($"Sending VerificationSymbolStatus for {count++}th time");
         languageServer.TextDocument.SendNotification(DafnyRequestNames.VerificationSymbolStatus, current);
       }
     }
@@ -133,8 +129,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
             Version = filesystem.GetVersion(publishUri) ?? 0,
             Diagnostics = diagnostics,
           });
-        } else {
-          logger.LogInformation($"Skipping publishing duplicate diagnostics for {publishUri}");
         }
       }
     }
@@ -142,7 +136,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     private readonly Dictionary<Uri, VerificationStatusGutter> previouslyPublishedIcons = new();
     public void PublishGutterIcons(Uri uri, IdeState state, bool verificationStarted) {
-
       if (!options.Get(ServerCommand.LineVerificationStatus)) {
         return;
       }

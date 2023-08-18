@@ -2,7 +2,7 @@
 using System.Text;
 using Xunit.Abstractions;
 
-namespace DafnyCore.Test; 
+namespace DafnyCore.Test;
 
 public class WriterFromOutputHelper : TextWriter {
   private readonly StringBuilder buffer = new();
