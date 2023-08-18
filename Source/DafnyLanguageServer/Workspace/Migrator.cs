@@ -18,13 +18,13 @@ public class Migrator {
   private readonly ILogger<Migrator> logger;
   private readonly DidChangeTextDocumentParams changeParams;
   private readonly CancellationToken cancellationToken;
-  private readonly ILogger<SignatureAndCompletionTable> loggerSymbolTable;
+  private readonly ILogger<LegacySignatureAndCompletionTable> loggerSymbolTable;
 
   private readonly Dictionary<TextDocumentContentChangeEvent, Position> getPositionAtEndOfAppliedChangeCache = new();
 
   public Migrator(
     ILogger<Migrator> logger,
-    ILogger<SignatureAndCompletionTable> loggerSymbolTable,
+    ILogger<LegacySignatureAndCompletionTable> loggerSymbolTable,
     DidChangeTextDocumentParams changeParams,
     CancellationToken cancellationToken
   ) {
@@ -112,26 +112,45 @@ public class Migrator {
     };
   }
 
-  public SignatureAndCompletionTable MigrateSymbolTable(SignatureAndCompletionTable originalSymbolTable) {
-    var migratedLookupTree = originalSymbolTable.LookupTree;
-    var migratedDeclarations = originalSymbolTable.Locations;
+  public LegacySignatureAndCompletionTable MigrateSymbolTable(LegacySignatureAndCompletionTable originalSymbolTable) {
+    var uri = changeParams.TextDocument.Uri.ToUri();
+    var migratedLookupTreeForUri = originalSymbolTable.LookupTreePerUri.GetValueOrDefault(uri);
+    var migratedLocationsForUri = originalSymbolTable.LocationsPerUri.GetValueOrDefault(uri);
     foreach (var change in changeParams.ContentChanges) {
       cancellationToken.ThrowIfCancellationRequested();
       if (change.Range == null) {
-        migratedLookupTree = new IntervalTree<Position, ILocalizableSymbol>();
+        migratedLookupTreeForUri = new IntervalTree<Position, ILocalizableSymbol>();
       } else {
-        migratedLookupTree = ApplyLookupTreeChange(migratedLookupTree, change);
+        if (migratedLookupTreeForUri != null) {
+          migratedLookupTreeForUri = ApplyLookupTreeChange(migratedLookupTreeForUri, change);
+        }
       }
-      migratedDeclarations = ApplyDeclarationsChange(originalSymbolTable, migratedDeclarations, change, GetPositionAtEndOfAppliedChange(change));
+
+      if (migratedLocationsForUri != null) {
+        migratedLocationsForUri = ApplyDeclarationsChange(originalSymbolTable, migratedLocationsForUri, change, GetPositionAtEndOfAppliedChange(change));
+      }
     }
-    logger.LogTrace("migrated the lookup tree, lookup before={SymbolsBefore}, after={SymbolsAfter}",
-      originalSymbolTable.LookupTree.Count, migratedLookupTree.Count);
-    return new SignatureAndCompletionTable(
+    if (migratedLookupTreeForUri != null) {
+      logger.LogTrace("migrated the lookup tree, lookup before={SymbolsBefore}, after={SymbolsAfter}",
+        originalSymbolTable.LookupTreePerUri.Count, migratedLookupTreeForUri.Count);
+      // TODO IntervalTree goes out of sync after any change and "fixes" its state upon the first query. Replace it with another implementation that can be queried without potential side-effects.
+      migratedLookupTreeForUri.Query(new Position(0, 0));
+    }
+
+    var migratedLocations = originalSymbolTable.LocationsPerUri;
+    if (migratedLocationsForUri != null) {
+      migratedLocations = migratedLocations.SetItem(uri, migratedLocationsForUri);
+    }
+    var migratedLookupTrees = originalSymbolTable.LookupTreePerUri;
+    if (migratedLookupTreeForUri != null) {
+      migratedLookupTrees = migratedLookupTrees.SetItem(uri, migratedLookupTreeForUri);
+    }
+    return new LegacySignatureAndCompletionTable(
       loggerSymbolTable,
       originalSymbolTable.CompilationUnit,
       originalSymbolTable.Declarations,
-      migratedDeclarations,
-      migratedLookupTree,
+      migratedLocations,
+      migratedLookupTrees,
       false
     );
   }
@@ -259,7 +278,7 @@ public class Migrator {
   }
 
   private IDictionary<ILegacySymbol, SymbolLocation> ApplyDeclarationsChange(
-    SignatureAndCompletionTable originalSymbolTable,
+    LegacySignatureAndCompletionTable originalSymbolTable,
     IDictionary<ILegacySymbol, SymbolLocation> previousDeclarations,
     TextDocumentContentChangeEvent changeRange,
     Position? afterChangeEndOffset

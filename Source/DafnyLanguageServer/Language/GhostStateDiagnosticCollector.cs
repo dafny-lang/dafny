@@ -30,7 +30,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     }
 
     public IReadOnlyDictionary<Uri, IReadOnlyList<Range>> GetGhostStateDiagnostics(
-      SignatureAndCompletionTable signatureAndCompletionTable, CancellationToken cancellationToken) {
+      LegacySignatureAndCompletionTable signatureAndCompletionTable, CancellationToken cancellationToken) {
       if (!options.Get(ServerCommand.GhostIndicators)) {
         return ImmutableDictionary<Uri, IReadOnlyList<Range>>.Empty;
       }
