@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Reactive.Concurrency;
 using System.Text.RegularExpressions;
 using Microsoft.Dafny.LanguageServer.Handlers;
 using Microsoft.Dafny.LanguageServer.Language;
@@ -32,6 +33,8 @@ namespace Microsoft.Dafny.LanguageServer {
         Version = DafnyVersion
       };
       return options
+        // .WithDefaultScheduler(new NewThreadScheduler())
+        // .WithInputScheduler(new NewThreadScheduler())
         .WithDafnyLanguage()
         .WithDafnyWorkspace()
         .WithDafnyHandlers()

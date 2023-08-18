@@ -9,6 +9,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol;
+using Serilog.Data;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace {
@@ -39,6 +40,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       await PublishDiagnostics(state);
     }
 
+    private int count = 0;
     private void PublishVerificationStatus(IdeState previousState, IdeState state) {
       var currentPerFile = GetFileVerificationStatus(state);
       var previousPerFile = GetFileVerificationStatus(previousState);
@@ -49,6 +51,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
             continue;
           }
         }
+        logger.LogInformation($"Sending VerificationSymbolStatus for {count++}th time");
         languageServer.TextDocument.SendNotification(DafnyRequestNames.VerificationSymbolStatus, current);
       }
     }
@@ -135,6 +138,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     private readonly Dictionary<Uri, VerificationStatusGutter> previouslyPublishedIcons = new();
     public void PublishGutterIcons(Uri uri, IdeState state, bool verificationStarted) {
+      
       if (!options.Get(ServerCommand.LineVerificationStatus)) {
         return;
       }

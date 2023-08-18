@@ -103,36 +103,40 @@ public class ProjectManager : IDisposable {
   private const int MaxRememberedChangedVerifiables = 5;
 
   public void UpdateDocument(DidChangeTextDocumentParams documentChange) {
-    logger.LogDebug($"Update document received at {DateTime.Now:hh:mm:ss.fff}");
     // Duplicated while we still need to compute migratedVerificationTrees before calling StartNewCompilation,
     // which also does the cancellation.
     CompilationManager.CancelPendingUpdates();
+    observerSubscription.Dispose();
     
-    var changeProcessor = createMigrator(documentChange, CancellationToken.None);
-    observer.Migrate(changeProcessor, version + 1);
+    // var changeProcessor = createMigrator(documentChange, CancellationToken.None);
+    // observer.Migrate(changeProcessor, version + 1);
     var lastPublishedState = observer.LastPublishedState;
     var migratedVerificationTrees = lastPublishedState.VerificationTrees;
     
     StartNewCompilation(migratedVerificationTrees, lastPublishedState);
     
-    lock (RecentChanges) {
-      var newChanges = documentChange.ContentChanges.Where(c => c.Range != null).
-        Select(contentChange => new Location {
-          Range = contentChange.Range!,
-          Uri = documentChange.TextDocument.Uri
-        });
-      var migratedChanges = RecentChanges.Select(location => {
-        var newRange = changeProcessor.MigrateRange(location.Range);
-        if (newRange == null) {
-          return null;
-        }
-        return new Location {
-          Range = newRange,
-          Uri = location.Uri
-        };
-      }).Where(r => r != null);
-      RecentChanges = newChanges.Concat(migratedChanges).Take(MaxRememberedChanges).ToList()!;
-    }
+    // lock (RecentChanges) {
+    //   var newChanges = documentChange.ContentChanges.Where(c => c.Range != null).
+    //     Select(contentChange => new Location {
+    //       Range = contentChange.Range!,
+    //       Uri = documentChange.TextDocument.Uri
+    //     });
+    //   var migratedChanges = RecentChanges.Select(location => {
+    //     if (location.Uri != documentChange.TextDocument.Uri) {
+    //       return location;
+    //     }
+    //     
+    //     var newRange = changeProcessor.MigrateRange(location.Range);
+    //     if (newRange == null) {
+    //       return null;
+    //     }
+    //     return new Location {
+    //       Range = newRange,
+    //       Uri = location.Uri
+    //     };
+    //   }).Where(r => r != null);
+    //   RecentChanges = newChanges.Concat(migratedChanges).Take(MaxRememberedChanges).ToList()!;
+    // }
     TriggerVerificationForFile(documentChange.TextDocument.Uri.ToUri());
   }
 
@@ -264,12 +268,12 @@ public class ProjectManager : IDisposable {
         verifiables = verifiables.Where(d => d.Tok.Uri == uri).ToList();
       }
 
-      lock (RecentChanges) {
-        var freshlyChangedVerifiables = GetChangedVerifiablesFromRanges(resolvedCompilation, RecentChanges);
-        ChangedVerifiables = freshlyChangedVerifiables.Concat(ChangedVerifiables).Distinct()
-          .Take(MaxRememberedChangedVerifiables).ToList();
-        RecentChanges = new List<Location>();
-      }
+      // lock (RecentChanges) {
+      //   var freshlyChangedVerifiables = GetChangedVerifiablesFromRanges(resolvedCompilation, RecentChanges);
+      //   ChangedVerifiables = freshlyChangedVerifiables.Concat(ChangedVerifiables).Distinct()
+      //     .Take(MaxRememberedChangedVerifiables).ToList();
+      //   RecentChanges = new List<Location>();
+      // }
 
       int GetPriorityAttribute(ISymbol symbol) {
         if (symbol is IAttributeBearingDeclaration hasAttributes &&
@@ -299,7 +303,6 @@ public class ProjectManager : IDisposable {
       }
 
       foreach (var canVerify in orderedVerifiableLocations) {
-        
         // Wait for each task to try and run, so the order is respected.
         await compilationManager.VerifySymbol(canVerify);
       }
@@ -310,7 +313,7 @@ public class ProjectManager : IDisposable {
     }
   }
 
-  private IEnumerable<FilePosition> GetChangedVerifiablesFromRanges(CompilationAfterResolution translated, IEnumerable<Location> changedRanges) {
+  private IEnumerable<FilePosition>  GetChangedVerifiablesFromRanges(CompilationAfterResolution translated, IEnumerable<Location> changedRanges) {
     IntervalTree<Position, Position> GetTree(Uri uri) {
       var intervalTree = new IntervalTree<Position, Position>();
       foreach (var canVerify in translated.Verifiables) {

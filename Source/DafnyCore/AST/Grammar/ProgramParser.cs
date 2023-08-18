@@ -250,6 +250,7 @@ public class ProgramParser {
     Contract.Requires(uri != null);
     using var reader = getReader();
     var text = SourcePreprocessor.ProcessDirectives(reader, new List<string>());
+    logger.LogInformation($"Parsing file {uri}");
     try {
       return ParseFile(options, text, uri, cancellationToken);
     } catch (OperationCanceledException) {

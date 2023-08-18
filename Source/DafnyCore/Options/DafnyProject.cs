@@ -4,8 +4,10 @@ using System.Collections.Generic;
 using System.CommandLine;
 using System.IO;
 using System.Linq;
+using System.Runtime.Caching;
 using System.Runtime.Serialization;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Threading.Tasks;
 using DafnyCore.Options;
 using Microsoft.Extensions.FileSystemGlobbing;
@@ -52,9 +54,16 @@ public class DafnyProject : IEquatable<DafnyProject> {
     }
   }
 
+  private static readonly MemoryCache RootSourceUrisCache = new("rootSourceUris");
   public IEnumerable<Uri> GetRootSourceUris(IFileSystem fileSystem) {
     if (!Uri.IsFile) {
       return new[] { Uri };
+    }
+    
+    var uriString = Uri.ToString();
+    var cachedResult = RootSourceUrisCache.Get(uriString);
+    if (cachedResult != null) {
+      return (IEnumerable<Uri>)cachedResult;
     }
 
     var matcher = GetMatcher();
@@ -62,7 +71,11 @@ public class DafnyProject : IEquatable<DafnyProject> {
     var diskRoot = Path.GetPathRoot(Uri.LocalPath);
     var result = matcher.Execute(fileSystem.GetDirectoryInfoBase(diskRoot));
     var files = result.Files.Select(f => Path.Combine(diskRoot, f.Path));
-    return files.Select(file => new Uri(Path.GetFullPath(file)));
+    var rootSourceUris = files.Select(file => new Uri(Path.GetFullPath(file))).ToList();
+    RootSourceUrisCache.Set(new CacheItem(uriString, rootSourceUris), new CacheItemPolicy {
+      AbsoluteExpiration = new DateTimeOffset(DateTime.Now.Add(TimeSpan.FromMilliseconds(100)))
+    });
+    return rootSourceUris;
   }
 
   public bool ContainsSourceFile(Uri uri) {
