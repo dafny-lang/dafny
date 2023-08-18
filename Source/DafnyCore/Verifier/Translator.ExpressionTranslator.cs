@@ -131,11 +131,11 @@ namespace Microsoft.Dafny {
       public ExpressionTranslator WithReadsFrame(string newReadsFrame) {
         return new ExpressionTranslator(translator, predef, HeapExpr, This, applyLimited_CurrentFunction, layerInterCluster, layerIntraCluster, newReadsFrame, modifiesFrame, stripLits);
       }
-      
+
       public ExpressionTranslator WithModifiesFrame(string newModifiesFrame) {
         return new ExpressionTranslator(translator, predef, HeapExpr, This, applyLimited_CurrentFunction, layerInterCluster, layerIntraCluster, readsFrame, newModifiesFrame, stripLits);
       }
-      
+
       internal IToken GetToken(Expression expression) {
         return translator.GetToken(expression);
       }
@@ -231,8 +231,8 @@ namespace Microsoft.Dafny {
         return et;
       }
 
-      
-      
+
+
       public Boogie.IdentifierExpr ReadsFrame(IToken tok) {
         Contract.Requires(tok != null);
         Contract.Ensures(Contract.Result<Boogie.IdentifierExpr>() != null);

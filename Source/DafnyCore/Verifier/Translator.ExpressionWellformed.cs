@@ -54,10 +54,9 @@ namespace Microsoft.Dafny {
           Asserts = new List<Bpl.Cmd>();
         }
       }
-      
+
       private WFOptions(Function selfCallsAllowance, bool doReadsChecks, bool doOnlyCoarseGrainedTerminationChecks,
-        List<Bpl.Variable> locals, List<Bpl.Cmd> asserts, bool lValueContext, Bpl.QKeyValue assertKv) 
-      {
+        List<Bpl.Variable> locals, List<Bpl.Cmd> asserts, bool lValueContext, Bpl.QKeyValue assertKv) {
         SelfCallsAllowance = selfCallsAllowance;
         DoReadsChecks = doReadsChecks;
         DoOnlyCoarseGrainedTerminationChecks = doOnlyCoarseGrainedTerminationChecks;
@@ -1057,7 +1056,7 @@ namespace Microsoft.Dafny {
                   reads = lam.Reads.ConvertAll(s.SubstFrameExpr);
                   comprehensionEtran = comprehensionEtran.WithReadsFrame(frameName);
                   DefineFrame(e.tok, comprehensionEtran.ReadsFrame(e.tok), reads, newBuilder, locals, frameName, comprehensionEtran);
-                  
+
                   // Check frame WF and that it read covers itself
                   newOptions = new WFOptions(wfOptions.SelfCallsAllowance, true /* check reads clauses */, true /* delay reads checks */);
                   CheckFrameWellFormed(newOptions, reads, locals, newBuilder, comprehensionEtran);

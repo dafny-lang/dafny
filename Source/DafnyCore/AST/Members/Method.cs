@@ -222,7 +222,7 @@ public class Method : MemberDecl, TypeParameter.ParentType, IMethodCodeContext, 
     foreach (var mod in Reads) {
       formatter.SetFrameExpressionIndentation(mod, indentBefore + formatter.SpaceTab);
     }
-    
+
     foreach (var mod in Mod.Expressions) {
       formatter.SetFrameExpressionIndentation(mod, indentBefore + formatter.SpaceTab);
     }
@@ -292,7 +292,7 @@ public class Method : MemberDecl, TypeParameter.ParentType, IMethodCodeContext, 
           resolver.DisallowNonGhostFieldSpecifiers(fe);
         }
       }
-      
+
       resolver.ResolveAttributes(Mod, new ResolutionContext(this, false));
       foreach (FrameExpression fe in Mod.Expressions) {
         resolver.ResolveFrameExpressionTopLevel(fe, FrameExpressionUse.Modifies, this);

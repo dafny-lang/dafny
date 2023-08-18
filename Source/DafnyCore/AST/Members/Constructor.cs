@@ -37,7 +37,7 @@ public class Constructor : Method {
     bool isGhost,
     List<TypeParameter> typeArgs,
     List<Formal> ins,
-    List<AttributedExpression> req, 
+    List<AttributedExpression> req,
     List<FrameExpression> reads,
     [Captured] Specification<FrameExpression> mod,
     List<AttributedExpression> ens,
