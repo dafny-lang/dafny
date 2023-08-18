@@ -254,7 +254,7 @@ public class ProgramParser {
       return ParseFile(options, text, uri, cancellationToken);
     } catch (OperationCanceledException) {
       throw;
-    }catch (Exception e) {
+    } catch (Exception e) {
       var internalErrorDummyToken = new Token {
         Uri = uri,
         line = 1,
