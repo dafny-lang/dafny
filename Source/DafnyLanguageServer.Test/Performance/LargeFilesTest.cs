@@ -1,6 +1,10 @@
 using System;
 using System.Diagnostics.Metrics;
 using System.IO;
+using System.Reactive;
+using System.Reactive.Linq;
+using System.Reactive.Subjects;
+using System.Reactive.Threading.Tasks;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -64,7 +68,7 @@ public class LargeFilesTest : ClientBasedLanguageServerTest {
   [Fact]
   public async Task ManyFastEditsUsingLargeFiles() {
 
-    async Task<double> Measurement(CancellationToken token) {
+    async Task Measurement(CancellationToken token) {
       int ticks = 0;
       var waitTime = 100;
       var start = DateTime.Now;
@@ -77,7 +81,10 @@ public class LargeFilesTest : ClientBasedLanguageServerTest {
 
       var end = DateTime.Now;
       var span = end - start;
-      return span.TotalMilliseconds / ((double)ticks * waitTime);
+      var totalSleepTime = ticks * waitTime;
+      var totalSchedulingTime = span.TotalMilliseconds - totalSleepTime;
+      var averageTimeToSchedule = totalSchedulingTime / ticks;
+      await output.WriteLineAsync($"Average time to schedule: {averageTimeToSchedule:0.##}ms");
     }
 
     var cancelSource = new CancellationTokenSource();
@@ -96,8 +103,29 @@ public class LargeFilesTest : ClientBasedLanguageServerTest {
     await client.WaitForNotificationCompletionAsync(documentItem.Uri, CancellationToken);
     await AssertNoDiagnosticsAreComing(CancellationToken);
     cancelSource.Cancel();
-    var result = await measurementTask;
-    await output.WriteLineAsync("Threadpool overload: " + result);
+    await measurementTask;
+  }
+
+  [Fact]
+  public async Task ThrottleTest() {
+    var subject = new ReplaySubject<int>();
+    subject.Do(s => {
+      output.WriteLine("b " + s.ToString());
+    }).Subscribe(Observer.Create<int>(x => { }));
+    subject.Throttle(TimeSpan.FromMilliseconds(100)).Do(s => {
+      output.WriteLine("a " + s.ToString());
+    }).Subscribe(Observer.Create<int>(x => { }, e => { }));
+    subject.OnNext(2);
+    subject.OnNext(3);
+    subject.OnError(new Exception());
+    await Task.Delay(200);
+    subject.OnCompleted();
+    output.WriteLine("fooo");
+  }
+  
+  [Fact]
+  public async Task AssertNoDiagnosticsAreComingTest() {
+    await AssertNoDiagnosticsAreComing(CancellationToken);
   }
 
   public LargeFilesTest(ITestOutputHelper output) : base(output) {

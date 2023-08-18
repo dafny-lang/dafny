@@ -34,6 +34,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       if (state.Version < previousState.Version) {
         return;
       }
+      
+      logger.LogInformation($"Publishing notification for {state.Compilation.Project.Uri}");
 
       PublishVerificationStatus(previousState, state);
       PublishGhostness(previousState, state);
@@ -131,6 +133,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
             Version = filesystem.GetVersion(publishUri) ?? 0,
             Diagnostics = diagnostics,
           });
+        } else {
+          logger.LogInformation($"Skipping publishing duplicate diagnostics for {publishUri}");
         }
       }
     }

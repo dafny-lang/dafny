@@ -55,7 +55,8 @@ public class CompilationManager {
   private readonly ExecutionEngine boogieEngine;
 
   private readonly Subject<Compilation> compilationUpdates = new();
-  public IObservable<Compilation> CompilationUpdates => compilationUpdates;
+  public IObservable<Compilation> CompilationUpdates => compilationUpdates.Catch<Compilation, OperationCanceledException>(
+    _ => Observable.Empty<Compilation>());
 
   public Task<CompilationAfterParsing> ParsedCompilation { get; }
   public Task<CompilationAfterResolution> ResolvedCompilation { get; }

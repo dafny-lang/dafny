@@ -5,6 +5,7 @@ using System.Linq;
 using Microsoft.Boogie;
 using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Language.Symbols;
+using Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 using OmniSharp.Extensions.LanguageServer.Protocol;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
@@ -35,6 +36,45 @@ public record IdeState(
   IReadOnlyDictionary<Uri, VerificationTree> VerificationTrees
 ) {
 
+  public IdeState Migrate(Migrator migrator, int version) {
+    var migratedVerificationTrees = VerificationTrees.ToDictionary(
+      kv => kv.Key, kv =>
+        migrator.RelocateVerificationTree(kv.Value));
+    return this with {
+      Version = version,
+      VerificationResults = MigrateImplementationViews(migrator, VerificationResults),
+      SignatureAndCompletionTable = migrator.MigrateSymbolTable(SignatureAndCompletionTable),
+      VerificationTrees = migratedVerificationTrees
+    };
+  }
+  
+  private Dictionary<Location, IdeVerificationResult> MigrateImplementationViews(Migrator migrator,
+    Dictionary<Location, IdeVerificationResult> oldVerificationDiagnostics) {
+    var result = new Dictionary<Location, IdeVerificationResult>();
+    foreach (var entry in oldVerificationDiagnostics) {
+      var newOuterRange = migrator.MigrateRange(entry.Key.Range);
+      if (newOuterRange == null) {
+        continue;
+      }
+
+      var newValue = new Dictionary<string, IdeImplementationView>();
+      foreach (var innerEntry in entry.Value.Implementations) {
+        var newInnerRange = migrator.MigrateRange(innerEntry.Value.Range);
+        if (newInnerRange != null) {
+          newValue.Add(innerEntry.Key, innerEntry.Value with {
+            Range = newInnerRange,
+            Diagnostics = migrator.MigrateDiagnostics(innerEntry.Value.Diagnostics)
+          });
+        }
+      }
+      result.Add(new Location() {
+        Uri = entry.Key.Uri,
+        Range = newOuterRange
+      }, entry.Value with { Implementations = newValue });
+    }
+    return result;
+  }
+  
   public ImmutableDictionary<Uri, IReadOnlyList<Diagnostic>> GetDiagnostics() {
     var resolutionDiagnostics = ResolutionDiagnostics.ToImmutableDictionary();
     var verificationDiagnostics = VerificationResults.GroupBy(kv => kv.Key.Uri).Select(kv =>

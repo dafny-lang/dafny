@@ -38,7 +38,6 @@ namespace Microsoft.Dafny.LanguageServer.Language {
           new IdeStateObserver(serviceProvider.GetRequiredService<ILogger<IdeStateObserver>>(),
             serviceProvider.GetRequiredService<ITelemetryPublisher>(),
             serviceProvider.GetRequiredService<INotificationPublisher>(),
-            serviceProvider.GetRequiredService<ITextDocumentLoader>(),
             compilation))
         .AddSingleton<IVerificationProgressReporter, VerificationProgressReporter>()
         .AddSingleton(CreateVerifier)
