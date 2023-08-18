@@ -17,6 +17,7 @@ public class BatchErrorReporter : ErrorReporter {
   }
 
   public override bool Message(MessageSource source, ErrorLevel level, string errorId, IToken tok, string msg) {
+    AdjustErrorLevel(ref level);
     if (ErrorsOnly && level != ErrorLevel.Error) {
       // discard the message
       return false;
