@@ -28,7 +28,7 @@ public record IdeState(
   Node Program,
   IReadOnlyDictionary<Uri, IReadOnlyList<Diagnostic>> ResolutionDiagnostics,
   SymbolTable SymbolTable,
-  SignatureAndCompletionTable SignatureAndCompletionTable,
+  LegacySignatureAndCompletionTable SignatureAndCompletionTable,
   Dictionary<Location, IdeVerificationResult> VerificationResults,
   IReadOnlyList<Counterexample> Counterexamples,
   IReadOnlyDictionary<Uri, IReadOnlyList<Range>> GhostRanges,
