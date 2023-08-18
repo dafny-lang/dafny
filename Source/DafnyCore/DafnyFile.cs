@@ -1,10 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Reflection.Metadata;
 using System.Reflection.PortableExecutable;
 using DafnyCore;
+using JetBrains.Annotations;
 
 namespace Microsoft.Dafny;
 
@@ -16,9 +16,11 @@ public class DafnyFile {
   public bool IsPrecompiled { get; set; }
   public Func<TextReader> GetContent { get; set; }
   public Uri Uri { get; }
+  [CanBeNull] public IToken Origin { get; }
 
-  public DafnyFile(DafnyOptions options, Uri uri, Func<TextReader> getContentOverride = null) {
+  public DafnyFile(DafnyOptions options, Uri uri, [CanBeNull] IToken origin = null, Func<TextReader> getContentOverride = null) {
     Uri = uri;
+    Origin = origin;
     var filePath = uri.LocalPath;
 
     var extension = ".dfy";
