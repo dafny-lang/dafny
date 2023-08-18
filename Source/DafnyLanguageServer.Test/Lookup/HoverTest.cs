@@ -17,7 +17,6 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
     protected override async Task SetUp(Action<DafnyOptions> modifyOptions = null) {
       void ModifyOptions(DafnyOptions options) {
         options.ProverOptions.Add("SOLVER=noop");
-        options.Set(ServerCommand.ProjectMode, true);
         modifyOptions?.Invoke(options);
       }
 

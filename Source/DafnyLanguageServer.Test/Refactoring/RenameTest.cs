@@ -118,13 +118,6 @@ abstract module B { import [>><A<] }
       return tempDir;
     }
 
-    protected override Task SetUp(Action<DafnyOptions> modifyOptions) {
-      return base.SetUp(o => {
-        o.Set(ServerCommand.ProjectMode, true);
-        modifyOptions?.Invoke(o);
-      });
-    }
-
     /// <summary>
     /// Assert that after requesting a rename to <paramref name="newName"/>
     /// at the markup position in <paramref name="source"/>

@@ -16,7 +16,6 @@ public class VerificationOrderTest : ClientBasedLanguageServerTest {
   public async Task VerificationPriorityBasedOnChangesWorksWithMultipleFiles() {
     await SetUp(options => {
       options.Set(BoogieOptionBag.Cores, 1U);
-      options.Set(ServerCommand.ProjectMode, true);
       options.Set(ServerCommand.Verification, VerifyOnMode.ChangeProject);
     });
 

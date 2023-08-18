@@ -12,13 +12,6 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.ProjectFiles;
 
 public class CompetingProjectFilesTest : ClientBasedLanguageServerTest {
 
-  protected override Task SetUp(Action<DafnyOptions> modifyOptions) {
-    return base.SetUp(o => {
-      o.Set(ServerCommand.ProjectMode, true);
-      modifyOptions?.Invoke(o);
-    });
-  }
-
 
   /// <summary>
   /// A project should only publish diagnostics for uris which it owns,

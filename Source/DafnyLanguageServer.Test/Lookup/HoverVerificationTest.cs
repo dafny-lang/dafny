@@ -21,13 +21,6 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
   [Collection("Sequential Collection")] // Let slow tests run sequentially
   public class HoverVerificationTest : ClientBasedLanguageServerTest {
 
-    protected override Task SetUp(Action<DafnyOptions> modifyOptions) {
-      return base.SetUp(o => {
-        o.Set(ServerCommand.ProjectMode, true);
-        modifyOptions?.Invoke(o);
-      });
-    }
-
     private const int MaxTestExecutionTimeMs = 30000;
 
     [Fact(Timeout = MaxTestExecutionTimeMs)]
