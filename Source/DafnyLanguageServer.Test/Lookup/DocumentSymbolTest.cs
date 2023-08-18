@@ -47,6 +47,22 @@ module A.B.C {
     }
 
     [Fact]
+    public async Task LoadCorrectDocumentCreatesTopLevelSymbols() {
+      var source = @"
+  method DoIt() returns (x: int) {
+  }
+
+  method CallIt() returns () {
+    var x := DoIt();
+  }".TrimStart();
+      var documentItem = CreateTestDocument(source);
+      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+      var allSymbols = await RequestDocumentSymbol(documentItem);
+      Assert.Equal(2, allSymbols.Count());
+    }
+
+
+    [Fact]
     public async Task LoadCorrectDocumentCreatesSymbols() {
       var source = @"
 class Y {

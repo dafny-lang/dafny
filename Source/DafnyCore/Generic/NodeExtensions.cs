@@ -119,14 +119,13 @@ public static class NodeExtensions {
     }
 
     var newParent = new LList<INode>(node, parent);
+    var result = new List<LList<INode>>();
+
     foreach (var child in node.Children) {
-      var result = child.FindNodeChainsInUri(uri, newParent);
-      if (result != null) {
-        return result;
-      }
+      result.AddRange(child.FindNodeChainsInUri(uri, newParent));
     }
 
-    return null;
+    return result;
   }
 
   private static LList<INode> FindNodeChain(this INode node, Uri uri, DafnyPosition position, LList<INode> parent,
