@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using DafnyCore.Test;
 using DafnyTestGeneration;
 using Microsoft.Boogie;
 using Microsoft.Dafny;
