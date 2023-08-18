@@ -21,6 +21,35 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
     private readonly string testFilesDirectory = Path.Combine(Directory.GetCurrentDirectory(), "Synchronization/TestFiles");
 
     [Fact]
+    public async Task OnlyPublishesOnlyStaleNotifications() {
+      var source = @"
+method Bar(x: int) {
+  assert true;
+}
+method {:only} Foo(x: int) {
+  assert true;
+}";
+      var document = await CreateAndOpenTestDocument(source);
+      var status1 = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
+      Assert.Equal(PublishedVerificationStatus.Stale, status1.NamedVerifiables[0].Status);
+      Assert.Equal(PublishedVerificationStatus.Stale, status1.NamedVerifiables[1].Status);
+      FileVerificationStatus status2;
+      do {
+        status2 = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
+      } while (status2.NamedVerifiables[1].Status == PublishedVerificationStatus.Stale);
+      Assert.Equal(PublishedVerificationStatus.Stale, status2.NamedVerifiables[0].Status);
+      Assert.Equal(PublishedVerificationStatus.Running, status2.NamedVerifiables[1].Status);
+      FileVerificationStatus status3;
+      do {
+        status3 = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
+      } while (status2.NamedVerifiables[1].Status == PublishedVerificationStatus.Running);
+
+      Assert.Equal(PublishedVerificationStatus.Stale, status3.NamedVerifiables[0].Status);
+      Assert.Equal(PublishedVerificationStatus.Correct, status3.NamedVerifiables[1].Status);
+      await AssertNoVerificationStatusIsComing(document, CancellationToken);
+    }
+    
+    [Fact]
     public async Task NoFlickeringWhenMixingCorrectAndErrorBatches() {
       var source = @"
 method {:vcs_split_on_every_assert} Foo(x: int) {

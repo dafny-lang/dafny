@@ -192,6 +192,7 @@ public class CompilationManager {
     }
 
     var updated = false;
+    var hasOnlyAttribute = verifiable is IAttributeBearingDeclaration decl && decl.HasUserAttribute("only", out _); 
     var implementations = compilation.ImplementationsPerVerifiable.GetOrAdd(verifiable, _ => {
       var tasksForVerifiable =
         tasksForModule.GetValueOrDefault(verifiable.NameToken.GetFilePosition()) ?? new List<IImplementationTask>(0);
@@ -204,7 +205,8 @@ public class CompilationManager {
       updated = true;
       return tasksForVerifiable.ToDictionary(
         t => GetImplementationName(t.Implementation),
-        t => new ImplementationView(t, PublishedVerificationStatus.Stale, Array.Empty<DafnyDiagnostic>()));
+        t => new ImplementationView(t, PublishedVerificationStatus.Stale, Array.Empty<DafnyDiagnostic>(),
+          hasOnlyAttribute));
     });
     if (updated) {
       compilationUpdates.OnNext(compilation);
@@ -306,6 +308,10 @@ public class CompilationManager {
 
     var tokenString = implementationTask.Implementation.tok.TokenToString(options);
     var implementations = compilation.ImplementationsPerVerifiable[verifiable];
+    var onlyMode =
+      compilation.ImplementationsPerVerifiable.Keys.Any(key =>
+        key is IAttributeBearingDeclaration declaration && declaration.HasUserAttribute("only", out _)
+      );
 
     var implementationName = GetImplementationName(implementationTask.Implementation);
     logger.LogDebug($"Received status {boogieStatus} for {tokenString}, version {compilation.Version}");
@@ -326,10 +332,14 @@ public class CompilationManager {
     } else {
       newDiagnostics = Array.Empty<DafnyDiagnostic>();
     }
+    var hasOnlyAttribute = verifiable is IAttributeBearingDeclaration decl && decl.HasUserAttribute("only", out _);
+    if (onlyMode && !hasOnlyAttribute) {
+      status = PublishedVerificationStatus.Stale;
+    }
 
     var view = implementations.TryGetValue(implementationName, out var taskAndView)
       ? taskAndView
-      : new ImplementationView(implementationTask, status, Array.Empty<DafnyDiagnostic>());
+      : new ImplementationView(implementationTask, status, Array.Empty<DafnyDiagnostic>(), hasOnlyAttribute);
     implementations[implementationName] = view with { Status = status, Diagnostics = view.Diagnostics.Concat(newDiagnostics).ToArray() };
 
     if (boogieStatus is Completed completed) {

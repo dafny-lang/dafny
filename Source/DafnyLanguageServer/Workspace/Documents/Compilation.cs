@@ -57,8 +57,11 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
   }
 
-  public record ImplementationView(IImplementationTask Task, PublishedVerificationStatus Status,
-    IReadOnlyList<DafnyDiagnostic> Diagnostics);
+  public record ImplementationView(
+    IImplementationTask Task,
+    PublishedVerificationStatus Status,
+    IReadOnlyList<DafnyDiagnostic> Diagnostics,
+    bool HasOnlyAttribute);
 
   public record BufferLine(int LineNumber, int StartIndex, int EndIndex);
 }

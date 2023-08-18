@@ -16,7 +16,10 @@ namespace Microsoft.Dafny.LanguageServer.Workspace;
 public record IdeImplementationView(Range Range, PublishedVerificationStatus Status,
   IReadOnlyList<Diagnostic> Diagnostics);
 
-public record IdeVerificationResult(bool WasTranslated, IReadOnlyDictionary<string, IdeImplementationView> Implementations);
+public record IdeVerificationResult(
+  bool WasTranslated,
+  IReadOnlyDictionary<string, IdeImplementationView> Implementations,
+  bool HasReadOnly);
 
 /// <summary>
 /// Contains information from the latest document, and from older documents if some information is missing,
