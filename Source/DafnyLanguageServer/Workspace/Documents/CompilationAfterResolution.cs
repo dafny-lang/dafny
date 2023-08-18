@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Microsoft.Boogie;
 using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Language.Symbols;
+using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
@@ -72,7 +73,6 @@ public class CompilationAfterResolution : CompilationAfterParsing {
   }
 
   public override IdeState ToIdeState(IdeState previousState) {
-
     IdeVerificationResult MergeVerifiable(ICanVerify canVerify) {
       var location = canVerify.NameToken.GetLocation();
       var previousForCanVerify = previousState.VerificationResults.GetValueOrDefault(location) ?? new(false, ImmutableDictionary<string, IdeImplementationView>.Empty);
