@@ -45,7 +45,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         List<DafnyFile> dafnyFiles = new();
         foreach (var rootSourceUri in rootSourceUris) {
           try {
-            dafnyFiles.Add(new DafnyFile(reporter.Options, rootSourceUri, () => fileSystem.ReadFile(rootSourceUri)));
+            dafnyFiles.Add(new DafnyFile(reporter.Options, rootSourceUri, null, () => fileSystem.ReadFile(rootSourceUri)));
             if (logger.IsEnabled(LogLevel.Trace)) {
               logger.LogTrace($"Parsing file with uri {rootSourceUri} and content\n{fileSystem.ReadFile(rootSourceUri).ReadToEnd()}");
             }
