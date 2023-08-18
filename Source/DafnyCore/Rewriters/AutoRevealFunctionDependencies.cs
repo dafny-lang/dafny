@@ -210,7 +210,7 @@ public class AutoRevealFunctionDependencies : IRewriter {
     if (addedReveals.Any()) {
       var numInsertedReveals = addedReveals.Count(stmt => stmt.Depth <= autoRevealDepth);
       var renderedRevealStmts = RenderRevealStmts(addedReveals, 1 + autoRevealDepth);
-      
+
       reporter.Message(MessageSource.Rewriter, ErrorLevel.Info, null, m.tok,
         $"Total {addedReveals.Count} function dependenc{(addedReveals.Count == 1 ? "y" : "ies")} found. {numInsertedReveals} reveal statement{(numInsertedReveals == 1 ? "" : "s")} inserted implicitly.{(numInsertedReveals < addedReveals.Count ? " Remaining:\n" + renderedRevealStmts : "")}");
     }
@@ -236,7 +236,7 @@ public class AutoRevealFunctionDependencies : IRewriter {
         autoRevealDepth = (int)i;
       }
     }
-    
+
     var currentClass = f.EnclosingClass;
     List<RevealStmtWithDepth> addedReveals = new();
 
@@ -295,8 +295,8 @@ public class AutoRevealFunctionDependencies : IRewriter {
       if (revealStmt.Depth > currentDepth) {
         currentDepth = revealStmt.Depth;
         result += $"\n\n// depth {currentDepth}: {addedRevealStmtList.Count(stmt => stmt.Depth == currentDepth)} stmts\n";
-      }  
-      
+      }
+
       if (revealStmt.Depth == currentDepth) {
         result += $"{revealStmt.RevealStmt} ";
       }
@@ -388,7 +388,7 @@ public class AutoRevealFunctionDependencies : IRewriter {
         foreach (var vertex0 in graphVertex.Successors) {
           if (IsRevealable(defaultRootModule.AccessibleMembers, (Declaration)vertex0.N)) {
             var newGraphTraversalVertex =
-              new GraphTraversalVertex(vertex0, true, 1+vertex.Depth);
+              new GraphTraversalVertex(vertex0, true, 1 + vertex.Depth);
 
             if (!visited.Contains(newGraphTraversalVertex)) {
               queue.Enqueue(newGraphTraversalVertex);
@@ -399,7 +399,7 @@ public class AutoRevealFunctionDependencies : IRewriter {
         if (interModuleGraphVertex is not null) {
           foreach (var vertex0 in interModuleGraphVertex.Successors) {
             if (IsRevealable(defaultRootModule.AccessibleMembers, (Declaration)vertex0.N)) {
-              queue.Enqueue(new GraphTraversalVertex(vertex0, false, 1+vertex.Depth));
+              queue.Enqueue(new GraphTraversalVertex(vertex0, false, 1 + vertex.Depth));
             }
           }
         }
