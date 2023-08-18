@@ -21,11 +21,11 @@ Iterators.dfy(414,21): Error: this invariant could not be proved to be maintaine
 Iterators.dfy(414,21): Related message: loop invariant violation
 Iterators.dfy(415,21): Error: this invariant could not be proved to be maintained by the loop
 Iterators.dfy(415,21): Related message: loop invariant violation
-Iterators.dfy(103,21): Error: assertion might not hold
-Iterators.dfy(106,13): Error: assertion might not hold
-Iterators.dfy(177,27): Error: assertion might not hold
+Iterators.dfy(103,21): Error: assertion could not be proved
+Iterators.dfy(106,13): Error: assertion could not be proved
+Iterators.dfy(177,27): Error: assertion could not be proved
 Iterators.dfy(208,6): Error: an assignment to _new is only allowed to shrink the set
-Iterators.dfy(212,20): Error: assertion might not hold
+Iterators.dfy(212,20): Error: assertion could not be proved
 Iterators.dfy(436,18): Error: this invariant could not be proved to be maintained by the loop
 Iterators.dfy(436,18): Related message: loop invariant violation
 Iterators.dfy(437,23): Error: this invariant could not be proved to be maintained by the loop

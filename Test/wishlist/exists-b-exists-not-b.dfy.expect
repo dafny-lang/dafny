@@ -1,4 +1,4 @@
-exists-b-exists-not-b.dfy(8,9): Error: assertion might not hold
-exists-b-exists-not-b.dfy(9,9): Error: assertion might not hold
+exists-b-exists-not-b.dfy(8,9): Error: assertion could not be proved
+exists-b-exists-not-b.dfy(9,9): Error: assertion could not be proved
 
 Dafny program verifier finished with 0 verified, 2 errors

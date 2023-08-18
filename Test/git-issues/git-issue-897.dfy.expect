@@ -1,5 +1,5 @@
 git-issue-897.dfy(10,17): Warning: /!\ No terms found to trigger on.
-git-issue-897.dfy(11,19): Error: assertion might not hold
+git-issue-897.dfy(11,19): Error: assertion could not be proved
 git-issue-897.dfy(16,30): Error: possible violation of postcondition of forall statement
 
 Dafny program verifier finished with 0 verified, 2 errors

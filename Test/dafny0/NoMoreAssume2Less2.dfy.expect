@@ -1,31 +1,31 @@
-NoMoreAssume2Less2.dfy(26,11): Error: assertion might not hold
-NoMoreAssume2Less2.dfy(35,11): Error: assertion might not hold
-NoMoreAssume2Less2.dfy(44,11): Error: assertion might not hold
-NoMoreAssume2Less2.dfy(50,11): Error: assertion might not hold
-NoMoreAssume2Less2.dfy(53,11): Error: assertion might not hold
-NoMoreAssume2Less2.dfy(59,13): Error: assertion might not hold
-NoMoreAssume2Less2.dfy(62,11): Error: assertion might not hold
-NoMoreAssume2Less2.dfy(68,11): Error: assertion might not hold
-NoMoreAssume2Less2.dfy(72,11): Error: assertion might not hold
-NoMoreAssume2Less2.dfy(86,11): Error: assertion might not hold
-NoMoreAssume2Less2.dfy(92,18): Error: assertion might not hold
-NoMoreAssume2Less2.dfy(95,11): Error: assertion might not hold
-NoMoreAssume2Less2.dfy(104,11): Error: assertion might not hold
-NoMoreAssume2Less2.dfy(110,11): Error: assertion might not hold
+NoMoreAssume2Less2.dfy(26,11): Error: assertion could not be proved
+NoMoreAssume2Less2.dfy(35,11): Error: assertion could not be proved
+NoMoreAssume2Less2.dfy(44,11): Error: assertion could not be proved
+NoMoreAssume2Less2.dfy(50,11): Error: assertion could not be proved
+NoMoreAssume2Less2.dfy(53,11): Error: assertion could not be proved
+NoMoreAssume2Less2.dfy(59,13): Error: assertion could not be proved
+NoMoreAssume2Less2.dfy(62,11): Error: assertion could not be proved
+NoMoreAssume2Less2.dfy(68,11): Error: assertion could not be proved
+NoMoreAssume2Less2.dfy(72,11): Error: assertion could not be proved
+NoMoreAssume2Less2.dfy(86,11): Error: assertion could not be proved
+NoMoreAssume2Less2.dfy(92,18): Error: assertion could not be proved
+NoMoreAssume2Less2.dfy(95,11): Error: assertion could not be proved
+NoMoreAssume2Less2.dfy(104,11): Error: assertion could not be proved
+NoMoreAssume2Less2.dfy(110,11): Error: assertion could not be proved
 NoMoreAssume2Less2.dfy(78,26): Related location
-NoMoreAssume2Less2.dfy(113,11): Error: assertion might not hold
-NoMoreAssume2Less2.dfy(119,19): Error: assertion might not hold
+NoMoreAssume2Less2.dfy(113,11): Error: assertion could not be proved
+NoMoreAssume2Less2.dfy(119,19): Error: assertion could not be proved
 NoMoreAssume2Less2.dfy(135,16): Error: this loop invariant could not be proved on entry
 NoMoreAssume2Less2.dfy(135,16): Related message: loop invariant violation
-NoMoreAssume2Less2.dfy(140,11): Error: assertion might not hold
+NoMoreAssume2Less2.dfy(140,11): Error: assertion could not be proved
 NoMoreAssume2Less2.dfy(146,12): Error: a precondition for this call could not be proved
 NoMoreAssume2Less2.dfy(162,11): Related location: this is the precondition that could not be proved
-NoMoreAssume2Less2.dfy(149,11): Error: assertion might not hold
-NoMoreAssume2Less2.dfy(158,11): Error: assertion might not hold
-NoMoreAssume2Less2.dfy(175,11): Error: assertion might not hold
-NoMoreAssume2Less2.dfy(180,12): Error: assertion might not hold
-NoMoreAssume2Less2.dfy(186,11): Error: assertion might not hold
-NoMoreAssume2Less2.dfy(191,12): Error: assertion might not hold
-NoMoreAssume2Less2.dfy(198,11): Error: assertion might not hold
+NoMoreAssume2Less2.dfy(149,11): Error: assertion could not be proved
+NoMoreAssume2Less2.dfy(158,11): Error: assertion could not be proved
+NoMoreAssume2Less2.dfy(175,11): Error: assertion could not be proved
+NoMoreAssume2Less2.dfy(180,12): Error: assertion could not be proved
+NoMoreAssume2Less2.dfy(186,11): Error: assertion could not be proved
+NoMoreAssume2Less2.dfy(191,12): Error: assertion could not be proved
+NoMoreAssume2Less2.dfy(198,11): Error: assertion could not be proved
 
 Dafny program verifier finished with 0 verified, 26 errors

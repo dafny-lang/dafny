@@ -31,7 +31,7 @@ public abstract class ProofObligationDescriptionWithNoExpr : ProofObligationDesc
 
 public class DivisorNonZero : ProofObligationDescription {
   public override string SuccessDescription =>
-    "divisor is always non-zero.";
+    "divisor is always non-zero";
 
   public override string FailureDescription =>
     "possible division by zero";
@@ -156,7 +156,7 @@ public class ConversionFit : ProofObligationDescriptionWithNoExpr {
     $"{prefix}{what} to be converted will always fit in {toType}";
 
   public override string FailureDescription =>
-    $"{prefix}{what} to be converted might not fit in {toType}";
+    $"{prefix}{what} to be converted could not be proved to fit in {toType}";
 
   public override string ShortDescription => "conversion fit";
 
@@ -249,7 +249,7 @@ public class IsAllocated : ProofObligationDescriptionWithNoExpr {
     $"{PluralSuccess}{what} is always allocated{WhenSuffix}";
 
   public override string FailureDescription =>
-    $"{PluralFailure}{what} might not be allocated{WhenSuffix}";
+    $"{PluralFailure}{what} could not be proved to be allocated{WhenSuffix}";
 
   public override string ShortDescription => $"{what} allocated";
 
@@ -338,7 +338,7 @@ public class AssertStatement : ProofObligationDescriptionCustomMessages {
     "assertion always holds";
 
   public override string DefaultFailureDescription =>
-    "assertion might not hold";
+    "assertion could not be proved";
 
   public override string ShortDescription => "assert statement";
 
@@ -526,7 +526,7 @@ public class Terminates : ProofObligationDescriptionWithNoExpr {
   public override string FailureDescription =>
     (inferredDescreases
       ? ("cannot prove termination; try supplying a decreases clause" + (isLoop ? " for the loop" : ""))
-      : $"decreases {FormDescription} might not decrease") +
+      : $"decreases {FormDescription} could not be proved to decrease") +
     (hint is null ? "" : $" ({hint})");
 
   public override string ShortDescription => "termination";
@@ -759,7 +759,7 @@ public class WitnessCheck : ProofObligationDescriptionWithNoExpr {
 
   public override string FailureDescription =>
     witnessString is null
-      ? "the given witness expression might not satisfy constraint"
+      ? "the given witness expression could not be proved to satisfy constraint"
       : (witnessString == "" ? $"{errMsg}{hintMsg}" : $"{errMsg} (only tried {witnessString}){hintMsg}");
 
   public override string ShortDescription => "witness check";
@@ -855,7 +855,7 @@ public class ElementInDomain : ProofObligationDescription {
     "element is in domain";
 
   public override string FailureDescription =>
-    "element might not be in domain";
+    "element could not be proved to be in domain";
 
   public override string ShortDescription => "element in domain";
 

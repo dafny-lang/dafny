@@ -106,7 +106,7 @@ method Multiply(x: bv10, y: bv10) returns (product: bv10)
       var diagnostics = await GetLastDiagnosticsParams(documentItem, CancellationToken);
       Assert.Equal(documentItem.Version + 11, diagnostics.Version);
       Assert.Single(diagnostics.Diagnostics);
-      Assert.Equal("assertion might not hold", diagnostics.Diagnostics.First().Message);
+      Assert.Equal("assertion could not be proved", diagnostics.Diagnostics.First().Message);
     }
 
     [Fact]

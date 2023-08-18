@@ -81,7 +81,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     public static readonly string PostConditionFailingMessage = new ProofObligationDescription.EnsuresDescription(null, null).FailureDescription;
 
     public static string FormatRelated(string related) {
-      return $"Could not prove: {related}";
+      return $"could not prove: {related}";
     }
 
     private IEnumerable<DafnyRelatedInformation> CreateDiagnosticRelatedInformationFor(IToken token, string message) {
@@ -89,7 +89,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       if (tokenForMessage is BoogieRangeToken range) {
         if (message == PostConditionFailingMessage) {
           var postcondition = range.PrintOriginal();
-          message = $"This postcondition might not hold: {postcondition}";
+          message = $"this postcondition could not be proved: {postcondition}";
         } else if (message == "Related location") {
           message = FormatRelated(range.PrintOriginal());
         }

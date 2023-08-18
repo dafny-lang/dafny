@@ -1,3 +1,3 @@
-text.dfy(4,41): Error: assertion might not hold
+text.dfy(4,41): Error: assertion could not be proved
 
 Dafny program verifier finished with 0 verified, 1 error
