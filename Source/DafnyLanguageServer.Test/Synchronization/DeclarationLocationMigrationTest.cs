@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
 using Microsoft.Dafny.LanguageServer.Language.Symbols;
 using Microsoft.Dafny.LanguageServer.Workspace;
@@ -10,6 +11,7 @@ using Microsoft.Extensions.Logging;
 using Xunit;
 using Xunit.Abstractions;
 using Xunit.Sdk;
+using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
 
@@ -22,8 +24,8 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
     // TODO The "BodyEndToken" used by the CreateDeclarationDictionary.CreateDeclarationDictionary()
     //      does not incorporate the closing braces.
 
-    protected bool TryFindSymbolDeclarationByName(IdeState state, string symbolName, out SymbolLocation location) {
-      location = state.SignatureAndCompletionTable.Locations
+    protected bool TryFindSymbolDeclarationByName(IdeState state, string symbolName, out SymbolLocation location, Uri uri = null) {
+      location = state.SignatureAndCompletionTable.LocationsPerUri[uri ?? state.SignatureAndCompletionTable.LocationsPerUri.First().Key]
         .WithCancellation(CancellationToken)
         .Where(entry => entry.Key.Name == symbolName)
         .Select(entry => entry.Value)
@@ -318,25 +320,28 @@ class A {
 
     [Fact]
     public async Task PassingANullChangeRangePreservesForeignSymbols() {
+      var directory = Path.Combine(Directory.GetCurrentDirectory(), "Lookup/TestFiles");
       var source = "include \"foreign.dfy\"\nclass X {}";
-      var documentItem = CreateTestDocument(source, Path.Combine(Directory.GetCurrentDirectory(), "Lookup/TestFiles/test.dfy"));
+      var documentItem = CreateTestDocument(source, Path.Combine(directory, "test.dfy"));
+      var includePath = Path.Combine(directory, "foreign.dfy");
 
       await Client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var document = await Projects.GetResolvedDocumentAsyncNormalizeUri(documentItem.Uri);
       Assert.NotNull(document);
-      Assert.True(TryFindSymbolDeclarationByName(document, "A", out var _));
+      var uri = documentItem.Uri.ToUri();
+      Assert.True(TryFindSymbolDeclarationByName(document, "A", out var _, new Uri(includePath)));
 
       // Try a change that breaks resolution.  Symbols for `foreign.dfy` are kept.
       await ApplyChangeAndWaitCompletionAsync(ref documentItem, null, "; include \"foreign.dfy\"\nclass Y {}");
       document = await Projects.GetResolvedDocumentAsyncNormalizeUri(documentItem);
       Assert.NotNull(document);
-      Assert.True(TryFindSymbolDeclarationByName(document, "A", out var _));
+      Assert.True(TryFindSymbolDeclarationByName(document, "A", out var _, new Uri(includePath)));
 
       // Finally we drop the reference to `foreign.dfy` and confirm that `A` is not accessible any more.
       await ApplyChangeAndWaitCompletionAsync(ref documentItem, null, "class Y {}");
       document = await Projects.GetResolvedDocumentAsyncNormalizeUri(documentItem);
       Assert.NotNull(document);
-      Assert.False(TryFindSymbolDeclarationByName(document, "A", out var _));
+      Assert.False(TryFindSymbolDeclarationByName(document, "A", out var _, uri));
     }
 
     public DeclarationLocationMigrationTest(ITestOutputHelper output) : this(output, LogLevel.Information) {

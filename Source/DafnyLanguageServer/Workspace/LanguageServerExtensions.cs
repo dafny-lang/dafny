@@ -50,7 +50,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         .AddSingleton<INotificationPublisher, NotificationPublisher>()
         .AddSingleton<CreateMigrator>(provider => (changes, cancellationToken) => new Migrator(
           provider.GetRequiredService<ILogger<Migrator>>(),
-          provider.GetRequiredService<ILogger<SignatureAndCompletionTable>>(),
+          provider.GetRequiredService<ILogger<LegacySignatureAndCompletionTable>>(),
           changes, cancellationToken))
         .AddSingleton<ISymbolGuesser, SymbolGuesser>()
         .AddSingleton<ICompilationStatusNotificationPublisher, CompilationStatusNotificationPublisher>()

@@ -155,7 +155,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         program,
         resolutionDiagnostics,
         SymbolTable.Empty(),
-        SignatureAndCompletionTable.Empty(dafnyOptions, compilation.Project),
+        LegacySignatureAndCompletionTable.Empty(dafnyOptions, compilation.Project),
         new(),
         Array.Empty<Counterexample>(),
         ImmutableDictionary<Uri, IReadOnlyList<Range>>.Empty,

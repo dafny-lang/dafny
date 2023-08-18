@@ -17,7 +17,7 @@ public class CompilationAfterResolution : CompilationAfterParsing {
   public CompilationAfterResolution(CompilationAfterParsing compilationAfterParsing,
     IReadOnlyDictionary<Uri, List<DafnyDiagnostic>> diagnostics,
     SymbolTable? symbolTable,
-    SignatureAndCompletionTable signatureAndCompletionTable,
+    LegacySignatureAndCompletionTable signatureAndCompletionTable,
     IReadOnlyDictionary<Uri, IReadOnlyList<Range>> ghostDiagnostics,
     IReadOnlyList<ICanVerify> verifiables,
     ConcurrentDictionary<ModuleDefinition, Task<IReadOnlyDictionary<FilePosition, IReadOnlyList<IImplementationTask>>>> translatedModules,
@@ -33,7 +33,7 @@ public class CompilationAfterResolution : CompilationAfterParsing {
   }
   public List<Counterexample> Counterexamples { get; set; }
   public SymbolTable? SymbolTable { get; }
-  public SignatureAndCompletionTable SignatureAndCompletionTable { get; }
+  public LegacySignatureAndCompletionTable SignatureAndCompletionTable { get; }
   public IReadOnlyDictionary<Uri, IReadOnlyList<Range>> GhostDiagnostics { get; }
   public IReadOnlyList<ICanVerify> Verifiables { get; }
   public ConcurrentDictionary<ICanVerify, Dictionary<string, ImplementationView>> ImplementationsPerVerifiable { get; } = new();
