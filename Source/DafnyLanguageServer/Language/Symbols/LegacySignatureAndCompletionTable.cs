@@ -2,9 +2,10 @@
 using IntervalTree;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
+using System.Linq;
 using System.Threading;
-using Microsoft.Dafny.LanguageServer.Workspace;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using AstElement = System.Object;
@@ -14,8 +15,8 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
   /// <summary>
   /// Represents the symbol table
   /// </summary>
-  public class SignatureAndCompletionTable {
-    private readonly ILogger<SignatureAndCompletionTable> logger;
+  public class LegacySignatureAndCompletionTable {
+    private readonly ILogger<LegacySignatureAndCompletionTable> logger;
 
     // TODO Guard the properties from changes
     public CompilationUnit CompilationUnit { get; }
@@ -28,12 +29,12 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
     /// <summary>
     /// Gets the dictionary allowing to resolve the location of a specified symbol. Do not modify this instance.
     /// </summary>
-    public IDictionary<ILegacySymbol, SymbolLocation> Locations { get; }
+    public ImmutableDictionary<Uri, IDictionary<ILegacySymbol, SymbolLocation>> LocationsPerUri { get; }
 
     /// <summary>
     /// Gets the interval tree backing this symbol table. Do not modify this instance.
     /// </summary>
-    public IIntervalTree<Position, ILocalizableSymbol> LookupTree { get; }
+    public ImmutableDictionary<Uri, IIntervalTree<Position, ILocalizableSymbol>> LookupTreePerUri { get; }
 
     /// <summary>
     /// <c>true</c> if the symbol table results from a successful resolution by the dafny resolver.
@@ -42,14 +43,14 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
 
     private readonly DafnyLangTypeResolver typeResolver;
 
-    public static SignatureAndCompletionTable Empty(DafnyOptions options, DafnyProject project) {
+    public static LegacySignatureAndCompletionTable Empty(DafnyOptions options, DafnyProject project) {
       var emptyProgram = GetEmptyProgram(options, project.Uri);
-      return new SignatureAndCompletionTable(
-        NullLogger<SignatureAndCompletionTable>.Instance,
+      return new LegacySignatureAndCompletionTable(
+        NullLogger<LegacySignatureAndCompletionTable>.Instance,
         new CompilationUnit(project.Uri, emptyProgram),
         new Dictionary<object, ILocalizableSymbol>(),
-        new Dictionary<ILegacySymbol, SymbolLocation>(),
-        new IntervalTree<Position, ILocalizableSymbol>(),
+        ImmutableDictionary<Uri, IDictionary<ILegacySymbol, SymbolLocation>>.Empty,
+        ImmutableDictionary<Uri, IIntervalTree<Position, ILocalizableSymbol>>.Empty,
         symbolsResolved: false);
     }
 
@@ -68,35 +69,31 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
       return emptyProgram;
     }
 
-    public SignatureAndCompletionTable(
-        ILogger<SignatureAndCompletionTable> iLogger,
+    public LegacySignatureAndCompletionTable(
+        ILogger<LegacySignatureAndCompletionTable> iLogger,
         CompilationUnit compilationUnit,
         IDictionary<AstElement, ILocalizableSymbol> declarations,
-        IDictionary<ILegacySymbol, SymbolLocation> locations,
-        IIntervalTree<Position, ILocalizableSymbol> lookupTree,
+        ImmutableDictionary<Uri, IDictionary<ILegacySymbol, SymbolLocation>> locationsPerUri,
+        ImmutableDictionary<Uri, IIntervalTree<Position, ILocalizableSymbol>> lookupTreePerUri,
         bool symbolsResolved
     ) {
       CompilationUnit = compilationUnit;
       Declarations = declarations;
-      Locations = locations;
-      LookupTree = lookupTree;
+      LocationsPerUri = locationsPerUri;
+      LookupTreePerUri = lookupTreePerUri;
       Resolved = symbolsResolved;
       typeResolver = new DafnyLangTypeResolver(declarations);
       logger = iLogger;
-
-      // TODO IntervalTree goes out of sync after any change and "fixes" its state upon the first query. Replace it with another implementation that can be queried without potential side-effects.
-      LookupTree.Query(new Position(0, 0));
     }
 
     /// <summary>
     /// Tries to get a symbol at the specified location.
+    /// Only used for testing.
     /// </summary>
-    /// <param name="position">The requested position.</param>
-    /// <param name="symbol">The symbol that could be identified at the given position, or <c>null</c> if no symbol could be identified.</param>
-    /// <returns><c>true</c> if a symbol was found, otherwise <c>false</c>.</returns>
-    /// <exception cref="System.InvalidOperationException">Thrown if there was one more symbol at the specified position. This should never happen, unless there was an error.</exception>
     public bool TryGetSymbolAt(Position position, [NotNullWhen(true)] out ILocalizableSymbol? symbol) {
-      var symbolsAtPosition = LookupTree.Query(position);
+      var intervalTree = LookupTreePerUri.First().Value;
+
+      var symbolsAtPosition = intervalTree.Query(position);
       symbol = null;
       // Use case: function f(a: int) {}, and hover over a.
       foreach (var potentialSymbol in symbolsAtPosition) {
@@ -111,28 +108,19 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
     }
 
     /// <summary>
-    /// Tries to get the location of the given symbol.
-    /// </summary>
-    /// <param name="symbol">The symbol to get the location of.</param>
-    /// <param name="location">The current location of the specified symbol, or <c>null</c> if no location of the given symbol is known.</param>
-    /// <returns><c>true</c> if a location was found, otherwise <c>false</c>.</returns>
-    public bool TryGetLocationOf(ILegacySymbol symbol, [NotNullWhen(true)] out SymbolLocation? location) {
-      return Locations.TryGetValue(symbol, out location);
-    }
-
-    /// <summary>
     /// Resolves the innermost symbol that encloses the given position.
     /// </summary>
+    /// <param name="uri"></param>
     /// <param name="position">The position to get the innermost symbol of.</param>
     /// <param name="cancellationToken">A token to cancel the update operation before its completion.</param>
     /// <returns>The innermost symbol at the specified position.</returns>
     /// <exception cref="System.OperationCanceledException">Thrown when the cancellation was requested before completion.</exception>
     /// <exception cref="System.ObjectDisposedException">Thrown if the cancellation token was disposed before the completion.</exception>
-    public ILegacySymbol GetEnclosingSymbol(Position position, CancellationToken cancellationToken) {
+    public ILegacySymbol GetEnclosingSymbol(Uri uri, Position position, CancellationToken cancellationToken) {
       // TODO use a suitable data-structure to resolve the locations efficiently.
       ILegacySymbol innerMostSymbol = CompilationUnit;
       var innerMostRange = new Range(new Position(0, 0), new Position(int.MaxValue, int.MaxValue));
-      foreach (var (symbol, location) in Locations) {
+      foreach (var (symbol, location) in LocationsPerUri.GetValueOrDefault(uri) ?? ImmutableDictionary<ILegacySymbol, SymbolLocation>.Empty) {
         cancellationToken.ThrowIfCancellationRequested();
         var range = location.Declaration;
         if (IsEnclosedBy(innerMostRange, range) && IsInside(range, position)) {
