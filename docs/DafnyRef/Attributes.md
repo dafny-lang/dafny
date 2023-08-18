@@ -238,6 +238,19 @@ The difference with [`{:extern}`](#sec-extern) is that [`{:extern}`](#sec-extern
 will still emit declaration code if necessary,
 whereas `{:compile false}` will just ignore the declaration for compilation purposes.
 
+### 11.2.5. `{:concurrent}`  {#sec-concurrent-attribute}
+The `{:concurrent}` attribute indicates that the compiled code for a function or method
+may be executed concurrently.
+While Dafny is a sequential language and does not support any native concepts for spawning
+or controlling concurrent execution,
+it does support restricting the specification of declarations such that it is safe to execute them concurrently
+using integration with the target language environment.
+
+Currently, the only way to satisfy this requirement is to ensure that the specification
+of the function or method includes the equivalent of `reads {}` and `modifies {}`.
+This ensures that the code does not read or write any shared mutable state,
+although it is free to write and write newly allocated objects.
+
 ### 11.2.5. `{:extern <name>}` {#sec-extern-method}
 See [`{:extern <name>}`](#sec-extern).
 

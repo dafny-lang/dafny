@@ -49,6 +49,13 @@ method ReadingAndWritingFreshStateAllowed()
   SetBox(myBox, 42);
 }
 
+method ApplyLambda<T, R>(f: T ~> R, t: T) returns (r: R) 
+  requires f.requires(t)
+  reads f.reads
+{
+  r := f(t);
+}
+
 // 
 
 datatype Option<T> = Some(value: T) | None
@@ -82,3 +89,4 @@ function Always42(b: Box): int {
 // TODO:
 // * stress test well-formedness of reads clauses (e.g. when depending on method preconditions)
 // * Double check refinement
+// * {:concurrent}
