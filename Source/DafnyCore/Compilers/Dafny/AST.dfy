@@ -3,7 +3,7 @@ module {:extern "DAST"} DAST {
 
   datatype ModuleItem = Module(Module) | Class(Class) | Trait(Trait) | Newtype(Newtype) | Datatype(Datatype)
 
-  datatype Newtype = Newtype(name: string, base: Type, witnessExpr: Optional<Expression>)
+  datatype Newtype = Newtype(name: string, typeParams: seq<Type>, base: Type, witnessStmts: seq<Statement>, witnessExpr: Optional<Expression>)
 
   datatype Type =
     Path(seq<Ident>, typeArgs: seq<Type>, resolved: ResolvedType) |
@@ -58,7 +58,8 @@ module {:extern "DAST"} DAST {
     New(path: seq<Ident>, args: seq<Expression>) |
     NewArray(dims: seq<Expression>) |
     DatatypeValue(path: seq<Ident>, variant: string, isCo: bool, contents: seq<(string, Expression)>) |
-    NewtypeValue(tpe: Type, value: Expression) |
+    SubsetUpgrade(value: Expression, typ: Type) |
+    SubsetDowngrade(value: Expression) |
     SeqValue(elements: seq<Expression>) |
     SetValue(elements: seq<Expression>) |
     This() |
@@ -69,7 +70,7 @@ module {:extern "DAST"} DAST {
     SelectFn(expr: Expression, field: string, onDatatype: bool, isStatic: bool, arity: nat) |
     TupleSelect(expr: Expression, index: nat) |
     Call(on: Expression, name: Ident, typeArgs: seq<Type>, args: seq<Expression>) |
-    Lambda(params: seq<Formal>, body: seq<Statement>) |
+    Lambda(params: seq<Formal>, retType: Type, body: seq<Statement>) |
     IIFE(name: Ident, typ: Type, value: Expression, iifeBody: Expression) |
     Apply(expr: Expression, args: seq<Expression>) |
     TypeTest(on: Expression, dType: seq<Ident>, variant: string) |
