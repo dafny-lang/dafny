@@ -149,21 +149,25 @@ namespace Microsoft.Dafny.Compilers {
   interface NewtypeContainer {
     void AddNewtype(Newtype item);
 
-    public NewtypeBuilder Newtype(string name, DAST.Type baseType, DAST.Expression witness) {
-      return new NewtypeBuilder(this, name, baseType, witness);
+    public NewtypeBuilder Newtype(string name, List<DAST.Type> typeParams, DAST.Type baseType, List<DAST.Statement> witnessStmts, DAST.Expression witness) {
+      return new NewtypeBuilder(this, name, typeParams, baseType, witnessStmts, witness);
     }
   }
 
   class NewtypeBuilder : ClassLike {
     readonly NewtypeContainer parent;
     readonly string name;
+    readonly List<DAST.Type> typeParams;
     readonly DAST.Type baseType;
+    readonly List<DAST.Statement> witnessStmts;
     readonly DAST.Expression witness;
 
-    public NewtypeBuilder(NewtypeContainer parent, string name, DAST.Type baseType, DAST.Expression witness) {
+    public NewtypeBuilder(NewtypeContainer parent, string name, List<DAST.Type> typeParams, DAST.Type baseType, List<DAST.Statement> statements, DAST.Expression witness) {
       this.parent = parent;
       this.name = name;
+      this.typeParams = typeParams;
       this.baseType = baseType;
+      this.witnessStmts = statements;
       this.witness = witness;
     }
 
@@ -178,7 +182,9 @@ namespace Microsoft.Dafny.Compilers {
     public object Finish() {
       parent.AddNewtype((Newtype)Newtype.create(
         Sequence<Rune>.UnicodeFromString(this.name),
+        Sequence<DAST.Type>.FromArray(this.typeParams.ToArray()),
         this.baseType,
+        Sequence<DAST.Statement>.FromArray(this.witnessStmts.ToArray()),
         this.witness == null ? Optional<DAST._IExpression>.create_None() : Optional<DAST._IExpression>.create_Some(this.witness)
       ));
       return parent;
@@ -699,6 +705,31 @@ namespace Microsoft.Dafny.Compilers {
     }
   }
 
+  class StatementBuffer : StatementContainer {
+    readonly List<object> statements = new();
+
+    public void AddStatement(DAST.Statement item) {
+      statements.Add(item);
+    }
+
+    public void AddBuildable(BuildableStatement item) {
+      statements.Add(item);
+    }
+
+    public List<object> ForkList() {
+      var ret = new List<object>();
+      statements.Add(ret);
+      return ret;
+    }
+
+    public List<DAST.Statement> PopAll() {
+      var builtResult = new List<DAST.Statement>();
+      StatementContainer.RecursivelyBuild(statements, builtResult);
+
+      return builtResult;
+    }
+  }
+
   class ExprBuffer : ExprContainer {
     Stack<object> exprs = new();
     public readonly object parent;
@@ -761,14 +792,26 @@ namespace Microsoft.Dafny.Compilers {
       return ret;
     }
 
-    LambdaExprBuilder Lambda(List<DAST.Formal> formals) {
-      var ret = new LambdaExprBuilder(formals);
+    LambdaExprBuilder Lambda(List<DAST.Formal> formals, DAST.Type retType) {
+      var ret = new LambdaExprBuilder(formals, retType);
       AddBuildable(ret);
       return ret;
     }
 
     IIFEExprBuilder IIFE(string name, DAST.Type tpe) {
       var ret = new IIFEExprBuilder(name, tpe);
+      AddBuildable(ret);
+      return ret;
+    }
+
+    SubsetUpgradeBuilder SubsetUpgrade(DAST.Type tpe) {
+      var ret = new SubsetUpgradeBuilder(tpe);
+      AddBuildable(ret);
+      return ret;
+    }
+
+    SubsetDowngradeBuilder SubsetDowngrade() {
+      var ret = new SubsetDowngradeBuilder();
       AddBuildable(ret);
       return ret;
     }
@@ -886,10 +929,12 @@ namespace Microsoft.Dafny.Compilers {
 
 class LambdaExprBuilder : StatementContainer, BuildableExpr {
   readonly List<DAST.Formal> formals;
+  readonly DAST.Type retType;
   readonly List<object> body = new();
 
-  public LambdaExprBuilder(List<DAST.Formal> formals) {
+  public LambdaExprBuilder(List<DAST.Formal> formals, DAST.Type retType) {
     this.formals = formals;
+    this.retType = retType;
   }
 
   public void AddStatement(DAST.Statement item) {
@@ -912,6 +957,7 @@ class LambdaExprBuilder : StatementContainer, BuildableExpr {
 
     return (DAST.Expression)DAST.Expression.create_Lambda(
       Sequence<DAST.Formal>.FromArray(formals.ToArray()),
+      retType,
       Sequence<DAST.Statement>.FromArray(builtBody.ToArray())
     );
   }
@@ -986,5 +1032,69 @@ class IIFEExprRhs : ExprContainer {
     } else {
       parent.value = item;
     }
+  }
+}
+
+class SubsetUpgradeBuilder : ExprContainer, BuildableExpr {
+  readonly DAST.Type tpe;
+  object value = null;
+
+  public SubsetUpgradeBuilder(DAST.Type tpe) {
+    this.tpe = tpe;
+  }
+
+  public void AddExpr(DAST.Expression item) {
+    if (value != null) {
+      throw new InvalidOperationException();
+    } else {
+      value = item;
+    }
+  }
+
+  public void AddBuildable(BuildableExpr item) {
+    if (value != null) {
+      throw new InvalidOperationException();
+    } else {
+      value = item;
+    }
+  }
+
+  public DAST.Expression Build() {
+    var builtValue = new List<DAST.Expression>();
+    ExprContainer.RecursivelyBuild(new List<object> { value }, builtValue);
+
+    return (DAST.Expression)DAST.Expression.create_SubsetUpgrade(
+      builtValue[0],
+      tpe
+    );
+  }
+}
+
+class SubsetDowngradeBuilder : ExprContainer, BuildableExpr {
+  object value = null;
+
+  public void AddExpr(DAST.Expression item) {
+    if (value != null) {
+      throw new InvalidOperationException();
+    } else {
+      value = item;
+    }
+  }
+
+  public void AddBuildable(BuildableExpr item) {
+    if (value != null) {
+      throw new InvalidOperationException();
+    } else {
+      value = item;
+    }
+  }
+
+  public DAST.Expression Build() {
+    var builtValue = new List<DAST.Expression>();
+    ExprContainer.RecursivelyBuild(new List<object> { value }, builtValue);
+
+    return (DAST.Expression)DAST.Expression.create_SubsetDowngrade(
+      builtValue[0]
+    );
   }
 }
