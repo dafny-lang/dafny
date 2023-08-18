@@ -309,7 +309,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
             : LineVerificationStatus.ErrorContext,
         _ => throw new ArgumentOutOfRangeException()
       };
-      return (LineVerificationStatus)((int)simpleStatus + (int)currentStatus);
+      return 
+        simpleStatus == LineVerificationStatus.Skipped ? simpleStatus :
+          (LineVerificationStatus)((int)simpleStatus + (int)currentStatus);
     }
 
     protected virtual bool IsFinalError => false;
