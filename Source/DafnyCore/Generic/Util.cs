@@ -22,19 +22,29 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public static class Delegates {
-    public static Func<T> Memoize<T>(Func<T> func) {
-      var set = false;
-      T value = default(T);
-      return () => {
-        if (set) {
-          return value;
+  public class Lazy<T> {
+    private readonly Func<T> get;
+    private bool set;
+    private T value;
+
+    public Lazy(T value) {
+      this.value = value;
+      set = true;
+    }
+
+    public Lazy(Func<T> get) {
+      this.get = get;
+    }
+
+    public T Value {
+      get {
+        if (!set) {
+          value = get();
+          set = true;
         }
 
-        value = func();
-        set = true;
         return value;
-      };
+      }
     }
   }
 

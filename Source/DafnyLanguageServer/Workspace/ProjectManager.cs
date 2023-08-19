@@ -61,7 +61,7 @@ public class ProjectManager : IDisposable {
   private readonly CreateCompilationManager createCompilationManager;
   private readonly ExecutionEngine boogieEngine;
   private readonly IFileSystem fileSystem;
-  private Func<IdeState> getLatestIdeState;
+  private Lazy<IdeState> latestIdeState;
 
   public ProjectManager(
     DafnyOptions serverOptions,
@@ -88,7 +88,7 @@ public class ProjectManager : IDisposable {
     options.Printer = new OutputLogger(logger);
     var initialCompilation = CreateInitialCompilation();
     var initialIdeState = initialCompilation.InitialIdeState(initialCompilation, options);
-    getLatestIdeState = () => initialIdeState;
+    latestIdeState = new Lazy<IdeState>(initialIdeState);
 
     observer = createIdeStateObserver(initialIdeState);
     CompilationManager = createCompilationManager(
@@ -114,8 +114,8 @@ public class ProjectManager : IDisposable {
 
     var migrator = createMigrator(documentChange, CancellationToken.None);
     observer.Migrate(migrator, version + 1);
-    var migratedLastIdeState = getLatestIdeState().Migrate(migrator, version + 1);
-    getLatestIdeState = () => migratedLastIdeState;
+    var migratedLastIdeState = latestIdeState.Value.Migrate(migrator, version + 1);
+    latestIdeState = new Lazy<IdeState>(migratedLastIdeState);
     var migratedVerificationTrees = migratedLastIdeState.VerificationTrees;
 
     StartNewCompilation(migratedVerificationTrees, migratedLastIdeState);
@@ -159,8 +159,11 @@ public class ProjectManager : IDisposable {
 
     observerSubscription.Dispose();
     var migratedUpdates = CompilationManager.CompilationUpdates.Select(document =>
-      getLatestIdeState = Delegates.Memoize(() => document.ToIdeState(previousCompilationLastIdeState)));
-    observerSubscription = migratedUpdates.Throttle(TimeSpan.FromMilliseconds(100)).Select(x => x()).Subscribe(observer);
+      latestIdeState = new Lazy<IdeState>(() => document.ToIdeState(previousCompilationLastIdeState)));
+    var throttleTime = options.Get(ServerCommand.UpdateThrottling);
+    var throttledUpdates = throttleTime == 0 ? migratedUpdates : migratedUpdates.Sample(TimeSpan.FromMilliseconds(throttleTime));
+    observerSubscription = throttledUpdates.
+      Select(x => x.Value).Subscribe(observer);
 
     CompilationManager.Start();
   }
@@ -230,8 +233,8 @@ public class ProjectManager : IDisposable {
       logger.LogDebug($"GetSnapshotAfterResolutionAsync caught OperationCanceledException for parsed compilation {Project.Uri}");
     }
 
-    logger.LogDebug($"GetSnapshotAfterParsingAsync returns state version {getLatestIdeState().Version}");
-    return getLatestIdeState();
+    logger.LogDebug($"GetSnapshotAfterParsingAsync returns state version {latestIdeState.Value.Version}");
+    return latestIdeState.Value;
   }
 
   public async Task<IdeState> GetStateAfterResolutionAsync() {
@@ -243,8 +246,8 @@ public class ProjectManager : IDisposable {
       return await GetSnapshotAfterParsingAsync();
     }
 
-    logger.LogDebug($"GetStateAfterResolutionAsync returns state version {getLatestIdeState().Version}");
-    return getLatestIdeState();
+    logger.LogDebug($"GetStateAfterResolutionAsync returns state version {latestIdeState.Value.Version}");
+    return latestIdeState.Value;
   }
 
   public async Task<IdeState> GetIdeStateAfterVerificationAsync() {
@@ -253,7 +256,7 @@ public class ProjectManager : IDisposable {
     } catch (OperationCanceledException) {
     }
 
-    return getLatestIdeState();
+    return latestIdeState.Value;
   }
 
 
@@ -342,10 +345,10 @@ public class ProjectManager : IDisposable {
 
   public void OpenDocument(Uri uri, bool triggerCompilation) {
     Interlocked.Increment(ref openFileCount);
-    var migratedVerificationTrees = getLatestIdeState().VerificationTrees;
+    var migratedVerificationTrees = latestIdeState.Value.VerificationTrees;
 
     if (triggerCompilation) {
-      StartNewCompilation(migratedVerificationTrees, getLatestIdeState());
+      StartNewCompilation(migratedVerificationTrees, latestIdeState.Value);
       TriggerVerificationForFile(uri);
     }
   }

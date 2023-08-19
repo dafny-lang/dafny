@@ -7,6 +7,7 @@ using Microsoft.Dafny.LanguageServer.Workspace;
 namespace Microsoft.Dafny.LanguageServer;
 
 public class ServerCommand : ICommandSpec {
+  public const int DefaultThrottleTime = 100;
   public static readonly ServerCommand Instance = new();
 
   private ServerCommand() {
@@ -29,6 +30,9 @@ public class ServerCommand : ICommandSpec {
     "Use caching to speed up analysis done by the Dafny IDE after each text edit.") {
     IsHidden = true
   };
+
+  public static readonly Option<int> UpdateThrottling = new("--update-throttling", () => DefaultThrottleTime,
+    @"How many milliseconds the server will wait before sending new document updates to the client. Higher values reduce bandwidth at the cost of responsiveness".TrimStart());
 
   public static readonly Option<bool> GhostIndicators = new("--notify-ghostness",
     @"

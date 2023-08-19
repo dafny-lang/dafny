@@ -55,8 +55,7 @@ public class CompilationManager {
   private readonly ExecutionEngine boogieEngine;
 
   private readonly Subject<Compilation> compilationUpdates = new();
-  public IObservable<Compilation> CompilationUpdates => compilationUpdates.Catch<Compilation, OperationCanceledException>(
-    _ => Observable.Empty<Compilation>());
+  public IObservable<Compilation> CompilationUpdates => compilationUpdates;
 
   public Task<CompilationAfterParsing> ParsedCompilation { get; }
   public Task<CompilationAfterResolution> ResolvedCompilation { get; }
@@ -100,14 +99,19 @@ public class CompilationManager {
   private async Task<CompilationAfterParsing> ParseAsync() {
     try {
       await started.Task;
-      var parsedCompilation = await documentLoader.ParseAsync(options, startingCompilation, migratedVerificationTrees, cancellationSource.Token);
+      var parsedCompilation = await documentLoader.ParseAsync(options, startingCompilation, migratedVerificationTrees,
+        cancellationSource.Token);
       foreach (var root in parsedCompilation.RootUris) {
         verificationProgressReporter.ReportRealtimeDiagnostics(parsedCompilation, root, false);
       }
+
       compilationUpdates.OnNext(parsedCompilation);
-      logger.LogDebug($"Passed parsedCompilation to documentUpdates.OnNext, resolving ParsedCompilation task for version {parsedCompilation.Version}.");
+      logger.LogDebug(
+        $"Passed parsedCompilation to documentUpdates.OnNext, resolving ParsedCompilation task for version {parsedCompilation.Version}.");
       return parsedCompilation;
 
+    } catch (OperationCanceledException) {
+      throw;
     } catch (Exception e) {
       compilationUpdates.OnError(e);
       throw;
@@ -130,6 +134,8 @@ public class CompilationManager {
       logger.LogDebug($"Passed resolvedCompilation to documentUpdates.OnNext, resolving ResolvedCompilation task for version {resolvedCompilation.Version}.");
       return resolvedCompilation;
 
+    } catch (OperationCanceledException) {
+      throw;
     } catch (Exception e) {
       compilationUpdates.OnError(e);
       throw;
@@ -186,6 +192,9 @@ public class CompilationManager {
           g => g.Key,
           g => (IReadOnlyList<IImplementationTask>)g.ToList());
       });
+    } catch (OperationCanceledException e) {
+      verificationCompleted.TrySetCanceled();
+      throw;
     } catch (Exception e) {
       verificationCompleted.TrySetException(e);
       compilationUpdates.OnError(e);

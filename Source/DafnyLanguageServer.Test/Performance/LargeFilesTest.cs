@@ -1,17 +1,9 @@
 using System;
-using System.Diagnostics.Metrics;
-using System.IO;
-using System.Reactive;
-using System.Reactive.Linq;
-using System.Reactive.Subjects;
-using System.Reactive.Threading.Tasks;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
-using Microsoft.Dafny.LanguageServer.Workspace;
-using Microsoft.Extensions.Logging;
 using Xunit;
 using Xunit.Abstractions;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
@@ -19,6 +11,12 @@ using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Performance;
 
 public class LargeFilesTest : ClientBasedLanguageServerTest {
+  protected override Task SetUp(Action<DafnyOptions> modifyOptions) {
+    return base.SetUp(options => {
+      modifyOptions?.Invoke(options);
+      options.Set(ServerCommand.UpdateThrottling, ServerCommand.DefaultThrottleTime);
+    });
+  }
 
   /// <summary>
   /// To reduce runtime of this test,

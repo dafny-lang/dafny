@@ -44,11 +44,6 @@ public class IdeStateObserver : ObserverBase<IdeState> {
   }
 
   protected override void OnErrorCore(Exception exception) {
-    if (exception is OperationCanceledException) {
-      logger.LogDebug("document processing cancelled.");
-      return;
-    }
-
     var internalErrorDiagnostic = new Diagnostic {
       Message =
         "Dafny encountered an internal error. Please report it at <https://github.com/dafny-lang/dafny/issues>.\n" +
