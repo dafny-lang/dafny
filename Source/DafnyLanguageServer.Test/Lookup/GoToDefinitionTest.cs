@@ -13,7 +13,6 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
 
     [Fact]
     public async Task ExplicitProjectToGoDefinitionWorks() {
-      await SetUp(o => o.Set(ServerCommand.ProjectMode, true));
       var sourceA = @"
 const a := 3;
 ".TrimStart();
