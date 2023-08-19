@@ -178,8 +178,8 @@ public void ApplyOptionsFromAttributes(Attributes attrs) {
   }
 }
 
-public Parser(DafnyOptions options, Scanner/*!*/ scanner, Errors/*!*/ errors)
-  : this(scanner, errors)  // the real work
+public Parser(DafnyOptions options, Scanner/*!*/ scanner, Errors/*!*/ errors, CancellationToken cancellationToken)
+  : this(scanner, errors, cancellationToken)  // the real work
 {
   // initialize readonly fields
   dummyExpr = new LiteralExpr(Token.NoToken);

@@ -516,8 +516,9 @@ namespace Microsoft.Dafny {
           dafnyFile = new DafnyFile(options, new Uri(tempFileName));
         }
 
-        var originalText = dafnyFile.Content.ReadToEnd();
-        dafnyFile.Content = new StringReader(originalText);
+        using var content = dafnyFile.GetContent();
+        var originalText = content.ReadToEnd();
+        dafnyFile.GetContent = () => new StringReader(originalText);
         // Might not be totally optimized but let's do that for now
         var err = DafnyMain.Parse(new List<DafnyFile> { dafnyFile }, programName, options, out var dafnyProgram);
         if (err != null) {
