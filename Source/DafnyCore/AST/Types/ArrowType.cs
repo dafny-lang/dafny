@@ -12,9 +12,9 @@ public class ArrowType : UserDefinedType {
 
   public List<TypeParameter.TPVariance> Variances(bool negate = false) {
     if (negate) {
-      return Enumerable.Range(0, Arity).Select(i => i == Arity - 1 ? TypeParameter.TPVariance.Contra : TypeParameter.TPVariance.Co).ToList();
+      return Enumerable.Range(0, Arity + 1).Select(i => i == Arity ? TypeParameter.TPVariance.Contra : TypeParameter.TPVariance.Co).ToList();
     } else {
-      return Enumerable.Range(0, Arity).Select(i => i == Arity - 1 ? TypeParameter.TPVariance.Co : TypeParameter.TPVariance.Contra).ToList();
+      return Enumerable.Range(0, Arity + 1).Select(i => i == Arity ? TypeParameter.TPVariance.Co : TypeParameter.TPVariance.Contra).ToList();
     }
   }
 
