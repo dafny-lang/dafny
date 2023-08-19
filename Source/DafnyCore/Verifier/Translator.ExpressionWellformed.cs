@@ -224,6 +224,17 @@ namespace Microsoft.Dafny {
       builder.Add(TrAssumeCmd(expr.tok, etran.TrExpr(expr)));
     }
 
+    void WithDelayedReadsChecks(ExpressionTranslator etran, List<Variable> localVariables,
+      BoogieStmtListBuilder builderInitializationArea, BoogieStmtListBuilder builder,
+      Action<WFOptions> action) {
+      var doReadsChecks = etran.readsFrame != null;
+      var options = new WFOptions(null, doReadsChecks, doReadsChecks);
+      action(options);
+      if (doReadsChecks) {
+        options.ProcessSavedReadsChecks(localVariables, builderInitializationArea, builder);
+      }
+    }
+    
     /// <summary>
     /// Check the well-formedness of "expr" (but don't leave hanging around any assumptions that affect control flow)
     /// </summary>

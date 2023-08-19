@@ -673,6 +673,7 @@ namespace Microsoft.Dafny {
         Contract.Assert(definiteAssignmentTrackers.Count == 0);
       } else {
         // check well-formedness of any default-value expressions (before assuming preconditions)
+        // TODO: modify WithDelayedReadsChecks so we can use it here too
         var wfo = new WFOptions(null, true, true, true);
         foreach (var formal in m.Ins.Where(formal => formal.DefaultValue != null)) {
           var e = formal.DefaultValue;
@@ -691,29 +692,29 @@ namespace Microsoft.Dafny {
         wfo.ProcessSavedReadsChecks(localVariables, builderInitializationArea, builder);
         
         // check well-formedness of the preconditions, and then assume each one of them
-        wfo = new WFOptions(null, true, true /* do delayed reads checks */);
-        foreach (AttributedExpression p in m.Req) {
-          CheckWellformedAndAssume(p.E, wfo, localVariables, builder, etran);
-        }
-        wfo.ProcessSavedReadsChecks(localVariables, builderInitializationArea, builder);
+        WithDelayedReadsChecks(etran, localVariables, builderInitializationArea, builder, wfo => {
+          foreach (AttributedExpression p in m.Req) {
+            CheckWellformedAndAssume(p.E, wfo, localVariables, builder, etran);
+          }
+        });
         
         // check well-formedness of the reads clauses
-        wfo = new WFOptions(null, true, true);
-        CheckFrameWellFormed(wfo, m.Reads, localVariables, builder, etran);
-        wfo.ProcessSavedReadsChecks(localVariables, builderInitializationArea, builder);
-        if (etran.readsFrame != null && Attributes.Contains(m.Attributes, "concurrent")) {
-          var desc = new PODesc.ConcurrentFrameEmpty("reads clause");
-          CheckFrameEmpty(m.tok, etran, etran.ReadsFrame(m.tok), builder, desc, null);
-        }
+        WithDelayedReadsChecks(etran, localVariables, builderInitializationArea, builder, wfo => {
+          CheckFrameWellFormed(wfo, m.Reads, localVariables, builder, etran);
+          if (etran.readsFrame != null && Attributes.Contains(m.Attributes, "concurrent")) {
+            var desc = new PODesc.ConcurrentFrameEmpty("reads clause");
+            CheckFrameEmpty(m.tok, etran, etran.ReadsFrame(m.tok), builder, desc, null);
+          }
+        });
 
         // check well-formedness of the modifies clauses
-        wfo = new WFOptions(null, true, true);
-        CheckFrameWellFormed(wfo, m.Mod.Expressions, localVariables, builder, etran);
-        if (Attributes.Contains(m.Attributes, "concurrent")) {
-          var desc = new PODesc.ConcurrentFrameEmpty("modifies clause");
-          CheckFrameEmpty(m.tok, etran, etran.ModifiesFrame(m.tok), builder, desc, null);
-        }
-        wfo.ProcessSavedReadsChecks(localVariables, builderInitializationArea, builder);
+        WithDelayedReadsChecks(etran, localVariables, builderInitializationArea, builder, wfo => {
+          CheckFrameWellFormed(wfo, m.Mod.Expressions, localVariables, builder, etran);
+          if (Attributes.Contains(m.Attributes, "concurrent")) {
+            var desc = new PODesc.ConcurrentFrameEmpty("modifies clause");
+            CheckFrameEmpty(m.tok, etran, etran.ModifiesFrame(m.tok), builder, desc, null);
+          }
+        });
 
         // check well-formedness of the decreases clauses
         foreach (Expression p in m.Decreases.Expressions) {
