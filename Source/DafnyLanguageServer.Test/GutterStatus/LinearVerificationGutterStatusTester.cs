@@ -25,7 +25,6 @@ public abstract class LinearVerificationGutterStatusTester : ClientBasedLanguage
 
     void ModifyOptions(DafnyOptions options) {
       options.Set(ServerCommand.LineVerificationStatus, true);
-      options.Set(ServerCommand.ProjectMode, true);
       modifyOptions?.Invoke(options);
     }
     await base.SetUp(ModifyOptions);
