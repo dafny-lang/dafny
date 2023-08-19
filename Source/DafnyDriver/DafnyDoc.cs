@@ -50,6 +50,8 @@ class DafnyDoc {
       outputdir = DefaultOutputDir;
     }
 
+
+
     // Collect all the dafny files; dafnyFiles already includes files from a .toml project file
     var exitValue = DafnyDriver.ExitValue.SUCCESS;
     dafnyFiles = dafnyFiles.Concat(dafnyFolders.SelectMany(folderPath => {
