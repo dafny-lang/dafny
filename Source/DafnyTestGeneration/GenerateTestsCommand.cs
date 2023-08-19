@@ -26,7 +26,8 @@ public class GenerateTestsCommand : ICommandSpec {
       BoogieOptionBag.VerificationTimeLimit,
       PrintBpl,
       CoverageReport,
-      ForcePrune
+      ForcePrune,
+      IgnoreWarnings
     }.Concat(ICommandSpec.ConsoleOutputOptions).
       Concat(ICommandSpec.ResolverOptions);
 
@@ -80,6 +81,7 @@ Path - Prints path-coverage tests for the given program.");
     dafnyOptions.ForbidNondeterminism = true;
     dafnyOptions.DefiniteAssignmentLevel = 2;
     dafnyOptions.UseBaseNameForFileName = false;
+    dafnyOptions.VerifyAllModules = true;
     dafnyOptions.TypeEncodingMethod = CoreOptions.TypeEncoding.Predicates;
     dafnyOptions.Set(DafnyConsolePrinter.ShowSnippets, false);
     dafnyOptions.TestGenOptions.Mode = mode;
@@ -102,6 +104,9 @@ Path - Prints path-coverage tests for the given program.");
   public static readonly Option<bool> ForcePrune = new("--force-prune",
     "Enable axiom pruning that Dafny uses to speed up verification. This may negatively affect the quality of tests.") {
   };
+  public static readonly Option<bool> IgnoreWarnings = new("--ignore-warnings",
+    "Proceed with test generation even if the linter returns warnings.") {
+  };
   static GenerateTestsCommand() {
     DafnyOptions.RegisterLegacyBinding(LoopUnroll, (options, value) => {
       options.LoopUnrollCount = value;
@@ -118,13 +123,17 @@ Path - Prints path-coverage tests for the given program.");
     DafnyOptions.RegisterLegacyBinding(ForcePrune, (options, value) => {
       options.TestGenOptions.ForcePrune = value;
     });
+    DafnyOptions.RegisterLegacyBinding(IgnoreWarnings, (options, value) => {
+      options.TestGenOptions.IgnoreWarnings = value;
+    });
 
     DooFile.RegisterNoChecksNeeded(
       LoopUnroll,
       SequenceLengthLimit,
       PrintBpl,
       CoverageReport,
-      ForcePrune
+      ForcePrune,
+      IgnoreWarnings
     );
   }
 }

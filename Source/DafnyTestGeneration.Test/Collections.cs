@@ -38,7 +38,7 @@ module SimpleTest {
 }
 ".TrimStart();
       var options = GetDafnyOptions(optionSettings, output);
-      var program = Utils.Parse(options, source, false);
+      var program = Utils.Parse(new BatchErrorReporter(options), source, false);
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
       Assert.True(3 <= methods.Count);
       Assert.True(methods.All(m =>
@@ -81,7 +81,8 @@ module C {
 }
 
 ".TrimStart();
-      var program = Utils.Parse(GetDafnyOptions(optionSettings, output), source, false);
+      var options = GetDafnyOptions(optionSettings, output);
+      var program = Utils.Parse(new BatchErrorReporter(options), source, false);
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
       Assert.True(3 <= methods.Count);
       Assert.True(methods.All(m =>
