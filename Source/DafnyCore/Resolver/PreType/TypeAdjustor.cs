@@ -30,11 +30,11 @@ public class TypeAdjustorVisitor : ASTVisitor<IASTVisitorContext> {
   private readonly List<Flow> flows = new();
 
   public void DebugPrint() {
-    systemModuleManager.Options.OutputWriter.WriteLine($"--------------------------- subset-type determination flows:");
+    systemModuleManager.Options.OutputWriter.WriteLine($"--------------------------- type-adjustment flows:");
     foreach (var flow in flows) {
       flow.DebugPrint(systemModuleManager.Options.OutputWriter);
     }
-    systemModuleManager.Options.OutputWriter.WriteLine("------------------- (end of subset-type determination flows)");
+    systemModuleManager.Options.OutputWriter.WriteLine("------------------- (end of type-adjustment flows)");
   }
 
   protected override void PostVisitOneExpression(Expression expr, IASTVisitorContext context) {
@@ -88,7 +88,29 @@ public class TypeAdjustorVisitor : ASTVisitor<IASTVisitorContext> {
     } else if (expr is ApplyExpr applyExpr) {
       flows.Add(new FlowFromTypeArgument(expr, applyExpr.Function.UnnormalizedType, applyExpr.Args.Count));
 
+    } else if (expr is SetDisplayExpr setDisplayExpr) {
+      foreach (var element in setDisplayExpr.Elements) {
+        flows.Add(new FlowFromComputedType(expr, () => new SetType(setDisplayExpr.Finite, element.Type), "set display"));
+      }
+
+    } else if (expr is MultiSetDisplayExpr multiSetDisplayExpr) {
+      foreach (var element in multiSetDisplayExpr.Elements) {
+        flows.Add(new FlowFromComputedType(expr, () => new MultiSetType(element.Type), "multiset display"));
+      }
+
+    } else if (expr is SeqDisplayExpr seqDisplayExpr) {
+      foreach (var element in seqDisplayExpr.Elements) {
+        flows.Add(new FlowFromComputedType(expr, () => new SeqType(element.Type), "sequence display"));
+      }
+
+    } else if (expr is MapDisplayExpr mapDisplayExpr) {
+      foreach (var element in mapDisplayExpr.Elements) {
+        flows.Add(new FlowFromComputedType(expr, () => new MapType(mapDisplayExpr.Finite, element.A.Type, element.B.Type),
+          "map display"));
+      }
+
     }
+
     base.PostVisitOneExpression(expr, context);
   }
 
