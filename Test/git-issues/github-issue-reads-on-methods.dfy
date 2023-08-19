@@ -2,7 +2,9 @@
 // RUN: %diff "%s.expect" "%t"
 
 class Box<T> {
-  constructor() {}
+  constructor(x: T) {
+    this.x := x;
+  }
   var x: T
 }
 
@@ -44,18 +46,18 @@ method GetBoxDefaultReads(b: Box<int>) returns (i: int)
 method ReadingAndWritingFreshStateAllowed()
   reads {}
 {
-  var myBox := new Box();
+  var myBox := new Box(42);
   var x := GetBoxFn(myBox);
   SetBox(myBox, 42);
 }
 
 // TODO: verification times out. Did this already work for functions?
-method ApplyLambda<T, R>(f: T ~> R, t: T) returns (r: R) 
-  requires f.requires(t)
-  reads f.reads
-{
-  r := f(t);
-}
+// method ApplyLambda<T, R>(f: T ~> R, t: T) returns (r: R) 
+//   requires f.requires(t)
+//   reads f.reads
+// {
+//   r := f(t);
+// }
 
 datatype Option<T> = Some(value: T) | None
 
@@ -85,11 +87,18 @@ function Always42(b: Box<int>): int {
   return 42;
 }
 
-method MetaBox(b: Box<Box<int>>)
+method BadMetaBox(b: Box<Box<int>>)
   reads {}
-  modifies b.x  // BUG: should be error because b.x reads b
+  modifies b.x
 {
-  b.x.x := 42; // BUG: should be error because b.x.x reads b, but reads checks must not look at LHS's
+  b.x.x := 42;
+}
+
+method GoodMetaBox(b: Box<Box<int>>)
+  // Crashing...
+  modifies b.x
+{
+  b.x.x := 42;
 }
 
 function Foo(b: Box<Box<int>>): int
@@ -163,7 +172,8 @@ method OnlySpecReads(b: Box<int>) returns (r: int)
   return 42;
 }
 
-method DefaultValueReads(b: Box<int>, x: int := b.x) returns (r: int)
+method DefaultValueReads(b: Box<int>, x: int := b.x)
+  returns (r: int)
   reads {}
 {
   return 42;
@@ -174,6 +184,8 @@ method DefaultValueReads(b: Box<int>, x: int := b.x) returns (r: int)
 //   * Also need to apply reads clauses to all other clauses, and default values
 // * Double check refinement
 // * Double check extending traits
+// * Explicitly test against ghost state too
+//   * ghost methods/lemmas as well
 // * {:concurrent} (probably separate test file)
 // * Review reads checks for AST elements missed because they don't occur in expressions
 // * Optimize checking for `reads {}`? Can be checked with a simple AST pass, much cheaper

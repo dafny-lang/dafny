@@ -8749,7 +8749,7 @@ namespace Microsoft.Dafny {
     /// <summary>
     /// Creates a list of protected Boogie LHSs for the given Dafny LHSs.  Along the way,
     /// builds code that checks that the LHSs are well-defined,
-    /// and are allowed by the enclosing modifies clause.
+    /// and are allowed by the enclosing reads and modifies clause.
     /// Checks that they denote different locations iff checkDistinctness is true.
     /// </summary>
     void ProcessLhss(List<Expression> lhss, bool rhsCanAffectPreviouslyKnownExpressions, bool checkDistinctness,

@@ -82,7 +82,7 @@ namespace Microsoft.Dafny {
       /// Clones the given "options", but sets "LValueContext" to "lValueContext".
       /// </summary>
       public WFOptions WithLValueContext(bool lValueContext) {
-        return new WFOptions(SelfCallsAllowance, false, DoOnlyCoarseGrainedTerminationChecks,
+        return new WFOptions(SelfCallsAllowance, DoReadsChecks, DoOnlyCoarseGrainedTerminationChecks,
           Locals, Asserts, lValueContext, AssertKv);
       }
 

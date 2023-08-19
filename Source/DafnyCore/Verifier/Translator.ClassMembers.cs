@@ -705,11 +705,10 @@ namespace Microsoft.Dafny {
           var desc = new PODesc.ConcurrentFrameEmpty("reads clause");
           CheckFrameEmpty(m.tok, etran, etran.ReadsFrame(m.tok), builder, desc, null);
         }
-        wfo.ProcessSavedReadsChecks(localVariables, builderInitializationArea, builder);
 
         // check well-formedness of the modifies clauses
         wfo = new WFOptions(null, true, true);
-        CheckFrameWellFormed(new WFOptions(), m.Mod.Expressions, localVariables, builder, etran);
+        CheckFrameWellFormed(wfo, m.Mod.Expressions, localVariables, builder, etran);
         if (Attributes.Contains(m.Attributes, "concurrent")) {
           var desc = new PODesc.ConcurrentFrameEmpty("modifies clause");
           CheckFrameEmpty(m.tok, etran, etran.ModifiesFrame(m.tok), builder, desc, null);
