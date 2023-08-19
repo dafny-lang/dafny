@@ -535,7 +535,8 @@ namespace Microsoft.Dafny {
       List<Variable> inParams = Boogie.Formal.StripWhereClauses(proc.InParams);
       List<Variable> outParams = Boogie.Formal.StripWhereClauses(proc.OutParams);
 
-      BoogieStmtListBuilder builder = new BoogieStmtListBuilder(this, options);
+      var builder = new BoogieStmtListBuilder(this, options);
+      var builderInitializationArea = new BoogieStmtListBuilder(this, options);
       builder.Add(new CommentCmd("AddMethodImpl: " + m + ", " + proc));
       var etran = new ExpressionTranslator(this, predef, m.tok);
       // Don't do any reads checks if the reads clause is *,
@@ -672,9 +673,10 @@ namespace Microsoft.Dafny {
         Contract.Assert(definiteAssignmentTrackers.Count == 0);
       } else {
         // check well-formedness of any default-value expressions (before assuming preconditions)
+        var wfo = new WFOptions(null, true, true, true);
         foreach (var formal in m.Ins.Where(formal => formal.DefaultValue != null)) {
           var e = formal.DefaultValue;
-          CheckWellformed(e, new WFOptions(null, false, false, true), localVariables, builder, etran);
+          CheckWellformed(e, wfo, localVariables, builder, etran);
           builder.Add(new Boogie.AssumeCmd(e.tok, CanCallAssumption(e, etran)));
           CheckSubrange(e.tok, etran.TrExpr(e), e.Type, formal.Type, builder);
 
@@ -686,12 +688,34 @@ namespace Microsoft.Dafny {
             }
           }
         }
+        wfo.ProcessSavedReadsChecks(localVariables, builderInitializationArea, builder);
+        
         // check well-formedness of the preconditions, and then assume each one of them
+        wfo = new WFOptions(null, true, true /* do delayed reads checks */);
         foreach (AttributedExpression p in m.Req) {
-          CheckWellformedAndAssume(p.E, new WFOptions(), localVariables, builder, etran);
+          CheckWellformedAndAssume(p.E, wfo, localVariables, builder, etran);
         }
+        wfo.ProcessSavedReadsChecks(localVariables, builderInitializationArea, builder);
+        
+        // check well-formedness of the reads clauses
+        wfo = new WFOptions(null, true, true);
+        CheckFrameWellFormed(wfo, m.Reads, localVariables, builder, etran);
+        wfo.ProcessSavedReadsChecks(localVariables, builderInitializationArea, builder);
+        if (etran.readsFrame != null && Attributes.Contains(m.Attributes, "concurrent")) {
+          var desc = new PODesc.ConcurrentFrameEmpty("reads clause");
+          CheckFrameEmpty(m.tok, etran, etran.ReadsFrame(m.tok), builder, desc, null);
+        }
+        wfo.ProcessSavedReadsChecks(localVariables, builderInitializationArea, builder);
+
         // check well-formedness of the modifies clauses
+        wfo = new WFOptions(null, true, true);
         CheckFrameWellFormed(new WFOptions(), m.Mod.Expressions, localVariables, builder, etran);
+        if (Attributes.Contains(m.Attributes, "concurrent")) {
+          var desc = new PODesc.ConcurrentFrameEmpty("modifies clause");
+          CheckFrameEmpty(m.tok, etran, etran.ModifiesFrame(m.tok), builder, desc, null);
+        }
+        wfo.ProcessSavedReadsChecks(localVariables, builderInitializationArea, builder);
+
         // check well-formedness of the decreases clauses
         foreach (Expression p in m.Decreases.Expressions) {
           CheckWellformed(p, new WFOptions(), localVariables, builder, etran);

@@ -3940,7 +3940,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(MakeAssert != null);
       Contract.Requires(predef != null);
 
-      // emit: assert (forall<alpha> o: ref, f: Field alpha :: o != null && $Heap[o,alloc] && (o,f) in subFrame ==> $_Frame[o,f]);
+      // emit: assert (forall<alpha> o: ref, f: Field alpha :: o != null && $Heap[o,alloc] && (o,f) in subFrame ==> enclosingFrame[o,f]);
       Bpl.TypeVariable alpha = new Bpl.TypeVariable(tok, "alpha");
       Bpl.BoundVariable oVar = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "$o", predef.RefType));
       Bpl.IdentifierExpr o = new Bpl.IdentifierExpr(tok, oVar);
@@ -3956,6 +3956,34 @@ namespace Microsoft.Dafny {
         return;
       }
       MakeAssert(tok, q, desc, kv);
+    }
+    
+    void CheckFrameEmpty(IToken tok,
+                         ExpressionTranslator/*!*/ etran, Boogie.IdentifierExpr /*!*/ frame,
+                         BoogieStmtListBuilder/*!*/ builder, PODesc.ProofObligationDescription desc,
+                         Bpl.QKeyValue kv) {
+      Contract.Requires(tok != null);
+      Contract.Requires(etran != null);
+      Contract.Requires(frame != null);
+      Contract.Requires(etran != null);
+      Contract.Requires(predef != null);
+
+      // emit: assert (forall<alpha> o: ref, f: Field alpha :: o != null && $Heap[o,alloc] ==> !frame[o,f]);
+      Bpl.TypeVariable alpha = new Bpl.TypeVariable(tok, "alpha");
+      Bpl.BoundVariable oVar = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "$o", predef.RefType));
+      Bpl.IdentifierExpr o = new Bpl.IdentifierExpr(tok, oVar);
+      Bpl.BoundVariable fVar = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "$f", predef.FieldName(tok, alpha)));
+      Bpl.IdentifierExpr f = new Bpl.IdentifierExpr(tok, fVar);
+      Bpl.Expr ante = Bpl.Expr.And(Bpl.Expr.Neq(o, predef.Null), etran.IsAlloced(tok, o));
+      Bpl.Expr inFrame = Bpl.Expr.Select(frame, o, f);
+      Bpl.Expr notInFrame = Bpl.Expr.Not(inFrame);
+
+      Bpl.Expr q = new Bpl.ForallExpr(tok, new List<TypeVariable> { alpha }, new List<Variable> { oVar, fVar },
+        Bpl.Expr.Imp(ante, notInFrame));
+      if (IsExprAlways(q, true)) {
+        return;
+      }
+      builder.Add(Assert(tok, q, desc, kv));
     }
 
     /// <summary>
@@ -4349,6 +4377,12 @@ namespace Microsoft.Dafny {
 
       DefineFrame(f.tok, etran.ReadsFrame(f.tok), f.Reads, builder, locals, null);
       InitializeFuelConstant(f.tok, builder, etran);
+
+      // TODO: is this valid here given we haven't checked the well-formedness of the reads clauses yet?
+      if (Attributes.Contains(f.Attributes, "concurrent")) {
+        var desc = new PODesc.ConcurrentFrameEmpty("reads clause");
+        CheckFrameEmpty(f.tok, etran, etran.ReadsFrame(f.tok), builder, desc, null);
+      }
 
       // Check well-formedness of any default-value expressions (before assuming preconditions).
       var wfo = new WFOptions(null, true, true, true); // no reads or termination checks
