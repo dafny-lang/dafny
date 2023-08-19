@@ -229,3 +229,24 @@ method M8(n: nat) {
   assert ff.requires();
   assert 0 <= u;
 }
+
+method M9(n: nat) {
+  if
+  case true =>
+    var cell := new CellX<nat>(n);
+    assert 0 <= cell.data;
+  case true =>
+    var cell := new CellX(n);
+    assert 0 <= cell.data; // error: cell.data is int
+  case true =>
+    var cell := new CellX<int>(n);
+    assert 0 <= cell.data; // error: cell.data is int
+  case true =>
+    var xx: CellX<nat>;
+    var cell := new CellX<int>(n);
+    xx := cell; // error: types of xx and cell don't match
+  case true =>
+    var xx: CellX<int>;
+    var cell := new CellX<nat>(n);
+    xx := cell; // error: types of xx and cell don't match
+}

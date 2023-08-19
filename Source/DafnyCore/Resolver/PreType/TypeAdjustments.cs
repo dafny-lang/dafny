@@ -45,9 +45,34 @@ public class AdjustableType : TypeProxy {
     type = NormalizeSansAdjustableType(type);
     if (type is AdjustableType utp) {
       return $"%{utp.UniqueId}";
-    } else {
+    }
+    if (type is BasicType) {
       return type.ToString();
     }
+    if (type.AsArrowType is {} arrowType) {
+      string arrow = type is ArrowType
+        ? "~>"
+        : type is UserDefinedType userDefinedType
+          ? ArrowType.IsPartialArrowTypeName(userDefinedType.Name)
+            ? "-->"
+            : ArrowType.IsTotalArrowTypeName(userDefinedType.Name)
+              ? "->"
+              : null
+          : null;
+      if (arrow != null) {
+        return $"({arrowType.Args.Comma(ToStringAsAdjustableType)}) {arrow} {ToStringAsAdjustableType(arrowType.Result)}";
+      }
+    }
+    string headName;
+    if (type is CollectionType collectionType) {
+      headName = collectionType.CollectionTypeName;
+    } else {
+      headName = ((UserDefinedType)type).Name;
+    }
+    if (type.TypeArgs.Count == 0) {
+      return headName;
+    }
+    return $"{headName}<{type.TypeArgs.Comma(ToStringAsAdjustableType)}>";
   }
 
   public static string ToStringAsBottom(Type type) {
@@ -63,6 +88,9 @@ public class AdjustableType : TypeProxy {
   }
 
   public static bool NormalizesToBottom(Type type) {
+    if (type is BottomTypePlaceholder) {
+      return true;
+    }
     while (true) {
       type = NormalizeSansAdjustableType(type);
       if (type is AdjustableType updatableTypeProxy) {

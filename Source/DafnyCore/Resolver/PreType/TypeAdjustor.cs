@@ -104,12 +104,10 @@ public class TypeAdjustorVisitor : ASTVisitor<IASTVisitorContext> {
     if (stmt is VarDeclPattern varDeclPattern) {
       VisitPattern(varDeclPattern.LHS, context);
     } else if (stmt is AssignStmt { Lhs: IdentifierExpr lhsIdentifierExpr } assignStmt) {
-      if (AdjustableType.NormalizeSansAdjustableType(lhsIdentifierExpr.Var.UnnormalizedType) is AdjustableType) {
-        if (assignStmt is { Rhs: ExprRhs exprRhs }) {
-          flows.Add(new FlowIntoVariable(lhsIdentifierExpr.Var, exprRhs.Expr, assignStmt.tok, ":="));
-        } else if (assignStmt is { Rhs: TypeRhs tRhs }) {
-          flows.Add(new FlowFromType(lhsIdentifierExpr.Var.UnnormalizedType, tRhs.Type, assignStmt.tok, ":= new"));
-        }
+      if (assignStmt is { Rhs: ExprRhs exprRhs }) {
+        flows.Add(new FlowIntoVariable(lhsIdentifierExpr.Var, exprRhs.Expr, assignStmt.tok, ":="));
+      } else if (assignStmt is { Rhs: TypeRhs tRhs }) {
+        flows.Add(new FlowFromType(lhsIdentifierExpr.Var.UnnormalizedType, tRhs.Type, assignStmt.tok, ":= new"));
       }
 
     } else if (stmt is AssignSuchThatStmt assignSuchThatStmt) {
@@ -121,13 +119,11 @@ public class TypeAdjustorVisitor : ASTVisitor<IASTVisitorContext> {
       Contract.Assert(callStmt.Lhs.Count == callStmt.Method.Outs.Count);
       for (var i = 0; i < callStmt.Lhs.Count; i++) {
         if (callStmt.Lhs[i] is IdentifierExpr actualIdentifierExpr) {
-          if (AdjustableType.NormalizeSansAdjustableType(actualIdentifierExpr.Var.UnnormalizedType) is AdjustableType updatableTypeProxy) {
-            var formal = callStmt.Method.Outs[i];
-            flows.Add(new FlowIntoVariableFromComputedType(actualIdentifierExpr.Var, () => {
-              var typeMap = callStmt.MethodSelect.TypeArgumentSubstitutionsWithParents();
-              return formal.Type.Subst(typeMap);
-            }, callStmt.tok, $"{actualIdentifierExpr.Var.Name} := {callStmt.Method.Name}(...)"));
-          }
+          var formal = callStmt.Method.Outs[i];
+          flows.Add(new FlowIntoVariableFromComputedType(actualIdentifierExpr.Var, () => {
+            var typeMap = callStmt.MethodSelect.TypeArgumentSubstitutionsWithParents();
+            return formal.Type.Subst(typeMap);
+          }, callStmt.tok, $"{actualIdentifierExpr.Var.Name} := {callStmt.Method.Name}(...)"));
         }
       }
 
@@ -179,7 +175,7 @@ public class TypeAdjustorVisitor : ASTVisitor<IASTVisitorContext> {
     bool anythingChanged;
     do {
       anythingChanged = false;
-      foreach (var flow in flows) {
+      foreach (var flow in flows.Where(flow => !flow.HasError)) {
         anythingChanged |= flow.Update(context);
       }
     } while (anythingChanged);

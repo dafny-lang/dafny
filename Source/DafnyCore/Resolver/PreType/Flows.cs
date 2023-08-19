@@ -5,10 +5,11 @@
 //
 //-----------------------------------------------------------------------------
 
+using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.IO;
-using System.IO.Compression;
+using JetBrains.Annotations;
 
 namespace Microsoft.Dafny;
 
@@ -19,6 +20,7 @@ record FlowContext(SystemModuleManager SystemModuleManager, ErrorReporter Report
 abstract class Flow {
   private readonly IToken tok;
   private readonly string description;
+  public bool HasError;
 
   protected string TokDescription() {
     return $"({tok.line},{tok.col}) {description}";
@@ -36,34 +38,90 @@ abstract class Flow {
 
   public abstract void DebugPrint(TextWriter output);
 
-  protected static bool UpdateAdjustableType(AdjustableType sink, Type sourceType, FlowContext context) {
-    var previousSink = sink.T;
-    var join = Join(previousSink, sourceType, context);
+  protected bool UpdateAdjustableType(Type sink, Type sourceType, FlowContext context) {
+    string previousLhs = null;
+    string joinArguments = null;
+    if (context.DebugPrint) {
+      previousLhs = $"{AdjustableType.ToStringAsAdjustableType(sink)}";
+      joinArguments = $"{AdjustableType.ToStringAsBottom(sink)} \\/ {AdjustableType.ToStringAsBottom(sourceType)}";
+    }
+
+    var previousSink = (AdjustableType.NormalizeSansAdjustableType(sink) as AdjustableType)?.T ?? sink; // TODO: why not just sink.Normalize()?
+    var join = JoinAndUpdate(sink, sourceType, context);
+    if (join == null) {
+      HasError = true;
+      return false;
+    }
     if (EqualTypes(previousSink, join)) {
       return false;
     }
     if (context.DebugPrint) {
-      context.OutputWriter.WriteLine(
-        $"DEBUG: updating proxy %{sink.UniqueId} to {AdjustableType.ToStringAsAdjustableType(join)}" +
-        $" ({AdjustableType.ToStringAsBottom(previousSink)} \\/ {AdjustableType.ToStringAsBottom(sourceType)})");
+      context.OutputWriter.WriteLine($"DEBUG: updating {previousLhs} to {AdjustableType.ToStringAsBottom(join)} ({joinArguments})");
     }
-    sink.T = join;
     return true;
   }
 
   protected static bool EqualTypes(Type a, Type b) {
-    if (a is BottomTypePlaceholder != b is BottomTypePlaceholder) {
+    if (AdjustableType.NormalizesToBottom(a) != AdjustableType.NormalizesToBottom(b)) {
       return false;
     }
     return a.Equals(b, true);
+  }
+
+  [CanBeNull]
+  public static Type JoinAndUpdate(Type a, Type b, FlowContext context) {
+    var adjustableA = AdjustableType.NormalizeSansAdjustableType(a) as AdjustableType;
+    var join = Join(adjustableA?.T ?? a, b, context);
+    if (join == null) {
+      return null;
+    }
+    if (adjustableA == null) {
+      return join;
+    }
+
+    join = AdjustableType.NormalizeSansAdjustableType(join);
+    if (join is AdjustableType adjustableJoin) {
+      join = adjustableJoin.T;
+    }
+    adjustableA.T = join;
+    return adjustableA;
+  }
+
+  [CanBeNull]
+  public static Type CopyAndUpdate(Type a, Type b, FlowContext context) {
+    var adjustableA = AdjustableType.NormalizeSansAdjustableType(a) as AdjustableType;
+    var aa = adjustableA?.T ?? a;
+    // compute the "copy" of aa and b:
+    Type copy;
+    if (AdjustableType.NormalizesToBottom(a)) {
+      copy = b;
+    } else if (AdjustableType.NormalizesToBottom(b)) {
+      copy = a;
+    } else if (a.Equals(b, true)) {
+      copy = a;
+    } else {
+      return null;
+    }
+
+    if (adjustableA == null) {
+      return copy;
+    }
+
+    copy = AdjustableType.NormalizeSansAdjustableType(copy);
+    if (copy is AdjustableType adjustableCopy) {
+      copy = adjustableCopy.T;
+    }
+    adjustableA.T = copy;
+    return adjustableA;
   }
 
   /// <summary>
   /// Does a best-effort to compute the join of "a" and "b", where the base types of "a" and "b" (or
   /// some parent type thereof) are the same.
   /// If there is no join (for example, if type parameters in a non-variant position are
-  /// incompatible), then use base types as such type arguments.
+  /// incompatible), then return null;
   /// </summary>
+  [CanBeNull]
   public static Type Join(Type a, Type b, FlowContext context) {
     Contract.Requires(a != null);
     Contract.Requires(b != null);
@@ -71,11 +129,6 @@ abstract class Flow {
     if (a is BottomTypePlaceholder) {
       return b;
     } else if (b is BottomTypePlaceholder) {
-      return a;
-    }
-
-    // As a special-case optimization, check for equality here
-    if (a.Equals(b, true)) {
       return a;
     }
 
@@ -96,11 +149,12 @@ abstract class Flow {
       var udtB = (UserDefinedType)b;
       if (udtA.ResolvedClass == udtB.ResolvedClass) {
         // We have two subset types with equal heads
-        if (a.Equals(b, true)) { // optimization for a special case, which applies for example when there are no arguments or when the types happen to be the same
-          return a;
-        }
         Contract.Assert(a.TypeArgs.Count == b.TypeArgs.Count);
         var typeArgs = Joins(TypeParameter.Variances(udtA.ResolvedClass.TypeArgs), a.TypeArgs, b.TypeArgs, context);
+        if (typeArgs == null) {
+          // there was an error in computing the joins, so propagate the error
+          return null;
+        }
         return new UserDefinedType(udtA.tok, udtA.Name, udtA.ResolvedClass, typeArgs);
       }
     }
@@ -116,6 +170,9 @@ abstract class Flow {
     } else if (a is CollectionType) {
       var directions = a.TypeArgs.ConvertAll(_ => TypeParameter.TPVariance.Co);
       var typeArgs = Joins(directions, a.TypeArgs, b.TypeArgs, context);
+      if (typeArgs == null) {
+        return null;
+      }
       Contract.Assert(typeArgs.Count == (a is MapType ? 2 : 1));
       if (a is SetType aSetType) {
         var bSetType = (SetType)b;
@@ -143,23 +200,29 @@ abstract class Flow {
       Contract.Assert(b.TypeArgs.Count == arity + 1);
       Contract.Assert(aa.ResolvedClass == bb.ResolvedClass);
       var typeArgs = Joins(aa.Variances(), a.TypeArgs, b.TypeArgs, context);
+      if (typeArgs == null) {
+        return null;
+      }
       return new ArrowType(aa.tok, (ArrowTypeDecl)aa.ResolvedClass, typeArgs);
     }
 
     // Convert a and b to their common supertype
-    var aDecl = (TopLevelDeclWithMembers)((UserDefinedType)a).ResolvedClass;
-    var bDecl = (TopLevelDeclWithMembers)((UserDefinedType)b).ResolvedClass;
+    var aDecl = ((UserDefinedType)a).ResolvedClass;
+    var bDecl = ((UserDefinedType)b).ResolvedClass;
     var commonSupertypeDecl = PreTypeConstraints.JoinHeads(aDecl, bDecl, context.SystemModuleManager);
     Contract.Assert(commonSupertypeDecl != null);
     var aTypeSubstMap = TypeParameter.SubstitutionMap(aDecl.TypeArgs, a.TypeArgs);
-    aDecl.AddParentTypeParameterSubstitutions(aTypeSubstMap);
+    (aDecl as TopLevelDeclWithMembers)?.AddParentTypeParameterSubstitutions(aTypeSubstMap);
     var bTypeSubstMap = TypeParameter.SubstitutionMap(bDecl.TypeArgs, b.TypeArgs);
-    bDecl.AddParentTypeParameterSubstitutions(bTypeSubstMap);
+    (bDecl as TopLevelDeclWithMembers)?.AddParentTypeParameterSubstitutions(bTypeSubstMap);
 
     a = UserDefinedType.FromTopLevelDecl(commonSupertypeDecl.tok, commonSupertypeDecl).Subst(aTypeSubstMap);
     b = UserDefinedType.FromTopLevelDecl(commonSupertypeDecl.tok, commonSupertypeDecl).Subst(bTypeSubstMap);
 
     var joinedTypeArgs = Joins(TypeParameter.Variances(commonSupertypeDecl.TypeArgs), a.TypeArgs, b.TypeArgs, context);
+    if (joinedTypeArgs == null) {
+      return null;
+    }
     var udt = (UserDefinedType)a;
     var result = new UserDefinedType(udt.tok, udt.Name, commonSupertypeDecl, joinedTypeArgs);
     return abNonNullTypes && result.IsRefType ? UserDefinedType.CreateNonNullType(result) : result;
@@ -192,6 +255,7 @@ abstract class Flow {
   /// For a Contra direction (Co), use Meet(a[i], b[i]).
   /// For a Non direction, use a[i], provided a[i] and b[i] are equal, or otherwise use the base type of a[i].
   /// </summary>
+  [CanBeNull]
   public static List<Type> Joins(List<TypeParameter.TPVariance> directions, List<Type> a, List<Type> b, FlowContext context) {
     Contract.Requires(directions != null);
     Contract.Requires(a != null);
@@ -204,21 +268,15 @@ abstract class Flow {
     for (var i = 0; i < count; i++) {
       Type output;
       if (directions[i] == TypeParameter.TPVariance.Co) {
-        output = Join(a[i], b[i], context);
+        output = JoinAndUpdate(a[i], b[i], context);
       } else if (directions[i] == TypeParameter.TPVariance.Contra) {
         output = Meet(a[i], b[i], context);
       } else {
         Contract.Assert(directions[i] == TypeParameter.TPVariance.Non);
-        if (AdjustableType.NormalizesToBottom(a[i])) {
-          output = b[i];
-        } else if (AdjustableType.NormalizesToBottom(b[i])) {
-          output = a[i];
-        } else if (a[i].Equals(b[i], true)) {
-          output = a[i];
-        } else {
-          // use the base type
-          output = a[i].NormalizeExpand();
-        }
+        output = CopyAndUpdate(a[i], b[i], context);
+      }
+      if (output == null) {
+        return null;
       }
       extrema.Add(output);
     }
@@ -228,13 +286,12 @@ abstract class Flow {
 
 
 class FlowIntoVariable : Flow {
-  protected readonly AdjustableType sink;
+  protected readonly Type sink;
   protected readonly Expression source;
 
   public FlowIntoVariable(IVariable variable, Expression source, IToken tok, string description = ":=")
     : base(tok, description) {
-    Contract.Requires(AdjustableType.NormalizeSansAdjustableType(variable.UnnormalizedType) is AdjustableType);
-    this.sink = (AdjustableType)AdjustableType.NormalizeSansAdjustableType(variable.UnnormalizedType);
+    this.sink = AdjustableType.NormalizeSansAdjustableType(variable.UnnormalizedType);
     this.source = source;
   }
 
@@ -243,20 +300,21 @@ class FlowIntoVariable : Flow {
   }
 
   public override void DebugPrint(TextWriter output) {
-    var bound = PreTypeConstraints.Pad($"%{sink.UniqueId} :> {AdjustableType.ToStringAsAdjustableType(source.UnnormalizedType)}", 27);
+    var lhs = AdjustableType.ToStringAsAdjustableType(sink);
+    var rhs = AdjustableType.ToStringAsAdjustableType(source.UnnormalizedType);
+    var bound = PreTypeConstraints.Pad($"{lhs} :> {rhs}", 27);
     var value = PreTypeConstraints.Pad(AdjustableType.ToStringAsBottom(sink), 20);
     output.WriteLine($"    {bound}  {value}    {TokDescription()}");
   }
 }
 
 class FlowIntoVariableFromComputedType : Flow {
-  protected readonly AdjustableType sink;
+  protected readonly Type sink;
   private readonly System.Func<Type> getType;
 
   public FlowIntoVariableFromComputedType(IVariable variable, System.Func<Type> getType, IToken tok, string description = ":=")
     : base(tok, description) {
-    Contract.Requires(AdjustableType.NormalizeSansAdjustableType(variable.UnnormalizedType) is AdjustableType);
-    this.sink = (AdjustableType)AdjustableType.NormalizeSansAdjustableType(variable.UnnormalizedType);
+    this.sink = AdjustableType.NormalizeSansAdjustableType(variable.UnnormalizedType);
     this.getType = getType;
   }
 
@@ -266,7 +324,7 @@ class FlowIntoVariableFromComputedType : Flow {
 
   public override void DebugPrint(TextWriter output) {
     var sourceType = getType();
-    var bound = PreTypeConstraints.Pad($"%{sink.UniqueId} :> {AdjustableType.ToStringAsAdjustableType(sourceType)}", 27);
+    var bound = PreTypeConstraints.Pad($"%{AdjustableType.ToStringAsAdjustableType(sink)} :> {AdjustableType.ToStringAsAdjustableType(sourceType)}", 27);
     var value = PreTypeConstraints.Pad(AdjustableType.ToStringAsBottom(sink), 20);
     output.WriteLine($"    {bound}  {value}    {TokDescription()}");
   }
@@ -288,11 +346,7 @@ abstract class FlowIntoExpr : Flow {
   protected abstract Type GetSourceType();
 
   public override bool Update(FlowContext context) {
-    if (sink is AdjustableType adjustableType) {
-      return UpdateAdjustableType(adjustableType, GetSourceType(), context);
-    }
-    // TODO: perhaps it's still possible to update the type arguments
-    return false;
+    return UpdateAdjustableType(sink, GetSourceType(), context);
   }
 
   public override void DebugPrint(TextWriter output) {
