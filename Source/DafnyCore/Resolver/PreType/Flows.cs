@@ -46,17 +46,17 @@ abstract class Flow {
       joinArguments = $"{AdjustableType.ToStringAsBottom(sink)} \\/ {AdjustableType.ToStringAsBottom(sourceType)}";
     }
 
-    var previousSink = (AdjustableType.NormalizeSansAdjustableType(sink) as AdjustableType)?.T ?? sink; // TODO: why not just sink.Normalize()?
+    var previousSink = (AdjustableType.NormalizeSansAdjustableType(sink) as AdjustableType)?.T ?? sink;
     var join = JoinAndUpdate(sink, sourceType, context);
     if (join == null) {
       HasError = true;
       return false;
     }
-    if (EqualTypes(previousSink, join)) {
+    if (EqualTypes(previousSink, sink)) {
       return false;
     }
     if (context.DebugPrint) {
-      context.OutputWriter.WriteLine($"DEBUG: updating {previousLhs} to {AdjustableType.ToStringAsBottom(join)} ({joinArguments})");
+      context.OutputWriter.WriteLine($"DEBUG: updating {previousLhs} to {AdjustableType.ToStringAsBottom(sink)} ({joinArguments})");
     }
     return true;
   }
