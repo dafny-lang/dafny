@@ -41,11 +41,11 @@ method Q0() returns (b: array<ParamSub<real>>, be: ParamSub<real>)
     b := new ParamSub[20];
   }
   var a := be;
-  // The following gives a verification error, because the inferred type of "d" is array<seq<real>>,
-  // which take subset types into consideration. (Once type improvement for subset types is implemented, this error will go away.)
   var d: array := b;
   var c: ParamSub := b[0];
 
+  // The following gives a verification error, because the type for "new" comes from the pre-type inference of element type "seq<real>".
+  // Type adjustments (currently) flow only from RHSs to LHSs, so "seq<real>" is not being adjusted to "ParamSub<real>".
   b := new [20];
   var arr := new array<seq<int>>;
   var cc := new CC;

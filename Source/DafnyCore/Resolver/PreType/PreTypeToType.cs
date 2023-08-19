@@ -7,6 +7,7 @@
 
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
+using System.Linq;
 
 namespace Microsoft.Dafny;
 
@@ -34,6 +35,33 @@ class PreTypeToTypeVisitor : ASTVisitor<IASTVisitorContext> {
     this.systemModuleManager = systemModuleManager;
   }
 
+  /// <summary>
+  /// This method combines the inferred pre-type with any user-supplied type for newtype, subset type,
+  /// and const declarations. Those are the declarations whose signature contains inferred elements.
+  /// When the other declarations are visited, it is expected that the signatures of all top-level and
+  /// member declarations have types. For example, to call NormalizeExpand() on a subset type requires
+  /// knowing its Rhs type, and visiting a MemberSelectExpr for a constant field requires knowing the
+  /// type of the field.
+  /// </summary>
+  public void VisitConstantsAndRedirectingTypes(List<TopLevelDecl> declarations) {
+    foreach (var decl in declarations) {
+      if (decl is NewtypeDecl newtypeDecl) {
+        TypeAdjustments.Combine(newtypeDecl.BaseType, newtypeDecl.BasePreType, false);
+      } else if (decl is SubsetTypeDecl subsetTypeDecl) {
+        TypeAdjustments.Combine(subsetTypeDecl.Var.Type, subsetTypeDecl.Var.PreType, false);
+      }
+      if (decl is TopLevelDeclWithMembers topLevelDeclWithMembers) {
+        foreach (var member in topLevelDeclWithMembers.Members.Where(member => member is ConstantField)) {
+          var constField = (ConstantField)member;
+          TypeAdjustments.Combine(constField.Type, constField.PreType, true);
+        }
+      }
+    }
+  }
+
+  /// <summary>
+  /// This method should be called only after VisitConstantsAndRedirectingTypes has been called.
+  /// </summary>
   protected override void VisitOneDeclaration(TopLevelDecl decl) {
     if (decl is NewtypeDecl newtypeDecl) {
       TypeAdjustments.Combine(newtypeDecl.BaseType, newtypeDecl.BasePreType, false);
