@@ -208,11 +208,8 @@ public class AutoRevealFunctionDependencies : IRewriter {
     }
 
     if (addedReveals.Any()) {
-      var numInsertedReveals = addedReveals.Count(stmt => stmt.Depth <= autoRevealDepth);
-      var renderedRevealStmts = RenderRevealStmts(addedReveals, 1 + autoRevealDepth);
-
       reporter.Message(MessageSource.Rewriter, ErrorLevel.Info, null, m.tok,
-        $"Total {addedReveals.Count} function dependenc{(addedReveals.Count == 1 ? "y" : "ies")} found. {numInsertedReveals} reveal statement{(numInsertedReveals == 1 ? "" : "s")} inserted implicitly.{(numInsertedReveals < addedReveals.Count ? " Remaining:\n" + renderedRevealStmts : "")}");
+        GenerateMessage(addedReveals, autoRevealDepth));
     }
   }
 
@@ -276,34 +273,50 @@ public class AutoRevealFunctionDependencies : IRewriter {
     }
 
     if (addedReveals.Any()) {
-      var numInsertedReveals = addedReveals.Count(stmt => stmt.Depth <= autoRevealDepth);
-      var renderedRevealStmts = RenderRevealStmts(addedReveals, 1 + autoRevealDepth);
-
       reporter.Message(MessageSource.Rewriter, ErrorLevel.Info, null, f.tok,
-        $"Total {addedReveals.Count} function dependenc{(addedReveals.Count == 1 ? "y" : "ies")} found. {numInsertedReveals} reveal statement{(numInsertedReveals == 1 ? "" : "s")} inserted implicitly.{(numInsertedReveals < addedReveals.Count ? " Remaining:\n" + renderedRevealStmts : "")}");
+        GenerateMessage(addedReveals, autoRevealDepth));
     }
   }
 
-  private static string RenderRevealStmts(List<RevealStmtWithDepth> addedRevealStmtList, int depth) {
+  private static string RenderRevealStmts(List<RevealStmtWithDepth> addedRevealStmtList, int depth = 1) {
     Contract.Requires(addedRevealStmtList.Any());
 
-    var currentDepth = depth;
+    var currentDepth = depth - 1;
 
-    string result = $"// depth {currentDepth}: {addedRevealStmtList.Count(stmt => stmt.Depth == currentDepth)} stmts\n";
+    string result = "";
 
-    foreach (var revealStmt in addedRevealStmtList) {
+    foreach (var revealStmt in addedRevealStmtList.Where(stmt => stmt.Depth >= depth)) {
       if (revealStmt.Depth > currentDepth) {
         currentDepth = revealStmt.Depth;
-        result += $"\n\n// depth {currentDepth}: {addedRevealStmtList.Count(stmt => stmt.Depth == currentDepth)} stmts\n";
+        var stmtCount = addedRevealStmtList.Count(stmt => stmt.Depth == currentDepth);
+        result += $"\n\n// depth {currentDepth}: {stmtCount} {(stmtCount == 1 ? "stmt" : "stmts")}\n";
       }
 
-      if (revealStmt.Depth == currentDepth) {
-        result += $"{revealStmt.RevealStmt} ";
-      }
+      result += $"{revealStmt.RevealStmt} ";
 
 
     }
-    return result;
+    // Removing the initial `\n\n`
+    return result[2..];
+  }
+
+  private string GenerateMessage(List<RevealStmtWithDepth> addedReveals, int autoRevealDepth) {
+    var numInsertedReveals = addedReveals.Count(stmt => stmt.Depth <= autoRevealDepth);
+    var message = "";
+
+    message +=
+      $"Total {addedReveals.Count} function {(addedReveals.Count == 1 ? "dependency" : "dependencies")} found.";
+
+    message +=
+      $" {numInsertedReveals} reveal {(numInsertedReveals == 1 ? "statement" : "statements")} inserted implicitly.";
+
+    // if (numInsertedReveals < addedReveals.Count) {
+    //   message += $" Remaining:\n{RenderRevealStmts(addedReveals, 1 + autoRevealDepth)}";
+    // } else {
+    message += $" Total stmts:\n{RenderRevealStmts(addedReveals)}";
+    // }
+
+    return message;
   }
 
   private record RevealStmtWithDepth(RevealStmt RevealStmt, int Depth);
