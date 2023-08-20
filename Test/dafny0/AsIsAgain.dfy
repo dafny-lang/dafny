@@ -1,6 +1,6 @@
-// RUN: %testDafnyForEachResolver --expect-exit-code=4 --refresh-exit-code=2 "%s"
+// RUN: %testDafnyForEachResolver --expect-exit-code=4 "%s"
 
-
+// This file is like AsIs.dfy, but has explicit type casts in AssignBackAndForth, as required by the new type system.
 trait A<X> { }
 trait B<Y0, Y1> { }
 trait C<Z> extends B<int, Z> { }
@@ -14,19 +14,19 @@ method AssignBackAndForth<W>(a: A<W>, b: B<int, W>, c: C<W>, k: K<W>, l: L<W>) r
   var o: object?;
 
   o := a;
-  a' := o;
+  a' := o as A;
 
   o := b;
-  b' := o;
+  b' := o as B;
 
   o := c;
-  c' := o;
+  c' := o as C;
 
   o := k;
-  k' := o;
+  k' := o as K;
 
   o := l;
-  l' := o;
+  l' := o as L;
 }
 
 method AsBackAndForth<W>(a: A<W>, b: B<int, W>, c: C<W>, k: K<W>, l: L<W>) returns (a': object, b': object, c': object, k': object, l': object)

@@ -116,6 +116,8 @@ class PreTypeToTypeVisitor : ASTVisitor<IASTVisitorContext> {
       }
     } else if (expr is ConversionExpr conversionExpr) {
       TypeAdjustments.Combine(conversionExpr.ToType, conversionExpr.PreType, false);
+      expr.Type = conversionExpr.ToType;
+      return;
     }
 
     if (expr.PreType is UnusedPreType) {
