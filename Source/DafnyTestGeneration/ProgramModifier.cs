@@ -5,6 +5,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using Microsoft.BaseTypes;
 using Microsoft.Boogie;
 using Microsoft.Dafny;
 using Token = Microsoft.Dafny.Token;
@@ -38,7 +39,8 @@ namespace DafnyTestGeneration {
       var options = dafnyInfo.Options;
       BlockCoalescer.CoalesceBlocks(program);
       foreach (var implementation in program.Implementations.Where(i => Utils.DeclarationHasAttribute(i, TestGenerationOptions.TestInlineAttribute))) {
-        var depthExpression = Utils.GetAttributeValue(implementation, TestGenerationOptions.TestInlineAttribute).First();
+        var depthExpression = Utils.GetAttributeValue(implementation, TestGenerationOptions.TestInlineAttribute)
+          .FirstOrDefault(new LiteralExpr(Microsoft.Boogie.Token.NoToken, BigNum.ONE));
         var attribute = new QKeyValue(new Token(), "inline",
           new List<object>() { depthExpression }, null);
         attribute.Next = implementation.Attributes;

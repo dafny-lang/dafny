@@ -130,13 +130,14 @@ public class Auditor {
     foreach (var toInline in Utils
                .AllMemberDeclarationsWithAttribute(program.DefaultModule, TestGenerationOptions.TestInlineAttribute)) {
       toInline.HasUserAttribute(TestGenerationOptions.TestInlineAttribute, out var attribute);
-      if (attribute.Args.Count == 1 && uint.TryParse(attribute.Args.First().ToString(), out uint result) && result > 0) {
+      if (attribute.Args.Count == 0 ||
+          (attribute.Args.Count == 1 && uint.TryParse(attribute.Args.First().ToString(), out uint result) && result > 0)) {
         continue;
       }
       diagnostics.Add(new DafnyDiagnostic(MalformedAttributeError, toInline.Tok,
-        $"{{:{TestGenerationOptions.TestInlineAttribute}}} attribute on the {toInline.FullDafnyName} " +
-        $"method/function must be accompanied by a positive integer to specify the recursion unrolling limit " +
-        $"(1 means no unrolling)",
+        $"{{:{TestGenerationOptions.TestInlineAttribute}}} attribute on the {toInline.FullDafnyName} method/function " +
+        $"can only take one argument, which must be a positive integer specifying the recursion unrolling limit " +
+        $"(absence of such an argument or 1 means no unrolling)",
         MessageSource.TestGenerationAuditor, ErrorLevel.Error, new List<DafnyRelatedInformation>()));
       return;
     }
