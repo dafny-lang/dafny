@@ -59,7 +59,7 @@ module M {
     public async Task Inlining(List<Action<DafnyOptions>> optionSettings) {
       var source = @"
 module M {
-  method {:testInline 1} b (i:int) returns (r:int) {
+  method {:testInline} b (i:int) returns (r:int) {
     if (i == 0) {
         return 7;
     } else {
@@ -89,10 +89,10 @@ module M {
     public async Task NestedInlining(List<Action<DafnyOptions>> optionSettings) {
       var source = @"
 module M {
-  function {:testInline 1} min (a:int, b:int):int {
+  function {:testInline} min (a:int, b:int):int {
     if a < b then a else b
   }
-  function {:testInline 1} max (a:int, b:int):int {
+  function {:testInline} max (a:int, b:int):int {
     min(b, a)
   }
   method {:testEntry} test (a:int, b:int) returns (r:int) {
@@ -111,7 +111,7 @@ module M {
     public async Task SelectiveInlining(List<Action<DafnyOptions>> optionSettings) {
       var source = @"
 module M {
-  function {:testInline 1} min (a:int, b:int):int {
+  function {:testInline} min (a:int, b:int):int {
     if a < b then a else b
   }
   function max (a:int, b:int):int {
@@ -133,7 +133,7 @@ module M {
     public async Task FunctionCallInAMethodTranslation(List<Action<DafnyOptions>> optionSettings) {
       var source = @"
 module M {
-  function {:testInline 1} max (a:int, b:int):int {
+  function {:testInline} max (a:int, b:int):int {
     if a > b then a else b
   }
   method {:testEntry} test(a:int, b:int) returns (r:int) {
@@ -179,7 +179,7 @@ module M {
     public async Task InliningNoRecursion(List<Action<DafnyOptions>> optionSettings) {
       var source = @"
 module M {
-  function {:testInline 1} mod3 (n:int):int 
+  function {:testInline} mod3 (n:int):int 
     requires n >= 0
     decreases n
   {
@@ -213,7 +213,7 @@ module Paths {
     divBy3 := ifThenElse(i % 3 == 0, true, false);
     divBy5 := ifThenElse(i % 5 == 0, true, false);
   }
-  predicate {:testInline 1} ifThenElse(condition:bool, thenBranch:bool, elseBranch:bool) {
+  predicate {:testInline} ifThenElse(condition:bool, thenBranch:bool, elseBranch:bool) {
     if condition then thenBranch else elseBranch
   }
 }
@@ -254,7 +254,7 @@ module Paths {
     divBy3 := ifThenElse(i % 3 == 0, true, false);
     divBy5 := ifThenElse(i % 5 == 0, true, false);
   }
-  predicate {:testInline 1} ifThenElse(condition:bool, thenBranch:bool, elseBranch:bool) {
+  predicate {:testInline} ifThenElse(condition:bool, thenBranch:bool, elseBranch:bool) {
     if condition then thenBranch else elseBranch
   }
 }
@@ -293,7 +293,7 @@ module Paths {
     divBy3 := ifThenElse(i % 3 == 0, true, false);
     divBy5 := ifThenElse(i % 5 == 0, true, false);
   }
-  predicate {:testInline 1} ifThenElse(condition:bool, thenBranch:bool, elseBranch:bool) {
+  predicate {:testInline} ifThenElse(condition:bool, thenBranch:bool, elseBranch:bool) {
     if condition then thenBranch else elseBranch
   }
 }
@@ -557,7 +557,7 @@ module Test {
     public async Task InlineGhostCode(List<Action<DafnyOptions>> optionSettings) {
       var source = @"
 module Math {
-  lemma {:testInline 1} Max(a:int, b:int) returns (i:int) {
+  lemma {:testInline} Max(a:int, b:int) returns (i:int) {
     return if (a > b) then a else b;
   }
   lemma {:testEntry} Min(a:int, b:int) returns (i:int)  {
@@ -586,7 +586,7 @@ module ShortCircuit {
   function {:testEntry} Or(a:bool):bool {
     a || OnlyFalse(a)
   }
-  function {:testInline 1} OnlyFalse(a:bool):bool
+  function {:testInline} OnlyFalse(a:bool):bool
     requires !a
   {
     false

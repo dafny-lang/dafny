@@ -108,7 +108,7 @@ import opened B
 method {:testEntry} a () {b(); }
 }
 module B {
-method {:testInline} b() {}
+method {:testInline -1} b() {}
 }
 ".TrimStart());
     var output = new StringBuilder();
