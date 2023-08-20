@@ -224,11 +224,13 @@ namespace Microsoft.Dafny {
       builder.Add(TrAssumeCmd(expr.tok, etran.TrExpr(expr)));
     }
 
-    void WithDelayedReadsChecks(ExpressionTranslator etran, List<Variable> localVariables,
+    void WithDelayedReadsChecks(ExpressionTranslator etran,
+      List<Variable> localVariables,
       BoogieStmtListBuilder builderInitializationArea, BoogieStmtListBuilder builder,
+      bool doOnlyCoarseGrainedTerminationChecks,
       Action<WFOptions> action) {
       var doReadsChecks = etran.readsFrame != null;
-      var options = new WFOptions(null, doReadsChecks, doReadsChecks);
+      var options = new WFOptions(null, doReadsChecks, doReadsChecks, doOnlyCoarseGrainedTerminationChecks);
       action(options);
       if (doReadsChecks) {
         options.ProcessSavedReadsChecks(localVariables, builderInitializationArea, builder);

@@ -95,7 +95,6 @@ method BadMetaBox(b: Box<Box<int>>)
 }
 
 method GoodMetaBox(b: Box<Box<int>>)
-  // Crashing...
   modifies b.x
 {
   b.x.x := 42;
@@ -108,14 +107,14 @@ function Foo(b: Box<Box<int>>): int
 }
 
 trait T {
-  method M(b: Box<int>)
+  method M(b: Box<int>) returns (r: int)
 }
 
 class C extends T {
-  method M(b: Box<int>) 
-    modifies b
+  method M(b: Box<int>) returns (r: int) 
+    reads b // BUG
   {
-    b.x := 42;
+    return 42;
   }
 }
 
@@ -187,7 +186,6 @@ method DefaultValueReads(b: Box<int>, x: int := b.x)
 // * Explicitly test against ghost state too
 //   * ghost methods/lemmas as well
 // * {:concurrent} (probably separate test file)
-// * Review reads checks for AST elements missed because they don't occur in expressions
 // * Optimize checking for `reads {}`? Can be checked with a simple AST pass, much cheaper
 //   * At least some cases might be handled by existing IsAlwaysTrue
 // * Double-check if it's correct that function default values don't assume preconditions

@@ -673,33 +673,32 @@ namespace Microsoft.Dafny {
         Contract.Assert(definiteAssignmentTrackers.Count == 0);
       } else {
         // check well-formedness of any default-value expressions (before assuming preconditions)
-        // TODO: modify WithDelayedReadsChecks so we can use it here too
-        var wfo = new WFOptions(null, true, true, true);
-        foreach (var formal in m.Ins.Where(formal => formal.DefaultValue != null)) {
-          var e = formal.DefaultValue;
-          CheckWellformed(e, wfo, localVariables, builder, etran);
-          builder.Add(new Boogie.AssumeCmd(e.tok, CanCallAssumption(e, etran)));
-          CheckSubrange(e.tok, etran.TrExpr(e), e.Type, formal.Type, builder);
+        WithDelayedReadsChecks(etran, localVariables, builderInitializationArea, builder, true, wfo => {
+          foreach (var formal in m.Ins.Where(formal => formal.DefaultValue != null)) {
+            var e = formal.DefaultValue;
+            CheckWellformed(e, wfo, localVariables, builder, etran);
+            builder.Add(new Boogie.AssumeCmd(e.tok, CanCallAssumption(e, etran)));
+            CheckSubrange(e.tok, etran.TrExpr(e), e.Type, formal.Type, builder);
 
-          if (formal.IsOld) {
-            Boogie.Expr wh = GetWhereClause(e.tok, etran.TrExpr(e), e.Type, etran.Old, ISALLOC, true);
-            if (wh != null) {
-              var desc = new PODesc.IsAllocated("default value", "in the two-state lemma's previous state");
-              builder.Add(Assert(e.tok, wh, desc));
+            if (formal.IsOld) {
+              Boogie.Expr wh = GetWhereClause(e.tok, etran.TrExpr(e), e.Type, etran.Old, ISALLOC, true);
+              if (wh != null) {
+                var desc = new PODesc.IsAllocated("default value", "in the two-state lemma's previous state");
+                builder.Add(Assert(e.tok, wh, desc));
+              }
             }
           }
-        }
-        wfo.ProcessSavedReadsChecks(localVariables, builderInitializationArea, builder);
+        });
         
         // check well-formedness of the preconditions, and then assume each one of them
-        WithDelayedReadsChecks(etran, localVariables, builderInitializationArea, builder, wfo => {
+        WithDelayedReadsChecks(etran, localVariables, builderInitializationArea, builder, false, wfo => {
           foreach (AttributedExpression p in m.Req) {
             CheckWellformedAndAssume(p.E, wfo, localVariables, builder, etran);
           }
         });
         
         // check well-formedness of the reads clauses
-        WithDelayedReadsChecks(etran, localVariables, builderInitializationArea, builder, wfo => {
+        WithDelayedReadsChecks(etran, localVariables, builderInitializationArea, builder, false, wfo => {
           CheckFrameWellFormed(wfo, m.Reads, localVariables, builder, etran);
           if (etran.readsFrame != null && Attributes.Contains(m.Attributes, "concurrent")) {
             var desc = new PODesc.ConcurrentFrameEmpty("reads clause");
@@ -708,7 +707,7 @@ namespace Microsoft.Dafny {
         });
 
         // check well-formedness of the modifies clauses
-        WithDelayedReadsChecks(etran, localVariables, builderInitializationArea, builder, wfo => {
+        WithDelayedReadsChecks(etran, localVariables, builderInitializationArea, builder, false, wfo => {
           CheckFrameWellFormed(wfo, m.Mod.Expressions, localVariables, builder, etran);
           if (Attributes.Contains(m.Attributes, "concurrent")) {
             var desc = new PODesc.ConcurrentFrameEmpty("modifies clause");
