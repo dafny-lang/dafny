@@ -1560,9 +1560,14 @@ namespace Microsoft.Dafny {
           ReportError(tok, "two-state function ('{0}') can only be called in a two-state resolutionContext", member.Name);
         }
         int suppliedTypeArguments = optTypeArguments == null ? 0 : optTypeArguments.Count;
-        if (optTypeArguments != null && suppliedTypeArguments != function.TypeArgs.Count) {
-          ReportError(tok, "function '{0}' expects {1} type argument{2} (got {3})",
-            member.Name, function.TypeArgs.Count, Util.Plural(function.TypeArgs.Count), suppliedTypeArguments);
+        if (optTypeArguments != null) {
+          if (suppliedTypeArguments == function.TypeArgs.Count) {
+            // preserve the given types in the resolved MemberSelectExpr
+            rr.TypeApplication_JustMember = optTypeArguments;
+          } else {
+            ReportError(tok, "function '{0}' expects {1} type argument{2} (got {3})",
+              member.Name, function.TypeArgs.Count, Util.Plural(function.TypeArgs.Count), suppliedTypeArguments);
+          }
         }
         for (int i = 0; i < function.TypeArgs.Count; i++) {
           var ta = i < suppliedTypeArguments ? Type2PreType(optTypeArguments[i]) :
@@ -1585,9 +1590,14 @@ namespace Microsoft.Dafny {
           ReportError(tok, "expression is not allowed to invoke a {0} ({1})", member.WhatKind, member.Name);
         }
         int suppliedTypeArguments = optTypeArguments == null ? 0 : optTypeArguments.Count;
-        if (optTypeArguments != null && suppliedTypeArguments != method.TypeArgs.Count) {
-          ReportError(tok, "method '{0}' expects {1} type argument{2} (got {3})",
-            member.Name, method.TypeArgs.Count, Util.Plural(method.TypeArgs.Count), suppliedTypeArguments);
+        if (optTypeArguments != null) {
+          if (suppliedTypeArguments == method.TypeArgs.Count) {
+            // preserve the given types in the resolved MemberSelectExpr
+            rr.TypeApplication_JustMember = optTypeArguments;
+          } else {
+            ReportError(tok, "method '{0}' expects {1} type argument{2} (got {3})",
+              member.Name, method.TypeArgs.Count, Util.Plural(method.TypeArgs.Count), suppliedTypeArguments);
+          }
         }
         for (int i = 0; i < method.TypeArgs.Count; i++) {
           var ta = i < suppliedTypeArguments ? Type2PreType(optTypeArguments[i]) :

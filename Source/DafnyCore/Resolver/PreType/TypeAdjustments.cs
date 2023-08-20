@@ -6,6 +6,8 @@
 //-----------------------------------------------------------------------------
 
 using System.Diagnostics.Contracts;
+using System.Collections.Generic;
+using JetBrains.Annotations;
 
 namespace Microsoft.Dafny;
 
@@ -219,6 +221,31 @@ public class TypeAdjustments {
   public static void Combine(Type userSuppliedType, PreType preType, bool allowFutureAdjustments) {
     var preTypeConverted = PreType2Type(preType, allowFutureAdjustments, TypeParameter.TPVariance.Co);
     Combine(userSuppliedType, preTypeConverted);
+  }
+
+  /// <summary>
+  /// This method combines the respective user-supplied types with the inferred pre-types. It expects that either
+  ///     - "types" is null, which represents the case where the types are inferred. In this case, the method returns a new
+  ///       list that contains the converted pre-types.
+  ///     - "types" is non-null, which represents the case where the user supplied types. In this case, "types" and
+  ///       "preTypes" are expected to have the same length. The respective types and pre-types are combined in "types",
+  ///       and then "types" is returned.
+  /// </summary>
+  public static List<Type> Combine([CanBeNull] List<Type> types, List<PreType> preTypes, bool allowFutureAdjustments) {
+    Contract.Requires(types == null || types.Count == preTypes.Count);
+    if (types == null) {
+      if (allowFutureAdjustments) {
+        return preTypes.ConvertAll(preType => PreType2AdjustableType(preType, TypeParameter.TPVariance.Co));
+      } else {
+        return preTypes.ConvertAll(PreType2FixedType);
+      }
+    }
+
+    Contract.Assert(types.Count == preTypes.Count);
+    for (var i = 0; i < types.Count; i++) {
+      Combine(types[i], preTypes[i], allowFutureAdjustments);
+    }
+    return types;
   }
 
   private static void Combine(Type type, Type preTypeConverted) {
