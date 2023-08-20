@@ -80,6 +80,16 @@ public class TypeAdjustorVisitor : ASTVisitor<IASTVisitorContext> {
       }
 
     } else if (expr is FunctionCallExpr functionCallExpr) {
+      Contract.Assert(functionCallExpr.Args.Count == functionCallExpr.Function.Formals.Count);
+      for (var i = 0; i < functionCallExpr.Args.Count; i++) {
+        var formal = functionCallExpr.Function.Formals[i];
+        var actual = functionCallExpr.Args[i];
+        flows.Add(new FlowBetweenComputedTypes(() => {
+          var typeMap = functionCallExpr.TypeArgumentSubstitutionsWithParents();
+          return (formal.Type.Subst(typeMap), actual.Type);
+        }, functionCallExpr.tok, $"{functionCallExpr.Function.Name}({formal.Name} := ...)"));
+      }
+
       flows.Add(new FlowFromComputedType(expr, () => {
         var typeMap = functionCallExpr.TypeArgumentSubstitutionsWithParents();
         return functionCallExpr.Function.ResultType.Subst(typeMap);
@@ -138,6 +148,16 @@ public class TypeAdjustorVisitor : ASTVisitor<IASTVisitorContext> {
       }
 
     } else if (stmt is CallStmt callStmt) {
+      Contract.Assert(callStmt.Args.Count == callStmt.Method.Ins.Count);
+      for (var i = 0; i < callStmt.Args.Count; i++) {
+        var formal = callStmt.Method.Ins[i];
+        var actual = callStmt.Args[i];
+        flows.Add(new FlowBetweenComputedTypes(() => {
+          var typeMap = callStmt.MethodSelect.TypeArgumentSubstitutionsWithParents();
+          return (formal.Type.Subst(typeMap), actual.Type);
+        }, callStmt.tok, $"{callStmt.Method.Name}({formal.Name} := ...)"));
+      }
+
       Contract.Assert(callStmt.Lhs.Count == callStmt.Method.Outs.Count);
       for (var i = 0; i < callStmt.Lhs.Count; i++) {
         if (callStmt.Lhs[i] is IdentifierExpr actualIdentifierExpr) {

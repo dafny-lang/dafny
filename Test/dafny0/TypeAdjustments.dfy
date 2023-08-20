@@ -237,7 +237,7 @@ method M9(n: nat) {
     assert 0 <= cell.data;
   case true =>
     var cell := new CellX(n);
-    assert 0 <= cell.data; // error: cell.data is int
+    assert 0 <= cell.data;
   case true =>
     var cell := new CellX<int>(n);
     assert 0 <= cell.data; // error: cell.data is int
@@ -249,4 +249,70 @@ method M9(n: nat) {
     var xx: CellX<int>;
     var cell := new CellX<nat>(n);
     xx := cell; // error: types of xx and cell don't match
+}
+
+module TypeParameters {
+  datatype List<+Y> = Nil | Cons(head: Y, List<Y>)
+
+  class Class<A(0)> {
+    var data: A
+    method InstanceMethod(cc: Class<A>) returns (a: A) {
+      a := data;
+    }
+    function InstanceFunction(cc: Class<A>): A
+  }
+
+  method MFitToAnything<G>(g: G) returns (r: G) {
+    return g;
+  }
+
+  method MFitToList<G(0)>(g: List<G>) returns (r: G)
+
+  function FFitToAnything<G>(g: G): G
+
+  function FFitToList<G(0)>(g: List<G>): G
+
+  method M(c: Class<nat>, xs: List<nat>, ys: List<int>, n: nat) {
+    var d := c;
+    var i := d.InstanceMethod(c);
+    assert 0 <= i;
+
+    var g0 := MFitToAnything(c);
+    var g1 := MFitToAnything(xs);
+    var g2 := MFitToAnything(n);
+    var g3 := MFitToAnything((n, n));
+    assert 0 <= g0.data;
+    assert g1.Cons? ==> 0 <= g1.head;
+    assert 0 <= g2;
+    // assert 0 <= g3.0 && 0 <= g3.1;
+
+    var x; // nat
+    x := MFitToList(xs);
+    var y; // int
+    y := MFitToList(ys);
+    assert 0 <= x;
+    assert 0 <= y; // error: y is int
+  }
+
+  method F(c: Class<nat>, xs: List<nat>, ys: List<int>, n: nat) {
+    var d := c;
+    var i := d.InstanceFunction(c);
+    assert 0 <= i;
+
+    var g0 := FFitToAnything(c);
+    var g1 := FFitToAnything(xs);
+    var g2 := FFitToAnything(n);
+    var g3 := FFitToAnything((n, n));
+    assert 0 <= g0.data;
+    assert g1.Cons? ==> 0 <= g1.head;
+    assert 0 <= g2;
+    // assert 0 <= g3.0 && 0 <= g3.1;
+
+    var x; // nat
+    x := FFitToList(xs);
+    var y; // int
+    y := FFitToList(ys);
+    assert 0 <= x;
+    assert 0 <= y; // error: y is int
+  }
 }

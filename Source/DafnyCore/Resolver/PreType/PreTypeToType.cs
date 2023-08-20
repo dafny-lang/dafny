@@ -90,10 +90,12 @@ class PreTypeToTypeVisitor : ASTVisitor<IASTVisitorContext> {
   protected override void PostVisitOneExpression(Expression expr, IASTVisitorContext context) {
     if (expr is FunctionCallExpr functionCallExpr) {
       functionCallExpr.TypeApplication_AtEnclosingClass = functionCallExpr.PreTypeApplication_AtEnclosingClass.ConvertAll(TypeAdjustments.PreType2FixedType);
-      functionCallExpr.TypeApplication_JustFunction = functionCallExpr.PreTypeApplication_JustFunction.ConvertAll(TypeAdjustments.PreType2FixedType);
+      functionCallExpr.TypeApplication_JustFunction = functionCallExpr.PreTypeApplication_JustFunction.ConvertAll(
+        preType => TypeAdjustments.PreType2AdjustableType(preType, TypeParameter.TPVariance.Co));
     } else if (expr is MemberSelectExpr memberSelectExpr) {
       memberSelectExpr.TypeApplication_AtEnclosingClass = memberSelectExpr.PreTypeApplication_AtEnclosingClass.ConvertAll(TypeAdjustments.PreType2FixedType);
-      memberSelectExpr.TypeApplication_JustMember = memberSelectExpr.PreTypeApplication_JustMember.ConvertAll(TypeAdjustments.PreType2FixedType);
+      memberSelectExpr.TypeApplication_JustMember = memberSelectExpr.PreTypeApplication_JustMember.ConvertAll(
+        preType => TypeAdjustments.PreType2AdjustableType(preType, TypeParameter.TPVariance.Co));
     } else if (expr is ComprehensionExpr comprehensionExpr) {
       VisitVariableList(comprehensionExpr.BoundVars, false);
     } else if (expr is LetExpr letExpr) {

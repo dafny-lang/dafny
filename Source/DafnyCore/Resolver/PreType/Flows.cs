@@ -324,7 +324,28 @@ class FlowIntoVariableFromComputedType : Flow {
 
   public override void DebugPrint(TextWriter output) {
     var sourceType = getType();
-    var bound = PreTypeConstraints.Pad($"%{AdjustableType.ToStringAsAdjustableType(sink)} :> {AdjustableType.ToStringAsAdjustableType(sourceType)}", 27);
+    var bound = PreTypeConstraints.Pad($"{AdjustableType.ToStringAsAdjustableType(sink)} :> {AdjustableType.ToStringAsAdjustableType(sourceType)}", 27);
+    var value = PreTypeConstraints.Pad(AdjustableType.ToStringAsBottom(sink), 20);
+    output.WriteLine($"    {bound}  {value}    {TokDescription()}");
+  }
+}
+
+class FlowBetweenComputedTypes : Flow {
+  private readonly System.Func<(Type, Type)> getTypes;
+
+  public FlowBetweenComputedTypes(System.Func<(Type, Type)> getTypes, IToken tok, string description)
+    : base(tok, description) {
+    this.getTypes = getTypes;
+  }
+
+  public override bool Update(FlowContext context) {
+    var (sink, source) = getTypes();
+    return UpdateAdjustableType(sink, source, context);
+  }
+
+  public override void DebugPrint(TextWriter output) {
+    var (sink, source) = getTypes();
+    var bound = PreTypeConstraints.Pad($"{AdjustableType.ToStringAsAdjustableType(sink)} :> {AdjustableType.ToStringAsAdjustableType(source)}", 27);
     var value = PreTypeConstraints.Pad(AdjustableType.ToStringAsBottom(sink), 20);
     output.WriteLine($"    {bound}  {value}    {TokDescription()}");
   }
@@ -352,7 +373,7 @@ abstract class FlowIntoExpr : Flow {
   public override void DebugPrint(TextWriter output) {
     if (sink is AdjustableType adjustableType) {
       var sourceType = GetSourceType();
-      var bound = PreTypeConstraints.Pad($"%{adjustableType.UniqueId} :> {AdjustableType.ToStringAsAdjustableType(sourceType)}", 27);
+      var bound = PreTypeConstraints.Pad($"{adjustableType.UniqueId} :> {AdjustableType.ToStringAsAdjustableType(sourceType)}", 27);
       var value = PreTypeConstraints.Pad(AdjustableType.ToStringAsBottom(adjustableType), 20);
       output.WriteLine($"    {bound}  {value}    {TokDescription()}");
     }
