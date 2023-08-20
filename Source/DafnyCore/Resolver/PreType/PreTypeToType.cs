@@ -106,8 +106,12 @@ class PreTypeToTypeVisitor : ASTVisitor<IASTVisitorContext> {
     } else if (expr is DatatypeValue datatypeValue) {
       Contract.Assert(datatypeValue.InferredTypeArgs.Count == 0 || datatypeValue.InferredTypeArgs.Count == datatypeValue.InferredPreTypeArgs.Count);
       if (datatypeValue.InferredTypeArgs.Count == 0) {
-        foreach (var preTypeArgument in datatypeValue.InferredPreTypeArgs) {
-          datatypeValue.InferredTypeArgs.Add(TypeAdjustments.PreType2FixedType(preTypeArgument));
+        var datatypeDecl = datatypeValue.Ctor.EnclosingDatatype;
+        Contract.Assert(datatypeValue.InferredPreTypeArgs.Count == datatypeDecl.TypeArgs.Count);
+        for (var i = 0; i < datatypeDecl.TypeArgs.Count; i++) {
+          var formal = datatypeDecl.TypeArgs[i];
+          var actualPreType = datatypeValue.InferredPreTypeArgs[i];
+          datatypeValue.InferredTypeArgs.Add(TypeAdjustments.PreType2AdjustableType(actualPreType, formal.Variance));
         }
       }
     } else if (expr is ConversionExpr conversionExpr) {

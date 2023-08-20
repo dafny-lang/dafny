@@ -95,6 +95,21 @@ public class TypeAdjustorVisitor : ASTVisitor<IASTVisitorContext> {
         return functionCallExpr.Function.ResultType.Subst(typeMap);
       }, $"{functionCallExpr.Name}(...)"));
 
+    } else if (expr is DatatypeValue datatypeValue) {
+      var ctor = datatypeValue.Ctor;
+      var datatypeDecl = ctor.EnclosingDatatype;
+      for (var i = 0; i < datatypeValue.Arguments.Count; i++) {
+        var formal = ctor.Formals[i];
+        var actual = datatypeValue.Arguments[i];
+        flows.Add(new FlowBetweenComputedTypes(() => {
+          var typeMap = TypeParameter.SubstitutionMap(datatypeDecl.TypeArgs, datatypeValue.InferredTypeArgs);
+          return (formal.Type.Subst(typeMap), actual.Type);
+        }, datatypeValue.tok, $"{ctor.Name}({formal.Name} := ...)"));
+      }
+      flows.Add(new FlowFromComputedType(expr,
+        () => new UserDefinedType(expr.tok, datatypeDecl.Name, datatypeDecl, datatypeValue.InferredTypeArgs),
+        ctor.Name));
+
     } else if (expr is ApplyExpr applyExpr) {
       flows.Add(new FlowFromTypeArgument(expr, applyExpr.Function.UnnormalizedType, applyExpr.Args.Count));
 

@@ -284,7 +284,7 @@ module TypeParameters {
     assert 0 <= g0.data;
     assert g1.Cons? ==> 0 <= g1.head;
     assert 0 <= g2;
-    // assert 0 <= g3.0 && 0 <= g3.1;
+    assert 0 <= g3.0 && 0 <= g3.1;
 
     var x; // nat
     x := MFitToList(xs);
@@ -306,7 +306,7 @@ module TypeParameters {
     assert 0 <= g0.data;
     assert g1.Cons? ==> 0 <= g1.head;
     assert 0 <= g2;
-    // assert 0 <= g3.0 && 0 <= g3.1;
+    assert 0 <= g3.0 && 0 <= g3.1;
 
     var x; // nat
     x := FFitToList(xs);
@@ -314,5 +314,13 @@ module TypeParameters {
     y := FFitToList(ys);
     assert 0 <= x;
     assert 0 <= y; // error: y is int
+  }
+
+  method Tuples(n: nat) {
+    var p;
+    p := (n, n);
+    p := *;
+    assert 0 <= p.0;
+    assert 0 <= p.1;
   }
 }
