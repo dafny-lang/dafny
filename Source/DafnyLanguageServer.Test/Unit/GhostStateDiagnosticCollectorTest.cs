@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -69,8 +70,8 @@ public class GhostStateDiagnosticCollectorTest {
     var source = new CancellationTokenSource();
     source.CancelAfter(TimeSpan.FromSeconds(50));
     var ghostDiagnostics = ghostStateDiagnosticCollector.GetGhostStateDiagnostics(
-      new SignatureAndCompletionTable(null!, new CompilationUnit(rootUri, program),
-        null!, null!, new IntervalTree<Position, ILocalizableSymbol>(), true)
+      new LegacySignatureAndCompletionTable(null!, new CompilationUnit(rootUri, program),
+        null!, null!, ImmutableDictionary<Uri, IIntervalTree<Position, ILocalizableSymbol>>.Empty, true)
       , source.Token);
     Assert.Empty(ghostDiagnostics);
   }
