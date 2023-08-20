@@ -324,3 +324,163 @@ module TypeParameters {
     assert 0 <= p.1;
   }
 }
+
+module BinaryExpressions {
+  method Plus(s: set<nat>, t: iset<nat>, mu: multiset<nat>, q: seq<nat>, mf: map<nat, nat>, mi: imap<nat, nat>) {
+    var s' := s + s;
+    var t' := t + t;
+    var mu' := mu + mu;
+    var q' := q + q;
+    var mf' := mf + mf;
+    var mi' := mi + mi;
+    s', t', q', mu', mf', mi' := *, *, *, *, *, *;
+    Test(s', t', mu', q', mf', mi');
+  }
+
+  method Minus(s: set<nat>, t: iset<nat>, si: set<int>, mu: multiset<nat>, mf: map<nat, nat>, mi: imap<nat, nat>) {
+    var s' := s - s;
+    var t' := t - t;
+    var mu' := mu - mu;
+    var mf' := mf - s;
+    var mi' := mi - s;
+    s', t', mu', mf', mi' := *, *, *, *, *;
+    Test(s', t', mu', [], mf', mi');
+
+    var mf'' := mf - si;
+    var mi'' := mi - si;
+    s', t', mu', mf'', mi'' := *, *, *, *, *;
+    Test(s', t', mu', [], mf'', mi'');
+  }
+
+  method Times(s: set<nat>, t: iset<nat>, mu: multiset<nat>) {
+    var s' := s * s;
+    var t' := t * t;
+    var mu' := mu * mu;
+    s', t', mu' := *, *, *;
+    Test(s', t', mu', [], map[], imap[]);
+  }
+
+  method Test(s: set<nat>, t: iset<nat>, mu: multiset<nat>, q: seq<nat>, mf: map<nat, nat>, mi: imap<nat, nat>) {
+  }
+
+  // -------------------------
+
+  method BadPlusSets0(
+    s0: set<nat>, t0: iset<nat>, mu0: multiset<nat>,
+    s1: set<int>, t1: iset<int>, mu1: multiset<int>)
+  {
+    var s' := s0 + s1;
+    var t' := t0 + t1;
+    var mu' := mu0 + mu1;
+    s', t', mu' := *, *, *;
+    TestSets(s', t', mu'); // error (x3)
+  }
+
+  method BadPlusSets1(
+    s0: set<nat>, t0: iset<nat>, mu0: multiset<nat>,
+    s1: set<int>, t1: iset<int>, mu1: multiset<int>)
+  {
+    var s' := s1 + s0;
+    var t' := t1 + t0;
+    var mu' := mu1 + mu0;
+    s', t', mu' := *, *, *;
+    TestSets(s', t', mu'); // error (x3)
+  }
+
+  method BadMinusSets0(
+    s0: set<nat>, t0: iset<nat>, mu0: multiset<nat>,
+    s1: set<int>, t1: iset<int>, mu1: multiset<int>)
+  {
+    var s' := s0 - s1;
+    var t' := t0 - t1;
+    var mu' := mu0 - mu1;
+    s', t', mu' := *, *, *;
+    TestSets(s', t', mu'); // these are fine (in the new type system)
+  }
+
+  method BadMinusSets1(
+    s0: set<nat>, t0: iset<nat>, mu0: multiset<nat>,
+    s1: set<int>, t1: iset<int>, mu1: multiset<int>)
+  {
+    var s' := s1 - s0;
+    var t' := t1 - t0;
+    var mu' := mu1 - mu0;
+    s', t', mu' := *, *, *;
+    TestSets(s', t', mu'); // error (x3) -- no problem with mi'
+  }
+
+  method BadTimes0(
+    s0: set<nat>, t0: iset<nat>, mu0: multiset<nat>,
+    s1: set<int>, t1: iset<int>, mu1: multiset<int>)
+  {
+    // In general, let the result of combining set<A> and set<B> be set<C>. To be precise,
+    // we would need C to be a type that conjoins the constraints of A and B. We don't have such
+    // a time, so we instead (approximate the other direction and) let C be the join of A and B.
+    var s' := s0 * s1;
+    var t' := t0 * t1;
+    var mu' := mu0 * mu1;
+    s', t', mu' := *, *, *;
+    TestSets(s', t', mu'); // error (x3)
+  }
+
+  method BadTimes1(
+    s0: set<nat>, t0: iset<nat>, mu0: multiset<nat>,
+    s1: set<int>, t1: iset<int>, mu1: multiset<int>)
+  {
+    // In general, let the result of combining set<A> and set<B> be set<C>. To be precise,
+    // we would need C to be a type that conjoins the constraints of A and B. We don't have such
+    // a time, so we instead (approximate the other direction and) let C be the join of A and B.
+    var s' := s1 * s0;
+    var t' := t1 * t0;
+    var mu' := mu1 * mu0;
+    s', t', mu' := *, *, *;
+    TestSets(s', t', mu'); // error (x3)
+  }
+
+  method TestSets(s: set<nat>, t: iset<nat>, mu: multiset<nat>) {
+  }
+
+  // -------------------------
+
+  method BadPlusOther0(
+    q0: seq<nat>, mf0: map<nat, nat>, mi0: imap<nat, nat>,
+    q1: seq<int>, mf1: map<int, int>, mi1: imap<int, int>)
+  {
+    var q' := q0 + q1;
+    var mf' := mf0 + mf1;
+    var mi' := mi0 + mi1;
+    q', mf', mi' := *, *, *;
+    TestOther(q', mf', mi'); // error (x3)
+  }
+
+  method BadPlusOther1(
+    q0: seq<nat>, mf0: map<nat, nat>, mi0: imap<nat, nat>,
+    q1: seq<int>, mf1: map<int, int>, mi1: imap<int, int>)
+  {
+    var q' := q1 + q0;
+    var mf' := mf1 + mf0;
+    var mi' := mi1 + mi0;
+    q', mf', mi' := *, *, *;
+    TestOther(q', mf', mi'); // error (x3)
+  }
+
+  method BadMinusOther(
+    s0: set<nat>, mf0: map<nat, nat>, mi0: imap<nat, nat>,
+    s1: set<int>, mf1: map<int, int>, mi1: imap<int, int>)
+  {
+    if
+    case true =>
+      var mf' := mf0 - s1;
+      var mi' := mi0 - s1;
+      mf', mi' := *, *;
+      TestOther([], mf', mi'); // these are fine (in the new type system)
+    case true =>
+      var mf' := mf1 - s0;
+      var mi' := mi1 - s0;
+      mf', mi' := *, *;
+      TestOther([], mf', mi'); // error (x2)
+  }
+
+  method TestOther(q: seq<nat>, mf: map<nat, nat>, mi: imap<nat, nat>) {
+  }
+}
