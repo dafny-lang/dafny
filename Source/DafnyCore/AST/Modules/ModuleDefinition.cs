@@ -390,7 +390,7 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
           importSig = ((AbstractModuleDecl)d).OriginalSignature;
         }
 
-        if (importSig.ModuleDef is not { SuccessfullyResolved: true }) {
+        if (importSig is not { ModuleDef: { SuccessfullyResolved: true } }) {
           return false;
         }
       } else if (d is LiteralModuleDecl) {
@@ -458,7 +458,8 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
     // Next, add new modules for any remaining entries in "prefixNames".
     foreach (var (name, prefixNamedModules) in prefixModulesByFirstPart) {
       var firstPartToken = prefixNamedModules.First().Parts[0];
-      var modDef = new ModuleDefinition(firstPartToken.ToRange(), new Name(firstPartToken.ToRange(), name), new List<IToken>(), false,
+      var module = prefixNamedModules.First().Module;
+      var modDef = new ModuleDefinition(module.RangeToken, new Name(firstPartToken.ToRange(), name), new List<IToken>(), false,
         false, null, this, null, false);
       // Add the new module to the top-level declarations of its parent and then bind its names as usual
 

@@ -56,7 +56,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           }
           return (null, null);
         }
-        return GetSymbolAndTypeOfLastMember(position, memberAccesses);
+        return GetSymbolAndTypeOfLastMember(uri, position, memberAccesses);
       }
 
       private static Position? GetLinePositionBefore(Position requestPosition) {
@@ -67,8 +67,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         return new Position(position.Line, position.Character - 1);
       }
 
-      private (ILegacySymbol? Designator, ILegacySymbol? Type) GetSymbolAndTypeOfLastMember(Position position, IReadOnlyList<string> memberAccessChain) {
-        var enclosingSymbol = state.SignatureAndCompletionTable.GetEnclosingSymbol(position, cancellationToken);
+      private (ILegacySymbol? Designator, ILegacySymbol? Type) GetSymbolAndTypeOfLastMember(Uri uri, Position position,
+        IReadOnlyList<string> memberAccessChain) {
+        var enclosingSymbol = state.SignatureAndCompletionTable.GetEnclosingSymbol(uri, position, cancellationToken);
         ILegacySymbol? currentDesignator = null;
         ILegacySymbol? currentDesignatorType = null;
         for (int currentMemberAccess = 0; currentMemberAccess < memberAccessChain.Count; currentMemberAccess++) {
@@ -130,7 +131,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       }
 
       private IReadOnlyList<string> GetMemberAccessChainEndingAt(Uri uri, Position position) {
-        var node = state.Program.FindNode(uri, position.ToDafnyPosition());
+        var node = state.Program.FindNode<Expression>(uri, position.ToDafnyPosition());
         var result = new List<string>();
         while (node is ExprDotName exprDotName) {
           node = exprDotName.Lhs;
