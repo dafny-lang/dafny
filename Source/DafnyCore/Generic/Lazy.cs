@@ -18,12 +18,14 @@ public class Lazy<T> {
 
   public T Value {
     get {
-      if (!set) {
-        value = get();
-        set = true;
-      }
+      lock (this) {
+        if (!set) {
+          value = get();
+          set = true;
+        }
 
-      return value;
+        return value;
+      }
     }
   }
 }
