@@ -68,10 +68,21 @@ public class TypeAdjustorVisitor : ASTVisitor<IASTVisitorContext> {
 
     } else if (expr is MemberSelectExpr memberSelectExpr) {
       if (memberSelectExpr.Member is Field field) {
-        flows.Add(new FlowFromComputedType(expr, () => {
-          var typeMap = memberSelectExpr.TypeArgumentSubstitutionsWithParents();
-          return field.Type.Subst(typeMap);
-        }, $".{memberSelectExpr.MemberName}"));
+        var dPreType = (DPreType)memberSelectExpr.Obj.PreType.Normalize();
+        if (dPreType.Decl is ValuetypeDecl valuetypeDecl) {
+          flows.Add(new FlowFromComputedType(expr, () => {
+            // TypeArgumentSubstitutionsWithParents doesn't work with ValuetypeDecl, so we roll our own type map
+            var receiverType = memberSelectExpr.Obj.Type.NormalizeExpand();
+            Contract.Assert(receiverType.TypeArgs.Count == valuetypeDecl.TypeArgs.Count);
+            var typeMap = TypeParameter.SubstitutionMap(valuetypeDecl.TypeArgs, receiverType.TypeArgs);
+            return field.Type.Subst(typeMap);
+          }, $".{memberSelectExpr.MemberName}"));
+        } else {
+          flows.Add(new FlowFromComputedType(expr, () => {
+            var typeMap = memberSelectExpr.TypeArgumentSubstitutionsWithParents();
+            return field.Type.Subst(typeMap);
+          }, $".{memberSelectExpr.MemberName}"));
+        }
       } else if (memberSelectExpr.Member is Function function) {
         flows.Add(new FlowFromComputedType(expr, () => {
           var typeMap = memberSelectExpr.TypeArgumentSubstitutionsWithParents();
