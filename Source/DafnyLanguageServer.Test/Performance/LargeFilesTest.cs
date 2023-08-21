@@ -37,7 +37,7 @@ public class LargeFilesTest : ClientBasedLanguageServerTest {
     }
     var source = contentBuilder.ToString();
 
-    double lowest = double.MaxValue; 
+    double lowest = double.MaxValue;
     Exception lastException = null;
     try {
       for (int attempt = 0; attempt < 5; attempt++) {
@@ -60,7 +60,7 @@ public class LargeFilesTest : ClientBasedLanguageServerTest {
         await measurementTask;
         var division = changeMilliseconds / openMilliseconds;
         lowest = Math.Min(lowest, division);
-        
+
         // Commented code left in intentionally
         await output.WriteLineAsync("openMilliseconds: " + openMilliseconds);
         await output.WriteLineAsync("changeMilliseconds: " + changeMilliseconds);
