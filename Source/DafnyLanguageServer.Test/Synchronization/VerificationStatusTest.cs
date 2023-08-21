@@ -23,7 +23,6 @@ method Foo() returns (x: int) ensures x / 2 == 1; {
 }".TrimStart();
     await SetUp(options => {
       options.Set(ServerCommand.Verification, VerifyOnMode.Never);
-      options.Set(ServerCommand.ProjectMode, true);
     });
     var directory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
     await CreateAndOpenTestDocument("", Path.Combine(directory, DafnyProject.FileName));
@@ -48,6 +47,25 @@ method Foo() {
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
     var fooSymbol = (await RequestDocumentSymbol(documentItem)).Single();
     await WaitForStatus(fooSymbol.SelectionRange, PublishedVerificationStatus.Correct, CancellationToken);
+  }
+
+  [Fact]
+  public async Task ManuallyRunMethodInPrefixModule() {
+    var source = @"
+module A.B.C {
+  method Foo() returns (x: int) ensures x == 2 {
+    return 2;
+  }
+}".TrimStart();
+    await SetUp(options => {
+      options.Set(ServerCommand.Verification, VerifyOnMode.Never);
+    });
+    var documentItem = CreateTestDocument(source);
+    await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+    await AssertNoDiagnosticsAreComing(CancellationToken);
+    var runSuccess = await client.RunSymbolVerification(documentItem, new Position(1, 9), CancellationToken);
+    Assert.True(runSuccess);
+    await WaitForStatus(new Range(1, 9, 1, 12), PublishedVerificationStatus.Correct, CancellationToken);
   }
 
   [Fact]

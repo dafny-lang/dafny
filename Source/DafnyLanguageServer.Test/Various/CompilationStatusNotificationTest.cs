@@ -24,9 +24,6 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 method Foo() returns (x: int) ensures x / 2 == 1; {
   return 2;
 }".TrimStart();
-      await SetUp(options => {
-        options.Set(ServerCommand.ProjectMode, true);
-      });
       var directory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
       Directory.CreateDirectory(directory);
       await CreateAndOpenTestDocument("", Path.Combine(directory, DafnyProject.FileName));
