@@ -789,7 +789,7 @@ namespace Microsoft.Dafny {
                     Boogie.Expr oInSet = TrInSet(GetToken(opExpr), o, e.E, ((SetType)eeType).Arg, true, out var performedInSetRewrite);
                     Boogie.Expr oNotFresh = OldAt(freshLabel).IsAlloced(GetToken(opExpr), o);
                     Boogie.Expr oIsFresh = Boogie.Expr.Not(oNotFresh);
-                    Boogie.Expr body = Boogie.Expr.Imp(oInSet, Boogie.Expr.And(oNotNull, oIsFresh));
+                    Boogie.Expr body = Boogie.Expr.Imp(oInSet, BplAnd(oNotNull, oIsFresh));
                     var trigger = BplTrigger(performedInSetRewrite ? oNotFresh : oInSet);
                     return new Boogie.ForallExpr(GetToken(opExpr), new List<Variable> { oVar }, trigger, body);
                   } else if (eeType is SeqType) {
@@ -802,7 +802,7 @@ namespace Microsoft.Dafny {
                     Boogie.Expr oNotFresh = OldAt(freshLabel).IsAlloced(GetToken(opExpr), XsubI);
                     Boogie.Expr oIsFresh = Boogie.Expr.Not(oNotFresh);
                     Boogie.Expr xsubiNotNull = Boogie.Expr.Neq(XsubI, predef.Null);
-                    Boogie.Expr body = Boogie.Expr.Imp(iBounds, Boogie.Expr.And(xsubiNotNull, oIsFresh));
+                    Boogie.Expr body = Boogie.Expr.Imp(iBounds, BplAnd(xsubiNotNull, oIsFresh));
                     //TRIGGERS: Does this make sense? dafny0\SmallTests
                     // BROKEN // NEW_TRIGGER
                     //TRIG (forall $i: int :: 0 <= $i && $i < Seq#Length(Q#0) && $Unbox(Seq#Index(Q#0, $i)): ref != null ==> !read(old($Heap), $Unbox(Seq#Index(Q#0, $i)): ref, alloc))
@@ -1310,7 +1310,7 @@ namespace Microsoft.Dafny {
                   return new Boogie.ForallExpr(GetToken(quantifierExpr), new List<TypeVariable>(), bvars, kv, tr, Boogie.Expr.Imp(antecedent, body));
                 } else {
                   Contract.Assert(e is ExistsExpr);
-                  return new Boogie.ExistsExpr(GetToken(quantifierExpr), new List<TypeVariable>(), bvars, kv, tr, Boogie.Expr.And(antecedent, body));
+                  return new Boogie.ExistsExpr(GetToken(quantifierExpr), new List<TypeVariable>(), bvars, kv, tr, BplAnd(antecedent, body));
                 }
               }
             }
@@ -1342,7 +1342,7 @@ namespace Microsoft.Dafny {
                 Boogie.Expr typeAntecedent = TrBoundVariables(e.BoundVars, bvars, false, freeOfAlloc);
 
                 var eq = Boogie.Expr.Eq(y, BoxIfNecessary(GetToken(comprehension), TrExpr(e.Term), e.Term.Type));
-                var ebody = Boogie.Expr.And(BplAnd(typeAntecedent, TrExpr(e.Range)), eq);
+                var ebody = BplAnd(BplAnd(typeAntecedent, TrExpr(e.Range)), eq);
                 var triggers = translator.TrTrigger(this, e.Attributes, GetToken(e));
                 lbody = new Boogie.ExistsExpr(GetToken(comprehension), bvars, triggers, ebody);
               }
@@ -1771,11 +1771,11 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), predef.BoxType,
           BinaryExpr bin = (BinaryExpr)s;
           switch (bin.ResolvedOp) {
             case BinaryExpr.ResolvedOpcode.Union:
-              return Boogie.Expr.Or(TrInSet_Aux(tok, elmt, elmtBox, bin.E0, aggressive, out pr), TrInSet_Aux(tok, elmt, elmtBox, bin.E1, aggressive, out pr));
+              return BplOr(TrInSet_Aux(tok, elmt, elmtBox, bin.E0, aggressive, out pr), TrInSet_Aux(tok, elmt, elmtBox, bin.E1, aggressive, out pr));
             case BinaryExpr.ResolvedOpcode.Intersection:
-              return Boogie.Expr.And(TrInSet_Aux(tok, elmt, elmtBox, bin.E0, aggressive, out pr), TrInSet_Aux(tok, elmt, elmtBox, bin.E1, aggressive, out pr));
+              return BplAnd(TrInSet_Aux(tok, elmt, elmtBox, bin.E0, aggressive, out pr), TrInSet_Aux(tok, elmt, elmtBox, bin.E1, aggressive, out pr));
             case BinaryExpr.ResolvedOpcode.SetDifference:
-              return Boogie.Expr.And(TrInSet_Aux(tok, elmt, elmtBox, bin.E0, aggressive, out pr), Boogie.Expr.Not(TrInSet_Aux(tok, elmt, elmtBox, bin.E1, aggressive, out pr)));
+              return BplAnd(TrInSet_Aux(tok, elmt, elmtBox, bin.E0, aggressive, out pr), Boogie.Expr.Not(TrInSet_Aux(tok, elmt, elmtBox, bin.E1, aggressive, out pr)));
             default:
               break;
           }
@@ -1787,7 +1787,7 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), predef.BoxType,
             if (disjunction == null) {
               disjunction = disjunct;
             } else {
-              disjunction = Boogie.Expr.Or(disjunction, disjunct);
+              disjunction = BplOr(disjunction, disjunct);
             }
           }
           if (disjunction == null) {
@@ -1813,7 +1813,7 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), predef.BoxType,
             var bvars = new List<Variable>();
             Boogie.Expr typeAntecedent = TrBoundVariables(compr.BoundVars, bvars, false, freeOfAlloc) ?? Boogie.Expr.True;
             var eq = Boogie.Expr.Eq(elmtBox, BoxIfNecessary(GetToken(compr), TrExpr(compr.Term), compr.Term.Type));
-            var ebody = Boogie.Expr.And(BplAnd(typeAntecedent, TrExpr(compr.Range)), eq);
+            var ebody = BplAnd(BplAnd(typeAntecedent, TrExpr(compr.Range)), eq);
             var triggers = translator.TrTrigger(this, compr.Attributes, GetToken(compr));
             return new Boogie.ExistsExpr(GetToken(compr), bvars, triggers, ebody);
           }
@@ -1864,7 +1864,7 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), predef.BoxType,
             if (disjunction == null) {
               disjunction = disjunct;
             } else {
-              disjunction = Boogie.Expr.Or(disjunction, disjunct);
+              disjunction = BplOr(disjunction, disjunct);
             }
           }
           if (disjunction == null) {

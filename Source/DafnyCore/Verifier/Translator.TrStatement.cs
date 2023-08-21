@@ -1242,8 +1242,8 @@ namespace Microsoft.Dafny {
         var rhs = etran.TrExpr(Substitute(Rhs, null, substMap));
         var rhsPrime = etran.TrExpr(Substitute(Rhs, null, substMapPrime));
         definedness.Add(Assert(s0.Tok,
-          Bpl.Expr.Or(
-            Bpl.Expr.Or(Bpl.Expr.Neq(obj, objPrime), Bpl.Expr.Neq(F, FPrime)),
+          BplOr(
+            BplOr(Bpl.Expr.Neq(obj, objPrime), Bpl.Expr.Neq(F, FPrime)),
             Bpl.Expr.Eq(rhs, rhsPrime)),
           new PODesc.ForallLHSUnique()));
       }
@@ -1280,7 +1280,7 @@ namespace Microsoft.Dafny {
       xBody = BplAnd(xBody, Bpl.Expr.Eq(f, xField));
       //TRIG (exists k#2: int :: (k#2 == LitInt(0 - 3) || k#2 == LitInt(4)) && $o == read($prevHeap, this, _module.MyClass.arr) && $f == MultiIndexField(IndexField(i#0), j#0))
       Bpl.Expr xObjField = new Bpl.ExistsExpr(s.Tok, xBvars, xBody);  // LL_TRIGGER
-      Bpl.Expr body = Bpl.Expr.Or(Bpl.Expr.Eq(heapOF, oldHeapOF), xObjField);
+      Bpl.Expr body = BplOr(Bpl.Expr.Eq(heapOF, oldHeapOF), xObjField);
       var tr = new Trigger(s.Tok, true, new List<Expr>() { heapOF });
       Bpl.Expr qq = new Bpl.ForallExpr(s.Tok, new List<TypeVariable> { alpha }, new List<Variable> { oVar, fVar }, null, tr, body);
       updater.Add(TrAssumeCmd(s.Tok, qq));
@@ -1345,7 +1345,7 @@ namespace Microsoft.Dafny {
           tr = new Bpl.Trigger(tok, true, tt, tr);
         }
       }
-      return new Bpl.ForallExpr(tok, xBvars, tr, Bpl.Expr.Imp(xAnte, Bpl.Expr.Eq(xHeapOF, g)));
+      return new Bpl.ForallExpr(tok, xBvars, tr, BplImp(xAnte, Bpl.Expr.Eq(xHeapOF, g)));
     }
 
     void TrLoop(LoopStmt s, Expression Guard, BodyTranslator/*?*/ bodyTr,
@@ -1411,10 +1411,10 @@ namespace Microsoft.Dafny {
         TrStmt_CheckWellformed(loopInv.E, invDefinednessBuilder, locals, etran, false);
         invDefinednessBuilder.Add(TrAssumeCmdWithDependencies(etran, loopInv.E.tok, loopInv.E, "loop invariant"));
 
-        invariants.Add(TrAssumeCmd(loopInv.E.tok, Bpl.Expr.Imp(w, CanCallAssumption(loopInv.E, etran))));
+        invariants.Add(TrAssumeCmd(loopInv.E.tok, BplImp(w, CanCallAssumption(loopInv.E, etran))));
         var ss = TrSplitExpr(loopInv.E, etran, false, out var splitHappened);
         if (!splitHappened) {
-          var wInv = Bpl.Expr.Imp(w, etran.TrExpr(loopInv.E));
+          var wInv = BplImp(w, etran.TrExpr(loopInv.E));
           invariants.Add(Assert(loopInv.E.tok, wInv, new PODesc.LoopInvariant(errorMessage, successMessage)));
         } else {
           foreach (var split in ss) {
@@ -1465,7 +1465,7 @@ namespace Microsoft.Dafny {
 
       // include a free invariant that says that all definite-assignment trackers have only become more "true"
       foreach (var pair in daTrackersMonotonicity) {
-        Bpl.Expr monotonic = Bpl.Expr.Imp(pair.Item1, pair.Item2);
+        Bpl.Expr monotonic = BplImp(pair.Item1, pair.Item2);
         invariants.Add(TrAssumeCmd(s.Tok, monotonic));
       }
 

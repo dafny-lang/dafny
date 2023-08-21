@@ -908,7 +908,7 @@ namespace Microsoft.Dafny {
       var outParams = new List<Boogie.Variable>();
       if (!f.IsStatic) {
         var th = new Boogie.IdentifierExpr(f.tok, "this", TrReceiverType(f));
-        Boogie.Expr wh = Boogie.Expr.And(
+        Boogie.Expr wh = BplAnd(
           ReceiverNotNull(th),
           etran.GoodRef(f.tok, th, ModuleResolver.GetReceiverType(f.tok, f)));
         Boogie.Formal thVar = new Boogie.Formal(f.tok, new Boogie.TypedIdent(f.tok, "this", TrReceiverType(f), wh), true);
@@ -1158,7 +1158,7 @@ namespace Microsoft.Dafny {
       var isOfSubtype = GetWhereClause(overridingFunction.tok, bvThisExpr, thisType, f is TwoStateFunction ? etran.Old : etran,
         IsAllocType.NEVERALLOC, alwaysUseSymbolicName: true);
 
-      Bpl.Expr ante = Boogie.Expr.And(ReceiverNotNull(bvThisExpr), isOfSubtype);
+      Bpl.Expr ante = BplAnd(ReceiverNotNull(bvThisExpr), isOfSubtype);
 
       // Add other arguments
       var typeMap = GetTypeArgumentSubstitutionMap(f, overridingFunction);
@@ -1191,7 +1191,7 @@ namespace Microsoft.Dafny {
       argsCF = Concat(argsCF, moreArgsCF);
 
       // ante := useViaCanCall || (useViaContext && this != null && $Is(this, C))
-      ante = Bpl.Expr.Or(useViaCanCall, BplAnd(useViaContext, ante));
+      ante = BplOr(useViaCanCall, BplAnd(useViaContext, ante));
 
       Boogie.Expr funcAppl;
       {
@@ -1224,10 +1224,10 @@ namespace Microsoft.Dafny {
 
       // The axiom
       Boogie.Expr ax = BplForall(f.tok, new List<Boogie.TypeVariable>(), forallFormals, null, tr,
-        Boogie.Expr.Imp(ante, synonyms));
+        BplImp(ante, synonyms));
       var activate = AxiomActivation(overridingFunction, etran);
       string comment = "override axiom for " + f.FullSanitizedName + " in class " + overridingFunction.EnclosingClass.FullSanitizedName;
-      return new Boogie.Axiom(f.tok, Boogie.Expr.Imp(activate, ax), comment);
+      return new Boogie.Axiom(f.tok, BplImp(activate, ax), comment);
     }
 
     /// <summary>
@@ -1408,20 +1408,33 @@ namespace Microsoft.Dafny {
 
       var kv = etran.TrAttributes(m.Attributes, null);
 
-      var tok = m.tok;
-      var alpha = new Boogie.TypeVariable(tok, "alpha");
-      var oVar = new Boogie.BoundVariable(tok, new Boogie.TypedIdent(tok, "$o", predef.RefType));
-      var o = new Boogie.IdentifierExpr(tok, oVar);
-      var fVar = new Boogie.BoundVariable(tok, new Boogie.TypedIdent(tok, "$f", predef.FieldName(tok, alpha)));
-      var f = new Boogie.IdentifierExpr(tok, fVar);
-      var ante = Boogie.Expr.And(Boogie.Expr.Neq(o, predef.Null), etran.IsAlloced(tok, o));
+      IToken tok = m.tok;
+      // Declare a local variable $_Frame: <alpha>[ref, Field alpha]bool
+      Boogie.IdentifierExpr traitFrame = etran.TheFrame(m.OverriddenMethod.tok);  // this is a throw-away expression, used only to extract the type and name of the $_Frame variable
+      traitFrame.Name = m.EnclosingClass.Name + "_" + traitFrame.Name;
+      Contract.Assert(traitFrame.Type != null);  // follows from the postcondition of TheFrame
+      Boogie.LocalVariable frame = new Boogie.LocalVariable(tok, new Boogie.TypedIdent(tok, null ?? traitFrame.Name, traitFrame.Type));
+      localVariables.Add(frame);
+      // $_Frame := (lambda<alpha> $o: ref, $f: Field alpha :: $o != null && $Heap[$o,alloc] ==> ($o,$f) in Modifies/Reads-Clause);
+      Boogie.TypeVariable alpha = new Boogie.TypeVariable(tok, "alpha");
+      Boogie.BoundVariable oVar = new Boogie.BoundVariable(tok, new Boogie.TypedIdent(tok, "$o", predef.RefType));
+      Boogie.IdentifierExpr o = new Boogie.IdentifierExpr(tok, oVar);
+      Boogie.BoundVariable fVar = new Boogie.BoundVariable(tok, new Boogie.TypedIdent(tok, "$f", predef.FieldName(tok, alpha)));
+      Boogie.IdentifierExpr f = new Boogie.IdentifierExpr(tok, fVar);
+      Boogie.Expr ante = BplAnd(Boogie.Expr.Neq(o, predef.Null), etran.IsAlloced(tok, o));
+      Boogie.Expr consequent = InRWClause(tok, o, f, traitFrameExps, etran, null, null);
+      Boogie.Expr lambda = new Boogie.LambdaExpr(tok, new List<TypeVariable> { alpha }, new List<Variable> { oVar, fVar }, null,
+        BplImp(ante, consequent));
+
+      //to initialize $_Frame variable to Frame'
+      builder.Add(Boogie.Cmd.SimpleAssign(tok, new Boogie.IdentifierExpr(tok, frame), lambda));
 
       // emit: assert (forall<alpha> o: ref, f: Field alpha :: o != null && $Heap[o,alloc] && (o,f) in subFrame ==> $_Frame[o,f]);
-      var oInCallee = InRWClause(tok, o, f, classFrameExps, etran, null, null);
-      var consequent2 = InRWClause(tok, o, f, traitFrameExps, etran, null, null);
-      var q = new Boogie.ForallExpr(tok, new List<TypeVariable> { alpha }, new List<Variable> { oVar, fVar },
-        Boogie.Expr.Imp(Boogie.Expr.And(ante, oInCallee), consequent2));
-      builder.Add(Assert(m.RangeToken, q, new PODesc.TraitFrame(m.WhatKind, isModifies), kv));
+      Boogie.Expr oInCallee = InRWClause(tok, o, f, classFrameExps, etran, null, null);
+      Boogie.Expr consequent2 = InRWClause(tok, o, f, traitFrameExps, etran, null, null);
+      Boogie.Expr q = new Boogie.ForallExpr(tok, new List<TypeVariable> { alpha }, new List<Variable> { oVar, fVar },
+        BplImp(BplAnd(ante, oInCallee), consequent2));
+      builder.Add(Assert(tok, q, new PODesc.TraitFrame(m.WhatKind, true), kv));
     }
 
     // Return a way to know if an assertion should be converted to an assumption
@@ -1566,7 +1579,7 @@ namespace Microsoft.Dafny {
             var post = s.E;
             if (kind == MethodTranslationKind.Implementation && RefinementToken.IsInherited(s.Tok, currentModule)) {
               // this postcondition was inherited into this module, so make it into the form "$_reverifyPost ==> s.E"
-              post = Boogie.Expr.Imp(new Boogie.IdentifierExpr(s.E.tok, "$_reverifyPost", Boogie.Type.Bool), post);
+              post = BplImp(new Boogie.IdentifierExpr(s.E.tok, "$_reverifyPost", Boogie.Type.Bool), post);
             }
             if (s.IsOnlyFree && bodyKind) {
               // don't include in split -- it would be ignored, anyhow
