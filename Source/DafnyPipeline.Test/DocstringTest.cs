@@ -1,6 +1,7 @@
 #nullable enable
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 using DafnyCore.Test;
@@ -427,7 +428,7 @@ iterator Iter2(x: int) yields (y: int)
     }
 
     protected void DocstringWorksFor(string source, List<(string nodeTokenValue, string? expectedDocstring)> tests) {
-      var options = DafnyOptions.Create(new WriterFromOutputHelper(output));
+      var options = DafnyOptions.Create((TextWriter)new WriterFromOutputHelper(output));
       var newlineTypes = Enum.GetValues(typeof(Newlines));
       foreach (Newlines newLinesType in newlineTypes) {
         currentNewlines = newLinesType;

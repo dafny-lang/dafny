@@ -149,7 +149,7 @@ module SomeModule {
 
     [Fact]
     public void NoUniqueLinesWhenConcatenatingUnrelatedPrograms() {
-      var options = DafnyOptions.Create(new WriterFromOutputHelper(testOutputHelper));
+      var options = DafnyOptions.Create((TextWriter)new WriterFromOutputHelper(testOutputHelper));
 
       var regularBoogie = GetBoogie(options, originalProgram).ToList();
       var renamedBoogie = GetBoogie(options, renamedProgram).ToList();
@@ -165,7 +165,7 @@ module SomeModule {
 
     [Fact]
     public async Task EqualProverLogWhenReorderingProgram() {
-      var options = DafnyOptions.Create(new WriterFromOutputHelper(testOutputHelper));
+      var options = DafnyOptions.Create((TextWriter)new WriterFromOutputHelper(testOutputHelper));
       options.ProcsToCheck.Add("SomeMethod*");
 
       var reorderedProverLog = await GetProverLogForProgramAsync(options, GetBoogie(options, reorderedProgram));
@@ -175,7 +175,7 @@ module SomeModule {
 
     [Fact]
     public async Task EqualProverLogWhenRenamingProgram() {
-      var options = DafnyOptions.Create(new WriterFromOutputHelper(testOutputHelper));
+      var options = DafnyOptions.Create((TextWriter)new WriterFromOutputHelper(testOutputHelper));
       options.ProcsToCheck.Add("*SomeMethod*");
 
       var renamedProverLog = await GetProverLogForProgramAsync(options, GetBoogie(options, renamedProgram));
@@ -186,7 +186,7 @@ module SomeModule {
     [Fact]
     public async Task EqualProverLogWhenAddingUnrelatedProgram() {
 
-      var options = DafnyOptions.Create(new WriterFromOutputHelper(testOutputHelper));
+      var options = DafnyOptions.Create((TextWriter)new WriterFromOutputHelper(testOutputHelper));
       options.ProcsToCheck.Add("*SomeMethod *");
 
       var renamedProverLog = await GetProverLogForProgramAsync(options, GetBoogie(options, renamedProgram + originalProgram));

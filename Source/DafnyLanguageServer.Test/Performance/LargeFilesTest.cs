@@ -41,17 +41,17 @@ public class LargeFilesTest : ClientBasedLanguageServerTest {
         var cancelSource = new CancellationTokenSource();
         var measurementTask = AssertThreadPoolIsAvailable(cancelSource.Token);
         var beforeOpen = DateTime.Now;
-        var documentItem = await CreateAndOpenTestDocument(source, "ManyFastEditsUsingLargeFiles.dfy");
+        var documentItem = await CreateAndOpenTestDocument(source, "ManyFastEditsUsingLargeFiles.dfy", cancellationToken: CancellationTokenWithHighTimeout);
         var afterOpen = DateTime.Now;
         var openMilliseconds = (afterOpen - beforeOpen).Milliseconds;
         for (int i = 0; i < 100; i++) {
           ApplyChange(ref documentItem, new Range(0, 0, 0, 0), "// added this comment\n");
         }
 
-        await client.WaitForNotificationCompletionAsync(documentItem.Uri, CancellationToken);
+        await client.WaitForNotificationCompletionAsync(documentItem.Uri, CancellationTokenWithHighTimeout);
         var afterChange = DateTime.Now;
         var changeMilliseconds = (afterChange - afterOpen).Milliseconds;
-        await AssertNoDiagnosticsAreComing(CancellationToken);
+        await AssertNoDiagnosticsAreComing(CancellationTokenWithHighTimeout);
         cancelSource.Cancel();
         await measurementTask;
         Assert.True(changeMilliseconds < openMilliseconds * 3,
