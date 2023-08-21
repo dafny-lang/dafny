@@ -29,19 +29,27 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
     /// the client returns all ranges marked with regular spans.
     /// </summary>
     /// <param name="source"></param>
-    private 1, "2.dfy");
+    private async Task AssertReferences(string source, string fileName) {
+      MarkupTestFile.GetPositionsAndRanges(
+        source, out var cleanSource, out var explicitPositions, out var expectedRangesArray);
+      var expectedRanges = new HashSet<Range>(expectedRangesArray);
+
+      var positionsFromRanges = expectedRangesArray.SelectMany(r => new[] { r.Start, r.End });
+      var allPositions = explicitPositions.Concat(positionsFromRanges);
+
+      var documentItem = CreateTestDocument(cleanSource, fileName);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
 
       foreach (var position in allPositions) {
         var result = await RequestReferences(documentItem, position);
-    var resultRanges = result.Select(location => location.Range).ToHashSet();
-    Assert.Equal(expectedRanges, resultRanges);
+        var resultRanges = result.Select(location => location.Range).ToHashSet();
+        Assert.Equal(expectedRanges, resultRanges);
       }
-}
+    }
 
-[Fact]
-public async Task Const() {
-  var source = @"
+    [Fact]
+    public async Task Const() {
+      var source = @"
 const ><c := 1
 method M1() {
   print [>c<];
@@ -51,12 +59,12 @@ method M2() {
 }
 ".TrimStart();
 
-  await AssertReferences(source);
-}
+      await AssertReferences(source, "Const.dfy");
+    }
 
-[Fact]
-public async Task Var() {
-  var source = @"
+    [Fact]
+    public async Task Var() {
+      var source = @"
 method M() {
   var ><v := 1;
   print [>v<];
@@ -65,12 +73,12 @@ method M() {
 }
 ".TrimStart();
 
-  await AssertReferences(source);
-}
+      await AssertReferences(source, "Var.dfy");
+    }
 
-[Fact]
-public async Task Method() {
-  var source = @"
+    [Fact]
+    public async Task Method() {
+      var source = @"
 method ><M1() {
 }
 method M2() {
@@ -81,23 +89,23 @@ method M3() {
 }
 ".TrimStart();
 
-  await AssertReferences(source);
-}
+      await AssertReferences(source, "Method.dfy");
+    }
 
-[Fact]
-public async Task Parameter() {
-  var source = @"
+    [Fact]
+    public async Task Parameter() {
+      var source = @"
 method M(><x: int) {
   print [>x<];
 }
 ".TrimStart();
 
-  await AssertReferences(source);
-}
+      await AssertReferences(source, "Parameter.dfy");
+    }
 
-[Fact]
-public async Task Module() {
-  var source = @"
+    [Fact]
+    public async Task Module() {
+      var source = @"
 module ><M1 {
 }
 module M2 {
@@ -109,13 +117,13 @@ module M3 {
 module MR refines [>M1<] {}
 ".TrimStart();
 
-  await AssertReferences(source);
-}
+      await AssertReferences(source, "Module.dfy");
+    }
 
-// It seems that datatype declaration/usage information is not tracked
-[Fact(Skip = "Not implemented")]
-public async Task DatatypeDeclaration() {
-  var source = @"
+    // It seems that datatype declaration/usage information is not tracked
+    [Fact(Skip = "Not implemented")]
+    public async Task DatatypeDeclaration() {
+      var source = @"
 datatype ><D = D
 method M(d: [>D<]) {
   print (match d
@@ -124,12 +132,12 @@ method M(d: [>D<]) {
 }
 ".TrimStart();
 
-  await AssertReferences(source);
-}
+      await AssertReferences(source, "DatatypeDeclaration.dfy");
+    }
 
-[Fact]
-public async Task DatatypeConstructor() {
-  var source = @"
+    [Fact]
+    public async Task DatatypeConstructor() {
+      var source = @"
 datatype Letter = ><A | B | C
 method M(l: Letter) {
   print match l
@@ -140,12 +148,12 @@ method M(l: Letter) {
 }
 ".TrimStart();
 
-  await AssertReferences(source);
-}
+      await AssertReferences(source, "DatatypeConstructor.dfy");
+    }
 
-[Fact]
-public async Task DatatypeDestructor() {
-  var source = @"
+    [Fact]
+    public async Task DatatypeDestructor() {
+      var source = @"
 datatype Option = None | Some(><value: int)
 method M(o: Option) {
   print match o
@@ -155,55 +163,55 @@ method M(o: Option) {
 }
 ".TrimStart();
 
-  await AssertReferences(source);
-}
+      await AssertReferences(source, "DatatypeDestructor.dfy");
+    }
 
-// It seems that type declaration/usage information is not tracked
-[Fact(Skip = "Not implemented")]
-public async Task Type() {
-  var source = @"
+    // It seems that type declaration/usage information is not tracked
+    [Fact(Skip = "Not implemented")]
+    public async Task Type() {
+      var source = @"
 type ><T = int
 method M(t: [>T<]) {}
 ".TrimStart();
 
-  await AssertReferences(source);
-}
+      await AssertReferences(source, "Type.dfy");
+    }
 
-// It seems that newtype declaration/usage information is not tracked
-[Fact(Skip = "Not implemented")]
-public async Task Newtype() {
-  var source = @"
+    // It seems that newtype declaration/usage information is not tracked
+    [Fact(Skip = "Not implemented")]
+    public async Task Newtype() {
+      var source = @"
 newtype ><T = int
 method M(t: [>T<]) {}
 ".TrimStart();
 
-  await AssertReferences(source);
-}
+      await AssertReferences(source, "Newtype.dfy");
+    }
 
-[Fact]
-public async Task Trait() {
-  var source = @"
+    [Fact]
+    public async Task Trait() {
+      var source = @"
 trait ><T {}
 class C extends [>T<] {}
 ".TrimStart();
 
-  await AssertReferences(source);
-}
+      await AssertReferences(source, "Trait.dfy");
+    }
 
-// It seems that class declaration/usage information is not tracked
-[Fact(Skip = "Not implemented")]
-public async Task ClassDeclaration() {
-  var source = @"
+    // It seems that class declaration/usage information is not tracked
+    [Fact(Skip = "Not implemented")]
+    public async Task ClassDeclaration() {
+      var source = @"
 class ><C {}
 method M(c: [>C<]) {}
 ".TrimStart();
 
-  await AssertReferences(source);
-}
+      await AssertReferences(source, "ClassDeclaration.dfy");
+    }
 
-[Fact]
-public async Task ClassField() {
-  var source = @"
+    [Fact]
+    public async Task ClassField() {
+      var source = @"
 class C {
   var ><f: int
   constructor() { [>f<] := 0; }
@@ -213,12 +221,12 @@ method M(c: C) {
 }
 ".TrimStart();
 
-  await AssertReferences(source);
-}
+      await AssertReferences(source, "ClassField.dfy");
+    }
 
-[Fact]
-public async Task ClassMethod() {
-  var source = @"
+    [Fact]
+    public async Task ClassMethod() {
+      var source = @"
 class C {
   method ><CM() {}
 }
@@ -227,33 +235,33 @@ method M(c: C) {
 }
 ".TrimStart();
 
-  await AssertReferences(source);
-}
+      await AssertReferences(source, "ClassMethod.dfy");
+    }
 
-[Fact]
-public async Task AcrossFiles() {
-  var cwd = Directory.GetCurrentDirectory();
-  var pathA = Path.Combine(cwd, "Lookup/TestFiles/find-refs-a.dfy");
-  var pathB = Path.Combine(cwd, "Lookup/TestFiles/find-refs-b.dfy");
-  var documentItemA = CreateTestDocument(await File.ReadAllTextAsync(pathA), pathA);
-  var documentItemB = CreateTestDocument(await File.ReadAllTextAsync(pathB), pathB);
+    [Fact]
+    public async Task AcrossFiles() {
+      var cwd = Directory.GetCurrentDirectory();
+      var pathA = Path.Combine(cwd, "Lookup/TestFiles/find-refs-a.dfy");
+      var pathB = Path.Combine(cwd, "Lookup/TestFiles/find-refs-b.dfy");
+      var documentItemA = CreateTestDocument(await File.ReadAllTextAsync(pathA), pathA);
+      var documentItemB = CreateTestDocument(await File.ReadAllTextAsync(pathB), pathB);
 
-  await client.OpenDocumentAndWaitAsync(documentItemA, CancellationToken);
-  await client.OpenDocumentAndWaitAsync(documentItemB, CancellationToken);
+      await client.OpenDocumentAndWaitAsync(documentItemA, CancellationToken);
+      await client.OpenDocumentAndWaitAsync(documentItemB, CancellationToken);
 
-  var expectedRef = new Location {
-    Uri = DocumentUri.File(pathB),
-    Range = new Range(2, 9, 2, 10),
-  };
+      var expectedRef = new Location {
+        Uri = DocumentUri.File(pathB),
+        Range = new Range(2, 9, 2, 10),
+      };
 
-  var refFromA = (await RequestReferences(documentItemA, new Position(1, 7))).Single();
-  Assert.Equal(expectedRef, refFromA);
+      var refFromA = (await RequestReferences(documentItemA, new Position(1, 7))).Single();
+      Assert.Equal(expectedRef, refFromA);
 
-  var refFromB = (await RequestReferences(documentItemB, new Position(2, 9))).Single();
-  Assert.Equal(expectedRef, refFromB);
-}
+      var refFromB = (await RequestReferences(documentItemB, new Position(2, 9))).Single();
+      Assert.Equal(expectedRef, refFromB);
+    }
 
-public ReferencesTest(ITestOutputHelper output) : base(output) {
-}
+    public ReferencesTest(ITestOutputHelper output) : base(output) {
+    }
   }
 }
