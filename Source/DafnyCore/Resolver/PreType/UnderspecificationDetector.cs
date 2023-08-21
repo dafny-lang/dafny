@@ -106,27 +106,17 @@ namespace Microsoft.Dafny {
     private void CheckMembers(TopLevelDeclWithMembers cl) {
       Contract.Requires(cl != null);
       foreach (var member in cl.Members) {
-        var prevErrCnt = ErrorCount;
         CheckMember(member);
-        if (prevErrCnt == ErrorCount) {
-          if (member is Method method) {
-            if (method.Body != null) {
-              CheckStatement(method.Body, method);
-            }
-          } else if (member is Function function) {
-            if (function.ByMethodBody != null) {
-              var m = function.ByMethodDecl;
-              CheckStatement(m.Body, m);
-            }
-          }
-          if (prevErrCnt == ErrorCount && member is ICodeContext) {
-            member.SubExpressions.ForEach(e => CheckExpression(e, (ICodeContext)member));
-          }
-        }
       }
     }
 
+    /// <summary>
+    /// Check that all pre-types of "member" have been filled in, and fill in all .ResolvedOp field.
+    /// In addition, if "member" is an extreme predicate or extreme lemma, also do the checking for the corresponding
+    /// prefix predicate or lemma. And, if "member" is a function by method, then also check the associated method.
+    /// </summary>
     private void CheckMember(MemberDecl member) {
+      var errorCount = ErrorCount;
       if (member is ConstantField field) {
         if (field.Rhs != null) {
           CheckExpression(field.Rhs, new NoContext(member.EnclosingClass.EnclosingModuleDefinition));
@@ -142,23 +132,26 @@ namespace Microsoft.Dafny {
         if (method.Body != null) {
           CheckStatement(method.Body, method);
         }
+        if (errorCount == ErrorCount) {
+          if (method is ExtremeLemma extremeLemma) {
+            CheckMember(extremeLemma.PrefixLemma);
+          }
+        }
 
-      } else if (member is Function) {
-        var f = (Function)member;
-        CheckParameterDefaultValues(f.Formals, f);
-        var errorCount = ErrorCount;
-        f.Req.ForEach(e => CheckExpression(e.E, f));
-        f.Ens.ForEach(e => CheckExpression(e.E, f));
-        f.Reads.ForEach(fe => CheckExpression(fe.E, f));
-        CheckSpecExpression(f.Decreases, f);
-        if (f.Body != null) {
-          CheckExpression(f.Body, f);
+      } else if (member is Function function) {
+        CheckParameterDefaultValues(function.Formals, function);
+        function.Req.ForEach(e => CheckExpression(e.E, function));
+        function.Ens.ForEach(e => CheckExpression(e.E, function));
+        function.Reads.ForEach(fe => CheckExpression(fe.E, function));
+        CheckSpecExpression(function.Decreases, function);
+        if (function.Body != null) {
+          CheckExpression(function.Body, function);
         }
         if (errorCount == ErrorCount) {
-          if (f is ExtremePredicate cop) {
-            CheckMember(cop.PrefixPredicate);
-          } else if (f.ByMethodDecl != null) {
-            CheckMember(f.ByMethodDecl);
+          if (function is ExtremePredicate extremePredicate) {
+            CheckMember(extremePredicate.PrefixPredicate);
+          } else if (function.ByMethodDecl != null) {
+            CheckMember(function.ByMethodDecl);
           }
         }
       }
