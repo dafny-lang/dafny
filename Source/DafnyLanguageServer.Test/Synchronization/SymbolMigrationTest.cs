@@ -20,7 +20,7 @@ function GetConstant2(): int {
 }
 
 ".TrimStart();
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "ChangeToSemanticallyCorrectDocumentUsesDafnyResolver.dfy");
       await Client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       await ApplyChangeAndWaitCompletionAsync(
         ref documentItem,
@@ -45,7 +45,7 @@ function GetConstant2(): int {
 }
 
 ".TrimStart();
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "ChangeToSemanticallyIncorrectDocumentUsesMigration.dfy");
       await Client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       await ApplyChangeAndWaitCompletionAsync(
         ref documentItem,
@@ -65,7 +65,7 @@ function GetConstant(): int {
 
 ".TrimStart();
       var change = "function GetConstant2(): int {";
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "ChangeToSyntacticallyIncorrectDocumentUsesMigration.dfy");
       await Client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       await ApplyChangeAndWaitCompletionAsync(
         ref documentItem,
@@ -88,7 +88,7 @@ method GetIt(x: int) returns (y: int) {
   } else {
     y := GetIt(x - 1);
   }";
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "ChangeToDocumentWithVerificationErrorsUsesDafnyResolver.dfy");
       await Client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       await ApplyChangeAndWaitCompletionAsync(
         ref documentItem,

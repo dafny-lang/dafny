@@ -49,7 +49,7 @@ class B {
 
   function GetX()
 }";
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "MigrationLeavesLinesOfSymbolsBeforeUnchangedWhenChangingInTheMiddle.dfy");
       await Client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       await ApplyChangeAndWaitCompletionAsync(
         ref documentItem,
@@ -76,7 +76,7 @@ class C {
 }".TrimStart();
 
       var change = "";
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "MigrationLeavesLinesOfSymbolsBeforeUnchangedWhenRemovingInTheMiddle.dfy");
       await Client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       await ApplyChangeAndWaitCompletionAsync(
         ref documentItem,
@@ -109,7 +109,7 @@ class B {
 
   function GetX()
 }";
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "MigrationMovesLinesOfSymbolsAfterWhenChangingInTheMiddle.dfy");
       await Client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
 
       await ApplyChangeAndWaitCompletionAsync(
@@ -145,7 +145,7 @@ class C {
 }".TrimStart();
 
       var change = "";
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "MigrationMovesLinesOfSymbolsAfterWhenRemovingInTheMiddle.dfy");
       await Client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       await ApplyChangeAndWaitCompletionAsync(
         ref documentItem,
@@ -171,7 +171,7 @@ class A {
 }".TrimStart();
 
       var change = "string reads thi";
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "MigrationLeavesLocationUnchangedWhenChangingAtTheEndOfTheSignature.dfy");
       await Client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
 
       await ApplyChangeAndWaitCompletionAsync(
@@ -196,7 +196,7 @@ class A {
       var change = @"var y: int;
 
   function GetY()";
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "MigrationExpandsDeclarationRangeWhenChangingTheContents.dfy");
       await Client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       await ApplyChangeAndWaitCompletionAsync(
         ref documentItem,
@@ -214,7 +214,7 @@ class A {
     public async Task MigrationExpandsDeclarationRangeWhenChangingTheContentsOnTheSameLine() {
       var source = "class A { var x: int; }";
       var change = "var y: int; function GetY()";
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "MigrationExpandsDeclarationRangeWhenChangingTheContentsOnTheSameLine.dfy");
       await Client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       await ApplyChangeAndWaitCompletionAsync(
         ref documentItem,
@@ -238,7 +238,7 @@ class A {
       var change = @"var y: int;
 
   function GetY()";
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "MigrationRemovesLocationsWithinTheChangedRange.dfy");
       await Client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       await ApplyChangeAndWaitCompletionAsync(
         ref documentItem,
@@ -260,7 +260,7 @@ class B {
   var y: int;
 }".TrimStart();
 
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "MigrationMovesDeclarationWhenApplyingMultipleChangesAtOnce.dfy");
       await Client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       await ApplyChangesAndWaitCompletionAsync(
         documentItem,
@@ -290,7 +290,7 @@ class A {
     [Fact]
     public async Task PassingANullChangeRangeClearsSymbolsTable() {
       var source = "class X {}";
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "PassingANullChangeRangeClearsSymbolsTable.dfy");
 
       await Client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var state = await Projects.GetResolvedDocumentAsyncNormalizeUri(documentItem.Uri);
