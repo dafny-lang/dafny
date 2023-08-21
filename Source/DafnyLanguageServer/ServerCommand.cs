@@ -21,7 +21,8 @@ public class ServerCommand : ICommandSpec {
       GhostIndicators,
       LineVerificationStatus,
       VerifySnapshots,
-      UseCaching
+      UseCaching,
+      UpdateThrottling
     );
   }
 
@@ -31,7 +32,9 @@ public class ServerCommand : ICommandSpec {
   };
 
   public static readonly Option<int> UpdateThrottling = new("--update-throttling", () => DefaultThrottleTime,
-    @"How many milliseconds the server will wait before sending new document updates to the client. Higher values reduce bandwidth at the cost of responsiveness".TrimStart());
+    @"How many milliseconds the server will wait before sending new document updates to the client. Higher values reduce bandwidth at the cost of responsiveness".TrimStart()) {
+    IsHidden = true
+  };
 
   public static readonly Option<bool> GhostIndicators = new("--notify-ghostness",
     @"
@@ -68,6 +71,7 @@ Send notifications about the verification status of each line in the program.
     LineVerificationStatus,
     VerifySnapshots,
     UseCaching,
+    UpdateThrottling,
     DeveloperOptionBag.BoogiePrint,
     CommonOptionBag.EnforceDeterminism,
     CommonOptionBag.UseJavadocLikeDocstringRewriterOption

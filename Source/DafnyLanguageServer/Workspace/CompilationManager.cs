@@ -192,7 +192,7 @@ public class CompilationManager {
           g => g.Key,
           g => (IReadOnlyList<IImplementationTask>)g.ToList());
       });
-    } catch (OperationCanceledException e) {
+    } catch (OperationCanceledException) {
       verificationCompleted.TrySetCanceled();
       throw;
     } catch (Exception e) {

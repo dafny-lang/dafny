@@ -93,7 +93,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 #pragma warning disable CS1998
       return await await DafnyMain.LargeStackFactory.StartNew(
         async () => ResolveInternal(compilation, migratedVerificationTrees, cancellationToken), cancellationToken);
-#pragma warning restore CS1998;
+#pragma warning restore CS1998
     }
 
     private CompilationAfterResolution ResolveInternal(CompilationAfterParsing compilation,

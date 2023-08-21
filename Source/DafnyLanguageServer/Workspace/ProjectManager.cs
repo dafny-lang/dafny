@@ -107,18 +107,13 @@ public class ProjectManager : IDisposable {
   private const int MaxRememberedChangedVerifiables = 5;
 
   public void UpdateDocument(DidChangeTextDocumentParams documentChange) {
-    // Duplicated while we still need to compute migratedVerificationTrees before calling StartNewCompilation,
-    // which also does the cancellation.
-    CompilationManager.CancelPendingUpdates();
-    observerSubscription.Dispose();
-
     var migrator = createMigrator(documentChange, CancellationToken.None);
-    observer.Migrate(migrator, version + 1);
-    var migratedLastIdeState = latestIdeState.Value.Migrate(migrator, version + 1);
-    latestIdeState = new Lazy<IdeState>(migratedLastIdeState);
-    var migratedVerificationTrees = migratedLastIdeState.VerificationTrees;
-
-    StartNewCompilation(migratedVerificationTrees, migratedLastIdeState);
+    latestIdeState = new Lazy<IdeState>(() => {
+      // If we migrate the observer before accessing latestIdeState, we can be sure it's migrated before it receives new events.
+      observer.Migrate(migrator, version + 1);
+      return latestIdeState.Value.Migrate(migrator, version + 1);
+    });
+    StartNewCompilation();
 
     lock (RecentChanges) {
       var newChanges = documentChange.ContentChanges.Where(c => c.Range != null).
@@ -145,21 +140,22 @@ public class ProjectManager : IDisposable {
     TriggerVerificationForFile(documentChange.TextDocument.Uri.ToUri());
   }
 
-  private void StartNewCompilation(IReadOnlyDictionary<Uri, VerificationTree> migratedVerificationTrees,
-    IdeState previousCompilationLastIdeState) {
+  private void StartNewCompilation() {
     version++;
     logger.LogDebug("Clearing result for workCompletedForCurrentVersion");
-
+    
+    observerSubscription.Dispose();
+    var lazyPreviousCompilationLastIdeState = latestIdeState;
+    
     CompilationManager.CancelPendingUpdates();
     CompilationManager = createCompilationManager(
       options,
       boogieEngine,
       CreateInitialCompilation(),
-      migratedVerificationTrees);
+      latestIdeState.Value.VerificationTrees);
 
-    observerSubscription.Dispose();
     var migratedUpdates = CompilationManager.CompilationUpdates.Select(document =>
-      latestIdeState = new Lazy<IdeState>(() => document.ToIdeState(previousCompilationLastIdeState)));
+      latestIdeState = new Lazy<IdeState>(() => document.ToIdeState(lazyPreviousCompilationLastIdeState.Value)));
     var throttleTime = options.Get(ServerCommand.UpdateThrottling);
     var throttledUpdates = throttleTime == 0 ? migratedUpdates : migratedUpdates.Sample(TimeSpan.FromMilliseconds(throttleTime));
     observerSubscription = throttledUpdates.
@@ -345,10 +341,9 @@ public class ProjectManager : IDisposable {
 
   public void OpenDocument(Uri uri, bool triggerCompilation) {
     Interlocked.Increment(ref openFileCount);
-    var migratedVerificationTrees = latestIdeState.Value.VerificationTrees;
 
     if (triggerCompilation) {
-      StartNewCompilation(migratedVerificationTrees, latestIdeState.Value);
+      StartNewCompilation();
       TriggerVerificationForFile(uri);
     }
   }

@@ -33,8 +33,6 @@ namespace Microsoft.Dafny.LanguageServer {
         Version = DafnyVersion
       };
       return options
-        // .WithDefaultScheduler(new NewThreadScheduler())
-        // .WithInputScheduler(new NewThreadScheduler())
         .WithDafnyLanguage()
         .WithDafnyWorkspace()
         .WithDafnyHandlers()
