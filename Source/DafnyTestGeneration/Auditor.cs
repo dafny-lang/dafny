@@ -31,7 +31,6 @@ public class Auditor {
   public const string NotFullySupportedInputTypeWarning = "NotFullySupportedInputTypeWarning";
   public const string NoWitnessWarning = "NoWitnessWarning";
   public const string SmallTimeLimitWarning = "SmallTumeLimitWarning";
-  public const string NoSequenceLimitWarning = "NoSequenceLimitWarning";
 
   // List of all types that have been checked for being supported. Used to prevent infinite recursion
   private HashSet<Type> typesConsidered = new();
@@ -255,13 +254,6 @@ public class Auditor {
     var isSupported = false;
     while (type is InferredTypeProxy inferred) {
       type = inferred.T;
-    }
-    if (type is CollectionType && options.TestGenOptions.SeqLengthLimit == 0) {
-      diagnostics.Add(new DafnyDiagnostic(NoSequenceLimitWarning, type.Tok,
-        $"Part of the input to the {testEntry} method/function can be a collection.\n" +
-        $"Use the --{GenerateTestsCommand.SequenceLengthLimit.Name} command line option to specify the maximum " +
-        $"length of sequences/sets/maps that test generation is allowed to create",
-        MessageSource.TestGenerationAuditor, ErrorLevel.Warning, new List<DafnyRelatedInformation>()));
     }
     if (type is UserDefinedType userDefinedType) {
       var genericMessage =

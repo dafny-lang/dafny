@@ -217,24 +217,6 @@ module M {
 
   [Theory]
   [MemberData(nameof(OptionSettings))]
-  public async Task NoSequenceLengthLimit(List<Action<DafnyOptions>> optionSettings) {
-    var source = new StringReader(@"
-module M {
-method {:testEntry} m (s:seq<int>) { }
-}
-".TrimStart());
-    var output = new StringBuilder();
-    var options = GetDafnyOptions(optionSettings, new StringWriter(output));
-    options.TestGenOptions.SeqLengthLimit = 0;
-    await Main.GetTestClassForProgram(source, null, options).ToListAsync();
-    var outputString = output.ToString();
-    Assert.Contains(Auditor.NoSequenceLimitWarning, outputString);
-    Assert.Equal(0, Count(Errors, outputString));
-    Assert.Equal(1, Count(Warnings, outputString));
-  }
-
-  [Theory]
-  [MemberData(nameof(OptionSettings))]
   public async Task SmallTimeLimit(List<Action<DafnyOptions>> optionSettings) {
     var source = new StringReader(@"
 module M {
