@@ -224,18 +224,21 @@ namespace Microsoft.Dafny {
       builder.Add(TrAssumeCmd(expr.tok, etran.TrExpr(expr)));
     }
 
-    void WithDelayedReadsChecks(ExpressionTranslator etran,
-      List<Variable> localVariables,
-      BoogieStmtListBuilder builderInitializationArea, BoogieStmtListBuilder builder,
-      bool doOnlyCoarseGrainedTerminationChecks,
-      Action<WFOptions> action) {
-      var doReadsChecks = etran.readsFrame != null;
-      var options = new WFOptions(null, doReadsChecks, doReadsChecks, doOnlyCoarseGrainedTerminationChecks);
-      action(options);
-      if (doReadsChecks) {
-        options.ProcessSavedReadsChecks(localVariables, builderInitializationArea, builder);
+    // Helper object for ensuring delayed reads checks are always processed.
+    // Also encapsulates the handling for the optimization to not declare a $_ReadsFrame field if the reads clause is *:
+    // if etran.readsFrame is null, the block is called with a WFOption with DoReadsChecks set to false instead.
+    private record ReadsCheckDelayer(ExpressionTranslator etran, Function selfCallsAllowance,
+      List<Variable> localVariables, BoogieStmtListBuilder builderInitializationArea, BoogieStmtListBuilder builder) {
+      
+      public void WithDelayedReadsChecks(bool doOnlyCoarseGrainedTerminationChecks, Action<WFOptions> action) {
+        var doReadsChecks = etran.readsFrame != null;
+        var options = new WFOptions(selfCallsAllowance, doReadsChecks, doReadsChecks, doOnlyCoarseGrainedTerminationChecks);
+        action(options);
+        if (doReadsChecks) {
+          options.ProcessSavedReadsChecks(localVariables, builderInitializationArea, builder);
+        }
       }
-    }
+    } 
     
     /// <summary>
     /// Check the well-formedness of "expr" (but don't leave hanging around any assumptions that affect control flow)
@@ -1071,10 +1074,10 @@ namespace Microsoft.Dafny {
                   DefineFrame(e.tok, comprehensionEtran.ReadsFrame(e.tok), reads, newBuilder, locals, frameName, comprehensionEtran);
 
                   // Check frame WF and that it read covers itself
-                  newOptions = new WFOptions(wfOptions.SelfCallsAllowance, true /* check reads clauses */, true /* delay reads checks */);
-                  CheckFrameWellFormed(newOptions, reads, locals, newBuilder, comprehensionEtran);
-                  // new options now contains the delayed reads checks
-                  newOptions.ProcessSavedReadsChecks(locals, builder, newBuilder);
+                  var delayer = new ReadsCheckDelayer(comprehensionEtran, wfOptions.SelfCallsAllowance, locals, builder, newBuilder);
+                  delayer.WithDelayedReadsChecks(false, wfo => {
+                    CheckFrameWellFormed(wfo, reads, locals, newBuilder, comprehensionEtran);
+                  });
 
                   // continue doing reads checks, but don't delay them
                   newOptions = new WFOptions(wfOptions.SelfCallsAllowance, true, false);

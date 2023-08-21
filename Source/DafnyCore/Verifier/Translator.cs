@@ -4384,45 +4384,47 @@ namespace Microsoft.Dafny {
         CheckFrameEmpty(f.tok, etran, etran.ReadsFrame(f.tok), builder, desc, null);
       }
 
-      // Check well-formedness of any default-value expressions (before assuming preconditions).
-      var wfo = new WFOptions(null, true, true, true); // no reads or termination checks
-      foreach (var formal in f.Formals.Where(formal => formal.DefaultValue != null)) {
-        var e = formal.DefaultValue;
-        CheckWellformed(e, wfo, locals, builder, etran);
-        builder.Add(new Bpl.AssumeCmd(e.tok, CanCallAssumption(e, etran)));
-        CheckSubrange(e.tok, etran.TrExpr(e), e.Type, formal.Type, builder);
+      var delayer = new ReadsCheckDelayer(etran, null, locals, builderInitializationArea, builder);
 
-        if (formal.IsOld) {
-          Bpl.Expr wh = GetWhereClause(e.tok, etran.TrExpr(e), e.Type, etran.Old, ISALLOC, true);
-          if (wh != null) {
-            var desc = new PODesc.IsAllocated("default value", "in the two-state function's previous state");
-            builder.Add(Assert(GetToken(e), wh, desc));
+      // Check well-formedness of any default-value expressions (before assuming preconditions).
+      delayer.WithDelayedReadsChecks(true, wfo => {
+        foreach (var formal in f.Formals.Where(formal => formal.DefaultValue != null)) {
+          var e = formal.DefaultValue;
+          CheckWellformed(e, wfo, locals, builder, etran);
+          builder.Add(new Bpl.AssumeCmd(e.tok, CanCallAssumption(e, etran)));
+          CheckSubrange(e.tok, etran.TrExpr(e), e.Type, formal.Type, builder);
+
+          if (formal.IsOld) {
+            Bpl.Expr wh = GetWhereClause(e.tok, etran.TrExpr(e), e.Type, etran.Old, ISALLOC, true);
+            if (wh != null) {
+              var desc = new PODesc.IsAllocated("default value", "in the two-state function's previous state");
+              builder.Add(Assert(GetToken(e), wh, desc));
+            }
           }
         }
-      }
-      wfo.ProcessSavedReadsChecks(locals, builderInitializationArea, builder);
+      });
 
       // Check well-formedness of the preconditions (including termination), and then
       // assume each one of them.  After all that (in particular, after assuming all
       // of them), do the postponed reads checks.
-      wfo = new WFOptions(null, true, true /* do delayed reads checks */);
-      foreach (AttributedExpression p in f.Req) {
-        if (p.Label != null) {
-          p.Label.E = (f is TwoStateFunction ? ordinaryEtran : etran.Old).TrExpr(p.E);
-          CheckWellformed(p.E, wfo, locals, builder, etran);
-        } else {
-          CheckWellformedAndAssume(p.E, wfo, locals, builder, etran);
+      delayer.WithDelayedReadsChecks(false, wfo => {
+        foreach (AttributedExpression p in f.Req) {
+          if (p.Label != null) {
+            p.Label.E = (f is TwoStateFunction ? ordinaryEtran : etran.Old).TrExpr(p.E);
+            CheckWellformed(p.E, wfo, locals, builder, etran);
+          } else {
+            CheckWellformedAndAssume(p.E, wfo, locals, builder, etran);
+          }
         }
-      }
-      wfo.ProcessSavedReadsChecks(locals, builderInitializationArea, builder);
+      });
 
       // Check well-formedness of the reads clause.  Note that this is done after assuming
       // the preconditions.  In other words, the well-formedness of the reads clause is
       // allowed to assume the precondition (yet, the requires clause is checked to
       // read only those things indicated in the reads clause).
-      wfo = new WFOptions(null, true, true /* do delayed reads checks */);
-      CheckFrameWellFormed(wfo, f.Reads, locals, builder, etran);
-      wfo.ProcessSavedReadsChecks(locals, builderInitializationArea, builder);
+      delayer.WithDelayedReadsChecks(false, wfo => {
+        CheckFrameWellFormed(wfo, f.Reads, locals, builder, etran);
+      });
 
       // check well-formedness of the decreases clauses (including termination, but no reads checks)
       foreach (Expression p in f.Decreases.Expressions) {
@@ -4505,12 +4507,13 @@ namespace Microsoft.Dafny {
         }
         Bpl.Expr funcAppl = new Bpl.NAryExpr(f.tok, funcID, args);
 
-        wfo = new WFOptions(null, true, true /* do delayed reads checks */);
-        CheckWellformedWithResult(f.Body, wfo, funcAppl, f.ResultType, locals, bodyCheckBuilder, etran);
-        if (f.Result != null) {
-          bodyCheckBuilder.Add(TrAssumeCmd(f.tok, Bpl.Expr.Eq(funcAppl, TrVar(f.tok, f.Result))));
-        }
-        wfo.ProcessSavedReadsChecks(locals, builderInitializationArea, bodyCheckBuilder);
+        var bodyCheckDelayer = new ReadsCheckDelayer(etran, null, locals, builderInitializationArea, bodyCheckBuilder);
+        bodyCheckDelayer.WithDelayedReadsChecks(false, wfo => {
+          CheckWellformedWithResult(f.Body, wfo, funcAppl, f.ResultType, locals, bodyCheckBuilder, etran);
+          if (f.Result != null) {
+            bodyCheckBuilder.Add(TrAssumeCmd(f.tok, Bpl.Expr.Eq(funcAppl, TrVar(f.tok, f.Result))));
+          }
+        });
 
         // Enforce 'older' conditions
         var (olderParameterCount, olderCondition) = OlderCondition(f, funcAppl, implInParams);
@@ -4617,9 +4620,10 @@ namespace Microsoft.Dafny {
       // check well-formedness of the constraint (including termination, and delayed reads checks)
       var constraintCheckBuilder = new BoogieStmtListBuilder(this, options);
       var builderInitializationArea = new BoogieStmtListBuilder(this, options);
-      var wfo = new WFOptions(null, true, true /* do delayed reads checks */);
-      CheckWellformedAndAssume(decl.Constraint, wfo, locals, constraintCheckBuilder, etran);
-      wfo.ProcessSavedReadsChecks(locals, builderInitializationArea, constraintCheckBuilder);
+      var delayer = new ReadsCheckDelayer(etran, null, locals, builderInitializationArea, constraintCheckBuilder);
+      delayer.WithDelayedReadsChecks(false, wfo => {
+        CheckWellformedAndAssume(decl.Constraint, wfo, locals, constraintCheckBuilder, etran);
+      });
 
       // Check that the type is inhabited.
       // Note, the possible witness in this check should be coordinated with the compiler, so the compiler knows how to do the initialization

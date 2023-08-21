@@ -672,8 +672,10 @@ namespace Microsoft.Dafny {
 
         Contract.Assert(definiteAssignmentTrackers.Count == 0);
       } else {
+        var readsCheckDelayer = new ReadsCheckDelayer(etran, null, localVariables, builderInitializationArea, builder);
+        
         // check well-formedness of any default-value expressions (before assuming preconditions)
-        WithDelayedReadsChecks(etran, localVariables, builderInitializationArea, builder, true, wfo => {
+        readsCheckDelayer.WithDelayedReadsChecks(true, wfo => {
           foreach (var formal in m.Ins.Where(formal => formal.DefaultValue != null)) {
             var e = formal.DefaultValue;
             CheckWellformed(e, wfo, localVariables, builder, etran);
@@ -691,14 +693,14 @@ namespace Microsoft.Dafny {
         });
         
         // check well-formedness of the preconditions, and then assume each one of them
-        WithDelayedReadsChecks(etran, localVariables, builderInitializationArea, builder, false, wfo => {
+        readsCheckDelayer.WithDelayedReadsChecks(false, wfo => {
           foreach (AttributedExpression p in m.Req) {
             CheckWellformedAndAssume(p.E, wfo, localVariables, builder, etran);
           }
         });
         
         // check well-formedness of the reads clauses
-        WithDelayedReadsChecks(etran, localVariables, builderInitializationArea, builder, false, wfo => {
+        readsCheckDelayer.WithDelayedReadsChecks(false, wfo => {
           CheckFrameWellFormed(wfo, m.Reads, localVariables, builder, etran);
           if (etran.readsFrame != null && Attributes.Contains(m.Attributes, "concurrent")) {
             var desc = new PODesc.ConcurrentFrameEmpty("reads clause");
@@ -707,7 +709,7 @@ namespace Microsoft.Dafny {
         });
 
         // check well-formedness of the modifies clauses
-        WithDelayedReadsChecks(etran, localVariables, builderInitializationArea, builder, false, wfo => {
+        readsCheckDelayer.WithDelayedReadsChecks(false, wfo => {
           CheckFrameWellFormed(wfo, m.Mod.Expressions, localVariables, builder, etran);
           if (Attributes.Contains(m.Attributes, "concurrent")) {
             var desc = new PODesc.ConcurrentFrameEmpty("modifies clause");
