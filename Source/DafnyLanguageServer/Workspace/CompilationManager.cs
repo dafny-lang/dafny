@@ -101,12 +101,10 @@ public class CompilationManager {
       await started.Task;
       var parsedCompilation = await documentLoader.ParseAsync(options, startingCompilation, migratedVerificationTrees,
         cancellationSource.Token);
-      // if (!parsedCompilation.Program.Reporter.HasErrors) {
-        verificationProgressReporter.RecomputeVerificationTrees(parsedCompilation);
-        foreach (var root in parsedCompilation.RootUris) {
-          verificationProgressReporter.ReportRealtimeDiagnostics(parsedCompilation, root, false);
-        }
-      // }
+      verificationProgressReporter.RecomputeVerificationTrees(parsedCompilation);
+      foreach (var root in parsedCompilation.RootUris) {
+        verificationProgressReporter.ReportRealtimeDiagnostics(parsedCompilation, root, false);
+      }
 
       compilationUpdates.OnNext(parsedCompilation);
       logger.LogDebug(

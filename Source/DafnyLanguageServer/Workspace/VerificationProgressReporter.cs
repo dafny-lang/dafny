@@ -42,7 +42,7 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
         Children = rootVerificationTree.Children
       };
     }
-    
+
     List<VerificationTree> result = new List<VerificationTree>();
 
     HashSet<Position> recordedPositions = new HashSet<Position>();

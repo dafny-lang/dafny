@@ -12,7 +12,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace;
 
 public delegate IdeStateObserver CreateIdeStateObserver(IdeState initialState);
 
-public class IdeStateObserver : ObserverBase<IdeState> {
+public class IdeStateObserver : IObserver<IdeState> { // Inheriting from ObserverBase prevents this observer from recovering after a problem
   private readonly ILogger logger;
   private readonly ITelemetryPublisher telemetryPublisher;
   private readonly INotificationPublisher notificationPublisher;
@@ -33,7 +33,7 @@ public class IdeStateObserver : ObserverBase<IdeState> {
     this.notificationPublisher = notificationPublisher;
   }
 
-  protected override void OnCompletedCore() {
+  public void OnCompleted() {
     var ideState = initialState with {
       Version = LastPublishedState.Version + 1
     };
@@ -43,7 +43,7 @@ public class IdeStateObserver : ObserverBase<IdeState> {
     telemetryPublisher.PublishUpdateComplete();
   }
 
-  protected override void OnErrorCore(Exception exception) {
+  public void OnError(Exception exception) {
     var internalErrorDiagnostic = new Diagnostic {
       Message =
         "Dafny encountered an internal error. Please report it at <https://github.com/dafny-lang/dafny/issues>.\n" +
@@ -61,7 +61,7 @@ public class IdeStateObserver : ObserverBase<IdeState> {
     telemetryPublisher.PublishUnhandledException(exception);
   }
 
-  protected override void OnNextCore(IdeState snapshot) {
+  public void OnNext(IdeState snapshot) {
     lock (lastPublishedStateLock) {
       if (snapshot.Version < LastPublishedState.Version) {
         return;

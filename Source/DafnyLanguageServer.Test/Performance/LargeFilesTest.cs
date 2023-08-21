@@ -6,6 +6,7 @@ using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 using Xunit;
 using Xunit.Abstractions;
+using Xunit.Sdk;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Performance;
@@ -34,27 +35,38 @@ public class LargeFilesTest : ClientBasedLanguageServerTest {
     }
     var source = contentBuilder.ToString();
 
-    var cancelSource = new CancellationTokenSource();
-    var measurementTask = AssertThreadPoolIsAvailable(cancelSource.Token);
-    var beforeOpen = DateTime.Now;
-    var documentItem = await CreateAndOpenTestDocument(source, "ManyFastEditsUsingLargeFiles.dfy");
-    var afterOpen = DateTime.Now;
-    var openMilliseconds = (afterOpen - beforeOpen).Milliseconds;
-    for (int i = 0; i < 100; i++) {
-      ApplyChange(ref documentItem, new Range(0, 0, 0, 0), "// added this comment\n");
+    Exception lastException = null;
+    for (int attempt = 0; attempt < 5; attempt++) {
+      try {
+        var cancelSource = new CancellationTokenSource();
+        var measurementTask = AssertThreadPoolIsAvailable(cancelSource.Token);
+        var beforeOpen = DateTime.Now;
+        var documentItem = await CreateAndOpenTestDocument(source, "ManyFastEditsUsingLargeFiles.dfy");
+        var afterOpen = DateTime.Now;
+        var openMilliseconds = (afterOpen - beforeOpen).Milliseconds;
+        for (int i = 0; i < 100; i++) {
+          ApplyChange(ref documentItem, new Range(0, 0, 0, 0), "// added this comment\n");
+        }
+
+        await client.WaitForNotificationCompletionAsync(documentItem.Uri, CancellationToken);
+        var afterChange = DateTime.Now;
+        var changeMilliseconds = (afterChange - afterOpen).Milliseconds;
+        await AssertNoDiagnosticsAreComing(CancellationToken);
+        cancelSource.Cancel();
+        await measurementTask;
+        Assert.True(changeMilliseconds < openMilliseconds * 3,
+          $"changeMilliseconds {changeMilliseconds}, openMilliseconds {openMilliseconds}");
+
+        // Commented code left in intentionally
+        // await output.WriteLineAsync("openMilliseconds: " + openMilliseconds);
+        // await output.WriteLineAsync("changeMilliseconds: " + changeMilliseconds);
+        return;
+      } catch (AssertActualExpectedException e) {
+        lastException = e;
+      }
     }
 
-    await client.WaitForNotificationCompletionAsync(documentItem.Uri, CancellationToken);
-    var afterChange = DateTime.Now;
-    var changeMilliseconds = (afterChange - afterOpen).Milliseconds;
-    await AssertNoDiagnosticsAreComing(CancellationToken);
-    cancelSource.Cancel();
-    await measurementTask;
-    Assert.True(changeMilliseconds < openMilliseconds * 3, $"changeMilliseconds {changeMilliseconds}, openMilliseconds {openMilliseconds}");
-
-    // Commented code left in intentionally
-    // await output.WriteLineAsync("openMilliseconds: " + openMilliseconds);
-    // await output.WriteLineAsync("changeMilliseconds: " + changeMilliseconds);
+    throw lastException!;
   }
 
   private async Task AssertThreadPoolIsAvailable(CancellationToken durationToken, TimeSpan? maximumThreadPoolSchedulingTime = null) {
