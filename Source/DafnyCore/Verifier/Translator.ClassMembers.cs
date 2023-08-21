@@ -753,7 +753,9 @@ namespace Microsoft.Dafny {
           CheckWellformedAndAssume(p.E, new WFOptions(), localVariables, builder, etran);
         }
 
-        stmts = builder.Collect(m.tok);
+        var s0 = builderInitializationArea.Collect(m.tok);
+        var s1 = builder.Collect(m.tok);
+        stmts = new StmtList(new List<BigBlock>(s0.BigBlocks.Concat(s1.BigBlocks)), m.tok);
       }
 
       if (EmitImplementation(m.Attributes)) {
