@@ -1,14 +1,18 @@
-// RUN: %exits-with 4 %dafny /compile:0 "%s" > "%t"
+// RUN: %exits-with 4 %verify "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 class Box<T> {
-  constructor(x: T) {
-    this.x := x;
+  constructor(x: T) 
+    reads {}
+  {
+    this.x := x;  // BUG: Last segment of a LHS path shouldn't be considered a read
+                  // OR allow reads in the first half of a constructor
   }
   var x: T
 }
 
 method SetBox(b: Box<int>, i: int) 
+  reads b   // BUG: Last segment of a LHS path shouldn't be considered a read
   modifies b
 {
   b.x := i;
@@ -59,7 +63,7 @@ method ApplyLambda<T(!new), R>(f: T ~> R, t: T) returns (r: R)
 }
 
 method DependsOnAllocationState<T>(b: Box<T>) 
-  reads set t: T :: b // BUG? Not allowed for function...
+  reads set t: T :: b // BUG? This isn't allowed on functions...
 {
 }
 
@@ -71,30 +75,34 @@ class {:extern} ExternalSequentialMutableMap<K, V> {
     requires k !in state
     modifies this
     ensures state == old(state)[k := v]
-  method {:extern} Get(k: K) returns (v: Option<V>)
+  function {:extern} Get(k: K): (v: Option<V>)
+    reads this
     ensures k in state ==> v == Some(state[k])
     ensures k !in state ==> v == None
 }
 
 method {:concurrent} MemoizedSquare2(x: int, cache: ExternalSequentialMutableMap<int, int>) returns (xSquared: int)
-  requires forall k | k in cache.state :: cache.state[k] == k * k
+  requires forall k | k in cache.state :: cache.state[k] == k * k   // Error: insufficient reads clause to read field
   reads {}
   ensures xSquared == x * x
 {
-  var cached := cache.Get(x); // Bug: Not catching invalid read here
+  var cached := cache.Get(x);  // Error: insufficient reads clause to invoke function
   if cached.Some? {
     xSquared := cached.value;
   } else {
     xSquared := x * x;
-    cache.Put(x, xSquared);
+    cache.Put(x, xSquared);    // Error: call might violate context's modifies clause
+                               // Error: insufficient reads clause to call
   }
 }
 
 class {:extern} ExternalConcurrentMutableMap<K, V> {
   const inv: (K, V) -> bool
   method {:extern} Put(k: K, v: V)
+    reads {}
     requires inv(k, v)
   method {:extern} Get(k: K) returns (v: Option<V>)
+    reads {}
     ensures v.Some? ==> inv(k, v.value)
 }
 
@@ -123,9 +131,9 @@ function Always42(b: Box<int>): int {
 
 method BadMetaBox(b: Box<Box<int>>)
   reads {}
-  modifies b.x
+  modifies b.x  // Error: insufficient reads clause to read field
 {
-  b.x.x := 42;
+  b.x.x := 42;  // Error: insufficient reads clause to read field
 }
 
 method GoodMetaBox(b: Box<Box<int>>)
@@ -134,7 +142,7 @@ method GoodMetaBox(b: Box<Box<int>>)
   b.x.x := 42;
 }
 
-function Foo(b: Box<Box<int>>): int
+function GoodMetaBox2(b: Box<Box<int>>): int
   reads b, b.x
 {
   b.x.x
@@ -142,11 +150,12 @@ function Foo(b: Box<Box<int>>): int
 
 trait T {
   method M(b: Box<int>) returns (r: int)
+    reads {}
 }
 
 class C extends T {
-  method M(b: Box<int>) returns (r: int) 
-    reads b // BUG
+  method M(b: Box<int>) returns (r: int) // Error: method might read an object not in the parent trait context's reads clause
+    reads b
   {
     return 42;
   }
@@ -158,7 +167,7 @@ class Concurrent {
     42
   }
 
-  function {:concurrent} BadFn(b: Box<int>): int 
+  function {:concurrent} BadFn(b: Box<int>): int  // Error: reads clause might not be empty ({:concurrent} restriction)
     reads b
   {
     b.x
@@ -173,7 +182,7 @@ class Concurrent {
   method {:concurrent} GoodM(b: Box<int>) {
   }
 
-  method {:concurrent} BadM(b: Box<int>) 
+  method {:concurrent} BadM(b: Box<int>)  // Error: reads clause might not be empty ({:concurrent} restriction)
     reads b
   {
     var x := b.x;
@@ -184,7 +193,7 @@ class Concurrent {
   {
   }
 
-  method {:concurrent} AlsoBadM(b: Box<int>) 
+  method {:concurrent} AlsoBadM(b: Box<int>)  // Error: modifies clause might not be empty ({:concurrent} restriction)
     modifies b
   {
     b.x := 42;
@@ -198,14 +207,14 @@ class Concurrent {
 
 // Testing the reads checks on other clauses
 method OnlySpecReads(b: Box<int>) returns (r: int)
-  requires b.x == 42
+  requires b.x == 42  // Error: insufficient reads clause to read field
   reads {}
   ensures r == b.x
 {
   return 42;
 }
 
-method DefaultValueReads(b: Box<int>, x: int := b.x)
+method DefaultValueReads(b: Box<int>, x: int := b.x)  // Error: insufficient reads clause to read field
   returns (r: int)
   reads {}
 {
@@ -213,17 +222,15 @@ method DefaultValueReads(b: Box<int>, x: int := b.x)
 }
 
 // TODO:
+// * this field reads should be allowed in the first half of constructors
 // * stress test well-formedness of reads clauses (e.g. when depending on method preconditions)
 //   * Also need to apply reads clauses to all other clauses, and default values
 // * Double check refinement
-// * Extending traits subframe check
-// * Method call subframe check
 // * Explicitly test against ghost state too
 //   * ghost methods/lemmas as well
-// * {:concurrent} (probably separate test file)
 // * Optimize checking for `reads {}`? Can be checked with a simple AST pass, much cheaper
 //   * At least some cases might be handled by existing IsAlwaysTrue
 // * Double-check if it's correct that function default values don't assume preconditions
-// * Missing check for reads clause not allowed to depend on set of allocated objects
+// * Missing check for reads clause not allowed to depend on set of allocated objects (?)
 // * Document explicit choice not to include method reads clause in decreases clause (backwards compatibility)
 // * Document explicit choice not to change autocontracts (?)

@@ -1,11 +1,18 @@
-github-issue-reads-on-methods.dfy(38,9): Error: insufficient reads clause to read field
-github-issue-reads-on-methods.dfy(85,23): Error: insufficient reads clause to read field
-github-issue-reads-on-methods.dfy(92,13): Error: insufficient reads clause to read field
-github-issue-reads-on-methods.dfy(94,4): Error: insufficient reads clause to read field
-github-issue-reads-on-methods.dfy(167,13): Error: insufficient reads clause to read field
-github-issue-reads-on-methods.dfy(174,50): Error: insufficient reads clause to read field
-github-issue-reads-on-methods.dfy(127,25): Error: reads clause might not be empty ({:concurrent} restriction)
-github-issue-reads-on-methods.dfy(142,23): Error: reads clause might not be empty ({:concurrent} restriction)
-github-issue-reads-on-methods.dfy(153,23): Error: modifies clause might not be empty ({:concurrent} restriction)
+github-issue-reads-on-methods.dfy(66,8): Warning: /!\ No terms found to trigger on.
+github-issue-reads-on-methods.dfy(42,9): Error: insufficient reads clause to read field
+github-issue-reads-on-methods.dfy(85,33): Error: insufficient reads clause to read field
+github-issue-reads-on-methods.dfy(89,22): Error: insufficient reads clause to invoke function
+github-issue-reads-on-methods.dfy(94,13): Error: call might violate context's modifies clause
+github-issue-reads-on-methods.dfy(94,13): Error: insufficient reads clause to call
+github-issue-reads-on-methods.dfy(127,23): Error: insufficient reads clause to read field
+github-issue-reads-on-methods.dfy(134,13): Error: insufficient reads clause to read field
+github-issue-reads-on-methods.dfy(136,4): Error: insufficient reads clause to read field
+github-issue-reads-on-methods.dfy(210,13): Error: insufficient reads clause to read field
+github-issue-reads-on-methods.dfy(217,50): Error: insufficient reads clause to read field
+github-issue-reads-on-methods.dfy(8,9): Error: insufficient reads clause to read field
+github-issue-reads-on-methods.dfy(157,9): Error: method might read an object not in the parent trait context's reads clause
+github-issue-reads-on-methods.dfy(170,25): Error: reads clause might not be empty ({:concurrent} restriction)
+github-issue-reads-on-methods.dfy(185,23): Error: reads clause might not be empty ({:concurrent} restriction)
+github-issue-reads-on-methods.dfy(196,23): Error: modifies clause might not be empty ({:concurrent} restriction)
 
-Dafny program verifier finished with 20 verified, 9 errors
+Dafny program verifier finished with 26 verified, 15 errors
