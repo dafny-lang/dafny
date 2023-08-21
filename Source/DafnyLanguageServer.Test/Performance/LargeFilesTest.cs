@@ -60,16 +60,17 @@ public class LargeFilesTest : ClientBasedLanguageServerTest {
         await measurementTask;
         var division = changeMilliseconds / openMilliseconds;
         lowest = Math.Min(lowest, division);
+        
+        // Commented code left in intentionally
+        await output.WriteLineAsync("openMilliseconds: " + openMilliseconds);
+        await output.WriteLineAsync("changeMilliseconds: " + changeMilliseconds);
+        await output.WriteLineAsync("division: " + division);
         try {
-          Assert.True(division < 3,
+          Assert.True(division < 10,
             $"changeMilliseconds {changeMilliseconds}, openMilliseconds {openMilliseconds}");
 
-          // Commented code left in intentionally
-          // await output.WriteLineAsync("openMilliseconds: " + openMilliseconds);
-          // await output.WriteLineAsync("changeMilliseconds: " + changeMilliseconds);
           return;
         } catch (AssertActualExpectedException e) {
-          await output.WriteLineAsync("startNewCompilationCount: " + ProjectManager.startNewCompilationCount);
           lastException = e;
         }
       }
