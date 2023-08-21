@@ -50,7 +50,7 @@ public class LargeFilesTest : ClientBasedLanguageServerTest {
     await AssertNoDiagnosticsAreComing(CancellationToken);
     cancelSource.Cancel();
     await measurementTask;
-    Assert.True(changeMilliseconds < openMilliseconds * 3);
+    Assert.True(changeMilliseconds < openMilliseconds * 3, $"changeMilliseconds {changeMilliseconds}, openMilliseconds {openMilliseconds}");
 
     // Commented code left in intentionally
     // await output.WriteLineAsync("openMilliseconds: " + openMilliseconds);

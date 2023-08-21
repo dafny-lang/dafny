@@ -22,7 +22,7 @@ public delegate CompilationManager CreateCompilationManager(
   DafnyOptions options,
   ExecutionEngine boogieEngine,
   Compilation compilation,
-  IReadOnlyDictionary<Uri, VerificationTree> migratedVerificationTrees);
+  IReadOnlyDictionary<Uri, DocumentVerificationTree> migratedVerificationTrees);
 
 /// <summary>
 /// The compilation of a single document version.
@@ -43,7 +43,7 @@ public class CompilationManager {
   private readonly IVerificationProgressReporter verificationProgressReporter;
 
   // TODO CompilationManager shouldn't be aware of migration
-  private readonly IReadOnlyDictionary<Uri, VerificationTree> migratedVerificationTrees;
+  private readonly IReadOnlyDictionary<Uri, DocumentVerificationTree> migratedVerificationTrees;
 
   private TaskCompletionSource started = new();
   private readonly IScheduler verificationUpdateScheduler = new EventLoopScheduler();
@@ -70,7 +70,7 @@ public class CompilationManager {
     DafnyOptions options,
     ExecutionEngine boogieEngine,
     Compilation compilation,
-    IReadOnlyDictionary<Uri, VerificationTree> migratedVerificationTrees
+    IReadOnlyDictionary<Uri, DocumentVerificationTree> migratedVerificationTrees
     ) {
     this.options = options;
     startingCompilation = compilation;
@@ -101,9 +101,12 @@ public class CompilationManager {
       await started.Task;
       var parsedCompilation = await documentLoader.ParseAsync(options, startingCompilation, migratedVerificationTrees,
         cancellationSource.Token);
-      foreach (var root in parsedCompilation.RootUris) {
-        verificationProgressReporter.ReportRealtimeDiagnostics(parsedCompilation, root, false);
-      }
+      // if (!parsedCompilation.Program.Reporter.HasErrors) {
+        verificationProgressReporter.RecomputeVerificationTrees(parsedCompilation);
+        foreach (var root in parsedCompilation.RootUris) {
+          verificationProgressReporter.ReportRealtimeDiagnostics(parsedCompilation, root, false);
+        }
+      // }
 
       compilationUpdates.OnNext(parsedCompilation);
       logger.LogDebug(

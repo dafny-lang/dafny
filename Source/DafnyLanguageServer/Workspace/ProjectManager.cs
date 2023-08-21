@@ -92,7 +92,7 @@ public class ProjectManager : IDisposable {
 
     observer = createIdeStateObserver(initialIdeState);
     CompilationManager = createCompilationManager(
-        options, boogieEngine, initialCompilation, ImmutableDictionary<Uri, VerificationTree>.Empty
+        options, boogieEngine, initialCompilation, ImmutableDictionary<Uri, DocumentVerificationTree>.Empty
     );
 
     observerSubscription = Disposable.Empty;
@@ -108,10 +108,11 @@ public class ProjectManager : IDisposable {
 
   public void UpdateDocument(DidChangeTextDocumentParams documentChange) {
     var migrator = createMigrator(documentChange, CancellationToken.None);
+    Lazy<IdeState> lazyPreviousCompilationLastIdeState = latestIdeState;
     latestIdeState = new Lazy<IdeState>(() => {
       // If we migrate the observer before accessing latestIdeState, we can be sure it's migrated before it receives new events.
       observer.Migrate(migrator, version + 1);
-      return latestIdeState.Value.Migrate(migrator, version + 1);
+      return lazyPreviousCompilationLastIdeState.Value.Migrate(migrator, version + 1);
     });
     StartNewCompilation();
 
@@ -144,8 +145,8 @@ public class ProjectManager : IDisposable {
     version++;
     logger.LogDebug("Clearing result for workCompletedForCurrentVersion");
     
+    Lazy<IdeState> migratedLazyPreviousCompilationLastIdeState = latestIdeState;
     observerSubscription.Dispose();
-    var lazyPreviousCompilationLastIdeState = latestIdeState;
     
     CompilationManager.CancelPendingUpdates();
     CompilationManager = createCompilationManager(
@@ -155,7 +156,7 @@ public class ProjectManager : IDisposable {
       latestIdeState.Value.VerificationTrees);
 
     var migratedUpdates = CompilationManager.CompilationUpdates.Select(document =>
-      latestIdeState = new Lazy<IdeState>(() => document.ToIdeState(lazyPreviousCompilationLastIdeState.Value)));
+      latestIdeState = new Lazy<IdeState>(() => document.ToIdeState(migratedLazyPreviousCompilationLastIdeState.Value)));
     var throttleTime = options.Get(ServerCommand.UpdateThrottling);
     var throttledUpdates = throttleTime == 0 ? migratedUpdates : migratedUpdates.Sample(TimeSpan.FromMilliseconds(throttleTime));
     observerSubscription = throttledUpdates.

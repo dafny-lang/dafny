@@ -33,13 +33,13 @@ public record IdeState(
   Dictionary<Location, IdeVerificationResult> VerificationResults,
   IReadOnlyList<Counterexample> Counterexamples,
   IReadOnlyDictionary<Uri, IReadOnlyList<Range>> GhostRanges,
-  IReadOnlyDictionary<Uri, VerificationTree> VerificationTrees
+  IReadOnlyDictionary<Uri, DocumentVerificationTree> VerificationTrees
 ) {
 
   public IdeState Migrate(Migrator migrator, int version) {
     var migratedVerificationTrees = VerificationTrees.ToDictionary(
       kv => kv.Key, kv =>
-        migrator.RelocateVerificationTree(kv.Value));
+        (DocumentVerificationTree)migrator.RelocateVerificationTree(kv.Value));
     return this with {
       Version = version,
       VerificationResults = MigrateImplementationViews(migrator, VerificationResults),

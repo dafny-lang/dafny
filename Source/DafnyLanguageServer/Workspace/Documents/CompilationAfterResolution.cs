@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Microsoft.Boogie;
 using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Language.Symbols;
+using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
@@ -107,7 +108,7 @@ public class CompilationAfterResolution : CompilationAfterParsing {
       SignatureAndCompletionTable = SignatureAndCompletionTable.Resolved ? SignatureAndCompletionTable : previousState.SignatureAndCompletionTable,
       GhostRanges = GhostDiagnostics,
       Counterexamples = new List<Counterexample>(Counterexamples),
-      VerificationTrees = VerificationTrees.ToDictionary(kv => kv.Key, kv => kv.Value.GetCopyForNotification()),
+      VerificationTrees = VerificationTrees.ToDictionary(kv => kv.Key, kv => (DocumentVerificationTree)kv.Value.GetCopyForNotification()),
       VerificationResults = Verifiables.GroupBy(l => l.NameToken.GetLocation()).ToDictionary(k => k.Key,
         k => MergeResults(k.Select(MergeVerifiable)))
     };
