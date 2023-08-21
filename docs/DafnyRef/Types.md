@@ -193,9 +193,9 @@ The contrapositives of these two expressions would be:
 a.Length < 0 ==> a == null  // not well-formed
 a == null <== a.Length < 0  // not well-formed
 ```
-but these expressions are not [well-formed](#sec-assertion-batches), since well-formedness
+but these expressions might not necessarily be [well-formed](#sec-assertion-batches), since well-formedness
 requires the left (and right, respectively) operand, `a.Length < 0`,
-to be [well-formed](#sec-assertion-batches) by itself.
+to be [well-formed](#sec-assertion-batches) in their context.
 
 Implication `A ==> B` is equivalent to the disjunction `!A || B`, but
 is sometimes (especially in specifications) clearer to read.  Since,
@@ -204,12 +204,12 @@ is sometimes (especially in specifications) clearer to read.  Since,
 ```dafny
 a == null || 0 <= a.Length
 ```
-is [well-formed](#sec-assertion-batches), whereas
+is [well-formed](#sec-assertion-batches) by itself, whereas
 <!-- %no-check -->
 ```dafny
 0 <= a.Length || a == null  // not well-formed
 ```
-is not.
+is not if the context cannot prove that `a != null`.
 
 In addition, booleans support _logical quantifiers_ (forall and
 exists), described in [Section 9.31.4](#sec-quantifier-expression).
@@ -2980,7 +2980,7 @@ Note that the expression
 ```dafny
 Cons(5, Nil).tail.head
 ```
-is not [well-formed](#sec-assertion-batches), since `Cons(5, Nil).tail` does not necessarily satisfy
+is not [well-formed](#sec-assertion-batches) by itself, since `Cons(5, Nil).tail` does not necessarily satisfy
 `Cons?`.
 
 A constructor can have the same name as

@@ -1153,13 +1153,58 @@ To understand how to control verification,
 it is first useful to understand how `dafny` verifies functions and methods.
 
 For every method (or function, constructor, etc.), `dafny` extracts _assertions_.
-Assertions extracted from expressions are called *well-formedness assertions*.
-Assertions extracted from statements and clauses are called *correctness assertions*.
-Other than that, these are all assertions Dafny needs to verify that the code is correct,
-but that also your specification makes sense.
-Here is a non-exhaustive list of such extracted assertions:
+Assertions can roughly be sorted into two kinds: Well-formedness and correctness.
 
-**Well-formedness integer assertions:**
+- _Well-formedness_ assertions: All the implicit requirements
+  of native operation calls (such as indexing and asserting that divisiors are nonzero),
+  [`requires` clauses](#sec-requires-clause) of function calls, explicit
+  [assertion expressions](#sec-statement-in-an-expression) and
+  [`decreases` clauses](#sec-decreases-clause) at function call sites
+  generate well-formedness assertions.  
+  An expression is said to be _well-formed_ in a context if
+  all well-formedness assertions can be proven in that context.
+
+- _Correctness_ assertions: All remaining assertions and clauses
+
+For example, given the following statements:
+
+<!-- %no-check -->
+```dafny
+if b {
+  assert a*a != 0;
+}
+c := (assert b ==> a != 0; if b then 3/a else f(a));
+assert c != 5/a;
+```
+
+Dafny performs the following checks:
+
+<!-- %no-check -->
+```dafny
+var c: int;
+if b {
+  assert a*a != 0;   // Correctness
+}
+assert b ==> a != 0; // Well-formedness
+if b {
+  assert a != 0;     // Well-formedness
+} else {
+  assert f.requires(a); // Well-formedness
+}
+c := if b then 3/a else f(a);
+assert a != 0;       // Well-formedness
+assert c != 5/a;     // Correctness
+```
+
+Well-formedness is proved at the same time as correctness, except for
+[well-formedness of requires and ensures clauess](#sec-well-formedness-specifications)
+which is proved separatedly from the well-formedness and correctness of the rest of the method/function.
+For the rest of this section, we don't diifferentiate between well-formedness assertions and correctness assertions.
+
+We can also classify the assertions extracted by Dafny in a few categories:
+
+**Integer assertions:**
+
 * Every [division](#sec-numeric-types) yields an _assertion_ that the divisor is never zero.
 * Every [bounded number operation](#sec-numeric-types) yields an _assertion_ that the result will be within the same bounds (no overflow, no underflows).
 * Every [conversion](#sec-as-is-expression) yields an _assertion_ that conversion is compatible.

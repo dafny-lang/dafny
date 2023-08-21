@@ -845,7 +845,7 @@ add:
    reads Repr
 ```
 
-## 7.8. Well-formedness of specifications {#sec-well-formedness}
+## 7.8. Well-formedness of specifications {#sec-well-formedness-specifications}
 
 Dafny ensures that the [`requires` clauses](#sec-requires-clause)
 and [`ensures` clauses](#sec-ensures-clauses), which are expressions,
