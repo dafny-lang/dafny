@@ -51,23 +51,57 @@ method ReadingAndWritingFreshStateAllowed()
   SetBox(myBox, 42);
 }
 
-// TODO: verification times out. Did this already work for functions?
-// method ApplyLambda<T, R>(f: T ~> R, t: T) returns (r: R) 
-//   requires f.requires(t)
-//   reads f.reads
-// {
-//   r := f(t);
-// }
+method ApplyLambda<T(!new), R>(f: T ~> R, t: T) returns (r: R) 
+  requires f.requires(t)
+  reads f.reads  // BUG: Insufficient reads clause to read function
+{
+  r := f(t);
+}
+
+method DependsOnAllocationState<T>(b: Box<T>) 
+  reads set t: T :: b // BUG? Not allowed for function...
+{
+}
 
 datatype Option<T> = Some(value: T) | None
 
-class {:extern} ExternalMutableMap<K, V> {
-  method {:extern} Put(k: K, v: V) 
-  method {:extern} Get(k: V) returns (v: Option<V>)
+class {:extern} ExternalSequentialMutableMap<K, V> {
+  ghost var state: map<K, V>
+  method {:extern} Put(k: K, v: V)
+    requires k !in state
+    modifies this
+    ensures state == old(state)[k := v]
+  method {:extern} Get(k: K) returns (v: Option<V>)
+    ensures k in state ==> v == Some(state[k])
+    ensures k !in state ==> v == None
 }
 
-method MemoizedSquare(x: int, cache: ExternalMutableMap<int, int>) returns (xSquared: int)
+method {:concurrent} MemoizedSquare2(x: int, cache: ExternalSequentialMutableMap<int, int>) returns (xSquared: int)
+  requires forall k | k in cache.state :: cache.state[k] == k * k
   reads {}
+  ensures xSquared == x * x
+{
+  var cached := cache.Get(x); // Bug: Not catching invalid read here
+  if cached.Some? {
+    xSquared := cached.value;
+  } else {
+    xSquared := x * x;
+    cache.Put(x, xSquared);
+  }
+}
+
+class {:extern} ExternalConcurrentMutableMap<K, V> {
+  const inv: (K, V) -> bool
+  method {:extern} Put(k: K, v: V)
+    requires inv(k, v)
+  method {:extern} Get(k: K) returns (v: Option<V>)
+    ensures v.Some? ==> inv(k, v.value)
+}
+
+method {:concurrent} MemoizedSquare(x: int, cache: ExternalConcurrentMutableMap<int, int>) returns (xSquared: int)
+  requires cache.inv == ((key, value) => value == key * key)
+  reads {}
+  ensures xSquared == x * x
 {
   var cached := cache.Get(x);
   if cached.Some? {
@@ -182,10 +216,14 @@ method DefaultValueReads(b: Box<int>, x: int := b.x)
 // * stress test well-formedness of reads clauses (e.g. when depending on method preconditions)
 //   * Also need to apply reads clauses to all other clauses, and default values
 // * Double check refinement
-// * Double check extending traits
+// * Extending traits subframe check
+// * Method call subframe check
 // * Explicitly test against ghost state too
 //   * ghost methods/lemmas as well
 // * {:concurrent} (probably separate test file)
 // * Optimize checking for `reads {}`? Can be checked with a simple AST pass, much cheaper
 //   * At least some cases might be handled by existing IsAlwaysTrue
 // * Double-check if it's correct that function default values don't assume preconditions
+// * Missing check for reads clause not allowed to depend on set of allocated objects
+// * Document explicit choice not to include method reads clause in decreases clause (backwards compatibility)
+// * Document explicit choice not to change autocontracts (?)

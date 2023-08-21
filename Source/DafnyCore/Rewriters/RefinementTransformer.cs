@@ -863,6 +863,9 @@ namespace Microsoft.Dafny {
               if (m.Req.Count != 0) {
                 Error(ErrorId.ref_no_new_method_precondition, m.Req[0].E.tok, "a refining method is not allowed to add preconditions");
               }
+              if (m.Reads.Count != 0) {
+                Error(ErrorId.ref_no_new_method_reads, m.Reads[0].E.tok, "a refining method is not allowed to extend the reads clause");
+              }
               if (m.Mod.Expressions.Count != 0) {
                 Error(ErrorId.ref_no_new_method_modifies, m.Mod.Expressions[0].E.tok, "a refining method is not allowed to extend the modifies clause");
               }

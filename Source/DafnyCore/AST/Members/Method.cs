@@ -8,7 +8,7 @@ namespace Microsoft.Dafny;
 public class Method : MemberDecl, TypeParameter.ParentType, IMethodCodeContext, ICanFormat, IHasDocstring, IHasSymbolChildren {
   public override IEnumerable<INode> Children => new Node[] { Body, Decreases }.
     Where(x => x != null).Concat(Ins).Concat(Outs).Concat<Node>(TypeArgs).
-    Concat(Req).Concat(Ens).Concat(Mod.Expressions);
+    Concat(Req).Concat(Ens).Concat(Reads).Concat(Mod.Expressions);
   public override IEnumerable<INode> PreResolveChildren => Children;
 
   public override string WhatKind => "method";
@@ -80,6 +80,9 @@ public class Method : MemberDecl, TypeParameter.ParentType, IMethodCodeContext, 
       foreach (var e in Req) {
         yield return e.E;
       }
+      foreach (var e in Reads) {
+        yield return e.E;
+      }
       foreach (var e in Mod.Expressions) {
         yield return e.E;
       }
@@ -98,6 +101,7 @@ public class Method : MemberDecl, TypeParameter.ParentType, IMethodCodeContext, 
     Contract.Invariant(cce.NonNullElements(Ins));
     Contract.Invariant(cce.NonNullElements(Outs));
     Contract.Invariant(cce.NonNullElements(Req));
+    Contract.Invariant(cce.NonNullElements(Reads));
     Contract.Invariant(Mod != null);
     Contract.Invariant(cce.NonNullElements(Ens));
     Contract.Invariant(Decreases != null);
@@ -219,8 +223,8 @@ public class Method : MemberDecl, TypeParameter.ParentType, IMethodCodeContext, 
       formatter.SetAttributedExpressionIndentation(req, indentBefore + formatter.SpaceTab);
     }
 
-    foreach (var mod in Reads) {
-      formatter.SetFrameExpressionIndentation(mod, indentBefore + formatter.SpaceTab);
+    foreach (var read in Reads) {
+      formatter.SetFrameExpressionIndentation(read, indentBefore + formatter.SpaceTab);
     }
 
     foreach (var mod in Mod.Expressions) {
@@ -280,9 +284,9 @@ public class Method : MemberDecl, TypeParameter.ParentType, IMethodCodeContext, 
         resolver.ConstrainTypeExprBool(e.E, "Precondition must be a boolean (got {0})");
       }
 
-      // TODO: May not be the right place to do this, and may want something like InferredDecreases
+      // TODO: May not be the right place to set the default, and may want something similar to InferredDecreases
       if (!Reads.Any()) {
-        // TODO: This is the right default for backwards-compatiblity,
+        // Note that `reads *` is the right default for backwards-compatibility,
         // but we may want to infer a sensible default like decreases clauses instead.
         Reads.Add(new FrameExpression(tok, new WildcardExpr(tok), null));
       }

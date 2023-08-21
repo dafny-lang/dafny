@@ -794,8 +794,8 @@ namespace Microsoft.Dafny {
       var post = new AttributedExpression(new BinaryExpr(tok, BinaryExpr.Opcode.Eq, r, fn));
       // If f.Reads is empty, replace it with an explicit `reads {}` so that we don't replace that
       // with the default `reads *` for methods later.
-      // TODO: We could also have a flag similar to InferredDecreases to distinguish between
-      // "not given" and "explicitly empty"
+      // Alternatively, we could have a flag similar to InferredDecreases to distinguish between
+      // "not given" and "explicitly empty".
       var reads = f.Reads;
       if (!reads.Any()) {
         reads = new List<FrameExpression>();
