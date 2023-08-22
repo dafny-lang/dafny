@@ -20,15 +20,23 @@ namespace Microsoft.Dafny.LanguageServer.Language {
   /// this verifier serializes all invocations.
   /// </remarks>
   public class DafnyProgramVerifier : IProgramVerifier {
+    private readonly ILogger<DafnyProgramVerifier> logger;
     private readonly SemaphoreSlim mutex = new(1);
 
     public DafnyProgramVerifier(ILogger<DafnyProgramVerifier> logger) {
+      this.logger = logger;
     }
 
-    public async Task<IReadOnlyList<IImplementationTask>> GetVerificationTasksAsync(
-      ExecutionEngine engine,
+    public async Task<IReadOnlyList<IImplementationTask>> GetVerificationTasksAsync(ExecutionEngine engine,
       CompilationAfterResolution compilation,
+      ModuleDefinition moduleDefinition,
       CancellationToken cancellationToken) {
+
+      var verifiableModules = Translator.VerifiableModules(compilation.Program);
+      if (!verifiableModules.Contains(moduleDefinition)) {
+        throw new Exception("tried to get verification tasks for a module that is not verified");
+      }
+
       await mutex.WaitAsync(cancellationToken);
       try {
 
@@ -37,25 +45,26 @@ namespace Microsoft.Dafny.LanguageServer.Language {
 
         cancellationToken.ThrowIfCancellationRequested();
 
-        var translated = await DafnyMain.LargeStackFactory.StartNew(() => Translator.Translate(program, errorReporter, new Translator.TranslatorFlags(errorReporter.Options) {
-          InsertChecksums = true,
-          ReportRanges = true
-        }).ToList(), cancellationToken);
+        var boogieProgram = await DafnyMain.LargeStackFactory.StartNew(() => {
+          Type.ResetScopes();
+          var translatorFlags = new Translator.TranslatorFlags(errorReporter.Options) {
+            InsertChecksums = 0 < engine.Options.VerifySnapshots,
+            ReportRanges = true
+          };
+          var translator = new Translator(errorReporter, translatorFlags);
+          return translator.DoTranslation(compilation.Program, moduleDefinition);
+        }, cancellationToken);
+        var suffix = moduleDefinition.SanitizedName;
 
         cancellationToken.ThrowIfCancellationRequested();
 
         if (engine.Options.PrintFile != null) {
           var moduleCount = Translator.VerifiableModules(program).Count();
-          foreach (var (suffix, boogieProgram) in translated) {
-            var fileName = moduleCount > 1 ? DafnyMain.BoogieProgramSuffix(engine.Options.PrintFile, suffix) : engine.Options.PrintFile;
-            ExecutionEngine.PrintBplFile(engine.Options, fileName, boogieProgram, false, false, engine.Options.PrettyPrint);
-          }
+          var fileName = moduleCount > 1 ? DafnyMain.BoogieProgramSuffix(engine.Options.PrintFile, suffix) : engine.Options.PrintFile;
+          ExecutionEngine.PrintBplFile(engine.Options, fileName, boogieProgram, false, false, engine.Options.PrettyPrint);
         }
 
-        return translated.SelectMany(t => {
-          var (_, boogieProgram) = t;
-          return engine.GetImplementationTasks(boogieProgram);
-        }).ToList();
+        return engine.GetImplementationTasks(boogieProgram);
       }
       finally {
         mutex.Release();

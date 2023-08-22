@@ -1,5 +1,6 @@
 ﻿using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
+using Microsoft.Extensions.Logging;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -11,7 +12,15 @@ public class SimpleLinearVerificationGutterStatusTester : LinearVerificationGutt
 
   // To add a new test, just call VerifyTrace on a given program,
   // the test will fail and give the correct output that can be use for the test
-  // Add '//Next<n>:' to edit a line multiple times
+  // Add '//Replace<n>:' to edit a line multiple times
+
+  [Fact]
+  public async Task GitIssue4287GutterHighlightingBroken() {
+    await VerifyTrace(@"
+ |  | [ ]://Insert1:method Test() {//Insert2:\\n  assert false;\n}
+### | [=]:
+######[ ]:", false, intermediates: false);
+  }
 
   [Fact]
   public async Task GitIssue3821GutterIgnoredProblem() {
@@ -33,7 +42,7 @@ method Foo() ensures false { } ";
       options.Set(ServerCommand.LineVerificationStatus, false);
     });
 
-    var documentItem = CreateTestDocument(source);
+    var documentItem = CreateTestDocument(source, "NoGutterNotificationsReceivedWhenTurnedOff.dfy");
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
     await GetLastDiagnostics(documentItem, CancellationToken);
     Assert.False(verificationStatusGutterReceiver.HasPendingNotifications);
@@ -51,70 +60,70 @@ method Foo() ensures false { } ";
   public async Task EnsureVerificationGutterStatusIsWorking() {
     await SetUp(o => o.Set(CommonOptionBag.RelaxDefiniteAssignment, true));
     await VerifyTrace(@"
- .  |  |  |  I  I  |  | :predicate Ok() {
- .  |  |  |  I  I  |  | :  true
- .  |  |  |  I  I  |  | :}
-    |  |  |  I  I  |  | :
- .  S [S][ ][I][I][S] | :method Test(x: bool) returns (i: int)
- .  S [=][=][-][-][~] | :   ensures i == 2
- .  S [S][ ][I][I][S] | :{
- .  S [S][ ][I][I][S] | :  if x {
- .  S [S][ ][I][I][S] | :    i := 2;
- .  S [=][=][-][-][~] | :  } else {
- .  S [S][ ]/!\[I][S] | :    i := 1; //Next1:   i := /; //Next2:    i := 2;
- .  S [S][ ][I][I][S] | :  }
- .  S [S][ ][I][I][S] | :}
-    |  |  |  I  I  |  | :    
- .  |  |  |  I  I  |  | :predicate OkBis() {
- .  |  |  |  I  I  |  | :  false
- .  |  |  |  I  I  |  | :}", true);
+ .  |  |  |  |  |  I  I  |  |  |  | :predicate Ok() {
+ .  |  |  |  |  |  I  I  |  |  |  | :  true
+ .  |  |  |  |  |  I  I  |  |  |  | :}
+    |  |  |  |  |  I  I  |  |  |  | :
+ .  .  .  S [S][ ][I][I][I][I][S] | :method Test(x: bool) returns (i: int)
+ .  .  .  S [=][=][-][-][-][-][~] | :   ensures i == 2
+ .  .  .  S [S][ ][I][I][I][I][S] | :{
+ .  .  .  S [S][ ][I][I][I][I][S] | :  if x {
+ .  .  .  S [S][ ][I][I][I][I][S] | :    i := 2;
+ .  .  .  S [=][=][-][-][-][-][~] | :  } else {
+ .  .  .  S [S][ ]/!\[I][I][I][S] | :    i := 1; //Replace1:   i := /; //Replace2:    i := 2;
+ .  .  .  S [S][ ][I][I][I][I][S] | :  }
+ .  .  .  S [S][ ][I][I][I][I][S] | :}
+       |  |  |  |  I  I  I  |  |  | :    
+ .  .  |  |  |  |  I  I  I  |  |  | :predicate OkBis() {
+ .  .  |  |  |  |  I  I  I  |  |  | :  false
+ .  .  |  |  |  |  I  I  I  |  |  | :}", true);
   }
-  [Fact(Timeout = MaxTestExecutionTimeMs)]
+  [Fact]
   public async Task EnsuresItWorksForSubsetTypes() {
     await VerifyTrace(@"
-    |  |  |  I  I  |  |  |  I  I  |  |  | :
- .  |  |  |  I  I  |  |  |  I  I  |  |  | :ghost const maxId := 200;
-    |  |  |  I  I  |  |  |  I  I  |  |  | :
- .  |  |  |  I  I  |  |  |  I  I  |  |  | :ghost predicate isIssueIdValid(issueId: int) {
- .  |  |  |  I  I  |  |  |  I  I  |  |  | :  101 <= issueId < maxId
- .  |  |  |  I  I  |  |  |  I  I  |  |  | :}
-    |  |  |  I  I  |  |  |  I  I  |  |  | :
- .  S  S  |  I  .  S  S [=] I  .  S  S  | :type IssueId = i : int | isIssueIdValid(i)
- .  S  |  |  I  .  S  | [=] I  .  S  |  | :  witness 101 //Next1:   witness 99 //Next2:   witness 101 ", false, "EnsuresItWorksForSubsetTypes.dfy");
+    |  |  |  |  |  I  I  |  |  |  |  |  I  I  |  |  |  |  | :// The maximum Id
+ .  |  |  |  |  |  I  I  |  |  |  |  |  I  I  |  |  |  |  | :ghost const maxId := 200;
+    |  |  |  |  |  I  I  |  |  |  |  |  I  I  |  |  |  |  | :
+ .  .  |  |  |  |  I  I  I  |  |  |  |  I  I  I  |  |  |  | :ghost predicate isIssueIdValid(issueId: int) {
+ .  .  |  |  |  |  I  I  I  |  |  |  |  I  I  I  |  |  |  | :  101 <= issueId < maxId
+ .  .  |  |  |  |  I  I  I  |  |  |  |  I  I  I  |  |  |  | :}
+       |  |  |  |  I  I  I  |  |  |  |  I  I  I  |  |  |  | :
+ .  .  .  S  S  |  I  .  .  .  S  S [=] I  .  .  .  S  S  | :type IssueId = i : int | isIssueIdValid(i)
+ .  .  .  S  |  |  I  .  .  .  S  | [=] I  .  .  .  S  |  | :  witness 101 //Replace1:   witness 99 //Replace2:   witness 101 ", false, "EnsuresItWorksForSubsetTypes.dfy");
   }
 
   [Fact(Timeout = MaxTestExecutionTimeMs)]
   public async Task EnsureItWorksForPostconditionsRelatedOutside() {
     await VerifyTrace(@"
- .  |  |  | :predicate F(i: int) {
- .  |  |  | :  false // Should not be highlighted in gutter.
- .  |  |  | :}
-    |  |  | :
- .  S [S][ ]:method H()
- .  S [=][=]:  ensures F(1)
- .  S [=][=]:{
- .  S [S][ ]:}", true);
+ .  |  |  |  | :predicate F(i: int) {
+ .  |  |  |  | :  false // Should not be highlighted in gutter.
+ .  |  |  |  | :}
+    |  |  |  | :
+ .  .  S [S][ ]:method H()
+ .  .  S [=][=]:  ensures F(1)
+ .  .  S [=][=]:{
+ .  .  S [S][ ]:}", true);
   }
 
   [Fact(Timeout = MaxTestExecutionTimeMs * 10)]
   public async Task EnsureNoAssertShowsVerified() {
     for (var i = 0; i < 10; i++) {
       await VerifyTrace(@"
- .  |  |  |  I  | :predicate P(x: int)
-    |  |  |  I  | :
- .  S [S][ ][I] | :method Main() {
- .  S [=][=][I] | :  ghost var x :| P(x); //Next:  ghost var x := 1;
- .  S [S][ ][I] | :}
-                | :", false, $"EnsureNoAssertShowsVerified{i}.dfy");
+ .  |  |  |  |  I  I  | :predicate P(x: int)
+    |  |  |  |  I  I  | :
+ .  .  S [S][ ][I] |  | :method Main() {
+ .  .  S [=][=][I] |  | :  ghost var x :| P(x); //Replace:  ghost var x := 1;
+ .  .  S [S][ ][I] |  | :}
+                   |  | :// Comment to not trim this line", false, $"EnsureNoAssertShowsVerified{i}.dfy");
     }
   }
 
-  [Fact(Timeout = MaxTestExecutionTimeMs)]
+  [Fact]
   public async Task EnsureEmptyDocumentIsVerified() {
     await VerifyTrace(@"
  | :class A {
  | :}
- | :", true);
+ | :// Comment so test does not trim this line", true);
   }
 
 
@@ -122,8 +131,7 @@ method Foo() ensures false { } ";
   public async Task EnsuresEmptyDocumentWithParseErrorShowsError() {
     await VerifyTrace(@"
 /!\:class A {/
-   :}
-   :", false);
+   :}", false);
   }
 
   [Fact/*(Timeout = MaxTestExecutionTimeMs)*/]
@@ -135,20 +143,20 @@ method Foo() ensures false { } ";
   [Fact/*(Timeout = MaxTestExecutionTimeMs)*/]
   public async Task TopLevelConstantsHaveToBeVerifiedAlso() {
     await VerifyTrace(@"
-    |  |  | :// The following should trigger only one error
- .  |  |  | :ghost const a := [1, 2];
-    |  |  | :
- .  S [~][=]:ghost const b := a[-1];", false);
+    |  |  |  | :// The following should trigger only one error
+ .  |  |  |  | :ghost const a := [1, 2];
+    |  |  |  | :
+ .  .  S [~][=]:ghost const b := a[-1];", false);
   }
 
   [Fact/*(Timeout = MaxTestExecutionTimeMs)*/]
   public async Task EnsuresAddingNewlinesMigratesPositions() {
     await VerifyTrace(@"
  .  S [S][ ][I][S][ ][I][S][ ]:method f(x: int) {
- .  S [S][ ][I][S][ ][I][S][ ]:  //Next1:\n  //Next2:\n  
+ .  S [S][ ][I][S][ ][I][S][ ]:  //Replace1:\n  //Replace2:\\n  
  .  S [=][=][I][S][ ][I][S][ ]:  assert x == 2; }
-            [-][~][=][I][S][ ]:
-                     [-][~][=]:", true, "EnsuresAddingNewlinesMigratesPositions.dfy");
+############[-][~][=][I][S][ ]:
+#####################[-][~][=]:", true, "EnsuresAddingNewlinesMigratesPositions.dfy");
   }
 
   [Fact/*(Timeout = MaxTestExecutionTimeMs)*/]
@@ -158,12 +166,12 @@ method Foo() ensures false { } ";
  .  S [S][ ][I][S][S][ ]:method f(x: int) returns (y: int)
  .  S [S][ ][I][S][S][ ]:ensures
  .  S [=][=][-][~][=][=]:  x > 3 { y := x;
- .  S [S][ ][I][S][S][ ]:  //Next1:\n
+ .  S [S][ ][I][S][S][ ]:  //Replace1:\n
  .  S [=][=][-][~][=][ ]:  while(y <= 1) invariant y >= 2 {
  .  S [S][ ][-][~][~][=]:    y := y + 1;
  .  S [S][ ][I][S][S][ ]:  }
  .  S [S][ ][I][S][S][ ]:}
-            [I][S][S][ ]:", false);
+############[I][S][S][ ]:", false);
   }
 
   [Fact]
@@ -178,38 +186,38 @@ method Foo() ensures false { } ";
   [Fact]
   public async Task EnsureBodylessMethodsAreCovered() {
     await VerifyTrace(@"
- .  |  |  | :method test() {
- .  |  |  | :}
-    |  |  | :
- .  S [S][ ]:method {:extern} test3(a: nat, b: nat)
- .  S [S][ ]:  ensures true
- .  S [=][=]:  ensures test2(a - b)
- .  S [S][ ]:  ensures true
- .  S [O][O]:  ensures test2(a - b)
- .  S [S][ ]:  ensures true
-    |  |  | :
- .  |  |  | :predicate test2(x: nat) {
- .  |  |  | :  true
- .  |  |  | :}", false);
+ .  |  |  |  |  | :method test() {
+ .  |  |  |  |  | :}
+    |  |  |  |  | :
+ .  .  .  S [S][ ]:method {:extern} test3(a: nat, b: nat)
+ .  .  .  S [S][ ]:  ensures true
+ .  .  .  S [=][=]:  ensures test2(a - b)
+ .  .  .  S [S][ ]:  ensures true
+ .  .  .  S [O][O]:  ensures test2(a - b)
+ .  .  .  S [S][ ]:  ensures true
+       |  |  |  | :
+ .  .  |  |  |  | :predicate test2(x: nat) {
+ .  .  |  |  |  | :  true
+ .  .  |  |  |  | :}", false);
   }
 
 
   [Fact]
   public async Task EnsureBodylessFunctionsAreCovered() {
     await VerifyTrace(@"
- .  |  |  | :method test() {
- .  |  |  | :}
-    |  |  | :
- .  S [S][ ]:function {:extern} test4(a: nat, b: nat): nat
- .  S [S][ ]:  ensures true
- .  S [=][=]:  ensures test2(a - b)
- .  S [S][ ]:  ensures true
- .  S [O][O]:  ensures test2(a - b)
- .  S [S][ ]:  ensures true
-    |  |  | :
- .  |  |  | :predicate test2(x: nat) {
- .  |  |  | :  true
- .  |  |  | :}", true);
+ .  |  |  |  |  | :method test() {
+ .  |  |  |  |  | :}
+    |  |  |  |  | :
+ .  .  .  S [S][ ]:function {:extern} test4(a: nat, b: nat): nat
+ .  .  .  S [S][ ]:  ensures true
+ .  .  .  S [=][=]:  ensures test2(a - b)
+ .  .  .  S [S][ ]:  ensures true
+ .  .  .  S [O][O]:  ensures test2(a - b)
+ .  .  .  S [S][ ]:  ensures true
+       |  |  |  | :
+ .  .  |  |  |  | :predicate test2(x: nat) {
+ .  .  |  |  |  | :  true
+ .  .  |  |  |  | :}", true);
   }
 
   public SimpleLinearVerificationGutterStatusTester(ITestOutputHelper output) : base(output) {

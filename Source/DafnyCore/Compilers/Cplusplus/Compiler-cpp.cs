@@ -1233,10 +1233,6 @@ namespace Microsoft.Dafny.Compilers {
       wr.Write(ActualTypeArgs(typeArgs));
     }
 
-    protected override string GenerateLhsDecl(string target, Type/*?*/ type, ConcreteSyntaxTree wr, IToken tok) {
-      return "auto " + target;
-    }
-
     protected void EmitNullText(Type type, ConcreteSyntaxTree wr) {
       var xType = type.NormalizeExpand();
       if (xType.IsArrayType) {
@@ -1955,9 +1951,11 @@ namespace Microsoft.Dafny.Compilers {
       wr.Write("is_{1}({0})", source, DatatypeSubStructName(ctor));
     }
 
-    protected override void EmitDestructor(string source, Formal dtor, int formalNonGhostIndex, DatatypeCtor ctor, List<Type> typeArgs, Type bvType, ConcreteSyntaxTree wr) {
+    protected override void EmitDestructor(Action<ConcreteSyntaxTree> source, Formal dtor, int formalNonGhostIndex, DatatypeCtor ctor, List<Type> typeArgs, Type bvType, ConcreteSyntaxTree wr) {
       if (ctor.EnclosingDatatype is TupleTypeDecl) {
-        wr.Write("({0}).template get<{1}>()", source, formalNonGhostIndex);
+        wr.Write("(");
+        source(wr);
+        wr.Write(").template get<{0}>()", formalNonGhostIndex);
       } else {
         var dtorName = FormalName(dtor, formalNonGhostIndex);
         if (dtor.Type is UserDefinedType udt && udt.ResolvedClass == ctor.EnclosingDatatype) {
@@ -1966,9 +1964,13 @@ namespace Microsoft.Dafny.Compilers {
         }
 
         if (ctor.EnclosingDatatype.Ctors.Count > 1) {
-          wr.Write("(({0}).dtor_{1}())", source, dtorName);
+          wr.Write("((");
+          source(wr);
+          wr.Write(").dtor_{0}())", dtorName);
         } else {
-          wr.Write("(({0}).{1})", source, dtorName);
+          wr.Write("((");
+          source(wr);
+          wr.Write(").{0})", dtorName);
         }
       }
     }

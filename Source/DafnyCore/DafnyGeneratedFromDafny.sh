@@ -41,7 +41,7 @@ fi
 
 ../../Scripts/dafny translate cs --no-verify=$noVerify --output $output.cs GeneratedFromDafny.dfy
 ../../Scripts/dafny translate cs --no-verify=$noVerify --output "${output}Rust.cs" Compilers/Rust/Dafny-compiler-rust.dfy
-python -c "
+python3 -c "
 import re
 with open ('$output.cs', 'r' ) as f:
   content = f.read()

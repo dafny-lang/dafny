@@ -45,9 +45,9 @@ public class NonNullTypeDecl : SubsetTypeDecl, ISymbol {
     return result;
   }
 
-  public DafnySymbolKind Kind => Class.Kind;
+  public override DafnySymbolKind Kind => Class.Kind;
 
-  public string GetDescription(DafnyOptions options) {
+  public override string GetDescription(DafnyOptions options) {
     return Class.GetDescription(options);
   }
 }

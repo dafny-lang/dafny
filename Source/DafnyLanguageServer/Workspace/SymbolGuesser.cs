@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using System.IO;
 using System.Linq;
 using System.Threading;
 
@@ -40,15 +41,22 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       public (ILegacySymbol? Designator, ILegacySymbol? Type) GetSymbolAndItsTypeBefore(Uri uri, Position requestPosition) {
         var position = GetLinePositionBefore(requestPosition);
         if (position == null) {
-          logger.LogTrace("the request position {Position} is at the beginning of the line, no chance to find a symbol there", requestPosition);
           return (null, null);
         }
         var memberAccesses = GetMemberAccessChainEndingAt(uri, position);
         if (memberAccesses.Count == 0) {
-          logger.LogDebug("could not resolve the member access chain in front of of {Position}", requestPosition);
+          logger.LogDebug("could not resolve the member access chain in front of {Position}", requestPosition);
+
+          if (logger.IsEnabled(LogLevel.Trace)) {
+            var program = (Program)state.Program;
+            var writer = new StringWriter();
+            var printer = new Printer(writer, DafnyOptions.Default);
+            printer.PrintProgram(program, true);
+            logger.LogTrace($"Program:\n{writer}");
+          }
           return (null, null);
         }
-        return GetSymbolAndTypeOfLastMember(position, memberAccesses);
+        return GetSymbolAndTypeOfLastMember(uri, position, memberAccesses);
       }
 
       private static Position? GetLinePositionBefore(Position requestPosition) {
@@ -59,8 +67,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         return new Position(position.Line, position.Character - 1);
       }
 
-      private (ILegacySymbol? Designator, ILegacySymbol? Type) GetSymbolAndTypeOfLastMember(Position position, IReadOnlyList<string> memberAccessChain) {
-        var enclosingSymbol = state.SignatureAndCompletionTable.GetEnclosingSymbol(position, cancellationToken);
+      private (ILegacySymbol? Designator, ILegacySymbol? Type) GetSymbolAndTypeOfLastMember(Uri uri, Position position,
+        IReadOnlyList<string> memberAccessChain) {
+        var enclosingSymbol = state.SignatureAndCompletionTable.GetEnclosingSymbol(uri, position, cancellationToken);
         ILegacySymbol? currentDesignator = null;
         ILegacySymbol? currentDesignatorType = null;
         for (int currentMemberAccess = 0; currentMemberAccess < memberAccessChain.Count; currentMemberAccess++) {
@@ -122,7 +131,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       }
 
       private IReadOnlyList<string> GetMemberAccessChainEndingAt(Uri uri, Position position) {
-        var node = state.Program.FindNode(uri, position.ToDafnyPosition());
+        var node = state.Program.FindNode<Expression>(uri, position.ToDafnyPosition());
         var result = new List<string>();
         while (node is ExprDotName exprDotName) {
           node = exprDotName.Lhs;

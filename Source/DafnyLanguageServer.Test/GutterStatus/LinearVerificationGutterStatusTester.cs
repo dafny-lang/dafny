@@ -7,11 +7,11 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
+using Microsoft.Dafny.LanguageServer.Workspace;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 using OmniSharp.Extensions.JsonRpc;
 using OmniSharp.Extensions.LanguageServer.Client;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
-using Xunit;
 using Xunit.Abstractions;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
@@ -37,25 +37,6 @@ public abstract class LinearVerificationGutterStatusTester : ClientBasedLanguage
         NotificationHandler.For<VerificationStatusGutter>(verificationStatusGutterReceiver.NotificationReceived));
   }
 
-  public static Dictionary<LineVerificationStatus, string> LineVerificationStatusToString = new() {
-    { LineVerificationStatus.Nothing, "   " },
-    { LineVerificationStatus.Scheduled, " . " },
-    { LineVerificationStatus.Verifying, " S " },
-    { LineVerificationStatus.VerifiedObsolete, " I " },
-    { LineVerificationStatus.VerifiedVerifying, " $ " },
-    { LineVerificationStatus.Verified, " | " },
-    { LineVerificationStatus.ErrorContextObsolete, "[I]" },
-    { LineVerificationStatus.ErrorContextVerifying, "[S]" },
-    { LineVerificationStatus.ErrorContext, "[ ]" },
-    { LineVerificationStatus.AssertionFailedObsolete, "[-]" },
-    { LineVerificationStatus.AssertionFailedVerifying, "[~]" },
-    { LineVerificationStatus.AssertionFailed, "[=]" },
-    { LineVerificationStatus.AssertionVerifiedInErrorContextObsolete, "[o]" },
-    { LineVerificationStatus.AssertionVerifiedInErrorContextVerifying, "[Q]" },
-    { LineVerificationStatus.AssertionVerifiedInErrorContext, "[O]" },
-    { LineVerificationStatus.ResolutionError, @"/!\" }
-  };
-
   private static bool IsNotIndicatingProgress(LineVerificationStatus status) {
     return status != LineVerificationStatus.Scheduled &&
            status != LineVerificationStatus.Verifying &&
@@ -68,21 +49,37 @@ public abstract class LinearVerificationGutterStatusTester : ClientBasedLanguage
            status != LineVerificationStatus.AssertionVerifiedInErrorContextObsolete &&
            status != LineVerificationStatus.AssertionVerifiedInErrorContextVerifying;
   }
-  public static string RenderTrace(List<LineVerificationStatus[]> statusesTrace, string code) {
+  public static string RenderTrace(List<LineVerificationStatus[]> statusesTrace, List<string> codes) {
+    var code = codes[0];
     var codeLines = new Regex("\r?\n").Split(code);
+    var maxLines = codeLines.Length;
+    foreach (var trace in statusesTrace) {
+      if (maxLines < trace.Length) {
+        maxLines = trace.Length;
+      }
+    }
+    foreach (var intermediateCode in codes) {
+      var intermediateCodeLines = new Regex("\r?\n").Split(intermediateCode).Length;
+      if (maxLines < intermediateCodeLines) {
+        maxLines = intermediateCodeLines;
+      }
+    }
     var renderedCode = "";
-    for (var line = 0; line < codeLines.Length; line++) {
+    for (var line = 0; line < maxLines; line++) {
       if (line != 0) {
         renderedCode += "\n";
       }
       foreach (var statusTrace in statusesTrace) {
-        renderedCode += LineVerificationStatusToString[statusTrace[line]];
+        if (line >= statusTrace.Length) {
+          renderedCode += "###";
+        } else {
+          renderedCode += NotificationPublisher.LineVerificationStatusToString[statusTrace[line]];
+        }
       }
 
       renderedCode += ":";
-      renderedCode += codeLines[line];
+      renderedCode += line < codeLines.Length ? codeLines[line] : "";
     }
-    Assert.All(statusesTrace, trace => Assert.Equal(codeLines.Length, trace.Length));
 
     return renderedCode;
   }
@@ -166,26 +163,30 @@ public abstract class LinearVerificationGutterStatusTester : ClientBasedLanguage
   /// <summary>
   /// Given some code, will emit the edit like this:
   /// ```
-  /// sentence //Next1:sentence2 //Next2:sentence3
-  /// ^^^^^^^^^^^^^^^^^ remove
+  /// sentence //Replace1:This is a \nsentence2 //Replace2:sentence3 with \\n character
+  /// ^^^remove^^^^^^^^^^^          ^^ replace with newline               ^^ replace with \
   /// ```
   /// ```
-  /// sentence //Next1:\nsentence2 //Next2:sentence3
-  /// ^^^^^^^^^^^^^^^^^^^ replace with newline
+  /// sentence //Insert1:This is a \nsentence2 //Replace2:sentence3 with \\n character
+  ///          ^^^remove^          ^^ replace with newline               ^^ replace with \
   /// ```
   /// ```
-  /// sentence //Remove1:sentence2 //Next2:sentence3
-  /// ^^^^^^^^^^^^^^^^^^^ remove, including the newline before sentence if any
+  /// sentence //Remove1:sentence2 //Replace2:sentence3
+  /// ^^^^^^^^^^^^^^^^^^^ Same as Replace, but will remove also the newline before
   /// ```
   /// </summary>
-  /// <param name="code">The original code with the //Next: comments or //NextN:</param>
+  /// <param name="code">The original code with the //Replace: comments or //ReplaceN:</param>
   /// <returns></returns>
-  public (string code, List<(Range changeRange, string changeValue)> changes) ExtractCodeAndChanges(string code) {
+  public static (string code, List<string> codes, List<List<Change>> changes) ExtractCodeAndChanges(string code) {
     var lineMatcher = new Regex(@"\r?\n");
-    var matcher = new Regex(@"(?<previousNewline>^|\r?\n)(?<toRemove>.*?//(?<newtOrRemove>Next|Remove)(?<id>\d*):(?<newline>\\n)?)");
+    var newLineOrDoubleBackslashMatcher = new Regex(@"\\\\|\\n");
+    var matcher = new Regex(@"(?<previousNewline>^|\r?\n)(?<toRemove>.*?(?<commentStart>//)(?<keyword>Replace|Remove|Insert)(?<id>\d*):)(?<toInsert>.*)");
+    code = code.Trim();
+    var codes = new List<string>();
+    codes.Add(code);
     var originalCode = code;
     var matches = matcher.Matches(code);
-    var changes = new List<(Range, string)>();
+    var changes = new List<List<Change>>();
     while (matches.Count > 0) {
       var firstChange = 0;
       Match firstChangeMatch = null;
@@ -206,11 +207,19 @@ public abstract class LinearVerificationGutterStatusTester : ClientBasedLanguage
         break;
       }
 
-      var startRemove =
-        firstChangeMatch.Groups["newtOrRemove"].Value == "Next" ?
-        firstChangeMatch.Groups["toRemove"].Index :
-        firstChangeMatch.Groups["previousNewline"].Index;
+      var keyword = firstChangeMatch.Groups["keyword"].Value;
+      var startRemove = keyword switch {
+        "Replace" => firstChangeMatch.Groups["toRemove"].Index,
+        "Remove" => firstChangeMatch.Groups["previousNewline"].Index,
+        "Insert" => firstChangeMatch.Groups["commentStart"].Index,
+        _ => throw new Exception("Unexpected keyword: " + keyword + ", expected Replace, Remove or Insert")
+      };
       var endRemove = firstChangeMatch.Groups["toRemove"].Index + firstChangeMatch.Groups["toRemove"].Value.Length;
+
+      var toInsert = firstChangeMatch.Groups["toInsert"].Value;
+      var toInsertIndex = firstChangeMatch.Groups["toInsert"].Index;
+      var allNewlinesOrDoubleBackslashes = newLineOrDoubleBackslashMatcher.Matches(toInsert);
+
 
       Position IndexToPosition(int index) {
         var before = code.Substring(0, index);
@@ -225,15 +234,31 @@ public abstract class LinearVerificationGutterStatusTester : ClientBasedLanguage
         return new Position(line, character);
       }
 
-      var optionalNewLine = firstChangeMatch.Groups["newline"].Success ? "\n" : "";
-      // For now, simple: Remove the line
-      changes.Add(new(
-        new Range(IndexToPosition(startRemove), IndexToPosition(endRemove)), optionalNewLine));
-      code = code.Substring(0, startRemove) + optionalNewLine + code.Substring(endRemove);
+      // If there are \n characters in the comments, we replace them by newlines
+      // If there are \\ characters in the comments, we replace them by single slashes
+      var resultingChange = new List<Change>();
+      for (var i = allNewlinesOrDoubleBackslashes.Count - 1; i >= 0; i--) {
+        var newlineOrDoubleBackslash = allNewlinesOrDoubleBackslashes[i];
+        var isNewline = newlineOrDoubleBackslash.Value == @"\n";
+        var index = newlineOrDoubleBackslash.Index;
+        var absoluteIndex = toInsertIndex + index;
+        var absoluteIndexEnd = absoluteIndex + newlineOrDoubleBackslash.Value.Length;
+        var replacement = isNewline ? "\n" : @"\";
+        resultingChange.Add(new(
+            new Range(IndexToPosition(absoluteIndex), IndexToPosition(absoluteIndexEnd)), replacement
+          ));
+        code = code.Substring(0, absoluteIndex) + replacement + code.Substring(absoluteIndexEnd);
+      }
+
+      resultingChange.Add(new(
+        new Range(IndexToPosition(startRemove), IndexToPosition(endRemove)), ""));
+      code = code.Substring(0, startRemove) + code.Substring(endRemove);
       matches = matcher.Matches(code);
+      changes.Add(resultingChange);
+      codes.Add(code);
     }
 
-    return (originalCode, changes);
+    return (originalCode, codes, changes);
   }
 
   // If testTrace is false, codeAndTree should not contain a trace to test.
@@ -246,27 +271,27 @@ public abstract class LinearVerificationGutterStatusTester : ClientBasedLanguage
       codeAndTrace.Substring(0, 2) == "\r\n" ? codeAndTrace.Substring(2) :
       codeAndTrace;
     var codeAndChanges = testTrace ? ExtractCode(codeAndTrace) : codeAndTrace;
-    var (code, changes) = ExtractCodeAndChanges(codeAndChanges);
+    var (code, codes, changesList) = ExtractCodeAndChanges(codeAndChanges);
 
-    var documentItem = CreateTestDocument(code, fileName, 1);
+    var documentItem = CreateTestDocument(code.Trim(), fileName, 1);
     if (explicitProject) {
       await CreateAndOpenTestDocument("", Path.Combine(Path.GetDirectoryName(documentItem.Uri.GetFileSystemPath())!, DafnyProject.FileName));
     }
     client.OpenDocument(documentItem);
     var traces = new List<LineVerificationStatus[]>();
     traces.AddRange(await GetAllLineVerificationStatuses(documentItem, verificationStatusGutterReceiver, intermediates: intermediates));
-    foreach (var (range, inserted) in changes) {
-      ApplyChange(ref documentItem, range, inserted);
+    foreach (var changes in changesList) {
+      await Projects.GetLastDocumentAsync(documentItem).WaitAsync(CancellationToken);
+      ApplyChanges(ref documentItem, changes);
       traces.AddRange(await GetAllLineVerificationStatuses(documentItem, verificationStatusGutterReceiver, intermediates: intermediates));
-      await Projects.GetLastDocumentAsync(documentItem);
     }
 
     if (testTrace) {
-      var traceObtained = RenderTrace(traces, code);
+      var traceObtained = RenderTrace(traces, codes);
       var ignoreQuestionMarks = AcceptQuestionMarks(traceObtained, codeAndTrace);
       var expected = "\n" + codeAndTrace + "\n";
       var actual = "\n" + ignoreQuestionMarks + "\n";
-      AssertWithDiff.Equal(expected, actual);
+      AssertWithDiff.Equal(expected, actual, fileName);
     }
   }
 
@@ -295,5 +320,7 @@ public abstract class LinearVerificationGutterStatusTester : ClientBasedLanguage
   }
 
   protected LinearVerificationGutterStatusTester(ITestOutputHelper output) : base(output) {
+    ProjectManager.GutterIconTesting = true;
+    Disposable.Add(System.Reactive.Disposables.Disposable.Create(() => ProjectManager.GutterIconTesting = false));
   }
 }

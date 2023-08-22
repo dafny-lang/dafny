@@ -25,6 +25,28 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
     }
 
     [Fact]
+    public async Task LoadsSymbolsInPrefixModule() {
+      var source = @"
+module A.B.C {
+
+  method DoIt() returns (x: int) {
+    return 2;
+  }
+}".TrimStart();
+      var documentItem = CreateTestDocument(source);
+      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+
+      var symbols = (await RequestDocumentSymbol(documentItem)).ToList();
+      Assert.Single(symbols);
+      var aChildren = symbols.First().Children!.ToList();
+      Assert.Single(aChildren);
+      var bChildren = aChildren.First().Children!.ToList();
+      Assert.Single(bChildren);
+      var cChildren = bChildren.First().Children!.ToList();
+      Assert.Single(cChildren);
+    }
+
+    [Fact]
     public async Task LoadCorrectDocumentCreatesSymbols() {
       var source = @"
 class Y {
@@ -37,7 +59,7 @@ class Y {
     var x := DoIt();
   }
 }".TrimStart();
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "LoadCorrectDocumentCreatesSymbols.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
 
       var classSymbol = (await RequestDocumentSymbol(documentItem)).Single();
@@ -86,7 +108,7 @@ class Y {
     [Fact]
     public async Task CanResolveSymbolsForMethodsWithoutBody() {
       var source = "method DoIt()";
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "CanResolveSymbolsForMethodsWithoutBody.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
 
       var methodSymbol = (await RequestDocumentSymbol(documentItem)).Single();
@@ -99,7 +121,7 @@ class Y {
     [Fact]
     public async Task CanResolveSymbolsForFunctionWithoutBody() {
       var source = "function ConstOne(): int";
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "CanResolveSymbolsForFunctionWithoutBody.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
 
       var methodSymbol = (await RequestDocumentSymbol(documentItem)).Single();

@@ -262,7 +262,7 @@ public abstract class DafnySequence<T> implements Iterable<T> {
     }
 
     public T selectUnsigned(long i) {
-        return select(Helpers.unsignedLongToBigInteger(i));
+        return select(Helpers.unsignedToBigInteger(i));
     }
 
     public T select(BigInteger i) {
@@ -326,7 +326,7 @@ public abstract class DafnySequence<T> implements Iterable<T> {
     }
 
     public DafnySequence<T> dropUnsigned(long lo) {
-        return drop(Helpers.unsignedLongToBigInteger(lo));
+        return drop(Helpers.unsignedToBigInteger(lo));
     }
 
     public DafnySequence<T> drop(BigInteger lo) {
@@ -357,7 +357,7 @@ public abstract class DafnySequence<T> implements Iterable<T> {
     }
 
     public DafnySequence<T> takeUnsigned(long hi) {
-        return take(Helpers.unsignedLongToBigInteger(hi));
+        return take(Helpers.unsignedToBigInteger(hi));
     }
 
     public DafnySequence<T> take(BigInteger hi) {
@@ -595,7 +595,7 @@ final class ArrayDafnySequence<T> extends NonLazyDafnySequence<T> {
     @Override
     protected boolean equalsNonLazy(NonLazyDafnySequence<T> other) {
         if (other instanceof ArrayDafnySequence<?>) {
-            return seq.deepEquals(((ArrayDafnySequence<T>) other).seq);
+            return seq.shallowEquals(((ArrayDafnySequence<T>) other).seq);
         } else {
             return super.equalsNonLazy(other);
         }

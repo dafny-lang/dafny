@@ -31,22 +31,20 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       );
     }
 
-    public static TheoryData<List<Action<DafnyOptions>>> OptionSettings() {
-      var optionSettings = new TheoryData<List<Action<DafnyOptions>>>();
-      optionSettings.Add(new() { options => options.TypeEncodingMethod = CoreOptions.TypeEncoding.Predicates });
-      optionSettings.Add(new() { options => options.TypeEncodingMethod = CoreOptions.TypeEncoding.Arguments });
+    public static TheoryData<Action<DafnyOptions>> OptionSettings() {
+      var optionSettings = new TheoryData<Action<DafnyOptions>>();
+      optionSettings.Add(options => options.TypeEncodingMethod = CoreOptions.TypeEncoding.Predicates);
+      optionSettings.Add(options => options.TypeEncodingMethod = CoreOptions.TypeEncoding.Arguments);
       return optionSettings;
     }
 
-    private async Task SetUpOptions(List<Action<DafnyOptions>> optionSettings) {
-      foreach (var optionSetting in optionSettings) {
-        await SetUp(options => optionSetting(options));
-      }
+    private async Task SetUpOptions(Action<DafnyOptions> optionSettings) {
+      await SetUp(optionSettings);
     }
 
     [Theory]
     [MemberData(nameof(OptionSettings))]
-    public async Task CounterexamplesStillWorksIfNothingHasBeenVerified(List<Action<DafnyOptions>> optionSettings) {
+    public async Task CounterexamplesStillWorksIfNothingHasBeenVerified(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
       await SetUp(options => options.Set(ServerCommand.Verification, VerifyOnMode.Never));
       var source = @"
@@ -56,7 +54,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       }
       ".TrimStart();
       await SetUp(o => o.Set(CommonOptionBag.RelaxDefiniteAssignment, true));
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "CounterexamplesStillWorksIfNothingHasBeenVerified.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
@@ -67,7 +65,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     [Theory]
     [MemberData(nameof(OptionSettings))]
-    public async Task FileWithBodyLessMethodReturnsSingleCounterExampleForPostconditions(List<Action<DafnyOptions>> optionSettings) {
+    public async Task FileWithBodyLessMethodReturnsSingleCounterExampleForPostconditions(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
       method Abs(x: int) returns (y: int)
@@ -76,7 +74,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       }
       ".TrimStart();
       await SetUp(o => o.Set(CommonOptionBag.RelaxDefiniteAssignment, true));
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "FileWithBodyLessMethodReturnsSingleCounterExampleForPostconditions.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
@@ -87,7 +85,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     [Theory]
     [MemberData(nameof(OptionSettings))]
-    public async Task FileWithMethodWithErrorsReturnsCounterExampleForPostconditionsAndEveryUpdateLine(List<Action<DafnyOptions>> optionSettings) {
+    public async Task FileWithMethodWithErrorsReturnsCounterExampleForPostconditionsAndEveryUpdateLine(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
       method Abs(x: int) returns (y: int)
@@ -97,7 +95,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
         y := z;
       }
       ".TrimStart();
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "FileWithMethodWithErrorsReturnsCounterExampleForPostconditionsAndEveryUpdateLine.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
@@ -112,7 +110,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     [Theory]
     [MemberData(nameof(OptionSettings))]
-    public async Task FileWithMethodWithoutErrorsReturnsEmptyCounterExampleList(List<Action<DafnyOptions>> optionSettings) {
+    public async Task FileWithMethodWithoutErrorsReturnsEmptyCounterExampleList(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
       method Abs(x: int) returns (y: int)
@@ -124,7 +122,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
         return -x;
       }
       ".TrimStart();
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "FileWithMethodWithoutErrorsReturnsEmptyCounterExampleList.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
@@ -133,7 +131,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     [Theory]
     [MemberData(nameof(OptionSettings))]
-    public async Task GetCounterExampleWithMultipleMethodsWithErrorsReturnsCounterExamplesForEveryMethod(List<Action<DafnyOptions>> optionSettings) {
+    public async Task GetCounterExampleWithMultipleMethodsWithErrorsReturnsCounterExamplesForEveryMethod(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
       method Abs(x: int) returns (y: int)
@@ -149,7 +147,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
       await SetUp(o => o.Set(CommonOptionBag.RelaxDefiniteAssignment, true));
 
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "GetCounterExampleWithMultipleMethodsWithErrorsReturnsCounterExamplesForEveryMethod.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri))
         .OrderBy(counterExample => counterExample.Position)
@@ -165,14 +163,14 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     [Theory]
     [MemberData(nameof(OptionSettings))]
-    public async Task WholeNumberAsReal(List<Action<DafnyOptions>> optionSettings) {
+    public async Task WholeNumberAsReal(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
       method a(r:real) {
         assert r != 1.0;
       }
       ".TrimStart();
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "WholeNumberAsReal.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
@@ -184,14 +182,14 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     [Theory]
     [MemberData(nameof(OptionSettings))]
-    public async Task FractionAsAReal(List<Action<DafnyOptions>> optionSettings) {
+    public async Task FractionAsAReal(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
       method a(r:real) {
         assert r != 0.4;
       }
       ".TrimStart();
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "FractionAsAReal.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
@@ -203,7 +201,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     [Theory]
     [MemberData(nameof(OptionSettings))]
-    public async Task WholeNumberFieldAsReal(List<Action<DafnyOptions>> optionSettings) {
+    public async Task WholeNumberFieldAsReal(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
       class Value {
@@ -213,7 +211,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
         assert v.v != 0.0;
       }
       ".TrimStart();
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "WholeNumberFieldAsReal.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
@@ -225,7 +223,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     [Theory]
     [MemberData(nameof(OptionSettings))]
-    public async Task ConstantFields(List<Action<DafnyOptions>> optionSettings) {
+    public async Task ConstantFields(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
       class Value {
@@ -235,7 +233,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
         assert v.with_underscore_ != 42;
       }
       ".TrimStart();
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "ConstantFields.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
@@ -247,7 +245,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     [Theory]
     [MemberData(nameof(OptionSettings))]
-    public async Task FractionFieldAsReal(List<Action<DafnyOptions>> optionSettings) {
+    public async Task FractionFieldAsReal(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
       class Value {
@@ -257,7 +255,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
         assert v.v != 0.4;
       }
       ".TrimStart();
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "FractionFieldAsReal.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
@@ -269,7 +267,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     [Theory]
     [MemberData(nameof(OptionSettings))]
-    public async Task SelfReferringObject(List<Action<DafnyOptions>> optionSettings) {
+    public async Task SelfReferringObject(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
       class Node {
@@ -279,7 +277,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
         assert n.next != n;
       }
       ".TrimStart();
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "SelfReferringObject.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
@@ -291,7 +289,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     [Theory]
     [MemberData(nameof(OptionSettings))]
-    public async Task ObjectWithANonNullField(List<Action<DafnyOptions>> optionSettings) {
+    public async Task ObjectWithANonNullField(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
       class Node {
@@ -301,7 +299,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
         assert (n.next == n) || (n.next == null);
       }
       ".TrimStart();
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "ObjectWithANonNullField.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
@@ -313,7 +311,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     [Theory]
     [MemberData(nameof(OptionSettings))]
-    public async Task ObjectWithANullField(List<Action<DafnyOptions>> optionSettings) {
+    public async Task ObjectWithANullField(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
       class Node {
@@ -323,7 +321,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
         assert n.next != null;
       }
       ".TrimStart();
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "ObjectWithANullField.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
@@ -335,7 +333,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     [Theory]
     [MemberData(nameof(OptionSettings))]
-    public async Task ObjectWithAFieldOfBasicType(List<Action<DafnyOptions>> optionSettings) {
+    public async Task ObjectWithAFieldOfBasicType(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
       class BankAccountUnsafe {
@@ -352,7 +350,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
         }
       }
       ".TrimStart();
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "ObjectWithAFieldOfBasicType.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
@@ -369,14 +367,14 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     [Theory]
     [MemberData(nameof(OptionSettings))]
-    public async Task SpecificCharacter(List<Action<DafnyOptions>> optionSettings) {
+    public async Task SpecificCharacter(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
       method a(c:char) {
         assert c != '0';
       }
       ".TrimStart();
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "SpecificCharacter.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
@@ -388,14 +386,14 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     [Theory]
     [MemberData(nameof(OptionSettings))]
-    public async Task ArbitraryCharacter(List<Action<DafnyOptions>> optionSettings) {
+    public async Task ArbitraryCharacter(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
       method a(c:char) {
         assert c == '0';
       }
       ".TrimStart();
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "ArbitraryCharacter.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
@@ -408,7 +406,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     [Theory]
     [MemberData(nameof(OptionSettings))]
-    public async Task DatatypeWithUnnamedDestructor(List<Action<DafnyOptions>> optionSettings) {
+    public async Task DatatypeWithUnnamedDestructor(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
       datatype B = A(int)
@@ -416,7 +414,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
         assert b != A(5);
       }
       ".TrimStart();
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "DatatypeWithUnnamedDestructor.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
@@ -429,7 +427,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     [Theory]
     [MemberData(nameof(OptionSettings))]
-    public async Task DatatypeWithDestructorThanIsADataValue(List<Action<DafnyOptions>> optionSettings) {
+    public async Task DatatypeWithDestructorThanIsADataValue(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
       datatype A = B(x:real)
@@ -437,7 +435,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
         assert a.x >= 0.0 || a.x < -0.5;
       }
       ".TrimStart();
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "DatatypeWithDestructorThanIsADataValue.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
@@ -449,7 +447,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     [Theory]
     [MemberData(nameof(OptionSettings))]
-    public async Task DatatypeWithDifferentDestructorsForDifferentConstructors(List<Action<DafnyOptions>> optionSettings) {
+    public async Task DatatypeWithDifferentDestructorsForDifferentConstructors(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
       datatype Hand = Left(x:int, y:int) | Right(a:int, b:int)
@@ -458,7 +456,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
         assert h0 == h1;
       }
       ".TrimStart();
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "DatatypeWithDifferentDestructorsForDifferentConstructors.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
@@ -472,7 +470,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     [Theory]
     [MemberData(nameof(OptionSettings))]
-    public async Task DatatypeObjectWithTwoDestructorsWhoseValuesAreEqual(List<Action<DafnyOptions>> optionSettings) {
+    public async Task DatatypeObjectWithTwoDestructorsWhoseValuesAreEqual(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
       datatype Hand = Left(a:int, b:int)
@@ -480,7 +478,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
         assert h.a != h.b || h.a != 3;
       }
       ".TrimStart();
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "DatatypeObjectWithTwoDestructorsWhoseValuesAreEqual.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
@@ -492,7 +490,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     [Theory]
     [MemberData(nameof(OptionSettings))]
-    public async Task DatatypeWithDestructorsWhoseNamesShadowBuiltInDestructors(List<Action<DafnyOptions>> optionSettings) {
+    public async Task DatatypeWithDestructorsWhoseNamesShadowBuiltInDestructors(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
       datatype A = B_(C_q:bool, B_q:bool, D_q:bool) | C(B_q:bool, C_q:bool, D_q:bool)
@@ -500,7 +498,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
         assert a.C_q || a.B_q || a.D_q;
       }
       ".TrimStart();
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "DatatypeWithDestructorsWhoseNamesShadowBuiltInDestructors.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
@@ -513,7 +511,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     [Theory]
     [MemberData(nameof(OptionSettings))]
-    public async Task DatatypeWithTypeParameters(List<Action<DafnyOptions>> optionSettings) {
+    public async Task DatatypeWithTypeParameters(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
       datatype A<T> = One(b:T) | Two(i:int)
@@ -521,7 +519,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
         assert a.b;
       }
       ".TrimStart();
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "DatatypeWithTypeParameters.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
@@ -533,7 +531,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     [Theory]
     [MemberData(nameof(OptionSettings))]
-    public async Task ArbitraryBool(List<Action<DafnyOptions>> optionSettings) {
+    public async Task ArbitraryBool(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
       datatype List<T> = Nil | Cons(head: T, tail: List<T>)
@@ -543,7 +541,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
         assert list.tail != Nil;
       }
       ".TrimStart();
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "ArbitraryBool.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
@@ -555,7 +553,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     [Theory]
     [MemberData(nameof(OptionSettings))]
-    public async Task ArbitraryInt(List<Action<DafnyOptions>> optionSettings) {
+    public async Task ArbitraryInt(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
       datatype List<T> = Nil | Cons(head: T, tail: List<T>)
@@ -565,7 +563,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
         assert list.tail != Nil;
       }
       ".TrimStart();
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "ArbitraryInt.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
@@ -577,7 +575,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     [Theory]
     [MemberData(nameof(OptionSettings))]
-    public async Task ArbitraryReal(List<Action<DafnyOptions>> optionSettings) {
+    public async Task ArbitraryReal(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
       datatype List<T> = Nil | Cons(head: T, tail: List<T>)
@@ -587,7 +585,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
         assert list.tail != Nil;
       }
       ".TrimStart();
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "ArbitraryReal.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
@@ -599,14 +597,14 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     [Theory]
     [MemberData(nameof(OptionSettings))]
-    public async Task ArraySimpleTest(List<Action<DafnyOptions>> optionSettings) {
+    public async Task ArraySimpleTest(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
       method a(arr:array<int>) requires arr.Length == 2 {
         assert arr[0] != 4 || arr[1] != 5;
       }
       ".TrimStart();
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "ArraySimpleTest.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
@@ -618,14 +616,14 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     [Theory]
     [MemberData(nameof(OptionSettings))]
-    public async Task SequenceSimpleTest(List<Action<DafnyOptions>> optionSettings) {
+    public async Task SequenceSimpleTest(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
       method a(s:seq<int>) requires |s| == 1 {
         assert s[0] != 4;
       }
       ".TrimStart();
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "SequenceSimpleTest.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
@@ -637,14 +635,14 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     [Theory]
     [MemberData(nameof(OptionSettings))]
-    public async Task SequenceOfBitVectors(List<Action<DafnyOptions>> optionSettings) {
+    public async Task SequenceOfBitVectors(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
       method a(s:seq<bv5>) requires |s| == 2 {
         assert s[1] != (2 as bv5);
       }
       ".TrimStart();
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "SequenceOfBitVectors.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
@@ -656,14 +654,14 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     [Theory]
     [MemberData(nameof(OptionSettings))]
-    public async Task SpecificBitVector(List<Action<DafnyOptions>> optionSettings) {
+    public async Task SpecificBitVector(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
       method a(bv:bv7) {
         assert bv != (2 as bv7);
       }
       ".TrimStart();
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "SpecificBitVector.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
@@ -675,14 +673,14 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     [Theory]
     [MemberData(nameof(OptionSettings))]
-    public async Task ArbitraryBitVector(List<Action<DafnyOptions>> optionSettings) {
+    public async Task ArbitraryBitVector(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
       method a(b:bv2) {
         assert b == (1 as bv2);
       }
       ".TrimStart();
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "ArbitraryBitVector.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
@@ -694,14 +692,14 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     [Theory]
     [MemberData(nameof(OptionSettings))]
-    public async Task BitWiseAnd(List<Action<DafnyOptions>> optionSettings) {
+    public async Task BitWiseAnd(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
       method m(a:bv1, b:bv1) {
         assert a & b != (1 as bv1);
       }
       ".TrimStart();
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "BitWiseAnd.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
@@ -715,7 +713,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     [Theory]
     [MemberData(nameof(OptionSettings))]
-    public async Task BitVectorField(List<Action<DafnyOptions>> optionSettings) {
+    public async Task BitVectorField(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
       class Value {
@@ -725,7 +723,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
         assert v.b != (2 as bv5);
       }
       ".TrimStart();
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "BitVectorField.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
@@ -737,14 +735,14 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     [Theory]
     [MemberData(nameof(OptionSettings))]
-    public async Task SeqSetAndArrayAsTypeParameters(List<Action<DafnyOptions>> optionSettings) {
+    public async Task SeqSetAndArrayAsTypeParameters(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
       method a(s:set<seq<set<array<int>>>>) requires |s| <= 1{
         assert |s| == 0;
       }
       ".TrimStart();
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "SeqSetAndArrayAsTypeParameters.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
@@ -755,14 +753,14 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     [Theory]
     [MemberData(nameof(OptionSettings))]
-    public async Task MultiDimensionalArray(List<Action<DafnyOptions>> optionSettings) {
+    public async Task MultiDimensionalArray(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
       method m(a:array3<int>) requires a.Length0 == 4 requires a.Length1 == 5 requires a.Length2 == 6 {
         assert a[2, 3, 1] != 7;
       }
       ".TrimStart();
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "MultiDimensionalArray.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
@@ -774,14 +772,14 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     [Theory]
     [MemberData(nameof(OptionSettings))]
-    public async Task ArrayEqualityByReference(List<Action<DafnyOptions>> optionSettings) {
+    public async Task ArrayEqualityByReference(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
       method test(x:array<int>, y:array<int>)   {
         assert x != y;
       }
       ".TrimStart();
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "ArrayEqualityByReference.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
@@ -794,7 +792,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     [Theory]
     [MemberData(nameof(OptionSettings))]
-    public async Task SetBasicOperations(List<Action<DafnyOptions>> optionSettings) {
+    public async Task SetBasicOperations(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
       method a(s1:set<char>, s2:set<char>) {
@@ -804,7 +802,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
         assert !('a' in sUnion) || ('a' in sInter) || !('b' in sInter) || !('a' in sDiff);
       }
       ".TrimStart();
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "SetBasicOperations.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
@@ -834,14 +832,14 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     [Theory]
     [MemberData(nameof(OptionSettings))]
-    public async Task SetSingleElement(List<Action<DafnyOptions>> optionSettings) {
+    public async Task SetSingleElement(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
       method test() {
         var s := {6};
         assert 6 !in s;
       }".TrimStart();
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "SetSingleElement.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
@@ -853,13 +851,13 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     [Theory]
     [MemberData(nameof(OptionSettings))]
-    public async Task StringBuilding(List<Action<DafnyOptions>> optionSettings) {
+    public async Task StringBuilding(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = "" +
       "method a(s:string) {" +
       "  assert s != \"abc\";" +
       "  }".TrimStart();
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "StringBuilding.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
@@ -871,13 +869,13 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     [Theory]
     [MemberData(nameof(OptionSettings))]
-    public async Task SequenceEdit(List<Action<DafnyOptions>> optionSettings) {
+    public async Task SequenceEdit(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = "" +
       "method a(c:char, s1:string) requires s1 == \"abc\"{" +
       "  var s2:string := s1[1 := c];" +
       "  assert s2[0] != 'a' || s2[1] !='d' || s2[2] != 'c';}".TrimStart();
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "SequenceEdit.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
@@ -893,14 +891,14 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     [Theory]
     [MemberData(nameof(OptionSettings))]
-    public async Task SequenceSingleElement(List<Action<DafnyOptions>> optionSettings) {
+    public async Task SequenceSingleElement(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
       method test() {
         var s := [6];
         assert 6 !in s;
       }".TrimStart();
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "SequenceSingleElement.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
@@ -912,14 +910,14 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     [Theory]
     [MemberData(nameof(OptionSettings))]
-    public async Task SequenceConcat(List<Action<DafnyOptions>> optionSettings) {
+    public async Task SequenceConcat(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
       method a(s1:string, s2:string) requires |s1| == 1 && |s2| == 1 {
         var sCat:string := s2 + s1;
         assert sCat[0] != 'a' || sCat[1] != 'b';
       }".TrimStart();
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "SequenceConcat.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
@@ -935,14 +933,14 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     [Theory]
     [MemberData(nameof(OptionSettings))]
-    public async Task SequenceGenerate(List<Action<DafnyOptions>> optionSettings) {
+    public async Task SequenceGenerate(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
       method a(multiplier:int) {
         var s:seq<int> := seq(3, i => i * multiplier);
         assert s[2] != 6;
       }".TrimStart();
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "SequenceGenerate.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
@@ -955,14 +953,14 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     [Theory]
     [MemberData(nameof(OptionSettings))]
-    public async Task SequenceSub(List<Action<DafnyOptions>> optionSettings) {
+    public async Task SequenceSub(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
       method a(s:seq<char>) requires |s| == 5 {
         var sSub:seq<char> := s[2..4];
         assert sSub[0] != 'a' || sSub[1] != 'b';
       }".TrimStart();
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "SequenceSub.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
@@ -976,14 +974,14 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     [Theory]
     [MemberData(nameof(OptionSettings))]
-    public async Task SequenceDrop(List<Action<DafnyOptions>> optionSettings) {
+    public async Task SequenceDrop(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
       method a(s:seq<char>) requires |s| == 5 {
         var sSub:seq<char> := s[2..];
         assert sSub[0] != 'a' || sSub[1] != 'b' || sSub[2] != 'c';
       }".TrimStart();
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "SequenceDrop.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
@@ -997,14 +995,14 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     [Theory]
     [MemberData(nameof(OptionSettings))]
-    public async Task SequenceTake(List<Action<DafnyOptions>> optionSettings) {
+    public async Task SequenceTake(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
       method a(s:seq<char>) requires |s| == 5 {
         var sSub:seq<char> := s[..3];
         assert sSub[0] != 'a' || sSub[1] != 'b' || sSub[2] != 'c';
       }".TrimStart();
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "SequenceTake.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
@@ -1018,14 +1016,14 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     [Theory]
     [MemberData(nameof(OptionSettings))]
-    public async Task VariableNameShadowing(List<Action<DafnyOptions>> optionSettings) {
+    public async Task VariableNameShadowing(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
       method test(m:set<int>) {
         var m := {6};
         assert 6 !in m;
       }".TrimStart();
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "VariableNameShadowing.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
@@ -1034,14 +1032,14 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     [Theory]
     [MemberData(nameof(OptionSettings))]
-    public async Task MapsCreation(List<Action<DafnyOptions>> optionSettings) {
+    public async Task MapsCreation(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
       method test() {
         var m := map[3 := false];
         assert m[3];
       }".TrimStart();
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "MapsCreation.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
@@ -1053,14 +1051,14 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     [Theory]
     [MemberData(nameof(OptionSettings))]
-    public async Task MapsEmpty(List<Action<DafnyOptions>> optionSettings) {
+    public async Task MapsEmpty(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
       method test() {
         var m : map<int,int> := map[];
         assert 3 in m;
       }".TrimStart();
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "MapsEmpty.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
@@ -1072,7 +1070,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     [Theory]
     [MemberData(nameof(OptionSettings))]
-    public async Task TraitType(List<Action<DafnyOptions>> optionSettings) {
+    public async Task TraitType(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
       module M {
@@ -1083,7 +1081,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
           assert c.Valid();
         }
       }".TrimStart();
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "TraitType.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
@@ -1094,7 +1092,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     [Theory]
     [MemberData(nameof(OptionSettings))]
-    public async Task ArrowType(List<Action<DafnyOptions>> optionSettings) {
+    public async Task ArrowType(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
       module M {
@@ -1104,7 +1102,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
           assert x == 2.4;
         }
       }".TrimStart();
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "ArrowType.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
@@ -1113,14 +1111,14 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     [Theory]
     [MemberData(nameof(OptionSettings))]
-    public async Task MapAsTypeArgument(List<Action<DafnyOptions>> optionSettings) {
+    public async Task MapAsTypeArgument(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
       method test() {
         var s : set<map<int,int>> := {map[3:=5]};
         assert |s| == 0;
       }".TrimStart();
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "MapAsTypeArgument.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
@@ -1131,7 +1129,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     [Theory]
     [MemberData(nameof(OptionSettings))]
-    public async Task DatatypeTypeAsTypeArgument(List<Action<DafnyOptions>> optionSettings) {
+    public async Task DatatypeTypeAsTypeArgument(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
       module M {
@@ -1141,7 +1139,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
           assert |s| == 0;
         }
       }".TrimStart();
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "DatatypeTypeAsTypeArgument.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
@@ -1153,14 +1151,14 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     [Theory]
     [MemberData(nameof(OptionSettings))]
-    public async Task SetsEmpty(List<Action<DafnyOptions>> optionSettings) {
+    public async Task SetsEmpty(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
       method test() {
         var s : set<int> := {};
         assert false;
       }".TrimStart();
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "SetsEmpty.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
@@ -1173,7 +1171,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     [Theory]
     [MemberData(nameof(OptionSettings))]
-    public async Task MapsUpdate(List<Action<DafnyOptions>> optionSettings) {
+    public async Task MapsUpdate(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
       method test(value:int) {
@@ -1182,7 +1180,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
         m := m[3 := value];
         assert b && m[3] <= 0;
       }".TrimStart();
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "MapsUpdate.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
@@ -1201,7 +1199,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     [Theory]
     [MemberData(nameof(OptionSettings))]
-    public async Task MapsUpdateStoredInANewVariable(List<Action<DafnyOptions>> optionSettings) {
+    public async Task MapsUpdateStoredInANewVariable(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
       method T_map1(m:map<int,int>, key:int, val:int)
@@ -1211,7 +1209,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
         m' := m'[key := val];
         assert m'.Values == m.Values - {m[key]} + {val};
       }".TrimStart();
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "MapsUpdateStoredInANewVariable.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
@@ -1228,7 +1226,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     [Theory]
     [MemberData(nameof(OptionSettings))]
-    public async Task MapsBuildRecursive(List<Action<DafnyOptions>> optionSettings) {
+    public async Task MapsBuildRecursive(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
       method T_map2()
@@ -1239,7 +1237,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
         m := m[5 := 36];
         assert 5 !in m;
       }".TrimStart();
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "MapsBuildRecursive.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
@@ -1251,7 +1249,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     [Theory]
     [MemberData(nameof(OptionSettings))]
-    public async Task MapsValuesUpdate(List<Action<DafnyOptions>> optionSettings) {
+    public async Task MapsValuesUpdate(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
       // This corner case previously triggered infinite loops
       var source = @"
@@ -1260,7 +1258,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
         var m' := m[key := val];
         assert m.Values + {val} == m'.Values;
       }".TrimStart();
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "MapsValuesUpdate.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
@@ -1280,14 +1278,14 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     [Theory]
     [MemberData(nameof(OptionSettings))]
-    public async Task MapsKeys(List<Action<DafnyOptions>> optionSettings) {
+    public async Task MapsKeys(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
       method test(m:map<int,char>) {
         var keys := m.Keys;
         assert (25 !in keys);
       }".TrimStart();
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "MapsKeys.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
@@ -1301,14 +1299,14 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     [Theory]
     [MemberData(nameof(OptionSettings))]
-    public async Task MapsValues(List<Action<DafnyOptions>> optionSettings) {
+    public async Task MapsValues(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
       method test(m:map<int,char>) {
         var values := m.Values;
         assert ('c' !in values);
       }".TrimStart();
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "MapsValues.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
@@ -1322,7 +1320,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     [Theory]
     [MemberData(nameof(OptionSettings))]
-    public async Task MapsOfBitVectors(List<Action<DafnyOptions>> optionSettings) {
+    public async Task MapsOfBitVectors(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
       // This test case triggers a situation in which the model does not
       // specify concrete values for bit vectors and the counterexample extraction
@@ -1331,7 +1329,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       method test(m:map<bv2,bv3>) {
         assert |m| == 0;
       }".TrimStart();
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "MapsOfBitVectors.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
@@ -1343,7 +1341,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     [Theory]
     [MemberData(nameof(OptionSettings))]
-    public async Task ModuleRenaming(List<Action<DafnyOptions>> optionSettings) {
+    public async Task ModuleRenaming(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
       module Mo_dule_ {
@@ -1356,7 +1354,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
             }
          }
       }".TrimStart();
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "ModuleRenaming.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
@@ -1368,7 +1366,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     [Theory]
     [MemberData(nameof(OptionSettings))]
-    public async Task UnboundedIntegers(List<Action<DafnyOptions>> optionSettings) {
+    public async Task UnboundedIntegers(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
       ghost const NAT64_MAX := 0x7fff_ffff_ffff_ffff
@@ -1378,7 +1376,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       function plus(a: nat64, b: nat64): nat64 {
         a + b
       }".TrimStart();
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "UnboundedIntegers.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
@@ -1392,7 +1390,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     [Theory]
     [MemberData(nameof(OptionSettings))]
-    public async Task DatatypeWithPredicate(List<Action<DafnyOptions>> optionSettings) {
+    public async Task DatatypeWithPredicate(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
       module M {
@@ -1406,7 +1404,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
           }
         }
       }".TrimStart();
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "DatatypeWithPredicate.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
@@ -1418,14 +1416,14 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
     /** Makes sure the counterexample lists the base type of a variable */
     [Theory]
     [MemberData(nameof(OptionSettings))]
-    public async Task SubsetType(List<Action<DafnyOptions>> optionSettings) {
+    public async Task SubsetType(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = "" +
       "type String = s:string | |s| > 0 witness \"a\"" +
       "method a(s:String) {" +
       "  assert s != \"aws\";" +
       "}".TrimStart();
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "SubsetType.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
@@ -1440,7 +1438,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
     /// </summary>
     [Theory]
     [MemberData(nameof(OptionSettings))]
-    public async Task EqualFields(List<Action<DafnyOptions>> optionSettings) {
+    public async Task EqualFields(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
       module M {
@@ -1453,7 +1451,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
           assert c == null || c.c1 != c.c2 || c.c1 != '\U{1023}';
         }
       }".TrimStart();
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "EqualFields.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
@@ -1471,11 +1469,11 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
     /// </summary>
     [Theory]
     [MemberData(nameof(OptionSettings))]
-    public async Task NonIntegerSeqIndices(List<Action<DafnyOptions>> optionSettings) {
+    public async Task NonIntegerSeqIndices(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
       string fp = Path.Combine(Directory.GetCurrentDirectory(), "Various", "TestFiles", "3048.dfy");
       var source = await File.ReadAllTextAsync(fp, CancellationToken);
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "NonIntegerSeqIndices.dfy");
 
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
 
@@ -1515,7 +1513,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     [Theory]
     [MemberData(nameof(OptionSettings))]
-    public async Task TypePolymorphism(List<Action<DafnyOptions>> optionSettings) {
+    public async Task TypePolymorphism(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
       module M { 
@@ -1523,7 +1521,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
           function Equal<T> (a:T, b:T):bool { assert a != b; true }
         }
       }".TrimStart();
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "TypePolymorphism.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
@@ -1532,6 +1530,30 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       Assert.True(counterExamples[0].Variables.ContainsKey("a:M.C.Equal$T"));
       Assert.True(counterExamples[0].Variables.ContainsKey("b:M.C.Equal$T"));
       Assert.True(counterExamples[0].Variables.ContainsKey("this:M.C<M.C$T>"));
+    }
+
+    /// <summary>
+    /// This test case would previously lead to stack overflow because of infinite recursion in GetDafnyType
+    /// </summary>
+    [Theory]
+    [MemberData(nameof(OptionSettings))]
+    public async Task GetDafnyTypeInfiniteRecursion(Action<DafnyOptions> optionSettings) {
+      await SetUpOptions(optionSettings);
+      var source = @"
+      class Seq {
+        var s:seq<int>
+        method test(i0:nat, val0:int, i1:nat, val1:int) 
+          modifies this {
+          assume 0 <= i0 < i1 < |s|;
+          s := s[i0 := val0];
+          s := s[i1 := val1];
+          assert s[0] != 0;
+        }
+      }
+      ".TrimStart();
+      var documentItem = CreateTestDocument(source, "GetDafnyTypeInfiniteRecursion.dfy");
+      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+      (await RequestCounterExamples(documentItem.Uri)).ToList(); ;
     }
 
     public CounterExampleTest(ITestOutputHelper output) : base(output) {

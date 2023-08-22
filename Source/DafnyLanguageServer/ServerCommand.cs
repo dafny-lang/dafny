@@ -16,7 +16,6 @@ public class ServerCommand : ICommandSpec {
     DafnyOptions.RegisterLegacyBinding(VerifySnapshots, (options, u) => options.VerifySnapshots = (int)u);
 
     DooFile.RegisterNoChecksNeeded(
-      ProjectMode,
       Verification,
       GhostIndicators,
       LineVerificationStatus,
@@ -37,7 +36,7 @@ Send notifications that indicate which lines are ghost.".TrimStart());
 
   public static readonly Option<VerifyOnMode> Verification = new("--verify-on", () => VerifyOnMode.Change, @"
 (experimental)
-Determine when to automatically verify the program. Choose from: Never, OnChange or OnSave.".TrimStart()) {
+Determine when to automatically verify the program. Choose from: Never, OnChange (verify everything in a file when changing the file), OnChangeProject or OnSave.".TrimStart()) {
     ArgumentHelpName = "event"
   };
 
@@ -45,11 +44,6 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
 (experimental, API will change)
 Send notifications about the verification status of each line in the program.
 ".TrimStart());
-
-  public static readonly Option<bool> ProjectMode = new("--project-mode", () => false,
-    "New mode with working with project files. Will become the default") {
-    IsHidden = true
-  };
 
   public static readonly Option<uint> VerifySnapshots = new("--cache-verification", @"
 (experimental)
@@ -64,7 +58,6 @@ Send notifications about the verification status of each line in the program.
   };
 
   public IEnumerable<Option> Options => new Option[] {
-    ProjectMode,
     BoogieOptionBag.NoVerify,
     Verification,
     GhostIndicators,

@@ -47,6 +47,7 @@ public static class CommandRegistry {
     AddCommand(new GenerateTestsCommand());
     AddCommand(new DeadCodeCommand());
     AddCommand(new AuditCommand());
+    AddCommand(new CoverageReportCommand());
 
     // Check that the .doo file format is aware of all options,
     // and therefore which have to be saved to safely support separate verification/compilation.
@@ -90,7 +91,7 @@ public static class CommandRegistry {
     var wasInvoked = false;
     var dafnyOptions = new DafnyOptions(inputReader, outputWriter, errorWriter);
     var optionValues = new Dictionary<Option, object>();
-    var options = new Options(optionValues);
+    var options = new Options(optionValues, new Dictionary<Argument, object>());
     dafnyOptions.ShowEnv = ExecutionEngineOptions.ShowEnvironment.Never;
     dafnyOptions.Environment = "Command-line arguments: " + string.Join(" ", arguments);
     dafnyOptions.Options = options;
@@ -164,6 +165,13 @@ public static class CommandRegistry {
         }
       }
 
+      foreach (var argument in command.Arguments) {
+        var result = context.ParseResult.FindResultFor(argument)?.GetValueOrDefault();
+        if (result != null) {
+          options.Arguments[argument] = result;
+        }
+      }
+
       foreach (var option in command.Options) {
         var result = context.ParseResult.FindResultFor(option);
         object projectFileValue = null;
@@ -171,7 +179,7 @@ public static class CommandRegistry {
         object value;
         if (option.Arity.MaximumNumberOfValues <= 1) {
           // If multiple values aren't allowed, CLI options take precedence over project file options
-          value = result == null && hasProjectFileValue
+          value = (result == null || Equals(result.Token, null)) && hasProjectFileValue
             ? projectFileValue
             : GetValueForOption(context.ParseResult, option);
         } else {

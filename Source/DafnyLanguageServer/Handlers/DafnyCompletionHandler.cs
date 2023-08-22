@@ -8,13 +8,14 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace Microsoft.Dafny.LanguageServer.Handlers {
   public class DafnyCompletionHandler : CompletionHandlerBase {
-    private readonly ILogger logger;
+    private readonly ILogger<DafnyCompletionHandler> logger;
     private readonly IProjectDatabase projects;
     private readonly ISymbolGuesser symbolGuesser;
     private DafnyOptions options;
@@ -48,33 +49,45 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
         logger.LogWarning("location requested for unloaded document {DocumentUri}", request.TextDocument.Uri);
         return new CompletionList();
       }
-      return new CompletionProcessor(symbolGuesser, document, request, cancellationToken, options).Process();
+      return new CompletionProcessor(symbolGuesser, logger, document, request, cancellationToken, options).Process();
     }
 
     private class CompletionProcessor {
       private DafnyOptions options;
+      private ILogger<DafnyCompletionHandler> logger;
       private readonly ISymbolGuesser symbolGuesser;
       private readonly IdeState state;
       private readonly CompletionParams request;
       private readonly CancellationToken cancellationToken;
 
-      public CompletionProcessor(ISymbolGuesser symbolGuesser, IdeState state, CompletionParams request, CancellationToken cancellationToken, DafnyOptions options) {
+      public CompletionProcessor(ISymbolGuesser symbolGuesser, ILogger<DafnyCompletionHandler> logger, IdeState state,
+        CompletionParams request, CancellationToken cancellationToken, DafnyOptions options) {
         this.symbolGuesser = symbolGuesser;
         this.state = state;
         this.request = request;
         this.cancellationToken = cancellationToken;
         this.options = options;
+        this.logger = logger;
       }
 
       public CompletionList Process() {
         if (IsDotExpression()) {
           return CreateDotCompletionList();
         }
+
+        if (logger.IsEnabled(LogLevel.Trace)) {
+          var program = (Program)state.Program;
+          var writer = new StringWriter();
+          var printer = new Printer(writer, DafnyOptions.Default);
+          printer.PrintProgram(program, true);
+          logger.LogTrace($"Program:\n{writer}");
+        }
+        logger.LogDebug($"Completion not on a dot expression for {request.TextDocument.Uri}, version {state.Version}");
         return new CompletionList();
       }
 
       private bool IsDotExpression() {
-        var node = state.Program.FindNode(request.TextDocument.Uri.ToUri(), request.Position.ToDafnyPosition());
+        var node = state.Program.FindNode<INode>(request.TextDocument.Uri.ToUri(), request.Position.ToDafnyPosition());
         return node?.RangeToken.EndToken.val == ".";
       }
 
@@ -106,8 +119,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
       }
 
       private static bool IsConstructor(ILegacySymbol symbol) {
-        return symbol is MethodSymbol method
-          && method.Name == "_ctor";
+        return symbol is MethodSymbol method && method.Name == "_ctor";
       }
 
       private CompletionItem CreateCompletionItem(ILegacySymbol symbol) {

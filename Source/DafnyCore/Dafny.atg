@@ -178,8 +178,8 @@ public void ApplyOptionsFromAttributes(Attributes attrs) {
   }
 }
 
-public Parser(DafnyOptions options, Scanner/*!*/ scanner, Errors/*!*/ errors)
-  : this(scanner, errors)  // the real work
+public Parser(DafnyOptions options, Scanner/*!*/ scanner, Errors/*!*/ errors, CancellationToken cancellationToken)
+  : this(scanner, errors, cancellationToken)  // the real work
 {
   // initialize readonly fields
   dummyExpr = new LiteralExpr(Token.NoToken);
@@ -1863,7 +1863,7 @@ TPCharOption<ref TypeParameter.TypeParameterCharacteristics characteristics>
 MethodDecl<DeclModifierData dmod, bool allowConstructor, out Method/*!*/ m>
 = (. Contract.Ensures(Contract.ValueAtReturn(out m) !=null);
      bool hasName = false;
-     Name name = null; // Please compiler  
+     Name name = new Name("<noNameGiven>");  
      IToken keywordToken;
      Attributes attrs = null;
      List<TypeParameter/*!*/>/*!*/ typeArgs = new List<TypeParameter/*!*/>();
@@ -3784,7 +3784,7 @@ ModifyStmt<out Statement s>
                                          .)
   )
   ( BlockStmt<out body, out bodyStart, out endTok>
-                                        (. errors.Deprecated(ErrorId.p_deprecated_modify_statement_with_block, t, "the modify statement with a block statement is deprecated");
+                                        (. errors.Deprecated(ErrorId.p_deprecated_modify_statement_with_block, bodyStart, "the modify statement with a block statement is deprecated");
                                          .)
   | SYNC ";"         (. endTok = t; .)
   )
