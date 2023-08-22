@@ -262,7 +262,7 @@ module Paths {
       var options = GetDafnyOptions(optionSettings, output);
       var program = Utils.Parse(new BatchErrorReporter(options), source, false);
       options.TestGenOptions.Mode =
-        TestGenerationOptions.Modes.CallGraph;
+        TestGenerationOptions.Modes.InlinedBlock;
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
       Assert.True(methods.Count is >= 2 and <= 6);
       Assert.True(methods.All(m => m.MethodName == "Paths.eightPaths"));
