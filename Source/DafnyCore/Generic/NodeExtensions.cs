@@ -115,7 +115,7 @@ public static class NodeExtensions {
         return new[] { new LList<INode>(node, parent) };
       }
 
-      return new LList<INode>[] {};
+      return new LList<INode>[] { };
     }
 
     var newParent = new LList<INode>(node, parent);
