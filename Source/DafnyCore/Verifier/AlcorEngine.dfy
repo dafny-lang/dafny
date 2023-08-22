@@ -29,6 +29,74 @@ module Wrappers {
     var unit :=  ["0123456789"[i % 10]];
     if i <= 9 then unit else IntToString(i/10) + unit
   }
+  function StringToInt(s: string): int
+    decreases |s|
+  {
+    if |s| == 0 then 0
+    else
+      if s[0] == '-' then
+        - StringToInt(s[1..])
+      else
+        if s[|s|-1] in "0123456789"
+        then StringToInt(s[..|s|-1])*10 + charToInt(s[|s|-1]) else StringToInt(s[..|s|-1])
+  }
+  function charToInt(d: char): int 
+    requires d in "0123456789"
+  {
+    match d {
+          case '0' => 0
+          case '1' => 1
+          case '2' => 2
+          case '3' => 3
+          case '4' => 4
+          case '5' => 5
+          case '6' => 6
+          case '7' => 7
+          case '8' => 8
+          case '9' => 9
+        }
+  }
+
+  lemma IntToString2(i: int)
+    ensures StringToInt(IntToString(i)) == i
+    ensures i >= 0 ==> IntToString(i)[0] != '-'
+    decreases if i < 0 then 1 else 0, if i < 0 then 0 else i 
+  {
+    if i < 0 {
+      assert IntToString(i)[0] == '-';
+      calc {
+        StringToInt(IntToString(i));
+        StringToInt("-" + IntToString(-i));
+      }
+      assert StringToInt(IntToString(i)) == i;
+    } else {
+      var unit :=  ["0123456789"[i % 10]];
+      if i <= 9 {
+        assert StringToInt(IntToString(i)) == i;
+        
+      } else {
+        var s := IntToString(i);
+        assert s[..|s|-1] == IntToString(i/10);
+        assert s[|s|-1] == unit[0];
+        assert s[0] != '-';
+        calc {
+          StringToInt(IntToString(i));
+          StringToInt(s);
+          { assert s[|s|-1] in "0123456789"; }
+          StringToInt(s[..|s|-1])*10 + charToInt(s[|s|-1]);
+        }
+        assert StringToInt(IntToString(i)) == i;
+      }
+    }
+  }
+  lemma IntToStringInjective(i: int, j: int)
+    ensures IntToString(i) == IntToString(j) ==> i == j
+  {
+    if IntToString(i) == IntToString(j) {
+      IntToString2(i);
+      IntToString2(j);
+    }
+  }
 }
 
 abstract module AlcorKernelInterface {
@@ -43,7 +111,7 @@ module AlcorProofKernel refines AlcorKernelInterface {
     provides Proof.AndIntro, Proof.AndElimLeft, Proof.AndElimRight
     provides Proof.ImpElim, Proof.ImpIntro
     provides Proof.ForallIntro, Proof.ForallElim, Proof.ForallRename
-    provides Wrappers, Expr.ToString, NewNotInFreeVars, MaxVersion
+    provides Wrappers, Expr.ToString, FreshIdentifier, MaxVersion
     provides Identifier.ToString
     provides Expr.Bind, Expr.FreeVars, Expr.size
     provides AllProofs // TODO: No longer necessary when possible to export that Proof is not a reference type
@@ -69,12 +137,12 @@ module AlcorProofKernel refines AlcorKernelInterface {
       var m := MaxVersion(vars - {id});
       if m > id.version then m else id.version
   }
-  opaque function NewNotInFreeVars(id: Identifier, freeVars: set<Identifier>): (r: Identifier)
+  opaque function FreshIdentifier(id: Identifier, freeVars: set<Identifier>): (r: Identifier)
     ensures r !in freeVars && r.name == id.name && r.lbl == id.lbl
     decreases if id in freeVars then MaxVersion(freeVars) + 1 - id.version else 0
   {
     if id in freeVars then
-      NewNotInFreeVars(Identifier(id.name, id.version + 1, id.lbl), freeVars)
+      FreshIdentifier(Identifier(id.name, id.version + 1, id.lbl), freeVars)
     else
       id
   }
@@ -136,7 +204,7 @@ module AlcorProofKernel refines AlcorKernelInterface {
       case Abs(i, body) =>
         if i == id then this else
         if i in freeVars then // Need to rename n to avoid capture.
-          var i' := NewNotInFreeVars(i, freeVars);
+          var i' := FreshIdentifier(i, freeVars);
           var newAbs := Abs(i', body.Bind(i, Var(i')));
           newAbs.Bind(id, expr, freeVars)
         else
@@ -857,7 +925,7 @@ module AlcorTacticProofChecker {
   import opened Alcor
   import opened Wrappers
 
-  datatype Env = EnvNil | EnvCons(id: Identifier, prop: Expr, tail: Env) {
+  datatype Env = EnvNil | EnvCons(id: string, prop: Expr, tail: Env) {
     function {:fuel 4, 4} ToExpr(): Expr {
       if EnvNil? then True else
       And(prop, tail.ToExpr())
@@ -865,7 +933,7 @@ module AlcorTacticProofChecker {
     predicate IsEmpty() { EnvNil? }
 
     ghost function Length(): nat { if EnvNil? then 0 else 1 + tail.Length() }
-    function ElemAt(index: nat): (result: (Identifier, Expr))
+    function ElemAt(index: nat): (result: (string, Expr))
       requires index < Length()
       ensures Drop(index).EnvCons?
       ensures result == (Drop(index).id, Drop(index).prop)
@@ -873,7 +941,7 @@ module AlcorTacticProofChecker {
       if index == 0 then (id, prop) else tail.ElemAt(index - 1)
     }
 
-    function IndexOf(name: Identifier): (index: int)
+    function IndexOf(name: string): (index: int)
       ensures if index >= 0 then
                 && index < Length()
                 && ElemAt(index).0 == name else index == -1
@@ -907,21 +975,102 @@ module AlcorTacticProofChecker {
     function ToString(): string
     {
       if this.EnvNil? then "" else
-      var x := id.ToString() + ": " + prop.ToString();
+      var x := id + ": " + prop.ToString();
       if !tail.EnvNil? then
         tail.ToString() + "\n" + x
       else
         x
     }
-
-    function FreeVars(): set<Identifier>
+    function FreeVars(): set<string>
     {
       if EnvNil? then {} else
       var tailFreeVars := tail.FreeVars();
       {id} + tailFreeVars
     }
+    opaque function FreshVar(name: string): (r: string) 
+      ensures r !in FreeVars() && |name| <= |r| && r[0..|name|] == name
+    {
+      var freeVars := FreeVars();
+      if name !in freeVars then name else
+      FreshVar_helper(name, 0, freeVars, {})
+    }
+    function FreshVar_helper2(name: string, num: nat): set<string> {
+      set i | 0 <= i < num :: name + IntToString(i)
+    }
+    lemma AboutFreshVar_helper2(name: string, num: nat)
+      decreases num
+      ensures |FreshVar_helper2(name, num)| == num
+    {
+      if num == 0 {
 
-    function Rename(oldName: Identifier, newName: Identifier): Env {
+      } else {
+        AboutFreshVar_helper2(name, num - 1);
+        var extra := {name + IntToString(num - 1)};
+        //assert !(exists i | 0 <= i < num :: name + IntToString(i) == name + IntToString(num));
+        assert forall x <- FreshVar_helper2(name, num - 1) :: x != name + IntToString(num - 1) by {
+          forall x <- FreshVar_helper2(name, num - 1) ensures x != name + IntToString(num - 1) {
+            if x == name + IntToString(num - 1) {
+              var i :| 0 <= i < num - 1 && x == name + IntToString(i);
+              assert name + IntToString(num - 1) == name + IntToString(i);
+              assert (name + IntToString(num - 1))[|name|..] == (name + IntToString(i))[|name|..];
+              assert IntToString(num - 1) == IntToString(i);
+              IntToStringInjective(num - 1, i);
+              assert false;
+            }
+          }
+        }
+        assert forall x <- FreshVar_helper2(name, num - 1) :: x !in extra;
+        assert FreshVar_helper2(name, num - 1) !! extra;
+        AboutFreshVar_helper3(FreshVar_helper2(name, num - 1), {name + IntToString(num - 1)});
+        assert FreshVar_helper2(name, num) == FreshVar_helper2(name, num - 1) + {name + IntToString(num - 1)};
+      }
+    }
+    lemma {:axiom} AboutFreshVar_helper3(a: set<string>, b: set<string>)
+      ensures a <= b ==> |a| <= |b|
+      ensures a < b ==> |a| < |b|
+      ensures a !! b ==> |a+b| == |a|+|b|
+
+    opaque function FreshVar_helper(name: string, num: nat,
+      freeVars: set<string>, ghost hitvars: set<string>): (r: string)
+      requires freeVars == FreeVars()
+      requires hitvars <= freeVars
+      requires FreshVar_helper2(name, num) == hitvars
+      requires |hitvars| == num
+      decreases |freeVars| - |hitvars|
+      ensures r !in freeVars && |name| <= |r| && r[0..|name|] == name
+    {
+      var candidate := name + IntToString(num);
+      assert |freeVars| == |hitvars| ==> candidate !in freeVars by {
+        if |freeVars| == |hitvars| && candidate in freeVars {
+          var newhitvars := {candidate} + hitvars;
+          assert FreshVar_helper2(name, num+1) == newhitvars;
+          AboutFreshVar_helper2(name, num+1);
+          assert |newhitvars| == num + 1;
+          assert newhitvars <= freeVars;
+          AboutFreshVar_helper3(newhitvars, freeVars);
+          assert false;
+        }
+      }
+      if candidate !in freeVars then candidate
+      else
+        assert |freeVars| > |hitvars| by {
+          AboutFreshVar_helper3(hitvars, freeVars);
+        }
+        AboutFreshVar_helper2(name, num);
+        AboutFreshVar_helper2(name, num+1);
+        assert FreshVar_helper2(name, num+1) == {candidate} + hitvars;
+        assert {candidate} <= freeVars;
+        FreshVar_helper(name, num + 1, freeVars, {candidate} + hitvars)
+    }
+
+    function FreeIdentifiers(): set<Identifier>
+    {
+      if EnvNil? then {} else
+      var headIds := prop.FreeVars();
+      headIds + tail.FreeIdentifiers()
+    }
+
+    function Rename(oldName: string, newName: string): Env {
       if EnvNil? then this
       else if id == oldName then EnvCons(newName, prop, tail)
       else EnvCons(id, prop, tail.Rename(oldName, newName))
@@ -1118,8 +1267,8 @@ module AlcorTacticProofChecker {
       var id := Identifier(name);
       if sequent.goal.Forall? && sequent.goal.body.Abs? {
         // We make sure we create a new identifier, automatic or provided
-        var freeVariables := sequent.env.FreeVars();
-        var freeVar := NewNotInFreeVars(sequent.goal.body.id, freeVariables);
+        var freeVariables := sequent.env.FreeIdentifiers();
+        var freeVar := FreshIdentifier(sequent.goal.body.id, freeVariables);
         proofState := Sequents(
           sequents.(head :=
           sequent.(goal :=
@@ -1155,7 +1304,7 @@ module AlcorTacticProofChecker {
         // Here we simply put the left in the environment;
         proofState := Sequents(
           sequents.(head :=
-          Sequent(env := EnvCons(id, sequent.goal.left, sequent.env),
+          Sequent(env := EnvCons(name, sequent.goal.left, sequent.env),
                   goal := sequent.goal.right)
           )
         );
@@ -1190,8 +1339,7 @@ module AlcorTacticProofChecker {
       //CheckProof();
     }
 
-    // TODO: Putting a default value for suggestedName like Identifier("") crashes Dafny
-    method Rename(previousName: Identifier, suggestedName: Identifier) returns (feedback: Result<string>)
+    method Rename(previousName: string, suggestedName: string) returns (feedback: Result<string>)
       modifies this
     {
       var oldName := previousName;
@@ -1208,12 +1356,12 @@ module AlcorTacticProofChecker {
       if env.EnvNil? {
         return Failure("Nothing to rename, proof state has no environment. Consider removing this");
       }
-      if newName == Identifier("") { // Last thing to rename
+      if newName == "" { // Last thing to rename
         newName := oldName;
         oldName := env.id;
       }
       if oldName !in env.FreeVars() {
-        return Failure("No variable in the environment is named " + oldName.ToString());
+        return Failure("No variable in the environment is named " + oldName);
       }
       var newEnv := env.Rename(oldName, newName);
       proofState := proofState.(
@@ -1261,7 +1409,7 @@ module AlcorTacticProofChecker {
       }
       var sequent := sequents.head;
       var env := sequent.env;
-      var i := env.IndexOf(Identifier(name));
+      var i := env.IndexOf(name);
       if i < 0 {
         return Failure("Entry " + name + " not found in the environment");
       }
@@ -1269,8 +1417,6 @@ module AlcorTacticProofChecker {
       if !envElem.And? {
         return Failure("Entry " + name + " is not splittable");
       }
-      var left := Identifier(left);
-      var right := Identifier(right);
       var newEnv := env.ReplaceTailAt(i, (previousEnv: Env) requires previousEnv == env.Drop(i) =>
                                         assert previousEnv.prop.And?;
                                         EnvCons(right, previousEnv.prop.right,
@@ -1298,11 +1444,11 @@ module AlcorTacticProofChecker {
       var sequent := sequents.head;
       var env := sequent.env;
       var goal := sequent.goal;
-      var iImp := env.IndexOf(Identifier(imp));
+      var iImp := env.IndexOf(imp);
       if iImp < 0 {
         return Failure("Entry " + imp + " not found in the environment");
       }
-      var iHyp := env.IndexOf(Identifier(hypothesis));
+      var iHyp := env.IndexOf(hypothesis);
       if iHyp < 0 {
         return Failure("Entry " + hypothesis + " not found in the environment");
       }
@@ -1320,8 +1466,7 @@ module AlcorTacticProofChecker {
         );
       } else {
         var newName := if newName == "" then "h" else newName;
-        var freeVariables := sequent.env.FreeVars();
-        var freeVar := NewNotInFreeVars(Identifier(newName), freeVariables);
+        var freeVar := sequent.env.FreshVar(newName);
         proofState := Sequents(
           SequentCons(
             Sequent(EnvCons(freeVar, impExpr.right, env), goal),
@@ -1346,7 +1491,7 @@ module AlcorTacticProofChecker {
       var sequent := sequents.head;
       var env := sequent.env;
       var goal := sequent.goal;
-      var iHyp := env.IndexOf(Identifier(name));
+      var iHyp := env.IndexOf(name);
       if iHyp < 0 {
         return Failure("Entry " + name + " not found in the environment");
       }
