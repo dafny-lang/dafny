@@ -63,9 +63,9 @@ public class LargeFilesTest : ClientBasedLanguageServerTest {
         lowest = Math.Min(lowest, division);
 
         // Commented code left in intentionally
-        await output.WriteLineAsync("openMilliseconds: " + openMilliseconds);
-        await output.WriteLineAsync("changeMilliseconds: " + changeMilliseconds);
-        await output.WriteLineAsync("division: " + division);
+        // await output.WriteLineAsync("openMilliseconds: " + openMilliseconds);
+        // await output.WriteLineAsync("changeMilliseconds: " + changeMilliseconds);
+        // await output.WriteLineAsync("division: " + division);
         try {
           // Migration should be constant time, which would allow this number to be about 1.
           // Right now migration is still slow so this has been set to 10 so the test can pass.
