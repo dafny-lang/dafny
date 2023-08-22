@@ -79,11 +79,11 @@ public class DafnyProject : IEquatable<DafnyProject> {
     commonRoot = GetCommonParentDirectory(fullPaths) ?? diskRoot;
     var matcher = new Matcher();
     foreach (var includeGlob in includes) {
-      matcher.AddInclude(Path.GetRelativePath(commonRoot, includeGlob));
+      matcher.AddInclude(Path.GetRelativePath(commonRoot, Path.GetFullPath(includeGlob, projectRoot)));
     }
 
     foreach (var excludeGlob in excludes) {
-      matcher.AddExclude(Path.GetRelativePath(commonRoot, excludeGlob));
+      matcher.AddExclude(Path.GetRelativePath(commonRoot, Path.GetFullPath(excludeGlob, projectRoot)));
     }
 
     return matcher;
