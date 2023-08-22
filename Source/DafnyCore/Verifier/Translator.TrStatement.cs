@@ -1885,13 +1885,16 @@ namespace Microsoft.Dafny {
         }
       }
 
-      // Check reads/modifies clause of a subcall is a subset of the current frame.
+      // Check that the reads clause of a subcall is a subset of the current reads frame,
+      // but support the optimization that we don't define a reads frame at all if it's `reads *`. 
+      if (etran.readsFrame != null) {
+        var readsSubst = new Substituter(null, new Dictionary<IVariable, Expression>(), tySubst);
+        CheckFrameSubset(tok, callee.Reads.ConvertAll(readsSubst.SubstFrameExpr),
+          receiver, substMap, etran, etran.ReadsFrame(tok), builder, new PODesc.FrameSubset("call", false), null);
+      }
+      // Check that the modifies clause of a subcall is a subset of the current modifies frame,
+      // but only if we're in a context that defines a modifies frame.
       if (codeContext is IMethodCodeContext) {
-        if (etran.readsFrame != null) {
-          var readsSubst = new Substituter(null, new Dictionary<IVariable, Expression>(), tySubst);
-          CheckFrameSubset(tok, callee.Reads.ConvertAll(readsSubst.SubstFrameExpr),
-            receiver, substMap, etran, etran.ReadsFrame(tok), builder, new PODesc.FrameSubset("call", false), null);
-        }
         var modifiesSubst = new Substituter(null, new Dictionary<IVariable, Expression>(), tySubst);
         CheckFrameSubset(tok, callee.Mod.Expressions.ConvertAll(modifiesSubst.SubstFrameExpr),
           receiver, substMap, etran, etran.ModifiesFrame(tok), builder, new PODesc.FrameSubset("call", true), null);
