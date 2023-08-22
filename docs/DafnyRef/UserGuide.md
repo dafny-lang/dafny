@@ -1197,7 +1197,7 @@ assert c != 5/a;     // Correctness
 ```
 
 Well-formedness is proved at the same time as correctness, except for
-[well-formedness of requires and ensures clauess](#sec-well-formedness-specifications)
+[well-formedness of requires and ensures clauses](#sec-well-formedness-specifications)
 which is proved separatedly from the well-formedness and correctness of the rest of the method/function.
 For the rest of this section, we don't diifferentiate between well-formedness assertions and correctness assertions.
 
