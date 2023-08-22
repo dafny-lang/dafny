@@ -1089,15 +1089,6 @@ namespace Microsoft.Dafny {
           typeAdjustor.Solve(reporter, Options.Get(CommonOptionBag.NewTypeInferenceDebug));
         }
 
-#if DEBUG // this shouldn't be necessary, but it's used to double check that the new type inference finds everything the legacy resolver did.
-        // Check that all types have been determined. During this process, also fill in all .ResolvedOp fields.
-        if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
-          var checkTypeInferenceVisitor = new CheckTypeInferenceVisitor(this);
-          checkTypeInferenceVisitor.VisitDeclarations(declarations);
-          Contract.Assert(reporter.Count(ErrorLevel.Error) == prevErrorCount); // we expect no further errors to have been reported
-        }
-#endif
-
       } else {
         // Resolve all names and infer types. These two are done together, because name resolution depends on having type information
         // and type inference depends on having resolved names.
@@ -1108,12 +1099,16 @@ namespace Microsoft.Dafny {
         // Once the task is done for these newtype/subset-type/const parts, the task continues with everything else.
         ResolveNamesAndInferTypes(declarations, true);
         ResolveNamesAndInferTypes(declarations, false);
+      }
 
-        // Check that all types have been determined. During this process, also fill in all .ResolvedOp fields.
-        if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
-          var checkTypeInferenceVisitor = new CheckTypeInferenceVisitor(this);
-          checkTypeInferenceVisitor.VisitDeclarations(declarations);
-        }
+      // Check that all types have been determined. During this process, also fill in all .ResolvedOp fields.
+      // Note, in the type system refresh, it can happen that the under-specification detector above finds all pre-types to
+      // be specified, whereas some (necessarily unused) type arguments are still underspecified. Such will be caught by the
+      // CheckTypeInferenceVisitor. (But CheckTypeInferenceVisitor could, for the type system refresh, be modified to
+      // not bother setting .ResolvedOp fields, since the under-specification detector above has already set those.)
+      if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
+        var checkTypeInferenceVisitor = new CheckTypeInferenceVisitor(this);
+        checkTypeInferenceVisitor.VisitDeclarations(declarations);
       }
 
       // Substitute for DefaultValueExpression's
