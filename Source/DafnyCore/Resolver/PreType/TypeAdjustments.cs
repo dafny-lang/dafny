@@ -68,8 +68,11 @@ public class AdjustableType : TypeProxy {
     string headName;
     if (type is CollectionType collectionType) {
       headName = collectionType.CollectionTypeName;
+    } else if (type is UserDefinedType udt) {
+      headName = udt.Name;
     } else {
-      headName = ((UserDefinedType)type).Name;
+      Contract.Assert(type.TypeArgs.Count == 0);
+      headName = type.ToString();
     }
     if (type.TypeArgs.Count == 0) {
       return headName;
