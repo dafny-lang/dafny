@@ -48,7 +48,7 @@ class Test {
 
 
 ";
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "MigrationLeavesLinesOfSymbolsBeforeUnchangedWhenChangingInTheMiddle.dfy");
       await Client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       await ApplyChangeAndWaitCompletionAsync(
         ref documentItem,
@@ -87,7 +87,7 @@ class Test {
 }".TrimStart();
 
       var change = "";
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "MigrationLeavesLinesOfSymbolsBeforeUnchangedWhenRemovingInTheMiddle.dfy");
       await Client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       await ApplyChangeAndWaitCompletionAsync(
         ref documentItem,
@@ -134,7 +134,7 @@ class Test {
 
 
 ";
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "MigrationMovesLinesOfSymbolsAfterWhenChangingInTheMiddle.dfy");
       await Client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       await ApplyChangeAndWaitCompletionAsync(
         ref documentItem,
@@ -182,7 +182,7 @@ class Test {
 }".TrimStart();
 
       var change = "";
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "MigrationMovesLinesOfSymbolsAfterWhenRemovingInTheMiddle.dfy");
       await Client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       await ApplyChangeAndWaitCompletionAsync(
         ref documentItem,
@@ -209,7 +209,7 @@ class Test {
 }".TrimStart();
 
       var change = " +";
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "MigrationLeavesCharacterOfSymbolsBeforeUnchangedWhenChangingInTheMiddleOfLine.dfy");
       await Client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       await ApplyChangeAndWaitCompletionAsync(
         ref documentItem,
@@ -236,7 +236,7 @@ class Test {
 }".TrimStart();
 
       var change = "y + ";
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "MigrationMovesCharacterOfSymbolsAfterWhenChangingInTheMiddleOfLine.dfy");
       await Client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       await ApplyChangeAndWaitCompletionAsync(
         ref documentItem,
@@ -263,7 +263,7 @@ class Test {
 }".TrimStart();
 
       var change = "y + ";
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "MigrationRemovesSymbolLocationsWithinTheChangedRange.dfy");
       await Client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var originalDocument = await Projects.GetResolvedDocumentAsyncNormalizeUri(documentItem.Uri);
       Assert.NotNull(originalDocument);
@@ -293,7 +293,7 @@ class Test {
   }
 }".TrimStart();
 
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "MigrationMovesSymbolLocationsWhenApplyingMultipleChangesAtOnce.dfy");
       await Client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       await ApplyChangesAndWaitCompletionAsync(
         documentItem,
