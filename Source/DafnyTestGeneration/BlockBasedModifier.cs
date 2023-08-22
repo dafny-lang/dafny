@@ -27,7 +27,7 @@ namespace DafnyTestGeneration {
     protected override IEnumerable<ProgramModification> GetModifications(Program p) {
       return VisitProgram(p);
     }
-    private ProgramModification/*?*/ VisitBlock(Block node) {
+    private ProgramModification/*?*/ ModificationForBlock(Block node, Dictionary<string, HashSet<Block>> stateToBlocks) {
 
       if (program == null || implementation == null) {
         return null;
@@ -40,16 +40,37 @@ namespace DafnyTestGeneration {
       var testEntryNames = Utils.DeclarationHasAttribute(implementation, TestGenerationOptions.TestInlineAttribute)
         ? TestEntries
         : new() { implementation.VerboseName };
-      node.cmds.Add(new AssertCmd(new Token(), new LiteralExpr(new Token(), false)));
+      foreach (var block in stateToBlocks[state]) {
+        block.cmds.Add(new AssertCmd(new Token(), new LiteralExpr(new Token(), false)));
+      }
       var record = modifications.GetProgramModification(program, implementation,
         new HashSet<string>() { state },
           testEntryNames, $"{implementation.VerboseName.Split(" ")[0]} ({state})");
-
-      node.cmds.RemoveAt(node.cmds.Count - 1);
+      foreach (var block in stateToBlocks[state]) {
+        block.cmds.RemoveAt(block.cmds.Count - 1);
+      }
       if (record.IsCovered(modifications)) {
         return null;
       }
       return record;
+    }
+
+    /// <summary>
+    /// After inlining, several basic blocks might correspond to the same program state, i.e. location in the Dafny code
+    /// This method creates a mapping from such a state to all blocks that represent it
+    /// </summary>
+    private void PopulateStateToBlocksMap(Block block, Dictionary<string, HashSet<Block>> stateToBlocks) {
+      if (program == null || implementation == null) {
+        return;
+      }
+      var state = Utils.GetBlockId(block, DafnyInfo.Options);
+      if (state == null) {
+        return;
+      }
+      if (!stateToBlocks.ContainsKey(state)) {
+        stateToBlocks[state] = new();
+      }
+      stateToBlocks[state].Add(block);
     }
 
     private IEnumerable<ProgramModification> VisitImplementation(
@@ -59,8 +80,12 @@ namespace DafnyTestGeneration {
           !DafnyInfo.IsAccessible(node.VerboseName.Split(" ")[0])) {
         yield break;
       }
+      var stateToBlocksMap = new Dictionary<string, HashSet<Block>>();
+      foreach (var block in node.Blocks) {
+        PopulateStateToBlocksMap(block, stateToBlocksMap);
+      }
       for (int i = node.Blocks.Count - 1; i >= 0; i--) {
-        var modification = VisitBlock(node.Blocks[i]);
+        var modification = ModificationForBlock(node.Blocks[i], stateToBlocksMap);
         if (modification != null) {
           yield return modification;
         }
