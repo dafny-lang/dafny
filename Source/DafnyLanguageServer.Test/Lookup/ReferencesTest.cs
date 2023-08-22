@@ -29,7 +29,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
     /// the client returns all ranges marked with regular spans.
     /// </summary>
     /// <param name="source"></param>
-    private async Task AssertReferences(string source) {
+    private async Task AssertReferences(string source, string fileName) {
       MarkupTestFile.GetPositionsAndRanges(
         source, out var cleanSource, out var explicitPositions, out var expectedRangesArray);
       var expectedRanges = new HashSet<Range>(expectedRangesArray);
@@ -37,7 +37,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
       var positionsFromRanges = expectedRangesArray.SelectMany(r => new[] { r.Start, r.End });
       var allPositions = explicitPositions.Concat(positionsFromRanges);
 
-      var documentItem = CreateTestDocument(cleanSource);
+      var documentItem = CreateTestDocument(cleanSource, fileName);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
 
       foreach (var position in allPositions) {
@@ -59,7 +59,7 @@ method M2() {
 }
 ".TrimStart();
 
-      await AssertReferences(source);
+      await AssertReferences(source, "Const.dfy");
     }
 
     [Fact]
@@ -73,7 +73,7 @@ method M() {
 }
 ".TrimStart();
 
-      await AssertReferences(source);
+      await AssertReferences(source, "Var.dfy");
     }
 
     [Fact]
@@ -89,7 +89,7 @@ method M3() {
 }
 ".TrimStart();
 
-      await AssertReferences(source);
+      await AssertReferences(source, "Method.dfy");
     }
 
     [Fact]
@@ -100,7 +100,7 @@ method M(><x: int) {
 }
 ".TrimStart();
 
-      await AssertReferences(source);
+      await AssertReferences(source, "Parameter.dfy");
     }
 
     [Fact]
@@ -117,7 +117,7 @@ module M3 {
 module MR refines [>M1<] {}
 ".TrimStart();
 
-      await AssertReferences(source);
+      await AssertReferences(source, "Module.dfy");
     }
 
     // It seems that datatype declaration/usage information is not tracked
@@ -132,7 +132,7 @@ method M(d: [>D<]) {
 }
 ".TrimStart();
 
-      await AssertReferences(source);
+      await AssertReferences(source, "DatatypeDeclaration.dfy");
     }
 
     [Fact]
@@ -148,7 +148,7 @@ method M(l: Letter) {
 }
 ".TrimStart();
 
-      await AssertReferences(source);
+      await AssertReferences(source, "DatatypeConstructor.dfy");
     }
 
     [Fact]
@@ -163,7 +163,7 @@ method M(o: Option) {
 }
 ".TrimStart();
 
-      await AssertReferences(source);
+      await AssertReferences(source, "DatatypeDestructor.dfy");
     }
 
     // It seems that type declaration/usage information is not tracked
@@ -174,7 +174,7 @@ type ><T = int
 method M(t: [>T<]) {}
 ".TrimStart();
 
-      await AssertReferences(source);
+      await AssertReferences(source, "Type.dfy");
     }
 
     // It seems that newtype declaration/usage information is not tracked
@@ -185,7 +185,7 @@ newtype ><T = int
 method M(t: [>T<]) {}
 ".TrimStart();
 
-      await AssertReferences(source);
+      await AssertReferences(source, "Newtype.dfy");
     }
 
     [Fact]
@@ -195,7 +195,7 @@ trait ><T {}
 class C extends [>T<] {}
 ".TrimStart();
 
-      await AssertReferences(source);
+      await AssertReferences(source, "Trait.dfy");
     }
 
     // It seems that class declaration/usage information is not tracked
@@ -206,7 +206,7 @@ class ><C {}
 method M(c: [>C<]) {}
 ".TrimStart();
 
-      await AssertReferences(source);
+      await AssertReferences(source, "ClassDeclaration.dfy");
     }
 
     [Fact]
@@ -221,7 +221,7 @@ method M(c: C) {
 }
 ".TrimStart();
 
-      await AssertReferences(source);
+      await AssertReferences(source, "ClassField.dfy");
     }
 
     [Fact]
@@ -235,7 +235,7 @@ method M(c: C) {
 }
 ".TrimStart();
 
-      await AssertReferences(source);
+      await AssertReferences(source, "ClassMethod.dfy");
     }
 
     [Fact]
