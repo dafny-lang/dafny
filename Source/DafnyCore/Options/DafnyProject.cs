@@ -4,10 +4,8 @@ using System.Collections.Generic;
 using System.CommandLine;
 using System.IO;
 using System.Linq;
-using System.Runtime.Caching;
 using System.Runtime.Serialization;
 using System.Text.RegularExpressions;
-using System.Threading;
 using System.Threading.Tasks;
 using DafnyCore.Options;
 using Microsoft.Extensions.FileSystemGlobbing;
@@ -73,23 +71,28 @@ public class DafnyProject : IEquatable<DafnyProject> {
 
   private Matcher GetMatcher(out string commonRoot) {
     var projectRoot = Path.GetDirectoryName(Uri.LocalPath)!;
+    var diskRoot = Path.GetPathRoot(Uri.LocalPath)!;
 
-    var fullPathIncludes = (Includes ?? new[] { "**/*.dfy" }).Select(p => Path.GetFullPath(p, projectRoot)).ToList();
-    commonRoot = GetCommonParentDirectory(fullPathIncludes);
+    var includes = Includes ?? new[] { "**/*.dfy" };
+    var excludes = Excludes ?? Array.Empty<string>();
+    var fullPaths = includes.Concat(excludes).Select(p => Path.GetFullPath(p, projectRoot)).ToList();
+    commonRoot = GetCommonParentDirectory(fullPaths) ?? diskRoot;
     var matcher = new Matcher();
-    foreach (var fullpathIncludeGlob in fullPathIncludes) {
-      matcher.AddInclude(Path.GetRelativePath(commonRoot, fullpathIncludeGlob));
+    foreach (var includeGlob in includes) {
+      matcher.AddInclude(Path.GetRelativePath(commonRoot, includeGlob));
     }
 
-    foreach (var includeGlob in Excludes ?? Enumerable.Empty<string>()) {
-      var fullPath = Path.GetFullPath(includeGlob, projectRoot);
-      matcher.AddExclude(Path.GetRelativePath(commonRoot, fullPath));
+    foreach (var excludeGlob in excludes) {
+      matcher.AddExclude(Path.GetRelativePath(commonRoot, excludeGlob));
     }
 
     return matcher;
   }
 
   string GetCommonParentDirectory(IReadOnlyList<string> strings) {
+    if (!strings.Any()) {
+      return null;
+    }
     var commonPrefix = strings.FirstOrDefault() ?? "";
 
     foreach (var newString in strings) {
