@@ -139,6 +139,7 @@ namespace Microsoft.Dafny {
       } else if (stmt is RevealStmt) {
         var s = (RevealStmt)stmt;
         foreach (var expr in s.Exprs) {
+          // TODO: Copy info rom NameResolutionAndTypeInference.cs
           var name = RevealStmt.SingleName(expr);
           var labeledAssert = name == null ? null : dominatingStatementLabels.Find(name) as AssertLabel;
           if (labeledAssert != null) {
@@ -153,9 +154,11 @@ namespace Microsoft.Dafny {
                 ReportError(methodCallInfo.Tok, "a two-state function can only be revealed in a two-state context");
               } else if (methodCallInfo.Callee.AtLabel != null) {
                 Contract.Assert(methodCallInfo.Callee.Member is TwoStateLemma);
-                ReportError(methodCallInfo.Tok, "to reveal a two-state function, do not list any parameters or @-labels");
+                ReportError(methodCallInfo.Tok,
+                  "to reveal a two-state function, do not list any parameters or @-labels");
               } else {
-                var call = new CallStmt(s.RangeToken, new List<Expression>(), methodCallInfo.Callee, methodCallInfo.ActualParameters);
+                var call = new CallStmt(s.RangeToken, new List<Expression>(), methodCallInfo.Callee,
+                  methodCallInfo.ActualParameters);
                 s.ResolvedStatements.Add(call);
               }
             } else {

@@ -1,13 +1,23 @@
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
+using JetBrains.Annotations;
 
 namespace Microsoft.Dafny;
+
+public abstract record Tactic {
+}
+public record Intro([CanBeNull] string Name) : Tactic;
+public record ImpElim([CanBeNull] string NameImp, [CanBeNull] string NameHyp) : Tactic;
+public record Cases([CanBeNull] string NameEnvVar, [CanBeNull] string NewNameLeft, [CanBeNull] string NewNameRight) : Tactic;
+public record Var([CanBeNull] string Name): Tactic;
+
 
 public class RevealStmt : Statement, ICloneable<RevealStmt>, ICanFormat {
   public readonly List<Expression> Exprs;
   [FilledInDuringResolution] public readonly List<AssertLabel> LabeledAsserts = new List<AssertLabel>();  // to indicate that "Expr" denotes a labeled assertion
   [FilledInDuringResolution] public readonly List<Statement> ResolvedStatements = new List<Statement>();
+  [FilledInDuringResolution] public readonly List<Tactic> Tactics = new();
 
   public override IEnumerable<Statement> SubStatements {
     get { return ResolvedStatements; }

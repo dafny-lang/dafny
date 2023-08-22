@@ -190,9 +190,6 @@ public class CompilationManager {
       compilationUpdates.OnError(e);
       throw;
     }
-    
-    // Obtain additional diagnostics from the translation
-    var errorReporter = (DiagnosticErrorReporter)loaded.Program.Reporter;
 
     var updated = false;
     var implementations = compilation.ImplementationsPerVerifiable.GetOrAdd(verifiable, _ => {
