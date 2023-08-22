@@ -1,5 +1,49 @@
 use std::{fmt::{Display, Formatter}, rc::Rc, ops::Deref};
+use num::{Integer, Signed, One, Zero};
 pub use once_cell::unsync::Lazy;
+
+pub use num::bigint::BigInt;
+pub use num::rational::BigRational;
+pub use num::FromPrimitive;
+pub use num::NumCast;
+
+pub fn dafny_rational_to_int(r: &BigRational) -> BigInt {
+    euclidian_division(r.numer().clone(), r.denom().clone())
+}
+
+pub fn euclidian_division<A: Signed + Zero + One + Clone + PartialEq>(a: A, b: A) -> A {
+    if !a.is_negative() {
+        if !b.is_negative() {
+            a / b
+        } else {
+            -(a / -b)
+        }
+    } else {
+        if !b.is_negative() {
+            -((-(a + One::one())) / b) - One::one()
+        } else {
+            (-(a + One::one())) / (-b) + One::one()
+        }
+    }
+}
+
+pub fn euclidian_modulo<A: Signed + Zero + One + Clone + PartialEq>(a: A, b: A) -> A {
+    if !a.is_negative() {
+        if !b.is_negative() {
+            a % b
+        } else {
+            a % -b
+        }
+    } else {
+        let bp = b.abs();
+        let c = (-a) % bp.clone();
+        if c == Zero::zero() {
+            Zero::zero()
+        } else {
+            bp - c
+        }
+    }
+}
 
 pub struct LazyFieldWrapper<A>(pub Lazy<A, Box<dyn 'static + FnOnce() -> A>>);
 
@@ -199,6 +243,8 @@ impl_already_erased! { i128 }
 impl_already_erased! { f32 }
 impl_already_erased! { f64 }
 impl_already_erased! { () }
+impl_already_erased! { BigInt }
+impl_already_erased! { BigRational }
 
 macro_rules! impl_tuple_erased {
     ($($items:ident)*) => {
@@ -317,6 +363,85 @@ impl DafnyPrint for char {
     #[inline]
     fn is_char() -> bool {
         true
+    }
+}
+
+impl DafnyPrint for BigInt {
+    fn fmt_print(&self, f: &mut Formatter<'_>, _in_seq: bool) -> std::fmt::Result {
+        write!(f, "{}", self)
+    }
+}
+
+fn divides_a_power_of_10(mut i: BigInt) -> (bool, BigInt, usize) {
+    let one: BigInt = One::one();
+
+    let mut factor = one.clone();
+    let mut log10 = 0;
+
+    let zero = Zero::zero();
+    let ten = BigInt::from_i32(10).unwrap();
+
+    if i <= zero {
+        return (false, factor, log10);
+    }
+
+    while i.is_multiple_of(&ten) {
+        i /= BigInt::from_i32(10).unwrap();
+        log10 += 1;
+    }
+
+    let two = BigInt::from_i32(2).unwrap();
+    let five = BigInt::from_i32(5).unwrap();
+
+    while i.is_multiple_of(&five) {
+        i /= &five;
+        factor *= &two;
+        log10 += 1;
+    }
+
+    while i.is_multiple_of(&two) {
+        i /= &two;
+        factor *= &two;
+        log10 += 1;
+    }
+
+    (i == one, factor, log10)
+}
+
+impl DafnyPrint for BigRational {
+    fn fmt_print(&self, f: &mut Formatter<'_>, _in_seq: bool) -> std::fmt::Result {
+        if self.denom() == &One::one() || self.numer() == &Zero::zero() {
+            write!(f, "{}.0", self.numer())
+        } else {
+            let (divides, factor, log10) = divides_a_power_of_10(self.denom().clone());
+            if divides {
+                let mut num = self.numer().clone();
+                num *= factor;
+
+                if num.is_negative() {
+                    write!(f, "-")?;
+                    num = -num;
+                }
+
+                let digits = num.to_string();
+
+                if log10 < digits.len() {
+                    let digit_count = digits.len() - log10;
+                    write!(f, "{}", &digits[..digit_count])?;
+                    write!(f, ".")?;
+                    write!(f, "{}", &digits[digit_count..])
+                } else {
+                    let z = log10 - digits.len();
+                    write!(f, "0.")?;
+                    for _ in 0..z {
+                        write!(f, "0")?;
+                    }
+                    write!(f, "{}", digits)
+                }
+            } else {
+                write!(f, "({}.0 / {}.0)", self.numer(), self.denom())
+            }
+        }
     }
 }
 

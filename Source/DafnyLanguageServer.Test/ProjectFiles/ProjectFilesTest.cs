@@ -69,14 +69,32 @@ warn-shadowing = true";
       options.Set(Function.FunctionSyntaxOption, "3");
       options.Set(CommonOptionBag.WarnShadowing, true);
     });
-    var filePath = Path.Combine(Directory.GetCurrentDirectory(), "ProjectFiles/TestFiles/noWarnShadowing.dfy");
-    var source = await File.ReadAllTextAsync(filePath);
-    source += "\nghost function Bar(): int { 3 }";
+    var source = @"
+method Foo() {
+  var x := 3;
+  if (true) {
+    var x := 4;
+  }
+}
 
-    var doc1 = await CreateAndOpenTestDocument(source, "orphaned");
-    var diagnostics1 = await GetLastDiagnostics(doc1, CancellationToken);
+ghost function Bar(): int { 3 }".TrimStart();
+
+    var projectFileSource = @"
+includes = [""**/*.dfy""]
+
+[options]
+warn-shadowing = false
+function-syntax = 4";
+
+    var directory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+    Directory.CreateDirectory(directory);
+
+    var noProjectFile = await CreateAndOpenTestDocument(source, "orphaned.dfy");
+    var diagnostics1 = await GetLastDiagnostics(noProjectFile, CancellationToken);
     Assert.Single(diagnostics1); // Stops after parsing
-    await CreateAndOpenTestDocument(source, filePath);
+
+    await File.WriteAllTextAsync(Path.Combine(directory, DafnyProject.FileName), projectFileSource);
+    await CreateAndOpenTestDocument(source, Path.Combine(directory, "source.dfy"));
     await AssertNoDiagnosticsAreComing(CancellationToken);
   }
 

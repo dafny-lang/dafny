@@ -3,8 +3,6 @@ module {:extern "DAST"} DAST {
 
   datatype ModuleItem = Module(Module) | Class(Class) | Trait(Trait) | Newtype(Newtype) | Datatype(Datatype)
 
-  datatype Newtype = Newtype(name: string, typeParams: seq<Type>, base: Type, witnessStmts: seq<Statement>, witnessExpr: Optional<Expression>)
-
   datatype Type =
     Path(seq<Ident>, typeArgs: seq<Type>, resolved: ResolvedType) |
     Tuple(seq<Type>) |
@@ -17,13 +15,13 @@ module {:extern "DAST"} DAST {
     Primitive(Primitive) | Passthrough(string) |
     TypeArg(Ident)
 
-  datatype Primitive = String | Bool | Char
+  datatype Primitive = Int | Real | String | Bool | Char
 
-  datatype ResolvedType = Datatype(path: seq<Ident>) | Trait(path: seq<Ident>) | Newtype
+  datatype ResolvedType = Datatype(path: seq<Ident>) | Trait(path: seq<Ident>) | Newtype(Type)
 
   datatype Ident = Ident(id: string)
 
-  datatype Class = Class(name: string, superClasses: seq<Type>, body: seq<ClassItem>)
+  datatype Class = Class(name: string, typeParams: seq<Type>, superClasses: seq<Type>, fields: seq<Field>, body: seq<ClassItem>)
 
   datatype Trait = Trait(name: string, typeParams: seq<Type>, body: seq<ClassItem>)
 
@@ -31,7 +29,11 @@ module {:extern "DAST"} DAST {
 
   datatype DatatypeCtor = DatatypeCtor(name: string, args: seq<Formal>, hasAnyArgs: bool /* includes ghost */)
 
-  datatype ClassItem = Method(Method) | Field(Formal)
+  datatype Newtype = Newtype(name: string, typeParams: seq<Type>, base: Type, witnessStmts: seq<Statement>, witnessExpr: Optional<Expression>)
+
+  datatype ClassItem = Method(Method)
+
+  datatype Field = Field(formal: Formal, defaultValue: Optional<Expression>)
 
   datatype Formal = Formal(name: string, typ: Type)
 
@@ -41,7 +43,7 @@ module {:extern "DAST"} DAST {
 
   datatype Statement =
     DeclareVar(name: string, typ: Type, maybeValue: Optional<Expression>) |
-    Assign(name: string, value: Expression) |
+    Assign(lhs: AssignLhs, value: Expression) |
     If(cond: Expression, thn: seq<Statement>, els: seq<Statement>) |
     While(cond: Expression, body: seq<Statement>) |
     Call(on: Expression, name: string, typeArgs: seq<Type>, args: seq<Expression>, outs: Optional<seq<Ident>>) |
@@ -49,6 +51,8 @@ module {:extern "DAST"} DAST {
     EarlyReturn() |
     Halt() |
     Print(Expression)
+
+  datatype AssignLhs = Ident(Ident) | Select(expr: Expression, field: string)
 
   datatype Expression =
     Literal(Literal) |
@@ -58,15 +62,14 @@ module {:extern "DAST"} DAST {
     New(path: seq<Ident>, args: seq<Expression>) |
     NewArray(dims: seq<Expression>) |
     DatatypeValue(path: seq<Ident>, variant: string, isCo: bool, contents: seq<(string, Expression)>) |
-    SubsetUpgrade(value: Expression, typ: Type) |
-    SubsetDowngrade(value: Expression) |
+    Convert(value: Expression, from: Type, typ: Type) |
     SeqValue(elements: seq<Expression>) |
     SetValue(elements: seq<Expression>) |
     This() |
     Ite(cond: Expression, thn: Expression, els: Expression) |
     UnOp(unOp: UnaryOp, expr: Expression) |
     BinOp(op: string, left: Expression, right: Expression) |
-    Select(expr: Expression, field: string, onDatatype: bool) |
+    Select(expr: Expression, field: string, isConstant: bool, onDatatype: bool) |
     SelectFn(expr: Expression, field: string, onDatatype: bool, isStatic: bool, arity: nat) |
     TupleSelect(expr: Expression, index: nat) |
     Call(on: Expression, name: Ident, typeArgs: seq<Type>, args: seq<Expression>) |
@@ -78,5 +81,5 @@ module {:extern "DAST"} DAST {
 
   datatype UnaryOp = Not | BitwiseNot | Cardinality
 
-  datatype Literal = BoolLiteral(bool) | IntLiteral(int) | DecLiteral(string) | StringLiteral(string) | CharLiteral(char) | Null
+  datatype Literal = BoolLiteral(bool) | IntLiteral(string, Type) | DecLiteral(string, string, Type) | StringLiteral(string) | CharLiteral(char) | Null
 }
