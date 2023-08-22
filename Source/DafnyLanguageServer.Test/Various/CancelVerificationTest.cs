@@ -17,7 +17,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       await SetUp(options => {
         options.Set(BoogieOptionBag.Cores, 2U);
       });
-      var documentItem = CreateTestDocument(SlowToVerify2);
+      var documentItem = CreateTestDocument(SlowToVerify2, "ChangingTheDocumentStopsOnChangeVerification.dfy");
       client.OpenDocument(documentItem);
 
       await WaitForStatus(new Range(11, 23, 11, 27), PublishedVerificationStatus.Running, CancellationToken);
@@ -33,7 +33,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
         options.Set(BoogieOptionBag.Cores, 2U);
         options.Set(ServerCommand.Verification, VerifyOnMode.Save);
       });
-      var documentItem = CreateTestDocument(SlowToVerify2);
+      var documentItem = CreateTestDocument(SlowToVerify2, "ChangingTheDocumentStopsOnSaveVerification.dfy");
       client.OpenDocument(documentItem);
       client.SaveDocument(documentItem);
 
@@ -52,7 +52,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
         options.Set(BoogieOptionBag.Cores, 2U);
         options.Set(ServerCommand.Verification, VerifyOnMode.Save);
       });
-      var documentItem = CreateTestDocument(SlowToVerify2);
+      var documentItem = CreateTestDocument(SlowToVerify2, "ChangingTheDocumentStopsManualVerification.dfy");
       client.OpenDocument(documentItem);
       Assert.True(await client.RunSymbolVerification(documentItem, new Position(11, 23), CancellationToken));
       Assert.True(await client.RunSymbolVerification(documentItem, new Position(0, 23), CancellationToken));
