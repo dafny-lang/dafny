@@ -3564,7 +3564,12 @@ namespace Microsoft.Dafny {
               var e = (ApplySuffix)expr;
               // Short-circuit tactics
               if (applySuffix.Lhs is NameSegment {Name: "intro" or "cases" or "imp_elim" or "recall"} tacticName) {
-                var args = applySuffix.Args ?? new List<Expression>();
+                var args = applySuffix.Args ??
+                           (applySuffix.Bindings == null ? null :
+                            applySuffix.Bindings.Arguments ??
+                            applySuffix.Bindings.ArgumentBindings.Select(
+                              binding => binding.Actual).ToList())
+                           ?? new List<Expression>();
                 var nameOrNull = (int index) => {
                   if (args.Count > index) {
                     if (args[index] is NameSegment nameSegment) {
