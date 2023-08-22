@@ -689,10 +689,10 @@ Test generation supports a number of command-line options that control its behav
 
 The first argument to appear after the `generate-test` command specifies the coverage criteria Dafny will attempt to satisfy. 
 Of these, we recommend basic-block coverage (specified with keyword `Block`), which is also the coverage criteria used
-throughout the relevant parts of this reference manual. The alternatives are path coverage (`Path`) and call-graph sensitive
-block coverage (`CallGraph`). Path coverage provides the most diverse set of tests but it is also the most expensive 
-in terms of time it takes to produce these tests. Call-graph sensitive block coverage gives a compromise between the
-other two criteria by considering every block in a given method for every path through the call-graph to this method.
+throughout the relevant parts of this reference manual. The alternatives are path coverage (`Path`) and block coverage 
+after inlining (`InlinedBlock`). Path coverage provides the most diverse set of tests but it is also the most expensive 
+in terms of time it takes to produce these tests. Block coverage after inlining is a call-graph sensitive version of 
+block coverage - it takes into account every block in a given method for every path through the call-graph to that method.
 
 The following is a list of command-line-options supported by Dafny during test generation:
 
