@@ -146,7 +146,7 @@ module A {
     if (target == null) {
       target = source;
     }
-    var documentItem = CreateTestDocument(source);
+    var documentItem = CreateTestDocument(source, "FormattingWorksFor.dfy");
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
     CompilationAfterParsing compilation = await Projects.GetLastDocumentAsync(documentItem);
     var edits = await RequestFormattingAsync(documentItem);
