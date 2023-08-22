@@ -28,7 +28,7 @@ public class DiagnosticMigrationTest : ClientBasedLanguageServerTest {
 
   [Fact]
   public async Task ResolutionDiagnosticsContainPreviousVerificationResultsWhenCodeIsInsertedBefore() {
-    var documentItem = CreateTestDocument(FastToFailVerification);
+    var documentItem = CreateTestDocument(FastToFailVerification, "ResolutionDiagnosticsContainPreviousVerificationResultsWhenCodeIsInsertedBefore.dfy");
     client.OpenDocument(documentItem);
     var verificationDiagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
     Assert.Single(verificationDiagnostics);

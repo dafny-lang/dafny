@@ -134,7 +134,7 @@ ensures Foo(x) {{
 
 }}".TrimStart();
     await File.WriteAllTextAsync(temp, producer);
-    var documentItem2 = CreateTestDocument(consumer);
+    var documentItem2 = CreateTestDocument(consumer, "MethodWhosePostConditionFailsAndDependsOnIncludedFile.dfy");
     client.OpenDocument(documentItem2);
     var verificationDiagnostics = await GetLastDiagnostics(documentItem2, CancellationToken);
     Assert.Single(verificationDiagnostics);

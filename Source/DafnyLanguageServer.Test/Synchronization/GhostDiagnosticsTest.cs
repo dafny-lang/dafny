@@ -72,7 +72,7 @@ class C {
       await SetUp(options => {
         options.Set(ServerCommand.GhostIndicators, false);
       });
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "OpeningFlawlessDocumentWithoutGhostMarkDoesNotMarkAnything.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       await GetLastDiagnostics(documentItem, CancellationToken);
       await AssertNoGhostnessIsComing(CancellationToken);
@@ -96,7 +96,7 @@ class C {
       await SetUp(options => {
         options.Set(ServerCommand.GhostIndicators, true);
       });
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "OpeningFlawlessDocumentWithGhostMarkStatementsMarksGhostVariableDeclarations.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var report = await ghostnessReceiver.AwaitNextNotificationAsync(CancellationToken);
       var diagnostics = report.Diagnostics.ToArray();
@@ -124,7 +124,7 @@ class C {
       await SetUp(options => {
         options.Set(ServerCommand.GhostIndicators, true);
       });
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "OpeningFlawlessDocumentWithGhostMarkStatementsMarksGhostIfStatements.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var report = await ghostnessReceiver.AwaitNextNotificationAsync(CancellationToken);
       var diagnostics = report.Diagnostics.ToArray();
@@ -150,7 +150,7 @@ class C {
       await SetUp(options => {
         options.Set(ServerCommand.GhostIndicators, true);
       });
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "OpeningFlawlessDocumentWithGhostMarkStatementsMarksGhostAssignments.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var report = await ghostnessReceiver.AwaitNextNotificationAsync(CancellationToken);
       var diagnostics = report.Diagnostics.ToArray();
@@ -176,7 +176,7 @@ class C {
       await SetUp(options => {
         options.Set(ServerCommand.GhostIndicators, true);
       });
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "OpeningFlawlessDocumentWithGhostMarkStatementsMarksGhostCalls.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var report = await ghostnessReceiver.AwaitNextNotificationAsync(CancellationToken);
       var diagnostics = report.Diagnostics.ToArray();
@@ -210,7 +210,7 @@ class C {
       await SetUp(options => {
         options.Set(ServerCommand.GhostIndicators, true);
       });
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "OpeningFlawlessDocumentWithGhostMarkStatementsMarksAllGhostStatements.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var report = await ghostnessReceiver.AwaitNextNotificationAsync(CancellationToken);
       var diagnostics = report.Diagnostics

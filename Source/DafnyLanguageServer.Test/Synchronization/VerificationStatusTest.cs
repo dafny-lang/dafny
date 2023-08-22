@@ -43,7 +43,7 @@ method Foo() returns (x: int) ensures x / 2 == 1; {
     var source = @"
 method Foo() {
 }";
-    var documentItem = CreateTestDocument(source);
+    var documentItem = CreateTestDocument(source, "AssertlessMethodBecomesCorrect.dfy");
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
     var fooSymbol = (await RequestDocumentSymbol(documentItem)).Single();
     await WaitForStatus(fooSymbol.SelectionRange, PublishedVerificationStatus.Correct, CancellationToken);
@@ -77,7 +77,7 @@ method Foo() returns (x: int) ensures x / 2 == 1; {
     await SetUp(options => {
       options.Set(ServerCommand.Verification, VerifyOnMode.Never);
     });
-    var documentItem = CreateTestDocument(source);
+    var documentItem = CreateTestDocument(source, "ManuallyRunMethodWithTwoUnderlyingTasks.dfy");
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
     var fooSymbol = (await RequestDocumentSymbol(documentItem)).Single();
     var fooPosition = fooSymbol.SelectionRange.Start;
@@ -99,7 +99,7 @@ function MultiplyByPlus(x: nat, y: nat): nat {
   }
   return result;
 }";
-    var documentItem = CreateTestDocument(source);
+    var documentItem = CreateTestDocument(source, "FunctionByMethodIsSeenAsSingleVerifiable.dfy");
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
     var header = (await RequestDocumentSymbol(documentItem)).Single().SelectionRange;
     await WaitForStatus(header, PublishedVerificationStatus.Running, CancellationToken);
@@ -109,7 +109,7 @@ function MultiplyByPlus(x: nat, y: nat): nat {
   [Fact]
   public async Task NoDuplicateStaleMessages() {
     var source = "method m1() { assert false; }";
-    var documentItem = CreateTestDocument(source);
+    var documentItem = CreateTestDocument(source, "NoDuplicateStaleMessages.dfy");
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
 
     var foundStale = false;
@@ -133,7 +133,7 @@ function MultiplyByPlus(x: nat, y: nat): nat {
 method m1() {
   assert 3 == 55;
 }".TrimStart();
-    var documentItem = CreateTestDocument(source);
+    var documentItem = CreateTestDocument(source, "NoVerificationStatusPublishedForUnparsedDocument.dfy");
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
 
     await WaitUntilAllStatusAreCompleted(documentItem);
@@ -149,7 +149,7 @@ method m1() {
 method m1() {
   assert 3 == 55;
 }".TrimStart();
-    var documentItem = CreateTestDocument(source);
+    var documentItem = CreateTestDocument(source, "NoVerificationStatusPublishedForUnresolvedDocument.dfy");
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
 
     await WaitUntilAllStatusAreCompleted(documentItem);
@@ -183,7 +183,7 @@ function fib(n: nat): nat {
     await SetUp(options => {
       options.Set(ServerCommand.Verification, VerifyOnMode.Never);
     });
-    var documentItem = CreateTestDocument(source);
+    var documentItem = CreateTestDocument(source, "ManyConcurrentVerificationRuns.dfy");
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
 
     var m1 = new Position(0, 7);
@@ -207,7 +207,7 @@ function fib(n: nat): nat {
     await SetUp(options => {
       options.Set(ServerCommand.Verification, VerifyOnMode.Never);
     });
-    var documentItem = CreateTestDocument(source);
+    var documentItem = CreateTestDocument(source, "MigrateDeletedVerifiableSymbol.dfy");
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
 
     var translatedStatusBefore = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
@@ -227,7 +227,7 @@ function fib(n: nat): nat {
     });
     var source = @"method Foo() { assert true; }
 method Bar() { assert false; }";
-    var documentItem = CreateTestDocument(source);
+    var documentItem = CreateTestDocument(source, "ChangeRunSaveWithVerify.dfy");
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
     ApplyChange(ref documentItem, new Range(0, 22, 0, 26), "false");
     var methodHeader = new Position(0, 7);
@@ -246,7 +246,7 @@ method Bar() { assert false; }";
     await SetUp(options => {
       options.Set(ServerCommand.Verification, VerifyOnMode.Never);
     });
-    var documentItem = CreateTestDocument(source);
+    var documentItem = CreateTestDocument(source, "MigratedDiagnosticsAfterManualRun.dfy");
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
 
     var methodHeader = new Position(0, 7);
@@ -268,7 +268,7 @@ method Bar() { assert false; }";
     await SetUp(options => {
       options.Set(ServerCommand.Verification, VerifyOnMode.Never);
     });
-    var documentItem = CreateTestDocument(SlowToVerify);
+    var documentItem = CreateTestDocument(SlowToVerify, "ManualRunCancelCancelRunRun.dfy");
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
     var stale = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
     Assert.Equal(PublishedVerificationStatus.Stale, stale.NamedVerifiables[0].Status);
@@ -303,7 +303,7 @@ method Bar() { assert false; }";
     await SetUp(options => {
       options.Set(ServerCommand.Verification, VerifyOnMode.Save);
     });
-    var documentItem = CreateTestDocument(source);
+    var documentItem = CreateTestDocument(source, "SingleMethodGoesThroughAllPhasesExceptQueued.dfy");
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
     var stale = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
     Assert.Equal(PublishedVerificationStatus.Stale, stale.NamedVerifiables[0].Status);
@@ -322,7 +322,7 @@ method Bar() { assert false; }";
     await SetUp(options => {
       options.Set(BoogieOptionBag.Cores, 1U);
     });
-    var documentItem = CreateTestDocument(source);
+    var documentItem = CreateTestDocument(source, "QueuedMethodGoesThroughAllPhases.dfy");
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
 
     var barRange = new Range(new Position(1, 7), new Position(1, 10));
@@ -341,7 +341,7 @@ method Bar() { assert false; }";
     await SetUp(options => {
       options.Set(ServerCommand.Verification, VerifyOnMode.Save);
     });
-    var documentItem = CreateTestDocument(source);
+    var documentItem = CreateTestDocument(source, "WhenUsingOnSaveMethodStaysStaleUntilSave.dfy");
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
 
     // Send a change to enable getting a new status notification.
@@ -368,7 +368,7 @@ method Bar() { assert true; }";
       options.Set(ServerCommand.VerifySnapshots, 1U);
     });
 
-    var documentItem = CreateTestDocument(source);
+    var documentItem = CreateTestDocument(source, "CachingDoesNotWork.dfy");
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
 
     await WaitUntilAllStatusAreCompleted(documentItem);
@@ -409,7 +409,7 @@ method InvalidPostCondition() ensures false {
 }
 ";
 
-    var documentItem = CreateTestDocument(source);
+    var documentItem = CreateTestDocument(source, "StatusesOfDifferentImplementationUnderOneNamedVerifiableAreCorrectlyMerged.dfy");
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
     FileVerificationStatus status;
     do {
@@ -468,7 +468,7 @@ iterator ThatIterator(x: int) yields (y: int, z: int)
   yield;
 }".TrimStart();
 
-    var documentItem = CreateTestDocument(source);
+    var documentItem = CreateTestDocument(source, "AllTypesOfNamedVerifiablesAreIdentified.dfy");
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
     await AssertNoResolutionErrors(documentItem);
     var status = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
@@ -491,7 +491,7 @@ iterator ThatIterator(x: int) yields (y: int, z: int)
   public async Task VerificationStatusNotUpdatedOnResolutionError() {
     var source = @"method Foo() { assert false; }
 ";
-    var documentItem = CreateTestDocument(source);
+    var documentItem = CreateTestDocument(source, "VerificationStatusNotUpdatedOnResolutionError.dfy");
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
     await WaitUntilAllStatusAreCompleted(documentItem);
     ApplyChange(ref documentItem, new Range(1, 0, 1, 0), "Garbage"); // Remove 'm'
@@ -502,7 +502,7 @@ iterator ThatIterator(x: int) yields (y: int, z: int)
   public async Task AddedMethodIsShownBeforeItVerifies() {
     var source = @"method Foo() { assert false; }
 ";
-    var documentItem = CreateTestDocument(source);
+    var documentItem = CreateTestDocument(source, "AddedMethodIsShownBeforeItVerifies.dfy");
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
     var status1 = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
     Assert.Equal(1, status1.NamedVerifiables.Count);
@@ -535,7 +535,7 @@ module Refinement2 refines BaseModule {
     return 1;
   }
 }".TrimStart();
-    var documentItem = CreateTestDocument(source);
+    var documentItem = CreateTestDocument(source, "RefiningDeclarationStatusIsFoldedIntoTheBase.dfy");
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
     var status = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
 
@@ -546,7 +546,7 @@ module Refinement2 refines BaseModule {
   [Fact]
   public async Task SymbolStatusIsMigrated() {
     var source = @"method Foo() { assert false; }";
-    var documentItem = CreateTestDocument(source);
+    var documentItem = CreateTestDocument(source, "SymbolStatusIsMigrated.dfy");
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
     await WaitUntilAllStatusAreCompleted(documentItem);
     ApplyChange(ref documentItem, new Range(0, 0, 0, 0), "\n");

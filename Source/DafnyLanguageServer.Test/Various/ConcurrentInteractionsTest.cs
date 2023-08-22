@@ -23,7 +23,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
     [Fact]
     public async Task UpdateDuringARequestWillCancelTheRequest() {
       var programThatResolvesSlowlyEnough = RepeatStrBuilder(@"method Foo() {}", 1000);
-      var documentItem = CreateTestDocument(programThatResolvesSlowlyEnough);
+      var documentItem = CreateTestDocument(programThatResolvesSlowlyEnough, "UpdateDuringARequestWillCancelTheRequest.dfy");
       client.OpenDocument(documentItem);
       var hoverTask = client.RequestHover(new HoverParams { Position = (0, 0), TextDocument = documentItem }, CancellationToken);
       ApplyChange(ref documentItem, new Range(0, 0, 0, 0), "//comment\n");
@@ -56,7 +56,7 @@ method Multiply(x: bv10, y: bv10) returns (product: bv10)
 }".TrimStart();
       var failSource = @"method Contradiction() { assert false; }";
       await SetUp(options => options.Set(ServerCommand.Verification, VerifyOnMode.Save));
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "VerificationErrorDetectedAfterCanceledSave.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationTokenWithHighTimeout);
 
       DidChangeTextDocumentParams MakeChange(int? version, Range range, string text) {
