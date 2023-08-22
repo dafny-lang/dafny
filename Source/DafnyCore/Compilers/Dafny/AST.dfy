@@ -15,9 +15,9 @@ module {:extern "DAST"} DAST {
     Primitive(Primitive) | Passthrough(string) |
     TypeArg(Ident)
 
-  datatype Primitive = String | Bool | Char
+  datatype Primitive = Int | Real | String | Bool | Char
 
-  datatype ResolvedType = Datatype(path: seq<Ident>) | Trait(path: seq<Ident>) | Newtype
+  datatype ResolvedType = Datatype(path: seq<Ident>) | Trait(path: seq<Ident>) | Newtype(Type)
 
   datatype Ident = Ident(id: string)
 
@@ -62,8 +62,7 @@ module {:extern "DAST"} DAST {
     New(path: seq<Ident>, args: seq<Expression>) |
     NewArray(dims: seq<Expression>) |
     DatatypeValue(path: seq<Ident>, variant: string, isCo: bool, contents: seq<(string, Expression)>) |
-    SubsetUpgrade(value: Expression, typ: Type) |
-    SubsetDowngrade(value: Expression) |
+    Convert(value: Expression, from: Type, typ: Type) |
     SeqValue(elements: seq<Expression>) |
     SetValue(elements: seq<Expression>) |
     This() |
@@ -82,5 +81,5 @@ module {:extern "DAST"} DAST {
 
   datatype UnaryOp = Not | BitwiseNot | Cardinality
 
-  datatype Literal = BoolLiteral(bool) | IntLiteral(int) | DecLiteral(string) | StringLiteral(string) | CharLiteral(char) | Null
+  datatype Literal = BoolLiteral(bool) | IntLiteral(string, Type) | DecLiteral(string, string, Type) | StringLiteral(string) | CharLiteral(char) | Null
 }

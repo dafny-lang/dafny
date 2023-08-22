@@ -480,6 +480,8 @@ module {:extern "DCOMP"} DCOMP {
         case TypeArg(Ident(name)) => s := "r#" + name;
         case Primitive(p) => {
           match p {
+            case Int => s := "::dafny_runtime::BigInt";
+            case Real => s := "::dafny_runtime::BigRational";
             case String => s := "Vec<char>";
             case Bool => s := "bool";
             case Char => s := "char";
@@ -858,7 +860,9 @@ module {:extern "DCOMP"} DCOMP {
       }
     }
 
-    static method GenExpr(e: Expression, params: seq<string>, mustOwn: bool) returns (s: string, isOwned: bool, isErased: bool, readIdents: set<string>) {
+    static method GenExpr(e: Expression, params: seq<string>, mustOwn: bool) returns (s: string, isOwned: bool, isErased: bool, readIdents: set<string>)
+      ensures mustOwn ==> isOwned
+      decreases e {
       match e {
         case Literal(BoolLiteral(false)) => {
           s := "false";
@@ -872,19 +876,30 @@ module {:extern "DCOMP"} DCOMP {
           isErased := true;
           readIdents := {};
         }
-        case Literal(IntLiteral(i)) => {
-          if (i < 0) {
-            s := "-" + natToString(-i);
-          } else {
-            s := natToString(i);
+        case Literal(IntLiteral(i, t)) => {
+          match t {
+            case Primitive(Int) => {
+              s := "::dafny_runtime::BigInt::parse_bytes(b\"" + i + "\", 10).unwrap()";
+            }
+            case _ => {
+              s := i;
+            }
           }
 
           isOwned := true;
           isErased := true;
           readIdents := {};
         }
-        case Literal(DecLiteral(l)) => {
-          s := l;
+        case Literal(DecLiteral(n, d, t)) => {
+          match t {
+            case Primitive(Real) => {
+              s := "::dafny_runtime::BigRational::new(::dafny_runtime::BigInt::parse_bytes(b\"" + n + "\", 10).unwrap(), ::dafny_runtime::BigInt::parse_bytes(b\"" + d + "\", 10).unwrap())";
+            }
+            case _ => {
+              s := n + ".0 / " + d + ".0";
+            }
+          }
+
           isOwned := true;
           isErased := true;
           readIdents := {};
@@ -1003,7 +1018,7 @@ module {:extern "DCOMP"} DCOMP {
               recursiveGen := "::dafny_runtime::DafnyErasable::erase_owned(" + recursiveGen + ")";
             }
 
-            s := "vec![" + s + "; (" + recursiveGen + ") as usize]";
+            s := "vec![" + s + "; <usize as ::dafny_runtime::NumCast>::from(" + recursiveGen + ").unwrap()]";
             readIdents := readIdents + recIdents;
 
             i := i - 1;
@@ -1056,22 +1071,109 @@ module {:extern "DCOMP"} DCOMP {
           isOwned := true;
           isErased := true;
         }
-        case SubsetUpgrade(expr, tpe) => {
-          var tpeGen := GenType(tpe, true, false);
-          var recursiveGen, recOwned, recErased, recIdents := GenExpr(expr, params, false);
-          var uneraseFn := if recOwned then "unerase_owned" else "unerase";
-          s := "<" + tpeGen + " as ::dafny_runtime::DafnyUnerasable<_>>::" + uneraseFn + "(" + recursiveGen + ")";
-          isOwned := recOwned;
-          isErased := false;
-          readIdents := recIdents;
-        }
-        case SubsetDowngrade(expr) => {
-          var recursiveGen, recOwned, recErased, recIdents := GenExpr(expr, params, false);
-          var eraseFn := if recOwned then "erase_owned" else "erase";
-          s := "::dafny_runtime::DafnyErasable::" + eraseFn + "(" + recursiveGen + ")";
-          isOwned := recOwned;
-          isErased := true;
-          readIdents := recIdents;
+        case Convert(expr, fromTpe, toTpe) => {
+          if fromTpe == toTpe {
+            var recursiveGen, recOwned, recErased, recIdents := GenExpr(expr, params, mustOwn);
+            s := recursiveGen;
+            isOwned := recOwned;
+            isErased := recErased;
+            readIdents := recIdents;
+          } else {
+            match (fromTpe, toTpe) {
+              case (_, Path(_, _, Newtype(b))) => {
+                if fromTpe == b {
+                  var recursiveGen, recOwned, recErased, recIdents := GenExpr(expr, params, mustOwn);
+
+                  var rhsType := GenType(toTpe, true, false);
+
+                  var uneraseFn := if recOwned then "unerase_owned" else "unerase";
+                  s := "<" + rhsType + " as ::dafny_runtime::DafnyUnerasable<_>>::" + uneraseFn + "(" + recursiveGen + ")";
+                  isOwned := recOwned;
+                  isErased := false;
+                  readIdents := recIdents;
+                } else {
+                  assume {:axiom} Convert(Convert(expr, fromTpe, b), b, toTpe) < e; // make termination go through
+                  s, isOwned, isErased, readIdents := GenExpr(Convert(Convert(expr, fromTpe, b), b, toTpe), params, mustOwn);
+                }
+              }
+              case (Path(_, _, Newtype(b)), _) => {
+                if b == toTpe {
+                  var recursiveGen, recOwned, recErased, recIdents := GenExpr(expr, params, mustOwn);
+                  var uneraseFn := if recOwned then "erase_owned" else "erase";
+                  s := "::dafny_runtime::DafnyErasable::" + uneraseFn + "(" + recursiveGen + ")";
+                  isOwned := recOwned;
+                  isErased := true;
+                  readIdents := recIdents;
+                } else {
+                  assume {:axiom} Convert(Convert(expr, fromTpe, b), b, toTpe) < e; // make termination go through
+                  s, isOwned, isErased, readIdents := GenExpr(Convert(Convert(expr, fromTpe, b), b, toTpe), params, mustOwn);
+                }
+              }
+              case (Primitive(Int), Primitive(Real)) => {
+                var recursiveGen, _, _, recIdents := GenExpr(expr, params, true);
+                s := "::dafny_runtime::BigRational::from_integer(" + recursiveGen + ")";
+                isOwned := true;
+                isErased := true;
+                readIdents := recIdents;
+              }
+              case (Primitive(Real), Primitive(Int)) => {
+                var recursiveGen, _, _, recIdents := GenExpr(expr, params, false);
+                s := "::dafny_runtime::dafny_rational_to_int(" + recursiveGen + ")";
+                isOwned := true;
+                isErased := true;
+                readIdents := recIdents;
+              }
+              case (Primitive(Int), Passthrough(_)) => {
+                var rhsType := GenType(toTpe, true, false);
+                var recursiveGen, _, _, recIdents := GenExpr(expr, params, true);
+                s := "<" + rhsType + " as ::dafny_runtime::NumCast>::from(" + recursiveGen + ").unwrap()";
+                isOwned := true;
+                isErased := true;
+                readIdents := recIdents;
+              }
+              case (Passthrough(_), Primitive(Int)) => {
+                var rhsType := GenType(fromTpe, true, false);
+                var recursiveGen, _, _, recIdents := GenExpr(expr, params, true);
+                s := "::dafny_runtime::BigInt::from(" + recursiveGen + ")";
+                isOwned := true;
+                isErased := true;
+                readIdents := recIdents;
+              }
+              case (Primitive(Int), Primitive(Char)) => {
+                var rhsType := GenType(toTpe, true, false);
+                var recursiveGen, _, _, recIdents := GenExpr(expr, params, true);
+                s := "char::from_u32(<u32 as ::dafny_runtime::NumCast>::from(" + recursiveGen + ").unwrap()).unwrap()";
+                isOwned := true;
+                isErased := true;
+                readIdents := recIdents;
+              }
+              case (Primitive(Char), Primitive(Int)) => {
+                var rhsType := GenType(fromTpe, true, false);
+                var recursiveGen, _, _, recIdents := GenExpr(expr, params, true);
+                s := "::dafny_runtime::BigInt::from(" + recursiveGen + " as u32)";
+                isOwned := true;
+                isErased := true;
+                readIdents := recIdents;
+              }
+              case (Passthrough(_), Passthrough(_)) => {
+                var recursiveGen, _, _, recIdents := GenExpr(expr, params, true);
+                var toTpeGen := GenType(toTpe, true, false);
+
+                s := "((" + recursiveGen + ") as " + toTpeGen + ")";
+
+                isOwned := true;
+                isErased := true;
+                readIdents := recIdents;
+              }
+              case _ => {
+                var recursiveGen, recOwned, recErased, recIdents := GenExpr(expr, params, mustOwn);
+                s := "(" + recursiveGen + "/* conversion not yet implemented */)";
+                isOwned := recOwned;
+                isErased := recErased;
+                readIdents := recIdents;
+              }
+            }
+          }
         }
         case SeqValue(exprs) => {
           var generatedValues := [];
@@ -1223,7 +1325,14 @@ module {:extern "DCOMP"} DCOMP {
             right := "::dafny_runtime::DafnyErasable::erase_owned(" + right + ")";
           }
 
-          s := "(" + left + " " + op + " " + right + ")";
+          if op == "/" {
+            s := "::dafny_runtime::euclidian_division(" + left + ", " + right + ")";
+          } else if op == "%" {
+            s := "::dafny_runtime::euclidian_modulo(" + left + ", " + right + ")";
+          } else {
+            s := "(" + left + " " + op + " " + right + ")";
+          }
+
           isOwned := true;
           readIdents := recIdentsL + recIdentsR;
           isErased := true;
