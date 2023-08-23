@@ -107,12 +107,6 @@ namespace Microsoft.Dafny.Compilers {
       wr.WriteLine();
       Imports.ForEach(module => wr.WriteLine($"import {module}"));
       if (moduleName != null) {
-        wr.WriteLine();
-        wr.WriteLine($"assert \"{moduleName}\" == __name__");
-        if (!moduleName.Contains('.')) {
-          wr.WriteLine($"{moduleName} = sys.modules[__name__]");
-        }
-
         Imports.Add(moduleName);
       }
     }
@@ -273,7 +267,7 @@ namespace Microsoft.Dafny.Compilers {
         var values = dt.Ctors.Select(ctor =>
           ctor.IsGhost
           ? ForcePlaceboValue(UserDefinedType.FromTopLevelDecl(dt.tok, dt), w, dt.tok)
-          : $"{DtCtorDeclarationName(ctor, false)}()");
+          : $"{DtCtorDeclarationName(ctor)}()");
         w.WriteLine($"return [{values.Comma()}]");
       }
 
@@ -336,7 +330,7 @@ namespace Microsoft.Dafny.Compilers {
           .Select(d => $"('{IdProtect(d.GetCompileName(Options))}', Any)");
         var argList = argListX.Concat(argListY).Comma();
         var namedtuple = $"NamedTuple('{IdProtect(ctor.GetCompileName(Options))}', [{argList}])";
-        var header = $"class {DtCtorDeclarationName(ctor, false)}({DtT}, {namedtuple}):";
+        var header = $"class {DtCtorDeclarationName(ctor)}({DtT}, {namedtuple}):";
         var constructor = wr.NewBlockPy(header, close: BlockStyle.Newline);
         DatatypeFieldsAndConstructor(ctor, constructor);
 
@@ -389,7 +383,7 @@ namespace Microsoft.Dafny.Compilers {
         .WriteLine("return super().__hash__()");
     }
 
-    private string DtCtorDeclarationName(DatatypeCtor ctor, bool full = true) {
+    private string DtCtorDeclarationName(DatatypeCtor ctor, bool full = false) {
       var dt = ctor.EnclosingDatatype;
       return $"{(full ? dt.GetFullCompileName(Options) : dt.GetCompileName(Options))}_{ctor.GetCompileName(Options)}";
     }
@@ -704,6 +698,11 @@ namespace Microsoft.Dafny.Compilers {
       throw new cce.UnreachableException();
     }
 
+    private string FullName(TopLevelDecl decl) {
+      var localDefinition = decl.EnclosingModuleDefinition == enclosingModule;
+      return IdProtect(localDefinition ? decl.GetCompileName(Options) : decl.GetFullCompileName(Options));
+    }
+
     protected override string TypeInitializationValue(Type type, ConcreteSyntaxTree wr, IToken tok,
         bool usePlaceboValue, bool constructTypeParameterDefaultsFromTypeDescriptors) {
 
@@ -735,7 +734,7 @@ namespace Microsoft.Dafny.Compilers {
               case SubsetTypeDecl td:
                 switch (td.WitnessKind) {
                   case SubsetTypeDecl.WKind.Compiled:
-                    return TypeName_UDT(FullTypeName(udt), udt, wr, udt.tok) + ".default()";
+                    return TypeName_UDT(FullName(cl), udt, wr, udt.tok) + ".default()";
                   case SubsetTypeDecl.WKind.Special:
                     if (ArrowType.IsPartialArrowTypeName(td.Name)) {
                       return "None";
@@ -759,7 +758,7 @@ namespace Microsoft.Dafny.Compilers {
 
               case NewtypeDecl td:
                 if (td.Witness != null) {
-                  return TypeName_UDT(FullTypeName(udt), udt, wr, udt.tok) + ".default()";
+                  return TypeName_UDT(FullName(cl), udt, wr, udt.tok) + ".default()";
                 } else {
                   return TypeInitializationValue(td.BaseType, wr, tok, usePlaceboValue, constructTypeParameterDefaultsFromTypeDescriptors);
                 }
@@ -768,7 +767,7 @@ namespace Microsoft.Dafny.Compilers {
                 var relevantTypeArgs = UsedTypeParameters(dt, udt.TypeArgs, true).ConvertAll(ta => ta.Actual);
                 return dt is TupleTypeDecl
                   ? $"({relevantTypeArgs.Comma(arg => DefaultValue(arg, wr, tok, constructTypeParameterDefaultsFromTypeDescriptors))}{(relevantTypeArgs.Count == 1 ? "," : "")})"
-                  : $"{dt.GetFullCompileName(Options)}.default({relevantTypeArgs.Comma(arg => TypeDescriptor(arg, wr, tok))})()";
+                  : $"{FullName(cl)}.default({relevantTypeArgs.Comma(arg => TypeDescriptor(arg, wr, tok))})()";
 
               case TypeParameter tp:
                 return constructTypeParameterDefaultsFromTypeDescriptors
@@ -1160,7 +1159,7 @@ namespace Microsoft.Dafny.Compilers {
         TypeParameter => $"TypeVar(\'{IdProtect(cl.GetCompileName(Options))}\')",
         ArrayClassDecl => DafnyArrayClass,
         TupleTypeDecl => "tuple",
-        _ => IdProtect(cl.GetFullCompileName(Options))
+        _ => FullName(cl)
       };
     }
 
@@ -1180,13 +1179,13 @@ namespace Microsoft.Dafny.Compilers {
     void EmitDatatypeValue(DatatypeDecl dt, DatatypeCtor ctor, bool isCoCall, string typeDescriptorArguments, string arguments,
       ConcreteSyntaxTree wr, bool qualifiedName = true) {
       if (isCoCall) {
-        wr.Write($"{dt.GetFullCompileName(Options)}__Lazy(lambda: ");
+        wr.Write($"{FullName(dt)}__Lazy(lambda: ");
         var end = wr.Fork();
         wr.Write(")");
         wr = end;
       }
       if (dt is not TupleTypeDecl) {
-        wr.Write($"{DtCtorDeclarationName(ctor, qualifiedName)}");
+        wr.Write($"{DtCtorDeclarationName(ctor, dt.EnclosingModuleDefinition != enclosingModule)}");
       } else if (ctor.Destructors.Count(d => !d.IsGhost) == 1) {
         // 1-tuples need this this for disambiguation
         arguments += ",";
