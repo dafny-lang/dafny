@@ -148,7 +148,7 @@ class Test {
         Assert.True(state.SignatureAndCompletionTable.TryGetSymbolAt((22, 10), out var symbol));
         Assert.Equal("y", symbol.Name);
       } catch (AssertActualExpectedException) {
-        await output.WriteLineAsync($"state version is {state.Version}, diagnostics: {state.GetDiagnostics().Values.Stringify()}");
+        await output.WriteLineAsync($"state version is {state.Version}, diagnostics: {state.GetAllDiagnostics().Stringify()}");
         var programString = new StringWriter();
         var printer = new Printer(programString, DafnyOptions.Default);
         printer.PrintProgram((Program)state.Program, true);
