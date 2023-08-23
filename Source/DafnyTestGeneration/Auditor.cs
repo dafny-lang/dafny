@@ -45,12 +45,10 @@ public class Auditor {
   /// i.e. if there are any errors or if there are warnings and the --ignore-warnings flag is not used
   /// </summary>
   public bool IsOk(string source, Uri uri) {
-    var parseErrorReporter = new BatchErrorReporter(options);
-    var program = Utils.Parse(parseErrorReporter, source, true, uri);
+    var errorReporter = new ConsoleErrorReporter(options);
+    var program = Utils.Parse(errorReporter, source, true, uri);
     diagnostics = new();
-    if (parseErrorReporter.HasErrors) {
-      diagnostics.AddRange(parseErrorReporter.AllMessagesByLevel[ErrorLevel.Error]);
-      PrintWarningsAndErrors();
+    if (errorReporter.HasErrors) {
       NonZeroExitCode = true;
       return false;
     }
@@ -61,7 +59,7 @@ public class Auditor {
     CheckInlineAttributes(program);
     CheckInputTypesAreSupported(program);
     CheckVerificationTimeLimit(program);
-    PrintWarningsAndErrors();
+    PrintWarningsAndErrors(errorReporter, program);
     NonZeroExitCode = Errors.Count() != 0;
     return !Errors.Any() && (!Warnings.Any() || !options.WarningsAsErrors);
   }
@@ -69,27 +67,22 @@ public class Auditor {
   /// <summary>
   /// Print all gathered warnings and errors
   /// </summary>
-  private void PrintWarningsAndErrors() {
+  private void PrintWarningsAndErrors(ErrorReporter errorReporter, Program program) {
     if (Errors.Count() != 0) {
-      options.Printer.ErrorWriteLine(options.ErrorWriter,
-        $"*** Error: Test generation auditor returned {Errors.Count()} errors. Fix them to proceed:");
+      errorReporter.Message(MessageSource.TestGenerationAuditor, ErrorLevel.Error, "", program.StartToken,
+        $"Test generation auditor returned {Errors.Count()} errors. Fix them to proceed:");
       foreach (var error in Errors) {
         var errorId = error.ErrorId == "none" ? "Error" : error.ErrorId;
-        options.Printer.ErrorWriteLine(options.ErrorWriter,
-          $"*** {errorId}: {error.Message}: at {error.Token.Uri?.LocalPath ?? ""} " +
-          $"line {error.Token.line} col {error.Token.col}");
+        errorReporter.Message(MessageSource.TestGenerationAuditor, ErrorLevel.Error, errorId, error.Token,
+          error.Message);
       }
     }
     if (Warnings.Count() != 0) {
-      var warningMessage = $"*** Warning: Test generation auditor returned {Warnings.Count()} warnings.";
-      if (options.WarningsAsErrors) {
-        warningMessage += $" Address them or disable --{CommonOptionBag.WarningAsErrors.Name} flag to proceed.";
-      }
-      options.Printer.ErrorWriteLine(options.ErrorWriter, warningMessage);
+      errorReporter.Message(MessageSource.TestGenerationAuditor, ErrorLevel.Warning, "", program.StartToken,
+        $"Test generation auditor returned {Warnings.Count()} warnings:");
       foreach (var warning in Warnings) {
-        options.Printer.ErrorWriteLine(options.ErrorWriter,
-          $"*** {warning.ErrorId}: {warning.Message}: at {warning.Token.Uri?.LocalPath ?? ""} " +
-          $"line {warning.Token.line} col {warning.Token.col}");
+        errorReporter.Message(MessageSource.TestGenerationAuditor, ErrorLevel.Warning, warning.ErrorId, warning.Token,
+          warning.Message);
       }
     }
   }

@@ -260,7 +260,7 @@ This is an unparsable program
     var options = GetDafnyOptions(optionSettings, new StringWriter(output));
     await Main.GetTestClassForProgram(source, null, options).ToListAsync();
     var outputString = output.ToString();
-    Assert.True(Count(Errors, outputString) > 0);
+    Assert.Contains("Error", outputString);
   }
 
 }
