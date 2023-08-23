@@ -133,8 +133,8 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public void AddEqualityConstraint(PreType a, PreType b, IToken tok, string msgFormat) {
-      equalityConstraints.Add(new EqualityConstraint(a, b, tok, msgFormat));
+    public void AddEqualityConstraint(PreType a, PreType b, IToken tok, string msgFormat, PreTypeConstraint baseError = null) {
+      equalityConstraints.Add(new EqualityConstraint(a, b, tok, msgFormat, baseError));
     }
 
     private bool ApplyEqualityConstraints() {
@@ -149,8 +149,8 @@ namespace Microsoft.Dafny {
       return true;
     }
 
-    public void AddSubtypeConstraint(PreType super, PreType sub, IToken tok, string errorFormatString) {
-      unnormalizedSubtypeConstraints.Add(new SubtypeConstraint(super, sub, tok, errorFormatString));
+    public void AddSubtypeConstraint(PreType super, PreType sub, IToken tok, string errorFormatString, PreTypeConstraint baseError = null) {
+      unnormalizedSubtypeConstraints.Add(new SubtypeConstraint(super, sub, tok, errorFormatString, baseError));
     }
 
     public void AddSubtypeConstraint(PreType super, PreType sub, IToken tok, Func<string> errorFormatStringProducer) {

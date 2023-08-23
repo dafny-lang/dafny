@@ -15,8 +15,8 @@ namespace Microsoft.Dafny {
     public PreType A;
     public PreType B;
 
-    public EqualityConstraint(PreType a, PreType b, IToken tok, string msgFormat)
-      : base(tok, msgFormat) {
+    public EqualityConstraint(PreType a, PreType b, IToken tok, string msgFormat, PreTypeConstraint baseError = null)
+      : base(tok, msgFormat, baseError) {
       A = a;
       B = b;
     }
