@@ -43,6 +43,8 @@ namespace Microsoft.Dafny {
       // Axioms that have triggers and bound variables do not need to be inside
       // uses clauses. Putting such axioms inside uses clauses weakens pruning
       // when the trigger contains more than one function or constant symbol combined.
+      // The early return would happen whenever axiom is of the form:
+      // axiom (<quantifier> <(optionally) type variables> <at least one dummy variable> :: { ... } ...
       if (axiom.Expr is Microsoft.Boogie.QuantifierExpr qe && qe.Dummies != null && qe.Dummies.Any() &&
           qe.Triggers != null && qe.Triggers.Tr != null && qe.Triggers.Tr.Any()) {
         return;
