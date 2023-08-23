@@ -259,7 +259,7 @@ namespace Microsoft.Dafny {
         int i = 0;
         foreach (var indexExpression in e.Indices) {
           ResolveExpression(indexExpression, resolutionContext);
-          ConstrainToIntFamily(indexExpression.PreType, indexExpression.tok,
+          AddConfirmation(PreTypeConstraints.CommonConfirmationBag.IntLikeOrBitvector, indexExpression.PreType, indexExpression.tok,
             "array selection requires integer- or bitvector-based numeric indices (got {0} for index " + i + ")");
           i++;
         }
