@@ -1244,7 +1244,7 @@ namespace Microsoft.Dafny {
           if (cl != null && !(rr.EType.IsTraitType && !rr.EType.NormalizeExpand().IsObjectQ)) {
             // life is good
           } else {
-            ReportError(stmt, "new can be applied only to class types (got {0})", rr.EType);
+            ReportError(rr.tok, "new can be applied only to class types (got {0})", rr.EType);
           }
         } else {
           string initCallName = null;
