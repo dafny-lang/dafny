@@ -29,17 +29,31 @@ public record IdeState(
   IReadOnlyDictionary<Uri, IReadOnlyList<Diagnostic>> ResolutionDiagnostics,
   SymbolTable SymbolTable,
   LegacySignatureAndCompletionTable SignatureAndCompletionTable,
-  Dictionary<Location, IdeVerificationResult> VerificationResults,
+  Dictionary<Uri, Dictionary<Range, IdeVerificationResult>> VerificationResults,
   IReadOnlyList<Counterexample> Counterexamples,
   IReadOnlyDictionary<Uri, IReadOnlyList<Range>> GhostRanges,
   IReadOnlyDictionary<Uri, VerificationTree> VerificationTrees
 ) {
 
-  public ImmutableDictionary<Uri, IReadOnlyList<Diagnostic>> GetDiagnostics() {
-    var resolutionDiagnostics = ResolutionDiagnostics.ToImmutableDictionary();
-    var verificationDiagnostics = VerificationResults.GroupBy(kv => kv.Key.Uri).Select(kv =>
-      new KeyValuePair<Uri, IReadOnlyList<Diagnostic>>(kv.Key.ToUri(), kv.SelectMany(x => x.Value.Implementations.Values.SelectMany(v => v.Diagnostics)).ToList()));
-    return resolutionDiagnostics.Merge(verificationDiagnostics, Lists.Concat);
+
+  public IReadOnlyDictionary<Range, IdeVerificationResult> GetVerificationResults(Uri uri) {
+    return VerificationResults.GetValueOrDefault(uri) ??
+      ((IReadOnlyDictionary<Range, IdeVerificationResult>)ImmutableDictionary<Range, IdeVerificationResult>.Empty);
+  }
+
+  public IEnumerable<Diagnostic> GetAllDiagnostics() {
+    return GetDiagnosticUris().SelectMany(GetDiagnosticsForUri);
+  }
+
+  public IEnumerable<Diagnostic> GetDiagnosticsForUri(Uri uri) {
+    var resolutionDiagnostics = ResolutionDiagnostics.GetValueOrDefault(uri) ?? Enumerable.Empty<Diagnostic>();
+    var verificationDiagnostics = GetVerificationResults(uri).SelectMany(x =>
+      x.Value.Implementations.Values.SelectMany(v => v.Diagnostics));
+    return resolutionDiagnostics.Concat(verificationDiagnostics);
+  }
+
+  public IEnumerable<Uri> GetDiagnosticUris() {
+    return ResolutionDiagnostics.Keys.Concat(VerificationResults.Keys);
   }
 }
 
