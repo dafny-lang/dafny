@@ -43,7 +43,7 @@ public class LargeFilesTest : ClientBasedLanguageServerTest {
     try {
       for (int attempt = 0; attempt < 10; attempt++) {
         var cancelSource = new CancellationTokenSource();
-        var measurementTask = AssertThreadPoolIsAvailable(cancelSource.Token, );
+        var measurementTask = AssertThreadPoolIsAvailable(cancelSource.Token);
         var beforeOpen = DateTime.Now;
         var documentItem = await CreateAndOpenTestDocument(source, "ManyFastEditsUsingLargeFiles.dfy",
           cancellationToken: CancellationTokenWithHighTimeout);
