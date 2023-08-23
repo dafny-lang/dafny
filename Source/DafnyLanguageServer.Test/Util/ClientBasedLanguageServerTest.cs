@@ -313,9 +313,8 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
   }
 
   protected async Task AssertNoResolutionErrors(TextDocumentItem documentItem) {
-    var fullDiagnostics = (await Projects.GetResolvedDocumentAsyncNormalizeUri(documentItem))!.GetDiagnostics();
+    var resolutionDiagnostics = (await Projects.GetResolvedDocumentAsyncNormalizeUri(documentItem))!.GetDiagnosticsForUri(documentItem.Uri.ToUri()).ToList();
     // A document without diagnostics may be absent, even if resolved successfully
-    var resolutionDiagnostics = fullDiagnostics.GetValueOrDefault(documentItem.Uri.ToUri(), ImmutableList<Diagnostic>.Empty);
     var resolutionErrors = resolutionDiagnostics.Count(d => d.Severity == DiagnosticSeverity.Error);
     if (0 != resolutionErrors) {
       await Console.Out.WriteAsync(string.Join("\n", resolutionDiagnostics.Where(d => d.Severity == DiagnosticSeverity.Error).Select(d => d.ToString())));
