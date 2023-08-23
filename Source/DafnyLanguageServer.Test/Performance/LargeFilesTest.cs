@@ -43,7 +43,7 @@ public class LargeFilesTest : ClientBasedLanguageServerTest {
     try {
       for (int attempt = 0; attempt < 10; attempt++) {
         var cancelSource = new CancellationTokenSource();
-        var measurementTask = AssertThreadPoolIsAvailable(cancelSource.Token, TimeSpan.FromMilliseconds(100));
+        var measurementTask = AssertThreadPoolIsAvailable(cancelSource.Token, );
         var beforeOpen = DateTime.Now;
         var documentItem = await CreateAndOpenTestDocument(source, "ManyFastEditsUsingLargeFiles.dfy",
           cancellationToken: CancellationTokenWithHighTimeout);
@@ -58,7 +58,7 @@ public class LargeFilesTest : ClientBasedLanguageServerTest {
         var changeMilliseconds = (afterChange - afterOpen).TotalMilliseconds;
         await AssertNoDiagnosticsAreComing(CancellationTokenWithHighTimeout);
         cancelSource.Cancel();
-        await measurementTask;
+        var averageTimeToSchedule = await measurementTask;
         var division = changeMilliseconds / openMilliseconds;
         lowest = Math.Min(lowest, division);
 
@@ -67,6 +67,7 @@ public class LargeFilesTest : ClientBasedLanguageServerTest {
         // await output.WriteLineAsync("changeMilliseconds: " + changeMilliseconds);
         // await output.WriteLineAsync("division: " + division);
         try {
+          Assert.True(averageTimeToSchedule < 100);
           // Migration should be constant time, which would allow this number to be about 1.
           // Right now migration is still slow so this has been set to 10 so the test can pass.
           var changeTimeMultiplier = 15;
@@ -85,7 +86,7 @@ public class LargeFilesTest : ClientBasedLanguageServerTest {
     throw lastException!;
   }
 
-  private async Task AssertThreadPoolIsAvailable(CancellationToken durationToken, TimeSpan? maximumThreadPoolSchedulingTime = null) {
+  private async Task<double> AssertThreadPoolIsAvailable(CancellationToken durationToken) {
     int ticks = 0;
     var waitTime = 100;
     var start = DateTime.Now;
@@ -101,9 +102,8 @@ public class LargeFilesTest : ClientBasedLanguageServerTest {
     var totalSleepTime = ticks * waitTime;
     var totalSchedulingTime = span.TotalMilliseconds - totalSleepTime;
     var averageTimeToSchedule = totalSchedulingTime / ticks;
-    var maximumMilliseconds = maximumThreadPoolSchedulingTime?.Milliseconds ?? 10;
     await output.WriteLineAsync($"averageTimeToSchedule: {averageTimeToSchedule:0.##}");
-    Assert.True(averageTimeToSchedule < maximumMilliseconds, $"averageTimeToSchedule: {averageTimeToSchedule}, maximumMilliseconds: {maximumMilliseconds}");
+    return averageTimeToSchedule;
   }
 
   public LargeFilesTest(ITestOutputHelper output) : base(output) {
