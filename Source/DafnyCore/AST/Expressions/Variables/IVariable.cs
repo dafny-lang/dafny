@@ -35,6 +35,9 @@ public interface IVariable : ISymbol {
   Type Type {
     get;
   }
+  Type UnnormalizedType {
+    get;
+  }
   Type OptionalType {
     get;
   }

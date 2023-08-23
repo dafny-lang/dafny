@@ -1083,6 +1083,12 @@ namespace Microsoft.Dafny {
           preType2TypeVisitor.VisitDeclarations(declarations);
         }
 
+        if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
+          var typeAdjustor = new TypeAdjustorVisitor(SystemModuleManager);
+          typeAdjustor.VisitDeclarations(declarations);
+          typeAdjustor.Solve(reporter, Options.Get(CommonOptionBag.NewTypeInferenceDebug));
+        }
+
       } else {
         // Resolve all names and infer types. These two are done together, because name resolution depends on having type information
         // and type inference depends on having resolved names.

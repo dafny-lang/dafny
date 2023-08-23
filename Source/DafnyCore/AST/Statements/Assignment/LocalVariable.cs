@@ -88,6 +88,14 @@ public class LocalVariable : RangeNode, IVariable, IAttributeBearingDeclaration 
       return type.Normalize();
     }
   }
+  public Type UnnormalizedType {
+    get {
+      Contract.Ensures(Contract.Result<Type>() != null);
+
+      Contract.Assume(type != null);  /* we assume object has been resolved */
+      return type;
+    }
+  }
 
   public PreType PreType { get; set; }
 

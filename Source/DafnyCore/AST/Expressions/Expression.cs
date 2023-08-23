@@ -60,6 +60,14 @@ public abstract class Expression : TokenNode {
       type = value.Normalize();
     }
   }
+  public Type UnnormalizedType {
+    get {
+      return type;
+    }
+    set {
+      type = value;
+    }
+  }
   /// <summary>
   /// This method can be used when .Type has been found to be erroneous and its current value
   /// would be unexpected by the rest of the resolver. This method then sets .Type to a neutral
