@@ -21,7 +21,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
     [Fact]
     public async Task MultipleDocuments() {
       var source = @"
-method Foo() returns (x: int) ensures x / 2 == 1; {
+method Foo() returns (x: int) {
   return 2;
 }".TrimStart();
       var directory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
@@ -32,8 +32,7 @@ method Foo() returns (x: int) ensures x / 2 == 1; {
       var documentItem1 = await CreateAndOpenTestDocument(source, Path.Combine(directory, "RunWithMultipleDocuments1.dfy"));
 
       var expectedStatuses = new[] {
-        CompilationStatus.Parsing, CompilationStatus.ResolutionStarted, CompilationStatus.CompilationSucceeded,
-        CompilationStatus.PreparingVerification
+        CompilationStatus.ResolutionStarted
       };
       var documents = new[] { documentItem1.Uri, DocumentUri.File(secondFilePath) };
       foreach (var expectedStatus in expectedStatuses) {
@@ -46,6 +45,9 @@ method Foo() returns (x: int) ensures x / 2 == 1; {
           var status = statuses[document];
           Assert.Equal(expectedStatus, status.Status);
         }
+      }
+      foreach (var _ in documents) {
+        await WaitForStatus(null, PublishedVerificationStatus.Stale, CancellationToken);
       }
     }
 
@@ -60,13 +62,11 @@ method Abs(x: int) returns (y: int)
 ".TrimStart();
       var documentItem = CreateTestDocument(source, "DocumentWithParserErrorsSendsParsingFailedStatus.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      await AssertProgress(documentItem, CompilationStatus.Parsing);
       await AssertProgress(documentItem, CompilationStatus.ParsingFailed);
 
       // We re-send the same erroneous document again to check that we don't have a CompilationSucceeded event queued.
       var otherDoc = CreateTestDocument(source, "Test2.dfy");
       client.OpenDocument(otherDoc);
-      await AssertProgress(otherDoc, CompilationStatus.Parsing);
       await AssertProgress(otherDoc, CompilationStatus.ParsingFailed);
     }
 
@@ -81,14 +81,12 @@ method Abs(x: int) returns (y: int)
 ".TrimStart();
       var documentItem = CreateTestDocument(source, "DocumentWithResolverErrorsSendsResolutionFailedStatus.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      await AssertProgress(documentItem, CompilationStatus.Parsing);
       await AssertProgress(documentItem, CompilationStatus.ResolutionStarted);
       await AssertProgress(documentItem, CompilationStatus.ResolutionFailed);
 
       // We re-send the same erroneous document again to check that we don't have a CompilationSucceeded event queued.
       var otherDoc = CreateTestDocument(source, "Test2.dfy");
       client.OpenDocument(otherDoc);
-      await AssertProgress(otherDoc, CompilationStatus.Parsing);
       await AssertProgress(otherDoc, CompilationStatus.ResolutionStarted);
       await AssertProgress(otherDoc, CompilationStatus.ResolutionFailed);
     }
@@ -107,9 +105,8 @@ method Abs(x: int) returns (y: int)
 ".TrimStart();
       var documentItem = CreateTestDocument(source, "DocumentWithoutErrorsSendsCompilationSucceededVerificationStartedAndVerificationSucceededStatuses.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      await AssertProgress(documentItem, CompilationStatus.Parsing);
       await AssertProgress(documentItem, CompilationStatus.ResolutionStarted);
-      await AssertProgress(documentItem, CompilationStatus.CompilationSucceeded);
+      await WaitForStatus(null, PublishedVerificationStatus.Correct, CancellationToken, documentItem);
     }
     private async Task AssertProgress(TextDocumentItem documentItem, CompilationStatus expectedStatus, [CanBeNull] string expectedMessage = null) {
       var lastResult = await compilationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
@@ -132,18 +129,16 @@ method Abs(x: int) returns (y: int)
 ".TrimStart();
       var documentItem = CreateTestDocument(source, "DocumentWithOnlyVerifierErrorsSendsCompilationSucceededVerificationStartedAndVerificationFailedStatuses.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      await AssertProgress(documentItem, CompilationStatus.Parsing);
       await AssertProgress(documentItem, CompilationStatus.ResolutionStarted);
-      await AssertProgress(documentItem, CompilationStatus.CompilationSucceeded);
+      await WaitForStatus(null, PublishedVerificationStatus.Error, CancellationToken, documentItem);
     }
 
     [Fact(Timeout = MaxTestExecutionTimeMs)]
     public async Task DocumentWithOnlyCodedVerifierTimeoutSendsCompilationSucceededVerificationStartedAndVerificationFailedStatuses() {
       var documentItem = CreateTestDocument(SlowToVerify, "DocumentWithOnlyCodedVerifierTimeoutSendsCompilationSucceededVerificationStartedAndVerificationFailedStatuses.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      await AssertProgress(documentItem, CompilationStatus.Parsing);
       await AssertProgress(documentItem, CompilationStatus.ResolutionStarted);
-      await AssertProgress(documentItem, CompilationStatus.CompilationSucceeded);
+      await WaitForStatus(null, PublishedVerificationStatus.Error, CancellationToken, documentItem);
     }
 
     [Fact(Timeout = MaxTestExecutionTimeMs)]
@@ -151,9 +146,8 @@ method Abs(x: int) returns (y: int)
       await SetUp(options => options.Set(BoogieOptionBag.VerificationTimeLimit, 3U));
       var documentItem = CreateTestDocument(SlowToVerify, "DocumentWithOnlyConfiguredVerifierTimeoutSendsCompilationSucceededVerificationStartedAndVerificationFailedStatuses.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      await AssertProgress(documentItem, CompilationStatus.Parsing);
       await AssertProgress(documentItem, CompilationStatus.ResolutionStarted);
-      await AssertProgress(documentItem, CompilationStatus.CompilationSucceeded);
+      await WaitForStatus(null, PublishedVerificationStatus.Error, CancellationToken, documentItem);
     }
 
     [Fact(Timeout = MaxTestExecutionTimeMs)]
@@ -171,14 +165,12 @@ method Abs(x: int) returns (y: int)
       // compilation status twice without any verification status inbetween.
       var documentItem1 = CreateTestDocument(source, "test_1.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem1, CancellationToken);
-      await AssertProgress(documentItem1, CompilationStatus.Parsing);
       await AssertProgress(documentItem1, CompilationStatus.ResolutionStarted);
-      await AssertProgress(documentItem1, CompilationStatus.CompilationSucceeded);
+      await WaitForStatus(null, PublishedVerificationStatus.Stale, CancellationToken, documentItem1);
       var documentItem2 = CreateTestDocument(source, "test_2dfy");
       await client.OpenDocumentAndWaitAsync(documentItem2, CancellationToken);
-      await AssertProgress(documentItem2, CompilationStatus.Parsing);
       await AssertProgress(documentItem2, CompilationStatus.ResolutionStarted);
-      await AssertProgress(documentItem2, CompilationStatus.CompilationSucceeded);
+      await WaitForStatus(null, PublishedVerificationStatus.Stale, CancellationToken, documentItem2);
     }
 
     [Fact(Timeout = MaxTestExecutionTimeMs)]
@@ -197,15 +189,13 @@ method Abs(x: int) returns (y: int)
       var documentItem1 = CreateTestDocument(source, "test_1.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem1, CancellationToken);
       await client.SaveDocumentAndWaitAsync(documentItem1, CancellationToken);
-      await AssertProgress(documentItem1, CompilationStatus.Parsing);
       await AssertProgress(documentItem1, CompilationStatus.ResolutionStarted);
-      await AssertProgress(documentItem1, CompilationStatus.CompilationSucceeded);
+      await WaitForStatus(null, PublishedVerificationStatus.Stale, CancellationToken, documentItem1);
       var documentItem2 = CreateTestDocument(source, "test_2dfy");
       await client.OpenDocumentAndWaitAsync(documentItem2, CancellationToken);
       await client.SaveDocumentAndWaitAsync(documentItem2, CancellationToken);
-      await AssertProgress(documentItem2, CompilationStatus.Parsing);
       await AssertProgress(documentItem2, CompilationStatus.ResolutionStarted);
-      await AssertProgress(documentItem2, CompilationStatus.CompilationSucceeded);
+      await WaitForStatus(null, PublishedVerificationStatus.Stale, CancellationToken, documentItem2);
     }
 
     [Fact(Timeout = MaxTestExecutionTimeMs)]
@@ -219,7 +209,6 @@ method Abs(x: int) returns (y: int)
     }";
       var documentItem = CreateTestDocument(source, "MultisetShouldNotCrashParser.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      await AssertProgress(documentItem, CompilationStatus.Parsing);
       await AssertProgress(documentItem, CompilationStatus.ParsingFailed);
     }
 

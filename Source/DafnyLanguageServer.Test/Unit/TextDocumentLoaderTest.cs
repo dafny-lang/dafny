@@ -23,10 +23,8 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit {
     private Mock<ISymbolResolver> symbolResolver;
     private Mock<ISymbolTableFactory> symbolTableFactory;
     private Mock<IGhostStateDiagnosticCollector> ghostStateDiagnosticCollector;
-    private Mock<ICompilationStatusNotificationPublisher> notificationPublisher;
     private TextDocumentLoader textDocumentLoader;
     private Mock<ILogger<ITextDocumentLoader>> logger;
-    private Mock<INotificationPublisher> diagnosticPublisher;
 
     public TextDocumentLoaderTest(ITestOutputHelper output) {
       this.output = new WriterFromOutputHelper(output);
@@ -34,16 +32,13 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit {
       symbolResolver = new();
       symbolTableFactory = new();
       ghostStateDiagnosticCollector = new();
-      notificationPublisher = new();
       fileSystem = new();
       logger = new Mock<ILogger<ITextDocumentLoader>>();
-      diagnosticPublisher = new Mock<INotificationPublisher>();
       textDocumentLoader = TextDocumentLoader.Create(
         parser.Object,
         symbolResolver.Object,
         symbolTableFactory.Object,
         ghostStateDiagnosticCollector.Object,
-        notificationPublisher.Object,
         logger.Object
       );
     }

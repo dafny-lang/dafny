@@ -126,7 +126,7 @@ class B {
         Assert.Equal(new Range((10, 6), (10, 7)), location.Name);
         Assert.Equal(new Range((10, 0), (11, 0)), location.Declaration);
       } catch (AssertActualExpectedException) {
-        await output.WriteLineAsync($"state version is {state.Version}, diagnostics: {state.GetDiagnostics().Values.Stringify()}");
+        await output.WriteLineAsync($"state version is {state.Version}, diagnostics: {state.GetAllDiagnostics().Stringify()}");
         var programString = new StringWriter();
         var printer = new Printer(programString, DafnyOptions.Default);
         printer.PrintProgram((Program)state.Program, true);

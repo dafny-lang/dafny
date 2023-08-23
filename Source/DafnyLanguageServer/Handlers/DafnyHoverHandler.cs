@@ -93,7 +93,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
 
     private string? GetDiagnosticsHover(IdeState state, Uri uri, Position position, out bool areMethodStatistics) {
       areMethodStatistics = false;
-      var uriDiagnostics = state.GetDiagnostics().GetOrDefault(uri, Enumerable.Empty<Diagnostic>).ToList();
+      var uriDiagnostics = state.GetDiagnosticsForUri(uri).ToList();
       foreach (var diagnostic in uriDiagnostics) {
         if (diagnostic.Range.Contains(position)) {
           string? detail = ErrorRegistry.GetDetail(diagnostic.Code);

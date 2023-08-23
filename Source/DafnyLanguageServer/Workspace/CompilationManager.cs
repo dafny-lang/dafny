@@ -37,8 +37,6 @@ public class CompilationManager {
 
   private readonly ILogger logger;
   private readonly ITextDocumentLoader documentLoader;
-  private readonly ICompilationStatusNotificationPublisher statusPublisher;
-  private readonly INotificationPublisher notificationPublisher;
   private readonly IProgramVerifier verifier;
   private readonly IVerificationProgressReporter verificationProgressReporter;
 
@@ -63,9 +61,7 @@ public class CompilationManager {
   public CompilationManager(
     ILogger<CompilationManager> logger,
     ITextDocumentLoader documentLoader,
-    INotificationPublisher notificationPublisher,
     IProgramVerifier verifier,
-    ICompilationStatusNotificationPublisher statusPublisher,
     IVerificationProgressReporter verificationProgressReporter,
     DafnyOptions options,
     ExecutionEngine boogieEngine,
@@ -79,9 +75,7 @@ public class CompilationManager {
 
     this.documentLoader = documentLoader;
     this.logger = logger;
-    this.notificationPublisher = notificationPublisher;
     this.verifier = verifier;
-    this.statusPublisher = statusPublisher;
     this.verificationProgressReporter = verificationProgressReporter;
     cancellationSource = new();
     cancellationSource.Token.Register(() => started.TrySetCanceled(cancellationSource.Token));
@@ -172,7 +166,6 @@ public class CompilationManager {
     IReadOnlyDictionary<FilePosition, IReadOnlyList<IImplementationTask>> tasksForModule;
     try {
       tasksForModule = await compilation.TranslatedModules.GetOrAdd(containingModule, async m => {
-        _ = statusPublisher.SendStatusNotification(compilation, CompilationStatus.PreparingVerification);
         var result = await verifier.GetVerificationTasksAsync(boogieEngine, compilation, containingModule,
           cancellationSource.Token);
         compilation.ResolutionDiagnostics = ((DiagnosticErrorReporter)compilation.Program.Reporter).AllDiagnosticsCopy;
@@ -211,7 +204,6 @@ public class CompilationManager {
     }
 
     if (actuallyVerifyTasks) {
-
       var tasks = implementations.Values.Select(t => t.Task).ToList();
 
       foreach (var task in tasks) {
