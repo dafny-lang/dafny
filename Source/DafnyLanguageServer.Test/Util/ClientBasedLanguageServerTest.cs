@@ -94,12 +94,12 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
     }
   }
 
-  public async Task<NamedVerifiableStatus> WaitForStatus(Range nameRange, PublishedVerificationStatus statusToFind,
+  public async Task<NamedVerifiableStatus> WaitForStatus([CanBeNull] Range nameRange, PublishedVerificationStatus statusToFind,
     CancellationToken cancellationToken, [CanBeNull] TextDocumentIdentifier documentIdentifier = null) {
     while (true) {
       try {
         var foundStatus = await verificationStatusReceiver.AwaitNextNotificationAsync(cancellationToken);
-        var namedVerifiableStatus = foundStatus.NamedVerifiables.FirstOrDefault(n => n.NameRange == nameRange);
+        var namedVerifiableStatus = foundStatus.NamedVerifiables.FirstOrDefault(n => nameRange == null || n.NameRange == nameRange);
         if (namedVerifiableStatus?.Status == statusToFind) {
           if (documentIdentifier != null) {
             Assert.Equal(documentIdentifier.Uri, foundStatus.Uri);

@@ -81,11 +81,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           return new ResolutionProgressStatus(CompilationStatus.ResolutionFailed);
         }
 
-        var verificationResults = state.GetVerificationResults(uri);
-        if (verificationResults.Any()) {
-          return new VerificationProgressStatus(GetFileVerificationStatus(state, uri));
-        }
-        return new ResolutionProgressStatus(CompilationStatus.CompilationSucceeded);
+        return new VerificationProgressStatus(GetFileVerificationStatus(state, uri));
       }
 
       if (state.Compilation is CompilationAfterParsing) {
