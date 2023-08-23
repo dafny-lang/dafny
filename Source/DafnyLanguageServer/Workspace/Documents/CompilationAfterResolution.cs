@@ -74,8 +74,9 @@ public class CompilationAfterResolution : CompilationAfterParsing {
   public override IdeState ToIdeState(IdeState previousState) {
 
     IdeVerificationResult MergeVerifiable(ICanVerify canVerify) {
-      var location = canVerify.NameToken.GetLocation();
-      var previousForCanVerify = previousState.VerificationResults.GetValueOrDefault(location) ?? new(false, ImmutableDictionary<string, IdeImplementationView>.Empty);
+      var range = canVerify.NameToken.GetLspRange();
+      var previousForCanVerify = previousState.GetVerificationResults(canVerify.NameToken.Uri).GetValueOrDefault(range) ??
+                                 new(false, ImmutableDictionary<string, IdeImplementationView>.Empty);
       if (!ImplementationsPerVerifiable.TryGetValue(canVerify, out var implementationsPerName)) {
         return previousForCanVerify with {
           Implementations = previousForCanVerify.Implementations.ToDictionary(kv => kv.Key, kv => kv.Value with {
@@ -108,8 +109,10 @@ public class CompilationAfterResolution : CompilationAfterParsing {
       GhostRanges = GhostDiagnostics,
       Counterexamples = new List<Counterexample>(Counterexamples),
       VerificationTrees = VerificationTrees.ToDictionary(kv => kv.Key, kv => kv.Value.GetCopyForNotification()),
-      VerificationResults = Verifiables.GroupBy(l => l.NameToken.GetLocation()).ToDictionary(k => k.Key,
-        k => MergeResults(k.Select(MergeVerifiable)))
+      VerificationResults = Verifiables.GroupBy(l => l.NameToken.Uri).ToDictionary(k => k.Key,
+        k => k.GroupBy(l => l.NameToken.GetLspRange()).ToDictionary(
+          l => l.Key,
+          l => MergeResults(l.Select(MergeVerifiable))))
     };
     return result;
   }
