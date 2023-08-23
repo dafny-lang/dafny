@@ -937,7 +937,7 @@ expression `e` of type `T`, sets support the following operations:
  expression          | precedence | result type |  description
 ---------------------|:---:|:---:|------------------------------------
  `e in s`            | 4   | `bool` | set membership
- `e !in s`           | 3   | `bool` | set non-membership
+ `e !in s`           | 4   | `bool` | set non-membership
  `|s|`               | 11  | `nat`  | set cardinality (not for `iset`)
 
 The expression `e !in s` is a syntactic shorthand for `!(e in s)`.
