@@ -101,30 +101,31 @@ public class IdeStateObserver : IObserver<IdeState> {
     }
   }
 
-  private Dictionary<Location, IdeVerificationResult> MigrateImplementationViews(Migrator migrator,
-      Dictionary<Location, IdeVerificationResult> oldVerificationDiagnostics) {
-    var result = new Dictionary<Location, IdeVerificationResult>();
-    foreach (var entry in oldVerificationDiagnostics) {
-      var newOuterRange = migrator.MigrateRange(entry.Key.Range);
-      if (newOuterRange == null) {
-        continue;
+  private Dictionary<Uri, Dictionary<Range, IdeVerificationResult>> MigrateImplementationViews(Migrator migrator,
+      Dictionary<Uri, Dictionary<Range, IdeVerificationResult>> oldVerificationDiagnostics) {
+    return oldVerificationDiagnostics.ToDictionary(kv => kv.Key, kv => {
+      var result = new Dictionary<Range, IdeVerificationResult>();
+      foreach (var entry in kv.Value) {
+        var newOuterRange = migrator.MigrateRange(entry.Key);
+        if (newOuterRange == null) {
+          continue;
+        }
+
+        var newValue = new Dictionary<string, IdeImplementationView>();
+        foreach (var innerEntry in entry.Value.Implementations) {
+          var newInnerRange = migrator.MigrateRange(innerEntry.Value.Range);
+          if (newInnerRange != null) {
+            newValue.Add(innerEntry.Key, innerEntry.Value with {
+              Range = newInnerRange,
+              Diagnostics = migrator.MigrateDiagnostics(innerEntry.Value.Diagnostics)
+            });
+          }
+        }
+
+        result.Add(newOuterRange, entry.Value with { Implementations = newValue });
       }
 
-      var newValue = new Dictionary<string, IdeImplementationView>();
-      foreach (var innerEntry in entry.Value.Implementations) {
-        var newInnerRange = migrator.MigrateRange(innerEntry.Value.Range);
-        if (newInnerRange != null) {
-          newValue.Add(innerEntry.Key, innerEntry.Value with {
-            Range = newInnerRange,
-            Diagnostics = migrator.MigrateDiagnostics(innerEntry.Value.Diagnostics)
-          });
-        }
-      }
-      result.Add(new Location() {
-        Uri = entry.Key.Uri,
-        Range = newOuterRange
-      }, entry.Value with { Implementations = newValue });
-    }
-    return result;
+      return result;
+    });
   }
 }

@@ -34,41 +34,82 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         return;
       }
 
-      PublishVerificationStatus(previousState, state);
+      PublishProgressStatus(previousState, state);
       PublishGhostness(previousState, state);
       await PublishDiagnostics(state);
     }
 
-    private void PublishVerificationStatus(IdeState previousState, IdeState state) {
-      var currentPerFile = GetFileVerificationStatus(state);
-      var previousPerFile = GetFileVerificationStatus(previousState);
+    private void PublishProgressStatus(IdeState previousState, IdeState state) {
+      foreach (var uri in state.Compilation.RootUris) {
+        // TODO, still have to check for ownedness
 
-      foreach (var (uri, current) in currentPerFile) {
-        if (previousPerFile.TryGetValue(uri, out var previous)) {
-          if (previous.NamedVerifiables.SequenceEqual(current.NamedVerifiables)) {
-            continue;
-          }
+        var current = GetProgressStatus(state, uri);
+        var previous = GetProgressStatus(previousState, uri);
+
+        if (Equals(current, previous)) {
+          continue;
         }
-        languageServer.TextDocument.SendNotification(DafnyRequestNames.VerificationSymbolStatus, current);
+
+        switch (current) {
+          case ResolutionProgressStatus resolutionProgressStatus:
+            languageServer.SendNotification(new CompilationStatusParams {
+              Uri = uri,
+              Version = filesystem.GetVersion(uri),
+              Status = resolutionProgressStatus.CompilationStatus,
+              Message = null
+            });
+            break;
+          case VerificationProgressStatus verificationProgressStatus:
+            languageServer.TextDocument.SendNotification(DafnyRequestNames.VerificationSymbolStatus, verificationProgressStatus.FileVerificationStatus);
+            break;
+        }
       }
+
     }
 
-    private static IDictionary<Uri, FileVerificationStatus> GetFileVerificationStatus(IdeState state) {
-      return state.VerificationResults.GroupBy(kv => kv.Key.Uri).
-        ToDictionary(kv => kv.Key.ToUri(), kvs =>
-        new FileVerificationStatus(kvs.Key, state.Compilation.Version,
-          kvs.Select(kv => GetNamedVerifiableStatuses(kv.Key, kv.Value)).
-            OrderBy(s => s.NameRange.Start).ToList()));
+    private abstract record ProgressStatus;
+
+    private sealed record VerificationProgressStatus(FileVerificationStatus FileVerificationStatus) : ProgressStatus;
+
+    private sealed record ResolutionProgressStatus(CompilationStatus CompilationStatus) : ProgressStatus;
+
+    private ProgressStatus GetProgressStatus(IdeState state, Uri uri) {
+      var hasResolutionDiagnostics = (state.ResolutionDiagnostics.GetValueOrDefault(uri) ?? Enumerable.Empty<Diagnostic>()).
+        Any(d => d.Severity == DiagnosticSeverity.Error);
+      if (state.Compilation is CompilationAfterResolution) {
+        if (hasResolutionDiagnostics) {
+          return new ResolutionProgressStatus(CompilationStatus.ResolutionFailed);
+        }
+
+        return new VerificationProgressStatus(GetFileVerificationStatus(state, uri));
+      }
+
+      if (state.Compilation is CompilationAfterParsing) {
+        if (hasResolutionDiagnostics) {
+          return new ResolutionProgressStatus(CompilationStatus.ParsingFailed);
+        }
+
+        return new ResolutionProgressStatus(CompilationStatus.ResolutionStarted);
+      }
+
+      return new ResolutionProgressStatus(CompilationStatus.Parsing);
     }
 
-    private static NamedVerifiableStatus GetNamedVerifiableStatuses(Location canVerify, IdeVerificationResult result) {
+    private FileVerificationStatus GetFileVerificationStatus(IdeState state, Uri uri) {
+      var verificationResults = state.GetVerificationResults(uri);
+      return new FileVerificationStatus(uri, filesystem.GetVersion(uri) ?? 0,
+        verificationResults.Select(kv => GetNamedVerifiableStatuses(kv.Key, kv.Value)).
+            OrderBy(s => s.NameRange.Start).ToList());
+    }
+
+    private static NamedVerifiableStatus GetNamedVerifiableStatuses(Range canVerify, IdeVerificationResult result) {
       var status = result.WasTranslated
         ? result.Implementations.Any()
           ? result.Implementations.Values.Select(v => v.Status).Aggregate(Combine)
           : PublishedVerificationStatus.Correct
         : PublishedVerificationStatus.Stale;
 
-      return new(canVerify.Range, status);
+      return new(canVerify, status);
     }
 
     static PublishedVerificationStatus Combine(PublishedVerificationStatus first, PublishedVerificationStatus second) {
@@ -78,14 +119,12 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     private readonly Dictionary<Uri, IList<Diagnostic>> publishedDiagnostics = new();
 
     private async Task PublishDiagnostics(IdeState state) {
-      var currentDiagnostics = state.GetDiagnostics();
-
       // All root uris are added because we may have to publish empty diagnostics for owned uris.
-      var sources = currentDiagnostics.Keys.Concat(state.Compilation.RootUris).Distinct();
+      var sources = state.GetDiagnosticUris().Concat(state.Compilation.RootUris).Distinct();
 
       var projectDiagnostics = new List<Diagnostic>();
       foreach (var uri in sources) {
-        var current = currentDiagnostics.GetOrDefault(uri, Enumerable.Empty<Diagnostic>).ToArray();
+        var current = state.GetDiagnosticsForUri(uri);
         var uriProject = await projectManagerDatabase.GetProject(uri);
         var ownedUri = uriProject.Equals(state.Compilation.Project);
         if (ownedUri) {
@@ -94,7 +133,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
             // since it also serves as a bucket for diagnostics from unowned files
             projectDiagnostics.AddRange(current);
           } else {
-            PublishForUri(uri, currentDiagnostics.GetOrDefault(uri, Enumerable.Empty<Diagnostic>).ToArray());
+            PublishForUri(uri, current.ToArray());
           }
         } else {
           var errors = current.Where(d => d.Severity == DiagnosticSeverity.Error).ToList();

@@ -15,9 +15,7 @@ public class CompilationManagerTest {
     var dafnyOptions = DafnyOptions.Create(TextWriter.Null, TextReader.Null);
     var compilationManager = new CompilationManager(new Mock<ILogger<CompilationManager>>().Object,
       new Mock<ITextDocumentLoader>().Object,
-      new Mock<INotificationPublisher>().Object,
       new Mock<IProgramVerifier>().Object,
-      new Mock<ICompilationStatusNotificationPublisher>().Object,
       new Mock<IVerificationProgressReporter>().Object,
       dafnyOptions,
       null, new Compilation(0, new DafnyProject() { Uri = new Uri(Directory.GetCurrentDirectory()) }, new Uri[] { }), null);
