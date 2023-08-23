@@ -165,6 +165,16 @@ public class InvariantDependency : ProofDependency {
   }
 }
 
+public class AssignmentDependency : ProofDependency {
+  public override RangeToken RangeToken { get; }
+
+  public override string Description => "assignment";
+
+  public AssignmentDependency(RangeToken rangeToken) {
+    this.RangeToken = rangeToken;
+  }
+}
+
 public class InternalDependency : ProofDependency {
   public override RangeToken RangeToken => null;
   public override string Description { get; }

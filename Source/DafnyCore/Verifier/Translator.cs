@@ -8838,7 +8838,9 @@ namespace Microsoft.Dafny {
           bLhss.Add(rhsCanAffectPreviouslyKnownExpressions ? null : bLhs);
           lhsBuilders.Add(delegate (Bpl.Expr rhs, bool origRhsIsHavoc, BoogieStmtListBuilder bldr, ExpressionTranslator et) {
             if (rhs != null) {
-              bldr.Add(Bpl.Cmd.SimpleAssign(tok, bLhs, rhs));
+              var cmd = Bpl.Cmd.SimpleAssign(tok, bLhs, rhs);
+              proofDependencies.AddProofDependencyId(cmd, lhs.tok, new AssignmentDependency(lhs.RangeToken));
+              bldr.Add(cmd);
             }
 
             if (!origRhsIsHavoc || ie.Type.IsNonempty) {
@@ -8868,7 +8870,9 @@ namespace Microsoft.Dafny {
             bLhss.Add(rhsCanAffectPreviouslyKnownExpressions ? null : bLhs);
             lhsBuilders.Add(delegate (Bpl.Expr rhs, bool origRhsIsHavoc, BoogieStmtListBuilder bldr, ExpressionTranslator et) {
               if (rhs != null) {
-                bldr.Add(Bpl.Cmd.SimpleAssign(tok, bLhs, rhs));
+                var cmd = Bpl.Cmd.SimpleAssign(tok, bLhs, rhs);
+                proofDependencies.AddProofDependencyId(cmd, fse.tok, new AssignmentDependency(fse.RangeToken));
+                bldr.Add(cmd);
               }
 
               if (!origRhsIsHavoc || field.Type.IsNonempty) {
@@ -8883,7 +8887,8 @@ namespace Microsoft.Dafny {
                 Contract.Assert(fseField != null);
                 Check_NewRestrictions(tok, obj, fseField, rhs, bldr, et);
                 var h = (Bpl.IdentifierExpr)et.HeapExpr;  // TODO: is this cast always justified?
-                Bpl.Cmd cmd = Bpl.Cmd.SimpleAssign(tok, h, UpdateHeap(tok, h, obj, new Bpl.IdentifierExpr(tok, GetField(fseField)), rhs));
+                var cmd = Bpl.Cmd.SimpleAssign(tok, h, UpdateHeap(tok, h, obj, new Bpl.IdentifierExpr(tok, GetField(fseField)), rhs));
+                proofDependencies.AddProofDependencyId(cmd, lhs.tok, new AssignmentDependency(lhs.RangeToken));
                 bldr.Add(cmd);
                 // assume $IsGoodHeap($Heap);
                 bldr.Add(AssumeGoodHeap(tok, et));
@@ -8911,7 +8916,8 @@ namespace Microsoft.Dafny {
           lhsBuilders.Add(delegate (Bpl.Expr rhs, bool origRhsIsHavoc, BoogieStmtListBuilder bldr, ExpressionTranslator et) {
             if (rhs != null) {
               var h = (Bpl.IdentifierExpr)et.HeapExpr;  // TODO: is this cast always justified?
-              Bpl.Cmd cmd = Bpl.Cmd.SimpleAssign(tok, h, UpdateHeap(tok, h, obj, fieldName, rhs));
+              var cmd = Bpl.Cmd.SimpleAssign(tok, h, UpdateHeap(tok, h, obj, fieldName, rhs));
+              proofDependencies.AddProofDependencyId(cmd, lhs.tok, new AssignmentDependency(lhs.RangeToken));
               bldr.Add(cmd);
               // assume $IsGoodHeap($Heap);
               bldr.Add(AssumeGoodHeap(tok, et));
@@ -8934,7 +8940,8 @@ namespace Microsoft.Dafny {
           lhsBuilders.Add(delegate (Bpl.Expr rhs, bool origRhsIsHavoc, BoogieStmtListBuilder bldr, ExpressionTranslator et) {
             if (rhs != null) {
               var h = (Bpl.IdentifierExpr)et.HeapExpr;  // TODO: is this cast always justified?
-              Bpl.Cmd cmd = Bpl.Cmd.SimpleAssign(tok, h, UpdateHeap(tok, h, obj, fieldName, rhs));
+              var cmd = Bpl.Cmd.SimpleAssign(tok, h, UpdateHeap(tok, h, obj, fieldName, rhs));
+              proofDependencies.AddProofDependencyId(cmd, lhs.tok, new AssignmentDependency(lhs.RangeToken));
               bldr.Add(cmd);
               // assume $IsGoodHeap($Heap);
               bldr.Add(AssumeGoodHeap(tok, etran));
