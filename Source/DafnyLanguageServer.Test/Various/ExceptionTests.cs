@@ -39,7 +39,7 @@ public class ExceptionTests : ClientBasedLanguageServerTest {
     var source = @"method Foo() { assert true; }";
 
     CrashOnLoad = true;
-    var documentItem = CreateTestDocument(source);
+    var documentItem = CreateTestDocument(source, "LoadCrashOnOpenRecovery.dfy");
     client.OpenDocument(documentItem);
     var crashDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
     Assert.Single(crashDiagnostics);
@@ -55,7 +55,7 @@ public class ExceptionTests : ClientBasedLanguageServerTest {
   public async Task LoadCrashOnChangeRecover() {
     var source = @"method Foo() { assert true; }";
 
-    var documentItem = CreateTestDocument(source);
+    var documentItem = CreateTestDocument(source, "LoadCrashOnChangeRecover.dfy");
     client.OpenDocument(documentItem);
     CrashOnLoad = true;
     ApplyChange(ref documentItem, new Range(0, 0, 0, 0), " ");
@@ -73,7 +73,7 @@ public class ExceptionTests : ClientBasedLanguageServerTest {
     var source = @"method Foo() { assert false; }";
 
     CrashOnPrepareVerification = true;
-    var documentItem = CreateTestDocument(source);
+    var documentItem = CreateTestDocument(source, "PrepareVerificationCrashRecover.dfy");
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
     var translationCrashDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
     Assert.Single(translationCrashDiagnostics);
