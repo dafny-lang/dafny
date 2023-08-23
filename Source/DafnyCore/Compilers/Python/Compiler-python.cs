@@ -1466,7 +1466,7 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override ConcreteSyntaxTree ToFatPointer(Type type, ConcreteSyntaxTree wr) {
       if (type.HasFatPointer) {
-        wr.Write(type.AsNewtype.GetFullCompileName(Options));
+        wr.Write(FullName(type.AsNewtype));
         return wr.ForkInParens();
       } else {
         return wr;
@@ -1711,7 +1711,7 @@ namespace Microsoft.Dafny.Compilers {
       }
 
       if (fromType.IsTraitType && toType.AsNewtype != null) {
-        wr.Write($"isinstance({localName}, {toType.AsNewtype.GetFullCompileName(Options)})");
+        wr.Write($"isinstance({localName}, {FullName(toType.AsNewtype)})");
       } else {
         wr.Write($"isinstance({localName}, {TypeName(toType, wr, tok)})");
       }
