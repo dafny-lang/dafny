@@ -103,8 +103,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       }
     }
 
-    public override bool Message(MessageSource source, ErrorLevel level, string? errorId, IToken rootTok, string msg) {
-      AdjustErrorLevel(ref level);
+    protected override bool MessageCore(MessageSource source, ErrorLevel level, string? errorId, IToken rootTok, string msg) {
       if (ErrorsOnly && level != ErrorLevel.Error) {
         return false;
       }

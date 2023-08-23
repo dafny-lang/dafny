@@ -36,14 +36,17 @@ namespace Microsoft.Dafny {
     public bool HasErrorsUntilResolver => ErrorCountUntilResolver > 0;
     public int ErrorCountUntilResolver => CountExceptVerifierAndCompiler(ErrorLevel.Error);
 
-    public abstract bool Message(MessageSource source, ErrorLevel level, string errorId, IToken tok, string msg);
-
-    public ErrorLevel AdjustErrorLevel(ref ErrorLevel level) {
+    public bool Message(MessageSource source, ErrorLevel level, string errorId, IToken tok, string msg) {
       if (Options.WarningsAsErrors && level == ErrorLevel.Warning) {
         level = ErrorLevel.Error;
       }
+
+      return MessageCore(source, level, errorId, tok, msg);
+
     }
-    
+
+    protected abstract bool MessageCore(MessageSource source, ErrorLevel level, string errorId, IToken tok, string msg);
+
     public void Error(MessageSource source, IToken tok, string msg) {
       Error(source, ParseErrors.ErrorId.none, tok, msg);
     }
@@ -211,9 +214,8 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public override bool Message(MessageSource source, ErrorLevel level, string errorId, IToken tok, string msg) {
-      AdjustErrorLevel(ref level);
-      if (base.Message(source, level, errorId, tok, msg) && (Options is { PrintTooltips: true } || level != ErrorLevel.Info)) {
+    protected override bool MessageCore(MessageSource source, ErrorLevel level, string errorId, IToken tok, string msg) {
+      if (base.MessageCore(source, level, errorId, tok, msg) && (Options is { PrintTooltips: true } || level != ErrorLevel.Info)) {
         // Extra indent added to make it easier to distinguish multiline error messages for clients that rely on the CLI
         msg = msg.Replace("\n", "\n ");
 
@@ -267,7 +269,7 @@ namespace Microsoft.Dafny {
   public class ErrorReporterSink : ErrorReporter {
     public ErrorReporterSink(DafnyOptions options) : base(options) { }
 
-    public override bool Message(MessageSource source, ErrorLevel level, string errorId, IToken tok, string msg) {
+    protected override bool MessageCore(MessageSource source, ErrorLevel level, string errorId, IToken tok, string msg) {
       return false;
     }
 
@@ -294,8 +296,8 @@ namespace Microsoft.Dafny {
       this.WrappedReporter = reporter;
     }
 
-    public override bool Message(MessageSource source, ErrorLevel level, string errorId, IToken tok, string msg) {
-      base.Message(source, level, errorId, tok, msg);
+    protected bool MessageCore(MessageSource source, ErrorLevel level, string errorId, IToken tok, string msg) {
+      base.MessageCore(source, level, errorId, tok, msg);
       return WrappedReporter.Message(source, level, errorId, tok, msgPrefix + msg);
     }
   }
