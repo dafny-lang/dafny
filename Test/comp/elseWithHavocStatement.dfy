@@ -1,4 +1,4 @@
-// RUN: %testDafnyForEachCompiler "%s"
+// RUN: %testDafnyForEachCompiler "%s" --refresh-exit-code=0
 
 method Main() {
     var b: bool :| true; 
