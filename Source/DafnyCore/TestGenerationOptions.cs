@@ -15,6 +15,5 @@ namespace Microsoft.Dafny {
     public bool ForcePrune = false;
     public string CoverageReport = null;
     public const uint DefaultTimeLimit = 20;
-    public bool IgnoreWarnings = false;
   }
 }

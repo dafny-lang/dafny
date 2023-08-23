@@ -62,8 +62,8 @@ public class Auditor {
     CheckInputTypesAreSupported(program);
     CheckVerificationTimeLimit(program);
     PrintWarningsAndErrors();
-    NonZeroExitCode = Warnings.Count() + Errors.Count() != 0;
-    return !Errors.Any() && (!Warnings.Any() || options.TestGenOptions.IgnoreWarnings);
+    NonZeroExitCode = Errors.Count() != 0;
+    return !Errors.Any() && (!Warnings.Any() || !options.WarningsAsErrors);
   }
 
   /// <summary>
@@ -81,13 +81,11 @@ public class Auditor {
       }
     }
     if (Warnings.Count() != 0) {
-      if (options.TestGenOptions.IgnoreWarnings) {
-        options.Printer.ErrorWriteLine(options.ErrorWriter,
-          $"*** Warning: Test generation auditor returned {Warnings.Count()} warnings. They will be ignored because you are using the --{GenerateTestsCommand.IgnoreWarnings.Name} flag");
-      } else {
-        options.Printer.ErrorWriteLine(options.ErrorWriter,
-          $"*** Warning: Test generation auditor returned {Warnings.Count()} warnings. Address them or bypass with --{GenerateTestsCommand.IgnoreWarnings.Name} flag");
+      var warningMessage = $"*** Warning: Test generation auditor returned {Warnings.Count()} warnings.";
+      if (options.WarningsAsErrors) {
+        warningMessage += $" Address them or disable --{CommonOptionBag.WarningAsErrors.Name} flag to proceed.";
       }
+      options.Printer.ErrorWriteLine(options.ErrorWriter, warningMessage);
       foreach (var warning in Warnings) {
         options.Printer.ErrorWriteLine(options.ErrorWriter,
           $"*** {warning.ErrorId}: {warning.Message}: at {warning.Token.Uri?.LocalPath ?? ""} " +
