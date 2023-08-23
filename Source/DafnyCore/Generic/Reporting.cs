@@ -296,7 +296,7 @@ namespace Microsoft.Dafny {
       this.WrappedReporter = reporter;
     }
 
-    protected bool MessageCore(MessageSource source, ErrorLevel level, string errorId, IToken tok, string msg) {
+    protected override bool MessageCore(MessageSource source, ErrorLevel level, string errorId, IToken tok, string msg) {
       base.MessageCore(source, level, errorId, tok, msg);
       return WrappedReporter.Message(source, level, errorId, tok, msgPrefix + msg);
     }
