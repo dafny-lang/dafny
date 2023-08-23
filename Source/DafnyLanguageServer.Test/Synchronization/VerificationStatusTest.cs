@@ -343,6 +343,8 @@ method Bar() { assert false; }";
     });
     var documentItem = CreateTestDocument(source, "WhenUsingOnSaveMethodStaysStaleUntilSave.dfy");
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+    var stale1 = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
+    Assert.Equal(PublishedVerificationStatus.Stale, stale1.NamedVerifiables[0].Status);
 
     // Send a change to enable getting a new status notification.
     ApplyChange(ref documentItem, new Range(new Position(1, 0), new Position(1, 0)), "\n");

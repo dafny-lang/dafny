@@ -45,9 +45,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         .AddSingleton<CreateCompilationManager>(serviceProvider => (options, engine, compilation, migratedVerificationTree) => new CompilationManager(
           serviceProvider.GetRequiredService<ILogger<CompilationManager>>(),
           serviceProvider.GetRequiredService<ITextDocumentLoader>(),
-          serviceProvider.GetRequiredService<INotificationPublisher>(),
           serviceProvider.GetRequiredService<IProgramVerifier>(),
-          serviceProvider.GetRequiredService<ICompilationStatusNotificationPublisher>(),
           serviceProvider.GetRequiredService<IVerificationProgressReporter>(),
           options, engine, compilation, migratedVerificationTree
           ))
