@@ -47,7 +47,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(tok != null);
       Contract.Requires(msg != null);
       Contract.Requires(args != null);
-      resolver.Reporter.Error(MessageSource.Resolver, tok, "PRE-TYPE: " + msg, args);
+      resolver.Reporter.Error(MessageSource.Resolver, tok, msg, args);
     }
 
     public void ReportWarning(IToken tok, string msg, params object[] args) {
