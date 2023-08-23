@@ -4187,10 +4187,7 @@ namespace Microsoft.Dafny {
         cl = udt?.ResolvedClass as TopLevelDeclWithMembers;
       }
       if (cl != null) {
-        foreach (var entry in cl.ParentFormalTypeParametersToActuals) {
-          var v = entry.Value.Subst(subst);
-          subst.Add(entry.Key, v);
-        }
+        cl.AddParentTypeParameterSubstitutions(subst);
       }
 
       return subst;
