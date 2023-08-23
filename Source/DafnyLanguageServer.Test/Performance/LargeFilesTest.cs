@@ -102,7 +102,7 @@ public class LargeFilesTest : ClientBasedLanguageServerTest {
     var totalSleepTime = ticks * waitTime;
     var totalSchedulingTime = span.TotalMilliseconds - totalSleepTime;
     var averageTimeToSchedule = totalSchedulingTime / ticks;
-    await output.WriteLineAsync($"averageTimeToSchedule: {averageTimeToSchedule:0.##}");
+    // await output.WriteLineAsync($"averageTimeToSchedule: {averageTimeToSchedule:0.##}");
     return averageTimeToSchedule;
   }
 
