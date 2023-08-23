@@ -4363,7 +4363,7 @@ namespace Microsoft.Dafny {
         var (errorMessage, successMessage) = CustomErrorMessage(p.Attributes);
         foreach (var s in splits) {
           if (s.IsChecked && !RefinementToken.IsInherited(s.Tok, currentModule)) {
-            AddEnsures(ens, EnsuresWithCoverage(s.Tok, false, p.E, s.E, errorMessage, successMessage, null));
+            AddEnsures(ens, EnsuresWithDependencies(s.Tok, false, p.E, s.E, errorMessage, successMessage, null));
           }
         }
       }
@@ -7467,7 +7467,7 @@ namespace Microsoft.Dafny {
       return cmd;
     }
 
-    Bpl.Ensures EnsuresWithCoverage(IToken tok, bool free, Expression dafnyCondition, Bpl.Expr condition, string errorMessage, string successMessage, string comment) {
+    Bpl.Ensures EnsuresWithDependencies(IToken tok, bool free, Expression dafnyCondition, Bpl.Expr condition, string errorMessage, string successMessage, string comment) {
       Contract.Requires(tok != null);
       Contract.Requires(dafnyCondition != null);
       Contract.Ensures(Contract.Result<Bpl.Ensures>() != null);
@@ -7487,7 +7487,7 @@ namespace Microsoft.Dafny {
       return ens;
     }
 
-    Bpl.Requires RequiresWithCoverage(IToken tok, bool free, Expression dafnyCondition, Bpl.Expr condition, string errorMessage, string successMessage, string comment) {
+    Bpl.Requires RequiresWithDependencies(IToken tok, bool free, Expression dafnyCondition, Bpl.Expr condition, string errorMessage, string successMessage, string comment) {
       Contract.Requires(tok != null);
       Contract.Requires(dafnyCondition != null);
       Contract.Ensures(Contract.Result<Bpl.Ensures>() != null);
