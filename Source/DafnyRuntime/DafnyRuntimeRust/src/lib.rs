@@ -246,6 +246,16 @@ impl_already_erased! { () }
 impl_already_erased! { BigInt }
 impl_already_erased! { BigRational }
 
+// from gazebo
+#[inline]
+unsafe fn transmute_unchecked<A, B>(x: A) -> B {
+    assert_eq!(std::mem::size_of::<A>(), std::mem::size_of::<B>());
+    debug_assert_eq!(0, (&x as *const A).align_offset(std::mem::align_of::<B>()));
+    let b = std::ptr::read(&x as *const A as *const B);
+    std::mem::forget(x);
+    b
+}
+
 macro_rules! impl_tuple_erased {
     ($($items:ident)*) => {
         impl <$($items,)*> DafnyErasable for ($($items,)*)
@@ -261,7 +271,7 @@ macro_rules! impl_tuple_erased {
 
             #[inline]
             fn erase_owned(self) -> Self::Erased {
-                unsafe { std::mem::transmute_copy(&self) }
+                unsafe { transmute_unchecked(self) }
             }
         }
 
@@ -275,7 +285,7 @@ macro_rules! impl_tuple_erased {
 
                 #[inline]
                 fn unerase_owned(v: ($([<T $items>],)*)) -> Self {
-                    unsafe { std::mem::transmute_copy(&v) }
+                    unsafe { transmute_unchecked(v) }
                 }
             }
         }
