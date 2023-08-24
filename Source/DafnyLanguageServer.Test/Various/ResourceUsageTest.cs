@@ -20,7 +20,7 @@ method Foo()
 }";
     string solverProcessName = $"z3-{DafnyOptions.DefaultZ3Version}";
     var processes1 = Process.GetProcessesByName(solverProcessName);
-    var documentItem = CreateTestDocument(source);
+    var documentItem = CreateTestDocument(source, "SolverProcessCountDoesNotIncreaseOnEachVerification.dfy");
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
 
     await GetLastDiagnostics(documentItem, CancellationToken);

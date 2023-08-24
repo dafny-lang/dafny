@@ -15,6 +15,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Util {
 
     public void NotificationReceived(TNotification request) {
       notifications.Enqueue(request);
+      notificationHistory.Add(request);
       availableNotifications.Release();
     }
 
@@ -29,7 +30,6 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Util {
     public async Task<TNotification> AwaitNextNotificationAsync(CancellationToken cancellationToken) {
       await availableNotifications.WaitAsync(cancellationToken);
       if (notifications.TryDequeue(out var notification)) {
-        notificationHistory.Add(notification);
         return notification;
       }
       throw new System.InvalidOperationException("got a signal for a received notification but it was not present in the queue");

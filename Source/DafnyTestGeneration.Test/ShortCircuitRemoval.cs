@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
+using DafnyCore.Test;
 using DafnyTestGeneration.Inlining;
 using Microsoft.Dafny;
 using Xunit;
