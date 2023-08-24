@@ -167,6 +167,15 @@ public class TypeAdjustorVisitor : ASTVisitor<IASTVisitorContext> {
         default:
           break;
       }
+
+    } else if (expr is LambdaExpr lambdaExpr) {
+      flows.Add(new FlowFromComputedType(expr, () => {
+        return ModuleResolver.SelectAppropriateArrowType(lambdaExpr.tok,
+          lambdaExpr.BoundVars.ConvertAll(v => v.Type),
+          lambdaExpr.Body.Type,
+          lambdaExpr.Reads.Count != 0, lambdaExpr.Range != null, systemModuleManager);
+      }, lambdaExpr.WhatKind));
+
     }
 
     base.PostVisitOneExpression(expr, context);
