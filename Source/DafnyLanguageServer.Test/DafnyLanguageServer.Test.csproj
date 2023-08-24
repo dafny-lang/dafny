@@ -10,7 +10,7 @@
     <PackageReference Include="DiffPlex" Version="1.7.0" />
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="3.7.0" />
     <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="5.0.0" />
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.11.0" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.1.0" />
     <PackageReference Include="Moq" Version="4.16.1" />
     <PackageReference Include="Serilog.Sinks.InMemory" Version="0.11.0" />
     <PackageReference Include="xunit" Version="2.4.2" />
@@ -25,6 +25,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\DafnyCore.Test\DafnyCore.Test.csproj" />
     <ProjectReference Include="..\DafnyLanguageServer\DafnyLanguageServer.csproj" />
   </ItemGroup>
 
