@@ -123,10 +123,6 @@ public class ProjectManager : IDisposable {
           Uri = documentChange.TextDocument.Uri
         });
       var migratedChanges = RecentChanges.Select(location => {
-        if (location.Uri != documentChange.TextDocument.Uri) {
-          return location;
-        }
-
         var newRange = migrator.MigrateRange(location.Range);
         if (newRange == null) {
           return null;
