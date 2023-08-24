@@ -22,7 +22,7 @@ public delegate CompilationManager CreateCompilationManager(
   DafnyOptions options,
   ExecutionEngine boogieEngine,
   Compilation compilation,
-  IReadOnlyDictionary<Uri, VerificationTree> migratedVerificationTrees);
+  IReadOnlyDictionary<Uri, DocumentVerificationTree> migratedVerificationTrees);
 
 /// <summary>
 /// The compilation of a single document version.
@@ -41,7 +41,7 @@ public class CompilationManager {
   private readonly IVerificationProgressReporter verificationProgressReporter;
 
   // TODO CompilationManager shouldn't be aware of migration
-  private readonly IReadOnlyDictionary<Uri, VerificationTree> migratedVerificationTrees;
+  private readonly IReadOnlyDictionary<Uri, DocumentVerificationTree> migratedVerificationTrees;
 
   private TaskCompletionSource started = new();
   private readonly IScheduler verificationUpdateScheduler = new EventLoopScheduler();
@@ -66,7 +66,7 @@ public class CompilationManager {
     DafnyOptions options,
     ExecutionEngine boogieEngine,
     Compilation compilation,
-    IReadOnlyDictionary<Uri, VerificationTree> migratedVerificationTrees
+    IReadOnlyDictionary<Uri, DocumentVerificationTree> migratedVerificationTrees
     ) {
     this.options = options;
     startingCompilation = compilation;
@@ -93,14 +93,20 @@ public class CompilationManager {
   private async Task<CompilationAfterParsing> ParseAsync() {
     try {
       await started.Task;
-      var parsedCompilation = await documentLoader.ParseAsync(options, startingCompilation, migratedVerificationTrees, cancellationSource.Token);
+      var parsedCompilation = await documentLoader.ParseAsync(options, startingCompilation, migratedVerificationTrees,
+        cancellationSource.Token);
+      verificationProgressReporter.RecomputeVerificationTrees(parsedCompilation);
       foreach (var root in parsedCompilation.RootUris) {
         verificationProgressReporter.ReportRealtimeDiagnostics(parsedCompilation, root, false);
       }
+
       compilationUpdates.OnNext(parsedCompilation);
-      logger.LogDebug($"Passed parsedCompilation to documentUpdates.OnNext, resolving ParsedCompilation task for version {parsedCompilation.Version}.");
+      logger.LogDebug(
+        $"Passed parsedCompilation to documentUpdates.OnNext, resolving ParsedCompilation task for version {parsedCompilation.Version}.");
       return parsedCompilation;
 
+    } catch (OperationCanceledException) {
+      throw;
     } catch (Exception e) {
       compilationUpdates.OnError(e);
       throw;
@@ -123,6 +129,8 @@ public class CompilationManager {
       logger.LogDebug($"Passed resolvedCompilation to documentUpdates.OnNext, resolving ResolvedCompilation task for version {resolvedCompilation.Version}.");
       return resolvedCompilation;
 
+    } catch (OperationCanceledException) {
+      throw;
     } catch (Exception e) {
       compilationUpdates.OnError(e);
       throw;
@@ -178,6 +186,9 @@ public class CompilationManager {
           g => g.Key,
           g => (IReadOnlyList<IImplementationTask>)g.ToList());
       });
+    } catch (OperationCanceledException) {
+      verificationCompleted.TrySetCanceled();
+      throw;
     } catch (Exception e) {
       verificationCompleted.TrySetException(e);
       compilationUpdates.OnError(e);
