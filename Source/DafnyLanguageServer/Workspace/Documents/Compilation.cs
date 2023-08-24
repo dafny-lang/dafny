@@ -23,6 +23,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
   /// There can be different verification threads that update the state of this object.
   /// </summary>
   public class Compilation {
+    /// <summary>
+    /// These do not have to be owned
+    /// </summary>
     public IReadOnlyList<Uri> RootUris { get; }
     public int Version { get; }
     public DafnyProject Project { get; }
