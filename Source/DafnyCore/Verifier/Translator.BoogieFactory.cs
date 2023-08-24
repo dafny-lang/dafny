@@ -205,6 +205,13 @@ namespace Microsoft.Dafny {
       return cmd;
     }
 
+    public Bpl.AssumeCmd TrAssumeCmdWithDependenciesApp(ExpressionTranslator etran, Bpl.IToken tok, Expression dafnyExpr, Func<Bpl.Expr, Bpl.Expr> func, Bpl.QKeyValue attributes = null) {
+      var expr = etran.TrExpr(dafnyExpr);
+      var cmd = TrAssumeCmd(tok, func(expr), attributes);
+      proofDependencies.AddProofDependencyId(cmd, dafnyExpr.tok, new AssumptionDependency(dafnyExpr));
+      return cmd;
+    }
+
     static Bpl.Expr RemoveLit(Bpl.Expr expr) {
       return GetLit(expr) ?? expr;
     }

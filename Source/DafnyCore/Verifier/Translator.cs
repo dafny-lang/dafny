@@ -123,7 +123,6 @@ namespace Microsoft.Dafny {
       private UInt64 proofDependencyIdCount = 0;
 
       public string GetProofDependencyId(ProofDependency dep) {
-        // TODO: track whether we've seen this node before
         var idString = $"id{proofDependencyIdCount}";
         ProofDependenciesById[idString] = dep;
         proofDependencyIdCount++;
@@ -1820,13 +1819,13 @@ namespace Microsoft.Dafny {
       setDiff.ResolvedOp = BinaryExpr.ResolvedOpcode.SetDifference; setDiff.Type = nw.Type;  // resolve here
       Expression cond = new FreshExpr(iter.tok, setDiff);
       cond.Type = Type.Bool;  // resolve here
-      builder.Add(TrAssumeCmd(iter.tok, yeEtran.TrExpr(cond)));
+      builder.Add(TrAssumeCmdWithDependencies(yeEtran, iter.tok, cond));
 
       // check wellformedness of postconditions
       var yeBuilder = new BoogieStmtListBuilder(this, options);
       var endBuilder = new BoogieStmtListBuilder(this, options);
       // In the yield-ensures case:  assume this.Valid();
-      yeBuilder.Add(TrAssumeCmd(iter.tok, yeEtran.TrExpr(validCall)));
+      yeBuilder.Add(TrAssumeCmdWithDependencies(yeEtran, iter.tok, validCall));
       Contract.Assert(iter.OutsFields.Count == iter.OutsHistoryFields.Count);
       for (int i = 0; i < iter.OutsFields.Count; i++) {
         var y = iter.OutsFields[i];
@@ -1841,9 +1840,9 @@ namespace Microsoft.Dafny {
         concat.ResolvedOp = BinaryExpr.ResolvedOpcode.Concat; concat.Type = oldThisYs.Type;  // resolve here
 
         // In the yield-ensures case:  assume this.ys == old(this.ys) + [this.y];
-        yeBuilder.Add(TrAssumeCmd(iter.tok, Bpl.Expr.Eq(yeEtran.TrExpr(thisYs), yeEtran.TrExpr(concat))));
+        yeBuilder.Add(TrAssumeCmd(iter.tok, Bpl.Expr.Eq(yeEtran.TrExpr(thisYs), yeEtran.TrExpr(concat)))); // TODO: track?
         // In the ensures case:  assume this.ys == old(this.ys);
-        endBuilder.Add(TrAssumeCmd(iter.tok, Bpl.Expr.Eq(yeEtran.TrExpr(thisYs), yeEtran.TrExpr(oldThisYs))));
+        endBuilder.Add(TrAssumeCmd(iter.tok, Bpl.Expr.Eq(yeEtran.TrExpr(thisYs), yeEtran.TrExpr(oldThisYs)))); // TODO: track?
       }
 
       foreach (var p in iter.YieldEnsures) {
@@ -3689,7 +3688,7 @@ namespace Microsoft.Dafny {
 
         var funcExpC = new Bpl.NAryExpr(f.tok, funcIdC, argsC);
         var resultVar = new Bpl.IdentifierExpr(resultVariable.tok, resultVariable);
-        builder.Add(TrAssumeCmd(f.tok, Bpl.Expr.Eq(funcExpC, resultVar)));
+        builder.Add(TrAssumeCmd(f.tok, Bpl.Expr.Eq(funcExpC, resultVar))); // TODO: track?
       }
 
       //generating trait post-conditions with class variables
@@ -4521,7 +4520,9 @@ namespace Microsoft.Dafny {
         wfo = new WFOptions(null, true, true /* do delayed reads checks */);
         CheckWellformedWithResult(f.Body, wfo, funcAppl, f.ResultType, locals, bodyCheckBuilder, etran);
         if (f.Result != null) {
-          bodyCheckBuilder.Add(TrAssumeCmd(f.tok, Bpl.Expr.Eq(funcAppl, TrVar(f.tok, f.Result))));
+          var cmd = TrAssumeCmd(f.tok, Bpl.Expr.Eq(funcAppl, TrVar(f.tok, f.Result)));
+          proofDependencies.AddProofDependencyId(cmd, f.tok, new InternalDependency("function definition")); // TODO
+          bodyCheckBuilder.Add(cmd);
         }
         wfo.ProcessSavedReadsChecks(locals, builderInitializationArea, bodyCheckBuilder);
 
@@ -7689,7 +7690,7 @@ namespace Microsoft.Dafny {
         new List<Bpl.IdentifierExpr>()));
       // assume YieldRequires;
       foreach (var p in iter.YieldRequires) {
-        builder.Add(TrAssumeCmd(tok, etran.TrExpr(p.E)));
+        builder.Add(TrAssumeCmdWithDependencies(etran, tok, p.E));
       }
       // $_OldIterHeap := Heap;
       builder.Add(Bpl.Cmd.SimpleAssign(tok, new Bpl.IdentifierExpr(tok, "$_OldIterHeap", predef.HeapType), etran.HeapExpr));

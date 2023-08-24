@@ -168,7 +168,7 @@ namespace Microsoft.Dafny {
               var b0 = new BoogieStmtListBuilder(this, options);
               CheckWellformedAndAssume(e.E0, wfOptions, locals, b0, etran);
               var b1 = new BoogieStmtListBuilder(this, options);
-              b1.Add(TrAssumeCmd(expr.tok, Bpl.Expr.Not(etran.TrExpr(e.E0)))); // TODO: dependencies
+              b1.Add(TrAssumeCmdWithDependenciesApp(etran, expr.tok, e.E0, Expr.Not));
               CheckWellformedAndAssume(e.E1, wfOptions, locals, b1, etran);
               builder.Add(new Bpl.IfCmd(expr.tok, null, b0.Collect(expr.tok), null, b1.Collect(expr.tok)));
             }
@@ -189,7 +189,7 @@ namespace Microsoft.Dafny {
         CheckWellformedAndAssume(e.Test, wfOptions, locals, bThn, etran);
         CheckWellformedAndAssume(e.Thn, wfOptions, locals, bThn, etran);
         var bEls = new BoogieStmtListBuilder(this, options);
-        bEls.Add(TrAssumeCmd(expr.tok, Bpl.Expr.Not(etran.TrExpr(e.Test)))); // TODO: dependencies
+        bEls.Add(TrAssumeCmdWithDependenciesApp(etran, expr.tok, e.Test, Expr.Not));
         CheckWellformedAndAssume(e.Els, wfOptions, locals, bEls, etran);
         builder.Add(new Bpl.IfCmd(expr.tok, null, bThn.Collect(expr.tok), null, bEls.Collect(expr.tok)));
         return;
@@ -713,7 +713,7 @@ namespace Microsoft.Dafny {
                 }
                 if (wfOptions.AssertKv == null) {
                   // assume only if no given assert attribute is given
-                  builder.Add(TrAssumeCmd(callExpr.tok, etran.TrExpr(precond)));
+                  builder.Add(TrAssumeCmdWithDependencies(etran, callExpr.tok, precond));
                 }
               }
               if (wfOptions.DoReadsChecks) {
@@ -1193,7 +1193,7 @@ namespace Microsoft.Dafny {
         Contract.Assert(resultType != null);
         var bResult = etran.TrExpr(expr);
         CheckSubrange(expr.tok, bResult, expr.Type, resultType, builder);
-        builder.Add(TrAssumeCmd(expr.tok, Bpl.Expr.Eq(result, bResult)));
+        builder.Add(TrAssumeCmdWithDependenciesApp(etran, expr.tok, expr, e => Bpl.Expr.Eq(result, e)));
         builder.Add(TrAssumeCmd(expr.tok, CanCallAssumption(expr, etran)));
         builder.Add(new CommentCmd("CheckWellformedWithResult: any expression"));
         builder.Add(TrAssumeCmd(expr.tok, MkIs(result, resultType)));
@@ -1345,7 +1345,8 @@ namespace Microsoft.Dafny {
           var rIe = new Bpl.IdentifierExpr(rhs.tok, r);
           CheckWellformedWithResult(e.RHSs[i], wfOptions, rIe, pat.Expr.Type, locals, builder, etran);
           CheckCasePatternShape(pat, rIe, rhs.tok, pat.Expr.Type, builder);
-          builder.Add(TrAssumeCmd(pat.tok, Bpl.Expr.Eq(etran.TrExpr(Substitute(pat.Expr, null, substMap)), rIe)));
+          var substExpr = Substitute(pat.Expr, null, substMap);
+          builder.Add(TrAssumeCmdWithDependenciesApp(etran, e.tok, substExpr, e => Bpl.Expr.Eq(e, rIe)));
         }
         CheckWellformedWithResult(Substitute(e.Body, null, substMap), wfOptions, result, resultType, locals, builder, etran);
 
@@ -1389,7 +1390,7 @@ namespace Microsoft.Dafny {
           var rhs_prime = Substitute(e.RHSs[0], null, nonGhostMap_prime);
           var letBody_prime = Substitute(e.Body, null, nonGhostMap_prime);
           builder.Add(TrAssumeCmd(e.tok, CanCallAssumption(rhs_prime, etran)));
-          builder.Add(TrAssumeCmd(e.tok, etran.TrExpr(rhs_prime)));
+          builder.Add(TrAssumeCmdWithDependencies(etran, e.tok, rhs_prime));
           builder.Add(TrAssumeCmd(e.tok, CanCallAssumption(letBody_prime, etran)));
           var eq = Expression.CreateEq(letBody, letBody_prime, e.Body.Type);
           builder.Add(Assert(GetToken(e), etran.TrExpr(eq),
@@ -1404,7 +1405,7 @@ namespace Microsoft.Dafny {
           Contract.Assert(resultType != null);
           var bResult = etran.TrExpr(letBody);
           CheckSubrange(letBody.tok, bResult, letBody.Type, resultType, builder);
-          builder.Add(TrAssumeCmd(letBody.tok, Bpl.Expr.Eq(result, bResult)));
+          builder.Add(TrAssumeCmdWithDependenciesApp(etran, e.tok, letBody, e => Expr.Eq(result, e)));
           builder.Add(TrAssumeCmd(letBody.tok, CanCallAssumption(letBody, etran)));
           builder.Add(new CommentCmd("CheckWellformedWithResult: Let expression"));
           builder.Add(TrAssumeCmd(letBody.tok, MkIs(result, resultType)));
