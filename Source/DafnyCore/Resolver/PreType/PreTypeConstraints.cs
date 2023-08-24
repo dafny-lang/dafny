@@ -9,6 +9,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Diagnostics.Contracts;
+using JetBrains.Annotations;
 
 namespace Microsoft.Dafny {
   /// <summary>
@@ -29,6 +30,69 @@ namespace Microsoft.Dafny {
     public PreTypeConstraints(PreTypeResolver preTypeResolver) {
       this.PreTypeResolver = preTypeResolver;
       this.options = preTypeResolver.resolver.Options;
+    }
+
+    /// <summary>
+    /// Try to find the receiver pre-type that corresponds to "preType".
+    /// If there are subtype constraints of "preType" that point out a non-proxy subtype of "preType", then one such is returned.
+    /// Otherwise, if there are supertype constraints of "preType" that point out a non-proxy supertype of "preType" AND that supertype
+    /// has a member named "memberName", then such a supertype is returned.
+    /// Otherwise, null is returned.
+    ///
+    /// The "memberName" is allowed to be passed in as "null", in which case the supertype search does not consider any trait.
+    /// </summary>
+    [CanBeNull]
+    public DPreType ApproximateReceiverType(IToken tok, PreType preType, [CanBeNull] string memberName) {
+      PartiallySolveTypeConstraints();
+
+      preType = preType.Normalize();
+      if (preType is DPreType dPreType) {
+        return dPreType;
+      }
+      var proxy = (PreTypeProxy)preType;
+
+      // If there is a subtype constraint "proxy :> sub<X>", then (if the program is legal at all, then) "sub" must have the member "memberName".
+      foreach (var sub in AllSubBounds(proxy, new HashSet<PreTypeProxy>())) {
+        return sub;
+      }
+
+      // If there is a subtype constraint "super<X> :> proxy" where "super" has a member "memberName", then that is the correct member.
+      foreach (var super in AllSuperBounds(proxy, new HashSet<PreTypeProxy>())) {
+        if (super.Decl is TopLevelDeclWithMembers md) {
+          if (memberName != null && PreTypeResolver.resolver.GetClassMembers(md).ContainsKey(memberName)) {
+            return super;
+          } else if (memberName == null && md is not TraitDecl) {
+            return super;
+          }
+        }
+      }
+
+      return null; // could not be determined
+    }
+
+    /// <summary>
+    /// Expecting that "preType" is a type that does not involve traits, return that type, if possible.
+    /// </summary>
+    [CanBeNull]
+    public DPreType FindDefinedPreType(PreType preType) {
+      Contract.Requires(preType != null);
+
+      PartiallySolveTypeConstraints();
+
+      preType = preType.Normalize();
+      if (preType is PreTypeProxy proxy) {
+        // We're looking a type with concerns for traits, so if the proxy has any sub- or super-type, then (if the
+        // program is legal at all, then) that sub- or super-type must be the type we're looking for.
+        foreach (var sub in AllSubBounds(proxy, new HashSet<PreTypeProxy>())) {
+          return sub;
+        }
+        foreach (var super in AllSuperBounds(proxy, new HashSet<PreTypeProxy>())) {
+          return super;
+        }
+        return null;
+      }
+
+      return preType as DPreType;
     }
 
     /// <summary>
@@ -97,19 +161,11 @@ namespace Microsoft.Dafny {
       PrintList("Equality constraints", equalityConstraints, eqc => {
         return $"{eqc.A} == {eqc.B}";
       });
-#if IS_THERE_A_GOOD_WAY_TO_PRINT_GUARDED_CONSTRAINTS
-      PrintList("Guarded constraints", guardedConstraints, gc => {
-        return gc.Kind + Util.Comma("", gc.Arguments, arg => $" {arg}");
-      });
-#endif
+      options.OutputWriter.WriteLine($"    Guarded constraints: {guardedConstraints.Count}");
       PrintList("Default-type advice", defaultAdvice, advice => {
         return $"{advice.PreType} ~-~-> {advice.WhatString}";
       });
-#if IS_THERE_A_GOOD_WAY_TO_PRINT_CONFIRMATIONS
-      PrintList("Post-inference confirmations", confirmations, c => {
-        return $"{TokToShortLocation(c.tok)}: {c.Check} {c.PreType}: {c.ErrorMessage()}";
-      });
-#endif
+      options.OutputWriter.WriteLine($"    Post-inference confirmations: {confirmations.Count}");
     }
 
     void PrintLegend() {
@@ -290,7 +346,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public IEnumerable<DPreType> AllSubBounds(PreTypeProxy proxy, ISet<PreTypeProxy> visited) {
+    private IEnumerable<DPreType> AllSubBounds(PreTypeProxy proxy, ISet<PreTypeProxy> visited) {
       Contract.Requires(proxy.PT == null);
       if (visited.Contains(proxy)) {
         yield break;
@@ -310,7 +366,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public IEnumerable<DPreType> AllSuperBounds(PreTypeProxy proxy, ISet<PreTypeProxy> visited) {
+    private IEnumerable<DPreType> AllSuperBounds(PreTypeProxy proxy, ISet<PreTypeProxy> visited) {
       Contract.Requires(proxy.PT == null);
       if (visited.Contains(proxy)) {
         yield break;

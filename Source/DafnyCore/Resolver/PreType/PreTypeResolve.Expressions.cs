@@ -10,6 +10,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 using System.Diagnostics.Contracts;
+using JetBrains.Annotations;
 using Microsoft.Boogie;
 using ResolutionContext = Microsoft.Dafny.ResolutionContext;
 
@@ -1019,32 +1020,11 @@ namespace Microsoft.Dafny {
       Contract.Requires(receiverPreType != null);
       Contract.Requires(memberName != null);
 
-      Constraints.PartiallySolveTypeConstraints();
-      receiverPreType = receiverPreType.Normalize();
-      DPreType dReceiver = null;
-      if (receiverPreType is PreTypeProxy proxy) {
-        // If there is a subtype constraint "proxy :> sub<X>", then (if the program is legal at all, then) "sub" must have the member "memberName".
-        foreach (var sub in Constraints.AllSubBounds(proxy, new HashSet<PreTypeProxy>())) {
-          dReceiver = sub;
-          break;
-        }
-        if (dReceiver == null) {
-          // If there is a subtype constraint "super<X> :> proxy" where "super" has a member "memberName", then that is the correct member.
-          foreach (var super in Constraints.AllSuperBounds(proxy, new HashSet<PreTypeProxy>())) {
-            if (super.Decl is TopLevelDeclWithMembers md && resolver.GetClassMembers(md).ContainsKey(memberName)) {
-              dReceiver = super;
-              break;
-            }
-          }
-        }
-        if (dReceiver == null) {
-          ReportError(tok, "type of the receiver is not fully determined at this program point");
-          return (null, null);
-        }
-      } else {
-        dReceiver = (DPreType)receiverPreType;
+      var dReceiver = Constraints.ApproximateReceiverType(tok, receiverPreType, memberName);
+      if (dReceiver == null) {
+        ReportError(tok, "type of the receiver is not fully determined at this program point");
+        return (null, null);
       }
-      Contract.Assert(dReceiver != null);
 
       var receiverDecl = dReceiver.Decl;
       if (receiverDecl is TopLevelDeclWithMembers receiverDeclWithMembers) {
@@ -1065,29 +1045,6 @@ namespace Microsoft.Dafny {
       }
       ReportError(tok, $"member '{memberName}' does not exist in {receiverDecl.WhatKind} '{receiverDecl.Name}'");
       return (null, null);
-    }
-
-    /// <summary>
-    /// Expecting that "preType" is a type that does not involve traits, return that type, if possible.
-    /// </summary>
-    DPreType/*?*/ FindDefinedPreType(PreType preType) {
-      Contract.Requires(preType != null);
-
-      Constraints.PartiallySolveTypeConstraints();
-      preType = preType.Normalize();
-      if (preType is PreTypeProxy proxy) {
-        // We're looking a type with concerns for traits, so if the proxy has any sub- or super-type, then (if the
-        // program is legal at all, then) that sub- or super-type must be the type we're looking for.
-        foreach (var sub in Constraints.AllSubBounds(proxy, new HashSet<PreTypeProxy>())) {
-          return sub;
-        }
-        foreach (var super in Constraints.AllSuperBounds(proxy, new HashSet<PreTypeProxy>())) {
-          return super;
-        }
-        return null;
-      }
-
-      return preType as DPreType;
     }
 
     /// <summary>
@@ -1645,7 +1602,7 @@ namespace Microsoft.Dafny {
       }
       if (r == null) {
         // e.Lhs denotes a function value, or at least it's used as if it were
-        var dp = FindDefinedPreType(e.Lhs.PreType);
+        var dp = Constraints.FindDefinedPreType(e.Lhs.PreType);
         if (dp != null && DPreType.IsArrowType(dp.Decl)) {
           // e.Lhs does denote a function value
           // In the general case, we'll resolve this as an ApplyExpr, but in the more common case of the Lhs
