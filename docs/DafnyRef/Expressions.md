@@ -1374,7 +1374,7 @@ where the bound variable is of a reference type. In non-ghost contexts,
 it is not allowed, because--even though the resulting set would be
 finite--it is not pleasant or practical to compute at run time.
 
-[^set-of-objects-not-in-functions]: In order to be deterministic, the result of a function should only depend on the arguments and of the objects  it [reads](#sec-reads-clause), and Dafny does not provide a way to explicitly pass the entire heap as the argument to a function. See [this post](https://github.com/dafny-lang/dafny/issues/1366#issuecomment-906785889) for more insights.
+[^set-of-objects-not-in-functions]: In order to be deterministic, the result of a function should only depend on the arguments and of the objects  it [reads](#sec-reads-clause), and Dafny does not provide a way to explicitly pass the entire heap as the argument to a function. See [this post](https://github.com/dafny-lang/dafny/issues/1366) for more insights.
 
 The universe in which set comprehensions are evaluated is the set of all
 _allocated_ objects, of the appropriate type and satisfying the given predicate.

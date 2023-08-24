@@ -47,8 +47,7 @@
     with the statement's body directly inside. The alternative, default compilation strategy
     is to calculate the quantified variable bindings separately as a collection of tuples,
     and then execute the statement's body for each tuple.
-    Not all `forall` statements can be sequentialized; See [the implementation](https://github.com/dafny-lang/dafny/blob/master/Source/Dafny/Compilers/SinglePassCompiler.cs#L3493-L3528)
-    for details.
+    Not all `forall` statements can be sequentialized.
 
 [^compiler-sequence-display-of-characters-note]: This refers to an expression such as `['H', 'e', 'l', 'l', 'o']`, as opposed to a string literal such as `"Hello"`.
 
