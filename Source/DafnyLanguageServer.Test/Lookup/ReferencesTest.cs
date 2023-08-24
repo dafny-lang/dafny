@@ -47,7 +47,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
       }
     }
 
-    [Fact] 
+    [Fact]
     public async Task AliasModuleDecl() {
       var source = @"
 module ><ToAlias {
@@ -64,7 +64,7 @@ module Aliaser {
 
       await AssertReferences(source, "AliasModuleDecl.dfy");
     }
-    
+
     [Fact]
     public async Task FunctionReturnTypeDatatype() {
       var source = @"
