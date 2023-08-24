@@ -924,16 +924,17 @@ method test() {
 ".TrimStart();
       var documentItem = CreateTestDocument(source, "IncrementalVerificationDiagnosticsBetweenMethods.dfy");
       client.OpenDocument(documentItem);
-      var firstVerificationDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
+      var firstVerificationDiagnostics = await diagnosticsReceiver.AwaitNextNotificationAsync(CancellationToken);
       try {
         var secondVerificationDiagnostics =
           await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
 
-        Assert.Single(firstVerificationDiagnostics);
+        Assert.Single(firstVerificationDiagnostics.Diagnostics);
         // Second diagnostic is a timeout exception from SlowToVerify
         Assert.Equal(2, secondVerificationDiagnostics.Length);
       } catch (OperationCanceledException) {
         await output.WriteLineAsync($"firstVerificationDiagnostics: {firstVerificationDiagnostics.Stringify()}");
+        WriteVerificationHistory();
       }
       await AssertNoDiagnosticsAreComing(CancellationToken);
     }
