@@ -66,12 +66,12 @@ namespace DafnyTestGeneration {
     public static async IAsyncEnumerable<string> GetDeadCodeStatistics(TextReader source, Uri uri, DafnyOptions options, CoverageReport report = null) {
       options.PrintMode = PrintModes.Everything;
       var code = await source.ReadToEndAsync();
-      var auditor = new Auditor(options);
-      if (!auditor.IsOk(code, uri)) {
+      var firstPass = new FirstPass(options);
+      if (!firstPass.IsOk(code, uri)) {
         SetNonZeroExitCode = true;
         yield break;
       }
-      SetNonZeroExitCode = auditor.NonZeroExitCode;
+      SetNonZeroExitCode = firstPass.NonZeroExitCode;
       var program = Utils.Parse(new BatchErrorReporter(options), code, false, uri);
       var cache = new Modifications(program.Options);
       await foreach (var line in GetDeadCodeStatistics(program, cache)) {
@@ -195,12 +195,12 @@ namespace DafnyTestGeneration {
       options.PrintMode = PrintModes.Everything;
       TestMethod.ClearTypesToSynthesize();
       var code = await source.ReadToEndAsync();
-      var auditor = new Auditor(options);
-      if (!auditor.IsOk(code, uri)) {
+      var firstPass = new FirstPass(options);
+      if (!firstPass.IsOk(code, uri)) {
         SetNonZeroExitCode = true;
         yield break;
       }
-      SetNonZeroExitCode = auditor.NonZeroExitCode;
+      SetNonZeroExitCode = firstPass.NonZeroExitCode;
       var program = Utils.Parse(new BatchErrorReporter(options), code, false, uri);
       var rawName = Regex.Replace(uri?.AbsolutePath ?? "", "[^a-zA-Z0-9_]", "");
 

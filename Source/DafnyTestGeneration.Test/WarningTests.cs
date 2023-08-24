@@ -13,7 +13,7 @@ using Xunit;
 
 namespace DafnyTestGeneration.Test;
 
-public class AuditorTests : Setup {
+public class WarningTests : Setup {
 
   private static readonly Regex Errors = new("returned ([0-9]+) error");
   private static readonly Regex Warnings = new Regex("returned ([0-9]+) warning");
@@ -38,7 +38,7 @@ module M {
     var options = GetDafnyOptions(optionSettings, new StringWriter(output));
     await Main.GetTestClassForProgram(source, null, options).ToListAsync();
     var outputString = output.ToString();
-    Assert.Contains(Auditor.NoTestEntryError, outputString);
+    Assert.Contains(FirstPass.NoTestEntryError, outputString);
     Assert.Equal(1, Count(Errors, outputString));
     Assert.Equal(0, Count(Warnings, outputString));
   }
@@ -53,7 +53,7 @@ method {:testEntry} m (i:int) { }
     var options = GetDafnyOptions(optionSettings, new StringWriter(output));
     await Main.GetTestClassForProgram(source, null, options).ToListAsync();
     var outputString = output.ToString();
-    Assert.Contains(Auditor.NoExternalModuleError, outputString);
+    Assert.Contains(FirstPass.NoExternalModuleError, outputString);
     Assert.Equal(1, Count(Errors, outputString));
     Assert.Equal(0, Count(Warnings, outputString));
   }
@@ -74,7 +74,7 @@ method {:testInline 1} b() {}
     var options = GetDafnyOptions(optionSettings, new StringWriter(output));
     await Main.GetTestClassForProgram(source, null, options).ToListAsync();
     var outputString = output.ToString();
-    Assert.Contains(Auditor.InlinedMethodNotReachableWarning, outputString);
+    Assert.Contains(FirstPass.InlinedMethodNotReachableWarning, outputString);
     Assert.Equal(0, Count(Errors, outputString));
     Assert.Equal(1, Count(Warnings, outputString));
   }
@@ -115,7 +115,7 @@ method {:testInline -1} b() {}
     var options = GetDafnyOptions(optionSettings, new StringWriter(output));
     await Main.GetTestClassForProgram(source, null, options).ToListAsync();
     var outputString = output.ToString();
-    Assert.Contains(Auditor.MalformedAttributeError, outputString);
+    Assert.Contains(FirstPass.MalformedAttributeError, outputString);
     Assert.Equal(1, Count(Errors, outputString));
     Assert.Equal(0, Count(Warnings, outputString));
   }
@@ -133,7 +133,7 @@ method {:testEntry} m (t:T) { }
     var options = GetDafnyOptions(optionSettings, new StringWriter(output));
     await Main.GetTestClassForProgram(source, null, options).ToListAsync();
     var outputString = output.ToString();
-    Assert.Contains(Auditor.UnsupportedInputTypeError, outputString);
+    Assert.Contains(FirstPass.UnsupportedInputTypeError, outputString);
     Assert.Equal(1, Count(Errors, outputString));
     Assert.Equal(0, Count(Warnings, outputString));
   }
@@ -151,7 +151,7 @@ method {:testEntry} m (c:C) { }
     var options = GetDafnyOptions(optionSettings, new StringWriter(output));
     await Main.GetTestClassForProgram(source, null, options).ToListAsync();
     var outputString = output.ToString();
-    Assert.Contains(Auditor.NotFullySupportedInputTypeWarning, outputString);
+    Assert.Contains(FirstPass.NotFullySupportedInputTypeWarning, outputString);
     Assert.Equal(0, Count(Errors, outputString));
     Assert.Equal(1, Count(Warnings, outputString));
   }
@@ -170,7 +170,7 @@ method {:testEntry} m (d:D) { }
     var options = GetDafnyOptions(optionSettings, new StringWriter(output));
     await Main.GetTestClassForProgram(source, null, options).ToListAsync();
     var outputString = output.ToString();
-    Assert.Contains(Auditor.NotFullySupportedInputTypeWarning, outputString);
+    Assert.Contains(FirstPass.NotFullySupportedInputTypeWarning, outputString);
     Assert.Equal(0, Count(Errors, outputString));
     Assert.Equal(1, Count(Warnings, outputString));
   }
@@ -188,7 +188,7 @@ method {:testEntry} m (s:seq<C>) { }
     var options = GetDafnyOptions(optionSettings, new StringWriter(output));
     await Main.GetTestClassForProgram(source, null, options).ToListAsync();
     var outputString = output.ToString();
-    Assert.Contains(Auditor.NotFullySupportedInputTypeWarning, outputString);
+    Assert.Contains(FirstPass.NotFullySupportedInputTypeWarning, outputString);
     Assert.Equal(0, Count(Errors, outputString));
     Assert.Equal(1, Count(Warnings, outputString));
   }
@@ -210,7 +210,7 @@ module M {
     var options = GetDafnyOptions(optionSettings, new StringWriter(output));
     await Main.GetTestClassForProgram(source, null, options).ToListAsync();
     var outputString = output.ToString();
-    Assert.Contains(Auditor.NotFullySupportedInputTypeWarning, outputString);
+    Assert.Contains(FirstPass.NotFullySupportedInputTypeWarning, outputString);
     Assert.Equal(0, Count(Errors, outputString));
     Assert.Equal(1, Count(Warnings, outputString));
   }
@@ -227,7 +227,7 @@ method {:testEntry} {:timeLimit 100} m () { }
     var options = GetDafnyOptions(optionSettings, new StringWriter(output));
     await Main.GetTestClassForProgram(source, null, options).ToListAsync();
     var outputString = output.ToString();
-    Assert.Contains(Auditor.SmallTimeLimitWarning, outputString);
+    Assert.Contains(FirstPass.SmallTimeLimitWarning, outputString);
     Assert.Equal(0, Count(Errors, outputString));
     Assert.Equal(1, Count(Warnings, outputString));
   }
@@ -245,7 +245,7 @@ method {:testEntry} m (w:why) { }
     var options = GetDafnyOptions(optionSettings, new StringWriter(output));
     await Main.GetTestClassForProgram(source, null, options).ToListAsync();
     var outputString = output.ToString();
-    Assert.Contains(Auditor.NoWitnessWarning, outputString);
+    Assert.Contains(FirstPass.NoWitnessWarning, outputString);
     Assert.Equal(0, Count(Errors, outputString));
     Assert.Equal(1, Count(Warnings, outputString));
   }

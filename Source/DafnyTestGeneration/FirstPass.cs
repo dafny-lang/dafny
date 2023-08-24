@@ -12,7 +12,7 @@ using Type = Microsoft.Dafny.Type;
 namespace DafnyTestGeneration;
 
 // This AST pass is run before test generation to detect any potential issues and report them to the user
-public class Auditor {
+public class FirstPass {
 
   private List<DafnyDiagnostic> diagnostics;
   private IEnumerable<DafnyDiagnostic> Errors => diagnostics.Where(diagnostic => diagnostic.Level == ErrorLevel.Error);
@@ -35,7 +35,7 @@ public class Auditor {
   // List of all types that have been checked for being supported. Used to prevent infinite recursion
   private HashSet<Type> typesConsidered = new();
 
-  public Auditor(DafnyOptions options) {
+  public FirstPass(DafnyOptions options) {
     this.options = options;
   }
 
@@ -69,20 +69,18 @@ public class Auditor {
   /// </summary>
   private void PrintWarningsAndErrors(ErrorReporter errorReporter, Program program) {
     if (Errors.Count() != 0) {
-      errorReporter.Message(MessageSource.TestGenerationAuditor, ErrorLevel.Error, "", program.StartToken,
-        $"Test generation auditor returned {Errors.Count()} errors. Fix them to proceed:");
+      errorReporter.Error(MessageSource.TestGeneration, "", program.StartToken,
+        $"Test generation returned {Errors.Count()} errors. Fix them to proceed:");
       foreach (var error in Errors) {
         var errorId = error.ErrorId == "none" ? "Error" : error.ErrorId;
-        errorReporter.Message(MessageSource.TestGenerationAuditor, ErrorLevel.Error, errorId, error.Token,
-          error.Message);
+        errorReporter.Error(MessageSource.TestGeneration, errorId, error.Token, error.Message);
       }
     }
     if (Warnings.Count() != 0) {
-      errorReporter.Message(MessageSource.TestGenerationAuditor, ErrorLevel.Warning, "", program.StartToken,
-        $"Test generation auditor returned {Warnings.Count()} warnings:");
+      errorReporter.Warning(MessageSource.TestGeneration, "", program.StartToken,
+        $"Test generation returned {Warnings.Count()} warnings:");
       foreach (var warning in Warnings) {
-        errorReporter.Message(MessageSource.TestGenerationAuditor, ErrorLevel.Warning, warning.ErrorId, warning.Token,
-          warning.Message);
+        errorReporter.Warning(MessageSource.TestGeneration, warning.ErrorId, warning.Token, warning.Message);
       }
     }
   }
@@ -107,7 +105,7 @@ public class Auditor {
         $"Method/function {callableWithMaxTimeLimit} is annotated with {{:timeLimit {maxTimeLimit}}} but test " +
         $"generation is called with --{BoogieOptionBag.VerificationTimeLimit.Name}:{options.TimeLimit}." +
         $"\nConsider increasing the time limit for test generation",
-        MessageSource.TestGenerationAuditor, ErrorLevel.Warning, new List<DafnyRelatedInformation>()));
+        MessageSource.TestGeneration, ErrorLevel.Warning, new List<DafnyRelatedInformation>()));
       return false;
     }
     return true;
@@ -128,7 +126,7 @@ public class Auditor {
         $"{{:{TestGenerationOptions.TestInlineAttribute}}} attribute on the {toInline.FullDafnyName} method/function " +
         $"can only take one argument, which must be a positive integer specifying the recursion unrolling limit " +
         $"(absence of such an argument or 1 means no unrolling)",
-        MessageSource.TestGenerationAuditor, ErrorLevel.Error, new List<DafnyRelatedInformation>()));
+        MessageSource.TestGeneration, ErrorLevel.Error, new List<DafnyRelatedInformation>()));
       return;
     }
   }
@@ -173,7 +171,7 @@ public class Auditor {
         message = $"Found a {{:{TestGenerationOptions.TestInlineAttribute}}}-annotated declaration that is neither a method nor a function";
       }
       diagnostics.Add(new DafnyDiagnostic(InlinedMethodNotReachableWarning, toInline.Tok, message,
-        MessageSource.TestGenerationAuditor, ErrorLevel.Warning, new List<DafnyRelatedInformation>()));
+        MessageSource.TestGeneration, ErrorLevel.Warning, new List<DafnyRelatedInformation>()));
       result = false;
     }
     return result;
@@ -187,7 +185,7 @@ public class Auditor {
     if (program.DefaultModuleDef.Children.OfType<ClassLikeDecl>().Any() || program.DefaultModuleDef.Children.OfType<DefaultClassDecl>().Any(decl => decl.Children.Any())) {
       diagnostics.Add(new DafnyDiagnostic(NoExternalModuleError, program.Tok,
         "Program is not wrapped in a module. Put your code inside \"module M {}\" or equivalent",
-        MessageSource.TestGenerationAuditor, ErrorLevel.Error, new List<DafnyRelatedInformation>()));
+        MessageSource.TestGeneration, ErrorLevel.Error, new List<DafnyRelatedInformation>()));
       return false;
     }
     return true;
@@ -205,14 +203,14 @@ public class Auditor {
           $"Test Generation does not support trait, array, or iterator types as receivers of " +
           $"{{:{TestGenerationOptions.TestEntryAttribute}}}-annotated methods.\n" +
           $"Consider writing a wrapper method that creates a receiver and passes on the arguments to it",
-          MessageSource.TestGenerationAuditor, ErrorLevel.Error, new List<DafnyRelatedInformation>()));
+          MessageSource.TestGeneration, ErrorLevel.Error, new List<DafnyRelatedInformation>()));
         result = false;
       } else if (declaration.EnclosingClass is ClassDecl) {
         diagnostics.Add(new DafnyDiagnostic(NotFullySupportedInputTypeWarning, declaration.Tok,
           $"Test Generation does not fully support class types as receivers of " +
           $"{{:{TestGenerationOptions.TestEntryAttribute}}}-annotated methods.\n" +
           $"Consider writing a wrapper method that creates a receiver and passes on the arguments to it",
-          MessageSource.TestGenerationAuditor, ErrorLevel.Warning, new List<DafnyRelatedInformation>()));
+          MessageSource.TestGeneration, ErrorLevel.Warning, new List<DafnyRelatedInformation>()));
         result = false;
       }
       if (declaration is Method method) {
@@ -248,12 +246,12 @@ public class Auditor {
     }
     if (type is UserDefinedType userDefinedType) {
       var genericMessage =
-        $"Consider disallowing values of type {userDefinedType} to be part of the input to " +
+        $"Consider modelling values of type {userDefinedType} with a datatype and passing them as input to " +
         $"{{:{TestGenerationOptions.TestEntryAttribute}}} annotated method/function {testEntry}";
       if (userDefinedType.IsAbstractType || userDefinedType.IsArrayType || userDefinedType.IsTraitType) {
         diagnostics.Add(new DafnyDiagnostic(UnsupportedInputTypeError, type.Tok,
           $"Test Generation does not support abstract types, array types, and trait types as inputs.\n{genericMessage}",
-          MessageSource.TestGenerationAuditor, ErrorLevel.Error, new List<DafnyRelatedInformation>()));
+          MessageSource.TestGeneration, ErrorLevel.Error, new List<DafnyRelatedInformation>()));
       } else if (userDefinedType.IsRefType) {
         if (userDefinedType.ResolvedClass is ClassDecl classDecl) {
           foreach (var field in classDecl.Members.Union(classDecl.InheritedMembers).OfType<Field>()) {
@@ -262,23 +260,23 @@ public class Auditor {
         }
         diagnostics.Add(new DafnyDiagnostic(NotFullySupportedInputTypeWarning, type.Tok,
           $"Test Generation does not fully support class types as inputs.\n{genericMessage}",
-          MessageSource.TestGenerationAuditor, ErrorLevel.Warning, new List<DafnyRelatedInformation>()));
+          MessageSource.TestGeneration, ErrorLevel.Warning, new List<DafnyRelatedInformation>()));
       } else if (userDefinedType.IsArrowType) {
         diagnostics.Add(new DafnyDiagnostic(NotFullySupportedInputTypeWarning, type.Tok,
           $"Test Generation does not fully support function types as inputs.\n{genericMessage}",
-          MessageSource.TestGenerationAuditor, ErrorLevel.Warning, new List<DafnyRelatedInformation>()));
+          MessageSource.TestGeneration, ErrorLevel.Warning, new List<DafnyRelatedInformation>()));
       } else if (userDefinedType.AsNewtype != null) {
         if (userDefinedType.AsNewtype.Witness == null) {
           diagnostics.Add(new DafnyDiagnostic(NoWitnessWarning, type.Tok,
             $"Cannot find witness for type {userDefinedType}. Please consider adding a witness to the declaration",
-            MessageSource.TestGenerationAuditor, ErrorLevel.Warning, new List<DafnyRelatedInformation>()));
+            MessageSource.TestGeneration, ErrorLevel.Warning, new List<DafnyRelatedInformation>()));
         }
         isSupported = TypeIsSupported(userDefinedType.AsNewtype.BaseType, testEntry);
       } else if (userDefinedType.AsSubsetType != null) {
         if (userDefinedType.AsSubsetType.Witness == null) {
           diagnostics.Add(new DafnyDiagnostic(NoWitnessWarning, type.Tok,
             $"Cannot find witness for type {userDefinedType}. Please consider adding a witness to the declaration",
-            MessageSource.TestGenerationAuditor, ErrorLevel.Warning, new List<DafnyRelatedInformation>()));
+            MessageSource.TestGeneration, ErrorLevel.Warning, new List<DafnyRelatedInformation>()));
         }
         isSupported = TypeIsSupported(userDefinedType.AsSubsetType.Rhs, testEntry);
       } else if (userDefinedType.AsTypeSynonym != null) {
@@ -287,7 +285,7 @@ public class Auditor {
         if (userDefinedType.IsCoDatatype) {
           diagnostics.Add(new DafnyDiagnostic(NotFullySupportedInputTypeWarning, type.Tok,
             $"Test Generation has not been properly tested with co-inductive datatypes.\n{genericMessage}",
-            MessageSource.TestGenerationAuditor, ErrorLevel.Warning, new List<DafnyRelatedInformation>()));
+            MessageSource.TestGeneration, ErrorLevel.Warning, new List<DafnyRelatedInformation>()));
         } else {
           isSupported = true;
         }
@@ -318,7 +316,7 @@ public class Auditor {
     if (!Utils.ProgramHasAttribute(program, TestGenerationOptions.TestEntryAttribute)) {
       diagnostics.Add(new DafnyDiagnostic(NoTestEntryError, program.Tok,
         $"Cannot find a method or function annotated with {{:{TestGenerationOptions.TestEntryAttribute}}}",
-        MessageSource.TestGenerationAuditor, ErrorLevel.Error, new List<DafnyRelatedInformation>()));
+        MessageSource.TestGeneration, ErrorLevel.Error, new List<DafnyRelatedInformation>()));
       return false;
     }
     return true;
