@@ -2016,9 +2016,9 @@ namespace Microsoft.Dafny {
     }
 
     PreType ResolveSingleSelectionExpr(IToken tok, PreType collectionPreType, Expression index) {
-      var resultPreType = CreatePreTypeProxy("seq selection");
+      var resultPreType = CreatePreTypeProxy("selection []");
       Constraints.AddGuardedConstraint(() => {
-        var sourcePreType = collectionPreType.NormalizeWrtScope() as DPreType;
+        var sourcePreType = Constraints.ApproximateReceiverType(tok, collectionPreType, null);
         if (sourcePreType != null) {
           var familyDeclName = AncestorName(sourcePreType);
           switch (familyDeclName) {
