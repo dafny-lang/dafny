@@ -24,7 +24,6 @@ namespace Microsoft.Dafny {
 
   public static class Util {
 
-
     public static bool LessThanOrEquals<T>(this T first, T second)
       where T : IComparable<T> {
       return first.CompareTo(second) != 1;
