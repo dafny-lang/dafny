@@ -7,7 +7,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
   /// A callback interface to report verification progress
   /// </summary>
   public interface IVerificationProgressReporter {
-    void RecomputeVerificationTrees(CompilationAfterResolution compilation);
+    void RecomputeVerificationTrees(CompilationAfterParsing compilation);
     void ReportRealtimeDiagnostics(CompilationAfterParsing compilation, Uri uri, bool verificationStarted);
 
     void ReportImplementationsBeforeVerification(CompilationAfterResolution compilation, ICanVerify canVerify, Implementation[] implementations);

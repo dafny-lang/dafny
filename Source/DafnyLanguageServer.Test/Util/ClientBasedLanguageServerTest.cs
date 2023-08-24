@@ -47,9 +47,9 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
   }
 
   protected async Task<TextDocumentItem> CreateAndOpenTestDocument(string source, string filePath = null,
-    int version = 1) {
+    int version = 1, CancellationToken? cancellationToken = null) {
     var document = CreateTestDocument(source, filePath, version);
-    await client.OpenDocumentAndWaitAsync(document, CancellationToken);
+    await client.OpenDocumentAndWaitAsync(document, cancellationToken ?? CancellationToken);
     return document;
   }
 
@@ -298,7 +298,7 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
       }
     }
     var verificationDocumentItem = CreateTestDocument("class X {does not parse", $"AssertNoDiagnosticsAreComing{fileIndex++}.dfy");
-    await client.OpenDocumentAndWaitAsync(verificationDocumentItem, CancellationToken);
+    await client.OpenDocumentAndWaitAsync(verificationDocumentItem, cancellationToken);
     var resolutionReport = await diagnosticsReceiver.AwaitNextNotificationAsync(cancellationToken);
     AssertM.Equal(verificationDocumentItem.Uri, resolutionReport.Uri,
       "1) Unexpected diagnostics were received whereas none were expected:\n" +

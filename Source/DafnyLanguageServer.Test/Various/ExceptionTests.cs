@@ -119,12 +119,12 @@ public class ExceptionTests : ClientBasedLanguageServerTest {
     }
 
     public Task<CompilationAfterParsing> ParseAsync(DafnyOptions options, Compilation compilation,
-      IReadOnlyDictionary<Uri, VerificationTree> migratedVerificationTrees, CancellationToken cancellationToken) {
-      return loader.ParseAsync(options, compilation, ImmutableDictionary<Uri, VerificationTree>.Empty, cancellationToken);
+      IReadOnlyDictionary<Uri, DocumentVerificationTree> migratedVerificationTrees, CancellationToken cancellationToken) {
+      return loader.ParseAsync(options, compilation, ImmutableDictionary<Uri, DocumentVerificationTree>.Empty, cancellationToken);
     }
 
     public Task<CompilationAfterResolution> ResolveAsync(DafnyOptions options, CompilationAfterParsing compilation,
-      IReadOnlyDictionary<Uri, VerificationTree> migratedVerificationTrees, CancellationToken cancellationToken) {
+      IReadOnlyDictionary<Uri, DocumentVerificationTree> migratedVerificationTrees, CancellationToken cancellationToken) {
       if (tests.CrashOnLoad) {
         throw new IOException("testing crash");
       }

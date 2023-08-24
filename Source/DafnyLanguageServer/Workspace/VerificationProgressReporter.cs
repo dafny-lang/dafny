@@ -28,14 +28,20 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
   /// Fills up the document with empty verification diagnostics, one for each top-level declarations
   /// Possibly migrates previous diagnostics
   /// </summary>
-  public void RecomputeVerificationTrees(CompilationAfterResolution compilation) {
-    foreach (var tree in compilation.VerificationTrees.Values) {
-      UpdateTree(options, compilation, tree);
+  public void RecomputeVerificationTrees(CompilationAfterParsing compilation) {
+    foreach (var uri in compilation.VerificationTrees.Keys) {
+      compilation.VerificationTrees[uri] = UpdateTree(options, compilation, compilation.VerificationTrees[uri]);
     }
   }
 
-  public static void UpdateTree(DafnyOptions options, CompilationAfterParsing parsedCompilation, VerificationTree rootVerificationTree) {
+  private static DocumentVerificationTree UpdateTree(DafnyOptions options, CompilationAfterParsing parsedCompilation, DocumentVerificationTree rootVerificationTree) {
     var previousTrees = rootVerificationTree.Children;
+
+    if (parsedCompilation is not CompilationAfterResolution) {
+      return new DocumentVerificationTree(parsedCompilation.Program, rootVerificationTree.Uri) {
+        Children = rootVerificationTree.Children
+      };
+    }
 
     List<VerificationTree> result = new List<VerificationTree>();
 
@@ -151,7 +157,9 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
       }
     }
 
-    rootVerificationTree.Children = result;
+    return new DocumentVerificationTree(parsedCompilation.Program, rootVerificationTree.Uri) {
+      Children = result
+    };
   }
 
   /// <summary>

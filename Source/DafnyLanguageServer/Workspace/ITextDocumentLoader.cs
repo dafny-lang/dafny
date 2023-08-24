@@ -22,10 +22,10 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     IdeState CreateUnloaded(Compilation compilation);
 
     Task<CompilationAfterParsing> ParseAsync(DafnyOptions options, Compilation compilation,
-      IReadOnlyDictionary<Uri, VerificationTree> migratedVerificationTrees, CancellationToken cancellationToken);
+      IReadOnlyDictionary<Uri, DocumentVerificationTree> migratedVerificationTrees, CancellationToken cancellationToken);
 
     Task<CompilationAfterResolution> ResolveAsync(DafnyOptions options, CompilationAfterParsing compilation,
-      IReadOnlyDictionary<Uri, VerificationTree> migratedVerificationTrees,
+      IReadOnlyDictionary<Uri, DocumentVerificationTree> migratedVerificationTrees,
       CancellationToken cancellationToken);
   }
 }

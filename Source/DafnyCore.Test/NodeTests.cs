@@ -1,7 +1,7 @@
 using System.Collections.Concurrent;
 using Microsoft.Dafny;
 
-namespace DafnyCore.Test; 
+namespace DafnyCore.Test;
 
 public class NodeTests {
 

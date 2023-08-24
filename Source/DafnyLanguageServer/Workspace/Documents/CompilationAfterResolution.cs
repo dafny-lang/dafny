@@ -7,6 +7,8 @@ using System.Threading.Tasks;
 using Microsoft.Boogie;
 using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Language.Symbols;
+using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
+using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
@@ -72,7 +74,6 @@ public class CompilationAfterResolution : CompilationAfterParsing {
   }
 
   public override IdeState ToIdeState(IdeState previousState) {
-
     IdeVerificationResult MergeVerifiable(ICanVerify canVerify) {
       var range = canVerify.NameToken.GetLspRange();
       var previousForCanVerify = previousState.GetVerificationResults(canVerify.NameToken.Uri).GetValueOrDefault(range) ??
@@ -108,7 +109,7 @@ public class CompilationAfterResolution : CompilationAfterParsing {
       SignatureAndCompletionTable = SignatureAndCompletionTable.Resolved ? SignatureAndCompletionTable : previousState.SignatureAndCompletionTable,
       GhostRanges = GhostDiagnostics,
       Counterexamples = new List<Counterexample>(Counterexamples),
-      VerificationTrees = VerificationTrees.ToDictionary(kv => kv.Key, kv => kv.Value.GetCopyForNotification()),
+      VerificationTrees = VerificationTrees.ToDictionary(kv => kv.Key, kv => (DocumentVerificationTree)kv.Value.GetCopyForNotification()),
       VerificationResults = Verifiables.GroupBy(l => l.NameToken.Uri).ToDictionary(k => k.Key,
         k => k.GroupBy(l => l.NameToken.GetLspRange()).ToDictionary(
           l => l.Key,

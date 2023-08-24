@@ -56,35 +56,65 @@ public class DafnyProject : IEquatable<DafnyProject> {
     if (!Uri.IsFile) {
       return new[] { Uri };
     }
+    var matcher = GetMatcher(out var searchRoot);
 
-    var matcher = GetMatcher();
-
-    var diskRoot = Path.GetPathRoot(Uri.LocalPath);
-    var result = matcher.Execute(fileSystem.GetDirectoryInfoBase(diskRoot));
-    var files = result.Files.Select(f => Path.Combine(diskRoot, f.Path));
+    var result = matcher.Execute(fileSystem.GetDirectoryInfoBase(searchRoot));
+    var files = result.Files.Select(f => Path.Combine(searchRoot, f.Path));
     return files.Select(file => new Uri(Path.GetFullPath(file)));
   }
 
   public bool ContainsSourceFile(Uri uri) {
-    var fileSystemWithSourceFile = new InMemoryDirectoryInfoFromDotNet8(Path.GetPathRoot(uri.LocalPath)!, new[] { uri.LocalPath });
-    return GetMatcher().Execute(fileSystemWithSourceFile).HasMatches;
+    var matcher = GetMatcher(out var searchRoot);
+    var fileSystemWithSourceFile = new InMemoryDirectoryInfoFromDotNet8(searchRoot, new[] { uri.LocalPath });
+    return matcher.Execute(fileSystemWithSourceFile).HasMatches;
   }
 
-  private Matcher GetMatcher() {
+  private Matcher GetMatcher(out string commonRoot) {
     var projectRoot = Path.GetDirectoryName(Uri.LocalPath)!;
-    var root = Path.GetPathRoot(Uri.LocalPath)!;
+    var diskRoot = Path.GetPathRoot(Uri.LocalPath)!;
+
+    var includes = Includes ?? new[] { "**/*.dfy" };
+    var excludes = Excludes ?? Array.Empty<string>();
+    var fullPaths = includes.Concat(excludes).Select(p => Path.GetFullPath(p, projectRoot)).ToList();
+    commonRoot = GetCommonParentDirectory(fullPaths) ?? diskRoot;
     var matcher = new Matcher();
-    foreach (var includeGlob in Includes ?? new[] { "**/*.dfy" }) {
-      var fullPath = Path.GetFullPath(includeGlob, projectRoot);
-      matcher.AddInclude(Path.GetRelativePath(root, fullPath));
+    foreach (var includeGlob in includes) {
+      matcher.AddInclude(Path.GetRelativePath(commonRoot, Path.GetFullPath(includeGlob, projectRoot)));
     }
 
-    foreach (var includeGlob in Excludes ?? Enumerable.Empty<string>()) {
-      var fullPath = Path.GetFullPath(includeGlob, projectRoot);
-      matcher.AddExclude(Path.GetRelativePath(root, fullPath));
+    foreach (var excludeGlob in excludes) {
+      matcher.AddExclude(Path.GetRelativePath(commonRoot, Path.GetFullPath(excludeGlob, projectRoot)));
     }
 
     return matcher;
+  }
+
+  string GetCommonParentDirectory(IReadOnlyList<string> strings) {
+    if (!strings.Any()) {
+      return null;
+    }
+    var commonPrefix = strings.FirstOrDefault() ?? "";
+
+    foreach (var newString in strings) {
+      var potentialMatchLength = Math.Min(newString.Length, commonPrefix.Length);
+
+      if (potentialMatchLength < commonPrefix.Length) {
+        commonPrefix = commonPrefix.Substring(0, potentialMatchLength);
+      }
+
+      for (var i = 0; i < potentialMatchLength; i++) {
+        if (newString[i] == '*' || newString[i] != commonPrefix[i]) {
+          commonPrefix = commonPrefix.Substring(0, i);
+          break;
+        }
+      }
+    }
+
+    if (!Path.EndsInDirectorySeparator(commonPrefix)) {
+      commonPrefix = Path.GetDirectoryName(commonPrefix);
+    }
+
+    return commonPrefix;
   }
 
   public void Validate(TextWriter outputWriter, IEnumerable<Option> possibleOptions) {

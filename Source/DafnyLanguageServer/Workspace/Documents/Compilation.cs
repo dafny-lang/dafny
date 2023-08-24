@@ -46,7 +46,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         SymbolTable.Empty(), LegacySignatureAndCompletionTable.Empty(options, initialCompilation.Project), new(),
         Array.Empty<Counterexample>(),
         ImmutableDictionary<Uri, IReadOnlyList<Range>>.Empty,
-        initialCompilation.RootUris.ToDictionary(uri => uri, uri => (VerificationTree)new DocumentVerificationTree(program, uri))
+        initialCompilation.RootUris.ToDictionary(uri => uri, uri => new DocumentVerificationTree(program, uri))
       ));
     }
 

@@ -11,12 +11,12 @@ namespace Microsoft.Dafny.LanguageServer.Workspace;
 
 public class CompilationAfterParsing : Compilation {
   public IReadOnlyDictionary<Uri, List<DafnyDiagnostic>> ResolutionDiagnostics { get; set; }
-  public Dictionary<Uri, VerificationTree> VerificationTrees { get; }
+  public Dictionary<Uri, DocumentVerificationTree> VerificationTrees { get; }
 
   public CompilationAfterParsing(Compilation compilation,
     Program program,
     IReadOnlyDictionary<Uri, List<DafnyDiagnostic>> diagnostics,
-    Dictionary<Uri, VerificationTree> verificationTrees)
+    Dictionary<Uri, DocumentVerificationTree> verificationTrees)
     : base(compilation.Version, compilation.Project, compilation.RootUris) {
     ResolutionDiagnostics = diagnostics;
     VerificationTrees = verificationTrees;

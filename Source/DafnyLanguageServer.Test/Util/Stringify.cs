@@ -80,6 +80,7 @@ public static class StringifyUtil {
     }
 
     Helper(ImmutableHashSet.Create<object>(), root, 0);
+    writer.Flush();
   }
 
   public static string Stringify(this object root, bool showNullChildren = false) {

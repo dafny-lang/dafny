@@ -1,4 +1,5 @@
 using System.IO;
+using DafnyCore.Test;
 using DafnyTestGeneration;
 using Bpl = Microsoft.Boogie;
 using BplParser = Microsoft.Boogie.Parser;

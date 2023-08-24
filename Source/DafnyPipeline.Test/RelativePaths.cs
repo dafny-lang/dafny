@@ -1,4 +1,5 @@
 using System.IO;
+using DafnyCore.Test;
 using Microsoft.Dafny;
 using Xunit;
 using Xunit.Abstractions;

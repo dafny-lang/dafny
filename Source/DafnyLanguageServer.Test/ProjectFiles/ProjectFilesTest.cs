@@ -99,23 +99,30 @@ function-syntax = 4";
   }
 
   [Fact]
-  public async Task FileOnlyAttachedToProjectFileThatAppliesToIt() {
+  public async Task FileOnlyAttachedToProjectFileThatIncludesIt() {
     await SetUp(options => options.WarnShadowing = false);
 
-    var projectFileSource = @"
+    var outerSource = @"
 [options]
 warn-shadowing = true
 ";
     var directory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
-    var outerProjectFile = CreateTestDocument(projectFileSource, Path.Combine(directory, DafnyProject.FileName));
+    var outerProjectFile = CreateTestDocument(outerSource, Path.Combine(directory, DafnyProject.FileName));
     await client.OpenDocumentAndWaitAsync(outerProjectFile, CancellationToken);
 
-    var innerProjectFile = CreateTestDocument("includes = []", Path.Combine(directory, "nested", DafnyProject.FileName));
+    var innerDirectory = Path.Combine(directory, "nested");
+    var innerProjectFile = CreateTestDocument("includes = []", Path.Combine(innerDirectory, DafnyProject.FileName));
     await client.OpenDocumentAndWaitAsync(innerProjectFile, CancellationToken);
 
-    var filePath = Path.Combine(Directory.GetCurrentDirectory(), "ProjectFiles/TestFiles/noWarnShadowing.dfy");
-    var source = await File.ReadAllTextAsync(filePath);
-    var documentItem = CreateTestDocument(source, Path.Combine(directory, "nested/A.dfy"));
+    var source = @"
+method Foo() {
+  var x := 3;
+  if (true) {
+    var x := 4;
+  }
+}
+";
+    var documentItem = CreateTestDocument(source, Path.Combine(innerDirectory, "A.dfy"));
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
     var diagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
     Assert.Single(diagnostics);

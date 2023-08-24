@@ -1,13 +1,8 @@
-// Copyright by the contributors to the Dafny Project
-// SPDX-License-Identifier: MIT
-
-#nullable disable
-using System.IO;
+#nullable enable
 using System.Text;
-using Microsoft.Extensions.Primitives;
 using Xunit.Abstractions;
 
-namespace DafnyTestGeneration.Test;
+namespace DafnyCore.Test;
 
 public class WriterFromOutputHelper : TextWriter {
   private readonly StringBuilder buffer = new();
@@ -17,7 +12,7 @@ public class WriterFromOutputHelper : TextWriter {
     this.output = output;
   }
 
-  public override void Write(string value) {
+  public override void Write(string? value) {
     if (value != null) {
       buffer.Append(value);
     }
@@ -29,12 +24,12 @@ public class WriterFromOutputHelper : TextWriter {
 
   public override Encoding Encoding => Encoding.Default;
 
-  public override void WriteLine(string value) {
+  public override void WriteLine(string? value) {
     output.WriteLine(buffer + value);
     buffer.Clear();
   }
 
-  public override void WriteLine(string format, params object[] arg) {
+  public override void WriteLine(string format, params object?[] arg) {
     output.WriteLine(buffer + format, arg);
     buffer.Clear();
   }
