@@ -36,7 +36,7 @@ public class ProgramResolver {
 
     // Changing modules at this stage without changing their CloneId doesn't break resolution caching,
     // because ResolvedPrefixNamedModules end up in the dependencies of a module so they change its hash anyways
-    Program.DefaultModuleDef.ProcessPrefixNamedModules();
+    Program.DefaultModuleDef.ProcessPrefixNamedModules(true);
 
     var startingErrorCount = Reporter.ErrorCount;
     ComputeModuleDependencyGraph(Program, out var moduleDeclarationPointers);

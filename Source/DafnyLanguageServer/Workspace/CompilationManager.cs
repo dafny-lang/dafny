@@ -168,7 +168,9 @@ public class CompilationManager {
     }
 
     var containingModule = verifiable.ContainingModule;
-
+    if (!containingModule.ShouldVerify(compilation.Program.Compilation)) {
+      return false;
+    }
     IncrementJobs();
 
     IReadOnlyDictionary<FilePosition, IReadOnlyList<IImplementationTask>> tasksForModule;

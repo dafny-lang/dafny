@@ -433,7 +433,7 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
     return true;
   }
 
-  public void ProcessPrefixNamedModules() {
+  public void ProcessPrefixNamedModules(bool setRange) {
     // moduleDecl.PrefixNamedModules is a list of pairs like:
     //     A.B.C  ,  module D { ... }
     // We collect these according to the first component of the prefix, like so:
@@ -452,14 +452,15 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
         prefixModules = prefixModules.ConvertAll(ShortenPrefix);
       }
 
-      ProcessPrefixNamedModules(prefixModules, subDecl);
+      ProcessPrefixNamedModules(prefixModules, subDecl, setRange);
     }
 
     // Next, add new modules for any remaining entries in "prefixNames".
     foreach (var (name, prefixNamedModules) in prefixModulesByFirstPart) {
       var firstPartToken = prefixNamedModules.First().Parts[0];
       var module = prefixNamedModules.First().Module;
-      var modDef = new ModuleDefinition(module.RangeToken, new Name(firstPartToken.ToRange(), name), new List<IToken>(), false,
+      var range = setRange ? module.RangeToken : RangeToken.NoToken;
+      var modDef = new ModuleDefinition(range, new Name(firstPartToken.ToRange(), name), new List<IToken>(), false,
         false, null, this, null, false);
       // Add the new module to the top-level declarations of its parent and then bind its names as usual
 
@@ -467,11 +468,12 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
       var cloneId = Guid.Empty;
       var subDecl = new LiteralModuleDecl(modDef, this, cloneId);
       ResolvedPrefixNamedModules.Add(subDecl);
-      ProcessPrefixNamedModules(prefixNamedModules.ConvertAll(ShortenPrefix), subDecl);
+      // only set the range on the last submodule of the chain, since the others can be part of multiple files
+      ProcessPrefixNamedModules(prefixNamedModules.ConvertAll(ShortenPrefix), subDecl, false);
     }
   }
 
-  private static void ProcessPrefixNamedModules(List<PrefixNameModule> prefixModules, LiteralModuleDecl subDecl) {
+  private static void ProcessPrefixNamedModules(List<PrefixNameModule> prefixModules, LiteralModuleDecl subDecl, bool setRange) {
     // Transfer prefix-named modules downwards into the sub-module
     if (prefixModules != null) {
       foreach (var prefixModule in prefixModules) {
@@ -487,7 +489,7 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
       }
     }
 
-    subDecl.ModuleDef.ProcessPrefixNamedModules();
+    subDecl.ModuleDef.ProcessPrefixNamedModules(setRange);
   }
 
   public ModuleBindings BindModuleNames(ProgramResolver resolver, ModuleBindings parentBindings) {
