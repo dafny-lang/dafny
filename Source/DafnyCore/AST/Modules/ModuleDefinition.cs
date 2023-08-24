@@ -457,10 +457,9 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
 
     // Next, add new modules for any remaining entries in "prefixNames".
     foreach (var (name, prefixNamedModules) in prefixModulesByFirstPart) {
-      var firstPartToken = prefixNamedModules.First().Parts[0];
-      var module = prefixNamedModules.First().Module;
-      var range = setRange ? module.RangeToken : RangeToken.NoToken;
-      var modDef = new ModuleDefinition(range, new Name(firstPartToken.ToRange(), name), new List<IToken>(), false,
+      var prefixNameModule = prefixNamedModules.First();
+      var firstPartToken = prefixNameModule.Parts[0];
+      var modDef = new ModuleDefinition(RangeToken.NoToken, new Name(firstPartToken.ToRange(), name), new List<IToken>(), false,
         false, null, this, null, false);
       // Add the new module to the top-level declarations of its parent and then bind its names as usual
 

@@ -69,9 +69,6 @@ public class ProgramParser {
       }
 
       AddParseResultToProgram(parseResult, program);
-      if (defaultModule.RangeToken.StartToken.Uri == null) {
-        defaultModule.RangeToken = parseResult.Module.RangeToken;
-      }
     }
 
     if (!(options.DisallowIncludes || options.PrintIncludesMode == DafnyOptions.IncludesModes.Immediate)) {
