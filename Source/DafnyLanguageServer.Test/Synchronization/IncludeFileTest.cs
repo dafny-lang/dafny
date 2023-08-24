@@ -28,7 +28,7 @@ method Test() {
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
     var document = await Projects.GetResolvedDocumentAsyncNormalizeUri(documentItem.Uri);
     Assert.NotNull(document);
-    Assert.All(document.GetDiagnostics(), a => Assert.Empty(a.Value));
+    Assert.Empty(document.GetAllDiagnostics());
   }
 
   // https://github.com/dafny-lang/language-server-csharp/issues/40
@@ -134,7 +134,7 @@ ensures Foo(x) {{
 
 }}".TrimStart();
     await File.WriteAllTextAsync(temp, producer);
-    var documentItem2 = CreateTestDocument(consumer);
+    var documentItem2 = CreateTestDocument(consumer, "MethodWhosePostConditionFailsAndDependsOnIncludedFile.dfy");
     client.OpenDocument(documentItem2);
     var verificationDiagnostics = await GetLastDiagnostics(documentItem2, CancellationToken);
     Assert.Single(verificationDiagnostics);
