@@ -1,4 +1,3 @@
-// NONUNIFORM: Further bugs in C#, JS, and Java
 // RUN: %testDafnyForEachCompiler "%s"
 
 module AnyName {

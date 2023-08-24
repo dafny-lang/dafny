@@ -107,6 +107,8 @@ namespace Microsoft.Dafny.Compilers {
       wr.WriteLine();
       Imports.ForEach(module => wr.WriteLine($"import {module}"));
       if (moduleName != null) {
+        wr.WriteLine();
+        wr.WriteLine($"# Module: {moduleName}");
         Imports.Add(moduleName);
       }
     }
