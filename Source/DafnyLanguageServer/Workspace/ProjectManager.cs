@@ -52,7 +52,6 @@ public class ProjectManager : IDisposable {
   private VerifyOnMode AutomaticVerificationMode => options.Get(ServerCommand.Verification);
 
   private bool VerifyOnSave => options.Get(ServerCommand.Verification) == VerifyOnMode.Save;
-  public List<FilePosition> ChangedVerifiables { get; set; } = new();
   public List<Location> RecentChanges { get; set; } = new();
 
   private readonly DafnyOptions options;
@@ -103,8 +102,8 @@ public class ProjectManager : IDisposable {
   private const int MaxRememberedChangedVerifiables = 5;
 
   public void UpdateDocument(DidChangeTextDocumentParams documentChange) {
-    var changeProcessor = createMigrator(documentChange, CancellationToken.None);
-    observer.Migrate(changeProcessor, version + 1);
+    var migrator = createMigrator(documentChange, CancellationToken.None);
+    observer.Migrate(migrator, version + 1);
     var lastPublishedState = observer.LastPublishedState;
     var migratedVerificationTrees = lastPublishedState.VerificationTrees;
 
@@ -115,7 +114,11 @@ public class ProjectManager : IDisposable {
           Uri = documentChange.TextDocument.Uri
         });
       var migratedChanges = RecentChanges.Select(location => {
-        var newRange = changeProcessor.MigrateRange(location.Range);
+        if (location.Uri != documentChange.TextDocument.Uri) {
+          return location;
+        }
+
+        var newRange = migrator.MigrateRange(location.Range);
         if (newRange == null) {
           return null;
         }
@@ -259,11 +262,9 @@ public class ProjectManager : IDisposable {
         verifiables = verifiables.Where(d => d.Tok.Uri == uri).ToList();
       }
 
+      List<FilePosition> changedVerifiables;
       lock (RecentChanges) {
-        var freshlyChangedVerifiables = GetChangedVerifiablesFromRanges(resolvedCompilation, RecentChanges);
-        ChangedVerifiables = freshlyChangedVerifiables.Concat(ChangedVerifiables).Distinct()
-          .Take(MaxRememberedChangedVerifiables).ToList();
-        RecentChanges = new List<Location>();
+        changedVerifiables = GetChangedVerifiablesFromRanges(resolvedCompilation, RecentChanges).ToList();
       }
 
       int GetPriorityAttribute(ISymbol symbol) {
@@ -278,7 +279,7 @@ public class ProjectManager : IDisposable {
       int TopToBottomPriority(ISymbol symbol) {
         return symbol.Tok.pos;
       }
-      var implementationOrder = ChangedVerifiables.Select((v, i) => (v, i)).ToDictionary(k => k.v, k => k.i);
+      var implementationOrder = changedVerifiables.Select((v, i) => (v, i)).ToDictionary(k => k.v, k => k.i);
       var orderedVerifiables = verifiables.OrderByDescending(GetPriorityAttribute).CreateOrderedEnumerable(
         t => implementationOrder.GetOrDefault(t.Tok.GetFilePosition(), () => int.MaxValue),
         null, false).CreateOrderedEnumerable(TopToBottomPriority, null, false).ToList();
