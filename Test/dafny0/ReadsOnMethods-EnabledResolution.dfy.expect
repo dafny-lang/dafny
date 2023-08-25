@@ -1,0 +1,5 @@
+ReadsOnMethods-EnabledResolution.dfy(21,22): Error: lemmas are not allowed to have reads clauses
+ReadsOnMethods-EnabledResolution.dfy(23,39): Error: twostate lemmas are not allowed to have reads clauses
+ReadsOnMethods-EnabledResolution.dfy(25,43): Error: greatest lemmas are not allowed to have reads clauses
+ReadsOnMethods-EnabledResolution.dfy(27,42): Error: least lemmas are not allowed to have reads clauses
+4 resolution/type errors detected in ReadsOnMethods-EnabledResolution.dfy

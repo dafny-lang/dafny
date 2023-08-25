@@ -776,7 +776,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public static void RegisterByMethod(Function f, TopLevelDeclWithMembers cl) {
+    public void RegisterByMethod(Function f, TopLevelDeclWithMembers cl) {
       Contract.Requires(f != null && f.ByMethodBody != null);
 
       var tok = f.ByMethodTok;
@@ -797,7 +797,7 @@ namespace Microsoft.Dafny {
       // Alternatively, we could have a flag similar to InferredDecreases to distinguish between
       // "not given" and "explicitly empty".
       var reads = f.Reads;
-      if (!reads.Any()) {
+      if (Options.Get(CommonOptionBag.ReadsClausesOnMethods) && !reads.Any()) {
         reads = new List<FrameExpression>();
         var emptySet = new SetDisplayExpr(tok, true, new List<Expression>());
         reads.Add(new FrameExpression(tok, emptySet, null));

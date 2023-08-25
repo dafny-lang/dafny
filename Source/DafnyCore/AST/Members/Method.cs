@@ -285,16 +285,23 @@ public class Method : MemberDecl, TypeParameter.ParentType, IMethodCodeContext, 
       }
 
       // TODO: May not be the right place to set the default, and may want something similar to InferredDecreases
-      // TODO: Might be clearer to add a resolved `reads *` after instead.
-      if (!Reads.Any() && !IsLemmaLike) {
+      // TODO: Might be clearer to add a resolved `reads *` after instead,
+      // or to add it unresolved as we do here but in an earlier hook like
+      // ResolveNamesAndInferTypesForOneDeclarationInitial?
+      var readsClausesOnMethodsEnabled = resolver.Options.Get(CommonOptionBag.ReadsClausesOnMethods);
+      if (readsClausesOnMethodsEnabled && !Reads.Any() && !IsLemmaLike) {
         // Note that `reads *` is the right default for backwards-compatibility,
-        // but we may want to infer a sensible default like decreases clauses instead.
+        // but we may want to infer a sensible default like decreases clauses instead in the future.
         Reads.Add(new FrameExpression(tok, new WildcardExpr(tok), null));
       }
       foreach (FrameExpression fe in Reads) {
         resolver.ResolveFrameExpressionTopLevel(fe, FrameExpressionUse.Reads, this);
         if (IsLemmaLike) {
-          resolver.reporter.Error(MessageSource.Resolver, fe.tok, "{0}s are not allowed to have modifies clauses", WhatKind);
+          resolver.reporter.Error(MessageSource.Resolver, fe.tok, "{0}s are not allowed to have reads clauses",
+            WhatKind);
+        } else if (!readsClausesOnMethodsEnabled) {
+          resolver.reporter.Error(MessageSource.Resolver, fe.tok,
+            "reads clauses on methods are forbidden without the --reads-clauses-on-methods option");
         } else if (IsGhost) {
           resolver.DisallowNonGhostFieldSpecifiers(fe);
         }

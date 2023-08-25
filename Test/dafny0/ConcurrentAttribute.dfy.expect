@@ -1,0 +1,5 @@
+ConcurrentAttribute.dfy(20,25): Error: reads clause might not be empty ({:concurrent} restriction)
+ConcurrentAttribute.dfy(35,23): Error: reads clause might not be empty ({:concurrent} restriction)
+ConcurrentAttribute.dfy(46,23): Error: modifies clause might not be empty ({:concurrent} restriction)
+
+Dafny program verifier finished with 8 verified, 3 errors

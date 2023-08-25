@@ -193,6 +193,10 @@ true - Print debug information for the new type system.".TrimStart()) {
   public static readonly Option<bool> UseJavadocLikeDocstringRewriterOption = new("--javadoclike-docstring-plugin",
     "Rewrite docstrings using a simple Javadoc-to-markdown converter"
   );
+  
+  public static readonly Option<bool> ReadsClausesOnMethods = new("--reads-clauses-on-methods",
+    "Allows reads clauses on methods as well as functions."
+  );
 
   public enum TestAssumptionsMode {
     None,
@@ -297,7 +301,8 @@ Functionality is still being expanded. Currently only checks contracts on every 
         { OptimizeErasableDatatypeWrapper, DooFile.CheckOptionMatches },
         // Similarly this shouldn't matter if external code ONLY refers to {:extern}s,
         // but in practice it does.
-        { AddCompileSuffix, DooFile.CheckOptionMatches }
+        { AddCompileSuffix, DooFile.CheckOptionMatches },
+        { ReadsClausesOnMethods, DooFile.CheckOptionMatches },
       }
     );
     DooFile.RegisterNoChecksNeeded(

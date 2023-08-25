@@ -544,7 +544,7 @@ namespace Microsoft.Dafny {
       // Also don't do any reads checks if the reads clause is *,
       // since all the checks will be vacuously true
       // and we don't need to cause additional verification cost for existing code.
-      if (m.IsLemmaLike || m.Reads.Exists(e => e.E is WildcardExpr)) {
+      if (!options.Get(CommonOptionBag.ReadsClausesOnMethods) || m.IsLemmaLike || m.Reads.Exists(e => e.E is WildcardExpr)) {
         etran = etran.WithReadsFrame(null);
       }
       InitializeFuelConstant(m.tok, builder, etran);

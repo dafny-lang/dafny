@@ -5390,8 +5390,8 @@ namespace Microsoft.Dafny {
         kv = new Bpl.QKeyValue(expr.tok, "subsumption", args, null);
       }
       var options = new WFOptions(kv);
-      // Only do reads checks if the reads clause is not *
-      // This is important to avoid any extra verification cost for backwards compatibility.
+      // Only do reads checks if reads clauses on methods are enabled and the reads clause is not *.
+      // The latter is important to avoid any extra verification cost for backwards compatibility.
       if (etran.readsFrame != null) {
         options = options.WithReadsChecks(true);
       }
