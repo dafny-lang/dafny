@@ -17,6 +17,17 @@ record FlowContext(SystemModuleManager SystemModuleManager, ErrorReporter Report
   public TextWriter OutputWriter => SystemModuleManager.Options.OutputWriter;
 }
 
+/// <summary>
+/// A "Flow" is a puzzle piece in recomputing types. The "type adjustment" phase defines a set of flows and then
+/// recomputes types until it reaches a fix point.
+///
+/// For example, the type adjustment phase will use a FlowIntoVariable to define a flow from the RHS of an assignment to
+/// the LHS. It will use a FlowBetweenExpressions to define a flow from the "then" branch of an "if-then-else" expression
+/// to the "if-then-else" expression itself, and will use another FlowBetweenExpressions to define the analogous flow from
+/// the "else" branch.
+///
+/// For more information about type adjustments, flow, and the whole type inference process, see docs/TypeSystemRefresh.md.
+/// </summary>
 abstract class Flow {
   private readonly IToken tok;
   private readonly string description;

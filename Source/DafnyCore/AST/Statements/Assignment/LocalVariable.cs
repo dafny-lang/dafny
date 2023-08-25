@@ -88,6 +88,10 @@ public class LocalVariable : RangeNode, IVariable, IAttributeBearingDeclaration 
       return type.Normalize();
     }
   }
+
+  /// <summary>
+  /// For a description of the difference between .Type and .UnnormalizedType, see Expression.UnnormalizedType.
+  /// </summary>
   public Type UnnormalizedType {
     get {
       Contract.Ensures(Contract.Result<Type>() != null);
