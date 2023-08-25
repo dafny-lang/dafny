@@ -1,0 +1,12 @@
+ReadsOnMethods.dfy(19,16): Error: insufficient reads clause to read field
+ReadsOnMethods.dfy(29,29): Error: insufficient reads clause to read field
+ReadsOnMethods.dfy(44,32): Error: insufficient reads clause to read field
+ReadsOnMethods.dfy(54,29): Error: insufficient reads clause to read field
+ReadsOnMethods.dfy(73,29): Error: insufficient reads clause to read field
+ReadsOnMethods.dfy(147,35): Error: function precondition could not be proved
+ReadsOnMethods.dfy(147,35): Error: insufficient reads clause to invoke function
+ReadsOnMethods.dfy(151,37): Error: insufficient reads clause to invoke function
+ReadsOnMethods.dfy(166,10): Error: insufficient reads clause to read field
+ReadsOnMethods.dfy(179,25): Error: insufficient reads clause to read field
+
+Dafny program verifier finished with 21 verified, 11 errors

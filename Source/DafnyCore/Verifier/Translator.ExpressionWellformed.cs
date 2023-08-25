@@ -369,7 +369,7 @@ namespace Microsoft.Dafny {
                 }
               }
             }
-            if (wfOptions.DoReadsChecks && e.Member is Field && ((Field)e.Member).IsMutable) {
+            if (!origOptions.LValueContext && wfOptions.DoReadsChecks && e.Member is Field && ((Field)e.Member).IsMutable) {
               wfOptions.AssertSink(this, builder)(selectExpr.tok, Bpl.Expr.SelectTok(selectExpr.tok, etran.ReadsFrame(selectExpr.tok), etran.TrExpr(e.Obj), GetField(e)),
                 new PODesc.FrameSubset("read field", false), wfOptions.AssertKv);
             }
@@ -419,7 +419,7 @@ namespace Microsoft.Dafny {
                   new PODesc.SequenceSelectRangeValid(e.Seq, e.E0, e.E1, isSequence ? "sequence" : "array"), wfOptions.AssertKv));
               }
             }
-            if (wfOptions.DoReadsChecks && eSeqType.IsArrayType) {
+            if (!origOptions.LValueContext && wfOptions.DoReadsChecks && eSeqType.IsArrayType) {
               if (e.SelectOne) {
                 Contract.Assert(e.E0 != null);
                 var i = etran.TrExpr(e.E0);

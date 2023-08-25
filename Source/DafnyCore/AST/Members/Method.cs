@@ -285,17 +285,17 @@ public class Method : MemberDecl, TypeParameter.ParentType, IMethodCodeContext, 
       }
 
       // TODO: May not be the right place to set the default, and may want something similar to InferredDecreases
-      if (!Reads.Any()) {
-        // TODO: Just experimenting to see how compatible defaulting to `reads {}` for lemmas is...
-        if (!IsLemmaLike) {
-          // Note that `reads *` is the right default for backwards-compatibility,
-          // but we may want to infer a sensible default like decreases clauses instead.
-          Reads.Add(new FrameExpression(tok, new WildcardExpr(tok), null));
-        }
+      // TODO: Might be clearer to add a resolved `reads *` after instead.
+      if (!Reads.Any() && !IsLemmaLike) {
+        // Note that `reads *` is the right default for backwards-compatibility,
+        // but we may want to infer a sensible default like decreases clauses instead.
+        Reads.Add(new FrameExpression(tok, new WildcardExpr(tok), null));
       }
       foreach (FrameExpression fe in Reads) {
         resolver.ResolveFrameExpressionTopLevel(fe, FrameExpressionUse.Reads, this);
-        if (IsGhost) {
+        if (IsLemmaLike) {
+          resolver.reporter.Error(MessageSource.Resolver, fe.tok, "{0}s are not allowed to have modifies clauses", WhatKind);
+        } else if (IsGhost) {
           resolver.DisallowNonGhostFieldSpecifiers(fe);
         }
       }

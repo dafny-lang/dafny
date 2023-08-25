@@ -9,10 +9,9 @@ github-issue-reads-on-methods.dfy(134,13): Error: insufficient reads clause to r
 github-issue-reads-on-methods.dfy(136,4): Error: insufficient reads clause to read field
 github-issue-reads-on-methods.dfy(210,13): Error: insufficient reads clause to read field
 github-issue-reads-on-methods.dfy(217,50): Error: insufficient reads clause to read field
-github-issue-reads-on-methods.dfy(8,9): Error: insufficient reads clause to read field
 github-issue-reads-on-methods.dfy(157,9): Error: method might read an object not in the parent trait context's reads clause
 github-issue-reads-on-methods.dfy(170,25): Error: reads clause might not be empty ({:concurrent} restriction)
 github-issue-reads-on-methods.dfy(185,23): Error: reads clause might not be empty ({:concurrent} restriction)
 github-issue-reads-on-methods.dfy(196,23): Error: modifies clause might not be empty ({:concurrent} restriction)
 
-Dafny program verifier finished with 26 verified, 15 errors
+Dafny program verifier finished with 30 verified, 14 errors

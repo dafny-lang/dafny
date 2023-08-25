@@ -539,10 +539,12 @@ namespace Microsoft.Dafny {
       var builderInitializationArea = new BoogieStmtListBuilder(this, options);
       builder.Add(new CommentCmd("AddMethodImpl: " + m + ", " + proc));
       var etran = new ExpressionTranslator(this, predef, m.tok);
-      // Don't do any reads checks if the reads clause is *,
+      // Only do reads checks for methods, not lemmas
+      // (which aren't allowed to declare frames and don't check reads and writes against them).
+      // Also don't do any reads checks if the reads clause is *,
       // since all the checks will be vacuously true
       // and we don't need to cause additional verification cost for existing code.
-      if (m.Reads.Count == 1 && m.Reads.Exists(e => e.E is WildcardExpr)) {
+      if (m.IsLemmaLike || m.Reads.Exists(e => e.E is WildcardExpr)) {
         etran = etran.WithReadsFrame(null);
       }
       InitializeFuelConstant(m.tok, builder, etran);

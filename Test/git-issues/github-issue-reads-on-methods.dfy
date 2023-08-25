@@ -2,13 +2,13 @@
 // RUN: %diff "%s.expect" "%t"
 
 class Box<T> {
-  constructor(x: T) 
+  var x: T
+
+  constructor(x: T)
     reads {}
   {
-    this.x := x;  // BUG: Last segment of a LHS path shouldn't be considered a read
-                  // OR allow reads in the first half of a constructor
+    this.x := x;
   }
-  var x: T
 }
 
 method SetBox(b: Box<int>, i: int) 
@@ -222,7 +222,7 @@ method DefaultValueReads(b: Box<int>, x: int := b.x)  // Error: insufficient rea
 }
 
 // TODO:
-// * this field reads should be allowed in the first half of constructors
+// * Add CLI option!
 // * stress test well-formedness of reads clauses (e.g. when depending on method preconditions)
 //   * Also need to apply reads clauses to all other clauses, and default values
 // * Double check refinement
@@ -234,3 +234,31 @@ method DefaultValueReads(b: Box<int>, x: int := b.x)  // Error: insufficient rea
 // * Missing check for reads clause not allowed to depend on set of allocated objects (?)
 // * Document explicit choice not to include method reads clause in decreases clause (backwards compatibility)
 // * Document explicit choice not to change autocontracts (?)
+// * Invoking twostate things from methods
+// * Example for the need to add fresh loop invariants in functions by methods?
+// * Ensuring LHS' aren't checked as reads (LValueContext) - this.x working, array setting not working
+//   * Lots of cases!
+// * Array reads!!
+
+
+function Partition(s: seq<int>, p: int -> bool, a: array<int>): (seq<int>, seq<int>) {
+  ([], [])
+} by method {
+  var b := new int[10];
+  var loop := true;
+  while loop
+    decreases loop
+  {
+    b[0] := 42;
+    loop := false;
+  }
+  b[0] := 42;
+  return ([], []);
+}
+
+const f := (b: Box<T>) reads b => b.x
+
+
+lemma Dorp(b: Box<T>) {
+  assert b.x == b.x;
+}
