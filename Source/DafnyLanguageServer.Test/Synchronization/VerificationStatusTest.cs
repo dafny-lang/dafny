@@ -16,6 +16,39 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization;
 public class VerificationStatusTest : ClientBasedLanguageServerTest {
 
   [Fact]
+  public async Task TryingToVerifyShowsUpAsQueued() {
+    var source = @"
+method Foo() returns (x: int) ensures x / 2 == 1; {
+  return 2;
+}
+
+method Bar() returns (x: int) ensures x / 2 == 1; {
+  return 2;
+}
+
+method Zap() returns (x: int) ensures x / 2 == 1; {
+  return 2;
+}".TrimStart();
+    await SetUp(options => {
+      options.Set(ServerCommand.Verification, VerifyOnMode.Never);
+    });
+    var documentItem1 = await CreateAndOpenTestDocument(source, "PreparingVerificationShowsUpAsAllQueued.dfy");
+    _ = client.RunSymbolVerification(documentItem1, new Position(0, 7), CancellationToken);
+    _ = client.RunSymbolVerification(documentItem1, new Position(4, 7), CancellationToken);
+    while (true) {
+      var status = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
+      if (status.NamedVerifiables.Count(v => v.Status == PublishedVerificationStatus.Queued) == 2) {
+        Assert.Contains(status.NamedVerifiables, v => v.Status == PublishedVerificationStatus.Stale);
+        return;
+      }
+
+      if (status.NamedVerifiables.All(v => v.Status >= PublishedVerificationStatus.Error)) {
+        Assert.Fail("Finished without getting to a dual queued state");
+      }
+    }
+  }
+
+  [Fact]
   public async Task RunWithMultipleSimilarDocuments() {
     var source = @"
 method Foo() returns (x: int) ensures x / 2 == 1; {

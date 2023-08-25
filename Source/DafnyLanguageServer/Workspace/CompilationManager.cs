@@ -167,6 +167,9 @@ public class CompilationManager {
       throw new TaskCanceledException();
     }
 
+    compilation.TriedToVerify.Add(verifiable); // TODO should we fail here when trying to verify the same thing multiple times over???
+                                               // I'm guessing it fails anyways when queueing the task at Boogie.
+    compilationUpdates.OnNext(compilation);
     var containingModule = verifiable.ContainingModule;
 
     IncrementJobs();

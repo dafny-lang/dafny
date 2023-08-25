@@ -66,7 +66,7 @@ public abstract class Node : INode {
       var childrenFiltered = GetConcreteChildren(this).ToList();
 
       Dictionary<int, IToken> startToEndTokenNotOwned;
-      try {
+      try { // TODO use groupBy to avoid exception handling
         startToEndTokenNotOwned =
           childrenFiltered
             .ToDictionary(child => child.StartToken.pos, child => child.EndToken!);
