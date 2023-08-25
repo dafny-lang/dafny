@@ -164,7 +164,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    private ProofDependencyManager proofDependencies;
+    private ProofDependencyManager? proofDependencies;
 
     // optimizing translation
     readonly ISet<MemberDecl> referencedMembers = new HashSet<MemberDecl>();
@@ -1764,7 +1764,7 @@ namespace Microsoft.Dafny {
       }
       // check well-formedness of the preconditions, and then assume each one of them
       foreach (var p in iter.Requires) {
-        CheckWellformedAndAssume(p.E, new WFOptions(), localVariables, builder, etran);
+        CheckWellformedAndAssume(p.E, new WFOptions(), localVariables, builder, etran, "iterator requires clause");
       }
       // check well-formedness of the modifies and reads clauses
       CheckFrameWellFormed(new WFOptions(), iter.Modifies.Expressions, localVariables, builder, etran);
@@ -1776,7 +1776,7 @@ namespace Microsoft.Dafny {
 
       // Next, we assume about this.* whatever we said that the iterator constructor promises
       foreach (var p in iter.Member_Init.Ens) {
-        builder.Add(TrAssumeCmdWithDependencies(etran, p.E.tok, p.E));
+        builder.Add(TrAssumeCmdWithDependencies(etran, p.E.tok, p.E, "iterator ensures clause"));
       }
 
       // play havoc with the heap, except at the locations prescribed by (this._reads - this._modifies - {this})
@@ -1798,7 +1798,7 @@ namespace Microsoft.Dafny {
 
       // check well-formedness of the user-defined part of the yield-requires
       foreach (var p in iter.YieldRequires) {
-        CheckWellformedAndAssume(p.E, new WFOptions(), localVariables, builder, etran);
+        CheckWellformedAndAssume(p.E, new WFOptions(), localVariables, builder, etran, "iterator yield-requires clause");
       }
 
       // save the heap (representing the state where yield-requires holds):  $_OldIterHeap := Heap;
@@ -1819,13 +1819,13 @@ namespace Microsoft.Dafny {
       setDiff.ResolvedOp = BinaryExpr.ResolvedOpcode.SetDifference; setDiff.Type = nw.Type;  // resolve here
       Expression cond = new FreshExpr(iter.tok, setDiff);
       cond.Type = Type.Bool;  // resolve here
-      builder.Add(TrAssumeCmdWithDependencies(yeEtran, iter.tok, cond));
+      builder.Add(TrAssumeCmd(iter.tok, yeEtran.TrExpr(cond)));
 
       // check wellformedness of postconditions
       var yeBuilder = new BoogieStmtListBuilder(this, options);
       var endBuilder = new BoogieStmtListBuilder(this, options);
       // In the yield-ensures case:  assume this.Valid();
-      yeBuilder.Add(TrAssumeCmdWithDependencies(yeEtran, iter.tok, validCall));
+      yeBuilder.Add(TrAssumeCmdWithDependencies(yeEtran, iter.tok, validCall, "iterator validity"));
       Contract.Assert(iter.OutsFields.Count == iter.OutsHistoryFields.Count);
       for (int i = 0; i < iter.OutsFields.Count; i++) {
         var y = iter.OutsFields[i];
@@ -1840,16 +1840,16 @@ namespace Microsoft.Dafny {
         concat.ResolvedOp = BinaryExpr.ResolvedOpcode.Concat; concat.Type = oldThisYs.Type;  // resolve here
 
         // In the yield-ensures case:  assume this.ys == old(this.ys) + [this.y];
-        yeBuilder.Add(TrAssumeCmd(iter.tok, Bpl.Expr.Eq(yeEtran.TrExpr(thisYs), yeEtran.TrExpr(concat)))); // TODO: track?
+        yeBuilder.Add(TrAssumeCmd(iter.tok, Bpl.Expr.Eq(yeEtran.TrExpr(thisYs), yeEtran.TrExpr(concat))));
         // In the ensures case:  assume this.ys == old(this.ys);
-        endBuilder.Add(TrAssumeCmd(iter.tok, Bpl.Expr.Eq(yeEtran.TrExpr(thisYs), yeEtran.TrExpr(oldThisYs)))); // TODO: track?
+        endBuilder.Add(TrAssumeCmd(iter.tok, Bpl.Expr.Eq(yeEtran.TrExpr(thisYs), yeEtran.TrExpr(oldThisYs))));
       }
 
       foreach (var p in iter.YieldEnsures) {
-        CheckWellformedAndAssume(p.E, new WFOptions(), localVariables, yeBuilder, yeEtran);
+        CheckWellformedAndAssume(p.E, new WFOptions(), localVariables, yeBuilder, yeEtran, "iterator yield-ensures clause");
       }
       foreach (var p in iter.Ensures) {
-        CheckWellformedAndAssume(p.E, new WFOptions(), localVariables, endBuilder, yeEtran);
+        CheckWellformedAndAssume(p.E, new WFOptions(), localVariables, endBuilder, yeEtran, "iterator ensures clause");
       }
       builder.Add(new Bpl.IfCmd(iter.tok, null, yeBuilder.Collect(iter.tok), null, endBuilder.Collect(iter.tok)));
 
@@ -1909,12 +1909,12 @@ namespace Microsoft.Dafny {
           // don't include this precondition here
           Contract.Assert(p.Label.E != null);  // it should already have been recorded
         } else {
-          builder.Add(TrAssumeCmdWithDependencies(etran, p.E.tok, p.E));
+          builder.Add(TrAssumeCmdWithDependencies(etran, p.E.tok, p.E, "iterator constructor requires clause"));
         }
       }
       foreach (var p in iter.Member_Init.Ens) {
         // these postconditions are two-state predicates, but that's okay, because we haven't changed anything yet
-        builder.Add(TrAssumeCmdWithDependencies(etran, p.E.tok, p.E));
+        builder.Add(TrAssumeCmdWithDependencies(etran, p.E.tok, p.E, "iterator constructor ensures clause"));
       }
       // add the _yieldCount variable, and assume its initial value to be 0
       yieldCountVariable = new Bpl.LocalVariable(iter.tok,
@@ -3656,7 +3656,7 @@ namespace Microsoft.Dafny {
 
       //generating class post-conditions
       foreach (var en in f.Ens) {
-        builder.Add(TrAssumeCmdWithDependencies(etran, f.tok, en.E));
+        builder.Add(TrAssumeCmdWithDependencies(etran, f.tok, en.E, "overridden function ensures clause"));
       }
 
       //generating assume C.F(ins) == out, if a result variable was given
@@ -3688,7 +3688,7 @@ namespace Microsoft.Dafny {
 
         var funcExpC = new Bpl.NAryExpr(f.tok, funcIdC, argsC);
         var resultVar = new Bpl.IdentifierExpr(resultVariable.tok, resultVariable);
-        builder.Add(TrAssumeCmd(f.tok, Bpl.Expr.Eq(funcExpC, resultVar))); // TODO: track?
+        builder.Add(TrAssumeCmd(f.tok, Bpl.Expr.Eq(funcExpC, resultVar)));
       }
 
       //generating trait post-conditions with class variables
@@ -3792,7 +3792,7 @@ namespace Microsoft.Dafny {
       FunctionCallSubstituter sub = null;
       foreach (var req in f.OverriddenFunction.Req) {
         sub ??= new FunctionCallSubstituter(substMap, typeMap, (TraitDecl)f.OverriddenFunction.EnclosingClass, (ClassLikeDecl)f.EnclosingClass);
-        builder.Add(TrAssumeCmdWithDependencies(etran, f.tok, sub.Substitute(req.E)));
+        builder.Add(TrAssumeCmdWithDependencies(etran, f.tok, sub.Substitute(req.E), "overridden function requires clause"));
       }
       //generating class pre-conditions
       foreach (var s in f.Req.SelectMany(req => TrSplitExpr(req.E, etran, false, out _).Where(s => s.IsChecked))) {
@@ -4423,7 +4423,7 @@ namespace Microsoft.Dafny {
           p.Label.E = (f is TwoStateFunction ? ordinaryEtran : etran.Old).TrExpr(p.E);
           CheckWellformed(p.E, wfo, locals, builder, etran);
         } else {
-          CheckWellformedAndAssume(p.E, wfo, locals, builder, etran);
+          CheckWellformedAndAssume(p.E, wfo, locals, builder, etran, "requires clause");
         }
       }
       wfo.ProcessSavedReadsChecks(locals, builderInitializationArea, builder);
@@ -4486,7 +4486,7 @@ namespace Microsoft.Dafny {
       // Now for the ensures clauses
       foreach (AttributedExpression p in f.Ens) {
         // assume the postcondition for the benefit of checking the remaining postconditions
-        CheckWellformedAndAssume(p.E, new WFOptions(f, false), locals, postCheckBuilder, etran);
+        CheckWellformedAndAssume(p.E, new WFOptions(f, false), locals, postCheckBuilder, etran, "ensures clause");
       }
       // Here goes the body (and include both termination checks and reads checks)
       BoogieStmtListBuilder bodyCheckBuilder = new BoogieStmtListBuilder(this, options);
@@ -4518,10 +4518,10 @@ namespace Microsoft.Dafny {
         Bpl.Expr funcAppl = new Bpl.NAryExpr(f.tok, funcID, args);
 
         wfo = new WFOptions(null, true, true /* do delayed reads checks */);
-        CheckWellformedWithResult(f.Body, wfo, funcAppl, f.ResultType, locals, bodyCheckBuilder, etran);
+        CheckWellformedWithResult(f.Body, wfo, funcAppl, f.ResultType, locals, bodyCheckBuilder, etran, "function call result");
         if (f.Result != null) {
           var cmd = TrAssumeCmd(f.tok, Bpl.Expr.Eq(funcAppl, TrVar(f.tok, f.Result)));
-          proofDependencies.AddProofDependencyId(cmd, f.tok, new InternalDependency("function definition")); // TODO
+          proofDependencies?.AddProofDependencyId(cmd, f.tok, new FunctionDefinitionDependency(f));
           bodyCheckBuilder.Add(cmd);
         }
         wfo.ProcessSavedReadsChecks(locals, builderInitializationArea, bodyCheckBuilder);
@@ -4632,7 +4632,7 @@ namespace Microsoft.Dafny {
       var constraintCheckBuilder = new BoogieStmtListBuilder(this, options);
       var builderInitializationArea = new BoogieStmtListBuilder(this, options);
       var wfo = new WFOptions(null, true, true /* do delayed reads checks */);
-      CheckWellformedAndAssume(decl.Constraint, wfo, locals, constraintCheckBuilder, etran);
+      CheckWellformedAndAssume(decl.Constraint, wfo, locals, constraintCheckBuilder, etran, "predicate subtype constraint");
       wfo.ProcessSavedReadsChecks(locals, builderInitializationArea, constraintCheckBuilder);
 
       // Check that the type is inhabited.
@@ -7420,7 +7420,7 @@ namespace Microsoft.Dafny {
 
     Bpl.PredicateCmd Assert(IToken tok, Bpl.Expr condition, PODesc.ProofObligationDescription description, Bpl.QKeyValue kv = null) {
       var cmd = Assert(tok, condition, description, tok, kv);
-      proofDependencies.AddProofDependencyId(cmd, tok, new ProofObligationDependency(tok, description));
+      proofDependencies?.AddProofDependencyId(cmd, tok, new ProofObligationDependency(tok, description));
       return cmd;
     }
 
@@ -7438,7 +7438,7 @@ namespace Microsoft.Dafny {
       } else {
         cmd = TrAssertCmdDesc(ForceCheckToken.Unwrap(tok), condition, description, kv);
       }
-      proofDependencies.AddProofDependencyId(cmd, tok, new ProofObligationDependency(tok, description));
+      proofDependencies?.AddProofDependencyId(cmd, tok, new ProofObligationDependency(tok, description));
       return cmd;
     }
 
@@ -7464,7 +7464,7 @@ namespace Microsoft.Dafny {
         cmd = TrAssertCmdDesc(tok, condition, desc, new Bpl.QKeyValue(tok, "subsumption", args, kv));
       }
 
-      proofDependencies.AddProofDependencyId(cmd, tok, new ProofObligationDependency(tok, desc));
+      proofDependencies?.AddProofDependencyId(cmd, tok, new ProofObligationDependency(tok, desc));
       return cmd;
     }
 
@@ -7474,7 +7474,7 @@ namespace Microsoft.Dafny {
       Contract.Ensures(Contract.Result<Bpl.Ensures>() != null);
 
       var ens = Ensures(tok, free, condition, errorMessage, successMessage, comment);
-      proofDependencies.AddProofDependencyId(ens, tok, new EnsuresDependency(dafnyCondition));
+      proofDependencies?.AddProofDependencyId(ens, tok, new EnsuresDependency(dafnyCondition));
       return ens;
     }
 
@@ -7494,7 +7494,7 @@ namespace Microsoft.Dafny {
       Contract.Ensures(Contract.Result<Bpl.Ensures>() != null);
 
       var req = Requires(tok, free, condition, errorMessage, successMessage, comment);
-      proofDependencies.AddProofDependencyId(req, tok, new RequiresDependency(dafnyCondition));
+      proofDependencies?.AddProofDependencyId(req, tok, new RequiresDependency(dafnyCondition));
       return req;
     }
 
@@ -7690,7 +7690,7 @@ namespace Microsoft.Dafny {
         new List<Bpl.IdentifierExpr>()));
       // assume YieldRequires;
       foreach (var p in iter.YieldRequires) {
-        builder.Add(TrAssumeCmdWithDependencies(etran, tok, p.E));
+        builder.Add(TrAssumeCmdWithDependencies(etran, tok, p.E, "iterator yield-requires clause"));
       }
       // $_OldIterHeap := Heap;
       builder.Add(Bpl.Cmd.SimpleAssign(tok, new Bpl.IdentifierExpr(tok, "$_OldIterHeap", predef.HeapType), etran.HeapExpr));
@@ -8581,7 +8581,7 @@ namespace Microsoft.Dafny {
 
     void ProcessRhss(List<AssignToLhs> lhsBuilder, List<Bpl.IdentifierExpr/*may be null*/> bLhss,
       List<Expression> lhss, List<AssignmentRhs> rhss,
-      BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran) {
+      BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran, Statement stmt) {
       Contract.Requires(lhsBuilder != null);
       Contract.Requires(bLhss != null);
       Contract.Requires(cce.NonNullElements(lhss));
@@ -8618,7 +8618,7 @@ namespace Microsoft.Dafny {
           lhsType = null;  // for an array update, always make sure the value assigned is boxed
           rhsTypeConstraint = e.Array.Type.NormalizeExpand().TypeArgs[0];
         }
-        var bRhs = TrAssignmentRhs(rhss[i].Tok, bLhss[i], null, lhsType, rhss[i], rhsTypeConstraint, builder, locals, etran);
+        var bRhs = TrAssignmentRhs(rhss[i].Tok, bLhss[i], null, lhsType, rhss[i], rhsTypeConstraint, builder, locals, etran, stmt);
         if (bLhss[i] != null) {
           Contract.Assert(bRhs == bLhss[i]);  // this is what the postcondition of TrAssignmentRhs promises
           // assignment has already been done by TrAssignmentRhs
@@ -8634,7 +8634,8 @@ namespace Microsoft.Dafny {
     }
 
     List<Bpl.Expr> ProcessUpdateAssignRhss(List<Expression> lhss, List<AssignmentRhs> rhss,
-      BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran) {
+      BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran,
+      Statement stmt) {
       Contract.Requires(cce.NonNullElements(lhss));
       Contract.Requires(cce.NonNullElements(rhss));
       Contract.Requires(builder != null);
@@ -8669,7 +8670,7 @@ namespace Microsoft.Dafny {
           lhsType = null;  // for an array update, always make sure the value assigned is boxed
           rhsTypeConstraint = e.Array.Type.NormalizeExpand().TypeArgs[0];
         }
-        var bRhs = TrAssignmentRhs(rhss[i].Tok, null, (lhs as IdentifierExpr)?.Var, lhsType, rhss[i], rhsTypeConstraint, builder, locals, etran);
+        var bRhs = TrAssignmentRhs(rhss[i].Tok, null, (lhs as IdentifierExpr)?.Var, lhsType, rhss[i], rhsTypeConstraint, builder, locals, etran, stmt);
         finalRhss.Add(bRhs);
       }
       return finalRhss;
@@ -8789,7 +8790,7 @@ namespace Microsoft.Dafny {
     /// Checks that they denote different locations iff checkDistinctness is true.
     /// </summary>
     void ProcessLhss(List<Expression> lhss, bool rhsCanAffectPreviouslyKnownExpressions, bool checkDistinctness,
-      BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran,
+      BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran, Statement stmt,
       out List<AssignToLhs> lhsBuilders, out List<Bpl.IdentifierExpr/*may be null*/> bLhss,
       out Bpl.Expr[] prevObj, out Bpl.Expr[] prevIndex, out string[] prevNames, Expression originalInitialLhs = null) {
 
@@ -8840,7 +8841,7 @@ namespace Microsoft.Dafny {
           lhsBuilders.Add(delegate (Bpl.Expr rhs, bool origRhsIsHavoc, BoogieStmtListBuilder bldr, ExpressionTranslator et) {
             if (rhs != null) {
               var cmd = Bpl.Cmd.SimpleAssign(tok, bLhs, rhs);
-              proofDependencies.AddProofDependencyId(cmd, lhs.tok, new AssignmentDependency(lhs.RangeToken));
+              proofDependencies?.AddProofDependencyId(cmd, lhs.tok, new AssignmentDependency(stmt.RangeToken));
               bldr.Add(cmd);
             }
 
@@ -8872,7 +8873,7 @@ namespace Microsoft.Dafny {
             lhsBuilders.Add(delegate (Bpl.Expr rhs, bool origRhsIsHavoc, BoogieStmtListBuilder bldr, ExpressionTranslator et) {
               if (rhs != null) {
                 var cmd = Bpl.Cmd.SimpleAssign(tok, bLhs, rhs);
-                proofDependencies.AddProofDependencyId(cmd, fse.tok, new AssignmentDependency(fse.RangeToken));
+                proofDependencies?.AddProofDependencyId(cmd, fse.tok, new AssignmentDependency(stmt.RangeToken));
                 bldr.Add(cmd);
               }
 
@@ -8889,7 +8890,7 @@ namespace Microsoft.Dafny {
                 Check_NewRestrictions(tok, obj, fseField, rhs, bldr, et);
                 var h = (Bpl.IdentifierExpr)et.HeapExpr;  // TODO: is this cast always justified?
                 var cmd = Bpl.Cmd.SimpleAssign(tok, h, UpdateHeap(tok, h, obj, new Bpl.IdentifierExpr(tok, GetField(fseField)), rhs));
-                proofDependencies.AddProofDependencyId(cmd, lhs.tok, new AssignmentDependency(lhs.RangeToken));
+                proofDependencies?.AddProofDependencyId(cmd, lhs.tok, new AssignmentDependency(stmt.RangeToken));
                 bldr.Add(cmd);
                 // assume $IsGoodHeap($Heap);
                 bldr.Add(AssumeGoodHeap(tok, et));
@@ -8918,7 +8919,7 @@ namespace Microsoft.Dafny {
             if (rhs != null) {
               var h = (Bpl.IdentifierExpr)et.HeapExpr;  // TODO: is this cast always justified?
               var cmd = Bpl.Cmd.SimpleAssign(tok, h, UpdateHeap(tok, h, obj, fieldName, rhs));
-              proofDependencies.AddProofDependencyId(cmd, lhs.tok, new AssignmentDependency(lhs.RangeToken));
+              proofDependencies?.AddProofDependencyId(cmd, lhs.tok, new AssignmentDependency(stmt.RangeToken));
               bldr.Add(cmd);
               // assume $IsGoodHeap($Heap);
               bldr.Add(AssumeGoodHeap(tok, et));
@@ -8942,7 +8943,7 @@ namespace Microsoft.Dafny {
             if (rhs != null) {
               var h = (Bpl.IdentifierExpr)et.HeapExpr;  // TODO: is this cast always justified?
               var cmd = Bpl.Cmd.SimpleAssign(tok, h, UpdateHeap(tok, h, obj, fieldName, rhs));
-              proofDependencies.AddProofDependencyId(cmd, lhs.tok, new AssignmentDependency(lhs.RangeToken));
+              proofDependencies?.AddProofDependencyId(cmd, lhs.tok, new AssignmentDependency(stmt.RangeToken));
               bldr.Add(cmd);
               // assume $IsGoodHeap($Heap);
               bldr.Add(AssumeGoodHeap(tok, etran));
@@ -8974,7 +8975,8 @@ namespace Microsoft.Dafny {
     /// </summary>
     Bpl.Expr TrAssignmentRhs(IToken tok, Bpl.IdentifierExpr bGivenLhs, IVariable lhsVar, Type lhsType,
                              AssignmentRhs rhs, Type rhsTypeConstraint,
-                             BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran) {
+                             BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran,
+                             Statement stmt) {
       Contract.Requires(tok != null);
       Contract.Requires(rhs != null);
       Contract.Requires(rhsTypeConstraint != null);
@@ -9026,11 +9028,14 @@ namespace Microsoft.Dafny {
           Contract.Assert(bGivenLhs == bLhs);
           // box the RHS, then do the assignment
           var cmd = Bpl.Cmd.SimpleAssign(tok, bGivenLhs, CondApplyBox(tok, bRhs, e.Expr.Type, lhsType));
+          proofDependencies?.AddProofDependencyId(cmd, tok, new AssignmentDependency(stmt.RangeToken));
           builder.Add(cmd);
           return bGivenLhs;
         } else {
           // box from RHS type to tmp-var type, then do the assignment; then return LHS, boxed from tmp-var type to result type
           var cmd = Bpl.Cmd.SimpleAssign(tok, bLhs, CondApplyBox(tok, bRhs, e.Expr.Type, rhsTypeConstraint));
+          var rhsTok = (Microsoft.Dafny.IToken)bRhs.tok;
+          proofDependencies?.AddProofDependencyId(cmd, tok, new AssignmentDependency(stmt.RangeToken));
           builder.Add(cmd);
           return CondApplyBox(tok, bLhs, rhsTypeConstraint, lhsType);
         }
@@ -9128,11 +9133,15 @@ namespace Microsoft.Dafny {
         if (bGivenLhs != null) {
           Contract.Assert(bGivenLhs == bLhs);
           // box the RHS, then do the assignment
-          builder.Add(Bpl.Cmd.SimpleAssign(tok, bGivenLhs, CondApplyBox(tok, nw, tRhs.Type, lhsType)));
+          var cmd = Bpl.Cmd.SimpleAssign(tok, bGivenLhs, CondApplyBox(tok, nw, tRhs.Type, lhsType));
+          proofDependencies?.AddProofDependencyId(cmd, tok, new AssignmentDependency(stmt.RangeToken));
+          builder.Add(cmd);
           return bGivenLhs;
         } else {
           // do the assignment, then box the result
-          builder.Add(Bpl.Cmd.SimpleAssign(tok, bLhs, nw));
+          var cmd = Bpl.Cmd.SimpleAssign(tok, bLhs, nw);
+          proofDependencies?.AddProofDependencyId(cmd, tok, new AssignmentDependency(stmt.RangeToken));
+          builder.Add(cmd);
           return CondApplyBox(tok, bLhs, tRhs.Type, lhsType);
         }
       }

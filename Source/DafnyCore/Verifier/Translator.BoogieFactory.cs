@@ -198,17 +198,14 @@ namespace Microsoft.Dafny {
       return attributes == null ? new Bpl.AssumeCmd(tok, expr) : new Bpl.AssumeCmd(tok, expr, attributes);
     }
 
-    public Bpl.AssumeCmd TrAssumeCmdWithDependencies(ExpressionTranslator etran, Bpl.IToken tok, Expression dafnyExpr, Bpl.QKeyValue attributes = null) {
-      var expr = etran.TrExpr(dafnyExpr);
-      var cmd = TrAssumeCmd(tok, expr, attributes);
-      proofDependencies.AddProofDependencyId(cmd, dafnyExpr.tok, new AssumptionDependency(dafnyExpr));
-      return cmd;
+    public Bpl.AssumeCmd TrAssumeCmdWithDependencies(ExpressionTranslator etran, Bpl.IToken tok, Expression dafnyExpr, string comment = null, Bpl.QKeyValue attributes = null) {
+      return TrAssumeCmdWithDependenciesApp(etran, tok, dafnyExpr, e => e, comment, attributes);
     }
 
-    public Bpl.AssumeCmd TrAssumeCmdWithDependenciesApp(ExpressionTranslator etran, Bpl.IToken tok, Expression dafnyExpr, Func<Bpl.Expr, Bpl.Expr> func, Bpl.QKeyValue attributes = null) {
+    public Bpl.AssumeCmd TrAssumeCmdWithDependenciesApp(ExpressionTranslator etran, Bpl.IToken tok, Expression dafnyExpr, Func<Bpl.Expr, Bpl.Expr> func, string comment = null, Bpl.QKeyValue attributes = null) {
       var expr = etran.TrExpr(dafnyExpr);
       var cmd = TrAssumeCmd(tok, func(expr), attributes);
-      proofDependencies.AddProofDependencyId(cmd, dafnyExpr.tok, new AssumptionDependency(dafnyExpr));
+      proofDependencies?.AddProofDependencyId(cmd, dafnyExpr.tok, new AssumptionDependency(comment, dafnyExpr));
       return cmd;
     }
 

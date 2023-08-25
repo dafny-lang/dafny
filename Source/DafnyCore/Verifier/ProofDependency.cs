@@ -1,9 +1,8 @@
-using System;
 using JetBrains.Annotations;
-using Microsoft.Boogie;
 using Microsoft.Dafny;
 using IToken = Microsoft.Dafny.IToken;
 using PODesc = Microsoft.Dafny.ProofObligationDescription;
+using ResolutionContext = Microsoft.Boogie.ResolutionContext;
 
 namespace DafnyCore.Verifier;
 
@@ -13,13 +12,17 @@ public abstract class ProofDependency {
   public abstract RangeToken RangeToken { get; }
 
   public string LocationString() {
-    return RangeToken?.StartToken is null
-      ? "<no location>"
-      : $"{RangeToken.StartToken.filename}({RangeToken.StartToken.line},{RangeToken.StartToken.col - 1})";
+    if (RangeToken?.StartToken is null) {
+      return "<no location>";
+    }
+    var fn = RangeToken.StartToken.filename;
+    var sl = RangeToken.StartToken.line;
+    var sc = RangeToken.StartToken.col - 1;
+    return $"{fn}({sl},{sc})";
   }
 
   public string RangeString() {
-    if (RangeToken is null) {
+    if (RangeToken?.StartToken is null) {
       return "<no range>";
     }
     var fn = RangeToken.StartToken.filename;
@@ -56,7 +59,7 @@ public class RequiresDependency : ProofDependency {
     requires.RangeToken;
 
   public override string Description =>
-    $"requires {requires.RangeToken.PrintOriginal()}";
+    $"requires clause";
 
   public RequiresDependency(Expression requires) {
     this.requires = requires;
@@ -70,7 +73,7 @@ public class EnsuresDependency : ProofDependency {
     ensures.RangeToken;
 
   public override string Description =>
-    $"ensures {ensures.RangeToken.PrintOriginal()}";
+    "ensures clause";
 
   public EnsuresDependency(Expression ensures) {
     this.ensures = ensures;
@@ -85,7 +88,7 @@ public class CallRequiresDependency : ProofDependency {
     call.RangeToken;
 
   public override string Description =>
-    $"{requires.Description} from call at {call.Description}";
+    $"requires clause at {requires.RangeString()} from call";
 
   public CallRequiresDependency(CallDependency call, RequiresDependency requires) {
     this.call = call;
@@ -101,7 +104,7 @@ public class CallEnsuresDependency : ProofDependency {
     call.RangeToken;
 
   public override string Description =>
-    $"{ensures.Description} from call at {call.Description}";
+    $"ensures clause at {ensures.RangeString()} from call";
 
   public CallEnsuresDependency(CallDependency call, EnsuresDependency ensures) {
     this.call = call;
@@ -116,24 +119,10 @@ public class CallDependency : ProofDependency {
     call.RangeToken;
 
   public override string Description =>
-    $"{LocationString()}: {OriginalString()};";
+    $"call";
 
   public CallDependency(CallStmt call) {
     this.call = call;
-  }
-}
-
-public class AssertionDependency : ProofDependency {
-  private Expression expr;
-
-  public override RangeToken RangeToken =>
-    expr.RangeToken;
-
-  public override string Description =>
-    $"assert {OriginalString()};";
-
-  public AssertionDependency(Expression expr) {
-    this.expr = expr;
   }
 }
 
@@ -144,9 +133,12 @@ public class AssumptionDependency : ProofDependency {
     expr.RangeToken;
 
   public override string Description =>
-      $"assume {OriginalString()}";
+    comment ?? $"assume {OriginalString()}";
 
-  public AssumptionDependency(Expression expr) {
+  private string comment;
+
+  public AssumptionDependency(string comment, Expression expr) {
+    this.comment = comment;
     this.expr = expr;
   }
 }
@@ -158,7 +150,7 @@ public class InvariantDependency : ProofDependency {
     invariant.RangeToken;
 
   public override string Description =>
-    $"invariant {invariant.RangeToken.PrintOriginal()}";
+    $"loop invariant";
 
   public InvariantDependency(Expression invariant) {
     this.invariant = invariant;
@@ -168,31 +160,23 @@ public class InvariantDependency : ProofDependency {
 public class AssignmentDependency : ProofDependency {
   public override RangeToken RangeToken { get; }
 
-  public override string Description => "assignment";
+  public override string Description =>
+     "assignment (or return)";
 
   public AssignmentDependency(RangeToken rangeToken) {
     this.RangeToken = rangeToken;
   }
 }
 
-public class InternalDependency : ProofDependency {
-  public override RangeToken RangeToken => null;
-  public override string Description { get; }
-
-  public InternalDependency(string description) {
-    Description = description;
-  }
-}
-
-// Temporary placeholder. Remove when all creation sites use a different
-// implementation.
-public class NodeOnlyDependency : ProofDependency {
-  public override RangeToken RangeToken { get; }
+public class FunctionDefinitionDependency : ProofDependency {
+  public override RangeToken RangeToken => function.RangeToken;
 
   public override string Description =>
-    $"{LocationString()}: {OriginalString()}";
+    $"function definition for {function.Name}";
 
-  public NodeOnlyDependency([NotNull] Node node) {
-    RangeToken = node.RangeToken;
+  private Function function;
+
+  public FunctionDefinitionDependency(Function f) {
+    function = f;
   }
 }

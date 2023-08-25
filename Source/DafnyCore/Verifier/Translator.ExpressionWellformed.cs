@@ -128,7 +128,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    void CheckWellformedAndAssume(Expression expr, WFOptions wfOptions, List<Variable> locals, BoogieStmtListBuilder builder, ExpressionTranslator etran) {
+    void CheckWellformedAndAssume(Expression expr, WFOptions wfOptions, List<Variable> locals, BoogieStmtListBuilder builder, ExpressionTranslator etran, string comment) {
       Contract.Requires(expr != null);
       Contract.Requires(expr.Type != null && expr.Type.IsBoolType);
       Contract.Requires(wfOptions != null);
@@ -141,8 +141,8 @@ namespace Microsoft.Dafny {
         switch (e.ResolvedOp) {
           case BinaryExpr.ResolvedOpcode.And:
             // WF[e0]; assume e0; WF[e1]; assume e1;
-            CheckWellformedAndAssume(e.E0, wfOptions, locals, builder, etran);
-            CheckWellformedAndAssume(e.E1, wfOptions, locals, builder, etran);
+            CheckWellformedAndAssume(e.E0, wfOptions, locals, builder, etran, comment);
+            CheckWellformedAndAssume(e.E1, wfOptions, locals, builder, etran, comment);
             return;
           case BinaryExpr.ResolvedOpcode.Imp: {
               // if (*) {
@@ -151,10 +151,10 @@ namespace Microsoft.Dafny {
               //   assume e0 ==> e1;
               // }
               var bAnd = new BoogieStmtListBuilder(this, options);
-              CheckWellformedAndAssume(e.E0, wfOptions, locals, bAnd, etran);
-              CheckWellformedAndAssume(e.E1, wfOptions, locals, bAnd, etran);
+              CheckWellformedAndAssume(e.E0, wfOptions, locals, bAnd, etran, comment);
+              CheckWellformedAndAssume(e.E1, wfOptions, locals, bAnd, etran, comment);
               var bImp = new BoogieStmtListBuilder(this, options);
-              bImp.Add(TrAssumeCmdWithDependencies(etran, expr.tok, expr));
+              bImp.Add(TrAssumeCmdWithDependencies(etran, expr.tok, expr, comment));
               builder.Add(new Bpl.IfCmd(expr.tok, null, bAnd.Collect(expr.tok), null, bImp.Collect(expr.tok)));
             }
             return;
@@ -166,10 +166,10 @@ namespace Microsoft.Dafny {
               //   WF[e1]; assume e1;
               // }
               var b0 = new BoogieStmtListBuilder(this, options);
-              CheckWellformedAndAssume(e.E0, wfOptions, locals, b0, etran);
+              CheckWellformedAndAssume(e.E0, wfOptions, locals, b0, etran, comment);
               var b1 = new BoogieStmtListBuilder(this, options);
-              b1.Add(TrAssumeCmdWithDependenciesApp(etran, expr.tok, e.E0, Expr.Not));
-              CheckWellformedAndAssume(e.E1, wfOptions, locals, b1, etran);
+              b1.Add(TrAssumeCmdWithDependenciesApp(etran, expr.tok, e.E0, Expr.Not, comment));
+              CheckWellformedAndAssume(e.E1, wfOptions, locals, b1, etran, comment);
               builder.Add(new Bpl.IfCmd(expr.tok, null, b0.Collect(expr.tok), null, b1.Collect(expr.tok)));
             }
             return;
@@ -186,11 +186,11 @@ namespace Microsoft.Dafny {
         //   WF[els]; assume els;
         // }
         var bThn = new BoogieStmtListBuilder(this, options);
-        CheckWellformedAndAssume(e.Test, wfOptions, locals, bThn, etran);
-        CheckWellformedAndAssume(e.Thn, wfOptions, locals, bThn, etran);
+        CheckWellformedAndAssume(e.Test, wfOptions, locals, bThn, etran, comment);
+        CheckWellformedAndAssume(e.Thn, wfOptions, locals, bThn, etran, comment);
         var bEls = new BoogieStmtListBuilder(this, options);
-        bEls.Add(TrAssumeCmdWithDependenciesApp(etran, expr.tok, e.Test, Expr.Not));
-        CheckWellformedAndAssume(e.Els, wfOptions, locals, bEls, etran);
+        bEls.Add(TrAssumeCmdWithDependenciesApp(etran, expr.tok, e.Test, Expr.Not, comment));
+        CheckWellformedAndAssume(e.Els, wfOptions, locals, bEls, etran, comment);
         builder.Add(new Bpl.IfCmd(expr.tok, null, bThn.Collect(expr.tok), null, bEls.Collect(expr.tok)));
         return;
       } else if (expr is QuantifierExpr) {
@@ -205,12 +205,12 @@ namespace Microsoft.Dafny {
         var substMap = SetupBoundVarsAsLocals(e.BoundVars, builder, locals, etran);
         // Get the body of the quantifier and suitably substitute for the type variables and bound variables
         var body = Substitute(e.LogicalBody(true), null, substMap);
-        CheckWellformedAndAssume(body, wfOptions, locals, builder, etran);
+        CheckWellformedAndAssume(body, wfOptions, locals, builder, etran, comment);
 
         if (e is ForallExpr) {
           // Although we do the WF check on the original quantifier, we assume the split one.
           // This ensures that cases like forall x :: x != null && f(x.a) do not fail to verify.
-          builder.Add(TrAssumeCmdWithDependencies(etran, expr.tok, e.SplitQuantifierExpression ?? e));
+          builder.Add(TrAssumeCmdWithDependencies(etran, expr.tok, e.SplitQuantifierExpression ?? e, comment));
         }
         return;
       }
@@ -222,7 +222,7 @@ namespace Microsoft.Dafny {
       //       the splitting and proceeded to decompose the full quantifier as
       //       normal. This call to TrExpr, on the other hand, will indeed use the
       //       split quantifier.
-      builder.Add(TrAssumeCmdWithDependencies(etran, expr.tok, expr));
+      builder.Add(TrAssumeCmdWithDependencies(etran, expr.tok, expr, comment));
     }
 
     /// <summary>
@@ -246,7 +246,8 @@ namespace Microsoft.Dafny {
     /// See class WFOptions for descriptions of the specified options.
     /// </summary>
     void CheckWellformedWithResult(Expression expr, WFOptions wfOptions, Bpl.Expr result, Type resultType,
-                                   List<Bpl.Variable> locals, BoogieStmtListBuilder builder, ExpressionTranslator etran) {
+                                   List<Bpl.Variable> locals, BoogieStmtListBuilder builder, ExpressionTranslator etran,
+                                   string resultDescription = null) {
       Contract.Requires(expr != null);
       Contract.Requires(wfOptions != null);
       Contract.Requires((result == null) == (resultType == null));
@@ -713,7 +714,7 @@ namespace Microsoft.Dafny {
                 }
                 if (wfOptions.AssertKv == null) {
                   // assume only if no given assert attribute is given
-                  builder.Add(TrAssumeCmdWithDependencies(etran, callExpr.tok, precond));
+                  builder.Add(TrAssumeCmdWithDependencies(etran, callExpr.tok, precond, "function precondition"));
                 }
               }
               if (wfOptions.DoReadsChecks) {
@@ -1090,7 +1091,7 @@ namespace Microsoft.Dafny {
                     resultIe = new Bpl.IdentifierExpr(body.tok, resultVar);
                     rangeType = lam.Type.AsArrowType.Result;
                   }
-                  CheckWellformedWithResult(body, newOptions, resultIe, rangeType, locals, b, comprehensionEtran);
+                  CheckWellformedWithResult(body, newOptions, resultIe, rangeType, locals, b, comprehensionEtran, "lambda expression");
                 });
 
                 if (mc != null) {
@@ -1138,15 +1139,16 @@ namespace Microsoft.Dafny {
               Contract.Assert(letExpr != null);
               CheckWellformedLetExprWithResult(letExpr, wfOptions, result, resultType, locals, bThen, etran, false);
             } else {
-              CheckWellformedWithResult(e.Thn, wfOptions, result, resultType, locals, bThen, etran);
+              CheckWellformedWithResult(e.Thn, wfOptions, result, resultType, locals, bThen, etran, "if expression then branch");
             }
-            CheckWellformedWithResult(e.Els, wfOptions, result, resultType, locals, bElse, etran);
+            CheckWellformedWithResult(e.Els, wfOptions, result, resultType, locals, bElse, etran, "if expression else branch");
             builder.Add(new Bpl.IfCmd(iteExpr.tok, etran.TrExpr(e.Test), bThen.Collect(iteExpr.tok), null, bElse.Collect(iteExpr.tok)));
             result = null;
             break;
           }
         case MatchExpr matchExpr:
           result = TrMatchExpr(matchExpr, wfOptions, result, resultType, locals, builder, etran);
+          resultDescription = "match expression";
           break;
         case DatatypeUpdateExpr updateExpr: {
             var e = updateExpr;
@@ -1163,18 +1165,18 @@ namespace Microsoft.Dafny {
             CheckNotGhostVariant(e.InCompiledContext, updateExpr, e.Root, "update of", e.Members,
               e.LegalSourceConstructors, builder, etran);
 
-            CheckWellformedWithResult(e.ResolvedExpression, wfOptions, result, resultType, locals, builder, etran);
+            CheckWellformedWithResult(e.ResolvedExpression, wfOptions, result, resultType, locals, builder, etran, resultDescription);
             result = null;
             break;
           }
         case ConcreteSyntaxExpression expression: {
             var e = expression;
-            CheckWellformedWithResult(e.ResolvedExpression, wfOptions, result, resultType, locals, builder, etran);
+            CheckWellformedWithResult(e.ResolvedExpression, wfOptions, result, resultType, locals, builder, etran, resultDescription);
             result = null;
             break;
           }
         case NestedMatchExpr nestedMatchExpr:
-          CheckWellformedWithResult(nestedMatchExpr.Flattened, wfOptions, result, resultType, locals, builder, etran);
+          CheckWellformedWithResult(nestedMatchExpr.Flattened, wfOptions, result, resultType, locals, builder, etran, resultDescription);
           result = null;
           break;
         case BoogieFunctionCall call: {
@@ -1193,7 +1195,8 @@ namespace Microsoft.Dafny {
         Contract.Assert(resultType != null);
         var bResult = etran.TrExpr(expr);
         CheckSubrange(expr.tok, bResult, expr.Type, resultType, builder);
-        builder.Add(TrAssumeCmdWithDependenciesApp(etran, expr.tok, expr, e => Bpl.Expr.Eq(result, e)));
+        builder.Add(TrAssumeCmdWithDependenciesApp(etran, expr.tok, expr, e => Bpl.Expr.Eq(result, e),
+          resultDescription));
         builder.Add(TrAssumeCmd(expr.tok, CanCallAssumption(expr, etran)));
         builder.Add(new CommentCmd("CheckWellformedWithResult: any expression"));
         builder.Add(TrAssumeCmd(expr.tok, MkIs(result, resultType)));
@@ -1239,7 +1242,7 @@ namespace Microsoft.Dafny {
         BoogieStmtListBuilder b = new BoogieStmtListBuilder(this, options);
         Bpl.Expr ct = CtorInvocation(mc, me.Source.Type, etran, locals, b, NOALLOC, false);
         // generate:  if (src == ctor(args)) { assume args-is-well-typed; mc.Body is well-formed; assume Result == TrExpr(case); } else ...
-        CheckWellformedWithResult(mc.Body, wfOptions, result, resultType, locals, b, etran);
+        CheckWellformedWithResult(mc.Body, wfOptions, result, resultType, locals, b, etran, "match expression branch result");
         ifCmd = new Bpl.IfCmd(mc.tok, Bpl.Expr.Eq(src, ct), b.Collect(mc.tok), ifCmd, els);
         els = null;
       }
@@ -1262,7 +1265,7 @@ namespace Microsoft.Dafny {
         TrStmt(stmtExpr.S, builder, locals, etran);
       }
 
-      CheckWellformedWithResult(stmtExpr.E, options, result, resultType, locals, builder, etran);
+      CheckWellformedWithResult(stmtExpr.E, options, result, resultType, locals, builder, etran, "statement expression result");
     }
 
     /// <summary>
@@ -1343,12 +1346,12 @@ namespace Microsoft.Dafny {
           var r = new Bpl.LocalVariable(pat.tok, new Bpl.TypedIdent(pat.tok, nm, TrType(rhs.Type)));
           locals.Add(r);
           var rIe = new Bpl.IdentifierExpr(rhs.tok, r);
-          CheckWellformedWithResult(e.RHSs[i], wfOptions, rIe, pat.Expr.Type, locals, builder, etran);
+          CheckWellformedWithResult(e.RHSs[i], wfOptions, rIe, pat.Expr.Type, locals, builder, etran, "let expression binding RHS well-formed");
           CheckCasePatternShape(pat, rIe, rhs.tok, pat.Expr.Type, builder);
           var substExpr = Substitute(pat.Expr, null, substMap);
-          builder.Add(TrAssumeCmdWithDependenciesApp(etran, e.tok, substExpr, e => Bpl.Expr.Eq(e, rIe)));
+          builder.Add(TrAssumeCmdWithDependenciesApp(etran, e.tok, substExpr, e => Bpl.Expr.Eq(e, rIe), "let expression binding"));
         }
-        CheckWellformedWithResult(Substitute(e.Body, null, substMap), wfOptions, result, resultType, locals, builder, etran);
+        CheckWellformedWithResult(Substitute(e.Body, null, substMap), wfOptions, result, resultType, locals, builder, etran, "let expression result");
 
       } else {
         // CheckWellformed(var b :| RHS(b); Body(b)) =
@@ -1390,7 +1393,7 @@ namespace Microsoft.Dafny {
           var rhs_prime = Substitute(e.RHSs[0], null, nonGhostMap_prime);
           var letBody_prime = Substitute(e.Body, null, nonGhostMap_prime);
           builder.Add(TrAssumeCmd(e.tok, CanCallAssumption(rhs_prime, etran)));
-          builder.Add(TrAssumeCmdWithDependencies(etran, e.tok, rhs_prime));
+          builder.Add(TrAssumeCmdWithDependencies(etran, e.tok, rhs_prime, "assign-such-that constraint"));
           builder.Add(TrAssumeCmd(e.tok, CanCallAssumption(letBody_prime, etran)));
           var eq = Expression.CreateEq(letBody, letBody_prime, e.Body.Type);
           builder.Add(Assert(GetToken(e), etran.TrExpr(eq),
@@ -1405,7 +1408,7 @@ namespace Microsoft.Dafny {
           Contract.Assert(resultType != null);
           var bResult = etran.TrExpr(letBody);
           CheckSubrange(letBody.tok, bResult, letBody.Type, resultType, builder);
-          builder.Add(TrAssumeCmdWithDependenciesApp(etran, e.tok, letBody, e => Expr.Eq(result, e)));
+          builder.Add(TrAssumeCmdWithDependenciesApp(etran, e.tok, letBody, e => Expr.Eq(result, e), "let expression"));
           builder.Add(TrAssumeCmd(letBody.tok, CanCallAssumption(letBody, etran)));
           builder.Add(new CommentCmd("CheckWellformedWithResult: Let expression"));
           builder.Add(TrAssumeCmd(letBody.tok, MkIs(result, resultType)));

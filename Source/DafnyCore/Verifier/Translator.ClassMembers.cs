@@ -682,7 +682,7 @@ namespace Microsoft.Dafny {
         }
         // check well-formedness of the preconditions, and then assume each one of them
         foreach (AttributedExpression p in m.Req) {
-          CheckWellformedAndAssume(p.E, new WFOptions(), localVariables, builder, etran);
+          CheckWellformedAndAssume(p.E, new WFOptions(), localVariables, builder, etran, "method requires clause");
         }
         // check well-formedness of the modifies clauses
         CheckFrameWellFormed(new WFOptions(), m.Mod.Expressions, localVariables, builder, etran);
@@ -719,7 +719,7 @@ namespace Microsoft.Dafny {
 
         // check wellformedness of postconditions
         foreach (AttributedExpression p in m.Ens) {
-          CheckWellformedAndAssume(p.E, new WFOptions(), localVariables, builder, etran);
+          CheckWellformedAndAssume(p.E, new WFOptions(), localVariables, builder, etran, "method ensures clause");
         }
 
         stmts = builder.Collect(m.tok);
@@ -1003,7 +1003,7 @@ namespace Microsoft.Dafny {
         var local = BplLocalVar(NameTypeParam(tp), predef.Ty, out var lhs);
         localVariables.Add(local);
         var rhs = TypeToTy(typeMap[tp]);
-        builder.Add(new Boogie.AssumeCmd(tp.tok, Boogie.Expr.Eq(lhs, rhs))); // TODO: track?
+        builder.Add(new Boogie.AssumeCmd(tp.tok, Boogie.Expr.Eq(lhs, rhs)));
       }
     }
 
@@ -1236,7 +1236,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(substMap != null);
       //generating class post-conditions
       foreach (var en in m.Ens) {
-        builder.Add(TrAssumeCmdWithDependencies(etran, m.tok, en.E));
+        builder.Add(TrAssumeCmdWithDependencies(etran, m.tok, en.E, "overridden ensures clause"));
       }
       //generating trait post-conditions with class variables
       FunctionCallSubstituter sub = null;
@@ -1259,7 +1259,7 @@ namespace Microsoft.Dafny {
       FunctionCallSubstituter sub = null;
       foreach (var req in m.OverriddenMethod.Req) {
         sub ??= new FunctionCallSubstituter(substMap, typeMap, (TraitDecl)m.OverriddenMethod.EnclosingClass, (ClassLikeDecl)m.EnclosingClass);
-        builder.Add(TrAssumeCmdWithDependencies(etran, m.tok, sub.Substitute(req.E)));
+        builder.Add(TrAssumeCmdWithDependencies(etran, m.tok, sub.Substitute(req.E), "overridden requires clause"));
       }
       //generating class pre-conditions
       foreach (var s in m.Req.SelectMany(req => TrSplitExpr(req.E, etran, false, out _).Where(s => s.IsChecked))) {
