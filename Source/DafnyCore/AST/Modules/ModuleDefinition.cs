@@ -341,7 +341,8 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
   public override IEnumerable<INode> Children => (Attributes != null ?
       new List<Node> { Attributes } :
       Enumerable.Empty<Node>()).Concat<Node>(TopLevelDecls).
-    Concat(RefinementQId == null ? Enumerable.Empty<Node>() : new Node[] { RefinementQId });
+    Concat(RefinementQId == null ? Enumerable.Empty<Node>() : new Node[] { RefinementQId }).
+    Concat(PrefixNamedModules.Any() ? PrefixNamedModules.Select(m => m.Module) : ResolvedPrefixNamedModules);
 
   private IEnumerable<Node> preResolveTopLevelDecls;
   private IEnumerable<Node> preResolvePrefixNamedModules;
