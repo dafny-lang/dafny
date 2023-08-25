@@ -12,7 +12,7 @@ class Box<T> {
 }
 
 method SetBox(b: Box<int>, i: int) 
-  reads b   // BUG: Last segment of a LHS path shouldn't be considered a read
+  reads b
   modifies b
 {
   b.x := i;
@@ -223,22 +223,23 @@ method DefaultValueReads(b: Box<int>, x: int := b.x)  // Error: insufficient rea
 
 // TODO:
 // * Add CLI option!
-// * stress test well-formedness of reads clauses (e.g. when depending on method preconditions)
-//   * Also need to apply reads clauses to all other clauses, and default values
-// * Double check refinement
-// * Explicitly test against ghost state too
-//   * ghost methods/lemmas as well
-// * Optimize checking for `reads {}`? Can be checked with a simple AST pass, much cheaper
-//   * At least some cases might be handled by existing IsAlwaysTrue
-// * Double-check if it's correct that function default values don't assume preconditions
-// * Missing check for reads clause not allowed to depend on set of allocated objects (?)
-// * Document explicit choice not to include method reads clause in decreases clause (backwards compatibility)
-// * Document explicit choice not to change autocontracts (?)
-// * Invoking twostate things from methods
-// * Example for the need to add fresh loop invariants in functions by methods?
+// * Array reads!
 // * Ensuring LHS' aren't checked as reads (LValueContext) - this.x working, array setting not working
 //   * Lots of cases!
-// * Array reads!!
+// * Invoking twostate things from methods
+// * Example for the need to add fresh loop invariants in functions by methods?
+// * Double check refinement
+// * Missing check for reads clause not allowed to depend on set of allocated objects (?)
+// * Double-check if it's correct that function default values don't assume preconditions (see example below)
+// * Document explicit choice not to change autocontracts (?)
+// * Figure out FunctionInQuantifier2 method
+//   * Something to do with difference between AssignSuchThat and LetSuchThat?
+//   * Possibly just leave and ask in PR review
+
+// FUTURE:
+// * Optimize checking for `reads {}`? Can be checked with a simple AST pass, much cheaper
+//   * At least some cases might be handled by existing IsAlwaysTrue
+// * Document explicit choice not to include method reads clause in decreases clause
 
 
 function Partition(s: seq<int>, p: int -> bool, a: array<int>): (seq<int>, seq<int>) {
@@ -262,3 +263,9 @@ const f := (b: Box<T>) reads b => b.x
 lemma Dorp(b: Box<T>) {
   assert b.x == b.x;
 }
+
+// function DefaultValue(b: int, v: int := 1 / b): int 
+//   requires b != 0
+// {
+//   42
+// }
