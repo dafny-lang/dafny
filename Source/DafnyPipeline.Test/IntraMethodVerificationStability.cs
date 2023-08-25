@@ -234,8 +234,8 @@ module SomeModule {
     }
 
     IEnumerable<BoogieProgram> GetBoogie(DafnyOptions options, string dafnyProgramText) {
-      var dafnyProgram = Utils.Parse(options, dafnyProgramText, false);
-      BatchErrorReporter reporter = (BatchErrorReporter)dafnyProgram.Reporter;
+      var reporter = new BatchErrorReporter(options);
+      var dafnyProgram = Utils.Parse(reporter, dafnyProgramText, false);
       Assert.NotNull(dafnyProgram);
       DafnyMain.Resolve(dafnyProgram);
       Assert.Equal(0, reporter.ErrorCount);
