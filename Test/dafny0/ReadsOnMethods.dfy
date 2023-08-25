@@ -265,10 +265,11 @@ method ApplyLambda<T(!new), R>(f: T ~> R, t: T) returns (r: R)
   r := f(t);
 }
 
-// method DependsOnAllocationState<T>(b: Box<T>) 
-//   reads set t: T :: b // BUG? This isn't allowed on functions...
-// {
-// }
+method DependsOnAllocationState<T>(b: Box<T>) 
+  // TODO: Allowed but perhaps shouldn't be, since it isn't allowed on functions
+  reads set b: Box<T> | true
+{
+}
 
 // ---------- Enforcing concurrency safe entry points (examples from the RFC) -----------
 
@@ -327,8 +328,60 @@ method {:concurrent} MemoizedSquare(x: int, cache: ExternalConcurrentMutableMap<
 
 // ---------- Functions-by-method -----------
 
-// TODO: example of method call in the by method body, which therefore needs a reads clause
+function GoodDirectFib(n: nat): nat {
+  if n < 2 then n else GoodDirectFib(n - 2) + GoodDirectFib(n - 1)
+} by method {
+  var x, y := 0, 1;
+  for i := 0 to n
+    invariant x == GoodDirectFib(i) && y == GoodDirectFib(i + 1)
+  {
+    x, y := y, x + y;
+  }
+  return x;
+}
 
+function BadFib(n: nat): nat {
+  if n < 2 then n else BadFib(n - 2) + BadFib(n - 1)
+} by method {
+  // Rejected because the default for methods is reads *
+  var r := FibMethod(n); // Error: insufficient reads clause to call
+  return r;
+}
+
+method FibMethod(n: nat) returns (r: nat) 
+  ensures r == BadFib(n)
+{
+  var x, y := 0, 1;
+  for i := 0 to n
+    invariant x == BadFib(i) && y == BadFib(i + 1)
+  {
+    x, y := y, x + y;
+  }
+  return x;
+}
+
+function GoodFib(n: nat): nat {
+  if n < 2 then n else GoodFib(n - 2) + GoodFib(n - 1)
+} by method {
+  var r := FibMethodWithReads(n);
+  return r;
+}
+
+method FibMethodWithReads(n: nat) returns (r: nat) 
+  reads {}
+  ensures r == GoodFib(n)
+{
+  var x, y := 0, 1;
+  for i := 0 to n
+    invariant x == GoodFib(i) && y == GoodFib(i + 1)
+  {
+    x, y := y, x + y;
+  }
+  return x;
+}
+
+// Example of where applying the function reads clause to the by method body
+// catches what would be a concurrency issue.
 function WeirdAlways42(b: Box<int>): int {
   42
 } by method {
@@ -456,39 +509,5 @@ method DefaultValueReads(b: Box<int>, x: int := b.x)  // Error: insufficient rea
   returns (r: int)
   reads {}
 {
-  return 42;
+  return x;
 }
-
-// TODO:
-
-// * Example for the need to add fresh loop invariants in functions by methods?
-// * Missing check for reads clause not allowed to depend on set of allocated objects (?)
-// * Document explicit choice not to change autocontracts (?)
-
-
-// FUTURE:
-// * Optimize checking for `reads {}`? Can be checked with a simple AST pass, much cheaper
-//   * At least some cases might be handled by existing IsAlwaysTrue
-// * Document explicit choice not to include method reads clause in decreases clause
-// * Double-check if it's correct that function default values don't assume preconditions (see example below)
-// function DefaultValue(b: int, v: int := 1 / b): int 
-//   requires b != 0
-// {
-//   42
-// }
-
-function Partition(s: seq<int>, p: int -> bool, a: array<int>): (seq<int>, seq<int>) {
-  ([], [])
-} by method {
-  var b := new int[10];
-  var loop := true;
-  while loop
-    decreases loop
-  {
-    b[0] := 42;
-    loop := false;
-  }
-  b[0] := 42;
-  return ([], []);
-}
-
