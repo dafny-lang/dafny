@@ -744,7 +744,7 @@ Out of 4 basic blocks, 3 are reachable.
 ```
 
 Dafny reports that the then branch of the condition is potentially unreachable because the verifier proves that no
-input can reach it. In this case, this is to be expected, since the product of two numbers can never be positive. In
+input can reach it. In this case, this is to be expected, since the product of two numbers can never be negative. In
 practice, `find-dead-code` command can produce both false positives (if the reachability query times out) and false
 negatives (if the verifier cannot prove true unreachability), so the results of such a report should always be
 reviewed.
