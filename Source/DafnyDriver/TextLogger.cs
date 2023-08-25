@@ -21,7 +21,9 @@ public class TextLogger {
   }
 
   public void LogResults(List<(Implementation, VerificationResult)> verificationResults) {
-    var orderedResults = verificationResults.OrderBy(vr => vr.Item1.VerboseName);
+    var orderedResults =
+      verificationResults.OrderBy(vr =>
+        (vr.Item1.tok.filename, vr.Item1.tok.line, vr.Item1.tok.col));
     foreach (var (implementation, result) in orderedResults) {
       tw.WriteLine("");
       tw.WriteLine($"Results for {implementation.VerboseName}");
@@ -51,7 +53,7 @@ public class TextLogger {
           tw.WriteLine("    Proof dependencies:");
           foreach (var depId in vcResult.coveredElements) {
             var dep = depManager.GetFullIdDependency(depId);
-            tw.WriteLine($"      {dep.LocationString()}: {dep.Description}");
+            tw.WriteLine($"      {dep.RangeString()}: {dep.Description}");
           }
         }
 
