@@ -629,14 +629,6 @@ namespace Microsoft.Dafny {
                   CheckFrameSubset(expr.tok, new List<FrameExpression> { reads }, null, null,
                     etran, wfOptions.AssertSink(this, builder), new PODesc.FrameSubset("invoke function", false),
                     wfOptions.AssertKv);
-                  // check that the callee reads only what the caller is already allowed to read
-                  // var s = new Substituter(null, new Dictionary<IVariable, Expression>(),
-                  //   e.GetTypeArgumentSubstitutions());
-                  // CheckFrameSubset(callExpr.tok,
-                  //   e.Function.Reads.ConvertAll(s.SubstFrameExpr),
-                  //   e.Receiver, substMap, etran, wfOptions.AssertSink(this, builder),
-                  //   new PODesc.FrameSubset("invoke function", false), wfOptions.AssertKv);
-
                 }
 
               } else {
@@ -675,7 +667,7 @@ namespace Microsoft.Dafny {
                     new PODesc.FrameSubset("invoke function", false), wfOptions.AssertKv);
                 }
 
-              } // Here
+              }
 
               Bpl.Expr allowance = null;
               if (codeContext != null && e.CoCall != FunctionCallExpr.CoCallResolution.Yes && !(e.Function is ExtremePredicate)) {

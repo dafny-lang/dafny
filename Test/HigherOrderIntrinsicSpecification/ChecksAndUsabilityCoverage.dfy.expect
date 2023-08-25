@@ -1,0 +1,29 @@
+ChecksAndUsabilityCoverage.dfy(18,36): Error: function precondition could not be proved
+ChecksAndUsabilityCoverage.dfy(32,39): Error: insufficient reads clause to invoke function
+ChecksAndUsabilityCoverage.dfy(37,39): Error: insufficient reads clause to invoke function
+ChecksAndUsabilityCoverage.dfy(50,22): Error: insufficient reads clause to invoke function
+ChecksAndUsabilityCoverage.dfy(69,36): Error: function precondition could not be proved
+ChecksAndUsabilityCoverage.dfy(69,36): Error: insufficient reads clause to invoke function
+ChecksAndUsabilityCoverage.dfy(74,36): Error: insufficient reads clause to invoke function
+ChecksAndUsabilityCoverage.dfy(81,36): Error: function precondition could not be proved
+ChecksAndUsabilityCoverage.dfy(106,16): Error: insufficient reads clause to invoke function
+ChecksAndUsabilityCoverage.dfy(113,19): Error: function precondition could not be proved
+ChecksAndUsabilityCoverage.dfy(127,11): Error: assertion might not hold
+ChecksAndUsabilityCoverage.dfy(134,16): Error: insufficient reads clause to invoke function
+ChecksAndUsabilityCoverage.dfy(156,12): Error: assertion might not hold
+ChecksAndUsabilityCoverage.dfy(162,11): Error: function precondition could not be proved
+ChecksAndUsabilityCoverage.dfy(189,9): Error: function precondition could not be proved
+ChecksAndUsabilityCoverage.dfy(191,9): Error: function precondition could not be proved
+ChecksAndUsabilityCoverage.dfy(197,17): Error: insufficient reads clause to invoke function
+ChecksAndUsabilityCoverage.dfy(199,12): Error: function precondition could not be proved
+ChecksAndUsabilityCoverage.dfy(200,12): Error: function precondition could not be proved
+ChecksAndUsabilityCoverage.dfy(210,12): Error: function precondition could not be proved
+ChecksAndUsabilityCoverage.dfy(211,12): Error: function precondition could not be proved
+ChecksAndUsabilityCoverage.dfy(217,10): Error: function precondition could not be proved
+ChecksAndUsabilityCoverage.dfy(222,12): Error: function precondition could not be proved
+ChecksAndUsabilityCoverage.dfy(234,12): Error: function precondition could not be proved
+ChecksAndUsabilityCoverage.dfy(241,11): Error: function precondition could not be proved
+ChecksAndUsabilityCoverage.dfy(313,19): Error: assertion might not hold
+ChecksAndUsabilityCoverage.dfy(314,14): Error: assertion might not hold
+
+Dafny program verifier finished with 17 verified, 27 errors
