@@ -78,12 +78,6 @@ public class Program : TokenNode {
     return this.FindNodesInUris(uri).MinBy(n => n.RangeToken.StartToken.pos)?.StartToken;
   }
 
-  class FileStartToken : Token {
-    public FileStartToken(Uri uri) : base(1, 1) {
-      Uri = uri;
-    }
-  }
-
   public override IEnumerable<INode> Children => new[] { DefaultModule };
 
   public override IEnumerable<INode> PreResolveChildren => Children;
