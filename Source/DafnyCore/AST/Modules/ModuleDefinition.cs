@@ -58,7 +58,7 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
   public readonly List<PrefixNameModule> PrefixNamedModules = new();  // filled in by the parser; emptied by the resolver
   public virtual IEnumerable<TopLevelDecl> TopLevelDecls => DefaultClasses.
         Concat(SourceDecls).
-        Concat(PrefixNamedModules.Any() ? PrefixNamedModules.Select(m => m.Module) : ResolvedPrefixNamedModules);
+        Concat(ResolvedPrefixNamedModules);
 
   public IEnumerable<IPointer<TopLevelDecl>> TopLevelDeclPointers =>
     (DefaultClass == null
@@ -338,9 +338,11 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
   }
 
   public IToken NameToken => tok;
-  public override IEnumerable<INode> Children => (Attributes != null ?
-      new List<Node> { Attributes } :
-      Enumerable.Empty<Node>()).Concat<Node>(TopLevelDecls).
+  public override IEnumerable<INode> Children =>
+    (Attributes != null ? new List<Node> { Attributes } : Enumerable.Empty<Node>()).
+    Concat(DefaultClasses).
+    Concat(SourceDecls).
+    Concat(PrefixNamedModules.Any() ? PrefixNamedModules.Select(m => m.Module) : ResolvedPrefixNamedModules).
     Concat(RefinementQId == null ? Enumerable.Empty<Node>() : new Node[] { RefinementQId });
 
   private IEnumerable<Node> preResolveTopLevelDecls;
@@ -349,7 +351,8 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
   public override IEnumerable<INode> PreResolveChildren {
     get {
       var attributes = Attributes != null ? new List<Node> { Attributes } : Enumerable.Empty<Node>();
-      return attributes.Concat(preResolveTopLevelDecls ?? TopLevelDecls);
+      return attributes.Concat(preResolveTopLevelDecls ?? TopLevelDecls).
+        Concat(preResolvePrefixNamedModules ?? PrefixNamedModules.Select(tuple => tuple.Module));
     }
   }
 
