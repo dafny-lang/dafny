@@ -458,7 +458,7 @@ public class CompilationManager {
       return null;
     }
 
-    var firstToken = parsedDocument.Program.GetFirstTopLevelToken();
+    var firstToken = parsedDocument.Program.GetFirstTokenForUri(uri);
     if (firstToken == null) {
       return null;
     }
