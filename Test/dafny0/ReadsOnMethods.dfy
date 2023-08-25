@@ -125,7 +125,7 @@ ghost method ApplyToSet<X>(S: set<X>, f: X ~> X) returns (r: set<X>)
   } else {
     var x :| x in S;
     var r' := ApplyToSet(S - {x}, f);
-    r := r + {f(x)};
+    r := r' + {f(x)};
   }
 }
 
@@ -187,6 +187,8 @@ class ReadsTestsInsideLetSuchThat {
 
 // And now for brand new freshly-baked tests!
 
+// ---------- Basic use cases -----------
+
 class Box<T> {
   var x: T
 
@@ -198,8 +200,15 @@ class Box<T> {
 }
 
 method SetBox(b: Box<int>, i: int) 
-  reads b
   modifies b
+  reads {}
+{
+  b.x := i;
+}
+
+method SetBoxSpecific(b: Box<int>, i: int) 
+  modifies b`x
+  reads {}
 {
   b.x := i;
 }
@@ -212,6 +221,12 @@ function GetBoxFn(b: Box<int>): int
 
 method GetBoxCorrectReads(b: Box<int>) returns (i: int)
   reads b
+{
+  i := b.x;
+}
+
+method GetBoxCorrectReadsSpecific(b: Box<int>) returns (i: int)
+  reads b`x
 {
   i := b.x;
 }
@@ -241,6 +256,8 @@ method ReadingAndWritingFreshStateAllowed()
   SetBox(myBox, 42);
 }
 
+// ---------- More complicated reads clauses -----------
+
 method ApplyLambda<T(!new), R>(f: T ~> R, t: T) returns (r: R) 
   requires f.requires(t)
   reads f.reads
@@ -252,6 +269,8 @@ method ApplyLambda<T(!new), R>(f: T ~> R, t: T) returns (r: R)
 //   reads set t: T :: b // BUG? This isn't allowed on functions...
 // {
 // }
+
+// ---------- Enforcing concurrency safe entry points (examples from the RFC) -----------
 
 datatype Option<T> = Some(value: T) | None
 
@@ -306,7 +325,11 @@ method {:concurrent} MemoizedSquare(x: int, cache: ExternalConcurrentMutableMap<
   }
 }
 
-function Always42(b: Box<int>): int {
+// ---------- Functions-by-method -----------
+
+// TODO: example of method call in the by method body, which therefore needs a reads clause
+
+function WeirdAlways42(b: Box<int>): int {
   42
 } by method {
   var result := 42;
@@ -314,6 +337,8 @@ function Always42(b: Box<int>): int {
   result := result - b.x;
   return 42;
 }
+
+// ---------- Correctly excluding lvalues from reads checks -----------
 
 method BadMetaBox(b: Box<Box<int>>)
   reads {}
@@ -323,16 +348,42 @@ method BadMetaBox(b: Box<Box<int>>)
 }
 
 method GoodMetaBox(b: Box<Box<int>>)
+  reads b
   modifies b.x
 {
   b.x.x := 42;
 }
 
-function GoodMetaBox2(b: Box<Box<int>>): int
-  reads b, b.x
+method BadArrayRead(a: array<int>) returns (r: int)
+  requires a.Length > 0
+  reads {}
 {
-  b.x.x
+  return a[0];  // Error: insufficient reads clause to read array element
 }
+
+method GoodArrayRead(a: array<int>) returns (r: int)
+  requires a.Length > 0
+  reads a
+{
+  return a[0];
+}
+
+method GoodArrayWrite(a: array<int>)
+  requires a.Length > 0
+  modifies a
+{
+  a[0] := 42;
+}
+
+method GoodArrayWrite2(a: array<int>)
+  requires a.Length > 0
+  reads {}
+  modifies a
+{
+  a[0] := 42;
+}
+
+// ---------- Correct verification between reads clauses (inheritance, calls, etc.) -----------
 
 trait MyTrait {
   method M(b: Box<int>) returns (r: int)
@@ -346,6 +397,51 @@ class MyClass extends MyTrait {
     return 42;
   }
 }
+
+method PretendingNotToRead(b: Box<int>, ghost g: Box<int>) 
+  reads {}
+{
+  var x := VoraciousReader(b);  // Error: insufficient reads clause to call
+}
+method PretendingNotToRead2(b: Box<int>, ghost g: Box<int>) 
+  reads {}
+{
+  var x := WhatsInTheBox(b);  // Error: insufficient reads clause to call
+}
+method ActuallyNotReading(b: Box<int>, ghost g: Box<int>) 
+  reads {}
+{
+  var x := NotAReader(b);
+}
+method PretendingNotToReadButSpooky(b: Box<int>, ghost g: Box<int>) 
+  reads {}
+{
+  var x := TheGhostCanTotallySeeYou(g);  // Error: insufficient reads clause to call
+}
+method InTwoPlacesAtOnce(b: Box<int>) 
+  reads {}
+{
+  assert Unchanged(b);  // Error: insufficient reads clause to call
+}
+method StuckInThePast(b: Box<int>) 
+  reads {}
+{
+  // Doesn't verify, but allowed by reads clause
+  assert Was42(b);   // Error: assertion might not hold
+}
+
+method VoraciousReader(b: Box<int>) returns (r: int) { r := b.x; }
+method WhatsInTheBox(b: Box<int>) returns (r: int) reads b { r := b.x; }
+method NotAReader(b: Box<int>) returns (r: int) reads {} { r := 42; }
+ghost method TheGhostCanTotallySeeYou(b: Box<int>) returns (r: int) reads b { r := b.x; }
+twostate predicate Unchanged(b: Box<int>) reads b {
+  old(b.x) == b.x
+}
+twostate predicate Was42(b: Box<int>) {
+  old(b.x) == 42
+}
+
+// ---------- Restricting other clauses on methods by reads clauses as well -----------
 
 // Testing the reads checks on other clauses
 method OnlySpecReads(b: Box<int>) returns (r: int)
@@ -364,24 +460,22 @@ method DefaultValueReads(b: Box<int>, x: int := b.x)  // Error: insufficient rea
 }
 
 // TODO:
-// * Array reads!
-// * Ensuring LHS' aren't checked as reads (LValueContext) - this.x working, array setting not working
-//   * Lots of cases!
-// * Invoking twostate things from methods
+
 // * Example for the need to add fresh loop invariants in functions by methods?
-// * Double check refinement
 // * Missing check for reads clause not allowed to depend on set of allocated objects (?)
-// * Double-check if it's correct that function default values don't assume preconditions (see example below)
 // * Document explicit choice not to change autocontracts (?)
-// * Figure out FunctionInQuantifier2 method
-//   * Something to do with difference between AssignSuchThat and LetSuchThat?
-//   * Possibly just leave and ask in PR review
+
 
 // FUTURE:
 // * Optimize checking for `reads {}`? Can be checked with a simple AST pass, much cheaper
 //   * At least some cases might be handled by existing IsAlwaysTrue
 // * Document explicit choice not to include method reads clause in decreases clause
-
+// * Double-check if it's correct that function default values don't assume preconditions (see example below)
+// function DefaultValue(b: int, v: int := 1 / b): int 
+//   requires b != 0
+// {
+//   42
+// }
 
 function Partition(s: seq<int>, p: int -> bool, a: array<int>): (seq<int>, seq<int>) {
   ([], [])
@@ -398,8 +492,3 @@ function Partition(s: seq<int>, p: int -> bool, a: array<int>): (seq<int>, seq<i
   return ([], []);
 }
 
-// function DefaultValue(b: int, v: int := 1 / b): int 
-//   requires b != 0
-// {
-//   42
-// }

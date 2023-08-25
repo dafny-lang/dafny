@@ -26,3 +26,15 @@ class C {
 
   least lemma ICanBarelySeeIt(c: C) reads c {}
 }
+
+abstract module MyAbstractModule {
+  class C { var u : int }
+  method M(c: C) returns (r: int)
+  {}
+}
+
+module MyRefinedModule refines MyAbstractModule {
+  method M(c: C) returns (r: int)
+    reads c // Error: a refining method is not allowed to extend the reads clause
+  {}
+}
