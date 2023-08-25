@@ -81,6 +81,7 @@ public class CompilationManager {
     cancellationSource = new();
     cancellationSource.Token.Register(() => started.TrySetCanceled(cancellationSource.Token));
 
+    verificationTickets.Enqueue(Unit.Default);
     MarkVerificationFinished();
 
     ParsedCompilation = ParseAsync();
@@ -152,6 +153,7 @@ public class CompilationManager {
 
   private int runningVerificationJobs;
 
+  private AsyncQueue<Unit> verificationTickets = new();
   public async Task<bool> VerifySymbol(FilePosition verifiableLocation, bool actuallyVerifyTasks = true) {
     cancellationSource.Token.ThrowIfCancellationRequested();
 
@@ -172,12 +174,14 @@ public class CompilationManager {
       return false;
     }
     compilationUpdates.OnNext(compilation);
+
     _ = VerifySymbolFirstTime(actuallyVerifyTasks, verifiable, compilation);
     return true;
   }
 
   private async Task VerifySymbolFirstTime(bool actuallyVerifyTasks, ICanVerify verifiable,
     CompilationAfterResolution compilation) {
+    var ticket = verificationTickets.Dequeue(CancellationToken.None);
     var containingModule = verifiable.ContainingModule;
 
     IncrementJobs();
@@ -199,9 +203,11 @@ public class CompilationManager {
           g => (IReadOnlyList<IImplementationTask>)g.ToList());
       });
     } catch (OperationCanceledException) {
+      verificationTickets.Enqueue(Unit.Default);
       verificationCompleted.TrySetCanceled();
       throw;
     } catch (Exception e) {
+      verificationTickets.Enqueue(Unit.Default);
       verificationCompleted.TrySetException(e);
       compilationUpdates.OnError(e);
       throw;
@@ -227,6 +233,9 @@ public class CompilationManager {
       compilationUpdates.OnNext(compilation);
     }
 
+    // When multiple calls to VerifySymbolFirstTime are made, the order in which they pass this await matches the call order.
+    await ticket;
+    
     if (actuallyVerifyTasks) {
       var tasks = implementations.Values.Select(t => t.Task).ToList();
 
@@ -288,6 +297,7 @@ public class CompilationManager {
     }
 
     DecrementJobs();
+    verificationTickets.Enqueue(Unit.Default);
   }
 
   public async Task Cancel(FilePosition filePosition) {

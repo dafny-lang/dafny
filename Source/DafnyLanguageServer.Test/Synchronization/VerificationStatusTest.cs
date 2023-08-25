@@ -344,7 +344,7 @@ method Bar() { assert false; }";
   }
 
   [Fact]
-  public async Task SingleMethodGoesThroughAllPhasesExceptQueued() {
+  public async Task SingleMethodGoesThroughAllPhases() {
     var source = @"method Foo() { assert false; }";
 
     await SetUp(options => {
@@ -355,6 +355,8 @@ method Bar() { assert false; }";
     var stale = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
     Assert.Equal(PublishedVerificationStatus.Stale, stale.NamedVerifiables[0].Status);
     client.SaveDocument(documentItem);
+    var queued = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
+    Assert.Equal(PublishedVerificationStatus.Queued, queued.NamedVerifiables[0].Status);
     var verifying = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
     Assert.Equal(PublishedVerificationStatus.Running, verifying.NamedVerifiables[0].Status);
     var errored = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
@@ -400,6 +402,8 @@ method Bar() { assert false; }";
 
     var stale2 = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
     Assert.Equal(PublishedVerificationStatus.Stale, stale2.NamedVerifiables[0].Status);
+    var queued = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
+    Assert.Equal(PublishedVerificationStatus.Queued, queued.NamedVerifiables[0].Status);
     var running = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
     Assert.Equal(PublishedVerificationStatus.Running, running.NamedVerifiables[0].Status);
 
