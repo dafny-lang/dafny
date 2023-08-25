@@ -350,7 +350,7 @@ public class AssertStatement : ProofObligationDescriptionCustomMessages {
 // The Boogie version does not support custom error messages yet
 public class RequiresDescription : ProofObligationDescriptionCustomMessages {
   public override string DefaultSuccessDescription =>
-    "this precondition always holds";
+    "the precondition always holds";
 
   public override string DefaultFailureDescription =>
     "this is the precondition that could not be proved";

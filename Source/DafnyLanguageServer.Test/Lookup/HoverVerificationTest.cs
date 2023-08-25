@@ -145,7 +145,7 @@ method main(k: int) {
 Did prove: `i % 2 == 0`"
       );
       await AssertHoverMatches(documentItem, (6, 6),
-        @"**Success:**???this precondition always holds
+        @"**Success:**???the precondition always holds
 Did prove: `i > 0`"
       );
       await AssertHoverMatches(documentItem, (7, 6),
