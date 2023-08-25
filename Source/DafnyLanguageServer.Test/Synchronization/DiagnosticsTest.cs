@@ -27,9 +27,9 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var diagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
       Assert.Contains("timed out", diagnostics[0].Message);
-      Assert.Equal(new Range(0,21,0,43), diagnostics[0].Range);
+      Assert.Equal(new Range(0, 21, 0, 43), diagnostics[0].Range);
     }
-    
+
     [Fact]
     public async Task NoFlickeringWhenMixingCorrectAndErrorBatches() {
       var source = @"
