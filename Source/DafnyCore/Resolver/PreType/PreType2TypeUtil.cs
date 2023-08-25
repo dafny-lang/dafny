@@ -11,7 +11,7 @@ using JetBrains.Annotations;
 
 namespace Microsoft.Dafny;
 
-public class TypeAdjustments {
+public static class PreType2TypeUtil {
   public static Type PreType2Type(PreType preType, bool allowFutureAdjustments, TypeParameter.TPVariance futureAdjustments) {
     if (allowFutureAdjustments) {
       return PreType2AdjustableType(preType, futureAdjustments);

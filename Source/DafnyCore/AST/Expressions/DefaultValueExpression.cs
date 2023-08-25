@@ -139,6 +139,6 @@ public class DefaultValueExpressionPreType : DefaultValueExpression, ICloneable<
   protected override Dictionary<TypeParameter, Type> GetTypeMap() {
     return preTypeMap.ToDictionary(
       x => x.Key,
-      x => TypeAdjustments.PreType2FixedType(x.Value));
+      x => PreType2TypeUtil.PreType2FixedType(x.Value));
   }
 }
