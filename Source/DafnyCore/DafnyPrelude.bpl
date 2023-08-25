@@ -957,16 +957,15 @@ axiom (forall s: Seq, x: Box :: { MultiSet#FromSeq(s)[x] }
 // ---------------------------------------------------------------
 
 type {:builtin "Seq"} BuiltinSeq _;
-
-function {:builtin "seq.empty"} Seq_Empty<T>(): BuiltinSeq T;
-function {:builtin "seq.len"} Seq_Len<T>(a: BuiltinSeq T): int;
-function {:builtin "seq.++"} Seq_Concat<T>(a: BuiltinSeq T, b: BuiltinSeq T): BuiltinSeq T;
-function {:builtin "seq.unit"} Seq_Unit<T>(v: T): BuiltinSeq T;
-function {:builtin "seq.nth"} Seq_Nth<T>(a: BuiltinSeq T, i: int): T;
-function {:builtin "seq.extract"} Seq_Extract<T>(a: BuiltinSeq T, pos: int, length: int): BuiltinSeq T;
-function {:builtin "seq.contains"} Seq_Contains<T>(s1: BuiltinSeq T, s2: BuiltinSeq T): bool;
-
 type Seq = BuiltinSeq Box;
+
+function {:builtin "seq.empty"} Seq_Empty(): Seq;
+function {:builtin "seq.len"} Seq_Len(a: Seq): int;
+function {:builtin "seq.++"} Seq_Concat(a: Seq, b: Seq): Seq;
+function {:builtin "seq.unit"} Seq_Unit(v: Box): Seq;
+function {:builtin "seq.nth"} Seq_Nth(a: Seq, i: int): Box;
+function {:builtin "seq.extract"} Seq_Extract(a: Seq, pos: int, length: int): Seq;
+function {:builtin "seq.contains"} Seq_Contains(s1: Seq, s2: Seq): bool;
 
 function
 #if SEQ_INLINE
@@ -1013,7 +1012,7 @@ function
 {:inline}
 #endif
 Seq#Update(s: Seq, i: int, v: Box) : Seq {
-  Seq_Concat(Seq_Extract(s, 0, i), Seq_Concat(Seq_Unit(v), Seq_Extract(s, i + 1, Seq_Len(s) - i)))
+  Seq_Concat(Seq_Extract(s, 0, i), Seq_Concat(Seq_Unit(v), Seq_Extract(s, i + 1, Seq_Len(s) - i - 1)))
 }
 
 function
