@@ -46,14 +46,14 @@ class PreTypeToTypeVisitor : ASTVisitor<IASTVisitorContext> {
   public void VisitConstantsAndRedirectingTypes(List<TopLevelDecl> declarations) {
     foreach (var decl in declarations) {
       if (decl is NewtypeDecl newtypeDecl) {
-        TypeAdjustments.Combine(newtypeDecl.BaseType, newtypeDecl.BasePreType, false);
+        PreType2TypeUtil.Combine(newtypeDecl.BaseType, newtypeDecl.BasePreType, false);
       } else if (decl is SubsetTypeDecl subsetTypeDecl) {
-        TypeAdjustments.Combine(subsetTypeDecl.Var.Type, subsetTypeDecl.Var.PreType, false);
+        PreType2TypeUtil.Combine(subsetTypeDecl.Var.Type, subsetTypeDecl.Var.PreType, false);
       }
       if (decl is TopLevelDeclWithMembers topLevelDeclWithMembers) {
         foreach (var member in topLevelDeclWithMembers.Members.Where(member => member is ConstantField)) {
           var constField = (ConstantField)member;
-          TypeAdjustments.Combine(constField.Type, constField.PreType, true);
+          PreType2TypeUtil.Combine(constField.Type, constField.PreType, true);
         }
       }
     }
@@ -64,9 +64,9 @@ class PreTypeToTypeVisitor : ASTVisitor<IASTVisitorContext> {
   /// </summary>
   protected override void VisitOneDeclaration(TopLevelDecl decl) {
     if (decl is NewtypeDecl newtypeDecl) {
-      TypeAdjustments.Combine(newtypeDecl.BaseType, newtypeDecl.BasePreType, false);
+      PreType2TypeUtil.Combine(newtypeDecl.BaseType, newtypeDecl.BasePreType, false);
     } else if (decl is SubsetTypeDecl subsetTypeDecl) {
-      TypeAdjustments.Combine(subsetTypeDecl.Var.Type, subsetTypeDecl.Var.PreType, false);
+      PreType2TypeUtil.Combine(subsetTypeDecl.Var.Type, subsetTypeDecl.Var.PreType, false);
     }
 
     base.VisitOneDeclaration(decl);
@@ -75,7 +75,7 @@ class PreTypeToTypeVisitor : ASTVisitor<IASTVisitorContext> {
   public override void VisitField(Field field) {
     if (field is ConstantField constField) {
       // The type of the const might have been omitted in the program text and then inferred
-      TypeAdjustments.Combine(constField.Type, constField.PreType, true);
+      PreType2TypeUtil.Combine(constField.Type, constField.PreType, true);
     }
 
     base.VisitField(field);
@@ -83,19 +83,19 @@ class PreTypeToTypeVisitor : ASTVisitor<IASTVisitorContext> {
 
   private static void VisitVariableList(IEnumerable<IVariable> variables, bool allowFutureAdjustments) {
     foreach (var v in variables) {
-      TypeAdjustments.Combine(v.Type, v.PreType, allowFutureAdjustments);
+      PreType2TypeUtil.Combine(v.Type, v.PreType, allowFutureAdjustments);
     }
   }
 
   protected override void PostVisitOneExpression(Expression expr, IASTVisitorContext context) {
     if (expr is FunctionCallExpr functionCallExpr) {
-      functionCallExpr.TypeApplication_AtEnclosingClass = functionCallExpr.PreTypeApplication_AtEnclosingClass.ConvertAll(TypeAdjustments.PreType2FixedType);
-      functionCallExpr.TypeApplication_JustFunction = TypeAdjustments.Combine(functionCallExpr.TypeApplication_JustFunction,
+      functionCallExpr.TypeApplication_AtEnclosingClass = functionCallExpr.PreTypeApplication_AtEnclosingClass.ConvertAll(PreType2TypeUtil.PreType2FixedType);
+      functionCallExpr.TypeApplication_JustFunction = PreType2TypeUtil.Combine(functionCallExpr.TypeApplication_JustFunction,
         functionCallExpr.PreTypeApplication_JustFunction, true);
     } else if (expr is MemberSelectExpr memberSelectExpr) {
-      memberSelectExpr.TypeApplication_AtEnclosingClass = memberSelectExpr.PreTypeApplication_AtEnclosingClass.ConvertAll(TypeAdjustments.PreType2FixedType);
+      memberSelectExpr.TypeApplication_AtEnclosingClass = memberSelectExpr.PreTypeApplication_AtEnclosingClass.ConvertAll(PreType2TypeUtil.PreType2FixedType);
       memberSelectExpr.TypeApplication_JustMember =
-        TypeAdjustments.Combine(memberSelectExpr.TypeApplication_JustMember, memberSelectExpr.PreTypeApplication_JustMember, true);
+        PreType2TypeUtil.Combine(memberSelectExpr.TypeApplication_JustMember, memberSelectExpr.PreTypeApplication_JustMember, true);
     } else if (expr is ComprehensionExpr comprehensionExpr) {
       VisitVariableList(comprehensionExpr.BoundVars, false);
     } else if (expr is LetExpr letExpr) {
@@ -111,11 +111,11 @@ class PreTypeToTypeVisitor : ASTVisitor<IASTVisitorContext> {
         for (var i = 0; i < datatypeDecl.TypeArgs.Count; i++) {
           var formal = datatypeDecl.TypeArgs[i];
           var actualPreType = datatypeValue.InferredPreTypeArgs[i];
-          datatypeValue.InferredTypeArgs.Add(TypeAdjustments.PreType2AdjustableType(actualPreType, formal.Variance));
+          datatypeValue.InferredTypeArgs.Add(PreType2TypeUtil.PreType2AdjustableType(actualPreType, formal.Variance));
         }
       }
     } else if (expr is ConversionExpr conversionExpr) {
-      TypeAdjustments.Combine(conversionExpr.ToType, conversionExpr.PreType, false);
+      PreType2TypeUtil.Combine(conversionExpr.ToType, conversionExpr.PreType, false);
       expr.Type = conversionExpr.ToType;
       return;
     }
@@ -127,14 +127,14 @@ class PreTypeToTypeVisitor : ASTVisitor<IASTVisitorContext> {
     } else if (expr is SeqSelectExpr { Seq: { Type: { AsMultiSetType: { } } } }) {
       expr.UnnormalizedType = systemModuleManager.Nat();
     } else {
-      expr.UnnormalizedType = TypeAdjustments.PreType2AdjustableType(expr.PreType, TypeParameter.TPVariance.Co);
+      expr.UnnormalizedType = PreType2TypeUtil.PreType2AdjustableType(expr.PreType, TypeParameter.TPVariance.Co);
     }
     base.PostVisitOneExpression(expr, context);
   }
 
   private void VisitPattern<VT>(CasePattern<VT> casePattern, IASTVisitorContext context) where VT : class, IVariable {
     if (casePattern.Var != null) {
-      TypeAdjustments.Combine(casePattern.Var.Type, casePattern.Var.PreType, false);
+      PreType2TypeUtil.Combine(casePattern.Var.Type, casePattern.Var.PreType, false);
     }
     VisitExpression(casePattern.Expr, context);
 
@@ -147,7 +147,7 @@ class PreTypeToTypeVisitor : ASTVisitor<IASTVisitorContext> {
     } else if (stmt is VarDeclPattern varDeclPattern) {
       VisitVariableList(varDeclPattern.LocalVars, true);
     } else if (stmt is ForLoopStmt forLoopStmt) {
-      TypeAdjustments.Combine(forLoopStmt.LoopIndex.Type, forLoopStmt.LoopIndex.PreType, false);
+      PreType2TypeUtil.Combine(forLoopStmt.LoopIndex.Type, forLoopStmt.LoopIndex.PreType, false);
     } else if (stmt is ForallStmt forallStmt) {
       VisitVariableList(forallStmt.BoundVars, false);
     }
@@ -161,7 +161,7 @@ class PreTypeToTypeVisitor : ASTVisitor<IASTVisitorContext> {
     } else if (stmt is AssignStmt { Rhs: TypeRhs tRhs }) {
       Type rhsType;
       // convert the type of the RHS, which we expect to be a reference type, and then create the non-null version of it
-      var udtConvertedFromPretype = (UserDefinedType)TypeAdjustments.PreType2FixedType(tRhs.PreType);
+      var udtConvertedFromPretype = (UserDefinedType)PreType2TypeUtil.PreType2FixedType(tRhs.PreType);
       Contract.Assert(udtConvertedFromPretype.IsRefType);
       if (tRhs.ArrayDimensions != null) {
         // In this case, we expect tRhs.PreType (and udtConvertedFromPretype) to be an array type
@@ -175,13 +175,13 @@ class PreTypeToTypeVisitor : ASTVisitor<IASTVisitorContext> {
         // tRhs.EType may contain user-supplied subset types. But tRhs.EType may also be missing some type arguments altogether, because
         // they may have been omitted in the source text. The following has the effect of filling in any such missing components with
         // whatever was inferred during pre-type inference.
-        TypeAdjustments.Combine(tRhs.EType, arrayPreType.Arguments[0], false);
+        PreType2TypeUtil.Combine(tRhs.EType, arrayPreType.Arguments[0], false);
         var arrayTypeDecl = systemModuleManager.arrayTypeDecls[tRhs.ArrayDimensions.Count];
         var rhsMaybeNullType = new UserDefinedType(stmt.tok, arrayTypeDecl.Name, arrayTypeDecl, new List<Type>() { tRhs.EType });
         rhsType = UserDefinedType.CreateNonNullType(rhsMaybeNullType);
       } else {
         // Fill in any missing type arguments in the user-supplied tRhs.EType.
-        TypeAdjustments.Combine(tRhs.EType, tRhs.PreType, false);
+        PreType2TypeUtil.Combine(tRhs.EType, tRhs.PreType, false);
         rhsType = (UserDefinedType)tRhs.EType;
         if (tRhs.InitCall != null) {
           // We want the type of tRhs.InitCall.MethodSelect.Obj to be the same as what the "new" gives, but the previous
@@ -225,7 +225,7 @@ class PreTypeToTypeVisitor : ASTVisitor<IASTVisitorContext> {
         break;
       case IdPattern idPattern:
         if (idPattern.BoundVar != null) {
-          TypeAdjustments.Combine(idPattern.BoundVar.Type, idPattern.BoundVar.PreType, false);
+          PreType2TypeUtil.Combine(idPattern.BoundVar.Type, idPattern.BoundVar.PreType, false);
         }
         if (idPattern.ResolvedLit != null) {
           PostVisitOneExpression(idPattern.ResolvedLit, context);
