@@ -105,8 +105,11 @@ public class CompilationAfterResolution : CompilationAfterParsing {
           }
         }
 
+        // If we're trying to verify this symbol, its status is at least queued.
+        var status = implementationView.Status == PublishedVerificationStatus.Stale && TriedToVerify.ContainsKey(canVerify)
+          ? PublishedVerificationStatus.Queued : implementationView.Status;
         return new IdeImplementationView(implementationView.Task.Implementation.tok.GetLspRange(true),
-          implementationView.Status, diagnostics.ToList());
+          status, diagnostics.ToList());
       });
       return new IdeVerificationResult(VerificationPreparationState.Done, implementations);
 

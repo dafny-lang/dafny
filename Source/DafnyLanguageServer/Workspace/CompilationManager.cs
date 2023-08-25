@@ -290,6 +290,19 @@ public class CompilationManager {
     DecrementJobs();
   }
 
+  public async Task Cancel(FilePosition filePosition) {
+    var resolvedCompilation = await ResolvedCompilation;
+    var canVerify = resolvedCompilation.Program.FindNode<ICanVerify>(filePosition.Uri, filePosition.Position.ToDafnyPosition());
+    if (canVerify != null) {
+      var implementations = resolvedCompilation.ImplementationsPerVerifiable.TryGetValue(canVerify, out var implementationsPerName)
+        ? implementationsPerName.Values : Enumerable.Empty<ImplementationView>();
+      foreach (var view in implementations) {
+        view.Task.Cancel();
+      }
+      resolvedCompilation.TriedToVerify.TryRemove(canVerify, out _);
+    }
+  }
+
   public void IncrementJobs() {
     MarkVerificationStarted();
     var verifyTaskIncrementedJobs = Interlocked.Increment(ref runningVerificationJobs);

@@ -39,11 +39,22 @@ method Zap() returns (x: int) ensures x / 2 == 1; {
       var status = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
       if (status.NamedVerifiables.Count(v => v.Status == PublishedVerificationStatus.Queued) == 2) {
         Assert.Contains(status.NamedVerifiables, v => v.Status == PublishedVerificationStatus.Stale);
-        return;
+        break;
       }
 
       if (status.NamedVerifiables.All(v => v.Status >= PublishedVerificationStatus.Error)) {
         Assert.Fail("Finished without getting to a dual queued state");
+      }
+    }
+
+    while (true) {
+      var status = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
+      if (status.NamedVerifiables.Count(v => v.Status == PublishedVerificationStatus.Stale) > 1) {
+        Assert.Fail("May not become stale after both being queued. ");
+      }
+
+      if (status.NamedVerifiables.Count(v => v.Status >= PublishedVerificationStatus.Error) == 2) {
+        return;
       }
     }
   }
@@ -309,6 +320,9 @@ method Bar() { assert false; }";
 
     var methodHeader = new Position(0, 21);
     await client.RunSymbolVerification(new TextDocumentIdentifier(documentItem.Uri), methodHeader, CancellationToken);
+    var running0 = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
+    Assert.Equal(PublishedVerificationStatus.Queued, running0.NamedVerifiables[0].Status);
+
     var running1 = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
     Assert.Equal(PublishedVerificationStatus.Running, running1.NamedVerifiables[0].Status);
 
