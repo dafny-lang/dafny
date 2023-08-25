@@ -3957,7 +3957,7 @@ namespace Microsoft.Dafny {
       }
       MakeAssert(tok, q, desc, kv);
     }
-    
+
     void CheckFrameEmpty(IToken tok,
                          ExpressionTranslator/*!*/ etran, Boogie.IdentifierExpr /*!*/ frame,
                          BoogieStmtListBuilder/*!*/ builder, PODesc.ProofObligationDescription desc,

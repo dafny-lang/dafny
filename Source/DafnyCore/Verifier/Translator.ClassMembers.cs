@@ -675,7 +675,7 @@ namespace Microsoft.Dafny {
         Contract.Assert(definiteAssignmentTrackers.Count == 0);
       } else {
         var readsCheckDelayer = new ReadsCheckDelayer(etran, null, localVariables, builderInitializationArea, builder);
-        
+
         // check well-formedness of any default-value expressions (before assuming preconditions)
         readsCheckDelayer.WithDelayedReadsChecks(true, wfo => {
           foreach (var formal in m.Ins.Where(formal => formal.DefaultValue != null)) {
@@ -693,14 +693,14 @@ namespace Microsoft.Dafny {
             }
           }
         });
-        
+
         // check well-formedness of the preconditions, and then assume each one of them
         readsCheckDelayer.WithDelayedReadsChecks(false, wfo => {
           foreach (AttributedExpression p in m.Req) {
             CheckWellformedAndAssume(p.E, wfo, localVariables, builder, etran);
           }
         });
-        
+
         // check well-formedness of the reads clauses
         readsCheckDelayer.WithDelayedReadsChecks(false, wfo => {
           CheckFrameWellFormed(wfo, m.Reads, localVariables, builder, etran);
@@ -1394,7 +1394,7 @@ namespace Microsoft.Dafny {
       IToken tok = m.tok;
       // Declare a local variable $_Frame: <alpha>[ref, Field alpha]bool
       // The next line is a throw-away expression, used only to extract the type and name of the $_ModifiesFrame variable
-      Boogie.IdentifierExpr traitFrame = etran.ReadsFrame(m.OverriddenMethod.tok);  
+      Boogie.IdentifierExpr traitFrame = etran.ReadsFrame(m.OverriddenMethod.tok);
       traitFrame.Name = m.EnclosingClass.Name + "_" + traitFrame.Name;
       Contract.Assert(traitFrame.Type != null);  // follows from the postcondition of ReadsFrame
       Boogie.LocalVariable frame = new Boogie.LocalVariable(tok, new Boogie.TypedIdent(tok, null ?? traitFrame.Name, traitFrame.Type));
@@ -1420,7 +1420,7 @@ namespace Microsoft.Dafny {
         Boogie.Expr.Imp(Boogie.Expr.And(ante, oInCallee), consequent2));
       builder.Add(Assert(tok, q, new PODesc.TraitFrame(m.WhatKind, false), kv));
     }
-    
+
     private void AddMethodOverrideModifiesSubsetChk(Method m, BoogieStmtListBuilder builder, ExpressionTranslator etran, List<Variable> localVariables,
       Dictionary<IVariable, Expression> substMap,
       Dictionary<TypeParameter, Type> typeMap) {

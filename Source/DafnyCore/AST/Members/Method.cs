@@ -21,7 +21,6 @@ public class Method : MemberDecl, TypeParameter.ParentType, IMethodCodeContext, 
   public readonly List<Formal> Ins;
   public readonly List<Formal> Outs;
   public readonly List<AttributedExpression> Req;
-  // TODO: make a Specification<FrameExpression> as well? Function.Reads isn't...
   public readonly List<FrameExpression> Reads;
   public readonly Specification<FrameExpression> Mod;
   public readonly List<AttributedExpression> Ens;

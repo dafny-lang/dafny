@@ -229,7 +229,7 @@ namespace Microsoft.Dafny {
     // if etran.readsFrame is null, the block is called with a WFOption with DoReadsChecks set to false instead.
     private record ReadsCheckDelayer(ExpressionTranslator etran, Function selfCallsAllowance,
       List<Variable> localVariables, BoogieStmtListBuilder builderInitializationArea, BoogieStmtListBuilder builder) {
-      
+
       public void WithDelayedReadsChecks(bool doOnlyCoarseGrainedTerminationChecks, Action<WFOptions> action) {
         var doReadsChecks = etran.readsFrame != null;
         var options = new WFOptions(selfCallsAllowance, doReadsChecks, doReadsChecks, doOnlyCoarseGrainedTerminationChecks);
@@ -238,8 +238,8 @@ namespace Microsoft.Dafny {
           options.ProcessSavedReadsChecks(localVariables, builderInitializationArea, builder);
         }
       }
-    } 
-    
+    }
+
     /// <summary>
     /// Check the well-formedness of "expr" (but don't leave hanging around any assumptions that affect control flow)
     /// </summary>

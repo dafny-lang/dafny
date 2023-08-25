@@ -125,7 +125,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
       }
 
       RegisterLegacyUi(CommonOptionBag.AddCompileSuffix, ParseBoolean, "Compilation options", "compileSuffix");
-      
+
       RegisterLegacyUi(CommonOptionBag.ReadsClausesOnMethods, ParseBoolean, "Language feature selection", "readsClausesOnMethods", @"
 0 (default) - Reads clauses on methods are forbidden.
 1 - Reads clauses on methods are permitted.".TrimStart(), defaultValue: false);
