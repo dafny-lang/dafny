@@ -1,4 +1,4 @@
-// RUN: %exits-with 4 %dafny /compile:0 /deprecation:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %exits-with 4 %dafny /compile:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 datatype List<T> = Nil | Cons(T, List<T>)
@@ -125,7 +125,7 @@ class NestedMatchExpr {
     }
   }
   method TestNesting1(a: List<NestedMatchExpr>)
-    ensures Cadr(a, this) == CadrAlt(a, this);
+    ensures Cadr(a, this) == CadrAlt(a, this)
   {
     match (a) {
       case Nil =>
@@ -174,7 +174,7 @@ method Destructors2(d: XList) {
 }
 
 ghost method Lemma_AllCases(d: XList)
-  ensures d.XNil? || d.XCons?;
+  ensures d.XNil? || d.XCons?
 {
   match (d) {
     case XNil =>
@@ -183,7 +183,7 @@ ghost method Lemma_AllCases(d: XList)
 }
 
 method InjectivityTests(d: XList)
-  requires d != XNil;
+  requires d != XNil
 {
   match (d) {
     case XCons(a,b) =>
@@ -198,7 +198,7 @@ method InjectivityTests(d: XList)
 }
 
 method MatchingDestructor(d: XList) returns (r: XList)
-  ensures r.Car == 5;  // error: specification is not well-formed (since r might not be an XCons)
+  ensures r.Car == 5  // error: specification is not well-formed (since r might not be an XCons)
 {
   if (*) {
     var x0 := d.Car;  // error: d might not be an XCons
@@ -229,7 +229,7 @@ method Rotate1(t: TripleAndMore) returns (u: TripleAndMore)
 // -------------
 
 method FwdBug(f: Fwd, initialized: bool)
-  requires !f.FwdCons?;
+  requires !f.FwdCons?
 {
   match (f) {
     case FwdNil =>
@@ -241,7 +241,7 @@ method FwdBug(f: Fwd, initialized: bool)
 }
 
 ghost function FwdBugFunction(f: Fwd): bool
-  requires !f.FwdCons?;
+  requires !f.FwdCons?
 {
   match f
   case FwdNil => true
@@ -264,7 +264,7 @@ method TestAllCases_Inside(f: Fwd)
 }
 
 class ContainsFwd {
-  var fwd: Fwd;
+  var fwd: Fwd
   method TestCases()
   {
     assert fwd.FwdNil? || fwd.FwdCons?;
@@ -292,7 +292,7 @@ module MatchExpressionsInArbitraryPositions {
   datatype AList<T> = ANil | ACons(head: T, tail: AList) | Appendix(b: bool)
 
   method M(xs: AList<int>) returns (y: int)
-    ensures 0 <= y;
+    ensures 0 <= y
   {
     if * {
       y := match xs  // error: missing case Appendix

@@ -1,8 +1,12 @@
-﻿using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
+﻿using System.IO;
+using System.Linq;
+using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Threading.Tasks;
+using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 using Xunit;
 using Xunit.Abstractions;
+using Xunit.Sdk;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
   public class LookupMigrationTest : SynchronizationTestBase {
@@ -44,7 +48,7 @@ class Test {
 
 
 ";
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "MigrationLeavesLinesOfSymbolsBeforeUnchangedWhenChangingInTheMiddle.dfy");
       await Client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       await ApplyChangeAndWaitCompletionAsync(
         ref documentItem,
@@ -83,7 +87,7 @@ class Test {
 }".TrimStart();
 
       var change = "";
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "MigrationLeavesLinesOfSymbolsBeforeUnchangedWhenRemovingInTheMiddle.dfy");
       await Client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       await ApplyChangeAndWaitCompletionAsync(
         ref documentItem,
@@ -130,17 +134,26 @@ class Test {
 
 
 ";
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "MigrationMovesLinesOfSymbolsAfterWhenChangingInTheMiddle.dfy");
       await Client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       await ApplyChangeAndWaitCompletionAsync(
         ref documentItem,
         new Range((10, 0), (14, 0)),
         change
       );
-      var document = await Projects.GetResolvedDocumentAsyncNormalizeUri(documentItem.Uri);
-      Assert.NotNull(document);
-      Assert.True(document.SignatureAndCompletionTable.TryGetSymbolAt((22, 10), out var symbol));
-      Assert.Equal("y", symbol.Name);
+      var state = await Projects.GetResolvedDocumentAsyncNormalizeUri(documentItem.Uri);
+      Assert.NotNull(state);
+
+      try {
+        Assert.True(state.SignatureAndCompletionTable.TryGetSymbolAt((22, 10), out var symbol));
+        Assert.Equal("y", symbol.Name);
+      } catch (AssertActualExpectedException) {
+        await output.WriteLineAsync($"state version is {state.Version}, diagnostics: {state.GetAllDiagnostics().Stringify()}");
+        var programString = new StringWriter();
+        var printer = new Printer(programString, DafnyOptions.Default);
+        printer.PrintProgram((Program)state.Program, true);
+        await output.WriteLineAsync($"program:\n{programString}");
+      }
     }
 
     [Fact]
@@ -169,7 +182,7 @@ class Test {
 }".TrimStart();
 
       var change = "";
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "MigrationMovesLinesOfSymbolsAfterWhenRemovingInTheMiddle.dfy");
       await Client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       await ApplyChangeAndWaitCompletionAsync(
         ref documentItem,
@@ -196,7 +209,7 @@ class Test {
 }".TrimStart();
 
       var change = " +";
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "MigrationLeavesCharacterOfSymbolsBeforeUnchangedWhenChangingInTheMiddleOfLine.dfy");
       await Client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       await ApplyChangeAndWaitCompletionAsync(
         ref documentItem,
@@ -223,7 +236,7 @@ class Test {
 }".TrimStart();
 
       var change = "y + ";
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "MigrationMovesCharacterOfSymbolsAfterWhenChangingInTheMiddleOfLine.dfy");
       await Client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       await ApplyChangeAndWaitCompletionAsync(
         ref documentItem,
@@ -250,11 +263,11 @@ class Test {
 }".TrimStart();
 
       var change = "y + ";
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "MigrationRemovesSymbolLocationsWithinTheChangedRange.dfy");
       await Client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var originalDocument = await Projects.GetResolvedDocumentAsyncNormalizeUri(documentItem.Uri);
       Assert.NotNull(originalDocument);
-      var lookupCountBefore = originalDocument.SignatureAndCompletionTable.LookupTree.Count;
+      var lookupCountBefore = originalDocument.SignatureAndCompletionTable.LookupTreePerUri.First().Value.Count;
 
       await ApplyChangeAndWaitCompletionAsync(
         ref documentItem,
@@ -264,7 +277,7 @@ class Test {
       var document = await Projects.GetResolvedDocumentAsyncNormalizeUri(documentItem.Uri);
       Assert.NotNull(document);
       Assert.False(document.SignatureAndCompletionTable.TryGetSymbolAt((6, 9), out var _));
-      Assert.Equal(lookupCountBefore - 1, document.SignatureAndCompletionTable.LookupTree.Count);
+      Assert.Equal(lookupCountBefore - 1, document.SignatureAndCompletionTable.LookupTreePerUri.First().Value.Count);
     }
 
     [Fact]
@@ -280,7 +293,7 @@ class Test {
   }
 }".TrimStart();
 
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "MigrationMovesSymbolLocationsWhenApplyingMultipleChangesAtOnce.dfy");
       await Client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       await ApplyChangesAndWaitCompletionAsync(
         documentItem,

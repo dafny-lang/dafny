@@ -4,6 +4,8 @@ using System.CommandLine;
 using System.CommandLine.Invocation;
 using System.Linq;
 using DafnyCore;
+using Microsoft.Boogie;
+
 // Copyright by the contributors to the Dafny Project
 // SPDX-License-Identifier: MIT
 
@@ -23,13 +25,15 @@ public class GenerateTestsCommand : ICommandSpec {
       BoogieOptionBag.SolverResourceLimit,
       BoogieOptionBag.VerificationTimeLimit,
       PrintBpl,
-      DisablePrune
+      CoverageReport,
+      ForcePrune
     }.Concat(ICommandSpec.ConsoleOutputOptions).
       Concat(ICommandSpec.ResolverOptions);
 
   private enum Mode {
     Path,
-    Block
+    Block,
+    InlinedBlock
   }
 
   /// <summary>
@@ -46,8 +50,9 @@ public class GenerateTestsCommand : ICommandSpec {
   }
 
   private readonly Argument<Mode> modeArgument = new("mode", @"
-block - Prints block-coverage tests for the given program.
-path - Prints path-coverage tests for the given program.");
+Block - Generate tests targeting block-coverage.
+InlinedBlock - Generate tests targeting block coverage after inlining (call-graph sensitive block coverage).
+Path - Generate tests targeting path-coverage.");
 
   public Command Create() {
     var result = new Command("generate-tests", "(Experimental) Generate Dafny tests that ensure block or path coverage of a particular Dafny program.");
@@ -57,8 +62,16 @@ path - Prints path-coverage tests for the given program.");
   }
 
   public void PostProcess(DafnyOptions dafnyOptions, Options options, InvocationContext context) {
-    // IMPORTANT: Before adding new default options, make sure they are
-    // appropriately copied over in the CopyForProcedure method above
+    var mode = context.ParseResult.GetValueForArgument(modeArgument) switch {
+      Mode.Path => TestGenerationOptions.Modes.Path,
+      Mode.Block => TestGenerationOptions.Modes.Block,
+      Mode.InlinedBlock => TestGenerationOptions.Modes.InlinedBlock,
+      _ => throw new ArgumentOutOfRangeException()
+    };
+    PostProcess(dafnyOptions, options, context, mode);
+  }
+
+  internal static void PostProcess(DafnyOptions dafnyOptions, Options options, InvocationContext context, TestGenerationOptions.Modes mode) {
     dafnyOptions.CompilerName = "cs";
     dafnyOptions.Compile = true;
     dafnyOptions.RunAfterCompile = false;
@@ -66,14 +79,11 @@ path - Prints path-coverage tests for the given program.");
     dafnyOptions.DeprecationNoise = 0;
     dafnyOptions.ForbidNondeterminism = true;
     dafnyOptions.DefiniteAssignmentLevel = 2;
+    dafnyOptions.UseBaseNameForFileName = false;
+    dafnyOptions.VerifyAllModules = true;
+    dafnyOptions.TypeEncodingMethod = CoreOptions.TypeEncoding.Predicates;
     dafnyOptions.Set(DafnyConsolePrinter.ShowSnippets, false);
-
-    var mode = context.ParseResult.GetValueForArgument(modeArgument);
-    dafnyOptions.TestGenOptions.Mode = mode switch {
-      Mode.Path => TestGenerationOptions.Modes.Path,
-      Mode.Block => TestGenerationOptions.Modes.Block,
-      _ => throw new ArgumentOutOfRangeException()
-    };
+    dafnyOptions.TestGenOptions.Mode = mode;
   }
 
   public static readonly Option<uint> SequenceLengthLimit = new("--length-limit",
@@ -86,8 +96,12 @@ path - Prints path-coverage tests for the given program.");
     "Print the Boogie code used during test generation.") {
     ArgumentHelpName = "filename"
   };
-  public static readonly Option<bool> DisablePrune = new("--no-prune",
-    "Disable axiom pruning that Dafny uses to speed up verification.") {
+  public static readonly Option<string> CoverageReport = new("--coverage-report",
+    "Emit expected test coverage report to a given directory.") {
+    ArgumentHelpName = "directory"
+  };
+  public static readonly Option<bool> ForcePrune = new("--force-prune",
+    "Enable axiom pruning that Dafny uses to speed up verification. This may negatively affect the quality of tests.") {
   };
   static GenerateTestsCommand() {
     DafnyOptions.RegisterLegacyBinding(LoopUnroll, (options, value) => {
@@ -99,15 +113,19 @@ path - Prints path-coverage tests for the given program.");
     DafnyOptions.RegisterLegacyBinding(PrintBpl, (options, value) => {
       options.TestGenOptions.PrintBpl = value;
     });
-    DafnyOptions.RegisterLegacyBinding(DisablePrune, (options, value) => {
-      options.TestGenOptions.DisablePrune = value;
+    DafnyOptions.RegisterLegacyBinding(CoverageReport, (options, value) => {
+      options.TestGenOptions.CoverageReport = value;
+    });
+    DafnyOptions.RegisterLegacyBinding(ForcePrune, (options, value) => {
+      options.TestGenOptions.ForcePrune = value;
     });
 
     DooFile.RegisterNoChecksNeeded(
       LoopUnroll,
       SequenceLengthLimit,
       PrintBpl,
-      DisablePrune
+      CoverageReport,
+      ForcePrune
     );
   }
 }

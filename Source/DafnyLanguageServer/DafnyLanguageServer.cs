@@ -1,11 +1,9 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Text.RegularExpressions;
 using Microsoft.Dafny.LanguageServer.Handlers;
 using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Workspace;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
@@ -14,7 +12,6 @@ using OmniSharp.Extensions.LanguageServer.Server;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Boogie.SMTLib;
-using Microsoft.Extensions.Options;
 using Action = System.Action;
 
 namespace Microsoft.Dafny.LanguageServer {
@@ -42,7 +39,6 @@ namespace Microsoft.Dafny.LanguageServer {
     private static Task InitializeAsync(ILanguageServer server, InitializeParams request, CancellationToken cancelRequestToken,
         Action killLanguageServer) {
       var logger = server.GetRequiredService<ILogger<Server>>();
-      logger.LogTrace("initializing service");
 
       KillLanguageServerIfParentDies(logger, request, killLanguageServer);
 

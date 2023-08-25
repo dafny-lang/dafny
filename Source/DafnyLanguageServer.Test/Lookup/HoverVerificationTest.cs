@@ -3,6 +3,7 @@ using System.IO;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using JetBrains.Annotations;
+using Microsoft.Boogie;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
@@ -19,6 +20,7 @@ using Assert = Xunit.Assert;
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
   [Collection("Sequential Collection")] // Let slow tests run sequentially
   public class HoverVerificationTest : ClientBasedLanguageServerTest {
+
     private const int MaxTestExecutionTimeMs = 30000;
 
     [Fact(Timeout = MaxTestExecutionTimeMs)]
@@ -207,7 +209,7 @@ This is assertion #1 of 2 in [batch](???) #2 of 2 in function `f`
       );
     }
 
-    [Fact(Timeout = MaxTestExecutionTimeMs)]
+    [Fact]
     public async Task MeaningfulMessageWhenMethodWithoutAssert() {
       var documentItem = await GetDocumentItem(@"
 method f(x: int) {
@@ -478,15 +480,16 @@ lemma{:rlimit 10000} L()
     }
 
     private async Task<TextDocumentItem> GetDocumentItem(string source, string filename, bool includeProjectFile) {
+      var directory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
       source = source.TrimStart();
       if (includeProjectFile) {
-        var projectFile = CreateTestDocument("", Path.Combine(Path.GetDirectoryName(filename), DafnyProject.FileName));
+        var projectFile = CreateTestDocument("", Path.Combine(directory, DafnyProject.FileName));
         await client.OpenDocumentAndWaitAsync(projectFile, CancellationToken);
       }
-      var documentItem = CreateTestDocument(source, filename);
+      var documentItem = CreateTestDocument(source, Path.Combine(directory, filename));
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var document = await Projects.GetLastDocumentAsync(documentItem);
-      Assert.True(document is CompilationAfterTranslation);
+      Assert.True(document is CompilationAfterResolution);
       return documentItem;
     }
 

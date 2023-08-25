@@ -4,12 +4,12 @@ using System.Linq;
 
 namespace Microsoft.Dafny;
 
-public class SubsetTypeDecl : TypeSynonymDecl, RedirectingTypeDecl {
-  public override string WhatKind { get { return "subset type"; } }
+public class SubsetTypeDecl : TypeSynonymDecl, RedirectingTypeDecl, ICanVerify {
+  public override string WhatKind => "subset type";
   public readonly BoundVar Var;
   public readonly Expression Constraint;
   public enum WKind { CompiledZero, Compiled, Ghost, OptOut, Special }
-  public readonly SubsetTypeDecl.WKind WitnessKind;
+  public readonly WKind WitnessKind;
   public readonly Expression/*?*/ Witness;  // non-null iff WitnessKind is Compiled or Ghost
   [FilledInDuringResolution] public bool ConstraintIsCompilable;
   [FilledInDuringResolution] public bool CheckedIfConstraintIsCompilable = false; // Set to true lazily by the Resolver when the Resolver fills in "ConstraintIsCompilable".
@@ -31,14 +31,23 @@ public class SubsetTypeDecl : TypeSynonymDecl, RedirectingTypeDecl {
   }
 
   public override IEnumerable<INode> Children =>
-    base.Children.Concat(new[] { Constraint });
+    base.Children.Concat(new[] { Constraint }).Concat(
+      Witness != null ? new[] { Witness } :
+        Enumerable.Empty<INode>()
+      );
 
-  BoundVar RedirectingTypeDecl.Var { get { return Var; } }
-  Expression RedirectingTypeDecl.Constraint { get { return Constraint; } }
-  WKind RedirectingTypeDecl.WitnessKind { get { return WitnessKind; } }
-  Expression RedirectingTypeDecl.Witness { get { return Witness; } }
+  BoundVar RedirectingTypeDecl.Var => Var;
+  Expression RedirectingTypeDecl.Constraint => Constraint;
+  WKind RedirectingTypeDecl.WitnessKind => WitnessKind;
+  Expression RedirectingTypeDecl.Witness => Witness;
 
   public override List<Type> ParentTypes(List<Type> typeArgs) {
     return new List<Type> { RhsWithArgument(typeArgs) };
+  }
+  public bool ShouldVerify => true; // This could be made more accurate
+  public ModuleDefinition ContainingModule => EnclosingModuleDefinition;
+  public virtual DafnySymbolKind Kind => DafnySymbolKind.Class;
+  public virtual string GetDescription(DafnyOptions options) {
+    return "subset type";
   }
 }

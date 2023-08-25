@@ -61,19 +61,18 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
     }
 
     private (ISymbol? symbol, string? symbolHoverContent) GetStaticHoverContent(HoverParams request, IdeState state) {
-      LList<INode>? nodePath =
-        state.Program.FindNodeChain(request.TextDocument.Uri.ToUri(), request.Position.ToDafnyPosition());
+      IDeclarationOrUsage? declarationOrUsage =
+        state.Program.FindNode<IDeclarationOrUsage>(request.TextDocument.Uri.ToUri(), request.Position.ToDafnyPosition());
       ISymbol? symbol;
 
-      var usage = nodePath?.Data as IHasUsages;
-      if (usage == null) {
+      if (declarationOrUsage is IHasUsages usage) {
+        symbol = state.SymbolTable.UsageToDeclaration.GetValueOrDefault(usage) as ISymbol;
+      } else {
         // If we hover over a usage, display the information of the declaration
-        symbol = nodePath?.Data as ISymbol;
+        symbol = declarationOrUsage as ISymbol;
         if (symbol != null && !symbol.NameToken.ToRange().ToLspRange().Contains(request.Position)) {
           symbol = null;
         }
-      } else {
-        symbol = state.SymbolTable.UsageToDeclaration.GetValueOrDefault(usage) as ISymbol;
       }
 
       if (symbol == null) {
@@ -94,7 +93,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
 
     private string? GetDiagnosticsHover(IdeState state, Uri uri, Position position, out bool areMethodStatistics) {
       areMethodStatistics = false;
-      var uriDiagnostics = state.GetDiagnostics().GetOrDefault(uri, Enumerable.Empty<Diagnostic>).ToList();
+      var uriDiagnostics = state.GetDiagnosticsForUri(uri).ToList();
       foreach (var diagnostic in uriDiagnostics) {
         if (diagnostic.Range.Contains(position)) {
           string? detail = ErrorRegistry.GetDetail(diagnostic.Code);
@@ -116,10 +115,12 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
         return null;
       }
 
-      if (state.VerificationTree == null) {
+      var tree = state.VerificationTrees.GetValueOrDefault(uri);
+      if (tree == null) {
         return null;
       }
-      foreach (var node in state.VerificationTree.Children.OfType<TopLevelDeclMemberVerificationTree>()) {
+
+      foreach (var node in tree.Children.OfType<TopLevelDeclMemberVerificationTree>()) {
         if (!node.Range.Contains(position)) {
           continue;
         }
@@ -128,7 +129,8 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
         var information = "";
         var orderedAssertionBatches =
           node.AssertionBatches
-            .OrderBy(keyValue => keyValue.Key, new AssertionBatchIndexComparer()).Select(keyValuePair => keyValuePair.Value)
+            .OrderBy(keyValue => keyValue.Key, new AssertionBatchIndexComparer())
+            .Select(keyValuePair => keyValuePair.Value)
             .ToList();
 
         foreach (var assertionBatch in orderedAssertionBatches) {
@@ -144,7 +146,9 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
               if (information != "") {
                 information += "\n\n";
               }
-              information += GetAssertionInformation(state, position, assertionNode, assertionBatch, assertionIndex, assertionBatchCount, node);
+
+              information += GetAssertionInformation(state, position, assertionNode, assertionBatch,
+                assertionIndex, assertionBatchCount, node);
             }
 
             assertionIndex++;
@@ -154,8 +158,9 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
         if (information != "") {
           return information;
         }
+
         // Ok no assertion here. Maybe a method?
-        if (node.Position.Line == position.Line && state.Compilation.Project.IsImplicitProject && node.Uri == state.Compilation.Project.Uri) {
+        if (node.Position.Line == position.Line) {
           areMethodStatistics = true;
           return GetTopLevelInformation(node, orderedAssertionBatches);
         }

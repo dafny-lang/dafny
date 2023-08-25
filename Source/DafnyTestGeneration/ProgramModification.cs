@@ -33,23 +33,12 @@ namespace DafnyTestGeneration {
 
     public IEnumerable<ProgramModification> Values => idToModification.Values;
 
-    public int NumberOfBlocksCovered(Implementation implementation, bool onlyIfTestsExists = false) {
-      return NumberOfBlocksCovered(implementation.Blocks
-        .Where(block => Utils.GetBlockId(block) != null)
-        .Select(Utils.GetBlockId).ToHashSet(), onlyIfTestsExists);
-    }
-
     public int NumberOfBlocksCovered(HashSet<string> blockIds, bool onlyIfTestsExists = false) {
       var relevantModifications = Values.Where(modification =>
         modification.CounterexampleStatus == ProgramModification.Status.Success && (!onlyIfTestsExists || (modification.TestMethod != null && modification.TestMethod.IsValid)));
       return blockIds.Count(blockId =>
         relevantModifications.Any(mod => mod.CapturedStates.Contains(blockId)));
     }
-
-    internal int ModificationsWithStatus(Implementation implementation, ProgramModification.Status status) =>
-      Values.Where(modification =>
-          modification.Implementation == implementation)
-        .Count(mod => mod.CounterexampleStatus == status);
   }
 
   /// <summary>
@@ -65,7 +54,7 @@ namespace DafnyTestGeneration {
     internal Status CounterexampleStatus;
     public readonly Implementation Implementation; // implementation under test
 
-    private readonly string uniqueId;
+    internal readonly string uniqueId;
     public readonly HashSet<string> CapturedStates;
 
     private readonly HashSet<string> testEntryNames;
@@ -115,7 +104,7 @@ namespace DafnyTestGeneration {
       options.ErrorTrace = 1;
       options.EnhancedErrorMessages = 1;
       options.ModelViewFile = "-";
-      options.Prune = !options.TestGenOptions.DisablePrune;
+      options.Prune = options.TestGenOptions.ForcePrune;
     }
 
     /// <summary>
@@ -135,12 +124,6 @@ namespace DafnyTestGeneration {
         var guid = Guid.NewGuid().ToString();
         program.Resolve(options);
         program.Typecheck(options);
-        engine.EliminateDeadVariables(program);
-        engine.CollectModSets(program);
-        engine.Inline(program);
-        program.RemoveTopLevelDeclarations(declaration =>
-          declaration is Microsoft.Boogie.Implementation or Procedure &&
-          Utils.DeclarationHasAttribute(declaration, "inline"));
         var result = await Task.WhenAny(engine.InferAndVerify(writer, program,
             new PipelineStatistics(), null,
             _ => { }, guid),

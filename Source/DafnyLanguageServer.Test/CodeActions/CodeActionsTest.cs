@@ -28,6 +28,32 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.CodeActions {
     }
 
     [Fact]
+    public async Task GitIssue4401CorrectInsertionPlace() {
+      await TestCodeAction(@"
+predicate P(i: int)
+
+method Test() {(>Insert explicit failing assertion->
+  assert exists x: int :: P(x);<)
+  var x :><| P(x);
+}");
+    }
+
+    [Fact]
+    public async Task GitIssue4401CorrectInsertionPlaceModule() {
+      await TestCodeAction(@"
+module Test {
+  class TheTest {
+    predicate P(i: int)
+
+    method Test() {(>Insert explicit failing assertion->
+      assert exists x: int :: P(x);<)
+      var x :><| P(x);
+    }
+  }
+}");
+    }
+
+    [Fact]
     public async Task CodeActionSuggestsRemovingUnderscore() {
       await TestCodeAction(@"
 method Foo()
@@ -284,8 +310,7 @@ function Foo(i: int): int
 
       MarkupTestFile.GetPositionsAndAnnotatedRanges(source.TrimStart(), out var output, out var positions,
         out var ranges);
-      var documentItem = CreateTestDocument(output);
-      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+      var documentItem = await CreateAndOpenTestDocument(output);
       var diagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
       Assert.Equal(ranges.Count, diagnostics.Length);
 
@@ -310,8 +335,9 @@ function Foo(i: int): int
               codeAction = await RequestResolveCodeAction(codeAction);
               var textDocumentEdit = codeAction.Edit?.DocumentChanges?.Single().TextDocumentEdit;
               Assert.NotNull(textDocumentEdit);
-              var modifiedOutput = string.Join("\n", ApplyEdits(textDocumentEdit, output)).Replace("\r\n", "\n");
-              var expectedOutput = string.Join("\n", ApplySingleEdit(ToLines(output), expectedRange, expectedNewText)).Replace("\r\n", "\n");
+              var modifiedOutput = DocumentEdits.ApplyEdits(textDocumentEdit, output);
+              var expectedOutput =
+                DocumentEdits.ApplyEdit(DocumentEdits.ToLines(output), expectedRange, expectedNewText);
               Assert.Equal(expectedOutput, modifiedOutput);
             }
           }
@@ -323,34 +349,6 @@ function Foo(i: int): int
     }
 
     public CodeActionTest(ITestOutputHelper output) : base(output) {
-    }
-
-    private static List<string> ApplyEdits(TextDocumentEdit textDocumentEdit, string output) {
-      var inversedEdits = textDocumentEdit.Edits.ToList()
-        .OrderByDescending(x => x.Range.Start.Line)
-        .ThenByDescending(x => x.Range.Start.Character);
-      var modifiedOutput = ToLines(output);
-      foreach (var textEdit in inversedEdits) {
-        modifiedOutput = ApplySingleEdit(modifiedOutput, textEdit.Range, textEdit.NewText);
-      }
-
-      return modifiedOutput;
-    }
-
-    private static List<string> ToLines(string output) {
-      return output.ReplaceLineEndings("\n").Split("\n").ToList();
-    }
-
-    private static List<string> ApplySingleEdit(List<string> modifiedOutput, Range range, string newText) {
-      var lineStart = modifiedOutput[range.Start.Line];
-      var lineEnd = modifiedOutput[range.End.Line];
-      modifiedOutput[range.Start.Line] =
-        lineStart.Substring(0, range.Start.Character) + newText +
-        lineEnd.Substring(range.End.Character);
-      modifiedOutput = modifiedOutput.Take(range.Start.Line).Concat(
-        modifiedOutput.Skip(range.End.Line)
-      ).ToList();
-      return modifiedOutput;
     }
   }
 }

@@ -82,11 +82,10 @@ namespace DafnyTestGeneration {
     /// <summary>
     /// Parse a string read (from a certain file) to a Dafny Program
     /// </summary>
-    public static Program/*?*/ Parse(DafnyOptions options, string source, bool resolve = true, Uri uri = null) {
+    public static Program/*?*/ Parse(ErrorReporter reporter, string source, bool resolve = true, Uri uri = null) {
       uri ??= new Uri(Path.Combine(Path.GetTempPath(), Path.GetRandomFileName()));
-      var reporter = new BatchErrorReporter(options);
 
-      var program = new ProgramParser().ParseFiles(uri.LocalPath, new DafnyFile[] { new(reporter.Options, uri, new StringReader(source)) },
+      var program = new ProgramParser().ParseFiles(uri.LocalPath, new DafnyFile[] { new(reporter.Options, uri, null, () => new StringReader(source)) },
         reporter, CancellationToken.None);
 
       if (!resolve) {
@@ -130,14 +129,15 @@ namespace DafnyTestGeneration {
     /// <summary>
     /// Extract string mapping this basic block to a location in Dafny code.
     /// </summary>
-    public static string GetBlockId(Block block) {
+    public static string GetBlockId(Block block, DafnyOptions options) {
       var state = block.cmds.OfType<AssumeCmd>().FirstOrDefault(
           cmd => cmd.Attributes != null &&
                  cmd.Attributes.Key == "captureState" &&
                  cmd.Attributes.Params != null &&
                  cmd.Attributes.Params.Count() == 1)
         ?.Attributes.Params[0].ToString();
-      return state == null ? null : Regex.Replace(state, @"\s+", "");
+      string uniqueId = options.TestGenOptions.Mode != TestGenerationOptions.Modes.Block ? "#" + block.UniqueId : "";
+      return state == null ? null : Regex.Replace(state, @"\s+", "") + uniqueId;
     }
 
     public static IList<object> GetAttributeValue(Implementation implementation, string attribute) {
@@ -163,30 +163,24 @@ namespace DafnyTestGeneration {
     }
 
     public static bool ProgramHasAttribute(Program program, string attribute) {
-      return DeclarationHasAttribute(program.DefaultModule, attribute);
+      return AllMemberDeclarationsWithAttribute(program.DefaultModule, attribute).Count() != 0;
     }
 
-    private static bool DeclarationHasAttribute(TopLevelDecl decl, string attribute) {
+    public static IEnumerable<MemberDecl> AllMemberDeclarationsWithAttribute(TopLevelDecl decl, string attribute) {
+      HashSet<MemberDecl> allInlinedDeclarations = new();
       if (decl is LiteralModuleDecl moduleDecl) {
-        return moduleDecl.ModuleDef.TopLevelDecls
-          .Any(declaration => DeclarationHasAttribute(declaration, attribute));
+        foreach (var child in moduleDecl.ModuleDef.TopLevelDecls) {
+          allInlinedDeclarations.UnionWith(AllMemberDeclarationsWithAttribute(child, attribute));
+        }
       }
       if (decl is TopLevelDeclWithMembers withMembers) {
-        return withMembers.Members
-          .Any(member => MembersHasAttribute(member, attribute));
-      }
-      return false;
-    }
-
-    public static bool MembersHasAttribute(MemberDecl member, string attribute) {
-      var attributes = member.Attributes;
-      while (attributes != null) {
-        if (attributes.Name == attribute) {
-          return true;
+        foreach (var memberDecl in withMembers.Members) {
+          if (memberDecl.HasUserAttribute(attribute, out var _)) {
+            allInlinedDeclarations.Add(memberDecl);
+          }
         }
-        attributes = attributes.Prev;
       }
-      return false;
+      return allInlinedDeclarations;
     }
   }
 }

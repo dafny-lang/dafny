@@ -19,35 +19,35 @@ public class DafnyProject : IEquatable<DafnyProject> {
 
   public string ProjectName => Uri.ToString();
 
-  public bool IsImplicitProject { get; set; }
-
   [IgnoreDataMember]
   public Uri Uri { get; set; }
   public string[] Includes { get; set; }
   public string[] Excludes { get; set; }
   public Dictionary<string, object> Options { get; set; }
+  public bool UsesProjectFile => Path.GetFileName(Uri.LocalPath) == FileName;
 
   public static async Task<DafnyProject> Open(IFileSystem fileSystem, Uri uri, TextWriter outputWriter, TextWriter errorWriter) {
     if (Path.GetFileName(uri.LocalPath) != FileName) {
-      outputWriter.WriteLine($"Warning: only Dafny project files named {FileName} are recognised by the Dafny IDE.");
+      await outputWriter.WriteLineAsync($"Warning: only Dafny project files named {FileName} are recognised by the Dafny IDE.");
     }
     try {
-      var text = await fileSystem.ReadFile(uri).ReadToEndAsync();
+      using var textReader = fileSystem.ReadFile(uri);
+      var text = await textReader.ReadToEndAsync();
       var model = Toml.ToModel<DafnyProject>(text, null, new TomlModelOptions());
       model.Uri = uri;
       return model;
 
     } catch (IOException e) {
-      errorWriter.WriteLine(e.Message);
+      await errorWriter.WriteLineAsync(e.Message);
       return null;
     } catch (TomlException tomlException) {
-      errorWriter.WriteLine($"The Dafny project file {uri.LocalPath} contains the following errors:");
+      await errorWriter.WriteLineAsync($"The Dafny project file {uri.LocalPath} contains the following errors:");
       var regex = new Regex(
         @$"\((\d+),(\d+)\) : error : The property `(\w+)` was not found on object type {typeof(DafnyProject).FullName}");
       var newMessage = regex.Replace(tomlException.Message,
         match =>
           $"({match.Groups[1].Value},{match.Groups[2].Value}): the property {match.Groups[3].Value} does not exist.");
-      errorWriter.WriteLine(newMessage);
+      await errorWriter.WriteLineAsync(newMessage);
       return null;
     }
   }
@@ -56,35 +56,65 @@ public class DafnyProject : IEquatable<DafnyProject> {
     if (!Uri.IsFile) {
       return new[] { Uri };
     }
+    var matcher = GetMatcher(out var searchRoot);
 
-    var matcher = GetMatcher();
-
-    var diskRoot = Path.GetPathRoot(Uri.LocalPath);
-    var result = matcher.Execute(fileSystem.GetDirectoryInfoBase(diskRoot));
-    var files = result.Files.Select(f => Path.Combine(diskRoot, f.Path));
+    var result = matcher.Execute(fileSystem.GetDirectoryInfoBase(searchRoot));
+    var files = result.Files.Select(f => Path.Combine(searchRoot, f.Path));
     return files.Select(file => new Uri(Path.GetFullPath(file)));
   }
 
   public bool ContainsSourceFile(Uri uri) {
-    var fileSystemWithSourceFile = new InMemoryDirectoryInfoFromDotNet8(Path.GetPathRoot(uri.LocalPath)!, new[] { uri.LocalPath });
-    return GetMatcher().Execute(fileSystemWithSourceFile).HasMatches;
+    var matcher = GetMatcher(out var searchRoot);
+    var fileSystemWithSourceFile = new InMemoryDirectoryInfoFromDotNet8(searchRoot, new[] { uri.LocalPath });
+    return matcher.Execute(fileSystemWithSourceFile).HasMatches;
   }
 
-  private Matcher GetMatcher() {
+  private Matcher GetMatcher(out string commonRoot) {
     var projectRoot = Path.GetDirectoryName(Uri.LocalPath)!;
-    var root = Path.GetPathRoot(Uri.LocalPath)!;
+    var diskRoot = Path.GetPathRoot(Uri.LocalPath)!;
+
+    var includes = Includes ?? new[] { "**/*.dfy" };
+    var excludes = Excludes ?? Array.Empty<string>();
+    var fullPaths = includes.Concat(excludes).Select(p => Path.GetFullPath(p, projectRoot)).ToList();
+    commonRoot = GetCommonParentDirectory(fullPaths) ?? diskRoot;
     var matcher = new Matcher();
-    foreach (var includeGlob in Includes ?? new[] { "**/*.dfy" }) {
-      var fullPath = Path.GetFullPath(includeGlob, projectRoot);
-      matcher.AddInclude(Path.GetRelativePath(root, fullPath));
+    foreach (var includeGlob in includes) {
+      matcher.AddInclude(Path.GetRelativePath(commonRoot, Path.GetFullPath(includeGlob, projectRoot)));
     }
 
-    foreach (var includeGlob in Excludes ?? Enumerable.Empty<string>()) {
-      var fullPath = Path.GetFullPath(includeGlob, projectRoot);
-      matcher.AddExclude(Path.GetRelativePath(root, fullPath));
+    foreach (var excludeGlob in excludes) {
+      matcher.AddExclude(Path.GetRelativePath(commonRoot, Path.GetFullPath(excludeGlob, projectRoot)));
     }
 
     return matcher;
+  }
+
+  string GetCommonParentDirectory(IReadOnlyList<string> strings) {
+    if (!strings.Any()) {
+      return null;
+    }
+    var commonPrefix = strings.FirstOrDefault() ?? "";
+
+    foreach (var newString in strings) {
+      var potentialMatchLength = Math.Min(newString.Length, commonPrefix.Length);
+
+      if (potentialMatchLength < commonPrefix.Length) {
+        commonPrefix = commonPrefix.Substring(0, potentialMatchLength);
+      }
+
+      for (var i = 0; i < potentialMatchLength; i++) {
+        if (newString[i] == '*' || newString[i] != commonPrefix[i]) {
+          commonPrefix = commonPrefix.Substring(0, i);
+          break;
+        }
+      }
+    }
+
+    if (!Path.EndsInDirectorySeparator(commonPrefix)) {
+      commonPrefix = Path.GetDirectoryName(commonPrefix);
+    }
+
+    return commonPrefix;
   }
 
   public void Validate(TextWriter outputWriter, IEnumerable<Option> possibleOptions) {
@@ -173,7 +203,7 @@ public class DafnyProject : IEquatable<DafnyProject> {
     var orderedOptions = Options?.OrderBy(kv => kv.Key) ?? Enumerable.Empty<KeyValuePair<string, object>>();
     var otherOrderedOptions = other.Options?.OrderBy(kv => kv.Key) ?? Enumerable.Empty<KeyValuePair<string, object>>();
 
-    return Equals(IsImplicitProject, other.IsImplicitProject) && Equals(Uri, other.Uri) &&
+    return Equals(Uri, other.Uri) &&
            NullableSetEqual(Includes?.ToHashSet(), other.Includes) &&
            NullableSetEqual(Excludes?.ToHashSet(), other.Excludes) &&
            orderedOptions.SequenceEqual(otherOrderedOptions, new LambdaEqualityComparer<KeyValuePair<string, object>>(
@@ -255,6 +285,6 @@ public class DafnyProject : IEquatable<DafnyProject> {
   }
 
   public override int GetHashCode() {
-    return HashCode.Combine(IsImplicitProject, Uri, Includes, Excludes, Options);
+    return HashCode.Combine(Uri, Includes, Excludes, Options);
   }
 }

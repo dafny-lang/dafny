@@ -2,35 +2,37 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Security.Cryptography;
-using System.Security.Policy;
 using System.Text;
 using System.Threading;
+using Microsoft.Dafny.LanguageServer.Workspace;
 using Microsoft.Extensions.Logging;
 
 namespace Microsoft.Dafny.LanguageServer.Language;
 
 public class CachingParser : ProgramParser {
   private readonly PruneIfNotUsedSinceLastPruneCache<byte[], DfyParseResult> parseCache = new(new HashEquality());
+  private readonly ITelemetryPublisher telemetryPublisher;
 
-  public CachingParser(ILogger<ProgramParser> logger, IFileSystem fileSystem) : base(logger, fileSystem) {
-  }
-
-  public void Prune() {
-    parseCache.Prune();
+  public CachingParser(ILogger<ProgramParser> logger,
+    IFileSystem fileSystem,
+    ITelemetryPublisher telemetryPublisher) : base(logger, fileSystem) {
+    this.telemetryPublisher = telemetryPublisher;
   }
 
   public override Program ParseFiles(string programName, IReadOnlyList<DafnyFile> files, ErrorReporter errorReporter,
     CancellationToken cancellationToken) {
-    var result = base.ParseFiles(programName, files, errorReporter, cancellationToken);
-    Prune();
-    return result;
+    return parseCache.ProfileAndPruneCache(() =>
+      base.ParseFiles(programName, files, errorReporter, cancellationToken),
+      telemetryPublisher, programName, "parsing");
   }
 
-  protected override DfyParseResult ParseFile(DafnyOptions options, TextReader reader, Uri uri) {
+  protected override DfyParseResult ParseFile(DafnyOptions options, Func<TextReader> getReader,
+    Uri uri, CancellationToken cancellationToken) {
+    using var reader = getReader();
     var (newReader, hash) = ComputeHashFromReader(uri, reader, HashAlgorithm.Create("SHA256")!);
     if (!parseCache.TryGet(hash, out var result)) {
       logger.LogDebug($"Parse cache miss for {uri}");
-      result = base.ParseFile(options, newReader, uri);
+      result = base.ParseFile(options, () => newReader, uri, cancellationToken);
       parseCache.Set(hash, result);
     } else {
       logger.LogDebug($"Parse cache hit for {uri}");

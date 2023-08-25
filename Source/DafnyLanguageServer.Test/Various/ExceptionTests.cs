@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
@@ -8,6 +9,7 @@ using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Workspace;
+using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Server;
@@ -25,8 +27,9 @@ public class ExceptionTests : ClientBasedLanguageServerTest {
 
   protected override void ServerOptionsAction(LanguageServerOptions serverOptions) {
     serverOptions.Services
+      .AddSingleton<TextDocumentLoader, TextDocumentLoader>()
       .AddSingleton<ITextDocumentLoader>(serviceProvider => new CrashingLoader(this,
-        LanguageServerExtensions.CreateTextDocumentLoader(serviceProvider)))
+        serviceProvider.GetRequiredService<TextDocumentLoader>()))
       .AddSingleton<IProgramVerifier>(serviceProvider => new CrashingVerifier(this,
         new DafnyProgramVerifier(serviceProvider.GetRequiredService<ILogger<DafnyProgramVerifier>>())
     ));
@@ -37,7 +40,7 @@ public class ExceptionTests : ClientBasedLanguageServerTest {
     var source = @"method Foo() { assert true; }";
 
     CrashOnLoad = true;
-    var documentItem = CreateTestDocument(source);
+    var documentItem = CreateTestDocument(source, "LoadCrashOnOpenRecovery.dfy");
     client.OpenDocument(documentItem);
     var crashDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
     Assert.Single(crashDiagnostics);
@@ -53,7 +56,7 @@ public class ExceptionTests : ClientBasedLanguageServerTest {
   public async Task LoadCrashOnChangeRecover() {
     var source = @"method Foo() { assert true; }";
 
-    var documentItem = CreateTestDocument(source);
+    var documentItem = CreateTestDocument(source, "LoadCrashOnChangeRecover.dfy");
     client.OpenDocument(documentItem);
     CrashOnLoad = true;
     ApplyChange(ref documentItem, new Range(0, 0, 0, 0), " ");
@@ -71,7 +74,7 @@ public class ExceptionTests : ClientBasedLanguageServerTest {
     var source = @"method Foo() { assert false; }";
 
     CrashOnPrepareVerification = true;
-    var documentItem = CreateTestDocument(source);
+    var documentItem = CreateTestDocument(source, "PrepareVerificationCrashRecover.dfy");
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
     var translationCrashDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
     Assert.Single(translationCrashDiagnostics);
@@ -93,20 +96,20 @@ public class ExceptionTests : ClientBasedLanguageServerTest {
     }
 
     public Task<IReadOnlyList<IImplementationTask>> GetVerificationTasksAsync(ExecutionEngine engine,
-      CompilationAfterResolution compilation, CancellationToken cancellationToken) {
+      CompilationAfterResolution compilation, ModuleDefinition moduleDefinition, CancellationToken cancellationToken) {
 
       if (tests.CrashOnPrepareVerification) {
-        throw new Exception("crash");
+        throw new Exception("testing crash");
       }
-      return verifier.GetVerificationTasksAsync(engine, compilation, cancellationToken);
+      return verifier.GetVerificationTasksAsync(engine, compilation, moduleDefinition, cancellationToken);
     }
   }
 
   class CrashingLoader : ITextDocumentLoader {
     private readonly ExceptionTests tests;
-    private readonly ITextDocumentLoader loader;
+    private readonly TextDocumentLoader loader;
 
-    public CrashingLoader(ExceptionTests tests, ITextDocumentLoader loader) {
+    public CrashingLoader(ExceptionTests tests, TextDocumentLoader loader) {
       this.tests = tests;
       this.loader = loader;
     }
@@ -115,12 +118,17 @@ public class ExceptionTests : ClientBasedLanguageServerTest {
       return loader.CreateUnloaded(compilation);
     }
 
-    public Task<CompilationAfterParsing> LoadAsync(DafnyOptions options, Compilation compilation,
-        CancellationToken cancellationToken) {
+    public Task<CompilationAfterParsing> ParseAsync(DafnyOptions options, Compilation compilation,
+      IReadOnlyDictionary<Uri, DocumentVerificationTree> migratedVerificationTrees, CancellationToken cancellationToken) {
+      return loader.ParseAsync(options, compilation, ImmutableDictionary<Uri, DocumentVerificationTree>.Empty, cancellationToken);
+    }
+
+    public Task<CompilationAfterResolution> ResolveAsync(DafnyOptions options, CompilationAfterParsing compilation,
+      IReadOnlyDictionary<Uri, DocumentVerificationTree> migratedVerificationTrees, CancellationToken cancellationToken) {
       if (tests.CrashOnLoad) {
-        throw new IOException("crash");
+        throw new IOException("testing crash");
       }
-      return loader.LoadAsync(options, compilation, cancellationToken);
+      return loader.ResolveAsync(options, compilation, migratedVerificationTrees, cancellationToken);
     }
   }
 

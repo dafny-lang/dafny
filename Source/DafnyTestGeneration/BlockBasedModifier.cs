@@ -32,8 +32,7 @@ namespace DafnyTestGeneration {
       if (program == null || implementation == null) {
         return null;
       }
-
-      var state = Utils.GetBlockId(node);
+      var state = Utils.GetBlockId(node, DafnyInfo.Options);
       if (state == null) {
         return null;
       }

@@ -17,12 +17,12 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     public void PublishUnhandledException(Exception e) {
       logger.LogError(e, "exception occurred");
-      PublishTelemetry(ITelemetryPublisher.TelemetryEventKind.UnhandledException.ToString(),
-        ImmutableDictionary.Create<string, object>().Add("payload", e.ToString()));
+      PublishTelemetry(ImmutableDictionary.Create<string, object>().
+          Add("kind", ITelemetryPublisher.TelemetryEventKind.UnhandledException).
+          Add("payload", e.ToString()));
     }
 
-    public void PublishTelemetry(string kind, ImmutableDictionary<string, object> payload) {
-      var data = payload.Add("kind", kind);
+    public void PublishTelemetry(ImmutableDictionary<string, object> data) {
       languageServer.Window.SendTelemetryEvent(new TelemetryEventParams {
         ExtensionData = data
       });

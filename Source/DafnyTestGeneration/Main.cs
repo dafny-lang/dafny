@@ -23,22 +23,21 @@ namespace DafnyTestGeneration {
     /// loop unrolling may cause false negatives.
     /// </summary>
     /// <returns></returns>
-    public static async IAsyncEnumerable<string> GetDeadCodeStatistics(Program program) {
+    public static async IAsyncEnumerable<string> GetDeadCodeStatistics(Program program, Modifications cache) {
 
       program.Reporter.Options.PrintMode = PrintModes.Everything;
 
-      var cache = new Modifications(program.Options);
-      var modifications = GetModifications(cache, program).ToList();
-      var blocksReached = modifications.Count;
+      var blocksReached = 0;
       HashSet<string> allStates = new();
       HashSet<string> allDeadStates = new();
 
       // Generate tests based on counterexamples produced from modifications
-      for (var i = modifications.Count - 1; i >= 0; i--) {
-        await modifications[i].GetCounterExampleLog(cache);
+      foreach (var modification in GetModifications(cache, program, out _)) {
+        blocksReached++;
+        await modification.GetCounterExampleLog(cache);
         var deadStates = new HashSet<string>();
-        if (!modifications[i].IsCovered(cache)) {
-          deadStates = modifications[i].CapturedStates;
+        if (!modification.IsCovered(cache)) {
+          deadStates = modification.CapturedStates;
         }
 
         if (deadStates.Count != 0) {
@@ -48,54 +47,118 @@ namespace DafnyTestGeneration {
           blocksReached--;
           allDeadStates.UnionWith(deadStates);
         }
-        allStates.UnionWith(modifications[i].CapturedStates);
+
+        foreach (var state in modification.CapturedStates) {
+          if (!allStates.Contains(state)) {
+            yield return $"Code at {state} is reachable.";
+            allStates.Add(state);
+          }
+        }
       }
 
-      yield return $"Out of {modifications.Count} basic blocks " +
+      yield return $"Out of {blocksReached} basic blocks " +
                    $"({allStates.Count} capturedStates), {blocksReached} " +
                    $"({allStates.Count - allDeadStates.Count}) are reachable. " +
                    "There might be false negatives if you are not unrolling " +
                    "loops. False positives are always possible.";
     }
 
-    public static async IAsyncEnumerable<string> GetDeadCodeStatistics(string sourceFile, DafnyOptions options) {
+    public static async IAsyncEnumerable<string> GetDeadCodeStatistics(TextReader source, Uri uri, DafnyOptions options, CoverageReport report = null) {
       options.PrintMode = PrintModes.Everything;
-      var source = await new StreamReader(sourceFile).ReadToEndAsync();
-      var program = Utils.Parse(options, source, false, new Uri(sourceFile));
-      if (program == null) {
-        yield return "Cannot parse program";
+      var code = await source.ReadToEndAsync();
+      var firstPass = new FirstPass(options);
+      if (!firstPass.IsOk(code, uri)) {
+        SetNonZeroExitCode = true;
         yield break;
       }
-      await foreach (var line in GetDeadCodeStatistics(program)) {
+      SetNonZeroExitCode = firstPass.NonZeroExitCode;
+      var program = Utils.Parse(new BatchErrorReporter(options), code, false, uri);
+      var cache = new Modifications(program.Options);
+      await foreach (var line in GetDeadCodeStatistics(program, cache)) {
         yield return line;
+      }
+      PopulateCoverageReport(report, program, cache);
+    }
+
+    /// <summary>
+    /// Dafny to Boogie translator discards any methods/functions that do not have any verification goals
+    /// By adding a trivial assertions in all {:testEntry}-annotated methods and function we ensure that
+    /// they are not discarded during translation and we can still generate tests for them.
+    /// </summary>
+    private static void AddVerificationGoalsToEntryPoints(Program program) {
+      foreach (var entryPoint in Utils.AllMemberDeclarationsWithAttribute(program.DefaultModule,
+                 TestGenerationOptions.TestEntryAttribute)) {
+        var trivialAssertion = new AssertStmt(entryPoint.RangeToken,
+          new LiteralExpr(entryPoint.StartToken, true), null, null, null);
+        if (entryPoint is Method method && method.Body != null && method.Body.Body != null) {
+          method.Body.Body.Insert(0, trivialAssertion);
+        } else if (entryPoint is Function function && function.Body != null) {
+          function.Body = new StmtExpr(entryPoint.StartToken, trivialAssertion, function.Body);
+        }
       }
     }
 
-    private static IEnumerable<ProgramModification> GetModifications(Modifications cache, Program program) {
+    private static IEnumerable<ProgramModification> GetModifications(Modifications cache, Program program, out DafnyInfo dafnyInfo) {
       var options = program.Options;
+      AddVerificationGoalsToEntryPoints(program);
       var success = Inlining.InliningTranslator.TranslateForFutureInlining(program, options, out var boogieProgram);
+      dafnyInfo = null;
       if (!success) {
         options.Printer.ErrorWriteLine(options.ErrorWriter,
-          $"Error: Failed at resolving or translating the inlined Dafny code.");
+          $"*** Error: Failed at resolving or translating the inlined Dafny code.");
         SetNonZeroExitCode = true;
         return new List<ProgramModification>();
       }
-      var dafnyInfo = new DafnyInfo(program);
-      SetNonZeroExitCode = dafnyInfo.SetNonZeroExitCode || SetNonZeroExitCode;
-      if (!Utils.ProgramHasAttribute(program,
-            TestGenerationOptions.TestEntryAttribute)) {
-        options.Printer.ErrorWriteLine(options.ErrorWriter,
-          $"Error: Found no methods or functions annotated with {TestGenerationOptions.TestEntryAttribute}. " +
-          $"Please annotate all entry points for testing with this attribute.");
-        SetNonZeroExitCode = true;
-        return new List<ProgramModification>();
-      }
+      dafnyInfo = new DafnyInfo(program);
       // Create modifications of the program with assertions for each block\path
       ProgramModifier programModifier =
         options.TestGenOptions.Mode == TestGenerationOptions.Modes.Path
           ? new PathBasedModifier(cache)
           : new BlockBasedModifier(cache);
       return programModifier.GetModifications(boogieProgram, dafnyInfo);
+    }
+
+    private static void PopulateCoverageReport(CoverageReport coverageReport, Program program, Modifications cache) {
+      if (coverageReport == null) {
+        return;
+      }
+      coverageReport.RegisterFiles(program);
+      var lineRegex = new Regex("^(.*)\\(([0-9]+),[0-9]+\\)");
+      HashSet<string> coveredStates = new(); // set of program states that are expected to be covered by tests
+      foreach (var modification in cache.Values) {
+        foreach (var state in modification.CapturedStates) {
+          if (modification.CounterexampleStatus == ProgramModification.Status.Success) {
+            coveredStates.Add(state);
+          }
+        }
+      }
+      foreach (var modification in cache.Values) {
+        foreach (var state in modification.CapturedStates) {
+          var match = lineRegex.Match(state);
+          if (!match.Success) {
+            continue;
+          }
+          if (!int.TryParse(match.Groups[2].Value, out var lineNumber) || lineNumber == 0) {
+            continue;
+          }
+          lineNumber -= 1; // to zero-based
+          Uri uri;
+          try {
+            uri = new Uri(
+              Path.IsPathRooted(match.Groups[1].Value)
+                ? match.Groups[1].Value
+                : Path.Combine(Directory.GetCurrentDirectory(), match.Groups[1].Value));
+          } catch (ArgumentException) {
+            continue;
+          }
+          var rangeToken = new RangeToken(new Token(lineNumber, 0), new Token(lineNumber + 1, 0));
+          rangeToken.Uri = uri;
+          coverageReport.LabelCode(rangeToken,
+            coveredStates.Contains(state)
+              ? CoverageLabel.FullyCovered
+              : CoverageLabel.NotCovered);
+        }
+      }
     }
 
     /// <summary>
@@ -109,94 +172,74 @@ namespace DafnyTestGeneration {
       // Generate tests based on counterexamples produced from modifications
 
       cache ??= new Modifications(options);
-      var programModifications = GetModifications(cache, program).ToList();
-      // Suppressing error messages which will be printed when dafnyInfo is initialized again in GetModifications
-      var dafnyInfo = new DafnyInfo(program, true);
-      SetNonZeroExitCode = dafnyInfo.SetNonZeroExitCode || SetNonZeroExitCode;
-      foreach (var modification in programModifications) {
+      foreach (var modification in GetModifications(cache, program, out var dafnyInfo)) {
 
         var log = await modification.GetCounterExampleLog(cache);
         if (log == null) {
           continue;
         }
+
         var testMethod = await modification.GetTestMethod(cache, dafnyInfo);
         if (testMethod == null) {
           continue;
         }
+
         yield return testMethod;
       }
-      SetNonZeroExitCode = dafnyInfo.SetNonZeroExitCode || SetNonZeroExitCode;
     }
 
     /// <summary>
     /// Return a Dafny class (list of lines) with tests for the given Dafny file
     /// </summary>
-    public static async IAsyncEnumerable<string> GetTestClassForProgram(string sourceFile, DafnyOptions options) {
+    public static async IAsyncEnumerable<string> GetTestClassForProgram(TextReader source, Uri uri, DafnyOptions options, CoverageReport report = null) {
       options.PrintMode = PrintModes.Everything;
       TestMethod.ClearTypesToSynthesize();
-      var source = await new StreamReader(sourceFile).ReadToEndAsync();
-      var uri = new Uri(sourceFile);
-      var program = Utils.Parse(options, source, true, uri);
-      if (program == null) {
+      var code = await source.ReadToEndAsync();
+      var firstPass = new FirstPass(options);
+      if (!firstPass.IsOk(code, uri)) {
+        SetNonZeroExitCode = true;
         yield break;
       }
-      if (Utils.ProgramHasAttribute(program,
-            TestGenerationOptions.TestInlineAttribute)) {
-        options.VerifyAllModules = true;
-      }
-      // Suppressing error messages which will be printed when dafnyInfo is initialized again in GetModifications
-      var dafnyInfo = new DafnyInfo(program, true);
-      program = Utils.Parse(options, source, false, uri);
-      SetNonZeroExitCode = dafnyInfo.SetNonZeroExitCode || SetNonZeroExitCode;
-      var rawName = Regex.Replace(sourceFile, "[^a-zA-Z0-9_]", "");
+      SetNonZeroExitCode = firstPass.NonZeroExitCode;
+      var program = Utils.Parse(new BatchErrorReporter(options), code, false, uri);
+      var rawName = Regex.Replace(uri?.AbsolutePath ?? "", "[^a-zA-Z0-9_]", "");
 
       string EscapeDafnyStringLiteral(string str) {
         return $"\"{str.Replace(@"\", @"\\")}\"";
       }
 
-      yield return $"include {EscapeDafnyStringLiteral(sourceFile)}";
-      yield return $"module {rawName}UnitTests {{";
-      foreach (var module in dafnyInfo.ToImportAs.Keys) {
-        if (module.Split(".").Last() == dafnyInfo.ToImportAs[module]) {
-          yield return $"import {module}";
-        } else {
-          yield return $"import {dafnyInfo.ToImportAs[module]} = {module}";
-        }
+      if (uri != null) {
+        yield return $"include {EscapeDafnyStringLiteral(uri.AbsolutePath)}";
       }
+
+      yield return $"module {rawName}UnitTests {{";
 
       var cache = new Modifications(options);
       var methodsGenerated = 0;
+      DafnyInfo dafnyInfo = null;
       await foreach (var method in GetTestMethodsForProgram(program, cache)) {
+        if (methodsGenerated == 0) {
+          dafnyInfo = new DafnyInfo(program);
+          foreach (var module in dafnyInfo.ToImportAs.Keys) {
+            if (module.Split(".").Last() == dafnyInfo.ToImportAs[module]) {
+              yield return $"import {module}";
+            } else {
+              yield return $"import {dafnyInfo.ToImportAs[module]} = {module}";
+            }
+          }
+        }
         yield return method.ToString();
         methodsGenerated++;
-      }
-
-      foreach (var implementation in cache.Values
-                 .Select(modification => modification.Implementation).ToHashSet()) {
-        int failedQueries = cache.ModificationsWithStatus(implementation,
-          ProgramModification.Status.Failure);
-        int queries = failedQueries + cache.ModificationsWithStatus(implementation,
-          ProgramModification.Status.Success);
-        int blocks = implementation.Blocks.Where(block => Utils.GetBlockId(block) != block.Label).ToHashSet().Count;
-        int coveredByCounterexamples = cache.NumberOfBlocksCovered(implementation);
-        int coveredByTests = cache.NumberOfBlocksCovered(implementation, onlyIfTestsExists: true);
-        yield return $"// Out of {blocks} locations in the " +
-                     $"{implementation.VerboseName.Split(" ")[0]} method, " +
-                     $"{coveredByTests} should be covered by tests " +
-                     $"(assuming no tests were found to be duplicates of each other). " +
-                     $"Moreover, {coveredByCounterexamples} locations have been found to be reachable " +
-                     $"(i.e. the verifier did not timeout and produced example inputs to reach these locations). " +
-                     $"A total of {queries} SMT queries were made to cover " +
-                     $"this method or the method into which this method was inlined. " +
-                     $"{failedQueries} queries timed out or identified potential dead code.";
       }
 
       yield return TestMethod.EmitSynthesizeMethods(dafnyInfo);
       yield return "}";
 
+      PopulateCoverageReport(report, program, cache);
+
       if (methodsGenerated == 0) {
         options.Printer.ErrorWriteLine(options.ErrorWriter,
-          "Error: No tests were generated, because no code points could be " +
+          "*** Error: No tests were generated, because no code points could be " +
           "proven reachable (do you have a false assumption in the program?)");
         SetNonZeroExitCode = true;
       }

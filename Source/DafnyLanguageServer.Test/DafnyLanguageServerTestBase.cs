@@ -16,6 +16,7 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using DafnyCore.Test;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Various;
 using Microsoft.Dafny.LanguageServer.Language;
 using OmniSharp.Extensions.LanguageServer.Client;
@@ -54,8 +55,14 @@ lemma {:neverVerify} HasNeverVerifyAttribute(p: nat, q: nat)
 
     public IProjectDatabase Projects => Server.GetRequiredService<IProjectDatabase>();
 
-    public DafnyLanguageServerTestBase(ITestOutputHelper output) : base(new JsonRpcTestOptions(LoggerFactory.Create(
-      builder => builder.AddConsole().SetMinimumLevel(LogLevel.Warning)))) {
+    protected DafnyLanguageServerTestBase(ITestOutputHelper output, LogLevel dafnyLogLevel = LogLevel.Information)
+      : base(new JsonRpcTestOptions(LoggerFactory.Create(
+      builder => {
+        builder.AddFilter("OmniSharp.Extensions.JsonRpc", LogLevel.None);
+        builder.AddFilter("OmniSharp", LogLevel.Warning);
+        builder.AddFilter("Microsoft.Dafny", dafnyLogLevel);
+        builder.AddConsole();
+      }))) {
       this.output = new WriterFromOutputHelper(output);
     }
 
@@ -88,11 +95,11 @@ lemma {:neverVerify} HasNeverVerifyAttribute(p: nat, q: nat)
 
     private Action<LanguageServerOptions> GetServerOptionsAction(Action<DafnyOptions> modifyOptions) {
       var dafnyOptions = DafnyOptions.Create(output);
+      dafnyOptions.Set(ServerCommand.UpdateThrottling, 0);
       modifyOptions?.Invoke(dafnyOptions);
       ServerCommand.ConfigureDafnyOptionsForServer(dafnyOptions);
       ApplyDefaultOptionValues(dafnyOptions);
       return options => {
-        options.ConfigureLogging(SetupTestLogging);
         options.WithDafnyLanguageServer(() => { });
         options.Services.AddSingleton(dafnyOptions);
         options.Services.AddSingleton<IProgramVerifier>(serviceProvider => new SlowVerifier(
@@ -120,19 +127,12 @@ lemma {:neverVerify} HasNeverVerifyAttribute(p: nat, q: nat)
       }
     }
 
-    private static void SetupTestLogging(ILoggingBuilder builder) {
-      builder
-        .AddFilter("OmniSharp", LogLevel.Warning)
-        .AddFilter("Microsoft.Dafny", LogLevel.Information)
-        .SetMinimumLevel(LogLevel.Debug)
-        .AddConsole();
-    }
-
     protected static TextDocumentItem CreateTestDocument(string source, string filePath = null, int version = 1) {
       if (filePath == null) {
-        filePath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName(), $"testFile{fileIndex++}.dfy");
+        var index = Interlocked.Increment(ref fileIndex);
+        filePath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName(), $"testFile{index}.dfy");
       }
-      if (Path.GetDirectoryName(filePath) == null) {
+      if (string.IsNullOrEmpty(Path.GetDirectoryName(filePath))) {
         filePath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName(), filePath);
       }
       filePath = Path.GetFullPath(filePath);

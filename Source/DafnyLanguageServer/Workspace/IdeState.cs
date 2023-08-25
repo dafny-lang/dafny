@@ -5,6 +5,7 @@ using System.Linq;
 using Microsoft.Boogie;
 using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Language.Symbols;
+using Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 using OmniSharp.Extensions.LanguageServer.Protocol;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
@@ -16,30 +17,83 @@ namespace Microsoft.Dafny.LanguageServer.Workspace;
 public record IdeImplementationView(Range Range, PublishedVerificationStatus Status,
   IReadOnlyList<Diagnostic> Diagnostics);
 
+public record IdeVerificationResult(bool WasTranslated, IReadOnlyDictionary<string, IdeImplementationView> Implementations);
+
 /// <summary>
 /// Contains information from the latest document, and from older documents if some information is missing,
 /// to provide the IDE with as much information as possible.
 /// </summary>
 public record IdeState(
+  int Version,
   Compilation Compilation,
   Node Program,
   IReadOnlyDictionary<Uri, IReadOnlyList<Diagnostic>> ResolutionDiagnostics,
   SymbolTable SymbolTable,
-  SignatureAndCompletionTable SignatureAndCompletionTable,
-  IReadOnlyDictionary<ImplementationId, IdeImplementationView> ImplementationIdToView,
+  LegacySignatureAndCompletionTable SignatureAndCompletionTable,
+  Dictionary<Uri, Dictionary<Range, IdeVerificationResult>> VerificationResults,
   IReadOnlyList<Counterexample> Counterexamples,
-  bool ImplementationsWereUpdated,
   IReadOnlyDictionary<Uri, IReadOnlyList<Range>> GhostRanges,
-  VerificationTree? VerificationTree
+  IReadOnlyDictionary<Uri, DocumentVerificationTree> VerificationTrees
 ) {
 
-  public int Version => Compilation.Version;
+  public IdeState Migrate(Migrator migrator, int version) {
+    var migratedVerificationTrees = VerificationTrees.ToDictionary(
+      kv => kv.Key, kv =>
+        (DocumentVerificationTree)migrator.RelocateVerificationTree(kv.Value));
+    return this with {
+      Version = version,
+      VerificationResults = MigrateImplementationViews(migrator, VerificationResults),
+      SignatureAndCompletionTable = migrator.MigrateSymbolTable(SignatureAndCompletionTable),
+      VerificationTrees = migratedVerificationTrees
+    };
+  }
 
-  public ImmutableDictionary<Uri, IReadOnlyList<Diagnostic>> GetDiagnostics() {
-    var resolutionDiagnostics = ResolutionDiagnostics.ToImmutableDictionary();
-    var verificationDiagnostics = ImplementationIdToView.GroupBy(kv => kv.Key.Uri).Select(kv =>
-      new KeyValuePair<Uri, IReadOnlyList<Diagnostic>>(kv.Key, kv.SelectMany(x => x.Value.Diagnostics).ToList()));
-    return resolutionDiagnostics.Merge(verificationDiagnostics, Lists.Concat);
+  private Dictionary<Uri, Dictionary<Range, IdeVerificationResult>> MigrateImplementationViews(Migrator migrator,
+    Dictionary<Uri, Dictionary<Range, IdeVerificationResult>> oldVerificationDiagnostics) {
+    return oldVerificationDiagnostics.ToDictionary(kv => kv.Key, kv => {
+      var result = new Dictionary<Range, IdeVerificationResult>();
+      foreach (var entry in kv.Value) {
+        var newOuterRange = migrator.MigrateRange(entry.Key);
+        if (newOuterRange == null) {
+          continue;
+        }
+
+        var newValue = new Dictionary<string, IdeImplementationView>();
+        foreach (var innerEntry in entry.Value.Implementations) {
+          var newInnerRange = migrator.MigrateRange(innerEntry.Value.Range);
+          if (newInnerRange != null) {
+            newValue.Add(innerEntry.Key, innerEntry.Value with {
+              Range = newInnerRange,
+              Diagnostics = migrator.MigrateDiagnostics(innerEntry.Value.Diagnostics)
+            });
+          }
+        }
+
+        result.Add(newOuterRange, entry.Value with { Implementations = newValue });
+      }
+
+      return result;
+    });
+  }
+
+  public IReadOnlyDictionary<Range, IdeVerificationResult> GetVerificationResults(Uri uri) {
+    return VerificationResults.GetValueOrDefault(uri) ??
+      ((IReadOnlyDictionary<Range, IdeVerificationResult>)ImmutableDictionary<Range, IdeVerificationResult>.Empty);
+  }
+
+  public IEnumerable<Diagnostic> GetAllDiagnostics() {
+    return GetDiagnosticUris().SelectMany(GetDiagnosticsForUri);
+  }
+
+  public IEnumerable<Diagnostic> GetDiagnosticsForUri(Uri uri) {
+    var resolutionDiagnostics = ResolutionDiagnostics.GetValueOrDefault(uri) ?? Enumerable.Empty<Diagnostic>();
+    var verificationDiagnostics = GetVerificationResults(uri).SelectMany(x =>
+      x.Value.Implementations.Values.SelectMany(v => v.Diagnostics));
+    return resolutionDiagnostics.Concat(verificationDiagnostics);
+  }
+
+  public IEnumerable<Uri> GetDiagnosticUris() {
+    return ResolutionDiagnostics.Keys.Concat(VerificationResults.Keys);
   }
 }
 

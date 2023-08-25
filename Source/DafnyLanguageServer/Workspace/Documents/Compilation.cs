@@ -12,6 +12,7 @@ using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace {
 
+
   /// <summary>
   /// Internal representation of a specific version of a Dafny document.
   ///
@@ -22,6 +23,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
   /// There can be different verification threads that update the state of this object.
   /// </summary>
   public class Compilation {
+    /// <summary>
+    /// These do not have to be owned
+    /// </summary>
     public IReadOnlyList<Uri> RootUris { get; }
     public int Version { get; }
     public DafnyProject Project { get; }
@@ -35,13 +39,14 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     public virtual IEnumerable<DafnyDiagnostic> GetDiagnostics(Uri uri) => Enumerable.Empty<DafnyDiagnostic>();
 
-    public IdeState InitialIdeState(Compilation compilation, DafnyOptions options) {
-      return ToIdeState(new IdeState(compilation, new EmptyNode(),
+    public IdeState InitialIdeState(Compilation initialCompilation, DafnyOptions options) {
+      var program = new EmptyNode();
+      return ToIdeState(new IdeState(initialCompilation.Version, initialCompilation, program,
         ImmutableDictionary<Uri, IReadOnlyList<Diagnostic>>.Empty,
-        SymbolTable.Empty(), SignatureAndCompletionTable.Empty(options, compilation.Project), new Dictionary<ImplementationId, IdeImplementationView>(),
+        SymbolTable.Empty(), LegacySignatureAndCompletionTable.Empty(options, initialCompilation.Project), new(),
         Array.Empty<Counterexample>(),
-        false, ImmutableDictionary<Uri, IReadOnlyList<Range>>.Empty,
-       null
+        ImmutableDictionary<Uri, IReadOnlyList<Range>>.Empty,
+        initialCompilation.RootUris.ToDictionary(uri => uri, uri => new DocumentVerificationTree(program, uri))
       ));
     }
 
@@ -50,13 +55,12 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     /// </summary>
     public virtual IdeState ToIdeState(IdeState previousState) {
       return previousState with {
-        Compilation = this,
-        ImplementationsWereUpdated = false,
+        Compilation = this
       };
     }
   }
 
-  public record ImplementationView(Range Range, PublishedVerificationStatus Status,
+  public record ImplementationView(IImplementationTask Task, PublishedVerificationStatus Status,
     IReadOnlyList<DafnyDiagnostic> Diagnostics);
 
   public record BufferLine(int LineNumber, int StartIndex, int EndIndex);

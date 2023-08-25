@@ -2869,13 +2869,14 @@ namespace Microsoft.Dafny.Compilers {
       return result;
     }
 
-    protected override void EmitDestructor(string source, Formal dtor, int formalNonGhostIndex, DatatypeCtor ctor, List<Type> typeArgs, Type bvType, ConcreteSyntaxTree wr) {
+    protected override void EmitDestructor(Action<ConcreteSyntaxTree> source, Formal dtor, int formalNonGhostIndex, DatatypeCtor ctor, List<Type> typeArgs, Type bvType, ConcreteSyntaxTree wr) {
       if (DatatypeWrapperEraser.IsErasableDatatypeWrapper(Options, ctor.EnclosingDatatype, out var coreDtor)) {
         Contract.Assert(coreDtor.CorrespondingFormals.Count == 1);
         Contract.Assert(dtor == coreDtor.CorrespondingFormals[0]); // any other destructor is a ghost
-        wr.Write(source);
+        source(wr);
       } else {
-        wr.Write($"{source}.{DestructorGetterName(dtor, ctor, formalNonGhostIndex)}");
+        source(wr);
+        wr.Write($".{DestructorGetterName(dtor, ctor, formalNonGhostIndex)}");
       }
     }
 
@@ -2933,8 +2934,13 @@ namespace Microsoft.Dafny.Compilers {
           TrParenExpr("~", expr, wr, inLetExprBody, wStmts);
           break;
         case ResolvedUnaryOp.Cardinality:
-          TrParenExpr("new BigInteger(", expr, wr, inLetExprBody, wStmts);
-          wr.Write(".Count)");
+          if (expr.Type.AsCollectionType is MultiSetType) {
+            TrParenExpr(expr, wr, inLetExprBody, wStmts);
+            wr.Write(".ElementCount");
+          } else {
+            TrParenExpr("new BigInteger(", expr, wr, inLetExprBody, wStmts);
+            wr.Write(".Count)");
+          }
           break;
         default:
           Contract.Assert(false); throw new cce.UnreachableException();  // unexpected unary expression

@@ -1,21 +1,19 @@
-using System.Diagnostics;
+using System;
 using Microsoft.Boogie;
 using Microsoft.Dafny.LanguageServer.Workspace;
-using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
-using VC;
 
 namespace Microsoft.Dafny.LanguageServer.Language {
   /// <summary>
   /// A callback interface to report verification progress
   /// </summary>
   public interface IVerificationProgressReporter {
-    void RecomputeVerificationTree(CompilationAfterTranslation compilation);
-    void ReportRealtimeDiagnostics(CompilationAfterTranslation compilation, bool verificationStarted);
+    void RecomputeVerificationTrees(CompilationAfterParsing compilation);
+    void ReportRealtimeDiagnostics(CompilationAfterParsing compilation, Uri uri, bool verificationStarted);
 
-    void ReportVerifyImplementationRunning(CompilationAfterTranslation compilation, Implementation implToken);
-    void ReportEndVerifyImplementation(CompilationAfterTranslation compilation, Implementation implToken, Boogie.VerificationResult verificationResult);
-    void ReportImplementationsBeforeVerification(CompilationAfterTranslation compilation, Implementation[] implementations);
-    void ReportAssertionBatchResult(CompilationAfterTranslation compilation, AssertionBatchResult batchResult);
-    void SetAllUnvisitedMethodsAsVerified(CompilationAfterTranslation compilation);
+    void ReportImplementationsBeforeVerification(CompilationAfterResolution compilation, ICanVerify canVerify, Implementation[] implementations);
+    void ReportVerifyImplementationRunning(CompilationAfterResolution compilation, Implementation implToken);
+    void ReportAssertionBatchResult(CompilationAfterResolution compilation, AssertionBatchResult batchResult);
+    void ReportEndVerifyImplementation(CompilationAfterResolution compilation, Implementation implToken, VerificationResult verificationResult);
+    void SetAllUnvisitedMethodsAsVerified(CompilationAfterResolution compilation, ICanVerify canVerify);
   }
 }

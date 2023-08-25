@@ -707,7 +707,17 @@ namespace Microsoft.Dafny {
       return new Bpl.IdentifierExpr(tok, var.AssignUniqueName(currentDeclaration.IdGenerator), TrType(var.Type));
     }
 
-    private Bpl.Program DoTranslation(Program p, ModuleDefinition forModule) {
+    public Bpl.Program DoTranslation(Program p, ModuleDefinition forModule) {
+      if (sink == null) {
+        return new Bpl.Program();
+      }
+
+      foreach (var plugin in p.Options.Plugins) {
+        foreach (var rewriter in plugin.GetRewriters(p.Reporter)) {
+          rewriter.PreVerify(forModule);
+        }
+      }
+
       program = p;
       this.forModule = forModule;
       Type.EnableScopes();
@@ -10680,7 +10690,9 @@ namespace Microsoft.Dafny {
         }
         visitor.Visit(body);
       }
-      return Enumerable.Zip(f.Formals, fexp.Args).All(formal_concrete => CanSafelySubstitute(visitor.TriggerVariables, formal_concrete.Item1, formal_concrete.Item2));
+      return
+        !triggersCollector.IsTriggerKiller(fexp.Receiver) &&
+        Enumerable.Zip(f.Formals, fexp.Args).All(formal_concrete => CanSafelySubstitute(visitor.TriggerVariables, formal_concrete.Item1, formal_concrete.Item2));
     }
 
     // Using an empty set of old expressions is ok here; the only uses of the triggersCollector will be to check for trigger killers.
