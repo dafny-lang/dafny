@@ -110,8 +110,8 @@ public static class NodeExtensions {
   }
 
   public static IEnumerable<LList<INode>> FindNodeChainsInUri(this INode node, Uri uri, LList<INode> parent) {
-    if (node.Tok.Uri != null) {
-      if (node.Tok.Uri == uri) {
+    if (node.RangeToken.Uri != null) {
+      if (node.RangeToken.Uri == uri) {
         return new[] { new LList<INode>(node, parent) };
       }
 
