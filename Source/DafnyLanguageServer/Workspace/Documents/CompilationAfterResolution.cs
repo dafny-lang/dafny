@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
+using System.Reactive;
 using System.Threading.Tasks;
 using Microsoft.Boogie;
 using Microsoft.Dafny.LanguageServer.Language;
@@ -37,7 +38,7 @@ public class CompilationAfterResolution : CompilationAfterParsing {
   public LegacySignatureAndCompletionTable SignatureAndCompletionTable { get; }
   public IReadOnlyDictionary<Uri, IReadOnlyList<Range>> GhostDiagnostics { get; }
   public IReadOnlyList<ICanVerify> Verifiables { get; }
-  public ConcurrentBag<ICanVerify> TriedToVerify { get; } = new();
+  public ConcurrentDictionary<ICanVerify, Unit> TriedToVerify { get; } = new();
   public ConcurrentDictionary<ICanVerify, Dictionary<string, ImplementationView>> ImplementationsPerVerifiable { get; } = new();
   /// <summary>
   /// FilePosition is required because the default module lives in multiple files
@@ -84,7 +85,7 @@ public class CompilationAfterResolution : CompilationAfterParsing {
         previousState.GetVerificationResults(canVerify.NameToken.Uri).GetValueOrDefault(range)?.Implementations ??
         ImmutableDictionary<string, IdeImplementationView>.Empty;
       if (!ImplementationsPerVerifiable.TryGetValue(canVerify, out var implementationsPerName)) {
-        var progress = TriedToVerify.Contains(canVerify)
+        var progress = TriedToVerify.ContainsKey(canVerify)
           ? VerificationPreparationState.InProgress
           : VerificationPreparationState.NotStarted;
         return new IdeVerificationResult(PreparationProgress: progress,

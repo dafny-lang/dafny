@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reactive;
 using System.Reactive.Concurrency;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
@@ -167,9 +168,16 @@ public class CompilationManager {
       throw new TaskCanceledException();
     }
 
-    compilation.TriedToVerify.Add(verifiable); // TODO should we fail here when trying to verify the same thing multiple times over???
-                                               // I'm guessing it fails anyways when queueing the task at Boogie.
+    if (!compilation.TriedToVerify.TryAdd(verifiable, Unit.Default)) {
+      return false;
+    }
     compilationUpdates.OnNext(compilation);
+    _ = VerifySymbolFirstTime(actuallyVerifyTasks, verifiable, compilation);
+    return true;
+  }
+
+  private async Task VerifySymbolFirstTime(bool actuallyVerifyTasks, ICanVerify verifiable,
+    CompilationAfterResolution compilation) {
     var containingModule = verifiable.ContainingModule;
 
     IncrementJobs();
@@ -179,7 +187,8 @@ public class CompilationManager {
       tasksForModule = await compilation.TranslatedModules.GetOrAdd(containingModule, async m => {
         var result = await verifier.GetVerificationTasksAsync(boogieEngine, compilation, containingModule,
           cancellationSource.Token);
-        compilation.ResolutionDiagnostics = ((DiagnosticErrorReporter)compilation.Program.Reporter).AllDiagnosticsCopy;
+        compilation.ResolutionDiagnostics =
+          ((DiagnosticErrorReporter)compilation.Program.Reporter).AllDiagnosticsCopy;
         compilationUpdates.OnNext(compilation);
         foreach (var task in result) {
           cancellationSource.Token.Register(task.Cancel);
@@ -201,7 +210,8 @@ public class CompilationManager {
     var updated = false;
     var implementations = compilation.ImplementationsPerVerifiable.GetOrAdd(verifiable, _ => {
       var tasksForVerifiable =
-        tasksForModule.GetValueOrDefault(verifiable.NameToken.GetFilePosition()) ?? new List<IImplementationTask>(0);
+        tasksForModule.GetValueOrDefault(verifiable.NameToken.GetFilePosition()) ??
+        new List<IImplementationTask>(0);
 
       verificationProgressReporter.ReportImplementationsBeforeVerification(compilation,
         verifiable, tasksForVerifiable.Select(t => t.Implementation).ToArray());
@@ -225,7 +235,8 @@ public class CompilationManager {
         if (statusUpdates == null) {
           if (task.CacheStatus is Completed completedCache) {
             foreach (var result in completedCache.Result.VCResults) {
-              verificationProgressReporter.ReportVerifyImplementationRunning(compilation, task.Implementation);
+              verificationProgressReporter.ReportVerifyImplementationRunning(compilation,
+                task.Implementation);
               verificationProgressReporter.ReportAssertionBatchResult(compilation,
                 new AssertionBatchResult(task.Implementation, result));
             }
@@ -235,11 +246,12 @@ public class CompilationManager {
           }
 
           StatusUpdateHandlerFinally();
-          return false;
+          return;
         }
 
         var incrementedJobs = Interlocked.Increment(ref runningVerificationJobs);
-        logger.LogDebug($"Incremented jobs for task, remaining jobs {incrementedJobs}, {compilation.Uri} version {compilation.Version}");
+        logger.LogDebug(
+          $"Incremented jobs for task, remaining jobs {incrementedJobs}, {compilation.Uri} version {compilation.Version}");
 
         statusUpdates.ObserveOn(verificationUpdateScheduler).Subscribe(
           update => {
@@ -276,7 +288,6 @@ public class CompilationManager {
     }
 
     DecrementJobs();
-    return true;
   }
 
   public void IncrementJobs() {
