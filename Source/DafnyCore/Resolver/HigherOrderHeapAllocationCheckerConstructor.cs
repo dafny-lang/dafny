@@ -60,7 +60,7 @@ class HigherOrderHeapAllocationCheckerConstructor : ASTVisitor<IASTVisitorContex
       if (left && Type.Equal_Improved(obj, t)) {
         return true;
       }
-      if (left && t.IsTraitType) { 
+      if (left && t.IsTraitType) {
         return true;
       }
       var b = false;
