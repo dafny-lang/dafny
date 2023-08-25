@@ -66,7 +66,7 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
       : new[] { new Pointer<TopLevelDecl>(() => DefaultClass, v => DefaultClass = (DefaultClassDecl)v) }).
     Concat(SourceDecls.ToPointers()).Concat(ResolvedPrefixNamedModules.ToPointers());
 
-  protected IEnumerable<TopLevelDecl> DefaultClasses {
+  public IEnumerable<TopLevelDecl> DefaultClasses {
     get { return DefaultClass == null ? Enumerable.Empty<TopLevelDecl>() : new TopLevelDecl[] { DefaultClass }; }
   }
 

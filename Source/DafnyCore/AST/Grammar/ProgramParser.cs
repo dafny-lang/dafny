@@ -160,7 +160,7 @@ public class ProgramParser {
         diagnostic.Message);
     }
 
-    foreach (var declToMove in fileModule.SourceDecls) {
+    foreach (var declToMove in fileModule.DefaultClasses.Concat(fileModule.SourceDecls)) {
       declToMove.EnclosingModuleDefinition = defaultModule;
       if (declToMove is LiteralModuleDecl literalModuleDecl) {
         literalModuleDecl.ModuleDef.EnclosingModule = defaultModule;
