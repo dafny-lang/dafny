@@ -26,7 +26,7 @@ record FlowContext(SystemModuleManager SystemModuleManager, ErrorReporter Report
 /// to the "if-then-else" expression itself, and will use another FlowBetweenExpressions to define the analogous flow from
 /// the "else" branch.
 ///
-/// For more information about type adjustments, flow, and the whole type inference process, see docs/TypeSystemRefresh.md.
+/// For more information about type adjustments, flow, and the whole type inference process, see docs/dev/TypeSystemRefresh.md.
 /// </summary>
 abstract class Flow {
   private readonly IToken tok;
