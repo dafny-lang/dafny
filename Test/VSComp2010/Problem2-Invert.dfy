@@ -1,5 +1,4 @@
-// RUN: %dafny /compile:0 /deprecation:0 /autoTriggers:0 "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachResolver "%s"
 
 // VSComp 2010, problem 2, compute the inverse 'B' of a permutation 'A' and prove that 'B' is
 // indeed an inverse of 'A' (or at least prove that 'B' is injective).
@@ -26,57 +25,44 @@
 // connect the two.
 
 method M(N: int, A: array<int>, B: array<int>)
-  requires 0 <= N && N == A.Length && N == B.Length && A != B;
-  requires forall k :: 0 <= k < N ==> 0 <= A[k] < N;
-  requires forall j,k :: 0 <= j < k < N ==> A[j] != A[k];  // A is injective
-  requires forall m :: 0 <= m < N && inImage(m) ==> exists k :: 0 <= k && k < N && A[k] == m;  // A is surjective
-  modifies B;
-  ensures forall k :: 0 <= k < N ==> 0 <= B[k] < N;
-  ensures forall k :: 0 <= k < N ==> B[A[k]] == k == A[B[k]];  // A and B are each other's inverses
-  ensures forall j,k :: 0 <= j < k < N ==> B[j] != B[k];  // (which means that) B is injective
+  requires 0 <= N && N == A.Length && N == B.Length && A != B
+  requires forall k :: 0 <= k < N ==> 0 <= A[k] < N
+  requires forall j, k :: 0 <= j < k < N ==> A[j] != A[k] // A is injective
+  requires forall m :: 0 <= m < N && inImage(m) ==> exists k :: 0 <= k < N && A[k] == m // A is surjective
+  modifies B
+  ensures forall k :: 0 <= k < N ==> 0 <= B[k] < N
+  ensures forall k :: 0 <= k < N ==> B[A[k]] == k == A[B[k]] // A and B are each other's inverses
+  ensures forall j, k :: 0 <= j < k < N ==> B[j] != B[k] // (which means that) B is injective
 {
-  var n := 0;
-  while n < N
-    invariant n <= N;
-    invariant forall k :: 0 <= k < n ==> B[A[k]] == k;
+  for n := 0 to N
+    invariant forall k :: 0 <= k < n ==> B[A[k]] == k
   {
     B[A[n]] := n;
-    n := n + 1;
   }
-  assert forall i :: 0 <= i < N ==> A[i] == old(A[i]);  // the elements of A were not changed by the loop
+
   // it now follows from the surjectivity of A that A is the inverse of B:
   assert forall j :: 0 <= j < N && inImage(j) ==> 0 <= B[j] < N && A[B[j]] == j;
-  assert forall j,k :: 0 <= j < k < N ==> B[j] != B[k];
 }
 
 ghost function inImage(i: int): bool { true }  // this function is used to trigger the surjective quantification
 
 method Main()
 {
-  var a := new int[10];
-  a[0] := 9;
-  a[1] := 3;
-  a[2] := 8;
-  a[3] := 2;
-  a[4] := 7;
-  a[5] := 4;
-  a[6] := 0;
-  a[7] := 1;
-  a[8] := 5;
-  a[9] := 6;
-  var b := new int[10];
-  M(10, a, b);
-  print "a:\n";
-  PrintArray(a);
-  print "b:\n";
-  PrintArray(b);
-}
+  var a := new int[] [9, 3, 8, 2, 7, 4, 0, 1, 5, 6];
+  assert a[0] == 9;
+  assert a[1] == 3;
+  assert a[2] == 8;
+  assert a[3] == 2;
+  assert a[4] == 7;
+  assert a[5] == 4;
+  assert a[6] == 0;
+  assert a[7] == 1;
+  assert a[8] == 5;
+  assert a[9] == 6;
 
-method PrintArray(a: array<int>)
-{
-  var i := 0;
-  while i < a.Length {
-    print a[i], "\n";
-    i := i + 1;
-  }
+  var b := new int[10];
+
+  M(10, a, b);
+  print "a: ", a[..], "\n";
+  print "b: ", b[..], "\n";
 }
