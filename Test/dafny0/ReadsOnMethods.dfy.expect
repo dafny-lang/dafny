@@ -1,3 +1,4 @@
+ReadsOnMethods.dfy(270,8): Warning: /!\ No terms found to trigger on.
 ReadsOnMethods.dfy(19,16): Error: insufficient reads clause to read field
 ReadsOnMethods.dfy(29,29): Error: insufficient reads clause to read field
 ReadsOnMethods.dfy(44,32): Error: insufficient reads clause to read field
@@ -7,24 +8,25 @@ ReadsOnMethods.dfy(147,35): Error: function precondition could not be proved
 ReadsOnMethods.dfy(147,35): Error: insufficient reads clause to invoke function
 ReadsOnMethods.dfy(151,37): Error: insufficient reads clause to invoke function
 ReadsOnMethods.dfy(243,9): Error: insufficient reads clause to read field
-ReadsOnMethods.dfy(290,33): Error: insufficient reads clause to read field
-ReadsOnMethods.dfy(294,22): Error: insufficient reads clause to invoke function
-ReadsOnMethods.dfy(299,13): Error: call might violate context's modifies clause
-ReadsOnMethods.dfy(299,13): Error: insufficient reads clause to call
-ReadsOnMethods.dfy(336,23): Error: insufficient reads clause to read field
-ReadsOnMethods.dfy(345,13): Error: insufficient reads clause to read field
-ReadsOnMethods.dfy(347,4): Error: insufficient reads clause to read field
-ReadsOnMethods.dfy(361,10): Error: insufficient reads clause to read array element
-ReadsOnMethods.dfy(404,26): Error: insufficient reads clause to call
-ReadsOnMethods.dfy(409,24): Error: insufficient reads clause to call
-ReadsOnMethods.dfy(419,35): Error: insufficient reads clause to call
-ReadsOnMethods.dfy(424,9): Error: insufficient reads clause to invoke function
-ReadsOnMethods.dfy(430,9): Error: assertion might not hold
-ReadsOnMethods.dfy(441,11): Related location
-ReadsOnMethods.dfy(448,13): Error: insufficient reads clause to read field
-ReadsOnMethods.dfy(455,50): Error: insufficient reads clause to read field
+ReadsOnMethods.dfy(291,33): Error: insufficient reads clause to read field
+ReadsOnMethods.dfy(295,22): Error: insufficient reads clause to invoke function
+ReadsOnMethods.dfy(300,13): Error: call might violate context's modifies clause
+ReadsOnMethods.dfy(300,13): Error: insufficient reads clause to call
+ReadsOnMethods.dfy(347,20): Error: insufficient reads clause to call
+ReadsOnMethods.dfy(389,23): Error: insufficient reads clause to read field
+ReadsOnMethods.dfy(398,13): Error: insufficient reads clause to read field
+ReadsOnMethods.dfy(400,4): Error: insufficient reads clause to read field
+ReadsOnMethods.dfy(414,10): Error: insufficient reads clause to read array element
+ReadsOnMethods.dfy(457,26): Error: insufficient reads clause to call
+ReadsOnMethods.dfy(462,24): Error: insufficient reads clause to call
+ReadsOnMethods.dfy(472,35): Error: insufficient reads clause to call
+ReadsOnMethods.dfy(477,9): Error: insufficient reads clause to invoke function
+ReadsOnMethods.dfy(483,9): Error: assertion might not hold
+ReadsOnMethods.dfy(494,11): Related location
+ReadsOnMethods.dfy(501,13): Error: insufficient reads clause to read field
+ReadsOnMethods.dfy(508,50): Error: insufficient reads clause to read field
 ReadsOnMethods.dfy(168,10): Error: insufficient reads clause to read field
 ReadsOnMethods.dfy(181,25): Error: insufficient reads clause to read field
-ReadsOnMethods.dfy(394,9): Error: method might read an object not in the parent trait context's reads clause
+ReadsOnMethods.dfy(447,9): Error: method might read an object not in the parent trait context's reads clause
 
-Dafny program verifier finished with 56 verified, 28 errors
+Dafny program verifier finished with 65 verified, 29 errors
