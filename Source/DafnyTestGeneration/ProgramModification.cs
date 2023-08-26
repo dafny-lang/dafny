@@ -31,20 +31,7 @@ namespace DafnyTestGeneration {
       return idToModification[uniqueId];
     }
 
-    public ProgramModification GetProgramModification(string uniqueId) {
-      if (!idToModification.ContainsKey(uniqueId)) {
-        return null;
-      }
-      return idToModification[uniqueId];
-    }
-
     public IEnumerable<ProgramModification> Values => idToModification.Values;
-
-    public int NumberOfBlocksCovered(Implementation implementation, bool onlyIfTestsExists = false) {
-      return NumberOfBlocksCovered(implementation.Blocks
-        .Where(block => Utils.GetBlockId(block, options) != null)
-        .Select(block => Utils.GetBlockId(block, options)).ToHashSet(), onlyIfTestsExists);
-    }
 
     public int NumberOfBlocksCovered(HashSet<string> blockIds, bool onlyIfTestsExists = false) {
       var relevantModifications = Values.Where(modification =>
@@ -52,11 +39,6 @@ namespace DafnyTestGeneration {
       return blockIds.Count(blockId =>
         relevantModifications.Any(mod => mod.CapturedStates.Contains(blockId)));
     }
-
-    internal int ModificationsWithStatus(Implementation implementation, ProgramModification.Status status) =>
-      Values.Where(modification =>
-          modification.Implementation == implementation)
-        .Count(mod => mod.CounterexampleStatus == status);
   }
 
   /// <summary>
