@@ -77,8 +77,8 @@ module A.B.D {
     await client.OpenDocumentAndWaitAsync(documentItem2, CancellationToken);
     await AssertNoDiagnosticsAreComing(CancellationToken);
     var fooInFileOnePosition = new Position(1, 9);
-    var runSuccess = await client.RunSymbolVerification(documentItem2, fooInFileOnePosition, CancellationToken);
-    Assert.False(runSuccess);
+    var failsBecausePositionAndUriDoNotMatch = await client.RunSymbolVerification(documentItem2, fooInFileOnePosition, CancellationToken);
+    Assert.False(failsBecausePositionAndUriDoNotMatch);
   }
 
   [Fact]

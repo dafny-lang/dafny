@@ -435,7 +435,7 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
     return true;
   }
 
-  public void ProcessPrefixNamedModules(bool setRange) {
+  public void ProcessPrefixNamedModules() {
     // moduleDecl.PrefixNamedModules is a list of pairs like:
     //     A.B.C  ,  module D { ... }
     // We collect these according to the first component of the prefix, like so:
@@ -454,7 +454,7 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
         prefixModules = prefixModules.ConvertAll(ShortenPrefix);
       }
 
-      ProcessPrefixNamedModules(prefixModules, subDecl, setRange);
+      ProcessPrefixNamedModules(prefixModules, subDecl);
     }
 
     // Next, add new modules for any remaining entries in "prefixNames".
@@ -470,11 +470,11 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
       var subDecl = new LiteralModuleDecl(modDef, this, cloneId);
       ResolvedPrefixNamedModules.Add(subDecl);
       // only set the range on the last submodule of the chain, since the others can be part of multiple files
-      ProcessPrefixNamedModules(prefixNamedModules.ConvertAll(ShortenPrefix), subDecl, false);
+      ProcessPrefixNamedModules(prefixNamedModules.ConvertAll(ShortenPrefix), subDecl);
     }
   }
 
-  private static void ProcessPrefixNamedModules(List<PrefixNameModule> prefixModules, LiteralModuleDecl subDecl, bool setRange) {
+  private static void ProcessPrefixNamedModules(List<PrefixNameModule> prefixModules, LiteralModuleDecl subDecl) {
     // Transfer prefix-named modules downwards into the sub-module
     if (prefixModules != null) {
       foreach (var prefixModule in prefixModules) {
@@ -490,7 +490,7 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
       }
     }
 
-    subDecl.ModuleDef.ProcessPrefixNamedModules(setRange);
+    subDecl.ModuleDef.ProcessPrefixNamedModules();
   }
 
   public ModuleBindings BindModuleNames(ProgramResolver resolver, ModuleBindings parentBindings) {
