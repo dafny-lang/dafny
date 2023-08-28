@@ -3954,6 +3954,44 @@ namespace Microsoft.Dafny {
       MakeAssert(tok, q, desc, kv);
     }
 
+    void CheckFrameSubsetHigherOrderRequires(IToken tok, List<FrameExpression> calleeFrame,
+      Expression receiverReplacement, Dictionary<IVariable, Expression/*!*/> substMap,
+      ExpressionTranslator/*!*/ etran,
+      Action<IToken, Bpl.Expr, PODesc.ProofObligationDescription, Bpl.QKeyValue> MakeAssert,
+      PODesc.ProofObligationDescription desc,
+      Bpl.QKeyValue kv,
+      NAryExpr precondition) {
+      Contract.Requires(tok != null);
+      Contract.Requires(calleeFrame != null);
+      Contract.Requires(receiverReplacement == null || substMap != null);
+      Contract.Requires(etran != null);
+      Contract.Requires(MakeAssert != null);
+      Contract.Requires(predef != null);
+
+      // emit: assert (forall<alpha> o: ref, f: Field alpha :: o != null && $Heap[o,alloc] && (o,f) in subFrame ==> $_Frame[o,f]);
+      Bpl.TypeVariable alpha = new Bpl.TypeVariable(tok, "alpha");
+      Bpl.BoundVariable oVar = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "$o", predef.RefType));
+      Bpl.IdentifierExpr o = new Bpl.IdentifierExpr(tok, oVar);
+      Bpl.BoundVariable fVar = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "$f", predef.FieldName(tok, alpha)));
+      Bpl.IdentifierExpr f = new Bpl.IdentifierExpr(tok, fVar);
+      Bpl.Expr ante = Bpl.Expr.And(Bpl.Expr.Neq(o, predef.Null), etran.IsAlloced(tok, o));
+      Bpl.Expr oInCallee = InRWClause(tok, o, f, calleeFrame, etran, receiverReplacement, substMap);
+      Bpl.Expr inEnclosingFrame = Bpl.Expr.Select(etran.TheFrame(tok), o, f);
+      // Kolla in det här
+      Bpl.Expr casePreconditionSatisfied = new Bpl.ForallExpr(tok, new List<TypeVariable> { alpha }, new List<Variable> { oVar, fVar },
+        Bpl.Expr.Imp(Bpl.Expr.And(ante, oInCallee), inEnclosingFrame));
+      Bpl.Expr casePreconditionNotSatisfied = new Bpl.ForallExpr(tok, new List<TypeVariable> { alpha }, new List<Variable> { oVar, fVar },
+        Bpl.Expr.Imp(ante, inEnclosingFrame));
+
+      Bpl.Expr q = Bpl.Expr.And(Bpl.Expr.Imp(precondition, casePreconditionSatisfied),
+        Bpl.Expr.Imp(Bpl.Expr.Not(precondition), casePreconditionNotSatisfied));
+
+      if (IsExprAlways(q, true)) {
+        return;
+      }
+      MakeAssert(tok, q, desc, kv);
+    }
+
     /// <summary>
     /// Returns true if it can statically determine that the expression q always evaluates to truth
     /// </summary>

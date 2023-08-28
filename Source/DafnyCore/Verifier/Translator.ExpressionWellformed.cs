@@ -530,18 +530,22 @@ namespace Microsoft.Dafny {
               } else if (e.Receiver.Type.IsArrowType) {
                 CheckFunctionSelectWF("function specification", builder, etran, e.Receiver, "");
               }
+
               if (!e.Function.IsStatic && !etran.UsesOldHeap) {
                 // the argument can't be assumed to be allocated for the old heap
-                Type et = UserDefinedType.FromTopLevelDecl(e.tok, e.Function.EnclosingClass).Subst(e.GetTypeArgumentSubstitutions());
+                Type et = UserDefinedType.FromTopLevelDecl(e.tok, e.Function.EnclosingClass)
+                  .Subst(e.GetTypeArgumentSubstitutions());
                 builder.Add(new Bpl.CommentCmd("assume allocatedness for receiver argument to function"));
                 builder.Add(TrAssumeCmd(e.Receiver.tok, MkIsAlloc(etran.TrExpr(e.Receiver), et, etran.HeapExpr)));
               }
+
               // check well-formedness of the other parameters
               foreach (Expression arg in e.Args) {
                 if (!(arg is DefaultValueExpression)) {
                   CheckWellformed(arg, wfOptions, locals, builder, etran);
                 }
               }
+
               // create a local variable for each formal parameter, and assign each actual parameter to the corresponding local
               Dictionary<IVariable, Expression> substMap = new Dictionary<IVariable, Expression>();
               for (int i = 0; i < e.Function.Formals.Count; i++) {
@@ -550,15 +554,20 @@ namespace Microsoft.Dafny {
                 // to BVD what this variable stands for and display it as such to the user.
                 Type et = p.Type.Subst(e.GetTypeArgumentSubstitutions());
                 LocalVariable local = new LocalVariable(p.RangeToken, "##" + p.Name, et, p.IsGhost);
-                local.type = local.OptionalType;  // resolve local here
-                IdentifierExpr ie = new IdentifierExpr(local.Tok, local.AssignUniqueName(currentDeclaration.IdGenerator));
-                ie.Var = local; ie.Type = ie.Var.Type;  // resolve ie here
+                local.type = local.OptionalType; // resolve local here
+                IdentifierExpr ie =
+                  new IdentifierExpr(local.Tok, local.AssignUniqueName(currentDeclaration.IdGenerator));
+                ie.Var = local;
+                ie.Type = ie.Var.Type; // resolve ie here
                 substMap.Add(p, ie);
-                locals.Add(new Bpl.LocalVariable(local.Tok, new Bpl.TypedIdent(local.Tok, local.AssignUniqueName(currentDeclaration.IdGenerator), TrType(local.Type))));
-                Bpl.IdentifierExpr lhs = (Bpl.IdentifierExpr)etran.TrExpr(ie);  // TODO: is this cast always justified?
+                locals.Add(new Bpl.LocalVariable(local.Tok,
+                  new Bpl.TypedIdent(local.Tok, local.AssignUniqueName(currentDeclaration.IdGenerator),
+                    TrType(local.Type))));
+                Bpl.IdentifierExpr lhs = (Bpl.IdentifierExpr)etran.TrExpr(ie); // TODO: is this cast always justified?
                 Expression ee = e.Args[i];
                 CheckSubrange(ee.tok, etran.TrExpr(ee), ee.Type, et, builder);
-                Bpl.Cmd cmd = Bpl.Cmd.SimpleAssign(p.tok, lhs, CondApplyBox(p.tok, etran.TrExpr(ee), cce.NonNull(ee.Type), et));
+                Bpl.Cmd cmd = Bpl.Cmd.SimpleAssign(p.tok, lhs,
+                  CondApplyBox(p.tok, etran.TrExpr(ee), cce.NonNull(ee.Type), et));
                 builder.Add(cmd);
                 if (!etran.UsesOldHeap) {
                   // the argument can't be assumed to be allocated for the old heap
@@ -574,12 +583,15 @@ namespace Microsoft.Dafny {
               // check that its arguments were all available at that time as well.
               if (etran.UsesOldHeap) {
                 if (!e.Function.IsStatic) {
-                  Bpl.Expr wh = GetWhereClause(e.Receiver.tok, etran.TrExpr(e.Receiver), e.Receiver.Type, etran, ISALLOC, true);
+                  Bpl.Expr wh = GetWhereClause(e.Receiver.tok, etran.TrExpr(e.Receiver), e.Receiver.Type, etran,
+                    ISALLOC, true);
                   if (wh != null) {
-                    var desc = new PODesc.IsAllocated("receiver argument", "in the state in which the function is invoked");
+                    var desc = new PODesc.IsAllocated("receiver argument",
+                      "in the state in which the function is invoked");
                     builder.Add(Assert(GetToken(e.Receiver), wh, desc));
                   }
                 }
+
                 for (int i = 0; i < e.Args.Count; i++) {
                   Expression ee = e.Args[i];
                   Bpl.Expr wh = GetWhereClause(ee.tok, etran.TrExpr(ee), ee.Type, etran, ISALLOC, true);
@@ -590,26 +602,32 @@ namespace Microsoft.Dafny {
                 }
               } else if (e.Function is TwoStateFunction) {
                 if (!e.Function.IsStatic) {
-                  Bpl.Expr wh = GetWhereClause(e.Receiver.tok, etran.TrExpr(e.Receiver), e.Receiver.Type, etran.OldAt(e.AtLabel), ISALLOC, true);
+                  Bpl.Expr wh = GetWhereClause(e.Receiver.tok, etran.TrExpr(e.Receiver), e.Receiver.Type,
+                    etran.OldAt(e.AtLabel), ISALLOC, true);
                   if (wh != null) {
-                    var desc = new PODesc.IsAllocated("receiver argument", "in the two-state function's previous state");
+                    var desc = new PODesc.IsAllocated("receiver argument",
+                      "in the two-state function's previous state");
                     builder.Add(Assert(GetToken(e.Receiver), wh, desc));
                   }
                 }
+
                 Contract.Assert(e.Function.Formals.Count == e.Args.Count);
                 for (int i = 0; i < e.Args.Count; i++) {
                   var formal = e.Function.Formals[i];
                   if (formal.IsOld) {
                     Expression ee = e.Args[i];
-                    Bpl.Expr wh = GetWhereClause(ee.tok, etran.TrExpr(ee), ee.Type, etran.OldAt(e.AtLabel), ISALLOC, true);
+                    Bpl.Expr wh = GetWhereClause(ee.tok, etran.TrExpr(ee), ee.Type, etran.OldAt(e.AtLabel), ISALLOC,
+                      true);
                     if (wh != null) {
                       var pIdx = e.Args.Count == 1 ? "" : " at index " + i;
-                      var desc = new PODesc.IsAllocated($"argument{pIdx} ('{formal.Name}')", "in the two-state function's previous state");
+                      var desc = new PODesc.IsAllocated($"argument{pIdx} ('{formal.Name}')",
+                        "in the two-state function's previous state");
                       builder.Add(Assert(GetToken(ee), wh, desc));
                     }
                   }
                 }
               }
+
               // check that the preconditions for the call hold
               // The check for .reads function must be translated explicitly: their declaration lacks
               // an explicit precondition, which is added as an axiom in Translator.cs
@@ -629,6 +647,29 @@ namespace Microsoft.Dafny {
                   CheckFrameSubset(expr.tok, new List<FrameExpression> { reads }, null, null,
                     etran, wfOptions.AssertSink(this, builder), new PODesc.FrameSubset("invoke function", false),
                     wfOptions.AssertKv);
+                }
+
+              } else if (e.Function.Name == "requires") {
+                // Kolla in det här
+                var arguments = etran.FunctionInvocationArguments(e, null, null);
+                var precondition = FunctionCall(e.tok, Requires(e.Args.Count), Bpl.Type.Bool, arguments);
+
+                if (wfOptions.DoReadsChecks) {
+                  // check that the callee reads only what the caller is already allowed to read
+                  Type objset = new SetType(true, program.SystemModuleManager.ObjectQ());
+                  Expression wrap = new BoogieWrapper(
+                    FunctionCall(expr.tok, Reads(e.Args.Count()), TrType(objset), arguments),
+                    objset);
+                  var reads = new FrameExpression(expr.tok, wrap, null);
+                  if (e.Function.Reads.Count != 0) {
+                    CheckFrameSubsetHigherOrderRequires(expr.tok, new List<FrameExpression> { reads }, null, null,
+                      etran, wfOptions.AssertSink(this, builder), new PODesc.FrameSubset("invoke function", false),
+                      wfOptions.AssertKv, precondition);
+                  } else {
+                    CheckFrameSubset(expr.tok, new List<FrameExpression> { reads }, null, null,
+                      etran, wfOptions.AssertSink(this, builder), new PODesc.FrameSubset("invoke function", false),
+                      wfOptions.AssertKv);
+                  }
                 }
 
               } else {
