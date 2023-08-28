@@ -27,13 +27,11 @@ namespace DafnyTestGeneration {
 
       program.Reporter.Options.PrintMode = PrintModes.Everything;
 
-      var blocksReached = 0;
       HashSet<string> allStates = new();
       HashSet<string> allDeadStates = new();
 
       // Generate tests based on counterexamples produced from modifications
       foreach (var modification in GetModifications(cache, program, out _)) {
-        blocksReached++;
         await modification.GetCounterExampleLog(cache);
         var deadStates = new HashSet<string>();
         if (!modification.IsCovered(cache)) {
@@ -44,23 +42,18 @@ namespace DafnyTestGeneration {
           foreach (var capturedState in deadStates) {
             yield return $"Code at {capturedState} is potentially unreachable.";
           }
-          blocksReached--;
           allDeadStates.UnionWith(deadStates);
         }
 
         foreach (var state in modification.CapturedStates) {
-          if (!allStates.Contains(state)) {
+          if (deadStates.Count == 0 && !allStates.Contains(state)) {
             yield return $"Code at {state} is reachable.";
-            allStates.Add(state);
           }
+          allStates.Add(state);
         }
       }
 
-      yield return $"Out of {blocksReached} basic blocks " +
-                   $"({allStates.Count} capturedStates), {blocksReached} " +
-                   $"({allStates.Count - allDeadStates.Count}) are reachable. " +
-                   "There might be false negatives if you are not unrolling " +
-                   "loops. False positives are always possible.";
+      yield return $"Out of {allStates.Count} basic blocks, {allStates.Count - allDeadStates.Count} are reachable.";
     }
 
     public static async IAsyncEnumerable<string> GetDeadCodeStatistics(TextReader source, Uri uri, DafnyOptions options, CoverageReport report = null) {
