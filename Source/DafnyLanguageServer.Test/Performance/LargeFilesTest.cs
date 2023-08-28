@@ -67,7 +67,7 @@ public class LargeFilesTest : ClientBasedLanguageServerTest {
         // await output.WriteLineAsync("changeMilliseconds: " + changeMilliseconds);
         // await output.WriteLineAsync("division: " + division);
         try {
-          Assert.True(averageTimeToSchedule < 100);
+          Assert.True(averageTimeToSchedule < 100, $"averageTimeToSchedule: {averageTimeToSchedule}");
           // Migration should be constant time, which would allow this number to be about 1.
           // Right now migration is still slow so this has been set to 10 so the test can pass.
           var changeTimeMultiplier = 15;
