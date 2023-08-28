@@ -2228,8 +2228,8 @@ NoGhost - disable printing of functions, ghost methods, and proof
         var e = (ExprDotName)expr;
         // determine if parens are needed
         int opBindingStrength = 0x90;
-        bool parensNeeded = !e.Lhs.IsImplicit && // KRML: I think that this never holds
-          ParensNeeded(opBindingStrength, contextBindingStrength, fragileContext);
+        bool parensNeeded = !e.Lhs.IsImplicit && ParensNeeded(opBindingStrength, contextBindingStrength, fragileContext);
+        Contract.Assert(!parensNeeded); // KRML: I think parens are never needed
 
         if (parensNeeded) { wr.Write("("); }
         if (!e.Lhs.IsImplicit) {
@@ -2254,8 +2254,8 @@ NoGhost - disable printing of functions, ghost methods, and proof
         var e = (ApplySuffix)expr;
         // determine if parens are needed
         int opBindingStrength = 0x90;
-        bool parensNeeded = !e.Lhs.IsImplicit &&  // KRML: I think that this never holds
-          ParensNeeded(opBindingStrength, contextBindingStrength, fragileContext);
+        bool parensNeeded = !e.Lhs.IsImplicit && ParensNeeded(opBindingStrength, contextBindingStrength, fragileContext);
+        Contract.Assert(!parensNeeded); // KRML: I think parens are never needed
 
         if (parensNeeded) { wr.Write("("); }
         if (ParensMayMatter(e.Lhs)) {
