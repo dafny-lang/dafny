@@ -37,89 +37,12 @@ public class AutoRevealFunctionDependencies : IRewriter {
     foreach (var decl in moduleDefinition.TopLevelDecls) {
       if (decl is TopLevelDeclWithMembers cl) {
         foreach (var member in cl.Members) {
-          if (member is ICallable and not ConstantField) {
-            var mem = (ICallable)member;
-            if (member is Function { ByMethodDecl: not null } f) {
-              mem = f.ByMethodDecl;
-            }
-
-            if (mem is Method { Body: not null } method) {
-              AddMethodReveals(method, Reporter);
-            } else if (mem is Function { Body: not null } func) {
-              AddFunctionReveals(func, Reporter);
-            }
-          } else if (member is ConstantField { Rhs: not null } cf) {
-            var subExpressions = cf.Rhs.SubExpressions;
-
-            foreach (var expression in subExpressions) {
-              if (expression is FunctionCallExpr funcExpr) {
-                var func = funcExpr.Function;
-
-                if (IsRevealable(moduleDefinition.AccessibleMembers, func)) {
-                  if (func.IsMadeImplicitlyOpaque(Options)) {
-                    var expr = cf.Rhs;
-
-                    var revealStmt0 = BuildRevealStmt(func,
-                      expr.Tok, moduleDefinition);
-
-                    if (revealStmt0 is not null) {
-                      var newExpr = new StmtExpr(expr.Tok, revealStmt0, expr) {
-                        Type = expr.Type
-                      };
-                      cf.Rhs = newExpr;
-                    }
-                  }
-
-                  foreach (var newFunc in GetEnumerator(func, func.EnclosingClass, new List<Expression> { cf.Rhs },
-                             moduleDefinition)) {
-                    var origExpr = cf.Rhs;
-                    var revealStmt = BuildRevealStmt(newFunc.Function, cf.Rhs.Tok, moduleDefinition);
-
-                    if (revealStmt is not null) {
-                      var newExpr = new StmtExpr(cf.Rhs.Tok, revealStmt, origExpr) {
-                        Type = origExpr.Type
-                      };
-                      cf.Rhs = newExpr;
-                    }
-                  }
-                }
-              }
-            }
+          if (member is ICanAutoRevealDependencies mem) {
+            mem.AutoRevealDependencies(this, Options, Reporter);
           }
         }
-      } else if (decl is SubsetTypeDecl { Witness: not null } expr) {
-        var expressions = expr.Constraint.SubExpressions.ToList().Concat(expr.Witness.SubExpressions.ToList());
-        foreach (var expression in expressions) {
-          if (expression is FunctionCallExpr funcExpr) {
-            var func = funcExpr.Function;
-
-            if (IsRevealable(moduleDefinition.AccessibleMembers, func)) {
-              if (func.IsMadeImplicitlyOpaque(Options)) {
-                var revealStmt0 = BuildRevealStmt(func, expr.Witness.Tok, moduleDefinition);
-
-                if (revealStmt0 is not null) {
-                  var newExpr = new StmtExpr(expr.Witness.Tok, revealStmt0, expr.Witness) {
-                    Type = expr.Witness.Type
-                  };
-                  expr.Witness = newExpr;
-                }
-              }
-
-              foreach (var newFunc in GetEnumerator(func, func.EnclosingClass, new List<Expression>(),
-                         moduleDefinition)) {
-                var origExpr = expr.Witness;
-                var revealStmt = BuildRevealStmt(newFunc.Function, expr.Witness.Tok, moduleDefinition);
-
-                if (revealStmt is not null) {
-                  var newExpr = new StmtExpr(expr.Witness.Tok, revealStmt, origExpr) {
-                    Type = origExpr.Type
-                  };
-                  expr.Witness = newExpr;
-                }
-              }
-            }
-          }
-        }
+      } else if (decl is ICanAutoRevealDependencies m) {
+        m.AutoRevealDependencies(this, Options, Reporter);
       }
     }
   }
@@ -149,135 +72,6 @@ public class AutoRevealFunctionDependencies : IRewriter {
     }
   }
 
-  private void AddMethodReveals(Method m, ErrorReporter reporter) {
-    Contract.Requires(m != null);
-
-    object autoRevealDepsVal = null;
-    bool autoRevealDeps = Attributes.ContainsMatchingValue(m.Attributes, "autoRevealDependencies",
-      ref autoRevealDepsVal, new List<Attributes.MatchingValueOption> {
-        Attributes.MatchingValueOption.Bool,
-        Attributes.MatchingValueOption.Int
-      }, s => Reporter.Error(MessageSource.Rewriter, ErrorLevel.Error, m.Tok, s));
-
-    // Default behavior is reveal all dependencies
-    int autoRevealDepth = int.MaxValue;
-
-    if (autoRevealDeps) {
-      if (autoRevealDepsVal is false) {
-        autoRevealDepth = 0;
-      } else if (autoRevealDepsVal is BigInteger i) {
-        autoRevealDepth = (int)i;
-      }
-    }
-
-    var currentClass = m.EnclosingClass;
-    List<RevealStmtWithDepth> addedReveals = new();
-
-    foreach (var func in GetEnumerator(m, currentClass, m.SubExpressions)) {
-      var revealStmt = BuildRevealStmt(func.Function, m.Tok, m.EnclosingClass.EnclosingModuleDefinition);
-
-      if (revealStmt is not null) {
-        addedReveals.Add(new RevealStmtWithDepth(revealStmt, func.Depth));
-      }
-    }
-
-    if (autoRevealDepth > 0) {
-      Expression reqExpr = new LiteralExpr(m.Tok, true) {
-        Type = Type.Bool
-      };
-
-      foreach (var revealStmt in addedReveals) {
-        if (revealStmt.Depth <= autoRevealDepth) {
-          if (m is Constructor c) {
-            c.BodyInit.Insert(0, revealStmt.RevealStmt);
-          } else {
-            m.Body.Body.Insert(0, revealStmt.RevealStmt);
-          }
-
-          reqExpr = new StmtExpr(reqExpr.tok, revealStmt.RevealStmt, reqExpr) {
-            Type = Type.Bool
-          };
-        } else {
-          break;
-        }
-      }
-
-      if (m.Req.Any() || m.Ens.Any()) {
-        m.Req.Insert(0, new AttributedExpression(reqExpr));
-      }
-    }
-
-    if (addedReveals.Any()) {
-      reporter.Message(MessageSource.Rewriter, ErrorLevel.Info, null, m.tok,
-        GenerateMessage(addedReveals, autoRevealDepth));
-    }
-  }
-
-  private void AddFunctionReveals(Function f, ErrorReporter reporter) {
-    Contract.Requires(f != null);
-
-    object autoRevealDepsVal = null;
-    bool autoRevealDeps = Attributes.ContainsMatchingValue(f.Attributes, "autoRevealDependencies",
-      ref autoRevealDepsVal, new List<Attributes.MatchingValueOption> {
-        Attributes.MatchingValueOption.Bool,
-        Attributes.MatchingValueOption.Int
-      }, s => Reporter.Error(MessageSource.Rewriter, ErrorLevel.Error, f.Tok, s));
-
-    // Default behavior is reveal all dependencies
-    int autoRevealDepth = int.MaxValue;
-
-    if (autoRevealDeps) {
-      if (autoRevealDepsVal is false) {
-        autoRevealDepth = 0;
-      } else if (autoRevealDepsVal is BigInteger i) {
-        autoRevealDepth = (int)i;
-      }
-    }
-
-    var currentClass = f.EnclosingClass;
-    List<RevealStmtWithDepth> addedReveals = new();
-
-    foreach (var func in GetEnumerator(f, currentClass, f.SubExpressions)) {
-      var revealStmt = BuildRevealStmt(func.Function, f.Tok, f.EnclosingClass.EnclosingModuleDefinition);
-
-      if (revealStmt is not null) {
-        addedReveals.Add(new RevealStmtWithDepth(revealStmt, func.Depth));
-      }
-    }
-
-    if (autoRevealDepth > 0) {
-      Expression reqExpr = new LiteralExpr(f.Tok, true);
-      reqExpr.Type = Type.Bool;
-
-      var bodyExpr = f.Body;
-
-      foreach (var revealStmt in addedReveals) {
-        if (revealStmt.Depth <= autoRevealDepth) {
-          bodyExpr = new StmtExpr(f.Tok, revealStmt.RevealStmt, bodyExpr) {
-            Type = bodyExpr.Type
-          };
-
-          reqExpr = new StmtExpr(reqExpr.tok, revealStmt.RevealStmt, reqExpr) {
-            Type = Type.Bool
-          };
-        } else {
-          break;
-        }
-      }
-
-      f.Body = bodyExpr;
-
-      if (f.Req.Any() || f.Ens.Any()) {
-        f.Req.Insert(0, new AttributedExpression(reqExpr));
-      }
-    }
-
-    if (addedReveals.Any()) {
-      reporter.Message(MessageSource.Rewriter, ErrorLevel.Info, null, f.tok,
-        GenerateMessage(addedReveals, autoRevealDepth));
-    }
-  }
-
   private static string RenderRevealStmts(List<RevealStmtWithDepth> addedRevealStmtList, int depth = 1) {
     Contract.Requires(addedRevealStmtList.Any());
 
@@ -300,7 +94,7 @@ public class AutoRevealFunctionDependencies : IRewriter {
     return result[2..];
   }
 
-  private string GenerateMessage(List<RevealStmtWithDepth> addedReveals, int autoRevealDepth) {
+  public static string GenerateMessage(List<RevealStmtWithDepth> addedReveals, int autoRevealDepth) {
     var numInsertedReveals = addedReveals.Count(stmt => stmt.Depth <= autoRevealDepth);
     var message = "";
 
@@ -319,11 +113,11 @@ public class AutoRevealFunctionDependencies : IRewriter {
     return message;
   }
 
-  private record RevealStmtWithDepth(RevealStmt RevealStmt, int Depth);
+  public record RevealStmtWithDepth(RevealStmt RevealStmt, int Depth);
 
-  private record FunctionWithDepth(Function Function, int Depth);
+  public record FunctionWithDepth(Function Function, int Depth);
 
-  private IEnumerable<FunctionWithDepth> GetEnumerator(ICallable m, TopLevelDecl currentClass, IEnumerable<Expression> subexpressions, ModuleDefinition rootModule = null) {
+  public IEnumerable<FunctionWithDepth> GetEnumerator(ICallable m, TopLevelDecl currentClass, IEnumerable<Expression> subexpressions, ModuleDefinition rootModule = null) {
     var origVertex = currentClass.EnclosingModuleDefinition.CallGraph.FindVertex(m);
     var interModuleVertex = currentClass.EnclosingModuleDefinition.InterModuleCallGraph.FindVertex(m);
 
@@ -439,7 +233,7 @@ public class AutoRevealFunctionDependencies : IRewriter {
     return typeList.Concat(subExprTypeListConcat);
   }
 
-  private static RevealStmt BuildRevealStmt(Function func, IToken tok, ModuleDefinition rootModule) {
+  public static RevealStmt BuildRevealStmt(Function func, IToken tok, ModuleDefinition rootModule) {
     List<Type> args = new List<Type>();
     foreach (var _ in func.EnclosingClass.TypeArgs) {
       args.Add(new IntType());
@@ -504,7 +298,7 @@ public class AutoRevealFunctionDependencies : IRewriter {
     return resolveExpr;
   }
 
-  private static bool IsRevealable(Dictionary<Declaration, ModuleDefinition.AccessibleMember> accessibleMembers,
+  public static bool IsRevealable(Dictionary<Declaration, ModuleDefinition.AccessibleMember> accessibleMembers,
     Declaration decl) {
     if (accessibleMembers.TryGetValue(decl, out var member)) {
       return member.IsRevealed;

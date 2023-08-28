@@ -4,7 +4,7 @@ using System.Linq;
 
 namespace Microsoft.Dafny;
 
-public class ConstantField : SpecialField, ICallable, ICanVerify {
+public class ConstantField : SpecialField, ICallable, ICanAutoRevealDependencies, ICanVerify {
   public override string WhatKind => "const field";
   public Expression Rhs;
 
@@ -51,4 +51,45 @@ public class ConstantField : SpecialField, ICallable, ICanVerify {
   public override IEnumerable<INode> PreResolveChildren => Children;
   public ModuleDefinition ContainingModule => EnclosingModule;
   public bool ShouldVerify => Rhs != null; // This could be made more accurate by checking whether the Rhs needs to be verified.
+  public void AutoRevealDependencies(AutoRevealFunctionDependencies Rewriter, DafnyOptions Options, ErrorReporter Reporter) {
+    if (Rhs is null) {
+      return;
+    }
+
+    foreach (var expression in Rhs.SubExpressions) {
+      if (expression is FunctionCallExpr funcExpr) {
+        var func = funcExpr.Function;
+
+        if (AutoRevealFunctionDependencies.IsRevealable(EnclosingModule.AccessibleMembers, func)) {
+          if (func.IsMadeImplicitlyOpaque(Options)) {
+            var expr = Rhs;
+
+            var revealStmt0 = AutoRevealFunctionDependencies.BuildRevealStmt(func,
+              expr.Tok, EnclosingModule);
+
+            if (revealStmt0 is not null) {
+              var newExpr = new StmtExpr(expr.Tok, revealStmt0, expr) {
+                Type = expr.Type
+              };
+              Rhs = newExpr;
+            }
+          }
+
+          foreach (var newFunc in Rewriter.GetEnumerator(func, func.EnclosingClass, new List<Expression> { Rhs },
+                     EnclosingModule)) {
+            var origExpr = Rhs;
+            var revealStmt =
+              AutoRevealFunctionDependencies.BuildRevealStmt(newFunc.Function, Rhs.Tok, EnclosingModule);
+
+            if (revealStmt is not null) {
+              var newExpr = new StmtExpr(Rhs.Tok, revealStmt, origExpr) {
+                Type = origExpr.Type
+              };
+              Rhs = newExpr;
+            }
+          }
+        }
+      }
+    }
+  }
 }

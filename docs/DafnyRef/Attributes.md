@@ -218,7 +218,23 @@ function g(y:int, b:bool) : bool
 ```
 
 ### 11.2.3. `{:autoRevealDependencies k}` {#sec-autorevealdependencies}
-When setting `--default-function-opacity` to `autoRevealDependencies`, the `{:autoRevealDependencies k}` attribute can be set on methods and functions to make sure that only function dependencies of depth `k` in the call-graph or less are revealed automatically. In particular, `{:autoRevealDependencies 0}` makes sure that no dependencies are inserted automatically.
+When setting `--default-function-opacity` to `autoRevealDependencies`, the `{:autoRevealDependencies k}` attribute can be set on methods and functions to make sure that only function dependencies of depth `k` in the call-graph or less are revealed automatically. As special cases, one can also use `{:autoRevealDependencies false}` (or `{:autoRevealDependencies 0}`) to make sure that no dependencies are revealed, and `{:autoRevealDependencies true}` to make sure that all dependencies are revealed automatically.
+
+For example, when the following code is run with `--default-function-opacity` set to `autoRevealDependencies`, the function `p()` should verify and `q()` should not.
+<!-- %no-check -->
+```dafny
+   function t1() : bool { true }
+   
+   function t2() : bool { t1() }
+
+   function {:autoRevealDependencies 1} p() : (r: bool) 
+     ensures r
+   { t1() }
+   
+   function {:autoRevealDependencies 1} q() : (r: bool) 
+     ensures r
+   { t2() }
+```
 
 ### 11.2.4. `{:axiom}` {#sec-axiom}
 The `{:axiom}` attribute may be placed on a function or method.
@@ -481,7 +497,7 @@ Boogie `-timeLimit` command-line option.
 
 ### 11.2.19. `{:transparent}` {#sec-transparent}
 
-By default, the body of a function is transparent to its users. This can be overridden using the `--default-function-opacity` command line flag. If default function opacity is set to `opaque` or `autoRevealDependencies`, then this attribute can be used on functions to make certain functions transparent.
+By default, the body of a function is transparent to its users. This can be overridden using the `--default-function-opacity` command line flag. If default function opacity is set to `opaque` or `autoRevealDependencies`, then this attribute can be used on functions to make them always non-opaque.
 
 ### 11.2.20. `{:verify false}` {#sec-verify}
      

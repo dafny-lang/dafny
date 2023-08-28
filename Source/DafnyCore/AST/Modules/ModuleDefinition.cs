@@ -73,12 +73,18 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
   [FilledInDuringResolution]
   public readonly Graph<ICallable> CallGraph = new();
 
+  // This field is only populated if `defaultFunctionOpacity` is set to something other than transparent
   [FilledInDuringResolution]
   public readonly Graph<ICallable> InterModuleCallGraph = new();
 
   [FilledInDuringResolution]
   public int Height;  // height in the topological sorting of modules;
 
+  /// <summary>
+  /// The following class stores the relative name of any Declaration that is reachable from this module
+  /// as list of NameSegments, along with a flag for if the Declaration is revealed or merely provided.
+  /// For example, if "A" is a module, a function "A.f()" will be stored as f ~> {"A", "_default"} in the AccessibleMembers field.
+  /// </summary>
   public class AccessibleMember {
     public List<NameSegment> AccessPath;
     public bool IsRevealed;
@@ -479,13 +485,13 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
         var exports = d is AliasModuleDecl ? ((AliasModuleDecl)d).Exports : ((AbstractModuleDecl)d).Exports;
         var exportSet = exports.Any() ? exports.First().val : null;
 
-        foreach (var kvp in origMod.AccessibleMembers) {
-          if (isDeclExported(origMod, exportSet, kvp.Key, out var isDeclRevealed)) {
-            var newVal = kvp.Value.Clone();
+        foreach (var (decl, accMember) in origMod.AccessibleMembers) {
+          if (isDeclExported(origMod, exportSet, decl, out var isDeclRevealed)) {
+            var newAccMember = accMember.Clone();
 
-            newVal.AccessPath.Insert(0, TopLevelDeclToNameSegment(d, d.Tok));
-            newVal.IsRevealed = newVal.IsRevealed && isDeclRevealed;
-            AddAccessibleMember(kvp.Key, newVal);
+            newAccMember.AccessPath.Insert(0, TopLevelDeclToNameSegment(d, d.Tok));
+            newAccMember.IsRevealed = newAccMember.IsRevealed && isDeclRevealed;
+            AddAccessibleMember(decl, newAccMember);
           }
         }
 
@@ -495,14 +501,14 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
       } else if (d is LiteralModuleDecl) {
         var nested = (LiteralModuleDecl)d;
 
-        foreach (var kvp in nested.ModuleDef.AccessibleMembers) {
-          if (isDeclExported(nested.ModuleDef, null, kvp.Key, out var isDeclRevealed)) {
-            var newVal = kvp.Value.Clone();
+        foreach (var (decl, accMember) in nested.ModuleDef.AccessibleMembers) {
+          if (isDeclExported(nested.ModuleDef, null, decl, out var isDeclRevealed)) {
+            var newAccMember = accMember.Clone();
 
-            newVal.AccessPath.Insert(0, TopLevelDeclToNameSegment(d, d.Tok));
-            newVal.IsRevealed = newVal.IsRevealed && isDeclRevealed;
+            newAccMember.AccessPath.Insert(0, TopLevelDeclToNameSegment(d, d.Tok));
+            newAccMember.IsRevealed = newAccMember.IsRevealed && isDeclRevealed;
 
-            AddAccessibleMember(kvp.Key, newVal);
+            AddAccessibleMember(decl, newAccMember);
           }
         }
 

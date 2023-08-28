@@ -4277,10 +4277,10 @@ Inside the module where the function is declared:
   - If `--default-function-opacity` is set to `transparent` (default), then:
      - if there is no `opaque` modifier, the function is transparent.
      - if there is an `opaque` modifier, then the function is opaque. If the function is mentioned in a `reveal` statement, then
-     it's body is available in the callable where the `reveal` statement occurs.
+     it's body is available starting at that `reveal` statement.
 
   - If `--default-function-opacity` is set to `opaque`, then:
-    - if there is no [`{:transparent}` attribute](#sec-transparent), the function is opaque. If the function is mentioned in a `reveal` statement, then the body of the function is available in the callable where the `reveal` statement occurs.
+    - if there is no [`{:transparent}` attribute](#sec-transparent), the function is opaque. If the function is mentioned in a `reveal` statement, then the body of the function is available starting at that `reveal` statement.
     - if there is a [`{:transparent}` attribute](#sec-transparent), then the function is transparent.
 
   - If `--default-function-opacity` is set to `autoRevealDependencies`, then:

@@ -4,7 +4,7 @@ using System.Linq;
 
 namespace Microsoft.Dafny;
 
-public class SubsetTypeDecl : TypeSynonymDecl, RedirectingTypeDecl, ICanVerify {
+public class SubsetTypeDecl : TypeSynonymDecl, RedirectingTypeDecl, ICanAutoRevealDependencies, ICanVerify {
   public override string WhatKind => "subset type";
   public readonly BoundVar Var;
   public readonly Expression Constraint;
@@ -49,5 +49,49 @@ public class SubsetTypeDecl : TypeSynonymDecl, RedirectingTypeDecl, ICanVerify {
   public virtual DafnySymbolKind Kind => DafnySymbolKind.Class;
   public virtual string GetDescription(DafnyOptions options) {
     return "subset type";
+  }
+
+  public void AutoRevealDependencies(AutoRevealFunctionDependencies Rewriter, DafnyOptions Options, ErrorReporter Reporter) {
+    if (Witness is null) {
+      return;
+    }
+
+    var expressions = Constraint.SubExpressions.ToList().Concat(Witness.SubExpressions.ToList());
+    foreach (var expression in expressions) {
+      if (expression is not FunctionCallExpr funcExpr) {
+        continue;
+      }
+
+      var func = funcExpr.Function;
+
+      if (!AutoRevealFunctionDependencies.IsRevealable(EnclosingModuleDefinition.AccessibleMembers, func)) {
+        continue;
+      }
+
+      if (func.IsMadeImplicitlyOpaque(Options)) {
+        var revealStmt0 = AutoRevealFunctionDependencies.BuildRevealStmt(func, Witness.Tok, EnclosingModuleDefinition);
+
+        if (revealStmt0 is not null) {
+          var newExpr = new StmtExpr(Witness.Tok, revealStmt0, Witness) {
+            Type = Witness.Type
+          };
+          Witness = newExpr;
+        }
+      }
+
+      foreach (var newFunc in Rewriter.GetEnumerator(func, func.EnclosingClass, new List<Expression>(), EnclosingModuleDefinition)) {
+        var origExpr = Witness;
+        var revealStmt = AutoRevealFunctionDependencies.BuildRevealStmt(newFunc.Function, Witness.Tok, EnclosingModuleDefinition);
+
+        if (revealStmt is null) {
+          continue;
+        }
+
+        var newExpr = new StmtExpr(Witness.Tok, revealStmt, origExpr) {
+          Type = origExpr.Type
+        };
+        Witness = newExpr;
+      }
+    }
   }
 }

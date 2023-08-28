@@ -9,5 +9,6 @@ function power(b: int, n: nat): int
 method test_power()
   ensures power(power(2, 2), 2)==16
 {
+  // Enabling following assert makes the test pass
   //assert power(8, 5) == 32768;
 } 
