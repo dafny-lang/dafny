@@ -51,7 +51,7 @@ public class CompilationAfterResolution : CompilationAfterParsing {
       Where(kv => kv.Key.Tok.Uri == uri).
       Select(kv => kv.Value).ToList();
     var verificationDiagnostics = implementationsForUri.SelectMany(view =>
-      view.Values.SelectMany(v => v.Diagnostics) ?? Enumerable.Empty<DafnyDiagnostic>());
+      view.Values.SelectMany(v => v.Diagnostics));
     return base.GetDiagnostics(uri).Concat(verificationDiagnostics);
   }
 
