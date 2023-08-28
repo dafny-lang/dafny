@@ -51,8 +51,12 @@ public class TextLogger {
         if (vcResult.coveredElements.Any()) {
           tw.WriteLine("");
           tw.WriteLine("    Proof dependencies:");
-          foreach (var depId in vcResult.coveredElements) {
-            var dep = depManager.GetFullIdDependency(depId);
+          var fullDependencies =
+            vcResult
+            .coveredElements
+            .Select(depManager.GetFullIdDependency)
+            .OrderBy(dep => (dep.RangeString(), dep.Description));
+          foreach (var dep in fullDependencies) {
             tw.WriteLine($"      {dep.RangeString()}: {dep.Description}");
           }
         }
