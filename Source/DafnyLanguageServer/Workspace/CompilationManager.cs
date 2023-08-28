@@ -170,7 +170,7 @@ public class CompilationManager {
       throw new TaskCanceledException();
     }
 
-    if (!compilation.TriedToVerify.TryAdd(verifiable, Unit.Default)) {
+    if (actuallyVerifyTasks && !compilation.TriedToVerify.TryAdd(verifiable, Unit.Default)) {
       return false;
     }
     compilationUpdates.OnNext(compilation);
@@ -181,123 +181,126 @@ public class CompilationManager {
 
   private async Task VerifySymbolFirstTime(bool actuallyVerifyTasks, ICanVerify verifiable,
     CompilationAfterResolution compilation) {
-    var ticket = verificationTickets.Dequeue(CancellationToken.None);
-    var containingModule = verifiable.ContainingModule;
-
-    IncrementJobs();
-
-    IReadOnlyDictionary<FilePosition, IReadOnlyList<IImplementationTask>> tasksForModule;
     try {
-      tasksForModule = await compilation.TranslatedModules.GetOrAdd(containingModule, async m => {
-        var result = await verifier.GetVerificationTasksAsync(boogieEngine, compilation, containingModule,
-          cancellationSource.Token);
-        compilation.ResolutionDiagnostics =
-          ((DiagnosticErrorReporter)compilation.Program.Reporter).AllDiagnosticsCopy;
-        compilationUpdates.OnNext(compilation);
-        foreach (var task in result) {
-          cancellationSource.Token.Register(task.Cancel);
-        }
 
-        return result.GroupBy(t => ((IToken)t.Implementation.tok).GetFilePosition()).ToDictionary(
-          g => g.Key,
-          g => (IReadOnlyList<IImplementationTask>)g.ToList());
-      });
-    } catch (OperationCanceledException) {
-      verificationTickets.Enqueue(Unit.Default);
-      verificationCompleted.TrySetCanceled();
-      throw;
-    } catch (Exception e) {
-      verificationTickets.Enqueue(Unit.Default);
-      verificationCompleted.TrySetException(e);
-      compilationUpdates.OnError(e);
-      throw;
-    }
+      var ticket = verificationTickets.Dequeue(CancellationToken.None);
+      var containingModule = verifiable.ContainingModule;
 
-    var updated = false;
-    var implementations = compilation.ImplementationsPerVerifiable.GetOrAdd(verifiable, _ => {
-      var tasksForVerifiable =
-        tasksForModule.GetValueOrDefault(verifiable.NameToken.GetFilePosition()) ??
-        new List<IImplementationTask>(0);
+      IncrementJobs();
 
-      verificationProgressReporter.ReportImplementationsBeforeVerification(compilation,
-        verifiable, tasksForVerifiable.Select(t => t.Implementation).ToArray());
-
-      verificationProgressReporter.ReportRealtimeDiagnostics(compilation, verifiable.Tok.Uri, true);
-
-      updated = true;
-      return tasksForVerifiable.ToDictionary(
-        t => GetImplementationName(t.Implementation),
-        t => new ImplementationView(t, PublishedVerificationStatus.Stale, Array.Empty<DafnyDiagnostic>()));
-    });
-    if (updated) {
-      compilationUpdates.OnNext(compilation);
-    }
-
-    // When multiple calls to VerifySymbolFirstTime are made, the order in which they pass this await matches the call order.
-    await ticket;
-    
-    if (actuallyVerifyTasks) {
-      var tasks = implementations.Values.Select(t => t.Task).ToList();
-
-      foreach (var task in tasks) {
-        var statusUpdates = task.TryRun();
-        if (statusUpdates == null) {
-          if (task.CacheStatus is Completed completedCache) {
-            foreach (var result in completedCache.Result.VCResults) {
-              verificationProgressReporter.ReportVerifyImplementationRunning(compilation,
-                task.Implementation);
-              verificationProgressReporter.ReportAssertionBatchResult(compilation,
-                new AssertionBatchResult(task.Implementation, result));
-            }
-
-            verificationProgressReporter.ReportEndVerifyImplementation(compilation, task.Implementation,
-              completedCache.Result);
+      IReadOnlyDictionary<FilePosition, IReadOnlyList<IImplementationTask>> tasksForModule;
+      try {
+        tasksForModule = await compilation.TranslatedModules.GetOrAdd(containingModule, async m => {
+          var result = await verifier.GetVerificationTasksAsync(boogieEngine, compilation, containingModule,
+            cancellationSource.Token);
+          compilation.ResolutionDiagnostics =
+            ((DiagnosticErrorReporter)compilation.Program.Reporter).AllDiagnosticsCopy;
+          compilationUpdates.OnNext(compilation);
+          foreach (var task in result) {
+            cancellationSource.Token.Register(task.Cancel);
           }
 
-          StatusUpdateHandlerFinally();
-          return;
-        }
+          return result.GroupBy(t => ((IToken)t.Implementation.tok).GetFilePosition()).ToDictionary(
+            g => g.Key,
+            g => (IReadOnlyList<IImplementationTask>)g.ToList());
+        });
+      } catch (OperationCanceledException) {
+        verificationCompleted.TrySetCanceled();
+        throw;
+      } catch (Exception e) {
+        verificationCompleted.TrySetException(e);
+        compilationUpdates.OnError(e);
+        throw;
+      }
 
-        var incrementedJobs = Interlocked.Increment(ref runningVerificationJobs);
-        logger.LogDebug(
-          $"Incremented jobs for task, remaining jobs {incrementedJobs}, {compilation.Uri} version {compilation.Version}");
+      var updated = false;
+      var implementations = compilation.ImplementationsPerVerifiable.GetOrAdd(verifiable, _ => {
+        var tasksForVerifiable =
+          tasksForModule.GetValueOrDefault(verifiable.NameToken.GetFilePosition()) ??
+          new List<IImplementationTask>(0);
 
-        statusUpdates.ObserveOn(verificationUpdateScheduler).Subscribe(
-          update => {
-            try {
-              HandleStatusUpdate(compilation, verifiable, task, update);
-            } catch (Exception e) {
-              logger.LogError(e, "Caught exception in statusUpdates OnNext.");
-            }
-          },
-          e => {
-            if (e is not OperationCanceledException) {
-              logger.LogError(e, $"Caught error in statusUpdates observable.");
+        verificationProgressReporter.ReportImplementationsBeforeVerification(compilation,
+          verifiable, tasksForVerifiable.Select(t => t.Implementation).ToArray());
+
+        verificationProgressReporter.ReportRealtimeDiagnostics(compilation, verifiable.Tok.Uri, true);
+
+        updated = true;
+        return tasksForVerifiable.ToDictionary(
+          t => GetImplementationName(t.Implementation),
+          t => new ImplementationView(t, PublishedVerificationStatus.Stale, Array.Empty<DafnyDiagnostic>()));
+      });
+      if (updated) {
+        compilationUpdates.OnNext(compilation);
+      }
+
+      // When multiple calls to VerifySymbolFirstTime are made, the order in which they pass this await matches the call order.
+      await ticket;
+
+      if (actuallyVerifyTasks) {
+        var tasks = implementations.Values.Select(t => t.Task).ToList();
+
+        foreach (var task in tasks) {
+          var statusUpdates = task.TryRun();
+          if (statusUpdates == null) {
+            if (task.CacheStatus is Completed completedCache) {
+              foreach (var result in completedCache.Result.VCResults) {
+                verificationProgressReporter.ReportVerifyImplementationRunning(compilation,
+                  task.Implementation);
+                verificationProgressReporter.ReportAssertionBatchResult(compilation,
+                  new AssertionBatchResult(task.Implementation, result));
+              }
+
+              verificationProgressReporter.ReportEndVerifyImplementation(compilation, task.Implementation,
+                completedCache.Result);
             }
 
             StatusUpdateHandlerFinally();
-          },
-          StatusUpdateHandlerFinally
-        );
-      }
-
-      void StatusUpdateHandlerFinally() {
-        try {
-          var remainingJobs = Interlocked.Decrement(ref runningVerificationJobs);
-          logger.LogDebug(
-            $"StatusUpdateHandlerFinally called, remaining jobs {remainingJobs}, {compilation.Uri} version {compilation.Version}, " +
-            $"startingCompilation.version {startingCompilation.Version}.");
-          if (remainingJobs == 0) {
-            FinishedNotifications(compilation, verifiable);
+            return;
           }
-        } catch (Exception e) {
-          logger.LogCritical(e, "Caught exception while handling finally code of statusUpdates handler.");
+
+          var incrementedJobs = Interlocked.Increment(ref runningVerificationJobs);
+          logger.LogDebug(
+            $"Incremented jobs for task, remaining jobs {incrementedJobs}, {compilation.Uri} version {compilation.Version}");
+
+          statusUpdates.ObserveOn(verificationUpdateScheduler).Subscribe(
+            update => {
+              try {
+                HandleStatusUpdate(compilation, verifiable, task, update);
+              } catch (Exception e) {
+                logger.LogError(e, "Caught exception in statusUpdates OnNext.");
+              }
+            },
+            e => {
+              if (e is not OperationCanceledException) {
+                logger.LogError(e, $"Caught error in statusUpdates observable.");
+              }
+
+              StatusUpdateHandlerFinally();
+            },
+            StatusUpdateHandlerFinally
+          );
+        }
+
+        void StatusUpdateHandlerFinally() {
+          try {
+            var remainingJobs = Interlocked.Decrement(ref runningVerificationJobs);
+            logger.LogDebug(
+              $"StatusUpdateHandlerFinally called, remaining jobs {remainingJobs}, {compilation.Uri} version {compilation.Version}, " +
+              $"startingCompilation.version {startingCompilation.Version}.");
+            if (remainingJobs == 0) {
+              FinishedNotifications(compilation, verifiable);
+            }
+          } catch (Exception e) {
+            logger.LogCritical(e, "Caught exception while handling finally code of statusUpdates handler.");
+          }
         }
       }
-    }
 
-    DecrementJobs();
-    verificationTickets.Enqueue(Unit.Default);
+      DecrementJobs();
+    }
+    finally {
+      verificationTickets.Enqueue(Unit.Default);
+    }
   }
 
   public async Task Cancel(FilePosition filePosition) {
