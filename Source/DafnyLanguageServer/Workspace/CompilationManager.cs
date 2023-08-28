@@ -215,7 +215,7 @@ public class CompilationManager {
       }
 
       var updated = false;
-      var implementations = compilation.ImplementationsPerVerifiable.GetOrAdd(verifiable, () => {
+      var implementations = compilation.ImplementationsPerVerifiable.GetOrAdd(verifiable, _ => {
         var tasksForVerifiable =
           tasksForModule.GetValueOrDefault(verifiable.NameToken.GetFilePosition()) ??
           new List<IImplementationTask>(0);
