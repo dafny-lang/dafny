@@ -155,7 +155,7 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
 
   public async Task<PublishDiagnosticsParams> GetLastDiagnosticsParams(TextDocumentItem documentItem, CancellationToken cancellationToken) {
     await client.WaitForNotificationCompletionAsync(documentItem.Uri, cancellationToken);
-    var compilation = (await Projects.GetLastDocumentAsync(documentItem))!;
+    var compilation = (await Projects.GetLastDocumentAsync(documentItem).WaitAsync(cancellationToken))!;
     Assert.NotNull(compilation);
     var expectedDiagnostics = compilation.GetDiagnostics(documentItem.Uri.ToUri()).
       Select(d => d.ToLspDiagnostic()).
