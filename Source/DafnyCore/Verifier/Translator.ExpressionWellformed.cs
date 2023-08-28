@@ -631,7 +631,7 @@ namespace Microsoft.Dafny {
               // check that the preconditions for the call hold
               // The check for .reads function must be translated explicitly: their declaration lacks
               // an explicit precondition, which is added as an axiom in Translator.cs
-              if (e.Function.Name == "reads") {
+              if (e.Function.Name == "reads" && !e.Receiver.Type.IsArrowTypeWithoutReadEffects) {
                 // check that the preconditions for the call hold
                 var arguments = etran.FunctionInvocationArguments(e, null, null);
                 var precondition = FunctionCall(e.tok, Requires(e.Args.Count), Bpl.Type.Bool, arguments);
@@ -650,7 +650,7 @@ namespace Microsoft.Dafny {
                 }
 
               } else if (e.Function.Name == "requires" && !e.Receiver.Type.IsArrowTypeWithoutReadEffects) {
-                // Kolla in det här
+
                 var arguments = etran.FunctionInvocationArguments(e, null, null);
                 var precondition = FunctionCall(e.tok, Requires(e.Args.Count), Bpl.Type.Bool, arguments);
 

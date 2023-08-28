@@ -28,6 +28,7 @@ method MCaller1(S: set<object>) {
 // .requires
 
 function FCallerRequires0(x: int, S: set<object>): real
+  reads S
 {
   var myFunctionRequires := MyFunction.requires(x, S); // error: insufficient reads clause to call MyFunction.requires, since it may return false
   3.14
@@ -121,10 +122,9 @@ ghost function CallIfPossible1(x: int, S: set<object>): real
 ghost function CallIfPossible2(x: int, S: set<object>): real
   reads S
 {
-  if MyFunction.requires(x, S) then // error: if MyFunction.requires(x, S) returns false, then this could read anything (TODO)
+  if MyFunction.requires(x, S) then // error: insufficient reads clause (if MyFunction.requires(x, S) returns false, then this could read anything)
     MyFunction(x, S)
   else
-    assert false; // error: control can indeed reach this point
     2.7
 }
 
@@ -238,7 +238,7 @@ ghost function Usability4(x: int, f: int ~> real, g: int --> real, h: int -> rea
 
 method Usability5(x: int, g: int --> real, h: int -> real) {
   assert g.requires(x) ==> g.reads(x) == {};
-  assert g.reads(x) == {}; // error: this is known to hold only if g.requires(x) holds (TODO: is this a surprise or awkward?)
+  assert g.reads(x) == {}; 
 
   assert h.requires(x);
   assert h.reads(x) == {};
@@ -247,7 +247,7 @@ method Usability5(x: int, g: int --> real, h: int -> real) {
 method Usability6(x: int, f: int ~> real) {
   // The following is called Axiom 1 in the PR description:
   assert f.requires(x) ==> f.reads.requires(x);
-  assert f.reads.requires(x) ==> f.requires(x); // TODO
+  assert f.reads.requires(x) ==> f.requires(x);
 
   // The following is called Axiom 2 in the PR description:
   assert f.requires(x) ==> f.reads.reads(x) == f.reads(x);
@@ -263,7 +263,7 @@ method Usability7(x: int, g: int --> real) {
   assert g.requires(x) ==> g.reads(x) == {};
 
   assert g.requires(x) ==> g.reads.requires(x);
-  assert g.reads.requires(x) ==> g.requires(x); // TODO
+  assert g.reads.requires(x) ==> g.requires(x);
 
   assert g.requires(x) ==> g.reads.reads(x) == {};
 

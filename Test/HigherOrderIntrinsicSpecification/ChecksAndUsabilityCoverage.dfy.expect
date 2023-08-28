@@ -1,14 +1,14 @@
 ChecksAndUsabilityCoverage.dfy(18,36): Error: function precondition could not be proved
-ChecksAndUsabilityCoverage.dfy(32,39): Error: insufficient reads clause to invoke function
-ChecksAndUsabilityCoverage.dfy(37,39): Error: insufficient reads clause to invoke function
-ChecksAndUsabilityCoverage.dfy(50,22): Error: insufficient reads clause to invoke function
-ChecksAndUsabilityCoverage.dfy(69,36): Error: function precondition could not be proved
-ChecksAndUsabilityCoverage.dfy(69,36): Error: insufficient reads clause to invoke function
-ChecksAndUsabilityCoverage.dfy(74,36): Error: insufficient reads clause to invoke function
-ChecksAndUsabilityCoverage.dfy(81,36): Error: function precondition could not be proved
-ChecksAndUsabilityCoverage.dfy(106,16): Error: insufficient reads clause to invoke function
-ChecksAndUsabilityCoverage.dfy(113,19): Error: function precondition could not be proved
-ChecksAndUsabilityCoverage.dfy(127,11): Error: assertion might not hold
+ChecksAndUsabilityCoverage.dfy(33,39): Error: insufficient reads clause to invoke function
+ChecksAndUsabilityCoverage.dfy(38,39): Error: insufficient reads clause to invoke function
+ChecksAndUsabilityCoverage.dfy(51,22): Error: insufficient reads clause to invoke function
+ChecksAndUsabilityCoverage.dfy(70,36): Error: function precondition could not be proved
+ChecksAndUsabilityCoverage.dfy(70,36): Error: insufficient reads clause to invoke function
+ChecksAndUsabilityCoverage.dfy(75,36): Error: insufficient reads clause to invoke function
+ChecksAndUsabilityCoverage.dfy(82,36): Error: function precondition could not be proved
+ChecksAndUsabilityCoverage.dfy(107,16): Error: insufficient reads clause to invoke function
+ChecksAndUsabilityCoverage.dfy(114,19): Error: function precondition could not be proved
+ChecksAndUsabilityCoverage.dfy(125,16): Error: insufficient reads clause to invoke function
 ChecksAndUsabilityCoverage.dfy(134,16): Error: insufficient reads clause to invoke function
 ChecksAndUsabilityCoverage.dfy(156,12): Error: assertion might not hold
 ChecksAndUsabilityCoverage.dfy(162,11): Error: function precondition could not be proved
@@ -22,8 +22,7 @@ ChecksAndUsabilityCoverage.dfy(211,12): Error: function precondition could not b
 ChecksAndUsabilityCoverage.dfy(217,10): Error: function precondition could not be proved
 ChecksAndUsabilityCoverage.dfy(222,12): Error: function precondition could not be proved
 ChecksAndUsabilityCoverage.dfy(234,12): Error: function precondition could not be proved
-ChecksAndUsabilityCoverage.dfy(241,11): Error: function precondition could not be proved
 ChecksAndUsabilityCoverage.dfy(313,19): Error: assertion might not hold
 ChecksAndUsabilityCoverage.dfy(314,14): Error: assertion might not hold
 
-Dafny program verifier finished with 17 verified, 27 errors
+Dafny program verifier finished with 18 verified, 26 errors
