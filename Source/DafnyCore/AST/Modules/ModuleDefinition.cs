@@ -80,29 +80,26 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
   public int Height;  // height in the topological sorting of modules;
 
   public class AccessibleMember {
-    public Declaration Member;
-    public List<TopLevelDecl> AccessPath;
+    public List<NameSegment> AccessPath;
     public bool IsRevealed;
 
-    public AccessibleMember(Declaration member, List<TopLevelDecl> accessPath, bool isRevealed = true) {
-      Member = member;
+    public AccessibleMember(List<NameSegment> accessPath, bool isRevealed = true) {
       AccessPath = accessPath;
       IsRevealed = isRevealed;
     }
 
-    public AccessibleMember(Declaration member, bool isRevealed = true) {
-      Member = member;
-      AccessPath = new List<TopLevelDecl>();
+    public AccessibleMember(bool isRevealed = true) {
+      AccessPath = new List<NameSegment>();
       IsRevealed = isRevealed;
     }
 
     public AccessibleMember Clone() {
-      return new AccessibleMember(Member, AccessPath.ToList(), IsRevealed);
+      return new AccessibleMember(AccessPath.ToList(), IsRevealed);
     }
   }
 
   [FilledInDuringResolution]
-  public Dictionary<Declaration, List<AccessibleMember>> AccessibleMembers = new();
+  public Dictionary<Declaration, AccessibleMember> AccessibleMembers = new();
 
   [ContractInvariantMethod]
   void ObjectInvariant() {
@@ -484,54 +481,56 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
 
         foreach (var kvp in origMod.AccessibleMembers) {
           if (isDeclExported(origMod, exportSet, kvp.Key, out var isDeclRevealed)) {
-            var newVal = kvp.Value.Select(member => member.Clone()).ToList();
+            var newVal = kvp.Value.Clone();
 
-            foreach (var accessibleMember in newVal) {
-              accessibleMember.AccessPath.Insert(0, d);
-              accessibleMember.IsRevealed = accessibleMember.IsRevealed && isDeclRevealed;
-            }
-
+            newVal.AccessPath.Insert(0, TopLevelDeclToNameSegment(d, d.Tok));
+            newVal.IsRevealed = newVal.IsRevealed && isDeclRevealed;
             AddAccessibleMember(kvp.Key, newVal);
           }
         }
 
-        var newAccessibleMember = new AccessibleMember(d);
-        var newAccessibleMemberList = new List<AccessibleMember> { newAccessibleMember };
-        AddAccessibleMember(d, newAccessibleMemberList);
+        var newAccessibleMember = new AccessibleMember();
+        AddAccessibleMember(d, newAccessibleMember);
 
       } else if (d is LiteralModuleDecl) {
         var nested = (LiteralModuleDecl)d;
 
         foreach (var kvp in nested.ModuleDef.AccessibleMembers) {
           if (isDeclExported(nested.ModuleDef, null, kvp.Key, out var isDeclRevealed)) {
-            var newVal = kvp.Value.Select(member => member.Clone()).ToList();
+            var newVal = kvp.Value.Clone();
 
-            foreach (var accessibleMember in newVal) {
-              accessibleMember.AccessPath.Insert(0, d);
-              accessibleMember.IsRevealed = accessibleMember.IsRevealed && isDeclRevealed;
-            }
+            newVal.AccessPath.Insert(0, TopLevelDeclToNameSegment(d, d.Tok));
+            newVal.IsRevealed = newVal.IsRevealed && isDeclRevealed;
 
             AddAccessibleMember(kvp.Key, newVal);
           }
         }
 
-        var newAccessibleMember = new AccessibleMember(d);
-        var newAccessibleMemberList = new List<AccessibleMember> { newAccessibleMember };
-        AddAccessibleMember(d, newAccessibleMemberList);
+        var newAccessibleMember = new AccessibleMember();
+        AddAccessibleMember(d, newAccessibleMember);
 
       } else if (d is TopLevelDeclWithMembers tld) {
         var memberList = tld.Members;
 
         foreach (var mem in memberList) {
-          var accessPath = new List<TopLevelDecl> { d };
-          var newAccessibleMember = new AccessibleMember(mem, accessPath);
-          var newAccessibleMemberList = new List<AccessibleMember> { newAccessibleMember };
-          AddAccessibleMember(mem, newAccessibleMemberList);
+          var accessPath = new List<NameSegment> { TopLevelDeclToNameSegment(d, d.Tok) };
+          var newAccessibleMember = new AccessibleMember(accessPath);
+          AddAccessibleMember(mem, newAccessibleMember);
         }
       }
     }
 
     return true;
+  }
+
+  private static NameSegment TopLevelDeclToNameSegment(TopLevelDecl decl, IToken tok) {
+    var typeArgs = new List<Type>();
+
+    foreach (var arg in decl.TypeArgs) {
+      typeArgs.Add(new IntType());
+    }
+
+    return new NameSegment(tok, decl.Name, typeArgs);
   }
 
   private bool isDeclExported(ModuleDefinition moduleDefinition, string exportSetName, Declaration decl, out bool isItRevealed) {
@@ -555,16 +554,9 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
     return true;
   }
 
-  private void AddAccessibleMember(Declaration accessibleDecl, List<AccessibleMember> newVal) {
-    newVal = newVal.ToList();
-
-    if (AccessibleMembers.ContainsKey(accessibleDecl)) {
-      List<AccessibleMember> oldVal = null;
-      AccessibleMembers.TryGetValue(accessibleDecl, out oldVal);
-
-      if (oldVal is not null) {
-        newVal = newVal.Concat(oldVal).ToList();
-      }
+  private void AddAccessibleMember(Declaration accessibleDecl, AccessibleMember newVal) {
+    if (AccessibleMembers.TryGetValue(accessibleDecl, out var oldVal)) {
+      newVal = !oldVal.IsRevealed && newVal.IsRevealed ? newVal : oldVal;
     }
 
     AccessibleMembers[accessibleDecl] = newVal;

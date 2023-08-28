@@ -445,13 +445,8 @@ public class AutoRevealFunctionDependencies : IRewriter {
       args.Add(new IntType());
     }
 
-    ModuleDefinition.AccessibleMember accessibleMember = null;
+    ModuleDefinition.AccessibleMember accessibleMember = rootModule.AccessibleMembers[func];
 
-    try {
-      accessibleMember = rootModule.AccessibleMembers[func].First(member => member.IsRevealed);
-    } catch (KeyNotFoundException) {
-      Contract.Assert(false);
-    }
     var resolveExpr = ConstructExpressionFromPath(func, accessibleMember);
 
     var callableClass = ((TopLevelDeclWithMembers)func.EnclosingClass);
@@ -498,7 +493,7 @@ public class AutoRevealFunctionDependencies : IRewriter {
   private static Expression ConstructExpressionFromPath(Function func, ModuleDefinition.AccessibleMember accessibleMember) {
 
     var topLevelDeclsList = accessibleMember.AccessPath;
-    var nameList = topLevelDeclsList.Where(decl => decl.Name != "_default").Select(decl => TopLevelDeclToNameSegment(decl, func.tok)).ToList();
+    var nameList = topLevelDeclsList.Where(decl => decl.Name != "_default").ToList();
 
     nameList.Add(new NameSegment(func.tok, func.Name, new List<Type>()));
 
@@ -509,20 +504,10 @@ public class AutoRevealFunctionDependencies : IRewriter {
     return resolveExpr;
   }
 
-  private static NameSegment TopLevelDeclToNameSegment(TopLevelDecl decl, IToken tok) {
-    var typeArgs = new List<Type>();
-
-    foreach (var arg in decl.TypeArgs) {
-      typeArgs.Add(new IntType());
-    }
-
-    return new NameSegment(tok, decl.Name, typeArgs);
-  }
-
-  private static bool IsRevealable(Dictionary<Declaration, List<ModuleDefinition.AccessibleMember>> accessibleMembers,
+  private static bool IsRevealable(Dictionary<Declaration, ModuleDefinition.AccessibleMember> accessibleMembers,
     Declaration decl) {
-    if (accessibleMembers.TryGetValue(decl, out var memberList)) {
-      return memberList.Exists(member => member.IsRevealed);
+    if (accessibleMembers.TryGetValue(decl, out var member)) {
+      return member.IsRevealed;
     }
 
     return false;
