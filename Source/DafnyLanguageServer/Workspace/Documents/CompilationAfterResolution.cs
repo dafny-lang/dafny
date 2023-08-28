@@ -22,7 +22,7 @@ public class CompilationAfterResolution : CompilationAfterParsing {
     LegacySignatureAndCompletionTable signatureAndCompletionTable,
     IReadOnlyDictionary<Uri, IReadOnlyList<Range>> ghostDiagnostics,
     IReadOnlyList<ICanVerify> verifiables,
-    ConcurrentDictionary<ModuleDefinition, Task<IReadOnlyDictionary<FilePosition, IReadOnlyList<IImplementationTask>>>> translatedModules,
+    LazyConcurrentDictionary<ModuleDefinition, Task<IReadOnlyDictionary<FilePosition, IReadOnlyList<IImplementationTask>>>> translatedModules,
     List<Counterexample> counterexamples
     ) :
     base(compilationAfterParsing, compilationAfterParsing.Program, diagnostics, compilationAfterParsing.VerificationTrees) {
@@ -38,12 +38,13 @@ public class CompilationAfterResolution : CompilationAfterParsing {
   public LegacySignatureAndCompletionTable SignatureAndCompletionTable { get; }
   public IReadOnlyDictionary<Uri, IReadOnlyList<Range>> GhostDiagnostics { get; }
   public IReadOnlyList<ICanVerify> Verifiables { get; }
-  public ConcurrentDictionary<ICanVerify, Unit> TriedToVerify { get; } = new();
-  public ConcurrentDictionary<ICanVerify, Dictionary<string, ImplementationView>> ImplementationsPerVerifiable { get; } = new();
+  public ConcurrentDictionary<ICanVerify, Unit> VerifyingOrVerifiedSymbols { get; } = new();
+  public LazyConcurrentDictionary<ICanVerify, Dictionary<string, ImplementationView>> ImplementationsPerVerifiable { get; } = new();
+
   /// <summary>
   /// FilePosition is required because the default module lives in multiple files
   /// </summary>
-  public ConcurrentDictionary<ModuleDefinition, Task<IReadOnlyDictionary<FilePosition, IReadOnlyList<IImplementationTask>>>> TranslatedModules { get; }
+  public LazyConcurrentDictionary<ModuleDefinition, Task<IReadOnlyDictionary<FilePosition, IReadOnlyList<IImplementationTask>>>> TranslatedModules { get; }
 
   public override IEnumerable<DafnyDiagnostic> GetDiagnostics(Uri uri) {
     var implementationsForUri = ImplementationsPerVerifiable.
@@ -85,7 +86,7 @@ public class CompilationAfterResolution : CompilationAfterParsing {
         previousState.GetVerificationResults(canVerify.NameToken.Uri).GetValueOrDefault(range)?.Implementations ??
         ImmutableDictionary<string, IdeImplementationView>.Empty;
       if (!ImplementationsPerVerifiable.TryGetValue(canVerify, out var implementationsPerName)) {
-        var progress = TriedToVerify.ContainsKey(canVerify)
+        var progress = VerifyingOrVerifiedSymbols.ContainsKey(canVerify)
           ? VerificationPreparationState.InProgress
           : VerificationPreparationState.NotStarted;
         return new IdeVerificationResult(PreparationProgress: progress,
@@ -95,7 +96,7 @@ public class CompilationAfterResolution : CompilationAfterParsing {
           }));
       }
 
-      var implementations = implementationsPerName.ToDictionary(kv => kv.Key, kv => {
+      var implementations = implementationsPerName!.ToDictionary(kv => kv.Key, kv => {
         var implementationView = kv.Value;
         var diagnostics = implementationView.Diagnostics.Select(d => d.ToLspDiagnostic());
         if (implementationView.Status < PublishedVerificationStatus.Error) {
@@ -106,7 +107,7 @@ public class CompilationAfterResolution : CompilationAfterParsing {
         }
 
         // If we're trying to verify this symbol, its status is at least queued.
-        var status = implementationView.Status == PublishedVerificationStatus.Stale && TriedToVerify.ContainsKey(canVerify)
+        var status = implementationView.Status == PublishedVerificationStatus.Stale && VerifyingOrVerifiedSymbols.ContainsKey(canVerify)
           ? PublishedVerificationStatus.Queued : implementationView.Status;
         return new IdeImplementationView(implementationView.Task.Implementation.tok.GetLspRange(true),
           status, diagnostics.ToList());

@@ -153,6 +153,7 @@ public class CompilationManager {
 
   private int runningVerificationJobs;
 
+  // When verifying a symbol, a ticket must be acquired before the SMT part of verification may start.
   private AsyncQueue<Unit> verificationTickets = new();
   public async Task<bool> VerifySymbol(FilePosition verifiableLocation, bool actuallyVerifyTasks = true) {
     cancellationSource.Token.ThrowIfCancellationRequested();
@@ -170,16 +171,16 @@ public class CompilationManager {
       throw new TaskCanceledException();
     }
 
-    if (actuallyVerifyTasks && !compilation.TriedToVerify.TryAdd(verifiable, Unit.Default)) {
+    if (actuallyVerifyTasks && !compilation.VerifyingOrVerifiedSymbols.TryAdd(verifiable, Unit.Default)) {
       return false;
     }
     compilationUpdates.OnNext(compilation);
 
-    _ = VerifySymbolFirstTime(actuallyVerifyTasks, verifiable, compilation);
+    _ = VerifyUnverifiedSymbol(actuallyVerifyTasks, verifiable, compilation);
     return true;
   }
 
-  private async Task VerifySymbolFirstTime(bool actuallyVerifyTasks, ICanVerify verifiable,
+  private async Task VerifyUnverifiedSymbol(bool actuallyVerifyTasks, ICanVerify verifiable,
     CompilationAfterResolution compilation) {
     try {
 
@@ -190,7 +191,7 @@ public class CompilationManager {
 
       IReadOnlyDictionary<FilePosition, IReadOnlyList<IImplementationTask>> tasksForModule;
       try {
-        tasksForModule = await compilation.TranslatedModules.GetOrAdd(containingModule, async m => {
+        tasksForModule = await compilation.TranslatedModules.GetOrAdd(containingModule, async () => {
           var result = await verifier.GetVerificationTasksAsync(boogieEngine, compilation, containingModule,
             cancellationSource.Token);
           compilation.ResolutionDiagnostics =
@@ -214,15 +215,10 @@ public class CompilationManager {
       }
 
       var updated = false;
-      var implementations = compilation.ImplementationsPerVerifiable.GetOrAdd(verifiable, _ => {
+      var implementations = compilation.ImplementationsPerVerifiable.GetOrAdd(verifiable, () => {
         var tasksForVerifiable =
           tasksForModule.GetValueOrDefault(verifiable.NameToken.GetFilePosition()) ??
           new List<IImplementationTask>(0);
-
-        verificationProgressReporter.ReportImplementationsBeforeVerification(compilation,
-          verifiable, tasksForVerifiable.Select(t => t.Implementation).ToArray());
-
-        verificationProgressReporter.ReportRealtimeDiagnostics(compilation, verifiable.Tok.Uri, true);
 
         updated = true;
         return tasksForVerifiable.ToDictionary(
@@ -230,10 +226,14 @@ public class CompilationManager {
           t => new ImplementationView(t, PublishedVerificationStatus.Stale, Array.Empty<DafnyDiagnostic>()));
       });
       if (updated) {
+        verificationProgressReporter.ReportImplementationsBeforeVerification(compilation,
+          verifiable, implementations.Select(t => t.Value.Task.Implementation).ToArray());
+
+        verificationProgressReporter.ReportRealtimeDiagnostics(compilation, verifiable.Tok.Uri, true);
         compilationUpdates.OnNext(compilation);
       }
 
-      // When multiple calls to VerifySymbolFirstTime are made, the order in which they pass this await matches the call order.
+      // When multiple calls to VerifyUnverifiedSymbol are made, the order in which they pass this await matches the call order.
       await ticket;
 
       if (actuallyVerifyTasks) {
@@ -308,11 +308,11 @@ public class CompilationManager {
     var canVerify = resolvedCompilation.Program.FindNode<ICanVerify>(filePosition.Uri, filePosition.Position.ToDafnyPosition());
     if (canVerify != null) {
       var implementations = resolvedCompilation.ImplementationsPerVerifiable.TryGetValue(canVerify, out var implementationsPerName)
-        ? implementationsPerName.Values : Enumerable.Empty<ImplementationView>();
+        ? implementationsPerName!.Values : Enumerable.Empty<ImplementationView>();
       foreach (var view in implementations) {
         view.Task.Cancel();
       }
-      resolvedCompilation.TriedToVerify.TryRemove(canVerify, out _);
+      resolvedCompilation.VerifyingOrVerifiedSymbols.TryRemove(canVerify, out _);
     }
   }
 
