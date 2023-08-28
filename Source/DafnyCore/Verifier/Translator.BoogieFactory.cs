@@ -877,6 +877,13 @@ namespace Microsoft.Dafny {
     }
 
     public static IToken ToDafnyToken(Bpl.IToken exprTok) {
+      if (exprTok is BoogieRangeToken boogieRangeToken) {
+        if (boogieRangeToken.NameToken != null) {
+          return boogieRangeToken.NameToken;
+        }
+
+        return boogieRangeToken;
+      }
       if (exprTok == null) {
         return null;
       } else if (exprTok is IToken t) {

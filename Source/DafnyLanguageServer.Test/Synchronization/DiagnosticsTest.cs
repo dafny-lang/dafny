@@ -10,6 +10,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors;
 using Newtonsoft.Json;
+using NuGet.Frameworks;
 using Xunit.Abstractions;
 using Xunit;
 using Xunit.Sdk;
@@ -19,6 +20,15 @@ using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
   public class DiagnosticsTest : ClientBasedLanguageServerTest {
     private readonly string testFilesDirectory = Path.Combine(Directory.GetCurrentDirectory(), "Synchronization/TestFiles");
+
+    [Fact]
+    public async Task DiagnosticsForVerificationTimeoutHasNameAsRange() {
+      var documentItem = CreateTestDocument(SlowToVerify, "DiagnosticsForVerificationTimeout.dfy");
+      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+      var diagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
+      Assert.Contains("timed out", diagnostics[0].Message);
+      Assert.Equal(new Range(0, 21, 0, 43), diagnostics[0].Range);
+    }
 
     [Fact]
     public async Task NoFlickeringWhenMixingCorrectAndErrorBatches() {

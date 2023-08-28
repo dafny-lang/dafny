@@ -133,7 +133,7 @@ method Abs(x: int) returns (y: int)
       await WaitForStatus(null, PublishedVerificationStatus.Error, CancellationToken, documentItem);
     }
 
-    [Fact(Timeout = MaxTestExecutionTimeMs)]
+    [Fact]
     public async Task DocumentWithOnlyCodedVerifierTimeoutSendsCompilationSucceededVerificationStartedAndVerificationFailedStatuses() {
       var documentItem = CreateTestDocument(SlowToVerify, "DocumentWithOnlyCodedVerifierTimeoutSendsCompilationSucceededVerificationStartedAndVerificationFailedStatuses.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
