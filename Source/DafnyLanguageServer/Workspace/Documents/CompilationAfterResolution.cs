@@ -39,7 +39,7 @@ public class CompilationAfterResolution : CompilationAfterParsing {
   public IReadOnlyDictionary<Uri, IReadOnlyList<Range>> GhostDiagnostics { get; }
   public IReadOnlyList<ICanVerify> Verifiables { get; }
   public ConcurrentDictionary<ICanVerify, Unit> VerifyingOrVerifiedSymbols { get; } = new();
-  public LazyConcurrentDictionary<ICanVerify, Dictionary<string, ImplementationView>> ImplementationsPerVerifiable { get; } = new();
+  public ConcurrentDictionary<ICanVerify, Dictionary<string, ImplementationView>> ImplementationsPerVerifiable { get; } = new();
 
   /// <summary>
   /// FilePosition is required because the default module lives in multiple files
