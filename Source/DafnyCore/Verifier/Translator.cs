@@ -164,7 +164,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    private ProofDependencyManager? proofDependencies;
+    private ProofDependencyManager proofDependencies;
 
     // optimizing translation
     readonly ISet<MemberDecl> referencedMembers = new HashSet<MemberDecl>();
