@@ -649,7 +649,7 @@ namespace Microsoft.Dafny {
                     wfOptions.AssertKv);
                 }
 
-              } else if (e.Function.Name == "requires") {
+              } else if (e.Function.Name == "requires" && !e.Receiver.Type.IsArrowTypeWithoutReadEffects) {
                 // Kolla in det här
                 var arguments = etran.FunctionInvocationArguments(e, null, null);
                 var precondition = FunctionCall(e.tok, Requires(e.Args.Count), Bpl.Type.Bool, arguments);
