@@ -214,8 +214,9 @@ public class CompilationManager {
         throw;
       }
 
+      // For updated to be reliable, ImplementationsPerVerifiable must be Lazy
       var updated = false;
-      var implementations = compilation.ImplementationsPerVerifiable.GetOrAdd(verifiable, _ => {
+      var implementations = compilation.ImplementationsPerVerifiable.GetOrAdd(verifiable, () => {
         var tasksForVerifiable =
           tasksForModule.GetValueOrDefault(verifiable.NameToken.GetFilePosition()) ??
           new List<IImplementationTask>(0);
