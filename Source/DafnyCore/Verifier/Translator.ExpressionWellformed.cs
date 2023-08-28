@@ -661,15 +661,11 @@ namespace Microsoft.Dafny {
                     FunctionCall(expr.tok, Reads(e.Args.Count()), TrType(objset), arguments),
                     objset);
                   var reads = new FrameExpression(expr.tok, wrap, null);
-                  if (e.Function.Reads.Count != 0) {
-                    CheckFrameSubsetHigherOrderRequires(expr.tok, new List<FrameExpression> { reads }, null, null,
-                      etran, wfOptions.AssertSink(this, builder), new PODesc.FrameSubset("invoke function", false),
-                      wfOptions.AssertKv, precondition);
-                  } else {
-                    CheckFrameSubset(expr.tok, new List<FrameExpression> { reads }, null, null,
-                      etran, wfOptions.AssertSink(this, builder), new PODesc.FrameSubset("invoke function", false),
-                      wfOptions.AssertKv);
-                  }
+
+                  CheckFrameSubsetHigherOrderRequires(expr.tok, new List<FrameExpression> { reads }, null, null,
+                    etran, wfOptions.AssertSink(this, builder), new PODesc.FrameSubset("invoke function", false),
+                    wfOptions.AssertKv, precondition);
+
                 }
 
               } else {
