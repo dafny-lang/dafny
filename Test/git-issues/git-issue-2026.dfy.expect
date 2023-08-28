@@ -8,25 +8,25 @@ git-issue-2026.dfy(12,0): initial state:
 	ret : _System.array<seq<char>> = ()
 git-issue-2026.dfy(13,24):
 	n : int = 2
-	ret : _System.array?<seq<char>> = (Length := 2, [(- 39)] := @0, [0] := @0)
+	ret : _System.array?<seq<char>> = (Length := 2, [(- 7720)] := @0, [0] := @0)
 	@0 : seq<char> = ['o', 'd', 'd']
 git-issue-2026.dfy(15,14):
 	n : int = 2
-	ret : _System.array?<seq<char>> = (Length := 2, [(- 39)] := @0, [0] := @0)
+	ret : _System.array?<seq<char>> = (Length := 2, [(- 7720)] := @0, [0] := @0)
 	i : int = 0
 	@0 : seq<char> = ['o', 'd', 'd']
 git-issue-2026.dfy(16,4): after some loop iterations:
 	n : int = 2
-	ret : _System.array?<seq<char>> = (Length := 2, [(- 39)] := @0)
+	ret : _System.array?<seq<char>> = (Length := 2, [(- 7720)] := @0)
 	i : int = 0
 	@0 : seq<char> = ['o', 'd', 'd']
 git-issue-2026.dfy(22,27):
 	n : int = 2
-	ret : _System.array?<seq<char>> = (Length := 2, [(- 39)] := @0, [0] := @0)
+	ret : _System.array?<seq<char>> = (Length := 2, [(- 7720)] := @0, [0] := @0)
 	i : int = 0
 	@0 : seq<char> = ['o', 'd', 'd']
 git-issue-2026.dfy(26,18):
 	n : int = 2
-	ret : _System.array?<seq<char>> = (Length := 2, [(- 39)] := @0, [0] := @0)
+	ret : _System.array?<seq<char>> = (Length := 2, [(- 7720)] := @0, [0] := @0)
 	i : int = 1
 	@0 : seq<char> = ['o', 'd', 'd']
