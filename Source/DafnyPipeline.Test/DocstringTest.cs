@@ -436,8 +436,8 @@ iterator Iter2(x: int) yields (y: int)
         // and then recompute it. The result should be the same string.
         var programString = AdjustNewlines(source);
 
-        var dafnyProgram = Utils.Parse(options, programString, false);
-        BatchErrorReporter reporter = (BatchErrorReporter)dafnyProgram.Reporter;
+        var reporter = new BatchErrorReporter(options);
+        var dafnyProgram = Utils.Parse(reporter, programString, false);
         if (reporter.ErrorCount > 0) {
           var error = reporter.AllMessagesByLevel[ErrorLevel.Error][0];
           Assert.False(true, $"{error.Message}: line {error.Token.line} col {error.Token.col}");
