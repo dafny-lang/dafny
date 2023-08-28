@@ -934,7 +934,34 @@ module TypeInferenceImprovements {
     return Some(principals);
   }
 }
-    
+
+module StaticReceivers {
+  ghost predicate Caller0(s: seq<int>, list: LinkedList<int>)
+  {
+    s == list.StaticFunction(s) // uses "list" as an object to discard
+  }
+
+  ghost predicate Caller1(s: seq<int>)
+  {
+    s == LinkedList.StaticFunction(s) // type parameters inferred
+  }
+
+  ghost predicate Caller2(s: seq<int>)
+  {
+    s == LinkedList<int>.StaticFunction(s)
+  }
+
+  method Caller3()
+  {
+    var s: seq;
+    var b := s == LinkedList<int>.StaticFunction(s);
+  }
+
+  class LinkedList<UUU> {
+    static ghost function StaticFunction(sq: seq<UUU>): seq<UUU>
+  }
+}
+
 
 /****************************************************************************************
  ******** TO DO *************************************************************************
