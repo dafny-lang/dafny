@@ -49,7 +49,7 @@ public class AdjustableType : TypeProxy {
     if (type is BasicType) {
       return type.ToString();
     }
-    if (type.AsArrowType is {} arrowType) {
+    if (type.AsArrowType is { } arrowType) {
       string arrow = type is ArrowType
         ? "~>"
         : type is UserDefinedType userDefinedType
@@ -83,7 +83,7 @@ public class AdjustableType : TypeProxy {
       return "\\bot";
     }
     type = NormalizeSansAdjustableType(type);
-    if (type is AdjustableType { IsBottomType: true}) {
+    if (type is AdjustableType { IsBottomType: true }) {
       return "\\bot";
     } else {
       return type.ToString();
