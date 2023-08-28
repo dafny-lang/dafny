@@ -24,7 +24,7 @@ namespace DafnyPipeline.Test {
       options.DafnyPrelude = "../../../../../Binaries/DafnyPrelude.bpl";
 
       var programString = @"trait Trait<A, B> { }";
-      var dafnyProgram = Utils.Parse(options, programString, false);
+      var dafnyProgram = Utils.Parse(new BatchErrorReporter(options), programString, false);
       DafnyMain.Resolve(dafnyProgram);
       foreach (var prog in Translator.Translate(dafnyProgram, dafnyProgram.Reporter)) {
         var writer = new StringWriter();
