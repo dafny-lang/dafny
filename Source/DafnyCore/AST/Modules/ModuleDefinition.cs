@@ -81,9 +81,10 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
   public int Height;  // height in the topological sorting of modules;
 
   /// <summary>
-  /// The following class stores the relative name of any Declaration that is reachable from this module
-  /// as list of NameSegments, along with a flag for if the Declaration is revealed or merely provided.
-  /// For example, if "A" is a module, a function "A.f()" will be stored as f ~> {"A", "_default"} in the AccessibleMembers field.
+  /// The following class stores the relative name of any declaration that is reachable from this module
+  /// as a list of NameSegments, along with a flag for whether the Declaration is revealed or merely provided.
+  /// For example, if "A" is a module, a function "A.f()" will be stored in the AccessibleMembers dictionary as
+  /// the declaration "f" pointing to an AccessibleMember whose AccessPath list contains the NameSegments "A" and "_default".
   /// </summary>
   public class AccessibleMember {
     public List<NameSegment> AccessPath;
