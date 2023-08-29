@@ -17,7 +17,7 @@ namespace PluginsDafnyCodeActionTest {
 
   public class DummyDafnyCodeActionProvider : DafnyCodeActionProvider {
     public override IEnumerable<DafnyCodeAction> GetDafnyCodeActions(IDafnyCodeActionInput input, Range selection) {
-      var token = input.Program.GetFirstTopLevelToken();
+      var token = input.Program.GetStartOfFirstFileToken();
       return new DafnyCodeAction[] {
         new InstantDafnyCodeAction("Insert file header", new DafnyCodeActionEdit[] {
           new DafnyCodeActionEdit(new RangeToken(token, token).ToDafnyRange(), "/*First comment*/")
