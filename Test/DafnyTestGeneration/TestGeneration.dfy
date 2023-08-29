@@ -10,9 +10,7 @@
 // CHECK: .*Passed!  - Failed:     0, Passed:     3, Skipped:     0, Total:     3*
 
 module M {
-  class Value {
-    var v:int;
-  }
+  datatype Value = Value(v:int)
   method {:testEntry} compareToZero(v:Value) returns (i:int) {
     if (v.v == 0) {
       return 0;

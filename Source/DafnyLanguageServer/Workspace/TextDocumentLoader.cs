@@ -56,7 +56,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     public async Task<CompilationAfterParsing> ParseAsync(DafnyOptions options, Compilation compilation,
-      IReadOnlyDictionary<Uri, VerificationTree> migratedVerificationTrees, CancellationToken cancellationToken) {
+      IReadOnlyDictionary<Uri, DocumentVerificationTree> migratedVerificationTrees, CancellationToken cancellationToken) {
 #pragma warning disable CS1998
       return await await DafnyMain.LargeStackFactory.StartNew(
         async () => ParseInternal(options, compilation, migratedVerificationTrees, cancellationToken), cancellationToken
@@ -65,7 +65,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     private CompilationAfterParsing ParseInternal(DafnyOptions options, Compilation compilation,
-      IReadOnlyDictionary<Uri, VerificationTree> migratedVerificationTrees,
+      IReadOnlyDictionary<Uri, DocumentVerificationTree> migratedVerificationTrees,
       CancellationToken cancellationToken) {
       var project = compilation.Project;
       var errorReporter = new DiagnosticErrorReporter(options, project.Uri);
@@ -79,17 +79,16 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     public async Task<CompilationAfterResolution> ResolveAsync(DafnyOptions options,
       CompilationAfterParsing compilation,
-      IReadOnlyDictionary<Uri, VerificationTree> migratedVerificationTrees,
+      IReadOnlyDictionary<Uri, DocumentVerificationTree> migratedVerificationTrees,
       CancellationToken cancellationToken) {
 #pragma warning disable CS1998
       return await await DafnyMain.LargeStackFactory.StartNew(
-        async () => ResolveInternal(compilation, migratedVerificationTrees, cancellationToken), cancellationToken
+        async () => ResolveInternal(compilation, migratedVerificationTrees, cancellationToken), cancellationToken);
 #pragma warning restore CS1998
-        );
     }
 
     private CompilationAfterResolution ResolveInternal(CompilationAfterParsing compilation,
-      IReadOnlyDictionary<Uri, VerificationTree> migratedVerificationTrees, CancellationToken cancellationToken) {
+      IReadOnlyDictionary<Uri, DocumentVerificationTree> migratedVerificationTrees, CancellationToken cancellationToken) {
 
       var program = compilation.Program;
       var errorReporter = (DiagnosticErrorReporter)program.Reporter;
@@ -144,7 +143,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         new(),
         Array.Empty<Counterexample>(),
         ImmutableDictionary<Uri, IReadOnlyList<Range>>.Empty,
-      ImmutableDictionary<Uri, VerificationTree>.Empty
+      ImmutableDictionary<Uri, DocumentVerificationTree>.Empty
       );
     }
   }
