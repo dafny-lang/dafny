@@ -1,4 +1,4 @@
-// RUN: %testDafnyForEachCompiler "%s"
+// RUN: %testDafnyForEachCompiler "%s" --refresh-exit-code=0
 
 // Simple sanity test of nested modules
 module Parent {
