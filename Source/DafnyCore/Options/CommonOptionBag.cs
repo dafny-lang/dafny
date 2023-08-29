@@ -195,7 +195,7 @@ true - Print debug information for the new type system.".TrimStart()) {
   );
 
   public static readonly Option<bool> ReadsClausesOnMethods = new("--reads-clauses-on-methods",
-    "Allows reads clauses on methods as well as functions."
+    "Allows reads clauses on methods (with a default of 'reads *') as well as functions."
   );
 
   public enum TestAssumptionsMode {

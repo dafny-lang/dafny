@@ -296,7 +296,7 @@ public class Method : MemberDecl, TypeParameter.ParentType, IMethodCodeContext, 
       foreach (FrameExpression fe in Reads) {
         resolver.ResolveFrameExpressionTopLevel(fe, FrameExpressionUse.Reads, this);
         if (IsLemmaLike) {
-          resolver.reporter.Error(MessageSource.Resolver, fe.tok, "{0}s are not allowed to have reads clauses",
+          resolver.reporter.Error(MessageSource.Resolver, fe.tok, "{0}s are not allowed to have reads clauses (they are allowed to read all memory locations)",
             WhatKind);
         } else if (!readsClausesOnMethodsEnabled) {
           resolver.reporter.Error(MessageSource.Resolver, fe.tok,

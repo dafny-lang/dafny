@@ -414,6 +414,15 @@ method BadArrayRead(a: array<int>) returns (r: int)
   return a[0];  // Error: insufficient reads clause to read array element
 }
 
+method BadArrayRead2(a: array<int>) returns (r: int)
+  requires a.Length > 0
+  reads {}
+  // Showing that modifies does not imply reads - they are independent clauses
+  modifies a
+{
+  return a[0];  // Error: insufficient reads clause to read array element
+}
+
 method GoodArrayRead(a: array<int>) returns (r: int)
   requires a.Length > 0
   reads a

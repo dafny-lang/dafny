@@ -542,7 +542,7 @@ namespace Microsoft.Dafny {
       // Only do reads checks for methods, not lemmas
       // (which aren't allowed to declare frames and don't check reads and writes against them).
       // Also don't do any reads checks if the reads clause is *,
-      // since all the checks will be vacuously true
+      // since all the checks will be trivially true
       // and we don't need to cause additional verification cost for existing code.
       if (!options.Get(CommonOptionBag.ReadsClausesOnMethods) || m.IsLemmaLike || m.Reads.Exists(e => e.E is WildcardExpr)) {
         etran = etran.WithReadsFrame(null);
@@ -1379,7 +1379,7 @@ namespace Microsoft.Dafny {
       List<FrameExpression> classFrameExps = m.Reads ?? new List<FrameExpression>();
       if (m.OverriddenMethod.Reads != null) {
         if (m.OverriddenMethod.Reads.Any(e => e.E is WildcardExpr)) {
-          // Vacuously true
+          // Trivially true
           return;
         }
         foreach (var e in m.OverriddenMethod.Reads) {

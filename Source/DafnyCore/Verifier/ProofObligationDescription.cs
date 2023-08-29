@@ -1112,9 +1112,9 @@ public class ConcurrentFrameEmpty : ProofObligationDescriptionWithNoExpr {
     $"{frameName} is empty ({{:concurrent}} restriction)";
 
   public override string FailureDescription =>
-    $"{frameName} might not be empty ({{:concurrent}} restriction)";
+    $"{frameName} could not be proved to be empty ({{:concurrent}} restriction)";
 
-  public override string ShortDescription => "assignment shrinks";
+  public override string ShortDescription => "concurrency safety";
 
   private readonly string frameName;
 

@@ -128,7 +128,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
 
       RegisterLegacyUi(CommonOptionBag.ReadsClausesOnMethods, ParseBoolean, "Language feature selection", "readsClausesOnMethods", @"
 0 (default) - Reads clauses on methods are forbidden.
-1 - Reads clauses on methods are permitted.".TrimStart(), defaultValue: false);
+1 - Reads clauses on methods are permitted (with a default of 'reads *').".TrimStart(), defaultValue: false);
     }
 
     public void ApplyBinding(Option option) {
