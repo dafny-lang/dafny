@@ -1,5 +1,5 @@
-// RUN: %exits-with 2 %dafny "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachResolver --expect-exit-code=2 "%s"
+
 
 newtype nt = int
 
