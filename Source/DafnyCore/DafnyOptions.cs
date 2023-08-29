@@ -131,11 +131,11 @@ NoGhost - disable printing of functions, ghost methods, and proof
 
     private static void ParseDefaultFunctionOpacity(Option<CommonOptionBag.DefaultFunctionOpacityOptions> option, Bpl.CommandLineParseState ps, DafnyOptions options) {
       if (ps.ConfirmArgumentCount(1)) {
-        if (ps.args[ps.i].Equals("Transparent")) {
+        if (ps.args[ps.i].Equals("transparent")) {
           options.Set(option, CommonOptionBag.DefaultFunctionOpacityOptions.Transparent);
-        } else if (ps.args[ps.i].Equals("AutoRevealDependencies")) {
+        } else if (ps.args[ps.i].Equals("autoRevealDependencies")) {
           options.Set(option, CommonOptionBag.DefaultFunctionOpacityOptions.AutoRevealDependencies);
-        } else if (ps.args[ps.i].Equals("Opaque")) {
+        } else if (ps.args[ps.i].Equals("opaque")) {
           options.Set(option, CommonOptionBag.DefaultFunctionOpacityOptions.Opaque);
         } else {
           InvalidArgumentError(option.Name, ps);
