@@ -155,7 +155,7 @@ public class CompilationManager {
 
   // When verifying a symbol, a ticket must be acquired before the SMT part of verification may start.
   private AsyncQueue<Unit> verificationTickets = new();
-  public async Task<bool> VerifySymbol(FilePosition verifiableLocation, bool actuallyVerifyTasks = true) {
+  public async Task<bool> VerifySymbol(FilePosition verifiableLocation, bool onlyPrepareVerificationForGutterTests = false) {
     cancellationSource.Token.ThrowIfCancellationRequested();
 
     var compilation = await ResolvedCompilation;
@@ -176,16 +176,21 @@ public class CompilationManager {
       return false;
     }
 
-    if (actuallyVerifyTasks && !compilation.VerifyingOrVerifiedSymbols.TryAdd(verifiable, Unit.Default)) {
+    if (!onlyPrepareVerificationForGutterTests && !compilation.VerifyingOrVerifiedSymbols.TryAdd(verifiable, Unit.Default)) {
       return false;
     }
     compilationUpdates.OnNext(compilation);
 
-    _ = VerifyUnverifiedSymbol(actuallyVerifyTasks, verifiable, compilation);
+    if (onlyPrepareVerificationForGutterTests) {
+      await VerifyUnverifiedSymbol(onlyPrepareVerificationForGutterTests, verifiable, compilation);
+      return true;
+    }
+
+    _ = VerifyUnverifiedSymbol(onlyPrepareVerificationForGutterTests, verifiable, compilation);
     return true;
   }
 
-  private async Task VerifyUnverifiedSymbol(bool actuallyVerifyTasks, ICanVerify verifiable,
+  private async Task VerifyUnverifiedSymbol(bool onlyPrepareVerificationForGutterTests, ICanVerify verifiable,
     CompilationAfterResolution compilation) {
     try {
 
@@ -242,7 +247,7 @@ public class CompilationManager {
       // When multiple calls to VerifyUnverifiedSymbol are made, the order in which they pass this await matches the call order.
       await ticket;
 
-      if (actuallyVerifyTasks) {
+      if (!onlyPrepareVerificationForGutterTests) {
         var tasks = implementations.Values.Select(t => t.Task).ToList();
 
         foreach (var task in tasks) {

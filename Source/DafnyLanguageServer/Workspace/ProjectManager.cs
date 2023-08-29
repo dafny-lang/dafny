@@ -297,7 +297,7 @@ public class ProjectManager : IDisposable {
       var orderedVerifiableLocations = orderedVerifiables.Select(v => v.NameToken.GetFilePosition()).ToList();
       if (GutterIconTesting) {
         foreach (var canVerify in orderedVerifiableLocations) {
-          await compilationManager.VerifySymbol(canVerify, false);
+          await compilationManager.VerifySymbol(canVerify, true);
         }
 
         logger.LogDebug($"Finished translation in VerifyEverything for {Project.Uri}");
