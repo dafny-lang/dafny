@@ -244,24 +244,15 @@ public class AutoRevealFunctionDependencies : IRewriter {
       return new List<Type>();
     }
 
-    var subExprTypeList = exprList.Select(expr => ExprListToTypeList(expr.SubExpressions));
+    var subExprList = exprList.SelectMany(expr => Triggers.ExprExtensions.AllSubExpressions(expr, false, false));
+    
+    var typeList = subExprList.Select(expr => expr.Type);
 
-    var typeList = exprList.Select(expr => expr.Type);
-    var subExprTypeListConcat = subExprTypeList.SelectMany(x => x);
-
-    return typeList.Concat(subExprTypeListConcat);
+    return typeList;
   }
-
-  private static IEnumerable<Expression> ExprToSubexpressions(Expression expr) {
-
-    var subExprList = expr.SubExpressions.SelectMany(ExprToSubexpressions).ToList();
-    subExprList.Insert(0, expr);
-    return subExprList;
-  }
-
 
   public IEnumerable<RevealStmtWithDepth> ExprToFunctionalDependencies(Expression expr, ModuleDefinition enclosingModule) {
-    var expressionList = ExprToSubexpressions(expr);
+    var expressionList = Triggers.ExprExtensions.AllSubExpressions(expr, false, false);
     var revealStmtList = new List<RevealStmtWithDepth>();
 
     foreach (var expression in expressionList) {
