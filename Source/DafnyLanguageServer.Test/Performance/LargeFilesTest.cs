@@ -15,6 +15,8 @@ public class LargeFilesTest : ClientBasedLanguageServerTest {
   protected override Task SetUp(Action<DafnyOptions> modifyOptions) {
     return base.SetUp(options => {
       modifyOptions?.Invoke(options);
+      // We're setting LineVerificationStatus to false already, with the expectation that this will become the default.
+      options.Set(ServerCommand.LineVerificationStatus, false);
       options.Set(ServerCommand.UpdateThrottling, ServerCommand.DefaultThrottleTime);
     });
   }

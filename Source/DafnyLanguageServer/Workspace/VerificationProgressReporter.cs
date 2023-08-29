@@ -231,8 +231,10 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
   /// Triggers sending of the current verification diagnostics to the client
   /// </summary>
   public void ReportRealtimeDiagnostics(CompilationAfterParsing compilation, Uri uri, bool verificationStarted) {
-    lock (LockProcessing) {
-      notificationPublisher.PublishGutterIcons(uri, compilation.InitialIdeState(compilation, options), verificationStarted);
+    if (options.Get(ServerCommand.LineVerificationStatus)) {
+      lock (LockProcessing) {
+        notificationPublisher.PublishGutterIcons(uri, compilation.InitialIdeState(compilation, options), verificationStarted);
+      }
     }
   }
 
