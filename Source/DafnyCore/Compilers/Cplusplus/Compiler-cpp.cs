@@ -91,7 +91,7 @@ namespace Microsoft.Dafny.Compilers {
     protected override void EmitHeader(Program program, ConcreteSyntaxTree wr) {
       // This seems to be a good place to check for unsupported options
       if (UnicodeCharEnabled) {
-        throw new UnsupportedFeatureException(program.GetFirstTopLevelToken(), Feature.UnicodeChars);
+        throw new UnsupportedFeatureException(program.GetStartOfFirstFileToken(), Feature.UnicodeChars);
       }
 
       wr.WriteLine("// Dafny program {0} compiled into Cpp", program.Name);

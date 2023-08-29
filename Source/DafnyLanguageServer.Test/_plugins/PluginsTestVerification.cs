@@ -15,7 +15,7 @@ namespace PluginsTestVerification {
     }
 
     public override void PostResolve(Program program) {
-      Reporter.Error(MessageSource.Compiler, program.GetFirstTopLevelToken(),
+      Reporter.Error(MessageSource.Compiler, program.GetStartOfFirstFileToken(),
         "Plugin Error that does not prevent verification");
     }
   }

@@ -41,8 +41,8 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
         return EmptySymbols;
       }
 
-      var fileNode = state.Program.FindNodesInUris(request.TextDocument.Uri.ToUri()).OfType<ISymbol>();
-      return fileNode.Select(topLevel => new SymbolInformationOrDocumentSymbol(FromSymbol(topLevel))).ToList();
+      var fileNodes = state.Program.FindNodesInUris(request.TextDocument.Uri.ToUri()).OfType<ISymbol>();
+      return fileNodes.Select(topLevel => new SymbolInformationOrDocumentSymbol(FromSymbol(topLevel))).ToList();
     }
 
     private DocumentSymbol FromSymbol(ISymbol symbol) {

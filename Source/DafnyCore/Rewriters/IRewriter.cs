@@ -27,7 +27,7 @@ namespace Microsoft.Dafny {
     ///     reporter.Error(MessageSource.Compiler, token, "[Your plugin] Your error message here");
     ///
     /// The token is usually obtained on expressions and statements in the field `tok`
-    /// If you do not have access to them, use moduleDefinition.GetFirstTopLevelToken()
+    /// If you do not have access to them, use moduleDefinition.GetStartOfFirstFileToken()
     /// </summary>
     /// <param name="reporter">The error reporter. Usually outputs automatically to IDE or command-line</param>
     protected internal IRewriter(ErrorReporter reporter) {

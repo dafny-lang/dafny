@@ -19,6 +19,8 @@ public class DefaultModuleDefinition : ModuleDefinition, ICloneable<DefaultModul
   }
 
   public override bool IsDefaultModule => true;
+
+  public override IEnumerable<INode> Children => Includes.Concat(base.Children);
   public override IEnumerable<INode> PreResolveChildren => Includes.Concat(base.PreResolveChildren);
   public new DefaultModuleDefinition Clone(Cloner cloner) {
     return new DefaultModuleDefinition(cloner, this);
