@@ -6,7 +6,7 @@ Processing command (at Snapshots8.v0.dfy(4,8)) assert {:id "id4$id2$requires"} {
   >>> DoNothingToAssert
 Snapshots8.v0.dfy(3,11): Error: assertion might not hold
 Snapshots8.v0.dfy(4,7): Error: a precondition for this call could not be proved
-Snapshots8.v0.dfy(8,13): Related location: precondition could not be proved
+Snapshots8.v0.dfy(8,13): Related location: this is the precondition that could not be proved
 Processing command (at Snapshots8.v0.dfy(13,13)) assert {:id "id8"} LitInt(2) <= z#0;
   >>> DoNothingToAssert
 Snapshots8.v0.dfy(17,9): Error: a postcondition could not be proved on this return path
@@ -31,7 +31,7 @@ Processing command (at Snapshots8.v1.dfy(7,12)) assert {:id "id15"} x#0 == LitIn
   >>> DoNothingToAssert
 Snapshots8.v1.dfy(5,16): Error: assertion might not hold
 Snapshots8.v1.dfy(6,7): Error: a precondition for this call could not be proved
-Snapshots8.v1.dfy(12,20): Related location: precondition could not be proved
+Snapshots8.v1.dfy(12,20): Related location: this is the precondition that could not be proved
 Snapshots8.v1.dfy(7,11): Error: assertion might not hold
 Processing command (at Snapshots8.v1.dfy(23,12)) assert {:id "id23"} Lit(true);
   >>> DoNothingToAssert
