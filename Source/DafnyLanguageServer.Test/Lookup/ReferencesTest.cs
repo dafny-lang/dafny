@@ -48,6 +48,36 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
     }
 
     [Fact]
+    public async Task AliasModuleDecl() {
+      var source = @"
+module ><ToAlias {
+  const x := 3
+}
+
+module Aliaser {
+  import Used = [>ToAlias<]
+  import Unused = [>ToAlias<]
+
+  const x := Used.x 
+}
+".TrimStart();
+
+      await AssertReferences(source, "AliasModuleDecl.dfy");
+    }
+
+    [Fact]
+    public async Task FunctionReturnTypeDatatype() {
+      var source = @"
+datatype ><Result<T, Error> = Ok(value: T) | Error(error: Error)
+function Foo(): [>Result<]<int, int> {
+  Ok(1)
+}
+".TrimStart();
+
+      await AssertReferences(source, "FunctionReturnTypeDatatype.dfy");
+    }
+
+    [Fact]
     public async Task Const() {
       var source = @"
 const ><c := 1
