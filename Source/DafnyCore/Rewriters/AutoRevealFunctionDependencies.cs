@@ -107,7 +107,7 @@ public class AutoRevealFunctionDependencies : IRewriter {
     // if (numInsertedReveals < addedReveals.Count) {
     //   message += $" Remaining:\n{RenderRevealStmts(addedReveals, 1 + autoRevealDepth)}";
     // } else {
-    message += $" Total number of reveal statements:\n{RenderRevealStmts(addedReveals)}";
+    message += $" Reveal statements:\n{RenderRevealStmts(addedReveals)}";
     // }
 
     return message;
