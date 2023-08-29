@@ -1,5 +1,5 @@
 // RUN: %baredafny verify "%s"
- // RUN: %testDafnyForEachCompiler "%s"
+ // RUN: %testDafnyForEachCompiler "%s" --refresh-exit-code=0
 
 newtype uint8 = x : int | 0 <= x < 256
 

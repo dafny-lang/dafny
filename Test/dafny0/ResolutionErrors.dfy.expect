@@ -631,4 +631,5 @@ ResolutionErrors.dfy(3928,6): Error: when allocating an object of type 'ClassWit
 ResolutionErrors.dfy(3941,8): Error: when allocating an object of type 'Y', one of its constructor methods must be called
 ResolutionErrors.dfy(3946,8): Error: when allocating an object of type 'Luci', one of its constructor methods must be called
 ResolutionErrors.dfy(3947,8): Error: when allocating an object of type 'Luci', one of its constructor methods must be called
-629 resolution/type errors detected in ResolutionErrors.dfy
+ResolutionErrors.dfy(3971,44): Error: type of right argument to * (bool) must agree with the result type (int)
+630 resolution/type errors detected in ResolutionErrors.dfy
