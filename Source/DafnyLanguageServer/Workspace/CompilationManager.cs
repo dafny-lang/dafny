@@ -170,7 +170,7 @@ public class CompilationManager {
           d.Source != MessageSource.Verifier)) {
       throw new TaskCanceledException();
     }
-    
+
     var containingModule = verifiable.ContainingModule;
     if (!containingModule.ShouldVerify(compilation.Program.Compilation)) {
       return false;
