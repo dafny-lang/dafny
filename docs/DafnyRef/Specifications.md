@@ -485,8 +485,8 @@ able to give invariants to preserve it in this case, it gets even more
 complex when manipulating data structures. In this case, framing is
 essential to making the verification process feasible.
 
-By default, methods are not required to list the things they read.
-However, there are use cases for restricting what memory methods can read as well.
+By default, methods are not required to list the memory location they read.
+However, there are use cases for restricting what methods can read as well.
 In particular, if you want to verify that imperative code is safe to execute concurrently when compiled,
 you can specify that a method does not read or write any shared state,
 and therefore cannot encounter race conditions or runtime crashes related to
@@ -760,7 +760,7 @@ and `yield ensures` clauses.
 An iterator specification applies both to the iterator's constructor
 method and to its `MoveNext` method.
 - The `reads` and `modifies`
-clauses apply to both of them (but `reads` clauses have a different meaning on iterators than on functions or methods). 
+clauses apply to both of them (but `reads` clauses have a [different meaning on iterators](#sec-iterator-types) than on functions or methods).
 - The `requires` and `ensures` clauses apply to the constructor.
 - The `yield requires` and `yield ensures` clauses apply to the `MoveNext` method.
 

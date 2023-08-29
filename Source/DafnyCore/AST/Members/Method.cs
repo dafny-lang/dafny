@@ -48,10 +48,6 @@ public class Method : MemberDecl, TypeParameter.ParentType, IMethodCodeContext, 
       yield return new Assumption(this, tok, AssumptionDescription.NoBody(IsGhost));
     }
 
-    if (Body is not null && HasConcurrentAttribute) {
-      yield return new Assumption(this, tok, AssumptionDescription.HasConcurrentAttribute);
-    }
-
     if (HasExternAttribute && HasPostcondition && !HasAxiomAttribute) {
       yield return new Assumption(this, tok, AssumptionDescription.ExternWithPostcondition);
     }
@@ -283,14 +279,12 @@ public class Method : MemberDecl, TypeParameter.ParentType, IMethodCodeContext, 
         resolver.ConstrainTypeExprBool(e.E, "Precondition must be a boolean (got {0})");
       }
 
-      // TODO: May not be the right place to set the default, and may want something similar to InferredDecreases
-      // TODO: Might be clearer to add a resolved `reads *` after instead,
-      // or to add it unresolved as we do here but in an earlier hook like
-      // ResolveNamesAndInferTypesForOneDeclarationInitial?
       var readsClausesOnMethodsEnabled = resolver.Options.Get(CommonOptionBag.ReadsClausesOnMethods);
-      if (readsClausesOnMethodsEnabled && !Reads.Any() && !IsLemmaLike) {
-        // Note that `reads *` is the right default for backwards-compatibility,
-        // but we may want to infer a sensible default like decreases clauses instead in the future.
+      // Set the default of `reads *` if reads clauses on methods is enabled and this isn't a lemma.
+      // Doing it before resolution is a bit easier than adding resolved frame expressions afterwards.
+      // Note that `reads *` is the right default for backwards-compatibility,
+      // but we may want to infer a sensible default like decreases clauses instead in the future.
+      if (readsClausesOnMethodsEnabled && !IsLemmaLike && !Reads.Any()) {
         Reads.Add(new FrameExpression(tok, new WildcardExpr(tok), null));
       }
       foreach (FrameExpression fe in Reads) {
@@ -300,7 +294,7 @@ public class Method : MemberDecl, TypeParameter.ParentType, IMethodCodeContext, 
             WhatKind);
         } else if (!readsClausesOnMethodsEnabled) {
           resolver.reporter.Error(MessageSource.Resolver, fe.tok,
-            "reads clauses on methods are forbidden without the --reads-clauses-on-methods option");
+            "reads clauses on methods are forbidden without the command-line flag `--reads-clauses-on-methods`");
         } else if (IsGhost) {
           resolver.DisallowNonGhostFieldSpecifiers(fe);
         }

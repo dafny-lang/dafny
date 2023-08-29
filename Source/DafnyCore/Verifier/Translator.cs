@@ -4389,7 +4389,7 @@ namespace Microsoft.Dafny {
       InitializeFuelConstant(f.tok, builder, etran);
 
       // TODO: is this valid here given we haven't checked the well-formedness of the reads clauses yet?
-      if (Attributes.Contains(f.Attributes, "concurrent")) {
+      if (Attributes.Contains(f.Attributes, Attributes.ConcurrentAttributeName)) {
         var desc = new PODesc.ConcurrentFrameEmpty("reads clause");
         CheckFrameEmpty(f.tok, etran, etran.ReadsFrame(f.tok), builder, desc, null);
       }

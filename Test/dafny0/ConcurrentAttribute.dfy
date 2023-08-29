@@ -11,6 +11,16 @@ class Box<T> {
   }
 }
 
+class GhostBox<T> {
+  ghost var x: T
+
+  constructor(x: T)
+    reads {}
+  {
+    this.x := x;
+  }
+}
+
 class Concurrent {
 
   function {:concurrent} GoodFn(b: Box<int>): int {
@@ -29,7 +39,17 @@ class Concurrent {
     42
   }
 
+  function {:concurrent} SurprisingButAlsoOkayFn(b: Box<int>): int 
+    reads if false then {b} else {}`x
+  {
+    42
+  }
+
   method {:concurrent} GoodM(b: Box<int>) {
+  }
+
+  method {:concurrent} BadMDefaultReads(b: Box<int>)  // Error: reads clause might not be empty ({:concurrent} restriction)
+  {
   }
 
   method {:concurrent} BadM(b: Box<int>)  // Error: reads clause might not be empty ({:concurrent} restriction)
@@ -52,5 +72,18 @@ class Concurrent {
   method {:concurrent} AlsoWeirdButOkayM(b: Box<int>) 
     modifies if false then {b} else {}
   {
+  }
+
+  ghost method {:concurrent} OnlyReadsGhostState(b: GhostBox<int>) returns (r: int) 
+    reads b`x
+  {
+    return b.x;
+  }
+
+  method {:concurrent} OnlyModifiesGhostState(b: GhostBox<int>) 
+    reads {}
+    modifies b`x
+  {
+    b.x := 42;
   }
 }

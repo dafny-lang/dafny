@@ -704,16 +704,23 @@ namespace Microsoft.Dafny {
         // check well-formedness of the reads clauses
         readsCheckDelayer.WithDelayedReadsChecks(false, wfo => {
           CheckFrameWellFormed(wfo, m.Reads, localVariables, builder, etran);
-          if (etran.readsFrame != null && Attributes.Contains(m.Attributes, "concurrent")) {
-            var desc = new PODesc.ConcurrentFrameEmpty("reads clause");
-            CheckFrameEmpty(m.tok, etran, etran.ReadsFrame(m.tok), builder, desc, null);
-          }
         });
-
+        // Also check that the reads clause == {} if the {:concurrent} attribute is present
+        if (Attributes.Contains(m.Attributes, Attributes.ConcurrentAttributeName)) {
+          var desc = new PODesc.ConcurrentFrameEmpty("reads clause");
+          if (etran.readsFrame != null) {
+            CheckFrameEmpty(m.tok, etran, etran.ReadsFrame(m.tok), builder, desc, null);
+          } else {
+            // etran.readsFrame being null indicates the default of reads *,
+            // so this is an automatic failure.
+            builder.Add(Assert(m.tok, Expr.False, desc));
+          }
+        }
+        
         // check well-formedness of the modifies clauses
         readsCheckDelayer.WithDelayedReadsChecks(false, wfo => {
           CheckFrameWellFormed(wfo, m.Mod.Expressions, localVariables, builder, etran);
-          if (Attributes.Contains(m.Attributes, "concurrent")) {
+          if (Attributes.Contains(m.Attributes, Attributes.ConcurrentAttributeName)) {
             var desc = new PODesc.ConcurrentFrameEmpty("modifies clause");
             CheckFrameEmpty(m.tok, etran, etran.ModifiesFrame(m.tok), builder, desc, null);
           }
