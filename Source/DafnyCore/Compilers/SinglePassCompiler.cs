@@ -1150,7 +1150,7 @@ namespace Microsoft.Dafny.Compilers {
     protected abstract void EmitExprAsNativeInt(Expression expr, bool inLetExprBody, ConcreteSyntaxTree wr,
       ConcreteSyntaxTree wStmts);
 
-    protected void EmitIndexCollectionSelect(Expression source, Expression index, bool inLetExprBody,
+    protected virtual void EmitIndexCollectionSelect(Expression source, Expression index, bool inLetExprBody,
       ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       var xType = source.Type.NormalizeExpand();
       if (xType is SeqType seqType) {
