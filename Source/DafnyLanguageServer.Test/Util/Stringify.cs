@@ -22,7 +22,7 @@ public static class StringifyUtil {
 
   public static void Stringify(this object root, TextWriter writer, bool showNullChildren = false, IReadOnlyDictionary<System.Type, Action<object, TextWriter>> overrides = null) {
 
-    overrides = ImmutableDictionary<System.Type, Action<object, TextWriter>>.Empty;
+    overrides ??= ImmutableDictionary<System.Type, Action<object, TextWriter>>.Empty;
 
     void Helper(ImmutableHashSet<object> visited, object? value, int indentation) {
       if (value == null) {
@@ -62,6 +62,10 @@ public static class StringifyUtil {
         return;
       }
 
+      if (value is Enum) {
+        writer.Write(value.ToString());
+        return;
+      }
 
       if (visited.Contains(value)) {
         writer.Write("<visited>");

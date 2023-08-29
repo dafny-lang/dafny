@@ -334,7 +334,7 @@ public class ProjectManager : IDisposable {
     return changedRanges.SelectMany(changeRange => {
       var tree = trees.GetOrCreate(changeRange.Uri.ToUri(), () => GetTree(changeRange.Uri.ToUri()));
       return tree.Query(changeRange.Range.Start, changeRange.Range.End).Select(position => new FilePosition(changeRange.Uri.ToUri(), position));
-    });
+    }).Distinct();
   }
 
   public void OpenDocument(Uri uri, bool triggerCompilation) {
