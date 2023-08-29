@@ -498,7 +498,7 @@ namespace Microsoft.Dafny {
         var r = new Bpl.LocalVariable(pat.tok, new Bpl.TypedIdent(pat.tok, nm, TrType(rhs.Type)));
         locals.Add(r);
         var rIe = new Bpl.IdentifierExpr(rhs.tok, r);
-        CheckWellformedWithResult(rhs, new WFOptions(null, false, false), rIe, pat.Expr.Type, locals, builder, etran);
+        CheckWellformedWithResult(rhs, new WFOptions(null, false), rIe, pat.Expr.Type, locals, builder, etran);
         CheckCasePatternShape(pat, rIe, rhs.tok, pat.Expr.Type, builder);
         builder.Add(TrAssumeCmd(pat.tok, Bpl.Expr.Eq(etran.TrExpr(pat.Expr), rIe)));
       } else if (stmt is TryRecoverStatement haltRecoveryStatement) {
