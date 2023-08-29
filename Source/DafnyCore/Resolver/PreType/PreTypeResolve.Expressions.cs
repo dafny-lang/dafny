@@ -304,12 +304,16 @@ namespace Microsoft.Dafny {
 
       } else if (expr is DatatypeUpdateExpr) {
         var e = (DatatypeUpdateExpr)expr;
+        // Resolve the root and all the updated-value expressions, since these may require lookups in the current local-variable scope
         ResolveExpression(e.Root, resolutionContext);
         expr.PreType = CreatePreTypeProxy("datatype update");
+        foreach (var (_, _, updateExpr) in e.Updates) {
+          ResolveExpression(updateExpr, resolutionContext);
+        }
+        // Next, at a leisurely pace (that is, waiting until enough of the pre-type of .Root is known), resolve the update expression
+        // and desugar it into some kind of nested let expression.
         Constraints.AddGuardedConstraint(() => {
-          var (_, memberName, _) = e.Updates[0];
-          var (_, tentativeRootPreType) = FindMember(expr.tok, e.Root.PreType, memberName);
-          if (tentativeRootPreType != null) {
+          if (e.Root.PreType.NormalizeWrtScope() is DPreType tentativeRootPreType) {
             if (tentativeRootPreType.Decl is DatatypeDecl datatypeDecl) {
               var (ghostLet, compiledLet) = ResolveDatatypeUpdate(expr.tok, tentativeRootPreType, e.Root, datatypeDecl, e.Updates,
                 resolutionContext, out var members, out var legalSourceConstructors);
