@@ -55,6 +55,10 @@ namespace Microsoft.Dafny {
         }
       }
 
+      public static WFOptions ForDefaultParameterExpressions(bool doReadsChecks) {
+        return new WFOptions(null, doReadsChecks, doReadsChecks, true);
+      }
+
       public WFOptions(Bpl.QKeyValue kv) {
         AssertKv = kv;
       }

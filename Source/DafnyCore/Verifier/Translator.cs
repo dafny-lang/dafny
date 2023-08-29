@@ -1717,7 +1717,7 @@ namespace Microsoft.Dafny {
       // check well-formedness of any default-value expressions (before assuming preconditions)
       foreach (var formal in iter.Ins.Where(formal => formal.DefaultValue != null)) {
         var e = formal.DefaultValue;
-        CheckWellformed(e, new WFOptions(null, false, false, true), localVariables, builder, etran);
+        CheckWellformed(e, WFOptions.ForDefaultParameterExpressions(false), localVariables, builder, etran);
         builder.Add(new Bpl.AssumeCmd(e.tok, CanCallAssumption(e, etran)));
         CheckSubrange(e.tok, etran.TrExpr(e), e.Type, formal.Type, builder);
       }
@@ -4356,12 +4356,13 @@ namespace Microsoft.Dafny {
       InitializeFuelConstant(f.tok, builder, etran);
 
       // Check well-formedness of any default-value expressions (before assuming preconditions).
-      var wfo = new WFOptions(null, true, true, true); // no reads or termination checks
+      var wfo = WFOptions.ForDefaultParameterExpressions(true);
       foreach (var formal in f.Formals.Where(formal => formal.DefaultValue != null)) {
         var e = formal.DefaultValue;
         CheckWellformed(e, wfo, locals, builder, etran);
         builder.Add(new Bpl.AssumeCmd(e.tok, CanCallAssumption(e, etran)));
         CheckSubrange(e.tok, etran.TrExpr(e), e.Type, formal.Type, builder);
+        wfo.ProcessSavedReadsChecks(locals, builderInitializationArea, builder);
 
         if (formal.IsOld) {
           Bpl.Expr wh = GetWhereClause(e.tok, etran.TrExpr(e), e.Type, etran.Old, ISALLOC, true);
@@ -4371,7 +4372,6 @@ namespace Microsoft.Dafny {
           }
         }
       }
-      wfo.ProcessSavedReadsChecks(locals, builderInitializationArea, builder);
 
       // Check well-formedness of the preconditions (including termination), and then
       // assume each one of them.  After all that (in particular, after assuming all
@@ -4785,6 +4785,7 @@ namespace Microsoft.Dafny {
 
       var implInParams = Bpl.Formal.StripWhereClauses(inParams);
       var locals = new List<Variable>();
+      var builderInitializationArea = new BoogieStmtListBuilder(this, options);
       var builder = new BoogieStmtListBuilder(this, options);
       builder.Add(new CommentCmd(string.Format("AddWellformednessCheck for datatype constructor {0}", ctor)));
       builder.AddCaptureState(ctor.tok, false, "initial state");
@@ -4794,16 +4795,20 @@ namespace Microsoft.Dafny {
 
       // check well-formedness of each default-value expression
       foreach (var formal in ctor.Formals.Where(formal => formal.DefaultValue != null)) {
+        var wfo = WFOptions.ForDefaultParameterExpressions(true);
         var e = formal.DefaultValue;
-        CheckWellformed(e, new WFOptions(null, true, false, true), locals, builder, etran);
+        CheckWellformed(e, wfo, locals, builder, etran);
         builder.Add(new Bpl.AssumeCmd(e.tok, CanCallAssumption(e, etran)));
         CheckSubrange(e.tok, etran.TrExpr(e), e.Type, formal.Type, builder);
+        wfo.ProcessSavedReadsChecks(locals, builderInitializationArea, builder);
       }
 
       if (EmitImplementation(ctor.Attributes)) {
         // emit the impl only when there are proof obligations.
         QKeyValue kv = etran.TrAttributes(ctor.Attributes, null);
-        var implBody = builder.Collect(ctor.tok);
+        var s0 = builderInitializationArea.Collect(ctor.tok);
+        var s1 = builder.Collect(ctor.tok);
+        var implBody = new StmtList(new List<BigBlock>(s0.BigBlocks.Concat(s1.BigBlocks)), ctor.tok);
         AddImplementationWithVerboseName(GetToken(ctor), proc, implInParams,
           new List<Variable>(), locals, implBody, kv);
       }

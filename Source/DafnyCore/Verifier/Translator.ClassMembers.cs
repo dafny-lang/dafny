@@ -668,7 +668,7 @@ namespace Microsoft.Dafny {
         // check well-formedness of any default-value expressions (before assuming preconditions)
         foreach (var formal in m.Ins.Where(formal => formal.DefaultValue != null)) {
           var e = formal.DefaultValue;
-          CheckWellformed(e, new WFOptions(null, false, false, true), localVariables, builder, etran);
+          CheckWellformed(e, WFOptions.ForDefaultParameterExpressions(false), localVariables, builder, etran);
           builder.Add(new Boogie.AssumeCmd(e.tok, CanCallAssumption(e, etran)));
           CheckSubrange(e.tok, etran.TrExpr(e), e.Type, formal.Type, builder);
 
