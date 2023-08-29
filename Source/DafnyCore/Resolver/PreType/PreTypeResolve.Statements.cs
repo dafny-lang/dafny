@@ -685,7 +685,7 @@ namespace Microsoft.Dafny {
         } else {
           var er = (ExprRhs)rhs;
           if (er.Expr is ApplySuffix applySuffix) {
-            var cRhs = ResolveApplySuffix(applySuffix, resolutionContext, true); // TODO: don't re-resolve the RHS, only obtain the cRhs return value
+            var cRhs = applySuffix.MethodCallInfo;
             isEffectful = cRhs != null;
             methodCallInfo = methodCallInfo ?? cRhs;
           } else {
@@ -1244,7 +1244,7 @@ namespace Microsoft.Dafny {
           if (cl != null && !(rr.EType.IsTraitType && !rr.EType.NormalizeExpand().IsObjectQ)) {
             // life is good
           } else {
-            ReportError(stmt, "new can be applied only to class types (got {0})", rr.EType);
+            ReportError(rr.tok, "new can be applied only to class types (got {0})", rr.EType);
           }
         } else {
           string initCallName = null;
