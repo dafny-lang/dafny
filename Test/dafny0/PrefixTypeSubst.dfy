@@ -130,3 +130,37 @@ greatest lemma RstRst10<alpha,beta,gamma>[nat]()
 {
   // automatic induction takes care of the proof
 }
+
+// Test that default-value substitutions are printed correct (including the
+// printing of let-such-that expressions after substitution, which once didn't
+// print the substitution).
+module DefaultValueExpressionSubstitution {
+  method Test() {
+    var r := 3 + Fa<real>(7);
+    r := r + Fb<real>();
+    var rs := {2.7};
+    r := r + Fc<real>(rs);
+    r := r + Fd<real>(rs);
+    r := r + Fe<real>(rs);
+  }
+
+  function Fa<X(0)>(n: int, acc: int := n + var x: X :| true; n): int {
+    20
+  }
+
+  function Fb<X(0)>(s: set<X> := {}): int {
+    21
+  }
+
+  function Fc<X(0)>(s: set<X>, b: bool := forall xa: X :: xa in s ==> true): int {
+    22
+  }
+
+  function Fd<X(0)>(s: set<X>, b: bool := exists xe :: xe in s): int {
+    23
+  }
+
+  function Fe<X(0)>(s: set<X>, t: set<X> := var tt: set<X> := s; tt): int {
+    24
+  }
+}
