@@ -1,5 +1,5 @@
-// RUN: %exits-with 4 %dafny /compile:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachResolver --expect-exit-code=4 "%s"
+
 
 class C {
   var n: set<Node?>
@@ -175,7 +175,7 @@ abstract module OpaqueTypesWithParameters {
     // However, it is NOT necessarily the case that the type parameters of an opaque
     // type actually make the abstract type different.  For example, see the refinement
     // module CaseInPoint below.
-    ensures a != b  // error
+    ensures a != b as object  // error
   {
   }
 }

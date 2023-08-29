@@ -1,4 +1,4 @@
-// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment --warn-deprecation:false
+// RUN: %testDafnyForEachCompiler "%s" --refresh-exit-code=0 -- --relax-definite-assignment --warn-deprecation:false
 
 datatype Co<+T> = Co(z: T) {
     const x: int;

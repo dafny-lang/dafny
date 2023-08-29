@@ -47,7 +47,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(tok != null);
       Contract.Requires(msg != null);
       Contract.Requires(args != null);
-      resolver.Reporter.Error(MessageSource.Resolver, tok, "PRE-TYPE: " + msg, args);
+      resolver.Reporter.Error(MessageSource.Resolver, tok, msg, args);
     }
 
     public void ReportWarning(IToken tok, string msg, params object[] args) {
@@ -177,7 +177,8 @@ namespace Microsoft.Dafny {
       Contract.Requires(type != null);
 
       type = type.Normalize(); // keep type synonyms
-      if (type.AsTypeSynonym is { } typeSynonymDecl and not SubsetTypeDecl && option != Type2PreTypeOption.GoodForInference) {
+      if (type.AsTypeSynonym is { } typeSynonymDecl and not SubsetTypeDecl && option != Type2PreTypeOption.GoodForInference &&
+          typeSynonymDecl.IsRevealedInScope(Type.GetScope())) {
         // Compute a pre-type for the non-instantiated ("raw") RHS type (that is, for the RHS of the type-synonym declaration with the
         // formal type parameters of the type-synonym declaration).
         var rawRhsType = UserDefinedType.FromTopLevelDecl(typeSynonymDecl.tok, typeSynonymDecl);
@@ -211,7 +212,7 @@ namespace Microsoft.Dafny {
         // Make sure the newtype declaration itself has been pre-type resolved
         ResolvePreTypeSignature(newtypeDecl);
         Contract.Assert(newtypeDecl.Var == null || newtypeDecl.Var.PreType != null);
-        Contract.Assert(newtypeDecl.BaseType != null);
+        Contract.Assert(newtypeDecl.BasePreType != null);
       }
 
       if (type is TypeProxy) {
@@ -324,17 +325,17 @@ namespace Microsoft.Dafny {
     /// Add to "ancestors" every TopLevelDecl that is a reflexive, transitive parent of "d",
     /// but not exploring past any TopLevelDecl that is already in "ancestors".
     /// </summary>
-    public void ComputeAncestors(TopLevelDecl decl, ISet<TopLevelDecl> ancestors) {
+    public static void ComputeAncestors(TopLevelDecl decl, ISet<TopLevelDecl> ancestors, SystemModuleManager systemModuleManager) {
       if (!ancestors.Contains(decl)) {
         ancestors.Add(decl);
         if (decl is TopLevelDeclWithMembers topLevelDeclWithMembers) {
-          topLevelDeclWithMembers.ParentTraitHeads.ForEach(parent => ComputeAncestors(parent, ancestors));
+          topLevelDeclWithMembers.ParentTraitHeads.ForEach(parent => ComputeAncestors(parent, ancestors, systemModuleManager));
         }
         if (decl is TraitDecl { IsObjectTrait: true }) {
           // we're done
         } else if (DPreType.IsReferenceTypeDecl(decl)) {
           // object is also a parent type
-          ComputeAncestors(resolver.SystemModuleManager.ObjectDecl, ancestors);
+          ComputeAncestors(systemModuleManager.ObjectDecl, ancestors, systemModuleManager);
         }
       }
     }
@@ -346,7 +347,7 @@ namespace Microsoft.Dafny {
     /// </summary>
     public bool IsSuperPreTypeOf(DPreType super, DPreType sub) {
       var subAncestors = new HashSet<TopLevelDecl>();
-      ComputeAncestors(sub.Decl, subAncestors);
+      ComputeAncestors(sub.Decl, subAncestors, resolver.SystemModuleManager);
       if (!subAncestors.Contains(super.Decl)) {
         return false;
       }
@@ -660,14 +661,13 @@ namespace Microsoft.Dafny {
     /// Assumes the type parameters in scope for "declaration" have been pushed.
     /// </summary>
     public void FillInPreTypesInSignature(Declaration declaration) {
-      void ComputePreType(Formal formal) {
-        Contract.Assume(formal.PreType == null); // precondition
-        formal.PreType = Type2PreType(formal.Type);
+      PreType CreateTemporaryPreTypeProxy() {
+        return CreatePreTypeProxy("temporary proxy until after cyclicity tests have completed");
       }
 
       void ComputePreTypeField(Field field) {
         Contract.Assume(field.PreType == null); // precondition
-        field.PreType = CreatePreTypeProxy("temporary proxy until after cyclicity tests have completed");
+        field.PreType = CreateTemporaryPreTypeProxy();
         field.PreType = Type2PreType(field.Type);
         if (field is ConstantField cfield) {
           var parent = (TopLevelDeclWithMembers)cfield.EnclosingClass;
@@ -681,27 +681,39 @@ namespace Microsoft.Dafny {
         }
       }
 
+      void ComputePreTypeFormal(Formal formal) {
+        Contract.Assume(formal.PreType == null); // precondition
+        formal.PreType = CreateTemporaryPreTypeProxy();
+        formal.PreType = Type2PreType(formal.Type);
+      }
+
       void ComputePreTypeFunction(Function function) {
-        function.Formals.ForEach(ComputePreType);
+        function.Formals.ForEach(ComputePreTypeFormal);
         if (function.Result != null) {
-          function.Result.PreType = Type2PreType(function.Result.Type);
+          ComputePreTypeFormal(function.Result);
         } else if (function.ByMethodDecl != null) {
           // The by-method out-parameter is not the same as the one given in the function declaration, since the
           // function declaration didn't give one.
-          function.ByMethodDecl.Outs.ForEach(ComputePreType);
+          function.ByMethodDecl.Outs.ForEach(ComputePreTypeFormal);
         }
+        function.ResultPreType = CreateTemporaryPreTypeProxy();
         function.ResultPreType = Type2PreType(function.ResultType);
       }
 
       void ComputePreTypeMethod(Method method) {
-        method.Ins.ForEach(ComputePreType);
-        method.Outs.ForEach(ComputePreType);
+        method.Ins.ForEach(ComputePreTypeFormal);
+        method.Outs.ForEach(ComputePreTypeFormal);
       }
 
       if (declaration is SubsetTypeDecl std) {
+        std.Var.PreType = CreateTemporaryPreTypeProxy();
         std.Var.PreType = Type2PreType(std.Var.Type);
         ResolveConstraintAndWitness(std, true);
       } else if (declaration is NewtypeDecl nd) {
+        nd.BasePreType = CreateTemporaryPreTypeProxy();
+        if (nd.Var != null) {
+          nd.Var.PreType = nd.BasePreType;
+        }
         nd.BasePreType = Type2PreType(nd.BaseType);
         if (nd.Var != null) {
           Contract.Assert(object.ReferenceEquals(nd.BaseType, nd.Var.Type));
@@ -713,10 +725,10 @@ namespace Microsoft.Dafny {
         // the iter.OutsFields are shared with the automatically generated fields of the iterator class. To avoid
         // computing their pre-types twice, we omit their pre-type computations here and instead do them in
         // the _ctor Method and for each Field of the iterator class.
-        iter.Outs.ForEach(ComputePreType);
+        iter.Outs.ForEach(ComputePreTypeFormal);
       } else if (declaration is DatatypeDecl dtd) {
         foreach (var ctor in dtd.Ctors) {
-          ctor.Formals.ForEach(ComputePreType);
+          ctor.Formals.ForEach(ComputePreTypeFormal);
           ComputePreTypeField(ctor.QueryField);
           foreach (var dtor in ctor.Destructors) {
             // The following "if" condition makes sure ComputePreTypeField is called just once (since a destructor
@@ -1286,7 +1298,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(codeContext != null);
       ResolveExpression(fe.E, new ResolutionContext(codeContext, codeContext is TwoStateLemma || use == FrameExpressionUse.Unchanged));
       Constraints.AddGuardedConstraint(() => {
-        DPreType dp = fe.E.PreType.Normalize() as DPreType;
+        DPreType dp = fe.E.PreType.NormalizeWrtScope() as DPreType;
         if (dp == null) {
           // no information yet
           return false;
