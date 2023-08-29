@@ -96,7 +96,7 @@ public class AutoRevealFunctionDependencies : IRewriter {
     return result[2..];
   }
 
-  public static string GenerateMessage(List<RevealStmtWithDepth> addedReveals, int autoRevealDepth) {
+  public static string GenerateMessage(List<RevealStmtWithDepth> addedReveals, int autoRevealDepth = Int32.MaxValue) {
     var numInsertedReveals = addedReveals.Count(stmt => stmt.Depth <= autoRevealDepth);
     var message = "";
 
@@ -115,7 +115,24 @@ public class AutoRevealFunctionDependencies : IRewriter {
     return message;
   }
 
-  public record RevealStmtWithDepth(RevealStmt RevealStmt, int Depth);
+  public class RevealStmtWithDepth {
+    public RevealStmtWithDepth(RevealStmt RevealStmt, int Depth) {
+      this.RevealStmt = RevealStmt;
+      this.Depth = Depth;
+    }
+
+    public override bool Equals(object obj) {
+      var item = obj as RevealStmtWithDepth;
+      return item != null && this.RevealStmt.ToString().Equals(item.RevealStmt.ToString());
+    }
+
+    public override int GetHashCode() {
+      return HashCode.Combine(RevealStmt.ToString());
+    }
+
+    public RevealStmt RevealStmt { get; }
+    public int Depth { get; }
+  };
 
   public record FunctionWithDepth(Function Function, int Depth);
 
@@ -233,6 +250,64 @@ public class AutoRevealFunctionDependencies : IRewriter {
     var subExprTypeListConcat = subExprTypeList.SelectMany(x => x);
 
     return typeList.Concat(subExprTypeListConcat);
+  }
+
+  private static IEnumerable<Expression> ExprToSubexpressions(Expression expr) {
+
+    var subExprList = expr.SubExpressions.SelectMany(ExprToSubexpressions).ToList();
+    subExprList.Insert(0, expr);
+    return subExprList;
+  }
+
+
+  public IEnumerable<RevealStmtWithDepth> ExprToFunctionalDependencies(Expression expr, ModuleDefinition enclosingModule) {
+    var expressionList = ExprToSubexpressions(expr);
+    var revealStmtList = new List<RevealStmtWithDepth>();
+
+    foreach (var expression in expressionList) {
+      if (expression is FunctionCallExpr funcExpr) {
+        var func = funcExpr.Function;
+
+        if (IsRevealable(enclosingModule.AccessibleMembers, func)) {
+          if (func.IsMadeImplicitlyOpaque(Options)) {
+
+            var revealStmt0 = BuildRevealStmt(func,
+              expr.Tok, enclosingModule);
+
+            if (revealStmt0 is not null) {
+              revealStmtList.Add(new RevealStmtWithDepth(revealStmt0, 1));
+            }
+          }
+
+          foreach (var newFunc in GetEnumerator(func, func.EnclosingClass, new List<Expression> { expr },
+                     enclosingModule)) {
+
+            var revealStmt1 = BuildRevealStmt(newFunc.Function, expr.Tok, enclosingModule);
+
+            if (revealStmt1 is not null) {
+              revealStmtList.Add(new RevealStmtWithDepth(revealStmt1, newFunc.Depth));
+            }
+          }
+        }
+      }
+    }
+
+    revealStmtList = revealStmtList.Distinct().ToList();
+    return revealStmtList;
+  }
+
+  public Expression AddRevealStmtsToExpression(Expression expr, IEnumerable<RevealStmtWithDepth> revealStmtList) {
+    var finalExpr = expr;
+
+    foreach (var revealStmt in revealStmtList) {
+      var oldExpr = finalExpr;
+
+      finalExpr = new StmtExpr(expr.Tok, revealStmt.RevealStmt, oldExpr) {
+        Type = oldExpr.Type
+      };
+    }
+
+    return finalExpr;
   }
 
   public static RevealStmt BuildRevealStmt(Function func, IToken tok, ModuleDefinition rootModule) {
