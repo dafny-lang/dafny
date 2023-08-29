@@ -156,19 +156,21 @@ ghost method FunctionInQuantifier2() returns (r: int)
   reads {}
   ensures r == 100
 {
-  // BUG: f.reads(10) is flagged for some reason. 
-  // The wellformedness checks for LetSuchThat may be subtley different than AssignSuchThat...
-  var f: int ~> int :| f.reads(10) == {} && f.requires(10) && f(10) == 100;  // fine :) :)
+  // Unlike the ghost function version, f.reads(10) is flagged because we aren't delaying reads checks on method bodies.
+  // It's still an open question whether we should be though: https://github.com/dafny-lang/dafny/issues/4489.
+  // For now this is at least only a completeness issue.
+  var f: int ~> int :| f.reads(10) == {} && f.requires(10) && f(10) == 100;  // error: insufficient reads
   return f(10);
 }
 
 class DynamicFramesIdiom {
   ghost var Repr: set<object>
-  ghost predicate IllFormed_Valid()
+  ghost method IllFormed_Valid() returns (r: bool)
     reads Repr  // error: reads is not self framing (notice the absence of "this")
+    ensures r == (this in Repr)
   {
-    this in Repr  // this says that the predicate returns true if "this in Repr", but the
-                  // predicate can also be invoked in a state where its body will evaluate to false
+    return this in Repr;  // the post-condition says that the method returns true if "this in Repr", but the
+                          // method can also be invoked in a state where its body will evaluate to false
   }
 }
 
