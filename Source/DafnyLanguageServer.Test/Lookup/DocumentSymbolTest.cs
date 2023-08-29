@@ -38,11 +38,10 @@ module A.B.C {
 
       var symbols = (await RequestDocumentSymbol(documentItem)).ToList();
       Assert.Single(symbols);
-      var aChildren = symbols.First().Children!.ToList();
-      Assert.Single(aChildren);
-      var bChildren = aChildren.First().Children!.ToList();
-      Assert.Single(bChildren);
-      var cChildren = bChildren.First().Children!.ToList();
+      var c = symbols.First();
+      Assert.Equal(new Range(0, 0, 5, 1), c.Range);
+      Assert.Equal(new Range(0, 11, 0, 12), c.SelectionRange);
+      var cChildren = c.Children!.ToList();
       Assert.Single(cChildren);
     }
 
