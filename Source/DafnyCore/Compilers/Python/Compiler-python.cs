@@ -1,10 +1,12 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Diagnostics.Contracts;
 using System.IO;
 using System.Linq;
 using System.Numerics;
+using System.Text.RegularExpressions;
 using JetBrains.Annotations;
 using ExtensionMethods;
 using Microsoft.BaseTypes;
@@ -298,7 +300,8 @@ namespace Microsoft.Dafny.Compilers {
       }
 
       // Ensures the inequality is based on equality defined in the constructor
-      EmitNotEqualsMethod(btw);
+      btw.NewBlockPy("def __ne__(self, __o: object) -> bool:")
+        .WriteLine("return not self.__eq__(__o)");
 
       if (dt is CoDatatypeDecl) {
         var w = wr.NewBlockPy($"class {dt.GetCompileName(Options)}__Lazy({IdName(dt)}):");
@@ -347,11 +350,6 @@ namespace Microsoft.Dafny.Compilers {
       }
 
       return new ClassWriter(this, btw, btw);
-    }
-
-    private static void EmitNotEqualsMethod(ConcreteSyntaxTree wr) {
-      wr.NewBlockPy("def __ne__(self, __o: object) -> bool:")
-        .WriteLine("return not self.__eq__(__o)");
     }
 
     private void DatatypeFieldsAndConstructor(DatatypeCtor ctor, ConcreteSyntaxTree wr) {
@@ -416,18 +414,6 @@ namespace Microsoft.Dafny.Compilers {
         // in constructor:
         //   self._value = value
         cw.ConstructorWriter.WriteLine("self._value = value");
-
-        EmitNotEqualsMethod(w);
-
-        // def __eq__(self, __o: object) -> bool:
-        //     return isinstance(__o, NewtypeName) and self._value == __o._value
-        w.NewBlockPy("def __eq__(self, __o: object) -> bool:")
-          .WriteLine($"return isinstance(__o, {IdName(d)}) and self._value == __o._value");
-
-        // def __hash__(self) -> int:
-        //     return self._value.__hash__()
-        w.NewBlockPy("def __hash__(self) -> int:")
-          .WriteLine("return self._value.__hash__()");
       }
 
       return cw;
@@ -806,8 +792,8 @@ namespace Microsoft.Dafny.Compilers {
       throw new cce.UnreachableException();  // unexpected type
     }
 
-    protected override string TypeName_UDT(string fullCompileName, List<TypeParameter.TPVariance> variances,
-      List<Type> typeArgs, ConcreteSyntaxTree wr, IToken tok, bool omitTypeArguments) {
+    protected override string TypeName_UDT(string fullCompileName, List<TypeParameter.TPVariance> variance,
+        List<Type> typeArgs, ConcreteSyntaxTree wr, IToken tok, bool omitTypeArguments) {
       return fullCompileName;
     }
 
@@ -869,7 +855,7 @@ namespace Microsoft.Dafny.Compilers {
       DeclareLocalVar(name, type, tok, false, rhs, wr);
     }
 
-    protected override void EmitActualTypeArgs(List<Type> typeArgs, List<TypeParameter> typeParameters, IToken tok, ConcreteSyntaxTree wr) {
+    protected override void EmitActualTypeArgs(List<Type> typeArgs, IToken tok, ConcreteSyntaxTree wr) {
       // emit nothing
     }
 
@@ -1361,14 +1347,22 @@ namespace Microsoft.Dafny.Compilers {
       TrParenExpr("int", expr, wr, inLetExprBody, wStmts);
     }
 
-    protected override void EmitIndexCollectionSelect(CollectionType collectionType, ConcreteSyntaxTree wr,
-      ConcreteSyntaxTree wSource, ConcreteSyntaxTree wIndex) {
-      wr.Write($"({wSource})[{wIndex}]");
+    protected override void EmitIndexCollectionSelect(Expression source, Expression index, bool inLetExprBody,
+      ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
+      TrParenExpr(source, wr, inLetExprBody, wStmts);
+      wr.Write("[");
+      wr.Append(Expr(index, inLetExprBody, wStmts));
+      wr.Write("]");
     }
 
-    protected override void EmitIndexCollectionUpdate(CollectionType collectionType, ConcreteSyntaxTree wr,
-      ConcreteSyntaxTree wSource, ConcreteSyntaxTree wIndex, ConcreteSyntaxTree wValue) {
-      wr.Write($"({wSource}).set({wIndex}, {wValue})");
+    protected override void EmitIndexCollectionUpdate(Expression source, Expression index, Expression value,
+      CollectionType resultCollectionType, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
+      TrParenExpr(source, wr, inLetExprBody, wStmts);
+      wr.Write(".set(");
+      wr.Append(Expr(index, inLetExprBody, wStmts));
+      wr.Write(", ");
+      wr.Append(CoercedExpr(value, resultCollectionType.ValueArg, inLetExprBody, wStmts));
+      wr.Write(")");
     }
 
     protected override void EmitSeqSelectRange(Expression source, Expression lo, Expression hi, bool fromArray,
@@ -1510,9 +1504,8 @@ namespace Microsoft.Dafny.Compilers {
       out string staticCallString,
       out bool reverseArguments,
       out bool truncateResult,
-      out bool convertE1ToInt,
+      out bool convertE1_to_int,
       out bool coerceE1,
-      out bool convertE1ToFatPointer,
       ConcreteSyntaxTree errorWr) {
 
       opString = null;
@@ -1522,9 +1515,8 @@ namespace Microsoft.Dafny.Compilers {
       staticCallString = null;
       reverseArguments = false;
       truncateResult = false;
-      convertE1ToInt = false;
+      convertE1_to_int = false;
       coerceE1 = false;
-      convertE1ToFatPointer = false;
 
       switch (op) {
         case BinaryExpr.ResolvedOpcode.And:
@@ -1620,14 +1612,12 @@ namespace Microsoft.Dafny.Compilers {
         case BinaryExpr.ResolvedOpcode.InMultiSet:
         case BinaryExpr.ResolvedOpcode.InSeq:
         case BinaryExpr.ResolvedOpcode.InMap:
-          convertE1ToFatPointer = true;
           opString = "in"; break;
 
         case BinaryExpr.ResolvedOpcode.NotInSet:
         case BinaryExpr.ResolvedOpcode.NotInMultiSet:
         case BinaryExpr.ResolvedOpcode.NotInSeq:
         case BinaryExpr.ResolvedOpcode.NotInMap:
-          convertE1ToFatPointer = true;
           opString = "not in"; break;
 
         case BinaryExpr.ResolvedOpcode.Intersection:
@@ -1650,8 +1640,8 @@ namespace Microsoft.Dafny.Compilers {
         default:
           base.CompileBinOp(op, e0, e1, tok, resultType,
             out opString, out preOpString, out postOpString, out callString, out staticCallString, out reverseArguments,
-            out truncateResult, out convertE1ToInt, out coerceE1,
-            out convertE1ToFatPointer, errorWr);
+            out truncateResult, out convertE1_to_int, out coerceE1,
+            errorWr);
           break;
       }
     }
@@ -1744,7 +1734,7 @@ namespace Microsoft.Dafny.Compilers {
       wr.Write(ct is SeqType ? DafnySeqMakerFunction : TypeHelperName(ct));
       wr.Write("(");
       wr.Write(open);
-      TrExprList(elements, wr, inLetExprBody, wStmts, typeAt: _ => ct.Arg, parens: false, targetUsesFatPointers: true);
+      TrExprList(elements, wr, inLetExprBody, wStmts, typeAt: _ => ct.Arg, parens: false);
       wr.Write(close);
       wr.Write(")");
     }
@@ -1765,9 +1755,9 @@ namespace Microsoft.Dafny.Compilers {
       var sep = "";
       foreach (var p in elements) {
         wr.Write(sep);
-        wr.Append(CoercedExpr(p.A, mt.Domain, inLetExprBody, wStmts, true));
+        wr.Append(Expr(p.A, inLetExprBody, wStmts));
         wr.Write(": ");
-        wr.Append(CoercedExpr(p.B, mt.Range, inLetExprBody, wStmts, true));
+        wr.Append(Expr(p.B, inLetExprBody, wStmts));
         sep = ", ";
       }
       wr.Write("})");
@@ -1784,7 +1774,7 @@ namespace Microsoft.Dafny.Compilers {
     protected override void EmitSetBuilder_Add(CollectionType ct, string collName, Expression elmt, bool inLetExprBody,
         ConcreteSyntaxTree wr) {
       var wStmts = wr.Fork();
-      wr.WriteLine($"{collName} = {collName}.union({DafnySetClass}([{CoercedExpr(elmt, ct.Arg, inLetExprBody, wStmts, true)}]))");
+      wr.WriteLine($"{collName} = {collName}.union({DafnySetClass}([{Expr(elmt, inLetExprBody, wStmts)}]))");
     }
 
     protected override ConcreteSyntaxTree EmitMapBuilder_Add(MapType mt, IToken tok, string collName, Expression term,

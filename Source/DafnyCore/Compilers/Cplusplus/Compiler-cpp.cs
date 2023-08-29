@@ -1106,7 +1106,7 @@ namespace Microsoft.Dafny.Compilers {
         ? String.Format(" <{0}> ", Util.Comma(typeArgs, tp => TypeName(tp, null, Token.NoToken))) : "";
     }
 
-    protected override string TypeName_UDT(string fullCompileName, List<TypeParameter.TPVariance> variances, List<Type> typeArgs,
+    protected override string TypeName_UDT(string fullCompileName, List<TypeParameter.TPVariance> variance, List<Type> typeArgs,
       ConcreteSyntaxTree wr, IToken tok, bool omitTypeArguments) {
       Contract.Assume(fullCompileName != null);  // precondition; this ought to be declared as a Requires in the superclass
       Contract.Assume(typeArgs != null);  // precondition; this ought to be declared as a Requires in the superclass
@@ -1229,7 +1229,7 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    protected override void EmitActualTypeArgs(List<Type> typeArgs, List<TypeParameter> typeParameters, IToken tok, ConcreteSyntaxTree wr) {
+    protected override void EmitActualTypeArgs(List<Type> typeArgs, IToken tok, ConcreteSyntaxTree wr) {
       wr.Write(ActualTypeArgs(typeArgs));
     }
 
@@ -1839,18 +1839,30 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    protected override void EmitIndexCollectionSelect(CollectionType collectionType, ConcreteSyntaxTree wr,
-      ConcreteSyntaxTree wSource, ConcreteSyntaxTree wIndex) {
-      if (collectionType is SeqType) {
-        wr.Write($"({wSource}).select({wIndex})");
+    protected override void EmitIndexCollectionSelect(Expression source, Expression index, bool inLetExprBody,
+        ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
+      TrParenExpr(source, wr, inLetExprBody, wStmts);
+      if (source.Type.NormalizeExpand() is SeqType) {
+        // seq
+        wr.Write(".select(");
+        wr.Append(Expr(index, inLetExprBody, wStmts));
+        wr.Write(")");
       } else {
-        wr.Write($"({wSource}).get({wIndex})");
+        // map or imap
+        wr.Write(".get(");
+        wr.Append(Expr(index, inLetExprBody, wStmts));
+        wr.Write(")");
       }
     }
 
-    protected override void EmitIndexCollectionUpdate(CollectionType collectionType, ConcreteSyntaxTree wr,
-      ConcreteSyntaxTree wSource, ConcreteSyntaxTree wIndex, ConcreteSyntaxTree wValue) {
-      wr.Write($"({wSource}).update({wIndex}, {wValue})");
+    protected override void EmitIndexCollectionUpdate(Expression source, Expression index, Expression value,
+        CollectionType resultCollectionType, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
+      TrParenExpr(source, wr, inLetExprBody, wStmts);
+      wr.Write(".update(");
+      wr.Append(Expr(index, inLetExprBody, wStmts));
+      wr.Write(", ");
+      wr.Append(CoercedExpr(value, resultCollectionType.ValueArg, inLetExprBody, wStmts));
+      wr.Write(")");
     }
 
     protected override void EmitSeqSelectRange(Expression source, Expression lo /*?*/, Expression hi /*?*/,
@@ -2034,9 +2046,8 @@ namespace Microsoft.Dafny.Compilers {
       out string staticCallString,
       out bool reverseArguments,
       out bool truncateResult,
-      out bool convertE1ToInt,
+      out bool convertE1_to_int,
       out bool coerceE1,
-      out bool convertE1ToFatPointer,
       ConcreteSyntaxTree errorWr) {
 
       opString = null;
@@ -2046,9 +2057,8 @@ namespace Microsoft.Dafny.Compilers {
       staticCallString = null;
       reverseArguments = false;
       truncateResult = false;
-      convertE1ToInt = false;
+      convertE1_to_int = false;
       coerceE1 = false;
-      convertE1ToFatPointer = false;
 
       switch (op) {
         case BinaryExpr.ResolvedOpcode.Iff:
@@ -2228,12 +2238,10 @@ namespace Microsoft.Dafny.Compilers {
         case BinaryExpr.ResolvedOpcode.InSet:
         case BinaryExpr.ResolvedOpcode.InMultiSet:
         case BinaryExpr.ResolvedOpcode.InMap:
-          convertE1ToFatPointer = true;
           callString = "contains"; reverseArguments = true; break;
         case BinaryExpr.ResolvedOpcode.NotInSet:
         case BinaryExpr.ResolvedOpcode.NotInMultiSet:
         case BinaryExpr.ResolvedOpcode.NotInMap:
-          convertE1ToFatPointer = true;
           preOpString = "!"; callString = "contains"; reverseArguments = true; break;
         case BinaryExpr.ResolvedOpcode.Union:
         case BinaryExpr.ResolvedOpcode.MultiSetUnion:
@@ -2256,10 +2264,8 @@ namespace Microsoft.Dafny.Compilers {
         case BinaryExpr.ResolvedOpcode.Concat:
           callString = "concatenate"; break;
         case BinaryExpr.ResolvedOpcode.InSeq:
-          convertE1ToFatPointer = true;
           callString = "contains"; reverseArguments = true; break;
         case BinaryExpr.ResolvedOpcode.NotInSeq:
-          convertE1ToFatPointer = true;
           preOpString = "!"; callString = "contains"; reverseArguments = true; break;
 
         default:
@@ -2415,14 +2421,14 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void EmitSetBuilder_Add(CollectionType ct, string collName, Expression elmt, bool inLetExprBody, ConcreteSyntaxTree wr) {
-      Contract.Assume(ct is SetType or MultiSetType);  // follows from precondition
+      Contract.Assume(ct is SetType || ct is MultiSetType);  // follows from precondition
       if (ct is MultiSetType) {
         // This should never occur since there is no syntax for multiset comprehensions yet
         throw new cce.UnreachableException();
       }
       var wStmts = wr.Fork();
       wr.Write("{0}.set.emplace(", collName);
-      wr.Append(CoercedExpr(elmt, ct.Arg, inLetExprBody, wStmts, true));
+      wr.Append(Expr(elmt, inLetExprBody, wStmts));
       wr.WriteLine(");");
     }
 

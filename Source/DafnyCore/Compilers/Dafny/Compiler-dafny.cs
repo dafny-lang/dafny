@@ -129,8 +129,7 @@ namespace Microsoft.Dafny.Compilers {
       return name;
     }
 
-    protected override ConcreteSyntaxTree EmitCoercionIfNecessary(Type from, Type to, IToken tok, ConcreteSyntaxTree wr,
-      bool targetUsesFatPointers = false) {
+    protected override ConcreteSyntaxTree EmitCoercionIfNecessary(Type from, Type to, IToken tok, ConcreteSyntaxTree wr) {
       if (from.AsSubsetType == null && to.AsSubsetType != null) {
         if (wr is BuilderSyntaxTree<ExprContainer> stmt) {
           return new BuilderSyntaxTree<ExprContainer>(stmt.Builder.Convert(GenType(from), GenType(to)));
@@ -587,7 +586,7 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    protected override string TypeName_UDT(string fullCompileName, List<TypeParameter.TPVariance> variances,
+    protected override string TypeName_UDT(string fullCompileName, List<TypeParameter.TPVariance> variance,
         List<Type> typeArgs, ConcreteSyntaxTree wr, IToken tok, bool omitTypeArguments) {
       return fullCompileName;
     }
@@ -619,8 +618,7 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    protected override void EmitNameAndActualTypeArgs(string protectedName, List<Type> typeArgs, List<TypeParameter> typeParameters,
-      IToken tok, ConcreteSyntaxTree wr) {
+    protected override void EmitNameAndActualTypeArgs(string protectedName, List<Type> typeArgs, IToken tok, ConcreteSyntaxTree wr) {
       if (wr is BuilderSyntaxTree<ExprContainer> st && st.Builder is CallExprBuilder callExpr) {
         callExpr.SetName(protectedName);
       } else if (wr is BuilderSyntaxTree<ExprContainer> st2 && st2.Builder is CallStmtBuilder callStmt) {
@@ -629,7 +627,7 @@ namespace Microsoft.Dafny.Compilers {
         throw new InvalidOperationException();
       }
 
-      base.EmitNameAndActualTypeArgs(protectedName, typeArgs, typeParameters, tok, wr);
+      base.EmitNameAndActualTypeArgs(protectedName, typeArgs, tok, wr);
     }
 
     protected override void TypeArgDescriptorUse(bool isStatic, bool lookasideBody, TopLevelDeclWithMembers cl, out bool needsTypeParameter, out bool needsTypeDescriptor) {
@@ -733,7 +731,7 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    protected override void EmitActualTypeArgs(List<Type> typeArgs, List<TypeParameter> typeParameters, IToken tok, ConcreteSyntaxTree wr) {
+    protected override void EmitActualTypeArgs(List<Type> typeArgs, IToken tok, ConcreteSyntaxTree wr) {
       if (wr is BuilderSyntaxTree<ExprContainer> st && st.Builder is CallExprBuilder callExpr) {
         callExpr.SetTypeArgs(typeArgs.Select(GenType).ToList());
       } else if (wr is BuilderSyntaxTree<ExprContainer> st2 && st2.Builder is CallStmtBuilder callStmt) {
@@ -1404,15 +1402,9 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    protected override void EmitIndexCollectionSelect(CollectionType collectionType, ConcreteSyntaxTree wr,
-      ConcreteSyntaxTree wSource, ConcreteSyntaxTree wIndex) {
-      // Compiler-dafny implements the other virtual EmitIndexCollectionSelect instead
-      throw new cce.UnreachableException();
-    }
-
-    protected override void EmitIndexCollectionUpdate(CollectionType collectionType, ConcreteSyntaxTree wr,
-      ConcreteSyntaxTree wSource, ConcreteSyntaxTree wIndex, ConcreteSyntaxTree wValue) {
-      throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
+    protected override void EmitIndexCollectionUpdate(Expression source, Expression index, Expression value,
+      CollectionType resultCollectionType, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
+      throw new NotImplementedException();
     }
 
     protected override void EmitSeqSelectRange(Expression source, Expression lo, Expression hi, bool fromArray,
@@ -1567,11 +1559,9 @@ namespace Microsoft.Dafny.Compilers {
       out string staticCallString,
       out bool reverseArguments,
       out bool truncateResult,
-      out bool convertE1ToInt,
+      out bool convertE1_to_int,
       out bool coerceE1,
-      out bool convertE1ToFatPointer,
       ConcreteSyntaxTree errorWr) {
-
       if (errorWr is BuilderSyntaxTree<ExprContainer> builder) {
         opString = null;
         preOpString = "";
@@ -1580,7 +1570,7 @@ namespace Microsoft.Dafny.Compilers {
         staticCallString = null;
         reverseArguments = false;
         truncateResult = false;
-        convertE1ToInt = false;
+        convertE1_to_int = false;
         coerceE1 = false;
 
         opString = op switch {
@@ -1630,14 +1620,6 @@ namespace Microsoft.Dafny.Compilers {
           BinaryExpr.ResolvedOpcode.Concat => "+",
           BinaryExpr.ResolvedOpcode.InSeq => "in",
           _ => throw new NotImplementedException(),
-        };
-
-        convertE1ToFatPointer = op switch {
-          BinaryExpr.ResolvedOpcode.InSet => true,
-          BinaryExpr.ResolvedOpcode.InMultiSet => true,
-          BinaryExpr.ResolvedOpcode.InMap => true,
-          BinaryExpr.ResolvedOpcode.InSeq => true,
-          _ => false
         };
 
         currentBuilder = builder.Builder.BinOp(opString);

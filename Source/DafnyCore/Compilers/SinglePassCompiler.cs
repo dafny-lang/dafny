@@ -7,7 +7,6 @@
 //-----------------------------------------------------------------------------
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Numerics;
 using System.IO;
@@ -100,7 +99,7 @@ namespace Microsoft.Dafny.Compilers {
       Error(ErrorId.c_unsupported_feature, tok, message, wr, args);
     }
 
-    protected string IntSelect = ", int"; // native integer in the target language, with a comma in front
+    protected string IntSelect = ",int";
     protected string LambdaExecute = "";
 
     protected bool UnicodeCharEnabled => Options.Get(CommonOptionBag.UnicodeCharacters);
@@ -292,7 +291,7 @@ namespace Microsoft.Dafny.Compilers {
       var typeArgs = SelectNonGhost(cl, udt.TypeArgs);
       return TypeName_UDT(fullCompileName, typeParams.ConvertAll(tp => tp.Variance), typeArgs, wr, tok, omitTypeArguments);
     }
-    protected abstract string TypeName_UDT(string fullCompileName, List<TypeParameter.TPVariance> variances, List<Type> typeArgs,
+    protected abstract string TypeName_UDT(string fullCompileName, List<TypeParameter.TPVariance> variance, List<Type> typeArgs,
       ConcreteSyntaxTree wr, IToken tok, bool omitTypeArguments);
     protected abstract string/*?*/ TypeName_Companion(Type type, ConcreteSyntaxTree wr, IToken tok, MemberDecl/*?*/ member);
     protected virtual void EmitTypeName_Companion(Type type, ConcreteSyntaxTree wr, ConcreteSyntaxTree surrounding, IToken tok, MemberDecl/*?*/ member) {
@@ -370,18 +369,11 @@ namespace Microsoft.Dafny.Compilers {
       EmitOutParameterSplits(outCollector, actualOutParamNames, wr);
     }
 
-    protected abstract void EmitActualTypeArgs(List<Type> typeArgs, List<TypeParameter> typeParameters, IToken tok, ConcreteSyntaxTree wr);
+    protected abstract void EmitActualTypeArgs(List<Type> typeArgs, IToken tok, ConcreteSyntaxTree wr);
 
-    protected void EmitNameAndActualTypeArgs(string protectedName, List<TypeArgumentInstantiation> typeArgumentInstantiations, IToken tok,
-      ConcreteSyntaxTree wr) {
-      EmitNameAndActualTypeArgs(protectedName, TypeArgumentInstantiation.ToActuals(typeArgumentInstantiations),
-        TypeArgumentInstantiation.ToFormals(typeArgumentInstantiations), tok, wr);
-    }
-
-    protected virtual void EmitNameAndActualTypeArgs(string protectedName, List<Type> typeArgs, List<TypeParameter> typeParameters,
-      IToken tok, ConcreteSyntaxTree wr) {
+    protected virtual void EmitNameAndActualTypeArgs(string protectedName, List<Type> typeArgs, IToken tok, ConcreteSyntaxTree wr) {
       wr.Write(protectedName);
-      EmitActualTypeArgs(typeArgs, typeParameters, tok, wr);
+      EmitActualTypeArgs(typeArgs, tok, wr);
     }
 
     protected virtual ConcreteSyntaxTree EmitAssignment(ILvalue wLhs, Type lhsType /*?*/, Type rhsType /*?*/,
@@ -763,18 +755,20 @@ namespace Microsoft.Dafny.Compilers {
     ///   (a) we need to represent upcasts as explicit operations (like Go, or array types in Java), or
     ///   (b) there's static typing but no parametric polymorphism (like Go) so that lots of things need to be boxed and unboxed.
     /// </summary>
-    protected virtual ConcreteSyntaxTree EmitCoercionIfNecessary(Type @from /*?*/, Type to /*?*/, IToken tok, ConcreteSyntaxTree wr,
-      bool targetUsesFatPointers = false) {
-      from = from == null ? null : DatatypeWrapperEraser.SimplifyType(Options, from);
-      to = to == null ? null : DatatypeWrapperEraser.SimplifyType(Options, to);
-
-      if ((from == null || from.IsTraitType) && to != null && to.HasFatPointer) {
+    protected virtual ConcreteSyntaxTree EmitCoercionIfNecessary(Type/*?*/ from, Type/*?*/ to, IToken tok, ConcreteSyntaxTree wr) {
+      if (from != null && to != null && from.IsTraitType && to.AsNewtype != null) {
         return FromFatPointer(to, wr);
       }
-      if (from != null && from.HasFatPointer && ((to != null && to.IsTraitType) || targetUsesFatPointers) && (enclosingMethod != null || enclosingFunction != null)) {
+      if (from != null && to != null && from.AsNewtype != null && to.IsTraitType && (enclosingMethod != null || enclosingFunction != null)) {
         return ToFatPointer(from, wr);
       }
       return wr;
+    }
+
+    protected ConcreteSyntaxTree CoercionIfNecessary(Type/*?*/ from, Type/*?*/ to, IToken tok, ICanRender inner) {
+      var result = new ConcreteSyntaxTree();
+      EmitCoercionIfNecessary(from, to, tok, result).Append(inner);
+      return result;
     }
 
     protected ConcreteSyntaxTree EmitDowncastIfNecessary(Type /*?*/ from, Type /*?*/ to, IToken tok, ConcreteSyntaxTree wr) {
@@ -1149,55 +1143,11 @@ namespace Microsoft.Dafny.Compilers {
 
     protected abstract void EmitExprAsNativeInt(Expression expr, bool inLetExprBody, ConcreteSyntaxTree wr,
       ConcreteSyntaxTree wStmts);
-
-    protected virtual void EmitIndexCollectionSelect(Expression source, Expression index, bool inLetExprBody,
-      ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
-      var xType = source.Type.NormalizeExpand();
-      if (xType is SeqType seqType) {
-        var wSource = Expr(source, inLetExprBody, wStmts);
-        var wIndex = ExprAsSizeT(index, inLetExprBody, wStmts);
-        wr = EmitCoercionIfNecessary(null, seqType.Arg, source.tok, wr, true);
-        EmitIndexCollectionSelect(seqType, wr, wSource, wIndex);
-      } else if (xType is MultiSetType multiSetType) {
-        var wSource = Expr(source, inLetExprBody, wStmts);
-        var wIndex = CoercedExpr(index, multiSetType.Arg, inLetExprBody, wStmts, true);
-        EmitIndexCollectionSelect(multiSetType, wr, wSource, wIndex);
-      } else {
-        var mapType = (MapType)xType;
-        var wSource = Expr(source, inLetExprBody, wStmts);
-        var wIndex = CoercedExpr(index, mapType.Domain, inLetExprBody, wStmts, true);
-        wr = EmitCoercionIfNecessary(null, mapType.Range, source.tok, wr, true);
-        EmitIndexCollectionSelect(mapType, wr, wSource, wIndex);
-      }
-    }
-
-    protected abstract void EmitIndexCollectionSelect(CollectionType collectionType, ConcreteSyntaxTree wr,
-      ConcreteSyntaxTree wSource, ConcreteSyntaxTree wIndex);
-
-    protected void EmitIndexCollectionUpdate(Expression source, Expression index, Expression value,
-      CollectionType resultCollectionType, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
-      var xType = source.Type.NormalizeExpand();
-      var wSource = Expr(source, inLetExprBody, wStmts);
-      if (xType is SeqType seqType) {
-        var wIndex = ExprAsSizeT(index, inLetExprBody, wStmts);
-        var wValue = CoercedExpr(value, seqType.ValueArg, inLetExprBody, wStmts, targetUsesFatPointers: true);
-        EmitIndexCollectionUpdate(seqType, wr, wSource, wIndex, wValue);
-      } else if (xType is MultiSetType multiSetType) {
-        var wIndex = CoercedExpr(index, multiSetType.Arg, inLetExprBody, wStmts, targetUsesFatPointers: true);
-        var wValue = Expr(value, inLetExprBody, wStmts);
-        EmitIndexCollectionUpdate(multiSetType, wr, wSource, wIndex, wValue);
-      } else {
-        var mapType = (MapType)xType;
-        var wIndex = CoercedExpr(index, mapType.Domain, inLetExprBody, wStmts, targetUsesFatPointers: true);
-        var wValue = CoercedExpr(value, mapType.Range, inLetExprBody, wStmts, targetUsesFatPointers: true);
-        EmitIndexCollectionUpdate(mapType, wr, wSource, wIndex, wValue);
-      }
-    }
-
-    protected abstract void EmitIndexCollectionUpdate(CollectionType collectionType, ConcreteSyntaxTree wr,
-      ConcreteSyntaxTree wSource, ConcreteSyntaxTree wIndex, ConcreteSyntaxTree wValue);
-
-    protected virtual void EmitIndexCollectionUpdateNativeIndex(Type sourceType, out ConcreteSyntaxTree wSource, out ConcreteSyntaxTree wIndex, out ConcreteSyntaxTree wValue, ConcreteSyntaxTree wr) {
+    protected abstract void EmitIndexCollectionSelect(Expression source, Expression index, bool inLetExprBody,
+      ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts);
+    protected abstract void EmitIndexCollectionUpdate(Expression source, Expression index, Expression value,
+      CollectionType resultCollectionType, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts);
+    protected virtual void EmitIndexCollectionUpdate(Type sourceType, out ConcreteSyntaxTree wSource, out ConcreteSyntaxTree wIndex, out ConcreteSyntaxTree wValue, ConcreteSyntaxTree wr, bool nativeIndex) {
       wSource = wr.Fork();
       wr.Write('[');
       wIndex = wr.Fork();
@@ -1274,9 +1224,8 @@ namespace Microsoft.Dafny.Compilers {
       out string staticCallString,
       out bool reverseArguments,
       out bool truncateResult,
-      out bool convertE1ToInt,
+      out bool convertE1_to_int,
       out bool coerceE1,
-      out bool convertE1ToFatPointer,
       ConcreteSyntaxTree errorWr) {
 
       // This default implementation does not handle all cases. It handles some cases that look the same
@@ -1289,8 +1238,7 @@ namespace Microsoft.Dafny.Compilers {
       staticCallString = null;
       reverseArguments = false;
       truncateResult = false;
-      convertE1ToFatPointer = false;
-      convertE1ToInt = false;
+      convertE1_to_int = false;
       coerceE1 = false;
 
       BinaryExpr.ResolvedOpcode dualOp = BinaryExpr.ResolvedOpcode.Add;  // NOTE! "Add" is used to say "there is no dual op"
@@ -1362,14 +1310,14 @@ namespace Microsoft.Dafny.Compilers {
         Contract.Assert(negatedOp == BinaryExpr.ResolvedOpcode.Add);
         CompileBinOp(dualOp,
           e1, e0, tok, resultType,
-          out opString, out preOpString, out postOpString, out callString, out staticCallString, out reverseArguments, out truncateResult, out convertE1ToInt, out coerceE1,
-          out convertE1ToFatPointer, errorWr);
+          out opString, out preOpString, out postOpString, out callString, out staticCallString, out reverseArguments, out truncateResult, out convertE1_to_int, out coerceE1,
+          errorWr);
         reverseArguments = !reverseArguments;
       } else if (negatedOp != BinaryExpr.ResolvedOpcode.Add) {  // remember from above that Add stands for "there is no negated op"
         CompileBinOp(negatedOp,
           e0, e1, tok, resultType,
-          out opString, out preOpString, out postOpString, out callString, out staticCallString, out reverseArguments, out truncateResult, out convertE1ToInt, out coerceE1,
-          out convertE1ToFatPointer, errorWr);
+          out opString, out preOpString, out postOpString, out callString, out staticCallString, out reverseArguments, out truncateResult, out convertE1_to_int, out coerceE1,
+          errorWr);
         preOpString = "!" + preOpString;
       }
     }
@@ -2260,7 +2208,7 @@ namespace Microsoft.Dafny.Compilers {
       var calleeReceiverType = UserDefinedType.FromTopLevelDecl(f.tok, f.EnclosingClass).Subst(thisContext.ParentFormalTypeParametersToActuals);
       wr.Write("{0}{1}", TypeName_Companion(calleeReceiverType, wr, f.tok, f), ModuleSeparator);
       var typeArgs = CombineAllTypeArguments(f, thisContext);
-      EmitNameAndActualTypeArgs(IdName(f), ForTypeParameters(typeArgs, f, true), f.tok, wr);
+      EmitNameAndActualTypeArgs(IdName(f), TypeArgumentInstantiation.ToActuals(ForTypeParameters(typeArgs, f, true)), f.tok, wr);
       wr.Write("(");
       var sep = "";
       EmitTypeDescriptorsActuals(ForTypeDescriptors(typeArgs, f.EnclosingClass, f, true), f.tok, wr, ref sep);
@@ -2301,7 +2249,7 @@ namespace Microsoft.Dafny.Compilers {
       var calleeReceiverType = UserDefinedType.FromTopLevelDecl(f.tok, f.EnclosingClass).Subst(thisContext.ParentFormalTypeParametersToActuals);
       wr.Write("{0}{1}", TypeName_Companion(calleeReceiverType, wr, f.tok, f), ModuleSeparator);
       var typeArgs = CombineAllTypeArguments(f, thisContext);
-      EmitNameAndActualTypeArgs(companionName, ForTypeParameters(typeArgs, f, true), f.tok, wr);
+      EmitNameAndActualTypeArgs(companionName, TypeArgumentInstantiation.ToActuals(ForTypeParameters(typeArgs, f, true)), f.tok, wr);
       wr.Write("(");
       var sep = "";
       EmitTypeDescriptorsActuals(ForTypeDescriptors(typeArgs, f.EnclosingClass, f, true), f.tok, wr, ref sep);
@@ -2386,7 +2334,7 @@ namespace Microsoft.Dafny.Compilers {
       wr.Write(ClassAccessor);
 
       var typeArgs = CombineAllTypeArguments(method, thisContext);
-      EmitNameAndActualTypeArgs(companionName, ForTypeParameters(typeArgs, method, true), method.tok, wr);
+      EmitNameAndActualTypeArgs(companionName, TypeArgumentInstantiation.ToActuals(ForTypeParameters(typeArgs, method, true)), method.tok, wr);
       wr.Write("(");
       var sep = "";
       EmitTypeDescriptorsActuals(ForTypeDescriptors(typeArgs, method.EnclosingClass, method, true), method.tok, wr, ref sep);
@@ -2666,7 +2614,7 @@ namespace Microsoft.Dafny.Compilers {
           var companion = TypeName_Companion(UserDefinedType.FromTopLevelDeclWithAllBooleanTypeParameters(m.EnclosingClass), w, m.tok, m);
           w.Write("{0}.", companion);
         }
-        EmitNameAndActualTypeArgs(IdName(m), ForTypeParameters(typeArgs, m, false), m.tok, w);
+        EmitNameAndActualTypeArgs(IdName(m), TypeArgumentInstantiation.ToActuals(ForTypeParameters(typeArgs, m, false)), m.tok, w);
         w.Write("(");
         var sep = "";
         if (receiver != null && customReceiver) {
@@ -3474,7 +3422,7 @@ namespace Microsoft.Dafny.Compilers {
             }
 
           }
-          tupleTypeArgs += ", " + TypeArgumentName(rhs.Type, wr, rhs.tok);
+          tupleTypeArgs += "," + TypeArgumentName(rhs.Type, wr, rhs.tok);
           tupleTypeArgsList.Add(rhs.Type);
 
           // declare and construct "ingredients"
@@ -3493,11 +3441,11 @@ namespace Microsoft.Dafny.Compilers {
             tup = wTup.ToString();
           }
           if (s0.Lhs is MemberSelectExpr) {
-            EmitLhsMemberSelect(s0, tupleTypeArgsList, wr, tup);
+            EmitMemberSelect(s0, tupleTypeArgsList, wr, tup);
           } else if (s0.Lhs is SeqSelectExpr) {
-            EmitLhsSeqSelect(s0, tupleTypeArgsList, wr, tup);
+            EmitSeqSelect(s0, tupleTypeArgsList, wr, tup);
           } else {
-            EmitLhsMultiSelect(s0, tupleTypeArgsList, wr, tup, L);
+            EmitMultiSelect(s0, tupleTypeArgsList, wr, tup, L);
           }
         }
       } else if (stmt is NestedMatchStmt nestedMatchStmt) {
@@ -3606,24 +3554,24 @@ namespace Microsoft.Dafny.Compilers {
       return fce.IsByMethodCall && fce.Function.ByMethodDecl == enclosingMethod && fce.Function.ByMethodDecl.IsTailRecursive;
     }
 
-    protected void EmitLhsMemberSelect(AssignStmt s0, List<Type> tupleTypeArgsList, ConcreteSyntaxTree wr, string tup) {
+    protected virtual void EmitMemberSelect(AssignStmt s0, List<Type> tupleTypeArgsList, ConcreteSyntaxTree wr, string tup) {
       var lhs = (MemberSelectExpr)s0.Lhs;
 
       var typeArgs = TypeArgumentInstantiation.ListFromMember(lhs.Member, null, lhs.TypeApplication_JustMember);
       var lvalue = EmitMemberSelect(w => {
-        var wObj = EmitCoercionIfNecessary(@from: null, to: tupleTypeArgsList[0], tok: s0.Tok, wr: w);
+        var wObj = EmitCoercionIfNecessary(from: null, to: tupleTypeArgsList[0], s0.Tok, w);
         EmitTupleSelect(tup, 0, wObj);
       }, lhs.Obj.Type, lhs.Member, typeArgs, lhs.TypeArgumentSubstitutionsWithParents(), lhs.Type);
 
       var wRhs = EmitAssignment(lvalue, lhs.Type, tupleTypeArgsList[1], wr, s0.Tok);
-      var wCoerced = EmitCoercionIfNecessary(@from: null, to: tupleTypeArgsList[1], tok: s0.Tok, wr: wRhs);
+      var wCoerced = EmitCoercionIfNecessary(from: null, to: tupleTypeArgsList[1], tok: s0.Tok, wr: wRhs);
       EmitTupleSelect(tup, 1, wCoerced);
     }
 
-    protected virtual void EmitLhsSeqSelect(AssignStmt s0, List<Type> tupleTypeArgsList, ConcreteSyntaxTree wr, string tup) {
+    protected virtual void EmitSeqSelect(AssignStmt s0, List<Type> tupleTypeArgsList, ConcreteSyntaxTree wr, string tup) {
       var lhs = (SeqSelectExpr)s0.Lhs;
-      EmitIndexCollectionUpdateNativeIndex(lhs.Seq.Type, out var wColl, out var wIndex, out var wValue, wr);
-      var wCoerce = EmitCoercionIfNecessary(@from: null, to: lhs.Seq.Type, tok: s0.Tok, wr: wColl);
+      EmitIndexCollectionUpdate(lhs.Seq.Type, out var wColl, out var wIndex, out var wValue, wr, nativeIndex: true);
+      var wCoerce = EmitCoercionIfNecessary(from: null, to: lhs.Seq.Type, tok: s0.Tok, wr: wColl);
       EmitTupleSelect(tup, 0, wCoerce);
       var wCast = EmitCoercionToNativeInt(wIndex);
       EmitTupleSelect(tup, 1, wCast);
@@ -3631,10 +3579,10 @@ namespace Microsoft.Dafny.Compilers {
       EndStmt(wr);
     }
 
-    protected virtual void EmitLhsMultiSelect(AssignStmt s0, List<Type> tupleTypeArgsList, ConcreteSyntaxTree wr, string tup, int L) {
+    protected virtual void EmitMultiSelect(AssignStmt s0, List<Type> tupleTypeArgsList, ConcreteSyntaxTree wr, string tup, int L) {
       var lhs = (MultiSelectExpr)s0.Lhs;
       var wArray = new ConcreteSyntaxTree(wr.RelativeIndentLevel);
-      var wCoerced = EmitCoercionIfNecessary(@from: null, to: tupleTypeArgsList[0], tok: s0.Tok, wr: wArray);
+      var wCoerced = EmitCoercionIfNecessary(from: null, to: tupleTypeArgsList[0], tok: s0.Tok, wr: wArray);
       EmitTupleSelect(tup, 0, wCoerced);
       var array = wArray.ToString();
       var indices = new List<string>();
@@ -4103,7 +4051,7 @@ namespace Microsoft.Dafny.Compilers {
       }
 
       public void EmitRead(ConcreteSyntaxTree wr) {
-        wr = Compiler.EmitCoercionIfNecessary(@from, to, Token.NoToken, wr);
+        wr = Compiler.EmitCoercionIfNecessary(from, to, Token.NoToken, wr);
         lvalue.EmitRead(wr);
       }
 
@@ -4677,7 +4625,7 @@ namespace Microsoft.Dafny.Compilers {
           wr.Write(ModuleSeparator);
         }
         var typeArgs = CombineAllTypeArguments(s.Method, s.MethodSelect.TypeApplication_AtEnclosingClass, s.MethodSelect.TypeApplication_JustMember);
-        EmitNameAndActualTypeArgs(protectedName, ForTypeParameters(typeArgs, s.Method, false), s.Tok, wr);
+        EmitNameAndActualTypeArgs(protectedName, TypeArgumentInstantiation.ToActuals(ForTypeParameters(typeArgs, s.Method, false)), s.Tok, wr);
         wr.Write("(");
         var sep = "";
         EmitTypeDescriptorsActuals(ForTypeDescriptors(typeArgs, s.Method.EnclosingClass, s.Method, false), s.Tok, wr, ref sep);
@@ -4891,7 +4839,7 @@ namespace Microsoft.Dafny.Compilers {
     /// Before calling TrExprList(exprs), the caller must have spilled the let variables declared in expressions in "exprs".
     /// </summary>
     protected void TrExprList(List<Expression> exprs, ConcreteSyntaxTree wr, bool inLetExprBody, ConcreteSyntaxTree wStmts,
-        Func<int, Type> typeAt = null, bool parens = true, bool targetUsesFatPointers = false) {
+        Func<int, Type> typeAt = null, bool parens = true) {
       Contract.Requires(cce.NonNullElements(exprs));
       if (parens) { wr = wr.ForkInParens(); }
 
@@ -4899,7 +4847,7 @@ namespace Microsoft.Dafny.Compilers {
         ConcreteSyntaxTree w;
         if (typeAt != null) {
           w = wr.Fork();
-          w = EmitCoercionIfNecessary(e.Type, typeAt(index), e.tok, w, targetUsesFatPointers);
+          w = EmitCoercionIfNecessary(e.Type, typeAt(index), e.tok, w);
         } else {
           w = wr;
         }
@@ -4909,13 +4857,9 @@ namespace Microsoft.Dafny.Compilers {
 
     protected virtual void WriteCast(string s, ConcreteSyntaxTree wr) { }
 
-    protected virtual ConcreteSyntaxTree ExprAsSizeT(Expression expr, bool inLetExprBody, ConcreteSyntaxTree wStmts) {
-      return Expr(expr, inLetExprBody, wStmts);
-    }
-
-    protected ConcreteSyntaxTree CoercedExpr(Expression expr, Type toType, bool inLetExprBody, ConcreteSyntaxTree wStmts, bool targetUsesFatPointers = false) {
+    protected ConcreteSyntaxTree CoercedExpr(Expression expr, Type toType, bool inLetExprBody, ConcreteSyntaxTree wStmts) {
       var result = new ConcreteSyntaxTree();
-      var w = EmitCoercionIfNecessary(expr.Type, toType, expr.tok, result, targetUsesFatPointers);
+      var w = EmitCoercionIfNecessary(expr.Type, toType, expr.tok, result);
       EmitExpr(expr, inLetExprBody, w, wStmts);
       return result;
     }
@@ -4982,7 +4926,7 @@ namespace Microsoft.Dafny.Compilers {
             var typeArgs = e.TypeApplication_AtEnclosingClass;
             Contract.Assert(typeArgs.Count == sf.EnclosingClass.TypeArgs.Count);
             wr.Write("{0}.", TypeName_Companion(e.Obj.Type, wr, e.tok, sf));
-            EmitNameAndActualTypeArgs(IdName(e.Member), typeArgs, sf.EnclosingClass.TypeArgs, e.tok, wr);
+            EmitNameAndActualTypeArgs(IdName(e.Member), typeArgs, e.tok, wr);
             var tas = TypeArgumentInstantiation.ListFromClass(sf.EnclosingClass, typeArgs);
             EmitTypeDescriptorsActuals(tas, e.tok, wr.ForkInParens());
           } else {
@@ -5175,9 +5119,9 @@ namespace Microsoft.Dafny.Compilers {
             out var staticCallString,
             out var reverseArguments,
             out var truncateResult,
-            out var convertE1ToInt,
+            out var convertE1_to_int,
             out var coerceE1,
-            out var convertE1ToFatPointer, wr);
+            wr);
 
           if (truncateResult && e.Type.IsBitVectorType) {
             wr = EmitBitvectorTruncation(e.Type.AsBitVectorType, true, wr);
@@ -5186,20 +5130,13 @@ namespace Microsoft.Dafny.Compilers {
           var e1 = reverseArguments ? e.E0 : e.E1;
 
           var left = Expr(e0, inLetExprBody, wStmts);
-          if (!reverseArguments && convertE1ToFatPointer) {
-            var r = new ConcreteSyntaxTree();
-            EmitCoercionIfNecessary(e0.Type, TypeForCoercion(e0.Type), e0.tok, r, true).Append(left);
-            left = r;
-          }
           ConcreteSyntaxTree right;
-          if (convertE1ToInt) {
+          if (convertE1_to_int) {
             right = ExprAsNativeInt(e1, inLetExprBody, wStmts);
           } else {
             right = Expr(e1, inLetExprBody, wStmts);
-            if (coerceE1 || (reverseArguments && convertE1ToFatPointer)) {
-              var r = new ConcreteSyntaxTree();
-              EmitCoercionIfNecessary(e1.Type, TypeForCoercion(e1.Type), e1.tok, r, reverseArguments && convertE1ToFatPointer).Append(right);
-              right = r;
+            if (coerceE1) {
+              right = CoercionIfNecessary(e1.Type, TypeForCoercion(e1.Type), e1.tok, right);
             }
           }
 
@@ -5770,7 +5707,7 @@ namespace Microsoft.Dafny.Compilers {
         compileName = IdName(f);
       }
       var typeArgs = CombineAllTypeArguments(f, e.TypeApplication_AtEnclosingClass, e.TypeApplication_JustFunction);
-      EmitNameAndActualTypeArgs(compileName, ForTypeParameters(typeArgs, f, false), f.tok, wr);
+      EmitNameAndActualTypeArgs(compileName, TypeArgumentInstantiation.ToActuals(ForTypeParameters(typeArgs, f, false)), f.tok, wr);
       wr.Write("(");
       var sep = "";
       EmitTypeDescriptorsActuals(ForTypeDescriptors(typeArgs, f.EnclosingClass, f, false), e.tok, wr, ref sep);
