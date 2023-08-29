@@ -1,4 +1,4 @@
-use std::{fmt::{Display, Formatter}, rc::Rc, ops::Deref};
+use std::{fmt::{Display, Formatter}, rc::Rc, ops::Deref, collections::HashSet, cell::RefCell};
 use num::{Integer, Signed, One, Zero};
 pub use once_cell::unsync::Lazy;
 
@@ -167,6 +167,32 @@ impl <T> DafnyUnerasable<Vec<T>> for Vec<T> {
 
     #[inline]
     fn unerase_owned(v: Vec<T>) -> Self {
+        v
+    }
+}
+
+impl <T> DafnyErasable for HashSet<T> {
+    type Erased = HashSet<T>;
+
+    #[inline]
+    fn erase(&self) -> &Self::Erased {
+        self
+    }
+
+    #[inline]
+    fn erase_owned(self) -> Self::Erased {
+        self
+    }
+}
+
+impl <T> DafnyUnerasable<HashSet<T>> for HashSet<T> {
+    #[inline]
+    fn unerase(v: &HashSet<T>) -> &Self {
+        v
+    }
+
+    #[inline]
+    fn unerase_owned(v: HashSet<T>) -> Self {
         v
     }
 }
@@ -484,6 +510,32 @@ impl <T: DafnyPrint> DafnyPrint for Vec<T> {
         } else {
             Ok(())
         }
+    }
+}
+
+impl <T: DafnyPrint> DafnyPrint for RefCell<T> {
+    fn fmt_print(&self, f: &mut Formatter<'_>, _in_seq: bool) -> std::fmt::Result {
+        self.borrow().fmt_print(f, _in_seq)
+    }
+}
+
+impl <T: DafnyPrint> DafnyPrint for HashSet<T> {
+    fn fmt_print(&self, f: &mut Formatter<'_>, _in_seq: bool) -> std::fmt::Result {
+        write!(f, "{{")?;
+
+        let mut i = 0;
+
+        for item in self.iter() {
+            if i > 0 {
+                write!(f, ", ")?;
+            }
+
+            item.fmt_print(f, false)?;
+
+            i += 1;
+        }
+
+        write!(f, "}}")
     }
 }
 
