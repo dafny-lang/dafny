@@ -3040,6 +3040,10 @@ NoGhost - disable printing of functions, ghost methods, and proof
         // print arguments after incorporating default parameters
         for (; i < bindings.Arguments.Count; i++) {
           var arg = bindings.Arguments[i];
+          if (arg is DefaultValueExpression { Resolved: null }) {
+            // An error was detected during resolution, so this argument was not filled in. Omit printing it.
+            continue;
+          }
           wr.Write(sep);
           sep = ", ";
           PrintExpression(arg, false);
