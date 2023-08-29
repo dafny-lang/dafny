@@ -68,6 +68,7 @@ public class LargeFilesTest : ClientBasedLanguageServerTest {
         // await output.WriteLineAsync("openMilliseconds: " + openMilliseconds);
         // await output.WriteLineAsync("changeMilliseconds: " + changeMilliseconds);
         // await output.WriteLineAsync("division: " + division);
+        // await output.WriteLineAsync("averageTimeToSchedule: " + averageTimeToSchedule);
         try {
           Assert.True(averageTimeToSchedule < 100, $"averageTimeToSchedule: {averageTimeToSchedule}");
           // Migration should be constant time, which would allow this number to be about 1.

@@ -331,8 +331,9 @@ public class ProjectManager : IDisposable {
     Dictionary<Uri, IntervalTree<Position, Position>> trees = new();
 
     return changedRanges.SelectMany(changeRange => {
-      var tree = trees.GetOrCreate(changeRange.Uri.ToUri(), () => GetTree(changeRange.Uri.ToUri()));
-      return tree.Query(changeRange.Range.Start, changeRange.Range.End).Select(position => new FilePosition(changeRange.Uri.ToUri(), position));
+      var uri = changeRange.Uri.ToUri();
+      var tree = trees.GetOrCreate(uri, () => GetTree(uri));
+      return tree.Query(changeRange.Range.Start, changeRange.Range.End).Select(position => new FilePosition(uri, position));
     });
   }
 
