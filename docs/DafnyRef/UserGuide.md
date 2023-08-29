@@ -1979,7 +1979,7 @@ older versions of Dafny.
 
 * `--default-function-opacity:<Transparent|AutoRevealDependencies|Opaque>` - Change the default opacity of functions.
   * `Transparent` (default) means functions are transparent, can be manually made opaque and then revealed.
-  * `AutoRevealDependencies` makes all functions non explicitly labelled as opaque to be opaque but reveals them automatically in scopes which do not have `{:autoRevealDependencies false}`.
+  * `AutoRevealDependencies` makes all functions not explicitly labelled as opaque to be opaque but reveals them automatically in scopes which do not have `{:autoRevealDependencies false}`.
   * `Opaque` means functions are always opaque so the opaque keyword is not needed, function must be revealed everywhere needed for a proof.
 
 * `--function-syntax` (value '3' or '4') - permits a choice of using the Dafny 3 syntax (`function` and `function method`)
