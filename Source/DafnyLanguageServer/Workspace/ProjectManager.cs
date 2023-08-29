@@ -125,7 +125,7 @@ public class ProjectManager : IDisposable {
         if (location.Uri != documentChange.TextDocument.Uri) {
           return location;
         }
-        
+
         var newRange = migrator.MigrateRange(location.Range);
         if (newRange == null) {
           return null;
