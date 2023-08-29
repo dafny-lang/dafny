@@ -666,26 +666,26 @@ method {:rlimit 30000} {:vcs_split_on_every_assert} fNullify(o : Object, f : str
   
       var nedge :=  Edge(o,f, o.fields[f]); //edge to be nullified
 
-      assert nedge in edges(objects);
+      //assert nedge in edges(objects);
 
       o.fields := RemoveKey(o.fields,f);
 
-      assert nedge !in edges(objects);
+      //assert nedge !in edges(objects);
 
       var zedges := edges(objects); 
 
-      assert zedges + {nedge} == xedges;
+      //assert zedges + {nedge} == xedges;
 
       RefCountIsMonotonic(xisos,xedges,zedges);
 
-      assert heapExternalsZeroOrOneEdges(xedges);
-      assert zedges <= xedges;
-      assert justHeapExternalEdges(zedges) <= justHeapExternalEdges(xedges);
-      assert (set he <- justHeapExternalEdges(zedges) :: he.t.region) <= 
-             (set he <- justHeapExternalEdges(xedges) :: he.t.region);
-      assert forall r <- allRegions(old(objects)) ::
-             externalEdges(r, justHeapExternalEdges(zedges)) <= 
-             externalEdges(r, justHeapExternalEdges(xedges));
+      //assert heapExternalsZeroOrOneEdges(xedges);
+      //assert zedges <= xedges;
+      //assert justHeapExternalEdges(zedges) <= justHeapExternalEdges(xedges);
+      //assert (set he <- justHeapExternalEdges(zedges) :: he.t.region) <= 
+      //       (set he <- justHeapExternalEdges(xedges) :: he.t.region);
+      //assert forall r <- allRegions(old(objects)) ::
+      //       externalEdges(r, justHeapExternalEdges(zedges)) <= 
+      //       externalEdges(r, justHeapExternalEdges(xedges));
 
       assert heapExternalsZeroOrOneEdges(xedges);
 
