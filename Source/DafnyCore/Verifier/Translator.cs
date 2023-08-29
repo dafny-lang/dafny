@@ -22,6 +22,7 @@ using Microsoft.Boogie;
 using static Microsoft.Dafny.Util;
 using Core;
 using Microsoft.BaseTypes;
+using Microsoft.Dafny.Compilers;
 using Microsoft.Dafny.Triggers;
 using Action = System.Action;
 using PODesc = Microsoft.Dafny.ProofObligationDescription;
@@ -6662,10 +6663,11 @@ namespace Microsoft.Dafny {
           return predef.ArrayLength;
         } else if (f.EnclosingClass is ValuetypeDecl { Name: "real" } && f.Name == "Floor") {
           return predef.RealFloor;
-        } else if (f is SpecialField && !(f is DatatypeDestructor)) {
+        } else if (f is SpecialField && !(f is DatatypeDestructor || f.EnclosingClass is TopLevelDeclWithMembers and not ValuetypeDecl)) {
           if (f.Name is "Keys" or "Values" or "Items") {
-            Contract.Assert(f.Type is SetType);
-            var setType = (SetType)f.Type;
+            var fType = f.Type.NormalizeExpand();
+            Contract.Assert(fType is SetType);
+            var setType = (SetType)fType;
             return f.Name switch {
               "Keys" => setType.Finite ? predef.MapDomain : predef.IMapDomain,
               "Values" => setType.Finite ? predef.MapValues : predef.IMapValues,
