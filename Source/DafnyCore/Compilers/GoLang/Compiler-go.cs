@@ -3617,7 +3617,7 @@ namespace Microsoft.Dafny.Compilers {
         wr.Write($".(*{UserDefinedTypeName(to.AsNewtype, true)})");
         return w;
       }
-      if ((from != null && from.HasFatPointer) && (to.IsTraitType || targetUsesFatPointers) && (enclosingMethod != null || enclosingFunction != null)) {
+      if (from != null && from.HasFatPointer && (to.IsTraitType || targetUsesFatPointers) && (enclosingMethod != null || enclosingFunction != null)) {
         return ToFatPointer(from, wr);
       }
 

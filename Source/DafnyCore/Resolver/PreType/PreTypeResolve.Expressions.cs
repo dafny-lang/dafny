@@ -1458,7 +1458,8 @@ namespace Microsoft.Dafny {
             r = ResolveExprDotCall(expr.tok, receiver, tentativeReceiverPreType, member, args, expr.OptTypeArguments, resolutionContext, allowMethodCall);
           } else {
             var receiver = new StaticReceiverExpr(expr.tok, new InferredTypeProxy(), true) {
-              PreType = tentativeReceiverPreType, ObjectToDiscard = lhs
+              PreType = tentativeReceiverPreType,
+              ObjectToDiscard = lhs
             };
             r = ResolveExprDotCall(expr.tok, receiver, null, member, args, expr.OptTypeArguments, resolutionContext, allowMethodCall);
           }

@@ -619,7 +619,7 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    protected override void EmitNameAndActualTypeArgs(string protectedName, List<Type> typeArgs,  List<TypeParameter> typeParameters,
+    protected override void EmitNameAndActualTypeArgs(string protectedName, List<Type> typeArgs, List<TypeParameter> typeParameters,
       IToken tok, ConcreteSyntaxTree wr) {
       if (wr is BuilderSyntaxTree<ExprContainer> st && st.Builder is CallExprBuilder callExpr) {
         callExpr.SetName(protectedName);
