@@ -4,6 +4,7 @@ using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
 using System.Threading;
+using DafnyCore.Test;
 using IntervalTree;
 using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Language.Symbols;
@@ -32,7 +33,7 @@ public class GhostStateDiagnosticCollectorTest {
   }
 
   public GhostStateDiagnosticCollectorTest(ITestOutputHelper output) {
-    var options = new DafnyOptions(TextReader.Null, new WriterFromOutputHelper(output), new WriterFromOutputHelper(output));
+    var options = new DafnyOptions(TextReader.Null, (TextWriter)new WriterFromOutputHelper(output), (TextWriter)new WriterFromOutputHelper(output));
     options.Set(ServerCommand.GhostIndicators, true);
     ghostStateDiagnosticCollector = new GhostStateDiagnosticCollector(
       options,
