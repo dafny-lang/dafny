@@ -50,6 +50,38 @@ method Foo() {
   }
 
   [Fact]
+  public async Task VerifyPositionFromFile1AndUriFromFile2WherePrefixModuleIsInBothFiles() {
+    var source = @"
+module A.B.C {
+  method Foo() returns (x: int) ensures x == 2 {
+    return 2;
+  }
+}".TrimStart();
+
+    var source2 = @"
+include ""A.dfy""
+module A.B.D {
+  method Foo() returns (x: int) ensures x == 2 {
+    return 2;
+  }
+}".TrimStart();
+    await SetUp(options => {
+      options.Set(ServerCommand.Verification, VerifyOnMode.Never);
+      options.Set(CommonOptionBag.VerifyIncludedFiles, true);
+
+    });
+    var directory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+    var documentItem1 = CreateTestDocument(source, Path.Combine(directory, "A.dfy"));
+    await client.OpenDocumentAndWaitAsync(documentItem1, CancellationToken);
+    var documentItem2 = CreateTestDocument(source2, Path.Combine(directory, "B.dfy"));
+    await client.OpenDocumentAndWaitAsync(documentItem2, CancellationToken);
+    await AssertNoDiagnosticsAreComing(CancellationToken);
+    var fooInFileOnePosition = new Position(1, 9);
+    var failsBecausePositionAndUriDoNotMatch = await client.RunSymbolVerification(documentItem2, fooInFileOnePosition, CancellationToken);
+    Assert.False(failsBecausePositionAndUriDoNotMatch);
+  }
+
+  [Fact]
   public async Task ManuallyRunMethodInPrefixModule() {
     var source = @"
 module A.B.C {
@@ -343,6 +375,8 @@ method Bar() { assert false; }";
     });
     var documentItem = CreateTestDocument(source, "WhenUsingOnSaveMethodStaysStaleUntilSave.dfy");
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+    var stale1 = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
+    Assert.Equal(PublishedVerificationStatus.Stale, stale1.NamedVerifiables[0].Status);
 
     // Send a change to enable getting a new status notification.
     ApplyChange(ref documentItem, new Range(new Position(1, 0), new Position(1, 0)), "\n");

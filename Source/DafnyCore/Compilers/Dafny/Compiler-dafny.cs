@@ -152,10 +152,14 @@ namespace Microsoft.Dafny.Compilers {
       if (currentBuilder is ClassContainer builder) {
         List<DAST.Type> typeParams = new();
         foreach (var tp in typeParameters) {
+          if (tp.Variance == TypeParameter.TPVariance.Contra) {
+            throw new NotImplementedException("Contravariance in type parameters");
+          }
+
           typeParams.Add((DAST.Type)DAST.Type.create_TypeArg(Sequence<Rune>.UnicodeFromString(IdProtect(tp.GetCompileName(Options)))));
         }
 
-        return new ClassWriter(this, builder.Class(name, typeParams, superClasses.Select(t => GenType(t)).ToList()));
+        return new ClassWriter(this, builder.Class(name, moduleName, typeParams, superClasses.Select(t => GenType(t)).ToList()));
       } else {
         throw new InvalidOperationException();
       }
@@ -183,6 +187,10 @@ namespace Microsoft.Dafny.Compilers {
       if (currentBuilder is DatatypeContainer builder) {
         List<DAST.Type> typeParams = new();
         foreach (var tp in dt.TypeArgs) {
+          if (tp.Variance == TypeParameter.TPVariance.Contra) {
+            throw new NotImplementedException("Contravariance in type parameters");
+          }
+
           typeParams.Add((DAST.Type)DAST.Type.create_TypeArg(Sequence<Rune>.UnicodeFromString(IdProtect(tp.GetCompileName(Options)))));
         }
 
@@ -199,7 +207,7 @@ namespace Microsoft.Dafny.Compilers {
 
         return new ClassWriter(this, builder.Datatype(
           dt.GetCompileName(Options),
-          Sequence<Rune>.UnicodeFromString(dt.EnclosingModuleDefinition.GetCompileName(Options)),
+          dt.EnclosingModuleDefinition.GetCompileName(Options),
           typeParams,
           ctors,
           dt is CoDatatypeDecl
@@ -295,6 +303,10 @@ namespace Microsoft.Dafny.Compilers {
 
         List<DAST.Type> typeParams = new();
         foreach (var tp in sst.TypeArgs) {
+          if (tp.Variance == TypeParameter.TPVariance.Contra) {
+            throw new NotImplementedException("Contravariance in type parameters");
+          }
+
           typeParams.Add((DAST.Type)DAST.Type.create_TypeArg(Sequence<Rune>.UnicodeFromString(tp.Name)));
         }
 
@@ -325,6 +337,10 @@ namespace Microsoft.Dafny.Compilers {
         List<DAST.Type> astTypeArgs = new();
         if (m.IsStatic) {
           foreach (var typeArg in typeArgs) {
+            if (typeArg.Formal.Variance == TypeParameter.TPVariance.Contra) {
+              throw new NotImplementedException("Contravariance in type parameters");
+            }
+
             astTypeArgs.Add((DAST.Type)DAST.Type.create_TypeArg(Sequence<Rune>.UnicodeFromString(compiler.IdProtect(typeArg.Formal.GetCompileName(compiler.Options)))));
           }
         }
@@ -372,6 +388,10 @@ namespace Microsoft.Dafny.Compilers {
           bool forBodyInheritance, bool lookasideBody) {
         List<DAST.Type> astTypeArgs = new();
         foreach (var typeArg in typeArgs) {
+          if (typeArg.Formal.Variance == TypeParameter.TPVariance.Contra) {
+            throw new NotImplementedException("Contravariance in type parameters");
+          }
+
           astTypeArgs.Add((DAST.Type)DAST.Type.create_TypeArg(Sequence<Rune>.UnicodeFromString(compiler.IdProtect(typeArg.Formal.GetCompileName(compiler.Options)))));
         }
 
@@ -780,7 +800,19 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override ILvalue SeqSelectLvalue(SeqSelectExpr ll, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
-      throw new NotImplementedException();
+      var sourceBuf = new ExprBuffer(null);
+      EmitExpr(ll.Seq, false, new BuilderSyntaxTree<ExprContainer>(sourceBuf), wStmts);
+
+      var indexBuf = new ExprBuffer(null);
+      EmitExpr(ll.E0, false, new BuilderSyntaxTree<ExprContainer>(indexBuf), wStmts);
+
+      var source = sourceBuf.Finish();
+      var index = indexBuf.Finish();
+
+      return new ExprLvalue(
+        (DAST.Expression)DAST.Expression.create_Index(source, index),
+        (DAST.AssignLhs)DAST.AssignLhs.create_Index(source, index)
+      );
     }
 
     protected override ILvalue MultiSelectLvalue(MultiSelectExpr ll, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
@@ -1249,6 +1281,8 @@ namespace Microsoft.Dafny.Compilers {
         case SpecialField.ID.UseIdParam:
           compiledName = (string)idParam;
           break;
+        case SpecialField.ID.ArrayLength:
+          break;
         default:
           throw new NotImplementedException("Special field: " + id);
       }
@@ -1284,6 +1318,8 @@ namespace Microsoft.Dafny.Compilers {
             Sequence<Rune>.UnicodeFromString(member.GetCompileName(Options))
           ));
         }
+      } else if (member is SpecialField arraySpecial && arraySpecial.SpecialId == SpecialField.ID.ArrayLength) {
+        return new ExprLvalue((DAST.Expression)DAST.Expression.create_ArrayLen(objExpr), null);
       } else if (member is SpecialField sf && sf.SpecialId != SpecialField.ID.UseIdParam) {
         GetSpecialFieldInfo(sf.SpecialId, sf.IdParam, objType, out var compiledName, out _, out _);
         return new ExprLvalue((DAST.Expression)DAST.Expression.create_Select(
@@ -1310,6 +1346,16 @@ namespace Microsoft.Dafny.Compilers {
             member.IsStatic,
             expectedType.AsArrowType.Arity
           ), null);
+        } else if (internalAccess && (member is ConstantField || member.EnclosingClass is TraitDecl)) {
+          return new ExprLvalue((DAST.Expression)DAST.Expression.create_Select(
+            objExpr,
+            Sequence<Rune>.UnicodeFromString("_" + member.GetCompileName(Options)),
+            false,
+            member.EnclosingClass is DatatypeDecl
+          ), (DAST.AssignLhs)DAST.AssignLhs.create_Select(
+            objExpr,
+            Sequence<Rune>.UnicodeFromString("_" + member.GetCompileName(Options))
+          ));
         } else {
           return new ExprLvalue((DAST.Expression)DAST.Expression.create_Select(
             objExpr,
@@ -1340,7 +1386,20 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void EmitIndexCollectionSelect(Expression source, Expression index, bool inLetExprBody,
       ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
-      throw new NotImplementedException();
+      var sourceBuf = new ExprBuffer(null);
+      EmitExpr(source, inLetExprBody, new BuilderSyntaxTree<ExprContainer>(sourceBuf), wStmts);
+
+      var indexBuf = new ExprBuffer(null);
+      EmitExpr(index, inLetExprBody, new BuilderSyntaxTree<ExprContainer>(indexBuf), wStmts);
+
+      if (wr is BuilderSyntaxTree<ExprContainer> builder) {
+        builder.Builder.AddExpr((DAST.Expression)DAST.Expression.create_Index(
+          sourceBuf.Finish(),
+          indexBuf.Finish()
+        ));
+      } else {
+        throw new InvalidOperationException();
+      }
     }
 
     protected override void EmitIndexCollectionUpdate(Expression source, Expression index, Expression value,

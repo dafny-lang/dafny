@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
+using DafnyCore.Test;
 using DafnyTestGeneration;
 using Bpl = Microsoft.Boogie;
 using BplParser = Microsoft.Boogie.Parser;
@@ -78,8 +79,8 @@ ensures true
 ";
         programString = AdjustNewlines(programString);
 
-        var dafnyProgram = Utils.Parse(options, programString, false);
-        var reporter = dafnyProgram.Reporter;
+        var reporter = new BatchErrorReporter(options);
+        var dafnyProgram = Utils.Parse(reporter, programString, false);
         Assert.Equal(0, reporter.ErrorCount);
         var topLevelDecls = dafnyProgram.DefaultModuleDef.TopLevelDecls.ToList();
         Assert.Equal(6, topLevelDecls.Count());

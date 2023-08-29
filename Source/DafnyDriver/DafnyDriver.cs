@@ -390,13 +390,15 @@ namespace Microsoft.Dafny {
 
       ExitValue exitValue = ExitValue.SUCCESS;
       if (options.TestGenOptions.Mode != TestGenerationOptions.Modes.None) {
-        var coverageReport = new CoverageReport(name: "Expected Test Coverage", units: "Locations", suffix: "_tests_expected", program: null);
+        var uri = new Uri(dafnyFileNames[0]);
+        var source = new StreamReader(dafnyFileNames[0]);
+        var coverageReport = new CoverageReport(name: "Expected Test Coverage", units: "Lines", suffix: "_tests_expected", program: null);
         if (options.TestGenOptions.WarnDeadCode) {
-          await foreach (var line in DafnyTestGeneration.Main.GetDeadCodeStatistics(dafnyFileNames[0], options, coverageReport)) {
+          await foreach (var line in DafnyTestGeneration.Main.GetDeadCodeStatistics(source, uri, options, coverageReport)) {
             await options.OutputWriter.WriteLineAsync(line);
           }
         } else {
-          await foreach (var line in DafnyTestGeneration.Main.GetTestClassForProgram(dafnyFileNames[0], options, coverageReport)) {
+          await foreach (var line in DafnyTestGeneration.Main.GetTestClassForProgram(source, uri, options, coverageReport)) {
             await options.OutputWriter.WriteLineAsync(line);
           }
         }
@@ -526,7 +528,7 @@ namespace Microsoft.Dafny {
           errorWriter.WriteLine(err);
           failedToParseFiles.Add(dafnyFile.BaseName);
         } else {
-          var firstToken = dafnyProgram.GetFirstTopLevelToken();
+          var firstToken = dafnyProgram.GetFirstTokenForUri(file.Uri);
           var result = originalText;
           if (firstToken != null) {
             result = Formatting.__default.ReindentProgramFromFirstToken(firstToken,
