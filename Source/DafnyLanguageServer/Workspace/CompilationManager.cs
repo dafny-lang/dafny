@@ -154,7 +154,7 @@ public class CompilationManager {
   private int runningVerificationJobs;
 
   // When verifying a symbol, a ticket must be acquired before the SMT part of verification may start.
-  private AsyncQueue<Unit> verificationTickets = new();
+  private readonly AsyncQueue<Unit> verificationTickets = new();
   public async Task<bool> VerifySymbol(FilePosition verifiableLocation, bool onlyPrepareVerificationForGutterTests = false) {
     cancellationSource.Token.ThrowIfCancellationRequested();
 
