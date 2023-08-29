@@ -99,7 +99,7 @@ public class AutoRevealFunctionDependencies : IRewriter {
     var message = "";
 
     message +=
-      $"Total {addedReveals.Count} function {(addedReveals.Count == 1 ? "dependency" : "dependencies")} found.";
+      $"Found {addedReveals.Count} function {(addedReveals.Count == 1 ? "dependency" : "dependencies")}.";
 
     message +=
       $" {numInsertedReveals} reveal {(numInsertedReveals == 1 ? "statement" : "statements")} inserted implicitly.";
