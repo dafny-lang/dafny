@@ -168,7 +168,9 @@ public class CompilationManager {
     }
 
     var containingModule = verifiable.ContainingModule;
-
+    if (!containingModule.ShouldVerify(compilation.Program.Compilation)) {
+      return false;
+    }
     IncrementJobs();
 
     IReadOnlyDictionary<FilePosition, IReadOnlyList<IImplementationTask>> tasksForModule;
@@ -456,7 +458,7 @@ public class CompilationManager {
       return null;
     }
 
-    var firstToken = parsedDocument.Program.GetFirstTopLevelToken();
+    var firstToken = parsedDocument.Program.GetFirstTokenForUri(uri);
     if (firstToken == null) {
       return null;
     }
