@@ -155,7 +155,7 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
 
   public async Task<PublishDiagnosticsParams> GetLastDiagnosticsParams(TextDocumentItem documentItem, CancellationToken cancellationToken) {
     await client.WaitForNotificationCompletionAsync(documentItem.Uri, cancellationToken);
-    var compilation = (await Projects.GetLastDocumentAsync(documentItem))!;
+    var compilation = (await Projects.GetLastDocumentAsync(documentItem).WaitAsync(cancellationToken))!;
     Assert.NotNull(compilation);
     var expectedDiagnostics = compilation.GetDiagnostics(documentItem.Uri.ToUri()).
       Select(d => d.ToLspDiagnostic()).
@@ -315,10 +315,9 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
   protected async Task AssertNoResolutionErrors(TextDocumentItem documentItem) {
     var resolutionDiagnostics = (await Projects.GetResolvedDocumentAsyncNormalizeUri(documentItem))!.GetDiagnosticsForUri(documentItem.Uri.ToUri()).ToList();
     // A document without diagnostics may be absent, even if resolved successfully
-    var resolutionErrors = resolutionDiagnostics.Count(d => d.Severity == DiagnosticSeverity.Error);
-    if (0 != resolutionErrors) {
-      await Console.Out.WriteAsync(string.Join("\n", resolutionDiagnostics.Where(d => d.Severity == DiagnosticSeverity.Error).Select(d => d.ToString())));
-      Assert.Equal(0, resolutionErrors);
+    var resolutionErrors = resolutionDiagnostics.Where(d => d.Severity == DiagnosticSeverity.Error);
+    if (resolutionErrors.Any()) {
+      Assert.Fail($"Found resolution errors: {resolutionErrors.Stringify()}");
     }
   }
 
