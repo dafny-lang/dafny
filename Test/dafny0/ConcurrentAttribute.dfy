@@ -27,7 +27,7 @@ class Concurrent {
     42
   }
 
-  function {:concurrent} BadFn(b: Box<int>): int  // Error: reads clause might not be empty ({:concurrent} restriction)
+  function {:concurrent} BadFn(b: Box<int>): int  // Error: reads clause could not be proved to be empty ({:concurrent} restriction)
     reads b
   {
     b.x
@@ -48,11 +48,11 @@ class Concurrent {
   method {:concurrent} GoodM(b: Box<int>) {
   }
 
-  method {:concurrent} BadMDefaultReads(b: Box<int>)  // Error: reads clause might not be empty ({:concurrent} restriction)
+  method {:concurrent} BadMDefaultReads(b: Box<int>)  // Error: reads clause could not be proved to be empty ({:concurrent} restriction)
   {
   }
 
-  method {:concurrent} BadM(b: Box<int>)  // Error: reads clause might not be empty ({:concurrent} restriction)
+  method {:concurrent} BadM(b: Box<int>)  // Error: reads clause could not be proved to be empty ({:concurrent} restriction)
     reads b
   {
     var x := b.x;
@@ -63,7 +63,7 @@ class Concurrent {
   {
   }
 
-  method {:concurrent} AlsoBadM(b: Box<int>)  // Error: modifies clause might not be empty ({:concurrent} restriction)
+  method {:concurrent} AlsoBadM(b: Box<int>)  // Error: modifies clause could not be proved to be empty ({:concurrent} restriction)
     modifies b
   {
     b.x := 42;
@@ -75,15 +75,27 @@ class Concurrent {
   }
 
   ghost method {:concurrent} OnlyReadsGhostState(b: GhostBox<int>) returns (r: int) 
-    reads b`x
+    reads b`x  // Error: modifies clause could not be proved to be empty ({:concurrent} restriction)
   {
     return b.x;
   }
 
   method {:concurrent} OnlyModifiesGhostState(b: GhostBox<int>) 
-    reads {}
+    reads {}  // Error: reads clause could not be proved to be empty ({:concurrent} restriction)
     modifies b`x
   {
     b.x := 42;
+  }
+
+  ghost method {:concurrent} AllTheBoxes() 
+    reads set b: GhostBox<int> | true
+    modifies set b: GhostBox<int> | true
+  {
+  }
+
+  ghost method {:concurrent} NoneOfTheBoxes() 
+    reads set b: GhostBox<int> | !allocated(b)
+    modifies set b: GhostBox<int> | !allocated(b)
+  {
   }
 }

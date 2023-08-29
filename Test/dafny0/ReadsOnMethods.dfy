@@ -265,10 +265,21 @@ method ApplyLambda<T(!new), R>(f: T ~> R, t: T) returns (r: R)
   r := f(t);
 }
 
-method DependsOnAllocationState<T>(b: Box<T>) 
-  // TODO: Allowed but perhaps shouldn't be, since it isn't allowed on functions
-  reads set b: Box<T> | true
+class GhostBox {
+  ghost var x: int
+  constructor(x: int) {
+    this.x := x;
+  }
+}
+
+// Unlike functions, method frames can refer to the set of allocated objects.
+ghost method IncrementAllBoxes() 
+  reads set b: GhostBox | true
+  modifies set b: GhostBox | true
 {
+  forall b: GhostBox {
+    b.x := b.x + 1;
+  }
 }
 
 // ---------- Enforcing concurrency safe entry points (examples from the RFC) -----------
