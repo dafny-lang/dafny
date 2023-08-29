@@ -35,15 +35,17 @@ public class AutoRevealFunctionDependencies : IRewriter {
     Contract.Requires(moduleDefinition != null);
 
     foreach (var decl in moduleDefinition.TopLevelDecls) {
+      if (decl is ICanAutoRevealDependencies m) {
+        m.AutoRevealDependencies(this, Options, Reporter);
+      }
+      
       if (decl is TopLevelDeclWithMembers cl) {
         foreach (var member in cl.Members) {
           if (member is ICanAutoRevealDependencies mem) {
             mem.AutoRevealDependencies(this, Options, Reporter);
           }
         }
-      } else if (decl is ICanAutoRevealDependencies m) {
-        m.AutoRevealDependencies(this, Options, Reporter);
-      }
+      } 
     }
   }
 
