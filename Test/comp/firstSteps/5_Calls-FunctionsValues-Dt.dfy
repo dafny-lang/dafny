@@ -1,4 +1,4 @@
-// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment
+// RUN: %testDafnyForEachCompiler "%s" --refresh-exit-code=0 -- --relax-definite-assignment
 //
 // This fragment of comp/Calls.dfy serves to facilitate incremental compiler development.
 
