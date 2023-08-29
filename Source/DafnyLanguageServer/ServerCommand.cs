@@ -7,6 +7,7 @@ using Microsoft.Dafny.LanguageServer.Workspace;
 namespace Microsoft.Dafny.LanguageServer;
 
 public class ServerCommand : ICommandSpec {
+  public const int DefaultThrottleTime = 100;
   public static readonly ServerCommand Instance = new();
 
   private ServerCommand() {
@@ -16,17 +17,22 @@ public class ServerCommand : ICommandSpec {
     DafnyOptions.RegisterLegacyBinding(VerifySnapshots, (options, u) => options.VerifySnapshots = (int)u);
 
     DooFile.RegisterNoChecksNeeded(
-      ProjectMode,
       Verification,
       GhostIndicators,
       LineVerificationStatus,
       VerifySnapshots,
-      UseCaching
+      UseCaching,
+      UpdateThrottling
     );
   }
 
   public static readonly Option<bool> UseCaching = new("--use-caching", () => true,
     "Use caching to speed up analysis done by the Dafny IDE after each text edit.") {
+    IsHidden = true
+  };
+
+  public static readonly Option<int> UpdateThrottling = new("--update-throttling", () => DefaultThrottleTime,
+    @"How many milliseconds the server will wait before sending new document updates to the client. Higher values reduce bandwidth at the cost of responsiveness".TrimStart()) {
     IsHidden = true
   };
 
@@ -46,11 +52,6 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
 Send notifications about the verification status of each line in the program.
 ".TrimStart());
 
-  public static readonly Option<bool> ProjectMode = new("--project-mode", () => false,
-    "New mode with working with project files. Will become the default") {
-    IsHidden = true
-  };
-
   public static readonly Option<uint> VerifySnapshots = new("--cache-verification", @"
 (experimental)
 0 - do not use any verification result caching (default)
@@ -64,13 +65,13 @@ Send notifications about the verification status of each line in the program.
   };
 
   public IEnumerable<Option> Options => new Option[] {
-    ProjectMode,
     BoogieOptionBag.NoVerify,
     Verification,
     GhostIndicators,
     LineVerificationStatus,
     VerifySnapshots,
     UseCaching,
+    UpdateThrottling,
     DeveloperOptionBag.BoogiePrint,
     CommonOptionBag.EnforceDeterminism,
     CommonOptionBag.UseJavadocLikeDocstringRewriterOption

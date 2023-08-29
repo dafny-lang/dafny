@@ -26,11 +26,13 @@ public class CachingParser : ProgramParser {
       telemetryPublisher, programName, "parsing");
   }
 
-  protected override DfyParseResult ParseFile(DafnyOptions options, TextReader reader, Uri uri) {
+  protected override DfyParseResult ParseFile(DafnyOptions options, Func<TextReader> getReader,
+    Uri uri, CancellationToken cancellationToken) {
+    using var reader = getReader();
     var (newReader, hash) = ComputeHashFromReader(uri, reader, HashAlgorithm.Create("SHA256")!);
     if (!parseCache.TryGet(hash, out var result)) {
       logger.LogDebug($"Parse cache miss for {uri}");
-      result = base.ParseFile(options, newReader, uri);
+      result = base.ParseFile(options, () => newReader, uri, cancellationToken);
       parseCache.Set(hash, result);
     } else {
       logger.LogDebug($"Parse cache hit for {uri}");

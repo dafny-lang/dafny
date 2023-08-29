@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
+using DafnyCore.Test;
 using DafnyTestGeneration.Inlining;
 using Microsoft.Dafny;
 using Xunit;
@@ -33,12 +34,12 @@ public class ShortCircuitRemoval : Setup {
     // If the following assertion fails, rename the corresponding variables in expected output of each test
     Assert.Equal(RemoveShortCircuitingRewriter.TmpVarPrefix, "#tmp");
     var options = GetDafnyOptions(new List<Action<DafnyOptions>>(), output);
-    var program = Utils.Parse(options, source, false);
+    var program = Utils.Parse(new BatchErrorReporter(options), source, false);
     var success = InliningTranslator.TranslateForFutureInlining(program, options, out var boogieProgram);
     Assert.True(success);
     var method = program.DefaultModuleDef.Children
       .OfType<TopLevelDeclWithMembers>()
-      .Select(classDef => classDef.Members.Where(member => member is Method && Utils.MembersHasAttribute(member, "testEntry")))?
+      .Select(classDef => classDef.Members.Where(member => member is Method && member.HasUserAttribute(TestGenerationOptions.TestEntryAttribute, out var _)))?
       .Where(members => members.Count() != 0).FirstOrDefault()?.First() as Method;
     Assert.NotNull(method);
     Assert.Equal(isByMethod, method.IsByMethod);
