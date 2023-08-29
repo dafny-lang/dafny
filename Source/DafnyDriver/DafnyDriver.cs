@@ -528,7 +528,7 @@ namespace Microsoft.Dafny {
           errorWriter.WriteLine(err);
           failedToParseFiles.Add(dafnyFile.BaseName);
         } else {
-          var firstToken = dafnyProgram.GetFirstTopLevelToken();
+          var firstToken = dafnyProgram.GetFirstTokenForUri(file.Uri);
           var result = originalText;
           if (firstToken != null) {
             result = Formatting.__default.ReindentProgramFromFirstToken(firstToken,
