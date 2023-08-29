@@ -245,7 +245,7 @@ public class AutoRevealFunctionDependencies : IRewriter {
     }
 
     var subExprList = exprList.SelectMany(expr => Triggers.ExprExtensions.AllSubExpressions(expr, false, false));
-    
+
     var typeList = subExprList.Select(expr => expr.Type);
 
     return typeList;
