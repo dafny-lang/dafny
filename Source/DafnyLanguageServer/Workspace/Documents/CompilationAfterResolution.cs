@@ -7,6 +7,8 @@ using System.Threading.Tasks;
 using Microsoft.Boogie;
 using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Language.Symbols;
+using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
+using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
@@ -17,7 +19,7 @@ public class CompilationAfterResolution : CompilationAfterParsing {
   public CompilationAfterResolution(CompilationAfterParsing compilationAfterParsing,
     IReadOnlyDictionary<Uri, List<DafnyDiagnostic>> diagnostics,
     SymbolTable? symbolTable,
-    SignatureAndCompletionTable signatureAndCompletionTable,
+    LegacySignatureAndCompletionTable signatureAndCompletionTable,
     IReadOnlyDictionary<Uri, IReadOnlyList<Range>> ghostDiagnostics,
     IReadOnlyList<ICanVerify> verifiables,
     ConcurrentDictionary<ModuleDefinition, Task<IReadOnlyDictionary<FilePosition, IReadOnlyList<IImplementationTask>>>> translatedModules,
@@ -33,7 +35,7 @@ public class CompilationAfterResolution : CompilationAfterParsing {
   }
   public List<Counterexample> Counterexamples { get; set; }
   public SymbolTable? SymbolTable { get; }
-  public SignatureAndCompletionTable SignatureAndCompletionTable { get; }
+  public LegacySignatureAndCompletionTable SignatureAndCompletionTable { get; }
   public IReadOnlyDictionary<Uri, IReadOnlyList<Range>> GhostDiagnostics { get; }
   public IReadOnlyList<ICanVerify> Verifiables { get; }
   public ConcurrentDictionary<ICanVerify, Dictionary<string, ImplementationView>> ImplementationsPerVerifiable { get; } = new();
@@ -72,10 +74,10 @@ public class CompilationAfterResolution : CompilationAfterParsing {
   }
 
   public override IdeState ToIdeState(IdeState previousState) {
-
     IdeVerificationResult MergeVerifiable(ICanVerify canVerify) {
-      var location = canVerify.NameToken.GetLocation();
-      var previousForCanVerify = previousState.VerificationResults.GetValueOrDefault(location) ?? new(false, ImmutableDictionary<string, IdeImplementationView>.Empty);
+      var range = canVerify.NameToken.GetLspRange();
+      var previousForCanVerify = previousState.GetVerificationResults(canVerify.NameToken.Uri).GetValueOrDefault(range) ??
+                                 new(false, ImmutableDictionary<string, IdeImplementationView>.Empty);
       if (!ImplementationsPerVerifiable.TryGetValue(canVerify, out var implementationsPerName)) {
         return previousForCanVerify with {
           Implementations = previousForCanVerify.Implementations.ToDictionary(kv => kv.Key, kv => kv.Value with {
@@ -107,9 +109,11 @@ public class CompilationAfterResolution : CompilationAfterParsing {
       SignatureAndCompletionTable = SignatureAndCompletionTable.Resolved ? SignatureAndCompletionTable : previousState.SignatureAndCompletionTable,
       GhostRanges = GhostDiagnostics,
       Counterexamples = new List<Counterexample>(Counterexamples),
-      VerificationTrees = VerificationTrees.ToDictionary(kv => kv.Key, kv => kv.Value.GetCopyForNotification()),
-      VerificationResults = Verifiables.GroupBy(l => l.NameToken.GetLocation()).ToDictionary(k => k.Key,
-        k => MergeResults(k.Select(MergeVerifiable)))
+      VerificationTrees = VerificationTrees.ToDictionary(kv => kv.Key, kv => (DocumentVerificationTree)kv.Value.GetCopyForNotification()),
+      VerificationResults = Verifiables.GroupBy(l => l.NameToken.Uri).ToDictionary(k => k.Key,
+        k => k.GroupBy(l => l.NameToken.GetLspRange()).ToDictionary(
+          l => l.Key,
+          l => MergeResults(l.Select(MergeVerifiable))))
     };
     return result;
   }

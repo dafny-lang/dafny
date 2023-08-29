@@ -22,26 +22,23 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
   /// The increased stack size is necessary to solve the issue https://github.com/dafny-lang/dafny/issues/1447.
   /// </remarks>
   public class TextDocumentLoader : ITextDocumentLoader {
-    private readonly ILogger<ITextDocumentLoader> documentLoader;
+    private readonly ILogger<ITextDocumentLoader> logger;
     private readonly IDafnyParser parser;
     private readonly ISymbolResolver symbolResolver;
     private readonly ISymbolTableFactory symbolTableFactory;
     private readonly IGhostStateDiagnosticCollector ghostStateDiagnosticCollector;
-    protected readonly ICompilationStatusNotificationPublisher statusPublisher;
 
     protected TextDocumentLoader(
       ILogger<ITextDocumentLoader> documentLoader,
       IDafnyParser parser,
       ISymbolResolver symbolResolver,
       ISymbolTableFactory symbolTableFactory,
-      IGhostStateDiagnosticCollector ghostStateDiagnosticCollector,
-      ICompilationStatusNotificationPublisher statusPublisher) {
-      this.documentLoader = documentLoader;
+      IGhostStateDiagnosticCollector ghostStateDiagnosticCollector) {
+      this.logger = documentLoader;
       this.parser = parser;
       this.symbolResolver = symbolResolver;
       this.symbolTableFactory = symbolTableFactory;
       this.ghostStateDiagnosticCollector = ghostStateDiagnosticCollector;
-      this.statusPublisher = statusPublisher;
     }
 
     public static TextDocumentLoader Create(
@@ -49,10 +46,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       ISymbolResolver symbolResolver,
       ISymbolTableFactory symbolTableFactory,
       IGhostStateDiagnosticCollector ghostStateDiagnosticCollector,
-      ICompilationStatusNotificationPublisher statusPublisher,
       ILogger<ITextDocumentLoader> logger
       ) {
-      return new TextDocumentLoader(logger, parser, symbolResolver, symbolTableFactory, ghostStateDiagnosticCollector, statusPublisher);
+      return new TextDocumentLoader(logger, parser, symbolResolver, symbolTableFactory, ghostStateDiagnosticCollector);
     }
 
     public IdeState CreateUnloaded(Compilation compilation) {
@@ -60,7 +56,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     public async Task<CompilationAfterParsing> ParseAsync(DafnyOptions options, Compilation compilation,
-      IReadOnlyDictionary<Uri, VerificationTree> migratedVerificationTrees, CancellationToken cancellationToken) {
+      IReadOnlyDictionary<Uri, DocumentVerificationTree> migratedVerificationTrees, CancellationToken cancellationToken) {
 #pragma warning disable CS1998
       return await await DafnyMain.LargeStackFactory.StartNew(
         async () => ParseInternal(options, compilation, migratedVerificationTrees, cancellationToken), cancellationToken
@@ -69,36 +65,30 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     private CompilationAfterParsing ParseInternal(DafnyOptions options, Compilation compilation,
-      IReadOnlyDictionary<Uri, VerificationTree> migratedVerificationTrees,
+      IReadOnlyDictionary<Uri, DocumentVerificationTree> migratedVerificationTrees,
       CancellationToken cancellationToken) {
       var project = compilation.Project;
       var errorReporter = new DiagnosticErrorReporter(options, project.Uri);
-      _ = statusPublisher.SendStatusNotification(compilation, CompilationStatus.Parsing);
       var program = parser.Parse(compilation, errorReporter, cancellationToken);
       var compilationAfterParsing = new CompilationAfterParsing(compilation, program, errorReporter.AllDiagnosticsCopy,
         compilation.RootUris.ToDictionary(uri => uri,
           uri => migratedVerificationTrees.GetValueOrDefault(uri) ?? new DocumentVerificationTree(program, uri)));
-      if (errorReporter.HasErrors) {
-        _ = statusPublisher.SendStatusNotification(compilation, CompilationStatus.ParsingFailed);
-        return compilationAfterParsing;
-      }
 
       return compilationAfterParsing;
     }
 
     public async Task<CompilationAfterResolution> ResolveAsync(DafnyOptions options,
       CompilationAfterParsing compilation,
-      IReadOnlyDictionary<Uri, VerificationTree> migratedVerificationTrees,
+      IReadOnlyDictionary<Uri, DocumentVerificationTree> migratedVerificationTrees,
       CancellationToken cancellationToken) {
 #pragma warning disable CS1998
       return await await DafnyMain.LargeStackFactory.StartNew(
-        async () => ResolveInternal(compilation, migratedVerificationTrees, cancellationToken), cancellationToken
+        async () => ResolveInternal(compilation, migratedVerificationTrees, cancellationToken), cancellationToken);
 #pragma warning restore CS1998
-        );
     }
 
     private CompilationAfterResolution ResolveInternal(CompilationAfterParsing compilation,
-      IReadOnlyDictionary<Uri, VerificationTree> migratedVerificationTrees, CancellationToken cancellationToken) {
+      IReadOnlyDictionary<Uri, DocumentVerificationTree> migratedVerificationTrees, CancellationToken cancellationToken) {
 
       var program = compilation.Program;
       var errorReporter = (DiagnosticErrorReporter)program.Reporter;
@@ -108,18 +98,12 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
       var project = compilation.Project;
 
-      _ = statusPublisher.SendStatusNotification(compilation, CompilationStatus.ResolutionStarted);
       var compilationUnit = symbolResolver.ResolveSymbols(project, program, cancellationToken);
       var legacySymbolTable = symbolTableFactory.CreateFrom(compilationUnit, cancellationToken);
 
       var newSymbolTable = errorReporter.HasErrors
         ? null
         : symbolTableFactory.CreateFrom(program, compilation, cancellationToken);
-      if (errorReporter.HasErrors) {
-        _ = statusPublisher.SendStatusNotification(compilation, CompilationStatus.ResolutionFailed);
-      } else {
-        _ = statusPublisher.SendStatusNotification(compilation, CompilationStatus.CompilationSucceeded);
-      }
 
       var ghostDiagnostics = ghostStateDiagnosticCollector.GetGhostStateDiagnostics(legacySymbolTable, cancellationToken);
 
@@ -155,11 +139,11 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         program,
         resolutionDiagnostics,
         SymbolTable.Empty(),
-        SignatureAndCompletionTable.Empty(dafnyOptions, compilation.Project),
+        LegacySignatureAndCompletionTable.Empty(dafnyOptions, compilation.Project),
         new(),
         Array.Empty<Counterexample>(),
         ImmutableDictionary<Uri, IReadOnlyList<Range>>.Empty,
-      ImmutableDictionary<Uri, VerificationTree>.Empty
+      ImmutableDictionary<Uri, DocumentVerificationTree>.Empty
       );
     }
   }

@@ -44,7 +44,7 @@ namespace Microsoft.Dafny {
     private bool Parse() {
       var uri = new Uri("transcript:///" + fname);
       reporter = new ConsoleErrorReporter(options);
-      var program = new ProgramParser().ParseFiles(fname, new DafnyFile[] { new(reporter.Options, uri, new StringReader(source)) },
+      var program = new ProgramParser().ParseFiles(fname, new DafnyFile[] { new(reporter.Options, uri, null, () => new StringReader(source)) },
         reporter, CancellationToken.None);
 
       var success = reporter.ErrorCount == 0;
@@ -98,7 +98,7 @@ namespace Microsoft.Dafny {
     public void Symbols() {
       ServerUtils.ApplyArgs(args, options);
       if (Parse() && Resolve()) {
-        var symbolTable = new LegacySymbolTable(dafnyProgram);
+        var symbolTable = new SuperLegacySymbolTable(dafnyProgram);
         var symbols = symbolTable.CalculateSymbols();
         Console.WriteLine("SYMBOLS_START " + ConvertToJson(symbols) + " SYMBOLS_END");
       } else {

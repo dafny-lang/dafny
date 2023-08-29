@@ -13,7 +13,6 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
 
     [Fact]
     public async Task ExplicitProjectToGoDefinitionWorks() {
-      await SetUp(o => o.Set(ServerCommand.ProjectMode, true));
       var sourceA = @"
 const a := 3;
 ".TrimStart();
@@ -124,7 +123,7 @@ type seq31<[>T<]> = x: seq<><T> | 0 <= |x| <= 32 as int
 
       MarkupTestFile.GetPositionsAndRanges(source, out var cleanSource,
         out var positions, out var ranges);
-      var documentItem = CreateTestDocument(cleanSource);
+      var documentItem = CreateTestDocument(cleanSource, "FunctionCallAndGotoOnDeclaration.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
 
       var fibonacciSpecOnItself = (await RequestDefinition(documentItem, positions[0]));
@@ -165,7 +164,7 @@ method Bar([>value<]: Identity<Colors>) returns (x: bool) {
 
       MarkupTestFile.GetPositionsAndRanges(source, out var cleanSource,
         out var positions, out var ranges);
-      var documentItem = CreateTestDocument(cleanSource);
+      var documentItem = CreateTestDocument(cleanSource, "DatatypesAndMatches.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var matchSource = (await RequestDefinition(documentItem, positions[0])).Single();
       Assert.Equal(ranges[2], matchSource.Location!.Range);
@@ -204,7 +203,7 @@ module Consumer {
 }".TrimStart();
       MarkupTestFile.GetPositionsAndRanges(source, out var cleanSource,
         out var positions, out var ranges);
-      var documentItem = CreateTestDocument(cleanSource);
+      var documentItem = CreateTestDocument(cleanSource, "JumpToExternModule.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var usizeReference = (await RequestDefinition(documentItem, positions[2])).Single();
       Assert.Equal(documentItem.Uri, usizeReference.Location!.Uri);
@@ -270,7 +269,7 @@ method CallIts() returns () {
   var x := Container.GetIt();
   Container.DoIt(x);
 }".TrimStart();
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "DefinitionOfMethodInvocationOfMethodDeclaredInSameDocumentReturnsLocation.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
 
       var containerReference = (await RequestDefinition(documentItem, (9, 11))).Single();
@@ -288,7 +287,7 @@ method CallIts() returns () {
 
     [Fact]
     public async Task DefinitionReturnsBeforeVerificationIsComplete() {
-      var documentItem = CreateTestDocument(NeverVerifies);
+      var documentItem = CreateTestDocument(NeverVerifies, "DefinitionReturnsBeforeVerificationIsComplete.dfy");
       client.OpenDocument(documentItem);
       var verificationTask = GetLastDiagnostics(documentItem, CancellationToken);
       var definitionTask = RequestDefinition(documentItem, (4, 14));
@@ -304,7 +303,7 @@ method DoIt() {
   var x := new int[0];
   var y := x.Length;
 }".TrimStart();
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "DefinitionOfFieldOfSystemTypeReturnsNoLocation.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var locations = await RequestDefinition(documentItem, (2, 14));
       Assert.False(locations.Any());
@@ -333,7 +332,7 @@ method DoIt() returns (x: int) {
 method DoIt() returns (x: int) {
   return GetX();
 }".TrimStart();
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "DefinitionOfInvocationOfUnknownFunctionOrMethodReturnsNoLocation.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       Assert.False((await RequestDefinition(documentItem, (1, 12))).Any());
     }
@@ -349,7 +348,7 @@ class Test {
     print x;
   }
 }".TrimStart();
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "DefinitionOfVariableShadowingFieldReturnsTheVariable.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var definition = (await RequestDefinition(documentItem, (5, 10))).Single();
       var location = definition.Location;
@@ -368,7 +367,7 @@ class Test {
     print this.x;
   }
 }".TrimStart();
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "DefinitionOfVariableShadowingFieldReturnsTheFieldIfThisIsUsed.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var definition = (await RequestDefinition(documentItem, (5, 15))).Single();
       var location = definition.Location;
@@ -390,7 +389,7 @@ class Test {
     }
   }
 }".TrimStart();
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "DefinitionOfVariableShadowingAnotherVariableReturnsTheShadowingVariable.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var definition = (await RequestDefinition(documentItem, (7, 12))).Single();
       var location = definition.Location;
@@ -412,7 +411,7 @@ class Test {
     print x;
   }
 }".TrimStart();
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "DefinitionOfVariableShadowedByAnotherReturnsTheOriginalVariable.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var definition = (await RequestDefinition(documentItem, (8, 10))).Single();
       var location = definition.Location;

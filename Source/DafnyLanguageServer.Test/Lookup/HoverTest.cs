@@ -17,7 +17,6 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
     protected override async Task SetUp(Action<DafnyOptions> modifyOptions = null) {
       void ModifyOptions(DafnyOptions options) {
         options.ProverOptions.Add("SOLVER=noop");
-        options.Set(ServerCommand.ProjectMode, true);
         modifyOptions?.Invoke(options);
       }
 
@@ -68,7 +67,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
       var hoverRegex = new Regex(@"\n//\s*(?<ColumnChar>\^)\[(?<ExpectedContent>.*)\](?=\n|$)");
       var source = hoverRegex.Replace(sourceWithHovers, "");
       var hovers = hoverRegex.Matches(sourceWithHovers);
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "AssertHover.dfy");
       if (useProjectFile) {
         await CreateAndOpenTestDocument("", Path.Combine(Path.GetDirectoryName(documentItem.Uri.GetFileSystemPath())!, DafnyProject.FileName));
       }
@@ -146,7 +145,7 @@ function F2(dt: DT): int {
 
     [Fact]
     public async Task HoverReturnsBeforeVerificationIsComplete() {
-      var documentItem = CreateTestDocument(NeverVerifies);
+      var documentItem = CreateTestDocument(NeverVerifies, "HoverReturnsBeforeVerificationIsComplete.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
 
       var verificationTask = GetLastDiagnostics(documentItem, CancellationToken);
