@@ -6,6 +6,7 @@ using Microsoft.Dafny.LanguageServer.Util;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using System.Threading;
 using Microsoft.Dafny.LanguageServer.Workspace;
@@ -15,15 +16,15 @@ using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
   public class SymbolTableFactory : ISymbolTableFactory {
     private readonly ILogger logger;
-    private readonly ILogger<SignatureAndCompletionTable> loggerSymbolTable;
+    private readonly ILogger<LegacySignatureAndCompletionTable> loggerSymbolTable;
 
-    public SymbolTableFactory(ILogger<SymbolTableFactory> logger, ILogger<SignatureAndCompletionTable> loggerSymbolTable) {
+    public SymbolTableFactory(ILogger<SymbolTableFactory> logger, ILogger<LegacySignatureAndCompletionTable> loggerSymbolTable) {
       this.logger = logger;
       this.loggerSymbolTable = loggerSymbolTable;
     }
 
 
-    public SignatureAndCompletionTable CreateFrom(CompilationUnit compilationUnit, CancellationToken cancellationToken) {
+    public LegacySignatureAndCompletionTable CreateFrom(CompilationUnit compilationUnit, CancellationToken cancellationToken) {
       var program = compilationUnit.Program;
       var declarations = CreateDeclarationDictionary(compilationUnit, cancellationToken);
       var designatorVisitor = new DesignatorVisitor(logger, compilationUnit, declarations, compilationUnit, cancellationToken);
@@ -40,7 +41,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         //      prohibiting it to be null).
         logger.LogDebug("cannot create symbol table from a program with errors");
       }
-      return new SignatureAndCompletionTable(
+      return new LegacySignatureAndCompletionTable(
         loggerSymbolTable,
         compilationUnit,
         declarations,
@@ -83,7 +84,8 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
 
       private ILegacySymbol currentScope;
 
-      public IIntervalTree<Position, ILocalizableSymbol> SymbolLookup { get; } = new IntervalTree<Position, ILocalizableSymbol>();
+      public ImmutableDictionary<Uri, IIntervalTree<Position, ILocalizableSymbol>> SymbolLookup { get; private set; }
+        = ImmutableDictionary<Uri, IIntervalTree<Position, ILocalizableSymbol>>.Empty;
 
       public DesignatorVisitor(
           ILogger logger, CompilationUnit compilationUnit, IDictionary<AstElement, ILocalizableSymbol> declarations, ILegacySymbol rootScope, CancellationToken cancellationToken) {
@@ -235,12 +237,21 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
       private void RegisterDesignator(ILegacySymbol scope, AstElement node, Boogie.IToken token, string identifier) {
         var symbol = GetSymbolDeclarationByName(scope, identifier);
         if (symbol != null) {
+          if (token == Token.NoToken) {
+            return;
+          }
           // Many resolutions for automatically generated nodes (e.g. Decreases, Update when initializating a variable
           // at declaration) cause duplicated visits. These cannot be prevented at this time as it seems there's no way
           // to distinguish nodes from automatically created one (i.e. nodes of the original syntax tree vs. nodes of the
           // abstract syntax tree). We just ignore such duplicates until more information is availabe in the AST.
           var range = token.GetLspRange();
-          SymbolLookup.Add(range.Start, range.End, symbol);
+
+          var dafnyToken = (IToken)token;
+          var symbolLookupForUri =
+            SymbolLookup.GetValueOrDefault(dafnyToken.Uri) ?? new IntervalTree<Position, ILocalizableSymbol>();
+          SymbolLookup = SymbolLookup.SetItem(dafnyToken.Uri, symbolLookupForUri);
+
+          symbolLookupForUri.Add(range.Start, range.End, symbol);
           if (designators.TryGetValue(node, out var registeredSymbol)) {
             if (registeredSymbol != symbol) {
               logger.LogDebug("Conflicting symbol resolution of designator named {Identifier} in {Filename}@({Line},{Column})",
@@ -283,7 +294,8 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
     private class SymbolDeclarationLocationVisitor : ISymbolVisitor<Unit> {
       private readonly CancellationToken cancellationToken;
 
-      public IDictionary<ILegacySymbol, SymbolLocation> Locations { get; } = new Dictionary<ILegacySymbol, SymbolLocation>();
+      public ImmutableDictionary<Uri, IDictionary<ILegacySymbol, SymbolLocation>> Locations { get; private set; }
+        = ImmutableDictionary<Uri, IDictionary<ILegacySymbol, SymbolLocation>>.Empty;
 
       public SymbolDeclarationLocationVisitor(CancellationToken cancellationToken) {
         this.cancellationToken = cancellationToken;
@@ -420,7 +432,10 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
       private void RegisterLocation(ILegacySymbol symbol, IToken token, Range name, Range declaration) {
         if (token.Filepath != null) {
           // The filename is null if we have a default or System based symbol. This is also reflected by the ranges being usually -1.
-          Locations.Add(symbol, new SymbolLocation(token.GetDocumentUri(), name, declaration));
+          var locationsForUri =
+            Locations.GetValueOrDefault(token.Uri) ?? new Dictionary<ILegacySymbol, SymbolLocation>();
+          Locations = Locations.SetItem(token.Uri, locationsForUri);
+          locationsForUri.Add(symbol, new SymbolLocation(token.Uri, name, declaration));
         }
       }
     }

@@ -8,12 +8,12 @@ namespace Microsoft.Dafny {
     public const string TestInlineAttribute = "testInline";
     public const string TestEntryAttribute = "testEntry";
     public bool WarnDeadCode = false;
-    public enum Modes { None, Block, CallGraph, Path };
+    public enum Modes { None, Block, InlinedBlock, Path };
     public Modes Mode = Modes.None;
     public uint SeqLengthLimit = 0;
     [CanBeNull] public string PrintBpl = null;
     public bool ForcePrune = false;
-    public const uint DefaultTimeLimit = 10;
     public string CoverageReport = null;
+    public const uint DefaultTimeLimit = 20;
   }
 }

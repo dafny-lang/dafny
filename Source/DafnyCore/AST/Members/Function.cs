@@ -52,10 +52,6 @@ public class Function : MemberDecl, TypeParameter.ParentType, ICallable, ICanFor
       yield return new Assumption(this, tok, AssumptionDescription.NoBody(IsGhost));
     }
 
-    if (Body is not null && HasConcurrentAttribute) {
-      yield return new Assumption(this, tok, AssumptionDescription.HasConcurrentAttribute);
-    }
-
     if (HasExternAttribute) {
       yield return new Assumption(this, tok, AssumptionDescription.ExternFunction);
       if (HasPostcondition && !HasAxiomAttribute) {
@@ -133,7 +129,9 @@ public class Function : MemberDecl, TypeParameter.ParentType, ICallable, ICanFor
     Concat<Node>(Req).
     Concat(Ens.Select(e => e.E)).
     Concat(Decreases.Expressions).
-    Concat(Formals).Concat(Result != null ? new List<Node>() { Result } : new List<Node>()).
+    Concat(Formals).
+    Concat(Result != null ? new List<Node>() { Result } : new List<Node>()).
+    Concat(ResultType != null ? new List<Node>() { ResultType } : new List<Node>()).
     Concat(Body == null ? Enumerable.Empty<Node>() : new[] { Body });
 
   public override IEnumerable<INode> PreResolveChildren =>

@@ -240,6 +240,7 @@ least lemma star_transitive_aux(c0: com, s0: state, c1: com, s1: state, c2: com,
   requires small_step_star(c0, s0, c1, s1)
   ensures small_step_star(c1, s1, c2, s2) ==> small_step_star(c0, s0, c2, s2)
 {
+  if small_step_star(c1, s1, c2, s2) {}
 }
 
 // The big-step semantics can be simulated by some number of small steps

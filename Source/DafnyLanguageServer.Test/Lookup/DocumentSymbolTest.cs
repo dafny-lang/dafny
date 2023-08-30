@@ -38,13 +38,28 @@ module A.B.C {
 
       var symbols = (await RequestDocumentSymbol(documentItem)).ToList();
       Assert.Single(symbols);
-      var aChildren = symbols.First().Children!.ToList();
-      Assert.Single(aChildren);
-      var bChildren = aChildren.First().Children!.ToList();
-      Assert.Single(bChildren);
-      var cChildren = bChildren.First().Children!.ToList();
+      var c = symbols.First();
+      Assert.Equal(new Range(0, 0, 5, 1), c.Range);
+      Assert.Equal(new Range(0, 11, 0, 12), c.SelectionRange);
+      var cChildren = c.Children!.ToList();
       Assert.Single(cChildren);
     }
+
+    [Fact]
+    public async Task LoadCorrectDocumentCreatesTopLevelSymbols() {
+      var source = @"
+  method DoIt() returns (x: int) {
+  }
+
+  method CallIt() returns () {
+    var x := DoIt();
+  }".TrimStart();
+      var documentItem = CreateTestDocument(source);
+      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+      var allSymbols = await RequestDocumentSymbol(documentItem);
+      Assert.Equal(2, allSymbols.Count());
+    }
+
 
     [Fact]
     public async Task LoadCorrectDocumentCreatesSymbols() {
@@ -59,7 +74,7 @@ class Y {
     var x := DoIt();
   }
 }".TrimStart();
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "LoadCorrectDocumentCreatesSymbols.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
 
       var classSymbol = (await RequestDocumentSymbol(documentItem)).Single();
@@ -108,7 +123,7 @@ class Y {
     [Fact]
     public async Task CanResolveSymbolsForMethodsWithoutBody() {
       var source = "method DoIt()";
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "CanResolveSymbolsForMethodsWithoutBody.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
 
       var methodSymbol = (await RequestDocumentSymbol(documentItem)).Single();
@@ -121,7 +136,7 @@ class Y {
     [Fact]
     public async Task CanResolveSymbolsForFunctionWithoutBody() {
       var source = "function ConstOne(): int";
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "CanResolveSymbolsForFunctionWithoutBody.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
 
       var methodSymbol = (await RequestDocumentSymbol(documentItem)).Single();
