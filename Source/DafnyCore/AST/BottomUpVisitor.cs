@@ -56,6 +56,7 @@ public class BottomUpVisitor {
   }
   public void Visit(Method method) {
     Visit(method.Req);
+    Visit(method.Reads);
     Visit(method.Mod.Expressions);
     Visit(method.Ens);
     Visit(method.Decreases.Expressions);

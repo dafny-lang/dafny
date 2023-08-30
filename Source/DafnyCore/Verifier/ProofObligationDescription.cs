@@ -1107,6 +1107,22 @@ public class AssignmentShrinks : ProofObligationDescriptionWithNoExpr {
   }
 }
 
+public class ConcurrentFrameEmpty : ProofObligationDescriptionWithNoExpr {
+  public override string SuccessDescription =>
+    $"{frameName} is empty ({{:concurrent}} restriction)";
+
+  public override string FailureDescription =>
+    $"{frameName} could not be proved to be empty ({{:concurrent}} restriction)";
+
+  public override string ShortDescription => "concurrency safety";
+
+  private readonly string frameName;
+
+  public ConcurrentFrameEmpty(string frameName) {
+    this.frameName = frameName;
+  }
+}
+
 public class BoilerplateTriple : ProofObligationDescriptionCustomMessages {
   public override string ShortDescription => "boilerplate triple";
 

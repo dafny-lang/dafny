@@ -52,10 +52,6 @@ public class Function : MemberDecl, TypeParameter.ParentType, ICallable, ICanFor
       yield return new Assumption(this, tok, AssumptionDescription.NoBody(IsGhost));
     }
 
-    if (Body is not null && HasConcurrentAttribute) {
-      yield return new Assumption(this, tok, AssumptionDescription.HasConcurrentAttribute);
-    }
-
     if (HasExternAttribute) {
       yield return new Assumption(this, tok, AssumptionDescription.ExternFunction);
       if (HasPostcondition && !HasAxiomAttribute) {

@@ -232,6 +232,8 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
             : ProcessExpression(new ScopeSymbol(methodSymbol, methodSymbol.Declaration), expression);
         methodSymbol.Ensures.AddRange(ProcessListAttributedExpressions(method.Ens, ExpressionHandler));
         methodSymbol.Requires.AddRange(ProcessListAttributedExpressions(method.Req, ExpressionHandler));
+        methodSymbol.Reads.AddRange(ProcessListExpressions(
+          method.Reads.Select(frameExpression => frameExpression.E), ExpressionHandler));
         methodSymbol.Modifies.AddRange(ProcessListExpressions(
           method.Mod.Expressions.Select(frameExpression => frameExpression.E), ExpressionHandler));
         methodSymbol.Decreases.AddRange(ProcessListExpressions(method.Decreases.Expressions, ExpressionHandler));

@@ -2669,6 +2669,16 @@ Note, in the precondition of the iterator, which is to hold upon
 construction of the iterator, the in-parameters are indeed
 in-parameters, not fields of `this`.
 
+`reads` clauses on iterators have a different meaning than they do on functions and methods.
+Iterators may read any memory they like, but because arbitrary code may be executed
+whenever they `yield` control, they need to declare what memory locations must not be modified
+by other code in order to maintain correctness.
+The contents of an iterator's `reads` clauses become part of the `reads` clause
+of the implicitly created `Valid()` predicate.
+This means if client code modifies any of this state,
+it will not be able to establish the precondition for the iterator's `MoveNext()` method,
+and hence the iterator body will never resume if this state is modified.
+
 It is regrettably tricky to use iterators. The language really
 ought to have a `foreach` statement to make this easier.
 Here is an example showing a definition and use of an iterator.
