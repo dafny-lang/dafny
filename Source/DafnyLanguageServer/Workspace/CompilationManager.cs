@@ -171,6 +171,7 @@ public class CompilationManager {
     if (!containingModule.ShouldVerify(compilation.Program.Compilation)) {
       return false;
     }
+
     IncrementJobs();
 
     IReadOnlyDictionary<FilePosition, IReadOnlyList<IImplementationTask>> tasksForModule;
