@@ -323,7 +323,7 @@ namespace Microsoft.Dafny {
         var s = (IfStmt)stmt;
         if (s.Guard != null) {
           ResolveExpression(s.Guard, resolutionContext);
-          ConstrainTypeExprBool(s.Guard, "if statement", "condition is expected to be of type bool, but is {0}");
+          ConstrainTypeExprBool(s.Guard, "condition is expected to be of type bool, but is {0}");
         }
 
         scope.PushMarker();
@@ -1355,7 +1355,7 @@ namespace Microsoft.Dafny {
       // first, resolve the guards
       foreach (var alternative in alternatives) {
         ResolveExpression(alternative.Guard, resolutionContext);
-        alternative.Guard.PreType = ConstrainResultToBoolFamily(alternative.Guard.tok, "if/while case", "condition is expected to be of type bool, but is {0}");
+        ConstrainExpressionToBoolFamily(alternative.Guard, "condition is expected to be of type bool, but is {0}");
       }
 
       if (loopToCatchBreaks != null) {

@@ -3972,3 +3972,90 @@ module DefaultValues {
     20
   }
 }
+
+module IndexAdviceTypeRegressions {
+  type BV10 = x: bv10 | x != 999 witness 8
+
+  method Index(s: seq<string>)
+    requires 2 < |s|
+  {
+    var k: bv10 := 2;
+    var a := s[k := "tjena"];
+
+    var K: BV10 := 2;
+    var A := s[K := "tjena"];
+
+    // rely on advice for the type
+    var i;
+    var b := s[i := "tjena"];
+  }
+
+  method Multi(matrix: array2<real>)
+    requires matrix.Length0 == matrix.Length1 == 100
+  {
+    var u := matrix[2, 5];
+    var i := 2;
+    u := matrix[i, 5];
+    var j := 2;
+    u := matrix[j, 5];
+    j := j & j;
+    j := 16 as bv29;
+    // rely on advice for the type
+    var k;
+    u := matrix[k, 5];
+  }
+
+  method Array(arr: array<real>) returns (r: real)
+    requires 10 <= arr.Length
+  {
+    var k: bv10 := 2;
+    r := arr[k];
+    var K: BV10 := 2;
+    r := arr[K];
+  }
+
+  method Seq(s: seq<real>) returns (r: real)
+    requires 10 <= |s|
+  {
+    var k: bv10 := 2;
+    r := s[k];
+    var K: BV10 := 2;
+    r := s[K];
+  }
+
+  method Range(arr: array<real>, s: seq<real>) returns (r: seq<real>)
+    requires 10 <= arr.Length <= |s|
+  {
+    var k: bv10 := 2;
+    var K: BV10 := 4;
+    r := arr[k..K];
+    r := s[k..K];
+    r := arr[k..];
+    r := s[k..];
+    r := arr[..K];
+    r := s[..K];
+
+    // rely on advice for the type
+    var a, b, c, d;
+    r := arr[a..b];
+    r := arr[c..];
+    r := arr[..d];
+    var w, x, y, z;
+    r := s[w..x];
+    r := s[y..];
+    r := s[..z];
+  }
+
+  method Bad(arr: array<real>, s: seq<real>, matrix: array2<real>) returns (r: real, range: seq<real>) {
+    r := arr[2.3]; // error: bad index type
+    r := s[2.3]; // error: bad index type
+    r := matrix[false, 2.3]; // error: bad index type
+
+    range := arr[2.3..3.14]; // error (x2): bad index types
+    range := arr[2.3..]; // error: bad index type
+    range := arr[..3.14]; // error: bad index type
+    range := s[2.3..3.14]; // error (x2): bad index types
+    range := s[2.3..]; // error: bad index type
+    range := s[..3.14]; // error: bad index type
+  }
+}

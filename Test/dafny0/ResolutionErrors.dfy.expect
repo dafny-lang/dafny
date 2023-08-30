@@ -632,4 +632,24 @@ ResolutionErrors.dfy(3941,8): Error: when allocating an object of type 'Y', one 
 ResolutionErrors.dfy(3946,8): Error: when allocating an object of type 'Luci', one of its constructor methods must be called
 ResolutionErrors.dfy(3947,8): Error: when allocating an object of type 'Luci', one of its constructor methods must be called
 ResolutionErrors.dfy(3971,44): Error: type of right argument to * (bool) must agree with the result type (int)
-630 resolution/type errors detected in ResolutionErrors.dfy
+ResolutionErrors.dfy(4052,16): Error: array selection requires integer- or bitvector-based numeric indices (got bool for index 0)
+ResolutionErrors.dfy(4050,13): Error: incorrect type for selection into array<real> (got real)
+ResolutionErrors.dfy(4051,11): Error: incorrect type for selection into seq<real> (got real)
+ResolutionErrors.dfy(4052,23): Error: array selection requires integer- or bitvector-based numeric indices (got real for index 1)
+ResolutionErrors.dfy(4054,17): Error: wrong number of indices for multi-selection
+ResolutionErrors.dfy(4054,17): Error: incorrect type for selection into array<real> (got real)
+ResolutionErrors.dfy(4054,22): Error: wrong number of indices for multi-selection
+ResolutionErrors.dfy(4054,22): Error: incorrect type for selection into array<real> (got real)
+ResolutionErrors.dfy(4055,17): Error: wrong number of indices for multi-selection
+ResolutionErrors.dfy(4055,17): Error: incorrect type for selection into array<real> (got real)
+ResolutionErrors.dfy(4056,19): Error: wrong number of indices for multi-selection
+ResolutionErrors.dfy(4056,19): Error: incorrect type for selection into array<real> (got real)
+ResolutionErrors.dfy(4057,15): Error: wrong number of indices for multi-selection
+ResolutionErrors.dfy(4057,15): Error: incorrect type for selection into seq<real> (got real)
+ResolutionErrors.dfy(4057,20): Error: wrong number of indices for multi-selection
+ResolutionErrors.dfy(4057,20): Error: incorrect type for selection into seq<real> (got real)
+ResolutionErrors.dfy(4058,15): Error: wrong number of indices for multi-selection
+ResolutionErrors.dfy(4058,15): Error: incorrect type for selection into seq<real> (got real)
+ResolutionErrors.dfy(4059,17): Error: wrong number of indices for multi-selection
+ResolutionErrors.dfy(4059,17): Error: incorrect type for selection into seq<real> (got real)
+650 resolution/type errors detected in ResolutionErrors.dfy

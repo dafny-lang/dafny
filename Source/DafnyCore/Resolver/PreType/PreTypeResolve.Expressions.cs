@@ -260,7 +260,7 @@ namespace Microsoft.Dafny {
         int i = 0;
         foreach (var indexExpression in e.Indices) {
           ResolveExpression(indexExpression, resolutionContext);
-          AddConfirmation(PreTypeConstraints.CommonConfirmationBag.IntLikeOrBitvector, indexExpression.PreType, indexExpression.tok,
+          ConstrainToIntFamilyOrBitvector(indexExpression.PreType, indexExpression.tok,
             "array selection requires integer- or bitvector-based numeric indices (got {0} for index " + i + ")");
           i++;
         }
@@ -276,7 +276,7 @@ namespace Microsoft.Dafny {
           var familyDeclName = AncestorName(sourcePreType);
           if (familyDeclName == "seq") {
             var elementPreType = sourcePreType.Arguments[0];
-            ConstrainToIntFamily(e.Index.PreType, e.Index.tok, "sequence update requires integer- or bitvector-based index (got {0})");
+            ConstrainToIntFamilyOrBitvector(e.Index.PreType, e.Index.tok, "sequence update requires integer- or bitvector-based index (got {0})");
             AddSubtypeConstraint(elementPreType, e.Value.PreType, e.Value.tok,
               "sequence update requires the value to have the element type of the sequence (got {0})");
             return true;
@@ -446,6 +446,7 @@ namespace Microsoft.Dafny {
           case UnaryOpExpr.Opcode.Not:
             AddConfirmation(PreTypeConstraints.CommonConfirmationBag.BooleanBits, e.E.PreType, expr.tok, "logical/bitwise negation expects a boolean or bitvector argument (instead got {0})");
             expr.PreType = e.E.PreType;
+            Constraints.AddDefaultAdvice(e.PreType, Advice.Target.Bool);
             break;
           case UnaryOpExpr.Opcode.Cardinality:
             AddConfirmation(PreTypeConstraints.CommonConfirmationBag.Sizeable, e.E.PreType, expr.tok, "size operator expects a collection argument (instead got {0})");
@@ -601,7 +602,7 @@ namespace Microsoft.Dafny {
           }
           foreach (var rhs in e.RHSs) {
             ResolveExpression(rhs, resolutionContext);
-            rhs.PreType = ConstrainResultToBoolFamily(rhs.tok, "such-that constraint", "type of RHS of let-such-that expression must be boolean (got {0})");
+            ConstrainExpressionToBoolFamily(rhs, "type of RHS of let-such-that expression must be boolean (got {0})");
           }
         }
         ResolveExpression(e.Body, resolutionContext);
@@ -931,8 +932,7 @@ namespace Microsoft.Dafny {
 
         case BinaryExpr.Opcode.Mod:
           resultPreType = CreatePreTypeProxy("result of % operation");
-          Constraints.AddDefaultAdvice(resultPreType, Advice.Target.Int);
-          AddConfirmation(PreTypeConstraints.CommonConfirmationBag.IntLikeOrBitvector, resultPreType, tok, "type of " + opString + " must be integer-numeric or bitvector types (got {0})");
+          ConstrainToIntFamilyOrBitvector(resultPreType, tok, "type of " + opString + " must be integer-numeric or bitvector types (got {0})");
           ConstrainOperandTypes(tok, opString, e0, e1, resultPreType);
           break;
 
@@ -966,14 +966,11 @@ namespace Microsoft.Dafny {
     private void ConstrainTypeExprBool(Expression e, string msgFormat) {
       Contract.Requires(e != null);
       Contract.Requires(msgFormat != null);  // may have a {0} part
-      e.PreType = ConstrainResultToBoolFamily(e.tok, "<unspecified use>", msgFormat);
-    }
-
-    private void ConstrainTypeExprBool(Expression e, string proxyDescription, string msgFormat) {
-      Contract.Requires(e != null);
-      Contract.Requires(proxyDescription != null);
-      Contract.Requires(msgFormat != null);  // may have a {0} part
-      e.PreType = ConstrainResultToBoolFamily(e.tok, proxyDescription, msgFormat);
+      if (e.PreType != null) {
+        ConstrainExpressionToBoolFamily(e, msgFormat);
+      } else {
+        e.PreType = ConstrainResultToBoolFamily(e.tok, "<unspecified use>", msgFormat);
+      }
     }
 
     private PreType ConstrainResultToBoolFamilyOperator(IToken tok, string opString) {
@@ -988,9 +985,20 @@ namespace Microsoft.Dafny {
       return pt;
     }
 
+    private void ConstrainExpressionToBoolFamily(Expression expr, string errorFormat) {
+      Contract.Assert(expr.PreType != null);
+      Constraints.AddDefaultAdvice(expr.PreType, Advice.Target.Bool);
+      AddConfirmation(PreTypeConstraints.CommonConfirmationBag.InBoolFamily, expr.PreType, expr.tok, errorFormat);
+    }
+
     private void ConstrainToIntFamily(PreType preType, IToken tok, string errorFormat) {
       Constraints.AddDefaultAdvice(preType, Advice.Target.Int);
       AddConfirmation(PreTypeConstraints.CommonConfirmationBag.InIntFamily, preType, tok, errorFormat);
+    }
+
+    private void ConstrainToIntFamilyOrBitvector(PreType preType, IToken tok, string errorFormat) {
+      Constraints.AddDefaultAdvice(preType, Advice.Target.Int);
+      AddConfirmation(PreTypeConstraints.CommonConfirmationBag.IntLikeOrBitvector, preType, tok, errorFormat);
     }
 
     private void ConstrainToCommonSupertype(IToken tok, string opString, PreType a, PreType b, PreType commonSupertype) {
@@ -2034,7 +2042,7 @@ namespace Microsoft.Dafny {
           switch (familyDeclName) {
             case "array":
             case "seq":
-              AddConfirmation(PreTypeConstraints.CommonConfirmationBag.IntLikeOrBitvector, index.PreType, index.tok, "index expression must have an integer type (got {0})");
+              ConstrainToIntFamilyOrBitvector(index.PreType, index.tok, "index expression must have an integer or bitvector type (got {0})");
               AddSubtypeConstraint(resultPreType, sourcePreType.Arguments[0], tok, "type does not agree with element type {1} (got {0})");
               break;
             case "multiset":
@@ -2061,12 +2069,12 @@ namespace Microsoft.Dafny {
       var resultElementPreType = CreatePreTypeProxy("multi-index selection");
       var resultPreType = new DPreType(BuiltInTypeDecl("seq"), new List<PreType>() { resultElementPreType });
       if (e0 != null) {
-        AddConfirmation(PreTypeConstraints.CommonConfirmationBag.IntLikeOrBitvector, e0.PreType, e0.tok,
-          "multi-element selection position expression must have an integer type (got {0})");
+        ConstrainToIntFamilyOrBitvector(e0.PreType, e0.tok,
+          "multi-element selection position expression must have an integer or bitvector type (got {0})");
       }
       if (e1 != null) {
-        AddConfirmation(PreTypeConstraints.CommonConfirmationBag.IntLikeOrBitvector, e1.PreType, e1.tok,
-          "multi-element selection position expression must have an integer type (got {0})");
+        ConstrainToIntFamilyOrBitvector(e1.PreType, e1.tok,
+          "multi-element selection position expression must have an integer or bitvector type (got {0})");
       }
       Constraints.AddGuardedConstraint(() => {
         var sourcePreType = collectionPreType.NormalizeWrtScope() as DPreType;
