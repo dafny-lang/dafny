@@ -1,11 +1,13 @@
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
+using System.Numerics;
 using Microsoft.Dafny.Auditor;
 
 namespace Microsoft.Dafny;
 
-public class Method : MemberDecl, TypeParameter.ParentType, IMethodCodeContext, ICanFormat, IHasDocstring, IHasSymbolChildren, ICanVerify {
+public class Method : MemberDecl, TypeParameter.ParentType,
+  IMethodCodeContext, ICanFormat, IHasDocstring, IHasSymbolChildren, ICanAutoRevealDependencies, ICanVerify {
   public override IEnumerable<INode> Children => new Node[] { Body, Decreases }.Where(x => x != null).
     Concat(Ins).Concat(Outs).Concat<Node>(TypeArgs).
     Concat(Req).Concat(Ens).Concat(Reads).Concat(Mod.Expressions);
@@ -423,4 +425,72 @@ public class Method : MemberDecl, TypeParameter.ParentType, IMethodCodeContext, 
 
   public bool ShouldVerify => true; // This could be made more accurate
   public ModuleDefinition ContainingModule => EnclosingClass.EnclosingModuleDefinition;
+
+  public void AutoRevealDependencies(AutoRevealFunctionDependencies Rewriter, DafnyOptions Options,
+    ErrorReporter Reporter) {
+    if (Body is null) {
+      return;
+    }
+
+    object autoRevealDepsVal = null;
+    bool autoRevealDeps = Attributes.ContainsMatchingValue(Attributes, "autoRevealDependencies",
+      ref autoRevealDepsVal, new List<Attributes.MatchingValueOption> {
+        Attributes.MatchingValueOption.Bool,
+        Attributes.MatchingValueOption.Int
+      }, s => Reporter.Error(MessageSource.Rewriter, ErrorLevel.Error, Tok, s));
+
+    // Default behavior is reveal all dependencies
+    int autoRevealDepth = int.MaxValue;
+
+    if (autoRevealDeps) {
+      if (autoRevealDepsVal is false) {
+        autoRevealDepth = 0;
+      } else if (autoRevealDepsVal is BigInteger i) {
+        autoRevealDepth = (int)i;
+      }
+    }
+
+    var currentClass = EnclosingClass;
+    List<AutoRevealFunctionDependencies.RevealStmtWithDepth> addedReveals = new();
+
+    foreach (var func in Rewriter.GetEnumerator(this, currentClass, SubExpressions)) {
+      var revealStmt =
+        AutoRevealFunctionDependencies.BuildRevealStmt(func.Function, Tok, EnclosingClass.EnclosingModuleDefinition);
+
+      if (revealStmt is not null) {
+        addedReveals.Add(new AutoRevealFunctionDependencies.RevealStmtWithDepth(revealStmt, func.Depth));
+      }
+    }
+
+    if (autoRevealDepth > 0) {
+      Expression reqExpr = new LiteralExpr(Tok, true) {
+        Type = Type.Bool
+      };
+
+      foreach (var revealStmt in addedReveals) {
+        if (revealStmt.Depth <= autoRevealDepth) {
+          if (this is Constructor c) {
+            c.BodyInit.Insert(0, revealStmt.RevealStmt);
+          } else {
+            Body.Body.Insert(0, revealStmt.RevealStmt);
+          }
+
+          reqExpr = new StmtExpr(reqExpr.tok, revealStmt.RevealStmt, reqExpr) {
+            Type = Type.Bool
+          };
+        } else {
+          break;
+        }
+      }
+
+      if (Req.Any() || Ens.Any()) {
+        Req.Insert(0, new AttributedExpression(reqExpr));
+      }
+    }
+
+    if (addedReveals.Any()) {
+      Reporter.Message(MessageSource.Rewriter, ErrorLevel.Info, null, tok,
+        AutoRevealFunctionDependencies.GenerateMessage(addedReveals, autoRevealDepth));
+    }
+  }
 }
