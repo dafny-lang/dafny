@@ -107,6 +107,10 @@ Usage: dafny [ option ... ] [ filename ... ]
       0 (default) - Don't print debug information for the new type system.
       1 - Print debug information for the new type system.
 
+  /readsClausesOnMethods:<value>
+      0 (default) - Reads clauses on methods are forbidden.
+      1 - Reads clauses on methods are permitted (with a default of 'reads *').
+
   /titrace:<value>
       0 (default) - Don't print type-inference debug information.
       1 - Print type-inference debug information.

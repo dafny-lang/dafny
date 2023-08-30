@@ -173,6 +173,8 @@ namespace Microsoft.Dafny {
 
       method.Req.ForEach(aexpr => VisitAttributedExpression(aexpr, context));
 
+      method.Reads.ForEach(frameExpression => VisitTopLevelFrameExpression(frameExpression, context));
+
       VisitAttributes(method.Mod, method.EnclosingClass.EnclosingModuleDefinition);
       method.Mod.Expressions.ForEach(frameExpression => VisitTopLevelFrameExpression(frameExpression, context));
 

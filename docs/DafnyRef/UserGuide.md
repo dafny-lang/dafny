@@ -420,11 +420,6 @@ Since Dafny cannot prove properties about code written in other languages,
 adding tests to provide evidence that any `ensures` clauses do hold can improve assurance.
 The same considerations apply to `requires` clauses on Dafny code intended to be called from external code.
 
-* Any declaration marked with the `{:concurrent}` attribute.
-This is intended to indicate that the code is safe for use in a concurrent setting, but Dafny currently cannot prove that form of safety.
-The [addition of `reads` clauses to methods](https://github.com/dafny-lang/rfcs/pull/6) will be a step toward being able to prove safety in this case,
-but until it exists, careful inspection and testing are appropriate.
-
 * Any definition with an `assume` statement in its body.
 To improve assurance, attempt to convert it to an `assert` statement and prove that it holds.
 Such a definition will not be compilable unless the statement is also marked with `{:axiom}`.
