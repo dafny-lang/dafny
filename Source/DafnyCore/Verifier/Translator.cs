@@ -4388,12 +4388,6 @@ namespace Microsoft.Dafny {
       DefineFrame(f.tok, etran.ReadsFrame(f.tok), f.Reads, builder, locals, null);
       InitializeFuelConstant(f.tok, builder, etran);
 
-      // TODO: is this valid here given we haven't checked the well-formedness of the reads clauses yet?
-      if (Attributes.Contains(f.Attributes, Attributes.ConcurrentAttributeName)) {
-        var desc = new PODesc.ConcurrentFrameEmpty("reads clause");
-        CheckFrameEmpty(f.tok, etran, etran.ReadsFrame(f.tok), builder, desc, null);
-      }
-
       var delayer = new ReadsCheckDelayer(etran, null, locals, builderInitializationArea, builder);
 
       // Check well-formedness of any default-value expressions (before assuming preconditions).
@@ -4435,6 +4429,12 @@ namespace Microsoft.Dafny {
       delayer.DoWithDelayedReadsChecks(false, wfo => {
         CheckFrameWellFormed(wfo, f.Reads, locals, builder, etran);
       });
+      
+      // If the function is marked as {:concurrent}, check that the reads clause is empty.
+      if (Attributes.Contains(f.Attributes, Attributes.ConcurrentAttributeName)) {
+        var desc = new PODesc.ConcurrentFrameEmpty("reads clause");
+        CheckFrameEmpty(f.tok, etran, etran.ReadsFrame(f.tok), builder, desc, null);
+      }
 
       // check well-formedness of the decreases clauses (including termination, but no reads checks)
       foreach (Expression p in f.Decreases.Expressions) {

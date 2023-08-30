@@ -720,11 +720,12 @@ namespace Microsoft.Dafny {
         // check well-formedness of the modifies clauses
         readsCheckDelayer.DoWithDelayedReadsChecks(false, wfo => {
           CheckFrameWellFormed(wfo, m.Mod.Expressions, localVariables, builder, etran);
-          if (Attributes.Contains(m.Attributes, Attributes.ConcurrentAttributeName)) {
-            var desc = new PODesc.ConcurrentFrameEmpty("modifies clause");
-            CheckFrameEmpty(m.tok, etran, etran.ModifiesFrame(m.tok), builder, desc, null);
-          }
         });
+        // Also check that the modifies clause == {} if the {:concurrent} attribute is present
+        if (Attributes.Contains(m.Attributes, Attributes.ConcurrentAttributeName)) {
+          var desc = new PODesc.ConcurrentFrameEmpty("modifies clause");
+          CheckFrameEmpty(m.tok, etran, etran.ModifiesFrame(m.tok), builder, desc, null);
+        }
 
         // check well-formedness of the decreases clauses
         foreach (Expression p in m.Decreases.Expressions) {
