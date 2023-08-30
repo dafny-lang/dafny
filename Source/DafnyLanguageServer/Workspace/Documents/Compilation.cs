@@ -23,6 +23,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
   /// There can be different verification threads that update the state of this object.
   /// </summary>
   public class Compilation {
+    /// <summary>
+    /// These do not have to be owned
+    /// </summary>
     public IReadOnlyList<Uri> RootUris { get; }
     public int Version { get; }
     public DafnyProject Project { get; }
@@ -43,7 +46,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         SymbolTable.Empty(), LegacySignatureAndCompletionTable.Empty(options, initialCompilation.Project), new(),
         Array.Empty<Counterexample>(),
         ImmutableDictionary<Uri, IReadOnlyList<Range>>.Empty,
-        initialCompilation.RootUris.ToDictionary(uri => uri, uri => (VerificationTree)new DocumentVerificationTree(program, uri))
+        initialCompilation.RootUris.ToDictionary(uri => uri, uri => new DocumentVerificationTree(program, uri))
       ));
     }
 

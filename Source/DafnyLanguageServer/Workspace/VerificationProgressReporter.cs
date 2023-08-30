@@ -28,14 +28,20 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
   /// Fills up the document with empty verification diagnostics, one for each top-level declarations
   /// Possibly migrates previous diagnostics
   /// </summary>
-  public void RecomputeVerificationTrees(CompilationAfterResolution compilation) {
-    foreach (var tree in compilation.VerificationTrees.Values) {
-      UpdateTree(options, compilation, tree);
+  public void RecomputeVerificationTrees(CompilationAfterParsing compilation) {
+    foreach (var uri in compilation.VerificationTrees.Keys) {
+      compilation.VerificationTrees[uri] = UpdateTree(options, compilation, compilation.VerificationTrees[uri]);
     }
   }
 
-  public static void UpdateTree(DafnyOptions options, CompilationAfterParsing parsedCompilation, VerificationTree rootVerificationTree) {
+  private static DocumentVerificationTree UpdateTree(DafnyOptions options, CompilationAfterParsing parsedCompilation, DocumentVerificationTree rootVerificationTree) {
     var previousTrees = rootVerificationTree.Children;
+
+    if (parsedCompilation is not CompilationAfterResolution) {
+      return new DocumentVerificationTree(parsedCompilation.Program, rootVerificationTree.Uri) {
+        Children = rootVerificationTree.Children
+      };
+    }
 
     List<VerificationTree> result = new List<VerificationTree>();
 
@@ -151,7 +157,9 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
       }
     }
 
-    rootVerificationTree.Children = result;
+    return new DocumentVerificationTree(parsedCompilation.Program, rootVerificationTree.Uri) {
+      Children = result
+    };
   }
 
   /// <summary>
@@ -179,9 +187,11 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
 
     canVerifyNode.ResetNewChildren();
 
+    TopLevelDeclMemberVerificationTree? targetMethodNode;
+    ImplementationVerificationTree newImplementationNode;
     foreach (var implementation in implementations) {
 
-      var targetMethodNode = GetTargetMethodTree(tree, implementation, out var oldImplementationNode, true);
+      targetMethodNode = GetTargetMethodTree(tree, implementation, out var oldImplementationNode, true);
       if (targetMethodNode == null) {
         NoMethodNodeAtLogging(tree, "ReportImplementationsBeforeVerification", compilation, implementation);
         continue;
@@ -189,7 +199,7 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
 
       var newDisplayName = targetMethodNode.DisplayName + " #" + (targetMethodNode.Children.Count + 1) + ":" +
                            implementation.Name;
-      var newImplementationNode = new ImplementationVerificationTree(
+      newImplementationNode = new ImplementationVerificationTree(
         newDisplayName,
         implementation.Name,
         targetMethodNode.Filename,
@@ -201,9 +211,10 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
         newImplementationNode.Children = oldImplementationNode.Children;
       }
 
-      targetMethodNode?.AddNewChild(newImplementationNode);
+      targetMethodNode.AddNewChild(newImplementationNode);
     }
 
+    var newChildren = canVerifyNode.NewChildren;
     canVerifyNode.SaveNewChildren();
     if (!canVerifyNode.Children.Any()) {
       canVerifyNode.Start();
@@ -220,8 +231,10 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
   /// Triggers sending of the current verification diagnostics to the client
   /// </summary>
   public void ReportRealtimeDiagnostics(CompilationAfterParsing compilation, Uri uri, bool verificationStarted) {
-    lock (LockProcessing) {
-      notificationPublisher.PublishGutterIcons(uri, compilation.InitialIdeState(compilation, options), verificationStarted);
+    if (options.Get(ServerCommand.LineVerificationStatus)) {
+      lock (LockProcessing) {
+        notificationPublisher.PublishGutterIcons(uri, compilation.InitialIdeState(compilation, options), verificationStarted);
+      }
     }
   }
 

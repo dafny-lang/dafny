@@ -50,8 +50,6 @@ class DafnyDoc {
       outputdir = DefaultOutputDir;
     }
 
-
-
     // Collect all the dafny files; dafnyFiles already includes files from a .toml project file
     var exitValue = DafnyDriver.ExitValue.SUCCESS;
     dafnyFiles = dafnyFiles.Concat(dafnyFolders.SelectMany(folderPath => {
@@ -817,6 +815,11 @@ class DafnyDoc {
       var m = d as Method;
       foreach (var req in m.Req) {
         details.Append(space4).Append(Keyword("requires")).Append(" ").Append(Code(req.E.ToString())).Append(br).Append(eol);
+        some = true;
+      }
+      if (m.Reads.Count > 0) {
+        var list = String.Join(", ", m.Reads.Select(e => Code(e.OriginalExpression.ToString() + (e.FieldName != null ? "`" + e.FieldName : ""))));
+        details.Append(space4).Append(Keyword("reads")).Append(" ").Append(list).Append(br).Append(eol);
         some = true;
       }
       if (m.Mod != null && m.Mod.Expressions.Count > 0) {

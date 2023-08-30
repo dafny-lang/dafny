@@ -1,5 +1,5 @@
-// RUN: %exits-with 4 %dafny /compile:0 "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachResolver --expect-exit-code=4 --refresh-exit-code=2 "%s"
+
 
 trait A<X> { }
 trait B<Y0, Y1> { }

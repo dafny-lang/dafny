@@ -104,6 +104,9 @@
         Visit(ensurement);
       }
       Visit(method.Decreases);
+      foreach (var read in method.Reads) {
+        Visit(read);
+      }
       Visit(method.Mod);
       VisitNullableBlock(method.Body);
     }

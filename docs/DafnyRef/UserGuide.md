@@ -420,11 +420,6 @@ Since Dafny cannot prove properties about code written in other languages,
 adding tests to provide evidence that any `ensures` clauses do hold can improve assurance.
 The same considerations apply to `requires` clauses on Dafny code intended to be called from external code.
 
-* Any declaration marked with the `{:concurrent}` attribute.
-This is intended to indicate that the code is safe for use in a concurrent setting, but Dafny currently cannot prove that form of safety.
-The [addition of `reads` clauses to methods](https://github.com/dafny-lang/rfcs/pull/6) will be a step toward being able to prove safety in this case,
-but until it exists, careful inspection and testing are appropriate.
-
 * Any definition with an `assume` statement in its body.
 To improve assurance, attempt to convert it to an `assert` statement and prove that it holds.
 Such a definition will not be compilable unless the statement is also marked with `{:axiom}`.
@@ -563,27 +558,201 @@ The documentation for the root module is in `_.html`.
 
 #### 13.5.1.12. `dafny generate-tests` {#sec-dafny-generate-tests}
 
-This _experimental_ command generates unit test code (as Dafny source code) that provides
-complete coverage of a method indicated with the --target-method option.
+This _experimental_ command allows generating tests from Dafny programs.
+The tests provide complete coverage of the implementation and one can execute them using the [`dafny test`](#sec-dafny-test) command.
+Dafny can target different notions of coverage while generating tests, with basic-block coverage being the recommended setting.
+Basic blocks are extracted from the Boogie representation of the Dafny program, with one basic block corresponding
+to a statement or a non-short-circuiting subexpression in the Dafny code. The underlying implementation uses the 
+verifier to reason about the reachability of different basic blocks in the program and infers necessary test inputs 
+from counterexamples.
 
-This command enforces determinism by default and disables the functionality provided by the --snow-snippets option.
+For example, this code (as the file `program.dfy`)
+<!-- %no-check -->
+```dafny
+module M {
+  function {:testEntry} Min(a: int, b: int): int {
+    if a < b then a else b
+  }
+}
+```
+and this command-line
+```bash
+dafny generate-tests Block program.dfy
+```
+produce two tests:
+<!-- %no-check -->
+```dafny
+include "program.dfy"
+module UnitTests {
+  import M
+  method {:test} Test0() {
+    var r0 := M.Min(0, 0);
+  }
+  method {:test} Test1() {
+    var r0 := M.Min(0, 1);
+  }
+}
+```
+
+The two tests together cover every basic block within the `Min` function in the input program. 
+Note that the `Min` function is annotated with the `{:testEntry}` attribute. This attribute marks `Min` as 
+the entry point for all generated tests, and there must always be at least one method or function so annotated.
+Another requirement is that any top-level declaration that is not itself a module (such as class, method, function, 
+etc.) must be a member of an explicitly named module, which is called `M` in the example above.
 
 _This command is under development and not yet fully functional._
 
-#### 13.5.1.13. `dafny find-dead-code` {#sec-dafny-find-dead-code}
+#### 13.5.1.13. `Inlining` {#sec-dafny-generate-tests-inlining}
 
-This _experimental_ command finds dead code in a program, that is, code branches within a method that are not reachable by any inputs that satisfy 
-the method's preconditions.
+By default, when asked to generate tests, Dafny will produce _unit tests_, which guarantee coverage of basic blocks
+within the method they call but not within any of its callees. By contrast, system-level tests can
+guarantee coverage of a large part of the program while at the same time using a single method as an entry point. 
+In order to prompt Dafny to generate system-level tests, one must use the `{:testInline}` attribute. 
 
-_This command is under development and not yet functional._
+For example, this code (as the file `program.dfy`)
+<!-- %no-check -->
+```dafny
+module M {
+  function {:testInline} Min(a: int, b: int): int {
+    if a < b then a else b
+  }
+  method {:testEntry} Max(a: int, b: int) returns (c: int)
+    // the tests convert the postcondition below into runtime check:
+    ensures c == if a > b then a else b
+  {
+    return -Min(-a, -b);
+  }
+}
+```
+and this command-line
+```bash
+dafny generate-tests Block program.dfy
+```
+produce two tests:
+<!-- %no-check -->
+```dafny
+include "program.dfy"
+module UnitTests {
+  import M
+  method {:test} Test0() {
+    var r0 := M.Max(7719, 7720);
+    expect r0 == if 7719 > 7720 then 7719 else 7720;
+  }
+  method {:test} Test1() {
+    var r0 := M.Max(1, 0);
+    expect r0 == if 1 > 0 then 1 else 0;
+  }
+}
+```
 
-#### 13.5.1.14. `dafny measure-complexity` {#sec-dafny-measure-complexity}
+Without the use of the `{:testInline}` attribute in the example above, Dafny will only generate a single test 
+because there is only one basic-block within the `Max` method itself -- all the branching occurs withing the `Min` function.
+Note also that Dafny automatically converts all non-ghost postconditions on the method under tests into `expect` statements,
+which the compiler translates to runtime checks in the target language of choice.
+
+When the inlined method or function is recursive, it might be necessary to unroll the recursion several times to 
+get adequate code coverage. The depth of recursion unrolling should be provided as an integer argument to the `{:testInline}`
+attribute. For example, in the program below, the function `Mod3` is annotated with `{:testInline 2}` and 
+will, therefore, be unrolled twice during test generation. The function naively implements division by repeatedly and
+recursively subtracting `3` from its argument, and it returns the remainder of the division, which is one of 
+the three base cases. Because the `TestEntry` method calls `Mod3` with an argument that is guaranteed to be at least `3`,
+the base case will never occur on first iteration, and the function must be unrolled at least twice for Dafny to generate
+tests covering any of the base cases:
+
+<!-- %no-check -->
+```dafny
+module M {
+  function {:testInline 2} Mod3 (n: nat): nat
+    decreases n
+  {
+    if n == 0 then 0 else
+    if n == 1 then 1 else
+    if n == 2 then 2 else
+    Mod3(n-3)
+  }
+  method {:testEntry} TestEntry(n: nat) returns (r: nat)
+    requires n >= 3
+  {
+    r := Mod3(n);
+  }
+}
+```
+
+#### 13.5.1.14. `Command Line Options` {#sec-dafny-generate-tests-clo}
+
+Test generation supports a number of command-line options that control its behavior.
+
+The first argument to appear after the `generate-test` command specifies the coverage criteria Dafny will attempt to satisfy. 
+Of these, we recommend basic-block coverage (specified with keyword `Block`), which is also the coverage criteria used
+throughout the relevant parts of this reference manual. The alternatives are path coverage (`Path`) and block coverage 
+after inlining (`InlinedBlock`). Path coverage provides the most diverse set of tests but it is also the most expensive 
+in terms of time it takes to produce these tests. Block coverage after inlining is a call-graph sensitive version of 
+block coverage - it takes into account every block in a given method for every path through the call-graph to that method.
+
+The following is a list of command-line-options supported by Dafny during test generation:
+
+- `--verification-time-limit` - the value is an integer that sets a timeout for generating a single test. 
+  The default is 20 seconds.
+- `--length-limit` - the value is an integer that is used to limit the lenghts or all sequences and sizes of all 
+  maps and sets that test generation will consider as valid test inputs. This can sometimes be necessary to 
+  prevent test generation from creating unwieldy tests with excessively long strings or large maps. This option is
+  disabled by default
+- `--coverage-report` - the value is a directory in which Dafny will save an html coverage report highlighting parts of
+  the program that the generated tests are expected to cover.
+- `--print-bpl` - the value is the name of the file to which Dafny will save the Boogie code used for generating tests.
+  This options is mostly useful for debugging test generation functionality itself.
+- `--force-prune` - this flag enables axiom pruning, a feature which might significantly speed up test generation but 
+  can also reduce coverage or cause Dafny to produce tests that do not satisfy the preconditions.
+
+Dafny will also automatically enforce the following options during test generation: `--enforce-determinism`, 
+`/typeEncoding:p` (an option passed on to Boogie).
+
+#### 13.5.1.15. `dafny find-dead-code` {#sec-dafny-find-dead-code}
+
+This _experimental_ command finds dead code in a program, that is, basic-blocks within a method that are not reachable 
+by any inputs that satisfy the method's preconditions. The underlying implementation is identical to that of
+[`dafny generate-tests`](#sec-dafny-test) command and can be controlled by the same command line options and method 
+attributes.
+
+For example, this code (as the file `program.dfy`)
+<!-- %no-check -->
+```dafny
+module M {
+  function {:testEntry} DescribeProduct(a: int): string {
+    if a * a < 0 
+    then "Product is negative"
+    else "Product is nonnegative"
+  }
+}
+```
+and this command-line
+```bash
+dafny find-dead-code program.dfy
+```
+produce this output:
+```text
+program.dfy(5,9) is reachable.
+program.dfy(3,4):initialstate is reachable.
+program.dfy.dfy(5,9)#elseBranch is reachable.
+program.dfy.dfy(4,9)#thenBranch is potentially unreachable.
+Out of 4 basic blocks, 3 are reachable.
+```
+
+Dafny reports that the then branch of the condition is potentially unreachable because the verifier proves that no
+input can reach it. In this case, this is to be expected, since the product of two numbers can never be negative. In
+practice, `find-dead-code` command can produce both false positives (if the reachability query times out) and false
+negatives (if the verifier cannot prove true unreachability), so the results of such a report should always be
+reviewed.
+
+_This command is under development and not yet fully functional._
+
+#### 13.5.1.16. `dafny measure-complexity` {#sec-dafny-measure-complexity}
 
 This _experimental_ command reports complexity metrics of a program.
 
 _This command is under development and not yet functional._
 
-#### 13.5.1.15. Plugins
+#### 13.5.1.17. Plugins
 
 This execution mode is not a command, per se, but rather a command-line option that enables executing plugins to the dafny tool.
 Plugins may be either standalone tools or be additions to existing commands.
@@ -593,7 +762,7 @@ where the argument to `--plugin` gives the path to the compiled assembly of the 
 
 More on writing and building plugins can be found [in this section](#sec-plugins).
 
-#### 13.5.1.16. Legacy operation
+#### 13.5.1.18. Legacy operation
 
 Prior to implementing the command-based CLI, the `dafny` command-line simply took files and options and the arguments to options.
 That legacy mode of operation is still supported, though discouraged. The command `dafny -?` produces the list of legacy options.
@@ -1209,7 +1378,7 @@ The fundamental unit of verification in `dafny` is an _assertion batch_, which c
 
 [^smt-encoding]: The formula sent to the underlying SMT solver is the negation of the formula that the verifier wants to prove - also called a VC or verification condition. Hence, if the SMT solver returns "unsat", it means that the SMT formula is always false, meaning the verifier's formula is always true. On the other side, if the SMT solver returns "sat", it means that the SMT formula can be made true with a special variable assignment, which means that the verifier's formula is false under that same variable assignment, meaning it's a counter-example for the verifier. In practice and because of quantifiers, the SMT solver will usually return "unknown" instead of "sat", but will still provide a variable assignment that it couldn't prove that it does not make the formula true. `dafny` reports it as a "counter-example" but it might not be a real counter-example, only provide hints about what `dafny` knows.
 
-[^example-assertion-turned-into-assumption]: This [post](https://github.com/dafny-lang/dafny/discussions/1898#discussioncomment-2344533) gives an overview of how assertions are turned into assumptions for verification purposes.
+[^example-assertion-turned-into-assumption]: This [post](https://github.com/dafny-lang/dafny/discussions/1898) gives an overview of how assertions are turned into assumptions for verification purposes.
 
 [^caveat-about-assertion-and-assumption]: Caveat about assertion and assumption: One big difference between an "assertion transformed in an assumption" and the original "assertion" is that the original "assertion" can unroll functions twice, whereas the "assumed assertion" can unroll them only once. Hence, `dafny` can still continue to analyze assertions after a failing assertion without automatically proving "false" (which would make all further assertions vacuous).
 

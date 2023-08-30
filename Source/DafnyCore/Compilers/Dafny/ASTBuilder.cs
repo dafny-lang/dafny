@@ -65,22 +65,24 @@ namespace Microsoft.Dafny.Compilers {
   interface ClassContainer {
     void AddClass(Class item);
 
-    public ClassBuilder Class(string name, List<DAST.Type> typeParams, List<DAST.Type> superClasses) {
-      return new ClassBuilder(this, name, typeParams, superClasses);
+    public ClassBuilder Class(string name, string enclosingModule, List<DAST.Type> typeParams, List<DAST.Type> superClasses) {
+      return new ClassBuilder(this, name, enclosingModule, typeParams, superClasses);
     }
   }
 
   class ClassBuilder : ClassLike {
     readonly ClassContainer parent;
     readonly string name;
+    readonly string enclosingModule;
     readonly List<DAST.Type> typeParams;
     readonly List<DAST.Type> superClasses;
     readonly List<DAST.Field> fields = new();
     readonly List<DAST.Method> body = new();
 
-    public ClassBuilder(ClassContainer parent, string name, List<DAST.Type> typeParams, List<DAST.Type> superClasses) {
+    public ClassBuilder(ClassContainer parent, string name, string enclosingModule, List<DAST.Type> typeParams, List<DAST.Type> superClasses) {
       this.parent = parent;
       this.name = name;
+      this.enclosingModule = enclosingModule;
       this.typeParams = typeParams;
       this.superClasses = superClasses;
     }
@@ -96,6 +98,7 @@ namespace Microsoft.Dafny.Compilers {
     public object Finish() {
       parent.AddClass((Class)Class.create(
         Sequence<Rune>.UnicodeFromString(this.name),
+        Sequence<Rune>.UnicodeFromString(this.enclosingModule),
         Sequence<DAST.Type>.FromArray(this.typeParams.ToArray()),
         Sequence<DAST.Type>.FromArray(this.superClasses.ToArray()),
         Sequence<DAST.Field>.FromArray(this.fields.ToArray()),
@@ -199,7 +202,7 @@ namespace Microsoft.Dafny.Compilers {
   interface DatatypeContainer {
     void AddDatatype(Datatype item);
 
-    public DatatypeBuilder Datatype(string name, ISequence<Rune> enclosingModule, List<DAST.Type> typeParams, List<DAST.DatatypeCtor> ctors, bool isCo) {
+    public DatatypeBuilder Datatype(string name, string enclosingModule, List<DAST.Type> typeParams, List<DAST.DatatypeCtor> ctors, bool isCo) {
       return new DatatypeBuilder(this, name, enclosingModule, typeParams, ctors, isCo);
     }
   }
@@ -207,13 +210,13 @@ namespace Microsoft.Dafny.Compilers {
   class DatatypeBuilder : ClassLike {
     readonly DatatypeContainer parent;
     readonly string name;
-    readonly ISequence<Rune> enclosingModule;
+    readonly string enclosingModule;
     readonly List<DAST.Type> typeParams;
     readonly List<DAST.DatatypeCtor> ctors;
     readonly bool isCo;
     readonly List<DAST.Method> body = new();
 
-    public DatatypeBuilder(DatatypeContainer parent, string name, ISequence<Rune> enclosingModule, List<DAST.Type> typeParams, List<DAST.DatatypeCtor> ctors, bool isCo) {
+    public DatatypeBuilder(DatatypeContainer parent, string name, string enclosingModule, List<DAST.Type> typeParams, List<DAST.DatatypeCtor> ctors, bool isCo) {
       this.parent = parent;
       this.name = name;
       this.typeParams = typeParams;
@@ -233,7 +236,7 @@ namespace Microsoft.Dafny.Compilers {
     public object Finish() {
       parent.AddDatatype((Datatype)Datatype.create(
         Sequence<Rune>.UnicodeFromString(this.name),
-        this.enclosingModule,
+        Sequence<Rune>.UnicodeFromString(this.enclosingModule),
         Sequence<DAST.Type>.FromArray(typeParams.ToArray()),
         Sequence<DAST.DatatypeCtor>.FromArray(ctors.ToArray()),
         Sequence<DAST.Method>.FromArray(body.ToArray()),
@@ -831,14 +834,8 @@ namespace Microsoft.Dafny.Compilers {
       return ret;
     }
 
-    SubsetUpgradeBuilder SubsetUpgrade(DAST.Type tpe) {
-      var ret = new SubsetUpgradeBuilder(tpe);
-      AddBuildable(ret);
-      return ret;
-    }
-
-    SubsetDowngradeBuilder SubsetDowngrade() {
-      var ret = new SubsetDowngradeBuilder();
+    ConvertBuilder Convert(DAST.Type fromType, DAST.Type toType) {
+      var ret = new ConvertBuilder(fromType, toType);
       AddBuildable(ret);
       return ret;
     }
@@ -1062,12 +1059,14 @@ class IIFEExprRhs : ExprContainer {
   }
 }
 
-class SubsetUpgradeBuilder : ExprContainer, BuildableExpr {
-  readonly DAST.Type tpe;
+class ConvertBuilder : ExprContainer, BuildableExpr {
+  readonly DAST.Type fromType;
+  readonly DAST.Type toType;
   object value = null;
 
-  public SubsetUpgradeBuilder(DAST.Type tpe) {
-    this.tpe = tpe;
+  public ConvertBuilder(DAST.Type fromType, DAST.Type toType) {
+    this.fromType = fromType;
+    this.toType = toType;
   }
 
   public void AddExpr(DAST.Expression item) {
@@ -1090,38 +1089,10 @@ class SubsetUpgradeBuilder : ExprContainer, BuildableExpr {
     var builtValue = new List<DAST.Expression>();
     ExprContainer.RecursivelyBuild(new List<object> { value }, builtValue);
 
-    return (DAST.Expression)DAST.Expression.create_SubsetUpgrade(
+    return (DAST.Expression)DAST.Expression.create_Convert(
       builtValue[0],
-      tpe
-    );
-  }
-}
-
-class SubsetDowngradeBuilder : ExprContainer, BuildableExpr {
-  object value = null;
-
-  public void AddExpr(DAST.Expression item) {
-    if (value != null) {
-      throw new InvalidOperationException();
-    } else {
-      value = item;
-    }
-  }
-
-  public void AddBuildable(BuildableExpr item) {
-    if (value != null) {
-      throw new InvalidOperationException();
-    } else {
-      value = item;
-    }
-  }
-
-  public DAST.Expression Build() {
-    var builtValue = new List<DAST.Expression>();
-    ExprContainer.RecursivelyBuild(new List<object> { value }, builtValue);
-
-    return (DAST.Expression)DAST.Expression.create_SubsetDowngrade(
-      builtValue[0]
+      fromType,
+      toType
     );
   }
 }
