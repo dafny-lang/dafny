@@ -13,7 +13,7 @@ using PODesc = Microsoft.Dafny.ProofObligationDescription;
 namespace Microsoft.Dafny {
   public partial class Translator {
     private void TrStmt(Statement stmt, BoogieStmtListBuilder builder, List<Variable> locals,
-      ExpressionTranslator etran, ref AlcorProofKernel.Expr assumptions) {
+      ExpressionTranslator etran, ref AlcorTacticProofChecker.Env assumptions) {
       Contract.Requires(stmt != null);
       Contract.Requires(builder != null);
       Contract.Requires(locals != null);
@@ -518,6 +518,10 @@ namespace Microsoft.Dafny {
       return string.Join("", runes.Select(rune => rune.ToString()));
     }
 
+    private global::Dafny.ISequence<global::Dafny.Rune> ToDafnyString(string runes) {
+      return global::Dafny.Sequence<global::Dafny.Rune>.UnicodeFromString(runes);
+    }
+
     private string _IExprToString(_IExpr expr) {
       return FromDafnyString(expr._ToString()!);
     }
@@ -525,7 +529,7 @@ namespace Microsoft.Dafny {
       return FromDafnyString(prog._ToString());
     }
 
-    private void TrPredicateStmt(PredicateStmt stmt, BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran, ref AlcorProofKernel.Expr assumptions) {
+    private void TrPredicateStmt(PredicateStmt stmt, BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran, ref AlcorTacticProofChecker.Env assumptions) {
       Contract.Requires(stmt != null);
       Contract.Requires(builder != null);
       Contract.Requires(locals != null);
@@ -552,7 +556,7 @@ namespace Microsoft.Dafny {
           if (alcorExpression != null) {
             // Attempt to prove it using Alcor. If so, we emit an assumption in Boogie
             var result = Alcor.__default.DummyProofFinder(
-              new AlcorProofKernel.Expr_Imp(assumptions,
+              new AlcorProofKernel.Expr_Imp(assumptions.ToExpr(),
               alcorExpression));
             provenByAlcor = result.is_Success;
             if (provenByAlcor) {
@@ -570,7 +574,11 @@ namespace Microsoft.Dafny {
               reporter.Info(MessageSource.Verifier, assertStmt.tok, msg);
             }
             // And then we assume it.
-            assumptions = new AlcorProofKernel.Expr_And(alcorExpression, assumptions);
+            var label = 
+              assumptions.FreshVar(ToDafnyString(assertStmt.Label?.Name ?? "h"));
+            assumptions =
+              new AlcorTacticProofChecker.Env_EnvCons(
+                label, alcorExpression, assumptions);
           }
           if (assertStmt.Proof != null) {
             proofBuilder = new BoogieStmtListBuilder(this, options);
@@ -683,7 +691,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(builder != null);
       Contract.Requires(locals != null);
       Contract.Requires(etran != null);
-      AlcorProofKernel.Expr assumptions = new AlcorProofKernel.Expr_True(); // TODO: Take existing assumptions
+      AlcorTacticProofChecker.Env assumptions = new AlcorTacticProofChecker.Env_EnvNil(); // TODO: Take existing assumptions
       /* Translate into:
         if (*) {
             assert wf(line0);
@@ -785,7 +793,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(builder != null);
       Contract.Requires(locals != null);
       Contract.Requires(etran != null);
-      AlcorProofKernel.Expr assumptions = new AlcorProofKernel.Expr_True();// TODO: Import existing assumptions
+      AlcorTacticProofChecker.Env assumptions = new AlcorTacticProofChecker.Env_EnvNil();// TODO: Import existing assumptions
 
       FillMissingCases(stmt);
 
@@ -894,7 +902,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(builder != null);
       Contract.Requires(locals != null);
       Contract.Requires(etran != null);
-      AlcorProofKernel.Expr assumptions = new AlcorProofKernel.Expr_True();
+      AlcorTacticProofChecker.Env assumptions = new AlcorTacticProofChecker.Env_EnvNil();
 
       AddComment(builder, stmt, "for-loop statement");
 
@@ -992,7 +1000,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(builder != null);
       Contract.Requires(locals != null);
       Contract.Requires(etran != null);
-      AlcorProofKernel.Expr assumptions = new AlcorProofKernel.Expr_True();// TODO: Import existing assumptions
+      AlcorTacticProofChecker.Env assumptions = new AlcorTacticProofChecker.Env_EnvNil();// TODO: Import existing assumptions
 
       AddComment(builder, stmt, "while statement");
       this.fuelContext = FuelSetting.ExpandFuelContext(stmt.Attributes, stmt.Tok, this.fuelContext, this.reporter);
@@ -1015,7 +1023,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(builder != null);
       Contract.Requires(locals != null);
       Contract.Requires(etran != null);
-      AlcorProofKernel.Expr assumptions = new AlcorProofKernel.Expr_True();// TODO: Import existing assumptions
+      AlcorTacticProofChecker.Env assumptions = new AlcorTacticProofChecker.Env_EnvNil();// TODO: Import existing assumptions
       AddComment(builder, stmt, "if statement");
       Expression guard;
       if (stmt.Guard == null) {
@@ -1078,7 +1086,7 @@ namespace Microsoft.Dafny {
       //   } else {
       //     assume (forall x,y :: Range(x,y) ==> Post(x,y));
       //   }
-      AlcorProofKernel.Expr assumptions = new AlcorProofKernel.Expr_True();// TODO: Import existing assumptions
+      AlcorTacticProofChecker.Env assumptions = new AlcorTacticProofChecker.Env_EnvNil();// TODO: Import existing assumptions
 
       if (s.BoundVars.Count != 0) {
         // Note, it would be nicer (and arguably more appropriate) to do a SetupBoundVarsAsLocals
@@ -1613,7 +1621,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(builder != null);
       Contract.Requires(locals != null);
       Contract.Requires(etran != null);
-      AlcorProofKernel.Expr assumptions = new AlcorProofKernel.Expr_True();// TODO: Import existing assumptions
+      AlcorTacticProofChecker.Env assumptions = new AlcorTacticProofChecker.Env_EnvNil();// TODO: Import existing assumptions
       
       if (alternatives.Count == 0) {
         if (elseCase0 != null) {
@@ -2027,7 +2035,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(exporter != null);
       Contract.Requires(locals != null);
       Contract.Requires(etran != null);
-      AlcorProofKernel.Expr assumptions = new AlcorProofKernel.Expr_True();
+      AlcorTacticProofChecker.Env assumptions = new AlcorTacticProofChecker.Env_EnvNil();
 
       // Translate:
       //   forall (x,y | Range(x,y)) {

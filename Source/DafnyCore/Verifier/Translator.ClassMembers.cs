@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
+using System.Numerics;
 using System.Text;
 using Microsoft.Boogie;
 using Bpl = Microsoft.Boogie;
@@ -527,7 +528,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(wellformednessProc || m.Body != null);
       Contract.Requires(currentModule == null && codeContext == null && _tmpIEs.Count == 0 && isAllocContext == null);
       Contract.Ensures(currentModule == null && codeContext == null && _tmpIEs.Count == 0 && isAllocContext == null);
-      AlcorProofKernel.Expr assumptions = new AlcorProofKernel.Expr_True();
+      AlcorTacticProofChecker.Env assumptions = new AlcorTacticProofChecker.Env_EnvNil();
       currentModule = m.EnclosingClass.EnclosingModuleDefinition;
       codeContext = m;
       isAllocContext = new IsAllocContext(options, m.IsGhost);
@@ -665,6 +666,22 @@ namespace Microsoft.Dafny {
         // Collect all requires in a single environment formula into Alcor
         // While translating the body, try to find immediate proofs
         // translate the body
+        foreach (var r in m.Req) {
+          var label = 
+            assumptions.FreshVar(ToDafnyString(r.Label?.Name ?? "h"));
+          var alcorExpression = etran.TrExprAlcor(r.E);
+          if (alcorExpression == null) {
+            alcorExpression = new AlcorProofKernel.Expr_Var(AlcorProofKernel.__default.FreshIdentifier(
+              new AlcorProofKernel.Identifier(ToDafnyString("NOT SUPPORTED"),
+                BigInteger.Zero, ToDafnyString("")),
+                assumptions.FreeIdentifiers()));
+          }
+
+          assumptions =
+              new AlcorTacticProofChecker.Env_EnvCons(
+                label, alcorExpression, assumptions);
+        }
+        
         TrStmt(m.Body, builder, localVariables, etran, ref assumptions);
         m.Outs.ForEach(p => CheckDefiniteAssignmentReturn(m.Body.RangeToken.EndToken, p, builder));
         if (m is { FunctionFromWhichThisIsByMethodDecl: { ByMethodTok: { } } fun }) {

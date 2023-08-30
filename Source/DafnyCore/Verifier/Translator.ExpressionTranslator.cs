@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Diagnostics.Contracts;
 using System.Linq;
 using System.Numerics;
@@ -313,13 +314,34 @@ namespace Microsoft.Dafny {
       [CanBeNull]
       public AlcorProofKernel.Expr TrExprAlcor(Expression expr) {
         switch (expr.WasResolved() ? expr.Resolved : expr) {
+          case ForallExpr forallExpr: {
+            var expressionBody = forallExpr.Range == null
+              ? forallExpr.Term
+              : Expression.CreateImplies(forallExpr.Range, forallExpr.Term);
+            var body = TrExprAlcor(expressionBody);
+            foreach (var boundVar in forallExpr.BoundVars.ToImmutableList().Reverse()) {
+              var rName = global::Dafny.Sequence<global::Dafny.Rune>.UnicodeFromString(boundVar.DisplayName);
+              var label = global::Dafny.Sequence<global::Dafny.Rune>.UnicodeFromString("");
+              var version = BigInteger.Zero;
+              var id = new AlcorProofKernel.Identifier(rName, version, label);
+
+              body = new AlcorProofKernel.Expr_Forall(
+                new AlcorProofKernel.Expr_Abs(
+                  id, body
+                  )
+                );
+            }
+
+            return body;
+          }
           case IdentifierExpr identifierExpr: {
             IdentifierExpr e = identifierExpr;
             
-            var rName = global::Dafny.Sequence<global::Dafny.Rune>.UnicodeFromString(e.Name);
+            var rName = global::Dafny.Sequence<global::Dafny.Rune>.UnicodeFromString(e.Var.DisplayName);
             var label = global::Dafny.Sequence<global::Dafny.Rune>.UnicodeFromString("");
             var version = BigInteger.Zero;
-            return new AlcorProofKernel.Expr_Var(rName, version, label); // TODO: Add tokens
+            var id = new AlcorProofKernel.Identifier(rName, version, label);
+            return new AlcorProofKernel.Expr_Var(id); // TODO: Add tokens
           }
           case BinaryExpr binaryExpr: {
             BinaryExpr e = binaryExpr;
