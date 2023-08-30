@@ -621,6 +621,62 @@ class MyClass<A, B> {
 /*-- non-null type
 type {:axiom} MyClass(==)<A, B> = c: MyClass?<A, B> | c != null /*special witness*/
 */
+
+module DefaultValueExpressionSubstitution {
+  /* CALL GRAPH for module DefaultValueExpressionSubstitution:
+   * SCC at height 1:
+   *   Test
+   * SCC at height 0:
+   *   Fa
+   * SCC at height 0:
+   *   Fb
+   * SCC at height 0:
+   *   Fc
+   * SCC at height 0:
+   *   Fd
+   * SCC at height 0:
+   *   Fe
+   */
+  method Test()
+  {
+    var r: int := 3 + Fa<real>(7, 7 + var x: real :| true; 7);
+    r := r + Fb<real>({});
+    var rs: set<real> := {2.7};
+    r := r + Fc<real>(rs, forall xa: real {:trigger xa in rs} :: xa in rs ==> true);
+    r := r + Fd<real>(rs, exists xe: real {:trigger xe in rs} :: xe in rs);
+    r := r + Fe<real>(rs, var tt: set<real> := rs; tt);
+  }
+
+  function Fa<X(0)>(n: int, acc: int := n + var x: X :| true; n): int
+    decreases n, acc
+  {
+    20
+  }
+
+  function Fb<X(==,0)>(s: set<X> := {}): int
+    decreases s
+  {
+    21
+  }
+
+  function Fc<X(==,0)>(s: set<X>, b: bool := forall xa: X :: xa in s ==> true): int
+    decreases s, b
+  {
+    22
+  }
+
+  function Fd<X(==,0)>(s: set<X>, b: bool := exists xe: X :: xe in s): int
+    decreases s, b
+  {
+    23
+  }
+
+  function Fe<X(==,0)>(s: set<X>, t: set<X> := var tt: set<X> := s; tt): int
+    decreases s, t
+  {
+    24
+  }
+}
 PrefixTypeSubst.dfy(52,0): Error: a postcondition could not be proved on this return path
 PrefixTypeSubst.dfy(51,30): Related location: this is the postcondition that could not be proved
 PrefixTypeSubst.dfy(19,17): Related location
@@ -637,4 +693,4 @@ PrefixTypeSubst.dfy(85,9): Error: a postcondition could not be proved on this re
 PrefixTypeSubst.dfy(81,30): Related location: this is the postcondition that could not be proved
 PrefixTypeSubst.dfy(19,17): Related location
 
-Dafny program verifier finished with 11 verified, 5 errors
+Dafny program verifier finished with 12 verified, 5 errors

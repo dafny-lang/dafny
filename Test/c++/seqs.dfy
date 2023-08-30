@@ -1,4 +1,4 @@
-// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment --spill-translation --unicode-char:false
+// RUN: %testDafnyForEachCompiler "%s" --refresh-exit-code=0 -- --relax-definite-assignment --spill-translation --unicode-char:false
 
 newtype uint8 = i:int | 0 <= i < 0x100
 newtype uint32 = i:int | 0 <= i < 0x100000000

@@ -535,12 +535,21 @@ namespace Microsoft.Dafny {
       List<Variable> inParams = Boogie.Formal.StripWhereClauses(proc.InParams);
       List<Variable> outParams = Boogie.Formal.StripWhereClauses(proc.OutParams);
 
-      BoogieStmtListBuilder builder = new BoogieStmtListBuilder(this, options);
+      var builder = new BoogieStmtListBuilder(this, options);
+      var builderInitializationArea = new BoogieStmtListBuilder(this, options);
       builder.Add(new CommentCmd("AddMethodImpl: " + m + ", " + proc));
       var etran = new ExpressionTranslator(this, predef, m.tok);
+      // Only do reads checks for methods, not lemmas
+      // (which aren't allowed to declare frames and don't check reads and writes against them).
+      // Also don't do any reads checks if the reads clause is *,
+      // since all the checks will be trivially true
+      // and we don't need to cause additional verification cost for existing code.
+      if (!options.Get(CommonOptionBag.ReadsClausesOnMethods) || m.IsLemmaLike || m.Reads.Exists(e => e.E is WildcardExpr)) {
+        etran = etran.WithReadsFrame(null);
+      }
       InitializeFuelConstant(m.tok, builder, etran);
       var localVariables = new List<Variable>();
-      GenerateImplPrelude(m, wellformednessProc, inParams, outParams, builder, localVariables);
+      GenerateImplPrelude(m, wellformednessProc, inParams, outParams, builder, localVariables, etran);
 
       if (UseOptimizationInZ3) {
         // We ask Z3 to minimize all parameters of type 'nat'.
@@ -665,27 +674,59 @@ namespace Microsoft.Dafny {
 
         Contract.Assert(definiteAssignmentTrackers.Count == 0);
       } else {
-        // check well-formedness of any default-value expressions (before assuming preconditions)
-        foreach (var formal in m.Ins.Where(formal => formal.DefaultValue != null)) {
-          var e = formal.DefaultValue;
-          CheckWellformed(e, new WFOptions(null, false, false, true), localVariables, builder, etran);
-          builder.Add(new Boogie.AssumeCmd(e.tok, CanCallAssumption(e, etran)));
-          CheckSubrange(e.tok, etran.TrExpr(e), e.Type, formal.Type, builder);
+        var readsCheckDelayer = new ReadsCheckDelayer(etran, null, localVariables, builderInitializationArea, builder);
 
-          if (formal.IsOld) {
-            Boogie.Expr wh = GetWhereClause(e.tok, etran.TrExpr(e), e.Type, etran.Old, ISALLOC, true);
-            if (wh != null) {
-              var desc = new PODesc.IsAllocated("default value", "in the two-state lemma's previous state");
-              builder.Add(Assert(e.tok, wh, desc));
+        // check well-formedness of any default-value expressions (before assuming preconditions)
+        readsCheckDelayer.DoWithDelayedReadsChecks(true, wfo => {
+          foreach (var formal in m.Ins.Where(formal => formal.DefaultValue != null)) {
+            var e = formal.DefaultValue;
+            CheckWellformed(e, wfo, localVariables, builder, etran);
+            builder.Add(new Boogie.AssumeCmd(e.tok, CanCallAssumption(e, etran)));
+            CheckSubrange(e.tok, etran.TrExpr(e), e.Type, formal.Type, builder);
+
+            if (formal.IsOld) {
+              Boogie.Expr wh = GetWhereClause(e.tok, etran.TrExpr(e), e.Type, etran.Old, ISALLOC, true);
+              if (wh != null) {
+                var desc = new PODesc.IsAllocated("default value", "in the two-state lemma's previous state");
+                builder.Add(Assert(e.tok, wh, desc));
+              }
             }
           }
-        }
+        });
+
         // check well-formedness of the preconditions, and then assume each one of them
-        foreach (AttributedExpression p in m.Req) {
-          CheckWellformedAndAssume(p.E, new WFOptions(), localVariables, builder, etran);
+        readsCheckDelayer.DoWithDelayedReadsChecks(false, wfo => {
+          foreach (AttributedExpression p in m.Req) {
+            CheckWellformedAndAssume(p.E, wfo, localVariables, builder, etran);
+          }
+        });
+
+        // check well-formedness of the reads clauses
+        readsCheckDelayer.DoWithDelayedReadsChecks(false, wfo => {
+          CheckFrameWellFormed(wfo, m.Reads, localVariables, builder, etran);
+        });
+        // Also check that the reads clause == {} if the {:concurrent} attribute is present
+        if (Attributes.Contains(m.Attributes, Attributes.ConcurrentAttributeName)) {
+          var desc = new PODesc.ConcurrentFrameEmpty("reads clause");
+          if (etran.readsFrame != null) {
+            CheckFrameEmpty(m.tok, etran, etran.ReadsFrame(m.tok), builder, desc, null);
+          } else {
+            // etran.readsFrame being null indicates the default of reads *,
+            // so this is an automatic failure.
+            builder.Add(Assert(m.tok, Expr.False, desc));
+          }
         }
+
         // check well-formedness of the modifies clauses
-        CheckFrameWellFormed(new WFOptions(), m.Mod.Expressions, localVariables, builder, etran);
+        readsCheckDelayer.DoWithDelayedReadsChecks(false, wfo => {
+          CheckFrameWellFormed(wfo, m.Mod.Expressions, localVariables, builder, etran);
+        });
+        // Also check that the modifies clause == {} if the {:concurrent} attribute is present
+        if (Attributes.Contains(m.Attributes, Attributes.ConcurrentAttributeName)) {
+          var desc = new PODesc.ConcurrentFrameEmpty("modifies clause");
+          CheckFrameEmpty(m.tok, etran, etran.ModifiesFrame(m.tok), builder, desc, null);
+        }
+
         // check well-formedness of the decreases clauses
         foreach (Expression p in m.Decreases.Expressions) {
           CheckWellformed(p, new WFOptions(), localVariables, builder, etran);
@@ -722,7 +763,9 @@ namespace Microsoft.Dafny {
           CheckWellformedAndAssume(p.E, new WFOptions(), localVariables, builder, etran);
         }
 
-        stmts = builder.Collect(m.tok);
+        var s0 = builderInitializationArea.Collect(m.tok);
+        var s1 = builder.Collect(m.tok);
+        stmts = new StmtList(new List<BigBlock>(s0.BigBlocks.Concat(s1.BigBlocks)), m.tok);
       }
 
       if (EmitImplementation(m.Attributes)) {
@@ -796,8 +839,9 @@ namespace Microsoft.Dafny {
       //adding assert R <= Rank’;
       AddOverrideTerminationChk(m, m.OverriddenMethod, builder, etran, substMap, typeMap);
 
-      //adding assert W <= Frame’
-      AddMethodOverrideSubsetChk(m, builder, etran, localVariables, substMap, typeMap);
+      //adding assert F <= Frame’ (for both reads and modifies clauses)
+      AddMethodOverrideFrameSubsetChk(m, false, builder, etran, localVariables, substMap, typeMap);
+      AddMethodOverrideFrameSubsetChk(m, true, builder, etran, localVariables, substMap, typeMap);
 
       if (!(m is TwoStateLemma)) {
         //change the heap at locations W
@@ -1334,49 +1378,50 @@ namespace Microsoft.Dafny {
       builder.Add(Assert(original.Tok, decrChk, new PODesc.TraitDecreases(original.WhatKind)));
     }
 
-    private void AddMethodOverrideSubsetChk(Method m, BoogieStmtListBuilder builder, ExpressionTranslator etran, List<Variable> localVariables,
+    private void AddMethodOverrideFrameSubsetChk(Method m, bool isModifies, BoogieStmtListBuilder builder, ExpressionTranslator etran, List<Variable> localVariables,
       Dictionary<IVariable, Expression> substMap,
       Dictionary<TypeParameter, Type> typeMap) {
-      //getting framePrime
-      List<FrameExpression> traitFrameExps = new List<FrameExpression>();
-      List<FrameExpression> classFrameExps = m.Mod != null ? m.Mod.Expressions : new List<FrameExpression>();
-      if (m.OverriddenMethod.Mod != null) {
-        foreach (var e in m.OverriddenMethod.Mod.Expressions) {
+
+      List<FrameExpression> classFrameExps;
+      List<FrameExpression> originalTraitFrameExps;
+      if (isModifies) {
+        classFrameExps = m.Mod != null ? m.Mod.Expressions : new List<FrameExpression>();
+        originalTraitFrameExps = m.OverriddenMethod.Mod?.Expressions;
+      } else {
+        classFrameExps = m.Reads ?? new List<FrameExpression>();
+        originalTraitFrameExps = m.OverriddenMethod.Reads;
+      }
+
+      var traitFrameExps = new List<FrameExpression>();
+      if (originalTraitFrameExps != null) {
+        // Not currently possible for modifies, but is supported for reads
+        if (originalTraitFrameExps.Any(e => e.E is WildcardExpr)) {
+          // Trivially true
+          return;
+        }
+        foreach (var e in originalTraitFrameExps) {
           var newE = Substitute(e.E, null, substMap, typeMap);
-          FrameExpression fe = new FrameExpression(e.tok, newE, e.FieldName);
+          var fe = new FrameExpression(e.tok, newE, e.FieldName);
           traitFrameExps.Add(fe);
         }
       }
 
-      QKeyValue kv = etran.TrAttributes(m.Attributes, null);
+      var kv = etran.TrAttributes(m.Attributes, null);
 
-      IToken tok = m.tok;
-      // Declare a local variable $_Frame: <alpha>[ref, Field alpha]bool
-      Boogie.IdentifierExpr traitFrame = etran.TheFrame(m.OverriddenMethod.tok);  // this is a throw-away expression, used only to extract the type and name of the $_Frame variable
-      traitFrame.Name = m.EnclosingClass.Name + "_" + traitFrame.Name;
-      Contract.Assert(traitFrame.Type != null);  // follows from the postcondition of TheFrame
-      Boogie.LocalVariable frame = new Boogie.LocalVariable(tok, new Boogie.TypedIdent(tok, null ?? traitFrame.Name, traitFrame.Type));
-      localVariables.Add(frame);
-      // $_Frame := (lambda<alpha> $o: ref, $f: Field alpha :: $o != null && $Heap[$o,alloc] ==> ($o,$f) in Modifies/Reads-Clause);
-      Boogie.TypeVariable alpha = new Boogie.TypeVariable(tok, "alpha");
-      Boogie.BoundVariable oVar = new Boogie.BoundVariable(tok, new Boogie.TypedIdent(tok, "$o", predef.RefType));
-      Boogie.IdentifierExpr o = new Boogie.IdentifierExpr(tok, oVar);
-      Boogie.BoundVariable fVar = new Boogie.BoundVariable(tok, new Boogie.TypedIdent(tok, "$f", predef.FieldName(tok, alpha)));
-      Boogie.IdentifierExpr f = new Boogie.IdentifierExpr(tok, fVar);
-      Boogie.Expr ante = Boogie.Expr.And(Boogie.Expr.Neq(o, predef.Null), etran.IsAlloced(tok, o));
-      Boogie.Expr consequent = InRWClause(tok, o, f, traitFrameExps, etran, null, null);
-      Boogie.Expr lambda = new Boogie.LambdaExpr(tok, new List<TypeVariable> { alpha }, new List<Variable> { oVar, fVar }, null,
-        Boogie.Expr.Imp(ante, consequent));
-
-      //to initialize $_Frame variable to Frame'
-      builder.Add(Boogie.Cmd.SimpleAssign(tok, new Boogie.IdentifierExpr(tok, frame), lambda));
+      var tok = m.tok;
+      var alpha = new Boogie.TypeVariable(tok, "alpha");
+      var oVar = new Boogie.BoundVariable(tok, new Boogie.TypedIdent(tok, "$o", predef.RefType));
+      var o = new Boogie.IdentifierExpr(tok, oVar);
+      var fVar = new Boogie.BoundVariable(tok, new Boogie.TypedIdent(tok, "$f", predef.FieldName(tok, alpha)));
+      var f = new Boogie.IdentifierExpr(tok, fVar);
+      var ante = Boogie.Expr.And(Boogie.Expr.Neq(o, predef.Null), etran.IsAlloced(tok, o));
 
       // emit: assert (forall<alpha> o: ref, f: Field alpha :: o != null && $Heap[o,alloc] && (o,f) in subFrame ==> $_Frame[o,f]);
-      Boogie.Expr oInCallee = InRWClause(tok, o, f, classFrameExps, etran, null, null);
-      Boogie.Expr consequent2 = InRWClause(tok, o, f, traitFrameExps, etran, null, null);
-      Boogie.Expr q = new Boogie.ForallExpr(tok, new List<TypeVariable> { alpha }, new List<Variable> { oVar, fVar },
+      var oInCallee = InRWClause(tok, o, f, classFrameExps, etran, null, null);
+      var consequent2 = InRWClause(tok, o, f, traitFrameExps, etran, null, null);
+      var q = new Boogie.ForallExpr(tok, new List<TypeVariable> { alpha }, new List<Variable> { oVar, fVar },
         Boogie.Expr.Imp(Boogie.Expr.And(ante, oInCallee), consequent2));
-      builder.Add(Assert(tok, q, new PODesc.TraitFrame(m.WhatKind, true), kv));
+      builder.Add(Assert(tok, q, new PODesc.TraitFrame(m.WhatKind, isModifies), kv));
     }
 
     // Return a way to know if an assertion should be converted to an assumption

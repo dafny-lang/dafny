@@ -1,0 +1,6 @@
+ReadsReadsOnMethods.dfy(34,11): Error: insufficient reads clause to invoke function
+ReadsReadsOnMethods.dfy(40,9): Error: insufficient reads clause to invoke function
+ReadsReadsOnMethods.dfy(52,16): Error: insufficient reads clause to invoke function
+ReadsReadsOnMethods.dfy(64,11): Error: insufficient reads clause to invoke function
+
+Dafny program verifier finished with 20 verified, 4 errors

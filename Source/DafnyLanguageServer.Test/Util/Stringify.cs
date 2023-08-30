@@ -4,14 +4,24 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
-using System.Linq;
-using System.Text;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 
+using Overrides = ImmutableDictionary<System.Type, Action<object, TextWriter>>;
 public static class StringifyUtil {
 
-  public static void Stringify(this object root, TextWriter writer, bool showNullChildren = false) {
+  public static Overrides EmptyOverrides() {
+    return ImmutableDictionary<System.Type, Action<object, TextWriter>>.Empty;
+  }
+
+  public static Overrides UseToString(this Overrides overrides, System.Type type) {
+    return overrides.Add(type, (value, writer) => writer.Write(value.ToString()));
+  }
+
+  public static void Stringify(this object root, TextWriter writer, bool showNullChildren = false,
+    IReadOnlyDictionary<System.Type, Action<object, TextWriter>>? overrides = null) {
+
+    overrides = ImmutableDictionary<System.Type, Action<object, TextWriter>>.Empty;
 
     void Helper(ImmutableHashSet<object> visited, object? value, int indentation) {
       if (value == null) {
@@ -51,9 +61,19 @@ public static class StringifyUtil {
         return;
       }
 
+      if (value is Enum) {
+        writer.Write(value.ToString());
+        return;
+      }
 
       if (visited.Contains(value)) {
         writer.Write("<visited>");
+        return;
+      }
+
+      var overrideForType = overrides.GetValueOrDefault(type);
+      if (overrideForType != null) {
+        overrideForType(value, writer);
         return;
       }
 
