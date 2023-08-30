@@ -1,4 +1,4 @@
-// RUN: %testDafnyForEachCompiler "%s"
+// RUN: %testDafnyForEachCompiler "%s" --refresh-exit-code=0
 
 // Tests the resolution of the refinement parent -- that it ignores
 // local declarations.

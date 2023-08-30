@@ -1,2 +1,0 @@
-// https://github.com/dafny-lang/dafny/issues/4161
-// CHECK: ImportError: cannot import name 'Callable' from partially initialized module 'typing'
