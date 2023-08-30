@@ -7382,7 +7382,6 @@ namespace Microsoft.Dafny {
 
     Bpl.PredicateCmd Assert(IToken tok, Bpl.Expr condition, PODesc.ProofObligationDescription description, Bpl.QKeyValue kv = null) {
       var cmd = Assert(tok, condition, description, tok, kv);
-      proofDependencies?.AddProofDependencyId(cmd, tok, new ProofObligationDependency(tok, description));
       return cmd;
     }
 
