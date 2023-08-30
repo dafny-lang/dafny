@@ -26,16 +26,7 @@ namespace IntegrationTests {
 
     private static readonly string RepositoryRoot = Path.GetFullPath("../../../../../"); // Up from Source/IntegrationTests/bin/Debug/net6.0/
 
-    private static readonly string[] DefaultBoogieArguments = new[] {
-      "/infer:j",
-      "/proverOpt:O:auto_config=false",
-      "/proverOpt:O:type_check=true",
-      "/proverOpt:O:smt.case_split=3",
-      "/proverOpt:O:smt.qi.eager_threshold=100",
-      "/proverOpt:O:smt.delay_units=true",
-      "/proverOpt:O:smt.arith.solver=2",
-      "/proverOpt:PROVER_PATH:" + RepositoryRoot + $"Binaries/z3/bin/z3-{DafnyOptions.DefaultZ3Version}"
-    };
+    private static readonly string[] DefaultBoogieArguments;
 
     private static readonly LitTestConfiguration Config;
 
@@ -67,6 +58,11 @@ namespace IntegrationTests {
         { "%z3", Path.Join("z3", "bin", $"z3-{DafnyOptions.DefaultZ3Version}") },
         { "%repositoryRoot", RepositoryRoot.Replace(@"\", "/") },
       };
+
+      DefaultBoogieArguments =
+        File.ReadAllLines(RepositoryRoot + "Test/boogie-args.cfg")
+          .Select(arg => "-" + arg.Replace("{ROOT}", RepositoryRoot))
+          .ToArray();
 
       var commands = new Dictionary<string, Func<IEnumerable<string>, LitTestConfiguration, ILitCommand>> {
         {
