@@ -43,7 +43,7 @@ jobs:
         echo "boogieVersion=`xmllint --xpath "//PackageReference[@Include='Boogie.ExecutionEngine']/@Version" dafny/Source/DafnyCore/DafnyCore.csproj | grep -Po 'Version="\K.*?(?=")'`" >> $GITHUB_ENV
     - name: Compare Boogie versions
       run: |
-        (dotnet tool run boogie -version | grep ${{ env.BoogieVersion }}) || (echo "Mismatched Boogie versions." ; exit 1)
+        (dotnet tool run boogie -version | grep ${{env.BoogieVersion}}) || (echo "Mismatched Boogie versions." ; exit 1)
     - name: Attempt custom Boogie patch
       working-directory: dafny
       run: git apply customBoogie.patch
