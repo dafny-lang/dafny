@@ -1083,6 +1083,7 @@ namespace Microsoft.Dafny.Compilers {
       switch (AsJavaNativeType(nt)) {
         case JavaNativeType.Byte: return "(byte) ";
         case JavaNativeType.Short: return "(short) ";
+        case JavaNativeType.Long: return "(long) ";
         default: return "";
       }
     }
