@@ -230,7 +230,7 @@ namespace Microsoft.Dafny {
     private record ReadsCheckDelayer(ExpressionTranslator etran, Function selfCallsAllowance,
       List<Variable> localVariables, BoogieStmtListBuilder builderInitializationArea, BoogieStmtListBuilder builder) {
 
-      public void WithDelayedReadsChecks(bool doOnlyCoarseGrainedTerminationChecks, Action<WFOptions> action) {
+      public void DoWithDelayedReadsChecks(bool doOnlyCoarseGrainedTerminationChecks, Action<WFOptions> action) {
         var doReadsChecks = etran.readsFrame != null;
         var options = new WFOptions(selfCallsAllowance, doReadsChecks, doReadsChecks, doOnlyCoarseGrainedTerminationChecks);
         action(options);
@@ -1075,7 +1075,7 @@ namespace Microsoft.Dafny {
 
                   // Check frame WF and that it read covers itself
                   var delayer = new ReadsCheckDelayer(comprehensionEtran, wfOptions.SelfCallsAllowance, locals, builder, newBuilder);
-                  delayer.WithDelayedReadsChecks(false, wfo => {
+                  delayer.DoWithDelayedReadsChecks(false, wfo => {
                     CheckFrameWellFormed(wfo, reads, locals, newBuilder, comprehensionEtran);
                   });
 

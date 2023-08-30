@@ -4397,7 +4397,7 @@ namespace Microsoft.Dafny {
       var delayer = new ReadsCheckDelayer(etran, null, locals, builderInitializationArea, builder);
 
       // Check well-formedness of any default-value expressions (before assuming preconditions).
-      delayer.WithDelayedReadsChecks(true, wfo => {
+      delayer.DoWithDelayedReadsChecks(true, wfo => {
         foreach (var formal in f.Formals.Where(formal => formal.DefaultValue != null)) {
           var e = formal.DefaultValue;
           CheckWellformed(e, wfo, locals, builder, etran);
@@ -4417,7 +4417,7 @@ namespace Microsoft.Dafny {
       // Check well-formedness of the preconditions (including termination), and then
       // assume each one of them.  After all that (in particular, after assuming all
       // of them), do the postponed reads checks.
-      delayer.WithDelayedReadsChecks(false, wfo => {
+      delayer.DoWithDelayedReadsChecks(false, wfo => {
         foreach (AttributedExpression p in f.Req) {
           if (p.Label != null) {
             p.Label.E = (f is TwoStateFunction ? ordinaryEtran : etran.Old).TrExpr(p.E);
@@ -4432,7 +4432,7 @@ namespace Microsoft.Dafny {
       // the preconditions.  In other words, the well-formedness of the reads clause is
       // allowed to assume the precondition (yet, the requires clause is checked to
       // read only those things indicated in the reads clause).
-      delayer.WithDelayedReadsChecks(false, wfo => {
+      delayer.DoWithDelayedReadsChecks(false, wfo => {
         CheckFrameWellFormed(wfo, f.Reads, locals, builder, etran);
       });
 
@@ -4518,7 +4518,7 @@ namespace Microsoft.Dafny {
         Bpl.Expr funcAppl = new Bpl.NAryExpr(f.tok, funcID, args);
 
         var bodyCheckDelayer = new ReadsCheckDelayer(etran, null, locals, builderInitializationArea, bodyCheckBuilder);
-        bodyCheckDelayer.WithDelayedReadsChecks(false, wfo => {
+        bodyCheckDelayer.DoWithDelayedReadsChecks(false, wfo => {
           CheckWellformedWithResult(f.Body, wfo, funcAppl, f.ResultType, locals, bodyCheckBuilder, etran);
           if (f.Result != null) {
             bodyCheckBuilder.Add(TrAssumeCmd(f.tok, Bpl.Expr.Eq(funcAppl, TrVar(f.tok, f.Result))));
@@ -4631,7 +4631,7 @@ namespace Microsoft.Dafny {
       var constraintCheckBuilder = new BoogieStmtListBuilder(this, options);
       var builderInitializationArea = new BoogieStmtListBuilder(this, options);
       var delayer = new ReadsCheckDelayer(etran, null, locals, builderInitializationArea, constraintCheckBuilder);
-      delayer.WithDelayedReadsChecks(false, wfo => {
+      delayer.DoWithDelayedReadsChecks(false, wfo => {
         CheckWellformedAndAssume(decl.Constraint, wfo, locals, constraintCheckBuilder, etran);
       });
 

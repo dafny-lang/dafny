@@ -677,7 +677,7 @@ namespace Microsoft.Dafny {
         var readsCheckDelayer = new ReadsCheckDelayer(etran, null, localVariables, builderInitializationArea, builder);
 
         // check well-formedness of any default-value expressions (before assuming preconditions)
-        readsCheckDelayer.WithDelayedReadsChecks(true, wfo => {
+        readsCheckDelayer.DoWithDelayedReadsChecks(true, wfo => {
           foreach (var formal in m.Ins.Where(formal => formal.DefaultValue != null)) {
             var e = formal.DefaultValue;
             CheckWellformed(e, wfo, localVariables, builder, etran);
@@ -695,14 +695,14 @@ namespace Microsoft.Dafny {
         });
 
         // check well-formedness of the preconditions, and then assume each one of them
-        readsCheckDelayer.WithDelayedReadsChecks(false, wfo => {
+        readsCheckDelayer.DoWithDelayedReadsChecks(false, wfo => {
           foreach (AttributedExpression p in m.Req) {
             CheckWellformedAndAssume(p.E, wfo, localVariables, builder, etran);
           }
         });
 
         // check well-formedness of the reads clauses
-        readsCheckDelayer.WithDelayedReadsChecks(false, wfo => {
+        readsCheckDelayer.DoWithDelayedReadsChecks(false, wfo => {
           CheckFrameWellFormed(wfo, m.Reads, localVariables, builder, etran);
         });
         // Also check that the reads clause == {} if the {:concurrent} attribute is present
@@ -718,7 +718,7 @@ namespace Microsoft.Dafny {
         }
         
         // check well-formedness of the modifies clauses
-        readsCheckDelayer.WithDelayedReadsChecks(false, wfo => {
+        readsCheckDelayer.DoWithDelayedReadsChecks(false, wfo => {
           CheckFrameWellFormed(wfo, m.Mod.Expressions, localVariables, builder, etran);
           if (Attributes.Contains(m.Attributes, Attributes.ConcurrentAttributeName)) {
             var desc = new PODesc.ConcurrentFrameEmpty("modifies clause");
