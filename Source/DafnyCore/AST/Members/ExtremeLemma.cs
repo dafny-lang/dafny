@@ -22,12 +22,14 @@ public abstract class ExtremeLemma : Method {
     bool hasStaticKeyword, ExtremePredicate.KType typeOfK,
     List<TypeParameter> typeArgs,
     List<Formal> ins, [Captured] List<Formal> outs,
-    List<AttributedExpression> req, [Captured] Specification<FrameExpression> mod,
+    List<AttributedExpression> req,
+    List<FrameExpression> reads,
+    [Captured] Specification<FrameExpression> mod,
     List<AttributedExpression> ens,
     Specification<Expression> decreases,
     BlockStmt body,
     Attributes attributes, IToken signatureEllipsis)
-    : base(rangeToken, name, hasStaticKeyword, true, typeArgs, ins, outs, req, mod, ens, decreases, body, attributes, signatureEllipsis) {
+    : base(rangeToken, name, hasStaticKeyword, true, typeArgs, ins, outs, req, reads, mod, ens, decreases, body, attributes, signatureEllipsis) {
     Contract.Requires(rangeToken != null);
     Contract.Requires(name != null);
     Contract.Requires(cce.NonNullElements(typeArgs));
@@ -50,12 +52,14 @@ public class LeastLemma : ExtremeLemma {
     bool hasStaticKeyword, ExtremePredicate.KType typeOfK,
     List<TypeParameter> typeArgs,
     List<Formal> ins, [Captured] List<Formal> outs,
-    List<AttributedExpression> req, [Captured] Specification<FrameExpression> mod,
+    List<AttributedExpression> req,
+    List<FrameExpression> reads,
+    [Captured] Specification<FrameExpression> mod,
     List<AttributedExpression> ens,
     Specification<Expression> decreases,
     BlockStmt body,
     Attributes attributes, IToken signatureEllipsis)
-    : base(rangeToken, name, hasStaticKeyword, typeOfK, typeArgs, ins, outs, req, mod, ens, decreases, body, attributes, signatureEllipsis) {
+    : base(rangeToken, name, hasStaticKeyword, typeOfK, typeArgs, ins, outs, req, reads, mod, ens, decreases, body, attributes, signatureEllipsis) {
     Contract.Requires(rangeToken != null);
     Contract.Requires(name != null);
     Contract.Requires(cce.NonNullElements(typeArgs));
@@ -78,12 +82,14 @@ public class GreatestLemma : ExtremeLemma {
     bool hasStaticKeyword, ExtremePredicate.KType typeOfK,
     List<TypeParameter> typeArgs,
     List<Formal> ins, [Captured] List<Formal> outs,
-    List<AttributedExpression> req, [Captured] Specification<FrameExpression> mod,
+    List<AttributedExpression> req,
+    List<FrameExpression> reads,
+    [Captured] Specification<FrameExpression> mod,
     List<AttributedExpression> ens,
     Specification<Expression> decreases,
     BlockStmt body,
     Attributes attributes, IToken signatureEllipsis)
-    : base(rangeToken, name, hasStaticKeyword, typeOfK, typeArgs, ins, outs, req, mod, ens, decreases, body, attributes, signatureEllipsis) {
+    : base(rangeToken, name, hasStaticKeyword, typeOfK, typeArgs, ins, outs, req, reads, mod, ens, decreases, body, attributes, signatureEllipsis) {
     Contract.Requires(rangeToken != null);
     Contract.Requires(name != null);
     Contract.Requires(cce.NonNullElements(typeArgs));

@@ -15,6 +15,8 @@ public class LargeFilesTest : ClientBasedLanguageServerTest {
   protected override Task SetUp(Action<DafnyOptions> modifyOptions) {
     return base.SetUp(options => {
       modifyOptions?.Invoke(options);
+      // We're setting LineVerificationStatus to false already, with the expectation that this will become the default.
+      options.Set(ServerCommand.LineVerificationStatus, false);
       options.Set(ServerCommand.UpdateThrottling, ServerCommand.DefaultThrottleTime);
     });
   }
@@ -66,8 +68,9 @@ public class LargeFilesTest : ClientBasedLanguageServerTest {
         // await output.WriteLineAsync("openMilliseconds: " + openMilliseconds);
         // await output.WriteLineAsync("changeMilliseconds: " + changeMilliseconds);
         // await output.WriteLineAsync("division: " + division);
+        // await output.WriteLineAsync("averageTimeToSchedule: " + averageTimeToSchedule);
         try {
-          Assert.True(averageTimeToSchedule < 100);
+          Assert.True(averageTimeToSchedule < 100, $"averageTimeToSchedule: {averageTimeToSchedule}");
           // Migration should be constant time, which would allow this number to be about 1.
           // Right now migration is still slow so this has been set to 10 so the test can pass.
           var changeTimeMultiplier = 15;

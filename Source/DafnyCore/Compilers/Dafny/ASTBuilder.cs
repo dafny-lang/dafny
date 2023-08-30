@@ -65,22 +65,24 @@ namespace Microsoft.Dafny.Compilers {
   interface ClassContainer {
     void AddClass(Class item);
 
-    public ClassBuilder Class(string name, List<DAST.Type> typeParams, List<DAST.Type> superClasses) {
-      return new ClassBuilder(this, name, typeParams, superClasses);
+    public ClassBuilder Class(string name, string enclosingModule, List<DAST.Type> typeParams, List<DAST.Type> superClasses) {
+      return new ClassBuilder(this, name, enclosingModule, typeParams, superClasses);
     }
   }
 
   class ClassBuilder : ClassLike {
     readonly ClassContainer parent;
     readonly string name;
+    readonly string enclosingModule;
     readonly List<DAST.Type> typeParams;
     readonly List<DAST.Type> superClasses;
     readonly List<DAST.Field> fields = new();
     readonly List<DAST.Method> body = new();
 
-    public ClassBuilder(ClassContainer parent, string name, List<DAST.Type> typeParams, List<DAST.Type> superClasses) {
+    public ClassBuilder(ClassContainer parent, string name, string enclosingModule, List<DAST.Type> typeParams, List<DAST.Type> superClasses) {
       this.parent = parent;
       this.name = name;
+      this.enclosingModule = enclosingModule;
       this.typeParams = typeParams;
       this.superClasses = superClasses;
     }
@@ -96,6 +98,7 @@ namespace Microsoft.Dafny.Compilers {
     public object Finish() {
       parent.AddClass((Class)Class.create(
         Sequence<Rune>.UnicodeFromString(this.name),
+        Sequence<Rune>.UnicodeFromString(this.enclosingModule),
         Sequence<DAST.Type>.FromArray(this.typeParams.ToArray()),
         Sequence<DAST.Type>.FromArray(this.superClasses.ToArray()),
         Sequence<DAST.Field>.FromArray(this.fields.ToArray()),
@@ -199,7 +202,7 @@ namespace Microsoft.Dafny.Compilers {
   interface DatatypeContainer {
     void AddDatatype(Datatype item);
 
-    public DatatypeBuilder Datatype(string name, ISequence<Rune> enclosingModule, List<DAST.Type> typeParams, List<DAST.DatatypeCtor> ctors, bool isCo) {
+    public DatatypeBuilder Datatype(string name, string enclosingModule, List<DAST.Type> typeParams, List<DAST.DatatypeCtor> ctors, bool isCo) {
       return new DatatypeBuilder(this, name, enclosingModule, typeParams, ctors, isCo);
     }
   }
@@ -207,13 +210,13 @@ namespace Microsoft.Dafny.Compilers {
   class DatatypeBuilder : ClassLike {
     readonly DatatypeContainer parent;
     readonly string name;
-    readonly ISequence<Rune> enclosingModule;
+    readonly string enclosingModule;
     readonly List<DAST.Type> typeParams;
     readonly List<DAST.DatatypeCtor> ctors;
     readonly bool isCo;
     readonly List<DAST.Method> body = new();
 
-    public DatatypeBuilder(DatatypeContainer parent, string name, ISequence<Rune> enclosingModule, List<DAST.Type> typeParams, List<DAST.DatatypeCtor> ctors, bool isCo) {
+    public DatatypeBuilder(DatatypeContainer parent, string name, string enclosingModule, List<DAST.Type> typeParams, List<DAST.DatatypeCtor> ctors, bool isCo) {
       this.parent = parent;
       this.name = name;
       this.typeParams = typeParams;
@@ -233,7 +236,7 @@ namespace Microsoft.Dafny.Compilers {
     public object Finish() {
       parent.AddDatatype((Datatype)Datatype.create(
         Sequence<Rune>.UnicodeFromString(this.name),
-        this.enclosingModule,
+        Sequence<Rune>.UnicodeFromString(this.enclosingModule),
         Sequence<DAST.Type>.FromArray(typeParams.ToArray()),
         Sequence<DAST.DatatypeCtor>.FromArray(ctors.ToArray()),
         Sequence<DAST.Method>.FromArray(body.ToArray()),

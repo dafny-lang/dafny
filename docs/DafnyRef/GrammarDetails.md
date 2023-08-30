@@ -783,7 +783,6 @@ InvariantClause_ =
 ````grammar
 ReadsClause(allowLemma, allowLambda, allowWild) =
   "reads"
-  { Attribute }
   PossiblyWildFrameExpression(allowLemma, allowLambda, allowWild)
   { "," PossiblyWildFrameExpression(allowLemma, allowLambda, allowWild) }
 ````

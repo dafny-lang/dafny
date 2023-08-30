@@ -35,26 +35,29 @@ namespace Microsoft.Dafny {
       Contract.Requires(declarations != null);
 
       foreach (TopLevelDecl d in declarations) {
+        var context = new UnderspecificationDetectorContext(d);
+        CheckAttributes(d.Attributes, context);
+
         if (d is IteratorDecl) {
           var iter = (IteratorDecl)d;
           var prevErrCnt = ErrorCount;
           iter.Members.ForEach(CheckMember);
           if (prevErrCnt == ErrorCount) {
-            iter.SubExpressions.ForEach(e => CheckExpression(e, iter));
+            iter.SubExpressions.ForEach(e => CheckExpression(e, context));
           }
-          CheckParameterDefaultValues(iter.Ins, iter);
+          CheckParameterDefaultValues(iter.Ins, context);
           if (iter.Body != null) {
-            CheckStatement(iter.Body, iter);
+            CheckStatement(iter.Body, context);
             if (prevErrCnt == ErrorCount) {
-              CheckStatement(iter.Body, iter);
+              CheckStatement(iter.Body, context);
             }
           }
 
         } else if (d is SubsetTypeDecl) {
           var dd = (SubsetTypeDecl)d;
-          CheckExpression(dd.Constraint, new CodeContextWrapper(dd, true));
+          CheckExpression(dd.Constraint, context);
           if (dd.Witness != null) {
-            CheckExpression(dd.Witness, new CodeContextWrapper(dd, dd.WitnessKind == SubsetTypeDecl.WKind.Ghost));
+            CheckExpression(dd.Witness, context);
           }
 
         } else if (d is NewtypeDecl) {
@@ -63,9 +66,9 @@ namespace Microsoft.Dafny {
             if (!DetectUnderspecificationVisitor.IsDetermined(dd.BasePreType)) {
               ReportError(dd, "newtype's base type is not fully determined; add an explicit type for '{0}'", dd.Var.Name);
             }
-            CheckExpression(dd.Constraint, new CodeContextWrapper(dd, true));
+            CheckExpression(dd.Constraint, context);
             if (dd.Witness != null) {
-              CheckExpression(dd.Witness, new CodeContextWrapper(dd, dd.WitnessKind == SubsetTypeDecl.WKind.Ghost));
+              CheckExpression(dd.Witness, context);
             }
           }
           CheckMembers(dd);
@@ -73,8 +76,7 @@ namespace Microsoft.Dafny {
         } else if (d is DatatypeDecl) {
           var dd = (DatatypeDecl)d;
           foreach (var member in resolver.GetClassMembers(dd)!.Values) {
-            var dtor = member as DatatypeDestructor;
-            if (dtor != null) {
+            if (member is DatatypeDestructor dtor) {
               var rolemodel = dtor.CorrespondingFormals[0];
               for (int i = 1; i < dtor.CorrespondingFormals.Count; i++) {
                 var other = dtor.CorrespondingFormals[i];
@@ -93,7 +95,8 @@ namespace Microsoft.Dafny {
             }
           }
           foreach (var ctor in dd.Ctors) {
-            CheckParameterDefaultValues(ctor.Formals, dd);
+            CheckAttributes(ctor.Attributes, new UnderspecificationDetectorContext(ctor));
+            CheckParameterDefaultValues(ctor.Formals, new UnderspecificationDetectorContext(ctor));
           }
           CheckMembers(dd);
 
@@ -106,114 +109,124 @@ namespace Microsoft.Dafny {
     private void CheckMembers(TopLevelDeclWithMembers cl) {
       Contract.Requires(cl != null);
       foreach (var member in cl.Members) {
-        var prevErrCnt = ErrorCount;
         CheckMember(member);
-        if (prevErrCnt == ErrorCount) {
-          if (member is Method method) {
-            if (method.Body != null) {
-              CheckStatement(method.Body, method);
-            }
-          } else if (member is Function function) {
-            if (function.ByMethodBody != null) {
-              var m = function.ByMethodDecl;
-              CheckStatement(m.Body, m);
-            }
-          }
-          if (prevErrCnt == ErrorCount && member is ICodeContext) {
-            member.SubExpressions.ForEach(e => CheckExpression(e, (ICodeContext)member));
-          }
-        }
       }
     }
 
+    /// <summary>
+    /// Check that all pre-types of "member" have been filled in, and fill in all .ResolvedOp field.
+    /// In addition, if "member" is an extreme predicate or extreme lemma, also do the checking for the corresponding
+    /// prefix predicate or lemma. And, if "member" is a function by method, then also check the associated method.
+    /// </summary>
     private void CheckMember(MemberDecl member) {
+      var context = new UnderspecificationDetectorContext(member);
+      CheckAttributes(member.Attributes, context);
+
+      var errorCount = ErrorCount;
       if (member is ConstantField field) {
         if (field.Rhs != null) {
-          CheckExpression(field.Rhs, new NoContext(member.EnclosingClass.EnclosingModuleDefinition));
+          CheckExpression(field.Rhs, context);
         }
-        CheckPreType(field.PreType, new NoContext(member.EnclosingClass.EnclosingModuleDefinition), field.tok, "const");
+        CheckPreType(field.PreType, context, field.tok, "const");
 
       } else if (member is Method method) {
-        CheckParameterDefaultValues(method.Ins, method);
-        method.Req.ForEach(mfe => CheckAttributedExpression(mfe, method));
-        CheckSpecFrameExpression(method.Mod, method);
-        method.Ens.ForEach(mfe => CheckAttributedExpression(mfe, method));
-        CheckSpecExpression(method.Decreases, method);
+        CheckParameterDefaultValues(method.Ins, context);
+        method.Req.ForEach(mfe => CheckAttributedExpression(mfe, context));
+        method.Reads.ForEach(mfe => CheckExpression(mfe.E, context));
+        CheckSpecFrameExpression(method.Mod, context);
+        method.Ens.ForEach(mfe => CheckAttributedExpression(mfe, context));
+        CheckSpecExpression(method.Decreases, context);
         if (method.Body != null) {
-          CheckStatement(method.Body, method);
-        }
-
-      } else if (member is Function) {
-        var f = (Function)member;
-        CheckParameterDefaultValues(f.Formals, f);
-        var errorCount = ErrorCount;
-        f.Req.ForEach(e => CheckExpression(e.E, f));
-        f.Ens.ForEach(e => CheckExpression(e.E, f));
-        f.Reads.ForEach(fe => CheckExpression(fe.E, f));
-        CheckSpecExpression(f.Decreases, f);
-        if (f.Body != null) {
-          CheckExpression(f.Body, f);
+          CheckStatement(method.Body, context);
         }
         if (errorCount == ErrorCount) {
-          if (f is ExtremePredicate cop) {
-            CheckMember(cop.PrefixPredicate);
-          } else if (f.ByMethodDecl != null) {
-            CheckMember(f.ByMethodDecl);
+          if (method is ExtremeLemma extremeLemma) {
+            CheckMember(extremeLemma.PrefixLemma);
+          }
+        }
+
+      } else if (member is Function function) {
+        CheckParameterDefaultValues(function.Formals, context);
+        function.Req.ForEach(e => CheckExpression(e.E, context));
+        function.Ens.ForEach(e => CheckExpression(e.E, context));
+        function.Reads.ForEach(fe => CheckExpression(fe.E, context));
+        CheckSpecExpression(function.Decreases, context);
+        if (function.Body != null) {
+          CheckExpression(function.Body, context);
+        }
+        if (errorCount == ErrorCount) {
+          if (function is ExtremePredicate extremePredicate) {
+            CheckMember(extremePredicate.PrefixPredicate);
+          } else if (function.ByMethodDecl != null) {
+            CheckMember(function.ByMethodDecl);
           }
         }
       }
     }
 
-    private void CheckPreType(PreType preType, ICodeContext codeContext, IToken tok, string whatIsBeingChecked) {
-      var visitor = new DetectUnderspecificationVisitor(this, codeContext);
+    private void CheckPreType(PreType preType, UnderspecificationDetectorContext context, IToken tok, string whatIsBeingChecked) {
+      var visitor = new DetectUnderspecificationVisitor(this, context);
       visitor.CheckPreTypeIsDetermined(tok, preType, whatIsBeingChecked);
     }
 
-    private void CheckStatement(Statement stmt, ICodeContext codeContext) {
+    private void CheckStatement(Statement stmt, UnderspecificationDetectorContext context) {
       Contract.Requires(stmt != null);
-      var visitor = new DetectUnderspecificationVisitor(this, codeContext);
+      var visitor = new DetectUnderspecificationVisitor(this, context);
       visitor.Visit(stmt);
     }
 
-    private void CheckExpression(Expression expr, ICodeContext codeContext) {
+    private void CheckExpression(Expression expr, UnderspecificationDetectorContext context) {
       Contract.Requires(expr != null);
-      var visitor = new DetectUnderspecificationVisitor(this, codeContext);
+      var visitor = new DetectUnderspecificationVisitor(this, context);
       visitor.Visit(expr);
     }
 
-    private void CheckSpecExpression(Specification<Expression> spec, ICodeContext codeContext) {
-      Attributes.SubExpressions(spec.Attributes).ForEach(e => CheckExpression(e, codeContext));
-      spec.Expressions.ForEach(e => CheckExpression(e, codeContext));
+    private void CheckSpecExpression(Specification<Expression> spec, UnderspecificationDetectorContext context) {
+      CheckAttributes(spec.Attributes, context);
+      spec.Expressions.ForEach(e => CheckExpression(e, context));
     }
 
-    private void CheckSpecFrameExpression(Specification<FrameExpression> spec, ICodeContext codeContext) {
-      Attributes.SubExpressions(spec.Attributes).ForEach(e => CheckExpression(e, codeContext));
-      spec.Expressions.ForEach(fe => CheckExpression(fe.E, codeContext));
+    private void CheckSpecFrameExpression(Specification<FrameExpression> spec, UnderspecificationDetectorContext context) {
+      CheckAttributes(spec.Attributes, context);
+      spec.Expressions.ForEach(fe => CheckExpression(fe.E, context));
     }
 
-    private void CheckAttributedExpression(AttributedExpression ae, ICodeContext codeContext) {
-      Attributes.SubExpressions(ae.Attributes).ForEach(e => CheckExpression(e, codeContext));
-      CheckExpression(ae.E, codeContext);
+    private void CheckAttributedExpression(AttributedExpression ae, UnderspecificationDetectorContext context) {
+      CheckAttributes(ae.Attributes, context);
+      CheckExpression(ae.E, context);
     }
 
-    private void CheckParameterDefaultValues(List<Formal> formals, ICodeContext codeContext) {
+    private void CheckAttributes(Attributes attributes, UnderspecificationDetectorContext context) {
+      Attributes.SubExpressions(attributes).ForEach(e => CheckExpression(e, context));
+    }
+
+    private void CheckParameterDefaultValues(List<Formal> formals, UnderspecificationDetectorContext context) {
       foreach (var formal in formals) {
         if (formal.DefaultValue != null) {
-          CheckExpression(formal.DefaultValue, codeContext);
+          CheckExpression(formal.DefaultValue, context);
         }
       }
     }
   }
 
+  public class UnderspecificationDetectorContext {
+    private Declaration declaration;
+    public bool IsExtremePredicate => declaration is ExtremePredicate;
+    public bool IsExtremeLemma => declaration is ExtremeLemma;
+    public UnderspecificationDetectorContext(Declaration declaration) {
+      this.declaration = declaration;
+    }
+  }
+
   public class DetectUnderspecificationVisitor : BottomUpVisitor {
     private readonly UnderspecificationDetector cus;
-    private readonly ICodeContext codeContext;
+    private readonly UnderspecificationDetectorContext context;
 
-    public DetectUnderspecificationVisitor(UnderspecificationDetector cus, ICodeContext codeContext) {
+    public DetectUnderspecificationVisitor(UnderspecificationDetector cus, UnderspecificationDetectorContext context) {
       Contract.Requires(cus != null);
-      Contract.Requires(codeContext != null);
+      Contract.Requires(context != null);
       this.cus = cus;
-      this.codeContext = codeContext;
+      this.context = context;
     }
 
     protected override void VisitOneStmt(Statement stmt) {
@@ -259,6 +272,11 @@ namespace Microsoft.Dafny {
     }
 
     protected override void VisitOneExpr(Expression expr) {
+      if (expr is DefaultValueExpression) {
+        // skip this during underspecification detection, since it has yet to be filled in
+        return;
+      }
+
       var familyDeclName = PreTypeResolver.AncestorName(expr.PreType);
 
       if (expr is LiteralExpr) {
@@ -286,8 +304,8 @@ namespace Microsoft.Dafny {
         var e = (ComprehensionExpr)expr;
         foreach (var bv in e.BoundVars) {
           CheckVariable(bv, "bound variable");
-          if (codeContext is ExtremePredicate || codeContext is ExtremeLemma) {
-            CheckContainsNoOrdinal(bv.tok, bv.PreType, string.Format("type of bound variable '{0}' ('{1}') is not allowed to use type ORDINAL", bv.Name, bv.PreType));
+          if (context.IsExtremePredicate || context.IsExtremeLemma) {
+            CheckContainsNoOrdinal(bv.tok, bv.PreType, $"type of bound variable '{bv.Name}' ('{bv.PreType}') is not allowed to use type ORDINAL");
           }
         }
 

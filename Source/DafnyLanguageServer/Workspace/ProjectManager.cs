@@ -53,7 +53,6 @@ public class ProjectManager : IDisposable {
   private VerifyOnMode AutomaticVerificationMode => options.Get(ServerCommand.Verification);
 
   private bool VerifyOnSave => options.Get(ServerCommand.Verification) == VerifyOnMode.Save;
-  public List<FilePosition> ChangedVerifiables { get; set; } = new();
   public List<Location> RecentChanges { get; set; } = new();
 
   private readonly DafnyOptions options;
@@ -123,6 +122,10 @@ public class ProjectManager : IDisposable {
           Uri = documentChange.TextDocument.Uri
         });
       var migratedChanges = RecentChanges.Select(location => {
+        if (location.Uri != documentChange.TextDocument.Uri) {
+          return location;
+        }
+
         var newRange = migrator.MigrateRange(location.Range);
         if (newRange == null) {
           return null;
@@ -269,11 +272,9 @@ public class ProjectManager : IDisposable {
         verifiables = verifiables.Where(d => d.Tok.Uri == uri).ToList();
       }
 
+      List<FilePosition> changedVerifiables;
       lock (RecentChanges) {
-        var freshlyChangedVerifiables = GetChangedVerifiablesFromRanges(resolvedCompilation, RecentChanges);
-        ChangedVerifiables = freshlyChangedVerifiables.Concat(ChangedVerifiables).Distinct()
-          .Take(MaxRememberedChangedVerifiables).ToList();
-        RecentChanges = new List<Location>();
+        changedVerifiables = GetChangedVerifiablesFromRanges(resolvedCompilation, RecentChanges).ToList();
       }
 
       int GetPriorityAttribute(ISymbol symbol) {
@@ -288,7 +289,7 @@ public class ProjectManager : IDisposable {
       int TopToBottomPriority(ISymbol symbol) {
         return symbol.Tok.pos;
       }
-      var implementationOrder = ChangedVerifiables.Select((v, i) => (v, i)).ToDictionary(k => k.v, k => k.i);
+      var implementationOrder = changedVerifiables.Select((v, i) => (v, i)).ToDictionary(k => k.v, k => k.i);
       var orderedVerifiables = verifiables.OrderByDescending(GetPriorityAttribute).CreateOrderedEnumerable(
         t => implementationOrder.GetOrDefault(t.Tok.GetFilePosition(), () => int.MaxValue),
         null, false).CreateOrderedEnumerable(TopToBottomPriority, null, false).ToList();
@@ -297,7 +298,7 @@ public class ProjectManager : IDisposable {
       var orderedVerifiableLocations = orderedVerifiables.Select(v => v.NameToken.GetFilePosition()).ToList();
       if (GutterIconTesting) {
         foreach (var canVerify in orderedVerifiableLocations) {
-          await compilationManager.VerifySymbol(canVerify, false);
+          await compilationManager.VerifySymbol(canVerify, true);
         }
 
         logger.LogDebug($"Finished translation in VerifyEverything for {Project.Uri}");
@@ -331,9 +332,10 @@ public class ProjectManager : IDisposable {
     Dictionary<Uri, IntervalTree<Position, Position>> trees = new();
 
     return changedRanges.SelectMany(changeRange => {
-      var tree = trees.GetOrCreate(changeRange.Uri.ToUri(), () => GetTree(changeRange.Uri.ToUri()));
-      return tree.Query(changeRange.Range.Start, changeRange.Range.End).Select(position => new FilePosition(changeRange.Uri.ToUri(), position));
-    });
+      var uri = changeRange.Uri.ToUri();
+      var tree = trees.GetOrCreate(uri, () => GetTree(uri));
+      return tree.Query(changeRange.Range.Start, changeRange.Range.End).Select(position => new FilePosition(uri, position));
+    }).Distinct();
   }
 
   public void OpenDocument(Uri uri, bool triggerCompilation) {

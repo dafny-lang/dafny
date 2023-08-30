@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reactive;
 using System.Reactive.Concurrency;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
@@ -80,6 +81,7 @@ public class CompilationManager {
     cancellationSource = new();
     cancellationSource.Token.Register(() => started.TrySetCanceled(cancellationSource.Token));
 
+    verificationTickets.Enqueue(Unit.Default);
     MarkVerificationFinished();
 
     ParsedCompilation = ParseAsync();
@@ -151,7 +153,9 @@ public class CompilationManager {
 
   private int runningVerificationJobs;
 
-  public async Task<bool> VerifySymbol(FilePosition verifiableLocation, bool actuallyVerifyTasks = true) {
+  // When verifying a symbol, a ticket must be acquired before the SMT part of verification may start.
+  private readonly AsyncQueue<Unit> verificationTickets = new();
+  public async Task<bool> VerifySymbol(FilePosition verifiableLocation, bool onlyPrepareVerificationForGutterTests = false) {
     cancellationSource.Token.ThrowIfCancellationRequested();
 
     var compilation = await ResolvedCompilation;
@@ -168,112 +172,159 @@ public class CompilationManager {
     }
 
     var containingModule = verifiable.ContainingModule;
+    if (!containingModule.ShouldVerify(compilation.Program.Compilation)) {
+      return false;
+    }
 
-    IncrementJobs();
+    if (!onlyPrepareVerificationForGutterTests && !compilation.VerifyingOrVerifiedSymbols.TryAdd(verifiable, Unit.Default)) {
+      return false;
+    }
+    compilationUpdates.OnNext(compilation);
 
-    IReadOnlyDictionary<FilePosition, IReadOnlyList<IImplementationTask>> tasksForModule;
+    if (onlyPrepareVerificationForGutterTests) {
+      await VerifyUnverifiedSymbol(onlyPrepareVerificationForGutterTests, verifiable, compilation);
+      return true;
+    }
+
+    _ = VerifyUnverifiedSymbol(onlyPrepareVerificationForGutterTests, verifiable, compilation);
+    return true;
+  }
+
+  private async Task VerifyUnverifiedSymbol(bool onlyPrepareVerificationForGutterTests, ICanVerify verifiable,
+    CompilationAfterResolution compilation) {
     try {
-      tasksForModule = await compilation.TranslatedModules.GetOrAdd(containingModule, async m => {
-        var result = await verifier.GetVerificationTasksAsync(boogieEngine, compilation, containingModule,
-          cancellationSource.Token);
-        compilation.ResolutionDiagnostics = ((DiagnosticErrorReporter)compilation.Program.Reporter).AllDiagnosticsCopy;
-        compilationUpdates.OnNext(compilation);
-        foreach (var task in result) {
-          cancellationSource.Token.Register(task.Cancel);
-        }
 
-        return result.GroupBy(t => ((IToken)t.Implementation.tok).GetFilePosition()).ToDictionary(
-          g => g.Key,
-          g => (IReadOnlyList<IImplementationTask>)g.ToList());
-      });
-    } catch (OperationCanceledException) {
-      verificationCompleted.TrySetCanceled();
-      throw;
-    } catch (Exception e) {
-      verificationCompleted.TrySetException(e);
-      compilationUpdates.OnError(e);
-      throw;
-    }
+      var ticket = verificationTickets.Dequeue(CancellationToken.None);
+      var containingModule = verifiable.ContainingModule;
 
-    var updated = false;
-    var implementations = compilation.ImplementationsPerVerifiable.GetOrAdd(verifiable, _ => {
-      var tasksForVerifiable =
-        tasksForModule.GetValueOrDefault(verifiable.NameToken.GetFilePosition()) ?? new List<IImplementationTask>(0);
+      IncrementJobs();
 
-      verificationProgressReporter.ReportImplementationsBeforeVerification(compilation,
-        verifiable, tasksForVerifiable.Select(t => t.Implementation).ToArray());
-
-      verificationProgressReporter.ReportRealtimeDiagnostics(compilation, verifiable.Tok.Uri, true);
-
-      updated = true;
-      return tasksForVerifiable.ToDictionary(
-        t => GetImplementationName(t.Implementation),
-        t => new ImplementationView(t, PublishedVerificationStatus.Stale, Array.Empty<DafnyDiagnostic>()));
-    });
-    if (updated) {
-      compilationUpdates.OnNext(compilation);
-    }
-
-    if (actuallyVerifyTasks) {
-      var tasks = implementations.Values.Select(t => t.Task).ToList();
-
-      foreach (var task in tasks) {
-        var statusUpdates = task.TryRun();
-        if (statusUpdates == null) {
-          if (task.CacheStatus is Completed completedCache) {
-            foreach (var result in completedCache.Result.VCResults) {
-              verificationProgressReporter.ReportVerifyImplementationRunning(compilation, task.Implementation);
-              verificationProgressReporter.ReportAssertionBatchResult(compilation,
-                new AssertionBatchResult(task.Implementation, result));
-            }
-
-            verificationProgressReporter.ReportEndVerifyImplementation(compilation, task.Implementation,
-              completedCache.Result);
+      IReadOnlyDictionary<FilePosition, IReadOnlyList<IImplementationTask>> tasksForModule;
+      try {
+        tasksForModule = await compilation.TranslatedModules.GetOrAdd(containingModule, async () => {
+          var result = await verifier.GetVerificationTasksAsync(boogieEngine, compilation, containingModule,
+            cancellationSource.Token);
+          compilation.ResolutionDiagnostics =
+            ((DiagnosticErrorReporter)compilation.Program.Reporter).AllDiagnosticsCopy;
+          compilationUpdates.OnNext(compilation);
+          foreach (var task in result) {
+            cancellationSource.Token.Register(task.Cancel);
           }
 
-          StatusUpdateHandlerFinally();
-          return false;
-        }
+          return result.GroupBy(t => ((IToken)t.Implementation.tok).GetFilePosition()).ToDictionary(
+            g => g.Key,
+            g => (IReadOnlyList<IImplementationTask>)g.ToList());
+        });
+      } catch (OperationCanceledException) {
+        verificationCompleted.TrySetCanceled();
+        throw;
+      } catch (Exception e) {
+        verificationCompleted.TrySetException(e);
+        compilationUpdates.OnError(e);
+        throw;
+      }
 
-        var incrementedJobs = Interlocked.Increment(ref runningVerificationJobs);
-        logger.LogDebug($"Incremented jobs for task, remaining jobs {incrementedJobs}, {compilation.Uri} version {compilation.Version}");
+      // For updated to be reliable, ImplementationsPerVerifiable must be Lazy
+      var updated = false;
+      var implementations = compilation.ImplementationsPerVerifiable.GetOrAdd(verifiable, () => {
+        var tasksForVerifiable =
+          tasksForModule.GetValueOrDefault(verifiable.NameToken.GetFilePosition()) ??
+          new List<IImplementationTask>(0);
 
-        statusUpdates.ObserveOn(verificationUpdateScheduler).Subscribe(
-          update => {
-            try {
-              HandleStatusUpdate(compilation, verifiable, task, update);
-            } catch (Exception e) {
-              logger.LogError(e, "Caught exception in statusUpdates OnNext.");
-            }
-          },
-          e => {
-            if (e is not OperationCanceledException) {
-              logger.LogError(e, $"Caught error in statusUpdates observable.");
+        updated = true;
+        return tasksForVerifiable.ToDictionary(
+          t => GetImplementationName(t.Implementation),
+          t => new ImplementationView(t, PublishedVerificationStatus.Stale, Array.Empty<DafnyDiagnostic>()));
+      });
+      if (updated) {
+        verificationProgressReporter.ReportImplementationsBeforeVerification(compilation,
+          verifiable, implementations.Select(t => t.Value.Task.Implementation).ToArray());
+
+        verificationProgressReporter.ReportRealtimeDiagnostics(compilation, verifiable.Tok.Uri, true);
+        compilationUpdates.OnNext(compilation);
+      }
+
+      // When multiple calls to VerifyUnverifiedSymbol are made, the order in which they pass this await matches the call order.
+      await ticket;
+
+      if (!onlyPrepareVerificationForGutterTests) {
+        var tasks = implementations.Values.Select(t => t.Task).ToList();
+
+        foreach (var task in tasks) {
+          var statusUpdates = task.TryRun();
+          if (statusUpdates == null) {
+            if (task.CacheStatus is Completed completedCache) {
+              foreach (var result in completedCache.Result.VCResults) {
+                verificationProgressReporter.ReportVerifyImplementationRunning(compilation,
+                  task.Implementation);
+                verificationProgressReporter.ReportAssertionBatchResult(compilation,
+                  new AssertionBatchResult(task.Implementation, result));
+              }
+
+              verificationProgressReporter.ReportEndVerifyImplementation(compilation, task.Implementation,
+                completedCache.Result);
             }
 
             StatusUpdateHandlerFinally();
-          },
-          StatusUpdateHandlerFinally
-        );
-      }
-
-      void StatusUpdateHandlerFinally() {
-        try {
-          var remainingJobs = Interlocked.Decrement(ref runningVerificationJobs);
-          logger.LogDebug(
-            $"StatusUpdateHandlerFinally called, remaining jobs {remainingJobs}, {compilation.Uri} version {compilation.Version}, " +
-            $"startingCompilation.version {startingCompilation.Version}.");
-          if (remainingJobs == 0) {
-            FinishedNotifications(compilation, verifiable);
+            return;
           }
-        } catch (Exception e) {
-          logger.LogCritical(e, "Caught exception while handling finally code of statusUpdates handler.");
+
+          var incrementedJobs = Interlocked.Increment(ref runningVerificationJobs);
+          logger.LogDebug(
+            $"Incremented jobs for task, remaining jobs {incrementedJobs}, {compilation.Uri} version {compilation.Version}");
+
+          statusUpdates.ObserveOn(verificationUpdateScheduler).Subscribe(
+            update => {
+              try {
+                HandleStatusUpdate(compilation, verifiable, task, update);
+              } catch (Exception e) {
+                logger.LogError(e, "Caught exception in statusUpdates OnNext.");
+              }
+            },
+            e => {
+              if (e is not OperationCanceledException) {
+                logger.LogError(e, $"Caught error in statusUpdates observable.");
+              }
+
+              StatusUpdateHandlerFinally();
+            },
+            StatusUpdateHandlerFinally
+          );
+        }
+
+        void StatusUpdateHandlerFinally() {
+          try {
+            var remainingJobs = Interlocked.Decrement(ref runningVerificationJobs);
+            logger.LogDebug(
+              $"StatusUpdateHandlerFinally called, remaining jobs {remainingJobs}, {compilation.Uri} version {compilation.Version}, " +
+              $"startingCompilation.version {startingCompilation.Version}.");
+            if (remainingJobs == 0) {
+              FinishedNotifications(compilation, verifiable);
+            }
+          } catch (Exception e) {
+            logger.LogCritical(e, "Caught exception while handling finally code of statusUpdates handler.");
+          }
         }
       }
-    }
 
-    DecrementJobs();
-    return true;
+      DecrementJobs();
+    }
+    finally {
+      verificationTickets.Enqueue(Unit.Default);
+    }
+  }
+
+  public async Task Cancel(FilePosition filePosition) {
+    var resolvedCompilation = await ResolvedCompilation;
+    var canVerify = resolvedCompilation.Program.FindNode<ICanVerify>(filePosition.Uri, filePosition.Position.ToDafnyPosition());
+    if (canVerify != null) {
+      var implementations = resolvedCompilation.ImplementationsPerVerifiable.TryGetValue(canVerify, out var implementationsPerName)
+        ? implementationsPerName!.Values : Enumerable.Empty<ImplementationView>();
+      foreach (var view in implementations) {
+        view.Task.Cancel();
+      }
+      resolvedCompilation.VerifyingOrVerifiedSymbols.TryRemove(canVerify, out _);
+    }
   }
 
   public void IncrementJobs() {
@@ -456,7 +507,7 @@ public class CompilationManager {
       return null;
     }
 
-    var firstToken = parsedDocument.Program.GetFirstTopLevelToken();
+    var firstToken = parsedDocument.Program.GetFirstTokenForUri(uri);
     if (firstToken == null) {
       return null;
     }

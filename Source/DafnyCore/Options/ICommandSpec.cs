@@ -83,6 +83,7 @@ public interface ICommandSpec {
     CommonOptionBag.TypeSystemRefresh,
     CommonOptionBag.TypeInferenceDebug,
     CommonOptionBag.NewTypeInferenceDebug,
+    CommonOptionBag.ReadsClausesOnMethods
   });
 
   public static IReadOnlyList<Option> ResolverOptions = new List<Option>(new Option[] {
