@@ -191,7 +191,7 @@ namespace Microsoft.Dafny {
 
       // no other options remain; the ID denotes a new bound variable
 
-      if (inDisjunctivePattern) {
+      if (inDisjunctivePattern && !idPattern.IsWildcardPattern) {
         ReportError(idPattern.Tok, "Disjunctive patterns may not bind variables");
       }
 
