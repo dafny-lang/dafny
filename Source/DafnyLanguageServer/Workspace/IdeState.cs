@@ -17,7 +17,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace;
 public record IdeImplementationView(Range Range, PublishedVerificationStatus Status,
   IReadOnlyList<Diagnostic> Diagnostics);
 
-public record IdeVerificationResult(bool WasTranslated, IReadOnlyDictionary<string, IdeImplementationView> Implementations);
+public enum VerificationPreparationState { NotStarted, InProgress, Done }
+public record IdeVerificationResult(VerificationPreparationState PreparationProgress, IReadOnlyDictionary<string, IdeImplementationView> Implementations);
 
 /// <summary>
 /// Contains information from the latest document, and from older documents if some information is missing,

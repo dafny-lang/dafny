@@ -1,5 +1,6 @@
-﻿using OmniSharp.Extensions.LanguageServer.Protocol;
-using OmniSharp.Extensions.LanguageServer.Protocol.Models;
+﻿using System;
+using OmniSharp.Extensions.LanguageServer.Protocol;
+using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
   /// <summary>
@@ -9,7 +10,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
     /// <summary>
     /// Gets the document uri of the containing file.
     /// </summary>
-    public DocumentUri Uri { get; }
+    public Uri Uri { get; }
 
     /// <summary>
     /// Gets the range of the symbol's name.
@@ -22,7 +23,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
     /// </summary>
     public Range Declaration { get; }
 
-    public SymbolLocation(DocumentUri uri, Range name, Range declaration) {
+    public SymbolLocation(Uri uri, Range name, Range declaration) {
       Uri = uri;
       Name = name;
       Declaration = declaration;
