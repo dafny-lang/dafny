@@ -42,6 +42,7 @@ jobs:
         sudo apt-get install -qq libxml2-utils
         echo "boogieVersion=`xmllint --xpath "//PackageReference[@Include='Boogie.ExecutionEngine']/@Version" dafny/Source/DafnyCore/DafnyCore.csproj | grep -Po 'Version="\K.*?(?=")'`" >> $GITHUB_ENV
     - name: Compare Boogie versions
+      working-directory: dafny
       run: |
         (dotnet tool run boogie -version | grep ${{env.BoogieVersion}}) || (echo "Mismatched Boogie versions." ; exit 1)
     - name: Attempt custom Boogie patch
