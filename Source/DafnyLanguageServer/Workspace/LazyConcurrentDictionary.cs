@@ -23,7 +23,7 @@ public class LazyConcurrentDictionary<TKey, TValue> : IEnumerable<KeyValuePair<T
   }
 
   class Enumerator : IEnumerator<KeyValuePair<TKey, TValue>> {
-    private IEnumerator<KeyValuePair<TKey, Lazy<TValue>>> underlying;
+    private readonly IEnumerator<KeyValuePair<TKey, Lazy<TValue>>> underlying;
 
     public Enumerator(IEnumerator<KeyValuePair<TKey, Lazy<TValue>>> underlying) {
       this.underlying = underlying;

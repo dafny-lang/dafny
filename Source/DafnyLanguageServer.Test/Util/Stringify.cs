@@ -4,8 +4,6 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
-using System.Linq;
-using System.Text;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 
@@ -20,7 +18,8 @@ public static class StringifyUtil {
     return overrides.Add(type, (value, writer) => writer.Write(value.ToString()));
   }
 
-  public static void Stringify(this object root, TextWriter writer, bool showNullChildren = false, IReadOnlyDictionary<System.Type, Action<object, TextWriter>> overrides = null) {
+  public static void Stringify(this object root, TextWriter writer, bool showNullChildren = false,
+    IReadOnlyDictionary<System.Type, Action<object, TextWriter>>? overrides = null) {
 
     overrides = ImmutableDictionary<System.Type, Action<object, TextWriter>>.Empty;
 
@@ -55,7 +54,7 @@ public static class StringifyUtil {
         return;
       }
 
-      var type = value.GetType()!;
+      var type = value.GetType();
       var isKeyValuePair = type.Name == "KeyValuePair`2";
       if (type.Namespace?.StartsWith("System") == true && !isKeyValuePair) {
         writer.Write(value);
