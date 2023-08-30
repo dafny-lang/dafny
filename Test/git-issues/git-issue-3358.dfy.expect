@@ -1,0 +1,2 @@
+git-issue-3358.dfy(6,2): Error: /!\ No trigger covering all quantified variables found.
+1 resolution/type errors detected in git-issue-3358.dfy

@@ -61,6 +61,10 @@ public static class StringifyUtil {
         return;
       }
 
+      if (value is Enum) {
+        writer.Write(value.ToString());
+        return;
+      }
 
       if (visited.Contains(value)) {
         writer.Write("<visited>");

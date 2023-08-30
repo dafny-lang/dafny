@@ -19,8 +19,8 @@ namespace Microsoft.Dafny {
       return string.Format(ErrorFormatString, Super, Sub);
     }
 
-    public SubtypeConstraint(PreType super, PreType sub, IToken tok, string errorFormatString)
-      : base(tok, errorFormatString) {
+    public SubtypeConstraint(PreType super, PreType sub, IToken tok, string errorFormatString, PreTypeConstraint baseError = null)
+      : base(tok, errorFormatString, baseError) {
       Contract.Assert(super != null);
       Contract.Assert(sub != null);
       Super = super.Normalize();
@@ -46,8 +46,8 @@ namespace Microsoft.Dafny {
     }
 
     public bool Apply(PreTypeConstraints constraints) {
-      var super = Super.Normalize();
-      var sub = Sub.Normalize();
+      var super = Super.NormalizeWrtScope();
+      var sub = Sub.NormalizeWrtScope();
       var ptSuper = super as DPreType;
       var ptSub = sub as DPreType;
       // In the following explanations, D is assumed to be a type with three
@@ -62,7 +62,7 @@ namespace Microsoft.Dafny {
         var arguments = constraints.GetTypeArgumentsForSuperType(ptSuper.Decl, ptSub.Decl, ptSub.Arguments);
         if (arguments != null) {
           Contract.Assert(arguments.Count == ptSuper.Decl.TypeArgs.Count);
-          ConstrainTypeArguments(ptSuper.Decl.TypeArgs, ptSuper.Arguments, arguments, tok, constraints);
+          ConstrainTypeArguments(ptSuper.Decl.TypeArgs, ptSuper.Arguments, arguments, tok, this, constraints);
           return true;
         } else {
           constraints.PreTypeResolver.ReportError(tok, ErrorMessage());
@@ -110,7 +110,7 @@ namespace Microsoft.Dafny {
     /// For every contra-variant parameters[i], constrain subArguments[i] :> superArguments[i].
     /// </summary>
     static void ConstrainTypeArguments(List<TypeParameter> parameters, List<PreType> superArguments, List<PreType> subArguments, IToken tok,
-      PreTypeConstraints constraints) {
+      PreTypeConstraint baseError, PreTypeConstraints constraints) {
       Contract.Requires(parameters.Count == superArguments.Count && superArguments.Count == subArguments.Count);
 
       for (var i = 0; i < parameters.Count; i++) {
@@ -118,11 +118,14 @@ namespace Microsoft.Dafny {
         var arg0 = superArguments[i];
         var arg1 = subArguments[i];
         if (tp.Variance == TypeParameter.TPVariance.Non) {
-          constraints.AddEqualityConstraint(arg0, arg1, tok, "non-variance would require {0} == {1}");
+          constraints.AddEqualityConstraint(arg0, arg1, tok,
+            $"non-variant type parameter '{tp.Name}' would require {{0}} = {{1}}", baseError);
         } else if (tp.Variance == TypeParameter.TPVariance.Co) {
-          constraints.AddSubtypeConstraint(arg0, arg1, tok, "covariance would require {0} :> {1}");
+          constraints.AddSubtypeConstraint(arg0, arg1, tok,
+            $"covariant type parameter '{tp.Name}' would require {{0}} :> {{1}}", baseError);
         } else {
-          constraints.AddSubtypeConstraint(arg1, arg0, tok, "contravariance would require {0} :> {1}");
+          constraints.AddSubtypeConstraint(arg1, arg0, tok,
+            $"contravariant type parameter '{tp.Name}' would require {{0}} :> {{1}}", baseError);
         }
       }
     }

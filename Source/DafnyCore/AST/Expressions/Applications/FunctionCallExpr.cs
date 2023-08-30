@@ -23,10 +23,7 @@ public class FunctionCallExpr : Expression, IHasUsages, ICloneable<FunctionCallE
   /// This method should only be called on fully and successfully resolved FunctionCallExpr's.
   /// </summary>
   public Dictionary<TypeParameter, Type> GetTypeArgumentSubstitutions() {
-    var typeMap = new Dictionary<TypeParameter, Type>();
-    Util.AddToDict(typeMap, Function.EnclosingClass.TypeArgs, TypeApplication_AtEnclosingClass);
-    Util.AddToDict(typeMap, Function.TypeArgs, TypeApplication_JustFunction);
-    return typeMap;
+    return TypeArgumentSubstitutionsWithParents();
   }
 
   /// <summary>
