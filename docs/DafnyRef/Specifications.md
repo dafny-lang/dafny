@@ -464,6 +464,12 @@ function g()
   reads o, oo
 function h()
   reads { o }
+method f()
+  reads *
+method g()
+  reads o, oo
+method h()
+  reads { o }
 ```
 
 Functions are not allowed to have side effects; they may also be restricted in
@@ -479,11 +485,24 @@ able to give invariants to preserve it in this case, it gets even more
 complex when manipulating data structures. In this case, framing is
 essential to making the verification process feasible.
 
-It is not just the body of a function that is subject to `reads`
+By default, methods are not required to list the memory location they read.
+However, there are use cases for restricting what methods can read as well.
+In particular, if you want to verify that imperative code is safe to execute concurrently when compiled,
+you can specify that a method does not read or write any shared state,
+and therefore cannot encounter race conditions or runtime crashes related to
+unsafe communication between concurrent executions.
+See [the `{:concurrent}` attribute](#sec-concurrent-attribute) for more details.
+
+It is not just the body of a function or method that is subject to `reads`
 checks, but also its precondition and the `reads` clause itself.
 
 A `reads` clause can list a wildcard `*`, which allows the enclosing
-function to read anything. In many cases, and in particular in all cases
+function or method to read anything. 
+This is the implicit default for methods with no `reads` clauses,
+allowing methods to read whatever they like.
+The default for functions, however, is to not allow reading any memory.
+Allowing functions to read arbitrary memory is more problematic:
+in many cases, and in particular in all cases
 where the function is defined recursively, this makes it next to
 impossible to make any use of the function. Nevertheless, as an
 experimental feature, the language allows it (and it is sound).
@@ -491,7 +510,7 @@ If a `reads` clause uses `*`, then the `reads` clause is not allowed to
 mention anything else (since anything else would be irrelevant, anyhow).
 
 A `reads` clause specifies the set of memory locations that a function,
-lambda, or iterator may read. The readable memory locations are all the fields
+lambda, or method may read. The readable memory locations are all the fields
 of all of the references given in the set specified in the frame expression
 and the single fields given in [`FrameField`](#sec-frame-expression) elements of the frame expression.
 For example, in
@@ -565,6 +584,11 @@ reads on the values from `lo` to `hi`, but the larger set denoted by
 Note, only `reads` clauses, not `modifies` clauses, are allowed to
 include functions as just described.
 
+Iterator specifications also allow `reads` clauses,
+with the same syntax and interpretation of arguments as above,
+but the meaning is quite different!
+See [Section 5.11](#sec-iterator-types) for more details.
+
 ### 7.1.6. Modifies Clause ([grammar](#g-modifies-clause)) {#sec-modifies-clause}
 
 Examples:
@@ -581,12 +605,11 @@ method Q()
   modifies o, p`f
 ```
 
-Frames also affect methods. Methods are not
-required to list the things they read. Methods are allowed to read
+By default, methods are allowed to read
 whatever memory they like, but they are required to list which parts of
 memory they modify, with a `modifies` annotation. These are almost identical
 to their `reads` cousins, except they say what can be changed, rather than
-what the value of the function depends on. In combination with reads,
+what the definition depends on. In combination with reads,
 modification restrictions allow Dafny to prove properties of code that
 would otherwise be very difficult or impossible. Reads and modifies are
 one of the tools that allow Dafny to work on one method at a time,
@@ -684,10 +707,12 @@ class C {
 }
 ```
 
-A method specification consists of zero or more `modifies`, `requires`,
+A method specification consists of zero or more `reads`, `modifies`, `requires`,
 `ensures` or `decreases` clauses, in any order.
-A method does not have `reads` clauses because methods are allowed to
-read any memory.
+A method does not need `reads` clauses in most cases,
+because methods are allowed to read any memory by default,
+but `reads` clauses are supported for use cases such as verifying safe concurrent execution.
+See [the `{:concurrent}` attribute](#sec-concurrent-attribute) for more details.
 
 ## 7.3. Function Specification ([grammar](#g-function-specification)) {#sec-function-specification}
 
@@ -735,7 +760,7 @@ and `yield ensures` clauses.
 An iterator specification applies both to the iterator's constructor
 method and to its `MoveNext` method.
 - The `reads` and `modifies`
-clauses apply to both of them. 
+clauses apply to both of them (but `reads` clauses have a [different meaning on iterators](#sec-iterator-types) than on functions or methods).
 - The `requires` and `ensures` clauses apply to the constructor.
 - The `yield requires` and `yield ensures` clauses apply to the `MoveNext` method.
 
@@ -746,6 +771,8 @@ Examples of iterators, including iterator specifications, are given in
 - a decreases clause is used to show that the iterator will eventually terminate
 - a yield requires clause is a precondition for calling `MoveNext`
 - a yield ensures clause is a postcondition for calling `MoveNext`
+- a reads clause gives a set of memory locations that will be unchanged after a `yield` statement
+- a modifies clause gives a set of memory locations the iterator may write to
 
 ## 7.6. Loop Specification ([grammar](#g-loop-specification)) {#sec-loop-specification}
 

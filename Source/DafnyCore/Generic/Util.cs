@@ -922,6 +922,9 @@ namespace Microsoft.Dafny {
         if (m.Req.Any(e => Traverse(e.E, "Req.E", m))) {
           return true;
         }
+        if (m.Reads.Any(e => Traverse(e.E, "Reads.E", m))) {
+          return true;
+        }
         if (m.Mod.Expressions.Any(e => Traverse(e.E, "Mod.E", m) == true)) {
           return true;
         }

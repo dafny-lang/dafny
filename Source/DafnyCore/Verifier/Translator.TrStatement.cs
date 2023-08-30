@@ -334,13 +334,13 @@ namespace Microsoft.Dafny {
         // check well-formedness of the modifies clauses
         CheckFrameWellFormed(new WFOptions(), s.Mod.Expressions, locals, builder, etran);
         // check that the modifies is a subset
-        CheckFrameSubset(s.Tok, s.Mod.Expressions, null, null, etran, builder, new PODesc.FrameSubset("modify statement", true), null);
+        CheckFrameSubset(s.Tok, s.Mod.Expressions, null, null, etran, etran.ModifiesFrame(s.Tok), builder, new PODesc.FrameSubset("modify statement", true), null);
         // cause the change of the heap according to the given frame
         var suffix = CurrentIdGenerator.FreshId("modify#");
         string modifyFrameName = "$Frame$" + suffix;
         var preModifyHeapVar = new Bpl.LocalVariable(s.Tok, new Bpl.TypedIdent(s.Tok, "$PreModifyHeap$" + suffix, predef.HeapType));
         locals.Add(preModifyHeapVar);
-        DefineFrame(s.Tok, s.Mod.Expressions, builder, locals, modifyFrameName);
+        DefineFrame(s.Tok, etran.ModifiesFrame(s.Tok), s.Mod.Expressions, builder, locals, modifyFrameName);
         if (s.Body == null) {
           var preModifyHeap = new Bpl.IdentifierExpr(s.Tok, preModifyHeapVar);
           // preModifyHeap := $Heap;
@@ -351,11 +351,11 @@ namespace Microsoft.Dafny {
           builder.Add(TrAssumeCmd(s.Tok, HeapSucc(preModifyHeap, etran.HeapExpr, s.IsGhost)));
           // assume nothing outside the frame was changed
           var etranPreLoop = new ExpressionTranslator(this, predef, preModifyHeap);
-          var updatedFrameEtran = new ExpressionTranslator(etran, modifyFrameName);
-          builder.Add(TrAssumeCmd(s.Tok, FrameConditionUsingDefinedFrame(s.Tok, etranPreLoop, etran, updatedFrameEtran)));
+          var updatedFrameEtran = etran.WithModifiesFrame(modifyFrameName);
+          builder.Add(TrAssumeCmd(s.Tok, FrameConditionUsingDefinedFrame(s.Tok, etranPreLoop, etran, updatedFrameEtran, updatedFrameEtran.ModifiesFrame(s.Tok))));
         } else {
           // do the body, but with preModifyHeapVar as the governing frame
-          var updatedFrameEtran = new ExpressionTranslator(etran, modifyFrameName);
+          var updatedFrameEtran = etran.WithModifiesFrame(modifyFrameName);
           CurrentIdGenerator.Push();
           TrStmt(s.Body, builder, locals, updatedFrameEtran);
           CurrentIdGenerator.Pop();
@@ -1196,7 +1196,7 @@ namespace Microsoft.Dafny {
       var lhs = Substitute(s0.Lhs.Resolved, null, substMap);
       TrStmt_CheckWellformed(lhs, definedness, locals, etran, false);
       string description = GetObjFieldDetails(lhs, etran, out var obj, out var F);
-      definedness.Add(Assert(lhs.tok, Bpl.Expr.SelectTok(lhs.tok, etran.TheFrame(lhs.tok), obj, F),
+      definedness.Add(Assert(lhs.tok, Bpl.Expr.SelectTok(lhs.tok, etran.ModifiesFrame(lhs.tok), obj, F),
         new PODesc.Modifiable(description)));
       if (s0.Rhs is ExprRhs) {
         var r = (ExprRhs)s0.Rhs;
@@ -1366,15 +1366,15 @@ namespace Microsoft.Dafny {
       ExpressionTranslator updatedFrameEtran;
       string loopFrameName = "$Frame$" + suffix;
       if (s.Mod.Expressions != null) {
-        updatedFrameEtran = new ExpressionTranslator(etran, loopFrameName);
+        updatedFrameEtran = etran.WithModifiesFrame(loopFrameName);
       } else {
         updatedFrameEtran = etran;
       }
 
       if (s.Mod.Expressions != null) { // check well-formedness and that the modifies is a subset
         CheckFrameWellFormed(new WFOptions(), s.Mod.Expressions, locals, builder, etran);
-        CheckFrameSubset(s.Tok, s.Mod.Expressions, null, null, etran, builder, new PODesc.FrameSubset("loop modifies clause", true), null);
-        DefineFrame(s.Tok, s.Mod.Expressions, builder, locals, loopFrameName);
+        CheckFrameSubset(s.Tok, s.Mod.Expressions, null, null, etran, etran.ModifiesFrame(s.Tok), builder, new PODesc.FrameSubset("loop modifies clause", true), null);
+        DefineFrame(s.Tok, etran.ModifiesFrame(s.Tok), s.Mod.Expressions, builder, locals, loopFrameName);
       }
       builder.Add(Bpl.Cmd.SimpleAssign(s.Tok, preLoopHeap, etran.HeapExpr));
 
@@ -1449,7 +1449,7 @@ namespace Microsoft.Dafny {
           }
         }
         // add a free invariant which says that the heap hasn't changed outside of the modifies clause.
-        invariants.Add(TrAssumeCmd(s.Tok, FrameConditionUsingDefinedFrame(s.Tok, etranPreLoop, etran, updatedFrameEtran)));
+        invariants.Add(TrAssumeCmd(s.Tok, FrameConditionUsingDefinedFrame(s.Tok, etranPreLoop, etran, updatedFrameEtran, updatedFrameEtran.ModifiesFrame(s.Tok))));
         // for iterators, add "fresh(_new)" as an invariant
         if (codeContext is IteratorDecl iter) {
           var th = new ThisExpr(iter);
@@ -1885,11 +1885,19 @@ namespace Microsoft.Dafny {
         }
       }
 
-      // Check modifies clause of a subcall is a subset of the current frame.
+      // Check that the reads clause of a subcall is a subset of the current reads frame,
+      // but support the optimization that we don't define a reads frame at all if it's `reads *`. 
+      if (etran.readsFrame != null) {
+        var readsSubst = new Substituter(null, new Dictionary<IVariable, Expression>(), tySubst);
+        CheckFrameSubset(tok, callee.Reads.ConvertAll(readsSubst.SubstFrameExpr),
+          receiver, substMap, etran, etran.ReadsFrame(tok), builder, new PODesc.FrameSubset("call", false), null);
+      }
+      // Check that the modifies clause of a subcall is a subset of the current modifies frame,
+      // but only if we're in a context that defines a modifies frame.
       if (codeContext is IMethodCodeContext) {
-        var s = new Substituter(null, new Dictionary<IVariable, Expression>(), tySubst);
-        CheckFrameSubset(tok, callee.Mod.Expressions.ConvertAll(s.SubstFrameExpr),
-          receiver, substMap, etran, builder, new PODesc.FrameSubset("call", true), null);
+        var modifiesSubst = new Substituter(null, new Dictionary<IVariable, Expression>(), tySubst);
+        CheckFrameSubset(tok, callee.Mod.Expressions.ConvertAll(modifiesSubst.SubstFrameExpr),
+          receiver, substMap, etran, etran.ModifiesFrame(tok), builder, new PODesc.FrameSubset("call", true), null);
       }
 
       // Check termination
