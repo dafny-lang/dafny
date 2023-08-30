@@ -11,19 +11,22 @@ module ReadsRequiresReads {
   }
 
   ghost method MyReadsOk2<A,B>(f : A ~> B, a : A) returns (r: set<object?>)
-    requires f.requires(a) reads f.reads(a)
+    requires f.requires(a)
+    reads f.reads(a)
   {
     r := (f.reads)(a);
   }
 
   ghost method MyReadsOk3<A,B>(f : A ~> B, a : A) returns (r: set<object?>)
-    requires (f.requires)(a) reads (f.reads)(a)
+    requires (f.requires)(a)
+    reads (f.reads)(a)
   {
     r := f.reads(a);
   }
 
   ghost method MyReadsOk4<A,B>(f : A ~> B, a : A) returns (r: set<object?>)
-    requires (f.requires)(a) reads (f.reads)(a)
+    requires (f.requires)(a)
+    reads (f.reads)(a)
   {
     r := (f.reads)(a);
   }
