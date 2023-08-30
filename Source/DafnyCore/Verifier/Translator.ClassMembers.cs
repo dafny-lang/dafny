@@ -1391,7 +1391,7 @@ namespace Microsoft.Dafny {
         originalTraitFrameExps = m.OverriddenMethod.Reads;
       }
       
-      List<FrameExpression> traitFrameExps = new List<FrameExpression>();
+      var traitFrameExps = new List<FrameExpression>();
       if (originalTraitFrameExps != null) {
         // Not currently possible for modifies, but is supported for reads
         if (originalTraitFrameExps.Any(e => e.E is WildcardExpr)) {
@@ -1400,39 +1400,25 @@ namespace Microsoft.Dafny {
         }
         foreach (var e in originalTraitFrameExps) {
           var newE = Substitute(e.E, null, substMap, typeMap);
-          FrameExpression fe = new FrameExpression(e.tok, newE, e.FieldName);
+          var fe = new FrameExpression(e.tok, newE, e.FieldName);
           traitFrameExps.Add(fe);
         }
       }
 
-      QKeyValue kv = etran.TrAttributes(m.Attributes, null);
+      var kv = etran.TrAttributes(m.Attributes, null);
 
-      IToken tok = m.tok;
-      // Declare a local variable $<EnclosingClass>_Reads/ModifiesFrame: <alpha>[ref, Field alpha]bool
-      // The next line is a throw-away expression, used only to extract the type and name of the $_Reads/ModifiesFrame variable
-      Boogie.IdentifierExpr traitFrame = isModifies ? etran.ModifiesFrame(m.OverriddenMethod.tok) : etran.ReadsFrame(m.OverriddenMethod.tok);
-      traitFrame.Name = m.EnclosingClass.Name + "_" + traitFrame.Name;
-      Contract.Assert(traitFrame.Type != null);  // follows from the postcondition of ModifiesFrame/ReadsFrame
-      Boogie.LocalVariable frame = new Boogie.LocalVariable(tok, new Boogie.TypedIdent(tok, null ?? traitFrame.Name, traitFrame.Type));
-      localVariables.Add(frame);
-      // $_Frame := (lambda<alpha> $o: ref, $f: Field alpha :: $o != null && $Heap[$o,alloc] ==> ($o,$f) in Modifies/Reads-Clause);
-      Boogie.TypeVariable alpha = new Boogie.TypeVariable(tok, "alpha");
-      Boogie.BoundVariable oVar = new Boogie.BoundVariable(tok, new Boogie.TypedIdent(tok, "$o", predef.RefType));
-      Boogie.IdentifierExpr o = new Boogie.IdentifierExpr(tok, oVar);
-      Boogie.BoundVariable fVar = new Boogie.BoundVariable(tok, new Boogie.TypedIdent(tok, "$f", predef.FieldName(tok, alpha)));
-      Boogie.IdentifierExpr f = new Boogie.IdentifierExpr(tok, fVar);
-      Boogie.Expr ante = Boogie.Expr.And(Boogie.Expr.Neq(o, predef.Null), etran.IsAlloced(tok, o));
-      Boogie.Expr consequent = InRWClause(tok, o, f, traitFrameExps, etran, null, null);
-      Boogie.Expr lambda = new Boogie.LambdaExpr(tok, new List<TypeVariable> { alpha }, new List<Variable> { oVar, fVar }, null,
-        Boogie.Expr.Imp(ante, consequent));
-
-      //to initialize $_Frame variable to Frame'
-      builder.Add(Boogie.Cmd.SimpleAssign(tok, new Boogie.IdentifierExpr(tok, frame), lambda));
+      var tok = m.tok;
+      var alpha = new Boogie.TypeVariable(tok, "alpha");
+      var oVar = new Boogie.BoundVariable(tok, new Boogie.TypedIdent(tok, "$o", predef.RefType));
+      var o = new Boogie.IdentifierExpr(tok, oVar);
+      var fVar = new Boogie.BoundVariable(tok, new Boogie.TypedIdent(tok, "$f", predef.FieldName(tok, alpha)));
+      var f = new Boogie.IdentifierExpr(tok, fVar);
+      var ante = Boogie.Expr.And(Boogie.Expr.Neq(o, predef.Null), etran.IsAlloced(tok, o));
 
       // emit: assert (forall<alpha> o: ref, f: Field alpha :: o != null && $Heap[o,alloc] && (o,f) in subFrame ==> $_Frame[o,f]);
-      Boogie.Expr oInCallee = InRWClause(tok, o, f, classFrameExps, etran, null, null);
-      Boogie.Expr consequent2 = InRWClause(tok, o, f, traitFrameExps, etran, null, null);
-      Boogie.Expr q = new Boogie.ForallExpr(tok, new List<TypeVariable> { alpha }, new List<Variable> { oVar, fVar },
+      var oInCallee = InRWClause(tok, o, f, classFrameExps, etran, null, null);
+      var consequent2 = InRWClause(tok, o, f, traitFrameExps, etran, null, null);
+      var q = new Boogie.ForallExpr(tok, new List<TypeVariable> { alpha }, new List<Variable> { oVar, fVar },
         Boogie.Expr.Imp(Boogie.Expr.And(ante, oInCallee), consequent2));
       builder.Add(Assert(tok, q, new PODesc.TraitFrame(m.WhatKind, isModifies), kv));
     }

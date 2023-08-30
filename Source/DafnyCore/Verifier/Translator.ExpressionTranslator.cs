@@ -231,8 +231,6 @@ namespace Microsoft.Dafny {
         return et;
       }
 
-
-
       public Boogie.IdentifierExpr ReadsFrame(IToken tok) {
         Contract.Requires(tok != null);
         Contract.Ensures(Contract.Result<Boogie.IdentifierExpr>() != null);

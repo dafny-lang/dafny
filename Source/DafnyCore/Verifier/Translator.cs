@@ -1703,7 +1703,7 @@ namespace Microsoft.Dafny {
       var builder = new BoogieStmtListBuilder(this, options);
       var etran = new ExpressionTranslator(this, predef, iter.tok);
       // Don't do reads checks since iterator reads clauses mean something else.
-      // TODO: expand explanation
+      // See comment inside GenerateIteratorImplPrelude().
       etran = etran.WithReadsFrame(null);
       var localVariables = new List<Variable>();
       GenerateIteratorImplPrelude(iter, inParams, new List<Variable>(), builder, localVariables, etran);
@@ -1853,7 +1853,7 @@ namespace Microsoft.Dafny {
       var builder = new BoogieStmtListBuilder(this, options);
       var etran = new ExpressionTranslator(this, predef, iter.tok);
       // Don't do reads checks since iterator reads clauses mean something else.
-      // TODO: expand explanation
+      // See comment inside GenerateIteratorImplPrelude().
       etran = etran.WithReadsFrame(null);
       var localVariables = new List<Variable>();
       GenerateIteratorImplPrelude(iter, inParams, new List<Variable>(), builder, localVariables, etran);
@@ -3887,7 +3887,7 @@ namespace Microsoft.Dafny {
       // mean something different from reads clauses on functions or methods:
       // the memory locations that are not havoced by a yield statement.
       // Look for the references to the YieldHavoc, IterHavoc0 and IterHavoc1 DafnyPrelude.bpl functions for details.
-      // TODO: assert etran.readsFrame == null (since there's no way to specify THIS kind of reads frame on iterators)
+      Contract.Assert(etran.readsFrame == null);
       DefineFrame(iter.tok, etran.ModifiesFrame(iter.tok), iteratorFrame, builder, localVariables, null);
       builder.AddCaptureState(iter.tok, false, "initial state");
     }
@@ -3979,16 +3979,16 @@ namespace Microsoft.Dafny {
       Contract.Requires(predef != null);
 
       // emit: assert (forall<alpha> o: ref, f: Field alpha :: o != null && $Heap[o,alloc] ==> !frame[o,f]);
-      Bpl.TypeVariable alpha = new Bpl.TypeVariable(tok, "alpha");
-      Bpl.BoundVariable oVar = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "$o", predef.RefType));
-      Bpl.IdentifierExpr o = new Bpl.IdentifierExpr(tok, oVar);
-      Bpl.BoundVariable fVar = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "$f", predef.FieldName(tok, alpha)));
-      Bpl.IdentifierExpr f = new Bpl.IdentifierExpr(tok, fVar);
-      Bpl.Expr ante = Bpl.Expr.And(Bpl.Expr.Neq(o, predef.Null), etran.IsAlloced(tok, o));
-      Bpl.Expr inFrame = Bpl.Expr.Select(frame, o, f);
-      Bpl.Expr notInFrame = Bpl.Expr.Not(inFrame);
+      var alpha = new Bpl.TypeVariable(tok, "alpha");
+      var oVar = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "$o", predef.RefType));
+      var o = new Bpl.IdentifierExpr(tok, oVar);
+      var fVar = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "$f", predef.FieldName(tok, alpha)));
+      var f = new Bpl.IdentifierExpr(tok, fVar);
+      var ante = Bpl.Expr.And(Bpl.Expr.Neq(o, predef.Null), etran.IsAlloced(tok, o));
+      var inFrame = Bpl.Expr.Select(frame, o, f);
+      var notInFrame = Bpl.Expr.Not(inFrame);
 
-      Bpl.Expr q = new Bpl.ForallExpr(tok, new List<TypeVariable> { alpha }, new List<Variable> { oVar, fVar },
+      var q = new Bpl.ForallExpr(tok, new List<TypeVariable> { alpha }, new List<Variable> { oVar, fVar },
         Bpl.Expr.Imp(ante, notInFrame));
       if (IsExprAlways(q, true)) {
         return;
