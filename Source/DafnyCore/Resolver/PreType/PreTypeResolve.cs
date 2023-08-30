@@ -404,10 +404,11 @@ namespace Microsoft.Dafny {
     private class PreTypeInferenceModuleState {
       public readonly ISet<Declaration> StillNeedsPreTypeSignature;
       public readonly Stack<Declaration> InFirstPhase = new Stack<Declaration>();
-      public readonly Dictionary<string, TopLevelDecl> PreTypeBuiltins = new();
+      public readonly Dictionary<string, TopLevelDecl> PreTypeBuiltins;
 
-      public PreTypeInferenceModuleState(List<Declaration> declarations) {
+      public PreTypeInferenceModuleState(List<Declaration> declarations, Dictionary<string, TopLevelDecl> preTypeBuiltins) {
         StillNeedsPreTypeSignature = new HashSet<Declaration>(declarations);
+        PreTypeBuiltins = preTypeBuiltins;
       }
     }
 
@@ -570,7 +571,7 @@ namespace Microsoft.Dafny {
       // for each declaration, in the order given.
 
       var allDeclarations = AllTopLevelOrMemberDeclarations(declarations).ToList();
-      var preTypeInferenceModuleState = new PreTypeInferenceModuleState(allDeclarations);
+      var preTypeInferenceModuleState = new PreTypeInferenceModuleState(allDeclarations, resolver.SystemModuleManager.PreTypeBuiltins);
       foreach (var d in allDeclarations) {
         Contract.Assert(resolver.VisibleInScope(d));
         ResolvePreTypeSignature(d, preTypeInferenceModuleState, resolver);

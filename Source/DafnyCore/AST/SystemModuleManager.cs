@@ -22,6 +22,13 @@ public class SystemModuleManager {
 
   internal readonly ValuetypeDecl[] valuetypeDecls;
 
+  /// <summary>
+  /// PreTypeBuiltins is stored here once for the entire program, so that its ToplevelDecl's are unique across the program.
+  /// It is used by the pre-type resolver, and its entries are filled in lazily by the pre-type resolver. There may be overlap
+  /// between the values of PreTypeBuiltins and the values in the dictionaries above.
+  /// </summary>
+  public readonly Dictionary<string, TopLevelDecl> PreTypeBuiltins = new();
+
   public ModuleSignature systemNameInfo;
 
   public int MaxNonGhostTupleSizeUsed { get; private set; }
