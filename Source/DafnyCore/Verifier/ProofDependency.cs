@@ -84,7 +84,7 @@ public class RequiresDependency : ProofDependency {
 
 // Represents the goal of proving an ensures clause of a Dafny definition.
 public class EnsuresDependency : ProofDependency {
-  private Expression ensures;
+  private readonly Expression ensures;
 
   public override RangeToken Range =>
     ensures.RangeToken;
@@ -100,8 +100,8 @@ public class EnsuresDependency : ProofDependency {
 // Represents the goal of proving a specific requires clause of a specific
 // call.
 public class CallRequiresDependency : ProofDependency {
-  private CallDependency call;
-  private RequiresDependency requires;
+  private readonly CallDependency call;
+  private readonly RequiresDependency requires;
 
   public override RangeToken Range =>
     call.Range;
@@ -118,8 +118,8 @@ public class CallRequiresDependency : ProofDependency {
 // Represents the assumption of a specific ensures clause of a specific
 // call.
 public class CallEnsuresDependency : ProofDependency {
-  private CallDependency call;
-  private EnsuresDependency ensures;
+  private readonly CallDependency call;
+  private readonly EnsuresDependency ensures;
 
   public override RangeToken Range =>
     call.Range;
@@ -135,7 +135,7 @@ public class CallEnsuresDependency : ProofDependency {
 
 // Represents the fact that a particular call occurred.
 public class CallDependency : ProofDependency {
-  private CallStmt call;
+  private readonly CallStmt call;
 
   public override RangeToken Range =>
     call.RangeToken;
@@ -150,7 +150,7 @@ public class CallDependency : ProofDependency {
 
 // Represents the assumption of a predicate in an `assume` statement.
 public class AssumptionDependency : ProofDependency {
-  private Expression expr;
+  private readonly Expression expr;
 
   public override RangeToken Range =>
     expr.RangeToken;
@@ -158,7 +158,7 @@ public class AssumptionDependency : ProofDependency {
   public override string Description =>
     comment ?? $"assume {OriginalString()}";
 
-  private string comment;
+  private readonly string comment;
 
   public AssumptionDependency(string comment, Expression expr) {
     this.comment = comment;
@@ -168,7 +168,7 @@ public class AssumptionDependency : ProofDependency {
 
 // Represents the invariant of a loop.
 public class InvariantDependency : ProofDependency {
-  private Expression invariant;
+  private readonly Expression invariant;
 
   public override RangeToken Range =>
     invariant.RangeToken;

@@ -167,7 +167,7 @@ namespace Microsoft.Dafny {
               var b0 = new BoogieStmtListBuilder(this, options);
               CheckWellformedAndAssume(e.E0, wfOptions, locals, b0, etran, comment);
               var b1 = new BoogieStmtListBuilder(this, options);
-              b1.Add(TrAssumeCmdWithDependenciesApp(etran, expr.tok, e.E0, Expr.Not, comment));
+              b1.Add(TrAssumeCmdWithDependenciesAndExtend(etran, expr.tok, e.E0, Expr.Not, comment));
               CheckWellformedAndAssume(e.E1, wfOptions, locals, b1, etran, comment);
               builder.Add(new Bpl.IfCmd(expr.tok, null, b0.Collect(expr.tok), null, b1.Collect(expr.tok)));
             }
@@ -188,7 +188,7 @@ namespace Microsoft.Dafny {
         CheckWellformedAndAssume(e.Test, wfOptions, locals, bThn, etran, comment);
         CheckWellformedAndAssume(e.Thn, wfOptions, locals, bThn, etran, comment);
         var bEls = new BoogieStmtListBuilder(this, options);
-        bEls.Add(TrAssumeCmdWithDependenciesApp(etran, expr.tok, e.Test, Expr.Not, comment));
+        bEls.Add(TrAssumeCmdWithDependenciesAndExtend(etran, expr.tok, e.Test, Expr.Not, comment));
         CheckWellformedAndAssume(e.Els, wfOptions, locals, bEls, etran, comment);
         builder.Add(new Bpl.IfCmd(expr.tok, null, bThn.Collect(expr.tok), null, bEls.Collect(expr.tok)));
         return;
@@ -1210,7 +1210,7 @@ namespace Microsoft.Dafny {
         Contract.Assert(resultType != null);
         var bResult = etran.TrExpr(expr);
         CheckSubrange(expr.tok, bResult, expr.Type, resultType, builder);
-        builder.Add(TrAssumeCmdWithDependenciesApp(etran, expr.tok, expr, e => Bpl.Expr.Eq(result, e),
+        builder.Add(TrAssumeCmdWithDependenciesAndExtend(etran, expr.tok, expr, e => Bpl.Expr.Eq(result, e),
           resultDescription));
         builder.Add(TrAssumeCmd(expr.tok, CanCallAssumption(expr, etran)));
         builder.Add(new CommentCmd("CheckWellformedWithResult: any expression"));
@@ -1364,7 +1364,7 @@ namespace Microsoft.Dafny {
           CheckWellformedWithResult(e.RHSs[i], wfOptions, rIe, pat.Expr.Type, locals, builder, etran, "let expression binding RHS well-formed");
           CheckCasePatternShape(pat, rIe, rhs.tok, pat.Expr.Type, builder);
           var substExpr = Substitute(pat.Expr, null, substMap);
-          builder.Add(TrAssumeCmdWithDependenciesApp(etran, e.tok, substExpr, e => Bpl.Expr.Eq(e, rIe), "let expression binding"));
+          builder.Add(TrAssumeCmdWithDependenciesAndExtend(etran, e.tok, substExpr, e => Bpl.Expr.Eq(e, rIe), "let expression binding"));
         }
         CheckWellformedWithResult(Substitute(e.Body, null, substMap), wfOptions, result, resultType, locals, builder, etran, "let expression result");
 
@@ -1423,7 +1423,7 @@ namespace Microsoft.Dafny {
           Contract.Assert(resultType != null);
           var bResult = etran.TrExpr(letBody);
           CheckSubrange(letBody.tok, bResult, letBody.Type, resultType, builder);
-          builder.Add(TrAssumeCmdWithDependenciesApp(etran, e.tok, letBody, e => Expr.Eq(result, e), "let expression"));
+          builder.Add(TrAssumeCmdWithDependenciesAndExtend(etran, e.tok, letBody, e => Expr.Eq(result, e), "let expression"));
           builder.Add(TrAssumeCmd(letBody.tok, CanCallAssumption(letBody, etran)));
           builder.Add(new CommentCmd("CheckWellformedWithResult: Let expression"));
           builder.Add(TrAssumeCmd(letBody.tok, MkIs(result, resultType)));
