@@ -126,53 +126,6 @@ namespace Microsoft.Dafny {
     readonly Dictionary<string, Bpl.Constant> fieldConstants = new Dictionary<string, Constant>();
     readonly Dictionary<string, Bpl.Constant> tytagConstants = new Dictionary<string, Constant>();
 
-    public class ProofDependencyManager {
-      // proof dependency tracking state
-      public Dictionary<string, ProofDependency> ProofDependenciesById { get; } = new();
-      private UInt64 proofDependencyIdCount = 0;
-
-      public string GetProofDependencyId(ProofDependency dep) {
-        var idString = $"id{proofDependencyIdCount}";
-        ProofDependenciesById[idString] = dep;
-        proofDependencyIdCount++;
-        return idString;
-      }
-
-      public void AddProofDependencyId(ICarriesAttributes boogieNode, IToken tok, ProofDependency dep) {
-        var idString = GetProofDependencyId(dep);
-        boogieNode.Attributes =
-          new QKeyValue(tok, "id", new List<object>() { idString }, boogieNode.Attributes);
-      }
-
-      // Get the full ProofDependency indicated by a compound ID string.
-      public ProofDependency GetFullIdDependency(string idString) {
-        var parts = idString.Split('$');
-        if (idString.EndsWith("$requires") && parts.Length == 3) {
-          var reqId = ProofDependenciesById[parts[0]];
-          var callId = ProofDependenciesById[parts[1]];
-          return new CallRequiresDependency((CallDependency)callId, (RequiresDependency)reqId);
-        } else if (idString.EndsWith("$requires_assumed") && parts.Length == 3) {
-          var reqId = ProofDependenciesById[parts[0]];
-          var callId = ProofDependenciesById[parts[1]];
-          return new CallRequiresDependency((CallDependency)callId, (RequiresDependency)reqId);
-        } else if (idString.EndsWith("$ensures") && parts.Length == 3) {
-          var ensId = ProofDependenciesById[parts[0]];
-          var callId = ProofDependenciesById[parts[1]];
-          return new CallEnsuresDependency((CallDependency)callId, (EnsuresDependency)ensId);
-        } else if (idString.EndsWith("$established") && parts.Length == 2) {
-          return ProofDependenciesById[parts[0]];
-        } else if (idString.EndsWith("$maintained") && parts.Length == 2) {
-          return ProofDependenciesById[parts[0]];
-        } else if (idString.EndsWith("$assume_in_body") && parts.Length == 2) {
-          return ProofDependenciesById[parts[0]];
-        } else if (parts.Length > 1) {
-          throw new ArgumentException($"Malformed dependency ID string: {idString}");
-        } else {
-          return ProofDependenciesById[idString];
-        }
-      }
-    }
-
     private ProofDependencyManager proofDependencies;
 
     // optimizing translation

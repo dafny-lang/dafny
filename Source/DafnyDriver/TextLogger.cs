@@ -9,9 +9,9 @@ namespace Microsoft.Dafny;
 public class TextLogger {
   private TextWriter tw;
   private TextWriter outWriter;
-  private Translator.ProofDependencyManager depManager;
+  private ProofDependencyManager depManager;
 
-  public TextLogger(Translator.ProofDependencyManager depManager, TextWriter outWriter) {
+  public TextLogger(ProofDependencyManager depManager, TextWriter outWriter) {
     this.depManager = depManager;
     this.outWriter = outWriter;
   }

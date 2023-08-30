@@ -127,7 +127,7 @@ namespace Microsoft.Dafny {
       var cliArgumentsResult = ProcessCommandLineArguments(outputWriter, errorWriter, inputReader,
         args, out var dafnyOptions, out var dafnyFiles, out var otherFiles);
       ExitValue exitValue;
-      Translator.ProofDependencyManager depManager = new();
+      ProofDependencyManager depManager = new();
 
       switch (cliArgumentsResult) {
         case CommandLineArgumentsResult.OK:
@@ -385,7 +385,7 @@ namespace Microsoft.Dafny {
 
     private async Task<ExitValue> ProcessFilesAsync(IReadOnlyList<DafnyFile/*!*/>/*!*/ dafnyFiles,
       ReadOnlyCollection<string> otherFileNames,
-      DafnyOptions options, Translator.ProofDependencyManager depManager,
+      DafnyOptions options, ProofDependencyManager depManager,
       bool lookForSnapshots = true, string programId = null) {
       Contract.Requires(cce.NonNullElements(dafnyFiles));
       var dafnyFileNames = DafnyFile.FileNames(dafnyFiles);

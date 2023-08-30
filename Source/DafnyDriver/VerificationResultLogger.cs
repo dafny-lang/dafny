@@ -27,7 +27,7 @@ namespace Microsoft.Dafny {
 
     public static TestProperty ResourceCountProperty = TestProperty.Register("TestResult.ResourceCount", "TestResult.ResourceCount", typeof(int), typeof(TestResult));
 
-    public static void RaiseTestLoggerEvents(DafnyOptions options, Translator.ProofDependencyManager depManager) {
+    public static void RaiseTestLoggerEvents(DafnyOptions options, ProofDependencyManager depManager) {
       var loggerConfigs = options.VerificationLoggerConfigs;
       // Provide just enough configuration for the loggers to work
       var parameters = new Dictionary<string, string> {
