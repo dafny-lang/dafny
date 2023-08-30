@@ -875,7 +875,7 @@ add:
 ## 7.8. Well-formedness of specifications {#sec-well-formedness-specifications}
 
 Dafny ensures that the [`requires` clauses](#sec-requires-clause)
-and [`ensures` clauses](#sec-ensures-clauses), which are expressions,
+and [`ensures` clauses](#sec-ensures-clause), which are expressions,
 are [well-formed](#sec-assertion-batches) independent of the body
 they belong to.
 Examples of conditions this rules out are null pointer dereferencing,

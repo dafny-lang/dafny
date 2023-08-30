@@ -3568,7 +3568,7 @@ _TODO: Say more about the effect of this attribute and when it should be applied
 (and likely, correct the paragraph above)._
 
 
-# 6. Member declarations
+# 6. Member declarations {#sec-member-declaration}
 
 Members are the various kinds of methods, the various kinds of functions, mutable fields,
 and constant fields. These are usually associated with classes, but they also may be
