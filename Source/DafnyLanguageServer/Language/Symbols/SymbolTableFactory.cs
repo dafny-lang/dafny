@@ -435,7 +435,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
           var locationsForUri =
             Locations.GetValueOrDefault(token.Uri) ?? new Dictionary<ILegacySymbol, SymbolLocation>();
           Locations = Locations.SetItem(token.Uri, locationsForUri);
-          locationsForUri.Add(symbol, new SymbolLocation(token.GetDocumentUri(), name, declaration));
+          locationsForUri.Add(symbol, new SymbolLocation(token.Uri, name, declaration));
         }
       }
     }
