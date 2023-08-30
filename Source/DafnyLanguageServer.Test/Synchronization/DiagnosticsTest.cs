@@ -45,6 +45,8 @@ method {:vcs_split_on_every_assert} Foo(x: int) {
       var document = await CreateAndOpenTestDocument(source);
       var status1 = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
       Assert.Equal(PublishedVerificationStatus.Stale, status1.NamedVerifiables[0].Status);
+      var status12 = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
+      Assert.Equal(PublishedVerificationStatus.Queued, status12.NamedVerifiables[0].Status);
       var status2 = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
       Assert.Equal(PublishedVerificationStatus.Running, status2.NamedVerifiables[0].Status);
       var status3 = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
@@ -128,6 +130,7 @@ function bullspec(s:seq<nat>, u:seq<nat>): (r: nat)
       var diagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
       Assert.Equal(7, diagnostics.Length);
       Assert.Equal(PublishedVerificationStatus.Stale, await PopNextStatus());
+      Assert.Equal(PublishedVerificationStatus.Queued, await PopNextStatus());
       Assert.Equal(PublishedVerificationStatus.Running, await PopNextStatus());
       Assert.Equal(PublishedVerificationStatus.Error, await PopNextStatus());
       ApplyChange(ref documentItem, ((7, 25), (10, 17)), "");
@@ -139,6 +142,7 @@ function bullspec(s:seq<nat>, u:seq<nat>): (r: nat)
       diagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
       Assert.Equal(8, diagnostics.Length);
       Assert.Equal(PublishedVerificationStatus.Stale, await PopNextStatus());
+      Assert.Equal(PublishedVerificationStatus.Queued, await PopNextStatus());
       Assert.Equal(PublishedVerificationStatus.Running, await PopNextStatus());
       Assert.Equal(PublishedVerificationStatus.Error, await PopNextStatus());
       await AssertNoDiagnosticsAreComing(CancellationToken);

@@ -65,25 +65,10 @@ public abstract class Node : INode {
 
       var childrenFiltered = GetConcreteChildren(this).ToList();
 
-      Dictionary<int, IToken> startToEndTokenNotOwned;
-      try {
-        startToEndTokenNotOwned =
-          childrenFiltered
-            .ToDictionary(child => child.StartToken.pos, child => child.EndToken!);
-      } catch (ArgumentException) {
-        // If we parse a resolved document, some children sometimes have the same token because they are auto-generated
-        startToEndTokenNotOwned = new();
-        foreach (var child in childrenFiltered) {
-          if (startToEndTokenNotOwned.ContainsKey(child.StartToken.pos)) {
-            var previousEnd = startToEndTokenNotOwned[child.StartToken.pos];
-            if (child.EndToken.pos > previousEnd.pos) {
-              startToEndTokenNotOwned[child.StartToken.pos] = child.EndToken;
-            }
-          } else {
-            startToEndTokenNotOwned[child.StartToken.pos] = child.EndToken;
-          }
-        }
-      }
+      // If we parse a resolved document, some children sometimes have the same token because they are auto-generated
+      var startToEndTokenNotOwned = childrenFiltered.GroupBy(child => child.StartToken.pos).
+        ToDictionary(g => g.Key, g => g.MaxBy(child => child.EndToken.pos).EndToken
+      );
 
       var result = new List<IToken>();
       if (StartToken == null) {

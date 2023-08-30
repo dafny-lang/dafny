@@ -286,7 +286,7 @@ public class Migrator {
     var migratedDeclarations = new Dictionary<ILegacySymbol, SymbolLocation>();
     foreach (var (symbol, location) in previousDeclarations) {
       cancellationToken.ThrowIfCancellationRequested();
-      if (location.Uri != changeParams.TextDocument.Uri.ToUri()) {
+      if (location.Uri != changeParams.TextDocument.Uri) {
         migratedDeclarations.Add(symbol, location);
         continue;
       }

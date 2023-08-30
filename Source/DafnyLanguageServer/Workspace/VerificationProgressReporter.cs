@@ -187,9 +187,11 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
 
     canVerifyNode.ResetNewChildren();
 
+    TopLevelDeclMemberVerificationTree? targetMethodNode;
+    ImplementationVerificationTree newImplementationNode;
     foreach (var implementation in implementations) {
 
-      var targetMethodNode = GetTargetMethodTree(tree, implementation, out var oldImplementationNode, true);
+      targetMethodNode = GetTargetMethodTree(tree, implementation, out var oldImplementationNode, true);
       if (targetMethodNode == null) {
         NoMethodNodeAtLogging(tree, "ReportImplementationsBeforeVerification", compilation, implementation);
         continue;
@@ -197,7 +199,7 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
 
       var newDisplayName = targetMethodNode.DisplayName + " #" + (targetMethodNode.Children.Count + 1) + ":" +
                            implementation.Name;
-      var newImplementationNode = new ImplementationVerificationTree(
+      newImplementationNode = new ImplementationVerificationTree(
         newDisplayName,
         implementation.Name,
         targetMethodNode.Filename,
@@ -209,9 +211,10 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
         newImplementationNode.Children = oldImplementationNode.Children;
       }
 
-      targetMethodNode?.AddNewChild(newImplementationNode);
+      targetMethodNode.AddNewChild(newImplementationNode);
     }
 
+    var newChildren = canVerifyNode.NewChildren;
     canVerifyNode.SaveNewChildren();
     if (!canVerifyNode.Children.Any()) {
       canVerifyNode.Start();
@@ -228,8 +231,10 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
   /// Triggers sending of the current verification diagnostics to the client
   /// </summary>
   public void ReportRealtimeDiagnostics(CompilationAfterParsing compilation, Uri uri, bool verificationStarted) {
-    lock (LockProcessing) {
-      notificationPublisher.PublishGutterIcons(uri, compilation.InitialIdeState(compilation, options), verificationStarted);
+    if (options.Get(ServerCommand.LineVerificationStatus)) {
+      lock (LockProcessing) {
+        notificationPublisher.PublishGutterIcons(uri, compilation.InitialIdeState(compilation, options), verificationStarted);
+      }
     }
   }
 

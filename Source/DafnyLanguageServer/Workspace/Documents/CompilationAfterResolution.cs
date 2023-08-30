@@ -3,12 +3,12 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
+using System.Reactive;
 using System.Threading.Tasks;
 using Microsoft.Boogie;
 using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Language.Symbols;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
-using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
@@ -22,7 +22,7 @@ public class CompilationAfterResolution : CompilationAfterParsing {
     LegacySignatureAndCompletionTable signatureAndCompletionTable,
     IReadOnlyDictionary<Uri, IReadOnlyList<Range>> ghostDiagnostics,
     IReadOnlyList<ICanVerify> verifiables,
-    ConcurrentDictionary<ModuleDefinition, Task<IReadOnlyDictionary<FilePosition, IReadOnlyList<IImplementationTask>>>> translatedModules,
+    LazyConcurrentDictionary<ModuleDefinition, Task<IReadOnlyDictionary<FilePosition, IReadOnlyList<IImplementationTask>>>> translatedModules,
     List<Counterexample> counterexamples
     ) :
     base(compilationAfterParsing, compilationAfterParsing.Program, diagnostics, compilationAfterParsing.VerificationTrees) {
@@ -38,18 +38,20 @@ public class CompilationAfterResolution : CompilationAfterParsing {
   public LegacySignatureAndCompletionTable SignatureAndCompletionTable { get; }
   public IReadOnlyDictionary<Uri, IReadOnlyList<Range>> GhostDiagnostics { get; }
   public IReadOnlyList<ICanVerify> Verifiables { get; }
-  public ConcurrentDictionary<ICanVerify, Dictionary<string, ImplementationView>> ImplementationsPerVerifiable { get; } = new();
+  public ConcurrentDictionary<ICanVerify, Unit> VerifyingOrVerifiedSymbols { get; } = new();
+  public LazyConcurrentDictionary<ICanVerify, Dictionary<string, ImplementationView>> ImplementationsPerVerifiable { get; } = new();
+
   /// <summary>
   /// FilePosition is required because the default module lives in multiple files
   /// </summary>
-  public ConcurrentDictionary<ModuleDefinition, Task<IReadOnlyDictionary<FilePosition, IReadOnlyList<IImplementationTask>>>> TranslatedModules { get; }
+  public LazyConcurrentDictionary<ModuleDefinition, Task<IReadOnlyDictionary<FilePosition, IReadOnlyList<IImplementationTask>>>> TranslatedModules { get; }
 
   public override IEnumerable<DafnyDiagnostic> GetDiagnostics(Uri uri) {
     var implementationsForUri = ImplementationsPerVerifiable.
       Where(kv => kv.Key.Tok.Uri == uri).
       Select(kv => kv.Value).ToList();
     var verificationDiagnostics = implementationsForUri.SelectMany(view =>
-      view.Values.SelectMany(v => v.Diagnostics) ?? Enumerable.Empty<DafnyDiagnostic>());
+      view.Values.SelectMany(v => v.Diagnostics));
     return base.GetDiagnostics(uri).Concat(verificationDiagnostics);
   }
 
@@ -63,9 +65,13 @@ public class CompilationAfterResolution : CompilationAfterParsing {
     });
   }
 
+  VerificationPreparationState MergeStates(VerificationPreparationState a, VerificationPreparationState b) {
+    return new[] { a, b }.Max();
+  }
+
   IdeVerificationResult MergeResults(IEnumerable<IdeVerificationResult> results) {
     return results.Aggregate((a, b) => new IdeVerificationResult(
-      a.WasTranslated || b.WasTranslated,
+      MergeStates(a.PreparationProgress, b.PreparationProgress),
       a.Implementations.ToImmutableDictionary().Merge(b.Implementations,
         (a, b) => new IdeImplementationView(
           a.Range,
@@ -76,31 +82,37 @@ public class CompilationAfterResolution : CompilationAfterParsing {
   public override IdeState ToIdeState(IdeState previousState) {
     IdeVerificationResult MergeVerifiable(ICanVerify canVerify) {
       var range = canVerify.NameToken.GetLspRange();
-      var previousForCanVerify = previousState.GetVerificationResults(canVerify.NameToken.Uri).GetValueOrDefault(range) ??
-                                 new(false, ImmutableDictionary<string, IdeImplementationView>.Empty);
+      var previousImplementations =
+        previousState.GetVerificationResults(canVerify.NameToken.Uri).GetValueOrDefault(range)?.Implementations ??
+        ImmutableDictionary<string, IdeImplementationView>.Empty;
       if (!ImplementationsPerVerifiable.TryGetValue(canVerify, out var implementationsPerName)) {
-        return previousForCanVerify with {
-          Implementations = previousForCanVerify.Implementations.ToDictionary(kv => kv.Key, kv => kv.Value with {
+        var progress = VerifyingOrVerifiedSymbols.ContainsKey(canVerify)
+          ? VerificationPreparationState.InProgress
+          : VerificationPreparationState.NotStarted;
+        return new IdeVerificationResult(PreparationProgress: progress,
+          Implementations: previousImplementations.ToDictionary(kv => kv.Key, kv => kv.Value with {
             Status = PublishedVerificationStatus.Stale,
             Diagnostics = MarkDiagnosticsAsOutdated(kv.Value.Diagnostics).ToList()
-          })
-        };
+          }));
       }
 
-      var implementations = implementationsPerName.ToDictionary(kv => kv.Key, kv => {
+      var implementations = implementationsPerName!.ToDictionary(kv => kv.Key, kv => {
         var implementationView = kv.Value;
         var diagnostics = implementationView.Diagnostics.Select(d => d.ToLspDiagnostic());
         if (implementationView.Status < PublishedVerificationStatus.Error) {
-          var previousDiagnostics = previousForCanVerify.Implementations.GetValueOrDefault(kv.Key)?.Diagnostics;
+          var previousDiagnostics = previousImplementations.GetValueOrDefault(kv.Key)?.Diagnostics;
           if (previousDiagnostics != null) {
             diagnostics = MarkDiagnosticsAsOutdated(previousDiagnostics);
           }
         }
 
+        // If we're trying to verify this symbol, its status is at least queued.
+        var status = implementationView.Status == PublishedVerificationStatus.Stale && VerifyingOrVerifiedSymbols.ContainsKey(canVerify)
+          ? PublishedVerificationStatus.Queued : implementationView.Status;
         return new IdeImplementationView(implementationView.Task.Implementation.tok.GetLspRange(true),
-          implementationView.Status, diagnostics.ToList());
+          status, diagnostics.ToList());
       });
-      return new IdeVerificationResult(true, implementations);
+      return new IdeVerificationResult(VerificationPreparationState.Done, implementations);
 
     }
 
