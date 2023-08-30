@@ -176,7 +176,6 @@ For more detail on the use of `{:extern}`, see the corresponding [section](#sec-
 ## 11.2. Attributes on functions and methods
 
 ### 11.2.1. `{:abstemious}`
-
 The `{:abstemious}` attribute is appropriate for functions on codatatypes.
 If appropriate to a function, the attribute can aid in proofs that the function is _productive_.
 See [the section on abstemious functions](#sec-abstemious) for more description.
@@ -218,7 +217,26 @@ function g(y:int, b:bool) : bool
 }
 ```
 
-### 11.2.3. `{:axiom}` {#sec-axiom}
+### 11.2.3. `{:autoRevealDependencies k}` {#sec-autorevealdependencies}
+When setting `--default-function-opacity` to `autoRevealDependencies`, the `{:autoRevealDependencies k}` attribute can be set on methods and functions to make sure that only function dependencies of depth `k` in the call-graph or less are revealed automatically. As special cases, one can also use `{:autoRevealDependencies false}` (or `{:autoRevealDependencies 0}`) to make sure that no dependencies are revealed, and `{:autoRevealDependencies true}` to make sure that all dependencies are revealed automatically.
+
+For example, when the following code is run with `--default-function-opacity` set to `autoRevealDependencies`, the function `p()` should verify and `q()` should not.
+<!-- %no-check -->
+```dafny
+   function t1() : bool { true }
+   
+   function t2() : bool { t1() }
+
+   function {:autoRevealDependencies 1} p() : (r: bool) 
+     ensures r
+   { t1() }
+   
+   function {:autoRevealDependencies 1} q() : (r: bool) 
+     ensures r
+   { t2() }
+```
+
+### 11.2.4. `{:axiom}` {#sec-axiom}
 The `{:axiom}` attribute may be placed on a function or method.
 It means that the post-condition may be assumed to be true
 without proof. In that case also the body of the function or
@@ -230,7 +248,7 @@ To prevent Dafny from running all these checks, one would use [`{:verify false}`
 
 The compiler will still emit code for an [`{:axiom}`](#sec-axiom), if it is a [`function`, a `method` or a `function by method`](#sec-function-declarations) with a body.
 
-### 11.2.4. `{:compile}`
+### 11.2.5. `{:compile}`
 The `{:compile}` attribute takes a boolean argument. It may be applied to
 any top-level declaration. If that argument is false, then that declaration
 will not be compiled at all.
@@ -238,7 +256,7 @@ The difference with [`{:extern}`](#sec-extern) is that [`{:extern}`](#sec-extern
 will still emit declaration code if necessary,
 whereas `{:compile false}` will just ignore the declaration for compilation purposes.
 
-### 11.2.5. `{:concurrent}`  {#sec-concurrent-attribute}
+### 11.2.6. `{:concurrent}`  {#sec-concurrent-attribute}
 The `{:concurrent}` attribute indicates that the compiled code for a function or method
 may be executed concurrently.
 While Dafny is a sequential language and does not support any native concepts for spawning
@@ -251,10 +269,10 @@ of the function or method includes the equivalent of `reads {}` and `modifies {}
 This ensures that the code does not read or write any shared mutable state,
 although it is free to write and write newly allocated objects.
 
-### 11.2.6. `{:extern <name>}` {#sec-extern-method}
+### 11.2.7. `{:extern <name>}` {#sec-extern-method}
 See [`{:extern <name>}`](#sec-extern).
 
-### 11.2.7. `{:fuel X}` {#sec-fuel}
+### 11.2.8. `{:fuel X}` {#sec-fuel}
 The fuel attribute is used to specify how much "fuel" a function should have,
 i.e., how many times the verifier is permitted to unfold its definition.  The
 `{:fuel}` annotation can be added to the function itself, in which
@@ -277,11 +295,11 @@ fewer assert statements), but it may also increase verification time,
 so use it with care.  Setting the fuel to 0,0 is similar to making the
 definition opaque, except when used with all literal arguments.
 
-### 11.2.8. `{:id <string>}`
+### 11.2.9. `{:id <string>}`
 Assign a custom unique ID to a function or a method to be used for verification
 result caching.
 
-### 11.2.9. `{:induction}` {#sec-induction}
+### 11.2.10. `{:induction}` {#sec-induction}
 The `{:induction}` attribute controls the application of
 proof by induction to two contexts. Given a list of
 variables on which induction might be applied, the
@@ -331,7 +349,7 @@ lemma Correspondence()
 }
 ```
 
-### 11.2.10. `{:only}` {#sec-only-functions-methods}
+### 11.2.11. `{:only}` {#sec-only-functions-methods}
 
 `method {:only} X() {}` or `function {:only} X() {}`  temporarily disables the verification of all other non-`{:only}` members, e.g. other functions and methods, in the same file, even if they contain [assertions with `{:only}`](#sec-only).
 
@@ -355,16 +373,6 @@ method TestUnverified() {
 ```
 
 `{:only}` can help focusing on a particular member, for example a lemma or a function, as it simply disables the verification of all other lemmas, methods and functions in the same file. It's equivalent to adding [`{:verify false}`](#sec-verify) to all other declarations simulatenously on the same file. Since it's meant to be a temporary construct, it always emits a warning.
-
-### 11.2.11. `{:opaque}` {#sec-opaque}
-
-_This attribute is replaced by the keyword `opaque`; the attribute is deprecated._
-
-Ordinarily, the body of a function is transparent to its users, but
-sometimes it is useful to hide it. If a function `foo` or `bar` is given the
-`{:opaque}` attribute, then Dafny hides the body of the function,
-so that it can only be seen within its recursive clique (if any),
-or if the programmer specifically asks to see it via the statement `reveal foo(), bar();`.
 
 More information about the Boogie implementation of `{:opaque}` is [here](https://github.com/dafny-lang/dafny/blob/master/docs/Compilation/Boogie.md).
 
@@ -500,7 +508,11 @@ where `Y` is `X` times either the default verification time limit
 for a function or method, or times the value specified by the
 Boogie `-timeLimit` command-line option.
 
-### 11.2.20. `{:verify false}` {#sec-verify}
+### 11.2.20. `{:transparent}` {#sec-transparent}
+
+By default, the body of a function is transparent to its users. This can be overridden using the `--default-function-opacity` command line flag. If default function opacity is set to `opaque` or `autoRevealDependencies`, then this attribute can be used on functions to make them always non-opaque.
+
+### 11.2.21. `{:verify false}` {#sec-verify}
      
 Skip verification of a function or a method altogether,
 not even trying to verify the well-formedness of postconditions and preconditions.
@@ -509,7 +521,7 @@ which performs these minimal checks while not checking that the body satisfies t
 
 If you simply want to temporarily disable all verification except on a single function or method, use the [`{:only}`](#sec-only-functions-methods) attribute on that function or method.
 
-### 11.2.21. `{:vcs_max_cost N}` {#sec-vcs_max_cost}
+### 11.2.22. `{:vcs_max_cost N}` {#sec-vcs_max_cost}
 Per-method version of the command-line option `/vcsMaxCost`.
 
 The [assertion batch](#sec-assertion-batches) of a method
@@ -518,7 +530,7 @@ number, defaults to 2000.0. In
 [keep-going mode](#sec-vcs_max_keep_going_splits), only applies to the first round.
 If [`{:vcs_split_on_every_assert}`](#sec-vcs_split_on_every_assert) is set, then this parameter is useless.
 
-### 11.2.22. `{:vcs_max_keep_going_splits N}` {#sec-vcs_max_keep_going_splits}
+### 11.2.23. `{:vcs_max_keep_going_splits N}` {#sec-vcs_max_keep_going_splits}
 
 Per-method version of the command-line option `/vcsMaxKeepGoingSplits`.
 If set to more than 1, activates the _keep going mode_ where, after the first round of splitting,
@@ -529,7 +541,7 @@ case an error is reported for that assertion).
 Defaults to 1.
 If [`{:vcs_split_on_every_assert}`](#sec-vcs_split_on_every_assert) is set, then this parameter is useless.
 
-### 11.2.23. `{:vcs_max_splits N}` {#sec-vcs_max_splits}
+### 11.2.24. `{:vcs_max_splits N}` {#sec-vcs_max_splits}
 
 Per-method version of the command-line option `/vcsMaxSplits`.
 Maximal number of [assertion batches](#sec-assertion-batches) generated for this method.
@@ -537,14 +549,14 @@ In [keep-going mode](#sec-vcs_max_keep_going_splits), only applies to the first 
 Defaults to 1.
 If [`{:vcs_split_on_every_assert}`](#sec-vcs_split_on_every_assert) is set, then this parameter is useless.
 
-### 11.2.24. `{:vcs_split_on_every_assert}` {#sec-vcs_split_on_every_assert}
+### 11.2.25. `{:vcs_split_on_every_assert}` {#sec-vcs_split_on_every_assert}
 Per-method version of the command-line option `/vcsSplitOnEveryAssert`.
 
 In the first and only verification round, this option will split the original [assertion batch](#sec-assertion-batches)
 into one assertion batch per assertion.
 This is mostly helpful for debugging which assertion is taking the most time to prove, e.g. to profile them.
 
-### 11.2.25. `{:synthesize}` {#sec-synthesize-attr}
+### 11.2.26. `{:synthesize}` {#sec-synthesize-attr}
 
 The `{:synthesize}` attribute must be used on methods that have no body and
 return one or more fresh objects. During compilation, 
@@ -578,7 +590,7 @@ BOUNDVARS = ID : ID
           | BOUNDVARS, BOUNDVARS
 ```
 
-### 11.2.26. `{:options OPT0, OPT1, ... }` {#sec-attr-options}
+### 11.2.27. `{:options OPT0, OPT1, ... }` {#sec-attr-options}
 
 This attribute applies only to modules. It configures Dafny as if
 `OPT0`, `OPT1`, … had been passed on the command line.  Outside of the module,
@@ -821,6 +833,9 @@ Removed:
 - :heapQuantifier
 - :dllimport
 - :handle
+
+Deprecated:
+- :opaque : This attribute has been promoted to a first-class modifier for functions. Find more information [here](#sec-opaque).
 
 ## 11.7. Other undocumented verification attributes
 
