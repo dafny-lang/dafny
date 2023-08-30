@@ -4439,7 +4439,7 @@ namespace Microsoft.Dafny {
       delayer.DoWithDelayedReadsChecks(false, wfo => {
         CheckFrameWellFormed(wfo, f.Reads, locals, builder, etran);
       });
-      
+
       // If the function is marked as {:concurrent}, check that the reads clause is empty.
       if (Attributes.Contains(f.Attributes, Attributes.ConcurrentAttributeName)) {
         var desc = new PODesc.ConcurrentFrameEmpty("reads clause");

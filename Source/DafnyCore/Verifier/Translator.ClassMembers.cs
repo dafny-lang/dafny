@@ -716,7 +716,7 @@ namespace Microsoft.Dafny {
             builder.Add(Assert(m.tok, Expr.False, desc));
           }
         }
-        
+
         // check well-formedness of the modifies clauses
         readsCheckDelayer.DoWithDelayedReadsChecks(false, wfo => {
           CheckFrameWellFormed(wfo, m.Mod.Expressions, localVariables, builder, etran);
@@ -1381,7 +1381,7 @@ namespace Microsoft.Dafny {
     private void AddMethodOverrideFrameSubsetChk(Method m, bool isModifies, BoogieStmtListBuilder builder, ExpressionTranslator etran, List<Variable> localVariables,
       Dictionary<IVariable, Expression> substMap,
       Dictionary<TypeParameter, Type> typeMap) {
-      
+
       List<FrameExpression> classFrameExps;
       List<FrameExpression> originalTraitFrameExps;
       if (isModifies) {
@@ -1391,7 +1391,7 @@ namespace Microsoft.Dafny {
         classFrameExps = m.Reads ?? new List<FrameExpression>();
         originalTraitFrameExps = m.OverriddenMethod.Reads;
       }
-      
+
       var traitFrameExps = new List<FrameExpression>();
       if (originalTraitFrameExps != null) {
         // Not currently possible for modifies, but is supported for reads
