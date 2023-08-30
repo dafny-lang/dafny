@@ -1,5 +1,4 @@
-// RUN: %dafny /compile:0 "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachResolver "%s"
 
 // VSComp 2010, problem 5, double-ended queue.
 // Rustan Leino, 18 August 2010.
@@ -27,7 +26,7 @@ class AmortizedQueue<T(0)> {
     front in Repr && front.Repr <= Repr && front.Valid() &&
     rear in Repr && rear.Repr <= Repr && rear.Valid() &&
     |rear.List| <= |front.List| &&
-    List == front.List + rear.ReverseSeq(rear.List)
+    List == front.List + LinkedList.ReverseSeq(rear.List)
   }
 
   constructor Init()
@@ -42,7 +41,7 @@ class AmortizedQueue<T(0)> {
 
   constructor InitFromPieces(f: LinkedList<T>, r: LinkedList<T>)
     requires f.Valid() && r.Valid()
-    ensures Valid() && List == f.List + r.ReverseSeq(r.List)
+    ensures Valid() && List == f.List + LinkedList.ReverseSeq(r.List)
   {
     if (r.length <= f.length) {
       front := f;
@@ -56,7 +55,7 @@ class AmortizedQueue<T(0)> {
     }
     new;
     Repr := {this} + front.Repr + rear.Repr;
-    List := front.List + rear.ReverseSeq(rear.List);
+    List := front.List + LinkedList.ReverseSeq(rear.List);
   }
 
   method Front() returns (t: T)

@@ -4,7 +4,7 @@ using System.Diagnostics.Contracts;
 namespace Microsoft.Dafny;
 
 public class LambdaExpr : ComprehensionExpr, ICloneable<LambdaExpr> {
-  public override string WhatKind => "lambda";
+  public override string WhatKind => Reads.Count != 0 ? "lambda" : Range != null ? "partial lambda" : "total lambda";
 
   public Expression Body => Term;
 

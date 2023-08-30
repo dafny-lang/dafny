@@ -10,6 +10,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 using System.Diagnostics.Contracts;
+using JetBrains.Annotations;
 using Microsoft.Boogie;
 using ResolutionContext = Microsoft.Dafny.ResolutionContext;
 
@@ -303,12 +304,16 @@ namespace Microsoft.Dafny {
 
       } else if (expr is DatatypeUpdateExpr) {
         var e = (DatatypeUpdateExpr)expr;
+        // Resolve the root and all the updated-value expressions, since these may require lookups in the current local-variable scope
         ResolveExpression(e.Root, resolutionContext);
         expr.PreType = CreatePreTypeProxy("datatype update");
+        foreach (var (_, _, updateExpr) in e.Updates) {
+          ResolveExpression(updateExpr, resolutionContext);
+        }
+        // Next, at a leisurely pace (that is, waiting until enough of the pre-type of .Root is known), resolve the update expression
+        // and desugar it into some kind of nested let expression.
         Constraints.AddGuardedConstraint(() => {
-          var (_, memberName, _) = e.Updates[0];
-          var (_, tentativeRootPreType) = FindMember(expr.tok, e.Root.PreType, memberName);
-          if (tentativeRootPreType != null) {
+          if (e.Root.PreType.NormalizeWrtScope() is DPreType tentativeRootPreType) {
             if (tentativeRootPreType.Decl is DatatypeDecl datatypeDecl) {
               var (ghostLet, compiledLet) = ResolveDatatypeUpdate(expr.tok, tentativeRootPreType, e.Root, datatypeDecl, e.Updates,
                 resolutionContext, out var members, out var legalSourceConstructors);
@@ -320,6 +325,10 @@ namespace Microsoft.Dafny {
                 e.LegalSourceConstructors = legalSourceConstructors;
                 Constraints.AddEqualityConstraint(expr.PreType, ghostLet.PreType, expr.tok,
                   "result of datatype update expression of type '{1}' is used as if it were of type '{0}'");
+                if (ghostLet != compiledLet) {
+                  Constraints.AddEqualityConstraint(expr.PreType, compiledLet.PreType, expr.tok,
+                    "result of datatype update expression of type '{1}' is used as if it were of type '{0}'");
+                }
               }
             } else {
               ReportError(expr, "datatype update expression requires a root expression of a datatype (got {0})", tentativeRootPreType);
@@ -1019,32 +1028,11 @@ namespace Microsoft.Dafny {
       Contract.Requires(receiverPreType != null);
       Contract.Requires(memberName != null);
 
-      Constraints.PartiallySolveTypeConstraints();
-      receiverPreType = receiverPreType.Normalize();
-      DPreType dReceiver = null;
-      if (receiverPreType is PreTypeProxy proxy) {
-        // If there is a subtype constraint "proxy :> sub<X>", then (if the program is legal at all, then) "sub" must have the member "memberName".
-        foreach (var sub in Constraints.AllSubBounds(proxy, new HashSet<PreTypeProxy>())) {
-          dReceiver = sub;
-          break;
-        }
-        if (dReceiver == null) {
-          // If there is a subtype constraint "super<X> :> proxy" where "super" has a member "memberName", then that is the correct member.
-          foreach (var super in Constraints.AllSuperBounds(proxy, new HashSet<PreTypeProxy>())) {
-            if (super.Decl is TopLevelDeclWithMembers md && resolver.GetClassMembers(md).ContainsKey(memberName)) {
-              dReceiver = super;
-              break;
-            }
-          }
-        }
-        if (dReceiver == null) {
-          ReportError(tok, "type of the receiver is not fully determined at this program point");
-          return (null, null);
-        }
-      } else {
-        dReceiver = (DPreType)receiverPreType;
+      var dReceiver = Constraints.ApproximateReceiverType(tok, receiverPreType, memberName);
+      if (dReceiver == null) {
+        ReportError(tok, "type of the receiver is not fully determined at this program point");
+        return (null, null);
       }
-      Contract.Assert(dReceiver != null);
 
       var receiverDecl = dReceiver.Decl;
       if (receiverDecl is TopLevelDeclWithMembers receiverDeclWithMembers) {
@@ -1065,29 +1053,6 @@ namespace Microsoft.Dafny {
       }
       ReportError(tok, $"member '{memberName}' does not exist in {receiverDecl.WhatKind} '{receiverDecl.Name}'");
       return (null, null);
-    }
-
-    /// <summary>
-    /// Expecting that "preType" is a type that does not involve traits, return that type, if possible.
-    /// </summary>
-    DPreType/*?*/ FindDefinedPreType(PreType preType) {
-      Contract.Requires(preType != null);
-
-      Constraints.PartiallySolveTypeConstraints();
-      preType = preType.Normalize();
-      if (preType is PreTypeProxy proxy) {
-        // We're looking a type with concerns for traits, so if the proxy has any sub- or super-type, then (if the
-        // program is legal at all, then) that sub- or super-type must be the type we're looking for.
-        foreach (var sub in Constraints.AllSubBounds(proxy, new HashSet<PreTypeProxy>())) {
-          return sub;
-        }
-        foreach (var super in Constraints.AllSuperBounds(proxy, new HashSet<PreTypeProxy>())) {
-          return super;
-        }
-        return null;
-      }
-
-      return preType as DPreType;
     }
 
     /// <summary>
@@ -1493,15 +1458,17 @@ namespace Microsoft.Dafny {
 
       } else if (lhs != null) {
         // ----- 4. Look up name in the type of the Lhs
-        var (member, tentativeReceiverType) = FindMember(expr.tok, expr.Lhs.PreType, name);
+        var (member, tentativeReceiverPreType) = FindMember(expr.tok, expr.Lhs.PreType, name);
         if (member != null) {
           if (!member.IsStatic) {
             var receiver = expr.Lhs;
-            AddSubtypeConstraint(tentativeReceiverType, receiver.PreType, expr.tok, $"receiver type ({{1}}) does not have a member named '{name}'");
-            r = ResolveExprDotCall(expr.tok, receiver, tentativeReceiverType, member, args, expr.OptTypeArguments, resolutionContext, allowMethodCall);
+            AddSubtypeConstraint(tentativeReceiverPreType, receiver.PreType, expr.tok, $"receiver type ({{1}}) does not have a member named '{name}'");
+            r = ResolveExprDotCall(expr.tok, receiver, tentativeReceiverPreType, member, args, expr.OptTypeArguments, resolutionContext, allowMethodCall);
           } else {
-            var receiver = new StaticReceiverExpr(expr.tok, (TopLevelDeclWithMembers)tentativeReceiverType.Decl, true, lhs);
-            receiver.PreType = Type2PreType(receiver.Type);
+            var receiver = new StaticReceiverExpr(expr.tok, new InferredTypeProxy(), true) {
+              PreType = tentativeReceiverPreType,
+              ObjectToDiscard = lhs
+            };
             r = ResolveExprDotCall(expr.tok, receiver, null, member, args, expr.OptTypeArguments, resolutionContext, allowMethodCall);
           }
         }
@@ -1645,7 +1612,7 @@ namespace Microsoft.Dafny {
       }
       if (r == null) {
         // e.Lhs denotes a function value, or at least it's used as if it were
-        var dp = FindDefinedPreType(e.Lhs.PreType);
+        var dp = Constraints.FindDefinedPreType(e.Lhs.PreType);
         if (dp != null && DPreType.IsArrowType(dp.Decl)) {
           // e.Lhs does denote a function value
           // In the general case, we'll resolve this as an ApplyExpr, but in the more common case of the Lhs
@@ -2059,9 +2026,9 @@ namespace Microsoft.Dafny {
     }
 
     PreType ResolveSingleSelectionExpr(IToken tok, PreType collectionPreType, Expression index) {
-      var resultPreType = CreatePreTypeProxy("seq selection");
+      var resultPreType = CreatePreTypeProxy("selection []");
       Constraints.AddGuardedConstraint(() => {
-        var sourcePreType = collectionPreType.NormalizeWrtScope() as DPreType;
+        var sourcePreType = Constraints.ApproximateReceiverType(tok, collectionPreType, null);
         if (sourcePreType != null) {
           var familyDeclName = AncestorName(sourcePreType);
           switch (familyDeclName) {

@@ -484,3 +484,38 @@ module BinaryExpressions {
   method TestOther(q: seq<nat>, mf: map<nat, nat>, mi: imap<nat, nat>) {
   }
 }
+
+module Arrows {
+  method TestGeneralArrow() returns (f: () ~> int, g: () --> int, h: () -> int)
+  {
+    var k;
+    k := () requires true reads {} => 3;
+    k := *;
+    if
+    case true => f := k;
+    case true => g := k; // error: cannot assign general arrow to partial arrow
+    case true => h := k; // error: cannot assign partial arrow to total arrow
+  }
+
+  method TestPartialArrow() returns (f: () ~> int, g: () --> int, h: () -> int)
+  {
+    var k;
+    k := () requires true => 3;
+    k := *;
+    if
+    case true => f := k;
+    case true => g := k;
+    case true => h := k; // error: cannot assign partial arrow to total arrow
+  }
+
+  method TestTotalArrow() returns (f: () ~> int, g: () --> int, h: () -> int)
+  {
+    var k;
+    k := () => 3;
+    k := *;
+    if
+    case true => f := k;
+    case true => g := k;
+    case true => h := k;
+  }
+}

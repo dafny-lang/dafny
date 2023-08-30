@@ -2228,8 +2228,8 @@ NoGhost - disable printing of functions, ghost methods, and proof
         var e = (ExprDotName)expr;
         // determine if parens are needed
         int opBindingStrength = 0x90;
-        bool parensNeeded = !e.Lhs.IsImplicit && // KRML: I think that this never holds
-          ParensNeeded(opBindingStrength, contextBindingStrength, fragileContext);
+        bool parensNeeded = !e.Lhs.IsImplicit && ParensNeeded(opBindingStrength, contextBindingStrength, fragileContext);
+        Contract.Assert(!parensNeeded); // KRML: I think parens are never needed
 
         if (parensNeeded) { wr.Write("("); }
         if (!e.Lhs.IsImplicit) {
@@ -2254,8 +2254,8 @@ NoGhost - disable printing of functions, ghost methods, and proof
         var e = (ApplySuffix)expr;
         // determine if parens are needed
         int opBindingStrength = 0x90;
-        bool parensNeeded = !e.Lhs.IsImplicit &&  // KRML: I think that this never holds
-          ParensNeeded(opBindingStrength, contextBindingStrength, fragileContext);
+        bool parensNeeded = !e.Lhs.IsImplicit && ParensNeeded(opBindingStrength, contextBindingStrength, fragileContext);
+        Contract.Assert(!parensNeeded); // KRML: I think parens are never needed
 
         if (parensNeeded) { wr.Write("("); }
         if (ParensMayMatter(e.Lhs)) {
@@ -3040,6 +3040,10 @@ NoGhost - disable printing of functions, ghost methods, and proof
         // print arguments after incorporating default parameters
         for (; i < bindings.Arguments.Count; i++) {
           var arg = bindings.Arguments[i];
+          if (arg is DefaultValueExpression { Resolved: null }) {
+            // An error was detected during resolution, so this argument was not filled in. Omit printing it.
+            continue;
+          }
           wr.Write(sep);
           sep = ", ";
           PrintExpression(arg, false);

@@ -1,5 +1,4 @@
-// RUN: %baredafny verify %args "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachResolver "%s"
 
 // VSComp 2010, problem 1, compute the sum and max of the elements of an array and prove
 // that 'sum <= N * max'.

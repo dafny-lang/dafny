@@ -9,6 +9,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Diagnostics.Contracts;
+using JetBrains.Annotations;
 
 namespace Microsoft.Dafny {
   /// <summary>
@@ -21,7 +22,7 @@ namespace Microsoft.Dafny {
     private readonly DafnyOptions options;
 
     private List<SubtypeConstraint> unnormalizedSubtypeConstraints = new();
-    private List<EqualityConstraint> equalityConstraints = new();
+    private Queue<EqualityConstraint> equalityConstraints = new();
     private List<Func<bool>> guardedConstraints = new();
     private readonly List<Advice> defaultAdvice = new();
     private List<System.Action> confirmations = new();
@@ -29,6 +30,69 @@ namespace Microsoft.Dafny {
     public PreTypeConstraints(PreTypeResolver preTypeResolver) {
       this.PreTypeResolver = preTypeResolver;
       this.options = preTypeResolver.resolver.Options;
+    }
+
+    /// <summary>
+    /// Try to find the receiver pre-type that corresponds to "preType".
+    /// If there are subtype constraints of "preType" that point out a non-proxy subtype of "preType", then one such is returned.
+    /// Otherwise, if there are supertype constraints of "preType" that point out a non-proxy supertype of "preType" AND that supertype
+    /// has a member named "memberName", then such a supertype is returned.
+    /// Otherwise, null is returned.
+    ///
+    /// The "memberName" is allowed to be passed in as "null", in which case the supertype search does not consider any trait.
+    /// </summary>
+    [CanBeNull]
+    public DPreType ApproximateReceiverType(IToken tok, PreType preType, [CanBeNull] string memberName) {
+      PartiallySolveTypeConstraints();
+
+      preType = preType.Normalize();
+      if (preType is DPreType dPreType) {
+        return dPreType;
+      }
+      var proxy = (PreTypeProxy)preType;
+
+      // If there is a subtype constraint "proxy :> sub<X>", then (if the program is legal at all, then) "sub" must have the member "memberName".
+      foreach (var sub in AllSubBounds(proxy, new HashSet<PreTypeProxy>())) {
+        return sub;
+      }
+
+      // If there is a subtype constraint "super<X> :> proxy" where "super" has a member "memberName", then that is the correct member.
+      foreach (var super in AllSuperBounds(proxy, new HashSet<PreTypeProxy>())) {
+        if (super.Decl is TopLevelDeclWithMembers md) {
+          if (memberName != null && PreTypeResolver.resolver.GetClassMembers(md).ContainsKey(memberName)) {
+            return super;
+          } else if (memberName == null && md is not TraitDecl) {
+            return super;
+          }
+        }
+      }
+
+      return null; // could not be determined
+    }
+
+    /// <summary>
+    /// Expecting that "preType" is a type that does not involve traits, return that type, if possible.
+    /// </summary>
+    [CanBeNull]
+    public DPreType FindDefinedPreType(PreType preType) {
+      Contract.Requires(preType != null);
+
+      PartiallySolveTypeConstraints();
+
+      preType = preType.Normalize();
+      if (preType is PreTypeProxy proxy) {
+        // We're looking a type with concerns for traits, so if the proxy has any sub- or super-type, then (if the
+        // program is legal at all, then) that sub- or super-type must be the type we're looking for.
+        foreach (var sub in AllSubBounds(proxy, new HashSet<PreTypeProxy>())) {
+          return sub;
+        }
+        foreach (var super in AllSuperBounds(proxy, new HashSet<PreTypeProxy>())) {
+          return super;
+        }
+        return null;
+      }
+
+      return preType as DPreType;
     }
 
     /// <summary>
@@ -56,9 +120,13 @@ namespace Microsoft.Dafny {
     }
 
     private bool TryMakeDecisions() {
-      if (TryResolveTypeProxiesUsingKnownBounds(true)) {
+      if (TryResolveTypeProxiesUsingKnownBounds(true, false)) {
         return true;
-      } else if (TryResolveTypeProxiesUsingKnownBounds(false)) {
+      } else if (TryResolveTypeProxiesUsingKnownBounds(false, false)) {
+        return true;
+      } else if (TryResolveTypeProxiesUsingKnownBounds(true, true)) {
+        return true;
+      } else if (TryResolveTypeProxiesUsingKnownBounds(false, true)) {
         return true;
       } else if (TryApplyDefaultAdvice()) {
         return true;
@@ -97,19 +165,11 @@ namespace Microsoft.Dafny {
       PrintList("Equality constraints", equalityConstraints, eqc => {
         return $"{eqc.A} == {eqc.B}";
       });
-#if IS_THERE_A_GOOD_WAY_TO_PRINT_GUARDED_CONSTRAINTS
-      PrintList("Guarded constraints", guardedConstraints, gc => {
-        return gc.Kind + Util.Comma("", gc.Arguments, arg => $" {arg}");
-      });
-#endif
+      options.OutputWriter.WriteLine($"    Guarded constraints: {guardedConstraints.Count}");
       PrintList("Default-type advice", defaultAdvice, advice => {
         return $"{advice.PreType} ~-~-> {advice.WhatString}";
       });
-#if IS_THERE_A_GOOD_WAY_TO_PRINT_CONFIRMATIONS
-      PrintList("Post-inference confirmations", confirmations, c => {
-        return $"{TokToShortLocation(c.tok)}: {c.Check} {c.PreType}: {c.ErrorMessage()}";
-      });
-#endif
+      options.OutputWriter.WriteLine($"    Post-inference confirmations: {confirmations.Count}");
     }
 
     void PrintLegend() {
@@ -119,7 +179,7 @@ namespace Microsoft.Dafny {
       });
     }
 
-    void PrintList<T>(string rubric, List<T> list, Func<T, string> formatter) {
+    void PrintList<T>(string rubric, IEnumerable<T> list, Func<T, string> formatter) {
       if (!options.Get(CommonOptionBag.NewTypeInferenceDebug)) {
         return;
       }
@@ -134,17 +194,19 @@ namespace Microsoft.Dafny {
     }
 
     public void AddEqualityConstraint(PreType a, PreType b, IToken tok, string msgFormat, PreTypeConstraint baseError = null) {
-      equalityConstraints.Add(new EqualityConstraint(a, b, tok, msgFormat, baseError));
+      equalityConstraints.Enqueue(new EqualityConstraint(a, b, tok, msgFormat, baseError));
     }
 
     private bool ApplyEqualityConstraints() {
       if (equalityConstraints.Count == 0) {
         return false;
       }
-      var constraints = equalityConstraints;
-      equalityConstraints = new();
-      foreach (var constraint in constraints) {
-        equalityConstraints.AddRange(constraint.Apply(this));
+      // process equality constraints until there are no more
+      while (equalityConstraints.Count != 0) {
+        var constraint = equalityConstraints.Dequeue();
+        foreach (var newConstraint in constraint.Apply(this)) {
+          equalityConstraints.Enqueue(newConstraint);
+        }
       }
       return true;
     }
@@ -179,26 +241,40 @@ namespace Microsoft.Dafny {
     /// Try to resolve each proxy using its sub-bound constraints (if "fromSubBounds" is "true") or
     /// its super-bound constraints (if "fromSubBounds" is "false"). Add an equality constraint for
     /// any proxy whose head can be determined.
+    ///
+    /// If "ignoreUnknowns" is true, then ignore any constraint where the bound is a proxy or for which the running join/meet computation
+    /// is ill-defined.
+    /// If "ignoreUnknowns" is false, then don't resolve a proxy if it has unknowns.
+    ///
     /// Return "true" if any such equality constraint was added.
     /// </summary>
-    bool TryResolveTypeProxiesUsingKnownBounds(bool fromSubBounds) {
+    bool TryResolveTypeProxiesUsingKnownBounds(bool fromSubBounds, bool ignoreUnknowns) {
       // First, compute the join/meet of the sub/super-bound heads of each proxy
-      Dictionary<PreTypeProxy, TopLevelDecl> candidateHeads = new();
+      Dictionary<PreTypeProxy, TopLevelDecl> candidateHeads = new(); // if !ignoreUnknowns, map to null to indicate the proxy has unknowns
       Dictionary<PreTypeProxy, SubtypeConstraint> constraintOrigins = new();
       foreach (var constraint in unnormalizedSubtypeConstraints) {
         var proxy = (fromSubBounds ? constraint.Super : constraint.Sub).Normalize() as PreTypeProxy;
         var bound = (fromSubBounds ? constraint.Sub : constraint.Super).Normalize() as DPreType;
-        if (proxy != null && bound != null) {
+        if (proxy != null) {
           if (!candidateHeads.TryGetValue(proxy, out var previousBest)) {
-            candidateHeads.Add(proxy, bound.Decl);
-            constraintOrigins.Add(proxy, constraint);
+            // we haven't seen this proxy before
+            if (bound != null) {
+              candidateHeads.Add(proxy, bound.Decl);
+              constraintOrigins.Add(proxy, constraint);
+            } else if (!ignoreUnknowns) {
+              candidateHeads.Add(proxy, null);
+              constraintOrigins.Add(proxy, constraint);
+            }
+          } else if (previousBest == null) {
+            Contract.Assert(!ignoreUnknowns);
+            // proxy is already known to have unknowns
           } else {
-            var combined = fromSubBounds
-              ? JoinHeads(previousBest, bound.Decl, PreTypeResolver.resolver.SystemModuleManager)
-              : MeetHeads(previousBest, bound.Decl);
-            if (combined == null) {
-              // the two joins/meets were in conflict with each other; ignore the new one
-            } else {
+            var combined = bound == null
+              ? null
+              : fromSubBounds
+                ? JoinHeads(previousBest, bound.Decl, PreTypeResolver.resolver.SystemModuleManager)
+                : MeetHeads(previousBest, bound.Decl);
+            if (combined != null || !ignoreUnknowns) {
               candidateHeads[proxy] = combined;
             }
           }
@@ -208,6 +284,10 @@ namespace Microsoft.Dafny {
       // Record equality constraints for each proxy that was determined
       var anythingChanged = false;
       foreach (var (proxy, best) in candidateHeads) {
+        if (best == null) {
+          Contract.Assert(!ignoreUnknowns);
+          continue;
+        }
         var pt = new DPreType(best, best.TypeArgs.ConvertAll(_ => PreTypeResolver.CreatePreTypeProxy()));
         var constraint = constraintOrigins[proxy];
         DebugPrint($"    DEBUG: head decision {proxy} := {pt}");
@@ -291,7 +371,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public IEnumerable<DPreType> AllSubBounds(PreTypeProxy proxy, ISet<PreTypeProxy> visited) {
+    private IEnumerable<DPreType> AllSubBounds(PreTypeProxy proxy, ISet<PreTypeProxy> visited) {
       Contract.Requires(proxy.PT == null);
       if (visited.Contains(proxy)) {
         yield break;
@@ -311,7 +391,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public IEnumerable<DPreType> AllSuperBounds(PreTypeProxy proxy, ISet<PreTypeProxy> visited) {
+    private IEnumerable<DPreType> AllSuperBounds(PreTypeProxy proxy, ISet<PreTypeProxy> visited) {
       Contract.Requires(proxy.PT == null);
       if (visited.Contains(proxy)) {
         yield break;

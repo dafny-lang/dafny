@@ -87,6 +87,19 @@ class PreTypeToTypeVisitor : ASTVisitor<IASTVisitorContext> {
     }
   }
 
+  protected override bool VisitOneExpression(Expression expr, IASTVisitorContext context) {
+    if (expr is DatatypeUpdateExpr datatypeUpdateExpr) {
+      // How a DatatypeUpdateExpr desugars depends on whether or not the expression is ghost, which hasn't been determined
+      // yet. So, if there is a difference between the two, then pre-type resolution prepares two different resolved expressions.
+      // The choice between these two is done in a later phase during resolution. For now, if there are two, we visit them both.
+      // ASTVisitor arranges to visit ResolvedExpression, but we consider ResolvedCompiledExpression here.
+      if (datatypeUpdateExpr.ResolvedCompiledExpression != datatypeUpdateExpr.ResolvedExpression) {
+        VisitExpression(datatypeUpdateExpr.ResolvedCompiledExpression, context);
+      }
+    }
+    return base.VisitOneExpression(expr, context);
+  }
+
   protected override void PostVisitOneExpression(Expression expr, IASTVisitorContext context) {
     if (expr is FunctionCallExpr functionCallExpr) {
       functionCallExpr.TypeApplication_AtEnclosingClass = functionCallExpr.PreTypeApplication_AtEnclosingClass.ConvertAll(PreType2TypeUtil.PreType2FixedType);
