@@ -1155,14 +1155,6 @@ module AlcorTacticProofChecker {
     reveal ExecuteProof();
   }
 
-  /*    ensures
-        axiom == ImpIntro ==>
-        ExecuteProof(ProofApp(app1, app2), penv) ==
-          Success(OneProof(), axiom))
-    {
-      reveal ExecuteProof();
-    }*/
-
   class TacticMode {
     const env: Env
     const goal: Expr
@@ -1267,8 +1259,8 @@ module AlcorTacticProofChecker {
       var id := Identifier(name);
       if sequent.goal.Forall? && sequent.goal.body.Abs? {
         // We make sure we create a new identifier, automatic or provided
-        var freeVariables := sequent.env.FreeIdentifiers();
-        var freeVar := FreshIdentifier(sequent.goal.body.id, freeVariables);
+        var freeEnvVars := sequent.env.FreeIdentifiers();
+        var freeVar := FreshIdentifier(sequent.goal.body.id, freeEnvVars);
         proofState := Sequents(
           sequents.(head :=
           sequent.(goal :=

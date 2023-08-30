@@ -99,7 +99,7 @@ module AlcorEngineTest {
     feedback :- expect thinking.Intro("h");
     print feedback, "\n--------------\n";
     expect feedback == "h: (a ==> b) && a\n|- b && a";
-    feedback :- expect thinking.Rename(Identifier("h"), Identifier("hA"));
+    feedback :- expect thinking.Rename("h", "hA");
     print feedback, "\n--------------\n";
     expect feedback == "hA: (a ==> b) && a\n|- b && a";
     feedback :- expect thinking.Cases();
