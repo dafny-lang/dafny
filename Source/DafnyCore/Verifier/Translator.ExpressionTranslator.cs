@@ -503,7 +503,7 @@ namespace Microsoft.Dafny {
                   if (fn.IsFuelAware()) {
                     args.Add(this.layerInterCluster.GetFunctionFuel(fn));
                   }
-                  if (fn.IsOpaque) {
+                  if (fn.IsOpaque || fn.IsMadeImplicitlyOpaque(options)) {
                     args.Add(translator.GetRevealConstant(fn));
                   }
                   if (fn is TwoStateFunction) {
@@ -681,7 +681,7 @@ namespace Microsoft.Dafny {
                   layerArgument = null;
                 }
 
-                if (e.Function.IsOpaque) {
+                if (e.Function.IsOpaque || e.Function.IsMadeImplicitlyOpaque(options)) {
                   revealArgument = translator.GetRevealConstant(e.Function);
                 } else {
                   revealArgument = null;
@@ -695,7 +695,7 @@ namespace Microsoft.Dafny {
                 result = translator.CondApplyUnbox(GetToken(e), result, e.Function.ResultType, e.Type);
 
                 bool callIsLit = argsAreLit
-                                 && Translator.FunctionBodyIsAvailable(e.Function, translator.currentModule, translator.currentScope, true)
+                                 && translator.FunctionBodyIsAvailable(e.Function, translator.currentModule, translator.currentScope, true)
                                  && !e.Function.Reads.Any(); // Function could depend on external values
                 if (callIsLit) {
                   result = MaybeLit(result, ty);

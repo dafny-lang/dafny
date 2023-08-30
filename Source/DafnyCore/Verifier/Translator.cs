@@ -1088,7 +1088,7 @@ namespace Microsoft.Dafny {
                   this.functionFuel.Add(new FuelConstant(f, baseFuel_expr, startFuel_expr, startFuelAssert_expr));
                 }
 
-                if (f.IsOpaque) {
+                if (f.IsOpaque || f.IsMadeImplicitlyOpaque(options)) {
                   CreateRevealableConstant(f);
                 }
               }
@@ -1581,14 +1581,18 @@ namespace Microsoft.Dafny {
     ///   - "f" has a body
     ///   - "f" is not opaque
     /// </summary>
-    static bool FunctionBodyIsAvailable(Function f, ModuleDefinition context, VisibilityScope scope, bool revealProtectedBody) {
+    bool FunctionBodyIsAvailable(Function f, ModuleDefinition context, VisibilityScope scope, bool revealProtectedBody) {
       Contract.Requires(f != null);
       Contract.Requires(context != null);
       return f.Body != null && !IsOpaque(f) && f.IsRevealedInScope(scope);
     }
-    static bool IsOpaque(MemberDecl f) {
+    bool IsOpaque(MemberDecl f) {
       Contract.Requires(f != null);
-      return Attributes.Contains(f.Attributes, "opaque") || f.IsOpaque;
+      if (f is Function f1) {
+        return Attributes.Contains(f.Attributes, "opaque") || f.IsOpaque || f1.IsMadeImplicitlyOpaque(options);
+      } else {
+        return Attributes.Contains(f.Attributes, "opaque") || f.IsOpaque;
+      }
     }
     static bool IsOpaqueRevealLemma(Method m) {
       Contract.Requires(m != null);
@@ -2130,7 +2134,7 @@ namespace Microsoft.Dafny {
       }
 
       Bpl.BoundVariable reveal;
-      if (f.IsOpaque) {
+      if (f.IsOpaque || f.IsMadeImplicitlyOpaque(options)) {
         reveal = new Bpl.BoundVariable(f.tok, new Bpl.TypedIdent(f.tok, "$reveal", Boogie.Type.Bool));
         formals.Add(reveal);
       } else {
@@ -2447,7 +2451,7 @@ namespace Microsoft.Dafny {
         layer = null;
       }
 
-      if (f.IsOpaque) {
+      if (f.IsOpaque || f.IsMadeImplicitlyOpaque(options)) {
         reveal = new Bpl.BoundVariable(f.tok, new Bpl.TypedIdent(f.tok, "$reveal", Boogie.Type.Bool));
         //funcFormals.Add(reveal);
         //reqFuncArguments.Add(new Bpl.IdentifierExpr(f.tok, reveal));
@@ -2900,7 +2904,7 @@ namespace Microsoft.Dafny {
       var s = new Bpl.IdentifierExpr(f.tok, bv);
       args1.Add(FunctionCall(f.tok, BuiltinFunction.LayerSucc, null, s));
       args0.Add(s);
-      if (f.IsOpaque) {
+      if (f.IsOpaque || f.IsMadeImplicitlyOpaque(options)) {
         var bvReveal = new Bpl.BoundVariable(f.tok, new Bpl.TypedIdent(f.tok, "$reveal", Boogie.Type.Bool));
         formals.Add(bvReveal);
         var sReveal = new Bpl.IdentifierExpr(f.tok, bvReveal);
@@ -2971,7 +2975,7 @@ namespace Microsoft.Dafny {
       args2.Add(FunctionCall(f.tok, BuiltinFunction.AsFuelBottom, null, s));
       args1.Add(s);
       args0.Add(new Bpl.IdentifierExpr(f.tok, "$LZ", predef.LayerType)); // $LZ
-      if (f.IsOpaque) {
+      if (f.IsOpaque || f.IsMadeImplicitlyOpaque(options)) {
         var bvReveal = new Bpl.BoundVariable(f.tok, new Bpl.TypedIdent(f.tok, "$reveal", Boogie.Type.Bool));
         formals.Add(bvReveal);
         var sReveal = new Bpl.IdentifierExpr(f.tok, bvReveal);
@@ -3641,7 +3645,7 @@ namespace Microsoft.Dafny {
           argsC.Add(etran.layerInterCluster.GetFunctionFuel(f));
         }
 
-        if (f.IsOpaque) {
+        if (f.IsOpaque || f.IsMadeImplicitlyOpaque(options)) {
           argsC.Add(GetRevealConstant(f));
         }
 
@@ -4085,7 +4089,7 @@ namespace Microsoft.Dafny {
       Bpl.BoundVariable prevHVar = null;
       Bpl.Expr reveal = null;
       Bpl.BoundVariable revealVar = null;
-      if (f.IsOpaque) {
+      if (f.IsOpaque || f.IsMadeImplicitlyOpaque(options)) {
         revealVar = BplBoundVar("$reveal", Bpl.Type.Bool, out reveal);
       }
       if (f is TwoStateFunction) {
@@ -4473,7 +4477,7 @@ namespace Microsoft.Dafny {
           args.Add(etran.layerInterCluster.GetFunctionFuel(f));
         }
 
-        if (f.IsOpaque) {
+        if (f.IsOpaque || f.IsMadeImplicitlyOpaque(options)) {
           args.Add(GetRevealConstant(f));
         }
         if (f is TwoStateFunction) {
@@ -4516,7 +4520,7 @@ namespace Microsoft.Dafny {
           args.Add(etran.layerInterCluster.GetFunctionFuel(f));
         }
 
-        if (f.IsOpaque) {
+        if (f.IsOpaque || f.IsMadeImplicitlyOpaque(options)) {
           args.Add(GetRevealConstant(f));
         }
         if (f is TwoStateFunction) {
@@ -5870,7 +5874,7 @@ namespace Microsoft.Dafny {
           formals.Add(BplFormalVar("$fuel", predef.LayerType, true));
           AddFuelSuccSynonymAxiom(f, true);
         }
-        if (f.IsOpaque) {
+        if (f.IsOpaque || f.IsMadeImplicitlyOpaque(options)) {
           vars.Add(BplBoundVar("$reveal", Boogie.Type.Bool, out var reveal));
           args.Add(reveal);
           formals.Add(BplFormalVar("$reveal", Boogie.Type.Bool, true));
@@ -6865,7 +6869,7 @@ namespace Microsoft.Dafny {
           formals.Add(new Bpl.Formal(f.tok, new Bpl.TypedIdent(f.tok, "$ly", predef.LayerType), true));
         }
 
-        if (f.IsOpaque) {
+        if (f.IsOpaque || f.IsMadeImplicitlyOpaque(options)) {
           formals.Add(new Bpl.Formal(f.tok, new Bpl.TypedIdent(f.tok, "$reveal", Boogie.Type.Bool), true));
         }
         if (f is TwoStateFunction) {
