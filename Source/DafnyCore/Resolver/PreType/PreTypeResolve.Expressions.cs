@@ -325,6 +325,10 @@ namespace Microsoft.Dafny {
                 e.LegalSourceConstructors = legalSourceConstructors;
                 Constraints.AddEqualityConstraint(expr.PreType, ghostLet.PreType, expr.tok,
                   "result of datatype update expression of type '{1}' is used as if it were of type '{0}'");
+                if (ghostLet != compiledLet) {
+                  Constraints.AddEqualityConstraint(expr.PreType, compiledLet.PreType, expr.tok,
+                    "result of datatype update expression of type '{1}' is used as if it were of type '{0}'");
+                }
               }
             } else {
               ReportError(expr, "datatype update expression requires a root expression of a datatype (got {0})", tentativeRootPreType);

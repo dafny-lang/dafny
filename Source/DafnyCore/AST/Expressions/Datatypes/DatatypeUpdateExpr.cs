@@ -44,7 +44,6 @@ public class DatatypeUpdateExpr : ConcreteSyntaxExpression, IHasUsages, ICloneab
     get {
       if (ResolvedExpression == null) {
         foreach (var preResolved in PreResolveSubExpressions) {
-
           yield return preResolved;
         }
       } else {
