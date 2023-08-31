@@ -4,9 +4,9 @@ using System.Linq;
 
 namespace Microsoft.Dafny;
 
-public class ConstantField : SpecialField, ICallable, ICanVerify {
+public class ConstantField : SpecialField, ICallable, ICanAutoRevealDependencies, ICanVerify {
   public override string WhatKind => "const field";
-  public readonly Expression Rhs;
+  public Expression Rhs;
 
   public override bool IsOpaque { get; }
 
@@ -51,4 +51,17 @@ public class ConstantField : SpecialField, ICallable, ICanVerify {
   public override IEnumerable<INode> PreResolveChildren => Children;
   public ModuleDefinition ContainingModule => EnclosingModule;
   public bool ShouldVerify => Rhs != null; // This could be made more accurate by checking whether the Rhs needs to be verified.
+  public void AutoRevealDependencies(AutoRevealFunctionDependencies Rewriter, DafnyOptions Options, ErrorReporter Reporter) {
+    if (Rhs is null) {
+      return;
+    }
+
+    var addedReveals = Rewriter.ExprToFunctionalDependencies(Rhs, EnclosingModule);
+    Rhs = Rewriter.AddRevealStmtsToExpression(Rhs, addedReveals);
+
+    if (addedReveals.Any()) {
+      Reporter.Message(MessageSource.Rewriter, ErrorLevel.Info, null, tok,
+        AutoRevealFunctionDependencies.GenerateMessage(addedReveals.ToList()));
+    }
+  }
 }

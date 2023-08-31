@@ -46,6 +46,17 @@ module A.B.C {
     }
 
     [Fact]
+    public async Task DoubleComma() {
+      var source = @"
+  method Foo(a: int,, b: int) returns (x: int) {
+  }".TrimStart();
+      var documentItem = CreateTestDocument(source);
+      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+      var allSymbols = await RequestDocumentSymbol(documentItem);
+      Assert.Single(allSymbols);
+    }
+
+    [Fact]
     public async Task LoadCorrectDocumentCreatesTopLevelSymbols() {
       var source = @"
   method DoIt() returns (x: int) {

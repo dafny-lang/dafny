@@ -420,11 +420,6 @@ Since Dafny cannot prove properties about code written in other languages,
 adding tests to provide evidence that any `ensures` clauses do hold can improve assurance.
 The same considerations apply to `requires` clauses on Dafny code intended to be called from external code.
 
-* Any declaration marked with the `{:concurrent}` attribute.
-This is intended to indicate that the code is safe for use in a concurrent setting, but Dafny currently cannot prove that form of safety.
-The [addition of `reads` clauses to methods](https://github.com/dafny-lang/rfcs/pull/6) will be a step toward being able to prove safety in this case,
-but until it exists, careful inspection and testing are appropriate.
-
 * Any definition with an `assume` statement in its body.
 To improve assurance, attempt to convert it to an `assert` statement and prove that it holds.
 Such a definition will not be compilable unless the statement is also marked with `{:axiom}`.
@@ -1976,6 +1971,11 @@ Legacy options:
 These options allow some Dafny language features to be enabled or
 disabled. Some of these options exist for backward compatibility with
 older versions of Dafny.
+
+* `--default-function-opacity:<transparent|autoRevealDependencies|opaque>` - Change the default opacity of functions.
+  * `transparent` (default) means functions are transparent, can be manually made opaque and then revealed.
+  * `autoRevealDependencies` makes all functions not explicitly labelled as opaque to be opaque but reveals them automatically in scopes which do not have `{:autoRevealDependencies false}`.
+  * `opaque` means functions are always opaque so the opaque keyword is not needed, and functions must be revealed everywhere needed for a proof.
 
 * `--function-syntax` (value '3' or '4') - permits a choice of using the Dafny 3 syntax (`function` and `function method`)
 or the Dafny 4 syntax (`ghost function` and `function`)

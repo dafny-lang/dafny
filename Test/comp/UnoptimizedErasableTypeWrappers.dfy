@@ -1,4 +1,4 @@
-// RUN: %testDafnyForEachCompiler "%s" -- --optimize-erasable-datatype-wrapper:false --relax-definite-assignment --spill-translation
+// RUN: %testDafnyForEachCompiler "%s" --refresh-exit-code=0 -- --optimize-erasable-datatype-wrapper:false --relax-definite-assignment --spill-translation
 
 datatype SingletonRecord = SingletonRecord(u: int)
 datatype WithGhost = WithGhost(u: int, ghost v: int)

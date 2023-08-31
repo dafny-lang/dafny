@@ -42,6 +42,7 @@ public interface ICommandSpec {
     BoogieOptionBag.SolverLog,
     CommonOptionBag.JsonDiagnostics,
     BoogieOptionBag.VerificationErrorLimit,
+    CommonOptionBag.DefaultFunctionOpacity
   }.ToList();
 
   public static IReadOnlyList<Option> TranslationOptions = new Option[] {
@@ -83,6 +84,7 @@ public interface ICommandSpec {
     CommonOptionBag.TypeSystemRefresh,
     CommonOptionBag.TypeInferenceDebug,
     CommonOptionBag.NewTypeInferenceDebug,
+    CommonOptionBag.ReadsClausesOnMethods
   });
 
   public static IReadOnlyList<Option> ResolverOptions = new List<Option>(new Option[] {

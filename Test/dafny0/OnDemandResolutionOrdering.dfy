@@ -36,18 +36,16 @@ class CC {
 method Q0() returns (b: array<ParamSub<real>>, be: ParamSub<real>)
 {
   if * {
-    // The following gives a verification error, because the inferred RHS type is the pre-type array<seq<real>>.
-    // (Once type improvement for subset types is implemented, this error will go away.)
     b := new ParamSub<real>[20];
   } else {
-    // The following gives a verification error, because the inferred RHS type is the pre-type array<seq<real>>.
-    // (Once type improvement for subset types is implemented, this error will go away.)
     b := new ParamSub[20];
   }
   var a := be;
   var d: array := b;
   var c: ParamSub := b[0];
 
+  // The following gives a verification error, because the type for "new" comes from the pre-type inference of element type "seq<real>".
+  // Type adjustments (currently) flow only from RHSs to LHSs, so "seq<real>" is not being adjusted to "ParamSub<real>".
   b := new [20];
   var arr := new array<seq<int>>;
   var cc := new CC;
@@ -133,8 +131,6 @@ module VariationOnOrdering0 {
     // In this module, Q0 follows ParamSub and GetEmpty
     method Q0() returns (b: array<ParamSub<real>>)
     {
-      // The following gives a verification error, because the inferred RHS type is the pre-type array<seq<real>>.
-      // (Once type improvement for subset types is implemented, this error will go away.)
       b := new ParamSub<real>[20];
     }
   }
@@ -145,8 +141,6 @@ module VariationOnOrdering1 {
     // In this module, Q0 precedes ParamSub and GetEmpty
     method Q0() returns (b: array<ParamSub<real>>)
     {
-      // The following gives a verification error, because the inferred RHS type is the pre-type array<seq<real>>.
-      // (Once type improvement for subset types is implemented, this error will go away.)
       b := new ParamSub<real>[20];
     }
   }
@@ -157,5 +151,47 @@ module VariationOnOrdering1 {
     static function GetEmpty<Y>(): seq<Y> {
       []
     }
+  }
+}
+
+module Ordering0 {
+  class C {
+    // The use of Dt.Make in the next line causes the pre-type of Dt.Make to be computed. This test
+    // makes sure that the pre-type of Dt.Make is not called again while visiting the declaration of Dt.
+    const Y := Make(10)
+  }
+
+  datatype Dt = Make(i: int)
+}
+
+module Ordering1 {
+  // The use of Func in the next line causes the pre-types of the signature of Func to be computed. This test
+  // makes sure that the pre-types of Func are not called again while visiting the declaration of Func.
+  const Y := Func(10)
+
+  function Func(i: int): real
+}
+
+module Ordering2 {
+  class C {
+    // The use of Dt.Make in the next line causes the pre-type of Dt.Make to be computed. This test
+    // makes sure that the pre-type of Dt.Make is not called again while visiting the declaration of Dt.
+    const Y := D.Func(10)
+  }
+
+  class D {
+    static function Func(i: int): real
+  }
+}
+
+module Ordering3 {
+  class C {
+    // The use of D.Lemma in the next line causes the pre-types of the signature of Lemma to be computed. This test
+    // makes sure that the pre-types of Lemma are not called again while visiting the declaration of Lemma.
+    const Y := (D.Lemma(10); 27)
+  }
+
+  class D {
+    static lemma Lemma(i: int)
   }
 }

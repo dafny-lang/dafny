@@ -104,7 +104,7 @@ module A {
 
   method M1(dp: SubsetType, tt: T) {
     var dp0 := [dp][0];
-//SOON:    var dp': SubsetType := dp0.(t := tt); // error: does not satisfy SubsetType
+    var dp': SubsetType := dp0.(t := tt); // error: does not satisfy SubsetType
   }
 }
 
@@ -142,7 +142,7 @@ function Qf(x: int, a: array<int>): bool
   var v := true;
   var w := m[3] == true;
   var ww := u == v;
-true//SOON:  forall i :: 0 <= i < x ==> m[i] == true // error: domain
+  forall i :: 0 <= i < x ==> m[i] == true // error: index might be outside domain
 }
 
 trait AsTr { }
@@ -213,8 +213,8 @@ method TooBigDiv(a: int8) {
   var l := 3 + if u then 2 else 1;
   
   if
-  case true =>
-//SOON:    var x := a / (0-1);  // error: result may not be an int8 (if a is -128)
+  case true => var x := a / (0-1);  // error: result may not be an int8 (if a is -128)
+  case a != -128 => var x := a / (0-1);
   case true =>
     var minusOne := -1;
     var y := a % minusOne;  // fine
@@ -702,10 +702,10 @@ module Frames {
     reads ms`x
     reads A0
     reads A1
-//    reads A2 // TODO
-//    reads A3 // TODO
-//    reads A0`x // TODO
-//    reads A1`x // TODO
+    reads A2
+    reads A3
+    reads A0`x
+    reads A1`x
     reads A2`x
     reads A3`x
 
@@ -758,31 +758,187 @@ module NeverNever {
   }
 }
 
+module GhostTupleTests {
+  method GhostTupleTest0(ghostSingleton: (ghost bv7))
+    requires ghostSingleton == (ghost 12)
+  {
+    match ghostSingleton
+    case (y) =>
+      assert y == 12;
+  }
+
+  method GhostTupleTest1(ghostSingleton: (ghost bv7))
+    requires ghostSingleton == (ghost 12)
+  {
+    match ghostSingleton
+    case y =>
+      assert y == (ghost 12);
+  }
+}
+
+module MatchLiteralConsts {
+  datatype Cell<T> = Cell(value: T)
+
+  const X := 1
+
+  method q() {
+    var c; // type inferred to be int
+    match c
+    case X => // the literal 1
+      assert c == 1;
+    case Xyz => // a bound variable
+  }
+
+  datatype YT = Y
+  const Y := 2
+
+  method r() {
+    var c: Cell; // type inferred to be Cell<int>
+    match c
+    case Cell(Y) => // the literal 2
+      assert c == Cell(2);
+    case Cell(_) =>
+  }
+
+  method s() {
+    var c: Cell; // type inferred to be Cell<real>
+    match c
+    case Cell(Y: real) => // bound variable
+    case Cell(_) => // warning: redundant
+  }
+}
+
+module TupleTests {
+  method Test(a: (int, ghost real), b: (), c: (ghost bool)) {
+    match a {
+      case (x, y) =>
+        var z0 := x;
+        var z1 := y;
+        print z0, "\n";
+        ghost var y1 := z1;
+    }
+
+    match b {
+      case () =>
+        var u := b;
+        print u, "\n";
+    }
+
+    match c {
+      case _ => print c, "\n";
+    }
+    match c {
+      case (x) => ghost var y := x;
+    }
+  }
+}
+
+module LiteralsNowSupportedInTypeInference {
+  // The following test case works with the new type inference, but did not with the old one.
+
+  method LiteralTest() {
+    var c; // inferred to be bool
+    match c
+    case false =>
+    case true =>
+  }
+}
+
+module OrderingAmongBaseTypes {
+  const int32_MIN: int := -0x8000_0000
+  const int32_MAX: int := 0x7fff_ffff
+  newtype int32 = x | int32_MIN <= x <= int32_MAX
+
+  // With the previous type inference, the following line had given an error that int is not assignable to nat31
+  const nat31_MIN: int32 := 0
+  // With the previous type inference, the following line had complained that type conversions were not supported for int32
+  const nat31_MAX: int32 := int32_MAX as int32
+  type nat31 = x: int32 | nat31_MIN <= x <= nat31_MAX
+
+  method Works() {
+    var x: int32 := 0;
+  }
+
+  method PreviouslyDidNotWork() {
+    // With the previous type inference, the following line had given an error that int is not assignable to nat31
+    var x: nat31 := 0;
+  }
+
+  method Workaround() {
+    var x: nat31 := 0 as int32;
+  }
+}
+
+module OrderingIssues {
+  // The following used to not work:
+  module OrderingIssue_PreviouslyBroken {
+    newtype N = x: MM | 0 <= x < 80
+    newtype MM = x | 0 <= x < 100
+  }
+
+  // whereas the following did work:
+  module OrderingIssue_Fine {
+    newtype MM = x | 0 <= x < 100
+    newtype N = x: MM | 0 <= x < 80
+  }
+}
+
+module TypeInferenceImprovements {
+  type seq32<X> = s: seq<X> | |s| < 0x8000_0000
+  function SeqSize<X>(s: seq32<X>): nat32 {
+    |s|
+  }
+  type nat32 = x: int | 0 <= x < 0x8000_0000
+
+  type Context
+  type Principal
+  datatype Option<X> = None | Some(val: X)
+
+  function PrincipalFromContext(c: Context): Option<Principal>
+
+  function PrincipalsFromContexts(ctxs: seq32<Context>): (res: Option<seq32<Principal>>)
+    ensures res.Some? ==> |ctxs| == |res.val|
+    ensures res.Some? ==> forall i :: 0 <= i < |ctxs| ==> PrincipalFromContext(ctxs[i]).Some?
+    ensures res.Some? ==> forall i:: 0 <= i < |ctxs| ==> res.val[i] == PrincipalFromContext(ctxs[i]).val
+    ensures res.None? ==> exists i :: 0 <= i < |ctxs| && PrincipalFromContext(ctxs[i]).None?
+  {
+    // The Some([]) in the following line used to require an explicit type for the [],
+    // which could have to be given by a let expression.
+    if |ctxs| == 0 then Some([]) else match PrincipalFromContext(ctxs[0]) {
+      case None => None
+      case Some(principal) =>
+        match PrincipalsFromContexts(ctxs[1..]) {
+          case None => None
+          case Some(principals) =>
+            // The following line
+            Some([principal] + principals)
+            // used to require an explicit type, as in:
+            //    var principals1: seq32<Principal>/ := [principal] + principals;
+            //    Some(principals1)
+        }
+    }
+  } by method {
+    var principals: seq32<Principal> := [];
+    for i := 0 to SeqSize(ctxs)
+      invariant SeqSize(principals) == i
+      invariant forall j :: 0 <= j < i ==> PrincipalFromContext(ctxs[j]).Some?
+      invariant forall j :: 0 <= j < i ==> principals[j] == PrincipalFromContext(ctxs[j]).val
+    {
+      var principal := PrincipalFromContext(ctxs[i]);
+      if principal.None? {
+        return None;
+      }
+      principals := principals + [principal.val];
+    }
+    assert principals == PrincipalsFromContexts(ctxs).val;
+    return Some(principals);
+  }
+}
+    
 
 /****************************************************************************************
  ******** TO DO *************************************************************************
  ****************************************************************************************
-// ------------------
-// https://github.com/dafny-lang/dafny/issues/2134
-/*
-newtype A = b | P(b)
-newtype B = a: A | true
-
-predicate P(b: B)
-*/
-
-// ------------------
-// There was never a test for the error message that comes out here:
-
-datatype Color = White | Gray(int)
-datatype ParametricColor<X, Y> = Blue | Red(X) | Green(Y)
-
-method DatatypeValues() {
-  var w := White<int>; // error (no hint, since the datatype doesn't take any type parameters)
-  var b := Blue<int>; // error: with hint (since the datatype takes _some_ number of type parameters)
-  var g := Gray<int>(2);
-  var r := Red<int>(3);
-}
 
 // ------------------
 // Clement suggested the following problem to try through the new type inference.
@@ -817,58 +973,6 @@ datatype Tree =
 // Dafny rejects the call to MaxF, claiming that forall t | t in ts :: default <= f(t) might not hold.  But default is 0 and f(t)
 // has type nat, so it should hold — and in fact just uncommenting the definition of fn above solves the issue… even if fn isn’t used.
  
-
-// ------------------
-// Can the following example (from S) be improved to not need the explicit seq32<Principal> type annotations?
-
-type seq32<X> = s: seq<X> | |s| < 0x8000_0000
-function method seqSize<X>(s: seq32<X>): nat32 {
-  |s|
-}
-type nat32 = x: int | 0 <= x < 0x8000_0000
-
-type Context
-type Principal
-datatype Option<X> = None | Some(val: X)
-
-class Sean {
-  function method principalFromContext(c: Context): Option<Principal>
-
-  function principalsFromContexts(ctxs: seq32<Context>): (res: Option<seq32<Principal>>)
-    ensures res.Some? ==> |ctxs| == |res.val|
-    ensures res.Some? ==> forall i :: 0 <= i < |ctxs| ==> principalFromContext(ctxs[i]).Some?;
-    ensures res.Some? ==> forall i:: 0 <= i < |ctxs| ==> res.val[i] == principalFromContext(ctxs[i]).val
-    ensures res.None? ==> exists i :: 0 <= i < |ctxs| && principalFromContext(ctxs[i]).None?
-  {
-    var empty: seq32<Principal> := [];
-    if |ctxs| == 0 then Some(empty) else match principalFromContext(ctxs[0]) {
-      case None => None
-      case Some(principal) =>
-        match principalsFromContexts(ctxs[1..]) {
-          case None => None
-          case Some(principals) =>
-            // TODO: Remove when dafny supports type ascription
-            var principals1: seq32<Principal> := [principal] + principals;
-            Some(principals1)
-        }
-    }
-  } by method {
-    var principals: seq32<Principal> := [];
-    for i := 0 to seqSize(ctxs)
-      invariant seqSize(principals) == i
-      invariant forall j :: 0 <= j < i ==> principalFromContext(ctxs[j]).Some?
-      invariant forall j :: 0 <= j < i ==> principals[j] == principalFromContext(ctxs[j]).val
-    {
-      var principal := principalFromContext(ctxs[i]);
-      if principal.None? {
-        return None;
-      }
-      principals := principals + [principal.val];
-    }
-    assert principals == principalsFromContexts(ctxs).val;
-    return Some(principals);
-  }
-}
 
 // ------------------
 // From Clement:
@@ -908,45 +1012,6 @@ predicate method downup_search'(n: int, d: nat)
   */
 }
 
-// ------------------
-// The following used to not work:
-module OrderingIssue_PreviouslyBroken {
-  newtype N = x: MM | 0 <= x < 100
-  newtype MM = x | 0 <= x < 100
-}
-// whereas the following did work.
-module OrderingIssue_Fine {
-  newtype MM = x | 0 <= x < 100
-  newtype N = x: MM | 0 <= x < 100
-}
-
-// ------------------------
-// From Marianna:
-
-const int32_MIN: int := -0x8000_0000
-const int32_MAX: int := 0x7fff_ffff
-newtype int32 = x | int32_MIN <= x <= int32_MAX
-
-const nat31_MIN: int32 := 0
-const nat31_MAX: int32 := int32_MAX as int32
-type nat31 = x: int32 | nat31_MIN <= x <= nat31_MAX
-
-method Works() {
-  var x: int32 := 0;
-}
-
-method DoesNotWork() {
-  var x: nat31 := 0; // gives error: int not assignable to nat31
-}
-
-method Workaround() {
-  var x: nat31 := 0 as int32;
-}
-
-// ------------------------
-// Also, see examples in https://github.com/dafny-lang/dafny/issues/1731
-
-
 // ------------------------
 // From https://github.com/dafny-lang/dafny/issues/1292:
 
@@ -958,104 +1023,3 @@ method m (x: List<int>)  {
     case Cons(None, t) => {assert 4 > 3;}
 }
 ****************************************************************************************/
-
-/* The following test case may work with the new type inference, but did not with the old one.
-
-method LitTest() {
-  var c; // inferred to be bool
-  match c
-  case false =>
-  case true =>
-}
-
-*/
-
-/* Here's are tests for a match where a case is given by a const.
-   - For the first test, it used to be that this would spill out an unused local variable with that name (FIVE).
-   - The second test checks what happens if the const case label is also given an explicit type.
-     Previously, this would interpret "FIVE" as a const, and it would check that the type was correct.
-     Now, the explicit type causes it to be interpreted as a bound variable.
-   - The third test used to breeze through Dafny without any complaints, even though the type "int" makes no sense here.
-     Now, a pattern with an explicit type is always interpreted as a bound variable.
-
-const FIVE: int := 5
-  
-method Five(x: int) {
-  match x {
-    case FIVE => assert x == 5;
-    case _ =>
-  }
-  match x {
-    case FIVE: int =>
-      assert x == 5; // error: x may be anything, since FIVE is a bound variable
-    case _ =>
-  }
-}
-
-datatype Color = Blue | Green
-
-match Colors(c: Color) {
-  match c
-  case Blue: int => // error: because of the ": int", Blue is interpreted as a bound variable, and its type doesn't match that of "c"
-}
-
- */
-
-/* Some additional match tests
-
-method TupleTests(a: (int, ghost real), b: (), c: (ghost bool)) {
-  match a {
-  case (x, y) =>
-    var z0 := x;
-    var z1 := y;
-    print z0, "\n";
-  }
-
-  match b {
-    case () =>
-      var u := b;
-      print u, "\n";
-  }
-
-  match c {
-    case _ => print c, "\n";
-  }
-  match c {
-    case (x) => //print x, "\n";
-  }
-}
-
- */
-
-/*
-datatype Cell<T> = Cell(value: T)
-
-const X := 1
-
-method q() {
-  var c;
-  match c {
-    case X => // the literal 1
-    case Xyz => // a bound variable
-  }
-}
-
-datatype YT = Y
-const Y := 2
-
-method r() {
-  var c: Cell;
-  match c {
-    case Cell(Y) => // the literal 2
-    case Cell(_) =>
-  }
-}
-
-method s() {
-  var c: Cell;
-  match c {
-    case Cell(Y: real) => // bound variable
-    case Cell(_) => // redundant
-  }
-}
- */

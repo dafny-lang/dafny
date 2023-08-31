@@ -116,7 +116,7 @@ public class MultiBackendTest {
       $"verify",
       options.TestFile!,
       $"--print:{tmpDPrint}",
-      $"--rprint:{tmpRPrint}",
+      options.OtherArgs.Any(option => option.StartsWith("--print")) ? "" : $"--rprint:{tmpRPrint}",
       $"--bprint:{tmpPrint}"
     }.Concat(options.OtherArgs.Where(OptionAppliesToVerifyCommand)).ToArray();
 
@@ -228,7 +228,7 @@ public class MultiBackendTest {
       $"verify",
       options.TestFile!,
       $"--print:{tmpDPrint}",
-      $"--rprint:{tmpRPrint}",
+      options.OtherArgs.Any(option => option.StartsWith("--print")) ? "" : $"--rprint:{tmpRPrint}",
       $"--bprint:{tmpPrint}"
     }.Concat(options.OtherArgs.Where(OptionAppliesToVerifyCommand)).ToArray();
 

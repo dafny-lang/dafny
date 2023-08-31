@@ -194,6 +194,10 @@ true - Print debug information for the new type system.".TrimStart()) {
     "Rewrite docstrings using a simple Javadoc-to-markdown converter"
   );
 
+  public static readonly Option<bool> ReadsClausesOnMethods = new("--reads-clauses-on-methods",
+    "Allows reads clauses on methods (with a default of 'reads *') as well as functions."
+  );
+
   public enum TestAssumptionsMode {
     None,
     Externs
@@ -203,6 +207,20 @@ true - Print debug information for the new type system.".TrimStart()) {
 (experimental) When turned on, inserts runtime tests at locations where (implicit) assumptions occur, such as when calling or being called by external code and when using assume statements.
 
 Functionality is still being expanded. Currently only checks contracts on every call to a function or method marked with the {:extern} attribute.".TrimStart());
+
+  public enum DefaultFunctionOpacityOptions {
+    Transparent,
+    AutoRevealDependencies,
+    Opaque
+  }
+
+  public static readonly Option<DefaultFunctionOpacityOptions> DefaultFunctionOpacity = new("--default-function-opacity", () => DefaultFunctionOpacityOptions.Transparent,
+    @"
+Change the default opacity of functions. 
+`transparent` (default) means functions are transparent, can be manually made opaque and then revealed. 
+`autoRevealDependencies` makes all functions not explicitly labelled as opaque to be opaque but reveals them automatically in scopes which do not have `{:autoRevealDependencies false}`. 
+`opaque` means functions are always opaque so the opaque keyword is not needed, and functions must be revealed everywhere needed for a proof.".TrimStart()) {
+  };
 
   static CommonOptionBag() {
     QuantifierSyntax = QuantifierSyntax.FromAmong("3", "4");
@@ -297,7 +315,8 @@ Functionality is still being expanded. Currently only checks contracts on every 
         { OptimizeErasableDatatypeWrapper, DooFile.CheckOptionMatches },
         // Similarly this shouldn't matter if external code ONLY refers to {:extern}s,
         // but in practice it does.
-        { AddCompileSuffix, DooFile.CheckOptionMatches }
+        { AddCompileSuffix, DooFile.CheckOptionMatches },
+        { ReadsClausesOnMethods, DooFile.CheckOptionMatches },
       }
     );
     DooFile.RegisterNoChecksNeeded(
@@ -328,7 +347,8 @@ Functionality is still being expanded. Currently only checks contracts on every 
       UseBaseFileName,
       WarnMissingConstructorParenthesis,
       UseJavadocLikeDocstringRewriterOption,
-      IncludeRuntimeOption
+      IncludeRuntimeOption,
+      DefaultFunctionOpacity
     );
   }
 

@@ -204,9 +204,17 @@ public class ExpectContracts : IRewriter {
     var post = new AttributedExpression(new BinaryExpr(tok, BinaryExpr.Opcode.Eq, r, fn) {
       Type = Type.Bool
     });
+    // If f.Reads is empty, replace it with an explicit `reads {}` so that we don't replace that
+    // with the default `reads *` for methods later.
+    var reads = f.Reads;
+    if (!reads.Any()) {
+      reads = new List<FrameExpression>();
+      var emptySet = new SetDisplayExpr(tok, true, new List<Expression>());
+      reads.Add(new FrameExpression(tok, emptySet, null));
+    }
     var method = new Method(f.RangeToken, f.NameNode, f.HasStaticKeyword, false, f.TypeArgs,
       f.Formals, new List<Formal>() { resultVar },
-      f.Req, new Specification<FrameExpression>(new List<FrameExpression>(), null), new List<AttributedExpression>() { post }, f.Decreases,
+      f.Req, reads, new Specification<FrameExpression>(new List<FrameExpression>(), null), new List<AttributedExpression>() { post }, f.Decreases,
       f.ByMethodBody, f.Attributes, null, true);
     Contract.Assert(f.ByMethodDecl == null);
     method.InheritVisibility(f);
