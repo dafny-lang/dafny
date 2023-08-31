@@ -1990,12 +1990,7 @@ func (m Map) Contains(key interface{}) bool {
 // Update returns a new Map which associates the given key and value.
 func (m Map) Update(key, value interface{}) Map {
   ans := m.clone()
-  i, found := ans.findIndex(key)
-  if found {
-    ans.elts[i] = mapElt{key, value}
-  } else {
-    ans.elts = append(ans.elts, mapElt{key, value})
-  }
+  UpdateUnsafe(key, value)
   return ans
 }
 

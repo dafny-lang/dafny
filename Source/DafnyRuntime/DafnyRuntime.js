@@ -636,8 +636,7 @@ let _dafny = (function() {
     }
     update(k, v) {
       let m = this.slice();
-      let i = m.findIndex(k);
-      m[i] = [k, v];
+      updateUnsafe(k, v)
       return m;
     }
     // Similar to update, but make the modification in-place.
