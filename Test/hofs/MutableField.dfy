@@ -1,13 +1,13 @@
-// RUN: %dafny /print:"%t.print" "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachResolver --expect-exit-code=2 "%s"
+
 
 
 class C {
-  function method f(x : int) : int { x }
+  function f(x : int) : int { x }
 
-  var g : int -> int;
+  var g : int -> int
 
-  method M() modifies this;
+  method M() modifies this
   {
     f := g; // not ok
   }

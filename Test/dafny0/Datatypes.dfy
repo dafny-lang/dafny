@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %exits-with 4 %dafny /compile:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 datatype List<T> = Nil | Cons(T, List<T>)
@@ -7,7 +7,7 @@ class Node {
   var data: int
   var next: Node?
 
-  function Repr(list: List<int>): bool
+  ghost function Repr(list: List<int>): bool
     reads *
     decreases list
   { match list
@@ -38,7 +38,7 @@ class AnotherNode {
   var data: int
   var next: AnotherNode?
 
-  predicate Repr(n: AnotherNode?, list: List<int>)
+  ghost predicate Repr(n: AnotherNode?, list: List<int>)
     reads *
     decreases list
   { match list
@@ -95,7 +95,7 @@ method TestAllocatednessAxioms(a: List<Node>, b: List<Node>, c: List<AnotherNode
 }
 
 class NestedMatchExpr {
-  function Cadr<T>(a: List<T>, Default: T): T
+  ghost function Cadr<T>(a: List<T>, Default: T): T
   {
     match a
     case Nil => Default
@@ -105,7 +105,7 @@ class NestedMatchExpr {
       case Cons(y,tail) => y
   }
   // CadrAlt is the same as Cadr, but it writes its two outer cases in the opposite order
-  function CadrAlt<T>(a: List<T>, Default: T): T
+  ghost function CadrAlt<T>(a: List<T>, Default: T): T
   {
     match a
     case Cons(x,t) => (
@@ -125,7 +125,7 @@ class NestedMatchExpr {
     }
   }
   method TestNesting1(a: List<NestedMatchExpr>)
-    ensures Cadr(a, this) == CadrAlt(a, this);
+    ensures Cadr(a, this) == CadrAlt(a, this)
   {
     match (a) {
       case Nil =>
@@ -174,7 +174,7 @@ method Destructors2(d: XList) {
 }
 
 ghost method Lemma_AllCases(d: XList)
-  ensures d.XNil? || d.XCons?;
+  ensures d.XNil? || d.XCons?
 {
   match (d) {
     case XNil =>
@@ -183,7 +183,7 @@ ghost method Lemma_AllCases(d: XList)
 }
 
 method InjectivityTests(d: XList)
-  requires d != XNil;
+  requires d != XNil
 {
   match (d) {
     case XCons(a,b) =>
@@ -198,7 +198,7 @@ method InjectivityTests(d: XList)
 }
 
 method MatchingDestructor(d: XList) returns (r: XList)
-  ensures r.Car == 5;  // error: specification is not well-formed (since r might not be an XCons)
+  ensures r.Car == 5  // error: specification is not well-formed (since r might not be an XCons)
 {
   if (*) {
     var x0 := d.Car;  // error: d might not be an XCons
@@ -229,7 +229,7 @@ method Rotate1(t: TripleAndMore) returns (u: TripleAndMore)
 // -------------
 
 method FwdBug(f: Fwd, initialized: bool)
-  requires !f.FwdCons?;
+  requires !f.FwdCons?
 {
   match (f) {
     case FwdNil =>
@@ -240,8 +240,8 @@ method FwdBug(f: Fwd, initialized: bool)
   }
 }
 
-function FwdBugFunction(f: Fwd): bool
-  requires !f.FwdCons?;
+ghost function FwdBugFunction(f: Fwd): bool
+  requires !f.FwdCons?
 {
   match f
   case FwdNil => true
@@ -264,21 +264,21 @@ method TestAllCases_Inside(f: Fwd)
 }
 
 class ContainsFwd {
-  var fwd: Fwd;
+  var fwd: Fwd
   method TestCases()
   {
     assert fwd.FwdNil? || fwd.FwdCons?;
   }
 }
 
-function foo(f: Fwd): int
+ghost function foo(f: Fwd): int
 {
   if f.FwdNil? then 0 else f.k
 }
 
 // -- regression test --
 
-predicate F(xs: List, vs: map<int,int>)
+ghost predicate F(xs: List, vs: map<int,int>)
 {
   match xs
   case Nil => true
@@ -292,7 +292,7 @@ module MatchExpressionsInArbitraryPositions {
   datatype AList<T> = ANil | ACons(head: T, tail: AList) | Appendix(b: bool)
 
   method M(xs: AList<int>) returns (y: int)
-    ensures 0 <= y;
+    ensures 0 <= y
   {
     if * {
       y := match xs  // error: missing case Appendix
@@ -307,7 +307,7 @@ module MatchExpressionsInArbitraryPositions {
     }
   }
 
-  function F(xs: List<int>, ys: List<int>): int
+  ghost function F(xs: List<int>, ys: List<int>): int
   {
     match xs
     case Cons(x, _) =>
@@ -320,7 +320,7 @@ module MatchExpressionsInArbitraryPositions {
        case Cons(y, _) => y)
   }
 
-  function G(xs: List<int>, ys: List<int>, k: int): int
+  ghost function G(xs: List<int>, ys: List<int>, k: int): int
   {
     match xs
     case Cons(x, _) =>
@@ -335,7 +335,7 @@ module MatchExpressionsInArbitraryPositions {
         case Cons(y, _) => 3 + y)
   }
 
-  function H(xs: List<int>, ys: List<int>, k: int): int
+  ghost function H(xs: List<int>, ys: List<int>, k: int): int
   {
     if 0 <= k then
       (if k < 10 then 0 else 3) + (if k < 100 then 2 else 5)
@@ -344,12 +344,12 @@ module MatchExpressionsInArbitraryPositions {
         (if k < -110 then 0 else 3) + (if k < -200 then 2 else 5)
   }
 
-  function J(xs: List<int>): int
+  ghost function J(xs: List<int>): int
   {
     match xs  // error: missing cases
   }
 
-  function K(xs: List<int>): int
+  ghost function K(xs: List<int>): int
   {
     match xs
     case Cons(_, ys) =>
@@ -363,7 +363,7 @@ module MatchExpressionsInArbitraryPositions {
 module LetPatterns {
   datatype MyDt = AAA(x: int) | BBB(y: int)
 
-  function M(m: MyDt): int
+  ghost function M(m: MyDt): int
     requires m.AAA?
   {
     var AAA(u) := m;  // u: int

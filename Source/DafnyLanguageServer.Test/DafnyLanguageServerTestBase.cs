@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.CommandLine;
 using Microsoft.Dafny.LanguageServer.Workspace;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.JsonRpc.Testing;
@@ -13,17 +13,20 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using OmniSharp.Extensions.LanguageServer.Protocol.Server;
 using OmniSharp.Extensions.LanguageServer.Server;
 using System.IO;
-using System.IO.Pipelines;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
-using JetBrains.Annotations;
-using MediatR;
+using DafnyCore.Test;
+using Microsoft.Dafny.LanguageServer.IntegrationTest.Various;
+using Microsoft.Dafny.LanguageServer.Language;
 using OmniSharp.Extensions.LanguageServer.Client;
+using Xunit.Abstractions;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest {
-  public class DafnyLanguageServerTestBase : LanguageServerTestBase {
+  public class DafnyLanguageServerTestBase : LanguageProtocolTestBase {
+
     protected readonly string SlowToVerify = @"
-lemma {:timeLimit 3} SquareRoot2NotRational(p: nat, q: nat)
+lemma {:timeLimit 1} SquareRoot2NotRational(p: nat, q: nat)
   requires p > 0 && q > 0
   ensures (p * p) !=  2 * (q * q)
 { 
@@ -46,87 +49,93 @@ lemma {:neverVerify} HasNeverVerifyAttribute(p: nat, q: nat)
 
     public const string LanguageId = "dafny";
     protected static int fileIndex;
+    protected readonly TextWriter output;
 
-    public ILanguageServer Server { get; private set; }
+    public ILanguageServer Server { get; protected set; }
 
-    public IDocumentDatabase Documents => Server.GetRequiredService<IDocumentDatabase>();
+    public IProjectDatabase Projects => Server.GetRequiredService<IProjectDatabase>();
 
-    public DafnyLanguageServerTestBase() : base(new JsonRpcTestOptions(LoggerFactory.Create(builder => builder.AddConsole().SetMinimumLevel(LogLevel.Warning)))) { }
-
-    protected virtual async Task<ILanguageClient> InitializeClient(
-      Action<LanguageClientOptions> clientOptionsAction = null,
-      [CanBeNull] Action<LanguageServerOptions> serverOptionsAction = null) {
-      var client = CreateClient(clientOptionsAction, serverOptionsAction);
-      await client.Initialize(CancellationToken).ConfigureAwait(false);
-
-      return client;
+    protected DafnyLanguageServerTestBase(ITestOutputHelper output, LogLevel dafnyLogLevel = LogLevel.Information)
+      : base(new JsonRpcTestOptions(LoggerFactory.Create(
+      builder => {
+        builder.AddFilter("OmniSharp.Extensions.JsonRpc", LogLevel.None);
+        builder.AddFilter("OmniSharp", LogLevel.Warning);
+        builder.AddFilter("Microsoft.Dafny", dafnyLogLevel);
+        builder.AddConsole();
+      }))) {
+      this.output = new WriterFromOutputHelper(output);
     }
 
-    protected virtual ILanguageClient CreateClient(
-      Action<LanguageClientOptions> clientOptionsAction = null,
-      Action<LanguageServerOptions> serverOptionsAction = null) {
-      var client = LanguageClient.PreInit(
-        options => {
-          var (reader, writer) = SetupServer(serverOptionsAction);
-          options
-            .WithInput(reader)
-            .WithOutput(writer)
-            .WithLoggerFactory(TestOptions.ClientLoggerFactory)
-            .WithAssemblies(TestOptions.Assemblies)
-            .WithAssemblies(typeof(LanguageProtocolTestBase).Assembly, GetType().Assembly)
-            .ConfigureLogging(x => x.SetMinimumLevel(LogLevel.Trace))
-            .WithInputScheduler(options.InputScheduler)
-            .WithOutputScheduler(options.OutputScheduler)
-            .WithDefaultScheduler(options.DefaultScheduler)
-            .Services
-            .AddTransient(typeof(IPipelineBehavior<,>), typeof(SettlePipeline<,>))
-            .AddSingleton(Events as IRequestSettler);
+    protected virtual void ServerOptionsAction(LanguageServerOptions serverOptions) {
+    }
 
-          clientOptionsAction?.Invoke(options);
+    protected Task<(ILanguageClient client, ILanguageServer server)> Initialize(Action<LanguageClientOptions> clientOptionsAction, Action<DafnyOptions> serverOptionsAction) {
+      /*
+       * I would rather use LanguageServerOptions.RegisterForDisposal, but it doesn't seem to work
+       * Alternatively one can do Disposable.Add((IDisposable)Server.Services), but we've seen many
+       * ObjectDisposedExceptions in tests that might relate to this, so let's be more specific and only dispose
+       * IProjectDatabase
+       */
+      Disposable.Add(new AnonymousDisposable(() => {
+        var database = Server.Services.GetRequiredService<IProjectDatabase>();
+        database.Dispose();
+      }));
+      return base.Initialize(clientOptionsAction, GetServerOptionsAction(serverOptionsAction));
+    }
+
+    private sealed class AnonymousDisposable : IDisposable {
+      private Action action;
+
+      public AnonymousDisposable(Action action) {
+        this.action = action;
+      }
+
+      public void Dispose() => Interlocked.Exchange(ref action, null)?.Invoke();
+    }
+
+    private Action<LanguageServerOptions> GetServerOptionsAction(Action<DafnyOptions> modifyOptions) {
+      var dafnyOptions = DafnyOptions.Create(output);
+      dafnyOptions.Set(ServerCommand.UpdateThrottling, 0);
+      modifyOptions?.Invoke(dafnyOptions);
+      ServerCommand.ConfigureDafnyOptionsForServer(dafnyOptions);
+      ApplyDefaultOptionValues(dafnyOptions);
+      return options => {
+        options.WithDafnyLanguageServer(() => { });
+        options.Services.AddSingleton(dafnyOptions);
+        options.Services.AddSingleton<IProgramVerifier>(serviceProvider => new SlowVerifier(
+          serviceProvider.GetRequiredService<ILogger<DafnyProgramVerifier>>()
+        ));
+        ServerOptionsAction(options);
+      };
+    }
+
+    private static void ApplyDefaultOptionValues(DafnyOptions dafnyOptions) {
+      var testCommand = new System.CommandLine.Command("test");
+      foreach (var serverOption in ServerCommand.Instance.Options) {
+        testCommand.AddOption(serverOption);
+      }
+
+      var result = testCommand.Parse("test");
+      foreach (var option in ServerCommand.Instance.Options) {
+        if (!dafnyOptions.Options.OptionArguments.ContainsKey(option)) {
+          var value = result.GetValueForOption(option);
+
+          dafnyOptions.SetUntyped(option, value);
         }
-      );
 
-      Disposable.Add(client);
-
-      return client;
-    }
-
-    protected (Stream clientOutput, Stream serverInput) SetupServer(
-      Action<LanguageServerOptions> serverOptionsAction = null) {
-      var clientPipe = new Pipe(TestOptions.DefaultPipeOptions);
-      var serverPipe = new Pipe(TestOptions.DefaultPipeOptions);
-      Server = OmniSharp.Extensions.LanguageServer.Server.LanguageServer.PreInit(
-        options => {
-          var configuration = CreateConfiguration();
-          options
-            .WithInput(serverPipe.Reader)
-            .WithOutput(clientPipe.Writer)
-            .ConfigureLogging(SetupTestLogging)
-            .WithDafnyLanguageServer(configuration, () => { });
-          serverOptionsAction?.Invoke(options);
-        });
-      // This is the style used in the LSP implementation itself:
-      // https://github.com/OmniSharp/csharp-language-server-protocol/blob/1b6788df2600083c28811913a221ccac7b1d72c9/test/Lsp.Tests/Testing/LanguageServerTestBaseTests.cs
-#pragma warning disable VSTHRD110 // Observe result of async calls
-      Server.Initialize(CancellationToken);
-#pragma warning restore VSTHRD110 // Observe result of async calls
-      return (clientPipe.Reader.AsStream(), serverPipe.Writer.AsStream());
-    }
-
-    protected virtual IConfiguration CreateConfiguration() {
-      var configurationBuilder = new ConfigurationBuilder();
-      return configurationBuilder.Build();
-    }
-
-    private static void SetupTestLogging(ILoggingBuilder builder) {
-      builder
-        .AddConsole()
-        .SetMinimumLevel(LogLevel.Debug)
-        .AddFilter("OmniSharp", LogLevel.Warning);
+        dafnyOptions.ApplyBinding(option);
+      }
     }
 
     protected static TextDocumentItem CreateTestDocument(string source, string filePath = null, int version = 1) {
-      filePath ??= $"testFile{fileIndex++}.dfy";
+      if (filePath == null) {
+        var index = Interlocked.Increment(ref fileIndex);
+        filePath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName(), $"testFile{index}.dfy");
+      }
+      if (string.IsNullOrEmpty(Path.GetDirectoryName(filePath))) {
+        filePath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName(), filePath);
+      }
+      filePath = Path.GetFullPath(filePath);
       return new TextDocumentItem {
         LanguageId = LanguageId,
         Text = source,
@@ -153,10 +162,6 @@ lemma {:neverVerify} HasNeverVerifyAttribute(p: nat, q: nat)
 
     public static string PrintEnumerable(IEnumerable<object> items) {
       return "[" + string.Join(", ", items.Select(o => o.ToString())) + "]";
-    }
-
-    protected override (Stream clientOutput, Stream serverInput) SetupServer() {
-      throw new NotImplementedException();
     }
   }
 }

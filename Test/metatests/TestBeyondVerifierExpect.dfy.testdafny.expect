@@ -1,0 +1,38 @@
+Using legacy resolver and verifying...
+Using refresh resolver and verifying...
+Executing on C#...
+AssertEqualWithDiff() Failure
+Diff (changing expected into actual):
+-good bye
++hello
+ 
+
+Executing on JavaScript...
+AssertEqualWithDiff() Failure
+Diff (changing expected into actual):
+-good bye
++hello
+ 
+
+Executing on Go...
+AssertEqualWithDiff() Failure
+Diff (changing expected into actual):
+-good bye
++hello
+ 
+
+Executing on Java...
+AssertEqualWithDiff() Failure
+Diff (changing expected into actual):
+-good bye
++hello
+ 
+
+Executing on Python...
+AssertEqualWithDiff() Failure
+Diff (changing expected into actual):
+-good bye
++hello
+ 
+
+Executing on C++...

@@ -1,5 +1,4 @@
-// RUN: %dafny /compile:3 "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachCompiler "%s" --refresh-exit-code=0 -- --relax-definite-assignment
 
 method Main() {
   ClientA.Test();
@@ -17,18 +16,18 @@ module Library {
   export X reveals More
   export Y reveals Less
   export Z extends Library, X
-  function method Max(x: int, y: int): int {
+  function Max(x: int, y: int): int {
     if x < y then y else x
   }
-  function method More(x: int): int { x + 2 }
-  function method Less(x: int): int { x - 2 }
+  function More(x: int): int { x + 2 }
+  function Less(x: int): int { x - 2 }
 }
 
 module ClientA {
   import Library
   module Inner {
     import Library
-    function method Five(): int {
+    function Five(): int {
       Library.Max(2, 5)
     }
   }
@@ -41,7 +40,7 @@ module ClientB {
   import Library
   module Inner {
     import L = Library
-    function method Five(): int {
+    function Five(): int {
       L.Max(2, 5)
     }
   }
@@ -54,7 +53,7 @@ module ClientC {
   import L = Library
   module Inner {
     import K = Library
-    function method Five(): int {
+    function Five(): int {
       K.Max(2, 5)
     }
   }
@@ -67,7 +66,7 @@ module ClientD {
   import L = Library`X
   module Inner {
     import K = Library`Y
-    function method Five(): int {
+    function Five(): int {
       K.Less(7)
     }
   }
@@ -80,7 +79,7 @@ module ClientE {
   import L = Library`Z
   module Inner {
     import K = Library
-    function method Five(): int {
+    function Five(): int {
       K.Max(2, 5)
     }
   }
@@ -93,7 +92,7 @@ module ClientF {
   import opened L = Library`Z
   module Inner {
     import K = Library
-    function method Five(): int {
+    function Five(): int {
       K.Max(2, 5)
     }
   }
@@ -106,7 +105,7 @@ module ClientG {
   import Library
   module Inner {
     import opened K = Library
-    function method Five(): int {
+    function Five(): int {
       Max(2, 5)
     }
   }
@@ -119,7 +118,7 @@ module Kevin {
   module Joe {
     module Nick {
       import Frankie
-      function method g(): int {
+      function g(): int {
         Frankie.x
       }
     }

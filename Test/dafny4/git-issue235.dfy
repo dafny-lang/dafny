@@ -2,7 +2,7 @@
 // RUN: %diff "%s.expect" "%t"
 
 module A {
-  predicate F(x: int) { true }
+  ghost predicate F(x: int) { true }
 }
 
 module B {

@@ -1,8 +1,4 @@
-// RUN: %dafny /compile:3 /spillTargetCode:2 /compileTarget:cs "%s" > "%t"
-// RUN: %dafny /compile:3 /spillTargetCode:2 /compileTarget:js "%s" >> "%t"
-// RUN: %dafny /compile:3 /spillTargetCode:2 /compileTarget:go "%s" >> "%t"
-// RUN: %dafny /compile:3 /spillTargetCode:2 /compileTarget:java "%s" >> "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachCompiler "%s" --refresh-exit-code=0
 
 method Main() {
   var arrayTests := new ArrayTests();
@@ -19,7 +15,7 @@ class ArrayTests {
   var a: array<int>
   var b: array<int>
 
-  predicate Valid() reads this, a, b {
+  ghost predicate Valid() reads this, a, b {
     a.Length == 5 && b.Length == 5
   }
 
@@ -170,7 +166,7 @@ class ArrayTests {
 class MultiArrayTests {
   var a: array2<int>
 
-  predicate Valid() reads this, a {
+  ghost predicate Valid() reads this, a {
     a.Length0 == 3 && a.Length1 == 3
   }
 
@@ -178,7 +174,7 @@ class MultiArrayTests {
     a := new int[3,3];
   }
 
-  function method StateAsSeq(): seq<seq<int>> reads this, a requires Valid() {
+  function StateAsSeq(): seq<seq<int>> reads this, a requires Valid() {
     [ [ a[0,0], a[0,1], a[0,2] ],
       [ a[1,0], a[1,1], a[1,2] ],
       [ a[2,0], a[2,1], a[2,2] ] ]
@@ -237,7 +233,7 @@ class Thing {
 class ObjectTests {
   var thing1: Thing, thing2: Thing, thing3: Thing
 
-  predicate Valid() reads this {
+  ghost predicate Valid() reads this {
     thing1 != thing2 && thing1 != thing3 && thing2 != thing3
   }
 

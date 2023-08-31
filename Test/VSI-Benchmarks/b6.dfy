@@ -5,7 +5,7 @@ class Collection<T> {
   ghost var footprint:set<object>
   var elements:seq<T>
 
-  predicate Valid()
+  ghost predicate Valid()
     reads this, footprint
   {
     this in footprint
@@ -60,7 +60,7 @@ class Iterator<T> {
 
   ghost var footprint:set<object>
 
-  predicate Valid()
+  ghost predicate Valid()
     reads this, footprint
   {
     this in footprint && -1 <= pos
@@ -85,7 +85,7 @@ class Iterator<T> {
     b := pos < |c.elements|;
   }
 
-  predicate HasCurrent()
+  ghost predicate HasCurrent()
     requires Valid()
     reads this, c, footprint
   {

@@ -1,41 +1,52 @@
-﻿using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
+﻿using System.IO;
+using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
-using Microsoft.Dafny.LanguageServer.Language;
-using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
-using Microsoft.Extensions.Configuration;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-using OmniSharp.Extensions.JsonRpc;
-using OmniSharp.Extensions.LanguageServer.Protocol.Client;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Xunit;
+using Xunit.Abstractions;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
-  [TestClass]
-  public class GhostDiagnosticsTest : DafnyLanguageServerTestBase {
-    private ILanguageClient client;
-    private TestNotificationReceiver<GhostDiagnosticsParams> diagnosticReceiver;
-    private IDictionary<string, string> configuration;
+  public class GhostDiagnosticsTest : ClientBasedLanguageServerTest {
 
-    [TestInitialize]
-    public Task SetUp() => SetUp(null);
+    [Fact]
+    public async Task ExplicitProject() {
+      var sourceA = @"
+method Foo()
+{
+  FooLemma(); // this is ghost
+}
 
-    public async Task SetUp(IDictionary<string, string> configuration) {
-      this.configuration = configuration;
-      diagnosticReceiver = new();
-      client = await InitializeClient(
-        options => options.AddHandler(DafnyRequestNames.GhostDiagnostics, NotificationHandler.For<GhostDiagnosticsParams>(diagnosticReceiver.NotificationReceived))
-      );
+lemma FooLemma()".TrimStart();
+      var sourceB = @"
+lemma BarLemma()
+
+method Bar()
+{
+  BarLemma(); // this is ghost
+}".TrimStart();
+      await SetUp(options => {
+        options.Set(ServerCommand.GhostIndicators, true);
+      });
+
+      var directory = Path.GetRandomFileName();
+      var projectFile = await CreateAndOpenTestDocument("", Path.Combine(directory, DafnyProject.FileName));
+      var docA = await CreateAndOpenTestDocument(sourceA, Path.Combine(directory, "a.dfy"));
+      var docB = await CreateAndOpenTestDocument(sourceB, Path.Combine(directory, "b.dfy"));
+
+      var report = await ghostnessReceiver.AwaitNextNotificationAsync(CancellationToken);
+      var report2 = await ghostnessReceiver.AwaitNextNotificationAsync(CancellationToken);
+      Assert.Single(report.Diagnostics);
+      Assert.Equal(docA.Uri.ToUri(), report.Uri);
+      Assert.Equal(2, report.Diagnostics.Single().Range.Start.Line);
+
+      Assert.Single(report2.Diagnostics);
+      Assert.Equal(docB.Uri.ToUri(), report2.Uri);
+      Assert.Equal(4, report2.Diagnostics.Single().Range.Start.Line);
     }
 
-    protected override IConfiguration CreateConfiguration() {
-      return configuration == null
-        ? base.CreateConfiguration()
-        : new ConfigurationBuilder().AddInMemoryCollection(configuration).Build();
-    }
-
-    [TestMethod]
+    [Fact]
     public async Task OpeningFlawlessDocumentWithoutGhostMarkDoesNotMarkAnything() {
       var source = @"
 class C {
@@ -58,17 +69,16 @@ class C {
 
   lemma MyLemma()
 }".TrimStart();
-      await SetUp(new Dictionary<string, string>() {
-        { $"{GhostOptions.Section}:{nameof(GhostOptions.MarkStatements)}", "false" }
+      await SetUp(options => {
+        options.Set(ServerCommand.GhostIndicators, false);
       });
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "OpeningFlawlessDocumentWithoutGhostMarkDoesNotMarkAnything.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var report = await diagnosticReceiver.AwaitNextNotificationAsync(CancellationToken);
-      var diagnostics = report.Diagnostics.ToArray();
-      Assert.AreEqual(0, diagnostics.Length);
+      await GetLastDiagnostics(documentItem, CancellationToken);
+      await AssertNoGhostnessIsComing(CancellationToken);
     }
 
-    [TestMethod]
+    [Fact]
     public async Task OpeningFlawlessDocumentWithGhostMarkStatementsMarksGhostVariableDeclarations() {
       var source = @"
 class C {
@@ -83,19 +93,18 @@ class C {
 
   lemma MyLemma()
 }".TrimStart();
-      await SetUp(new Dictionary<string, string>() {
-        { $"{GhostOptions.Section}:{nameof(GhostOptions.MarkStatements)}", "true" }
+      await SetUp(options => {
+        options.Set(ServerCommand.GhostIndicators, true);
       });
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "OpeningFlawlessDocumentWithGhostMarkStatementsMarksGhostVariableDeclarations.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var report = await diagnosticReceiver.AwaitNextNotificationAsync(CancellationToken);
+      var report = await ghostnessReceiver.AwaitNextNotificationAsync(CancellationToken);
       var diagnostics = report.Diagnostics.ToArray();
-      Assert.AreEqual(1, diagnostics.Length);
-      Assert.AreEqual("Ghost statement", diagnostics[0].Message);
-      Assert.AreEqual(new Range((7, 4), (7, 15)), diagnostics[0].Range);
+      Assert.Single(diagnostics);
+      Assert.Equal(new Range((7, 4), (7, 15)), diagnostics[0].Range);
     }
 
-    [TestMethod]
+    [Fact]
     public async Task OpeningFlawlessDocumentWithGhostMarkStatementsMarksGhostIfStatements() {
       var source = @"
 class C {
@@ -112,19 +121,18 @@ class C {
 
   lemma MyLemma()
 }".TrimStart();
-      await SetUp(new Dictionary<string, string>() {
-        { $"{GhostOptions.Section}:{nameof(GhostOptions.MarkStatements)}", "true" }
+      await SetUp(options => {
+        options.Set(ServerCommand.GhostIndicators, true);
       });
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "OpeningFlawlessDocumentWithGhostMarkStatementsMarksGhostIfStatements.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var report = await diagnosticReceiver.AwaitNextNotificationAsync(CancellationToken);
+      var report = await ghostnessReceiver.AwaitNextNotificationAsync(CancellationToken);
       var diagnostics = report.Diagnostics.ToArray();
-      Assert.AreEqual(1, diagnostics.Length);
-      Assert.AreEqual("Ghost statement", diagnostics[0].Message);
-      Assert.AreEqual(new Range((7, 4), (9, 5)), diagnostics[0].Range);
+      Assert.Single(diagnostics);
+      Assert.Equal(new Range((7, 4), (9, 5)), diagnostics[0].Range);
     }
 
-    [TestMethod]
+    [Fact]
     public async Task OpeningFlawlessDocumentWithGhostMarkStatementsMarksGhostAssignments() {
       var source = @"
 class C {
@@ -139,19 +147,18 @@ class C {
 
   lemma MyLemma()
 }".TrimStart();
-      await SetUp(new Dictionary<string, string>() {
-        { $"{GhostOptions.Section}:{nameof(GhostOptions.MarkStatements)}", "true" }
+      await SetUp(options => {
+        options.Set(ServerCommand.GhostIndicators, true);
       });
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "OpeningFlawlessDocumentWithGhostMarkStatementsMarksGhostAssignments.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var report = await diagnosticReceiver.AwaitNextNotificationAsync(CancellationToken);
+      var report = await ghostnessReceiver.AwaitNextNotificationAsync(CancellationToken);
       var diagnostics = report.Diagnostics.ToArray();
-      Assert.AreEqual(1, diagnostics.Length);
-      Assert.AreEqual("Ghost statement", diagnostics[0].Message);
-      Assert.AreEqual(new Range((7, 4), (7, 11)), diagnostics[0].Range);
+      Assert.Single(diagnostics);
+      Assert.Equal(new Range((7, 4), (7, 11)), diagnostics[0].Range);
     }
 
-    [TestMethod]
+    [Fact]
     public async Task OpeningFlawlessDocumentWithGhostMarkStatementsMarksGhostCalls() {
       var source = @"
 class C {
@@ -166,19 +173,18 @@ class C {
 
   lemma MyLemma()
 }".TrimStart();
-      await SetUp(new Dictionary<string, string>() {
-        { $"{GhostOptions.Section}:{nameof(GhostOptions.MarkStatements)}", "true" }
+      await SetUp(options => {
+        options.Set(ServerCommand.GhostIndicators, true);
       });
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "OpeningFlawlessDocumentWithGhostMarkStatementsMarksGhostCalls.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var report = await diagnosticReceiver.AwaitNextNotificationAsync(CancellationToken);
+      var report = await ghostnessReceiver.AwaitNextNotificationAsync(CancellationToken);
       var diagnostics = report.Diagnostics.ToArray();
-      Assert.AreEqual(1, diagnostics.Length);
-      Assert.AreEqual("Ghost statement", diagnostics[0].Message);
-      Assert.AreEqual(new Range((7, 4), (7, 14)), diagnostics[0].Range);
+      Assert.Single(diagnostics);
+      Assert.Equal(new Range((7, 4), (7, 14)), diagnostics[0].Range);
     }
 
-    [TestMethod]
+    [Fact]
     public async Task OpeningFlawlessDocumentWithGhostMarkStatementsMarksAllGhostStatements() {
       var source = @"
 class C {
@@ -201,24 +207,23 @@ class C {
 
   lemma MyLemma()
 }".TrimStart();
-      await SetUp(new Dictionary<string, string>() {
-        { $"{GhostOptions.Section}:{nameof(GhostOptions.MarkStatements)}", "true" }
+      await SetUp(options => {
+        options.Set(ServerCommand.GhostIndicators, true);
       });
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "OpeningFlawlessDocumentWithGhostMarkStatementsMarksAllGhostStatements.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var report = await diagnosticReceiver.AwaitNextNotificationAsync(CancellationToken);
+      var report = await ghostnessReceiver.AwaitNextNotificationAsync(CancellationToken);
       var diagnostics = report.Diagnostics
         .OrderBy(diagnostic => diagnostic.Range.Start)
         .ToArray();
-      Assert.AreEqual(4, diagnostics.Length);
-      Assert.AreEqual("Ghost statement", diagnostics[0].Message);
-      Assert.AreEqual(new Range((7, 4), (7, 15)), diagnostics[0].Range);
-      Assert.AreEqual("Ghost statement", diagnostics[1].Message);
-      Assert.AreEqual(new Range((9, 4), (11, 5)), diagnostics[1].Range);
-      Assert.AreEqual("Ghost statement", diagnostics[2].Message);
-      Assert.AreEqual(new Range((13, 4), (13, 11)), diagnostics[2].Range);
-      Assert.AreEqual("Ghost statement", diagnostics[3].Message);
-      Assert.AreEqual(new Range((15, 4), (15, 14)), diagnostics[3].Range);
+      Assert.Equal(4, diagnostics.Length);
+      Assert.Equal(new Range((7, 4), (7, 15)), diagnostics[0].Range);
+      Assert.Equal(new Range((9, 4), (11, 5)), diagnostics[1].Range);
+      Assert.Equal(new Range((13, 4), (13, 11)), diagnostics[2].Range);
+      Assert.Equal(new Range((15, 4), (15, 14)), diagnostics[3].Range);
+    }
+
+    public GhostDiagnosticsTest(ITestOutputHelper output) : base(output) {
     }
   }
 }

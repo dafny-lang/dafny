@@ -13,7 +13,7 @@ method R(xs: List)
   case Cons(x, Cons(b, tail)) =>  // this 'b' (which is in a nested position) generates an error
 }
 
-function F(xs: List): int
+ghost function F(xs: List): int
 {
   var a := 4;
   var b := 7;

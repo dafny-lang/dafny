@@ -1,3 +1,4 @@
+// NONUNIFORM: multiple testing scenarios (could be split into several uniform tests)
 // RUN: %dafny /compile:0 "%s" > "%t"
 
 // RUN: %dafny /noVerify /compile:4 /Main:Cl.Static   /compileTarget:cs "%s" >> "%t"
@@ -39,6 +40,16 @@
 // RUN: %dafny /noVerify /compile:4 /Main:Co.Instance /compileTarget:java "%s" >> "%t"
 // RUN: %dafny /noVerify /compile:4 /Main:Nt.Static   /compileTarget:java "%s" >> "%t"
 // RUN: %dafny /noVerify /compile:4 /Main:Nt.Instance /compileTarget:java "%s" >> "%t"
+
+// RUN: %dafny /noVerify /compile:4 /Main:Cl.Static   /compileTarget:py "%s" >> "%t"
+// RUN: %dafny /noVerify /compile:4 /Main:Cl.Instance /compileTarget:py "%s" >> "%t"
+// RUN: %dafny /noVerify /compile:4 /Main:Tr.Static   /compileTarget:py "%s" >> "%t"
+// RUN: %dafny /noVerify /compile:4 /Main:Dt.Static   /compileTarget:py "%s" >> "%t"
+// RUN: %dafny /noVerify /compile:4 /Main:Dt.Instance /compileTarget:py "%s" >> "%t"
+// RUN: %dafny /noVerify /compile:4 /Main:Co.Static   /compileTarget:py "%s" >> "%t"
+// RUN: %dafny /noVerify /compile:4 /Main:Co.Instance /compileTarget:py "%s" >> "%t"
+// RUN: %dafny /noVerify /compile:4 /Main:Nt.Static   /compileTarget:py "%s" >> "%t"
+// RUN: %dafny /noVerify /compile:4 /Main:Nt.Instance /compileTarget:py "%s" >> "%t"
 
 // RUN: %diff "%s.expect" "%t"
 

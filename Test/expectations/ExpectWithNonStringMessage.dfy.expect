@@ -1,12 +1,17 @@
 
 Dafny program verifier finished with 0 verified, 0 errors
-[Program halted] ExpectWithNonStringMessage.dfy(12,2): Option.Some(where over the rainbow)
 
-Dafny program verifier finished with 0 verified, 0 errors
-[Program halted] ExpectWithNonStringMessage.dfy(12,2): Option.Some(where over the rainbow)
+Dafny program verifier did not attempt verification
+[Program halted] ExpectWithNonStringMessage.dfy(13,2): Option.Some(where over the rainbow)
 
-Dafny program verifier finished with 0 verified, 0 errors
-[Program halted] ExpectWithNonStringMessage.dfy(12,2): Option.Some(where over the rainbow)
+Dafny program verifier did not attempt verification
+[Program halted] ExpectWithNonStringMessage.dfy(13,2): Option.Some(where over the rainbow)
 
-Dafny program verifier finished with 0 verified, 0 errors
-[Program halted] ExpectWithNonStringMessage.dfy(12,2): Option.Some(where over the rainbow)
+Dafny program verifier did not attempt verification
+[Program halted] ExpectWithNonStringMessage.dfy(13,2): Option.Some(where over the rainbow)
+
+Dafny program verifier did not attempt verification
+[Program halted] ExpectWithNonStringMessage.dfy(13,2): Option.Some(where over the rainbow)
+
+Dafny program verifier did not attempt verification
+[Program halted] ExpectWithNonStringMessage.dfy(13,2): Option.Some(where over the rainbow)

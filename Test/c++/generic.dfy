@@ -1,8 +1,7 @@
-// RUN: %dafny /compile:3 /spillTargetCode:2 /compileTarget:cpp "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachCompiler "%s" --refresh-exit-code=0 -- --relax-definite-assignment --spill-translation --unicode-char:false
 
 class Test<T> {
-  var t:T;
+  var t:T
 
   constructor (e:T) {
     t := e;

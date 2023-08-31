@@ -1,5 +1,5 @@
-// RUN: %dafny /compile:0 "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachResolver --expect-exit-code=2 "%s"
+
 
 class Cell {
   method Test(c: Cell) {
@@ -7,5 +7,5 @@ class Cell {
   }
 }
 
-predicate F()
+ghost predicate F()
 

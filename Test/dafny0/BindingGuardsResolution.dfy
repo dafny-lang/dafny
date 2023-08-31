@@ -1,9 +1,9 @@
-// RUN: %dafny /dprint:- /env:0 "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
-module Tests {
-  predicate P(n: int)
+// RUN: %testDafnyForEachResolver --expect-exit-code=2 "%s" -- --print=-
 
-  predicate R(r: real)
+module Tests {
+  ghost predicate P(n: int)
+
+  ghost predicate R(r: real)
 
   method M0()
   {
@@ -118,8 +118,8 @@ module TypesNotFullyDetermined {
 }
 
 module Ghost {
-  predicate P(x: int)  // note, P is ghost
-  predicate method R(x: int)
+  ghost predicate P(x: int)  // note, P is ghost
+  predicate R(x: int)
   method M7() returns (z: int, b: bool)
   {
     if * {

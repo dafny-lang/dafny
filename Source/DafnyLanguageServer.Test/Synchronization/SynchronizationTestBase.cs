@@ -1,15 +1,35 @@
 ﻿using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using OmniSharp.Extensions.LanguageServer.Protocol.Client;
 using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
+using Xunit;
+using Xunit.Abstractions;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
-  public class SynchronizationTestBase : DafnyLanguageServerTestBase {
-    protected ILanguageClient Client { get; private set; }
+  public class SynchronizationTestBase : DafnyLanguageServerTestBase, IAsyncLifetime {
+    protected ILanguageClient Client { get; set; }
 
-    protected Task ApplyChangeAndWaitCompletionAsync(TextDocumentItem documentItem, Range range, string newText) {
+    public virtual async Task InitializeAsync() {
+      (Client, Server) = await Initialize(_ => { }, _ => { });
+    }
+
+    public Task DisposeAsync() {
+      return Task.CompletedTask;
+    }
+
+    protected Task ApplyChangeAndWaitCompletionAsync(ref TextDocumentItem documentItem, Range range,
+      string newText) {
+      var versionedTextDocumentIdentifier = new VersionedTextDocumentIdentifier() {
+        Version = documentItem.Version!.Value,
+        Uri = documentItem.Uri
+      };
+      documentItem = documentItem with { Version = documentItem.Version + 1 };
+      return ApplyChangeAndWaitCompletionAsync(versionedTextDocumentIdentifier, range, newText);
+    }
+
+    protected Task ApplyChangeAndWaitCompletionAsync(VersionedTextDocumentIdentifier documentItem, Range range, string newText) {
       return ApplyChangesAndWaitCompletionAsync(
         documentItem,
         new TextDocumentContentChangeEvent {
@@ -19,7 +39,15 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
       );
     }
 
-    protected Task ApplyChangesAndWaitCompletionAsync(TextDocumentItem documentItem, params TextDocumentContentChangeEvent[] changes) {
+    protected Task ApplyChangesAndWaitCompletionAsync(TextDocumentItem documentItem,
+      params TextDocumentContentChangeEvent[] changes) {
+      return ApplyChangesAndWaitCompletionAsync(new VersionedTextDocumentIdentifier() {
+        Version = documentItem.Version!.Value,
+        Uri = documentItem.Uri
+      }, changes);
+    }
+
+    protected Task ApplyChangesAndWaitCompletionAsync(VersionedTextDocumentIdentifier documentItem, params TextDocumentContentChangeEvent[] changes) {
       Client.DidChangeTextDocument(new DidChangeTextDocumentParams {
         TextDocument = new OptionalVersionedTextDocumentIdentifier {
           Uri = documentItem.Uri,
@@ -30,9 +58,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
       return Client.WaitForNotificationCompletionAsync(documentItem.Uri, CancellationToken);
     }
 
-    [TestInitialize]
-    public async Task SetUp() {
-      Client = await InitializeClient();
+    public SynchronizationTestBase(ITestOutputHelper output, LogLevel logLevel = LogLevel.Information) : base(output, logLevel) {
     }
   }
 }

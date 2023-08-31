@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:0 "%s" > "%t"
+// RUN: %dafny /compile:0 /deprecation:0 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // This file was created in the early stages of Dafny, when the
@@ -14,7 +14,7 @@ class SparseArray<T(0)> {
   /*private*/ var n: int;
   /*private*/ ghost var d: seq<int>;  // would be better as an array
   /*private*/ ghost var e: seq<int>;  // would be better as an array
-  function Valid(): bool
+  ghost function Valid(): bool
     reads this;
   {
     |a| == |Contents| &&

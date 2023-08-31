@@ -12,9 +12,9 @@ import java.util.List;
  * to operate on possibly-primitive arrays.
  *
  * This isn't used by generated Dafny code, which directly uses values of type
- * Object when the element type isn't known, relying on a {@link Type} passed
+ * Object when the element type isn't known, relying on a {@link TypeDescriptor} passed
  * in.  It's much more pleasant to use, and more type-safe, than the bare
- * {@link Type} operations, however, so extern implementors may be interested.
+ * {@link TypeDescriptor} operations, however, so extern implementors may be interested.
  * It is also used to implement {@link DafnySequence}.
  *
  * @param <T> The type of the elements in the array, or if that type is
@@ -26,8 +26,6 @@ public final class Array<T> implements Cloneable {
     private final Object array;
 
     private Array(TypeDescriptor<T> eltType, Object array) {
-        assert eltType.arrayType().isInstance(array);
-
         this.eltType = eltType;
         this.array = array;
     }
@@ -79,13 +77,11 @@ public final class Array<T> implements Cloneable {
         return newArray;
     }
 
-    public boolean deepEquals(Array<T> other) {
-        return eltType.arrayDeepEquals(this.array, other.array);
+    public boolean shallowEquals(Array<T> other) {
+        return eltType.arrayShallowEquals(this.array, other.array);
     }
 
     public static <T> Array<T> wrap(TypeDescriptor<T> eltType, Object array) {
-        assert eltType.arrayType().isInstance(array);
-
         return new Array<T>(eltType, array);
     }
 

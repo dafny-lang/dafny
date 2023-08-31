@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %exits-with 2 %dafny /compile:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // ---------------------- duplicate types within a module
@@ -37,8 +37,8 @@ module A {  // Note, this has the effect of importing two different T's,
   import MM = M
   import NN = N
   class X {
-    var t: MM.T;  // error: use of the ambiguous name T
-    function F(x: MM.T):  // error: use of the ambiguous name T
+    var t: MM.T  // error: use of the ambiguous name T
+    ghost function F(x: MM.T):  // error: use of the ambiguous name T
                MM.T  // error: use of the ambiguous name T
     { x }
     method M(x: NN.T)  // error: use of the ambiguous name T
@@ -97,7 +97,7 @@ module YY {
 module Misc {
 class ClassG {
   method T() { }
-  function method TFunc(): int { 10 }
+  function TFunc(): int { 10 }
   method V(y: MyClassY) {
     y.M();
   }
@@ -133,10 +133,10 @@ class Ghosty {
 }
 
 class AClassWithSomeField {
-  var SomeField: int;
+  var SomeField: int
 
   method SpecialFunctions()
-    modifies this;
+    modifies this
   {
     SomeField := SomeField + 4;
     var a := old(SomeField);  // error: old can only be used in ghost contexts
@@ -153,7 +153,7 @@ class AClassWithSomeField {
 
 datatype Tree = Nil | Cons(int, Tree, Tree)
 
-function NestedMatch0(tree: Tree): int
+ghost function NestedMatch0(tree: Tree): int
 {
   match tree
   case Nil => 0
@@ -163,7 +163,7 @@ function NestedMatch0(tree: Tree): int
     case Cons(hh,ll,rr) => hh
 }
 
-function NestedMatch1(tree: Tree): int
+ghost function NestedMatch1(tree: Tree): int
 {
   match tree
   case Nil => 0
@@ -176,7 +176,7 @@ function NestedMatch1(tree: Tree): int
       case Cons(h1,l1,r1) => h + h0 + h1
 }
 
-function NestedMatch2(tree: Tree): int
+ghost function NestedMatch2(tree: Tree): int
 {
   match tree
   case Nil => 0
@@ -189,7 +189,7 @@ function NestedMatch2(tree: Tree): int
       case Cons(h1,l1,r1) => h + h1
 }
 
-function NestedMatch3(tree: Tree): int
+ghost function NestedMatch3(tree: Tree): int
 {
   match tree
   case Nil => 0
@@ -221,7 +221,7 @@ module BTr {
   import A = ATr
   class Y {
     method N() returns (x: A.X?)
-      ensures x != null;
+      ensures x != null
     {
       x := new X;
     }
@@ -231,8 +231,8 @@ module BTr {
 module CTr {
   import B = BTr_corrected
   class Z {
-    var b: B.Y;  // fine
-    var a: B.X;  // error: imports don't reach name X explicitly
+    var b: B.Y  // fine
+    var a: B.X  // error: imports don't reach name X explicitly
   }
 }
 module CTs {
@@ -264,7 +264,7 @@ module NonLocalB {
   }
   class D {
     method K() returns (b: B?)
-      ensures b != null;
+      ensures b != null
     {
       return new B;
     }
@@ -311,7 +311,7 @@ module Q_Imp {
 module Q_M {
   import Q_Imp
   method MyMethod(root: Q_Imp.Node, S: set<Node>)
-    requires root in S;  // error: the element type of S does not agree with the type of root
+    requires root in S  // error: the element type of S does not agree with the type of root
   {
     var i := new Q_Imp.Node();
     var j := new Node;
@@ -330,7 +330,7 @@ module Q_M {
 // ------- top-level statics -----------------
 
 module TopLevelStatics {
-  static function F(): int  // error/warning: static keyword does not belong here
+  static ghost function F(): int  // error/warning: static keyword does not belong here
   { 0 }
   static method M()  // error/warning: static keyword does not belong here
   { }
@@ -374,6 +374,6 @@ module BTr_corrected {
   class Y {
     constructor () { }
     method N() returns (x: A.X?)
-      ensures x != null;
+      ensures x != null
   }
 }

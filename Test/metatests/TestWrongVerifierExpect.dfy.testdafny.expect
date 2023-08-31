@@ -1,0 +1,7 @@
+Using legacy resolver and verifying...
+AssertEqualWithDiff() Failure
+Diff (changing expected into actual):
+-warning: out of bananas
++TestWrongVerifierExpect.dfy(6,5): Warning: /!\ No terms found to trigger on.
+ 
+

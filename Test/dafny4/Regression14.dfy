@@ -1,8 +1,8 @@
-// RUN: %dafny "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachResolver --expect-exit-code=2 "%s"
+
 
 module AAA {
-  function Func(): int
+  ghost function Func(): int
   class MyClass { }
   method Get() returns (m: MyClass)
   method M()

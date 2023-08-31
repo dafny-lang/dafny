@@ -1,51 +1,40 @@
-﻿using System.Collections.Generic;
-using System.Threading;
-using Microsoft.Boogie;
+﻿using System;
+using System.Collections.Generic;
 using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Language.Symbols;
 using Microsoft.Dafny.LanguageServer.Workspace;
 using Microsoft.Extensions.Logging;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Moq;
 
-namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit; 
+namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit;
 
-[TestClass]
 public class DafnyLangSymbolResolverTest {
   private DafnyLangSymbolResolver dafnyLangSymbolResolver;
 
-  [TestInitialize]
-  public void SetUp() {
+  public DafnyLangSymbolResolverTest() {
     var loggerFactory = new Mock<ILoggerFactory>();
     dafnyLangSymbolResolver = new DafnyLangSymbolResolver(
-      loggerFactory.Object.CreateLogger<DafnyLangSymbolResolver>()
+      new Mock<ILogger<DafnyLangSymbolResolver>>().Object,
+      new Mock<ILogger<CachingResolver>>().Object,
+      new Mock<ITelemetryPublisher>().Object
     );
   }
 
   class CollectingErrorReporter : BatchErrorReporter {
-    public Dictionary<ErrorLevel, List<ErrorMessage>> GetErrors() {
-      return this.AllMessages;
+    public Dictionary<ErrorLevel, List<DafnyDiagnostic>> GetErrors() {
+      return this.AllMessagesByLevel;
+    }
+
+    public CollectingErrorReporter(DafnyOptions options) : base(options) {
     }
   }
 
   class DummyModuleDecl : LiteralModuleDecl {
     public DummyModuleDecl() : base(
-      new DefaultModuleDecl(), null) {
+      new DefaultModuleDefinition(new List<Uri>()), null, Guid.NewGuid()) {
     }
     public override object Dereference() {
       return this;
     }
-  }
-
-  [TestMethod]
-  public void EnsureResilienceAgainstErrors() {
-    // Builtins is null to trigger an error.
-    var reporter = new CollectingErrorReporter();
-    var program = new Dafny.Program("dummy", new DummyModuleDecl(), null, reporter);
-    dafnyLangSymbolResolver.ResolveSymbols(null!, program, out var canDoVerification, CancellationToken.None);
-    Assert.AreEqual(1, reporter.ErrorCount);
-    Assert.AreEqual(1, reporter.GetErrors()[ErrorLevel.Error].Count);
-    var expected = "Dafny encountered an error.  Please report it at ";
-    Assert.AreEqual(expected, reporter.GetErrors()[ErrorLevel.Error][0].message.Substring(0, expected.Length));
   }
 }

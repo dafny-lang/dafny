@@ -1,7 +1,9 @@
-﻿using Microsoft.Dafny.LanguageServer.Language.Symbols;
+﻿using System;
+using Microsoft.Dafny.LanguageServer.Language.Symbols;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Collections.Generic;
 using System.Threading;
+using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.Language {
   /// <summary>
@@ -12,11 +14,12 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     /// <summary>
     /// Collects all the ghost states and creates diagnostics for the given symbol table.
     /// </summary>
-    /// <param name="symbolTable">The symbol table to get the ghost state diagnostics from.</param>
+    /// <param name="signatureAndCompletionTable">The symbol table to get the ghost state diagnostics from.</param>
     /// <param name="cancellationToken">A token to cancel the collection before its completion.</param>
     /// <returns>All the ghost variables and functions collected as LSP diagnostics.</returns>
     /// <exception cref="System.OperationCanceledException">Thrown when the cancellation was requested before completion.</exception>
     /// <exception cref="System.ObjectDisposedException">Thrown if the cancellation token was disposed before the completion.</exception>
-    IEnumerable<Diagnostic> GetGhostStateDiagnostics(SymbolTable symbolTable, CancellationToken cancellationToken);
+    IReadOnlyDictionary<Uri, IReadOnlyList<Range>> GetGhostStateDiagnostics(
+      LegacySignatureAndCompletionTable signatureAndCompletionTable, CancellationToken cancellationToken);
   }
 }

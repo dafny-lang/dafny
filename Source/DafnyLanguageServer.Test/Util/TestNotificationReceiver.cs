@@ -1,4 +1,5 @@
 ﻿using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -10,10 +11,20 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Util {
   public class TestNotificationReceiver<TNotification> {
     private readonly SemaphoreSlim availableNotifications = new(0);
     private readonly ConcurrentQueue<TNotification> notifications = new();
+    private readonly List<TNotification> notificationHistory = new();
 
     public void NotificationReceived(TNotification request) {
       notifications.Enqueue(request);
+      notificationHistory.Add(request);
       availableNotifications.Release();
+    }
+
+    public bool HasPendingNotifications => !notifications.IsEmpty;
+
+    public IReadOnlyList<TNotification> History => notificationHistory;
+
+    public void ClearHistory() {
+      notificationHistory.Clear();
     }
 
     public async Task<TNotification> AwaitNextNotificationAsync(CancellationToken cancellationToken) {

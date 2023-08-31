@@ -1,5 +1,7 @@
-// RUN: %dafny /compile:3 /print:"%t.print" /rprint:- /env:0 "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachCompiler "%s" --refresh-exit-code=0 -- --relax-definite-assignment
+
+// Note the difference in Java output is due to
+// https://github.com/dafny-lang/dafny/issues/4152
 
 method M(a: bv1, b: bv32) returns (c: bv32, d: bv1)
 {

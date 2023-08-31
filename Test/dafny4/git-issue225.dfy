@@ -1,5 +1,5 @@
-// RUN: %dafny "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachResolver --expect-exit-code=2 "%s"
+
 
 module SiblingImport {
   abstract module AbstractModule {
@@ -78,8 +78,8 @@ module DirectUse {
     method Print() { print "hello\n"; }
     lemma Lemma()
     datatype Record = Record(x: int)
-    function method F(): int
-    function G(): int
+    function F(): int
+    ghost function G(): int
     const c: int
     ghost const d: int
   }

@@ -13,7 +13,7 @@ class {:autocontracts} RingBuffer<T(0)>
   var len: nat
 
   // Valid encodes the consistency of RingBuffer objects (think, invariant)
-  predicate Valid()
+  ghost predicate Valid()
   {
     data.Length == N &&
     (N == 0 ==> len == start == 0 && Contents == []) &&
@@ -38,7 +38,7 @@ class {:autocontracts} RingBuffer<T(0)>
   }
 
   method Head() returns (x: T)
-    requires Contents != [];
+    requires Contents != []
     ensures x == Contents[0]
   {
     x := data[start];

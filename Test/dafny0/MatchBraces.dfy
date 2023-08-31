@@ -1,5 +1,4 @@
-// RUN: %dafny /print:"%t.print" /compile:3 /env:0 /dprint:- "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachCompiler "%s" --refresh-exit-code=0 -- --relax-definite-assignment
 
 datatype Color = Red | Green | Blue
 
@@ -45,7 +44,7 @@ method M(c: Color, d: Color) {
 
 // ----- match expressions in top-level positions
 
-function Heat(c: Color): int
+ghost function Heat(c: Color): int
 {
   match c
   case Red => 10
@@ -53,7 +52,7 @@ function Heat(c: Color): int
   case Blue => 14
 }
 
-function IceCream(c: Color): int
+ghost function IceCream(c: Color): int
 {
   match c {
     case Red => 0
@@ -62,7 +61,7 @@ function IceCream(c: Color): int
   }
 }
 
-function Flowers(c: Color, d: Color): int
+ghost function Flowers(c: Color, d: Color): int
 {
   match c {
     case Red =>
@@ -120,7 +119,7 @@ method P(c: Color, d: Color) {
 }
 
 lemma HeatIsEven(c: Color)
-  ensures Heat(c) % 2 == 0;
+  ensures Heat(c) % 2 == 0
 {
   match c
   case Red =>
@@ -132,7 +131,7 @@ lemma HeatIsEven(c: Color)
 }
 
 method DegenerateExamples(c: Color)
-  requires Heat(c) == 10;  // this implies c == Red
+  requires Heat(c) == 10  // this implies c == Red
 {
   match c
   case Red =>
@@ -143,7 +142,7 @@ method DegenerateExamples(c: Color)
 }
 
 method MoreDegenerateExamples(c: Color)
-  requires Heat(c) == 10;  // this implies c == Red
+  requires Heat(c) == 10  // this implies c == Red
 {
   if c == Green {
     var x: int := match c;

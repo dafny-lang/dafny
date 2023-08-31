@@ -19,7 +19,7 @@ class AmortizedQueue<T(0)> {
   ghost var Repr: set<object>
   ghost var List: seq<T>
 
-  predicate Valid()
+  ghost predicate Valid()
     reads this, Repr
     ensures Valid() ==> this in Repr
   {
@@ -91,7 +91,7 @@ class LinkedList<T(0)> {
   ghost var List: seq<T>
   ghost var Repr: set<LinkedList<T>>
 
-  predicate Valid()
+  ghost predicate Valid()
     reads this, Repr
     ensures Valid() ==> this in Repr
   {
@@ -134,7 +134,7 @@ class LinkedList<T(0)> {
   method Concat(end: LinkedList<T>) returns (r: LinkedList<T>)
     requires Valid() && end.Valid()
     ensures r.Valid() && r.List == List + end.List
-    decreases Repr;
+    decreases Repr
   {
     if (length == 0) {
       r := end;
@@ -161,7 +161,7 @@ class LinkedList<T(0)> {
     }
   }
 
-  static function ReverseSeq(s: seq<T>): seq<T>
+  static ghost function ReverseSeq(s: seq<T>): seq<T>
   {
     if s == [] then [] else
     ReverseSeq(s[1..]) + [s[0]]

@@ -1,88 +1,104 @@
 ﻿using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Language.Symbols;
 using Microsoft.Dafny.LanguageServer.Workspace;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Moq;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System;
+using System.Collections.Immutable;
+using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
+using DafnyCore.Test;
+using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 using Microsoft.Extensions.Logging;
+using OmniSharp.Extensions.LanguageServer.Protocol;
+using Xunit;
+using Xunit.Abstractions;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit {
-  [TestClass]
   public class TextDocumentLoaderTest {
+    private readonly TextWriter output;
+
+    private Mock<IFileSystem> fileSystem;
     private Mock<IDafnyParser> parser;
     private Mock<ISymbolResolver> symbolResolver;
-    private Mock<IProgramVerifier> verifier;
-    private VerifierOptions verifierOptions;
     private Mock<ISymbolTableFactory> symbolTableFactory;
     private Mock<IGhostStateDiagnosticCollector> ghostStateDiagnosticCollector;
-    private Mock<ICompilationStatusNotificationPublisher> notificationPublisher;
     private TextDocumentLoader textDocumentLoader;
-    private Mock<ILoggerFactory> logger;
-    private Mock<IDiagnosticPublisher> diagnosticPublisher;
+    private Mock<ILogger<ITextDocumentLoader>> logger;
 
-    [TestInitialize]
-    public void SetUp() {
+    public TextDocumentLoaderTest(ITestOutputHelper output) {
+      this.output = new WriterFromOutputHelper(output);
       parser = new();
       symbolResolver = new();
-      verifier = new();
-      verifierOptions = new();
       symbolTableFactory = new();
       ghostStateDiagnosticCollector = new();
-      notificationPublisher = new();
-      logger = new Mock<ILoggerFactory>();
-      diagnosticPublisher = new Mock<IDiagnosticPublisher>();
+      fileSystem = new();
+      logger = new Mock<ILogger<ITextDocumentLoader>>();
       textDocumentLoader = TextDocumentLoader.Create(
         parser.Object,
         symbolResolver.Object,
-        verifier.Object,
         symbolTableFactory.Object,
         ghostStateDiagnosticCollector.Object,
-        notificationPublisher.Object,
-        logger.Object,
-        diagnosticPublisher.Object,
-        verifierOptions
+        logger.Object
       );
     }
 
-    private static DocumentTextBuffer CreateTestDocument() {
-      return new DocumentTextBuffer(0) {
-        LanguageId = "dafny",
+    private static VersionedTextDocumentIdentifier CreateTestDocumentId() {
+      return new VersionedTextDocumentIdentifier() {
+        Uri = DocumentUri.Parse("untitled:untitled1"),
         Version = 1,
-        Text = ""
       };
     }
 
-    [TestMethod]
+    private static DocumentTextBuffer CreateTestDocument() {
+      return new DocumentTextBuffer(new TextDocumentItem() {
+        Uri = DocumentUri.Parse("untitled:untitled1"),
+        LanguageId = "dafny",
+        Version = 1,
+        Text = ""
+      });
+    }
+
+    [Fact]
     public async Task LoadReturnsCanceledTaskIfOperationIsCanceled() {
       var source = new CancellationTokenSource();
-      parser.Setup(p => p.Parse(It.IsAny<TextDocumentItem>(), It.IsAny<ErrorReporter>(), It.IsAny<CancellationToken>())).Callback(() => source.Cancel())
+      parser.Setup(p => p.Parse(
+          It.IsAny<Compilation>(),
+          It.IsAny<ErrorReporter>(),
+          It.IsAny<CancellationToken>())).Callback(() => source.Cancel())
         .Throws<TaskCanceledException>();
-      var task = textDocumentLoader.LoadAsync(CreateTestDocument(), source.Token);
+      var task = textDocumentLoader.ParseAsync(DafnyOptions.Default, GetCompilation(), ImmutableDictionary<Uri, DocumentVerificationTree>.Empty, source.Token);
       try {
         await task;
         Assert.Fail("document load was not cancelled");
       } catch (Exception e) {
-        Assert.IsInstanceOfType(e, typeof(OperationCanceledException));
-        Assert.IsTrue(task.IsCanceled);
-        Assert.IsFalse(task.IsFaulted);
+        Assert.IsType<TaskCanceledException>(e);
+        Assert.True(task.IsCanceled);
+        Assert.False(task.IsFaulted);
       }
     }
 
-    [TestMethod]
+    private static Compilation GetCompilation() {
+      var versionedTextDocumentIdentifier = CreateTestDocumentId();
+      var compilation = new Compilation(0, ProjectManagerDatabase.ImplicitProject(versionedTextDocumentIdentifier.Uri.ToUri()), new[] { versionedTextDocumentIdentifier.Uri.ToUri() });
+      return compilation;
+    }
+
+    [Fact]
     public async Task LoadReturnsFaultedTaskIfAnyExceptionOccured() {
-      parser.Setup(p => p.Parse(It.IsAny<TextDocumentItem>(), It.IsAny<ErrorReporter>(), It.IsAny<CancellationToken>()))
+      parser.Setup(p => p.Parse(It.IsAny<Compilation>(),
+          It.IsAny<ErrorReporter>(),
+          It.IsAny<CancellationToken>()))
         .Throws<InvalidOperationException>();
-      var task = textDocumentLoader.LoadAsync(CreateTestDocument(), default);
+      var task = textDocumentLoader.ParseAsync(DafnyOptions.Default, GetCompilation(), ImmutableDictionary<Uri, DocumentVerificationTree>.Empty, default);
       try {
         await task;
         Assert.Fail("document load did not fail");
       } catch (Exception e) {
-        Assert.IsNotInstanceOfType(e, typeof(OperationCanceledException));
-        Assert.IsFalse(task.IsCanceled);
-        Assert.IsTrue(task.IsFaulted);
+        Assert.IsType<InvalidOperationException>(e);
+        Assert.False(task.IsCanceled);
+        Assert.True(task.IsFaulted);
       }
     }
   }

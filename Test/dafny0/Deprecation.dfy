@@ -1,5 +1,4 @@
-// RUN: %dafny /compile:3 /dprint:"%t.dprint" "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachCompiler "%s" --refresh-exit-code=0 -- --relax-definite-assignment
 
 // This file contains tests for messags about various deprecated features.
 // As those features go away completely, so can the corresponding tests.
@@ -32,6 +31,3 @@ inductive lemma InductiveLemma()  // deprecation warning: "inductive lemma" has 
 colemma CoLemma()  // deprecation warning: "colemma" has been renamed to "greatest lemma"
 { }
 
-// ----------
-
-protected predicate ProtectedPredicate() { true }  // deprecation warning: "protected" is no longer supported

@@ -3,7 +3,7 @@
 # Termination
 
 Dafny proves that all programs terminate. There are two
-potential sources of non-terminating (divergent) behavior: loops, and recursive
+potential sources of non-terminating (divergent) behavior: loops and recursive
 functions and methods. Dafny employs a single technique for handling either
 case, *decreases annotations*.
 
@@ -23,25 +23,17 @@ natural lower bound, zero, and it is usually quite easy to prove that they
 decrease. Since many loops iterate through indices, these kinds of termination
 proofs are very common. For example, we may have the following loop:
 
-``` {.editonly}
+<!-- %check-verify -->
+```dafny
 method m(n: nat)
 {
-   var i := 0;
-   while i < n
-      invariant 0 <= i <= n
-   {
-      // do something interesting
-      i := i + 1;
-   }
-}
-```
-
-```
-while i < n
-   invariant 0 <= i <= n
-{
-   // do something interesting
-   i := i + 1;
+  var i := 0;
+  while i < n
+    invariant 0 <= i <= n
+  {
+    // do something interesting
+     i := i + 1;
+  }
 }
 ```
 
@@ -52,41 +44,34 @@ measure. Dafny sees that there is no explicit decreases annotation, so it tries
 to guess one. It sees that the loop condition is a comparison of the form `A < B`,
  for some `A` and `B`, so it makes the guess:
 
-```
-   decreases B - A
+<!-- %no-check -->
+```dafny
+  decreases B - A
 ```
 
 in this case:
 
-```
-   decreases n - i
+<!-- %no-check -->
+```dafny
+  decreases n - i
 ```
 
 If we add this annotation to the loop, it continues to
-verify. Dafny is actually a little less strict then requiring the termination
+verify. Dafny is actually a little less strict than requiring the termination
 measure to be bounded by zero. Really what it requires is that the loop does
 not execute again when the termination measure is negative. So we could write:
 
-``` {.editonly}
+<!-- %check-verify -->
+```dafny
 method m()
 {
-   var i, n := 0, 11;
-   while i < n
-      decreases n - i
-   {
-      // do something interesting
-      i := i + 5;
-   }
-}
-```
-
-```
-var i, n := 0, 11;
-while i < n
-   decreases n - i
-{
-   // do something interesting
-   i := i + 5;
+  var i, n := 0, 11;
+  while i < n
+    decreases n - i
+  {
+    // do something interesting
+    i := i + 5;
+  }
 }
 ```
 
@@ -99,13 +84,14 @@ Dafny proves the termination of the whole program, not just
 loops. To do this, it uses the same technique for recursive functions and methods.
 Dafny analyzes which functions/methods call each other, to figure out possible
 recursion. For each function/method that is possibly recursive, it requires
-either and explicit or implicit decreases annotation on the function or method.
+either an explicit or implicit decreases annotation on the function or method.
 Most recursive functions/methods are self-recursive:
 
-``` {.edit}
+<!-- %check-verify -->
+```dafny
 function fac(n: nat): nat
 {
-   if n == 0 then 1 else n * fac(n-1)
+  if n == 0 then 1 else n * fac(n-1)
 }
 ```
 
@@ -114,8 +100,9 @@ functions which are recursive, they just call themselves with smaller values of
 the parameters, so the parameters decreasing is the default guess. The
 decreases annotation can be made explicit by adding:
 
-```
-   decreases n
+<!-- %no-check -->
+```dafny
+  decreases n
 ```
 
 to the function declaration.
@@ -124,16 +111,17 @@ Sometimes it is beneficial to have loops which may not
 terminate, or where a proof of termination is unknown. For example, consider
 the following method:
 
-``` {.edit}
+<!-- %check-verify -->
+```dafny
 method hail(N: nat)
-   decreases *
+  decreases *
 {
-   var n := N;
-   while 1 < n
-      decreases *
-   {
-      n := if n % 2 == 0 then n / 2 else n * 3 + 1;
-   }
+  var n := N;
+  while 1 < n
+    decreases *
+  {
+    n := if n % 2 == 0 then n / 2 else n * 3 + 1;
+  }
 }
 ```
 
@@ -154,17 +142,18 @@ the other, so each set must be contained in the previous. With sets, the empty
 set is as small as you can go, and sequences have natural number lengths, so
 both of these come with lower bounds. Though not terribly useful, bools and
 references can also be used in decreases clauses. (See the reference if you
-want details.) The final termination measure is a tuple of the other kinds of
+want details.) The final kind of termination measure is a tuple of the other kinds of
 measures. For example, the following implementation of the Ackermann function
 uses a pair of integers to prove termination:
 
-``` {.edit}
+<!-- %check-verify -->
+```dafny
 function Ack(m: nat, n: nat): nat
-   decreases m, n
+  decreases m, n
 {
-   if m == 0 then n + 1
-   else if n == 0 then Ack(m - 1, 1)
-   else Ack(m - 1, Ack(m, n - 1))
+  if m == 0 then n + 1
+  else if n == 0 then Ack(m - 1, 1)
+  else Ack(m - 1, Ack(m, n - 1))
 }
 ```
 
@@ -176,9 +165,9 @@ different categories. The comparison works *lexicographically*.
 If the first element, in this case m, is smaller, than it doesn't matter what
 happens to the other values. They could increase, decrease, or stay the same.
 The second element is only considered if the first element doesn't change.
-Then, the second value needs to decrease. If it doesn't, then the third element
+If the first element does not change, the second value needs to decrease. If neither the first or second changes, then the third element
 must decrease, etc. Eventually, one of the elements must decrease. Past that
-point, and further elements are again free to increase or do whatever they
+point, any further elements are again free to increase or do whatever they
 like.
 
 In the `Ack`
@@ -194,16 +183,17 @@ Termination applies not just to single functions/methods,
 but also to multiple mutually recursive functions/methods. For example,
 consider this pair of recursively defined parity predicates:
 
-``` {.edit}
+<!-- %check-verify -->
+```dafny
 predicate even(n: nat)
-   ensures even(n) <==> n % 2 == 0
+  ensures even(n) <==> n % 2 == 0
 {
-   if n == 0 then true else odd(n-1)
+  if n == 0 then true else odd(n-1)
 }
 predicate odd(n: nat)
-   ensures odd(n) <==> n % 2 != 0
+  ensures odd(n) <==> n % 2 != 0
 {
-   if n == 0 then false else even(n-1)
+  if n == 0 then false else even(n-1)
 }
 ```
 

@@ -1,0 +1,9 @@
+git-issue-3273.dfy(7,12): Error: type parameter (Y) passed to type Iter must support equality (got K) (perhaps try declaring type parameter 'K' on line 6 as 'K(==)', which says it can only be instantiated with a type that supports equality)
+git-issue-3273.dfy(15,10): Error: type parameter (X) passed to type IterA must support equality (got K) (perhaps try declaring type parameter 'K' on line 14 as 'K(==)', which says it can only be instantiated with a type that supports equality)
+git-issue-3273.dfy(17,10): Error: type parameter (Y) passed to type IterB must support equality (got K) (perhaps try declaring type parameter 'K' on line 14 as 'K(==)', which says it can only be instantiated with a type that supports equality)
+git-issue-3273.dfy(20,10): Error: type parameter (X) passed to type IterA must support equality (got K) (perhaps try declaring type parameter 'K' on line 14 as 'K(==)', which says it can only be instantiated with a type that supports equality)
+git-issue-3273.dfy(22,10): Error: type parameter (Y) passed to type IterB must support equality (got K) (perhaps try declaring type parameter 'K' on line 14 as 'K(==)', which says it can only be instantiated with a type that supports equality)
+git-issue-3273.dfy(43,12): Error: type parameter (Y) passed to type EqIter must support equality (got Dt)
+git-issue-3273.dfy(46,14): Error: type parameter (Y) passed to type EqIter must support equality (got Dt)
+git-issue-3273.dfy(46,21): Error: set argument type must support equality (got Dt)
+8 resolution/type errors detected in git-issue-3273.dfy

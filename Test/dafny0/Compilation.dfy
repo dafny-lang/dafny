@@ -1,4 +1,5 @@
-// RUN: %dafny /compile:3 /autoTriggers:0 "%s" > "%t"
+// NONUNIFORM: /autoTriggers:0 not supported by new CLI
+// RUN: %dafny /compile:3 /deprecation:0 /autoTriggers:0 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // The tests in this file are designed to run through the compiler.  They contain
@@ -22,14 +23,14 @@ module OnceBuggy {
 module CoRecursion {
   codatatype Stream<T> = More(head: T, rest: Stream)
 
-  function method AscendingChain(n: int): Stream<int>
+  function AscendingChain(n: int): Stream<int>
   {
     More(n, AscendingChain(n+1))
   }
 
   datatype List<T> = Nil | Cons(car: T, cdr: List)
 
-  function method Prefix(n: nat, s: Stream): List
+  function Prefix(n: nat, s: Stream): List
   {
     if n == 0 then Nil else
     Cons(s.head, Prefix(n-1, s.rest))
@@ -151,7 +152,7 @@ abstract module A1 {
 
 module M {
   datatype fixed = A | B
-  function method F(): fixed
+  function F(): fixed
   {
     A
   }
@@ -193,11 +194,11 @@ ghost method {:axiom} m_nobody() returns (y:int)
 lemma {:axiom} l_nobody() returns (y:int)
   ensures y > 5;
 
-function {:axiom} f_nobody():int
+ghost function {:axiom} f_nobody():int
   ensures f_nobody() > 5;
 
 // Make sure the lemma created for opaque functions doesn't produce compiler errors
-function {:opaque} hidden():int
+ghost function {:opaque} hidden():int
 {
   7
 }
@@ -220,10 +221,10 @@ module GhostLetExpr {
     assert h == j;
   }
 
-  function F(): int
+  ghost function F(): int
   { 5 }
 
-  function method G(x: int, ghost y: int): int
+  function G(x: int, ghost y: int): int
   { assert y == y; x }
 
   datatype Dt = MyRecord(a: int, ghost b: int)
@@ -238,7 +239,7 @@ module GhostLetExpr {
     }
   }
 
-  function method FM(): int
+  function FM(): int
   {
     ghost var xyz := F();
     G(5, xyz)
@@ -332,7 +333,7 @@ method N()
 // -------------------------------------------------
 
 class DigitUnderscore_Names_Functions_and_Methods {
-  function 70(): int { 80 }
+  ghost function 70(): int { 80 }
   lemma 120()
     ensures this.70() == 80
   {
@@ -352,6 +353,7 @@ class DigitUnderscore_Names_Functions_and_Methods {
 
   constructor 20_0(x: int)
   {
+    new;
     var u := this.88;
     assert u == DigitUnderscore_Names_Functions_and_Methods.88;
   }
@@ -391,14 +393,14 @@ class DigitUnderscore_Names_Functions_and_Methods {
 // once buggy for method calls
 
 module TypeInstantiations {
-  function method F<G>(): int { 56 }
-  function method H<G>(g: G): int { 57 }
+  function F<G>(): int { 56 }
+  function H<G>(g: G): int { 57 }
   method M<G>() returns (r: int) { r := 100; }
   method N<G>(g: G) returns (r: int) { r := 101; }
 
   class GenCl<U> {
-    static function method Static<G>(): int { 58 }
-    function method Inst<G>(): int { 59 }
+    static function Static<G>(): int { 58 }
+    function Inst<G>(): int { 59 }
     static method Ms<G>() returns (r: int) { r := 102; }
     method Mi<G>() returns (r: int) { r := 103; }
   }

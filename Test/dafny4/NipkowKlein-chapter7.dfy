@@ -13,7 +13,7 @@ type val = int
 type state = map<vname, val>
 
 datatype aexp = N(n: int) | V(x: vname) | Plus(0: aexp, 1: aexp)  // arithmetic expressions
-function aval(a: aexp, s: state): val
+ghost function aval(a: aexp, s: state): val
 {
   match a
   case N(n) => n
@@ -22,7 +22,7 @@ function aval(a: aexp, s: state): val
 }
 
 datatype bexp = Bc(v: bool) | Not(op: bexp) | And(0: bexp, 1: bexp) | Less(a0: aexp, a1: aexp)
-function bval(b: bexp, s: state): bool
+ghost function bval(b: bexp, s: state): bool
 {
   match b
   case Bc(v) => v
@@ -79,7 +79,7 @@ lemma SemiAssociativity(c0: com, c1: com, c2: com, s: state, t: state)
 {
 }
 
-predicate equiv_c(c: com, c': com)
+ghost predicate equiv_c(c: com, c': com)
 {
   forall s,t :: big_step(c, s, t) == big_step(c', s, t)
 }
@@ -240,6 +240,7 @@ least lemma star_transitive_aux(c0: com, s0: state, c1: com, s1: state, c2: com,
   requires small_step_star(c0, s0, c1, s1)
   ensures small_step_star(c1, s1, c2, s2) ==> small_step_star(c0, s0, c2, s2)
 {
+  if small_step_star(c1, s1, c2, s2) {}
 }
 
 // The big-step semantics can be simulated by some number of small steps
@@ -356,7 +357,7 @@ lemma BigStep_SmallStepStar_Same(c: com, s: state, t: state)
   }
 }
 
-predicate final(c: com, s: state)
+ghost predicate final(c: com, s: state)
 {
   !exists c',s' :: small_step(c, s, c', s')
 }

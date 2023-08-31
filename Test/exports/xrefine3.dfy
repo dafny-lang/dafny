@@ -1,5 +1,4 @@
-// RUN: %dafny /compile:3 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment
 
 
 module AlphaImpl {
@@ -9,12 +8,12 @@ module AlphaImpl {
 
     type Alpha(00) = bool
 
-    predicate IsValid(a:Alpha) {
+    ghost predicate IsValid(a:Alpha) {
         a
     }
 
     method Init() returns (a:Alpha)
-        ensures IsValid(a);
+        ensures IsValid(a)
     {
         a := true;
     }
@@ -30,7 +29,7 @@ module BetaImpl {
     import A = AlphaImpl
     type Beta = seq<ASpec.Alpha>
 
-    predicate IsValid(b:Beta) {
+    ghost predicate IsValid(b:Beta) {
         forall i :: 0 <= i < |b| ==> A.IsValid(b[i])
     }
 

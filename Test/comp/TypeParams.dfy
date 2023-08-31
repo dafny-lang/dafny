@@ -1,8 +1,6 @@
-// RUN: %dafny /compile:3 /spillTargetCode:2 /compileTarget:cs "%s" > "%t"
-// RUN: %dafny /compile:3 /spillTargetCode:2 /compileTarget:js "%s" >> "%t"
-// RUN: %dafny /compile:3 /spillTargetCode:2 /compileTarget:go "%s" >> "%t"
-// RUN: %dafny /compile:3 /spillTargetCode:2 /compileTarget:java "%s" >> "%t"
-// RUN: %diff "%s.expect" "%t"
+// NONUNIFORM: https://github.com/dafny-lang/dafny/issues/4119
+// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment --spill-translation
+
 
 datatype Color = Orange | Pink | Teal
 type Six = x | x <= 6
@@ -123,7 +121,7 @@ class WClass<W> {
     k0 := Generate(w);
     k1 := Generate(w);
   }
-  static function method Generate(w: W): Stream<W> {
+  static function Generate(w: W): Stream<W> {
     Next(w, Generate(w))
   }
 }
@@ -152,10 +150,10 @@ type AlwaysNothing = xs: IList<()> | xs != INil witness FauxEvva(())
 datatype NonemptyList<G> = Atom(G) | NCons(G, NonemptyList<G>)
 codatatype NonemptyCoList<G> = CoAtom(G) | CoNCons(G, NonemptyList<G>)
 
-function method FauxEvva<G>(g: G): IList<G> {
+function FauxEvva<G>(g: G): IList<G> {
   ICons(g, FauxEvva(g))
 }
-function method FullStreamAhead<G>(g: G): Stream<G> {
+function FullStreamAhead<G>(g: G): Stream<G> {
   Next(g, FullStreamAhead(g))
 }
 

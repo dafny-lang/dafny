@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %exits-with 2 %dafny /compile:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module Misc {
@@ -28,7 +28,7 @@ module Misc {
   }
 
   method SB(b: array2<int>, s: int) returns (x: int, y: int)
-    requires b != null;
+    requires b != null
   {
     while
     {
@@ -39,9 +39,9 @@ module Misc {
   // -------- name resolution
 
   class Global {
-    var X: int;
-    function method F(x: int): int { x }
-    static function method G(x: int): int { x }
+    var X: int
+    function F(x: int): int { x }
+    static ghost function G(x: int): int { x }
     method M(x: int) returns (r: int)
     {
       r := x + X;
@@ -78,10 +78,10 @@ module Misc {
   datatype Xyz = Alberta | Benny | Constantine(y: int) | David(x: int)
   datatype Rst = David(x: int, y: int)
 
-  function Tuv(arg0: Abc, arg1: bool): int { 10 }
+  ghost function Tuv(arg0: Abc, arg1: bool): int { 10 }
 
   class EE {
-    var Eleanor: bool;
+    var Eleanor: bool
     method TestNameResolution1() {
       var a0 := Abel;
       var a1 := Alberta;
@@ -133,13 +133,13 @@ module HereAreMoreGhostTests {
       dd := GhostDt.Cons(g, dt, 2);  // error: cannot pass 'g' as non-ghost parameter
       ghost var dtg := GhostDt.Cons(g, dt, 2);  // fine, since result is ghost
     }
-    function F(x: int, y: int): int {
+    ghost function F(x: int, y: int): int {
       y
     }
-    function method G(x: int, ghost y: int): int {
+    function G(x: int, ghost y: int): int {
       y  // error: cannot return a ghost from a non-ghost function
     }
-    function method H(dt: GhostDt): int {
+    function H(dt: GhostDt): int {
       match dt
       case Nil(gg) =>  gg  // error: cannot return a ghost from a non-ghost function
       case Cons(dd, tt, gg) =>  dd + gg  // error: ditto
@@ -158,8 +158,8 @@ module HereAreMoreGhostTests {
       var n := 0;
       ghost var k := 0;
       while (true)
-        invariant n <= 112;
-        decreases 112 - n;
+        invariant n <= 112
+        decreases 112 - n
       {
         label MyStructure: {
           if (k % 17 == 0) { break MyStructure; }  // this is fine, because it's a ghost method
@@ -186,8 +186,8 @@ module HereAreMoreGhostTests {
       ghost var k := 0;
       var p := 0;
       while (true)
-        invariant n <= 112;
-        decreases 112 - n;
+        invariant n <= 112
+        decreases 112 - n
       {
         label MyStructure: {
           k := k + 1;
@@ -237,8 +237,8 @@ module HereAreMoreGhostTests {
       ghost var k := 0;
       var p := 0;
       while (true)
-        invariant n <= 112;
-        decreases 112 - n;
+        invariant n <= 112
+        decreases 112 - n
       {
         label MyStructure: {
           if (k % 17 == 0) { break MyStructure; }  // error: break from ghost to non-ghost point
@@ -314,29 +314,18 @@ module MiscMore {
   }
 
   // --------------- constructors -------------------------------------
+  // Note, more tests in module ClassConstructorTests below
 
   class ClassWithConstructor {
-    var y: int;
+    var y: int
     method NotTheOne() { }
     constructor InitA() { }
-    constructor InitB() modifies this; { y := 20; }  // error: don't use "this" in modifies of constructor
-  }
-
-  class ClassWithoutConstructor {
-    method Init() modifies this; { }
+    constructor InitB() modifies this { y := 20; }  // error: don't use "this" in modifies of constructor
   }
 
   method ConstructorTests()
   {
-    var o := new object;  // fine: does not have any constructors
-
-    o := new ClassWithoutConstructor;  // fine: don't need to call anything particular method
-    o := new ClassWithoutConstructor.Init();  // this is also fine
-
-    var c := new ClassWithConstructor.InitA();
-    c := new ClassWithConstructor;  // error: must call a constructor
-    c := new ClassWithConstructor.NotTheOne();  // error: must call a constructor, not an arbitrary method
-    c := new ClassWithConstructor.InitB();
+    var c := new ClassWithConstructor.InitB();
     c.InitB();  // error: not allowed to call constructors except during allocation
   }
 
@@ -373,11 +362,11 @@ module GhostPrintAttempts {
 // ------------------- auto-added type arguments ------------------------------
 
 module MiscEvenMore {
-  class GenericClass<T> { var data: T; }
+  class GenericClass<T> { var data: T }
 
   method MG0(a: GenericClass, b: GenericClass)
-    requires a != null && b != null;
-    modifies a;
+    requires a != null && b != null
+    modifies a
   {
     a.data := b.data;  // allowed, since both a and b get the same auto type argument
   }
@@ -435,18 +424,18 @@ module MiscEvenMore {
 
 module MyOwnModule {
   class SideEffectChecks {
-    ghost var ycalc: int;
+    ghost var ycalc: int
 
     ghost method Mod(a: int)
-      modifies this;
-      ensures ycalc == a;
+      modifies this
+      ensures ycalc == a
     {
       ycalc := a;
     }
 
     ghost method Bad()
-      modifies this;
-      ensures 0 == 1;
+      modifies this
+      ensures 0 == 1
     {
       var x: int;
       calc {
@@ -471,7 +460,7 @@ module MyOwnModule {
 
 module MiscAgain {
   class Y {
-    var data: int;
+    var data: int
     constructor (x: int)
     {
       data := x;
@@ -482,16 +471,14 @@ module MiscAgain {
     method Test() {
       var i := new Y(5);
       i := new Y(7);
-      i := new Y;  // error: the class has a constructor, so one must be used
+
       var s := new Luci.Init(5);
       s := new Luci.FromArray(null);
       s := new Luci(false);
       s := new Luci(true);
-      s := new Luci.M();  // error: there is a constructor, so one must be called
-      s := new Luci;  // error: there is a constructor, so one must be called
+
       var l := new Lamb;
       l := new Lamb();  // error: there is no default constructor
-      l := new Lamb.Gwen();
     }
   }
 
@@ -551,21 +538,21 @@ module NoTypeArgs0 {
     ys := xs;  // error: List<B> cannot be assign to a List<A>
   }
 
-  function FTree0(t: Tree): Tree
+  ghost function FTree0(t: Tree): Tree
   {
     match t
     case Leaf(_,_) => t
     case Node(x, y) => x
   }
 
-  function FTree1(t: Tree): Tree
+  ghost function FTree1(t: Tree): Tree
   {
     match t
     case Leaf(_,_) => t
     case Node(x, y) => y  // error: y does not have the right type
   }
 
-  function FTree2<A,B,C>(t: Tree): Tree<A,B>
+  ghost function FTree2<A,B,C>(t: Tree): Tree<A,B>
   {
     t
   }
@@ -574,7 +561,7 @@ module NoTypeArgs0 {
 module NoTypeArgs1 {
   datatype Tree<A,B> = Leaf(A, B) | Node(Tree, Tree<B,A>)
 
-  function FTree3<T>(t: Tree): Tree<T,T>  // error: type of 't' does not have enough type parameters
+  ghost function FTree3<T>(t: Tree): Tree<T,T>  // error: type of 't' does not have enough type parameters
   {
     t
   }
@@ -597,7 +584,7 @@ module MiscMisc {
 // ------------ quantified variables whose types are not inferred ----------
 
 module NonInferredType {
-  predicate P<T>(x: T)
+  ghost predicate P<T>(x: T)
 
   method InferredType(x: int)
   {
@@ -620,7 +607,7 @@ module GhostAllocationTests {
   iterator GIter() { }
   class H { constructor () }
   lemma GhostNew0()
-    ensures exists o: G :: fresh(o);
+    ensures exists o: G :: fresh(o)
   {
     var p := new G;  // error: lemma context is not allowed to allocate state
     p := new G;  // error: ditto
@@ -698,9 +685,9 @@ module MiscLemma {
 
   // a lemma is allowed to have out-parameters, but not a modifies clause
   lemma MyLemma(x: int, l: L) returns (y: int)
-    requires 0 <= x;
-    modifies l;
-    ensures 0 <= y;
+    requires 0 <= x
+    modifies l
+    ensures 0 <= y
   {
     y := x;
   }
@@ -711,7 +698,7 @@ module MiscLemma {
 module StatementsInExpressions {
   class MyClass {
     ghost method SideEffect()
-      modifies this;
+      modifies this
     {
     }
 
@@ -719,7 +706,7 @@ module StatementsInExpressions {
     {
     }
 
-    function F(): int
+    ghost function F(): int
     {
       calc {
         6;
@@ -748,8 +735,8 @@ module StatementsInExpressions {
       5
     }
 
-    var MyField: int;
-    ghost var MyGhostField: int;
+    var MyField: int
+    ghost var MyGhostField: int
 
     method N()
     {
@@ -789,7 +776,7 @@ module StmtExprOutParams {
 
   lemma OutParamLemma() returns (y: int)
 
-  function UseLemma(): int
+  ghost function UseLemma(): int
   {
     MyLemma();
     OutParamLemma(); // error: has out-parameters
@@ -807,10 +794,10 @@ module GhostLetExpr {
     assert h == j;
   }
 
-  function F(): int
+  ghost function F(): int
   { 5 }
 
-  function method G(x: int, ghost y: int): int
+  function G(x: int, ghost y: int): int
   {
     assert y == x;
     y  // error: not allowed in non-ghost context
@@ -828,7 +815,7 @@ module GhostLetExpr {
     }
   }
 
-  function method FM(e: bool): int
+  function FM(e: bool): int
   {
     if e then
       G(5, F())
@@ -845,7 +832,7 @@ module ObjectType {
   class MyClass { }
 
   method M<G>(zz: array<B>, j: int, b: B, co: CoDt, g: G) returns (o: object)
-    requires zz != null && 0 <= j < zz.Length;
+    requires zz != null && 0 <= j < zz.Length
   {
     o := b;  // error
     o := 17;  // error
@@ -864,30 +851,30 @@ module ObjectType {
 
 module MiscModify {
   class ModifyStatementClass {
-    var x: int;
-    ghost var g: int;
+    var x: int
+    ghost var g: int
     method M()
     {
       modify x;  // error: type error
     }
     ghost method G0()
-      modifies `g;
-      modifies `x;  // error: non-ghost field mentioned in ghost context
+      modifies `g
+      modifies `x  // error: non-ghost field mentioned in ghost context
   }
 }
 
 module ModifyStatementClass_More {
   class C {
-    var x: int;
-    ghost var g: int;
+    var x: int
+    ghost var g: int
     ghost method G0()
-      modifies `g;
+      modifies `g
     {
       modify `g;
       modify `x;  // error: non-ghost field mentioned in ghost context
     }
     method G1()
-      modifies this;
+      modifies this
     {
       modify `x;
       if g < 100 {
@@ -896,13 +883,13 @@ module ModifyStatementClass_More {
       }
     }
     method G2(y: nat)
-      modifies this;
+      modifies this
     {
       if g < 100 {
         // we're now in a ghost context
         var n := 0;
         while n < y
-          modifies `x;  // error: non-ghost field mentioned in ghost context
+          modifies `x  // error: non-ghost field mentioned in ghost context
         {
           if * {
             g := g + 1;  // if we got as far as verification, this would be flagged as an error too
@@ -913,7 +900,7 @@ module ModifyStatementClass_More {
       modify `x;  // fine
       ghost var i := 0;
       while i < y
-        modifies `x;  // error: non-ghost field mentioned in ghost context
+        modifies `x  // error: non-ghost field mentioned in ghost context
       {
         i := i + 1;
       }
@@ -951,7 +938,7 @@ module LhsLvalue {
 // ------------------- dirty loops -------------------
 module MiscEtc {
   method DirtyM(S: set<int>) {
-    forall s | s in S ensures s < 0;
+    forall s | s in S ensures s < 0
     assert s < 0; // error: s is unresolved
   }
 
@@ -1009,7 +996,7 @@ module MiscEtc {
 
 module TypeArgumentCount {
   class C<T> {
-    var f: T;
+    var f: T
   }
 
   method R0(a: array3, c: C)
@@ -1054,7 +1041,7 @@ module CycleErrors3 {
   type A = (B, D<bool>)
   type B = C
   class C {
-    var a: A;  // this is fine
+    var a: A  // this is fine
   }
   datatype D<X> = Make(A, B, C)  // error: cannot construct a D<X>
 }
@@ -1092,7 +1079,7 @@ module MiscIterator {
 module {:myAttribute x} Modulette {  // error: x does not refer to anything
 }
 
-// --- opaque types with type parameters ---
+// --- abstract types with type parameters ---
 
 module OpaqueTypes0 {
   type P<AA>
@@ -1153,16 +1140,16 @@ module MiscTrait {
 
 // ----- set comprehensions where the term type is finite -----
 
-module ObjectSetComprehensions {
+module ObjectSetComprehensionsNever {
   // the following set comprehensions are known to be finite
-  function A() : set<object> { set o : object | true :: o }  // error: a function is not allowed to depend on the allocated state
-
-  function method B() : set<object> { set o : object | true :: o }  // error: a function is not allowed to depend on the allocated state
-
+  ghost function A() : set<object> { set o : object | true :: o }  // error: a function is not allowed to depend on the allocated state
+  function B() : set<object> { set o : object | true :: o }  // error: a function is not allowed to depend on the allocated state
+}
+module ObjectSetComprehensionsSometimes {
   // outside functions, the comprehension is permitted, but it cannot be compiled
   lemma C() { var x; x := set o : object | true :: o; }
 
-  method D() { var x; x := set o : object | true :: o; }  // error: not (easily) compilable
+  method D() { var x; x := set o : object | true :: o; }  // error: not (easily) compilable, so this is allowed only in ghost contexts
 }
 
 // ------ regression test for type checking of integer division -----
@@ -1181,10 +1168,10 @@ module MiscTests {
   }
 
   method NonTermination_B()
-    decreases *;
+    decreases *
   {
     while true
-      decreases *;
+      decreases *
     {
     }
   }
@@ -1192,19 +1179,19 @@ module MiscTests {
   method NonTermination_C()
   {
     while true
-      decreases *;  // error: to use an infinite loop, the enclosing method must be marked 'decreases *'
+      decreases *  // error: to use an infinite loop, the enclosing method must be marked 'decreases *'
     {
     }
   }
 
   method NonTermination_D()
-    decreases *;
+    decreases *
   {
     var n := 0;
     while n < 100  // note, no 'decreases *' here, even if the nested loop may fail to terminate
     {
       while *
-        decreases *;
+        decreases *
       {
       }
       n := n + 1;
@@ -1216,14 +1203,14 @@ module MiscTests {
 
 module NonInferredTypeVariables {
   class C<CT> {
-    var f: CT;
+    var f: CT
   }
 
-  predicate method P<PT>(x: int)
+  predicate P<PT>(x: int)
   {
     x < 100
   }
-  function Q<QT>(x: int): QT
+  ghost function Q<QT>(x: int): QT
   {
     var qt :| true; qt
   }
@@ -1301,10 +1288,10 @@ module SignatureCompletion {
   method My2<A,B>(s: set, x: A -> B)
   method My3<A,B>(x: A -> B, s: set)
 
-  function F0<A,B>(s: set, x: A -> B): int
-  function F1<A,B>(x: A -> B, s: set): int
-  function F2<A,B>(s: set, x: A -> B): int
-  function F3<A,B>(x: A -> B, s: set): int
+  ghost function F0<A,B>(s: set, x: A -> B): int
+  ghost function F1<A,B>(x: A -> B, s: set): int
+  ghost function F2<A,B>(s: set, x: A -> B): int
+  ghost function F3<A,B>(x: A -> B, s: set): int
 }
 
 // -------------- more fields as frame targets --------------------
@@ -1361,12 +1348,12 @@ module FrameTargetFields_More {
 module AmbiguousModuleReference {
   module A {
     module Inner {
-      predicate Q()
+      ghost predicate Q()
     }
   }
   module B {
     module Inner {
-      predicate Q()
+      ghost predicate Q()
     }
   }
   module OpenClient {
@@ -1432,7 +1419,7 @@ module SuchThat {
     x :| x;  // error: constraint should be boolean
     var y :| 4;  // error: constraint should be boolean
   }
-  function F(): int {
+  ghost function F(): int {
     var w :| 6 + 8;  // error: constraint should be boolean
     w
   }
@@ -1457,13 +1444,13 @@ module GhostTests {
   }
 
   ghost method GhostNew4(g: G)
-    modifies g;
+    modifies g
   {
   }
 
   class MyClass {
     ghost method SideEffect()
-      modifies this;
+      modifies this
     {
     }
 
@@ -1472,7 +1459,7 @@ module GhostTests {
     }
 
     ghost method M()
-      modifies this;
+      modifies this
     {
       calc {
         5;
@@ -1480,7 +1467,7 @@ module GhostTests {
         5;
       }
     }
-    function F(): int
+    ghost function F(): int
     {
       calc {
         6;
@@ -1512,8 +1499,8 @@ module GhostTests {
       }
       5
     }
-    var MyField: int;
-    ghost var MyGhostField: int;
+    var MyField: int
+    ghost var MyGhostField: int
     method N()
     {
       var y :=
@@ -1553,7 +1540,7 @@ module CallsInStmtExpr {
   class MyClass {
     lemma MyLemma()
     ghost method MyEffectlessGhostMethod()
-    function UseLemma(): int
+    ghost function UseLemma(): int
     {
       MyEffectlessGhostMethod(); // error: cannot call ghost methods (only lemmas) from this context
       MyLemma();
@@ -1564,7 +1551,7 @@ module CallsInStmtExpr {
 
 module EvenMoreGhostTests {
   ghost method NiceTry()
-    ensures false;
+    ensures false
   {
     while (true)
       decreases *  // error:  not allowed here
@@ -1726,7 +1713,7 @@ module LoopResolutionTests {
 }
 
 module UnderspecifiedTypesInAttributes {
-  function method P<T>(x: T): int
+  function P<T>(x: T): int
   method M() {
     var {:myattr var u :| true; 6} v: int;  // error: type of u is underspecified
     var j {:myattr var u :| true; 6} :| 0 <= j < 100;  // error: type of u is underspecified
@@ -1805,23 +1792,23 @@ module PrefixGeneratorDuplicates {
 // ------------------- unary TLA+ style predicates -------------------
 
 module TLAplusOperators {
-  function BadA(y: int): int  // error: body has wrong return type
+  ghost function BadA(y: int): int  // error: body has wrong return type
   {
     && 5 + y  // error: using operator "&&" requires the operand to be boolean
   }
-  function BadB(y: int): bool
+  ghost function BadB(y: int): bool
   {
     && 5 + y  // error: using operator "&&" requires the operand to be boolean
   }
-  function BadC(y: int): int  // error: body has wrong return type
+  ghost function BadC(y: int): int  // error: body has wrong return type
   {
     || 5 + y  // error: using operator "||" requires the operand to be boolean
   }
-  function BadD(y: int): bool
+  ghost function BadD(y: int): bool
   {
     || 5 + y  // error: using operator "||" requires the operand to be boolean
   }
-  function BadE(y: int): int  // error: body has wrong return type
+  ghost function BadE(y: int): int  // error: body has wrong return type
   {
     && (|| 5 + y)  // error: bad types
   }
@@ -1850,11 +1837,11 @@ module DividedConstructors {
       Helper();  // error: not allowed to call instance method
       var mc := new MyClass();
       StaticHelper(mc);
-      this.StaticHelper(mc);  // "this" is benign here
+      this.StaticHelper(mc);  // error: "this" is benign here; yet, it seems consistent to disallow it
       StaticHelper(this);  // error: cannot use "this" here
       P(a);  // error: cannot use "this" here
       P(g);
-      P(this.g);  // "this" is benign here
+      P(this.g);  // error: "this" is benign here; yet, it seems consistent to disallow it
       modify this;  // error: cannot use "this" here
       modify this`c;  // error: cannot use "this" here
       modify `c;  // error: cannot use (implicit) "this" here
@@ -2121,7 +2108,7 @@ module GhostWitness {
     | true
     ghost witness (GhostEffectlessArrowWitness<A,B>)
 
-  function GhostEffectlessArrowWitness<A,B>(a: A): B
+  ghost function GhostEffectlessArrowWitness<A,B>(a: A): B
   {
     var b: B :| true; b
   }
@@ -2171,10 +2158,10 @@ module BigOrdinalRestrictions {  // also see BigOrdinalRestrictionsExtremePred b
       arr[0] := 0;
     }
   }
-  function F<G>(g: G): int
-  function F'<G>(): int
+  ghost function F<G>(g: G): int
+  ghost function F'<G>(): int
   method ParameterizedMethod<G>(g: G)
-  predicate P(g: ORDINAL)
+  ghost predicate P(g: ORDINAL)
 }
 
 module IteratorDuplicateParameterNames {
@@ -2337,8 +2324,8 @@ module ConstGhostRhs {
 }
 
 module Regression15 {
-  predicate method F(i: int, j: int) { true }
-  function method S(i: int): set<int> { {i} }
+  predicate F(i: int, j: int) { true }
+  function S(i: int): set<int> { {i} }
   method M0() returns (b: bool) {
     b := forall i, j | j <= i <= 100 && i <= j < 100 :: true;  // error: this bogus cyclic dependency was once allowed
   }
@@ -2347,17 +2334,24 @@ module Regression15 {
   }
 }
 
-module AllocDepend0 {
+module AllocDepend0a {
   class Class {
-    const z := if {} == set c: Class | true then 5 else 4  // error (x2): condition depends on alloc; not compilable
+    const z := if {} == set c: Class | true then 5 else 4  // error: condition depends on alloc (also not compilable, but that's not reported in the same pass)
   }
-  const y := if {} == set c: Class | true then 5 else 4  // error (x2): condition depends on alloc; not compilable
+  const y := if {} == set c: Class | true then 5 else 4  // error: condition depends on alloc (also not compilable, but that's not reported in the same pass)
   newtype byte = x | x < 5 || {} == set c: Class | true  // error: condition not allowed to depend on alloc
   type small = x | x < 5 || {} == set c: Class | true  // error: condition not allowed to depend on alloc
 }
+module AllocDepend0b {
+  class Class { }
+  method M() returns (y: int, z: int) {
+    z := if {} == set c: Class | true then 5 else 4; // error: not compilable
+    y := if {} == set c: Class | true then 5 else 4; // error: not compilable
+  }
+}
 module AllocDepend1 {
   class Class { }
-  predicate method P(x: int) {
+  predicate P(x: int) {
     x < 5 || {} == set c: Class | true  // error: function not allowed to depend on alloc
   }
 }
@@ -2372,7 +2366,7 @@ module AllocDepend2 {
 }
 module AllocDepend3 {
   class Klass { }
-  predicate method P(x: int) {
+  predicate P(x: int) {
     x < 5 || exists k: Klass :: allocated(k)  // error: function not allowed to depend on alloc
   }
 }
@@ -2387,7 +2381,7 @@ module AllocDepend4 {
 }
 module AllocDepend5 {
   class Xlass { }
-  predicate method P(x: int) {
+  predicate P(x: int) {
     x < 5 || var k: Xlass? := null; allocated(k)  // error: function not allowed to depend on alloc
   }
 }
@@ -2395,60 +2389,60 @@ module AllocDepend5 {
 module AbstemiousCompliance {
   codatatype EnormousTree<X> = Node(left: EnormousTree, val: X, right: EnormousTree)
 
-  function {:abstemious} Five(): int {
+  ghost function {:abstemious} Five(): int {
     5  // error: an abstemious function must return with a co-constructor
   }
 
-  function {:abstemious} Id(t: EnormousTree): EnormousTree
+  ghost function {:abstemious} Id(t: EnormousTree): EnormousTree
   {
     t  // to be abstemious, a parameter is as good as a co-constructor
   }
 
-  function {:abstemious} IdGood(t: EnormousTree): EnormousTree
+  ghost function {:abstemious} IdGood(t: EnormousTree): EnormousTree
   {
     match t
     case Node(l, x, r) => Node(l, x, r)
   }
 
-  function {:abstemious} AlsoGood(t: EnormousTree): EnormousTree
+  ghost function {:abstemious} AlsoGood(t: EnormousTree): EnormousTree
   {
     Node(t.left, t.val, t.right)
   }
 
-  function {:abstemious} UniformTree<X>(x: X): EnormousTree<X>
+  ghost function {:abstemious} UniformTree<X>(x: X): EnormousTree<X>
   {
     Node(UniformTree(x), x, UniformTree(x))
   }
 
-  function {:abstemious} AlternatingTree<X>(x: X, y: X): EnormousTree<X>
+  ghost function {:abstemious} AlternatingTree<X>(x: X, y: X): EnormousTree<X>
   {
     Node(AlternatingTree(y, x), x, AlternatingTree(y, x))
   }
 
-  function {:abstemious} AnotherAlternatingTree<X>(x: X, y: X): EnormousTree<X>
+  ghost function {:abstemious} AnotherAlternatingTree<X>(x: X, y: X): EnormousTree<X>
   {
     var t := Node(AlternatingTree(x, y), y, AlternatingTree(x, y));
     Node(t, x, t)
   }
 
-  function {:abstemious} NonObvious<X>(x: X): EnormousTree<X>
+  ghost function {:abstemious} NonObvious<X>(x: X): EnormousTree<X>
   {
     AlternatingTree(x, x)  // error: does not return with a co-constructor
   }
 
-  function {:abstemious} BadDestruct(t: EnormousTree): EnormousTree
+  ghost function {:abstemious} BadDestruct(t: EnormousTree): EnormousTree
   {
     Node(t.left, t.val, t.right.right)  // error: cannot destruct t.right
   }
 
-  function {:abstemious} BadMatch(t: EnormousTree): EnormousTree
+  ghost function {:abstemious} BadMatch(t: EnormousTree): EnormousTree
   {
     match t.right  // error: cannot destruct t.right
     case Node(a, x, b) =>
       Node(a, x, b)
   }
 
-  function {:abstemious} BadEquality(t: EnormousTree, u: EnormousTree, v: EnormousTree): EnormousTree
+  ghost function {:abstemious} BadEquality(t: EnormousTree, u: EnormousTree, v: EnormousTree): EnormousTree
   {
     if t == u then  // error: cannot co-compare
       Node(t.left, t.val, t.right)
@@ -2458,12 +2452,12 @@ module AbstemiousCompliance {
       Node(v.left, v.val, v.right)
   }
 
-  function {:abstemious} Select(b: bool, t: EnormousTree, u: EnormousTree): EnormousTree
+  ghost function {:abstemious} Select(b: bool, t: EnormousTree, u: EnormousTree): EnormousTree
   {
     if b then t else u  // abstemious yes: parameters are as good as a co-constructors
   }
 
-  function {:abstemious} Select'(b: bool, t: EnormousTree, u: EnormousTree): EnormousTree
+  ghost function {:abstemious} Select'(b: bool, t: EnormousTree, u: EnormousTree): EnormousTree
   {
     if b then
       Node(t.left, t.val, t.right)  // fine, too
@@ -2515,10 +2509,10 @@ module BigOrdinalRestrictionsExtremePred {
     }
     true
   }
-  function F<G>(g: G): int
-  function F'<G>(): int
+  ghost function F<G>(g: G): int
+  ghost function F'<G>(): int
   lemma ParameterizedLemma<G>(g: G)
-  predicate P(g: ORDINAL)
+  ghost predicate P(g: ORDINAL)
 }
 
 // ----- label domination -----
@@ -2752,8 +2746,8 @@ module ExistsImpliesWarning {
 
 module GhostReceiverTests {
   class C {
-    function F(x: int): int { 3 }
-    function method G(x: int): int { 4 }
+    ghost function F(x: int): int { 3 }
+    function G(x: int): int { 4 }
     lemma L(x: int) { }
     method M(x: int) { }
   }
@@ -2792,17 +2786,17 @@ module GhostReceiverTests {
 
 module GhostRhsConst {
   class C {
-    function F(n: nat): nat { n }  // a ghost function
-
-    const b := F(0);  // error: RHS uses a ghost function
-    static const u := F(0);  // error: RHS uses a ghost function
+    ghost function F(n: nat): nat { n }  // a ghost function
+    static ghost function G(n: nat): nat { n }  // a ghost function
+    const b := F(0)  // error: RHS uses a ghost function
+    static const u := G(0)  // error: RHS uses a ghost function
   }
 
   trait R {
-    function F(n: nat): nat { n }  // a ghost function
-
-    const b := F(0);  // error: RHS uses a ghost function
-    static const u := F(0);  // error: RHS uses a ghost function
+    ghost function F(n: nat): nat { n }  // a ghost function
+    static ghost function G(n: nat): nat { n }  // a ghost function
+    const b := F(0)  // error: RHS uses a ghost function
+    static const u := G(0)  // error: RHS uses a ghost function
   }
 }
 
@@ -2915,7 +2909,7 @@ module MapDisjointnessNoMore {
 
 module ExpectStatements {
 
-  function UnsafeDivide(a: int, b: int): int {
+  ghost function UnsafeDivide(a: int, b: int): int {
     expect b != 0;  // expect statement is not allowed in this context
     a / b
   }
@@ -2931,12 +2925,12 @@ module ExpectStatements {
 
 module TypeParameterScopes {
   class C<X> {
-    function method G(): X
+    function G(): X
     method M<X>(f: X) {
       var h: X := f;
       var k: X := G();  // error: this is the wrong X
     }
-    function method F<X>(f: X): int {
+    function F<X>(f: X): int {
       var h: X := f;
       var k: X := G();  // error: this is the wrong X
       10
@@ -2947,7 +2941,7 @@ module TypeParameterScopes {
 // --------------- type of function members (regression tests) ------------------------------
 
 module TypeOfFunctionMember {
-  function Fo<X>(x: X): int
+  ghost function Fo<X>(x: X): int
 
   lemma M() {
     // Both of the following once crashed the type checker
@@ -2993,9 +2987,9 @@ module MoreAutoInitAndNonempty {
   method P<G(00)>(g: G)
   method R<H>(h: H)
 
-  function method FQ<F(0)>(f: F): int
-  function method FP<G(00)>(g: G): int
-  function method FR<H>(h: H): int
+  function FQ<F(0)>(f: F): int
+  function FP<G(00)>(g: G): int
+  function FR<H>(h: H): int
 
   method M<X(0), Y(00), Z>(x: X, y: Y, z: Z)
   {
@@ -3027,8 +3021,8 @@ module MoreAutoInitAndNonempty {
 // --------------- ghost function error messages ------------------------------
 
 module GhostFunctionErrorMessages {
-  function GhostFunction(): int
-  predicate GhostPredicate()
+  ghost function GhostFunction(): int
+  ghost predicate GhostPredicate()
   least predicate LeastPredicate()
   greatest predicate GreatestPredicate()
   twostate function TwoFunction(): int
@@ -3046,9 +3040,9 @@ module GhostFunctionErrorMessages {
 }
 
 module TypeParameterCount {
-  function F0(): int
-  function F1<A>(): int
-  function F2<A, B>(): int
+  ghost function F0(): int
+  ghost function F1<A>(): int
+  ghost function F2<A, B>(): int
   method M0()
   method M1<A>()
   method M2<A, B>()
@@ -3106,10 +3100,10 @@ module AutoGhostRegressions {
 }
 
 module TypeCharacteristicsInGhostCode {
-  function method MustBeNonempty<T(00)>(): int { 5 }
-  function method MustBeAutoInit<T(0)>(): int { 5 }
-  function method MustSupportEquality<T(==)>(): int { 5 }
-  function method NoReferences<T(!new)>(): int { 5 }
+  function MustBeNonempty<T(00)>(): int { 5 }
+  function MustBeAutoInit<T(0)>(): int { 5 }
+  function MustSupportEquality<T(==)>(): int { 5 }
+  function NoReferences<T(!new)>(): int { 5 }
 
   type PossiblyEmpty = x: int | true witness *
   type Nonempty = x: int | true ghost witness 0
@@ -3179,9 +3173,9 @@ module TypeCharacteristicsInGhostCode {
     w := NoReferences<Good>();
   }
 
-  function method FF(a: bool, ghost b: bool): int { 5 }
+  function FF(a: bool, ghost b: bool): int { 5 }
   method MM(a: bool, ghost b: bool) { }
-  function method GetInt<T(==)>(): int { 2 }
+  function GetInt<T(==)>(): int { 2 }
   method GhostContexts<T>(x: T, y: T) {
     var r;
     r := FF(x == y, true);  // error: T must support equality
@@ -3309,7 +3303,7 @@ module MoreAutoGhostTests {
     var d :| d == m;  // error: LHS is not inferred to be ghost for :|
   }
 
-  function method LetSuchThat(ghost m: int): int {
+  function LetSuchThat(ghost m: int): int {
     var d :| d == m;  // error: LHS is not inferred to be ghost for :|
     0
   }
@@ -3321,10 +3315,10 @@ module RelaxedAutoInitChecking {
   // Similarly, in a ghost context, there's no difference between (0) and (00). Therefore, a
   // formal parameter that expects (0) can take either a (0) or a (00) in a ghost context.
 
-  function method MustBeNonempty<T(00)>(): int { 5 }
-  function method MustBeAutoInit<T(0)>(): int { 5 }
-  function method MustSupportEquality<T(==)>(): int { 5 }
-  function method NoReferences<T(!new)>(): int { 5 }
+  function MustBeNonempty<T(00)>(): int { 5 }
+  function MustBeAutoInit<T(0)>(): int { 5 }
+  function MustSupportEquality<T(==)>(): int { 5 }
+  function NoReferences<T(!new)>(): int { 5 }
 
   type PossiblyEmpty = x: int | true witness *
   type Nonempty = x: int | true ghost witness 0
@@ -3392,9 +3386,9 @@ module RelaxedAutoInitChecking {
 // --------------- let-such-that ghost regressions ------------------------------
 
 module LetSuchThatGhost {
-  predicate True<T>(t: T) { true }
+  ghost predicate True<T>(t: T) { true }
 
-  function method F<T>(s: set<T>): int
+  function F<T>(s: set<T>): int
     requires s != {}
   {
     // once, the RHS for p was (bogusly) considered ghost, which made p ghost,
@@ -3405,7 +3399,7 @@ module LetSuchThatGhost {
     if p then 6 else 8
   }
 
-  function method G<T>(s: set<T>): int
+  function G<T>(s: set<T>): int
     requires s != {}
   {
     // again, e and p are both non-ghost
@@ -3415,7 +3409,7 @@ module LetSuchThatGhost {
     if p then 6 else 8
   }
 
-  function method H<T>(s: set<T>): int
+  function H<T>(s: set<T>): int
     requires s != {}
   {
     // here, e is ghost, but p is still not
@@ -3425,7 +3419,7 @@ module LetSuchThatGhost {
     if p then 6 else 8
   }
 
-  function method I<T>(s: set<T>): int
+  function I<T>(s: set<T>): int
     requires s != {}
   {
     // here, e is ghost, and therefore so is p
@@ -3440,7 +3434,7 @@ module LetSuchThatGhost {
 
 module HintRestrictionsOtherLoops {
   class C {
-    function F(): int
+    ghost function F(): int
     {
       calc {
         6;
@@ -3591,7 +3585,7 @@ module FrameTypes {
   {
   }
 
-  predicate ReadsArgumentType0(
+  ghost predicate ReadsArgumentType0(
     o: object,
     s: set<object>, ss: iset<object>,
     q: seq<object>,
@@ -3610,7 +3604,7 @@ module FrameTypes {
     true
   }
 
-  predicate ReadsArgumentType1(x: int, s: set<bool>, ss: iset<bv8>, q: seq<int>)
+  ghost predicate ReadsArgumentType1(x: int, s: set<bool>, ss: iset<bv8>, q: seq<int>)
     reads x // error: wrong argument type for reads
     reads s // error: wrong argument type for reads
     reads ss // error: wrong argument type for reads
@@ -3619,7 +3613,7 @@ module FrameTypes {
     true
   }
 
-  predicate ReadsArgumentType2(
+  ghost predicate ReadsArgumentType2(
     f: int -> int,
     g: int -> object, h: int -> set<object>, i: int -> iset<object>, j: int -> seq<object>, k: set<object> -> int,
     l: bool -> multiset<object>, m: bool -> map<object, object>)
@@ -3846,5 +3840,135 @@ module LabelRegressions {
         break Loop;
         continue Loop;
       }
+  }
+}
+
+// --------------- regressions: using "this" in places where there is no enclosing class/type ------------------------------
+
+module UseOfThis {
+  // The following uses of "this." once caused the resolver to crash.
+
+  type {:badUseOfThis this.K} OpaqueType { // error: cannot use "this" here
+    const K: int
+  }
+
+  newtype {:badUseOfThis this.x} Newtype = // error: cannot use "this" here
+    x: int | this.u // error: cannot use "this" here
+    witness this.u // error: cannot use "this" here
+  {
+    const K: int
+  }
+
+  type {:badUseOfThis this.x} SynonymType = int // error: cannot use "this" here
+
+  type {:badUseOfThis this.x} SubsetType = // error: cannot use "this" here
+    x: int | this.u // error: cannot use "this" here
+    witness this.u // error: cannot use "this" here
+
+  trait {:badUseOfThis this.K} MyTrait { // error: cannot use "this" here
+    const K: int
+  }
+
+  class {:badUseOfThis this.M} MyClass { // error: cannot use "this" here
+    const M: int
+
+    var {:goodUseOfThis this.M} I: int
+    const {:goodUseOfThis this.M} J := 3
+    method {:goodUseOfThis this.M} CM()
+      ensures {:goodUseOfThis this.M} true
+    ghost function {:goodUseOfThis this.M} CF(): int
+      ensures {:goodUseOfThis this.M} true
+
+    static const {:badUseOfThis this.M} L := 3 // error: cannot use "this" here
+    static const N := this.M // error: cannot use "this" here
+    static method {:badUseOfThis this.M} SM() // error: cannot use "this" here
+      ensures {:badUseOfThis this.M} true // error: cannot use "this" here
+    static ghost function {:badUseOfThis this.M} SF(): int // error: cannot use "this" here
+      ensures {:badUseOfThis this.M} true // error: cannot use "this" here
+  }
+
+  datatype Datatype =
+    | {:badUseOfThis this.K} DatatypeCtor // error: cannot use "this" here
+  {
+    const K: int
+  }
+}
+
+module AutoInitTypeCheckRegression {
+  codatatype AutoStream<G(0)> = AutoNext(head: G, tail: AutoStream<G>)
+
+  function In<G>(a: AutoStream<G>): int // error: the argument to AutoStream is supposed to be an auto-init type
+  function Out<G>(g: G): AutoStream<G> // error: the argument to AutoStream is supposed to be an auto-init type
+
+  method M<G>(a: AutoStream<G>) // error: the argument to AutoStream is supposed to be an auto-init type
+  method N<G>(g: G) returns (a: AutoStream<G>) // error: the argument to AutoStream is supposed to be an auto-init type
+}
+
+module ClassConstructorTests {
+  class ClassWithConstructor {
+    var y: int
+    method NotTheOne() { }
+    constructor InitA() { }
+    constructor InitB() { y := 20; }
+  }
+
+  class ClassWithoutConstructor {
+    method Init() modifies this { }
+  }
+
+  method ConstructorTests()
+  {
+    var o := new object;  // fine: does not have any constructors
+
+    o := new ClassWithoutConstructor;  // fine: don't need to call any particular method
+    o := new ClassWithoutConstructor.Init();  // this is also fine
+
+    var c := new ClassWithConstructor.InitA();
+    c := new ClassWithConstructor;  // error: must call a constructor
+    c := new ClassWithConstructor.NotTheOne();  // error: must call a constructor, not an arbitrary method
+    c := new ClassWithConstructor.InitB();
+  }
+
+  class Y {
+    var data: int
+    constructor (x: int)
+    {
+      data := x;
+    }
+    method Test() {
+      var i := new Y(5);
+      i := new Y(7);
+      i := new Y;  // error: the class has a constructor, so one must be used
+      var s := new Luci.Init(5);
+      s := new Luci.FromArray(null);
+      s := new Luci(false);
+      s := new Luci(true);
+      s := new Luci.M();  // error: there is a constructor, so one must be called
+      s := new Luci;  // error: there is a constructor, so one must be called
+      var l := new Lamb; // fine, since there are no constructors (only methods)
+      l := new Lamb.Gwen();
+    }
+  }
+
+  class Luci {
+    constructor Init(y: int) { }
+    constructor (nameless: bool) { }
+    constructor FromArray(a: array<int>) { }
+    method M() { }
+  }
+
+  class Lamb {
+    method Jess() { }
+    method Gwen() { }
+  }
+}
+
+module DefaultValues {
+  method Test() {
+    var r := 3 + MyFunction(7);
+  }
+
+  function MyFunction(n: int, acc: int := n * false): int { // note, badly type default-value expression
+    20
   }
 }

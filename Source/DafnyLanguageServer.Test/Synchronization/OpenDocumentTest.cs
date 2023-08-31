@@ -1,80 +1,75 @@
+using System;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
 using Microsoft.Dafny.LanguageServer.Workspace;
-using Microsoft.Extensions.Configuration;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using OmniSharp.Extensions.LanguageServer.Protocol.Client;
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.IO;
-using System.Threading;
+using Xunit.Abstractions;
+using Xunit;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
 
-  [TestClass]
-  public class OpenDocumentTest : DafnyLanguageServerTestBase {
+  public class OpenDocumentTest : DafnyLanguageServerTestBase, IAsyncLifetime {
     private ILanguageClient client;
-    private IDictionary<string, string> configuration;
 
-    [TestInitialize]
-    public Task SetUp() => SetUp(null);
-
-    public async Task SetUp(IDictionary<string, string> configuration) {
-      this.configuration = configuration;
-      client = await InitializeClient();
+    public async Task InitializeAsync() {
+      await SetUp(null);
     }
 
-    protected override IConfiguration CreateConfiguration() {
-      return configuration == null
-        ? base.CreateConfiguration()
-        : new ConfigurationBuilder().AddInMemoryCollection(configuration).Build();
+    public Task DisposeAsync() {
+      return Task.CompletedTask;
     }
 
-    [TestMethod]
+    private async Task SetUp(Action<DafnyOptions> modifyOptions) {
+      (client, Server) = await Initialize(_ => { }, modifyOptions);
+    }
+
+    [Fact]
     public async Task CorrectDocumentCanBeParsedResolvedAndVerifiedWithoutErrors() {
       var source = @"
 function GetConstant(): int {
   1
 }".Trim();
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "CorrectDocumentCanBeParsedResolvedAndVerifiedWithoutErrors.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var document = await Documents.GetDocumentAsync(documentItem.Uri);
-      Assert.IsNotNull(document);
-      Assert.AreEqual(0, document.Diagnostics.Count());
+      var state = await Projects.GetResolvedDocumentAsyncNormalizeUri(documentItem.Uri);
+      Assert.NotNull(state);
+      Assert.Empty(state.GetAllDiagnostics());
     }
 
-    [TestMethod]
+    [Fact]
     public async Task ParseErrorsOfDocumentAreCaptured() {
       var source = @"
 function GetConstant() int {
   1
 }".Trim();
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "ParseErrorsOfDocumentAreCaptured.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var document = await Documents.GetDocumentAsync(documentItem.Uri);
-      Assert.IsNotNull(document);
-      Assert.AreEqual(1, document.Diagnostics.Count());
-      var message = document.Diagnostics.ElementAt(0);
-      Assert.AreEqual(MessageSource.Parser.ToString(), message.Source);
+      var document = await Projects.GetResolvedDocumentAsyncNormalizeUri(documentItem.Uri);
+      Assert.NotNull(document);
+      Assert.Single(document.GetDiagnosticUris());
+      var message = document.GetDiagnosticsForUri(documentItem.Uri.ToUri()).ElementAt(0);
+      Assert.Equal(MessageSource.Parser.ToString(), message.Source);
     }
 
-    [TestMethod]
+    [Fact]
     public async Task SemanticErrorsOfDocumentAreCaptured() {
       var source = @"
 function GetConstant(): int {
   ""1""
 }".Trim();
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "SemanticErrorsOfDocumentAreCaptured.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var document = await Documents.GetDocumentAsync(documentItem.Uri);
-      Assert.IsNotNull(document);
-      Assert.AreEqual(1, document.Diagnostics.Count());
-      var message = document.Diagnostics.ElementAt(0);
-      Assert.AreEqual(MessageSource.Resolver.ToString(), message.Source);
+      var document = await Projects.GetResolvedDocumentAsyncNormalizeUri(documentItem.Uri);
+      Assert.NotNull(document);
+      Assert.Single(document.GetDiagnosticUris());
+      var message = document.GetDiagnosticsForUri(documentItem.Uri.ToUri()).ElementAt(0);
+      Assert.Equal(MessageSource.Resolver.ToString(), message.Source);
     }
 
-    [TestMethod]
+    [Fact]
     public async Task VerificationErrorsOfDocumentAreCaptured() {
       var source = @"
 method Recurse(x: int) returns (r: int) {
@@ -84,16 +79,17 @@ method Recurse(x: int) returns (r: int) {
         r := Recurse(x - 1);
     }
 }".Trim();
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "VerificationErrorsOfDocumentAreCaptured.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var document = await Documents.GetLastDocumentAsync(documentItem.Uri);
-      Assert.IsNotNull(document);
-      Assert.AreEqual(1, document.Diagnostics.Count(d => d.Severity == DiagnosticSeverity.Error));
-      var message = document.Diagnostics.First(d => d.Severity!.Value == DiagnosticSeverity.Error);
-      Assert.AreEqual(MessageSource.Verifier.ToString(), message.Source);
+      var document = await Projects.GetLastDocumentAsync(documentItem.Uri);
+      Assert.NotNull(document);
+      var dafnyDiagnostics = document.GetDiagnostics(documentItem.Uri.ToUri()).ToList();
+      Assert.Equal(1, dafnyDiagnostics.Count(d => d.Level == ErrorLevel.Error));
+      var message = dafnyDiagnostics.First(d => d.Level == ErrorLevel.Error);
+      Assert.Equal(MessageSource.Verifier, message.Source);
     }
 
-    [TestMethod]
+    [Fact]
     public async Task VerificationErrorsOfDocumentAreNotCapturedIfAutoVerificationIsNotOnChange() {
 
       var source = @"
@@ -104,45 +100,46 @@ method Recurse(x: int) returns (r: int) {
         r := Recurse(x - 1);
     }
 }".Trim();
-      await SetUp(new Dictionary<string, string>() {
-        { $"{DocumentOptions.Section}:{nameof(DocumentOptions.Verify)}", nameof(AutoVerification.Never) }
-      });
-      var documentItem = CreateTestDocument(source);
+      await SetUp(options => options.Set(ServerCommand.Verification, VerifyOnMode.Never));
+      var documentItem = CreateTestDocument(source, "VerificationErrorsOfDocumentAreNotCapturedIfAutoVerificationIsNotOnChange.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var document = await Documents.GetDocumentAsync(documentItem.Uri);
-      Assert.IsNotNull(document);
-      Assert.IsTrue(!document.Diagnostics.Any(d => d.Severity == DiagnosticSeverity.Error));
+      var document = await Projects.GetResolvedDocumentAsyncNormalizeUri(documentItem.Uri);
+      Assert.NotNull(document);
+      Assert.True(document.GetDiagnosticsForUri(documentItem.Uri.ToUri()).All(d => d.Severity != DiagnosticSeverity.Error));
     }
 
-    [TestMethod]
+    [Fact]
     public async Task EmptyDocumentCanBeOpened() {
       var source = "";
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "EmptyDocumentCanBeOpened.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var document = await Documents.GetDocumentAsync(documentItem.Uri);
-      Assert.IsNotNull(document);
+      var document = await Projects.GetResolvedDocumentAsyncNormalizeUri(documentItem.Uri);
+      Assert.NotNull(document);
       // Empty files currently yield only a warning.
-      Assert.IsTrue(document.Diagnostics.All(d => d.Severity != DiagnosticSeverity.Error));
+      Assert.True(document.GetDiagnosticsForUri(documentItem.Uri.ToUri()).All(d => d.Severity != DiagnosticSeverity.Error));
     }
 
-    [TestMethod]
+    [Fact]
     public async Task DocumentWithNoValidTokensCanBeOpened() {
       var source = "";
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "DocumentWithNoValidTokensCanBeOpened.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var document = await Documents.GetDocumentAsync(documentItem.Uri);
-      Assert.IsNotNull(document);
-      Assert.IsTrue(document.Diagnostics.All(d => d.Severity != DiagnosticSeverity.Error));
+      var document = await Projects.GetResolvedDocumentAsyncNormalizeUri(documentItem.Uri);
+      Assert.NotNull(document);
+      Assert.True(document.GetDiagnosticsForUri(documentItem.Uri.ToUri()).All(d => d.Severity != DiagnosticSeverity.Error));
     }
 
-    [TestMethod]
+    [Fact]
     public async Task EmptyDocumentCanBeIncluded() {
       var source = "include \"empty.dfy\"";
       var documentItem = CreateTestDocument(source, Path.Combine(Directory.GetCurrentDirectory(), "Synchronization/TestFiles/test.dfy"));
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var document = await Documents.GetDocumentAsync(documentItem.Uri);
-      Assert.IsNotNull(document);
-      Assert.IsTrue(!document.Diagnostics.Any());
+      var document = await Projects.GetResolvedDocumentAsyncNormalizeUri(documentItem.Uri);
+      Assert.NotNull(document);
+      Assert.DoesNotContain(documentItem.Uri.ToUri(), document.GetDiagnosticUris());
+    }
+
+    public OpenDocumentTest(ITestOutputHelper output) : base(output) {
     }
   }
 }

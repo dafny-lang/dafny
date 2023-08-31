@@ -17,6 +17,7 @@
 
 # Java output
 **/*-java
+**/*.jar
 
 # C++ output
 **/*.h
@@ -25,7 +26,10 @@
 **/*.exe
 
 # Python output
-**/*.py
+**/*-py
+
+# Rust output
+**/*-rust
 
 node_modules/
 package-lock.json
@@ -35,3 +39,4 @@ server/model.bvd
 git-issues/git-issue-622$f/**
 comp/compile1verbose/CompileAndThenRun
 comp/compile1quiet/CompileRunQuietly
+docexamples
