@@ -67,7 +67,7 @@ abstract class Flow {
       return false;
     }
     if (context.DebugPrint) {
-      context.OutputWriter.WriteLine($"DEBUG: updating {previousLhs} to {AdjustableType.ToStringAsBottom(sink)} ({joinArguments})");
+      context.OutputWriter.WriteLine($"DEBUG: adjusting {previousLhs} to {AdjustableType.ToStringAsBottom(sink)} ({joinArguments})");
     }
     return true;
   }
@@ -384,7 +384,7 @@ abstract class FlowIntoExpr : Flow {
   public override void DebugPrint(TextWriter output) {
     if (sink is AdjustableType adjustableType) {
       var sourceType = GetSourceType();
-      var bound = PreTypeConstraints.Pad($"{adjustableType.UniqueId} :> {AdjustableType.ToStringAsAdjustableType(sourceType)}", 27);
+      var bound = PreTypeConstraints.Pad($"{AdjustableType.ToStringAsAdjustableType(adjustableType)} :> {AdjustableType.ToStringAsAdjustableType(sourceType)}", 27);
       var value = PreTypeConstraints.Pad(AdjustableType.ToStringAsBottom(adjustableType), 20);
       output.WriteLine($"    {bound}  {value}    {TokDescription()}");
     }
