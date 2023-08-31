@@ -61,7 +61,7 @@ namespace IntegrationTests {
 
       DefaultBoogieArguments =
         File.ReadAllLines(RepositoryRoot + "Test/boogie-args.cfg")
-          .Select(arg => "-" + arg.Replace("{ROOT}", RepositoryRoot))
+          .Append("/proverOpt:PROVER_PATH:" + RepositoryRoot + $"../unzippedRelease/dafny/z3/bin/z3-{DafnyOptions.DefaultZ3Version}")
           .ToArray();
 
       var commands = new Dictionary<string, Func<IEnumerable<string>, LitTestConfiguration, ILitCommand>> {
