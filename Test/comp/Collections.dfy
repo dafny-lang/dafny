@@ -482,9 +482,13 @@ method TestNullsAmongValues() {
 
 method TestMapMultiOccurrences() {
   var a := map[1 := 1, 1 := 2];
+  assert |a| == 1;
+  // The semantics are the last value wins
+  assert a[1] == 2;
   print "Map multiple occurrences test", "\n";
   print "  length: ", |a|, "\n";
   print "  self-equal: ", a == a, "\n";
+  print "  select: ", a[1], "\n";
 }
 
 // -------------------------------------------------------------------------------------------
