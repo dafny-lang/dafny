@@ -529,7 +529,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(wellformednessProc || m.Body != null);
       Contract.Requires(currentModule == null && codeContext == null && _tmpIEs.Count == 0 && isAllocContext == null);
       Contract.Ensures(currentModule == null && codeContext == null && _tmpIEs.Count == 0 && isAllocContext == null);
-      (AlcorTacticProofChecker.Env, ImmutableList<Tactic>) assumptions = EmptyAssumptions();
+      AlcorAssumptions assumptions = EmptyAssumptions();
       currentModule = m.EnclosingClass.EnclosingModuleDefinition;
       codeContext = m;
       isAllocContext = new IsAllocContext(options, m.IsGhost);
@@ -668,20 +668,15 @@ namespace Microsoft.Dafny {
         // While translating the body, try to find immediate proofs
         // translate the body
         foreach (var r in m.Req) {
-          var label = 
-            assumptions.Item1.FreshVar(ToDafnyString(r.Label?.Name ?? "h"));
           var alcorExpression = etran.TrExprAlcor(r.E);
           if (alcorExpression == null) {
             alcorExpression = new AlcorProofKernel.Expr_Var(AlcorProofKernel.__default.FreshIdentifier(
               new AlcorProofKernel.Identifier(ToDafnyString("NOT SUPPORTED"),
                 BigInteger.Zero, ToDafnyString("")),
-                assumptions.Item1.FreeIdentifiers()));
+                assumptions.Environment.FreeIdentifiers()));
           }
 
-          assumptions = (
-              new AlcorTacticProofChecker.Env_EnvCons(
-                label, alcorExpression, assumptions.Item1),
-              ImmutableList<Tactic>.Empty);
+          assumptions = assumptions.WithAssumedExpr(alcorExpression, r.Label?.Name);
         }
         
         TrStmt(m.Body, builder, localVariables, etran, ref assumptions);

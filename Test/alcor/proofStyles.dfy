@@ -22,11 +22,12 @@ lemma Declarative1Tactic4Proof()
 {
   forall a, b ensures ((a ==> b) && a) ==> (b && a) {
     reveal
-      imp_elim(env),
+      intro(env),
       cases(env, hAB, hA),
-      cases(),              // Goal b && a is split
+      cases(),                    // Goal b && a is split
       imp_elim(hAB, hA),          // Solve the goal b
-      hA;                         // Solves the goal a
+      intro(b),
+      recall(hA);                 // Solves the goal a
   }
 }
 
@@ -35,12 +36,13 @@ lemma Declarative2Tactic3Proof()
   ensures forall a, b :: (a ==> b) && a ==> (b && a)
 {
   forall a, b ensures ((a ==> b) && a) ==> (b && a) {
-    if env: ((a ==> b) && a) {
-      reveal
+    if ((a ==> b) && a) {
+        rename(h, env),
         cases(env, hAB, hA),
         cases(),                    // Goal b && a is split
         imp_elim(hAB, hA),          // Solve the goal b
-        hA;                         // Solves the goal a
+        intro(hB),
+        recall(hA);                 // Solves the goal a
       assert b && a;                // The ensures of the if
     }
   }
@@ -52,13 +54,13 @@ lemma Declarative3Tactic2Proof()
 {
   forall a, b ensures ((a ==> b) && a) ==> (b && a) {
     if env: ((a ==> b) && a) {
-      reveal cases(env, hAB, hA);
-      assert b by {
-        reveal imp_elim(hAB, hA);
-      }
-      assert a by {
-        reveal hA;
-      }
+      reveal rename(h, env),
+             cases(env, hAB, hA);
+      reveal imp_elim(hAB, hA);
+      assert b;
+      reveal cases(h, hAB, hA),
+             recall(hA);
+      assert a;
       assert b && a;
     }
   }

@@ -5,6 +5,7 @@ using System.Diagnostics.Contracts;
 using System.Linq;
 using Alcor;
 using AlcorProofKernel;
+using AlcorTacticProofChecker;
 using Microsoft.Boogie;
 using Bpl = Microsoft.Boogie;
 using BplParser = Microsoft.Boogie.Parser;
@@ -14,7 +15,7 @@ using PODesc = Microsoft.Dafny.ProofObligationDescription;
 namespace Microsoft.Dafny {
   public partial class Translator {
     private void TrStmt(Statement stmt, BoogieStmtListBuilder builder, List<Variable> locals,
-      ExpressionTranslator etran, ref (AlcorTacticProofChecker.Env, ImmutableList<Tactic>) assumptions) {
+      ExpressionTranslator etran, ref AlcorAssumptions assumptions) {
       Contract.Requires(stmt != null);
       Contract.Requires(builder != null);
       Contract.Requires(locals != null);
@@ -44,7 +45,7 @@ namespace Microsoft.Dafny {
 
         var dummyAssumptions = EmptyAssumptions();
         TrStmtList(s.ResolvedStatements, builder, locals, etran, ref dummyAssumptions);
-        assumptions = (assumptions.Item1, assumptions.Item2.AddRange(s.Tactics));
+        assumptions = assumptions.WithTactics(s.Tactics);
 
       } else if (stmt is BreakStmt) {
         var s = (BreakStmt)stmt;
@@ -309,7 +310,7 @@ namespace Microsoft.Dafny {
         RemoveDefiniteAssignmentTrackers(s.Body, prevDefiniteAssignmentTrackerCount);
 
       } else if (stmt is IfStmt ifStmt) {
-        TrIfStmt(ifStmt, builder, locals, etran);
+        TrIfStmt(ifStmt, builder, locals, etran, ref assumptions);
 
       } else if (stmt is AlternativeStmt) {
         AddComment(builder, stmt, "alternative statement");
@@ -518,11 +519,11 @@ namespace Microsoft.Dafny {
       }
     }
 
-    private string FromDafnyString(global::Dafny.ISequence<global::Dafny.Rune> runes) {
+    private static string FromDafnyString(global::Dafny.ISequence<global::Dafny.Rune> runes) {
       return string.Join("", runes.Select(rune => rune.ToString()));
     }
 
-    private global::Dafny.ISequence<global::Dafny.Rune> ToDafnyString(string runes) {
+    private static global::Dafny.ISequence<global::Dafny.Rune> ToDafnyString(string runes) {
       return global::Dafny.Sequence<global::Dafny.Rune>.UnicodeFromString(runes);
     }
 
@@ -534,7 +535,7 @@ namespace Microsoft.Dafny {
     }
 
     private void TrPredicateStmt(PredicateStmt stmt, BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran,
-      ref (AlcorTacticProofChecker.Env, ImmutableList<Tactic>) assumptions) {
+      ref AlcorAssumptions assumptions) {
       Contract.Requires(stmt != null);
       Contract.Requires(builder != null);
       Contract.Requires(locals != null);
@@ -558,14 +559,25 @@ namespace Microsoft.Dafny {
         var provenByAlcor = false;
         var msg = "";
         if (assertStmt != null) {
+          var proofAssumptions = assumptions; // proof assumptions won't make it to the top
+          if (assertStmt.Proof != null) {
+            proofBuilder = new BoogieStmtListBuilder(this, options);
+            AddComment(proofBuilder, stmt, "assert statement proof");
+            CurrentIdGenerator.Push();
+            TrStmt(((AssertStmt)stmt).Proof, proofBuilder, locals, etran, ref proofAssumptions);
+            CurrentIdGenerator.Pop();
+          } else if (assertStmt.Label != null) {
+            proofBuilder = new BoogieStmtListBuilder(this, options);
+            AddComment(proofBuilder, stmt, "assert statement proof");
+          }
           var alcorExpression = etran.TrExprAlcor(stmt.Expr);
           if (alcorExpression != null) {
-            if (assumptions.Item2.Any()) {
+            if (proofAssumptions.Tactics.Any()) {
               // We execute the tactics that were provided by the user
-              var tacticMode = new AlcorTacticProofChecker.TacticMode();
-              tacticMode.__ctor(alcorExpression, assumptions.Item1);
+              var tacticMode = new TacticMode();
+              tacticMode.__ctor(alcorExpression, proofAssumptions.Environment);
               var currentState = FromDafnyString(tacticMode.proofState._ToString());
-              foreach (var tactic in assumptions.Item2) {
+              foreach (var tactic in proofAssumptions.Tactics) {
                 reporter.Info(MessageSource.Verifier, tactic.Token, currentState);
                 if (tactic is Intro {Name: var name}) {
                   tacticMode.Intro(ToDafnyString(name ?? ""));
@@ -595,14 +607,14 @@ namespace Microsoft.Dafny {
                   tacticMode.proofState.dtor_sequents.is_SequentNil) {
                 // Success !
                 provenByAlcor = true;
-                msg = "The tactics above correctly produced this result";
+                msg = "Proved by the tactics";
               }
             }
 
             if (!provenByAlcor) { // Automatic attempt
               // Attempt to prove it using Alcor. If so, we emit an assumption in Boogie
               var result = Alcor.__default.DummyProofFinder(
-                new AlcorProofKernel.Expr_Imp(assumptions.Item1.ToExpr(),
+                new AlcorProofKernel.Expr_Imp(proofAssumptions.Environment.ToExpr(),
                   alcorExpression));
               provenByAlcor = result.is_Success;
               if (provenByAlcor) {
@@ -626,21 +638,7 @@ namespace Microsoft.Dafny {
               reporter.Info(MessageSource.Verifier, assertStmt.tok, msg);
             }
             // And then we assume it with either a fresh "h" label or a user-provided label
-            var label = 
-              assumptions.Item1.FreshVar(ToDafnyString(assertStmt.Label?.Name ?? "h"));
-            assumptions =
-              (new AlcorTacticProofChecker.Env_EnvCons(
-                label, alcorExpression, assumptions.Item1), ImmutableList<Tactic>.Empty);
-          }
-          if (assertStmt.Proof != null) {
-            proofBuilder = new BoogieStmtListBuilder(this, options);
-            AddComment(proofBuilder, stmt, "assert statement proof");
-            CurrentIdGenerator.Push();
-            TrStmt(((AssertStmt)stmt).Proof, proofBuilder, locals, etran, ref assumptions);
-            CurrentIdGenerator.Pop();
-          } else if (assertStmt.Label != null) {
-            proofBuilder = new BoogieStmtListBuilder(this, options);
-            AddComment(proofBuilder, stmt, "assert statement proof");
+            assumptions = assumptions.WithAssertedExpr(alcorExpression, assertStmt.Label?.Name);
           }
         }
 
@@ -1070,19 +1068,43 @@ namespace Microsoft.Dafny {
       this.fuelContext = FuelSetting.PopFuelContext();
     }
 
-    private void TrIfStmt(IfStmt stmt, BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran) {
+    private void TrIfStmt(IfStmt stmt, BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran,
+        ref AlcorAssumptions assumptions
+      ) {
       Contract.Requires(stmt != null);
       Contract.Requires(builder != null);
       Contract.Requires(locals != null);
       Contract.Requires(etran != null);
-      var assumptions = EmptyAssumptions();// TODO: Import existing assumptions
       AddComment(builder, stmt, "if statement");
       Expression guard;
+      var thenAssumptions = assumptions;
+      var elseAssumptions = assumptions;
       if (stmt.Guard == null) {
         guard = null;
       } else {
         guard = stmt.IsBindingGuard ? AlphaRename((ExistsExpr)stmt.Guard, "eg$") : stmt.Guard;
         TrStmt_CheckWellformed(guard, builder, locals, etran, true);
+        var alcorGuard = etran.TrExprAlcor(guard);
+        if (alcorGuard != null) {
+          thenAssumptions = thenAssumptions.WithEnv(alcorGuard);
+          elseAssumptions = elseAssumptions.WithEnv(AlcorProofKernel.Expr.Not(alcorGuard));
+          if (stmt.Thn.Body.LastOrDefault() is AssertStmt assertStmt) {
+            var alcorThen = etran.TrExprAlcor(assertStmt.Expr);
+            if (alcorThen != null) {
+              assumptions = assumptions.WithEnv(new AlcorProofKernel.Expr_Imp(
+                alcorGuard, alcorThen
+                ));
+            }
+          }
+          if (stmt.Els is BlockStmt block && block.Body.LastOrDefault() is AssertStmt assertStmt2) {
+            var alcorElse = etran.TrExprAlcor(assertStmt2.Expr);
+            if (alcorElse != null) {
+              assumptions = assumptions.WithEnv(new AlcorProofKernel.Expr_Imp(
+                AlcorProofKernel.Expr.Not(alcorGuard), alcorElse
+              ));
+            }
+          }
+        }
       }
       BoogieStmtListBuilder b = new BoogieStmtListBuilder(this, options);
       if (stmt.IsBindingGuard) {
@@ -1092,7 +1114,7 @@ namespace Microsoft.Dafny {
         CurrentIdGenerator.Pop();
       }
       CurrentIdGenerator.Push();
-      Bpl.StmtList thn = TrStmt2StmtList(b, stmt.Thn, locals, etran, assumptions);
+      Bpl.StmtList thn = TrStmt2StmtList(b, stmt.Thn, locals, etran, thenAssumptions);
       CurrentIdGenerator.Pop();
       Bpl.StmtList els;
       Bpl.IfCmd elsIf = null;
@@ -1104,7 +1126,7 @@ namespace Microsoft.Dafny {
         els = b.Collect(stmt.Tok);
       } else {
         CurrentIdGenerator.Push();
-        els = TrStmt2StmtList(b, stmt.Els, locals, etran, assumptions);
+        els = TrStmt2StmtList(b, stmt.Els, locals, etran, elseAssumptions);
         CurrentIdGenerator.Pop();
         if (els.BigBlocks.Count == 1) {
           Bpl.BigBlock bb = els.BigBlocks[0];

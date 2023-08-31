@@ -1267,7 +1267,7 @@ namespace Microsoft.Dafny {
 
     private void CheckWellformedStmtExpr(StmtExpr stmtExpr, WFOptions options, Expr result, Type resultType, List<Variable> locals,
       BoogieStmtListBuilder builder, ExpressionTranslator etran) {
-      (AlcorTacticProofChecker.Env, ImmutableList<Tactic>) assumptions = EmptyAssumptions();
+      AlcorAssumptions assumptions = EmptyAssumptions();
       // If we're inside an "old" expression, then "etran" will know how to translate
       // expressions. However, here, we're also having to translate e.S, which is a
       // Statement. Since statement translation (in particular, translation of CallStmt's)

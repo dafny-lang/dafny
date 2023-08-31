@@ -1858,7 +1858,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(iter.Body != null);
       Contract.Requires(currentModule == null && codeContext == null && yieldCountVariable == null && _tmpIEs.Count == 0);
       Contract.Ensures(currentModule == null && codeContext == null && yieldCountVariable == null && _tmpIEs.Count == 0);
-      (AlcorTacticProofChecker.Env, ImmutableList<Tactic>) assumptions = EmptyAssumptions();
+      AlcorAssumptions assumptions = EmptyAssumptions();
       currentModule = iter.EnclosingModuleDefinition;
       codeContext = iter;
 
@@ -7502,7 +7502,7 @@ namespace Microsoft.Dafny {
       return req;
     }
 
-    Bpl.StmtList TrStmt2StmtList(BoogieStmtListBuilder builder, Statement block, List<Variable> locals, ExpressionTranslator etran, (AlcorTacticProofChecker.Env, ImmutableList<Tactic>) assumptions) {
+    Bpl.StmtList TrStmt2StmtList(BoogieStmtListBuilder builder, Statement block, List<Variable> locals, ExpressionTranslator etran, AlcorAssumptions assumptions) {
       Contract.Requires(builder != null);
       Contract.Requires(block != null);
       Contract.Requires(locals != null);
@@ -7612,7 +7612,7 @@ namespace Microsoft.Dafny {
       builder.Add(TrAssumeCmd(exists.tok, etran.TrExpr(exists.Term)));
     }
 
-    void TrStmtList(List<Statement> stmts, BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran, ref (AlcorTacticProofChecker.Env, ImmutableList<Tactic>) assumptions) {
+    void TrStmtList(List<Statement> stmts, BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran, ref AlcorAssumptions assumptions) {
       Contract.Requires(stmts != null);
       Contract.Requires(builder != null);
       Contract.Requires(locals != null);
@@ -11065,8 +11065,8 @@ namespace Microsoft.Dafny {
       return this.functionReveals[f];
     }
 
-    static private (Env, ImmutableList<Tactic>) EmptyAssumptions() {
-      return (new AlcorTacticProofChecker.Env_EnvNil(), ImmutableList<Tactic>.Empty);
+    static private AlcorAssumptions EmptyAssumptions() {
+      return new AlcorAssumptions(new AlcorTacticProofChecker.Env_EnvNil(), ImmutableList<Tactic>.Empty);
     }
   }
 }
