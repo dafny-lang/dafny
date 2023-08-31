@@ -273,7 +273,7 @@ namespace Microsoft.Dafny {
         ResolveExpression(e.Value, resolutionContext);
         Constraints.AddGuardedConstraint(() => {
           var sourcePreType = e.Seq.PreType.NormalizeWrtScope() as DPreType;
-          var familyDeclName = AncestorName(sourcePreType);
+          var familyDeclName = sourcePreType == null ? null : AncestorName(sourcePreType);
           if (familyDeclName == "seq") {
             var elementPreType = sourcePreType.Arguments[0];
             ConstrainToIntFamilyOrBitvector(e.Index.PreType, e.Index.tok, "sequence update requires integer- or bitvector-based index (got {0})");

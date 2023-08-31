@@ -271,7 +271,7 @@ namespace Microsoft.Dafny {
     }
 
     [CanBeNull]
-    public static string/*?*/ AncestorName(PreType preType) {
+    public static string AncestorName(PreType preType) {
       var dp = preType.Normalize() as DPreType;
       return dp == null ? null : AncestorDecl(dp.Decl).Name;
     }
