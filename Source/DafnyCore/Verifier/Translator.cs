@@ -5948,7 +5948,7 @@ namespace Microsoft.Dafny {
           // Requires(Ty.., F#Handle( Ty1, ..., TyN, Layer, reveal, self), Heap, arg1, ..., argN)
           //   = F#Requires(Ty1, .., TyN, Layer, Heap, self, [Unbox] arg1, .., [Unbox] argN)
           // However, .reads ands .requires functions require special attention.
-          // To understand the rationale for these axioms, refer to the section on arrow types of the reference manual
+          // To understand the rationale for these axioms, refer to the section on arrow types of the reference manual.
           // The requires clause of the .requires function is simply true.
           // The requires clause of the .reads function checks that the precondtion of the receiving function holds.
 
