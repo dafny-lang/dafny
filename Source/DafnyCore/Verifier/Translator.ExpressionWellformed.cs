@@ -741,11 +741,9 @@ namespace Microsoft.Dafny {
                       var desc = new PODesc.PreconditionSatisfied(errorMessage, successMessage);
                       if (wfOptions.AssertKv != null) {
                         // use the given assert attribute only
-                        builder.Add(Assert(tok, ss.E, new PODesc.PreconditionSatisfied(errorMessage, successMessage),
-                          wfOptions.AssertKv));
+                        builder.Add(Assert(tok, ss.E, new PODesc.PreconditionSatisfied(errorMessage, successMessage), wfOptions.AssertKv));
                       } else {
-                        builder.Add(AssertNS(tok, ss.E,
-                          new PODesc.PreconditionSatisfied(errorMessage, successMessage)));
+                        builder.Add(AssertNS(tok, ss.E, new PODesc.PreconditionSatisfied(errorMessage, successMessage)));
                       }
                     }
                   }
@@ -758,8 +756,7 @@ namespace Microsoft.Dafny {
 
                 if (wfOptions.DoReadsChecks) {
                   // check that the callee reads only what the caller is already allowed to read
-                  var s = new Substituter(null, new Dictionary<IVariable, Expression>(),
-                    e.GetTypeArgumentSubstitutions());
+                  var s = new Substituter(null, new Dictionary<IVariable, Expression>(), e.GetTypeArgumentSubstitutions());
                   CheckFrameSubset(callExpr.tok,
                     e.Function.Reads.ConvertAll(s.SubstFrameExpr),
                     e.Receiver, substMap, etran, etran.ReadsFrame(callExpr.tok), wfOptions.AssertSink(this, builder), new PODesc.FrameSubset("invoke function", false), wfOptions.AssertKv);
