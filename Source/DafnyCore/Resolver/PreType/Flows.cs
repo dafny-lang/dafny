@@ -82,7 +82,8 @@ abstract class Flow {
   [CanBeNull]
   public static Type JoinAndUpdate(Type a, Type b, FlowContext context) {
     var adjustableA = AdjustableType.NormalizeSansAdjustableType(a) as AdjustableType;
-    var join = Join(adjustableA?.T ?? a, b, context);
+    var adjustableB = AdjustableType.NormalizeSansAdjustableType(b) as AdjustableType;
+    var join = Join(adjustableA?.T ?? a, adjustableB?.T ?? b, context);
     if (join == null) {
       return null;
     }
@@ -90,8 +91,7 @@ abstract class Flow {
       return join;
     }
 
-    join = AdjustableType.NormalizeSansAdjustableType(join);
-    if (join is AdjustableType adjustableJoin) {
+    if (AdjustableType.NormalizeSansAdjustableType(join) is AdjustableType adjustableJoin) {
       join = adjustableJoin.T;
     }
     adjustableA.T = join;
