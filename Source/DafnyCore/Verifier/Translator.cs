@@ -5978,7 +5978,7 @@ namespace Microsoft.Dafny {
           // Reads(Ty.., F#Handle( Ty1, ..., TyN, Layer, self), Heap, arg1, ..., argN)
           //   =  $Frame_F(args...)
           // However, .reads ands .requires functions require special attention.
-          // To understand the rationale for these axioms, refer to the section on arrow types of the reference manual
+          // To understand the rationale for these axioms, refer to the section on arrow types of the reference manual.
           // In both cases, the precondition of the receiving function must be checked before its reads clause can
           // be referred to.
 
