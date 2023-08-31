@@ -7,6 +7,7 @@
 //-----------------------------------------------------------------------------
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using System.Numerics;
 using System.Diagnostics.Contracts;
@@ -1266,7 +1267,7 @@ namespace Microsoft.Dafny {
 
     private void CheckWellformedStmtExpr(StmtExpr stmtExpr, WFOptions options, Expr result, Type resultType, List<Variable> locals,
       BoogieStmtListBuilder builder, ExpressionTranslator etran) {
-      AlcorTacticProofChecker.Env assumptions = new AlcorTacticProofChecker.Env_EnvNil();
+      (AlcorTacticProofChecker.Env, ImmutableList<Tactic>) assumptions = EmptyAssumptions();
       // If we're inside an "old" expression, then "etran" will know how to translate
       // expressions. However, here, we're also having to translate e.S, which is a
       // Statement. Since statement translation (in particular, translation of CallStmt's)

@@ -5,12 +5,12 @@ using JetBrains.Annotations;
 
 namespace Microsoft.Dafny;
 
-public abstract record Tactic {
-}
-public record Intro([CanBeNull] string Name) : Tactic;
-public record ImpElim([CanBeNull] string NameImp, [CanBeNull] string NameHyp) : Tactic;
-public record Cases([CanBeNull] string NameEnvVar, [CanBeNull] string NewNameLeft, [CanBeNull] string NewNameRight) : Tactic;
-public record Var([CanBeNull] string Name): Tactic;
+public abstract record Tactic(IToken Token, IToken TokenCloseParens);
+public record Intro(IToken Token, IToken TokenCloseParens, [CanBeNull] string Name): Tactic(Token, TokenCloseParens);
+public record ImpElim(IToken Token, IToken TokenCloseParens, [CanBeNull] string NameImp, [CanBeNull] string NameHyp, [CanBeNull] string NameResult): Tactic(Token, TokenCloseParens);
+public record Cases(IToken Token, IToken TokenCloseParens, [CanBeNull] string NameEnvVar, [CanBeNull] string NewNameLeft, [CanBeNull] string NewNameRight): Tactic(Token, TokenCloseParens);
+public record RecallEnv(IToken Token, IToken TokenCloseParens, [CanBeNull] string Name): Tactic(Token, TokenCloseParens);
+public record Rename(IToken Token, IToken TokenCloseParens, [CanBeNull] string OldName, [CanBeNull] string NewName): Tactic(Token, TokenCloseParens);
 
 
 public class RevealStmt : Statement, ICloneable<RevealStmt>, ICanFormat {

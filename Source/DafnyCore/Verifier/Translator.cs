@@ -7,6 +7,7 @@
 //-----------------------------------------------------------------------------
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using System.Numerics;
 using System.Diagnostics.Contracts;
@@ -18,6 +19,7 @@ using BplParser = Microsoft.Boogie.Parser;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
+using AlcorTacticProofChecker;
 using Microsoft.Boogie;
 using static Microsoft.Dafny.Util;
 using Core;
@@ -1852,7 +1854,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(iter.Body != null);
       Contract.Requires(currentModule == null && codeContext == null && yieldCountVariable == null && _tmpIEs.Count == 0);
       Contract.Ensures(currentModule == null && codeContext == null && yieldCountVariable == null && _tmpIEs.Count == 0);
-      AlcorTacticProofChecker.Env assumptions = new AlcorTacticProofChecker.Env_EnvNil();
+      (AlcorTacticProofChecker.Env, ImmutableList<Tactic>) assumptions = EmptyAssumptions();
       currentModule = iter.EnclosingModuleDefinition;
       codeContext = iter;
 
@@ -7496,7 +7498,7 @@ namespace Microsoft.Dafny {
       return req;
     }
 
-    Bpl.StmtList TrStmt2StmtList(BoogieStmtListBuilder builder, Statement block, List<Variable> locals, ExpressionTranslator etran, AlcorTacticProofChecker.Env assumptions) {
+    Bpl.StmtList TrStmt2StmtList(BoogieStmtListBuilder builder, Statement block, List<Variable> locals, ExpressionTranslator etran, (AlcorTacticProofChecker.Env, ImmutableList<Tactic>) assumptions) {
       Contract.Requires(builder != null);
       Contract.Requires(block != null);
       Contract.Requires(locals != null);
@@ -7606,7 +7608,7 @@ namespace Microsoft.Dafny {
       builder.Add(TrAssumeCmd(exists.tok, etran.TrExpr(exists.Term)));
     }
 
-    void TrStmtList(List<Statement> stmts, BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran, ref AlcorTacticProofChecker.Env assumptions) {
+    void TrStmtList(List<Statement> stmts, BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran, ref (AlcorTacticProofChecker.Env, ImmutableList<Tactic>) assumptions) {
       Contract.Requires(stmts != null);
       Contract.Requires(builder != null);
       Contract.Requires(locals != null);
@@ -11057,6 +11059,10 @@ namespace Microsoft.Dafny {
     public Expr GetRevealConstant(Function f) {
       this.CreateRevealableConstant(f);
       return this.functionReveals[f];
+    }
+
+    static private (Env, ImmutableList<Tactic>) EmptyAssumptions() {
+      return (new AlcorTacticProofChecker.Env_EnvNil(), ImmutableList<Tactic>.Empty);
     }
   }
 }

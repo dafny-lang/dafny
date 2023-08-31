@@ -8,6 +8,7 @@ using Microsoft.Boogie;
 using Bpl = Microsoft.Boogie;
 using static Microsoft.Dafny.Util;
 using PODesc = Microsoft.Dafny.ProofObligationDescription;
+using System.Collections.Immutable;
 
 namespace Microsoft.Dafny {
   public partial class Translator {
@@ -528,7 +529,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(wellformednessProc || m.Body != null);
       Contract.Requires(currentModule == null && codeContext == null && _tmpIEs.Count == 0 && isAllocContext == null);
       Contract.Ensures(currentModule == null && codeContext == null && _tmpIEs.Count == 0 && isAllocContext == null);
-      AlcorTacticProofChecker.Env assumptions = new AlcorTacticProofChecker.Env_EnvNil();
+      (AlcorTacticProofChecker.Env, ImmutableList<Tactic>) assumptions = EmptyAssumptions();
       currentModule = m.EnclosingClass.EnclosingModuleDefinition;
       codeContext = m;
       isAllocContext = new IsAllocContext(options, m.IsGhost);
@@ -668,18 +669,19 @@ namespace Microsoft.Dafny {
         // translate the body
         foreach (var r in m.Req) {
           var label = 
-            assumptions.FreshVar(ToDafnyString(r.Label?.Name ?? "h"));
+            assumptions.Item1.FreshVar(ToDafnyString(r.Label?.Name ?? "h"));
           var alcorExpression = etran.TrExprAlcor(r.E);
           if (alcorExpression == null) {
             alcorExpression = new AlcorProofKernel.Expr_Var(AlcorProofKernel.__default.FreshIdentifier(
               new AlcorProofKernel.Identifier(ToDafnyString("NOT SUPPORTED"),
                 BigInteger.Zero, ToDafnyString("")),
-                assumptions.FreeIdentifiers()));
+                assumptions.Item1.FreeIdentifiers()));
           }
 
-          assumptions =
+          assumptions = (
               new AlcorTacticProofChecker.Env_EnvCons(
-                label, alcorExpression, assumptions);
+                label, alcorExpression, assumptions.Item1),
+              ImmutableList<Tactic>.Empty);
         }
         
         TrStmt(m.Body, builder, localVariables, etran, ref assumptions);

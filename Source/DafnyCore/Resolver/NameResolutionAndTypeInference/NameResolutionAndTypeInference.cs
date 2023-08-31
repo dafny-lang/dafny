@@ -3562,8 +3562,9 @@ namespace Microsoft.Dafny {
             var revealResolutionContext = resolutionContext with { InReveal = true };
             if (expr is ApplySuffix applySuffix) {
               var e = (ApplySuffix)expr;
+              var closeParen = applySuffix.CloseParen;
               // Short-circuit tactics
-              if (applySuffix.Lhs is NameSegment {Name: "intro" or "cases" or "imp_elim" or "recall"} tacticName) {
+              if (applySuffix.Lhs is NameSegment {Name: "intro" or "cases" or "imp_elim" or "recall" or "rename", tok: var token} tacticName) {
                 var args = applySuffix.Args ??
                            (applySuffix.Bindings == null ? null :
                             applySuffix.Bindings.Arguments ??
@@ -3587,7 +3588,7 @@ namespace Microsoft.Dafny {
                     if (args.Count > 1) {
                       reporter.Error(MessageSource.Resolver, expr.tok, $"intro() requires 0 or 1 argument, got " + args.Count);
                     } else {
-                      s.Tactics.Add(new Intro(nameOrNull(0)));
+                      s.Tactics.Add(new Intro(token, closeParen, nameOrNull(0)));
                     }
 
                     break;
@@ -3595,15 +3596,15 @@ namespace Microsoft.Dafny {
                     if (args.Count > 3) {
                       reporter.Error(MessageSource.Resolver, expr.tok, $"cases() requires 0, 1, 2 or 3 arguments, got " + args.Count);
                     } else {
-                      s.Tactics.Add(new Cases(nameOrNull(0), nameOrNull(1), nameOrNull(2)));
+                      s.Tactics.Add(new Cases(token, closeParen, nameOrNull(0), nameOrNull(1), nameOrNull(2)));
                     }
 
                     break;
                   case "imp_elim":
-                    if (args.Count > 2) {
+                    if (args.Count > 3) {
                       reporter.Error(MessageSource.Resolver, expr.tok, $"imp_elim() requires 0, 1 or 2 arguments, got " + args.Count);
                     } else {
-                      s.Tactics.Add(new ImpElim(nameOrNull(0), nameOrNull(1)));
+                      s.Tactics.Add(new ImpElim(token, closeParen, nameOrNull(0), nameOrNull(1), nameOrNull(2)));
                     }
 
                     break;
@@ -3611,10 +3612,19 @@ namespace Microsoft.Dafny {
                     if (args.Count > 2) {
                       reporter.Error(MessageSource.Resolver, expr.tok, $"recall() requires 0 or 1 arguments, got " + args.Count);
                     } else {
-                      s.Tactics.Add(new Var(nameOrNull(0)));
+                      s.Tactics.Add(new RecallEnv(token, closeParen, nameOrNull(0)));
                     }
 
                     break;
+                  case "rename":
+                    if (args.Count != 2) {
+                      reporter.Error(MessageSource.Resolver, expr.tok, $"rename() requires 2 arguments, got " + args.Count);
+                    } else {
+                      s.Tactics.Add(new Rename(token, closeParen, nameOrNull(0), nameOrNull(1)));
+                    }
+
+                    break;
+                    
                   default:
                     reporter.Error(MessageSource.Resolver, expr.tok, $"Unrecognized tactic {tacticName.Name}");
                     break;
