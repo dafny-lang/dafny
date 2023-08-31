@@ -1588,6 +1588,9 @@ namespace Microsoft.Dafny {
         // add the fuel assumption for the reveal method of a opaque method
         if (IsOpaqueRevealLemma(m)) {
           List<Expression> args = Attributes.FindExpressions(m.Attributes, "fuel");
+          if (args is null) {
+            args = Attributes.FindExpressions(m.Attributes, "revealed_fn");
+          }
           if (args != null) {
             MemberSelectExpr selectExpr = args[0].Resolved as MemberSelectExpr;
             if (selectExpr != null) {
@@ -1605,6 +1608,8 @@ namespace Microsoft.Dafny {
                 AddEnsures(ens, Ensures(m.tok, true, GetRevealConstant(f), null, null, null));
 
                 AddEnsures(ens, Ensures(m.tok, true, Boogie.Expr.Eq(FunctionCall(f.tok, BuiltinFunction.AsFuelBottom, null, moreFuel_expr), moreFuel_expr), null, null, "Shortcut to LZ"));
+              } else {
+                AddEnsures(ens, Ensures(m.tok, true, GetRevealConstant(f), null, null, null));
               }
             }
           }
