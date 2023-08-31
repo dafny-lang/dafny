@@ -1253,7 +1253,7 @@ module AlcorTacticProofChecker {
       }
       var sequents := proofState.sequents;
       if sequents.SequentNil? {
-        return Failure("Nothing to introduce, proof state is empty. Consider removing this");
+        feedback := SetFailure("Nothing to introduce, proof state is empty. Consider removing this"); return;
       }
       var sequent := sequents.head;
       var id := Identifier(name);
@@ -1341,19 +1341,19 @@ module AlcorTacticProofChecker {
       }
       var sequents := proofState.sequents;
       if sequents.SequentNil? {
-        return Failure("Nothing to rename, proof state is empty. Consider removing this");
+        feedback := SetFailure("Nothing to rename, proof state is empty. Consider removing this"); return;
       }
       var sequent := sequents.head;
       var env := sequent.env;
       if env.EnvNil? {
-        return Failure("Nothing to rename, proof state has no environment. Consider removing this");
+        feedback := SetFailure("Nothing to rename, proof state has no environment. Consider removing this"); return;
       }
       if newName == "" { // Last thing to rename
         newName := oldName;
         oldName := env.id;
       }
       if oldName !in env.FreeVars() {
-        return Failure("No variable in the environment is named " + oldName);
+        feedback := SetFailure("No variable in the environment is named " + oldName); return;
       }
       var newEnv := env.Rename(oldName, newName);
       proofState := proofState.(
@@ -1372,11 +1372,11 @@ module AlcorTacticProofChecker {
       }
       var sequents := proofState.sequents;
       if sequents.SequentNil? {
-        return Failure("Nothing to perform a case split on");
+        feedback := SetFailure("Nothing to perform a case split on"); return;
       }
       var sequent := sequents.head;
       if(!sequent.goal.And?) {
-        return Failure("Cannot perform a case split on something other than &&");
+        feedback := SetFailure("Cannot perform a case split on something other than &&"); return;
       }
       var env := sequent.env;
       var newSequents := SequentCons(
@@ -1397,17 +1397,17 @@ module AlcorTacticProofChecker {
 
       var sequents := proofState.sequents;
       if sequents.SequentNil? {
-        return Failure("Nothing to perform a case split on");
+        feedback := SetFailure("Nothing to perform a case split on"); return;
       }
       var sequent := sequents.head;
       var env := sequent.env;
       var i := env.IndexOf(name);
       if i < 0 {
-        return Failure("Entry " + name + " not found in the environment");
+        feedback := SetFailure("Entry " + name + " not found in the environment"); return;
       }
       var (envIdentifier, envElem) := env.ElemAt(i);
       if !envElem.And? {
-        return Failure("Entry " + name + " is not splittable");
+        feedback := SetFailure("Entry " + name + " is not splittable"); return;
       }
       var newEnv := env.ReplaceTailAt(i, (previousEnv: Env) requires previousEnv == env.Drop(i) =>
                                         assert previousEnv.prop.And?;
@@ -1422,6 +1422,13 @@ module AlcorTacticProofChecker {
       return Success(proofState.ToString());
     }
 
+    method SetFailure(msg: string) returns (feedback: Result<string>)
+      ensures proofState.Error?
+    {
+      proofState := Error(msg);
+      feedback := Failure(msg);
+    }
+
     method ImpElim(imp: string, hypothesis: string, newName: string := "") returns (feedback: Result<string>)
       modifies this
     {
@@ -1431,26 +1438,27 @@ module AlcorTacticProofChecker {
 
       var sequents := proofState.sequents;
       if sequents.SequentNil? {
-        return Failure("Nothing to perform a ImpElim on");
+        feedback := SetFailure("Nothing to perform a ImpElim on");
+        return;
       }
       var sequent := sequents.head;
       var env := sequent.env;
       var goal := sequent.goal;
       var iImp := env.IndexOf(imp);
       if iImp < 0 {
-        return Failure("Entry " + imp + " not found in the environment");
+        feedback := SetFailure("Entry " + imp + " not found in the environment"); return;
       }
       var iHyp := env.IndexOf(hypothesis);
       if iHyp < 0 {
-        return Failure("Entry " + hypothesis + " not found in the environment");
+        feedback := SetFailure("Entry " + hypothesis + " not found in the environment"); return;
       }
       var (_, impExpr) := env.ElemAt(iImp);
       var (_, hypExpr) := env.ElemAt(iHyp);
       if !impExpr.Imp? {
-        return Failure("Entry " + imp + " is not an implication");
+        feedback := SetFailure("Entry " + imp + " is not an implication"); return;
       }
       if impExpr.left != hypExpr {
-        return Failure("Entry " + imp + " cannot be applied to " + hypothesis);
+        feedback := SetFailure("Entry " + imp + " cannot be applied to " + hypothesis); return;
       }
       if impExpr.right == goal {
         proofState := Sequents(
@@ -1478,14 +1486,14 @@ module AlcorTacticProofChecker {
 
       var sequents := proofState.sequents;
       if sequents.SequentNil? {
-        return Failure("Nothing to perform a ImpElim on");
+        feedback := SetFailure("Nothing to perform a ImpElim on"); return;
       }
       var sequent := sequents.head;
       var env := sequent.env;
       var goal := sequent.goal;
       var iHyp := env.IndexOf(name);
       if iHyp < 0 {
-        return Failure("Entry " + name + " not found in the environment");
+        feedback := SetFailure("Entry " + name + " not found in the environment"); return;
       }
       var (_, hypExpr) := env.ElemAt(iHyp);
       if hypExpr == goal {
@@ -1493,7 +1501,7 @@ module AlcorTacticProofChecker {
           sequents.tail
         );
       } else {
-        return Failure("The hypothesis " + name + " is not the goal");
+        feedback := SetFailure("The hypothesis " + name + " is not the goal"); return;
       }
       return Success(proofState.ToString());
     }

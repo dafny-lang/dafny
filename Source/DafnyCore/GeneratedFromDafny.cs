@@ -3099,7 +3099,9 @@ namespace AlcorTacticProofChecker {
       AlcorTacticProofChecker._ISequentList _199_sequents;
       _199_sequents = (this.proofState).dtor_sequents;
       if ((_199_sequents).is_SequentNil) {
-        feedback = Wrappers.Result<Dafny.ISequence<Dafny.Rune>>.create_Failure(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Nothing to introduce, proof state is empty. Consider removing this"));
+        Wrappers._IResult<Dafny.ISequence<Dafny.Rune>> _out4;
+        _out4 = (this).SetFailure(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Nothing to introduce, proof state is empty. Consider removing this"));
+        feedback = _out4;
         return feedback;
       }
       AlcorTacticProofChecker._ISequent _200_sequent;
@@ -3146,7 +3148,9 @@ namespace AlcorTacticProofChecker {
       AlcorTacticProofChecker._ISequentList _212_sequents;
       _212_sequents = (this.proofState).dtor_sequents;
       if ((_212_sequents).is_SequentNil) {
-        feedback = Wrappers.Result<Dafny.ISequence<Dafny.Rune>>.create_Failure(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Nothing to rename, proof state is empty. Consider removing this"));
+        Wrappers._IResult<Dafny.ISequence<Dafny.Rune>> _out5;
+        _out5 = (this).SetFailure(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Nothing to rename, proof state is empty. Consider removing this"));
+        feedback = _out5;
         return feedback;
       }
       AlcorTacticProofChecker._ISequent _213_sequent;
@@ -3154,7 +3158,9 @@ namespace AlcorTacticProofChecker {
       AlcorTacticProofChecker._IEnv _214_env;
       _214_env = (_213_sequent).dtor_env;
       if ((_214_env).is_EnvNil) {
-        feedback = Wrappers.Result<Dafny.ISequence<Dafny.Rune>>.create_Failure(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Nothing to rename, proof state has no environment. Consider removing this"));
+        Wrappers._IResult<Dafny.ISequence<Dafny.Rune>> _out6;
+        _out6 = (this).SetFailure(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Nothing to rename, proof state has no environment. Consider removing this"));
+        feedback = _out6;
         return feedback;
       }
       if ((_211_newName).Equals(Dafny.Sequence<Dafny.Rune>.UnicodeFromString(""))) {
@@ -3162,7 +3168,9 @@ namespace AlcorTacticProofChecker {
         _210_oldName = (_214_env).dtor_id;
       }
       if (!((_214_env).FreeVars()).Contains(_210_oldName)) {
-        feedback = Wrappers.Result<Dafny.ISequence<Dafny.Rune>>.create_Failure(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("No variable in the environment is named "), _210_oldName));
+        Wrappers._IResult<Dafny.ISequence<Dafny.Rune>> _out7;
+        _out7 = (this).SetFailure(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("No variable in the environment is named "), _210_oldName));
+        feedback = _out7;
         return feedback;
       }
       AlcorTacticProofChecker._IEnv _215_newEnv;
@@ -3184,13 +3192,17 @@ namespace AlcorTacticProofChecker {
       AlcorTacticProofChecker._ISequentList _220_sequents;
       _220_sequents = (this.proofState).dtor_sequents;
       if ((_220_sequents).is_SequentNil) {
-        feedback = Wrappers.Result<Dafny.ISequence<Dafny.Rune>>.create_Failure(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Nothing to perform a case split on"));
+        Wrappers._IResult<Dafny.ISequence<Dafny.Rune>> _out8;
+        _out8 = (this).SetFailure(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Nothing to perform a case split on"));
+        feedback = _out8;
         return feedback;
       }
       AlcorTacticProofChecker._ISequent _221_sequent;
       _221_sequent = (_220_sequents).dtor_head;
       if (!(((_221_sequent).dtor_goal).is_And)) {
-        feedback = Wrappers.Result<Dafny.ISequence<Dafny.Rune>>.create_Failure(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Cannot perform a case split on something other than &&"));
+        Wrappers._IResult<Dafny.ISequence<Dafny.Rune>> _out9;
+        _out9 = (this).SetFailure(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Cannot perform a case split on something other than &&"));
+        feedback = _out9;
         return feedback;
       }
       AlcorTacticProofChecker._IEnv _222_env;
@@ -3211,7 +3223,9 @@ namespace AlcorTacticProofChecker {
       AlcorTacticProofChecker._ISequentList _224_sequents;
       _224_sequents = (this.proofState).dtor_sequents;
       if ((_224_sequents).is_SequentNil) {
-        feedback = Wrappers.Result<Dafny.ISequence<Dafny.Rune>>.create_Failure(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Nothing to perform a case split on"));
+        Wrappers._IResult<Dafny.ISequence<Dafny.Rune>> _out10;
+        _out10 = (this).SetFailure(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Nothing to perform a case split on"));
+        feedback = _out10;
         return feedback;
       }
       AlcorTacticProofChecker._ISequent _225_sequent;
@@ -3221,14 +3235,18 @@ namespace AlcorTacticProofChecker {
       BigInteger _227_i;
       _227_i = (_226_env).IndexOf(name);
       if ((_227_i).Sign == -1) {
-        feedback = Wrappers.Result<Dafny.ISequence<Dafny.Rune>>.create_Failure(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Entry "), name), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" not found in the environment")));
+        Wrappers._IResult<Dafny.ISequence<Dafny.Rune>> _out11;
+        _out11 = (this).SetFailure(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Entry "), name), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" not found in the environment")));
+        feedback = _out11;
         return feedback;
       }
       _System._ITuple2<Dafny.ISequence<Dafny.Rune>, AlcorProofKernel._IExpr> _let_tmp_rhs0 = (_226_env).ElemAt(_227_i);
       Dafny.ISequence<Dafny.Rune> _228_envIdentifier = _let_tmp_rhs0.dtor__0;
       AlcorProofKernel._IExpr _229_envElem = _let_tmp_rhs0.dtor__1;
       if (!((_229_envElem).is_And)) {
-        feedback = Wrappers.Result<Dafny.ISequence<Dafny.Rune>>.create_Failure(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Entry "), name), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" is not splittable")));
+        Wrappers._IResult<Dafny.ISequence<Dafny.Rune>> _out12;
+        _out12 = (this).SetFailure(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Entry "), name), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" is not splittable")));
+        feedback = _out12;
         return feedback;
       }
       AlcorTacticProofChecker._IEnv _230_newEnv;
@@ -3242,6 +3260,12 @@ namespace AlcorTacticProofChecker {
       return feedback;
       return feedback;
     }
+    public Wrappers._IResult<Dafny.ISequence<Dafny.Rune>> SetFailure(Dafny.ISequence<Dafny.Rune> msg) {
+      Wrappers._IResult<Dafny.ISequence<Dafny.Rune>> feedback = Wrappers.Result<Dafny.ISequence<Dafny.Rune>>.Default();
+      (this).proofState = AlcorTacticProofChecker.ProofState.create_Error(msg);
+      feedback = Wrappers.Result<Dafny.ISequence<Dafny.Rune>>.create_Failure(msg);
+      return feedback;
+    }
     public Wrappers._IResult<Dafny.ISequence<Dafny.Rune>> ImpElim(Dafny.ISequence<Dafny.Rune> imp, Dafny.ISequence<Dafny.Rune> hypothesis, Dafny.ISequence<Dafny.Rune> newName) {
       Wrappers._IResult<Dafny.ISequence<Dafny.Rune>> feedback = Wrappers.Result<Dafny.ISequence<Dafny.Rune>>.Default();
       if ((this.proofState).is_Error) {
@@ -3251,7 +3275,9 @@ namespace AlcorTacticProofChecker {
       AlcorTacticProofChecker._ISequentList _237_sequents;
       _237_sequents = (this.proofState).dtor_sequents;
       if ((_237_sequents).is_SequentNil) {
-        feedback = Wrappers.Result<Dafny.ISequence<Dafny.Rune>>.create_Failure(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Nothing to perform a ImpElim on"));
+        Wrappers._IResult<Dafny.ISequence<Dafny.Rune>> _out13;
+        _out13 = (this).SetFailure(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Nothing to perform a ImpElim on"));
+        feedback = _out13;
         return feedback;
       }
       AlcorTacticProofChecker._ISequent _238_sequent;
@@ -3263,13 +3289,17 @@ namespace AlcorTacticProofChecker {
       BigInteger _241_iImp;
       _241_iImp = (_239_env).IndexOf(imp);
       if ((_241_iImp).Sign == -1) {
-        feedback = Wrappers.Result<Dafny.ISequence<Dafny.Rune>>.create_Failure(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Entry "), imp), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" not found in the environment")));
+        Wrappers._IResult<Dafny.ISequence<Dafny.Rune>> _out14;
+        _out14 = (this).SetFailure(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Entry "), imp), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" not found in the environment")));
+        feedback = _out14;
         return feedback;
       }
       BigInteger _242_iHyp;
       _242_iHyp = (_239_env).IndexOf(hypothesis);
       if ((_242_iHyp).Sign == -1) {
-        feedback = Wrappers.Result<Dafny.ISequence<Dafny.Rune>>.create_Failure(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Entry "), hypothesis), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" not found in the environment")));
+        Wrappers._IResult<Dafny.ISequence<Dafny.Rune>> _out15;
+        _out15 = (this).SetFailure(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Entry "), hypothesis), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" not found in the environment")));
+        feedback = _out15;
         return feedback;
       }
       _System._ITuple2<Dafny.ISequence<Dafny.Rune>, AlcorProofKernel._IExpr> _let_tmp_rhs1 = (_239_env).ElemAt(_241_iImp);
@@ -3279,11 +3309,15 @@ namespace AlcorTacticProofChecker {
       Dafny.ISequence<Dafny.Rune> _245___v1 = _let_tmp_rhs2.dtor__0;
       AlcorProofKernel._IExpr _246_hypExpr = _let_tmp_rhs2.dtor__1;
       if (!((_244_impExpr).is_Imp)) {
-        feedback = Wrappers.Result<Dafny.ISequence<Dafny.Rune>>.create_Failure(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Entry "), imp), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" is not an implication")));
+        Wrappers._IResult<Dafny.ISequence<Dafny.Rune>> _out16;
+        _out16 = (this).SetFailure(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Entry "), imp), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" is not an implication")));
+        feedback = _out16;
         return feedback;
       }
       if (!object.Equals((_244_impExpr).dtor_left, _246_hypExpr)) {
-        feedback = Wrappers.Result<Dafny.ISequence<Dafny.Rune>>.create_Failure(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Entry "), imp), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" cannot be applied to ")), hypothesis));
+        Wrappers._IResult<Dafny.ISequence<Dafny.Rune>> _out17;
+        _out17 = (this).SetFailure(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Entry "), imp), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" cannot be applied to ")), hypothesis));
+        feedback = _out17;
         return feedback;
       }
       if (object.Equals((_244_impExpr).dtor_right, _240_goal)) {
@@ -3308,7 +3342,9 @@ namespace AlcorTacticProofChecker {
       AlcorTacticProofChecker._ISequentList _249_sequents;
       _249_sequents = (this.proofState).dtor_sequents;
       if ((_249_sequents).is_SequentNil) {
-        feedback = Wrappers.Result<Dafny.ISequence<Dafny.Rune>>.create_Failure(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Nothing to perform a ImpElim on"));
+        Wrappers._IResult<Dafny.ISequence<Dafny.Rune>> _out18;
+        _out18 = (this).SetFailure(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Nothing to perform a ImpElim on"));
+        feedback = _out18;
         return feedback;
       }
       AlcorTacticProofChecker._ISequent _250_sequent;
@@ -3320,7 +3356,9 @@ namespace AlcorTacticProofChecker {
       BigInteger _253_iHyp;
       _253_iHyp = (_251_env).IndexOf(name);
       if ((_253_iHyp).Sign == -1) {
-        feedback = Wrappers.Result<Dafny.ISequence<Dafny.Rune>>.create_Failure(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Entry "), name), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" not found in the environment")));
+        Wrappers._IResult<Dafny.ISequence<Dafny.Rune>> _out19;
+        _out19 = (this).SetFailure(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Entry "), name), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" not found in the environment")));
+        feedback = _out19;
         return feedback;
       }
       _System._ITuple2<Dafny.ISequence<Dafny.Rune>, AlcorProofKernel._IExpr> _let_tmp_rhs3 = (_251_env).ElemAt(_253_iHyp);
@@ -3329,7 +3367,9 @@ namespace AlcorTacticProofChecker {
       if (object.Equals(_255_hypExpr, _252_goal)) {
         (this).proofState = AlcorTacticProofChecker.ProofState.create_Sequents((_249_sequents).dtor_tail);
       } else {
-        feedback = Wrappers.Result<Dafny.ISequence<Dafny.Rune>>.create_Failure(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("The hypothesis "), name), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" is not the goal")));
+        Wrappers._IResult<Dafny.ISequence<Dafny.Rune>> _out20;
+        _out20 = (this).SetFailure(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("The hypothesis "), name), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" is not the goal")));
+        feedback = _out20;
         return feedback;
       }
       feedback = Wrappers.Result<Dafny.ISequence<Dafny.Rune>>.create_Success((this.proofState)._ToString());
@@ -3374,9 +3414,9 @@ namespace Formatting {
         (_257_sb).Append(_259_newTrailingTrivia);
         _256_token = _256_token.Next;
       }
-      System.String _out4;
-      _out4 = (_257_sb).ToString().ToString();
-      s = _out4;
+      System.String _out21;
+      _out21 = (_257_sb).ToString().ToString();
+      s = _out21;
       return s;
     }
   }

@@ -7,11 +7,12 @@ lemma Declarative0Tactic5Proof()
   reveal
     intro(a),
     intro(b),
-    imp_elim(env),
+    intro(env),
     cases(env, hAB, hA),
     cases(),
-    imp_elim(HAB, hA),
-    hA;
+    imp_elim(hAB, hA),
+    intro(b),
+    recall(hA);
 }
 
 

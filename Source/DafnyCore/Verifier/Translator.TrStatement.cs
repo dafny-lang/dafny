@@ -587,6 +587,7 @@ namespace Microsoft.Dafny {
                   tacticMode.Rename(ToDafnyString(oldName ?? ""), ToDafnyString(newName ?? ""));
                 }
                 currentState = FromDafnyString(tacticMode.proofState._ToString());
+                currentState = currentState == "" ? "QED" : currentState;
                 reporter.Info(MessageSource.Verifier, tactic.TokenCloseParens, currentState);
               }
 
