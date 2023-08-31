@@ -8,7 +8,7 @@ using Microsoft.Dafny.Auditor;
 
 namespace Microsoft.Dafny;
 
-public class Function : MemberDecl, TypeParameter.ParentType, ICallable, ICanFormat, IHasDocstring, ISymbol, ICanVerify {
+public class Function : MemberDecl, TypeParameter.ParentType, ICallable, ICanFormat, IHasDocstring, ISymbol, ICanAutoRevealDependencies, ICanVerify {
   public override string WhatKind => "function";
 
   public string GetFunctionDeclarationKeywords(DafnyOptions options) {
@@ -32,6 +32,17 @@ public class Function : MemberDecl, TypeParameter.ParentType, ICallable, ICanFor
   }
 
   public override bool IsOpaque { get; }
+
+  public bool IsMadeImplicitlyOpaque(DafnyOptions options) {
+    return
+       !IsOpaque &&
+       !Attributes.Contains(Attributes, "opaque") &&
+       options.Get(CommonOptionBag.DefaultFunctionOpacity) != CommonOptionBag.DefaultFunctionOpacityOptions.Transparent
+       && this is not ExtremePredicate
+       && this is not PrefixPredicate
+       && Name != "reads" && Name != "requires"
+       && !Attributes.Contains(this.Attributes, "transparent");
+  }
 
   public override bool CanBeRevealed() {
     return true;
@@ -480,5 +491,78 @@ experimentalPredicateAlwaysGhost - Compiled functions are written `function`. Gh
     var formals = string.Join(", ", Formals.Select(f => f.AsText()));
     var resultType = ResultType.TypeName(options, null, false);
     return $"{WhatKind} {AstExtensions.GetMemberQualification(this)}{Name}({formals}): {resultType}";
+  }
+
+  public void AutoRevealDependencies(AutoRevealFunctionDependencies Rewriter, DafnyOptions Options,
+    ErrorReporter Reporter) {
+    if (Body is null) {
+      return;
+    }
+
+    if (ByMethodDecl is not null) {
+      ByMethodDecl.AutoRevealDependencies(Rewriter, Options, Reporter);
+    }
+
+    object autoRevealDepsVal = null;
+    bool autoRevealDeps = Attributes.ContainsMatchingValue(Attributes, "autoRevealDependencies",
+      ref autoRevealDepsVal, new List<Attributes.MatchingValueOption> {
+        Attributes.MatchingValueOption.Bool,
+        Attributes.MatchingValueOption.Int
+      }, s => Reporter.Error(MessageSource.Rewriter, ErrorLevel.Error, Tok, s));
+
+    // Default behavior is reveal all dependencies
+    int autoRevealDepth = int.MaxValue;
+
+    if (autoRevealDeps) {
+      if (autoRevealDepsVal is false) {
+        autoRevealDepth = 0;
+      } else if (autoRevealDepsVal is BigInteger i) {
+        autoRevealDepth = (int)i;
+      }
+    }
+
+    var currentClass = EnclosingClass;
+    List<AutoRevealFunctionDependencies.RevealStmtWithDepth> addedReveals = new();
+
+    foreach (var func in Rewriter.GetEnumerator(this, currentClass, SubExpressions)) {
+      var revealStmt =
+        AutoRevealFunctionDependencies.BuildRevealStmt(func.Function, Tok, EnclosingClass.EnclosingModuleDefinition);
+
+      if (revealStmt is not null) {
+        addedReveals.Add(new AutoRevealFunctionDependencies.RevealStmtWithDepth(revealStmt, func.Depth));
+      }
+    }
+
+    if (autoRevealDepth > 0) {
+      Expression reqExpr = new LiteralExpr(Tok, true);
+      reqExpr.Type = Type.Bool;
+
+      var bodyExpr = Body;
+
+      foreach (var revealStmt in addedReveals) {
+        if (revealStmt.Depth <= autoRevealDepth) {
+          bodyExpr = new StmtExpr(Tok, revealStmt.RevealStmt, bodyExpr) {
+            Type = bodyExpr.Type
+          };
+
+          reqExpr = new StmtExpr(reqExpr.tok, revealStmt.RevealStmt, reqExpr) {
+            Type = Type.Bool
+          };
+        } else {
+          break;
+        }
+      }
+
+      Body = bodyExpr;
+
+      if (Req.Any() || Ens.Any()) {
+        Req.Insert(0, new AttributedExpression(reqExpr));
+      }
+    }
+
+    if (addedReveals.Any()) {
+      Reporter.Message(MessageSource.Rewriter, ErrorLevel.Info, null, tok,
+        AutoRevealFunctionDependencies.GenerateMessage(addedReveals, autoRevealDepth));
+    }
   }
 }

@@ -1326,7 +1326,7 @@ LambdaExpression(allowLemma, allowBitwiseOps) =
   Expression(allowLemma, allowLambda: true, allowBitwiseOps)
 ````
 
-#### 17.2.7.14. Left-hand-side expression #g-lhs-expression}
+#### 17.2.7.14. Left-hand-side expression {#g-lhs-expression}
 ([discussion](#sec-lhs-expression)) {
 
 ````grammar
