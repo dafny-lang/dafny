@@ -262,7 +262,7 @@ method ReadingAndWritingFreshStateAllowed()
 
 method ApplyLambda<T(!new), R>(f: T ~> R, t: T) returns (r: R) 
   requires f.requires(t)
-  reads f.reads
+  reads f.reads(t)
 {
   r := f(t);
 }

@@ -34,7 +34,6 @@ Library.Color.Red(0) and Library.Color.Red(0)
 Library.CoColor.Yellow and Library.CoColor.Yellow
 Library.MoColor.MoYellow and Library.MoColor.MoYellow
 0.0 and 0.0
-13
 TypeDescriptorInDatatypeValue.Datatype.Simple('D', 0.0)
 TypeDescriptorInDatatypeValue.Datatype.Simple('D', 0.0)
 'D'
