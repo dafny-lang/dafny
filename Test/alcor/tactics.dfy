@@ -25,7 +25,7 @@ lemma Declarative0Tactic5Proof()
     imp_elim(hAB, hA),
     intro(b),
     recall(hA);
-  assert forall a, b :: (a ==> b) && a ==> (b && a); // TODO: Remove once ensures can be proven automatically
+  assert forall a, b :: (a ==> b) && a ==> (b && a);                    // TODO: Remove once ensures can be proven automatically
 }
 
 
@@ -45,7 +45,7 @@ lemma Declarative1Tactic4Proof()
       imp_elim(hAB, hA),          // Solve the goal b
       intro(b),
       recall(hA);                 // Solves the goal a
-    assert ((a ==> b) && a) ==> (b && a); // TODO: remove once forall can be proven automatically
+    assert ((a ==> b) && a) ==> (b && a);                              // TODO: remove once forall can be proven automatically
   }
 }
 
