@@ -1990,7 +1990,7 @@ func (m Map) Contains(key interface{}) bool {
 // Update returns a new Map which associates the given key and value.
 func (m Map) Update(key, value interface{}) Map {
   ans := m.clone()
-  UpdateUnsafe(key, value)
+  ans.UpdateUnsafe(key, value)
   return ans
 }
 

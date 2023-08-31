@@ -636,7 +636,7 @@ let _dafny = (function() {
     }
     update(k, v) {
       let m = this.slice();
-      updateUnsafe(k, v)
+      m.updateUnsafe(k, v);
       return m;
     }
     // Similar to update, but make the modification in-place.
