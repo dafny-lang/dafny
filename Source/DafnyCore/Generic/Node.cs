@@ -66,7 +66,8 @@ public abstract class Node : INode {
       var childrenFiltered = GetConcreteChildren(this).ToList();
 
       // If we parse a resolved document, some children sometimes have the same token because they are auto-generated
-      var startToEndTokenNotOwned = childrenFiltered.GroupBy(child => child.StartToken.pos).
+      var startToEndTokenNotOwned = childrenFiltered.Where(c => c.StartToken.pos <= c.EndToken.pos).
+        GroupBy(child => child.StartToken.pos).
         ToDictionary(g => g.Key, g => g.MaxBy(child => child.EndToken.pos).EndToken
       );
 
