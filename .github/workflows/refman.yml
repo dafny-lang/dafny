@@ -41,7 +41,6 @@ jobs:
       if: runner.os == 'Linux'
       run: |
         sudo apt-get install texlive-full
-      # apt-get has pandoc, but it is outdated
         wget https://github.com/jgm/pandoc/releases/download/3.1.7/pandoc-3.1.7-1-amd64.deb
         sudo dpkg -i *.deb
         rm -rf *.deb
