@@ -177,7 +177,8 @@ public class LiteralModuleDecl : ModuleDecl, ICanFormat, IHasSymbolChildren {
 
     var bindings = ModuleDef.BindModuleNames(resolver, parentBindings);
     if (!parentBindings.BindName(Name, this, bindings)) {
-      resolver.Reporter.Error(MessageSource.Resolver, tok, "Duplicate module name: {0}", Name);
+      parentBindings.TryLookup(Name, out var otherModule);
+      resolver.Reporter.Error(MessageSource.Resolver, new NestedToken(tok, otherModule.tok), "Duplicate module name: {0}", Name);
     }
   }
 
