@@ -72,7 +72,7 @@ public class OpaqueMemberRewriter : IRewriter {
     LiteralExpr low = new LiteralExpr(f.tok, 1);
     LiteralExpr hi = new LiteralExpr(f.tok, 2);
     // lemma.Attributes = new Attributes("fuel", new List<Expression>() { nameSegment, low, hi }, lemma.Attributes);
-    lemma.Attributes = new Attributes("revealed_fn", new List<Expression>() { nameSegment }, lemma.Attributes);
+    lemma.Attributes = new Attributes("revealedFunction", new List<Expression>() { nameSegment }, lemma.Attributes);
   }
 
 
@@ -100,10 +100,8 @@ public class OpaqueMemberRewriter : IRewriter {
   }
   private void GenerateRevealLemma(MemberDecl m, List<MemberDecl> newDecls) {
     if (m is Function f) {
-      // mark the opaque function with {:fuel 0, 0}
-      // var amount = new LiteralExpr(m.tok, 0);
-      // m.Attributes = new Attributes("fuel", new List<Expression>() { amount, amount }, m.Attributes);
 
+      // TODO: The following comment will need to be updated.
       // That is, given:
       //   function {:opaque} foo(x:int, y:int) : int
       //     requires 0 <= x < 5;

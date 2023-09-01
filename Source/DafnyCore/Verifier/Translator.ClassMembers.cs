@@ -1587,30 +1587,12 @@ namespace Microsoft.Dafny {
 
         // add the fuel assumption for the reveal method of a opaque method
         if (IsOpaqueRevealLemma(m)) {
-          List<Expression> args = Attributes.FindExpressions(m.Attributes, "fuel");
-          if (args is null) {
-            args = Attributes.FindExpressions(m.Attributes, "revealed_fn");
-          }
+          List<Expression> args = Attributes.FindExpressions(m.Attributes, "revealedFunction");
           if (args != null) {
             MemberSelectExpr selectExpr = args[0].Resolved as MemberSelectExpr;
             if (selectExpr != null) {
               Function f = selectExpr.Member as Function;
-              FuelConstant fuelConstant = this.functionFuel.Find(x => x.f == f);
-              if (fuelConstant != null) {
-                Boogie.Expr startFuel = fuelConstant.startFuel;
-                Boogie.Expr startFuelAssert = fuelConstant.startFuelAssert;
-                Boogie.Expr moreFuel_expr = fuelConstant.MoreFuel(sink, predef, f.IdGenerator);
-                Boogie.Expr layer = etran.layerInterCluster.LayerN(1, moreFuel_expr);
-                Boogie.Expr layerAssert = etran.layerInterCluster.LayerN(2, moreFuel_expr);
-
-                AddEnsures(ens, Ensures(m.tok, true, Boogie.Expr.Eq(startFuel, layer), null, null, null));
-                AddEnsures(ens, Ensures(m.tok, true, Boogie.Expr.Eq(startFuelAssert, layerAssert), null, null, null));
-                AddEnsures(ens, Ensures(m.tok, true, GetRevealConstant(f), null, null, null));
-
-                AddEnsures(ens, Ensures(m.tok, true, Boogie.Expr.Eq(FunctionCall(f.tok, BuiltinFunction.AsFuelBottom, null, moreFuel_expr), moreFuel_expr), null, null, "Shortcut to LZ"));
-              } else {
-                AddEnsures(ens, Ensures(m.tok, true, GetRevealConstant(f), null, null, null));
-              }
+              AddEnsures(ens, Ensures(m.tok, true, GetRevealConstant(f), null, null, null));
             }
           }
         }

@@ -1919,7 +1919,7 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), predef.BoxType,
               || attr.Name == "timeLimitMultiplier"  // This is a Dafny-specific attribute
               || (attr.Name == "timeLimit" && hasNewTimeLimit)
               || (attr.Name == "rlimit" && hasNewRLimit)
-              || (attr.Name == "revealed_fn")
+              || (attr.Name == "revealedFunction")
           ) {
             continue;
           }
