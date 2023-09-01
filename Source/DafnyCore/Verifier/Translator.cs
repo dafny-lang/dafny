@@ -5949,27 +5949,43 @@ namespace Microsoft.Dafny {
         }
 
         {
+          // As a first approximation, the following axiom is of the form:
           // Requires(Ty.., F#Handle( Ty1, ..., TyN, Layer, reveal, self), Heap, arg1, ..., argN)
           //   = F#Requires(Ty1, .., TyN, Layer, Heap, self, [Unbox] arg1, .., [Unbox] argN)
+          // However, .reads ands .requires functions require special attention.
+          // To understand the rationale for these axioms, refer to the section on arrow types of the reference manual.
+          // The requires clause of the .requires function is simply true.
+          // The requires clause of the .reads function checks that the precondtion of the receiving function holds.
 
           var fhandle = FunctionCall(f.tok, name, predef.HandleType, SnocSelf(SnocPrevH(args)));
           var lhs = FunctionCall(f.tok, Requires(arity), Bpl.Type.Bool, Concat(tyargs, Cons(h, Cons(fhandle, lhs_args))));
           Bpl.Expr rhs;
-          if (f.EnclosingClass is ArrowTypeDecl) {
-            // In case this is the /requires/ or /reads/ function, then there is no precondition
-            rhs = Bpl.Expr.True;
+          if (f.EnclosingClass is ArrowTypeDecl && f.Name == "requires") {
+            AddOtherDefinition(GetOrCreateFunction(f), new Axiom(f.tok,
+                BplForall(Concat(vars, bvars), BplTrigger(lhs), Bpl.Expr.Eq(lhs, Bpl.Expr.True))));
+          } else if (f.EnclosingClass is ArrowTypeDecl && f.Name == "reads") {
+            var args_h = f.ReadsHeap ? Snoc(SnocPrevH(argsRequires), h) : argsRequires;
+            var pre = FunctionCall(f.tok, Requires(arity), Bpl.Type.Bool, Concat(SnocSelf(args_h), lhs_args));
+            AddOtherDefinition(GetOrCreateFunction(f), (new Axiom(f.tok,
+              BplForall(Concat(vars, bvars), BplTrigger(lhs), Bpl.Expr.Eq(lhs, pre)))));
           } else {
             var args_h = f.ReadsHeap ? Snoc(SnocPrevH(argsRequires), h) : argsRequires;
             rhs = FunctionCall(f.tok, RequiresName(f), Bpl.Type.Bool, Concat(SnocSelf(args_h), rhs_args));
+            AddOtherDefinition(GetOrCreateFunction(f), new Axiom(f.tok,
+              BplForall(Concat(vars, bvars), BplTrigger(lhs), Bpl.Expr.Eq(lhs, rhs))));
           }
 
-          AddOtherDefinition(GetOrCreateFunction(f), (new Axiom(f.tok,
-            BplForall(Concat(vars, bvars), BplTrigger(lhs), Bpl.Expr.Eq(lhs, rhs)))));
+
         }
 
         {
+          // As a first approximation, the following axiom is of the form:
           // Reads(Ty.., F#Handle( Ty1, ..., TyN, Layer, self), Heap, arg1, ..., argN)
           //   =  $Frame_F(args...)
+          // However, .reads ands .requires functions require special attention.
+          // To understand the rationale for these axioms, refer to the section on arrow types of the reference manual.
+          // In both cases, the precondition of the receiving function must be checked before its reads clause can
+          // be referred to.
 
           var fhandle = FunctionCall(f.tok, name, predef.HandleType, SnocSelf(SnocPrevH(args)));
           Bpl.Expr lhs_inner = FunctionCall(f.tok, Reads(arity), TrType(new SetType(true, program.SystemModuleManager.ObjectQ())), Concat(tyargs, Cons(h, Cons(fhandle, lhs_args))));
@@ -5981,8 +5997,15 @@ namespace Microsoft.Dafny {
           var et = new ExpressionTranslator(this, predef, h);
           var rhs = InRWClause_Aux(f.tok, unboxBx, bx, null, f.Reads, false, et, selfExpr, rhs_dict);
 
-          sink.AddTopLevelDeclaration(new Axiom(f.tok,
-            BplForall(Cons(bxVar, Concat(vars, bvars)), BplTrigger(lhs), Bpl.Expr.Eq(lhs, rhs))));
+          if (f.EnclosingClass is ArrowTypeDecl) {
+            var args_h = f.ReadsHeap ? Snoc(SnocPrevH(argsRequires), h) : argsRequires;
+            var precondition = FunctionCall(f.tok, Requires(arity), Bpl.Type.Bool, Concat(SnocSelf(args_h), lhs_args));
+            sink.AddTopLevelDeclaration(new Axiom(f.tok,
+              BplForall(Cons(bxVar, Concat(vars, bvars)), BplTrigger(lhs), Bpl.Expr.Imp(precondition, Bpl.Expr.Eq(lhs, rhs)))));
+          } else {
+            sink.AddTopLevelDeclaration(new Axiom(f.tok,
+              BplForall(Cons(bxVar, Concat(vars, bvars)), BplTrigger(lhs), Bpl.Expr.Eq(lhs, rhs))));
+          }
         }
 
         {

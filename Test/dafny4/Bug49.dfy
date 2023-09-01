@@ -12,7 +12,7 @@ method Main()
 // test that the definition axiom for function "apply" is available
 
 function apply(f:int~>int, a:int): int
-  reads f.reads
+  reads f.reads(a)
   requires f.requires(a)
 {
   f(a)
