@@ -527,10 +527,10 @@ namespace Microsoft.Dafny {
       return global::Dafny.Sequence<global::Dafny.Rune>.UnicodeFromString(runes);
     }
 
-    private string _IExprToString(_IExpr expr) {
+    public static string _IExprToString(_IExpr expr) {
       return FromDafnyString(expr._ToString()!);
     }
-    private string _IProofProgramToString(_IProofProgram prog) {
+    public static string _IProofProgramToString(_IProofProgram prog) {
       return FromDafnyString(prog._ToString());
     }
 
@@ -556,7 +556,6 @@ namespace Microsoft.Dafny {
         }
         BoogieStmtListBuilder proofBuilder = null;
         var assertStmt = stmt as AssertStmt;
-        var provenByAlcor = false;
         var msg = "";
         if (assertStmt != null) {
           var proofAssumptions = assumptions; // proof assumptions won't make it to the top
@@ -572,59 +571,7 @@ namespace Microsoft.Dafny {
           }
           var alcorExpression = etran.TrExprAlcor(stmt.Expr);
           if (alcorExpression != null) {
-            if (proofAssumptions.Tactics.Any()) {
-              // We execute the tactics that were provided by the user
-              var tacticMode = new TacticMode();
-              tacticMode.__ctor(alcorExpression, proofAssumptions.Environment);
-              var currentState = FromDafnyString(tacticMode.proofState._ToString());
-              foreach (var tactic in proofAssumptions.Tactics) {
-                reporter.Info(MessageSource.Verifier, tactic.Token, currentState);
-                if (tactic is Intro {Name: var name}) {
-                  tacticMode.Intro(ToDafnyString(name ?? ""));
-                } else if (tactic is ImpElim {NameHyp: var nameHyp, NameImp: var nameImp, NameResult:var nameResult}) {
-                  tacticMode.ImpElim(ToDafnyString(nameImp ?? ""), ToDafnyString(nameHyp ?? ""),
-                    ToDafnyString(nameResult ?? ""));
-                } else if (tactic is Cases {
-                             NameEnvVar: var envVar, NewNameLeft: var newNameLeft, NewNameRight: var newNameRight
-                           }) {
-                  if (envVar == null || newNameLeft == null || newNameRight == null) {
-                    tacticMode.Cases();
-                  } else {
-                    tacticMode.CasesEnv(ToDafnyString(envVar ?? ""), ToDafnyString(newNameLeft ?? ""),
-                      ToDafnyString(newNameRight ?? ""));
-                  }
-                } else if (tactic is RecallEnv {Name: var recallVar}) {
-                  tacticMode.UseHypothesis(ToDafnyString(recallVar ?? ""));
-                } else if (tactic is Rename {OldName: var oldName, NewName: var newName}) {
-                  tacticMode.Rename(ToDafnyString(oldName ?? ""), ToDafnyString(newName ?? ""));
-                }
-                currentState = FromDafnyString(tacticMode.proofState._ToString());
-                currentState = currentState == "" ? "QED" : currentState;
-                reporter.Info(MessageSource.Verifier, tactic.TokenCloseParens, currentState);
-              }
-
-              if (tacticMode.proofState.is_Sequents &&
-                  tacticMode.proofState.dtor_sequents.is_SequentNil) {
-                // Success !
-                provenByAlcor = true;
-                msg = "Proved by the tactics";
-              }
-            }
-
-            if (!provenByAlcor) { // Automatic attempt
-              // Attempt to prove it using Alcor. If so, we emit an assumption in Boogie
-              var result = Alcor.__default.DummyProofFinder(
-                new AlcorProofKernel.Expr_Imp(proofAssumptions.Environment.ToExpr(),
-                  alcorExpression));
-              provenByAlcor = result.is_Success;
-              if (provenByAlcor) {
-                var expr = _IExprToString(result.dtor_value.dtor__0);
-                var proof = _IProofProgramToString(result.dtor_value.dtor__1);
-                msg = "Alcor automatically proved that " + expr + " by\n" + proof;
-              } else {
-                msg = FromDafnyString(result.dtor_msg);
-              }
-            }
+            var provenByAlcor = proofAssumptions.Prove(alcorExpression, reporter, out msg);
 
             if (provenByAlcor) {
               // Prevent that assertion from being verified by Z3
