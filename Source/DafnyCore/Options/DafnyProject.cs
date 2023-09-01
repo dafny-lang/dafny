@@ -10,7 +10,6 @@ using System.Threading.Tasks;
 using DafnyCore.Options;
 using Microsoft.Extensions.FileSystemGlobbing;
 using Tomlyn;
-using Tomlyn.Model;
 
 namespace Microsoft.Dafny; 
 
@@ -23,7 +22,7 @@ public class DafnyProject : IEquatable<DafnyProject> {
   public Uri Uri { get; set; }
   public string[] Includes { get; set; }
   public string[] Excludes { get; set; }
-  public Dictionary<string, object> Options { get; set; }
+  public Dictionary<string, string> Options { get; set; }
   public bool UsesProjectFile => Path.GetFileName(Uri.LocalPath) == FileName;
 
   public static async Task<DafnyProject> Open(IFileSystem fileSystem, Uri uri, TextWriter outputWriter, TextWriter errorWriter) {
@@ -140,55 +139,14 @@ public class DafnyProject : IEquatable<DafnyProject> {
       return false;
     }
 
-    return TryGetValueFromToml(errorWriter, Path.GetDirectoryName(Uri.LocalPath), option.Name, option.ValueType, tomlValue, out value);
-  }
-
-  public static bool TryGetValueFromToml(TextWriter errorWriter, string sourceDir, string tomlPath, System.Type type, object tomlValue, out object value) {
-    if (tomlValue == null) {
+    var parseResult = option.Parse(new[] { option.Aliases.First(), tomlValue });
+    if (parseResult.Errors.Any()) {
       value = null;
       return false;
     }
 
-    if (type.IsAssignableFrom(typeof(List<string>))) {
-      return TryGetListValueFromToml<string>(errorWriter, sourceDir, tomlPath, (TomlArray)tomlValue, out value);
-    }
-    if (type.IsAssignableFrom(typeof(List<FileInfo>))) {
-      return TryGetListValueFromToml<FileInfo>(errorWriter, sourceDir, tomlPath, (TomlArray)tomlValue, out value);
-    }
-
-    if (type == typeof(FileInfo) && tomlValue is string tomlString) {
-      // Need to make sure relative paths are interpreted relative to the source of the value,
-      // not the current directory.
-      var fullPath = sourceDir != null ? Path.GetFullPath(tomlString, sourceDir) : tomlString;
-      value = new FileInfo(fullPath);
-      return true;
-    }
-
-    if (!type.IsInstanceOfType(tomlValue)) {
-      if (type == typeof(string)) {
-        value = tomlValue.ToString();
-        return true;
-      }
-      errorWriter.WriteLine(
-        $"Error: property '{tomlPath}' is of type '{tomlValue.GetType()}' but should be of type '{type}'");
-      value = null;
-      return false;
-    }
-
-    value = tomlValue;
+    value = parseResult.GetValueForOption(option);
     return true;
-  }
-
-  private static bool TryGetListValueFromToml<T>(TextWriter errorWriter, string sourceDir, string tomlPath, TomlArray tomlValue, out object value) {
-    var success = true;
-    value = tomlValue.Select((e, i) => {
-      if (TryGetValueFromToml(errorWriter, sourceDir, $"{tomlPath}[{i}]", typeof(T), e, out var elementValue)) {
-        return (T)elementValue;
-      }
-      success = false;
-      return default(T);
-    }).ToList();
-    return success;
   }
 
   public bool Equals(DafnyProject other) {
@@ -200,13 +158,13 @@ public class DafnyProject : IEquatable<DafnyProject> {
       return true;
     }
 
-    var orderedOptions = Options?.OrderBy(kv => kv.Key) ?? Enumerable.Empty<KeyValuePair<string, object>>();
-    var otherOrderedOptions = other.Options?.OrderBy(kv => kv.Key) ?? Enumerable.Empty<KeyValuePair<string, object>>();
+    var orderedOptions = Options?.OrderBy(kv => kv.Key) ?? Enumerable.Empty<KeyValuePair<string, string>>();
+    var otherOrderedOptions = other.Options?.OrderBy(kv => kv.Key) ?? Enumerable.Empty<KeyValuePair<string, string>>();
 
     return Equals(Uri, other.Uri) &&
            NullableSetEqual(Includes?.ToHashSet(), other.Includes) &&
            NullableSetEqual(Excludes?.ToHashSet(), other.Excludes) &&
-           orderedOptions.SequenceEqual(otherOrderedOptions, new LambdaEqualityComparer<KeyValuePair<string, object>>(
+           orderedOptions.SequenceEqual(otherOrderedOptions, new LambdaEqualityComparer<KeyValuePair<string, string>>(
              (kv1, kv2) => kv1.Key == kv2.Key && GenericEquals(kv1.Value, kv2.Value),
              kv => kv.GetHashCode()));
   }

@@ -10,7 +10,7 @@ public class DafnyProjectTest {
       Uri = new Uri(randomFileName, UriKind.Absolute),
       Includes = new[] { "a", "a2" },
       Excludes = new[] { "b", "b2" },
-      Options = new Dictionary<string, object>() {
+      Options = new Dictionary<string, string>() {
         { "c", "d" },
         { "e", "f" }
       }
@@ -20,7 +20,7 @@ public class DafnyProjectTest {
       Uri = new Uri(randomFileName, UriKind.Absolute),
       Includes = new[] { "a2", "a" },
       Excludes = new[] { "b2", "b" },
-      Options = new Dictionary<string, object>() {
+      Options = new Dictionary<string, string>() {
         { "e", "f" },
         { "c", "d" },
       }
@@ -28,13 +28,13 @@ public class DafnyProjectTest {
 
     Assert.Equal(first, second);
 
-    first.Options.Add("k", new[] { 1, 2, 3 });
-    second.Options.Add("k", new[] { 1, 2, 3 });
+    first.Options.Add("k", "1, 2, 3");
+    second.Options.Add("k", "1, 2, 3");
 
     Assert.Equal(first, second);
 
-    first.Options.Add("m", new[] { 1, 2, 3 });
-    second.Options.Add("m", new[] { 3, 2, 1 });
+    first.Options.Add("m", "1, 2, 3");
+    second.Options.Add("m", "3, 2, 1");
     Assert.NotEqual(first, second);
   }
 }
