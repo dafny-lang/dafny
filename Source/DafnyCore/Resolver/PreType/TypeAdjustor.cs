@@ -158,6 +158,22 @@ public class TypeAdjustorVisitor : ASTVisitor<IASTVisitorContext> {
           "map display"));
       }
 
+    } else if (expr is SetComprehension setComprehension) {
+      flows.Add(new FlowFromComputedType(expr, () => new SetType(setComprehension.Finite, setComprehension.Term.Type),
+        "set comprehension"));
+
+    } else if (expr is MapComprehension mapComprehension) {
+      flows.Add(new FlowFromComputedType(expr, () => {
+        Type keyType;
+        if (mapComprehension.TermLeft != null) {
+          keyType = mapComprehension.TermLeft.Type;
+        } else {
+          Contract.Assert(mapComprehension.BoundVars.Count == 1);
+          keyType = mapComprehension.BoundVars[0].Type;
+        }
+        return new MapType(mapComprehension.Finite, keyType, mapComprehension.Term.Type);
+      }, "map comprehension"));
+
     } else if (expr is BinaryExpr binaryExpr) {
       switch (binaryExpr.ResolvedOp) {
         case BinaryExpr.ResolvedOpcode.Union:
