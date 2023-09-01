@@ -22,8 +22,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ macos-latest ]
-        # os: [macos-latest, ubuntu-latest ]
+        os: [ ubuntu-latest ]
     steps:
     - name: OS
       run: echo ${{ runner.os }} ${{ matrix.os }}
@@ -42,7 +41,7 @@ jobs:
       if: runner.os == 'Linux'
       run: |
         sudo apt-get install texlive texlive-xetex
-        wget https://github.com/jgm/pandoc/releases/download/2.10.1/pandoc-2.10.1-1-amd64.deb
+        wget https://github.com/jgm/pandoc/releases/download/3.1.7/pandoc-3.1.7-1-amd64.deb
         sudo dpkg -i *.deb
         rm -rf *.deb
       # apt-get has pandoc, but it is outdated
