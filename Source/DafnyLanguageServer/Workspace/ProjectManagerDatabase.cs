@@ -138,10 +138,14 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
             if (projectFileHasChanged) {
               var _ = projectManagerForFile.CloseAsync();
             } else {
-              projectManagerForFile.CloseDocument(out _);
+              var projectWasClosed = projectManagerForFile.CloseDocument(out _);
+              if (projectWasClosed && managersByProject.ContainsKey(projectManagerForFile.Project.Uri)) {
+                managersByProject.Remove(projectManagerForFile.Project.Uri);
+              }
             }
 
-            projectManagerForFile = createProjectManager(boogieEngine, project);
+            projectManagerForFile = managersByProject.GetValueOrDefault(project.Uri) ??
+                                    createProjectManager(boogieEngine, project);
             projectManagerForFile.OpenDocument(documentId.Uri.ToUri(), true);
           }
         } else {
@@ -173,6 +177,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     public async Task<DafnyProject> GetProject(Uri uri) {
+      if (uri.LocalPath.EndsWith(DafnyProject.FileName)) {
+        return await DafnyProject.Open(fileSystem, uri, TextWriter.Null, TextWriter.Null);
+      }
       return (await FindProjectFile(uri)) ?? ImplicitProject(uri);
     }
 
