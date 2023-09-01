@@ -49,19 +49,7 @@ jobs:
       if: matrix.os == 'ubuntu-latest'
       run: |
         sudo apt-get install texlive-science
-        sudo tlmgr init-usertree
-        sudo tlmgr update --self
-        sudo tlmgr install framed tcolorbox environ trimspaces unicode-math
-        pandoc -v
-        which latex || echo NOT FOUND latex
-        which xelatex || echo NOT FOUND xelatex
-        sudo gem install rouge
-    - if: matrix.os != 'ubuntu-latest' && runner.os == 'Linux'
-      run: |
         sudo apt-get install texlive-math-extra
-        sudo tlmgr init-usertree
-        sudo tlmgr update --self
-        sudo tlmgr install framed tcolorbox environ trimspaces unicode-math
         pandoc -v
         which latex || echo NOT FOUND latex
         which xelatex || echo NOT FOUND xelatex
