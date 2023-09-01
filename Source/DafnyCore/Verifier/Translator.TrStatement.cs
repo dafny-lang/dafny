@@ -572,18 +572,10 @@ namespace Microsoft.Dafny {
           var alcorExpression = etran.TrExprAlcor(stmt.Expr);
           if (alcorExpression != null) {
             var provenByAlcor = proofAssumptions.Prove(alcorExpression, reporter, out msg);
-
             if (provenByAlcor) {
-              // Prevent that assertion from being verified by Z3
-              var prevAssertionOnlyFilter = assertionOnlyFilter;
-              assertionOnlyFilter = (IToken tok) =>
-                (tok.pos < assertStmt.StartToken.pos || tok.pos >= assertStmt.EndToken.pos + assertStmt.EndToken.val.Length)
-                && (prevAssertionOnlyFilter == null || prevAssertionOnlyFilter(tok));
-              
-              reporter.Info(MessageSource.Verifier, assertStmt.tok, msg);
-            } else {
-              reporter.Info(MessageSource.Verifier, assertStmt.tok, msg);
+              IgnoreAssert(assertStmt);
             }
+            reporter.Info(MessageSource.Verifier, assertStmt.tok, msg);
             // And then we assume it with either a fresh "h" label or a user-provided label
             assumptions = assumptions.WithAssertedExpr(alcorExpression, assertStmt.Label?.Name);
           }
@@ -681,6 +673,14 @@ namespace Microsoft.Dafny {
         stmtContext = StmtType.NONE; // done with translating assume stmt.
       }
       this.fuelContext = FuelSetting.PopFuelContext();
+    }
+
+    private void IgnoreAssert(AssertStmt assertStmt)
+    {
+      var prevAssertionOnlyFilter = assertionOnlyFilter;
+      assertionOnlyFilter = (IToken tok) =>
+        (tok.pos < assertStmt.StartToken.pos || tok.pos >= assertStmt.EndToken.pos + assertStmt.EndToken.val.Length)
+        && (prevAssertionOnlyFilter == null || prevAssertionOnlyFilter(tok));
     }
 
     private void TrCalcStmt(CalcStmt stmt, BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran) {
