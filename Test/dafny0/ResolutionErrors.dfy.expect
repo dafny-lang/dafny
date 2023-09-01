@@ -420,8 +420,8 @@ ResolutionErrors.dfy(2825,21): Error: type of left argument to * (int) must agre
 ResolutionErrors.dfy(2825,21): Error: type of * must be of a numeric type, bitvector type, or a set-like type (instead got bool)
 ResolutionErrors.dfy(2824,11): Error: not resolving module 'V' because there were errors in resolving its nested module 'W'
 ResolutionErrors.dfy(2811,9): Error: not resolving module 'ErrorsFromNestedModules' because there were errors in resolving its nested module 'U'
-ResolutionErrors.dfy(2833,11): Error: duplicate name of top-level declaration: G
-ResolutionErrors.dfy(2839,11): Error: duplicate name of top-level declaration: H
+ResolutionErrors.dfy(2833,11): Error: duplicate name of top-level declaration: G [Related location] ResolutionErrors.dfy(2836,10)
+ResolutionErrors.dfy(2839,11): Error: duplicate name of top-level declaration: H [Related location] ResolutionErrors.dfy(2837,10)
 ResolutionErrors.dfy(2855,4): Error: ghost variables such as y are allowed only in specification contexts. y was inferred to be ghost based on its declaration or initialization.
 ResolutionErrors.dfy(2857,20): Error: ghost variables such as y are allowed only in specification contexts. y was inferred to be ghost based on its declaration or initialization.
 ResolutionErrors.dfy(2866,6): Error: ghost variables such as i are allowed only in specification contexts. i was inferred to be ghost based on its declaration or initialization.
