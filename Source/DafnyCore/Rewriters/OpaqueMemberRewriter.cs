@@ -69,9 +69,6 @@ public class OpaqueMemberRewriter : IRewriter {
     rr.Type = new ArrowType(f.tok, args, new IntType());
     nameSegment.ResolvedExpression = rr;
     nameSegment.Type = rr.Type;
-    LiteralExpr low = new LiteralExpr(f.tok, 1);
-    LiteralExpr hi = new LiteralExpr(f.tok, 2);
-    // lemma.Attributes = new Attributes("fuel", new List<Expression>() { nameSegment, low, hi }, lemma.Attributes);
     lemma.Attributes = new Attributes("revealedFunction", new List<Expression>() { nameSegment }, lemma.Attributes);
   }
 
