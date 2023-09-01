@@ -348,7 +348,7 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
 
         var assertionBatchTime = (int)result.runTime.TotalMilliseconds;
         var assertionBatchResourceCount = result.resourceCount;
-        implementationNode.AddAssertionBatchMetrics(result.vcNum, assertionBatchTime, assertionBatchResourceCount);
+        implementationNode.AddAssertionBatchMetrics(result.vcNum, assertionBatchTime, assertionBatchResourceCount, result.coveredElements.ToList());
 
         // Attaches the trace
         void AddChildOutcome(Counterexample? counterexample, AssertCmd assertCmd, IToken token,

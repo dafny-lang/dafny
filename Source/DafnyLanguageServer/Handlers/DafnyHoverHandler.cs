@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
-using Microsoft.Dafny.LanguageServer.Language.Symbols;
 using Microsoft.Dafny.LanguageServer.Workspace;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Client.Capabilities;
@@ -162,7 +161,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
         // Ok no assertion here. Maybe a method?
         if (node.Position.Line == position.Line) {
           areMethodStatistics = true;
-          return GetTopLevelInformation(node, orderedAssertionBatches);
+          return GetTopLevelInformation(node, orderedAssertionBatches) + GetProofDependencyInformation(state, node, orderedAssertionBatches);
         }
       }
 
@@ -224,10 +223,31 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
               information += OverCostlyMessage;
             }
           }
+
         }
       }
 
       return information;
+    }
+
+    private string GetProofDependencyInformation(IdeState state, TopLevelDeclMemberVerificationTree node, List<AssertionBatchVerificationTree> orderedAssertionBatches) {
+      var lines = new List<string>();
+      var program = (Program)state.Program;
+      if (program is null) {
+        return "null program";
+      }
+      foreach (var assertionBatch in orderedAssertionBatches) {
+        foreach (var depId in assertionBatch.CoveredIds) {
+          var dep = program.ProofDependencyManager.GetFullIdDependency(depId);
+          lines.Add($"* `{dep.RangeString()}: {dep.Description}`\n");
+        }
+      }
+
+      if (lines.Any()) {
+        return lines.Aggregate("\n\nProof dependencies:\n", (acc, l) => acc + l);
+      } else {
+        return "";
+      }
     }
 
     private string GetAssertionInformation(IdeState ideState, Position position, AssertionVerificationTree assertionNode,
