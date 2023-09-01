@@ -714,7 +714,6 @@ namespace Microsoft.Dafny {
               // The check for .reads function must be translated explicitly: their declaration lacks
               // an explicit precondition, which is added as an axiom in Translator.cs
               if (e.Function.Name == "reads" && !e.Receiver.Type.IsArrowTypeWithoutReadEffects) {
-                // check that the preconditions for the call hold
                 var arguments = etran.FunctionInvocationArguments(e, null, null);
                 var precondition = FunctionCall(e.tok, Requires(e.Args.Count), Bpl.Type.Bool, arguments);
                 builder.Add(Assert(GetToken(expr), precondition, new PODesc.PreconditionSatisfied(null, null)));
@@ -747,13 +746,11 @@ namespace Microsoft.Dafny {
                       }
                     }
                   }
-
                   if (wfOptions.AssertKv == null) {
                     // assume only if no given assert attribute is given
                     builder.Add(TrAssumeCmd(callExpr.tok, etran.TrExpr(precond)));
                   }
                 }
-
                 if (wfOptions.DoReadsChecks) {
                   // check that the callee reads only what the caller is already allowed to read
                   var s = new Substituter(null, new Dictionary<IVariable, Expression>(), e.GetTypeArgumentSubstitutions());
@@ -761,9 +758,7 @@ namespace Microsoft.Dafny {
                     e.Function.Reads.ConvertAll(s.SubstFrameExpr),
                     e.Receiver, substMap, etran, etran.ReadsFrame(callExpr.tok), wfOptions.AssertSink(this, builder), new PODesc.FrameSubset("invoke function", false), wfOptions.AssertKv);
                 }
-
               }
-
               Bpl.Expr allowance = null;
               if (codeContext != null && e.CoCall != FunctionCallExpr.CoCallResolution.Yes && !(e.Function is ExtremePredicate)) {
                 // check that the decreases measure goes down
