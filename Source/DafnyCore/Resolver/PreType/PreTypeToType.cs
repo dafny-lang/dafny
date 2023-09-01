@@ -73,9 +73,11 @@ class PreTypeToTypeVisitor : ASTVisitor<IASTVisitorContext> {
   }
 
   public override void VisitField(Field field) {
-    if (field is ConstantField constField) {
-      // The type of the const might have been omitted in the program text and then inferred
-      PreType2TypeUtil.Combine(constField.Type, constField.PreType, true);
+    if (field is ConstantField ||
+        (field.EnclosingClass is IteratorDecl iteratorDecl && iteratorDecl.DecreasesFields.Contains(field))) {
+      // The type of the const might have been omitted in the program text and then inferred.
+      // Also, the automatically generated _decreases fields of an iterator have inferred types.
+      PreType2TypeUtil.Combine(field.Type, field.PreType, true);
     }
 
     base.VisitField(field);

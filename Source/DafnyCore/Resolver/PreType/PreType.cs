@@ -110,6 +110,8 @@ namespace Microsoft.Dafny {
       return null;
     }
 
+    public bool IsRefType => Normalize() is DPreType { Decl: ClassLikeDecl { IsReferenceTypeDecl: true } };
+
     /// <summary>
     /// Returns "true" if "proxy" is among the free variables of "this".
     /// "proxy" is expected to be normalized.
