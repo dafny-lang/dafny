@@ -1,4 +1,4 @@
-// RUN: %exits-with 4 %verify --reads-clauses-on-methods "%s" > "%t"
+// RUN: %exits-with 4 %baredafny verify --use-basename-for-filename --show-snippets false --reads-clauses-on-methods "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 class Box<T> {
