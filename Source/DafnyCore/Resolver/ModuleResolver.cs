@@ -564,7 +564,7 @@ namespace Microsoft.Dafny {
         reporter = new ErrorReporterWrapper(reporter,
           $"Raised while checking export set {exportDecl.Name}: ");
         var testSig = exportView.RegisterTopLevelDecls(this, true);
-        exportView.Resolve(testSig, this, true);
+        exportView.Resolve(testSig, this, exportDecl.Name);
         var wasError = reporter.Count(ErrorLevel.Error) > 0;
         reporter = (BatchErrorReporter)((ErrorReporterWrapper)reporter).WrappedReporter;
 
@@ -1048,7 +1048,7 @@ namespace Microsoft.Dafny {
 
     public void ResolveTopLevelDecls_Core(List<TopLevelDecl> declarations,
       Graph<IndDatatypeDecl> datatypeDependencies, Graph<CoDatatypeDecl> codatatypeDependencies,
-      string moduleName, bool isAnExport = false) {
+      string moduleDescription, bool isAnExport) {
 
       Contract.Requires(declarations != null);
       Contract.Requires(cce.NonNullElements(datatypeDependencies.GetVertices()));
@@ -1084,7 +1084,7 @@ namespace Microsoft.Dafny {
         }
 
         if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
-          var typeAdjustor = new TypeAdjustorVisitor(SystemModuleManager);
+          var typeAdjustor = new TypeAdjustorVisitor(moduleDescription, SystemModuleManager);
           typeAdjustor.VisitDeclarations(declarations);
           typeAdjustor.Solve(reporter, Options.Get(CommonOptionBag.NewTypeInferenceDebug));
         }

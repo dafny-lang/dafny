@@ -17,24 +17,26 @@ namespace Microsoft.Dafny;
 /// pre-type inference. The visitor collects constraints, which are solved by the Solve() method.
 /// </summary>
 public class TypeAdjustorVisitor : ASTVisitor<IASTVisitorContext> {
+  private string moduleDescription;
   public override IASTVisitorContext GetContext(IASTVisitorContext astVisitorContext, bool inFunctionPostcondition) {
     return astVisitorContext;
   }
 
   private readonly SystemModuleManager systemModuleManager;
 
-  public TypeAdjustorVisitor(SystemModuleManager systemModuleManager) {
+  public TypeAdjustorVisitor(string moduleDescription, SystemModuleManager systemModuleManager) {
+    this.moduleDescription = moduleDescription;
     this.systemModuleManager = systemModuleManager;
   }
 
   private readonly List<Flow> flows = new();
 
   public void DebugPrint() {
-    systemModuleManager.Options.OutputWriter.WriteLine($"--------------------------- type-adjustment flows:");
+    systemModuleManager.Options.OutputWriter.WriteLine($"--------------------------- type-adjustment flows, {moduleDescription}:");
     foreach (var flow in flows) {
       flow.DebugPrint(systemModuleManager.Options.OutputWriter);
     }
-    systemModuleManager.Options.OutputWriter.WriteLine("------------------- (end of type-adjustment flows)");
+    systemModuleManager.Options.OutputWriter.WriteLine($"------------------- (end of type-adjustment flows, {moduleDescription})");
   }
 
   protected override bool VisitOneExpression(Expression expr, IASTVisitorContext context) {
