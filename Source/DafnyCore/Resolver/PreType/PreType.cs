@@ -32,8 +32,8 @@ namespace Microsoft.Dafny {
     /// </summary>
     public PreType Normalize() {
       var t = this;
-      while (t is PreTypeProxy proxy && proxy.PT != null) {
-        t = proxy.PT;
+      while (t is PreTypeProxy { PT: {} proxyFor }) {
+        t = proxyFor;
       }
       return t;
     }
@@ -196,7 +196,8 @@ namespace Microsoft.Dafny {
 
   public class PreTypeProxy : PreType {
     public readonly int UniqueId;
-    public PreType PT; // filled in by resolution
+
+    [FilledInDuringResolution] public PreType PT { get; private set; }
 
     /// <summary>
     /// There should be just one call to this constructor, namely from PreTypeResolver.CreatePreTypeProxy.
