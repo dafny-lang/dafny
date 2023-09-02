@@ -13,6 +13,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using DafnyCore;
+using DafnyCore.Verifier;
 using Microsoft.Boogie;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -200,6 +201,57 @@ to also include a directory containing the `z3` executable.
         default:
           Contract.Assert(false);
           throw new cce.UnreachableException(); // unexpected outcome
+      }
+    }
+
+    public static void WarnAboutSuspiciousDependencies(DafnyOptions dafnyOptions, ErrorReporter reporter, ProofDependencyManager depManager) {
+      var verificationResults = (dafnyOptions.Printer as DafnyConsolePrinter).VerificationResults.ToList();
+      var orderedResults =
+        verificationResults.OrderBy(vr =>
+          (vr.Item1.tok.filename, vr.Item1.tok.line, vr.Item1.tok.col));
+      foreach (var (implementation, result) in orderedResults) {
+        WarnAboutSuspiciousDependenciesForImplementation(dafnyOptions, reporter, depManager, implementation, result);
+      }
+    }
+
+    public static void WarnAboutSuspiciousDependenciesForImplementation(DafnyOptions dafnyOptions, ErrorReporter reporter, ProofDependencyManager depManager, Implementation implementation, VerificationResult result) {
+      var potentialDependencies = depManager.GetPotentialDependenciesForDefinition(implementation.VerboseName);
+      var usedDependencyIds = result.VCResults.SelectMany(vcResult => vcResult.coveredElements);
+      var usedDependencies =
+        usedDependencyIds
+          .Select(depManager.GetFullIdDependency)
+          .OrderBy(dep => (dep.RangeString(), dep.Description));
+      var unusedDependencyIds = potentialDependencies.Except(usedDependencyIds);
+      var unusedDependencies =
+        unusedDependencyIds
+          .Select(depManager.GetFullIdDependency)
+          .OrderBy(dep => (dep.RangeString(), dep.Description));
+
+      var unusedObligations = unusedDependencies.OfType<ProofObligationDependency>();
+      var unusedRequires = unusedDependencies.OfType<RequiresDependency>();
+      var unusedEnsures = unusedDependencies.OfType<EnsuresDependency>();
+      var unusedAssumeStatements =
+        unusedDependencies
+          .OfType<AssumptionDependency>()
+          .Where(d => d.Description.Contains("assume statement"));
+      if (dafnyOptions.Get(CommonOptionBag.WarnVacuity)) {
+        foreach (var dep in unusedObligations) {
+          reporter.Warning(MessageSource.Verifier, "", dep.Range, $"vacuous proof: {dep.Description}");
+        }
+
+        foreach (var dep in unusedEnsures) {
+          reporter.Warning(MessageSource.Verifier, "", dep.Range, $"vacuous proof of ensures clause");
+        }
+      }
+
+      if (dafnyOptions.Get(CommonOptionBag.WarnRedundantAssumptions)) {
+        foreach (var dep in unusedRequires) {
+          reporter.Warning(MessageSource.Verifier, "", dep.Range, $"unnecessary requires clause");
+        }
+
+        foreach (var dep in unusedAssumeStatements) {
+          reporter.Warning(MessageSource.Verifier, "", dep.Range, $"unnecessary assumption");
+        }
       }
     }
 

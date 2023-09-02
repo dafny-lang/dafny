@@ -24,6 +24,7 @@ using System.Linq;
 using Microsoft.Boogie;
 using Bpl = Microsoft.Boogie;
 using System.Diagnostics;
+using DafnyCore.Verifier;
 using Microsoft.Dafny;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.Dafny.LanguageServer.CounterExampleGeneration;
@@ -169,6 +170,7 @@ namespace Microsoft.Dafny {
           exitValue = ExitValue.PREPROCESSING_ERROR;
         }
       }
+
       if (dafnyOptions.Wait) {
         Console.WriteLine("Press Enter to exit.");
         Console.ReadLine();
@@ -465,6 +467,10 @@ namespace Microsoft.Dafny {
 
         string baseName = cce.NonNull(Path.GetFileName(dafnyFileNames[^1]));
         var (verified, outcome, moduleStats) = await BoogieAsync(options, baseName, boogiePrograms, programId);
+
+        if (options.TrackVerificationCoverage && verified) {
+          DafnyMain.WarnAboutSuspiciousDependencies(options, dafnyProgram.Reporter, depManager);
+        }
 
         bool compiled;
         try {
