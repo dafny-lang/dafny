@@ -200,7 +200,7 @@ public abstract class Type : TokenNode {
           var rhs = isyn.RhsWithArgumentIgnoringScope(udt.TypeArgs);
           Contract.Assert(rhs is UserDefinedType);
           var cl = ((UserDefinedType)rhs).ResolvedClass as ClassLikeDecl;
-          Contract.Assert(cl != null && cl.NonNullTypeDecl != null);
+          Contract.Assert(cl != null && cl.NonNullTypeDecl != null, rhs.ToString());
           Contract.Assert(cl.NonNullTypeDecl.IsVisibleInScope(scope));
         }
 
