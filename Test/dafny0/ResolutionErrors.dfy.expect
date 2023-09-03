@@ -125,7 +125,7 @@ ResolutionErrors.dfy(985,12): Error: arguments to % must be integer-numeric or b
 ResolutionErrors.dfy(984,19): Error: type of right argument to / (int) must agree with the result type (real)
 ResolutionErrors.dfy(1012,11): Error: Wrong number of type arguments (2 instead of 1) passed to non-null type: array3
 ResolutionErrors.dfy(1013,11): Error: Wrong number of type arguments (2 instead of 1) passed to non-null type: C
-ResolutionErrors.dfy(1024,7): Error: duplicate name of top-level declaration: BadSyn2
+ResolutionErrors.dfy(1024,7): Error: duplicate name of top-level declaration: BadSyn2 [Related location] ResolutionErrors.dfy(1023,7)
 ResolutionErrors.dfy(1021,17): Error: Wrong number of type arguments (0 instead of 1) passed to datatype: List
 ResolutionErrors.dfy(1022,17): Error: Type or type parameter is not declared in this scope: badName (did you forget to qualify a name or declare a module import 'opened'?) (note that names in outer modules are not visible in contained modules)
 ResolutionErrors.dfy(1023,22): Error: Type or type parameter is not declared in this scope: X (did you forget to qualify a name or declare a module import 'opened'?) (note that names in outer modules are not visible in contained modules)
