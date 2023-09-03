@@ -101,7 +101,6 @@ abstract class Flow {
   [CanBeNull]
   public static Type CopyAndUpdate(Type a, Type b, FlowContext context) {
     var adjustableA = AdjustableType.NormalizeSansAdjustableType(a) as AdjustableType;
-    var aa = adjustableA?.T ?? a;
     // compute the "copy" of aa and b:
     Type copy;
     if (AdjustableType.NormalizesToBottom(a)) {
@@ -137,10 +136,30 @@ abstract class Flow {
     Contract.Requires(a != null);
     Contract.Requires(b != null);
 
+    [CanBeNull]
+    Type JoinChildren(UserDefinedType udtA, UserDefinedType udtB) {
+      if (udtA.ResolvedClass == udtB.ResolvedClass) {
+        // We have two subset types with equal heads
+        Contract.Assert(a.TypeArgs.Count == b.TypeArgs.Count);
+        var typeArgs = Joins(TypeParameter.Variances(udtA.ResolvedClass.TypeArgs), a.TypeArgs, b.TypeArgs, context);
+        if (typeArgs != null) {
+          return UserDefinedType.FromTopLevelDecl(udtA.tok, udtA.ResolvedClass, typeArgs);
+        }
+      }
+      return null;
+    }
+
     if (a is BottomTypePlaceholder) {
       return b;
     } else if (b is BottomTypePlaceholder) {
       return a;
+#if !ATTEMPT // TODO: if this works, then GetTowerOfSubsetTypes below should be adjusted to also take into consideration type synonyms
+    } else if (a is UserDefinedType udtA && b is UserDefinedType udtB) {
+      var join = JoinChildren(udtA, udtB);
+      if (join != null) {
+        return join;
+      }
+#endif
     }
 
     // Before we do anything else, make a note of whether or not both "a" and "b" are non-null types.
@@ -156,17 +175,9 @@ abstract class Flow {
     for (var n = System.Math.Min(towerA.Count, towerB.Count); 1 <= --n;) {
       a = towerA[n];
       b = towerB[n];
-      var udtA = (UserDefinedType)a;
-      var udtB = (UserDefinedType)b;
-      if (udtA.ResolvedClass == udtB.ResolvedClass) {
-        // We have two subset types with equal heads
-        Contract.Assert(a.TypeArgs.Count == b.TypeArgs.Count);
-        var typeArgs = Joins(TypeParameter.Variances(udtA.ResolvedClass.TypeArgs), a.TypeArgs, b.TypeArgs, context);
-        if (typeArgs == null) {
-          // there was an error in computing the joins, so propagate the error
-          return null;
-        }
-        return new UserDefinedType(udtA.tok, udtA.Name, udtA.ResolvedClass, typeArgs);
+      var join = JoinChildren((UserDefinedType)a, (UserDefinedType)b);
+      if (join != null) {
+        return join;
       }
     }
     // We exhausted all possibilities of subset types being equal, so use the base-most types.
@@ -307,7 +318,7 @@ class FlowIntoVariable : Flow {
   }
 
   public override bool Update(FlowContext context) {
-    return UpdateAdjustableType(sink, source.Type, context);
+    return UpdateAdjustableType(sink, AdjustableType.NormalizeSansBottom(source), context);
   }
 
   public override void DebugPrint(TextWriter output) {
@@ -449,6 +460,6 @@ class FlowBetweenExpressions : FlowIntoExpr {
   }
 
   protected override Type GetSourceType() {
-    return source.Type;
+    return AdjustableType.NormalizeSansBottom(source);
   }
 }

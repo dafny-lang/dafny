@@ -50,7 +50,7 @@ namespace Microsoft.Dafny {
           dPreType = dPreType.PrintablePreType;
         }
         if (dPreType.Decl is RevealableTypeDecl rtd && !rtd.IsRevealedInScope(Type.GetScope())) {
-          return new DPreType(rtd.SynonymInfo.SelfSynonymDecl, dPreType.Arguments);
+          return new DPreType(rtd.SynonymInfo.SelfSynonymDecl, dPreType.Arguments, dPreType.PrintablePreType);
         }
       }
       return t;

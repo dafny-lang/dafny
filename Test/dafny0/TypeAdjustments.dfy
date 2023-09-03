@@ -567,3 +567,98 @@ module Comprehensions {
     case true => jj' := ii;
   }
 }
+
+module TrickyProvides0 {
+  module AAA {
+    import BBB
+
+    type T = t: BBB.U | true witness *
+  }
+
+  module BBB {
+    export
+      provides U, Empty
+
+    import CCC
+    type U = CCC.W // type synonym
+
+    function Empty(): U
+      // In the following line, the type of the RHS of the let should be recorded as U, not just as CCC.W,
+      // because importers of BBB will only be able to see U.
+      ensures var u := Empty(); true
+  }
+
+  module CCC {
+    export
+      provides W
+
+    datatype W = Leaf | Node
+  }
+}
+
+module TrickyProvides1 {
+  module AAA {
+    import BBB
+
+    type T = t: BBB.U | true witness *
+  }
+
+  module BBB {
+    export
+      provides U, Empty
+
+    import CCC
+    type U = w: CCC.W | true witness * // subset type
+
+    function Empty(): U
+      // In the following line, the type of the RHS of the let should be recorded as U, not just as CCC.W,
+      // because importers of BBB will only be able to see U.
+      ensures var u := Empty(); true
+  }
+
+  module CCC {
+    export
+      provides W
+
+    datatype W = Leaf | Node
+  }
+}
+
+module MoreTrickySynonym {
+  type Nat = int
+
+  method M0(n: Nat, b: bool) {
+    var z; // int
+    z := n + n;
+    var w; // Nat
+    w := n;
+    w := n;
+    var u; // Nat
+    u := if b then n else n;
+  }
+}
+
+module MoreTrickySubsetType {
+  type Nat = x: int | 0 <= x
+
+  method M0(n: Nat, b: bool) {
+    var z; // int
+    z := n + n;
+    var w; // Nat
+    w := n;
+    w := n;
+    var u; // Nat
+    u := if b then n else n;
+  }
+}
+
+module Let {
+  method XYZ(n: nat) {
+    var i := n; // nat
+    var j; // nat
+    j := var jj := n; jj;
+    i, j := *, *;
+    assert 0 <= i;
+    assert 0 <= j;
+  }
+}

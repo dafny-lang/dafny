@@ -46,4 +46,4 @@ TypeAdjustments.dfy(243,13): Error: assertion might not hold
 TypeAdjustments.dfy(247,10): Error: value of expression (of type 'CellX<int>') is not known to be an instance of type 'CellX<nat>'
 TypeAdjustments.dfy(251,10): Error: value of expression (of type 'CellX<nat>') is not known to be an instance of type 'CellX<int>'
 
-Dafny program verifier finished with 15 verified, 47 errors
+Dafny program verifier finished with 19 verified, 47 errors
