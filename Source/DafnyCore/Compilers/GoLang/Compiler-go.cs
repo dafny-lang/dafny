@@ -3734,15 +3734,14 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void EmitMapDisplay(MapType mt, IToken tok, List<ExpressionPair> elements,
         bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
-      wr.Write("_dafny.NewMapBuilder()");
+      wr.Write("_dafny.NewMapBuilder().ToMap()");
       foreach (ExpressionPair p in elements) {
-        wr.Write(".Add(");
+        wr.Write(".UpdateUnsafe(");
         wr.Append(Expr(p.A, inLetExprBody, wStmts));
         wr.Write(", ");
         wr.Append(Expr(p.B, inLetExprBody, wStmts));
         wr.Write(')');
       }
-      wr.Write(".ToMap()");
     }
 
     protected override void EmitSetBuilder_New(ConcreteSyntaxTree wr, SetComprehension e, string collectionName) {
