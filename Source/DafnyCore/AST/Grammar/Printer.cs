@@ -1161,10 +1161,10 @@ NoGhost - disable printing of functions, ghost methods, and proof
       Contract.Requires(prefix != null);
       Contract.Requires(ty != null);
       if (options.DafnyPrintResolvedFile != null) {
-        ty = ty.Normalize();
+        ty = AdjustableType.NormalizeSansAdjustableType(ty);
       }
       string s = ty.TypeName(options, null, true);
-      if (!(ty is TypeProxy) && !s.StartsWith("_")) {
+      if (ty is AdjustableType or not TypeProxy && !s.StartsWith("_")) {
         wr.Write("{0}{1}", prefix, s);
       }
     }
@@ -2990,7 +2990,13 @@ NoGhost - disable printing of functions, ghost methods, and proof
       Contract.Requires(boundVars != null);
       string sep = "";
       foreach (BoundVar bv in boundVars) {
-        wr.Write("{0}{1}", sep, bv.DisplayName);
+        wr.Write("{0}", sep);
+        if (printFlags.UseOriginalDafnyNames) {
+          wr.Write(bv.DafnyName);
+        } else {
+          wr.Write(bv.DisplayName);
+        }
+
         PrintType(": ", bv.Type);
         sep = ", ";
       }

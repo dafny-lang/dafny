@@ -31,7 +31,7 @@ public class VerificationHandler : IJsonRpcRequestHandler<VerificationParams, bo
       return false;
     }
 
-    return await projectManager.CompilationManager.VerifyTask(new FilePosition(request.TextDocument.Uri.ToUri(), request.Position));
+    return await projectManager.CompilationManager.VerifySymbol(new FilePosition(request.TextDocument.Uri.ToUri(), request.Position));
   }
 
   public async Task<bool> Handle(CancelVerificationParams request, CancellationToken cancellationToken) {
@@ -40,17 +40,7 @@ public class VerificationHandler : IJsonRpcRequestHandler<VerificationParams, bo
       return false;
     }
 
-
-    var resolvedCompilation = await projectManager.CompilationManager.ResolvedCompilation;
-    if (resolvedCompilation.Program.FindNode(request.TextDocument.Uri.ToUri(), request.Position.ToDafnyPosition()) is ICanVerify verifiable) {
-      var implementations = resolvedCompilation.ImplementationsPerVerifiable.TryGetValue(verifiable, out var implementationsPerName)
-        ? implementationsPerName.Values : Enumerable.Empty<ImplementationView>();
-      foreach (var view in implementations) {
-        view.Task.Cancel();
-      }
-    }
-
-
+    await projectManager.CompilationManager.Cancel(new FilePosition(request.TextDocument.Uri.ToUri(), request.Position));
     return true;
   }
 }

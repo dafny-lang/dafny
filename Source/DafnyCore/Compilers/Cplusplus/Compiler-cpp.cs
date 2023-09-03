@@ -91,7 +91,7 @@ namespace Microsoft.Dafny.Compilers {
     protected override void EmitHeader(Program program, ConcreteSyntaxTree wr) {
       // This seems to be a good place to check for unsupported options
       if (UnicodeCharEnabled) {
-        throw new UnsupportedFeatureException(program.GetFirstTopLevelToken(), Feature.UnicodeChars);
+        throw new UnsupportedFeatureException(program.GetStartOfFirstFileToken(), Feature.UnicodeChars);
       }
 
       wr.WriteLine("// Dafny program {0} compiled into Cpp", program.Name);
@@ -1951,9 +1951,11 @@ namespace Microsoft.Dafny.Compilers {
       wr.Write("is_{1}({0})", source, DatatypeSubStructName(ctor));
     }
 
-    protected override void EmitDestructor(string source, Formal dtor, int formalNonGhostIndex, DatatypeCtor ctor, List<Type> typeArgs, Type bvType, ConcreteSyntaxTree wr) {
+    protected override void EmitDestructor(Action<ConcreteSyntaxTree> source, Formal dtor, int formalNonGhostIndex, DatatypeCtor ctor, List<Type> typeArgs, Type bvType, ConcreteSyntaxTree wr) {
       if (ctor.EnclosingDatatype is TupleTypeDecl) {
-        wr.Write("({0}).template get<{1}>()", source, formalNonGhostIndex);
+        wr.Write("(");
+        source(wr);
+        wr.Write(").template get<{0}>()", formalNonGhostIndex);
       } else {
         var dtorName = FormalName(dtor, formalNonGhostIndex);
         if (dtor.Type is UserDefinedType udt && udt.ResolvedClass == ctor.EnclosingDatatype) {
@@ -1962,9 +1964,13 @@ namespace Microsoft.Dafny.Compilers {
         }
 
         if (ctor.EnclosingDatatype.Ctors.Count > 1) {
-          wr.Write("(({0}).dtor_{1}())", source, dtorName);
+          wr.Write("((");
+          source(wr);
+          wr.Write(").dtor_{0}())", dtorName);
         } else {
-          wr.Write("(({0}).{1})", source, dtorName);
+          wr.Write("((");
+          source(wr);
+          wr.Write(").{0})", dtorName);
         }
       }
     }

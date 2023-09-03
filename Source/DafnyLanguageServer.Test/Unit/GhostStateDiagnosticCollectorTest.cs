@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
 using System.Threading;
+using DafnyCore.Test;
 using IntervalTree;
 using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Language.Symbols;
@@ -31,7 +33,7 @@ public class GhostStateDiagnosticCollectorTest {
   }
 
   public GhostStateDiagnosticCollectorTest(ITestOutputHelper output) {
-    var options = new DafnyOptions(TextReader.Null, new WriterFromOutputHelper(output), new WriterFromOutputHelper(output));
+    var options = new DafnyOptions(TextReader.Null, (TextWriter)new WriterFromOutputHelper(output), (TextWriter)new WriterFromOutputHelper(output));
     options.Set(ServerCommand.GhostIndicators, true);
     ghostStateDiagnosticCollector = new GhostStateDiagnosticCollector(
       options,
@@ -69,8 +71,8 @@ public class GhostStateDiagnosticCollectorTest {
     var source = new CancellationTokenSource();
     source.CancelAfter(TimeSpan.FromSeconds(50));
     var ghostDiagnostics = ghostStateDiagnosticCollector.GetGhostStateDiagnostics(
-      new SignatureAndCompletionTable(null!, new CompilationUnit(rootUri, program),
-        null!, null!, new IntervalTree<Position, ILocalizableSymbol>(), true)
+      new LegacySignatureAndCompletionTable(null!, new CompilationUnit(rootUri, program),
+        null!, null!, ImmutableDictionary<Uri, IIntervalTree<Position, ILocalizableSymbol>>.Empty, true)
       , source.Token);
     Assert.Empty(ghostDiagnostics);
   }

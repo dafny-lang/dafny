@@ -18,14 +18,14 @@ using PODesc = Microsoft.Dafny.ProofObligationDescription;
 namespace Microsoft.Dafny {
   public partial class Translator {
     /// <summary>
-    /// Instances of WFContext are used as an argument to CheckWellformed, supplying options for the
+    /// Instances of WFOptions are used as an argument to CheckWellformed, supplying options for the
     /// checks to be performed.
     /// If "SelfCallsAllowance" is non-null, termination checks will be omitted for calls that look
     /// like it.  This is useful in function postconditions, where the result of the function is
     /// syntactically given as what looks like a recursive call with the same arguments.
     /// "DoReadsChecks" indicates whether or not to perform reads checks.  If so, the generated code
-    /// will make references to $_Frame.  If "saveReadsChecks" is true, then the reads checks will
-    /// be recorded but postponsed.  In particular, CheckWellformed will append to .Locals a list of
+    /// will make references to $_ReadsFrame.  If "saveReadsChecks" is true, then the reads checks will
+    /// be recorded but postponed.  In particular, CheckWellformed will append to .Locals a list of
     /// fresh local variables and will append to .Assert assertions with appropriate error messages
     /// that can be used later.  As a convenience, the ProcessSavedReadsChecks will make use of .Locals
     /// and .Asserts (and AssignLocals) and update a given StmtListBuilder.
@@ -55,36 +55,35 @@ namespace Microsoft.Dafny {
         }
       }
 
+      private WFOptions(Function selfCallsAllowance, bool doReadsChecks, bool doOnlyCoarseGrainedTerminationChecks,
+        List<Bpl.Variable> locals, List<Bpl.Cmd> asserts, bool lValueContext, Bpl.QKeyValue assertKv) {
+        SelfCallsAllowance = selfCallsAllowance;
+        DoReadsChecks = doReadsChecks;
+        DoOnlyCoarseGrainedTerminationChecks = doOnlyCoarseGrainedTerminationChecks;
+        Locals = locals;
+        Asserts = asserts;
+        LValueContext = lValueContext;
+        AssertKv = assertKv;
+      }
+
       public WFOptions(Bpl.QKeyValue kv) {
         AssertKv = kv;
       }
 
       /// <summary>
-      /// This constructor clones the given "options", but turns off reads checks.  (I wish C# allowed
-      /// me to name the constructor something to indicate this semantics in its name.  Sigh.)
+      /// Clones the given "options", but turns reads checks on or off.
       /// </summary>
-      public WFOptions(WFOptions options) {
-        Contract.Requires(options != null);
-        SelfCallsAllowance = options.SelfCallsAllowance;
-        DoReadsChecks = false;  // so just leave .Locals and .Asserts as null
-        DoOnlyCoarseGrainedTerminationChecks = options.DoOnlyCoarseGrainedTerminationChecks;
-        LValueContext = options.LValueContext;
-        AssertKv = options.AssertKv;
+      public WFOptions WithReadsChecks(bool doReadsChecks) {
+        return new WFOptions(SelfCallsAllowance, doReadsChecks, DoOnlyCoarseGrainedTerminationChecks,
+          Locals, Asserts, LValueContext, AssertKv);
       }
 
       /// <summary>
-      /// This constructor clones the given "options", but sets "LValueContext" to "lValueContext".
-      /// (I wish C# allowed me to name the constructor something to indicate this semantics in its name.  Sigh.)
+      /// Clones the given "options", but sets "LValueContext" to "lValueContext".
       /// </summary>
-      public WFOptions(bool lValueContext, WFOptions options) {
-        Contract.Requires(options != null);
-        SelfCallsAllowance = options.SelfCallsAllowance;
-        DoReadsChecks = options.DoReadsChecks;
-        DoOnlyCoarseGrainedTerminationChecks = options.DoOnlyCoarseGrainedTerminationChecks;
-        Locals = options.Locals;
-        Asserts = options.Asserts;
-        LValueContext = lValueContext;
-        AssertKv = options.AssertKv;
+      public WFOptions WithLValueContext(bool lValueContext) {
+        return new WFOptions(SelfCallsAllowance, DoReadsChecks, DoOnlyCoarseGrainedTerminationChecks,
+          Locals, Asserts, lValueContext, AssertKv);
       }
 
       public Action<IToken, Bpl.Expr, PODesc.ProofObligationDescription, Bpl.QKeyValue> AssertSink(Translator tran, BoogieStmtListBuilder builder) {
@@ -225,6 +224,22 @@ namespace Microsoft.Dafny {
       builder.Add(TrAssumeCmd(expr.tok, etran.TrExpr(expr)));
     }
 
+    // Helper object for ensuring delayed reads checks are always processed.
+    // Also encapsulates the handling for the optimization to not declare a $_ReadsFrame field if the reads clause is *:
+    // if etran.readsFrame is null, the block is called with a WFOption with DoReadsChecks set to false instead.
+    private record ReadsCheckDelayer(ExpressionTranslator etran, Function selfCallsAllowance,
+      List<Variable> localVariables, BoogieStmtListBuilder builderInitializationArea, BoogieStmtListBuilder builder) {
+
+      public void DoWithDelayedReadsChecks(bool doOnlyCoarseGrainedTerminationChecks, Action<WFOptions> action) {
+        var doReadsChecks = etran.readsFrame != null;
+        var options = new WFOptions(selfCallsAllowance, doReadsChecks, doReadsChecks, doOnlyCoarseGrainedTerminationChecks);
+        action(options);
+        if (doReadsChecks) {
+          options.ProcessSavedReadsChecks(localVariables, builderInitializationArea, builder);
+        }
+      }
+    }
+
     /// <summary>
     /// Check the well-formedness of "expr" (but don't leave hanging around any assumptions that affect control flow)
     /// </summary>
@@ -258,7 +273,7 @@ namespace Microsoft.Dafny {
       var origOptions = wfOptions;
       if (wfOptions.LValueContext) {
         // Turn off LValueContext for any recursive call
-        wfOptions = new WFOptions(false, wfOptions);
+        wfOptions = wfOptions.WithLValueContext(false);
       }
 
       switch (expr) {
@@ -354,8 +369,8 @@ namespace Microsoft.Dafny {
                 }
               }
             }
-            if (wfOptions.DoReadsChecks && e.Member is Field && ((Field)e.Member).IsMutable) {
-              wfOptions.AssertSink(this, builder)(selectExpr.tok, Bpl.Expr.SelectTok(selectExpr.tok, etran.TheFrame(selectExpr.tok), etran.TrExpr(e.Obj), GetField(e)),
+            if (!origOptions.LValueContext && wfOptions.DoReadsChecks && e.Member is Field && ((Field)e.Member).IsMutable) {
+              wfOptions.AssertSink(this, builder)(selectExpr.tok, Bpl.Expr.SelectTok(selectExpr.tok, etran.ReadsFrame(selectExpr.tok), etran.TrExpr(e.Obj), GetField(e)),
                 new PODesc.FrameSubset("read field", false), wfOptions.AssertKv);
             }
 
@@ -404,13 +419,13 @@ namespace Microsoft.Dafny {
                   new PODesc.SequenceSelectRangeValid(e.Seq, e.E0, e.E1, isSequence ? "sequence" : "array"), wfOptions.AssertKv));
               }
             }
-            if (wfOptions.DoReadsChecks && eSeqType.IsArrayType) {
+            if (!origOptions.LValueContext && wfOptions.DoReadsChecks && eSeqType.IsArrayType) {
               if (e.SelectOne) {
                 Contract.Assert(e.E0 != null);
                 var i = etran.TrExpr(e.E0);
                 i = ConvertExpression(selectExpr.tok, i, e.E0.Type, Type.Int);
                 Bpl.Expr fieldName = FunctionCall(selectExpr.tok, BuiltinFunction.IndexField, null, i);
-                wfOptions.AssertSink(this, builder)(selectExpr.tok, Bpl.Expr.SelectTok(selectExpr.tok, etran.TheFrame(selectExpr.tok), seq, fieldName),
+                wfOptions.AssertSink(this, builder)(selectExpr.tok, Bpl.Expr.SelectTok(selectExpr.tok, etran.ReadsFrame(selectExpr.tok), seq, fieldName),
                   new PODesc.FrameSubset("read array element", false), wfOptions.AssertKv);
               } else {
                 Bpl.Expr lowerBound = e.E0 == null ? Bpl.Expr.Literal(0) : etran.TrExpr(e.E0);
@@ -421,7 +436,7 @@ namespace Microsoft.Dafny {
                 Bpl.IdentifierExpr i = new Bpl.IdentifierExpr(e.tok, iVar);
                 var range = BplAnd(Bpl.Expr.Le(lowerBound, i), Bpl.Expr.Lt(i, upperBound));
                 var fieldName = FunctionCall(e.tok, BuiltinFunction.IndexField, null, i);
-                var allowedToRead = Bpl.Expr.SelectTok(e.tok, etran.TheFrame(e.tok), seq, fieldName);
+                var allowedToRead = Bpl.Expr.SelectTok(e.tok, etran.ReadsFrame(e.tok), seq, fieldName);
                 var trigger = BplTrigger(allowedToRead); // Note, the assertion we're about to produce only seems useful in the check-only mode (that is, with subsumption 0), but if it were to be assumed, we'll use this entire RHS as the trigger
                 var qq = new Bpl.ForallExpr(e.tok, new List<Variable> { iVar }, trigger, BplImp(range, allowedToRead));
                 wfOptions.AssertSink(this, builder)(selectExpr.tok, qq,
@@ -456,7 +471,7 @@ namespace Microsoft.Dafny {
             }
             if (wfOptions.DoReadsChecks) {
               Bpl.Expr fieldName = etran.GetArrayIndexFieldName(e.tok, e.Indices);
-              wfOptions.AssertSink(this, builder)(selectExpr.tok, Bpl.Expr.SelectTok(selectExpr.tok, etran.TheFrame(selectExpr.tok), array, fieldName),
+              wfOptions.AssertSink(this, builder)(selectExpr.tok, Bpl.Expr.SelectTok(selectExpr.tok, etran.ReadsFrame(selectExpr.tok), array, fieldName),
                 new PODesc.FrameSubset("read array element", false), wfOptions.AssertKv);
             }
 
@@ -578,7 +593,7 @@ namespace Microsoft.Dafny {
                 objset);
               var reads = new FrameExpression(e.tok, wrap, null);
               CheckFrameSubset(applyExpr.tok, new List<FrameExpression> { reads }, null, null,
-                etran, wfOptions.AssertSink(this, builder), new PODesc.FrameSubset("invoke function", false), wfOptions.AssertKv);
+                etran, etran.ReadsFrame(applyExpr.tok), wfOptions.AssertSink(this, builder), new PODesc.FrameSubset("invoke function", false), wfOptions.AssertKv);
             }
 
             break;
@@ -721,7 +736,7 @@ namespace Microsoft.Dafny {
                 var s = new Substituter(null, new Dictionary<IVariable, Expression>(), e.GetTypeArgumentSubstitutions());
                 CheckFrameSubset(callExpr.tok,
                   e.Function.Reads.ConvertAll(s.SubstFrameExpr),
-                  e.Receiver, substMap, etran, wfOptions.AssertSink(this, builder), new PODesc.FrameSubset("invoke function", false), wfOptions.AssertKv);
+                  e.Receiver, substMap, etran, etran.ReadsFrame(callExpr.tok), wfOptions.AssertSink(this, builder), new PODesc.FrameSubset("invoke function", false), wfOptions.AssertKv);
               }
 
               Bpl.Expr allowance = null;
@@ -817,7 +832,7 @@ namespace Microsoft.Dafny {
             // Anything read inside the 'old' expressions depends only on the old heap, which isn't included in the
             // frame axiom.  In other words, 'old' expressions have no dependencies on the current heap.  Therefore,
             // we turn off any reads checks for "e.E".
-            CheckWellformed(e.E, new WFOptions(wfOptions), locals, builder, etran.OldAt(e.AtLabel));
+            CheckWellformed(e.E, wfOptions.WithReadsChecks(false), locals, builder, etran.OldAt(e.AtLabel));
             break;
           }
         case UnchangedExpr unchangedExpr: {
@@ -845,7 +860,7 @@ namespace Microsoft.Dafny {
               if (wfOptions.DoReadsChecks) {
                 CheckFrameSubset(fe.E.tok,
                   new List<FrameExpression>() { fe },
-                  null, new Dictionary<IVariable, Expression>(), etran, wfOptions.AssertSink(this, builder),
+                  null, new Dictionary<IVariable, Expression>(), etran, etran.ReadsFrame(fe.E.tok), wfOptions.AssertSink(this, builder),
                   new PODesc.FrameSubset($"read state of 'unchanged' {description}", false), wfOptions.AssertKv);
               }
             }
@@ -1055,14 +1070,14 @@ namespace Microsoft.Dafny {
                   // Set up a new frame
                   var frameName = CurrentIdGenerator.FreshId("$_Frame#l");
                   reads = lam.Reads.ConvertAll(s.SubstFrameExpr);
-                  DefineFrame(e.tok, reads, newBuilder, locals, frameName, comprehensionEtran);
-                  comprehensionEtran = new ExpressionTranslator(comprehensionEtran, frameName);
+                  comprehensionEtran = comprehensionEtran.WithReadsFrame(frameName);
+                  DefineFrame(e.tok, comprehensionEtran.ReadsFrame(e.tok), reads, newBuilder, locals, frameName, comprehensionEtran);
 
                   // Check frame WF and that it read covers itself
-                  newOptions = new WFOptions(wfOptions.SelfCallsAllowance, true /* check reads clauses */, true /* delay reads checks */);
-                  CheckFrameWellFormed(newOptions, reads, locals, newBuilder, comprehensionEtran);
-                  // new options now contains the delayed reads checks
-                  newOptions.ProcessSavedReadsChecks(locals, builder, newBuilder);
+                  var delayer = new ReadsCheckDelayer(comprehensionEtran, wfOptions.SelfCallsAllowance, locals, builder, newBuilder);
+                  delayer.DoWithDelayedReadsChecks(false, wfo => {
+                    CheckFrameWellFormed(wfo, reads, locals, newBuilder, comprehensionEtran);
+                  });
 
                   // continue doing reads checks, but don't delay them
                   newOptions = new WFOptions(wfOptions.SelfCallsAllowance, true, false);

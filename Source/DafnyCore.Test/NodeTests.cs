@@ -1,7 +1,7 @@
 using System.Collections.Concurrent;
 using Microsoft.Dafny;
 
-namespace DafnyCore.Test; 
+namespace DafnyCore.Test;
 
 public class NodeTests {
 
@@ -28,7 +28,7 @@ public class NodeTests {
     var parent = new ConcreteNode(RangeToken.NoToken, (IEnumerable<INode>)new INode[] { child });
     var grandParent = new ConcreteNode(CreateRange(uri, 0, 0, 0, 3), (IEnumerable<INode>)new INode[] { parent });
 
-    var shouldBeChild = grandParent.FindNode(uri, new DafnyPosition(0, 1));
+    var shouldBeChild = grandParent.FindNode<INode>(uri, new DafnyPosition(0, 1));
     Assert.Equal(child, shouldBeChild);
   }
 
@@ -40,7 +40,7 @@ public class NodeTests {
 
     var parent = new ConcreteNode(CreateRange(uri, 0, 0, 0, 3), (IEnumerable<INode>)new[] { child1, child2 });
 
-    var shouldBeChild = parent.FindNode(uri, new DafnyPosition(0, 1));
+    var shouldBeChild = parent.FindNode<INode>(uri, new DafnyPosition(0, 1));
     Assert.Equal(child2, shouldBeChild);
   }
 }

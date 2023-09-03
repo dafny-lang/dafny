@@ -1,4 +1,4 @@
-// RUN: %testDafnyForEachCompiler "%s"
+// RUN: %testDafnyForEachCompiler "%s" --refresh-exit-code=0
 
 datatype Record = Record(a: int, ghost b: int)
 

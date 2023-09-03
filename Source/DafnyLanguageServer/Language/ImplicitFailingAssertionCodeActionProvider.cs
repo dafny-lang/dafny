@@ -35,7 +35,7 @@ class ImplicitFailingAssertionCodeActionProvider : DiagnosticDafnyCodeActionProv
       }
     }
 
-    return new List<INode> { node };
+    return node.StartToken.line > 0 ? new List<INode> { node } : null;
   }
 
   class ExplicitAssertionDafnyCodeAction : DafnyCodeAction {
@@ -70,7 +70,7 @@ class ImplicitFailingAssertionCodeActionProvider : DiagnosticDafnyCodeActionProv
         var node = nodesTillFailure[i];
         var nextNode = i < nodesTillFailure.Count - 1 ? nodesTillFailure[i + 1] : null;
         if (node is Statement or LetExpr &&
-            (node is not UpdateStmt || nextNode is not VarDeclStmt)) {
+            node is not UpdateStmt && nextNode is not VarDeclStmt && nextNode is not AssignSuchThatStmt) {
           insertionNode = node;
           break;
         }

@@ -68,7 +68,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       }
 
       var dafnyToken = Translator.ToDafnyToken(error.Tok);
-      var uri = GetDocumentUriOrDefault(dafnyToken);
+      var uri = GetUriOrDefault(dafnyToken);
       var dafnyDiagnostic = new DafnyDiagnostic(null, dafnyToken, error.Msg,
         VerifierMessageSource, ErrorLevel.Error, relatedInformation);
       AddDiagnosticForFile(
@@ -103,7 +103,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       }
     }
 
-    public override bool Message(MessageSource source, ErrorLevel level, string? errorId, IToken rootTok, string msg) {
+    protected override bool MessageCore(MessageSource source, ErrorLevel level, string? errorId, IToken rootTok, string msg) {
       if (ErrorsOnly && level != ErrorLevel.Error) {
         return false;
       }
@@ -121,7 +121,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       }
 
       var dafnyDiagnostic = new DafnyDiagnostic(errorId, rootTok, msg, source, level, relatedInformation);
-      AddDiagnosticForFile(dafnyDiagnostic, source, GetDocumentUriOrDefault(rootTok));
+      AddDiagnosticForFile(dafnyDiagnostic, source, GetUriOrDefault(rootTok));
       return true;
     }
 
@@ -145,7 +145,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       }
     }
 
-    private void AddDiagnosticForFile(DafnyDiagnostic dafnyDiagnostic, MessageSource messageSource, DocumentUri documentUri) {
+    private void AddDiagnosticForFile(DafnyDiagnostic dafnyDiagnostic, MessageSource messageSource, Uri uri) {
       rwLock.EnterWriteLock();
       try {
         counts[dafnyDiagnostic.Level] = counts.GetValueOrDefault(dafnyDiagnostic.Level, 0) + 1;
@@ -153,17 +153,17 @@ namespace Microsoft.Dafny.LanguageServer.Language {
           countsNotVerificationOrCompiler[dafnyDiagnostic.Level] =
             countsNotVerificationOrCompiler.GetValueOrDefault(dafnyDiagnostic.Level, 0) + 1;
         }
-        diagnostics.GetOrCreate(documentUri.ToUri(), () => new List<DafnyDiagnostic>()).Add(dafnyDiagnostic);
+        diagnostics.GetOrCreate(uri, () => new List<DafnyDiagnostic>()).Add(dafnyDiagnostic);
       }
       finally {
         rwLock.ExitWriteLock();
       }
     }
 
-    private DocumentUri GetDocumentUriOrDefault(IToken token) {
+    private Uri GetUriOrDefault(IToken token) {
       return token.Filepath == null
-        ? DocumentUri.From(entryUri)
-        : token.GetDocumentUri();
+        ? entryUri
+        : token.Uri;
     }
   }
 }

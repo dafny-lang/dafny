@@ -61,19 +61,18 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
     }
 
     private (ISymbol? symbol, string? symbolHoverContent) GetStaticHoverContent(HoverParams request, IdeState state) {
-      LList<INode>? nodePath =
-        state.Program.FindNodeChain(request.TextDocument.Uri.ToUri(), request.Position.ToDafnyPosition());
+      IDeclarationOrUsage? declarationOrUsage =
+        state.Program.FindNode<IDeclarationOrUsage>(request.TextDocument.Uri.ToUri(), request.Position.ToDafnyPosition());
       ISymbol? symbol;
 
-      var usage = nodePath?.Data as IHasUsages;
-      if (usage == null) {
+      if (declarationOrUsage is IHasUsages usage) {
+        symbol = state.SymbolTable.UsageToDeclaration.GetValueOrDefault(usage) as ISymbol;
+      } else {
         // If we hover over a usage, display the information of the declaration
-        symbol = nodePath?.Data as ISymbol;
+        symbol = declarationOrUsage as ISymbol;
         if (symbol != null && !symbol.NameToken.ToRange().ToLspRange().Contains(request.Position)) {
           symbol = null;
         }
-      } else {
-        symbol = state.SymbolTable.UsageToDeclaration.GetValueOrDefault(usage) as ISymbol;
       }
 
       if (symbol == null) {
@@ -94,7 +93,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
 
     private string? GetDiagnosticsHover(IdeState state, Uri uri, Position position, out bool areMethodStatistics) {
       areMethodStatistics = false;
-      var uriDiagnostics = state.GetDiagnostics().GetOrDefault(uri, Enumerable.Empty<Diagnostic>).ToList();
+      var uriDiagnostics = state.GetDiagnosticsForUri(uri).ToList();
       foreach (var diagnostic in uriDiagnostics) {
         if (diagnostic.Range.Contains(position)) {
           string? detail = ErrorRegistry.GetDetail(diagnostic.Code);

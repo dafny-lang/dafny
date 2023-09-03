@@ -34,6 +34,7 @@ public class RunAllTestsMainMethod : IRewriter {
     var mainMethod = new Method(RangeToken.NoToken, new Name(SyntheticTestMainName), false, false,
       new List<TypeParameter>(), new List<Formal>(), new List<Formal>(),
       new List<AttributedExpression>(),
+      new List<FrameExpression>(),
       new Specification<FrameExpression>(new List<FrameExpression>(), null),
       new List<AttributedExpression>(), new Specification<Expression>(new List<Expression>(), null),
       null, noVerifyAttribute, null);
@@ -84,7 +85,7 @@ public class RunAllTestsMainMethod : IRewriter {
   /// }
   /// </summary>
   internal override void PostResolve(Program program) {
-    var tok = program.GetFirstTopLevelToken();
+    var tok = program.GetStartOfFirstFileToken();
     List<Statement> mainMethodStatements = new();
     var idGenerator = new FreshIdGenerator();
 

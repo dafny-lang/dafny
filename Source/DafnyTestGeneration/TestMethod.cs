@@ -110,19 +110,7 @@ namespace DafnyTestGeneration {
         emittedTypes.Add(typeString);
         var methodName = GetSynthesizeMethodName(typeString);
         var returnName = "o";
-        if (dafnyInfo.IsTrait(typ)) {
-          var types = dafnyInfo.GetTypesForTrait(typ);
-          int id = 0;
-          var typeToNameDict = new Dictionary<string, string>();
-          foreach (var resultTyp in types) {
-            typeToNameDict[resultTyp.ToString()] = "o_res_" + id++;
-          }
-          typeToNameDict[typeString] = "o";
-          result += $"\nmethod {{:synthesize}} {methodName}(" +
-                    $"{string.Join(",", types.ConvertAll(t => $"{typeToNameDict[t.ToString()]}:{t}"))})" +
-                    $"returns ({returnName}:{typeString}) ensures fresh({returnName}) " +
-                    $"{string.Join(" ", dafnyInfo.GetEnsuresForTrait(typ, returnName, typeToNameDict))}";
-        } else {
+        if (!dafnyInfo.IsTrait(typ)) {
           var constFields = dafnyInfo.GetNonGhostFields(typ)
             .Where(field => !field.mutable).ToList();
           while (constFields.Any(field => field.name == returnName)) {
@@ -413,17 +401,6 @@ namespace DafnyTestGeneration {
       return "null";
     }
 
-    private string GetTraitTypeInstance(UserDefinedType type) {
-      var typesToInitialize = DafnyInfo.GetTypesForTrait(type);
-      foreach (var typ in typesToInitialize) {
-        defaultValueForType[typ.ToString()] = GetDefaultValue(typ, typ);
-      }
-      TypesToSynthesize.Add(type);
-      return AddValue(type,
-        $"{GetSynthesizeMethodName(type.ToString())}(" +
-        $"{string.Join(", ", typesToInitialize.ConvertAll(typ => defaultValueForType[typ.ToString()]))})");
-    }
-
     private string GetClassTypeInstance(UserDefinedType type, Type/*?*/ asType, DafnyModelVariable/*?*/ variable) {
       var asBasicType = GetBasicType(asType, _ => false);
       if ((asBasicType != null) && (asBasicType is not UserDefinedType)) {
@@ -442,12 +419,7 @@ namespace DafnyTestGeneration {
       }
       getClassTypeInstanceParams.Add(dafnyType.ToString());
       if (DafnyInfo.IsTrait(dafnyType)) {
-        var tmp = GetTraitTypeInstance(dafnyType);
-        getClassTypeInstanceParams.Remove(dafnyType.ToString());
-        if (variable != null) {
-          mockedVarId[variable] = tmp;
-        }
-        return tmp;
+        return "null";
       }
       if (DafnyInfo.IsExtern(dafnyType)) {
         var ctor = DafnyInfo.GetConstructor(dafnyType);

@@ -24,6 +24,7 @@ using System.Linq;
 using Microsoft.Boogie;
 using Bpl = Microsoft.Boogie;
 using System.Diagnostics;
+using Microsoft.Dafny;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.Dafny.LanguageServer.CounterExampleGeneration;
 using Microsoft.Dafny.Plugins;
@@ -130,6 +131,12 @@ namespace Microsoft.Dafny {
       switch (cliArgumentsResult) {
         case CommandLineArgumentsResult.OK:
 
+          if (dafnyOptions.Get(CoverageReportCommand.OutDirArgument) != null) {
+            new CoverageReporter(dafnyOptions)
+              .Merge(dafnyOptions.Get(CoverageReportCommand.ReportsArgument).ConvertAll(fileInfo => fileInfo.FullName), dafnyOptions.Get(CoverageReportCommand.OutDirArgument));
+            return 0;
+          }
+
           if (dafnyOptions.RunLanguageServer) {
 #pragma warning disable VSTHRD002
             LanguageServer.Server.Start(dafnyOptions).Wait();
@@ -222,6 +229,10 @@ namespace Microsoft.Dafny {
       }
 
       if (options.RunLanguageServer) {
+        return CommandLineArgumentsResult.OK;
+      }
+
+      if (options.Get(CoverageReportCommand.OutDirArgument) != null) {
         return CommandLineArgumentsResult.OK;
       }
 
@@ -378,18 +389,21 @@ namespace Microsoft.Dafny {
       var dafnyFileNames = DafnyFile.FileNames(dafnyFiles);
 
       ExitValue exitValue = ExitValue.SUCCESS;
-      if (options.TestGenOptions.WarnDeadCode) {
-        await foreach (var line in DafnyTestGeneration.Main.GetDeadCodeStatistics(dafnyFileNames[0], options)) {
-          await options.OutputWriter.WriteLineAsync(line);
-        }
-        if (DafnyTestGeneration.Main.SetNonZeroExitCode) {
-          exitValue = ExitValue.DAFNY_ERROR;
-        }
-        return exitValue;
-      }
       if (options.TestGenOptions.Mode != TestGenerationOptions.Modes.None) {
-        await foreach (var line in DafnyTestGeneration.Main.GetTestClassForProgram(dafnyFileNames[0], options)) {
-          await options.OutputWriter.WriteLineAsync(line);
+        var uri = new Uri(dafnyFileNames[0]);
+        var source = new StreamReader(dafnyFileNames[0]);
+        var coverageReport = new CoverageReport(name: "Expected Test Coverage", units: "Lines", suffix: "_tests_expected", program: null);
+        if (options.TestGenOptions.WarnDeadCode) {
+          await foreach (var line in DafnyTestGeneration.Main.GetDeadCodeStatistics(source, uri, options, coverageReport)) {
+            await options.OutputWriter.WriteLineAsync(line);
+          }
+        } else {
+          await foreach (var line in DafnyTestGeneration.Main.GetTestClassForProgram(source, uri, options, coverageReport)) {
+            await options.OutputWriter.WriteLineAsync(line);
+          }
+        }
+        if (options.TestGenOptions.CoverageReport != null) {
+          new CoverageReporter(options).SerializeCoverageReports(coverageReport, options.TestGenOptions.CoverageReport);
         }
         if (DafnyTestGeneration.Main.SetNonZeroExitCode) {
           exitValue = ExitValue.DAFNY_ERROR;
@@ -504,8 +518,9 @@ namespace Microsoft.Dafny {
           dafnyFile = new DafnyFile(options, new Uri(tempFileName));
         }
 
-        var originalText = dafnyFile.Content.ReadToEnd();
-        dafnyFile.Content = new StringReader(originalText);
+        using var content = dafnyFile.GetContent();
+        var originalText = content.ReadToEnd();
+        dafnyFile.GetContent = () => new StringReader(originalText);
         // Might not be totally optimized but let's do that for now
         var err = DafnyMain.Parse(new List<DafnyFile> { dafnyFile }, programName, options, out var dafnyProgram);
         if (err != null) {
@@ -513,7 +528,7 @@ namespace Microsoft.Dafny {
           errorWriter.WriteLine(err);
           failedToParseFiles.Add(dafnyFile.BaseName);
         } else {
-          var firstToken = dafnyProgram.GetFirstTopLevelToken();
+          var firstToken = dafnyProgram.GetFirstTokenForUri(file.Uri);
           var result = originalText;
           if (firstToken != null) {
             result = Formatting.__default.ReindentProgramFromFirstToken(firstToken,

@@ -42,7 +42,7 @@ method Foo() ensures false { } ";
       options.Set(ServerCommand.LineVerificationStatus, false);
     });
 
-    var documentItem = CreateTestDocument(source);
+    var documentItem = CreateTestDocument(source, "NoGutterNotificationsReceivedWhenTurnedOff.dfy");
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
     await GetLastDiagnostics(documentItem, CancellationToken);
     Assert.False(verificationStatusGutterReceiver.HasPendingNotifications);

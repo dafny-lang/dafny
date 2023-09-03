@@ -817,6 +817,11 @@ class DafnyDoc {
         details.Append(space4).Append(Keyword("requires")).Append(" ").Append(Code(req.E.ToString())).Append(br).Append(eol);
         some = true;
       }
+      if (m.Reads.Count > 0) {
+        var list = String.Join(", ", m.Reads.Select(e => Code(e.OriginalExpression.ToString() + (e.FieldName != null ? "`" + e.FieldName : ""))));
+        details.Append(space4).Append(Keyword("reads")).Append(" ").Append(list).Append(br).Append(eol);
+        some = true;
+      }
       if (m.Mod != null && m.Mod.Expressions.Count > 0) {
         var list = String.Join(", ", m.Mod.Expressions.Select(e => Code(e.OriginalExpression.ToString() + (e.FieldName != null ? "`" + e.FieldName : ""))));
         details.Append(space4).Append(Keyword("modifies")).Append(" ").Append(list).Append(br).Append(eol);

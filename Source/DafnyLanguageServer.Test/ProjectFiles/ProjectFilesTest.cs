@@ -69,35 +69,60 @@ warn-shadowing = true";
       options.Set(Function.FunctionSyntaxOption, "3");
       options.Set(CommonOptionBag.WarnShadowing, true);
     });
-    var filePath = Path.Combine(Directory.GetCurrentDirectory(), "ProjectFiles/TestFiles/noWarnShadowing.dfy");
-    var source = await File.ReadAllTextAsync(filePath);
-    source += "\nghost function Bar(): int { 3 }";
+    var source = @"
+method Foo() {
+  var x := 3;
+  if (true) {
+    var x := 4;
+  }
+}
 
-    var doc1 = await CreateAndOpenTestDocument(source, "orphaned");
-    var diagnostics1 = await GetLastDiagnostics(doc1, CancellationToken);
+ghost function Bar(): int { 3 }".TrimStart();
+
+    var projectFileSource = @"
+includes = [""**/*.dfy""]
+
+[options]
+warn-shadowing = false
+function-syntax = 4";
+
+    var directory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+    Directory.CreateDirectory(directory);
+
+    var noProjectFile = await CreateAndOpenTestDocument(source, "orphaned.dfy");
+    var diagnostics1 = await GetLastDiagnostics(noProjectFile, CancellationToken);
     Assert.Single(diagnostics1); // Stops after parsing
-    await CreateAndOpenTestDocument(source, filePath);
+
+    await File.WriteAllTextAsync(Path.Combine(directory, DafnyProject.FileName), projectFileSource);
+    await CreateAndOpenTestDocument(source, Path.Combine(directory, "source.dfy"));
     await AssertNoDiagnosticsAreComing(CancellationToken);
   }
 
   [Fact]
-  public async Task FileOnlyAttachedToProjectFileThatAppliesToIt() {
+  public async Task FileOnlyAttachedToProjectFileThatIncludesIt() {
     await SetUp(options => options.WarnShadowing = false);
 
-    var projectFileSource = @"
+    var outerSource = @"
 [options]
 warn-shadowing = true
 ";
     var directory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
-    var outerProjectFile = CreateTestDocument(projectFileSource, Path.Combine(directory, DafnyProject.FileName));
+    var outerProjectFile = CreateTestDocument(outerSource, Path.Combine(directory, DafnyProject.FileName));
     await client.OpenDocumentAndWaitAsync(outerProjectFile, CancellationToken);
 
-    var innerProjectFile = CreateTestDocument("includes = []", Path.Combine(directory, "nested", DafnyProject.FileName));
+    var innerDirectory = Path.Combine(directory, "nested");
+    var innerProjectFile = CreateTestDocument("includes = []", Path.Combine(innerDirectory, DafnyProject.FileName));
     await client.OpenDocumentAndWaitAsync(innerProjectFile, CancellationToken);
 
-    var filePath = Path.Combine(Directory.GetCurrentDirectory(), "ProjectFiles/TestFiles/noWarnShadowing.dfy");
-    var source = await File.ReadAllTextAsync(filePath);
-    var documentItem = CreateTestDocument(source, Path.Combine(directory, "nested/A.dfy"));
+    var source = @"
+method Foo() {
+  var x := 3;
+  if (true) {
+    var x := 4;
+  }
+}
+";
+    var documentItem = CreateTestDocument(source, Path.Combine(innerDirectory, "A.dfy"));
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
     var diagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
     Assert.Single(diagnostics);

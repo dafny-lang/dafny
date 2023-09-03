@@ -1,0 +1,16 @@
+ConcurrentAttribute.dfy(91,10): Warning: /!\ No terms found to trigger on.
+ConcurrentAttribute.dfy(92,13): Warning: /!\ No terms found to trigger on.
+ConcurrentAttribute.dfy(97,10): Warning: /!\ No terms found to trigger on.
+ConcurrentAttribute.dfy(98,13): Warning: /!\ No terms found to trigger on.
+ConcurrentAttribute.dfy(30,25): Error: reads clause could not be proved to be empty ({:concurrent} restriction)
+ConcurrentAttribute.dfy(48,23): Error: reads clause could not be proved to be empty ({:concurrent} restriction)
+ConcurrentAttribute.dfy(51,23): Error: reads clause could not be proved to be empty ({:concurrent} restriction)
+ConcurrentAttribute.dfy(55,23): Error: reads clause could not be proved to be empty ({:concurrent} restriction)
+ConcurrentAttribute.dfy(66,23): Error: reads clause could not be proved to be empty ({:concurrent} restriction)
+ConcurrentAttribute.dfy(72,23): Error: reads clause could not be proved to be empty ({:concurrent} restriction)
+ConcurrentAttribute.dfy(77,29): Error: reads clause could not be proved to be empty ({:concurrent} restriction)
+ConcurrentAttribute.dfy(83,23): Error: modifies clause could not be proved to be empty ({:concurrent} restriction)
+ConcurrentAttribute.dfy(90,29): Error: reads clause could not be proved to be empty ({:concurrent} restriction)
+ConcurrentAttribute.dfy(90,29): Error: modifies clause could not be proved to be empty ({:concurrent} restriction)
+
+Dafny program verifier finished with 11 verified, 10 errors

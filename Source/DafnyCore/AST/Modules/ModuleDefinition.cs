@@ -66,14 +66,47 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
       : new[] { new Pointer<TopLevelDecl>(() => DefaultClass, v => DefaultClass = (DefaultClassDecl)v) }).
     Concat(SourceDecls.ToPointers()).Concat(ResolvedPrefixNamedModules.ToPointers());
 
-  protected IEnumerable<TopLevelDecl> DefaultClasses {
+  public IEnumerable<TopLevelDecl> DefaultClasses {
     get { return DefaultClass == null ? Enumerable.Empty<TopLevelDecl>() : new TopLevelDecl[] { DefaultClass }; }
   }
 
   [FilledInDuringResolution]
   public readonly Graph<ICallable> CallGraph = new();
+
+  // This field is only populated if `defaultFunctionOpacity` is set to something other than transparent
+  [FilledInDuringResolution]
+  public readonly Graph<ICallable> InterModuleCallGraph = new();
+
   [FilledInDuringResolution]
   public int Height;  // height in the topological sorting of modules;
+
+  /// <summary>
+  /// The following class stores the relative name of any declaration that is reachable from this module
+  /// as a list of NameSegments, along with a flag for whether the Declaration is revealed or merely provided.
+  /// For example, if "A" is a module, a function "A.f()" will be stored in the AccessibleMembers dictionary as
+  /// the declaration "f" pointing to an AccessibleMember whose AccessPath list contains the NameSegments "A" and "_default".
+  /// </summary>
+  public class AccessibleMember {
+    public List<NameSegment> AccessPath;
+    public bool IsRevealed;
+
+    public AccessibleMember(List<NameSegment> accessPath, bool isRevealed = true) {
+      AccessPath = accessPath;
+      IsRevealed = isRevealed;
+    }
+
+    public AccessibleMember(bool isRevealed = true) {
+      AccessPath = new List<NameSegment>();
+      IsRevealed = isRevealed;
+    }
+
+    public AccessibleMember Clone() {
+      return new AccessibleMember(AccessPath.ToList(), IsRevealed);
+    }
+  }
+
+  [FilledInDuringResolution]
+  public Dictionary<Declaration, AccessibleMember> AccessibleMembers = new();
 
   [ContractInvariantMethod]
   void ObjectInvariant() {
@@ -338,9 +371,11 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
   }
 
   public IToken NameToken => tok;
-  public override IEnumerable<INode> Children => (Attributes != null ?
-      new List<Node> { Attributes } :
-      Enumerable.Empty<Node>()).Concat<Node>(TopLevelDecls).
+  public override IEnumerable<INode> Children =>
+    (Attributes != null ? new List<Node> { Attributes } : Enumerable.Empty<Node>()).
+    Concat(DefaultClasses).
+    Concat(SourceDecls).
+    Concat(PrefixNamedModules.Any() ? PrefixNamedModules.Select(m => m.Module) : ResolvedPrefixNamedModules).
     Concat(RefinementQId == null ? Enumerable.Empty<Node>() : new Node[] { RefinementQId });
 
   private IEnumerable<Node> preResolveTopLevelDecls;
@@ -349,8 +384,8 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
   public override IEnumerable<INode> PreResolveChildren {
     get {
       var attributes = Attributes != null ? new List<Node> { Attributes } : Enumerable.Empty<Node>();
-      return attributes.Concat(preResolveTopLevelDecls ?? TopLevelDecls).Concat(
-          (preResolvePrefixNamedModules ?? PrefixNamedModules.Select(tuple => tuple.Module)));
+      return attributes.Concat(preResolveTopLevelDecls ?? TopLevelDecls).
+        Concat(preResolvePrefixNamedModules ?? PrefixNamedModules.Select(tuple => tuple.Module));
     }
   }
 
@@ -390,7 +425,7 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
           importSig = ((AbstractModuleDecl)d).OriginalSignature;
         }
 
-        if (importSig.ModuleDef is not { SuccessfullyResolved: true }) {
+        if (importSig is not { ModuleDef: { SuccessfullyResolved: true } }) {
           return false;
         }
       } else if (d is LiteralModuleDecl) {
@@ -430,7 +465,110 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
 
     Type.PopScope(resolver.moduleInfo.VisibilityScope);
     resolver.moduleInfo = oldModuleInfo;
+
+
+    // Build the AccessibleMembers dictionary
+    foreach (var d in TopLevelDecls) {
+      if (d is AliasModuleDecl || d is AbstractModuleDecl) {
+        ModuleSignature importSig;
+        if (d is AliasModuleDecl alias) {
+          if (alias.TargetQId.Decl is not null) {
+            importSig = alias.TargetQId.Decl.Signature;
+          } else if (alias.TargetQId.Root is not null) {
+            importSig = alias.TargetQId.Root.Signature;
+          } else {
+            importSig = alias.Signature;
+          }
+        } else {
+          importSig = ((AbstractModuleDecl)d).OriginalSignature;
+        }
+
+        var origMod = importSig.ModuleDef;
+
+        var exports = d is AliasModuleDecl ? ((AliasModuleDecl)d).Exports : ((AbstractModuleDecl)d).Exports;
+        var exportSet = exports.Any() ? exports.First().val : null;
+
+        foreach (var (decl, accMember) in origMod.AccessibleMembers) {
+          if (isDeclExported(origMod, exportSet, decl, out var isDeclRevealed)) {
+            var newAccMember = accMember.Clone();
+
+            newAccMember.AccessPath.Insert(0, TopLevelDeclToNameSegment(d, d.Tok));
+            newAccMember.IsRevealed = newAccMember.IsRevealed && isDeclRevealed;
+            AddAccessibleMember(decl, newAccMember);
+          }
+        }
+
+        var newAccessibleMember = new AccessibleMember();
+        AddAccessibleMember(d, newAccessibleMember);
+
+      } else if (d is LiteralModuleDecl) {
+        var nested = (LiteralModuleDecl)d;
+
+        foreach (var (decl, accMember) in nested.ModuleDef.AccessibleMembers) {
+          if (isDeclExported(nested.ModuleDef, null, decl, out var isDeclRevealed)) {
+            var newAccMember = accMember.Clone();
+
+            newAccMember.AccessPath.Insert(0, TopLevelDeclToNameSegment(d, d.Tok));
+            newAccMember.IsRevealed = newAccMember.IsRevealed && isDeclRevealed;
+
+            AddAccessibleMember(decl, newAccMember);
+          }
+        }
+
+        var newAccessibleMember = new AccessibleMember();
+        AddAccessibleMember(d, newAccessibleMember);
+
+      } else if (d is TopLevelDeclWithMembers tld) {
+        var memberList = tld.Members;
+
+        foreach (var mem in memberList) {
+          var accessPath = new List<NameSegment> { TopLevelDeclToNameSegment(d, d.Tok) };
+          var newAccessibleMember = new AccessibleMember(accessPath);
+          AddAccessibleMember(mem, newAccessibleMember);
+        }
+      }
+    }
+
     return true;
+  }
+
+  private static NameSegment TopLevelDeclToNameSegment(TopLevelDecl decl, IToken tok) {
+    var typeArgs = new List<Type>();
+
+    foreach (var arg in decl.TypeArgs) {
+      typeArgs.Add(new IntType());
+    }
+
+    return new NameSegment(tok, decl.Name, typeArgs);
+  }
+
+  private bool isDeclExported(ModuleDefinition moduleDefinition, string exportSetName, Declaration decl, out bool isItRevealed) {
+    isItRevealed = true;
+
+    exportSetName ??= moduleDefinition.Name;
+
+    var moduleExports = moduleDefinition.TopLevelDecls.Where(decl => decl is ModuleExportDecl && decl.Name == exportSetName);
+
+    if (!moduleExports.Any()) {
+      return true;
+    }
+
+    var exportSignatures = ((ModuleExportDecl)moduleExports.First()).Exports.Where(export => export.Decl == decl);
+
+    if (!exportSignatures.Any()) {
+      return false;
+    }
+
+    isItRevealed = !exportSignatures.First().Opaque;
+    return true;
+  }
+
+  private void AddAccessibleMember(Declaration accessibleDecl, AccessibleMember newVal) {
+    if (AccessibleMembers.TryGetValue(accessibleDecl, out var oldVal)) {
+      newVal = !oldVal.IsRevealed && newVal.IsRevealed ? newVal : oldVal;
+    }
+
+    AccessibleMembers[accessibleDecl] = newVal;
   }
 
   public void ProcessPrefixNamedModules() {
@@ -457,8 +595,9 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
 
     // Next, add new modules for any remaining entries in "prefixNames".
     foreach (var (name, prefixNamedModules) in prefixModulesByFirstPart) {
-      var firstPartToken = prefixNamedModules.First().Parts[0];
-      var modDef = new ModuleDefinition(firstPartToken.ToRange(), new Name(firstPartToken.ToRange(), name), new List<IToken>(), false,
+      var prefixNameModule = prefixNamedModules.First();
+      var firstPartToken = prefixNameModule.Parts[0];
+      var modDef = new ModuleDefinition(RangeToken.NoToken, new Name(firstPartToken.ToRange(), name), new List<IToken>(), false,
         false, null, this, null, false);
       // Add the new module to the top-level declarations of its parent and then bind its names as usual
 
@@ -466,6 +605,7 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
       var cloneId = Guid.Empty;
       var subDecl = new LiteralModuleDecl(modDef, this, cloneId);
       ResolvedPrefixNamedModules.Add(subDecl);
+      // only set the range on the last submodule of the chain, since the others can be part of multiple files
       ProcessPrefixNamedModules(prefixNamedModules.ConvertAll(ShortenPrefix), subDecl);
     }
   }

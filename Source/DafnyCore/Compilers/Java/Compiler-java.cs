@@ -1083,6 +1083,7 @@ namespace Microsoft.Dafny.Compilers {
       switch (AsJavaNativeType(nt)) {
         case JavaNativeType.Byte: return "(byte) ";
         case JavaNativeType.Short: return "(short) ";
+        case JavaNativeType.Long: return "(long) ";
         default: return "";
       }
     }
@@ -3293,11 +3294,11 @@ namespace Microsoft.Dafny.Compilers {
       return new ClassWriter(this, instanceMemberWriter, ctorBodyWriter, staticMemberWriter);
     }
 
-    protected override void EmitDestructor(string source, Formal dtor, int formalNonGhostIndex, DatatypeCtor ctor, List<Type> typeArgs, Type bvType, ConcreteSyntaxTree wr) {
+    protected override void EmitDestructor(Action<ConcreteSyntaxTree> source, Formal dtor, int formalNonGhostIndex, DatatypeCtor ctor, List<Type> typeArgs, Type bvType, ConcreteSyntaxTree wr) {
       if (DatatypeWrapperEraser.IsErasableDatatypeWrapper(Options, ctor.EnclosingDatatype, out var coreDtor)) {
         Contract.Assert(coreDtor.CorrespondingFormals.Count == 1);
         Contract.Assert(dtor == coreDtor.CorrespondingFormals[0]); // any other destructor is a ghost
-        wr.Write(source);
+        source(wr);
         return;
       }
       string dtorName;
@@ -3308,7 +3309,9 @@ namespace Microsoft.Dafny.Compilers {
       } else {
         dtorName = FieldName(dtor, formalNonGhostIndex);
       }
-      wr.Write("(({0}){1}{2}).{3}", DtCtorName(ctor, typeArgs, wr), source, ctor.EnclosingDatatype is CoDatatypeDecl ? ".Get()" : "", dtorName);
+      wr.Write("(({0})", DtCtorName(ctor, typeArgs, wr));
+      source(wr);
+      wr.Write("{0}).{1}", ctor.EnclosingDatatype is CoDatatypeDecl ? ".Get()" : "", dtorName);
     }
 
     private void CreateLambdaFunctionInterface(int i, ConcreteSyntaxTree outputWr) {

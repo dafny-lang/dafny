@@ -1902,17 +1902,21 @@ namespace Microsoft.Dafny.Compilers {
       return w;
     }
 
-    protected override void EmitDestructor(string source, Formal dtor, int formalNonGhostIndex, DatatypeCtor ctor, List<Type> typeArgs, Type bvType, ConcreteSyntaxTree wr) {
+    protected override void EmitDestructor(Action<ConcreteSyntaxTree> source, Formal dtor, int formalNonGhostIndex, DatatypeCtor ctor, List<Type> typeArgs, Type bvType, ConcreteSyntaxTree wr) {
       if (DatatypeWrapperEraser.IsErasableDatatypeWrapper(Options, ctor.EnclosingDatatype, out var coreDtor)) {
         Contract.Assert(coreDtor.CorrespondingFormals.Count == 1);
         Contract.Assert(dtor == coreDtor.CorrespondingFormals[0]); // any other destructor is a ghost
-        wr.Write(source);
+        source(wr);
       } else if (ctor.EnclosingDatatype is TupleTypeDecl tupleTypeDecl) {
         Contract.Assert(tupleTypeDecl.NonGhostDims != 1); // such a tuple is an erasable-wrapper type, handled above
-        wr.Write("({0})[{1}]", source, formalNonGhostIndex);
+        wr.Write("(");
+        source(wr);
+        wr.Write(")[{0}]", formalNonGhostIndex);
       } else {
         var dtorName = FormalName(dtor, formalNonGhostIndex);
-        wr.Write("({0}){1}.{2}", source, ctor.EnclosingDatatype is CoDatatypeDecl ? "._D()" : "", dtorName);
+        wr.Write("(");
+        source(wr);
+        wr.Write("){0}.{1}", ctor.EnclosingDatatype is CoDatatypeDecl ? "._D()" : "", dtorName);
       }
     }
 
@@ -2474,18 +2478,14 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void EmitMapDisplay(MapType mt, IToken tok, List<ExpressionPair> elements,
         bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
-      wr.Write($"{DafnyMapClass}.of(");
-      string sep = "";
+      wr.Write($"{DafnyMapClass}.Empty.slice()");
       foreach (ExpressionPair p in elements) {
-        wr.Write(sep);
-        wr.Write("[");
+        wr.Write(".updateUnsafe(");
         wr.Append(Expr(p.A, inLetExprBody, wStmts));
         wr.Write(",");
         wr.Append(Expr(p.B, inLetExprBody, wStmts));
-        wr.Write("]");
-        sep = ", ";
+        wr.Write(")");
       }
-      wr.Write(")");
     }
 
     protected override void EmitSetBuilder_New(ConcreteSyntaxTree wr, SetComprehension e, string collectionName) {

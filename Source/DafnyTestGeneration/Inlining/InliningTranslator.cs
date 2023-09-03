@@ -11,8 +11,8 @@ namespace DafnyTestGeneration.Inlining;
 
 public static class InliningTranslator {
   private static bool ShouldProcessForInlining(MemberDecl memberDecl) {
-    return Utils.MembersHasAttribute(memberDecl, TestGenerationOptions.TestEntryAttribute) ||
-           Utils.MembersHasAttribute(memberDecl, TestGenerationOptions.TestInlineAttribute);
+    return memberDecl.HasUserAttribute(TestGenerationOptions.TestEntryAttribute, out var _) ||
+           memberDecl.HasUserAttribute(TestGenerationOptions.TestInlineAttribute, out var _);
   }
 
   /// <summary>
