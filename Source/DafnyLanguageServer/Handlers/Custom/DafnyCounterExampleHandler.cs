@@ -92,8 +92,8 @@ namespace Microsoft.Dafny.LanguageServer.Handlers.Custom {
           .Select(GetCounterExample);
       }
 
-      private CounterExampleItem GetCounterExample(DafnyModelState state) {
-        HashSet<DafnyModelVariable> vars = state.ExpandedVariableSet(counterExampleDepth);
+      private CounterExampleItem GetCounterExample(PartialState state) {
+        HashSet<PartialValue> vars = state.ExpandedVariableSet(counterExampleDepth);
         return new(
           new Position(state.GetLineId() - 1, state.GetCharId()),
           vars.WithCancellation(cancellationToken).ToDictionary(

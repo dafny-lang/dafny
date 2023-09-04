@@ -21,7 +21,7 @@ namespace DafnyTestGeneration {
 
     // list of values to mock together with their types
     // maps a variable that is mocked to its unique id
-    private readonly Dictionary<DafnyModelVariable, string> mockedVarId = new();
+    private readonly Dictionary<PartialValue, string> mockedVarId = new();
     public readonly List<(string parentId, string fieldName, string childId)> Assignments = new();
     public readonly List<(string id, Type type, string value)> ValueCreation = new();
     // next id to assign to a variable with given name:
@@ -142,7 +142,7 @@ namespace DafnyTestGeneration {
     /// type alone </param>
     /// <param name="types">the types of the elements</param>
     /// <returns></returns>
-    private List<string> ExtractInputs(DafnyModelState state, IReadOnlyList<string> printOutput, IReadOnlyList<string> types) {
+    private List<string> ExtractInputs(PartialState state, IReadOnlyList<string> printOutput, IReadOnlyList<string> types) {
       var result = new List<string>();
       var vars = state.ExpandedVariableSet(-1);
       var parameterIndex = DafnyInfo.IsStatic(MethodName) ? -1 : -2;
@@ -194,7 +194,7 @@ namespace DafnyTestGeneration {
     }
 
     // Returns a new value of the defaultType type (set to int by default)
-    private string GetADefaultTypeValue(DafnyModelVariable variable) {
+    private string GetADefaultTypeValue(PartialValue variable) {
       return dafnyModel.GetUnreservedNumericValue(variable.Element, Type.Int);
     }
 
@@ -225,7 +225,7 @@ namespace DafnyTestGeneration {
     /// Extract the value of a variable. This can have side-effects on
     /// assignments, reservedValues, reservedValuesMap, and objectsToMock.
     /// </summary>
-    private string ExtractVariable(DafnyModelVariable variable, Type/*?*/ asType) {
+    private string ExtractVariable(PartialValue variable, Type/*?*/ asType) {
       if (variable == null) {
         if (asType != null) {
           return GetDefaultValue(asType);
@@ -244,9 +244,9 @@ namespace DafnyTestGeneration {
         return mockedVarId[variable];
       }
 
-      if (variable is DuplicateVariable duplicateVariable) {
+      /*if (variable is DuplicateVariable duplicateVariable) {
         return ExtractVariable(duplicateVariable.Original, asType);
-      }
+      }*/ // TODO: Is there any new form of duplication?
 
       List<string> elements = new();
       var variableType = DafnyModelTypeUtils.GetInDafnyFormat(
@@ -268,15 +268,14 @@ namespace DafnyTestGeneration {
           return GetPrimitiveAsType(variable.Value, asType);
         case SeqType seqType:
           var asBasicSeqType = GetBasicType(asType, type => type is SeqType) as SeqType;
-          var seqVar = variable as SeqVariable;
-          if (seqVar?.GetLength() == -1) {
+          if (variable?.GetLength() == -1) {
             if (seqType.Arg is CharType) {
               return "\"\"";
             }
             return AddValue(asType ?? variableType, "[]");
           }
-          for (var i = 0; i < seqVar?.GetLength(); i++) {
-            var element = seqVar?[i];
+          for (var i = 0; i < variable?.GetLength(); i++) {
+            var element = variable?[i];
             if (element == null) {
               getDefaultValueParams = new();
               elements.Add(GetDefaultValue(seqType.Arg, asBasicSeqType?.TypeArgs?.FirstOrDefault((Type/*?*/)null)));
@@ -317,9 +316,8 @@ namespace DafnyTestGeneration {
           return AddValue(asType ?? variableType, $"{{{string.Join(", ", elements)}}}");
         case MapType:
           var asBasicMapType = GetBasicType(asType, type => type is MapType) as MapType;
-          var mapVar = variable as MapVariable;
           List<string> mappingStrings = new();
-          foreach (var mapping in mapVar?.Mappings ?? new()) {
+          foreach (var mapping in variable?.Mappings ?? new()) {
             var asTypeTypeArgs =
               asBasicMapType?.TypeArgs?.Count == 2 ? asBasicMapType.TypeArgs : null;
             mappingStrings.Add($"{ExtractVariable(mapping.Key, asTypeTypeArgs?[0])} := {ExtractVariable(mapping.Value, asTypeTypeArgs?[1])}");
@@ -401,7 +399,7 @@ namespace DafnyTestGeneration {
       return "null";
     }
 
-    private string GetClassTypeInstance(UserDefinedType type, Type/*?*/ asType, DafnyModelVariable/*?*/ variable) {
+    private string GetClassTypeInstance(UserDefinedType type, Type/*?*/ asType, PartialValue/*?*/ variable) {
       var asBasicType = GetBasicType(asType, _ => false);
       if ((asBasicType != null) && (asBasicType is not UserDefinedType)) {
         return GetDefaultValue(asType, asType);
@@ -460,7 +458,7 @@ namespace DafnyTestGeneration {
       return varId;
     }
 
-    private string GetFieldValue((string name, Type type, bool mutable, string/*?*/ defValue) field, DafnyModelVariable/*?*/ variable) {
+    private string GetFieldValue((string name, Type type, bool mutable, string/*?*/ defValue) field, PartialValue/*?*/ variable) {
       if (field.defValue != null) {
         return field.defValue;
       }

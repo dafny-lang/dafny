@@ -20,7 +20,7 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
   public class DafnyModel {
     private readonly DafnyOptions options;
     public readonly Model Model;
-    public readonly List<DafnyModelState> States = new();
+    public readonly List<PartialState> States = new();
     public static readonly UserDefinedType UnknownType =
       new(new Token(), "?", null);
     private readonly ModelFuncWrapper fSetSelect, fSeqLength, fSeqIndex, fBox,
@@ -93,7 +93,7 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
       RegisterReservedReals();
       RegisterReservedBitVectors();
       foreach (var s in model.States) {
-        var sn = new DafnyModelState(this, s);
+        var sn = new PartialState(this, s);
         States.Add(sn);
       }
     }
@@ -565,16 +565,16 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
 
     /// <summary>
     /// Perform operations necessary to add a mapping to a map variable,
-    /// return newly created DafnyModelVariable objects
+    /// return newly created PartialValue objects
     /// </summary>
-    private IEnumerable<DafnyModelVariable> AddMappingHelper(DafnyModelState state, MapVariable mapVariable, Model.Element keyElement, Model.Element valueElement, HashSet<Model.Element> keySet) {
+    private IEnumerable<PartialValue> AddMappingHelper(PartialState state, PartialValue mapVariable, Model.Element keyElement, Model.Element valueElement, HashSet<Model.Element> keySet) {
       if (mapVariable == null) {
         yield break;
       }
       var pairId = mapVariable.Children.Count.ToString();
-      var key = DafnyModelVariableFactory.Get(state, keyElement, pairId, mapVariable);
+      var key = state.GetPartialValue(keyElement, new IdentifierExpr(Token.NoToken, pairId + mapVariable));
       if (valueElement != null) {
-        var value = DafnyModelVariableFactory.Get(state, valueElement, pairId, mapVariable);
+        var value = state.GetPartialValue(valueElement, new IdentifierExpr(Token.NoToken, pairId + mapVariable));
         mapVariable.AddMapping(key, value);
         yield return value;
       } else {
@@ -589,8 +589,8 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
     /// values of fields for objects, values at certain positions for
     /// sequences, etc.
     /// </summary>
-    public IEnumerable<DafnyModelVariable> GetExpansion(DafnyModelState state, DafnyModelVariable var) {
-      HashSet<DafnyModelVariable> result = new();
+    public IEnumerable<PartialValue> GetExpansion(PartialState state, PartialValue var) {
+      HashSet<PartialValue> result = new();
       if (var.Element.Kind != Model.ElementKind.Uninterpreted) {
         return result;  // primitive types can't have fields
       }
@@ -608,14 +608,14 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
         if (destructors.Count == fnTuple.Args.Length) {
           // we know all destructor names
           foreach (var func in destructors) {
-            result.Add(DafnyModelVariableFactory.Get(state, Unbox(func.OptEval(var.Element)),
-              UnderscoreRemovalRegex.Replace(func.Name.Split(".").Last(), "_"), var));
+            result.Add(state.GetPartialValue(Unbox(func.OptEval(var.Element)), 
+              new IdentifierExpr(Token.NoToken, UnderscoreRemovalRegex.Replace(func.Name.Split(".").Last(), "_") +var)));
           }
         } else {
           // we don't know destructor names, so we use indices instead
           for (int i = 0; i < fnTuple.Args.Length; i++) {
-            result.Add(DafnyModelVariableFactory.Get(state, Unbox(fnTuple.Args[i]),
-              "[" + i + "]", var));
+            result.Add(state.GetPartialValue(Unbox(fnTuple.Args[i]),
+              new IdentifierExpr(Token.NoToken, "[" + i + "]" + var)));
           }
         }
         return result;
@@ -625,9 +625,9 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
         case SeqType: {
             var seqLen = fSeqLength.OptEval(var.Element);
             if (seqLen != null) {
-              var length = DafnyModelVariableFactory.Get(state, seqLen, "Length", var);
+              var length = state.GetPartialValue(seqLen, new IdentifierExpr(Token.NoToken, "Length" +  var));
               result.Add(length);
-              (var as SeqVariable)?.SetLength(length);
+              var.SetLength(length);
             }
 
             // Sequences can be constructed with the build operator:
@@ -639,9 +639,9 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
               substring = fSeqBuild.AppWithResult(substring).Args[0];
             }
             for (int i = 0; i < elements.Count; i++) {
-              var e = DafnyModelVariableFactory.Get(state, Unbox(elements[i]), "[" + i + "]", var);
+              var e = state.GetPartialValue(Unbox(elements[i]), new IdentifierExpr(Token.NoToken, "[" + i + "]" + var));
               result.Add(e);
-              (var as SeqVariable)?.AddAtIndex(e, i.ToString());
+              var.AddAtIndex(e, i.ToString());
             }
             if (elements.Count > 0) {
               return result;
@@ -667,9 +667,9 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
               .Concat(otherIndices);
 
             foreach (var (res, idx) in sortedIndices) {
-              var e = DafnyModelVariableFactory.Get(state, res, "[" + idx + "]", var);
+              var e = state.GetPartialValue(res, new IdentifierExpr(Token.NoToken, "[" + idx + "]"+ var));
               result.Add(e);
-              (var as SeqVariable)?.AddAtIndex(e, idx);
+              var.AddAtIndex(e, idx);
             }
 
             return result;
@@ -682,8 +682,8 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
                 continue;
               }
 
-              result.Add(DafnyModelVariableFactory.Get(state, Unbox(setElement),
-                ((Model.Boolean)containment).ToString(), var));
+              result.Add(state.GetPartialValue(Unbox(setElement),
+                new IdentifierExpr(Token.NoToken, ((Model.Boolean)containment).ToString() + var)));
             }
             return result;
           }
@@ -696,7 +696,7 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
               foreach (var mapBuild in mapBuilds.Where(m => m.Args[0] == current && !mapKeysAdded.Contains(m.Args[1]))) {
                 result.UnionWith(AddMappingHelper(
                   state,
-                  var as MapVariable,
+                  var,
                   Unbox(mapBuild.Args[1]),
                   Unbox(mapBuild.Args[2]),
                   mapKeysAdded));
@@ -713,7 +713,7 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
               }
               result.UnionWith(AddMappingHelper(
                 state,
-                var as MapVariable,
+                var,
                 Unbox(nextMapBuild.Args[1]),
                 Unbox(nextMapBuild.Args[2]),
                 mapKeysAdded));
@@ -729,7 +729,7 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
               }
               result.UnionWith(AddMappingHelper(
                 state,
-                var as MapVariable,
+                var,
                 Unbox(app.Args[1]),
                 Unbox(fSetSelect.OptEval(mapElements, app.Args[1])),
                 mapKeysAdded));
@@ -745,8 +745,8 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
       }
       var constantFields = GetDestructorFunctions(var.Element).OrderBy(f => f.Name).ToList();
       foreach (var field in constantFields) {
-        result.Add(DafnyModelVariableFactory.Get(state, Unbox(field.OptEval(var.Element)),
-          UnderscoreRemovalRegex.Replace(field.Name.Split(".").Last(), "_"), var));
+        result.Add(state.GetPartialValue(Unbox(field.OptEval(var.Element)),
+          new IdentifierExpr(Token.NoToken, UnderscoreRemovalRegex.Replace(field.Name.Split(".").Last(), "_") + var)));
       }
       var fields = fSetSelect.AppsWithArgs(0, heap, 1, var.Element);
       if (fields == null || !fields.Any()) {
@@ -755,7 +755,7 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
       foreach (var tpl in fSetSelect.AppsWithArg(0, fields.ToList()[0].Result)) {
         foreach (var fieldName in GetFieldNames(tpl.Args[1])) {
           if (fieldName != "alloc") {
-            result.Add(DafnyModelVariableFactory.Get(state, Unbox(tpl.Result), fieldName, var));
+            result.Add(state.GetPartialValue(Unbox(tpl.Result), new IdentifierExpr(Token.NoToken, fieldName + var)));
           }
         }
       }
