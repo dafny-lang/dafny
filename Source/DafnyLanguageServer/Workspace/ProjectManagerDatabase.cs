@@ -136,11 +136,13 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           if (filesProjectHasChanged) {
             var projectFileContentHasChanged = projectManagerForFile.Project.Uri == project.Uri;
             if (projectFileContentHasChanged) {
+              // Scrap the project manager.
               var _ = projectManagerForFile.CloseAsync();
               managersByProject.Remove(project.Uri);
             } else {
-              var projectWasClosed = projectManagerForFile.CloseDocument(out _);
-              if (projectWasClosed && managersByProject.ContainsKey(projectManagerForFile.Project.Uri)) {
+              var previousProjectHasNoDocuments = projectManagerForFile.CloseDocument(out _);
+              if (previousProjectHasNoDocuments) {
+                // Enable garbage collection
                 managersByProject.Remove(projectManagerForFile.Project.Uri);
               }
             }
