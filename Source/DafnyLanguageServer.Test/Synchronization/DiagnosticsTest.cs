@@ -22,6 +22,23 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
     private readonly string testFilesDirectory = Path.Combine(Directory.GetCurrentDirectory(), "Synchronization/TestFiles");
 
     [Fact]
+    public async Task CorrectParseDiagnosticsDoNotOverridePreviousResolutionOnes() {
+      var source = @"
+function HasResolutionError(): int {
+  true
+}".TrimStart();
+
+      var document = await CreateAndOpenTestDocument(source);
+      var resolutionDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
+      Assert.Equal(MessageSource.Resolver.ToString(), resolutionDiagnostics[0].Source);
+      ApplyChange(ref document, new Range(0, 0, 0, 0), "// comment to trigger update\n");
+      await AssertNoDiagnosticsAreComing(CancellationToken);
+      ApplyChange(ref document, new Range(1, 0, 1, 0), "disturbFunctionKeyword");
+      var parseDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
+      Assert.Equal(MessageSource.Parser.ToString(), parseDiagnostics[0].Source);
+    }
+
+    [Fact]
     public async Task DiagnosticsForVerificationTimeoutHasNameAsRange() {
       var documentItem = CreateTestDocument(SlowToVerify, "DiagnosticsForVerificationTimeout.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);

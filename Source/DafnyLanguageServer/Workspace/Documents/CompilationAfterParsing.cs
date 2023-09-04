@@ -29,7 +29,6 @@ public class CompilationAfterParsing : Compilation {
     return ResolutionDiagnostics.GetOrDefault(uri, Enumerable.Empty<DafnyDiagnostic>);
   }
 
-
   public override IdeState ToIdeState(IdeState previousState) {
     var baseResult = base.ToIdeState(previousState);
     return baseResult with {
