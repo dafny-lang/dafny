@@ -22,6 +22,23 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
     private readonly string testFilesDirectory = Path.Combine(Directory.GetCurrentDirectory(), "Synchronization/TestFiles");
 
     [Fact]
+    public async Task FixedParseErrorUpdatesBeforeResolution() {
+      var source = @"
+mfunction HasParseAndResolutionError(): int {
+  true
+}".TrimStart();
+
+      var document = await CreateAndOpenTestDocument(source);
+      var parseDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
+      Assert.Equal(MessageSource.Parser.ToString(), parseDiagnostics[0].Source);
+      ApplyChange(ref document, new Range(0, 0, 0, 1), " ");
+      var parseDiagnostics2 = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
+      Assert.Empty(parseDiagnostics2);
+      var resolutionDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
+      Assert.Single(resolutionDiagnostics);
+    }
+
+    [Fact]
     public async Task SelectedTriggersDiagnosticsDoesNotDisappear() {
       var producerSource = @"
 module Producer {
@@ -1202,8 +1219,8 @@ method Foo() {
       documentItem = documentItem with { Version = documentItem.Version + 1 };
       // Fix syntax error and replace method header so verification diagnostics are not migrated.
       ApplyChange(ref documentItem, new Range(0, 0, 1, 0), "method Bar() {\n");
-      var resolutionDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
-      Assert.Empty(resolutionDiagnostics);
+      var resolutionDiagnostics = await diagnosticsReceiver.AwaitNextNotificationAsync(CancellationToken);
+      Assert.Empty(resolutionDiagnostics.Diagnostics);
       var translationDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
       // Verification diagnostics were removed since task no longer exists.
       Assert.Single(translationDiagnostics);
