@@ -22,6 +22,36 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
     private readonly string testFilesDirectory = Path.Combine(Directory.GetCurrentDirectory(), "Synchronization/TestFiles");
 
     [Fact]
+    public async Task SelectedTriggersDiagnosticsDoesNotDisappear() {
+      var producerSource = @"
+module Producer {
+  function Zoo(): set<(int,int)> {
+    set x: int | 0 <= x < 5, y | 0 <= y < 6 :: (x,y)
+  }
+
+  const used := 3
+}
+".TrimStart();
+
+      var consumerSource = @"
+module Consumer {
+  import Producer
+  const user := Producer.used + 4
+}
+".TrimStart();
+
+      var directory = Path.GetRandomFileName();
+      await CreateAndOpenTestDocument("", Path.Combine(directory, DafnyProject.FileName));
+      var producer = await CreateAndOpenTestDocument(producerSource, Path.Combine(directory, "producer.dfy"));
+      var consumer = await CreateAndOpenTestDocument(consumerSource, Path.Combine(directory, "consumer.dfy"));
+      var diag1 = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
+      Assert.Equal(DiagnosticSeverity.Hint, diag1[0].Severity);
+      ApplyChange(ref consumer, new Range(0, 0, 0, 0), "//trigger change\n");
+      await AssertNoDiagnosticsAreComing(CancellationToken);
+    }
+
+
+    [Fact]
     public async Task CorrectParseDiagnosticsDoNotOverridePreviousResolutionOnes() {
       var source = @"
 function HasResolutionError(): int {
