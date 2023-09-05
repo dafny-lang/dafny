@@ -4,7 +4,7 @@ namespace Microsoft.Dafny;
 
 public static class RewriterCollection {
 
-  public static IList<IRewriter> GetRewriters(ErrorReporter reporter, CompilationData compilationData) {
+  public static IList<IRewriter> GetRewriters(ErrorReporter reporter, Program program) {
     var result = new List<IRewriter>();
 
     result.Add(new RefinementTransformer(reporter));
@@ -12,13 +12,13 @@ public static class RewriterCollection {
       result.Add(new Auditor.Auditor(reporter));
     }
 
-    result.Add(new AutoContractsRewriter(reporter));
+    result.Add(new AutoContractsRewriter(program, reporter));
     result.Add(new OpaqueMemberRewriter(reporter));
     result.Add(new AutoReqFunctionRewriter(reporter));
     result.Add(new TimeLimitRewriter(reporter));
     result.Add(new ForallStmtRewriter(reporter));
     result.Add(new ProvideRevealAllRewriter(reporter));
-    result.Add(new MatchFlattener(reporter, compilationData.IdGenerator));
+    result.Add(new MatchFlattener(reporter, program.Compilation.IdGenerator));
 
     if (reporter.Options.AutoTriggers) {
       result.Add(new QuantifierSplittingRewriter(reporter));
@@ -42,7 +42,7 @@ public static class RewriterCollection {
     }
 
     result.Add(new LocalLinter(reporter));
-    result.Add(new PrecedenceLinter(reporter, compilationData));
+    result.Add(new PrecedenceLinter(reporter, program.Compilation));
 
     if (reporter.Options.Get(CommonOptionBag.DefaultFunctionOpacity) == CommonOptionBag.DefaultFunctionOpacityOptions.AutoRevealDependencies) {
       result.Add(new AutoRevealFunctionDependencies(reporter));

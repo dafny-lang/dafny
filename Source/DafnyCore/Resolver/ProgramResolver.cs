@@ -55,7 +55,7 @@ public class ProgramResolver {
       classMembers[moduleClassMembers.Key] = moduleClassMembers.Value;
     }
 
-    var rewriters = RewriterCollection.GetRewriters(Reporter, Program.Compilation);
+    var rewriters = RewriterCollection.GetRewriters(Reporter, Program);
 
     var compilation = Program.Compilation;
     foreach (var rewriter in rewriters) {

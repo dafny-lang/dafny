@@ -107,7 +107,7 @@ public class LiteralModuleDecl : ModuleDecl, ICanFormat, IHasSymbolChildren {
       module.RefinementQId.SetTarget(md); // If module is not found, md is null and an error message has been emitted
     }
 
-    var rewriters = RewriterCollection.GetRewriters(resolver.Reporter, compilation);
+    var rewriters = RewriterCollection.GetRewriters(resolver.Reporter, resolver.ProgramResolver.Program);
     foreach (var rewriter in rewriters) {
       rewriter.PreResolve(module);
     }

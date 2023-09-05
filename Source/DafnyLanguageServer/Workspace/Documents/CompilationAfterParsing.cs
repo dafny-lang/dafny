@@ -31,10 +31,14 @@ public class CompilationAfterParsing : Compilation {
 
   public override IdeState ToIdeState(IdeState previousState) {
     var baseResult = base.ToIdeState(previousState);
-    var parseErrors = ResolutionDiagnostics.Values.Any(ds => ds.Any(d => d.Level == ErrorLevel.Error));
+    // We may only use the new diagnostics if they block resolution,
+    // otherwise we publish without resolution diagnostics which then appear again, which leads to flickering if the previous state already had these.
+    // Since we currently do not separately track parse and resolution diagnostics,
+    // we can not take the new parse and the existing resolution diagnostics, which would be ideal.
+    var useNewDiagnostics = ResolutionDiagnostics.Values.Any(ds => ds.Any(d => d.Level == ErrorLevel.Error));
     return baseResult with {
       Program = Program,
-      ResolutionDiagnostics = !parseErrors ? previousState.ResolutionDiagnostics : ResolutionDiagnostics.ToDictionary(
+      ResolutionDiagnostics = !useNewDiagnostics ? previousState.ResolutionDiagnostics : ResolutionDiagnostics.ToDictionary(
         kv => kv.Key,
         kv => (IReadOnlyList<Diagnostic>)kv.Value.Select(d => d.ToLspDiagnostic()).ToList()),
       VerificationTrees = VerificationTrees
