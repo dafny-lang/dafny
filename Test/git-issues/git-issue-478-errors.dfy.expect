@@ -1,6 +1,6 @@
 git-issue-478-errors.dfy(22,9): Error: Import declaration uses same name as a module in the same scope: LibW
 git-issue-478-errors.dfy(26,9): Error: Import declaration uses same name as a module in the same scope: LibX
-git-issue-478-errors.dfy(36,7): Error: Duplicate module name: M
+git-issue-478-errors.dfy(36,7): Error: Duplicate module name: M [Related location] git-issue-478-errors.dfy(35,7)
 git-issue-478-errors.dfy(7,7): Error: Import declaration uses same name as a module in the same scope: LibA
 git-issue-478-errors.dfy(11,7): Error: Import declaration uses same name as a module in the same scope: LibB
 git-issue-478-errors.dfy(37,7): Error: Import declaration uses same name as a module in the same scope: M
