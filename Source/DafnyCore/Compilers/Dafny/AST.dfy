@@ -5,6 +5,7 @@ module {:extern "DAST"} DAST {
 
   datatype Type =
     Path(seq<Ident>, typeArgs: seq<Type>, resolved: ResolvedType) |
+    Nullable(Type) |
     Tuple(seq<Type>) |
     Array(element: Type) |
     Seq(element: Type) |
@@ -49,6 +50,8 @@ module {:extern "DAST"} DAST {
     Call(on: Expression, name: string, typeArgs: seq<Type>, args: seq<Expression>, outs: Optional<seq<Ident>>) |
     Return(expr: Expression) |
     EarlyReturn() |
+    TailRecursive(body: seq<Statement>) |
+    JumpTailCallStart() |
     Halt() |
     Print(Expression)
 

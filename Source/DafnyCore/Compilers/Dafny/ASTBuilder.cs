@@ -382,6 +382,12 @@ namespace Microsoft.Dafny.Compilers {
       return ret;
     }
 
+    public TailRecursiveBuilder TailRecursive() {
+      var ret = new TailRecursiveBuilder();
+      AddBuildable(ret);
+      return ret;
+    }
+
     public CallStmtBuilder Call() {
       var ret = new CallStmtBuilder();
       AddBuildable(ret);
@@ -635,6 +641,35 @@ namespace Microsoft.Dafny.Compilers {
 
       return (DAST.Statement)DAST.Statement.create_While(
         builtCondition[0],
+        Sequence<DAST.Statement>.FromArray(builtStatements.ToArray())
+      );
+    }
+  }
+
+  class TailRecursiveBuilder : StatementContainer, BuildableStatement {
+    readonly List<object> body = new();
+
+    public TailRecursiveBuilder() { }
+
+    public void AddStatement(DAST.Statement item) {
+      body.Add(item);
+    }
+
+    public void AddBuildable(BuildableStatement item) {
+      body.Add(item);
+    }
+
+    public List<object> ForkList() {
+      var ret = new List<object>();
+      this.body.Add(ret);
+      return ret;
+    }
+
+    public DAST.Statement Build() {
+      List<DAST.Statement> builtStatements = new();
+      StatementContainer.RecursivelyBuild(body, builtStatements);
+
+      return (DAST.Statement)DAST.Statement.create_TailRecursive(
         Sequence<DAST.Statement>.FromArray(builtStatements.ToArray())
       );
     }
