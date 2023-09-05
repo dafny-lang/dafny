@@ -14,7 +14,7 @@ public static class RewriterCollection {
 
     result.Add(new AutoContractsRewriter(program, reporter));
     result.Add(new OpaqueMemberRewriter(reporter));
-    result.Add(new AutoReqFunctionRewriter(reporter));
+    result.Add(new AutoReqFunctionRewriter(program, reporter));
     result.Add(new TimeLimitRewriter(reporter));
     result.Add(new ForallStmtRewriter(reporter));
     result.Add(new ProvideRevealAllRewriter(reporter));
@@ -35,7 +35,7 @@ public static class RewriterCollection {
 
     result.Add(new InductionRewriter(reporter));
     result.Add(new PrintEffectEnforcement(reporter));
-    result.Add(new BitvectorOptimization(reporter));
+    result.Add(new BitvectorOptimization(program, reporter));
 
     if (reporter.Options.DisallowConstructorCaseWithoutParentheses) {
       result.Add(new ConstructorWarning(reporter));

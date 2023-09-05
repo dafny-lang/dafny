@@ -11,15 +11,12 @@ namespace Microsoft.Dafny;
 public class AutoReqFunctionRewriter : IRewriter {
   Function parentFunction;
   bool containsMatch; // TODO: Track this per-requirement, rather than per-function
-  private SystemModuleManager systemModuleManager;
+  private readonly SystemModuleManager systemModuleManager;
 
-  public AutoReqFunctionRewriter(ErrorReporter reporter)
+  public AutoReqFunctionRewriter(Program program, ErrorReporter reporter)
     : base(reporter) {
-    Contract.Requires(reporter != null);
-  }
-
-  internal override void PreResolve(Program program) {
     systemModuleManager = program.SystemModuleManager;
+    Contract.Requires(reporter != null);
   }
 
   internal override void PostResolveIntermediate(ModuleDefinition m) {

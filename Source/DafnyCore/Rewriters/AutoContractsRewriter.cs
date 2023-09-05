@@ -65,9 +65,6 @@ public class AutoContractsRewriter : IRewriter {
     systemModuleManager = program.SystemModuleManager;
   }
 
-  internal override void PreResolve(Program program) {
-  }
-
   internal override void PreResolve(ModuleDefinition m) {
     foreach (var d in m.TopLevelDecls) {
       bool sayYes = true;
