@@ -50,7 +50,7 @@ public class CompilationManager {
 
   private TaskCompletionSource verificationCompleted = new();
   private readonly DafnyOptions options;
-  private readonly Compilation startingCompilation;
+  public Compilation StartingCompilation { get; }
   private readonly ExecutionEngine boogieEngine;
 
   private readonly Subject<Compilation> compilationUpdates = new();
@@ -70,7 +70,7 @@ public class CompilationManager {
     IReadOnlyDictionary<Uri, DocumentVerificationTree> migratedVerificationTrees
     ) {
     this.options = options;
-    startingCompilation = compilation;
+    StartingCompilation = compilation;
     this.boogieEngine = boogieEngine;
     this.migratedVerificationTrees = migratedVerificationTrees;
 
@@ -95,7 +95,7 @@ public class CompilationManager {
   private async Task<CompilationAfterParsing> ParseAsync() {
     try {
       await started.Task;
-      var parsedCompilation = await documentLoader.ParseAsync(options, startingCompilation, migratedVerificationTrees,
+      var parsedCompilation = await documentLoader.ParseAsync(options, StartingCompilation, migratedVerificationTrees,
         cancellationSource.Token);
       verificationProgressReporter.RecomputeVerificationTrees(parsedCompilation);
       foreach (var root in parsedCompilation.RootUris) {
@@ -297,7 +297,7 @@ public class CompilationManager {
             var remainingJobs = Interlocked.Decrement(ref runningVerificationJobs);
             logger.LogDebug(
               $"StatusUpdateHandlerFinally called, remaining jobs {remainingJobs}, {compilation.Uri} version {compilation.Version}, " +
-              $"startingCompilation.version {startingCompilation.Version}.");
+              $"startingCompilation.version {StartingCompilation.Version}.");
             if (remainingJobs == 0) {
               FinishedNotifications(compilation, verifiable);
             }
@@ -330,14 +330,14 @@ public class CompilationManager {
   public void IncrementJobs() {
     MarkVerificationStarted();
     var verifyTaskIncrementedJobs = Interlocked.Increment(ref runningVerificationJobs);
-    logger.LogDebug($"Incremented jobs for verifyTask, remaining jobs {verifyTaskIncrementedJobs}, {startingCompilation.Uri} version {startingCompilation.Version}");
+    logger.LogDebug($"Incremented jobs for verifyTask, remaining jobs {verifyTaskIncrementedJobs}, {StartingCompilation.Uri} version {StartingCompilation.Version}");
   }
 
   public void DecrementJobs() {
     var remainingJobs = Interlocked.Decrement(ref runningVerificationJobs);
-    logger.LogDebug($"Decremented jobs, remaining jobs {remainingJobs}, {startingCompilation.Uri} version {startingCompilation.Version}");
+    logger.LogDebug($"Decremented jobs, remaining jobs {remainingJobs}, {StartingCompilation.Uri} version {StartingCompilation.Version}");
     if (remainingJobs == 0) {
-      logger.LogDebug($"Calling MarkVerificationFinished because there are no remaining verification jobs for {startingCompilation.Uri}, version {startingCompilation.Version}.");
+      logger.LogDebug($"Calling MarkVerificationFinished because there are no remaining verification jobs for {StartingCompilation.Uri}, version {StartingCompilation.Version}.");
       MarkVerificationFinished();
     }
   }
@@ -465,20 +465,20 @@ public class CompilationManager {
   }
 
   private void MarkVerificationStarted() {
-    logger.LogDebug($"MarkVerificationStarted called for {startingCompilation.Uri} version {startingCompilation.Version}");
+    logger.LogDebug($"MarkVerificationStarted called for {StartingCompilation.Uri} version {StartingCompilation.Version}");
     if (verificationCompleted.Task.IsCompleted) {
       verificationCompleted = new TaskCompletionSource();
     }
   }
 
   private void MarkVerificationFinished() {
-    logger.LogDebug($"MarkVerificationFinished called for {startingCompilation.Uri} version {startingCompilation.Version}");
+    logger.LogDebug($"MarkVerificationFinished called for {StartingCompilation.Uri} version {StartingCompilation.Version}");
     verificationCompleted.TrySetResult();
   }
 
   public Task<CompilationAfterParsing> LastDocument {
     get {
-      logger.LogDebug($"LastDocument {startingCompilation.Uri} will return document version {startingCompilation.Version}");
+      logger.LogDebug($"LastDocument {StartingCompilation.Uri} will return document version {StartingCompilation.Version}");
       return ResolvedCompilation.ContinueWith(
         t => {
           if (t.IsCompletedSuccessfully) {
@@ -486,7 +486,7 @@ public class CompilationManager {
             return verificationCompleted.Task.ContinueWith(
               verificationCompletedTask => {
                 logger.LogDebug(
-                  $"LastDocument returning translated compilation {startingCompilation.Uri} with status {verificationCompletedTask.Status}");
+                  $"LastDocument returning translated compilation {StartingCompilation.Uri} with status {verificationCompletedTask.Status}");
                 return Task.FromResult<CompilationAfterParsing>(t.Result);
               }, TaskScheduler.Current).Unwrap();
 #pragma warning restore VSTHRD103
