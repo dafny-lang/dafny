@@ -119,6 +119,32 @@ pub trait DafnyUnerasable<T: ?Sized> {
     fn unerase_owned(v: T) -> Self;
 }
 
+impl <T: DafnyErasable> DafnyErasable for Option<T> {
+    type Erased = Option<T::Erased>;
+
+    #[inline]
+    fn erase(&self) -> &Self::Erased {
+        unsafe { &*(self as *const Self as *const Self::Erased) }
+    }
+
+    #[inline]
+    fn erase_owned(self) -> Self::Erased {
+        unsafe { transmute_unchecked(self) }
+    }
+}
+
+impl <T: DafnyUnerasable<U>, U> DafnyUnerasable<Option<U>> for Option<T> {
+    #[inline]
+    fn unerase(v: &Option<U>) -> &Self {
+        unsafe { &*(v as *const Option<U> as *const Self) }
+    }
+
+    #[inline]
+    fn unerase_owned(v: Option<U>) -> Self {
+        unsafe { transmute_unchecked(v) }
+    }
+}
+
 impl <T> DafnyErasable for Rc<T> {
     type Erased = Rc<T>;
 
@@ -399,6 +425,15 @@ impl DafnyPrint for char {
     #[inline]
     fn is_char() -> bool {
         true
+    }
+}
+
+impl <T: DafnyPrint> DafnyPrint for Option<T> {
+    fn fmt_print(&self, f: &mut Formatter<'_>, _in_seq: bool) -> std::fmt::Result {
+        match self {
+            Some(x) => x.fmt_print(f, false),
+            None => write!(f, "null")
+        }
     }
 }
 
