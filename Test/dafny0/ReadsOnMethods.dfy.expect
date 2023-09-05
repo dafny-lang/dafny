@@ -9,6 +9,7 @@ ReadsOnMethods.dfy(147,35): Error: function precondition could not be proved
 ReadsOnMethods.dfy(147,35): Error: insufficient reads clause to invoke function
 ReadsOnMethods.dfy(151,37): Error: insufficient reads clause to invoke function
 ReadsOnMethods.dfy(162,25): Error: insufficient reads clause to invoke function
+ReadsOnMethods.dfy(162,43): Error: insufficient reads clause to invoke function
 ReadsOnMethods.dfy(245,9): Error: insufficient reads clause to read field
 ReadsOnMethods.dfy(304,33): Error: insufficient reads clause to read field
 ReadsOnMethods.dfy(308,22): Error: insufficient reads clause to invoke function
@@ -33,4 +34,4 @@ ReadsOnMethods.dfy(172,19): Error: insufficient reads clause to read field
 ReadsOnMethods.dfy(183,25): Error: insufficient reads clause to read field
 ReadsOnMethods.dfy(469,9): Error: method might read an object not in the parent trait context's reads clause
 
-Dafny program verifier finished with 64 verified, 31 errors
+Dafny program verifier finished with 64 verified, 32 errors
