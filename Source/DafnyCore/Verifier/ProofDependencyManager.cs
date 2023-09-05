@@ -37,61 +37,29 @@ namespace Microsoft.Dafny {
         new QKeyValue(tok, idAttributeName, new List<object>() { idString }, boogieNode.Attributes);
     }
 
-    // This suffix indicates that an ID string represents the assumption of
-    // a specific ensures clause after a specific call.
-    private const string ensuresSuffix = "$ensures";
-
-    // This suffix indicates that an ID string represents the goal of
-    // proving a specific requires clause before a specific call.
-    private const string requiresSuffix = "$requires";
-
-    // This suffix indicates that an ID string represents the assumption
-    // of a specific requires clause after a specific call.
-    private const string requiresAssumedSuffix = "$requires_assumed";
-
-    // This suffix indicates that an ID string represents the goal of
-    // proving that a specific loop invariant is established.
-    private const string establishedSuffix = "$established";
-
-    // This suffix indicates that an ID string represents the goal of
-    // proving that a specific loop invariant is maintained.
-    private const string maintainedSuffix = "$maintained";
-
-    // This suffix indicates that an ID string represents the asssumption
-    // of a specific loop invariant in the body of the loop.
-    private const string assumeInBodySuffix = "$assume_in_body";
-
-    // Get the full ProofDependency indicated by a compound ID string. These strings are
-    // returned by the SMT solver to indicate which sub-formulas it used in constructing
-    // a proof of a particular goal (more technically, the UNSAT core of the negation of
-    // the goal). Because SMT-Lib only accepts strings as labels, we need to embed some
-    // extra information in those strings to represent ways in which the original Boogie
-    // commands and expressions are transformed and duplicated during Boogie's VC
-    // generation process.
-    public ProofDependency GetFullIdDependency(string idString) {
-      var parts = idString.Split('$');
-      if (idString.EndsWith(requiresSuffix) && parts.Length == 3) {
-        var reqId = ProofDependenciesById[parts[0]];
-        var callId = ProofDependenciesById[parts[1]];
+    public ProofDependency GetFullIdDependency(TrackedNodeComponent component) {
+      if (component is TrackedCallRequiresGoal requiresGoal) {
+        var reqId = ProofDependenciesById[requiresGoal.requiresId];
+        var callId = ProofDependenciesById[requiresGoal.callId];
         return new CallRequiresDependency((CallDependency)callId, (RequiresDependency)reqId);
-      } else if (idString.EndsWith(requiresAssumedSuffix) && parts.Length == 3) {
-        var reqId = ProofDependenciesById[parts[0]];
-        var callId = ProofDependenciesById[parts[1]];
+      } else if (component is TrackedCallRequiresAssumed requiresAssumed) {
+        var reqId = ProofDependenciesById[requiresAssumed.requiresId];
+        var callId = ProofDependenciesById[requiresAssumed.callId];
         return new CallRequiresDependency((CallDependency)callId, (RequiresDependency)reqId);
-      } else if (idString.EndsWith(ensuresSuffix) && parts.Length == 3) {
-        var ensId = ProofDependenciesById[parts[0]];
-        var callId = ProofDependenciesById[parts[1]];
+      } else if (component is TrackedCallEnsures callEnsures) {
+        var ensId = ProofDependenciesById[callEnsures.ensuresId];
+        var callId = ProofDependenciesById[callEnsures.callId];
         return new CallEnsuresDependency((CallDependency)callId, (EnsuresDependency)ensId);
-      } else if (idString.EndsWith(establishedSuffix) && parts.Length == 2) {
-        return ProofDependenciesById[parts[0]];
-      } else if (idString.EndsWith(maintainedSuffix) && parts.Length == 2) {
-        return ProofDependenciesById[parts[0]];
-      } else if (idString.EndsWith(assumeInBodySuffix) && parts.Length == 2) {
-        return ProofDependenciesById[parts[0]];
-      } else if (parts.Length > 1) {
-        throw new ArgumentException($"Malformed dependency ID string: {idString}");
+      } else if (component is TrackedInvariantEstablished invariantEstablished) {
+        return ProofDependenciesById[invariantEstablished.invariantId];
+      } else if (component is TrackedInvariantMaintained invariantMaintained) {
+        return ProofDependenciesById[invariantMaintained.invariantId];
+      } else if (component is TrackedInvariantAssumed invariantAssumed) {
+        return ProofDependenciesById[invariantAssumed.invariantId];
+      } else if (component is LabeledNodeComponent labeledNodeComponent) {
+        return ProofDependenciesById[labeledNodeComponent.SolverLabel];
       } else {
-        return ProofDependenciesById[idString];
+        throw new ArgumentException($"Malformed dependency ID: {component.SolverLabel}");
       }
     }
   }
