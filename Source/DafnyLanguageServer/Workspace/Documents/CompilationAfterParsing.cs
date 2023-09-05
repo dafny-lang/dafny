@@ -31,10 +31,10 @@ public class CompilationAfterParsing : Compilation {
 
   public override IdeState ToIdeState(IdeState previousState) {
     var baseResult = base.ToIdeState(previousState);
-    var parseDiagnostics = ResolutionDiagnostics.Values.Any(ds => ds.Any());
+    var parseErrors = ResolutionDiagnostics.Values.Any(ds => ds.Any(d => d.Level == ErrorLevel.Error));
     return baseResult with {
       Program = Program,
-      ResolutionDiagnostics = !parseDiagnostics ? previousState.ResolutionDiagnostics : ResolutionDiagnostics.ToDictionary(
+      ResolutionDiagnostics = !parseErrors ? previousState.ResolutionDiagnostics : ResolutionDiagnostics.ToDictionary(
         kv => kv.Key,
         kv => (IReadOnlyList<Diagnostic>)kv.Value.Select(d => d.ToLspDiagnostic()).ToList()),
       VerificationTrees = VerificationTrees

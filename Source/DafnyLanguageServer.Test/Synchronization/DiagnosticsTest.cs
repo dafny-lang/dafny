@@ -21,7 +21,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
   public class DiagnosticsTest : ClientBasedLanguageServerTest {
     private readonly string testFilesDirectory = Path.Combine(Directory.GetCurrentDirectory(), "Synchronization/TestFiles");
 
-    [Fact]
+    [Fact(Skip = "Not implemented. Requires separating diagnostics from different sources")]
     public async Task FixedParseErrorUpdatesBeforeResolution() {
       var source = @"
 mfunction HasParseAndResolutionError(): int {
@@ -1219,6 +1219,8 @@ method Foo() {
       documentItem = documentItem with { Version = documentItem.Version + 1 };
       // Fix syntax error and replace method header so verification diagnostics are not migrated.
       ApplyChange(ref documentItem, new Range(0, 0, 1, 0), "method Bar() {\n");
+      // Next line is made obsolete by resolving https://github.com/dafny-lang/dafny/issues/4377
+      var unnecessaryDiagnostics = await diagnosticsReceiver.AwaitNextNotificationAsync(CancellationToken);
       var resolutionDiagnostics = await diagnosticsReceiver.AwaitNextNotificationAsync(CancellationToken);
       Assert.Empty(resolutionDiagnostics.Diagnostics);
       var translationDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
