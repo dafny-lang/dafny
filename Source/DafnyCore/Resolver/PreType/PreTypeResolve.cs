@@ -431,7 +431,7 @@ namespace Microsoft.Dafny {
       if (assignPreType) {
         Contract.Assert(v.PreType == null);
         v.PreType = Type2PreType(v.Type, $"type of identifier '{v.Name}'");
-        Contract.Assert(v.PreType is not DPreType dp || dp.Decl != null); // sanity check that the .Decl field was set
+        Contract.Assert(v.PreType is not DPreType { Decl: null }); // sanity check that the .Decl field was set
       } else {
         Contract.Assert(v.PreType != null);
       }
