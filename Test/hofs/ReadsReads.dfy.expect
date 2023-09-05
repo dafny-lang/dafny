@@ -1,6 +1,8 @@
+ReadsReads.dfy(35,6): Error: function precondition could not be proved
 ReadsReads.dfy(35,6): Error: insufficient reads clause to invoke function
 ReadsReads.dfy(40,4): Error: function precondition could not be proved
 ReadsReads.dfy(40,4): Error: insufficient reads clause to invoke function
+ReadsReads.dfy(52,11): Error: function precondition could not be proved
 ReadsReads.dfy(52,11): Error: insufficient reads clause to invoke function
 ReadsReads.dfy(64,6): Error: insufficient reads clause to invoke function
 ReadsReads.dfy(93,49): Error: assertion might not hold
@@ -16,4 +18,4 @@ ReadsReads.dfy(252,13): Error: assertion might not hold
 ReadsReads.dfy(262,13): Error: assertion might not hold
 ReadsReads.dfy(272,13): Error: assertion might not hold
 
-Dafny program verifier finished with 16 verified, 17 errors
+Dafny program verifier finished with 16 verified, 19 errors
