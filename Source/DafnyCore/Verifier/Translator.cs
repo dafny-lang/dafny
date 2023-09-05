@@ -1085,7 +1085,7 @@ namespace Microsoft.Dafny {
                   this.functionFuel.Add(new FuelConstant(f, baseFuel_expr, startFuel_expr, startFuelAssert_expr));
                 }
 
-                if (f.IsOpaque) {
+                if (f.IsOpaque || f.IsMadeImplicitlyOpaque(options)) {
                   CreateRevealableConstant(f);
                 }
               }
@@ -1578,14 +1578,18 @@ namespace Microsoft.Dafny {
     ///   - "f" has a body
     ///   - "f" is not opaque
     /// </summary>
-    static bool FunctionBodyIsAvailable(Function f, ModuleDefinition context, VisibilityScope scope, bool revealProtectedBody) {
+    bool FunctionBodyIsAvailable(Function f, ModuleDefinition context, VisibilityScope scope, bool revealProtectedBody) {
       Contract.Requires(f != null);
       Contract.Requires(context != null);
       return f.Body != null && !IsOpaque(f) && f.IsRevealedInScope(scope);
     }
-    static bool IsOpaque(MemberDecl f) {
+    bool IsOpaque(MemberDecl f) {
       Contract.Requires(f != null);
-      return Attributes.Contains(f.Attributes, "opaque") || f.IsOpaque;
+      if (f is Function f1) {
+        return Attributes.Contains(f.Attributes, "opaque") || f.IsOpaque || f1.IsMadeImplicitlyOpaque(options);
+      } else {
+        return Attributes.Contains(f.Attributes, "opaque") || f.IsOpaque;
+      }
     }
     static bool IsOpaqueRevealLemma(Method m) {
       Contract.Requires(m != null);
@@ -2127,7 +2131,7 @@ namespace Microsoft.Dafny {
       }
 
       Bpl.BoundVariable reveal;
-      if (f.IsOpaque) {
+      if (f.IsOpaque || f.IsMadeImplicitlyOpaque(options)) {
         reveal = new Bpl.BoundVariable(f.tok, new Bpl.TypedIdent(f.tok, "$reveal", Boogie.Type.Bool));
         formals.Add(reveal);
       } else {
@@ -2444,7 +2448,7 @@ namespace Microsoft.Dafny {
         layer = null;
       }
 
-      if (f.IsOpaque) {
+      if (f.IsOpaque || f.IsMadeImplicitlyOpaque(options)) {
         reveal = new Bpl.BoundVariable(f.tok, new Bpl.TypedIdent(f.tok, "$reveal", Boogie.Type.Bool));
         //funcFormals.Add(reveal);
         //reqFuncArguments.Add(new Bpl.IdentifierExpr(f.tok, reveal));
@@ -2897,7 +2901,7 @@ namespace Microsoft.Dafny {
       var s = new Bpl.IdentifierExpr(f.tok, bv);
       args1.Add(FunctionCall(f.tok, BuiltinFunction.LayerSucc, null, s));
       args0.Add(s);
-      if (f.IsOpaque) {
+      if (f.IsOpaque || f.IsMadeImplicitlyOpaque(options)) {
         var bvReveal = new Bpl.BoundVariable(f.tok, new Bpl.TypedIdent(f.tok, "$reveal", Boogie.Type.Bool));
         formals.Add(bvReveal);
         var sReveal = new Bpl.IdentifierExpr(f.tok, bvReveal);
@@ -2968,7 +2972,7 @@ namespace Microsoft.Dafny {
       args2.Add(FunctionCall(f.tok, BuiltinFunction.AsFuelBottom, null, s));
       args1.Add(s);
       args0.Add(new Bpl.IdentifierExpr(f.tok, "$LZ", predef.LayerType)); // $LZ
-      if (f.IsOpaque) {
+      if (f.IsOpaque || f.IsMadeImplicitlyOpaque(options)) {
         var bvReveal = new Bpl.BoundVariable(f.tok, new Bpl.TypedIdent(f.tok, "$reveal", Boogie.Type.Bool));
         formals.Add(bvReveal);
         var sReveal = new Bpl.IdentifierExpr(f.tok, bvReveal);
@@ -3638,7 +3642,7 @@ namespace Microsoft.Dafny {
           argsC.Add(etran.layerInterCluster.GetFunctionFuel(f));
         }
 
-        if (f.IsOpaque) {
+        if (f.IsOpaque || f.IsMadeImplicitlyOpaque(options)) {
           argsC.Add(GetRevealConstant(f));
         }
 
@@ -4082,7 +4086,7 @@ namespace Microsoft.Dafny {
       Bpl.BoundVariable prevHVar = null;
       Bpl.Expr reveal = null;
       Bpl.BoundVariable revealVar = null;
-      if (f.IsOpaque) {
+      if (f.IsOpaque || f.IsMadeImplicitlyOpaque(options)) {
         revealVar = BplBoundVar("$reveal", Bpl.Type.Bool, out reveal);
       }
       if (f is TwoStateFunction) {
@@ -4470,7 +4474,7 @@ namespace Microsoft.Dafny {
           args.Add(etran.layerInterCluster.GetFunctionFuel(f));
         }
 
-        if (f.IsOpaque) {
+        if (f.IsOpaque || f.IsMadeImplicitlyOpaque(options)) {
           args.Add(GetRevealConstant(f));
         }
         if (f is TwoStateFunction) {
@@ -4513,7 +4517,7 @@ namespace Microsoft.Dafny {
           args.Add(etran.layerInterCluster.GetFunctionFuel(f));
         }
 
-        if (f.IsOpaque) {
+        if (f.IsOpaque || f.IsMadeImplicitlyOpaque(options)) {
           args.Add(GetRevealConstant(f));
         }
         if (f is TwoStateFunction) {
@@ -5865,7 +5869,7 @@ namespace Microsoft.Dafny {
           formals.Add(BplFormalVar("$fuel", predef.LayerType, true));
           AddFuelSuccSynonymAxiom(f, true);
         }
-        if (f.IsOpaque) {
+        if (f.IsOpaque || f.IsMadeImplicitlyOpaque(options)) {
           vars.Add(BplBoundVar("$reveal", Boogie.Type.Bool, out var reveal));
           args.Add(reveal);
           formals.Add(BplFormalVar("$reveal", Boogie.Type.Bool, true));
@@ -5940,27 +5944,43 @@ namespace Microsoft.Dafny {
         }
 
         {
+          // As a first approximation, the following axiom is of the form:
           // Requires(Ty.., F#Handle( Ty1, ..., TyN, Layer, reveal, self), Heap, arg1, ..., argN)
           //   = F#Requires(Ty1, .., TyN, Layer, Heap, self, [Unbox] arg1, .., [Unbox] argN)
+          // However, .reads ands .requires functions require special attention.
+          // To understand the rationale for these axioms, refer to the section on arrow types of the reference manual.
+          // The requires clause of the .requires function is simply true.
+          // The requires clause of the .reads function checks that the precondtion of the receiving function holds.
 
           var fhandle = FunctionCall(f.tok, name, predef.HandleType, SnocSelf(SnocPrevH(args)));
           var lhs = FunctionCall(f.tok, Requires(arity), Bpl.Type.Bool, Concat(tyargs, Cons(h, Cons(fhandle, lhs_args))));
           Bpl.Expr rhs;
-          if (f.EnclosingClass is ArrowTypeDecl) {
-            // In case this is the /requires/ or /reads/ function, then there is no precondition
-            rhs = Bpl.Expr.True;
+          if (f.EnclosingClass is ArrowTypeDecl && f.Name == "requires") {
+            AddOtherDefinition(GetOrCreateFunction(f), new Axiom(f.tok,
+                BplForall(Concat(vars, bvars), BplTrigger(lhs), Bpl.Expr.Eq(lhs, Bpl.Expr.True))));
+          } else if (f.EnclosingClass is ArrowTypeDecl && f.Name == "reads") {
+            var args_h = f.ReadsHeap ? Snoc(SnocPrevH(argsRequires), h) : argsRequires;
+            var pre = FunctionCall(f.tok, Requires(arity), Bpl.Type.Bool, Concat(SnocSelf(args_h), lhs_args));
+            AddOtherDefinition(GetOrCreateFunction(f), (new Axiom(f.tok,
+              BplForall(Concat(vars, bvars), BplTrigger(lhs), Bpl.Expr.Eq(lhs, pre)))));
           } else {
             var args_h = f.ReadsHeap ? Snoc(SnocPrevH(argsRequires), h) : argsRequires;
             rhs = FunctionCall(f.tok, RequiresName(f), Bpl.Type.Bool, Concat(SnocSelf(args_h), rhs_args));
+            AddOtherDefinition(GetOrCreateFunction(f), new Axiom(f.tok,
+              BplForall(Concat(vars, bvars), BplTrigger(lhs), Bpl.Expr.Eq(lhs, rhs))));
           }
 
-          AddOtherDefinition(GetOrCreateFunction(f), (new Axiom(f.tok,
-            BplForall(Concat(vars, bvars), BplTrigger(lhs), Bpl.Expr.Eq(lhs, rhs)))));
+
         }
 
         {
+          // As a first approximation, the following axiom is of the form:
           // Reads(Ty.., F#Handle( Ty1, ..., TyN, Layer, self), Heap, arg1, ..., argN)
           //   =  $Frame_F(args...)
+          // However, .reads ands .requires functions require special attention.
+          // To understand the rationale for these axioms, refer to the section on arrow types of the reference manual.
+          // In both cases, the precondition of the receiving function must be checked before its reads clause can
+          // be referred to.
 
           var fhandle = FunctionCall(f.tok, name, predef.HandleType, SnocSelf(SnocPrevH(args)));
           Bpl.Expr lhs_inner = FunctionCall(f.tok, Reads(arity), TrType(new SetType(true, program.SystemModuleManager.ObjectQ())), Concat(tyargs, Cons(h, Cons(fhandle, lhs_args))));
@@ -5972,8 +5992,15 @@ namespace Microsoft.Dafny {
           var et = new ExpressionTranslator(this, predef, h);
           var rhs = InRWClause_Aux(f.tok, unboxBx, bx, null, f.Reads, false, et, selfExpr, rhs_dict);
 
-          sink.AddTopLevelDeclaration(new Axiom(f.tok,
-            BplForall(Cons(bxVar, Concat(vars, bvars)), BplTrigger(lhs), Bpl.Expr.Eq(lhs, rhs))));
+          if (f.EnclosingClass is ArrowTypeDecl) {
+            var args_h = f.ReadsHeap ? Snoc(SnocPrevH(argsRequires), h) : argsRequires;
+            var precondition = FunctionCall(f.tok, Requires(arity), Bpl.Type.Bool, Concat(SnocSelf(args_h), lhs_args));
+            sink.AddTopLevelDeclaration(new Axiom(f.tok,
+              BplForall(Cons(bxVar, Concat(vars, bvars)), BplTrigger(lhs), Bpl.Expr.Imp(precondition, Bpl.Expr.Eq(lhs, rhs)))));
+          } else {
+            sink.AddTopLevelDeclaration(new Axiom(f.tok,
+              BplForall(Cons(bxVar, Concat(vars, bvars)), BplTrigger(lhs), Bpl.Expr.Eq(lhs, rhs))));
+          }
         }
 
         {
@@ -6860,7 +6887,7 @@ namespace Microsoft.Dafny {
           formals.Add(new Bpl.Formal(f.tok, new Bpl.TypedIdent(f.tok, "$ly", predef.LayerType), true));
         }
 
-        if (f.IsOpaque) {
+        if (f.IsOpaque || f.IsMadeImplicitlyOpaque(options)) {
           formals.Add(new Bpl.Formal(f.tok, new Bpl.TypedIdent(f.tok, "$reveal", Boogie.Type.Bool), true));
         }
         if (f is TwoStateFunction) {

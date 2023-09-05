@@ -1684,13 +1684,14 @@ and the subset type `(TT) --> U` is called the _partial arrow type_.
 think of the little gap between the two hyphens in `-->` as showing a broken
 arrow.)
 
-The built-in partial arrow type is defined as follows (here shown
+Intuitively, the built-in partial arrow type is defined as follows (here shown
 for arrows with arity 1):
 <!-- %no-check -->
 ```dafny
 type A --> B = f: A ~> B | forall a :: f.reads(a) == {}
 ```
-(except that what is shown here left of the `=` is not legal Dafny syntax).
+(except that what is shown here left of the `=` is not legal Dafny syntax
+and that the restriction could not be verified as is).
 That is, the partial arrow type is defined as those functions `f`
 whose reads frame is empty for all inputs.
 More precisely, taking variance into account, the partial arrow type
@@ -2866,21 +2867,48 @@ body.  For a function `f: T ~> U`, the value that the function yields
 for an input `t` of type `T` is denoted `f(t)` and has type `U`.
 
 Note that `f.reads` and `f.requires` are themselves functions.
-Suppose `f` has type `T ~> U` and `t` has type `T`.  Then, `f.reads`
-is a function of type `T ~> set<object?>` whose `reads` and `requires`
-properties are:
+Without loss of generality, suppose `f` is defined as:
+<!-- %no-check -->
+```dafny 
+function f<T,U>(x: T): U
+  reads R(x)
+  requires P(x)
+{
+  body(x)
+}
+```
+where `P`, `R`, and `body` are declared as:
+<!-- %no-check -->
+```dafny 
+predicate P<T>(x: T)
+function R<T>(x: T): set<object>
+function body<T,U>(x: T): U
+```
+Then, `f.reads` is a function of type `T ~> set<object?>` 
+whose `reads` and `requires` properties are given by the definition:
 <!-- %no-check -->
 ```dafny
-f.reads.reads(t) == f.reads(t)
-f.reads.requires(t) == true
+function f.reads<T>(x: T): set<object>
+  reads R(x)
+  requires P(x)
+{
+  R(x)
+}
 ```
 `f.requires` is a function of type `T ~> bool` whose `reads` and
-`requires` properties are:
+`requires` properties are given by the definition:
 <!-- %no-check -->
 ```dafny
-f.requires.reads(t) == f.reads(t)
-f.requires.requires(t) == true
+predicate f_requires<T>(x: T)
+  requires true
+  reads if P(x) then R(x) else *
+{
+  P(x)
+}
 ```
+where `*` is a notation to indicate that any memory location can
+be read, but is not valid Dafny syntax.
+
 In these examples, if `f` instead had type `T --> U` or `T -> U`,
 then the type of `f.reads` is `T -> set<object?>` and the type
 of `f.requires` is `T -> bool`.
@@ -4179,8 +4207,13 @@ default. To make it ghost, replace the keyword `function` with the two keywords 
 (See the [--function-syntax option](#sec-function-syntax) for a description 
 of the migration path for this change in behavior.}
 
-Functions (including predicates, function-by-methods, two-state functions, and extreme predicates) may be 
-declared `opaque`. In that case, only the signature and specification of the method
+By default, the body of a function is transparent to its users, but
+sometimes it is useful to hide it. Functions (including predicates, function-by-methods, two-state functions, and extreme predicates) may be
+declared opaque using either the `opaque` keyword, or using the `--default-function-opacity` argument. If a function `foo` or `bar` is opaque, then Dafny hides the body of the function,
+so that it can only be seen within its recursive clique (if any),
+or if the programmer specifically asks to see it via the statement `reveal foo(), bar();`.
+
+In that case, only the signature and specification of the method
 is known at its points of use, not its body. The body can be _revealed_ for reasoning
 purposes using the [reveal statment](#sec-reveal-statement).
 
@@ -4261,7 +4294,7 @@ This means that the run-time evaluation of an expression may have print effects.
 If `--track-print-effects` is enabled, this use of print in a function context
 will be disallowed.
 
-### 6.4.4. Function Transparency
+### 6.4.4. Function Transparency {#sec-opaque}
 A function is said to be _transparent_ in a location if the
 body of the function is visible at that point.
 A function is said to be _opaque_ at a location if it is not
@@ -4272,23 +4305,35 @@ A function is usually transparent up to some unrolling level (up to
 1, or maybe 2 or 3). If its arguments are all literals it is
 transparent all the way.
 
-But the transparency of a function is affected by
-whether the function was declared with an [`opaque` modifier]((#sec-opaque),
+The default transparency of a function can be set with the `--default-function-opacity` commandline flag. By default, the `--default-function-opacity` is transparent.
+The transparency of a function is also affected by
+whether the function was declared with an `opaque` modifier or [`transparent` attribute](#sec-transparent),
 the ([reveal statement](#sec-reveal-statement)),
 and whether it was `reveal`ed in an export set.
 
-- Inside the module where the function is declared:
-   - if there is no `opaque` modifier, the function is transparent
-   - if there is an `opaque` modifier, then the function is opaque,
-   except if the function is mentioned in a `reveal` statement, then
-   it is transparent between that `reveal` statement and the end of
-   the block containing the `reveal` statement.
-- Outside the module where the function is declared, the function is 
-visible only if it was listed in the export set by which the contents
-of its module was imported. In that case, if the function was exported
-with `reveals`, the rules are the same within the importing module as when the function is used inside
-its declaring module. If the function is exported only with `provides` it is
-always opaque and is not permitted to be used in a reveal statement.
+Inside the module where the function is declared:
+  - If `--default-function-opacity` is set to `transparent` (default), then:
+     - if there is no `opaque` modifier, the function is transparent.
+     - if there is an `opaque` modifier, then the function is opaque. If the function is mentioned in a `reveal` statement, then
+     its body is available starting at that `reveal` statement.
+
+  - If `--default-function-opacity` is set to `opaque`, then:
+    - if there is no [`{:transparent}` attribute](#sec-transparent), the function is opaque. If the function is mentioned in a `reveal` statement, then the body of the function is available starting at that `reveal` statement.
+    - if there is a [`{:transparent}` attribute](#sec-transparent), then the function is transparent.
+
+  - If `--default-function-opacity` is set to `autoRevealDependencies`, then:
+    - if there is no [`{:transparent}` attribute](#sec-transparent), the function is opaque. However, the body of the function is available inside any callable that depends on this function via an implicitly inserted `reveal` statement, unless the callable has the [`{autoRevealDependencies k}` attribute](#sec-autorevealdependencies) for some natural number `k` which is too low.
+    - if there is a [`{:transparent}` attribute](#sec-transparent), then the function is transparent.
+
+
+Outside the module where the function is declared, the function is
+  visible only if it was listed in the export set by which the contents
+  of its module was imported. In that case, if the function was exported
+  with `reveals`, the rules are the same within the importing module as when the function is used inside
+  its declaring module. If the function is exported only with `provides` it is
+  always opaque and is not permitted to be used in a reveal statement.
+
+More information about the Boogie implementation of opaquenes is [here](https://github.com/dafny-lang/dafny/blob/master/docs/Compilation/Boogie.md).
 
 ### 6.4.5. Extreme (Least or Greatest) Predicates and Lemmas
 See [Section 12.5.3](#sec-friendliness) for descriptions
