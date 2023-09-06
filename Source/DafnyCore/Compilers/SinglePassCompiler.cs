@@ -5253,9 +5253,11 @@ namespace Microsoft.Dafny.Compilers {
         //   }
         // }))(src)
 
+        EmitLambdaApply(wr, out var wLambda, out var wArg);
+
         string source = ProtectedFreshId("_source");
         ConcreteSyntaxTree w;
-        w = CreateLambda(new List<Type>() { e.Source.Type }, e.tok, new List<string>() { source }, e.Type, wr, wStmts);
+        w = CreateLambda(new List<Type>() { e.Source.Type }, e.tok, new List<string>() { source }, e.Type, wLambda, wStmts);
 
         if (e.Cases.Count == 0) {
           // the verifier would have proved we never get here; still, we need some code that will compile
@@ -5270,8 +5272,7 @@ namespace Microsoft.Dafny.Compilers {
           }
         }
         // We end with applying the source expression to the delegate we just built
-        wr.Write(LambdaExecute);
-        TrParenExpr(e.Source, wr, inLetExprBody, wStmts);
+        EmitExpr(e.Source, inLetExprBody, wArg, wStmts);
 
       } else if (expr is QuantifierExpr) {
         var e = (QuantifierExpr)expr;
@@ -5433,6 +5434,12 @@ namespace Microsoft.Dafny.Compilers {
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression
       }
+    }
+
+    protected virtual void EmitLambdaApply(ConcreteSyntaxTree wr, out ConcreteSyntaxTree wLambda, out ConcreteSyntaxTree wArg) {
+      wLambda = wr.Fork();
+      wr.Write(LambdaExecute);
+      wArg = wr.ForkInParens();
     }
 
     protected void WriteTypeDescriptors(TopLevelDecl decl, List<Type> typeArguments, ConcreteSyntaxTree wrArgumentList, ref string sep) {
