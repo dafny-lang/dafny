@@ -119,6 +119,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     VerifiedVerifying = 202,
     // Also applicable for empty spaces if they are not surrounded by errors.
     Verified = 200,
+    VerifiedUnused = 220,
     // For trees containing children with errors (e.g. functions, methods, fields, subset types)
     ErrorContextObsolete = 301,
     ErrorContextVerifying = 302,
