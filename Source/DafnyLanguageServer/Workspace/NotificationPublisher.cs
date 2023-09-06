@@ -97,7 +97,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     private FileVerificationStatus GetFileVerificationStatus(IdeState state, Uri uri) {
       var verificationResults = state.GetVerificationResults(uri);
-      return new FileVerificationStatus(uri, filesystem.GetVersion(uri) ?? 0,
+      return new FileVerificationStatus(uri, filesystem.GetVersion(uri),
         verificationResults.Select(kv => GetNamedVerifiableStatuses(kv.Key, kv.Value)).
             OrderBy(s => s.NameRange.Start).ToList());
     }
@@ -163,7 +163,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
           languageServer.TextDocument.PublishDiagnostics(new PublishDiagnosticsParams {
             Uri = publishUri,
-            Version = filesystem.GetVersion(publishUri) ?? 0,
+            Version = filesystem.GetVersion(publishUri),
             Diagnostics = diagnostics,
           });
         }
@@ -182,7 +182,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       var tree = state.VerificationTrees[uri];
 
       var linesCount = tree.Range.End.Line + 1;
-      var fileVersion = filesystem.GetVersion(uri) ?? 0;
+      var fileVersion = filesystem.GetVersion(uri);
       var verificationStatusGutter = VerificationStatusGutter.ComputeFrom(
         DocumentUri.From(uri),
         fileVersion,

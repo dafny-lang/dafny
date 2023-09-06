@@ -28,7 +28,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
 
     public static VerificationStatusGutter ComputeFrom(
         DocumentUri uri,
-        int version,
+        int? version,
         ICollection<VerificationTree> verificationTrees,
         Container<Diagnostic> resolutionErrors,
         int linesCount,
