@@ -422,6 +422,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
           var maxPosition = children.Count > 0 ? children.MaxBy(child => child.Range.End)!.Range.End : Range.Start;
           result[new AssertionBatchIndex(implementationNumber, vcNum)] = new AssertionBatchVerificationTree(
             $"Assertion batch #{result.Count + 1}",
+            implementationNode.VerboseName,
             $"assertion-batch-{implementationNumber}-{vcNum}",
             Filename,
             Uri,
@@ -458,6 +459,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
   // Invariant: There is at least 1 child for every assertion batch
   public record AssertionBatchVerificationTree(
     string DisplayName,
+    string VerboseName,
     // Used to re-trigger the verification of some diagnostics.
     string Identifier,
     string Filename,
@@ -491,6 +493,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
 
   public record ImplementationVerificationTree(
     string DisplayName,
+    string VerboseName,
     // Used to re-trigger the verification of some diagnostics.
     string Identifier,
     string Filename,

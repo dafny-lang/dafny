@@ -201,6 +201,7 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
                            implementation.Name;
       newImplementationNode = new ImplementationVerificationTree(
         newDisplayName,
+        implementation.VerboseName,
         implementation.Name,
         targetMethodNode.Filename,
         targetMethodNode.Uri,

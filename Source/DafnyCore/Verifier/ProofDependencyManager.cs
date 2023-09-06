@@ -18,7 +18,7 @@ namespace Microsoft.Dafny {
   public class ProofDependencyManager {
     // proof dependency tracking state
     public Dictionary<string, ProofDependency> ProofDependenciesById { get; } = new();
-    private Dictionary<string, HashSet<string>> idsByMemberName = new();
+    private Dictionary<string, HashSet<ProofDependency>> idsByMemberName = new();
     private UInt64 proofDependencyIdCount = 0;
     private string currentDefinition = null;
 
@@ -27,10 +27,10 @@ namespace Microsoft.Dafny {
       ProofDependenciesById[idString] = dep;
       proofDependencyIdCount++;
       if (!idsByMemberName.TryGetValue(currentDefinition, out var currentSet)) {
-        currentSet = new HashSet<string>();
+        currentSet = new HashSet<ProofDependency>();
         idsByMemberName[currentDefinition] = currentSet;
       }
-      currentSet.Add(idString);
+      currentSet.Add(dep);
       return idString;
     }
 
@@ -38,7 +38,7 @@ namespace Microsoft.Dafny {
       currentDefinition = defName;
     }
 
-    public IEnumerable<string> GetPotentialDependenciesForDefinition(string defName) {
+    public IEnumerable<ProofDependency> GetPotentialDependenciesForDefinition(string defName) {
       return idsByMemberName[defName];
     }
 

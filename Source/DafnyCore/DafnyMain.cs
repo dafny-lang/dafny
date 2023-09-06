@@ -216,15 +216,14 @@ to also include a directory containing the `z3` executable.
 
     public static void WarnAboutSuspiciousDependenciesForImplementation(DafnyOptions dafnyOptions, ErrorReporter reporter, ProofDependencyManager depManager, Implementation implementation, VerificationResult result) {
       var potentialDependencies = depManager.GetPotentialDependenciesForDefinition(implementation.VerboseName);
-      var usedDependencyIds = result.VCResults.SelectMany(vcResult => vcResult.coveredElements);
       var usedDependencies =
-        usedDependencyIds
-          .Select(depManager.GetFullIdDependency)
+        result
+          .VCResults
+          .SelectMany(vcResult => vcResult.coveredElements.Select(depManager.GetFullIdDependency))
           .OrderBy(dep => (dep.RangeString(), dep.Description));
-      var unusedDependencyIds = potentialDependencies.Except(usedDependencyIds);
       var unusedDependencies =
-        unusedDependencyIds
-          .Select(depManager.GetFullIdDependency)
+        potentialDependencies
+          .Except(usedDependencies)
           .OrderBy(dep => (dep.RangeString(), dep.Description));
 
       var unusedObligations = unusedDependencies.OfType<ProofObligationDependency>();

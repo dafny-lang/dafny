@@ -10,6 +10,7 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Threading;
 using System.Threading.Tasks;
+using DafnyCore.Verifier;
 using Microsoft.Boogie;
 using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Util;
@@ -231,23 +232,34 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
     }
 
     private string GetProofDependencyInformation(IdeState state, TopLevelDeclMemberVerificationTree node, List<AssertionBatchVerificationTree> orderedAssertionBatches) {
-      var lines = new List<string>();
+      var allPotentialDependencies = new HashSet<ProofDependency>();
+      var usedDependencies = new HashSet<ProofDependency>();
       var program = (Program)state.Program;
+      var result = "";
       if (program is null) {
         return "null program";
       }
+
+      var depManager = program.ProofDependencyManager;
       foreach (var assertionBatch in orderedAssertionBatches) {
-        foreach (var depId in assertionBatch.CoveredIds) {
-          var dep = program.ProofDependencyManager.GetFullIdDependency(depId);
-          lines.Add($"* `{dep.RangeString()}: {dep.Description}`\n");
-        }
+        var batchDependencies = assertionBatch.CoveredIds.Select(depManager.GetFullIdDependency);
+        var batchPotentialDependencies = depManager.GetPotentialDependenciesForDefinition(assertionBatch.VerboseName);
+        allPotentialDependencies.UnionWith(batchPotentialDependencies);
+        usedDependencies.UnionWith(batchDependencies);
       }
 
-      if (lines.Any()) {
-        return lines.Aggregate("\n\nProof dependencies:\n", (acc, l) => acc + l);
-      } else {
-        return "";
+      if (usedDependencies.Any() && options.TrackVerificationCoverage) {
+        result += usedDependencies.Aggregate("\n\nProof dependencies:\n",
+          (acc, dep) => acc + $"* `{dep.RangeString()}: {dep.Description}`\n");
       }
+
+      var unusedDependencies = allPotentialDependencies.Except(usedDependencies);
+      if (unusedDependencies.Any() && options.TrackVerificationCoverage) {
+        result += unusedDependencies.Aggregate("\n\nUnused program elements:\n",
+          (acc, dep) => acc + $"* `{dep.RangeString()}: {dep.Description}`\n");
+      }
+
+      return result;
     }
 
     private string GetAssertionInformation(IdeState ideState, Position position, AssertionVerificationTree assertionNode,
