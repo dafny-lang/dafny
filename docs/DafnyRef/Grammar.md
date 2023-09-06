@@ -511,7 +511,7 @@ may also include any of three optional elements:
 
 Note that a variable's domain expression may reference any variable declared before it,
 and a variable's range expression may reference the attached variable (and usually does) and any variable declared before it.
-For example, in the quantifier domain `i | 0 <= i < |s|, y <- s[i] | i < y`, the expression `s[i]` is well-formed
+For example, in the quantifier domain `i | 0 <= i < |s|, y <- s[i] | i < y`, the expression `s[i]` is always [well-formed](#sec-assertion-batches)
 because the range attached to `i` ensures `i` is a valid index in the sequence `s`.
 
 Allowing per-variable ranges is not fully backwards compatible, and so it is not yet allowed by default;
