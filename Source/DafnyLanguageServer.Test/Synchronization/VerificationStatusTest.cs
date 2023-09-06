@@ -16,6 +16,19 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization;
 public class VerificationStatusTest : ClientBasedLanguageServerTest {
 
   [Fact]
+  public async Task DoNotResendAfterNoopChange() {
+    var source = @"
+method WillVerify() {
+  assert false;
+}
+".TrimStart();
+
+    var document = await CreateAndOpenTestDocument(source);
+    var firstStatus = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
+    ApplyChange(ref document, new Range(3,0,3,0), "//change comment\n");
+    await AssertNoVerificationStatusIsComing(document, CancellationToken);
+  }
+  [Fact]
   public async Task TryingToVerifyShowsUpAsQueued() {
     var source = @"
 method Foo() returns (x: int) ensures x / 2 == 1; {
