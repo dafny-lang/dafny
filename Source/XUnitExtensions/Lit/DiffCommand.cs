@@ -10,7 +10,7 @@ namespace XUnitExtensions.Lit {
   /// because 'diff' does not exist on Windows.
   /// </summary>
   public class DiffCommand : ILitCommand {
-    private static readonly bool UpdateExpectFile = true;
+    private static readonly bool UpdateExpectFile = false;
 
     public string ExpectedPath { get; }
     public string ActualPath { get; }
