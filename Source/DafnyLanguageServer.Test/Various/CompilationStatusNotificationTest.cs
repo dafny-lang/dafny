@@ -166,10 +166,12 @@ method Abs(x: int) returns (y: int)
       var documentItem1 = CreateTestDocument(source, "test_1.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem1, CancellationToken);
       await AssertProgress(documentItem1, CompilationStatus.ResolutionStarted);
+      await AssertProgress(documentItem1, CompilationStatus.ResolutionSucceeded);
       await WaitForStatus(null, PublishedVerificationStatus.Stale, CancellationToken, documentItem1);
       var documentItem2 = CreateTestDocument(source, "test_2dfy");
       await client.OpenDocumentAndWaitAsync(documentItem2, CancellationToken);
       await AssertProgress(documentItem2, CompilationStatus.ResolutionStarted);
+      await AssertProgress(documentItem2, CompilationStatus.ResolutionSucceeded);
       await WaitForStatus(null, PublishedVerificationStatus.Stale, CancellationToken, documentItem2);
     }
 
@@ -190,11 +192,13 @@ method Abs(x: int) returns (y: int)
       await client.OpenDocumentAndWaitAsync(documentItem1, CancellationToken);
       await client.SaveDocumentAndWaitAsync(documentItem1, CancellationToken);
       await AssertProgress(documentItem1, CompilationStatus.ResolutionStarted);
+      await AssertProgress(documentItem1, CompilationStatus.ResolutionSucceeded);
       await WaitForStatus(null, PublishedVerificationStatus.Stale, CancellationToken, documentItem1);
       var documentItem2 = CreateTestDocument(source, "test_2dfy");
       await client.OpenDocumentAndWaitAsync(documentItem2, CancellationToken);
       await client.SaveDocumentAndWaitAsync(documentItem2, CancellationToken);
       await AssertProgress(documentItem2, CompilationStatus.ResolutionStarted);
+      await AssertProgress(documentItem2, CompilationStatus.ResolutionSucceeded);
       await WaitForStatus(null, PublishedVerificationStatus.Stale, CancellationToken, documentItem2);
     }
 

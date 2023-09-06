@@ -35,8 +35,22 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       }
 
       PublishProgressStatus(previousState, state);
+      PublishSymbolStatus(previousState, state);
       PublishGhostness(previousState, state);
       await PublishDiagnostics(state);
+    }
+
+    private void PublishSymbolStatus(IdeState previousState, IdeState state) {
+      foreach (var uri in state.Compilation.RootUris) {
+        var previous = GetFileVerificationStatus(previousState, uri);
+        var current = GetFileVerificationStatus(state, uri);
+
+        if (Equals(current, previous)) {
+          continue;
+        }
+
+        languageServer.TextDocument.SendNotification(DafnyRequestNames.VerificationSymbolStatus, current);
+      }
     }
 
     private void PublishProgressStatus(IdeState previousState, IdeState state) {
@@ -50,49 +64,36 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           continue;
         }
 
-        switch (current) {
-          case ResolutionProgressStatus resolutionProgressStatus:
-            languageServer.SendNotification(new CompilationStatusParams {
-              Uri = uri,
-              Version = filesystem.GetVersion(uri),
-              Status = resolutionProgressStatus.CompilationStatus,
-              Message = null
-            });
-            break;
-          case VerificationProgressStatus verificationProgressStatus:
-            languageServer.TextDocument.SendNotification(DafnyRequestNames.VerificationSymbolStatus, verificationProgressStatus.FileVerificationStatus);
-            break;
-        }
+        languageServer.SendNotification(new CompilationStatusParams {
+          Uri = uri,
+          Version = filesystem.GetVersion(uri),
+          Status = current,
+          Message = null
+        });
       }
 
     }
 
-    private abstract record ProgressStatus;
-
-    private sealed record VerificationProgressStatus(FileVerificationStatus FileVerificationStatus) : ProgressStatus;
-
-    private sealed record ResolutionProgressStatus(CompilationStatus CompilationStatus) : ProgressStatus;
-
-    private ProgressStatus GetProgressStatus(IdeState state, Uri uri) {
+    private CompilationStatus GetProgressStatus(IdeState state, Uri uri) {
       var hasResolutionDiagnostics = (state.ResolutionDiagnostics.GetValueOrDefault(uri) ?? Enumerable.Empty<Diagnostic>()).
         Any(d => d.Severity == DiagnosticSeverity.Error);
       if (state.Compilation is CompilationAfterResolution) {
         if (hasResolutionDiagnostics) {
-          return new ResolutionProgressStatus(CompilationStatus.ResolutionFailed);
+          return CompilationStatus.ResolutionFailed;
         }
 
-        return new VerificationProgressStatus(GetFileVerificationStatus(state, uri));
+        return CompilationStatus.ResolutionSucceeded;
       }
 
       if (state.Compilation is CompilationAfterParsing) {
         if (hasResolutionDiagnostics) {
-          return new ResolutionProgressStatus(CompilationStatus.ParsingFailed);
+          return CompilationStatus.ParsingFailed;
         }
 
-        return new ResolutionProgressStatus(CompilationStatus.ResolutionStarted);
+        return CompilationStatus.ResolutionStarted;
       }
 
-      return new ResolutionProgressStatus(CompilationStatus.Parsing);
+      return CompilationStatus.Parsing;
     }
 
     private FileVerificationStatus GetFileVerificationStatus(IdeState state, Uri uri) {

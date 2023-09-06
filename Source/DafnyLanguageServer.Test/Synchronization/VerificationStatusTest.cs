@@ -25,7 +25,7 @@ method WillVerify() {
 
     var document = await CreateAndOpenTestDocument(source);
     var firstStatus = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
-    ApplyChange(ref document, new Range(3,0,3,0), "//change comment\n");
+    ApplyChange(ref document, new Range(3, 0, 3, 0), "//change comment\n");
     await AssertNoVerificationStatusIsComing(document, CancellationToken);
   }
   [Fact]
@@ -360,12 +360,14 @@ method Bar() { assert false; }";
     var documentItem = CreateTestDocument(SlowToVerify, "ManualRunCancelCancelRunRun.dfy");
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
     var stale = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
+    Assert.Equal(documentItem.Uri, stale.Uri);
     Assert.Equal(PublishedVerificationStatus.Stale, stale.NamedVerifiables[0].Status);
     await AssertNoVerificationStatusIsComing(documentItem, CancellationToken);
 
     var methodHeader = new Position(0, 21);
     await client.RunSymbolVerification(new TextDocumentIdentifier(documentItem.Uri), methodHeader, CancellationToken);
     var running0 = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
+    Assert.Equal(documentItem.Uri, running0.Uri);
     Assert.Equal(PublishedVerificationStatus.Queued, running0.NamedVerifiables[0].Status);
 
     var running1 = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
@@ -445,8 +447,6 @@ method Bar() { assert false; }";
 
     await client.SaveDocumentAndWaitAsync(documentItem, CancellationToken);
 
-    var stale2 = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
-    Assert.Equal(PublishedVerificationStatus.Stale, stale2.NamedVerifiables[0].Status);
     var queued = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
     Assert.Equal(PublishedVerificationStatus.Queued, queued.NamedVerifiables[0].Status);
     var running = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
