@@ -20,7 +20,7 @@ public class DafnyConsolePrinter : ConsolePrinter {
 
   private readonly ConcurrentDictionary<string, List<string>> fsCache = new();
   private DafnyOptions options;
-  public ConcurrentBag<(Implementation, VerificationResult)> VerificationResults { get; } = new();
+  public ConcurrentBag<(string, Uri, VerificationResult)> VerificationResults { get; } = new();
 
   public override void AdvisoryWriteLine(TextWriter output, string format, params object[] args) {
     if (output == Console.Out) {
@@ -116,6 +116,6 @@ public class DafnyConsolePrinter : ConsolePrinter {
   }
 
   public override void ReportEndVerifyImplementation(Implementation implementation, Boogie.VerificationResult result) {
-    VerificationResults.Add((implementation, result));
+    VerificationResults.Add((implementation.VerboseName, ((IToken)implementation.tok).Uri, result));
   }
 }

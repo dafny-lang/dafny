@@ -65,7 +65,7 @@ namespace Microsoft.Dafny {
           // it uses information that's tricky to encode in a TestResult.
           var textLogger = new TextLogger(options.OutputWriter);
           textLogger.Initialize(parameters);
-          textLogger.LogResults(verificationResults);
+          textLogger.LogResults(verificationResults.Select(tp => (tp.Item1, tp.Item3)));
           return;
         } else {
           throw new ArgumentException($"unsupported verification logger config: {loggerConfig}");
@@ -88,14 +88,12 @@ namespace Microsoft.Dafny {
       ));
     }
 
-    private static IEnumerable<TestResult> VerificationToTestResults(List<(Implementation, VerificationResult)> verificationResults) {
+    private static IEnumerable<TestResult> VerificationToTestResults(List<(string, Uri, VerificationResult)> verificationResults) {
       var testResults = new List<TestResult>();
 
-      foreach (var (implementation, result) in verificationResults) {
+      foreach (var (verbName, currentFile, result) in verificationResults) {
         var vcResults = result.VCResults.OrderBy(r => r.vcNum);
-        var currentFile = ((IToken)implementation.tok).Uri;
         foreach (var vcResult in vcResults) {
-          var verbName = implementation.VerboseName;
           var name = vcResults.Count() > 1
             ? verbName + $" (assertion batch {vcResult.vcNum})"
             : verbName;

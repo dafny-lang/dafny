@@ -18,11 +18,11 @@ public class TextLogger {
     tw = parameters.TryGetValue("LogFileName", out string filename) ? new StreamWriter(filename) : outWriter;
   }
 
-  public void LogResults(List<(Implementation, VerificationResult)> verificationResults) {
-    var orderedResults = verificationResults.OrderBy(vr => vr.Item1.VerboseName);
-    foreach (var (implementation, result) in orderedResults) {
+  public void LogResults(IEnumerable<(string, VerificationResult)> verificationResults) {
+    var orderedResults = verificationResults.OrderBy(vr => vr.Item1);
+    foreach (var (verboseName, result) in orderedResults) {
       tw.WriteLine("");
-      tw.WriteLine($"Results for {implementation.VerboseName}");
+      tw.WriteLine($"Results for {verboseName}");
       tw.WriteLine($"  Overall outcome: {result.Outcome}");
       tw.WriteLine($"  Overall time: {result.End - result.Start}");
       tw.WriteLine($"  Overall resource count: {result.ResourceCount}");
