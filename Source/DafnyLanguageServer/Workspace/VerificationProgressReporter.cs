@@ -304,6 +304,10 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
           targetMethodNode.StatusVerification = finalOutcome;
         }
 
+        DafnyMain.WarnAboutSuspiciousDependenciesForImplementation(options, compilation.Program.Reporter, compilation.Program.ProofDependencyManager, implementation, verificationResult);
+        // TODO: the following seems like a hack.
+        compilation.ResolutionDiagnostics = ((DiagnosticErrorReporter)compilation.Program.Reporter).AllDiagnosticsCopy;
+
         targetMethodNode.PropagateChildrenErrorsUp();
         targetMethodNode.RecomputeAssertionBatchNodeDiagnostics();
         ReportRealtimeDiagnostics(compilation, uri, true);
