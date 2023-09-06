@@ -18,9 +18,9 @@ public class LanguageServerFilesystem : IFileSystem {
 
   private class Entry {
     public TextBuffer Buffer { get; set; }
-    public int Version { get; set; }
+    public int? Version { get; set; }
 
-    public Entry(TextBuffer buffer, int version) {
+    public Entry(TextBuffer buffer, int? version) {
       Buffer = buffer;
       Version = version;
     }
@@ -44,7 +44,7 @@ public class LanguageServerFilesystem : IFileSystem {
       // If we don't manage to detect whether this document already existed ond disc,
       // that only triggers a performance penalty
     }
-    openFiles[uri] = new Entry(new TextBuffer(document.Text), document.Version!.Value);
+    openFiles[uri] = new Entry(new TextBuffer(document.Text), document.Version);
     return existingText != document.Text;
   }
 

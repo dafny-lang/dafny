@@ -334,7 +334,7 @@ namespace Microsoft.Dafny.Compilers {
     /// </summary>
     protected virtual void DeclareLocalVar(string name, Type/*?*/ type, IToken/*?*/ tok, Expression rhs, bool inLetExprBody, ConcreteSyntaxTree wr) {
       var wStmts = wr.Fork();
-      var w = DeclareLocalVar(name, type, tok, wr);
+      var w = DeclareLocalVar(name, type ?? rhs.Type, tok, wr);
       EmitExpr(rhs, inLetExprBody, w, wStmts);
     }
 
@@ -394,7 +394,7 @@ namespace Microsoft.Dafny.Compilers {
       wRhs = w.Fork();
       EndStmt(wr);
     }
-    protected void EmitAssignment(string lhs, Type/*?*/ lhsType, string rhs, Type/*?*/ rhsType, ConcreteSyntaxTree wr) {
+    protected virtual void EmitAssignment(string lhs, Type/*?*/ lhsType, string rhs, Type/*?*/ rhsType, ConcreteSyntaxTree wr) {
       EmitAssignment(out var wLhs, lhsType, out var wRhs, rhsType, wr);
       wLhs.Write(lhs);
       wRhs.Write(rhs);
@@ -2803,21 +2803,29 @@ namespace Microsoft.Dafny.Compilers {
         // Now, assign to the formals
         int n = 0;
         if (!e.Function.IsStatic) {
-          wr.Write("_this = ");
-          ConcreteSyntaxTree wRHS;
+          ConcreteSyntaxTree wRHS = EmitAssignment(IdentLvalue("_this"), null, null, wr, e.tok);
           if (thisContext == null) {
             wRHS = wr;
           } else {
             var instantiatedType = e.Receiver.Type.Subst(thisContext.ParentFormalTypeParametersToActuals);
-            wRHS = EmitCoercionIfNecessary(instantiatedType, UserDefinedType.FromTopLevelDecl(e.tok, thisContext), e.tok, wr);
+
+            var contextType = UserDefinedType.FromTopLevelDecl(e.tok, thisContext);
+            if (contextType.ResolvedClass is ClassLikeDecl { NonNullTypeDecl: { } } cls) {
+              contextType = UserDefinedType.FromTopLevelDecl(e.tok, cls.NonNullTypeDecl);
+            }
+
+            wRHS = EmitCoercionIfNecessary(instantiatedType, contextType, e.tok, wRHS);
           }
-          wRHS.Write(inTmps[n]);
+          EmitIdentifier(inTmps[n], wRHS);
           EndStmt(wr);
           n++;
         }
         foreach (var p in e.Function.Formals) {
           if (!p.IsGhost) {
-            EmitAssignment(IdName(p), p.Type, inTmps[n], inTypes[n], wr);
+            EmitIdentifier(
+              inTmps[n],
+              EmitAssignment(IdentLvalue(IdName(p)), p.Type, inTypes[n], wr, e.tok)
+            );
             n++;
           }
         }
@@ -2854,8 +2862,7 @@ namespace Microsoft.Dafny.Compilers {
         }
 
         var wStmts = wr.Fork();
-        EmitAssignment(out var wLhs, enclosingFunction.ResultType, out var wRhs, enclosingFunction.ResultType, wr);
-        EmitExpr(acc, false, wLhs, wStmts);
+        var wRhs = EmitAssignment(VariableLvalue(accumulatorVar), enclosingFunction.ResultType, enclosingFunction.ResultType, wr, expr.tok);
         EmitExpr(rhs, false, wRhs, wStmts);
         TrExprOpt(tailTerm, resultType, wr, accumulatorVar);
 
@@ -4713,21 +4720,29 @@ namespace Microsoft.Dafny.Compilers {
       // Now, assign to the formals
       int n = 0;
       if (!method.IsStatic) {
-        wr.Write("_this = ");
-        ConcreteSyntaxTree wRHS;
+        ConcreteSyntaxTree wRHS = EmitAssignment(IdentLvalue("_this"), null, null, wr, tok);
         if (thisContext == null) {
           wRHS = wr;
         } else {
           var instantiatedType = receiver.Type.Subst(thisContext.ParentFormalTypeParametersToActuals);
-          wRHS = EmitCoercionIfNecessary(instantiatedType, UserDefinedType.FromTopLevelDecl(tok, thisContext), tok, wr);
+
+          var contextType = UserDefinedType.FromTopLevelDecl(tok, thisContext);
+          if (contextType.ResolvedClass is ClassLikeDecl { NonNullTypeDecl: { } } cls) {
+            contextType = UserDefinedType.FromTopLevelDecl(tok, cls.NonNullTypeDecl);
+          }
+
+          wRHS = EmitCoercionIfNecessary(instantiatedType, contextType, tok, wRHS);
         }
-        wRHS.Write(inTmps[n]);
+        EmitIdentifier(inTmps[n], wRHS);
         EndStmt(wr);
         n++;
       }
       foreach (var p in method.Ins) {
         if (!p.IsGhost) {
-          EmitAssignment(IdName(p), p.Type, inTmps[n], inTypes[n], wr);
+          EmitIdentifier(
+            inTmps[n],
+            EmitAssignment(IdentLvalue(IdName(p)), p.Type, inTypes[n], wr, tok)
+          );
           n++;
         }
       }
@@ -4883,7 +4898,12 @@ namespace Microsoft.Dafny.Compilers {
       } else if (expr is ThisExpr) {
         if (thisContext != null) {
           var instantiatedType = expr.Type.Subst(thisContext.ParentFormalTypeParametersToActuals);
-          wr = EmitCoercionIfNecessary(UserDefinedType.FromTopLevelDecl(expr.tok, thisContext), instantiatedType, expr.tok, wr);
+          var contextType = UserDefinedType.FromTopLevelDecl(expr.tok, thisContext);
+          if (contextType.ResolvedClass is ClassLikeDecl { NonNullTypeDecl: { } } cls) {
+            contextType = UserDefinedType.FromTopLevelDecl(expr.tok, cls.NonNullTypeDecl);
+          }
+
+          wr = EmitCoercionIfNecessary(contextType, instantiatedType, expr.tok, wr);
         }
         EmitThis(wr);
 
@@ -4953,7 +4973,7 @@ namespace Microsoft.Dafny.Compilers {
               // need to eta-expand wrap the receiver
               var etaReceiver = ProtectedFreshId("_eta_this");
               wr = CreateIIFE_ExprBody(etaReceiver, e.Obj.Type, e.Obj.tok, e.Obj, inLetExprBody, e.Type.Subst(typeMap), e.tok, wr, ref wStmts);
-              obj = w => w.Write(etaReceiver);
+              obj = w => EmitIdentifier(etaReceiver, w);
             } else {
               obj = w => EmitExpr(e.Obj, inLetExprBody, w, wStmts);
             }
