@@ -16,6 +16,33 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization;
 public class VerificationStatusTest : ClientBasedLanguageServerTest {
 
   [Fact]
+  public async Task DoNotMigrateWrongUri() {
+    var sourceA = @"
+method NotAffectedByChange() {
+  assert false;
+}
+".TrimStart();
+
+    var sourceB = @"
+// 1
+// 2
+// 3
+method ShouldNotBeAffectedByChange() {
+  assert false;
+}
+".TrimStart();
+
+    var directory = Path.GetRandomFileName();
+    await CreateAndOpenTestDocument("", Path.Combine(directory, DafnyProject.FileName));
+    var documentA = await CreateAndOpenTestDocument(sourceA, Path.Combine(directory, "sourceA.dfy"));
+    await WaitUntilAllStatusAreCompleted(documentA);
+    var documentB = await CreateAndOpenTestDocument(sourceB, Path.Combine(directory, "sourceB.dfy"));
+    await WaitUntilAllStatusAreCompleted(documentB);
+    ApplyChange(ref documentA, new Range(3, 0, 3, 0), "// change\n");
+    await AssertNoVerificationStatusIsComing(documentB, CancellationToken);
+  }
+
+  [Fact]
   public async Task DoNotResendAfterNoopChange() {
     var source = @"
 method WillVerify() {
@@ -28,6 +55,7 @@ method WillVerify() {
     ApplyChange(ref document, new Range(3, 0, 3, 0), "//change comment\n");
     await AssertNoVerificationStatusIsComing(document, CancellationToken);
   }
+
   [Fact]
   public async Task TryingToVerifyShowsUpAsQueued() {
     var source = @"
@@ -481,8 +509,10 @@ method Bar() { assert true; }";
   }
 
   private async Task<FileVerificationStatus> WaitUntilAllStatusAreCompleted(TextDocumentIdentifier documentId) {
-    var lastDocument = (CompilationAfterResolution)(await Projects.GetLastDocumentAsync(documentId));
-    var symbols = lastDocument!.Verifiables.ToHashSet();
+    var compilationAfterParsing = await Projects.GetLastDocumentAsync(documentId);
+    var lastDocument = (CompilationAfterResolution)compilationAfterParsing;
+    var uri = documentId.Uri.ToUri();
+    var symbols = lastDocument!.Verifiables.Where(v => v.Tok.Uri == uri).ToHashSet();
     FileVerificationStatus beforeChangeStatus;
     do {
       beforeChangeStatus = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
