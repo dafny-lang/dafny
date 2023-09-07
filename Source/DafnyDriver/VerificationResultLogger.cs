@@ -65,7 +65,7 @@ namespace Microsoft.Dafny {
           // it uses information that's tricky to encode in a TestResult.
           var textLogger = new TextLogger(options.OutputWriter);
           textLogger.Initialize(parameters);
-          textLogger.LogResults(verificationResults.Select(tp => (tp.Item1, tp.Item3)));
+          textLogger.LogResults(verificationResults.Select(tp => (tp.implementation.name, tp.result)));
           return;
         } else {
           throw new ArgumentException($"unsupported verification logger config: {loggerConfig}");
@@ -75,7 +75,7 @@ namespace Microsoft.Dafny {
 
       // Sort failures to the top, and then slower procedures first.
       // Loggers may not maintain this ordering unfortunately.
-      var results = VerificationToTestResults(verificationResults)
+      var results = VerificationToTestResults(verificationResults.Select(tp => (tp.implementation, tp.result.vcResults)))
         .OrderBy(r => r.Outcome == TestOutcome.Passed)
         .ThenByDescending(r => r.Duration);
       foreach (var result in results) {
@@ -88,12 +88,11 @@ namespace Microsoft.Dafny {
       ));
     }
 
-    private static IEnumerable<TestResult> VerificationToTestResults(List<(string, Uri, VerificationResult)> verificationResults) {
+    private static IEnumerable<TestResult> VerificationToTestResults(IEnumerable<((string, Uri), List<VCResult>)> verificationResults) {
       var testResults = new List<TestResult>();
 
-      foreach (var (verbName, currentFile, result) in verificationResults) {
-        var vcResults = result.VCResults.OrderBy(r => r.vcNum);
-        foreach (var vcResult in vcResults) {
+      foreach (var ((verbName, currentFile), vcResults) in verificationResults) {
+        foreach (var vcResult in vcResults.OrderBy(r => r.vcNum)) {
           var name = vcResults.Count() > 1
             ? verbName + $" (assertion batch {vcResult.vcNum})"
             : verbName;

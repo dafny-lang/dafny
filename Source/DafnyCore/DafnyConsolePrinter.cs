@@ -6,6 +6,7 @@ using System.IO;
 using System.Linq;
 using DafnyCore;
 using Microsoft.Boogie;
+using VC;
 
 namespace Microsoft.Dafny;
 
@@ -20,7 +21,7 @@ public class DafnyConsolePrinter : ConsolePrinter {
 
   private readonly ConcurrentDictionary<string, List<string>> fsCache = new();
   private DafnyOptions options;
-  public ConcurrentBag<(string, Uri, VerificationResult)> VerificationResults { get; } = new();
+  public ConcurrentBag<((string name, Uri uri) implementation, (ConditionGeneration.Outcome outcome, TimeSpan time, int ressources, List<VCResult> vcResults) result)> VerificationResults { get; } = new();
 
   public override void AdvisoryWriteLine(TextWriter output, string format, params object[] args) {
     if (output == Console.Out) {
@@ -115,8 +116,9 @@ public class DafnyConsolePrinter : ConsolePrinter {
     }
   }
 
-  public override void ReportEndVerifyImplementation(Implementation implementation, Boogie.VerificationResult result) {
-    var uri = implementation.tok is IToken token ? token.Uri : null;
-    VerificationResults.Add((implementation.VerboseName, uri, result));
+  public override void ReportEndVerifyImplementation(Implementation implementation, VerificationResult result) {
+    var impl = (implementation.VerboseName, implementation.tok is IToken token ? token.Uri : null);
+    var res = (result.Outcome, result.End - result.Start, result.ResourceCount, result.VCResults);
+    VerificationResults.Add((impl, res));
   }
 }
