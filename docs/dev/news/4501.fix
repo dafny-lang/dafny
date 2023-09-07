@@ -1,1 +1,0 @@
-Fix a bug that could lead to incorrect IDE behavior when creating a project file that affects multiple open documents.
