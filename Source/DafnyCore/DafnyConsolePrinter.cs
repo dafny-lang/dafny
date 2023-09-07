@@ -116,6 +116,7 @@ public class DafnyConsolePrinter : ConsolePrinter {
   }
 
   public override void ReportEndVerifyImplementation(Implementation implementation, Boogie.VerificationResult result) {
-    VerificationResults.Add((implementation.VerboseName, ((IToken)implementation.tok).Uri, result));
+    var uri = implementation.tok is IToken token ? token.Uri : null;
+    VerificationResults.Add((implementation.VerboseName, uri, result));
   }
 }
