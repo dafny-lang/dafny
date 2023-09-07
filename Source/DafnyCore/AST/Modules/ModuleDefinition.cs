@@ -56,6 +56,9 @@ public class ModuleDefinition : RangeNode, IAttributeBearingDeclaration, IClonea
   public readonly List<TopLevelDecl> ResolvedPrefixNamedModules = new();
   [FilledInDuringResolution]
   public readonly List<PrefixNameModule> PrefixNamedModules = new();  // filled in by the parser; emptied by the resolver
+
+  public CallRedirector CallRedirector { get; set; }
+
   public virtual IEnumerable<TopLevelDecl> TopLevelDecls => DefaultClasses.
         Concat(SourceDecls).
         Concat(ResolvedPrefixNamedModules);
