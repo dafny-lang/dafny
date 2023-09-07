@@ -221,7 +221,7 @@ public class ProjectManager : IDisposable {
     return await CompilationManager.LastDocument;
   }
 
-  public async Task<IdeState> GetSnapshotAfterParsingAsync() {
+  public async Task<IdeState> GetStateAfterParsingAsync() {
     try {
       var parsedCompilation = await CompilationManager.ParsedCompilation;
       logger.LogDebug($"GetSnapshotAfterParsingAsync returns compilation version {parsedCompilation.Version}");
@@ -237,13 +237,13 @@ public class ProjectManager : IDisposable {
     try {
       var resolvedCompilation = await CompilationManager.ResolvedCompilation;
       logger.LogDebug($"GetStateAfterResolutionAsync returns compilation version {resolvedCompilation.Version}");
+      logger.LogDebug($"GetStateAfterResolutionAsync returns state version {latestIdeState.Value.Version}");
+      return latestIdeState.Value;
     } catch (OperationCanceledException) {
       logger.LogDebug($"GetSnapshotAfterResolutionAsync caught OperationCanceledException for resolved compilation {Project.Uri}");
-      return await GetSnapshotAfterParsingAsync();
+      return await GetStateAfterParsingAsync();
     }
 
-    logger.LogDebug($"GetStateAfterResolutionAsync returns state version {latestIdeState.Value.Version}");
-    return latestIdeState.Value;
   }
 
   public async Task<IdeState> GetIdeStateAfterVerificationAsync() {

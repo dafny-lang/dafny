@@ -9,14 +9,15 @@ public class Field : MemberDecl, ICanFormat, IHasDocstring, ISymbol {
   public readonly bool IsMutable;  // says whether or not the field can ever change values
   public readonly bool IsUserMutable;  // says whether or not code is allowed to assign to the field (IsUserMutable implies IsMutable)
   public PreType PreType;
-  public readonly Type Type;
+
+  public readonly Type Type; // Might be null after parsing and set during resolution
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(Type != null);
     Contract.Invariant(!IsUserMutable || IsMutable);  // IsUserMutable ==> IsMutable
   }
 
-  public override IEnumerable<INode> Children => Type.Nodes;
+  public override IEnumerable<INode> Children => Type?.Nodes ?? Enumerable.Empty<INode>();
 
   public Field(RangeToken rangeToken, Name name, bool isGhost, Type type, Attributes attributes)
     : this(rangeToken, name, false, isGhost, true, true, type, attributes) {
