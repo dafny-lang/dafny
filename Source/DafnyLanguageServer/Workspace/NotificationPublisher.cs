@@ -34,10 +34,22 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         return;
       }
 
-      PublishProgressStatus(previousState, state);
-      PublishSymbolStatus(previousState, state);
+      PublishStatus(previousState, state);
       PublishGhostness(previousState, state);
       await PublishDiagnostics(state);
+    }
+
+    private void PublishStatus(IdeState previousState, IdeState state) {
+      // Some global statuses, such as ResolutionSucceeded, will trigger the symbol status to be displayed.
+      // To ensure that the displayed status is always up-to-date,
+      // we must publish symbol status before publishing the global one.
+
+      // Better would be to have a single notification API with the schema { globalStatus, symbolStatus }
+      // so this problem can not occur, although that would require the "symbolStatus" part to be able to contain a
+      // "no-update" value to prevent having to send many duplicate symbolStatus updates.
+
+      PublishSymbolStatus(previousState, state);
+      PublishGlobalStatus(previousState, state);
     }
 
     private void PublishSymbolStatus(IdeState previousState, IdeState state) {
@@ -53,7 +65,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       }
     }
 
-    private void PublishProgressStatus(IdeState previousState, IdeState state) {
+    private void PublishGlobalStatus(IdeState previousState, IdeState state) {
       foreach (var uri in state.Compilation.RootUris) {
         // TODO, still have to check for ownedness
 
