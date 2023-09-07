@@ -636,6 +636,13 @@ let _dafny = (function() {
     }
     update(k, v) {
       let m = this.slice();
+      m.updateUnsafe(k, v);
+      return m;
+    }
+    // Similar to update, but make the modification in-place.
+    // Meant to be used in the map constructor.
+    updateUnsafe(k, v) {
+      let m = this;
       let i = m.findIndex(k);
       m[i] = [k, v];
       return m;

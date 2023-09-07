@@ -711,34 +711,54 @@ namespace Microsoft.Dafny {
                 }
               }
               // check that the preconditions for the call hold
-              foreach (AttributedExpression p in e.Function.Req) {
-                Expression precond = Substitute(p.E, e.Receiver, substMap, e.GetTypeArgumentSubstitutions());
-                var (errorMessage, successMessage) = CustomErrorMessage(p.Attributes);
-                foreach (var ss in TrSplitExpr(precond, etran, true, out var splitHappened)) {
-                  if (ss.IsChecked) {
-                    var tok = new NestedToken(GetToken(expr), ss.Tok);
-                    var desc = new PODesc.PreconditionSatisfied(errorMessage, successMessage);
-                    if (wfOptions.AssertKv != null) {
-                      // use the given assert attribute only
-                      builder.Add(Assert(tok, ss.E, new PODesc.PreconditionSatisfied(errorMessage, successMessage), wfOptions.AssertKv));
-                    } else {
-                      builder.Add(AssertNS(tok, ss.E, new PODesc.PreconditionSatisfied(errorMessage, successMessage)));
+              // the check for .reads function must be translated explicitly: their declaration lacks
+              // an explicit precondition, which is added as an axiom in Translator.cs
+              if (e.Function.Name == "reads" && !e.Receiver.Type.IsArrowTypeWithoutReadEffects) {
+                var arguments = etran.FunctionInvocationArguments(e, null, null);
+                var precondition = FunctionCall(e.tok, Requires(e.Args.Count), Bpl.Type.Bool, arguments);
+                builder.Add(Assert(GetToken(expr), precondition, new PODesc.PreconditionSatisfied(null, null)));
+
+                if (wfOptions.DoReadsChecks) {
+                  // check that the callee reads only what the caller is already allowed to read
+                  Type objset = new SetType(true, program.SystemModuleManager.ObjectQ());
+                  Expression wrap = new BoogieWrapper(
+                    FunctionCall(expr.tok, Reads(e.Args.Count()), TrType(objset), arguments),
+                    objset);
+                  var reads = new FrameExpression(expr.tok, wrap, null);
+                  CheckFrameSubset(expr.tok, new List<FrameExpression> { reads }, null, null,
+                    etran, etran.ReadsFrame(expr.tok), wfOptions.AssertSink(this, builder), new PODesc.FrameSubset("invoke function", false), wfOptions.AssertKv);
+                }
+
+              } else {
+
+                foreach (AttributedExpression p in e.Function.Req) {
+                  Expression precond = Substitute(p.E, e.Receiver, substMap, e.GetTypeArgumentSubstitutions());
+                  var (errorMessage, successMessage) = CustomErrorMessage(p.Attributes);
+                  foreach (var ss in TrSplitExpr(precond, etran, true, out var splitHappened)) {
+                    if (ss.IsChecked) {
+                      var tok = new NestedToken(GetToken(expr), ss.Tok);
+                      var desc = new PODesc.PreconditionSatisfied(errorMessage, successMessage);
+                      if (wfOptions.AssertKv != null) {
+                        // use the given assert attribute only
+                        builder.Add(Assert(tok, ss.E, new PODesc.PreconditionSatisfied(errorMessage, successMessage), wfOptions.AssertKv));
+                      } else {
+                        builder.Add(AssertNS(tok, ss.E, new PODesc.PreconditionSatisfied(errorMessage, successMessage)));
+                      }
                     }
                   }
+                  if (wfOptions.AssertKv == null) {
+                    // assume only if no given assert attribute is given
+                    builder.Add(TrAssumeCmd(callExpr.tok, etran.TrExpr(precond)));
+                  }
                 }
-                if (wfOptions.AssertKv == null) {
-                  // assume only if no given assert attribute is given
-                  builder.Add(TrAssumeCmd(callExpr.tok, etran.TrExpr(precond)));
+                if (wfOptions.DoReadsChecks) {
+                  // check that the callee reads only what the caller is already allowed to read
+                  var s = new Substituter(null, new Dictionary<IVariable, Expression>(), e.GetTypeArgumentSubstitutions());
+                  CheckFrameSubset(callExpr.tok,
+                    e.Function.Reads.ConvertAll(s.SubstFrameExpr),
+                    e.Receiver, substMap, etran, etran.ReadsFrame(callExpr.tok), wfOptions.AssertSink(this, builder), new PODesc.FrameSubset("invoke function", false), wfOptions.AssertKv);
                 }
               }
-              if (wfOptions.DoReadsChecks) {
-                // check that the callee reads only what the caller is already allowed to read
-                var s = new Substituter(null, new Dictionary<IVariable, Expression>(), e.GetTypeArgumentSubstitutions());
-                CheckFrameSubset(callExpr.tok,
-                  e.Function.Reads.ConvertAll(s.SubstFrameExpr),
-                  e.Receiver, substMap, etran, etran.ReadsFrame(callExpr.tok), wfOptions.AssertSink(this, builder), new PODesc.FrameSubset("invoke function", false), wfOptions.AssertKv);
-              }
-
               Bpl.Expr allowance = null;
               if (codeContext != null && e.CoCall != FunctionCallExpr.CoCallResolution.Yes && !(e.Function is ExtremePredicate)) {
                 // check that the decreases measure goes down

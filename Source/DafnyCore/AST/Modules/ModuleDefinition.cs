@@ -646,7 +646,7 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
         // the add was successful
       } else {
         // there's already something with this name
-        var yes = bindings.TryLookup(subDecl.tok, out var prevDecl);
+        var yes = bindings.TryLookup(subDecl.tok.val, out var prevDecl);
         Contract.Assert(yes);
         if (prevDecl is AbstractModuleDecl || prevDecl is AliasModuleDecl) {
           resolver.Reporter.Error(MessageSource.Resolver, subDecl.tok, "Duplicate name of import: {0}", subDecl.Name);
