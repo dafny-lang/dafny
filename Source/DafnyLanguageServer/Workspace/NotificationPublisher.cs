@@ -34,25 +34,25 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         return;
       }
 
-      PublishStatus(previousState, state);
+      PublishProgress(previousState, state);
       PublishGhostness(previousState, state);
       await PublishDiagnostics(state);
     }
 
-    private void PublishStatus(IdeState previousState, IdeState state) {
-      // Some global statuses, such as ResolutionSucceeded, will trigger the symbol status to be displayed.
-      // To ensure that the displayed status is always up-to-date,
-      // we must publish symbol status before publishing the global one.
+    private void PublishProgress(IdeState previousState, IdeState state) {
+      // Some global progress values, such as ResolutionSucceeded, will trigger the symbol progress to be displayed.
+      // To ensure that the displayed progress is always up-to-date,
+      // we must publish symbol progress before publishing the global one.
 
-      // Better would be to have a single notification API with the schema { globalStatus, symbolStatus }
-      // so this problem can not occur, although that would require the "symbolStatus" part to be able to contain a
-      // "no-update" value to prevent having to send many duplicate symbolStatus updates.
+      // Better would be to have a single notification API with the schema { globalProgress, symbolProgress }
+      // so this problem can not occur, although that would require the "symbolProgress" part to be able to contain a
+      // "no-update" value to prevent having to send many duplicate symbolProgress updates.
 
-      PublishSymbolStatus(previousState, state);
-      PublishGlobalStatus(previousState, state);
+      PublishSymbolProgress(previousState, state);
+      PublishGlobalProgress(previousState, state);
     }
 
-    private void PublishSymbolStatus(IdeState previousState, IdeState state) {
+    private void PublishSymbolProgress(IdeState previousState, IdeState state) {
       foreach (var uri in state.Compilation.RootUris) {
         var previous = GetFileVerificationStatus(previousState, uri);
         var current = GetFileVerificationStatus(state, uri);
@@ -65,12 +65,12 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       }
     }
 
-    private void PublishGlobalStatus(IdeState previousState, IdeState state) {
+    private void PublishGlobalProgress(IdeState previousState, IdeState state) {
       foreach (var uri in state.Compilation.RootUris) {
         // TODO, still have to check for ownedness
 
-        var current = GetProgressStatus(state, uri);
-        var previous = GetProgressStatus(previousState, uri);
+        var current = GetGlobalProgress(state, uri);
+        var previous = GetGlobalProgress(previousState, uri);
 
         if (Equals(current, previous)) {
           continue;
@@ -86,7 +86,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     }
 
-    private CompilationStatus GetProgressStatus(IdeState state, Uri uri) {
+    private CompilationStatus GetGlobalProgress(IdeState state, Uri uri) {
       var hasResolutionDiagnostics = (state.ResolutionDiagnostics.GetValueOrDefault(uri) ?? Enumerable.Empty<Diagnostic>()).
         Any(d => d.Severity == DiagnosticSeverity.Error);
       if (state.Compilation is CompilationAfterResolution) {
