@@ -1,0 +1,1 @@
+Fix an issue that would cause some types of errors and other diagnostics not to appear in the IDE, if they appeared in files other than the active one.

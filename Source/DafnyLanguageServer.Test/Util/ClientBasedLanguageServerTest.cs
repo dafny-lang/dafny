@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.IO;
 using System.Linq;
 using System.Reactive.Threading.Tasks;
 using System.Text.RegularExpressions;
@@ -13,6 +14,7 @@ using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.JsonRpc;
 using OmniSharp.Extensions.LanguageServer.Client;
+using OmniSharp.Extensions.LanguageServer.Protocol;
 using OmniSharp.Extensions.LanguageServer.Protocol.Client;
 using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
@@ -47,9 +49,9 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
   }
 
   protected async Task<TextDocumentItem> CreateAndOpenTestDocument(string source, string filePath = null,
-    int version = 1) {
+    int version = 1, CancellationToken? cancellationToken = null) {
     var document = CreateTestDocument(source, filePath, version);
-    await client.OpenDocumentAndWaitAsync(document, CancellationToken);
+    await client.OpenDocumentAndWaitAsync(document, cancellationToken ?? CancellationToken);
     return document;
   }
 
@@ -116,7 +118,10 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
 
   protected void WriteVerificationHistory() {
     output.WriteLine($"\nOld to new history was:");
-    verificationStatusReceiver.History.Stringify(output);
+    verificationStatusReceiver.History.Stringify(output,
+      overrides: StringifyUtil.EmptyOverrides().
+        UseToString(typeof(Range)).
+        UseToString(typeof(DocumentUri)));
   }
 
   public async Task<IList<FileVerificationStatus>> WaitUntilCompletedForUris(int uriCount, CancellationToken cancellationToken) {
@@ -155,7 +160,7 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
 
   public async Task<PublishDiagnosticsParams> GetLastDiagnosticsParams(TextDocumentItem documentItem, CancellationToken cancellationToken) {
     await client.WaitForNotificationCompletionAsync(documentItem.Uri, cancellationToken);
-    var compilation = (await Projects.GetLastDocumentAsync(documentItem))!;
+    var compilation = (await Projects.GetLastDocumentAsync(documentItem).WaitAsync(cancellationToken))!;
     Assert.NotNull(compilation);
     var expectedDiagnostics = compilation.GetDiagnostics(documentItem.Uri.ToUri()).
       Select(d => d.ToLspDiagnostic()).
@@ -298,7 +303,7 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
       }
     }
     var verificationDocumentItem = CreateTestDocument("class X {does not parse", $"AssertNoDiagnosticsAreComing{fileIndex++}.dfy");
-    await client.OpenDocumentAndWaitAsync(verificationDocumentItem, CancellationToken);
+    await client.OpenDocumentAndWaitAsync(verificationDocumentItem, cancellationToken);
     var resolutionReport = await diagnosticsReceiver.AwaitNextNotificationAsync(cancellationToken);
     AssertM.Equal(verificationDocumentItem.Uri, resolutionReport.Uri,
       "1) Unexpected diagnostics were received whereas none were expected:\n" +
@@ -315,10 +320,9 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
   protected async Task AssertNoResolutionErrors(TextDocumentItem documentItem) {
     var resolutionDiagnostics = (await Projects.GetResolvedDocumentAsyncNormalizeUri(documentItem))!.GetDiagnosticsForUri(documentItem.Uri.ToUri()).ToList();
     // A document without diagnostics may be absent, even if resolved successfully
-    var resolutionErrors = resolutionDiagnostics.Count(d => d.Severity == DiagnosticSeverity.Error);
-    if (0 != resolutionErrors) {
-      await Console.Out.WriteAsync(string.Join("\n", resolutionDiagnostics.Where(d => d.Severity == DiagnosticSeverity.Error).Select(d => d.ToString())));
-      Assert.Equal(0, resolutionErrors);
+    var resolutionErrors = resolutionDiagnostics.Where(d => d.Severity == DiagnosticSeverity.Error);
+    if (resolutionErrors.Any()) {
+      Assert.Fail($"Found resolution errors: {resolutionErrors.Stringify()}");
     }
   }
 

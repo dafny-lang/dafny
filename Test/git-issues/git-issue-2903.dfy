@@ -1,4 +1,4 @@
-// RUN: %testDafnyForEachCompiler "%s"
+// RUN: %testDafnyForEachCompiler "%s" --refresh-exit-code=0
 
 module A {
   datatype Wrapper = Wrap(val: int)

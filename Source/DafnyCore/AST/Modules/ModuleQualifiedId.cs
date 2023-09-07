@@ -28,6 +28,7 @@ public class ModuleQualifiedId : Node, IHasUsages {
 
   public ModuleQualifiedId(Cloner cloner, ModuleQualifiedId original) {
     Path = original.Path.Select(n => n.Clone(cloner)).ToList();
+    Root = original.Root;
   }
 
   public string RootName() {
@@ -71,7 +72,9 @@ public class ModuleQualifiedId : Node, IHasUsages {
   public IToken NameToken => Path.Last().StartToken;
 
   public IEnumerable<IDeclarationOrUsage> GetResolvedDeclarations() {
-    return Enumerable.Repeat(Decl, 1);
+    // Normally the target should already have been resolved, but in certain conditions like an unused alias module decl,
+    // Decl might not be set yet so we need to resolve it here.
+    return Enumerable.Repeat(ResolveTarget(new ErrorReporterSink(DafnyOptions.Default)), 1);
   }
 
   /// <summary>

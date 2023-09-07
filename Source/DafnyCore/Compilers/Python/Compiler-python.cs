@@ -10,7 +10,6 @@ using System.Text.RegularExpressions;
 using JetBrains.Annotations;
 using ExtensionMethods;
 using Microsoft.BaseTypes;
-using Microsoft.Boogie;
 
 namespace ExtensionMethods {
   using Microsoft.Dafny;
@@ -130,6 +129,7 @@ namespace Microsoft.Dafny.Compilers {
         case "continue":
         case "def":
         case "del":
+        case "enum":
         case "elif":
         case "else":
         case "except":

@@ -1,5 +1,5 @@
 // UNSUPPORTED: windows, macosx
-// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment
+// RUN: %testDafnyForEachCompiler "%s" --refresh-exit-code=0 -- --relax-definite-assignment
 
 // Rustan Leino, 22 Sep 2015.
 // This file considers two definitions of Leq on naturals+infinity.  One

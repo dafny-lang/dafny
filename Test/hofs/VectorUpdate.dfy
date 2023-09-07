@@ -1,4 +1,4 @@
-// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment
+// RUN: %testDafnyForEachCompiler "%s" --refresh-exit-code=0 -- --relax-definite-assignment
 
 // this is a rather verbose version of the VectorUpdate method
 method VectorUpdate<A>(N: int, a : array<A>, f : (int,A) ~> A)
@@ -24,7 +24,7 @@ method VectorUpdate<A>(N: int, a : array<A>, f : (int,A) ~> A)
 
 // here's a shorter version of the method above
 method VectorUpdate'<A>(a : array<A>, f : (int,A) ~> A)
-  requires forall j :: 0 <= j < a.Length ==> a !in f.reads(j,a[j]) && f.requires(j,a[j])
+  requires forall j :: 0 <= j < a.Length ==> f.requires(j,a[j]) && a !in f.reads(j,a[j])
   modifies a
   ensures forall j :: 0 <= j < a.Length ==> a[j] == f(j,old(a[j]))
 {
@@ -41,7 +41,7 @@ method VectorUpdate'<A>(a : array<A>, f : (int,A) ~> A)
 
 // here's yet another version
 method VectorUpdate''<A>(a : array<A>, f : (int,A) ~> A)
-  requires forall j :: 0 <= j < a.Length ==> a !in f.reads(j,a[j]) && f.requires(j,a[j])
+  requires forall j :: 0 <= j < a.Length ==> f.requires(j,a[j]) && a !in f.reads(j,a[j])
   modifies a
   ensures forall j :: 0 <= j < a.Length ==> a[j] == f(j,old(a[j]))
 {

@@ -97,23 +97,22 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     private FileVerificationStatus GetFileVerificationStatus(IdeState state, Uri uri) {
       var verificationResults = state.GetVerificationResults(uri);
-      return new FileVerificationStatus(uri, filesystem.GetVersion(uri) ?? 0,
+      return new FileVerificationStatus(uri, filesystem.GetVersion(uri),
         verificationResults.Select(kv => GetNamedVerifiableStatuses(kv.Key, kv.Value)).
             OrderBy(s => s.NameRange.Start).ToList());
     }
 
     private static NamedVerifiableStatus GetNamedVerifiableStatuses(Range canVerify, IdeVerificationResult result) {
-      var status = result.WasTranslated
-        ? result.Implementations.Any()
-          ? result.Implementations.Values.Select(v => v.Status).Aggregate(Combine)
-          : PublishedVerificationStatus.Correct
-        : PublishedVerificationStatus.Stale;
+      var status = result.PreparationProgress switch {
+        VerificationPreparationState.NotStarted => PublishedVerificationStatus.Stale,
+        VerificationPreparationState.InProgress => PublishedVerificationStatus.Queued,
+        VerificationPreparationState.Done =>
+            new[] { PublishedVerificationStatus.Correct }. // If there is nothing to verify, show correct
+              Concat(result.Implementations.Values.Select(v => v.Status)).Min(),
+        _ => throw new ArgumentOutOfRangeException()
+      };
 
       return new(canVerify, status);
-    }
-
-    static PublishedVerificationStatus Combine(PublishedVerificationStatus first, PublishedVerificationStatus second) {
-      return new[] { first, second }.Min();
     }
 
     private readonly Dictionary<Uri, IList<Diagnostic>> publishedDiagnostics = new();
@@ -164,7 +163,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
           languageServer.TextDocument.PublishDiagnostics(new PublishDiagnosticsParams {
             Uri = publishUri,
-            Version = filesystem.GetVersion(publishUri) ?? 0,
+            Version = filesystem.GetVersion(publishUri),
             Diagnostics = diagnostics,
           });
         }
@@ -183,7 +182,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       var tree = state.VerificationTrees[uri];
 
       var linesCount = tree.Range.End.Line + 1;
-      var fileVersion = filesystem.GetVersion(uri) ?? 0;
+      var fileVersion = filesystem.GetVersion(uri);
       var verificationStatusGutter = VerificationStatusGutter.ComputeFrom(
         DocumentUri.From(uri),
         fileVersion,

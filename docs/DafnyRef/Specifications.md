@@ -464,6 +464,12 @@ function g()
   reads o, oo
 function h()
   reads { o }
+method f()
+  reads *
+method g()
+  reads o, oo
+method h()
+  reads { o }
 ```
 
 Functions are not allowed to have side effects; they may also be restricted in
@@ -479,11 +485,24 @@ able to give invariants to preserve it in this case, it gets even more
 complex when manipulating data structures. In this case, framing is
 essential to making the verification process feasible.
 
-It is not just the body of a function that is subject to `reads`
+By default, methods are not required to list the memory location they read.
+However, there are use cases for restricting what methods can read as well.
+In particular, if you want to verify that imperative code is safe to execute concurrently when compiled,
+you can specify that a method does not read or write any shared state,
+and therefore cannot encounter race conditions or runtime crashes related to
+unsafe communication between concurrent executions.
+See [the `{:concurrent}` attribute](#sec-concurrent-attribute) for more details.
+
+It is not just the body of a function or method that is subject to `reads`
 checks, but also its precondition and the `reads` clause itself.
 
 A `reads` clause can list a wildcard `*`, which allows the enclosing
-function to read anything. In many cases, and in particular in all cases
+function or method to read anything. 
+This is the implicit default for methods with no `reads` clauses,
+allowing methods to read whatever they like.
+The default for functions, however, is to not allow reading any memory.
+Allowing functions to read arbitrary memory is more problematic:
+in many cases, and in particular in all cases
 where the function is defined recursively, this makes it next to
 impossible to make any use of the function. Nevertheless, as an
 experimental feature, the language allows it (and it is sound).
@@ -491,7 +510,7 @@ If a `reads` clause uses `*`, then the `reads` clause is not allowed to
 mention anything else (since anything else would be irrelevant, anyhow).
 
 A `reads` clause specifies the set of memory locations that a function,
-lambda, or iterator may read. The readable memory locations are all the fields
+lambda, or method may read. The readable memory locations are all the fields
 of all of the references given in the set specified in the frame expression
 and the single fields given in [`FrameField`](#sec-frame-expression) elements of the frame expression.
 For example, in
@@ -546,7 +565,7 @@ another function. For example, function `Sum` adds up the values of
 ```dafny
 function Sum(f: int ~> real, lo: int, hi: int): real
   requires lo <= hi
-  requires forall i :: lo <= i < hi ==> f.requires(i)
+  requires forall i :: f.requires(i)
   reads f.reads
   decreases hi - lo
 {
@@ -562,8 +581,28 @@ read. More precise would be to specify that `Sum` reads only what `f`
 reads on the values from `lo` to `hi`, but the larger set denoted by
 `reads f.reads` is easier to write down and is often good enough.)
 
+Without such `reads` function, one could also write the more precise
+and more verbose:
+<!-- %check-verify -->
+```dafny
+function Sum(f: int ~> real, lo: int, hi: int): real
+  requires lo <= hi
+  requires forall i :: lo <= i < hi ==> f.requires(i)
+  reads set i, o | lo <= i < hi && o in f.reads(i) :: o
+  decreases hi - lo
+{
+  if lo == hi then 0.0 else
+    f(lo) + Sum(f, lo + 1, hi)
+}
+```
+
 Note, only `reads` clauses, not `modifies` clauses, are allowed to
 include functions as just described.
+
+Iterator specifications also allow `reads` clauses,
+with the same syntax and interpretation of arguments as above,
+but the meaning is quite different!
+See [Section 5.11](#sec-iterator-types) for more details.
 
 ### 7.1.6. Modifies Clause ([grammar](#g-modifies-clause)) {#sec-modifies-clause}
 
@@ -581,12 +620,11 @@ method Q()
   modifies o, p`f
 ```
 
-Frames also affect methods. Methods are not
-required to list the things they read. Methods are allowed to read
+By default, methods are allowed to read
 whatever memory they like, but they are required to list which parts of
 memory they modify, with a `modifies` annotation. These are almost identical
 to their `reads` cousins, except they say what can be changed, rather than
-what the value of the function depends on. In combination with reads,
+what the definition depends on. In combination with reads,
 modification restrictions allow Dafny to prove properties of code that
 would otherwise be very difficult or impossible. Reads and modifies are
 one of the tools that allow Dafny to work on one method at a time,
@@ -684,10 +722,12 @@ class C {
 }
 ```
 
-A method specification consists of zero or more `modifies`, `requires`,
+A method specification consists of zero or more `reads`, `modifies`, `requires`,
 `ensures` or `decreases` clauses, in any order.
-A method does not have `reads` clauses because methods are allowed to
-read any memory.
+A method does not need `reads` clauses in most cases,
+because methods are allowed to read any memory by default,
+but `reads` clauses are supported for use cases such as verifying safe concurrent execution.
+See [the `{:concurrent}` attribute](#sec-concurrent-attribute) for more details.
 
 ## 7.3. Function Specification ([grammar](#g-function-specification)) {#sec-function-specification}
 
@@ -735,7 +775,7 @@ and `yield ensures` clauses.
 An iterator specification applies both to the iterator's constructor
 method and to its `MoveNext` method.
 - The `reads` and `modifies`
-clauses apply to both of them. 
+clauses apply to both of them (but `reads` clauses have a [different meaning on iterators](#sec-iterator-types) than on functions or methods).
 - The `requires` and `ensures` clauses apply to the constructor.
 - The `yield requires` and `yield ensures` clauses apply to the `MoveNext` method.
 
@@ -746,6 +786,8 @@ Examples of iterators, including iterator specifications, are given in
 - a decreases clause is used to show that the iterator will eventually terminate
 - a yield requires clause is a precondition for calling `MoveNext`
 - a yield ensures clause is a postcondition for calling `MoveNext`
+- a reads clause gives a set of memory locations that will be unchanged after a `yield` statement
+- a modifies clause gives a set of memory locations the iterator may write to
 
 ## 7.6. Loop Specification ([grammar](#g-loop-specification)) {#sec-loop-specification}
 
@@ -844,3 +886,70 @@ add:
    requires Valid()
    reads Repr
 ```
+
+## 7.8. Well-formedness of specifications {#sec-well-formedness-specifications}
+
+Dafny ensures that the [`requires` clauses](#sec-requires-clause)
+and [`ensures` clauses](#sec-ensures-clause), which are expressions,
+are [well-formed](#sec-assertion-batches) independent of the body
+they belong to.
+Examples of conditions this rules out are null pointer dereferencing,
+out-of-bounds array access, and division by zero.
+Hence, when declaring the following method:
+
+<!-- %check-verify -->
+```dafny
+method Test(a: array<int>) returns (j: int)
+  requires a.Length >= 1
+  ensures a.Length % 2 == 0 ==> j >= 10 / a.Length
+{
+  j := 20;
+  var divisor := a.Length;
+  if divisor % 2 == 0 {
+    j := j / divisor;
+  }
+}
+```
+
+Dafny will split the verification in two [assertion batches](#sec-assertion-batches)
+that will roughly look like the following lemmas:
+
+<!-- %check-verify -->
+```dafny
+lemma Test_WellFormed(a: array?<int>)
+{
+  assume a != null;       // From the definition of a
+  assert a != null;       // for the `requires a.Length >= 1`
+  assume a.Length >= 1;   // After well-formedness, we assume the requires
+  assert a != null;       // Again for the `a.Length % 2`
+  if a.Length % 2 == 0 {
+    assert a != null;     // Again for the final `a.Length`
+    assert a.Length != 0; // Because of the 10 / a.Length
+  }
+}
+
+method Test_Correctness(a: array?<int>)
+{ // Here we assume the well-formedness of the condition
+  assume a != null;       // for the `requires a.Length >= 1`
+  assume a != null;       // Again for the `a.Length % 2`
+  if a.Length % 2 == 0 {
+    assume a != null;     // Again for the final `a.Length`
+    assume a.Length != 0; // Because of the 10 / a.Length
+  }
+
+  // Now the body is translated
+  var j := 20;
+  assert a != null;          // For `var divisor := a.Length;`
+  var divisor := a.Length;
+  if * {
+    assume divisor % 2 == 0;
+    assert divisor != 0;
+    j := j / divisor;
+  }
+  assume divisor % 2 == 0 ==> divisor != 0;
+  assert a.Length % 2 == 0 ==> j >= 10 / a.Length;
+}
+```
+
+For this reason the IDE typically reports at least two [assertion batches](#sec-assertion-batches)
+when hovering a method.

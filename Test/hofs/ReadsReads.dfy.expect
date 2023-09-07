@@ -1,18 +1,21 @@
-ReadsReads.dfy(31,6): Error: insufficient reads clause to invoke function
-ReadsReads.dfy(36,4): Error: insufficient reads clause to invoke function
-ReadsReads.dfy(47,11): Error: insufficient reads clause to invoke function
-ReadsReads.dfy(58,6): Error: insufficient reads clause to invoke function
-ReadsReads.dfy(87,49): Error: assertion might not hold
-ReadsReads.dfy(89,28): Error: assertion might not hold
-ReadsReads.dfy(99,36): Error: assertion might not hold
-ReadsReads.dfy(101,28): Error: assertion might not hold
-ReadsReads.dfy(173,13): Error: assertion might not hold
-ReadsReads.dfy(183,13): Error: assertion might not hold
-ReadsReads.dfy(193,13): Error: assertion might not hold
-ReadsReads.dfy(203,13): Error: assertion might not hold
-ReadsReads.dfy(236,13): Error: assertion might not hold
-ReadsReads.dfy(246,13): Error: assertion might not hold
-ReadsReads.dfy(256,13): Error: assertion might not hold
-ReadsReads.dfy(266,13): Error: assertion might not hold
+ReadsReads.dfy(35,6): Error: function precondition could not be proved
+ReadsReads.dfy(35,6): Error: insufficient reads clause to invoke function
+ReadsReads.dfy(40,4): Error: function precondition could not be proved
+ReadsReads.dfy(40,4): Error: insufficient reads clause to invoke function
+ReadsReads.dfy(52,11): Error: function precondition could not be proved
+ReadsReads.dfy(52,11): Error: insufficient reads clause to invoke function
+ReadsReads.dfy(64,6): Error: insufficient reads clause to invoke function
+ReadsReads.dfy(93,49): Error: assertion might not hold
+ReadsReads.dfy(95,28): Error: assertion might not hold
+ReadsReads.dfy(105,36): Error: assertion might not hold
+ReadsReads.dfy(107,28): Error: assertion might not hold
+ReadsReads.dfy(179,13): Error: assertion might not hold
+ReadsReads.dfy(189,13): Error: assertion might not hold
+ReadsReads.dfy(199,13): Error: assertion might not hold
+ReadsReads.dfy(209,13): Error: assertion might not hold
+ReadsReads.dfy(242,13): Error: assertion might not hold
+ReadsReads.dfy(252,13): Error: assertion might not hold
+ReadsReads.dfy(262,13): Error: assertion might not hold
+ReadsReads.dfy(272,13): Error: assertion might not hold
 
-Dafny program verifier finished with 16 verified, 16 errors
+Dafny program verifier finished with 16 verified, 19 errors

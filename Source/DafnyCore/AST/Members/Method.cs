@@ -1,15 +1,16 @@
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
+using System.Numerics;
 using Microsoft.Dafny.Auditor;
 
 namespace Microsoft.Dafny;
 
 public class Method : MemberDecl, TypeParameter.ParentType,
-  IMethodCodeContext, ICanFormat, IHasDocstring, IHasSymbolChildren, ICanVerify {
+  IMethodCodeContext, ICanFormat, IHasDocstring, IHasSymbolChildren, ICanAutoRevealDependencies, ICanVerify {
   public override IEnumerable<INode> Children => new Node[] { Body, Decreases }.Where(x => x != null).
     Concat(Ins).Concat(Outs).Concat<Node>(TypeArgs).
-    Concat(Req).Concat(Ens).Concat(Mod.Expressions);
+    Concat(Req).Concat(Ens).Concat(Reads).Concat(Mod.Expressions);
   public override IEnumerable<INode> PreResolveChildren => Children;
 
   public override string WhatKind => "method";
@@ -22,6 +23,7 @@ public class Method : MemberDecl, TypeParameter.ParentType,
   public readonly List<Formal> Ins;
   public readonly List<Formal> Outs;
   public readonly List<AttributedExpression> Req;
+  public readonly List<FrameExpression> Reads;
   public readonly Specification<FrameExpression> Mod;
   public readonly List<AttributedExpression> Ens;
   public readonly Specification<Expression> Decreases;
@@ -46,10 +48,6 @@ public class Method : MemberDecl, TypeParameter.ParentType,
 
     if (Body is null && HasPostcondition && !EnclosingClass.EnclosingModuleDefinition.IsAbstract && !HasExternAttribute) {
       yield return new Assumption(this, tok, AssumptionDescription.NoBody(IsGhost));
-    }
-
-    if (Body is not null && HasConcurrentAttribute) {
-      yield return new Assumption(this, tok, AssumptionDescription.HasConcurrentAttribute);
     }
 
     if (HasExternAttribute && HasPostcondition && !HasAxiomAttribute) {
@@ -79,6 +77,9 @@ public class Method : MemberDecl, TypeParameter.ParentType,
       foreach (var e in Req) {
         yield return e.E;
       }
+      foreach (var e in Reads) {
+        yield return e.E;
+      }
       foreach (var e in Mod.Expressions) {
         yield return e.E;
       }
@@ -97,6 +98,7 @@ public class Method : MemberDecl, TypeParameter.ParentType,
     Contract.Invariant(cce.NonNullElements(Ins));
     Contract.Invariant(cce.NonNullElements(Outs));
     Contract.Invariant(cce.NonNullElements(Req));
+    Contract.Invariant(cce.NonNullElements(Reads));
     Contract.Invariant(Mod != null);
     Contract.Invariant(cce.NonNullElements(Ens));
     Contract.Invariant(Decreases != null);
@@ -110,6 +112,7 @@ public class Method : MemberDecl, TypeParameter.ParentType,
     }
 
     this.Req = original.Req.ConvertAll(cloner.CloneAttributedExpr);
+    this.Reads = original.Reads.ConvertAll(cloner.CloneFrameExpr);
     this.Mod = cloner.CloneSpecFrameExpr(original.Mod);
     this.Decreases = cloner.CloneSpecExpr(original.Decreases);
     this.Ens = original.Ens.ConvertAll(cloner.CloneAttributedExpr);
@@ -122,7 +125,9 @@ public class Method : MemberDecl, TypeParameter.ParentType,
     bool hasStaticKeyword, bool isGhost,
     [Captured] List<TypeParameter> typeArgs,
     [Captured] List<Formal> ins, [Captured] List<Formal> outs,
-    [Captured] List<AttributedExpression> req, [Captured] Specification<FrameExpression> mod,
+    [Captured] List<AttributedExpression> req,
+    [Captured] List<FrameExpression> reads,
+    [Captured] Specification<FrameExpression> mod,
     [Captured] List<AttributedExpression> ens,
     [Captured] Specification<Expression> decreases,
     [Captured] BlockStmt body,
@@ -134,12 +139,14 @@ public class Method : MemberDecl, TypeParameter.ParentType,
     Contract.Requires(cce.NonNullElements(ins));
     Contract.Requires(cce.NonNullElements(outs));
     Contract.Requires(cce.NonNullElements(req));
+    Contract.Requires(reads != null);
     Contract.Requires(mod != null);
     Contract.Requires(cce.NonNullElements(ens));
     Contract.Requires(decreases != null);
     this.TypeArgs = typeArgs;
     this.Ins = ins;
     this.Outs = outs;
+    this.Reads = reads;
     this.Req = req;
     this.Mod = mod;
     this.Ens = ens;
@@ -213,6 +220,10 @@ public class Method : MemberDecl, TypeParameter.ParentType,
       formatter.SetAttributedExpressionIndentation(req, indentBefore + formatter.SpaceTab);
     }
 
+    foreach (var read in Reads) {
+      formatter.SetFrameExpressionIndentation(read, indentBefore + formatter.SpaceTab);
+    }
+
     foreach (var mod in Mod.Expressions) {
       formatter.SetFrameExpressionIndentation(mod, indentBefore + formatter.SpaceTab);
     }
@@ -268,6 +279,27 @@ public class Method : MemberDecl, TypeParameter.ParentType,
         resolver.ResolveExpression(e.E, new ResolutionContext(this, this is TwoStateLemma));
         Contract.Assert(e.E.Type != null);  // follows from postcondition of ResolveExpression
         resolver.ConstrainTypeExprBool(e.E, "Precondition must be a boolean (got {0})");
+      }
+
+      var readsClausesOnMethodsEnabled = resolver.Options.Get(CommonOptionBag.ReadsClausesOnMethods);
+      // Set the default of `reads *` if reads clauses on methods is enabled and this isn't a lemma.
+      // Doing it before resolution is a bit easier than adding resolved frame expressions afterwards.
+      // Note that `reads *` is the right default for backwards-compatibility,
+      // but we may want to infer a sensible default like decreases clauses instead in the future.
+      if (readsClausesOnMethodsEnabled && !IsLemmaLike && !Reads.Any()) {
+        Reads.Add(new FrameExpression(tok, new WildcardExpr(tok), null));
+      }
+      foreach (FrameExpression fe in Reads) {
+        resolver.ResolveFrameExpressionTopLevel(fe, FrameExpressionUse.Reads, this);
+        if (IsLemmaLike) {
+          resolver.reporter.Error(MessageSource.Resolver, fe.tok, "{0}s are not allowed to have reads clauses (they are allowed to read all memory locations)",
+            WhatKind);
+        } else if (!readsClausesOnMethodsEnabled) {
+          resolver.reporter.Error(MessageSource.Resolver, fe.tok,
+            "reads clauses on methods are forbidden without the command-line flag `--reads-clauses-on-methods`");
+        } else if (IsGhost) {
+          resolver.DisallowNonGhostFieldSpecifiers(fe);
+        }
       }
 
       resolver.ResolveAttributes(Mod, new ResolutionContext(this, false));
@@ -393,4 +425,72 @@ public class Method : MemberDecl, TypeParameter.ParentType,
 
   public bool ShouldVerify => true; // This could be made more accurate
   public ModuleDefinition ContainingModule => EnclosingClass.EnclosingModuleDefinition;
+
+  public void AutoRevealDependencies(AutoRevealFunctionDependencies Rewriter, DafnyOptions Options,
+    ErrorReporter Reporter) {
+    if (Body is null) {
+      return;
+    }
+
+    object autoRevealDepsVal = null;
+    bool autoRevealDeps = Attributes.ContainsMatchingValue(Attributes, "autoRevealDependencies",
+      ref autoRevealDepsVal, new List<Attributes.MatchingValueOption> {
+        Attributes.MatchingValueOption.Bool,
+        Attributes.MatchingValueOption.Int
+      }, s => Reporter.Error(MessageSource.Rewriter, ErrorLevel.Error, Tok, s));
+
+    // Default behavior is reveal all dependencies
+    int autoRevealDepth = int.MaxValue;
+
+    if (autoRevealDeps) {
+      if (autoRevealDepsVal is false) {
+        autoRevealDepth = 0;
+      } else if (autoRevealDepsVal is BigInteger i) {
+        autoRevealDepth = (int)i;
+      }
+    }
+
+    var currentClass = EnclosingClass;
+    List<AutoRevealFunctionDependencies.RevealStmtWithDepth> addedReveals = new();
+
+    foreach (var func in Rewriter.GetEnumerator(this, currentClass, SubExpressions)) {
+      var revealStmt =
+        AutoRevealFunctionDependencies.BuildRevealStmt(func.Function, Tok, EnclosingClass.EnclosingModuleDefinition);
+
+      if (revealStmt is not null) {
+        addedReveals.Add(new AutoRevealFunctionDependencies.RevealStmtWithDepth(revealStmt, func.Depth));
+      }
+    }
+
+    if (autoRevealDepth > 0) {
+      Expression reqExpr = new LiteralExpr(Tok, true) {
+        Type = Type.Bool
+      };
+
+      foreach (var revealStmt in addedReveals) {
+        if (revealStmt.Depth <= autoRevealDepth) {
+          if (this is Constructor c) {
+            c.BodyInit.Insert(0, revealStmt.RevealStmt);
+          } else {
+            Body.Body.Insert(0, revealStmt.RevealStmt);
+          }
+
+          reqExpr = new StmtExpr(reqExpr.tok, revealStmt.RevealStmt, reqExpr) {
+            Type = Type.Bool
+          };
+        } else {
+          break;
+        }
+      }
+
+      if (Req.Any() || Ens.Any()) {
+        Req.Insert(0, new AttributedExpression(reqExpr));
+      }
+    }
+
+    if (addedReveals.Any()) {
+      Reporter.Message(MessageSource.Rewriter, ErrorLevel.Info, null, tok,
+        AutoRevealFunctionDependencies.GenerateMessage(addedReveals, autoRevealDepth));
+    }
+  }
 }

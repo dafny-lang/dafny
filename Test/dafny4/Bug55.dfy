@@ -2,7 +2,7 @@
 // RUN: %diff "%s.expect" "%t"
 
 ghost predicate {:opaque} G(f:int~>bool)
-  reads f.reads
+  reads f.reads(0)
   requires f.requires(0)
 {
   true

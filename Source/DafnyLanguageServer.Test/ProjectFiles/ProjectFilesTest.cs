@@ -1,4 +1,5 @@
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
@@ -10,6 +11,38 @@ using Xunit.Abstractions;
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest; 
 
 public class ProjectFilesTest : ClientBasedLanguageServerTest {
+
+  /// <summary>
+  /// Previously this could cause two project managers for the same project to be created.
+  /// </summary>
+  [Fact]
+  public async Task OpenTwoFilesThenIntroduceProjectFile() {
+    var tempDirectory = Path.GetRandomFileName();
+    var producerMarkup = @"
+module [>Producer<]Oops {
+  const x := 3
+}".TrimStart();
+    MarkupTestFile.GetPositionsAndRanges(producerMarkup, out var producerSource, out _, out var ranges);
+    var producer = await CreateAndOpenTestDocument(producerSource, Path.Combine(tempDirectory, "producer.dfy"));
+    var consumerSourceMarkup = @"
+include ""producer.dfy""
+module Consumer {
+  import opened Pro><ducer
+  const y := x + 2
+}".TrimStart();
+    MarkupTestFile.GetPositionAndRanges(consumerSourceMarkup, out var consumerSource, out var gotoPosition, out _);
+    var consumer = await CreateAndOpenTestDocument(consumerSource, Path.Combine(tempDirectory, "consumer.dfy"));
+    await CreateAndOpenTestDocument("", Path.Combine(tempDirectory, DafnyProject.FileName));
+    await Task.Delay(ProjectManagerDatabase.ProjectFileCacheExpiryTime);
+    // Let consumer.dfy realize it has a new project file 
+    var definition1 = await RequestDefinition(consumer, gotoPosition);
+    Assert.Empty(definition1);
+    ApplyChange(ref producer, new Range(0, 15, 0, 19), ""); // Delete oops
+    // Check that the project manager of consumer.dfy has incorporated the update in producer.dfy
+    var definition2 = await RequestDefinition(consumer, gotoPosition);
+    Assert.Single(definition2);
+    Assert.Equal(ranges[0], definition2.First().Location!.Range);
+  }
 
   [Fact]
   public async Task ProjectFileByItselfHasNoDiagnostics() {
@@ -99,23 +132,30 @@ function-syntax = 4";
   }
 
   [Fact]
-  public async Task FileOnlyAttachedToProjectFileThatAppliesToIt() {
+  public async Task FileOnlyAttachedToProjectFileThatIncludesIt() {
     await SetUp(options => options.WarnShadowing = false);
 
-    var projectFileSource = @"
+    var outerSource = @"
 [options]
 warn-shadowing = true
 ";
     var directory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
-    var outerProjectFile = CreateTestDocument(projectFileSource, Path.Combine(directory, DafnyProject.FileName));
+    var outerProjectFile = CreateTestDocument(outerSource, Path.Combine(directory, DafnyProject.FileName));
     await client.OpenDocumentAndWaitAsync(outerProjectFile, CancellationToken);
 
-    var innerProjectFile = CreateTestDocument("includes = []", Path.Combine(directory, "nested", DafnyProject.FileName));
+    var innerDirectory = Path.Combine(directory, "nested");
+    var innerProjectFile = CreateTestDocument("includes = []", Path.Combine(innerDirectory, DafnyProject.FileName));
     await client.OpenDocumentAndWaitAsync(innerProjectFile, CancellationToken);
 
-    var filePath = Path.Combine(Directory.GetCurrentDirectory(), "ProjectFiles/TestFiles/noWarnShadowing.dfy");
-    var source = await File.ReadAllTextAsync(filePath);
-    var documentItem = CreateTestDocument(source, Path.Combine(directory, "nested/A.dfy"));
+    var source = @"
+method Foo() {
+  var x := 3;
+  if (true) {
+    var x := 4;
+  }
+}
+";
+    var documentItem = CreateTestDocument(source, Path.Combine(innerDirectory, "A.dfy"));
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
     var diagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
     Assert.Single(diagnostics);

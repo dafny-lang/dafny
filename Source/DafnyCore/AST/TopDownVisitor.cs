@@ -68,6 +68,7 @@ public class TopDownVisitor<State> {
   public virtual void Visit(Method method, State st) {
     Visit(method.Ens, st);
     Visit(method.Req, st);
+    Visit(method.Reads, st);
     Visit(method.Mod.Expressions, st);
     Visit(method.Decreases.Expressions, st);
     if (method.Body != null) { Visit(method.Body, st); }
