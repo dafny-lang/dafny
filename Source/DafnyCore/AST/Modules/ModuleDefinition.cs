@@ -9,7 +9,7 @@ namespace Microsoft.Dafny;
 
 public record PrefixNameModule(IReadOnlyList<IToken> Parts, LiteralModuleDecl Module);
 
-public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearingDeclaration, ICloneable<ModuleDefinition>, IHasSymbolChildren {
+public class ModuleDefinition : RangeNode, IAttributeBearingDeclaration, ICloneable<ModuleDefinition>, IHasSymbolChildren {
 
   public IToken BodyStartTok = Token.NoToken;
   public IToken TokenWithTrailingDocString = Token.NoToken;
@@ -678,7 +678,7 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
     sig.VisibilityScope.Augment(VisibilityScope);
 
     // This is solely used to detect duplicates amongst the various e
-    ISet<string> toplevels = new HashSet<string>();
+    Dictionary<string, INode> toplevels = new();
     // Now add the things present
     var anonymousImportCount = 0;
     foreach (TopLevelDecl d in TopLevelDecls) {
@@ -702,8 +702,9 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
         registerThisDecl = d;
         registerUnderThisName = string.Format("{0}#{1}", d.Name, anonymousImportCount);
         anonymousImportCount++;
-      } else if (toplevels.Contains(d.Name)) {
-        resolver.reporter.Error(MessageSource.Resolver, d, "duplicate name of top-level declaration: {0}", d.Name);
+      } else if (toplevels.TryGetValue(d.Name, out var existingTopLevel)) {
+        resolver.reporter.Error(MessageSource.Resolver, new NestedToken(d.Tok, existingTopLevel.Tok),
+          "duplicate name of top-level declaration: {0}", d.Name);
       } else if (d is ClassLikeDecl { NonNullTypeDecl: { } nntd }) {
         registerThisDecl = nntd;
         registerUnderThisName = d.Name;
@@ -716,7 +717,7 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
       }
 
       if (registerThisDecl != null) {
-        toplevels.Add(registerUnderThisName);
+        toplevels[registerUnderThisName] = d;
         sig.TopLevels[registerUnderThisName] = registerThisDecl;
       }
 
@@ -750,10 +751,10 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
             sig.StaticMembers[m.Name] = m;
           }
 
-          if (toplevels.Contains(m.Name)) {
+          if (toplevels.ContainsKey(m.Name)) {
             resolver.reporter.Error(MessageSource.Resolver, m.tok, $"duplicate declaration for name {m.Name}");
           } else {
-            toplevels.Add(m.Name);
+            toplevels.Add(m.Name, m);
           }
         }
 
@@ -877,13 +878,13 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
     foreach (TopLevelDecl d in TopLevelDecls) {
       if (d is ClassLikeDecl { NonNullTypeDecl: { } nntd }) {
         var name = d.Name + "?";
-        if (toplevels.Contains(name)) {
+        if (toplevels.ContainsKey(name)) {
           resolver.reporter.Error(MessageSource.Resolver, d,
             "a module that already contains a top-level declaration '{0}' is not allowed to declare a reference type ({1}) '{2}'",
             name, d.WhatKind, d.Name);
         } else {
-          toplevels.Add(name);
-          toplevels.Add(d.Name);
+          toplevels[name] = d;
+          toplevels[d.Name] = d;
           // change the mapping of d.Name to d.NonNullTypeDecl
           sig.TopLevels[d.Name] = nntd;
           sig.TopLevels[name] = d;

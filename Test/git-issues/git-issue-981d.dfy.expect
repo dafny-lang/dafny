@@ -1,15 +1,15 @@
-git-issue-981d.dfy(25,9): Error: duplicate name of top-level declaration: E4
-git-issue-981d.dfy(26,9): Error: duplicate name of top-level declaration: E5
-git-issue-981d.dfy(31,8): Error: duplicate name of top-level declaration: E6
-git-issue-981d.dfy(36,7): Error: duplicate name of top-level declaration: T2
-git-issue-981d.dfy(37,7): Error: duplicate name of top-level declaration: T3
-git-issue-981d.dfy(39,7): Error: duplicate name of top-level declaration: T1
-git-issue-981d.dfy(42,8): Error: duplicate name of top-level declaration: T4
+git-issue-981d.dfy(25,9): Error: duplicate name of top-level declaration: E4 [Related location] git-issue-981d.dfy(29,8)
+git-issue-981d.dfy(26,9): Error: duplicate name of top-level declaration: E5 [Related location] git-issue-981d.dfy(30,9)
+git-issue-981d.dfy(31,8): Error: duplicate name of top-level declaration: E6 [Related location] git-issue-981d.dfy(27,9)
+git-issue-981d.dfy(36,7): Error: duplicate name of top-level declaration: T2 [Related location] git-issue-981d.dfy(40,8)
+git-issue-981d.dfy(37,7): Error: duplicate name of top-level declaration: T3 [Related location] git-issue-981d.dfy(41,9)
+git-issue-981d.dfy(39,7): Error: duplicate name of top-level declaration: T1 [Related location] git-issue-981d.dfy(35,7)
+git-issue-981d.dfy(42,8): Error: duplicate name of top-level declaration: T4 [Related location] git-issue-981d.dfy(38,7)
 git-issue-981d.dfy(49,8): Error: Duplicate member name: T2
 git-issue-981d.dfy(50,9): Error: Duplicate member name: T3
 git-issue-981d.dfy(51,9): Error: Duplicate member name: T3
 git-issue-981d.dfy(53,9): Error: Duplicate member name: T4
-git-issue-981d.dfy(48,8): Error: duplicate name of top-level declaration: T4
-git-issue-981d.dfy(54,8): Error: duplicate name of top-level declaration: T4
+git-issue-981d.dfy(48,8): Error: duplicate name of top-level declaration: T4 [Related location] git-issue-981d.dfy(52,8)
+git-issue-981d.dfy(54,8): Error: duplicate name of top-level declaration: T4 [Related location] git-issue-981d.dfy(52,8)
 git-issue-981d.dfy(54,8): Error: a module that already contains a top-level declaration 'T4?' is not allowed to declare a reference type (class) 'T4'
 14 resolution/type errors detected in git-issue-981d.dfy

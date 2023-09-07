@@ -1,12 +1,12 @@
 Modules0.dfy(333,2): Warning: module-level functions are always non-instance, so the 'static' keyword is not allowed here
 Modules0.dfy(335,2): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
 Modules0.dfy(337,2): Warning: module-level const declarations are always non-instance, so the 'static' keyword is not allowed here
-Modules0.dfy(8,8): Error: duplicate name of top-level declaration: WazzupA
-Modules0.dfy(9,11): Error: duplicate name of top-level declaration: WazzupA
-Modules0.dfy(10,7): Error: duplicate name of top-level declaration: WazzupA
-Modules0.dfy(13,7): Error: duplicate name of top-level declaration: WazzupB
-Modules0.dfy(14,8): Error: duplicate name of top-level declaration: WazzupB
-Modules0.dfy(15,11): Error: duplicate name of top-level declaration: WazzupB
+Modules0.dfy(8,8): Error: duplicate name of top-level declaration: WazzupA [Related location] Modules0.dfy(7,8)
+Modules0.dfy(9,11): Error: duplicate name of top-level declaration: WazzupA [Related location] Modules0.dfy(7,8)
+Modules0.dfy(10,7): Error: duplicate name of top-level declaration: WazzupA [Related location] Modules0.dfy(7,8)
+Modules0.dfy(13,7): Error: duplicate name of top-level declaration: WazzupB [Related location] Modules0.dfy(12,7)
+Modules0.dfy(14,8): Error: duplicate name of top-level declaration: WazzupB [Related location] Modules0.dfy(12,7)
+Modules0.dfy(15,11): Error: duplicate name of top-level declaration: WazzupB [Related location] Modules0.dfy(12,7)
 Modules0.dfy(8,8): Error: a module that already contains a top-level declaration 'WazzupA?' is not allowed to declare a reference type (class) 'WazzupA'
 Modules0.dfy(39,8): Error: class 'X' with fields without known initializers, like 't' of type 'MM.T', must declare a constructor
 Modules0.dfy(56,21): Error: Type or type parameter is not declared in this scope: MyClass1 (did you forget to qualify a name or declare a module import 'opened'?) (note that names in outer modules are not visible in contained modules)
