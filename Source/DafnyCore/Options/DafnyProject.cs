@@ -139,7 +139,10 @@ public class DafnyProject : IEquatable<DafnyProject> {
       return false;
     }
 
+    var previousWorkingDirectory = Directory.GetCurrentDirectory();
+    Directory.SetCurrentDirectory(Path.GetDirectoryName(Uri.LocalPath));
     var parseResult = option.Parse(new[] { option.Aliases.First(), tomlValue });
+    Directory.SetCurrentDirectory(previousWorkingDirectory);
     if (parseResult.Errors.Any()) {
       value = null;
       return false;
