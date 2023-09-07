@@ -4,7 +4,7 @@ using System.Diagnostics.Contracts;
 using System.Linq;
 using System.Threading;
 
-namespace Microsoft.Dafny; 
+namespace Microsoft.Dafny;
 
 public class ProgramResolver {
   public Program Program { get; }
@@ -55,8 +55,10 @@ public class ProgramResolver {
       classMembers[moduleClassMembers.Key] = moduleClassMembers.Value;
     }
 
+    var rewriters = RewriterCollection.GetRewriters(Reporter, Program);
+
     var compilation = Program.Compilation;
-    foreach (var rewriter in compilation.Rewriters) {
+    foreach (var rewriter in rewriters) {
       cancellationToken.ThrowIfCancellationRequested();
       rewriter.PreResolve(Program);
     }
@@ -75,11 +77,12 @@ public class ProgramResolver {
 
     CheckDuplicateModuleNames(Program);
 
-    foreach (var rewriter in compilation.Rewriters) {
+    foreach (var rewriter in rewriters) {
       cancellationToken.ThrowIfCancellationRequested();
       rewriter.PostResolve(Program);
     }
   }
+
 
   public void AddSystemClass(TopLevelDeclWithMembers topLevelDeclWithMembers, Dictionary<string, MemberDecl> memberDictionary) {
     classMembers[topLevelDeclWithMembers] = memberDictionary;

@@ -2,6 +2,7 @@
 // RUN: %baredafny test --no-verify --target=cs %args   "%s" >> "%t"
 // RUN: %baredafny test --no-verify --target=java %args "%s" >> "%t"
 // RUN: %baredafny test --no-verify --target=go %args   "%s" >> "%t"
+// RUN: %baredafny test --no-verify --target=py %args   "%s" >> "%t"
 
 module SequenceConcatOptimization {
 

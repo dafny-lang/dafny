@@ -1,12 +1,12 @@
-TestAuditor.dfy(93,10): Warning: /!\ No terms found to trigger on.
-TestAuditor.dfy(95,4): Warning: /!\ No terms found to trigger on.
-TestAuditor.dfy(120,2): Warning: /!\ No terms found to trigger on.
 TestAuditor.dfy(131,9): Warning: Assertion with {:only} temporarily transforms other assertions into assumptions
 TestAuditor.dfy(135,7): Warning: Members with {:only} temporarily disable the verification of other members in the entire file
 TestAuditor.dfy(95,4): Warning: note, this forall statement has no body
 TestAuditor.dfy(102,4): Warning: note, this loop has no body (loop frame: i)
 TestAuditor.dfy(120,2): Warning: note, this forall statement has no body
 TestAuditor.dfy(124,2): Warning: note, this loop has no body (loop frame: i)
+TestAuditor.dfy(93,10): Warning: /!\ No terms found to trigger on.
+TestAuditor.dfy(95,4): Warning: /!\ No terms found to trigger on.
+TestAuditor.dfy(120,2): Warning: /!\ No terms found to trigger on.
 
 Dafny program verifier did not attempt verification
 TestAuditor.dfy(22,6): Error: Ghost declaration has no body and has an ensures clause.
