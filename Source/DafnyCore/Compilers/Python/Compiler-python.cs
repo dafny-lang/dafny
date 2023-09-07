@@ -10,7 +10,6 @@ using System.Text.RegularExpressions;
 using JetBrains.Annotations;
 using ExtensionMethods;
 using Microsoft.BaseTypes;
-using Microsoft.Boogie;
 
 namespace ExtensionMethods {
   using Microsoft.Dafny;
