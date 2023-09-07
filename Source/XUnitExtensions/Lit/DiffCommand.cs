@@ -10,6 +10,7 @@ namespace XUnitExtensions.Lit {
   /// because 'diff' does not exist on Windows.
   /// </summary>
   public class DiffCommand : ILitCommand {
+    private static readonly bool UpdateExpectFile = false;
 
     public string ExpectedPath { get; }
     public string ActualPath { get; }
@@ -30,8 +31,14 @@ namespace XUnitExtensions.Lit {
 
     public (int, string, string) Execute(TextReader inputReader,
       TextWriter outputWriter, TextWriter errorWriter) {
-      var expected = File.ReadAllText(ExpectedPath);
       var actual = File.ReadAllText(ActualPath);
+      if (UpdateExpectFile) {
+        var nonSymlinkedPath = Path.GetFullPath(ExpectedPath).Replace("Source/IntegrationTests/bin/Debug/net6.0/TestFiles/LitTests/LitTest", "Test");
+        File.WriteAllText(nonSymlinkedPath, actual);
+        return (0, "", "");
+      }
+
+      var expected = File.ReadAllText(ExpectedPath);
       var diffMessage = AssertWithDiff.GetDiffMessage(expected, actual);
       return diffMessage == null ? (0, "", "") : (1, diffMessage, "");
     }

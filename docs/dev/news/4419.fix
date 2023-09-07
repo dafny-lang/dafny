@@ -1,0 +1,1 @@
+Significantly improve IDE responsiveness for large projects, preventing it from appearing unresponsive or incorrect. Previously, for projects of a certain size, the IDE would not be able to keep up with incoming changes made by the user, possibly causing it to never catch up and appearing frozen or showing outdated results.
