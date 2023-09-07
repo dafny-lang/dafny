@@ -3,7 +3,7 @@ import builtins
 from dataclasses import dataclass
 from contextlib import contextmanager
 from fractions import Fraction
-from collections import Counter
+from collections import Counter, deque
 from collections.abc import Iterable
 from functools import reduce
 from types import GeneratorType, FunctionType
@@ -95,8 +95,29 @@ class CodePoint(str):
     def __sub__(self, other):
         return CodePoint(minus_char(self, other))
 
-class Seq(tuple):
-    def __init__(self, __iterable = None, isStr = False):
+class Concat:
+    def __init__(self, l, r):
+        self.l = l
+        self.r = r
+        self.len = len(l) + len(r)
+
+    def __len__(self):
+        return self.len
+
+    def flatten(self):
+        l = []
+        q = deque([self])
+        while q:
+            e = q.pop()
+            if isinstance(e, list):
+                l += e
+            elif isinstance(e, Concat):
+                q.append(e.r)
+                q.append(e.l)
+        return l
+
+class Seq:
+    def __init__(self, iterable = None, isStr = False):
         '''
         isStr defines whether this value should be tracked at runtime as a string (a.k.a. seq<char>)
         It accepts three different values:
@@ -109,55 +130,65 @@ class Seq(tuple):
         See docs/Compilation/StringsAndChars.md.
         '''
 
-        if __iterable is None:
-            __iterable = []
+        self.elems = iterable if isinstance(iterable, Concat) else (list(iterable) if iterable is not None else [])
+        self.len = len(self.elems)
         if isStr is None:
             self.isStr = None
         else:
             self.isStr = isStr \
-                        or isinstance(__iterable, str) \
-                        or (isinstance(__iterable, Seq) and __iterable.isStr) \
-                        or (not isinstance(__iterable, GeneratorType)
-                            and all(isinstance(e, str) and len(e) == 1 for e in __iterable)
-                            and len(__iterable) > 0)
+                        or isinstance(iterable, str) \
+                        or (isinstance(iterable, Seq) and iterable.isStr)
+            # delay expensive computation
+            if not self.isStr and isinstance(iterable, Concat):
+                self.isStr = 0
 
     @property
     def Elements(self):
-        return self
+        if isinstance(self.elems, Concat):
+            self.elems = self.elems.flatten()
+        return self.elems
 
     @property
     def UniqueElements(self):
-        return frozenset(self)
+        return frozenset(self.Elements)
 
     def VerbatimString(self, asliteral):
         if asliteral:
-            return f"\"{''.join(map(lambda c: c.__escaped__(), self))}\""
+            return f"\"{''.join(map(lambda c: c.__escaped__(), self.Elements))}\""
         else:
             return ''.join(self)
 
     def __dafnystr__(self) -> str:
+        if self.isStr == 0:
+            self.isStr = len(self) > 0 and all(isinstance(e, str) and len(e) == 1 for e in self.Elements)
         if self.isStr:
             # This should never be true when using --unicode-char,
             # so it is safe to assume we are a sequence of UTF-16 code units.
-            return string_from_utf_16(self)
-        return '[' + ', '.join(map(string_of, self)) + ']'
+            return string_from_utf_16(self.Elements)
+        return '[' + ', '.join(map(string_of, self.Elements)) + ']'
 
     def __add__(self, other):
-        return Seq(super().__add__(other), isStr=self.isStr and other.isStr)
+        return Seq(Concat(self.elems, other.elems), isStr=self.isStr and other.isStr)
 
     def __getitem__(self, key):
         if isinstance(key, slice):
             indices = range(*key.indices(len(self)))
-            return Seq((self[i] for i in indices), isStr=self.isStr)
-        return super().__getitem__(key)
+            return Seq((self.Elements[i] for i in indices), isStr=self.isStr)
+        return self.Elements.__getitem__(key)
 
     def set(self, key, value):
-        l = list(self)
+        l = list(self.Elements)
         l[key] = value
         return Seq(l, isStr=self.isStr)
 
+    def __len__(self):
+        return self.len
+
     def __hash__(self) -> int:
-        return hash(tuple(self))
+        return hash(tuple(self.Elements))
+
+    def __eq__(self, other: object) -> bool:
+        return self.Elements == other.Elements
 
     def __lt__(self, other):
         return len(self) < len(other) and self == other[:len(self)]
