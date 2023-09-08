@@ -1,7 +1,6 @@
 using System.Diagnostics.Contracts;
 using System.Linq;
 using JetBrains.Annotations;
-using Microsoft.Boogie;
 using static Microsoft.Dafny.ResolutionErrors;
 
 namespace Microsoft.Dafny;
