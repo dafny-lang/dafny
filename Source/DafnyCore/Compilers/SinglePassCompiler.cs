@@ -3301,7 +3301,9 @@ namespace Microsoft.Dafny.Compilers {
           // emit a loop structure. The structure "while (false) { }" comes to mind, but that results in
           // an "unreachable code" error from Java, so we instead use "while (true) { break; }".
           var wBody = CreateWhileLoop(out var guardWriter, wr);
-          guardWriter.Write(True);
+          EmitExpr(new LiteralExpr(null, true) {
+            Type = Type.Bool
+          }, false, guardWriter, wStmts);
           EmitBreak(null, wBody);
           Coverage.UnusedInstrumentationPoint(s.Body.Tok, "while body");
         } else {
@@ -3315,7 +3317,9 @@ namespace Microsoft.Dafny.Compilers {
         }
         if (loopStmt.Alternatives.Count != 0) {
           var w = CreateWhileLoop(out var whileGuardWriter, wr);
-          whileGuardWriter.Write(True);
+          EmitExpr(new LiteralExpr(null, true) {
+            Type = Type.Bool
+          }, false, whileGuardWriter, wStmts);
           w = EmitContinueLabel(loopStmt.Labels, w);
           foreach (var alternative in loopStmt.Alternatives) {
             var thn = EmitIf(out var guardWriter, true, w);
