@@ -46,10 +46,11 @@ module {:extern "DAST"} DAST {
     DeclareVar(name: string, typ: Type, maybeValue: Optional<Expression>) |
     Assign(lhs: AssignLhs, value: Expression) |
     If(cond: Expression, thn: seq<Statement>, els: seq<Statement>) |
-    While(cond: Expression, body: seq<Statement>) |
+    While(lbl: Optional<string>, cond: Expression, body: seq<Statement>) |
     Call(on: Expression, name: string, typeArgs: seq<Type>, args: seq<Expression>, outs: Optional<seq<Ident>>) |
     Return(expr: Expression) |
     EarlyReturn() |
+    Break(toLabel: Optional<string>) |
     TailRecursive(body: seq<Statement>) |
     JumpTailCallStart() |
     Halt() |
