@@ -304,7 +304,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
     public bool UnicodeOutput = false;
     public DiagnosticsFormats DiagnosticsFormat = DiagnosticsFormats.PlainText;
     public bool DisallowSoundnessCheating = false;
-    public int Induction = 4;
+    public int Induction = 1; // was 4 before
     public int InductionHeuristic = 6;
     public string DafnyPrelude = null;
     public string DafnyPrintFile = null;
