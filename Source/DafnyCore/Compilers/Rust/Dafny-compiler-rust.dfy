@@ -1558,19 +1558,34 @@ module {:extern "DCOMP"} DCOMP {
           isErased := false;
           readIdents := recIdents;
         }
-        case Index(on, idx) => {
+        case Index(on, isArray, indices) => {
           var onString, onOwned, onErased, recIdents := GenExpr(on, selfIdent, params, false);
+          readIdents := recIdents;
           if !onErased {
             var eraseFn := if onOwned then "erase_owned" else "erase";
             onString := "::dafny_runtime::DafnyErasable::" + eraseFn + "(" + onString + ")";
           }
 
-          var idxString, _, idxErased, recIdentsIdx := GenExpr(idx, selfIdent, params, true);
-          if !idxErased {
-            idxString := "::dafny_runtime::DafnyErasable::erase_owned(" + idxString + ")";
+          s := onString;
+
+          var i := 0;
+          while i < |indices| {
+            var idx, _, idxErased, recIdentsIdx := GenExpr(indices[i], selfIdent, params, true);
+            if !idxErased {
+              idx := "::dafny_runtime::DafnyErasable::erase_owned(" + idx + ")";
+            }
+
+            if isArray {
+              s := "(" + s + ").borrow()";
+            }
+
+            s := "(" + s + ")" + "[<usize as ::dafny_runtime::NumCast>::from(" + idx + ").unwrap()]";
+
+            readIdents := readIdents + recIdentsIdx;
+
+            i := i + 1;
           }
 
-          s := "(" + onString + ")" + "[<usize as ::dafny_runtime::NumCast>::from(" + idxString + ").unwrap()]";
           if mustOwn {
             s := "(" + s + ").clone()";
             isOwned := true;
@@ -1579,8 +1594,62 @@ module {:extern "DCOMP"} DCOMP {
             isOwned := false;
           }
 
-          isErased := true;
-          readIdents := recIdents + recIdentsIdx;
+          isErased := onErased;
+        }
+        case IndexRange(on, isArray, low, high) => {
+          var onString, onOwned, onErased, recIdents := GenExpr(on, selfIdent, params, false);
+          readIdents := recIdents;
+          if !onErased {
+            var eraseFn := if onOwned then "erase_owned" else "erase";
+            onString := "::dafny_runtime::DafnyErasable::" + eraseFn + "(" + onString + ")";
+          }
+
+          s := onString;
+
+          var lowString := None;
+          match low {
+            case Some(l) => {
+              var lString, _, lErased, recIdentsL := GenExpr(l, selfIdent, params, true);
+              if !lErased {
+                lString := "::dafny_runtime::DafnyErasable::erase_owned(" + lString + ")";
+              }
+
+              lowString := Some(lString);
+              readIdents := readIdents + recIdentsL;
+            }
+            case None => {}
+          }
+
+          var highString := None;
+          match high {
+            case Some(h) => {
+              var hString, _, hErased, recIdentsH := GenExpr(h, selfIdent, params, true);
+              if !hErased {
+                hString := "::dafny_runtime::DafnyErasable::erase_owned(" + hString + ")";
+              }
+
+              highString := Some(hString);
+              readIdents := readIdents + recIdentsH;
+            }
+            case None => {}
+          }
+
+          if isArray {
+            s := "(" + s + ").borrow()";
+          }
+
+          s := "(" + s + ")" + "[" + (match lowString {
+                                        case Some(l) => "<usize as ::dafny_runtime::NumCast>::from(" + l + ").unwrap()"
+                                        case None => ""
+                                      }) + ".." + (match highString {
+                                                     case Some(h) => "<usize as ::dafny_runtime::NumCast>::from(" + h + ").unwrap()"
+                                                     case None => ""
+                                                   }) + "]";
+
+          isErased := onErased;
+
+          s := "(" + s + ".to_vec())";
+          isOwned := true;
         }
         case TupleSelect(on, idx) => {
           var onString, _, tupErased, recIdents := GenExpr(on, selfIdent, params, false);

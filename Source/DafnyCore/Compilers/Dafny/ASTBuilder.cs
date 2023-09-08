@@ -915,6 +915,12 @@ namespace Microsoft.Dafny.Compilers {
       return ret;
     }
 
+    IndexBuilder Index(List<DAST.Expression> indices, bool isArray) {
+      var ret = new IndexBuilder(indices, isArray);
+      AddBuildable(ret);
+      return ret;
+    }
+
     protected static void RecursivelyBuild(List<object> body, List<DAST.Expression> builtExprs) {
       foreach (var maybeBuilt in body) {
         if (maybeBuilt is DAST.Expression built) {
@@ -1168,6 +1174,44 @@ class ConvertBuilder : ExprContainer, BuildableExpr {
       builtValue[0],
       fromType,
       toType
+    );
+  }
+}
+
+class IndexBuilder : ExprContainer, BuildableExpr {
+  readonly List<DAST.Expression> indices;
+  readonly bool isArray;
+  object value = null;
+
+  public IndexBuilder(List<DAST.Expression> indices, bool isArray) {
+    this.indices = indices;
+    this.isArray = isArray;
+  }
+
+  public void AddExpr(DAST.Expression item) {
+    if (value != null) {
+      throw new InvalidOperationException();
+    } else {
+      value = item;
+    }
+  }
+
+  public void AddBuildable(BuildableExpr item) {
+    if (value != null) {
+      throw new InvalidOperationException();
+    } else {
+      value = item;
+    }
+  }
+
+  public DAST.Expression Build() {
+    var builtValue = new List<DAST.Expression>();
+    ExprContainer.RecursivelyBuild(new List<object> { value }, builtValue);
+
+    return (DAST.Expression)DAST.Expression.create_Index(
+      builtValue[0],
+      isArray,
+      Sequence<DAST.Expression>.FromArray(indices.ToArray())
     );
   }
 }

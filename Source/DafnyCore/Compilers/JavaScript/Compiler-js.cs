@@ -1771,14 +1771,18 @@ namespace Microsoft.Dafny.Compilers {
       return wr.ForkInParens();
     }
 
-    protected override ConcreteSyntaxTree EmitArraySelect(List<string> indices, Type elmtType, ConcreteSyntaxTree wr) {
+    protected override ConcreteSyntaxTree EmitArraySelect(List<Action<ConcreteSyntaxTree>> indices, Type elmtType, ConcreteSyntaxTree wr) {
       var w = wr.Fork();
       if (indices.Count == 1) {
-        wr.Write("[{0}]", indices[0]);
+        wr.Write("[");
+        indices[0](wr);
+        wr.Write("]");
       } else {
         wr.Write(".elmts");
         foreach (var index in indices) {
-          wr.Write("[{0}]", index);
+          wr.Write("[");
+          index(wr);
+          wr.Write("]");
         }
       }
       return w;

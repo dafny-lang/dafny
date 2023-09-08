@@ -460,7 +460,7 @@ namespace Microsoft.Dafny.Compilers {
             if (selectExpr.Seq.Type.IsArrayType || selectExpr.Seq.Type.AsSeqType != null) {
               targetIndex = ArrayIndexToNativeInt(targetIndex, selectExpr.E0.Type);
             }
-            ILvalue newLhs = new ArrayLvalueImpl(this, targetArray, new List<string>() { targetIndex }, lhsTypes[i]);
+            ILvalue newLhs = new ArrayLvalueImpl(this, targetArray, new List<Action<ConcreteSyntaxTree>>() { wIndex => wIndex.Write(targetIndex) }, lhsTypes[i]);
             lhssn.Add(newLhs);
 
           } else if (lexpr is MultiSelectExpr multiSelectExpr) {
@@ -471,7 +471,7 @@ namespace Microsoft.Dafny.Compilers {
               targetIndex = ArrayIndexToNativeInt(targetIndex, index.Type);
               targetIndices.Add(targetIndex);
             }
-            ILvalue newLhs = new ArrayLvalueImpl(this, targetArray, targetIndices, lhsTypes[i]);
+            ILvalue newLhs = new ArrayLvalueImpl(this, targetArray, Util.Map<string, Action<ConcreteSyntaxTree>>(targetIndices, i => wIndex => wIndex.Write(i)), lhsTypes[i]);
             lhssn.Add(newLhs);
 
           } else {
@@ -1100,20 +1100,20 @@ namespace Microsoft.Dafny.Compilers {
     /// <summary>
     /// The "indices" are expected to already be of the native array-index type.
     /// </summary>
-    protected abstract ConcreteSyntaxTree EmitArraySelect(List<string> indices, Type elmtType, ConcreteSyntaxTree wr);
+    protected abstract ConcreteSyntaxTree EmitArraySelect(List<Action<ConcreteSyntaxTree>> indices, Type elmtType, ConcreteSyntaxTree wr);
     protected abstract ConcreteSyntaxTree EmitArraySelect(List<Expression> indices, Type elmtType, bool inLetExprBody,
       ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts);
 
     /// <summary>
     /// The "indices" are expected to already be of the native array-index type.
     /// </summary>
-    protected virtual (ConcreteSyntaxTree wArray, ConcreteSyntaxTree wRhs) EmitArrayUpdate(List<string> indices, Type elementType, ConcreteSyntaxTree wr) {
+    protected virtual (ConcreteSyntaxTree wArray, ConcreteSyntaxTree wRhs) EmitArrayUpdate(List<Action<ConcreteSyntaxTree>> indices, Type elementType, ConcreteSyntaxTree wr) {
       var wArray = EmitArraySelect(indices, elementType, wr);
       wr.Write(" = ");
       var wRhs = wr.Fork();
       return (wArray, wRhs);
     }
-    protected ConcreteSyntaxTree EmitArrayUpdate(List<string> indices, Expression rhs, ConcreteSyntaxTree wr) {
+    protected ConcreteSyntaxTree EmitArrayUpdate(List<Action<ConcreteSyntaxTree>> indices, Expression rhs, ConcreteSyntaxTree wr) {
       var (wArray, wRhs) = EmitArrayUpdate(indices, rhs.Type, wr);
       EmitExpr(rhs, false, wRhs, wr);
       return wArray;
@@ -3602,11 +3602,10 @@ namespace Microsoft.Dafny.Compilers {
       var wCoerced = EmitCoercionIfNecessary(from: null, to: tupleTypeArgsList[0], tok: s0.Tok, wr: wArray);
       EmitTupleSelect(tup, 0, wCoerced);
       var array = wArray.ToString();
-      var indices = new List<string>();
+      var indices = new List<Action<ConcreteSyntaxTree>>();
       for (int i = 0; i < lhs.Indices.Count; i++) {
-        var wIndex = new ConcreteSyntaxTree();
-        EmitTupleSelect(tup, i + 1, EmitCoercionToNativeInt(wIndex));
-        indices.Add(wIndex.ToString());
+        var capturedI = i;
+        indices.Add(wIndex => EmitTupleSelect(tup, capturedI + 1, EmitCoercionToNativeInt(wIndex)));
       }
       var (wrArray, wrRhs) = EmitArrayUpdate(indices, tupleTypeArgsList[L - 1], wr);
       EmitTupleSelect(tup, L - 1, wrRhs);
@@ -3988,7 +3987,7 @@ namespace Microsoft.Dafny.Compilers {
       if (ll.Seq.Type.IsArrayType || ll.Seq.Type.AsSeqType != null) {
         index = ArrayIndexToNativeInt(index, ll.E0.Type);
       }
-      return new ArrayLvalueImpl(this, arr, new List<string>() { index }, ll.Type);
+      return new ArrayLvalueImpl(this, arr, new List<Action<ConcreteSyntaxTree>>() { wIndex => wIndex.Write(index) }, ll.Type);
     }
 
     protected virtual ILvalue MultiSelectLvalue(MultiSelectExpr ll, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
@@ -4001,7 +4000,7 @@ namespace Microsoft.Dafny.Compilers {
         indices.Add(index);
         i++;
       }
-      return new ArrayLvalueImpl(this, arr, indices, ll.Type);
+      return new ArrayLvalueImpl(this, arr, Util.Map<string, Action<ConcreteSyntaxTree>>(indices, i => wIndex => wIndex.Write(i)), ll.Type);
     }
 
     protected ILvalue StringLvalue(string str) {
@@ -4105,13 +4104,13 @@ namespace Microsoft.Dafny.Compilers {
     private class ArrayLvalueImpl : ILvalue {
       private readonly SinglePassCompiler compiler;
       private readonly string array;
-      private readonly List<string> indices;
+      private readonly List<Action<ConcreteSyntaxTree>> indices;
       private readonly Type lhsType;
 
       /// <summary>
       /// The "indices" are expected to already be of the native array-index type.
       /// </summary>
-      public ArrayLvalueImpl(SinglePassCompiler compiler, string array, List<string> indices, Type lhsType) {
+      public ArrayLvalueImpl(SinglePassCompiler compiler, string array, List<Action<ConcreteSyntaxTree>> indices, Type lhsType) {
         this.compiler = compiler;
         this.array = array;
         this.indices = indices;
@@ -4313,7 +4312,7 @@ namespace Microsoft.Dafny.Compilers {
         var ii = 0;
         foreach (var v in typeRhs.InitDisplay) {
           pwStmts = wStmts.Fork();
-          var (wArray, wElement) = EmitArrayUpdate(new List<string> { ii.ToString() }, v.Type, wStmts);
+          var (wArray, wElement) = EmitArrayUpdate(new List<Action<ConcreteSyntaxTree>> { wIndex => wIndex.Write(ii.ToString()) }, v.Type, wStmts);
           if (ii == 0 && nwElement0 != null) {
             wElement.Write(nwElement0);
           } else {
@@ -4401,7 +4400,7 @@ namespace Microsoft.Dafny.Compilers {
 
         // _nw[0, 0, 0] := _element0;
         var indices = Util.Map(Enumerable.Range(0, typeRhs.ArrayDimensions.Count), _ => ArrayIndexLiteral(0));
-        var (wArray, wrRhs) = EmitArrayUpdate(indices, typeRhs.EType, wElse);
+        var (wArray, wrRhs) = EmitArrayUpdate(Util.Map<string, Action<ConcreteSyntaxTree>>(indices, i => wIndex => wIndex.Write(i)), typeRhs.EType, wElse);
         wrRhs.Write(element0);
         wArray.Write(nw);
         EndStmt(wElse);
@@ -4436,7 +4435,7 @@ namespace Microsoft.Dafny.Compilers {
           }
           w = wLoopBody;
         }
-        (wArray, wrRhs) = EmitArrayUpdate(indices, typeRhs.EType, w);
+        (wArray, wrRhs) = EmitArrayUpdate(Util.Map<string, Action<ConcreteSyntaxTree>>(indices, i => wIndex => wIndex.Write(i)), typeRhs.EType, w);
         wrRhs.Write("{0}{1}({2})", init, LambdaExecute, Enumerable.Range(0, indices.Count).Comma(idx => ArrayIndexToInt(indices[idx])));
         wArray.Write(nw);
         EndStmt(w);
@@ -4472,7 +4471,7 @@ namespace Microsoft.Dafny.Compilers {
           var bound = $"{pre}{nw}{(len == "" ? "" : "." + len)}{post}";
           w = CreateForLoop(indices[d], bound, w);
         }
-        var (wArray, wrRhs) = EmitArrayUpdate(indices, typeRhs.EType, w);
+        var (wArray, wrRhs) = EmitArrayUpdate(Util.Map<string, Action<ConcreteSyntaxTree>>(indices, i => wIndex => wIndex.Write(i)), typeRhs.EType, w);
         wrRhs = EmitCoercionIfNecessary(TypeForCoercion(typeRhs.EType), typeRhs.EType, typeRhs.Tok, wrRhs);
         wrRhs.Write("{0}{1}({2})", init, LambdaExecute, indices.Comma(idx => ArrayIndexToInt(idx)));
         wArray.Write(nw);
@@ -5006,6 +5005,12 @@ namespace Microsoft.Dafny.Compilers {
           if (e.SelectOne) {
             Contract.Assert(e.E0 != null && e.E1 == null);
             var w = EmitArraySelect(new List<Expression>() { e.E0 }, e.Type, inLetExprBody, wr, wStmts);
+            w = EmitCoercionIfNecessary(
+              e.Seq.Type,
+              e.Seq.Type.IsNonNullRefType || !e.Seq.Type.IsRefType ? null : UserDefinedType.CreateNonNullType((UserDefinedType)e.Seq.Type.NormalizeExpand()),
+              e.tok,
+              w
+            );
             TrParenExpr(e.Seq, w, inLetExprBody, wStmts);
           } else {
             EmitSeqSelectRange(e.Seq, e.E0, e.E1, true, inLetExprBody, wr, wStmts);

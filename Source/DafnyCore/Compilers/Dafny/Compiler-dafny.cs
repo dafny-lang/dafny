@@ -840,7 +840,15 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override ILvalue SeqSelectLvalue(SeqSelectExpr ll, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       var sourceBuf = new ExprBuffer(null);
-      EmitExpr(ll.Seq, false, new BuilderSyntaxTree<ExprContainer>(sourceBuf), wStmts);
+      EmitExpr(
+        ll.Seq, false,
+        EmitCoercionIfNecessary(
+          ll.Seq.Type,
+          ll.Seq.Type.IsNonNullRefType || !ll.Seq.Type.IsRefType ? null : UserDefinedType.CreateNonNullType((UserDefinedType)ll.Seq.Type.NormalizeExpand()),
+          null, new BuilderSyntaxTree<ExprContainer>(sourceBuf)
+        ),
+        wStmts
+      );
 
       var indexBuf = new ExprBuffer(null);
       EmitExpr(ll.E0, false, new BuilderSyntaxTree<ExprContainer>(indexBuf), wStmts);
@@ -849,7 +857,7 @@ namespace Microsoft.Dafny.Compilers {
       var index = indexBuf.Finish();
 
       return new ExprLvalue(
-        (DAST.Expression)DAST.Expression.create_Index(source, index),
+        (DAST.Expression)DAST.Expression.create_Index(source, ll.Seq.Type.IsArrayType, Sequence<DAST.Expression>.FromElements(index)),
         (DAST.AssignLhs)DAST.AssignLhs.create_Index(source, index)
       );
     }
@@ -1186,7 +1194,13 @@ namespace Microsoft.Dafny.Compilers {
           GenType(arrow.Result)
         );
       } else if (udt.IsArrayType) {
-        return (DAST.Type)DAST.Type.create_Array(GenType(udt.TypeArgs[0]));
+        if (udt.IsNonNullRefType) {
+          return (DAST.Type)DAST.Type.create_Array(GenType(udt.TypeArgs[0]));
+        } else {
+          return (DAST.Type)DAST.Type.create_Nullable(
+            (DAST.Type)DAST.Type.create_Array(GenType(udt.TypeArgs[0]))
+          );
+        }
       }
 
       var cl = udt.ResolvedClass;
@@ -1436,13 +1450,24 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    protected override ConcreteSyntaxTree EmitArraySelect(List<string> indices, Type elmtType, ConcreteSyntaxTree wr) {
+    protected override ConcreteSyntaxTree EmitArraySelect(List<Action<ConcreteSyntaxTree>> indices, Type elmtType, ConcreteSyntaxTree wr) {
       throw new NotImplementedException();
     }
 
     protected override ConcreteSyntaxTree EmitArraySelect(List<Expression> indices, Type elmtType, bool inLetExprBody,
         ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
-      throw new NotImplementedException();
+      if (wr is BuilderSyntaxTree<ExprContainer> builder) {
+        var indicesAST = indices.Select(i => {
+          var buf = new ExprBuffer(null);
+          var localWriter = new BuilderSyntaxTree<ExprContainer>(buf);
+          EmitExpr(i, inLetExprBody, localWriter, wStmts);
+          return buf.Finish();
+        }).ToList();
+
+        return new BuilderSyntaxTree<ExprContainer>(builder.Builder.Index(indicesAST, true));
+      } else {
+        throw new InvalidOperationException();
+      }
     }
 
     protected override void EmitExprAsNativeInt(Expression expr, bool inLetExprBody, ConcreteSyntaxTree wr,
@@ -1461,7 +1486,8 @@ namespace Microsoft.Dafny.Compilers {
       if (wr is BuilderSyntaxTree<ExprContainer> builder) {
         builder.Builder.AddExpr((DAST.Expression)DAST.Expression.create_Index(
           sourceBuf.Finish(),
-          indexBuf.Finish()
+          source.Type.IsArrayType,
+          Sequence<DAST.Expression>.FromElements(indexBuf.Finish())
         ));
       } else {
         throw new InvalidOperationException();
@@ -1475,7 +1501,43 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void EmitSeqSelectRange(Expression source, Expression lo, Expression hi, bool fromArray,
       bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
-      throw new NotImplementedException();
+      var sourceBuf = new ExprBuffer(null);
+      EmitExpr(
+        source,
+        inLetExprBody,
+        EmitCoercionIfNecessary(
+          source.Type,
+          source.Type.IsNonNullRefType || !source.Type.IsRefType ? null : UserDefinedType.CreateNonNullType((UserDefinedType)source.Type.NormalizeExpand()),
+          null, new BuilderSyntaxTree<ExprContainer>(sourceBuf)
+        ),
+        wStmts
+      );
+      var sourceExpr = sourceBuf.Finish();
+
+      DAST.Expression loExpr = null;
+      if (lo != null) {
+        var loBuf = new ExprBuffer(null);
+        EmitExpr(lo, inLetExprBody, new BuilderSyntaxTree<ExprContainer>(loBuf), wStmts);
+        loExpr = loBuf.Finish();
+      }
+
+      DAST.Expression hiExpr = null;
+      if (hi != null) {
+        var hiBuf = new ExprBuffer(null);
+        EmitExpr(hi, inLetExprBody, new BuilderSyntaxTree<ExprContainer>(hiBuf), wStmts);
+        hiExpr = hiBuf.Finish();
+      }
+
+      if (wr is BuilderSyntaxTree<ExprContainer> builder) {
+        builder.Builder.AddExpr((DAST.Expression)DAST.Expression.create_IndexRange(
+          sourceExpr,
+          fromArray,
+          loExpr != null ? Optional<DAST._IExpression>.create_Some(loExpr) : Optional<DAST._IExpression>.create_None(),
+          hiExpr != null ? Optional<DAST._IExpression>.create_Some(hiExpr) : Optional<DAST._IExpression>.create_None()
+        ));
+      } else {
+        throw new InvalidOperationException();
+      }
     }
 
     protected override void EmitSeqConstructionExpr(SeqConstructionExpr expr, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
