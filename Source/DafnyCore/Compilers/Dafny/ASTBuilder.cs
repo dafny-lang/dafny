@@ -926,6 +926,12 @@ namespace Microsoft.Dafny.Compilers {
       return ret;
     }
 
+    BetaRedexBuilder BetaRedex(List<_System.Tuple2<DAST.Formal, DAST.Expression>> bindings, DAST.Type retType) {
+      var ret = new BetaRedexBuilder(bindings, retType);
+      AddBuildable(ret);
+      return ret;
+    }
+
     ConvertBuilder Convert(DAST.Type fromType, DAST.Type toType) {
       var ret = new ConvertBuilder(fromType, toType);
       AddBuildable(ret);
@@ -1246,6 +1252,36 @@ namespace Microsoft.Dafny.Compilers {
       } else {
         parent.value = item;
       }
+    }
+  }
+
+  class BetaRedexBuilder : ExprContainer, BuildableExpr {
+    readonly List<_System.Tuple2<DAST.Formal, DAST.Expression>> bindings;
+    readonly DAST.Type retType;
+    object body = null;
+
+    public BetaRedexBuilder(List<_System.Tuple2<DAST.Formal, DAST.Expression>> bindings, DAST.Type retType) {
+      this.bindings = bindings;
+      this.retType = retType;
+    }
+
+    public void AddExpr(DAST.Expression item) {
+      body = item;
+    }
+
+    public void AddBuildable(BuildableExpr item) {
+      body = item;
+    }
+
+    public DAST.Expression Build() {
+      var builtBody = new List<DAST.Expression>();
+      ExprContainer.RecursivelyBuild(new List<object> { body }, builtBody);
+
+      return (DAST.Expression)DAST.Expression.create_BetaRedex(
+        Sequence<_System.Tuple2<DAST.Formal, DAST.Expression>>.FromArray(bindings.ToArray()),
+        retType,
+        builtBody[0]
+      );
     }
   }
 

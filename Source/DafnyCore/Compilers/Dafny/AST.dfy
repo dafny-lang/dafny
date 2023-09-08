@@ -84,6 +84,7 @@ module {:extern "DAST"} DAST {
     TupleSelect(expr: Expression, index: nat) |
     Call(on: Expression, name: Ident, typeArgs: seq<Type>, args: seq<Expression>) |
     Lambda(params: seq<Formal>, retType: Type, body: seq<Statement>) |
+    BetaRedex(values: seq<(Formal, Expression)>, retType: Type, expr: Expression) |
     IIFE(name: Ident, typ: Type, value: Expression, iifeBody: Expression) |
     Apply(expr: Expression, args: seq<Expression>) |
     TypeTest(on: Expression, dType: seq<Ident>, variant: string) |

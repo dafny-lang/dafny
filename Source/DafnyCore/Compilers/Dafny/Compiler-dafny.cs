@@ -1598,7 +1598,28 @@ namespace Microsoft.Dafny.Compilers {
     protected override ConcreteSyntaxTree EmitBetaRedex(List<string> boundVars, List<Expression> arguments,
       List<Type> boundTypes, Type resultType, IToken resultTok, bool inLetExprBody, ConcreteSyntaxTree wr,
       ref ConcreteSyntaxTree wStmts) {
-      throw new NotImplementedException();
+      if (wr is BuilderSyntaxTree<ExprContainer> builder) {
+        var argsAST = new List<_System.Tuple2<DAST.Formal, DAST.Expression>>();
+        for (int i = 0; i < arguments.Count; ++i) {
+          var argReceiver = new ExprBuffer(null);
+          EmitExpr(arguments[i], inLetExprBody, new BuilderSyntaxTree<ExprContainer>(argReceiver), wStmts);
+          argsAST.Add((_System.Tuple2<DAST.Formal, DAST.Expression>)_System.Tuple2<DAST.Formal, DAST.Expression>.create(
+            (DAST.Formal)DAST.Formal.create_Formal(
+              Sequence<Rune>.UnicodeFromString(boundVars[i]),
+              GenType(boundTypes[i])
+            ),
+            argReceiver.Finish()
+          ));
+        }
+
+        var retType = GenType(resultType);
+
+        return new BuilderSyntaxTree<ExprContainer>(builder.Builder.BetaRedex(
+          argsAST, retType
+        ));
+      } else {
+        throw new InvalidOperationException();
+      }
     }
 
     protected override void EmitDestructor(Action<ConcreteSyntaxTree> source, Formal dtor, int formalNonGhostIndex, DatatypeCtor ctor,
