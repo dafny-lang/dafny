@@ -1501,6 +1501,15 @@ module {:extern "DCOMP"} DCOMP {
           isErased := true;
           readIdents := recIdents;
         }
+        case Select(Companion(c), field, isConstant, isDatatype) => {
+          var onString, onOwned, onErased, recIdents := GenExpr(Companion(c), selfIdent, params, false);
+
+          s := onString + "::r#" + field + "()";
+
+          isOwned := true;
+          isErased := false;
+          readIdents := recIdents;
+        }
         case Select(on, field, isConstant, isDatatype) => {
           var onString, onOwned, onErased, recIdents := GenExpr(on, selfIdent, params, false);
           if !onErased {

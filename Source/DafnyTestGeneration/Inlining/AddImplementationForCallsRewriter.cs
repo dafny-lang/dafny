@@ -82,6 +82,19 @@ public class AddImplementationsForCallsRewriter : ReadOnlyVisitor {
     return node;
   }
 
+  public override Implementation VisitImplementation(Implementation node) {
+    this.VisitVariableSeq(node.LocVars);
+    this.VisitBlockList(node.Blocks);
+    if (node.Proc is not null) {
+      // TODO: The overall test generation code should be refactored so that
+      // this case can't occur. The default visitor for Implementation nodes
+      // has an invariant that node.Proc is never null. That invariant did
+      // not lead to an NPE until Boogie 3.0.1, however.
+      node.Proc = (Procedure)node.Proc.StdDispatch((StandardVisitor)this);
+    }
+    return (Implementation)this.VisitDeclWithFormals((DeclWithFormals)node);
+  }
+
   public override Program VisitProgram(Program node) {
     program = node;
     implsToAdd = new();

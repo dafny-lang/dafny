@@ -181,7 +181,7 @@ C <== B <== A
 To illustrate the short-circuiting rules, note that the expression
 `a.Length` is defined for an array `a` only if `a` is not `null` (see
 [Section 5.1.2](#sec-reference-types)), which means the following two
-expressions are well-formed:
+expressions are [well-formed](#sec-assertion-batches):
 <!-- %no-check -->
 ```dafny
 a != null ==> 0 <= a.Length
@@ -193,9 +193,9 @@ The contrapositives of these two expressions would be:
 a.Length < 0 ==> a == null  // not well-formed
 a == null <== a.Length < 0  // not well-formed
 ```
-but these expressions are not well-formed, since well-formedness
+but these expressions might not necessarily be [well-formed](#sec-assertion-batches), since well-formedness
 requires the left (and right, respectively) operand, `a.Length < 0`,
-to be well-formed by itself.
+to be [well-formed](#sec-assertion-batches) in their context.
 
 Implication `A ==> B` is equivalent to the disjunction `!A || B`, but
 is sometimes (especially in specifications) clearer to read.  Since,
@@ -204,12 +204,12 @@ is sometimes (especially in specifications) clearer to read.  Since,
 ```dafny
 a == null || 0 <= a.Length
 ```
-is well-formed, whereas
+is [well-formed](#sec-assertion-batches) by itself, whereas
 <!-- %no-check -->
 ```dafny
 0 <= a.Length || a == null  // not well-formed
 ```
-is not.
+is not if the context cannot prove that `a != null`.
 
 In addition, booleans support _logical quantifiers_ (forall and
 exists), described in [Section 9.31.4](#sec-quantifier-expression).
@@ -2495,7 +2495,7 @@ matrix.Length0 == m && matrix.Length1 == n
 Higher-dimensional arrays are similar (`Length0`, `Length1`,
 `Length2`, ...).  The array selection expression and array update
 statement require that the indices are in bounds.  For example, the
-swap statement above is well-formed only if:
+swap statement above is [well-formed](#sec-assertion-batches) only if:
 <!-- %no-check -->
 ```dafny
 0 <= i < matrix.Length0 && 0 <= j < matrix.Length1 &&
@@ -3018,7 +3018,7 @@ Note that the expression
 ```dafny
 Cons(5, Nil).tail.head
 ```
-is not well-formed, since `Cons(5, Nil).tail` does not necessarily satisfy
+is not [well-formed](#sec-assertion-batches) by itself, since `Cons(5, Nil).tail` does not necessarily satisfy
 `Cons?`.
 
 A constructor can have the same name as
@@ -3596,7 +3596,7 @@ _TODO: Say more about the effect of this attribute and when it should be applied
 (and likely, correct the paragraph above)._
 
 
-# 6. Member declarations
+# 6. Member declarations {#sec-member-declaration}
 
 Members are the various kinds of methods, the various kinds of functions, mutable fields,
 and constant fields. These are usually associated with classes, but they also may be
@@ -4631,7 +4631,7 @@ both preceding and subsequent parameters, but there may not be any
 dependent cycle between the parameters and their default-value
 expressions.
 
-The well-formedness of default-value expressions is checked independent
+The [well-formedness](#sec-assertion-batches) of default-value expressions is checked independent
 of the precondition of the enclosing declaration. For a function, the
 parameter default-value expressions may only read what the function's
 `reads` clause allows. For a datatype constructor, parameter default-value

@@ -1,16 +1,16 @@
-using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using VC;
 
 namespace Microsoft.Dafny;
 
 public class TextLogger {
   private TextWriter tw;
   private TextWriter outWriter;
+  private ProofDependencyManager depManager;
 
-  public TextLogger(TextWriter outWriter) {
+  public TextLogger(ProofDependencyManager depManager, TextWriter outWriter) {
+    this.depManager = depManager;
     this.outWriter = outWriter;
   }
 
@@ -18,10 +18,10 @@ public class TextLogger {
     tw = parameters.TryGetValue("LogFileName", out string filename) ? new StreamWriter(filename) : outWriter;
   }
 
-  public void LogResults(IEnumerable<(string verboseName, DafnyConsolePrinter.VerificationResultLogEntry)> verificationResults) {
-    foreach (var (verboseName, result) in verificationResults.OrderBy(vr => vr.verboseName)) {
+  public void LogResults(IEnumerable<DafnyConsolePrinter.ConsoleLogEntry> verificationResults) {
+    foreach (var (implementation, result) in verificationResults.OrderBy(vr => (vr.Implementation.Tok.filename, vr.Implementation.Tok.line, vr.Implementation.Tok.col))) {
       tw.WriteLine("");
-      tw.WriteLine($"Results for {verboseName}");
+      tw.WriteLine($"Results for {implementation.Name}");
       tw.WriteLine($"  Overall outcome: {result.Outcome}");
       tw.WriteLine($"  Overall time: {result.RunTime}");
       tw.WriteLine($"  Overall resource count: {result.ResourceCount}");
@@ -41,6 +41,18 @@ public class TextLogger {
         foreach (var cmd in vcResult.Asserts) {
           tw.WriteLine(
             $"      {cmd.Tok.Filepath}({cmd.Tok.line},{cmd.Tok.col}): {cmd.Description}");
+        }
+        if (vcResult.CoveredElements.Any()) {
+          tw.WriteLine("");
+          tw.WriteLine("    Proof dependencies:");
+          var fullDependencies =
+            vcResult
+            .CoveredElements
+            .Select(depManager.GetFullIdDependency)
+            .OrderBy(dep => (dep.RangeString(), dep.Description));
+          foreach (var dep in fullDependencies) {
+            tw.WriteLine($"      {dep.RangeString()}: {dep.Description}");
+          }
         }
 
       }

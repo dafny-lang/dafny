@@ -1,2 +1,2 @@
-git-issue-864y.dfy(6,9): Error: duplicate name of top-level declaration: A
+git-issue-864y.dfy(6,9): Error: duplicate name of top-level declaration: A [Related location] git-issue-864y.dfy(7,8)
 1 resolution/type errors detected in git-issue-864y.dfy

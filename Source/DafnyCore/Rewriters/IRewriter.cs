@@ -74,8 +74,9 @@ namespace Microsoft.Dafny {
     /// You can then report errors using reporter.Error (see above)
     /// </summary>
     /// <param name="moduleDefinition">A module definition after it
-    /// is resolved, type-checked and SCC/Cyclicity/Recursivity have been performed</param>
-    internal virtual void PostCyclicityResolve(ModuleDefinition moduleDefinition) {
+    ///   is resolved, type-checked and SCC/Cyclicity/Recursivity have been performed</param>
+    /// <param name="errorReporter"></param>
+    internal virtual void PostCyclicityResolve(ModuleDefinition moduleDefinition, ErrorReporter errorReporter) {
       Contract.Requires(moduleDefinition != null);
     }
 

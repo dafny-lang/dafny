@@ -125,7 +125,7 @@ ResolutionErrors.dfy(985,12): Error: arguments to % must be integer-numeric or b
 ResolutionErrors.dfy(984,19): Error: type of right argument to / (int) must agree with the result type (real)
 ResolutionErrors.dfy(1012,11): Error: Wrong number of type arguments (2 instead of 1) passed to non-null type: array3
 ResolutionErrors.dfy(1013,11): Error: Wrong number of type arguments (2 instead of 1) passed to non-null type: C
-ResolutionErrors.dfy(1024,7): Error: duplicate name of top-level declaration: BadSyn2
+ResolutionErrors.dfy(1024,7): Error: duplicate name of top-level declaration: BadSyn2 [Related location] ResolutionErrors.dfy(1023,7)
 ResolutionErrors.dfy(1021,17): Error: Wrong number of type arguments (0 instead of 1) passed to datatype: List
 ResolutionErrors.dfy(1022,17): Error: Type or type parameter is not declared in this scope: badName (did you forget to qualify a name or declare a module import 'opened'?) (note that names in outer modules are not visible in contained modules)
 ResolutionErrors.dfy(1023,22): Error: Type or type parameter is not declared in this scope: X (did you forget to qualify a name or declare a module import 'opened'?) (note that names in outer modules are not visible in contained modules)
@@ -420,8 +420,8 @@ ResolutionErrors.dfy(2825,21): Error: type of left argument to * (int) must agre
 ResolutionErrors.dfy(2825,21): Error: type of * must be of a numeric type, bitvector type, or a set-like type (instead got bool)
 ResolutionErrors.dfy(2824,11): Error: not resolving module 'V' because there were errors in resolving its nested module 'W'
 ResolutionErrors.dfy(2811,9): Error: not resolving module 'ErrorsFromNestedModules' because there were errors in resolving its nested module 'U'
-ResolutionErrors.dfy(2833,11): Error: duplicate name of top-level declaration: G
-ResolutionErrors.dfy(2839,11): Error: duplicate name of top-level declaration: H
+ResolutionErrors.dfy(2833,11): Error: duplicate name of top-level declaration: G [Related location] ResolutionErrors.dfy(2836,10)
+ResolutionErrors.dfy(2839,11): Error: duplicate name of top-level declaration: H [Related location] ResolutionErrors.dfy(2837,10)
 ResolutionErrors.dfy(2855,4): Error: ghost variables such as y are allowed only in specification contexts. y was inferred to be ghost based on its declaration or initialization.
 ResolutionErrors.dfy(2857,20): Error: ghost variables such as y are allowed only in specification contexts. y was inferred to be ghost based on its declaration or initialization.
 ResolutionErrors.dfy(2866,6): Error: ghost variables such as i are allowed only in specification contexts. i was inferred to be ghost based on its declaration or initialization.
