@@ -7975,6 +7975,9 @@ namespace Microsoft.Dafny {
     }
 
     Bpl.AssertCmd TrAssertCmdDesc(IToken tok, Bpl.Expr expr, PODesc.ProofObligationDescription description, Bpl.QKeyValue attributes = null) {
+      if (options.Get(CommonOptionBag.ShowAssertions)) {
+        reporter.Info(MessageSource.Translator, tok, "Assertion: " + description.ShortDescription);
+      }
       return new Bpl.AssertCmd(tok, expr, description, attributes);
     }
 

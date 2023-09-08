@@ -19,6 +19,7 @@ public class ServerCommand : ICommandSpec {
     DooFile.RegisterNoChecksNeeded(
       Verification,
       GhostIndicators,
+      CommonOptionBag.ShowAssertions,
       LineVerificationStatus,
       VerifySnapshots,
       UseCaching,
@@ -72,6 +73,7 @@ Send notifications about the verification status of each line in the program.
     VerifySnapshots,
     UseCaching,
     UpdateThrottling,
+    CommonOptionBag.ShowAssertions,
     DeveloperOptionBag.BoogiePrint,
     CommonOptionBag.EnforceDeterminism,
     CommonOptionBag.UseJavadocLikeDocstringRewriterOption

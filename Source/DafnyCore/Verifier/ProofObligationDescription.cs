@@ -340,7 +340,7 @@ public class AssertStatement : ProofObligationDescriptionCustomMessages {
   public override string DefaultFailureDescription =>
     "assertion might not hold";
 
-  public override string ShortDescription => "assert statement";
+  public override string ShortDescription => "explicit";
 
   public AssertStatement([CanBeNull] string customErrMsg, [CanBeNull] string customSuccessMsg)
     : base(customErrMsg, customSuccessMsg) {
