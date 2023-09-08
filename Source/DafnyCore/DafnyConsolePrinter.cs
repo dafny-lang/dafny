@@ -22,21 +22,23 @@ public class DafnyConsolePrinter : ConsolePrinter {
   private readonly ConcurrentDictionary<string, List<string>> fsCache = new();
   private DafnyOptions options;
 
-  public record ImplementationLogEntry(string Name, Uri Uri);
+  public record ImplementationLogEntry(string Name, Boogie.IToken Tok);
   public record VCResultLogEntry(
     int VCNum,
     DateTime StartTime,
     TimeSpan RunTime,
     ProverInterface.Outcome Outcome,
     List<(IToken Tok, string Description)> Asserts,
+    IEnumerable<TrackedNodeComponent> CoveredElements,
     int ResourceCount);
   public record VerificationResultLogEntry(
     ConditionGeneration.Outcome Outcome,
     TimeSpan RunTime,
     int ResourceCount,
     List<VCResultLogEntry> VCResults);
+  public record ConsoleLogEntry(ImplementationLogEntry Implementation, VerificationResultLogEntry Result);
 
-  public ConcurrentBag<(ImplementationLogEntry implementation, VerificationResultLogEntry result)> VerificationResults { get; } = new();
+  public ConcurrentBag<ConsoleLogEntry> VerificationResults { get; } = new();
 
   public override void AdvisoryWriteLine(TextWriter output, string format, params object[] args) {
     if (output == Console.Out) {
@@ -132,11 +134,11 @@ public class DafnyConsolePrinter : ConsolePrinter {
   }
 
   public override void ReportEndVerifyImplementation(Implementation implementation, VerificationResult result) {
-    var impl = new ImplementationLogEntry(implementation.VerboseName, implementation.tok is IToken token ? token.Uri : null);
+    var impl = new ImplementationLogEntry(implementation.VerboseName, implementation.tok);
     var vcResults = result.VCResults.Select(r =>
-      new VCResultLogEntry(r.vcNum, r.startTime, r.runTime, r.outcome, r.asserts.Select(a => ((IToken)a.tok, a.Description.SuccessDescription)).ToList(), r.resourceCount)
+      new VCResultLogEntry(r.vcNum, r.startTime, r.runTime, r.outcome, r.asserts.Select(a => ((IToken)a.tok, a.Description.SuccessDescription)).ToList(), r.coveredElements, r.resourceCount)
     ).ToList();
     var res = new VerificationResultLogEntry(result.Outcome, result.End - result.Start, result.ResourceCount, vcResults);
-    VerificationResults.Add((impl, res));
+    VerificationResults.Add(new ConsoleLogEntry(impl, res));
   }
 }

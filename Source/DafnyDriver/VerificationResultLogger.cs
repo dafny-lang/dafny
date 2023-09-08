@@ -13,7 +13,6 @@ using Microsoft.VisualStudio.TestPlatform.Extensions.TrxLogger;
 using Microsoft.VisualStudio.TestPlatform.ObjectModel;
 using Microsoft.VisualStudio.TestPlatform.ObjectModel.Client;
 using Microsoft.VisualStudio.TestPlatform.ObjectModel.Logging;
-using VC;
 
 namespace Microsoft.Dafny {
 
@@ -65,7 +64,7 @@ namespace Microsoft.Dafny {
           // it uses information that's tricky to encode in a TestResult.
           var textLogger = new TextLogger(depManager, options.OutputWriter);
           textLogger.Initialize(parameters);
-          textLogger.LogResults(verificationResults.Select(e => (e.implementation.Name, e.result)));
+          textLogger.LogResults(verificationResults);
           return;
         } else {
           throw new ArgumentException($"unsupported verification logger config: {loggerConfig}");
@@ -75,7 +74,7 @@ namespace Microsoft.Dafny {
 
       // Sort failures to the top, and then slower procedures first.
       // Loggers may not maintain this ordering unfortunately.
-      var results = VerificationToTestResults(verificationResults.Select(e => (e.implementation, e.result.VCResults)))
+      var results = VerificationToTestResults(verificationResults.Select(e => (e.Implementation, e.Result.VCResults)))
         .OrderBy(r => r.Outcome == TestOutcome.Passed)
         .ThenByDescending(r => r.Duration);
       foreach (var result in results) {
@@ -99,7 +98,7 @@ namespace Microsoft.Dafny {
           var testCase = new TestCase {
             FullyQualifiedName = name,
             ExecutorUri = new Uri("executor://dafnyverifier/v1"),
-            Source = currentFile.LocalPath
+            Source = ((IToken)currentFile).Uri.LocalPath
           };
           var testResult = new TestResult(testCase) {
             StartTime = vcResult.StartTime,
