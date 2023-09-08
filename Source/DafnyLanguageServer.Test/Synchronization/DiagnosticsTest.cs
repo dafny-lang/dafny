@@ -90,8 +90,8 @@ function HasResolutionError(): int {
       var documentItem = CreateTestDocument(SlowToVerify, "DiagnosticsForVerificationTimeout.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var diagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
-      Assert.Contains("timed out", diagnostics[0].Message);
-      Assert.Equal(new Range(0, 21, 0, 43), diagnostics[0].Range);
+      Assert.Contains("Verification out of resource", diagnostics[0].Message);
+      Assert.Equal(new Range(0, 20, 0, 42), diagnostics[0].Range);
     }
 
     [Fact]
