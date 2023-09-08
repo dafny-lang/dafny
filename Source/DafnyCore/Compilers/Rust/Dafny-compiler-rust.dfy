@@ -1392,7 +1392,46 @@ module {:extern "DCOMP"} DCOMP {
           s := s + "].into_iter().collect::<std::collections::HashSet<_>>()";
 
           isOwned := true;
-          isErased := true;
+          isErased := allErased;
+        }
+        case MapValue(mapElems) => {
+          var generatedValues := [];
+          readIdents := {};
+          var i := 0;
+          var allErased := true;
+          while i < |mapElems| {
+            var recursiveGenKey, _, isErasedKey, recIdentsKey := GenExpr(mapElems[i].0, selfIdent, params, true);
+            var recursiveGenValue, _, isErasedValue, recIdentsValue := GenExpr(mapElems[i].1, selfIdent, params, true);
+            allErased := allErased && isErasedKey && isErasedValue;
+
+            generatedValues := generatedValues + [(recursiveGenKey, recursiveGenValue, isErasedKey, isErasedValue)];
+            readIdents := readIdents + recIdentsKey + recIdentsValue;
+            i := i + 1;
+          }
+
+          s := "vec![";
+          i := 0;
+          while i < |generatedValues| {
+            if i > 0 {
+              s := s + ", ";
+            }
+
+            var genKey := generatedValues[i].0;
+            var genValue := generatedValues[i].1;
+            if generatedValues[i].2 && !allErased {
+              genKey := "::dafny_runtime::DafnyUnerasable::<_>::unerase_owned(" + genKey + ")";
+            }
+            if generatedValues[i].3 && !allErased {
+              genValue := "::dafny_runtime::DafnyUnerasable::<_>::unerase_owned(" + genValue + ")";
+            }
+
+            s := s + "(" + genKey + ", " + genValue + ")";
+            i := i + 1;
+          }
+          s := s + "].into_iter().collect::<std::collections::HashMap<_, _>>()";
+
+          isOwned := true;
+          isErased := allErased;
         }
         case This() => {
           match selfIdent {
@@ -1580,7 +1619,7 @@ module {:extern "DCOMP"} DCOMP {
           isErased := false;
           readIdents := recIdents;
         }
-        case Index(on, isArray, indices) => {
+        case Index(on, collKind, indices) => {
           var onString, onOwned, onErased, recIdents := GenExpr(on, selfIdent, params, false);
           readIdents := recIdents;
           if !onErased {
@@ -1592,18 +1631,23 @@ module {:extern "DCOMP"} DCOMP {
 
           var i := 0;
           while i < |indices| {
-            var idx, _, idxErased, recIdentsIdx := GenExpr(indices[i], selfIdent, params, true);
-            if !idxErased {
-              idx := "::dafny_runtime::DafnyErasable::erase_owned(" + idx + ")";
-            }
-
-            if isArray {
+            if collKind == CollKind.Array {
               s := "(" + s + ").borrow()";
             }
 
-            s := "(" + s + ")" + "[<usize as ::dafny_runtime::NumCast>::from(" + idx + ").unwrap()]";
+            if collKind == CollKind.Map {
+              var idx, idxOwned, idxErased, recIdentsIdx := GenExpr(indices[i], selfIdent, params, false);
+              s := "(" + s + ")[" + (if idxOwned then "&" else "") + idx + "]";
+              readIdents := readIdents + recIdentsIdx;
+            } else {
+              var idx, _, idxErased, recIdentsIdx := GenExpr(indices[i], selfIdent, params, true);
+              if !idxErased {
+                idx := "::dafny_runtime::DafnyErasable::erase_owned(" + idx + ")";
+              }
 
-            readIdents := readIdents + recIdentsIdx;
+              s := "(" + s + ")[<usize as ::dafny_runtime::NumCast>::from(" + idx + ").unwrap()]";
+              readIdents := readIdents + recIdentsIdx;
+            }
 
             i := i + 1;
           }

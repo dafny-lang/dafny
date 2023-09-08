@@ -938,8 +938,8 @@ namespace Microsoft.Dafny.Compilers {
       return ret;
     }
 
-    IndexBuilder Index(List<DAST.Expression> indices, bool isArray) {
-      var ret = new IndexBuilder(indices, isArray);
+    IndexBuilder Index(List<DAST.Expression> indices, DAST._ICollKind collKind) {
+      var ret = new IndexBuilder(indices, collKind);
       AddBuildable(ret);
       return ret;
     }
@@ -1325,12 +1325,12 @@ namespace Microsoft.Dafny.Compilers {
 
   class IndexBuilder : ExprContainer, BuildableExpr {
     readonly List<DAST.Expression> indices;
-    readonly bool isArray;
+    readonly DAST._ICollKind collKind;
     object value = null;
 
-    public IndexBuilder(List<DAST.Expression> indices, bool isArray) {
+    public IndexBuilder(List<DAST.Expression> indices, DAST._ICollKind collKind) {
       this.indices = indices;
-      this.isArray = isArray;
+      this.collKind = collKind;
     }
 
     public void AddExpr(DAST.Expression item) {
@@ -1355,7 +1355,7 @@ namespace Microsoft.Dafny.Compilers {
 
       return (DAST.Expression)DAST.Expression.create_Index(
         builtValue[0],
-        isArray,
+        collKind,
         Sequence<DAST.Expression>.FromArray(indices.ToArray())
       );
     }

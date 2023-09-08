@@ -61,6 +61,8 @@ module {:extern "DAST"} DAST {
     Select(expr: Expression, field: string) |
     Index(expr: Expression, indices: seq<Expression>)
 
+  datatype CollKind = Seq | Array | Map
+
   datatype Expression =
     Literal(Literal) |
     Ident(string) |
@@ -72,6 +74,7 @@ module {:extern "DAST"} DAST {
     Convert(value: Expression, from: Type, typ: Type) |
     SeqValue(elements: seq<Expression>) |
     SetValue(elements: seq<Expression>) |
+    MapValue(mapElems: seq<(Expression, Expression)>) |
     This() |
     Ite(cond: Expression, thn: Expression, els: Expression) |
     UnOp(unOp: UnaryOp, expr: Expression) |
@@ -79,7 +82,7 @@ module {:extern "DAST"} DAST {
     ArrayLen(expr: Expression) |
     Select(expr: Expression, field: string, isConstant: bool, onDatatype: bool) |
     SelectFn(expr: Expression, field: string, onDatatype: bool, isStatic: bool, arity: nat) |
-    Index(expr: Expression, isArray: bool, indices: seq<Expression>) |
+    Index(expr: Expression, collKind: CollKind, indices: seq<Expression>) |
     IndexRange(expr: Expression, isArray: bool, low: Optional<Expression>, high: Optional<Expression>) |
     TupleSelect(expr: Expression, index: nat) |
     Call(on: Expression, name: Ident, typeArgs: seq<Type>, args: seq<Expression>) |

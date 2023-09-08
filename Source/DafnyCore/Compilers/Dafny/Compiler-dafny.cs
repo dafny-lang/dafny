@@ -847,8 +847,18 @@ namespace Microsoft.Dafny.Compilers {
       var source = sourceBuf.Finish();
       var index = indexBuf.Finish();
 
+
+      DAST._ICollKind collKind;
+      if (ll.Seq.Type.IsArrayType) {
+        collKind = DAST.CollKind.create_Array();
+      } else if (ll.Seq.Type.IsMapType) {
+        collKind = DAST.CollKind.create_Map();
+      } else {
+        collKind = DAST.CollKind.create_Seq();
+      }
+
       return new ExprLvalue(
-        (DAST.Expression)DAST.Expression.create_Index(source, ll.Seq.Type.IsArrayType, Sequence<DAST.Expression>.FromElements(index)),
+        (DAST.Expression)DAST.Expression.create_Index(source, collKind, Sequence<DAST.Expression>.FromElements(index)),
         (DAST.AssignLhs)DAST.AssignLhs.create_Index(source, Sequence<DAST.Expression>.FromElements(index))
       );
     }
@@ -1457,7 +1467,7 @@ namespace Microsoft.Dafny.Compilers {
           return buf.Finish();
         }).ToList();
 
-        return new BuilderSyntaxTree<ExprContainer>(builder.Builder.Index(indicesAST, true));
+        return new BuilderSyntaxTree<ExprContainer>(builder.Builder.Index(indicesAST, DAST.CollKind.create_Array()));
       } else {
         throw new InvalidOperationException();
       }
@@ -1473,7 +1483,7 @@ namespace Microsoft.Dafny.Compilers {
           return buf.Finish();
         }).ToList();
 
-        return new BuilderSyntaxTree<ExprContainer>(builder.Builder.Index(indicesAST, true));
+        return new BuilderSyntaxTree<ExprContainer>(builder.Builder.Index(indicesAST, DAST.CollKind.create_Array()));
       } else {
         throw new InvalidOperationException();
       }
@@ -1509,10 +1519,19 @@ namespace Microsoft.Dafny.Compilers {
       var indexBuf = new ExprBuffer(null);
       EmitExpr(index, inLetExprBody, new BuilderSyntaxTree<ExprContainer>(indexBuf), wStmts);
 
+      DAST._ICollKind collKind;
+      if (source.Type.IsArrayType) {
+        collKind = DAST.CollKind.create_Array();
+      } else if (source.Type.IsMapType) {
+        collKind = DAST.CollKind.create_Map();
+      } else {
+        collKind = DAST.CollKind.create_Seq();
+      }
+
       if (wr is BuilderSyntaxTree<ExprContainer> builder) {
         builder.Builder.AddExpr((DAST.Expression)DAST.Expression.create_Index(
           sourceBuf.Finish(),
-          source.Type.IsArrayType,
+          collKind,
           Sequence<DAST.Expression>.FromElements(indexBuf.Finish())
         ));
       } else {
@@ -1907,7 +1926,25 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void EmitMapDisplay(MapType mt, IToken tok, List<ExpressionPair> elements, bool inLetExprBody,
       ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
-      throw new NotImplementedException();
+      if (wr is BuilderSyntaxTree<ExprContainer> builder) {
+        var elementsAST = new List<_System.Tuple2<DAST.Expression, DAST.Expression>>();
+        foreach (var e in elements) {
+          var buffer0 = new ExprBuffer(null);
+          EmitExpr(e.A, false, new BuilderSyntaxTree<ExprContainer>(buffer0), wStmts);
+          var buffer1 = new ExprBuffer(null);
+          EmitExpr(e.B, false, new BuilderSyntaxTree<ExprContainer>(buffer1), wStmts);
+          elementsAST.Add((_System.Tuple2<DAST.Expression, DAST.Expression>)_System.Tuple2<DAST.Expression, DAST.Expression>.create(
+            buffer0.Finish(),
+            buffer1.Finish()
+          ));
+        }
+
+        builder.Builder.AddExpr((DAST.Expression)DAST.Expression.create_MapValue(
+          Sequence<_System.Tuple2<DAST.Expression, DAST.Expression>>.FromArray(elementsAST.ToArray())
+        ));
+      } else {
+        throw new InvalidOperationException();
+      }
     }
 
     protected override void EmitSetBuilder_New(ConcreteSyntaxTree wr, SetComprehension e, string collectionName) {

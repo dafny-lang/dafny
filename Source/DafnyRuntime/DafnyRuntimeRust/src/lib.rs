@@ -1,4 +1,4 @@
-use std::{fmt::{Display, Formatter}, rc::Rc, ops::Deref, collections::HashSet, cell::RefCell};
+use std::{fmt::{Display, Formatter}, rc::Rc, ops::Deref, collections::{HashSet, HashMap}, cell::RefCell};
 use num::{Integer, Signed, One, Zero};
 pub use once_cell::unsync::Lazy;
 
@@ -219,6 +219,32 @@ impl <T> DafnyUnerasable<HashSet<T>> for HashSet<T> {
 
     #[inline]
     fn unerase_owned(v: HashSet<T>) -> Self {
+        v
+    }
+}
+
+impl <K, V> DafnyErasable for HashMap<K, V> {
+    type Erased = HashMap<K, V>;
+
+    #[inline]
+    fn erase(&self) -> &Self::Erased {
+        self
+    }
+
+    #[inline]
+    fn erase_owned(self) -> Self::Erased {
+        self
+    }
+}
+
+impl <K, V> DafnyUnerasable<HashMap<K, V>> for HashMap<K, V> {
+    #[inline]
+    fn unerase(v: &HashMap<K, V>) -> &Self {
+        v
+    }
+
+    #[inline]
+    fn unerase_owned(v: HashMap<K, V>) -> Self {
         v
     }
 }
