@@ -40,7 +40,7 @@ public class TextLogger {
         tw.WriteLine("    Assertions:");
         foreach (var cmd in vcResult.Asserts) {
           tw.WriteLine(
-            $"      {cmd.Tok.Filepath}({cmd.Tok.line},{cmd.Tok.col}): {cmd.Description}");
+            $"      {cmd.Tok.filename}({cmd.Tok.line},{cmd.Tok.col}): {cmd.Description}");
         }
         if (vcResult.CoveredElements.Any()) {
           tw.WriteLine("");
