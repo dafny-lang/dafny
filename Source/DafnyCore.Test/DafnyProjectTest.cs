@@ -10,7 +10,7 @@ public class DafnyProjectTest {
       Uri = new Uri(randomFileName, UriKind.Absolute),
       Includes = new[] { "a", "a2" },
       Excludes = new[] { "b", "b2" },
-      Options = new Dictionary<string, string>() {
+      Options = new Dictionary<string, object>() {
         { "c", "d" },
         { "e", "f" }
       }
@@ -20,7 +20,7 @@ public class DafnyProjectTest {
       Uri = new Uri(randomFileName, UriKind.Absolute),
       Includes = new[] { "a2", "a" },
       Excludes = new[] { "b2", "b" },
-      Options = new Dictionary<string, string>() {
+      Options = new Dictionary<string, object>() {
         { "e", "f" },
         { "c", "d" },
       }

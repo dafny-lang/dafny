@@ -2,14 +2,18 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.CommandLine;
+using System.CommandLine.Parsing;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Runtime.Serialization;
+using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using DafnyCore.Options;
 using Microsoft.Extensions.FileSystemGlobbing;
 using Tomlyn;
+using Tomlyn.Model;
 
 namespace Microsoft.Dafny; 
 
@@ -22,7 +26,7 @@ public class DafnyProject : IEquatable<DafnyProject> {
   public Uri Uri { get; set; }
   public string[] Includes { get; set; }
   public string[] Excludes { get; set; }
-  public Dictionary<string, string> Options { get; set; }
+  public Dictionary<string, object> Options { get; set; }
   public bool UsesProjectFile => Path.GetFileName(Uri.LocalPath) == FileName;
 
   public static async Task<DafnyProject> Open(IFileSystem fileSystem, Uri uri, TextWriter outputWriter, TextWriter errorWriter) {
@@ -139,19 +143,36 @@ public class DafnyProject : IEquatable<DafnyProject> {
       return false;
     }
 
-    var previousWorkingDirectory = Directory.GetCurrentDirectory();
-    Directory.SetCurrentDirectory(Path.GetDirectoryName(Uri.LocalPath));
-    var parseResult = option.Parse(new[] { option.Aliases.First(), tomlValue });
-    Directory.SetCurrentDirectory(previousWorkingDirectory);
+    var printTomlValue = PrintTomlOptionToCliValue(tomlValue);
+    var parseResult = option.Parse(new[] { option.Aliases.First(), printTomlValue });
     if (parseResult.Errors.Any()) {
       value = null;
       return false;
     }
-
-    value = parseResult.GetValueForOption(option);
+    var previousWorkingDirectory = Directory.GetCurrentDirectory();
+    // Change the current directory, for when converting string to file-paths.
+    Directory.SetCurrentDirectory(Path.GetDirectoryName(Uri.LocalPath)!);
+    // By using the dynamic keyword, we can use the generic version of GetValueForOption which does type conversion,
+    // which is sadly not accessible without generics.
+    value = parseResult.GetValueForOption((dynamic)option);
+    Directory.SetCurrentDirectory(previousWorkingDirectory);
     return true;
   }
 
+  record Verbatim(string value) {
+    public override string ToString() {
+      return value;
+    }
+  }
+  
+  string PrintTomlOptionToCliValue(object value) {
+    if (value is TomlArray array) {
+      return string.Join(" ", array);
+    }
+
+    return value.ToString();
+  }
+  
   public bool Equals(DafnyProject other) {
     if (ReferenceEquals(null, other)) {
       return false;
@@ -161,13 +182,13 @@ public class DafnyProject : IEquatable<DafnyProject> {
       return true;
     }
 
-    var orderedOptions = Options?.OrderBy(kv => kv.Key) ?? Enumerable.Empty<KeyValuePair<string, string>>();
-    var otherOrderedOptions = other.Options?.OrderBy(kv => kv.Key) ?? Enumerable.Empty<KeyValuePair<string, string>>();
+    var orderedOptions = Options?.OrderBy(kv => kv.Key) ?? Enumerable.Empty<KeyValuePair<string, object>>();
+    var otherOrderedOptions = other.Options?.OrderBy(kv => kv.Key) ?? Enumerable.Empty<KeyValuePair<string, object>>();
 
     return Equals(Uri, other.Uri) &&
            NullableSetEqual(Includes?.ToHashSet(), other.Includes) &&
            NullableSetEqual(Excludes?.ToHashSet(), other.Excludes) &&
-           orderedOptions.SequenceEqual(otherOrderedOptions, new LambdaEqualityComparer<KeyValuePair<string, string>>(
+           orderedOptions.SequenceEqual(otherOrderedOptions, new LambdaEqualityComparer<KeyValuePair<string, object>>(
              (kv1, kv2) => kv1.Key == kv2.Key && GenericEquals(kv1.Value, kv2.Value),
              kv => kv.GetHashCode()));
   }
