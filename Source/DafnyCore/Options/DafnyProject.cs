@@ -164,7 +164,7 @@ public class DafnyProject : IEquatable<DafnyProject> {
       return value;
     }
   }
-  
+
   string PrintTomlOptionToCliValue(object value) {
     if (value is TomlArray array) {
       return string.Join(" ", array);
@@ -172,7 +172,7 @@ public class DafnyProject : IEquatable<DafnyProject> {
 
     return value.ToString();
   }
-  
+
   public bool Equals(DafnyProject other) {
     if (ReferenceEquals(null, other)) {
       return false;
