@@ -460,7 +460,7 @@ namespace Microsoft.Dafny.Compilers {
             if (selectExpr.Seq.Type.IsArrayType || selectExpr.Seq.Type.AsSeqType != null) {
               targetIndex = ArrayIndexToNativeInt(targetIndex, selectExpr.E0.Type);
             }
-            ILvalue newLhs = new ArrayLvalueImpl(this, targetArray, new List<Action<ConcreteSyntaxTree>>() { wIndex => wIndex.Write(targetIndex) }, lhsTypes[i]);
+            ILvalue newLhs = new ArrayLvalueImpl(this, targetArray, new List<Action<ConcreteSyntaxTree>>() { wIndex => EmitIdentifier(targetIndex, wIndex) }, lhsTypes[i]);
             lhssn.Add(newLhs);
 
           } else if (lexpr is MultiSelectExpr multiSelectExpr) {
@@ -471,7 +471,7 @@ namespace Microsoft.Dafny.Compilers {
               targetIndex = ArrayIndexToNativeInt(targetIndex, index.Type);
               targetIndices.Add(targetIndex);
             }
-            ILvalue newLhs = new ArrayLvalueImpl(this, targetArray, Util.Map<string, Action<ConcreteSyntaxTree>>(targetIndices, i => wIndex => wIndex.Write(i)), lhsTypes[i]);
+            ILvalue newLhs = new ArrayLvalueImpl(this, targetArray, Util.Map<string, Action<ConcreteSyntaxTree>>(targetIndices, i => wIndex => EmitIdentifier(i, wIndex)), lhsTypes[i]);
             lhssn.Add(newLhs);
 
           } else {
@@ -623,7 +623,7 @@ namespace Microsoft.Dafny.Compilers {
     /// Returns null if no condition is necessary
     /// </summary>
     [CanBeNull]
-    protected abstract string GetSubtypeCondition(
+    protected abstract Action<ConcreteSyntaxTree> GetSubtypeCondition(
       string tmpVarName, Type boundVarType, IToken tok, ConcreteSyntaxTree wPreconditions);
 
     /// <summary>
@@ -3238,7 +3238,9 @@ namespace Microsoft.Dafny.Compilers {
           } else {
             // let's compile the "then" branch
             wr = EmitIf(out guardWriter, false, wr);
-            guardWriter.Write(True);
+            EmitExpr(new LiteralExpr(null, true) {
+              Type = Type.Bool
+            }, false, guardWriter, wStmts);
             Coverage.Instrument(s.Thn.Tok, "then branch", wr);
             TrStmtList(s.Thn.Body, wr);
             Coverage.UnusedInstrumentationPoint(s.Els.Tok, "else branch");
@@ -4141,7 +4143,11 @@ namespace Microsoft.Dafny.Compilers {
       } else if (lhs is MemberSelectExpr) {
         var ll = (MemberSelectExpr)lhs;
         Contract.Assert(!ll.Member.IsInstanceIndependentConstant);  // instance-independent const's don't have assignment statements
-        var writeStabilized = EmitStabilizedExpr(ll.Obj, "_obj", wr, wStmts);
+        var writeStabilized = EmitStabilizedExpr(
+          ll.Obj,
+          ll.Obj.Type.IsNonNullRefType || !ll.Obj.Type.IsRefType ? null : UserDefinedType.CreateNonNullType((UserDefinedType)ll.Obj.Type.NormalizeExpand()),
+          "_obj", wr, wStmts
+        );
         var typeArgs = TypeArgumentInstantiation.ListFromMember(ll.Member, null, ll.TypeApplication_JustMember);
         return EmitMemberSelect(writeStabilized, ll.Obj.Type, ll.Member, typeArgs, ll.TypeArgumentSubstitutionsWithParents(), lhs.Type,
           internalAccess: enclosingMethod is Constructor);
@@ -4155,12 +4161,17 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    private Action<ConcreteSyntaxTree> EmitStabilizedExpr(Expression e, string prefix, ConcreteSyntaxTree surrounding, ConcreteSyntaxTree wStmts) {
+    private Action<ConcreteSyntaxTree> EmitStabilizedExpr(Expression e, Type coercedType, string prefix, ConcreteSyntaxTree surrounding, ConcreteSyntaxTree wStmts) {
       if (IsStableExpr(e)) {
-        return outWr => TrParenExpr(e, outWr, false, wStmts);
+        return outWr => TrParenExpr(e, EmitCoercionIfNecessary(e.Type, coercedType, null, outWr), false, wStmts);
       } else {
         var v = ProtectedFreshId(prefix);
-        DeclareLocalVar(v, null, null, e, false, surrounding);
+        var preVarSurrounding = surrounding.Fork();
+        EmitExpr(
+          e, false,
+          EmitCoercionIfNecessary(e.Type, coercedType, null, DeclareLocalVar(v, coercedType ?? e.Type, null, surrounding)),
+          preVarSurrounding
+        );
         return outWr => EmitIdentifier(v, outWr);
       }
     }
@@ -4180,7 +4191,7 @@ namespace Microsoft.Dafny.Compilers {
     /// <seealso cref="IsStableExpr"/>
     private string StabilizeExpr(Expression e, string prefix, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       var localWr = new ConcreteSyntaxTree();
-      EmitStabilizedExpr(e, prefix, wr, wStmts)(localWr);
+      EmitStabilizedExpr(e, null, prefix, wr, wStmts)(localWr);
       return localWr.ToString();
     }
 
@@ -4312,13 +4323,15 @@ namespace Microsoft.Dafny.Compilers {
         var ii = 0;
         foreach (var v in typeRhs.InitDisplay) {
           pwStmts = wStmts.Fork();
-          var (wArray, wElement) = EmitArrayUpdate(new List<Action<ConcreteSyntaxTree>> { wIndex => wIndex.Write(ii.ToString()) }, v.Type, wStmts);
+          var (wArray, wElement) = EmitArrayUpdate(new List<Action<ConcreteSyntaxTree>> { wIndex => EmitExprAsNativeInt(new LiteralExpr(null, ii) {
+            Type = Type.Int
+          }, false, wIndex, wStmts) }, v.Type, wStmts);
           if (ii == 0 && nwElement0 != null) {
-            wElement.Write(nwElement0);
+            EmitIdentifier(nwElement0, wElement);
           } else {
             EmitExpr(v, false, wElement, pwStmts);
           }
-          wArray.Write(nw);
+          EmitIdentifier(nw, wArray);
           EndStmt(wStmts);
           ii++;
         }
@@ -4401,8 +4414,8 @@ namespace Microsoft.Dafny.Compilers {
         // _nw[0, 0, 0] := _element0;
         var indices = Util.Map(Enumerable.Range(0, typeRhs.ArrayDimensions.Count), _ => ArrayIndexLiteral(0));
         var (wArray, wrRhs) = EmitArrayUpdate(Util.Map<string, Action<ConcreteSyntaxTree>>(indices, i => wIndex => wIndex.Write(i)), typeRhs.EType, wElse);
-        wrRhs.Write(element0);
-        wArray.Write(nw);
+        EmitIdentifier(element0, wrRhs);
+        EmitIdentifier(nw, wArray);
         EndStmt(wElse);
 
         // Compute native array dimensions
@@ -4471,10 +4484,17 @@ namespace Microsoft.Dafny.Compilers {
           var bound = $"{pre}{nw}{(len == "" ? "" : "." + len)}{post}";
           w = CreateForLoop(indices[d], bound, w);
         }
-        var (wArray, wrRhs) = EmitArrayUpdate(Util.Map<string, Action<ConcreteSyntaxTree>>(indices, i => wIndex => wIndex.Write(i)), typeRhs.EType, w);
+        var (wArray, wrRhs) = EmitArrayUpdate(Util.Map<string, Action<ConcreteSyntaxTree>>(indices, i => wIndex => EmitIdentifier(i, wIndex)), typeRhs.EType, w);
         wrRhs = EmitCoercionIfNecessary(TypeForCoercion(typeRhs.EType), typeRhs.EType, typeRhs.Tok, wrRhs);
-        wrRhs.Write("{0}{1}({2})", init, LambdaExecute, indices.Comma(idx => ArrayIndexToInt(idx)));
-        wArray.Write(nw);
+        EmitLambdaApply(wrRhs, out var wLambda, out var wArg);
+        EmitIdentifier(init, wLambda);
+        for (var i = 0; i < indices.Count; i++) {
+          if (i > 0) {
+            wArg.Write(", ");
+          }
+          EmitIdentifier(ArrayIndexToInt(indices[i]), wArg);
+        }
+        EmitIdentifier(nw, wArray);
         EndStmt(w);
       }
     }
@@ -5412,7 +5432,7 @@ namespace Microsoft.Dafny.Compilers {
         var termLeftWriter = EmitMapBuilder_Add(e.Type.AsMapType, e.tok, collection_name, e.Term, inLetExprBody, thn);
         if (e.TermLeft == null) {
           Contract.Assert(e.BoundVars.Count == 1);
-          termLeftWriter.Write(IdName(e.BoundVars[0]));
+          EmitIdentifier(IdName(e.BoundVars[0]), termLeftWriter);
         } else {
           EmitExpr(e.TermLeft, inLetExprBody, termLeftWriter, wStmts);
         }
@@ -5505,12 +5525,15 @@ namespace Microsoft.Dafny.Compilers {
           preconditions.Clear();
         } else {
           var thenWriter = EmitIf(out var guardWriter, isReturning, wr);
-          guardWriter.Write(conditions);
+          conditions(guardWriter);
           if (isReturning) {
             wr = EmitBlock(wr);
             var wStmts = wr.Fork();
             wr = EmitReturnExpr(wr);
-            EmitExpr(new LiteralExpr(tok, elseReturnValue), inLetExprBody, wr, wStmts);
+            var elseLiteral = new LiteralExpr(tok, elseReturnValue) {
+              Type = Type.Bool
+            };
+            EmitExpr(elseLiteral, inLetExprBody, wr, wStmts);
           }
           wr = thenWriter;
         }

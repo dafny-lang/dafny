@@ -1793,7 +1793,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     [CanBeNull]
-    protected override string GetSubtypeCondition(string tmpVarName, Type boundVarType, IToken tok, ConcreteSyntaxTree wPreconditions) {
+    protected override Action<ConcreteSyntaxTree> GetSubtypeCondition(string tmpVarName, Type boundVarType, IToken tok, ConcreteSyntaxTree wPreconditions) {
       if (!boundVarType.IsRefType) {
         return null;
       }
@@ -1801,9 +1801,9 @@ namespace Microsoft.Dafny.Compilers {
       var typeTest = boundVarType.IsObject || boundVarType.IsObjectQ
         ? True
         : $"isinstance({tmpVarName}, {TypeName(boundVarType, wPreconditions, tok)})";
-      return boundVarType.IsNonNullRefType
+      return wr => wr.Write(boundVarType.IsNonNullRefType
         ? $"{tmpVarName} is not None and {typeTest}"
-        : $"{tmpVarName} is None or {typeTest}";
+        : $"{tmpVarName} is None or {typeTest}");
     }
 
     protected override string GetCollectionBuilder_Build(CollectionType ct, IToken tok, string collName, ConcreteSyntaxTree wr) {

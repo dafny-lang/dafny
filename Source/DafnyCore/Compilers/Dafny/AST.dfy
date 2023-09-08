@@ -59,7 +59,7 @@ module {:extern "DAST"} DAST {
   datatype AssignLhs =
     Ident(Ident) |
     Select(expr: Expression, field: string) |
-    Index(expr: Expression, idx: Expression)
+    Index(expr: Expression, indices: seq<Expression>)
 
   datatype Expression =
     Literal(Literal) |

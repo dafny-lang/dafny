@@ -703,12 +703,20 @@ module {:extern "DCOMP"} DCOMP {
 
     static method GenStmts(stmts: seq<Statement>, selfIdent: Optional<string>, params: seq<string>, isLast: bool, earlyReturn: string) returns (generated: string, readIdents: set<string>) {
       generated := "";
+      var declarations := {};
       readIdents := {};
       var i := 0;
       while i < |stmts| {
         var stmt := stmts[i];
         var stmtString, recIdents := GenStmt(stmt, selfIdent, params, isLast && (i == |stmts| - 1), earlyReturn);
-        readIdents := readIdents + recIdents;
+        readIdents := readIdents + (recIdents - declarations);
+
+        match stmt {
+          case DeclareVar(name, _, _) => {
+            declarations := declarations + {name};
+          }
+          case _ => {}
+        }
 
         if i > 0 {
           generated := generated + "\n";
@@ -744,21 +752,38 @@ module {:extern "DCOMP"} DCOMP {
           needsIIFE := true;
         }
 
-        case Index(on, idx) => {
+        case Index(on, indices) => {
           var onExpr, onOwned, onErased, recIdents := GenExpr(on, selfIdent, params, false);
+          readIdents := recIdents;
           if !onErased {
             var eraseFn := if onOwned then "erase_owned" else "erase";
             onExpr := "::dafny_runtime::DafnyErasable::" + eraseFn + "(" + onExpr + ")";
           }
 
-          var idxString, _, idxErased, idxIdents := GenExpr(idx, selfIdent, params, true);
-          if !idxErased {
-            idxString := "::dafny_runtime::DafnyErasable::erase_owned(" + idxString + ")";
+          generated := "{\n";
+
+          var i := 0;
+          while i < |indices| {
+            var idx, _, idxErased, recIdentsIdx := GenExpr(indices[i], selfIdent, params, true);
+            if !idxErased {
+              idx := "::dafny_runtime::DafnyErasable::erase_owned(" + idx + ")";
+            }
+
+            generated := generated + "let __idx" + natToString(i) + " = <usize as ::dafny_runtime::NumCast>::from(" + idx + ").unwrap();\n";
+
+            readIdents := readIdents + recIdentsIdx;
+
+            i := i + 1;
           }
 
-          generated := "{\nlet __idx = <usize as ::dafny_runtime::NumCast>::from(" + idxString + ").unwrap();\n";
-          generated := generated + onExpr + ".borrow_mut()[__idx] = " + rhs + ";\n}";
-          readIdents := recIdents + idxIdents;
+          generated := generated + onExpr + ".borrow_mut()";
+          i := 0;
+          while i < |indices| {
+            generated := generated + "[__idx" + natToString(i) + "]";
+            i := i + 1;
+          }
+
+          generated := generated + " = " + rhs + ";\n}";
           needsIIFE := true;
         }
       }
@@ -1706,14 +1731,14 @@ module {:extern "DCOMP"} DCOMP {
           readIdents := readIdents + recIdents;
           match on {
             case Companion(_) => {
-              enclosingString := enclosingString + "::";
+              enclosingString := enclosingString + "::r#" + name.id;
             }
             case _ => {
-              enclosingString := "(" + enclosingString + ").";
+              enclosingString := "(" + enclosingString + ").r#" + name.id;
             }
           }
 
-          s := enclosingString + "r#" + name.id + typeArgString + "(" + argString + ")";
+          s := enclosingString + typeArgString + "(" + argString + ")";
           isOwned := true;
           isErased := false;
         }
@@ -1768,7 +1793,7 @@ module {:extern "DCOMP"} DCOMP {
           readIdents := recIdents;
           var valueTypeGen := GenType(tpe, false, true);
           var bodyGen, bodyOwned, bodyErased, bodyIdents := GenExpr(iifeBody, selfIdent, params + if valueOwned then [] else [name.id], mustOwn);
-          readIdents := readIdents + bodyIdents;
+          readIdents := readIdents + (bodyIdents - {name.id});
 
           var eraseFn := if valueOwned then "unerase_owned" else "unerase";
 
