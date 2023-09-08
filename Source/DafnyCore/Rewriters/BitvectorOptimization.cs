@@ -4,7 +4,6 @@
 using System;
 using System.Linq.Expressions;
 using System.Numerics;
-using Microsoft.Boogie;
 
 namespace Microsoft.Dafny;
 

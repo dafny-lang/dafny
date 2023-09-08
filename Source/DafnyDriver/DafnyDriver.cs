@@ -127,6 +127,7 @@ namespace Microsoft.Dafny {
       var cliArgumentsResult = ProcessCommandLineArguments(outputWriter, errorWriter, inputReader,
         args, out var dafnyOptions, out var dafnyFiles, out var otherFiles);
       ExitValue exitValue;
+      ProofDependencyManager depManager = new();
 
       switch (cliArgumentsResult) {
         case CommandLineArgumentsResult.OK:
@@ -146,7 +147,7 @@ namespace Microsoft.Dafny {
 
           using (var driver = new DafnyDriver(dafnyOptions)) {
 #pragma warning disable VSTHRD002
-            exitValue = driver.ProcessFilesAsync(dafnyFiles, otherFiles.AsReadOnly(), dafnyOptions).Result;
+            exitValue = driver.ProcessFilesAsync(dafnyFiles, otherFiles.AsReadOnly(), dafnyOptions, depManager).Result;
 #pragma warning restore VSTHRD002
           }
           break;
@@ -162,7 +163,7 @@ namespace Microsoft.Dafny {
 
       if (dafnyOptions.VerificationLoggerConfigs.Any()) {
         try {
-          VerificationResultLogger.RaiseTestLoggerEvents(dafnyOptions);
+          VerificationResultLogger.RaiseTestLoggerEvents(dafnyOptions, depManager);
         } catch (ArgumentException ae) {
           dafnyOptions.Printer.ErrorWriteLine(dafnyOptions.OutputWriter, $"*** Error: {ae.Message}");
           exitValue = ExitValue.PREPROCESSING_ERROR;
@@ -384,7 +385,8 @@ namespace Microsoft.Dafny {
 
     private async Task<ExitValue> ProcessFilesAsync(IReadOnlyList<DafnyFile/*!*/>/*!*/ dafnyFiles,
       ReadOnlyCollection<string> otherFileNames,
-      DafnyOptions options, bool lookForSnapshots = true, string programId = null) {
+      DafnyOptions options, ProofDependencyManager depManager,
+      bool lookForSnapshots = true, string programId = null) {
       Contract.Requires(cce.NonNullElements(dafnyFiles));
       var dafnyFileNames = DafnyFile.FileNames(dafnyFiles);
 
@@ -415,7 +417,7 @@ namespace Microsoft.Dafny {
         foreach (var f in dafnyFiles) {
           await options.OutputWriter.WriteLineAsync();
           await options.OutputWriter.WriteLineAsync($"-------------------- {f} --------------------");
-          var ev = await ProcessFilesAsync(new List<DafnyFile> { f }, new List<string>().AsReadOnly(), options, lookForSnapshots, f.FilePath);
+          var ev = await ProcessFilesAsync(new List<DafnyFile> { f }, new List<string>().AsReadOnly(), options, depManager, lookForSnapshots, f.FilePath);
           if (exitValue != ev && ev != ExitValue.SUCCESS) {
             exitValue = ev;
           }
@@ -432,7 +434,7 @@ namespace Microsoft.Dafny {
             snapshots.Add(new DafnyFile(options, uri));
             options.CliRootSourceUris.Add(uri);
           }
-          var ev = await ProcessFilesAsync(snapshots, new List<string>().AsReadOnly(), options, false, programId);
+          var ev = await ProcessFilesAsync(snapshots, new List<string>().AsReadOnly(), options, depManager, false, programId);
           if (exitValue != ev && ev != ExitValue.SUCCESS) {
             exitValue = ev;
           }
@@ -457,6 +459,7 @@ namespace Microsoft.Dafny {
       } else if (dafnyProgram != null && !options.NoResolve && !options.NoTypecheck
           && options.DafnyVerify) {
 
+        dafnyProgram.ProofDependencyManager = depManager;
         var boogiePrograms =
           await DafnyMain.LargeStackFactory.StartNew(() => Translate(engine.Options, dafnyProgram).ToList());
 
