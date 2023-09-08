@@ -65,7 +65,7 @@ namespace Microsoft.Dafny {
           // it uses information that's tricky to encode in a TestResult.
           var textLogger = new TextLogger(options.OutputWriter);
           textLogger.Initialize(parameters);
-          textLogger.LogResults(verificationResults.Select(tp => (tp.implementation.name, tp.result)));
+          textLogger.LogResults(verificationResults.Select(e => (e.implementation.name, e.result)));
           return;
         } else {
           throw new ArgumentException($"unsupported verification logger config: {loggerConfig}");
@@ -75,7 +75,7 @@ namespace Microsoft.Dafny {
 
       // Sort failures to the top, and then slower procedures first.
       // Loggers may not maintain this ordering unfortunately.
-      var results = VerificationToTestResults(verificationResults.Select(tp => (tp.implementation, tp.result.vcResults)))
+      var results = VerificationToTestResults(verificationResults.Select(e => (e.implementation, e.result.vcResults)))
         .OrderBy(r => r.Outcome == TestOutcome.Passed)
         .ThenByDescending(r => r.Duration);
       foreach (var result in results) {
@@ -88,7 +88,7 @@ namespace Microsoft.Dafny {
       ));
     }
 
-    private static IEnumerable<TestResult> VerificationToTestResults(IEnumerable<((string, Uri), List<VCResult>)> verificationResults) {
+    private static IEnumerable<TestResult> VerificationToTestResults(IEnumerable<(DafnyConsolePrinter.ImplementationLogEntry, List<DafnyConsolePrinter.VCResultLogEntry>)> verificationResults) {
       var testResults = new List<TestResult>();
 
       foreach (var ((verbName, currentFile), vcResults) in verificationResults) {

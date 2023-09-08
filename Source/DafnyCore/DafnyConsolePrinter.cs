@@ -21,7 +21,22 @@ public class DafnyConsolePrinter : ConsolePrinter {
 
   private readonly ConcurrentDictionary<string, List<string>> fsCache = new();
   private DafnyOptions options;
-  public ConcurrentBag<((string name, Uri uri) implementation, (ConditionGeneration.Outcome outcome, TimeSpan time, int ressources, List<VCResult> vcResults) result)> VerificationResults { get; } = new();
+
+  public record ImplementationLogEntry(string name, Uri uri);
+  public record VCResultLogEntry(
+    int vcNum,
+    DateTime startTime,
+    TimeSpan runTime,
+    ProverInterface.Outcome outcome,
+    List<(IToken tok, string description)> asserts,
+    int resourceCount);
+  public record VerificationResultLogEntry(
+    ConditionGeneration.Outcome outcome,
+    TimeSpan runTime,
+    int resourceCount,
+    List<VCResultLogEntry> vcResults);
+
+  public ConcurrentBag<(ImplementationLogEntry implementation, VerificationResultLogEntry result)> VerificationResults { get; } = new();
 
   public override void AdvisoryWriteLine(TextWriter output, string format, params object[] args) {
     if (output == Console.Out) {
@@ -117,8 +132,11 @@ public class DafnyConsolePrinter : ConsolePrinter {
   }
 
   public override void ReportEndVerifyImplementation(Implementation implementation, VerificationResult result) {
-    var impl = (implementation.VerboseName, implementation.tok is IToken token ? token.Uri : null);
-    var res = (result.Outcome, result.End - result.Start, result.ResourceCount, result.VCResults);
+    var impl = new ImplementationLogEntry(implementation.VerboseName, implementation.tok is IToken token ? token.Uri : null);
+    var vcResults = result.VCResults.Select(r =>
+      new VCResultLogEntry(r.vcNum, r.startTime, r.runTime, r.outcome, r.asserts.Select(a => ((IToken)a.tok, a.Description.SuccessDescription)).ToList(), r.resourceCount)
+    ).ToList();
+    var res = new VerificationResultLogEntry(result.Outcome, result.End - result.Start, result.ResourceCount, vcResults);
     VerificationResults.Add((impl, res));
   }
 }
