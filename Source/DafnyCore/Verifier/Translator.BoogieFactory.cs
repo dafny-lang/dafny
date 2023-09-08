@@ -773,7 +773,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    Bpl.Expr BplIff(Bpl.Expr a, Bpl.Expr b) {
+    static Bpl.Expr BplIff(Bpl.Expr a, Bpl.Expr b) {
       Contract.Requires(a != null);
       Contract.Requires(b != null);
       Contract.Ensures(Contract.Result<Bpl.Expr>() != null);
