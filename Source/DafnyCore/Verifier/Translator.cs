@@ -7282,7 +7282,7 @@ namespace Microsoft.Dafny {
       Bpl.Expr ante = BplAnd(Bpl.Expr.Neq(o, predef.Null), etranPre.IsAlloced(tok, o));
       Bpl.Expr consequent = Bpl.Expr.Eq(heapOF, preHeapOF);
 
-      consequent = BplOr(consequent, Bpl.Expr.SelectTok(tok, etranMod.TheFrame(tok), o, f));
+      consequent = BplOr(consequent, Bpl.Expr.SelectTok(tok, frameExpr, o, f));
 
       Bpl.Trigger tr = new Bpl.Trigger(tok, true, new List<Bpl.Expr> { heapOF });
       return new Bpl.ForallExpr(tok, new List<TypeVariable> { alpha }, new List<Variable> { oVar, fVar }, null, tr, BplImp(ante, consequent));
