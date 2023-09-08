@@ -143,31 +143,38 @@ public class DafnyProject : IEquatable<DafnyProject> {
       return false;
     }
 
-    var printTomlValue = PrintTomlOptionToCliValue(tomlValue);
+    var printTomlValue = PrintTomlOptionToCliValue(tomlValue, option);
     var parseResult = option.Parse(new[] { option.Aliases.First(), printTomlValue });
     if (parseResult.Errors.Any()) {
+      errorWriter.WriteLine($"Error: Could not parse value '{tomlValue}' for option '{option.Name}' that has type '{option.ValueType.Name}'");
       value = null;
       return false;
     }
-    var previousWorkingDirectory = Directory.GetCurrentDirectory();
-    // Change the current directory, for when converting string to file-paths.
-    Directory.SetCurrentDirectory(Path.GetDirectoryName(Uri.LocalPath)!);
     // By using the dynamic keyword, we can use the generic version of GetValueForOption which does type conversion,
     // which is sadly not accessible without generics.
     value = parseResult.GetValueForOption((dynamic)option);
-    Directory.SetCurrentDirectory(previousWorkingDirectory);
     return true;
   }
 
-  record Verbatim(string value) {
-    public override string ToString() {
-      return value;
-    }
-  }
+  string PrintTomlOptionToCliValue(object value, Option valueType) {
+    var projectDirectory = Path.GetDirectoryName(Uri.LocalPath);
 
-  string PrintTomlOptionToCliValue(object value) {
     if (value is TomlArray array) {
+      if (valueType.ValueType == typeof(IEnumerable<FileInfo>)) {
+        return string.Join(" ", array.Select(element => {
+          if (element is string elementString) {
+            return Path.GetFullPath(elementString, projectDirectory!);
+          }
+
+          return element.ToString();
+        }));
+      }
+
       return string.Join(" ", array);
+    }
+
+    if (value is string stringValue && valueType.ValueType == typeof(FileInfo)) {
+      value = Path.GetFullPath(stringValue, projectDirectory);
     }
 
     return value.ToString();
