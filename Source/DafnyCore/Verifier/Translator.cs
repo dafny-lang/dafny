@@ -56,7 +56,7 @@ namespace Microsoft.Dafny {
         case null:
           break;
         case Boogie.Function boogieFunction:
-          boogieFunction.AddOtherDefinitionAxiom(axiom);
+          boogieFunction.OtherDefinitionAxioms.Add(axiom);
           break;
         case Boogie.Constant boogieConstant:
           boogieConstant.DefinitionAxioms.Add(axiom);
@@ -6296,12 +6296,6 @@ namespace Microsoft.Dafny {
 
             Func<Bpl.Expr, Bpl.Expr> fn = h => FunctionCall(tok, fname, Bpl.Type.Bool, Concat(types, Cons(h, Cons<Bpl.Expr>(f, boxes))));
 
-            var exp = BplForall(bvars,
-              new Bpl.Trigger(tok, true, new List<Bpl.Expr> { heapSucc, fn(h1) }),
-              BplImp(
-                BplAnd(BplAnd(BplAnd(heapSucc, goodHeaps), isness), inner_forall),
-                Bpl.Expr.Eq(fn(h0), fn(h1))));
-            
             sink.AddTopLevelDeclaration(new Axiom(tok,
               BplForall(bvars,
                 new Bpl.Trigger(tok, true, new List<Bpl.Expr> { heapSucc, fn(h1) }),

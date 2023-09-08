@@ -1408,33 +1408,20 @@ namespace Microsoft.Dafny {
 
       var kv = etran.TrAttributes(m.Attributes, null);
 
-      IToken tok = m.tok;
-      // Declare a local variable $_Frame: <alpha>[ref, Field alpha]bool
-      Boogie.IdentifierExpr traitFrame = etran.TheFrame(m.OverriddenMethod.tok);  // this is a throw-away expression, used only to extract the type and name of the $_Frame variable
-      traitFrame.Name = m.EnclosingClass.Name + "_" + traitFrame.Name;
-      Contract.Assert(traitFrame.Type != null);  // follows from the postcondition of TheFrame
-      Boogie.LocalVariable frame = new Boogie.LocalVariable(tok, new Boogie.TypedIdent(tok, null ?? traitFrame.Name, traitFrame.Type));
-      localVariables.Add(frame);
-      // $_Frame := (lambda<alpha> $o: ref, $f: Field alpha :: $o != null && $Heap[$o,alloc] ==> ($o,$f) in Modifies/Reads-Clause);
-      Boogie.TypeVariable alpha = new Boogie.TypeVariable(tok, "alpha");
-      Boogie.BoundVariable oVar = new Boogie.BoundVariable(tok, new Boogie.TypedIdent(tok, "$o", predef.RefType));
-      Boogie.IdentifierExpr o = new Boogie.IdentifierExpr(tok, oVar);
-      Boogie.BoundVariable fVar = new Boogie.BoundVariable(tok, new Boogie.TypedIdent(tok, "$f", predef.FieldName(tok, alpha)));
-      Boogie.IdentifierExpr f = new Boogie.IdentifierExpr(tok, fVar);
-      Boogie.Expr ante = BplAnd(Boogie.Expr.Neq(o, predef.Null), etran.IsAlloced(tok, o));
-      Boogie.Expr consequent = InRWClause(tok, o, f, traitFrameExps, etran, null, null);
-      Boogie.Expr lambda = new Boogie.LambdaExpr(tok, new List<TypeVariable> { alpha }, new List<Variable> { oVar, fVar }, null,
-        BplImp(ante, consequent));
-
-      //to initialize $_Frame variable to Frame'
-      builder.Add(Boogie.Cmd.SimpleAssign(tok, new Boogie.IdentifierExpr(tok, frame), lambda));
+      var tok = m.tok;
+      var alpha = new Boogie.TypeVariable(tok, "alpha");
+      var oVar = new Boogie.BoundVariable(tok, new Boogie.TypedIdent(tok, "$o", predef.RefType));
+      var o = new Boogie.IdentifierExpr(tok, oVar);
+      var fVar = new Boogie.BoundVariable(tok, new Boogie.TypedIdent(tok, "$f", predef.FieldName(tok, alpha)));
+      var f = new Boogie.IdentifierExpr(tok, fVar);
+      var ante = BplAnd(Boogie.Expr.Neq(o, predef.Null), etran.IsAlloced(tok, o));
 
       // emit: assert (forall<alpha> o: ref, f: Field alpha :: o != null && $Heap[o,alloc] && (o,f) in subFrame ==> $_Frame[o,f]);
-      Boogie.Expr oInCallee = InRWClause(tok, o, f, classFrameExps, etran, null, null);
-      Boogie.Expr consequent2 = InRWClause(tok, o, f, traitFrameExps, etran, null, null);
-      Boogie.Expr q = new Boogie.ForallExpr(tok, new List<TypeVariable> { alpha }, new List<Variable> { oVar, fVar },
+      var oInCallee = InRWClause(tok, o, f, classFrameExps, etran, null, null);
+      var consequent2 = InRWClause(tok, o, f, traitFrameExps, etran, null, null);
+      var q = new Boogie.ForallExpr(tok, new List<TypeVariable> { alpha }, new List<Variable> { oVar, fVar },
         BplImp(BplAnd(ante, oInCallee), consequent2));
-      builder.Add(Assert(tok, q, new PODesc.TraitFrame(m.WhatKind, true), kv));
+      builder.Add(Assert(m.RangeToken, q, new PODesc.TraitFrame(m.WhatKind, isModifies), kv));
     }
 
     // Return a way to know if an assertion should be converted to an assumption
