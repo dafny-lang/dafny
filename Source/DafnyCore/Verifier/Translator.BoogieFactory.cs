@@ -741,6 +741,8 @@ namespace Microsoft.Dafny {
         return b;
       } else if (b == Bpl.Expr.True) {
         return a;
+      } else if (a == Bpl.Expr.False || b == Bpl.Expr.False) {
+        return Bpl.Expr.False;
       } else {
         return Bpl.Expr.Binary(a.tok, Bpl.BinaryOperator.Opcode.And, a, b);
       }
