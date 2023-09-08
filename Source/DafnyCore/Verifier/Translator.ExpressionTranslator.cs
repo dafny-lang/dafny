@@ -789,7 +789,7 @@ namespace Microsoft.Dafny {
                     Boogie.Expr oInSet = TrInSet(GetToken(opExpr), o, e.E, ((SetType)eeType).Arg, true, out var performedInSetRewrite);
                     Boogie.Expr oNotFresh = OldAt(freshLabel).IsAlloced(GetToken(opExpr), o);
                     Boogie.Expr oIsFresh = Boogie.Expr.Not(oNotFresh);
-                    Boogie.Expr body = Boogie.Expr.Imp(oInSet, BplAnd(oNotNull, oIsFresh));
+                    Boogie.Expr body = BplImp(oInSet, BplAnd(oNotNull, oIsFresh));
                     var trigger = BplTrigger(performedInSetRewrite ? oNotFresh : oInSet);
                     return new Boogie.ForallExpr(GetToken(opExpr), new List<Variable> { oVar }, trigger, body);
                   } else if (eeType is SeqType) {
@@ -802,7 +802,7 @@ namespace Microsoft.Dafny {
                     Boogie.Expr oNotFresh = OldAt(freshLabel).IsAlloced(GetToken(opExpr), XsubI);
                     Boogie.Expr oIsFresh = Boogie.Expr.Not(oNotFresh);
                     Boogie.Expr xsubiNotNull = Boogie.Expr.Neq(XsubI, predef.Null);
-                    Boogie.Expr body = Boogie.Expr.Imp(iBounds, BplAnd(xsubiNotNull, oIsFresh));
+                    Boogie.Expr body = BplImp(iBounds, BplAnd(xsubiNotNull, oIsFresh));
                     //TRIGGERS: Does this make sense? dafny0\SmallTests
                     // BROKEN // NEW_TRIGGER
                     //TRIG (forall $i: int :: 0 <= $i && $i < Seq#Length(Q#0) && $Unbox(Seq#Index(Q#0, $i)): ref != null ==> !read(old($Heap), $Unbox(Seq#Index(Q#0, $i)): ref, alloc))
@@ -1307,7 +1307,7 @@ namespace Microsoft.Dafny {
                 Boogie.Expr body = bodyEtran.TrExpr(e.Term);
 
                 if (e is ForallExpr) {
-                  return new Boogie.ForallExpr(GetToken(quantifierExpr), new List<TypeVariable>(), bvars, kv, tr, Boogie.Expr.Imp(antecedent, body));
+                  return new Boogie.ForallExpr(GetToken(quantifierExpr), new List<TypeVariable>(), bvars, kv, tr, BplImp(antecedent, body));
                 } else {
                   Contract.Assert(e is ExistsExpr);
                   return new Boogie.ExistsExpr(GetToken(quantifierExpr), new List<TypeVariable>(), bvars, kv, tr, BplAnd(antecedent, body));

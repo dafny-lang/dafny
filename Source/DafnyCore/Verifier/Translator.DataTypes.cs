@@ -517,7 +517,7 @@ namespace Microsoft.Dafny {
               Bpl.Variable iVar = new Bpl.BoundVariable(arg.tok, new Bpl.TypedIdent(arg.tok, "i", Bpl.Type.Int));
               bvs.Add(iVar);
               Bpl.IdentifierExpr ie = new Bpl.IdentifierExpr(arg.tok, iVar);
-              Bpl.Expr ante = Bpl.Expr.And(
+              Bpl.Expr ante = BplAnd(
                 Bpl.Expr.Le(Bpl.Expr.Literal(0), ie),
                 Bpl.Expr.Lt(ie, FunctionCall(arg.tok, BuiltinFunction.SeqLength, null, args[i])));
               var seqIndex = FunctionCall(arg.tok, BuiltinFunction.SeqIndex, predef.DatatypeType, args[i], ie);

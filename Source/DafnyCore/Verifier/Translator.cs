@@ -4008,12 +4008,12 @@ namespace Microsoft.Dafny {
       var o = new Bpl.IdentifierExpr(tok, oVar);
       var fVar = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "$f", predef.FieldName(tok, alpha)));
       var f = new Bpl.IdentifierExpr(tok, fVar);
-      var ante = Bpl.Expr.And(Bpl.Expr.Neq(o, predef.Null), etran.IsAlloced(tok, o));
+      var ante = BplAnd(Bpl.Expr.Neq(o, predef.Null), etran.IsAlloced(tok, o));
       var inFrame = Bpl.Expr.Select(frame, o, f);
       var notInFrame = Bpl.Expr.Not(inFrame);
 
       var q = new Bpl.ForallExpr(tok, new List<TypeVariable> { alpha }, new List<Variable> { oVar, fVar },
-        Bpl.Expr.Imp(ante, notInFrame));
+        BplImp(ante, notInFrame));
       if (IsExprAlways(q, true)) {
         return;
       }
@@ -6008,7 +6008,7 @@ namespace Microsoft.Dafny {
             var args_h = f.ReadsHeap ? Snoc(SnocPrevH(argsRequires), h) : argsRequires;
             var precondition = FunctionCall(f.tok, Requires(arity), Bpl.Type.Bool, Concat(SnocSelf(args_h), lhs_args));
             sink.AddTopLevelDeclaration(new Axiom(f.tok,
-              BplForall(Cons(bxVar, Concat(vars, bvars)), BplTrigger(lhs), Bpl.Expr.Imp(precondition, Bpl.Expr.Eq(lhs, rhs)))));
+              BplForall(Cons(bxVar, Concat(vars, bvars)), BplTrigger(lhs), BplImp(precondition, Bpl.Expr.Eq(lhs, rhs)))));
           } else {
             sink.AddTopLevelDeclaration(new Axiom(f.tok,
               BplForall(Cons(bxVar, Concat(vars, bvars)), BplTrigger(lhs), Bpl.Expr.Eq(lhs, rhs))));

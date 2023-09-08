@@ -667,7 +667,7 @@ namespace Microsoft.Dafny {
       Contract.Ensures(Contract.Result<Bpl.Expr>() != null);
       Bpl.Expr len0 = FunctionCall(tok, BuiltinFunction.SeqLength, null, e0);
       Bpl.Expr len1 = FunctionCall(tok, BuiltinFunction.SeqLength, null, e1);
-      var result = Bpl.Expr.And(
+      var result = BplAnd(
         Bpl.Expr.Lt(len0, len1),
         FunctionCall(tok, BuiltinFunction.SeqSameUntil, null, e0, e1, len0));
       result.tok = tok;
