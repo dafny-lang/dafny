@@ -22,25 +22,25 @@ public class TextLogger {
     foreach (var (verboseName, result) in verificationResults.OrderBy(vr => vr.verboseName)) {
       tw.WriteLine("");
       tw.WriteLine($"Results for {verboseName}");
-      tw.WriteLine($"  Overall outcome: {result.outcome}");
-      tw.WriteLine($"  Overall time: {result.runTime}");
-      tw.WriteLine($"  Overall resource count: {result.resourceCount}");
+      tw.WriteLine($"  Overall outcome: {result.Outcome}");
+      tw.WriteLine($"  Overall time: {result.RunTime}");
+      tw.WriteLine($"  Overall resource count: {result.ResourceCount}");
       // It doesn't seem possible to get a result with zero VCResults, but being careful with nulls just in case :)
-      var maximumTime = result.vcResults.MaxBy(r => r.runTime).runTime.ToString() ?? "N/A";
-      var maximumRC = result.vcResults.MaxBy(r => r.resourceCount).resourceCount.ToString() ?? "N/A";
+      var maximumTime = result.VCResults.MaxBy(r => r.RunTime).RunTime.ToString() ?? "N/A";
+      var maximumRC = result.VCResults.MaxBy(r => r.ResourceCount).ResourceCount.ToString() ?? "N/A";
       tw.WriteLine($"  Maximum assertion batch time: {maximumTime}");
       tw.WriteLine($"  Maximum assertion batch resource count: {maximumRC}");
-      foreach (var vcResult in result.vcResults.OrderBy(r => r.vcNum)) {
+      foreach (var vcResult in result.VCResults.OrderBy(r => r.VCNum)) {
         tw.WriteLine("");
-        tw.WriteLine($"  Assertion batch {vcResult.vcNum}:");
-        tw.WriteLine($"    Outcome: {vcResult.outcome}");
-        tw.WriteLine($"    Duration: {vcResult.runTime}");
-        tw.WriteLine($"    Resource count: {vcResult.resourceCount}");
+        tw.WriteLine($"  Assertion batch {vcResult.VCNum}:");
+        tw.WriteLine($"    Outcome: {vcResult.Outcome}");
+        tw.WriteLine($"    Duration: {vcResult.RunTime}");
+        tw.WriteLine($"    Resource count: {vcResult.ResourceCount}");
         tw.WriteLine("");
         tw.WriteLine("    Assertions:");
-        foreach (var cmd in vcResult.asserts) {
+        foreach (var cmd in vcResult.Asserts) {
           tw.WriteLine(
-            $"      {cmd.tok.Filepath}({cmd.tok.line},{cmd.tok.col}): {cmd.description}");
+            $"      {cmd.Tok.Filepath}({cmd.Tok.line},{cmd.Tok.col}): {cmd.Description}");
         }
 
       }

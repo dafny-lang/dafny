@@ -22,19 +22,19 @@ public class DafnyConsolePrinter : ConsolePrinter {
   private readonly ConcurrentDictionary<string, List<string>> fsCache = new();
   private DafnyOptions options;
 
-  public record ImplementationLogEntry(string name, Uri uri);
+  public record ImplementationLogEntry(string Name, Uri Uri);
   public record VCResultLogEntry(
-    int vcNum,
-    DateTime startTime,
-    TimeSpan runTime,
-    ProverInterface.Outcome outcome,
-    List<(IToken tok, string description)> asserts,
-    int resourceCount);
+    int VCNum,
+    DateTime StartTime,
+    TimeSpan RunTime,
+    ProverInterface.Outcome Outcome,
+    List<(IToken Tok, string Description)> Asserts,
+    int ResourceCount);
   public record VerificationResultLogEntry(
-    ConditionGeneration.Outcome outcome,
-    TimeSpan runTime,
-    int resourceCount,
-    List<VCResultLogEntry> vcResults);
+    ConditionGeneration.Outcome Outcome,
+    TimeSpan RunTime,
+    int ResourceCount,
+    List<VCResultLogEntry> VCResults);
 
   public ConcurrentBag<(ImplementationLogEntry implementation, VerificationResultLogEntry result)> VerificationResults { get; } = new();
 

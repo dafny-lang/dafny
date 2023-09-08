@@ -65,7 +65,7 @@ namespace Microsoft.Dafny {
           // it uses information that's tricky to encode in a TestResult.
           var textLogger = new TextLogger(options.OutputWriter);
           textLogger.Initialize(parameters);
-          textLogger.LogResults(verificationResults.Select(e => (e.implementation.name, e.result)));
+          textLogger.LogResults(verificationResults.Select(e => (e.implementation.Name, e.result)));
           return;
         } else {
           throw new ArgumentException($"unsupported verification logger config: {loggerConfig}");
@@ -75,7 +75,7 @@ namespace Microsoft.Dafny {
 
       // Sort failures to the top, and then slower procedures first.
       // Loggers may not maintain this ordering unfortunately.
-      var results = VerificationToTestResults(verificationResults.Select(e => (e.implementation, e.result.vcResults)))
+      var results = VerificationToTestResults(verificationResults.Select(e => (e.implementation, e.result.VCResults)))
         .OrderBy(r => r.Outcome == TestOutcome.Passed)
         .ThenByDescending(r => r.Duration);
       foreach (var result in results) {
@@ -92,9 +92,9 @@ namespace Microsoft.Dafny {
       var testResults = new List<TestResult>();
 
       foreach (var ((verbName, currentFile), vcResults) in verificationResults) {
-        foreach (var vcResult in vcResults.OrderBy(r => r.vcNum)) {
+        foreach (var vcResult in vcResults.OrderBy(r => r.VCNum)) {
           var name = vcResults.Count() > 1
-            ? verbName + $" (assertion batch {vcResult.vcNum})"
+            ? verbName + $" (assertion batch {vcResult.VCNum})"
             : verbName;
           var testCase = new TestCase {
             FullyQualifiedName = name,
@@ -102,15 +102,15 @@ namespace Microsoft.Dafny {
             Source = currentFile.LocalPath
           };
           var testResult = new TestResult(testCase) {
-            StartTime = vcResult.startTime,
-            Duration = vcResult.runTime
+            StartTime = vcResult.StartTime,
+            Duration = vcResult.RunTime
           };
-          testResult.SetPropertyValue(ResourceCountProperty, vcResult.resourceCount);
-          if (vcResult.outcome == ProverInterface.Outcome.Valid) {
+          testResult.SetPropertyValue(ResourceCountProperty, vcResult.ResourceCount);
+          if (vcResult.Outcome == ProverInterface.Outcome.Valid) {
             testResult.Outcome = TestOutcome.Passed;
           } else {
             testResult.Outcome = TestOutcome.Failed;
-            testResult.ErrorMessage = vcResult.outcome.ToString();
+            testResult.ErrorMessage = vcResult.Outcome.ToString();
           }
           testResults.Add(testResult);
         }
