@@ -877,11 +877,26 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override ConcreteSyntaxTree CreateLabeledCode(string label, bool createContinueLabel, ConcreteSyntaxTree wr) {
-      throw new NotImplementedException();
+      if (createContinueLabel) {
+        return wr;
+      }
+
+      if (wr is BuilderSyntaxTree<StatementContainer> stmtContainer) {
+        var labelBuilder = stmtContainer.Builder.Labeled(label);
+        return new BuilderSyntaxTree<StatementContainer>(labelBuilder);
+      } else {
+        throw new InvalidOperationException();
+      }
     }
 
     protected override void EmitBreak(string label, ConcreteSyntaxTree wr) {
-      throw new NotImplementedException();
+      if (wr is BuilderSyntaxTree<StatementContainer> stmtContainer) {
+        stmtContainer.Builder.AddStatement((DAST.Statement)DAST.Statement.create_Break(
+          label == null ? Optional<ISequence<Rune>>.create_None() : Optional<ISequence<Rune>>.create_Some(Sequence<Rune>.UnicodeFromString(label))
+        ));
+      } else {
+        throw new InvalidOperationException();
+      }
     }
 
     protected override void EmitContinue(string label, ConcreteSyntaxTree wr) {
