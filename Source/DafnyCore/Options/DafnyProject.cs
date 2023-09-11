@@ -160,7 +160,7 @@ public class DafnyProject : IEquatable<DafnyProject> {
     var projectDirectory = Path.GetDirectoryName(Uri.LocalPath);
 
     if (value is TomlArray array) {
-      if (valueType.ValueType == typeof(IEnumerable<FileInfo>)) {
+      if (valueType.ValueType.IsAssignableTo(typeof(IEnumerable<FileInfo>))) {
         return string.Join(" ", array.Select(element => {
           if (element is string elementString) {
             return Path.GetFullPath(elementString, projectDirectory!);
