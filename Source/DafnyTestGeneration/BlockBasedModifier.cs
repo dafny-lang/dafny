@@ -40,6 +40,7 @@ namespace DafnyTestGeneration {
         ? TestEntries
         : new() { implementation.VerboseName };
       var blocks = node.Blocks.ToList();
+      blocks.Reverse();
       foreach (var block in blocks) {
         var state = Utils.GetBlockId(block, DafnyInfo.Options);
         if (state == null) {
