@@ -28,10 +28,6 @@ public interface ICanVerify : ISymbol {
 public static class AstExtensions {
 
   public static string GetMemberQualification(MemberDecl memberDecl) {
-    if (memberDecl.EnclosingClass == null) {
-      // If traversing up the AST is already made available after parsing, this branch can be removed.
-      return "";
-    }
     return memberDecl.EnclosingClass.Name == "_default" ? "" : $"{memberDecl.EnclosingClass.Name}.";
   }
 
