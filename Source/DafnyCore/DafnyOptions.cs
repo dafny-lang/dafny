@@ -311,6 +311,15 @@ NoGhost - disable printing of functions, ghost methods, and proof
     public bool AllowSourceFolders = false;
     public List<string> SourceFolders { get; } = new(); // list of folders, for those commands that permit processing all source files in folders
 
+    public bool UseSeqs = true;
+    public bool UseSeqTheory = false; // Requires UseSeqs = true. TypeEncoding must be Monomorphic.
+    public bool InlineSeqTheoryFunctions = false; // Do not enable if theory functions are used in axiom triggers.
+    public bool UseSets = true;
+    public bool UseISets = true;
+    public bool UseMultiSets = true;
+    public bool UseMaps = true;
+    public bool UseIMaps = true;
+
     public enum ContractTestingMode {
       None,
       Externs,

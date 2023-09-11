@@ -245,7 +245,7 @@ namespace Microsoft.Dafny {
       public readonly Bpl.Function Tuple2Destructors0;
       public readonly Bpl.Function Tuple2Destructors1;
       public readonly Bpl.Function Tuple2Constructor;
-      private readonly Bpl.TypeCtorDecl seqTypeCtor;
+      private readonly Bpl.NamedDeclaration seqTypeCtor;
       public readonly Bpl.Type Bv0Type;
       readonly Bpl.TypeCtorDecl fieldName;
       public readonly Bpl.Type HeapType;
@@ -322,7 +322,13 @@ namespace Microsoft.Dafny {
       public Bpl.Type SeqType(Bpl.IToken tok) {
         Contract.Requires(tok != null);
         Contract.Ensures(Contract.Result<Bpl.Type>() != null);
-        return new Bpl.CtorType(tok, seqTypeCtor, new List<Bpl.Type> { });
+        if (seqTypeCtor is Bpl.TypeCtorDecl ctorType) {
+          return new Bpl.CtorType(tok, ctorType, new List<Bpl.Type> { });
+        } else if (seqTypeCtor is Bpl.TypeSynonymDecl synonymType) {
+          return new Bpl.TypeSynonymAnnotation(tok, synonymType, new List<Bpl.Type> { });
+        } else {
+          throw new NotImplementedException("Do not know how to construct SeqType");
+        }
       }
 
       public Bpl.Type FieldName(Bpl.IToken tok, Bpl.Type ty) {
@@ -349,7 +355,7 @@ namespace Microsoft.Dafny {
                              Bpl.Function mapValues, Bpl.Function imapValues, Bpl.Function mapItems, Bpl.Function imapItems,
                              Bpl.Function objectTypeConstructor,
                              Bpl.Function tuple2Destructors0, Bpl.Function tuple2Destructors1, Bpl.Function tuple2Constructor, Bpl.Function tuple2TypeConstructor,
-                             Bpl.TypeCtorDecl seqTypeCtor, Bpl.TypeSynonymDecl bv0TypeDecl,
+                             Bpl.NamedDeclaration seqTypeCtor, Bpl.TypeSynonymDecl bv0TypeDecl,
                              Bpl.TypeCtorDecl fieldNameType, Bpl.TypeCtorDecl tyType, Bpl.TypeCtorDecl tyTagType, Bpl.TypeCtorDecl tyTagFamilyType,
                              Bpl.GlobalVariable heap, Bpl.TypeCtorDecl classNameType, Bpl.TypeCtorDecl nameFamilyType,
                              Bpl.TypeCtorDecl datatypeType, Bpl.TypeCtorDecl handleType, Bpl.TypeCtorDecl layerType, Bpl.TypeCtorDecl dtCtorId,
@@ -466,7 +472,7 @@ namespace Microsoft.Dafny {
       Bpl.Function tuple2Destructors0 = null;
       Bpl.Function tuple2Destructors1 = null;
       Bpl.Function tuple2Constructor = null;
-      Bpl.TypeCtorDecl seqTypeCtor = null;
+      Bpl.NamedDeclaration seqTypeCtor = null;
       Bpl.TypeCtorDecl fieldNameType = null;
       Bpl.TypeCtorDecl classNameType = null;
       Bpl.TypeSynonymDecl bv0TypeDecl = null;
@@ -529,6 +535,8 @@ namespace Microsoft.Dafny {
             isetTypeCtor = dt;
           } else if (dt.Name == "Bv0") {
             bv0TypeDecl = dt;
+          } else if (dt.Name == "Seq") {
+            seqTypeCtor = dt;
           }
         } else if (d is Bpl.Constant) {
           Bpl.Constant c = (Bpl.Constant)d;
@@ -579,17 +587,17 @@ namespace Microsoft.Dafny {
           }
         }
       }
-      if (seqTypeCtor == null) {
+      if (seqTypeCtor == null && options.UseSeqs) {
         options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of type Seq");
-      } else if (setTypeCtor == null) {
+      } else if (setTypeCtor == null && options.UseSets) {
         options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of type Set");
-      } else if (isetTypeCtor == null) {
+      } else if (isetTypeCtor == null && options.UseISets) {
         options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of type ISet");
       } else if (multiSetTypeCtor == null) {
         options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of type MultiSet");
-      } else if (mapTypeCtor == null) {
+      } else if (mapTypeCtor == null && options.UseMaps) {
         options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of type Map");
-      } else if (imapTypeCtor == null) {
+      } else if (imapTypeCtor == null && options.UseIMaps) {
         options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of type IMap");
       } else if (arrayLength == null) {
         options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of function _System.array.Length");
@@ -603,17 +611,17 @@ namespace Microsoft.Dafny {
         options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of function ORD#Offset");
       } else if (ORDINAL_isNat == null) {
         options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of function ORD#IsNat");
-      } else if (mapDomain == null) {
+      } else if (mapDomain == null && options.UseMaps) {
         options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of function Map#Domain");
-      } else if (imapDomain == null) {
+      } else if (imapDomain == null && options.UseIMaps) {
         options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of function IMap#Domain");
-      } else if (mapValues == null) {
+      } else if (mapValues == null && options.UseMaps) {
         options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of function Map#Values");
-      } else if (imapValues == null) {
+      } else if (imapValues == null && options.UseIMaps) {
         options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of function IMap#Values");
-      } else if (mapItems == null) {
+      } else if (mapItems == null && options.UseMaps) {
         options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of function Map#Items");
-      } else if (imapItems == null) {
+      } else if (imapItems == null && options.UseIMaps) {
         options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of function IMap#Items");
       } else if (tuple2Destructors0 == null) {
         options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of function _System.Tuple2._0");
@@ -677,11 +685,30 @@ namespace Microsoft.Dafny {
     }
 
     Bpl.Program ReadPrelude() {
-      string preludePath = options.DafnyPrelude;
-      if (preludePath == null) {
-        //using (System.IO.Stream stream = cce.NonNull( System.Reflection.Assembly.GetExecutingAssembly().GetManifestResourceStream("DafnyPrelude.bpl")) // Use this once Spec#/VSIP supports designating a non-.resx project item as an embedded resource
-        string codebase = cce.NonNull(System.IO.Path.GetDirectoryName(cce.NonNull(System.Reflection.Assembly.GetExecutingAssembly().Location)));
-        preludePath = System.IO.Path.Combine(codebase, "DafnyPrelude.bpl");
+      string codebase = cce.NonNull(System.IO.Path.GetDirectoryName(cce.NonNull(System.Reflection.Assembly.GetExecutingAssembly().Location)));
+      var preludePath = "";
+      string combinedPrelude;
+      if (options.DafnyPrelude == null) {
+        var basePrelude = "DafnyPrelude.bpl";
+
+        var theoryPreludes = new Dictionary<string, string> {
+          {"Base", basePrelude},
+          { "Seq", options.UseSeqs ? (options.UseSeqTheory ? "DafnyPreludeSeqNative.bpl" : "DafnyPreludeSeqAxiom.bpl") : "" },
+          { "Set", options.UseSets ? "DafnyPreludeSetAxiom.bpl" : "" },
+          { "ISet", options.UseISets ? "DafnyPreludeISetAxiom.bpl" : "" },
+          { "MultiSet", options.UseMultiSets ? "DafnyPreludeMultiSetAxiom.bpl" : "" },
+          { "Map", options.UseMaps ? "DafnyPreludeMapAxiom.bpl" : "" },
+          { "IMap", options.UseIMaps ? "DafnyPreludeIMapAxiom.bpl" : "" }
+        };
+
+        var selectedFiles =
+          theoryPreludes.Values.Where(v => v != "").Select(v => System.IO.Path.Combine(codebase, v));
+
+        combinedPrelude = selectedFiles
+          .Select(filePath => System.IO.File.ReadAllText(filePath))
+          .Aggregate((file1, file2) => file1 + Environment.NewLine + file2);
+      } else {
+        combinedPrelude = System.IO.File.ReadAllText(preludePath);
       }
 
       var defines = new List<string>();
@@ -701,10 +728,15 @@ namespace Microsoft.Dafny {
       if (options.Get(CommonOptionBag.UnicodeCharacters)) {
         defines.Add("UNICODE_CHAR");
       }
-      int errorCount = BplParser.Parse(preludePath, defines, out var prelude);
-      if (prelude == null || errorCount > 0) {
-        return null;
-      } else {
+      if (options.InlineSeqTheoryFunctions) {
+        defines.Add("SEQ_INLINE");
+      }
+      using (var reader = new StringReader(combinedPrelude))
+      {
+        int errorCount = BplParser.Parse(reader, "DafnyPreludeCombined.bpl", defines, out var prelude, useBaseName: false);
+        if (prelude == null || errorCount > 0) {
+          return null;
+        }
         return prelude;
       }
     }
