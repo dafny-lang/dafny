@@ -2119,7 +2119,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(locals != null);
       Contract.Requires(etran != null);
       // Add all newly allocated objects to the set this._new
-      var updatedSet = new Bpl.LocalVariable(iter.tok, new Bpl.TypedIdent(iter.tok, CurrentIdGenerator.FreshId("$iter_newUpdate"), predef.SetType(iter.tok, true, predef.BoxType)));
+      var updatedSet = new Bpl.LocalVariable(iter.tok, new Bpl.TypedIdent(iter.tok, CurrentIdGenerator.FreshId("$iter_newUpdate"), predef.SetType(iter.tok, true)));
       locals.Add(updatedSet);
       var updatedSetIE = new Bpl.IdentifierExpr(iter.tok, updatedSet);
       // call $iter_newUpdate := $IterCollectNewObjects(initHeap, $Heap, this, _new);

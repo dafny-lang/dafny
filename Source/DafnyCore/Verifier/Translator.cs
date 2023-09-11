@@ -245,7 +245,7 @@ namespace Microsoft.Dafny {
       public readonly Bpl.Function Tuple2Destructors0;
       public readonly Bpl.Function Tuple2Destructors1;
       public readonly Bpl.Function Tuple2Constructor;
-      private readonly Bpl.TypeSynonymDecl seqTypeCtor;
+      private readonly Bpl.TypeCtorDecl seqTypeCtor;
       public readonly Bpl.Type Bv0Type;
       readonly Bpl.TypeCtorDecl fieldName;
       public readonly Bpl.Type HeapType;
@@ -299,33 +299,30 @@ namespace Microsoft.Dafny {
         Contract.Invariant(AllocField != null);
       }
 
-      public Bpl.Type SetType(Bpl.IToken tok, bool finite, Bpl.Type ty) {
+      public Bpl.Type SetType(Bpl.IToken tok, bool finite) {
         Contract.Requires(tok != null);
-        Contract.Requires(ty != null);
         Contract.Ensures(Contract.Result<Bpl.Type>() != null);
 
-        return new Bpl.TypeSynonymAnnotation(Token.NoToken, finite ? setTypeCtor : isetTypeCtor, new List<Bpl.Type> { ty });
+        return new Bpl.TypeSynonymAnnotation(tok, finite ? setTypeCtor : isetTypeCtor, new List<Bpl.Type> { });
       }
 
-      public Bpl.Type MultiSetType(Bpl.IToken tok, Bpl.Type ty) {
+      public Bpl.Type MultiSetType(Bpl.IToken tok) {
         Contract.Requires(tok != null);
-        Contract.Requires(ty != null);
         Contract.Ensures(Contract.Result<Bpl.Type>() != null);
 
-        return new Bpl.TypeSynonymAnnotation(Token.NoToken, multiSetTypeCtor, new List<Bpl.Type> { ty });
+        return new Bpl.TypeSynonymAnnotation(tok, multiSetTypeCtor, new List<Bpl.Type> { });
       }
-      public Bpl.Type MapType(Bpl.IToken tok, bool finite, Bpl.Type tya, Bpl.Type tyb) {
+      public Bpl.Type MapType(Bpl.IToken tok, bool finite) {
         Contract.Requires(tok != null);
-        Contract.Requires(tya != null && tyb != null);
         Contract.Ensures(Contract.Result<Bpl.Type>() != null);
 
-        return new Bpl.CtorType(Token.NoToken, finite ? mapTypeCtor : imapTypeCtor, new List<Bpl.Type> { tya, tyb });
+        return new Bpl.CtorType(tok, finite ? mapTypeCtor : imapTypeCtor, new List<Bpl.Type> { });
       }
 
       public Bpl.Type SeqType(Bpl.IToken tok) {
         Contract.Requires(tok != null);
         Contract.Ensures(Contract.Result<Bpl.Type>() != null);
-        return new Bpl.TypeSynonymAnnotation(Token.NoToken, seqTypeCtor, new List<Bpl.Type> { });
+        return new Bpl.CtorType(tok, seqTypeCtor, new List<Bpl.Type> { });
       }
 
       public Bpl.Type FieldName(Bpl.IToken tok, Bpl.Type ty) {
@@ -352,7 +349,7 @@ namespace Microsoft.Dafny {
                              Bpl.Function mapValues, Bpl.Function imapValues, Bpl.Function mapItems, Bpl.Function imapItems,
                              Bpl.Function objectTypeConstructor,
                              Bpl.Function tuple2Destructors0, Bpl.Function tuple2Destructors1, Bpl.Function tuple2Constructor, Bpl.Function tuple2TypeConstructor,
-                             Bpl.TypeSynonymDecl seqTypeCtor, Bpl.TypeSynonymDecl bv0TypeDecl,
+                             Bpl.TypeCtorDecl seqTypeCtor, Bpl.TypeSynonymDecl bv0TypeDecl,
                              Bpl.TypeCtorDecl fieldNameType, Bpl.TypeCtorDecl tyType, Bpl.TypeCtorDecl tyTagType, Bpl.TypeCtorDecl tyTagFamilyType,
                              Bpl.GlobalVariable heap, Bpl.TypeCtorDecl classNameType, Bpl.TypeCtorDecl nameFamilyType,
                              Bpl.TypeCtorDecl datatypeType, Bpl.TypeCtorDecl handleType, Bpl.TypeCtorDecl layerType, Bpl.TypeCtorDecl dtCtorId,
@@ -469,7 +466,7 @@ namespace Microsoft.Dafny {
       Bpl.Function tuple2Destructors0 = null;
       Bpl.Function tuple2Destructors1 = null;
       Bpl.Function tuple2Constructor = null;
-      Bpl.TypeSynonymDecl seqTypeCtor = null;
+      Bpl.TypeCtorDecl seqTypeCtor = null;
       Bpl.TypeCtorDecl fieldNameType = null;
       Bpl.TypeCtorDecl classNameType = null;
       Bpl.TypeSynonymDecl bv0TypeDecl = null;
@@ -519,6 +516,8 @@ namespace Microsoft.Dafny {
             mapTypeCtor = dt;
           } else if (dt.Name == "IMap") {
             imapTypeCtor = dt;
+          } else if (dt.Name == "Seq") {
+            seqTypeCtor = dt;
           }
         } else if (d is Bpl.TypeSynonymDecl) {
           Bpl.TypeSynonymDecl dt = (Bpl.TypeSynonymDecl)d;
@@ -530,8 +529,6 @@ namespace Microsoft.Dafny {
             isetTypeCtor = dt;
           } else if (dt.Name == "Bv0") {
             bv0TypeDecl = dt;
-          } else if (dt.Name == "Seq") {
-            seqTypeCtor = dt;
           }
         } else if (d is Bpl.Constant) {
           Bpl.Constant c = (Bpl.Constant)d;
@@ -7332,11 +7329,11 @@ namespace Microsoft.Dafny {
       } else if (type.IsDatatype) {
         return predef.DatatypeType;
       } else if (type is SetType) {
-        return predef.SetType(Token.NoToken, ((SetType)type).Finite, predef.BoxType);
+        return predef.SetType(Token.NoToken, ((SetType)type).Finite);
       } else if (type is MultiSetType) {
-        return predef.MultiSetType(Token.NoToken, predef.BoxType);
+        return predef.MultiSetType(Token.NoToken);
       } else if (type is MapType) {
-        return predef.MapType(Token.NoToken, ((MapType)type).Finite, predef.BoxType, predef.BoxType);
+        return predef.MapType(Token.NoToken, ((MapType)type).Finite);
       } else if (type is SeqType) {
         return predef.SeqType(Token.NoToken);
 
@@ -8340,8 +8337,8 @@ namespace Microsoft.Dafny {
           b1 = e1;
         } else {
           // for maps, compare their domains as sets
-          b0 = FunctionCall(tok, BuiltinFunction.MapDomain, predef.MapType(tok, true, predef.BoxType, predef.BoxType), e0);
-          b1 = FunctionCall(tok, BuiltinFunction.MapDomain, predef.MapType(tok, true, predef.BoxType, predef.BoxType), e1);
+          b0 = FunctionCall(tok, BuiltinFunction.MapDomain, predef.MapType(tok, true), e0);
+          b1 = FunctionCall(tok, BuiltinFunction.MapDomain, predef.MapType(tok, true), e1);
         }
         eq = FunctionCall(tok, BuiltinFunction.SetEqual, null, b0, b1);
         less = ProperSubset(tok, b0, b1);
@@ -8356,8 +8353,8 @@ namespace Microsoft.Dafny {
         } else {
           Contract.Assert(!((MapType)ty0).Finite);
           // for maps, compare their domains as sets
-          b0 = FunctionCall(tok, BuiltinFunction.IMapDomain, predef.MapType(tok, false, predef.BoxType, predef.BoxType), e0);
-          b1 = FunctionCall(tok, BuiltinFunction.IMapDomain, predef.MapType(tok, false, predef.BoxType, predef.BoxType), e1);
+          b0 = FunctionCall(tok, BuiltinFunction.IMapDomain, predef.MapType(tok, false), e0);
+          b1 = FunctionCall(tok, BuiltinFunction.IMapDomain, predef.MapType(tok, false), e1);
         }
         eq = FunctionCall(tok, BuiltinFunction.ISetEqual, null, b0, b1);
         less = Bpl.Expr.False;
