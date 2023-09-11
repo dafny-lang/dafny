@@ -91,8 +91,8 @@ namespace Microsoft.Dafny.Compilers {
       body.Add(item);
     }
 
-    public void AddField(DAST.Formal item, DAST.Expression defaultValue) {
-      fields.Add((DAST.Field)DAST.Field.create_Field(item, defaultValue != null ? Optional<DAST._IExpression>.create_Some(defaultValue) : Optional<DAST._IExpression>.create_None()));
+    public void AddField(DAST.Formal item, _IOptional<DAST._IExpression> defaultValue) {
+      fields.Add((DAST.Field)DAST.Field.create_Field(item, defaultValue));
     }
 
     public object Finish() {
@@ -140,7 +140,7 @@ namespace Microsoft.Dafny.Compilers {
       body.Add(item);
     }
 
-    public void AddField(DAST.Formal item, DAST.Expression defaultValue) {
+    public void AddField(DAST.Formal item, _IOptional<DAST._IExpression> defaultValue) {
       throw new NotImplementedException();
     }
 
@@ -183,7 +183,7 @@ namespace Microsoft.Dafny.Compilers {
       throw new NotImplementedException();
     }
 
-    public void AddField(DAST.Formal item, DAST.Expression defaultValue) {
+    public void AddField(DAST.Formal item, _IOptional<DAST._IExpression> defaultValue) {
       throw new NotImplementedException();
     }
 
@@ -229,7 +229,7 @@ namespace Microsoft.Dafny.Compilers {
       body.Add(item);
     }
 
-    public void AddField(DAST.Formal item, DAST.Expression defaultValue) {
+    public void AddField(DAST.Formal item, _IOptional<DAST._IExpression> defaultValue) {
       throw new NotImplementedException();
     }
 
@@ -249,7 +249,7 @@ namespace Microsoft.Dafny.Compilers {
   interface ClassLike {
     void AddMethod(DAST.Method item);
 
-    void AddField(DAST.Formal item, DAST.Expression defaultValue);
+    void AddField(DAST.Formal item, _IOptional<DAST._IExpression> defaultValue);
 
     public MethodBuilder Method(
       bool isStatic, bool hasBody,
@@ -468,11 +468,19 @@ namespace Microsoft.Dafny.Compilers {
     }
   }
 
-  class AssignBuilder : ExprContainer, BuildableStatement {
-    DAST.AssignLhs lhs = null;
+  class AssignBuilder : LhsContainer, ExprContainer, BuildableStatement {
+    object lhs = null;
     public object value;
 
-    public void SetLhs(DAST.AssignLhs lhs) {
+    public void AddLhs(DAST.AssignLhs lhs) {
+      if (this.lhs != null && this.lhs != lhs) {
+        throw new InvalidOperationException("Cannot change name of variable in assignment: " + this.lhs + " -> " + lhs);
+      } else {
+        this.lhs = lhs;
+      }
+    }
+
+    public void AddBuildable(BuildableLhs lhs) {
       if (this.lhs != null && this.lhs != lhs) {
         throw new InvalidOperationException("Cannot change name of variable in assignment: " + this.lhs + " -> " + lhs);
       } else {
@@ -502,7 +510,10 @@ namespace Microsoft.Dafny.Compilers {
       } else {
         var builtValue = new List<DAST.Expression>();
         ExprContainer.RecursivelyBuild(new List<object> { value }, builtValue);
-        return (DAST.Statement)DAST.Statement.create_Assign(lhs, builtValue[0]);
+
+        var builtLhs = LhsContainer.Build(lhs);
+
+        return (DAST.Statement)DAST.Statement.create_Assign(builtLhs, builtValue[0]);
       }
     }
   }
@@ -897,6 +908,12 @@ namespace Microsoft.Dafny.Compilers {
       return ret;
     }
 
+    ApplyExprBuilder Apply() {
+      var ret = new ApplyExprBuilder();
+      AddBuildable(ret);
+      return ret;
+    }
+
     LambdaExprBuilder Lambda(List<DAST.Formal> formals, DAST.Type retType) {
       var ret = new LambdaExprBuilder(formals, retType);
       AddBuildable(ret);
@@ -909,8 +926,20 @@ namespace Microsoft.Dafny.Compilers {
       return ret;
     }
 
+    BetaRedexBuilder BetaRedex(List<_System.Tuple2<DAST.Formal, DAST.Expression>> bindings, DAST.Type retType) {
+      var ret = new BetaRedexBuilder(bindings, retType);
+      AddBuildable(ret);
+      return ret;
+    }
+
     ConvertBuilder Convert(DAST.Type fromType, DAST.Type toType) {
       var ret = new ConvertBuilder(fromType, toType);
+      AddBuildable(ret);
+      return ret;
+    }
+
+    IndexBuilder Index(List<DAST.Expression> indices, DAST._ICollKind collKind) {
+      var ret = new IndexBuilder(indices, collKind);
       AddBuildable(ret);
       return ret;
     }
@@ -925,6 +954,64 @@ namespace Microsoft.Dafny.Compilers {
           throw new InvalidOperationException("Unknown buildable type: " + maybeBuilt.GetType());
         }
       }
+    }
+  }
+
+  interface LhsContainer {
+    void AddLhs(DAST.AssignLhs lhs);
+
+    void AddBuildable(BuildableLhs lhs);
+
+    ArrayLhs Array(List<DAST.Expression> indices) {
+      var ret = new ArrayLhs(indices);
+      AddBuildable(ret);
+      return ret;
+    }
+
+    protected static DAST.AssignLhs Build(object maybeBuilt) {
+      if (maybeBuilt is DAST.AssignLhs built) {
+        return built;
+      } else if (maybeBuilt is BuildableLhs buildable) {
+        return buildable.Build();
+      } else {
+        throw new InvalidOperationException("Unknown buildable type: " + maybeBuilt.GetType());
+      }
+    }
+  }
+
+  interface BuildableLhs {
+    DAST.AssignLhs Build();
+  }
+
+  class ArrayLhs : BuildableLhs, ExprContainer {
+    readonly List<DAST.Expression> indices;
+    object arrayExpr = null;
+
+    public ArrayLhs(List<DAST.Expression> indices) {
+      this.indices = indices;
+    }
+
+    public void AddExpr(DAST.Expression item) {
+      if (arrayExpr != null) {
+        throw new InvalidOperationException();
+      } else {
+        arrayExpr = item;
+      }
+    }
+
+    public void AddBuildable(BuildableExpr item) {
+      if (arrayExpr != null) {
+        throw new InvalidOperationException();
+      } else {
+        arrayExpr = item;
+      }
+    }
+
+    public DAST.AssignLhs Build() {
+      var builtArrayExpr = new List<DAST.Expression>();
+      ExprContainer.RecursivelyBuild(new List<object> { arrayExpr }, builtArrayExpr);
+
+      return (DAST.AssignLhs)DAST.AssignLhs.create_Index(builtArrayExpr[0], Sequence<DAST.Expression>.FromArray(indices.ToArray()));
     }
   }
 
@@ -1018,156 +1105,260 @@ namespace Microsoft.Dafny.Compilers {
       return (DAST.Expression)DAST.Expression.create_Call(
         builtOn[0],
         Sequence<Rune>.UnicodeFromString(name),
-        Sequence<DAST.Type>.FromArray(typeArgs.ToArray()),
+        Sequence<DAST.Type>.FromArray((typeArgs ?? new()).ToArray()),
         Sequence<DAST.Expression>.FromArray(builtArgs.ToArray())
       );
     }
   }
 
-}
+  class ApplyExprBuilder : ExprContainer, BuildableExpr {
+    object on = null;
+    readonly List<object> args = new();
 
-class LambdaExprBuilder : StatementContainer, BuildableExpr {
-  readonly List<DAST.Formal> formals;
-  readonly DAST.Type retType;
-  readonly List<object> body = new();
+    public ApplyExprBuilder() { }
 
-  public LambdaExprBuilder(List<DAST.Formal> formals, DAST.Type retType) {
-    this.formals = formals;
-    this.retType = retType;
+    public void AddExpr(DAST.Expression value) {
+      if (on == null) {
+        on = value;
+      } else {
+        args.Add(value);
+      }
+    }
+
+    public void AddBuildable(BuildableExpr value) {
+      if (on == null) {
+        on = value;
+      } else {
+        args.Add(value);
+      }
+    }
+
+    public DAST.Expression Build() {
+      var builtOn = new List<DAST.Expression>();
+      ExprContainer.RecursivelyBuild(new List<object> { on }, builtOn);
+
+      var builtArgs = new List<DAST.Expression>();
+      ExprContainer.RecursivelyBuild(args, builtArgs);
+
+      return (DAST.Expression)DAST.Expression.create_Apply(
+        builtOn[0],
+        Sequence<DAST.Expression>.FromArray(builtArgs.ToArray())
+      );
+    }
   }
 
-  public void AddStatement(DAST.Statement item) {
-    body.Add(item);
+  class LambdaExprBuilder : StatementContainer, BuildableExpr {
+    readonly List<DAST.Formal> formals;
+    readonly DAST.Type retType;
+    readonly List<object> body = new();
+
+    public LambdaExprBuilder(List<DAST.Formal> formals, DAST.Type retType) {
+      this.formals = formals;
+      this.retType = retType;
+    }
+
+    public void AddStatement(DAST.Statement item) {
+      body.Add(item);
+    }
+
+    public void AddBuildable(BuildableStatement item) {
+      body.Add(item);
+    }
+
+    public List<object> ForkList() {
+      var ret = new List<object>();
+      body.Add(ret);
+      return ret;
+    }
+
+    public DAST.Expression Build() {
+      var builtBody = new List<DAST.Statement>();
+      StatementContainer.RecursivelyBuild(body, builtBody);
+
+      return (DAST.Expression)DAST.Expression.create_Lambda(
+        Sequence<DAST.Formal>.FromArray(formals.ToArray()),
+        retType,
+        Sequence<DAST.Statement>.FromArray(builtBody.ToArray())
+      );
+    }
   }
 
-  public void AddBuildable(BuildableStatement item) {
-    body.Add(item);
+  class IIFEExprBuilder : ExprContainer, BuildableExpr {
+    readonly string name;
+    readonly DAST.Type tpe;
+
+    object body = null;
+    public object value = null;
+
+    public IIFEExprBuilder(string name, DAST.Type tpe) {
+      this.name = name;
+      this.tpe = tpe;
+    }
+
+    public IIFEExprRhs RhsBuilder() {
+      return new IIFEExprRhs(this);
+    }
+
+    public void AddExpr(DAST.Expression item) {
+      if (body != null) {
+        throw new InvalidOperationException();
+      } else {
+        body = item;
+      }
+    }
+
+    public void AddBuildable(BuildableExpr item) {
+      if (body != null) {
+        throw new InvalidOperationException();
+      } else {
+        body = item;
+      }
+    }
+
+    public DAST.Expression Build() {
+      var builtBody = new List<DAST.Expression>();
+      ExprContainer.RecursivelyBuild(new List<object> { body }, builtBody);
+
+      var builtValue = new List<DAST.Expression>();
+      ExprContainer.RecursivelyBuild(new List<object> { value }, builtValue);
+
+      return (DAST.Expression)DAST.Expression.create_IIFE(
+        Sequence<Rune>.UnicodeFromString(name),
+        tpe,
+        builtValue[0],
+        builtBody[0]
+      );
+    }
   }
 
-  public List<object> ForkList() {
-    var ret = new List<object>();
-    body.Add(ret);
-    return ret;
+  class IIFEExprRhs : ExprContainer {
+    readonly IIFEExprBuilder parent;
+
+    public IIFEExprRhs(IIFEExprBuilder parent) {
+      this.parent = parent;
+    }
+
+    public void AddExpr(DAST.Expression item) {
+      if (parent.value != null) {
+        throw new InvalidOperationException();
+      } else {
+        parent.value = item;
+      }
+    }
+
+    public void AddBuildable(BuildableExpr item) {
+      if (parent.value != null) {
+        throw new InvalidOperationException();
+      } else {
+        parent.value = item;
+      }
+    }
   }
 
-  public DAST.Expression Build() {
-    var builtBody = new List<DAST.Statement>();
-    StatementContainer.RecursivelyBuild(body, builtBody);
+  class BetaRedexBuilder : ExprContainer, BuildableExpr {
+    readonly List<_System.Tuple2<DAST.Formal, DAST.Expression>> bindings;
+    readonly DAST.Type retType;
+    object body = null;
 
-    return (DAST.Expression)DAST.Expression.create_Lambda(
-      Sequence<DAST.Formal>.FromArray(formals.ToArray()),
-      retType,
-      Sequence<DAST.Statement>.FromArray(builtBody.ToArray())
-    );
-  }
-}
+    public BetaRedexBuilder(List<_System.Tuple2<DAST.Formal, DAST.Expression>> bindings, DAST.Type retType) {
+      this.bindings = bindings;
+      this.retType = retType;
+    }
 
-class IIFEExprBuilder : ExprContainer, BuildableExpr {
-  readonly string name;
-  readonly DAST.Type tpe;
-
-  object body = null;
-  public object value = null;
-
-  public IIFEExprBuilder(string name, DAST.Type tpe) {
-    this.name = name;
-    this.tpe = tpe;
-  }
-
-  public IIFEExprRhs RhsBuilder() {
-    return new IIFEExprRhs(this);
-  }
-
-  public void AddExpr(DAST.Expression item) {
-    if (body != null) {
-      throw new InvalidOperationException();
-    } else {
+    public void AddExpr(DAST.Expression item) {
       body = item;
     }
-  }
 
-  public void AddBuildable(BuildableExpr item) {
-    if (body != null) {
-      throw new InvalidOperationException();
-    } else {
+    public void AddBuildable(BuildableExpr item) {
       body = item;
     }
-  }
 
-  public DAST.Expression Build() {
-    var builtBody = new List<DAST.Expression>();
-    ExprContainer.RecursivelyBuild(new List<object> { body }, builtBody);
+    public DAST.Expression Build() {
+      var builtBody = new List<DAST.Expression>();
+      ExprContainer.RecursivelyBuild(new List<object> { body }, builtBody);
 
-    var builtValue = new List<DAST.Expression>();
-    ExprContainer.RecursivelyBuild(new List<object> { value }, builtValue);
-
-    return (DAST.Expression)DAST.Expression.create_IIFE(
-      Sequence<Rune>.UnicodeFromString(name),
-      tpe,
-      builtValue[0],
-      builtBody[0]
-    );
-  }
-}
-
-class IIFEExprRhs : ExprContainer {
-  readonly IIFEExprBuilder parent;
-
-  public IIFEExprRhs(IIFEExprBuilder parent) {
-    this.parent = parent;
-  }
-
-  public void AddExpr(DAST.Expression item) {
-    if (parent.value != null) {
-      throw new InvalidOperationException();
-    } else {
-      parent.value = item;
+      return (DAST.Expression)DAST.Expression.create_BetaRedex(
+        Sequence<_System.Tuple2<DAST.Formal, DAST.Expression>>.FromArray(bindings.ToArray()),
+        retType,
+        builtBody[0]
+      );
     }
   }
 
-  public void AddBuildable(BuildableExpr item) {
-    if (parent.value != null) {
-      throw new InvalidOperationException();
-    } else {
-      parent.value = item;
+  class ConvertBuilder : ExprContainer, BuildableExpr {
+    readonly DAST.Type fromType;
+    readonly DAST.Type toType;
+    object value = null;
+
+    public ConvertBuilder(DAST.Type fromType, DAST.Type toType) {
+      this.fromType = fromType;
+      this.toType = toType;
+    }
+
+    public void AddExpr(DAST.Expression item) {
+      if (value != null) {
+        throw new InvalidOperationException();
+      } else {
+        value = item;
+      }
+    }
+
+    public void AddBuildable(BuildableExpr item) {
+      if (value != null) {
+        throw new InvalidOperationException();
+      } else {
+        value = item;
+      }
+    }
+
+    public DAST.Expression Build() {
+      var builtValue = new List<DAST.Expression>();
+      ExprContainer.RecursivelyBuild(new List<object> { value }, builtValue);
+
+      return (DAST.Expression)DAST.Expression.create_Convert(
+        builtValue[0],
+        fromType,
+        toType
+      );
     }
   }
-}
 
-class ConvertBuilder : ExprContainer, BuildableExpr {
-  readonly DAST.Type fromType;
-  readonly DAST.Type toType;
-  object value = null;
+  class IndexBuilder : ExprContainer, BuildableExpr {
+    readonly List<DAST.Expression> indices;
+    readonly DAST._ICollKind collKind;
+    object value = null;
 
-  public ConvertBuilder(DAST.Type fromType, DAST.Type toType) {
-    this.fromType = fromType;
-    this.toType = toType;
-  }
+    public IndexBuilder(List<DAST.Expression> indices, DAST._ICollKind collKind) {
+      this.indices = indices;
+      this.collKind = collKind;
+    }
 
-  public void AddExpr(DAST.Expression item) {
-    if (value != null) {
-      throw new InvalidOperationException();
-    } else {
-      value = item;
+    public void AddExpr(DAST.Expression item) {
+      if (value != null) {
+        throw new InvalidOperationException();
+      } else {
+        value = item;
+      }
+    }
+
+    public void AddBuildable(BuildableExpr item) {
+      if (value != null) {
+        throw new InvalidOperationException();
+      } else {
+        value = item;
+      }
+    }
+
+    public DAST.Expression Build() {
+      var builtValue = new List<DAST.Expression>();
+      ExprContainer.RecursivelyBuild(new List<object> { value }, builtValue);
+
+      return (DAST.Expression)DAST.Expression.create_Index(
+        builtValue[0],
+        collKind,
+        Sequence<DAST.Expression>.FromArray(indices.ToArray())
+      );
     }
   }
 
-  public void AddBuildable(BuildableExpr item) {
-    if (value != null) {
-      throw new InvalidOperationException();
-    } else {
-      value = item;
-    }
-  }
-
-  public DAST.Expression Build() {
-    var builtValue = new List<DAST.Expression>();
-    ExprContainer.RecursivelyBuild(new List<object> { value }, builtValue);
-
-    return (DAST.Expression)DAST.Expression.create_Convert(
-      builtValue[0],
-      fromType,
-      toType
-    );
-  }
 }

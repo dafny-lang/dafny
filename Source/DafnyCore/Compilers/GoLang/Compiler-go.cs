@@ -2049,7 +2049,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     [CanBeNull]
-    protected override string GetSubtypeCondition(string tmpVarName, Type boundVarType, IToken tok, ConcreteSyntaxTree wPreconditions) {
+    protected override Action<ConcreteSyntaxTree> GetSubtypeCondition(string tmpVarName, Type boundVarType, IToken tok, ConcreteSyntaxTree wPreconditions) {
       var conditions = new List<string> { };
       if (boundVarType.IsNonNullRefType) {
         conditions.Add($"!_dafny.IsDafnyNull({tmpVarName})");
@@ -2078,7 +2078,9 @@ namespace Microsoft.Dafny.Compilers {
       if (boundVarType.IsRefType && !boundVarType.IsNonNullRefType && typeTest != "true") {
         typeTest = $"_dafny.IsDafnyNull({tmpVarName}) || " + typeTest;
       }
-      return typeTest == "true" ? null : typeTest;
+
+      typeTest = typeTest == "true" ? null : typeTest;
+      return typeTest == null ? null : wr => wr.Write(typeTest);
     }
 
     protected override void EmitDowncastVariableAssignment(string boundVarName, Type boundVarType, string tmpVarName,
@@ -2809,10 +2811,15 @@ namespace Microsoft.Dafny.Compilers {
       return (wArray, wArguments);
     }
 
-    protected override ConcreteSyntaxTree EmitArraySelect(List<string> indices, Type elmtType, ConcreteSyntaxTree wr) {
+    protected override ConcreteSyntaxTree EmitArraySelect(List<Action<ConcreteSyntaxTree>> indices, Type elmtType, ConcreteSyntaxTree wr) {
       // Note, the indices are formulated in the native array-index type.
       var (wArray, wArguments) = CallArrayGetOrSet(true, indices.Count, elmtType, wr);
-      wArguments.Write(indices.Comma(s => s));
+      for (int i = 0; i < indices.Count; i++) {
+        if (i > 0) {
+          wArguments.Write(", ");
+        }
+        indices[i](wArguments);
+      }
       return wArray;
     }
 
@@ -2827,10 +2834,13 @@ namespace Microsoft.Dafny.Compilers {
       return wArray;
     }
 
-    protected override (ConcreteSyntaxTree/*array*/, ConcreteSyntaxTree/*rhs*/) EmitArrayUpdate(List<string> indices, Type elementType, ConcreteSyntaxTree wr) {
+    protected override (ConcreteSyntaxTree/*array*/, ConcreteSyntaxTree/*rhs*/) EmitArrayUpdate(List<Action<ConcreteSyntaxTree>> indices, Type elementType, ConcreteSyntaxTree wr) {
       var (wArray, wArguments) = CallArrayGetOrSet(false, indices.Count, elementType, wr);
       var wRhs = wArguments.Fork();
-      wArguments.Write(", {0}", indices.Comma(s => s));
+      for (int i = 0; i < indices.Count; i++) {
+        wArguments.Write(", ");
+        indices[i](wArguments);
+      }
       return (wArray, wRhs);
     }
 

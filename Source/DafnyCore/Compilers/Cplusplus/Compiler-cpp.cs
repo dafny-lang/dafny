@@ -1356,7 +1356,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     [CanBeNull]
-    protected override string GetSubtypeCondition(string tmpVarName, Type boundVarType, IToken tok, ConcreteSyntaxTree wPreconditions) {
+    protected override Action<ConcreteSyntaxTree> GetSubtypeCondition(string tmpVarName, Type boundVarType, IToken tok, ConcreteSyntaxTree wPreconditions) {
       string typeTest;
       if (boundVarType.IsRefType) {
         if (boundVarType.IsObject || boundVarType.IsObjectQ) {
@@ -1375,7 +1375,8 @@ namespace Microsoft.Dafny.Compilers {
         typeTest = "true";
       }
 
-      return typeTest == "true" ? null : typeTest;
+      typeTest = typeTest == "true" ? null : typeTest;
+      return typeTest == null ? null : wr => wr.Write(typeTest);
     }
 
     protected override void EmitDowncastVariableAssignment(string boundVarName, Type boundVarType, string tmpVarName,
@@ -1812,10 +1813,12 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    protected override ConcreteSyntaxTree EmitArraySelect(List<string> indices, Type elmtType, ConcreteSyntaxTree wr) {
+    protected override ConcreteSyntaxTree EmitArraySelect(List<Action<ConcreteSyntaxTree>> indices, Type elmtType, ConcreteSyntaxTree wr) {
       var w = wr.Fork();
       foreach (var index in indices) {
-        wr.Write(".at({0})", index);
+        wr.Write(".at(");
+        index(wr);
+        wr.Write(")");
       }
       return w;
     }
@@ -1833,10 +1836,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void EmitExprAsNativeInt(Expression expr, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
-      TrParenExpr(expr, wr, inLetExprBody, wStmts);
-      if (AsNativeType(expr.Type) == null) {
-        wr.Write(".toNumber()");
-      }
+      EmitExpr(expr, inLetExprBody, wr, wStmts);
     }
 
     protected override void EmitIndexCollectionSelect(Expression source, Expression index, bool inLetExprBody,
