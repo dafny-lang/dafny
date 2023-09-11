@@ -85,6 +85,16 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
     }
 
     [Fact]
+    public async Task RecoverableParseError() {
+      await AssertHover(@"
+class Foo {
+  const x := '\U2345'
+//      ^[```dafny\nconst x: ?\n```]
+}
+}", false);
+    }
+
+    [Fact]
     public async Task HoveringMethodInvocationOfMethodDeclaredInSameDocumentReturnsSignature() {
       await AssertHover(@"
 method DoIt() returns (x: int) {
@@ -95,7 +105,6 @@ method CallDoIt() returns () {
 //            ^[```dafny\nmethod DoIt() returns (x: int)\n```]
 }", true);
     }
-
 
     [Fact]
     public async Task HoveringBoundVariablesFormalsLocalVariablesInMatchExprOrStatement() {
