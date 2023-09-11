@@ -377,7 +377,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     public WhileBuilder While() {
-      var ret = new WhileBuilder();
+      var ret = new WhileBuilder(null);
       AddBuildable(ret);
       return ret;
     }
@@ -398,6 +398,10 @@ namespace Microsoft.Dafny.Compilers {
       var ret = new ReturnBuilder();
       AddBuildable(ret);
       return ret;
+    }
+
+    public LabeledBuilder Labeled(string label) {
+      return new LabeledBuilder(label, this);
     }
   }
 
@@ -597,10 +601,13 @@ namespace Microsoft.Dafny.Compilers {
   }
 
   class WhileBuilder : ExprContainer, StatementContainer, BuildableStatement {
+    readonly string label;
     object condition = null;
     readonly List<object> body = new();
 
-    public WhileBuilder() { }
+    public WhileBuilder(string label) {
+      this.label = label;
+    }
 
     public void AddExpr(DAST.Expression value) {
       if (condition != null) {
@@ -640,6 +647,7 @@ namespace Microsoft.Dafny.Compilers {
       StatementContainer.RecursivelyBuild(body, builtStatements);
 
       return (DAST.Statement)DAST.Statement.create_While(
+        label == null ? Optional<ISequence<Rune>>.create_None() : Optional<ISequence<Rune>>.create_Some(Sequence<Rune>.UnicodeFromString(label)),
         builtCondition[0],
         Sequence<DAST.Statement>.FromArray(builtStatements.ToArray())
       );
@@ -767,6 +775,38 @@ namespace Microsoft.Dafny.Compilers {
       ExprContainer.RecursivelyBuild(new List<object> { value }, builtValue);
 
       return (DAST.Statement)DAST.Statement.create_Return(builtValue[0]);
+    }
+  }
+
+  class LabeledBuilder : StatementContainer {
+    readonly string label;
+    readonly StatementContainer parent;
+
+    public LabeledBuilder(string label, StatementContainer parent) {
+      this.label = label;
+      this.parent = parent;
+    }
+
+    public void AddStatement(DAST.Statement item) {
+      parent.AddStatement(item);
+    }
+
+    public void AddBuildable(BuildableStatement item) {
+      parent.AddBuildable(item);
+    }
+
+    public StatementContainer Fork() {
+      return null;
+    }
+
+    public List<object> ForkList() {
+      throw new InvalidOperationException();
+    }
+
+    public WhileBuilder While() {
+      var ret = new WhileBuilder(label);
+      parent.AddBuildable(ret);
+      return ret;
     }
   }
 
