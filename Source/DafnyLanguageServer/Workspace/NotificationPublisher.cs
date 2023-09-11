@@ -69,8 +69,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       foreach (var uri in state.Compilation.RootUris) {
         // TODO, still have to check for ownedness
 
-        var current = GetGlobalProgress(state, uri);
-        var previous = GetGlobalProgress(previousState, uri);
+        var current = GetGlobalProgress(state);
+        var previous = GetGlobalProgress(previousState);
 
         if (Equals(current, previous)) {
           continue;
@@ -86,8 +86,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     }
 
-    private CompilationStatus GetGlobalProgress(IdeState state, Uri uri) {
-      var hasResolutionDiagnostics = (state.ResolutionDiagnostics.GetValueOrDefault(uri) ?? Enumerable.Empty<Diagnostic>()).
+    private CompilationStatus GetGlobalProgress(IdeState state) {
+      var hasResolutionDiagnostics = state.ResolutionDiagnostics.Values.SelectMany(x => x).
         Any(d => d.Severity == DiagnosticSeverity.Error);
       if (state.Compilation is CompilationAfterResolution) {
         if (hasResolutionDiagnostics) {
