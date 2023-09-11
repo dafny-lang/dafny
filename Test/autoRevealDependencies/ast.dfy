@@ -8,7 +8,7 @@ module Utils {
   }
 
   function {:opaque} MaxF<T(!new)>(f: T ~> int, ts: seq<T>, default: int) : (m: int)
-    reads f.reads
+    reads set t, o | t in ts && o in f.reads(t) :: o 
     requires forall t | t in ts :: f.requires(t)
     requires forall t | t in ts :: default <= f(t)
     ensures if ts == [] then m == default else exists t | t in ts :: f(t) == m

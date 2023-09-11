@@ -565,7 +565,7 @@ another function. For example, function `Sum` adds up the values of
 ```dafny
 function Sum(f: int ~> real, lo: int, hi: int): real
   requires lo <= hi
-  requires forall i :: lo <= i < hi ==> f.requires(i)
+  requires forall i :: f.requires(i)
   reads f.reads
   decreases hi - lo
 {
@@ -580,6 +580,21 @@ that `f` may read on any input.  (The specification
 read. More precise would be to specify that `Sum` reads only what `f`
 reads on the values from `lo` to `hi`, but the larger set denoted by
 `reads f.reads` is easier to write down and is often good enough.)
+
+Without such `reads` function, one could also write the more precise
+and more verbose:
+<!-- %check-verify -->
+```dafny
+function Sum(f: int ~> real, lo: int, hi: int): real
+  requires lo <= hi
+  requires forall i :: lo <= i < hi ==> f.requires(i)
+  reads set i, o | lo <= i < hi && o in f.reads(i) :: o
+  decreases hi - lo
+{
+  if lo == hi then 0.0 else
+    f(lo) + Sum(f, lo + 1, hi)
+}
+```
 
 Note, only `reads` clauses, not `modifies` clauses, are allowed to
 include functions as just described.
@@ -871,3 +886,70 @@ add:
    requires Valid()
    reads Repr
 ```
+
+## 7.8. Well-formedness of specifications {#sec-well-formedness-specifications}
+
+Dafny ensures that the [`requires` clauses](#sec-requires-clause)
+and [`ensures` clauses](#sec-ensures-clause), which are expressions,
+are [well-formed](#sec-assertion-batches) independent of the body
+they belong to.
+Examples of conditions this rules out are null pointer dereferencing,
+out-of-bounds array access, and division by zero.
+Hence, when declaring the following method:
+
+<!-- %check-verify -->
+```dafny
+method Test(a: array<int>) returns (j: int)
+  requires a.Length >= 1
+  ensures a.Length % 2 == 0 ==> j >= 10 / a.Length
+{
+  j := 20;
+  var divisor := a.Length;
+  if divisor % 2 == 0 {
+    j := j / divisor;
+  }
+}
+```
+
+Dafny will split the verification in two [assertion batches](#sec-assertion-batches)
+that will roughly look like the following lemmas:
+
+<!-- %check-verify -->
+```dafny
+lemma Test_WellFormed(a: array?<int>)
+{
+  assume a != null;       // From the definition of a
+  assert a != null;       // for the `requires a.Length >= 1`
+  assume a.Length >= 1;   // After well-formedness, we assume the requires
+  assert a != null;       // Again for the `a.Length % 2`
+  if a.Length % 2 == 0 {
+    assert a != null;     // Again for the final `a.Length`
+    assert a.Length != 0; // Because of the 10 / a.Length
+  }
+}
+
+method Test_Correctness(a: array?<int>)
+{ // Here we assume the well-formedness of the condition
+  assume a != null;       // for the `requires a.Length >= 1`
+  assume a != null;       // Again for the `a.Length % 2`
+  if a.Length % 2 == 0 {
+    assume a != null;     // Again for the final `a.Length`
+    assume a.Length != 0; // Because of the 10 / a.Length
+  }
+
+  // Now the body is translated
+  var j := 20;
+  assert a != null;          // For `var divisor := a.Length;`
+  var divisor := a.Length;
+  if * {
+    assume divisor % 2 == 0;
+    assert divisor != 0;
+    j := j / divisor;
+  }
+  assume divisor % 2 == 0 ==> divisor != 0;
+  assert a.Length % 2 == 0 ==> j >= 10 / a.Length;
+}
+```
+
+For this reason the IDE typically reports at least two [assertion batches](#sec-assertion-batches)
+when hovering a method.

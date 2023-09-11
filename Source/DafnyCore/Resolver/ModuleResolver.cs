@@ -140,7 +140,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public void ComputeIsRecursiveBit(CompilationData compilation, ModuleDefinition module) {
+    public void ComputeIsRecursiveBit(CompilationData compilation, ModuleDefinition module, IEnumerable<IRewriter> rewriters) {
       // compute IsRecursive bit for mutually recursive functions and methods
       foreach (var clbl in ModuleDefinition.AllCallables(module.TopLevelDecls)) {
         if (clbl is Function) {
@@ -173,8 +173,8 @@ namespace Microsoft.Dafny {
         }
       }
 
-      foreach (var rewriter in compilation.Rewriters) {
-        rewriter.PostCyclicityResolve(module);
+      foreach (var rewriter in rewriters) {
+        rewriter.PostCyclicityResolve(module, Reporter);
       }
     }
 

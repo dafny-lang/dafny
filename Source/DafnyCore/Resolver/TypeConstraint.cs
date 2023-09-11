@@ -11,8 +11,6 @@ using System.Linq;
 using System.Numerics;
 using System.Diagnostics.Contracts;
 using JetBrains.Annotations;
-using Microsoft.BaseTypes;
-using Microsoft.Boogie;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace Microsoft.Dafny {

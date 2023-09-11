@@ -1,4 +1,4 @@
-use std::{fmt::{Display, Formatter}, rc::Rc, ops::Deref, collections::HashSet, cell::RefCell};
+use std::{fmt::{Display, Formatter}, rc::Rc, ops::Deref, collections::{HashSet, HashMap}, cell::RefCell};
 use num::{Integer, Signed, One, Zero};
 pub use once_cell::unsync::Lazy;
 
@@ -119,6 +119,32 @@ pub trait DafnyUnerasable<T: ?Sized> {
     fn unerase_owned(v: T) -> Self;
 }
 
+impl <T: DafnyErasable> DafnyErasable for Option<T> {
+    type Erased = Option<T::Erased>;
+
+    #[inline]
+    fn erase(&self) -> &Self::Erased {
+        unsafe { &*(self as *const Self as *const Self::Erased) }
+    }
+
+    #[inline]
+    fn erase_owned(self) -> Self::Erased {
+        unsafe { transmute_unchecked(self) }
+    }
+}
+
+impl <T: DafnyUnerasable<U>, U> DafnyUnerasable<Option<U>> for Option<T> {
+    #[inline]
+    fn unerase(v: &Option<U>) -> &Self {
+        unsafe { &*(v as *const Option<U> as *const Self) }
+    }
+
+    #[inline]
+    fn unerase_owned(v: Option<U>) -> Self {
+        unsafe { transmute_unchecked(v) }
+    }
+}
+
 impl <T> DafnyErasable for Rc<T> {
     type Erased = Rc<T>;
 
@@ -193,6 +219,32 @@ impl <T> DafnyUnerasable<HashSet<T>> for HashSet<T> {
 
     #[inline]
     fn unerase_owned(v: HashSet<T>) -> Self {
+        v
+    }
+}
+
+impl <K, V> DafnyErasable for HashMap<K, V> {
+    type Erased = HashMap<K, V>;
+
+    #[inline]
+    fn erase(&self) -> &Self::Erased {
+        self
+    }
+
+    #[inline]
+    fn erase_owned(self) -> Self::Erased {
+        self
+    }
+}
+
+impl <K, V> DafnyUnerasable<HashMap<K, V>> for HashMap<K, V> {
+    #[inline]
+    fn unerase(v: &HashMap<K, V>) -> &Self {
+        v
+    }
+
+    #[inline]
+    fn unerase_owned(v: HashMap<K, V>) -> Self {
         v
     }
 }
@@ -399,6 +451,15 @@ impl DafnyPrint for char {
     #[inline]
     fn is_char() -> bool {
         true
+    }
+}
+
+impl <T: DafnyPrint> DafnyPrint for Option<T> {
+    fn fmt_print(&self, f: &mut Formatter<'_>, _in_seq: bool) -> std::fmt::Result {
+        match self {
+            Some(x) => x.fmt_print(f, false),
+            None => write!(f, "null")
+        }
     }
 }
 

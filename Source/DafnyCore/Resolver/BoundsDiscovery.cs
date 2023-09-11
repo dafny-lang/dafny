@@ -7,7 +7,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Diagnostics.Contracts;
-using Microsoft.Boogie;
 
 namespace Microsoft.Dafny {
   public partial class ModuleResolver {

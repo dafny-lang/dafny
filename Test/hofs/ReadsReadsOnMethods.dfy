@@ -5,24 +5,27 @@
 
 module ReadsRequiresReads {
   ghost method MyReadsOk<A,B>(f : A ~> B, a : A) returns (r: set<object?>)
-    reads f.reads(a)
+    requires f.requires(a) reads f.reads(a)
   {
     r := f.reads(a);
   }
 
   ghost method MyReadsOk2<A,B>(f : A ~> B, a : A) returns (r: set<object?>)
+    requires f.requires(a)
     reads f.reads(a)
   {
     r := (f.reads)(a);
   }
 
   ghost method MyReadsOk3<A,B>(f : A ~> B, a : A) returns (r: set<object?>)
+    requires (f.requires)(a)
     reads (f.reads)(a)
   {
     r := f.reads(a);
   }
 
   ghost method MyReadsOk4<A,B>(f : A ~> B, a : A) returns (r: set<object?>)
+    requires (f.requires)(a)
     reads (f.reads)(a)
   {
     r := (f.reads)(a);
@@ -37,11 +40,11 @@ module ReadsRequiresReads {
   ghost method MyReadsBad2<A,B>(f : A ~> B, a : A) returns (r: set<object?>)
     reads {}
   {
-    r := (f.reads)(a);  // error: MyReadsBad2 does not have permission to read what f.reads(a) reads
+    r := (f.reads)(a);  // error (x2): MyReadsBad2 does not have permission to read what f.reads(a) reads, function precondition cannot be proved
   }
 
   ghost method MyReadsOk'<A,B>(f : A ~> B, a : A, o : object) returns (r: bool)
-    reads f.reads(a)
+    requires f.requires(a) reads f.reads(a)
   {
     r := o in f.reads(a);
   }
@@ -53,7 +56,7 @@ module ReadsRequiresReads {
   }
 
   ghost method MyRequiresOk<A,B>(f : A ~> B, a : A) returns (r: bool)
-    reads f.reads(a)
+    requires f.requires(a) reads f.reads(a)
   {
     r := f.requires(a);
   }
