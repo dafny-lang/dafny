@@ -3,7 +3,6 @@ using System.CommandLine;
 using System.IO;
 using System.Linq;
 using DafnyCore;
-using Microsoft.Boogie;
 
 namespace Microsoft.Dafny;
 

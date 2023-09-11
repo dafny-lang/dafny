@@ -19,10 +19,8 @@ namespace Microsoft.Dafny;
 public class ExpectContracts : IRewriter {
   private readonly ClonerButDropMethodBodies cloner = new(true);
   private readonly Dictionary<MemberDecl, MemberDecl> wrappedDeclarations = new();
-  private readonly CallRedirector callRedirector;
 
   public ExpectContracts(ErrorReporter reporter) : base(reporter) {
-    callRedirector = new(reporter);
   }
 
   /// <summary>
@@ -86,7 +84,7 @@ public class ExpectContracts : IRewriter {
   /// </summary>
   /// <param name="parent">The declaration containing the on to be wrapped.</param>
   /// <param name="decl">The declaration to be wrapped.</param>
-  private void GenerateWrapper(TopLevelDeclWithMembers parent, MemberDecl decl) {
+  private void GenerateWrapper(ModuleDefinition module, TopLevelDeclWithMembers parent, MemberDecl decl) {
     var tok = decl.tok;
 
     var newName = decl.Name + "__dafny_checked";
@@ -105,7 +103,7 @@ public class ExpectContracts : IRewriter {
       newDecl.EnclosingClass = parent;
       wrappedDeclarations.Add(decl, newDecl);
       parent.Members.Add(newDecl);
-      callRedirector.AddFullName(newDecl, decl.FullName + "__dafny_checked");
+      module.CallRedirector.AddFullName(newDecl, decl.FullName + "__dafny_checked");
     }
   }
 
@@ -233,6 +231,8 @@ public class ExpectContracts : IRewriter {
     // Keep a list of members to wrap so that we don't modify the collection we're iterating over.
     List<(TopLevelDeclWithMembers, MemberDecl)> membersToWrap = new();
 
+    moduleDefinition.CallRedirector = new(Reporter);
+
     // Find module members to wrap.
     foreach (var topLevelDecl in moduleDefinition.TopLevelDecls.OfType<TopLevelDeclWithMembers>()) {
       foreach (var decl in topLevelDecl.Members) {
@@ -244,92 +244,18 @@ public class ExpectContracts : IRewriter {
 
     // Generate a wrapper for each of the members identified above.
     foreach (var (topLevelDecl, decl) in membersToWrap) {
-      GenerateWrapper(topLevelDecl, decl);
+      GenerateWrapper(moduleDefinition, topLevelDecl, decl);
     }
-    callRedirector.NewRedirections = wrappedDeclarations;
-  }
-
-  /// <summary>
-  /// This class implements a top-down AST traversal to replace certain
-  /// function and method calls with calls to wrappers that dynamically
-  /// check contracts using expect statements.
-  /// </summary>
-  private class CallRedirector : TopDownVisitor<MemberDecl> {
-    public Dictionary<MemberDecl, MemberDecl> NewRedirections { get; set; } = new();
-    private readonly Dictionary<MemberDecl, string> newFullNames = new();
-    private readonly ErrorReporter reporter;
-    public HashSet<MemberDecl> CalledWrappers { get; } = new();
-
-    public CallRedirector(ErrorReporter reporter) {
-      this.reporter = reporter;
-    }
-
-    internal void AddFullName(MemberDecl decl, string fullName) {
-      newFullNames.Add(decl, fullName);
-    }
-
-    internal static bool HasTestAttribute(MemberDecl decl) {
-      return decl.Attributes is not null && Attributes.Contains(decl.Attributes, "test");
-    }
-
-    internal static bool HasExternAttribute(MemberDecl decl) {
-      return decl.Attributes is not null && Attributes.Contains(decl.Attributes, "extern");
-    }
-
-    private bool ShouldCallWrapper(MemberDecl caller, MemberDecl callee) {
-      if (!HasExternAttribute(callee)) {
-        return false;
-      }
-      // If there's no wrapper for the callee, don't try to call it, but warn.
-      if (!NewRedirections.ContainsKey(callee)) {
-        reporter.Warning(MessageSource.Rewriter, ErrorId.rw_no_wrapper, caller.tok, $"Internal: no wrapper for {callee.FullDafnyName}");
-        return false;
-      }
-
-      var opt = reporter.Options.TestContracts;
-      return ((HasTestAttribute(caller) && opt == DafnyOptions.ContractTestingMode.TestedExterns) ||
-              (opt == DafnyOptions.ContractTestingMode.Externs)) &&
-             // Skip if the caller is a wrapper, otherwise it'd just call itself recursively.
-             !NewRedirections.ContainsValue(caller);
-    }
-
-    protected override bool VisitOneExpr(Expression expr, ref MemberDecl decl) {
-      if (expr is FunctionCallExpr fce) {
-        var f = fce.Function;
-        if (ShouldCallWrapper(decl, f)) {
-          var newTarget = NewRedirections[f];
-          var resolved = (FunctionCallExpr)fce.Resolved;
-          resolved.Function = (Function)newTarget;
-          resolved.Name = newTarget.Name;
-          CalledWrappers.Add(newTarget);
-        }
-      }
-
-      return true;
-    }
-
-    protected override bool VisitOneStmt(Statement stmt, ref MemberDecl decl) {
-      if (stmt is CallStmt cs) {
-        var m = cs.Method;
-        if (ShouldCallWrapper(decl, m)) {
-          var newTarget = NewRedirections[m];
-          var resolved = (MemberSelectExpr)cs.MethodSelect.Resolved;
-          resolved.Member = newTarget;
-          resolved.MemberName = newTarget.Name;
-          CalledWrappers.Add(newTarget);
-        }
-      }
-
-      return true;
-    }
+    moduleDefinition.CallRedirector.NewRedirections = wrappedDeclarations;
   }
 
   public override void PostVerification(Program program) {
-    foreach (var topLevelDecl in
-             program.CompileModules.SelectMany(m => m.TopLevelDecls.OfType<TopLevelDeclWithMembers>())) {
-      foreach (var decl in topLevelDecl.Members) {
-        if (decl is ICallable callable) {
-          callRedirector.Visit(callable, decl);
+    foreach (var module in program.CompileModules) {
+      foreach (var topLevelDecl in module.TopLevelDecls.OfType<TopLevelDeclWithMembers>()) {
+        foreach (var decl in topLevelDecl.Members) {
+          if (decl is ICallable callable) {
+            module.CallRedirector?.Visit(callable, decl);
+          }
         }
       }
     }
@@ -338,12 +264,93 @@ public class ExpectContracts : IRewriter {
       return;
     }
 
-    // If running in TestedExterns, warn if any extern has no corresponding test.
-    var uncalledRedirections =
-      callRedirector.NewRedirections.ExceptBy(callRedirector.CalledWrappers, x => x.Value);
-    foreach (var uncalledRedirection in uncalledRedirections) {
-      var uncalledOriginal = uncalledRedirection.Key;
-      ReportWarning(ErrorId.rw_unreachable_by_test, uncalledOriginal.tok, $"No :test code calls {uncalledOriginal.FullDafnyName}");
+    foreach (var module in program.CompileModules) {
+      if (module.CallRedirector == null) {
+        continue;
+      }
+      // If running in TestedExterns, warn if any extern has no corresponding test.
+      var uncalledRedirections =
+        module.CallRedirector.NewRedirections.ExceptBy(module.CallRedirector.CalledWrappers, x => x.Value);
+      foreach (var uncalledRedirection in uncalledRedirections) {
+        var uncalledOriginal = uncalledRedirection.Key;
+        ReportWarning(ErrorId.rw_unreachable_by_test, uncalledOriginal.tok, $"No :test code calls {uncalledOriginal.FullDafnyName}");
+      }
     }
+
+  }
+}
+
+/// <summary>
+/// This class implements a top-down AST traversal to replace certain
+/// function and method calls with calls to wrappers that dynamically
+/// check contracts using expect statements.
+/// </summary>
+public class CallRedirector : TopDownVisitor<MemberDecl> {
+  public Dictionary<MemberDecl, MemberDecl> NewRedirections { get; set; } = new();
+  private readonly Dictionary<MemberDecl, string> newFullNames = new();
+  private readonly ErrorReporter reporter;
+  public HashSet<MemberDecl> CalledWrappers { get; } = new();
+
+  public CallRedirector(ErrorReporter reporter) {
+    this.reporter = reporter;
+  }
+
+  internal void AddFullName(MemberDecl decl, string fullName) {
+    newFullNames.Add(decl, fullName);
+  }
+
+  internal static bool HasTestAttribute(MemberDecl decl) {
+    return decl.Attributes is not null && Attributes.Contains(decl.Attributes, "test");
+  }
+
+  internal static bool HasExternAttribute(MemberDecl decl) {
+    return decl.Attributes is not null && Attributes.Contains(decl.Attributes, "extern");
+  }
+
+  private bool ShouldCallWrapper(MemberDecl caller, MemberDecl callee) {
+    if (!HasExternAttribute(callee)) {
+      return false;
+    }
+    // If there's no wrapper for the callee, don't try to call it, but warn.
+    if (!NewRedirections.ContainsKey(callee)) {
+      reporter.Warning(MessageSource.Rewriter, ErrorId.rw_no_wrapper, caller.tok, $"Internal: no wrapper for {callee.FullDafnyName}");
+      return false;
+    }
+
+    var opt = reporter.Options.TestContracts;
+    return ((HasTestAttribute(caller) && opt == DafnyOptions.ContractTestingMode.TestedExterns) ||
+            (opt == DafnyOptions.ContractTestingMode.Externs)) &&
+           // Skip if the caller is a wrapper, otherwise it'd just call itself recursively.
+           !NewRedirections.ContainsValue(caller);
+  }
+
+  protected override bool VisitOneExpr(Expression expr, ref MemberDecl decl) {
+    if (expr is FunctionCallExpr fce) {
+      var f = fce.Function;
+      if (ShouldCallWrapper(decl, f)) {
+        var newTarget = NewRedirections[f];
+        var resolved = (FunctionCallExpr)fce.Resolved;
+        resolved.Function = (Function)newTarget;
+        resolved.Name = newTarget.Name;
+        CalledWrappers.Add(newTarget);
+      }
+    }
+
+    return true;
+  }
+
+  protected override bool VisitOneStmt(Statement stmt, ref MemberDecl decl) {
+    if (stmt is CallStmt cs) {
+      var m = cs.Method;
+      if (ShouldCallWrapper(decl, m)) {
+        var newTarget = NewRedirections[m];
+        var resolved = (MemberSelectExpr)cs.MethodSelect.Resolved;
+        resolved.Member = newTarget;
+        resolved.MemberName = newTarget.Name;
+        CalledWrappers.Add(newTarget);
+      }
+    }
+
+    return true;
   }
 }

@@ -877,11 +877,26 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override ConcreteSyntaxTree CreateLabeledCode(string label, bool createContinueLabel, ConcreteSyntaxTree wr) {
-      throw new NotImplementedException();
+      if (createContinueLabel) {
+        return wr;
+      }
+
+      if (wr is BuilderSyntaxTree<StatementContainer> stmtContainer) {
+        var labelBuilder = stmtContainer.Builder.Labeled(label);
+        return new BuilderSyntaxTree<StatementContainer>(labelBuilder);
+      } else {
+        throw new InvalidOperationException();
+      }
     }
 
     protected override void EmitBreak(string label, ConcreteSyntaxTree wr) {
-      throw new NotImplementedException();
+      if (wr is BuilderSyntaxTree<StatementContainer> stmtContainer) {
+        stmtContainer.Builder.AddStatement((DAST.Statement)DAST.Statement.create_Break(
+          label == null ? Optional<ISequence<Rune>>.create_None() : Optional<ISequence<Rune>>.create_Some(Sequence<Rune>.UnicodeFromString(label))
+        ));
+      } else {
+        throw new InvalidOperationException();
+      }
     }
 
     protected override void EmitContinue(string label, ConcreteSyntaxTree wr) {
@@ -1058,7 +1073,13 @@ namespace Microsoft.Dafny.Compilers {
             ));
             break;
           case StaticReceiverExpr:
-            throw new NotImplementedException();
+            if (e.Type.NormalizeExpandKeepConstraints() is UserDefinedType udt && udt.ResolvedClass is DatatypeDecl dt &&
+                DatatypeWrapperEraser.IsErasableDatatypeWrapper(Options, dt, out _)) {
+              baseExpr = (DAST.Expression)DAST.Expression.create_Companion(PathFromTopLevel(udt.ResolvedClass));
+            } else {
+              baseExpr = (DAST.Expression)DAST.Expression.create_Companion(PathFromTopLevel(e.Type.AsTopLevelTypeWithMembers));
+            }
+            break;
           default:
             DAST.Type baseType;
             if (e.Type.AsNewtype != null) {
@@ -1535,6 +1556,20 @@ namespace Microsoft.Dafny.Compilers {
         var retType = GenType(resultType);
 
         return new BuilderSyntaxTree<StatementContainer>(builder.Builder.Lambda(formals, retType));
+      } else {
+        throw new InvalidOperationException();
+      }
+    }
+
+    protected override void EmitLambdaApply(ConcreteSyntaxTree wr, out ConcreteSyntaxTree wLambda, out ConcreteSyntaxTree wArg) {
+      if (wr is BuilderSyntaxTree<StatementContainer> builder) {
+        var lambda = builder.Builder.Call();
+        wLambda = new BuilderSyntaxTree<ExprContainer>(lambda);
+        wArg = new BuilderSyntaxTree<ExprContainer>(lambda);
+      } else if (wr is BuilderSyntaxTree<ExprContainer> exprBuilder) {
+        var lambda = exprBuilder.Builder.Call();
+        wLambda = new BuilderSyntaxTree<ExprContainer>(lambda);
+        wArg = new BuilderSyntaxTree<ExprContainer>(lambda);
       } else {
         throw new InvalidOperationException();
       }
