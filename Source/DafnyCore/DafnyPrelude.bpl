@@ -568,6 +568,7 @@ const unique allocName: NameFamily;
 function _System.array.Length(a: ref): int;
 axiom (forall o: ref :: {_System.array.Length(o)} 0 <= _System.array.Length(o));
 
+
 // ---------------------------------------------------------------
 // -- Reals ------------------------------------------------------
 // ---------------------------------------------------------------

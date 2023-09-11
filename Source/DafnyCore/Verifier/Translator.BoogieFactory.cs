@@ -782,6 +782,14 @@ namespace Microsoft.Dafny {
         return b;
       } else if (b == Bpl.Expr.True) {
         return a;
+      } else if (a == Bpl.Expr.False) {
+        return Bpl.Expr.Not(b);
+      } else if (b == Bpl.Expr.False) {
+        return Bpl.Expr.Not(a);
+      } else if (a == b) {
+        return Bpl.Expr.True;
+      } else if (a == Bpl.Expr.Not(b) || b == Bpl.Expr.Not(a)) {
+        return Bpl.Expr.False;
       } else {
         return Bpl.Expr.Iff(a, b);
       }
