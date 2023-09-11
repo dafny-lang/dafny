@@ -15,7 +15,6 @@ using System.IO;
 using System.Reflection;
 using JetBrains.Annotations;
 using Microsoft.BaseTypes;
-using Microsoft.Boogie;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.Dafny.Plugins;
 

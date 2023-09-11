@@ -1,7 +1,6 @@
 import sys
 
-assert "DafnyProfiling" == __name__
-DafnyProfiling = sys.modules[__name__]
+# Module: DafnyProfiling
 
 class CodeCoverage:
     tallies = []

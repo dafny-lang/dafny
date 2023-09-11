@@ -2,9 +2,12 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.CommandLine;
+using System.CommandLine.Parsing;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Runtime.Serialization;
+using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using DafnyCore.Options;
@@ -140,55 +143,41 @@ public class DafnyProject : IEquatable<DafnyProject> {
       return false;
     }
 
-    return TryGetValueFromToml(errorWriter, Path.GetDirectoryName(Uri.LocalPath), option.Name, option.ValueType, tomlValue, out value);
-  }
-
-  public static bool TryGetValueFromToml(TextWriter errorWriter, string sourceDir, string tomlPath, System.Type type, object tomlValue, out object value) {
-    if (tomlValue == null) {
+    var printTomlValue = PrintTomlOptionToCliValue(tomlValue, option);
+    var parseResult = option.Parse(new[] { option.Aliases.First(), printTomlValue });
+    if (parseResult.Errors.Any()) {
+      errorWriter.WriteLine($"Error: Could not parse value '{tomlValue}' for option '{option.Name}' that has type '{option.ValueType.Name}'");
       value = null;
       return false;
     }
-
-    if (type.IsAssignableFrom(typeof(List<string>))) {
-      return TryGetListValueFromToml<string>(errorWriter, sourceDir, tomlPath, (TomlArray)tomlValue, out value);
-    }
-    if (type.IsAssignableFrom(typeof(List<FileInfo>))) {
-      return TryGetListValueFromToml<FileInfo>(errorWriter, sourceDir, tomlPath, (TomlArray)tomlValue, out value);
-    }
-
-    if (type == typeof(FileInfo) && tomlValue is string tomlString) {
-      // Need to make sure relative paths are interpreted relative to the source of the value,
-      // not the current directory.
-      var fullPath = sourceDir != null ? Path.GetFullPath(tomlString, sourceDir) : tomlString;
-      value = new FileInfo(fullPath);
-      return true;
-    }
-
-    if (!type.IsInstanceOfType(tomlValue)) {
-      if (type == typeof(string)) {
-        value = tomlValue.ToString();
-        return true;
-      }
-      errorWriter.WriteLine(
-        $"Error: property '{tomlPath}' is of type '{tomlValue.GetType()}' but should be of type '{type}'");
-      value = null;
-      return false;
-    }
-
-    value = tomlValue;
+    // By using the dynamic keyword, we can use the generic version of GetValueForOption which does type conversion,
+    // which is sadly not accessible without generics.
+    value = parseResult.GetValueForOption((dynamic)option);
     return true;
   }
 
-  private static bool TryGetListValueFromToml<T>(TextWriter errorWriter, string sourceDir, string tomlPath, TomlArray tomlValue, out object value) {
-    var success = true;
-    value = tomlValue.Select((e, i) => {
-      if (TryGetValueFromToml(errorWriter, sourceDir, $"{tomlPath}[{i}]", typeof(T), e, out var elementValue)) {
-        return (T)elementValue;
+  string PrintTomlOptionToCliValue(object value, Option valueType) {
+    var projectDirectory = Path.GetDirectoryName(Uri.LocalPath);
+
+    if (value is TomlArray array) {
+      if (valueType.ValueType.IsAssignableTo(typeof(IEnumerable<FileInfo>))) {
+        return string.Join(" ", array.Select(element => {
+          if (element is string elementString) {
+            return Path.GetFullPath(elementString, projectDirectory!);
+          }
+
+          return element.ToString();
+        }));
       }
-      success = false;
-      return default(T);
-    }).ToList();
-    return success;
+
+      return string.Join(" ", array);
+    }
+
+    if (value is string stringValue && valueType.ValueType == typeof(FileInfo)) {
+      value = Path.GetFullPath(stringValue, projectDirectory);
+    }
+
+    return value.ToString();
   }
 
   public bool Equals(DafnyProject other) {

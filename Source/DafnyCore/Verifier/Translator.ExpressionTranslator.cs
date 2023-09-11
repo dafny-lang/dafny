@@ -8,8 +8,7 @@ using static Microsoft.Dafny.Util;
 
 namespace Microsoft.Dafny {
   public partial class Translator {
-
-    internal class ExpressionTranslator {
+    public class ExpressionTranslator {
       private DafnyOptions options;
       // HeapExpr == null ==> translation of pure (no-heap) expression
       readonly Boogie.Expr _the_heap_expr;
@@ -38,8 +37,8 @@ namespace Microsoft.Dafny {
                                          // May be null to indicate the context's reads frame is * and doesn't require any reads checks.
       public readonly string modifiesFrame; // the name of the context's frame variable for writing state.
       readonly Function applyLimited_CurrentFunction;
-      public readonly FuelSetting layerInterCluster;
-      public readonly FuelSetting layerIntraCluster = null;  // a value of null says to do the same as for inter-cluster calls
+      internal readonly FuelSetting layerInterCluster;
+      internal readonly FuelSetting layerIntraCluster = null;  // a value of null says to do the same as for inter-cluster calls
       public int Statistics_CustomLayerFunctionCount = 0;
       public int Statistics_HeapAsQuantifierCount = 0;
       public int Statistics_HeapUses = 0;
@@ -176,7 +175,7 @@ namespace Microsoft.Dafny {
         return CloneExpressionTranslator(this, translator, predef, HeapExpr, This, null, new FuelSetting(translator, 0, layerArgument), new FuelSetting(translator, 0, layerArgument), readsFrame, modifiesFrame, stripLits);
       }
 
-      public ExpressionTranslator WithCustomFuelSetting(CustomFuelSettings customSettings) {
+      internal ExpressionTranslator WithCustomFuelSetting(CustomFuelSettings customSettings) {
         // Use the existing layers but with some per-function customizations
         Contract.Requires(customSettings != null);
         Contract.Ensures(Contract.Result<ExpressionTranslator>() != null);
