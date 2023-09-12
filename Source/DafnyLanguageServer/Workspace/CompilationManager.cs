@@ -382,6 +382,11 @@ public class CompilationManager {
       newDiagnostics = Array.Empty<DafnyDiagnostic>();
     }
 
+    var view = implementations.TryGetValue(implementationName, out var taskAndView)
+      ? taskAndView
+      : new ImplementationView(implementationTask, status, Array.Empty<DafnyDiagnostic>());
+    implementations[implementationName] = view with { Status = status, Diagnostics = view.Diagnostics.Concat(newDiagnostics).ToArray() };
+
     if (boogieStatus is Completed completed) {
       var verificationResult = completed.Result;
       // Sometimes, the boogie status is set as Completed
@@ -396,11 +401,6 @@ public class CompilationManager {
       }
       verificationProgressReporter.ReportEndVerifyImplementation(compilation, implementationTask.Implementation, verificationResult);
     }
-
-    var view = implementations.TryGetValue(implementationName, out var taskAndView)
-      ? taskAndView
-      : new ImplementationView(implementationTask, status, Array.Empty<DafnyDiagnostic>());
-    implementations[implementationName] = view with { Status = status, Diagnostics = view.Diagnostics.Concat(newDiagnostics).ToArray() };
 
     compilationUpdates.OnNext(compilation);
   }
