@@ -252,8 +252,12 @@ Change the default opacity of functions.
     DafnyOptions.RegisterLegacyBinding(WarningAsErrors, (options, value) => { options.WarningsAsErrors = value; });
     DafnyOptions.RegisterLegacyBinding(VerifyIncludedFiles,
       (options, value) => { options.VerifyAllModules = value; });
-    DafnyOptions.RegisterLegacyBinding(WarnVacuity, (options, value) => { options.TrackVerificationCoverage = true; });
-    DafnyOptions.RegisterLegacyBinding(WarnRedundantAssumptions, (options, value) => { options.TrackVerificationCoverage = true; });
+    DafnyOptions.RegisterLegacyBinding(WarnVacuity, (options, value) => {
+      if (value) { options.TrackVerificationCoverage = true; }
+    });
+    DafnyOptions.RegisterLegacyBinding(WarnRedundantAssumptions, (options, value) => {
+      if (value) { options.TrackVerificationCoverage = true; }
+    });
 
     DafnyOptions.RegisterLegacyBinding(Target, (options, value) => { options.CompilerName = value; });
 
