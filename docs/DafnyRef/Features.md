@@ -22,7 +22,7 @@
 | [Taking an array's length](#sec-array-type) |  X  |  X  |  X  |  X  |  X  |  |  X  |  X  |
 | [`m.Items` when `m` is a map](#sec-maps) |  X  |  X  |  X  |  X  |  X  |  |  X  |  |
 | [The /runAllTests option](#sec-test-attribute) |  X  |  X  |  X  |  X  |  X  |  |  X  |  |
-| [Integer range constraints in quantifiers (e.g. `a <= x <= b`)](#sec-quantifier-domains) |  X  |  X  |  X  |  X  |  X  |  X  |  X  |  |
+| [Integer range constraints in quantifiers (e.g. `a <= x <= b`)](#sec-quantifier-domains) |  X  |  X  |  X  |  X  |  X  |  X  |  X  |  X  |
 | [Exact value constraints in quantifiers (`x == C`)](#sec-quantifier-domains) |  X  |  X  |  X  |  X  |  X  |  |  X  |  |
 | [Sequence displays of characters](#sec-sequence-displays)[^compiler-sequence-display-of-characters-note] |  X  |  X  |  X  |  X  |  X  |  |  X  |  |
 | [Type test expressions (`x is T`)](#sec-as-is-expression) |  X  |  X  |  X  |  X  |  X  |  |  X  |  |
@@ -30,7 +30,7 @@
 | [Quantifiers](#sec-quantifier-expression) |  X  |  X  |  X  |  X  |  X  |  |  X  |  |
 | [Bitvector RotateLeft/RotateRight functions](#sec-bit-vector-types) |  X  |  X  |  X  |  X  |  X  |  |  X  |  |
 | [`for` loops](#sec-for-statement) |  X  |  X  |  X  |  X  |  X  |  X  |  X  |  |
-| [`continue` statements](#sec-break-continue-statement) |  X  |  X  |  X  |  X  |  X  |  X  |  X  |  |
+| [`continue` statements](#sec-break-continue-statement) |  X  |  X  |  X  |  X  |  X  |  X  |  X  |  X  |
 | [Assign-such-that statements with potentially infinite bounds](#sec-update-and-call-statement)[^compiler-infinite-assign-such-that-note] |  X  |  X  |  X  |  X  |  X  |  X  |  X  |  |
 | [Sequence update expressions](#sec-other-sequence-expressions) |  X  |  X  |  X  |  X  |  X  |  X  |  X  |  |
 | [Sequence constructions with non-lambda initializers](#sec-sequence-displays)[^compiler-sequence-display-nolambda-note] |  X  |  X  |  X  |  X  |  X  |  X  |  X  |  |

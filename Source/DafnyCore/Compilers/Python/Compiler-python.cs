@@ -1811,13 +1811,15 @@ namespace Microsoft.Dafny.Compilers {
       return TypeHelperName(ct) + $"({collName})";
     }
 
-    protected override Type EmitIntegerRange(Type type, out ConcreteSyntaxTree wLo, out ConcreteSyntaxTree wHi, ConcreteSyntaxTree wr) {
-      wr.Write($"{DafnyRuntimeModule}.IntegerRange(");
-      wLo = wr.Fork();
-      wr.Write(", ");
-      wHi = wr.Fork();
-      wr.Write(')');
-      return new IntType();
+    protected override (Type, Action<ConcreteSyntaxTree>) EmitIntegerRange(Type type, Action<ConcreteSyntaxTree> wLo, Action<ConcreteSyntaxTree> wHi) {
+      return (new IntType(), (wr) => {
+        wr.Write($"{DafnyRuntimeModule}.IntegerRange(");
+        wLo(wr);
+        wr.Write(", ");
+        wHi(wr);
+        wr.Write(')');
+      }
+      );
     }
 
     protected override void EmitSingleValueGenerator(Expression e, bool inLetExprBody, string type,

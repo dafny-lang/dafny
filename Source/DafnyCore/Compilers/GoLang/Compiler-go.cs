@@ -3791,20 +3791,27 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    protected override Type EmitIntegerRange(Type type, out ConcreteSyntaxTree wLo, out ConcreteSyntaxTree wHi, ConcreteSyntaxTree wr) {
+    protected override (Type, Action<ConcreteSyntaxTree>) EmitIntegerRange(Type type, Action<ConcreteSyntaxTree> wLo, Action<ConcreteSyntaxTree> wHi) {
       Type result;
       if (AsNativeType(type) != null) {
-        wr.Write("{0}.IntegerRange(", TypeName_Companion(type.AsNewtype, wr, tok: Token.NoToken));
         result = type;
       } else {
-        wr.Write($"{HelperModulePrefix}IntegerRange(");
         result = new IntType();
       }
-      wLo = wr.Fork();
-      wr.Write(", ");
-      wHi = wr.Fork();
-      wr.Write(')');
-      return result;
+
+      return (result, (wr) => {
+        if (AsNativeType(type) != null) {
+          wr.Write("{0}.IntegerRange(", TypeName_Companion(type.AsNewtype, wr, tok: Token.NoToken));
+        } else {
+          wr.Write($"{HelperModulePrefix}IntegerRange(");
+        }
+
+        wLo(wr);
+        wr.Write(", ");
+        wHi(wr);
+        wr.Write(')');
+      }
+      );
     }
 
     protected override void EmitSingleValueGenerator(Expression e, bool inLetExprBody, string type, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
