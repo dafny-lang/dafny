@@ -12,6 +12,15 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest;
 
 public class ProjectFilesTest : ClientBasedLanguageServerTest {
 
+  [Fact]
+  public async Task ProjectFileErrorIsShown() {
+    var projectFileSource = @"includes = [stringWithoutQuotes]";
+    await CreateAndOpenTestDocument(projectFileSource, DafnyProject.FileName);
+    var diagnostics = await diagnosticsReceiver.AwaitNextNotificationAsync(CancellationToken);
+    Assert.Single(diagnostics.Diagnostics);
+    Assert.Contains("contains the following errors", diagnostics.Diagnostics.First().Message);
+  }
+
   /// <summary>
   /// Previously this could cause two project managers for the same project to be created.
   /// </summary>

@@ -20,36 +20,50 @@ public class DafnyProject : IEquatable<DafnyProject> {
   public string ProjectName => Uri.ToString();
 
   [IgnoreDataMember]
+  public readonly BatchErrorReporter Errors = new(DafnyOptions.Default);
+
+  [IgnoreDataMember]
   public Uri Uri { get; set; }
   public string[] Includes { get; set; }
   public string[] Excludes { get; set; }
   public Dictionary<string, object> Options { get; set; }
   public bool UsesProjectFile => Path.GetFileName(Uri.LocalPath) == FileName;
 
-  public static async Task<DafnyProject> Open(IFileSystem fileSystem, Uri uri, TextWriter outputWriter, TextWriter errorWriter) {
-    if (Path.GetFileName(uri.LocalPath) != FileName) {
-      await outputWriter.WriteLineAsync($"Warning: only Dafny project files named {FileName} are recognised by the Dafny IDE.");
-    }
+  public static async Task<DafnyProject> Open(IFileSystem fileSystem, Uri uri) {
+    var token = new Token {
+      Uri = uri,
+    };
+
+    var emptyProject = new DafnyProject {
+      Includes = Array.Empty<string>(),
+      Uri = uri
+    };
+
+    DafnyProject result;
     try {
       using var textReader = fileSystem.ReadFile(uri);
       var text = await textReader.ReadToEndAsync();
       var model = Toml.ToModel<DafnyProject>(text, null, new TomlModelOptions());
       model.Uri = uri;
-      return model;
-
+      result = model;
     } catch (IOException e) {
-      await errorWriter.WriteLineAsync(e.Message);
-      return null;
+      result = emptyProject;
+      result.Errors.Error(MessageSource.Parser, token, e.Message);
     } catch (TomlException tomlException) {
-      await errorWriter.WriteLineAsync($"The Dafny project file {uri.LocalPath} contains the following errors:");
       var regex = new Regex(
         @$"\((\d+),(\d+)\) : error : The property `(\w+)` was not found on object type {typeof(DafnyProject).FullName}");
       var newMessage = regex.Replace(tomlException.Message,
         match =>
           $"({match.Groups[1].Value},{match.Groups[2].Value}): the property {match.Groups[3].Value} does not exist.");
-      await errorWriter.WriteLineAsync(newMessage);
-      return null;
+      result = emptyProject;
+      result.Errors.Error(MessageSource.Parser, token, $"The Dafny project file {uri.LocalPath} contains the following errors: " + newMessage);
     }
+
+    if (Path.GetFileName(uri.LocalPath) != FileName) {
+      result.Errors.Warning(MessageSource.Parser, (string)null, token, $"only Dafny project files named {FileName} are recognised by the Dafny IDE.");
+    }
+
+    return result;
   }
 
   public IEnumerable<Uri> GetRootSourceUris(IFileSystem fileSystem) {

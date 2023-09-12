@@ -70,6 +70,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       var project = compilation.Project;
       var errorReporter = new DiagnosticErrorReporter(options, project.Uri);
       var program = parser.Parse(compilation, errorReporter, cancellationToken);
+      compilation.Project.Errors.CopyDiagnostics(program.Reporter);
       var compilationAfterParsing = new CompilationAfterParsing(compilation, program, errorReporter.AllDiagnosticsCopy,
         compilation.RootUris.ToDictionary(uri => uri,
           uri => migratedVerificationTrees.GetValueOrDefault(uri) ?? new DocumentVerificationTree(program, uri)));
