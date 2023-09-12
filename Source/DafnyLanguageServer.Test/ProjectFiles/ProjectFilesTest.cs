@@ -18,6 +18,7 @@ public class ProjectFilesTest : ClientBasedLanguageServerTest {
     await CreateAndOpenTestDocument(projectFileSource, DafnyProject.FileName);
     var diagnostics = await diagnosticsReceiver.AwaitNextNotificationAsync(CancellationToken);
     Assert.Single(diagnostics.Diagnostics);
+    Assert.Equal(new Range(0, 0, 0, 0), diagnostics.Diagnostics.First().Range);
     Assert.Contains("contains the following errors", diagnostics.Diagnostics.First().Message);
   }
 
@@ -30,6 +31,7 @@ public class ProjectFilesTest : ClientBasedLanguageServerTest {
     await CreateAndOpenTestDocument("method Foo() { }", Path.Combine(directory, "ProjectFileErrorIsShownFromDafnyFile.dfy"));
     var diagnostics = await diagnosticsReceiver.AwaitNextNotificationAsync(CancellationToken);
     Assert.Single(diagnostics.Diagnostics);
+    Assert.Equal(new Range(0, 0, 0, 0), diagnostics.Diagnostics.First().Range);
     Assert.Contains("contains the following errors", diagnostics.Diagnostics.First().Message);
   }
 
