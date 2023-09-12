@@ -1325,17 +1325,24 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    protected override ConcreteSyntaxTree EmitArraySelect(List<string> indices, Type elmtType, ConcreteSyntaxTree wr) {
+    protected override ConcreteSyntaxTree EmitArraySelect(List<Action<ConcreteSyntaxTree>> indices, Type elmtType, ConcreteSyntaxTree wr) {
       Contract.Assert(indices is { Count: >= 1 });
       var w = wr.Fork();
-      wr.Write($"[{indices.Comma()}]");
+      wr.Write("[");
+      for (var i = 0; i < indices.Count; i++) {
+        if (i > 0) {
+          wr.Write(", ");
+        }
+        indices[i](wr);
+      }
+      wr.Write("]");
       return w;
     }
 
     protected override ConcreteSyntaxTree EmitArraySelect(List<Expression> indices, Type elmtType, bool inLetExprBody,
         ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       Contract.Assert(indices != null);  // follows from precondition
-      var strings = indices.Select(index => Expr(index, inLetExprBody, wStmts).ToString());
+      var strings = indices.Select<Expression, Action<ConcreteSyntaxTree>>(index => wr => EmitExpr(index, inLetExprBody, wr, wStmts));
       return EmitArraySelect(strings.ToList(), elmtType, wr);
     }
 
@@ -1786,7 +1793,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     [CanBeNull]
-    protected override string GetSubtypeCondition(string tmpVarName, Type boundVarType, IToken tok, ConcreteSyntaxTree wPreconditions) {
+    protected override Action<ConcreteSyntaxTree> GetSubtypeCondition(string tmpVarName, Type boundVarType, IToken tok, ConcreteSyntaxTree wPreconditions) {
       if (!boundVarType.IsRefType) {
         return null;
       }
@@ -1794,22 +1801,24 @@ namespace Microsoft.Dafny.Compilers {
       var typeTest = boundVarType.IsObject || boundVarType.IsObjectQ
         ? True
         : $"isinstance({tmpVarName}, {TypeName(boundVarType, wPreconditions, tok)})";
-      return boundVarType.IsNonNullRefType
+      return wr => wr.Write(boundVarType.IsNonNullRefType
         ? $"{tmpVarName} is not None and {typeTest}"
-        : $"{tmpVarName} is None or {typeTest}";
+        : $"{tmpVarName} is None or {typeTest}");
     }
 
     protected override string GetCollectionBuilder_Build(CollectionType ct, IToken tok, string collName, ConcreteSyntaxTree wr) {
       return TypeHelperName(ct) + $"({collName})";
     }
 
-    protected override Type EmitIntegerRange(Type type, out ConcreteSyntaxTree wLo, out ConcreteSyntaxTree wHi, ConcreteSyntaxTree wr) {
-      wr.Write($"{DafnyRuntimeModule}.IntegerRange(");
-      wLo = wr.Fork();
-      wr.Write(", ");
-      wHi = wr.Fork();
-      wr.Write(')');
-      return new IntType();
+    protected override (Type, Action<ConcreteSyntaxTree>) EmitIntegerRange(Type type, Action<ConcreteSyntaxTree> wLo, Action<ConcreteSyntaxTree> wHi) {
+      return (new IntType(), (wr) => {
+        wr.Write($"{DafnyRuntimeModule}.IntegerRange(");
+        wLo(wr);
+        wr.Write(", ");
+        wHi(wr);
+        wr.Write(')');
+      }
+      );
     }
 
     protected override void EmitSingleValueGenerator(Expression e, bool inLetExprBody, string type,
