@@ -121,8 +121,11 @@ public class CompilationAfterResolution : CompilationAfterParsing {
       SignatureAndCompletionTable = SignatureAndCompletionTable.Resolved ? SignatureAndCompletionTable : previousState.SignatureAndCompletionTable,
       GhostRanges = GhostDiagnostics,
       Counterexamples = new List<Counterexample>(Counterexamples),
+      ResolutionDiagnostics = ResolutionDiagnostics.ToDictionary(
+        kv => kv.Key,
+        kv => (IReadOnlyList<Diagnostic>)kv.Value.Select(d => d.ToLspDiagnostic()).ToList()),
       VerificationTrees = VerificationTrees.ToDictionary(kv => kv.Key, kv => (DocumentVerificationTree)kv.Value.GetCopyForNotification()),
-      VerificationResults = Verifiables.GroupBy(l => l.NameToken.Uri).ToDictionary(k => k.Key,
+      VerificationResults = Verifiables.GroupBy(l => l.NameToken.Uri).ToImmutableDictionary(k => k.Key,
         k => k.GroupBy(l => l.NameToken.GetLspRange()).ToDictionary(
           l => l.Key,
           l => MergeResults(l.Select(MergeVerifiable))))

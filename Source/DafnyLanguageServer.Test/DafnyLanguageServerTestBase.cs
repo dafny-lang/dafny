@@ -26,7 +26,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest {
   public class DafnyLanguageServerTestBase : LanguageProtocolTestBase {
 
     protected readonly string SlowToVerify = @"
-lemma {:timeLimit 1} SquareRoot2NotRational(p: nat, q: nat)
+lemma {:rlimit 100} SquareRoot2NotRational(p: nat, q: nat)
   requires p > 0 && q > 0
   ensures (p * p) !=  2 * (q * q)
 { 
@@ -40,6 +40,8 @@ lemma {:timeLimit 1} SquareRoot2NotRational(p: nat, q: nat)
     }
   }
 }".TrimStart();
+
+    protected string SlowToVerifyNoLimit => SlowToVerify.Replace(" {:rlimit 100}", "");
 
     protected readonly string NeverVerifies = @"
 lemma {:neverVerify} HasNeverVerifyAttribute(p: nat, q: nat)

@@ -100,6 +100,7 @@ warn-shadowing = true";
   public async Task ProjectFileOverridesOptions() {
     await SetUp(options => {
       options.Set(Function.FunctionSyntaxOption, "3");
+      options.Set(CommonOptionBag.QuantifierSyntax, QuantifierSyntaxOptions.Version3);
       options.Set(CommonOptionBag.WarnShadowing, true);
     });
     var source = @"
@@ -110,6 +111,10 @@ method Foo() {
   }
 }
 
+function Zoo(): set<(int,int)> {
+  set x: int | 0 <= x < 5, y | 0 <= y < 6 :: (x,y)
+}
+
 ghost function Bar(): int { 3 }".TrimStart();
 
     var projectFileSource = @"
@@ -117,6 +122,7 @@ includes = [""**/*.dfy""]
 
 [options]
 warn-shadowing = false
+quantifier-syntax = 4
 function-syntax = 4";
 
     var directory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
@@ -127,7 +133,9 @@ function-syntax = 4";
     Assert.Single(diagnostics1); // Stops after parsing
 
     await File.WriteAllTextAsync(Path.Combine(directory, DafnyProject.FileName), projectFileSource);
-    await CreateAndOpenTestDocument(source, Path.Combine(directory, "source.dfy"));
+    var sourceFile = await CreateAndOpenTestDocument(source, Path.Combine(directory, "source.dfy"));
+    var diagnostics2 = await GetLastDiagnostics(sourceFile, CancellationToken);
+    Assert.Empty(diagnostics2.Where(d => d.Severity == DiagnosticSeverity.Error));
     await AssertNoDiagnosticsAreComing(CancellationToken);
   }
 

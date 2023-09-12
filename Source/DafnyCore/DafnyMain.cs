@@ -209,18 +209,18 @@ to also include a directory containing the `z3` executable.
       var verificationResults = (dafnyOptions.Printer as DafnyConsolePrinter).VerificationResults.ToList();
       var orderedResults =
         verificationResults.OrderBy(vr =>
-          (vr.Item1.tok.filename, vr.Item1.tok.line, vr.Item1.tok.col));
+          (vr.Implementation.Tok.filename, vr.Implementation.Tok.line, vr.Implementation.Tok.col));
       foreach (var (implementation, result) in orderedResults) {
         WarnAboutSuspiciousDependenciesForImplementation(dafnyOptions, reporter, depManager, implementation, result);
       }
     }
 
-    public static void WarnAboutSuspiciousDependenciesForImplementation(DafnyOptions dafnyOptions, ErrorReporter reporter, ProofDependencyManager depManager, Implementation implementation, VerificationResult result) {
-      var potentialDependencies = depManager.GetPotentialDependenciesForDefinition(implementation.VerboseName);
+    public static void WarnAboutSuspiciousDependenciesForImplementation(DafnyOptions dafnyOptions, ErrorReporter reporter, ProofDependencyManager depManager, DafnyConsolePrinter.ImplementationLogEntry logEntry, DafnyConsolePrinter.VerificationResultLogEntry result) {
+      var potentialDependencies = depManager.GetPotentialDependenciesForDefinition(logEntry.Name);
       var usedDependencies =
         result
           .VCResults
-          .SelectMany(vcResult => vcResult.coveredElements.Select(depManager.GetFullIdDependency))
+          .SelectMany(vcResult => vcResult.CoveredElements.Select(depManager.GetFullIdDependency))
           .OrderBy(dep => (dep.RangeString(), dep.Description));
       var unusedDependencies =
         potentialDependencies
@@ -236,14 +236,14 @@ to also include a directory containing the `z3` executable.
           .Where(d => d.Description.Contains("assume statement"));
       if (dafnyOptions.Get(CommonOptionBag.WarnVacuity)) {
         foreach (var dep in unusedObligations) {
-          if (ShouldWarnVacuous(implementation.VerboseName, dep)) {
+          if (ShouldWarnVacuous(logEntry.Name, dep)) {
             reporter.Warning(MessageSource.Verifier, "", dep.Range, $"vacuous proof: {dep.Description}");
           }
         }
 
         foreach (var dep in unusedEnsures) {
-          if (ShouldWarnVacuous(implementation.VerboseName, dep)) {
-            reporter.Warning(MessageSource.Verifier, "", dep.Range, $"vacuous proof of ensures clause ({dep.SolverLabel})");
+          if (ShouldWarnVacuous(logEntry.Name, dep)) {
+            reporter.Warning(MessageSource.Verifier, "", dep.Range, $"vacuous proof of ensures clause");
           }
         }
       }
