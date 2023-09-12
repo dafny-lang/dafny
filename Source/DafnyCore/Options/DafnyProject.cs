@@ -61,7 +61,7 @@ public class DafnyProject : IEquatable<DafnyProject> {
         match =>
           $"({match.Groups[1].Value},{match.Groups[2].Value}): the property {match.Groups[3].Value} does not exist.");
       result = emptyProject;
-      result.Errors.Error(MessageSource.Parser, result.StartingToken, $"The Dafny project file {uri.LocalPath} contains the following errors: " + newMessage);
+      result.Errors.Error(MessageSource.Parser, result.StartingToken, $"The Dafny project file {uri.LocalPath} contains the following errors: {newMessage}");
     }
 
     if (Path.GetFileName(uri.LocalPath) != FileName) {
