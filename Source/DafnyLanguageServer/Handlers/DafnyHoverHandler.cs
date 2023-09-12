@@ -162,7 +162,8 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
         // Ok no assertion here. Maybe a method?
         if (node.Position.Line == position.Line) {
           areMethodStatistics = true;
-          return GetTopLevelInformation(node, orderedAssertionBatches) + GetProofDependencyInformation(state, node, orderedAssertionBatches);
+          return GetTopLevelInformation(node, orderedAssertionBatches) +
+                 GetProofDependencyInformation(state, node, orderedAssertionBatches);
         }
       }
 
