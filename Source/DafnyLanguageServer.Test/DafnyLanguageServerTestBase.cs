@@ -41,6 +41,8 @@ lemma {:rlimit 100} SquareRoot2NotRational(p: nat, q: nat)
   }
 }".TrimStart();
 
+    protected string SlowToVerifyNoLimit => SlowToVerify.Replace(" {:rlimit 100}", "");
+
     protected readonly string NeverVerifies = @"
 lemma {:neverVerify} HasNeverVerifyAttribute(p: nat, q: nat)
   ensures true
