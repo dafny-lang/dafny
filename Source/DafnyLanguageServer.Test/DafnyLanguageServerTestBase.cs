@@ -23,6 +23,42 @@ using OmniSharp.Extensions.LanguageServer.Client;
 using Xunit.Abstractions;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest {
+
+  class LoggerProviderFromOutputHelper : ILoggerProvider {
+    private readonly ITestOutputHelper output;
+
+    public LoggerProviderFromOutputHelper(ITestOutputHelper output) {
+      this.output = output;
+    }
+
+    public void Dispose() {
+    }
+
+    public ILogger CreateLogger(string categoryName) {
+      return new TestLogger(output);
+    }
+
+    class TestLogger : ILogger {
+      private readonly ITestOutputHelper output;
+
+      public TestLogger(ITestOutputHelper output) {
+        this.output = output;
+      }
+
+      public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception exception, Func<TState, Exception, string> formatter) {
+        output.WriteLine(formatter(state, exception));
+      }
+
+      public bool IsEnabled(LogLevel logLevel) {
+        return true;
+      }
+
+      public IDisposable BeginScope<TState>(TState state) {
+        return System.Reactive.Disposables.Disposable.Empty;
+      }
+    }
+  }
+
   public class DafnyLanguageServerTestBase : LanguageProtocolTestBase {
 
     protected readonly string SlowToVerify = @"
@@ -55,12 +91,14 @@ lemma {:neverVerify} HasNeverVerifyAttribute(p: nat, q: nat)
 
     public IProjectDatabase Projects => Server.GetRequiredService<IProjectDatabase>();
 
+
     protected DafnyLanguageServerTestBase(ITestOutputHelper output, LogLevel dafnyLogLevel = LogLevel.Information)
       : base(new JsonRpcTestOptions(LoggerFactory.Create(
       builder => {
         builder.AddFilter("OmniSharp.Extensions.JsonRpc", LogLevel.None);
         builder.AddFilter("OmniSharp", LogLevel.Warning);
         builder.AddFilter("Microsoft.Dafny", dafnyLogLevel);
+        builder.Services.AddSingleton<ILoggerProvider>(new LoggerProviderFromOutputHelper(output));
         builder.AddConsole();
       }))) {
       this.output = new WriterFromOutputHelper(output);
