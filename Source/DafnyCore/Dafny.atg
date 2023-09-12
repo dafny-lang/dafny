@@ -1091,7 +1091,7 @@ ModuleImport<ModuleDefinition parent, out ModuleDecl submodule>
     |
       QualifiedModuleExport<out var namePath, out idExports>
           (. submodule = new AliasModuleDecl(new RangeToken(startToken, t), new ModuleQualifiedId(namePath),
-                                         namePath[^1], parent, opened, idExports, Guid.NewGuid());
+                                         new Name(new RangeToken(startToken,startToken), namePath[^1].Value), parent, opened, idExports, Guid.NewGuid());
           .)
     )
     .
