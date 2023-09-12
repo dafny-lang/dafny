@@ -140,7 +140,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         resolutionDiagnostics,
         SymbolTable.Empty(),
         LegacySignatureAndCompletionTable.Empty(dafnyOptions, compilation.Project),
-        new(),
+        ImmutableDictionary<Uri, Dictionary<Range, IdeVerificationResult>>.Empty,
         Array.Empty<Counterexample>(),
         ImmutableDictionary<Uri, IReadOnlyList<Range>>.Empty,
       ImmutableDictionary<Uri, DocumentVerificationTree>.Empty
