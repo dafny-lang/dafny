@@ -51,7 +51,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
             InsertChecksums = 0 < engine.Options.VerifySnapshots,
             ReportRanges = true
           };
-          var translator = new Translator(errorReporter, compilation.Program.ProofDependencyManager, translatorFlags);
+          var translator = new Translator(errorReporter, new(), translatorFlags);
           return translator.DoTranslation(compilation.Program, moduleDefinition);
         }, cancellationToken);
         var suffix = moduleDefinition.SanitizedName;

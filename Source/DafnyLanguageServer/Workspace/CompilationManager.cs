@@ -261,8 +261,7 @@ public class CompilationManager {
                   new AssertionBatchResult(task.Implementation, result));
               }
 
-              var implementation = task.Implementation;
-              verificationProgressReporter.ReportEndVerifyImplementation(compilation, implementation,
+              verificationProgressReporter.ReportEndVerifyImplementation(compilation, task.Implementation,
                 completedCache.Result);
             }
 
@@ -401,7 +400,6 @@ public class CompilationManager {
       }
       verificationProgressReporter.ReportEndVerifyImplementation(compilation, implementationTask.Implementation, verificationResult);
     }
-
     compilationUpdates.OnNext(compilation);
   }
 

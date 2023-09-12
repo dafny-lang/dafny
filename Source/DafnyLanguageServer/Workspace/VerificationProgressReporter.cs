@@ -201,7 +201,6 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
                            implementation.Name;
       newImplementationNode = new ImplementationVerificationTree(
         newDisplayName,
-        implementation.VerboseName,
         implementation.Name,
         targetMethodNode.Filename,
         targetMethodNode.Uri,
@@ -304,10 +303,6 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
           targetMethodNode.StatusVerification = finalOutcome;
         }
 
-        //DafnyMain.WarnAboutSuspiciousDependenciesForImplementation(options, compilation.Program.Reporter, compilation.Program.ProofDependencyManager, implementation, verificationResult);
-        // TODO: the following seems like a hack.
-        //compilation.ResolutionDiagnostics = ((DiagnosticErrorReporter)compilation.Program.Reporter).AllDiagnosticsCopy;
-
         targetMethodNode.PropagateChildrenErrorsUp();
         targetMethodNode.RecomputeAssertionBatchNodeDiagnostics();
         ReportRealtimeDiagnostics(compilation, uri, true);
@@ -353,7 +348,7 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
 
         var assertionBatchTime = (int)result.runTime.TotalMilliseconds;
         var assertionBatchResourceCount = result.resourceCount;
-        implementationNode.AddAssertionBatchMetrics(result.vcNum, assertionBatchTime, assertionBatchResourceCount, result.coveredElements.ToList());
+        implementationNode.AddAssertionBatchMetrics(result.vcNum, assertionBatchTime, assertionBatchResourceCount);
 
         // Attaches the trace
         void AddChildOutcome(Counterexample? counterexample, AssertCmd assertCmd, IToken token,
