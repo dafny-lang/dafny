@@ -17,7 +17,7 @@ public class ProjectFilesTest : ClientBasedLanguageServerTest {
     var projectFileSource = @"includes = [stringWithoutQuotes]";
     await CreateAndOpenTestDocument(projectFileSource, DafnyProject.FileName);
     var diagnostics = await diagnosticsReceiver.AwaitNextNotificationAsync(CancellationToken);
-    Assert.Single(diagnostics.Diagnostics);
+    Assert.Equal(2, diagnostics.Diagnostics.Count());
     Assert.Equal(new Range(0, 0, 0, 0), diagnostics.Diagnostics.First().Range);
     Assert.Contains("contains the following errors", diagnostics.Diagnostics.First().Message);
   }
@@ -27,12 +27,16 @@ public class ProjectFilesTest : ClientBasedLanguageServerTest {
     var projectFileSource = @"includes = [stringWithoutQuotes]";
     var directory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
     Directory.CreateDirectory(directory);
-    await File.WriteAllTextAsync(Path.Combine(directory, DafnyProject.FileName), projectFileSource);
+    var projectFilePath = Path.Combine(directory, DafnyProject.FileName);
+    await File.WriteAllTextAsync(projectFilePath, projectFileSource);
     await CreateAndOpenTestDocument("method Foo() { }", Path.Combine(directory, "ProjectFileErrorIsShownFromDafnyFile.dfy"));
     var diagnostics = await diagnosticsReceiver.AwaitNextNotificationAsync(CancellationToken);
-    Assert.Single(diagnostics.Diagnostics);
+    Assert.Equal(projectFilePath, diagnostics.Uri.GetFileSystemPath());
+    Assert.Equal(2, diagnostics.Diagnostics.Count());
     Assert.Equal(new Range(0, 0, 0, 0), diagnostics.Diagnostics.First().Range);
     Assert.Contains("contains the following errors", diagnostics.Diagnostics.First().Message);
+    Assert.Equal(@"Files referenced by project are:
+ProjectFileErrorIsShownFromDafnyFile.dfy", diagnostics.Diagnostics.ElementAt(1).Message);
   }
 
   /// <summary>

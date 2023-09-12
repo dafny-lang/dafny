@@ -5,6 +5,7 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -71,6 +72,12 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       var errorReporter = new DiagnosticErrorReporter(options, project.Uri);
       var program = parser.Parse(compilation, errorReporter, cancellationToken);
       compilation.Project.Errors.CopyDiagnostics(program.Reporter);
+      var projectPath = compilation.Project.Uri.LocalPath;
+      if (projectPath.EndsWith(DafnyProject.FileName)) {
+        var projectDirectory = Path.GetDirectoryName(projectPath)!;
+        var filesMessage = string.Join("\n", compilation.RootUris.Select(uri => Path.GetRelativePath(projectDirectory, uri.LocalPath)));
+        program.Reporter.Info(MessageSource.Parser, compilation.Project.StartingToken, "Files referenced by project are:\n" + filesMessage);
+      }
       var compilationAfterParsing = new CompilationAfterParsing(compilation, program, errorReporter.AllDiagnosticsCopy,
         compilation.RootUris.ToDictionary(uri => uri,
           uri => migratedVerificationTrees.GetValueOrDefault(uri) ?? new DocumentVerificationTree(program, uri)));
