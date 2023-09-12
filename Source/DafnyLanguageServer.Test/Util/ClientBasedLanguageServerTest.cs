@@ -268,6 +268,7 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
     client.DidCloseTextDocument(new DidCloseTextDocumentParams {
       TextDocument = verificationDocumentItem
     });
+    var emptyReport = await verificationStatusReceiver.AwaitNextNotificationAsync(cancellationToken);
   }
 
   public async Task AssertNoGhostnessIsComing(CancellationToken cancellationToken) {

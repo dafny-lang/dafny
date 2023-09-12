@@ -19,7 +19,38 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
     private const int MaxTestExecutionTimeMs = 10000;
 
     [Fact]
-    public async Task MultipleDocuments() {
+    public async Task MultipleDocumentsFailedResolution() {
+      var source = @"
+method Foo() returns (x: int) {
+  return 2;
+}".TrimStart();
+      var directory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+      Directory.CreateDirectory(directory);
+      await CreateAndOpenTestDocument("", Path.Combine(directory, DafnyProject.FileName));
+      var secondFilePath = Path.Combine(directory, "RunWithMultipleDocuments2.dfy");
+      await File.WriteAllTextAsync(secondFilePath, source.Replace("Foo", "Bar").Replace("2", "true"));
+      var documentItem1 = await CreateAndOpenTestDocument(source, Path.Combine(directory, "RunWithMultipleDocuments1.dfy"));
+
+      var expectedStatuses = new[] {
+        CompilationStatus.ResolutionStarted,
+        CompilationStatus.ResolutionFailed
+      };
+      var documents = new[] { documentItem1.Uri, DocumentUri.File(secondFilePath) };
+      foreach (var expectedStatus in expectedStatuses) {
+        var statuses = new Dictionary<DocumentUri, CompilationStatusParams>();
+        foreach (var _ in documents) {
+          var statusParams = await compilationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
+          statuses.Add(statusParams.Uri, statusParams);
+        }
+        foreach (var document in documents) {
+          var status = statuses[document];
+          Assert.Equal(expectedStatus, status.Status);
+        }
+      }
+    }
+
+    [Fact]
+    public async Task MultipleDocumentsSuccessfulResolution() {
       var source = @"
 method Foo() returns (x: int) {
   return 2;
@@ -32,7 +63,8 @@ method Foo() returns (x: int) {
       var documentItem1 = await CreateAndOpenTestDocument(source, Path.Combine(directory, "RunWithMultipleDocuments1.dfy"));
 
       var expectedStatuses = new[] {
-        CompilationStatus.ResolutionStarted
+        CompilationStatus.ResolutionStarted,
+        CompilationStatus.ResolutionSucceeded
       };
       var documents = new[] { documentItem1.Uri, DocumentUri.File(secondFilePath) };
       foreach (var expectedStatus in expectedStatuses) {
@@ -166,10 +198,12 @@ method Abs(x: int) returns (y: int)
       var documentItem1 = CreateTestDocument(source, "test_1.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem1, CancellationToken);
       await AssertProgress(documentItem1, CompilationStatus.ResolutionStarted);
+      await AssertProgress(documentItem1, CompilationStatus.ResolutionSucceeded);
       await WaitForStatus(null, PublishedVerificationStatus.Stale, CancellationToken, documentItem1);
       var documentItem2 = CreateTestDocument(source, "test_2dfy");
       await client.OpenDocumentAndWaitAsync(documentItem2, CancellationToken);
       await AssertProgress(documentItem2, CompilationStatus.ResolutionStarted);
+      await AssertProgress(documentItem2, CompilationStatus.ResolutionSucceeded);
       await WaitForStatus(null, PublishedVerificationStatus.Stale, CancellationToken, documentItem2);
     }
 
@@ -190,11 +224,13 @@ method Abs(x: int) returns (y: int)
       await client.OpenDocumentAndWaitAsync(documentItem1, CancellationToken);
       await client.SaveDocumentAndWaitAsync(documentItem1, CancellationToken);
       await AssertProgress(documentItem1, CompilationStatus.ResolutionStarted);
+      await AssertProgress(documentItem1, CompilationStatus.ResolutionSucceeded);
       await WaitForStatus(null, PublishedVerificationStatus.Stale, CancellationToken, documentItem1);
       var documentItem2 = CreateTestDocument(source, "test_2dfy");
       await client.OpenDocumentAndWaitAsync(documentItem2, CancellationToken);
       await client.SaveDocumentAndWaitAsync(documentItem2, CancellationToken);
       await AssertProgress(documentItem2, CompilationStatus.ResolutionStarted);
+      await AssertProgress(documentItem2, CompilationStatus.ResolutionSucceeded);
       await WaitForStatus(null, PublishedVerificationStatus.Stale, CancellationToken, documentItem2);
     }
 
