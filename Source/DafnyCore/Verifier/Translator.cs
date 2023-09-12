@@ -767,6 +767,11 @@ namespace Microsoft.Dafny {
         AddBitvectorNatConversionFunction(w);
       }
 
+      foreach (ModuleDefinition m in program.RawModules()) {
+        CheckFuelUsage(m);
+      }
+      CheckFuelUsage(program.SystemModuleManager.SystemModule);
+
       foreach (TopLevelDecl d in program.SystemModuleManager.SystemModule.TopLevelDecls) {
         currentDeclaration = d;
         if (d is AbstractTypeDecl abstractType) {
@@ -1063,6 +1068,13 @@ namespace Microsoft.Dafny {
       }
     }
 
+    private void CheckFuelUsage(ModuleDefinition m) {
+      m.UsesFuel = m.TopLevelDecls.OfType<TopLevelDeclWithMembers>()
+        .SelectMany(c => c.Members)
+        .OfType<Function>()
+        .Any(f => RevealedInScope(f) && f.IsFuelAware());
+    }
+
     private void ComputeFunctionFuel() {
       foreach (ModuleDefinition m in program.RawModules()) {
         foreach (TopLevelDecl d in m.TopLevelDecls) {
@@ -1073,7 +1085,6 @@ namespace Microsoft.Dafny {
                 Function f = (Function)member;
                 // declare the fuel constant
                 if (f.IsFueled) {
-                  m.UsesFuel = true;
                   // const BaseFuel_FunctionA : LayerType
                   Bpl.Constant baseFuel = new Bpl.Constant(f.tok, new Bpl.TypedIdent(f.tok, "BaseFuel_" + f.FullName, predef.LayerType), false);
                   sink.AddTopLevelDeclaration(baseFuel);
