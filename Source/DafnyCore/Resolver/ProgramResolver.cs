@@ -280,7 +280,7 @@ public class ProgramResolver {
       // each enclosing module.
       if (!bindings.ResolveQualifiedModuleIdRootImport(aliasDecl, aliasDecl.TargetQId, out var root)) {
         //        if (!bindings.TryLookupFilter(alias.TargetQId.rootToken(), out root, m => alias != m)
-        Reporter.Error(MessageSource.Resolver, aliasDecl.tok, ModuleNotFoundErrorMessage(0, aliasDecl.TargetQId.Path));
+        Reporter.Error(MessageSource.Resolver, aliasDecl.TargetQId.Tok, ModuleNotFoundErrorMessage(0, aliasDecl.TargetQId.Path));
       } else {
         aliasDecl.TargetQId.Root = root;
         declarationPointers.AddOrUpdate(root, v => aliasDecl.TargetQId.Root = v, Util.Concat);
