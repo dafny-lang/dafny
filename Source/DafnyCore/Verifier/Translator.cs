@@ -1073,6 +1073,7 @@ namespace Microsoft.Dafny {
                 Function f = (Function)member;
                 // declare the fuel constant
                 if (f.IsFueled) {
+                  m.UsesFuel = true;
                   // const BaseFuel_FunctionA : LayerType
                   Bpl.Constant baseFuel = new Bpl.Constant(f.tok, new Bpl.TypedIdent(f.tok, "BaseFuel_" + f.FullName, predef.LayerType), false);
                   sink.AddTopLevelDeclaration(baseFuel);
