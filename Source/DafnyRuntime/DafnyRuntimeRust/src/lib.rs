@@ -1,11 +1,12 @@
-use std::{fmt::{Display, Formatter}, rc::Rc, ops::Deref, collections::{HashSet, HashMap}, cell::RefCell};
-use num::{Integer, Signed, One, Zero};
+use std::{fmt::{Display, Formatter}, rc::Rc, ops::{Deref, Add}, collections::{HashSet, HashMap}, cell::RefCell};
+use num::{Integer, Signed, One};
 pub use once_cell::unsync::Lazy;
 
 pub use num::bigint::BigInt;
 pub use num::rational::BigRational;
 pub use num::FromPrimitive;
 pub use num::NumCast;
+pub use num::Zero;
 
 pub fn dafny_rational_to_int(r: &BigRational) -> BigInt {
     euclidian_division(r.numer().clone(), r.denom().clone())
@@ -42,6 +43,32 @@ pub fn euclidian_modulo<A: Signed + Zero + One + Clone + PartialEq>(a: A, b: A) 
         } else {
             bp - c
         }
+    }
+}
+
+pub struct IntegerRange<A: Add<Output = A> + One + Ord + Clone> {
+    hi: A,
+    current: A,
+}
+
+impl <A: Add<Output = A> + One + Ord + Clone> Iterator for IntegerRange<A> {
+    type Item = A;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.current < self.hi {
+            let result = self.current.clone();
+            self.current = self.current.clone() + One::one();
+            Some(result)
+        } else {
+            None
+        }
+    }
+}
+
+pub fn integer_range<A: Add<Output = A> + One + Ord + Clone>(low: A, hi: A) -> impl Iterator<Item = A> {
+    IntegerRange {
+        hi,
+        current: low
     }
 }
 

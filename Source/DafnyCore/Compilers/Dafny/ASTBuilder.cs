@@ -377,7 +377,13 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     public WhileBuilder While() {
-      var ret = new WhileBuilder(null);
+      var ret = new WhileBuilder();
+      AddBuildable(ret);
+      return ret;
+    }
+
+    public ForeachBuilder Foreach(string boundName, DAST.Type boundType) {
+      var ret = new ForeachBuilder(boundName, boundType);
       AddBuildable(ret);
       return ret;
     }
@@ -401,7 +407,9 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     public LabeledBuilder Labeled(string label) {
-      return new LabeledBuilder(label, this);
+      var ret = new LabeledBuilder(label);
+      AddBuildable(ret);
+      return ret;
     }
   }
 
@@ -612,13 +620,8 @@ namespace Microsoft.Dafny.Compilers {
   }
 
   class WhileBuilder : ExprContainer, StatementContainer, BuildableStatement {
-    readonly string label;
     object condition = null;
     readonly List<object> body = new();
-
-    public WhileBuilder(string label) {
-      this.label = label;
-    }
 
     public void AddExpr(DAST.Expression value) {
       if (condition != null) {
@@ -658,8 +661,64 @@ namespace Microsoft.Dafny.Compilers {
       StatementContainer.RecursivelyBuild(body, builtStatements);
 
       return (DAST.Statement)DAST.Statement.create_While(
-        label == null ? Optional<ISequence<Rune>>.create_None() : Optional<ISequence<Rune>>.create_Some(Sequence<Rune>.UnicodeFromString(label)),
         builtCondition[0],
+        Sequence<DAST.Statement>.FromArray(builtStatements.ToArray())
+      );
+    }
+  }
+
+  class ForeachBuilder : ExprContainer, StatementContainer, BuildableStatement {
+    readonly string boundName;
+    readonly DAST.Type boundType;
+    object over = null;
+    readonly List<object> body = new();
+
+    public ForeachBuilder(string boundName, DAST.Type boundType) {
+      this.boundName = boundName;
+      this.boundType = boundType;
+    }
+
+    public void AddExpr(DAST.Expression value) {
+      if (over != null) {
+        throw new InvalidOperationException();
+      } else {
+        over = value;
+      }
+    }
+
+    public void AddBuildable(BuildableExpr value) {
+      if (over != null) {
+        throw new InvalidOperationException();
+      } else {
+        over = value;
+      }
+    }
+
+    public void AddStatement(DAST.Statement item) {
+      body.Add(item);
+    }
+
+    public void AddBuildable(BuildableStatement item) {
+      body.Add(item);
+    }
+
+    public List<object> ForkList() {
+      var ret = new List<object>();
+      this.body.Add(ret);
+      return ret;
+    }
+
+    public DAST.Statement Build() {
+      List<DAST.Expression> builtOver = new();
+      ExprContainer.RecursivelyBuild(new List<object> { over }, builtOver);
+
+      List<DAST.Statement> builtStatements = new();
+      StatementContainer.RecursivelyBuild(body, builtStatements);
+
+      return (DAST.Statement)DAST.Statement.create_Foreach(
+        Sequence<Rune>.UnicodeFromString(boundName),
+        boundType,
+        builtOver[0],
         Sequence<DAST.Statement>.FromArray(builtStatements.ToArray())
       );
     }
@@ -789,35 +848,40 @@ namespace Microsoft.Dafny.Compilers {
     }
   }
 
-  class LabeledBuilder : StatementContainer {
+  class LabeledBuilder : BuildableStatement, StatementContainer {
     readonly string label;
-    readonly StatementContainer parent;
+    readonly List<object> statements = new();
 
-    public LabeledBuilder(string label, StatementContainer parent) {
+    public LabeledBuilder(string label) {
       this.label = label;
-      this.parent = parent;
     }
 
     public void AddStatement(DAST.Statement item) {
-      parent.AddStatement(item);
+      statements.Add(item);
     }
 
     public void AddBuildable(BuildableStatement item) {
-      parent.AddBuildable(item);
+      statements.Add(item);
     }
 
     public StatementContainer Fork() {
-      return null;
+      return new ForkedStatementContainer(ForkList());
     }
 
     public List<object> ForkList() {
-      throw new InvalidOperationException();
+      var ret = new List<object>();
+      statements.Add(ret);
+      return ret;
     }
 
-    public WhileBuilder While() {
-      var ret = new WhileBuilder(label);
-      parent.AddBuildable(ret);
-      return ret;
+    public DAST.Statement Build() {
+      List<DAST.Statement> builtStatements = new();
+      StatementContainer.RecursivelyBuild(statements, builtStatements);
+
+      return (DAST.Statement)DAST.Statement.create_Labeled(
+        Sequence<Rune>.UnicodeFromString(label),
+        Sequence<DAST.Statement>.FromArray(builtStatements.ToArray())
+      );
     }
   }
 
