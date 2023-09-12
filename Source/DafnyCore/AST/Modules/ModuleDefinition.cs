@@ -649,7 +649,7 @@ public class ModuleDefinition : RangeNode, IAttributeBearingDeclaration, IClonea
         // the add was successful
       } else {
         // there's already something with this name
-        var yes = bindings.TryLookup(subDecl.tok.val, out var prevDecl);
+        var yes = bindings.TryLookup(subDecl.Name, out var prevDecl);
         Contract.Assert(yes);
         if (prevDecl is AbstractModuleDecl || prevDecl is AliasModuleDecl) {
           resolver.Reporter.Error(MessageSource.Resolver, subDecl.tok, "Duplicate name of import: {0}", subDecl.Name);
