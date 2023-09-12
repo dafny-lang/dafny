@@ -50,12 +50,12 @@ public class Method : MemberDecl, TypeParameter.ParentType,
       yield return new Assumption(this, tok, AssumptionDescription.NoBody(IsGhost));
     }
 
-    if (HasExternAttribute && HasPostcondition && !HasAxiomAttribute) {
-      yield return new Assumption(this, tok, AssumptionDescription.ExternWithPostcondition);
+    if (HasExternAttribute && HasPostcondition) {
+      yield return new Assumption(this, tok, AssumptionDescription.ExternWithPostcondition(HasAxiomAttribute));
     }
 
-    if (HasExternAttribute && HasPrecondition && !HasAxiomAttribute) {
-      yield return new Assumption(this, tok, AssumptionDescription.ExternWithPrecondition);
+    if (HasExternAttribute && HasPrecondition) {
+      yield return new Assumption(this, tok, AssumptionDescription.ExternWithPrecondition(HasAxiomAttribute));
     }
 
     if (AllowsNontermination) {

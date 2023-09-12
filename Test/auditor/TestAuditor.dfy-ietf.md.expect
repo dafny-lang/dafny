@@ -38,7 +38,7 @@
 
 ### Member `ExternFunction`
 
-* Function with `{:extern}` attribute. SHOULD use `method` with `modifies *` instead.
+* Function with `{:extern}` attribute. SHOULD use `method` with `modifies {}` instead.
 
 * Declaration with `{:extern}` has a ensures clause. MUST test external callee.
 
