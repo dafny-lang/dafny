@@ -21,6 +21,18 @@ public class ProjectFilesTest : ClientBasedLanguageServerTest {
     Assert.Contains("contains the following errors", diagnostics.Diagnostics.First().Message);
   }
 
+  [Fact]
+  public async Task ProjectFileErrorIsShownFromDafnyFile() {
+    var projectFileSource = @"includes = [stringWithoutQuotes]";
+    var directory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+    Directory.CreateDirectory(directory);
+    await File.WriteAllTextAsync(Path.Combine(directory, DafnyProject.FileName), projectFileSource);
+    await CreateAndOpenTestDocument("method Foo() { }", Path.Combine(directory, "ProjectFileErrorIsShownFromDafnyFile.dfy"));
+    var diagnostics = await diagnosticsReceiver.AwaitNextNotificationAsync(CancellationToken);
+    Assert.Single(diagnostics.Diagnostics);
+    Assert.Contains("contains the following errors", diagnostics.Diagnostics.First().Message);
+  }
+
   /// <summary>
   /// Previously this could cause two project managers for the same project to be created.
   /// </summary>

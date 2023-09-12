@@ -20,7 +20,7 @@ public class DafnyProject : IEquatable<DafnyProject> {
   public string ProjectName => Uri.ToString();
 
   [IgnoreDataMember]
-  public readonly BatchErrorReporter Errors = new(DafnyOptions.Default);
+  public BatchErrorReporter Errors { get; init; } = new(DafnyOptions.Default);
 
   [IgnoreDataMember]
   public Uri Uri { get; set; }
@@ -29,13 +29,17 @@ public class DafnyProject : IEquatable<DafnyProject> {
   public Dictionary<string, object> Options { get; set; }
   public bool UsesProjectFile => Path.GetFileName(Uri.LocalPath) == FileName;
 
+  public DafnyProject() {
+  }
+
   public static async Task<DafnyProject> Open(IFileSystem fileSystem, Uri uri) {
     var token = new Token {
       Uri = uri,
+      line = 1,
+      col = 1
     };
 
     var emptyProject = new DafnyProject {
-      Includes = Array.Empty<string>(),
       Uri = uri
     };
 
@@ -278,7 +282,8 @@ public class DafnyProject : IEquatable<DafnyProject> {
       Uri = Uri,
       Includes = Includes?.ToArray(),
       Excludes = Excludes?.ToArray(),
-      Options = Options?.ToDictionary(kv => kv.Key, kv => kv.Value)
+      Options = Options?.ToDictionary(kv => kv.Key, kv => kv.Value),
+      Errors = Errors
     };
   }
 
