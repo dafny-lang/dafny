@@ -53,13 +53,13 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
         return result;
       }
 
-      var oneMemberHasOnly = 
-        verificationTrees.Any(tree => tree is TopLevelDeclMemberVerificationTree {MarkedAsOnly: true});
+      var oneMemberHasOnly =
+        verificationTrees.Any(tree => tree is TopLevelDeclMemberVerificationTree { MarkedAsOnly: true });
 
       // Render verification tree content into lines.
       foreach (var verificationTree in verificationTrees) {
         if (verificationTree.Uri == uri) {
-          if (oneMemberHasOnly && verificationTree is TopLevelDeclMemberVerificationTree {MarkedAsOnly: false}) {
+          if (oneMemberHasOnly && verificationTree is TopLevelDeclMemberVerificationTree { MarkedAsOnly: false }) {
             verificationTree.StatusCurrent = CurrentStatus.Current;
             verificationTree.StatusVerification = GutterVerificationStatus.Skipped;
           }
@@ -309,7 +309,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
             : LineVerificationStatus.ErrorContext,
         _ => throw new ArgumentOutOfRangeException()
       };
-      return 
+      return
         simpleStatus == LineVerificationStatus.Skipped ? simpleStatus :
           (LineVerificationStatus)((int)simpleStatus + (int)currentStatus);
     }
