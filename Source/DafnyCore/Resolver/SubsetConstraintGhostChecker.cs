@@ -65,7 +65,7 @@ public class SubsetConstraintGhostChecker : ProgramTraverser {
     return field != null && parent != null && (
       (parent is Statement && field == "SpecificationSubExpressions") ||
       (parent is Function && (field is "Req.E" or "Reads.E" or "Ens.E" or "Decreases.Expressions")) ||
-      (parent is Method && (field is "Req.E" or "Mod.E" or "Ens.E" or "Decreases.Expressions"))
+      (parent is Method && (field is "Req.E" or "Reads.E" or "Mod.E" or "Ens.E" or "Decreases.Expressions"))
     );
   }
 

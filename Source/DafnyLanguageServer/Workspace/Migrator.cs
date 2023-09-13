@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
@@ -8,6 +9,7 @@ using Microsoft.Dafny.LanguageServer.Language.Symbols;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
+using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors;
 
@@ -21,6 +23,8 @@ public class Migrator {
   private readonly ILogger<LegacySignatureAndCompletionTable> loggerSymbolTable;
 
   private readonly Dictionary<TextDocumentContentChangeEvent, Position> getPositionAtEndOfAppliedChangeCache = new();
+
+  public Uri MigratedUri => changeParams.TextDocument.Uri.ToUri();
 
   public Migrator(
     ILogger<Migrator> logger,
@@ -286,7 +290,7 @@ public class Migrator {
     var migratedDeclarations = new Dictionary<ILegacySymbol, SymbolLocation>();
     foreach (var (symbol, location) in previousDeclarations) {
       cancellationToken.ThrowIfCancellationRequested();
-      if (location.Uri != changeParams.TextDocument.Uri.ToUri()) {
+      if (location.Uri != changeParams.TextDocument.Uri) {
         migratedDeclarations.Add(symbol, location);
         continue;
       }

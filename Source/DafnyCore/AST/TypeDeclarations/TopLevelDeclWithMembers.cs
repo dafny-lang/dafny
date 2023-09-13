@@ -245,7 +245,8 @@ public abstract class TopLevelDeclWithMembers : TopLevelDecl, IHasSymbolChildren
               : extremeLemma.Ens.ConvertAll(cloner.CloneAttributedExpr);
             extremeLemma.PrefixLemma = new PrefixLemma(extremeLemma.RangeToken, extraName, extremeLemma.HasStaticKeyword,
               extremeLemma.TypeArgs.ConvertAll(cloner.CloneTypeParam), k, formals, extremeLemma.Outs.ConvertAll(f => cloner.CloneFormal(f, false)),
-              req, cloner.CloneSpecFrameExpr(extremeLemma.Mod), ens,
+              req, extremeLemma.Reads.ConvertAll(cloner.CloneFrameExpr),
+              cloner.CloneSpecFrameExpr(extremeLemma.Mod), ens,
               new Specification<Expression>(decr, null),
               null, // Note, the body for the prefix method will be created once the call graph has been computed and the SCC for the greatest lemma is known
               cloner.CloneAttributes(extremeLemma.Attributes), extremeLemma);
@@ -255,7 +256,7 @@ public abstract class TopLevelDeclWithMembers : TopLevelDecl, IHasSymbolChildren
           extraMember.InheritVisibility(m, false);
           members.Add(extraName.Value, extraMember);
         } else if (m is Function f && f.ByMethodBody != null) {
-          ModuleResolver.RegisterByMethod(f, this);
+          resolver.RegisterByMethod(f, this);
         }
       } else if (m is Constructor && !((Constructor)m).HasName) {
         resolver.reporter.Error(MessageSource.Resolver, m, "More than one anonymous constructor");

@@ -1926,7 +1926,7 @@ func NewMapBuilder() *MapBuilder {
   return new(MapBuilder)
 }
 
-// Add adds a key and value to the map being built.
+// Add adds a key and value to the map being built, used by map comprehension
 func (mb *MapBuilder) Add(k, v interface{}) *MapBuilder {
   *mb = append(*mb, mapElt{k, v})
   return mb
@@ -1990,6 +1990,19 @@ func (m Map) Contains(key interface{}) bool {
 // Update returns a new Map which associates the given key and value.
 func (m Map) Update(key, value interface{}) Map {
   ans := m.clone()
+  i, found := ans.findIndex(key)
+  if found {
+    ans.elts[i] = mapElt{key, value}
+  } else {
+    ans.elts = append(ans.elts, mapElt{key, value})
+  }
+  return ans
+}
+
+// Similar to Update, but make the modification in-place.
+// Meant to be used in the map constructor.
+func (m Map) UpdateUnsafe(key, value interface{}) Map {
+  ans := m
   i, found := ans.findIndex(key)
   if found {
     ans.elts[i] = mapElt{key, value}

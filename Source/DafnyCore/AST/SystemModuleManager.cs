@@ -6,7 +6,6 @@ using System.Diagnostics.Contracts;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Security.Policy;
-using Microsoft.Boogie;
 
 namespace Microsoft.Dafny;
 

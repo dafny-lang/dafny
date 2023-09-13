@@ -2049,7 +2049,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     [CanBeNull]
-    protected override string GetSubtypeCondition(string tmpVarName, Type boundVarType, IToken tok, ConcreteSyntaxTree wPreconditions) {
+    protected override Action<ConcreteSyntaxTree> GetSubtypeCondition(string tmpVarName, Type boundVarType, IToken tok, ConcreteSyntaxTree wPreconditions) {
       var conditions = new List<string> { };
       if (boundVarType.IsNonNullRefType) {
         conditions.Add($"!_dafny.IsDafnyNull({tmpVarName})");
@@ -2078,7 +2078,9 @@ namespace Microsoft.Dafny.Compilers {
       if (boundVarType.IsRefType && !boundVarType.IsNonNullRefType && typeTest != "true") {
         typeTest = $"_dafny.IsDafnyNull({tmpVarName}) || " + typeTest;
       }
-      return typeTest == "true" ? null : typeTest;
+
+      typeTest = typeTest == "true" ? null : typeTest;
+      return typeTest == null ? null : wr => wr.Write(typeTest);
     }
 
     protected override void EmitDowncastVariableAssignment(string boundVarName, Type boundVarType, string tmpVarName,
@@ -2809,10 +2811,15 @@ namespace Microsoft.Dafny.Compilers {
       return (wArray, wArguments);
     }
 
-    protected override ConcreteSyntaxTree EmitArraySelect(List<string> indices, Type elmtType, ConcreteSyntaxTree wr) {
+    protected override ConcreteSyntaxTree EmitArraySelect(List<Action<ConcreteSyntaxTree>> indices, Type elmtType, ConcreteSyntaxTree wr) {
       // Note, the indices are formulated in the native array-index type.
       var (wArray, wArguments) = CallArrayGetOrSet(true, indices.Count, elmtType, wr);
-      wArguments.Write(indices.Comma(s => s));
+      for (int i = 0; i < indices.Count; i++) {
+        if (i > 0) {
+          wArguments.Write(", ");
+        }
+        indices[i](wArguments);
+      }
       return wArray;
     }
 
@@ -2827,10 +2834,13 @@ namespace Microsoft.Dafny.Compilers {
       return wArray;
     }
 
-    protected override (ConcreteSyntaxTree/*array*/, ConcreteSyntaxTree/*rhs*/) EmitArrayUpdate(List<string> indices, Type elementType, ConcreteSyntaxTree wr) {
+    protected override (ConcreteSyntaxTree/*array*/, ConcreteSyntaxTree/*rhs*/) EmitArrayUpdate(List<Action<ConcreteSyntaxTree>> indices, Type elementType, ConcreteSyntaxTree wr) {
       var (wArray, wArguments) = CallArrayGetOrSet(false, indices.Count, elementType, wr);
       var wRhs = wArguments.Fork();
-      wArguments.Write(", {0}", indices.Comma(s => s));
+      for (int i = 0; i < indices.Count; i++) {
+        wArguments.Write(", ");
+        indices[i](wArguments);
+      }
       return (wArray, wRhs);
     }
 
@@ -3734,15 +3744,14 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void EmitMapDisplay(MapType mt, IToken tok, List<ExpressionPair> elements,
         bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
-      wr.Write("_dafny.NewMapBuilder()");
+      wr.Write("_dafny.NewMapBuilder().ToMap()");
       foreach (ExpressionPair p in elements) {
-        wr.Write(".Add(");
+        wr.Write(".UpdateUnsafe(");
         wr.Append(Expr(p.A, inLetExprBody, wStmts));
         wr.Write(", ");
         wr.Append(Expr(p.B, inLetExprBody, wStmts));
         wr.Write(')');
       }
-      wr.Write(".ToMap()");
     }
 
     protected override void EmitSetBuilder_New(ConcreteSyntaxTree wr, SetComprehension e, string collectionName) {
@@ -3782,20 +3791,27 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    protected override Type EmitIntegerRange(Type type, out ConcreteSyntaxTree wLo, out ConcreteSyntaxTree wHi, ConcreteSyntaxTree wr) {
+    protected override (Type, Action<ConcreteSyntaxTree>) EmitIntegerRange(Type type, Action<ConcreteSyntaxTree> wLo, Action<ConcreteSyntaxTree> wHi) {
       Type result;
       if (AsNativeType(type) != null) {
-        wr.Write("{0}.IntegerRange(", TypeName_Companion(type.AsNewtype, wr, tok: Token.NoToken));
         result = type;
       } else {
-        wr.Write($"{HelperModulePrefix}IntegerRange(");
         result = new IntType();
       }
-      wLo = wr.Fork();
-      wr.Write(", ");
-      wHi = wr.Fork();
-      wr.Write(')');
-      return result;
+
+      return (result, (wr) => {
+        if (AsNativeType(type) != null) {
+          wr.Write("{0}.IntegerRange(", TypeName_Companion(type.AsNewtype, wr, tok: Token.NoToken));
+        } else {
+          wr.Write($"{HelperModulePrefix}IntegerRange(");
+        }
+
+        wLo(wr);
+        wr.Write(", ");
+        wHi(wr);
+        wr.Write(')');
+      }
+      );
     }
 
     protected override void EmitSingleValueGenerator(Expression e, bool inLetExprBody, string type, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {

@@ -106,6 +106,8 @@ NoGhost - disable printing of functions, ghost methods, and proof
         argumentName: "Everything|DllEmbed|NoIncludes|NoGhost",
         defaultValue: PrintModes.Everything);
 
+      RegisterLegacyUi(CommonOptionBag.DefaultFunctionOpacity, ParseDefaultFunctionOpacity, "Language feature selection", "defaultFunctionOpacity", null);
+
       void ParsePrintMode(Option<PrintModes> option, Bpl.CommandLineParseState ps, DafnyOptions options) {
         if (ps.ConfirmArgumentCount(1)) {
           if (ps.args[ps.i].Equals("Everything")) {
@@ -125,6 +127,24 @@ NoGhost - disable printing of functions, ghost methods, and proof
       }
 
       RegisterLegacyUi(CommonOptionBag.AddCompileSuffix, ParseBoolean, "Compilation options", "compileSuffix");
+
+      RegisterLegacyUi(CommonOptionBag.ReadsClausesOnMethods, ParseBoolean, "Language feature selection", "readsClausesOnMethods", @"
+0 (default) - Reads clauses on methods are forbidden.
+1 - Reads clauses on methods are permitted (with a default of 'reads *').".TrimStart(), defaultValue: false);
+    }
+
+    private static void ParseDefaultFunctionOpacity(Option<CommonOptionBag.DefaultFunctionOpacityOptions> option, Bpl.CommandLineParseState ps, DafnyOptions options) {
+      if (ps.ConfirmArgumentCount(1)) {
+        if (ps.args[ps.i].Equals("transparent")) {
+          options.Set(option, CommonOptionBag.DefaultFunctionOpacityOptions.Transparent);
+        } else if (ps.args[ps.i].Equals("autoRevealDependencies")) {
+          options.Set(option, CommonOptionBag.DefaultFunctionOpacityOptions.AutoRevealDependencies);
+        } else if (ps.args[ps.i].Equals("opaque")) {
+          options.Set(option, CommonOptionBag.DefaultFunctionOpacityOptions.Opaque);
+        } else {
+          InvalidArgumentError(option.Name, ps);
+        }
+      }
     }
 
     public void ApplyBinding(Option option) {

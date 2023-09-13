@@ -9,7 +9,7 @@ namespace Microsoft.Dafny;
 
 public record PrefixNameModule(IReadOnlyList<IToken> Parts, LiteralModuleDecl Module);
 
-public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearingDeclaration, ICloneable<ModuleDefinition>, IHasSymbolChildren {
+public class ModuleDefinition : RangeNode, IAttributeBearingDeclaration, ICloneable<ModuleDefinition>, IHasSymbolChildren {
 
   public IToken BodyStartTok = Token.NoToken;
   public IToken TokenWithTrailingDocString = Token.NoToken;
@@ -56,6 +56,9 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
   public readonly List<TopLevelDecl> ResolvedPrefixNamedModules = new();
   [FilledInDuringResolution]
   public readonly List<PrefixNameModule> PrefixNamedModules = new();  // filled in by the parser; emptied by the resolver
+
+  public CallRedirector CallRedirector { get; set; }
+
   public virtual IEnumerable<TopLevelDecl> TopLevelDecls => DefaultClasses.
         Concat(SourceDecls).
         Concat(ResolvedPrefixNamedModules);
@@ -72,8 +75,41 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
 
   [FilledInDuringResolution]
   public readonly Graph<ICallable> CallGraph = new();
+
+  // This field is only populated if `defaultFunctionOpacity` is set to something other than transparent
+  [FilledInDuringResolution]
+  public readonly Graph<ICallable> InterModuleCallGraph = new();
+
   [FilledInDuringResolution]
   public int Height;  // height in the topological sorting of modules;
+
+  /// <summary>
+  /// The following class stores the relative name of any declaration that is reachable from this module
+  /// as a list of NameSegments, along with a flag for whether the Declaration is revealed or merely provided.
+  /// For example, if "A" is a module, a function "A.f()" will be stored in the AccessibleMembers dictionary as
+  /// the declaration "f" pointing to an AccessibleMember whose AccessPath list contains the NameSegments "A" and "_default".
+  /// </summary>
+  public class AccessibleMember {
+    public List<NameSegment> AccessPath;
+    public bool IsRevealed;
+
+    public AccessibleMember(List<NameSegment> accessPath, bool isRevealed = true) {
+      AccessPath = accessPath;
+      IsRevealed = isRevealed;
+    }
+
+    public AccessibleMember(bool isRevealed = true) {
+      AccessPath = new List<NameSegment>();
+      IsRevealed = isRevealed;
+    }
+
+    public AccessibleMember Clone() {
+      return new AccessibleMember(AccessPath.ToList(), IsRevealed);
+    }
+  }
+
+  [FilledInDuringResolution]
+  public Dictionary<Declaration, AccessibleMember> AccessibleMembers = new();
 
   [ContractInvariantMethod]
   void ObjectInvariant() {
@@ -433,7 +469,110 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
 
     Type.PopScope(resolver.moduleInfo.VisibilityScope);
     resolver.moduleInfo = oldModuleInfo;
+
+
+    // Build the AccessibleMembers dictionary
+    foreach (var d in TopLevelDecls) {
+      if (d is AliasModuleDecl || d is AbstractModuleDecl) {
+        ModuleSignature importSig;
+        if (d is AliasModuleDecl alias) {
+          if (alias.TargetQId.Decl is not null) {
+            importSig = alias.TargetQId.Decl.Signature;
+          } else if (alias.TargetQId.Root is not null) {
+            importSig = alias.TargetQId.Root.Signature;
+          } else {
+            importSig = alias.Signature;
+          }
+        } else {
+          importSig = ((AbstractModuleDecl)d).OriginalSignature;
+        }
+
+        var origMod = importSig.ModuleDef;
+
+        var exports = d is AliasModuleDecl ? ((AliasModuleDecl)d).Exports : ((AbstractModuleDecl)d).Exports;
+        var exportSet = exports.Any() ? exports.First().val : null;
+
+        foreach (var (decl, accMember) in origMod.AccessibleMembers) {
+          if (isDeclExported(origMod, exportSet, decl, out var isDeclRevealed)) {
+            var newAccMember = accMember.Clone();
+
+            newAccMember.AccessPath.Insert(0, TopLevelDeclToNameSegment(d, d.Tok));
+            newAccMember.IsRevealed = newAccMember.IsRevealed && isDeclRevealed;
+            AddAccessibleMember(decl, newAccMember);
+          }
+        }
+
+        var newAccessibleMember = new AccessibleMember();
+        AddAccessibleMember(d, newAccessibleMember);
+
+      } else if (d is LiteralModuleDecl) {
+        var nested = (LiteralModuleDecl)d;
+
+        foreach (var (decl, accMember) in nested.ModuleDef.AccessibleMembers) {
+          if (isDeclExported(nested.ModuleDef, null, decl, out var isDeclRevealed)) {
+            var newAccMember = accMember.Clone();
+
+            newAccMember.AccessPath.Insert(0, TopLevelDeclToNameSegment(d, d.Tok));
+            newAccMember.IsRevealed = newAccMember.IsRevealed && isDeclRevealed;
+
+            AddAccessibleMember(decl, newAccMember);
+          }
+        }
+
+        var newAccessibleMember = new AccessibleMember();
+        AddAccessibleMember(d, newAccessibleMember);
+
+      } else if (d is TopLevelDeclWithMembers tld) {
+        var memberList = tld.Members;
+
+        foreach (var mem in memberList) {
+          var accessPath = new List<NameSegment> { TopLevelDeclToNameSegment(d, d.Tok) };
+          var newAccessibleMember = new AccessibleMember(accessPath);
+          AddAccessibleMember(mem, newAccessibleMember);
+        }
+      }
+    }
+
     return true;
+  }
+
+  private static NameSegment TopLevelDeclToNameSegment(TopLevelDecl decl, IToken tok) {
+    var typeArgs = new List<Type>();
+
+    foreach (var arg in decl.TypeArgs) {
+      typeArgs.Add(new IntType());
+    }
+
+    return new NameSegment(tok, decl.Name, typeArgs);
+  }
+
+  private bool isDeclExported(ModuleDefinition moduleDefinition, string exportSetName, Declaration decl, out bool isItRevealed) {
+    isItRevealed = true;
+
+    exportSetName ??= moduleDefinition.Name;
+
+    var moduleExports = moduleDefinition.TopLevelDecls.Where(decl => decl is ModuleExportDecl && decl.Name == exportSetName);
+
+    if (!moduleExports.Any()) {
+      return true;
+    }
+
+    var exportSignatures = ((ModuleExportDecl)moduleExports.First()).Exports.Where(export => export.Decl == decl);
+
+    if (!exportSignatures.Any()) {
+      return false;
+    }
+
+    isItRevealed = !exportSignatures.First().Opaque;
+    return true;
+  }
+
+  private void AddAccessibleMember(Declaration accessibleDecl, AccessibleMember newVal) {
+    if (AccessibleMembers.TryGetValue(accessibleDecl, out var oldVal)) {
+      newVal = !oldVal.IsRevealed && newVal.IsRevealed ? newVal : oldVal;
+    }
+
+    AccessibleMembers[accessibleDecl] = newVal;
   }
 
   public void ProcessPrefixNamedModules() {
@@ -511,8 +650,8 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
         // the add was successful
       } else {
         // there's already something with this name
-        var yes = bindings.TryLookup(subDecl.tok, out var prevDecl);
-        Contract.Assert(yes);
+        var existingModuleIsFound = bindings.TryLookup(subDecl.Name, out var prevDecl);
+        Contract.Assert(existingModuleIsFound);
         if (prevDecl is AbstractModuleDecl || prevDecl is AliasModuleDecl) {
           resolver.Reporter.Error(MessageSource.Resolver, subDecl.tok, "Duplicate name of import: {0}", subDecl.Name);
         } else if (subDecl is AliasModuleDecl { Opened: true } importDecl && importDecl.TargetQId.Path.Count == 1 &&
@@ -543,7 +682,7 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
     sig.VisibilityScope.Augment(VisibilityScope);
 
     // This is solely used to detect duplicates amongst the various e
-    ISet<string> toplevels = new HashSet<string>();
+    Dictionary<string, INode> toplevels = new();
     // Now add the things present
     var anonymousImportCount = 0;
     foreach (TopLevelDecl d in TopLevelDecls) {
@@ -567,8 +706,9 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
         registerThisDecl = d;
         registerUnderThisName = string.Format("{0}#{1}", d.Name, anonymousImportCount);
         anonymousImportCount++;
-      } else if (toplevels.Contains(d.Name)) {
-        resolver.reporter.Error(MessageSource.Resolver, d, "duplicate name of top-level declaration: {0}", d.Name);
+      } else if (toplevels.TryGetValue(d.Name, out var existingTopLevel)) {
+        resolver.reporter.Error(MessageSource.Resolver, new NestedToken(d.Tok, existingTopLevel.Tok),
+          "duplicate name of top-level declaration: {0}", d.Name);
       } else if (d is ClassLikeDecl { NonNullTypeDecl: { } nntd }) {
         registerThisDecl = nntd;
         registerUnderThisName = d.Name;
@@ -581,7 +721,7 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
       }
 
       if (registerThisDecl != null) {
-        toplevels.Add(registerUnderThisName);
+        toplevels[registerUnderThisName] = d;
         sig.TopLevels[registerUnderThisName] = registerThisDecl;
       }
 
@@ -615,10 +755,10 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
             sig.StaticMembers[m.Name] = m;
           }
 
-          if (toplevels.Contains(m.Name)) {
+          if (toplevels.ContainsKey(m.Name)) {
             resolver.reporter.Error(MessageSource.Resolver, m.tok, $"duplicate declaration for name {m.Name}");
           } else {
-            toplevels.Add(m.Name);
+            toplevels.Add(m.Name, m);
           }
         }
 
@@ -742,13 +882,13 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
     foreach (TopLevelDecl d in TopLevelDecls) {
       if (d is ClassLikeDecl { NonNullTypeDecl: { } nntd }) {
         var name = d.Name + "?";
-        if (toplevels.Contains(name)) {
+        if (toplevels.ContainsKey(name)) {
           resolver.reporter.Error(MessageSource.Resolver, d,
             "a module that already contains a top-level declaration '{0}' is not allowed to declare a reference type ({1}) '{2}'",
             name, d.WhatKind, d.Name);
         } else {
-          toplevels.Add(name);
-          toplevels.Add(d.Name);
+          toplevels[name] = d;
+          toplevels[d.Name] = d;
           // change the mapping of d.Name to d.NonNullTypeDecl
           sig.TopLevels[d.Name] = nntd;
           sig.TopLevels[name] = d;

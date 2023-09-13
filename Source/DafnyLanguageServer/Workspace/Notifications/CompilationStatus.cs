@@ -10,6 +10,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     Parsing,
     ParsingFailed,
     ResolutionStarted,
-    ResolutionFailed
+    ResolutionFailed,
+    ResolutionSucceeded
   }
 }

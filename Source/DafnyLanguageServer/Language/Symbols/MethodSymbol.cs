@@ -26,6 +26,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
     public ScopeSymbol? Block { get; set; }
     public List<ScopeSymbol> Ensures { get; } = new();
     public List<ScopeSymbol> Requires { get; } = new();
+    public List<ScopeSymbol> Reads { get; } = new();
     public List<ScopeSymbol> Modifies { get; } = new();
     public List<ScopeSymbol> Decreases { get; } = new();
 
@@ -35,6 +36,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         .Concat(Returns)
         .Concat(Ensures)
         .Concat(Requires)
+        .Concat(Reads)
         .Concat(Modifies)
         .Concat(Decreases);
 

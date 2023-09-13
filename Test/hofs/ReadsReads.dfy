@@ -3,24 +3,28 @@
 
 module ReadsRequiresReads {
   ghost function MyReadsOk<A,B>(f : A ~> B, a : A) : set<object?>
+    requires f.requires(a)
     reads f.reads(a)
   {
     f.reads(a)
   }
 
   ghost function MyReadsOk2<A,B>(f : A ~> B, a : A) : set<object?>
+    requires f.requires(a)
     reads f.reads(a)
   {
     (f.reads)(a)
   }
 
   ghost function MyReadsOk3<A,B>(f : A ~> B, a : A) : set<object?>
+    requires (f.requires)(a)
     reads (f.reads)(a)
   {
     f.reads(a)
   }
 
   ghost function MyReadsOk4<A,B>(f : A ~> B, a : A) : set<object?>
+    requires (f.requires)(a)
     reads (f.reads)(a)
   {
     (f.reads)(a)
@@ -37,6 +41,7 @@ module ReadsRequiresReads {
   }
 
   ghost function MyReadsOk'<A,B>(f : A ~> B, a : A, o : object) : bool
+    requires f.requires(a)
     reads f.reads(a)
   {
     o in f.reads(a)
@@ -48,6 +53,7 @@ module ReadsRequiresReads {
   }
 
   ghost function MyRequiresOk<A,B>(f : A ~> B, a : A) : bool
+    requires f.requires(a)
     reads f.reads(a)
   {
     f.requires(a)
@@ -134,7 +140,7 @@ module ReadsAll {
 }
 
 module ReadsOnFunctions {
-  lemma Requires_Reads_What_Function_Reads(f: int ~> int)
+  lemma Requires_Reads_What_Function_Reads(f: int ~> int) requires f.requires(10)
   {
     var g := f.requires;
     assert g.reads(10) == f.reads(10);

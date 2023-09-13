@@ -17,7 +17,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace;
 public record IdeImplementationView(Range Range, PublishedVerificationStatus Status,
   IReadOnlyList<Diagnostic> Diagnostics);
 
-public record IdeVerificationResult(bool WasTranslated, IReadOnlyDictionary<string, IdeImplementationView> Implementations);
+public enum VerificationPreparationState { NotStarted, InProgress, Done }
+public record IdeVerificationResult(VerificationPreparationState PreparationProgress, IReadOnlyDictionary<string, IdeImplementationView> Implementations);
 
 /// <summary>
 /// Contains information from the latest document, and from older documents if some information is missing,
@@ -30,7 +31,7 @@ public record IdeState(
   IReadOnlyDictionary<Uri, IReadOnlyList<Diagnostic>> ResolutionDiagnostics,
   SymbolTable SymbolTable,
   LegacySignatureAndCompletionTable SignatureAndCompletionTable,
-  Dictionary<Uri, Dictionary<Range, IdeVerificationResult>> VerificationResults,
+  ImmutableDictionary<Uri, Dictionary<Range, IdeVerificationResult>> VerificationResults,
   IReadOnlyList<Counterexample> Counterexamples,
   IReadOnlyDictionary<Uri, IReadOnlyList<Range>> GhostRanges,
   IReadOnlyDictionary<Uri, DocumentVerificationTree> VerificationTrees
@@ -40,6 +41,7 @@ public record IdeState(
     var migratedVerificationTrees = VerificationTrees.ToDictionary(
       kv => kv.Key, kv =>
         (DocumentVerificationTree)migrator.RelocateVerificationTree(kv.Value));
+
     return this with {
       Version = version,
       VerificationResults = MigrateImplementationViews(migrator, VerificationResults),
@@ -48,32 +50,36 @@ public record IdeState(
     };
   }
 
-  private Dictionary<Uri, Dictionary<Range, IdeVerificationResult>> MigrateImplementationViews(Migrator migrator,
-    Dictionary<Uri, Dictionary<Range, IdeVerificationResult>> oldVerificationDiagnostics) {
-    return oldVerificationDiagnostics.ToDictionary(kv => kv.Key, kv => {
-      var result = new Dictionary<Range, IdeVerificationResult>();
-      foreach (var entry in kv.Value) {
-        var newOuterRange = migrator.MigrateRange(entry.Key);
-        if (newOuterRange == null) {
-          continue;
-        }
-
-        var newValue = new Dictionary<string, IdeImplementationView>();
-        foreach (var innerEntry in entry.Value.Implementations) {
-          var newInnerRange = migrator.MigrateRange(innerEntry.Value.Range);
-          if (newInnerRange != null) {
-            newValue.Add(innerEntry.Key, innerEntry.Value with {
-              Range = newInnerRange,
-              Diagnostics = migrator.MigrateDiagnostics(innerEntry.Value.Diagnostics)
-            });
-          }
-        }
-
-        result.Add(newOuterRange, entry.Value with { Implementations = newValue });
+  private ImmutableDictionary<Uri, Dictionary<Range, IdeVerificationResult>> MigrateImplementationViews(
+    Migrator migrator,
+    ImmutableDictionary<Uri, Dictionary<Range, IdeVerificationResult>> oldVerificationDiagnostics) {
+    var uri = migrator.MigratedUri;
+    var previous = oldVerificationDiagnostics.GetValueOrDefault(uri);
+    if (previous == null) {
+      return oldVerificationDiagnostics;
+    }
+    var result = new Dictionary<Range, IdeVerificationResult>();
+    foreach (var entry in previous) {
+      var newOuterRange = migrator.MigrateRange(entry.Key);
+      if (newOuterRange == null) {
+        continue;
       }
 
-      return result;
-    });
+      var newValue = new Dictionary<string, IdeImplementationView>();
+      foreach (var innerEntry in entry.Value.Implementations) {
+        var newInnerRange = migrator.MigrateRange(innerEntry.Value.Range);
+        if (newInnerRange != null) {
+          newValue.Add(innerEntry.Key, innerEntry.Value with {
+            Range = newInnerRange,
+            Diagnostics = migrator.MigrateDiagnostics(innerEntry.Value.Diagnostics)
+          });
+        }
+      }
+
+      result.Add(newOuterRange, entry.Value with { Implementations = newValue });
+    }
+
+    return oldVerificationDiagnostics.SetItem(uri, result);
   }
 
   public IReadOnlyDictionary<Range, IdeVerificationResult> GetVerificationResults(Uri uri) {
