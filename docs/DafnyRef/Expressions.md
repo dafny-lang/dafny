@@ -459,7 +459,7 @@ The _specification_ is a list of clauses `requires E` or
 expression.
 
 _body_ is an expression that defines the function's return
-value.  The body must be well-formed for all possible values of the
+value.  The body must be [well-formed](#sec-assertion-batches) for all possible values of the
 parameters that satisfy the precondition (just like the bodies of
 named functions and methods).  In some cases, this means it is
 necessary to write explicit `requires` and `reads` clauses.  For
@@ -468,7 +468,7 @@ example, the lambda expression
 ```dafny
 x requires x != 0 => 100 / x
 ```
-would not be well-formed if the `requires` clause were omitted,
+would not be [well-formed](#sec-assertion-batches) if the `requires` clause were omitted,
 because of the possibility of division-by-zero.
 
 In settings where functions cannot be partial and there are no
@@ -1374,7 +1374,7 @@ where the bound variable is of a reference type. In non-ghost contexts,
 it is not allowed, because--even though the resulting set would be
 finite--it is not pleasant or practical to compute at run time.
 
-[^set-of-objects-not-in-functions]: In order to be deterministic, the result of a function should only depend on the arguments and of the objects  it [reads](#sec-reads-clause), and Dafny does not provide a way to explicitly pass the entire heap as the argument to a function. See [this post](https://github.com/dafny-lang/dafny/issues/1366#issuecomment-906785889) for more insights.
+[^set-of-objects-not-in-functions]: In order to be deterministic, the result of a function should only depend on the arguments and of the objects  it [reads](#sec-reads-clause), and Dafny does not provide a way to explicitly pass the entire heap as the argument to a function. See [this post](https://github.com/dafny-lang/dafny/issues/1366) for more insights.
 
 The universe in which set comprehensions are evaluated is the set of all
 _allocated_ objects, of the appropriate type and satisfying the given predicate.

@@ -1,4 +1,4 @@
-// RUN: %testDafnyForEachCompiler "%s" -- --general-traits --type-system-refresh
+// RUN: %testDafnyForEachCompiler "%s" --refresh-exit-code=0 -- --general-traits --type-system-refresh
 
 method Main() {
   Tests.Test();

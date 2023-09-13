@@ -99,6 +99,12 @@ Usage: dafny [ option ... ] [ filename ... ]
   
   ---- Language feature selection --------------------------------------------
   
+  /defaultFunctionOpacity:<value>
+      Change the default opacity of functions. 
+      `transparent` (default) means functions are transparent, can be manually made opaque and then revealed. 
+      `autoRevealDependencies` makes all functions not explicitly labelled as opaque to be opaque but reveals them automatically in scopes which do not have `{:autoRevealDependencies false}`. 
+      `opaque` means functions are always opaque so the opaque keyword is not needed, and functions must be revealed everywhere needed for a proof.
+
   /generalTraits:<value>
       0 (default) - Every trait implicitly extends 'object', and thus is a reference type. Only traits and classes can extend traits.
       1 - A trait is a reference type iff it or one of its ancestor traits is 'object'. Any type with members can extend traits.
@@ -106,6 +112,10 @@ Usage: dafny [ option ... ] [ filename ... ]
   /ntitrace:<value>
       0 (default) - Don't print debug information for the new type system.
       1 - Print debug information for the new type system.
+
+  /readsClausesOnMethods:<value>
+      0 (default) - Reads clauses on methods are forbidden.
+      1 - Reads clauses on methods are permitted (with a default of 'reads *').
 
   /titrace:<value>
       0 (default) - Don't print type-inference debug information.

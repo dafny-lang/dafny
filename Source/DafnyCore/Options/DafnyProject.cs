@@ -2,9 +2,12 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.CommandLine;
+using System.CommandLine.Parsing;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Runtime.Serialization;
+using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using DafnyCore.Options;
@@ -56,35 +59,65 @@ public class DafnyProject : IEquatable<DafnyProject> {
     if (!Uri.IsFile) {
       return new[] { Uri };
     }
+    var matcher = GetMatcher(out var searchRoot);
 
-    var matcher = GetMatcher();
-
-    var diskRoot = Path.GetPathRoot(Uri.LocalPath);
-    var result = matcher.Execute(fileSystem.GetDirectoryInfoBase(diskRoot));
-    var files = result.Files.Select(f => Path.Combine(diskRoot, f.Path));
+    var result = matcher.Execute(fileSystem.GetDirectoryInfoBase(searchRoot));
+    var files = result.Files.Select(f => Path.Combine(searchRoot, f.Path));
     return files.Select(file => new Uri(Path.GetFullPath(file)));
   }
 
   public bool ContainsSourceFile(Uri uri) {
-    var fileSystemWithSourceFile = new InMemoryDirectoryInfoFromDotNet8(Path.GetPathRoot(uri.LocalPath)!, new[] { uri.LocalPath });
-    return GetMatcher().Execute(fileSystemWithSourceFile).HasMatches;
+    var matcher = GetMatcher(out var searchRoot);
+    var fileSystemWithSourceFile = new InMemoryDirectoryInfoFromDotNet8(searchRoot, new[] { uri.LocalPath });
+    return matcher.Execute(fileSystemWithSourceFile).HasMatches;
   }
 
-  private Matcher GetMatcher() {
+  private Matcher GetMatcher(out string commonRoot) {
     var projectRoot = Path.GetDirectoryName(Uri.LocalPath)!;
-    var root = Path.GetPathRoot(Uri.LocalPath)!;
+    var diskRoot = Path.GetPathRoot(Uri.LocalPath)!;
+
+    var includes = Includes ?? new[] { "**/*.dfy" };
+    var excludes = Excludes ?? Array.Empty<string>();
+    var fullPaths = includes.Concat(excludes).Select(p => Path.GetFullPath(p, projectRoot)).ToList();
+    commonRoot = GetCommonParentDirectory(fullPaths) ?? diskRoot;
     var matcher = new Matcher();
-    foreach (var includeGlob in Includes ?? new[] { "**/*.dfy" }) {
-      var fullPath = Path.GetFullPath(includeGlob, projectRoot);
-      matcher.AddInclude(Path.GetRelativePath(root, fullPath));
+    foreach (var includeGlob in includes) {
+      matcher.AddInclude(Path.GetRelativePath(commonRoot, Path.GetFullPath(includeGlob, projectRoot)));
     }
 
-    foreach (var includeGlob in Excludes ?? Enumerable.Empty<string>()) {
-      var fullPath = Path.GetFullPath(includeGlob, projectRoot);
-      matcher.AddExclude(Path.GetRelativePath(root, fullPath));
+    foreach (var excludeGlob in excludes) {
+      matcher.AddExclude(Path.GetRelativePath(commonRoot, Path.GetFullPath(excludeGlob, projectRoot)));
     }
 
     return matcher;
+  }
+
+  string GetCommonParentDirectory(IReadOnlyList<string> strings) {
+    if (!strings.Any()) {
+      return null;
+    }
+    var commonPrefix = strings.FirstOrDefault() ?? "";
+
+    foreach (var newString in strings) {
+      var potentialMatchLength = Math.Min(newString.Length, commonPrefix.Length);
+
+      if (potentialMatchLength < commonPrefix.Length) {
+        commonPrefix = commonPrefix.Substring(0, potentialMatchLength);
+      }
+
+      for (var i = 0; i < potentialMatchLength; i++) {
+        if (newString[i] == '*' || newString[i] != commonPrefix[i]) {
+          commonPrefix = commonPrefix.Substring(0, i);
+          break;
+        }
+      }
+    }
+
+    if (!Path.EndsInDirectorySeparator(commonPrefix)) {
+      commonPrefix = Path.GetDirectoryName(commonPrefix);
+    }
+
+    return commonPrefix;
   }
 
   public void Validate(TextWriter outputWriter, IEnumerable<Option> possibleOptions) {
@@ -110,55 +143,41 @@ public class DafnyProject : IEquatable<DafnyProject> {
       return false;
     }
 
-    return TryGetValueFromToml(errorWriter, Path.GetDirectoryName(Uri.LocalPath), option.Name, option.ValueType, tomlValue, out value);
-  }
-
-  public static bool TryGetValueFromToml(TextWriter errorWriter, string sourceDir, string tomlPath, System.Type type, object tomlValue, out object value) {
-    if (tomlValue == null) {
+    var printTomlValue = PrintTomlOptionToCliValue(tomlValue, option);
+    var parseResult = option.Parse(new[] { option.Aliases.First(), printTomlValue });
+    if (parseResult.Errors.Any()) {
+      errorWriter.WriteLine($"Error: Could not parse value '{tomlValue}' for option '{option.Name}' that has type '{option.ValueType.Name}'");
       value = null;
       return false;
     }
-
-    if (type.IsAssignableFrom(typeof(List<string>))) {
-      return TryGetListValueFromToml<string>(errorWriter, sourceDir, tomlPath, (TomlArray)tomlValue, out value);
-    }
-    if (type.IsAssignableFrom(typeof(List<FileInfo>))) {
-      return TryGetListValueFromToml<FileInfo>(errorWriter, sourceDir, tomlPath, (TomlArray)tomlValue, out value);
-    }
-
-    if (type == typeof(FileInfo) && tomlValue is string tomlString) {
-      // Need to make sure relative paths are interpreted relative to the source of the value,
-      // not the current directory.
-      var fullPath = sourceDir != null ? Path.GetFullPath(tomlString, sourceDir) : tomlString;
-      value = new FileInfo(fullPath);
-      return true;
-    }
-
-    if (!type.IsInstanceOfType(tomlValue)) {
-      if (type == typeof(string)) {
-        value = tomlValue.ToString();
-        return true;
-      }
-      errorWriter.WriteLine(
-        $"Error: property '{tomlPath}' is of type '{tomlValue.GetType()}' but should be of type '{type}'");
-      value = null;
-      return false;
-    }
-
-    value = tomlValue;
+    // By using the dynamic keyword, we can use the generic version of GetValueForOption which does type conversion,
+    // which is sadly not accessible without generics.
+    value = parseResult.GetValueForOption((dynamic)option);
     return true;
   }
 
-  private static bool TryGetListValueFromToml<T>(TextWriter errorWriter, string sourceDir, string tomlPath, TomlArray tomlValue, out object value) {
-    var success = true;
-    value = tomlValue.Select((e, i) => {
-      if (TryGetValueFromToml(errorWriter, sourceDir, $"{tomlPath}[{i}]", typeof(T), e, out var elementValue)) {
-        return (T)elementValue;
+  string PrintTomlOptionToCliValue(object value, Option valueType) {
+    var projectDirectory = Path.GetDirectoryName(Uri.LocalPath);
+
+    if (value is TomlArray array) {
+      if (valueType.ValueType.IsAssignableTo(typeof(IEnumerable<FileInfo>))) {
+        return string.Join(" ", array.Select(element => {
+          if (element is string elementString) {
+            return Path.GetFullPath(elementString, projectDirectory!);
+          }
+
+          return element.ToString();
+        }));
       }
-      success = false;
-      return default(T);
-    }).ToList();
-    return success;
+
+      return string.Join(" ", array);
+    }
+
+    if (value is string stringValue && valueType.ValueType == typeof(FileInfo)) {
+      value = Path.GetFullPath(stringValue, projectDirectory);
+    }
+
+    return value.ToString();
   }
 
   public bool Equals(DafnyProject other) {

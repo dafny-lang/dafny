@@ -7,7 +7,7 @@ namespace Microsoft.Dafny;
 /// check that the subset constraint is compilable. If it is not compilable, raises an error.
 /// </summary>
 public class SubsetConstraintGhostChecker : ProgramTraverser {
-  public class FirstErrorCollector : ErrorReporter {
+  private class FirstErrorCollector : ErrorReporter {
     public string FirstCollectedMessage = "";
     public IToken FirstCollectedToken = Token.NoToken;
     public bool Collected = false;
@@ -15,7 +15,8 @@ public class SubsetConstraintGhostChecker : ProgramTraverser {
     public bool Message(MessageSource source, ErrorLevel level, IToken tok, string msg) {
       return Message(source, level, ErrorRegistry.NoneId, tok, msg);
     }
-    public override bool Message(MessageSource source, ErrorLevel level, string errorId, IToken tok, string msg) {
+
+    protected override bool MessageCore(MessageSource source, ErrorLevel level, string errorId, IToken tok, string msg) {
       if (!Collected && level == ErrorLevel.Error) {
         FirstCollectedMessage = msg;
         FirstCollectedToken = tok;
@@ -64,7 +65,7 @@ public class SubsetConstraintGhostChecker : ProgramTraverser {
     return field != null && parent != null && (
       (parent is Statement && field == "SpecificationSubExpressions") ||
       (parent is Function && (field is "Req.E" or "Reads.E" or "Ens.E" or "Decreases.Expressions")) ||
-      (parent is Method && (field is "Req.E" or "Mod.E" or "Ens.E" or "Decreases.Expressions"))
+      (parent is Method && (field is "Req.E" or "Reads.E" or "Mod.E" or "Ens.E" or "Decreases.Expressions"))
     );
   }
 

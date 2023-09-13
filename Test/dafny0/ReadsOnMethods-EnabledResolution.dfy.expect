@@ -1,0 +1,6 @@
+ReadsOnMethods-EnabledResolution.dfy(22,24): Error: lemmas are not allowed to have reads clauses (they are allowed to read all memory locations)
+ReadsOnMethods-EnabledResolution.dfy(24,41): Error: twostate lemmas are not allowed to have reads clauses (they are allowed to read all memory locations)
+ReadsOnMethods-EnabledResolution.dfy(26,45): Error: greatest lemmas are not allowed to have reads clauses (they are allowed to read all memory locations)
+ReadsOnMethods-EnabledResolution.dfy(28,44): Error: least lemmas are not allowed to have reads clauses (they are allowed to read all memory locations)
+ReadsOnMethods-EnabledResolution.dfy(40,10): Error: a refining method is not allowed to extend the reads clause
+5 resolution/type errors detected in ReadsOnMethods-EnabledResolution.dfy

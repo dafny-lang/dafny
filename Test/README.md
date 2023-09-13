@@ -102,3 +102,6 @@ to `true` (See https://www.jetbrains.com/help/rider/Reference__Options__Tools__U
 and then right-click the test you wish to debug and select
 `Debug Selected Unit Tests`. You will see exceptions if the test you are running makes multiple calls to commands like `%dafny`,
 so you may wish to remove the calls you are not interested in first, e.g. if you are debugging an issue with a specific compiler.
+
+## Updating test expect files
+If you set the static field `DiffCommand.UpdateExpectFile` to true instead of false, then the `diff` command in tests will not do a comparison but instead overwrite the expected file with the actual contents. This can be useful when you need to update expect files.

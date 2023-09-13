@@ -110,29 +110,22 @@ public static class NodeExtensions {
   }
 
   public static IEnumerable<LList<INode>> FindNodeChainsInUri(this INode node, Uri uri, LList<INode> parent) {
-    if (node.Tok.Uri != null) {
-      if (node.Tok.Uri == uri) {
+    if (node.RangeToken.Uri != null) {
+      if (node.RangeToken.Uri == uri) {
         return new[] { new LList<INode>(node, parent) };
       }
 
-      return null;
+      return new LList<INode>[] { };
     }
 
     var newParent = new LList<INode>(node, parent);
-    foreach (var child in node.Children) {
-      var result = child.FindNodeChainsInUri(uri, newParent);
-      if (result != null) {
-        return result;
-      }
-    }
-
-    return null;
+    return node.Children.SelectMany(child => child.FindNodeChainsInUri(uri, newParent));
   }
 
   private static LList<INode> FindNodeChain(this INode node, Uri uri, DafnyPosition position, LList<INode> parent,
     Func<INode, bool> predicate) {
-    if (node.Tok.Uri != null) {
-      if (node.Tok.Uri == uri) {
+    if (node.RangeToken.Uri != null) {
+      if (node.RangeToken.Uri == uri) {
         return node.FindNodeChain(position, parent, predicate);
       }
 

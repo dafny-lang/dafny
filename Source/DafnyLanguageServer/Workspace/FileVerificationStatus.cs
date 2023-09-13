@@ -9,10 +9,26 @@ namespace Microsoft.Dafny.LanguageServer.Workspace;
 
 public record FileVerificationStatus(
   DocumentUri Uri,
-  int Version,
+  int? Version,
   IReadOnlyList<NamedVerifiableStatus> NamedVerifiables) : IRequest {
   public override string ToString() {
     return $"{nameof(NamedVerifiables)}: {string.Join(", ", NamedVerifiables)}";
+  }
+
+  public virtual bool Equals(FileVerificationStatus? other) {
+    if (ReferenceEquals(null, other)) {
+      return false;
+    }
+
+    if (ReferenceEquals(this, other)) {
+      return true;
+    }
+
+    return NamedVerifiables.SequenceEqual(other.NamedVerifiables);
+  }
+
+  public override int GetHashCode() {
+    return 0;
   }
 }
 

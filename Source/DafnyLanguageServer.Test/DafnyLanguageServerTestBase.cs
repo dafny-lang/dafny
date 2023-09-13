@@ -16,6 +16,7 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using DafnyCore.Test;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Various;
 using Microsoft.Dafny.LanguageServer.Language;
 using OmniSharp.Extensions.LanguageServer.Client;
@@ -25,7 +26,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest {
   public class DafnyLanguageServerTestBase : LanguageProtocolTestBase {
 
     protected readonly string SlowToVerify = @"
-lemma {:timeLimit 3} SquareRoot2NotRational(p: nat, q: nat)
+lemma {:rlimit 100} SquareRoot2NotRational(p: nat, q: nat)
   requires p > 0 && q > 0
   ensures (p * p) !=  2 * (q * q)
 { 
@@ -39,6 +40,8 @@ lemma {:timeLimit 3} SquareRoot2NotRational(p: nat, q: nat)
     }
   }
 }".TrimStart();
+
+    protected string SlowToVerifyNoLimit => SlowToVerify.Replace(" {:rlimit 100}", "");
 
     protected readonly string NeverVerifies = @"
 lemma {:neverVerify} HasNeverVerifyAttribute(p: nat, q: nat)
@@ -94,6 +97,7 @@ lemma {:neverVerify} HasNeverVerifyAttribute(p: nat, q: nat)
 
     private Action<LanguageServerOptions> GetServerOptionsAction(Action<DafnyOptions> modifyOptions) {
       var dafnyOptions = DafnyOptions.Create(output);
+      dafnyOptions.Set(ServerCommand.UpdateThrottling, 0);
       modifyOptions?.Invoke(dafnyOptions);
       ServerCommand.ConfigureDafnyOptionsForServer(dafnyOptions);
       ApplyDefaultOptionValues(dafnyOptions);

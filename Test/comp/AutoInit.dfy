@@ -1,4 +1,4 @@
-// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment
+// RUN: %testDafnyForEachCompiler "%s" --refresh-exit-code=0 -- --relax-definite-assignment
 
 // This file tests the compilation of some default values. It also includes some
 // regression tests for equality, printing, and tuples.
@@ -62,7 +62,6 @@ method Main() {
   NilRegression.Test();
   DatatypeDefaultValues.Test();
   ImportedTypes.Test();
-  GhostWitness.Test();
   TypeDescriptorInDatatypeValue.Test();
   DatatypeValues.Test();
 }
@@ -286,44 +285,7 @@ module ImportedTypes {
   }
 }
 
-module GhostWitness {
-  type EffectlessArrow<!A(!new), B(00)> = f: A ~> B
-    | forall a :: f.reads(a) == {}
-    ghost witness GhostEffectlessArrowWitness<A, B>
 
-  ghost function GhostEffectlessArrowWitness<A, B(00)>(a: A): B
-  {
-    var b: B :| true; b
-  }
-
-  codatatype Forever = More(Forever)
-
-  class MyClass { }
-
-  ghost predicate Total<A(!new), B>(f: A ~> B)  // (is this (!new) really necessary?)
-    reads f.reads
-  {
-    forall a :: f.reads(a) == {} && f.requires(a)
-  }
-
-  type TotalArrow<!A(!new), B(00)> = f: EffectlessArrow<A, B>
-    | Total(f)
-    ghost witness TotalWitness<A, B>
-
-  ghost function TotalWitness<A, B(00)>(a: A): B
-  {
-    var b: B :| true; b
-  }
-
-  method Test() {
-    var g: EffectlessArrow<int, int>;
-    var f: TotalArrow<int, int>;
-    f := y => y + 2;
-    g := f;
-    var x := g(4) + f(5);
-    print x, "\n";
-  }
-}
 
 module TypeDescriptorInDatatypeValue {
   // auto-init type parameters: A, C

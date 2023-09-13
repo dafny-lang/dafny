@@ -1,5 +1,5 @@
 // UNSUPPORTED: windows
-// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment
+// RUN: %testDafnyForEachCompiler "%s" --refresh-exit-code=0 -- --relax-definite-assignment
 method Main() // Windows not supported because of Java that does not pass the check as expected on the CI
 {
   PrintStream("Up", Up(19));
@@ -141,7 +141,7 @@ function OnlyDs(): Lang<char>
 greatest predicate TotalLang<S(!new)>(l: Lang<S>)
   reads *
 {
-  forall s: S :: l.deriv.reads(s) == {} && l.deriv.requires(s) && TotalLang(l.deriv(s))
+  forall s: S :: l.deriv.requires(s) && l.deriv.reads(s) == {} && TotalLang(l.deriv(s))
 }
 
 greatest lemma NothingTotal<S>()
@@ -159,7 +159,7 @@ greatest lemma OnlyDsTotal()
 greatest predicate TotalLang_Nat<S(!new)>[nat](l: Lang<S>)
   reads *
 {
-  forall s: S :: l.deriv.reads(s) == {} && l.deriv.requires(s) && TotalLang_Nat(l.deriv(s))
+  forall s: S :: l.deriv.requires(s) && l.deriv.reads(s) == {} && TotalLang_Nat(l.deriv(s))
 }
 
 greatest lemma NothingTotal_Nat<S>[nat]()

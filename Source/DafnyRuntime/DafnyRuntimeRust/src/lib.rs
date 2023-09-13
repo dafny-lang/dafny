@@ -1,11 +1,12 @@
-use std::{fmt::{Display, Formatter}, rc::Rc, ops::Deref};
-use num::{Integer, Signed, One, Zero};
+use std::{fmt::{Display, Formatter}, rc::Rc, ops::{Deref, Add}, collections::{HashSet, HashMap}, cell::RefCell};
+use num::{Integer, Signed, One};
 pub use once_cell::unsync::Lazy;
 
 pub use num::bigint::BigInt;
 pub use num::rational::BigRational;
 pub use num::FromPrimitive;
 pub use num::NumCast;
+pub use num::Zero;
 
 pub fn dafny_rational_to_int(r: &BigRational) -> BigInt {
     euclidian_division(r.numer().clone(), r.denom().clone())
@@ -42,6 +43,32 @@ pub fn euclidian_modulo<A: Signed + Zero + One + Clone + PartialEq>(a: A, b: A) 
         } else {
             bp - c
         }
+    }
+}
+
+pub struct IntegerRange<A: Add<Output = A> + One + Ord + Clone> {
+    hi: A,
+    current: A,
+}
+
+impl <A: Add<Output = A> + One + Ord + Clone> Iterator for IntegerRange<A> {
+    type Item = A;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.current < self.hi {
+            let result = self.current.clone();
+            self.current = self.current.clone() + One::one();
+            Some(result)
+        } else {
+            None
+        }
+    }
+}
+
+pub fn integer_range<A: Add<Output = A> + One + Ord + Clone>(low: A, hi: A) -> impl Iterator<Item = A> {
+    IntegerRange {
+        hi,
+        current: low
     }
 }
 
@@ -119,6 +146,32 @@ pub trait DafnyUnerasable<T: ?Sized> {
     fn unerase_owned(v: T) -> Self;
 }
 
+impl <T: DafnyErasable> DafnyErasable for Option<T> {
+    type Erased = Option<T::Erased>;
+
+    #[inline]
+    fn erase(&self) -> &Self::Erased {
+        unsafe { &*(self as *const Self as *const Self::Erased) }
+    }
+
+    #[inline]
+    fn erase_owned(self) -> Self::Erased {
+        unsafe { transmute_unchecked(self) }
+    }
+}
+
+impl <T: DafnyUnerasable<U>, U> DafnyUnerasable<Option<U>> for Option<T> {
+    #[inline]
+    fn unerase(v: &Option<U>) -> &Self {
+        unsafe { &*(v as *const Option<U> as *const Self) }
+    }
+
+    #[inline]
+    fn unerase_owned(v: Option<U>) -> Self {
+        unsafe { transmute_unchecked(v) }
+    }
+}
+
 impl <T> DafnyErasable for Rc<T> {
     type Erased = Rc<T>;
 
@@ -167,6 +220,58 @@ impl <T> DafnyUnerasable<Vec<T>> for Vec<T> {
 
     #[inline]
     fn unerase_owned(v: Vec<T>) -> Self {
+        v
+    }
+}
+
+impl <T> DafnyErasable for HashSet<T> {
+    type Erased = HashSet<T>;
+
+    #[inline]
+    fn erase(&self) -> &Self::Erased {
+        self
+    }
+
+    #[inline]
+    fn erase_owned(self) -> Self::Erased {
+        self
+    }
+}
+
+impl <T> DafnyUnerasable<HashSet<T>> for HashSet<T> {
+    #[inline]
+    fn unerase(v: &HashSet<T>) -> &Self {
+        v
+    }
+
+    #[inline]
+    fn unerase_owned(v: HashSet<T>) -> Self {
+        v
+    }
+}
+
+impl <K, V> DafnyErasable for HashMap<K, V> {
+    type Erased = HashMap<K, V>;
+
+    #[inline]
+    fn erase(&self) -> &Self::Erased {
+        self
+    }
+
+    #[inline]
+    fn erase_owned(self) -> Self::Erased {
+        self
+    }
+}
+
+impl <K, V> DafnyUnerasable<HashMap<K, V>> for HashMap<K, V> {
+    #[inline]
+    fn unerase(v: &HashMap<K, V>) -> &Self {
+        v
+    }
+
+    #[inline]
+    fn unerase_owned(v: HashMap<K, V>) -> Self {
         v
     }
 }
@@ -246,6 +351,16 @@ impl_already_erased! { () }
 impl_already_erased! { BigInt }
 impl_already_erased! { BigRational }
 
+// from gazebo
+#[inline]
+unsafe fn transmute_unchecked<A, B>(x: A) -> B {
+    assert_eq!(std::mem::size_of::<A>(), std::mem::size_of::<B>());
+    debug_assert_eq!(0, (&x as *const A).align_offset(std::mem::align_of::<B>()));
+    let b = std::ptr::read(&x as *const A as *const B);
+    std::mem::forget(x);
+    b
+}
+
 macro_rules! impl_tuple_erased {
     ($($items:ident)*) => {
         impl <$($items,)*> DafnyErasable for ($($items,)*)
@@ -261,7 +376,7 @@ macro_rules! impl_tuple_erased {
 
             #[inline]
             fn erase_owned(self) -> Self::Erased {
-                unsafe { std::mem::transmute_copy(&self) }
+                unsafe { transmute_unchecked(self) }
             }
         }
 
@@ -275,7 +390,7 @@ macro_rules! impl_tuple_erased {
 
                 #[inline]
                 fn unerase_owned(v: ($([<T $items>],)*)) -> Self {
-                    unsafe { std::mem::transmute_copy(&v) }
+                    unsafe { transmute_unchecked(v) }
                 }
             }
         }
@@ -363,6 +478,15 @@ impl DafnyPrint for char {
     #[inline]
     fn is_char() -> bool {
         true
+    }
+}
+
+impl <T: DafnyPrint> DafnyPrint for Option<T> {
+    fn fmt_print(&self, f: &mut Formatter<'_>, _in_seq: bool) -> std::fmt::Result {
+        match self {
+            Some(x) => x.fmt_print(f, false),
+            None => write!(f, "null")
+        }
     }
 }
 
@@ -474,6 +598,32 @@ impl <T: DafnyPrint> DafnyPrint for Vec<T> {
         } else {
             Ok(())
         }
+    }
+}
+
+impl <T: DafnyPrint> DafnyPrint for RefCell<T> {
+    fn fmt_print(&self, f: &mut Formatter<'_>, _in_seq: bool) -> std::fmt::Result {
+        self.borrow().fmt_print(f, _in_seq)
+    }
+}
+
+impl <T: DafnyPrint> DafnyPrint for HashSet<T> {
+    fn fmt_print(&self, f: &mut Formatter<'_>, _in_seq: bool) -> std::fmt::Result {
+        write!(f, "{{")?;
+
+        let mut i = 0;
+
+        for item in self.iter() {
+            if i > 0 {
+                write!(f, ", ")?;
+            }
+
+            item.fmt_print(f, false)?;
+
+            i += 1;
+        }
+
+        write!(f, "}}")
     }
 }
 

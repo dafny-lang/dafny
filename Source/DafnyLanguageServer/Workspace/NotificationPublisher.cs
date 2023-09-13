@@ -34,58 +34,109 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         return;
       }
 
-      PublishVerificationStatus(previousState, state);
+      PublishProgress(previousState, state);
       PublishGhostness(previousState, state);
       await PublishDiagnostics(state);
     }
 
-    private void PublishVerificationStatus(IdeState previousState, IdeState state) {
-      var currentPerFile = GetFileVerificationStatus(state);
-      var previousPerFile = GetFileVerificationStatus(previousState);
+    private void PublishProgress(IdeState previousState, IdeState state) {
+      // Some global progress values, such as ResolutionSucceeded, will trigger the symbol progress to be displayed.
+      // To ensure that the displayed progress is always up-to-date,
+      // we must publish symbol progress before publishing the global one.
 
-      foreach (var (uri, current) in currentPerFile) {
-        if (previousPerFile.TryGetValue(uri, out var previous)) {
-          if (previous.NamedVerifiables.SequenceEqual(current.NamedVerifiables)) {
-            continue;
-          }
+      // Better would be to have a single notification API with the schema { globalProgress, symbolProgress }
+      // so this problem can not occur, although that would require the "symbolProgress" part to be able to contain a
+      // "no-update" value to prevent having to send many duplicate symbolProgress updates.
+
+      PublishSymbolProgress(previousState, state);
+      PublishGlobalProgress(previousState, state);
+    }
+
+    private void PublishSymbolProgress(IdeState previousState, IdeState state) {
+      foreach (var uri in state.Compilation.RootUris) {
+        var previous = GetFileVerificationStatus(previousState, uri);
+        var current = GetFileVerificationStatus(state, uri);
+
+        if (Equals(current, previous)) {
+          continue;
         }
+
         languageServer.TextDocument.SendNotification(DafnyRequestNames.VerificationSymbolStatus, current);
       }
     }
 
-    private static IDictionary<Uri, FileVerificationStatus> GetFileVerificationStatus(IdeState state) {
-      return state.VerificationResults.GroupBy(kv => kv.Key.Uri).
-        ToDictionary(kv => kv.Key.ToUri(), kvs =>
-        new FileVerificationStatus(kvs.Key, state.Compilation.Version,
-          kvs.Select(kv => GetNamedVerifiableStatuses(kv.Key, kv.Value)).
-            OrderBy(s => s.NameRange.Start).ToList()));
+    private void PublishGlobalProgress(IdeState previousState, IdeState state) {
+      foreach (var uri in state.Compilation.RootUris) {
+        // TODO, still have to check for ownedness
+
+        var current = GetGlobalProgress(state);
+        var previous = GetGlobalProgress(previousState);
+
+        if (Equals(current, previous)) {
+          continue;
+        }
+
+        languageServer.SendNotification(new CompilationStatusParams {
+          Uri = uri,
+          Version = filesystem.GetVersion(uri),
+          Status = current,
+          Message = null
+        });
+      }
+
     }
 
-    private static NamedVerifiableStatus GetNamedVerifiableStatuses(Location canVerify, IdeVerificationResult result) {
-      var status = result.WasTranslated
-        ? result.Implementations.Any()
-          ? result.Implementations.Values.Select(v => v.Status).Aggregate(Combine)
-          : PublishedVerificationStatus.Correct
-        : PublishedVerificationStatus.Stale;
+    private CompilationStatus GetGlobalProgress(IdeState state) {
+      var hasResolutionDiagnostics = state.ResolutionDiagnostics.Values.SelectMany(x => x).
+        Any(d => d.Severity == DiagnosticSeverity.Error);
+      if (state.Compilation is CompilationAfterResolution) {
+        if (hasResolutionDiagnostics) {
+          return CompilationStatus.ResolutionFailed;
+        }
 
-      return new(canVerify.Range, status);
+        return CompilationStatus.ResolutionSucceeded;
+      }
+
+      if (state.Compilation is CompilationAfterParsing) {
+        if (hasResolutionDiagnostics) {
+          return CompilationStatus.ParsingFailed;
+        }
+
+        return CompilationStatus.ResolutionStarted;
+      }
+
+      return CompilationStatus.Parsing;
     }
 
-    static PublishedVerificationStatus Combine(PublishedVerificationStatus first, PublishedVerificationStatus second) {
-      return new[] { first, second }.Min();
+    private FileVerificationStatus GetFileVerificationStatus(IdeState state, Uri uri) {
+      var verificationResults = state.GetVerificationResults(uri);
+      return new FileVerificationStatus(uri, filesystem.GetVersion(uri),
+        verificationResults.Select(kv => GetNamedVerifiableStatuses(kv.Key, kv.Value)).
+            OrderBy(s => s.NameRange.Start).ToList());
+    }
+
+    private static NamedVerifiableStatus GetNamedVerifiableStatuses(Range canVerify, IdeVerificationResult result) {
+      var status = result.PreparationProgress switch {
+        VerificationPreparationState.NotStarted => PublishedVerificationStatus.Stale,
+        VerificationPreparationState.InProgress => PublishedVerificationStatus.Queued,
+        VerificationPreparationState.Done =>
+            new[] { PublishedVerificationStatus.Correct }. // If there is nothing to verify, show correct
+              Concat(result.Implementations.Values.Select(v => v.Status)).Min(),
+        _ => throw new ArgumentOutOfRangeException()
+      };
+
+      return new(canVerify, status);
     }
 
     private readonly Dictionary<Uri, IList<Diagnostic>> publishedDiagnostics = new();
 
     private async Task PublishDiagnostics(IdeState state) {
-      var currentDiagnostics = state.GetDiagnostics();
-
       // All root uris are added because we may have to publish empty diagnostics for owned uris.
-      var sources = currentDiagnostics.Keys.Concat(state.Compilation.RootUris).Distinct();
+      var sources = state.GetDiagnosticUris().Concat(state.Compilation.RootUris).Distinct();
 
       var projectDiagnostics = new List<Diagnostic>();
       foreach (var uri in sources) {
-        var current = currentDiagnostics.GetOrDefault(uri, Enumerable.Empty<Diagnostic>).ToArray();
+        var current = state.GetDiagnosticsForUri(uri);
         var uriProject = await projectManagerDatabase.GetProject(uri);
         var ownedUri = uriProject.Equals(state.Compilation.Project);
         if (ownedUri) {
@@ -94,7 +145,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
             // since it also serves as a bucket for diagnostics from unowned files
             projectDiagnostics.AddRange(current);
           } else {
-            PublishForUri(uri, currentDiagnostics.GetOrDefault(uri, Enumerable.Empty<Diagnostic>).ToArray());
+            PublishForUri(uri, current.ToArray());
           }
         } else {
           var errors = current.Where(d => d.Severity == DiagnosticSeverity.Error).ToList();
@@ -125,7 +176,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
           languageServer.TextDocument.PublishDiagnostics(new PublishDiagnosticsParams {
             Uri = publishUri,
-            Version = filesystem.GetVersion(publishUri) ?? 0,
+            Version = filesystem.GetVersion(publishUri),
             Diagnostics = diagnostics,
           });
         }
@@ -144,7 +195,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       var tree = state.VerificationTrees[uri];
 
       var linesCount = tree.Range.End.Line + 1;
-      var fileVersion = filesystem.GetVersion(uri) ?? 0;
+      var fileVersion = filesystem.GetVersion(uri);
       var verificationStatusGutter = VerificationStatusGutter.ComputeFrom(
         DocumentUri.From(uri),
         fileVersion,

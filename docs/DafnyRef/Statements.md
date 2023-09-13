@@ -1643,7 +1643,7 @@ the loop needs to be declared either with `invariant c.data == 100` or with
 When a loop has an explicit `modifies` clause, there is, at the top of
 every iteration, a proof obligation that
 
-* the expressions given in the `modifies` clause are well-formed, and
+* the expressions given in the `modifies` clause are [well-formed](#sec-assertion-batches), and
 * everything indicated in the loop `modifies` clause is allowed to be modified by the
   (effective `modifies` clause of the) enclosing loop or method.
 
@@ -2104,8 +2104,8 @@ an extended illustration of this technique to make all the dependencies of an `a
 
 ### 8.20.3. Revealing function bodies
 
-Normally function bodies are transparent and available for constructing proofs of assertions that use those functions.
-However, sometimes it is helpful to mark a function [`{:opaque}`](#sec-opaque) and treat it as an uninterpreted function, whose properties are
+By default, function bodies are transparent and available for constructing proofs of assertions that use those functions. 
+This can be changed using the `--defaul-function-opacity` commandline flag, or by using the [`:{opaque}`](#sec-opaque) attribute and treat it as an uninterpreted function, whose properties are
 just its specifications.  This action limits the information available to the logical reasoning engine and may make a proof 
 possible where there might be information overload otherwise.
 
