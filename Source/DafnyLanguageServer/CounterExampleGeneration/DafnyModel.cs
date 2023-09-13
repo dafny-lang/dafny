@@ -239,25 +239,9 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
     /// <summary>
     /// Return the name of a 0-arity type function that maps to the element if such
     /// a function exists and is unique. Return null otherwise.
-    /// If the name is also aliased by a type parameter, return the name of the concrete type. 
     /// </summary>
     private static string GetTrueTypeName(Model.Element element) {
-      string name = null;
-      if (element == null) {
-        return null;
-      }
-      foreach (var funcTuple in element.Names) {
-        if (funcTuple.Func.Arity != 0) {
-          continue;
-        }
-        // Special characters below appear in type parameters. This method returns the concrete type if possible
-        if ((name == null) || name.Contains("$") || name.StartsWith("#") || name.Contains("@")) {
-          name = funcTuple.Func.Name;
-        } else if (!funcTuple.Func.Name.Contains("$") && !funcTuple.Func.Name.StartsWith("#") && !funcTuple.Func.Name.Contains("@")) {
-          return null;
-        }
-      }
-      return name;
+      return element?.Names.FirstOrDefault(funcTuple => funcTuple.Func.Arity == 0)?.Func.Name;
     }
 
     /// <summary> Get the Dafny type of an element </summary>
