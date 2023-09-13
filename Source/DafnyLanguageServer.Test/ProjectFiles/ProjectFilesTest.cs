@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 using Microsoft.Dafny.LanguageServer.Workspace;
+using OmniSharp.Extensions.LanguageServer.Protocol;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using Xunit;
 using Xunit.Abstractions;
@@ -31,7 +32,7 @@ public class ProjectFilesTest : ClientBasedLanguageServerTest {
     await File.WriteAllTextAsync(projectFilePath, projectFileSource);
     await CreateAndOpenTestDocument("method Foo() { }", Path.Combine(directory, "ProjectFileErrorIsShownFromDafnyFile.dfy"));
     var diagnostics = await diagnosticsReceiver.AwaitNextNotificationAsync(CancellationToken);
-    Assert.Equal(projectFilePath, diagnostics.Uri.GetFileSystemPath());
+    Assert.Equal(DocumentUri.File(projectFilePath), diagnostics.Uri.GetFileSystemPath());
     Assert.Equal(2, diagnostics.Diagnostics.Count());
     Assert.Equal(new Range(0, 0, 0, 0), diagnostics.Diagnostics.First().Range);
     Assert.Contains("contains the following errors", diagnostics.Diagnostics.First().Message);
