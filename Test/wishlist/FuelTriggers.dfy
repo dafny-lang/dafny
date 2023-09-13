@@ -1,5 +1,4 @@
-// RUN: %dafny /compile:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachResolver "%s"
 
 // THIS USED TO BE THE CASE:
 //
@@ -11,9 +10,9 @@
 //
 // This has been fixed, so the test assertion is now passing.
 
-ghost predicate {:opaque} P(x:int)
+opaque ghost predicate P(x:int)
 
-method test(y:int)
+method Test(y:int)
   requires forall x :: P(x)
 {
   assert P(y);
