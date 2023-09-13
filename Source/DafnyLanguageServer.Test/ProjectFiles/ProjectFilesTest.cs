@@ -72,10 +72,12 @@ module Consumer {
   }
 
   [Fact]
-  public async Task ProjectFileByItselfHasNoDiagnostics() {
+  public async Task ProjectFileByItselfDiagnostics() {
     var tempDirectory = Path.GetRandomFileName();
-    await CreateAndOpenTestDocument("", Path.Combine(tempDirectory, DafnyProject.FileName));
-    await AssertNoDiagnosticsAreComing(CancellationToken);
+    var projectFile = await CreateAndOpenTestDocument("", Path.Combine(tempDirectory, DafnyProject.FileName));
+    var diagnostics = await GetLastDiagnostics(projectFile);
+    Assert.Single(diagnostics);
+    Assert.Equal("Project references no files", diagnostics.First().Message);
   }
 
   [Fact]
@@ -96,7 +98,7 @@ method Foo() {
 ";
     var documentItem = CreateTestDocument(source, Path.Combine(tempDirectory, "source.dfy"));
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-    await AssertNoDiagnosticsAreComing(CancellationToken);
+    await AssertNoDiagnosticsAreComing(CancellationToken, documentItem);
 
     var warnShadowingOn = @"
 [options]
@@ -154,8 +156,8 @@ function-syntax = 4";
     Assert.Single(diagnostics1); // Stops after parsing
 
     await File.WriteAllTextAsync(Path.Combine(directory, DafnyProject.FileName), projectFileSource);
-    await CreateAndOpenTestDocument(source, Path.Combine(directory, "source.dfy"));
-    await AssertNoDiagnosticsAreComing(CancellationToken);
+    var sourceDocument = await CreateAndOpenTestDocument(source, Path.Combine(directory, "source.dfy"));
+    await AssertNoDiagnosticsAreComing(CancellationToken, sourceDocument);
   }
 
   [Fact]

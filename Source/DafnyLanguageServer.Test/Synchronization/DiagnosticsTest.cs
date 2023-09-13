@@ -58,13 +58,13 @@ module Consumer {
 ".TrimStart();
 
       var directory = Path.GetRandomFileName();
-      await CreateAndOpenTestDocument("", Path.Combine(directory, DafnyProject.FileName));
+      var project = await CreateAndOpenTestDocument("", Path.Combine(directory, DafnyProject.FileName));
       var producer = await CreateAndOpenTestDocument(producerSource, Path.Combine(directory, "producer.dfy"));
       var consumer = await CreateAndOpenTestDocument(consumerSource, Path.Combine(directory, "consumer.dfy"));
-      var diag1 = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
+      var diag1 = await GetLastDiagnostics(producer, CancellationToken);
       Assert.Equal(DiagnosticSeverity.Hint, diag1[0].Severity);
       ApplyChange(ref consumer, new Range(0, 0, 0, 0), "//trigger change\n");
-      await AssertNoDiagnosticsAreComing(CancellationToken);
+      await AssertNoDiagnosticsAreComing(CancellationToken, producer);
     }
 
 

@@ -10,6 +10,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Boogie;
+using Microsoft.Dafny.Compilers;
 using Microsoft.Extensions.Logging;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
@@ -76,7 +77,11 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       if (projectPath.EndsWith(DafnyProject.FileName)) {
         var projectDirectory = Path.GetDirectoryName(projectPath)!;
         var filesMessage = string.Join("\n", compilation.RootUris.Select(uri => Path.GetRelativePath(projectDirectory, uri.LocalPath)));
-        program.Reporter.Info(MessageSource.Parser, compilation.Project.StartingToken, "Files referenced by project are:\n" + filesMessage);
+        if (filesMessage.Any()) {
+          program.Reporter.Info(MessageSource.Parser, compilation.Project.StartingToken, "Files referenced by project are:\n" + filesMessage);
+        } else {
+          program.Reporter.Warning(MessageSource.Parser, CompilerErrors.ErrorId.None, compilation.Project.StartingToken, "Project references no files");
+        }
       }
       var compilationAfterParsing = new CompilationAfterParsing(compilation, program, errorReporter.AllDiagnosticsCopy,
         compilation.RootUris.ToDictionary(uri => uri,
