@@ -276,7 +276,7 @@ public static class CommandRegistry {
       }
 
       foreach (var diagnostic in projectFile.Errors.AllMessages) {
-        var message = diagnostic.Level + ": " + diagnostic.Message;
+        var message = $"{diagnostic.Level}: {diagnostic.Message}";
         if (diagnostic.Level == ErrorLevel.Error) {
           await dafnyOptions.ErrorWriter.WriteLineAsync(message);
         } else {
