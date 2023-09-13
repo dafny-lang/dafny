@@ -54,23 +54,23 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
         _ => 0
       };
       fSetSelect = ModelFuncWrapper.MergeFunctions(this, new List<string> { "MapType0Select", "MapType1Select" }, 2);
-      fSeqLength = new ModelFuncWrapper(this, "Seq#Length", 1, tyArgMultiplier);
-      fSeqBuild = new ModelFuncWrapper(this, "Seq#Build", 2, tyArgMultiplier);
-      fSeqAppend = new ModelFuncWrapper(this, "Seq#Append", 2, tyArgMultiplier);
-      fSeqDrop = new ModelFuncWrapper(this, "Seq#Drop", 2, tyArgMultiplier);
-      fSeqTake = new ModelFuncWrapper(this, "Seq#Take", 2, tyArgMultiplier);
-      fSeqIndex = new ModelFuncWrapper(this, "Seq#Index", 2, tyArgMultiplier);
-      fSeqUpdate = new ModelFuncWrapper(this, "Seq#Update", 3, tyArgMultiplier);
+      fSeqLength = new ModelFuncWrapper(this, "Seq#Length", 1, 0);
+      fSeqBuild = new ModelFuncWrapper(this, "Seq#Build", 2, 0);
+      fSeqAppend = new ModelFuncWrapper(this, "Seq#Append", 2, 0);
+      fSeqDrop = new ModelFuncWrapper(this, "Seq#Drop", 2, 0);
+      fSeqTake = new ModelFuncWrapper(this, "Seq#Take", 2, 0);
+      fSeqIndex = new ModelFuncWrapper(this, "Seq#Index", 2, 0);
+      fSeqUpdate = new ModelFuncWrapper(this, "Seq#Update", 3, 0);
       fSeqCreate = new ModelFuncWrapper(this, "Seq#Create", 4, 0);
-      fSeqEmpty = new ModelFuncWrapper(this, "Seq#Empty", 1, 0);
-      fSetEmpty = new ModelFuncWrapper(this, "Set#Empty", 1, 0);
-      fSetUnion = new ModelFuncWrapper(this, "Set#Union", 2, tyArgMultiplier);
-      fSetUnionOne = new ModelFuncWrapper(this, "Set#UnionOne", 2, tyArgMultiplier);
-      fSetIntersection = new ModelFuncWrapper(this, "Set#Intersection", 2, tyArgMultiplier);
-      fSetDifference = new ModelFuncWrapper(this, "Set#Difference", 2, tyArgMultiplier);
-      fMapDomain = new ModelFuncWrapper(this, "Map#Domain", 1, 2 * tyArgMultiplier);
-      fMapElements = new ModelFuncWrapper(this, "Map#Elements", 1, 2 * tyArgMultiplier);
-      fMapBuild = new ModelFuncWrapper(this, "Map#Build", 3, 2 * tyArgMultiplier);
+      fSeqEmpty = new ModelFuncWrapper(this, "Seq#Empty", 0, 0);
+      fSetEmpty = new ModelFuncWrapper(this, "Set#Empty", 0, 0);
+      fSetUnion = new ModelFuncWrapper(this, "Set#Union", 2, 0);
+      fSetUnionOne = new ModelFuncWrapper(this, "Set#UnionOne", 2, 0);
+      fSetIntersection = new ModelFuncWrapper(this, "Set#Intersection", 2, 0);
+      fSetDifference = new ModelFuncWrapper(this, "Set#Difference", 2, 0);
+      fMapDomain = new ModelFuncWrapper(this, "Map#Domain", 1, 0);
+      fMapElements = new ModelFuncWrapper(this, "Map#Elements", 1, 0);
+      fMapBuild = new ModelFuncWrapper(this, "Map#Build", 3, 0);
       fIs = new ModelFuncWrapper(this, "$Is", 2, tyArgMultiplier);
       fIsBox = new ModelFuncWrapper(this, "$IsBox", 2, tyArgMultiplier);
       fBox = new ModelFuncWrapper(this, "$Box", 1, tyArgMultiplier);
@@ -239,25 +239,9 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
     /// <summary>
     /// Return the name of a 0-arity type function that maps to the element if such
     /// a function exists and is unique. Return null otherwise.
-    /// If the name is also aliased by a type parameter, return the name of the concrete type. 
     /// </summary>
     private static string GetTrueTypeName(Model.Element element) {
-      string name = null;
-      if (element == null) {
-        return null;
-      }
-      foreach (var funcTuple in element.Names) {
-        if (funcTuple.Func.Arity != 0) {
-          continue;
-        }
-        // Special characters below appear in type parameters. This method returns the concrete type if possible
-        if ((name == null) || name.Contains("$") || name.StartsWith("#") || name.Contains("@")) {
-          name = funcTuple.Func.Name;
-        } else if (!funcTuple.Func.Name.Contains("$") && !funcTuple.Func.Name.StartsWith("#") && !funcTuple.Func.Name.Contains("@")) {
-          return null;
-        }
-      }
-      return name;
+      return element?.Names.FirstOrDefault(funcTuple => funcTuple.Func.Arity == 0)?.Func.Name;
     }
 
     /// <summary> Get the Dafny type of an element </summary>

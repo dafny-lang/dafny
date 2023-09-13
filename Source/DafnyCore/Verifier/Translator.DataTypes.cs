@@ -582,7 +582,7 @@ namespace Microsoft.Dafny {
               bvs.Add(dVar);
               var ie = new Bpl.IdentifierExpr(arg.tok, dVar);
               var f = finite ? BuiltinFunction.MapDomain : BuiltinFunction.IMapDomain;
-              var domain = FunctionCall(arg.tok, f, predef.MapType(arg.tok, finite, predef.BoxType, predef.BoxType),
+              var domain = FunctionCall(arg.tok, f, predef.MapType(arg.tok, finite),
                 args[i]);
               var inDomain = Bpl.Expr.SelectTok(arg.tok, domain, FunctionCall(arg.tok, BuiltinFunction.Box, null, ie));
               var lhs = FunctionCall(ctor.tok, BuiltinFunction.DtRank, null, ie);
@@ -601,11 +601,11 @@ namespace Microsoft.Dafny {
               bvs.Add(bxVar);
               var ie = new Bpl.IdentifierExpr(arg.tok, bxVar);
               var f = finite ? BuiltinFunction.MapDomain : BuiltinFunction.IMapDomain;
-              var domain = FunctionCall(arg.tok, f, predef.MapType(arg.tok, finite, predef.BoxType, predef.BoxType),
+              var domain = FunctionCall(arg.tok, f, predef.MapType(arg.tok, finite),
                 args[i]);
               var inDomain = Bpl.Expr.SelectTok(arg.tok, domain, ie);
               var ef = finite ? BuiltinFunction.MapElements : BuiltinFunction.IMapElements;
-              var element = FunctionCall(arg.tok, ef, predef.MapType(arg.tok, finite, predef.BoxType, predef.BoxType),
+              var element = FunctionCall(arg.tok, ef, predef.MapType(arg.tok, finite),
                 args[i]);
               var elmt = Bpl.Expr.SelectTok(arg.tok, element, ie);
               var unboxElmt = FunctionCall(arg.tok, BuiltinFunction.Unbox, predef.DatatypeType, elmt);

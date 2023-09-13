@@ -38,6 +38,13 @@
 
   <ItemGroup>
     <Content Include="DafnyPrelude.bpl" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="DafnyPreludeSeqNative.bpl" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="DafnyPreludeSeqAxiom.bpl" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="DafnyPreludeSetAxiom.bpl" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="DafnyPreludeISetAxiom.bpl" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="DafnyPreludeMultiSetAxiom.bpl" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="DafnyPreludeMapAxiom.bpl" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="DafnyPreludeIMapAxiom.bpl" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>
