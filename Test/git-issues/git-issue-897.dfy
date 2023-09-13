@@ -1,5 +1,5 @@
-// RUN: %exits-with 4 %dafny /compile:0 "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachResolver --expect-exit-code=4 "%s"
+
 
 ghost function missing_number(nums: seq<nat>): nat
   requires |set i | i in nums| == |nums|

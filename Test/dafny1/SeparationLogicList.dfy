@@ -1,5 +1,5 @@
-// RUN: %dafny /compile:0 /deprecation:0 /dprint:"%t.dprint" "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachResolver "%s" -- --warn-deprecation:false
+
 
 // This file contains three variations of the separation-logic lseg linked-list example.
 

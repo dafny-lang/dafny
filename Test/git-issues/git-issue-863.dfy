@@ -1,5 +1,5 @@
-// RUN: %exits-with 4 %dafny /compile:0 "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachResolver --expect-exit-code=4 "%s"
+
 
 datatype D = D(ghost v:nat)
 function p():D { ghost var v:nat :| true; D(v) }

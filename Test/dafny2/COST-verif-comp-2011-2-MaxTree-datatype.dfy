@@ -1,5 +1,5 @@
-// RUN: %dafny /compile:0 /deprecation:0 /dprint:"%t.dprint" "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachResolver "%s" -- --warn-deprecation:false
+
 
 // This Dafny program was inspired by Claude Marche's Why3ML program that solves
 // Challenge 2 of the COST Verification Competition.  It particular, it uses an

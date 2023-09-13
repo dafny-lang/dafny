@@ -1,5 +1,5 @@
-// RUN: %exits-with 4 %dafny "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachResolver --expect-exit-code=4 "%s"
+
 
 // Dafny counts columns from 0, but Boogie from one, so for a while there were small bugs with that.
 

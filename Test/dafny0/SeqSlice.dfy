@@ -1,5 +1,5 @@
-// RUN: %exits-with 4 %dafny /compile:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachResolver --expect-exit-code=4 "%s"
+
 
 method test(x:seq<int>)
   requires |x| == 10

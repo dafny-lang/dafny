@@ -1,5 +1,5 @@
-// RUN: %exits-with 2 %dafny /dprint:"%t.dprint" "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachResolver --expect-exit-code=2 "%s"
+
 
 module {:options "--quantifier-syntax=3"} OldSyntax {
   method M()

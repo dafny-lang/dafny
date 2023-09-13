@@ -1,5 +1,5 @@
-// RUN: %exits-with 4 %dafny "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachResolver --expect-exit-code=4 "%s"
+
 
 // Issue 245 pointed out that trait override checks ignored the optional name of function results
 

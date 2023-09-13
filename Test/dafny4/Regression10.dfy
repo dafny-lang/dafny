@@ -1,5 +1,5 @@
-// RUN: %exits-with 4 %dafny /rprint:"%t.rprint" "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachResolver --expect-exit-code=4 "%s"
+
 
 // Once upon a time, the type parameter in the following line had caused
 // malformed Boogie to be generated.

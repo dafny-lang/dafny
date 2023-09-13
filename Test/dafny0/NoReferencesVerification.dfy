@@ -1,5 +1,5 @@
-// RUN: %exits-with 4 %dafny "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachResolver --expect-exit-code=4 "%s"
+
 
 // Test that it is known that a value of a (!new) type is allocated in every state.
 

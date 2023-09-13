@@ -1,5 +1,5 @@
-// RUN: %exits-with 4 %dafny /compile:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachResolver --expect-exit-code=4 "%s"
+
 
 // When a function call violates two preconditions at the same time, it causes
 // two errors to be reported for the same token

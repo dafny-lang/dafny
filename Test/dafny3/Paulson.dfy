@@ -1,5 +1,5 @@
-// RUN: %dafny /compile:0 /deprecation:0 /dprint:"%t.dprint" "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachResolver "%s" -- --warn-deprecation:false
+
 
 // The following are Dafny versions from Section 8 of
 // "Mechanizing Coinduction and Corecursion in Higher-order Logic"

@@ -1,5 +1,5 @@
-// RUN: %exits-with 4 %dafny /compile:0 /deprecation:0 /dprint:"%t.dprint" "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachResolver --expect-exit-code=4 "%s" -- --warn-deprecation:false
+
 
 // Imported from bug 76. LitInt would be triggered on, causing matching failures.
 
