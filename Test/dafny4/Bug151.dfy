@@ -1,5 +1,5 @@
-// RUN: %dafny /compile:0  "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachResolver "%s"
+
 
 method foo(xs: set) {
    assert (set x | x in xs) == xs;

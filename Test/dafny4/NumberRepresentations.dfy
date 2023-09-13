@@ -1,5 +1,5 @@
-// RUN: %dafny /compile:0 /dprint:"%t.dprint" "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachResolver "%s"
+
 
 // We consider a number representation that consists of a sequence of digits.  The least
 // significant digit is stored at index 0.

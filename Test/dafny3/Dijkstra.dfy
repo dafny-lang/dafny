@@ -1,5 +1,5 @@
-// RUN: %dafny /compile:0 /dprint:"%t.dprint" "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachResolver "%s"
+
 
 // Example taken from:
 // Edsger W. Dijkstra: Heuristics for a Calculational Proof. Inf. Process. Lett. (IPL) 53(3):141-143 (1995)

@@ -1,5 +1,5 @@
-// RUN: %dafny /compile:0 "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachResolver "%s"
+
 
 module NativeTypes {
 	newtype{:nativeType "ushort"} uint16 = i:int | 0 <= i < 0x10000

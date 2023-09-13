@@ -1,5 +1,5 @@
-// RUN: %dafny /compile:0  "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachResolver "%s"
+
 
 ghost function M1(f:map<int, bool>, i:int):bool
 

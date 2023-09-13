@@ -1,5 +1,5 @@
-// RUN: %dafny /compile:0 /rprint:"%t.dprint" "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachResolver "%s"
+
 
 datatype Value = Res(addr: nat) | Nil()
 

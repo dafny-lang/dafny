@@ -1,5 +1,5 @@
-// RUN: %dafny /compile:0 /print:"%t.print" "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachResolver "%s"
+
 
 ghost predicate isEven(x:int)
 {

@@ -1,5 +1,5 @@
-// RUN: %dafny /compile:0  "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachResolver "%s"
+
 
 ghost predicate R1(x:int, y:int) { x > 0 ==> R2(x - 1) }
 ghost predicate R2(x:int) { exists y :: R1(x, y) }

@@ -1,5 +1,5 @@
-// RUN: %dafny /compile:0 /rprint:"%t.rprint" "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachResolver "%s"
+
 
 // Tests that come down to comparing the bodies of (possibly nested) functions.
 // Many of these currently require far more effort than one would like.
