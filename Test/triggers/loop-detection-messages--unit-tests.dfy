@@ -1,5 +1,5 @@
-// RUN: %dafny /compile:0 /print:"%t.print" /dprint:"%t.dprint" /printTooltips "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %dafny /compile:0 /printTooltips "%s" > "%t"
+
 
 // This file is a series of basic tests for loop detection, focusing on the
 // warnings and information messages

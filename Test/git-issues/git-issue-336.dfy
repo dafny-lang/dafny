@@ -1,4 +1,4 @@
-// RUN: %dafny "%s" > "%t"
+// RUN: %testDafnyForEachResolver "%s"
 // RUN: %diff "%s.expect" "%t"
 
 lemma TestMap(a: map<int, (int,int)>) {

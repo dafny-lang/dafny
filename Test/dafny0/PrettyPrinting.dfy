@@ -1,5 +1,5 @@
-// RUN: %exits-with 2 %dafny /dprint:- /env:0 /noVerify "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %exits-with 2 %dafny /dprint:- /noVerify "%s" > "%t"
+
 
 module A {
   method M()

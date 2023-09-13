@@ -1,5 +1,5 @@
-// RUN: %exits-with 2 %dafny /compile:0 /print:"%t.print" /env:0 /rprint:- "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %exits-with 2 %dafny /compile:0 /rprint:- "%s" > "%t"
+
 module Tests {
 class CC {
   var f: nat

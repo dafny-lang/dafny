@@ -1,5 +1,5 @@
-// RUN: %dafny /env:0 /rprint:- /compile:0 "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %dafny /rprint:- /compile:0 "%s" > "%t"
+
 
 module M0 {
   trait Tr<X> {

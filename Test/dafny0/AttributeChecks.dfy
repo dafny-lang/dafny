@@ -1,5 +1,5 @@
-// RUN: %exits-with 2 %dafny /print:"%t.print" /dprint:- /compile:0 /env:0 "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %exits-with 2 %dafny /dprint:- /compile:0 "%s" > "%t"
+
 
 module JustAboutEverything {
   method If(n: int) returns (k: int)

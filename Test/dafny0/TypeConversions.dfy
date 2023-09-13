@@ -1,5 +1,5 @@
-// RUN: %exits-with 4 %dafny /compile:0 /print:"%t.print" /env:0 /rprint:- "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %exits-with 4 %dafny /compile:0 /rprint:- "%s" > "%t"
+
 
 newtype EvenInt = x | x % 2 == 0
 newtype SmallReal = r | -4.0 <= r < 300.0

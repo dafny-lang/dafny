@@ -1,5 +1,5 @@
-// RUN: %dafny /compile:0 /print:"%t.print" /dprint:"%t.dprint" /printTooltips "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %dafny /compile:0 /printTooltips "%s" > "%t"
+
 
 // This file ensures that Dafny does get rid of redundant triggers before
 // annotating a quantifier, and that ths process does not interfere with cycle

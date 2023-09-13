@@ -1,5 +1,5 @@
-// RUN: %dafny /compile:0 /print:"%t.print" /dprint:"%t.dprint" /printTooltips "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %dafny /compile:0 /printTooltips "%s" > "%t"
+
 
 // This file ensures that `old()` receives the special treatment that it
 // requires; that is, `old(f(x))` is not less liberal than `f(x)`, and

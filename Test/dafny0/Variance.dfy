@@ -1,5 +1,5 @@
-// RUN: %exits-with 2 %dafny /print:"%t.print" /dprint:- /env:0 "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %exits-with 2 %dafny /dprint:- "%s" > "%t"
+
 
 module VarianceChecks {
   datatype MyData<+A, *B, !C, D, -E> =

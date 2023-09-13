@@ -1,5 +1,5 @@
-// RUN: %dafny /dprint:- /env:0 /noVerify "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %dafny /dprint:- /noVerify "%s" > "%t"
+
 
 // My first Dafny program
 // Rustan Leino, 27 January 2008

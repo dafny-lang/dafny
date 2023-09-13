@@ -1,5 +1,5 @@
-// RUN: %exits-with 4 %dafny /deprecation:0 /print:"%t.print" "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachResolver --expect-exit-code=4 "%s" -- --warn-deprecation:false
+
 
 
 class C { var u : int; }

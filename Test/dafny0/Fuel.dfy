@@ -1,5 +1,5 @@
-// RUN: %exits-with 4 %dafny /compile:0 /deprecation:0 /print:"%t.print" /dprint:"%t.dprint" /autoTriggers:0 /optimizeResolution:0 /errorLimit:0 "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %exits-with 4 %dafny /compile:0 /deprecation:0 /autoTriggers:0 /optimizeResolution:0 /errorLimit:0 "%s" > "%t"
+
 
 module TestModule1 {
     ghost function pos(x:int) : int

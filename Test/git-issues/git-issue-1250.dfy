@@ -1,4 +1,4 @@
-// RUN: %dafny "%s" > "%t"
+// RUN: %testDafnyForEachResolver "%s"
 // RUN: %diff "%s.expect" "%t"
 
 // This file contains the automatic proofs of two nice properties about Fibonacci-like numbers.

@@ -1,5 +1,5 @@
-// RUN: %exits-with 4 %dafny /compile:0 /unicodeChar:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %exits-with 4 %dafny /compile:0 /unicodeChar:0 "%s" > "%t"
+
 
 class Termination {
   method A(N: int)

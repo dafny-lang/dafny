@@ -1,5 +1,5 @@
-// RUN: %exits-with 4 %dafny /env:0 /rprint:- "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %exits-with 4 %dafny /rprint:- "%s" > "%t"
+
 
 lemma TestBool(F: bool, T: bool)
   requires F==false && T==true

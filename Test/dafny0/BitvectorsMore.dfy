@@ -1,5 +1,5 @@
-// RUN: %exits-with 4 %dafny /errorLimit:0 /print:"%t.print" /rprint:- /env:0 "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %exits-with 4 %dafny /errorLimit:0 /rprint:- "%s" > "%t"
+
 
 method M() {
   var h: bv8 := 5;

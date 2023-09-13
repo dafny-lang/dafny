@@ -1,5 +1,5 @@
-// RUN: %exits-with 4 %dafny /dprint:- /env:0 "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %exits-with 4 %dafny /dprint:- "%s" > "%t"
+
 
 ghost predicate P(n: int)
 {

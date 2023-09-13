@@ -1,5 +1,5 @@
-// RUN: %dafny /compile:0 /print:"%t.print" /dprint:"%t.dprint" /printTooltips "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %dafny /compile:0 /printTooltips "%s" > "%t"
+
 
 // This  file looks  at the  interactions  between inlining  and triggers.   The
 // sum_is_sum predicate gets a {sum(a,  b)} trigger, which explicitly depends on

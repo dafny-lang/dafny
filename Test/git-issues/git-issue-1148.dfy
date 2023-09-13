@@ -1,4 +1,4 @@
-// RUN: %exits-with 2 %dafny "%s" > "%t"
+// RUN: %testDafnyForEachResolver --expect-exit-code=2 "%s"
 // RUN: %diff "%s.expect" "%t"
 
 module AutoInitRegressions {

@@ -1,4 +1,4 @@
-// RUN: %exits-with 4 %dafny /deprecation:0 "%s" > "%t"
+// RUN: %testDafnyForEachResolver --expect-exit-code=4 "%s" -- --warn-deprecation:false
 // RUN: %diff "%s.expect" "%t"
 
 module Functions {
