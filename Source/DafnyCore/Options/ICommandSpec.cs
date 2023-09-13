@@ -43,7 +43,7 @@ public interface ICommandSpec {
     CommonOptionBag.JsonDiagnostics,
     BoogieOptionBag.VerificationErrorLimit,
     CommonOptionBag.DefaultFunctionOpacity,
-    CommonOptionBag.WarnVacuity,
+    CommonOptionBag.WarnContradictoryAssumptions,
     CommonOptionBag.WarnRedundantAssumptions
   }.ToList();
 

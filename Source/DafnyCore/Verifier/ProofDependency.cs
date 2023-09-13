@@ -159,10 +159,12 @@ public class AssumptionDependency : ProofDependency {
     comment ?? $"assume {OriginalString()}";
 
   private readonly string comment;
+  public bool IsAssumeStatement { get; }
 
-  public AssumptionDependency(string comment, Expression expr) {
+  public AssumptionDependency(bool isAssumeStatement, string comment, Expression expr) {
     this.comment = comment;
     this.expr = expr;
+    this.IsAssumeStatement = isAssumeStatement;
   }
 }
 
