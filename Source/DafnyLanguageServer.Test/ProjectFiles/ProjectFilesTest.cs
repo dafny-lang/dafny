@@ -1,3 +1,4 @@
+using System;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
@@ -8,6 +9,7 @@ using OmniSharp.Extensions.LanguageServer.Protocol;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using Xunit;
 using Xunit.Abstractions;
+using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest; 
 
@@ -37,7 +39,7 @@ public class ProjectFilesTest : ClientBasedLanguageServerTest {
     Assert.Equal(new Range(0, 0, 0, 0), diagnostics.Diagnostics.First().Range);
     Assert.Contains("contains the following errors", diagnostics.Diagnostics.First().Message);
     Assert.Equal(@"Files referenced by project are:
-ProjectFileErrorIsShownFromDafnyFile.dfy", diagnostics.Diagnostics.ElementAt(1).Message);
+ProjectFileErrorIsShownFromDafnyFile.dfy".ReplaceLineEndings(Environment.NewLine), diagnostics.Diagnostics.ElementAt(1).Message);
   }
 
   /// <summary>
