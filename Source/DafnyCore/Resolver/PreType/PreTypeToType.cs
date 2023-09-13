@@ -103,7 +103,13 @@ class PreTypeToTypeVisitor : ASTVisitor<IASTVisitorContext> {
   }
 
   protected override void PostVisitOneExpression(Expression expr, IASTVisitorContext context) {
-    if (expr is FunctionCallExpr functionCallExpr) {
+    if (expr is LiteralExpr or ThisExpr) {
+      // Note, for the LiteralExpr "null", we expect to get a possibly-null type, whereas for a reference-type ThisExpr, we expect
+      // to get the non-null type. The .PreType of these two distinguish between those cases, because the latter has a .PrintablePreType
+      // field that gives the non-null type.
+      expr.Type = PreType2TypeUtil.PreType2FixedType(expr.PreType);
+      return;
+    } else if (expr is FunctionCallExpr functionCallExpr) {
       functionCallExpr.TypeApplication_AtEnclosingClass = functionCallExpr.PreTypeApplication_AtEnclosingClass.ConvertAll(PreType2TypeUtil.PreType2FixedType);
       functionCallExpr.TypeApplication_JustFunction = PreType2TypeUtil.Combine(functionCallExpr.TypeApplication_JustFunction,
         functionCallExpr.PreTypeApplication_JustFunction, true);
