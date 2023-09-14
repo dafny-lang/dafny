@@ -28,4 +28,5 @@ TestAuditor.dfy(131,2): Error: Assertion has explicit temporary [{:only}] attrib
 TestAuditor.dfy(135,15): Error: Member has explicit temporary [{:only}] attribute.
 TestAuditor.dfy(145,28): Error: Function with [{:extern}] attribute.
 IgnoredAssumptions.dfy(2,15): Error: Ghost declaration has no body and has an ensures clause.
+TestAuditor.dfy(89,27): Error: Trait method calls may not terminate (uses [{:termination false}]).
 Wrote textual form of partial target program to assumptions-lib/assumptions.doo

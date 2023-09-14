@@ -65,13 +65,13 @@ public class Function : MemberDecl, TypeParameter.ParentType, ICallable, ICanFor
 
     if (HasExternAttribute) {
       yield return new Assumption(this, tok, AssumptionDescription.ExternFunction);
-      if (HasPostcondition) {
-        yield return new Assumption(this, tok, AssumptionDescription.ExternWithPostcondition(HasAxiomAttribute));
+      if (HasPostcondition && !HasAxiomAttribute) {
+        yield return new Assumption(this, tok, AssumptionDescription.ExternWithPostcondition);
       }
     }
 
-    if (HasExternAttribute && HasPrecondition) {
-      yield return new Assumption(this, tok, AssumptionDescription.ExternWithPrecondition(HasAxiomAttribute));
+    if (HasExternAttribute && HasPrecondition && !HasAxiomAttribute) {
+      yield return new Assumption(this, tok, AssumptionDescription.ExternWithPrecondition);
     }
 
     foreach (var c in this.Descendants()) {

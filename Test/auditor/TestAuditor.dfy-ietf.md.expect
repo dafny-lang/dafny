@@ -78,17 +78,11 @@
 
 * Declaration has explicit `{:axiom}` attribute. SHOULD provide a proof or test.
 
-* Declaration with `{:extern}` and `{:axiom}` has a ensures clause. MUST test external callee.
-
-* Declaration with `{:extern}` and `{:axiom}` has a requires clause. MUST test any external callers.
-
 ### Member `ExternFunctionWithAxiom`
 
 * Declaration has explicit `{:axiom}` attribute. SHOULD provide a proof or test.
 
 * Function with `{:extern}` attribute. SHOULD use `method` with `modifies {}` instead.
-
-* Declaration with `{:extern}` and `{:axiom}` has a ensures clause. MUST test external callee.
 
 ## Type `T`
 

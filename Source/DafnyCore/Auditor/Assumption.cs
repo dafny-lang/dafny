@@ -25,34 +25,23 @@ public record AssumptionDescription(
     allowedInLibraries: false);
   public static AssumptionDescription ExternFunction = new(
     issue: "Function with [{:extern}] attribute.",
-    mitigation: "Turn into a [method] with [modifies {}] or test thoroughly for lack of side effects.",
+    mitigation: "Turn into a [method] with [modifies {}] and test thoroughly for lack of side effects.",
     mitigationIETF: "SHOULD use [method] with [modifies {}] instead.",
     isExplicit: false,
     allowedInLibraries: false);
 
-  public static AssumptionDescription ExternWithPrecondition(bool hasAxiomAttribute) {
-    return new(
-      issue: 
-      hasAxiomAttribute
-        ? "Declaration with [{:extern}] and [{:axiom}] has a requires clause."
-        : "Declaration with [{:extern}] has a requires clause.",
-      mitigation: "Test any external callers (maybe with [/testContracts]).",
-      mitigationIETF: "MUST test any external callers.",
-      isExplicit: false,
-      allowedInLibraries: hasAxiomAttribute);
-  }
-
-  public static AssumptionDescription ExternWithPostcondition(bool hasAxiomAttribute) {
-    return new(
-      issue: 
-      hasAxiomAttribute
-        ? "Declaration with [{:extern}] and [{:axiom}] has a ensures clause."
-        : "Declaration with [{:extern}] has a ensures clause.",
-      mitigation: "Test external callee (maybe with [/testContracts]).",
-      mitigationIETF: "MUST test external callee.",
-      isExplicit: false,
-      allowedInLibraries: hasAxiomAttribute);
-  }
+  public static AssumptionDescription ExternWithPrecondition = new(
+    issue: "Declaration with [{:extern}] has a requires clause.",
+    mitigation: "Test any external callers (maybe with [/testContracts]).",
+    mitigationIETF: "MUST test any external callers.",
+    isExplicit: false,
+    allowedInLibraries: false);
+  public static AssumptionDescription ExternWithPostcondition = new(
+    issue: "Declaration with [{:extern}] has a ensures clause.",
+    mitigation: "Test external callee (maybe with [/testContracts]).",
+    mitigationIETF: "MUST test external callee.",
+    isExplicit: false,
+    allowedInLibraries: false);
 
   public static AssumptionDescription AssumeStatement(bool hasAxiomAttribute) {
     return new(
@@ -83,9 +72,7 @@ public record AssumptionDescription(
     mitigation: "Remove if possible.",
     mitigationIETF: "MUST remove [{:termination false}] or justify.",
     isExplicit: false,
-    // DISCUSS: There is no realistic mitigation or way to attach :axiom,
-    // and no other way to share traits in a library.
-    allowedInLibraries: true);
+    allowedInLibraries: false);
   public static AssumptionDescription ForallWithoutBody = new(
     issue: "Definition contains [forall] statement with no body.",
     mitigation: "Provide a body.",
