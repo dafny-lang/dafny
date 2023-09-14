@@ -1,0 +1,1 @@
+There was a small and a tiny difference between verification in the IDE and the CLI, which would only become apparent for proofs that Z3 had trouble verifying. The small difference has been resolved, while the tiny one still persists, so the IDE and CLI should behave (including resource counts) almost equivalently now.  
