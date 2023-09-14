@@ -2775,6 +2775,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
           PrintExpression(e.Range, false);
         }
         var readsPrefix = " reads ";
+        PrintFrameSpecLine("modifies", method.Mod.Expressions, ind, method.Mod.HasAttributes() ? method.Mod.Attributes : null);
         foreach (var read in e.Reads) {
           wr.Write(readsPrefix);
           PrintExpression(read.E, false);

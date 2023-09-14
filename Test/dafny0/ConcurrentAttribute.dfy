@@ -88,8 +88,8 @@ class Concurrent {
   }
 
   ghost method {:concurrent} AllTheBoxes() 
-    reads set b: GhostBox<int> | true
-    modifies set b: GhostBox<int> | true
+    reads set b: GhostBox<int> | true  // Error: reads clause could not be proved to be empty ({:concurrent} restriction)
+    modifies set b: GhostBox<int> | true  // Error: modifies clause could not be proved to be empty ({:concurrent} restriction)
   {
   }
 
@@ -99,3 +99,34 @@ class Concurrent {
   {
   }
 }
+
+////// {:assume-concurrent} escape hatch //////
+
+class ConcurrentJournal<T> {
+  ghost var elements: seq<T>
+
+  constructor()
+    ensures elements == []
+  {
+    elements := [];
+  }
+
+  method Add(e: T)
+    reads this
+    modifies this
+    ensures exists others :: elements == old(elements) + [e] + others
+  {
+    elements := elements + [e];
+    assert elements == old(elements) + [e] + [];
+  }
+}
+
+method {:concurrent} AddToJournal(j: ConcurrentJournal<string>)
+  reads {:assume_concurrent} j
+  modifies {:assume_concurrent} j
+{
+  j.Add("Today I added another test case.");
+}
+
+// TODO: explicitly reject {:concurrent} on lemmas?
+// TODO: Double-check printing of reads clauses on methods
