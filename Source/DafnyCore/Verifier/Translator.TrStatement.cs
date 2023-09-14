@@ -546,22 +546,25 @@ namespace Microsoft.Dafny {
           }
         }
 
-        var ss = TrSplitExpr(stmt.Expr, etran, true, out var splitHappened);
+        //experiment with not splitting expressions
+        //var ss = TrSplitExpr(stmt.Expr, etran, true, out var splitHappened);
+        bool splitHappened = false;
         if (!splitHappened) {
           var tok = enclosingToken == null ? GetToken(stmt.Expr) : new NestedToken(enclosingToken, GetToken(stmt.Expr));
           var desc = new PODesc.AssertStatement(errorMessage, successMessage);
           (proofBuilder ?? b).Add(Assert(tok, etran.TrExpr(stmt.Expr), desc, stmt.Tok,
             etran.TrAttributes(stmt.Attributes, null)));
-        } else {
-          foreach (var split in ss) {
-            if (split.IsChecked) {
-              var tok = enclosingToken == null ? split.E.tok : new NestedToken(enclosingToken, split.Tok);
-              var desc = new PODesc.AssertStatement(errorMessage, successMessage);
-              (proofBuilder ?? b).Add(AssertNS(ToDafnyToken(tok), split.E, desc, stmt.Tok,
-                etran.TrAttributes(stmt.Attributes, null))); // attributes go on every split
-            }
-          }
         }
+        // else {
+        //   foreach (var split in ss) {
+        //     if (split.IsChecked) {
+        //       var tok = enclosingToken == null ? split.E.tok : new NestedToken(enclosingToken, split.Tok);
+        //       var desc = new PODesc.AssertStatement(errorMessage, successMessage);
+        //       (proofBuilder ?? b).Add(AssertNS(ToDafnyToken(tok), split.E, desc, stmt.Tok,
+        //         etran.TrAttributes(stmt.Attributes, null))); // attributes go on every split
+        //     }
+        //   }
+        // }
         if (proofBuilder != null) {
           PathAsideBlock(stmt.Tok, proofBuilder, b);
         }
