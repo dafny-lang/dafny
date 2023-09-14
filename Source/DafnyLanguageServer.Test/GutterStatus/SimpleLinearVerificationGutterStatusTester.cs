@@ -32,6 +32,7 @@ public class SimpleLinearVerificationGutterStatusTester : LinearVerificationGutt
     await VerifyTrace(markedSource, false, intermediates: false);
   }
 
+  [Fact]
   public async Task GitIssue4287GutterHighlightingBroken() {
     await VerifyTrace(@"
  |  | [ ]://Insert1:method Test() {//Insert2:\\n  assert false;\n}
