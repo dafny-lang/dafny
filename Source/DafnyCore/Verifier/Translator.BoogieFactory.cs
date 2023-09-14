@@ -432,7 +432,7 @@ namespace Microsoft.Dafny {
 
         case BuiltinFunction.MapEmpty: {
             Contract.Assert(args.Length == 0);
-            Bpl.Type resultType = predef.MapType(tok, true);  // use 'typeInstantiation' (which is really always just BoxType anyway) as both type arguments
+            Bpl.Type resultType = predef.MapType(tok, true);
             return Bpl.Expr.CoerceType(tok, FunctionCall(tok, "Map#Empty", resultType, args), resultType);
           }
         case BuiltinFunction.MapCard:
@@ -463,7 +463,7 @@ namespace Microsoft.Dafny {
 
         case BuiltinFunction.IMapEmpty: {
             Contract.Assert(args.Length == 0);
-            Bpl.Type resultType = predef.MapType(tok, false);  // use 'typeInstantiation' (which is really always just BoxType anyway) as both type arguments
+            Bpl.Type resultType = predef.MapType(tok, false);
             return Bpl.Expr.CoerceType(tok, FunctionCall(tok, "IMap#Empty", resultType, args), resultType);
           }
         case BuiltinFunction.IMapDomain:
