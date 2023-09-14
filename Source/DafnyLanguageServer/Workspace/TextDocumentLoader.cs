@@ -78,7 +78,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         var projectDirectory = Path.GetDirectoryName(projectPath)!;
         var filesMessage = string.Join("\n", compilation.RootUris.Select(uri => Path.GetRelativePath(projectDirectory, uri.LocalPath)));
         if (filesMessage.Any()) {
-          program.Reporter.Info(MessageSource.Parser, compilation.Project.StartingToken, "Files referenced by project are:\n" + filesMessage);
+          program.Reporter.Info(MessageSource.Parser, compilation.Project.StartingToken, "Files referenced by project are:" + Environment.NewLine + filesMessage);
         } else {
           program.Reporter.Warning(MessageSource.Parser, CompilerErrors.ErrorId.None, compilation.Project.StartingToken, "Project references no files");
         }
