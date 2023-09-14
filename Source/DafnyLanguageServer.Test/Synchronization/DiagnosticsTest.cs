@@ -1082,7 +1082,7 @@ method test2() {
 method test() {
   assert false;
 }
-".TrimStart() + SlowToVerify;
+".TrimStart() + SlowToVerifyNoLimit;
       await SetUp(options => options.Set(BoogieOptionBag.Cores, 1U));
       var documentItem = CreateTestDocument(source, "ApplyChangeBeforeVerificationFinishes.dfy");
       client.OpenDocument(documentItem);

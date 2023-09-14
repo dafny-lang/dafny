@@ -20,7 +20,7 @@ public class DiagnosticsReceiver : TestNotificationReceiver<PublishDiagnosticsPa
     var result = await AwaitNextNotificationAsync(cancellationToken);
     if (textDocumentItem != null) {
       AssertM.Equal(textDocumentItem.Version, result.Version,
-        $"result diagnostics were: [{string.Join(", ", result.Diagnostics)}]");
+        $"received incorrect version, diagnostics were: [{string.Join(", ", result.Diagnostics)}]");
       Assert.Equal(textDocumentItem.Uri, result.Uri);
     }
     return result.Diagnostics.ToArray();
