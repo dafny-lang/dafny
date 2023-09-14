@@ -14,19 +14,19 @@ method AssignBackAndForth<W>(a: A<W>, b: B<int, W>, c: C<W>, k: K<W>, l: L<W>) r
   var o: object?;
 
   o := a;
-  a' := o;
+  a' := o; // (type error with resolver refresh; downcast requires explicit cast)
 
   o := b;
-  b' := o;
+  b' := o; // (type error with resolver refresh; downcast requires explicit cast)
 
   o := c;
-  c' := o;
+  c' := o; // (type error with resolver refresh; downcast requires explicit cast)
 
   o := k;
-  k' := o;
+  k' := o; // (type error with resolver refresh; downcast requires explicit cast)
 
   o := l;
-  l' := o;
+  l' := o; // (type error with resolver refresh; downcast requires explicit cast)
 }
 
 method AsBackAndForth<W>(a: A<W>, b: B<int, W>, c: C<W>, k: K<W>, l: L<W>) returns (a': object, b': object, c': object, k': object, l': object)

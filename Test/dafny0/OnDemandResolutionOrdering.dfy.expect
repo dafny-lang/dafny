@@ -1,3 +1,2 @@
-OnDemandResolutionOrdering.dfy(49,7): Error: value of expression (of type 'array<seq<real>>') is not known to be an instance of type 'array<ParamSub<real>>'
 
-Dafny program verifier finished with 12 verified, 1 error
+Dafny program verifier finished with 12 verified, 0 errors
