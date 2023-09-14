@@ -1,1 +1,1 @@
-Added two new options, `--warn-contradictory-assumptions` and `--warn-redundant-assumptions`, to detect potential problems with specifications that indicate that successful proof may be misleading.
+Added two new options, `--warn-contradictory-assumptions` and `--warn-redundant-assumptions`, to detect potential problems with specifications that indicate that successful verification may be misleading.
