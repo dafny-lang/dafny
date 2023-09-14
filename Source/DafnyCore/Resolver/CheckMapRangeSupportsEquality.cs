@@ -23,7 +23,7 @@ class CheckMapRangeSupportsEquality : ASTVisitor<IASTVisitorContext> {
 
     if (expr is ExprDotName) {
       var e = (ExprDotName)expr;
-      if (e.Lhs.Type.IsMapType && (e.SuffixName == "Values" || e.SuffixName == "Items")) {
+      if (e.Lhs.Type != null && e.Lhs.Type.IsMapType && (e.SuffixName == "Values" || e.SuffixName == "Items")) {
         if (!e.Lhs.Type.AsMapType.Range.SupportsEquality) {
           reporter.Error(MessageSource.Resolver, expr, "NO NO NO");
         }
