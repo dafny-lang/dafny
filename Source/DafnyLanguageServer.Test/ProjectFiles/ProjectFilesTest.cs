@@ -38,8 +38,8 @@ public class ProjectFilesTest : ClientBasedLanguageServerTest {
     Assert.Equal(2, diagnostics.Diagnostics.Count());
     Assert.Equal(new Range(0, 0, 0, 0), diagnostics.Diagnostics.First().Range);
     Assert.Contains("contains the following errors", diagnostics.Diagnostics.First().Message);
-    Assert.Equal(@"Files referenced by project are:
-ProjectFileErrorIsShownFromDafnyFile.dfy".ReplaceLineEndings(Environment.NewLine), diagnostics.Diagnostics.ElementAt(1).Message);
+    Assert.Equal(@"Files referenced by project are:" + Environment.NewLine +
+"ProjectFileErrorIsShownFromDafnyFile.dfy", diagnostics.Diagnostics.ElementAt(1).Message);
   }
 
   /// <summary>
