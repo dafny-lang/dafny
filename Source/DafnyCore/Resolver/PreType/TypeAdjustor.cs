@@ -204,9 +204,8 @@ public class TypeAdjustorVisitor : ASTVisitor<IASTVisitorContext> {
       if (letExpr.Exact) {
         Contract.Assert(letExpr.LHSs.Count == letExpr.RHSs.Count);
         for (var i = 0; i < letExpr.LHSs.Count; i++) {
-          var lhs = letExpr.LHSs[i].Var;
           var rhs = letExpr.RHSs[i];
-          flows.Add(new FlowIntoVariable(lhs, rhs, lhs.tok, ":="));
+          VisitPattern(letExpr.LHSs[i],() => AdjustableType.NormalizeSansBottom(rhs), context);
         }
       }
       flows.Add(new FlowBetweenExpressions(expr, letExpr.Body, "let"));
@@ -224,17 +223,37 @@ public class TypeAdjustorVisitor : ASTVisitor<IASTVisitorContext> {
     base.PostVisitOneExpression(expr, context);
   }
 
-  private void VisitPattern<VT>(CasePattern<VT> casePattern, IASTVisitorContext context) where VT : class, IVariable {
+  private void VisitPattern<VT>(CasePattern<VT> casePattern, Func<Type> getPatternRhsType, IASTVisitorContext context) where VT : class, IVariable {
     VisitExpression(casePattern.Expr, context);
 
-    if (casePattern.Arguments != null) {
-      casePattern.Arguments.ForEach(v => VisitPattern(v, context));
+    if (casePattern.Var != null) {
+      flows.Add(new FlowIntoVariableFromComputedType(casePattern.Var, getPatternRhsType, casePattern.tok, ":="));
+      Contract.Assert(casePattern.Arguments == null);
+    } else if (casePattern.Arguments != null) {
+      var ctor = casePattern.Ctor;
+      Contract.Assert(ctor != null);
+
+      Func<Type> GetPatternArgumentType(int argumentIndex) {
+        return () => {
+          var sourceType = getPatternRhsType().NormalizeExpand();
+          Contract.Assert(sourceType.IsDatatype);
+          Contract.Assert(sourceType.TypeArgs.Count == ctor.EnclosingDatatype.TypeArgs.Count);
+          var typeMap = TypeParameter.SubstitutionMap(ctor.EnclosingDatatype.TypeArgs, sourceType.TypeArgs);
+          Contract.Assert(argumentIndex < ctor.Formals.Count);
+          return ctor.Formals[argumentIndex].Type.Subst(typeMap);
+        };
+      }
+
+      for (var i = 0; i < casePattern.Arguments.Count; i++) {
+        VisitPattern<VT>(casePattern.Arguments[i], GetPatternArgumentType(i), context);
+      }
     }
+
   }
 
   protected override void PostVisitOneStatement(Statement stmt, IASTVisitorContext context) {
     if (stmt is VarDeclPattern varDeclPattern) {
-      VisitPattern(varDeclPattern.LHS, context);
+      VisitPattern(varDeclPattern.LHS, () => AdjustableType.NormalizeSansBottom(varDeclPattern.RHS), context);
     } else if (stmt is AssignStmt { Lhs: IdentifierExpr lhsIdentifierExpr } assignStmt) {
       if (assignStmt is { Rhs: ExprRhs exprRhs }) {
         flows.Add(new FlowIntoVariable(lhsIdentifierExpr.Var, exprRhs.Expr, assignStmt.tok, ":="));

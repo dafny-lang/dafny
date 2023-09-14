@@ -438,6 +438,24 @@ class FlowFromTypeArgument : FlowIntoExpr {
   }
 }
 
+class FlowFromTypeArgumentOfComputedSource : FlowIntoExpr {
+  private readonly System.Func<Type> getType;
+  private readonly int argumentIndex;
+
+  public FlowFromTypeArgumentOfComputedSource(Expression sink, System.Func<Type> getType, int argumentIndex)
+    : base(sink, sink.tok) {
+    Contract.Requires(0 <= argumentIndex);
+    this.getType = getType;
+    this.argumentIndex = argumentIndex;
+  }
+
+  protected override Type GetSourceType() {
+    var sourceType = getType().NormalizeExpand();
+    Contract.Assert(argumentIndex < sourceType.TypeArgs.Count);
+    return sourceType.TypeArgs[argumentIndex];
+  }
+}
+
 class FlowFromComputedType : FlowIntoExpr {
   private readonly System.Func<Type> getType;
 

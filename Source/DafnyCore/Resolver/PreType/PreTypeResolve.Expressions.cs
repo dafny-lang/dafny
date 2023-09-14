@@ -1967,6 +1967,7 @@ namespace Microsoft.Dafny {
         Contract.Assert(dtd.TypeArgs.Count == sourceTypeArguments.Count);  // follows from the type previously having been successfully resolved
         var subst = PreType.PreTypeSubstMap(dtd.TypeArgs, sourceTypeArguments);
         // recursively call ResolveCasePattern on each of the arguments
+        var prevErrorCount = ErrorCount;
         var j = 0;
         if (pat.Arguments != null) {
           foreach (var arg in pat.Arguments) {
@@ -1978,7 +1979,7 @@ namespace Microsoft.Dafny {
             j++;
           }
         }
-        if (j == ctor.Formals.Count) {
+        if (ErrorCount == prevErrorCount && j == ctor.Formals.Count) {
           pat.AssembleExprPreType(sourceTypeArguments);
         }
       }

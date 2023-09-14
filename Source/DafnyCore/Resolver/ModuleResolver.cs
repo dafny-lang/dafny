@@ -4141,6 +4141,7 @@ namespace Microsoft.Dafny {
         Contract.Assert(dtd.TypeArgs.Count == udt.TypeArgs.Count);  // follows from the type previously having been successfully resolved
         var subst = TypeParameter.SubstitutionMap(dtd.TypeArgs, udt.TypeArgs);
         // recursively call ResolveCasePattern on each of the arguments
+        var prevErrorCount = reporter.Count(ErrorLevel.Error);
         var j = 0;
         if (pat.Arguments != null) {
           foreach (var arg in pat.Arguments) {
@@ -4152,7 +4153,7 @@ namespace Microsoft.Dafny {
             j++;
           }
         }
-        if (j == ctor.Formals.Count) {
+        if (reporter.Count(ErrorLevel.Error) == prevErrorCount && j == ctor.Formals.Count) {
           pat.AssembleExpr(udt.TypeArgs);
         }
       }
