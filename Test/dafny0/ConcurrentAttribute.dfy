@@ -130,3 +130,4 @@ method {:concurrent} AddToJournal(j: ConcurrentJournal<string>)
 
 // TODO: explicitly reject {:concurrent} on lemmas?
 // TODO: Double-check printing of reads clauses on methods
+// TODO: Release notes!

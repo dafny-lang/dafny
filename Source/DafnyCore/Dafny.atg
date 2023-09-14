@@ -1969,23 +1969,23 @@ MethodDecl<DeclModifierData dmod, bool allowConstructor, out Method/*!*/ m>
   (. var range = new RangeToken(dmod.FirstToken, t);
      if (isConstructor) {
        m = new Constructor(range, hasName ? name : new Name(dmod.FirstToken.ToRange(), "_ctor"), dmod.IsGhost, typeArgs, ins,
-                           req, reads, new Specification<FrameExpression>(mod, modAttrs), ens, new Specification<Expression>(dec, decAttrs), (DividedBlockStmt)body, attrs, signatureEllipsis);
+                           req, new Specification<FrameExpression>(reads, readsAttrs), new Specification<FrameExpression>(mod, modAttrs), ens, new Specification<Expression>(dec, decAttrs), (DividedBlockStmt)body, attrs, signatureEllipsis);
      } else if (isLeastLemma) {
        m = new LeastLemma(range, name, dmod.IsStatic, kType, typeArgs, ins, outs,
-                          req, reads, new Specification<FrameExpression>(mod, modAttrs), ens, new Specification<Expression>(dec, decAttrs), body, attrs, signatureEllipsis);
+                          req, new Specification<FrameExpression>(reads, readsAttrs), new Specification<FrameExpression>(mod, modAttrs), ens, new Specification<Expression>(dec, decAttrs), body, attrs, signatureEllipsis);
      } else if (isGreatestLemma) {
        m = new GreatestLemma(range, name, dmod.IsStatic, kType, typeArgs, ins, outs,
-                             req, reads, new Specification<FrameExpression>(mod, modAttrs), ens, new Specification<Expression>(dec, decAttrs), body, attrs, signatureEllipsis);
+                             req, new Specification<FrameExpression>(reads, readsAttrs), new Specification<FrameExpression>(mod, modAttrs), ens, new Specification<Expression>(dec, decAttrs), body, attrs, signatureEllipsis);
      } else if (isLemma) {
        m = new Lemma(range, name, dmod.IsStatic, typeArgs, ins, outs,
-                     req, reads, new Specification<FrameExpression>(mod, modAttrs), ens, new Specification<Expression>(dec, decAttrs), body, attrs, signatureEllipsis);
+                     req, new Specification<FrameExpression>(reads, readsAttrs), new Specification<FrameExpression>(mod, modAttrs), ens, new Specification<Expression>(dec, decAttrs), body, attrs, signatureEllipsis);
      } else if (isTwoStateLemma) {
        m = new TwoStateLemma(range, name, dmod.IsStatic, typeArgs, ins, outs,
-                             req, reads, new Specification<FrameExpression>(mod, modAttrs),
+                             req, new Specification<FrameExpression>(reads, readsAttrs), new Specification<FrameExpression>(mod, modAttrs),
                              ens, new Specification<Expression>(dec, decAttrs), body, attrs, signatureEllipsis);
      } else {
        m = new Method(range, name, dmod.IsStatic, dmod.IsGhost, typeArgs, ins, outs,
-                      req, reads, new Specification<FrameExpression>(mod, modAttrs), ens, new Specification<Expression>(dec, decAttrs), body, attrs, signatureEllipsis);
+                      req, new Specification<FrameExpression>(reads, readsAttrs), new Specification<FrameExpression>(mod, modAttrs), ens, new Specification<Expression>(dec, decAttrs), body, attrs, signatureEllipsis);
      }
      m.BodyStartTok = bodyStart;
      m.TokenWithTrailingDocString = tokenWithTrailingDocString;
@@ -2688,29 +2688,29 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
      if (isTwoState && isPredicate) {
        Contract.Assert(functionMethodToken == null && !dmod.IsGhost);
        f = new TwoStatePredicate(range, name, dmod.IsStatic, dmod.IsOpaque, typeArgs, formals, result,
-                                 reqs, reads, ens, new Specification<Expression>(decreases, decAttrs), body, attrs, signatureEllipsis);
+                                 reqs, new Specification<FrameExpression>(reads, readsAttrs), ens, new Specification<Expression>(decreases, decAttrs), body, attrs, signatureEllipsis);
      } else if (isTwoState) {
        Contract.Assert(functionMethodToken == null && !dmod.IsGhost);
        f = new TwoStateFunction(range, name, dmod.IsStatic, dmod.IsOpaque, typeArgs, formals, result, returnType,
-                                reqs, reads, ens, new Specification<Expression>(decreases, decAttrs), body, attrs, signatureEllipsis);
+                                reqs, new Specification<FrameExpression>(reads, readsAttrs), ens, new Specification<Expression>(decreases, decAttrs), body, attrs, signatureEllipsis);
      } else if (isPredicate) {
        Contract.Assert(functionMethodToken == null || !dmod.IsGhost);
        f = new Predicate(range, name, dmod.IsStatic, isGhost, dmod.IsOpaque, typeArgs, formals, result,
-                         reqs, reads, ens, new Specification<Expression>(decreases, decAttrs), body, Predicate.BodyOriginKind.OriginalOrInherited,
+                         reqs, new Specification<FrameExpression>(reads, readsAttrs), ens, new Specification<Expression>(decreases, decAttrs), body, Predicate.BodyOriginKind.OriginalOrInherited,
                          byMethodTok, byMethodBody, attrs, signatureEllipsis);
      } else if (isLeastPredicate) {
        Contract.Assert(functionMethodToken == null && !dmod.IsGhost);
        f = new LeastPredicate(range, name, dmod.IsStatic, dmod.IsOpaque, kType, typeArgs, formals, result,
-                              reqs, reads, ens, body, attrs, signatureEllipsis);
+                              reqs, new Specification<FrameExpression>(reads, readsAttrs), ens, body, attrs, signatureEllipsis);
      } else if (isGreatestPredicate) {
        Contract.Assert(functionMethodToken == null && !dmod.IsGhost);
        f = new GreatestPredicate(range, name, dmod.IsStatic, dmod.IsOpaque, kType, typeArgs, formals, result,
-                                 reqs, reads, ens, body, attrs, signatureEllipsis);
+                                 reqs, new Specification<FrameExpression>(reads, readsAttrs), ens, body, attrs, signatureEllipsis);
      } else {
        Contract.Assert(functionMethodToken == null || !dmod.IsGhost);
        f = new Function(range, name, dmod.IsStatic, isGhost, dmod.IsOpaque,
                         typeArgs, formals, result, returnType,
-                        reqs, reads, ens, new Specification<Expression>(decreases, decAttrs), body,
+                        reqs, new Specification<FrameExpression>(reads, readsAttrs), ens, new Specification<Expression>(decreases, decAttrs), body,
                         byMethodTok, byMethodBody,
                         attrs, signatureEllipsis);
      }
@@ -4398,6 +4398,7 @@ LambdaExpression<out Expression e, bool allowLemma, bool allowBitwiseOps>
      IToken id;  BoundVar bv;
      var bvs = new List<BoundVar>();
      var reads = new List<FrameExpression>();
+     Attributes readsAttrs = null;
      Expression req = null;
      Expression body = null;
   .)
@@ -4410,17 +4411,17 @@ LambdaExpression<out Expression e, bool allowLemma, bool allowBitwiseOps>
       ]
     ")"
   )
-  LambdaSpec<ref reads, ref req>
+  LambdaSpec<ref reads, ref readsAttrs, ref req>
   "=>"
   Expression<out body, allowLemma, true, allowBitwiseOps>
-  (. e = new LambdaExpr(x, new RangeToken(x, t), bvs, req, reads, body);
+  (. e = new LambdaExpr(x, new RangeToken(x, t), bvs, req, new Specification<FrameExpression>(reads, readsAttrs), body);
      SystemModuleModifiers.Add(b => b.CreateArrowTypeDecl(bvs.Count));
   .)
   .
 
 // Coco says LambdaSpec is deletable. This is OK (it might be empty).
-LambdaSpec<.ref List<FrameExpression> reads, ref Expression req.>
-= { ReadsClause<reads, true, false, true>
+LambdaSpec<.ref List<FrameExpression> reads, ref Attributes readsAttrs, ref Expression req.>
+= { ReadsClause<reads, ref readsAttrs, true, false, true>
   | "requires"                             (. Expression ee; .)
     Expression<out ee, true, false>        (. req = req == null ? ee : new BinaryExpr(req.tok, BinaryExpr.Opcode.And, req, ee) { RangeToken = new RangeToken(req.StartToken, ee.EndToken) } ; .)
   }
