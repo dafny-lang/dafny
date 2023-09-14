@@ -22,7 +22,6 @@ class CheckMapRangeSupportsEquality : ASTVisitor<IASTVisitorContext> {
     return astVisitorContext;
   }
 
-
   protected override bool VisitOneExpression(Expression expr, IASTVisitorContext context) {
 
     if (expr is ExprDotName) {
@@ -38,7 +37,6 @@ class CheckMapRangeSupportsEquality : ASTVisitor<IASTVisitorContext> {
         }
       }
     }
-
     return base.VisitOneExpression(expr, context);
   }
 }
