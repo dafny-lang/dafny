@@ -1,3 +1,3 @@
-git-issue-1373.dfy(6,10): Error: NO NO NO
-git-issue-1373.dfy(7,10): Error: NO NO NO
+git-issue-1373.dfy(6,10): Error: Cannot compute the set of Values of map 'x' because the type of its range (() ~> int) does not support equality.
+git-issue-1373.dfy(7,10): Error: Cannot compute the set of Items of map 'x' because the type of its range (() ~> int) does not support equality.
 2 resolution/type errors detected in git-issue-1373.dfy
