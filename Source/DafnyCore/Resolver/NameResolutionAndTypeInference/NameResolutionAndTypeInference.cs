@@ -1110,13 +1110,13 @@ namespace Microsoft.Dafny {
           Contract.Assert(e.Range.Type != null);  // follows from postcondition of ResolveExpression
           ConstrainTypeExprBool(e.Range, "Precondition must be boolean (got {0})");
         }
-        foreach (var read in e.Reads) {
+        foreach (var read in e.Reads.Expressions) {
           ResolveFrameExpression(read, FrameExpressionUse.Reads, resolutionContext);
         }
         ResolveExpression(e.Term, resolutionContext);
         Contract.Assert(e.Term.Type != null);
         scope.PopMarker();
-        expr.Type = SelectAppropriateArrowType(e.tok, e.BoundVars.ConvertAll(v => v.Type), e.Body.Type, e.Reads.Count != 0, e.Range != null, SystemModuleManager);
+        expr.Type = SelectAppropriateArrowType(e.tok, e.BoundVars.ConvertAll(v => v.Type), e.Body.Type, e.Reads.Expressions.Count != 0, e.Range != null, SystemModuleManager);
       } else if (expr is WildcardExpr) {
         expr.Type = new SetType(true, SystemModuleManager.ObjectQ());
       } else if (expr is StmtExpr) {
