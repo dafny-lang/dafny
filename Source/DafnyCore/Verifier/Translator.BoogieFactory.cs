@@ -483,11 +483,11 @@ namespace Microsoft.Dafny {
         case BuiltinFunction.IndexField:
           Contract.Assert(args.Length == 1);
           Contract.Assert(typeInstantiation == null);
-          return FunctionCall(tok, "IndexField", predef.FieldName(tok, predef.BoxType), args);
+          return FunctionCall(tok, "IndexField", predef.FieldName(tok), args);
         case BuiltinFunction.MultiIndexField:
           Contract.Assert(args.Length == 2);
           Contract.Assert(typeInstantiation == null);
-          return FunctionCall(tok, "MultiIndexField", predef.FieldName(tok, predef.BoxType), args);
+          return FunctionCall(tok, "MultiIndexField", predef.FieldName(tok), args);
 
         case BuiltinFunction.Box:
           Contract.Assert(args.Length == 1);
@@ -539,7 +539,7 @@ namespace Microsoft.Dafny {
         case BuiltinFunction.FieldOfDecl:
           Contract.Assert(args.Length == 2);
           Contract.Assert(typeInstantiation != null);
-          return FunctionCall(tok, "FieldOfDecl", predef.FieldName(tok, typeInstantiation), args);
+          return FunctionCall(tok, "FieldOfDecl", predef.FieldName(tok), args);
         case BuiltinFunction.FDim:
           Contract.Assert(args.Length == 1);
           Contract.Assert(typeInstantiation != null);
