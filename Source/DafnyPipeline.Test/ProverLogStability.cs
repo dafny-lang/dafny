@@ -66,7 +66,7 @@ method SomeMethod(methodFormal: int) returns (result: bool)
 
     [Fact]
     public async Task ProverLogRegression() {
-      var options = DafnyOptions.Create(new WriterFromOutputHelper(testOutputHelper));
+      var options = DafnyOptions.Create((TextWriter)new WriterFromOutputHelper(testOutputHelper));
       options.ProcsToCheck.Add("SomeMethod*");
 
       var filePath = Path.Combine(Directory.GetCurrentDirectory(), "expectedProverLog.txt");
