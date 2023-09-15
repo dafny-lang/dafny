@@ -124,6 +124,71 @@ module AlcorEngineTest {
     // thinking.ImpElim(hAB, hA)
     print "\n";
   }
+
+  method {:test} BetaReductionTest() {
+    print "\n";
+    var i_x := Identifier("x");
+    var i_f := Identifier("f");
+    var i_eq := Identifier("==");
+    var i_le := Identifier("<=");
+    var i_plus := Identifier("+");
+    var i_minus := Identifier("-");
+    var x := Var(i_x);
+    var f := Var(i_f);
+    var eq := Var(i_eq);
+    var le := Var(i_le);
+    var minus := Var(i_minus);
+    var plus := Var(i_plus);
+    
+    var goal := eq.apply2(f.apply(Int(5)), Int(5));
+    var env := EnvCons(
+      "f_def",
+      Forall(Abs(i_x, eq.apply2(
+        f.apply(x), 
+        Expr.ifthenelse(le.apply2(x, Int(1)),
+          x,
+          plus.apply2(f.apply(minus.apply2(x, Int(1))), f.apply(minus.apply2(x, Int(2))))
+          )))),
+      EnvNil
+    );
+
+    var thinking := new TacticMode(goal, env);
+    print thinking.proofState.ToString(), "\n--------------\n";
+    expect thinking.proofState.ToString() == "f_def: forall x :: f(x) == (if x <= 1 then x else f(x - 1) + f(x - 2))\n|- f(5) == 5";
+    /*var feedback :- expect thinking.Intro();
+    print feedback, "\n--------------\n";
+    expect feedback == "\n|- forall b :: (a ==> b) && a ==> b && a";
+    feedback :- expect thinking.Intro();
+    print feedback, "\n--------------\n";
+    expect feedback == "\n|- (a ==> b) && a ==> b && a";
+    feedback :- expect thinking.Intro("h");
+    print feedback, "\n--------------\n";
+    expect feedback == "h: (a ==> b) && a\n|- b && a";
+    feedback :- expect thinking.Rename("h", "hA");
+    print feedback, "\n--------------\n";
+    expect feedback == "hA: (a ==> b) && a\n|- b && a";
+    feedback :- expect thinking.Cases();
+    print feedback, "\n--------------\n";
+    expect feedback == "hA: (a ==> b) && a\n|- b\n\nhA: (a ==> b) && a\n|- b ==> a";
+    feedback :- expect thinking.CasesEnv("hA", "hAB", "hA");
+    print feedback, "\n--------------\n";
+    expect feedback == "hAB: a ==> b\nhA: a\n|- b\n\nhA: (a ==> b) && a\n|- b ==> a";
+    feedback :- expect thinking.ImpElim("hAB", "hA");
+    print feedback, "\n--------------\n";
+    expect feedback == "hA: (a ==> b) && a\n|- b ==> a";
+    feedback :- expect thinking.CasesEnv("hA", "hAB", "hA");
+    print feedback, "\n--------------\n";
+    expect feedback == "hAB: a ==> b\nhA: a\n|- b ==> a";
+    feedback :- expect thinking.Intro("hB");
+    print feedback, "\n--------------\n";
+    expect feedback == "hAB: a ==> b\nhA: a\nhB: b\n|- a";
+    feedback :- expect thinking.UseHypothesis("hA");
+    print feedback, "\n--------------\n";
+    expect feedback == "";
+    
+    // thinking.ImpElim(hAB, hA)
+    print "\n";*/
+  }
 }
 
 

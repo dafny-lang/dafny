@@ -34,33 +34,33 @@ module Wrappers {
   {
     if |s| == 0 then 0
     else
-      if s[0] == '-' then
-        - StringToInt(s[1..])
-      else
-        if s[|s|-1] in "0123456789"
-        then StringToInt(s[..|s|-1])*10 + charToInt(s[|s|-1]) else StringToInt(s[..|s|-1])
+    if s[0] == '-' then
+      - StringToInt(s[1..])
+    else
+    if s[|s|-1] in "0123456789"
+    then StringToInt(s[..|s|-1])*10 + charToInt(s[|s|-1]) else StringToInt(s[..|s|-1])
   }
-  function charToInt(d: char): int 
+  function charToInt(d: char): int
     requires d in "0123456789"
   {
     match d {
-          case '0' => 0
-          case '1' => 1
-          case '2' => 2
-          case '3' => 3
-          case '4' => 4
-          case '5' => 5
-          case '6' => 6
-          case '7' => 7
-          case '8' => 8
-          case '9' => 9
-        }
+      case '0' => 0
+      case '1' => 1
+      case '2' => 2
+      case '3' => 3
+      case '4' => 4
+      case '5' => 5
+      case '6' => 6
+      case '7' => 7
+      case '8' => 8
+      case '9' => 9
+    }
   }
 
   lemma IntToString2(i: int)
     ensures StringToInt(IntToString(i)) == i
     ensures i >= 0 ==> IntToString(i)[0] != '-'
-    decreases if i < 0 then 1 else 0, if i < 0 then 0 else i 
+    decreases if i < 0 then 1 else 0, if i < 0 then 0 else i
   {
     if i < 0 {
       assert IntToString(i)[0] == '-';
@@ -73,7 +73,7 @@ module Wrappers {
       var unit :=  ["0123456789"[i % 10]];
       if i <= 9 {
         assert StringToInt(IntToString(i)) == i;
-        
+
       } else {
         var s := IntToString(i);
         assert s[..|s|-1] == IntToString(i/10);
@@ -115,7 +115,7 @@ module AlcorProofKernel refines AlcorKernelInterface {
     provides Identifier.ToString
     provides Expr.Bind, Expr.FreeVars, Expr.size
     provides AllProofs // TODO: No longer necessary when possible to export that Proof is not a reference type
-    reveals Expr, Expr.Not
+    reveals Expr, Expr.Not, Expr.apply, Expr.apply2, Expr.ifthenelse
     reveals Identifier
     reveals Proof.ImpIntroVerify
 
@@ -153,19 +153,28 @@ module AlcorProofKernel refines AlcorKernelInterface {
     | False
     | And(left: Expr, right: Expr)
     | Imp(left: Expr, right: Expr)
-    | Eq(left: Expr, right: Expr) // Same as Iff but for everything
     | Or(left: Expr, right: Expr)
     | Var(id: Identifier)
     | Abs(id: Identifier, body: Expr)
     | App(left: Expr, right: Expr)
     | Forall(body: Expr) // Typically an Abs, but can be a name
+    | Int(value: int)
   {
     static function Not(expr: Expr): Expr {
       Imp(expr, False)
     }
+    function apply(expr: Expr): Expr {
+      App(this, expr)
+    }
+    function apply2(expr1: Expr, expr2: Expr): Expr {
+      App(App(this, expr1), expr2)
+    }
+    static function ifthenelse(cond: Expr, thn: Expr, els: Expr): Expr {
+      And(Imp(cond, thn), Imp(Not(cond), els))
+    }
     function FreeVars(): set<Identifier> {
-      if True? || False? then {} else
-      if And? || Imp? || Eq? || Or? || App? then
+      if True? || False? || Int? then {} else
+      if And? || Imp? || Or? || App? then
         left.FreeVars() + right.FreeVars()
       else if Var? then
         {id}
@@ -177,10 +186,9 @@ module AlcorProofKernel refines AlcorKernelInterface {
     }
     ghost function size(): nat {
       match this
-      case True | False => 1
+      case True | False | Int(_) => 1
       case And(left, right) => left.size() + right.size() + 1
       case Imp(left, right) => left.size() + right.size() + 1
-      case Eq(left, right) => left.size() + right.size() + 1
       case Or(left, right) => left.size() + right.size() + 1
       case App(left, right) => left.size() + right.size() + 1
       case Var(i) =>  1
@@ -194,10 +202,9 @@ module AlcorProofKernel refines AlcorKernelInterface {
       decreases size(), if Abs? && this.id in freeVars then 1 else 0
     {
       match this
-      case True | False => this
+      case True | False | Int(_) => this
       case And(left, right) => And(left.Bind(id, expr), right.Bind(id, expr))
       case Imp(left, right) => Imp(left.Bind(id, expr), right.Bind(id, expr))
-      case Eq(left, right) => Eq(left.Bind(id, expr), right.Bind(id, expr))
       case Or(left, right) => Or(left.Bind(id, expr), right.Bind(id, expr))
       case Var(i) =>
         if i == id then expr else this
@@ -214,56 +221,139 @@ module AlcorProofKernel refines AlcorKernelInterface {
     }
 
     function Operator(): string
+      requires And? || Or? || Imp? || False? || True? || Var? || Int?
     {
       if And? then "&&" else
       if Or? then "||" else
       if Imp? then "==>" else
-      //if Iff? then "<==>" else
-      if Eq? then "==" else
       if False? then "false" else
       if True? then "true" else
-      if Var? then
-        id.ToString()
-      else ""
+      if Int? then IntToString(value) else
+      assert Var?;
+      id.ToString()
     }
     function ToStringWrap(outerPriority: nat): string
       decreases this, 1
     {
       var r := ToString();
-      if outerPriority >= Priority() then
+      if outerPriority > Priority() then
         "(" + r + ")"
       else
         r
     }
+    predicate InlineOperator() {
+      Var? &&
+      match id
+      case Identifier(s, 0, "") =>
+        match s {
+          case ">>" => true
+          case "<<" => true
+          case "%" => true
+          case "*" => true
+          case "/" => true
+          case "+" => true
+          case "-" => true
+          case ">" => true
+          case "<" => true
+          case ">=" => true
+          case "<=" => true
+          case "==" => true
+          case "!=" => true
+          case _ => false
+        }
+      case _ => false
+    }
+    function LeftPriority(): nat requires InlineOperator() {
+      match id.name {
+        case ">>" => 18
+        case "<<" => 18
+        case "%" => 15
+        case "*" => 13
+        case "/" => 13
+        case "+" => 11
+        case "-" => 11
+        case ">" => 9
+        case "<" => 9
+        case ">=" => 9
+        case "<=" => 9
+        case "==" => 9
+        case "!=" => 9 // TODO: Need to work out the substraction and division
+      }
+    }
+    function RightPriority(): nat requires InlineOperator() {
+      match id.name {
+        case ">>" => 18
+        case "<<" => 18
+        case "%" => 15
+        case "*" => 14
+        case "/" => 14
+        case "+" => 12
+        case "-" => 12
+        case ">" => 9
+        case "<" => 9
+        case ">=" => 9
+        case "<=" => 9
+        case "==" => 9
+        case "!=" => 9 // TODO: Need to work out the substraction and division
+      }
+    }
     function Priority(): nat {
-      if False? || True? || Var? then 10
-      else if Eq? then 9
+      if False? || True? || Int? then 100 else
+      if Var? then
+        if InlineOperator() then
+          match id.name {
+            case ">>" => 18
+            case "<<" => 18
+            case "%" => 15 // TODO confirm
+            case "*" => 13
+            case "/" => 13
+            case "+" => 11
+            case "-" => 11
+            case ">" => 9
+            case "<" => 9
+            case ">=" => 9
+            case "<=" => 9
+            case "==" => 9
+            case "!=" => 9 // TODO: Need to work out the substraction and division
+          }
+        else 100
+      else if IfThenElse?() then 3
+      else if App? then 99
       else if And? then 8
       else if Or? then 7
       else if Imp? then if right.False? then 10 else 6
       else if Abs? then 5 else if App? then 5
-      else if Forall? then 4
+      else if Forall? then 3
       //else if Iff? then 1
       else 0
+    }
+    predicate IfThenElse?() {
+      And? && left.Imp? && right.Imp? && right.left == Not(left.left)
     }
     function ToString(): string
       decreases this, 0
     {
-      var p := Priority();
-      if Imp? && right.False? then "!" + left.ToStringWrap(p)
-      else if And? || Or? || /*Iff? ||*/ Eq? || Imp? then
-        left.ToStringWrap(p) + " "+Operator()+" " + right.ToStringWrap(p)
-      else if Abs? then
-        "\\" + id.ToString() + "." + body.ToStringWrap(p + 1)
-      else if App? then
-        left.ToStringWrap(p) + " " + right.ToStringWrap(p)
-      else if Forall? then
-        if body.Abs? then
-          "forall " + body.id.ToString() + " :: " + body.body.ToStringWrap(p + 1)
-        else
-          "forall " + body.ToStringWrap(p + 1)
+      if IfThenElse?() then
+        "if " + left.left.ToString() + " then " + left.right.ToString() + " else " + right.right.ToString()
       else
-        Operator()
+        var p := Priority();
+        if Imp? && right.False? then "!" + left.ToStringWrap(p)
+        else if And? || Or? || Imp? then
+          left.ToStringWrap(p) + " "+Operator()+" " + right.ToStringWrap(p)
+        else if Abs? then
+          "\\" + id.ToString() + "." + body.ToStringWrap(p + 1)
+        else if App? then
+          if left.App? && left.left.InlineOperator() then
+            left.right.ToStringWrap(left.left.LeftPriority()) + " "+left.left.ToString() +" " + right.ToStringWrap(left.left.RightPriority())
+          else
+            left.ToStringWrap(p) + "(" + right.ToStringWrap(0) + ")"
+        else if Forall? then
+          if body.Abs? then
+            "forall " + body.id.ToString() + " :: " + body.body.ToStringWrap(p + 1)
+          else
+            "forall " + body.ToStringWrap(p + 1)
+        else
+          Operator()
     }
   }
   // From the outside world, without the definition they can't use it to build proofs
@@ -364,7 +454,7 @@ module AlcorProofKernel refines AlcorKernelInterface {
     // TODO: Check this axiom
     static function ForallRename(theorem: Proof, freeVar: Identifier, Body: Expr, Id: Identifier): (r: Result<Proof>)
       ensures theorem.GetExpr() == Forall(Abs(freeVar, Body.Bind(Id, Var(freeVar))))
-      ==> r.Success? && r.value in AllProofs && r.value.GetExpr() == Forall(Abs(Id, Body))
+              ==> r.Success? && r.value in AllProofs && r.value.GetExpr() == Forall(Abs(Id, Body))
     {
       if theorem.expr == Forall(Abs(freeVar, Body.Bind(Id, Var(freeVar)))) then
         Success(Proof(Forall(Abs(Id, Body))))
@@ -987,7 +1077,7 @@ module AlcorTacticProofChecker {
       var tailFreeVars := tail.FreeVars();
       {id} + tailFreeVars
     }
-    opaque function FreshVar(name: string): (r: string) 
+    opaque function FreshVar(name: string): (r: string)
       ensures r !in FreeVars() && |name| <= |r| && r[0..|name|] == name
     {
       var freeVars := FreeVars();
@@ -1007,8 +1097,8 @@ module AlcorTacticProofChecker {
         AboutFreshVar_helper2(name, num - 1);
         var extra := {name + IntToString(num - 1)};
         //assert !(exists i | 0 <= i < num :: name + IntToString(i) == name + IntToString(num));
-        assert forall x <- FreshVar_helper2(name, num - 1) :: x != name + IntToString(num - 1) by {
-          forall x <- FreshVar_helper2(name, num - 1) ensures x != name + IntToString(num - 1) {
+        assert forall x <- FreshVar_helper2(name, num - 1) {:trigger false} :: x != name + IntToString(num - 1) by {
+          forall x <- FreshVar_helper2(name, num - 1) {:trigger false} ensures x != name + IntToString(num - 1) {
             if x == name + IntToString(num - 1) {
               var i :| 0 <= i < num - 1 && x == name + IntToString(i);
               assert name + IntToString(num - 1) == name + IntToString(i);
@@ -1031,7 +1121,7 @@ module AlcorTacticProofChecker {
       ensures a !! b ==> |a+b| == |a|+|b|
 
     opaque function FreshVar_helper(name: string, num: nat,
-      freeVars: set<string>, ghost hitvars: set<string>): (r: string)
+                                    freeVars: set<string>, ghost hitvars: set<string>): (r: string)
       requires freeVars == FreeVars()
       requires hitvars <= freeVars
       requires FreshVar_helper2(name, num) == hitvars
@@ -1223,16 +1313,16 @@ module AlcorTacticProofChecker {
     }
 
     ghost function IntroHelper2(env__imp__body_bind_id_freeVar: Proof, env: Proof, Env: Expr, freeVar: Identifier, Body: Expr, Id: Identifier): (r: Result<Proof>)
-      ensures env.GetExpr() == Env 
-        && env__imp__body_bind_id_freeVar.GetExpr() == Imp(Env, Body.Bind(Id, Var(freeVar)))
-        ==> r.Success? && r.value in AllProofs && r.value.GetExpr() == Forall(Abs(Id, Body))
+      ensures env.GetExpr() == Env
+              && env__imp__body_bind_id_freeVar.GetExpr() == Imp(Env, Body.Bind(Id, Var(freeVar)))
+              ==> r.Success? && r.value in AllProofs && r.value.GetExpr() == Forall(Abs(Id, Body))
     {
       var body_bind_id_freeVar :- Proof.ImpElim(env__imp__body_bind_id_freeVar, env);
       var f :- Proof.ForallIntro(body_bind_id_freeVar, freeVar);
       var f' :- Proof.ForallRename(f, freeVar, Body, Id);
       Success(f')
     }
-    
+
     ghost function IntroHelper3(env: Proof, a_and_env__imp__b: Proof, A: Expr, B: Expr): (r: Result<Proof>)
     {
       var aToB := (a: Proof) =>
@@ -1423,6 +1513,7 @@ module AlcorTacticProofChecker {
     }
 
     method SetFailure(msg: string) returns (feedback: Result<string>)
+      modifies this
       ensures proofState.Error?
     {
       proofState := Error(msg);
