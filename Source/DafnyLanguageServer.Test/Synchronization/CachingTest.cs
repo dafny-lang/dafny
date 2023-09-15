@@ -1,3 +1,4 @@
+using System;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
@@ -12,6 +13,7 @@ using Serilog;
 using Serilog.Sinks.InMemory;
 using Xunit;
 using Xunit.Abstractions;
+using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization; 
 
@@ -24,6 +26,64 @@ public class CachingTest : ClientBasedLanguageServerTest {
       .WriteTo.InMemory().CreateLogger();
     var factory = LoggerFactory.Create(b => b.AddSerilog(logger));
     serverOptions.Services.Replace(new ServiceDescriptor(typeof(ILoggerFactory), factory));
+  }
+
+  [Fact]
+  public async Task ChangedImportAffectsExport() {
+
+    var importedSource = @"
+module Imported {
+  const x: int := 3
+  class Foo {
+    const r := 2
+
+    constructor() {
+
+    }
+  }
+}
+".TrimStart();
+
+    var exporter = @"
+module Exporter {
+  import Imported
+  export provides Imported, FooAlias, Wrapper
+
+  class Wrapper<T> {
+    method V() returns (r: T)
+  }
+  type FooAlias = Wrapper<Imported.Foo>
+}
+".TrimStart();
+
+    var importerSource = @"
+module Importer {
+  import Exporter
+  const i: int := 3
+  const x := Exporter.Imported.x
+
+  method Faz() {
+    var z : Exporter.FooAlias;
+
+    var q := new Exporter.Imported.Foo();
+    print q.r;
+  }  
+}
+".TrimStart();
+
+    var directory = Path.GetRandomFileName();
+    await CreateAndOpenTestDocument("", Path.Combine(directory, DafnyProject.FileName));
+    var imported = await CreateAndOpenTestDocument(importedSource, Path.Combine(directory, "imported.dfy"));
+    await CreateAndOpenTestDocument(exporter, Path.Combine(directory, "exporter.dfy"));
+    var importer = await CreateAndOpenTestDocument(importerSource, Path.Combine(directory, "importer.dfy"));
+
+    var diagnostics1 = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
+    Assert.Empty(diagnostics1.Where(d => d.Severity == DiagnosticSeverity.Error));
+    ApplyChange(ref imported, ((0, 0), (0, 0)), "//comment" + Environment.NewLine);
+    ApplyChange(ref importer, ((2, 18), (2, 19)), "true");
+    var diagnostics2 = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
+    Assert.Single(diagnostics2.Where(d => d.Severity == DiagnosticSeverity.Error));
+    await AssertNoDiagnosticsAreComing(CancellationToken);
   }
 
   [Fact]
@@ -44,7 +104,6 @@ const tuple2 := (3,2)
     ApplyChange(ref documentItem, ((0, 0), (0, 0)), "const tuple4: (int, int, bool, bool) := (1,2,3, true) \n");
     var diagnostics3 = await GetLastDiagnostics(documentItem, CancellationToken);
     Assert.Equal(2, diagnostics3.Length);
-
   }
 
   [Fact]
