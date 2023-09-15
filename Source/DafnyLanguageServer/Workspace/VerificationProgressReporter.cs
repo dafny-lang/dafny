@@ -97,7 +97,7 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
               continue;
             }
 
-            if (member is Field) {
+            if (member is ConstantField) {
               var constantHasNoBody = member.RangeToken.EndToken.line == 0;
               if (constantHasNoBody) {
                 continue; // Nothing to verify

@@ -27,6 +27,24 @@ public class SimpleLinearVerificationGutterStatusTester : LinearVerificationGutt
  ? :  assert 1 == 0;
  ? :}", false, intermediates: false);
   }
+  
+  [Fact]
+  public async Task Fields() {
+    var markedSource = @"
+| :method Test() {
+| :  assert true;
+| :}
+| :
+| :class A {
+| :  ghost var B: seq<int>
+| :  var C: array<int>
+| :
+| :  method Test() {
+| :    assert true;
+| :  }
+| :}";
+    await VerifyTrace(markedSource, false, intermediates: false);
+  }
 
   [Fact]
   public async Task GitIssue4287GutterHighlightingBroken() {
