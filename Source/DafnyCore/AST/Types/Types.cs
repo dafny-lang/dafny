@@ -134,13 +134,44 @@ public abstract class Type : TokenNode {
     Contract.Ensures(Contract.Result<Type>() != null);
     Type type = this;
     while (true) {
-      var pt = type as TypeProxy;
-      if (pt != null && pt.T != null) {
-        type = pt.T;
+      if (type is TypeProxy { T: { } proxyTarget }) {
+        type = proxyTarget;
       } else {
         return type;
       }
     }
+  }
+
+  /// <summary>
+  /// Return the type that "this" stands for, getting to the bottom of proxies, and then using an InternalTypeSynonym if
+  /// the type is not in scope.
+  ///
+  /// For more documentation, see method Normalize().
+  /// </summary>
+  [System.Diagnostics.Contracts.Pure]
+  public Type NormalizeAndAdjustForScope() {
+    return NormalizeExpand(ExpandMode.DontExpandJustAdjustForScopes);
+  }
+
+  /// <summary>
+  /// Return the type that "this" stands for, getting to the bottom of proxies and following type synonyms, but does
+  /// not follow subset types.
+  ///
+  /// For more documentation, see method Normalize().
+  /// </summary>
+  [System.Diagnostics.Contracts.Pure]
+  public Type NormalizeExpandKeepConstraints() {
+    return NormalizeExpand(ExpandMode.ExpandSynonymsOnly);
+  }
+
+  public Type NormalizeExpand(bool keepConstraints) {
+    return NormalizeExpand(keepConstraints ? ExpandMode.ExpandSynonymsOnly : ExpandMode.ExpandSynonymsAndSubsetTypes);
+  }
+
+  public enum ExpandMode {
+    DontExpandJustAdjustForScopes,
+    ExpandSynonymsOnly,
+    ExpandSynonymsAndSubsetTypes
   }
 
   /// <summary>
@@ -149,9 +180,10 @@ public abstract class Type : TokenNode {
   /// For more documentation, see method Normalize().
   /// </summary>
   [System.Diagnostics.Contracts.Pure]
-  public Type NormalizeExpand(bool keepConstraints = false) {
+  public Type NormalizeExpand(ExpandMode expandMode = ExpandMode.ExpandSynonymsAndSubsetTypes) {
     Contract.Ensures(Contract.Result<Type>() != null);
     Contract.Ensures(!(Contract.Result<Type>() is TypeProxy) || ((TypeProxy)Contract.Result<Type>()).T == null);  // return a proxy only if .T == null
+
     Type type = this;
     while (true) {
 
@@ -178,12 +210,13 @@ public abstract class Type : TokenNode {
         }
 
         if (rtd.IsRevealedInScope(scope)) {
-          if (rtd is TypeSynonymDecl && (!(rtd is SubsetTypeDecl) || !keepConstraints)) {
-            type = ((TypeSynonymDecl)rtd).RhsWithArgumentIgnoringScope(udt.TypeArgs);
-            continue;
-          } else {
-            return type;
+          if (expandMode != ExpandMode.DontExpandJustAdjustForScopes && rtd is TypeSynonymDecl typeSynonymDecl) {
+            if (typeSynonymDecl is not SubsetTypeDecl || expandMode == ExpandMode.ExpandSynonymsAndSubsetTypes) {
+              type = typeSynonymDecl.RhsWithArgumentIgnoringScope(udt.TypeArgs);
+              continue;
+            }
           }
+          return type;
         } else { // type is hidden, no more normalization is possible
           return rtd.SelfSynonym(type.TypeArgs);
         }
@@ -214,17 +247,6 @@ public abstract class Type : TokenNode {
 
       return type;
     }
-  }
-
-  /// <summary>
-  /// Return the type that "this" stands for, getting to the bottom of proxies and following type synonyms, but does
-  /// not follow subset types.
-  ///
-  /// For more documentation, see method Normalize().
-  /// </summary>
-  [System.Diagnostics.Contracts.Pure]
-  public Type NormalizeExpandKeepConstraints() {
-    return NormalizeExpand(true);
   }
 
   /// <summary>

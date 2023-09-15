@@ -126,7 +126,7 @@ public static class PreType2TypeUtil {
     Contract.Requires(type != null);
     Contract.Requires(preTypeConverted != null);
 
-    type = type.Normalize();
+    type = type.NormalizeAndAdjustForScope();
     if (type is TypeProxy { T: null } typeProxy) {
       typeProxy.T = preTypeConverted;
     } else {
