@@ -75,7 +75,7 @@ module Tests {
   method Termination0()
   {
     var s := 0;
-    for i := 0 to * { // error: * is allowed only if method uses "modifies *"
+    for i := 0 to * { // error: * is allowed only if method uses "decreases *"
       s := s + i;
     }
   }
@@ -83,7 +83,7 @@ module Tests {
   method Termination1()
   {
     var s := 0;
-    for i := 0 downto * { // error: * is allowed only if method uses "modifies *"
+    for i := 0 downto * { // error: * is allowed only if method uses "decreases *"
       s := s + i;
     }
   }
@@ -92,7 +92,7 @@ module Tests {
   {
     var s := 0;
     for i := 0 downto *
-      decreases * // error: * is allowed only if method uses "modifies *"
+      decreases * // error: * is allowed only if method uses "decreases *"
     {
       s := s + i;
     }
