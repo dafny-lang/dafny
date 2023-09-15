@@ -25,10 +25,11 @@ public record AssumptionDescription(
     allowedInLibraries: false);
   public static AssumptionDescription ExternFunction = new(
     issue: "Function with [{:extern}] attribute.",
-    mitigation: "Turn into a [method] with [modifies *] or test thoroughly for lack of side effects.",
-    mitigationIETF: "SHOULD use [method] with [modifies *] instead.",
+    mitigation: "Turn into a [method] with [modifies {}] and test thoroughly for lack of side effects.",
+    mitigationIETF: "SHOULD use [method] with [modifies {}] instead.",
     isExplicit: false,
     allowedInLibraries: false);
+
   public static AssumptionDescription ExternWithPrecondition = new(
     issue: "Declaration with [{:extern}] has a requires clause.",
     mitigation: "Test any external callers (maybe with [/testContracts]).",
@@ -41,6 +42,7 @@ public record AssumptionDescription(
     mitigationIETF: "MUST test external callee.",
     isExplicit: false,
     allowedInLibraries: false);
+
   public static AssumptionDescription AssumeStatement(bool hasAxiomAttribute) {
     return new(
       issue:
@@ -56,7 +58,7 @@ public record AssumptionDescription(
           ? "SHOULD replace with [assert] and prove."
           : "MUST replace with [assert] and prove or add [{:axiom}].",
       isExplicit: false,
-      allowedInLibraries: false
+      allowedInLibraries: hasAxiomAttribute
     );
   }
   public static AssumptionDescription MayNotTerminate = new(
@@ -64,10 +66,7 @@ public record AssumptionDescription(
     mitigation: "Provide a valid [decreases] clause.",
     mitigationIETF: "SHOULD provide a valid [decreases] clause.",
     isExplicit: false,
-    // This isn't unsound but it's hard to imagine useful libraries
-    // with non-terminating methods. If we ever want to offer something like a
-    // top-level event loop driver we can revisit.
-    allowedInLibraries: false);
+    allowedInLibraries: true);
   public static AssumptionDescription HasTerminationFalseAttribute = new(
     issue: "Trait method calls may not terminate (uses [{:termination false}]).",
     mitigation: "Remove if possible.",
@@ -84,12 +83,6 @@ public record AssumptionDescription(
     issue: "Definition contains loop with no body.",
     mitigation: "Provide a body.",
     mitigationIETF: "MUST provide a body.",
-    isExplicit: false,
-    allowedInLibraries: false);
-  public static AssumptionDescription HasConcurrentAttribute = new(
-    issue: "Declaration has [{:concurrent}] attribute.",
-    mitigation: "Manually review and test in a concurrent setting.",
-    mitigationIETF: "MUST manually review and test in a concurrent setting.",
     isExplicit: false,
     allowedInLibraries: false);
 
