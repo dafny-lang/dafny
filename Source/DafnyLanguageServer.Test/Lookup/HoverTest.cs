@@ -8,6 +8,7 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using JetBrains.Annotations;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
+using OmniSharp.Extensions.JsonRpc.Server;
 using Xunit.Abstractions;
 using Xunit;
 using XunitAssertMessages;
@@ -82,6 +83,24 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
       }
 
       Assert.True(hovers.Count > 0, "No hover expression detected.");
+    }
+
+    [Fact]
+    public async Task RecoverableParseErrorTypeRhs() {
+      var markup = @"
+class Bla { }
+
+method Foo() {
+  var ><x := new Bla();
+}
+/".TrimStart();
+      MarkupTestFile.GetPositionAndRanges(markup, out var source, out var position, out _);
+      var document = CreateTestDocument(source);
+      client.OpenDocument(document);
+      var hoverResult = await client.RequestHover(new HoverParams() {
+        Position = position, TextDocument = document
+      }, CancellationToken);
+      Assert.Contains("No hover information available", hoverResult.ToString());
     }
 
     [Fact]

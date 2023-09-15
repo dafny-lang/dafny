@@ -15,6 +15,7 @@ using Microsoft.Boogie;
 using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Util;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
+using OmniSharp.Extensions.JsonRpc.Server;
 using EnsuresDescription = Microsoft.Dafny.ProofObligationDescription.EnsuresDescription;
 
 namespace Microsoft.Dafny.LanguageServer.Handlers {
@@ -42,7 +43,12 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
 
     public override async Task<Hover?> Handle(HoverParams request, CancellationToken cancellationToken) {
       logger.LogDebug("received hover request for {Document}", request.TextDocument);
-      var state = await projects.GetResolvedDocumentAsyncInternal(request.TextDocument);
+      IdeState? state;
+      try {
+        state = await projects.GetResolvedDocumentAsyncInternal(request.TextDocument);
+      } catch (OperationCanceledException) {
+        return new Hover() { Contents = new MarkedStringsOrMarkupContent("No hover information available due to program error") };
+      }
       if (state == null) {
         logger.LogWarning("the document {Document} is not loaded", request.TextDocument);
         return null;
