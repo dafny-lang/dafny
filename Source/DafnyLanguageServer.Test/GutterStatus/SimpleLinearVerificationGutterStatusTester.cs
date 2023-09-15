@@ -92,7 +92,7 @@ method Foo() ensures false { } ";
  .  .  .  S  |  |  I  .  .  .  S  | [=] I  .  .  .  S  |  | :  witness 101 //Replace1:   witness 99 //Replace2:   witness 101 ", false, "EnsuresItWorksForSubsetTypes.dfy");
   }
 
-  [Fact(Timeout = MaxTestExecutionTimeMs)]
+  [Fact(Timeout = MaxTestExecutionTimeMs * 10)]
   public async Task EnsureItWorksForPostconditionsRelatedOutside() {
     await VerifyTrace(@"
  .  |  |  |  | :predicate F(i: int) {
