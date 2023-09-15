@@ -19,6 +19,36 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
     private const int MaxTestExecutionTimeMs = 10000;
 
     [Fact]
+    public async Task DidOpenOfEquivalentDocumentDoesNotTriggerCompilation() {
+      var producerSource = @"
+method Foo(x: int) { 
+  var y := 3.0;
+}
+".TrimStart();
+
+      var consumerSource = @"
+method Bar() {
+  Foo(3); 
+}
+";
+
+      var directory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+      Directory.CreateDirectory(directory);
+      await File.WriteAllTextAsync(Path.Combine(directory, "producer.dfy"), producerSource);
+      await File.WriteAllTextAsync(Path.Combine(directory, DafnyProject.FileName), "");
+      await CreateAndOpenTestDocument(consumerSource, Path.Combine(directory, "consumer.dfy"));
+
+      var a = await compilationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
+      var a2 = await compilationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
+      var a3 = await compilationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
+      var a4 = await compilationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
+      await CreateAndOpenTestDocument(producerSource, Path.Combine(directory, "producer.dfy"));
+      var somethingElse = await CreateAndOpenTestDocument("method Foo() {}", "somethingElse");
+      var a6 = await compilationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
+      Assert.Equal(somethingElse.Uri, a6.Uri);
+    }
+    
+    [Fact]
     public async Task MultipleDocumentsFailedResolution() {
       var source = @"
 method Foo() returns (x: int) {
