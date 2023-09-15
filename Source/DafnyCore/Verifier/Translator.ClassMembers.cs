@@ -546,7 +546,7 @@ namespace Microsoft.Dafny {
       // Also don't do any reads checks if the reads clause is *,
       // since all the checks will be trivially true
       // and we don't need to cause additional verification cost for existing code.
-      if (!options.Get(CommonOptionBag.ReadsClausesOnMethods) || m.IsLemmaLike || m.Reads.Exists(e => e.E is WildcardExpr)) {
+      if (!options.Get(CommonOptionBag.ReadsClausesOnMethods) || m.IsLemmaLike || m.Reads.Expressions.Exists(e => e.E is WildcardExpr)) {
         etran = etran.WithReadsFrame(null);
       }
       InitializeFuelConstant(m.tok, builder, etran);
@@ -705,7 +705,7 @@ namespace Microsoft.Dafny {
 
         // check well-formedness of the reads clauses
         readsCheckDelayer.DoWithDelayedReadsChecks(false, wfo => {
-          CheckFrameWellFormed(wfo, m.Reads, localVariables, builder, etran);
+          CheckFrameWellFormed(wfo, m.Reads.Expressions, localVariables, builder, etran);
         });
         // Also check that the reads clause == {} if the {:concurrent} attribute is present
         if (Attributes.Contains(m.Attributes, Attributes.ConcurrentAttributeName)) {
@@ -1390,8 +1390,8 @@ namespace Microsoft.Dafny {
         classFrameExps = m.Mod != null ? m.Mod.Expressions : new List<FrameExpression>();
         originalTraitFrameExps = m.OverriddenMethod.Mod?.Expressions;
       } else {
-        classFrameExps = m.Reads ?? new List<FrameExpression>();
-        originalTraitFrameExps = m.OverriddenMethod.Reads;
+        classFrameExps = m.Reads != null ? m.Reads.Expressions : new List<FrameExpression>();
+        originalTraitFrameExps = m.OverriddenMethod.Reads?.Expressions;
       }
 
       var traitFrameExps = new List<FrameExpression>();
@@ -1639,7 +1639,7 @@ namespace Microsoft.Dafny {
           printer.PrintFormals(m.Outs, m);
         }
         printer.PrintSpec("", m.Req, 0);
-        printer.PrintFrameSpecLine("", m.Mod.Expressions, 0, null);
+        printer.PrintFrameSpecLine("", m.Mod, 0);
         printer.PrintSpec("", m.Ens, 0);
         printer.PrintDecreasesSpec(m.Decreases, 0);
         writer.WriteLine();

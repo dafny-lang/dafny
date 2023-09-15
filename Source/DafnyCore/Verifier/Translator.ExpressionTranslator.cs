@@ -696,7 +696,7 @@ namespace Microsoft.Dafny {
 
                 bool callIsLit = argsAreLit
                                  && translator.FunctionBodyIsAvailable(e.Function, translator.currentModule, translator.currentScope, true)
-                                 && !e.Function.Reads.Any(); // Function could depend on external values
+                                 && !e.Function.Reads.Expressions.Any(); // Function could depend on external values
                 if (callIsLit) {
                   result = MaybeLit(result, ty);
                 }
@@ -1526,7 +1526,7 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), predef.BoxType,
         var rdvars = new List<Boogie.Variable>();
         var o = BplBoundVar(varNameGen.FreshId("#o#"), predef.RefType, rdvars);
         Boogie.Expr rdbody = new Boogie.LambdaExpr(GetToken(e), new List<TypeVariable>(), rdvars, null,
-          translator.InRWClause(GetToken(e), o, null, e.Reads.ConvertAll(su.SubstFrameExpr), et, null, null));
+          translator.InRWClause(GetToken(e), o, null, e.Reads.Expressions.ConvertAll(su.SubstFrameExpr), et, null, null));
         rdbody = FunctionCall(GetToken(e), "SetRef_to_SetBox", predef.SetType, rdbody);
 
         return MaybeLit(

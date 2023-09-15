@@ -1982,7 +1982,7 @@ namespace Microsoft.Dafny {
       AddOtherDefinition(boogieFunction, ax);
       // TODO(namin) Is checking f.Reads.Count==0 excluding Valid() of BinaryTree in the right way?
       //             I don't see how this in the decreasing clause would help there.
-      if (!(f is ExtremePredicate) && f.CoClusterTarget == Function.CoCallClusterInvolvement.None && f.Reads.Count == 0) {
+      if (!(f is ExtremePredicate) && f.CoClusterTarget == Function.CoCallClusterInvolvement.None && f.Reads.Expressions.Count == 0) {
         var FVs = new HashSet<IVariable>();
         Type usesThis = null;
         bool dontCare0 = false, dontCare1 = false;
@@ -3676,7 +3676,7 @@ namespace Microsoft.Dafny {
       //getting framePrime
       List<FrameExpression> traitFrameExps = new List<FrameExpression>();
       FunctionCallSubstituter sub = null;
-      foreach (var e in func.OverriddenFunction.Reads) {
+      foreach (var e in func.OverriddenFunction.Reads.Expressions) {
         sub ??= new FunctionCallSubstituter(substMap, typeMap, (TraitDecl)func.OverriddenFunction.EnclosingClass, (ClassLikeDecl)func.EnclosingClass);
         var newE = sub.Substitute(e.E);
         FrameExpression fe = new FrameExpression(e.tok, newE, e.FieldName);
@@ -3706,7 +3706,7 @@ namespace Microsoft.Dafny {
       builder.Add(Bpl.Cmd.SimpleAssign(tok, new Bpl.IdentifierExpr(tok, frame), lambda));
 
       // emit: assert (forall o: ref, f: Field :: o != null && $Heap[o,alloc] && (o,f) in subFrame ==> $_ReadsFrame[o,f]);
-      Bpl.Expr oInCallee = InRWClause(tok, o, f, func.Reads, etran, null, null);
+      Bpl.Expr oInCallee = InRWClause(tok, o, f, func.Reads.Expressions, etran, null, null);
       Bpl.Expr consequent2 = InRWClause(tok, o, f, traitFrameExps, etran, null, null);
       Bpl.Expr q = new Bpl.ForallExpr(tok, new List<TypeVariable> { }, new List<Variable> { oVar, fVar },
                                       Bpl.Expr.Imp(Bpl.Expr.And(ante, oInCallee), consequent2));
@@ -3782,7 +3782,7 @@ namespace Microsoft.Dafny {
         writer.Write(": ");
         printer.PrintType(f.ResultType);
         printer.PrintSpec("", f.Req, 0);
-        printer.PrintFrameSpecLine("", f.Reads, 0, null);
+        printer.PrintFrameSpecLine("", f.Reads, 0);
         printer.PrintSpec("", f.Ens, 0);
         printer.PrintDecreasesSpec(f.Decreases, 0);
         writer.WriteLine();
@@ -3833,7 +3833,7 @@ namespace Microsoft.Dafny {
 
       // set up the information used to verify the method's reads and modifies clauses
       if (etran.readsFrame != null) {
-        DefineFrame(m.tok, etran.ReadsFrame(m.tok), m.Reads, builder, localVariables, null);
+        DefineFrame(m.tok, etran.ReadsFrame(m.tok), m.Reads.Expressions, builder, localVariables, null);
       }
       DefineFrame(m.tok, etran.ModifiesFrame(m.tok), m.Mod.Expressions, builder, localVariables, null);
       if (wellformednessProc) {
@@ -4071,7 +4071,7 @@ namespace Microsoft.Dafny {
 
       Bpl.Expr h0IsHeapAnchor = FunctionCall(h0.tok, BuiltinFunction.IsHeapAnchor, null, h0);
       Bpl.Expr heapSucc = HeapSucc(h0, h1);
-      Bpl.Expr r0 = InRWClause(f.tok, o, field, f.Reads, etran0, null, null);
+      Bpl.Expr r0 = InRWClause(f.tok, o, field, f.Reads.Expressions, etran0, null, null);
       Bpl.Expr q0 = new Bpl.ForallExpr(f.tok, new List<TypeVariable> { }, new List<Variable> { oVar, fieldVar },
         Bpl.Expr.Imp(Bpl.Expr.And(oNotNullAlloced, r0), unchanged));
 
@@ -4099,7 +4099,7 @@ namespace Microsoft.Dafny {
       bvars.Add(h0Var); bvars.Add(h1Var);
       f0args.Add(h0); f1args.Add(h1); f0argsCanCall.Add(h0); f1argsCanCall.Add(h1);
 
-      var useAlloc = f.Reads.Exists(fe => fe.E is WildcardExpr) ? ISALLOC : NOALLOC;
+      var useAlloc = f.Reads.Expressions.Exists(fe => fe.E is WildcardExpr) ? ISALLOC : NOALLOC;
       if (!f.IsStatic) {
         Bpl.Expr th; var thVar = BplBoundVar("this", TrReceiverType(f), out th);
         bvars.Add(thVar);
@@ -4357,7 +4357,7 @@ namespace Microsoft.Dafny {
       }
       builder.AddCaptureState(f.tok, false, "initial state");
 
-      DefineFrame(f.tok, etran.ReadsFrame(f.tok), f.Reads, builder, locals, null);
+      DefineFrame(f.tok, etran.ReadsFrame(f.tok), f.Reads.Expressions, builder, locals, null);
       InitializeFuelConstant(f.tok, builder, etran);
 
       var delayer = new ReadsCheckDelayer(etran, null, locals, builderInitializationArea, builder);
@@ -4399,7 +4399,7 @@ namespace Microsoft.Dafny {
       // allowed to assume the precondition (yet, the requires clause is checked to
       // read only those things indicated in the reads clause).
       delayer.DoWithDelayedReadsChecks(false, wfo => {
-        CheckFrameWellFormed(wfo, f.Reads, locals, builder, etran);
+        CheckFrameWellFormed(wfo, f.Reads.Expressions, locals, builder, etran);
       });
 
       // If the function is marked as {:concurrent}, check that the reads clause is empty.
@@ -5950,7 +5950,7 @@ namespace Microsoft.Dafny {
           Bpl.Expr lhs = Bpl.Expr.SelectTok(f.tok, lhs_inner, bx);
 
           var et = new ExpressionTranslator(this, predef, h);
-          var rhs = InRWClause_Aux(f.tok, unboxBx, bx, null, f.Reads, false, et, selfExpr, rhs_dict);
+          var rhs = InRWClause_Aux(f.tok, unboxBx, bx, null, f.Reads.Expressions, false, et, selfExpr, rhs_dict);
 
           if (f.EnclosingClass is ArrowTypeDecl) {
             var args_h = f.ReadsHeap ? Snoc(SnocPrevH(argsRequires), h) : argsRequires;

@@ -12,6 +12,11 @@ public class Specification<T> : TokenNode, IAttributeBearingDeclaration
     Contract.Invariant(Expressions == null || cce.NonNullElements<T>(Expressions));
   }
 
+  public Specification() {
+    Expressions = new List<T>();
+    Attributes = null;
+  }
+
   public Specification(List<T> exprs, Attributes attrs) {
     Contract.Requires(exprs == null || cce.NonNullElements<T>(exprs));
     Expressions = exprs;
