@@ -180,10 +180,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     public async Task<DafnyProject> GetProject(Uri uri) {
-      if (uri.LocalPath.EndsWith(DafnyProject.FileName)) {
-        return await DafnyProject.Open(fileSystem, uri, TextWriter.Null, TextWriter.Null);
-      }
-      return (await FindProjectFile(uri)) ?? ImplicitProject(uri);
+      return uri.LocalPath.EndsWith(DafnyProject.FileName)
+        ? await DafnyProject.Open(fileSystem, uri)
+        : (await FindProjectFile(uri) ?? ImplicitProject(uri));
     }
 
     public static DafnyProject ImplicitProject(Uri uri) {
@@ -230,7 +229,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         return Task.FromResult<DafnyProject?>(null);
       }
 
-      return DafnyProject.Open(fileSystem, configFileUri, TextWriter.Null, TextWriter.Null);
+      return DafnyProject.Open(fileSystem, configFileUri);
     }
 
     public IEnumerable<ProjectManager> Managers => managersByProject.Values;
