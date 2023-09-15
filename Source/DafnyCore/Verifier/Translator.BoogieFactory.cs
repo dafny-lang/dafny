@@ -296,21 +296,21 @@ namespace Microsoft.Dafny {
           return FunctionCall(tok, "Set#Card", Bpl.Type.Int, args);
         case BuiltinFunction.SetEmpty: {
             Contract.Assert(args.Length == 0);
-            Bpl.Type resultType = predef.SetType(tok, true);
+            Bpl.Type resultType = predef.SetType;
             return Bpl.Expr.CoerceType(tok, FunctionCall(tok, "Set#Empty", resultType, args), resultType);
           }
         case BuiltinFunction.SetUnionOne:
           Contract.Assert(args.Length == 2);
-          return FunctionCall(tok, "Set#UnionOne", predef.SetType(tok, true), args);
+          return FunctionCall(tok, "Set#UnionOne", predef.SetType, args);
         case BuiltinFunction.SetUnion:
           Contract.Assert(args.Length == 2);
-          return FunctionCall(tok, "Set#Union", predef.SetType(tok, true), args);
+          return FunctionCall(tok, "Set#Union", predef.SetType, args);
         case BuiltinFunction.SetIntersection:
           Contract.Assert(args.Length == 2);
-          return FunctionCall(tok, "Set#Intersection", predef.SetType(tok, true), args);
+          return FunctionCall(tok, "Set#Intersection", predef.SetType, args);
         case BuiltinFunction.SetDifference:
           Contract.Assert(args.Length == 2);
-          return FunctionCall(tok, "Set#Difference", predef.SetType(tok, true), args);
+          return FunctionCall(tok, "Set#Difference", predef.SetType, args);
         case BuiltinFunction.SetEqual:
           Contract.Assert(args.Length == 2);
           Contract.Assert(typeInstantiation == null);
@@ -325,21 +325,21 @@ namespace Microsoft.Dafny {
           return FunctionCall(tok, "Set#Disjoint", Bpl.Type.Bool, args);
         case BuiltinFunction.ISetEmpty: {
             Contract.Assert(args.Length == 0);
-            Bpl.Type resultType = predef.SetType(tok, false);
+            Bpl.Type resultType = predef.ISetType;
             return Bpl.Expr.CoerceType(tok, FunctionCall(tok, "ISet#Empty", resultType, args), resultType);
           }
         case BuiltinFunction.ISetUnionOne:
           Contract.Assert(args.Length == 2);
-          return FunctionCall(tok, "ISet#UnionOne", predef.SetType(tok, false), args);
+          return FunctionCall(tok, "ISet#UnionOne", predef.ISetType, args);
         case BuiltinFunction.ISetUnion:
           Contract.Assert(args.Length == 2);
-          return FunctionCall(tok, "ISet#Union", predef.SetType(tok, false), args);
+          return FunctionCall(tok, "ISet#Union", predef.ISetType, args);
         case BuiltinFunction.ISetIntersection:
           Contract.Assert(args.Length == 2);
-          return FunctionCall(tok, "ISet#Intersection", predef.SetType(tok, false), args);
+          return FunctionCall(tok, "ISet#Intersection", predef.ISetType, args);
         case BuiltinFunction.ISetDifference:
           Contract.Assert(args.Length == 2);
-          return FunctionCall(tok, "ISet#Difference", predef.SetType(tok, false), args);
+          return FunctionCall(tok, "ISet#Difference", predef.ISetType, args);
         case BuiltinFunction.ISetEqual:
           Contract.Assert(args.Length == 2);
           return FunctionCall(tok, "ISet#Equal", Bpl.Type.Bool, args);
@@ -354,21 +354,21 @@ namespace Microsoft.Dafny {
           return FunctionCall(tok, "MultiSet#Card", Bpl.Type.Int, args);
         case BuiltinFunction.MultiSetEmpty: {
             Contract.Assert(args.Length == 0);
-            Bpl.Type resultType = predef.MultiSetType(tok);
+            Bpl.Type resultType = predef.MultiSetType;
             return Bpl.Expr.CoerceType(tok, FunctionCall(tok, "MultiSet#Empty", resultType, args), resultType);
           }
         case BuiltinFunction.MultiSetUnionOne:
           Contract.Assert(args.Length == 2);
-          return FunctionCall(tok, "MultiSet#UnionOne", predef.MultiSetType(tok), args);
+          return FunctionCall(tok, "MultiSet#UnionOne", predef.MultiSetType, args);
         case BuiltinFunction.MultiSetUnion:
           Contract.Assert(args.Length == 2);
-          return FunctionCall(tok, "MultiSet#Union", predef.MultiSetType(tok), args);
+          return FunctionCall(tok, "MultiSet#Union", predef.MultiSetType, args);
         case BuiltinFunction.MultiSetIntersection:
           Contract.Assert(args.Length == 2);
-          return FunctionCall(tok, "MultiSet#Intersection", predef.MultiSetType(tok), args);
+          return FunctionCall(tok, "MultiSet#Intersection", predef.MultiSetType, args);
         case BuiltinFunction.MultiSetDifference:
           Contract.Assert(args.Length == 2);
-          return FunctionCall(tok, "MultiSet#Difference", predef.MultiSetType(tok), args);
+          return FunctionCall(tok, "MultiSet#Difference", predef.MultiSetType, args);
         case BuiltinFunction.MultiSetEqual:
           Contract.Assert(args.Length == 2);
           return FunctionCall(tok, "MultiSet#Equal", Bpl.Type.Bool, args);
@@ -380,10 +380,10 @@ namespace Microsoft.Dafny {
           return FunctionCall(tok, "MultiSet#Disjoint", Bpl.Type.Bool, args);
         case BuiltinFunction.MultiSetFromSet:
           Contract.Assert(args.Length == 1);
-          return FunctionCall(tok, "MultiSet#FromSet", predef.MultiSetType(tok), args);
+          return FunctionCall(tok, "MultiSet#FromSet", predef.MultiSetType, args);
         case BuiltinFunction.MultiSetFromSeq:
           Contract.Assert(args.Length == 1);
-          return FunctionCall(tok, "MultiSet#FromSeq", predef.MultiSetType(tok), args);
+          return FunctionCall(tok, "MultiSet#FromSeq", predef.MultiSetType, args);
         case BuiltinFunction.IsGoodMultiSet:
           Contract.Assert(args.Length == 1);
           return FunctionCall(tok, "$IsGoodMultiSet", Bpl.Type.Bool, args);
@@ -393,30 +393,30 @@ namespace Microsoft.Dafny {
           return FunctionCall(tok, "Seq#Length", Bpl.Type.Int, args);
         case BuiltinFunction.SeqEmpty: {
             Contract.Assert(args.Length == 0);
-            Bpl.Type resultType = predef.SeqType(tok);
+            Bpl.Type resultType = predef.SeqType;
             return Bpl.Expr.CoerceType(tok, FunctionCall(tok, "Seq#Empty", resultType, args), resultType);
           }
         case BuiltinFunction.SeqBuild:
           Contract.Assert(args.Length == 2);
-          return FunctionCall(tok, "Seq#Build", predef.SeqType(tok), args);
+          return FunctionCall(tok, "Seq#Build", predef.SeqType, args);
         case BuiltinFunction.SeqAppend:
           Contract.Assert(args.Length == 2);
-          return FunctionCall(tok, "Seq#Append", predef.SeqType(tok), args);
+          return FunctionCall(tok, "Seq#Append", predef.SeqType, args);
         case BuiltinFunction.SeqIndex:
           Contract.Assert(args.Length == 2);
           return FunctionCall(tok, "Seq#Index", predef.BoxType, args);
         case BuiltinFunction.SeqUpdate:
           Contract.Assert(args.Length == 3);
-          return FunctionCall(tok, "Seq#Update", predef.SeqType(tok), args);
+          return FunctionCall(tok, "Seq#Update", predef.SeqType, args);
         case BuiltinFunction.SeqContains:
           Contract.Assert(args.Length == 2);
           return FunctionCall(tok, "Seq#Contains", Bpl.Type.Bool, args);
         case BuiltinFunction.SeqDrop:
           Contract.Assert(args.Length == 2);
-          return FunctionCall(tok, "Seq#Drop", predef.SeqType(tok), args);
+          return FunctionCall(tok, "Seq#Drop", predef.SeqType, args);
         case BuiltinFunction.SeqTake:
           Contract.Assert(args.Length == 2);
-          return FunctionCall(tok, "Seq#Take", predef.SeqType(tok), args);
+          return FunctionCall(tok, "Seq#Take", predef.SeqType, args);
         case BuiltinFunction.SeqEqual:
           Contract.Assert(args.Length == 2);
           return FunctionCall(tok, "Seq#Equal", Bpl.Type.Bool, args);
@@ -432,7 +432,7 @@ namespace Microsoft.Dafny {
 
         case BuiltinFunction.MapEmpty: {
             Contract.Assert(args.Length == 0);
-            Bpl.Type resultType = predef.MapType(tok, true);
+            Bpl.Type resultType = predef.MapType;
             return Bpl.Expr.CoerceType(tok, FunctionCall(tok, "Map#Empty", resultType, args), resultType);
           }
         case BuiltinFunction.MapCard:
@@ -447,7 +447,7 @@ namespace Microsoft.Dafny {
           return FunctionCall(tok, "Map#Elements", typeInstantiation, args);
         case BuiltinFunction.MapGlue:
           Contract.Assert(args.Length == 3);
-          return FunctionCall(tok, "Map#Glue", predef.MapType(tok, true), args);
+          return FunctionCall(tok, "Map#Glue", predef.MapType, args);
         case BuiltinFunction.MapEqual:
           Contract.Assert(args.Length == 2);
           Contract.Assert(typeInstantiation == null);
@@ -463,7 +463,7 @@ namespace Microsoft.Dafny {
 
         case BuiltinFunction.IMapEmpty: {
             Contract.Assert(args.Length == 0);
-            Bpl.Type resultType = predef.MapType(tok, false);
+            Bpl.Type resultType = predef.IMapType;
             return Bpl.Expr.CoerceType(tok, FunctionCall(tok, "IMap#Empty", resultType, args), resultType);
           }
         case BuiltinFunction.IMapDomain:
@@ -474,7 +474,7 @@ namespace Microsoft.Dafny {
           return FunctionCall(tok, "IMap#Elements", typeInstantiation, args);
         case BuiltinFunction.IMapGlue:
           Contract.Assert(args.Length == 3);
-          return FunctionCall(tok, "IMap#Glue", predef.MapType(tok, false), args);
+          return FunctionCall(tok, "IMap#Glue", predef.IMapType, args);
         case BuiltinFunction.IMapEqual:
           Contract.Assert(args.Length == 2);
           Contract.Assert(typeInstantiation == null);

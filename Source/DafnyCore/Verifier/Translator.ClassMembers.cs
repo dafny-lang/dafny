@@ -323,7 +323,9 @@ namespace Microsoft.Dafny {
         }
       } else if (f.IsMutable) {
         // generate h[o,f]
-        oDotF = Unbox(c.tok, ReadHeap(c.tok, h, o, new Bpl.IdentifierExpr(c.tok, GetField(f))), TrType(f.Type));
+        var ty = TrType(f.Type);
+        oDotF = ReadHeap(c.tok, h, o, new Bpl.IdentifierExpr(c.tok, GetField(f)));
+        oDotF = ty == predef.BoxType ? oDotF : Unbox(c.tok, oDotF, ty);
         bvsTypeAxiom.Add(hVar);
         bvsTypeAxiom.Add(oVar);
         bvsAllocationAxiom.Add(hVar);

@@ -165,7 +165,7 @@ const $ArbitraryBoxValue: Box;
 function $Box<T>(T): Box;
 function $Unbox<T>(Box): T;
 axiom (forall<T> x : T   :: { $Box(x) } $Unbox($Box(x)) == x);
-axiom (forall<T> x : Box :: { $Unbox(x):T } $Box($Unbox(x):T) == x);
+axiom (forall<T> x : Box :: { $Unbox(x): T} $Box($Unbox(x): T) == x);
 
 
 // Corresponding entries for boxes...
@@ -190,7 +190,7 @@ axiom (forall bx : Box ::
 // generated programmatically. Except, Bv0 is given here.
 axiom (forall bx : Box ::
     { $IsBox(bx, TBitvector(0)) }
-    ( $IsBox(bx, TBitvector(0)) ==> $Box($Unbox(bx) : Bv0) == bx && $Is($Unbox(bx) : Set, TBitvector(0))));
+    ( $IsBox(bx, TBitvector(0)) ==> $Box($Unbox(bx) : Bv0) == bx && $Is($Unbox(bx) : Bv0, TBitvector(0))));
 
 axiom (forall bx : Box, t : Ty ::
     { $IsBox(bx, TSet(t)) }
