@@ -31,6 +31,7 @@ public class ModuleExportDecl : ModuleDecl, ICanFormat {
     IsRefining = original.IsRefining;
     IsDefault = original.IsDefault;
     ThisScope = new VisibilityScope(FullSanitizedName);
+    SetupDefaultSignature();
   }
 
   public ModuleExportDecl(RangeToken rangeToken, Name name, ModuleDefinition parent,
@@ -44,6 +45,7 @@ public class ModuleExportDecl : ModuleDecl, ICanFormat {
     ProvideAll = provideAll;
     RevealAll = revealAll;
     ThisScope = new VisibilityScope(this.FullSanitizedName);
+    SetupDefaultSignature();
   }
 
   public void SetupDefaultSignature() {

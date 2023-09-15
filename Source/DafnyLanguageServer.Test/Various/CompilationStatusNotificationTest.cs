@@ -47,7 +47,7 @@ method Bar() {
       var a6 = await compilationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
       Assert.Equal(somethingElse.Uri, a6.Uri);
     }
-    
+
     [Fact]
     public async Task MultipleDocumentsFailedResolution() {
       var source = @"

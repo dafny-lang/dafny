@@ -259,7 +259,12 @@ public class ProgramResolver {
         continue;
       }
 
-      dependencies.AddEdge(literalDecl, moduleDecl);
+      if (toplevel is ModuleExportDecl) {
+        dependencies.AddEdge(moduleDecl, literalDecl);
+      } else {
+        dependencies.AddEdge(literalDecl, moduleDecl);
+      }
+
       var subBindings = bindings.SubBindings(moduleDecl.Name);
       ProcessDependencies(moduleDecl, subBindings ?? bindings, declarationPointers);
       if (!module.IsAbstract && moduleDecl is AbstractModuleDecl && ((AbstractModuleDecl)moduleDecl).QId.Root != null) {
