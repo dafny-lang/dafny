@@ -97,6 +97,7 @@ public class CompilationManager {
       await started.Task;
       var parsedCompilation = await documentLoader.ParseAsync(options, StartingCompilation, migratedVerificationTrees,
         cancellationSource.Token);
+
       verificationProgressReporter.RecomputeVerificationTrees(parsedCompilation);
       foreach (var root in parsedCompilation.RootUris) {
         verificationProgressReporter.ReportRealtimeDiagnostics(parsedCompilation, root, false);

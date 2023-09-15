@@ -219,7 +219,7 @@ public abstract class TopLevelDeclWithMembers : TopLevelDecl, IHasSymbolChildren
             extremePredicate.PrefixPredicate = new PrefixPredicate(extremePredicate.RangeToken, extraName, extremePredicate.HasStaticKeyword,
               tyvars, k, formals,
               extremePredicate.Req.ConvertAll(cloner.CloneAttributedExpr),
-              extremePredicate.Reads.ConvertAll(cloner.CloneFrameExpr),
+              cloner.CloneSpecFrameExpr(extremePredicate.Reads),
               extremePredicate.Ens.ConvertAll(cloner.CloneAttributedExpr),
               new Specification<Expression>(new List<Expression>() { new IdentifierExpr(extremePredicate.tok, k.Name) }, null),
               cloner.CloneExpr(extremePredicate.Body),
@@ -245,7 +245,7 @@ public abstract class TopLevelDeclWithMembers : TopLevelDecl, IHasSymbolChildren
               : extremeLemma.Ens.ConvertAll(cloner.CloneAttributedExpr);
             extremeLemma.PrefixLemma = new PrefixLemma(extremeLemma.RangeToken, extraName, extremeLemma.HasStaticKeyword,
               extremeLemma.TypeArgs.ConvertAll(cloner.CloneTypeParam), k, formals, extremeLemma.Outs.ConvertAll(f => cloner.CloneFormal(f, false)),
-              req, extremeLemma.Reads.ConvertAll(cloner.CloneFrameExpr),
+              req, cloner.CloneSpecFrameExpr(extremeLemma.Reads),
               cloner.CloneSpecFrameExpr(extremeLemma.Mod), ens,
               new Specification<Expression>(decr, null),
               null, // Note, the body for the prefix method will be created once the call graph has been computed and the SCC for the greatest lemma is known

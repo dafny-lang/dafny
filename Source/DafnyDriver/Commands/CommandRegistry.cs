@@ -270,10 +270,20 @@ public static class CommandRegistry {
         await dafnyOptions.ErrorWriter.WriteLineAsync($"Error: file {filePathForErrors} not found");
         return false;
       }
-      var projectFile = await DafnyProject.Open(OnDiskFileSystem.Instance, new Uri(singleFile.FullName), dafnyOptions.OutputWriter, dafnyOptions.ErrorWriter);
+      var projectFile = await DafnyProject.Open(OnDiskFileSystem.Instance, new Uri(singleFile.FullName));
       if (projectFile == null) {
         return false;
       }
+
+      foreach (var diagnostic in projectFile.Errors.AllMessages) {
+        var message = $"{diagnostic.Level}: {diagnostic.Message}";
+        if (diagnostic.Level == ErrorLevel.Error) {
+          await dafnyOptions.ErrorWriter.WriteLineAsync(message);
+        } else {
+          await dafnyOptions.OutputWriter.WriteLineAsync(message);
+        }
+      }
+
       projectFile.Validate(dafnyOptions.OutputWriter, AllOptions);
       dafnyOptions.DafnyProject = projectFile;
     } else {
