@@ -25,7 +25,7 @@ namespace Microsoft.Dafny {
     /// syntactically given as what looks like a recursive call with the same arguments.
     /// "DoReadsChecks" indicates whether or not to perform reads checks.  If so, the generated code
     /// will make references to $_Frame.  If "saveReadsChecks" is true, then the reads checks will
-    /// be recorded but postponsed.  In particular, CheckWellformed will append to .Locals a list of
+    /// be recorded but postponed.  In particular, CheckWellformed will append to .Locals a list of
     /// fresh local variables and will append to .Assert assertions with appropriate error messages
     /// that can be used later.  As a convenience, the ProcessSavedReadsChecks will make use of .Locals
     /// and .Asserts (and AssignLocals) and update a given StmtListBuilder.

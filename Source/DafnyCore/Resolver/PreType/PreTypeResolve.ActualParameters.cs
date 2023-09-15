@@ -119,7 +119,6 @@ namespace Microsoft.Dafny {
       var formalIndex = 0;
       var substMap = new Dictionary<IVariable, Expression>();
       foreach (var formal in formals) {
-        formal.PreType = Type2PreType(formal.Type);
         var b = namesToActuals[formal.Name];
         if (b != null) {
           actuals.Add(b.Actual);
@@ -134,11 +133,9 @@ namespace Microsoft.Dafny {
         } else if (formal.DefaultValue != null) {
           // Note, in the following line, "substMap" is passed in, but it hasn't been fully filled in until the
           // end of this foreach loop. Still, that's soon enough, because DefaultValueExpression won't use it
-          // until FillInDefaultValueExpressions at the end of Pass 1 of the Resolver.
-          var n = new DefaultValueExpressionPreType(callTok, formal, receiver, substMap, typeMap);
-#if SOON
+          // until FillInDefaultValueExpressions at the end of Pass 0 of the Resolver.
+          var n = new DefaultValueExpressionPreType(callTok, formal, receiver, substMap, typeMap) { PreType = formal.PreType.Substitute(typeMap) };
           resolver.allDefaultValueExpressions.Add(n);
-#endif
           actuals.Add(n);
           substMap.Add(formal, n);
         } else {

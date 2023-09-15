@@ -1,5 +1,5 @@
-// RUN: %exits-with 2 %dafny /compile:0  "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachResolver --expect-exit-code=2 "%s"
+
 
 // Here is the example reported in issue #125 to cause a crash in Dafny.
 // The crash has been fixed.  However, the semantics is not what is suggested

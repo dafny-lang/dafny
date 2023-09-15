@@ -21,9 +21,7 @@ namespace Microsoft.Dafny {
         var newBv = new BoundVar(bv.tok, "_'" + bv.Name, tt);
         newBoundVars.Add(newBv);
         // update substMap to reflect the new BoundVar substitutions
-        var ie = new IdentifierExpr(newBv.tok, newBv.Name);
-        ie.Var = newBv;  // resolve here
-        ie.Type = newBv.Type;  // resolve here
+        var ie = new IdentifierExpr(newBv.tok, newBv.Name) { Var = newBv, Type = newBv.Type };
         substMap.Add(bv, ie);
       }
       return newBoundVars;

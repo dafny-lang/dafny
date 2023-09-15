@@ -1,4 +1,4 @@
-// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment
+// RUN: %testDafnyForEachCompiler "%s" --refresh-exit-code=0 -- --relax-definite-assignment
 
 function Sum(a: array<int>, lo: int, hi: int): int
   requires 0 <= lo <= hi <= a.Length

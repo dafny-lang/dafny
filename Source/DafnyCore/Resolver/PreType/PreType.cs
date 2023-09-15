@@ -29,15 +29,29 @@ namespace Microsoft.Dafny {
 
     /// <summary>
     /// Normalize() follows the pre-type to which a pre-type proxy has been resolved, if any.
-    ///
-    /// This method is analogous to Type.Normalize(). Since pre-types don't keep track of
-    /// type synonyms or subset types, there is no need for PreType methods that are analogous
-    /// to Type.NormalizeExpandKeepConstraints() and Type.NormalizeExpand().
     /// </summary>
     public PreType Normalize() {
       var t = this;
       while (t is PreTypeProxy proxy && proxy.PT != null) {
         t = proxy.PT;
+      }
+      return t;
+    }
+
+    /// <summary>
+    /// NormalizeWrtScope() does a little more than Normalize(). Namely, if the normalized
+    /// pre-type refers to a declaration that is not in scope, then what is returned is a
+    /// pre-type around the InternalSynonymDecl that stands for the out-of-scope type.
+    /// </summary>
+    public PreType NormalizeWrtScope() {
+      var t = Normalize();
+      if (t is DPreType dPreType) {
+        if (dPreType.PrintablePreType != null) {
+          dPreType = dPreType.PrintablePreType;
+        }
+        if (dPreType.Decl is RevealableTypeDecl rtd && !rtd.IsRevealedInScope(Type.GetScope())) {
+          return new DPreType(rtd.SynonymInfo.SelfSynonymDecl, dPreType.Arguments);
+        }
       }
       return t;
     }
@@ -304,9 +318,21 @@ namespace Microsoft.Dafny {
     }
 
     public override PreType Substitute(Dictionary<TypeParameter, PreType> subst) {
+      DPreType printablePreType = (DPreType)PrintablePreType?.Substitute(subst);
+
       if (Decl is TypeParameter typeParameter) {
         Contract.Assert(Arguments.Count == 0);
-        return subst.GetValueOrDefault(typeParameter, this);
+        var afterSubstitution = subst.GetValueOrDefault(typeParameter, this);
+        if (printablePreType == null) {
+          return afterSubstitution;
+        } else if (printablePreType == PrintablePreType && afterSubstitution == this) {
+          return this;
+        } else if (afterSubstitution is DPreType dPreType) {
+          return new DPreType(dPreType.Decl, dPreType.Arguments, printablePreType);
+        } else {
+          // TODO: it would be nice to have a place to include "printablePreType" as part of what's returned, but currently only DPreType allows that
+          return afterSubstitution;
+        }
       }
 
       // apply substitutions to arguments
@@ -327,7 +353,7 @@ namespace Microsoft.Dafny {
         }
       }
 
-      return newArguments == null ? this : new DPreType(Decl, newArguments);
+      return newArguments == null && printablePreType == PrintablePreType ? this : new DPreType(Decl, newArguments, printablePreType);
     }
 
     /// <summary>
@@ -344,13 +370,20 @@ namespace Microsoft.Dafny {
         // we expect the .RHS of an InternalTypeSynonymDecl to be a UserDefinedType whose type arguments
         // are exactly the type parameters
         Contract.Assert(rhsType != null);
-        var cl = rhsType.ResolvedClass;
+        TopLevelDeclWithMembers cl;
+        if (rhsType.ResolvedClass is NonNullTypeDecl nntd) {
+          cl = (TopLevelDeclWithMembers)nntd.ViewAsClass;
+        } else {
+          cl = (TopLevelDeclWithMembers)rhsType.ResolvedClass;
+        }
+
         Contract.Assert(isyn.TypeArgs.Count == cl.TypeArgs.Count);
         for (var i = 0; i < isyn.TypeArgs.Count; i++) {
           var typeParameter = isyn.TypeArgs[i];
           Contract.Assert(typeParameter == cl.TypeArgs[i]);
           Contract.Assert(rhsType.TypeArgs[i] is UserDefinedType { ResolvedClass: var tpDecl } && tpDecl == typeParameter);
         }
+
         decl = cl;
       }
       if (decl == parent) {

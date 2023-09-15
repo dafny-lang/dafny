@@ -89,6 +89,18 @@ public class LocalVariable : RangeNode, IVariable, IAttributeBearingDeclaration 
     }
   }
 
+  /// <summary>
+  /// For a description of the difference between .Type and .UnnormalizedType, see Expression.UnnormalizedType.
+  /// </summary>
+  public Type UnnormalizedType {
+    get {
+      Contract.Ensures(Contract.Result<Type>() != null);
+
+      Contract.Assume(type != null);  /* we assume object has been resolved */
+      return type;
+    }
+  }
+
   public PreType PreType { get; set; }
 
   public bool IsMutable {

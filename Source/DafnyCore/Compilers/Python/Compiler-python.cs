@@ -134,6 +134,7 @@ namespace Microsoft.Dafny.Compilers {
         case "continue":
         case "def":
         case "del":
+        case "enum":
         case "elif":
         case "else":
         case "except":

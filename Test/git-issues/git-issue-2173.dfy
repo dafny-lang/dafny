@@ -1,4 +1,4 @@
-// RUN: %testDafnyForEachCompiler "%s"
+// RUN: %testDafnyForEachCompiler "%s" --refresh-exit-code=0
 
 datatype T = Leaf(x: int) | T(t: T) {
   function {:tailrecursion} TR() : int {

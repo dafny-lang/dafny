@@ -45,14 +45,14 @@ module Underspecification0 {
 module Underspecification1 {
   class E<T> { }
 
-  /* SOON
   method M(obj: object) {
     var ee := obj as E; // error: type parameter of E is underspecified
     assert (obj as E) == (obj as E); // error: type parameter of E is underspecified
     assert (obj as E) == (obj as E<set>); // error: type parameter of set is underspecified
     assert (obj as E) == (obj as E<set<int>>);
   }
-  */
+
+
 }
 
 module Underspecification2 {
@@ -101,30 +101,30 @@ module Underspecification5 {
   }
 }
 
-/*
- * The following example causes Dafny 4.0 to crash (after reporting the expected error).
+module DatatypeConstructorTypeArguments {
+  datatype Color = White | Gray(int)
+  datatype ParametricColor<X, Y> = Blue | Red(X) | Green(Y)
 
-datatype R = R(int, int)
-
-method M() {
-  var pair: (int, int) := (20, 30);
-  match pair
-  case R(x, y) => // bogus: should not be allowed to match a pair against an R constructor
-    print x + y, "\n";
-}
- */
-
-/* An additional match test
-
-method TupleTests(d: bv7) {
-  match d {
-    case (y) => // error: parentheses not allowed around pattern
+  method DatatypeValues() {
+    var w := White<int>; // error (no hint, since the datatype doesn't take any type parameters)
+    var b := Blue<int>; // error: with hint (since the datatype takes _some_ number of type parameters)
+    var g := Gray<int>(2);
+    var r := Red<int>(3);
   }
 }
 
- */
+module RegressionTest {
+  datatype R = R(int, int)
 
-/*
+  method M() {
+    var pair: (int, int) := (20, 30);
+    match pair
+    case R(x, y) => // error: tuple type does not have a constructor R
+      // the following line causes a crash in the old type system, after reporting an error about the previous line
+      print x + y;
+  }
+}
+
 module TooLargeCaseLiteral {
   method Test(bv: bv7) {
     match bv {
@@ -222,4 +222,36 @@ module RedundanCaseLiterals {
     }
   }
 }
- */
+
+module NewMatchBehavior {
+  /* Here are tests for a match where a case is given by a const.
+   - For the first test, it used to be (that is, before the type system refresh) that this would spill out an unused
+     local variable with that name (FIVE).
+   - The second test checks what happens if the const case label is also given an explicit type.
+     Previously, this would interpret "FIVE" as a const, and it would check that the type was correct.
+     Now, the explicit type causes it to be interpreted as a bound variable.
+   - The third test used to breeze through Dafny without any complaints, even though the type "int" makes no sense here.
+     Now, a pattern with an explicit type is always interpreted as a bound variable.
+   */
+
+  const FIVE: int := 5
+
+  method Five(x: int) {
+    match x {
+      case FIVE => assert x == 5;
+      case _ =>
+    }
+    match x {
+      case FIVE: int =>
+        assert x == 5; // error: x may be anything, since FIVE is a bound variable
+      case _ =>
+    }
+  }
+
+  datatype Color = Blue | Green
+
+  method Colors(c: Color) {
+    match c
+    case Blue: int => // error: because of the ": int", Blue is interpreted as a bound variable, and its type doesn't match that of "c"
+  }
+}

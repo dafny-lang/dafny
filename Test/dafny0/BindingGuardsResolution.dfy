@@ -1,5 +1,5 @@
-// RUN: %exits-with 2 %dafny /dprint:- /env:0 "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachResolver --expect-exit-code=2 "%s" -- --print=-
+
 module Tests {
   ghost predicate P(n: int)
 

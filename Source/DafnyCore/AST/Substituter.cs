@@ -471,17 +471,23 @@ namespace Microsoft.Dafny {
 
         return null;
       } else {
+        var newLHSs = CreateCasePatternSubstitutions(letExpr.LHSs, true);
         var rhs = Substitute(letExpr.RHSs[0]);
         var body = Substitute(letExpr.Body);
         var newBounds = SubstituteBoundedPoolList(letExpr.Constraint_Bounds);
-        if (rhs == letExpr.RHSs[0] && body == letExpr.Body && newBounds == letExpr.Constraint_Bounds) {
+        // undo any changes to substMap
+        foreach (var bv in letExpr.BoundVars) {
+          substMap.Remove(bv);
+        }
+
+        if (newLHSs == letExpr.LHSs && rhs == letExpr.RHSs[0] && body == letExpr.Body && newBounds == letExpr.Constraint_Bounds) {
           return null;
         }
 
         // keep copies of the substitution maps so we can reuse them at desugaring time
         var newSubstMap = new Dictionary<IVariable, Expression>(substMap);
         var newTypeMap = new Dictionary<TypeParameter, Type>(typeMap);
-        return new Translator.SubstLetExpr(letExpr.tok, letExpr.LHSs, new List<Expression> { rhs }, body, letExpr.Exact, letExpr, newSubstMap, newTypeMap, newBounds);
+        return new Translator.SubstLetExpr(letExpr.tok, newLHSs, new List<Expression> { rhs }, body, letExpr.Exact, letExpr, newSubstMap, newTypeMap, newBounds);
       }
     }
 
@@ -570,9 +576,7 @@ namespace Microsoft.Dafny {
           var newBv = new BoundVar(bv.tok, bv.Name, tt);
           newBoundVars.Add(newBv);
           // update substMap to reflect the new BoundVar substitutions
-          var ie = new IdentifierExpr(newBv.tok, newBv.Name);
-          ie.Var = newBv;  // resolve here
-          ie.Type = newBv.Type;  // resolve here
+          var ie = new IdentifierExpr(newBv.tok, newBv.Name) { Var = newBv, Type = newBv.Type };
           substMap.Add(bv, ie);
         }
       }
@@ -598,9 +602,7 @@ namespace Microsoft.Dafny {
           newVar.type = tt;  // resolve here
           newVars.Add(newVar);
           // update substMap to reflect the new LocalVariable substitutions
-          var ie = new IdentifierExpr(newVar.Tok, newVar.Name);
-          ie.Var = newVar;  // resolve here
-          ie.Type = newVar.Type;  // resolve here
+          var ie = new IdentifierExpr(newVar.Tok, newVar.Name) { Var = newVar, Type = newVar.Type };
           substMap.Add(v, ie);
         }
       }
@@ -635,9 +637,7 @@ namespace Microsoft.Dafny {
         if (forceSubstitutionOfBoundVars || tt != bv.Type) {
           var newBv = cloneVt(pat, tt, bv);
           // update substMap to reflect the new BoundVar substitutions
-          var ie = new IdentifierExpr(newBv.Tok, newBv.Name);
-          ie.Var = newBv;  // resolve here
-          ie.Type = newBv.Type;  // resolve here
+          var ie = new IdentifierExpr(newBv.Tok, newBv.Name) { Var = newBv, Type = newBv.Type };
           substMap.Add(bv, ie);
           var newPat = new CasePattern<VT>(pat.tok, newBv);
           newPat.AssembleExpr(null);

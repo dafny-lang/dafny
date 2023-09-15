@@ -1,4 +1,4 @@
-// RUN: %testDafnyForEachCompiler "%s" -- --function-syntax:3 --quantifier-syntax:4 --relax-definite-assignment
+// RUN: %testDafnyForEachCompiler "%s" --refresh-exit-code=0 -- --function-syntax:3 --quantifier-syntax:4 --relax-definite-assignment
 
 method Main() {
   var arrayTests := new ArrayTests();

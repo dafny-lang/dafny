@@ -1,4 +1,4 @@
-// RUN: ! %testDafnyForEachCompiler "%s" > "%t"
+// RUN: ! %testDafnyForEachCompiler "%s" --refresh-exit-code=0 > "%t"
 // RUN: %diff "%s.testdafny.expect" "%t"
 
 method Main() {

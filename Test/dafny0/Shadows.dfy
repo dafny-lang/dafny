@@ -1,5 +1,5 @@
-// RUN: %exits-with 2 %dafny /compile:0 /print:"%t.print" /dprint:"%t.dprint" /warnShadowing "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachResolver --expect-exit-code=2 "%s" -- --warn-shadowing
+
 
 module Module0 {
   class C<alpha> {

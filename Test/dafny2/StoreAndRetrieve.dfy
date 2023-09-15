@@ -1,4 +1,4 @@
-// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment
+// RUN: %testDafnyForEachCompiler "%s" --refresh-exit-code=0 -- --relax-definite-assignment
 
 // This file shows an example program that uses both refinement and :autocontracts
 // specify a class that stores a set of things that can be retrieved using a query.

@@ -42,6 +42,10 @@ namespace Microsoft.Dafny {
       if (printableContext != null) {
         PrintTypeInferenceState("(partial) " + printableContext);
       }
+
+      // Note, the various constraints that have been recorded may contain pre-types that refer to symbols that
+      // are not in scope. Therefore, it is important that, at the onset processing any of these constraints,
+      // each pre-type is normalized with respect to scope.
       bool anythingChanged;
       do {
         anythingChanged = makeDecisions && TryMakeDecisions();
@@ -129,8 +133,8 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public void AddEqualityConstraint(PreType a, PreType b, IToken tok, string msgFormat) {
-      equalityConstraints.Add(new EqualityConstraint(a, b, tok, msgFormat));
+    public void AddEqualityConstraint(PreType a, PreType b, IToken tok, string msgFormat, PreTypeConstraint baseError = null) {
+      equalityConstraints.Add(new EqualityConstraint(a, b, tok, msgFormat, baseError));
     }
 
     private bool ApplyEqualityConstraints() {
@@ -145,8 +149,8 @@ namespace Microsoft.Dafny {
       return true;
     }
 
-    public void AddSubtypeConstraint(PreType super, PreType sub, IToken tok, string errorFormatString) {
-      unnormalizedSubtypeConstraints.Add(new SubtypeConstraint(super, sub, tok, errorFormatString));
+    public void AddSubtypeConstraint(PreType super, PreType sub, IToken tok, string errorFormatString, PreTypeConstraint baseError = null) {
+      unnormalizedSubtypeConstraints.Add(new SubtypeConstraint(super, sub, tok, errorFormatString, baseError));
     }
 
     public void AddSubtypeConstraint(PreType super, PreType sub, IToken tok, Func<string> errorFormatStringProducer) {
@@ -189,7 +193,9 @@ namespace Microsoft.Dafny {
             candidateHeads.Add(proxy, bound.Decl);
             constraintOrigins.Add(proxy, constraint);
           } else {
-            var combined = fromSubBounds ? JoinHeads(previousBest, bound.Decl) : MeetHeads(previousBest, bound.Decl);
+            var combined = fromSubBounds
+              ? JoinHeads(previousBest, bound.Decl, PreTypeResolver.resolver.SystemModuleManager)
+              : MeetHeads(previousBest, bound.Decl);
             if (combined == null) {
               // the two joins/meets were in conflict with each other; ignore the new one
             } else {
@@ -211,11 +217,11 @@ namespace Microsoft.Dafny {
       return anythingChanged;
     }
 
-    TopLevelDecl/*?*/ JoinHeads(TopLevelDecl a, TopLevelDecl b) {
+    public static TopLevelDecl/*?*/ JoinHeads(TopLevelDecl a, TopLevelDecl b, SystemModuleManager systemModuleManager) {
       var aAncestors = new HashSet<TopLevelDecl>();
       var bAncestors = new HashSet<TopLevelDecl>();
-      PreTypeResolver.ComputeAncestors(a, aAncestors);
-      PreTypeResolver.ComputeAncestors(b, bAncestors);
+      PreTypeResolver.ComputeAncestors(a, aAncestors, systemModuleManager);
+      PreTypeResolver.ComputeAncestors(b, bAncestors, systemModuleManager);
       var ancestors = aAncestors.Intersect(bAncestors).ToList();
       // Unless ancestors.Count == 1, there is no unique answer, and not necessary any way to determine the best
       // answer. As a heuristic, pick the element with the highest unique Height number. If there is no such
@@ -246,17 +252,42 @@ namespace Microsoft.Dafny {
       return null;
     }
 
-    int Height(TopLevelDecl d) {
-      if (d is TopLevelDeclWithMembers md && md.ParentTraitHeads.Count != 0) {
-        return md.ParentTraitHeads.Max(Height) + 1;
-      } else if (d is TraitDecl { IsObjectTrait: true }) {
+    /// <summary>
+    /// Return the trait height of "decl". The height is the smallest natural number that satisfies:
+    ///   - The built-in trait "object" is strictly lower than anything else
+    ///   - A declaration is strictly taller than any of its (explicit or implicit) parents
+    ///
+    /// The purpose of the "height" is to sort parent traits during type inference. For this purpose,
+    /// it seems less surprising to have (the possibly implicit) "object" have a lower height than
+    /// anything else. Here's an example:
+    ///     trait Trait { } // note, this trait is not a reference type
+    ///     class A extends Trait { }
+    ///     class B extends Trait { }
+    ///     method M(a: A, b: B) {
+    ///       var z;
+    ///       z := a;
+    ///       z := b;
+    ///     }
+    /// What type do you expect z to have? Looking at the program text suggests z's type to be Trait,
+    /// since Trait is a common parent of both A and B. But "object" is also a common parent of A and
+    /// B, since A and B are classes. It seems more surprising to report "z has no best type" than
+    /// to make "object" a "last resort" during type inference.
+    /// </summary>
+    public static int Height(TopLevelDecl decl) {
+      if (decl is TraitDecl { IsObjectTrait: true }) {
         // object is at height 0
         return 0;
-      } else if (DPreType.IsReferenceTypeDecl(d)) {
-        // any other reference type implicitly has "object" as a parent, so the height is 1
-        return 1;
+      }
+      if (decl is TopLevelDeclWithMembers { ParentTraitHeads: { Count: > 0 } } topLevelDeclWithMembers) {
+        // Note, if "decl" is a reference type, then its parents include "object", whether or not "object" is explicitly
+        // included in "ParentTraitHeads". Since the "Max" in the following line will return a number 0 or
+        // higher, the "Max" would be the same whether or not "object" is in the "ParentTraitHeads" list.
+        return topLevelDeclWithMembers.ParentTraitHeads.Max(Height) + 1;
       } else {
-        return 0;
+        // Other other declarations have height 1.
+        // Note, an ostensibly parent-less reference type still has the implicit "object" as a parent trait, but
+        // that still makes its height 1.
+        return 1;
       }
     }
 
@@ -544,7 +575,7 @@ namespace Microsoft.Dafny {
         yield return parentType;
       }
       if (DPreType.IsReferenceTypeDecl(decl)) {
-        if (decl is TraitDecl trait && trait.IsObjectTrait) {
+        if (decl is TraitDecl { IsObjectTrait: true }) {
           // don't return object itself
         } else {
           yield return PreTypeResolver.resolver.SystemModuleManager.ObjectQ();
@@ -556,7 +587,7 @@ namespace Microsoft.Dafny {
       return $"{System.IO.Path.GetFileName(tok.filename)}({tok.line},{tok.col - 1})";
     }
 
-    string Pad(string s, int minWidth) {
+    public static string Pad(string s, int minWidth) {
       return s + new string(' ', Math.Max(minWidth - s.Length, 0));
     }
 

@@ -15,8 +15,8 @@ namespace Microsoft.Dafny {
     public PreType A;
     public PreType B;
 
-    public EqualityConstraint(PreType a, PreType b, IToken tok, string msgFormat)
-      : base(tok, msgFormat) {
+    public EqualityConstraint(PreType a, PreType b, IToken tok, string msgFormat, PreTypeConstraint baseError = null)
+      : base(tok, msgFormat, baseError) {
       A = a;
       B = b;
     }
@@ -32,8 +32,8 @@ namespace Microsoft.Dafny {
     /// in particular, that this method cannot be called in middle of constraints.ApplySubtypeConstraints.
     /// </summary>
     public IEnumerable<EqualityConstraint> Apply(PreTypeConstraints constraints) {
-      var a = A.Normalize();
-      var b = B.Normalize();
+      var a = A.NormalizeWrtScope();
+      var b = B.NormalizeWrtScope();
       if (a == b) {
         // we're already there
       } else if (a is PreTypeProxy pa && !b.Contains(pa, 1, new HashSet<PreTypeProxy>(), constraints, 0)) {

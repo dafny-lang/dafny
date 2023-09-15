@@ -1128,14 +1128,17 @@ public abstract class Type : TokenNode {
   /// <summary>
   /// Returns "true" iff "a" and "b" denote the same type, expanding type synonyms (but treating types with
   /// constraints as being separate types).
-  /// Expects that neither "a" nor "b" is or contains an unresolved proxy type.
+  /// Any unresolved proxy type contained in either "a" or "b" is compared with reference equality; in other
+  /// words, the proxy itself is compared, not what the proxy will eventually stand for.
   /// </summary>
   public static bool Equal_Improved(Type a, Type b) {
     Contract.Requires(a != null);
     Contract.Requires(b != null);
     a = a.NormalizeExpandKeepConstraints();  // expand type synonyms
     b = b.NormalizeExpandKeepConstraints();  // expand type synonyms
-    if (a is BoolType) {
+    if (object.ReferenceEquals(a, b)) {
+      return true;
+    } else if (a is BoolType) {
       return b is BoolType;
     } else if (a is CharType) {
       return b is CharType;

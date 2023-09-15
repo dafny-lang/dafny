@@ -9,7 +9,7 @@ using System;
 using System.Diagnostics.Contracts;
 
 namespace Microsoft.Dafny {
-  abstract class PreTypeConstraint {
+  public abstract class PreTypeConstraint {
     public readonly IToken tok;
 
     // exactly one of "errorFormatString" and "errorFormatStringProducer" is non-null
@@ -20,11 +20,15 @@ namespace Microsoft.Dafny {
 
     public abstract string ErrorMessage();
 
-    public PreTypeConstraint(IToken tok, string errorFormatString) {
+    public PreTypeConstraint(IToken tok, string errorFormatString, PreTypeConstraint baseError = null) {
       Contract.Requires(tok != null);
       Contract.Requires(errorFormatString != null);
       this.tok = tok;
-      this.errorFormatString = errorFormatString;
+      if (baseError == null) {
+        this.errorFormatString = errorFormatString;
+      } else {
+        this.errorFormatStringProducer = () => baseError.ErrorMessage() + " (" + errorFormatString + ")";
+      }
     }
 
     public PreTypeConstraint(IToken tok, Func<string> errorFormatStringProducer) {

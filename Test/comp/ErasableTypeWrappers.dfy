@@ -1,4 +1,4 @@
-// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment --spill-translation --unicode-char:false
+// RUN: %testDafnyForEachCompiler "%s" --refresh-exit-code=0 -- --relax-definite-assignment --spill-translation --unicode-char:false
 
 datatype SingletonRecord = SingletonRecord(u: int)
 datatype GhostOrNot = ghost Ghost(a: int, b: int) | Compiled(x: int)

@@ -27,6 +27,13 @@ public abstract class TopLevelDeclWithMembers : TopLevelDecl, IHasSymbolChildren
     return this == b || this.ParentTraitHeads.Exists(tr => tr.HeadDerivesFrom(b));
   }
 
+  public void AddParentTypeParameterSubstitutions(Dictionary<TypeParameter, Type> typeMap) {
+    foreach (var entry in ParentFormalTypeParametersToActuals) {
+      var v = entry.Value.Subst(typeMap);
+      typeMap.Add(entry.Key, v);
+    }
+  }
+
   [FilledInDuringResolution] public InheritanceInformationClass ParentTypeInformation;
   public class InheritanceInformationClass {
     private readonly Dictionary<TraitDecl, List<(Type, List<TraitDecl> /*via this parent path*/)>> info = new Dictionary<TraitDecl, List<(Type, List<TraitDecl>)>>();
