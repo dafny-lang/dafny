@@ -176,7 +176,7 @@ namespace Microsoft.Dafny.Compilers {
         List<DAST.Type> typeParams = new();
         foreach (var tp in typeParameters) {
           if (tp.Variance == TypeParameter.TPVariance.Contra) {
-            throw new NotImplementedException("Contravariance in type parameters");
+            throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests); //("Contravariance in type parameters");
           }
 
           typeParams.Add((DAST.Type)DAST.Type.create_TypeArg(Sequence<Rune>.UnicodeFromString(IdProtect(tp.GetCompileName(Options)))));
@@ -211,7 +211,7 @@ namespace Microsoft.Dafny.Compilers {
         List<DAST.Type> typeParams = new();
         foreach (var tp in dt.TypeArgs) {
           if (tp.Variance == TypeParameter.TPVariance.Contra) {
-            throw new NotImplementedException("Contravariance in type parameters");
+            throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests); //("Contravariance in type parameters");
           }
 
           typeParams.Add((DAST.Type)DAST.Type.create_TypeArg(Sequence<Rune>.UnicodeFromString(IdProtect(tp.GetCompileName(Options)))));
@@ -306,9 +306,9 @@ namespace Microsoft.Dafny.Compilers {
         var valueType = map.Range;
         return (DAST.Type)DAST.Type.create_Map(GenType(keyType), GenType(valueType));
       } else if (xType is BitvectorType) {
-        throw new NotImplementedException("Bitvector types");
+        throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests); //("Bitvector types");
       } else {
-        throw new NotImplementedException("Type name for " + xType + " (" + typ.GetType() + ")");
+        throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests); //("Type name for " + xType + " (" + typ.GetType() + ")");
       }
     }
 
@@ -327,7 +327,7 @@ namespace Microsoft.Dafny.Compilers {
         List<DAST.Type> typeParams = new();
         foreach (var tp in sst.TypeArgs) {
           if (tp.Variance == TypeParameter.TPVariance.Contra) {
-            throw new NotImplementedException("Contravariance in type parameters");
+            throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests); //("Contravariance in type parameters");
           }
 
           typeParams.Add((DAST.Type)DAST.Type.create_TypeArg(Sequence<Rune>.UnicodeFromString(tp.Name)));
@@ -361,7 +361,7 @@ namespace Microsoft.Dafny.Compilers {
         if (m.IsStatic) {
           foreach (var typeArg in typeArgs) {
             if (typeArg.Formal.Variance == TypeParameter.TPVariance.Contra) {
-              throw new NotImplementedException("Contravariance in type parameters");
+              throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests); //("Contravariance in type parameters");
             }
 
             astTypeArgs.Add((DAST.Type)DAST.Type.create_TypeArg(Sequence<Rune>.UnicodeFromString(compiler.IdProtect(typeArg.Formal.GetCompileName(compiler.Options)))));
@@ -412,7 +412,7 @@ namespace Microsoft.Dafny.Compilers {
         List<DAST.Type> astTypeArgs = new();
         foreach (var typeArg in typeArgs) {
           if (typeArg.Formal.Variance == TypeParameter.TPVariance.Contra) {
-            throw new NotImplementedException("Contravariance in type parameters");
+            throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests); //("Contravariance in type parameters");
           }
 
           astTypeArgs.Add((DAST.Type)DAST.Type.create_TypeArg(Sequence<Rune>.UnicodeFromString(compiler.IdProtect(typeArg.Formal.GetCompileName(compiler.Options)))));
@@ -1413,7 +1413,7 @@ namespace Microsoft.Dafny.Compilers {
         case SpecialField.ID.ArrayLength:
           break;
         default:
-          throw new NotImplementedException("Special field: " + id);
+          throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests); //("Special field: " + id);
       }
     }
 
@@ -1959,7 +1959,7 @@ namespace Microsoft.Dafny.Compilers {
           BinaryExpr.ResolvedOpcode.Concat => "+",
           BinaryExpr.ResolvedOpcode.InSeq => "in",
           BinaryExpr.ResolvedOpcode.NotInSeq => "notin",
-          _ => throw new NotImplementedException(op.ToString()),
+          _ => throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests), //(op.ToString()),
         };
 
         currentBuilder = builder.Builder.BinOp(opString);
