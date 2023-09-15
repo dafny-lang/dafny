@@ -141,7 +141,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     public void AddField(DAST.Formal item, _IOptional<DAST._IExpression> defaultValue) {
-      throw new NotImplementedException();
+      throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
     }
 
     public object Finish() {
@@ -180,11 +180,11 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     public void AddMethod(DAST.Method item) {
-      throw new NotImplementedException();
+      throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
     }
 
     public void AddField(DAST.Formal item, _IOptional<DAST._IExpression> defaultValue) {
-      throw new NotImplementedException();
+      throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
     }
 
     public object Finish() {
@@ -230,7 +230,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     public void AddField(DAST.Formal item, _IOptional<DAST._IExpression> defaultValue) {
-      throw new NotImplementedException();
+      throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
     }
 
     public object Finish() {
