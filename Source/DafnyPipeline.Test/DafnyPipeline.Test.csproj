@@ -42,5 +42,8 @@
 	  <Content Remove="_plugins/**" />
 	  <EmbeddedResource Include="_plugins/**" />
     <None Remove="_plugins\**" />
+    <None Update="expectedProverLog.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
 	</ItemGroup>
 </Project>
