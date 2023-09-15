@@ -706,7 +706,9 @@ namespace Microsoft.Dafny {
           CheckFrameWellFormed(wfo, m.Reads.Expressions, localVariables, builder, etran);
         });
         // Also check that the reads clause == {} if the {:concurrent} attribute is present
-        if (Attributes.Contains(m.Attributes, Attributes.ConcurrentAttributeName)) {
+        // on the method, and {:assume_concurrent} is NOT present on the reads clause.
+        if (Attributes.Contains(m.Attributes, Attributes.ConcurrentAttributeName) &&
+            !Attributes.Contains(m.Reads.Attributes, Attributes.AssumeConcurrentAttributeName)) {
           var desc = new PODesc.ConcurrentFrameEmpty("reads clause");
           if (etran.readsFrame != null) {
             CheckFrameEmpty(m.tok, etran, etran.ReadsFrame(m.tok), builder, desc, null);
@@ -721,8 +723,10 @@ namespace Microsoft.Dafny {
         readsCheckDelayer.DoWithDelayedReadsChecks(false, wfo => {
           CheckFrameWellFormed(wfo, m.Mod.Expressions, localVariables, builder, etran);
         });
-        // Also check that the modifies clause == {} if the {:concurrent} attribute is present
-        if (Attributes.Contains(m.Attributes, Attributes.ConcurrentAttributeName)) {
+        // Also check that the modifies clause == {} if the {:concurrent} attribute is present,
+        // and {:assume_concurrent} is NOT present on the modifies clause.
+        if (Attributes.Contains(m.Attributes, Attributes.ConcurrentAttributeName) &&
+            !Attributes.Contains(m.Mod.Attributes, Attributes.AssumeConcurrentAttributeName)) {
           var desc = new PODesc.ConcurrentFrameEmpty("modifies clause");
           CheckFrameEmpty(m.tok, etran, etran.ModifiesFrame(m.tok), builder, desc, null);
         }

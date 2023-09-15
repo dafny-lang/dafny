@@ -4447,8 +4447,10 @@ namespace Microsoft.Dafny {
         CheckFrameWellFormed(wfo, f.Reads.Expressions, locals, builder, etran);
       });
 
-      // If the function is marked as {:concurrent}, check that the reads clause is empty.
-      if (Attributes.Contains(f.Attributes, Attributes.ConcurrentAttributeName)) {
+      // If the function is marked as {:concurrent}, check that the reads clause is empty
+      // unless it is marked with {:assume_concurrent}.
+      if (Attributes.Contains(f.Attributes, Attributes.ConcurrentAttributeName) &&
+          !Attributes.Contains(f.Reads.Attributes, Attributes.AssumeConcurrentAttributeName)) {
         var desc = new PODesc.ConcurrentFrameEmpty("reads clause");
         CheckFrameEmpty(f.tok, etran, etran.ReadsFrame(f.tok), builder, desc, null);
       }
