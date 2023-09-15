@@ -1111,7 +1111,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
     internal void PrintFrameSpecLine(string kind, Specification<FrameExpression> ee, int indent) {
       Contract.Requires(kind != null);
       Contract.Requires(ee != null);
-      if (ee != null && ee.Expressions.Count != 0) {
+      if (ee != null && ee.Expressions != null && ee.Expressions.Count != 0) {
         wr.WriteLine();
         Indent(indent);
         wr.Write("{0}", kind);
