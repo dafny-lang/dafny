@@ -935,7 +935,7 @@ namespace Microsoft.Dafny {
       return new Specification<Expression>(ee, SubstAttributes(spec.Attributes));
     }
 
-    protected Specification<FrameExpression> SubstSpecFrameExpr(Specification<FrameExpression> frame) {
+    public Specification<FrameExpression> SubstSpecFrameExpr(Specification<FrameExpression> frame) {
       var ee = frame.Expressions == null ? null : frame.Expressions.ConvertAll(SubstFrameExpr);
       return new Specification<FrameExpression>(ee, SubstAttributes(frame.Attributes));
     }
@@ -1062,7 +1062,7 @@ namespace Microsoft.Dafny {
         } else if (expr is LambdaExpr) {
           var l = (LambdaExpr)expr;
           newExpr = new LambdaExpr(e.BodyStartTok, e.RangeToken, newBoundVars, newRange,
-            l.Reads.ConvertAll(SubstFrameExpr), newTerm);
+            SubstSpecFrameExpr(l.Reads), newTerm);
         } else {
           Contract.Assert(false); // unexpected ComprehensionExpr
         }
