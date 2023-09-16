@@ -215,7 +215,7 @@ public class TypeAdjustorVisitor : ASTVisitor<IASTVisitorContext> {
         return ModuleResolver.SelectAppropriateArrowType(lambdaExpr.tok,
           lambdaExpr.BoundVars.ConvertAll(v => AdjustableType.NormalizeSansBottom(v)),
           AdjustableType.NormalizeSansBottom(lambdaExpr.Body),
-          lambdaExpr.Reads.Count != 0, lambdaExpr.Range != null, systemModuleManager);
+          lambdaExpr.Reads.Expressions.Count != 0, lambdaExpr.Range != null, systemModuleManager);
       }, lambdaExpr.WhatKind));
 
     }
