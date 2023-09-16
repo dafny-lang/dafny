@@ -1,5 +1,5 @@
 // RUN: %testDafnyForEachResolver "%s" -- --warn-deprecation:false
-// RUN: %diff "%s.expect" "%t"
+
 
 class Queue<T(0)> {
   var head: Node<T>;

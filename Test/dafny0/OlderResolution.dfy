@@ -1,5 +1,5 @@
 // RUN: %testDafnyForEachResolver --expect-exit-code=2 "%s"
-// RUN: %diff "%s.expect" "%t"
+
 
 ghost function F0(older x: int): int // error: only predicates support 'older' parameters
 twostate function F1(older x: int): int // error: only predicates support 'older' parameters

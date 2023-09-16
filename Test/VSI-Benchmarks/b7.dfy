@@ -1,5 +1,5 @@
 // RUN: %testDafnyForEachResolver "%s" -- --warn-deprecation:false
-// RUN: %diff "%s.expect" "%t"
+
 
 // Edited B6 to include GetChar and PutChar
 

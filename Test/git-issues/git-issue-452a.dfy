@@ -1,5 +1,5 @@
 // RUN: %testDafnyForEachResolver --expect-exit-code=2 "%s"
-// RUN: %diff "%s.expect" "%t"
+
 
 ghost function TwinPrimes(): (int, int) {
   (41, 43)

@@ -1,5 +1,5 @@
 // RUN: %testDafnyForEachResolver "%s" -- --warn-deprecation:false
-// RUN: %diff "%s.expect" "%t"
+
 
 ghost function I(f:int->bool):int->bool
     ensures I(f) == f;

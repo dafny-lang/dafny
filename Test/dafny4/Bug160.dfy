@@ -1,5 +1,5 @@
 // RUN: %testDafnyForEachResolver --expect-exit-code=4 "%s" -- --warn-deprecation:false
-// RUN: %diff "%s.expect" "%t"
+
 
 type U(==)
 ghost function ToU<T>(t:T) : U

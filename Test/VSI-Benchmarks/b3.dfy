@@ -1,5 +1,5 @@
 // RUN: %testDafnyForEachResolver "%s" -- --warn-deprecation:false
-// RUN: %diff "%s.expect" "%t"
+
 
 // Note:  We used integers instead of a generic Comparable type, because
 // Dafny has no way of saying that the Comparable type's AtMost function

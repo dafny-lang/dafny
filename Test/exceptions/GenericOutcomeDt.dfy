@@ -1,5 +1,5 @@
 // RUN: %testDafnyForEachResolver "%s"
-// RUN: %diff "%s.expect" "%t"
+
 // Does not test anything Exceptions-related, but is included by other tests
 
 datatype Outcome<T> =

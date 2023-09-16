@@ -1,5 +1,5 @@
 // RUN: %testDafnyForEachResolver --expect-exit-code=2 "%s"
-// RUN: %diff "%s.expect" "%t"
+
 
 method ok() {
   var array0: int := 10;

@@ -1,5 +1,5 @@
 // RUN: %testDafnyForEachResolver --expect-exit-code=2 "%s"
-// RUN: %diff "%s.expect" "%t"
+
 
 ghost predicate tautology1(x: int): (y: int) {
   true

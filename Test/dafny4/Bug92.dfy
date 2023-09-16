@@ -1,5 +1,5 @@
 // RUN: %testDafnyForEachResolver "%s" -- --warn-deprecation:false
-// RUN: %diff "%s.expect" "%t"
+
 module ModOpaque {
     ghost function {:opaque} Hidden(x:int) : (int, int)
     {

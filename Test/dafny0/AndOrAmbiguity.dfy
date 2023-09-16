@@ -1,5 +1,5 @@
 // RUN: %testDafnyForEachResolver --expect-exit-code=2 "%s"
-// RUN: %diff "%s.expect" "%t"
+
 
 // && and || have the same binding power and do not associate with each other.
 // The same goes for ==> and <==, and for &, |, and ^.
