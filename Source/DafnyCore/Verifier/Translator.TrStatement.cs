@@ -1888,7 +1888,7 @@ namespace Microsoft.Dafny {
       // but support the optimization that we don't define a reads frame at all if it's `reads *`. 
       if (etran.readsFrame != null) {
         var readsSubst = new Substituter(null, new Dictionary<IVariable, Expression>(), tySubst);
-        CheckFrameSubset(tok, callee.Reads.ConvertAll(readsSubst.SubstFrameExpr),
+        CheckFrameSubset(tok, callee.Reads.Expressions.ConvertAll(readsSubst.SubstFrameExpr),
           receiver, substMap, etran, etran.ReadsFrame(tok), builder, new PODesc.FrameSubset("call", false), null);
       }
       // Check that the modifies clause of a subcall is a subset of the current modifies frame,

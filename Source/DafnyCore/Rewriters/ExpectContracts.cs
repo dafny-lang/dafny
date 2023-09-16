@@ -205,10 +205,10 @@ public class ExpectContracts : IRewriter {
     // If f.Reads is empty, replace it with an explicit `reads {}` so that we don't replace that
     // with the default `reads *` for methods later.
     var reads = f.Reads;
-    if (!reads.Any()) {
-      reads = new List<FrameExpression>();
+    if (!reads.Expressions.Any()) {
+      reads = new Specification<FrameExpression>();
       var emptySet = new SetDisplayExpr(tok, true, new List<Expression>());
-      reads.Add(new FrameExpression(tok, emptySet, null));
+      reads.Expressions.Add(new FrameExpression(tok, emptySet, null));
     }
     var method = new Method(f.RangeToken, f.NameNode, f.HasStaticKeyword, false, f.TypeArgs,
       f.Formals, new List<Formal>() { resultVar },

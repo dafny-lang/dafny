@@ -13,7 +13,7 @@
 | [Multi-dimensional arrays](#sec-multi-dimensional-arrays) |  X  |  X  |  X  |  X  |  X  |  |  X  |  X  |
 | [Map comprehensions](#sec-map-comprehension-expression) |  X  |  X  |  X  |  X  |  X  |  |  X  |  |
 | [Traits](#sec-trait-types) |  X  |  X  |  X  |  X  |  X  |  |  X  |  X  |
-| [Let-such-that expressions](#sec-let-expression) |  X  |  X  |  X  |  X  |  X  |  |  X  |  |
+| [Let-such-that expressions](#sec-let-expression) |  X  |  X  |  X  |  X  |  X  |  |  X  |  X  |
 | [Non-native numeric newtypes](#sec-newtypes) |  X  |  X  |  X  |  X  |  X  |  |  X  |  X  |
 | [Method synthesis](#sec-synthesize-attr) |  X  |  |  |  |  |  |  X  |  |
 | [External classes](#sec-extern-decls) |  X  |  X  |  X  |  X  |  X  |  |  X  |  |
@@ -27,9 +27,9 @@
 | [Sequence displays of characters](#sec-sequence-displays)[^compiler-sequence-display-of-characters-note] |  X  |  X  |  X  |  X  |  X  |  |  X  |  |
 | [Type test expressions (`x is T`)](#sec-as-is-expression) |  X  |  X  |  X  |  X  |  X  |  |  X  |  |
 | [Type test expressions on subset types](#sec-as-is-expression) |  |  |  |  |  |  |  X  |  |
-| [Quantifiers](#sec-quantifier-expression) |  X  |  X  |  X  |  X  |  X  |  |  X  |  |
+| [Quantifiers](#sec-quantifier-expression) |  X  |  X  |  X  |  X  |  X  |  |  X  |  X  |
 | [Bitvector RotateLeft/RotateRight functions](#sec-bit-vector-types) |  X  |  X  |  X  |  X  |  X  |  |  X  |  |
-| [`for` loops](#sec-for-statement) |  X  |  X  |  X  |  X  |  X  |  X  |  X  |  |
+| [`for` loops](#sec-for-statement) |  X  |  X  |  X  |  X  |  X  |  X  |  X  |  X  |
 | [`continue` statements](#sec-break-continue-statement) |  X  |  X  |  X  |  X  |  X  |  X  |  X  |  X  |
 | [Assign-such-that statements with potentially infinite bounds](#sec-update-and-call-statement)[^compiler-infinite-assign-such-that-note] |  X  |  X  |  X  |  X  |  X  |  X  |  X  |  |
 | [Sequence update expressions](#sec-other-sequence-expressions) |  X  |  X  |  X  |  X  |  X  |  X  |  X  |  |
