@@ -1,4 +1,4 @@
-// RUN: %testDafnyForEachResolver "%s" -- --rprint:-
+// RUN: %testDafnyForEachResolver "%s" -- --rprint:- --relax-definite-assignment
 
 
 module M0 {
