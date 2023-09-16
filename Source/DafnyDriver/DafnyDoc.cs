@@ -817,8 +817,8 @@ class DafnyDoc {
         details.Append(space4).Append(Keyword("requires")).Append(" ").Append(Code(req.E.ToString())).Append(br).Append(eol);
         some = true;
       }
-      if (m.Reads.Count > 0) {
-        var list = String.Join(", ", m.Reads.Select(e => Code(e.OriginalExpression.ToString() + (e.FieldName != null ? "`" + e.FieldName : ""))));
+      if (m.Reads.Expressions.Count > 0) {
+        var list = String.Join(", ", m.Reads.Expressions.Select(e => Code(e.OriginalExpression.ToString() + (e.FieldName != null ? "`" + e.FieldName : ""))));
         details.Append(space4).Append(Keyword("reads")).Append(" ").Append(list).Append(br).Append(eol);
         some = true;
       }
@@ -838,8 +838,8 @@ class DafnyDoc {
       }
     } else if (d is Function) {
       var m = d as Function;
-      if (m.Reads != null && m.Reads.Count > 0) {
-        var list = String.Join(", ", m.Reads.Select(e => Code(e.OriginalExpression.ToString() + (e.FieldName != null ? "`" + e.FieldName : ""))));
+      if (m.Reads != null && m.Reads.Expressions.Count > 0) {
+        var list = String.Join(", ", m.Reads.Expressions.Select(e => Code(e.OriginalExpression.ToString() + (e.FieldName != null ? "`" + e.FieldName : ""))));
         details.Append(space4).Append(Keyword("reads")).Append(" ").Append(list).Append(br).Append(eol);
         some = true;
       }
