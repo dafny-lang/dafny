@@ -137,9 +137,9 @@ public class MultiBackendTest {
       );
     }
     foreach (var resolutionOption in resolutionOptions) {
-      var (exitCode, outputString, error) = RunDafny(options.DafnyCliPath, dafnyArgs.Concat(resolutionOption.AdditionalOptions));
-
       output.WriteLine($"Using {resolutionOption.ReadableName} resolver and verifying...");
+
+      var (exitCode, outputString, error) = RunDafny(options.DafnyCliPath, dafnyArgs.Concat(resolutionOption.AdditionalOptions));
 
       // If there is a file with extension "suffix", where the alternatives for "suffix" are supplied in order in
       // ExpectFileSuffixes, then we expect the output to match the contents of that file. Otherwise, we expect the output to be empty.
@@ -240,9 +240,9 @@ public class MultiBackendTest {
     };
 
     foreach (var resolutionOption in resolutionOptions) {
-      var (exitCode, actualOutput, error) = RunDafny(options.DafnyCliPath, dafnyArgs.Concat(resolutionOption.AdditionalOptions));
-
       output.WriteLine($"Using {resolutionOption.ReadableName} resolver and verifying...");
+
+      var (exitCode, actualOutput, error) = RunDafny(options.DafnyCliPath, dafnyArgs.Concat(resolutionOption.AdditionalOptions));
 
       // The expected output is indicated by a file with extension "suffix", where the alternatives for "suffix" are supplied in order in
       // ExpectFileSuffixes.
