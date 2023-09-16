@@ -1,5 +1,5 @@
 // RUN: %exits-with 4 %dafny /compile:0 /printTooltips "%s" > "%t"
-
+// RUN: %diff "%s.expect" "%t"
 
 // The examples below work nicely with /autoTriggers:0, but break when we use
 // /autoTriggers.

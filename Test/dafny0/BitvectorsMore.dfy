@@ -1,4 +1,4 @@
-// RUN: %exits-with 4 %dafny /errorLimit:0 /rprint:- "%s" > "%t"
+// RUN: %testDafnyForEachResolver --expect-exit-code=4 "%s" -- --error-limit=0 --rprint:-
 
 
 method M() {

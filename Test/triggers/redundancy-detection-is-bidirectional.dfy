@@ -1,5 +1,5 @@
 // RUN: %dafny /compile:0 /printTooltips "%s" > "%t"
-
+// RUN: %diff "%s.expect" "%t"
 
 // This test checks for tricky cases of redundancy suppression when building
 // triggers.

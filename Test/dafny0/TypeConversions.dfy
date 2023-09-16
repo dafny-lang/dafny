@@ -1,4 +1,4 @@
-// RUN: %exits-with 4 %dafny /compile:0 /rprint:- "%s" > "%t"
+// RUN: %testDafnyForEachResolver --expect-exit-code=4 "%s" -- --rprint:-
 
 
 newtype EvenInt = x | x % 2 == 0

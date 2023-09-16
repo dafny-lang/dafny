@@ -1,6 +1,6 @@
 // NONUNIFORM: need to add support for tooltips to the new CLI (if that makes sense)
 // RUN: %dafny /compile:3 /printTooltips "%s" > "%t"
-
+// RUN: %diff "%s.expect" "%t"
 
 datatype Dt = Green | Dog
 

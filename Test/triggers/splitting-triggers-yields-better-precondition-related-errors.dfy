@@ -1,5 +1,5 @@
 // RUN: %exits-with 4 %dafny /compile:0 /printTooltips "%s" > "%t"
-
+// RUN: %diff "%s.expect" "%t"
 
 // This tests shows that, since quantifiers are split, it becomes possible to know more precisely what part of a precondition did not hold at the call site.
 

@@ -383,8 +383,6 @@ namespace Microsoft.Dafny {
           ResolveStatement(s.Body, resolutionContext);
           enclosingStatementLabels = prevLblStmts;
           loopStack = prevLoopStack;
-        } else {
-          ReportWarning(s.Tok, "note, this forall statement has no body");
         }
         scope.PopMarker();
 

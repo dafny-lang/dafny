@@ -1,5 +1,5 @@
 // RUN: %dafny /compile:0 /printTooltips "%s" > "%t"
-
+// RUN: %diff "%s.expect" "%t"
 
 // This file is just a small test to check that constructors do cause loops
 

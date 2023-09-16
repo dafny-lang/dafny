@@ -1,4 +1,4 @@
-// RUN: %dafny /rprint:- /compile:0 "%s" > "%t"
+// RUN: %testDafnyForEachResolver "%s" -- --rprint:-
 
 
 module M0 {

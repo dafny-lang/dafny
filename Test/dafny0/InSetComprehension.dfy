@@ -1,5 +1,5 @@
 // RUN: %dafny /compile:0 /printTooltips "%s" > "%t"
-
+// RUN: %diff "%s.expect" "%t"
 
 lemma Tests<T>(t: T, uu: seq<T>) returns (z: bool)
   requires 10 <= |uu| && uu[4] == t

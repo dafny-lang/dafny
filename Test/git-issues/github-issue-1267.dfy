@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:0 /dprint:- "%s" > "%t"
+// RUN: %testDafnyForEachResolver "%s" -- --print:-
 
 
 method Test()

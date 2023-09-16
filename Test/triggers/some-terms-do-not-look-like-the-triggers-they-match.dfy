@@ -1,5 +1,5 @@
 // RUN: %exits-with 4 %dafny /compile:0 /printTooltips "%s" > "%t"
-
+// RUN: %diff "%s.expect" "%t"
 
 // This file shows how Dafny detects loops even for terms that are not literal
 // AST matches. This file also checks that triggers are reported exactly as

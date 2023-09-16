@@ -1,5 +1,5 @@
 // RUN: %dafny /compile:0 /printTooltips "%s" > "%t"
-
+// RUN: %diff "%s.expect" "%t"
 
 method M() {
   var pos := 10;

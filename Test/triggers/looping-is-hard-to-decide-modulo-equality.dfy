@@ -1,5 +1,5 @@
 // RUN: %dafny /compile:0 /printTooltips "%s" > "%t"
-
+// RUN: %diff "%s.expect" "%t"
 
 // This file shows cases where loops could hide behind equalities. In all three
 // cases we behave the same; that is, we don't warn for loops that would only

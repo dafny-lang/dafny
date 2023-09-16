@@ -1,5 +1,5 @@
-PrettyPrinting.dfy(18,10): Warning: the ... refinement feature in statements is deprecated
-PrettyPrinting.dfy(20,6): Warning: the ... refinement feature in statements is deprecated
+PrettyPrinting.dfy(20,10): Warning: the ... refinement feature in statements is deprecated
+PrettyPrinting.dfy(22,6): Warning: the ... refinement feature in statements is deprecated
 // PrettyPrinting.dfy
 
 
@@ -189,7 +189,7 @@ module New {
     a := new [] [20, 50, 70];
   }
 }
-PrettyPrinting.dfy(18,4): Error: skeleton statements are allowed only in refining methods
-PrettyPrinting.dfy(19,4): Error: skeleton statements are allowed only in refining methods
-PrettyPrinting.dfy(73,16): Error: a possibly infinite loop is allowed only if the enclosing method is declared (with 'decreases *') to be possibly non-terminating
+PrettyPrinting.dfy(20,4): Error: skeleton statements are allowed only in refining methods
+PrettyPrinting.dfy(21,4): Error: skeleton statements are allowed only in refining methods
+PrettyPrinting.dfy(75,16): Error: a possibly infinite loop is allowed only if the enclosing method is declared (with 'decreases *') to be possibly non-terminating
 3 resolution/type errors detected in PrettyPrinting.dfy

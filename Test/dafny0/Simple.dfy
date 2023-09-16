@@ -1,9 +1,9 @@
 // RUN: %dafny /dprint:- /noVerify "%s" > "%t"
-
-
+// RUN: %dafny /dprint:- /noVerify /typeSystemRefresh:1 "%s" > "%t.refresh"
+// RUN: %diff "%s.expect" "%t"
+// RUN: %diff "%s.expect" "%t.refresh"
 // My first Dafny program
 // Rustan Leino, 27 January 2008
-
 class MyClass<T,U> {
   var x: int
 

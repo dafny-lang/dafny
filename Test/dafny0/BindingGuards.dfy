@@ -1,4 +1,4 @@
-// RUN: %exits-with 4 %dafny /dprint:- "%s" > "%t"
+// RUN: %testDafnyForEachResolver --expect-exit-code=4 "%s" -- --print:-
 
 
 ghost predicate P(n: int)

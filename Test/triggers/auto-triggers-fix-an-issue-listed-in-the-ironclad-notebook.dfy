@@ -1,5 +1,5 @@
 // RUN: %dafny /compile:0 /printTooltips "%s" > "%t"
-
+// RUN: %diff "%s.expect" "%t"
 
 // This example was listed in IronClad's notebook as one place were z3 picked
 // much too liberal triggers. THe Boogie code for this is shown below:

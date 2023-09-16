@@ -1,5 +1,5 @@
 // RUN: %dafny /compile:0 /printTooltips "%s" > "%t"
-
+// RUN: %diff "%s.expect" "%t"
 
 // This file ensures that display expressions can be picked as triggers. This is
 // useful for code that checks if a set, sequence, or multiset is a singleton.

@@ -1,5 +1,5 @@
 // RUN: %dafny /compile:0 /printTooltips "%s" > "%t"
-
+// RUN: %diff "%s.expect" "%t"
 
 // This test shows that the loop detection engine makes compromises when looking
 // for subexpressions matching a trigger; in particular, it allows a

@@ -1,5 +1,5 @@
 // RUN: %exits-with 4 %dafny /compile:0 /printTooltips "%s" > "%t"
-
+// RUN: %diff "%s.expect" "%t"
 
 ghost function fact(n: int): int
   requires n >= 0

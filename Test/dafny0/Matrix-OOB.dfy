@@ -1,5 +1,5 @@
 // RUN: %exits-with 4 %dafny /compile:0 /printTooltips "%s" > "%t"
-
+// RUN: %diff "%s.expect" "%t"
 
 // This is a regression test: OOB errors for matrices used to be reported on the
 // quantifier that introduced the variables that constituted the invalid indices.

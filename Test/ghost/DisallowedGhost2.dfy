@@ -1,4 +1,4 @@
-// RUN: %exits-with 2 %dafny /compile:0 /dprint:- "%s" > "%t"
+// RUN: %testDafnyForEachResolver --expect-exit-code=2 "%s" -- --print:-
 
 
 method Test()

@@ -1,4 +1,4 @@
-// RUN: %exits-with 2 %dafny /dprint:- "%s" > "%t"
+// RUN: %testDafnyForEachResolver --expect-exit-code=2 "%s" -- --print:-
 
 
 module Issue1219 {

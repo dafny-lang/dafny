@@ -1,4 +1,4 @@
-// RUN: %exits-with 4 %dafny /compile:0 /unicodeChar:0 "%s" > "%t"
+// RUN: %testDafnyForEachResolver --expect-exit-code=4 "%s" -- --unicode-char=false
 
 
 class Termination {

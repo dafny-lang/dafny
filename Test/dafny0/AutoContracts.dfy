@@ -1,4 +1,4 @@
-// RUN: %exits-with 4 %dafny /rprint:- "%s" > "%t"
+// RUN: %testDafnyForEachResolver --expect-exit-code=4 "%s" -- --rprint:-
 
 
 module OneModule {
