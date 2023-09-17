@@ -1202,6 +1202,10 @@ namespace Microsoft.Dafny.Compilers {
       throw new UnsupportedFeatureException(Token.NoToken, Feature.NonSequentializableForallStatements);
     }
 
+    protected override ConcreteSyntaxTree EmitIngredients(ConcreteSyntaxTree wr, string ingredients, int L,
+      string tupleTypeArgs, ForallStmt s, AssignStmt s0, Expression rhs) {
+      throw new UnsupportedFeatureException(Token.NoToken, Feature.NonSequentializableForallStatements);
+    }
     protected override ConcreteSyntaxTree EmitAddTupleToList(string ingredients, string tupleTypeArgs, ConcreteSyntaxTree wr) {
       throw new UnsupportedFeatureException(Token.NoToken, Feature.NonSequentializableForallStatements);
     }
