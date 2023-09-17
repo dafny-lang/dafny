@@ -68,7 +68,7 @@ public class TopDownVisitor<State> {
   public virtual void Visit(Method method, State st) {
     Visit(method.Ens, st);
     Visit(method.Req, st);
-    Visit(method.Reads, st);
+    Visit(method.Reads.Expressions, st);
     Visit(method.Mod.Expressions, st);
     Visit(method.Decreases.Expressions, st);
     if (method.Body != null) { Visit(method.Body, st); }
@@ -77,7 +77,7 @@ public class TopDownVisitor<State> {
   public virtual void Visit(Function function, State st) {
     Visit(function.Ens, st);
     Visit(function.Req, st);
-    Visit(function.Reads, st);
+    Visit(function.Reads.Expressions, st);
     Visit(function.Decreases.Expressions, st);
     if (function.Body != null) { Visit(function.Body, st); }
     //TODO More?
