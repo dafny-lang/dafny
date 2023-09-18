@@ -131,6 +131,9 @@ public class ModuleDefinition : RangeNode, IAttributeBearingDeclaration, IClonea
 
   public bool UseNativeSeq =>
     Attributes.Contains(Attributes, Attributes.NativeSeqAttributeName);
+  
+  public bool IsolateAssertions =>
+    Attributes.Contains(Attributes, Attributes.IsolateAssertionsAttriubuteName);
 
   public IEnumerable<TopLevelDecl> DefaultClasses {
     get { return DefaultClass == null ? Enumerable.Empty<TopLevelDecl>() : new TopLevelDecl[] { DefaultClass }; }

@@ -23,6 +23,7 @@ public class Attributes : TokenNode {
   public static string CaseSplitAttributeName = "case_split";
   public static string SolverAttributeName = "solver";
   public static string NativeSeqAttributeName = "native_seq";
+  public static string IsolateAssertionsAttriubuteName = "isolate_assertions";
 
   public string Name;
   /*Frozen*/

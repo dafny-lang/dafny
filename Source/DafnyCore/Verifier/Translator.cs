@@ -942,6 +942,9 @@ namespace Microsoft.Dafny {
         if(outerModule.UseNativeSeq) {
           moduleOptions.UseSeqTheory = true;
         }
+        if(outerModule.IsolateAssertions) {
+          moduleOptions.VcsSplitOnEveryAssert = true;
+        }
 
         if (translator.sink == null || translator.sink == null) {
           // something went wrong during construction, which reads the prelude; an error has
