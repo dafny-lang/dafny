@@ -152,9 +152,14 @@ namespace Microsoft.Dafny {
       AtLayer
     }
 
-    Bpl.Expr Lit(Bpl.Expr expr, Bpl.Type typ) {
+    private Bpl.Expr Lit(Bpl.Expr expr, Bpl.Type typ) {
       Contract.Requires(expr != null);
       Contract.Requires(typ != null);
+
+      if (currentModule is { UsesFuel: false }) {
+        return expr;
+      }
+
       // To avoid Boogie's int_2_U and U_2_int conversions, which seem to cause problems with
       // arithmetic reasoning, we use several Lit functions.  In particular, we use one for
       // integers, one for reals, and one for everything else.
@@ -167,7 +172,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    Bpl.Expr Lit(Bpl.Expr expr) {
+    private Bpl.Expr Lit(Bpl.Expr expr) {
       return Lit(expr, expr.Type);
     }
 

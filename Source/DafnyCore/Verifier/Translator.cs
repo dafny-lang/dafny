@@ -796,6 +796,11 @@ namespace Microsoft.Dafny {
         AddBitvectorNatConversionFunction(w);
       }
 
+      foreach (ModuleDefinition m in program.RawModules()) {
+        CheckFuelUsage(m);
+      }
+      CheckFuelUsage(program.SystemModuleManager.SystemModule);
+
       foreach (TopLevelDecl d in program.SystemModuleManager.SystemModule.TopLevelDecls) {
         currentDeclaration = d;
         if (d is AbstractTypeDecl abstractType) {
@@ -1107,6 +1112,13 @@ namespace Microsoft.Dafny {
         var ax = new Bpl.ForallExpr(tok, new List<Variable>() { bVar }, BplTrigger(bv2nat), body);
         sink.AddTopLevelDeclaration(new Bpl.Axiom(tok, ax));
       }
+    }
+
+    private void CheckFuelUsage(ModuleDefinition m) {
+      m.UsesFuel = m.TopLevelDecls.OfType<TopLevelDeclWithMembers>()
+        .SelectMany(c => c.Members)
+        .OfType<Function>()
+        .Any(f => RevealedInScope(f) && f.IsFuelAware());
     }
 
     private void ComputeFunctionFuel() {
