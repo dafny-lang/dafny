@@ -595,7 +595,7 @@ namespace Microsoft.Dafny {
             // Adding the assume stmt, resetting the stmtContext
             stmtContext = StmtType.ASSUME;
             adjustFuelForExists = true;
-            b.Add(TrAssumeCmdWithDependencies(etran, stmt.Tok, stmt.Expr, "assume statement"));
+            b.Add(TrAssumeCmdWithDependencies(etran, stmt.Tok, stmt.Expr, "assume statement", true));
             stmtContext = StmtType.NONE;
           }
         }
@@ -606,7 +606,7 @@ namespace Microsoft.Dafny {
           // Adding the assume stmt, resetting the stmtContext
           stmtContext = StmtType.ASSUME;
           adjustFuelForExists = true;
-          builder.Add(TrAssumeCmdWithDependencies(etran, stmt.Tok, stmt.Expr, "assume statement"));
+          builder.Add(TrAssumeCmdWithDependencies(etran, stmt.Tok, stmt.Expr, "assume statement", true));
           stmtContext = StmtType.NONE;
         }
       } else if (stmt is ExpectStmt) {
@@ -634,7 +634,7 @@ namespace Microsoft.Dafny {
         var s = (AssumeStmt)stmt;
         stmtContext = StmtType.ASSUME;
         TrStmt_CheckWellformed(s.Expr, builder, locals, etran, false);
-        builder.Add(TrAssumeCmdWithDependencies(etran, stmt.Tok, s.Expr, "assume statement", etran.TrAttributes(stmt.Attributes, null)));
+        builder.Add(TrAssumeCmdWithDependencies(etran, stmt.Tok, s.Expr, "assume statement", true, etran.TrAttributes(stmt.Attributes, null)));
         stmtContext = StmtType.NONE; // done with translating assume stmt.
       }
       this.fuelContext = FuelSetting.PopFuelContext();

@@ -3,7 +3,7 @@ ControlStructures.dfy(8,2): Error: missing case in match statement: Blue
 ControlStructures.dfy(17,2): Error: missing case in match statement: Purple
 ControlStructures.dfy(46,4): Error: missing case in match statement: Red
 ControlStructures.dfy(54,2): Error: missing case in match expression: Red
-ControlStructures.dfy(75,2): Error: alternative cases fail to cover all possibilties
+ControlStructures.dfy(75,2): Error: alternative cases fail to cover all possibilities
 ControlStructures.dfy(218,17): Error: assertion might not hold
 ControlStructures.dfy(235,20): Error: assertion might not hold
 ControlStructures.dfy(238,29): Error: assertion might not hold

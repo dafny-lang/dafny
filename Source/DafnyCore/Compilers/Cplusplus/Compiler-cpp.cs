@@ -1326,8 +1326,11 @@ namespace Microsoft.Dafny.Compilers {
       throw new UnsupportedFeatureException(tok, Feature.ForLoops, "for loops have not yet been implemented");
     }
 
-    protected override ConcreteSyntaxTree CreateForLoop(string indexVar, string bound, ConcreteSyntaxTree wr, string start = null) {
+    protected override ConcreteSyntaxTree CreateForLoop(string indexVar, Action<ConcreteSyntaxTree> boundAction, ConcreteSyntaxTree wr, string start = null) {
       start = start ?? "0";
+      var boundWriter = new ConcreteSyntaxTree();
+      boundAction(boundWriter);
+      var bound = boundWriter.ToString();
       return wr.NewNamedBlock("for (auto {0} = {2}; {0} < {1}; {0}++)", indexVar, bound, start);
     }
 
