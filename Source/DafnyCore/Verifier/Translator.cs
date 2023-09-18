@@ -1593,6 +1593,7 @@ namespace Microsoft.Dafny {
       Contract.Ensures(currentModule == null && codeContext == null);
       Contract.Ensures(Contract.Result<Bpl.Procedure>() != null);
 
+      proofDependencies.SetCurrentDefinition(MethodVerboseName(iter.FullDafnyName, kind));
       currentModule = iter.EnclosingModuleDefinition;
       codeContext = iter;
 
@@ -1671,6 +1672,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(currentModule == null && codeContext == null);
       Contract.Ensures(currentModule == null && codeContext == null);
 
+      proofDependencies.SetCurrentDefinition(proc.VerboseName);
       currentModule = iter.EnclosingModuleDefinition;
       codeContext = iter;
 
@@ -1821,6 +1823,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(currentModule == null && codeContext == null && yieldCountVariable == null && _tmpIEs.Count == 0);
       Contract.Ensures(currentModule == null && codeContext == null && yieldCountVariable == null && _tmpIEs.Count == 0);
 
+      proofDependencies.SetCurrentDefinition(proc.VerboseName);
       currentModule = iter.EnclosingModuleDefinition;
       codeContext = iter;
 
@@ -4257,6 +4260,7 @@ namespace Microsoft.Dafny {
 
       Contract.Assert(InVerificationScope(f));
 
+      proofDependencies.SetCurrentDefinition(MethodVerboseName(f.FullDafnyName, MethodTranslationKind.SpecWellformedness));
       currentModule = f.EnclosingClass.EnclosingModuleDefinition;
       codeContext = f;
 
@@ -4537,6 +4541,8 @@ namespace Microsoft.Dafny {
       Contract.Requires(currentModule == null && codeContext == null && isAllocContext == null);
       Contract.Ensures(currentModule == null && codeContext == null && isAllocContext == null);
 
+      proofDependencies.SetCurrentDefinition(MethodVerboseName(decl.Name, MethodTranslationKind.SpecWellformedness));
+
       if (!InVerificationScope(decl)) {
         // Checked in other file
         return;
@@ -4687,6 +4693,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(currentModule == null && codeContext == null && isAllocContext == null && fuelContext == null);
       Contract.Ensures(currentModule == null && codeContext == null && isAllocContext == null && fuelContext == null);
 
+      proofDependencies.SetCurrentDefinition(MethodVerboseName(decl.FullDafnyName, MethodTranslationKind.SpecWellformedness));
       if (!InVerificationScope(decl)) {
         // Checked in other file
         return;
@@ -4765,6 +4772,8 @@ namespace Microsoft.Dafny {
       Contract.Requires(sink != null && predef != null);
       Contract.Requires(currentModule == null && codeContext == null && isAllocContext == null && fuelContext == null);
       Contract.Ensures(currentModule == null && codeContext == null && isAllocContext == null && fuelContext == null);
+
+      proofDependencies.SetCurrentDefinition(MethodVerboseName(ctor.FullName, MethodTranslationKind.SpecWellformedness));
 
       if (!InVerificationScope(ctor)) {
         // Checked in other file
