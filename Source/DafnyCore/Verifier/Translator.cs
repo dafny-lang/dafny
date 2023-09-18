@@ -1474,7 +1474,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(e != null);
       Contract.Ensures(Contract.Result<Bpl.Expr>() != null);
 
-      return Unbox(tok, ReadHeap(tok, heapExpr, e, predef.Alloc(tok)), Bpl.Type.Bool);
+      return ApplyUnbox(tok, ReadHeap(tok, heapExpr, e, predef.Alloc(tok)), Bpl.Type.Bool);
     }
 
     /// <summary>
@@ -1486,10 +1486,11 @@ namespace Microsoft.Dafny {
       Contract.Requires(r != null);
       Contract.Requires(f != null);
       Contract.Ensures(Contract.Result<Bpl.NAryExpr>() != null);
-
-      return new Bpl.NAryExpr(tok,
+      var res = new Bpl.NAryExpr(tok,
         new Bpl.FunctionCall(new Bpl.IdentifierExpr(tok, "read", predef.BoxType)),
         new List<Bpl.Expr> { heap, r, f });
+      res.Type = predef.BoxType;
+      return res;
     }
 
     public Bpl.Expr ReadHeap(IToken tok, Expr heap, Expr r) {
@@ -1514,7 +1515,7 @@ namespace Microsoft.Dafny {
 
       return new Boogie.NAryExpr(tok,
         new Boogie.FunctionCall(new Boogie.IdentifierExpr(tok, "update", heap.Type)),
-        new List<Boogie.Expr> { heap, r, f, BoxIfUnboxed(tok, v) });
+        new List<Boogie.Expr> { heap, r, f, ApplyBox(tok, v) });
     }
 
     public Bpl.Expr DType(Bpl.Expr e, Bpl.Expr type) {
@@ -1897,7 +1898,7 @@ namespace Microsoft.Dafny {
         // add the conjunct:  _yieldCount == |this.ys|
         wh = Bpl.Expr.And(wh, Bpl.Expr.Eq(new Bpl.IdentifierExpr(iter.tok, yieldCountVariable),
           FunctionCall(iter.tok, BuiltinFunction.SeqLength, null,
-          Unbox(iter.tok, ReadHeap(iter.tok, etran.HeapExpr,
+          ApplyUnbox(iter.tok, ReadHeap(iter.tok, etran.HeapExpr,
             new Bpl.IdentifierExpr(iter.tok, etran.This, predef.RefType),
             new Bpl.IdentifierExpr(iter.tok, GetField(ys))), TrType(ys.Type)))));
       }
@@ -5880,7 +5881,7 @@ namespace Microsoft.Dafny {
           // args and its [Box]args
           var arg = BplBoundVar(fm_name, TrType(fm.Type), func_vars);
           func_args.Add(arg);
-          var boxed = BoxIfNotNormallyBoxed(arg, fm.Type);
+          var boxed = BoxIfNotNormallyBoxed(arg.tok, arg, fm.Type);
           boxed_func_args.Add(boxed);
         }
 
@@ -5897,7 +5898,7 @@ namespace Microsoft.Dafny {
             Concat(tyargs, Cons(h, Cons(fhandle, lhs_args))));
           var args_h = f.ReadsHeap ? Snoc(SnocPrevH(args), h) : args;
           var rhs = FunctionCall(f.tok, f.FullSanitizedName, TrType(f.ResultType), Concat(SnocSelf(args_h), rhs_args));
-          var rhs_boxed = BoxIfNotNormallyBoxed(rhs, f.ResultType);
+          var rhs_boxed = BoxIfNotNormallyBoxed(f.tok, rhs, f.ResultType);
 
           AddOtherDefinition(GetOrCreateFunction(f), (new Axiom(f.tok,
             BplForall(Concat(vars, bvars), BplTrigger(lhs), Bpl.Expr.Eq(lhs, rhs_boxed)))));
@@ -7351,9 +7352,9 @@ namespace Microsoft.Dafny {
     ///   If the type is not normally boxed, insert a box around it.
     ///   For lambda functions.
     /// </summary>
-    public Bpl.Expr BoxIfNotNormallyBoxed(Bpl.Expr e, Type t) {
+    public Bpl.Expr BoxIfNotNormallyBoxed(Bpl.IToken tok, Bpl.Expr e, Type t) {
       if (!ModeledAsBoxType(t)) {
-        return CondApplyBox(e.tok, e, t, null);
+        return ApplyBox(tok, e);
       } else {
         return e;
       }
@@ -7362,10 +7363,10 @@ namespace Microsoft.Dafny {
     /// <summary>
     ///   If the passed expression is not already boxed, box it.
     /// </summary>
-    public Bpl.Expr BoxIfUnboxed(IToken tok, Bpl.Expr e) {
+    public Bpl.Expr ApplyBox(Bpl.IToken tok, Bpl.Expr e) {
       Contract.Assert(tok != null);
       Contract.Assert(e != null);
-      if (e.Type == predef.BoxType || e.ShallowType == predef.BoxType) {
+      if (e.Type == predef.BoxType || e is NAryExpr {Fun.FunctionName:"$Box"}) {
         return e;
       }
       return FunctionCall(tok, BuiltinFunction.Box, null, e);
@@ -7387,7 +7388,7 @@ namespace Microsoft.Dafny {
     /// <summary>
     ///   Unboxes an expression with the Box type.
     /// </summary>
-    public Bpl.Expr Unbox(Bpl.IToken tok, Bpl.Expr e, Bpl.Type ty) {
+    public Bpl.Expr ApplyUnbox(Bpl.IToken tok, Bpl.Expr e, Bpl.Type ty) {
       Contract.Assert(e != null);
       Contract.Assert(ty != null);
       Contract.Assert(tok != null);
@@ -9139,8 +9140,8 @@ namespace Microsoft.Dafny {
             // $Heap[this, _new] := Set#UnionOne($Heap[this, _new], $Box($nw));
             var th = new Bpl.IdentifierExpr(tok, etran.This, predef.RefType);
             var nwField = new Bpl.IdentifierExpr(tok, GetField(iter.Member_New));
-            var thisDotNew = Unbox(tok, ReadHeap(tok, etran.HeapExpr, th, nwField), predef.SetType);
-            var unionOne = FunctionCall(tok, BuiltinFunction.SetUnionOne, predef.BoxType, thisDotNew,BoxIfUnboxed(tok, nw));
+            var thisDotNew = ApplyUnbox(tok, ReadHeap(tok, etran.HeapExpr, th, nwField), predef.SetType);
+            var unionOne = FunctionCall(tok, BuiltinFunction.SetUnionOne, predef.BoxType, thisDotNew,ApplyBox(tok, nw));
             var heapRhs = UpdateHeap(tok, etran.HeapExpr, th, nwField, unionOne);
             heapAllocationRecorder = Bpl.Cmd.SimpleAssign(tok, etran.HeapCastToIdentifierExpr, heapRhs);
           }
@@ -9242,7 +9243,7 @@ namespace Microsoft.Dafny {
         // assume (forall i0,i1,i2,... :: { nw[i0,i1,i2,...] }
         //            0 <= i0 < ... && ... ==> nw[i0,i1,i2,...] == init.requires(i0,i1,i2,...));
         var ai = ReadHeap(tok, etran.HeapExpr, nw, GetArrayIndexFieldName(tok, indices));
-        var ai_prime = TrType(elementType) == predef.BoxType ? ai : Unbox(tok, ai, TrType(elementType));
+        var ai_prime = TrType(elementType) == predef.BoxType ? ai : ApplyUnbox(tok, ai, TrType(elementType));
         var tr = new Bpl.Trigger(tok, true, new List<Bpl.Expr> { ai });
         q = new Bpl.ForallExpr(tok, bvs, tr,
           Bpl.Expr.Imp(ante, Bpl.Expr.Eq(ai_prime, apply))); // TODO: use a more general Equality translation
@@ -9379,7 +9380,7 @@ namespace Microsoft.Dafny {
         // assert Set#Subset(rhs, obj._new);
         var fId = new Bpl.IdentifierExpr(tok, GetField(f));
         var subset = FunctionCall(tok, BuiltinFunction.SetSubset, null, rhs, 
-          Unbox(tok, ReadHeap(tok, etran.HeapExpr, obj, fId), predef.SetType));
+          ApplyUnbox(tok, ReadHeap(tok, etran.HeapExpr, obj, fId), predef.SetType));
         builder.Add(Assert(tok, subset, new PODesc.AssignmentShrinks(f.Name)));
       }
     }

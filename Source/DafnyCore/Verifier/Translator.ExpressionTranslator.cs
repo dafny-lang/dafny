@@ -484,7 +484,7 @@ namespace Microsoft.Dafny {
                     if (field.IsMutable) {
                       var tok = GetToken(expr);
                       result = translator.ReadHeap(tok, HeapExpr, obj, new Boogie.IdentifierExpr(tok, translator.GetField(field)));
-                      result = fType == predef.BoxType ? result : translator.Unbox(tok, result, fType);
+                      result = fType == predef.BoxType ? result : translator.ApplyUnbox(tok, result, fType);
                       return translator.CondApplyUnbox(GetToken(expr), result, field.Type, expr.Type);
                     } else {
                       result = new Boogie.NAryExpr(GetToken(expr), new Boogie.FunctionCall(translator.GetReadonlyField(field)),
@@ -646,7 +646,7 @@ namespace Microsoft.Dafny {
                 }
               }
 
-              Func<Expression, Boogie.Expr> TrArg = arg => translator.BoxIfNotNormallyBoxed(TrExpr(arg), arg.Type);
+              Func<Expression, Boogie.Expr> TrArg = arg => translator.BoxIfNotNormallyBoxed(arg.tok, TrExpr(arg), arg.Type);
 
               var applied = FunctionCall(GetToken(applyExpr), Translator.Apply(arity), predef.BoxType,
                 Concat(Map(tt.TypeArgs, translator.TypeToTy),
@@ -1516,7 +1516,7 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), predef.BoxType,
         et = et.WithLayer(ly);
 
         var ebody = et.TrExpr(Translator.Substitute(e.Body, null, subst));
-        ebody = translator.BoxIfNotNormallyBoxed(ebody, e.Body.Type);
+        ebody = translator.BoxIfNotNormallyBoxed(GetToken(e), ebody, e.Body.Type);
 
         var isBoxes = BplAnd(ves.Zip(e.BoundVars, (ve, bv) => translator.MkIsBox(ve, bv.Type)));
         var reqbody = e.Range == null

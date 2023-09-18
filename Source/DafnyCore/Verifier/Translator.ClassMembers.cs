@@ -325,7 +325,7 @@ namespace Microsoft.Dafny {
         // generate h[o,f]
         var ty = TrType(f.Type);
         oDotF = ReadHeap(c.tok, h, o, new Bpl.IdentifierExpr(c.tok, GetField(f)));
-        oDotF = ty == predef.BoxType ? oDotF : Unbox(c.tok, oDotF, ty);
+        oDotF = ty == predef.BoxType ? oDotF : ApplyUnbox(c.tok, oDotF, ty);
         bvsTypeAxiom.Add(hVar);
         bvsTypeAxiom.Add(oVar);
         bvsAllocationAxiom.Add(hVar);
@@ -1169,7 +1169,7 @@ namespace Microsoft.Dafny {
         var bv = new Boogie.BoundVariable(p.tok, new Boogie.TypedIdent(p.tok, p.AssignUniqueName(currentDeclaration.IdGenerator), TrType(pType)));
         forallFormals.Add(bv);
         var jfArg = new Boogie.IdentifierExpr(p.tok, bv);
-        argsJF.Add(ModeledAsBoxType(p.Type) ? BoxIfNotNormallyBoxed(jfArg, pType) : jfArg);
+        argsJF.Add(ModeledAsBoxType(p.Type) ? BoxIfNotNormallyBoxed(p.tok, jfArg, pType) : jfArg);
         moreArgsCF.Add(new Boogie.IdentifierExpr(p.tok, bv));
       }
 
@@ -1222,7 +1222,7 @@ namespace Microsoft.Dafny {
       // The equality that is what it's all about
       var synonyms = Boogie.Expr.Eq(
         funcAppl,
-        ModeledAsBoxType(f.ResultType) ? BoxIfNotNormallyBoxed(overridingFuncAppl, overridingFunction.ResultType) : overridingFuncAppl);
+        ModeledAsBoxType(f.ResultType) ? BoxIfNotNormallyBoxed(overridingFunction.tok, overridingFuncAppl, overridingFunction.ResultType) : overridingFuncAppl);
 
       // The axiom
       Boogie.Expr ax = BplForall(f.tok, new List<Boogie.TypeVariable>(), forallFormals, null, tr,
