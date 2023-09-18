@@ -64,7 +64,7 @@ public class Method : MemberDecl, TypeParameter.ParentType,
     if (Attributes.Contains(Mod.Attributes, Attributes.AssumeConcurrentAttributeName)) {
       yield return new Assumption(this, tok, AssumptionDescription.HasAssumeConcurrentAttribute(true));
     }
-    
+
     if (AllowsNontermination) {
       yield return new Assumption(this, tok, AssumptionDescription.MayNotTerminate);
     }
