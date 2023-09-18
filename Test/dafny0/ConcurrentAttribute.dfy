@@ -132,4 +132,5 @@ class Concurrent {
   }
 }
 
+// Auditor warning for {:assume_concurrent}
 // TODO: Release notes!
