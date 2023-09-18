@@ -74,6 +74,10 @@ public class Function : MemberDecl, TypeParameter.ParentType, ICallable, ICanFor
       yield return new Assumption(this, tok, AssumptionDescription.ExternWithPrecondition);
     }
 
+    if (Attributes.Contains(Reads.Attributes, Attributes.AssumeConcurrentAttributeName)) {
+      yield return new Assumption(this, tok, AssumptionDescription.HasAssumeConcurrentAttribute(false));
+    }
+
     foreach (var c in this.Descendants()) {
       foreach (var a in (c as Node)?.Assumptions(this) ?? Enumerable.Empty<Assumption>()) {
         yield return a;

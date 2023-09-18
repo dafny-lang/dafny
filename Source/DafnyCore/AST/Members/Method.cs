@@ -58,6 +58,13 @@ public class Method : MemberDecl, TypeParameter.ParentType,
       yield return new Assumption(this, tok, AssumptionDescription.ExternWithPrecondition);
     }
 
+    if (Attributes.Contains(Reads.Attributes, Attributes.AssumeConcurrentAttributeName)) {
+      yield return new Assumption(this, tok, AssumptionDescription.HasAssumeConcurrentAttribute(false));
+    }
+    if (Attributes.Contains(Mod.Attributes, Attributes.AssumeConcurrentAttributeName)) {
+      yield return new Assumption(this, tok, AssumptionDescription.HasAssumeConcurrentAttribute(true));
+    }
+    
     if (AllowsNontermination) {
       yield return new Assumption(this, tok, AssumptionDescription.MayNotTerminate);
     }
