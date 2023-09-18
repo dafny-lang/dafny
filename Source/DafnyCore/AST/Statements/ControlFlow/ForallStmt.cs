@@ -126,6 +126,12 @@ public class ForallStmt : Statement, ICloneable<ForallStmt>, ICanFormat {
         foreach (var e in Attributes.SubExpressions(ee.Attributes)) { yield return e; }
         yield return ee.E;
       }
+
+      if (ForallExpressions != null) {
+        foreach (var e in ForallExpressions) {
+          yield return e;
+        }
+      }
     }
   }
 
