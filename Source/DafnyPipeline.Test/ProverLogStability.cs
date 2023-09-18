@@ -64,12 +64,25 @@ method SomeMethod(methodFormal: int) returns (result: bool)
       this.testOutputHelper = testOutputHelper;
     }
 
+    /// <summary>
+    /// This test is meant to detect _any_ changes in Dafny's verification behavior.
+    /// Dafny's verification is powered by an SMT solver. For difficult inputs, such solvers may change their behavior,
+    /// both in performance and outcome, even when tiny non-semantic changes such as changes in variable names,
+    /// are made in the input.
+    ///
+    /// To detect whether it is possible that the verification of Dafny proofs has changed,
+    /// this test compares the input Dafny sends to the SMT solver against what it was sending previously.
+    ///
+    /// If this test fails, that means a change was made to Dafny that changes the SMT input it sends.
+    /// If this was intentional, you should update this test's expect file with the new SMT input.
+    /// The git history of updates to this test allows us to easily see when Dafny's verification has changed. 
+    /// </summary>
     [Fact]
     public async Task ProverLogRegression() {
       var options = DafnyOptions.Create((TextWriter)new WriterFromOutputHelper(testOutputHelper));
       options.ProcsToCheck.Add("SomeMethod*");
 
-      var filePath = Path.Combine(Directory.GetCurrentDirectory(), "expectedProverLog.txt");
+      var filePath = Path.Combine(Directory.GetCurrentDirectory(), "expectedProverLog.smt2");
       var expectation = await File.ReadAllTextAsync(filePath);
       var regularProverLog = await GetProverLogForProgramAsync(options, GetBoogie(options, originalProgram));
       Assert.Equal(expectation, regularProverLog.Replace("\r", ""));

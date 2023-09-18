@@ -43,7 +43,7 @@
 	  <Content Remove="_plugins/**" />
 	  <EmbeddedResource Include="_plugins/**" />
     <None Remove="_plugins\**" />
-    <None Update="expectedProverLog.txt">
+    <None Update="expectedProverLog.smt2">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
 	</ItemGroup>
