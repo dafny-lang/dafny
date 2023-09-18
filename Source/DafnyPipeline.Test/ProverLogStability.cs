@@ -42,21 +42,29 @@ type FooSynonym<T> = FooClass
 
 class FooClass {
   var f: int
+  var c: NestedModule.C
+ 
   constructor ()
 }
 
 datatype Friends = Agnes | Agatha | Jermaine
 
-function SomeFunc(funcFormal: int): nat { 3 }
+function SomeFunc(funcFormal: int, foo: FooClass): nat 
+  reads foo, foo.c 
+  ensures SomeFunc(funcFormal, foo) == foo.c.f
+{ 
+  3
+}
 
 method SomeMethod(methodFormal: int) returns (result: bool)
   requires methodFormal == 2
-  ensures result == true 
+  ensures result == (methodFormal == 2) 
   // ensures forall x :: x == methodFormal
 {
   m();
   var lambdaExpr := x => x + 1;
-  result := methodFormal == SomeFunc(42);
+  var c := new FooClass();
+  result := methodFormal == SomeFunc(42, c);
 }
 ";
 
