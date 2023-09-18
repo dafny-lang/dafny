@@ -58,7 +58,7 @@ of all the given Attributes. The order of conjunctions
 can be important: earlier conjuncts can set conditions that
 establish that later conjuncts are well-defined.
 
-The attributes recognized for requires clauses are discussed in [Section 11.3](#sec-verification-attributes-on-assertions).
+The attributes recognized for requires clauses are discussed in [Section 11.4](#sec-verification-attributes-on-assertions).
 
 A requires clause can have [custom error and success messages](#sec-error-attribute).
 
@@ -86,7 +86,7 @@ The order of conjunctions
 can be important: earlier conjuncts can set conditions that
 establish that later conjuncts are well-defined.
 
-The attributes recognized for ensures clauses are discussed in [Section 11.3](#sec-verification-attributes-on-assertions).
+The attributes recognized for ensures clauses are discussed in [Section 11.4](#sec-verification-attributes-on-assertions).
 
 An ensures clause can have [custom error and success messages](#sec-error-attribute).
 

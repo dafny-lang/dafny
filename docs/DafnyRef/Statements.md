@@ -1854,7 +1854,7 @@ Examples of this form of assert are given in the section of the [`reveal`](#sec-
 
 An assert statement may have a label, whose use is explained in [Section 8.20.1](#sec-reveal-assertions).
 
-The attributes recognized for assert statements are discussed in [Section 11.3](#sec-verification-attributes-on-assertions).
+The attributes recognized for assert statements are discussed in [Section 11.4](#sec-verification-attributes-on-assertions).
 
 Using `...` as the argument of the statement is deprecated.
 
