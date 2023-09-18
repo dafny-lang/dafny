@@ -1716,7 +1716,7 @@ module AlcorTacticProofChecker {
           sequents.tail
         )
       );
-      return Success(proofState.ToString());
+      feedback := Simplify(newName); return;
     }
 
     method Simplify(name: string := "", replaceDepth: nat := 0) returns (feedback: Result<string>)

@@ -4433,7 +4433,9 @@ namespace AlcorTacticProofChecker {
       Dafny.ISequence<Dafny.Rune> _607_freeVar;
       _607_freeVar = ((_598_sequent).dtor_env).FreshVar(_606_newName);
       (this).proofState = AlcorTacticProofChecker.ProofState.create_Sequents(AlcorTacticProofChecker.SequentList.create_SequentCons(AlcorTacticProofChecker.Sequent.create(AlcorTacticProofChecker.Env.create_EnvCons(_606_newName, _605_instantiated, _599_env), _600_goal), (_597_sequents).dtor_tail));
-      feedback = Wrappers.Result<Dafny.ISequence<Dafny.Rune>>.create_Success((this.proofState)._ToString());
+      Wrappers._IResult<Dafny.ISequence<Dafny.Rune>> _out25;
+      _out25 = (this).Simplify(_606_newName, BigInteger.Zero);
+      feedback = _out25;
       return feedback;
       return feedback;
     }
@@ -4446,9 +4448,9 @@ namespace AlcorTacticProofChecker {
       AlcorTacticProofChecker._ISequentList _608_sequents;
       _608_sequents = (this.proofState).dtor_sequents;
       if ((_608_sequents).is_SequentNil) {
-        Wrappers._IResult<Dafny.ISequence<Dafny.Rune>> _out25;
-        _out25 = (this).SetFailure(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Nothing to simplify"));
-        feedback = _out25;
+        Wrappers._IResult<Dafny.ISequence<Dafny.Rune>> _out26;
+        _out26 = (this).SetFailure(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Nothing to simplify"));
+        feedback = _out26;
         return feedback;
       }
       AlcorTacticProofChecker._ISequent _609_sequent;
@@ -4457,30 +4459,42 @@ namespace AlcorTacticProofChecker {
       _610_env = (_609_sequent).dtor_env;
       AlcorProofKernel._IExpr _611_goal;
       _611_goal = (_609_sequent).dtor_goal;
-      BigInteger _612_iHyp;
-      _612_iHyp = (_610_env).IndexOf(name);
-      if ((_612_iHyp).Sign == -1) {
-        Wrappers._IResult<Dafny.ISequence<Dafny.Rune>> _out26;
-        _out26 = (this).SetFailure(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Entry "), name), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" not found in the environment")));
-        feedback = _out26;
+      if (!(name).Equals(Dafny.Sequence<Dafny.Rune>.UnicodeFromString(""))) {
+        BigInteger _612_iHyp;
+        _612_iHyp = (_610_env).IndexOf(name);
+        if ((_612_iHyp).Sign == -1) {
+          Wrappers._IResult<Dafny.ISequence<Dafny.Rune>> _out27;
+          _out27 = (this).SetFailure(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Entry "), name), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" not found in the environment")));
+          feedback = _out27;
+          return feedback;
+        }
+        _System._ITuple2<Dafny.ISequence<Dafny.Rune>, AlcorProofKernel._IExpr> _let_tmp_rhs5 = (_610_env).ElemAt(_612_iHyp);
+        Dafny.ISequence<Dafny.Rune> _613___v12 = _let_tmp_rhs5.dtor__0;
+        AlcorProofKernel._IExpr _614_hypExpr = _let_tmp_rhs5.dtor__1;
+        AlcorProofKernel._ISimplificationConfig _615_config;
+        _615_config = AlcorProofKernel.SimplificationConfig.create(false, BigInteger.One);
+        AlcorProofKernel._IExpr _616_newHypExpr;
+        _616_newHypExpr = (_614_hypExpr).simplify(((System.Func<AlcorProofKernel._IExpr, AlcorProofKernel._IExpr>)((_617_x) => {
+          return _617_x;
+        })), _615_config);
+        AlcorTacticProofChecker._IEnv _618_newEnv;
+        _618_newEnv = (_610_env).ReplaceTailAt(_612_iHyp, Dafny.Helpers.Id<Func<Dafny.ISequence<Dafny.Rune>, AlcorProofKernel._IExpr, AlcorTacticProofChecker._IEnv, BigInteger, Func<AlcorTacticProofChecker._IEnv, AlcorTacticProofChecker._IEnv>>>((_619_name, _620_newHypExpr, _621_env, _622_iHyp) => ((System.Func<AlcorTacticProofChecker._IEnv, AlcorTacticProofChecker._IEnv>)((_623_oldTail) => {
+          return AlcorTacticProofChecker.Env.create_EnvCons(_619_name, _620_newHypExpr, (_623_oldTail).dtor_tail);
+        })))(name, _616_newHypExpr, _610_env, _612_iHyp));
+        (this).proofState = AlcorTacticProofChecker.ProofState.create_Sequents(AlcorTacticProofChecker.SequentList.create_SequentCons(AlcorTacticProofChecker.Sequent.create(_618_newEnv, _611_goal), (_608_sequents).dtor_tail));
+        feedback = Wrappers.Result<Dafny.ISequence<Dafny.Rune>>.create_Success((this.proofState)._ToString());
+        return feedback;
+      } else {
+        AlcorProofKernel._ISimplificationConfig _624_config;
+        _624_config = AlcorProofKernel.SimplificationConfig.create(false, BigInteger.One);
+        AlcorProofKernel._IExpr _625_newGoal;
+        _625_newGoal = (_611_goal).simplify(((System.Func<AlcorProofKernel._IExpr, AlcorProofKernel._IExpr>)((_626_x) => {
+          return _626_x;
+        })), _624_config);
+        (this).proofState = AlcorTacticProofChecker.ProofState.create_Sequents(AlcorTacticProofChecker.SequentList.create_SequentCons(AlcorTacticProofChecker.Sequent.create(_610_env, _625_newGoal), (_608_sequents).dtor_tail));
+        feedback = Wrappers.Result<Dafny.ISequence<Dafny.Rune>>.create_Success((this.proofState)._ToString());
         return feedback;
       }
-      _System._ITuple2<Dafny.ISequence<Dafny.Rune>, AlcorProofKernel._IExpr> _let_tmp_rhs5 = (_610_env).ElemAt(_612_iHyp);
-      Dafny.ISequence<Dafny.Rune> _613___v12 = _let_tmp_rhs5.dtor__0;
-      AlcorProofKernel._IExpr _614_hypExpr = _let_tmp_rhs5.dtor__1;
-      AlcorProofKernel._ISimplificationConfig _615_config;
-      _615_config = AlcorProofKernel.SimplificationConfig.create(false, BigInteger.One);
-      AlcorProofKernel._IExpr _616_newHypExpr;
-      _616_newHypExpr = (_614_hypExpr).simplify(((System.Func<AlcorProofKernel._IExpr, AlcorProofKernel._IExpr>)((_617_x) => {
-        return _617_x;
-      })), _615_config);
-      AlcorTacticProofChecker._IEnv _618_newEnv;
-      _618_newEnv = (_610_env).ReplaceTailAt(_612_iHyp, Dafny.Helpers.Id<Func<Dafny.ISequence<Dafny.Rune>, AlcorProofKernel._IExpr, AlcorTacticProofChecker._IEnv, BigInteger, Func<AlcorTacticProofChecker._IEnv, AlcorTacticProofChecker._IEnv>>>((_619_name, _620_newHypExpr, _621_env, _622_iHyp) => ((System.Func<AlcorTacticProofChecker._IEnv, AlcorTacticProofChecker._IEnv>)((_623_oldTail) => {
-        return AlcorTacticProofChecker.Env.create_EnvCons(_619_name, _620_newHypExpr, (_623_oldTail).dtor_tail);
-      })))(name, _616_newHypExpr, _610_env, _612_iHyp));
-      (this).proofState = AlcorTacticProofChecker.ProofState.create_Sequents(AlcorTacticProofChecker.SequentList.create_SequentCons(AlcorTacticProofChecker.Sequent.create(_618_newEnv, _611_goal), (_608_sequents).dtor_tail));
-      feedback = Wrappers.Result<Dafny.ISequence<Dafny.Rune>>.create_Success((this.proofState)._ToString());
-      return feedback;
       return feedback;
     }
     public Wrappers._IResult<Dafny.ISequence<Dafny.Rune>> Definition(Dafny.ISequence<Dafny.Rune> name, Dafny.ISequence<Dafny.Rune> nameDefinition) {
@@ -4489,269 +4503,269 @@ namespace AlcorTacticProofChecker {
         feedback = Wrappers.Result<Dafny.ISequence<Dafny.Rune>>.create_Failure((this.proofState).dtor_message);
         return feedback;
       }
-      AlcorTacticProofChecker._ISequentList _624_sequents;
-      _624_sequents = (this.proofState).dtor_sequents;
-      if ((_624_sequents).is_SequentNil) {
-        Wrappers._IResult<Dafny.ISequence<Dafny.Rune>> _out27;
-        _out27 = (this).SetFailure(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Nothing to simplify"));
-        feedback = _out27;
-        return feedback;
-      }
-      AlcorTacticProofChecker._ISequent _625_sequent;
-      _625_sequent = (_624_sequents).dtor_head;
-      AlcorTacticProofChecker._IEnv _626_env;
-      _626_env = (_625_sequent).dtor_env;
-      AlcorProofKernel._IExpr _627_goal;
-      _627_goal = (_625_sequent).dtor_goal;
-      BigInteger _628_iHyp;
-      _628_iHyp = (_626_env).IndexOf(name);
-      if ((_628_iHyp).Sign == -1) {
+      AlcorTacticProofChecker._ISequentList _627_sequents;
+      _627_sequents = (this.proofState).dtor_sequents;
+      if ((_627_sequents).is_SequentNil) {
         Wrappers._IResult<Dafny.ISequence<Dafny.Rune>> _out28;
-        _out28 = (this).SetFailure(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Entry "), name), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" not found in the environment")));
+        _out28 = (this).SetFailure(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Nothing to simplify"));
         feedback = _out28;
         return feedback;
       }
-      _System._ITuple2<Dafny.ISequence<Dafny.Rune>, AlcorProofKernel._IExpr> _let_tmp_rhs6 = (_626_env).ElemAt(_628_iHyp);
-      Dafny.ISequence<Dafny.Rune> _629___v13 = _let_tmp_rhs6.dtor__0;
-      AlcorProofKernel._IExpr _630_hypExpr = _let_tmp_rhs6.dtor__1;
-      BigInteger _631_iDef;
-      _631_iDef = (_626_env).IndexOf(nameDefinition);
-      if ((_631_iDef).Sign == -1) {
+      AlcorTacticProofChecker._ISequent _628_sequent;
+      _628_sequent = (_627_sequents).dtor_head;
+      AlcorTacticProofChecker._IEnv _629_env;
+      _629_env = (_628_sequent).dtor_env;
+      AlcorProofKernel._IExpr _630_goal;
+      _630_goal = (_628_sequent).dtor_goal;
+      BigInteger _631_iHyp;
+      _631_iHyp = (_629_env).IndexOf(name);
+      if ((_631_iHyp).Sign == -1) {
         Wrappers._IResult<Dafny.ISequence<Dafny.Rune>> _out29;
-        _out29 = (this).SetFailure(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Entry "), nameDefinition), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" not found in the environment")));
+        _out29 = (this).SetFailure(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Entry "), name), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" not found in the environment")));
         feedback = _out29;
         return feedback;
       }
-      _System._ITuple2<Dafny.ISequence<Dafny.Rune>, AlcorProofKernel._IExpr> _let_tmp_rhs7 = (_626_env).ElemAt(_631_iDef);
-      Dafny.ISequence<Dafny.Rune> _632___v14 = _let_tmp_rhs7.dtor__0;
-      AlcorProofKernel._IExpr _633_defExpr = _let_tmp_rhs7.dtor__1;
-      AlcorProofKernel._IExpr _634_left = AlcorProofKernel.Expr.Default();
-      AlcorProofKernel._IExpr _635_right = AlcorProofKernel.Expr.Default();
-      AlcorProofKernel._IExpr _source33 = _633_defExpr;
-      if (_source33.is_True) {
+      _System._ITuple2<Dafny.ISequence<Dafny.Rune>, AlcorProofKernel._IExpr> _let_tmp_rhs6 = (_629_env).ElemAt(_631_iHyp);
+      Dafny.ISequence<Dafny.Rune> _632___v13 = _let_tmp_rhs6.dtor__0;
+      AlcorProofKernel._IExpr _633_hypExpr = _let_tmp_rhs6.dtor__1;
+      BigInteger _634_iDef;
+      _634_iDef = (_629_env).IndexOf(nameDefinition);
+      if ((_634_iDef).Sign == -1) {
         Wrappers._IResult<Dafny.ISequence<Dafny.Rune>> _out30;
-        _out30 = (this).SetFailure(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Entry "), nameDefinition), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" is not a definition like x == y")));
+        _out30 = (this).SetFailure(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Entry "), nameDefinition), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" not found in the environment")));
         feedback = _out30;
         return feedback;
-      } else if (_source33.is_False) {
+      }
+      _System._ITuple2<Dafny.ISequence<Dafny.Rune>, AlcorProofKernel._IExpr> _let_tmp_rhs7 = (_629_env).ElemAt(_634_iDef);
+      Dafny.ISequence<Dafny.Rune> _635___v14 = _let_tmp_rhs7.dtor__0;
+      AlcorProofKernel._IExpr _636_defExpr = _let_tmp_rhs7.dtor__1;
+      AlcorProofKernel._IExpr _637_left = AlcorProofKernel.Expr.Default();
+      AlcorProofKernel._IExpr _638_right = AlcorProofKernel.Expr.Default();
+      AlcorProofKernel._IExpr _source33 = _636_defExpr;
+      if (_source33.is_True) {
         Wrappers._IResult<Dafny.ISequence<Dafny.Rune>> _out31;
         _out31 = (this).SetFailure(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Entry "), nameDefinition), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" is not a definition like x == y")));
         feedback = _out31;
         return feedback;
-      } else if (_source33.is_And) {
-        AlcorProofKernel._IExpr _636___mcc_h0 = _source33.dtor_left;
-        AlcorProofKernel._IExpr _637___mcc_h1 = _source33.dtor_right;
+      } else if (_source33.is_False) {
         Wrappers._IResult<Dafny.ISequence<Dafny.Rune>> _out32;
         _out32 = (this).SetFailure(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Entry "), nameDefinition), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" is not a definition like x == y")));
         feedback = _out32;
         return feedback;
-      } else if (_source33.is_Imp) {
-        AlcorProofKernel._IExpr _638___mcc_h4 = _source33.dtor_left;
-        AlcorProofKernel._IExpr _639___mcc_h5 = _source33.dtor_right;
+      } else if (_source33.is_And) {
+        AlcorProofKernel._IExpr _639___mcc_h0 = _source33.dtor_left;
+        AlcorProofKernel._IExpr _640___mcc_h1 = _source33.dtor_right;
         Wrappers._IResult<Dafny.ISequence<Dafny.Rune>> _out33;
         _out33 = (this).SetFailure(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Entry "), nameDefinition), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" is not a definition like x == y")));
         feedback = _out33;
         return feedback;
-      } else if (_source33.is_Or) {
-        AlcorProofKernel._IExpr _640___mcc_h8 = _source33.dtor_left;
-        AlcorProofKernel._IExpr _641___mcc_h9 = _source33.dtor_right;
+      } else if (_source33.is_Imp) {
+        AlcorProofKernel._IExpr _641___mcc_h4 = _source33.dtor_left;
+        AlcorProofKernel._IExpr _642___mcc_h5 = _source33.dtor_right;
         Wrappers._IResult<Dafny.ISequence<Dafny.Rune>> _out34;
         _out34 = (this).SetFailure(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Entry "), nameDefinition), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" is not a definition like x == y")));
         feedback = _out34;
         return feedback;
-      } else if (_source33.is_Var) {
-        AlcorProofKernel._IIdentifier _642___mcc_h12 = _source33.dtor_id;
+      } else if (_source33.is_Or) {
+        AlcorProofKernel._IExpr _643___mcc_h8 = _source33.dtor_left;
+        AlcorProofKernel._IExpr _644___mcc_h9 = _source33.dtor_right;
         Wrappers._IResult<Dafny.ISequence<Dafny.Rune>> _out35;
         _out35 = (this).SetFailure(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Entry "), nameDefinition), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" is not a definition like x == y")));
         feedback = _out35;
         return feedback;
-      } else if (_source33.is_Abs) {
-        AlcorProofKernel._IIdentifier _643___mcc_h14 = _source33.dtor_id;
-        AlcorProofKernel._IExpr _644___mcc_h15 = _source33.dtor_body;
+      } else if (_source33.is_Var) {
+        AlcorProofKernel._IIdentifier _645___mcc_h12 = _source33.dtor_id;
         Wrappers._IResult<Dafny.ISequence<Dafny.Rune>> _out36;
         _out36 = (this).SetFailure(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Entry "), nameDefinition), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" is not a definition like x == y")));
         feedback = _out36;
         return feedback;
+      } else if (_source33.is_Abs) {
+        AlcorProofKernel._IIdentifier _646___mcc_h14 = _source33.dtor_id;
+        AlcorProofKernel._IExpr _647___mcc_h15 = _source33.dtor_body;
+        Wrappers._IResult<Dafny.ISequence<Dafny.Rune>> _out37;
+        _out37 = (this).SetFailure(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Entry "), nameDefinition), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" is not a definition like x == y")));
+        feedback = _out37;
+        return feedback;
       } else if (_source33.is_App) {
-        AlcorProofKernel._IExpr _645___mcc_h18 = _source33.dtor_left;
-        AlcorProofKernel._IExpr _646___mcc_h19 = _source33.dtor_right;
-        AlcorProofKernel._IExpr _source34 = _645___mcc_h18;
+        AlcorProofKernel._IExpr _648___mcc_h18 = _source33.dtor_left;
+        AlcorProofKernel._IExpr _649___mcc_h19 = _source33.dtor_right;
+        AlcorProofKernel._IExpr _source34 = _648___mcc_h18;
         if (_source34.is_True) {
-          Wrappers._IResult<Dafny.ISequence<Dafny.Rune>> _out37;
-          _out37 = (this).SetFailure(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Entry "), nameDefinition), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" is not a definition like x == y")));
-          feedback = _out37;
-          return feedback;
-        } else if (_source34.is_False) {
           Wrappers._IResult<Dafny.ISequence<Dafny.Rune>> _out38;
           _out38 = (this).SetFailure(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Entry "), nameDefinition), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" is not a definition like x == y")));
           feedback = _out38;
           return feedback;
-        } else if (_source34.is_And) {
-          AlcorProofKernel._IExpr _647___mcc_h22 = _source34.dtor_left;
-          AlcorProofKernel._IExpr _648___mcc_h23 = _source34.dtor_right;
+        } else if (_source34.is_False) {
           Wrappers._IResult<Dafny.ISequence<Dafny.Rune>> _out39;
           _out39 = (this).SetFailure(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Entry "), nameDefinition), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" is not a definition like x == y")));
           feedback = _out39;
           return feedback;
-        } else if (_source34.is_Imp) {
-          AlcorProofKernel._IExpr _649___mcc_h26 = _source34.dtor_left;
-          AlcorProofKernel._IExpr _650___mcc_h27 = _source34.dtor_right;
+        } else if (_source34.is_And) {
+          AlcorProofKernel._IExpr _650___mcc_h22 = _source34.dtor_left;
+          AlcorProofKernel._IExpr _651___mcc_h23 = _source34.dtor_right;
           Wrappers._IResult<Dafny.ISequence<Dafny.Rune>> _out40;
           _out40 = (this).SetFailure(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Entry "), nameDefinition), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" is not a definition like x == y")));
           feedback = _out40;
           return feedback;
-        } else if (_source34.is_Or) {
-          AlcorProofKernel._IExpr _651___mcc_h30 = _source34.dtor_left;
-          AlcorProofKernel._IExpr _652___mcc_h31 = _source34.dtor_right;
+        } else if (_source34.is_Imp) {
+          AlcorProofKernel._IExpr _652___mcc_h26 = _source34.dtor_left;
+          AlcorProofKernel._IExpr _653___mcc_h27 = _source34.dtor_right;
           Wrappers._IResult<Dafny.ISequence<Dafny.Rune>> _out41;
           _out41 = (this).SetFailure(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Entry "), nameDefinition), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" is not a definition like x == y")));
           feedback = _out41;
           return feedback;
-        } else if (_source34.is_Var) {
-          AlcorProofKernel._IIdentifier _653___mcc_h34 = _source34.dtor_id;
+        } else if (_source34.is_Or) {
+          AlcorProofKernel._IExpr _654___mcc_h30 = _source34.dtor_left;
+          AlcorProofKernel._IExpr _655___mcc_h31 = _source34.dtor_right;
           Wrappers._IResult<Dafny.ISequence<Dafny.Rune>> _out42;
           _out42 = (this).SetFailure(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Entry "), nameDefinition), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" is not a definition like x == y")));
           feedback = _out42;
           return feedback;
-        } else if (_source34.is_Abs) {
-          AlcorProofKernel._IIdentifier _654___mcc_h36 = _source34.dtor_id;
-          AlcorProofKernel._IExpr _655___mcc_h37 = _source34.dtor_body;
+        } else if (_source34.is_Var) {
+          AlcorProofKernel._IIdentifier _656___mcc_h34 = _source34.dtor_id;
           Wrappers._IResult<Dafny.ISequence<Dafny.Rune>> _out43;
           _out43 = (this).SetFailure(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Entry "), nameDefinition), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" is not a definition like x == y")));
           feedback = _out43;
           return feedback;
+        } else if (_source34.is_Abs) {
+          AlcorProofKernel._IIdentifier _657___mcc_h36 = _source34.dtor_id;
+          AlcorProofKernel._IExpr _658___mcc_h37 = _source34.dtor_body;
+          Wrappers._IResult<Dafny.ISequence<Dafny.Rune>> _out44;
+          _out44 = (this).SetFailure(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Entry "), nameDefinition), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" is not a definition like x == y")));
+          feedback = _out44;
+          return feedback;
         } else if (_source34.is_App) {
-          AlcorProofKernel._IExpr _656___mcc_h40 = _source34.dtor_left;
-          AlcorProofKernel._IExpr _657___mcc_h41 = _source34.dtor_right;
-          AlcorProofKernel._IExpr _source35 = _656___mcc_h40;
+          AlcorProofKernel._IExpr _659___mcc_h40 = _source34.dtor_left;
+          AlcorProofKernel._IExpr _660___mcc_h41 = _source34.dtor_right;
+          AlcorProofKernel._IExpr _source35 = _659___mcc_h40;
           if (_source35.is_True) {
-            Wrappers._IResult<Dafny.ISequence<Dafny.Rune>> _out44;
-            _out44 = (this).SetFailure(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Entry "), nameDefinition), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" is not a definition like x == y")));
-            feedback = _out44;
-            return feedback;
-          } else if (_source35.is_False) {
             Wrappers._IResult<Dafny.ISequence<Dafny.Rune>> _out45;
             _out45 = (this).SetFailure(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Entry "), nameDefinition), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" is not a definition like x == y")));
             feedback = _out45;
             return feedback;
-          } else if (_source35.is_And) {
-            AlcorProofKernel._IExpr _658___mcc_h44 = _source35.dtor_left;
-            AlcorProofKernel._IExpr _659___mcc_h45 = _source35.dtor_right;
+          } else if (_source35.is_False) {
             Wrappers._IResult<Dafny.ISequence<Dafny.Rune>> _out46;
             _out46 = (this).SetFailure(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Entry "), nameDefinition), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" is not a definition like x == y")));
             feedback = _out46;
             return feedback;
-          } else if (_source35.is_Imp) {
-            AlcorProofKernel._IExpr _660___mcc_h48 = _source35.dtor_left;
-            AlcorProofKernel._IExpr _661___mcc_h49 = _source35.dtor_right;
+          } else if (_source35.is_And) {
+            AlcorProofKernel._IExpr _661___mcc_h44 = _source35.dtor_left;
+            AlcorProofKernel._IExpr _662___mcc_h45 = _source35.dtor_right;
             Wrappers._IResult<Dafny.ISequence<Dafny.Rune>> _out47;
             _out47 = (this).SetFailure(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Entry "), nameDefinition), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" is not a definition like x == y")));
             feedback = _out47;
             return feedback;
-          } else if (_source35.is_Or) {
-            AlcorProofKernel._IExpr _662___mcc_h52 = _source35.dtor_left;
-            AlcorProofKernel._IExpr _663___mcc_h53 = _source35.dtor_right;
+          } else if (_source35.is_Imp) {
+            AlcorProofKernel._IExpr _663___mcc_h48 = _source35.dtor_left;
+            AlcorProofKernel._IExpr _664___mcc_h49 = _source35.dtor_right;
             Wrappers._IResult<Dafny.ISequence<Dafny.Rune>> _out48;
             _out48 = (this).SetFailure(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Entry "), nameDefinition), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" is not a definition like x == y")));
             feedback = _out48;
             return feedback;
+          } else if (_source35.is_Or) {
+            AlcorProofKernel._IExpr _665___mcc_h52 = _source35.dtor_left;
+            AlcorProofKernel._IExpr _666___mcc_h53 = _source35.dtor_right;
+            Wrappers._IResult<Dafny.ISequence<Dafny.Rune>> _out49;
+            _out49 = (this).SetFailure(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Entry "), nameDefinition), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" is not a definition like x == y")));
+            feedback = _out49;
+            return feedback;
           } else if (_source35.is_Var) {
-            AlcorProofKernel._IIdentifier _664___mcc_h56 = _source35.dtor_id;
-            AlcorProofKernel._IIdentifier _source36 = _664___mcc_h56;
-            Dafny.ISequence<Dafny.Rune> _665___mcc_h58 = _source36.dtor_name;
-            BigInteger _666___mcc_h59 = _source36.dtor_version;
-            Dafny.ISequence<Dafny.Rune> _667___mcc_h60 = _source36.dtor_lbl;
-            if (object.Equals(_665___mcc_h58, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("=="))) {
-              if ((_666___mcc_h59).Sign == 0) {
-                if (object.Equals(_667___mcc_h60, Dafny.Sequence<Dafny.Rune>.UnicodeFromString(""))) {
-                  AlcorProofKernel._IExpr _668_r = _646___mcc_h19;
-                  AlcorProofKernel._IExpr _669_l = _657___mcc_h41;
-                  AlcorProofKernel._IExpr _rhs0 = _669_l;
-                  AlcorProofKernel._IExpr _rhs1 = _668_r;
-                  _634_left = _rhs0;
-                  _635_right = _rhs1;
+            AlcorProofKernel._IIdentifier _667___mcc_h56 = _source35.dtor_id;
+            AlcorProofKernel._IIdentifier _source36 = _667___mcc_h56;
+            Dafny.ISequence<Dafny.Rune> _668___mcc_h58 = _source36.dtor_name;
+            BigInteger _669___mcc_h59 = _source36.dtor_version;
+            Dafny.ISequence<Dafny.Rune> _670___mcc_h60 = _source36.dtor_lbl;
+            if (object.Equals(_668___mcc_h58, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("=="))) {
+              if ((_669___mcc_h59).Sign == 0) {
+                if (object.Equals(_670___mcc_h60, Dafny.Sequence<Dafny.Rune>.UnicodeFromString(""))) {
+                  AlcorProofKernel._IExpr _671_r = _649___mcc_h19;
+                  AlcorProofKernel._IExpr _672_l = _660___mcc_h41;
+                  AlcorProofKernel._IExpr _rhs0 = _672_l;
+                  AlcorProofKernel._IExpr _rhs1 = _671_r;
+                  _637_left = _rhs0;
+                  _638_right = _rhs1;
                 } else {
-                  Wrappers._IResult<Dafny.ISequence<Dafny.Rune>> _out49;
-                  _out49 = (this).SetFailure(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Entry "), nameDefinition), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" is not a definition like x == y")));
-                  feedback = _out49;
+                  Wrappers._IResult<Dafny.ISequence<Dafny.Rune>> _out50;
+                  _out50 = (this).SetFailure(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Entry "), nameDefinition), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" is not a definition like x == y")));
+                  feedback = _out50;
                   return feedback;
                 }
               } else {
-                Wrappers._IResult<Dafny.ISequence<Dafny.Rune>> _out50;
-                _out50 = (this).SetFailure(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Entry "), nameDefinition), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" is not a definition like x == y")));
-                feedback = _out50;
+                Wrappers._IResult<Dafny.ISequence<Dafny.Rune>> _out51;
+                _out51 = (this).SetFailure(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Entry "), nameDefinition), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" is not a definition like x == y")));
+                feedback = _out51;
                 return feedback;
               }
             } else {
-              Wrappers._IResult<Dafny.ISequence<Dafny.Rune>> _out51;
-              _out51 = (this).SetFailure(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Entry "), nameDefinition), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" is not a definition like x == y")));
-              feedback = _out51;
+              Wrappers._IResult<Dafny.ISequence<Dafny.Rune>> _out52;
+              _out52 = (this).SetFailure(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Entry "), nameDefinition), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" is not a definition like x == y")));
+              feedback = _out52;
               return feedback;
             }
           } else if (_source35.is_Abs) {
-            AlcorProofKernel._IIdentifier _670___mcc_h64 = _source35.dtor_id;
-            AlcorProofKernel._IExpr _671___mcc_h65 = _source35.dtor_body;
-            Wrappers._IResult<Dafny.ISequence<Dafny.Rune>> _out52;
-            _out52 = (this).SetFailure(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Entry "), nameDefinition), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" is not a definition like x == y")));
-            feedback = _out52;
-            return feedback;
-          } else if (_source35.is_App) {
-            AlcorProofKernel._IExpr _672___mcc_h68 = _source35.dtor_left;
-            AlcorProofKernel._IExpr _673___mcc_h69 = _source35.dtor_right;
+            AlcorProofKernel._IIdentifier _673___mcc_h64 = _source35.dtor_id;
+            AlcorProofKernel._IExpr _674___mcc_h65 = _source35.dtor_body;
             Wrappers._IResult<Dafny.ISequence<Dafny.Rune>> _out53;
             _out53 = (this).SetFailure(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Entry "), nameDefinition), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" is not a definition like x == y")));
             feedback = _out53;
             return feedback;
-          } else if (_source35.is_Forall) {
-            AlcorProofKernel._IExpr _674___mcc_h72 = _source35.dtor_body;
+          } else if (_source35.is_App) {
+            AlcorProofKernel._IExpr _675___mcc_h68 = _source35.dtor_left;
+            AlcorProofKernel._IExpr _676___mcc_h69 = _source35.dtor_right;
             Wrappers._IResult<Dafny.ISequence<Dafny.Rune>> _out54;
             _out54 = (this).SetFailure(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Entry "), nameDefinition), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" is not a definition like x == y")));
             feedback = _out54;
             return feedback;
-          } else {
-            BigInteger _675___mcc_h74 = _source35.dtor_value;
+          } else if (_source35.is_Forall) {
+            AlcorProofKernel._IExpr _677___mcc_h72 = _source35.dtor_body;
             Wrappers._IResult<Dafny.ISequence<Dafny.Rune>> _out55;
             _out55 = (this).SetFailure(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Entry "), nameDefinition), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" is not a definition like x == y")));
             feedback = _out55;
             return feedback;
+          } else {
+            BigInteger _678___mcc_h74 = _source35.dtor_value;
+            Wrappers._IResult<Dafny.ISequence<Dafny.Rune>> _out56;
+            _out56 = (this).SetFailure(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Entry "), nameDefinition), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" is not a definition like x == y")));
+            feedback = _out56;
+            return feedback;
           }
         } else if (_source34.is_Forall) {
-          AlcorProofKernel._IExpr _676___mcc_h76 = _source34.dtor_body;
-          Wrappers._IResult<Dafny.ISequence<Dafny.Rune>> _out56;
-          _out56 = (this).SetFailure(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Entry "), nameDefinition), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" is not a definition like x == y")));
-          feedback = _out56;
-          return feedback;
-        } else {
-          BigInteger _677___mcc_h78 = _source34.dtor_value;
+          AlcorProofKernel._IExpr _679___mcc_h76 = _source34.dtor_body;
           Wrappers._IResult<Dafny.ISequence<Dafny.Rune>> _out57;
           _out57 = (this).SetFailure(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Entry "), nameDefinition), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" is not a definition like x == y")));
           feedback = _out57;
           return feedback;
+        } else {
+          BigInteger _680___mcc_h78 = _source34.dtor_value;
+          Wrappers._IResult<Dafny.ISequence<Dafny.Rune>> _out58;
+          _out58 = (this).SetFailure(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Entry "), nameDefinition), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" is not a definition like x == y")));
+          feedback = _out58;
+          return feedback;
         }
       } else if (_source33.is_Forall) {
-        AlcorProofKernel._IExpr _678___mcc_h80 = _source33.dtor_body;
-        Wrappers._IResult<Dafny.ISequence<Dafny.Rune>> _out58;
-        _out58 = (this).SetFailure(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Entry "), nameDefinition), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" is not a definition like x == y")));
-        feedback = _out58;
-        return feedback;
-      } else {
-        BigInteger _679___mcc_h82 = _source33.dtor_value;
+        AlcorProofKernel._IExpr _681___mcc_h80 = _source33.dtor_body;
         Wrappers._IResult<Dafny.ISequence<Dafny.Rune>> _out59;
         _out59 = (this).SetFailure(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Entry "), nameDefinition), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" is not a definition like x == y")));
         feedback = _out59;
         return feedback;
+      } else {
+        BigInteger _682___mcc_h82 = _source33.dtor_value;
+        Wrappers._IResult<Dafny.ISequence<Dafny.Rune>> _out60;
+        _out60 = (this).SetFailure(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Entry "), nameDefinition), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" is not a definition like x == y")));
+        feedback = _out60;
+        return feedback;
       }
-      AlcorProofKernel._ISimplificationConfig _680_config;
-      _680_config = AlcorProofKernel.SimplificationConfig.create(true, BigInteger.One);
-      AlcorProofKernel._IExpr _681_newHypExpr;
-      _681_newHypExpr = (_630_hypExpr).simplify(Dafny.Helpers.Id<Func<AlcorProofKernel._IExpr, AlcorProofKernel._IExpr, Func<AlcorProofKernel._IExpr, AlcorProofKernel._IExpr>>>((_682_left, _683_right) => ((System.Func<AlcorProofKernel._IExpr, AlcorProofKernel._IExpr>)((_684_x) => {
-        return ((object.Equals(_684_x, _682_left)) ? (_683_right) : (_684_x));
-      })))(_634_left, _635_right), _680_config);
-      AlcorTacticProofChecker._IEnv _685_newEnv;
-      _685_newEnv = (_626_env).ReplaceTailAt(_628_iHyp, Dafny.Helpers.Id<Func<Dafny.ISequence<Dafny.Rune>, AlcorProofKernel._IExpr, AlcorTacticProofChecker._IEnv, BigInteger, Func<AlcorTacticProofChecker._IEnv, AlcorTacticProofChecker._IEnv>>>((_686_name, _687_newHypExpr, _688_env, _689_iHyp) => ((System.Func<AlcorTacticProofChecker._IEnv, AlcorTacticProofChecker._IEnv>)((_690_oldTail) => {
-        return AlcorTacticProofChecker.Env.create_EnvCons(_686_name, _687_newHypExpr, (_690_oldTail).dtor_tail);
-      })))(name, _681_newHypExpr, _626_env, _628_iHyp));
-      (this).proofState = AlcorTacticProofChecker.ProofState.create_Sequents(AlcorTacticProofChecker.SequentList.create_SequentCons(AlcorTacticProofChecker.Sequent.create(_685_newEnv, _627_goal), (_624_sequents).dtor_tail));
+      AlcorProofKernel._ISimplificationConfig _683_config;
+      _683_config = AlcorProofKernel.SimplificationConfig.create(true, BigInteger.One);
+      AlcorProofKernel._IExpr _684_newHypExpr;
+      _684_newHypExpr = (_633_hypExpr).simplify(Dafny.Helpers.Id<Func<AlcorProofKernel._IExpr, AlcorProofKernel._IExpr, Func<AlcorProofKernel._IExpr, AlcorProofKernel._IExpr>>>((_685_left, _686_right) => ((System.Func<AlcorProofKernel._IExpr, AlcorProofKernel._IExpr>)((_687_x) => {
+        return ((object.Equals(_687_x, _685_left)) ? (_686_right) : (_687_x));
+      })))(_637_left, _638_right), _683_config);
+      AlcorTacticProofChecker._IEnv _688_newEnv;
+      _688_newEnv = (_629_env).ReplaceTailAt(_631_iHyp, Dafny.Helpers.Id<Func<Dafny.ISequence<Dafny.Rune>, AlcorProofKernel._IExpr, AlcorTacticProofChecker._IEnv, BigInteger, Func<AlcorTacticProofChecker._IEnv, AlcorTacticProofChecker._IEnv>>>((_689_name, _690_newHypExpr, _691_env, _692_iHyp) => ((System.Func<AlcorTacticProofChecker._IEnv, AlcorTacticProofChecker._IEnv>)((_693_oldTail) => {
+        return AlcorTacticProofChecker.Env.create_EnvCons(_689_name, _690_newHypExpr, (_693_oldTail).dtor_tail);
+      })))(name, _684_newHypExpr, _629_env, _631_iHyp));
+      (this).proofState = AlcorTacticProofChecker.ProofState.create_Sequents(AlcorTacticProofChecker.SequentList.create_SequentCons(AlcorTacticProofChecker.Sequent.create(_688_newEnv, _630_goal), (_627_sequents).dtor_tail));
       feedback = Wrappers.Result<Dafny.ISequence<Dafny.Rune>>.create_Success((this.proofState)._ToString());
       return feedback;
       return feedback;
@@ -4779,24 +4793,24 @@ namespace Formatting {
   public partial class __default {
     public static System.String ReindentProgramFromFirstToken(Microsoft.Dafny.IToken firstToken, Formatting.IIndentationFormatter reindent) {
       System.String s = default(System.String);
-      Microsoft.Dafny.IToken _691_token;
-      _691_token = firstToken;
-      System.Text.StringBuilder _692_sb;
+      Microsoft.Dafny.IToken _694_token;
+      _694_token = firstToken;
+      System.Text.StringBuilder _695_sb;
       System.Text.StringBuilder _nw0 = new System.Text.StringBuilder();
-      _692_sb = _nw0;
-      while ((_691_token) != (object)((Microsoft.Dafny.IToken)null)) {
-        System.String _693_newLeadingTrivia;
-        _693_newLeadingTrivia = (reindent).GetNewLeadingTrivia(_691_token);
-        System.String _694_newTrailingTrivia;
-        _694_newTrailingTrivia = (reindent).GetNewTrailingTrivia(_691_token);
-        (_692_sb).Append(_693_newLeadingTrivia);
-        (_692_sb).Append(_691_token.val);
-        (_692_sb).Append(_694_newTrailingTrivia);
-        _691_token = _691_token.Next;
+      _695_sb = _nw0;
+      while ((_694_token) != (object)((Microsoft.Dafny.IToken)null)) {
+        System.String _696_newLeadingTrivia;
+        _696_newLeadingTrivia = (reindent).GetNewLeadingTrivia(_694_token);
+        System.String _697_newTrailingTrivia;
+        _697_newTrailingTrivia = (reindent).GetNewTrailingTrivia(_694_token);
+        (_695_sb).Append(_696_newLeadingTrivia);
+        (_695_sb).Append(_694_token.val);
+        (_695_sb).Append(_697_newTrailingTrivia);
+        _694_token = _694_token.Next;
       }
-      System.String _out60;
-      _out60 = (_692_sb).ToString().ToString();
-      s = _out60;
+      System.String _out61;
+      _out61 = (_695_sb).ToString().ToString();
+      s = _out61;
       return s;
     }
   }
