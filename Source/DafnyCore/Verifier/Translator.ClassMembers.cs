@@ -911,7 +911,7 @@ namespace Microsoft.Dafny {
       var outParams = new List<Boogie.Variable>();
       if (!f.IsStatic) {
         var th = new Boogie.IdentifierExpr(f.tok, "this", TrReceiverType(f));
-        Boogie.Expr wh = Boogie.Expr.And(
+        Boogie.Expr wh = BplAnd(
           ReceiverNotNull(th),
           etran.GoodRef(f.tok, th, ModuleResolver.GetReceiverType(f.tok, f)));
         Boogie.Formal thVar = new Boogie.Formal(f.tok, new Boogie.TypedIdent(f.tok, "this", TrReceiverType(f), wh), true);
@@ -1161,7 +1161,7 @@ namespace Microsoft.Dafny {
       var isOfSubtype = GetWhereClause(overridingFunction.tok, bvThisExpr, thisType, f is TwoStateFunction ? etran.Old : etran,
         IsAllocType.NEVERALLOC, alwaysUseSymbolicName: true);
 
-      Bpl.Expr ante = Boogie.Expr.And(ReceiverNotNull(bvThisExpr), isOfSubtype);
+      Bpl.Expr ante = BplAnd(ReceiverNotNull(bvThisExpr), isOfSubtype);
 
       // Add other arguments
       var typeMap = GetTypeArgumentSubstitutionMap(f, overridingFunction);
@@ -1194,7 +1194,7 @@ namespace Microsoft.Dafny {
       argsCF = Concat(argsCF, moreArgsCF);
 
       // ante := useViaCanCall || (useViaContext && this != null && $Is(this, C))
-      ante = Bpl.Expr.Or(useViaCanCall, BplAnd(useViaContext, ante));
+      ante = BplOr(useViaCanCall, BplAnd(useViaContext, ante));
 
       Boogie.Expr funcAppl;
       {
@@ -1227,10 +1227,10 @@ namespace Microsoft.Dafny {
 
       // The axiom
       Boogie.Expr ax = BplForall(f.tok, new List<Boogie.TypeVariable>(), forallFormals, null, tr,
-        Boogie.Expr.Imp(ante, synonyms));
+        BplImp(ante, synonyms));
       var activate = AxiomActivation(overridingFunction, etran);
       string comment = "override axiom for " + f.FullSanitizedName + " in class " + overridingFunction.EnclosingClass.FullSanitizedName;
-      return new Boogie.Axiom(f.tok, Boogie.Expr.Imp(activate, ax), comment);
+      return new Boogie.Axiom(f.tok, BplImp(activate, ax), comment);
     }
 
     /// <summary>
@@ -1417,13 +1417,13 @@ namespace Microsoft.Dafny {
       var o = new Boogie.IdentifierExpr(tok, oVar);
       var fVar = new Boogie.BoundVariable(tok, new Boogie.TypedIdent(tok, "$f", predef.FieldName(tok, alpha)));
       var f = new Boogie.IdentifierExpr(tok, fVar);
-      var ante = Boogie.Expr.And(Boogie.Expr.Neq(o, predef.Null), etran.IsAlloced(tok, o));
+      var ante = BplAnd(Boogie.Expr.Neq(o, predef.Null), etran.IsAlloced(tok, o));
 
       // emit: assert (forall<alpha> o: ref, f: Field alpha :: o != null && $Heap[o,alloc] && (o,f) in subFrame ==> $_Frame[o,f]);
       var oInCallee = InRWClause(tok, o, f, classFrameExps, etran, null, null);
       var consequent2 = InRWClause(tok, o, f, traitFrameExps, etran, null, null);
       var q = new Boogie.ForallExpr(tok, new List<TypeVariable> { alpha }, new List<Variable> { oVar, fVar },
-        Boogie.Expr.Imp(Boogie.Expr.And(ante, oInCallee), consequent2));
+        BplImp(BplAnd(ante, oInCallee), consequent2));
       builder.Add(Assert(m.RangeToken, q, new PODesc.TraitFrame(m.WhatKind, isModifies), kv));
     }
 
@@ -1570,7 +1570,7 @@ namespace Microsoft.Dafny {
             var post = s.E;
             if (kind == MethodTranslationKind.Implementation && RefinementToken.IsInherited(s.Tok, currentModule)) {
               // this postcondition was inherited into this module, so make it into the form "$_reverifyPost ==> s.E"
-              post = Boogie.Expr.Imp(new Boogie.IdentifierExpr(s.E.tok, "$_reverifyPost", Boogie.Type.Bool), post);
+              post = BplImp(new Boogie.IdentifierExpr(s.E.tok, "$_reverifyPost", Boogie.Type.Bool), post);
             }
             if (s.IsOnlyFree && bodyKind) {
               // don't include in split -- it would be ignored, anyhow
