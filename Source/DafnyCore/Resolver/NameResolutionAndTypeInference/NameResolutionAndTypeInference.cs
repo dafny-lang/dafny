@@ -3564,7 +3564,9 @@ namespace Microsoft.Dafny {
               var e = (ApplySuffix)expr;
               var closeParen = applySuffix.CloseParen;
               // Short-circuit tactics
-              if (applySuffix.Lhs is NameSegment {Name: "intro" or "cases" or "imp_elim" or "recall" or "rename", tok: var token} tacticName) {
+              if (applySuffix.Lhs is NameSegment {Name:
+                    "intro" or "cases" or "imp_elim" or "recall" or "rename"
+                    or "forall_elim" or "simplify" or "definition", tok: var token} tacticName) {
                 var args = applySuffix.Args ??
                            (applySuffix.Bindings == null ? null :
                             applySuffix.Bindings.Arguments ??
@@ -3624,7 +3626,31 @@ namespace Microsoft.Dafny {
                     }
 
                     break;
-                    
+                  case "forall_elim":
+                    if (args.Count != 2 && args.Count != 3) {
+                      reporter.Error(MessageSource.Resolver, expr.tok, $"forallElim() requires 2 or 3 arguments, got " + args.Count);
+                    } else {
+                      s.Tactics.Add(new ForallElim(token, closeParen, nameOrNull(0), args[1], nameOrNull(2)));
+                    }
+
+                    break;
+                  case "simplify":
+                    if (args.Count != 1) {
+                      reporter.Error(MessageSource.Resolver, expr.tok, $"simplify() requires 1 argument, got " + args.Count);
+                    } else {
+                      s.Tactics.Add(new Simplify(token, closeParen, nameOrNull(0)));
+                    }
+
+                    break;
+                  case "definition":
+                    if (args.Count != 2) {
+                      reporter.Error(MessageSource.Resolver, expr.tok, $"definition() requires 2 arguments, got " + args.Count);
+                    } else {
+                      s.Tactics.Add(new Definition(token, closeParen, nameOrNull(0), nameOrNull(1)));
+                    }
+
+                    break;
+
                   default:
                     reporter.Error(MessageSource.Resolver, expr.tok, $"Unrecognized tactic {tacticName.Name}");
                     break;
@@ -3641,6 +3667,15 @@ namespace Microsoft.Dafny {
                   reporter.Error(MessageSource.Resolver, methodCallInfo.Tok,
                     "to reveal a two-state function, do not list any parameters or @-labels");
                 } else {
+                  // TODO: Need proper resolution for every possible expression
+                  if (currentClass is TopLevelDeclWithMembers cl &&
+                      applySuffix.Lhs is NameSegment {Name: var nameFunApply} &&
+                      GetClassMembers(cl)?.TryGetValue(nameFunApply, out var member) == true &&
+                        member is Function functionMember) {
+                    s.Tactics.Add(new RevealFunction(s.RangeToken.StartToken, s.RangeToken.EndToken,
+                      functionMember
+                    ));
+                  }
                   var call = new CallStmt(s.RangeToken, new List<Expression>(), methodCallInfo.Callee,
                     methodCallInfo.ActualParameters, methodCallInfo.Tok);
                   s.ResolvedStatements.Add(call);

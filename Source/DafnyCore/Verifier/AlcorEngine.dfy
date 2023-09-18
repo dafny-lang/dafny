@@ -1719,7 +1719,7 @@ module AlcorTacticProofChecker {
       return Success(proofState.ToString());
     }
 
-    method Simplify(name: string, replaceDepth: nat := 0) returns (feedback: Result<string>)
+    method Simplify(name: string := "", replaceDepth: nat := 0) returns (feedback: Result<string>)
       modifies this
     {
       if proofState.Error? {
@@ -1732,27 +1732,41 @@ module AlcorTacticProofChecker {
       var sequent := sequents.head;
       var env := sequent.env;
       var goal := sequent.goal;
-      var iHyp := env.IndexOf(name);
-      if iHyp < 0 {
-        feedback := SetFailure("Entry " + name + " not found in the environment"); return;
+      if name != "" {
+        var iHyp := env.IndexOf(name);
+        if iHyp < 0 {
+          feedback := SetFailure("Entry " + name + " not found in the environment"); return;
+        }
+        var (_, hypExpr) := env.ElemAt(iHyp);
+        var config := SimplificationConfig(insideAbs := false, betaDepth := 1);
+        var newHypExpr := hypExpr.simplify(
+          x => x, 
+          config);
+        var newEnv := env.ReplaceTailAt(
+          iHyp,
+          (oldTail: Env) requires oldTail == env.Drop(iHyp) =>
+            EnvCons(name, newHypExpr, oldTail.tail)
+        );
+        proofState := Sequents(
+          SequentCons(
+            Sequent(newEnv, goal),
+            sequents.tail
+          )
+        );
+        return Success(proofState.ToString());
+      } else {
+        var config := SimplificationConfig(insideAbs := false, betaDepth := 1);
+        var newGoal := goal.simplify(
+          x => x, 
+          config);
+        proofState := Sequents(
+          SequentCons(
+            Sequent(env, newGoal),
+            sequents.tail
+          )
+        );
+        return Success(proofState.ToString());
       }
-      var (_, hypExpr) := env.ElemAt(iHyp);
-      var config := SimplificationConfig(insideAbs := false, betaDepth := 1);
-      var newHypExpr := hypExpr.simplify(
-        x => x, 
-        config);
-      var newEnv := env.ReplaceTailAt(
-        iHyp,
-        (oldTail: Env) requires oldTail == env.Drop(iHyp) =>
-          EnvCons(name, newHypExpr, oldTail.tail)
-      );
-      proofState := Sequents(
-        SequentCons(
-          Sequent(newEnv, goal),
-          sequents.tail
-        )
-      );
-      return Success(proofState.ToString());
     }
 
     method Definition(name: string, nameDefinition: string) returns (feedback: Result<string>)

@@ -4,9 +4,11 @@ using System.Collections.Immutable;
 using System.Diagnostics.Contracts;
 using System.Linq;
 using System.Numerics;
+using AlcorProofKernel;
 using JetBrains.Annotations;
 using Microsoft.Boogie;
 using static Microsoft.Dafny.Util;
+using Expr = Microsoft.Boogie.Expr;
 
 namespace Microsoft.Dafny {
   public partial class Translator {
@@ -310,20 +312,72 @@ namespace Microsoft.Dafny {
         return stripLits ? expr : translator.Lit(expr);
       }
 
+      public AlcorProofKernel._IIdentifier TrIdentifierAlcor(IVariable boundVar) {
+        var rName = global::Dafny.Sequence<global::Dafny.Rune>.UnicodeFromString(boundVar.DisplayName);
+        var label = global::Dafny.Sequence<global::Dafny.Rune>.UnicodeFromString("");
+        var version = BigInteger.Zero;
+        var id = new AlcorProofKernel.Identifier(rName, version, label);
+        return id;
+      }
+
       // Null means the expression is not yet translated in Alcor
       [CanBeNull]
-      public AlcorProofKernel.Expr TrExprAlcor(Expression expr) {
-        switch (expr.WasResolved() ? expr.Resolved : expr) {
+      public AlcorProofKernel._IExpr TrExprAlcor(Expression expr, out string errorMessage) {
+        errorMessage = "";
+        var exprToTranslate = expr.WasResolved() ? expr.Resolved : expr;
+        switch (exprToTranslate) {
+          case LiteralExpr literalExpr: {
+            if (literalExpr.Value is true) {
+              return new Expr_True();
+            } else if (literalExpr.Value is false) {
+              return new Expr_False();
+            } else if (literalExpr.Value is BigInteger value) {
+              return new Expr_Int(value);
+            } else {
+              errorMessage = "Alcor does not yet support " + exprToTranslate.ToString();
+              return null;
+            }
+          }
+          case ITEExpr iteExpr: {
+            var cond = TrExprAlcor(iteExpr.Test, out errorMessage);
+            if (cond == null) {
+              return null;
+            }
+
+            var thn = TrExprAlcor(iteExpr.Thn, out errorMessage);
+            if (thn == null) {
+              return null;
+            }
+
+            var els = TrExprAlcor(iteExpr.Els, out errorMessage);
+            if (els == null) {
+              return null;
+            }
+
+            return AlcorProofKernel.Expr.ifthenelse(cond, thn, els);
+          }
+          case FunctionCallExpr functionCallExpr: {
+            if (functionCallExpr is {Function: var function, Args: var args} && args.Count == 1) {
+              var f = new Expr_Var(new Identifier(ToDafnyString(function.Name), BigInteger.Zero, ToDafnyString("")));
+              var arg = TrExprAlcor(args[0], out errorMessage);
+              if (arg == null) {
+                return null;
+              }
+              return new Expr_App(f, arg);
+            }
+            errorMessage = "Alcor does not yet support " + exprToTranslate.ToString();
+            return null;
+          }
           case ForallExpr forallExpr: {
             var expressionBody = forallExpr.Range == null
               ? forallExpr.Term
               : Expression.CreateImplies(forallExpr.Range, forallExpr.Term);
-            var body = TrExprAlcor(expressionBody);
+            var body = TrExprAlcor(expressionBody, out errorMessage);
+            if (body == null) {
+              return null;
+            }
             foreach (var boundVar in forallExpr.BoundVars.ToImmutableList().Reverse()) {
-              var rName = global::Dafny.Sequence<global::Dafny.Rune>.UnicodeFromString(boundVar.DisplayName);
-              var label = global::Dafny.Sequence<global::Dafny.Rune>.UnicodeFromString("");
-              var version = BigInteger.Zero;
-              var id = new AlcorProofKernel.Identifier(rName, version, label);
+              var id = TrIdentifierAlcor(boundVar);
 
               body = new AlcorProofKernel.Expr_Forall(
                 new AlcorProofKernel.Expr_Abs(
@@ -345,25 +399,62 @@ namespace Microsoft.Dafny {
           }
           case BinaryExpr binaryExpr: {
             BinaryExpr e = binaryExpr;
-            var left = TrExprAlcor(e.E0);
+            var left = TrExprAlcor(e.E0, out errorMessage);
             if (left == null) {
               return null;
             }
-            var right = TrExprAlcor(e.E1);
+            var right = TrExprAlcor(e.E1, out errorMessage);
             if (right == null) {
               return null;
             }
             if (e.ResolvedOp is BinaryExpr.ResolvedOpcode.And) {
-              return new AlcorProofKernel.Expr_And(left, right);
+              return new Expr_And(left, right);
             } else if (e.ResolvedOp is BinaryExpr.ResolvedOpcode.Imp) {
-              return new AlcorProofKernel.Expr_Imp(left, right);
+              return new Expr_Imp(left, right);
             } else if (e.ResolvedOp is BinaryExpr.ResolvedOpcode.Or) {
-              return new AlcorProofKernel.Expr_Or(left, right);
-            }
+              return new Expr_Or(left, right);
+            } else {
+              string op = "";
+              switch (e.ResolvedOp) {
+                case BinaryExpr.ResolvedOpcode.Add: op = "+";
+                  break;
+                case BinaryExpr.ResolvedOpcode.Div: op = "/";
+                  break;
+                case BinaryExpr.ResolvedOpcode.EqCommon: op = "==";
+                  break;
+                case BinaryExpr.ResolvedOpcode.Ge: op = ">=";
+                  break;
+                case BinaryExpr.ResolvedOpcode.Gt: op = ">";
+                  break;
+                case BinaryExpr.ResolvedOpcode.Iff: op = "==";
+                  break;
+                case BinaryExpr.ResolvedOpcode.Le: op = "<=";
+                  break;
+                case BinaryExpr.ResolvedOpcode.Lt: op = "<";
+                  break;
+                case BinaryExpr.ResolvedOpcode.Mod: op = "%";
+                  break;
+                case BinaryExpr.ResolvedOpcode.Mul: op = "*";
+                  break;
+                case BinaryExpr.ResolvedOpcode.Sub: op = "-";
+                  break;
+                case BinaryExpr.ResolvedOpcode.NeqCommon: op = "!=";
+                  break;
+                default: break;
+              }
 
+              if (op != "") {
+                return new Expr_Var(new Identifier(ToDafnyString(op), BigInteger.Zero, ToDafnyString(""))).apply2(
+                  left, right
+                );
+              }
+            } 
+            
+            errorMessage = "Alcor does not yet support " + exprToTranslate.ToString();
             return null;
           }
           default: {
+            errorMessage = "Alcor does not yet support " + exprToTranslate.ToString();
             return null;
           }
         }

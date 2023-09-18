@@ -668,10 +668,10 @@ namespace Microsoft.Dafny {
         // While translating the body, try to find immediate proofs
         // translate the body
         foreach (var r in m.Req) {
-          var alcorExpression = etran.TrExprAlcor(r.E);
+          var alcorExpression = etran.TrExprAlcor(r.E, out var errorMessage);
           if (alcorExpression == null) {
             alcorExpression = new AlcorProofKernel.Expr_Var(AlcorProofKernel.__default.FreshIdentifier(
-              new AlcorProofKernel.Identifier(ToDafnyString("NOT SUPPORTED"),
+              new AlcorProofKernel.Identifier(ToDafnyString("NOT SUPPORTED - " + errorMessage),
                 BigInteger.Zero, ToDafnyString("")),
                 assumptions.Environment.FreeIdentifiers()));
           }

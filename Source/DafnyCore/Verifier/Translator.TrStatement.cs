@@ -569,9 +569,9 @@ namespace Microsoft.Dafny {
             proofBuilder = new BoogieStmtListBuilder(this, options);
             AddComment(proofBuilder, stmt, "assert statement proof");
           }
-          var alcorExpression = etran.TrExprAlcor(stmt.Expr);
+          var alcorExpression = etran.TrExprAlcor(stmt.Expr, out var alcorError);
           if (alcorExpression != null) {
-            var provenByAlcor = proofAssumptions.Prove(alcorExpression, reporter, out msg);
+            var provenByAlcor = proofAssumptions.Prove(alcorExpression, etran, reporter, out msg);
             if (provenByAlcor) {
               IgnoreAssert(assertStmt);
             }
@@ -1031,12 +1031,12 @@ namespace Microsoft.Dafny {
       } else {
         guard = stmt.IsBindingGuard ? AlphaRename((ExistsExpr)stmt.Guard, "eg$") : stmt.Guard;
         TrStmt_CheckWellformed(guard, builder, locals, etran, true);
-        var alcorGuard = etran.TrExprAlcor(guard);
+        var alcorGuard = etran.TrExprAlcor(guard, out var alcorError);
         if (alcorGuard != null) {
           thenAssumptions = thenAssumptions.WithEnv(alcorGuard);
           elseAssumptions = elseAssumptions.WithEnv(AlcorProofKernel.Expr.Not(alcorGuard));
           if (stmt.Thn.Body.LastOrDefault() is AssertStmt assertStmt) {
-            var alcorThen = etran.TrExprAlcor(assertStmt.Expr);
+            var alcorThen = etran.TrExprAlcor(assertStmt.Expr, out var alcorError2);
             if (alcorThen != null) {
               assumptions = assumptions.WithEnv(new AlcorProofKernel.Expr_Imp(
                 alcorGuard, alcorThen
@@ -1044,7 +1044,7 @@ namespace Microsoft.Dafny {
             }
           }
           if (stmt.Els is BlockStmt block && block.Body.LastOrDefault() is AssertStmt assertStmt2) {
-            var alcorElse = etran.TrExprAlcor(assertStmt2.Expr);
+            var alcorElse = etran.TrExprAlcor(assertStmt2.Expr, out var alcorError3);
             if (alcorElse != null) {
               assumptions = assumptions.WithEnv(new AlcorProofKernel.Expr_Imp(
                 AlcorProofKernel.Expr.Not(alcorGuard), alcorElse

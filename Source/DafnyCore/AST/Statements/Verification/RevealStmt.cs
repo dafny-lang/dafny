@@ -12,6 +12,16 @@ public record Cases(IToken Token, IToken TokenCloseParens, [CanBeNull] string Na
 public record RecallEnv(IToken Token, IToken TokenCloseParens, [CanBeNull] string Name): Tactic(Token, TokenCloseParens);
 public record Rename(IToken Token, IToken TokenCloseParens, [CanBeNull] string OldName, [CanBeNull] string NewName): Tactic(Token, TokenCloseParens);
 
+public record Simplify(IToken Token, IToken TokenCloseParens, string Name) : Tactic(Token, TokenCloseParens);
+
+public record ForallElim(IToken Token, IToken TokenCloseParens, string Name, Expression Expr, string NewName) : Tactic(
+  Token, TokenCloseParens);
+
+public record Definition(IToken Token, IToken TokenCloseParens, string InName, string DefinitionName) : Tactic(Token,
+  TokenCloseParens);
+
+public record RevealFunction
+  (IToken Token, IToken TokenCloseParens, Function Function) : Tactic(Token, TokenCloseParens);
 
 public class RevealStmt : Statement, ICloneable<RevealStmt>, ICanFormat {
   public readonly List<Expression> Exprs;
