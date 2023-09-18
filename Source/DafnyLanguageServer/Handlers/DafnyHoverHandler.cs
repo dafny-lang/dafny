@@ -47,7 +47,12 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
       try {
         state = await projects.GetResolvedDocumentAsyncInternal(request.TextDocument);
       } catch (OperationCanceledException) {
-        return new Hover() { Contents = new MarkedStringsOrMarkupContent("No hover information available due to program error") };
+        return new Hover {
+          Contents = new MarkedStringsOrMarkupContent(new MarkupContent {
+            Kind = MarkupKind.Markdown,
+            Value = "No hover information available due to program error"
+          })
+        };
       }
       if (state == null) {
         logger.LogWarning("the document {Document} is not loaded", request.TextDocument);

@@ -183,7 +183,7 @@ public class TypeRhs : AssignmentRhs, ICloneable<TypeRhs> {
       if (Type == null) {
         return PreResolveChildren;
       }
-      
+
       if (ArrayDimensions == null) {
         if (InitCall != null) {
           return new[] { InitCall };

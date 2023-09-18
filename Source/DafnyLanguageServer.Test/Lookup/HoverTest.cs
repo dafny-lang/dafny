@@ -36,7 +36,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
 
     private async Task AssertHoverContains(TextDocumentItem documentItem, Position hoverPosition, string expectedContent) {
       var hover = await RequestHover(documentItem, hoverPosition);
-      if (expectedContent == "null") {
+      if (expectedContent == "null" || expectedContent == null) {
         Assert.Null(hover);
         return;
       }
@@ -98,19 +98,20 @@ method Foo() {
       var document = CreateTestDocument(source);
       client.OpenDocument(document);
       var hoverResult = await client.RequestHover(new HoverParams() {
-        Position = position, TextDocument = document
+        Position = position,
+        TextDocument = document
       }, CancellationToken);
       Assert.Contains("No hover information available", hoverResult.ToString());
     }
 
     [Fact]
     public async Task RecoverableParseError() {
-      await AssertHover(@"
+      var document = await CreateAndOpenTestDocument(@"
 class Foo {
   const x := '\U2345'
 //      ^[```dafny\nconst x: ?\n```]
-}
-}", false);
+}".TrimStart());
+      await AssertHoverContains(document, new Position(1, 8), "No hover information available due to program error");
     }
 
     [Fact]

@@ -35,7 +35,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
     }
 
     public override async Task<SymbolInformationOrDocumentSymbolContainer> Handle(DocumentSymbolParams request, CancellationToken cancellationToken) {
-      var state = await projects.GetResolvedDocumentAsyncNormalizeUri(request.TextDocument);
+      var state = await projects.GetParsedDocumentNormalizeUri(request.TextDocument);
       if (state == null) {
         logger.LogWarning("symbols requested for unloaded document {DocumentUri}", request.TextDocument.Uri);
         return EmptySymbols;

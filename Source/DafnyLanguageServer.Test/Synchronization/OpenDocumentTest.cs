@@ -47,7 +47,7 @@ function GetConstant() int {
 }".Trim();
       var documentItem = CreateTestDocument(source, "ParseErrorsOfDocumentAreCaptured.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var document = await Projects.GetResolvedDocumentAsyncNormalizeUri(documentItem.Uri);
+      var document = await Projects.GetParsedDocumentNormalizeUri(documentItem.Uri);
       Assert.NotNull(document);
       Assert.Single(document.GetDiagnosticUris());
       var message = document.GetDiagnosticsForUri(documentItem.Uri.ToUri()).ElementAt(0);

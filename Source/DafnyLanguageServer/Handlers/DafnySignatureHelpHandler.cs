@@ -33,7 +33,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
 
     public override async Task<SignatureHelp?> Handle(SignatureHelpParams request, CancellationToken cancellationToken) {
       logger.LogDebug("received signature request for document {DocumentUri}", request.TextDocument.Uri);
-      var document = await projects.GetResolvedDocumentAsyncNormalizeUri(request.TextDocument);
+      var document = await projects.GetParsedDocumentNormalizeUri(request.TextDocument);
       if (document == null) {
         logger.LogWarning("location requested for unloaded document {DocumentUri}", request.TextDocument.Uri);
         return null;
