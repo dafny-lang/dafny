@@ -83,7 +83,10 @@ method SomeMethod(methodFormal: int) returns (result: bool)
     ///
     /// If this test fails, that means a change was made to Dafny that changes the SMT input it sends.
     /// If this was intentional, you should update this test's expect file with the new SMT input.
-    /// The git history of updates to this test allows us to easily see when Dafny's verification has changed. 
+    /// The git history of updates to this test allows us to easily see when Dafny's verification has changed.
+    ///
+    /// Note that this test does not detect changes in DafnyPrelude.bplf
+    /// 
     /// </summary>
     [Fact]
     public async Task ProverLogRegression() {
