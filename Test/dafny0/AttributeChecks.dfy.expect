@@ -165,6 +165,7 @@ module JustAboutEverything {
 
   method MAttr(x: int) returns (y: int)
     requires {:myAttr false + 3} true
+    reads {:myAttr false + 3} {}
     modifies {:myAttr false + 3} {}
     ensures {:myAttr false + 3} true
     decreases {:myAttr false + 3} x
@@ -173,6 +174,7 @@ module JustAboutEverything {
 
   method NAttr(x: int) returns (y: int)
     requires {:myAttr old(3)} true
+    reads {:myAttr old(3)} {}
     modifies {:myAttr old(3)} {}
     ensures {:myAttr old(3)} true
     decreases {:myAttr old(3)} x
@@ -181,6 +183,7 @@ module JustAboutEverything {
 
   method OAttr(x: int) returns (y: int)
     requires {:myAttr x, y} true
+    reads {:myAttr x, y} {}
     modifies {:myAttr x, y} {}
     ensures {:myAttr x, y} true
     decreases {:myAttr x, y} x
@@ -189,6 +192,7 @@ module JustAboutEverything {
 
   twostate lemma M2Attr(x: int) returns (y: int)
     requires {:myAttr false + 3} true
+    reads {:myAttr false + 3} {}
     modifies {:myAttr false + 3} {}
     ensures {:myAttr false + 3} true
     decreases {:myAttr false + 3} x
@@ -197,6 +201,7 @@ module JustAboutEverything {
 
   twostate lemma N2Attr(x: int) returns (y: int)
     requires {:myAttr old(3)} true
+    reads {:myAttr old(3)} {}
     modifies {:myAttr old(3)} {}
     ensures {:myAttr old(3)} true
     decreases {:myAttr old(3)} x
@@ -205,6 +210,7 @@ module JustAboutEverything {
 
   twostate lemma O2Attr(x: int) returns (y: int)
     requires {:myAttr x, y} true
+    reads {:myAttr x, y} {}
     modifies {:myAttr x, y} {}
     ensures {:myAttr x, y} true
     decreases {:myAttr x, y} x
