@@ -160,3 +160,12 @@ method AssertOnly() {
 method {:only} MethodOnly() {
   assert false;
 }
+
+// Externs with {:axiom} (only changes whether the externs are allowed by the library backend)
+
+method {:extern} {:axiom} GenerateBytesWithAxiom(i: int32) returns (res: seq<uint8>)
+    requires i >= 0
+    ensures |res| == i as int
+
+function {:extern} {:axiom} ExternFunctionWithAxiom(i: int32): (res: int32)
+  ensures res != i
