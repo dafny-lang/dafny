@@ -1,0 +1,1 @@
+Added two new options, `--warn-contradictory-assumptions` and `--warn-redundant-assumptions`, to detect potential problems with specifications that indicate that successful verification may be misleading. These options are currently hidden because they may occasionally produce false positives in cases where proofs are so trivial that the solver never does work on them.

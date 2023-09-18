@@ -515,7 +515,7 @@ namespace Microsoft.Dafny {
       var formals = f.Formals.ConvertAll(p => CloneFormal(p, false));
       var result = f.Result != null ? CloneFormal(f.Result, false) : null;
       var req = f.Req.ConvertAll(CloneAttributedExpr);
-      var reads = f.Reads.ConvertAll(CloneFrameExpr);
+      var reads = CloneSpecFrameExpr(f.Reads);
       var decreases = CloneSpecExpr(f.Decreases);
       var ens = f.Ens.ConvertAll(CloneAttributedExpr);
       Expression body = CloneExpr(f.Body);

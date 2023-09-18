@@ -1,4 +1,4 @@
-// RUN: %exits-with 2 %dafny /print:"%t.print" /dprint:- /compile:0 /env:0 "%s" > "%t"
+// RUN: %exits-with 2 %dafny /print:"%t.print" /dprint:- /compile:0 /env:0 /readsClausesOnMethods:1 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module JustAboutEverything {
@@ -108,6 +108,7 @@ module JustAboutEverything {
 
   ghost function FAttr(x: int): int
     requires {:myAttr false + 3} true // error: false + 3 is ill-typed
+    reads {:myAttr false + 3} {} // error: false + 3 is ill-typed
     ensures {:myAttr false + 3} true // error: false + 3 is ill-typed
     decreases {:myAttr false + 3} x // error: false + 3 is ill-typed
   {
@@ -116,6 +117,7 @@ module JustAboutEverything {
 
   ghost function GAttr(x: int): int
     requires {:myAttr old(3)} true // error: old is not allowed here
+    reads {:myAttr old(3)} {} // error: old is not allowed here
     ensures {:myAttr old(3)} true // error: old is not allowed here
     decreases {:myAttr old(3)} x // error: old is not allowed here
   {
@@ -124,6 +126,7 @@ module JustAboutEverything {
 
   ghost function HAttr(x: int): (r: int)
     requires {:myAttr x, r} true // error: r is not in scope here
+    reads {:myAttr x, r} {} // error: r is not in scope here
     ensures {:myAttr x, r} true
     decreases {:myAttr x, r} x // error: r is not in scope here
   {
@@ -132,6 +135,7 @@ module JustAboutEverything {
 
   twostate function F2Attr(x: int): int
     requires {:myAttr false + 3} true // error: false + 3 is ill-typed
+    reads {:myAttr false + 3} {} // error: false + 3 is ill-typed
     ensures {:myAttr false + 3} true // error: false + 3 is ill-typed
     decreases {:myAttr false + 3} x // error: false + 3 is ill-typed
   {
@@ -140,6 +144,7 @@ module JustAboutEverything {
 
   twostate function G2Attr(x: int): int
     requires {:myAttr old(3)} true
+    reads {:myAttr old(3)} {}
     ensures {:myAttr old(3)} true
     decreases {:myAttr old(3)} x
   {
@@ -148,6 +153,7 @@ module JustAboutEverything {
 
   twostate function H2Attr(x: int): (r: int)
     requires {:myAttr x, r} true // error: r is not in scope here
+    reads {:myAttr x, r} true // error: r is not in scope here
     ensures {:myAttr x, r} true
     decreases {:myAttr x, r} x // error: r is not in scope here
   {
@@ -156,6 +162,7 @@ module JustAboutEverything {
 
   method MAttr(x: int) returns (y: int)
     requires {:myAttr false + 3} true // error: false + 3 is ill-typed
+    reads {:myAttr false + 3} {} // error: false + 3 is ill-typed
     modifies {:myAttr false + 3} {} // error: false + 3 is ill-typed
     ensures {:myAttr false + 3} true // error: false + 3 is ill-typed
     decreases {:myAttr false + 3} x // error: false + 3 is ill-typed
@@ -164,6 +171,7 @@ module JustAboutEverything {
 
   method NAttr(x: int) returns (y: int)
     requires {:myAttr old(3)} true // error: old is not allowed here
+    reads {:myAttr old(3)} {} // error: old is not allowed here
     modifies {:myAttr old(3)} {} // error: old is not allowed here
     ensures {:myAttr old(3)} true
     decreases {:myAttr old(3)} x // error: old is not allowed here
@@ -172,6 +180,7 @@ module JustAboutEverything {
 
   method OAttr(x: int) returns (y: int)
     requires {:myAttr x, y} true // error: y is not in scope here
+    reads {:myAttr x, y} {} // error: y is not in scope here
     modifies {:myAttr x, y} {} // error: y is not in scope here
     ensures {:myAttr x, y} true
     decreases {:myAttr x, y} x // error: y is not in scope here
@@ -180,6 +189,7 @@ module JustAboutEverything {
 
   twostate lemma M2Attr(x: int) returns (y: int)
     requires {:myAttr false + 3} true // error: false + 3 is ill-typed
+    reads {:myAttr false + 3} {} // error (x2): false + 3 is ill-typed, and twostate lemma cannot have reads clause
     modifies {:myAttr false + 3} {} // error (x2): false + 3 is ill-typed, and twostate lemma cannot have modifies clause
     ensures {:myAttr false + 3} true // error: false + 3 is ill-typed
     decreases {:myAttr false + 3} x // error: false + 3 is ill-typed
@@ -188,6 +198,7 @@ module JustAboutEverything {
 
   twostate lemma N2Attr(x: int) returns (y: int)
     requires {:myAttr old(3)} true
+    reads {:myAttr old(3)} {} // error (x2): old is not allowed here, and twostate lemma cannot have reads clause
     modifies {:myAttr old(3)} {} // error (x2): old is not allowed here, and twostate lemma cannot have modifies clause
     ensures {:myAttr old(3)} true
     decreases {:myAttr old(3)} x // error: old is not allowed here
@@ -196,6 +207,7 @@ module JustAboutEverything {
 
   twostate lemma O2Attr(x: int) returns (y: int)
     requires {:myAttr x, y} true // error: y is not in scope here
+    reads {:myAttr x, y} {} // error (x2): y is not in scope here, and twostate lemma cannot have reads clause
     modifies {:myAttr x, y} {} // error (x2): y is not in scope here, and twostate lemma cannot have modifies clause
     ensures {:myAttr x, y} true
     decreases {:myAttr x, y} x // error: y is not in scope here
@@ -205,6 +217,7 @@ module JustAboutEverything {
   iterator Iter(x: int) yields (y: int)
     requires {:myAttr false + 3} true // error: false + 3 is ill-typed
     yield requires {:myAttr false + 3} true // error: false + 3 is ill-typed
+    reads {:myAttr false + 3} {} // error: false + 3 is ill-typed
     modifies {:myAttr false + 3} {} // error: false + 3 is ill-typed
     yield ensures {:myAttr false + 3} true // error: false + 3 is ill-typed
     ensures {:myAttr false + 3} true // error: false + 3 is ill-typed
@@ -215,6 +228,7 @@ module JustAboutEverything {
   iterator Jter(x: int) yields (y: int)
     requires {:myAttr old(3)} true // error: old is not allowed here
     yield requires {:myAttr old(3)} true // error: old is not allowed here
+    reads {:myAttr old(3)} {} // error: old is not allowed here
     modifies {:myAttr old(3)} {} // error: old is not allowed here
     yield ensures {:myAttr old(3)} true
     ensures {:myAttr old(3)} true
@@ -225,6 +239,7 @@ module JustAboutEverything {
   iterator Kter(x: int) yields (y: int)
     requires {:myAttr x, y, ys} true // error (x2): y and ys are not in scope here
     yield requires {:myAttr x, y, ys} true // these are allowed (but it would be weird for anyone to use y and ys here)
+    reads {:myAttr x, y, ys} {} // error (x2): y and ys are not in scope here
     modifies {:myAttr x, y, ys} {} // error (x2): y and ys are not in scope here
     yield ensures {:myAttr x, y, ys} true
     ensures {:myAttr x, y, ys} true

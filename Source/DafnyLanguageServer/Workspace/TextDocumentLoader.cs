@@ -5,10 +5,12 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Boogie;
+using Microsoft.Dafny.Compilers;
 using Microsoft.Extensions.Logging;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
@@ -70,6 +72,17 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       var project = compilation.Project;
       var errorReporter = new DiagnosticErrorReporter(options, project.Uri);
       var program = parser.Parse(compilation, errorReporter, cancellationToken);
+      compilation.Project.Errors.CopyDiagnostics(program.Reporter);
+      var projectPath = compilation.Project.Uri.LocalPath;
+      if (projectPath.EndsWith(DafnyProject.FileName)) {
+        var projectDirectory = Path.GetDirectoryName(projectPath)!;
+        var filesMessage = string.Join("\n", compilation.RootUris.Select(uri => Path.GetRelativePath(projectDirectory, uri.LocalPath)));
+        if (filesMessage.Any()) {
+          program.Reporter.Info(MessageSource.Parser, compilation.Project.StartingToken, "Files referenced by project are:" + Environment.NewLine + filesMessage);
+        } else {
+          program.Reporter.Warning(MessageSource.Parser, CompilerErrors.ErrorId.None, compilation.Project.StartingToken, "Project references no files");
+        }
+      }
       var compilationAfterParsing = new CompilationAfterParsing(compilation, program, errorReporter.AllDiagnosticsCopy,
         compilation.RootUris.ToDictionary(uri => uri,
           uri => migratedVerificationTrees.GetValueOrDefault(uri) ?? new DocumentVerificationTree(program, uri)));

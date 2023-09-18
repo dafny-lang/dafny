@@ -620,10 +620,10 @@ public class MatchIsComplete : ProofObligationDescriptionWithNoExpr {
 
 public class AlternativeIsComplete : ProofObligationDescriptionWithNoExpr {
   public override string SuccessDescription =>
-    $"alternative cases cover all possibilties";
+    $"alternative cases cover all possibilities";
 
   public override string FailureDescription =>
-    $"alternative cases fail to cover all possibilties";
+    $"alternative cases fail to cover all possibilities";
 
   public override string ShortDescription => "alternative complete";
 }

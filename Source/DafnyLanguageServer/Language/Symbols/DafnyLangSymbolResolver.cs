@@ -182,7 +182,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         functionSymbol.Body = ExpressionHandler(function.Body);
         functionSymbol.Ensures.AddRange(ProcessListAttributedExpressions(function.Ens, ExpressionHandler));
         functionSymbol.Requires.AddRange(ProcessListAttributedExpressions(function.Req, ExpressionHandler));
-        functionSymbol.Reads.AddRange(ProcessListFramedExpressions(function.Reads, ExpressionHandler));
+        functionSymbol.Reads.AddRange(ProcessListFramedExpressions(function.Reads.Expressions, ExpressionHandler));
         functionSymbol.Decreases.AddRange(ProcessListExpressions(function.Decreases.Expressions, ExpressionHandler));
         functionSymbol.ByMethodBody = function.ByMethodBody == null ? null : ProcessFunctionByMethodBody(functionSymbol, function.ByMethodBody);
         return functionSymbol;
@@ -233,7 +233,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         methodSymbol.Ensures.AddRange(ProcessListAttributedExpressions(method.Ens, ExpressionHandler));
         methodSymbol.Requires.AddRange(ProcessListAttributedExpressions(method.Req, ExpressionHandler));
         methodSymbol.Reads.AddRange(ProcessListExpressions(
-          method.Reads.Select(frameExpression => frameExpression.E), ExpressionHandler));
+          method.Reads.Expressions.Select(frameExpression => frameExpression.E), ExpressionHandler));
         methodSymbol.Modifies.AddRange(ProcessListExpressions(
           method.Mod.Expressions.Select(frameExpression => frameExpression.E), ExpressionHandler));
         methodSymbol.Decreases.AddRange(ProcessListExpressions(method.Decreases.Expressions, ExpressionHandler));
