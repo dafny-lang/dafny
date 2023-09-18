@@ -10,7 +10,7 @@ public class Method : MemberDecl, TypeParameter.ParentType,
   IMethodCodeContext, ICanFormat, IHasDocstring, IHasSymbolChildren, ICanAutoRevealDependencies, ICanVerify {
   public override IEnumerable<INode> Children => new Node[] { Body, Decreases }.Where(x => x != null).
     Concat(Ins).Concat(Outs).Concat<Node>(TypeArgs).
-    Concat(Req).Concat(Ens).Concat(Reads).Concat(Mod.Expressions);
+    Concat(Req).Concat(Ens).Concat(Reads.Expressions).Concat(Mod.Expressions);
   public override IEnumerable<INode> PreResolveChildren => Children;
 
   public override string WhatKind => "method";
@@ -23,7 +23,7 @@ public class Method : MemberDecl, TypeParameter.ParentType,
   public readonly List<Formal> Ins;
   public readonly List<Formal> Outs;
   public readonly List<AttributedExpression> Req;
-  public readonly List<FrameExpression> Reads;
+  public readonly Specification<FrameExpression> Reads;
   public readonly Specification<FrameExpression> Mod;
   public readonly List<AttributedExpression> Ens;
   public readonly Specification<Expression> Decreases;
@@ -77,7 +77,7 @@ public class Method : MemberDecl, TypeParameter.ParentType,
       foreach (var e in Req) {
         yield return e.E;
       }
-      foreach (var e in Reads) {
+      foreach (var e in Reads.Expressions) {
         yield return e.E;
       }
       foreach (var e in Mod.Expressions) {
@@ -98,7 +98,7 @@ public class Method : MemberDecl, TypeParameter.ParentType,
     Contract.Invariant(cce.NonNullElements(Ins));
     Contract.Invariant(cce.NonNullElements(Outs));
     Contract.Invariant(cce.NonNullElements(Req));
-    Contract.Invariant(cce.NonNullElements(Reads));
+    Contract.Invariant(Reads != null);
     Contract.Invariant(Mod != null);
     Contract.Invariant(cce.NonNullElements(Ens));
     Contract.Invariant(Decreases != null);
@@ -112,7 +112,7 @@ public class Method : MemberDecl, TypeParameter.ParentType,
     }
 
     this.Req = original.Req.ConvertAll(cloner.CloneAttributedExpr);
-    this.Reads = original.Reads.ConvertAll(cloner.CloneFrameExpr);
+    this.Reads = cloner.CloneSpecFrameExpr(original.Reads);
     this.Mod = cloner.CloneSpecFrameExpr(original.Mod);
     this.Decreases = cloner.CloneSpecExpr(original.Decreases);
     this.Ens = original.Ens.ConvertAll(cloner.CloneAttributedExpr);
@@ -126,7 +126,7 @@ public class Method : MemberDecl, TypeParameter.ParentType,
     [Captured] List<TypeParameter> typeArgs,
     [Captured] List<Formal> ins, [Captured] List<Formal> outs,
     [Captured] List<AttributedExpression> req,
-    [Captured] List<FrameExpression> reads,
+    [Captured] Specification<FrameExpression> reads,
     [Captured] Specification<FrameExpression> mod,
     [Captured] List<AttributedExpression> ens,
     [Captured] Specification<Expression> decreases,
@@ -220,7 +220,7 @@ public class Method : MemberDecl, TypeParameter.ParentType,
       formatter.SetAttributedExpressionIndentation(req, indentBefore + formatter.SpaceTab);
     }
 
-    foreach (var read in Reads) {
+    foreach (var read in Reads.Expressions) {
       formatter.SetFrameExpressionIndentation(read, indentBefore + formatter.SpaceTab);
     }
 
@@ -286,10 +286,10 @@ public class Method : MemberDecl, TypeParameter.ParentType,
       // Doing it before resolution is a bit easier than adding resolved frame expressions afterwards.
       // Note that `reads *` is the right default for backwards-compatibility,
       // but we may want to infer a sensible default like decreases clauses instead in the future.
-      if (readsClausesOnMethodsEnabled && !IsLemmaLike && !Reads.Any()) {
-        Reads.Add(new FrameExpression(tok, new WildcardExpr(tok), null));
+      if (readsClausesOnMethodsEnabled && !IsLemmaLike && !Reads.Expressions.Any()) {
+        Reads.Expressions.Add(new FrameExpression(tok, new WildcardExpr(tok), null));
       }
-      foreach (FrameExpression fe in Reads) {
+      foreach (FrameExpression fe in Reads.Expressions) {
         resolver.ResolveFrameExpressionTopLevel(fe, FrameExpressionUse.Reads, this);
         if (IsLemmaLike) {
           resolver.reporter.Error(MessageSource.Resolver, fe.tok, "{0}s are not allowed to have reads clauses (they are allowed to read all memory locations)",

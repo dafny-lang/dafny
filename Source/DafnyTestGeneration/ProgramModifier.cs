@@ -62,6 +62,7 @@ namespace DafnyTestGeneration {
       if (options.TestGenOptions.Mode is TestGenerationOptions.Modes.InlinedBlock) {
         program = new AnnotationVisitor(options).VisitProgram(program);
       }
+      program = Utils.DeepCloneResolvedProgram(program, options); // need to make sure the program is resolved and typed
       TestEntries = program.Implementations
         .Where(implementation =>
           Utils.DeclarationHasAttribute(implementation, TestGenerationOptions.TestEntryAttribute) &&

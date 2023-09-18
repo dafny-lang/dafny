@@ -38,7 +38,7 @@ public class Constructor : Method {
     List<TypeParameter> typeArgs,
     List<Formal> ins,
     List<AttributedExpression> req,
-    List<FrameExpression> reads,
+    Specification<FrameExpression> reads,
     [Captured] Specification<FrameExpression> mod,
     List<AttributedExpression> ens,
     Specification<Expression> decreases,
