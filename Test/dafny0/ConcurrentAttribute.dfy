@@ -21,6 +21,25 @@ class GhostBox<T> {
   }
 }
 
+class ConcurrentJournal<T> {
+  ghost var elements: seq<T>
+
+  constructor()
+    ensures elements == []
+  {
+    elements := [];
+  }
+
+  method Add(e: T)
+    reads this
+    modifies this
+    ensures exists others :: elements == old(elements) + [e] + others
+  {
+    elements := elements + [e];
+    assert elements == old(elements) + [e] + [];
+  }
+}
+
 class Concurrent {
 
   function {:concurrent} GoodFn(b: Box<int>): int {
@@ -43,6 +62,12 @@ class Concurrent {
     reads if false then {b} else {}`x
   {
     42
+  }
+
+  ghost predicate {:concurrent} ExistsInJournal(p: string -> bool, j: ConcurrentJournal<string>)
+    reads {:assume_concurrent} j
+  {
+    exists element <- j.elements :: p(element)
   }
 
   method {:concurrent} GoodM(b: Box<int>) {
@@ -98,37 +123,13 @@ class Concurrent {
     modifies set b: GhostBox<int> | !allocated(b)
   {
   }
-}
 
-
-////// {:assume-concurrent} escape hatch //////
-
-class ConcurrentJournal<T> {
-  ghost var elements: seq<T>
-
-  constructor()
-    ensures elements == []
+  method {:concurrent} AddToJournal(j: ConcurrentJournal<string>)
+    reads {:assume_concurrent} j
+    modifies {:assume_concurrent} j
   {
-    elements := [];
-  }
-
-  method Add(e: T)
-    reads this
-    modifies this
-    ensures exists others :: elements == old(elements) + [e] + others
-  {
-    elements := elements + [e];
-    assert elements == old(elements) + [e] + [];
+    j.Add("Today I added another test case.");
   }
 }
 
-method {:concurrent} AddToJournal(j: ConcurrentJournal<string>)
-  reads {:assume_concurrent} j
-  modifies {:assume_concurrent} j
-{
-  j.Add("Today I added another test case.");
-}
-
-// TODO: explicitly reject {:concurrent} on lemmas?
-// TODO: Double-check printing of reads clauses on methods
 // TODO: Release notes!

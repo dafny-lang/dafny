@@ -1,16 +1,16 @@
-ConcurrentAttribute.dfy(91,10): Warning: /!\ No terms found to trigger on.
-ConcurrentAttribute.dfy(92,13): Warning: /!\ No terms found to trigger on.
-ConcurrentAttribute.dfy(97,10): Warning: /!\ No terms found to trigger on.
-ConcurrentAttribute.dfy(98,13): Warning: /!\ No terms found to trigger on.
-ConcurrentAttribute.dfy(30,25): Error: reads clause could not be proved to be empty ({:concurrent} restriction)
-ConcurrentAttribute.dfy(48,23): Error: reads clause could not be proved to be empty ({:concurrent} restriction)
-ConcurrentAttribute.dfy(51,23): Error: reads clause could not be proved to be empty ({:concurrent} restriction)
-ConcurrentAttribute.dfy(55,23): Error: reads clause could not be proved to be empty ({:concurrent} restriction)
-ConcurrentAttribute.dfy(66,23): Error: reads clause could not be proved to be empty ({:concurrent} restriction)
-ConcurrentAttribute.dfy(72,23): Error: reads clause could not be proved to be empty ({:concurrent} restriction)
-ConcurrentAttribute.dfy(77,29): Error: reads clause could not be proved to be empty ({:concurrent} restriction)
-ConcurrentAttribute.dfy(83,23): Error: modifies clause could not be proved to be empty ({:concurrent} restriction)
-ConcurrentAttribute.dfy(90,29): Error: reads clause could not be proved to be empty ({:concurrent} restriction)
-ConcurrentAttribute.dfy(90,29): Error: modifies clause could not be proved to be empty ({:concurrent} restriction)
+ConcurrentAttribute.dfy(116,10): Warning: /!\ No terms found to trigger on.
+ConcurrentAttribute.dfy(117,13): Warning: /!\ No terms found to trigger on.
+ConcurrentAttribute.dfy(122,10): Warning: /!\ No terms found to trigger on.
+ConcurrentAttribute.dfy(123,13): Warning: /!\ No terms found to trigger on.
+ConcurrentAttribute.dfy(49,25): Error: reads clause could not be proved to be empty ({:concurrent} restriction)
+ConcurrentAttribute.dfy(73,23): Error: reads clause could not be proved to be empty ({:concurrent} restriction)
+ConcurrentAttribute.dfy(76,23): Error: reads clause could not be proved to be empty ({:concurrent} restriction)
+ConcurrentAttribute.dfy(80,23): Error: reads clause could not be proved to be empty ({:concurrent} restriction)
+ConcurrentAttribute.dfy(91,23): Error: reads clause could not be proved to be empty ({:concurrent} restriction)
+ConcurrentAttribute.dfy(97,23): Error: reads clause could not be proved to be empty ({:concurrent} restriction)
+ConcurrentAttribute.dfy(102,29): Error: reads clause could not be proved to be empty ({:concurrent} restriction)
+ConcurrentAttribute.dfy(108,23): Error: modifies clause could not be proved to be empty ({:concurrent} restriction)
+ConcurrentAttribute.dfy(115,29): Error: reads clause could not be proved to be empty ({:concurrent} restriction)
+ConcurrentAttribute.dfy(115,29): Error: modifies clause could not be proved to be empty ({:concurrent} restriction)
 
-Dafny program verifier finished with 11 verified, 10 errors
+Dafny program verifier finished with 16 verified, 10 errors
