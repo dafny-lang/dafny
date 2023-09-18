@@ -116,6 +116,7 @@ module AlcorProofKernel refines AlcorKernelInterface {
     provides Expr.Bind, Expr.FreeVars, Expr.size
     provides AllProofs // TODO: No longer necessary when possible to export that Proof is not a reference type
     reveals Expr, Expr.Not, Expr.apply, Expr.apply2, Expr.ifthenelse
+    reveals Expr.simplify, SimplificationConfig // TODO: Reveals or provides?
     reveals Identifier
     reveals Proof.ImpIntroVerify
 
@@ -147,6 +148,10 @@ module AlcorProofKernel refines AlcorKernelInterface {
       id
   }
 
+  datatype SimplificationConfig = SimplificationConfig(
+    insideAbs: bool, betaDepth: nat := 1
+  )
+
   // TODO: Intermediate language for Dafny, including references, sets, etc.
   datatype Expr =
     | True
@@ -171,6 +176,85 @@ module AlcorProofKernel refines AlcorKernelInterface {
     }
     static function ifthenelse(cond: Expr, thn: Expr, els: Expr): Expr {
       And(Imp(cond, thn), Imp(Not(cond), els))
+    }
+    function simplify(post: Expr -> Expr, config: SimplificationConfig): Expr
+      decreases config.betaDepth, this
+    {
+      if config.betaDepth == 0 then this else
+      var res := match this {
+        case True | False | Int(_) | Var(_) => this
+        case And(left, right) =>
+          var lSimp := left.simplify(post, config);
+          if lSimp.True? then right.simplify(post, config)
+          else if lSimp.False? then False
+          else
+            var rSimp := right.simplify(post, config);
+            if rSimp.True? then lSimp else
+            if rSimp.False? then False else
+            And(rSimp, rSimp)
+        case Imp(left, right) =>
+          var lSimp := left.simplify(post, config);
+          if lSimp.True? then right.simplify(post, config)
+          else if lSimp.False? then True
+          else var rSimp := right.simplify(post, config);
+               if rSimp.True? then True else
+               Imp(lSimp, rSimp)
+        case Or(left, right) =>
+          var lSimp := left.simplify(post, config);
+          if lSimp.False? then right.simplify(post, config)
+          else if lSimp.True? then True
+          else
+            var rSimp := right.simplify(post, config);
+            if rSimp.True? then True else
+            if rSimp.False? then lSimp else
+            Or(lSimp, rSimp)
+        case App(left, right) =>
+          var lSimp := left.simplify(post, config);
+          var rSimp := right.simplify(post, config);
+          if lSimp.Abs? then
+            lSimp.body.Bind(lSimp.id, rSimp).simplify(post, config.(betaDepth := config.betaDepth - 1))
+          else
+            App(lSimp, rSimp)
+        case Abs(id, body) =>
+          if config.insideAbs then
+            Abs(id, body.simplify(post, config))
+          else
+            this
+        case Forall(body) => Forall(body.simplify(post, config))
+      };
+      var res := match res {
+        case App(App(Var(Identifier(operator, 0, "")), left), right) =>
+          match (operator, left, right) {
+            case ("%", Int(l), Int(r)) => if r > 0 then Int(l % r) else res
+            case ("*", Int(l), Int(r)) => Int(l * r)
+            case ("/", Int(l), Int(r)) => if r != 0 then Int(l / r) else res
+            case ("+", Int(l), Int(r)) => Int(l + r)
+            case ("-", Int(l), Int(r)) => Int(l - r)
+            case (">", Int(l), Int(r)) => if l > r then True else False
+            case ("<", Int(l), Int(r)) => if l < r then True else False
+            case (">=", Int(l), Int(r)) => if l >= r then True else False
+            case ("<=", Int(l), Int(r)) => if l <= r then True else False
+            case ("==", l, r) => if l == r then True else res
+            case ("!=", l, r) => if l == r then False else res
+            case _ => res
+          }
+        case _ => res
+      };
+      post(res)
+    }
+    // For any configuration whose post has a proof that its simplification is correct,
+    // we provide a proof that x is equal to this simplification.
+    lemma SimplifyIsCorrect(x: Expr,
+                            post: Expr -> Expr,
+                            config: SimplificationConfig,
+                            proofOfPos: (Expr, Expr) -> Proof
+    ) returns (p: Proof)
+      requires forall expr: Expr ::
+                 proofOfPos(expr, post(expr)).GetExpr() ==
+                 Var(Identifier("==", 0, "")).apply2(expr, post(expr))
+      ensures p.GetExpr() == Var(Identifier("==", 0, "")).apply2(x, x.simplify(post, config))
+    {
+      assume {:axiom} false; // TODO
     }
     function FreeVars(): set<Identifier> {
       if True? || False? || Int? then {} else
@@ -1594,6 +1678,128 @@ module AlcorTacticProofChecker {
       } else {
         feedback := SetFailure("The hypothesis " + name + " is not the goal"); return;
       }
+      return Success(proofState.ToString());
+    }
+
+    method ForallElim(name: string, expr: Expr, newName: string := "") returns (feedback: Result<string>)
+      modifies this
+    {
+      if proofState.Error? {
+        return Failure(proofState.message);
+      }
+      var sequents := proofState.sequents;
+      if sequents.SequentNil? {
+        feedback := SetFailure("Nothing to perform a ForallElim on"); return;
+      }
+      var sequent := sequents.head;
+      var env := sequent.env;
+      var goal := sequent.goal;
+      var iHyp := env.IndexOf(name);
+      if iHyp < 0 {
+        feedback := SetFailure("Entry " + name + " not found in the environment"); return;
+      }
+      var (_, hypExpr) := env.ElemAt(iHyp);
+      if !hypExpr.Forall? {
+        feedback := SetFailure("Entry " + name + " is not a forall"); return;
+      }
+      var abs := hypExpr.body;
+      if !abs.Abs? {
+        feedback := SetFailure("Entry " + name + " is not a forall with a variable, named predicates not supported yet"); return;
+      }
+      var instantiated := abs.body.Bind(abs.id, expr);
+
+      var newName := if newName == "" then "h" else newName;
+      var freeVar := sequent.env.FreshVar(newName);
+      proofState := Sequents(
+        SequentCons(
+          Sequent(EnvCons(newName, instantiated, env), goal),
+          sequents.tail
+        )
+      );
+      return Success(proofState.ToString());
+    }
+
+    method Simplify(name: string, replaceDepth: nat := 0) returns (feedback: Result<string>)
+      modifies this
+    {
+      if proofState.Error? {
+        return Failure(proofState.message);
+      }
+      var sequents := proofState.sequents;
+      if sequents.SequentNil? {
+        feedback := SetFailure("Nothing to simplify"); return;
+      }
+      var sequent := sequents.head;
+      var env := sequent.env;
+      var goal := sequent.goal;
+      var iHyp := env.IndexOf(name);
+      if iHyp < 0 {
+        feedback := SetFailure("Entry " + name + " not found in the environment"); return;
+      }
+      var (_, hypExpr) := env.ElemAt(iHyp);
+      var config := SimplificationConfig(insideAbs := false, betaDepth := 1);
+      var newHypExpr := hypExpr.simplify(
+        x => x, 
+        config);
+      var newEnv := env.ReplaceTailAt(
+        iHyp,
+        (oldTail: Env) requires oldTail == env.Drop(iHyp) =>
+          EnvCons(name, newHypExpr, oldTail.tail)
+      );
+      proofState := Sequents(
+        SequentCons(
+          Sequent(newEnv, goal),
+          sequents.tail
+        )
+      );
+      return Success(proofState.ToString());
+    }
+
+    method Definition(name: string, nameDefinition: string) returns (feedback: Result<string>)
+      modifies this
+    {
+      if proofState.Error? {
+        return Failure(proofState.message);
+      }
+      var sequents := proofState.sequents;
+      if sequents.SequentNil? {
+        feedback := SetFailure("Nothing to simplify"); return;
+      }
+      var sequent := sequents.head;
+      var env := sequent.env;
+      var goal := sequent.goal;
+      var iHyp := env.IndexOf(name);
+      if iHyp < 0 {
+        feedback := SetFailure("Entry " + name + " not found in the environment"); return;
+      }
+      var (_, hypExpr) := env.ElemAt(iHyp);
+      var iDef := env.IndexOf(nameDefinition);
+      if iDef < 0 {
+        feedback := SetFailure("Entry " + nameDefinition + " not found in the environment"); return;
+      }
+      var (_, defExpr) := env.ElemAt(iDef);
+      var left, right;
+      match defExpr {
+        case App(App(Var(Identifier("==", 0, "")), l), r) =>
+          left, right := l, r;
+        case _ =>
+          feedback := SetFailure("Entry " + nameDefinition + " is not a definition like x == y"); return;
+      }
+      var config := SimplificationConfig(insideAbs := true, betaDepth := 1);
+      var newHypExpr := hypExpr.simplify(
+        x => if x == left then right else x, 
+        config);
+      var newEnv := env.ReplaceTailAt(
+        iHyp,
+        (oldTail: Env) requires oldTail == env.Drop(iHyp) =>
+          EnvCons(name, newHypExpr, oldTail.tail)
+      );
+      proofState := Sequents(
+        SequentCons(
+          Sequent(newEnv, goal),
+          sequents.tail
+        )
+      );
       return Success(proofState.ToString());
     }
 

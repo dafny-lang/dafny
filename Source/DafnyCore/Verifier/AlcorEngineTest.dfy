@@ -140,7 +140,7 @@ module AlcorEngineTest {
     var minus := Var(i_minus);
     var plus := Var(i_plus);
     
-    var goal := eq.apply2(f.apply(Int(5)), Int(5));
+    var goal := eq.apply2(f.apply(Int(2)), Int(1));
     var env := EnvCons(
       "f_def",
       Forall(Abs(i_x, eq.apply2(
@@ -154,7 +154,33 @@ module AlcorEngineTest {
 
     var thinking := new TacticMode(goal, env);
     print thinking.proofState.ToString(), "\n--------------\n";
-    expect thinking.proofState.ToString() == "f_def: forall x :: f(x) == (if x <= 1 then x else f(x - 1) + f(x - 2))\n|- f(5) == 5";
+    var f_defs := "f_def: forall x :: f(x) == (if x <= 1 then x else f(x - 1) + f(x - 2))";
+    expect thinking.proofState.ToString() == f_defs+"\n|- f(2) == 1";
+    var feedback :- expect thinking.ForallElim("f_def", Int(2), "f_2");
+    var f_2s := "f_2: f(2) == (if 2 <= 1 then 2 else f(2 - 1) + f(2 - 2))";
+    expect feedback == f_defs+"\n"+f_2s+"\n|- f(2) == 1";
+    feedback :- expect thinking.Simplify("f_2");
+    var f_2sp := "f_2: f(2) == f(1) + f(0)";
+    expect feedback == f_defs+"\n"+f_2sp+"\n|- f(2) == 1";
+    feedback :- expect thinking.ForallElim("f_def", Int(1), "f_1");
+    var f_1s := "f_1: f(1) == (if 1 <= 1 then 1 else f(1 - 1) + f(1 - 2))";
+    var f_1sp := "f_1: f(1) == 1";
+    var f_0s := "f_0: f(0) == (if 0 <= 1 then 0 else f(0 - 1) + f(0 - 2))";
+    var f_0sp := "f_0: f(0) == 0";
+    expect feedback == f_defs+"\n"+f_2sp+"\n"+f_1s+"\n|- f(2) == 1";
+    feedback :- expect thinking.Simplify("f_1");
+    expect feedback == f_defs+"\n"+f_2sp+"\n"+f_1sp+"\n|- f(2) == 1";
+    feedback :- expect thinking.ForallElim("f_def", Int(0), "f_0");
+    expect feedback == f_defs+"\n"+f_2sp+"\n"+f_1sp+"\n"+f_0s+"\n|- f(2) == 1";
+    feedback :- expect thinking.Simplify("f_0");
+    expect feedback == f_defs+"\n"+f_2sp+"\n"+f_1sp+"\n"+f_0sp+"\n|- f(2) == 1";
+    feedback :- expect thinking.Definition("f_2", "f_1");
+    feedback :- expect thinking.Definition("f_2", "f_0");
+    feedback :- expect thinking.Simplify("f_2");
+    feedback :- expect thinking.UseHypothesis("f_2");
+    print feedback, "\n";
+    expect feedback == "";
+
     /*var feedback :- expect thinking.Intro();
     print feedback, "\n--------------\n";
     expect feedback == "\n|- forall b :: (a ==> b) && a ==> b && a";
