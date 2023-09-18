@@ -12,6 +12,7 @@ using System.IO;
 using System.Reflection;
 using System.Text.RegularExpressions;
 using JetBrains.Annotations;
+using Microsoft.Boogie.SMTLib;
 using Microsoft.Dafny;
 using Microsoft.Dafny.Compilers;
 using Microsoft.Dafny.Plugins;
@@ -319,6 +320,9 @@ NoGhost - disable printing of functions, ghost methods, and proof
     public bool UseMultiSets = true;
     public bool UseMaps = true;
     public bool UseIMaps = true;
+
+    public SolverKind Solver = SolverKind.Z3; // TODO: Heads up: this is not currently used!
+    public int Z3CaseSplitValue = 3;
 
     public enum ContractTestingMode {
       None,
@@ -826,6 +830,18 @@ NoGhost - disable printing of functions, ghost methods, and proof
             }
           }
           return true;
+
+        case "prune":
+          if (ps.ConfirmArgumentCount(1)) {
+            if (args[ps.i] == "1") {
+              Prune = true;
+            } else if (args[ps.i] == "0") {
+              Prune = false;
+            } else {
+              InvalidArgumentError(name, ps);
+            }
+          }
+          return true;
       }
 
       // Defer to superclass
@@ -1225,7 +1241,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
 
       // This option helps avoid "time travelling triggers".
       // See: https://github.com/dafny-lang/dafny/discussions/3362
-      SetZ3Option("smt.case_split", "3");
+      SetZ3Option("smt.case_split", Z3CaseSplitValue.ToString());
 
       // This option tends to lead to the best all-around arithmetic
       // performance, though some programs can be verified more quickly

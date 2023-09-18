@@ -23,6 +23,7 @@ using static Microsoft.Dafny.Util;
 using Core;
 using DafnyCore.Verifier;
 using Microsoft.BaseTypes;
+using Microsoft.Boogie.SMTLib;
 using Microsoft.Dafny.Compilers;
 using Microsoft.Dafny.Triggers;
 using Action = System.Action;
@@ -911,7 +912,7 @@ namespace Microsoft.Dafny {
       return p.RawModules().Where(m => ShouldVerifyModule(p, m));
     }
 
-    public static IEnumerable<Tuple<string, Bpl.Program>> Translate(Program p, ErrorReporter reporter, TranslatorFlags flags = null) {
+    public static IEnumerable<Tuple<string, Bpl.Program, DafnyOptions>> Translate(Program p, ErrorReporter reporter, TranslatorFlags flags = null) {
       Contract.Requires(p != null);
       Contract.Requires(p.ModuleSigs.Count > 0);
 
@@ -920,12 +921,29 @@ namespace Microsoft.Dafny {
       foreach (ModuleDefinition outerModule in VerifiableModules(p)) {
         var translator = new Translator(reporter, p.ProofDependencyManager, flags);
 
+        var moduleOptions = new DafnyOptions(p.Options);
+        if(outerModule.GetPruneAttribute != null) {
+          moduleOptions.Prune = outerModule.GetPruneAttribute.Value;
+        }
+        if(outerModule.GetTypeEncodingAttribute != null) {
+          moduleOptions.TypeEncodingMethod = outerModule.GetTypeEncodingAttribute.Value;
+        }
+        if(outerModule.GetCaseSplitAttribute != null) {
+          moduleOptions.Z3CaseSplitValue = outerModule.GetCaseSplitAttribute.Value;
+        }
+        if(outerModule.GetSolverAttribute != null) {
+          moduleOptions.Solver = outerModule.GetSolverAttribute.Value;
+        }
+        if(outerModule.UseNativeSeq) {
+          moduleOptions.UseSeqTheory = true;
+        }
+
         if (translator.sink == null || translator.sink == null) {
           // something went wrong during construction, which reads the prelude; an error has
           // already been printed, so just return an empty program here (which is non-null)
-          yield return new Tuple<string, Bpl.Program>(outerModule.SanitizedName, new Bpl.Program());
+          yield return new Tuple<string, Bpl.Program, DafnyOptions>(outerModule.SanitizedName, new Bpl.Program(), moduleOptions);
         }
-        yield return new Tuple<string, Bpl.Program>(outerModule.SanitizedName, translator.DoTranslation(p, outerModule));
+        yield return new Tuple<string, Bpl.Program, DafnyOptions>(outerModule.SanitizedName, translator.DoTranslation(p, outerModule), moduleOptions);
       }
     }
 

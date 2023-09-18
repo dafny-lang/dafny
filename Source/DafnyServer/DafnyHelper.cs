@@ -25,7 +25,7 @@ namespace Microsoft.Dafny {
 
     private ErrorReporter reporter;
     private Program dafnyProgram;
-    private IEnumerable<Tuple<string, Bpl.Program>> boogiePrograms;
+    private IEnumerable<Tuple<string, Bpl.Program, DafnyOptions>> boogiePrograms;
     private readonly CounterExampleProvider counterExampleProvider = new();
 
     public DafnyHelper(DafnyOptions options, ExecutionEngine engine, string[] args, string fname, string source) {
