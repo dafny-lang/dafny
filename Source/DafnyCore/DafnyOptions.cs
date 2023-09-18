@@ -1211,7 +1211,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
       // Boogie also used to set the following options, but does not anymore.
       SetZ3Option("auto_config", "false");
       SetZ3Option("type_check", "true");
-      SetZ3Option("smt.qi.eager_threshold", "30"); // was 100 before
+      SetZ3Option("smt.qi.eager_threshold", "60"); // was 100 before
       SetZ3Option("smt.delay_units", "true");
 
       // This option helps avoid "time travelling triggers".
