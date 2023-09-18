@@ -7,6 +7,7 @@
 //-----------------------------------------------------------------------------
 using System;
 using System.Collections.Generic;
+using Dafny;
 using Bpl = Microsoft.Boogie;
 using BplParser = Microsoft.Boogie.Parser;
 using Microsoft.Boogie;
@@ -17,13 +18,28 @@ namespace Microsoft.Dafny {
   public class ProofDependencyManager {
     // proof dependency tracking state
     public Dictionary<string, ProofDependency> ProofDependenciesById { get; } = new();
+    private Dictionary<string, HashSet<ProofDependency>> idsByMemberName = new();
     private UInt64 proofDependencyIdCount = 0;
+    private string currentDefinition = null;
 
     public string GetProofDependencyId(ProofDependency dep) {
       var idString = $"id{proofDependencyIdCount}";
       ProofDependenciesById[idString] = dep;
       proofDependencyIdCount++;
+      if (!idsByMemberName.TryGetValue(currentDefinition, out var currentSet)) {
+        currentSet = new HashSet<ProofDependency>();
+        idsByMemberName[currentDefinition] = currentSet;
+      }
+      currentSet.Add(dep);
       return idString;
+    }
+
+    public void SetCurrentDefinition(string defName) {
+      currentDefinition = defName;
+    }
+
+    public IEnumerable<ProofDependency> GetPotentialDependenciesForDefinition(string defName) {
+      return idsByMemberName[defName];
     }
 
     // The "id" attribute on a Boogie AST node is used by Boogie to label

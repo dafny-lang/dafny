@@ -13,7 +13,9 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using DafnyCore;
+using DafnyCore.Verifier;
 using Microsoft.Boogie;
+using Microsoft.Dafny.ProofObligationDescription;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
@@ -202,6 +204,5 @@ to also include a directory containing the `z3` executable.
           throw new cce.UnreachableException(); // unexpected outcome
       }
     }
-
   }
 }
