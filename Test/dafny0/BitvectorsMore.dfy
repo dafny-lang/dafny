@@ -1,4 +1,4 @@
-// RUN: %testDafnyForEachResolver --expect-exit-code=4 "%s" -- --error-limit=0 --rprint:-
+// RUN: %testDafnyForEachResolver --expect-exit-code=4 "%s" -- --error-limit=0 --relax-definite-assignment --rprint:-
 
 
 method M() {
