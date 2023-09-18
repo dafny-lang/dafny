@@ -27,7 +27,7 @@ public class SimpleLinearVerificationGutterStatusTester : LinearVerificationGutt
  ? :  assert 1 == 0;
  ? :}", false, intermediates: false);
   }
-  
+
   [Fact]
   public async Task Fields() {
     var markedSource = @"
