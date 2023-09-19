@@ -186,7 +186,7 @@ namespace Microsoft.Dafny {
         } else if (member is Function fn) {
           e.Member = fn;
           if (fn is TwoStateFunction && !resolutionContext.twoState) {
-            ReportError(e.tok, "a two-state function can be used only in a two-state resolutionContext");
+            ReportError(e.tok, "a two-state function can be used only in a two-state context");
           }
           // build the type substitution map
           e.TypeApplication_AtEnclosingClass = tentativeReceiverType.TypeArgs;
@@ -1137,7 +1137,7 @@ namespace Microsoft.Dafny {
         } else {
           if (!scope.AllowInstance) {
             if (complain) {
-              ReportError(expr.tok, "'this' is not allowed in a 'static' resolutionContext"); //TODO: Rephrase this
+              ReportError(expr.tok, "'this' is not allowed in a 'static' context"); //TODO: Rephrase this
             } else {
               expr.ResolvedExpression = null;
               return null;
@@ -1530,7 +1530,7 @@ namespace Microsoft.Dafny {
 #endif
       } else if (member is Function function) {
         if (function is TwoStateFunction && !resolutionContext.IsTwoState) {
-          ReportError(tok, "two-state function ('{0}') can only be called in a two-state resolutionContext", member.Name);
+          ReportError(tok, "two-state function ('{0}') can only be called in a two-state context", member.Name);
         }
         int suppliedTypeArguments = optTypeArguments == null ? 0 : optTypeArguments.Count;
         if (optTypeArguments != null) {

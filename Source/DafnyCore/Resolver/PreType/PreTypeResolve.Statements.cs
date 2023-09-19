@@ -157,6 +157,21 @@ namespace Microsoft.Dafny {
                 var call = new CallStmt(s.RangeToken, new List<Expression>(), methodCallInfo.Callee, methodCallInfo.ActualParameters);
                 s.ResolvedStatements.Add(call);
               }
+            } else if (expr is NameSegment or ExprDotName) {
+              if (expr is NameSegment) {
+                ResolveNameSegment((NameSegment)expr, true, null, revealResolutionContext, true);
+              } else {
+                ResolveDotSuffix((ExprDotName)expr, true, null, revealResolutionContext, true);
+              }
+              var callee = (MemberSelectExpr)((ConcreteSyntaxExpression)expr).ResolvedExpression;
+              if (callee == null) {
+              } else if (callee.Member is Lemma or TwoStateLemma && Attributes.Contains(callee.Member.Attributes, "axiom")) {
+                //The revealed member is a function
+                ReportError(callee.tok, "to reveal a function ({0}), append parentheses", callee.Member.ToString().Substring(7));
+              } else {
+                var call = new CallStmt(s.RangeToken, new List<Expression>(), callee, new List<ActualBinding>(), expr.tok);
+                s.ResolvedStatements.Add(call);
+              }
             } else {
               ResolveExpression(expr, revealResolutionContext);
             }
