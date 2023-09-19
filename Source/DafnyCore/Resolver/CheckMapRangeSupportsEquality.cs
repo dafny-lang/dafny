@@ -40,7 +40,7 @@ class CheckMapRangeSupportsEquality : ASTVisitor<IASTVisitorContext> {
         // The type of the range must support equality
         if (!e.Lhs.Type.AsMapType.Range.SupportsEquality) {
           reporter.Error(MessageSource.Resolver, expr,
-            $"Cannot compute the set of {e.SuffixName} because the type the of the range of the map ({e.Lhs.Type.AsMapType.Range}) does not support equality.");
+            $"Cannot compute the set of {e.SuffixName} because the type of the range of the map ({e.Lhs.Type.AsMapType.Range}) does not support equality.");
         }
       }
     }
