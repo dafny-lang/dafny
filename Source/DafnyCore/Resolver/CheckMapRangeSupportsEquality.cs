@@ -24,6 +24,13 @@ class CheckMapRangeSupportsEquality : ASTVisitor<IASTVisitorContext> {
 
   protected override bool VisitOneExpression(Expression expr, IASTVisitorContext context) {
 
+    if (context is MemberDecl) {
+      var member = (MemberDecl)context;
+      if (member.IsGhost) {
+        return base.VisitOneExpression(expr, context);
+      }
+    }
+
     if (expr is ExprDotName) {
       var e = (ExprDotName)expr;
       // Condition 1: the left-hand side is not a module and has a type
