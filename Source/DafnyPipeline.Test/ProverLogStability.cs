@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -29,7 +30,7 @@ module SomeModule {
     }
   }
 
-  method m() {
+  method m() ensures false {
     var x: NestedModule.C;
     x := new NestedModule.C();
     x.f := 4;
@@ -66,6 +67,19 @@ method SomeMethod(methodFormal: int) returns (result: bool)
   var c := new FooClass();
   result := methodFormal == SomeFunc(42, c);
 }
+
+datatype ImapSimulator_<!A, B> = ImapSimulator(
+  input: iset<A>,
+  apply: A --> B)
+{
+  ghost predicate Valid() {
+    forall i <- input :: apply.requires(i)
+  }
+}
+
+type ImapSimulator<!A, B> =
+  X: ImapSimulator_<A, B> |
+  X.Valid() witness ImapSimulator(iset{}, (x: A) requires false => match() {})
 ";
 
     public ProverLogStabilityTest(ITestOutputHelper testOutputHelper) {
@@ -91,7 +105,6 @@ method SomeMethod(methodFormal: int) returns (result: bool)
     [Fact]
     public async Task ProverLogRegression() {
       var options = DafnyOptions.Create((TextWriter)new WriterFromOutputHelper(testOutputHelper));
-      options.ProcsToCheck.Add("SomeMethod*");
 
       var filePath = Path.Combine(Directory.GetCurrentDirectory(), "expectedProverLog.smt2");
       var expectation = await File.ReadAllTextAsync(filePath);
