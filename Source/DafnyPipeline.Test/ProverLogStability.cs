@@ -98,7 +98,7 @@ method SomeMethod(methodFormal: int) returns (result: bool)
     }
 
     IEnumerable<BoogieProgram> GetBoogie(DafnyOptions options, string dafnyProgramText) {
-      BatchErrorReporter reporter = new BatchErrorReporter(options);
+      var reporter = new BatchErrorReporter(options);
       var dafnyProgram = Utils.Parse(reporter, dafnyProgramText, false);
       Assert.NotNull(dafnyProgram);
       DafnyMain.Resolve(dafnyProgram);
