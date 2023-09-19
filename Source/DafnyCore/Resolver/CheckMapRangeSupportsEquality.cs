@@ -5,6 +5,8 @@
 //
 //-----------------------------------------------------------------------------
 
+using System;
+
 namespace Microsoft.Dafny;
 
 /// <summary>
@@ -33,7 +35,7 @@ class CheckMapRangeSupportsEquality : ASTVisitor<IASTVisitorContext> {
         // The type of the range must support equality
         if (!e.Lhs.Type.AsMapType.Range.SupportsEquality) {
           reporter.Error(MessageSource.Resolver, expr,
-            $"Cannot compute the set of {e.SuffixName} of map '{e.Lhs}' because the type of its range ({e.Lhs.Type.AsMapType.Range}) does not support equality.");
+            $"Cannot compute the set of {e.SuffixName} because the type the of the range of the map ({e.Lhs.Type.AsMapType.Range}) does not support equality.");
         }
       }
     }
