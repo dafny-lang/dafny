@@ -253,9 +253,9 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext, ICanVerify {
 
     // ---------- here comes predicate Valid() ----------
     var reads = Member_Valid.Reads;
-    reads.Add(new FrameExpression(tok, new ThisExpr(tok), null));  // reads this;
-    reads.Add(new FrameExpression(tok, new ExprDotName(tok, new ThisExpr(tok), "_reads", null), null));  // reads this._reads;
-    reads.Add(new FrameExpression(tok, new ExprDotName(tok, new ThisExpr(tok), "_new", null), null));  // reads this._new;
+    reads.Expressions.Add(new FrameExpression(tok, new ThisExpr(tok), null));  // reads this;
+    reads.Expressions.Add(new FrameExpression(tok, new ExprDotName(tok, new ThisExpr(tok), "_reads", null), null));  // reads this._reads;
+    reads.Expressions.Add(new FrameExpression(tok, new ExprDotName(tok, new ThisExpr(tok), "_new", null), null));  // reads this._new;
 
     // ---------- here comes method MoveNext() ----------
     // requires this.Valid();
@@ -421,7 +421,7 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext, ICanVerify {
     var init = new Constructor(rangeToken, new Name(NameNode.RangeToken, "_ctor"), false,
       new List<TypeParameter>(), Ins,
       new List<AttributedExpression>(),
-      new List<FrameExpression>(),
+      new Specification<FrameExpression>(),
       new Specification<FrameExpression>(new List<FrameExpression>(), null),
       new List<AttributedExpression>(),
       new Specification<Expression>(new List<Expression>(), null),
@@ -432,7 +432,7 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext, ICanVerify {
       new List<Formal>(),
       null,
       new List<AttributedExpression>(),
-      new List<FrameExpression>(),
+      new Specification<FrameExpression>(),
       new List<AttributedExpression>(),
       new Specification<Expression>(new List<Expression>(), null),
       null, Predicate.BodyOriginKind.OriginalOrInherited, null, null, null, null);
@@ -441,7 +441,7 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext, ICanVerify {
       new List<TypeParameter>(),
       new List<Formal>(), new List<Formal>() { new Formal(tok, "more", Type.Bool, false, false, null) },
       new List<AttributedExpression>(),
-      new List<FrameExpression>(),
+      new Specification<FrameExpression>(),
       new Specification<FrameExpression>(new List<FrameExpression>(), null),
       new List<AttributedExpression>(),
       new Specification<Expression>(new List<Expression>(), null),

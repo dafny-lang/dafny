@@ -88,7 +88,7 @@ public class AutoContractsRewriter : IRewriter {
     // ...unless an instance function with that name is already present
     if (!cl.Members.Exists(member => member is Function && member.Name == "Valid" && !member.IsStatic)) {
       var valid = new Predicate(range, new Name(cl.NameNode.RangeToken, "Valid"), false, true, false, new List<TypeParameter>(), new List<Formal>(), null,
-        new List<AttributedExpression>(), new List<FrameExpression>(), new List<AttributedExpression>(), new Specification<Expression>(new List<Expression>(), null),
+        new List<AttributedExpression>(), new Specification<FrameExpression>(), new List<AttributedExpression>(), new Specification<Expression>(new List<Expression>(), null),
         null, Predicate.BodyOriginKind.OriginalOrInherited, null, null, null, null);
       cl.Members.Add(valid);
       // It will be added to hover text later
@@ -110,8 +110,8 @@ public class AutoContractsRewriter : IRewriter {
         // reads this, Repr
         var r0 = new ThisExpr(tok);
         var r1 = CreateUnresolvedThisRepr(tok);
-        valid.Reads.Add(new FrameExpression(tok, r0, null));
-        valid.Reads.Add(new FrameExpression(tok, r1, null));
+        valid.Reads.Expressions.Add(new FrameExpression(tok, r0, null));
+        valid.Reads.Expressions.Add(new FrameExpression(tok, r1, null));
         // ensures Valid() ==> this in Repr
         var post = new BinaryExpr(tok, BinaryExpr.Opcode.Imp,
           CreateUnresolvedValidCall(tok),
@@ -132,9 +132,9 @@ public class AutoContractsRewriter : IRewriter {
         f.Req.Insert(0, new AttributedExpression(valid));
         var format = "requires {0}";
         var repr = CreateUnresolvedThisRepr(tok);
-        if (f.Reads.Count == 0) {
+        if (f.Reads.Expressions.Count == 0) {
           // reads Repr
-          f.Reads.Add(new FrameExpression(tok, repr, null));
+          f.Reads.Expressions.Add(new FrameExpression(tok, repr, null));
           format += "\nreads {1}";
         }
         AddHoverText(member.tok, format, valid, repr);

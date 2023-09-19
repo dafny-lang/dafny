@@ -68,7 +68,7 @@ namespace DafnyTestGeneration {
       Options = options;
       Implementation = impl;
       CounterexampleStatus = Status.Untested;
-      this.program = Utils.DeepCloneProgram(options, program);
+      this.program = program;
       this.testEntryNames = testEntryNames;
       CapturedStates = capturedStates;
       this.uniqueId = uniqueId;
@@ -105,6 +105,7 @@ namespace DafnyTestGeneration {
       options.EnhancedErrorMessages = 1;
       options.ModelViewFile = "-";
       options.Prune = options.TestGenOptions.ForcePrune;
+      options.PruneInfeasibleEdges = false;  // because same implementation object is reused to generate multiple tests
     }
 
     /// <summary>
@@ -122,8 +123,6 @@ namespace DafnyTestGeneration {
       var writer = new StringWriter();
       using (var engine = ExecutionEngine.CreateWithoutSharedCache(options)) {
         var guid = Guid.NewGuid().ToString();
-        program.Resolve(options);
-        program.Typecheck(options);
         var result = await Task.WhenAny(engine.InferAndVerify(writer, program,
             new PipelineStatistics(), null,
             _ => { }, guid),

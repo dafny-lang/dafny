@@ -180,6 +180,10 @@ public class TypeRhs : AssignmentRhs, ICloneable<TypeRhs> {
 
   public override IEnumerable<INode> Children {
     get {
+      if (Type == null) {
+        return PreResolveChildren;
+      }
+
       if (ArrayDimensions == null) {
         if (InitCall != null) {
           return new[] { InitCall };

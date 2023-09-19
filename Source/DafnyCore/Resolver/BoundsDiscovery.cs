@@ -169,7 +169,7 @@ namespace Microsoft.Dafny {
 
       protected override void VisitExpression(Expression expr, BoundsDiscoveryContext context) {
         if (expr is LambdaExpr lambdaExpr) {
-          lambdaExpr.Reads.ForEach(DesugarFunctionsInFrameClause);
+          lambdaExpr.Reads.Expressions.ForEach(DesugarFunctionsInFrameClause);
 
           // Make the context more specific when visiting inside a lambda expression
           context = new BoundsDiscoveryContext(context, lambdaExpr);
