@@ -24,13 +24,12 @@ namespace Microsoft.Dafny {
 
   public static class Util {
 
-    public static void ForEach<T>(this IEnumerable<T> collection, Action<T> action)
-    {
+    public static void ForEach<T>(this IEnumerable<T> collection, Action<T> action) {
       foreach (var element in collection) {
         action(element);
       }
     }
-    
+
     public static bool LessThanOrEquals<T>(this T first, T second)
       where T : IComparable<T> {
       return first.CompareTo(second) != 1;
