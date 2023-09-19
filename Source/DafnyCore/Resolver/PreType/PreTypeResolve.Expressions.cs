@@ -1684,7 +1684,9 @@ namespace Microsoft.Dafny {
                 }
               }
               if (allowMethodCall) {
-                e.MethodCallInfo = new ModuleResolver.MethodCallInformation(e.RangeToken, mse, e.Bindings.ArgumentBindings);
+                Contract.Assert(!e.Bindings.WasResolved); // we expect that .Bindings has not yet been processed, so we use just .ArgumentBindings in the next line
+                var tok = resolver.Options.Get(DafnyConsolePrinter.ShowSnippets) ? e.RangeToken.ToToken() : e.tok;
+                e.MethodCallInfo = new ModuleResolver.MethodCallInformation(tok, mse, e.Bindings.ArgumentBindings);
                 return e.MethodCallInfo;
               } else {
                 ReportError(e.tok, "{0} call is not allowed to be used in an expression resolutionContext ({1})", mse.Member.WhatKind, mse.Member.Name);
