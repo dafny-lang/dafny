@@ -563,7 +563,7 @@ namespace Microsoft.Dafny {
       var tps = previousFunction.TypeArgs.ConvertAll(refinementCloner.CloneTypeParam);
       var formals = previousFunction.Formals.ConvertAll(p => refinementCloner.CloneFormal(p, false));
       var req = previousFunction.Req.ConvertAll(refinementCloner.CloneAttributedExpr);
-      var reads = previousFunction.Reads.ConvertAll(refinementCloner.CloneFrameExpr);
+      var reads = refinementCloner.CloneSpecFrameExpr(previousFunction.Reads);
       var decreases = refinementCloner.CloneSpecExpr(previousFunction.Decreases);
       var result = previousFunction.Result ?? newFunction.Result;
       if (result != null) {
@@ -633,7 +633,7 @@ namespace Microsoft.Dafny {
       var tps = previousMethod.TypeArgs.ConvertAll(refinementCloner.CloneTypeParam);
       var ins = previousMethod.Ins.ConvertAll(p => refinementCloner.CloneFormal(p, false));
       var req = previousMethod.Req.ConvertAll(refinementCloner.CloneAttributedExpr);
-      var reads = previousMethod.Reads.ConvertAll(refinementCloner.CloneFrameExpr);
+      var reads = refinementCloner.CloneSpecFrameExpr(previousMethod.Reads);
       var mod = refinementCloner.CloneSpecFrameExpr(previousMethod.Mod);
 
       var ens = refinementCloner.WithRefinementTokenWrapping(
@@ -812,8 +812,8 @@ namespace Microsoft.Dafny {
               if (f.Req.Count != 0) {
                 Error(ErrorId.ref_refinement_no_new_preconditions, f.Req[0].E.tok, "a refining {0} is not allowed to add preconditions", f.WhatKind);
               }
-              if (f.Reads.Count != 0) {
-                Error(ErrorId.ref_refinement_no_new_reads, f.Reads[0].E.tok, "a refining {0} is not allowed to extend the reads clause", f.WhatKind);
+              if (f.Reads.Expressions.Count != 0) {
+                Error(ErrorId.ref_refinement_no_new_reads, f.Reads.Expressions[0].E.tok, "a refining {0} is not allowed to extend the reads clause", f.WhatKind);
               }
               if (f.Decreases.Expressions.Count != 0) {
                 Error(ErrorId.ref_no_new_decreases, f.Decreases.Expressions[0].tok, "decreases clause on refining {0} not supported", f.WhatKind);
@@ -863,8 +863,8 @@ namespace Microsoft.Dafny {
               if (m.Req.Count != 0) {
                 Error(ErrorId.ref_no_new_method_precondition, m.Req[0].E.tok, "a refining method is not allowed to add preconditions");
               }
-              if (m.Reads.Count != 0) {
-                Error(ErrorId.ref_no_new_method_reads, m.Reads[0].E.tok, "a refining method is not allowed to extend the reads clause");
+              if (m.Reads.Expressions.Count != 0) {
+                Error(ErrorId.ref_no_new_method_reads, m.Reads.Expressions[0].E.tok, "a refining method is not allowed to extend the reads clause");
               }
               if (m.Mod.Expressions.Count != 0) {
                 Error(ErrorId.ref_no_new_method_modifies, m.Mod.Expressions[0].E.tok, "a refining method is not allowed to extend the modifies clause");

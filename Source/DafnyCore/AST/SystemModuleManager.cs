@@ -180,7 +180,7 @@ public class SystemModuleManager {
     var formals = new List<Formal> { new Formal(Token.NoToken, "w", Type.Nat(), true, false, null, false) };
     var rotateMember = new SpecialFunction(RangeToken.NoToken, name, SystemModule, false, false,
       new List<TypeParameter>(), formals, resultType,
-      new List<AttributedExpression>(), new List<FrameExpression>(), new List<AttributedExpression>(),
+      new List<AttributedExpression>(), new Specification<FrameExpression>(new List<FrameExpression>(), null), new List<AttributedExpression>(),
       new Specification<Expression>(new List<Expression>(), null), null, null, null);
     rotateMember.EnclosingClass = enclosingType;
     rotateMember.AddVisibilityScope(SystemModule.VisibilityScope, false);
@@ -277,7 +277,7 @@ public class SystemModuleManager {
       var readsFrame = new List<FrameExpression> { new FrameExpression(tok, readsIS, null) };
       var function = new Function(RangeToken.NoToken, new Name(name), false, true, false,
         new List<TypeParameter>(), args, null, resultType,
-        new List<AttributedExpression>(), readsFrame, new List<AttributedExpression>(),
+        new List<AttributedExpression>(), new Specification<FrameExpression>(readsFrame, null), new List<AttributedExpression>(),
         new Specification<Expression>(new List<Expression>(), null),
         null, null, null, null, null);
       readsIS.Function = readsFunction ?? function; // just so we can really claim the member declarations are resolved

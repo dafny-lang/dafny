@@ -1,18 +1,13 @@
 using System;
 using System.Collections.Generic;
 using System.CommandLine;
-using System.CommandLine.Binding;
-using System.Configuration;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Text;
-using System.Threading;
+using DafnyCore.Generic;
 using Microsoft.Dafny;
-using Microsoft.Dafny.Auditor;
 using Tomlyn;
-using Tomlyn.Model;
-using Type = System.Type;
 
 namespace DafnyCore; 
 
@@ -137,7 +132,7 @@ public class DooFile {
 
       object libraryValue = null;
       if (Manifest.Options.TryGetValue(option.Name, out var manifestValue)) {
-        if (!DafnyProject.TryGetValueFromToml(Console.Out, null,
+        if (!TomlUtil.TryGetValueFromToml(Console.Out, null,
               option.Name, option.ValueType, manifestValue, out libraryValue)) {
           return false;
         }

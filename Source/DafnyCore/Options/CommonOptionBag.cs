@@ -188,6 +188,18 @@ true - Print debug information for the new type system.".TrimStart()) {
     "Emits a warning when a constructor name in a case pattern is not followed by parentheses.");
   public static readonly Option<bool> WarnShadowing = new("--warn-shadowing",
     "Emits a warning if the name of a declared variable caused another variable to be shadowed.");
+  public static readonly Option<bool> WarnContradictoryAssumptions = new("--warn-contradictory-assumptions", @"
+(experimental) Emits a warning if any assertions are proved based on contradictory assumptions (vacuously).
+May slow down verification slightly.
+May produce spurious warnings.") {
+    IsHidden = true
+  };
+  public static readonly Option<bool> WarnRedundantAssumptions = new("--warn-redundant-assumptions", @"
+(experimental) Emits a warning if any `requires` clause or `assume` statement was not needed to complete verification.
+May slow down verification slightly.
+May produce spurious warnings.") {
+    IsHidden = true
+  };
 
   public static readonly Option<bool> IncludeRuntimeOption = new("--include-runtime",
     "Include the Dafny runtime as source in the target language.");
@@ -251,6 +263,12 @@ Change the default opacity of functions.
     DafnyOptions.RegisterLegacyBinding(WarningAsErrors, (options, value) => { options.WarningsAsErrors = value; });
     DafnyOptions.RegisterLegacyBinding(VerifyIncludedFiles,
       (options, value) => { options.VerifyAllModules = value; });
+    DafnyOptions.RegisterLegacyBinding(WarnContradictoryAssumptions, (options, value) => {
+      if (value) { options.TrackVerificationCoverage = true; }
+    });
+    DafnyOptions.RegisterLegacyBinding(WarnRedundantAssumptions, (options, value) => {
+      if (value) { options.TrackVerificationCoverage = true; }
+    });
 
     DafnyOptions.RegisterLegacyBinding(Target, (options, value) => { options.CompilerName = value; });
 
@@ -350,6 +368,8 @@ Change the default opacity of functions.
       WarnMissingConstructorParenthesis,
       UseJavadocLikeDocstringRewriterOption,
       IncludeRuntimeOption,
+      WarnContradictoryAssumptions,
+      WarnRedundantAssumptions,
       DefaultFunctionOpacity
     );
   }

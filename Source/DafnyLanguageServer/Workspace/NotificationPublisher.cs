@@ -34,65 +34,78 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         return;
       }
 
-      PublishProgressStatus(previousState, state);
+      PublishProgress(previousState, state);
       PublishGhostness(previousState, state);
       await PublishDiagnostics(state);
     }
 
-    private void PublishProgressStatus(IdeState previousState, IdeState state) {
-      foreach (var uri in state.Compilation.RootUris) {
-        // TODO, still have to check for ownedness
+    private void PublishProgress(IdeState previousState, IdeState state) {
+      // Some global progress values, such as ResolutionSucceeded, will trigger the symbol progress to be displayed.
+      // To ensure that the displayed progress is always up-to-date,
+      // we must publish symbol progress before publishing the global one.
 
-        var current = GetProgressStatus(state, uri);
-        var previous = GetProgressStatus(previousState, uri);
+      // Better would be to have a single notification API with the schema { globalProgress, symbolProgress }
+      // so this problem can not occur, although that would require the "symbolProgress" part to be able to contain a
+      // "no-update" value to prevent having to send many duplicate symbolProgress updates.
+
+      PublishSymbolProgress(previousState, state);
+      PublishGlobalProgress(previousState, state);
+    }
+
+    private void PublishSymbolProgress(IdeState previousState, IdeState state) {
+      foreach (var uri in state.Compilation.RootUris) {
+        var previous = GetFileVerificationStatus(previousState, uri);
+        var current = GetFileVerificationStatus(state, uri);
 
         if (Equals(current, previous)) {
           continue;
         }
 
-        switch (current) {
-          case ResolutionProgressStatus resolutionProgressStatus:
-            languageServer.SendNotification(new CompilationStatusParams {
-              Uri = uri,
-              Version = filesystem.GetVersion(uri),
-              Status = resolutionProgressStatus.CompilationStatus,
-              Message = null
-            });
-            break;
-          case VerificationProgressStatus verificationProgressStatus:
-            languageServer.TextDocument.SendNotification(DafnyRequestNames.VerificationSymbolStatus, verificationProgressStatus.FileVerificationStatus);
-            break;
+        languageServer.TextDocument.SendNotification(DafnyRequestNames.VerificationSymbolStatus, current);
+      }
+    }
+
+    private void PublishGlobalProgress(IdeState previousState, IdeState state) {
+      foreach (var uri in state.Compilation.RootUris) {
+        // TODO, still have to check for ownedness
+
+        var current = GetGlobalProgress(state);
+        var previous = GetGlobalProgress(previousState);
+
+        if (Equals(current, previous)) {
+          continue;
         }
+
+        languageServer.SendNotification(new CompilationStatusParams {
+          Uri = uri,
+          Version = filesystem.GetVersion(uri),
+          Status = current,
+          Message = null
+        });
       }
 
     }
 
-    private abstract record ProgressStatus;
-
-    private sealed record VerificationProgressStatus(FileVerificationStatus FileVerificationStatus) : ProgressStatus;
-
-    private sealed record ResolutionProgressStatus(CompilationStatus CompilationStatus) : ProgressStatus;
-
-    private ProgressStatus GetProgressStatus(IdeState state, Uri uri) {
-      var hasResolutionDiagnostics = (state.ResolutionDiagnostics.GetValueOrDefault(uri) ?? Enumerable.Empty<Diagnostic>()).
+    private CompilationStatus GetGlobalProgress(IdeState state) {
+      var hasResolutionDiagnostics = state.ResolutionDiagnostics.Values.SelectMany(x => x).
         Any(d => d.Severity == DiagnosticSeverity.Error);
       if (state.Compilation is CompilationAfterResolution) {
         if (hasResolutionDiagnostics) {
-          return new ResolutionProgressStatus(CompilationStatus.ResolutionFailed);
+          return CompilationStatus.ResolutionFailed;
         }
 
-        return new VerificationProgressStatus(GetFileVerificationStatus(state, uri));
+        return CompilationStatus.ResolutionSucceeded;
       }
 
       if (state.Compilation is CompilationAfterParsing) {
         if (hasResolutionDiagnostics) {
-          return new ResolutionProgressStatus(CompilationStatus.ParsingFailed);
+          return CompilationStatus.ParsingFailed;
         }
 
-        return new ResolutionProgressStatus(CompilationStatus.ResolutionStarted);
+        return CompilationStatus.ResolutionStarted;
       }
 
-      return new ResolutionProgressStatus(CompilationStatus.Parsing);
+      return CompilationStatus.Parsing;
     }
 
     private FileVerificationStatus GetFileVerificationStatus(IdeState state, Uri uri) {

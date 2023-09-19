@@ -88,8 +88,8 @@ class Concurrent {
   }
 
   ghost method {:concurrent} AllTheBoxes() 
-    reads set b: GhostBox<int> | true
-    modifies set b: GhostBox<int> | true
+    reads set b: GhostBox<int> | true  // Error: reads clause could not be proved to be empty ({:concurrent} restriction)
+    modifies set b: GhostBox<int> | true  // Error: modifies clause could not be proved to be empty ({:concurrent} restriction)
   {
   }
 
