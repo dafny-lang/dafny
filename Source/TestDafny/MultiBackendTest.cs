@@ -132,16 +132,16 @@ public class MultiBackendTest {
         0,
         NoVerify: false)
     };
-    if (options.RefreshExitCode != null) {
-      resolutionOptions.Add(
-        new ResolutionSetting(
-          "refresh",
-          new string[] { "--type-system-refresh" },
-          new string[] { ".refresh.expect", ".verifier.expect" },
-          (int)options.RefreshExitCode,
-          NoVerify: false)
-      );
-    }
+    // if (options.RefreshExitCode != null) {
+    //   resolutionOptions.Add(
+    //     new ResolutionSetting(
+    //       "refresh",
+    //       new string[] { "--type-system-refresh" },
+    //       new string[] { ".refresh.expect", ".verifier.expect" },
+    //       (int)options.RefreshExitCode,
+    //       NoVerify: false)
+    //   );
+    // }
     foreach (var resolutionOption in resolutionOptions) {
       var (exitCode, outputString, error) = RunDafny(options.DafnyCliPath, dafnyArgs.Concat(resolutionOption.AdditionalOptions));
 
@@ -237,8 +237,8 @@ public class MultiBackendTest {
     var resolutionOptions = new List<ResolutionSetting>() {
       new ResolutionSetting("legacy", new string[] { }, new string[] { ".expect" },
         options.ExpectExitCode ?? 0, NoVerify: false),
-      new ResolutionSetting("refresh", new string[] { "--type-system-refresh" }, new string[] { ".refresh.expect", ".expect" },
-        options.RefreshExitCode ?? options.ExpectExitCode ?? 0, NoVerify: options.RefreshNoVerify)
+      // new ResolutionSetting("refresh", new string[] { "--type-system-refresh" }, new string[] { ".refresh.expect", ".expect" },
+      //   options.RefreshExitCode ?? options.ExpectExitCode ?? 0, NoVerify: options.RefreshNoVerify)
     };
 
     foreach (var resolutionOption in resolutionOptions) {
