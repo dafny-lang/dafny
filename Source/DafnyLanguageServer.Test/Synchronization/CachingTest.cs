@@ -77,9 +77,10 @@ module Importer {
     await CreateAndOpenTestDocument(exporter, Path.Combine(directory, "exporter.dfy"));
     var importer = await CreateAndOpenTestDocument(importerSource, Path.Combine(directory, "importer.dfy"));
 
-    var diagnostics1 = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
-    Assert.Empty(diagnostics1.Where(d => d.Severity == DiagnosticSeverity.Error));
+    // Make a change to imported, which could trigger a bug where some dependants of it are not marked dirty
     ApplyChange(ref imported, ((0, 0), (0, 0)), "//comment" + Environment.NewLine);
+
+    // Make any change that should cause a diagnostic to be shown 
     ApplyChange(ref importer, ((2, 18), (2, 19)), "true");
     var diagnostics2 = await GetLastDiagnostics(importer);
     Assert.Single(diagnostics2.Where(d => d.Severity == DiagnosticSeverity.Error));
