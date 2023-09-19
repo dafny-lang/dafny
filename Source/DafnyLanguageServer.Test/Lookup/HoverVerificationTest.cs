@@ -460,7 +460,7 @@ Could not prove: `i <= 0`"
           Text = @"/"
         });
       await AssertHoverMatches(documentItem, (6, 11),
-        null
+        "No hover information available due to program error"
       );
     }
     [Fact(Timeout = 5 * MaxTestExecutionTimeMs)]
