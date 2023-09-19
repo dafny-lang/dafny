@@ -24,6 +24,13 @@ class CheckMapRangeSupportsEquality : ASTVisitor<IASTVisitorContext> {
 
   protected override bool VisitOneExpression(Expression expr, IASTVisitorContext context) {
 
+    if (context is MemberDecl) {
+      var member = (MemberDecl)context;
+      if (member.IsGhost) {
+        return base.VisitOneExpression(expr, context);
+      }
+    }
+
     if (expr is ExprDotName) {
       var e = (ExprDotName)expr;
       // Condition 1: the left-hand side is not a module and has a type
@@ -33,7 +40,7 @@ class CheckMapRangeSupportsEquality : ASTVisitor<IASTVisitorContext> {
         // The type of the range must support equality
         if (!e.Lhs.Type.AsMapType.Range.SupportsEquality) {
           reporter.Error(MessageSource.Resolver, expr,
-            $"Cannot compute the set of {e.SuffixName} of map '{e.Lhs}' because the type of its range ({e.Lhs.Type.AsMapType.Range}) does not support equality.");
+            $"Cannot compute the set of {e.SuffixName} because the type of the range of the map ({e.Lhs.Type.AsMapType.Range}) does not support equality.");
         }
       }
     }
