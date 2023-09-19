@@ -81,7 +81,7 @@ module Importer {
     Assert.Empty(diagnostics1.Where(d => d.Severity == DiagnosticSeverity.Error));
     ApplyChange(ref imported, ((0, 0), (0, 0)), "//comment" + Environment.NewLine);
     ApplyChange(ref importer, ((2, 18), (2, 19)), "true");
-    var diagnostics2 = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
+    var diagnostics2 = await GetLastDiagnostics(importer);
     Assert.Single(diagnostics2.Where(d => d.Severity == DiagnosticSeverity.Error));
     await AssertNoDiagnosticsAreComing(CancellationToken);
   }
