@@ -10,7 +10,6 @@ RefinementErrors.dfy(39,23): Error: the type of parameter 'z' is different from 
 RefinementErrors.dfy(40,9): Error: there is a difference in name of parameter 3 ('k' versus 'b') of function F compared to corresponding function in the module it refines
 RefinementErrors.dfy(57,13): Error: a ghost function can be changed into a compiled function in a refining module only if the function has not yet been given a body: G
 RefinementErrors.dfy(94,10): Error: refinement method cannot assign to a field defined in parent module ('a')
-RefinementErrors.dfy(80,6): Warning: /!\ No terms found to trigger on.
 RefinementErrors.dfy(114,7): Error: abstract type 'T' is declared with a different number of type parameters (3 instead of 2) than the corresponding abstract type in the module it refines
 RefinementErrors.dfy(121,11): Error: type parameter 'B' is not allowed to change the requirement of supporting auto-initialization
 RefinementErrors.dfy(121,13): Error: type parameter 'C' is not allowed to change the requirement of being nonempty

@@ -41,6 +41,7 @@ public record IdeState(
     var migratedVerificationTrees = VerificationTrees.ToDictionary(
       kv => kv.Key, kv =>
         (DocumentVerificationTree)migrator.RelocateVerificationTree(kv.Value));
+
     return this with {
       Version = version,
       VerificationResults = MigrateImplementationViews(migrator, VerificationResults),

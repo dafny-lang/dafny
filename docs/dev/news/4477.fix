@@ -1,0 +1,1 @@
+When verification times out, only show a red underline on the name of the verifiable for which verification timed out, instead of under its whole definition.

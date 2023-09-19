@@ -1,0 +1,1 @@
+Make verification in the IDE more responsive by starting verification after translating the required module to Boogie, instead of first translating all modules that could be verified.   

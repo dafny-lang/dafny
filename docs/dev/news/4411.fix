@@ -1,0 +1,1 @@
+When a symbol such as a method is not given a name, the error given by Dafny now shows where this problem occurs.
