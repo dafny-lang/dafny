@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 using Microsoft.Dafny.LanguageServer.Workspace;
+using OmniSharp.Extensions.LanguageServer.Protocol;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using Xunit;
 using Xunit.Abstractions;
@@ -64,11 +65,11 @@ method Bar() {
     Directory.CreateDirectory(directory);
     await File.WriteAllTextAsync(Path.Combine(directory, "OnDiskProducerVerificationErrors_producer.dfy"), producerSource);
     await File.WriteAllTextAsync(Path.Combine(directory, DafnyProject.FileName), "");
-    await CreateAndOpenTestDocument(consumerSource, Path.Combine(directory, "OnDiskProducerVerificationErrors_consumer1.dfy"));
+    var consumer = await CreateAndOpenTestDocument(consumerSource, Path.Combine(directory, "OnDiskProducerVerificationErrors_consumer1.dfy"));
 
-    var diagnostics1 = await diagnosticsReceiver.AwaitNextNotificationAsync(CancellationToken);
-    Assert.Single(diagnostics1.Diagnostics);
-    Assert.Contains("assertion might not hold", diagnostics1.Diagnostics.First().Message);
+    var diagnostics1 = await GetLastDiagnostics(consumer);
+    Assert.Single(diagnostics1);
+    Assert.Contains("assertion might not hold", diagnostics1.First().Message);
     await AssertNoDiagnosticsAreComing(CancellationToken);
   }
 
@@ -92,22 +93,20 @@ method Bar() {
 
     var directory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
     Directory.CreateDirectory(directory);
-    await File.WriteAllTextAsync(Path.Combine(directory, "OnDiskProducerVerificationErrors_producer.dfy"), producerSource);
+    var producerPath = Path.Combine(directory, "OnDiskProducerVerificationErrors_producer.dfy");
+    var producerUri = DocumentUri.File(producerPath);
+    await File.WriteAllTextAsync(producerPath, producerSource);
     await File.WriteAllTextAsync(Path.Combine(directory, DafnyProject.FileName), "");
-    await CreateAndOpenTestDocument(consumerSource, Path.Combine(directory, "OnDiskProducerVerificationErrors_consumer1.dfy"));
+    var consumer = await CreateAndOpenTestDocument(consumerSource, Path.Combine(directory, "OnDiskProducerVerificationErrors_consumer1.dfy"));
 
-    var diagnostics1 = await diagnosticsReceiver.AwaitNextNotificationAsync(CancellationToken);
-    var diagnostics2 = await diagnosticsReceiver.AwaitNextNotificationAsync(CancellationToken);
+    var diagnostics = await GetAllDiagnostics(CancellationToken);
     try {
-      Assert.Single(diagnostics1.Diagnostics);
-      Assert.Contains("assertion might not hold", diagnostics1.Diagnostics.First().Message);
-      Assert.Single(diagnostics2.Diagnostics);
-      Assert.Contains("assertion might not hold", diagnostics2.Diagnostics.First().Message);
+      Assert.Single(diagnostics[consumer.Uri]);
+      Assert.Contains("assertion might not hold", diagnostics[consumer.Uri].First().Message);
+      Assert.Single(diagnostics[producerUri]);
+      Assert.Contains("assertion might not hold", diagnostics[producerUri].First().Message);
     } catch (Exception) {
-      await output.WriteLineAsync($"diagnostics1: {diagnostics1.Stringify()}");
-      await output.WriteLineAsync($"diagnostics2: {diagnostics2.Stringify()}");
-      var diagnostics3 = await diagnosticsReceiver.AwaitNextNotificationAsync(CancellationToken);
-      await output.WriteLineAsync($"diagnostics3: {diagnostics3.Stringify()}");
+      await output.WriteLineAsync($"diagnostics: {diagnostics.Stringify()}");
       throw;
     }
   }
@@ -283,14 +282,13 @@ includes = [""src/**/*.dfy""]
     var producerItem = await CreateAndOpenTestDocument(producerSource, Path.Combine(directory, "src/producer.dfy"));
     var consumer = await CreateAndOpenTestDocument(consumerSource, Path.Combine(directory, "src/consumer1.dfy"));
 
-    var consumerDiagnostics1 = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, consumer);
+    var consumerDiagnostics1 = await GetLastDiagnostics(consumer);
     Assert.Single(consumerDiagnostics1);
     Assert.Contains("int", consumerDiagnostics1[0].Message);
 
     ApplyChange(ref producerItem, new Range(0, 14, 0, 17), "bool");
-    var consumerDiagnostics2 = await diagnosticsReceiver.AwaitNextNotificationAsync(CancellationToken);
-    Assert.Equal(consumer.Uri, consumerDiagnostics2.Uri);
-    Assert.Empty(consumerDiagnostics2.Diagnostics);
+    var consumerDiagnostics2 = await GetLastDiagnostics(consumer);
+    Assert.Empty(consumerDiagnostics2);
   }
 
   [Fact]

@@ -155,10 +155,7 @@ public class ProgramParser {
       modify(program.SystemModuleManager);
     }
 
-    foreach (var diagnostic in parseResult.ErrorReporter.AllMessages) {
-      program.Reporter.Message(diagnostic.Source, diagnostic.Level, diagnostic.ErrorId, diagnostic.Token,
-        diagnostic.Message);
-    }
+    parseResult.ErrorReporter.CopyDiagnostics(program.Reporter);
 
     foreach (var declToMove in fileModule.DefaultClasses.Concat(fileModule.SourceDecls)) {
       declToMove.EnclosingModuleDefinition = defaultModule;
