@@ -99,6 +99,9 @@ type ImapSimulator<!A, B> =
     /// If this was intentional, you should update this test's expect file with the new SMT input.
     /// The git history of updates to this test allows us to easily see when Dafny's verification has changed.
     ///
+    /// If you make a change to Dafny verification and this test does not fail, then likely the Dafny code in the test
+    /// does not sufficiently cover the language to detect your change. In that case, please update the test so it does.
+    /// 
     /// Note that this test does not detect changes in DafnyPrelude.bplf
     /// 
     /// </summary>
