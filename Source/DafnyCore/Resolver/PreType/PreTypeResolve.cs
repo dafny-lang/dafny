@@ -721,6 +721,19 @@ namespace Microsoft.Dafny {
           nd.Var.PreType = nd.BasePreType;
         }
         ResolveConstraintAndWitness(nd, true);
+
+        // fill in the members inherited from the ancestor built-in type
+        if (PreTypeResolver.AncestorDecl(nd) is ValuetypeDecl valuetypeAncestorDecl) {
+          var memberDictionary = resolver.GetClassMembers(nd);
+          foreach (var member in valuetypeAncestorDecl.Members) {
+            if (memberDictionary.TryGetValue(member.Name, out var previousMember)) {
+              ReportError(previousMember, $"type '{nd.Name}' already inherits a member '{member.Name}' from the built-in ancestor type '{valuetypeAncestorDecl.Name}'");
+            } else {
+              memberDictionary.Add(member.Name, member);
+            }
+          }
+        }
+
       } else if (declaration is IteratorDecl iter) {
         // Note, iter.Ins are reused with the parameters of the iterator's automatically generated _ctor, and
         // the iter.OutsFields are shared with the automatically generated fields of the iterator class. To avoid
