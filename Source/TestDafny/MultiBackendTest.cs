@@ -32,7 +32,7 @@ public class FeaturesOptions {
   public IEnumerable<string> OtherArgs { get; set; } = Array.Empty<string>();
 }
 
-[Verb("for-each-resolver", HelpText = "For each resolver (legacy and refresh), execute the given test file, and assert the output matches the <test file>.expect file.")]
+[Verb("for-each-resolver", HelpText = "For each resolver (legacy and refresh), verify the given test file, and assert the output matches the <test file>.expect file.")]
 public class ForEachResolverOptions {
 
   [Value(0, Required = true, MetaName = "Test file", HelpText = "The *.dfy file to test.")]
@@ -49,6 +49,9 @@ public class ForEachResolverOptions {
 
   [Option("refresh-exit-code", HelpText = "Expected exit code for refresh resolver (default expect-exit-code).")]
   public int? RefreshExitCode { get; set; } = null;
+  
+  [Option("refresh-no-verify", HelpText = "Only perform resolution on the refresh resolver.")]
+  public bool RefreshNoVerify { get; set; } = false;
 }
 
 public class MultiBackendTest {
@@ -91,7 +94,8 @@ public class MultiBackendTest {
     string ReadableName,
     string[] AdditionalOptions,
     string[] ExpectFileSuffixes,
-    int ExpectedExitCode
+    int ExpectedExitCode,
+    bool NoVerify
   );
 
   private int ForEachCompiler(ForEachCompilerOptions options) {
@@ -125,7 +129,8 @@ public class MultiBackendTest {
         "legacy",
         new string[] { },
         new string[] { ".verifier.expect" },
-        0)
+        0,
+        NoVerify: false)
     };
     if (options.RefreshExitCode != null) {
       resolutionOptions.Add(
@@ -133,7 +138,8 @@ public class MultiBackendTest {
           "refresh",
           new string[] { "--type-system-refresh" },
           new string[] { ".refresh.expect", ".verifier.expect" },
-          (int)options.RefreshExitCode)
+          (int)options.RefreshExitCode,
+          NoVerify: false)
       );
     }
     foreach (var resolutionOption in resolutionOptions) {
@@ -213,10 +219,6 @@ public class MultiBackendTest {
   }
 
   public int ForEachResolver(ForEachResolverOptions options) {
-    var parseResult = CommandRegistry.Create(TextWriter.Null, TextWriter.Null, TextReader.Null,
-      new string[] { "verify", options.TestFile! }.Concat(options.OtherArgs).ToArray());
-    var dafnyOptions = ((ParseArgumentSuccess)parseResult).DafnyOptions;
-
     // We also use --(r|b)print to catch bugs with valid but unprintable programs.
     string fileName = Path.GetFileName(options.TestFile!);
     var testDir = Path.GetDirectoryName(options.TestFile!);
@@ -234,9 +236,9 @@ public class MultiBackendTest {
 
     var resolutionOptions = new List<ResolutionSetting>() {
       new ResolutionSetting("legacy", new string[] { }, new string[] { ".expect" },
-        options.ExpectExitCode ?? 0),
+        options.ExpectExitCode ?? 0, NoVerify: false),
       new ResolutionSetting("refresh", new string[] { "--type-system-refresh" }, new string[] { ".refresh.expect", ".expect" },
-        options.RefreshExitCode ?? options.ExpectExitCode ?? 0)
+        options.RefreshExitCode ?? options.ExpectExitCode ?? 0, NoVerify: options.RefreshNoVerify)
     };
 
     foreach (var resolutionOption in resolutionOptions) {
