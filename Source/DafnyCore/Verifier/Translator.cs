@@ -77,8 +77,8 @@ namespace Microsoft.Dafny {
     }
 
     [NotDelayed]
-    public Translator(ErrorReporter reporter, ProofDependencyManager depManager, TranslatorFlags flags = null) {
-      this.options = reporter.Options;
+    public Translator(ErrorReporter reporter, ProofDependencyManager depManager, DafnyOptions dafnyOptions, TranslatorFlags flags = null) {
+      this.options = dafnyOptions;
       this.flags = new TranslatorFlags(options);
       this.proofDependencies = depManager;
       triggersCollector = new Triggers.TriggersCollector(new Dictionary<Expression, HashSet<OldExpr>>(), options);
@@ -924,8 +924,6 @@ namespace Microsoft.Dafny {
       Type.ResetScopes();
 
       foreach (ModuleDefinition outerModule in VerifiableModules(p)) {
-        var translator = new Translator(reporter, p.ProofDependencyManager, flags);
-
         var moduleOptions = new DafnyOptions(p.Options);
         if(outerModule.GetPruneAttribute != null) {
           moduleOptions.Prune = outerModule.GetPruneAttribute.Value;
@@ -933,18 +931,34 @@ namespace Microsoft.Dafny {
         if(outerModule.GetTypeEncodingAttribute != null) {
           moduleOptions.TypeEncodingMethod = outerModule.GetTypeEncodingAttribute.Value;
         }
-        if(outerModule.GetCaseSplitAttribute != null) {
-          moduleOptions.Z3CaseSplitValue = outerModule.GetCaseSplitAttribute.Value;
-        }
+        outerModule.GetAllProverOptAttributes?.ForEach(t => {
+          moduleOptions.SetZ3Option(t.Item1, t.Item2, overwrite: true);
+        });
         if(outerModule.GetSolverAttribute != null) {
           moduleOptions.Solver = outerModule.GetSolverAttribute.Value;
+          int index = moduleOptions.ProverOptions.FindIndex(opt => opt.StartsWith("SOLVER="));
+          string newValue = "SOLVER=" + outerModule.GetSolverAttribute.Value;
+          if (outerModule.GetSolverAttribute.Value == SolverKind.CVC5) {
+            moduleOptions.ProverOptions.RemoveAll(opt => opt.StartsWith("PROVER_PATH"));
+            moduleOptions.ProverOptions.RemoveAll(opt => opt.Contains("case_split"));
+            moduleOptions.ProverOptions.Add("PROVER_PATH=" + moduleOptions.CVC5Path);
+          }
+          if (index == -1) {
+            moduleOptions.ProverOptions.Add(newValue);
+          } else {
+            moduleOptions.ProverOptions[index] = newValue;
+          }
         }
         if(outerModule.UseNativeSeq) {
           moduleOptions.UseSeqTheory = true;
         }
+        if (outerModule.NoLits) {
+          moduleOptions.UseLits = false;
+        }
         if(outerModule.IsolateAssertions) {
           moduleOptions.VcsSplitOnEveryAssert = true;
         }
+        var translator = new Translator(reporter, p.ProofDependencyManager, moduleOptions, flags);
 
         if (translator.sink == null || translator.sink == null) {
           // something went wrong during construction, which reads the prelude; an error has

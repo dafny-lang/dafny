@@ -102,14 +102,17 @@ public class ModuleDefinition : RangeNode, IAttributeBearingDeclaration, IClonea
     }
   }
 
-  public int? GetCaseSplitAttribute {
+  public List<(string, string)> GetAllProverOptAttributes {
     get {
-      if (Attributes.Find(Attributes, Attributes.CaseSplitAttributeName) is Attributes pa 
-          && pa.Args.Count == 1 
-          && pa.Args[0] is LiteralExpr { Value: string prune }) {
-        return int.Parse(prune);
+      var allExpressions = Attributes.FindAllExpressions(Attributes, Attributes.ProverOptAttributeName);
+      if (allExpressions == null) {
+        return null;
       }
-      return null;
+      return allExpressions
+        .SelectMany(exprs => exprs.Select(expr => expr?.AsStringLiteral()?.Split('=')))
+        .Where(splitArray => splitArray is {Length: 2})
+        .Select(splitArray => (splitArray[0], splitArray[1]))
+        .ToList();
     }
   }
 
@@ -131,7 +134,10 @@ public class ModuleDefinition : RangeNode, IAttributeBearingDeclaration, IClonea
 
   public bool UseNativeSeq =>
     Attributes.Contains(Attributes, Attributes.NativeSeqAttributeName);
-  
+
+  public bool NoLits =>
+    Attributes.Contains(Attributes, Attributes.NoLitAttributeName);
+
   public bool IsolateAssertions =>
     Attributes.Contains(Attributes, Attributes.IsolateAssertionsAttriubuteName);
 

@@ -156,7 +156,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(expr != null);
       Contract.Requires(typ != null);
 
-      if (currentModule is { UsesFuel: false }) {
+      if (!options.UseLits || currentModule is { UsesFuel: false }) {
         return expr;
       }
 

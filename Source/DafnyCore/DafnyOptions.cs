@@ -314,12 +314,14 @@ NoGhost - disable printing of functions, ghost methods, and proof
 
     public bool UseSeqs = true;
     public bool UseSeqTheory = false; // Requires UseSeqs = true. TypeEncoding must be Monomorphic.
-    public bool InlineSeqTheoryFunctions = false; // Do not enable if theory functions are used in axiom triggers.
+    public bool InlineSeqTheoryFunctions = true; // Do not enable if theory functions are used in axiom triggers.
     public bool UseSets = true;
     public bool UseISets = true;
     public bool UseMultiSets = true;
     public bool UseMaps = true;
     public bool UseIMaps = true;
+    public string CVC5Path = null;
+    public bool UseLits = true;
 
     public SolverKind Solver = SolverKind.Z3; // TODO: Heads up: this is not currently used!
     public int Z3CaseSplitValue = 3;
@@ -890,6 +892,8 @@ NoGhost - disable printing of functions, ghost methods, and proof
         SetZ3Options(z3Version);
       }
 
+      SetCVC5ExecutablePath();
+
       // Ask Boogie to perform abstract interpretation
       UseAbstractInterpretation = true;
       Ai.J_Intervals = true;
@@ -1181,6 +1185,16 @@ NoGhost - disable printing of functions, ghost methods, and proof
       return null;
     }
 
+    private void SetCVC5ExecutablePath() {
+      var platform = System.Environment.OSVersion.Platform;
+      var isUnix = platform == PlatformID.Unix || platform == PlatformID.MacOSX;
+      CVC5Path ??= System.Environment
+        .GetEnvironmentVariable("PATH")?
+        .Split(isUnix ? ':' : ';')
+        .Select(s => Path.Combine(s, isUnix ? "cvc5" : "cvc5.exe"))
+        .FirstOrDefault(File.Exists);
+    }
+
     private static readonly Regex Z3VersionRegex = new Regex(@"Z3 version (?<major>\d+)\.(?<minor>\d+)\.(?<patch>\d+)");
 
     [CanBeNull]
@@ -1211,9 +1225,13 @@ NoGhost - disable printing of functions, ghost methods, and proof
     }
 
     // Set a Z3 option, but only if it is not overwriting an existing option.
-    private void SetZ3Option(string name, string value) {
-      if (!ProverOptions.Any(o => o.StartsWith($"O:{name}="))) {
-        ProverOptions.Add($"O:{name}={value}");
+    public void SetZ3Option(string name, string value, bool overwrite = false) {
+      string optionPrefix = $"O:{name}=";
+      int index = ProverOptions.FindIndex(o => o.StartsWith(optionPrefix));
+      if (index == -1) {
+        ProverOptions.Add($"{optionPrefix}{value}");
+      } else if (overwrite) {
+        ProverOptions[index] = $"{optionPrefix}{value}";
       }
     }
 
@@ -1241,7 +1259,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
 
       // This option helps avoid "time travelling triggers".
       // See: https://github.com/dafny-lang/dafny/discussions/3362
-      SetZ3Option("smt.case_split", Z3CaseSplitValue.ToString());
+      SetZ3Option("smt.case_split", "3");
 
       // This option tends to lead to the best all-around arithmetic
       // performance, though some programs can be verified more quickly
