@@ -75,6 +75,10 @@ public class CompilationData {
     result.Add(new LocalLinter(reporter));
     result.Add(new PrecedenceLinter(reporter, this));
 
+    if (Options.Get(CommonOptionBag.DefaultFunctionOpacity) == CommonOptionBag.DefaultFunctionOpacityOptions.AutoRevealDependencies) {
+      result.Add(new AutoRevealFunctionDependencies(reporter));
+    }
+
     foreach (var plugin in Options.Plugins) {
       result.AddRange(plugin.GetRewriters(reporter));
     }

@@ -4,7 +4,7 @@ using System.Linq;
 
 namespace Microsoft.Dafny;
 
-public abstract class DatatypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, ICallable, ICanFormat, IHasDocstring {
+public abstract class DatatypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, ICallable, ICanFormat, IHasDocstring, ICanAutoRevealDependencies {
   public override bool CanBeRevealed() { return true; }
   public readonly List<DatatypeCtor> Ctors;
 
@@ -176,5 +176,23 @@ public abstract class DatatypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl
     }
 
     return GetTriviaContainingDocstringFromStartTokenOrNull();
+  }
+
+  public void AutoRevealDependencies(AutoRevealFunctionDependencies Rewriter, DafnyOptions Options, ErrorReporter Reporter) {
+    foreach (var ctor in Ctors) {
+      foreach (var formal in ctor.Formals) {
+        if (formal.DefaultValue is null) {
+          continue;
+        }
+
+        var addedReveals = Rewriter.ExprToFunctionalDependencies(formal.DefaultValue, EnclosingModuleDefinition);
+        formal.DefaultValue = Rewriter.AddRevealStmtsToExpression(formal.DefaultValue, addedReveals);
+
+        if (addedReveals.Any()) {
+          Reporter.Message(MessageSource.Rewriter, ErrorLevel.Info, null, formal.tok,
+            AutoRevealFunctionDependencies.GenerateMessage(addedReveals.ToList()));
+        }
+      }
+    }
   }
 }

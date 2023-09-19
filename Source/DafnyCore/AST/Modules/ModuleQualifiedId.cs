@@ -28,6 +28,7 @@ public class ModuleQualifiedId : Node, IHasUsages {
 
   public ModuleQualifiedId(Cloner cloner, ModuleQualifiedId original) {
     Path = original.Path.Select(n => n.Clone(cloner)).ToList();
+    Root = original.Root;
   }
 
   public string RootName() {

@@ -42,6 +42,7 @@ public interface ICommandSpec {
     BoogieOptionBag.SolverLog,
     CommonOptionBag.JsonDiagnostics,
     BoogieOptionBag.VerificationErrorLimit,
+    CommonOptionBag.DefaultFunctionOpacity
   }.ToList();
 
   public static IReadOnlyList<Option> TranslationOptions = new Option[] {

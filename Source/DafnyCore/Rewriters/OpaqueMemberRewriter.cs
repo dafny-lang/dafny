@@ -80,7 +80,7 @@ public class OpaqueMemberRewriter : IRewriter {
     Contract.Requires(c != null);
     var newDecls = new List<MemberDecl>();
     foreach (var member in c.Members.Where(member => member is Function or ConstantField)) {
-      if (!Attributes.Contains(member.Attributes, "opaque") && !member.IsOpaque) {
+      if (!ShouldBeRevealed(member)) {
         // Nothing to do
       } else if (member is Function { Body: null }) {
         // Nothing to do
@@ -91,6 +91,12 @@ public class OpaqueMemberRewriter : IRewriter {
     c.Members.AddRange(newDecls);
   }
 
+  private bool ShouldBeRevealed(MemberDecl member) {
+    return
+      Attributes.Contains(member.Attributes, "opaque")
+        || member.IsOpaque
+        || (member is Function func && func.IsMadeImplicitlyOpaque(Options));
+  }
   private void GenerateRevealLemma(MemberDecl m, List<MemberDecl> newDecls) {
     if (m is Function f) {
       // mark the opaque function with {:fuel 0, 0}
