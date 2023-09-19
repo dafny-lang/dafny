@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using DafnyCore.Test;
 using DafnyTestGeneration;
 using Microsoft.Boogie;
 using Microsoft.Dafny;
@@ -97,8 +98,8 @@ method SomeMethod(methodFormal: int) returns (result: bool)
     }
 
     IEnumerable<BoogieProgram> GetBoogie(DafnyOptions options, string dafnyProgramText) {
-      var dafnyProgram = Utils.Parse(options, dafnyProgramText, false);
-      BatchErrorReporter reporter = (BatchErrorReporter)dafnyProgram.Reporter;
+      BatchErrorReporter reporter = new BatchErrorReporter(options);
+      var dafnyProgram = Utils.Parse(reporter, dafnyProgramText, false);
       Assert.NotNull(dafnyProgram);
       DafnyMain.Resolve(dafnyProgram);
       Assert.Equal(0, reporter.ErrorCount);
