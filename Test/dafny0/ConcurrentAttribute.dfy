@@ -131,6 +131,3 @@ class Concurrent {
     j.Add("Today I added another test case.");
   }
 }
-
-// Auditor warning for {:assume_concurrent}
-// TODO: Release notes!
