@@ -1,4 +1,4 @@
-// RUN: %exits-with 2 %dafny /rprint:- "%s" > "%t"
+// RUN: %exits-with 2 %dafny /typeSystemRefresh:1 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 module Tests {
 class CC {
@@ -9,7 +9,7 @@ class CC {
     var a := f;  // nat
     var b := g;  // int
     var c := F();  // nat
-    var w;  // nat
+    var w;  // int (with legacy type system: nat)
     var d := N(w);  // nat
   }
   method N(m: nat) returns (n: nat)
@@ -178,12 +178,12 @@ module References {
 
   method M2() returns (c: C, r: R, o: object)
   {
-    c := o;  // OK for type resolution, but must be proved
+    c := o as C;  // OK for type resolution, but must be proved
   }
 
   method M3() returns (c: C, r: R, o: object)
   {
-    r := o;  // OK for type resolution, but must be proved
+    r := o as R;  // OK for type resolution, but must be proved
   }
 }
 
@@ -344,7 +344,7 @@ module OtherTraitsAndClasses {
 
   method M() returns (r: nat)
   {
-    var x, y, z, w;  // int, int, bool, int
+    var x, y, z, w;  // int, nat, bool, int
     x := x + y;
     z := true;
     y := r;
@@ -363,7 +363,7 @@ module OtherTraitsAndClasses {
 
   class MyClass { }
 
-/******
+
   method P() {
     var w, u;  // int, unint8
     w := 0;
@@ -374,19 +374,19 @@ module OtherTraitsAndClasses {
   newtype uint8 = x | 0 <= x < 256
 
   method Brackets(a: array<char>)
-    requires a != null
+
   {
     var i;
     var ch := a[i];
-    /*
-    var s;  // s could be anything
-    var n: nat := |s|;  // s could be a set, multiset, sequence, or map
-    s := s + s;  // this excludes map
-    s := s * s;  // this also excludes sequence
-    var k := s[ch];  // and this excludes set, so s must be a multiset
-    */
+
+
+
+
+
+
+
   }
-******/
+
 }
 
 module LetPatterns {
