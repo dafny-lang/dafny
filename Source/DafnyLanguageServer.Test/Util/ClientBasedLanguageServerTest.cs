@@ -48,6 +48,13 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
     : base(output, dafnyLogLevel) {
   }
 
+  protected TextDocumentItem CreateAndOpenTestDocument2(string source, string filePath = null,
+    int version = 1) {
+    var document = CreateTestDocument(source, filePath, version);
+    client.OpenDocument(document);
+    return document;
+  }
+  
   protected async Task<TextDocumentItem> CreateAndOpenTestDocument(string source, string filePath = null,
     int version = 1, CancellationToken? cancellationToken = null) {
     var document = CreateTestDocument(source, filePath, version);
