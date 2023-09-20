@@ -473,7 +473,7 @@ namespace Microsoft.Dafny {
             foreach (var member in c.Members) {
               if (member is Function f) {
                 List<Function> calls = new List<Function>();
-                foreach (var e in f.Reads) { if (e != null && e.E != null) { callFinder.Visit(e.E, calls); } }
+                foreach (var e in f.Reads.Expressions) { if (e != null && e.E != null) { callFinder.Visit(e.E, calls); } }
                 foreach (var e in f.Req) { if (e != null) { callFinder.Visit(e, calls); } }
                 foreach (var e in f.Ens) { if (e != null) { callFinder.Visit(e, calls); } }
                 if (f.Body != null) {
@@ -891,7 +891,7 @@ namespace Microsoft.Dafny {
         if (f.Req.Any(e => Traverse(e.E, "Req.E", f))) {
           return true;
         }
-        if (f.Reads.Any(e => Traverse(e.E, "Reads.E", f))) {
+        if (f.Reads.Expressions.Any(e => Traverse(e.E, "Reads.E", f))) {
           return true;
         }
         if (f.Ens.Any(e => Traverse(e.E, "Ens.E", f))) {
@@ -922,7 +922,7 @@ namespace Microsoft.Dafny {
         if (m.Req.Any(e => Traverse(e.E, "Req.E", m))) {
           return true;
         }
-        if (m.Reads.Any(e => Traverse(e.E, "Reads.E", m))) {
+        if (m.Reads.Expressions.Any(e => Traverse(e.E, "Reads.E", m))) {
           return true;
         }
         if (m.Mod.Expressions.Any(e => Traverse(e.E, "Mod.E", m) == true)) {

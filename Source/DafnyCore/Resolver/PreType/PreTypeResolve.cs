@@ -131,7 +131,7 @@ namespace Microsoft.Dafny {
       var resultType = new BitvectorType(resolver.Options, width);
       var rotateMember = new SpecialFunction(RangeToken.NoToken, name, resolver.SystemModuleManager.SystemModule, false, false,
         new List<TypeParameter>(), formals, resultType,
-        new List<AttributedExpression>(), new List<FrameExpression>(), new List<AttributedExpression>(),
+        new List<AttributedExpression>(), new Specification<FrameExpression>(), new List<AttributedExpression>(),
         new Specification<Expression>(new List<Expression>(), null), null, null, null) {
         EnclosingClass = bitvectorTypeDecl,
         ResultPreType = Type2PreType(resultType)
@@ -1121,7 +1121,8 @@ namespace Microsoft.Dafny {
         ResolveExpression(r, new ResolutionContext(f, f is TwoStateFunction));
         ConstrainTypeExprBool(r, "Precondition must be a boolean (got {0})");
       }
-      foreach (FrameExpression fr in f.Reads) {
+      ResolveAttributes(f.Reads, new ResolutionContext(f, f is TwoStateFunction), false);
+      foreach (FrameExpression fr in f.Reads.Expressions) {
         ResolveFrameExpression(fr, FrameExpressionUse.Reads, f);
       }
       foreach (AttributedExpression e in f.Ens) {

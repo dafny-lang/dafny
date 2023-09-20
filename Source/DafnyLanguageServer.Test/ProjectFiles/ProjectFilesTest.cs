@@ -1,16 +1,46 @@
+using System;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 using Microsoft.Dafny.LanguageServer.Workspace;
+using OmniSharp.Extensions.LanguageServer.Protocol;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using Xunit;
 using Xunit.Abstractions;
+using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest; 
 
 public class ProjectFilesTest : ClientBasedLanguageServerTest {
+
+  [Fact]
+  public async Task ProjectFileErrorIsShown() {
+    var projectFileSource = @"includes = [stringWithoutQuotes]";
+    await CreateAndOpenTestDocument(projectFileSource, DafnyProject.FileName);
+    var diagnostics = await diagnosticsReceiver.AwaitNextNotificationAsync(CancellationToken);
+    Assert.Equal(2, diagnostics.Diagnostics.Count());
+    Assert.Equal(new Range(0, 0, 0, 0), diagnostics.Diagnostics.First().Range);
+    Assert.Contains("contains the following errors", diagnostics.Diagnostics.First().Message);
+  }
+
+  [Fact]
+  public async Task ProjectFileErrorIsShownFromDafnyFile() {
+    var projectFileSource = @"includes = [stringWithoutQuotes]";
+    var directory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+    Directory.CreateDirectory(directory);
+    var projectFilePath = Path.Combine(directory, DafnyProject.FileName);
+    await File.WriteAllTextAsync(projectFilePath, projectFileSource);
+    await CreateAndOpenTestDocument("method Foo() { }", Path.Combine(directory, "ProjectFileErrorIsShownFromDafnyFile.dfy"));
+    var diagnostics = await diagnosticsReceiver.AwaitNextNotificationAsync(CancellationToken);
+    Assert.Equal(DocumentUri.File(projectFilePath), diagnostics.Uri.GetFileSystemPath());
+    Assert.Equal(2, diagnostics.Diagnostics.Count());
+    Assert.Equal(new Range(0, 0, 0, 0), diagnostics.Diagnostics.First().Range);
+    Assert.Contains("contains the following errors", diagnostics.Diagnostics.First().Message);
+    Assert.Equal(@"Files referenced by project are:
+ProjectFileErrorIsShownFromDafnyFile.dfy", diagnostics.Diagnostics.ElementAt(1).Message);
+  }
 
   /// <summary>
   /// Previously this could cause two project managers for the same project to be created.
@@ -45,10 +75,12 @@ module Consumer {
   }
 
   [Fact]
-  public async Task ProjectFileByItselfHasNoDiagnostics() {
+  public async Task ProjectFileByItselfDiagnostics() {
     var tempDirectory = Path.GetRandomFileName();
-    await CreateAndOpenTestDocument("", Path.Combine(tempDirectory, DafnyProject.FileName));
-    await AssertNoDiagnosticsAreComing(CancellationToken);
+    var projectFile = await CreateAndOpenTestDocument("", Path.Combine(tempDirectory, DafnyProject.FileName));
+    var diagnostics = await GetLastDiagnostics(projectFile);
+    Assert.Single(diagnostics);
+    Assert.Equal("Project references no files", diagnostics.First().Message);
   }
 
   [Fact]
@@ -69,7 +101,7 @@ method Foo() {
 ";
     var documentItem = CreateTestDocument(source, Path.Combine(tempDirectory, "source.dfy"));
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-    await AssertNoDiagnosticsAreComing(CancellationToken);
+    await AssertNoDiagnosticsAreComing(CancellationToken, documentItem);
 
     var warnShadowingOn = @"
 [options]
@@ -136,7 +168,6 @@ function-syntax = 4";
     var sourceFile = await CreateAndOpenTestDocument(source, Path.Combine(directory, "source.dfy"));
     var diagnostics2 = await GetLastDiagnostics(sourceFile, CancellationToken);
     Assert.Empty(diagnostics2.Where(d => d.Severity == DiagnosticSeverity.Error));
-    await AssertNoDiagnosticsAreComing(CancellationToken);
   }
 
   [Fact]
