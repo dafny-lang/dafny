@@ -126,12 +126,12 @@ public static class PreType2TypeUtil {
     Contract.Requires(type != null);
     Contract.Requires(preTypeConverted != null);
 
-    type = type.NormalizeExpand();
+    type = type.NormalizeAndAdjustForScope();
     if (type is TypeProxy { T: null } typeProxy) {
       typeProxy.T = preTypeConverted;
     } else {
-      // Even if the head type of preTypeConverted is adjustable, we're going to stick with the user-defined type, so we NormalizeExpand() here.
-      preTypeConverted = preTypeConverted.NormalizeExpand();
+      // Even if the head type of preTypeConverted is adjustable, we're going to stick with the user-defined type, so we Normalize() here.
+      preTypeConverted = preTypeConverted.Normalize();
 
       Contract.Assert((type as UserDefinedType)?.ResolvedClass == (preTypeConverted as UserDefinedType)?.ResolvedClass);
       Contract.Assert(type.TypeArgs.Count == preTypeConverted.TypeArgs.Count);
