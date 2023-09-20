@@ -281,7 +281,7 @@ namespace Microsoft.Dafny {
     /// If the ancestor chain has a cycle or if some part of the chain hasn't yet been resolved, this method ends the traversal
     /// early (and returns the last ancestor traversed). This method does not return any error; that's assumed to be done elsewhere.
     /// </summary>
-    public DPreType NewTypeAncestor(DPreType preType) {
+    public static DPreType NewTypeAncestor(DPreType preType) {
       Contract.Requires(preType != null);
       ISet<NewtypeDecl> visited = null;
       while (preType.Decl is NewtypeDecl newtypeDecl) {
@@ -722,8 +722,8 @@ namespace Microsoft.Dafny {
         }
         ResolveConstraintAndWitness(nd, true);
 
-        // fill in the members inherited from the ancestor built-in type
-        if (PreTypeResolver.AncestorDecl(nd) is ValuetypeDecl valuetypeAncestorDecl) {
+        // fill in the members inherited from the ancestor built-in type (but be careful, since there may still be cycles among these declarations)
+        if (nd.BasePreType.Normalize() is DPreType basePreType && NewTypeAncestor(basePreType).Decl is ValuetypeDecl valuetypeAncestorDecl) {
           var memberDictionary = resolver.GetClassMembers(nd);
           foreach (var member in valuetypeAncestorDecl.Members) {
             if (memberDictionary.TryGetValue(member.Name, out var previousMember)) {
