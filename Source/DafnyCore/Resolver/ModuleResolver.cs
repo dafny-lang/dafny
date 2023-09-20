@@ -198,11 +198,7 @@ namespace Microsoft.Dafny {
         } else {
           abs.Signature = new ModuleSignature(); // there was an error, give it a valid but empty signature
         }
-      } else if (decl is ModuleExportDecl exportDecl) {
-        exportDecl.SetupDefaultSignature();
-
-        Contract.Assert(exportDecl.Signature != null);
-        Contract.Assert(exportDecl.Signature.VisibilityScope != null);
+      } else if (decl is ModuleExportDecl) {
       } else {
         Contract.Assert(false); // Unknown kind of ModuleDecl
       }
@@ -1530,6 +1526,10 @@ namespace Microsoft.Dafny {
 
       if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
         new HigherOrderHeapAllocationCheckerConstructor(reporter).VisitDeclarations(declarations);
+      }
+
+      if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
+        new CheckMapRangeSupportsEquality(reporter).VisitDeclarations(declarations);
       }
 
       if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
