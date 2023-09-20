@@ -147,7 +147,7 @@ public class ProjectManager : IDisposable {
     Lazy<IdeState> migratedLazyPreviousCompilationLastIdeState = latestIdeState;
     observerSubscription.Dispose();
 
-    CompilationManager.CancelPendingUpdates();
+    CompilationManager.Dispose();
     CompilationManager = createCompilationManager(
       options,
       boogieEngine,
@@ -208,7 +208,7 @@ public class ProjectManager : IDisposable {
   }
 
   public async Task CloseAsync() {
-    CompilationManager.CancelPendingUpdates();
+    CompilationManager.Dispose();
     try {
       await CompilationManager.LastDocument;
       observer.OnCompleted();
@@ -348,6 +348,6 @@ public class ProjectManager : IDisposable {
   }
 
   public void Dispose() {
-    CompilationManager.CancelPendingUpdates();
+    CompilationManager.Dispose();
   }
 }
