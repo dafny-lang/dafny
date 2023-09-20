@@ -1,4 +1,4 @@
-// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment
+// RUN: %testDafnyForEachCompiler --refresh-exit-code=0 "%s" -- --relax-definite-assignment
 
 // This file contains an example chain of module refinements, starting from a
 // simple interface M0 to an implementation M3. Module Client.Test() is
