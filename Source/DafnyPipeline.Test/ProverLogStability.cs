@@ -112,7 +112,7 @@ type ImapSimulator<!A, B> =
       var filePath = Path.Combine(Directory.GetCurrentDirectory(), "expectedProverLog.smt2");
       var expectation = await File.ReadAllTextAsync(filePath);
       var regularProverLog = await GetProverLogForProgramAsync(options, GetBoogie(options, originalProgram));
-      Assert.Equal(expectation, regularProverLog.Replace("\r", ""));
+      Assert.Equal(expectation.Replace("\r", ""), regularProverLog.Replace("\r", ""));
     }
 
     private async Task<string> GetProverLogForProgramAsync(DafnyOptions options, IEnumerable<Microsoft.Boogie.Program> boogiePrograms) {
