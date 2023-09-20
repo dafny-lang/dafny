@@ -2028,9 +2028,11 @@ namespace Microsoft.Dafny {
         dtv.Bindings.AcceptArgumentExpressionsAsExactParameterList();
       }
 
+#if IS_THIS_NEEDED_HERE_OR_IS_IT_DONE_ELSEWHERE
       if (CodeContextWrapper.Unwrap(resolutionContext.CodeContext) is ICallable caller && caller.EnclosingModule == datatypeDecl.EnclosingModuleDefinition) {
         caller.EnclosingModule.CallGraph.AddEdge(caller, datatypeDecl);
       }
+#endif
       return ok && ctor.Formals.Count == dtv.Arguments.Count;
     }
 
