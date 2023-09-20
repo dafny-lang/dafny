@@ -29,7 +29,7 @@ public class ForallStmtRewriter : IRewriter {
         if (s.Kind == ForallStmt.BodyKind.Proof) {
           Expression term = s.Ens.Count != 0 ? s.Ens[0].E : Expression.CreateBoolLiteral(s.Tok, true);
           for (int i = 1; i < s.Ens.Count; i++) {
-            term = new BinaryExpr(s.Tok, BinaryExpr.ResolvedOpcode.And, term, s.Ens[i].E);
+            term = new BinaryExpr(s.Ens[i].Tok, BinaryExpr.ResolvedOpcode.And, term, s.Ens[i].E);
           }
           List<Expression> exprList = new List<Expression>();
           ForallExpr expr = new ForallExpr(s.Tok, s.RangeToken, s.BoundVars, s.Range, term, s.Attributes);
@@ -112,7 +112,7 @@ public class ForallStmtRewriter : IRewriter {
                     reporter.Info(MessageSource.Resolver, stmt.Tok, msg);
 
                     var expr = new ForallExpr(s.Tok, s.RangeToken, jList, val.Range,
-                      new BinaryExpr(s.Tok, BinaryExpr.ResolvedOpcode.EqCommon, lhs, newRhs),
+                      new BinaryExpr(s0.Tok, BinaryExpr.ResolvedOpcode.EqCommon, lhs, newRhs),
                       attributes) {
                       Type = Type.Bool,
                       Bounds = newBounds,
@@ -124,7 +124,7 @@ public class ForallStmtRewriter : IRewriter {
               }
               if (!usedInversion) {
                 var expr = new ForallExpr(s.Tok, s.RangeToken, s.BoundVars, s.Range,
-                  new BinaryExpr(s.Tok, BinaryExpr.ResolvedOpcode.EqCommon, lhs, rhs),
+                  new BinaryExpr(s0.Tok, BinaryExpr.ResolvedOpcode.EqCommon, lhs, rhs),
                   s.Attributes) {
                   Type = Type.Bool,
                   Bounds = s.Bounds
@@ -154,7 +154,7 @@ public class ForallStmtRewriter : IRewriter {
           // substitute the call's actuals for the method's formals
           Expression term = s0.Method.Ens.Count != 0 ? substituter.Substitute(s0.Method.Ens[0].E) : Expression.CreateBoolLiteral(s.Tok, true);
           for (int i = 1; i < s0.Method.Ens.Count; i++) {
-            term = new BinaryExpr(s.Tok, BinaryExpr.ResolvedOpcode.And, term, substituter.Substitute(s0.Method.Ens[i].E));
+            term = new BinaryExpr(s0.Method.Ens[i].Tok, BinaryExpr.ResolvedOpcode.And, term, substituter.Substitute(s0.Method.Ens[i].E));
           }
           List<Expression> exprList = new List<Expression>();
           ForallExpr expr = new ForallExpr(s.Tok, s.RangeToken, s.BoundVars, s.Range, term, s.Attributes);
