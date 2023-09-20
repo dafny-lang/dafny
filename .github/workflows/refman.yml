@@ -22,7 +22,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ ubuntu-latest ]
+        os: [ ubuntu-20.04 ]
     steps:
     - name: OS
       run: echo ${{ runner.os }} ${{ matrix.os }}
@@ -40,6 +40,7 @@ jobs:
     - name: Install latex pandoc - Linux
       if: runner.os == 'Linux'
       run: |
+        sudo apt-get update
         sudo apt-get install texlive-full
         wget https://github.com/jgm/pandoc/releases/download/3.1.7/pandoc-3.1.7-1-amd64.deb
         sudo dpkg -i *.deb

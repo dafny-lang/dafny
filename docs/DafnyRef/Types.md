@@ -1262,7 +1262,8 @@ the domain, the range, and the 2-tuples holding the key-value
 associations in the map. Note that `m.Values` will have a different
 cardinality than `m.Keys` and `m.Items` if different keys are
 associated with the same value. If `m` is an `imap`, then these
-expressions return `iset` values.
+expressions return `iset` values. If `m` is a map, `m.Values` and `m.Items`
+require the type of the range `U` to support equality.
 
 [^fn-map-membership]: This is likely to change in the future as
     follows:  The `in` and `!in` operations will no longer be

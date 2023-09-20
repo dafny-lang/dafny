@@ -241,7 +241,7 @@ public class ProjectManager : IDisposable {
       return latestIdeState.Value;
     } catch (OperationCanceledException) {
       logger.LogDebug($"GetSnapshotAfterResolutionAsync caught OperationCanceledException for resolved compilation {Project.Uri}");
-      return await GetStateAfterParsingAsync();
+      throw;
     }
 
   }
