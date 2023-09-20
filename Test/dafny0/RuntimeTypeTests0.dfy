@@ -1,5 +1,5 @@
 // UNSUPPORTED: windows
-// RUN: %testDafnyForEachCompiler "%s"
+// RUN: %testDafnyForEachCompiler --refresh-exit-code=0 "%s"
 
 // The code in this file demonstrates complications in sorting out covariance in some
 // compilation target languages.

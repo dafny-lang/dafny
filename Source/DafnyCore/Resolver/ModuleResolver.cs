@@ -31,7 +31,7 @@ namespace Microsoft.Dafny {
   public partial class ModuleResolver {
     public ProgramResolver ProgramResolver { get; }
     public DafnyOptions Options { get; }
-    public SystemModuleManager SystemModuleManager;
+    public readonly SystemModuleManager SystemModuleManager;
 
     public ErrorReporter reporter;
     public ModuleSignature moduleInfo = null;
