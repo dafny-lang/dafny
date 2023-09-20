@@ -10279,6 +10279,9 @@ namespace Microsoft.Dafny {
       Contract.Requires(splits != null);
       Contract.Requires(etran != null);
 
+      //experiment do not split expressions
+      return false;
+
       switch (expr) {
         case BoxingCastExpr castExpr: {
             var bce = castExpr;
