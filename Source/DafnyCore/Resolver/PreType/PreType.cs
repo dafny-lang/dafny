@@ -272,8 +272,12 @@ namespace Microsoft.Dafny {
         }
         s += $" ~> {Arguments.Last()}";
       } else if (IsTupleType(Decl)) {
-        // TODO: for tuple types, sometimes use prefix "ghost"
-        s = $"({Util.Comma(Arguments, arg => arg.ToString())})";
+        var tupleTypeDecl = (TupleTypeDecl)Decl;
+        Contract.Assert(Arguments.Count == tupleTypeDecl.ArgumentGhostness.Count);
+        s = Arguments.Zip(tupleTypeDecl.ArgumentGhostness).Comma(argAndGhost =>
+          (argAndGhost.Second ? "ghost " : "") + argAndGhost.First.ToString()
+        );
+        s = "(" + s + ")";
       } else {
         if (IsReferenceTypeDecl(Decl)) {
           name = name + "?";
