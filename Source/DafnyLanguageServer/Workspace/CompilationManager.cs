@@ -34,7 +34,7 @@ public delegate CompilationManager CreateCompilationManager(
 ///
 /// Compilation is agnostic to document updates, it does not handle the migration of old document state.
 /// </summary>
-public class CompilationManager {
+public class CompilationManager : IDisposable {
 
   private readonly ILogger logger;
   private readonly ITextDocumentLoader documentLoader;
@@ -45,7 +45,7 @@ public class CompilationManager {
   private readonly IReadOnlyDictionary<Uri, DocumentVerificationTree> migratedVerificationTrees;
 
   private TaskCompletionSource started = new();
-  private readonly IScheduler verificationUpdateScheduler = new EventLoopScheduler();
+  private readonly EventLoopScheduler verificationUpdateScheduler = new();
   private readonly CancellationTokenSource cancellationSource;
 
   private TaskCompletionSource verificationCompleted = new();
@@ -526,5 +526,10 @@ public class CompilationManager {
       new() {NewText = result, Range = new Range(new Position(0,0), lastToken.GetLspPosition())}
     });
 
+  }
+
+  public void Dispose() {
+    CancelPendingUpdates();
+    verificationUpdateScheduler.Dispose();
   }
 }
