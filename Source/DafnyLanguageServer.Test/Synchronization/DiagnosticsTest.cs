@@ -114,7 +114,7 @@ method {:vcs_split_on_every_assert} Foo(x: int) {
       var status2 = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
       Assert.Equal(PublishedVerificationStatus.Running, status2.NamedVerifiables[0].Status);
       var status3 = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
-      Assert.Equal(PublishedVerificationStatus.Error, status3.NamedVerifiables[0].Status);
+      Assert.Equal(PublishedVerificationStatus.FoundSomeErrors, status3.NamedVerifiables[0].Status);
       await AssertNoVerificationStatusIsComing(document, CancellationToken);
     }
 
@@ -196,7 +196,7 @@ function bullspec(s:seq<nat>, u:seq<nat>): (r: nat)
       Assert.Equal(PublishedVerificationStatus.Stale, await PopNextStatus());
       Assert.Equal(PublishedVerificationStatus.Queued, await PopNextStatus());
       Assert.Equal(PublishedVerificationStatus.Running, await PopNextStatus());
-      Assert.Equal(PublishedVerificationStatus.Error, await PopNextStatus());
+      Assert.Equal(PublishedVerificationStatus.FoundSomeErrors, await PopNextStatus());
       ApplyChange(ref documentItem, ((7, 25), (10, 17)), "");
       diagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
       Assert.Equal(5, diagnostics.Length);
@@ -208,7 +208,7 @@ function bullspec(s:seq<nat>, u:seq<nat>): (r: nat)
       Assert.Equal(PublishedVerificationStatus.Stale, await PopNextStatus());
       Assert.Equal(PublishedVerificationStatus.Queued, await PopNextStatus());
       Assert.Equal(PublishedVerificationStatus.Running, await PopNextStatus());
-      Assert.Equal(PublishedVerificationStatus.Error, await PopNextStatus());
+      Assert.Equal(PublishedVerificationStatus.FoundSomeErrors, await PopNextStatus());
       await AssertNoDiagnosticsAreComing(CancellationToken);
     }
 

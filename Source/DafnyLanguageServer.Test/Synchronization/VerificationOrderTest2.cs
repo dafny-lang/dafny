@@ -217,7 +217,7 @@ method m5() { assert false; } //Remove4:
           continue;
         }
       }
-      var newlyDone = foundStatus.NamedVerifiables.Where(v => v.Status >= PublishedVerificationStatus.Error)
+      var newlyDone = foundStatus.NamedVerifiables.Where(v => v.Status >= PublishedVerificationStatus.FoundSomeErrors)
         .Select(v => v.NameRange).Where(r => alreadyReported.Add(r));
 
       var newlyRunning = foundStatus.NamedVerifiables.Where(v => v.Status == PublishedVerificationStatus.Running)
@@ -234,7 +234,7 @@ method m5() { assert false; } //Remove4:
       }
 
       yield return newlyReported.ToList();
-    } while (!started || foundStatus.NamedVerifiables.Any(v => v.Status < PublishedVerificationStatus.Error));
+    } while (!started || foundStatus.NamedVerifiables.Any(v => v.Status < PublishedVerificationStatus.FoundSomeErrors));
   }
 
   public VerificationOrderTest2(ITestOutputHelper output) : base(output) {

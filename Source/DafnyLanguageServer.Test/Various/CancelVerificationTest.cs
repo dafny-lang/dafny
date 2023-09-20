@@ -86,7 +86,7 @@ method {:timeLimit 10} test() {
 
     private async Task AssertNothingIsQueued(TextDocumentItem documentItem) {
       var status = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
-      while (status.NamedVerifiables.Any(v => v.Status < PublishedVerificationStatus.Error)) {
+      while (status.NamedVerifiables.Any(v => v.Status < PublishedVerificationStatus.FoundSomeErrors)) {
         if (status.NamedVerifiables.Any(v => v.Status == PublishedVerificationStatus.Queued)) {
           var time = DateTime.Now;
           status = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);

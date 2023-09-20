@@ -83,7 +83,7 @@ method Zap() returns (x: int) ensures x / 2 == 1; {
         break;
       }
 
-      if (status.NamedVerifiables.All(v => v.Status >= PublishedVerificationStatus.Error)) {
+      if (status.NamedVerifiables.All(v => v.Status >= PublishedVerificationStatus.FoundSomeErrors)) {
         Assert.Fail("Finished without getting to a dual queued state");
       }
     }
@@ -94,7 +94,7 @@ method Zap() returns (x: int) ensures x / 2 == 1; {
         Assert.Fail("May not become stale after both being queued. ");
       }
 
-      if (status.NamedVerifiables.Count(v => v.Status >= PublishedVerificationStatus.Error) == 2) {
+      if (status.NamedVerifiables.Count(v => v.Status >= PublishedVerificationStatus.FoundSomeErrors) == 2) {
         return;
       }
     }
@@ -233,7 +233,7 @@ function MultiplyByPlus(x: nat, y: nat): nat {
     while (true) {
       var statusNotification = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
       var status = statusNotification.NamedVerifiables.Single().Status;
-      if (status >= PublishedVerificationStatus.Error) {
+      if (status >= PublishedVerificationStatus.FoundSomeErrors) {
         break;
       }
 
@@ -315,7 +315,7 @@ function fib(n: nat): nat {
     }
 
     var finalStatus = await WaitUntilAllStatusAreCompleted(documentItem);
-    Assert.True(finalStatus.NamedVerifiables.All(s => s.Status >= PublishedVerificationStatus.Error));
+    Assert.True(finalStatus.NamedVerifiables.All(s => s.Status >= PublishedVerificationStatus.FoundSomeErrors));
   }
 
   [Fact]
@@ -412,7 +412,7 @@ method Bar() { assert false; }";
     Assert.True(successfulRun);
     var range = new Range(0, 20, 0, 42);
     await WaitForStatus(range, PublishedVerificationStatus.Running, CancellationToken);
-    await WaitForStatus(range, PublishedVerificationStatus.Error, CancellationToken);
+    await WaitForStatus(range, PublishedVerificationStatus.FoundSomeErrors, CancellationToken);
 
     var failedRun = await client.RunSymbolVerification(new TextDocumentIdentifier(documentItem.Uri), methodHeader, CancellationToken);
     Assert.False(failedRun);
@@ -435,7 +435,7 @@ method Bar() { assert false; }";
     var verifying = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
     Assert.Equal(PublishedVerificationStatus.Running, verifying.NamedVerifiables[0].Status);
     var errored = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
-    Assert.Equal(PublishedVerificationStatus.Error, errored.NamedVerifiables[0].Status);
+    Assert.Equal(PublishedVerificationStatus.FoundSomeErrors, errored.NamedVerifiables[0].Status);
   }
 
   [Fact]
@@ -454,7 +454,7 @@ method Bar() { assert false; }";
     await WaitForStatus(barRange, PublishedVerificationStatus.Stale, CancellationToken);
     await WaitForStatus(barRange, PublishedVerificationStatus.Queued, CancellationToken);
     await WaitForStatus(barRange, PublishedVerificationStatus.Running, CancellationToken);
-    await WaitForStatus(barRange, PublishedVerificationStatus.Error, CancellationToken);
+    await WaitForStatus(barRange, PublishedVerificationStatus.FoundSomeErrors, CancellationToken);
   }
 
   [Fact]
@@ -481,7 +481,7 @@ method Bar() { assert false; }";
     Assert.Equal(PublishedVerificationStatus.Running, running.NamedVerifiables[0].Status);
 
     var errored = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
-    Assert.Equal(PublishedVerificationStatus.Error, errored.NamedVerifiables[0].Status);
+    Assert.Equal(PublishedVerificationStatus.FoundSomeErrors, errored.NamedVerifiables[0].Status);
   }
 
   [Fact]
@@ -505,7 +505,7 @@ method Bar() { assert true; }";
     // Uncomment when caching works
     // Assert.Equal(PublishedVerificationStatus.Correct, correct.NamedVerifiables[0].Status);
     Assert.Equal(PublishedVerificationStatus.Stale, correct.NamedVerifiables[0].Status);
-    Assert.True(correct.NamedVerifiables[1].Status < PublishedVerificationStatus.Error);
+    Assert.True(correct.NamedVerifiables[1].Status < PublishedVerificationStatus.FoundSomeErrors);
   }
 
   private async Task<FileVerificationStatus> WaitUntilAllStatusAreCompleted(TextDocumentIdentifier documentId) {
@@ -517,7 +517,7 @@ method Bar() { assert true; }";
     do {
       beforeChangeStatus = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
     } while (beforeChangeStatus.NamedVerifiables.Count != symbols.Count ||
-             beforeChangeStatus.NamedVerifiables.Any(method => method.Status < PublishedVerificationStatus.Error));
+             beforeChangeStatus.NamedVerifiables.Any(method => method.Status < PublishedVerificationStatus.FoundSomeErrors));
 
     return beforeChangeStatus;
   }
@@ -542,12 +542,12 @@ method InvalidPostCondition() ensures false {
     FileVerificationStatus status;
     do {
       status = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
-    } while (status.NamedVerifiables.Any(v => v.Status < PublishedVerificationStatus.Error));
+    } while (status.NamedVerifiables.Any(v => v.Status < PublishedVerificationStatus.FoundSomeErrors));
 
     Assert.Equal(3, status.NamedVerifiables.Count);
-    Assert.Equal(PublishedVerificationStatus.Error, status.NamedVerifiables[0].Status);
-    Assert.Equal(PublishedVerificationStatus.Error, status.NamedVerifiables[1].Status);
-    Assert.Equal(PublishedVerificationStatus.Error, status.NamedVerifiables[2].Status);
+    Assert.Equal(PublishedVerificationStatus.FoundSomeErrors, status.NamedVerifiables[0].Status);
+    Assert.Equal(PublishedVerificationStatus.FoundSomeErrors, status.NamedVerifiables[1].Status);
+    Assert.Equal(PublishedVerificationStatus.FoundSomeErrors, status.NamedVerifiables[2].Status);
   }
 
   [Fact]

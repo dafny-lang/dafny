@@ -42,10 +42,10 @@ method Foo() {
 
     void AssertExpectedOrderForFirstFile(IList<FileVerificationStatus> history, Range expectedRange) {
       var firstErrorStatus = history.First(h =>
-        h.Uri == firstFile.Uri && h.NamedVerifiables.Any(v => v.Status == PublishedVerificationStatus.Error));
-      var errorRange = firstErrorStatus.NamedVerifiables.First(v => v.Status == PublishedVerificationStatus.Error);
+        h.Uri == firstFile.Uri && h.NamedVerifiables.Any(v => v.Status == PublishedVerificationStatus.FoundSomeErrors));
+      var errorRange = firstErrorStatus.NamedVerifiables.First(v => v.Status == PublishedVerificationStatus.FoundSomeErrors);
       Assert.Equal(expectedRange, errorRange.NameRange);
-      Assert.Contains(firstErrorStatus.NamedVerifiables, v => v.Status != PublishedVerificationStatus.Error);
+      Assert.Contains(firstErrorStatus.NamedVerifiables, v => v.Status != PublishedVerificationStatus.FoundSomeErrors);
     }
   }
 
@@ -91,10 +91,10 @@ method Bar() {
 
     void AssertExpectedOrderForFirstFile(IList<FileVerificationStatus> history) {
       var firstErrorStatus = history.First(h =>
-        h.Uri == firstFile.Uri && h.NamedVerifiables.Any(v => v.Status == PublishedVerificationStatus.Error));
-      var errorRange = firstErrorStatus.NamedVerifiables.First(v => v.Status == PublishedVerificationStatus.Error);
+        h.Uri == firstFile.Uri && h.NamedVerifiables.Any(v => v.Status == PublishedVerificationStatus.FoundSomeErrors));
+      var errorRange = firstErrorStatus.NamedVerifiables.First(v => v.Status == PublishedVerificationStatus.FoundSomeErrors);
       Assert.Equal(new Range(3, 7, 3, 19), errorRange.NameRange);
-      Assert.Contains(firstErrorStatus.NamedVerifiables, v => v.Status != PublishedVerificationStatus.Error);
+      Assert.Contains(firstErrorStatus.NamedVerifiables, v => v.Status != PublishedVerificationStatus.FoundSomeErrors);
     }
   }
 
