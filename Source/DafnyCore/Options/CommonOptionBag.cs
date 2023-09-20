@@ -8,8 +8,9 @@ namespace Microsoft.Dafny;
 
 public class CommonOptionBag {
 
-  public static Option<bool> ShowAssertions = new("--show-assertions",
-    "Show hints on locations where assertions occur, whether implicit or explicit");
+  public enum AssertionShowMode { None, Implicit, All }
+  public static readonly Option<AssertionShowMode> ShowAssertions = new("--show-assertions", () => AssertionShowMode.Implicit,
+    "Show hints on locations where implicit assertions occur");
 
   public static readonly Option<bool> AddCompileSuffix =
     new("--compile-suffix", "Add the suffix _Compile to module names without :extern") {
