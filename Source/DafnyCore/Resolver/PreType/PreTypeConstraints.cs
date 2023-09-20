@@ -260,10 +260,11 @@ namespace Microsoft.Dafny {
             // we haven't seen this proxy before
             if (bound != null) {
               candidateHeads.Add(proxy, bound.Decl);
+              constraintOrigins.Add(proxy, constraint);
             } else if (!ignoreUnknowns) {
               candidateHeads.Add(proxy, null);
+              constraintOrigins.Add(proxy, constraint);
             }
-            constraintOrigins.Add(proxy, constraint);
           } else if (previousBest == null) {
             Contract.Assert(!ignoreUnknowns);
             // proxy is already known to have unknowns
