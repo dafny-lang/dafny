@@ -82,6 +82,21 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       await close;
     }
 
+    public async Task<IdeState?> GetParsedDocumentNormalizeUri(TextDocumentIdentifier documentId) {
+      // Resolves drive letter capitalisation issues in Windows that occur when this method is called
+      // from an in-process client without serializing documentId
+      var normalizedUri = DocumentUri.From(documentId.Uri.ToString());
+      documentId = documentId with {
+        Uri = normalizedUri
+      };
+      var manager = await GetProjectManager(documentId, false);
+      if (manager != null) {
+        return await manager.GetStateAfterParsingAsync();
+      }
+
+      return null;
+    }
+
     public Task<IdeState?> GetResolvedDocumentAsyncNormalizeUri(TextDocumentIdentifier documentId) {
       // Resolves drive letter capitalisation issues in Windows that occur when this method is called
       // from an in-process client without serializing documentId
@@ -180,10 +195,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     public async Task<DafnyProject> GetProject(Uri uri) {
-      if (uri.LocalPath.EndsWith(DafnyProject.FileName)) {
-        return await DafnyProject.Open(fileSystem, uri, TextWriter.Null, TextWriter.Null);
-      }
-      return (await FindProjectFile(uri)) ?? ImplicitProject(uri);
+      return uri.LocalPath.EndsWith(DafnyProject.FileName)
+        ? await DafnyProject.Open(fileSystem, uri)
+        : (await FindProjectFile(uri) ?? ImplicitProject(uri));
     }
 
     public static DafnyProject ImplicitProject(Uri uri) {
@@ -230,7 +244,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         return Task.FromResult<DafnyProject?>(null);
       }
 
-      return DafnyProject.Open(fileSystem, configFileUri, TextWriter.Null, TextWriter.Null);
+      return DafnyProject.Open(fileSystem, configFileUri);
     }
 
     public IEnumerable<ProjectManager> Managers => managersByProject.Values;

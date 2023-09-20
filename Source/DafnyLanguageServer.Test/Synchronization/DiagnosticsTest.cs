@@ -58,13 +58,13 @@ module Consumer {
 ".TrimStart();
 
       var directory = Path.GetRandomFileName();
-      await CreateAndOpenTestDocument("", Path.Combine(directory, DafnyProject.FileName));
+      var project = await CreateAndOpenTestDocument("", Path.Combine(directory, DafnyProject.FileName));
       var producer = await CreateAndOpenTestDocument(producerSource, Path.Combine(directory, "producer.dfy"));
       var consumer = await CreateAndOpenTestDocument(consumerSource, Path.Combine(directory, "consumer.dfy"));
-      var diag1 = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
+      var diag1 = await GetLastDiagnostics(producer, CancellationToken);
       Assert.Equal(DiagnosticSeverity.Hint, diag1[0].Severity);
       ApplyChange(ref consumer, new Range(0, 0, 0, 0), "//trigger change\n");
-      await AssertNoDiagnosticsAreComing(CancellationToken);
+      await AssertNoDiagnosticsAreComing(CancellationToken, producer);
     }
 
 
@@ -90,8 +90,8 @@ function HasResolutionError(): int {
       var documentItem = CreateTestDocument(SlowToVerify, "DiagnosticsForVerificationTimeout.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var diagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
-      Assert.Contains("timed out", diagnostics[0].Message);
-      Assert.Equal(new Range(0, 21, 0, 43), diagnostics[0].Range);
+      Assert.Contains("Verification out of resource", diagnostics[0].Message);
+      Assert.Equal(new Range(0, 20, 0, 42), diagnostics[0].Range);
     }
 
     [Fact]
@@ -1082,7 +1082,7 @@ method test2() {
 method test() {
   assert false;
 }
-".TrimStart() + SlowToVerify;
+".TrimStart() + SlowToVerifyNoLimit;
       await SetUp(options => options.Set(BoogieOptionBag.Cores, 1U));
       var documentItem = CreateTestDocument(source, "ApplyChangeBeforeVerificationFinishes.dfy");
       client.OpenDocument(documentItem);

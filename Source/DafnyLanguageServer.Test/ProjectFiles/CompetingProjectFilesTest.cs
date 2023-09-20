@@ -1,9 +1,11 @@
 using System;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 using Microsoft.Dafny.LanguageServer.Workspace;
+using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using Xunit;
 using Xunit.Abstractions;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
@@ -29,8 +31,9 @@ public class CompetingProjectFilesTest : ClientBasedLanguageServerTest {
     await CreateAndOpenTestDocument("", Path.Combine(tempDirectory, DafnyProject.FileName));
 
     var diagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
-    Assert.Single(diagnostics);
-    Assert.Contains("the referenced file", diagnostics[0].Message);
+    var errors = diagnostics.Where(d => d.Severity == DiagnosticSeverity.Error).ToList();
+    Assert.Single(errors);
+    Assert.Contains("the referenced file", errors[0].Message);
   }
 
   public readonly string hasShadowingSource = @"
