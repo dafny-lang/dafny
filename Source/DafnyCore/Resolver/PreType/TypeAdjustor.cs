@@ -173,7 +173,7 @@ public class TypeAdjustorVisitor : ASTVisitor<IASTVisitorContext> {
         return ModuleResolver.SelectAppropriateArrowType(lambdaExpr.tok,
           lambdaExpr.BoundVars.ConvertAll(v => v.Type),
           lambdaExpr.Body.Type,
-          lambdaExpr.Reads.Count != 0, lambdaExpr.Range != null, systemModuleManager);
+          lambdaExpr.Reads.Expressions.Count != 0, lambdaExpr.Range != null, systemModuleManager);
       }, lambdaExpr.WhatKind));
 
     }
