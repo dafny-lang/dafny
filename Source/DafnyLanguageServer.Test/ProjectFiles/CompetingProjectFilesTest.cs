@@ -28,7 +28,7 @@ public class CompetingProjectFilesTest : ClientBasedLanguageServerTest {
     await File.WriteAllTextAsync(Path.Combine(nestedDirectory, "source.dfy"), "hasErrorInSyntax");
     await File.WriteAllTextAsync(Path.Combine(nestedDirectory, DafnyProject.FileName), "");
 
-    await CreateAndOpenTestDocument("", Path.Combine(tempDirectory, DafnyProject.FileName));
+    await CreateOpenAndResolveTestDocument("", Path.Combine(tempDirectory, DafnyProject.FileName));
 
     var diagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
     var errors = diagnostics.Where(d => d.Severity == DiagnosticSeverity.Error).ToList();

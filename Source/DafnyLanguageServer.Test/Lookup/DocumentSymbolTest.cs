@@ -10,13 +10,13 @@ using Xunit.Abstractions;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
   public class DocumentSymbolTest : ClientBasedLanguageServerTest {
-    
+
     [Fact]
     public async Task CanResolveSymbolsForMultiFileProjects() {
       var temp = Path.GetTempPath();
-      await CreateAndOpenTestDocument("", Path.Combine(temp, DafnyProject.FileName));
-      var file1 = CreateAndOpenTestDocument2("method Foo() {}", Path.Combine(temp, "file1.dfy"));
-      var file2 = CreateAndOpenTestDocument2("method Bar() {}", Path.Combine(temp, "file2.dfy"));
+      await CreateOpenAndResolveTestDocument("", Path.Combine(temp, DafnyProject.FileName));
+      var file1 = CreateAndOpenTestDocument("method Foo() {}", Path.Combine(temp, "file1.dfy"));
+      var file2 = CreateAndOpenTestDocument("method Bar() {}", Path.Combine(temp, "file2.dfy"));
 
       var fooSymbol = (await RequestDocumentSymbol(file1)).Single();
       Assert.Equal("Foo", fooSymbol.Name);
@@ -50,7 +50,7 @@ module A.B.C {
       var source = @"
   method Foo(a: int,, b: int) returns (x: int) {
   }".TrimStart();
-      var documentItem = CreateAndOpenTestDocument2(source);
+      var documentItem = CreateAndOpenTestDocument(source);
       var allSymbols = await RequestDocumentSymbol(documentItem);
       Assert.Single(allSymbols);
     }
@@ -64,7 +64,7 @@ module A.B.C {
   method CallIt() returns () {
     var x := DoIt();
   }".TrimStart();
-      var documentItem = CreateAndOpenTestDocument2(source);
+      var documentItem = CreateAndOpenTestDocument(source);
       var allSymbols = await RequestDocumentSymbol(documentItem);
       Assert.Equal(2, allSymbols.Count());
     }
@@ -83,7 +83,7 @@ class Y {
     var x := DoIt();
   }
 }".TrimStart();
-      var documentItem = CreateAndOpenTestDocument2(source, "LoadCorrectDocumentCreatesSymbols.dfy");
+      var documentItem = CreateAndOpenTestDocument(source, "LoadCorrectDocumentCreatesSymbols.dfy");
 
       var classSymbol = (await RequestDocumentSymbol(documentItem)).Single();
       var classChildren = classSymbol.Children.ToArray();
@@ -131,7 +131,7 @@ class Y {
     [Fact]
     public async Task CanResolveSymbolsForMethodsWithoutBody() {
       var source = "method DoIt()";
-      var documentItem = CreateAndOpenTestDocument2(source, "CanResolveSymbolsForMethodsWithoutBody.dfy");
+      var documentItem = CreateAndOpenTestDocument(source, "CanResolveSymbolsForMethodsWithoutBody.dfy");
 
       var methodSymbol = (await RequestDocumentSymbol(documentItem)).Single();
       Assert.Equal("DoIt", methodSymbol.Name);
@@ -143,7 +143,7 @@ class Y {
     [Fact]
     public async Task CanResolveSymbolsForFunctionWithoutBody() {
       var source = "function ConstOne(): int";
-      var documentItem = CreateAndOpenTestDocument2(source, "CanResolveSymbolsForFunctionWithoutBody.dfy");
+      var documentItem = CreateAndOpenTestDocument(source, "CanResolveSymbolsForFunctionWithoutBody.dfy");
 
       var methodSymbol = (await RequestDocumentSymbol(documentItem)).Single();
       Assert.Equal("ConstOne", methodSymbol.Name);

@@ -54,9 +54,9 @@ method Test() {
 include ""./hasWarning.dfy""
 ".TrimStart();
     var warningSource = "const tooManySemiColons := 3;";
-    await CreateAndOpenTestDocument(warningSource, Path.Combine(TestFileDirectory, "hasWarning.dfy"));
+    await CreateOpenAndResolveTestDocument(warningSource, Path.Combine(TestFileDirectory, "hasWarning.dfy"));
     await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
-    await CreateAndOpenTestDocument(source, TestFilePath);
+    await CreateOpenAndResolveTestDocument(source, TestFilePath);
     await AssertNoDiagnosticsAreComing(CancellationToken);
   }
 

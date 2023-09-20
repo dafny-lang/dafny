@@ -52,9 +52,9 @@ const b := a + 2;
 ".TrimStart();
 
       var directory = Path.GetRandomFileName();
-      await CreateAndOpenTestDocument("", Path.Combine(directory, DafnyProject.FileName));
-      var aFile = await CreateAndOpenTestDocument(sourceA, Path.Combine(directory, "A.dfy"));
-      var bFile = await CreateAndOpenTestDocument(sourceB, Path.Combine(directory, "B.dfy"));
+      await CreateOpenAndResolveTestDocument("", Path.Combine(directory, DafnyProject.FileName));
+      var aFile = await CreateOpenAndResolveTestDocument(sourceA, Path.Combine(directory, "A.dfy"));
+      var bFile = await CreateOpenAndResolveTestDocument(sourceB, Path.Combine(directory, "B.dfy"));
 
       var result1 = await RequestDefinition(bFile, new Position(0, 11));
       Assert.Equal(new Range(0, 6, 0, 7), result1.Single().Location!.Range);
@@ -113,7 +113,7 @@ datatype Result<T, E> = Ok(value: T) | Err({>1:error<}: E) {
       MarkupTestFile.GetPositionsAndNamedRanges(source, out var cleanSource,
         out var positions, out var ranges);
 
-      var documentItem = await CreateAndOpenTestDocument(cleanSource);
+      var documentItem = await CreateOpenAndResolveTestDocument(cleanSource);
       for (var index = 0; index < positions.Count; index++) {
         var position = positions[index];
         var range = ranges.ContainsKey(string.Empty) ? ranges[string.Empty][index] : ranges[index.ToString()].Single();
