@@ -24,6 +24,9 @@ public class ForEachCompilerOptions {
 
   [Option("refresh-exit-code", HelpText = "If present, also run with --type-system-refresh and expect the given exit code.")]
   public int? RefreshExitCode { get; set; } = null;
+  
+  [Option("target", Required = true, HelpText = "Compilation target. Defaults to all targets.")]
+  public string? Target { get; set; } = null;
 }
 
 [Verb("features", HelpText = "Print the Markdown content documenting feature support for each compiler.")]
@@ -32,7 +35,7 @@ public class FeaturesOptions {
   public IEnumerable<string> OtherArgs { get; set; } = Array.Empty<string>();
 }
 
-[Verb("for-each-resolver", HelpText = "For each resolver (legacy and refresh), execute the given test file, and assert the output matches the <test file>.expect file.")]
+[Verb("for-each-resolver", HelpText = "For each resolver (legacy and refresh), verify the given test file, and assert the output matches the <test file>.expect file.")]
 public class ForEachResolverOptions {
 
   [Value(0, Required = true, MetaName = "Test file", HelpText = "The *.dfy file to test.")]
@@ -172,34 +175,37 @@ public class MultiBackendTest {
 
     // Then execute the program for each available compiler.
 
+    var compilers = dafnyOptions.Plugins.SelectMany(plugin => plugin.GetCompilers(dafnyOptions));
+    if (options.Target != null) {
+      compilers = compilers.Where(compiler => compiler.TargetId == options.Target);
+    }
+    
     string expectFile = options.TestFile + ".expect";
     var commonExpectedOutput = File.ReadAllText(expectFile);
 
     var success = true;
-    foreach (var plugin in dafnyOptions.Plugins) {
-      foreach (var compiler in plugin.GetCompilers(dafnyOptions)) {
-        if (!compiler.IsStable) {
-          // Some tests still fail when using the lib back-end, for example due to disallowed assumptions being present in the test,
-          // Such as empty constructors with ensures clauses, generated from iterators
-          continue;
-        }
+    foreach (var compiler in compilers) {
+      if (!compiler.IsStable) {
+        // Some tests still fail when using the lib back-end, for example due to disallowed assumptions being present in the test,
+        // Such as empty constructors with ensures clauses, generated from iterators
+        continue;
+      }
 
-        // Check for backend-specific exceptions (because of known bugs or inconsistencies)
-        var expectedOutput = commonExpectedOutput;
-        string? checkFile = null;
-        var expectFileForBackend = $"{options.TestFile}.{compiler.TargetId}.expect";
-        if (File.Exists(expectFileForBackend)) {
-          expectedOutput = File.ReadAllText(expectFileForBackend);
-        }
-        var checkFileForBackend = $"{options.TestFile}.{compiler.TargetId}.check";
-        if (File.Exists(checkFileForBackend)) {
-          checkFile = checkFileForBackend;
-        }
+      // Check for backend-specific exceptions (because of known bugs or inconsistencies)
+      var expectedOutput = commonExpectedOutput;
+      string? checkFile = null;
+      var expectFileForBackend = $"{options.TestFile}.{compiler.TargetId}.expect";
+      if (File.Exists(expectFileForBackend)) {
+        expectedOutput = File.ReadAllText(expectFileForBackend);
+      }
+      var checkFileForBackend = $"{options.TestFile}.{compiler.TargetId}.check";
+      if (File.Exists(checkFileForBackend)) {
+        checkFile = checkFileForBackend;
+      }
 
-        var result = RunWithCompiler(options, compiler, expectedOutput, checkFile);
-        if (result != 0) {
-          success = false;
-        }
+      var result = RunWithCompiler(options, compiler, expectedOutput, checkFile);
+      if (result != 0) {
+        success = false;
       }
     }
 
@@ -213,10 +219,6 @@ public class MultiBackendTest {
   }
 
   public int ForEachResolver(ForEachResolverOptions options) {
-    var parseResult = CommandRegistry.Create(TextWriter.Null, TextWriter.Null, TextReader.Null,
-      new string[] { "verify", options.TestFile! }.Concat(options.OtherArgs).ToArray());
-    var dafnyOptions = ((ParseArgumentSuccess)parseResult).DafnyOptions;
-
     // We also use --(r|b)print to catch bugs with valid but unprintable programs.
     string fileName = Path.GetFileName(options.TestFile!);
     var testDir = Path.GetDirectoryName(options.TestFile!);

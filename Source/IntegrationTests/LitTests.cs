@@ -49,9 +49,17 @@ namespace IntegrationTests {
       // useful for capturing prover logs.
       var extraDafnyArguments =
         Environment.GetEnvironmentVariable("DAFNY_EXTRA_TEST_ARGUMENTS");
-
+      
       IEnumerable<string> AddExtraArgs(IEnumerable<string> args, IEnumerable<string> local) {
         return (extraDafnyArguments is null ? args : args.Append(extraDafnyArguments)).Concat(local);
+      }
+
+      // Allow extra arguments to the TestDafny tool.
+      var extraTestDafnyArguments =
+        Environment.GetEnvironmentVariable("TEST_DAFNY_EXTRA_ARGUMENTS");
+
+      IEnumerable<string> AddExtraTestDafnyArgs(IEnumerable<string> local) {
+        return (extraTestDafnyArguments is null ? local : new[] { extraTestDafnyArguments }.Concat<string>(local));
       }
 
       string[] defaultResolveArgs = new[] { "resolve", "--use-basename-for-filename", "--show-snippets:false" };
@@ -92,11 +100,11 @@ namespace IntegrationTests {
             DafnyCommand(AddExtraArgs(DafnyDriver.DefaultArgumentsForTesting, args), config, InvokeMainMethodsDirectly)
         }, {
           "%testDafnyForEachCompiler", (args, config) =>
-            MainMethodLitCommand.Parse(TestDafnyAssembly, new[] { "for-each-compiler" }.Concat(args), config,
+            MainMethodLitCommand.Parse(TestDafnyAssembly, new[] { "for-each-compiler" }.Concat(AddExtraTestDafnyArgs(args)), config,
               InvokeMainMethodsDirectly)
         }, {
           "%testDafnyForEachResolver", (args, config) =>
-            MainMethodLitCommand.Parse(TestDafnyAssembly, new[] { "for-each-resolver" }.Concat(args), config,
+            MainMethodLitCommand.Parse(TestDafnyAssembly, new[] { "for-each-resolver" }.Concat(AddExtraTestDafnyArgs(args)), config,
               InvokeMainMethodsDirectly)
         }, {
           "%server", (args, config) =>
