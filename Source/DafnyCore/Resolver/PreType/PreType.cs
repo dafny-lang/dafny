@@ -32,7 +32,7 @@ namespace Microsoft.Dafny {
     /// </summary>
     public PreType Normalize() {
       var t = this;
-      while (t is PreTypeProxy { PT: {} proxyFor }) {
+      while (t is PreTypeProxy { PT: { } proxyFor }) {
         t = proxyFor;
       }
       return t;

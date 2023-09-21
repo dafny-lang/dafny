@@ -205,7 +205,7 @@ public class TypeAdjustorVisitor : ASTVisitor<IASTVisitorContext> {
         Contract.Assert(letExpr.LHSs.Count == letExpr.RHSs.Count);
         for (var i = 0; i < letExpr.LHSs.Count; i++) {
           var rhs = letExpr.RHSs[i];
-          VisitPattern(letExpr.LHSs[i],() => AdjustableType.NormalizeSansBottom(rhs), context);
+          VisitPattern(letExpr.LHSs[i], () => AdjustableType.NormalizeSansBottom(rhs), context);
         }
       }
       flows.Add(new FlowBetweenExpressions(expr, letExpr.Body, "let"));
