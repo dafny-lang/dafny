@@ -497,10 +497,58 @@ harness that supplies input arguments but has no inputs of its own and that
 checks any output values, perhaps with `expect` statements. The test harness
 is then the method marked with `{:test}`.
 
-### 11.2.18. `{:timeLimit N}` {#sec-time-limit}
+### 11.2.18. `{:testEntry}` {#sec-test-entry-attribute}
+
+This attributes indicates that Dafny can use this method/function as an entry
+point for automatically generated tests. When using `dafny generate-tests` 
+command, at least one method must be annotated in this way.
+
+### 11.2.19. `{:testInline N}` {#sec-test-entry-attribute}
+
+This attribute indicates that Dafny should aim to achieve complete coverage of 
+the annotated method/function when generating tests. At the same time, Dafny
+will not use this method as an entry point. The numerical argument specifies
+the number of times a recursive function or method would be unrolled prior to
+generating tests.
+
+### 11.2.20. `{:testGenerators [parameter, generator]+}` {#sec-test-generators-attribute}
+
+This attribute instructs Dafny test generation to override an input parameter
+with a value obtained by calling the specified generator function or method.
+A method annotated with `{:testGenerators}` must always be a test entry method
+and have the `{:testEntry}` attribute as well.
+
+For example, consider the following Dafny code:
+
+<!-- %no-check -->
+```dafny
+module M {
+  method {:extern} CoinFlip() returns (b:bool)
+  method {:testEntry} {:testGenerators "b", "M.CoinFlip"} ToTest(b: bool) {
+    // Do Something Here
+  }
+}
+```
+
+In the code snippet above, method `ToTest` is annotated with 
+`{:testGenerators "b", "M.CoinFlip"}` which means that Dafny test generation 
+will produce a test that calls the`M.CoinFlip` method to obtain a value for 
+the input parameter `b`. In particular, running 
+`dafny generate-tests Block FILE.dfy` on the file above, will produce the
+following:
+
+<!-- %no-check -->
+```dafny
+method {:test} Test0() {
+  var bool0 : bool := M.flipCoin();
+  M.m(bool0);
+}
+```
+
+### 11.2.21. `{:timeLimit N}` {#sec-time-limit}
 Set the time limit for verifying a given function or method.
 
-### 11.2.19. `{:timeLimitMultiplier X}`
+### 11.2.22. `{:timeLimitMultiplier X}`
 This attribute may be placed on a method or function declaration
 and has an integer argument. If `{:timeLimitMultiplier X}` was
 specified a `{:timeLimit Y}` attribute is passed on to Boogie
@@ -508,11 +556,11 @@ where `Y` is `X` times either the default verification time limit
 for a function or method, or times the value specified by the
 Boogie `-timeLimit` command-line option.
 
-### 11.2.20. `{:transparent}` {#sec-transparent}
+### 11.2.23. `{:transparent}` {#sec-transparent}
 
 By default, the body of a function is transparent to its users. This can be overridden using the `--default-function-opacity` command line flag. If default function opacity is set to `opaque` or `autoRevealDependencies`, then this attribute can be used on functions to make them always non-opaque.
 
-### 11.2.21. `{:verify false}` {#sec-verify}
+### 11.2.24. `{:verify false}` {#sec-verify}
      
 Skip verification of a function or a method altogether,
 not even trying to verify the [well-formedness](#sec-assertion-batches) of postconditions and preconditions.
@@ -521,7 +569,7 @@ which performs these minimal checks while not checking that the body satisfies t
 
 If you simply want to temporarily disable all verification except on a single function or method, use the [`{:only}`](#sec-only-functions-methods) attribute on that function or method.
 
-### 11.2.22. `{:vcs_max_cost N}` {#sec-vcs_max_cost}
+### 11.2.25. `{:vcs_max_cost N}` {#sec-vcs_max_cost}
 Per-method version of the command-line option `/vcsMaxCost`.
 
 The [assertion batch](#sec-assertion-batches) of a method
@@ -530,7 +578,7 @@ number, defaults to 2000.0. In
 [keep-going mode](#sec-vcs_max_keep_going_splits), only applies to the first round.
 If [`{:vcs_split_on_every_assert}`](#sec-vcs_split_on_every_assert) is set, then this parameter is useless.
 
-### 11.2.23. `{:vcs_max_keep_going_splits N}` {#sec-vcs_max_keep_going_splits}
+### 11.2.26. `{:vcs_max_keep_going_splits N}` {#sec-vcs_max_keep_going_splits}
 
 Per-method version of the command-line option `/vcsMaxKeepGoingSplits`.
 If set to more than 1, activates the _keep going mode_ where, after the first round of splitting,
@@ -541,7 +589,7 @@ case an error is reported for that assertion).
 Defaults to 1.
 If [`{:vcs_split_on_every_assert}`](#sec-vcs_split_on_every_assert) is set, then this parameter is useless.
 
-### 11.2.24. `{:vcs_max_splits N}` {#sec-vcs_max_splits}
+### 11.2.27. `{:vcs_max_splits N}` {#sec-vcs_max_splits}
 
 Per-method version of the command-line option `/vcsMaxSplits`.
 Maximal number of [assertion batches](#sec-assertion-batches) generated for this method.
@@ -549,14 +597,14 @@ In [keep-going mode](#sec-vcs_max_keep_going_splits), only applies to the first 
 Defaults to 1.
 If [`{:vcs_split_on_every_assert}`](#sec-vcs_split_on_every_assert) is set, then this parameter is useless.
 
-### 11.2.25. `{:vcs_split_on_every_assert}` {#sec-vcs_split_on_every_assert}
+### 11.2.28. `{:vcs_split_on_every_assert}` {#sec-vcs_split_on_every_assert}
 Per-method version of the command-line option `/vcsSplitOnEveryAssert`.
 
 In the first and only verification round, this option will split the original [assertion batch](#sec-assertion-batches)
 into one assertion batch per assertion.
 This is mostly helpful for debugging which assertion is taking the most time to prove, e.g. to profile them.
 
-### 11.2.26. `{:synthesize}` {#sec-synthesize-attr}
+### 11.2.29. `{:synthesize}` {#sec-synthesize-attr}
 
 The `{:synthesize}` attribute must be used on methods that have no body and
 return one or more fresh objects. During compilation, 
@@ -590,7 +638,7 @@ BOUNDVARS = ID : ID
           | BOUNDVARS, BOUNDVARS
 ```
 
-### 11.2.27. `{:options OPT0, OPT1, ... }` {#sec-attr-options}
+### 11.2.30. `{:options OPT0, OPT1, ... }` {#sec-attr-options}
 
 This attribute applies only to modules. It configures Dafny as if
 `OPT0`, `OPT1`, … had been passed on the command line.  Outside of the module,
