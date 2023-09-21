@@ -50,7 +50,7 @@ public static class PreType2TypeUtil {
     }
 
     Type ArgumentAsCo(int i) {
-      return PreType2Type(pt.Arguments[i], allowFutureAdjustments, futureAdjustments);
+      return PreType2Type(pt.Arguments[i], true, futureAdjustments);
     }
 
     switch (pt.Decl.Name) {
