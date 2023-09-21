@@ -713,6 +713,23 @@ module M {
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
       Assert.Single(methods);
     }
+    
+    [Theory]
+    [MemberData(nameof(OptionSettings))]
+    public async Task DefaultValueCreation(List<Action<DafnyOptions>> optionSettings) {
+      var source = @"
+module M {
+  method {:extern} flipCoin() returns (b:bool)
+  method {:testEntry} {:testDefaultValue ""b"", ""M.flipCoin""} m(b: bool) {}
+}
+".TrimStart();
+      var options = GetDafnyOptions(optionSettings, output);
+      var program = Utils.Parse(new BatchErrorReporter(options), source, false);
+      var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
+      Assert.Single(methods);
+      Assert.Single(methods.First().ValueCreation);
+      Assert.True(methods.First().ValueCreation.First().value == "M.flipCoin()");
+    }
 
   }
 }

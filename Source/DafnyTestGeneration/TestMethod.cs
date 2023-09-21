@@ -146,6 +146,7 @@ namespace DafnyTestGeneration {
       var result = new List<string>();
       var vars = state.ExpandedVariableSet(-1);
       var parameterIndex = DafnyInfo.IsStatic(MethodName) ? -1 : -2;
+      var defaultValues = DafnyInfo.GetGeneratorMethodsForArguments(MethodName);
       for (var i = 0; i < printOutput.Count; i++) {
         if (types[i] == "Ty") {
           continue; // this means that this parameter is a type variable
@@ -163,6 +164,10 @@ namespace DafnyTestGeneration {
             type => DafnyInfo.GetSupersetType(type) != null && type.Name.StartsWith("_System") ?
               new UserDefinedType(type.tok, type.Name[8..], type.TypeArgs) :
               new UserDefinedType(type.tok, type.Name, type.TypeArgs));
+          if (defaultValues[parameterIndex] != null) {
+            result.Add(AddValue(type, defaultValues[parameterIndex] + "()"));
+            continue;
+          }
         } else {
           type = null;
         }

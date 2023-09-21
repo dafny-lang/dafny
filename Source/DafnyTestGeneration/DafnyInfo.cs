@@ -183,6 +183,25 @@ namespace DafnyTestGeneration {
       return superSetType;
     }
 
+    public List<string> GetGeneratorMethodsForArguments(string callableName) {
+      Attributes defaultValueAttribute = null;
+      List<string> parameterNames = new List<string>();
+      var defaultValueMap = new Dictionary<string, string>();
+      if (methods.ContainsKey(callableName)) {
+        methods[callableName].HasUserAttribute(TestGenerationOptions.TestDefaultValue, out defaultValueAttribute);
+        parameterNames.AddRange(methods[callableName].Ins.ConvertAll(formal => formal.Name));
+      } else if (functions.ContainsKey(callableName)) {
+        functions[callableName].HasUserAttribute(TestGenerationOptions.TestDefaultValue, out defaultValueAttribute);
+        parameterNames.AddRange(functions[callableName].Formals.ConvertAll(formal => formal.Name));
+      }
+      if (defaultValueAttribute != null) {
+        for (int i = 0; i < defaultValueAttribute.Args.Count - 1; i+=2) {
+          defaultValueMap[(defaultValueAttribute.Args[i] as LiteralExpr).Value.ToString()] = (defaultValueAttribute.Args[i + 1] as LiteralExpr).Value.ToString();
+        }
+      }
+      return parameterNames.ConvertAll(parameterName => defaultValueMap.GetValueOrDefault(parameterName, null));
+    }
+
     public IEnumerable<Expression> GetEnsures(List<string> ins, List<string> outs, string callableName, string receiver) {
       Dictionary<IVariable, string> subst = new Dictionary<IVariable, string>();
       if (methods.ContainsKey(callableName)) {
