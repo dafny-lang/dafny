@@ -28,7 +28,7 @@ mfunction HasParseAndResolutionError(): int {
   true
 }".TrimStart();
 
-      var document = await CreateAndOpenTestDocument(source);
+      var document = await CreateOpenAndWaitForResolve(source);
       var parseDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
       Assert.Equal(MessageSource.Parser.ToString(), parseDiagnostics[0].Source);
       ApplyChange(ref document, new Range(0, 0, 0, 1), " ");
@@ -58,9 +58,9 @@ module Consumer {
 ".TrimStart();
 
       var directory = Path.GetRandomFileName();
-      var project = await CreateAndOpenTestDocument("", Path.Combine(directory, DafnyProject.FileName));
-      var producer = await CreateAndOpenTestDocument(producerSource, Path.Combine(directory, "producer.dfy"));
-      var consumer = await CreateAndOpenTestDocument(consumerSource, Path.Combine(directory, "consumer.dfy"));
+      var project = await CreateOpenAndWaitForResolve("", Path.Combine(directory, DafnyProject.FileName));
+      var producer = await CreateOpenAndWaitForResolve(producerSource, Path.Combine(directory, "producer.dfy"));
+      var consumer = await CreateOpenAndWaitForResolve(consumerSource, Path.Combine(directory, "consumer.dfy"));
       var diag1 = await GetLastDiagnostics(producer, CancellationToken);
       Assert.Equal(DiagnosticSeverity.Hint, diag1[0].Severity);
       ApplyChange(ref consumer, new Range(0, 0, 0, 0), "//trigger change\n");
@@ -75,7 +75,7 @@ function HasResolutionError(): int {
   true
 }".TrimStart();
 
-      var document = await CreateAndOpenTestDocument(source);
+      var document = await CreateOpenAndWaitForResolve(source);
       var resolutionDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
       Assert.Equal(MessageSource.Resolver.ToString(), resolutionDiagnostics[0].Source);
       ApplyChange(ref document, new Range(3, 0, 3, 0), "// comment to trigger update\n");
@@ -106,7 +106,7 @@ method {:vcs_split_on_every_assert} Foo(x: int) {
     assert false;
   }
 }";
-      var document = await CreateAndOpenTestDocument(source);
+      var document = await CreateOpenAndWaitForResolve(source);
       var status1 = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
       Assert.Equal(PublishedVerificationStatus.Stale, status1.NamedVerifiables[0].Status);
       var status12 = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
@@ -128,7 +128,7 @@ method {:vcs_split_on_every_assert} Foo(x: int) {
     assert false;
   }
 }";
-      await CreateAndOpenTestDocument(source);
+      await CreateOpenAndWaitForResolve(source);
       var diagnostics1 = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
       Assert.Single(diagnostics1);
       var diagnostics2 = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);

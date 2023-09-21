@@ -119,7 +119,7 @@ public class CompilationManager {
   private async Task<CompilationAfterResolution> ResolveAsync() {
     try {
       var parsedCompilation = await ParsedCompilation;
-      var resolvedCompilation = await documentLoader.ResolveAsync(options, parsedCompilation, migratedVerificationTrees, cancellationSource.Token);
+      var resolvedCompilation = await documentLoader.ResolveAsync(options, parsedCompilation, cancellationSource.Token);
 
       if (!resolvedCompilation.Program.Reporter.HasErrors) {
         verificationProgressReporter.RecomputeVerificationTrees(resolvedCompilation);

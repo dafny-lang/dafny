@@ -72,10 +72,10 @@ module Importer {
 ".TrimStart();
 
     var directory = Path.GetRandomFileName();
-    await CreateAndOpenTestDocument("", Path.Combine(directory, DafnyProject.FileName));
-    var imported = await CreateAndOpenTestDocument(importedSource, Path.Combine(directory, "imported.dfy"));
-    await CreateAndOpenTestDocument(exporter, Path.Combine(directory, "exporter.dfy"));
-    var importer = await CreateAndOpenTestDocument(importerSource, Path.Combine(directory, "importer.dfy"));
+    await CreateOpenAndWaitForResolve("", Path.Combine(directory, DafnyProject.FileName));
+    var imported = await CreateOpenAndWaitForResolve(importedSource, Path.Combine(directory, "imported.dfy"));
+    await CreateOpenAndWaitForResolve(exporter, Path.Combine(directory, "exporter.dfy"));
+    var importer = await CreateOpenAndWaitForResolve(importerSource, Path.Combine(directory, "importer.dfy"));
 
     // Make a change to imported, which could trigger a bug where some dependants of it are not marked dirty
     ApplyChange(ref imported, ((0, 0), (0, 0)), "//comment" + Environment.NewLine);
@@ -141,9 +141,9 @@ module ModC {
 
 
     var temp = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
-    var noCachingProject = await CreateAndOpenTestDocument(@"[options]
+    var noCachingProject = await CreateOpenAndWaitForResolve(@"[options]
 use-caching = false", Path.Combine(temp, "dfyconfig.toml"));
-    var noCaching = await CreateAndOpenTestDocument(source, Path.Combine(temp, "noCaching.dfy"));
+    var noCaching = await CreateOpenAndWaitForResolve(source, Path.Combine(temp, "noCaching.dfy"));
     ApplyChange(ref noCaching, ((0, 0), (0, 0)), "// Pointless comment that triggers a reparse\n");
     var hitCountForNoCaching = await WaitAndCountHits(noCaching);
     Assert.Equal(0, hitCountForNoCaching.ParseHits);
