@@ -27,7 +27,7 @@ public abstract class ProofDependency {
     }
     var fn = Range.StartToken.filename;
     var sl = Range.StartToken.line;
-    var sc = Range.StartToken.col - 1;
+    var sc = Range.StartToken.col;
     return $"{fn}({sl},{sc})";
   }
 
@@ -37,9 +37,9 @@ public abstract class ProofDependency {
     }
     var fn = Range.StartToken.filename;
     var sl = Range.StartToken.line;
-    var sc = Range.StartToken.col - 1;
+    var sc = Range.StartToken.col;
     var el = Range.EndToken.line;
-    var ec = Range.EndToken.col - 1;
+    var ec = Range.EndToken.col;
     return $"{fn}({sl},{sc})-({el},{ec})";
   }
 
@@ -159,10 +159,12 @@ public class AssumptionDependency : ProofDependency {
     comment ?? $"assume {OriginalString()}";
 
   private readonly string comment;
+  public bool IsAssumeStatement { get; }
 
-  public AssumptionDependency(string comment, Expression expr) {
+  public AssumptionDependency(bool isAssumeStatement, string comment, Expression expr) {
     this.comment = comment;
     this.expr = expr;
+    this.IsAssumeStatement = isAssumeStatement;
   }
 }
 
