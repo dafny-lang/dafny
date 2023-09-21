@@ -103,13 +103,7 @@ class PreTypeToTypeVisitor : ASTVisitor<IASTVisitorContext> {
   }
 
   protected override void PostVisitOneExpression(Expression expr, IASTVisitorContext context) {
-    if (expr is LiteralExpr or ThisExpr) {
-      // Note, for the LiteralExpr "null", we expect to get a possibly-null type, whereas for a reference-type ThisExpr, we expect
-      // to get the non-null type. The .PreType of these two distinguish between those cases, because the latter has a .PrintablePreType
-      // field that gives the non-null type.
-      expr.Type = PreType2TypeUtil.PreType2FixedType(expr.PreType);
-      return;
-    } else if (expr is FunctionCallExpr functionCallExpr) {
+    if (expr is FunctionCallExpr functionCallExpr) {
       functionCallExpr.TypeApplication_AtEnclosingClass = functionCallExpr.PreTypeApplication_AtEnclosingClass.ConvertAll(PreType2TypeUtil.PreType2FixedType);
       functionCallExpr.TypeApplication_JustFunction = PreType2TypeUtil.Combine(functionCallExpr.TypeApplication_JustFunction,
         functionCallExpr.PreTypeApplication_JustFunction, true);
@@ -143,14 +137,48 @@ class PreTypeToTypeVisitor : ASTVisitor<IASTVisitorContext> {
 
     if (expr.PreType is UnusedPreType) {
       expr.Type = new InferredTypeProxy();
-    } else if (expr is ConcreteSyntaxExpression { ResolvedExpression: { } resolvedExpression }) {
-      expr.UnnormalizedType = resolvedExpression.UnnormalizedType;
-    } else if (expr is SeqSelectExpr { Seq: { Type: { AsMultiSetType: { } } } }) {
-      expr.UnnormalizedType = systemModuleManager.Nat();
-    } else {
-      expr.UnnormalizedType = PreType2TypeUtil.PreType2AdjustableType(expr.PreType, TypeParameter.TPVariance.Co);
+      return;
     }
-    base.PostVisitOneExpression(expr, context);
+
+    // In what remains, we set the type of the expression in one of four ways:
+    //   - The expression gets set to a fixed version of expr.PreType. For example, integer plus, which is
+    //     always int, regardless of any subset type of the operands.
+    //   - The expression gets set to a fixed subset type. For example, multiset selection returns a nat.
+    //   - The expression type is fused directly with the type of some subexpression. This means that any
+    //     later adjustments of the type of the subexpression is immediately reflected in the type of the expression,
+    //     without needing to set up any "flow". For example, the type of a ConcreteSyntaxExpression is fused
+    //     with the type of its .ResolvedExpression.
+    //   - The expression type gets set to an adjustable version of expr.PreType, specifically
+    //     _bottom<expr.PreType> (that is, expr.PreType as a type with the strongest possible constraint).
+    //     For example, IdentifierExpr, which gets an adjustable type (into which the type from the identifier's
+    //     declaration will later flow).
+
+    // Case: fuse the type
+    if (expr is ConcreteSyntaxExpression { ResolvedExpression: { } resolvedExpression }) {
+      expr.UnnormalizedType = resolvedExpression.UnnormalizedType;
+      return;
+    } else if (expr is StmtExpr stmtExpr) {
+      expr.UnnormalizedType = stmtExpr.E.UnnormalizedType;
+      return;
+    }
+
+    // Case: fixed subset type
+    if (expr is SeqSelectExpr { Seq: { Type: { AsMultiSetType: { } } } }) {
+      expr.UnnormalizedType = systemModuleManager.Nat();
+      return;
+    }
+
+    // Case: fixed pre-type type
+    if (expr is LiteralExpr or ThisExpr or UnaryExpr or BinaryExpr) {
+      // Note, for the LiteralExpr "null", we expect to get a possibly-null type, whereas for a reference-type ThisExpr, we expect
+      // to get the non-null type. The .PreType of these two distinguish between those cases, because the latter has a .PrintablePreType
+      // field that gives the non-null type.
+      expr.Type = PreType2TypeUtil.PreType2FixedType(expr.PreType);
+      return;
+    }
+
+    // Case: adjustable pre-type type
+    expr.UnnormalizedType = PreType2TypeUtil.PreType2AdjustableType(expr.PreType, TypeParameter.TPVariance.Co);
   }
 
   private void VisitPattern<VT>(CasePattern<VT> casePattern, IASTVisitorContext context) where VT : class, IVariable {
