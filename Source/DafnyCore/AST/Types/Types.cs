@@ -1246,7 +1246,9 @@ public abstract class Type : TokenNode {
   }
 
   /// <summary>
-  /// Returns a stack of base types leading to "type".  More precisely, of the tower returned,
+  /// Returns a stack of base types leading to "type".  More precisely:
+  ///
+  /// With "typeSynonymsAreSignificant" being "false", then, of the tower returned,
   ///     tower[0] == type.NormalizeExpand()
   ///     tower.Last == type.NormalizeExpandKeepConstraints()
   /// In between, for consecutive indices i and i+1:
@@ -1254,14 +1256,23 @@ public abstract class Type : TokenNode {
   /// The tower thus has the property that:
   ///     tower[0] is not a UserDefinedType with .ResolvedClass being a SubsetTypeDecl,
   ///     but all other tower[i] (for i > 0) are.
+  ///
+  /// With "typeSynonymsAreSignificant" being "true", then, of the tower returned,
+  ///     tower[0] == type.Normalize()
+  ///     tower.Last == type.NormalizeExpandKeepConstraints()
+  /// In between, for consecutive indices i and i+1:
+  ///     tower[i] is the base type (that is, .Rhs) of the subset type or type synonym tower[i+1]
+  /// The tower thus has the property that:
+  ///     tower[0] is not a UserDefinedType with .ResolvedClass being a TypeSynonymDecl,
+  ///     but all other tower[i] (for i > 0) are.
   /// </summary>
-  public static List<Type> GetTowerOfSubsetTypes(Type type) {
+  public static List<Type> GetTowerOfSubsetTypes(Type type, bool typeSynonymsAreSignificant = false) {
     Contract.Requires(type != null);
-    type = type.NormalizeExpandKeepConstraints();
+    type = typeSynonymsAreSignificant ? type.Normalize() : type.NormalizeExpandKeepConstraints();
     List<Type> tower;
-    if (type is UserDefinedType { ResolvedClass: SubsetTypeDecl sst }) {
+    if (type is UserDefinedType { ResolvedClass: TypeSynonymDecl sst } && (typeSynonymsAreSignificant || sst is SubsetTypeDecl)) {
       var parent = sst.RhsWithArgument(type.TypeArgs);
-      tower = GetTowerOfSubsetTypes(parent);
+      tower = GetTowerOfSubsetTypes(parent, typeSynonymsAreSignificant);
     } else {
       tower = new List<Type>();
     }

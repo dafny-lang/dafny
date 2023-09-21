@@ -158,8 +158,8 @@ abstract class Flow {
     // Before we do anything else, make a note of whether or not both "a" and "b" are non-null types.
     var abNonNullTypes = a.IsNonNullRefType && b.IsNonNullRefType;
 
-    var towerA = Type.GetTowerOfSubsetTypes(a);
-    var towerB = Type.GetTowerOfSubsetTypes(b);
+    var towerA = Type.GetTowerOfSubsetTypes(a, true);
+    var towerB = Type.GetTowerOfSubsetTypes(b, true);
     // We almost expect the base types of these towers to be the same, since the module has successfully gone through pre-resolution and the
     // pre-resolution underspecification checks. However, there are considerations.
     //   - One is that the two given types may contain unused type parameters in type synonyms or subset types, and pre-resolution does not
