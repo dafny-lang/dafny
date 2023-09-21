@@ -215,12 +215,13 @@ public class ProjectManager : IDisposable {
   }
 
   public async Task CloseAsync() {
-    CompilationManager.Dispose();
+    CompilationManager.CancelPendingUpdates();
     try {
       await CompilationManager.LastDocument;
       observer.OnCompleted();
     } catch (OperationCanceledException) {
     }
+    Dispose();
   }
 
   public async Task<CompilationAfterParsing> GetLastDocumentAsync() {
@@ -359,6 +360,7 @@ public class ProjectManager : IDisposable {
   }
 
   public void Dispose() {
+    observerSubscription.Dispose();
     CompilationManager.Dispose();
   }
 }

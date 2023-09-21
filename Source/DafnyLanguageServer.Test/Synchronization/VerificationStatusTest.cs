@@ -43,7 +43,7 @@ method ShouldNotBeAffectedByChange() {
   }
 
   [Fact]
-  public async Task DoNotResendAfterNoopChange() {
+  public async Task ANoopChangeWillCauseVerificationToTriggerAgain() {
     var source = @"
 method WillVerify() {
   assert false;
@@ -51,9 +51,9 @@ method WillVerify() {
 ".TrimStart();
 
     var document = await CreateAndOpenTestDocument(source);
-    var firstStatus = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
+    await WaitForStatus(null, PublishedVerificationStatus.Error, CancellationToken, document);
     ApplyChange(ref document, new Range(3, 0, 3, 0), "//change comment\n");
-    await AssertNoVerificationStatusIsComing(document, CancellationToken);
+    await WaitForStatus(null, PublishedVerificationStatus.Error, CancellationToken, document);
   }
 
   [Fact]
