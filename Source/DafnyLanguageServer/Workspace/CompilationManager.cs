@@ -453,10 +453,9 @@ public class CompilationManager : IDisposable {
       case BatchCompleted:
         return PublishedVerificationStatus.Running;
       case Completed completed:
-        var foundAllErrors = completed.Result.VCResults.All(vcResult => vcResult.counterExamples.Count < vcResult.maxCounterExamples);
         return completed.Result.Outcome == ConditionGeneration.Outcome.Correct
           ? PublishedVerificationStatus.Correct
-          : (foundAllErrors ? PublishedVerificationStatus.FoundAllErrors : PublishedVerificationStatus.FoundSomeErrors);
+          : PublishedVerificationStatus.Error;
       default:
         throw new ArgumentOutOfRangeException();
     }

@@ -192,7 +192,7 @@ method Abs(x: int) returns (y: int)
       var documentItem = CreateTestDocument(source, "DocumentWithOnlyVerifierErrorsSendsCompilationSucceededVerificationStartedAndVerificationFailedStatuses.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       await AssertProgress(documentItem, CompilationStatus.ResolutionStarted);
-      await WaitForStatus(null, PublishedVerificationStatus.FoundSomeErrors, CancellationToken, documentItem);
+      await WaitForStatus(null, PublishedVerificationStatus.Error, CancellationToken, documentItem);
     }
 
     [Fact]
@@ -200,7 +200,7 @@ method Abs(x: int) returns (y: int)
       var documentItem = CreateTestDocument(SlowToVerify, "DocumentWithOnlyCodedVerifierTimeoutSendsCompilationSucceededVerificationStartedAndVerificationFailedStatuses.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       await AssertProgress(documentItem, CompilationStatus.ResolutionStarted);
-      await WaitForStatus(null, PublishedVerificationStatus.FoundSomeErrors, CancellationToken, documentItem);
+      await WaitForStatus(null, PublishedVerificationStatus.Error, CancellationToken, documentItem);
     }
 
     [Fact(Timeout = MaxTestExecutionTimeMs)]
@@ -209,7 +209,7 @@ method Abs(x: int) returns (y: int)
       var documentItem = CreateTestDocument(SlowToVerify, "DocumentWithOnlyConfiguredVerifierTimeoutSendsCompilationSucceededVerificationStartedAndVerificationFailedStatuses.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       await AssertProgress(documentItem, CompilationStatus.ResolutionStarted);
-      await WaitForStatus(null, PublishedVerificationStatus.FoundSomeErrors, CancellationToken, documentItem);
+      await WaitForStatus(null, PublishedVerificationStatus.Error, CancellationToken, documentItem);
     }
 
     [Fact(Timeout = MaxTestExecutionTimeMs)]

@@ -99,7 +99,7 @@ public class CompilationAfterResolution : CompilationAfterParsing {
       var implementations = implementationsPerName!.ToDictionary(kv => kv.Key, kv => {
         var implementationView = kv.Value;
         var diagnostics = implementationView.Diagnostics.Select(d => d.ToLspDiagnostic());
-        if (implementationView.Status < PublishedVerificationStatus.FoundSomeErrors) {
+        if (implementationView.Status < PublishedVerificationStatus.Error) {
           var previousDiagnostics = previousImplementations.GetValueOrDefault(kv.Key)?.Diagnostics;
           if (previousDiagnostics != null) {
             diagnostics = MarkDiagnosticsAsOutdated(previousDiagnostics);

@@ -136,7 +136,7 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
       try {
         var foundStatus = await verificationStatusReceiver.AwaitNextNotificationAsync(cancellationToken);
         donePerUri[foundStatus.Uri.ToUri()] =
-          foundStatus.NamedVerifiables.All(n => n.Status >= PublishedVerificationStatus.FoundSomeErrors);
+          foundStatus.NamedVerifiables.All(n => n.Status >= PublishedVerificationStatus.Error);
         result.Add(foundStatus);
       } catch (OperationCanceledException) {
         WriteVerificationHistory();
