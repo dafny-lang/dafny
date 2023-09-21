@@ -438,8 +438,8 @@ namespace Microsoft.Dafny {
             }
           }
 
-          if (s.ForallExpressions != null) {
-            foreach (Expression expr in s.ForallExpressions) {
+          if (s.EffectiveEnsuresClauses != null) {
+            foreach (Expression expr in s.EffectiveEnsuresClauses) {
               ResolveExpression(expr, resolutionContext);
             }
           }
