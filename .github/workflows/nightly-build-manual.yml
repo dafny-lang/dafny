@@ -1,7 +1,7 @@
 
 # Manual trigger for the nightly build on a given branch.
 
-name: Nightly test and release workflow
+name: Nightly test and release workflow (Manual trigger)
 
 on:
   workflow_dispatch:

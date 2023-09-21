@@ -1,6 +1,12 @@
 
-# This workflow includes more expensive tests than what is run on every PR, that are unlikely to break on most changes.
-# It also publishes a nightly release.
+# Scheduled nightly build
+#
+# Scheduled workflows only ever trigger for the default branch,
+# but we need to run nightly jobs on multiple branches.
+# This workflow therefore triggers a reusable workflow
+# on every branch that needs to be protected with the nightly deep-test mechanism,
+# and ensures which ever branch contains the next planned release
+# publishes the nightly prerelease.
 #
 # The if at the beginning of each job terminates the workflow immediately on any repo (like a fork) that is not the main
 # dafny-lang/dafny repo. This stops such forks from running this workflow and failing (for lack of a secret) the attempt to
