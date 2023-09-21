@@ -43,6 +43,19 @@ public class Program : TokenNode {
     Compilation = compilation;
   }
 
+  public Program(Cloner cloner, Program original) {
+    FullName = original.FullName;
+    DefaultModule = new LiteralModuleDecl(cloner, original.DefaultModule, original.DefaultModule.EnclosingModuleDefinition);
+    Files = original.Files;
+    SystemModuleManager = original.SystemModuleManager;
+    Reporter = original.Reporter;
+    Compilation = original.Compilation;
+
+    if (cloner.CloneResolvedFields) {
+      throw new NotImplementedException();
+    }
+  }
+
   //Set appropriate visibilty before presenting module
   public IEnumerable<ModuleDefinition> Modules() {
 
