@@ -79,7 +79,7 @@ public class ForallStmtRewriter : IRewriter {
         Type = Type.Bool, // resolve here
         Bounds = s.Bounds
       };
-      s.ForallExpressions = new List<Expression> { expr };
+      s.EffectiveEnsuresClauses = new List<Expression> { expr };
     }
 
     private void VisitAssign(ForallStmt stmt) {
@@ -190,7 +190,7 @@ public class ForallStmtRewriter : IRewriter {
         exprList.Add(expr);
       }
 
-      stmt.ForallExpressions = exprList;
+      stmt.EffectiveEnsuresClauses = exprList;
     }
 
     private static void VisitProof(ForallStmt s) {
@@ -199,7 +199,7 @@ public class ForallStmtRewriter : IRewriter {
         term = new BinaryExpr(s.Ens[i].Tok, BinaryExpr.ResolvedOpcode.And, term, s.Ens[i].E);
       }
 
-      s.ForallExpressions = new List<Expression> {
+      s.EffectiveEnsuresClauses = new List<Expression> {
         new ForallExpr(s.Tok, s.RangeToken, s.BoundVars, s.Range, term, s.Attributes) {
           Type = Type.Bool, // resolve here
           Bounds = s.Bounds
