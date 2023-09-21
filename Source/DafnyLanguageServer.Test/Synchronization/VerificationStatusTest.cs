@@ -258,6 +258,7 @@ method m1() {
     ApplyChange(ref documentItem, new Range(0, 0, 0, 0), "\n");
 
     await AssertNoVerificationStatusIsComing(documentItem, CancellationToken);
+
   }
 
   [Fact]
@@ -269,7 +270,7 @@ method m1() {
     var documentItem = CreateTestDocument(source, "NoVerificationStatusPublishedForUnresolvedDocument.dfy");
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
 
-    await WaitUntilAllStatusAreCompleted(documentItem);
+    var lastStatus = await WaitUntilAllStatusAreCompleted(documentItem);
     ApplyChange(ref documentItem, new Range(1, 9, 1, 10), "foo");
     ApplyChange(ref documentItem, new Range(0, 0, 0, 0), "\n");
 

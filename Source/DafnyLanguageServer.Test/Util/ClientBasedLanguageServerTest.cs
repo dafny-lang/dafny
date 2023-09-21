@@ -220,7 +220,7 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
   }
 
   public Task DisposeAsync() {
-    return Task.CompletedTask;
+    return client.Shutdown();
   }
 
   protected virtual async Task SetUp(Action<DafnyOptions> modifyOptions) {
