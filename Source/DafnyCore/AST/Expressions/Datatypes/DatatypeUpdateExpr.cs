@@ -26,7 +26,11 @@ public class DatatypeUpdateExpr : ConcreteSyntaxExpression, IHasUsages, ICloneab
       Members = original.Members;
       LegalSourceConstructors = original.LegalSourceConstructors;
       InCompiledContext = original.InCompiledContext;
-      ResolvedCompiledExpression = cloner.CloneExpr(original.ResolvedCompiledExpression);
+      if (original.ResolvedExpression == original.ResolvedCompiledExpression) {
+        ResolvedCompiledExpression = ResolvedExpression;
+      } else {
+        ResolvedCompiledExpression = cloner.CloneExpr(original.ResolvedCompiledExpression);
+      }
     }
   }
 
@@ -43,13 +47,16 @@ public class DatatypeUpdateExpr : ConcreteSyntaxExpression, IHasUsages, ICloneab
   public override IEnumerable<Expression> SubExpressions {
     get {
       if (ResolvedExpression == null) {
+        Contract.Assert(ResolvedCompiledExpression == null);
         foreach (var preResolved in PreResolveSubExpressions) {
-
           yield return preResolved;
         }
       } else {
         foreach (var e in base.SubExpressions) {
           yield return e;
+        }
+        if (ResolvedExpression != ResolvedCompiledExpression) {
+          yield return ResolvedCompiledExpression;
         }
       }
     }
