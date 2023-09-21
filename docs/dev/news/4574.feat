@@ -1,0 +1,1 @@
+Allow for user-defined entity creation in test generation via the {:testGenerators} method attribute.

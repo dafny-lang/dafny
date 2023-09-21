@@ -515,8 +515,7 @@ generating tests.
 
 This attribute instructs Dafny test generation to override an input parameter
 with a value obtained by calling the specified generator function or method.
-A method annotated with `{:testGenerators}` must always be a test entry method
-and have the `{:testEntry}` attribute as well.
+A method annotated with `{:testGenerators}` must always be a test entry method.
 
 For example, consider the following Dafny code:
 
