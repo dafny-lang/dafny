@@ -24,6 +24,9 @@ public class ForEachCompilerOptions {
 
   [Option("refresh-exit-code", HelpText = "If present, also run with --type-system-refresh and expect the given exit code.")]
   public int? RefreshExitCode { get; set; } = null;
+  
+  [Option("target", Required = true, HelpText = "Compilation target. Defaults to all targets.")]
+  public string? Target { get; set; } = null;
 }
 
 [Verb("features", HelpText = "Print the Markdown content documenting feature support for each compiler.")]
@@ -49,9 +52,6 @@ public class ForEachResolverOptions {
 
   [Option("refresh-exit-code", HelpText = "Expected exit code for refresh resolver (default expect-exit-code).")]
   public int? RefreshExitCode { get; set; } = null;
-  
-  [Option("refresh-no-verify", HelpText = "Only perform resolution on the refresh resolver.")]
-  public bool RefreshNoVerify { get; set; } = false;
 }
 
 public class MultiBackendTest {
@@ -94,8 +94,7 @@ public class MultiBackendTest {
     string ReadableName,
     string[] AdditionalOptions,
     string[] ExpectFileSuffixes,
-    int ExpectedExitCode,
-    bool NoVerify
+    int ExpectedExitCode
   );
 
   private int ForEachCompiler(ForEachCompilerOptions options) {
@@ -129,8 +128,7 @@ public class MultiBackendTest {
         "legacy",
         new string[] { },
         new string[] { ".verifier.expect" },
-        0,
-        NoVerify: false)
+        0)
     };
     if (options.RefreshExitCode != null) {
       resolutionOptions.Add(
@@ -138,8 +136,7 @@ public class MultiBackendTest {
           "refresh",
           new string[] { "--type-system-refresh" },
           new string[] { ".refresh.expect", ".verifier.expect" },
-          (int)options.RefreshExitCode,
-          NoVerify: false)
+          (int)options.RefreshExitCode)
       );
     }
     foreach (var resolutionOption in resolutionOptions) {
@@ -178,34 +175,37 @@ public class MultiBackendTest {
 
     // Then execute the program for each available compiler.
 
+    var compilers = dafnyOptions.Plugins.SelectMany(plugin => plugin.GetCompilers(dafnyOptions));
+    if (options.Target != null) {
+      compilers = compilers.Where(compiler => compiler.TargetId == options.Target);
+    }
+    
     string expectFile = options.TestFile + ".expect";
     var commonExpectedOutput = File.ReadAllText(expectFile);
 
     var success = true;
-    foreach (var plugin in dafnyOptions.Plugins) {
-      foreach (var compiler in plugin.GetCompilers(dafnyOptions)) {
-        if (!compiler.IsStable) {
-          // Some tests still fail when using the lib back-end, for example due to disallowed assumptions being present in the test,
-          // Such as empty constructors with ensures clauses, generated from iterators
-          continue;
-        }
+    foreach (var compiler in compilers) {
+      if (!compiler.IsStable) {
+        // Some tests still fail when using the lib back-end, for example due to disallowed assumptions being present in the test,
+        // Such as empty constructors with ensures clauses, generated from iterators
+        continue;
+      }
 
-        // Check for backend-specific exceptions (because of known bugs or inconsistencies)
-        var expectedOutput = commonExpectedOutput;
-        string? checkFile = null;
-        var expectFileForBackend = $"{options.TestFile}.{compiler.TargetId}.expect";
-        if (File.Exists(expectFileForBackend)) {
-          expectedOutput = File.ReadAllText(expectFileForBackend);
-        }
-        var checkFileForBackend = $"{options.TestFile}.{compiler.TargetId}.check";
-        if (File.Exists(checkFileForBackend)) {
-          checkFile = checkFileForBackend;
-        }
+      // Check for backend-specific exceptions (because of known bugs or inconsistencies)
+      var expectedOutput = commonExpectedOutput;
+      string? checkFile = null;
+      var expectFileForBackend = $"{options.TestFile}.{compiler.TargetId}.expect";
+      if (File.Exists(expectFileForBackend)) {
+        expectedOutput = File.ReadAllText(expectFileForBackend);
+      }
+      var checkFileForBackend = $"{options.TestFile}.{compiler.TargetId}.check";
+      if (File.Exists(checkFileForBackend)) {
+        checkFile = checkFileForBackend;
+      }
 
-        var result = RunWithCompiler(options, compiler, expectedOutput, checkFile);
-        if (result != 0) {
-          success = false;
-        }
+      var result = RunWithCompiler(options, compiler, expectedOutput, checkFile);
+      if (result != 0) {
+        success = false;
       }
     }
 
@@ -236,9 +236,9 @@ public class MultiBackendTest {
 
     var resolutionOptions = new List<ResolutionSetting>() {
       new ResolutionSetting("legacy", new string[] { }, new string[] { ".expect" },
-        options.ExpectExitCode ?? 0, NoVerify: false),
+        options.ExpectExitCode ?? 0),
       new ResolutionSetting("refresh", new string[] { "--type-system-refresh" }, new string[] { ".refresh.expect", ".expect" },
-        options.RefreshExitCode ?? options.ExpectExitCode ?? 0, NoVerify: options.RefreshNoVerify)
+        options.RefreshExitCode ?? options.ExpectExitCode ?? 0)
     };
 
     foreach (var resolutionOption in resolutionOptions) {
