@@ -173,7 +173,7 @@ namespace DafnyTestGeneration {
         }
       }
     }
-    
+
     public static IEnumerable<MemberDecl> AllMemberDeclarations(TopLevelDecl decl) {
       if (decl is LiteralModuleDecl moduleDecl) {
         foreach (var child in moduleDecl.ModuleDef.TopLevelDecls) {

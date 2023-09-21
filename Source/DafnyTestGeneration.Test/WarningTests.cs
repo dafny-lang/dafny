@@ -119,14 +119,14 @@ method {:testInline -1} b() {}
     Assert.Equal(1, Count(Errors, outputString));
     Assert.Equal(0, Count(Warnings, outputString));
   }
-  
+
   [Theory]
   [MemberData(nameof(OptionSettings))]
   public async Task MalformedAttribute2(List<Action<DafnyOptions>> optionSettings) {
     var source = new StringReader(@"
 module A {
 function {:testEntry} b(i:int):int { i+1 }
-function {:testDefaultValue} a(i:int):int { i+1 }
+function {:testGenerators} a(i:int):int { i+1 }
 }
 ".TrimStart());
     var output = new StringBuilder();
@@ -138,25 +138,25 @@ function {:testDefaultValue} a(i:int):int { i+1 }
     Assert.Equal(2, Count(Errors, outputString));
     Assert.Equal(0, Count(Warnings, outputString));
   }
-  
+
   [Theory]
   [MemberData(nameof(OptionSettings))]
   public async Task MalformedAttribute3(List<Action<DafnyOptions>> optionSettings) {
     var source = new StringReader(@"
 module A {
-function {:testDefaultValue 3} {:testEntry} a(i:int):int { i+1 }
+function {:testGenerators 3} {:testEntry} a(i:int):int { i+1 }
 }
 ".TrimStart());
     var output = new StringBuilder();
     var options = GetDafnyOptions(optionSettings, new StringWriter(output));
     await Main.GetTestClassForProgram(source, null, options).ToListAsync();
     var outputString = output.ToString();
-    // Should emit an error because :testDefaultValue must always have an even number of arguments
+    // Should emit an error because :testGenerators must always have an even number of arguments
     Assert.Contains(FirstPass.MalformedAttributeError, outputString);
     Assert.Equal(1, Count(Errors, outputString));
     Assert.Equal(0, Count(Warnings, outputString));
   }
-  
+
   [Theory]
   [MemberData(nameof(OptionSettings))]
   public async Task CorrectAttributeUse(List<Action<DafnyOptions>> optionSettings) {
@@ -165,7 +165,7 @@ module B {
   function getI():int {4}
 }
 module A {
-  function {:testDefaultValue ""i"", ""B.getI""} {:testEntry} a(i:int):int { i+1 }
+  function {:testGenerators ""i"", ""B.getI""} {:testEntry} a(i:int):int { i+1 }
 }
 ".TrimStart());
     var output = new StringBuilder();

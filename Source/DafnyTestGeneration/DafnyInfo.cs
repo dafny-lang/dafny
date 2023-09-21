@@ -183,23 +183,29 @@ namespace DafnyTestGeneration {
       return superSetType;
     }
 
+    /// <summary>
+    /// Return a list generator methods that test generation should use to populate values for particular input
+    /// parameters when calling (<param name="callableName"/>). A null value in the list indicate that test generation
+    /// should use a value proposed by the counterexample.
+    /// </summary>
     public List<string> GetGeneratorMethodsForArguments(string callableName) {
-      Attributes defaultValueAttribute = null;
+      Attributes useGeneratorsAttribute = null;
       List<string> parameterNames = new List<string>();
-      var defaultValueMap = new Dictionary<string, string>();
+      var generatorsMap = new Dictionary<string, string>();
       if (methods.ContainsKey(callableName)) {
-        methods[callableName].HasUserAttribute(TestGenerationOptions.TestDefaultValue, out defaultValueAttribute);
+        methods[callableName].HasUserAttribute(TestGenerationOptions.TestGeneratorsAttribute, out useGeneratorsAttribute);
         parameterNames.AddRange(methods[callableName].Ins.ConvertAll(formal => formal.Name));
       } else if (functions.ContainsKey(callableName)) {
-        functions[callableName].HasUserAttribute(TestGenerationOptions.TestDefaultValue, out defaultValueAttribute);
+        functions[callableName].HasUserAttribute(TestGenerationOptions.TestGeneratorsAttribute, out useGeneratorsAttribute);
         parameterNames.AddRange(functions[callableName].Formals.ConvertAll(formal => formal.Name));
       }
-      if (defaultValueAttribute != null) {
-        for (int i = 0; i < defaultValueAttribute.Args.Count - 1; i+=2) {
-          defaultValueMap[(defaultValueAttribute.Args[i] as LiteralExpr).Value.ToString()] = (defaultValueAttribute.Args[i + 1] as LiteralExpr).Value.ToString();
+      if (useGeneratorsAttribute != null) {
+        for (int i = 0; i < useGeneratorsAttribute.Args.Count - 1; i += 2) {
+          generatorsMap[(useGeneratorsAttribute.Args[i] as StringLiteralExpr).Value.ToString()] =
+            (useGeneratorsAttribute.Args[i + 1] as StringLiteralExpr).Value.ToString();
         }
       }
-      return parameterNames.ConvertAll(parameterName => defaultValueMap.GetValueOrDefault(parameterName, null));
+      return parameterNames.ConvertAll(parameterName => generatorsMap.GetValueOrDefault(parameterName, null));
     }
 
     public IEnumerable<Expression> GetEnsures(List<string> ins, List<string> outs, string callableName, string receiver) {
