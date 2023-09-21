@@ -275,7 +275,7 @@ public abstract class LinearVerificationGutterStatusTester : ClientBasedLanguage
 
     var documentItem = CreateTestDocument(code.Trim(), fileName, 1);
     if (explicitProject) {
-      await CreateOpenAndResolveTestDocument("", Path.Combine(Path.GetDirectoryName(documentItem.Uri.GetFileSystemPath())!, DafnyProject.FileName));
+      await CreateOpenAndWaitForResolve("", Path.Combine(Path.GetDirectoryName(documentItem.Uri.GetFileSystemPath())!, DafnyProject.FileName));
     }
     client.OpenDocument(documentItem);
     var traces = new List<LineVerificationStatus[]>();

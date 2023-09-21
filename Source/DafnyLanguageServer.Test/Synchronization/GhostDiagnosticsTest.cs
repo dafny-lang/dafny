@@ -31,9 +31,9 @@ method Bar()
       });
 
       var directory = Path.GetRandomFileName();
-      var projectFile = await CreateOpenAndResolveTestDocument("", Path.Combine(directory, DafnyProject.FileName));
-      var docA = await CreateOpenAndResolveTestDocument(sourceA, Path.Combine(directory, "a.dfy"));
-      var docB = await CreateOpenAndResolveTestDocument(sourceB, Path.Combine(directory, "b.dfy"));
+      var projectFile = await CreateOpenAndWaitForResolve("", Path.Combine(directory, DafnyProject.FileName));
+      var docA = await CreateOpenAndWaitForResolve(sourceA, Path.Combine(directory, "a.dfy"));
+      var docB = await CreateOpenAndWaitForResolve(sourceB, Path.Combine(directory, "b.dfy"));
 
       var report = await ghostnessReceiver.AwaitNextNotificationAsync(CancellationToken);
       var report2 = await ghostnessReceiver.AwaitNextNotificationAsync(CancellationToken);

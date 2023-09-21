@@ -28,7 +28,7 @@ method Foo() {
 ".TrimStart();
 
     var directory = Path.GetRandomFileName();
-    var firstFile = await CreateOpenAndResolveTestDocument(sourceA, Path.Combine(directory, "firstFile.dfy"));
+    var firstFile = await CreateOpenAndWaitForResolve(sourceA, Path.Combine(directory, "firstFile.dfy"));
 
     await WaitUntilCompletedForUris(1, CancellationToken);
 
@@ -69,9 +69,9 @@ method Bar() {
 ".TrimStart();
 
     var directory = Path.GetRandomFileName();
-    await CreateOpenAndResolveTestDocument("", Path.Combine(directory, DafnyProject.FileName));
-    var firstFile = await CreateOpenAndResolveTestDocument(sourceA, Path.Combine(directory, "firstFile.dfy"));
-    var secondFile = await CreateOpenAndResolveTestDocument(sourceB, Path.Combine(directory, "secondFile.dfy"));
+    await CreateOpenAndWaitForResolve("", Path.Combine(directory, DafnyProject.FileName));
+    var firstFile = await CreateOpenAndWaitForResolve(sourceA, Path.Combine(directory, "firstFile.dfy"));
+    var secondFile = await CreateOpenAndWaitForResolve(sourceB, Path.Combine(directory, "secondFile.dfy"));
 
     await WaitUntilCompletedForUris(2, CancellationToken);
 

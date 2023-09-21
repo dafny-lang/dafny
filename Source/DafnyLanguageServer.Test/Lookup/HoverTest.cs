@@ -70,7 +70,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
       var hovers = hoverRegex.Matches(sourceWithHovers);
       var documentItem = CreateTestDocument(source, "AssertHover.dfy");
       if (useProjectFile) {
-        await CreateOpenAndResolveTestDocument("", Path.Combine(Path.GetDirectoryName(documentItem.Uri.GetFileSystemPath())!, DafnyProject.FileName));
+        await CreateOpenAndWaitForResolve("", Path.Combine(Path.GetDirectoryName(documentItem.Uri.GetFileSystemPath())!, DafnyProject.FileName));
       }
       client.OpenDocument(documentItem);
       var lineDelta = 0;
@@ -106,7 +106,7 @@ method Foo() {
 
     [Fact]
     public async Task RecoverableParseError() {
-      var document = await CreateOpenAndResolveTestDocument(@"
+      var document = await CreateOpenAndWaitForResolve(@"
 class Foo {
   const x := '\U2345'
 //      ^[```dafny\nconst x: ?\n```]

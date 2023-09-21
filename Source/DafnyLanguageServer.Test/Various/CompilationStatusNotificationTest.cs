@@ -36,14 +36,14 @@ method Bar() {
       Directory.CreateDirectory(directory);
       await File.WriteAllTextAsync(Path.Combine(directory, "producer.dfy"), producerSource);
       await File.WriteAllTextAsync(Path.Combine(directory, DafnyProject.FileName), "");
-      await CreateOpenAndResolveTestDocument(consumerSource, Path.Combine(directory, "consumer.dfy"));
+      await CreateOpenAndWaitForResolve(consumerSource, Path.Combine(directory, "consumer.dfy"));
 
       var a = await compilationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
       var a2 = await compilationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
       var a3 = await compilationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
       var a4 = await compilationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
-      await CreateOpenAndResolveTestDocument(producerSource, Path.Combine(directory, "producer.dfy"));
-      var somethingElse = await CreateOpenAndResolveTestDocument("method Foo() {}", "somethingElse");
+      await CreateOpenAndWaitForResolve(producerSource, Path.Combine(directory, "producer.dfy"));
+      var somethingElse = await CreateOpenAndWaitForResolve("method Foo() {}", "somethingElse");
       var a6 = await compilationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
       Assert.Equal(somethingElse.Uri, a6.Uri);
     }
@@ -56,10 +56,10 @@ method Foo() returns (x: int) {
 }".TrimStart();
       var directory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
       Directory.CreateDirectory(directory);
-      await CreateOpenAndResolveTestDocument("", Path.Combine(directory, DafnyProject.FileName));
+      await CreateOpenAndWaitForResolve("", Path.Combine(directory, DafnyProject.FileName));
       var secondFilePath = Path.Combine(directory, "RunWithMultipleDocuments2.dfy");
       await File.WriteAllTextAsync(secondFilePath, source.Replace("Foo", "Bar").Replace("2", "true"));
-      var documentItem1 = await CreateOpenAndResolveTestDocument(source, Path.Combine(directory, "RunWithMultipleDocuments1.dfy"));
+      var documentItem1 = await CreateOpenAndWaitForResolve(source, Path.Combine(directory, "RunWithMultipleDocuments1.dfy"));
 
       var expectedStatuses = new[] {
         CompilationStatus.ResolutionStarted,
@@ -87,10 +87,10 @@ method Foo() returns (x: int) {
 }".TrimStart();
       var directory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
       Directory.CreateDirectory(directory);
-      await CreateOpenAndResolveTestDocument("", Path.Combine(directory, DafnyProject.FileName));
+      await CreateOpenAndWaitForResolve("", Path.Combine(directory, DafnyProject.FileName));
       var secondFilePath = Path.Combine(directory, "RunWithMultipleDocuments2.dfy");
       await File.WriteAllTextAsync(secondFilePath, source.Replace("Foo", "Bar"));
-      var documentItem1 = await CreateOpenAndResolveTestDocument(source, Path.Combine(directory, "RunWithMultipleDocuments1.dfy"));
+      var documentItem1 = await CreateOpenAndWaitForResolve(source, Path.Combine(directory, "RunWithMultipleDocuments1.dfy"));
 
       var expectedStatuses = new[] {
         CompilationStatus.ResolutionStarted,

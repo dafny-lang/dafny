@@ -55,7 +55,7 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
     return document;
   }
 
-  protected async Task<TextDocumentItem> CreateOpenAndResolveTestDocument(string source, string filePath = null,
+  protected async Task<TextDocumentItem> CreateOpenAndWaitForResolve(string source, string filePath = null,
     int version = 1, CancellationToken? cancellationToken = null) {
     var document = CreateTestDocument(source, filePath, version);
     await client.OpenDocumentAndWaitAsync(document, cancellationToken ?? CancellationToken);

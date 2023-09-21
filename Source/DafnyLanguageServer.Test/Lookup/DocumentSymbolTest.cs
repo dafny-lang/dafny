@@ -14,7 +14,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
     [Fact]
     public async Task CanResolveSymbolsForMultiFileProjects() {
       var temp = Path.GetTempPath();
-      await CreateOpenAndResolveTestDocument("", Path.Combine(temp, DafnyProject.FileName));
+      await CreateOpenAndWaitForResolve("", Path.Combine(temp, DafnyProject.FileName));
       var file1 = CreateAndOpenTestDocument("method Foo() {}", Path.Combine(temp, "file1.dfy"));
       var file2 = CreateAndOpenTestDocument("method Bar() {}", Path.Combine(temp, "file2.dfy"));
 

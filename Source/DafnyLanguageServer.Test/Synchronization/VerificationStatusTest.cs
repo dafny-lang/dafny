@@ -33,10 +33,10 @@ method ShouldNotBeAffectedByChange() {
 ".TrimStart();
 
     var directory = Path.GetRandomFileName();
-    await CreateOpenAndResolveTestDocument("", Path.Combine(directory, DafnyProject.FileName));
-    var documentA = await CreateOpenAndResolveTestDocument(sourceA, Path.Combine(directory, "sourceA.dfy"));
+    await CreateOpenAndWaitForResolve("", Path.Combine(directory, DafnyProject.FileName));
+    var documentA = await CreateOpenAndWaitForResolve(sourceA, Path.Combine(directory, "sourceA.dfy"));
     await WaitUntilAllStatusAreCompleted(documentA);
-    var documentB = await CreateOpenAndResolveTestDocument(sourceB, Path.Combine(directory, "sourceB.dfy"));
+    var documentB = await CreateOpenAndWaitForResolve(sourceB, Path.Combine(directory, "sourceB.dfy"));
     await WaitUntilAllStatusAreCompleted(documentB);
     ApplyChange(ref documentA, new Range(3, 0, 3, 0), "// change\n");
     await AssertNoVerificationStatusIsComing(documentB, CancellationToken);
@@ -50,7 +50,7 @@ method WillVerify() {
 }
 ".TrimStart();
 
-    var document = await CreateOpenAndResolveTestDocument(source);
+    var document = await CreateOpenAndWaitForResolve(source);
     var firstStatus = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
     ApplyChange(ref document, new Range(3, 0, 3, 0), "//change comment\n");
     await AssertNoVerificationStatusIsComing(document, CancellationToken);
@@ -73,7 +73,7 @@ method Zap() returns (x: int) ensures x / 2 == 1; {
     await SetUp(options => {
       options.Set(ServerCommand.Verification, VerifyOnMode.Never);
     });
-    var documentItem1 = await CreateOpenAndResolveTestDocument(source, "PreparingVerificationShowsUpAsAllQueued.dfy");
+    var documentItem1 = await CreateOpenAndWaitForResolve(source, "PreparingVerificationShowsUpAsAllQueued.dfy");
     _ = client.RunSymbolVerification(documentItem1, new Position(0, 7), CancellationToken);
     _ = client.RunSymbolVerification(documentItem1, new Position(4, 7), CancellationToken);
     while (true) {
@@ -110,9 +110,9 @@ method Foo() returns (x: int) ensures x / 2 == 1; {
       options.Set(ServerCommand.Verification, VerifyOnMode.Never);
     });
     var directory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
-    await CreateOpenAndResolveTestDocument("", Path.Combine(directory, DafnyProject.FileName));
-    var documentItem1 = await CreateOpenAndResolveTestDocument(source, Path.Combine(directory, "RunWithMultipleDocuments1.dfy"));
-    var documentItem2 = await CreateOpenAndResolveTestDocument(source.Replace("Foo", "Bar"), Path.Combine(directory, "RunWithMultipleDocuments2.dfy"));
+    await CreateOpenAndWaitForResolve("", Path.Combine(directory, DafnyProject.FileName));
+    var documentItem1 = await CreateOpenAndWaitForResolve(source, Path.Combine(directory, "RunWithMultipleDocuments1.dfy"));
+    var documentItem2 = await CreateOpenAndWaitForResolve(source.Replace("Foo", "Bar"), Path.Combine(directory, "RunWithMultipleDocuments2.dfy"));
 
     var fooRange = new Range(0, 7, 0, 10);
     await client.RunSymbolVerification(documentItem1, fooRange.Start, CancellationToken);
