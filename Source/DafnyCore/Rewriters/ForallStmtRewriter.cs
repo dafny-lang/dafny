@@ -4,7 +4,9 @@ using System.Diagnostics.Contracts;
 
 namespace Microsoft.Dafny;
 
-/// write out the quantifier for ForallStmt
+/// <summary>
+/// Fills the field ForallStmt.EffectiveEnsuresClauses
+/// </summary>
 public class ForallStmtRewriter : IRewriter {
   public ForallStmtRewriter(ErrorReporter reporter) : base(reporter) {
     Contract.Requires(reporter != null);
@@ -24,65 +26,121 @@ public class ForallStmtRewriter : IRewriter {
       this.reporter = reporter;
     }
     protected override bool VisitOneStmt(Statement stmt, ref bool st) {
-      if (stmt is ForallStmt && ((ForallStmt)stmt).CanConvert) {
-        ForallStmt s = (ForallStmt)stmt;
-        if (s.Kind == ForallStmt.BodyKind.Proof) {
-          Expression term = s.Ens.Count != 0 ? s.Ens[0].E : Expression.CreateBoolLiteral(s.Tok, true);
-          for (int i = 1; i < s.Ens.Count; i++) {
-            term = new BinaryExpr(s.Tok, BinaryExpr.ResolvedOpcode.And, term, s.Ens[i].E);
-          }
-          List<Expression> exprList = new List<Expression>();
-          ForallExpr expr = new ForallExpr(s.Tok, s.RangeToken, s.BoundVars, s.Range, term, s.Attributes);
-          expr.Type = Type.Bool; // resolve here
-          expr.Bounds = s.Bounds;
-          exprList.Add(expr);
-          s.ForallExpressions = exprList;
-        } else if (s.Kind == ForallStmt.BodyKind.Assign) {
-          if (s.BoundVars.Count != 0) {
-            var s0 = (AssignStmt)s.S0;
-            if (s0.Rhs is ExprRhs) {
-              List<Expression> exprList = new List<Expression>();
-              Expression Fi = null;
-              Func<Expression, Expression> lhsBuilder = null;
-              var lhs = s0.Lhs.Resolved;
-              var i = s.BoundVars[0];
-              if (s.BoundVars.Count == 1) {
-                //var lhsContext = null;
-                // Detect the following cases:
-                //   0: forall i | R(i) { F(i).f := E(i); }
-                //   1: forall i | R(i) { A[F(i)] := E(i); }
-                //   2: forall i | R(i) { F(i)[N] := E(i); }
-                if (lhs is MemberSelectExpr) {
-                  var ll = (MemberSelectExpr)lhs;
-                  Fi = ll.Obj;
-                  lhsBuilder = e => {
-                    var l = new MemberSelectExpr(ll.tok, e, ll.MemberName);
-                    l.Member = ll.Member;
-                    l.TypeApplication_AtEnclosingClass = ll.TypeApplication_AtEnclosingClass;
-                    l.TypeApplication_JustMember = ll.TypeApplication_JustMember;
-                    l.Type = ll.Type;
-                    return l;
-                  };
-                } else if (lhs is SeqSelectExpr) {
-                  var ll = (SeqSelectExpr)lhs;
-                  Contract.Assert(ll.SelectOne);
-                  if (!FreeVariablesUtil.ContainsFreeVariable(ll.Seq, false, i)) {
-                    Fi = ll.E0;
-                    lhsBuilder = e => { var l = new SeqSelectExpr(ll.tok, true, ll.Seq, e, null, ll.CloseParen); l.Type = ll.Type; return l; };
-                  } else if (!FreeVariablesUtil.ContainsFreeVariable(ll.E0, false, i)) {
-                    Fi = ll.Seq;
-                    lhsBuilder = e => { var l = new SeqSelectExpr(ll.tok, true, e, ll.E0, null, ll.CloseParen); l.Type = ll.Type; return l; };
-                  }
-                }
+      if (stmt is not ForallStmt { CanConvert: true } forallStmt) {
+        return true; //visit the sub-parts with the same "st"
+      }
+
+      switch (forallStmt.Kind) {
+        case ForallStmt.BodyKind.Proof:
+          VisitProof(forallStmt);
+          break;
+        case ForallStmt.BodyKind.Assign:
+          VisitAssign(forallStmt);
+          break;
+        case ForallStmt.BodyKind.Call:
+          VisitCall(forallStmt);
+          break;
+        default:
+          Contract.Assert(false);  // unexpected kind
+          break;
+      }
+      return true;  //visit the sub-parts with the same "st"
+    }
+
+    private static void VisitCall(ForallStmt s) {
+      var s0 = (CallStmt)s.S0;
+      var argsSubstMap = new Dictionary<IVariable, Expression>(); // maps formal arguments to actuals
+      Contract.Assert(s0.Method.Ins.Count == s0.Args.Count);
+      for (int i = 0; i < s0.Method.Ins.Count; i++) {
+        argsSubstMap.Add(s0.Method.Ins[i], s0.Args[i]);
+      }
+
+      var substituter = new AlphaConvertingSubstituter(s0.Receiver, argsSubstMap,
+        s0.MethodSelect.TypeArgumentSubstitutionsWithParents());
+      // Strengthen the range of the "forall" statement with the precondition of the call, suitably substituted with the actual parameters.
+      if (Attributes.Contains(s.Attributes, "_autorequires")) {
+        var range = s.Range;
+        foreach (var req in s0.Method.Req) {
+          var p = substituter.Substitute(req.E); // substitute the call's actuals for the method's formals
+          range = Expression.CreateAnd(range, p);
+        }
+
+        s.Range = range;
+      }
+
+      // substitute the call's actuals for the method's formals
+      var term = s0.Method.Ens.Count != 0
+        ? substituter.Substitute(s0.Method.Ens[0].E)
+        : Expression.CreateBoolLiteral(new AutoGeneratedToken(s.Tok), true);
+      for (int i = 1; i < s0.Method.Ens.Count; i++) {
+        term = new BinaryExpr(s0.Method.Ens[i].Tok, BinaryExpr.ResolvedOpcode.And, term,
+          substituter.Substitute(s0.Method.Ens[i].E));
+      }
+
+      var expr = new ForallExpr(new AutoGeneratedToken(s.Tok), s.RangeToken, s.BoundVars, s.Range, term, s.Attributes) {
+        Type = Type.Bool, // resolve here
+        Bounds = s.Bounds
+      };
+      s.EffectiveEnsuresClauses = new List<Expression> { expr };
+    }
+
+    private void VisitAssign(ForallStmt stmt) {
+      if (stmt.BoundVars.Count == 0) {
+        return;
+      }
+
+      var s0 = (AssignStmt)stmt.S0;
+      if (s0.Rhs is not ExprRhs exprRhs) {
+        return;
+      }
+
+      List<Expression> exprList = new List<Expression>();
+      Expression Fi = null;
+      Func<Expression, Expression> lhsBuilder = null;
+      var lhs = s0.Lhs.Resolved;
+      var i = stmt.BoundVars[0];
+      if (stmt.BoundVars.Count == 1) {
+        // Detect the following cases:
+        //   0: forall i | R(i) { F(i).f := E(i); }
+        //   1: forall i | R(i) { A[F(i)] := E(i); }
+        //   2: forall i | R(i) { F(i)[N] := E(i); }
+        switch (lhs) {
+          case MemberSelectExpr memberSelect:
+            Fi = memberSelect.Obj;
+            lhsBuilder = e => new MemberSelectExpr(memberSelect.tok, e, memberSelect.MemberName) {
+              Member = memberSelect.Member,
+              TypeApplication_AtEnclosingClass = memberSelect.TypeApplication_AtEnclosingClass,
+              TypeApplication_JustMember = memberSelect.TypeApplication_JustMember,
+              Type = memberSelect.Type
+            };
+            break;
+          case SeqSelectExpr ll: {
+              Contract.Assert(ll.SelectOne);
+              if (!FreeVariablesUtil.ContainsFreeVariable(ll.Seq, false, i)) {
+                Fi = ll.E0;
+                lhsBuilder = e => new SeqSelectExpr(ll.tok, true, ll.Seq, e, null, ll.CloseParen) {
+                  Type = ll.Type
+                };
+              } else if (!FreeVariablesUtil.ContainsFreeVariable(ll.E0, false, i)) {
+                Fi = ll.Seq;
+                lhsBuilder = e => new SeqSelectExpr(ll.tok, true, e, ll.E0, null, ll.CloseParen) {
+                  Type = ll.Type
+                };
               }
-              var rhs = ((ExprRhs)s0.Rhs).Expr;
-              bool usedInversion = false;
-              if (Fi != null) {
-                var j = new BoundVar(i.tok, i.Name + "#inv", Fi.Type);
-                var jj = Expression.CreateIdentExpr(j);
-                var jList = new List<BoundVar>() { j };
-                var range = Expression.CreateAnd(ModuleResolver.GetImpliedTypeConstraint(i, i.Type), s.Range);
-                var vals = InvertExpression(i, j, range, Fi);
+
+              break;
+            }
+        }
+      }
+
+      var rhs = exprRhs.Expr;
+      bool usedInversion = false;
+      if (Fi != null) {
+        var j = new BoundVar(i.tok, i.Name + "#inv", Fi.Type);
+        var jj = Expression.CreateIdentExpr(j);
+        var jList = new List<BoundVar>() { j };
+        var range = Expression.CreateAnd(ModuleResolver.GetImpliedTypeConstraint(i, i.Type), stmt.Range);
+        var vals = InvertExpression(i, j, range, Fi);
 #if DEBUG_PRINT
           resolve.Options.Writer.WriteLine("DEBUG: Trying to invert:");
           resolve.Options.Writer.WriteLine("DEBUG:   " + Printer.ExprToString(s.Range) + " && " + j.Name + " == " + Printer.ExprToString(Fi));
@@ -95,78 +153,60 @@ public class ForallStmtRewriter : IRewriter {
             }
           }
 #endif
-                if (vals != null) {
-                  foreach (var val in vals) {
-                    lhs = lhsBuilder(jj);
-                    Attributes attributes = new Attributes("trigger", new List<Expression>() { lhs }, s.Attributes);
-                    var newRhs = Substitute(rhs, i, val.FInverse);
-                    var newBounds = SubstituteBoundedPoolList(s.Bounds, i, val.FInverse);
+        if (vals != null) {
+          foreach (var val in vals) {
+            lhs = lhsBuilder(jj);
+            Attributes attributes = new Attributes("trigger", new List<Expression>() { lhs }, stmt.Attributes);
+            var newRhs = Substitute(rhs, i, val.FInverse);
+            var newBounds = SubstituteBoundedPoolList(stmt.Bounds, i, val.FInverse);
 
-                    var msg = string.Format("rewrite: forall {0}: {1} {2}| {3} {{ {4} := {5}; }}",
-                      j.Name,
-                      j.Type.ToString(),
-                      Printer.AttributesToString(reporter.Options, attributes),
-                      Printer.ExprToString(reporter.Options, val.Range),
-                      Printer.ExprToString(reporter.Options, lhs),
-                      Printer.ExprToString(reporter.Options, newRhs));
-                    reporter.Info(MessageSource.Resolver, stmt.Tok, msg);
+            var msg = string.Format("rewrite: forall {0}: {1} {2}| {3} {{ {4} := {5}; }}",
+              j.Name,
+              j.Type.ToString(),
+              Printer.AttributesToString(reporter.Options, attributes),
+              Printer.ExprToString(reporter.Options, val.Range),
+              Printer.ExprToString(reporter.Options, lhs),
+              Printer.ExprToString(reporter.Options, newRhs));
+            reporter.Info(MessageSource.Resolver, stmt.Tok, msg);
 
-                    var expr = new ForallExpr(s.Tok, s.RangeToken, jList, val.Range,
-                      new BinaryExpr(s.Tok, BinaryExpr.ResolvedOpcode.EqCommon, lhs, newRhs),
-                      attributes) {
-                      Type = Type.Bool,
-                      Bounds = newBounds,
-                    };
-                    exprList.Add(expr);
-                  }
-                  usedInversion = true;
-                }
-              }
-              if (!usedInversion) {
-                var expr = new ForallExpr(s.Tok, s.RangeToken, s.BoundVars, s.Range,
-                  new BinaryExpr(s.Tok, BinaryExpr.ResolvedOpcode.EqCommon, lhs, rhs),
-                  s.Attributes) {
-                  Type = Type.Bool,
-                  Bounds = s.Bounds
-                };
-                exprList.Add(expr);
-              }
-              s.ForallExpressions = exprList;
-            }
+            var expr = new ForallExpr(stmt.Tok, stmt.RangeToken, jList, val.Range,
+              new BinaryExpr(s0.Tok, BinaryExpr.ResolvedOpcode.EqCommon, lhs, newRhs),
+              attributes) {
+              Type = Type.Bool,
+              Bounds = newBounds,
+            };
+            exprList.Add(expr);
           }
-        } else if (s.Kind == ForallStmt.BodyKind.Call) {
-          var s0 = (CallStmt)s.S0;
-          var argsSubstMap = new Dictionary<IVariable, Expression>();  // maps formal arguments to actuals
-          Contract.Assert(s0.Method.Ins.Count == s0.Args.Count);
-          for (int i = 0; i < s0.Method.Ins.Count; i++) {
-            argsSubstMap.Add(s0.Method.Ins[i], s0.Args[i]);
-          }
-          var substituter = new AlphaConvertingSubstituter(s0.Receiver, argsSubstMap, s0.MethodSelect.TypeArgumentSubstitutionsWithParents());
-          // Strengthen the range of the "forall" statement with the precondition of the call, suitably substituted with the actual parameters.
-          if (Attributes.Contains(s.Attributes, "_autorequires")) {
-            var range = s.Range;
-            foreach (var req in s0.Method.Req) {
-              var p = substituter.Substitute(req.E);  // substitute the call's actuals for the method's formals
-              range = Expression.CreateAnd(range, p);
-            }
-            s.Range = range;
-          }
-          // substitute the call's actuals for the method's formals
-          Expression term = s0.Method.Ens.Count != 0 ? substituter.Substitute(s0.Method.Ens[0].E) : Expression.CreateBoolLiteral(s.Tok, true);
-          for (int i = 1; i < s0.Method.Ens.Count; i++) {
-            term = new BinaryExpr(s.Tok, BinaryExpr.ResolvedOpcode.And, term, substituter.Substitute(s0.Method.Ens[i].E));
-          }
-          List<Expression> exprList = new List<Expression>();
-          ForallExpr expr = new ForallExpr(s.Tok, s.RangeToken, s.BoundVars, s.Range, term, s.Attributes);
-          expr.Type = Type.Bool; // resolve here
-          expr.Bounds = s.Bounds;
-          exprList.Add(expr);
-          s.ForallExpressions = exprList;
-        } else {
-          Contract.Assert(false);  // unexpected kind
+
+          usedInversion = true;
         }
       }
-      return true;  //visit the sub-parts with the same "st"
+
+      if (!usedInversion) {
+        var expr = new ForallExpr(stmt.Tok, stmt.RangeToken, stmt.BoundVars, stmt.Range,
+          new BinaryExpr(s0.Tok, BinaryExpr.ResolvedOpcode.EqCommon, lhs, rhs),
+          stmt.Attributes) {
+          Type = Type.Bool,
+          Bounds = stmt.Bounds
+        };
+        exprList.Add(expr);
+      }
+
+      stmt.EffectiveEnsuresClauses = exprList;
+    }
+
+    private static void VisitProof(ForallStmt s) {
+      var term = s.Ens.Count != 0 ? s.Ens[0].E : Expression.CreateBoolLiteral(new AutoGeneratedToken(s.Tok), true);
+      for (int i = 1; i < s.Ens.Count; i++) {
+        term = new BinaryExpr(s.Ens[i].Tok, BinaryExpr.ResolvedOpcode.And, term, s.Ens[i].E);
+      }
+
+      s.EffectiveEnsuresClauses = new List<Expression> {
+        new ForallExpr(s.Tok, s.RangeToken, s.BoundVars, s.Range, term, s.Attributes) {
+          Type = Type.Bool, // resolve here
+          Bounds = s.Bounds
+        }
+      };
     }
 
     internal class ForallStmtTranslationValues {
@@ -227,7 +267,7 @@ public class ForallStmtRewriter : IRewriter {
       if (!FreeVariablesUtil.ContainsFreeVariable(F, false, i)) {
         // We're looking at R(i) && j == K.
         // We cannot invert j == K, but if we're lucky, R(i) contains a conjunct i==G.
-        Expression r = Expression.CreateBoolLiteral(R.tok, true);
+        Expression r = Expression.CreateBoolLiteral(new AutoGeneratedToken(R.tok), true);
         Expression G = null;
         foreach (var c in Expression.Conjuncts(R)) {
           if (G == null && c is BinaryExpr) {

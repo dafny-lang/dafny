@@ -19,7 +19,7 @@ jobs:
   check-deep-tests:
      uses: ./.github/workflows/check-deep-tests-reusable.yml
      with:
-       branch: master
+       branch: ${{ github.base_ref }}
 
   doctests:
     needs: check-deep-tests
