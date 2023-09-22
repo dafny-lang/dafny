@@ -19,10 +19,9 @@ namespace Microsoft.Dafny;
 /// For most AST nodes, this will not consider subset types; instead, subset types are considered later during
 /// the type adjustment phase.
 ///
-/// Of the types filled in here, three special TypeProxy's are used.
+/// Of the types filled in here, two special TypeProxy's are used.
 ///    - AdjustableType
 ///    - BottomTypePlaceholder
-///    - ExactTypePlaceholder
 /// </summary>
 class PreTypeToTypeVisitor : ASTVisitor<IASTVisitorContext> {
   public override IASTVisitorContext GetContext(IASTVisitorContext astVisitorContext, bool inFunctionPostcondition) {
