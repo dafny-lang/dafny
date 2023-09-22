@@ -181,7 +181,10 @@ public enum Feature {
   LegacyCLI,
 
   [FeatureDescription("Separate compilation", "sec-compilation")]
-  SeparateCompilation
+  SeparateCompilation,
+  
+  [FeatureDescription("Contravariance in type parameters", "sec-type-parameter-variance")]
+  Contravariance
 }
 
 public class UnsupportedFeatureException : Exception {

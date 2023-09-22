@@ -89,8 +89,8 @@ namespace Microsoft.Dafny.Compilers {
       Feature.SubtypeConstraintsInQuantifiers,
       Feature.TuplesWiderThan20,
       Feature.ForLoops,
-      // TODO: used to not implement CreateGetterSetter, questionable
-      Feature.Traits
+      Feature.Traits,  // Conservative since traits are partially supported, but not CreateGetterSetter for example
+      Feature.Contravariance
     };
 
     private readonly List<string> Imports = new() { DafnyDefaultModule };
@@ -214,7 +214,7 @@ namespace Microsoft.Dafny.Compilers {
         List<DAST.Type> typeParams = new();
         foreach (var tp in dt.TypeArgs) {
           if (tp.Variance == TypeParameter.TPVariance.Contra) {
-            throw new NotImplementedException("Contravariance in type parameters");
+            throw new UnsupportedFeatureException(dt.tok, Feature.Contravariance);
           }
 
           typeParams.Add((DAST.Type)DAST.Type.create_TypeArg(Sequence<Rune>.UnicodeFromString(IdProtect(tp.GetCompileName(Options)))));
@@ -314,6 +314,8 @@ namespace Microsoft.Dafny.Compilers {
         return (DAST.Type)DAST.Type.create_Map(GenType(keyType), GenType(valueType));
       } else if (xType is BitvectorType) {
         throw new UnsupportedFeatureException(xType.tok, Feature.Bitvectors);
+      } else if (xType is BigOrdinalType) {
+        throw new UnsupportedFeatureException(typ.tok, Feature.Ordinals);
       } else {
         throw new NotImplementedException("Type name for " + xType + " (" + typ.GetType() + ")");
       }
