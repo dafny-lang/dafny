@@ -23,4 +23,4 @@ jobs:
       ref: ${{ inputs.ref }}
       publish-prerelease: ${{ inputs.publish-prerelease }}
     secrets:
-      NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+      nuget_api_key: ${{ secrets.NUGET_API_KEY }}
