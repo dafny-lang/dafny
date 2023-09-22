@@ -1,5 +1,5 @@
 module {:extern "DAST"} DAST {
-  datatype Module = Module(name: string, body: seq<ModuleItem>)
+  datatype Module = Module(name: string, isExtern: bool, body: seq<ModuleItem>)
 
   datatype ModuleItem = Module(Module) | Class(Class) | Trait(Trait) | Newtype(Newtype) | Datatype(Datatype)
 
@@ -65,23 +65,35 @@ module {:extern "DAST"} DAST {
 
   datatype CollKind = Seq | Array | Map
 
+  datatype BinOp =
+    Eq(referential: bool, nullable: bool) |
+    Neq(referential: bool, nullable: bool) |
+    Div() | EuclidianDiv() |
+    Mod() | EuclidianMod() |
+    Implies() |
+    In() |
+    NotIn() |
+    SetDifference() |
+    Concat() |
+    Passthrough(string)
+
   datatype Expression =
     Literal(Literal) |
     Ident(string) |
     Companion(seq<Ident>) |
     Tuple(seq<Expression>) |
-    New(path: seq<Ident>, args: seq<Expression>) |
-    NewArray(dims: seq<Expression>) |
-    DatatypeValue(path: seq<Ident>, variant: string, isCo: bool, contents: seq<(string, Expression)>) |
+    New(path: seq<Ident>, typeArgs: seq<Type>, args: seq<Expression>) |
+    NewArray(dims: seq<Expression>, typ: Type) |
+    DatatypeValue(path: seq<Ident>, typeArgs: seq<Type>, variant: string, isCo: bool, contents: seq<(string, Expression)>) |
     Convert(value: Expression, from: Type, typ: Type) |
     SeqConstruct(length: Expression, elem: Expression) |
-    SeqValue(elements: seq<Expression>) |
+    SeqValue(elements: seq<Expression>, typ: Type) |
     SetValue(elements: seq<Expression>) |
     MapValue(mapElems: seq<(Expression, Expression)>) |
     This() |
     Ite(cond: Expression, thn: Expression, els: Expression) |
     UnOp(unOp: UnaryOp, expr: Expression) |
-    BinOp(op: string, left: Expression, right: Expression) |
+    BinOp(op: BinOp, left: Expression, right: Expression) |
     ArrayLen(expr: Expression, dim: nat) |
     Select(expr: Expression, field: string, isConstant: bool, onDatatype: bool) |
     SelectFn(expr: Expression, field: string, onDatatype: bool, isStatic: bool, arity: nat) |
@@ -96,9 +108,11 @@ module {:extern "DAST"} DAST {
     TypeTest(on: Expression, dType: seq<Ident>, variant: string) |
     InitializationValue(typ: Type) |
     BoolBoundedPool() |
+    SetBoundedPool(of: Expression) |
+    SeqBoundedPool(of: Expression, includeDuplicates: bool) |
     IntRange(lo: Expression, hi: Expression)
 
   datatype UnaryOp = Not | BitwiseNot | Cardinality
 
-  datatype Literal = BoolLiteral(bool) | IntLiteral(string, Type) | DecLiteral(string, string, Type) | StringLiteral(string) | CharLiteral(char) | Null
+  datatype Literal = BoolLiteral(bool) | IntLiteral(string, Type) | DecLiteral(string, string, Type) | StringLiteral(string) | CharLiteral(char) | Null(Type)
 }

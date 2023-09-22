@@ -469,7 +469,7 @@ namespace Microsoft.Dafny {
         var (verified, outcome, moduleStats) = await BoogieAsync(options, baseName, boogiePrograms, programId);
 
         if (options.TrackVerificationCoverage && verified) {
-          DafnyMain.WarnAboutSuspiciousDependencies(options, dafnyProgram.Reporter, depManager);
+          ProofDependencyWarnings.WarnAboutSuspiciousDependencies(options, dafnyProgram.Reporter, depManager);
         }
 
         bool compiled;

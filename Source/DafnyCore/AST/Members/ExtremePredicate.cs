@@ -21,7 +21,7 @@ public abstract class ExtremePredicate : Function {
 
   public ExtremePredicate(RangeToken rangeToken, Name name, bool hasStaticKeyword, bool isOpaque, KType typeOfK,
     List<TypeParameter> typeArgs, List<Formal> formals, Formal result,
-    List<AttributedExpression> req, List<FrameExpression> reads, List<AttributedExpression> ens,
+    List<AttributedExpression> req, Specification<FrameExpression> reads, List<AttributedExpression> ens,
     Expression body, Attributes attributes, IToken signatureEllipsis)
     : base(rangeToken, name, hasStaticKeyword, true, isOpaque, typeArgs, formals, result, Type.Bool,
       req, reads, ens, new Specification<Expression>(new List<Expression>(), null), body, null, null, attributes, signatureEllipsis) {
@@ -54,7 +54,7 @@ public class GreatestPredicate : ExtremePredicate {
   public override string WhatKind => "greatest predicate";
   public GreatestPredicate(RangeToken rangeToken, Name name, bool hasStaticKeyword, bool isOpaque, KType typeOfK,
     List<TypeParameter> typeArgs, List<Formal> formals, Formal result,
-    List<AttributedExpression> req, List<FrameExpression> reads, List<AttributedExpression> ens,
+    List<AttributedExpression> req, Specification<FrameExpression> reads, List<AttributedExpression> ens,
     Expression body, Attributes attributes, IToken signatureEllipsis)
     : base(rangeToken, name, hasStaticKeyword, isOpaque, typeOfK, typeArgs, formals, result,
       req, reads, ens, body, attributes, signatureEllipsis) {
@@ -65,7 +65,7 @@ public class LeastPredicate : ExtremePredicate {
   public override string WhatKind => "least predicate";
   public LeastPredicate(RangeToken rangeToken, Name name, bool hasStaticKeyword, bool isOpaque, KType typeOfK,
     List<TypeParameter> typeArgs, List<Formal> formals, Formal result,
-    List<AttributedExpression> req, List<FrameExpression> reads, List<AttributedExpression> ens,
+    List<AttributedExpression> req, Specification<FrameExpression> reads, List<AttributedExpression> ens,
     Expression body, Attributes attributes, IToken signatureEllipsis)
     : base(rangeToken, name, hasStaticKeyword, isOpaque, typeOfK, typeArgs, formals, result,
       req, reads, ens, body, attributes, signatureEllipsis) {

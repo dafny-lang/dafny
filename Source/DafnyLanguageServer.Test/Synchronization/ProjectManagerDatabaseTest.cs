@@ -20,7 +20,7 @@ public class ProjectManagerDatabaseTest : ClientBasedLanguageServerTest {
     var source = "// comment";
     var loadingDocuments = new List<TextDocumentItem>();
     for (int i = 0; i < documentsToLoadConcurrently; i++) {
-      var documentItem = await CreateAndOpenTestDocument(source, $"pmdtest1_{i}.dfy");
+      var documentItem = await CreateOpenAndWaitForResolve(source, $"pmdtest1_{i}.dfy");
       loadingDocuments.Add(documentItem);
     }
 
@@ -41,13 +41,13 @@ public class ProjectManagerDatabaseTest : ClientBasedLanguageServerTest {
     var loadingDocuments = new List<TextDocumentItem>();
     var directory = Path.GetRandomFileName();
     for (int i = 0; i < documentsToLoadConcurrently; i++) {
-      var documentItem = await CreateAndOpenTestDocument(source, Path.Combine(directory, $"nested{i}/pmdtest2.dfy"));
+      var documentItem = await CreateOpenAndWaitForResolve(source, Path.Combine(directory, $"nested{i}/pmdtest2.dfy"));
       loadingDocuments.Add(documentItem);
     }
 
     // Create a project file for each test document.
     for (int i = 0; i < documentsToLoadConcurrently; i++) {
-      await CreateAndOpenTestDocument("", Path.Combine(directory, $"nested{i}/{DafnyProject.FileName}"));
+      await CreateOpenAndWaitForResolve("", Path.Combine(directory, $"nested{i}/{DafnyProject.FileName}"));
     }
 
     // Concurrently migrate projects
@@ -70,7 +70,7 @@ public class ProjectManagerDatabaseTest : ClientBasedLanguageServerTest {
     var project = CreateTestDocument("", Path.Combine(directory, DafnyProject.FileName));
     client.OpenDocument(project);
     for (int i = 0; i < documentsToLoadConcurrently; i++) {
-      var documentItem = await CreateAndOpenTestDocument(source, Path.Combine(directory, $"pmdtest3_{i}.dfy"));
+      var documentItem = await CreateOpenAndWaitForResolve(source, Path.Combine(directory, $"pmdtest3_{i}.dfy"));
       loadingDocuments.Add(documentItem);
     }
 

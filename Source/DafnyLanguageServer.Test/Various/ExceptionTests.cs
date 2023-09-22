@@ -124,11 +124,11 @@ public class ExceptionTests : ClientBasedLanguageServerTest {
     }
 
     public Task<CompilationAfterResolution> ResolveAsync(DafnyOptions options, CompilationAfterParsing compilation,
-      IReadOnlyDictionary<Uri, DocumentVerificationTree> migratedVerificationTrees, CancellationToken cancellationToken) {
+      CancellationToken cancellationToken) {
       if (tests.CrashOnLoad) {
         throw new IOException("testing crash");
       }
-      return loader.ResolveAsync(options, compilation, migratedVerificationTrees, cancellationToken);
+      return loader.ResolveAsync(options, compilation, cancellationToken);
     }
   }
 

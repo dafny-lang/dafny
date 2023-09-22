@@ -393,12 +393,12 @@ namespace Microsoft.Dafny {
           } else {
             var s0 = (CallStmt)s.S0;
             if (Attributes.Contains(s.Attributes, "_trustWellformed")) {
-              TrForallStmtCall(s.Tok, s.BoundVars, s.Bounds, s.Range, null, s.ForallExpressions, s0, null, builder, locals, etran);
+              TrForallStmtCall(s.Tok, s.BoundVars, s.Bounds, s.Range, null, s.EffectiveEnsuresClauses, s0, null, builder, locals, etran);
             } else {
               var definedness = new BoogieStmtListBuilder(this, options);
               DefineFuelConstant(stmt.Tok, stmt.Attributes, definedness, etran);
               var exporter = new BoogieStmtListBuilder(this, options);
-              TrForallStmtCall(s.Tok, s.BoundVars, s.Bounds, s.Range, null, s.ForallExpressions, s0, definedness, exporter, locals, etran);
+              TrForallStmtCall(s.Tok, s.BoundVars, s.Bounds, s.Range, null, s.EffectiveEnsuresClauses, s0, definedness, exporter, locals, etran);
               // All done, so put the two pieces together
               builder.Add(new Bpl.IfCmd(s.Tok, null, definedness.Collect(s.Tok), null, exporter.Collect(s.Tok)));
             }
@@ -595,7 +595,7 @@ namespace Microsoft.Dafny {
             // Adding the assume stmt, resetting the stmtContext
             stmtContext = StmtType.ASSUME;
             adjustFuelForExists = true;
-            b.Add(TrAssumeCmdWithDependencies(etran, stmt.Tok, stmt.Expr, "assume statement"));
+            b.Add(TrAssumeCmdWithDependencies(etran, stmt.Tok, stmt.Expr, "assume statement", true));
             stmtContext = StmtType.NONE;
           }
         }
@@ -606,7 +606,7 @@ namespace Microsoft.Dafny {
           // Adding the assume stmt, resetting the stmtContext
           stmtContext = StmtType.ASSUME;
           adjustFuelForExists = true;
-          builder.Add(TrAssumeCmdWithDependencies(etran, stmt.Tok, stmt.Expr, "assume statement"));
+          builder.Add(TrAssumeCmdWithDependencies(etran, stmt.Tok, stmt.Expr, "assume statement", true));
           stmtContext = StmtType.NONE;
         }
       } else if (stmt is ExpectStmt) {
@@ -634,7 +634,7 @@ namespace Microsoft.Dafny {
         var s = (AssumeStmt)stmt;
         stmtContext = StmtType.ASSUME;
         TrStmt_CheckWellformed(s.Expr, builder, locals, etran, false);
-        builder.Add(TrAssumeCmdWithDependencies(etran, stmt.Tok, s.Expr, "assume statement", etran.TrAttributes(stmt.Attributes, null)));
+        builder.Add(TrAssumeCmdWithDependencies(etran, stmt.Tok, s.Expr, "assume statement", true, etran.TrAttributes(stmt.Attributes, null)));
         stmtContext = StmtType.NONE; // done with translating assume stmt.
       }
       this.fuelContext = FuelSetting.PopFuelContext();
@@ -1084,7 +1084,7 @@ namespace Microsoft.Dafny {
       // it needs to be exported too.
       var se = s.Body == null ? Bpl.Expr.True : TrFunctionSideEffect(s.Body, etran);
       var substMap = new Dictionary<IVariable, Expression>();
-      var p = Substitute(s.ForallExpressions[0], null, substMap);
+      var p = Substitute(s.EffectiveEnsuresClauses[0], null, substMap);
       var qq = etran.TrExpr(p);
       if (s.BoundVars.Count != 0) {
         exporter.Add(TrAssumeCmd(s.Tok, BplAnd(se, qq)));
@@ -1285,8 +1285,8 @@ namespace Microsoft.Dafny {
       Bpl.Expr qq = new Bpl.ForallExpr(s.Tok, new List<TypeVariable> { alpha }, new List<Variable> { oVar, fVar }, null, tr, body);
       updater.Add(TrAssumeCmd(s.Tok, qq));
 
-      if (s.ForallExpressions != null) {
-        foreach (ForallExpr expr in s.ForallExpressions) {
+      if (s.EffectiveEnsuresClauses != null) {
+        foreach (ForallExpr expr in s.EffectiveEnsuresClauses) {
           BinaryExpr term = (BinaryExpr)expr.Term;
           Contract.Assert(term != null);
           var e0 = ((BinaryExpr)term).E0.Resolved;
@@ -1888,7 +1888,7 @@ namespace Microsoft.Dafny {
       // but support the optimization that we don't define a reads frame at all if it's `reads *`. 
       if (etran.readsFrame != null) {
         var readsSubst = new Substituter(null, new Dictionary<IVariable, Expression>(), tySubst);
-        CheckFrameSubset(tok, callee.Reads.ConvertAll(readsSubst.SubstFrameExpr),
+        CheckFrameSubset(tok, callee.Reads.Expressions.ConvertAll(readsSubst.SubstFrameExpr),
           receiver, substMap, etran, etran.ReadsFrame(tok), builder, new PODesc.FrameSubset("call", false), null);
       }
       // Check that the modifies clause of a subcall is a subset of the current modifies frame,

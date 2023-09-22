@@ -41,6 +41,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     /// <exception cref="ArgumentException">Thrown if the specified document does not exist.</exception>
     Task SaveDocument(TextDocumentIdentifier documentId);
 
+    Task<IdeState?> GetParsedDocumentNormalizeUri(TextDocumentIdentifier documentId);
+
     /// <summary>
     /// Tries to resolve a document with the specified identifier.
     /// </summary>
