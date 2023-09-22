@@ -418,6 +418,11 @@ public class CompilationManager : IDisposable {
       implementation.VerboseName, implementation.tok, null, TextWriter.Null,
       implementation.GetTimeLimit(options), result.counterExamples);
 
+    var foundAllErrors = result.maxCounterExamples > result.counterExamples.Count;
+    if (!foundAllErrors) {
+      errorReporter.Warning(MessageSource.Verifier, "errorLimitHit", Translator.ToDafnyToken(implementation.tok), "Verification hit error limit so not all errors may be shown. Configure this limit using --error-limit");
+    }
+
     var diagnostics = errorReporter.AllDiagnosticsCopy.Values.SelectMany(x => x);
     return diagnostics.OrderBy(d => d.Token.GetLspPosition()).ToList();
   }

@@ -182,10 +182,10 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public void Info(MessageSource source, IToken tok, string msg) {
+    public void Info(MessageSource source, IToken tok, string msg, object errorId = null) {
       Contract.Requires(tok != null);
       Contract.Requires(msg != null);
-      Message(source, ErrorLevel.Info, null, tok, msg);
+      Message(source, ErrorLevel.Info, errorId?.ToString(), tok, msg);
     }
 
     public void Info(MessageSource source, IToken tok, string msg, params object[] args) {
