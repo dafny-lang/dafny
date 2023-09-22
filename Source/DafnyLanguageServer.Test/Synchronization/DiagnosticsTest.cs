@@ -21,6 +21,21 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
   public class DiagnosticsTest : ClientBasedLanguageServerTest {
     private readonly string testFilesDirectory = Path.Combine(Directory.GetCurrentDirectory(), "Synchronization/TestFiles");
 
+    [Fact]
+    public async Task RedundantAssumptionsGetWarnings() {
+      var cwd = Directory.GetCurrentDirectory();
+      var path = Path.Combine(testFilesDirectory, "ProofDependencies/LSPProofDependencyTest.dfy");
+      var documentItem = CreateTestDocument(await File.ReadAllTextAsync(path), path);
+      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+
+      var diagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
+      Assert.Equal(DiagnosticSeverity.Warning, diagnostics[0].Severity);
+      Assert.Contains(diagnostics, diagnostic =>
+        diagnostic.Severity == DiagnosticSeverity.Warning &&
+        diagnostic.Range == new Range(5, 11, 5, 16)
+        );
+    }
+
     [Fact(Skip = "Not implemented. Requires separating diagnostics from different sources")]
     public async Task FixedParseErrorUpdatesBeforeResolution() {
       var source = @"
