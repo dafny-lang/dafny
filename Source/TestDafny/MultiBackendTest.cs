@@ -363,7 +363,16 @@ public class MultiBackendTest {
     var argumentsWithDefaults = arguments.Concat(DafnyDriver.NewDefaultArgumentsForTesting);
     var outputWriter = new StringWriter();
     var errorWriter = new StringWriter();
-    var exitCode = DafnyDriver.MainWithWriters(outputWriter, errorWriter, TextReader.Null, argumentsWithDefaults.ToArray());
+    int exitCode;
+    try {
+      exitCode = DafnyDriver.MainWithWriters(outputWriter, errorWriter, TextReader.Null,
+        argumentsWithDefaults.ToArray());
+    } catch (Exception e) {
+      // Reproduce the same output and exit code that shelling out would have produced.
+      errorWriter.Write("Unhandled exception. ");
+      errorWriter.Write(e);
+      exitCode = 134;
+    }
     var outputString = outputWriter.ToString();
     var error = errorWriter.ToString();
     return (exitCode, outputString, error);

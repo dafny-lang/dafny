@@ -33,6 +33,8 @@ namespace XUnitExtensions.Lit {
         Console.SetError(errorWriter);
       }
 
+      // TODO: this should catch any exception and print it to errorWriter instead.
+      // Otherwise it's different behavior compared to ShellLitCommand.
       var result = assembly.EntryPoint!.Invoke(null, new object[] { Arguments });
       var exitCode = result == null ? 0 : (int)result;
 
