@@ -68,6 +68,7 @@ namespace Microsoft.Dafny.Compilers {
       Feature.Ordinals,
       Feature.Iterators,
       Feature.Multisets,
+      Feature.SetComprehensions,
       Feature.MapComprehensions,
       Feature.MethodSynthesis,
       Feature.ExternalClasses,
@@ -79,6 +80,7 @@ namespace Microsoft.Dafny.Compilers {
       Feature.SequenceDisplaysOfCharacters,
       Feature.TypeTests,
       Feature.SubsetTypeTests,
+      Feature.Bitvectors,
       Feature.BitvectorRotateFunctions,
       Feature.AssignSuchThatWithNonFiniteBounds,
       Feature.SequenceUpdateExpressions,
@@ -86,6 +88,9 @@ namespace Microsoft.Dafny.Compilers {
       Feature.ExternalConstructors,
       Feature.SubtypeConstraintsInQuantifiers,
       Feature.TuplesWiderThan20,
+      Feature.ForLoops,
+      // TODO: used to not implement CreateGetterSetter, questionable
+      Feature.Traits
     };
 
     private readonly List<string> Imports = new() { DafnyDefaultModule };
@@ -308,7 +313,7 @@ namespace Microsoft.Dafny.Compilers {
         var valueType = map.Range;
         return (DAST.Type)DAST.Type.create_Map(GenType(keyType), GenType(valueType));
       } else if (xType is BitvectorType) {
-        throw new NotImplementedException("Bitvector types");
+        throw new UnsupportedFeatureException(xType.tok, Feature.Bitvectors);
       } else {
         throw new NotImplementedException("Type name for " + xType + " (" + typ.GetType() + ")");
       }
@@ -475,7 +480,7 @@ namespace Microsoft.Dafny.Compilers {
 
       public ConcreteSyntaxTree CreateGetterSetter(string name, Type resultType, IToken tok,
           bool createBody, MemberDecl member, out ConcreteSyntaxTree setterWriter, bool forBodyInheritance) {
-        throw new NotImplementedException();
+        throw new UnsupportedFeatureException(tok, Feature.Traits);
       }
 
       public void DeclareField(string name, TopLevelDecl enclosingDecl, bool isStatic, bool isConst, Type type,
@@ -990,7 +995,7 @@ namespace Microsoft.Dafny.Compilers {
     protected override ConcreteSyntaxTree EmitForStmt(IToken tok, IVariable loopIndex, bool goingUp, string endVarName,
       List<Statement> body, LList<Label> labels, ConcreteSyntaxTree wr) {
       if (!workaroundEsdk) {
-        throw new NotImplementedException();
+        throw new UnsupportedFeatureException(tok, Feature.ForLoops);
       }
       return new BuilderSyntaxTree<ExprContainer>(new ExprBuffer(null));
     }
@@ -1007,7 +1012,7 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override ConcreteSyntaxTree CreateForLoop(string indexVar, Action<ConcreteSyntaxTree> bound, ConcreteSyntaxTree wr, string start = null) {
       if (!workaroundEsdk) {
-        throw new NotImplementedException();
+        throw new UnsupportedFeatureException(Token.NoToken, Feature.ForLoops);
       }
       return new BuilderSyntaxTree<StatementContainer>(new StatementBuffer());
     }
@@ -1228,7 +1233,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override ConcreteSyntaxTree EmitBitvectorTruncation(BitvectorType bvType, bool surroundByUnchecked, ConcreteSyntaxTree wr) {
-      throw new NotImplementedException();
+      throw new UnsupportedFeatureException(bvType.tok, Feature.Bitvectors);
     }
 
     protected override void EmitRotate(Expression e0, Expression e1, bool isRotateLeft, ConcreteSyntaxTree wr,
@@ -1686,7 +1691,7 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void EmitIndexCollectionUpdate(Expression source, Expression index, Expression value,
       CollectionType resultCollectionType, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
-      throw new NotImplementedException();
+      throw new UnsupportedFeatureException(source.tok, Feature.SequenceUpdateExpressions);
     }
 
     protected override void EmitSeqSelectRange(Expression source, Expression lo, Expression hi, bool fromArray,
@@ -2160,7 +2165,7 @@ namespace Microsoft.Dafny.Compilers {
             Sequence<DAST.Expression>.FromArray(elementsAST.ToArray())
           ));
         } else if (ct is MultiSetType multiSet) {
-          throw new NotImplementedException();
+          throw new UnsupportedFeatureException(ct.tok, Feature.Multisets);
         } else if (ct is SeqType seq) {
           builder.Builder.AddExpr((DAST.Expression)DAST.Expression.create_SeqValue(
             Sequence<DAST.Expression>.FromArray(elementsAST.ToArray()),
@@ -2199,18 +2204,18 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void EmitSetBuilder_New(ConcreteSyntaxTree wr, SetComprehension e, string collectionName) {
       if (!workaroundEsdk) {
-        throw new NotImplementedException();
+        throw new UnsupportedFeatureException(e.tok, Feature.SetComprehensions);
       }
     }
 
     protected override void EmitMapBuilder_New(ConcreteSyntaxTree wr, MapComprehension e, string collectionName) {
-      throw new NotImplementedException();
+      throw new UnsupportedFeatureException(e.tok, Feature.MapComprehensions);
     }
 
     protected override void EmitSetBuilder_Add(CollectionType ct, string collName, Expression elmt, bool inLetExprBody,
         ConcreteSyntaxTree wr) {
       if (!workaroundEsdk) {
-        throw new NotImplementedException();
+        throw new UnsupportedFeatureException(elmt.tok, Feature.SetComprehensions);
       }
     }
 
