@@ -28,11 +28,22 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
 
       var diagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
-      Assert.Equal(DiagnosticSeverity.Warning, diagnostics[0].Severity);
+      Assert.Equal(3, diagnostics.Length);
       Assert.Contains(diagnostics, diagnostic =>
         diagnostic.Severity == DiagnosticSeverity.Warning &&
-        diagnostic.Range == new Range(5, 11, 5, 16)
+        diagnostic.Range == new Range(3, 11, 3, 12) &&
+        diagnostic.Message == "unnecessary assumption"
         );
+      Assert.Contains(diagnostics, diagnostic =>
+        diagnostic.Severity == DiagnosticSeverity.Warning &&
+        diagnostic.Range == new Range(13, 11, 13, 17) &&
+        diagnostic.Message == "proved using contradictory assumptions: assertion always holds"
+      );
+      Assert.Contains(diagnostics, diagnostic =>
+        diagnostic.Severity == DiagnosticSeverity.Warning &&
+        diagnostic.Range == new Range(12, 11, 12, 12) &&
+        diagnostic.Message == "unnecessary assumption"
+      );
     }
 
     [Fact(Skip = "Not implemented. Requires separating diagnostics from different sources")]

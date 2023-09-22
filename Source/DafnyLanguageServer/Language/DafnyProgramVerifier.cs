@@ -27,10 +27,17 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       this.logger = logger;
     }
 
-    public async Task<IReadOnlyList<IImplementationTask>> GetVerificationTasksAsync(ExecutionEngine engine,
+    public async Task<IReadOnlyList<IImplementationTask>> GetVerificationTasksAsync(ExecutionEngine boogieEngine,
       CompilationAfterResolution compilation,
       ModuleDefinition moduleDefinition,
       CancellationToken cancellationToken) {
+      var engine = boogieEngine;
+      if (compilation.Project.UsesProjectFile &&
+          (compilation.Program.Reporter.Options.Get(CommonOptionBag.WarnContradictoryAssumptions)
+           || compilation.Program.Reporter.Options.Get(CommonOptionBag.WarnRedundantAssumptions)
+          )) { // We need a separate Boogie engine
+        engine = new ExecutionEngine(compilation.Program.Reporter.Options, engine.Cache);
+      }
 
       var verifiableModules = Translator.VerifiableModules(compilation.Program);
       if (!verifiableModules.Contains(moduleDefinition)) {
