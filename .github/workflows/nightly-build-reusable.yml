@@ -1,37 +1,36 @@
-
 # This workflow includes more expensive tests than what is run on every PR, that are unlikely to break on most changes.
-# It also publishes a nightly release.
-#
-# The if at the beginning of each job terminates the workflow immediately on any repo (like a fork) that is not the main
-# dafny-lang/dafny repo. This stops such forks from running this workflow and failing (for lack of a secret) the attempt to
-# publish a nightly build themselves.
+# It also optionally publishes a nightly prerelease.
 
-name: Nightly test and release workflow
+name: Nightly test and release workflow (Reusable Workflow)
 
 on:
-  schedule:
-    # Chosen to be hopefully outside of business hours for most contributors'
-    # time zones, and not on the hour to avoid heavy scheduled-job times:
-    # https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#schedule
-    - cron: "30 14 * * *"
-  workflow_dispatch:
+  workflow_call:
+    inputs:
+      ref:
+        required: true
+        type: string
+      publish-prerelease:
+        required: false
+        type: boolean
+        default: false
 
 jobs:
   deep-integration-tests:
     if: github.repository_owner == 'dafny-lang'
     uses: ./.github/workflows/integration-tests-reusable.yml
     with:
+      ref: ${{ inputs.ref }}
       all_platforms: true
       num_shards: 5
 
   determine-vars:
-    if: github.repository_owner == 'dafny-lang' && github.ref == 'refs/heads/master'
+    if: github.repository_owner == 'dafny-lang' && inputs.publish-prerelease
     runs-on: ubuntu-22.04
     steps:
       - name: Checkout Dafny
         uses: actions/checkout@v3
         with:
-          ref: ${{ inputs.sha }}
+          ref: ${{ inputs.ref }}
           submodules: recursive
 
       - name: Get short sha
@@ -48,11 +47,11 @@ jobs:
     needs: [deep-integration-tests, determine-vars]
     with:
       name: ${{ needs.determine-vars.outputs.name }}
-      sha: ${{ github.sha }}
+      ref: ${{ inputs.ref }}
       tag_name: nightly
       release_nuget: true
       draft: false
       release_notes: "This is an automatically published nightly release. This release may not be as stable as versioned releases and does not contain release notes."
       prerelease: true
     secrets:
-      nuget_api_key: ${{ secrets.NUGET_API_KEY }}
+      NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
