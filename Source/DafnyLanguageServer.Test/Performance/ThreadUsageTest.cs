@@ -16,7 +16,7 @@ public class ThreadUsageTest : ClientBasedLanguageServerTest {
   [Fact]
   public async Task NoExtraThreadAfterEachChange() {
     var source = "method Foo() { assert false; }";
-    var document = await CreateAndOpenTestDocument(source);
+    var document = await CreateOpenAndWaitForResolve(source);
     var threadCountBefore = Process.GetCurrentProcess().Threads.Count;
     for (var i = 0; i < 10; i++) {
       ApplyChange(ref document, new Range(0, 0, 0, 0), "//comment" + Environment.NewLine);
