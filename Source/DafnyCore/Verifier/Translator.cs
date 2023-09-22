@@ -5620,7 +5620,7 @@ namespace Microsoft.Dafny {
         }
       }
 
-      Contract.Assert(options.Get(CommonOptionBag.GeneralTraits) || expr.Type.IsRefType == toType.IsRefType);
+      Contract.Assert(options.Get(CommonOptionBag.GeneralTraits) != CommonOptionBag.GeneralTraitsOptions.Legacy || expr.Type.IsRefType == toType.IsRefType);
       if (toType.IsRefType) {
         PutSourceIntoLocal();
         CheckSubrange(tok, o, expr.Type, toType, builder, errorMsgPrefix);

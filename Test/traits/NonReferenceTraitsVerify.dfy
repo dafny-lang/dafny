@@ -1,4 +1,4 @@
-// RUN: %exits-with 4 %dafny /generalTraits:1 "%s" > "%t"
+// RUN: %exits-with 4 %dafny /generalTraits:datatype "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module ChildIsNonRefTrait {
