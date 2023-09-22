@@ -29,7 +29,7 @@ jobs:
     with:
       ref: master
     secrets:
-      NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+      nuget_api_key: ${{ secrets.NUGET_API_KEY }}
 
   nightly-build-for-4-3:
     if: github.repository_owner == 'dafny-lang'
@@ -38,4 +38,4 @@ jobs:
       ref: 4.3
       publish-prerelease: true
     secrets:
-      NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+      nuget_api_key: ${{ secrets.NUGET_API_KEY }}
