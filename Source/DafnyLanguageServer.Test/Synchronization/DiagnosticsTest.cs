@@ -23,7 +23,6 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
 
     [Fact]
     public async Task RedundantAssumptionsGetWarnings() {
-      var cwd = Directory.GetCurrentDirectory();
       var path = Path.Combine(testFilesDirectory, "ProofDependencies/LSPProofDependencyTest.dfy");
       var documentItem = CreateTestDocument(await File.ReadAllTextAsync(path), path);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
