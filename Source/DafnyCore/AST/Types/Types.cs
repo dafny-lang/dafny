@@ -1268,7 +1268,7 @@ public abstract class Type : TokenNode {
   /// </summary>
   public static List<Type> GetTowerOfSubsetTypes(Type type, bool typeSynonymsAreSignificant = false) {
     Contract.Requires(type != null);
-    type = typeSynonymsAreSignificant ? type.Normalize() : type.NormalizeExpandKeepConstraints();
+    type = typeSynonymsAreSignificant ? type.NormalizeAndAdjustForScope() : type.NormalizeExpandKeepConstraints();
     List<Type> tower;
     if (type is UserDefinedType { ResolvedClass: TypeSynonymDecl sst } && (typeSynonymsAreSignificant || sst is SubsetTypeDecl)) {
       var parent = sst.RhsWithArgument(type.TypeArgs);
