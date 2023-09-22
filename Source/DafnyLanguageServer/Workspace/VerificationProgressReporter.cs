@@ -12,7 +12,6 @@ using VerificationResult = Microsoft.Boogie.VerificationResult;
 namespace Microsoft.Dafny.LanguageServer.Workspace;
 
 public class VerificationProgressReporter : IVerificationProgressReporter {
-  private readonly DafnyOptions options;
   private readonly ILogger<VerificationProgressReporter> logger;
   private readonly INotificationPublisher notificationPublisher;
 
@@ -21,7 +20,6 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
     DafnyOptions options) {
     this.logger = logger;
     this.notificationPublisher = notificationPublisher;
-    this.options = options;
   }
 
   /// <summary>
@@ -30,7 +28,7 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
   /// </summary>
   public void RecomputeVerificationTrees(CompilationAfterParsing compilation) {
     foreach (var uri in compilation.VerificationTrees.Keys) {
-      compilation.VerificationTrees[uri] = UpdateTree(options, compilation, compilation.VerificationTrees[uri]);
+      compilation.VerificationTrees[uri] = UpdateTree(compilation.Program.Reporter.Options, compilation, compilation.VerificationTrees[uri]);
     }
   }
 
@@ -232,9 +230,9 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
   /// Triggers sending of the current verification diagnostics to the client
   /// </summary>
   public void ReportRealtimeDiagnostics(CompilationAfterParsing compilation, Uri uri, bool verificationStarted) {
-    if (options.Get(ServerCommand.LineVerificationStatus)) {
+    if (compilation.Program.Reporter.Options.Get(ServerCommand.LineVerificationStatus)) {
       lock (LockProcessing) {
-        notificationPublisher.PublishGutterIcons(uri, compilation.InitialIdeState(compilation, options), verificationStarted);
+        notificationPublisher.PublishGutterIcons(uri, compilation.InitialIdeState(compilation, compilation.Program.Reporter.Options), verificationStarted);
       }
     }
   }
@@ -304,11 +302,38 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
           targetMethodNode.StatusVerification = finalOutcome;
         }
 
+        var options = compilation.Program.Reporter.Options;
+        ReportVacuityAndRedundantAssumptionsChecks(compilation, implementation, verificationResult, options);
+
         targetMethodNode.PropagateChildrenErrorsUp();
         targetMethodNode.RecomputeAssertionBatchNodeDiagnostics();
         ReportRealtimeDiagnostics(compilation, uri, true);
       }
     }
+  }
+
+  private static void ReportVacuityAndRedundantAssumptionsChecks(CompilationAfterResolution compilation,
+    Implementation implementation, VerificationResult verificationResult, DafnyOptions options) {
+    if (!options.Get(CommonOptionBag.WarnVacuity)
+        && !options.Get(CommonOptionBag.WarnRedundantAssumptions)
+       ) {
+      return;
+    }
+
+    var vcResults = verificationResult.VCResults.Select(r =>
+      new DafnyConsolePrinter.VCResultLogEntry(r.vcNum, r.startTime, r.runTime, r.outcome,
+        r.asserts.Select(a => (a.tok, a.Description.SuccessDescription)).ToList(), r.coveredElements,
+        r.resourceCount)
+    ).ToList();
+    var res = new DafnyConsolePrinter.VerificationResultLogEntry(
+      verificationResult.Outcome, verificationResult.End - verificationResult.Start,
+      verificationResult.ResourceCount, vcResults);
+
+    DafnyMain.WarnAboutSuspiciousDependenciesForImplementation(options, compilation.Program.Reporter,
+      compilation.Program.ProofDependencyManager,
+      new DafnyConsolePrinter.ImplementationLogEntry(implementation.VerboseName, implementation.tok)
+      , res);
+    compilation.RefreshDiagnosticsFromProgramReporter();
   }
 
   private void NoMethodNodeAtLogging(VerificationTree tree, string methodName, CompilationAfterResolution compilation, Implementation implementation) {
