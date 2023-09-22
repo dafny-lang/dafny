@@ -335,7 +335,7 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
       verificationResult.Outcome, verificationResult.End - verificationResult.Start,
       verificationResult.ResourceCount, vcResults);
 
-    DafnyMain.WarnAboutSuspiciousDependenciesForImplementation(options, compilation.Program.Reporter,
+    ProofDependencyWarnings.WarnAboutSuspiciousDependenciesForImplementation(options, compilation.Program.Reporter,
       compilation.Program.ProofDependencyManager,
       new DafnyConsolePrinter.ImplementationLogEntry(implementation.VerboseName, implementation.tok)
       , res);

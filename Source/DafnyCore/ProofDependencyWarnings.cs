@@ -1,6 +1,7 @@
 using System.Linq;
 using DafnyCore.Verifier;
 using Microsoft.Dafny.ProofObligationDescription;
+using VC;
 
 namespace Microsoft.Dafny;
 
@@ -16,6 +17,9 @@ public class ProofDependencyWarnings {
   }
 
   public static void WarnAboutSuspiciousDependenciesForImplementation(DafnyOptions dafnyOptions, ErrorReporter reporter, ProofDependencyManager depManager, DafnyConsolePrinter.ImplementationLogEntry logEntry, DafnyConsolePrinter.VerificationResultLogEntry result) {
+    if (result.Outcome != ConditionGeneration.Outcome.Correct) {
+      return;
+    }
     var potentialDependencies = depManager.GetPotentialDependenciesForDefinition(logEntry.Name);
     var usedDependencies =
       result

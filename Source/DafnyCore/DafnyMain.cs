@@ -205,60 +205,6 @@ to also include a directory containing the `z3` executable.
       }
     }
 
-    public static void WarnAboutSuspiciousDependencies(DafnyOptions dafnyOptions, ErrorReporter reporter, ProofDependencyManager depManager) {
-      var verificationResults = (dafnyOptions.Printer as DafnyConsolePrinter).VerificationResults.ToList();
-      var orderedResults =
-        verificationResults.OrderBy(vr =>
-          (vr.Implementation.Tok.filename, vr.Implementation.Tok.line, vr.Implementation.Tok.col));
-      foreach (var (implementation, result) in orderedResults) {
-        WarnAboutSuspiciousDependenciesForImplementation(dafnyOptions, reporter, depManager, implementation, result);
-      }
-    }
-
-    public static void WarnAboutSuspiciousDependenciesForImplementation(DafnyOptions dafnyOptions, ErrorReporter reporter, ProofDependencyManager depManager, DafnyConsolePrinter.ImplementationLogEntry logEntry, DafnyConsolePrinter.VerificationResultLogEntry result) {
-      var potentialDependencies = depManager.GetPotentialDependenciesForDefinition(logEntry.Name);
-      var usedDependencies =
-        result
-          .VCResults
-          .SelectMany(vcResult => vcResult.CoveredElements.Select(depManager.GetFullIdDependency))
-          .OrderBy(dep => (dep.RangeString(), dep.Description));
-      var unusedDependencies =
-        potentialDependencies
-          .Except(usedDependencies)
-          .OrderBy(dep => (dep.RangeString(), dep.Description));
-
-      var unusedObligations = unusedDependencies.OfType<ProofObligationDependency>();
-      var unusedRequires = unusedDependencies.OfType<RequiresDependency>();
-      var unusedEnsures = unusedDependencies.OfType<EnsuresDependency>();
-      var unusedAssumeStatements =
-        unusedDependencies
-          .OfType<AssumptionDependency>()
-          .Where(d => d.Description.Contains("assume statement"));
-      if (dafnyOptions.Get(CommonOptionBag.WarnContradictoryAssumptions)) {
-        foreach (var dep in unusedObligations) {
-          if (ShouldWarnVacuous(logEntry.Name, dep)) {
-            reporter.Warning(MessageSource.Verifier, "", dep.Range, $"vacuous proof: {dep.Description}");
-          }
-        }
-
-        foreach (var dep in unusedEnsures) {
-          if (ShouldWarnVacuous(logEntry.Name, dep)) {
-            reporter.Warning(MessageSource.Verifier, "", dep.Range, $"vacuous proof of ensures clause");
-          }
-        }
-      }
-
-      if (dafnyOptions.Get(CommonOptionBag.WarnRedundantAssumptions)) {
-        foreach (var dep in unusedRequires) {
-          reporter.Warning(MessageSource.Verifier, "", dep.Range, $"unnecessary requires clause");
-        }
-
-        foreach (var dep in unusedAssumeStatements) {
-          reporter.Warning(MessageSource.Verifier, "", dep.Range, $"unnecessary assumption");
-        }
-      }
-    }
-
     /// <summary>
     /// Some proof obligations that don't show up in the dependency list
     /// are innocuous. Either they come about because of internal Dafny
