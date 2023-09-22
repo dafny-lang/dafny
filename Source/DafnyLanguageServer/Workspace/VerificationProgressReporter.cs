@@ -320,7 +320,7 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
 
   private static void ReportVacuityAndRedundantAssumptionsChecks(CompilationAfterResolution compilation,
     Implementation implementation, VerificationResult verificationResult, DafnyOptions options) {
-    if (!options.Get(CommonOptionBag.WarnVacuity)
+    if (!options.Get(CommonOptionBag.WarnContradictoryAssumptions)
         && !options.Get(CommonOptionBag.WarnRedundantAssumptions)
        ) {
       return;

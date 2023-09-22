@@ -234,7 +234,7 @@ to also include a directory containing the `z3` executable.
         unusedDependencies
           .OfType<AssumptionDependency>()
           .Where(d => d.Description.Contains("assume statement"));
-      if (dafnyOptions.Get(CommonOptionBag.WarnVacuity)) {
+      if (dafnyOptions.Get(CommonOptionBag.WarnContradictoryAssumptions)) {
         foreach (var dep in unusedObligations) {
           if (ShouldWarnVacuous(logEntry.Name, dep)) {
             reporter.Warning(MessageSource.Verifier, "", dep.Range, $"vacuous proof: {dep.Description}");
