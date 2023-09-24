@@ -141,15 +141,18 @@ After the compiler dependencies are installed, you can run a quick test of the i
 ## Mac (Binary) {#Mac-binary}
 
 To install a binary installation of dafny on Mac OS, do one of the following:
+
 Either
+   * Install .NET 6.0. See: `https://docs.microsoft.com/dotnet/core/install/macos`
    * Install the Mac binary version of Dafny, from `https://github.com/dafny-lang/dafny/releases/latest`
    * Unzip the downloaded file in a (empty) location of your choice ($INSTALL)
-   * cd into the installation directory (`$INSTALL/dafny`) and run the script `./allow_on_mac.sh`
-   * dafny is run with the command `$INSTALL/dafny/dafny`
+   * `cd` into the installation directory (`$INSTALL/dafny`) and run the script `./allow_on_mac.sh`
+   * Run Dafny with the command `$INSTALL/dafny/dafny`
+     
 or
-   * install dafny using brew, with the command `brew install dafny` (the version on brew sometimes lags the
+   * Install dafny using [brew](https://brew.sh/), with the command `brew install dafny` (the version on brew sometimes lags the
      project release page)
-   * run dafny with the command `dafny`
+   * Run Dafny with the command `dafny`
 
 If you intend to use the Dafny compiler, install the appropriate tools as described [here](#compiling-dafny).
 
