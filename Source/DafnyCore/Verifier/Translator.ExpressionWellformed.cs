@@ -756,7 +756,7 @@ namespace Microsoft.Dafny {
                   // check that the callee reads only what the caller is already allowed to read
                   var s = new Substituter(null, new Dictionary<IVariable, Expression>(), e.GetTypeArgumentSubstitutions());
                   CheckFrameSubset(callExpr.tok,
-                    e.Function.Reads.ConvertAll(s.SubstFrameExpr),
+                    e.Function.Reads.Expressions.ConvertAll(s.SubstFrameExpr),
                     e.Receiver, substMap, etran, etran.ReadsFrame(callExpr.tok), wfOptions.AssertSink(this, builder), new PODesc.FrameSubset("invoke function", false), wfOptions.AssertKv);
                 }
               }
@@ -1090,7 +1090,7 @@ namespace Microsoft.Dafny {
                 if (lam != null) {
                   // Set up a new frame
                   var frameName = CurrentIdGenerator.FreshId("$_Frame#l");
-                  reads = lam.Reads.ConvertAll(s.SubstFrameExpr);
+                  reads = lam.Reads.Expressions.ConvertAll(s.SubstFrameExpr);
                   comprehensionEtran = comprehensionEtran.WithReadsFrame(frameName);
                   DefineFrame(e.tok, comprehensionEtran.ReadsFrame(e.tok), reads, newBuilder, locals, frameName, comprehensionEtran);
 

@@ -12,8 +12,7 @@ public class ModuleExportDecl : ModuleDecl, ICanFormat {
   public readonly bool IsDefault;
   public List<ExportSignature> Exports; // list of TopLevelDecl that are included in the export
   public List<IToken> Extends; // list of exports that are extended
-  [FilledInDuringResolution] public readonly List<ModuleExportDecl> ExtendDecls = new List<ModuleExportDecl>();
-  [FilledInDuringResolution] public readonly HashSet<Tuple<Declaration, bool>> ExportDecls = new HashSet<Tuple<Declaration, bool>>();
+  [FilledInDuringResolution] public readonly List<ModuleExportDecl> ExtendDecls = new();
   public bool RevealAll; // only kept for initial rewriting, then discarded
   public bool ProvideAll;
   public override IEnumerable<INode> Children => Exports;
@@ -32,6 +31,7 @@ public class ModuleExportDecl : ModuleDecl, ICanFormat {
     IsRefining = original.IsRefining;
     IsDefault = original.IsDefault;
     ThisScope = new VisibilityScope(FullSanitizedName);
+    SetupDefaultSignature();
   }
 
   public ModuleExportDecl(RangeToken rangeToken, Name name, ModuleDefinition parent,
@@ -45,6 +45,7 @@ public class ModuleExportDecl : ModuleDecl, ICanFormat {
     ProvideAll = provideAll;
     RevealAll = revealAll;
     ThisScope = new VisibilityScope(this.FullSanitizedName);
+    SetupDefaultSignature();
   }
 
   public void SetupDefaultSignature() {

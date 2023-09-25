@@ -132,7 +132,7 @@ namespace Microsoft.Dafny {
       } else if (member is Method method) {
         CheckParameterDefaultValues(method.Ins, context);
         method.Req.ForEach(mfe => CheckAttributedExpression(mfe, context));
-        method.Reads.ForEach(mfe => CheckExpression(mfe.E, context));
+        CheckSpecFrameExpression(method.Reads, context);
         CheckSpecFrameExpression(method.Mod, context);
         method.Ens.ForEach(mfe => CheckAttributedExpression(mfe, context));
         CheckSpecExpression(method.Decreases, context);
@@ -149,7 +149,7 @@ namespace Microsoft.Dafny {
         CheckParameterDefaultValues(function.Formals, context);
         function.Req.ForEach(e => CheckExpression(e.E, context));
         function.Ens.ForEach(e => CheckExpression(e.E, context));
-        function.Reads.ForEach(fe => CheckExpression(fe.E, context));
+        CheckSpecFrameExpression(function.Reads, context);
         CheckSpecExpression(function.Decreases, context);
         if (function.Body != null) {
           CheckExpression(function.Body, context);
