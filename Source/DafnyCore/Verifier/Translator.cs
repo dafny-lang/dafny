@@ -7541,6 +7541,9 @@ namespace Microsoft.Dafny {
 
       Bpl.Ensures ens = new Bpl.Ensures(ForceCheckToken.Unwrap(tok), free, condition, comment);
       ens.Description = new PODesc.EnsuresDescription(errorMessage, successMessage);
+      if (options.Get(CommonOptionBag.ShowAssertions) > CommonOptionBag.AssertionShowMode.None) {
+        reporter.Info(MessageSource.Translator, tok, "Assertion: " + ens.Description.ShortDescription, "isAssertion");
+      }
       return ens;
     }
 
