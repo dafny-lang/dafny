@@ -815,8 +815,8 @@ namespace Microsoft.Dafny {
         rr.Kind = s.Kind;
         rr.CanConvert = s.CanConvert;
         rr.Bounds = SubstituteBoundedPoolList(s.Bounds);
-        if (s.ForallExpressions != null) {
-          rr.ForallExpressions = s.ForallExpressions.ConvertAll(Substitute);
+        if (s.EffectiveEnsuresClauses != null) {
+          rr.EffectiveEnsuresClauses = s.EffectiveEnsuresClauses.ConvertAll(Substitute);
         }
         r = rr;
       } else if (stmt is CalcStmt) {

@@ -25,7 +25,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       IReadOnlyDictionary<Uri, DocumentVerificationTree> migratedVerificationTrees, CancellationToken cancellationToken);
 
     Task<CompilationAfterResolution> ResolveAsync(DafnyOptions options, CompilationAfterParsing compilation,
-      IReadOnlyDictionary<Uri, DocumentVerificationTree> migratedVerificationTrees,
       CancellationToken cancellationToken);
   }
 }
