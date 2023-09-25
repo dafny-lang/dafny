@@ -102,7 +102,7 @@ type ImapSimulator<!A, B> =
     /// If you make a change to Dafny verification and this test does not fail, then likely the Dafny code in the test
     /// does not sufficiently cover the language to detect your change. In that case, please update the test so it does.
     /// 
-    /// Note that this test does not detect changes in DafnyPrelude.bplf
+    /// Note that this test does not detect changes in DafnyPrelude.bpl
     /// 
     /// </summary>
     [Fact]
