@@ -19,8 +19,7 @@ namespace Microsoft.Dafny.LanguageServer {
       var configuration = CreateConfiguration();
       InitializeLogger(configuration);
 
-      dafnyOptions.OutputWriter = TextWriter.Null;
-      dafnyOptions.ErrorWriter = TextWriter.Null;
+      dafnyOptions = new DafnyOptions(dafnyOptions, true);
        
       try {
         Action? shutdownServer = null;
