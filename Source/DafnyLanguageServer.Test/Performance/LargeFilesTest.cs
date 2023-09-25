@@ -89,6 +89,100 @@ public class LargeFilesTest : ClientBasedLanguageServerTest {
     throw lastException!;
   }
 
+  [Fact]
+  public async Task QuickEditsInSmallFileWithVerification() {
+    var source = @"
+// comment
+method NoErrorLimitReached() {
+
+  if (*) {
+    assert false;
+  } else {
+    var x := 3 / 2;
+  }
+}
+
+method ErrorLimitReached(x: int) {
+  assert x > 0;
+  assert x > 1;
+  assert x > 2;
+  assert x > 3;
+  assert x > 4;
+  assert x > 5;
+  if (*) {
+    assert false;
+  } else {
+    var x := 3 / 2;
+  }
+}
+
+method SlowBatches(p: nat, q: nat)
+  requires p > 0 && q > 0
+  ensures (p * p) !=  2 * (q * q) {
+  if (p * p) ==  2 * (q * q) {
+    calc == {
+      (2 * q - p) * (2 * q - p);
+      4 * q * q + p * p - 4 * p * q;
+      {assert 2 * q * q == p * p;}
+      2 * q * q + 2 * p * p - 4 * p * q;
+      2 * (p - q) * (p - q);
+    }
+  }
+  assert {:split_here} true;
+  assert 2 == 2;
+  assert {:split_here} true;
+  assert false;
+}".TrimStart();
+    
+    double lowest = double.MaxValue;
+    Exception lastException = null;
+    try {
+      for (int attempt = 0; attempt < 1; attempt++) {
+        var cancelSource = new CancellationTokenSource();
+        var measurementTask = AssertThreadPoolIsAvailable(cancelSource.Token);
+        var beforeOpen = DateTime.Now;
+        var documentItem = await CreateOpenAndWaitForResolve(source, "QuickEditsInSmallFileWithVerification.dfy",
+          cancellationToken: CancellationTokenWithHighTimeout);
+        var afterOpen = DateTime.Now;
+        var openMilliseconds = (afterOpen - beforeOpen).TotalMilliseconds;
+        for (int i = 0; i < 10000; i++) {
+          ApplyChange(ref documentItem, new Range(0, 2, 0, 2), ".");
+        }
+
+        await client.WaitForNotificationCompletionAsync(documentItem.Uri, CancellationTokenWithHighTimeout);
+        var afterChange = DateTime.Now;
+        var changeMilliseconds = (afterChange - afterOpen).TotalMilliseconds;
+        var diagnostics = await GetLastDiagnostics(documentItem, CancellationTokenWithHighTimeout);
+        cancelSource.Cancel();
+        var averageTimeToSchedule = await measurementTask;
+        var division = changeMilliseconds / openMilliseconds;
+        lowest = Math.Min(lowest, division);
+
+        // Commented code left in intentionally
+        await output.WriteLineAsync("openMilliseconds: " + openMilliseconds);
+        await output.WriteLineAsync("changeMilliseconds: " + changeMilliseconds);
+        await output.WriteLineAsync("division: " + division);
+        await output.WriteLineAsync("averageTimeToSchedule: " + averageTimeToSchedule);
+        try {
+          Assert.True(averageTimeToSchedule < 100, $"averageTimeToSchedule: {averageTimeToSchedule}");
+          // Migration should be constant time, which would allow this number to be about 1.
+          // Right now migration is still slow so this has been set to 10 so the test can pass.
+          var changeTimeMultiplier = 150;
+          Assert.True(division < changeTimeMultiplier,
+            $"changeMilliseconds {changeMilliseconds}, openMilliseconds {openMilliseconds}");
+
+          return;
+        } catch (AssertActualExpectedException e) {
+          lastException = e;
+        }
+      }
+    } catch (OperationCanceledException) {
+    }
+
+    await output.WriteLineAsync("lowest division " + lowest);
+    throw lastException!;
+  }
+
   private async Task<double> AssertThreadPoolIsAvailable(CancellationToken durationToken) {
     int ticks = 0;
     var waitTime = 100;

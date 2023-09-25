@@ -532,8 +532,14 @@ public class CompilationManager : IDisposable {
 
   }
 
+  private bool disposed = false;
   public void Dispose() {
+    if (disposed) {
+      return;
+    }
+
+    disposed = true;
     CancelPendingUpdates();
-    verificationUpdateScheduler.Dispose();
+    verificationUpdateScheduler.Schedule(() => verificationUpdateScheduler.Dispose());
   }
 }
