@@ -629,10 +629,10 @@ NoGhost - disable printing of functions, ghost methods, and proof
       int ind = indent + IndentAmount;
       PrintSpec("requires", iter.Requires, ind);
       if (iter.Reads.Expressions != null) {
-        PrintFrameSpecLine("reads", iter.Reads.Expressions, ind, iter.Reads.HasAttributes() ? iter.Reads.Attributes : null);
+        PrintFrameSpecLine("reads", iter.Reads, ind);
       }
       if (iter.Modifies.Expressions != null) {
-        PrintFrameSpecLine("modifies", iter.Modifies.Expressions, ind, iter.Modifies.HasAttributes() ? iter.Modifies.Attributes : null);
+        PrintFrameSpecLine("modifies", iter.Modifies, ind);
       }
       PrintSpec("yield requires", iter.YieldRequires, ind);
       PrintSpec("yield ensures", iter.YieldEnsures, ind);
@@ -933,7 +933,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
 
       int ind = indent + IndentAmount;
       PrintSpec("requires", f.Req, ind);
-      PrintFrameSpecLine("reads", f.Reads, ind, null);
+      PrintFrameSpecLine("reads", f.Reads, ind);
       PrintSpec("ensures", f.Ens, ind);
       PrintDecreasesSpec(f.Decreases, ind);
       wr.WriteLine();
@@ -1019,7 +1019,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
       int ind = indent + IndentAmount;
       PrintSpec("requires", method.Req, ind);
       if (method.Mod.Expressions != null) {
-        PrintFrameSpecLine("modifies", method.Mod.Expressions, ind, method.Mod.HasAttributes() ? method.Mod.Attributes : null);
+        PrintFrameSpecLine("modifies", method.Mod, ind);
       }
       PrintSpec("ensures", method.Ens, ind);
       PrintDecreasesSpec(method.Decreases, ind);
@@ -1108,18 +1108,16 @@ NoGhost - disable printing of functions, ghost methods, and proof
       }
     }
 
-    internal void PrintFrameSpecLine(string kind, List<FrameExpression> ee, int indent, Attributes attrs) {
+    internal void PrintFrameSpecLine(string kind, Specification<FrameExpression> ee, int indent) {
       Contract.Requires(kind != null);
-      Contract.Requires(cce.NonNullElements(ee));
-      if (ee != null && ee.Count != 0) {
+      Contract.Requires(ee != null);
+      if (ee != null && ee.Expressions != null && ee.Expressions.Count != 0) {
         wr.WriteLine();
         Indent(indent);
         wr.Write("{0}", kind);
-        if (attrs != null) {
-          PrintAttributes(attrs);
-        }
+        PrintAttributes(ee.Attributes);
         wr.Write(" ");
-        PrintFrameExpressionList(ee);
+        PrintFrameExpressionList(ee.Expressions);
       }
     }
 
@@ -1353,7 +1351,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
         PrintAttributes(s.Attributes);
         PrintSpec("invariant", s.Invariants, indent + IndentAmount);
         PrintDecreasesSpec(s.Decreases, indent + IndentAmount);
-        PrintFrameSpecLine("modifies", s.Mod.Expressions, indent + IndentAmount, s.Mod.Attributes);
+        PrintFrameSpecLine("modifies", s.Mod, indent + IndentAmount);
         bool hasSpecs = s.Invariants.Count != 0 || (s.Decreases.Expressions != null && s.Decreases.Expressions.Count != 0) || s.Mod.Expressions != null;
         if (s.UsesOptionalBraces) {
           if (hasSpecs) {
@@ -1378,8 +1376,8 @@ NoGhost - disable printing of functions, ghost methods, and proof
 
       } else if (stmt is ForallStmt) {
         var s = (ForallStmt)stmt;
-        if (options.DafnyPrintResolvedFile != null && s.ForallExpressions != null) {
-          foreach (var expr in s.ForallExpressions) {
+        if (options.DafnyPrintResolvedFile != null && s.EffectiveEnsuresClauses != null) {
+          foreach (var expr in s.EffectiveEnsuresClauses) {
             PrintExpression(expr, false, new string(' ', indent + IndentAmount) + "ensures ");
           }
           if (s.Body != null) {
@@ -1767,7 +1765,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
 
       PrintSpec("invariant", s.Invariants, indent + IndentAmount);
       PrintDecreasesSpec(s.Decreases, indent + IndentAmount);
-      PrintFrameSpecLine("modifies", s.Mod.Expressions, indent + IndentAmount, s.Mod.Attributes);
+      PrintFrameSpecLine("modifies", s.Mod, indent + IndentAmount);
       if (omitBody) {
         wr.WriteLine();
         Indent(indent + IndentAmount);
@@ -1829,7 +1827,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
       PrintSpec("invariant", s.Invariants, indent + IndentAmount);
       PrintDecreasesSpec(s.Decreases, indent + IndentAmount);
       if (s.Mod.Expressions != null) {
-        PrintFrameSpecLine("modifies", s.Mod.Expressions, indent + IndentAmount, s.Mod.HasAttributes() ? s.Mod.Attributes : null);
+        PrintFrameSpecLine("modifies", s.Mod, indent + IndentAmount);
       }
       if (s.Body != null) {
         if (s.Invariants.Count == 0 && s.Decreases.Expressions.Count == 0 && (s.Mod.Expressions == null || s.Mod.Expressions.Count == 0)) {
@@ -2228,8 +2226,8 @@ NoGhost - disable printing of functions, ghost methods, and proof
         var e = (ExprDotName)expr;
         // determine if parens are needed
         int opBindingStrength = 0x90;
-        bool parensNeeded = !e.Lhs.IsImplicit && // KRML: I think that this never holds
-          ParensNeeded(opBindingStrength, contextBindingStrength, fragileContext);
+        bool parensNeeded = !e.Lhs.IsImplicit && ParensNeeded(opBindingStrength, contextBindingStrength, fragileContext);
+        Contract.Assert(!parensNeeded); // KRML: I think parens are never needed
 
         if (parensNeeded) { wr.Write("("); }
         if (!e.Lhs.IsImplicit) {
@@ -2254,8 +2252,8 @@ NoGhost - disable printing of functions, ghost methods, and proof
         var e = (ApplySuffix)expr;
         // determine if parens are needed
         int opBindingStrength = 0x90;
-        bool parensNeeded = !e.Lhs.IsImplicit &&  // KRML: I think that this never holds
-          ParensNeeded(opBindingStrength, contextBindingStrength, fragileContext);
+        bool parensNeeded = !e.Lhs.IsImplicit && ParensNeeded(opBindingStrength, contextBindingStrength, fragileContext);
+        Contract.Assert(!parensNeeded); // KRML: I think parens are never needed
 
         if (parensNeeded) { wr.Write("("); }
         if (ParensMayMatter(e.Lhs)) {
@@ -2775,7 +2773,8 @@ NoGhost - disable printing of functions, ghost methods, and proof
           PrintExpression(e.Range, false);
         }
         var readsPrefix = " reads ";
-        foreach (var read in e.Reads) {
+        PrintAttributes(e.Reads.Attributes);
+        foreach (var read in e.Reads.Expressions) {
           wr.Write(readsPrefix);
           PrintExpression(read.E, false);
           readsPrefix = ", ";
@@ -3040,6 +3039,10 @@ NoGhost - disable printing of functions, ghost methods, and proof
         // print arguments after incorporating default parameters
         for (; i < bindings.Arguments.Count; i++) {
           var arg = bindings.Arguments[i];
+          if (arg is DefaultValueExpression { Resolved: null }) {
+            // An error was detected during resolution, so this argument was not filled in. Omit printing it.
+            continue;
+          }
           wr.Write(sep);
           sep = ", ";
           PrintExpression(arg, false);

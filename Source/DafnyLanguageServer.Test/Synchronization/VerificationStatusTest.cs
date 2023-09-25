@@ -33,27 +33,27 @@ method ShouldNotBeAffectedByChange() {
 ".TrimStart();
 
     var directory = Path.GetRandomFileName();
-    await CreateAndOpenTestDocument("", Path.Combine(directory, DafnyProject.FileName));
-    var documentA = await CreateAndOpenTestDocument(sourceA, Path.Combine(directory, "sourceA.dfy"));
+    await CreateOpenAndWaitForResolve("", Path.Combine(directory, DafnyProject.FileName));
+    var documentA = await CreateOpenAndWaitForResolve(sourceA, Path.Combine(directory, "sourceA.dfy"));
     await WaitUntilAllStatusAreCompleted(documentA);
-    var documentB = await CreateAndOpenTestDocument(sourceB, Path.Combine(directory, "sourceB.dfy"));
+    var documentB = await CreateOpenAndWaitForResolve(sourceB, Path.Combine(directory, "sourceB.dfy"));
     await WaitUntilAllStatusAreCompleted(documentB);
     ApplyChange(ref documentA, new Range(3, 0, 3, 0), "// change\n");
     await AssertNoVerificationStatusIsComing(documentB, CancellationToken);
   }
 
   [Fact]
-  public async Task DoNotResendAfterNoopChange() {
+  public async Task ANoopChangeWillCauseVerificationToTriggerAgain() {
     var source = @"
 method WillVerify() {
   assert false;
 }
 ".TrimStart();
 
-    var document = await CreateAndOpenTestDocument(source);
-    var firstStatus = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
+    var document = await CreateOpenAndWaitForResolve(source);
+    await WaitForStatus(null, PublishedVerificationStatus.Error, CancellationToken, document);
     ApplyChange(ref document, new Range(3, 0, 3, 0), "//change comment\n");
-    await AssertNoVerificationStatusIsComing(document, CancellationToken);
+    await WaitForStatus(null, PublishedVerificationStatus.Error, CancellationToken, document);
   }
 
   [Fact]
@@ -73,7 +73,7 @@ method Zap() returns (x: int) ensures x / 2 == 1; {
     await SetUp(options => {
       options.Set(ServerCommand.Verification, VerifyOnMode.Never);
     });
-    var documentItem1 = await CreateAndOpenTestDocument(source, "PreparingVerificationShowsUpAsAllQueued.dfy");
+    var documentItem1 = await CreateOpenAndWaitForResolve(source, "PreparingVerificationShowsUpAsAllQueued.dfy");
     _ = client.RunSymbolVerification(documentItem1, new Position(0, 7), CancellationToken);
     _ = client.RunSymbolVerification(documentItem1, new Position(4, 7), CancellationToken);
     while (true) {
@@ -110,9 +110,9 @@ method Foo() returns (x: int) ensures x / 2 == 1; {
       options.Set(ServerCommand.Verification, VerifyOnMode.Never);
     });
     var directory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
-    await CreateAndOpenTestDocument("", Path.Combine(directory, DafnyProject.FileName));
-    var documentItem1 = await CreateAndOpenTestDocument(source, Path.Combine(directory, "RunWithMultipleDocuments1.dfy"));
-    var documentItem2 = await CreateAndOpenTestDocument(source.Replace("Foo", "Bar"), Path.Combine(directory, "RunWithMultipleDocuments2.dfy"));
+    await CreateOpenAndWaitForResolve("", Path.Combine(directory, DafnyProject.FileName));
+    var documentItem1 = await CreateOpenAndWaitForResolve(source, Path.Combine(directory, "RunWithMultipleDocuments1.dfy"));
+    var documentItem2 = await CreateOpenAndWaitForResolve(source.Replace("Foo", "Bar"), Path.Combine(directory, "RunWithMultipleDocuments2.dfy"));
 
     var fooRange = new Range(0, 7, 0, 10);
     await client.RunSymbolVerification(documentItem1, fooRange.Start, CancellationToken);
@@ -258,6 +258,7 @@ method m1() {
     ApplyChange(ref documentItem, new Range(0, 0, 0, 0), "\n");
 
     await AssertNoVerificationStatusIsComing(documentItem, CancellationToken);
+
   }
 
   [Fact]
@@ -269,7 +270,7 @@ method m1() {
     var documentItem = CreateTestDocument(source, "NoVerificationStatusPublishedForUnresolvedDocument.dfy");
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
 
-    await WaitUntilAllStatusAreCompleted(documentItem);
+    var lastStatus = await WaitUntilAllStatusAreCompleted(documentItem);
     ApplyChange(ref documentItem, new Range(1, 9, 1, 10), "foo");
     ApplyChange(ref documentItem, new Range(0, 0, 0, 0), "\n");
 

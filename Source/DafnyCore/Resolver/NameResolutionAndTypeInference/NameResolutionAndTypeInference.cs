@@ -77,7 +77,7 @@ namespace Microsoft.Dafny {
         AddXConstraint(newtypeDecl.tok, "NumericType", newtypeDecl.BaseType, "newtypes must be based on some numeric type (got {0})");
         // type check the constraint, if any
         if (newtypeDecl.Var != null) {
-          Contract.Assert(object.ReferenceEquals(newtypeDecl.Var.Type, newtypeDecl.BaseType.NormalizeExpand(true)));  // follows from NewtypeDecl invariant
+          Contract.Assert(object.ReferenceEquals(newtypeDecl.Var.Type.NormalizeExpand(true), newtypeDecl.BaseType.NormalizeExpand(true)));  // follows from NewtypeDecl invariant
           Contract.Assert(newtypeDecl.Constraint != null);  // follows from NewtypeDecl invariant
 
           scope.PushMarker();
@@ -1110,13 +1110,13 @@ namespace Microsoft.Dafny {
           Contract.Assert(e.Range.Type != null);  // follows from postcondition of ResolveExpression
           ConstrainTypeExprBool(e.Range, "Precondition must be boolean (got {0})");
         }
-        foreach (var read in e.Reads) {
+        foreach (var read in e.Reads.Expressions) {
           ResolveFrameExpression(read, FrameExpressionUse.Reads, resolutionContext);
         }
         ResolveExpression(e.Term, resolutionContext);
         Contract.Assert(e.Term.Type != null);
         scope.PopMarker();
-        expr.Type = SelectAppropriateArrowType(e.tok, e.BoundVars.ConvertAll(v => v.Type), e.Body.Type, e.Reads.Count != 0, e.Range != null, SystemModuleManager);
+        expr.Type = SelectAppropriateArrowType(e.tok, e.BoundVars.ConvertAll(v => v.Type), e.Body.Type, e.Reads.Expressions.Count != 0, e.Range != null, SystemModuleManager);
       } else if (expr is WildcardExpr) {
         expr.Type = new SetType(true, SystemModuleManager.ObjectQ());
       } else if (expr is StmtExpr) {
@@ -3995,8 +3995,8 @@ namespace Microsoft.Dafny {
             }
           }
 
-          if (s.ForallExpressions != null) {
-            foreach (Expression expr in s.ForallExpressions) {
+          if (s.EffectiveEnsuresClauses != null) {
+            foreach (Expression expr in s.EffectiveEnsuresClauses) {
               ResolveExpression(expr, resolutionContext);
             }
           }

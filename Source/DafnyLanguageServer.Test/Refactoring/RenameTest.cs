@@ -20,13 +20,13 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Refactoring {
 const i := 0
 ".TrimStart();
 
-      var documentItem = await CreateAndOpenTestDocument(source);
+      var documentItem = await CreateOpenAndWaitForResolve(source);
       await Assert.ThrowsAnyAsync<Exception>(() => RequestRename(documentItem, new Position(0, 6), "j"));
     }
 
     [Fact]
     public async Task InvalidNewNameIsNoOp() {
-      var documentItem = await CreateAndOpenTestDocument("");
+      var documentItem = await CreateOpenAndWaitForResolve("");
       var workspaceEdit = await RequestRename(documentItem, new Position(0, 0), "");
       Assert.Null(workspaceEdit);
     }
@@ -34,7 +34,7 @@ const i := 0
     [Fact]
     public async Task RenameNonSymbolFails() {
       var tempDir = await SetUpProjectFile();
-      var documentItem = await CreateAndOpenTestDocument("module Foo {}", Path.Combine(tempDir, "tmp.dfy"));
+      var documentItem = await CreateOpenAndWaitForResolve("module Foo {}", Path.Combine(tempDir, "tmp.dfy"));
       var workspaceEdit = await RequestRename(documentItem, new Position(0, 6), "space");
       Assert.Null(workspaceEdit);
     }
@@ -140,7 +140,7 @@ abstract module B { import [>><A<] }
       var items = sources.Select(async (source, sourceIndex) => {
         MarkupTestFile.GetPositionsAndRanges(source, out var cleanSource,
           out var positions, out var ranges);
-        var documentItem = await CreateAndOpenTestDocument(cleanSource, Path.Combine(tempDir, $"tmp{sourceIndex}.dfy"));
+        var documentItem = await CreateOpenAndWaitForResolve(cleanSource, Path.Combine(tempDir, $"tmp{sourceIndex}.dfy"));
         Assert.InRange(positions.Count, 0, 1);
         return new DocPosRange(documentItem, positions.FirstOrDefault((Position)null), ranges);
       }).Select(task => task.Result).ToImmutableList();
