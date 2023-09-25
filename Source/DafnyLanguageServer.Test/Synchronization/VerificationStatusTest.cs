@@ -43,7 +43,7 @@ method ShouldNotBeAffectedByChange() {
   }
 
   [Fact]
-  public async Task DoNotResendAfterNoopChange() {
+  public async Task ANoopChangeWillCauseVerificationToTriggerAgain() {
     var source = @"
 method WillVerify() {
   assert false;
@@ -51,9 +51,9 @@ method WillVerify() {
 ".TrimStart();
 
     var document = await CreateOpenAndWaitForResolve(source);
-    var firstStatus = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
+    await WaitForStatus(null, PublishedVerificationStatus.Error, CancellationToken, document);
     ApplyChange(ref document, new Range(3, 0, 3, 0), "//change comment\n");
-    await AssertNoVerificationStatusIsComing(document, CancellationToken);
+    await WaitForStatus(null, PublishedVerificationStatus.Error, CancellationToken, document);
   }
 
   [Fact]
@@ -258,6 +258,7 @@ method m1() {
     ApplyChange(ref documentItem, new Range(0, 0, 0, 0), "\n");
 
     await AssertNoVerificationStatusIsComing(documentItem, CancellationToken);
+
   }
 
   [Fact]
@@ -269,7 +270,7 @@ method m1() {
     var documentItem = CreateTestDocument(source, "NoVerificationStatusPublishedForUnresolvedDocument.dfy");
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
 
-    await WaitUntilAllStatusAreCompleted(documentItem);
+    var lastStatus = await WaitUntilAllStatusAreCompleted(documentItem);
     ApplyChange(ref documentItem, new Range(1, 9, 1, 10), "foo");
     ApplyChange(ref documentItem, new Range(0, 0, 0, 0), "\n");
 
