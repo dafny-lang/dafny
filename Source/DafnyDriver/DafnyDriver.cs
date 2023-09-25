@@ -104,11 +104,11 @@ namespace Microsoft.Dafny {
       "--show-snippets:false"
     };
 
-    public static int Main(string[] args) {
+    public static Task<int> Main(string[] args) {
       return MainWithWriters(Console.Out, Console.Error, Console.In, args);
     }
 
-    public static int MainWithWriters(TextWriter outputWriter, TextWriter errorWriter, TextReader inputReader,
+    public static Task<int> MainWithWriters(TextWriter outputWriter, TextWriter errorWriter, TextReader inputReader,
       string[] args) {
 
       // Code that shouldn't be needed, but prevents some exceptions when running the integration tests in parallel
@@ -117,12 +117,10 @@ namespace Microsoft.Dafny {
       // outputWriter = TextWriter.Synchronized(outputWriter);
       // errorWriter = TextWriter.Synchronized(errorWriter);
 
-#pragma warning disable VSTHRD002
-      return Task.Run(() => ThreadMain(outputWriter, errorWriter, inputReader, args)).Result;
-#pragma warning restore VSTHRD002
+      return ThreadMain(outputWriter, errorWriter, inputReader, args);
     }
 
-    private static int ThreadMain(TextWriter outputWriter, TextWriter errorWriter, TextReader inputReader, string[] args) {
+    private static async Task<int> ThreadMain(TextWriter outputWriter, TextWriter errorWriter, TextReader inputReader, string[] args) {
       Contract.Requires(cce.NonNullElements(args));
 
       var cliArgumentsResult = ProcessCommandLineArguments(outputWriter, errorWriter, inputReader,
@@ -140,16 +138,12 @@ namespace Microsoft.Dafny {
           }
 
           if (dafnyOptions.RunLanguageServer) {
-#pragma warning disable VSTHRD002
-            LanguageServer.Server.Start(dafnyOptions).Wait();
-#pragma warning restore VSTHRD002
+            await LanguageServer.Server.Start(dafnyOptions);
             return 0;
           }
 
           using (var driver = new DafnyDriver(dafnyOptions)) {
-#pragma warning disable VSTHRD002
-            exitValue = driver.ProcessFilesAsync(dafnyFiles, otherFiles.AsReadOnly(), dafnyOptions, depManager).Result;
-#pragma warning restore VSTHRD002
+            exitValue = await driver.ProcessFilesAsync(dafnyFiles, otherFiles.AsReadOnly(), dafnyOptions, depManager);
           }
           break;
         case CommandLineArgumentsResult.PREPROCESSING_ERROR:
