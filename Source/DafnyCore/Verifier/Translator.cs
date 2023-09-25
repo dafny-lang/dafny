@@ -2267,7 +2267,7 @@ namespace Microsoft.Dafny {
       Bpl.Expr ax = BplForall(f.tok, new List<Bpl.TypeVariable>(), formals, null, tr, axBody);
       var activate = AxiomActivation(f, etran);
       string comment = "consequence axiom for " + f.FullSanitizedName;
-      if (axBody != Bpl.Expr.True) {
+      if (RemoveLit(axBody) != Bpl.Expr.True) {
         var consequenceExpr = BplImp(activate, ax);
         var consequenceAxiom = new Bpl.Axiom(f.tok, consequenceExpr, comment);
         AddOtherDefinition(boogieFunction, consequenceAxiom);
@@ -2287,7 +2287,7 @@ namespace Microsoft.Dafny {
           axBody = BplImp(anteIsAlloc, whr);
           ax = BplForall(f.tok, new List<Bpl.TypeVariable>(), formals, null, BplTrigger(whr), axBody);
 
-          if (axBody != Bpl.Expr.True) {
+          if (RemoveLit(axBody) != Bpl.Expr.True) {
             comment = "alloc consequence axiom for " + f.FullSanitizedName;
             var allocConsequenceAxiom = new Bpl.Axiom(f.tok, BplImp(activate, ax), comment);
             AddOtherDefinition(boogieFunction, allocConsequenceAxiom);
@@ -2597,9 +2597,14 @@ namespace Microsoft.Dafny {
         var appl = FunctionCall(f.tok, RequiresName(f), Bpl.Type.Bool, reqFuncArguments);
         Bpl.Trigger trig = BplTriggerHeap(this, f.tok, appl, readsHeap ? etran.HeapExpr : null);
         // axiom (forall params :: { f#requires(params) }  ante ==> f#requires(params) == pre);
-        AddOtherDefinition(precondF, new Axiom(f.tok,
-          BplForall(forallFormals, trig, BplImp(anteReqAxiom, BplIff(appl, preReqAxiom))),
-          "#requires axiom for " + f.FullSanitizedName));
+        if (ante == Bpl.Expr.True && preReqAxiom == Bpl.Expr.True) {
+          // precondF is true for all params so no additional axiom is needed.
+          precondF.Body = Bpl.Expr.True;
+        } else {
+          AddOtherDefinition(precondF, new Axiom(f.tok,
+            BplForall(forallFormals, trig, BplImp(anteReqAxiom, BplIff(appl, preReqAxiom))),
+            "#requires axiom for " + f.FullSanitizedName));
+        }
       }
 
       if (body == null || !RevealedInScope(f)) {
