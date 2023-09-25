@@ -82,7 +82,9 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
                 ctor.tok.Filepath,
                 ctor.Tok.Uri,
                 verificationTreeRange,
-                ctor.tok.GetLspPosition());
+                ctor.tok.GetLspPosition(),
+                Attributes.Contains(ctor.Attributes, "only")
+                );
               AddAndPossiblyMigrateVerificationTree(verificationTree);
             }
           }
@@ -109,7 +111,8 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
                 member.tok.Filepath,
                 member.Tok.Uri,
                 verificationTreeRange,
-                member.tok.GetLspPosition());
+                member.tok.GetLspPosition(),
+                Attributes.Contains(member.Attributes, "only"));
               AddAndPossiblyMigrateVerificationTree(verificationTree);
             } else if (member is Method or Function) {
               var verificationTreeRange = member.StartToken.GetLspRange(member.EndToken);
@@ -120,7 +123,8 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
                 member.tok.Filepath,
                 member.Tok.Uri,
                 verificationTreeRange,
-                member.tok.GetLspPosition());
+                member.tok.GetLspPosition(),
+                Attributes.Contains(member.Attributes, "only"));
               AddAndPossiblyMigrateVerificationTree(verificationTree);
               if (member is Function { ByMethodBody: { } } function) {
                 var verificationTreeRangeByMethod = function.ByMethodBody.RangeToken.ToLspRange();
@@ -131,7 +135,8 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
                   member.tok.Filepath,
                   member.Tok.Uri,
                   verificationTreeRangeByMethod,
-                  function.ByMethodTok.GetLspPosition());
+                  function.ByMethodTok.GetLspPosition(),
+                  Attributes.Contains(member.Attributes, "only"));
                 AddAndPossiblyMigrateVerificationTree(verificationTreeByMethod);
               }
             }
@@ -151,7 +156,8 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
             subsetTypeDecl.tok.Filepath,
             subsetTypeDecl.Tok.Uri,
             verificationTreeRange,
-            subsetTypeDecl.tok.GetLspPosition());
+            subsetTypeDecl.tok.GetLspPosition(),
+            Attributes.Contains(subsetTypeDecl.Attributes, "only"));
           AddAndPossiblyMigrateVerificationTree(verificationTree);
         }
       }
