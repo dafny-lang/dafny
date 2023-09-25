@@ -9,6 +9,9 @@ on:
       num_shards:
         required: true
         type: number
+      ref:
+        required: true
+        type: string
 
 env:
   dotnet-version: 6.0.x # SDK Version for building Dafny
@@ -98,6 +101,7 @@ jobs:
       uses: actions/checkout@v3
       with:
         path: dafny
+        ref: ${{ inputs.ref }}
         submodules: true # Until the libraries work again
     - name: Install Java runtime locally (non-Windows)
       if: runner.os != 'Windows'
