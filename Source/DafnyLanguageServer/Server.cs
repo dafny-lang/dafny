@@ -3,7 +3,9 @@ using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Server;
 using Serilog;
 using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
@@ -16,6 +18,10 @@ namespace Microsoft.Dafny.LanguageServer {
     public static async Task Start(DafnyOptions dafnyOptions) {
       var configuration = CreateConfiguration();
       InitializeLogger(configuration);
+
+      dafnyOptions.OutputWriter = TextWriter.Null;
+      dafnyOptions.ErrorWriter = TextWriter.Null;
+       
       try {
         Action? shutdownServer = null;
         var server = await OmniSharpLanguageServer.From(
