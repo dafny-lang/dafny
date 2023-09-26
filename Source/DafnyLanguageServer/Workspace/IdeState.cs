@@ -13,9 +13,8 @@ using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace;
 
-
 public record IdeImplementationView(Range Range, PublishedVerificationStatus Status,
-  IReadOnlyList<Diagnostic> Diagnostics);
+  IReadOnlyList<Diagnostic> Diagnostics, bool HitErrorLimit);
 
 public enum VerificationPreparationState { NotStarted, InProgress, Done }
 public record IdeVerificationResult(VerificationPreparationState PreparationProgress, IReadOnlyDictionary<string, IdeImplementationView> Implementations);
@@ -93,8 +92,26 @@ public record IdeState(
 
   public IEnumerable<Diagnostic> GetDiagnosticsForUri(Uri uri) {
     var resolutionDiagnostics = ResolutionDiagnostics.GetValueOrDefault(uri) ?? Enumerable.Empty<Diagnostic>();
-    var verificationDiagnostics = GetVerificationResults(uri).SelectMany(x =>
-      x.Value.Implementations.Values.SelectMany(v => v.Diagnostics));
+    var verificationDiagnostics = GetVerificationResults(uri).SelectMany(x => {
+      var anyImplementationHitErrorLimit = x.Value.Implementations.Values.Any(i => i.HitErrorLimit);
+      var implementationResults = x.Value.Implementations.Values.SelectMany(v => v.Diagnostics);
+      IEnumerable<Diagnostic> result;
+      if (anyImplementationHitErrorLimit) {
+        var diagnostic = new Diagnostic() {
+          Severity = DiagnosticSeverity.Warning,
+          Code = new DiagnosticCode("errorLimitHit"),
+          Message =
+            "Verification hit error limit so not all errors may be shown. Configure this limit using --error-limit",
+          Range = x.Key,
+          Source = MessageSource.Verifier.ToString()
+        };
+        result = implementationResults.Concat(new[] { diagnostic });
+      } else {
+        result = implementationResults;
+      }
+
+      return result;
+    });
     return resolutionDiagnostics.Concat(verificationDiagnostics);
   }
 

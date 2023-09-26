@@ -142,12 +142,7 @@ public class ProjectManager : IDisposable {
   }
 
   private void StartNewCompilation() {
-<<<<<<< HEAD
-    observerSubscription.Dispose();
-    version++;
-=======
     var compilationVersion = ++version;
->>>>>>> origin/master
     logger.LogDebug("Clearing result for workCompletedForCurrentVersion");
 
     Lazy<IdeState> migratedLazyPreviousCompilationLastIdeState = latestIdeState;

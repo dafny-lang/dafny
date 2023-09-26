@@ -361,7 +361,9 @@ public class MultiBackendTest {
     var argumentsWithDefaults = arguments.Concat(DafnyDriver.NewDefaultArgumentsForTesting);
     var outputWriter = new StringWriter();
     var errorWriter = new StringWriter();
+#pragma warning disable VSTHRD002
     var exitCode = DafnyDriver.MainWithWriters(outputWriter, errorWriter, TextReader.Null, argumentsWithDefaults.ToArray()).Result;
+#pragma warning restore VSTHRD002
     var outputString = outputWriter.ToString();
     var error = errorWriter.ToString();
     return (exitCode, outputString, error);

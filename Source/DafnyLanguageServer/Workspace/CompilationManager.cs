@@ -235,7 +235,7 @@ public class CompilationManager : IDisposable {
         updated = true;
         return tasksForVerifiable.ToDictionary(
           t => GetImplementationName(t.Implementation),
-          t => new ImplementationView(t, PublishedVerificationStatus.Stale, Array.Empty<DafnyDiagnostic>()));
+          t => new ImplementationState(t, PublishedVerificationStatus.Stale, Array.Empty<DafnyDiagnostic>(), false));
       });
       if (updated) {
         verificationProgressReporter.ReportImplementationsBeforeVerification(compilation,
@@ -320,7 +320,7 @@ public class CompilationManager : IDisposable {
     var canVerify = resolvedCompilation.Program.FindNode<ICanVerify>(filePosition.Uri, filePosition.Position.ToDafnyPosition());
     if (canVerify != null) {
       var implementations = resolvedCompilation.ImplementationsPerVerifiable.TryGetValue(canVerify, out var implementationsPerName)
-        ? implementationsPerName!.Values : Enumerable.Empty<ImplementationView>();
+        ? implementationsPerName!.Values : Enumerable.Empty<ImplementationState>();
       foreach (var view in implementations) {
         view.Task.Cancel();
       }
@@ -369,6 +369,7 @@ public class CompilationManager : IDisposable {
     }
 
     DafnyDiagnostic[] newDiagnostics;
+    bool hitErrorLimit = false;
     if (boogieStatus is BatchCompleted batchCompleted) {
       verificationProgressReporter.ReportAssertionBatchResult(compilation,
         new AssertionBatchResult(implementationTask.Implementation, batchCompleted.VcResult));
@@ -377,6 +378,9 @@ public class CompilationManager : IDisposable {
         compilation.Counterexamples.Add(counterExample);
       }
 
+
+      hitErrorLimit = batchCompleted.VcResult.maxCounterExamples == batchCompleted.VcResult.counterExamples.Count;
+      
       newDiagnostics = GetDiagnosticsFromResult(compilation, implementationTask, batchCompleted.VcResult).ToArray();
     } else {
       newDiagnostics = Array.Empty<DafnyDiagnostic>();
@@ -384,8 +388,12 @@ public class CompilationManager : IDisposable {
 
     var view = implementations.TryGetValue(implementationName, out var taskAndView)
       ? taskAndView
-      : new ImplementationView(implementationTask, status, Array.Empty<DafnyDiagnostic>());
-    implementations[implementationName] = view with { Status = status, Diagnostics = view.Diagnostics.Concat(newDiagnostics).ToArray() };
+      : new ImplementationState(implementationTask, status, Array.Empty<DafnyDiagnostic>(), hitErrorLimit);
+    implementations[implementationName] = view with { 
+      Status = status, 
+      Diagnostics = view.Diagnostics.Concat(newDiagnostics).ToArray(), 
+      HitErrorLimit = view.HitErrorLimit || hitErrorLimit 
+    };
 
     if (boogieStatus is Completed completed) {
       var verificationResult = completed.Result;
@@ -417,11 +425,6 @@ public class CompilationManager : IDisposable {
     boogieEngine.ReportOutcome(null, outcome, outcomeError => errorReporter.ReportBoogieError(outcomeError),
       implementation.VerboseName, implementation.tok, null, TextWriter.Null,
       implementation.GetTimeLimit(options), result.counterExamples);
-
-    var foundAllErrors = result.maxCounterExamples > result.counterExamples.Count;
-    if (!foundAllErrors) {
-      errorReporter.Warning(MessageSource.Verifier, "errorLimitHit", Translator.ToDafnyToken(implementation.tok), "Verification hit error limit so not all errors may be shown. Configure this limit using --error-limit");
-    }
 
     var diagnostics = errorReporter.AllDiagnosticsCopy.Values.SelectMany(x => x);
     return diagnostics.OrderBy(d => d.Token.GetLspPosition()).ToList();
