@@ -16,7 +16,9 @@ using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Util;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 using OmniSharp.Extensions.JsonRpc.Server;
+using VC;
 using EnsuresDescription = Microsoft.Dafny.ProofObligationDescription.EnsuresDescription;
+using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.Handlers {
   public class DafnyHoverHandler : HoverHandlerBase {
@@ -126,40 +128,52 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
         return null;
       }
 
-      var tree = state.VerificationTrees.GetValueOrDefault(uri);
+      var tree = state.VerificationResults.GetValueOrDefault(uri);
       if (tree == null) {
         return null;
       }
 
-      foreach (var node in tree.Children.OfType<TopLevelDeclMemberVerificationTree>()) {
-        if (!node.Range.Contains(position)) {
+      foreach (var (verifiableRange, result) in tree) {
+        if (!verifiableRange.Contains(position)) {
           continue;
         }
 
-        var assertionBatchCount = node.AssertionBatchCount;
+        var assertionBatches = result.Implementations.Values.SelectMany(implView => implView.Results).ToList();
+        var assertionBatchCount = assertionBatches.Count;
         var information = "";
         var orderedAssertionBatches =
-          node.AssertionBatches
-            .OrderBy(keyValue => keyValue.Key, new AssertionBatchIndexComparer())
-            .Select(keyValuePair => keyValuePair.Value)
-            .ToList();
+          assertionBatches;
+        // .OrderBy(keyValue => keyValue.Key)
+        // .Select(keyValuePair => keyValuePair.Value)
+        // .ToList();
 
         foreach (var assertionBatch in orderedAssertionBatches) {
-          if (!assertionBatch.Range.Contains(position)) {
+          int batchIndex = assertionBatch.vcNum;
+          var assertRanges = assertionBatch.asserts.Select(assert => Translator.ToDafnyToken(assert.tok).ToRange()).ToList();
+          var minPosition = assertRanges.Select(r => r.StartToken.GetLspPosition()).Min() ?? verifiableRange.Start;
+          var maxPosition = assertRanges.Select(r => r.EndToken.GetLspPosition()).Max() ?? verifiableRange.End;
+          var assertionRange = new Range(minPosition, maxPosition);
+          if (!assertionRange.Contains(position)) {
             continue;
           }
 
+          assertionBatch.ComputePerAssertOutcomes(out var perAssertOutcome, out var perAssertCounterExample);
+
           var assertionIndex = 0;
-          var assertions = assertionBatch.Children.OfType<AssertionVerificationTree>().ToList();
-          foreach (var assertionNode in assertions) {
-            if (assertionNode.Range.Contains(position) ||
-                assertionNode.ImmediatelyRelatedRanges.Any(range => range.Contains(position))) {
+          var assertions = assertionBatch.asserts;
+          foreach (var assertion in assertions) {
+            var assertRange = Translator.ToDafnyToken(assertion.tok).ToRange().ToLspRange();
+
+            Counterexample? counterexample = perAssertCounterExample.GetValueOrDefault(assertion);
+            var assertionRelatedRanges = GetAssertionRelatedRanges(assertion, counterexample);
+            if (assertRange.Contains(position) ||
+                assertionRelatedRanges.Any(range => range.Contains(position))) {
               if (information != "") {
                 information += "\n\n";
               }
 
-              information += GetAssertionInformation(state, position, assertionNode, assertionBatch,
-                assertionIndex, assertionBatchCount, node);
+              information += GetAssertionInformation(state, position, batchIndex, assertionBatch,
+                assertion, counterexample, assertionBatchCount, perAssertOutcome[assertion]);
             }
 
             assertionIndex++;
@@ -171,17 +185,39 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
         }
 
         // Ok no assertion here. Maybe a method?
-        if (node.Position.Line == position.Line) {
+        if (verifiableRange.Start.Line == position.Line) {
           areMethodStatistics = true;
-          return GetTopLevelInformation(node, orderedAssertionBatches);
+          return GetTopLevelInformation(result);
         }
       }
 
       return null;
     }
 
-    private string GetTopLevelInformation(TopLevelDeclMemberVerificationTree node, List<AssertionBatchVerificationTree> orderedAssertionBatches) {
-      int assertionBatchCount = orderedAssertionBatches.Count;
+    private List<Range> GetAssertionRelatedRanges(AssertCmd assertion, Counterexample? counterexample) {
+
+      var tok = assertion.tok;
+      var result = new List<Range>();
+      while (tok is NestedToken nestedToken) {
+        tok = nestedToken.Inner;
+        if (tok.filename == assertion.tok.filename) {
+          result.Add(tok.GetLspRange());
+        }
+      }
+
+      if (counterexample is ReturnCounterexample returnCounterexample) {
+        tok = returnCounterexample.FailingReturn.tok;
+        if (tok.filename == assertion.tok.filename) {
+          result.Add(returnCounterexample.FailingReturn.tok.GetLspRange());
+        }
+      }
+
+      return result;
+    }
+
+    private string GetTopLevelInformation(IdeVerificationResult verificationResult) {
+      var vcResults = verificationResult.Implementations.Values.SelectMany(r => r.Results).ToList();
+      int assertionBatchCount = vcResults.Count;
       var information = $"**Verification performance metrics for {node.PrefixedDisplayName}**:\n\n";
       if (!node.Started) {
         information += "_Verification not started yet_  \n";
@@ -190,19 +226,20 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
       }
 
       var assertionBatchesToReport =
-        orderedAssertionBatches.OrderByDescending(a => a.ResourceCount).Take(3).ToList();
+        vcResults.OrderByDescending(a => a.resourceCount).Take(3).ToList();
       if (assertionBatchesToReport.Count == 0 && node.Finished) {
         information += "No assertions.";
       } else if (assertionBatchesToReport.Count >= 1) {
-        information += $"- Total resource usage: {FormatResourceCount(node.ResourceCount)}";
-        if (node.ResourceCount > RuLimitToBeOverCostly) {
+        var totalResourceCount = vcResults.Sum(r => r.resourceCount);
+        information += $"- Total resource usage: {FormatResourceCount(totalResourceCount)}";
+        if (totalResourceCount > RuLimitToBeOverCostly) {
           information += OverCostlyMessage;
         }
 
         information += "  \n";
-        if (orderedAssertionBatches.Count == 1) {
+        if (vcResults.Count == 1) {
           var assertionBatch = AddAssertionBatchDocumentation("assertion batch");
-          var numberOfAssertions = orderedAssertionBatches.First().NumberOfAssertions;
+          var numberOfAssertions = vcResults.First().asserts.Count();
           information +=
             $"- Only one {assertionBatch} containing {numberOfAssertions} assertion{(numberOfAssertions == 1 ? "" : "s")}.";
         } else {
@@ -213,11 +250,11 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
               resourceCount, bool overCostly)>();
           foreach (var costlierAssertionBatch in assertionBatchesToReport) {
             var item = costlierAssertionBatch.Range.Start.Line + 1;
-            var overCostly = costlierAssertionBatch.ResourceCount > RuLimitToBeOverCostly;
-            result.Add(("#" + costlierAssertionBatch.RelativeNumber, item.ToString(),
-              costlierAssertionBatch.Children.Count + "",
-              costlierAssertionBatch.Children.Count != 1 ? "s" : "",
-              FormatResourceCount(costlierAssertionBatch.ResourceCount), overCostly));
+            var overCostly = costlierAssertionBatch.resourceCount > RuLimitToBeOverCostly;
+            result.Add(("#" + costlierAssertionBatch.vcNum, item.ToString(),
+              costlierAssertionBatch.asserts.Count + "",
+              costlierAssertionBatch.asserts.Count != 1 ? "s" : "",
+              FormatResourceCount(costlierAssertionBatch.resourceCount), overCostly));
           }
 
           var maxIndexLength = result.Select(item => item.index.Length).Max();
@@ -241,16 +278,13 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
       return information;
     }
 
-    private string GetAssertionInformation(IdeState ideState, Position position, AssertionVerificationTree assertionNode,
-      AssertionBatchVerificationTree assertionBatch, int assertionIndex, int assertionBatchCount,
-      TopLevelDeclMemberVerificationTree node) {
-      var assertCmd = assertionNode.GetAssertion();
+    private string GetAssertionInformation(IdeState ideState, Position position, int batchIndex,
+      VCResult vcResult, AssertCmd assertion, Counterexample? counterexample, int assertionBatchCount, ProverInterface.Outcome outcome) {
       var batchRef = AddAssertionBatchDocumentation("batch");
-      var assertionCount = assertionBatch.Children.Count;
-
+      var assertionCount = vcResult.asserts.Count;
 
       var currentlyHoveringPostcondition =
-        assertionNode.GetCounterExample() is ReturnCounterexample returnCounterexample2 &&
+        counterexample is ReturnCounterexample returnCounterexample2 &&
           !returnCounterexample2.FailingReturn.tok.GetLspRange().Contains(position);
 
       var obsolescence = assertionNode.StatusCurrent switch {
@@ -283,9 +317,19 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
         };
       }
 
-      var counterexample = assertionNode.GetCounterExample();
-
       string information = "";
+
+      string couldProveOrNotPrefix = (vcResult.outcome) switch {
+        ProverInterface.Outcome.Valid => "Did prove: ",
+        ProverInterface.Outcome.Invalid => "Could not prove: ",
+        ProverInterface.Outcome.TimeOut => expr,
+        ProverInterface.Outcome.OutOfMemory => expr,
+        ProverInterface.Outcome.OutOfResource => expr,
+        ProverInterface.Outcome.Undetermined => "Not able to prove: ",
+        ProverInterface.Outcome.Bounded => expr,
+        _ => throw new ArgumentOutOfRangeException()
+      };
+
 
       string couldProveOrNotPrefix = (assertionNode.StatusVerification) switch {
         GutterVerificationStatus.Verified => "Did prove: ",
@@ -357,29 +401,36 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
         ? "the only assertion"
         : $"assertion #{assertionIndex + 1} of {assertionCount}");
       if (assertionBatchCount > 1) {
-        information += $" in {batchRef} #{assertionBatch.RelativeNumber} of {assertionBatchCount}";
+        information += $" in {batchRef} #{batchIndex} of {assertionBatchCount}";
       }
 
       information += " in " + node.PrefixedDisplayName + "  \n";
       if (assertionBatchCount > 1) {
         information += AddAssertionBatchDocumentation("Batch") +
-                       $" #{assertionBatch.RelativeNumber} resource usage: " +
-                       FormatResourceCount(assertionBatch.ResourceCount);
+                       $" #{batchIndex} resource usage: " +
+                       FormatResourceCount(vcResult.resourceCount);
       } else {
         information += "Resource usage: " +
-                       FormatResourceCount(assertionBatch.ResourceCount);
+                       FormatResourceCount(vcResult.resourceCount);
       }
+
+      var filePath = Translator.ToDafnyToken(assertCmd.tok).Filepath;
+
+      IToken? secondaryToken = Translator.ToDafnyToken(counterexample is ReturnCounterexample returnCounterexample3 ? returnCounterexample3.FailingReturn.tok :
+        counterexample is CallCounterexample callCounterexample3 ? callCounterexample3.FailingRequires.tok :
+        null);
+      var secondaryPosition = secondaryToken?.GetLspPosition();
 
       // Not the main error displayed in diagnostics
       if (currentlyHoveringPostcondition) {
-        information += "  \n" + (assertionNode?.SecondaryPosition != null
-          ? $"Return path: {Path.GetFileName(assertionNode.Filename)}({assertionNode.SecondaryPosition.Line + 1}, {assertionNode.SecondaryPosition.Character + 1})"
+        information += "  \n" + (secondaryPosition != null
+          ? $"Return path: {Path.GetFileName(filePath)}({secondaryPosition.Line + 1}, {secondaryPosition.Character + 1})"
           : "");
       }
 
-      if (assertionNode?.GetCounterExample() is CallCounterexample) {
-        information += "  \n" + (assertionNode.SecondaryPosition != null
-          ? $"Failing precondition: {Path.GetFileName(assertionNode.Filename)}({assertionNode.SecondaryPosition.Line + 1}, {assertionNode.SecondaryPosition.Character + 1})"
+      if (counterexample is CallCounterexample) {
+        information += "  \n" + (secondaryPosition != null
+          ? $"Failing precondition: {Path.GetFileName(filePath)}({secondaryPosition.Line + 1}, {secondaryPosition.Character + 1})"
           : "");
       }
 

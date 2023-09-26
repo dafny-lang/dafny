@@ -37,7 +37,7 @@ public class ProjectManager : IDisposable {
   public CompilationManager CompilationManager { get; private set; }
   private IDisposable observerSubscription;
   private readonly INotificationPublisher notificationPublisher;
-  private readonly IVerificationProgressReporter verificationProgressReporter;
+  private readonly IGutterIconManager gutterIconManager;
   private readonly ILogger<ProjectManager> logger;
 
   /// <summary>
@@ -68,13 +68,13 @@ public class ProjectManager : IDisposable {
     CreateMigrator createMigrator,
     IFileSystem fileSystem,
     INotificationPublisher notificationPublisher,
-    IVerificationProgressReporter verificationProgressReporter,
+    IGutterIconManager gutterIconManager,
     CreateCompilationManager createCompilationManager,
     CreateIdeStateObserver createIdeStateObserver,
     ExecutionEngine boogieEngine,
     DafnyProject project) {
     Project = project;
-    this.verificationProgressReporter = verificationProgressReporter;
+    this.gutterIconManager = gutterIconManager;
     this.notificationPublisher = notificationPublisher;
     this.serverOptions = serverOptions;
     this.fileSystem = fileSystem;
