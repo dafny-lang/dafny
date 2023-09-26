@@ -9,12 +9,13 @@ using Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 using OmniSharp.Extensions.LanguageServer.Protocol;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
+using VC;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace;
 
 
-public record IdeImplementationView(Range Range, PublishedVerificationStatus Status,
+public record IdeImplementationView(Range Range, PublishedVerificationStatus Status, IReadOnlyList<VCResult> Results,
   IReadOnlyList<Diagnostic> Diagnostics);
 
 public enum VerificationPreparationState { NotStarted, InProgress, Done }
