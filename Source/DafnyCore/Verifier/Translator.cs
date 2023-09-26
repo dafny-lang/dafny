@@ -2053,13 +2053,14 @@ namespace Microsoft.Dafny {
         }
 
         Contract.Assert(decs.Count <= allFormals.Count);
-        if (0 < decs.Count && decs.Count < allFormals.Count) {
-          var decreasesAxiom = GetFunctionAxiom(f, body, decs);
-          AddOtherDefinition(boogieFunction, decreasesAxiom);
-        }
-
-        var formalsAxiom = GetFunctionAxiom(f, body, allFormals);
-        AddOtherDefinition(boogieFunction, formalsAxiom);
+        //experiment don't generate decreases and formals axioms
+        // if (0 < decs.Count && decs.Count < allFormals.Count) {
+        //   var decreasesAxiom = GetFunctionAxiom(f, body, decs);
+        //   AddOtherDefinition(boogieFunction, decreasesAxiom);
+        // }
+        //
+        // var formalsAxiom = GetFunctionAxiom(f, body, allFormals);
+        // AddOtherDefinition(boogieFunction, formalsAxiom);
       }
     }
 
