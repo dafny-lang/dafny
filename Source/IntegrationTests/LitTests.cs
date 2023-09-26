@@ -5,6 +5,7 @@ using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using Microsoft.Dafny;
 using TestDafny;
 using Xunit;
@@ -513,10 +514,10 @@ namespace IntegrationTests {
       this.Arguments = arguments.ToArray();
     }
 
-    public (int, string, string) Execute(TextReader inputReader,
+    public async Task<(int, string, string)> Execute(TextReader inputReader,
       TextWriter outputWriter,
       TextWriter errorWriter) {
-      var exitCode = DafnyDriver.MainWithWriters(outputWriter, errorWriter, inputReader, Arguments);
+      var exitCode = await DafnyDriver.MainWithWriters(outputWriter, errorWriter, inputReader, Arguments);
       return (exitCode, "", "");
     }
 
@@ -532,10 +533,10 @@ namespace IntegrationTests {
       this.arguments = arguments.ToArray();
     }
 
-    public (int, string, string) Execute(TextReader inputReader,
+    public async Task<(int, string, string)> Execute(TextReader inputReader,
       TextWriter outputWriter,
       TextWriter errorWriter) {
-      var exitCode = new MultiBackendTest(inputReader, outputWriter, errorWriter).Start(arguments.Prepend("for-each-compiler"));
+      var exitCode = await new MultiBackendTest(inputReader, outputWriter, errorWriter).Start(arguments.Prepend("for-each-compiler"));
       return (exitCode, "", "");
     }
   }
@@ -547,10 +548,10 @@ namespace IntegrationTests {
       this.arguments = arguments.ToArray();
     }
 
-    public (int, string, string) Execute(TextReader inputReader,
+    public async Task<(int, string, string)> Execute(TextReader inputReader,
       TextWriter outputWriter,
       TextWriter errorWriter) {
-      var exitCode = new MultiBackendTest(inputReader, outputWriter, errorWriter).Start(arguments.Prepend("for-each-resolver"));
+      var exitCode = await new MultiBackendTest(inputReader, outputWriter, errorWriter).Start(arguments.Prepend("for-each-resolver"));
       return (exitCode, "", "");
     }
   }

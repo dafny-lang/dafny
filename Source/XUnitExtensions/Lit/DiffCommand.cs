@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Threading.Tasks;
 using Xunit;
 using Xunit.Abstractions;
 using Xunit.Sdk;
@@ -29,18 +30,18 @@ namespace XUnitExtensions.Lit {
       return new DiffCommand(expectedPath, actualPath);
     }
 
-    public (int, string, string) Execute(TextReader inputReader,
+    public Task<(int, string, string)> Execute(TextReader inputReader,
       TextWriter outputWriter, TextWriter errorWriter) {
       var actual = File.ReadAllText(ActualPath);
       if (UpdateExpectFile) {
         var nonSymlinkedPath = Path.GetFullPath(ExpectedPath).Replace("Source/IntegrationTests/bin/Debug/net6.0/TestFiles/LitTests/LitTest", "Test");
         File.WriteAllText(nonSymlinkedPath, actual);
-        return (0, "", "");
+        return Task.FromResult((0, "", ""));
       }
 
       var expected = File.ReadAllText(ExpectedPath);
       var diffMessage = AssertWithDiff.GetDiffMessage(expected, actual);
-      return diffMessage == null ? (0, "", "") : (1, diffMessage, "");
+      return Task.FromResult(diffMessage == null ? (0, "", "") : (1, diffMessage, ""));
     }
 
     public override string ToString() {

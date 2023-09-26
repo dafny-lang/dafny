@@ -63,19 +63,19 @@ public class MultiBackendTest {
     this.errorWriter = errorWriter;
   }
 
-  public static int Main(string[] args) {
+  public static Task<int> Main(string[] args) {
     return new MultiBackendTest(Console.In, Console.Out, Console.Error).Start(args.ToList());
   }
 
-  public int Start(IEnumerable<string> args) {
-    var result = -1;
+  public Task<int> Start(IEnumerable<string> args) {
+    var result = Task.FromResult(-1);
     var parser = new CommandLine.Parser(with => {
       with.EnableDashDash = true;
       with.HelpWriter = errorWriter;
     });
     var parseResult = parser.ParseArguments<ForEachCompilerOptions, FeaturesOptions, ForEachResolverOptions>(args);
     parseResult.WithParsed<ForEachCompilerOptions>(options => { result = ForEachCompiler(options); })
-      .WithParsed<FeaturesOptions>(options => { result = GenerateCompilerTargetSupportTable(options); })
+      .WithParsed<FeaturesOptions>(options => { result = Task.FromResult(GenerateCompilerTargetSupportTable(options)); })
       .WithParsed<ForEachResolverOptions>(options => { result = ForEachResolver(options); });
 
     return result;
@@ -94,7 +94,7 @@ public class MultiBackendTest {
     int ExpectedExitCode
   );
 
-  private int ForEachCompiler(ForEachCompilerOptions options) {
+  private async Task<int> ForEachCompiler(ForEachCompilerOptions options) {
     var parseResult = CommandRegistry.Create(TextWriter.Null, TextWriter.Null, TextReader.Null,
       new string[] { "verify", options.TestFile! }.Concat(options.OtherArgs).ToArray());
     var dafnyOptions = ((ParseArgumentSuccess)parseResult).DafnyOptions;
@@ -137,9 +137,9 @@ public class MultiBackendTest {
       );
     }
     foreach (var resolutionOption in resolutionOptions) {
-      var (exitCode, outputString, error) = RunDafny(options.DafnyCliPath, dafnyArgs.Concat(resolutionOption.AdditionalOptions));
+      var (exitCode, outputString, error) = await RunDafny(options.DafnyCliPath, dafnyArgs.Concat(resolutionOption.AdditionalOptions));
 
-      output.WriteLine($"Using {resolutionOption.ReadableName} resolver and verifying...");
+      await output.WriteLineAsync($"Using {resolutionOption.ReadableName} resolver and verifying...");
 
       // If there is a file with extension "suffix", where the alternatives for "suffix" are supplied in order in
       // ExpectFileSuffixes, then we expect the output to match the contents of that file. Otherwise, we expect the output to be empty.
@@ -147,7 +147,7 @@ public class MultiBackendTest {
       foreach (var expectFileSuffix in resolutionOption.ExpectFileSuffixes) {
         var expectFileForVerifier = $"{options.TestFile}{expectFileSuffix}";
         if (File.Exists(expectFileForVerifier)) {
-          expectedOutput = File.ReadAllText(expectFileForVerifier);
+          expectedOutput = await File.ReadAllTextAsync(expectFileForVerifier);
           break;
         }
       }
@@ -156,16 +156,16 @@ public class MultiBackendTest {
       var actualOutput = outputString.Remove(trailer.Index, trailer.Length);
       var diffMessage = AssertWithDiff.GetDiffMessage(expectedOutput, actualOutput);
       if (diffMessage != null) {
-        output.WriteLine(diffMessage);
+        await output.WriteLineAsync(diffMessage);
         return 1;
       }
 
       // We expect verification to return exit code 0.
       if (exitCode != resolutionOption.ExpectedExitCode) {
-        output.WriteLine($"Verification failed with exit code {exitCode} (expected {resolutionOption.ExpectedExitCode}). Output:");
-        output.WriteLine(outputString);
-        output.WriteLine("Error:");
-        output.WriteLine(error);
+        await output.WriteLineAsync($"Verification failed with exit code {exitCode} (expected {resolutionOption.ExpectedExitCode}). Output:");
+        await output.WriteLineAsync(outputString);
+        await output.WriteLineAsync("Error:");
+        await output.WriteLineAsync(error);
         return exitCode != 0 ? exitCode : 1;
       }
     }
@@ -173,7 +173,7 @@ public class MultiBackendTest {
     // Then execute the program for each available compiler.
 
     string expectFile = options.TestFile + ".expect";
-    var commonExpectedOutput = File.ReadAllText(expectFile);
+    var commonExpectedOutput = await File.ReadAllTextAsync(expectFile);
 
     var success = true;
     foreach (var plugin in dafnyOptions.Plugins) {
@@ -196,7 +196,7 @@ public class MultiBackendTest {
           checkFile = checkFileForBackend;
         }
 
-        var result = RunWithCompiler(options, compiler, expectedOutput, checkFile);
+        var result = await RunWithCompiler(options, compiler, expectedOutput, checkFile);
         if (result != 0) {
           success = false;
         }
@@ -204,7 +204,7 @@ public class MultiBackendTest {
     }
 
     if (success) {
-      output.WriteLine(
+      await output.WriteLineAsync(
         "All executions were successful and matched the expected output (or reported errors for known unsupported features)!");
       return 0;
     } else {
@@ -212,7 +212,7 @@ public class MultiBackendTest {
     }
   }
 
-  public int ForEachResolver(ForEachResolverOptions options) {
+  public async Task<int> ForEachResolver(ForEachResolverOptions options) {
     var parseResult = CommandRegistry.Create(TextWriter.Null, TextWriter.Null, TextReader.Null,
       new string[] { "verify", options.TestFile! }.Concat(options.OtherArgs).ToArray());
     var dafnyOptions = ((ParseArgumentSuccess)parseResult).DafnyOptions;
@@ -240,9 +240,9 @@ public class MultiBackendTest {
     };
 
     foreach (var resolutionOption in resolutionOptions) {
-      var (exitCode, actualOutput, error) = RunDafny(options.DafnyCliPath, dafnyArgs.Concat(resolutionOption.AdditionalOptions));
+      var (exitCode, actualOutput, error) = await RunDafny(options.DafnyCliPath, dafnyArgs.Concat(resolutionOption.AdditionalOptions));
 
-      output.WriteLine($"Using {resolutionOption.ReadableName} resolver and verifying...");
+      await output.WriteLineAsync($"Using {resolutionOption.ReadableName} resolver and verifying...");
 
       // The expected output is indicated by a file with extension "suffix", where the alternatives for "suffix" are supplied in order in
       // ExpectFileSuffixes.
@@ -250,28 +250,28 @@ public class MultiBackendTest {
       foreach (var expectFileSuffix in resolutionOption.ExpectFileSuffixes) {
         var expectFileForVerifier = $"{options.TestFile}{expectFileSuffix}";
         if (File.Exists(expectFileForVerifier)) {
-          expectedOutput = File.ReadAllText(expectFileForVerifier);
+          expectedOutput = await File.ReadAllTextAsync(expectFileForVerifier);
           break;
         }
       }
       if (expectedOutput == null) {
-        output.WriteLine("Missing expect file: {0}", resolutionOption.ExpectFileSuffixes.Comma(suffix => $"{options.TestFile}{suffix}"));
+        await output.WriteLineAsync($"Missing expect file: {resolutionOption.ExpectFileSuffixes.Comma(suffix => $"{options.TestFile}{suffix}")}");
         return 1;
       }
 
       // Compare the output
       var diffMessage = AssertWithDiff.GetDiffMessage(expectedOutput!, actualOutput);
       if (diffMessage != null) {
-        output.WriteLine(diffMessage);
+        await output.WriteLineAsync(diffMessage);
         return 1;
       }
 
       // We expect verification to return the indicated exit code.
       if (exitCode != resolutionOption.ExpectedExitCode) {
-        output.WriteLine($"Verification failed with exit code {exitCode} (expected {resolutionOption.ExpectedExitCode}). Output:");
-        output.WriteLine(actualOutput);
-        output.WriteLine("Error:");
-        output.WriteLine(error);
+        await output.WriteLineAsync($"Verification failed with exit code {exitCode} (expected {resolutionOption.ExpectedExitCode}). Output:");
+        await output.WriteLineAsync(actualOutput);
+        await output.WriteLineAsync("Error:");
+        await output.WriteLineAsync(error);
         return exitCode != 0 ? exitCode : 1;
       }
     }
@@ -294,8 +294,8 @@ public class MultiBackendTest {
     return !compileOptions.Contains(name);
   }
 
-  private int RunWithCompiler(ForEachCompilerOptions options, IExecutableBackend backend, string expectedOutput, string? checkFile) {
-    output.WriteLine($"Executing on {backend.TargetName}...");
+  private async Task<int> RunWithCompiler(ForEachCompilerOptions options, IExecutableBackend backend, string expectedOutput, string? checkFile) {
+    await output.WriteLineAsync($"Executing on {backend.TargetName}...");
     IEnumerable<string> dafnyArgs = new List<string> {
       "run",
       "--no-verify",
@@ -303,7 +303,7 @@ public class MultiBackendTest {
       options.TestFile!,
     }.Concat(options.OtherArgs);
 
-    var (exitCode, outputString, error) = RunDafny(options.DafnyCliPath, dafnyArgs);
+    var (exitCode, outputString, error) = await RunDafny(options.DafnyCliPath, dafnyArgs);
     var compilationOutputPrior = new Regex("\r?\nDafny program verifier[^\r\n]*\r?\n").Match(outputString);
     if (compilationOutputPrior.Success) {
       outputString = outputString.Remove(0, compilationOutputPrior.Index + compilationOutputPrior.Length);
@@ -315,7 +315,7 @@ public class MultiBackendTest {
         return 0;
       }
 
-      output.WriteLine(diffMessage);
+      await output.WriteLineAsync(diffMessage);
       return 1;
     }
 
@@ -332,19 +332,19 @@ public class MultiBackendTest {
       var checkDirectives = OutputCheckCommand.ParseCheckFile(checkFile);
       var (checkResult, checkOutput, checkError) = OutputCheckCommand.Execute(outputLines, checkDirectives);
       if (checkResult != 0) {
-        output.WriteLine($"OutputCheck on {checkFile} failed:");
-        output.WriteLine(checkOutput);
-        output.WriteLine("Error:");
-        output.WriteLine(checkError);
+        await output.WriteLineAsync($"OutputCheck on {checkFile} failed:");
+        await output.WriteLineAsync(checkOutput);
+        await output.WriteLineAsync("Error:");
+        await output.WriteLineAsync(checkError);
       }
 
       return checkResult;
     }
 
-    output.WriteLine("Execution failed, for reasons other than known unsupported features. Output:");
-    output.WriteLine(outputString);
-    output.WriteLine("Error:");
-    output.WriteLine(error);
+    await output.WriteLineAsync("Execution failed, for reasons other than known unsupported features. Output:");
+    await output.WriteLineAsync(outputString);
+    await output.WriteLineAsync("Error:");
+    await output.WriteLineAsync(error);
     return exitCode;
   }
 
@@ -357,18 +357,18 @@ public class MultiBackendTest {
     return result;
   }
 
-  private static (int, string, string) RunDafny(IEnumerable<string> arguments) {
+  private static async Task<(int, string, string)> RunDafny(IEnumerable<string> arguments) {
     var argumentsWithDefaults = arguments.Concat(DafnyDriver.NewDefaultArgumentsForTesting);
     var outputWriter = new StringWriter();
     var errorWriter = new StringWriter();
-    var exitCode = DafnyDriver.MainWithWriters(outputWriter, errorWriter, TextReader.Null, argumentsWithDefaults.ToArray());
+    var exitCode = await DafnyDriver.MainWithWriters(outputWriter, errorWriter, TextReader.Null, argumentsWithDefaults.ToArray());
     var outputString = outputWriter.ToString();
     var error = errorWriter.ToString();
     return (exitCode, outputString, error);
   }
 
 
-  private static (int, string, string) RunDafny(string? dafnyCLIPath, IEnumerable<string> arguments) {
+  private static Task<(int, string, string)> RunDafny(string? dafnyCLIPath, IEnumerable<string> arguments) {
     if (dafnyCLIPath == null) {
       return RunDafny(arguments);
     }

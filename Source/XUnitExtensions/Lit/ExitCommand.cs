@@ -1,4 +1,5 @@
 using System.IO;
+using System.Threading.Tasks;
 using Xunit.Abstractions;
 
 namespace XUnitExtensions.Lit;
@@ -12,9 +13,9 @@ public class ExitCommand : ILitCommand {
     this.operand = operand;
   }
 
-  public (int, string, string) Execute(TextReader inputReader,
+  public async Task<(int, string, string)> Execute(TextReader inputReader,
     TextWriter outputWriter, TextWriter errorWriter) {
-    var (exitCode, output, error) = operand.Execute(inputReader, outputWriter, errorWriter);
+    var (exitCode, output, error) = await operand.Execute(inputReader, outputWriter, errorWriter);
     if (exitCode == expectedExitCode) {
       return (0, output, error);
     } else {

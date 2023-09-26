@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using Xunit;
 using Xunit.Abstractions;
 using Xunit.Sdk;
@@ -39,7 +40,7 @@ namespace XUnitExtensions.Lit {
       return new SedCommand(regexp, replaceBy, file);
     }
 
-    public (int, string, string) Execute(TextReader inputReader,
+    public Task<(int, string, string)> Execute(TextReader inputReader,
       TextWriter outputWriter, TextWriter errorWriter) {
       var fileContent = File.ReadAllText(file);
       try {
@@ -47,9 +48,9 @@ namespace XUnitExtensions.Lit {
         if (outputWriter != null) {
           outputWriter.Write(stdOutput);
         }
-        return (0, stdOutput, "");
+        return Task.FromResult((0, stdOutput, ""));
       } catch (Exception e) {
-        return (1, e.ToString(), "");
+        return Task.FromResult((1, e.ToString(), ""));
       }
     }
 

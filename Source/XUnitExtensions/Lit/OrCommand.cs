@@ -1,4 +1,5 @@
 using System.IO;
+using System.Threading.Tasks;
 using Xunit.Abstractions;
 
 namespace XUnitExtensions.Lit {
@@ -11,14 +12,14 @@ namespace XUnitExtensions.Lit {
       this.rhs = rhs;
     }
 
-    public (int, string, string) Execute(TextReader inputReader,
+    public async Task<(int, string, string)> Execute(TextReader inputReader,
       TextWriter outputWriter, TextWriter errorWriter) {
-      var (leftExitCode, leftOutput, leftError) = lhs.Execute(inputReader, outputWriter, errorWriter);
+      var (leftExitCode, leftOutput, leftError) = await lhs.Execute(inputReader, outputWriter, errorWriter);
       if (leftExitCode == 0) {
         return (leftExitCode, leftOutput, leftError);
       }
 
-      var (rightExitCode, rightOutput, rightError) = rhs.Execute(inputReader, outputWriter, errorWriter);
+      var (rightExitCode, rightOutput, rightError) = await rhs.Execute(inputReader, outputWriter, errorWriter);
       return (rightExitCode, leftOutput + rightOutput, leftError + rightError);
     }
 

@@ -4,7 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text;
-using Xunit.Abstractions;
+using System.Threading.Tasks;
 
 namespace XUnitExtensions.Lit {
   public class MainMethodLitCommand : ILitCommand {
@@ -21,7 +21,7 @@ namespace XUnitExtensions.Lit {
       return invokeDirectly ? result : result.ToShellCommand(config);
     }
 
-    public (int, string, string) Execute(TextReader inputReader,
+    public async Task<(int, string, string)> Execute(TextReader inputReader,
       TextWriter outputWriter, TextWriter errorWriter) {
       if (inputReader != null) {
         Console.SetIn(inputReader);
@@ -33,8 +33,8 @@ namespace XUnitExtensions.Lit {
         Console.SetError(errorWriter);
       }
 
-      var result = assembly.EntryPoint!.Invoke(null, new object[] { Arguments });
-      var exitCode = result == null ? 0 : (int)result;
+      var result = assembly.EntryPoint!.Invoke(null, new object[] { Arguments }) as Task<int>;
+      var exitCode = result == null ? 0 : await result;
 
       return (exitCode, "", "");
     }

@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using CommandLine;
 using Xunit.Abstractions;
 
@@ -198,20 +199,20 @@ namespace XUnitExtensions.Lit {
     return result;
   }
 
-  public (int, string, string) Execute(TextReader inputReader,
+  public Task<(int, string, string)> Execute(TextReader inputReader,
     TextWriter outputWriter, TextWriter errorWriter) {
     if (options.FileToCheck == null) {
-      return (0, "", "");
+      return Task.FromResult((0, "", ""));
     }
 
     var linesToCheck = File.ReadAllLines(options.FileToCheck).ToList();
     var fileName = options.CheckFile;
     if (fileName == null) {
-      return (0, "", "");
+      return Task.FromResult((0, "", ""));
     }
     var checkDirectives = ParseCheckFile(options.CheckFile!);
 
-    return Execute(linesToCheck, checkDirectives);
+    return Task.FromResult(Execute(linesToCheck, checkDirectives));
   }
 
   public static (int, string, string) Execute(IEnumerable<string> linesToCheck, IEnumerable<CheckDirective> checkDirectives) {
