@@ -37,4 +37,4 @@ jobs:
       # We can probably automate pulling this out of RELEASE_NOTES.md in the future
       release_notes: ""
     secrets:
-      NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+      nuget_api_key: ${{ secrets.NUGET_API_KEY }}
