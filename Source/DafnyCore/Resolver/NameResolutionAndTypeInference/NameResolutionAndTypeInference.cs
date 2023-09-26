@@ -3635,8 +3635,8 @@ namespace Microsoft.Dafny {
 
                     break;
                   case "simplify":
-                    if (args.Count != 1) {
-                      reporter.Error(MessageSource.Resolver, expr.tok, $"simplify() requires 1 argument, got " + args.Count);
+                    if (args.Count > 1) {
+                      reporter.Error(MessageSource.Resolver, expr.tok, $"simplify() requires 0 or 1 argument, got " + args.Count);
                     } else {
                       s.Tactics.Add(new Simplify(token, closeParen, nameOrNull(0)));
                     }

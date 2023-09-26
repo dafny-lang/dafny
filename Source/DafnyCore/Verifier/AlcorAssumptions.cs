@@ -117,7 +117,7 @@ partial class Translator {
               }
             }
           } else if (tactic is Simplify {Name: var name3}) {
-            tacticMode.Simplify(name3 != null ? ToDafnyString(name3) : null, BigInteger.Zero);
+            tacticMode.Simplify(ToDafnyString(name3 ?? ""), BigInteger.Zero);
           } else if (tactic is Definition {InName: var inName, DefinitionName: var definitionName}) {
             tacticMode.Definition(ToDafnyString(inName), ToDafnyString(definitionName));
           }

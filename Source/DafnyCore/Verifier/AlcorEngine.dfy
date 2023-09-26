@@ -1759,12 +1759,16 @@ module AlcorTacticProofChecker {
         var newGoal := goal.simplify(
           x => x, 
           config);
-        proofState := Sequents(
-          SequentCons(
-            Sequent(env, newGoal),
-            sequents.tail
-          )
-        );
+        if newGoal.True? {
+          proofState := Sequents(sequents.tail);
+        } else {
+          proofState := Sequents(
+            SequentCons(
+              Sequent(env, newGoal),
+              sequents.tail
+            )
+          );
+        }
         return Success(proofState.ToString());
       }
     }

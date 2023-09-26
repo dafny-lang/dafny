@@ -4491,7 +4491,11 @@ namespace AlcorTacticProofChecker {
         _625_newGoal = (_611_goal).simplify(((System.Func<AlcorProofKernel._IExpr, AlcorProofKernel._IExpr>)((_626_x) => {
           return _626_x;
         })), _624_config);
-        (this).proofState = AlcorTacticProofChecker.ProofState.create_Sequents(AlcorTacticProofChecker.SequentList.create_SequentCons(AlcorTacticProofChecker.Sequent.create(_610_env, _625_newGoal), (_608_sequents).dtor_tail));
+        if ((_625_newGoal).is_True) {
+          (this).proofState = AlcorTacticProofChecker.ProofState.create_Sequents((_608_sequents).dtor_tail);
+        } else {
+          (this).proofState = AlcorTacticProofChecker.ProofState.create_Sequents(AlcorTacticProofChecker.SequentList.create_SequentCons(AlcorTacticProofChecker.Sequent.create(_610_env, _625_newGoal), (_608_sequents).dtor_tail));
+        }
         feedback = Wrappers.Result<Dafny.ISequence<Dafny.Rune>>.create_Success((this.proofState)._ToString());
         return feedback;
       }

@@ -312,17 +312,17 @@ namespace Microsoft.Dafny {
         return stripLits ? expr : translator.Lit(expr);
       }
 
-      public AlcorProofKernel._IIdentifier TrIdentifierAlcor(IVariable boundVar) {
+      public _IIdentifier TrIdentifierAlcor(IVariable boundVar) {
         var rName = global::Dafny.Sequence<global::Dafny.Rune>.UnicodeFromString(boundVar.DisplayName);
         var label = global::Dafny.Sequence<global::Dafny.Rune>.UnicodeFromString("");
         var version = BigInteger.Zero;
-        var id = new AlcorProofKernel.Identifier(rName, version, label);
+        var id = new Identifier(rName, version, label);
         return id;
       }
 
       // Null means the expression is not yet translated in Alcor
       [CanBeNull]
-      public AlcorProofKernel._IExpr TrExprAlcor(Expression expr, out string errorMessage) {
+      public _IExpr TrExprAlcor(Expression expr, out string errorMessage) {
         errorMessage = "";
         var exprToTranslate = expr.WasResolved() ? expr.Resolved : expr;
         switch (exprToTranslate) {
@@ -350,22 +350,15 @@ namespace Microsoft.Dafny {
             }
 
             var els = TrExprAlcor(iteExpr.Els, out errorMessage);
-            if (els == null) {
-              return null;
-            }
-
-            return AlcorProofKernel.Expr.ifthenelse(cond, thn, els);
+            return els == null ? null : AlcorProofKernel.Expr.ifthenelse(cond, thn, els);
           }
           case FunctionCallExpr functionCallExpr: {
             if (functionCallExpr is {Function: var function, Args: var args} && args.Count == 1) {
               var f = new Expr_Var(new Identifier(ToDafnyString(function.Name), BigInteger.Zero, ToDafnyString("")));
               var arg = TrExprAlcor(args[0], out errorMessage);
-              if (arg == null) {
-                return null;
-              }
-              return new Expr_App(f, arg);
+              return arg == null ? null : new Expr_App(f, arg);
             }
-            errorMessage = "Alcor does not yet support " + exprToTranslate.ToString();
+            errorMessage = "Alcor does not yet support " + exprToTranslate;
             return null;
           }
           case ForallExpr forallExpr: {
@@ -379,8 +372,8 @@ namespace Microsoft.Dafny {
             foreach (var boundVar in forallExpr.BoundVars.ToImmutableList().Reverse()) {
               var id = TrIdentifierAlcor(boundVar);
 
-              body = new AlcorProofKernel.Expr_Forall(
-                new AlcorProofKernel.Expr_Abs(
+              body = new Expr_Forall(
+                new Expr_Abs(
                   id, body
                   )
                 );
@@ -394,8 +387,8 @@ namespace Microsoft.Dafny {
             var rName = global::Dafny.Sequence<global::Dafny.Rune>.UnicodeFromString(e.Var.DisplayName);
             var label = global::Dafny.Sequence<global::Dafny.Rune>.UnicodeFromString("");
             var version = BigInteger.Zero;
-            var id = new AlcorProofKernel.Identifier(rName, version, label);
-            return new AlcorProofKernel.Expr_Var(id); // TODO: Add tokens
+            var id = new Identifier(rName, version, label);
+            return new Expr_Var(id); // TODO: Add tokens
           }
           case BinaryExpr binaryExpr: {
             BinaryExpr e = binaryExpr;
@@ -414,7 +407,7 @@ namespace Microsoft.Dafny {
             } else if (e.ResolvedOp is BinaryExpr.ResolvedOpcode.Or) {
               return new Expr_Or(left, right);
             } else {
-              string op = "";
+              var op = "";
               switch (e.ResolvedOp) {
                 case BinaryExpr.ResolvedOpcode.Add: op = "+";
                   break;

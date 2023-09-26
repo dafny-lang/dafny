@@ -417,7 +417,7 @@ namespace Microsoft.Dafny {
           var definedness = new BoogieStmtListBuilder(this, options);
           var exporter = new BoogieStmtListBuilder(this, options);
           DefineFuelConstant(stmt.Tok, stmt.Attributes, definedness, etran);
-          TrForallProof(s, definedness, exporter, locals, etran);
+          TrForallProof(s, definedness, exporter, locals, etran, ref assumptions);
           // All done, so put the two pieces together
           builder.Add(new Bpl.IfCmd(s.Tok, null, definedness.Collect(s.Tok), null, exporter.Collect(s.Tok)));
           builder.AddCaptureState(stmt);
@@ -1087,7 +1087,7 @@ namespace Microsoft.Dafny {
     }
 
 
-    void TrForallProof(ForallStmt s, BoogieStmtListBuilder definedness, BoogieStmtListBuilder exporter, List<Variable> locals, ExpressionTranslator etran) {
+    void TrForallProof(ForallStmt s, BoogieStmtListBuilder definedness, BoogieStmtListBuilder exporter, List<Variable> locals, ExpressionTranslator etran, ref AlcorAssumptions assumptions) {
       // Translate:
       //   forall (x,y | Range(x,y))
       //     ensures Post(x,y);
@@ -1107,7 +1107,7 @@ namespace Microsoft.Dafny {
       //   } else {
       //     assume (forall x,y :: Range(x,y) ==> Post(x,y));
       //   }
-      var assumptions = EmptyAssumptions();// TODO: Import existing assumptions
+      var bodyAssumptions = assumptions;
 
       if (s.BoundVars.Count != 0) {
         // Note, it would be nicer (and arguably more appropriate) to do a SetupBoundVarsAsLocals
@@ -1127,6 +1127,7 @@ namespace Microsoft.Dafny {
       }
       TrStmt_CheckWellformed(s.Range, definedness, locals, etran, false);
       definedness.Add(TrAssumeCmd(s.Range.tok, etran.TrExpr(s.Range)));
+      bodyAssumptions = bodyAssumptions.WithEnv(s.Range, etran, "range");
 
       var ensuresDefinedness = new BoogieStmtListBuilder(this, options);
       foreach (var ens in s.Ens) {
@@ -1136,13 +1137,26 @@ namespace Microsoft.Dafny {
       PathAsideBlock(s.Tok, ensuresDefinedness, definedness);
 
       if (s.Body != null) {
-        TrStmt(s.Body, definedness, locals, etran, ref assumptions);
+        TrStmt(s.Body, definedness, locals, etran, ref bodyAssumptions);
 
         // check that postconditions hold
         foreach (var ens in s.Ens) {
+          var ensAsAlcor = etran.TrExprAlcor(ens.E, out _);
+          var provenByAlcor = false;
+          if (ensAsAlcor != null) {
+            provenByAlcor = bodyAssumptions.Prove(ensAsAlcor, etran, reporter, out var message);
+            reporter.Info(MessageSource.Verifier, ens.Tok, message);
+            // And then we assume it with either a fresh "h" label or a user-provided label
+            bodyAssumptions = bodyAssumptions.WithAssertedExpr(ensAsAlcor, "forallensures");
+          }
+
           foreach (var split in TrSplitExpr(ens.E, etran, true, out var splitHappened)) {
             if (split.IsChecked) {
-              definedness.Add(Assert(split.Tok, split.E, new PODesc.ForallPostcondition()));
+              if (provenByAlcor) {
+                definedness.Add(new AssumeCmd(split.Tok, split.E));
+              } else {
+                definedness.Add(Assert(split.Tok, split.E, new PODesc.ForallPostcondition()));
+              }
             }
           }
         }
@@ -1157,6 +1171,11 @@ namespace Microsoft.Dafny {
       var substMap = new Dictionary<IVariable, Expression>();
       var p = Substitute(s.ForallExpressions[0], null, substMap);
       var qq = etran.TrExpr(p);
+      var alcorP = etran.TrExprAlcor(p, out _);
+      if (alcorP != null) { // TODO: Better error reporting
+        assumptions = assumptions.WithAssumedExpr(alcorP, "forallensures");
+      }
+
       if (s.BoundVars.Count != 0) {
         exporter.Add(TrAssumeCmd(s.Tok, BplAnd(se, qq)));
       } else {
