@@ -516,9 +516,7 @@ namespace IntegrationTests {
     public (int, string, string) Execute(TextReader inputReader,
       TextWriter outputWriter,
       TextWriter errorWriter) {
-#pragma warning disable VSTHRD002
-      var exitCode = DafnyDriver.MainWithWriters(outputWriter, errorWriter, inputReader, Arguments).Result;
-#pragma warning restore VSTHRD002
+      var exitCode = DafnyDriver.MainWithWriters(outputWriter, errorWriter, inputReader, Arguments);
       return (exitCode, "", "");
     }
 

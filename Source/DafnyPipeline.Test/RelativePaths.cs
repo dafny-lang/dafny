@@ -17,9 +17,7 @@ namespace DafnyPipeline.Test {
     [Fact]
     public void Test() {
       Assert.Equal(0, DafnyDriver.MainWithWriters(output, output,
-#pragma warning disable VSTHRD002
-        TextReader.Null, new[] { "/spillTargetCode:3", "warnings-as-errors.dfy" }).Result);
-#pragma warning restore VSTHRD002
+        TextReader.Null, new[] { "/spillTargetCode:3", "warnings-as-errors.dfy" }));
     }
 
     [Fact]

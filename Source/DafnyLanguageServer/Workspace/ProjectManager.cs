@@ -146,6 +146,7 @@ public class ProjectManager : IDisposable {
     logger.LogDebug("Clearing result for workCompletedForCurrentVersion");
 
     Lazy<IdeState> migratedLazyPreviousCompilationLastIdeState = latestIdeState;
+    observerSubscription.Dispose();
 
     CompilationManager.Dispose();
     CompilationManager = createCompilationManager(

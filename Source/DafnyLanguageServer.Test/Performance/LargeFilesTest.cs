@@ -47,7 +47,7 @@ public class LargeFilesTest : ClientBasedLanguageServerTest {
         var cancelSource = new CancellationTokenSource();
         var measurementTask = AssertThreadPoolIsAvailable(cancelSource.Token);
         var beforeOpen = DateTime.Now;
-        var documentItem = await CreateOpenAndWaitForResolve(source, "QuickEditsInLargeFile.dfy",
+        var documentItem = await CreateOpenAndWaitForResolve(source, "ManyFastEditsUsingLargeFiles.dfy",
           cancellationToken: CancellationTokenWithHighTimeout);
         var afterOpen = DateTime.Now;
         var openMilliseconds = (afterOpen - beforeOpen).TotalMilliseconds;
