@@ -6,9 +6,9 @@ namespace Microsoft.Dafny.LanguageServer.Language {
   /// <summary>
   /// A callback interface to report verification progress
   /// </summary>
-  public interface IVerificationProgressReporter {
+  public interface IGutterIconAndHoverVerificationDetailsManager {
     void RecomputeVerificationTrees(CompilationAfterParsing compilation);
-    void ReportRealtimeDiagnostics(CompilationAfterParsing compilation, Uri uri, bool verificationStarted);
+    void PublishGutterIcons(CompilationAfterParsing compilation, Uri uri, bool verificationStarted);
 
     void ReportImplementationsBeforeVerification(CompilationAfterResolution compilation, ICanVerify canVerify, Implementation[] implementations);
     void ReportVerifyImplementationRunning(CompilationAfterResolution compilation, Implementation implToken);
