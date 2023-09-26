@@ -7,6 +7,7 @@ using Microsoft.Boogie;
 namespace Microsoft.Dafny.ProofObligationDescription;
 
 public abstract class ProofObligationDescription : Boogie.ProofObligationDescription {
+  public virtual bool IsImplicit => true;
   // An expression that, if verified, would trigger a success for this ProofObligationDescription
   // It is only printed for the user, so it does not need to be resolved.
   public abstract Expression GetAssertedExpr(DafnyOptions options);
@@ -345,6 +346,8 @@ public class AssertStatement : ProofObligationDescriptionCustomMessages {
   public AssertStatement([CanBeNull] string customErrMsg, [CanBeNull] string customSuccessMsg)
     : base(customErrMsg, customSuccessMsg) {
   }
+
+  public override bool IsImplicit => false;
 }
 
 // The Boogie version does not support custom error messages yet
@@ -382,6 +385,8 @@ public class EnsuresDescription : ProofObligationDescriptionCustomMessages {
   public EnsuresDescription([CanBeNull] string customErrMsg, [CanBeNull] string customSuccessMsg)
     : base(customErrMsg, customSuccessMsg) {
   }
+
+  public override bool IsImplicit => false;
 }
 
 public class LoopInvariant : ProofObligationDescriptionCustomMessages {

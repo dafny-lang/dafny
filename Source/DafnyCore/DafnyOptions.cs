@@ -435,8 +435,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
     /// Automatic shallow-copy constructor
     /// </summary>
     public DafnyOptions(DafnyOptions src, bool useNullWriters = false) : this(
-      src.Input, src.OutputWriter, src.ErrorWriter) 
-    {
+      src.Input, src.OutputWriter, src.ErrorWriter) {
       src.CopyTo(this, useNullWriters);
       CliRootSourceUris = new List<Uri>(src.CliRootSourceUris);
       ProverOptions = new List<string>(src.ProverOptions);

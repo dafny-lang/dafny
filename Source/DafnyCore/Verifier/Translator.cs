@@ -7541,8 +7541,11 @@ namespace Microsoft.Dafny {
 
       var unwrappedToken = ForceCheckToken.Unwrap(tok);
       Bpl.Ensures ens = new Bpl.Ensures(unwrappedToken, free, condition, comment);
-      ens.Description = new PODesc.EnsuresDescription(errorMessage, successMessage);
-      ReportAssertion(unwrappedToken, ens.Description);
+      var description = new PODesc.EnsuresDescription(errorMessage, successMessage);
+      ens.Description = description;
+      if (!free) {
+        ReportAssertion(unwrappedToken, description);
+      }
       return ens;
     }
 
@@ -7990,17 +7993,16 @@ namespace Microsoft.Dafny {
       return new Bpl.AssertCmd(tok, expr, description, attributes);
     }
 
-    private void ReportAssertion(IToken tok, PODesc.ProofObligationDescription description)
-    {
-      if (options.Get(CommonOptionBag.ShowAssertions) == CommonOptionBag.AssertionShowMode.All)
-      {
-        reporter.Info(MessageSource.Translator, tok, "Assertion: " + description.ShortDescription, "isAssertion");
+    private ISet<(Uri, int)> reportedAssertions = new HashSet<(Uri, int)>();
+    private void ReportAssertion(IToken tok, PODesc.ProofObligationDescription description) {
+      if (!reportedAssertions.Add((tok.Uri, tok.pos))) {
+        return;
       }
 
-      if (options.Get(CommonOptionBag.ShowAssertions) == CommonOptionBag.AssertionShowMode.Implicit
-          && description is not PODesc.AssertStatement)
-      {
-        reporter.Info(MessageSource.Translator, tok, "Assertion: " + description.ShortDescription, "isAssertion");
+      if (options.Get(CommonOptionBag.ShowAssertions) > CommonOptionBag.AssertionShowMode.None && description.IsImplicit) {
+        reporter.Info(MessageSource.Translator, tok, "Implicit assertion: " + description.ShortDescription, "isAssertion");
+      } else if (options.Get(CommonOptionBag.ShowAssertions) == CommonOptionBag.AssertionShowMode.All) {
+        reporter.Info(MessageSource.Translator, tok, "Explicit assertion: " + description.ShortDescription, "isAssertion");
       }
     }
 

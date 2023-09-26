@@ -133,7 +133,7 @@ method SlowBatches(p: nat, q: nat)
   assert {:split_here} true;
   assert false;
 }".TrimStart();
-    
+
     double lowest = double.MaxValue;
     Exception lastException = null;
     try {

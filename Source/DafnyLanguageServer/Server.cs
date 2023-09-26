@@ -20,7 +20,7 @@ namespace Microsoft.Dafny.LanguageServer {
       InitializeLogger(configuration);
 
       dafnyOptions = new DafnyOptions(dafnyOptions, true);
-       
+
       try {
         Action? shutdownServer = null;
         var server = await OmniSharpLanguageServer.From(
