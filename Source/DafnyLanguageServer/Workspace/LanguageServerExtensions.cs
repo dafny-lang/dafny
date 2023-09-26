@@ -32,7 +32,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           provider.GetRequiredService<CreateMigrator>(),
           provider.GetRequiredService<IFileSystem>(),
           provider.GetRequiredService<INotificationPublisher>(),
-          provider.GetRequiredService<IGutterIconManager>(),
+          provider.GetRequiredService<IGutterIconAndHoverVerificationDetailsManager>(),
           provider.GetRequiredService<CreateCompilationManager>(),
           provider.GetRequiredService<CreateIdeStateObserver>(),
           boogieEngine,

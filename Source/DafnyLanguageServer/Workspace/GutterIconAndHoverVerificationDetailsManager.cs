@@ -11,12 +11,12 @@ using VerificationResult = Microsoft.Boogie.VerificationResult;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace;
 
-public class GutterIconManager : IGutterIconManager {
+public class GutterIconAndHoverVerificationDetailsManager : IGutterIconAndHoverVerificationDetailsManager {
   private readonly DafnyOptions options;
-  private readonly ILogger<GutterIconManager> logger;
+  private readonly ILogger<GutterIconAndHoverVerificationDetailsManager> logger;
   private readonly INotificationPublisher notificationPublisher;
 
-  public GutterIconManager(ILogger<GutterIconManager> logger,
+  public GutterIconAndHoverVerificationDetailsManager(ILogger<GutterIconAndHoverVerificationDetailsManager> logger,
     INotificationPublisher notificationPublisher,
     DafnyOptions options) {
     this.logger = logger;

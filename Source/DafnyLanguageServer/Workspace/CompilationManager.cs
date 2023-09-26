@@ -39,7 +39,7 @@ public class CompilationManager : IDisposable {
   private readonly ILogger logger;
   private readonly ITextDocumentLoader documentLoader;
   private readonly IProgramVerifier verifier;
-  private readonly IGutterIconManager gutterIconManager;
+  private readonly IGutterIconAndHoverVerificationDetailsManager gutterIconManager;
 
   // TODO CompilationManager shouldn't be aware of migration
   private readonly IReadOnlyDictionary<Uri, DocumentVerificationTree> migratedVerificationTrees;
@@ -63,7 +63,7 @@ public class CompilationManager : IDisposable {
     ILogger<CompilationManager> logger,
     ITextDocumentLoader documentLoader,
     IProgramVerifier verifier,
-    IGutterIconManager gutterIconManager,
+    IGutterIconAndHoverVerificationDetailsManager gutterIconManager,
     DafnyOptions options,
     ExecutionEngine boogieEngine,
     Compilation compilation,

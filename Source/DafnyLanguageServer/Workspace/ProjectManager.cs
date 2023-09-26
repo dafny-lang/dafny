@@ -37,7 +37,7 @@ public class ProjectManager : IDisposable {
   public CompilationManager CompilationManager { get; private set; }
   private IDisposable observerSubscription;
   private readonly INotificationPublisher notificationPublisher;
-  private readonly IGutterIconManager gutterIconManager;
+  private readonly IGutterIconAndHoverVerificationDetailsManager gutterIconManager;
   private readonly ILogger<ProjectManager> logger;
 
   /// <summary>
@@ -68,7 +68,7 @@ public class ProjectManager : IDisposable {
     CreateMigrator createMigrator,
     IFileSystem fileSystem,
     INotificationPublisher notificationPublisher,
-    IGutterIconManager gutterIconManager,
+    IGutterIconAndHoverVerificationDetailsManager gutterIconManager,
     CreateCompilationManager createCompilationManager,
     CreateIdeStateObserver createIdeStateObserver,
     ExecutionEngine boogieEngine,
