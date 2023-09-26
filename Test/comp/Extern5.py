@@ -6,8 +6,7 @@ entire module must be supplied.
 import sys, _dafny
 import Wrappers
 
-assert "Library" == __name__
-Library = sys.modules[__name__]
+# Module: Library
 
 class LibClass:
     @staticmethod
@@ -41,7 +40,7 @@ class Mixed:
     @staticmethod
     def M():
         _dafny.print(_dafny.string_of(_dafny.Seq("Extern static method says: ")))
-        Library.Mixed.P()
+        Mixed.P()
 
     @staticmethod
     def P():
@@ -56,7 +55,7 @@ class Mixed:
 
     @staticmethod
     def F():
-        return (1000) + (Library.Mixed.G())
+        return (1000) + (Mixed.G())
 
     @staticmethod
     def G():

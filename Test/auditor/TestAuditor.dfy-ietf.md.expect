@@ -38,7 +38,7 @@
 
 ### Member `ExternFunction`
 
-* Function with `{:extern}` attribute. SHOULD use `method` with `modifies *` instead.
+* Function with `{:extern}` attribute. SHOULD use `method` with `modifies {}` instead.
 
 * Declaration with `{:extern}` has a ensures clause. MUST test external callee.
 
@@ -73,6 +73,16 @@
 ### Member `MethodOnly`
 
 * Member has explicit temporary `{:only}` attribute. MUST remove the `{:only}` attribute.
+
+### Member `GenerateBytesWithAxiom`
+
+* Declaration has explicit `{:axiom}` attribute. SHOULD provide a proof or test.
+
+### Member `ExternFunctionWithAxiom`
+
+* Declaration has explicit `{:axiom}` attribute. SHOULD provide a proof or test.
+
+* Function with `{:extern}` attribute. SHOULD use `method` with `modifies {}` instead.
 
 ## Type `T`
 

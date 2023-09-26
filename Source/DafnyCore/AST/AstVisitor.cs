@@ -145,7 +145,8 @@ namespace Microsoft.Dafny {
 
       function.Req.ForEach(aexpr => VisitAttributedExpression(aexpr, context));
 
-      function.Reads.ForEach(frameExpression => VisitTopLevelFrameExpression(frameExpression, context));
+      VisitAttributes(function.Reads, function.EnclosingClass.EnclosingModuleDefinition);
+      function.Reads.Expressions.ForEach(frameExpression => VisitTopLevelFrameExpression(frameExpression, context));
 
       function.Ens.ForEach(aexpr => VisitAttributedExpression(aexpr, GetContext(function, true)));
 
@@ -173,7 +174,7 @@ namespace Microsoft.Dafny {
 
       method.Req.ForEach(aexpr => VisitAttributedExpression(aexpr, context));
 
-      method.Reads.ForEach(frameExpression => VisitTopLevelFrameExpression(frameExpression, context));
+      method.Reads.Expressions.ForEach(frameExpression => VisitTopLevelFrameExpression(frameExpression, context));
 
       VisitAttributes(method.Mod, method.EnclosingClass.EnclosingModuleDefinition);
       method.Mod.Expressions.ForEach(frameExpression => VisitTopLevelFrameExpression(frameExpression, context));

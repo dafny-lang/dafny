@@ -131,7 +131,7 @@ namespace Microsoft.Dafny {
       var resultType = new BitvectorType(resolver.Options, width);
       var rotateMember = new SpecialFunction(RangeToken.NoToken, name, resolver.SystemModuleManager.SystemModule, false, false,
         new List<TypeParameter>(), formals, resultType,
-        new List<AttributedExpression>(), new List<FrameExpression>(), new List<AttributedExpression>(),
+        new List<AttributedExpression>(), new Specification<FrameExpression>(), new List<AttributedExpression>(),
         new Specification<Expression>(new List<Expression>(), null), null, null, null) {
         EnclosingClass = bitvectorTypeDecl,
         ResultPreType = Type2PreType(resultType)
@@ -404,10 +404,11 @@ namespace Microsoft.Dafny {
     private class PreTypeInferenceModuleState {
       public readonly ISet<Declaration> StillNeedsPreTypeSignature;
       public readonly Stack<Declaration> InFirstPhase = new Stack<Declaration>();
-      public readonly Dictionary<string, TopLevelDecl> PreTypeBuiltins = new();
+      public readonly Dictionary<string, TopLevelDecl> PreTypeBuiltins;
 
-      public PreTypeInferenceModuleState(List<Declaration> declarations) {
+      public PreTypeInferenceModuleState(List<Declaration> declarations, Dictionary<string, TopLevelDecl> preTypeBuiltins) {
         StillNeedsPreTypeSignature = new HashSet<Declaration>(declarations);
+        PreTypeBuiltins = preTypeBuiltins;
       }
     }
 
@@ -570,7 +571,7 @@ namespace Microsoft.Dafny {
       // for each declaration, in the order given.
 
       var allDeclarations = AllTopLevelOrMemberDeclarations(declarations).ToList();
-      var preTypeInferenceModuleState = new PreTypeInferenceModuleState(allDeclarations);
+      var preTypeInferenceModuleState = new PreTypeInferenceModuleState(allDeclarations, resolver.SystemModuleManager.PreTypeBuiltins);
       foreach (var d in allDeclarations) {
         Contract.Assert(resolver.VisibleInScope(d));
         ResolvePreTypeSignature(d, preTypeInferenceModuleState, resolver);
@@ -1121,7 +1122,8 @@ namespace Microsoft.Dafny {
         ResolveExpression(r, new ResolutionContext(f, f is TwoStateFunction));
         ConstrainTypeExprBool(r, "Precondition must be a boolean (got {0})");
       }
-      foreach (FrameExpression fr in f.Reads) {
+      ResolveAttributes(f.Reads, new ResolutionContext(f, f is TwoStateFunction), false);
+      foreach (FrameExpression fr in f.Reads.Expressions) {
         ResolveFrameExpression(fr, FrameExpressionUse.Reads, f);
       }
       foreach (AttributedExpression e in f.Ens) {

@@ -1316,12 +1316,61 @@ method innerLoop()
 
 In the next section, when everything can be proven in a timely manner, we explain another strategy to decrease proof time by parallelizing it if needed, and making the verifier focus on certain parts.
 
-### 13.6.3. Assertion batches {#sec-assertion-batches}
+### 13.6.3. Assertion batches, well-formedness, correctness {#sec-assertion-batches}
 
 To understand how to control verification,
 it is first useful to understand how `dafny` verifies functions and methods.
 
-For every method (or function, constructor, etc.), `dafny` extracts _assertions_. Here is a non-exhaustive list of such extracted assertions:
+For every method (or function, constructor, etc.), `dafny` extracts _assertions_.
+Assertions can roughly be sorted into two kinds: Well-formedness and correctness.
+
+- _Well-formedness_ assertions: All the implicit requirements
+  of native operation calls (such as indexing and asserting that divisiors are nonzero),
+  [`requires` clauses](#sec-requires-clause) of function calls, explicit
+  [assertion expressions](#sec-statement-in-an-expression) and
+  [`decreases` clauses](#sec-decreases-clause) at function call sites
+  generate well-formedness assertions.  
+  An expression is said to be _well-formed_ in a context if
+  all well-formedness assertions can be proven in that context.
+
+- _Correctness_ assertions: All remaining assertions and clauses
+
+For example, given the following statements:
+
+<!-- %no-check -->
+```dafny
+if b {
+  assert a*a != 0;
+}
+c := (assert b ==> a != 0; if b then 3/a else f(a));
+assert c != 5/a;
+```
+
+Dafny performs the following checks:
+
+<!-- %no-check -->
+```dafny
+var c: int;
+if b {
+  assert a*a != 0;   // Correctness
+}
+assert b ==> a != 0; // Well-formedness
+if b {
+  assert a != 0;     // Well-formedness
+} else {
+  assert f.requires(a); // Well-formedness
+}
+c := if b then 3/a else f(a);
+assert a != 0;       // Well-formedness
+assert c != 5/a;     // Correctness
+```
+
+Well-formedness is proved at the same time as correctness, except for
+[well-formedness of requires and ensures clauses](#sec-well-formedness-specifications)
+which is proved separatedly from the well-formedness and correctness of the rest of the method/function.
+For the rest of this section, we don't diifferentiate between well-formedness assertions and correctness assertions.
+
+We can also classify the assertions extracted by Dafny in a few categories:
 
 **Integer assertions:**
 
@@ -1334,26 +1383,26 @@ For every method (or function, constructor, etc.), `dafny` extracts _assertions_
 
 * Every [object property access](#sec-class-types) yields an _assertion_ that the object is not null.
 * Every assignment `o.f := E;` yields an _assertion_ that `o` is among the set of objects of the `modifies` clause of the enclosing [loop](#sec-loop-framing) or [method](#sec-modifies-clause).
-* Every read `o.f` yields an _assertion_ that `o` is among the set of objects of the [`reads`](#sec-reads-clause) clause of the enclosing function or predicate; or the [`modifies`](#sec-modifies-clause) clause of the enclosing method.
+* Every read `o.f` yields an _assertion_ that `o` is among the set of objects of the [`reads`](#sec-reads-clause) clause of the enclosing function or predicate.
 * Every [array access](#sec-array-type) `a[x]` yields the assertion that `0 <= x < a.Length`.
 * Every [sequence access](#sec-sequences) `a[x]` yields an _assertion_, that `0 <= x < |a|`, because sequences are never null.
 * Every [datatype update expression](#sec-datatype-update-suffix) and [datatype destruction](#sec-algebraic-datatype) yields an _assertion_ that the object has the given property.
 * Every method overriding a [`trait`](#sec-trait-types) yields an _assertion_ that any postcondition it provides implies the postcondition of its parent trait, and an _assertion_ that any precondition it provides is implied by the precondition of its parent trait.
 
-**Other implicit assertions:**
+**Other assertions:**
 
 * Every value whose type is assigned to a [subset type](#sec-subset-types) yields an _assertion_ that it satisfies the subset type constraint.
 * Every non-empty [subset type](#sec-subset-types) yields an _assertion_ that its witness satisfies the constraint.
 * Every [Assign-such-that operator](#sec-update-and-call-statement) `x :| P(x)` yields an _assertion_ that `exists x :: P(x)`.
 * Every recursive function yields an _assertion_ that [it terminates](#sec-loop-termination).
 * Every [match expression](#sec-match-expression) or [alternative if statement](#sec-if-statement) yields an _assertion_ that all cases are covered.
+* Every call to a function or method with a [`requires`](#sec-requires-clause) clause yields _one assertion per requires clause_[^precision-requires-clause]
+  (special cases such as sequence indexing come with a special `requires` clause that the index is within bounds).
 
-**Explicit assertions:**
+**Specification assertions:**
 
 * Any explicit [`assert`](#sec-assert-statement) statement is _an assertion_[^precision-requires-clause].
 * A consecutive pair of lines in a [`calc`](#sec-calc-statement) statement forms _an assertion_ that the expressions are related according to the common operator.
-* Every call to a function or method with a [`requires`](#sec-requires-clause) clause yields _one assertion per requires clause_[^precision-requires-clause]
-  (special cases such as sequence indexing come with a special `requires` clause that the index is within bounds).
 * Every [`ensures`](#sec-ensures-clause) clause yields an _assertion_ at the end of the method and on every return, and on [`forall`](#sec-forall-statement) statements.
 * Every [`invariant`](#sec-invariant-clause) clause yields an _assertion_ that it holds before the loop and an _assertion_ that it holds at the end of the loop.
 * Every [`decreases`](#sec-decreases-clause) clause yields an _assertion_ at either a call site or at the end of a while loop.

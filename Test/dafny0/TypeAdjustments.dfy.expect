@@ -23,6 +23,9 @@ TypeAdjustments.dfy(464,18): Error: value of expression (of type 'map<int, int>'
 TypeAdjustments.dfy(464,23): Error: value of expression (of type 'imap<int, int>') is not known to be an instance of type 'imap<nat, nat>'
 TypeAdjustments.dfy(481,20): Error: value of expression (of type 'map<int, int>') is not known to be an instance of type 'map<nat, nat>'
 TypeAdjustments.dfy(481,25): Error: value of expression (of type 'imap<int, int>') is not known to be an instance of type 'imap<nat, nat>'
+TypeAdjustments.dfy(496,22): Error: value does not satisfy the subset constraints of '() --> int' (possible cause: it may have read effects)
+TypeAdjustments.dfy(497,22): Error: value does not satisfy the subset constraints of '() -> int' (possible cause: it may be partial or have read effects)
+TypeAdjustments.dfy(508,22): Error: value does not satisfy the subset constraints of '() -> int' (possible cause: it may be partial or have read effects)
 TypeAdjustments.dfy(23,13): Error: assertion might not hold
 TypeAdjustments.dfy(25,17): Error: assertion might not hold
 TypeAdjustments.dfy(27,13): Error: assertion might not hold
@@ -41,4 +44,4 @@ TypeAdjustments.dfy(243,13): Error: assertion might not hold
 TypeAdjustments.dfy(247,10): Error: value of expression (of type 'CellX<int>') is not known to be an instance of type 'CellX<nat>'
 TypeAdjustments.dfy(251,10): Error: value of expression (of type 'CellX<nat>') is not known to be an instance of type 'CellX<int>'
 
-Dafny program verifier finished with 13 verified, 42 errors
+Dafny program verifier finished with 14 verified, 45 errors

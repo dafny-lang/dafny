@@ -43,7 +43,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       var program = new EmptyNode();
       return ToIdeState(new IdeState(initialCompilation.Version, initialCompilation, program,
         ImmutableDictionary<Uri, IReadOnlyList<Diagnostic>>.Empty,
-        SymbolTable.Empty(), LegacySignatureAndCompletionTable.Empty(options, initialCompilation.Project), new(),
+        SymbolTable.Empty(), LegacySignatureAndCompletionTable.Empty(options, initialCompilation.Project), ImmutableDictionary<Uri, Dictionary<Range, IdeVerificationResult>>.Empty,
         Array.Empty<Counterexample>(),
         ImmutableDictionary<Uri, IReadOnlyList<Range>>.Empty,
         initialCompilation.RootUris.ToDictionary(uri => uri, uri => new DocumentVerificationTree(program, uri))

@@ -528,6 +528,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(currentModule == null && codeContext == null && _tmpIEs.Count == 0 && isAllocContext == null);
       Contract.Ensures(currentModule == null && codeContext == null && _tmpIEs.Count == 0 && isAllocContext == null);
 
+      proofDependencies.SetCurrentDefinition(proc.VerboseName);
       currentModule = m.EnclosingClass.EnclosingModuleDefinition;
       codeContext = m;
       isAllocContext = new IsAllocContext(options, m.IsGhost);
@@ -544,7 +545,7 @@ namespace Microsoft.Dafny {
       // Also don't do any reads checks if the reads clause is *,
       // since all the checks will be trivially true
       // and we don't need to cause additional verification cost for existing code.
-      if (!options.Get(CommonOptionBag.ReadsClausesOnMethods) || m.IsLemmaLike || m.Reads.Exists(e => e.E is WildcardExpr)) {
+      if (!options.Get(CommonOptionBag.ReadsClausesOnMethods) || m.IsLemmaLike || m.Reads.Expressions.Exists(e => e.E is WildcardExpr)) {
         etran = etran.WithReadsFrame(null);
       }
       InitializeFuelConstant(m.tok, builder, etran);
@@ -688,7 +689,7 @@ namespace Microsoft.Dafny {
               Boogie.Expr wh = GetWhereClause(e.tok, etran.TrExpr(e), e.Type, etran.Old, ISALLOC, true);
               if (wh != null) {
                 var desc = new PODesc.IsAllocated("default value", "in the two-state lemma's previous state");
-                builder.Add(Assert(e.tok, wh, desc));
+                builder.Add(Assert(e.RangeToken, wh, desc));
               }
             }
           }
@@ -697,13 +698,13 @@ namespace Microsoft.Dafny {
         // check well-formedness of the preconditions, and then assume each one of them
         readsCheckDelayer.DoWithDelayedReadsChecks(false, wfo => {
           foreach (AttributedExpression p in m.Req) {
-            CheckWellformedAndAssume(p.E, wfo, localVariables, builder, etran);
+            CheckWellformedAndAssume(p.E, wfo, localVariables, builder, etran, "method requires clause");
           }
         });
 
         // check well-formedness of the reads clauses
         readsCheckDelayer.DoWithDelayedReadsChecks(false, wfo => {
-          CheckFrameWellFormed(wfo, m.Reads, localVariables, builder, etran);
+          CheckFrameWellFormed(wfo, m.Reads.Expressions, localVariables, builder, etran);
         });
         // Also check that the reads clause == {} if the {:concurrent} attribute is present
         if (Attributes.Contains(m.Attributes, Attributes.ConcurrentAttributeName)) {
@@ -760,7 +761,7 @@ namespace Microsoft.Dafny {
 
         // check wellformedness of postconditions
         foreach (AttributedExpression p in m.Ens) {
-          CheckWellformedAndAssume(p.E, new WFOptions(), localVariables, builder, etran);
+          CheckWellformedAndAssume(p.E, new WFOptions(), localVariables, builder, etran, "method ensures clause");
         }
 
         var s0 = builderInitializationArea.Collect(m.tok);
@@ -794,6 +795,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(currentModule == null && codeContext == null && _tmpIEs.Count == 0 && isAllocContext == null);
       Contract.Ensures(currentModule == null && codeContext == null && _tmpIEs.Count == 0 && isAllocContext == null);
 
+      proofDependencies.SetCurrentDefinition(proc.VerboseName);
       currentModule = m.EnclosingClass.EnclosingModuleDefinition;
       codeContext = m;
       isAllocContext = new IsAllocContext(options, m.IsGhost);
@@ -877,6 +879,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(currentModule == null && codeContext == null && _tmpIEs.Count == 0 && isAllocContext != null);
       Contract.Ensures(currentModule == null && codeContext == null && _tmpIEs.Count == 0 && isAllocContext != null);
 
+      proofDependencies.SetCurrentDefinition(MethodVerboseName(f.FullDafnyName, MethodTranslationKind.OverrideCheck));
       #region first procedure, no impl yet
       //Function nf = new Function(f.tok, "OverrideCheck_" + f.Name, f.IsStatic, f.IsGhost, f.TypeArgs, f.OpenParen, f.Formals, f.ResultType, f.Req, f.Reads, f.Ens, f.Decreases, f.Body, f.Attributes, f.SignatureEllipsis);
       //AddFunction(f);
@@ -1280,14 +1283,14 @@ namespace Microsoft.Dafny {
       Contract.Requires(substMap != null);
       //generating class post-conditions
       foreach (var en in m.Ens) {
-        builder.Add(TrAssumeCmd(m.tok, etran.TrExpr(en.E)));
+        builder.Add(TrAssumeCmdWithDependencies(etran, m.tok, en.E, "overridden ensures clause"));
       }
       //generating trait post-conditions with class variables
       FunctionCallSubstituter sub = null;
       foreach (var en in m.OverriddenMethod.Ens) {
         sub ??= new FunctionCallSubstituter(substMap, typeMap, (TraitDecl)m.OverriddenMethod.EnclosingClass, (ClassLikeDecl)m.EnclosingClass);
         foreach (var s in TrSplitExpr(sub.Substitute(en.E), etran, false, out _).Where(s => s.IsChecked)) {
-          builder.Add(Assert(m.tok, s.E, new PODesc.EnsuresStronger()));
+          builder.Add(Assert(m.RangeToken, s.E, new PODesc.EnsuresStronger()));
         }
       }
     }
@@ -1303,11 +1306,11 @@ namespace Microsoft.Dafny {
       FunctionCallSubstituter sub = null;
       foreach (var req in m.OverriddenMethod.Req) {
         sub ??= new FunctionCallSubstituter(substMap, typeMap, (TraitDecl)m.OverriddenMethod.EnclosingClass, (ClassLikeDecl)m.EnclosingClass);
-        builder.Add(TrAssumeCmd(m.tok, etran.TrExpr(sub.Substitute(req.E))));
+        builder.Add(TrAssumeCmdWithDependencies(etran, m.tok, sub.Substitute(req.E), "overridden requires clause"));
       }
       //generating class pre-conditions
       foreach (var s in m.Req.SelectMany(req => TrSplitExpr(req.E, etran, false, out _).Where(s => s.IsChecked))) {
-        builder.Add(Assert(m.tok, s.E, new PODesc.RequiresWeaker()));
+        builder.Add(Assert(m.RangeToken, s.E, new PODesc.RequiresWeaker()));
       }
     }
 
@@ -1375,7 +1378,7 @@ namespace Microsoft.Dafny {
       //   as "false".
       bool allowNoChange = N == decrCountT && decrCountT <= decrCountC;
       var decrChk = DecreasesCheck(toks, types0, types1, callee, caller, null, null, allowNoChange, false);
-      builder.Add(Assert(original.Tok, decrChk, new PODesc.TraitDecreases(original.WhatKind)));
+      builder.Add(Assert(original.RangeToken, decrChk, new PODesc.TraitDecreases(original.WhatKind)));
     }
 
     private void AddMethodOverrideFrameSubsetChk(Method m, bool isModifies, BoogieStmtListBuilder builder, ExpressionTranslator etran, List<Variable> localVariables,
@@ -1388,8 +1391,8 @@ namespace Microsoft.Dafny {
         classFrameExps = m.Mod != null ? m.Mod.Expressions : new List<FrameExpression>();
         originalTraitFrameExps = m.OverriddenMethod.Mod?.Expressions;
       } else {
-        classFrameExps = m.Reads ?? new List<FrameExpression>();
-        originalTraitFrameExps = m.OverriddenMethod.Reads;
+        classFrameExps = m.Reads != null ? m.Reads.Expressions : new List<FrameExpression>();
+        originalTraitFrameExps = m.OverriddenMethod.Reads?.Expressions;
       }
 
       var traitFrameExps = new List<FrameExpression>();
@@ -1421,7 +1424,7 @@ namespace Microsoft.Dafny {
       var consequent2 = InRWClause(tok, o, f, traitFrameExps, etran, null, null);
       var q = new Boogie.ForallExpr(tok, new List<TypeVariable> { alpha }, new List<Variable> { oVar, fVar },
         Boogie.Expr.Imp(Boogie.Expr.And(ante, oInCallee), consequent2));
-      builder.Add(Assert(tok, q, new PODesc.TraitFrame(m.WhatKind, isModifies), kv));
+      builder.Add(Assert(m.RangeToken, q, new PODesc.TraitFrame(m.WhatKind, isModifies), kv));
     }
 
     // Return a way to know if an assertion should be converted to an assumption
@@ -1478,6 +1481,7 @@ namespace Microsoft.Dafny {
       Contract.Ensures(Contract.Result<Boogie.Procedure>() != null);
       Contract.Assert(VisibleInScope(m));
 
+      proofDependencies.SetCurrentDefinition(MethodVerboseName(m.FullDafnyName, kind));
       currentModule = m.EnclosingClass.EnclosingModuleDefinition;
       codeContext = m;
       isAllocContext = new IsAllocContext(options, m.IsGhost);
@@ -1550,7 +1554,7 @@ namespace Microsoft.Dafny {
               } else if (s.IsOnlyFree && !bodyKind) {
                 // don't include in split -- it would be ignored, anyhow
               } else {
-                req.Add(Requires(s.Tok, s.IsOnlyFree, s.E, errorMessage, successMessage, comment));
+                req.Add(RequiresWithDependencies(s.Tok, s.IsOnlyFree, p.E, s.E, errorMessage, successMessage, comment));
                 comment = null;
                 // the free here is not linked to the free on the original expression (this is free things generated in the splitting.)
               }
@@ -1573,7 +1577,7 @@ namespace Microsoft.Dafny {
             } else if (s.IsOnlyChecked && !bodyKind) {
               // don't include in split
             } else {
-              AddEnsures(ens, Ensures(s.Tok, s.IsOnlyFree || this.assertionOnlyFilter != null, post, errorMessage, successMessage, null));
+              AddEnsures(ens, EnsuresWithDependencies(s.Tok, s.IsOnlyFree || this.assertionOnlyFilter != null, p.E, post, errorMessage, successMessage, null));
             }
           }
         }
@@ -1638,7 +1642,7 @@ namespace Microsoft.Dafny {
           printer.PrintFormals(m.Outs, m);
         }
         printer.PrintSpec("", m.Req, 0);
-        printer.PrintFrameSpecLine("", m.Mod.Expressions, 0, null);
+        printer.PrintFrameSpecLine("", m.Mod, 0);
         printer.PrintSpec("", m.Ens, 0);
         printer.PrintDecreasesSpec(m.Decreases, 0);
         writer.WriteLine();

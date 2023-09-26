@@ -117,7 +117,7 @@ class Cell { var data: int }
 // Test the benefits of the new reads checking for function checking
 
 ghost method ApplyToSet<X>(S: set<X>, f: X ~> X) returns (r: set<X>)
-  requires forall x :: x in S ==> f.reads(x) == {} && f.requires(x)
+  requires forall x :: x in S ==> f.requires(x) && f.reads(x) == {}
   reads {}
 {
   if S == {} {
@@ -134,12 +134,12 @@ ghost method ApplyToSet_AltSignature0<X>(S: set<X>, f: X ~> X) returns (r: set<X
   reads {}
 
 ghost method ApplyToSet_AltSignature1<X>(S: set<X>, f: X ~> X) returns (r: set<X>)
-  requires forall x :: x in S ==> f.reads(x) == {}
   requires forall x :: x in S ==> f.requires(x)
+  requires forall x :: x in S ==> f.reads(x) == {}
   reads {}
 
 ghost method ApplyToSet_AltSignature2<X>(S: set<X>, f: X ~> X) returns (r: set<X>)
-  requires (forall x :: x in S ==> f.reads(x) == {}) ==> forall x :: x in S ==> f.requires(x)
+  requires (forall x :: x in S ==> f.requires(x) && f.reads(x) == {}) ==> forall x :: x in S ==> f.requires(x)
   // (this precondition would not be good enough to check the body above)
   reads {}
 
@@ -152,14 +152,14 @@ ghost method FunctionInQuantifier1() returns (r: int)
   reads {}
 
 ghost method FunctionInQuantifier2() returns (r: int)
-  requires exists f: int ~> int :: f.reads(10) == {} && f.requires(10) && f(10) == 100
+  requires exists f: int ~> int :: f.requires(10) && f.reads(10) == {} && f(10) == 100
   reads {}
   ensures r == 100
 {
   // Unlike the ghost function version, f.reads(10) is flagged because we aren't delaying reads checks on method bodies.
   // It's still an open question whether we should be though: https://github.com/dafny-lang/dafny/issues/4489.
   // For now this is at least only a completeness issue.
-  var f: int ~> int :| f.reads(10) == {} && f.requires(10) && f(10) == 100;  // error: insufficient reads
+  var f: int ~> int :| f.requires(10) && f.reads(10) == {} && f(10) == 100;  // error: insufficient reads
   return f(10);
 }
 

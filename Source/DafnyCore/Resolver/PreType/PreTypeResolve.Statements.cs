@@ -13,7 +13,6 @@ using System.Numerics;
 using System.Diagnostics.Contracts;
 using System.Runtime.Intrinsics.X86;
 using JetBrains.Annotations;
-using Microsoft.Boogie;
 using Bpl = Microsoft.Boogie;
 using ResolutionContext = Microsoft.Dafny.ResolutionContext;
 
@@ -438,8 +437,8 @@ namespace Microsoft.Dafny {
             }
           }
 
-          if (s.ForallExpressions != null) {
-            foreach (Expression expr in s.ForallExpressions) {
+          if (s.EffectiveEnsuresClauses != null) {
+            foreach (Expression expr in s.EffectiveEnsuresClauses) {
               ResolveExpression(expr, resolutionContext);
             }
           }

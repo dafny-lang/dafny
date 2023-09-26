@@ -5,7 +5,7 @@
 
 module ReadsRequiresReads {
   ghost method MyReadsOk<A,B>(f : A ~> B, a : A) returns (r: set<object?>)
-    reads f.reads(a)
+    requires f.requires(a) reads f.reads(a)
   {
     r := f.reads(a);
   }
@@ -44,7 +44,7 @@ module ReadsRequiresReads {
   }
 
   ghost method MyReadsOk'<A,B>(f : A ~> B, a : A, o : object) returns (r: bool)
-    reads f.reads(a)
+    requires f.requires(a) reads f.reads(a)
   {
     r := o in f.reads(a);
   }
@@ -56,7 +56,7 @@ module ReadsRequiresReads {
   }
 
   ghost method MyRequiresOk<A,B>(f : A ~> B, a : A) returns (r: bool)
-    reads f.reads(a)
+    requires f.requires(a) reads f.reads(a)
   {
     r := f.requires(a);
   }

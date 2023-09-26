@@ -1,0 +1,2 @@
+Optimized memory consumption of test generation by reusing the Boogie AST of the target Dafny program.
+

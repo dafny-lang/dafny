@@ -243,7 +243,7 @@ without proof. In that case also the body of the function or
 method may be omitted.
 
 The `{:axiom}` attribute only prevents Dafny from verifying that the body matches the post-condition.
-Dafny still verifies the well-formedness of pre-conditions, of post-conditions, and of the body if provided.
+Dafny still verifies the [well-formedness](#sec-assertion-batches) of pre-conditions, of post-conditions, and of the body if provided.
 To prevent Dafny from running all these checks, one would use [`{:verify false}`](#sec-verify), which is not recommended.
 
 The compiler will still emit code for an [`{:axiom}`](#sec-axiom), if it is a [`function`, a `method` or a `function by method`](#sec-function-declarations) with a body.
@@ -515,7 +515,7 @@ By default, the body of a function is transparent to its users. This can be over
 ### 11.2.21. `{:verify false}` {#sec-verify}
      
 Skip verification of a function or a method altogether,
-not even trying to verify the well-formedness of postconditions and preconditions.
+not even trying to verify the [well-formedness](#sec-assertion-batches) of postconditions and preconditions.
 We discourage using this attribute and prefer [`{:axiom}`](#sec-axiom),
 which performs these minimal checks while not checking that the body satisfies the postconditions.
 

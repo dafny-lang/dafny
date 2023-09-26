@@ -1,0 +1,26 @@
+
+# Manual trigger for the nightly build on a given branch.
+
+name: Nightly test and release workflow (Manual trigger)
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: 'The git ref to run on'
+        required: true
+        type: string
+      publish-prerelease:
+        description: 'Whether to publish a prerelease'
+        required: false
+        type: boolean
+        default: false
+      
+jobs:
+  nightly-build:
+    uses: ./.github/workflows/nightly-build-reusable.yml
+    with:
+      ref: ${{ inputs.ref }}
+      publish-prerelease: ${{ inputs.publish-prerelease }}
+    secrets:
+      nuget_api_key: ${{ secrets.NUGET_API_KEY }}

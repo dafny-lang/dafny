@@ -1,0 +1,1 @@
+When two modules in the same scope have the same name, Dafny now reports an error that contains the location of both modules.

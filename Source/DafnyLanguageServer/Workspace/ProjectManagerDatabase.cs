@@ -82,6 +82,21 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       await close;
     }
 
+    public async Task<IdeState?> GetParsedDocumentNormalizeUri(TextDocumentIdentifier documentId) {
+      // Resolves drive letter capitalisation issues in Windows that occur when this method is called
+      // from an in-process client without serializing documentId
+      var normalizedUri = DocumentUri.From(documentId.Uri.ToString());
+      documentId = documentId with {
+        Uri = normalizedUri
+      };
+      var manager = await GetProjectManager(documentId, false);
+      if (manager != null) {
+        return await manager.GetStateAfterParsingAsync();
+      }
+
+      return null;
+    }
+
     public Task<IdeState?> GetResolvedDocumentAsyncNormalizeUri(TextDocumentIdentifier documentId) {
       // Resolves drive letter capitalisation issues in Windows that occur when this method is called
       // from an in-process client without serializing documentId
@@ -134,14 +149,21 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         if (projectManagerForFile != null) {
           var filesProjectHasChanged = !projectManagerForFile.Project.Equals(project);
           if (filesProjectHasChanged) {
-            var projectFileHasChanged = projectManagerForFile.Project.Uri == project.Uri;
-            if (projectFileHasChanged) {
+            var projectFileContentHasChanged = projectManagerForFile.Project.Uri == project.Uri;
+            if (projectFileContentHasChanged) {
+              // Scrap the project manager.
               var _ = projectManagerForFile.CloseAsync();
+              managersByProject.Remove(project.Uri);
             } else {
-              projectManagerForFile.CloseDocument(out _);
+              var previousProjectHasNoDocuments = projectManagerForFile.CloseDocument(out _);
+              if (previousProjectHasNoDocuments) {
+                // Enable garbage collection
+                managersByProject.Remove(projectManagerForFile.Project.Uri);
+              }
             }
 
-            projectManagerForFile = createProjectManager(boogieEngine, project);
+            projectManagerForFile = managersByProject.GetValueOrDefault(project.Uri) ??
+                                    createProjectManager(boogieEngine, project);
             projectManagerForFile.OpenDocument(documentId.Uri.ToUri(), true);
           }
         } else {
@@ -173,7 +195,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     public async Task<DafnyProject> GetProject(Uri uri) {
-      return (await FindProjectFile(uri)) ?? ImplicitProject(uri);
+      return uri.LocalPath.EndsWith(DafnyProject.FileName)
+        ? await DafnyProject.Open(fileSystem, uri)
+        : (await FindProjectFile(uri) ?? ImplicitProject(uri));
     }
 
     public static DafnyProject ImplicitProject(Uri uri) {
@@ -220,7 +244,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         return Task.FromResult<DafnyProject?>(null);
       }
 
-      return DafnyProject.Open(fileSystem, configFileUri, TextWriter.Null, TextWriter.Null);
+      return DafnyProject.Open(fileSystem, configFileUri);
     }
 
     public IEnumerable<ProjectManager> Managers => managersByProject.Values;

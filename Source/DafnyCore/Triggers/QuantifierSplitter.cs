@@ -1,7 +1,6 @@
 // Copyright by the contributors to the Dafny Project
 // SPDX-License-Identifier: MIT
 
-using Microsoft.Boogie;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
@@ -122,8 +121,8 @@ namespace Microsoft.Dafny.Triggers {
     protected override void VisitOneStmt(Statement stmt) {
       if (stmt is ForallStmt) {
         ForallStmt s = (ForallStmt)stmt;
-        if (s.ForallExpressions != null) {
-          foreach (Expression expr in s.ForallExpressions) {
+        if (s.EffectiveEnsuresClauses != null) {
+          foreach (Expression expr in s.EffectiveEnsuresClauses) {
             VisitOneExpr(expr);
           }
         }

@@ -34,23 +34,23 @@ public delegate CompilationManager CreateCompilationManager(
 ///
 /// Compilation is agnostic to document updates, it does not handle the migration of old document state.
 /// </summary>
-public class CompilationManager {
+public class CompilationManager : IDisposable {
 
   private readonly ILogger logger;
   private readonly ITextDocumentLoader documentLoader;
   private readonly IProgramVerifier verifier;
-  private readonly IVerificationProgressReporter verificationProgressReporter;
+  private readonly IGutterIconAndHoverVerificationDetailsManager gutterIconManager;
 
   // TODO CompilationManager shouldn't be aware of migration
   private readonly IReadOnlyDictionary<Uri, DocumentVerificationTree> migratedVerificationTrees;
 
   private TaskCompletionSource started = new();
-  private readonly IScheduler verificationUpdateScheduler = new EventLoopScheduler();
+  private readonly EventLoopScheduler verificationUpdateScheduler = new();
   private readonly CancellationTokenSource cancellationSource;
 
   private TaskCompletionSource verificationCompleted = new();
   private readonly DafnyOptions options;
-  private readonly Compilation startingCompilation;
+  public Compilation StartingCompilation { get; }
   private readonly ExecutionEngine boogieEngine;
 
   private readonly Subject<Compilation> compilationUpdates = new();
@@ -63,21 +63,21 @@ public class CompilationManager {
     ILogger<CompilationManager> logger,
     ITextDocumentLoader documentLoader,
     IProgramVerifier verifier,
-    IVerificationProgressReporter verificationProgressReporter,
+    IGutterIconAndHoverVerificationDetailsManager gutterIconManager,
     DafnyOptions options,
     ExecutionEngine boogieEngine,
     Compilation compilation,
     IReadOnlyDictionary<Uri, DocumentVerificationTree> migratedVerificationTrees
     ) {
     this.options = options;
-    startingCompilation = compilation;
+    StartingCompilation = compilation;
     this.boogieEngine = boogieEngine;
     this.migratedVerificationTrees = migratedVerificationTrees;
 
     this.documentLoader = documentLoader;
     this.logger = logger;
     this.verifier = verifier;
-    this.verificationProgressReporter = verificationProgressReporter;
+    this.gutterIconManager = gutterIconManager;
     cancellationSource = new();
     cancellationSource.Token.Register(() => started.TrySetCanceled(cancellationSource.Token));
 
@@ -95,11 +95,12 @@ public class CompilationManager {
   private async Task<CompilationAfterParsing> ParseAsync() {
     try {
       await started.Task;
-      var parsedCompilation = await documentLoader.ParseAsync(options, startingCompilation, migratedVerificationTrees,
+      var parsedCompilation = await documentLoader.ParseAsync(options, StartingCompilation, migratedVerificationTrees,
         cancellationSource.Token);
-      verificationProgressReporter.RecomputeVerificationTrees(parsedCompilation);
+
+      gutterIconManager.RecomputeVerificationTrees(parsedCompilation);
       foreach (var root in parsedCompilation.RootUris) {
-        verificationProgressReporter.ReportRealtimeDiagnostics(parsedCompilation, root, false);
+        gutterIconManager.PublishGutterIcons(parsedCompilation, root, false);
       }
 
       compilationUpdates.OnNext(parsedCompilation);
@@ -118,12 +119,12 @@ public class CompilationManager {
   private async Task<CompilationAfterResolution> ResolveAsync() {
     try {
       var parsedCompilation = await ParsedCompilation;
-      var resolvedCompilation = await documentLoader.ResolveAsync(options, parsedCompilation, migratedVerificationTrees, cancellationSource.Token);
+      var resolvedCompilation = await documentLoader.ResolveAsync(options, parsedCompilation, cancellationSource.Token);
 
       if (!resolvedCompilation.Program.Reporter.HasErrors) {
-        verificationProgressReporter.RecomputeVerificationTrees(resolvedCompilation);
+        gutterIconManager.RecomputeVerificationTrees(resolvedCompilation);
         foreach (var root in resolvedCompilation.RootUris) {
-          verificationProgressReporter.ReportRealtimeDiagnostics(resolvedCompilation, root, true);
+          gutterIconManager.PublishGutterIcons(resolvedCompilation, root, true);
         }
       }
 
@@ -237,10 +238,10 @@ public class CompilationManager {
           t => new ImplementationView(t, PublishedVerificationStatus.Stale, Array.Empty<DafnyDiagnostic>()));
       });
       if (updated) {
-        verificationProgressReporter.ReportImplementationsBeforeVerification(compilation,
+        gutterIconManager.ReportImplementationsBeforeVerification(compilation,
           verifiable, implementations.Select(t => t.Value.Task.Implementation).ToArray());
 
-        verificationProgressReporter.ReportRealtimeDiagnostics(compilation, verifiable.Tok.Uri, true);
+        gutterIconManager.PublishGutterIcons(compilation, verifiable.Tok.Uri, true);
         compilationUpdates.OnNext(compilation);
       }
 
@@ -255,13 +256,13 @@ public class CompilationManager {
           if (statusUpdates == null) {
             if (task.CacheStatus is Completed completedCache) {
               foreach (var result in completedCache.Result.VCResults) {
-                verificationProgressReporter.ReportVerifyImplementationRunning(compilation,
+                gutterIconManager.ReportVerifyImplementationRunning(compilation,
                   task.Implementation);
-                verificationProgressReporter.ReportAssertionBatchResult(compilation,
+                gutterIconManager.ReportAssertionBatchResult(compilation,
                   new AssertionBatchResult(task.Implementation, result));
               }
 
-              verificationProgressReporter.ReportEndVerifyImplementation(compilation, task.Implementation,
+              gutterIconManager.ReportEndVerifyImplementation(compilation, task.Implementation,
                 completedCache.Result);
             }
 
@@ -297,7 +298,7 @@ public class CompilationManager {
             var remainingJobs = Interlocked.Decrement(ref runningVerificationJobs);
             logger.LogDebug(
               $"StatusUpdateHandlerFinally called, remaining jobs {remainingJobs}, {compilation.Uri} version {compilation.Version}, " +
-              $"startingCompilation.version {startingCompilation.Version}.");
+              $"startingCompilation.version {StartingCompilation.Version}.");
             if (remainingJobs == 0) {
               FinishedNotifications(compilation, verifiable);
             }
@@ -330,14 +331,14 @@ public class CompilationManager {
   public void IncrementJobs() {
     MarkVerificationStarted();
     var verifyTaskIncrementedJobs = Interlocked.Increment(ref runningVerificationJobs);
-    logger.LogDebug($"Incremented jobs for verifyTask, remaining jobs {verifyTaskIncrementedJobs}, {startingCompilation.Uri} version {startingCompilation.Version}");
+    logger.LogDebug($"Incremented jobs for verifyTask, remaining jobs {verifyTaskIncrementedJobs}, {StartingCompilation.Uri} version {StartingCompilation.Version}");
   }
 
   public void DecrementJobs() {
     var remainingJobs = Interlocked.Decrement(ref runningVerificationJobs);
-    logger.LogDebug($"Decremented jobs, remaining jobs {remainingJobs}, {startingCompilation.Uri} version {startingCompilation.Version}");
+    logger.LogDebug($"Decremented jobs, remaining jobs {remainingJobs}, {StartingCompilation.Uri} version {StartingCompilation.Version}");
     if (remainingJobs == 0) {
-      logger.LogDebug($"Calling MarkVerificationFinished because there are no remaining verification jobs for {startingCompilation.Uri}, version {startingCompilation.Version}.");
+      logger.LogDebug($"Calling MarkVerificationFinished because there are no remaining verification jobs for {StartingCompilation.Uri}, version {StartingCompilation.Version}.");
       MarkVerificationFinished();
     }
   }
@@ -346,10 +347,10 @@ public class CompilationManager {
     if (ReportGutterStatus) {
       if (!cancellationSource.IsCancellationRequested) {
         // All unvisited trees need to set them as "verified"
-        verificationProgressReporter.SetAllUnvisitedMethodsAsVerified(compilation, canVerify);
+        gutterIconManager.SetAllUnvisitedMethodsAsVerified(compilation, canVerify);
       }
 
-      verificationProgressReporter.ReportRealtimeDiagnostics(compilation, canVerify.Tok.Uri, true);
+      gutterIconManager.PublishGutterIcons(compilation, canVerify.Tok.Uri, true);
     }
 
     MarkVerificationFinished();
@@ -364,12 +365,12 @@ public class CompilationManager {
     var implementationName = GetImplementationName(implementationTask.Implementation);
     logger.LogDebug($"Received status {boogieStatus} for {tokenString}, version {compilation.Version}");
     if (boogieStatus is Running) {
-      verificationProgressReporter.ReportVerifyImplementationRunning(compilation, implementationTask.Implementation);
+      gutterIconManager.ReportVerifyImplementationRunning(compilation, implementationTask.Implementation);
     }
 
     DafnyDiagnostic[] newDiagnostics;
     if (boogieStatus is BatchCompleted batchCompleted) {
-      verificationProgressReporter.ReportAssertionBatchResult(compilation,
+      gutterIconManager.ReportAssertionBatchResult(compilation,
         new AssertionBatchResult(implementationTask.Implementation, batchCompleted.VcResult));
 
       foreach (var counterExample in batchCompleted.VcResult.counterExamples) {
@@ -395,10 +396,10 @@ public class CompilationManager {
       // before we report that the verification of the implementation is finished 
       foreach (var result in completed.Result.VCResults) {
         logger.LogDebug($"Possibly duplicate reporting assertion batch {result.vcNum} as completed in {tokenString}, version {compilation.Version}");
-        verificationProgressReporter.ReportAssertionBatchResult(compilation,
+        gutterIconManager.ReportAssertionBatchResult(compilation,
           new AssertionBatchResult(implementationTask.Implementation, result));
       }
-      verificationProgressReporter.ReportEndVerifyImplementation(compilation, implementationTask.Implementation, verificationResult);
+      gutterIconManager.ReportEndVerifyImplementation(compilation, implementationTask.Implementation, verificationResult);
     }
     compilationUpdates.OnNext(compilation);
   }
@@ -465,20 +466,20 @@ public class CompilationManager {
   }
 
   private void MarkVerificationStarted() {
-    logger.LogDebug($"MarkVerificationStarted called for {startingCompilation.Uri} version {startingCompilation.Version}");
+    logger.LogDebug($"MarkVerificationStarted called for {StartingCompilation.Uri} version {StartingCompilation.Version}");
     if (verificationCompleted.Task.IsCompleted) {
       verificationCompleted = new TaskCompletionSource();
     }
   }
 
   private void MarkVerificationFinished() {
-    logger.LogDebug($"MarkVerificationFinished called for {startingCompilation.Uri} version {startingCompilation.Version}");
+    logger.LogDebug($"MarkVerificationFinished called for {StartingCompilation.Uri} version {StartingCompilation.Version}");
     verificationCompleted.TrySetResult();
   }
 
   public Task<CompilationAfterParsing> LastDocument {
     get {
-      logger.LogDebug($"LastDocument {startingCompilation.Uri} will return document version {startingCompilation.Version}");
+      logger.LogDebug($"LastDocument {StartingCompilation.Uri} will return document version {StartingCompilation.Version}");
       return ResolvedCompilation.ContinueWith(
         t => {
           if (t.IsCompletedSuccessfully) {
@@ -486,7 +487,7 @@ public class CompilationManager {
             return verificationCompleted.Task.ContinueWith(
               verificationCompletedTask => {
                 logger.LogDebug(
-                  $"LastDocument returning translated compilation {startingCompilation.Uri} with status {verificationCompletedTask.Status}");
+                  $"LastDocument returning translated compilation {StartingCompilation.Uri} with status {verificationCompletedTask.Status}");
                 return Task.FromResult<CompilationAfterParsing>(t.Result);
               }, TaskScheduler.Current).Unwrap();
 #pragma warning restore VSTHRD103
@@ -524,5 +525,16 @@ public class CompilationManager {
       new() {NewText = result, Range = new Range(new Position(0,0), lastToken.GetLspPosition())}
     });
 
+  }
+
+  private bool disposed = false;
+  public void Dispose() {
+    if (disposed) {
+      return;
+    }
+
+    disposed = true;
+    CancelPendingUpdates();
+    verificationUpdateScheduler.Dispose();
   }
 }
