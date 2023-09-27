@@ -21,7 +21,7 @@
    and push it.
 
 1. Kick off the deep test suite by navigating to
-   <https://github.com/dafny-lang/dafny/actions/workflows/nightly-build-manual.yml>,
+   <https://github.com/dafny-lang/dafny/actions/workflows/nightly-build.yml>,
    clicking the "Run workflow" dropdown, selecting the newly created branch both
    for "use workflow from" and "git ref to run on", checking 'whether to publish a prerelease',
    and clicking the "Run workflow" button. The automation for releasing below will
