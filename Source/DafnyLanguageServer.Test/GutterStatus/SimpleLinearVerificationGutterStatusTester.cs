@@ -76,7 +76,7 @@ method Foo() ensures false { } ";
 
     var documentItem = CreateTestDocument(source, "NoGutterNotificationsReceivedWhenTurnedOff.dfy");
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-    await GetLastDiagnostics(documentItem, CancellationToken);
+    await GetLastDiagnostics(documentItem);
     Assert.False(verificationStatusGutterReceiver.HasPendingNotifications);
   }
 

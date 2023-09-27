@@ -45,7 +45,7 @@ function GetConstant() int {
       await SetUp(options => options.Set(ServerCommand.Verification, VerifyOnMode.Save));
       var documentItem = CreateTestDocument(source, "LeavesDocumentUnchangedIfDocumentContainsSyntaxErrorsIfVerifyOnSave.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      await GetLastDiagnostics(documentItem, CancellationToken);
+      await GetLastDiagnostics(documentItem);
       await client.SaveDocumentAndWaitAsync(documentItem, CancellationToken);
       await AssertNoDiagnosticsAreComing(CancellationToken);
     }
@@ -59,7 +59,7 @@ function GetConstant(): int {
       await SetUp(options => options.Set(ServerCommand.Verification, VerifyOnMode.Save));
       var documentItem = CreateTestDocument(source, "LeavesDocumentUnchangedIfDocumentContainsSemanticErrorsIfVerifyOnSave.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      await GetLastDiagnostics(documentItem, CancellationToken);
+      await GetLastDiagnostics(documentItem);
       await client.SaveDocumentAndWaitAsync(documentItem, CancellationToken);
       await AssertNoDiagnosticsAreComing(CancellationToken);
     }
@@ -89,7 +89,7 @@ method DoIt() {
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       await AssertNoDiagnosticsAreComing(CancellationToken);
       await client.SaveDocumentAndWaitAsync(documentItem, CancellationToken);
-      var afterSaveDiagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
+      var afterSaveDiagnostics = await GetLastDiagnostics(documentItem);
       Assert.Single(afterSaveDiagnostics);
       var message = afterSaveDiagnostics.First();
       Assert.Equal(MessageSource.Verifier.ToString(), message.Source);

@@ -377,10 +377,7 @@ public class CompilationManager : IDisposable {
       foreach (var counterExample in batchCompleted.VcResult.counterExamples) {
         compilation.Counterexamples.Add(counterExample);
       }
-
-
       hitErrorLimit = batchCompleted.VcResult.maxCounterExamples == batchCompleted.VcResult.counterExamples.Count;
-      
       newDiagnostics = GetDiagnosticsFromResult(compilation, implementationTask, batchCompleted.VcResult).ToArray();
     } else {
       newDiagnostics = Array.Empty<DafnyDiagnostic>();

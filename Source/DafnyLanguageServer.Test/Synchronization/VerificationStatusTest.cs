@@ -351,10 +351,10 @@ method Bar() { assert false; }";
     var methodHeader = new Position(0, 7);
     await client.RunSymbolVerification(new TextDocumentIdentifier(documentItem.Uri), methodHeader, CancellationToken);
     await client.WaitForNotificationCompletionAsync(documentItem.Uri, CancellationToken);
-    var preSaveDiagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
+    var preSaveDiagnostics = await GetLastDiagnostics(documentItem);
     Assert.Single(preSaveDiagnostics);
     await client.SaveDocumentAndWaitAsync(documentItem, CancellationToken);
-    var lastDiagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
+    var lastDiagnostics = await GetLastDiagnostics(documentItem);
     Assert.Equal(2, lastDiagnostics.Length);
   }
 

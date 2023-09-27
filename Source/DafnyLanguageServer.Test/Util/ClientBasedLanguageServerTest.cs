@@ -217,9 +217,10 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
     return result;
   }
 
-  public async Task<Diagnostic[]> GetLastDiagnostics(TextDocumentItem documentItem, CancellationToken? cancellationToken = null) {
+  protected async Task<Diagnostic[]> GetLastDiagnostics(TextDocumentItem documentItem, DiagnosticSeverity minimumSeverity =DiagnosticSeverity.Warning,  
+    CancellationToken? cancellationToken = null) {
     var paramsResult = await GetLastDiagnosticsParams(documentItem, cancellationToken ?? CancellationToken);
-    return paramsResult.Diagnostics.ToArray();
+    return paramsResult.Diagnostics.Where(d => d.Severity <= minimumSeverity).ToArray();
   }
 
   public virtual Task InitializeAsync() {
@@ -333,6 +334,12 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
     Assert.Equal(verificationDocumentItem.Uri, hideReport.Uri);
   }
 
+  protected async Task<Diagnostic[]> GetNextDiagnostics(TextDocumentItem documentItem, CancellationToken? cancellationToken = null, DiagnosticSeverity minimumSeverity = DiagnosticSeverity.Warning) {
+    cancellationToken ??= CancellationToken;
+    var result = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(cancellationToken.Value, documentItem);
+    return result.Where(d => d.Severity <= minimumSeverity).ToArray();
+  }
+  
   public async Task AssertNoDiagnosticsAreComing(CancellationToken cancellationToken, TextDocumentItem forDocument = null, bool waitFirst = true) {
     if (waitFirst) {
       foreach (var entry in Projects.Managers) {

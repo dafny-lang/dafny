@@ -93,26 +93,34 @@ public record IdeState(
   public IEnumerable<Diagnostic> GetDiagnosticsForUri(Uri uri) {
     var resolutionDiagnostics = ResolutionDiagnostics.GetValueOrDefault(uri) ?? Enumerable.Empty<Diagnostic>();
     var verificationDiagnostics = GetVerificationResults(uri).SelectMany(x => {
-      var anyImplementationHitErrorLimit = x.Value.Implementations.Values.Any(i => i.HitErrorLimit);
-      var implementationResults = x.Value.Implementations.Values.SelectMany(v => v.Diagnostics);
-      IEnumerable<Diagnostic> result;
-      if (anyImplementationHitErrorLimit) {
-        var diagnostic = new Diagnostic() {
-          Severity = DiagnosticSeverity.Warning,
-          Code = new DiagnosticCode("errorLimitHit"),
-          Message =
-            "Verification hit error limit so not all errors may be shown. Configure this limit using --error-limit",
-          Range = x.Key,
-          Source = MessageSource.Verifier.ToString()
-        };
-        result = implementationResults.Concat(new[] { diagnostic });
-      } else {
-        result = implementationResults;
-      }
-
-      return result;
+      return x.Value.Implementations.Values.SelectMany(v => v.Diagnostics).Concat(GetErrorLimitDiagnostics(x));
     });
     return resolutionDiagnostics.Concat(verificationDiagnostics);
+  }
+
+  private static IEnumerable<Diagnostic> GetErrorLimitDiagnostics(KeyValuePair<Range, IdeVerificationResult> x)
+  {
+    var anyImplementationHitErrorLimit = x.Value.Implementations.Values.Any(i => i.HitErrorLimit);
+    IEnumerable<Diagnostic> result;
+    if (anyImplementationHitErrorLimit)
+    {
+      var diagnostic = new Diagnostic()
+      {
+        Severity = DiagnosticSeverity.Warning,
+        Code = new DiagnosticCode("errorLimitHit"),
+        Message =
+          "Verification hit error limit so not all errors may be shown. Configure this limit using --error-limit",
+        Range = x.Key,
+        Source = MessageSource.Verifier.ToString()
+      };
+      result = new[] { diagnostic };
+    }
+    else
+    {
+      result = Enumerable.Empty<Diagnostic>();
+    }
+
+    return result;
   }
 
   public IEnumerable<Uri> GetDiagnosticUris() {
