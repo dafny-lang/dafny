@@ -21,13 +21,14 @@
    and push it.
 
 1. Kick off the deep test suite by navigating to
-   <https://github.com/dafny-lang/dafny/actions/workflows/deep-tests.yml>,
-   clicking the "Run workflow" dropdown, selecting the newly created branch, and
-   clicking the "Run workflow" button. The automation for releasing below will
+   <https://github.com/dafny-lang/dafny/actions/workflows/nightly-build-manual.yml>,
+   clicking the "Run workflow" dropdown, selecting the newly created branch both
+   for "use workflow from" and "git ref to run on", checking 'whether to publish a prerelease',
+   and clicking the "Run workflow" button. The automation for releasing below will
    check for a run of this workflow on the exact commit to release.  (TODO:
    Run this automatically as part of the prepare-release script.)
 
-1. Once the the tests complete, run `Scripts/prepare_release.py $VER
+1. Once the the tests complete, run `./Scripts/prepare_release.py $VER
    release` from the root of the repository. The script will tag the
    current commit and push it. (TODO: Merge with the two steps above.) A
    GitHub action will automatically run in reaction to the tag being
