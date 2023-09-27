@@ -379,7 +379,6 @@ class Release:
         progress(f"Now, start a deep-tests workflow manually for branch {self.release_branch_name} at\n"
                  f"<{DEEPTESTS_URL}>\n"
                  f"To do so, click Run workflow, use workflow from {self.release_branch_name},\n"
-                 f"For the git ref to run on also choose {self.release_branch_name} and check 'whether to publish a prerelease'.\n"
                  f"Once it completes, just re-run this script as `./Scripts/prepare_release.py {self.version} release` to tag the branch and push it to trigger the release.")
         progress()
 
