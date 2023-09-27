@@ -2,6 +2,108 @@
 
 See [docs/dev/news/](docs/dev/news/).
 
+# 4.3.0
+
+## New features
+
+- Add support for the Find References LSP request
+  - Returned references may be incomplete when not using project mode
+  (https://github.com/dafny-lang/dafny/pull/2320)
+
+- Improve scalability of inlining for test generation and generate coverage information with respect to the original Dafny source (https://github.com/dafny-lang/dafny/pull/4255)
+
+- Support generating of tests targeting path-coverage of the entire program and tests targeting call-graph-sensitive block coverage (referred to as Branch coverage) (https://github.com/dafny-lang/dafny/pull/4326)
+
+- Add support for Rename LSP request
+  - Support requires enabling project mode and defining a Dafny project file
+  (https://github.com/dafny-lang/dafny/pull/4365)
+
+- Make verification in the IDE more responsive by starting verification after translating the required module to Boogie, instead of first translating all modules that could be verified. (https://github.com/dafny-lang/dafny/pull/4378)
+
+- The Dafny IDE now has improved behavior when working with a Dafny file that's part of a Dafny project. A Dafny file is part of a project if a `dfyconfig.toml` can be found somewhere in the file's path hierarchy, such as in the same folder or in the parent folder. A `dfyconfig.toml` can specify which Dafny options to use for that project, and can specify which Dafny files are part of the project. By default, the project will include all .dfy files reachable from the folder in which the `dfyconfig.toml` resides. Project related features of the IDE are:
+  - Whenever one file in the project is opened, diagnostics for all files in the Dafny project are shown. When including a file with errors that's part of the same project, the message "the included file contains errors" is no longer shown. Instead, the included file's errors are shown directly.
+  - If any file in the project is changed, diagnostics for all files in the project are updated. Without a project, changing an included file will not update diagnostics for the including file until the including file is also changed.
+  - The find references feature (also added in this release), works better in files that are part of a project, since only then can it find references that are inside files that include the current file.
+  - The assisted rename feature (also added in this release), only works for files that are part of a project.
+  - When using a project file, it is no longer necessary to use include directives. In the previous version of Dafny, it was already the case that the Dafny CLI, when passed a Dafny project file, does not require include directives to process the Dafny program. The same now holds for the Dafny IDE when working with Dafny files for which a project file can be found.
+  - If any file in the project is resolved, all files in the project are resolved. Opening a file in a project that's already resolved means the opened file is resolved instantly.
+  - The IDE's memory consumption stays the same regardless of how many files in a project are opened. Without a project, the IDE increases it's memory usage for each open file.
+
+  Try out the IDE's project support now by creating an empty `dfyconfig.toml` file in the root of your project repository.
+  (https://github.com/dafny-lang/dafny/pull/4435)
+
+- Prior to generating tests, Dafny now checks the targeted program for any features that test generation does not support or any misuse of test generation specific attributes.
+  Any such issues are reported to the user.
+  (https://github.com/dafny-lang/dafny/pull/4444)
+
+- Added documentation of the generate-tests command to the reference manual (https://github.com/dafny-lang/dafny/pull/4445)
+
+- When two modules in the same scope have the same name, Dafny now reports an error that contains the location of both modules. (https://github.com/dafny-lang/dafny/pull/4499)
+
+- - The Dafny IDE will now report errors that occur in project files.
+  - The Dafny IDE will now shown a hint diagnostic at the top of Dafny project files, that says which files are referenced by the project.
+  (https://github.com/dafny-lang/dafny/pull/4539)
+
+## Bug fixes
+
+- Triggers warnings correclty converted into errors with --warn-as-errors (https://github.com/dafny-lang/dafny/pull/3358)
+
+- Allow JavaScript keywords as names of Dafny modules (https://github.com/dafny-lang/dafny/pull/4243)
+
+- Support odd characters in pathnames for Go (https://github.com/dafny-lang/dafny/pull/4257)
+
+- Allow Dafny filenames compiled to Java to start with a digit (https://github.com/dafny-lang/dafny/pull/4258)
+
+- Parser now supports files with a lot of consecutive single-line comments (https://github.com/dafny-lang/dafny/pull/4261)
+
+- Gutter icons more robust (https://github.com/dafny-lang/dafny/pull/4287)
+
+- Unresolved abstract imports no longer crash the resolver (https://github.com/dafny-lang/dafny/pull/4298)
+
+- Make capitalization of target Go code consistent (https://github.com/dafny-lang/dafny/pull/4310)
+
+- Refining an abstract module with a class with an opaque function no longer crashes (https://github.com/dafny-lang/dafny/pull/4315)
+
+- Dafny can now produce coverage reports indicating which parts of the program are expected to be covered by automatically generated tests. 
+  The same functionality can be used to report other forms of coverage.
+  (https://github.com/dafny-lang/dafny/pull/4325)
+
+- Fix issue that would prevent the IDE from correctly handling default export sets (https://github.com/dafny-lang/dafny/pull/4328)
+
+- Allow function-syntax and other options with a custom default to be overridden in `dfyconfig.toml` (https://github.com/dafny-lang/dafny/pull/4357)
+
+- There were two differences between verification in the IDE and the CLI, one small and one tiny, which would only become apparent for proofs that Z3 had trouble verifying. The small difference has been resolved, while the tiny one still persists, so the IDE and CLI should behave almost equivalently now, including resource counts, on most code. (https://github.com/dafny-lang/dafny/pull/4374)
+
+- Old command line interface for test generation is no longer supported, all calls should use dafny generate-tests (https://github.com/dafny-lang/dafny/pull/4385)
+
+- Fixed a bug leading to stack overflow during counterexample extraction on some programs. (https://github.com/dafny-lang/dafny/pull/4392)
+
+- Ability to use .Key as a constant name in datatypes and classes (https://github.com/dafny-lang/dafny/pull/4394)
+
+- Existential assertions are now printed correctly (https://github.com/dafny-lang/dafny/pull/4401)
+
+- When a symbol such as a method is not given a name, the error given by Dafny now shows where this problem occurs. (https://github.com/dafny-lang/dafny/pull/4411)
+
+- Fix flickering and incorrect results in the verification status bar, and improve responsiveness of verification diagnostics (https://github.com/dafny-lang/dafny/pull/4413)
+
+- Significantly improve IDE responsiveness for large projects, preventing it from appearing unresponsive or incorrect. Previously, for projects of a certain size, the IDE would not be able to keep up with incoming changes made by the user, possibly causing it to never catch up and appearing frozen or showing outdated results. (https://github.com/dafny-lang/dafny/pull/4419)
+
+- Declarations with {:only} ensure that other declarations aren't displayed as verified in the gutter icons (https://github.com/dafny-lang/dafny/pull/4432)
+
+- Fix issues that could cause the IDE status bar to show incorrect information (https://github.com/dafny-lang/dafny/pull/4454)
+
+- When verification times out, only show a red underline on the name of the verifiable for which verification timed out, instead of under its whole definition. (https://github.com/dafny-lang/dafny/pull/4477)
+
+- Prevent the IDE from becoming completely unresponsive after certain kinds of parse errors would occur. (https://github.com/dafny-lang/dafny/pull/4495)
+
+- Support all types of options in the Dafny project file (dfyconfig.toml) (https://github.com/dafny-lang/dafny/pull/4506)
+
+- Fix an issue that would cause some types of errors and other diagnostics not to appear in the IDE, if they appeared in files other than the active one. (https://github.com/dafny-lang/dafny/pull/4513)
+
+- Fix an IDE issue that would lead to exceptions when using module export declarations and making edits in imported modules that were re-exported (https://github.com/dafny-lang/dafny/pull/4556)
+
+- Fix a leak in the IDE that would cause it to become less responsive over time. (https://github.com/dafny-lang/dafny/pull/4570)
+
 # 4.2.0
 
 ## New features
