@@ -444,12 +444,13 @@ NoGhost - disable printing of functions, ghost methods, and proof
         src.Options.Arguments.ToDictionary(kv => kv.Key, kv => kv.Value));
     }
 
-    public void CopyTo(DafnyOptions dst, bool useNullWriters) {
+    private void CopyTo(DafnyOptions dst, bool useNullWriters) {
       var type = typeof(DafnyOptions);
       while (type != null) {
         var fields = type.GetFields(BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance);
         foreach (var fi in fields) {
           var value = fi.GetValue(this);
+          // This hacky code is necessary until we switch to a Boogie version that implements https://github.com/boogie-org/boogie/pull/788
           if (useNullWriters && fi.Name is "<ErrorWriter>k__BackingField" or "<OutputWriter>k__BackingField") {
             value = TextWriter.Null;
           }
