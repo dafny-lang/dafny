@@ -11,12 +11,12 @@ using VerificationResult = Microsoft.Boogie.VerificationResult;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace;
 
-public class VerificationProgressReporter : IVerificationProgressReporter {
+public class GutterIconAndHoverVerificationDetailsManager : IGutterIconAndHoverVerificationDetailsManager {
   private readonly DafnyOptions options;
-  private readonly ILogger<VerificationProgressReporter> logger;
+  private readonly ILogger<GutterIconAndHoverVerificationDetailsManager> logger;
   private readonly INotificationPublisher notificationPublisher;
 
-  public VerificationProgressReporter(ILogger<VerificationProgressReporter> logger,
+  public GutterIconAndHoverVerificationDetailsManager(ILogger<GutterIconAndHoverVerificationDetailsManager> logger,
     INotificationPublisher notificationPublisher,
     DafnyOptions options) {
     this.logger = logger;
@@ -236,7 +236,7 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
   /// <summary>
   /// Triggers sending of the current verification diagnostics to the client
   /// </summary>
-  public void ReportRealtimeDiagnostics(CompilationAfterParsing compilation, Uri uri, bool verificationStarted) {
+  public void PublishGutterIcons(CompilationAfterParsing compilation, Uri uri, bool verificationStarted) {
     if (options.Get(ServerCommand.LineVerificationStatus)) {
       lock (LockProcessing) {
         notificationPublisher.PublishGutterIcons(uri, compilation.InitialIdeState(compilation, options), verificationStarted);
@@ -268,7 +268,7 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
         }
 
         targetMethodNode.PropagateChildrenErrorsUp();
-        ReportRealtimeDiagnostics(compilation, uri, true);
+        PublishGutterIcons(compilation, uri, true);
       }
     }
   }
@@ -311,7 +311,7 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
 
         targetMethodNode.PropagateChildrenErrorsUp();
         targetMethodNode.RecomputeAssertionBatchNodeDiagnostics();
-        ReportRealtimeDiagnostics(compilation, uri, true);
+        PublishGutterIcons(compilation, uri, true);
       }
     }
   }
@@ -422,7 +422,7 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
         }
         targetMethodNode.PropagateChildrenErrorsUp();
         targetMethodNode.RecomputeAssertionBatchNodeDiagnostics();
-        ReportRealtimeDiagnostics(compilation, uri, true);
+        PublishGutterIcons(compilation, uri, true);
       }
     }
   }
