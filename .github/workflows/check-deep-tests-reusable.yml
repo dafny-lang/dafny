@@ -23,6 +23,6 @@ jobs:
         script: |
           const script = require('${{ github.workspace }}/dafny/.github/workflows/check-for-workflow-run.js')
           console.log(script({github, context, core,
-                              workflow_id: 'nightly-build-reusable.yml',
+                              workflow_id: 'nightly-build.yml',
                               ...('${{ inputs.sha }}' ? {sha: '${{ inputs.sha }}'} : {}),
                               ...('${{ inputs.branch }}' ? {branch: '${{ inputs.branch }}'} : {})}))
