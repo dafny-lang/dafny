@@ -98,14 +98,11 @@ public record IdeState(
     return resolutionDiagnostics.Concat(verificationDiagnostics);
   }
 
-  private static IEnumerable<Diagnostic> GetErrorLimitDiagnostics(KeyValuePair<Range, IdeVerificationResult> x)
-  {
+  private static IEnumerable<Diagnostic> GetErrorLimitDiagnostics(KeyValuePair<Range, IdeVerificationResult> x) {
     var anyImplementationHitErrorLimit = x.Value.Implementations.Values.Any(i => i.HitErrorLimit);
     IEnumerable<Diagnostic> result;
-    if (anyImplementationHitErrorLimit)
-    {
-      var diagnostic = new Diagnostic()
-      {
+    if (anyImplementationHitErrorLimit) {
+      var diagnostic = new Diagnostic() {
         Severity = DiagnosticSeverity.Warning,
         Code = new DiagnosticCode("errorLimitHit"),
         Message =
@@ -114,9 +111,7 @@ public record IdeState(
         Source = MessageSource.Verifier.ToString()
       };
       result = new[] { diagnostic };
-    }
-    else
-    {
+    } else {
       result = Enumerable.Empty<Diagnostic>();
     }
 

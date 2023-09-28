@@ -61,7 +61,7 @@ module Consumer {
       var project = await CreateOpenAndWaitForResolve("", Path.Combine(directory, DafnyProject.FileName));
       var producer = await CreateOpenAndWaitForResolve(producerSource, Path.Combine(directory, "producer.dfy"));
       var consumer = await CreateOpenAndWaitForResolve(consumerSource, Path.Combine(directory, "consumer.dfy"));
-      var diag1 = await GetLastDiagnostics(producer);
+      var diag1 = await GetLastDiagnostics(producer, DiagnosticSeverity.Hint);
       Assert.Equal(DiagnosticSeverity.Hint, diag1[0].Severity);
       ApplyChange(ref consumer, new Range(0, 0, 0, 0), "//trigger change\n");
       await AssertNoDiagnosticsAreComing(CancellationToken, producer);
@@ -195,8 +195,8 @@ function bullspec(s:seq<nat>, u:seq<nat>): (r: nat)
       Assert.Equal(PublishedVerificationStatus.Queued, await PopNextStatus());
       Assert.Equal(PublishedVerificationStatus.Running, await PopNextStatus());
       Assert.Equal(PublishedVerificationStatus.Error, await PopNextStatus());
-      var diagnostics1 = diagnosticsReceiver.GetLast(d => d.Uri == documentItem.Uri).Diagnostics.ToArray();
-      Assert.Equal(7, diagnostics1.Length);
+      var diagnostics1 = diagnosticsReceiver.GetLast(documentItem);
+      Assert.Equal(4, diagnostics1.Length);
       ApplyChange(ref documentItem, ((7, 25), (10, 17)), "");
       var diagnostics2 = await GetNextDiagnostics(documentItem);
       Assert.Equal(5, diagnostics2.Length);
@@ -207,8 +207,8 @@ function bullspec(s:seq<nat>, u:seq<nat>): (r: nat)
       Assert.Equal(PublishedVerificationStatus.Queued, await PopNextStatus());
       Assert.Equal(PublishedVerificationStatus.Running, await PopNextStatus());
       Assert.Equal(PublishedVerificationStatus.Error, await PopNextStatus());
-      var diagnostics3 = diagnosticsReceiver.GetLast(d => d.Uri == documentItem.Uri).Diagnostics.ToArray();
-      Assert.Equal(8, diagnostics3.Length);
+      var diagnostics3 = diagnosticsReceiver.GetLast(documentItem);
+      Assert.Equal(6, diagnostics3.Length);
       await AssertNoDiagnosticsAreComing(CancellationToken);
     }
 
@@ -647,8 +647,6 @@ method Multiply(x: int, y: int) returns (product: int)
       // a report without any diagnostics/errors.
       // Otherwise, we'd have to wait for a signal/diagnostic that should never be sent, e.g.
       // with a timeout.
-      await GetNextDiagnostics(newVersion); // Without verification hints
-      await GetNextDiagnostics(newVersion); // With verification hints
       await AssertNoDiagnosticsAreComing(CancellationToken);
     }
 
@@ -778,7 +776,7 @@ method Multiply(x: int, y: int) returns (product: int)
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       await AssertNoDiagnosticsAreComing(CancellationToken);
       client.SaveDocument(documentItem);
-      var saveDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
+      var saveDiagnostics = await GetLastDiagnostics(documentItem);
       Assert.Single(saveDiagnostics);
       Assert.Equal(MessageSource.Verifier.ToString(), saveDiagnostics[0].Source);
       Assert.Equal(DiagnosticSeverity.Error, saveDiagnostics[0].Severity);
@@ -1003,12 +1001,11 @@ method test() {
 ".TrimStart();
       var documentItem = CreateTestDocument(source, "IncrementalVerificationDiagnosticsBetweenMethods.dfy");
       client.OpenDocument(documentItem);
-      var firstVerificationDiagnostics = await diagnosticsReceiver.AwaitNextNotificationAsync(CancellationToken);
+      var secondVerificationDiagnostics = await GetLastDiagnostics(documentItem);
+      var firstVerificationDiagnostics = diagnosticsReceiver.History[^2].Diagnostics.Where(d => d.Severity <= DiagnosticSeverity.Warning).ToList();
       try {
-        var secondVerificationDiagnostics =
-          await GetNextDiagnostics(documentItem);
 
-        Assert.Single(firstVerificationDiagnostics.Diagnostics);
+        Assert.Single(firstVerificationDiagnostics);
         // Second diagnostic is a timeout exception from SlowToVerify
         Assert.Equal(2, secondVerificationDiagnostics.Length);
       } catch (OperationCanceledException) {
@@ -1029,8 +1026,9 @@ method test()
       await SetUp(options => options.Set(BoogieOptionBag.Cores, 1U));
       var documentItem = CreateTestDocument(source, "IncrementalVerificationDiagnosticsBetweenAssertionsAndWellFormedness.dfy");
       client.OpenDocument(documentItem);
-      var firstVerificationDiagnostics = await GetNextDiagnostics(documentItem);
-      var secondVerificationDiagnostics = await GetNextDiagnostics(documentItem);
+
+      var secondVerificationDiagnostics = await GetLastDiagnostics(documentItem);
+      var firstVerificationDiagnostics = diagnosticsReceiver.History[^2].Diagnostics.Where(d => d.Severity <= DiagnosticSeverity.Warning).ToList();
 
       Assert.Single(firstVerificationDiagnostics);
       Assert.Equal(2, secondVerificationDiagnostics.Length);

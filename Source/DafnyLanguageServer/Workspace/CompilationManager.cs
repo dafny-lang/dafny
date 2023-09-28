@@ -386,10 +386,10 @@ public class CompilationManager : IDisposable {
     var view = implementations.TryGetValue(implementationName, out var taskAndView)
       ? taskAndView
       : new ImplementationState(implementationTask, status, Array.Empty<DafnyDiagnostic>(), hitErrorLimit);
-    implementations[implementationName] = view with { 
-      Status = status, 
-      Diagnostics = view.Diagnostics.Concat(newDiagnostics).ToArray(), 
-      HitErrorLimit = view.HitErrorLimit || hitErrorLimit 
+    implementations[implementationName] = view with {
+      Status = status,
+      Diagnostics = view.Diagnostics.Concat(newDiagnostics).ToArray(),
+      HitErrorLimit = view.HitErrorLimit || hitErrorLimit
     };
 
     if (boogieStatus is Completed completed) {

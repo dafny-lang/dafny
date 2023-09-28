@@ -213,7 +213,7 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
       return null;
     }
     var fileVerificationStatus = verificationStatusReceiver.GetLast(v => v.Uri == documentId.Uri);
-    if (fileVerificationStatus != null) {
+    if (fileVerificationStatus != null && fileVerificationStatus.Version == documentId.Version) {
       while (fileVerificationStatus.NamedVerifiables.Any(method => !(allowStale && method.Status == PublishedVerificationStatus.Stale) && method.Status < PublishedVerificationStatus.Error)) {
         fileVerificationStatus = await verificationStatusReceiver.AwaitNextNotificationAsync(cancellationToken.Value);
 
@@ -352,7 +352,7 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
     var result = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(cancellationToken.Value, documentItem);
     return result.Where(d => d.Severity <= minimumSeverity).ToArray();
   }
-  
+
   public async Task AssertNoDiagnosticsAreComing(CancellationToken cancellationToken, TextDocumentItem forDocument = null, DiagnosticSeverity minimumSeverity = DiagnosticSeverity.Warning) {
 
     var verificationDocumentItem = CreateTestDocument("class X {does not parse", $"AssertNoDiagnosticsAreComing{fileIndex++}.dfy");
