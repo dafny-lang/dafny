@@ -1085,8 +1085,8 @@ method test() {
       await SetUp(options => options.Set(BoogieOptionBag.Cores, 1U));
       var documentItem = CreateTestDocument(source, "ApplyChangeBeforeVerificationFinishes.dfy");
       client.OpenDocument(documentItem);
-      await GetNextDiagnostics(documentItem); // Pre verification diagnostics
-      var firstVerificationDiagnostics = await GetNextDiagnostics(documentItem);
+      var status = await WaitForStatus(new Range(0,7,0,11), PublishedVerificationStatus.Error);
+      var firstVerificationDiagnostics = diagnosticsReceiver.GetLast(documentItem);
       Assert.Single(firstVerificationDiagnostics);
 
       // Second verification diagnostics get cancelled.
@@ -1097,18 +1097,10 @@ method test() {
       // https://github.com/dafny-lang/dafny/issues/4377
       var resolutionDiagnostics2 = await GetNextDiagnostics(documentItem);
       AssertDiagnosticListsAreEqualBesidesMigration(firstVerificationDiagnostics, resolutionDiagnostics2);
-      await GetNextDiagnostics(documentItem); // Pre verification diagnostics
-      var firstVerificationDiagnostics2 = await GetNextDiagnostics(documentItem);
+      var secondVerificationDiagnostics2 = await GetLastDiagnostics(documentItem);
+      var firstVerificationDiagnostics2 = diagnosticsReceiver.History[^2].Diagnostics.Where(d => d.Severity <= DiagnosticSeverity.Warning).ToArray();
       Assert.Empty(firstVerificationDiagnostics2); // Still contains second failing method
-      try {
-        var secondVerificationDiagnostics2 =
-          await GetNextDiagnostics(documentItem);
-        Assert.Single(secondVerificationDiagnostics2);
-      } catch (SingleException) {
-        await output.WriteLineAsync($"firstVerificationDiagnostics2: {firstVerificationDiagnostics2.Stringify()}");
-      }
-
-      await AssertNoDiagnosticsAreComing(CancellationToken);
+      Assert.Single(secondVerificationDiagnostics2);
     }
 
     [Fact]

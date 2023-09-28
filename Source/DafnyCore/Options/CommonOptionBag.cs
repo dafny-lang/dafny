@@ -9,7 +9,7 @@ namespace Microsoft.Dafny;
 public class CommonOptionBag {
 
   public enum AssertionShowMode { None, Implicit, All }
-  public static readonly Option<AssertionShowMode> ShowAssertions = new("--show-assertions", () => AssertionShowMode.Implicit,
+  public static readonly Option<AssertionShowMode> ShowAssertions = new("--show-assertions", () => AssertionShowMode.None,
     "Show hints on locations where implicit assertions occur");
 
   public static readonly Option<bool> AddCompileSuffix =
