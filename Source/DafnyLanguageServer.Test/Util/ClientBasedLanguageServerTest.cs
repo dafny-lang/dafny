@@ -353,7 +353,7 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
     return result.Where(d => d.Severity <= minimumSeverity).ToArray();
   }
 
-  public async Task AssertNoDiagnosticsAreComing(CancellationToken cancellationToken, TextDocumentItem forDocument = null, DiagnosticSeverity minimumSeverity = DiagnosticSeverity.Warning) {
+  protected async Task AssertNoDiagnosticsAreComing(CancellationToken cancellationToken, TextDocumentItem forDocument = null, DiagnosticSeverity minimumSeverity = DiagnosticSeverity.Warning) {
 
     var verificationDocumentItem = CreateTestDocument("class X {does not parse", $"AssertNoDiagnosticsAreComing{fileIndex++}.dfy");
     await client.OpenDocumentAndWaitAsync(verificationDocumentItem, cancellationToken);
@@ -379,10 +379,25 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
     client.DidCloseTextDocument(new DidCloseTextDocumentParams {
       TextDocument = verificationDocumentItem
     });
-    var hideReport = await diagnosticsReceiver.AwaitNextNotificationAsync(cancellationToken);
-    AssertM.Equal(verificationDocumentItem.Uri, hideReport.Uri,
-      "2) Unexpected diagnostics were received whereas none were expected:\n" +
-      string.Join(",", hideReport.Diagnostics.Select(diagnostic => diagnostic.ToString())));
+
+    while (true) {
+      var hideReport = await diagnosticsReceiver.AwaitNextNotificationAsync(cancellationToken);
+      if (verificationDocumentItem.Uri.Equals(hideReport.Uri)) {
+        break;
+      }
+
+      if (forDocument != null && !forDocument.Uri.Equals(hideReport.Uri)) {
+        continue;
+      }
+
+      if (!hideReport.Diagnostics.Any(d => d.Severity <= minimumSeverity)) {
+        continue;
+      }
+
+      AssertM.Equal(verificationDocumentItem.Uri, hideReport.Uri,
+        "2) Unexpected diagnostics were received whereas none were expected:\n" +
+        string.Join(",", hideReport.Diagnostics.Select(diagnostic => diagnostic.ToString())));
+    }
   }
 
   protected async Task AssertNoResolutionErrors(TextDocumentItem documentItem) {
