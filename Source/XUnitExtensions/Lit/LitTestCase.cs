@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -53,8 +54,8 @@ namespace XUnitExtensions.Lit {
       return Parse(filePath, config);
     }
 
-    public static void Run(string filePath, LitTestConfiguration config, ITestOutputHelper outputHelper) {
-      Read(filePath, config).Execute(outputHelper);
+    public static Task Run(string filePath, LitTestConfiguration config, ITestOutputHelper outputHelper) {
+      return Read(filePath, config).Execute(outputHelper);
     }
 
     public LitTestCase(string filePath, IEnumerable<ILitCommand> commands, bool expectFailure) {
@@ -63,7 +64,7 @@ namespace XUnitExtensions.Lit {
       this.ExpectFailure = expectFailure;
     }
 
-    public void Execute(ITestOutputHelper outputHelper) {
+    public async Task Execute(ITestOutputHelper outputHelper) {
       Directory.CreateDirectory(Path.Join(Path.GetDirectoryName(FilePath), "Output"));
       // For debugging. Only printed on failure in case the true cause is buried in an earlier command.
       List<(string, string)> results = new();
@@ -76,7 +77,7 @@ namespace XUnitExtensions.Lit {
         var errorWriter = new StringWriter();
         try {
           outputHelper.WriteLine($"Executing command: {command}");
-          (exitCode, output, error) = command.Execute(TextReader.Null, outputWriter, errorWriter).Result;
+          (exitCode, output, error) = await command.Execute(TextReader.Null, outputWriter, errorWriter);
         } catch (Exception e) {
           throw new Exception($"Exception thrown while executing command: {command}", e);
         }
