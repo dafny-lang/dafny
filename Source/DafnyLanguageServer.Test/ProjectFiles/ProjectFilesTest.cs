@@ -78,7 +78,7 @@ module Consumer {
   public async Task ProjectFileByItselfDiagnostics() {
     var tempDirectory = Path.GetRandomFileName();
     var projectFile = await CreateOpenAndWaitForResolve("", Path.Combine(tempDirectory, DafnyProject.FileName));
-    var diagnostics = await GetLastDiagnostics(projectFile);
+    var diagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
     Assert.Single(diagnostics);
     Assert.Equal("Project references no files", diagnostics.First().Message);
   }
