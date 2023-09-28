@@ -9,7 +9,7 @@ using Xunit.Abstractions;
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization; 
 
 public class VerificationDiagnostics : ClientBasedLanguageServerTest {
-  
+
   [Fact]
   public async Task ErrorLimitReached() {
     var source = @"
@@ -30,11 +30,11 @@ method ErrorLimitReached(x: int) {
     var diagnostics = await GetLastDiagnostics(document);
     Assert.Contains(diagnostics, d => d.Message.Contains("Verification hit error limit"));
   }
-  
+
   [Fact]
   public async Task ShowImplicitAssertions() {
     await SetUp(o => o.Set(CommonOptionBag.ShowAssertions, CommonOptionBag.AssertionShowMode.Implicit));
-    
+
     var source = @"
 method ImplicitAssertions(x: int) {
   if (*) {
@@ -48,11 +48,11 @@ method ImplicitAssertions(x: int) {
     Assert.Contains(diagnostics, d => d.Message.Contains("Implicit assertion: non-zero divisor"));
     Assert.DoesNotContain(diagnostics, d => d.Message.Contains("Explicit assertion: assert statement"));
   }
-  
+
   [Fact]
   public async Task ShowAssertions() {
     await SetUp(o => o.Set(CommonOptionBag.ShowAssertions, CommonOptionBag.AssertionShowMode.All));
-    
+
     var source = @"
 method ImplicitAssertions(x: int) {
   if (*) {
@@ -67,7 +67,6 @@ method ImplicitAssertions(x: int) {
     Assert.Contains(diagnostics, d => d.Message.Contains("Explicit assertion: assert statement"));
   }
 
-  public VerificationDiagnostics(ITestOutputHelper output, LogLevel dafnyLogLevel = LogLevel.Information) : base(output, dafnyLogLevel)
-  {
+  public VerificationDiagnostics(ITestOutputHelper output, LogLevel dafnyLogLevel = LogLevel.Information) : base(output, dafnyLogLevel) {
   }
 }

@@ -1085,7 +1085,7 @@ method test() {
       await SetUp(options => options.Set(BoogieOptionBag.Cores, 1U));
       var documentItem = CreateTestDocument(source, "ApplyChangeBeforeVerificationFinishes.dfy");
       client.OpenDocument(documentItem);
-      var status = await WaitForStatus(new Range(0,7,0,11), PublishedVerificationStatus.Error);
+      var status = await WaitForStatus(new Range(0, 7, 0, 11), PublishedVerificationStatus.Error);
       var firstVerificationDiagnostics = diagnosticsReceiver.GetLast(documentItem);
       Assert.Single(firstVerificationDiagnostics);
 
