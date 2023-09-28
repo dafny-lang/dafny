@@ -23,16 +23,14 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
     // TODO add the range of the name to the hover.
     private readonly ILogger logger;
     private readonly IProjectDatabase projects;
-    private DafnyOptions options;
 
     private const long RuLimitToBeOverCostly = 10000000;
     private const string OverCostlyMessage =
       " [⚠](https://dafny-lang.github.io/dafny/DafnyRef/DafnyRef#sec-verification-debugging-slow)";
 
-    public DafnyHoverHandler(ILogger<DafnyHoverHandler> logger, IProjectDatabase projects, DafnyOptions options) {
+    public DafnyHoverHandler(ILogger<DafnyHoverHandler> logger, IProjectDatabase projects) {
       this.logger = logger;
       this.projects = projects;
-      this.options = options;
     }
 
     protected override HoverRegistrationOptions CreateRegistrationOptions(HoverCapability capability, ClientCapabilities clientCapabilities) {
@@ -90,7 +88,8 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
         logger.LogDebug("no symbol was found at {Position} in {Document}", request.Position, request.TextDocument);
       }
 
-      var symbolHoverContent = symbol != null ? CreateSymbolMarkdown(symbol) : null;
+      var options = state.Program is Program program ? program.Reporter.Options : DafnyOptions.Default;
+      var symbolHoverContent = symbol != null ? CreateSymbolMarkdown(options, symbol) : null;
       return (symbol, symbolHoverContent);
     }
 
@@ -251,6 +250,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
       if (program is null) {
         return "null program";
       }
+      var options = program.Reporter.Options;
 
       var depManager = program.ProofDependencyManager;
       foreach (var assertionBatch in orderedAssertionBatches) {
@@ -475,7 +475,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
       };
     }
 
-    private string CreateSymbolMarkdown(ISymbol symbol) {
+    private string CreateSymbolMarkdown(DafnyOptions options, ISymbol symbol) {
       var docString = symbol is IHasDocstring nodeWithDocstring ? nodeWithDocstring.GetDocstring(options) : "";
       return (docString + $"\n```dafny\n{symbol.GetDescription(options)}\n```").TrimStart();
     }
