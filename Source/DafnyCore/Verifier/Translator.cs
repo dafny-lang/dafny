@@ -220,14 +220,15 @@ namespace Microsoft.Dafny {
       public readonly Bpl.Type CharType;
       public readonly Bpl.Type RefType;
       public readonly Bpl.Type BoxType;
+      public readonly Bpl.Type SetType;
+      public readonly Bpl.Type ISetType;
+      public readonly Bpl.Type MultiSetType;
+      public readonly Bpl.Type SeqType;
+      public readonly Bpl.Type MapType;
+      public readonly Bpl.Type IMapType;
       public Bpl.Type BigOrdinalType {
         get { return BoxType; }
       }
-      private readonly Bpl.TypeSynonymDecl setTypeCtor;
-      private readonly Bpl.TypeSynonymDecl isetTypeCtor;
-      private readonly Bpl.TypeSynonymDecl multiSetTypeCtor;
-      private readonly Bpl.TypeCtorDecl mapTypeCtor;
-      private readonly Bpl.TypeCtorDecl imapTypeCtor;
       public readonly Bpl.Function ArrayLength;
       public readonly Bpl.Function RealFloor;
       public readonly Bpl.Function ORDINAL_IsLimit;
@@ -266,8 +267,12 @@ namespace Microsoft.Dafny {
         Contract.Invariant(CharType != null);
         Contract.Invariant(RefType != null);
         Contract.Invariant(BoxType != null);
-        Contract.Invariant(setTypeCtor != null);
-        Contract.Invariant(multiSetTypeCtor != null);
+        Contract.Invariant(SetType != null);
+        Contract.Invariant(ISetType != null);
+        Contract.Invariant(MultiSetType != null);
+        Contract.Invariant(SeqType != null);
+        Contract.Invariant(MapType != null);
+        Contract.Invariant(IMapType != null);
         Contract.Invariant(ArrayLength != null);
         Contract.Invariant(RealFloor != null);
         Contract.Invariant(ORDINAL_IsLimit != null);
@@ -297,32 +302,6 @@ namespace Microsoft.Dafny {
         Contract.Invariant(TyTagFamily != null);
         Contract.Invariant(Null != null);
         Contract.Invariant(AllocField != null);
-      }
-
-      public Bpl.Type SetType(Bpl.IToken tok, bool finite) {
-        Contract.Requires(tok != null);
-        Contract.Ensures(Contract.Result<Bpl.Type>() != null);
-
-        return new Bpl.TypeSynonymAnnotation(tok, finite ? setTypeCtor : isetTypeCtor, new List<Bpl.Type> { });
-      }
-
-      public Bpl.Type MultiSetType(Bpl.IToken tok) {
-        Contract.Requires(tok != null);
-        Contract.Ensures(Contract.Result<Bpl.Type>() != null);
-
-        return new Bpl.TypeSynonymAnnotation(tok, multiSetTypeCtor, new List<Bpl.Type> { });
-      }
-      public Bpl.Type MapType(Bpl.IToken tok, bool finite) {
-        Contract.Requires(tok != null);
-        Contract.Ensures(Contract.Result<Bpl.Type>() != null);
-
-        return new Bpl.CtorType(tok, finite ? mapTypeCtor : imapTypeCtor, new List<Bpl.Type> { });
-      }
-
-      public Bpl.Type SeqType(Bpl.IToken tok) {
-        Contract.Requires(tok != null);
-        Contract.Ensures(Contract.Result<Bpl.Type>() != null);
-        return new Bpl.CtorType(tok, seqTypeCtor, new List<Bpl.Type> { });
       }
 
       public Bpl.Type FieldName(Bpl.IToken tok, Bpl.Type ty) {
@@ -396,11 +375,12 @@ namespace Microsoft.Dafny {
         Bpl.CtorType refT = new Bpl.CtorType(Token.NoToken, refType, new List<Bpl.Type>());
         this.RefType = refT;
         this.BoxType = new Bpl.CtorType(Token.NoToken, boxType, new List<Bpl.Type>());
-        this.setTypeCtor = setTypeCtor;
-        this.isetTypeCtor = isetTypeCtor;
-        this.multiSetTypeCtor = multiSetTypeCtor;
-        this.mapTypeCtor = mapTypeCtor;
-        this.imapTypeCtor = imapTypeCtor;
+        this.SetType = new Bpl.TypeSynonymAnnotation(Token.NoToken, setTypeCtor, new List<Bpl.Type>());
+        this.ISetType = new Bpl.TypeSynonymAnnotation(Token.NoToken, setTypeCtor, new List<Bpl.Type>());
+        this.MultiSetType = new Bpl.TypeSynonymAnnotation(Token.NoToken, multiSetTypeCtor, new List<Bpl.Type>());
+        this.SeqType = new Bpl.CtorType(Token.NoToken, seqTypeCtor, new List<Bpl.Type>());
+        this.MapType = new Bpl.CtorType(Token.NoToken, mapTypeCtor, new List<Bpl.Type>());
+        this.IMapType = new Bpl.CtorType(Token.NoToken, imapTypeCtor, new List<Bpl.Type>());
         this.ArrayLength = arrayLength;
         this.RealFloor = realFloor;
         this.ORDINAL_IsLimit = ORD_isLimit;
@@ -7337,13 +7317,13 @@ namespace Microsoft.Dafny {
       } else if (type.IsDatatype) {
         return predef.DatatypeType;
       } else if (type is SetType) {
-        return predef.SetType(Token.NoToken, ((SetType)type).Finite);
+        return ((SetType)type).Finite ? predef.SetType : predef.ISetType;
       } else if (type is MultiSetType) {
-        return predef.MultiSetType(Token.NoToken);
+        return predef.MultiSetType;
       } else if (type is MapType) {
-        return predef.MapType(Token.NoToken, ((MapType)type).Finite);
+        return ((MapType)type).Finite ? predef.MapType : predef.IMapType;
       } else if (type is SeqType) {
-        return predef.SeqType(Token.NoToken);
+        return predef.SeqType;
 
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected type
@@ -8345,8 +8325,8 @@ namespace Microsoft.Dafny {
           b1 = e1;
         } else {
           // for maps, compare their domains as sets
-          b0 = FunctionCall(tok, BuiltinFunction.MapDomain, predef.MapType(tok, true), e0);
-          b1 = FunctionCall(tok, BuiltinFunction.MapDomain, predef.MapType(tok, true), e1);
+          b0 = FunctionCall(tok, BuiltinFunction.MapDomain, predef.MapType, e0);
+          b1 = FunctionCall(tok, BuiltinFunction.MapDomain, predef.MapType, e1);
         }
         eq = FunctionCall(tok, BuiltinFunction.SetEqual, null, b0, b1);
         less = ProperSubset(tok, b0, b1);
@@ -8361,8 +8341,8 @@ namespace Microsoft.Dafny {
         } else {
           Contract.Assert(!((MapType)ty0).Finite);
           // for maps, compare their domains as sets
-          b0 = FunctionCall(tok, BuiltinFunction.IMapDomain, predef.MapType(tok, false), e0);
-          b1 = FunctionCall(tok, BuiltinFunction.IMapDomain, predef.MapType(tok, false), e1);
+          b0 = FunctionCall(tok, BuiltinFunction.IMapDomain, predef.IMapType, e0);
+          b1 = FunctionCall(tok, BuiltinFunction.IMapDomain, predef.IMapType, e1);
         }
         eq = FunctionCall(tok, BuiltinFunction.ISetEqual, null, b0, b1);
         less = Bpl.Expr.False;
