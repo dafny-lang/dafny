@@ -192,13 +192,13 @@ function bullspec(s:seq<nat>, u:seq<nat>): (r: nat)
       var documentItem = CreateTestDocument(source, "GitIssue3062CrashOfLanguageServer.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var diagnostics = await GetLastDiagnostics(documentItem);
-      Assert.Equal(7, diagnostics.Length);
+      Assert.Equal(4, diagnostics.Length);
       Assert.Equal(PublishedVerificationStatus.Stale, await PopNextStatus());
       Assert.Equal(PublishedVerificationStatus.Queued, await PopNextStatus());
       Assert.Equal(PublishedVerificationStatus.Running, await PopNextStatus());
       Assert.Equal(PublishedVerificationStatus.Error, await PopNextStatus());
       ApplyChange(ref documentItem, ((7, 25), (10, 17)), "");
-      diagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
+      diagnostics = await GetNextDiagnostics(documentItem);
       Assert.Equal(5, diagnostics.Length);
       Assert.Equal("Parser", diagnostics[0].Source);
       Assert.Equal(DiagnosticSeverity.Error, diagnostics[0].Severity);
@@ -647,7 +647,8 @@ method Multiply(x: int, y: int) returns (product: int)
       // a report without any diagnostics/errors.
       // Otherwise, we'd have to wait for a signal/diagnostic that should never be sent, e.g.
       // with a timeout.
-      await Projects.GetLastDocumentAsync(newVersion); // For debug purposes.
+      await GetNextDiagnostics(newVersion); // Without verification hints
+      await GetNextDiagnostics(newVersion); // With verification hints
       await AssertNoDiagnosticsAreComing(CancellationToken);
     }
 
@@ -1086,7 +1087,8 @@ method test() {
       await SetUp(options => options.Set(BoogieOptionBag.Cores, 1U));
       var documentItem = CreateTestDocument(source, "ApplyChangeBeforeVerificationFinishes.dfy");
       client.OpenDocument(documentItem);
-      var firstVerificationDiagnostics = await GetLastDiagnostics(documentItem);
+      await GetNextDiagnostics(documentItem); // Pre verification diagnostics
+      var firstVerificationDiagnostics = await GetNextDiagnostics(documentItem);
       Assert.Single(firstVerificationDiagnostics);
 
       // Second verification diagnostics get cancelled.
@@ -1097,6 +1099,7 @@ method test() {
       // https://github.com/dafny-lang/dafny/issues/4377
       var resolutionDiagnostics2 = await GetNextDiagnostics(documentItem);
       AssertDiagnosticListsAreEqualBesidesMigration(firstVerificationDiagnostics, resolutionDiagnostics2);
+      await GetNextDiagnostics(documentItem); // Pre verification diagnostics
       var firstVerificationDiagnostics2 = await GetNextDiagnostics(documentItem);
       Assert.Empty(firstVerificationDiagnostics2); // Still contains second failing method
       try {

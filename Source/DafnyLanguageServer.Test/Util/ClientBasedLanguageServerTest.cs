@@ -198,7 +198,7 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
     return result;
   }
 
-  public async Task<PublishDiagnosticsParams> GetLastDiagnosticsParams(TextDocumentItem documentItem, CancellationToken cancellationToken) {
+  public async Task<PublishDiagnosticsParams>GetLastDiagnosticsParams(TextDocumentItem documentItem, CancellationToken cancellationToken) {
     await client.WaitForNotificationCompletionAsync(documentItem.Uri, cancellationToken);
     var compilation = (await Projects.GetLastDocumentAsync(documentItem).WaitAsync(cancellationToken))!;
     Assert.NotNull(compilation);
@@ -217,7 +217,7 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
     return result;
   }
 
-  protected async Task<Diagnostic[]> GetLastDiagnostics(TextDocumentItem documentItem, DiagnosticSeverity minimumSeverity =DiagnosticSeverity.Warning,  
+  protected async Task<Diagnostic[]> GetLastDiagnostics(TextDocumentItem documentItem, DiagnosticSeverity minimumSeverity = DiagnosticSeverity.Warning,  
     CancellationToken? cancellationToken = null) {
     var paramsResult = await GetLastDiagnosticsParams(documentItem, cancellationToken ?? CancellationToken);
     return paramsResult.Diagnostics.Where(d => d.Severity <= minimumSeverity).ToArray();
@@ -340,7 +340,9 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
     return result.Where(d => d.Severity <= minimumSeverity).ToArray();
   }
   
-  public async Task AssertNoDiagnosticsAreComing(CancellationToken cancellationToken, TextDocumentItem forDocument = null, bool waitFirst = true) {
+  public async Task AssertNoDiagnosticsAreComing(CancellationToken cancellationToken, TextDocumentItem forDocument = null, bool waitFirst = true, 
+    DiagnosticSeverity minimumSeverity = DiagnosticSeverity.Warning) 
+  {
     if (waitFirst) {
       foreach (var entry in Projects.Managers) {
         try {
@@ -360,6 +362,10 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
       }
 
       if (forDocument != null && !forDocument.Uri.Equals(resolutionReport.Uri)) {
+        continue;
+      }
+
+      if (!resolutionReport.Diagnostics.Any(d => d.Severity <= minimumSeverity)) {
         continue;
       }
 

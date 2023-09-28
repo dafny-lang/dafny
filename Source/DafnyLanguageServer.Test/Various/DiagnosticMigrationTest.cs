@@ -140,7 +140,7 @@ public class DiagnosticMigrationTest : ClientBasedLanguageServerTest {
 
     // Check that no other resolution diagnostics came in by fixing verification and getting new verification diagnostics.
     ApplyChange(ref documentItem, new Range(0, 7, 0, 21), "");
-    var verificationDiagnostics2 = await GetNextDiagnostics(documentItem);
+    var verificationDiagnostics2 = await GetLastDiagnostics(documentItem);
     Assert.Empty(verificationDiagnostics2);
   }
 
