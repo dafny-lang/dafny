@@ -10,10 +10,13 @@ env:
   dotnet-version: 6.0.x # SDK Version for building Dafny
 
 jobs:
-  check-deep-tests:
-    uses: ./.github/workflows/check-deep-tests-reusable.yml
+  deep-integration-tests:
+    if: github.repository_owner == 'dafny-lang'
+    uses: ./.github/workflows/integration-tests-reusable.yml
     with:
-      sha: ${{ github.sha }}
+      ref: ${{ github.ref }}
+      all_platforms: true
+      num_shards: 5
 
   get-version:
     runs-on: ubuntu-22.04
@@ -26,11 +29,11 @@ jobs:
       version: ${{ steps.get-version.outputs.version-without-v }}
 
   publish-release:
-    needs: [check-deep-tests, get-version]
+    needs: [deep-integration-tests, get-version]
     uses: ./.github/workflows/publish-release-reusable.yml
     with:
       name: ${{ needs.get-version.outputs.version }}
-      sha: ${{ github.sha }}
+      ref: ${{ github.sha }}
       tag_name: ${{ github.ref }}
       draft: true
       release_nuget: true

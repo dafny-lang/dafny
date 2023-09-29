@@ -48,7 +48,14 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
     : base(output, dafnyLogLevel) {
   }
 
-  protected async Task<TextDocumentItem> CreateAndOpenTestDocument(string source, string filePath = null,
+  protected TextDocumentItem CreateAndOpenTestDocument(string source, string filePath = null,
+    int version = 1) {
+    var document = CreateTestDocument(source, filePath, version);
+    client.OpenDocument(document);
+    return document;
+  }
+
+  protected async Task<TextDocumentItem> CreateOpenAndWaitForResolve(string source, string filePath = null,
     int version = 1, CancellationToken? cancellationToken = null) {
     var document = CreateTestDocument(source, filePath, version);
     await client.OpenDocumentAndWaitAsync(document, cancellationToken ?? CancellationToken);
@@ -220,7 +227,7 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
   }
 
   public Task DisposeAsync() {
-    return Task.CompletedTask;
+    return client.Shutdown();
   }
 
   protected virtual async Task SetUp(Action<DafnyOptions> modifyOptions) {
@@ -285,13 +292,13 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
   public async Task AssertNoVerificationStatusIsComing(TextDocumentItem documentItem, CancellationToken cancellationToken) {
     foreach (var entry in Projects.Managers) {
       try {
-        await entry.GetLastDocumentAsync();
+        await entry.GetLastDocumentAsync().WaitAsync(cancellationToken);
       } catch (TaskCanceledException) {
 
       }
     }
     var verificationDocumentItem = CreateTestDocument("method Foo() { assert false; }", $"verification{fileIndex++}.dfy");
-    await client.OpenDocumentAndWaitAsync(verificationDocumentItem, CancellationToken);
+    await client.OpenDocumentAndWaitAsync(verificationDocumentItem, cancellationToken);
     var statusReport = await verificationStatusReceiver.AwaitNextNotificationAsync(cancellationToken);
     try {
       Assert.Equal(verificationDocumentItem.Uri, statusReport.Uri);

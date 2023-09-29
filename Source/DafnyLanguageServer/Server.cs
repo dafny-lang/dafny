@@ -16,6 +16,8 @@ namespace Microsoft.Dafny.LanguageServer {
     public static async Task Start(DafnyOptions dafnyOptions) {
       var configuration = CreateConfiguration();
       InitializeLogger(configuration);
+
+      dafnyOptions = new DafnyOptions(dafnyOptions, true);
       try {
         Action? shutdownServer = null;
         var server = await OmniSharpLanguageServer.From(

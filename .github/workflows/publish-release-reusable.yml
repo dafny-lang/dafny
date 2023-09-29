@@ -9,7 +9,7 @@ on:
       prerelease:
         required: false
         type: boolean
-      sha:
+      ref:
         required: true
         type: string
       draft:
@@ -43,7 +43,7 @@ jobs:
       uses: actions/checkout@v3
       with:
         path: dafny
-        ref: ${{ inputs.sha }}
+        ref: ${{ inputs.ref }}
     - name: Ensure tag exists
       if: ${{ inputs.prerelease }}
       run: |
@@ -96,7 +96,7 @@ jobs:
       # Need --skip-duplicate for cases where we release a new Dafny
       # version but the runtime hasn't changed and is still the old
       # version.
-      run: dotnet nuget push --skip-duplicate "dafny/Binaries/Dafny*.nupkg" -k ${{ secrets.nuget_api_key }} -s https://api.nuget.org/v3/index.json
+      run: dotnet nuget push --skip-duplicate "dafny/Binaries/Dafny*.nupkg" -k ${{ secrets.NUGET_API_KEY }} -s https://api.nuget.org/v3/index.json
 
     - name: Install latex pandoc
       run: |
