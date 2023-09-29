@@ -204,42 +204,5 @@ to also include a directory containing the `z3` executable.
           throw new cce.UnreachableException(); // unexpected outcome
       }
     }
-
-    /// <summary>
-    /// Some proof obligations that don't show up in the dependency list
-    /// are innocuous. Either they come about because of internal Dafny
-    /// design choices that the programmer has no control over, or they
-    /// just aren't meaningful in context. This method identifies cases
-    /// where it doesn't make sense to issue a warning. Many of these
-    /// cases should perhaps be eliminated by changing the translator
-    /// to not generate vacuous proof goals, but that may be a difficult
-    /// change to make.
-    /// </summary>
-    /// <param name="dep">the dependency to examine</param>
-    /// <returns>false to skip warning about the absence of this
-    /// dependency, true otherwise</returns>
-    private static bool ShouldWarnVacuous(string verboseName, ProofDependency dep) {
-      if (dep is ProofObligationDependency poDep) {
-        // Dafny generates some assertions about definite assignment whose
-        // proofs are always vacuous. Since these aren't written by Dafny
-        // programmers, it's safe to just skip them all.
-        if (poDep.ProofObligation is DefiniteAssignment) {
-          return false;
-        }
-
-        // Similarly here
-        if (poDep.ProofObligation is MatchIsComplete or AlternativeIsComplete) {
-          return false;
-        }
-
-      }
-
-      // Ensures clauses are often proven vacuously during well-formedness checks.
-      if (verboseName.Contains("well-formedness") && dep is EnsuresDependency) {
-        return false;
-      }
-
-      return true;
-    }
   }
 }
