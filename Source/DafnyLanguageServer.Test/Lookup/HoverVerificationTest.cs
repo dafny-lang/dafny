@@ -27,8 +27,6 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
     public async Task CanDisplayProofDependencies() {
       var cwd = Directory.GetCurrentDirectory();
       var directory = Path.Combine(cwd, "Lookup/TestFiles/ProofDependencies");
-      var projectFile = CreateTestDocument("", Path.Combine(directory, DafnyProject.FileName));
-      await client.OpenDocumentAndWaitAsync(projectFile, CancellationToken);
       var path = Path.Combine(directory, "LSPProofDependencyTest.dfy");
       var documentItem = CreateTestDocument(await File.ReadAllTextAsync(path), path);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
