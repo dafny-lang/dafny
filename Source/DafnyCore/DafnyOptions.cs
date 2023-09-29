@@ -434,8 +434,9 @@ NoGhost - disable printing of functions, ghost methods, and proof
     /// <summary>
     /// Automatic shallow-copy constructor
     /// </summary>
-    public DafnyOptions(DafnyOptions src) : this(src.Input, src.OutputWriter, src.ErrorWriter) {
-      src.CopyTo(this);
+    public DafnyOptions(DafnyOptions src, bool useNullWriters = false) : this(
+      src.Input, src.OutputWriter, src.ErrorWriter) {
+      src.CopyTo(this, useNullWriters);
       CliRootSourceUris = new List<Uri>(src.CliRootSourceUris);
       ProverOptions = new List<string>(src.ProverOptions);
       Options = new Options(
@@ -443,12 +444,18 @@ NoGhost - disable printing of functions, ghost methods, and proof
         src.Options.Arguments.ToDictionary(kv => kv.Key, kv => kv.Value));
     }
 
-    public void CopyTo(DafnyOptions dst) {
+    private void CopyTo(DafnyOptions dst, bool useNullWriters) {
       var type = typeof(DafnyOptions);
       while (type != null) {
         var fields = type.GetFields(BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance);
         foreach (var fi in fields) {
-          fi.SetValue(dst, fi.GetValue(this));
+          var value = fi.GetValue(this);
+
+          // This hacky code is necessary until we switch to a Boogie version that implements https://github.com/boogie-org/boogie/pull/788
+          if (useNullWriters && fi.Name is "<ErrorWriter>k__BackingField" or "<OutputWriter>k__BackingField") {
+            value = TextWriter.Null;
+          }
+          fi.SetValue(dst, value);
         }
         type = type.BaseType;
       }
