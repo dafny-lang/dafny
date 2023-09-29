@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics.Contracts;
 using System.Linq;
+using Microsoft.Boogie.SMTLib;
 using Microsoft.Dafny.Auditor;
 
 namespace Microsoft.Dafny;
@@ -49,6 +50,7 @@ public class ModuleDefinition : RangeNode, IAttributeBearingDeclaration, IClonea
   public readonly bool IsFacade; // True iff this module represents a module facade (that is, an abstract interface)
   private readonly bool IsBuiltinName; // true if this is something like _System that shouldn't have it's name mangled.
 
+  public bool UsesFuel = false; // Set by Translator.ComputeFunctionFuel
   public DefaultClassDecl DefaultClass { get; set; }
 
   public readonly List<TopLevelDecl> SourceDecls = new();
@@ -68,6 +70,76 @@ public class ModuleDefinition : RangeNode, IAttributeBearingDeclaration, IClonea
       ? Enumerable.Empty<Pointer<TopLevelDecl>>()
       : new[] { new Pointer<TopLevelDecl>(() => DefaultClass, v => DefaultClass = (DefaultClassDecl)v) }).
     Concat(SourceDecls.ToPointers()).Concat(ResolvedPrefixNamedModules.ToPointers());
+
+  public Boogie.CoreOptions.TypeEncoding? GetTypeEncodingAttribute {
+    get {
+      if (Attributes.Find(Attributes, Attributes.TypeEncodingAttributeName) is Attributes te 
+          && te.Args.Count == 1 
+          && te.Args[0] is LiteralExpr { Value: string encoding }) {
+        return encoding switch {
+          "p" => Boogie.CoreOptions.TypeEncoding.Predicates,
+          "a" => Boogie.CoreOptions.TypeEncoding.Arguments,
+          "m" => Boogie.CoreOptions.TypeEncoding.Monomorphic,
+          _ => null
+        };
+      }
+      return null;
+    }
+  }
+
+  public bool? GetPruneAttribute {
+    get {
+      if (Attributes.Find(Attributes, Attributes.PruneAttributeName) is Attributes pa 
+          && pa.Args.Count == 1 
+          && pa.Args[0] is LiteralExpr { Value: string prune }) {
+        return int.Parse(prune) switch {
+          1 => true,
+          0 => false,
+          _ => null
+        };
+      }
+      return null;
+    }
+  }
+
+  public List<(string, string)> GetAllProverOptAttributes {
+    get {
+      var allExpressions = Attributes.FindAllExpressions(Attributes, Attributes.ProverOptAttributeName);
+      if (allExpressions == null) {
+        return null;
+      }
+      return allExpressions
+        .SelectMany(exprs => exprs.Select(expr => expr?.AsStringLiteral()?.Split('=')))
+        .Where(splitArray => splitArray is {Length: 2})
+        .Select(splitArray => (splitArray[0], splitArray[1]))
+        .ToList();
+    }
+  }
+
+  public SolverKind? GetSolverAttribute {
+    get {
+      if (Attributes.Find(Attributes, Attributes.SolverAttributeName) is Attributes te 
+          && te.Args.Count == 1 
+          && te.Args[0] is LiteralExpr { Value: string encoding }) {
+        return encoding switch {
+          "cvc5" => SolverKind.CVC5,
+          "z3" => SolverKind.Z3,
+          "yices2" => SolverKind.YICES2,
+          _ => null
+        };
+      }
+      return null;
+    }
+  }
+
+  public bool UseNativeSeq =>
+    Attributes.Contains(Attributes, Attributes.NativeSeqAttributeName);
+
+  public bool NoLits =>
+    Attributes.Contains(Attributes, Attributes.NoLitAttributeName);
+
+  public bool IsolateAssertions =>
+    Attributes.Contains(Attributes, Attributes.IsolateAssertionsAttriubuteName);
 
   public IEnumerable<TopLevelDecl> DefaultClasses {
     get { return DefaultClass == null ? Enumerable.Empty<TopLevelDecl>() : new TopLevelDecl[] { DefaultClass }; }

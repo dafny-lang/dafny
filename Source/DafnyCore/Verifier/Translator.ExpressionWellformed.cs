@@ -395,7 +395,7 @@ namespace Microsoft.Dafny {
               e0 = etran.TrExpr(e.E0);
               CheckWellformed(e.E0, wfOptions, locals, builder, etran);
               var f = finite ? BuiltinFunction.MapDomain : BuiltinFunction.IMapDomain;
-              Bpl.Expr inDomain = FunctionCall(selectExpr.tok, f, predef.MapType(e.tok, finite, predef.BoxType, predef.BoxType), seq);
+              Bpl.Expr inDomain = FunctionCall(selectExpr.tok, f, predef.MapType(e.tok, finite), seq);
               inDomain = Bpl.Expr.Select(inDomain, BoxIfNecessary(e.tok, e0, e.E0.Type));
               builder.Add(Assert(GetToken(expr), inDomain, new PODesc.ElementInDomain(e.Seq, e.E0), wfOptions.AssertKv));
             } else if (eSeqType is MultiSetType) {
@@ -468,7 +468,7 @@ namespace Microsoft.Dafny {
               var tok = idx is IdentifierExpr ? e.tok : idx.tok; // TODO: Reusing the token of an identifier expression would underline its definition. but this is still not perfect.
 
               var desc = new PODesc.InRange(e.Array, e.Indices[idxId], true, $"index {idxId}", idxId);
-              builder.Add(Assert(tok, Bpl.Expr.And(lower, upper), desc, wfOptions.AssertKv));
+              builder.Add(Assert(tok, BplAnd(lower, upper), desc, wfOptions.AssertKv));
             }
             if (wfOptions.DoReadsChecks) {
               Bpl.Expr fieldName = etran.GetArrayIndexFieldName(e.tok, e.Indices);
@@ -820,7 +820,7 @@ namespace Microsoft.Dafny {
               Bpl.IdentifierExpr canCallFuncID = new Bpl.IdentifierExpr(callExpr.tok, e.Function.FullSanitizedName + "#canCall", Bpl.Type.Bool);
               List<Bpl.Expr> args = etran.FunctionInvocationArguments(e, null, null);
               Bpl.Expr canCallFuncAppl = new Bpl.NAryExpr(GetToken(expr), new Bpl.FunctionCall(canCallFuncID), args);
-              builder.Add(TrAssumeCmd(callExpr.tok, allowance == null ? canCallFuncAppl : Bpl.Expr.Or(allowance, canCallFuncAppl)));
+              builder.Add(TrAssumeCmd(callExpr.tok, allowance == null ? canCallFuncAppl : BplOr(allowance, canCallFuncAppl)));
 
               var returnType = e.Type.AsDatatype;
               if (returnType != null && returnType.Ctors.Count == 1) {

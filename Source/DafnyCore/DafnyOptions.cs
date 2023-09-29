@@ -12,6 +12,7 @@ using System.IO;
 using System.Reflection;
 using System.Text.RegularExpressions;
 using JetBrains.Annotations;
+using Microsoft.Boogie.SMTLib;
 using Microsoft.Dafny;
 using Microsoft.Dafny.Compilers;
 using Microsoft.Dafny.Plugins;
@@ -310,6 +311,20 @@ NoGhost - disable printing of functions, ghost methods, and proof
     public string DafnyPrintFile = null;
     public bool AllowSourceFolders = false;
     public List<string> SourceFolders { get; } = new(); // list of folders, for those commands that permit processing all source files in folders
+
+    public bool UseSeqs = true;
+    public bool UseSeqTheory = false; // Requires UseSeqs = true. TypeEncoding must be Monomorphic.
+    public bool InlineSeqTheoryFunctions = true; // Do not enable if theory functions are used in axiom triggers.
+    public bool UseSets = true;
+    public bool UseISets = true;
+    public bool UseMultiSets = true;
+    public bool UseMaps = true;
+    public bool UseIMaps = true;
+    public string CVC5Path = null;
+    public bool UseLits = true;
+
+    public SolverKind Solver = SolverKind.Z3; // TODO: Heads up: this is not currently used!
+    public int Z3CaseSplitValue = 3;
 
     public enum ContractTestingMode {
       None,
@@ -824,6 +839,18 @@ NoGhost - disable printing of functions, ghost methods, and proof
             }
           }
           return true;
+
+        case "prune":
+          if (ps.ConfirmArgumentCount(1)) {
+            if (args[ps.i] == "1") {
+              Prune = true;
+            } else if (args[ps.i] == "0") {
+              Prune = false;
+            } else {
+              InvalidArgumentError(name, ps);
+            }
+          }
+          return true;
       }
 
       // Defer to superclass
@@ -871,6 +898,8 @@ NoGhost - disable printing of functions, ghost methods, and proof
         var z3Version = SetZ3ExecutablePath();
         SetZ3Options(z3Version);
       }
+
+      SetCVC5ExecutablePath();
 
       // Ask Boogie to perform abstract interpretation
       UseAbstractInterpretation = true;
@@ -1163,6 +1192,16 @@ NoGhost - disable printing of functions, ghost methods, and proof
       return null;
     }
 
+    private void SetCVC5ExecutablePath() {
+      var platform = System.Environment.OSVersion.Platform;
+      var isUnix = platform == PlatformID.Unix || platform == PlatformID.MacOSX;
+      CVC5Path ??= System.Environment
+        .GetEnvironmentVariable("PATH")?
+        .Split(isUnix ? ':' : ';')
+        .Select(s => Path.Combine(s, isUnix ? "cvc5" : "cvc5.exe"))
+        .FirstOrDefault(File.Exists);
+    }
+
     private static readonly Regex Z3VersionRegex = new Regex(@"Z3 version (?<major>\d+)\.(?<minor>\d+)\.(?<patch>\d+)");
 
     [CanBeNull]
@@ -1193,9 +1232,13 @@ NoGhost - disable printing of functions, ghost methods, and proof
     }
 
     // Set a Z3 option, but only if it is not overwriting an existing option.
-    private void SetZ3Option(string name, string value) {
-      if (!ProverOptions.Any(o => o.StartsWith($"O:{name}="))) {
-        ProverOptions.Add($"O:{name}={value}");
+    public void SetZ3Option(string name, string value, bool overwrite = false) {
+      string optionPrefix = $"O:{name}=";
+      int index = ProverOptions.FindIndex(o => o.StartsWith(optionPrefix));
+      if (index == -1) {
+        ProverOptions.Add($"{optionPrefix}{value}");
+      } else if (overwrite) {
+        ProverOptions[index] = $"{optionPrefix}{value}";
       }
     }
 

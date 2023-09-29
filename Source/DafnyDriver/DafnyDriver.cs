@@ -462,11 +462,11 @@ namespace Microsoft.Dafny {
           && options.DafnyVerify) {
 
         dafnyProgram.ProofDependencyManager = depManager;
-        var boogiePrograms =
+        var boogieProgramsAndOptions =
           await DafnyMain.LargeStackFactory.StartNew(() => Translate(engine.Options, dafnyProgram).ToList());
 
         string baseName = cce.NonNull(Path.GetFileName(dafnyFileNames[^1]));
-        var (verified, outcome, moduleStats) = await BoogieAsync(options, baseName, boogiePrograms, programId);
+        var (verified, outcome, moduleStats) = await BoogieAsync(options, baseName, boogieProgramsAndOptions, programId);
 
         if (options.TrackVerificationCoverage && verified) {
           ProofDependencyWarnings.WarnAboutSuspiciousDependencies(options, dafnyProgram.Reporter, depManager);
@@ -636,7 +636,7 @@ namespace Microsoft.Dafny {
       return Path.Combine(dirName, baseName + "_" + suffix + Path.GetExtension(printFile));
     }
 
-    public static IEnumerable<Tuple<string, Bpl.Program>> Translate(ExecutionEngineOptions options, Program dafnyProgram) {
+    public static IEnumerable<Tuple<string, Bpl.Program, DafnyOptions>> Translate(ExecutionEngineOptions options, Program dafnyProgram) {
       var modulesCount = Translator.VerifiableModules(dafnyProgram).Count();
 
 
@@ -655,24 +655,24 @@ namespace Microsoft.Dafny {
     }
 
     public async Task<(bool IsVerified, PipelineOutcome Outcome, IDictionary<string, PipelineStatistics> ModuleStats)>
-      BoogieAsync(DafnyOptions options,
+      BoogieAsync(DafnyOptions commonOptions,
         string baseName,
-        IEnumerable<Tuple<string, Bpl.Program>> boogiePrograms, string programId) {
+        IEnumerable<Tuple<string, Bpl.Program, DafnyOptions>> boogiePrograms, string programId) {
 
       var concurrentModuleStats = new ConcurrentDictionary<string, PipelineStatistics>();
-      var writerManager = new ConcurrentToSequentialWriteManager(options.OutputWriter);
+      var writerManager = new ConcurrentToSequentialWriteManager(commonOptions.OutputWriter);
 
       var moduleTasks = boogiePrograms.Select(async program => {
         await using var moduleWriter = writerManager.AppendWriter();
         // ReSharper disable once AccessToDisposedClosure
         var result = await Task.Run(() =>
-          BoogieOnceWithTimerAsync(moduleWriter, options, baseName, programId, program.Item1, program.Item2));
+          BoogieOnceWithTimerAsync(moduleWriter, program.Item3, baseName, programId, program.Item1, program.Item2));
         concurrentModuleStats.TryAdd(program.Item1, result.Stats);
         return result;
       }).ToList();
 
       await Task.WhenAll(moduleTasks);
-      await options.OutputWriter.FlushAsync();
+      await commonOptions.OutputWriter.FlushAsync();
       var outcome = moduleTasks.Select(t => t.Result.Outcome)
         .Aggregate(PipelineOutcome.VerificationCompleted, MergeOutcomes);
 
@@ -693,8 +693,9 @@ namespace Microsoft.Dafny {
         options.Printer.AdvisoryWriteLine(output, "For module: {0}", moduleName);
       }
 
+      var newEngine = ExecutionEngine.CreateWithoutSharedCache(options); // TODO: fix this, we shouldn't be creating new engines like this!
       var result =
-        await Dafny.DafnyMain.BoogieOnce(options, output, engine, baseName, moduleName, program, programId);
+        await Dafny.DafnyMain.BoogieOnce(options, output, newEngine, baseName, moduleName, program, programId);
 
       watch.Stop();
 
