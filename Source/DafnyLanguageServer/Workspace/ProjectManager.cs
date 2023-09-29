@@ -37,7 +37,7 @@ public class ProjectManager : IDisposable {
   public CompilationManager CompilationManager { get; private set; }
   private IDisposable observerSubscription;
   private readonly INotificationPublisher notificationPublisher;
-  private readonly IVerificationProgressReporter verificationProgressReporter;
+  private readonly IGutterIconAndHoverVerificationDetailsManager gutterIconManager;
   private readonly ILogger<ProjectManager> logger;
 
   /// <summary>
@@ -68,13 +68,13 @@ public class ProjectManager : IDisposable {
     CreateMigrator createMigrator,
     IFileSystem fileSystem,
     INotificationPublisher notificationPublisher,
-    IVerificationProgressReporter verificationProgressReporter,
+    IGutterIconAndHoverVerificationDetailsManager gutterIconManager,
     CreateCompilationManager createCompilationManager,
     CreateIdeStateObserver createIdeStateObserver,
     ExecutionEngine boogieEngine,
     DafnyProject project) {
     Project = project;
-    this.verificationProgressReporter = verificationProgressReporter;
+    this.gutterIconManager = gutterIconManager;
     this.notificationPublisher = notificationPublisher;
     this.serverOptions = serverOptions;
     this.fileSystem = fileSystem;
@@ -108,10 +108,11 @@ public class ProjectManager : IDisposable {
   public void UpdateDocument(DidChangeTextDocumentParams documentChange) {
     var migrator = createMigrator(documentChange, CancellationToken.None);
     Lazy<IdeState> lazyPreviousCompilationLastIdeState = latestIdeState;
+    var upcomingVersion = version + 1;
     latestIdeState = new Lazy<IdeState>(() => {
       // If we migrate the observer before accessing latestIdeState, we can be sure it's migrated before it receives new events.
-      observer.Migrate(migrator, version + 1);
-      return lazyPreviousCompilationLastIdeState.Value.Migrate(migrator, version + 1);
+      observer.Migrate(migrator, upcomingVersion);
+      return lazyPreviousCompilationLastIdeState.Value.Migrate(migrator, upcomingVersion);
     });
     StartNewCompilation();
 
@@ -141,21 +142,27 @@ public class ProjectManager : IDisposable {
   }
 
   private void StartNewCompilation() {
-    version++;
+    var compilationVersion = ++version;
     logger.LogDebug("Clearing result for workCompletedForCurrentVersion");
 
     Lazy<IdeState> migratedLazyPreviousCompilationLastIdeState = latestIdeState;
     observerSubscription.Dispose();
 
-    CompilationManager.CancelPendingUpdates();
+    CompilationManager.Dispose();
     CompilationManager = createCompilationManager(
       options,
       boogieEngine,
       CreateInitialCompilation(),
       latestIdeState.Value.VerificationTrees);
 
-    var migratedUpdates = CompilationManager.CompilationUpdates.Select(document =>
-      latestIdeState = new Lazy<IdeState>(() => document.ToIdeState(migratedLazyPreviousCompilationLastIdeState.Value)));
+    var migratedUpdates = CompilationManager.CompilationUpdates.Select(document => {
+      if (document.Version == compilationVersion) {
+        latestIdeState =
+          new Lazy<IdeState>(() => document.ToIdeState(migratedLazyPreviousCompilationLastIdeState.Value));
+      }
+
+      return latestIdeState;
+    });
     var throttleTime = options.Get(ServerCommand.UpdateThrottling);
     var throttledUpdates = throttleTime == 0 ? migratedUpdates : migratedUpdates.Sample(TimeSpan.FromMilliseconds(throttleTime));
     observerSubscription = throttledUpdates.
@@ -214,6 +221,7 @@ public class ProjectManager : IDisposable {
       observer.OnCompleted();
     } catch (OperationCanceledException) {
     }
+    Dispose();
   }
 
   public async Task<CompilationAfterParsing> GetLastDocumentAsync() {
@@ -267,14 +275,18 @@ public class ProjectManager : IDisposable {
       compilationManager.IncrementJobs();
       var resolvedCompilation = await compilationManager.ResolvedCompilation;
 
-      var verifiables = resolvedCompilation.Verifiables.ToList();
+      var verifiables = resolvedCompilation.Verifiables?.ToList();
+      if (verifiables == null) {
+        return;
+      }
+
       if (uri != null) {
         verifiables = verifiables.Where(d => d.Tok.Uri == uri).ToList();
       }
 
       List<FilePosition> changedVerifiables;
       lock (RecentChanges) {
-        changedVerifiables = GetChangedVerifiablesFromRanges(resolvedCompilation, RecentChanges).ToList();
+        changedVerifiables = GetChangedVerifiablesFromRanges(verifiables, RecentChanges).ToList();
       }
 
       int GetPriorityAttribute(ISymbol symbol) {
@@ -315,10 +327,10 @@ public class ProjectManager : IDisposable {
     }
   }
 
-  private IEnumerable<FilePosition> GetChangedVerifiablesFromRanges(CompilationAfterResolution translated, IEnumerable<Location> changedRanges) {
+  private IEnumerable<FilePosition> GetChangedVerifiablesFromRanges(IReadOnlyList<ICanVerify> verifiables, IEnumerable<Location> changedRanges) {
     IntervalTree<Position, Position> GetTree(Uri uri) {
       var intervalTree = new IntervalTree<Position, Position>();
-      foreach (var canVerify in translated.Verifiables) {
+      foreach (var canVerify in verifiables) {
         if (canVerify.Tok.Uri == uri) {
           intervalTree.Add(
             canVerify.RangeToken.StartToken.GetLspPosition(),
@@ -348,6 +360,7 @@ public class ProjectManager : IDisposable {
   }
 
   public void Dispose() {
-    CompilationManager.CancelPendingUpdates();
+    observerSubscription.Dispose();
+    CompilationManager.Dispose();
   }
 }

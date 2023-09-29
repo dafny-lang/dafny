@@ -2,11 +2,6 @@ name: Check Deep Tests (Reusable Workflow)
 
 on:
   workflow_call:
-    inputs:
-      sha:
-        type: string
-      branch:
-        type: string
 
 jobs:
   check-deep-tests:
@@ -20,9 +15,11 @@ jobs:
     - uses: actions/github-script@v6
       if: github.repository_owner == 'dafny-lang'
       with:
+        # Since nightly-build.yml always targets fixed branches now, rather than being parameterized by
+        # branch, we can't effectively check "for a specific branch".
+        # That means we have to be less precise for now and block all branches if any branch fails the deep nightly tests.
         script: |
           const script = require('${{ github.workspace }}/dafny/.github/workflows/check-for-workflow-run.js')
           console.log(script({github, context, core,
-                              workflow_id: 'deep-tests.yml',
-                              ...('${{ inputs.sha }}' ? {sha: '${{ inputs.sha }}'} : {}),
-                              ...('${{ inputs.branch }}' ? {branch: '${{ inputs.branch }}'} : {})}))
+                              workflow_id: 'nightly-build.yml',
+                              branch: 'master'}))
