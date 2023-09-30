@@ -38,7 +38,7 @@ module As {
 module Underspecification0 {
   method P() {
     var u;
-    var w := !u; // error: type is underspecified, so ! operator is not understood
+    var w := !u; // fine: both u and w are inferred to have type bool (on account of advice)
   }
 }
 

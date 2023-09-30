@@ -1,20 +1,19 @@
-TypeInferenceRefreshErrors.dfy(14,10): Error: a reads-clause expression must denote an object, a set/iset/multiset/seq of objects, or a function to a set/iset/multiset/seq of objects (instead got () ~> C?)
+TypeInferenceRefreshErrors.dfy(14,10): Error: a reads-clause expression must denote an object, a set/iset/multiset/seq of objects, or a function to a set/iset/multiset/seq of objects (instead got () ~> C)
 TypeInferenceRefreshErrors.dfy(19,10): Error: a reads-clause expression must denote an object, a set/iset/multiset/seq of objects, or a function to a set/iset/multiset/seq of objects (instead got real)
 TypeInferenceRefreshErrors.dfy(20,10): Error: a reads-clause expression must denote an object, a set/iset/multiset/seq of objects, or a function to a set/iset/multiset/seq of objects (instead got set<real>)
 TypeInferenceRefreshErrors.dfy(21,10): Error: a reads-clause expression must denote an object, a set/iset/multiset/seq of objects, or a function to a set/iset/multiset/seq of objects (instead got () ~> set<real>)
-TypeInferenceRefreshErrors.dfy(22,10): Error: a reads-clause expression must denote an object, a set/iset/multiset/seq of objects, or a function to a set/iset/multiset/seq of objects (instead got () ~> map<object?, object?>)
-TypeInferenceRefreshErrors.dfy(33,12): Error: type cast to reference type 'C?' must be from an expression assignable to it (got 'D?')
-TypeInferenceRefreshErrors.dfy(34,12): Error: type cast to reference type 'D?' must be from an expression assignable to it (got 'C?')
-TypeInferenceRefreshErrors.dfy(41,13): Error: logical/bitwise negation expects a boolean or bitvector argument (instead got ?0)
+TypeInferenceRefreshErrors.dfy(22,10): Error: a reads-clause expression must denote an object, a set/iset/multiset/seq of objects, or a function to a set/iset/multiset/seq of objects (instead got () ~> map<object, object>)
+TypeInferenceRefreshErrors.dfy(33,12): Error: type cast to reference type 'C' must be from an expression assignable to it (got 'D')
+TypeInferenceRefreshErrors.dfy(34,12): Error: type cast to reference type 'D' must be from an expression assignable to it (got 'C')
 TypeInferenceRefreshErrors.dfy(49,8): Error: the type ('E?<?0>') of this variable is underspecified
-TypeInferenceRefreshErrors.dfy(50,16): Error: the type ('E?<?2>') of this cast target is underspecified
-TypeInferenceRefreshErrors.dfy(51,16): Error: the type ('E?<set<?7>>') of this cast target is underspecified
+TypeInferenceRefreshErrors.dfy(50,16): Error: the type ('E<?2>') of this cast target is underspecified
+TypeInferenceRefreshErrors.dfy(51,16): Error: the type ('E<set<?6>>') of this cast target is underspecified
 TypeInferenceRefreshErrors.dfy(64,8): Error: the type ('map<?8, ?9>') of this local variable is underspecified
 TypeInferenceRefreshErrors.dfy(65,8): Error: the type ('map<?10, ?11>') of this local variable is underspecified
 TypeInferenceRefreshErrors.dfy(66,8): Error: the type ('map<?18, ?19>') of this local variable is underspecified
 TypeInferenceRefreshErrors.dfy(67,11): Error: the type ('map<?16, ?17>') of this expression is underspecified
 TypeInferenceRefreshErrors.dfy(76,8): Error: the type ('Synonym<int, ?4>') of this variable is underspecified
-TypeInferenceRefreshErrors.dfy(85,8): Error: the type of this variable is underspecified
+TypeInferenceRefreshErrors.dfy(85,8): Error: the type ('SubsetType<int, ?4>') of this variable is underspecified
 TypeInferenceRefreshErrors.dfy(97,8): Error: the type ('Synonym<int, ?3>') of this variable is underspecified
 TypeInferenceRefreshErrors.dfy(100,8): Error: the type ('Synonym<int, ?6>') of this variable is underspecified
 TypeInferenceRefreshErrors.dfy(109,13): Error: datatype constructor does not take any type parameters ('White')
@@ -42,4 +41,4 @@ TypeInferenceRefreshErrors.dfy(205,6): Warning: this branch is redundant
 TypeInferenceRefreshErrors.dfy(212,6): Warning: this branch is redundant
 TypeInferenceRefreshErrors.dfy(220,6): Warning: this branch is redundant
 TypeInferenceRefreshErrors.dfy(255,9): Error: pattern (of type int) cannot be used with source type Color
-41 resolution/type errors detected in TypeInferenceRefreshErrors.dfy
+40 resolution/type errors detected in TypeInferenceRefreshErrors.dfy

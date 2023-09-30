@@ -88,12 +88,19 @@ public class UserDefinedType : NonProxyType, IHasUsages {
     Contract.Requires(cd != null);
     Contract.Assert((cd is ArrowTypeDecl) == ArrowType.IsArrowTypeName(cd.Name));
     var args = (typeArgs ?? cd.TypeArgs).ConvertAll(tp => (Type)new UserDefinedType(tp));
+    return FromTopLevelDecl(tok, cd, args);
+  }
+
+  /// <summary>
+  /// Constructs a Type (in particular, a UserDefinedType) from a TopLevelDecl denoting a type declaration.
+  /// </summary>
+  public static UserDefinedType FromTopLevelDecl(IToken tok, TopLevelDecl cd, List<Type> typeArguments) {
     if (cd is ArrowTypeDecl) {
-      return new ArrowType(tok, (ArrowTypeDecl)cd, args);
+      return new ArrowType(tok, (ArrowTypeDecl)cd, typeArguments);
     } else if (cd is ClassLikeDecl { IsReferenceTypeDecl: true }) {
-      return new UserDefinedType(tok, cd.Name + "?", cd, args);
+      return new UserDefinedType(tok, cd.Name + "?", cd, typeArguments);
     } else {
-      return new UserDefinedType(tok, cd.Name, cd, args);
+      return new UserDefinedType(tok, cd.Name, cd, typeArguments);
     }
   }
 
@@ -135,7 +142,10 @@ public class UserDefinedType : NonProxyType, IHasUsages {
   }
 
   /// <summary>
-  /// This constructor constructs a resolved class/datatype/iterator/subset-type/newtype type
+  /// This constructor constructs a resolved class/datatype/iterator/subset-type/newtype type.
+  /// Note, if "cd" is an arrow type or a possibly-null reference type, then it's better to call
+  /// the FromTopLevelDecl method to create the UserDefinedType; that makes sure the right class
+  /// and right name is used.
   /// </summary>
   public UserDefinedType(IToken tok, string name, TopLevelDecl cd, [Captured] List<Type> typeArgs, Expression/*?*/ namePath = null) {
     Contract.Requires(tok != null);
@@ -149,6 +159,7 @@ public class UserDefinedType : NonProxyType, IHasUsages {
     //Contract.Requires(!(cd is ClassDecl) || name == cd.Name + "?");
     Contract.Requires(!(cd is ArrowTypeDecl) || name == cd.Name);
     Contract.Requires(!(cd is DefaultClassDecl) || name == cd.Name);
+    Contract.Assert(cd is not ArrowTypeDecl || this is ArrowType);
     this.tok = tok;
     this.Name = name;
     this.ResolvedClass = cd;

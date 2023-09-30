@@ -67,7 +67,7 @@ abstract class Flow {
       return false;
     }
     if (context.DebugPrint) {
-      context.OutputWriter.WriteLine($"DEBUG: updating {previousLhs} to {AdjustableType.ToStringAsBottom(sink)} ({joinArguments})");
+      context.OutputWriter.WriteLine($"DEBUG: adjusting {previousLhs} to {AdjustableType.ToStringAsBottom(sink)} ({joinArguments})");
     }
     return true;
   }
@@ -82,7 +82,8 @@ abstract class Flow {
   [CanBeNull]
   public static Type JoinAndUpdate(Type a, Type b, FlowContext context) {
     var adjustableA = AdjustableType.NormalizeSansAdjustableType(a) as AdjustableType;
-    var join = Join(adjustableA?.T ?? a, b, context);
+    var adjustableB = AdjustableType.NormalizeSansAdjustableType(b) as AdjustableType;
+    var join = Join(adjustableA?.T ?? a, adjustableB?.T ?? b, context);
     if (join == null) {
       return null;
     }
@@ -90,8 +91,7 @@ abstract class Flow {
       return join;
     }
 
-    join = AdjustableType.NormalizeSansAdjustableType(join);
-    if (join is AdjustableType adjustableJoin) {
+    if (AdjustableType.NormalizeSansAdjustableType(join) is AdjustableType adjustableJoin) {
       join = adjustableJoin.T;
     }
     adjustableA.T = join;
@@ -101,7 +101,6 @@ abstract class Flow {
   [CanBeNull]
   public static Type CopyAndUpdate(Type a, Type b, FlowContext context) {
     var adjustableA = AdjustableType.NormalizeSansAdjustableType(a) as AdjustableType;
-    var aa = adjustableA?.T ?? a;
     // compute the "copy" of aa and b:
     Type copy;
     if (AdjustableType.NormalizesToBottom(a)) {
@@ -137,6 +136,19 @@ abstract class Flow {
     Contract.Requires(a != null);
     Contract.Requires(b != null);
 
+    [CanBeNull]
+    Type JoinChildren(UserDefinedType udtA, UserDefinedType udtB) {
+      if (udtA.ResolvedClass == udtB.ResolvedClass) {
+        // We have two subset types with equal heads
+        Contract.Assert(a.TypeArgs.Count == b.TypeArgs.Count);
+        var typeArgs = Joins(TypeParameter.Variances(udtA.ResolvedClass.TypeArgs), a.TypeArgs, b.TypeArgs, context);
+        if (typeArgs != null) {
+          return UserDefinedType.FromTopLevelDecl(udtA.tok, udtA.ResolvedClass, typeArgs);
+        }
+      }
+      return null;
+    }
+
     if (a is BottomTypePlaceholder) {
       return b;
     } else if (b is BottomTypePlaceholder) {
@@ -146,8 +158,8 @@ abstract class Flow {
     // Before we do anything else, make a note of whether or not both "a" and "b" are non-null types.
     var abNonNullTypes = a.IsNonNullRefType && b.IsNonNullRefType;
 
-    var towerA = Type.GetTowerOfSubsetTypes(a);
-    var towerB = Type.GetTowerOfSubsetTypes(b);
+    var towerA = Type.GetTowerOfSubsetTypes(a, true);
+    var towerB = Type.GetTowerOfSubsetTypes(b, true);
     // We almost expect the base types of these towers to be the same, since the module has successfully gone through pre-resolution and the
     // pre-resolution underspecification checks. However, there are considerations.
     //   - One is that the two given types may contain unused type parameters in type synonyms or subset types, and pre-resolution does not
@@ -156,17 +168,9 @@ abstract class Flow {
     for (var n = System.Math.Min(towerA.Count, towerB.Count); 1 <= --n;) {
       a = towerA[n];
       b = towerB[n];
-      var udtA = (UserDefinedType)a;
-      var udtB = (UserDefinedType)b;
-      if (udtA.ResolvedClass == udtB.ResolvedClass) {
-        // We have two subset types with equal heads
-        Contract.Assert(a.TypeArgs.Count == b.TypeArgs.Count);
-        var typeArgs = Joins(TypeParameter.Variances(udtA.ResolvedClass.TypeArgs), a.TypeArgs, b.TypeArgs, context);
-        if (typeArgs == null) {
-          // there was an error in computing the joins, so propagate the error
-          return null;
-        }
-        return new UserDefinedType(udtA.tok, udtA.Name, udtA.ResolvedClass, typeArgs);
+      var join = JoinChildren((UserDefinedType)a, (UserDefinedType)b);
+      if (join != null) {
+        return join;
       }
     }
     // We exhausted all possibilities of subset types being equal, so use the base-most types.
@@ -235,7 +239,7 @@ abstract class Flow {
       return null;
     }
     var udt = (UserDefinedType)a;
-    var result = new UserDefinedType(udt.tok, udt.Name, commonSupertypeDecl, joinedTypeArgs);
+    var result = UserDefinedType.FromTopLevelDecl(udt.tok, commonSupertypeDecl, joinedTypeArgs);
     return abNonNullTypes && result.IsRefType ? UserDefinedType.CreateNonNullType(result) : result;
   }
 
@@ -307,7 +311,7 @@ class FlowIntoVariable : Flow {
   }
 
   public override bool Update(FlowContext context) {
-    return UpdateAdjustableType(sink, source.Type, context);
+    return UpdateAdjustableType(sink, AdjustableType.NormalizeSansBottom(source), context);
   }
 
   public override void DebugPrint(TextWriter output) {
@@ -384,7 +388,7 @@ abstract class FlowIntoExpr : Flow {
   public override void DebugPrint(TextWriter output) {
     if (sink is AdjustableType adjustableType) {
       var sourceType = GetSourceType();
-      var bound = PreTypeConstraints.Pad($"{adjustableType.UniqueId} :> {AdjustableType.ToStringAsAdjustableType(sourceType)}", 27);
+      var bound = PreTypeConstraints.Pad($"{AdjustableType.ToStringAsAdjustableType(adjustableType)} :> {AdjustableType.ToStringAsAdjustableType(sourceType)}", 27);
       var value = PreTypeConstraints.Pad(AdjustableType.ToStringAsBottom(adjustableType), 20);
       output.WriteLine($"    {bound}  {value}    {TokDescription()}");
     }
@@ -427,6 +431,24 @@ class FlowFromTypeArgument : FlowIntoExpr {
   }
 }
 
+class FlowFromTypeArgumentOfComputedSource : FlowIntoExpr {
+  private readonly System.Func<Type> getType;
+  private readonly int argumentIndex;
+
+  public FlowFromTypeArgumentOfComputedSource(Expression sink, System.Func<Type> getType, int argumentIndex)
+    : base(sink, sink.tok) {
+    Contract.Requires(0 <= argumentIndex);
+    this.getType = getType;
+    this.argumentIndex = argumentIndex;
+  }
+
+  protected override Type GetSourceType() {
+    var sourceType = getType().NormalizeExpand();
+    Contract.Assert(argumentIndex < sourceType.TypeArgs.Count);
+    return sourceType.TypeArgs[argumentIndex];
+  }
+}
+
 class FlowFromComputedType : FlowIntoExpr {
   private readonly System.Func<Type> getType;
 
@@ -449,6 +471,6 @@ class FlowBetweenExpressions : FlowIntoExpr {
   }
 
   protected override Type GetSourceType() {
-    return source.Type;
+    return AdjustableType.NormalizeSansBottom(source);
   }
 }
