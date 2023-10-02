@@ -30,7 +30,10 @@ public static class PreType2TypeUtil {
       case TypeParameter.TPVariance.Co:
         ty = new BottomTypePlaceholder(ty);
         break;
-      default:
+      case TypeParameter.TPVariance.Non:
+        ty = new ExactTypePlaceholder(ty);
+        break;
+      case TypeParameter.TPVariance.Contra:
         break;
     }
 
